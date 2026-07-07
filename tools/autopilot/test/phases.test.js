@@ -30,6 +30,9 @@ const {
     DEFAULT_WATCHDOG,
     HITL_LABEL,
     AUTOPILOT_LABEL,
+    TRACKING_LABEL,
+    isTrackerItem,
+    hasTrackingLabel,
     STICKY_MARKER,
     PR_SYNC_STATUSES,
     READY_STATUSES,
@@ -170,6 +173,44 @@ test('selectActionable: released Review items dispatch address-review via contex
         picked.map((p) => [p.issue, p.phase, p.pr]),
         [[10, 'address-review', 100], [11, 'address-review', 101]],
     );
+});
+
+test('isTrackerItem / hasTrackingLabel: EPIC またはラベルでトラッカー判定', () => {
+    assert.equal(isTrackerItem({ kind: 'EPIC' }), true);
+    assert.equal(isTrackerItem({ kind: 'Issue', labels: [TRACKING_LABEL] }), true);
+    assert.equal(isTrackerItem({ kind: 'Issue', labels: [] }), false);
+    assert.equal(isTrackerItem(null), false);
+    // hasTrackingLabel は Kind を見ない（未分解 EPIC は decompose 対象のため）
+    assert.equal(hasTrackingLabel({ kind: 'EPIC', labels: [] }), false);
+    assert.equal(hasTrackingLabel({ labels: [TRACKING_LABEL] }), true);
+});
+
+test('phaseForItem: 🧭 tracking ラベル付きは作業 item ではない（常に null）', () => {
+    assert.equal(phaseForItem({ status: 'New Item', labels: [TRACKING_LABEL] }), null);
+    assert.equal(phaseForItem({ status: 'Sprint Backlog', kind: 'EPIC', labels: [TRACKING_LABEL] }), null);
+    assert.equal(phaseForItem({ status: 'Review', hitlLabel: false, labels: [TRACKING_LABEL] }), null);
+    // ラベルの無い EPIC は従来どおり decompose 対象
+    assert.equal(phaseForItem({ status: 'Sprint Backlog', kind: 'EPIC', labels: [] }), 'decompose');
+});
+
+test('selectMergeCandidates / selectPrSyncCandidates: 🧭 tracking も除外', () => {
+    const items = [
+        { issue: 1, status: 'Review', kind: 'Issue' },
+        { issue: 2, status: 'Review', kind: 'EPIC' },
+        { issue: 3, status: 'Review', kind: 'Issue', labels: [TRACKING_LABEL] },
+    ];
+    assert.deepEqual(selectMergeCandidates(items).map((i) => i.issue), [1]);
+    assert.deepEqual(selectPrSyncCandidates(items).map((i) => i.issue), [1]);
+});
+
+test('labelActions: Kind=EPIC には 🧭 tracking を担保する（自動では外さない）', () => {
+    const epic = { kind: 'EPIC', hitlLabel: false, status: 'In Progress' };
+    assert.ok(labelActions(epic, [AUTOPILOT_LABEL]).add.includes(TRACKING_LABEL));
+    // 既に付いていれば何もしない
+    assert.ok(!labelActions(epic, [AUTOPILOT_LABEL, TRACKING_LABEL]).add.includes(TRACKING_LABEL));
+    // leaf に人間が手動で付けた tracking は剥がさない
+    const leaf = { kind: 'Issue', hitlLabel: false, status: 'In Progress' };
+    assert.ok(!labelActions(leaf, [AUTOPILOT_LABEL, TRACKING_LABEL]).remove.includes(TRACKING_LABEL));
 });
 
 test('itemOwner: 辞書順先頭の assignee が決定的な単一オーナー', () => {

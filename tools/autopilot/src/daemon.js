@@ -30,6 +30,9 @@ const {
     selectClosedToReconcile,
     selectPrSyncCandidates,
     ownsItem,
+    TRACKING_LABEL,
+    TERMINAL_STATUSES,
+    isTrackerItem,
     labelActions,
     draftAction,
     renderSticky,
@@ -372,7 +375,7 @@ function applyDodHandoffs(items, cfg, state, log, deps = {}) {
     const getIssueBody = deps.getIssueBody || project.getIssueBody;
     const postIssueComment = deps.postIssueComment || project.postIssueComment;
     for (const item of items) {
-        if (!item || item.kind === 'EPIC' || item.status !== 'DoD') continue;
+        if (!item || isTrackerItem(item) || item.status !== 'DoD') continue;
         if (state.running.has(item.issue)) continue; // live phase が所有中は触らない
         try {
             const pr = findPrForIssue(cfg.repo, item.issue, token);
@@ -393,6 +396,30 @@ function applyDodHandoffs(items, cfg, state, log, deps = {}) {
             log(`#${item.issue}: posted DoD handoff on PR #${pr.number}`);
         } catch (e) {
             log(`#${item.issue}: DoD handoff failed: ${e.message}`);
+        }
+    }
+}
+
+/**
+ * EPIC トラッキング整合: Kind=EPIC なのに 🧭 tracking ラベルが無い item にラベルを付与する。
+ * 以後の tick は（Kind フィールドを見なくても）ラベルだけでトラッカーと判定でき、
+ * merge 検知・PR 投影・フェーズ選択から低コストに除外できる。ラベルは自動では外さない
+ * （人間の手動トラッカー指定を潰さない。外すのは人間）。終端（Close/Done）は触らない。
+ * deps は injection 可能（テスト用）。実行中の item は触らない。1 件の失敗は他を止めない。
+ */
+function applyEpicTracking(items, cfg, state, log, deps = {}) {
+    const token = deps.token || project.botToken();
+    const editLabels = deps.editLabels || project.editLabels;
+    for (const item of items) {
+        if (!item || item.kind !== 'EPIC') continue;
+        if (TERMINAL_STATUSES.has(item.status)) continue;
+        if ((item.labels || []).includes(TRACKING_LABEL)) continue;
+        if (state.running.has(item.issue)) continue;
+        try {
+            editLabels(cfg.repo, item.issue, 'issue', { add: [TRACKING_LABEL] }, token);
+            log(`#${item.issue}: EPIC に ${TRACKING_LABEL} を付与`);
+        } catch (e) {
+            log(`#${item.issue}: tracking label failed: ${e.message}`);
         }
     }
 }
@@ -521,6 +548,8 @@ async function tick(cfg, state, log) {
     applyMergeProgression(items, cfg, state, log);
     // GitHub で closed な issue（EPIC・人手 close 含む）の Project Status を Close へ整合（#843 Fix B）
     applyClosedReconcile(items, cfg, state, log, { closedSet });
+    // Kind=EPIC に 🧭 tracking ラベルを担保（以後の判定を低コスト化）
+    applyEpicTracking(items, cfg, state, log);
     // In Progress + AI 作業中のまま止まった item を検知して Blocked へ（#816）
     detectStuck(items, cfg, state, log);
     // Status=DoD の leaf に headful 検証の引き継ぎコメントを 1 回だけ投稿（#821・冪等）
@@ -668,5 +697,5 @@ async function main(opts = {}) {
 
 module.exports = {
     main, tick, runTickOnce, dispatch, applyMergeProgression, applyClosedReconcile, applyPrProjection,
-    applyDodHandoffs, detectStuck, markBlocked, getDirectives,
+    applyDodHandoffs, detectStuck, markBlocked, getDirectives, applyEpicTracking,
 };

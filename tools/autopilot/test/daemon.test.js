@@ -3,7 +3,7 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const {
     applyMergeProgression, applyClosedReconcile, applyPrProjection, applyDodHandoffs, runTickOnce,
-    detectStuck, markBlocked, getDirectives,
+    detectStuck, markBlocked, getDirectives, applyEpicTracking,
 } = require('../src/daemon');
 const { HITL_LABEL, AUTOPILOT_LABEL } = require('../src/phases');
 
@@ -428,6 +428,40 @@ test('applyDodHandoffs: a failing item does not block others', () => {
     const state = { running: new Map() };
     applyDodHandoffs(items, makeCfg(), state, () => {}, deps);
     assert.deepEqual(deps.calls.posted.map((p) => p.prNumber), [200]);
+});
+
+// === 🧭 tracking: applyEpicTracking（分解済み親のトラッカー化） ===
+
+test('applyEpicTracking: ラベル無し EPIC に 🧭 tracking を付与、終端/付与済み/実行中/leaf はスキップ', () => {
+    const { TRACKING_LABEL } = require('../src/phases');
+    const items = [
+        { issue: 1, status: 'In Progress', kind: 'EPIC', labels: [] }, // 付与
+        { issue: 2, status: 'In Progress', kind: 'EPIC', labels: [TRACKING_LABEL] }, // 付与済み
+        { issue: 3, status: 'Close', kind: 'EPIC', labels: [] }, // 終端
+        { issue: 4, status: 'In Progress', kind: 'Issue', labels: [] }, // leaf
+        { issue: 5, status: 'Backlog', kind: 'EPIC', labels: [] }, // 実行中
+    ];
+    const added = [];
+    const state = { running: new Map([[5, { phase: 'decompose' }]]) };
+    applyEpicTracking(items, makeCfg(), state, () => {}, {
+        token: 't',
+        editLabels: (repo, number, type, diff) => added.push({ number, type, ...diff }),
+    });
+    assert.deepEqual(added, [{ number: 1, type: 'issue', add: [TRACKING_LABEL] }]);
+});
+
+test('applyEpicTracking: 1 件の失敗は他を止めない', () => {
+    const items = [
+        { issue: 1, status: 'Backlog', kind: 'EPIC', labels: [] },
+        { issue: 2, status: 'Backlog', kind: 'EPIC', labels: [] },
+    ];
+    const added = [];
+    const state = { running: new Map() };
+    applyEpicTracking(items, makeCfg(), state, () => {}, {
+        token: 't',
+        editLabels: (repo, number) => { if (number === 1) throw new Error('boom'); added.push(number); },
+    });
+    assert.deepEqual(added, [2]);
 });
 
 // === directives: getDirectives（autopilot-base / autopilot-after の TTL キャッシュ） ===

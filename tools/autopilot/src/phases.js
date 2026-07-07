@@ -219,7 +219,7 @@ const MERGE_CHECK_STATUSES = new Set(['In Progress', 'Review', 'DoD']);
  */
 function selectMergeCandidates(items) {
     return (items || []).filter(
-        (it) => it && it.kind !== 'EPIC' && MERGE_CHECK_STATUSES.has(it.status),
+        (it) => it && !isTrackerItem(it) && MERGE_CHECK_STATUSES.has(it.status),
     );
 }
 
@@ -328,6 +328,10 @@ const HUMAN_GATE_STATUSES = new Set(['Review', 'DoD']);
  */
 function phaseForItem(item, ctx = {}) {
     if (!item) return null;
+    // 🧭 tracking ラベル付き = 分解済みの親トラッカー。作業 item ではないので何もしない
+    // （完了は closed-reconcile が拾う）。Kind=EPIC でも未分解なら decompose 対象なので
+    // ここではラベルだけを見る。
+    if (hasTrackingLabel(item)) return null;
     const status = item.status || 'New Item';
     if (HUMAN_GATE_STATUSES.has(status)) {
         // 解除シグナルがあれば OR 判定、無ければ Issue の 🙋 ラベル単独で判定（#813）。
@@ -477,6 +481,37 @@ const AUTOPILOT_LABEL = '🤖 autopilot';
 /** 人間の対応待ちを示すラベル（Project HITL=Yes を投影） */
 const HITL_LABEL = '🙋 HITL';
 /**
+ * sub-issue に分解済みの親（トラッカー）を示すラベル。
+ * 「作業 item かどうか」を毎 tick GitHub に問い合わせて判定するコストを避け、
+ * ラベル 1 つで merge 検知・PR 投影・DoD 引き継ぎ・フェーズ選択から除外できるようにする。
+ * daemon が Kind=EPIC の item に自動付与するほか、人間が手動で付けて
+ * 任意の Issue をトラッカー扱いにもできる（外せば作業 item に戻る）。
+ */
+const TRACKING_LABEL = '🧭 tracking';
+
+/**
+ * item がトラッカー（sub-issue に分解済みの親 = 作業 item ではない）か（純粋関数）。
+ * Kind=EPIC または 🧭 tracking ラベルで判定する。
+ * @param {object} item { kind, labels }
+ * @returns {boolean}
+ */
+function isTrackerItem(item) {
+    if (!item) return false;
+    if (item.kind === 'EPIC') return true;
+    return hasTrackingLabel(item);
+}
+
+/**
+ * item に 🧭 tracking ラベルが付いているか（純粋関数）。
+ * {@link isTrackerItem} と違い Kind は見ない（フェーズ選択では「未分解の EPIC は
+ * decompose 対象」なので、Kind=EPIC だけではフェーズ対象から外さない）。
+ * @param {object} item { labels }
+ * @returns {boolean}
+ */
+function hasTrackingLabel(item) {
+    return Boolean(item) && Array.isArray(item.labels) && item.labels.includes(TRACKING_LABEL);
+}
+/**
  * sticky ステータスコメントの識別マーカー（bot が1コメントを upsert し続ける目印）。
  * コントラクト `docs/autopilot/autonomous-contract.md` §2/§7 が規定する正準マーカー。
  */
@@ -528,13 +563,14 @@ const PR_SYNC_STATUSES = new Set(['In Progress', 'Review', 'DoD', 'Blocked']);
 const READY_STATUSES = new Set(['Review', 'DoD', 'Close', 'Blocked']);
 
 /**
- * PR 投影の対象 item を選ぶ（純粋関数）。EPIC は実装 PR を持たないので除外。
+ * PR 投影の対象 item を選ぶ（純粋関数）。トラッカー（EPIC / 🧭 tracking）は実装 PR を
+ * 持たないので除外。
  * @param {object[]} items
  * @returns {object[]}
  */
 function selectPrSyncCandidates(items) {
     return (items || []).filter(
-        (it) => it && it.kind !== 'EPIC' && PR_SYNC_STATUSES.has(it.status),
+        (it) => it && !isTrackerItem(it) && PR_SYNC_STATUSES.has(it.status),
     );
 }
 
@@ -600,6 +636,9 @@ function labelActions(item, currentLabels, opts = {}) {
     const add = [];
     const remove = [];
     if (!cur.includes(AUTOPILOT_LABEL)) add.push(AUTOPILOT_LABEL);
+    // Kind=EPIC には 🧭 tracking を担保する（以後の tick はラベルだけで判定できる）。
+    // 自動では外さない（人間が手動で付けたトラッカー指定を潰さない）。
+    if (item && item.kind === 'EPIC' && !cur.includes(TRACKING_LABEL)) add.push(TRACKING_LABEL);
     const h = hitlLabelAction(item, cur.includes(HITL_LABEL), opts);
     if (h === 'add') add.push(HITL_LABEL);
     else if (h === 'remove') remove.push(HITL_LABEL);
@@ -749,7 +788,7 @@ function extractDodChecklist(body) {
  * @returns {boolean}
  */
 function needsDodHandoff(item, ctx = {}) {
-    if (!item || item.kind === 'EPIC') return false;
+    if (!item || isTrackerItem(item)) return false;
     if (item.status !== 'DoD') return false;
     if (!ctx.hasPr) return false;
     return !ctx.hasHandoffComment;
@@ -941,6 +980,9 @@ module.exports = {
     DEFAULT_WATCHDOG,
     AUTOPILOT_LABEL,
     HITL_LABEL,
+    TRACKING_LABEL,
+    isTrackerItem,
+    hasTrackingLabel,
     STICKY_MARKER,
     LEGACY_STICKY_MARKERS,
     STICKY_MARKERS,
