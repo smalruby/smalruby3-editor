@@ -239,10 +239,11 @@ PR の **diff と全コメント（Issue/レビュー本文/インライン）**
 | LGTM / 対応不要 | 何もしない → 人間のマージ待ち |
 | 判断がつかない | 論点を整理してコメント + `AUTOPILOT_HITL`（人間に質問） |
 
-- 解除シグナルは **OR セマンティクス**: Issue の `🙋 HITL` ラベル / PR の `🙋 HITL` ラベルの
-  **いずれか1つでも除去**なら解除（`getReviewContext` が2面を集め、`phaseForItem` が `isHitlReleased`
-  で判定）。daemon が両面を atomic に同期する（後述「PR 側の状態可視化」）ので、人間は目の前の
-  PR ラベルを外すだけで差し戻せる。
+- 解除は **2 系統の OR**: (a) Issue / PR いずれかの `🙋 HITL` ラベル除去、(b) ゲート開放中の
+  **人間の発言**（レビュー送信・コメント。ラベルを触らなくてよい）。`getGateContext` が
+  ラベル 2 面 + 発言アクティビティを集め、`phaseForItem` が `isGateReleased` で判定する。
+  daemon が両面を atomic に同期する（後述「PR 側の状態可視化」）ので、人間は目の前の
+  PR ラベルを外すだけでも、コメントを返すだけでも差し戻せる。
 - address-review は **既存 PR ブランチ**で作業する（daemon が worktree を `--pr` で用意）。
 - **コンフリクトは autopilot で解消しない**（rebase/merge コンフリクトは人間の役割）。プロンプトは
   解消を試みず HITL で人間に渡す。
