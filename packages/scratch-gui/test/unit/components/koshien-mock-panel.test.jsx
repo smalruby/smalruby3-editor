@@ -1,6 +1,6 @@
 /* eslint-env jest */
 import '@testing-library/jest-dom';
-import { fireEvent, render } from '@testing-library/react';
+import { act, fireEvent, render } from '@testing-library/react';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
 // eslint-disable-next-line import/first
@@ -113,12 +113,33 @@ describe('KoshienMockPanel', () => {
         fireEvent.click(getByTestId('koshien-mock-panel-log-toggle'));
         expect(queryByTestId('koshien-mock-panel-me')).not.toBeInTheDocument();
         expect(queryByTestId('koshien-mock-panel-rival')).not.toBeInTheDocument();
-        expect(queryByTestId('koshien-mock-panel-view-all')).not.toBeInTheDocument();
+        // The view switch, the turn and the log all stay visible.
+        expect(getByTestId('koshien-mock-panel-view-all')).toBeInTheDocument();
         expect(getByTestId('koshien-mock-panel-turn')).toBeInTheDocument();
         expect(getByTestId('koshien-mock-panel-journal')).toBeInTheDocument();
         fireEvent.click(getByTestId('koshien-mock-panel-log-toggle'));
         expect(getByTestId('koshien-mock-panel-me')).toBeInTheDocument();
-        expect(getByTestId('koshien-mock-panel-view-all')).toBeInTheDocument();
+    });
+
+    test('hovering a cell shows its tooltip after a beat and hides it after leaving', () => {
+        jest.useFakeTimers();
+        try {
+            const { getByTestId, queryByTestId } = renderPanel({ snapshot: fakeSnapshot() });
+            const canvas = getByTestId('koshien-mock-panel-canvas');
+            // Cell (1,1): jsdom rects sit at 0,0, so client 30,30 / 22px tiles = 1,1.
+            fireEvent.mouseMove(canvas, { clientX: 30, clientY: 30 });
+            expect(queryByTestId('koshien-mock-panel-tip')).not.toBeInTheDocument();
+            act(() => jest.advanceTimersByTime(350));
+            const tip = getByTestId('koshien-mock-panel-tip');
+            expect(tip).toHaveTextContent('1:1');
+            expect(tip).toHaveTextContent('0'); // map value (space)
+            fireEvent.mouseLeave(canvas);
+            expect(getByTestId('koshien-mock-panel-tip')).toBeInTheDocument(); // lingers
+            act(() => jest.advanceTimersByTime(350));
+            expect(queryByTestId('koshien-mock-panel-tip')).not.toBeInTheDocument();
+        } finally {
+            jest.useRealTimers();
+        }
     });
 
     test('the all / my-AI view switch renders and toggles without crashing', () => {

@@ -179,7 +179,150 @@ const messages = defineMessages({
         defaultMessage: 'time up',
         description: 'Player status: ran out of turns',
     },
+    tipCoordinate: {
+        id: 'gui.koshienMockPanel.tipCoordinate',
+        defaultMessage: 'Cell',
+        description: 'Tooltip label for the hovered cell coordinate',
+    },
+    tipMap: {
+        id: 'gui.koshienMockPanel.tipMap',
+        defaultMessage: 'Map',
+        description: 'Tooltip label for the map value of the hovered cell',
+    },
+    tipItem: {
+        id: 'gui.koshienMockPanel.tipItem',
+        defaultMessage: 'Item',
+        description: 'Tooltip label for the item on the hovered cell',
+    },
+    tipNone: {
+        id: 'gui.koshienMockPanel.tipNone',
+        defaultMessage: 'none',
+        description: 'Tooltip text when the hovered cell has no item',
+    },
+    tipRivalHere: {
+        id: 'gui.koshienMockPanel.tipRivalHere',
+        defaultMessage: 'Rival',
+        description: 'Tooltip text when the rival stands on the hovered cell',
+    },
+    tipFiendHere: {
+        id: 'gui.koshienMockPanel.tipFiendHere',
+        defaultMessage: 'Fiend',
+        description: 'Tooltip text when the fiend stands on the hovered cell',
+    },
+    terrainSpace: {
+        id: 'gui.koshienMockPanel.terrainSpace',
+        defaultMessage: 'space',
+        description: 'Terrain name for map value 0',
+    },
+    terrainWall: {
+        id: 'gui.koshienMockPanel.terrainWall',
+        defaultMessage: 'wall',
+        description: 'Terrain name for map value 1',
+    },
+    terrainStorehouse: {
+        id: 'gui.koshienMockPanel.terrainStorehouse',
+        defaultMessage: 'storehouse',
+        description: 'Terrain name for map value 2',
+    },
+    terrainGoal: {
+        id: 'gui.koshienMockPanel.terrainGoal',
+        defaultMessage: 'goal',
+        description: 'Terrain name for map value 3',
+    },
+    terrainWater: {
+        id: 'gui.koshienMockPanel.terrainWater',
+        defaultMessage: 'water',
+        description: 'Terrain name for map value 4',
+    },
+    terrainBreakable: {
+        id: 'gui.koshienMockPanel.terrainBreakable',
+        defaultMessage: 'breakable wall',
+        description: 'Terrain name for map value 5',
+    },
+    terrainUnknown: {
+        id: 'gui.koshienMockPanel.terrainUnknown',
+        defaultMessage: 'unexplored',
+        description: 'Terrain name for map value -1',
+    },
+    itemTea: {
+        id: 'gui.koshienMockPanel.itemTea',
+        defaultMessage: 'tea',
+        description: 'Item name for mark a',
+    },
+    itemSweets: {
+        id: 'gui.koshienMockPanel.itemSweets',
+        defaultMessage: 'sweets',
+        description: 'Item name for mark b',
+    },
+    itemCoin: {
+        id: 'gui.koshienMockPanel.itemCoin',
+        defaultMessage: 'coin',
+        description: 'Item name for mark c',
+    },
+    itemDolphin: {
+        id: 'gui.koshienMockPanel.itemDolphin',
+        defaultMessage: 'dolphin',
+        description: 'Item name for mark d',
+    },
+    itemSword: {
+        id: 'gui.koshienMockPanel.itemSword',
+        defaultMessage: 'sword',
+        description: 'Item name for mark e',
+    },
+    itemPoison: {
+        id: 'gui.koshienMockPanel.itemPoison',
+        defaultMessage: 'poison',
+        description: 'Item name for mark A',
+    },
+    itemSnake: {
+        id: 'gui.koshienMockPanel.itemSnake',
+        defaultMessage: 'snake',
+        description: 'Item name for mark B',
+    },
+    itemTrap: {
+        id: 'gui.koshienMockPanel.itemTrap',
+        defaultMessage: 'trap',
+        description: 'Item name for mark C',
+    },
+    itemBomb: {
+        id: 'gui.koshienMockPanel.itemBomb',
+        defaultMessage: 'bomb',
+        description: 'Item name for mark D',
+    },
 });
+
+/**
+ * Tooltip metadata: terrain names by map value and item name/points by mark.
+ * (The points are the published game rules.)
+ * @type {object}
+ */
+const TERRAIN_MESSAGES = {
+    0: 'terrainSpace',
+    1: 'terrainWall',
+    2: 'terrainStorehouse',
+    3: 'terrainGoal',
+    4: 'terrainWater',
+    5: 'terrainBreakable',
+    '-1': 'terrainUnknown',
+};
+const ITEM_TIPS = {
+    a: {message: 'itemTea', points: 10},
+    b: {message: 'itemSweets', points: 20},
+    c: {message: 'itemCoin', points: 30},
+    d: {message: 'itemDolphin', points: 40},
+    e: {message: 'itemSword', points: 60},
+    A: {message: 'itemPoison', points: -10},
+    B: {message: 'itemSnake', points: -20},
+    C: {message: 'itemTrap', points: -30},
+    D: {message: 'itemBomb', points: -40},
+};
+
+/**
+ * How long the pointer must rest on a cell before the tooltip shows, and how
+ * long the tooltip lingers after the pointer moves on.
+ * @type {number}
+ */
+const TIP_DELAY_MS = 300;
 
 /**
  * Preload the sprites once per module (shared by every render).
@@ -366,15 +509,40 @@ const KoshienMockPanel = ({snapshot, onClose}) => {
     const [expanded, setExpanded] = useState(true);
     const [view, setView] = useState('all');
     const [logExpanded, setLogExpanded] = useState(false);
+    const [tipCell, setTipCell] = useState(null);
     const canvasRef = useRef(null);
     const nodeRef = useRef(null);
     const journalRef = useRef(null);
+    const hoverCellRef = useRef(null);
+    const tipTimerRef = useRef(null);
     if (!spriteCache) spriteCache = loadSprites();
 
     const handleToggleExpanded = useCallback(() => setExpanded(value => !value), []);
     const handleViewAll = useCallback(() => setView('all'), []);
     const handleViewMine = useCallback(() => setView('mine'), []);
     const handleToggleLogExpanded = useCallback(() => setLogExpanded(value => !value), []);
+
+    // Tooltip timing: it shows a beat after the pointer rests on a cell, and
+    // when the pointer moves on it lingers for the same beat before it
+    // switches to the new cell (or goes away).
+    const scheduleTip = useCallback(next => {
+        clearTimeout(tipTimerRef.current);
+        tipTimerRef.current = setTimeout(() => setTipCell(next), TIP_DELAY_MS);
+    }, []);
+    const handleBoardMouseMove = useCallback(e => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const x = Math.floor((e.clientX - rect.left) / TILE);
+        const y = Math.floor((e.clientY - rect.top) / TILE);
+        const prev = hoverCellRef.current;
+        if (prev && prev.x === x && prev.y === y) return;
+        hoverCellRef.current = {x, y};
+        scheduleTip({x, y});
+    }, [scheduleTip]);
+    const handleBoardMouseLeave = useCallback(() => {
+        hoverCellRef.current = null;
+        scheduleTip(null);
+    }, [scheduleTip]);
+    useEffect(() => () => clearTimeout(tipTimerRef.current), []);
 
     const game = snapshot && snapshot.game;
     const boardSize = game ? game.rows.length * TILE : 17 * TILE;
@@ -398,6 +566,67 @@ const KoshienMockPanel = ({snapshot, onClose}) => {
 
     const me = game && game.pawns.find(pawn => pawn.isUser);
     const rival = game && game.pawns.find(pawn => !pawn.isUser);
+
+    // Assemble the hovered-cell tooltip from whichever view is displayed.
+    let tipInfo = null;
+    if (tipCell && game && tipCell.y >= 0 && tipCell.y < game.rows.length &&
+        tipCell.x >= 0 && tipCell.x < game.rows[tipCell.y].length) {
+        const {x, y} = tipCell;
+        let cell;
+        if (view === 'mine') {
+            cell = Array.isArray(snapshot.myMap) && snapshot.myMap[y] ?
+                snapshot.myMap[y][x] : -1;
+        } else {
+            const ch = game.rows[y][x];
+            cell = /[0-9]/.test(ch) ? Number(ch) : ch;
+        }
+        const item = ITEM_TIPS[cell];
+        const mapName = item ?
+            intl.formatMessage(messages.tipItem) :
+            intl.formatMessage(messages[TERRAIN_MESSAGES[String(cell)]] || messages.terrainUnknown);
+        const who = [];
+        if (view === 'mine') {
+            if (snapshot.myRival && snapshot.myRival[0] === x && snapshot.myRival[1] === y) {
+                who.push(intl.formatMessage(messages.tipRivalHere));
+            }
+            const fiend = snapshot.myFiend;
+            if (fiend && fiend.state !== 'done' && fiend.x === x && fiend.y === y) {
+                who.push(intl.formatMessage(messages.tipFiendHere));
+            }
+        } else {
+            if (rival && rival.x === x && rival.y === y) {
+                who.push(intl.formatMessage(messages.tipRivalHere));
+            }
+            if (game.fiend && game.fiend.state !== 'done' &&
+                game.fiend.x === x && game.fiend.y === y) {
+                who.push(intl.formatMessage(messages.tipFiendHere));
+            }
+        }
+        // Keep the box near the cell but inside the board: flip to the left
+        // half for cells on the right, clamp vertically.
+        const style = {
+            top: `${Math.max(2, Math.min(y * TILE - 8, boardSize - 92))}px`,
+        };
+        if (x < game.rows.length / 2) {
+            style.left = `${((x + 1) * TILE) + 6}px`;
+        } else {
+            style.right = `${boardSize - (x * TILE) + 6}px`;
+        }
+        tipInfo = {
+            x,
+            y,
+            style,
+            lines: [
+                `${intl.formatMessage(messages.tipCoordinate)} ${x}:${y}`,
+                `${intl.formatMessage(messages.tipMap)} ${cell} (${mapName})`,
+                `${intl.formatMessage(messages.tipItem)} ${item ?
+                    `${cell} ${intl.formatMessage(messages[item.message])} ${
+                        item.points > 0 ? `+${item.points}` : item.points}` :
+                    intl.formatMessage(messages.tipNone)}`,
+                who.length > 0 ? who.join('・') : '-',
+            ],
+        };
+    }
     const statusLabel = status => {
         if (status === 'completed') return intl.formatMessage(messages.statusCompleted);
         if (status === 'timeup') return intl.formatMessage(messages.statusTimeup);
@@ -456,21 +685,39 @@ const KoshienMockPanel = ({snapshot, onClose}) => {
                             <React.Fragment>
                                 {/* The CSS size is pinned to the bitmap size so
                                     flex stretching can never distort the 1:1 tiles. */}
-                                <canvas
-                                    className={styles.board}
-                                    data-testid="koshien-mock-panel-canvas"
-                                    height={boardSize}
-                                    ref={canvasRef}
+                                <div
+                                    className={styles.boardWrap}
                                     style={{width: `${boardSize}px`, height: `${boardSize}px`}}
-                                    width={boardSize}
-                                />
+                                >
+                                    <canvas
+                                        className={styles.board}
+                                        data-testid="koshien-mock-panel-canvas"
+                                        height={boardSize}
+                                        ref={canvasRef}
+                                        style={{width: `${boardSize}px`, height: `${boardSize}px`}}
+                                        width={boardSize}
+                                        onMouseLeave={handleBoardMouseLeave}
+                                        onMouseMove={handleBoardMouseMove}
+                                    />
+                                    {tipInfo ? (
+                                        <div
+                                            className={styles.cellTip}
+                                            data-testid="koshien-mock-panel-tip"
+                                            style={tipInfo.style}
+                                        >
+                                            {tipInfo.lines.map((line, i) => (
+                                                <div key={i}>{line}</div>
+                                            ))}
+                                        </div>
+                                    ) : null}
+                                </div>
                                 {/* Matches the board height so the journal scrolls
                                     instead of growing the panel. */}
                                 <div
                                     className={styles.side}
                                     style={{height: `${boardSize}px`}}
                                 >
-                                    {logExpanded ? null : <div className={styles.viewRow}>
+                                    <div className={styles.viewRow}>
                                         <button
                                             aria-pressed={view === 'all'}
                                             className={view === 'all' ? styles.viewButtonActive : styles.viewButton}
@@ -487,7 +734,7 @@ const KoshienMockPanel = ({snapshot, onClose}) => {
                                         >
                                             {intl.formatMessage(messages.viewMine)}
                                         </button>
-                                    </div>}
+                                    </div>
                                     <div
                                         className={styles.turnRow}
                                         data-testid="koshien-mock-panel-turn"
