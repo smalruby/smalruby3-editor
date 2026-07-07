@@ -106,6 +106,7 @@ function unresolvedAfterIssues(after, ctx = {}) {
  */
 const PHASE_BY_COMMAND = {
     triage: { skill: 'autopilot-triage', aiStatus: 'Triaging' },
+    discuss: { skill: 'autopilot-discuss', aiStatus: 'Discussing' },
     understand: { skill: 'autopilot-understand', aiStatus: 'Understanding' },
     decompose: { skill: 'autopilot-decompose', aiStatus: 'Decomposing' },
     implement: { skill: 'autopilot-implement', aiStatus: 'Implementing' },
@@ -350,6 +351,14 @@ function phaseForItem(item, ctx = {}) {
         return released ? 'address-review' : null;
     }
     if (item.hitlLabel) return null; // 人間の番（🙋 ラベルあり）
+    // 実装前ディスカッション（discuss）: triage が方針提案を出し AI Status=Discussing で
+    // 人間に渡した item は、人間が 🙋 を外す（= 返信した）たびにここへ戻ってくる。
+    // 議論の往復中も Status は動かさない（Backlog / New Item に固定）ので、triage との
+    // 再提案ループでステータスが固着・振動しない。承認されたら discuss が
+    // Sprint Backlog を返し、implement へ直接ハンドオフされる。
+    if ((status === 'New Item' || status === 'Backlog') && item.aiStatus === 'Discussing') {
+        return 'discuss';
+    }
     if (status === 'New Item') return 'triage';
     if (status === 'Sprint Backlog') {
         return item.kind === 'EPIC' ? 'decompose' : 'implement';

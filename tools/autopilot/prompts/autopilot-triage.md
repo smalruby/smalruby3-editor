@@ -52,6 +52,31 @@ EOF
 
 判断に迷い、人間の確認が要る場合（例: Icebox 提案、スコープ不明）は、**質問内容をコメントに書いて `AUTOPILOT_HITL` で終了**する（対話で聞かない）。
 
+### 3.5 実装方針の合意が必要なら discussion を開始する
+
+次のいずれかに該当する leaf Issue は、**そのまま Backlog に送らず、実装方針の
+ディスカッションを開始**する（往復は `autopilot-discuss` フェーズが引き継ぐ）:
+
+- Size が `large`、または設計判断・トレードオフの分岐が明確にある
+- 要件が曖昧で、実装前に人間と合意した方が手戻りが小さい
+- 既存仕様・他機能への影響が大きい
+
+開始方法: **実装方針の提案コメント**（方針・影響範囲・代替案・確認したい点）を 1 件投稿し、
+結果を `signal=hitl` + `nextStatus: "Backlog"` + `nextAiStatus: "Discussing"` で返す:
+
+```bash
+cat > "$AUTOPILOT_RESULT_FILE" <<EOF
+{"issue":$AUTOPILOT_ISSUE,"phase":"triage","signal":"hitl","summary":"実装方針を提案。人間との合意待ち。",
+"reason":"実装前に方針の合意が必要。提案コメントを確認のうえ返信し 🙋 HITL を外してください。","commentUrl":"<投稿したコメントURL>",
+"nextStatus":"Backlog","nextAiStatus":"Discussing"}
+EOF
+echo AUTOPILOT_HITL
+```
+
+人間が返信して `🙋 HITL` を外すと daemon が `autopilot-discuss` を起動し、承認されれば
+Sprint Backlog（= implement へ直接ハンドオフ）まで進む。**議論の往復中 Status は Backlog に
+固定**され、triage が再実行されることはない（ステータス固着・再提案ループの防止）。
+
 ### 4. 結果を番兵で返す（必須・最後に実行）
 
 `AUTOPILOT_RESULT_FILE` に単一行 JSON を書いてから、signal トークンを 1 行出力する。

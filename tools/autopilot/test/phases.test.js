@@ -292,6 +292,29 @@ test('selectActionable: assignee 指定で自分がオーナーの item だけ�
 test('PHASE_BY_COMMAND maps triage to the skill and AI status', () => {
     assert.deepEqual(PHASE_BY_COMMAND.triage, { skill: 'autopilot-triage', aiStatus: 'Triaging' });
     assert.equal(PHASE_BY_COMMAND['address-review'].skill, 'autopilot-address-review');
+    assert.deepEqual(PHASE_BY_COMMAND.discuss, { skill: 'autopilot-discuss', aiStatus: 'Discussing' });
+});
+
+test('phaseForItem: 実装前ディスカッション（AI Status=Discussing）の往復', () => {
+    // 人間が 🙋 を外した（返信した）→ discuss を起動
+    assert.equal(phaseForItem({ status: 'Backlog', aiStatus: 'Discussing', hitlLabel: false }), 'discuss');
+    assert.equal(phaseForItem({ status: 'New Item', aiStatus: 'Discussing', hitlLabel: false }), 'discuss');
+    // 🙋 あり = 人間の番（提案への返信待ち）
+    assert.equal(phaseForItem({ status: 'Backlog', aiStatus: 'Discussing', hitlLabel: true }), null);
+    // Discussing でない Backlog は従来どおり人間駆動（何もしない）
+    assert.equal(phaseForItem({ status: 'Backlog', aiStatus: null, hitlLabel: false }), null);
+    // 承認後（discuss done）は Sprint Backlog + AI Status クリア → implement へ直接ハンドオフ
+    assert.equal(phaseForItem({ status: 'Sprint Backlog', kind: 'Issue', aiStatus: null, hitlLabel: false }), 'implement');
+});
+
+test('applyResult: hitl + nextAiStatus=Discussing で議論状態を維持できる', () => {
+    const intents = applyResult({
+        signal: 'hitl', issue: 1, phase: 'triage', summary: 's',
+        reason: 'r', nextStatus: 'Backlog', nextAiStatus: 'Discussing',
+    });
+    const m = Object.fromEntries(intents.map((i) => [i.field, i.value]));
+    assert.equal(m.Status, 'Backlog');
+    assert.equal(m['AI Status'], 'Discussing');
 });
 
 test('DEFAULT_CLAUDE_COMMAND is non-interactive (allows Bash so gh/git do not prompt)', () => {
