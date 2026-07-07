@@ -34,6 +34,7 @@ const {
     TRACKING_LABEL,
     isTrackerItem,
     hasTrackingLabel,
+    protectedPaths,
     STICKY_MARKER,
     PR_SYNC_STATUSES,
     READY_STATUSES,
@@ -271,6 +272,19 @@ test('sanitizeForSurface: トークン・鍵・機密変数・URL クエリを r
     assert.match(s, /push failed/);
     assert.match(s, /not authorized/);
     assert.match(s, /https:\/\/s3\.amazonaws\.com\/bucket\/key\?\[REDACTED\]/);
+});
+
+test('protectedPaths: Bot 権限外パス（workflows/actions）を抽出する', () => {
+    const files = [
+        'packages/scratch-gui/src/index.js',
+        '.github/workflows/ci-cd.yml',
+        '.github/actions/setup/action.yml',
+        '.github/ISSUE_TEMPLATE/bug.md', // workflows/actions 以外の .github は対象外
+        'docs/autopilot/README.md',
+    ];
+    assert.deepEqual(protectedPaths(files), ['.github/workflows/ci-cd.yml', '.github/actions/setup/action.yml']);
+    assert.deepEqual(protectedPaths([]), []);
+    assert.deepEqual(protectedPaths(null), []);
 });
 
 test('sanitizeForSurface: 長文は切り詰め、空入力は空文字', () => {

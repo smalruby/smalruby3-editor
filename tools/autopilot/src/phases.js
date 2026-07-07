@@ -557,6 +557,27 @@ const AUTOPILOT_LABEL = '🤖 autopilot';
 /** 人間の対応待ちを示すラベル（Project HITL=Yes を投影） */
 const HITL_LABEL = '🙋 HITL';
 /**
+ * Bot（GitHub App）の権限外パスに触れた変更を含む PR に付けるラベル。
+ * このラベルの PR は **個人トークンで作成**されており、autopilot の想定外領域
+ * （workflows 等）を変更しているため、**本人以外の人間レビューを必須**とする運用。
+ * autopilot はこのラベルを付けるだけで外さない（外すのは人間）。
+ */
+const HUMAN_REVIEW_LABEL = '👥 human-review-required';
+
+/** Bot（GitHub App）に書き込み権限が無いパスのパターン（bin/autopilot-push と対） */
+const PROTECTED_PATH_PATTERNS = [/^\.github\/workflows\//, /^\.github\/actions\//];
+
+/**
+ * 変更ファイル一覧から Bot 権限外パスを抽出する（純粋関数）。
+ * 1 つでも含まれる場合、push/PR 作成は個人トークン経路（`bin/autopilot-push`）になる。
+ * @param {string[]} files 変更ファイルパス（repo 相対）
+ * @returns {string[]} 権限外パスに該当するファイル
+ */
+function protectedPaths(files) {
+    return (files || []).filter((f) => PROTECTED_PATH_PATTERNS.some((re) => re.test(f)));
+}
+
+/**
  * sub-issue に分解済みの親（トラッカー）を示すラベル。
  * 「作業 item かどうか」を毎 tick GitHub に問い合わせて判定するコストを避け、
  * ラベル 1 つで merge 検知・PR 投影・DoD 引き継ぎ・フェーズ選択から除外できるようにする。
@@ -1153,6 +1174,9 @@ module.exports = {
     DEFAULT_WATCHDOG,
     AUTOPILOT_LABEL,
     HITL_LABEL,
+    HUMAN_REVIEW_LABEL,
+    PROTECTED_PATH_PATTERNS,
+    protectedPaths,
     TRACKING_LABEL,
     isTrackerItem,
     hasTrackingLabel,
