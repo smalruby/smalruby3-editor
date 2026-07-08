@@ -125,6 +125,7 @@ const prChip = (p) => {
 };
 const mins = (ms) => Math.max(0, Math.round(ms / 60000));
 let logIssue = null;
+let logTimer = null;
 
 function renderAlerts(d) {
   const parts = [];
@@ -252,13 +253,25 @@ async function openLog(issue) {
   document.getElementById('mlog').textContent = '読み込み中…';
   document.getElementById('modal').classList.add('open');
   await loadLog();
+  // モーダルを開いている間は 10 秒ごとに自動で /log を再取得する（開き直しで多重化しないよう先にクリア）
+  if (logTimer) clearInterval(logTimer);
+  logTimer = setInterval(loadLog, 10000);
 }
 async function loadLog() {
   if (logIssue == null) return;
+  const el = document.getElementById('mlog');
+  // 末尾付近を見ているときだけ更新後に末尾へ追従（手動スクロール中は位置を保つ）
+  const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
   const r = await fetch('/log?issue=' + logIssue);
-  document.getElementById('mlog').textContent = await r.text();
+  el.textContent = await r.text();
+  if (atBottom) el.scrollTop = el.scrollHeight;
 }
-function closeModal() { document.getElementById('modal').classList.remove('open'); logIssue = null; }
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+  logIssue = null;
+  // 自動更新を止める（interval リーク防止）
+  if (logTimer) { clearInterval(logTimer); logTimer = null; }
+}
 document.getElementById('mclose').onclick = closeModal;
 document.getElementById('mreload').onclick = loadLog;
 document.getElementById('modal').addEventListener('click', (e) => { if (e.target.id === 'modal') closeModal(); });

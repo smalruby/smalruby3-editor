@@ -43,6 +43,18 @@ test('MONITOR_HTML: アラート表示と check autopilot ショートカット'
     assert.match(MONITOR_HTML, /Blocked/);
 });
 
+test('MONITOR_HTML: log モーダルを開いている間 10 秒ごとに自動更新し、閉じると止める', () => {
+    // openLog で 10 秒間隔の自動ポーリングを開始する
+    assert.match(MONITOR_HTML, /setInterval\(loadLog,\s*10000\)/);
+    // interval を保持する変数を持つ
+    assert.match(MONITOR_HTML, /let logTimer = null/);
+    // closeModal で interval をクリアする（リーク・多重化防止）
+    assert.match(MONITOR_HTML, /clearInterval\(logTimer\)/);
+    // 自動更新でも叩くのは /log のみ（新規 API を増やさない）
+    const autoFetches = MONITOR_HTML.match(/fetch\('\/log\?issue='/g) || [];
+    assert.ok(autoFetches.length >= 1, 'loadLog must fetch /log');
+});
+
 test('MONITOR_HTML: インライン script が構文的に妥当', () => {
     const m = MONITOR_HTML.match(/<script>([\s\S]*)<\/script>/);
     assert.ok(m, 'script block exists');
