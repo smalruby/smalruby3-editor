@@ -93,6 +93,17 @@
         // 関連 OSS の参照 (smalruby/ruby-sdl2, scratchfoundation/scratch-editor 等)
         // ,"source=${localEnv:HOME}/ghq,target=/ghq,type=bind"
 
+        // ---- GitHub App bot (autopilot / bot 名義コミット) ----
+        // bot 設定 (~/.config/smalruby-bot/config = APP_ID / INSTALLATION_ID /
+        // APP_SLUG / PRIVATE_KEY_SECRET_ID 等の **非秘密設定**) を host から
+        // **read-only** で持ち込み、rebuild / delete を跨いで永続させる。
+        // 秘密鍵は AWS Secrets Manager (PRIVATE_KEY_SECRET_ID) 側に置き、生の .pem は
+        // host にもマウントにも載せない。bot-token はこのディレクトリを **読むだけ**
+        // (token キャッシュは ~/.cache 側 = 別 volume)。ro なのでコンテナ側から host の
+        // 設定を消す事故も起きない (「認証を rw マウントしない」原則に沿う)。
+        // 詳細は .claude/rules/github-app-bot.md / docs/github-app-bot/README.md。
+        // ,"source=${localEnv:HOME}/.config/smalruby-bot,target=/root/.config/smalruby-bot,type=bind,readonly"
+
         // ---- Claude Code 関連 (Anthropic 公式 + 安全側を考慮した設計) ----
         //
         // - **認証 (~/.claude.json) は mount しない**。container 内で初回 `claude` 起動時に
