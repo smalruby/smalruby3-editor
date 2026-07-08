@@ -410,7 +410,12 @@ GitHub Projects で行い、モニタは俯瞰・log 閲覧・pause/resume/即�
   `--assignee` 起動時は **daemon の処理対象と同じ enroll 判定（ownsItem）に限定**する
   （「ボードには映るが daemon は素通り」という不一致を無くす。未指定は全件）
 - **実行履歴**は最下部（最新 100 件・ログ用途のみ）
-- データは `GET /board`（60 秒間隔 + tick 後に再構築されるキャッシュ + live running）
+- データは `GET /board`（**poll/tick 後に再構築されるキャッシュ** + live running）。
+  board の再取得（`listItems`）は 1 回 ~100 GraphQL ポイントと重いため、**専用の短周期
+  タイマーは持たない**（旧: 60 秒ごと → read トークンの GraphQL 予算 5000/h を単独超過し
+  枯渇していた）。すぐ最新化したいときはヘッダーの **「🔄 更新」ボタン（`POST /refresh`）**
+  でオンデマンド取得する（見たいときだけ消費）。ブラウザ側は 5 秒ごとに `/board`（キャッシュ）を
+  ポーリングして描画するだけなので GraphQL は消費しない
 
 ---
 
@@ -527,6 +532,7 @@ HTTP API（curl からも操作可能）:
 | `POST /pause` | 新規ディスパッチを止める（実行中はそのまま） |
 | `POST /resume` | ポーリング再開 |
 | `POST /reauth` | SSO 再認証（device code）を daemon 側で起動し、認証 URL と user code を抽出して返す（`{status, url, code, completeUrl}`）。成功で auto-resume |
+| `POST /refresh` | 俯瞰ボードを即時再取得（`listItems`）。モニタの「🔄 更新」ボタン。レート僅少時は `{refreshed:false, skipped:'rate-limited'}` で no-op |
 | `POST /stop?issue=<n>` | その item の tmux セッションを kill して force-stop |
 | `POST /inject?issue=<n>&phase=<p>` | 並行上限を超えて 1 フェーズを割り込み投入 |
 | `POST /shutdown` | daemon プロセスを安全停止 |
