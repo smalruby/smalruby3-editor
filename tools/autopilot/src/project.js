@@ -625,7 +625,23 @@ async function getIssueStates(repo, issueNumbers, token, deps = {}) {
         const chunk = nums.slice(i, i + 100);
         const fields = chunk.map((n) => `i${n}: issue(number:${n}){ number state }`).join(' ');
         const query = `query{repository(owner:"${owner}",name:"${name}"){ ${fields} }}`;
-        const res = JSON.parse(await ghFn(['api', 'graphql', '-f', `query=${query}`], { token }));
+        let raw;
+        try {
+            raw = await ghFn(['api', 'graphql', '-f', `query=${query}`], { token });
+        } catch (e) {
+            // gh api graphql は alias の 1 つが NOT_FOUND（autopilot-after の番号 typo 等）でも
+            // exit 1 になるが、**partial data は stdout に残る**。ここで捨てると typo 1 件で
+            // closed 整合が丸ごと止まるため、partial data を採用する（見つからない番号は
+            // 結果から欠落 = 呼び出し側で保守的に「未完了」扱いになる）。
+            raw = (e.stdout || '').toString();
+            if (!raw.trim().startsWith('{')) throw e;
+        }
+        let res;
+        try {
+            res = JSON.parse(raw.trim().split('\n')[0]);
+        } catch {
+            res = JSON.parse(raw);
+        }
         const repoData = (res.data && res.data.repository) || {};
         for (const n of chunk) {
             const node = repoData[`i${n}`];

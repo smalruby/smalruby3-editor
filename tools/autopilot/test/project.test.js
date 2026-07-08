@@ -256,6 +256,23 @@ test('getIssueStates: バッチ GraphQL で番号→state を返す（存在し�
     assert.equal((query.match(/issue\(number:11\)/g) || []).length, 1);
 });
 
+test('getIssueStates: NOT_FOUND 混在（exit 1 + partial data）でも生きている番号は返す', async () => {
+    const { getIssueStates } = require('../src/project');
+    // gh api graphql は alias の 1 つが NOT_FOUND だと throw するが stdout に partial data が残る
+    const err = new Error('gh: Could not resolve to an Issue');
+    err.stdout = JSON.stringify({
+        data: { repository: { i10: { number: 10, state: 'CLOSED' }, i99999: null } },
+        errors: [{ type: 'NOT_FOUND', path: ['repository', 'i99999'] }],
+    });
+    const states = await getIssueStates('o/r', [10, 99999], 't', { gh: () => { throw err; } });
+    // typo 番号（99999）は欠落 = 呼び出し側で保守的に「未完了」扱い。10 は正しく確認できる
+    assert.deepEqual(states, { 10: 'CLOSED' });
+    // stdout に JSON が無い本物のエラーは throw する
+    const hardErr = new Error('network');
+    hardErr.stdout = '';
+    await assert.rejects(() => getIssueStates('o/r', [10], 't', { gh: () => { throw hardErr; } }));
+});
+
 test('getIssueMeta: REST 1 回で body/labels/state を返す', async () => {
     const { getIssueMeta } = require('../src/project');
     let captured;

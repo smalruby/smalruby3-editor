@@ -269,7 +269,8 @@ async function dispatch(item, cfg, state, log) {
         endedAt: cfg.now(),
     });
     const ctx = { projectId: cfg.projectId, fields: cfg.fields };
-    const itemId = item.itemId || await project.findItemId(cfg.owner, cfg.project, item.issue, await project.botToken());
+    // item-id の解決と PR 解決は読み取り → 個人トークン側の予算（書き込みは従来どおり Bot）
+    const itemId = item.itemId || await project.findItemId(cfg.owner, cfg.project, item.issue, await project.readToken());
     item.itemId = itemId; // markBlocked が再解決しないよう保持
     const mark = async (field, value) => {
         try { await project.setField(ctx, itemId, field, value, await project.botToken()); }
@@ -292,7 +293,7 @@ async function dispatch(item, cfg, state, log) {
         // PR ブランチで作業するフェーズは PR 番号を解決（inject 経由など item.pr 未設定時はここで取得）
         let pr;
         if (PR_BRANCH_PHASES.has(phase)) {
-            pr = item.pr || (await project.findPrForIssue(cfg.repo, item.issue, await project.botToken()) || {}).number;
+            pr = item.pr || (await project.findPrForIssue(cfg.repo, item.issue, await project.readToken()) || {}).number;
         }
         // 新ブランチを切るフェーズ（implement）は Issue 本文の base 宣言を尊重する（#827・EPIC サブ）。
         // 既定は develop。PR ブランチ作業フェーズは PR の base を継ぐので解決不要。
@@ -685,23 +686,16 @@ async function tick(cfg, state, log) {
         assignee: cfg.assignee,
         statusOrder: cfg.statusOrder,
     });
-    // 候補のディレクティブを先に集める（TTL キャッシュ済み）。after 依存先も closed 確認対象へ
-    const afterByIssue = {};
-    for (const item of candidates) {
-        afterByIssue[item.issue] = (await getDirectives(cfg, state, item.issue, log)).after;
-    }
-    // closed 状態の確認は **対象限定のバッチ GraphQL**（非終端 + 🤖 ラベルの item と after 依存先
-    // だけ）。旧実装のリポジトリ全体 closed 一覧（最大 1000 件 × 毎 tick）は使わない。
-    let closedSet = new Set();
+    // closed 状態の確認は **対象限定のバッチ GraphQL**（非終端 + 🤖 ラベルの item だけ）。
+    // 旧実装のリポジトリ全体 closed 一覧（最大 1000 件 × 毎 tick）は使わない。
+    const closedSet = new Set();
+    const mergeStates = (states) => {
+        for (const [n, s] of Object.entries(states)) if (s === 'CLOSED') closedSet.add(Number(n));
+    };
     try {
-        const checkNums = [...new Set([
-            ...selectClosedCheckIssues(items),
-            ...Object.values(afterByIssue).flat(),
-        ])];
-        const states = await project.getIssueStates(cfg.repo, checkNums, await project.readToken());
-        closedSet = new Set(
-            Object.entries(states).filter(([, s]) => s === 'CLOSED').map(([n]) => Number(n)),
-        );
+        mergeStates(await project.getIssueStates(
+            cfg.repo, selectClosedCheckIssues(items), await project.readToken(),
+        ));
     } catch (e) {
         log(`closed state check failed: ${e.message}`);
     }
@@ -709,8 +703,21 @@ async function tick(cfg, state, log) {
     const capacity = Math.max(0, cfg.concurrency - state.running.size);
     const picked = [];
     for (const item of candidates) {
+        // ディレクティブ取得は**検討した候補の分だけ**（capacity で打ち切り。全候補の先読みは
+        // API 削減の趣旨に逆行する）。TTL キャッシュがあるので 2 tick 目以降はさらに安い。
         if (picked.length >= capacity) break;
-        const unresolved = unresolvedAfterIssues(afterByIssue[item.issue], { closedSet, statusByIssue });
+        const after = (await getDirectives(cfg, state, item.issue, log)).after;
+        // Project 外の after 依存（closedSet にも statusByIssue にも無い番号）だけ
+        // オンデマンドで state を確認して closedSet にマージする（少数・稀）
+        const unknown = (after || []).filter((n) => !closedSet.has(n) && !(n in statusByIssue));
+        if (unknown.length) {
+            try {
+                mergeStates(await project.getIssueStates(cfg.repo, unknown, await project.readToken()));
+            } catch (e) {
+                log(`#${item.issue}: after 依存の state 確認失敗: ${e.message}`);
+            }
+        }
+        const unresolved = unresolvedAfterIssues(after, { closedSet, statusByIssue });
         if (unresolved.length) {
             log(`#${item.issue}: autopilot-after 待ち (未完了: ${unresolved.map((n) => `#${n}`).join(', ')})`);
             continue;
