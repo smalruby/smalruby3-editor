@@ -42,6 +42,9 @@ const MONITOR_HTML = `<!doctype html>
   .alert.block-a { background: #fee2e2; color: #7f1d1d; }
   .alert code { background: rgba(0,0,0,.07); padding: 0 .3rem; border-radius: .2rem; }
   .alert button { font-size: .72rem; padding: .05rem .4rem; cursor: pointer; }
+  .reauth-info { flex-basis: 100%; margin-top: .35rem; display: flex; gap: .5rem; align-items: center; flex-wrap: wrap;
+                 padding: .35rem .5rem; background: rgba(0,0,0,.04); border-radius: .3rem; }
+  .reauth-info code { font-size: 1rem; font-weight: 700; letter-spacing: .06em; }
   /* ---- 俯瞰ボード ---- */
   main { padding: .6rem .8rem 2rem; }
   table { border-collapse: collapse; width: 100%; background: #fff; font-size: .84rem; }
@@ -125,9 +128,23 @@ let logIssue = null;
 function renderAlerts(d) {
   const parts = [];
   if (d.authError) {
+    const R = d.reauth;
+    let ra = '';
+    if (R && R.status === 'pending' && (R.code || R.url)) {
+      ra = '<div class="reauth-info">📱 デバイス認証'
+        + (R.code ? ' コード <code>' + esc(R.code) + '</code> <button onclick="copyText(&quot;' + esc(R.code) + '&quot;)">📋 コピー</button>' : '')
+        + (R.url ? ' <a target="_blank" rel="noopener" href="' + esc(R.completeUrl || R.url) + '">🔗 認証ページを開く</a>' : '')
+        + '<span class="subtext">ホストのブラウザでコードを承認すると autopilot が自動で再開します</span></div>';
+    } else if (R && R.status === 'error') {
+      ra = '<div class="reauth-info">⚠️ 再接続に失敗: ' + esc(R.error || '') + '</div>';
+    } else if (R && R.status === 'starting') {
+      ra = '<div class="reauth-info">⏳ SSO ログインを起動中…</div>';
+    }
     parts.push('<div class="alert auth-a">🔐 <b>認証エラー（auto-pause 中）</b> ' + esc(d.authError)
       + '<span>' + esc(d.reauthHint || '') + '</span>'
-      + '<button onclick="copyText(&quot;check autopilot&quot;)">📋 claude へ: check autopilot</button></div>');
+      + '<button id="reauthbtn" onclick="reauth()">🔐 再接続（SSO ログイン）</button>'
+      + '<button onclick="copyText(&quot;check autopilot&quot;)">📋 claude へ: check autopilot</button>'
+      + ra + '</div>');
   }
   if (d.rate && d.rate.skipLowPriority) {
     parts.push('<div class="alert auth-a">🧯 <b>API レート残量が僅少</b>（' + esc(d.rate.minAt || '')
@@ -211,6 +228,23 @@ async function refresh() {
 }
 
 async function copyText(t) { try { await navigator.clipboard.writeText(t); } catch (e) { prompt('コピーしてください:', t); } }
+async function reauth() {
+  const btn = document.getElementById('reauthbtn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ SSO 起動中…'; }
+  // ユーザー操作（クリック）のうちに空タブを開いておく（await 後の window.open はポップアップブロックされるため）
+  let win = null;
+  try { win = window.open('about:blank', '_blank'); } catch (e) { /* blocked */ }
+  try {
+    const r = await fetch('/reauth', { method: 'POST' }).then((x) => x.json());
+    const target = r && (r.completeUrl || r.url);
+    if (target) { if (win) win.location = target; else window.open(target, '_blank'); }
+    else if (win) win.close();
+  } catch (e) {
+    if (win) win.close();
+  }
+  if (btn) { btn.disabled = false; btn.textContent = '🔐 再接続（SSO ログイン）'; }
+  refresh();
+}
 async function openLog(issue) {
   logIssue = issue;
   document.getElementById('mtitle').textContent = 'log #' + issue;

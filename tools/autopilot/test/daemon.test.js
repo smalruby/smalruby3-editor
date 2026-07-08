@@ -4,7 +4,9 @@ const assert = require('node:assert');
 const {
     applyMergeProgression, applyClosedReconcile, applyPrProjection, applyDodHandoffs, runTickOnce,
     detectStuck, markBlocked, getDirectives, applyLabelHealing, collectGateContexts,
+    parseSsoDeviceOutput, startReauth,
 } = require('../src/daemon');
+const { EventEmitter } = require('node:events');
 const { HITL_LABEL, AUTOPILOT_LABEL } = require('../src/phases');
 
 /** Build an injectable double for markBlocked/detectStuck that records side effects. */
@@ -771,4 +773,85 @@ test('detectStuck: 候補でなくなった item は追跡から外す', async (
     await detectStuck(items, cfg, state, () => {}, deps);
     assert.equal(deps.calls.setField.length, 0);
     assert.equal(state.stuckSince.has(7), false);
+});
+
+// ---- SSO 再接続（device code フロー）: parseSsoDeviceOutput / startReauth ----
+
+test('parseSsoDeviceOutput: URL + コードを抽出し completeUrl を組み立てる', () => {
+    const out = 'If the browser does not open, open the following URL:\n\n'
+        + 'https://device.sso.ap-northeast-1.amazonaws.com/\n\nThen enter the code:\n\nMNOP-4321\n';
+    const p = parseSsoDeviceOutput(out);
+    assert.equal(p.url, 'https://device.sso.ap-northeast-1.amazonaws.com/');
+    assert.equal(p.code, 'MNOP-4321');
+    assert.equal(p.completeUrl, 'https://device.sso.ap-northeast-1.amazonaws.com/?user_code=MNOP-4321');
+});
+
+test('parseSsoDeviceOutput: user_code 埋め込み URL からコードを取り出す', () => {
+    const out = 'Please visit: https://device.sso.us-east-1.amazonaws.com/?user_code=QRST-8765';
+    const p = parseSsoDeviceOutput(out);
+    assert.equal(p.code, 'QRST-8765');
+    assert.equal(p.completeUrl, 'https://device.sso.us-east-1.amazonaws.com/?user_code=QRST-8765');
+});
+
+test('parseSsoDeviceOutput: 何も一致しなければ null', () => {
+    assert.equal(parseSsoDeviceOutput('nothing useful here'), null);
+});
+
+/** startReauth 用の spawn 差し替え（stdout/stderr を持つ EventEmitter ベースの子プロセス） */
+function fakeChild() {
+    const child = new EventEmitter();
+    child.stdout = new EventEmitter();
+    child.stderr = new EventEmitter();
+    return child;
+}
+
+test('startReauth: device 出力から pending(url/code/completeUrl) を surface する', async () => {
+    const child = fakeChild();
+    const state = { reauth: null, now: () => 1000 };
+    const p = startReauth(state, () => {}, { spawn: () => child, waitMs: 5000 });
+    child.stdout.emit('data', Buffer.from(
+        'open the following URL:\n\nhttps://device.sso.ap-northeast-1.amazonaws.com/\n\n'
+        + 'Then enter the code:\n\nABCD-EFGH\n'));
+    const r = await p;
+    assert.equal(r.status, 'pending');
+    assert.equal(r.code, 'ABCD-EFGH');
+    assert.equal(r.url, 'https://device.sso.ap-northeast-1.amazonaws.com/');
+    assert.equal(r.completeUrl, 'https://device.sso.ap-northeast-1.amazonaws.com/?user_code=ABCD-EFGH');
+    assert.equal(state.reauth.status, 'pending');
+});
+
+test('startReauth: exit 0 で state.reauth を消し onSuccess を呼ぶ', async () => {
+    const child = fakeChild();
+    const state = { reauth: null };
+    let onSuccessCalled = false;
+    const p = startReauth(state, () => {}, {
+        spawn: () => child, waitMs: 5000, onSuccess: () => { onSuccessCalled = true; },
+    });
+    child.stdout.emit('data', Buffer.from('https://device.sso.x/ AAAA-BBBB'));
+    await p;
+    child.emit('exit', 0);
+    await new Promise((r) => setImmediate(r)); // Promise.resolve().then(onSuccess) の microtask を待つ
+    assert.equal(state.reauth, null);
+    assert.equal(onSuccessCalled, true);
+});
+
+test('startReauth: pending 中は二重に spawn しない', async () => {
+    const child = fakeChild();
+    let spawnCount = 0;
+    const mkSpawn = () => { spawnCount += 1; return child; };
+    const state = { reauth: null };
+    const p = startReauth(state, () => {}, { spawn: mkSpawn, waitMs: 5000 });
+    child.stdout.emit('data', Buffer.from('https://device.sso.x/ CCCC-DDDD'));
+    await p;
+    await startReauth(state, () => {}, { spawn: mkSpawn, waitMs: 5000 });
+    assert.equal(spawnCount, 1);
+});
+
+test('startReauth: spawn 失敗は status=error になる', async () => {
+    const state = { reauth: null };
+    const r = await startReauth(state, () => {}, {
+        spawn: () => { throw new Error('aws not found'); }, waitMs: 5000,
+    });
+    assert.equal(r.status, 'error');
+    assert.match(r.error, /aws not found/);
 });
