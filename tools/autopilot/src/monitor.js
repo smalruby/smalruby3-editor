@@ -129,6 +129,10 @@ function renderAlerts(d) {
       + '<span>' + esc(d.reauthHint || '') + '</span>'
       + '<button onclick="copyText(&quot;check autopilot&quot;)">📋 claude へ: check autopilot</button></div>');
   }
+  if (d.rate && d.rate.skipLowPriority) {
+    parts.push('<div class="alert auth-a">🧯 <b>API レート残量が僅少</b>（' + esc(d.rate.minAt || '')
+      + ' 残 ' + d.rate.minRemaining + '）— 低優先処理（PR 投影・ボード更新）を一時スキップ中。残量回復で自動復帰します。</div>');
+  }
   const blocked = (d.items || []).filter((it) => it.status === 'Blocked');
   if (blocked.length) {
     const chips = blocked.map((it) => '#' + it.issue
@@ -195,6 +199,7 @@ async function refresh() {
     document.getElementById('meta').textContent =
       (d.assignee ? '👤 ' + d.assignee + ' · ' : '') + '並行 ' + d.concurrency
       + ' · 実行中 ' + (d.running || []).length
+      + (d.rate && d.rate.minRemaining != null ? ' · API残 ' + d.rate.minRemaining + (d.rate.warn ? '⚠' : '') : '')
       + (d.updatedAt ? ' · 更新 ' + Math.round((Date.now() - d.updatedAt) / 1000) + 's前' : '');
     renderAlerts(d);
     renderBoard(d);

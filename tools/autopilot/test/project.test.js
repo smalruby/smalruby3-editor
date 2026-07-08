@@ -216,22 +216,73 @@ test('hasMergedPullRequest: false when neither close link nor head branch is mer
     assert.equal(await hasMergedPullRequest('o/r', 5, 'tok', { gh: fakeGh }), false);
 });
 
-test('listClosedIssueNumbers: returns a Set of closed issue numbers (#843)', async () => {
+test('listClosedIssueNumbers: REST + 🤖 ラベル限定で closed 番号の Set を返す (#843)', async () => {
     let captured;
-    const fakeGh = (args) => {
-        captured = args;
-        return JSON.stringify([{ number: 738 }, { number: 839 }, { number: 840 }]);
-    };
+    const fakeGh = (args) => { captured = args; return '738\n839\n840\n'; };
     const set = await listClosedIssueNumbers('smalruby/smalruby3-editor', 'tok', { gh: fakeGh });
     assert.ok(set instanceof Set);
     assert.deepEqual([...set].sort((a, b) => a - b), [738, 839, 840]);
-    assert.ok(captured.includes('--state') && captured.includes('closed'));
-    assert.ok(captured.includes('--repo') && captured.includes('smalruby/smalruby3-editor'));
+    // REST（gh api --paginate）でラベル限定・closed 限定・PR 除外の問い合わせになっている
+    assert.equal(captured[0], 'api');
+    assert.ok(captured.includes('--paginate'));
+    const path = captured.find((a) => a.includes('/issues?'));
+    assert.match(path, /state=closed/);
+    assert.match(path, /labels=/);
+    const jq = captured[captured.indexOf('--jq') + 1];
+    assert.match(jq, /pull_request/); // REST の /issues は PR も返すので除外している
 });
 
-test('listClosedIssueNumbers: empty/non-array output -> empty Set', async () => {
-    assert.deepEqual([...await listClosedIssueNumbers('o/r', 't', { gh: () => '[]' })], []);
-    assert.deepEqual([...await listClosedIssueNumbers('o/r', 't', { gh: () => 'null' })], []);
+test('listClosedIssueNumbers: 空出力は空 Set', async () => {
+    assert.deepEqual([...await listClosedIssueNumbers('o/r', 't', { gh: () => '' })], []);
+    assert.deepEqual([...await listClosedIssueNumbers('o/r', 't', { gh: () => '\n' })], []);
+});
+
+test('getIssueStates: バッチ GraphQL で番号→state を返す（存在しない番号は含まれない）', async () => {
+    const { getIssueStates } = require('../src/project');
+    let query;
+    const fakeGh = (args) => {
+        query = args[args.indexOf('-f') + 1];
+        return JSON.stringify({ data: { repository: {
+            i10: { number: 10, state: 'OPEN' },
+            i11: { number: 11, state: 'CLOSED' },
+            i12: null, // 存在しない
+        } } });
+    };
+    const states = await getIssueStates('o/r', [10, 11, 12, 11], 't', { gh: fakeGh });
+    assert.deepEqual(states, { 10: 'OPEN', 11: 'CLOSED' });
+    // alias バッチ 1 クエリ（重複は除去される）
+    assert.match(query, /i10: issue\(number:10\)/);
+    assert.match(query, /i11: issue\(number:11\)/);
+    assert.equal((query.match(/issue\(number:11\)/g) || []).length, 1);
+});
+
+test('getIssueStates: NOT_FOUND 混在（exit 1 + partial data）でも生きている番号は返す', async () => {
+    const { getIssueStates } = require('../src/project');
+    // gh api graphql は alias の 1 つが NOT_FOUND だと throw するが stdout に partial data が残る
+    const err = new Error('gh: Could not resolve to an Issue');
+    err.stdout = JSON.stringify({
+        data: { repository: { i10: { number: 10, state: 'CLOSED' }, i99999: null } },
+        errors: [{ type: 'NOT_FOUND', path: ['repository', 'i99999'] }],
+    });
+    const states = await getIssueStates('o/r', [10, 99999], 't', { gh: () => { throw err; } });
+    // typo 番号（99999）は欠落 = 呼び出し側で保守的に「未完了」扱い。10 は正しく確認できる
+    assert.deepEqual(states, { 10: 'CLOSED' });
+    // stdout に JSON が無い本物のエラーは throw する
+    const hardErr = new Error('network');
+    hardErr.stdout = '';
+    await assert.rejects(() => getIssueStates('o/r', [10], 't', { gh: () => { throw hardErr; } }));
+});
+
+test('getIssueMeta: REST 1 回で body/labels/state を返す', async () => {
+    const { getIssueMeta } = require('../src/project');
+    let captured;
+    const fakeGh = (args) => {
+        captured = args;
+        return JSON.stringify({ body: 'b', labels: [{ name: '🤖 autopilot' }], state: 'open' });
+    };
+    const meta = await getIssueMeta('o/r', 5, 't', { gh: fakeGh });
+    assert.deepEqual(meta, { body: 'b', labels: ['🤖 autopilot'], state: 'OPEN' });
+    assert.deepEqual(captured, ['api', 'repos/o/r/issues/5']);
 });
 
 test('closeIssue: runs `gh issue close` for the given issue (#843)', async () => {

@@ -656,6 +656,38 @@ function selectMarkedCommentIds(comments, markers) {
 }
 
 /**
+ * コメント一覧から任意マーカーを含むコメントを {id, body} のまま抽出する（純粋関数）。
+ * {@link selectMarkedCommentIds} の object 版。body は「内容が変わったときだけ書く」判定
+ * （{@link stickyUpsertPlan}）に使う。
+ * @param {Array<{id: *, body: string}>} comments
+ * @param {string[]} markers いずれかを含めばマッチ
+ * @returns {Array<{id: *, body: string}>}
+ */
+function selectMarkedComments(comments, markers) {
+    const ms = markers || [];
+    return (comments || []).filter((c) => c && c.body && ms.some((m) => c.body.includes(m)));
+}
+
+/**
+ * sticky upsert の実行計画を立てる（純粋関数・書き込み削減）。
+ * 既存の先頭コメントと本文が**同一なら PATCH をスキップ**する（毎 tick の同内容
+ * 書き換えはレート予算の無駄遣い）。重複は従来どおり先頭に集約して残りを削除する。
+ * @param {Array<{id: *, body: string}>} matched マーカーにマッチした既存コメント（入力順）
+ * @param {string} body 新しい本文
+ * @returns {{action: 'post'|'patch'|'skip', keepId: *|null, deleteIds: Array<*>}}
+ */
+function stickyUpsertPlan(matched, body) {
+    const list = matched || [];
+    if (!list.length) return { action: 'post', keepId: null, deleteIds: [] };
+    const [keep, ...dupes] = list;
+    return {
+        action: keep.body === body ? 'skip' : 'patch',
+        keepId: keep.id,
+        deleteIds: dupes.map((d) => d.id),
+    };
+}
+
+/**
  * 対応 PR リンク sticky（Issue 側）の識別マーカー。
  * 非デフォルト base 宛て PR は GitHub の Development 欄・`Closes #N` リンクに出ないため、
  * Issue から対応 PR へ辿れるように daemon が 1 コメントを upsert する。
@@ -856,12 +888,17 @@ function applyIntentsToItem(item, intents) {
  * 俯瞰ボードに表示する item を選ぶ（純粋関数）。
  * 終端（Close/Done）と保留（Icebox）は除外する — 溜まり続けると表示も enrichment も
  * 重くなるため。操作は GitHub Projects で行う（ボードは読み取り専用）。
+ * assignee を渡すと **daemon の処理対象（enroll 判定 {@link ownsItem}）と同じ集合**に
+ * 限定する — 「ボードには映るが daemon は素通り」という表示と処理対象の不一致を無くし、
+ * enrichment の API 消費も減らす（未指定は従来どおり全件）。
  * @param {object[]} items
+ * @param {string|null} [assignee] daemon の --assignee（enroll モデル）
  * @returns {object[]}
  */
-function selectBoardItems(items) {
+function selectBoardItems(items, assignee = null) {
     return (items || []).filter(
-        (it) => it && !TERMINAL_STATUSES.has(it.status) && it.status !== 'Icebox',
+        (it) => it && !TERMINAL_STATUSES.has(it.status) && it.status !== 'Icebox'
+            && ownsItem(it, assignee),
     );
 }
 
@@ -1097,6 +1134,53 @@ function sanitizeForSurface(text, maxLen = 600) {
 }
 
 /**
+ * rate_limit の残量から実行計画を立てる（純粋関数）。
+ * 入力はトークン別の残量（例 { bot: {core:{remaining,limit}, graphql:{...}}, read: {...} }）。
+ * 最小残量が閾値を割ったら**低優先処理（PR 面投影・俯瞰ボード更新）をスキップ**して
+ * dispatch・merge 検知など本流に予算を残す。取得できなかったトークン/リソースは無視する。
+ * @param {object} limitsByToken トークン名 → { core: {remaining, limit}, graphql: {remaining, limit} }
+ * @param {object} [thresholds] { skip: 200, warn: 500 }
+ * @returns {{minRemaining: number|null, minAt: string|null, warn: boolean, skipLowPriority: boolean}}
+ */
+function rateLimitPlan(limitsByToken, thresholds = {}) {
+    const t = { skip: 200, warn: 500, ...thresholds };
+    let minRemaining = null;
+    let minAt = null;
+    for (const [tokenName, resources] of Object.entries(limitsByToken || {})) {
+        for (const [resName, r] of Object.entries(resources || {})) {
+            if (!r || typeof r.remaining !== 'number') continue;
+            if (minRemaining === null || r.remaining < minRemaining) {
+                minRemaining = r.remaining;
+                minAt = `${tokenName}/${resName}`;
+            }
+        }
+    }
+    if (minRemaining === null) return { minRemaining: null, minAt: null, warn: false, skipLowPriority: false };
+    return {
+        minRemaining,
+        minAt,
+        warn: minRemaining < t.warn,
+        skipLowPriority: minRemaining < t.skip,
+    };
+}
+
+/**
+ * closed 状態の一括確認の対象 issue 番号を選ぶ（純粋関数・問い合わせ対象の限定）。
+ * - **ステータス限定**: 終端（Close/Done）は除外（既に整合済み。定常問い合わせしない）
+ * - **ラベル限定**: `🤖 autopilot` ラベル付き = autopilot 管理対象だけを見る
+ *   （ラベルは label healing が非終端 item に毎 tick 担保するので、初回 tick 以降は全対象が持つ）
+ * 旧実装の「リポジトリ全体の closed 一覧（最大 1000 件）を毎 tick 取得」を置き換える。
+ * @param {object[]} items Project items
+ * @returns {number[]} state を確認すべき issue 番号
+ */
+function selectClosedCheckIssues(items) {
+    return (items || [])
+        .filter((it) => it && !TERMINAL_STATUSES.has(it.status)
+            && Array.isArray(it.labels) && it.labels.includes(AUTOPILOT_LABEL))
+        .map((it) => it.issue);
+}
+
+/**
  * watchdog の状態を評価して次アクションを返す（純粋関数）。
  * 完了の権威は「結果ファイルの存在」。それ以外はタイマーで stuck を処理する。
  * @param {object} state
@@ -1225,6 +1309,10 @@ module.exports = {
     isStickyComment,
     selectStickyCommentIds,
     selectMarkedCommentIds,
+    selectMarkedComments,
+    stickyUpsertPlan,
+    rateLimitPlan,
+    selectClosedCheckIssues,
     PR_LINK_MARKER,
     needsPrLinkSticky,
     renderPrLinkSticky,

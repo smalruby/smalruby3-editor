@@ -399,9 +399,26 @@ GitHub Projects で行い、モニタは俯瞰・log 閲覧・pause/resume/即�
 - **ボード行**: Issue（リンク + タイトル）/ Status pill / AI Status（live）/ 担当 /
   **複数 PR チップ**（📝 draft / ✅ ready / 🟣 merged / ❌ closed の色・絵文字）/
   **sub-issue 進捗**（N/M・%・バー）/ Now（実行中フェーズ + 経過分 + **log ボタン → モーダル**）
-- **除外**: Close / Done / Icebox はボードに出さない（溜まると重くなるため）
+- **除外**: Close / Done / Icebox はボードに出さない（溜まると重くなるため）。さらに
+  `--assignee` 起動時は **daemon の処理対象と同じ enroll 判定（ownsItem）に限定**する
+  （「ボードには映るが daemon は素通り」という不一致を無くす。未指定は全件）
 - **実行履歴**は最下部（最新 100 件・ログ用途のみ）
 - データは `GET /board`（60 秒間隔 + tick 後に再構築されるキャッシュ + live running）
+
+---
+
+## GitHub API レート制限対策
+
+Bot 単独・GraphQL 偏重だとレート制限に当たる（実測: Bot の GraphQL 残 0 / REST 残 4987）。
+次の分散・削減を行う:
+
+| 対策 | 内容 |
+|---|---|
+| **トークン分散** | **書き込み**（コメント・ラベル・Draft/Ready・Project 編集・close）= Bot（名義が見える操作）。**読み取り**（一覧・PR/Issue 情報・レビュー状態・アクティビティ）= 個人トークン（`AUTOPILOT_READ_TOKEN` → env `GH_TOKEN` → `gh auth token` → Bot フォールバック）。`AUTOPILOT_READS=bot` で従来動作 |
+| **GraphQL / REST の使い分け** | バッチ読み（ボード enrichment・closed 状態一括確認・レビュー状態）= GraphQL（alias 50〜100 件/回）。単発読み（PR 情報 `/pulls/N`・Issue メタ `/issues/N`・コメント一覧）= REST。別枠の予算を並行活用する |
+| **問い合わせ対象の限定** | Issue/PR の広い問い合わせは **`🤖 autopilot` ラベル付き限定**（label healing が非終端 item に毎 tick 担保）。**ステータス限定**: 終端（Close/Done）は定常問い合わせから除外。旧「リポジトリ全体の closed 一覧（最大 1000 件 × 毎 tick）」は廃止し、**非終端 item + `autopilot-after` 依存先だけ**の state をバッチ確認（`getIssueStates`） |
+| **書き込み削減** | sticky コメントは**内容が変わったときだけ** PATCH（`stickyUpsertPlan`）。Issue ラベルは item-list の値を再利用して面同期の再取得を廃止 |
+| **残量監視・自動退避** | `rate_limit`（レート消費なし）を tick ごとに Bot / 個人の両方で確認し、最小残量をモニタに表示。**残量 < 200 で低優先処理（PR 面投影・ボード更新）を自動スキップ**（warn は < 500）。dispatch・merge 検知は継続し、回復で自動復帰 |
 
 ---
 
