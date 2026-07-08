@@ -155,6 +155,10 @@ built-monorepo
 # Scratch directory for Playwright screenshots and other ephemeral work files (Issue #616)
 /tmp/
 
+# autopilot worktrees（bin/autopilot-worktree の既定置き場）。リポジトリ直下に置くのは
+# /app が devpod の bind mount で永続するため（/root 配下 = ephemeral は rebuild で消える）。
+/.autopilot-worktrees/
+
 # CDK (infra/)
 infra/**/cdk.out/
 infra/**/cdk.out.*/
