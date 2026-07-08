@@ -32,7 +32,13 @@
 #   bin/autopilot-worktree list
 #
 # 環境変数:
-#   AUTOPILOT_WORKTREE_ROOT  worktree を作る親dir（既定: $HOME/autopilot-worktrees）
+#   AUTOPILOT_WORKTREE_ROOT  worktree を作る親dir
+#                            （既定: <main checkout>/.autopilot-worktrees）
+#                            既定はリポジトリ直下（gitignore 済み）。devpod では /app が
+#                            bind mount で永続するため、rebuild しても worktree の実体と
+#                            .git/worktrees メタデータが同じ mount 上で同期し続ける。
+#                            （旧既定 $HOME/autopilot-worktrees は /root 配下 = ephemeral で
+#                             rebuild ごとに消え、stale 登録が残って dispatch が壊れていた）
 #   AUTOPILOT_BRANCH_PREFIX  ブランチ接頭辞（既定: topic/autopilot-）
 set -euo pipefail
 
@@ -46,7 +52,7 @@ GIT_COMMON_DIR=$(git rev-parse --git-common-dir)
 GIT_COMMON_ABS=$(cd "${GIT_COMMON_DIR}" && pwd)
 MAIN_CHECKOUT=$(dirname "${GIT_COMMON_ABS}")
 
-WT_ROOT="${AUTOPILOT_WORKTREE_ROOT:-${HOME}/autopilot-worktrees}"
+WT_ROOT="${AUTOPILOT_WORKTREE_ROOT:-${MAIN_CHECKOUT}/.autopilot-worktrees}"
 BRANCH_PREFIX="${AUTOPILOT_BRANCH_PREFIX:-topic/autopilot-}"
 
 wt_path() { echo "${WT_ROOT}/issue-$1"; }
@@ -119,6 +125,12 @@ cmd_create() {
     local wt branch
     wt=$(wt_path "${issue}")
     if [[ -n "${explicit_branch}" ]]; then branch="${explicit_branch}"; else branch=$(wt_branch "${issue}"); fi
+
+    # 自己修復: worktree の実体が消えても .git/worktrees のメタデータだけ残ると
+    # 「登録あり→再準備→cd 失敗」になる（devpod rebuild で /root 配下が消えた等）。
+    # 毎回 prune で実体の無い登録を掃除し、親 dir を用意してから既存判定する。
+    mkdir -p "${WT_ROOT}"
+    git -C "${MAIN_CHECKOUT}" worktree prune >/dev/null 2>&1 || true
 
     git -C "${MAIN_CHECKOUT}" fetch -p origin develop >/dev/null 2>&1 || true
     if [[ -n "${explicit_branch}" ]]; then
