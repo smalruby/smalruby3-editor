@@ -73,3 +73,23 @@ test('MONITOR_HTML: インライン script が構文的に妥当', () => {
     // DOM は無い環境なので Function コンストラクタで構文チェックのみ行う
     assert.doesNotThrow(() => new Function(m[1]));
 });
+
+test('MONITOR_HTML: ヘッダー中央に Claude 使用量表示（#879）', () => {
+    // ヘッダーに #usage 要素があり、中央寄せ（absolute + translateX(-50%)）される
+    assert.match(MONITOR_HTML, /id="usage"/);
+    assert.match(MONITOR_HTML, /\.usage \{[^}]*left: 50%/);
+    assert.match(MONITOR_HTML, /\.usage \{[^}]*translateX\(-50%\)/);
+    // Claude アイコンはインライン SVG（外部リソース禁止）
+    assert.match(MONITOR_HTML, /USAGE_ICON\s*=\s*'<svg/);
+    assert.match(MONITOR_HTML, /aria-label="Claude"/);
+    assert.doesNotMatch(MONITOR_HTML, /<img[^>]+src=/);
+    // session/weekly の 2 本のバー + renderUsage が /board の claudeUsage を読む
+    assert.match(MONITOR_HTML, /function usageBar/);
+    assert.match(MONITOR_HTML, /function renderUsage/);
+    assert.match(MONITOR_HTML, /d\.claudeUsage/);
+    assert.match(MONITOR_HTML, /renderUsage\(d\)/);
+    // 残量僅少（>= 80%）で警告色
+    assert.match(MONITOR_HTML, /pct >= 80/);
+    // データ欠如時は「—」でレイアウトを崩さない
+    assert.match(MONITOR_HTML, /class="umuted"/);
+});

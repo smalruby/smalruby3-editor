@@ -5,6 +5,7 @@ const {
     applyMergeProgression, applyClosedReconcile, applyPrProjection, applyDodHandoffs, runTickOnce,
     detectStuck, markBlocked, getDirectives, applyLabelHealing, collectGateContexts,
     parseSsoDeviceOutput, startReauth,
+    updateClaudeUsage, boardResponse, statusResponse,
 } = require('../src/daemon');
 const { EventEmitter } = require('node:events');
 const { HITL_LABEL, AUTOPILOT_LABEL } = require('../src/phases');
@@ -854,4 +855,43 @@ test('startReauth: spawn 失敗は status=error になる', async () => {
     });
     assert.equal(r.status, 'error');
     assert.match(r.error, /aws not found/);
+});
+
+// ---- Claude 使用量表示（#879） --------------------------------------------
+
+test('boardResponse: state.claudeUsage を含める（無ければ null）', () => {
+    const cfg = { assignee: 'me', concurrency: 2 };
+    const empty = boardResponse(cfg, { running: new Map() });
+    assert.strictEqual(empty.claudeUsage, null);
+    const usage = { session: { percent: 23.5 }, weekly: { percent: 41.2 }, updatedAt: 1 };
+    const withUsage = boardResponse(cfg, { running: new Map(), claudeUsage: usage });
+    assert.deepStrictEqual(withUsage.claudeUsage, usage);
+});
+
+test('statusResponse: state.claudeUsage を含める', () => {
+    const cfg = { assignee: null, concurrency: 1 };
+    const usage = { session: { percent: 5 }, weekly: { percent: 9 }, updatedAt: 2 };
+    assert.deepStrictEqual(statusResponse(cfg, { running: new Map(), claudeUsage: usage }).claudeUsage, usage);
+    assert.strictEqual(statusResponse(cfg, { running: new Map() }).claudeUsage, null);
+});
+
+test('updateClaudeUsage: usage ファイルから使用量を読み state に反映', () => {
+    const fs = require('node:fs');
+    const os = require('node:os');
+    const path = require('node:path');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'daemon-usage-'));
+    const usageFile = path.join(dir, 'claude-usage.json');
+    fs.writeFileSync(usageFile, JSON.stringify({
+        rate_limits: {
+            five_hour: { used_percentage: 30 }, seven_day: { used_percentage: 60 },
+        },
+    }) + '\n');
+    const state = { claudeUsage: null };
+    updateClaudeUsage(state, { usageFile, now: () => 42 }, () => {});
+    assert.strictEqual(state.claudeUsage.session.percent, 30);
+    assert.strictEqual(state.claudeUsage.weekly.percent, 60);
+    assert.strictEqual(state.claudeUsage.updatedAt, 42);
+    // 取得できないときは既存値を保持（null 上書きしない）
+    updateClaudeUsage(state, { usageFile: '/no/such/file.json', now: () => 99 }, () => {});
+    assert.strictEqual(state.claudeUsage.updatedAt, 42);
 });

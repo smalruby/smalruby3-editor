@@ -26,6 +26,19 @@ const MONITOR_HTML = `<!doctype html>
   /* ---- コンパクトヘッダー（1 行固定） ---- */
   header { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: .5rem;
            padding: .4rem .8rem; background: #0f172a; color: #e2e8f0; white-space: nowrap; overflow: hidden; }
+  /* ---- Claude 使用量（ヘッダー中央）#879 ---- */
+  .usage { position: absolute; left: 50%; transform: translateX(-50%); display: flex; align-items: center;
+           gap: .3rem; font-size: .75rem; color: #cbd5e1; font-variant-numeric: tabular-nums;
+           pointer-events: none; }
+  .usage .uicon { flex: none; display: block; }
+  .usage .ubar { width: 40px; height: 8px; background: #334155; border-radius: 4px; overflow: hidden;
+                 display: inline-block; vertical-align: middle; }
+  .usage .ubar > span { display: block; height: 100%; background: #22c55e; }
+  .usage .ubar > span.warn { background: #ef4444; }
+  .usage .upct { min-width: 2.4em; text-align: right; }
+  .usage .upct.warn { color: #fca5a5; }
+  .usage .usep { color: #64748b; margin: 0 .05rem; }
+  .usage .umuted { color: #64748b; min-width: 2.4em; text-align: center; }
   header h1 { font-size: .95rem; margin: 0; font-weight: 600; }
   header .pill { flex: none; }
   header button { padding: .15rem .55rem; font-size: .8rem; cursor: pointer; border: 1px solid #334155;
@@ -79,6 +92,7 @@ const MONITOR_HTML = `<!doctype html>
 </style></head><body>
 <header>
   <h1>🤖 autopilot</h1>
+  <div id="usage" class="usage" title="Claude 使用率（セッション / 週間）"></div>
   <span id="state" class="pill ok">…</span>
   <button id="pause" title="新規ディスパッチを止める">⏸</button>
   <button id="resume" title="再開">▶</button>
@@ -127,6 +141,32 @@ const prChip = (p) => {
 const mins = (ms) => Math.max(0, Math.round(ms / 60000));
 let logIssue = null;
 let logTimer = null;
+
+// Claude アイコン（インライン SVG・自己完結。外部リソース禁止）
+const USAGE_ICON = '<svg class="uicon" viewBox="0 0 100 100" width="15" height="15" aria-label="Claude">'
+  + '<g stroke="#d97757" stroke-width="10" stroke-linecap="round">'
+  + '<line x1="50" y1="14" x2="50" y2="86"/><line x1="14" y1="50" x2="86" y2="50"/>'
+  + '<line x1="24" y1="24" x2="76" y2="76"/><line x1="76" y1="24" x2="24" y2="76"/></g></svg>';
+
+// 使用率の短いバー + NN%。データが無いウィンドウは「—」でレイアウトを崩さない。
+// used ≥ 80% は警告色（残量僅少）。
+function usageBar(w, label) {
+  if (!w || w.percent == null) return '<span class="umuted" title="' + esc(label) + '">—</span>';
+  const pct = Math.max(0, Math.min(100, Number(w.percent) || 0));
+  const warn = pct >= 80 ? ' warn' : '';
+  const rounded = Math.round(pct);
+  return '<span class="ubar" title="' + esc(label) + ' ' + rounded + '%">'
+    + '<span class="' + warn.trim() + '" style="width:' + pct + '%"></span></span>'
+    + '<span class="upct' + warn + '">' + rounded + '%</span>';
+}
+
+function renderUsage(d) {
+  const u = d.claudeUsage || {};
+  document.getElementById('usage').innerHTML = USAGE_ICON
+    + usageBar(u.session, 'セッション使用率（直近5時間）')
+    + '<span class="usep">/</span>'
+    + usageBar(u.weekly, '週間使用率（7日）');
+}
 
 function renderAlerts(d) {
   const parts = [];
@@ -221,6 +261,7 @@ async function refresh() {
       + ' · 実行中 ' + (d.running || []).length
       + (d.rate && d.rate.minRemaining != null ? ' · API残 ' + d.rate.minRemaining + (d.rate.warn ? '⚠' : '') : '')
       + (d.updatedAt ? ' · 更新 ' + Math.round((Date.now() - d.updatedAt) / 1000) + 's前' : '');
+    renderUsage(d);
     renderAlerts(d);
     renderBoard(d);
     renderHistory(d);

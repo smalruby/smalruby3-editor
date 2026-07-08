@@ -60,6 +60,7 @@ const { readResultFile } = require('./contract');
 const { runPhase, killSession, capture } = require('./runner');
 const { MONITOR_HTML } = require('./monitor');
 const { loadSettings, buildClaudeCommand, snapshotRunAssets } = require('./settings');
+const { readClaudeUsage } = require('./usage');
 const project = require('./project');
 
 const execFileP = promisify(execFile);
@@ -349,6 +350,28 @@ function recordHistory(state, entry) {
     if (state.history.length > HISTORY_LIMIT) state.history.length = HISTORY_LIMIT;
 }
 
+/**
+ * worker の status line（usage-statusline.sh）が書き出した usage ファイルから
+ * Claude 使用率（session/weekly）を読み、state.claudeUsage に反映する（Issue #879）。
+ * 取得できなければ既存値を保持する（非サブスク / 初回応答前は rate_limits が無い →
+ * 無理に null 上書きしない）。
+ * @param {object} state daemon の可変状態（state.claudeUsage を書き換える）
+ * @param {object} cfg
+ * @param {function} log
+ */
+function updateClaudeUsage(state, cfg, log) {
+    try {
+        const usage = readClaudeUsage(cfg.usageFile || usageFilePath(), { now: cfg.now });
+        if (usage) {
+            state.claudeUsage = usage;
+            const pct = (w) => (w && w.percent != null ? `${Math.round(w.percent)}%` : '—');
+            log(`claude usage: session=${pct(usage.session)} weekly=${pct(usage.weekly)}`);
+        }
+    } catch (e) {
+        log(`claude usage read failed: ${e.message}`);
+    }
+}
+
 /** 1 つの item を 1 フェーズ実行し、結果を Project に反映する */
 async function dispatch(item, cfg, state, log) {
     const phase = item.phase;
@@ -416,12 +439,23 @@ async function dispatch(item, cfg, state, log) {
         // プロンプトを --add-dir で許可して使う（checkout のブランチ切り替えに非依存）。
         const envCmd = process.env.AUTOPILOT_CLAUDE_CMD;
         const command = envCmd
-            || buildClaudeCommand(cfg.settings, phase, { extraDirs: cfg.snapshotDir ? [cfg.snapshotDir] : [] });
+            || buildClaudeCommand(cfg.settings, phase, {
+                extraDirs: cfg.snapshotDir ? [cfg.snapshotDir] : [],
+                // Claude 使用率抽出（#879）: worker の status line にスクリプトを仕込む。
+                // script は worker の worktree 内の絶対パス（動作中ブランチのものに一致）、
+                // file は daemon が読む共有パス。パスを誤ると値が取れないので絶対パスで渡す。
+                usageStatusline: {
+                    script: path.join(cwd, 'tools', 'autopilot', 'bin', 'usage-statusline.sh'),
+                    file: cfg.usageFile || usageFilePath(),
+                },
+            });
         const promptDir = envCmd ? undefined : cfg.promptDir;
         log(`#${item.issue}: run ${phase} (${meta.skill})`);
         const res = await runPhase({
             session, cwd, env, command, promptDir, skill: meta.skill, issue: item.issue, resultFile, log,
         });
+        // worker のセッションが終わったこのタイミングで Claude 使用率を更新する（#879）。
+        updateClaudeUsage(state, cfg, log);
         if (!res.ok) {
             log(`#${item.issue}: runner failed (${res.reason})`);
             record('failed', res.reason);
@@ -962,6 +996,53 @@ async function runTickOnce(cfg, state, log, deps = {}) {
     }
 }
 
+/**
+ * `GET /board` のレスポンス（俯瞰ボード・読み取り専用）を組み立てる純粋関数。
+ * items は refreshBoard のキャッシュ、running/paused/claudeUsage は live。
+ * @param {object} cfg
+ * @param {object} state
+ * @returns {object}
+ */
+function boardResponse(cfg, state) {
+    return {
+        updatedAt: state.board ? state.board.updatedAt : null,
+        paused: state.paused,
+        pausedBy: state.pausedBy || (state.paused ? 'human' : null),
+        authError: state.authError || null,
+        reauthHint: state.authError ? REAUTH_HINT : null,
+        reauth: state.reauth || null,
+        assignee: cfg.assignee,
+        concurrency: cfg.concurrency,
+        running: [...state.running.entries()].map(([issue, v]) => ({ issue, phase: v.phase, since: v.since })),
+        rate: state.ratePlan || null,
+        claudeUsage: state.claudeUsage || null,
+        items: state.board ? state.board.items : [],
+        history: state.history || [],
+    };
+}
+
+/**
+ * `GET /status` のレスポンスを組み立てる純粋関数。
+ * @param {object} cfg
+ * @param {object} state
+ * @returns {object}
+ */
+function statusResponse(cfg, state) {
+    return {
+        paused: state.paused,
+        pausedBy: state.pausedBy || (state.paused ? 'human' : null),
+        authError: state.authError || null,
+        reauthHint: state.authError ? REAUTH_HINT : null,
+        reauth: state.reauth || null,
+        assignee: cfg.assignee,
+        concurrency: cfg.concurrency,
+        rate: state.ratePlan || null,
+        rateLimits: state.rateLimits || null,
+        claudeUsage: state.claudeUsage || null,
+        running: [...state.running.entries()].map(([issue, v]) => ({ issue, phase: v.phase })),
+    };
+}
+
 /** HTTP 制御サーバ（pause/resume/stop/inject/status） */
 function startHttp(cfg, state, log) {
     const server = http.createServer((req, res) => {
@@ -981,35 +1062,10 @@ function startHttp(cfg, state, log) {
             return res.end(r ? capture(r.session) : `#${issue} は実行中ではありません`);
         }
         if (req.method === 'GET' && url.pathname === '/board') {
-            // 俯瞰ボード（読み取り専用）。items は refreshBoard のキャッシュ、running/paused は live。
-            return send(200, {
-                updatedAt: state.board ? state.board.updatedAt : null,
-                paused: state.paused,
-                pausedBy: state.pausedBy || (state.paused ? 'human' : null),
-                authError: state.authError || null,
-                reauthHint: state.authError ? REAUTH_HINT : null,
-                reauth: state.reauth || null,
-                assignee: cfg.assignee,
-                concurrency: cfg.concurrency,
-                running: [...state.running.entries()].map(([issue, v]) => ({ issue, phase: v.phase, since: v.since })),
-                rate: state.ratePlan || null,
-                items: state.board ? state.board.items : [],
-                history: state.history || [],
-            });
+            return send(200, boardResponse(cfg, state));
         }
         if (req.method === 'GET' && url.pathname === '/status') {
-            return send(200, {
-                paused: state.paused,
-                pausedBy: state.pausedBy || (state.paused ? 'human' : null),
-                authError: state.authError || null,
-                reauthHint: state.authError ? REAUTH_HINT : null,
-                reauth: state.reauth || null,
-                assignee: cfg.assignee,
-                concurrency: cfg.concurrency,
-                rate: state.ratePlan || null,
-                rateLimits: state.rateLimits || null,
-                running: [...state.running.entries()].map(([issue, v]) => ({ issue, phase: v.phase })),
-            });
+            return send(200, statusResponse(cfg, state));
         }
         if (req.method === 'POST' && url.pathname === '/tick') {
             // 即時 tick: interval を待たずに 1 サイクル実行する（Web モニタの「今すぐ確認」）。
@@ -1086,6 +1142,16 @@ function pidFilePath() {
     return path.join(os.tmpdir(), 'autopilot-daemon.pid');
 }
 
+/**
+ * Claude 使用率の受け渡しファイル（Issue #879）。worker の status line
+ * （usage-statusline.sh）が rate_limits を書き出し、daemon がここから読む。
+ * アカウント横断の値なので単一ファイル（どの worker が書いても最新が入ればよい）。
+ * @returns {string} 絶対パス
+ */
+function usageFilePath() {
+    return path.join(os.tmpdir(), 'autopilot-claude-usage.json');
+}
+
 /** デーモン起動 */
 async function main(opts = {}) {
     const log = opts.log || ((m) => process.stderr.write(`[autopilot-daemon] ${m}\n`));
@@ -1121,7 +1187,10 @@ async function main(opts = {}) {
         cfg.snapshotDir = null;
         cfg.promptDir = undefined;
     }
-    const state = { paused: false, pausedBy: null, authError: null, reauth: null, running: new Map(), ticking: false };
+    const state = {
+        paused: false, pausedBy: null, authError: null, reauth: null,
+        running: new Map(), ticking: false, claudeUsage: null,
+    };
     // PID ファイルを書き、安全停止（kill "$(cat <pidfile>)" / POST /shutdown）を可能にする
     try {
         fs.writeFileSync(pidFilePath(), String(process.pid));
@@ -1160,4 +1229,5 @@ module.exports = {
     isGateItem, collectGateContexts, checkAuthHealth, REAUTH_HINT,
     parseSsoDeviceOutput, startReauth,
     refreshBoard, recordHistory, refreshRateLimits,
+    updateClaudeUsage, boardResponse, statusResponse,
 };
