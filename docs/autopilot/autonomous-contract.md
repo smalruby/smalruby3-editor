@@ -3,9 +3,10 @@
 > **🆕 Smalruby 独自** — autopilot（Claude による Issue ライフサイクル自律オーケストレーター）の
 > 中核規約。upstream には存在しない。設計の出発点は Issue #760。
 
-このドキュメントは、autopilot の各**フェーズ・プロンプト**（`autopilot-triage` / `autopilot-understand` /
-`autopilot-decompose` / `autopilot-implement` / `autopilot-review` / `autopilot-address-review` /
-`autopilot-verify`）と、それらを tmux 上で駆動する **Claude Runner** の間の**契約**を定める。
+このドキュメントは、autopilot の各**フェーズ・プロンプト**（`autopilot-triage` / `autopilot-discuss` /
+`autopilot-understand` / `autopilot-decompose` / `autopilot-implement` / `autopilot-review` /
+`autopilot-address-review` / `autopilot-verify`）と、それらを tmux 上で駆動する
+**Claude Runner** の間の**契約**を定める。
 
 すべての `autopilot-*` プロンプトは本コントラクトに従う。プロンプトの冒頭は必ず
 「**Follow the autopilot autonomous contract: `docs/autopilot/autonomous-contract.md`**」を宣言する。
@@ -67,7 +68,7 @@ Runner はこの短語を pane で検出してから `AUTOPILOT_RESULT_FILE` を
 | key | 型 | 説明 |
 |---|---|---|
 | `issue` | number | 対象 Issue 番号 |
-| `phase` | string | 実行したプロンプト（`triage`/`decompose`/`implement`/`review`/`address-review`/`verify`/`understand`） |
+| `phase` | string | 実行したプロンプト（`triage`/`discuss`/`decompose`/`implement`/`review`/`address-review`/`verify`/`understand`） |
 | `signal` | string | `done` / `hitl` / `error`（pane トークンと一致させる） |
 | `summary` | string | 人間向け 1 行要約 |
 
@@ -89,7 +90,8 @@ Runner はこの短語を pane で検出してから `AUTOPILOT_RESULT_FILE` を
 |---|---|---|
 | `reason` | string | 人間に何を判断してほしいか |
 | `commentUrl` | string | 投稿したコメントの URL |
-| `nextStatus` | string \| null | 提案する Status（任意） |
+| `nextStatus` | string \| null | 提案する Status（任意。**Icebox / Close / Done は提案しない** — 提案段階で退避系へ動かすと出口の無い状態に固着する。`state-machine.md` 不変条件 I4） |
+| `nextAiStatus` | string \| null | 提案する AI Status（任意。例: 実装前ディスカッションの `Discussing`） |
 
 `signal=error` のとき追加で:
 
@@ -138,7 +140,11 @@ AUTOPILOT_DONE
 
 ## 5. 認証・スコープ
 
-- コミット/push は **`bin/bot-git`**（bot 名義を `-c` 注入。共有 `.git/config` は書き換えない）。
+- コミットは **`bin/bot-git`**（bot 名義を `-c` 注入。共有 `.git/config` は書き換えない）。
+- push は **`bin/autopilot-push`** を使う。変更に Bot 権限外パス（`.github/workflows/**` 等）が
+  含まれると個人クレデンシャルの push に自動で切り替わる（`route=personal`）。その場合
+  PR 作成も plain `gh`（個人トークン）で行い、`👥 human-review-required` ラベルを付けて
+  本人以外のレビューを必須にする。
 - gh / GraphQL は **`GH_TOKEN="$(bin/bot-token)" gh ...`**（`bin/bot-token` は5分前自動リフレッシュ）。
 - 作業は**割り当てられた worktree（cwd）の中だけ**で行う。
 - 対象は**割り当てられた 1 つの Issue / PR のみ**。他の Issue を勝手に触らない。
@@ -152,6 +158,7 @@ AUTOPILOT_DONE
 | `AUTOPILOT_ISSUE` | 対象 Issue 番号 |
 | `AUTOPILOT_PHASE` | 実行フェーズ名 |
 | `AUTOPILOT_RESULT_FILE` | 結果 JSON の書き込み先パス |
+| （起動メッセージのプロンプトパス） | daemon 経由の run は**起動時スナップショット**の絶対パスのプロンプトを Read する（checkout のブランチ切り替えに非依存）。worker の model/effort/追加ディレクトリは `tools/autopilot/src/settings.js` 参照 |
 | `AUTOPILOT_PROJECT` | Project 番号（参照のみ。書き込みは daemon） |
 | `AUTOPILOT_REPO` | `smalruby/smalruby3-editor` |
 | `AUTOPILOT_BASE_BRANCH` | PR 先・worktree 分岐元のベースブランチ（既定 `develop`）。Issue 本文の `autopilot-base:` ディレクティブや「ベースブランチ」宣言があれば daemon が渡す（EPIC サブ Issue を親 epic ブランチに積む用）。implement は `gh pr create --base` にこれを使う |

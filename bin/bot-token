@@ -8,12 +8,21 @@
  * NO secrets and is safe to commit.
  *
  * Config dir (default ~/.config/smalruby-bot, override with SMALRUBY_BOT_DIR):
- *   private-key.pem   the GitHub App private key (the only secret)
+ *   private-key.pem   the GitHub App private key (optional if fetched from AWS)
  *   config            shell-style KEY=VALUE with:
  *                       APP_ID=<numeric app id>
  *                       INSTALLATION_ID=<numeric installation id>
  *                       APP_SLUG=<app slug, e.g. smalruby3-editor-bot>
+ *                       PRIVATE_KEY_SECRET_ID=<AWS Secrets Manager secret id/ARN> (optional)
+ *                       AWS_PROFILE=<profile for the aws call> (optional)
+ *                       AWS_REGION=<region for the aws call> (optional)
  *   token.json        (auto) cached installation token + expiry
+ *
+ * Private key resolution (無人運用・生 .pem の各自配付を廃止):
+ *   1. PRIVATE_KEY_SECRET_ID があれば AWS Secrets Manager から取得（aws CLI 経由。
+ *      SSO 失効時は再認証手順を stderr に出して失敗する）
+ *   2. 取得に失敗し、ローカル private-key.pem があれば warn してフォールバック
+ *   3. どちらも無ければエラー
  *
  * Usage:
  *   bin/bot-token                 print a valid installation token (refresh if stale)
@@ -34,6 +43,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
+const { execFileSync } = require('child_process');
 
 const DIR = process.env.SMALRUBY_BOT_DIR || path.join(os.homedir(), '.config', 'smalruby-bot');
 const CACHE_DIR = process.env.SMALRUBY_BOT_CACHE || path.join(os.homedir(), '.cache', 'smalruby-bot');
@@ -55,7 +65,7 @@ function readConfig() {
         }
     }
     // env overrides
-    for (const k of ['APP_ID', 'INSTALLATION_ID', 'APP_SLUG']) {
+    for (const k of ['APP_ID', 'INSTALLATION_ID', 'APP_SLUG', 'PRIVATE_KEY_SECRET_ID']) {
         if (process.env[`SMALRUBY_BOT_${k}`]) cfg[k] = process.env[`SMALRUBY_BOT_${k}`];
     }
     return cfg;
@@ -94,8 +104,62 @@ async function api(urlPath, { method = 'GET', auth, body } = {}) {
     return json;
 }
 
-function loadPem() {
-    if (!fs.existsSync(PEM_PATH)) die(`private key not found at ${PEM_PATH}`);
+/**
+ * AWS Secrets Manager から GitHub App 秘密鍵 (PEM) を取得する。
+ * SecretString は生 PEM か、{"privateKey": "..."} 形式の JSON を受け付ける。
+ * SSO 失効らしいエラーは再認証手順を含むメッセージで die する
+ * (daemon はこの失敗を検知して auto-pause し、モニタで再認証を促す)。
+ */
+function fetchPemFromSecretsManager(cfg) {
+    const env = { ...process.env };
+    if (cfg.AWS_PROFILE && !env.AWS_PROFILE) env.AWS_PROFILE = cfg.AWS_PROFILE;
+    if (cfg.AWS_REGION && !env.AWS_REGION) env.AWS_REGION = cfg.AWS_REGION;
+    let out;
+    try {
+        out = execFileSync('aws', [
+            'secretsmanager', 'get-secret-value',
+            '--secret-id', cfg.PRIVATE_KEY_SECRET_ID,
+            '--query', 'SecretString', '--output', 'text',
+        ], { encoding: 'utf8', env, stdio: ['ignore', 'pipe', 'pipe'] });
+    } catch (e) {
+        const detail = `${(e.stderr || '').toString()}\n${e.message || ''}`;
+        if (/sso|token.*(expired|invalid)|expired.*token|security token|Unable to locate credentials/i.test(detail)) {
+            throw new Error(
+                'AWS 認証が失効/未設定のため Secrets Manager から秘密鍵を取得できません。' +
+                '`aws sso login --sso-session smalruby --use-device-code` で再認証してください。' +
+                ` (${detail.trim().split('\n')[0]})`,
+            );
+        }
+        throw new Error(`aws secretsmanager get-secret-value failed: ${detail.trim().split('\n')[0]}`);
+    }
+    let pem = out.trim();
+    if (pem.startsWith('{')) {
+        try {
+            const j = JSON.parse(pem);
+            pem = j.privateKey || j.private_key || j.pem || '';
+        } catch { /* fall through to validation */ }
+    }
+    if (!pem.includes('BEGIN') || !pem.includes('PRIVATE KEY')) {
+        throw new Error(`secret ${cfg.PRIVATE_KEY_SECRET_ID} does not look like a PEM private key`);
+    }
+    return pem.endsWith('\n') ? pem : `${pem}\n`;
+}
+
+function loadPem(cfg = readConfig()) {
+    if (cfg.PRIVATE_KEY_SECRET_ID) {
+        try {
+            return fetchPemFromSecretsManager(cfg);
+        } catch (e) {
+            if (fs.existsSync(PEM_PATH)) {
+                process.stderr.write(`bot-token: warn: ${e.message} — falling back to local ${PEM_PATH}\n`);
+                return fs.readFileSync(PEM_PATH, 'utf8');
+            }
+            die(e.message);
+        }
+    }
+    if (!fs.existsSync(PEM_PATH)) {
+        die(`private key not found at ${PEM_PATH} (set PRIVATE_KEY_SECRET_ID in config to fetch it from AWS Secrets Manager)`);
+    }
     return fs.readFileSync(PEM_PATH, 'utf8');
 }
 
@@ -112,7 +176,7 @@ async function getToken() {
     const cfg = readConfig();
     if (!cfg.APP_ID) die('APP_ID not set (config or SMALRUBY_BOT_APP_ID)');
     if (!cfg.INSTALLATION_ID) die('INSTALLATION_ID not set (config or SMALRUBY_BOT_INSTALLATION_ID)');
-    const jwt = makeJwt(cfg.APP_ID, loadPem());
+    const jwt = makeJwt(cfg.APP_ID, loadPem(cfg));
     const out = await api(`/app/installations/${cfg.INSTALLATION_ID}/access_tokens`, { method: 'POST', auth: jwt });
     fs.mkdirSync(CACHE_DIR, { recursive: true });
     fs.writeFileSync(TOKEN_CACHE, JSON.stringify({ token: out.token, expires_at: out.expires_at }), { mode: 0o600 });
@@ -140,7 +204,7 @@ async function main() {
     if (arg === '--installations') {
         const cfg = readConfig();
         if (!cfg.APP_ID) die('APP_ID not set');
-        const jwt = makeJwt(cfg.APP_ID, loadPem());
+        const jwt = makeJwt(cfg.APP_ID, loadPem(cfg));
         const list = await api('/app/installations', { auth: jwt });
         for (const i of list) {
             process.stdout.write(`installation_id=${i.id}\taccount=${i.account && i.account.login}\ttarget=${i.target_type}\n`);

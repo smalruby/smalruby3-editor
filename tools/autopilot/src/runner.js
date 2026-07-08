@@ -66,6 +66,8 @@ function sendLine(session, text) {
  * @param {object} opts.env claude に渡す環境（AUTOPILOT_* 等）
  * @param {string} opts.command claude 起動コマンド（既定 'claude --permission-mode acceptEdits'）
  * @param {string} opts.skill フェーズプロンプト basename（例 'autopilot-triage'。`tools/autopilot/prompts/<skill>.md`）
+ * @param {string} [opts.promptDir] プロンプト配置ディレクトリ（daemon の起動時スナップショットの
+ *   絶対パス等。省略時は worktree 内 `tools/autopilot/prompts`）
  * @param {number} opts.issue 対象 Issue 番号
  * @param {string} opts.resultFile 結果ファイルの絶対パス
  * @param {object} [opts.watchdog] タイマー設定（既定 DEFAULT_WATCHDOG）
@@ -97,7 +99,7 @@ async function runPhase(opts) {
         let prevPane = null;
         let lastChangeAt = Date.now();
         // Skill のスラッシュコマンドではなく、プロンプトファイルを読ませる指示を送る（#プロンプト移設）
-        const slash = phasePromptCommand(opts.skill, opts.issue);
+        const slash = phasePromptCommand(opts.skill, opts.issue, opts.promptDir);
 
         let outcome = null;
         while (!outcome) {

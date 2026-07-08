@@ -4,34 +4,54 @@
  * 認証は bin/bot-token のインストールトークン。書き込みは gh project item-edit
  * を使う（手動検証済みの経路）。Status/AI Status/HITL/Size/Kind の単一ライターは
  * この層（daemon/CLI）であり、スキルは触らない。
+ *
+ * I/O はすべて **非同期**（execFile）。旧実装の execFileSync は 1 呼び出しごとに
+ * イベントループを止め、tick 中の daemon が HTTP（Web モニタ）に応答できなくなる
+ * ため全廃した。純粋関数（normalize / select 系）は同期のまま。
  */
 
-const { execFileSync } = require('child_process');
+const { execFile } = require('child_process');
+const { promisify } = require('util');
 const path = require('path');
-const { HITL_LABEL, selectStickyCommentIds, computeReviewApproval, autopilotHeadBranch } = require('./phases');
+const {
+    HITL_LABEL, selectStickyCommentIds, selectMarkedCommentIds, computeReviewApproval, autopilotHeadBranch,
+    mergeActivity, normalizeBoardEnrichment,
+} = require('./phases');
+
+const execFileP = promisify(execFile);
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
 const BOT_TOKEN_BIN = path.join(REPO_ROOT, 'bin', 'bot-token');
 
-function botToken() {
-    return execFileSync(BOT_TOKEN_BIN, [], { encoding: 'utf8' }).trim();
+// bot-token の in-process キャッシュ。bin/bot-token 自体もディスクキャッシュを持つが、
+// tick ごとに何十回も node プロセスを spawn しないよう短時間だけメモ化する。
+let tokenCache = { token: null, at: 0 };
+const TOKEN_CACHE_MS = 60 * 1000;
+
+async function botToken() {
+    const now = Date.now();
+    if (tokenCache.token && now - tokenCache.at < TOKEN_CACHE_MS) return tokenCache.token;
+    const { stdout } = await execFileP(BOT_TOKEN_BIN, [], { encoding: 'utf8' });
+    tokenCache = { token: stdout.trim(), at: now };
+    return tokenCache.token;
 }
 
-function gh(args, { token } = {}) {
-    const env = { ...process.env, GH_TOKEN: token || botToken() };
-    return execFileSync('gh', args, { encoding: 'utf8', env, maxBuffer: 64 * 1024 * 1024 });
+async function gh(args, { token } = {}) {
+    const env = { ...process.env, GH_TOKEN: token || await botToken() };
+    const { stdout } = await execFileP('gh', args, { encoding: 'utf8', env, maxBuffer: 64 * 1024 * 1024 });
+    return stdout;
 }
 
 /** Project の id と number を取得 */
-function getProject(owner, number, token) {
-    const out = gh(['project', 'view', String(number), '--owner', owner, '--format', 'json'], { token });
+async function getProject(owner, number, token) {
+    const out = await gh(['project', 'view', String(number), '--owner', owner, '--format', 'json'], { token });
     const j = JSON.parse(out);
     return { id: j.id, number: j.number, title: j.title, url: j.url };
 }
 
 /** フィールド定義を name -> {id, type, options:{optName:id}} で返す */
-function getFields(owner, number, token) {
-    const out = gh(['project', 'field-list', String(number), '--owner', owner, '--format', 'json'], { token });
+async function getFields(owner, number, token) {
+    const out = await gh(['project', 'field-list', String(number), '--owner', owner, '--format', 'json'], { token });
     const fields = JSON.parse(out).fields;
     const map = {};
     for (const f of fields) {
@@ -43,8 +63,8 @@ function getFields(owner, number, token) {
 }
 
 /** 指定 Issue 番号に対応する project item id を返す（無ければ null） */
-function findItemId(owner, number, issueNumber, token) {
-    const out = gh(['project', 'item-list', String(number), '--owner', owner, '--format', 'json', '--limit', '1000'], { token });
+async function findItemId(owner, number, issueNumber, token) {
+    const out = await gh(['project', 'item-list', String(number), '--owner', owner, '--format', 'json', '--limit', '1000'], { token });
     const items = JSON.parse(out).items || [];
     const it = items.find(i => i.content && i.content.number === issueNumber);
     return it ? it.id : null;
@@ -55,8 +75,9 @@ function findItemId(owner, number, issueNumber, token) {
  * gh の JSON はキー揺れ（"aI Status"）があるので吸収する。HITL は Project フィールドではなく
  * 🙋 ラベルで管理する（#813）ので、item-list が返す `labels` から `hitlLabel` を導く
  * （追加の API 呼び出し不要）。HITL フィールドは読まない。I/O が無いので unit テスト可能。
- * @param {object} i 生 item（content / labels / status などを持つ）
- * @returns {{issue, itemId, status, aiStatus, labels, hitlLabel, kind, size, title}}
+ * `assignees` は enroll モデル（担当者の daemon だけが処理する）の判定に使う。
+ * @param {object} i 生 item（content / labels / assignees / status などを持つ）
+ * @returns {{issue, itemId, status, aiStatus, labels, hitlLabel, kind, size, title, assignees}}
  */
 function normalizeProjectItem(i) {
     const labels = Array.isArray(i.labels) ? i.labels : [];
@@ -70,6 +91,7 @@ function normalizeProjectItem(i) {
         hitlLabel: labels.includes(HITL_LABEL),
         kind: i.kind,
         size: i.size,
+        assignees: Array.isArray(i.assignees) ? i.assignees : [],
     };
 }
 
@@ -78,8 +100,8 @@ function normalizeProjectItem(i) {
  * 正規化は {@link normalizeProjectItem}（純粋）に委譲する。
  * @returns {Array<{issue, itemId, status, aiStatus, labels, hitlLabel, kind, size, title}>}
  */
-function listItems(owner, number, token) {
-    const out = gh(['project', 'item-list', String(number), '--owner', owner, '--format', 'json', '--limit', '1000'], { token });
+async function listItems(owner, number, token) {
+    const out = await gh(['project', 'item-list', String(number), '--owner', owner, '--format', 'json', '--limit', '1000'], { token });
     const items = JSON.parse(out).items || [];
     return items
         .filter((i) => i.content && typeof i.content.number === 'number')
@@ -87,11 +109,11 @@ function listItems(owner, number, token) {
 }
 
 /** Issue を project に追加して item id を返す（既にあれば既存を返す） */
-function addIssue(owner, number, repo, issueNumber, token) {
-    const existing = findItemId(owner, number, issueNumber, token);
+async function addIssue(owner, number, repo, issueNumber, token) {
+    const existing = await findItemId(owner, number, issueNumber, token);
     if (existing) return existing;
     const url = `https://github.com/${repo}/issues/${issueNumber}`;
-    const out = gh(['project', 'item-add', String(number), '--owner', owner, '--url', url, '--format', 'json'], { token });
+    const out = await gh(['project', 'item-add', String(number), '--owner', owner, '--url', url, '--format', 'json'], { token });
     return JSON.parse(out).id;
 }
 
@@ -99,20 +121,20 @@ function addIssue(owner, number, repo, issueNumber, token) {
  * 1 フィールドを設定する。value=null はクリア。
  * @param {object} ctx { projectId, fields }（getFields 結果）
  */
-function setField(ctx, itemId, fieldName, value, token) {
+async function setField(ctx, itemId, fieldName, value, token) {
     const f = ctx.fields[fieldName];
     if (!f) throw new Error(`unknown field: ${fieldName}`);
     const base = ['project', 'item-edit', '--id', itemId, '--project-id', ctx.projectId, '--field-id', f.id];
     if (value === null) {
-        gh([...base, '--clear'], { token });
+        await gh([...base, '--clear'], { token });
         return;
     }
     if (f.type === 'ProjectV2SingleSelectField') {
         const optId = f.options[value];
         if (!optId) throw new Error(`field ${fieldName} has no option "${value}"`);
-        gh([...base, '--single-select-option-id', optId], { token });
+        await gh([...base, '--single-select-option-id', optId], { token });
     } else {
-        gh([...base, '--text', String(value)], { token });
+        await gh([...base, '--text', String(value)], { token });
     }
 }
 
@@ -121,10 +143,13 @@ function setField(ctx, itemId, fieldName, value, token) {
  * `bin/bot-token --bot-email` は "<slug>[bot]\t<id>+<slug>[bot]@..." を返すので slug を取り出す。
  * @returns {string}
  */
-function botLogin() {
-    const out = execFileSync(BOT_TOKEN_BIN, ['--bot-email'], { encoding: 'utf8' }).trim();
-    const name = (out.split(/\s+/)[0] || '').trim();
-    return name.replace(/\[bot\]$/, '');
+let botLoginCache = null;
+async function botLogin() {
+    if (botLoginCache) return botLoginCache;
+    const { stdout } = await execFileP(BOT_TOKEN_BIN, ['--bot-email'], { encoding: 'utf8' });
+    const name = (stdout.trim().split(/\s+/)[0] || '').trim();
+    botLoginCache = name.replace(/\[bot\]$/, '');
+    return botLoginCache;
 }
 
 /**
@@ -132,9 +157,9 @@ function botLogin() {
  * GitHub が「この Issue を閉じる」と認識した PR だけが渡る前提（本文で `#N` に言及しただけの
  * 無関係 PR は含まれない）。open を最優先し、複数 open なら新しい方（番号が大きい方）を選ぶ。
  * open が無ければ null（projection 対象は open PR のみ）。
- * @param {Array<{number:number, state:string, isDraft:boolean, headRefName:string,
+ * @param {Array<{number:number, state:string, isDraft:boolean, headRefName:string, baseRefName:string,
  *   labels:{nodes:Array<{name:string}>}}>} nodes
- * @returns {{number:number, labels:string[], isDraft:boolean, branch:string}|null}
+ * @returns {{number:number, labels:string[], isDraft:boolean, branch:string, base:string}|null}
  */
 function selectClosingPr(nodes) {
     const open = (Array.isArray(nodes) ? nodes : []).filter((n) => n && n.state === 'OPEN');
@@ -145,6 +170,7 @@ function selectClosingPr(nodes) {
         labels: ((pr.labels && pr.labels.nodes) || []).map((l) => l.name),
         isDraft: Boolean(pr.isDraft),
         branch: pr.headRefName,
+        base: pr.baseRefName,
     };
 }
 
@@ -153,9 +179,9 @@ function selectClosingPr(nodes) {
  * head ブランチ検索のフォールバック用。{@link selectClosingPr} と返り値の形を揃えるが、入力の
  * labels が GraphQL の `labels.nodes` ではなく `gh pr list` の flat な `[{name}]` である点が異なる。
  * 複数あれば新しい方（番号が大きい方）を選ぶ。空/null なら null。
- * @param {Array<{number:number, isDraft:boolean, headRefName:string,
+ * @param {Array<{number:number, isDraft:boolean, headRefName:string, baseRefName:string,
  *   labels:Array<{name:string}>}>} prs `gh pr list --json ...` の配列
- * @returns {{number:number, labels:string[], isDraft:boolean, branch:string}|null}
+ * @returns {{number:number, labels:string[], isDraft:boolean, branch:string, base:string}|null}
  */
 function selectHeadPr(prs) {
     const list = (Array.isArray(prs) ? prs : []).filter(Boolean);
@@ -166,6 +192,7 @@ function selectHeadPr(prs) {
         labels: (pr.labels || []).map((l) => l.name),
         isDraft: Boolean(pr.isDraft),
         branch: pr.headRefName,
+        base: pr.baseRefName,
     };
 }
 
@@ -200,15 +227,15 @@ function headBranchFor(issueNumber) {
  * @param {{gh?:Function}} [deps] gh 実行を差し替え可能（テスト用）
  * @returns {{number:number, labels:string[], isDraft:boolean, branch:string}|null} 無ければ null
  */
-function findPrForIssue(repo, issueNumber, token, deps = {}) {
+async function findPrForIssue(repo, issueNumber, token, deps = {}) {
     const ghFn = deps.gh || gh;
     const [owner, name] = repo.split('/');
     const query =
         'query($owner:String!,$name:String!,$num:Int!){' +
         'repository(owner:$owner,name:$name){issue(number:$num){' +
         'closedByPullRequestsReferences(first:20,includeClosedPrs:true){nodes{' +
-        'number state isDraft headRefName labels(first:20){nodes{name}}}}}}}';
-    const out = ghFn(
+        'number state isDraft headRefName baseRefName labels(first:20){nodes{name}}}}}}}';
+    const out = await ghFn(
         ['api', 'graphql', '-f', `query=${query}`,
             '-F', `owner=${owner}`, '-F', `name=${name}`, '-F', `num=${issueNumber}`],
         { token },
@@ -218,9 +245,9 @@ function findPrForIssue(repo, issueNumber, token, deps = {}) {
     const viaLink = selectClosingPr(nodes);
     if (viaLink) return viaLink;
     // close リンクが無い（非デフォルト base 宛て PR 等）→ head ブランチで base 非依存に解決（#831）
-    const listOut = ghFn(
+    const listOut = await ghFn(
         ['pr', 'list', '--repo', repo, '--head', headBranchFor(issueNumber), '--state', 'open',
-            '--json', 'number,isDraft,headRefName,labels', '--limit', '10'],
+            '--json', 'number,isDraft,headRefName,baseRefName,labels', '--limit', '10'],
         { token },
     );
     return selectHeadPr(JSON.parse(listOut));
@@ -234,24 +261,25 @@ function findPrForIssue(repo, issueNumber, token, deps = {}) {
  * - unresolvedHumanComments: 人間が立てた未解決レビュースレッド数（bot は除外）
  * @returns {{approved:boolean, changesRequested:boolean, unresolvedHumanComments:number}}
  */
-function getPrReviewState(repo, prNumber, token) {
+async function getPrReviewState(repo, prNumber, token) {
     const [owner, name] = repo.split('/');
     const query = `query($owner:String!,$name:String!,$pr:Int!){
       repository(owner:$owner,name:$name){
         pullRequest(number:$pr){
           reviewDecision
-          reviews(last:100){nodes{author{login} state}}
-          reviewThreads(first:100){nodes{isResolved comments(first:1){nodes{author{login}}}}}
+          comments(last:50){nodes{author{login} createdAt}}
+          reviews(last:100){nodes{author{login} state submittedAt}}
+          reviewThreads(first:100){nodes{isResolved comments(first:10){nodes{author{login} createdAt}}}}
         }
       }
     }`;
-    const out = gh(
+    const out = await gh(
         ['api', 'graphql', '-f', `query=${query}`,
             '-F', `owner=${owner}`, '-F', `name=${name}`, '-F', `pr=${prNumber}`],
         { token },
     );
     const pr = JSON.parse(out).data.repository.pullRequest;
-    const bot = botLogin();
+    const bot = await botLogin();
     const isHuman = (login) => Boolean(login) && login !== bot && !login.endsWith('[bot]');
     const threads = (pr.reviewThreads && pr.reviewThreads.nodes) || [];
     const unresolvedHumanComments = threads.filter(
@@ -259,32 +287,87 @@ function getPrReviewState(repo, prNumber, token) {
     ).length;
     const reviews = (pr.reviews && pr.reviews.nodes) || [];
     const { approved, changesRequested } = computeReviewApproval(reviews, pr.reviewDecision, isHuman);
-    return { approved, changesRequested, unresolvedHumanComments };
+    // 発言アクティビティ（ゲート解除の「人間が最後に発言したか」判定用）: PR コメント +
+    // レビュー送信 + レビュースレッドコメントの、人間/bot 別の最新時刻を集める。
+    const activity = { lastHumanAt: 0, lastBotAt: 0 };
+    const record = (login, at) => {
+        const ms = at ? Date.parse(at) : NaN;
+        if (Number.isNaN(ms)) return;
+        if (isHuman(login)) activity.lastHumanAt = Math.max(activity.lastHumanAt, ms);
+        else activity.lastBotAt = Math.max(activity.lastBotAt, ms);
+    };
+    for (const c of (pr.comments && pr.comments.nodes) || []) record(c.author && c.author.login, c.createdAt);
+    for (const r of reviews) record(r.author && r.author.login, r.submittedAt);
+    for (const t of threads) {
+        for (const c of t.comments.nodes || []) record(c.author && c.author.login, c.createdAt);
+    }
+    return { approved, changesRequested, unresolvedHumanComments, activity };
 }
 
 /**
- * Review item の付帯情報（HITL 解除シグナル + PR レビュー状態 + PR 番号）を集める。
- * phaseForItem の ctx として渡す。PR が無ければ null（Review なのに PR 無し＝待つ）。
+ * Issue 側の発言アクティビティ（人間/bot 別の最新コメント時刻）を返す。
+ * Discussing ゲートや PR の無い Blocked の「人間が最後に発言したか」判定に使う。
+ * @param {string} repo `owner/name`
+ * @param {number} issueNumber
+ * @param {string} token
+ * @returns {{lastHumanAt: number, lastBotAt: number}} ms epoch（無ければ 0）
+ */
+async function getIssueActivity(repo, issueNumber, token) {
+    const out = (await gh(
+        ['api', '--paginate', `repos/${repo}/issues/${issueNumber}/comments`,
+            '--jq', '.[] | "\\(.created_at) \\(.user.login)"'],
+        { token },
+    )).trim();
+    const bot = await botLogin();
+    const activity = { lastHumanAt: 0, lastBotAt: 0 };
+    if (!out) return activity;
+    for (const line of out.split('\n')) {
+        const [at, login] = line.split(' ');
+        const ms = Date.parse(at);
+        if (Number.isNaN(ms) || !login) continue;
+        const isHuman = login !== bot && !login.endsWith('[bot]');
+        if (isHuman) activity.lastHumanAt = Math.max(activity.lastHumanAt, ms);
+        else activity.lastBotAt = Math.max(activity.lastBotAt, ms);
+    }
+    return activity;
+}
+
+/**
+ * 人間ゲート item の付帯情報（HITL 解除シグナル + PR レビュー状態 + 発言アクティビティ +
+ * PR 番号）を集める。phaseForItem の ctx として渡す。Review/DoD だけでなく Blocked や
+ * Discussing（PR が無い場合あり）にも使う。
  *
  * 解除シグナルは OR セマンティクス（contract §7・#813 でラベル一本化）: Issue の `🙋 HITL`
- * ラベル / PR の `🙋 HITL` ラベルのいずれか1つでも除去なら解除。daemon が両面を atomic に
- * 同期するため、人間は目の前の PR ラベルを外すだけで差し戻せる。HITL フィールドは見ない。
+ * ラベル / PR の `🙋 HITL` ラベルのいずれか1つでも除去なら解除。加えて発言アクティビティ
+ * （Issue コメント + PR コメント/レビュー）から「人間が最後に発言したか」を daemon が導く
+ * （ラベルを触らずコメントだけ出す操作でも固着しないため）。HITL フィールドは見ない。
  * @param {string} repo
  * @param {number} issueNumber
  * @param {string} token
- * @returns {{hitlSignals:object, review:object, pr:number}|null}
+ * @returns {{hitlSignals:object, review:object|null, pr:number|null,
+ *   activity:{lastHumanAt:number, lastBotAt:number}}}
  */
-function getReviewContext(repo, issueNumber, token) {
-    const pr = findPrForIssue(repo, issueNumber, token);
-    if (!pr) return null;
-    const issueLabels = getIssueLabels(repo, issueNumber, token);
+async function getGateContext(repo, issueNumber, token) {
+    const pr = await findPrForIssue(repo, issueNumber, token);
+    const issueLabels = await getIssueLabels(repo, issueNumber, token);
+    const issueActivity = await getIssueActivity(repo, issueNumber, token);
+    if (!pr) {
+        return {
+            hitlSignals: { issueLabel: issueLabels.includes(HITL_LABEL) },
+            review: null,
+            pr: null,
+            activity: issueActivity,
+        };
+    }
+    const review = await getPrReviewState(repo, pr.number, token);
     return {
         hitlSignals: {
             issueLabel: issueLabels.includes(HITL_LABEL),
             prLabel: (pr.labels || []).includes(HITL_LABEL),
         },
-        review: getPrReviewState(repo, pr.number, token),
+        review,
         pr: pr.number,
+        activity: mergeActivity(issueActivity, review.activity),
     };
 }
 
@@ -292,8 +375,8 @@ function getReviewContext(repo, issueNumber, token) {
  * PR の現在の面状態（Draft かどうか + ラベル名配列）を返す。投影の差分計算に使う。
  * @returns {{isDraft:boolean, labels:string[]}}
  */
-function getPrInfo(repo, prNumber, token) {
-    const out = gh(['pr', 'view', String(prNumber), '--repo', repo, '--json', 'isDraft,labels'], { token });
+async function getPrInfo(repo, prNumber, token) {
+    const out = await gh(['pr', 'view', String(prNumber), '--repo', repo, '--json', 'isDraft,labels'], { token });
     const j = JSON.parse(out);
     return { isDraft: Boolean(j.isDraft), labels: (j.labels || []).map((l) => l.name) };
 }
@@ -302,8 +385,8 @@ function getPrInfo(repo, prNumber, token) {
  * Issue の現在のラベル名配列を返す。
  * @returns {string[]}
  */
-function getIssueLabels(repo, issueNumber, token) {
-    const out = gh(['issue', 'view', String(issueNumber), '--repo', repo, '--json', 'labels'], { token });
+async function getIssueLabels(repo, issueNumber, token) {
+    const out = await gh(['issue', 'view', String(issueNumber), '--repo', repo, '--json', 'labels'], { token });
     return (JSON.parse(out).labels || []).map((l) => l.name);
 }
 
@@ -311,8 +394,8 @@ function getIssueLabels(repo, issueNumber, token) {
  * Issue の本文（Markdown）を返す。DoD 引き継ぎでチェックリストを抜き出すのに使う（#821）。
  * @returns {string}
  */
-function getIssueBody(repo, issueNumber, token) {
-    const out = gh(['issue', 'view', String(issueNumber), '--repo', repo, '--json', 'body'], { token });
+async function getIssueBody(repo, issueNumber, token) {
+    const out = await gh(['issue', 'view', String(issueNumber), '--repo', repo, '--json', 'body'], { token });
     return JSON.parse(out).body || '';
 }
 
@@ -321,24 +404,24 @@ function getIssueBody(repo, issueNumber, token) {
  * @param {string} type 'issue' | 'pr'
  * @param {{add?:string[], remove?:string[]}} diff
  */
-function editLabels(repo, number, type, diff, token) {
+async function editLabels(repo, number, type, diff, token) {
     const add = diff.add || [];
     const remove = diff.remove || [];
     if (!add.length && !remove.length) return;
     const args = [type, 'edit', String(number), '--repo', repo];
     for (const l of add) args.push('--add-label', l);
     for (const l of remove) args.push('--remove-label', l);
-    gh(args, { token });
+    await gh(args, { token });
 }
 
 /**
  * PR の Draft/Ready を切り替える。'ready' → レビュー受付、'draft' → Draft へ戻す。
  * @param {'ready'|'draft'} action
  */
-function setPrDraft(repo, prNumber, action, token) {
+async function setPrDraft(repo, prNumber, action, token) {
     const args = ['pr', 'ready', String(prNumber), '--repo', repo];
     if (action === 'draft') args.push('--undo');
-    gh(args, { token });
+    await gh(args, { token });
 }
 
 /**
@@ -350,12 +433,12 @@ function setPrDraft(repo, prNumber, action, token) {
  * @param {string} token
  * @returns {Array<{id: string, body: string}>}
  */
-function listIssueComments(repo, number, token) {
-    const out = gh(
+async function listIssueComments(repo, number, token) {
+    const out = (await gh(
         ['api', '--paginate', `repos/${repo}/issues/${number}/comments`,
             '--jq', '.[] | "\\(.id) \\(.body | @base64)"'],
         { token },
-    ).trim();
+    )).trim();
     if (!out) return [];
     return out.split('\n').filter(Boolean).map((line) => {
         const sp = line.indexOf(' ');
@@ -371,16 +454,32 @@ function listIssueComments(repo, number, token) {
  * 複数見つかった場合は先頭を残して PATCH し、残りは DELETE して 1 つに集約する。
  * いずれも無ければ新規 POST。PR/Issue 共通の issues コメント API を使う。
  */
-function upsertStickyComment(repo, number, body, token) {
-    const ids = selectStickyCommentIds(listIssueComments(repo, number, token));
+async function upsertStickyComment(repo, number, body, token) {
+    await upsertByIds(repo, number, selectStickyCommentIds(await listIssueComments(repo, number, token)), body, token);
+}
+
+/**
+ * 任意マーカーの 1 コメントを upsert する（汎用版）。対応 PR リンク sticky（PR_LINK_MARKER）等、
+ * sticky ステータス以外のマーカー付き管理コメントに使う。重複は先頭に集約する。
+ * @param {string} repo `owner/name`
+ * @param {number} number Issue/PR 番号
+ * @param {string[]} markers 識別マーカー（いずれかを含む既存コメントを更新対象にする）
+ * @param {string} body 新しい本文（マーカーを含めること）
+ */
+async function upsertMarkedComment(repo, number, markers, body, token) {
+    await upsertByIds(repo, number, selectMarkedCommentIds(await listIssueComments(repo, number, token), markers), body, token);
+}
+
+/** upsert の共通処理: 既存 id 群の先頭を PATCH（無ければ POST）、残りは DELETE で集約 */
+async function upsertByIds(repo, number, ids, body, token) {
     if (ids.length === 0) {
-        gh(['api', '--method', 'POST', `repos/${repo}/issues/${number}/comments`, '-f', `body=${body}`], { token });
+        await gh(['api', '--method', 'POST', `repos/${repo}/issues/${number}/comments`, '-f', `body=${body}`], { token });
         return;
     }
     const [keep, ...dupes] = ids;
-    gh(['api', '--method', 'PATCH', `repos/${repo}/issues/comments/${keep}`, '-f', `body=${body}`], { token });
+    await gh(['api', '--method', 'PATCH', `repos/${repo}/issues/comments/${keep}`, '-f', `body=${body}`], { token });
     for (const dup of dupes) {
-        gh(['api', '--method', 'DELETE', `repos/${repo}/issues/comments/${dup}`], { token });
+        await gh(['api', '--method', 'DELETE', `repos/${repo}/issues/comments/${dup}`], { token });
     }
 }
 
@@ -392,8 +491,8 @@ function upsertStickyComment(repo, number, body, token) {
  * @param {number} number Issue 番号
  * @param {string} body コメント本文
  */
-function postIssueComment(repo, number, body, token) {
-    gh(['api', '--method', 'POST', `repos/${repo}/issues/${number}/comments`, '-f', `body=${body}`], { token });
+async function postIssueComment(repo, number, body, token) {
+    await gh(['api', '--method', 'POST', `repos/${repo}/issues/${number}/comments`, '-f', `body=${body}`], { token });
 }
 
 /**
@@ -412,14 +511,14 @@ function postIssueComment(repo, number, body, token) {
  * @param {{gh?:Function}} [deps] gh 実行を差し替え可能（テスト用）
  * @returns {boolean} merge 済み PR が 1 つでもあれば true
  */
-function hasMergedPullRequest(repo, issueNumber, token, deps = {}) {
+async function hasMergedPullRequest(repo, issueNumber, token, deps = {}) {
     const ghFn = deps.gh || gh;
     const [owner, name] = repo.split('/');
     const query =
         'query($owner:String!,$name:String!,$num:Int!){' +
         'repository(owner:$owner,name:$name){issue(number:$num){' +
         'closedByPullRequestsReferences(first:20,includeClosedPrs:true){nodes{merged}}}}}';
-    const out = ghFn(
+    const out = await ghFn(
         ['api', 'graphql', '-f', `query=${query}`, '-F', `owner=${owner}`, '-F', `name=${name}`, '-F', `num=${issueNumber}`],
         { token },
     );
@@ -427,7 +526,7 @@ function hasMergedPullRequest(repo, issueNumber, token, deps = {}) {
     const nodes = (issue && issue.closedByPullRequestsReferences && issue.closedByPullRequestsReferences.nodes) || [];
     if (nodes.some((n) => n.merged === true)) return true;
     // close リンクに無い → head ブランチで非デフォルト base への merge を検知（#831）
-    const listOut = ghFn(
+    const listOut = await ghFn(
         ['pr', 'list', '--repo', repo, '--head', headBranchFor(issueNumber), '--state', 'merged',
             '--json', 'number,state', '--limit', '10'],
         { token },
@@ -443,9 +542,9 @@ function hasMergedPullRequest(repo, issueNumber, token, deps = {}) {
  * @param {{gh?:Function}} [deps] gh 実行を差し替え可能（テスト用）
  * @returns {Set<number>} closed な issue 番号の集合
  */
-function listClosedIssueNumbers(repo, token, deps = {}) {
+async function listClosedIssueNumbers(repo, token, deps = {}) {
     const ghFn = deps.gh || gh;
-    const out = ghFn(
+    const out = await ghFn(
         ['issue', 'list', '--repo', repo, '--state', 'closed', '--limit', '1000', '--json', 'number'],
         { token },
     );
@@ -462,16 +561,72 @@ function listClosedIssueNumbers(repo, token, deps = {}) {
  * @param {string} token
  * @param {{gh?:Function}} [deps] gh 実行を差し替え可能（テスト用）
  */
-function closeIssue(repo, issueNumber, token, deps = {}) {
+async function closeIssue(repo, issueNumber, token, deps = {}) {
     const ghFn = deps.gh || gh;
-    ghFn(['issue', 'close', String(issueNumber), '--repo', repo], { token });
+    await ghFn(['issue', 'close', String(issueNumber), '--repo', repo], { token });
+}
+
+/**
+ * 俯瞰ボード用の enrichment（sub-issue 進捗 + 連携 PR 群）を **1〜数回の GraphQL** で
+ * まとめて取得する（#Web モニタ）。issue ごとに個別クエリを撃つと item 数に比例して
+ * 遅くなるため、alias で 50 件ずつバッチする。
+ * @param {string} repo `owner/name`
+ * @param {number[]} issueNumbers
+ * @param {string} token
+ * @param {{gh?:Function}} [deps]
+ * @returns {Promise<object>} issue 番号 → normalizeBoardEnrichment の結果
+ */
+async function getBoardEnrichment(repo, issueNumbers, token, deps = {}) {
+    const ghFn = deps.gh || gh;
+    const [owner, name] = repo.split('/');
+    const out = {};
+    const nums = [...new Set(issueNumbers)].filter((n) => Number.isInteger(n));
+    for (let i = 0; i < nums.length; i += 50) {
+        const chunk = nums.slice(i, i + 50);
+        const fields = chunk.map((n) =>
+            `i${n}: issue(number:${n}){ number state ` +
+            'subIssuesSummary{ total completed percentCompleted } ' +
+            'closedByPullRequestsReferences(first:10,includeClosedPrs:true){nodes{number state isDraft}} }',
+        ).join(' ');
+        const query = `query{repository(owner:"${owner}",name:"${name}"){ ${fields} }}`;
+        const res = JSON.parse(await ghFn(
+            ['api', 'graphql', '-H', 'GraphQL-Features: sub_issues', '-f', `query=${query}`],
+            { token },
+        ));
+        const repoData = (res.data && res.data.repository) || {};
+        for (const n of chunk) {
+            const node = repoData[`i${n}`];
+            if (node) out[n] = normalizeBoardEnrichment(node);
+        }
+    }
+    return out;
+}
+
+/**
+ * autopilot の head ブランチ（topic/autopilot-<N>）の PR を全状態で列挙する。
+ * 非デフォルト base 宛て PR は close リンクに出ないため、ボード表示の補完に使う（#831 と同じ理由）。
+ * @returns {Promise<Array<{number:number, state:string, isDraft:boolean}>>}
+ */
+async function listHeadPrs(repo, issueNumber, token, deps = {}) {
+    const ghFn = deps.gh || gh;
+    const out = await ghFn(
+        ['pr', 'list', '--repo', repo, '--head', headBranchFor(issueNumber), '--state', 'all',
+            '--json', 'number,state,isDraft', '--limit', '10'],
+        { token },
+    );
+    const arr = JSON.parse(out);
+    return (Array.isArray(arr) ? arr : []).map((p) => ({
+        number: p.number,
+        state: p.state,
+        isDraft: Boolean(p.isDraft),
+    }));
 }
 
 /** applyResult が返す意図配列を Project に反映する */
-function applyIntents(ctx, itemId, intents, token) {
+async function applyIntents(ctx, itemId, intents, token) {
     const applied = [];
     for (const { field, value } of intents) {
-        setField(ctx, itemId, field, value, token);
+        await setField(ctx, itemId, field, value, token);
         applied.push(`${field}=${value === null ? '(clear)' : value}`);
     }
     return applied;
@@ -480,7 +635,8 @@ function applyIntents(ctx, itemId, intents, token) {
 module.exports = {
     botToken, gh, getProject, getFields, listItems, normalizeProjectItem, findItemId, addIssue, setField, applyIntents,
     botLogin, findPrForIssue, selectClosingPr, selectHeadPr, hasMergedHeadPr,
-    getPrReviewState, getReviewContext, hasMergedPullRequest, REPO_ROOT,
-    getPrInfo, getIssueLabels, getIssueBody, editLabels, setPrDraft, upsertStickyComment, listIssueComments,
-    postIssueComment, listClosedIssueNumbers, closeIssue,
+    getPrReviewState, getGateContext, getIssueActivity, hasMergedPullRequest, REPO_ROOT,
+    getPrInfo, getIssueLabels, getIssueBody, editLabels, setPrDraft, upsertStickyComment, upsertMarkedComment,
+    listIssueComments,
+    postIssueComment, listClosedIssueNumbers, closeIssue, getBoardEnrichment, listHeadPrs,
 };

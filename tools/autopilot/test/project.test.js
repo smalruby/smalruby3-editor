@@ -13,7 +13,7 @@ const {
 } = require('../src/project');
 const { HITL_LABEL, AUTOPILOT_LABEL, autopilotHeadBranch } = require('../src/phases');
 
-test('normalizeProjectItem: surfaces labels and derives hitlLabel from 🙋 label (#813)', () => {
+test('normalizeProjectItem: surfaces labels and derives hitlLabel from 🙋 label (#813)', async () => {
     const raw = {
         id: 'PVTI_x',
         content: { number: 813, title: 'refactor HITL' },
@@ -35,7 +35,7 @@ test('normalizeProjectItem: surfaces labels and derives hitlLabel from 🙋 labe
     assert.equal(item.hitlLabel, true);
 });
 
-test('normalizeProjectItem: no 🙋 label -> hitlLabel false; does not read HITL field', () => {
+test('normalizeProjectItem: no 🙋 label -> hitlLabel false; does not read HITL field', async () => {
     const raw = {
         id: 'PVTI_y',
         content: { number: 1, title: 't' },
@@ -51,10 +51,21 @@ test('normalizeProjectItem: no 🙋 label -> hitlLabel false; does not read HITL
     assert.ok(!('hitl' in item)); // no Project-field-derived HITL key
 });
 
-test('normalizeProjectItem: missing labels array defaults to empty (hitlLabel false)', () => {
+test('normalizeProjectItem: missing labels array defaults to empty (hitlLabel false)', async () => {
     const item = normalizeProjectItem({ id: 'z', content: { number: 2, title: 't' }, status: 'New Item' });
     assert.deepEqual(item.labels, []);
     assert.equal(item.hitlLabel, false);
+});
+
+test('normalizeProjectItem: assignees を配列で表面化する（enroll モデル用）', async () => {
+    const withAssignees = normalizeProjectItem({
+        id: 'a', content: { number: 3, title: 't' }, status: 'Sprint Backlog',
+        assignees: ['takaokouji', 'other'],
+    });
+    assert.deepEqual(withAssignees.assignees, ['takaokouji', 'other']);
+    // 未 assign（gh はキー自体を返さない）は空配列
+    const without = normalizeProjectItem({ id: 'b', content: { number: 4, title: 't' }, status: 'New Item' });
+    assert.deepEqual(without.assignees, []);
 });
 
 // selectClosingPr (#825): pick the PR that GitHub recognizes as actually closing the
@@ -71,7 +82,7 @@ const prNode = (number, state, extra = {}) => ({
     ...extra,
 });
 
-test('selectClosingPr: prefers an open PR over a merged one that also closes the issue', () => {
+test('selectClosingPr: prefers an open PR over a merged one that also closes the issue', async () => {
     // The reproduction from #825: #631 is closed by open PR 818, but PR 822 (merged)
     // appears in the reference set. The open PR must win.
     const nodes = [prNode(822, 'MERGED'), prNode(818, 'OPEN')];
@@ -81,17 +92,17 @@ test('selectClosingPr: prefers an open PR over a merged one that also closes the
     assert.equal(pr.branch, 'topic/818');
 });
 
-test('selectClosingPr: among multiple open PRs, picks the newest (highest number)', () => {
+test('selectClosingPr: among multiple open PRs, picks the newest (highest number)', async () => {
     const nodes = [prNode(818, 'OPEN'), prNode(905, 'OPEN'), prNode(870, 'OPEN')];
     assert.equal(selectClosingPr(nodes).number, 905);
 });
 
-test('selectClosingPr: normalizes labels to a name array', () => {
+test('selectClosingPr: normalizes labels to a name array', async () => {
     const nodes = [prNode(900, 'OPEN', { labels: { nodes: [{ name: '🤖 autopilot' }, { name: '🙋 HITL' }] } })];
     assert.deepEqual(selectClosingPr(nodes).labels, ['🤖 autopilot', '🙋 HITL']);
 });
 
-test('selectClosingPr: returns null when no open PR closes the issue', () => {
+test('selectClosingPr: returns null when no open PR closes the issue', async () => {
     assert.equal(selectClosingPr([prNode(822, 'MERGED'), prNode(700, 'CLOSED')]), null);
     assert.equal(selectClosingPr([]), null);
     assert.equal(selectClosingPr(null), null);
@@ -102,14 +113,14 @@ test('selectClosingPr: returns null when no open PR closes the issue', () => {
 // 本文の `Closes #N` を closedByPullRequestsReferences に登録しない。autopilot の PR は必ず
 // head ブランチが topic/autopilot-<N> なので、close リンクが空のときはこれで base 非依存に解決する。
 
-test('autopilotHeadBranch: composes topic/autopilot-<N> (matches bin/autopilot-worktree)', () => {
+test('autopilotHeadBranch: composes topic/autopilot-<N> (matches bin/autopilot-worktree)', async () => {
     assert.equal(autopilotHeadBranch(827), 'topic/autopilot-827');
     assert.equal(autopilotHeadBranch(827, 'topic/foo-'), 'topic/foo-827');
 });
 
 // selectHeadPr normalizes the `gh pr list --json` shape (labels is a flat array of {name},
 // unlike the GraphQL `labels.nodes` shape that selectClosingPr consumes).
-test('selectHeadPr: normalizes gh pr list shape; picks newest open', () => {
+test('selectHeadPr: normalizes gh pr list shape; picks newest open', async () => {
     const pr = selectHeadPr([
         { number: 828, isDraft: true, headRefName: 'topic/autopilot-827', labels: [{ name: '🤖 autopilot' }, { name: '🙋 HITL' }] },
     ]);
@@ -119,14 +130,14 @@ test('selectHeadPr: normalizes gh pr list shape; picks newest open', () => {
     assert.deepEqual(pr.labels, ['🤖 autopilot', '🙋 HITL']);
 });
 
-test('selectHeadPr: multiple -> highest number; empty/null -> null', () => {
+test('selectHeadPr: multiple -> highest number; empty/null -> null', async () => {
     const mk = (n) => ({ number: n, isDraft: false, headRefName: `topic/autopilot-${n}`, labels: [] });
     assert.equal(selectHeadPr([mk(810), mk(905), mk(870)]).number, 905);
     assert.equal(selectHeadPr([]), null);
     assert.equal(selectHeadPr(null), null);
 });
 
-test('hasMergedHeadPr: true iff a merged PR is present', () => {
+test('hasMergedHeadPr: true iff a merged PR is present', async () => {
     assert.equal(hasMergedHeadPr([{ number: 828, state: 'MERGED' }]), true);
     assert.equal(hasMergedHeadPr([{ number: 828, state: 'OPEN' }]), false);
     assert.equal(hasMergedHeadPr([]), false);
@@ -134,7 +145,7 @@ test('hasMergedHeadPr: true iff a merged PR is present', () => {
 });
 
 // findPrForIssue: close リンク優先 → 無ければ head ブランチ検索（base 非依存）。
-test('findPrForIssue: falls back to head search when close link is empty (#831)', () => {
+test('findPrForIssue: falls back to head search when close link is empty (#831)', async () => {
     const calls = [];
     const fakeGh = (args) => {
         calls.push(args);
@@ -145,7 +156,7 @@ test('findPrForIssue: falls back to head search when close link is empty (#831)'
             { number: 828, isDraft: true, headRefName: 'topic/autopilot-827', labels: [{ name: '🙋 HITL' }] },
         ]);
     };
-    const pr = findPrForIssue('smalruby/smalruby3-editor', 827, 'tok', { gh: fakeGh });
+    const pr = await findPrForIssue('smalruby/smalruby3-editor', 827, 'tok', { gh: fakeGh });
     assert.equal(pr.number, 828);
     assert.deepEqual(pr.labels, ['🙋 HITL']);
     const listCall = calls.find((a) => a.includes('list'));
@@ -154,7 +165,7 @@ test('findPrForIssue: falls back to head search when close link is empty (#831)'
     assert.ok(listCall.includes('open'), 'head search must filter to open PRs');
 });
 
-test('findPrForIssue: close link wins; head search is not performed (regression)', () => {
+test('findPrForIssue: close link wins; head search is not performed (regression)', async () => {
     const calls = [];
     const fakeGh = (args) => {
         calls.push(args);
@@ -162,13 +173,13 @@ test('findPrForIssue: close link wins; head search is not performed (regression)
             { number: 900, state: 'OPEN', isDraft: false, headRefName: 'topic/autopilot-900', labels: { nodes: [] } },
         ] } } } } });
     };
-    const pr = findPrForIssue('o/r', 900, 'tok', { gh: fakeGh });
+    const pr = await findPrForIssue('o/r', 900, 'tok', { gh: fakeGh });
     assert.equal(pr.number, 900);
     assert.equal(calls.length, 1, 'must short-circuit on close link (no fallback gh call)');
 });
 
 // hasMergedPullRequest: close リンクの merged → 無ければ head ブランチの merged PR を見る。
-test('hasMergedPullRequest: detects merge to non-default base via head branch (#831)', () => {
+test('hasMergedPullRequest: detects merge to non-default base via head branch (#831)', async () => {
     const calls = [];
     const fakeGh = (args) => {
         calls.push(args);
@@ -177,12 +188,12 @@ test('hasMergedPullRequest: detects merge to non-default base via head branch (#
         }
         return JSON.stringify([{ number: 828, state: 'MERGED' }]);
     };
-    assert.equal(hasMergedPullRequest('o/r', 827, 'tok', { gh: fakeGh }), true);
+    assert.equal(await hasMergedPullRequest('o/r', 827, 'tok', { gh: fakeGh }), true);
     const listCall = calls.find((a) => a.includes('list'));
     assert.ok(listCall.includes('topic/autopilot-827'));
 });
 
-test('hasMergedPullRequest: close-link merged short-circuits head search', () => {
+test('hasMergedPullRequest: close-link merged short-circuits head search', async () => {
     let listCalled = false;
     const fakeGh = (args) => {
         if (args.includes('graphql')) {
@@ -191,40 +202,40 @@ test('hasMergedPullRequest: close-link merged short-circuits head search', () =>
         listCalled = true;
         return '[]';
     };
-    assert.equal(hasMergedPullRequest('o/r', 1, 'tok', { gh: fakeGh }), true);
+    assert.equal(await hasMergedPullRequest('o/r', 1, 'tok', { gh: fakeGh }), true);
     assert.equal(listCalled, false);
 });
 
-test('hasMergedPullRequest: false when neither close link nor head branch is merged', () => {
+test('hasMergedPullRequest: false when neither close link nor head branch is merged', async () => {
     const fakeGh = (args) => {
         if (args.includes('graphql')) {
             return JSON.stringify({ data: { repository: { issue: { closedByPullRequestsReferences: { nodes: [{ merged: false }] } } } } });
         }
         return JSON.stringify([]);
     };
-    assert.equal(hasMergedPullRequest('o/r', 5, 'tok', { gh: fakeGh }), false);
+    assert.equal(await hasMergedPullRequest('o/r', 5, 'tok', { gh: fakeGh }), false);
 });
 
-test('listClosedIssueNumbers: returns a Set of closed issue numbers (#843)', () => {
+test('listClosedIssueNumbers: returns a Set of closed issue numbers (#843)', async () => {
     let captured;
     const fakeGh = (args) => {
         captured = args;
         return JSON.stringify([{ number: 738 }, { number: 839 }, { number: 840 }]);
     };
-    const set = listClosedIssueNumbers('smalruby/smalruby3-editor', 'tok', { gh: fakeGh });
+    const set = await listClosedIssueNumbers('smalruby/smalruby3-editor', 'tok', { gh: fakeGh });
     assert.ok(set instanceof Set);
     assert.deepEqual([...set].sort((a, b) => a - b), [738, 839, 840]);
     assert.ok(captured.includes('--state') && captured.includes('closed'));
     assert.ok(captured.includes('--repo') && captured.includes('smalruby/smalruby3-editor'));
 });
 
-test('listClosedIssueNumbers: empty/non-array output -> empty Set', () => {
-    assert.deepEqual([...listClosedIssueNumbers('o/r', 't', { gh: () => '[]' })], []);
-    assert.deepEqual([...listClosedIssueNumbers('o/r', 't', { gh: () => 'null' })], []);
+test('listClosedIssueNumbers: empty/non-array output -> empty Set', async () => {
+    assert.deepEqual([...await listClosedIssueNumbers('o/r', 't', { gh: () => '[]' })], []);
+    assert.deepEqual([...await listClosedIssueNumbers('o/r', 't', { gh: () => 'null' })], []);
 });
 
-test('closeIssue: runs `gh issue close` for the given issue (#843)', () => {
+test('closeIssue: runs `gh issue close` for the given issue (#843)', async () => {
     let captured;
-    closeIssue('o/r', 839, 'tok', { gh: (args) => { captured = args; return ''; } });
+    await closeIssue('o/r', 839, 'tok', { gh: (args) => { captured = args; return ''; } });
     assert.deepEqual(captured, ['issue', 'close', '839', '--repo', 'o/r']);
 });
