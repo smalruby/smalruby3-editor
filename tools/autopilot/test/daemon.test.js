@@ -5,6 +5,7 @@ const {
     applyMergeProgression, applyClosedReconcile, applyPrProjection, applyDodHandoffs, runTickOnce,
     detectStuck, markBlocked, getDirectives, applyLabelHealing, collectGateContexts,
     parseSsoDeviceOutput, startReauth,
+    updateClaudeUsage, boardResponse, statusResponse,
 } = require('../src/daemon');
 const { EventEmitter } = require('node:events');
 const { HITL_LABEL, AUTOPILOT_LABEL } = require('../src/phases');
@@ -854,4 +855,53 @@ test('startReauth: spawn 失敗は status=error になる', async () => {
     });
     assert.equal(r.status, 'error');
     assert.match(r.error, /aws not found/);
+});
+
+// ---- Claude 使用量表示（#879） --------------------------------------------
+
+test('boardResponse: state.claudeUsage を含める（無ければ null）', () => {
+    const cfg = { assignee: 'me', concurrency: 2 };
+    const empty = boardResponse(cfg, { running: new Map() });
+    assert.strictEqual(empty.claudeUsage, null);
+    const usage = { session: { percent: 23.5 }, weekly: { percent: 41.2 }, updatedAt: 1 };
+    const withUsage = boardResponse(cfg, { running: new Map(), claudeUsage: usage });
+    assert.deepStrictEqual(withUsage.claudeUsage, usage);
+});
+
+test('statusResponse: state.claudeUsage を含める', () => {
+    const cfg = { assignee: null, concurrency: 1 };
+    const usage = { session: { percent: 5 }, weekly: { percent: 9 }, updatedAt: 2 };
+    assert.deepStrictEqual(statusResponse(cfg, { running: new Map(), claudeUsage: usage }).claudeUsage, usage);
+    assert.strictEqual(statusResponse(cfg, { running: new Map() }).claudeUsage, null);
+});
+
+test('updateClaudeUsage: transcript から使用量を読み state に反映', () => {
+    const fs = require('node:fs');
+    const os = require('node:os');
+    const path = require('node:path');
+    const { transcriptDir } = require('../src/usage');
+    // HOME を一時的に差し替えて実 fs を使う（readClaudeUsage は os.homedir() を見る）
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), 'daemon-usage-'));
+    const origHome = process.env.HOME;
+    process.env.HOME = home;
+    try {
+        const cwd = '/app/.autopilot-worktrees/issue-879';
+        const dir = transcriptDir(cwd, home);
+        fs.mkdirSync(dir, { recursive: true });
+        fs.writeFileSync(path.join(dir, 's.jsonl'), JSON.stringify({
+            message: { usage: { rate_limits: {
+                five_hour: { used_percentage: 30 }, seven_day: { used_percentage: 60 },
+            } } },
+        }) + '\n');
+        const state = { claudeUsage: null };
+        updateClaudeUsage(cwd, state, { now: () => 42 }, () => {});
+        assert.strictEqual(state.claudeUsage.session.percent, 30);
+        assert.strictEqual(state.claudeUsage.weekly.percent, 60);
+        assert.strictEqual(state.claudeUsage.updatedAt, 42);
+        // 取得できないときは既存値を保持（null 上書きしない）
+        updateClaudeUsage('/no/such/dir', state, { now: () => 99 }, () => {});
+        assert.strictEqual(state.claudeUsage.updatedAt, 42);
+    } finally {
+        process.env.HOME = origHome;
+    }
 });

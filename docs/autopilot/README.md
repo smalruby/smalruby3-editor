@@ -399,6 +399,14 @@ GitHub Projects で行い、モニタは俯瞰・log 閲覧・pause/resume/即�
 
 - **1 行のコンパクトヘッダー**: タイトル + 状態 pill（RUNNING/PAUSED/AUTH ⚠）+
   ⏸/▶/⚡tick + メタ情報（assignee・並行数・実行中・更新時刻）
+- **Claude 使用量（ヘッダー中央）**: Claude アイコン + **セッション使用率**（rolling 5 時間制限）と
+  **週間使用率**（全モデルの 7 日制限）を、それぞれ短いバー + `NN%` で表示する。使用量が上限に
+  達すると autopilot だけでなく人間の開発も止まるため、早めに気づけるよう常時可視化する。
+  値は **worker（claude セッション）実行のたびに**、その transcript JSONL から `rate_limits`
+  （`five_hour` / `seven_day` の `used_percentage`）を抽出して `state.claudeUsage` に反映し、
+  `GET /board`・`GET /status` の JSON にも `claudeUsage` として載る。**used ≥ 80% は警告色**。
+  Pro/Max サブスク以外や初回 API 応答前は `rate_limits` が無いため **「—」表示**にしてレイアウト
+  を崩さない（`tools/autopilot/src/usage.js`）
 - **アラート帯**: 認証失効（auto-pause 中・再認証手順つき + **「🔐 再接続（SSO ログイン）」
   ボタン**で device code の URL 自動オープン & コードのコピー）/ Blocked 一覧。
   各アラートに **`check autopilot (#N)` のコピー用ショートカット**があり、Claude に
@@ -525,8 +533,8 @@ HTTP API（curl からも操作可能）:
 | メソッド・パス | 用途 |
 |---|---|
 | `GET /` | Web モニタ（俯瞰ボード HTML） |
-| `GET /board` | 俯瞰ボードデータ（items + running + history + auth 状態）を JSON で返す |
-| `GET /status` | `{paused, pausedBy, authError, reauthHint, reauth, assignee, concurrency, running:[{issue,phase}]}` |
+| `GET /board` | 俯瞰ボードデータ（items + running + history + auth 状態 + `claudeUsage`）を JSON で返す |
+| `GET /status` | `{paused, pausedBy, authError, reauthHint, reauth, assignee, concurrency, claudeUsage, running:[{issue,phase}]}` |
 | `GET /log?issue=<n>` | 実行中 item の tmux pane キャプチャ（人間観測用） |
 | `POST /tick` | interval を待たず 1 サイクル即実行。`{ran, paused, picked:[...], running:[...]}` を返す。実行中は `409 {busy:true}`、pause 中は `{ran:true, paused:true, picked:[]}` の no-op |
 | `POST /pause` | 新規ディスパッチを止める（実行中はそのまま） |
@@ -601,6 +609,7 @@ cd tools/autopilot && node --test    # 純粋ロジックの unit テスト（�
 | `tools/autopilot/src/runner.js` | tmux runner + watchdog |
 | `tools/autopilot/src/daemon.js` | 常駐 daemon（ポーリング・ディスパッチ・HTTP 制御・認証ヘルスチェック・俯瞰ボード） |
 | `tools/autopilot/src/monitor.js` | Web モニタ（俯瞰ボード・自己完結 HTML） |
+| `tools/autopilot/src/usage.js` | worker の transcript JSONL から Claude 使用率（session/weekly）を抽出する純粋関数 |
 | `tools/autopilot/src/cli.js`, `bin/autopilot` | CLI（単発フェーズ + `daemon` サブコマンド） |
 | `tools/autopilot/test/` | unit テスト（状態遷移網羅 `state-machine.test.js` を含む） |
 | `.claude/skills/autopilot/` | 総合サポートスキル（初期化インタビュー→`tmp/autopilot_up.sh` 生成・enroll ショートカット・運用支援。`init autopilot` / `autopilot開始` / `go autopilot` 等で起動） |
