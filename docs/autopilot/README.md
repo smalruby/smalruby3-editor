@@ -369,6 +369,12 @@ run 中に checkout のブランチが切り替わってもプロンプト/設�
   bot トークンが取得できなくなると **auto-pause**（`pausedBy: "auth"`）して Web モニタに
   再認証手順（`aws sso login --sso-session smalruby --use-device-code`）を表示する。
   再認証して回復すると**自動で resume** する（人間が押した pause は上書きしない）。
+- **モニタからワンクリック再認証（device code）**: ブラウザの無い devpod 向けに、認証エラー
+  バナーの **「🔐 再接続（SSO ログイン）」** ボタン（`POST /reauth`）が daemon 側で
+  `aws sso login --use-device-code` を起動し、出力から**認証 URL と user code** を抽出して
+  モニタに表示する。ボタンは**認証ページを別タブで自動オープン**し、**コードはコピー
+  ボタン**付きで出す。ホストのブラウザでコードを承認すれば `aws sso login` が完了し、
+  次の認証ヘルスチェックで **auto-resume** する（`onSuccess` で即時再チェック）。
 
 ---
 
@@ -393,7 +399,8 @@ GitHub Projects で行い、モニタは俯瞰・log 閲覧・pause/resume/即�
 
 - **1 行のコンパクトヘッダー**: タイトル + 状態 pill（RUNNING/PAUSED/AUTH ⚠）+
   ⏸/▶/⚡tick + メタ情報（assignee・並行数・実行中・更新時刻）
-- **アラート帯**: 認証失効（auto-pause 中・再認証手順つき）/ Blocked 一覧。
+- **アラート帯**: 認証失効（auto-pause 中・再認証手順つき + **「🔐 再接続（SSO ログイン）」
+  ボタン**で device code の URL 自動オープン & コードのコピー）/ Blocked 一覧。
   各アラートに **`check autopilot (#N)` のコピー用ショートカット**があり、Claude に
   貼ると `.claude/skills/check-autopilot` スキルが診断・復旧支援する
 - **ボード行**: Issue（リンク + タイトル）/ Status pill / AI Status（live）/ 担当 /
@@ -514,11 +521,12 @@ HTTP API（curl からも操作可能）:
 |---|---|
 | `GET /` | Web モニタ（俯瞰ボード HTML） |
 | `GET /board` | 俯瞰ボードデータ（items + running + history + auth 状態）を JSON で返す |
-| `GET /status` | `{paused, pausedBy, authError, reauthHint, assignee, concurrency, running:[{issue,phase}]}` |
+| `GET /status` | `{paused, pausedBy, authError, reauthHint, reauth, assignee, concurrency, running:[{issue,phase}]}` |
 | `GET /log?issue=<n>` | 実行中 item の tmux pane キャプチャ（人間観測用） |
 | `POST /tick` | interval を待たず 1 サイクル即実行。`{ran, paused, picked:[...], running:[...]}` を返す。実行中は `409 {busy:true}`、pause 中は `{ran:true, paused:true, picked:[]}` の no-op |
 | `POST /pause` | 新規ディスパッチを止める（実行中はそのまま） |
 | `POST /resume` | ポーリング再開 |
+| `POST /reauth` | SSO 再認証（device code）を daemon 側で起動し、認証 URL と user code を抽出して返す（`{status, url, code, completeUrl}`）。成功で auto-resume |
 | `POST /stop?issue=<n>` | その item の tmux セッションを kill して force-stop |
 | `POST /inject?issue=<n>&phase=<p>` | 並行上限を超えて 1 フェーズを割り込み投入 |
 | `POST /shutdown` | daemon プロセスを安全停止 |

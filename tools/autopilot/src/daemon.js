@@ -13,7 +13,7 @@ const http = require('http');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { execFile } = require('child_process');
+const { execFile, spawn } = require('child_process');
 const { promisify } = require('util');
 const { setTimeout: sleep } = require('timers/promises');
 const {
@@ -112,10 +112,107 @@ async function getDirectives(cfg, state, issue, log, deps = {}) {
     return entry;
 }
 
+/** SSO セッション名（`aws sso login --sso-session <name>`）。infra/aws-sso.env と一致 */
+const SSO_SESSION = 'smalruby';
+
 /** 認証失効時にモニタ・status へ出す再認証手順（SSO 無人運用の出口） */
 const REAUTH_HINT =
     'コンテナ内で `aws sso login --sso-session smalruby --use-device-code` を実行して再認証し、' +
     '`bin/bot-token --whoami` で確認してください。回復すると autopilot は自動で再開します。';
+
+/**
+ * `aws sso login --use-device-code` の出力から認証 URL と user code を抽出する（純粋関数）。
+ * AWS CLI のバージョンで文言が異なる（"open the following URL" / "Please visit ..." 等）ため、
+ * URL と `XXXX-XXXX` 形式のコードをパターンで拾い、コード入力不要の完全 URL も組み立てる。
+ * @param {string} text aws CLI の stdout/stderr（部分バッファでも可）
+ * @returns {{url: string|null, code: string|null, completeUrl: string|null}|null} 何も拾えなければ null
+ */
+function parseSsoDeviceOutput(text) {
+    const s = String(text || '');
+    const urls = s.match(/https?:\/\/[^\s"'<>]+/g) || [];
+    // device 認証 URL を優先（複数 URL が出るバージョン対策）
+    const url = urls.find((u) => /device|sso|amazonaws/.test(u)) || urls[0] || null;
+    let code = null;
+    // 1) URL に user_code が埋まっている版（verification_uri_complete）を最優先
+    for (const u of urls) {
+        const m = u.match(/user_code=([A-Za-z0-9-]+)/i);
+        if (m) { code = decodeURIComponent(m[1]).toUpperCase(); break; }
+    }
+    // 2) 独立した XXXX-XXXX 形式
+    if (!code) {
+        const cm = s.match(/\b([A-Za-z0-9]{4}-[A-Za-z0-9]{4})\b/);
+        if (cm) code = cm[1].toUpperCase();
+    }
+    if (!url && !code) return null;
+    let completeUrl = url;
+    if (url && code && !/user_code=/i.test(url)) {
+        completeUrl = url + (url.includes('?') ? '&' : '?') + 'user_code=' + encodeURIComponent(code);
+    }
+    return { url: url || null, code: code || null, completeUrl: completeUrl || null };
+}
+
+/**
+ * SSO 再認証（device code フロー）を daemon 側で起動し、URL/コードを state.reauth に surface する。
+ * ブラウザの無い devpod でも、モニタに出た URL をホストのブラウザで開いてコードを承認すれば
+ * `aws sso login` が完了 → 次の checkAuthHealth（onSuccess）で auto-resume する。
+ * @param {object} state daemon の state（state.reauth を書き換える）
+ * @param {Function} log ロガー
+ * @param {object} deps 差し替え用（spawn / onSuccess / waitMs）。テストで注入する
+ * @returns {Promise<object>} URL/コードが揃うか（タイムアウト/エラー時も）現在の state.reauth
+ */
+function startReauth(state, log, deps = {}) {
+    if (state.reauth && (state.reauth.status === 'pending' || state.reauth.status === 'starting')) {
+        return Promise.resolve(state.reauth); // 二重起動しない
+    }
+    const spawnFn = deps.spawn || spawn;
+    const onSuccess = deps.onSuccess || (() => {});
+    const waitMs = deps.waitMs || 15000;
+    state.reauth = { status: 'starting', url: null, code: null, completeUrl: null, startedAt: state.now ? state.now() : Date.now(), error: null };
+    return new Promise((resolve) => {
+        let resolved = false;
+        const done = () => { if (!resolved) { resolved = true; resolve(state.reauth); } };
+        let child;
+        try {
+            child = spawnFn('aws', ['sso', 'login', '--sso-session', SSO_SESSION, '--use-device-code'], {
+                env: process.env, stdio: ['ignore', 'pipe', 'pipe'],
+            });
+        } catch (e) {
+            state.reauth = { status: 'error', url: null, code: null, completeUrl: null, error: sanitizeForSurface(e.message || String(e), 200) };
+            return done();
+        }
+        let buf = '';
+        const onData = (chunk) => {
+            buf += chunk.toString();
+            if (state.reauth && !state.reauth.url && !state.reauth.code) {
+                const p = parseSsoDeviceOutput(buf);
+                if (p && (p.url || p.code)) {
+                    state.reauth = { ...state.reauth, status: 'pending', ...p };
+                    done();
+                }
+            }
+        };
+        if (child.stdout) child.stdout.on('data', onData);
+        if (child.stderr) child.stderr.on('data', onData);
+        child.on('error', (e) => {
+            state.reauth = { status: 'error', url: null, code: null, completeUrl: null, error: sanitizeForSurface(e.message || String(e), 200) };
+            done();
+        });
+        child.on('exit', (codeNum) => {
+            if (codeNum === 0) {
+                state.reauth = null; // 成功。authError は onSuccess の checkAuthHealth が消す
+                log('reauth: aws sso login succeeded');
+                Promise.resolve().then(onSuccess).catch(() => {});
+            } else if (state.reauth) {
+                state.reauth = { ...state.reauth, status: 'error', error: `aws sso login exited ${codeNum}` };
+                log(`reauth: aws sso login exited ${codeNum}`);
+            }
+            done();
+        });
+        const to = deps.setTimeout || setTimeout;
+        const t = to(done, waitMs); // URL が拾えなくても pending のまま応答は返す
+        if (t && t.unref) t.unref();
+    });
+}
 
 /**
  * 認証ヘルスチェック（SSO 無人運用）。bot トークンの取得を試み、
@@ -888,6 +985,7 @@ function startHttp(cfg, state, log) {
                 pausedBy: state.pausedBy || (state.paused ? 'human' : null),
                 authError: state.authError || null,
                 reauthHint: state.authError ? REAUTH_HINT : null,
+                reauth: state.reauth || null,
                 assignee: cfg.assignee,
                 concurrency: cfg.concurrency,
                 running: [...state.running.entries()].map(([issue, v]) => ({ issue, phase: v.phase, since: v.since })),
@@ -902,6 +1000,7 @@ function startHttp(cfg, state, log) {
                 pausedBy: state.pausedBy || (state.paused ? 'human' : null),
                 authError: state.authError || null,
                 reauthHint: state.authError ? REAUTH_HINT : null,
+                reauth: state.reauth || null,
                 assignee: cfg.assignee,
                 concurrency: cfg.concurrency,
                 rate: state.ratePlan || null,
@@ -928,6 +1027,14 @@ function startHttp(cfg, state, log) {
         if (req.method === 'POST' && url.pathname === '/resume') {
             state.paused = false; state.pausedBy = null; state.authError = null; log('resumed');
             return send(200, { paused: false });
+        }
+        if (req.method === 'POST' && url.pathname === '/reauth') {
+            // SSO 再認証を daemon 側で起動し、device code の URL/コードをモニタへ surface する。
+            // 成功したら checkAuthHealth を即時に回して auto-resume を早める。
+            startReauth(state, log, { onSuccess: () => checkAuthHealth(cfg, state, log) })
+                .then((r) => send(200, r || { status: 'ok' }))
+                .catch((e) => { log(`reauth error: ${e.message}`); send(500, { error: e.message }); });
+            return;
         }
         if (req.method === 'POST' && url.pathname === '/stop') {
             const issue = Number(url.searchParams.get('issue'));
@@ -998,7 +1105,7 @@ async function main(opts = {}) {
         cfg.snapshotDir = null;
         cfg.promptDir = undefined;
     }
-    const state = { paused: false, pausedBy: null, authError: null, running: new Map(), ticking: false };
+    const state = { paused: false, pausedBy: null, authError: null, reauth: null, running: new Map(), ticking: false };
     // PID ファイルを書き、安全停止（kill "$(cat <pidfile>)" / POST /shutdown）を可能にする
     try {
         fs.writeFileSync(pidFilePath(), String(process.pid));
@@ -1035,5 +1142,6 @@ module.exports = {
     main, tick, runTickOnce, dispatch, applyMergeProgression, applyClosedReconcile, applyPrProjection,
     applyDodHandoffs, detectStuck, markBlocked, getDirectives, applyLabelHealing,
     isGateItem, collectGateContexts, checkAuthHealth, REAUTH_HINT,
+    parseSsoDeviceOutput, startReauth,
     refreshBoard, recordHistory, refreshRateLimits,
 };
