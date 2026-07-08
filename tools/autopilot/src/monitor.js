@@ -262,9 +262,14 @@ async function loadLog() {
   const el = document.getElementById('mlog');
   // 末尾付近を見ているときだけ更新後に末尾へ追従（手動スクロール中は位置を保つ）
   const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
-  const r = await fetch('/log?issue=' + logIssue);
-  el.textContent = await r.text();
-  if (atBottom) el.scrollTop = el.scrollHeight;
+  // 自動ポーリング中に daemon が落ちても未処理 rejection を垂れ流さない（既存表示は保つ）
+  try {
+    const r = await fetch('/log?issue=' + logIssue);
+    el.textContent = await r.text();
+    if (atBottom) el.scrollTop = el.scrollHeight;
+  } catch (e) {
+    /* ネットワーク断は次回ポーリングで自然回復させる */
+  }
 }
 function closeModal() {
   document.getElementById('modal').classList.remove('open');
