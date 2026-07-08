@@ -31,7 +31,8 @@ const MONITOR_HTML = `<!doctype html>
   header button { padding: .15rem .55rem; font-size: .8rem; cursor: pointer; border: 1px solid #334155;
                   background: #1e293b; color: #e2e8f0; border-radius: .3rem; }
   header button:hover { background: #334155; }
-  header .meta { margin-left: auto; color: #94a3b8; font-size: .75rem; overflow: hidden; text-overflow: ellipsis; }
+  header .meta { margin-left: auto; color: #94a3b8; font-size: .75rem; overflow: hidden; text-overflow: ellipsis;
+                 font-variant-numeric: tabular-nums; }
   .pill { display: inline-block; padding: .05rem .5rem; border-radius: 1rem; font-size: .75rem; font-weight: 600; }
   .ok { background: #bbf7d0; color: #14532d; } .paused { background: #fecaca; color: #7f1d1d; }
   .auth { background: #fde047; color: #713f12; }
@@ -82,8 +83,8 @@ const MONITOR_HTML = `<!doctype html>
   <button id="pause" title="新規ディスパッチを止める">⏸</button>
   <button id="resume" title="再開">▶</button>
   <button id="ticknow" title="interval を待たず今すぐ 1 tick 実行">⚡ tick</button>
-  <button id="refreshboard" title="俯瞰ボードを今すぐ再取得（GraphQL 消費あり）">🔄 更新</button>
   <span class="meta" id="meta"></span>
+  <button id="refreshboard" title="俯瞰ボードを今すぐ再取得（GraphQL 消費あり）">🔄 更新</button>
 </header>
 <div id="alerts"></div>
 <main>

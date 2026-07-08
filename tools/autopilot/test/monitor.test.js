@@ -37,6 +37,18 @@ test('MONITOR_HTML: 俯瞰ボード構造（first view はボード、履歴は�
     }
 });
 
+test('MONITOR_HTML: meta を 🔄 更新ボタンの左に置きボタンを右端に固定（ジッター解消）', () => {
+    // meta（API残 / 更新 Xs前）は 🔄 更新ボタンより前（左）に置き、
+    // margin-left:auto で右寄せ + 左方向に伸ばしてボタン位置を固定する。
+    const iMeta = MONITOR_HTML.indexOf('id="meta"');
+    const iRefresh = MONITOR_HTML.indexOf('id="refreshboard"');
+    assert.ok(iMeta > -1 && iRefresh > -1, 'meta と refreshboard が存在する');
+    assert.ok(iMeta < iRefresh, 'meta は refreshboard ボタンより前（左）にある');
+    // .meta は右寄せ + 桁変化での揺れ抑制（tabular-nums）
+    assert.match(MONITOR_HTML, /header \.meta \{[^}]*margin-left: auto/);
+    assert.match(MONITOR_HTML, /header \.meta \{[^}]*tabular-nums/);
+});
+
 test('MONITOR_HTML: アラート表示と check autopilot ショートカット', () => {
     assert.match(MONITOR_HTML, /check autopilot/);
     assert.match(MONITOR_HTML, /authError/);
