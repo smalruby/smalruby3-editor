@@ -50,6 +50,11 @@ const {
     isStickyComment,
     selectStickyCommentIds,
     selectMarkedCommentIds,
+    selectMarkedComments,
+    stickyUpsertPlan,
+    rateLimitPlan,
+    selectClosedCheckIssues,
+    selectBoardItems,
     PR_LINK_MARKER,
     needsPrLinkSticky,
     renderPrLinkSticky,
@@ -294,6 +299,76 @@ test('sanitizeForSurface: 長文は切り詰め、空入力は空文字', () => 
     const s = sanitizeForSurface(long, 100);
     assert.ok(s.length < 200);
     assert.match(s, /切り詰め/);
+});
+
+test('stickyUpsertPlan: 同一内容なら PATCH をスキップ、重複は集約、無ければ POST', () => {
+    // 無ければ新規 POST
+    assert.deepEqual(stickyUpsertPlan([], 'body'), { action: 'post', keepId: null, deleteIds: [] });
+    // 既存と同一 → skip（書き込み予算の節約）。重複の削除だけは行う
+    assert.deepEqual(
+        stickyUpsertPlan([{ id: 1, body: 'same' }, { id: 2, body: 'dup' }], 'same'),
+        { action: 'skip', keepId: 1, deleteIds: [2] },
+    );
+    // 内容が変わった → PATCH
+    assert.deepEqual(
+        stickyUpsertPlan([{ id: 1, body: 'old' }], 'new'),
+        { action: 'patch', keepId: 1, deleteIds: [] },
+    );
+});
+
+test('selectMarkedComments: マーカーを含むコメントを {id, body} のまま返す', () => {
+    const comments = [
+        { id: 1, body: 'plain' },
+        { id: 2, body: `${PR_LINK_MARKER} x` },
+    ];
+    assert.deepEqual(selectMarkedComments(comments, [PR_LINK_MARKER]), [{ id: 2, body: `${PR_LINK_MARKER} x` }]);
+    assert.deepEqual(selectMarkedComments(null, [PR_LINK_MARKER]), []);
+});
+
+test('rateLimitPlan: 全トークン×リソースの最小残量で warn / skipLowPriority を決める', () => {
+    const plan = rateLimitPlan({
+        bot: { core: { remaining: 4000, limit: 5000 }, graphql: { remaining: 150, limit: 5000 } },
+        read: { core: { remaining: 3000, limit: 5000 }, graphql: { remaining: 2500, limit: 5000 } },
+    });
+    assert.equal(plan.minRemaining, 150);
+    assert.equal(plan.minAt, 'bot/graphql');
+    assert.equal(plan.warn, true); // < 500
+    assert.equal(plan.skipLowPriority, true); // < 200
+    // 余裕があれば通常運転
+    const ok = rateLimitPlan({ bot: { core: { remaining: 4800, limit: 5000 }, graphql: { remaining: 4700, limit: 5000 } } });
+    assert.equal(ok.warn, false);
+    assert.equal(ok.skipLowPriority, false);
+    // 情報無し → 判断しない（スキップもしない）
+    const none = rateLimitPlan({});
+    assert.equal(none.minRemaining, null);
+    assert.equal(none.skipLowPriority, false);
+    // 欠損リソースは無視する
+    const partial = rateLimitPlan({ bot: { core: { remaining: 300, limit: 5000 }, graphql: undefined } });
+    assert.equal(partial.minRemaining, 300);
+});
+
+test('selectClosedCheckIssues: 非終端 + 🤖 ラベル付きだけを closed 確認の対象にする', () => {
+    const items = [
+        { issue: 1, status: 'Review', labels: [AUTOPILOT_LABEL] }, // 対象
+        { issue: 2, status: 'Close', labels: [AUTOPILOT_LABEL] }, // 終端 → 除外（ステータス限定）
+        { issue: 3, status: 'Done', labels: [AUTOPILOT_LABEL] }, // 終端 → 除外
+        { issue: 4, status: 'Backlog', labels: [] }, // ラベル無し → 除外（ラベル限定）
+        { issue: 5, status: 'In Progress', labels: [AUTOPILOT_LABEL, HITL_LABEL] }, // 対象
+    ];
+    assert.deepEqual(selectClosedCheckIssues(items), [1, 5]);
+    assert.deepEqual(selectClosedCheckIssues([]), []);
+});
+
+test('selectBoardItems: assignee 指定でボード表示も enroll 判定（ownsItem）に限定', () => {
+    const items = [
+        { issue: 1, status: 'Review', assignees: ['me'] },
+        { issue: 2, status: 'Review', assignees: ['other'] },
+        { issue: 3, status: 'Review', assignees: [] }, // 未 assign（daemon が素通りする item）
+        { issue: 4, status: 'Close', assignees: ['me'] }, // 終端
+    ];
+    assert.deepEqual(selectBoardItems(items, 'me').map((i) => i.issue), [1]);
+    // 未指定は従来どおり（非終端すべて）
+    assert.deepEqual(selectBoardItems(items).map((i) => i.issue), [1, 2, 3]);
 });
 
 test('itemOwner: 辞書順先頭の assignee が決定的な単一オーナー', () => {

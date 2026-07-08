@@ -34,9 +34,12 @@ const {
     itemOwner,
     orderItemsLikeBoard,
     selectBoardItems,
+    selectClosedCheckIssues,
+    rateLimitPlan,
     PR_SYNC_STATUSES,
     humanSpokeLast,
     TRACKING_LABEL,
+    AUTOPILOT_LABEL,
     TERMINAL_STATUSES,
     isTrackerItem,
     needsPrLinkSticky,
@@ -99,7 +102,7 @@ async function getDirectives(cfg, state, issue, log, deps = {}) {
     if (cached && now - cached.at < (cfg.directiveTtlMs || DIRECTIVE_TTL_MS)) return cached;
     let entry = { base: null, after: [], at: now };
     try {
-        const body = await getIssueBody(cfg.repo, issue, deps.token || await project.botToken());
+        const body = await getIssueBody(cfg.repo, issue, deps.token || await project.readToken());
         entry = { base: parseBaseBranch(body), after: parseAfterIssues(body), at: now };
     } catch (e) {
         log(`#${issue}: directive fetch failed: ${e.message}`);
@@ -381,7 +384,8 @@ function isGateItem(item) {
  */
 async function collectGateContexts(cfg, items, running, state, log, deps = {}) {
     const contexts = {};
-    const token = deps.token || await project.botToken();
+    // 読み取り専用の収集なので個人トークン側の予算を使う
+    const token = deps.token || await project.readToken();
     const getGateContext = deps.getGateContext || project.getGateContext;
     const handled = state.gateHandled || (state.gateHandled = new Map());
     for (const item of items) {
@@ -411,6 +415,8 @@ async function collectGateContexts(cfg, items, running, state, log, deps = {}) {
  */
 async function applyMergeProgression(items, cfg, state, log, deps = {}) {
     const token = deps.token || await project.botToken();
+    // merge 済みかの問い合わせは読み取り → 個人トークン側の予算（deps.token はテスト用に両方を上書き）
+    const readTok = deps.readToken || deps.token || await project.readToken();
     const hasMerged = deps.hasMergedPullRequest || project.hasMergedPullRequest;
     const applyIntents = deps.applyIntents || project.applyIntents;
     const findItemId = deps.findItemId || project.findItemId;
@@ -422,7 +428,7 @@ async function applyMergeProgression(items, cfg, state, log, deps = {}) {
         if (state.running.has(item.issue)) continue; // live phase が所有中は触らない
         let merged;
         try {
-            merged = await hasMerged(cfg.repo, item.issue, token);
+            merged = await hasMerged(cfg.repo, item.issue, readTok);
         } catch (e) {
             log(`#${item.issue}: merge check failed: ${e.message}`);
             continue;
@@ -457,6 +463,7 @@ async function applyMergeProgression(items, cfg, state, log, deps = {}) {
  */
 async function applyClosedReconcile(items, cfg, state, log, deps = {}) {
     const token = deps.token || await project.botToken();
+    const readTok = deps.readToken || deps.token || await project.readToken();
     const listClosed = deps.listClosedIssueNumbers || project.listClosedIssueNumbers;
     const applyIntents = deps.applyIntents || project.applyIntents;
     const findItemId = deps.findItemId || project.findItemId;
@@ -465,7 +472,7 @@ async function applyClosedReconcile(items, cfg, state, log, deps = {}) {
     let closedSet = deps.closedSet;
     if (!closedSet) {
         try {
-            closedSet = await listClosed(cfg.repo, token);
+            closedSet = await listClosed(cfg.repo, readTok);
         } catch (e) {
             log(`closed issue list failed: ${e.message}`);
             return;
@@ -505,6 +512,7 @@ async function applyClosedReconcile(items, cfg, state, log, deps = {}) {
  */
 async function applyDodHandoffs(items, cfg, state, log, deps = {}) {
     const token = deps.token || await project.botToken();
+    const readTok = deps.readToken || deps.token || await project.readToken();
     const findPrForIssue = deps.findPrForIssue || project.findPrForIssue;
     const listIssueComments = deps.listIssueComments || project.listIssueComments;
     const getIssueBody = deps.getIssueBody || project.getIssueBody;
@@ -513,12 +521,12 @@ async function applyDodHandoffs(items, cfg, state, log, deps = {}) {
         if (!item || isTrackerItem(item) || item.status !== 'DoD') continue;
         if (state.running.has(item.issue)) continue; // live phase が所有中は触らない
         try {
-            const pr = await findPrForIssue(cfg.repo, item.issue, token);
-            const prComments = pr ? await listIssueComments(cfg.repo, pr.number, token) : [];
+            const pr = await findPrForIssue(cfg.repo, item.issue, readTok);
+            const prComments = pr ? await listIssueComments(cfg.repo, pr.number, readTok) : [];
             const ctx = { hasHandoffComment: hasDodHandoffComment(prComments), hasPr: Boolean(pr) };
             if (!needsDodHandoff(item, ctx)) continue;
             const previewUrl = extractPreviewUrl(prComments);
-            const dodChecklist = extractDodChecklist(await getIssueBody(cfg.repo, item.issue, token));
+            const dodChecklist = extractDodChecklist(await getIssueBody(cfg.repo, item.issue, readTok));
             const body = dodHandoffBody({
                 issue: item.issue,
                 pr: pr.number,
@@ -536,25 +544,30 @@ async function applyDodHandoffs(items, cfg, state, log, deps = {}) {
 }
 
 /**
- * EPIC トラッキング整合: Kind=EPIC なのに 🧭 tracking ラベルが無い item にラベルを付与する。
- * 以後の tick は（Kind フィールドを見なくても）ラベルだけでトラッカーと判定でき、
- * merge 検知・PR 投影・フェーズ選択から低コストに除外できる。ラベルは自動では外さない
- * （人間の手動トラッカー指定を潰さない。外すのは人間）。終端（Close/Done）は触らない。
+ * ラベル整合（label healing）: 非終端の Project item に管理ラベルを担保する。
+ * - 全 item: `🤖 autopilot`（**広い問い合わせをこのラベル限定にする前提**。closed 状態の
+ *   一括確認やフォールバックの closed 一覧はラベル付きだけを見る）
+ * - Kind=EPIC: `🧭 tracking`（以後の tick はラベルだけでトラッカーと判定できる）
+ * ラベルは自動では外さない（人間の手動指定を潰さない）。終端（Close/Done）は触らない。
+ * ラベルは item-list に含まれるので判定に追加 API は不要、書き込みは不足時のみ（冪等）。
  * deps は injection 可能（テスト用）。実行中の item は触らない。1 件の失敗は他を止めない。
  */
-async function applyEpicTracking(items, cfg, state, log, deps = {}) {
+async function applyLabelHealing(items, cfg, state, log, deps = {}) {
     const token = deps.token || await project.botToken();
     const editLabels = deps.editLabels || project.editLabels;
     for (const item of items) {
-        if (!item || item.kind !== 'EPIC') continue;
-        if (TERMINAL_STATUSES.has(item.status)) continue;
-        if ((item.labels || []).includes(TRACKING_LABEL)) continue;
+        if (!item || TERMINAL_STATUSES.has(item.status)) continue;
         if (state.running.has(item.issue)) continue;
+        const labels = item.labels || [];
+        const add = [];
+        if (!labels.includes(AUTOPILOT_LABEL)) add.push(AUTOPILOT_LABEL);
+        if (item.kind === 'EPIC' && !labels.includes(TRACKING_LABEL)) add.push(TRACKING_LABEL);
+        if (!add.length) continue;
         try {
-            await editLabels(cfg.repo, item.issue, 'issue', { add: [TRACKING_LABEL] }, token);
-            log(`#${item.issue}: EPIC に ${TRACKING_LABEL} を付与`);
+            await editLabels(cfg.repo, item.issue, 'issue', { add }, token);
+            log(`#${item.issue}: ラベル担保 ${add.join(' ')}`);
         } catch (e) {
-            log(`#${item.issue}: tracking label failed: ${e.message}`);
+            log(`#${item.issue}: label healing failed: ${e.message}`);
         }
     }
 }
@@ -571,22 +584,29 @@ async function applyEpicTracking(items, cfg, state, log, deps = {}) {
  * @param {object} [opts] { force }
  */
 async function syncFacesForItem(item, io, cfg, log, opts = {}) {
-    // 1) Issue 側のラベル（PR が無くても投影する。HITL handoff を可視化）
-    const issueLabels = await io.getIssueLabels(cfg.repo, item.issue, io.token);
+    // 1) Issue 側のラベル。item-list が返した labels があれば再利用して読み取りを節約する
+    // （古くても label 編集は差分ベース + GitHub 側で冪等なので実害なし）。inject 経由など
+    // labels 未知のときだけ取得する。
+    const issueLabels = Array.isArray(item.labels)
+        ? item.labels
+        : await io.getIssueLabels(cfg.repo, item.issue, io.readToken);
     await io.editLabels(cfg.repo, item.issue, 'issue', labelActions(item, issueLabels, opts), io.token);
-    // 2) 連携 PR の面（ラベル・Draft/Ready・sticky）
-    const pr = await io.findPrForIssue(cfg.repo, item.issue, io.token);
+    // 2) 連携 PR の面（ラベル・Draft/Ready・sticky）。読み取りは readToken、書き込みは Bot
+    const pr = await io.findPrForIssue(cfg.repo, item.issue, io.readToken);
     if (!pr) return;
-    const info = await io.getPrInfo(cfg.repo, pr.number, io.token);
+    const info = await io.getPrInfo(cfg.repo, pr.number, io.readToken);
     await io.editLabels(cfg.repo, pr.number, 'pr', labelActions(item, info.labels, opts), io.token);
     const da = draftAction(info.isDraft, item);
     if (da) await io.setPrDraft(cfg.repo, pr.number, da, io.token);
-    await io.upsertStickyComment(cfg.repo, pr.number, renderSticky(item), io.token);
+    await io.upsertStickyComment(cfg.repo, pr.number, renderSticky(item), io.token, { readToken: io.readToken });
     // 3) 対応 PR リンク sticky（Issue 側・base 非デフォルト時のみ）: 非デフォルト base 宛て PR は
     // GitHub の Development 欄に出ないため、Issue から PR へ辿れるリンクを 1 コメント upsert する。
     // デフォルト base 宛てでは投稿しない（Development 欄と重複する情報を増やさない）。
     if (needsPrLinkSticky(pr)) {
-        await io.upsertMarkedComment(cfg.repo, item.issue, [PR_LINK_MARKER], renderPrLinkSticky(pr, cfg.repo), io.token);
+        await io.upsertMarkedComment(
+            cfg.repo, item.issue, [PR_LINK_MARKER], renderPrLinkSticky(pr, cfg.repo), io.token,
+            { readToken: io.readToken },
+        );
     }
 }
 
@@ -594,6 +614,7 @@ async function syncFacesForItem(item, io, cfg, log, opts = {}) {
 async function projectionIo(deps = {}) {
     return {
         token: deps.token || await project.botToken(),
+        readToken: deps.readToken || deps.token || await project.readToken(),
         findPrForIssue: deps.findPrForIssue || project.findPrForIssue,
         getPrInfo: deps.getPrInfo || project.getPrInfo,
         getIssueLabels: deps.getIssueLabels || project.getIssueLabels,
@@ -643,22 +664,17 @@ async function syncFacesAfterIntents(item, intents, cfg, log) {
  */
 async function tick(cfg, state, log) {
     if (state.paused) return { paused: true, picked: [] };
+    // レート残量の監視（rate_limit はレート消費なし）。残量僅少なら低優先処理をスキップする
+    await refreshRateLimits(cfg, state, log);
     let items;
     try {
-        items = await project.listItems(cfg.owner, cfg.project, await project.botToken());
+        items = await project.listItems(cfg.owner, cfg.project, await project.readToken());
     } catch (e) {
         log(`poll error: ${e.message}`);
         return { paused: false, picked: [] };
     }
     const running = new Set(state.running.keys());
     const contexts = await collectGateContexts(cfg, items, running, state, log);
-    // closed issue 集合は after 依存の判定と closed-reconcile の両方で使う（1 tick 1 回だけ取得）
-    let closedSet = new Set();
-    try {
-        closedSet = await project.listClosedIssueNumbers(cfg.repo, await project.botToken());
-    } catch (e) {
-        log(`closed issue list failed: ${e.message}`);
-    }
     // 候補は上限なしで Board 順に列挙し、autopilot-after の未完了依存を持つ item を
     // スキップしながら空き容量まで拾う（依存でブロックされた分は次点候補が繰り上がる）
     const candidates = selectActionable(items, {
@@ -669,13 +685,32 @@ async function tick(cfg, state, log) {
         assignee: cfg.assignee,
         statusOrder: cfg.statusOrder,
     });
+    // 候補のディレクティブを先に集める（TTL キャッシュ済み）。after 依存先も closed 確認対象へ
+    const afterByIssue = {};
+    for (const item of candidates) {
+        afterByIssue[item.issue] = (await getDirectives(cfg, state, item.issue, log)).after;
+    }
+    // closed 状態の確認は **対象限定のバッチ GraphQL**（非終端 + 🤖 ラベルの item と after 依存先
+    // だけ）。旧実装のリポジトリ全体 closed 一覧（最大 1000 件 × 毎 tick）は使わない。
+    let closedSet = new Set();
+    try {
+        const checkNums = [...new Set([
+            ...selectClosedCheckIssues(items),
+            ...Object.values(afterByIssue).flat(),
+        ])];
+        const states = await project.getIssueStates(cfg.repo, checkNums, await project.readToken());
+        closedSet = new Set(
+            Object.entries(states).filter(([, s]) => s === 'CLOSED').map(([n]) => Number(n)),
+        );
+    } catch (e) {
+        log(`closed state check failed: ${e.message}`);
+    }
     const statusByIssue = Object.fromEntries(items.map((it) => [it.issue, it.status]));
     const capacity = Math.max(0, cfg.concurrency - state.running.size);
     const picked = [];
     for (const item of candidates) {
         if (picked.length >= capacity) break;
-        const after = (await getDirectives(cfg, state, item.issue, log)).after;
-        const unresolved = unresolvedAfterIssues(after, { closedSet, statusByIssue });
+        const unresolved = unresolvedAfterIssues(afterByIssue[item.issue], { closedSet, statusByIssue });
         if (unresolved.length) {
             log(`#${item.issue}: autopilot-after 待ち (未完了: ${unresolved.map((n) => `#${n}`).join(', ')})`);
             continue;
@@ -697,15 +732,42 @@ async function tick(cfg, state, log) {
     await applyMergeProgression(items, cfg, state, log);
     // GitHub で closed な issue（EPIC・人手 close 含む）の Project Status を Close へ整合（#843 Fix B）
     await applyClosedReconcile(items, cfg, state, log, { closedSet });
-    // Kind=EPIC に 🧭 tracking ラベルを担保（以後の判定を低コスト化）
-    await applyEpicTracking(items, cfg, state, log);
+    // 非終端 item に 🤖 autopilot / 🧭 tracking ラベルを担保（問い合わせのラベル限定の前提）
+    await applyLabelHealing(items, cfg, state, log);
     // In Progress + AI 作業中のまま止まった item を検知して Blocked へ（#816）
     await detectStuck(items, cfg, state, log);
     // Status=DoD の leaf に headful 検証の引き継ぎコメントを 1 回だけ投稿（#821・冪等）
     await applyDodHandoffs(items, cfg, state, log);
-    // PR/Issue の面（ラベル/Draft/sticky）を Project 状態へ投影（dispatch 後なので running は除外される）
-    await applyPrProjection(items, cfg, state, log);
+    // PR/Issue の面（ラベル/Draft/sticky）は低優先: レート残量が僅少ならこの tick はスキップ
+    if (state.ratePlan && state.ratePlan.skipLowPriority) {
+        log(`rate limit low (${state.ratePlan.minAt}=${state.ratePlan.minRemaining}) — PR 投影をスキップ`);
+    } else {
+        await applyPrProjection(items, cfg, state, log);
+    }
     return { paused: false, picked: picked.map((it) => it.issue) };
+}
+
+/**
+ * Bot / 個人（読み取り）両トークンの rate_limit 残量を取得し、実行計画
+ * （{@link rateLimitPlan}）を state に置く。rate_limit エンドポイント自体はレート消費なし。
+ * 取得失敗は前回の計画を維持する（保守的に動き続ける）。
+ */
+async function refreshRateLimits(cfg, state, log, deps = {}) {
+    const getRateLimit = deps.getRateLimit || project.getRateLimit;
+    try {
+        const botTok = deps.token || await project.botToken();
+        const readTok = deps.readToken || await project.readToken();
+        const limits = { bot: await getRateLimit(botTok) };
+        if (readTok !== botTok) limits.read = await getRateLimit(readTok);
+        state.rateLimits = limits;
+        const prev = state.ratePlan || {};
+        state.ratePlan = rateLimitPlan(limits, cfg.rateThresholds);
+        if (state.ratePlan.warn && !prev.warn) {
+            log(`rate limit warning: ${state.ratePlan.minAt} remaining=${state.ratePlan.minRemaining}`);
+        }
+    } catch (e) {
+        log(`rate limit check failed: ${e.message}`);
+    }
 }
 
 // 俯瞰ボードの再取得間隔（tick の 5 分より短くして live 感を出す。listItems + バッチ
@@ -722,14 +784,18 @@ const BOARD_REFRESH_MS = 60 * 1000;
  */
 async function refreshBoard(cfg, state, log, deps = {}) {
     if (state.boardRefreshing) return;
+    // レート残量が僅少なら低優先のボード更新はスキップ（前回キャッシュを表示し続ける）
+    if (state.ratePlan && state.ratePlan.skipLowPriority) return;
     state.boardRefreshing = true;
     try {
-        const token = deps.token || await project.botToken();
+        // ボードは読み取り専用 → 個人トークン側の予算
+        const token = deps.token || await project.readToken();
         const listItems = deps.listItems || project.listItems;
         const getBoardEnrichment = deps.getBoardEnrichment || project.getBoardEnrichment;
         const listHeadPrs = deps.listHeadPrs || project.listHeadPrs;
         const items = await listItems(cfg.owner, cfg.project, token);
-        const boardItems = orderItemsLikeBoard(selectBoardItems(items), cfg.statusOrder);
+        // 表示対象は daemon の処理対象と同じ enroll 判定（ownsItem）に限定する
+        const boardItems = orderItemsLikeBoard(selectBoardItems(items, cfg.assignee), cfg.statusOrder);
         let enrichment = {};
         try {
             enrichment = await getBoardEnrichment(cfg.repo, boardItems.map((i) => i.issue), token);
@@ -818,6 +884,7 @@ function startHttp(cfg, state, log) {
                 assignee: cfg.assignee,
                 concurrency: cfg.concurrency,
                 running: [...state.running.entries()].map(([issue, v]) => ({ issue, phase: v.phase, since: v.since })),
+                rate: state.ratePlan || null,
                 items: state.board ? state.board.items : [],
                 history: state.history || [],
             });
@@ -830,6 +897,8 @@ function startHttp(cfg, state, log) {
                 reauthHint: state.authError ? REAUTH_HINT : null,
                 assignee: cfg.assignee,
                 concurrency: cfg.concurrency,
+                rate: state.ratePlan || null,
+                rateLimits: state.rateLimits || null,
                 running: [...state.running.entries()].map(([issue, v]) => ({ issue, phase: v.phase })),
             });
         }
@@ -957,7 +1026,7 @@ async function main(opts = {}) {
 
 module.exports = {
     main, tick, runTickOnce, dispatch, applyMergeProgression, applyClosedReconcile, applyPrProjection,
-    applyDodHandoffs, detectStuck, markBlocked, getDirectives, applyEpicTracking,
+    applyDodHandoffs, detectStuck, markBlocked, getDirectives, applyLabelHealing,
     isGateItem, collectGateContexts, checkAuthHealth, REAUTH_HINT,
-    refreshBoard, recordHistory,
+    refreshBoard, recordHistory, refreshRateLimits,
 };

@@ -14,8 +14,8 @@ const { execFile } = require('child_process');
 const { promisify } = require('util');
 const path = require('path');
 const {
-    HITL_LABEL, selectStickyCommentIds, selectMarkedCommentIds, computeReviewApproval, autopilotHeadBranch,
-    mergeActivity, normalizeBoardEnrichment,
+    HITL_LABEL, AUTOPILOT_LABEL, selectMarkedComments, stickyUpsertPlan, STICKY_MARKERS,
+    computeReviewApproval, autopilotHeadBranch, mergeActivity, normalizeBoardEnrichment,
 } = require('./phases');
 
 const execFileP = promisify(execFile);
@@ -34,6 +34,35 @@ async function botToken() {
     const { stdout } = await execFileP(BOT_TOKEN_BIN, [], { encoding: 'utf8' });
     tokenCache = { token: stdout.trim(), at: now };
     return tokenCache.token;
+}
+
+/**
+ * 読み取り用トークン（レート予算の分散）。優先順:
+ *   env AUTOPILOT_READ_TOKEN → env GH_TOKEN（devpod では人間の PAT）→ `gh auth token` → Bot。
+ * **書き込みには使わない**（コメント・ラベル・Project 編集は名義が見える Bot のまま）。
+ * `AUTOPILOT_READS=bot` で従来動作（読みも Bot）に戻せる。
+ * @returns {Promise<string>}
+ */
+let readTokenCache = { token: null, at: 0 };
+async function readToken() {
+    if (process.env.AUTOPILOT_READS === 'bot') return botToken();
+    if (process.env.AUTOPILOT_READ_TOKEN) return process.env.AUTOPILOT_READ_TOKEN;
+    if (process.env.GH_TOKEN) return process.env.GH_TOKEN;
+    const now = Date.now();
+    if (readTokenCache.token && now - readTokenCache.at < TOKEN_CACHE_MS) return readTokenCache.token;
+    try {
+        const env = { ...process.env };
+        delete env.GH_TOKEN;
+        delete env.GITHUB_TOKEN;
+        const { stdout } = await execFileP('gh', ['auth', 'token'], { encoding: 'utf8', env });
+        const t = stdout.trim();
+        if (t) {
+            readTokenCache = { token: t, at: now };
+            return t;
+        }
+    } catch { /* 個人トークン無し → Bot へフォールバック */ }
+    readTokenCache = { token: await botToken(), at: now };
+    return readTokenCache.token;
 }
 
 async function gh(args, { token } = {}) {
@@ -376,27 +405,42 @@ async function getGateContext(repo, issueNumber, token) {
  * @returns {{isDraft:boolean, labels:string[]}}
  */
 async function getPrInfo(repo, prNumber, token) {
-    const out = await gh(['pr', 'view', String(prNumber), '--repo', repo, '--json', 'isDraft,labels'], { token });
+    // REST（1 呼び出し = 1 リクエスト）。gh pr view は GraphQL 予算を使うため使わない。
+    const out = await gh(['api', `repos/${repo}/pulls/${prNumber}`], { token });
     const j = JSON.parse(out);
-    return { isDraft: Boolean(j.isDraft), labels: (j.labels || []).map((l) => l.name) };
+    return { isDraft: Boolean(j.draft), labels: (j.labels || []).map((l) => l.name) };
 }
 
 /**
- * Issue の現在のラベル名配列を返す。
+ * Issue のメタ情報（body / labels / state）を **REST 1 回**で返す。
+ * gh issue view（GraphQL）を body 用・labels 用に 2 回呼ぶより安い。
+ * @returns {Promise<{body: string, labels: string[], state: string}>}
+ */
+async function getIssueMeta(repo, issueNumber, token, deps = {}) {
+    const ghFn = deps.gh || gh;
+    const out = await ghFn(['api', `repos/${repo}/issues/${issueNumber}`], { token });
+    const j = JSON.parse(out);
+    return {
+        body: j.body || '',
+        labels: (j.labels || []).map((l) => (typeof l === 'string' ? l : l.name)),
+        state: (j.state || '').toUpperCase(),
+    };
+}
+
+/**
+ * Issue の現在のラベル名配列を返す（REST）。
  * @returns {string[]}
  */
 async function getIssueLabels(repo, issueNumber, token) {
-    const out = await gh(['issue', 'view', String(issueNumber), '--repo', repo, '--json', 'labels'], { token });
-    return (JSON.parse(out).labels || []).map((l) => l.name);
+    return (await getIssueMeta(repo, issueNumber, token)).labels;
 }
 
 /**
- * Issue の本文（Markdown）を返す。DoD 引き継ぎでチェックリストを抜き出すのに使う（#821）。
+ * Issue の本文（Markdown）を返す（REST）。DoD 引き継ぎ・ディレクティブ抽出に使う。
  * @returns {string}
  */
 async function getIssueBody(repo, issueNumber, token) {
-    const out = await gh(['issue', 'view', String(issueNumber), '--repo', repo, '--json', 'body'], { token });
-    return JSON.parse(out).body || '';
+    return (await getIssueMeta(repo, issueNumber, token)).body;
 }
 
 /**
@@ -454,8 +498,8 @@ async function listIssueComments(repo, number, token) {
  * 複数見つかった場合は先頭を残して PATCH し、残りは DELETE して 1 つに集約する。
  * いずれも無ければ新規 POST。PR/Issue 共通の issues コメント API を使う。
  */
-async function upsertStickyComment(repo, number, body, token) {
-    await upsertByIds(repo, number, selectStickyCommentIds(await listIssueComments(repo, number, token)), body, token);
+async function upsertStickyComment(repo, number, body, token, deps = {}) {
+    await upsertMarkedComment(repo, number, STICKY_MARKERS, body, token, deps);
 }
 
 /**
@@ -466,19 +510,24 @@ async function upsertStickyComment(repo, number, body, token) {
  * @param {string[]} markers 識別マーカー（いずれかを含む既存コメントを更新対象にする）
  * @param {string} body 新しい本文（マーカーを含めること）
  */
-async function upsertMarkedComment(repo, number, markers, body, token) {
-    await upsertByIds(repo, number, selectMarkedCommentIds(await listIssueComments(repo, number, token), markers), body, token);
+async function upsertMarkedComment(repo, number, markers, body, token, deps = {}) {
+    // 読み取り（コメント一覧）は readToken 側の予算、書き込み（POST/PATCH/DELETE）は token（Bot）
+    const comments = await listIssueComments(repo, number, deps.readToken || token);
+    const plan = stickyUpsertPlan(selectMarkedComments(comments, markers), body);
+    await applyUpsertPlan(repo, number, plan, body, token);
 }
 
-/** upsert の共通処理: 既存 id 群の先頭を PATCH（無ければ POST）、残りは DELETE で集約 */
-async function upsertByIds(repo, number, ids, body, token) {
-    if (ids.length === 0) {
+/**
+ * upsert 計画（{@link stickyUpsertPlan}）を実行する。内容が同一（action='skip'）なら
+ * PATCH を発行しない（書き込み予算の節約）。重複は従来どおり DELETE で集約する。
+ */
+async function applyUpsertPlan(repo, number, plan, body, token) {
+    if (plan.action === 'post') {
         await gh(['api', '--method', 'POST', `repos/${repo}/issues/${number}/comments`, '-f', `body=${body}`], { token });
-        return;
+    } else if (plan.action === 'patch') {
+        await gh(['api', '--method', 'PATCH', `repos/${repo}/issues/comments/${plan.keepId}`, '-f', `body=${body}`], { token });
     }
-    const [keep, ...dupes] = ids;
-    await gh(['api', '--method', 'PATCH', `repos/${repo}/issues/comments/${keep}`, '-f', `body=${body}`], { token });
-    for (const dup of dupes) {
+    for (const dup of plan.deleteIds) {
         await gh(['api', '--method', 'DELETE', `repos/${repo}/issues/comments/${dup}`], { token });
     }
 }
@@ -543,13 +592,47 @@ async function hasMergedPullRequest(repo, issueNumber, token, deps = {}) {
  * @returns {Set<number>} closed な issue 番号の集合
  */
 async function listClosedIssueNumbers(repo, token, deps = {}) {
+    // フォールバック用（定常経路は getIssueStates の非終端バッチ確認）。
+    // REST + **🤖 autopilot ラベル限定**で問い合わせ量を絞る。REST の /issues は PR も
+    // 返すため pull_request を持つものは除外する。
     const ghFn = deps.gh || gh;
+    const label = encodeURIComponent(AUTOPILOT_LABEL);
     const out = await ghFn(
-        ['issue', 'list', '--repo', repo, '--state', 'closed', '--limit', '1000', '--json', 'number'],
+        ['api', '--paginate', `repos/${repo}/issues?state=closed&labels=${label}&per_page=100`,
+            '--jq', '.[] | select(.pull_request | not) | .number'],
         { token },
     );
-    const arr = JSON.parse(out);
-    return new Set((Array.isArray(arr) ? arr : []).map((i) => i.number));
+    return new Set(out.trim().split('\n').filter(Boolean).map(Number));
+}
+
+/**
+ * 指定 issue 番号群の open/closed 状態を **バッチ GraphQL（alias）** で一括確認する。
+ * closed 整合（#843）のための定常経路: リポジトリ全体の closed 一覧（最大 1000 件 ×
+ * 毎 tick）を取得する代わりに、**Project 上の非終端 item + autopilot-after 依存先だけ**を
+ * 確認する（問い合わせ対象の限定）。存在しない番号は結果に含まれない。
+ * @param {string} repo `owner/name`
+ * @param {number[]} issueNumbers
+ * @param {string} token
+ * @param {{gh?:Function}} [deps]
+ * @returns {Promise<object>} issue 番号 → 'OPEN' | 'CLOSED'
+ */
+async function getIssueStates(repo, issueNumbers, token, deps = {}) {
+    const ghFn = deps.gh || gh;
+    const [owner, name] = repo.split('/');
+    const out = {};
+    const nums = [...new Set(issueNumbers)].filter((n) => Number.isInteger(n));
+    for (let i = 0; i < nums.length; i += 100) {
+        const chunk = nums.slice(i, i + 100);
+        const fields = chunk.map((n) => `i${n}: issue(number:${n}){ number state }`).join(' ');
+        const query = `query{repository(owner:"${owner}",name:"${name}"){ ${fields} }}`;
+        const res = JSON.parse(await ghFn(['api', 'graphql', '-f', `query=${query}`], { token }));
+        const repoData = (res.data && res.data.repository) || {};
+        for (const n of chunk) {
+            const node = repoData[`i${n}`];
+            if (node && node.state) out[n] = node.state;
+        }
+    }
+    return out;
 }
 
 /**
@@ -622,6 +705,18 @@ async function listHeadPrs(repo, issueNumber, token, deps = {}) {
     }));
 }
 
+/**
+ * rate_limit の残量を取得する（このエンドポイント自体はレート消費なし）。
+ * @returns {Promise<{core:{remaining:number,limit:number}, graphql:{remaining:number,limit:number}}>}
+ */
+async function getRateLimit(token, deps = {}) {
+    const ghFn = deps.gh || gh;
+    const out = JSON.parse(await ghFn(['api', 'rate_limit'], { token }));
+    const r = out.resources || {};
+    const pick = (x) => (x ? { remaining: x.remaining, limit: x.limit, reset: x.reset } : undefined);
+    return { core: pick(r.core), graphql: pick(r.graphql) };
+}
+
 /** applyResult が返す意図配列を Project に反映する */
 async function applyIntents(ctx, itemId, intents, token) {
     const applied = [];
@@ -633,10 +728,11 @@ async function applyIntents(ctx, itemId, intents, token) {
 }
 
 module.exports = {
-    botToken, gh, getProject, getFields, listItems, normalizeProjectItem, findItemId, addIssue, setField, applyIntents,
+    botToken, readToken, gh, getProject, getFields, listItems, normalizeProjectItem, findItemId, addIssue, setField, applyIntents,
     botLogin, findPrForIssue, selectClosingPr, selectHeadPr, hasMergedHeadPr,
     getPrReviewState, getGateContext, getIssueActivity, hasMergedPullRequest, REPO_ROOT,
     getPrInfo, getIssueLabels, getIssueBody, editLabels, setPrDraft, upsertStickyComment, upsertMarkedComment,
     listIssueComments,
-    postIssueComment, listClosedIssueNumbers, closeIssue, getBoardEnrichment, listHeadPrs,
+    postIssueComment, listClosedIssueNumbers, getIssueStates, getIssueMeta, closeIssue,
+    getBoardEnrichment, listHeadPrs, getRateLimit,
 };

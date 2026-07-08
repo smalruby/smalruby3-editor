@@ -3,7 +3,7 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const {
     applyMergeProgression, applyClosedReconcile, applyPrProjection, applyDodHandoffs, runTickOnce,
-    detectStuck, markBlocked, getDirectives, applyEpicTracking, collectGateContexts,
+    detectStuck, markBlocked, getDirectives, applyLabelHealing, collectGateContexts,
 } = require('../src/daemon');
 const { HITL_LABEL, AUTOPILOT_LABEL } = require('../src/phases');
 
@@ -430,34 +430,38 @@ test('applyDodHandoffs: a failing item does not block others', async () => {
     assert.deepEqual(deps.calls.posted.map((p) => p.prNumber), [200]);
 });
 
-// === 🧭 tracking: applyEpicTracking（分解済み親のトラッカー化） ===
+// === ラベル整合: applyLabelHealing（🤖 autopilot 担保 + 🧭 tracking トラッカー化） ===
 
-test('applyEpicTracking: ラベル無し EPIC に 🧭 tracking を付与、終端/付与済み/実行中/leaf はスキップ', async () => {
-    const { TRACKING_LABEL } = require('../src/phases');
+test('applyLabelHealing: 非終端 item に 🤖 を、EPIC には 🧭 も担保。終端/付与済み/実行中はスキップ', async () => {
+    const { TRACKING_LABEL, AUTOPILOT_LABEL } = require('../src/phases');
     const items = [
-        { issue: 1, status: 'In Progress', kind: 'EPIC', labels: [] }, // 付与
-        { issue: 2, status: 'In Progress', kind: 'EPIC', labels: [TRACKING_LABEL] }, // 付与済み
-        { issue: 3, status: 'Close', kind: 'EPIC', labels: [] }, // 終端
-        { issue: 4, status: 'In Progress', kind: 'Issue', labels: [] }, // leaf
-        { issue: 5, status: 'Backlog', kind: 'EPIC', labels: [] }, // 実行中
+        { issue: 1, status: 'In Progress', kind: 'EPIC', labels: [] }, // 🤖 + 🧭
+        { issue: 2, status: 'In Progress', kind: 'EPIC', labels: [AUTOPILOT_LABEL, TRACKING_LABEL] }, // 完備
+        { issue: 3, status: 'Close', kind: 'EPIC', labels: [] }, // 終端 → 触らない
+        { issue: 4, status: 'In Progress', kind: 'Issue', labels: [] }, // leaf → 🤖 のみ
+        { issue: 5, status: 'Backlog', kind: 'EPIC', labels: [] }, // 実行中 → 触らない
+        { issue: 6, status: 'Review', kind: 'Issue', labels: [AUTOPILOT_LABEL] }, // 完備
     ];
     const added = [];
     const state = { running: new Map([[5, { phase: 'decompose' }]]) };
-    await applyEpicTracking(items, makeCfg(), state, () => {}, {
+    await applyLabelHealing(items, makeCfg(), state, () => {}, {
         token: 't',
         editLabels: (repo, number, type, diff) => added.push({ number, type, ...diff }),
     });
-    assert.deepEqual(added, [{ number: 1, type: 'issue', add: [TRACKING_LABEL] }]);
+    assert.deepEqual(added, [
+        { number: 1, type: 'issue', add: [AUTOPILOT_LABEL, TRACKING_LABEL] },
+        { number: 4, type: 'issue', add: [AUTOPILOT_LABEL] },
+    ]);
 });
 
-test('applyEpicTracking: 1 件の失敗は他を止めない', async () => {
+test('applyLabelHealing: 1 件の失敗は他を止めない', async () => {
     const items = [
         { issue: 1, status: 'Backlog', kind: 'EPIC', labels: [] },
         { issue: 2, status: 'Backlog', kind: 'EPIC', labels: [] },
     ];
     const added = [];
     const state = { running: new Map() };
-    await applyEpicTracking(items, makeCfg(), state, () => {}, {
+    await applyLabelHealing(items, makeCfg(), state, () => {}, {
         token: 't',
         editLabels: (repo, number) => { if (number === 1) throw new Error('boom'); added.push(number); },
     });
@@ -521,6 +525,59 @@ test('recordHistory: 新しい run が先頭、上限 100 件', () => {
     for (let i = 0; i < 105; i++) recordHistory(state, { issue: i, phase: 'triage', outcome: 'done' });
     assert.equal(state.history.length, 100);
     assert.equal(state.history[0].issue, 104); // 最新が先頭
+});
+
+test('refreshBoard: assignee 指定でボードも enroll 判定（ownsItem）に限定される', async () => {
+    const { refreshBoard } = require('../src/daemon');
+    const cfg = { ...makeCfg(), now: () => 0, statusOrder: [], assignee: 'me' };
+    const state = { running: new Map() };
+    await refreshBoard(cfg, state, () => {}, {
+        token: 't',
+        listItems: () => [
+            { issue: 1, status: 'Review', kind: 'Issue', title: 'mine', labels: [], assignees: ['me'] },
+            { issue: 2, status: 'Review', kind: 'Issue', title: 'other', labels: [], assignees: ['other'] },
+            { issue: 3, status: 'Review', kind: 'Issue', title: 'none', labels: [], assignees: [] }, // 未 assign
+            { issue: 4, status: 'Review', kind: 'Issue', title: 'second', labels: [], assignees: ['aa', 'me'] }, // 先頭でない
+        ],
+        getBoardEnrichment: () => ({}),
+        listHeadPrs: () => [],
+    });
+    assert.deepEqual(state.board.items.map((i) => i.issue), [1]);
+});
+
+test('refreshBoard: レート残量僅少（skipLowPriority）では更新せず前回キャッシュを維持', async () => {
+    const { refreshBoard } = require('../src/daemon');
+    const cfg = { ...makeCfg(), now: () => 0, statusOrder: [] };
+    const state = {
+        running: new Map(),
+        board: { updatedAt: 1, items: [{ issue: 9 }] },
+        ratePlan: { skipLowPriority: true, minRemaining: 10, minAt: 'bot/graphql' },
+    };
+    let called = 0;
+    await refreshBoard(cfg, state, () => {}, { token: 't', listItems: () => { called += 1; return []; } });
+    assert.equal(called, 0);
+    assert.deepEqual(state.board.items.map((i) => i.issue), [9]);
+});
+
+test('refreshRateLimits: bot/read 両トークンの残量から実行計画を立てる', async () => {
+    const { refreshRateLimits } = require('../src/daemon');
+    const state = {};
+    await refreshRateLimits({}, state, () => {}, {
+        token: 'bot-t',
+        readToken: 'read-t',
+        getRateLimit: async (tok) => (tok === 'bot-t'
+            ? { core: { remaining: 4000, limit: 5000 }, graphql: { remaining: 100, limit: 5000 } }
+            : { core: { remaining: 3000, limit: 5000 }, graphql: { remaining: 2500, limit: 5000 } }),
+    });
+    assert.equal(state.ratePlan.minRemaining, 100);
+    assert.equal(state.ratePlan.minAt, 'bot/graphql');
+    assert.equal(state.ratePlan.skipLowPriority, true); // 100 < 200
+    // 取得失敗時は前回の計画を維持
+    await refreshRateLimits({}, state, () => {}, {
+        token: 'bot-t', readToken: 'read-t',
+        getRateLimit: async () => { throw new Error('boom'); },
+    });
+    assert.equal(state.ratePlan.minRemaining, 100);
 });
 
 // === 認証ヘルスチェック: checkAuthHealth（SSO 無人運用の auto-pause / auto-resume） ===
