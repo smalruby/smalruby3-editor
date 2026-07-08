@@ -410,7 +410,10 @@ GitHub Projects で行い、モニタは俯瞰・log 閲覧・pause/resume/即�
   enrichment も重くなるため）。Backlog は「やると決めたがキュー前」の待機状態で
   モニタ上でできる操作が無く（着手は Sprint Backlog へ移してから）、item ごとの
   sub-issue/PR enrichment で GraphQL を無駄に消費するため除外する（把握は GitHub
-  Projects 側で行う）。**New Item は triage 対象で actionable なため残す**。さらに
+  Projects 側で行う）。**ただし AI Status=Discussing の Backlog は残す** — 実装前
+  ディスカッションの往復中で daemon が discuss フェーズを回す actionable な状態のため
+  （除外すると「daemon は処理するがボードに映らない」不一致が起きる）。**New Item も
+  triage 対象で actionable なため残す**。さらに
   `--assignee` 起動時は **daemon の処理対象と同じ enroll 判定（ownsItem）に限定**する
   （「ボードには映るが daemon は素通り」という不一致を無くす。未指定は全件）
 - **実行履歴**は最下部（最新 100 件・ログ用途のみ）

@@ -389,6 +389,21 @@ test('selectBoardItems: Backlog を除外し、New Item / actionable な状態�
     );
 });
 
+test('selectBoardItems: discuss ループ中の Backlog（AI Status=Discussing）は残す', () => {
+    // triage/discuss は実装前ディスカッションを Backlog + Discussing で人間に返す。
+    // daemon が discuss フェーズを実行する actionable な状態なのでボードに映す
+    // （待機中の Backlog だけを除外する）。
+    const items = [
+        { issue: 1, status: 'Backlog', aiStatus: 'Discussing', assignees: [] }, // 議論中 → 残す
+        { issue: 2, status: 'Backlog', aiStatus: null, assignees: [] }, // 待機 → 除外
+        { issue: 3, status: 'New Item', aiStatus: 'Discussing', assignees: [] }, // 議論中 → 残す
+    ];
+    assert.deepEqual(
+        selectBoardItems(items).map((i) => i.issue),
+        [1, 3],
+    );
+});
+
 test('itemOwner: 辞書順先頭の assignee が決定的な単一オーナー', () => {
     assert.equal(itemOwner({ assignees: ['takaokouji'] }), 'takaokouji');
     // 複数 assignee は辞書順先頭（入力順に依存しない）

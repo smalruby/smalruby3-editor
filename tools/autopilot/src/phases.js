@@ -890,8 +890,11 @@ function applyIntentsToItem(item, intents) {
  * enrichment も重くなるため。特に Backlog は「やると決めたがキュー前」の待機状態で、
  * モニタ上でできる操作が無い（着手は Sprint Backlog へ移してから）にもかかわらず、
  * item ごとに sub-issue/PR の GraphQL enrichment を消費するため除外する。
- * New Item は triage 対象で actionable なため残す。操作は GitHub Projects で行う
- * （ボードは読み取り専用）。
+ * ただし **AI Status=Discussing の Backlog は除外しない** — これは実装前ディスカッション
+ * の往復中で、daemon が discuss フェーズを実行し人間もループに入る「actionable な状態」。
+ * 除外すると daemon は処理するのにボードに映らない不一致が生じる（{@link phaseForItem}・
+ * {@link isGateItem} 参照）。New Item も triage 対象で actionable なため残す。
+ * 操作は GitHub Projects で行う（ボードは読み取り専用）。
  * assignee を渡すと **daemon の処理対象（enroll 判定 {@link ownsItem}）と同じ集合**に
  * 限定する — 「ボードには映るが daemon は素通り」という表示と処理対象の不一致を無くし、
  * enrichment の API 消費も減らす（未指定は従来どおり全件）。
@@ -902,7 +905,10 @@ function applyIntentsToItem(item, intents) {
 function selectBoardItems(items, assignee = null) {
     return (items || []).filter(
         (it) => it && !TERMINAL_STATUSES.has(it.status) && it.status !== 'Icebox'
-            && it.status !== 'Backlog' && ownsItem(it, assignee),
+            // Backlog は除外。ただし discuss ループ中（AI Status=Discussing）は daemon が
+            // 処理するので残す（ボード⇄daemon の対象一致を保つ）。
+            && !(it.status === 'Backlog' && it.aiStatus !== 'Discussing')
+            && ownsItem(it, assignee),
     );
 }
 
