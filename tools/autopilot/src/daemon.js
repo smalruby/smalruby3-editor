@@ -874,9 +874,12 @@ async function refreshRateLimits(cfg, state, log, deps = {}) {
     }
 }
 
-// 俯瞰ボードの再取得間隔（tick の 5 分より短くして live 感を出す。listItems + バッチ
-// GraphQL の 2〜3 API 呼び出し / 回なので 60 秒でも軽い）
-const BOARD_REFRESH_MS = 60 * 1000;
+// 俯瞰ボードの再取得は専用の短周期タイマーを持たない（旧: 60 秒ごと）。
+// listItems は 1 回で ~100 GraphQL ポイント消費する重い問い合わせで、60 秒間隔だと
+// 60 回/h × 100 = 6000 pt/h となり read トークンの GraphQL 予算 5000/h を単独で超過する
+// （実測で read/graphql が数十分で枯渇 → skipLowPriority が発動しボードが stale 化していた）。
+// そこで board 更新は **poll/tick の直後**（= interval ごと）と、モニタの「🔄 更新」ボタン
+// （POST /refresh）による **オンデマンド** のみに限定し、見たいときだけ消費する。
 
 /**
  * 俯瞰ボードのデータを再構築して state.board に置く（Web モニタの `GET /board` が返す）。
@@ -1036,6 +1039,19 @@ function startHttp(cfg, state, log) {
                 .catch((e) => { log(`reauth error: ${e.message}`); send(500, { error: e.message }); });
             return;
         }
+        if (req.method === 'POST' && url.pathname === '/refresh') {
+            // 俯瞰ボードを即時再取得する（モニタの「🔄 更新」ボタン）。board は専用タイマーを
+            // 持たず poll/tick 後にのみ更新するため、ユーザーが見たいときはここで消費する。
+            // listItems は ~100 GraphQL ポイントと重いので、オンデマンドに限定して節約する。
+            if (state.ratePlan && state.ratePlan.skipLowPriority) {
+                // レート残量が僅少なら refreshBoard は内部で no-op になる。正直にスキップを返す。
+                return send(200, { refreshed: false, skipped: 'rate-limited', minRemaining: state.ratePlan.minRemaining });
+            }
+            refreshBoard(cfg, state, log)
+                .then(() => send(200, { refreshed: true, updatedAt: state.board ? state.board.updatedAt : null }))
+                .catch((e) => { log(`refresh error: ${e.message}`); send(500, { error: e.message }); });
+            return;
+        }
         if (req.method === 'POST' && url.pathname === '/stop') {
             const issue = Number(url.searchParams.get('issue'));
             const r = state.running.get(issue);
@@ -1116,10 +1132,10 @@ async function main(opts = {}) {
     } catch (e) { log(`pid file warn: ${e.message}`); }
     startHttp(cfg, state, log);
     log(`daemon up: project #${cfg.project}, assignee ${cfg.assignee || '(all)'}, concurrency ${cfg.concurrency}, interval ${cfg.intervalMs}ms, pid ${process.pid} (${pidFilePath()})`);
-    // 俯瞰ボードは tick（5 分）より短い周期で live 更新する（初回は即時）。
+    // 俯瞰ボードは起動時に 1 度だけ即時取得する。以降は専用タイマーを持たず、
+    // 各 poll/tick の直後（下の refreshBoard）と、モニタの「🔄 更新」ボタン
+    // （POST /refresh）によるオンデマンドでのみ更新する（GraphQL 予算の節約）。
     refreshBoard(cfg, state, log);
-    const boardTimer = setInterval(() => refreshBoard(cfg, state, log), cfg.boardRefreshMs || BOARD_REFRESH_MS);
-    if (boardTimer.unref) boardTimer.unref();
     /* eslint-disable no-constant-condition */
     while (!opts.once) {
         // 認証ヘルスチェック（失効 → auto-pause / 回復 → auto-resume）を tick の前に行う。
@@ -1134,7 +1150,7 @@ async function main(opts = {}) {
     if (opts.once) {
         await checkAuthHealth(cfg, state, log);
         await runTickOnce(cfg, state, log);
-        clearInterval(boardTimer);
+        refreshBoard(cfg, state, log);
     }
 }
 

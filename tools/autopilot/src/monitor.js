@@ -82,6 +82,7 @@ const MONITOR_HTML = `<!doctype html>
   <button id="pause" title="新規ディスパッチを止める">⏸</button>
   <button id="resume" title="再開">▶</button>
   <button id="ticknow" title="interval を待たず今すぐ 1 tick 実行">⚡ tick</button>
+  <button id="refreshboard" title="俯瞰ボードを今すぐ再取得（GraphQL 消費あり）">🔄 更新</button>
   <span class="meta" id="meta"></span>
 </header>
 <div id="alerts"></div>
@@ -269,6 +270,16 @@ document.getElementById('ticknow').onclick = async () => {
   btn.disabled = true; btn.textContent = '⏳';
   try { await fetch('/tick', { method: 'POST' }); } catch (e) { /* refresh 側で表示 */ }
   btn.disabled = false; btn.textContent = '⚡ tick';
+  refresh();
+};
+document.getElementById('refreshboard').onclick = async () => {
+  const btn = document.getElementById('refreshboard');
+  btn.disabled = true; btn.textContent = '⏳';
+  try {
+    const r = await fetch('/refresh', { method: 'POST' }).then((x) => x.json());
+    if (r && r.skipped) btn.title = 'API レート残量が僅少のためスキップしました（残 ' + r.minRemaining + '）';
+  } catch (e) { /* refresh 側で表示 */ }
+  btn.disabled = false; btn.textContent = '🔄 更新';
   refresh();
 };
 refresh(); setInterval(refresh, 5000);
