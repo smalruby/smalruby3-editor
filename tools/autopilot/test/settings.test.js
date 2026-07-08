@@ -80,6 +80,19 @@ test('buildClaudeCommand: フェーズ別 model/effort・addDirs・extraDirs が
     assert.match(cmd, /--effort low/);
 });
 
+test('buildClaudeCommand: usageStatusline で status line を --settings に仕込む（#879）', () => {
+    const cmd = buildClaudeCommand(DEFAULT_SETTINGS, 'implement', {
+        usageStatusline: { script: '/wt/tools/autopilot/bin/usage-statusline.sh', file: '/tmp/u.json' },
+    });
+    // --settings に statusLine コマンド（bash <script> <file>）が入る
+    assert.match(cmd, /--settings /);
+    assert.match(cmd, /statusLine/);
+    assert.match(cmd, /bash \/wt\/tools\/autopilot\/bin\/usage-statusline\.sh \/tmp\/u\.json/);
+    // script/file が欠けていれば --settings を付けない
+    const none = buildClaudeCommand(DEFAULT_SETTINGS, 'implement', {});
+    assert.doesNotMatch(none, /--settings/);
+});
+
 test('userSettingsPath: AUTOPILOT_SETTINGS > XDG_CONFIG_HOME > ~/.config', () => {
     assert.equal(userSettingsPath({ AUTOPILOT_SETTINGS: '/x/s.json' }, '/h'), '/x/s.json');
     assert.equal(userSettingsPath({ XDG_CONFIG_HOME: '/xdg' }, '/h'), path.join('/xdg', 'autopilot', 'settings.json'));

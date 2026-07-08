@@ -351,17 +351,17 @@ function recordHistory(state, entry) {
 }
 
 /**
- * worker（claude セッション）の transcript から Claude 使用率（session/weekly）を読み、
- * state.claudeUsage に反映する（Issue #879）。取得できなければ既存値を保持する
- * （非サブスク / 初回応答前は rate_limits が無い → 無理に null 上書きしない）。
- * @param {string} cwd worker の作業ディレクトリ
+ * worker の status line（usage-statusline.sh）が書き出した usage ファイルから
+ * Claude 使用率（session/weekly）を読み、state.claudeUsage に反映する（Issue #879）。
+ * 取得できなければ既存値を保持する（非サブスク / 初回応答前は rate_limits が無い →
+ * 無理に null 上書きしない）。
  * @param {object} state daemon の可変状態（state.claudeUsage を書き換える）
  * @param {object} cfg
  * @param {function} log
  */
-function updateClaudeUsage(cwd, state, cfg, log) {
+function updateClaudeUsage(state, cfg, log) {
     try {
-        const usage = readClaudeUsage(cwd, { now: cfg.now });
+        const usage = readClaudeUsage(cfg.usageFile || usageFilePath(), { now: cfg.now });
         if (usage) {
             state.claudeUsage = usage;
             const pct = (w) => (w && w.percent != null ? `${Math.round(w.percent)}%` : '—');
@@ -439,14 +439,23 @@ async function dispatch(item, cfg, state, log) {
         // プロンプトを --add-dir で許可して使う（checkout のブランチ切り替えに非依存）。
         const envCmd = process.env.AUTOPILOT_CLAUDE_CMD;
         const command = envCmd
-            || buildClaudeCommand(cfg.settings, phase, { extraDirs: cfg.snapshotDir ? [cfg.snapshotDir] : [] });
+            || buildClaudeCommand(cfg.settings, phase, {
+                extraDirs: cfg.snapshotDir ? [cfg.snapshotDir] : [],
+                // Claude 使用率抽出（#879）: worker の status line にスクリプトを仕込む。
+                // script は worker の worktree 内の絶対パス（動作中ブランチのものに一致）、
+                // file は daemon が読む共有パス。パスを誤ると値が取れないので絶対パスで渡す。
+                usageStatusline: {
+                    script: path.join(cwd, 'tools', 'autopilot', 'bin', 'usage-statusline.sh'),
+                    file: cfg.usageFile || usageFilePath(),
+                },
+            });
         const promptDir = envCmd ? undefined : cfg.promptDir;
         log(`#${item.issue}: run ${phase} (${meta.skill})`);
         const res = await runPhase({
             session, cwd, env, command, promptDir, skill: meta.skill, issue: item.issue, resultFile, log,
         });
         // worker のセッションが終わったこのタイミングで Claude 使用率を更新する（#879）。
-        updateClaudeUsage(cwd, state, cfg, log);
+        updateClaudeUsage(state, cfg, log);
         if (!res.ok) {
             log(`#${item.issue}: runner failed (${res.reason})`);
             record('failed', res.reason);
@@ -1131,6 +1140,16 @@ function startHttp(cfg, state, log) {
 /** PID ファイルのパス（停止スクリプトが参照） */
 function pidFilePath() {
     return path.join(os.tmpdir(), 'autopilot-daemon.pid');
+}
+
+/**
+ * Claude 使用率の受け渡しファイル（Issue #879）。worker の status line
+ * （usage-statusline.sh）が rate_limits を書き出し、daemon がここから読む。
+ * アカウント横断の値なので単一ファイル（どの worker が書いても最新が入ればよい）。
+ * @returns {string} 絶対パス
+ */
+function usageFilePath() {
+    return path.join(os.tmpdir(), 'autopilot-claude-usage.json');
 }
 
 /** デーモン起動 */

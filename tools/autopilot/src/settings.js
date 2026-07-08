@@ -147,6 +147,16 @@ function buildClaudeCommand(settings, phase, opts = {}) {
     }
     if (ph.model) parts.push('--model', ph.model);
     if (ph.effort) parts.push('--effort', ph.effort);
+    // Claude 使用率の抽出（Issue #879）: worker の status line に usage-statusline.sh を仕込み、
+    // rate_limits を usage ファイルへ書き出させる。script/file は **絶対パス**を渡すこと
+    // （パスを誤ると daemon が値を読めない）。JSON は shellQuote でまとめて single-quote される。
+    if (opts.usageStatusline && opts.usageStatusline.script && opts.usageStatusline.file) {
+        const { script, file } = opts.usageStatusline;
+        const settingsJson = JSON.stringify({
+            statusLine: { type: 'command', command: `bash ${script} ${file}` },
+        });
+        parts.push('--settings', settingsJson);
+    }
     parts.push(...(ph.args || []));
     return parts.map(shellQuote).join(' ');
 }

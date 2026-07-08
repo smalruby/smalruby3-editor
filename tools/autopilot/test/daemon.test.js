@@ -875,33 +875,23 @@ test('statusResponse: state.claudeUsage を含める', () => {
     assert.strictEqual(statusResponse(cfg, { running: new Map() }).claudeUsage, null);
 });
 
-test('updateClaudeUsage: transcript から使用量を読み state に反映', () => {
+test('updateClaudeUsage: usage ファイルから使用量を読み state に反映', () => {
     const fs = require('node:fs');
     const os = require('node:os');
     const path = require('node:path');
-    const { transcriptDir } = require('../src/usage');
-    // HOME を一時的に差し替えて実 fs を使う（readClaudeUsage は os.homedir() を見る）
-    const home = fs.mkdtempSync(path.join(os.tmpdir(), 'daemon-usage-'));
-    const origHome = process.env.HOME;
-    process.env.HOME = home;
-    try {
-        const cwd = '/app/.autopilot-worktrees/issue-879';
-        const dir = transcriptDir(cwd, home);
-        fs.mkdirSync(dir, { recursive: true });
-        fs.writeFileSync(path.join(dir, 's.jsonl'), JSON.stringify({
-            message: { usage: { rate_limits: {
-                five_hour: { used_percentage: 30 }, seven_day: { used_percentage: 60 },
-            } } },
-        }) + '\n');
-        const state = { claudeUsage: null };
-        updateClaudeUsage(cwd, state, { now: () => 42 }, () => {});
-        assert.strictEqual(state.claudeUsage.session.percent, 30);
-        assert.strictEqual(state.claudeUsage.weekly.percent, 60);
-        assert.strictEqual(state.claudeUsage.updatedAt, 42);
-        // 取得できないときは既存値を保持（null 上書きしない）
-        updateClaudeUsage('/no/such/dir', state, { now: () => 99 }, () => {});
-        assert.strictEqual(state.claudeUsage.updatedAt, 42);
-    } finally {
-        process.env.HOME = origHome;
-    }
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'daemon-usage-'));
+    const usageFile = path.join(dir, 'claude-usage.json');
+    fs.writeFileSync(usageFile, JSON.stringify({
+        rate_limits: {
+            five_hour: { used_percentage: 30 }, seven_day: { used_percentage: 60 },
+        },
+    }) + '\n');
+    const state = { claudeUsage: null };
+    updateClaudeUsage(state, { usageFile, now: () => 42 }, () => {});
+    assert.strictEqual(state.claudeUsage.session.percent, 30);
+    assert.strictEqual(state.claudeUsage.weekly.percent, 60);
+    assert.strictEqual(state.claudeUsage.updatedAt, 42);
+    // 取得できないときは既存値を保持（null 上書きしない）
+    updateClaudeUsage(state, { usageFile: '/no/such/file.json', now: () => 99 }, () => {});
+    assert.strictEqual(state.claudeUsage.updatedAt, 42);
 });
