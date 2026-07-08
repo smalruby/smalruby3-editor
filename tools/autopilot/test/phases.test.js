@@ -371,6 +371,24 @@ test('selectBoardItems: assignee 指定でボード表示も enroll 判定（own
     assert.deepEqual(selectBoardItems(items).map((i) => i.issue), [1, 2, 3]);
 });
 
+test('selectBoardItems: Backlog を除外し、New Item / actionable な状態は残す', () => {
+    const items = [
+        { issue: 1, status: 'New Item', assignees: [] }, // triage 対象 → 残す
+        { issue: 2, status: 'Backlog', assignees: [] }, // 待機 → 除外
+        { issue: 3, status: 'Sprint Backlog', assignees: [] },
+        { issue: 4, status: 'In Progress', assignees: [] },
+        { issue: 5, status: 'Blocked', assignees: [] },
+        { issue: 6, status: 'Review', assignees: [] },
+        { issue: 7, status: 'DoD', assignees: [] },
+        { issue: 8, status: 'Close', assignees: [] }, // 終端 → 除外
+        { issue: 9, status: 'Icebox', assignees: [] }, // 保留 → 除外
+    ];
+    assert.deepEqual(
+        selectBoardItems(items).map((i) => i.issue),
+        [1, 3, 4, 5, 6, 7],
+    );
+});
+
 test('itemOwner: 辞書順先頭の assignee が決定的な単一オーナー', () => {
     assert.equal(itemOwner({ assignees: ['takaokouji'] }), 'takaokouji');
     // 複数 assignee は辞書順先頭（入力順に依存しない）

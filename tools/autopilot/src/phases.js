@@ -886,8 +886,12 @@ function applyIntentsToItem(item, intents) {
 
 /**
  * 俯瞰ボードに表示する item を選ぶ（純粋関数）。
- * 終端（Close/Done）と保留（Icebox）は除外する — 溜まり続けると表示も enrichment も
- * 重くなるため。操作は GitHub Projects で行う（ボードは読み取り専用）。
+ * 終端（Close/Done）・保留（Icebox）・待機（Backlog）は除外する — 溜まり続けると表示も
+ * enrichment も重くなるため。特に Backlog は「やると決めたがキュー前」の待機状態で、
+ * モニタ上でできる操作が無い（着手は Sprint Backlog へ移してから）にもかかわらず、
+ * item ごとに sub-issue/PR の GraphQL enrichment を消費するため除外する。
+ * New Item は triage 対象で actionable なため残す。操作は GitHub Projects で行う
+ * （ボードは読み取り専用）。
  * assignee を渡すと **daemon の処理対象（enroll 判定 {@link ownsItem}）と同じ集合**に
  * 限定する — 「ボードには映るが daemon は素通り」という表示と処理対象の不一致を無くし、
  * enrichment の API 消費も減らす（未指定は従来どおり全件）。
@@ -898,7 +902,7 @@ function applyIntentsToItem(item, intents) {
 function selectBoardItems(items, assignee = null) {
     return (items || []).filter(
         (it) => it && !TERMINAL_STATUSES.has(it.status) && it.status !== 'Icebox'
-            && ownsItem(it, assignee),
+            && it.status !== 'Backlog' && ownsItem(it, assignee),
     );
 }
 

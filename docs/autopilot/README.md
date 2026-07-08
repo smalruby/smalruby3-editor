@@ -406,7 +406,11 @@ GitHub Projects で行い、モニタは俯瞰・log 閲覧・pause/resume/即�
 - **ボード行**: Issue（リンク + タイトル）/ Status pill / AI Status（live）/ 担当 /
   **複数 PR チップ**（📝 draft / ✅ ready / 🟣 merged / ❌ closed の色・絵文字）/
   **sub-issue 進捗**（N/M・%・バー）/ Now（実行中フェーズ + 経過分 + **log ボタン → モーダル**）
-- **除外**: Close / Done / Icebox はボードに出さない（溜まると重くなるため）。さらに
+- **除外**: Close / Done / Icebox / **Backlog** はボードに出さない（溜まると表示も
+  enrichment も重くなるため）。Backlog は「やると決めたがキュー前」の待機状態で
+  モニタ上でできる操作が無く（着手は Sprint Backlog へ移してから）、item ごとの
+  sub-issue/PR enrichment で GraphQL を無駄に消費するため除外する（把握は GitHub
+  Projects 側で行う）。**New Item は triage 対象で actionable なため残す**。さらに
   `--assignee` 起動時は **daemon の処理対象と同じ enroll 判定（ownsItem）に限定**する
   （「ボードには映るが daemon は素通り」という不一致を無くす。未指定は全件）
 - **実行履歴**は最下部（最新 100 件・ログ用途のみ）
