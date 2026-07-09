@@ -20,6 +20,10 @@ import libraryChat3Mesh1ExternalKairyudo from './thumbnails/chat3-mesh1-external
 // Ruby Basics 1: 計算してみよう
 import libraryRubyBasics1Numbers from './thumbnails/ruby-basics-1-numbers.jpg';
 import libraryRubyBasics1TryRuby from './thumbnails/ruby-basics-1-tryruby.png';
+// Ruby Basics 2: 文字列で遊ぼう
+import libraryRubyBasics2Strings from './thumbnails/ruby-basics-2-strings.jpg';
+// Ruby Basics 3: 変数を使ってみよう
+import libraryRubyBasics3Variables from './thumbnails/ruby-basics-3-variables.jpg';
 import {CATEGORIES} from '../tutorial-tags';
 
 // Green flag icon for inline use in tutorial step titles
@@ -1389,6 +1393,238 @@ end`,
             }
         ],
         urlId: 'rubyBasics1Numbers'
+    },
+
+    // ─── Ruby Basics 2: 文字列で遊ぼう ───────────────────────────────────────
+    'ruby-basics-2-strings': {
+        name: (
+            <FormattedMessage
+                defaultMessage="文字列（もじれつ）で遊ぼう"
+                description="Name for Ruby Basics 2: play with strings using puts"
+                id="gui.howtos.ruby-basics-2-strings.name"
+            />
+        ),
+        tags: ['ruby'],
+        category: CATEGORIES.rubyBasics,
+        img: libraryRubyBasics2Strings,
+        nameMessageId: 'gui.howtos.ruby-basics-2-strings.name',
+        // Same "open the Ruby tab in Ruby mode" setup as deck 1 — see
+        // docs/tutorial/improvement-plan.md "チュートリアル起動時の環境セットアップ".
+        setup: {
+            tab: 'ruby',
+            rubyMode: 'ruby'
+        },
+        allowedBlocks: {
+            motion: [],
+            looks: ['looks_sayforsecs', 'looks_say'],
+            sound: [],
+            event: ['event_whenflagclicked'],
+            control: [],
+            sensing: [],
+            operators: []
+        },
+        steps: [
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="文字列（もじれつ）で遊ぼう！"
+                        description="Ruby Basics 2 Step 1: Intro to strings with puts"
+                        id="gui.howtos.ruby-basics-2-strings.step1.title"
+                    />
+                ),
+                image: 'rubyBasics2Step1',
+                startTutorial: true,
+                animationTarget: 'startTutorialButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="まずは「puts &quot;こんにちは&quot;」を実行してみよう"
+                        description="Ruby Basics 2 Step 2: Insert first string puts code"
+                        id="gui.howtos.ruby-basics-2-strings.step2.title"
+                    />
+                ),
+                image: 'rubyBasics2Step2',
+                code: `when_flag_clicked do
+  puts "こんにちは"
+end`,
+                animationTarget: 'insertCodeButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="{greenFlag}を押すと、ネコが「こんにちは」としゃべるよ"
+                        description="Ruby Basics 2 Step 3: Run the program"
+                        id="gui.howtos.ruby-basics-2-strings.step3.title"
+                        values={{greenFlag: <GreenFlagIcon />}}
+                    />
+                ),
+                image: 'rubyBasics2Step3',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="文字をさかさまにしたり、大文字にしてみよう"
+                        description="Ruby Basics 2 Step 4: reverse / upcase string methods"
+                        id="gui.howtos.ruby-basics-2-strings.step4.title"
+                    />
+                ),
+                image: 'rubyBasics2Step4',
+                code: `when_flag_clicked do
+  puts "スモウルビー".reverse
+  puts "ruby".upcase
+end`,
+                animationTarget: 'insertCodeButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="好きな言葉に変えて、自分だけの文字列で遊ぼう"
+                        description="Ruby Basics 2 Step 5: Modify the string"
+                        id="gui.howtos.ruby-basics-2-strings.step5.title"
+                    />
+                ),
+                image: 'rubyBasics2Step5',
+                code: `when_flag_clicked do
+  puts "すきなことば".reverse
+end`,
+                animationTarget: 'insertCodeButton'
+            },
+            {
+                externalResources: {
+                    tryruby: {
+                        url: 'https://try.ruby-lang.org/',
+                        img: libraryRubyBasics1TryRuby,
+                        name: (
+                            <FormattedMessage
+                                defaultMessage="外部サイト「try ruby」で詳しくRubyを学ぶ"
+                                description="External resource: TryRuby online playground"
+                                id="gui.howtos.ruby-basics-2-strings.external.tryruby.name"
+                            />
+                        )
+                    }
+                }
+            }
+        ],
+        urlId: 'rubyBasics2Strings'
+    },
+
+    // ─── Ruby Basics 3: 変数を使ってみよう ───────────────────────────────────
+    'ruby-basics-3-variables': {
+        name: (
+            <FormattedMessage
+                defaultMessage="変数（へんすう）を使ってみよう"
+                description="Name for Ruby Basics 3: use variables with puts"
+                id="gui.howtos.ruby-basics-3-variables.name"
+            />
+        ),
+        tags: ['ruby'],
+        category: CATEGORIES.rubyBasics,
+        img: libraryRubyBasics3Variables,
+        nameMessageId: 'gui.howtos.ruby-basics-3-variables.name',
+        // Same "open the Ruby tab in Ruby mode" setup as deck 1 — see
+        // docs/tutorial/improvement-plan.md "チュートリアル起動時の環境セットアップ".
+        setup: {
+            tab: 'ruby',
+            rubyMode: 'ruby'
+        },
+        allowedBlocks: {
+            motion: [],
+            looks: ['looks_sayforsecs', 'looks_say'],
+            sound: [],
+            event: ['event_whenflagclicked'],
+            control: [],
+            sensing: [],
+            operators: []
+        },
+        steps: [
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="変数（へんすう）を使ってみよう！"
+                        description="Ruby Basics 3 Step 1: Intro to variables"
+                        id="gui.howtos.ruby-basics-3-variables.step1.title"
+                    />
+                ),
+                image: 'rubyBasics3Step1',
+                startTutorial: true,
+                animationTarget: 'startTutorialButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="「name」に名前を入れて、しゃべらせてみよう"
+                        description="Ruby Basics 3 Step 2: Insert first variable code"
+                        id="gui.howtos.ruby-basics-3-variables.step2.title"
+                    />
+                ),
+                image: 'rubyBasics3Step2',
+                code: `when_flag_clicked do
+  name = "ネコ"
+  puts name
+end`,
+                animationTarget: 'insertCodeButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="{greenFlag}を押すと、ネコが「ネコ」としゃべるよ"
+                        description="Ruby Basics 3 Step 3: Run the program"
+                        id="gui.howtos.ruby-basics-3-variables.step3.title"
+                        values={{greenFlag: <GreenFlagIcon />}}
+                    />
+                ),
+                image: 'rubyBasics3Step3',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="変数を使って、文をつくってみよう"
+                        description="Ruby Basics 3 Step 4: Combine a variable into a sentence"
+                        id="gui.howtos.ruby-basics-3-variables.step4.title"
+                    />
+                ),
+                image: 'rubyBasics3Step4',
+                code: `when_flag_clicked do
+  name = "スモウルビー"
+  puts "わたしは" + name + "です"
+end`,
+                animationTarget: 'insertCodeButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="変数の中身を好きな名前に変えてみよう"
+                        description="Ruby Basics 3 Step 5: Modify the variable"
+                        id="gui.howtos.ruby-basics-3-variables.step5.title"
+                    />
+                ),
+                image: 'rubyBasics3Step5',
+                code: `when_flag_clicked do
+  name = "あなたのなまえ"
+  puts name + "、こんにちは！"
+end`,
+                animationTarget: 'insertCodeButton'
+            },
+            {
+                externalResources: {
+                    tryruby: {
+                        url: 'https://try.ruby-lang.org/',
+                        img: libraryRubyBasics1TryRuby,
+                        name: (
+                            <FormattedMessage
+                                defaultMessage="外部サイト「try ruby」で詳しくRubyを学ぶ"
+                                description="External resource: TryRuby online playground"
+                                id="gui.howtos.ruby-basics-3-variables.external.tryruby.name"
+                            />
+                        )
+                    }
+                }
+            }
+        ],
+        urlId: 'rubyBasics3Variables'
     }
 };
 
