@@ -1149,6 +1149,30 @@ test('parseAfterIssues: 行頭の autopilot-after 宣言から依存 Issue を�
     assert.deepEqual(parseAfterIssues(null), []);
 });
 
+test('parseAfterIssues: 説明用の安全表記（スペース入り・非行頭）は依存として拾わない', () => {
+    // ⚠️ 自己参照の罠の回帰テスト（#898）:
+    // 機能を説明する Issue/ドキュメント/プロンプトが依存ディレクティブを「例示」しても、
+    // 本物の依存として誤検出してはならない。安全な書き方が実際に no-match であることを固定する。
+
+    // 1. スペース入り表記（autopilot - after）はコロン前で切れるので発火しない
+    assert.deepEqual(parseAfterIssues('autopilot - after: #12 と書くと直列化できる'), []);
+    assert.deepEqual(parseAfterIssues('autopilot -after: #34'), []);
+
+    // 2. 行頭でない言及（インデント含む）は発火しない
+    assert.deepEqual(parseAfterIssues('  autopilot-after: #56'), []);
+    assert.deepEqual(parseAfterIssues('- autopilot-after: #78 のように書く'), []);
+    assert.deepEqual(parseAfterIssues('例: `autopilot-after: #90` を行頭に置く'), []);
+
+    // 3. 複数行の文書中で、本物の宣言（行頭）だけを拾い、説明用の言及は無視する
+    const doc = [
+        '依存の書き方を説明する。',
+        '`autopilot-after: #999` のように書く（このバッククォート囲みは拾われない）。',
+        'autopilot - after: #888 のようにスペース入りでも安全。',
+        'autopilot-after: #123',
+    ].join('\n');
+    assert.deepEqual(parseAfterIssues(doc), [123]);
+});
+
 test('unresolvedAfterIssues: closed or 終端 Status の依存は解決済み', () => {
     const ctx = {
         closedSet: new Set([10]),
