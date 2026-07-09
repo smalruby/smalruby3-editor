@@ -75,13 +75,15 @@ describe('Ruby Basics tutorial decks', () => {
         test('every message id resolves in ja / ja-Hira / en', () => {
             const ids = collectMessageIds(deck);
             expect(ids.length).toBeGreaterThan(0);
+            const missing = [];
             ids.forEach(id => {
                 Object.entries(LOCALES).forEach(([locale, table]) => {
-                    expect(
-                        Object.prototype.hasOwnProperty.call(table, id),
-                    ).toBe(true, `${id} missing in ${locale}`);
+                    if (!Object.prototype.hasOwnProperty.call(table, id)) {
+                        missing.push(`${id} missing in ${locale}`);
+                    }
                 });
             });
+            expect(missing).toEqual([]);
         });
 
         test('every step code snippet converts to blocks without errors', async () => {
