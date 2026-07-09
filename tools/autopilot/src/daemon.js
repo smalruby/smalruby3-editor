@@ -1302,11 +1302,35 @@ function patchBoardCache(state, issue, intents) {
 }
 
 /**
+ * Awaiting Continuation item の continuation ファイル（worktree 内・{@link continuationFilePath}）
+ * から残タスク数を読む（#913）。GitHub API は使わずローカルファイルシステムのみを読むので
+ * GraphQL / gh のレート消費は無い（{@link collectContinuationContexts} と同じ理由）。
+ * worktree/ファイルが無い・解析できない場合は null（board 側は「—」表示にフォールバック）。
+ * @param {number} issue
+ * @param {function} log
+ * @param {object} [deps] { execFileP, existsSync, readFileSync }（テスト用）
+ * @returns {Promise<number|null>}
+ */
+async function readContinuationRemainingCount(issue, log, deps = {}) {
+    const exec = deps.execFileP || execFileP;
+    try {
+        const { stdout } = await exec(WORKTREE_BIN, ['path', String(issue)], { encoding: 'utf8' });
+        const parsed = readContinuationFromWorktree(stdout.trim(), issue, deps);
+        return parsed && Array.isArray(parsed.remaining) ? parsed.remaining.length : null;
+    } catch (e) {
+        log(`#${issue}: board continuation lookup failed: ${e.message}`);
+        return null;
+    }
+}
+
+/**
  * 俯瞰ボードのデータを再構築して state.board に置く（Web モニタの `GET /board` が返す）。
  * 表示対象は非終端・非 Icebox の item（selectBoardItems）を Board view の見た目順に並べ、
  * sub-issue 進捗と連携 PR 群（state/draft）をバッチ GraphQL で enrich する。
  * 非デフォルト base 宛て PR は close リンクに出ないため、PR を持ちうる Status なのに
  * PR が見つからない item は head ブランチ検索で補完する（#831 と同じ理由）。
+ * Awaiting Continuation（#906/#912）の item は continuation ファイルの残タスク数も
+ * `continuationRemaining` として添える（#913・monitor.js のバッジ表示用）。
  * 再入防止つき（前回の refresh が走っていればスキップ）。読み取り専用（Project は書かない）。
  */
 async function refreshBoard(cfg, state, log, deps = {}) {
@@ -1337,12 +1361,17 @@ async function refreshBoard(cfg, state, log, deps = {}) {
                 try { extra.prs = await listHeadPrs(cfg.repo, it.issue, token); }
                 catch (e) { log(`#${it.issue}: board head pr lookup failed: ${e.message}`); }
             }
+            let continuationRemaining = null;
+            if (it.aiStatus === AWAITING_CONTINUATION_STATUS) {
+                continuationRemaining = await readContinuationRemainingCount(it.issue, log, deps);
+            }
             enriched.push({
                 issue: it.issue,
                 title: it.title,
                 url: `https://github.com/${cfg.repo}/issues/${it.issue}`,
                 status: it.status || 'New Item',
                 aiStatus: it.aiStatus || null,
+                continuationRemaining,
                 hitl: Boolean(it.hitlLabel),
                 kind: it.kind || null,
                 size: it.size || null,

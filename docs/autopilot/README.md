@@ -491,6 +491,12 @@ GitHub Projects で行い、モニタは俯瞰・log 閲覧・pause/resume/即�
 - **ボード行**: Issue（リンク + タイトル）/ Status pill / AI Status（live）/ 担当 /
   **複数 PR チップ**（📝 draft / ✅ ready / 🟣 merged / ❌ closed の色・絵文字）/
   **sub-issue 進捗**（N/M・%・バー）/ Now（実行中フェーズ + 経過分 + **log ボタン → モーダル**）
+  - **Awaiting Continuation（協調的チェックポイント・EPIC #906）は専用バッジ**（`⏸️ Awaiting
+    Continuation`・紫系配色）で表示し、他の AI Status（Implementing 等）と一目で区別できる（#913）。
+    バッジの右に continuation ファイル（`tmp/autopilot-continuation-<issue>.md`）の
+    **残タスク数**（`## 残タスク` の箇条書き件数）を「残 N」で併記する。件数は `refreshBoard` が
+    worktree からローカルファイルとして読む（GraphQL は消費しない）。worktree/ファイルが無い・
+    解析できない場合は件数を省略する（バッジ自体は表示する）
 - **除外**: Close / Done / Icebox はボードに出さない（溜まると重くなるため）。さらに
   `--assignee` 起動時は **daemon の処理対象と同じ enroll 判定（ownsItem）に限定**する
   （「ボードには映るが daemon は素通り」という不一致を無くす。未指定は全件）

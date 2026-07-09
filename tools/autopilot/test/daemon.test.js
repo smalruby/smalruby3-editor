@@ -641,6 +641,45 @@ test('refreshBoard: close リンクに PR が無い post-PR item は head ブラ
     assert.deepEqual(state.board.items.find((i) => i.issue === 7).prs[0].state, 'MERGED');
 });
 
+test('refreshBoard: Awaiting Continuation item は continuation ファイルの残タスク数を continuationRemaining に添える（#913）', async () => {
+    const { refreshBoard } = require('../src/daemon');
+    const cfg = { ...makeCfg(), now: () => 0, statusOrder: [] };
+    const state = { running: new Map() };
+    await refreshBoard(cfg, state, () => {}, {
+        token: 't',
+        listItems: () => [
+            { issue: 10, status: 'In Progress', aiStatus: 'Awaiting Continuation', kind: 'Issue', title: 'x', labels: [] },
+            { issue: 11, status: 'In Progress', aiStatus: 'Implementing', kind: 'Issue', title: 'y', labels: [] },
+        ],
+        getBoardEnrichment: () => ({}),
+        listHeadPrs: () => [],
+        execFileP: async () => ({ stdout: '/tmp/wt\n' }),
+        existsSync: () => true,
+        readFileSync: () => [continuationMarker(10, 'implement', 1), '## 残タスク', '- a', '- b', '- c'].join('\n'),
+    });
+    const r10 = state.board.items.find((i) => i.issue === 10);
+    assert.equal(r10.continuationRemaining, 3);
+    const r11 = state.board.items.find((i) => i.issue === 11);
+    assert.equal(r11.continuationRemaining, null);
+});
+
+test('refreshBoard: continuation ファイルの読み取りに失敗しても board 構築は続く（continuationRemaining=null）', async () => {
+    const { refreshBoard } = require('../src/daemon');
+    const cfg = { ...makeCfg(), now: () => 0, statusOrder: [] };
+    const state = { running: new Map() };
+    await refreshBoard(cfg, state, () => {}, {
+        token: 't',
+        listItems: () => [
+            { issue: 12, status: 'In Progress', aiStatus: 'Awaiting Continuation', kind: 'Issue', title: 'x', labels: [] },
+        ],
+        getBoardEnrichment: () => ({}),
+        listHeadPrs: () => [],
+        execFileP: async () => { throw new Error('worktree not found'); },
+    });
+    const r12 = state.board.items.find((i) => i.issue === 12);
+    assert.equal(r12.continuationRemaining, null);
+});
+
 test('recordHistory: 新しい run が先頭、上限 100 件', () => {
     const { recordHistory } = require('../src/daemon');
     const state = {};
