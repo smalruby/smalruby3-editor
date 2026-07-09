@@ -73,6 +73,18 @@ docker compose run --rm app bash -c "cd /app/packages/scratch-vm && npm run cove
 
 The VM uses the `tap` test framework.
 
+### テストの配置・命名（現行実装からの規約）
+
+- **`test:unit` の glob は `./test/unit/*.js`（非再帰）**。`test/unit/` の**サブディレクトリに
+  置いたテストは標準スクリプトでは実行されない**（`test:integration` は `**/*.js` で再帰）。
+  新しい unit テストは `test/unit/` 直下に置くこと。
+- unit テストの命名は **アンダースコア形式・`.test.js` サフィックス無し**が慣例
+  （`extension_koshien.js`, `mesh_service_v2_polling.js`, `smalruby_migration.js` 等）。
+  integration（`test/integration/extensions/`）は **ダッシュ + `.test.js`**
+  （`mesh-v2-data-merge.test.js` 等）。
+- 新しい Smalruby テストファイルは `packages/scratch-vm/.prettierignore` の
+  ホワイトリストにも追加する。
+
 ### Local vs CI Testing Policy
 
 - **ローカル**: 変更に直接関係するテストファイルのみ実行 + lint を通す。それが通ったら commit & push してよい。
@@ -84,15 +96,27 @@ The VM uses the `tap` test framework.
 - `src/`: VM source code
   - `engine/`: Core execution engine (runtime, sequencer, thread management)
   - `blocks/`: Block implementations for all categories
-  - `extensions/`: Extension implementations
-    - `koshien/`: Smalruby Koshien support
+  - `extensions/`: Extension implementations（**Smalruby 独自拡張の正典は
+    `packages/scratch-vm/.prettierignore` のホワイトリスト**。現在 8 ディレクトリ）
+    - `koshien/`: スマルビー甲子園（練習用モックゲーム内蔵。下記「koshien の構造」）
     - `microbitMore/`: Enhanced micro:bit integration
-    - `scratch3_mesh/`: Mesh networking (deprecated)
-    - `scratch3_mesh_v2/`: Mesh networking v2 with AWS AppSync
-    - `scratch3_music/`: Music blocks
-    - `scratch3_pen/`: Pen drawing blocks
+    - `scratch3_mesh/`: Mesh networking v1（**サービスは廃止だが登録は残る**。
+      `builtinExtensions.mesh` としてロード可能で、プロジェクトロード時に v1→v2 opcode
+      自動移行される — 下記 smalruby-migration）
+    - `scratch3_mesh_v2/`: Mesh networking v2 with AWS AppSync（構成・mixin 規約は
+      `.claude/rules/scratch-gui/mesh.md` が正典）
+    - `scratch3_smalrubot_s1/`: スマルロボ S1
+    - `scratch3_g2s/`: G2S（AkaDako）
+    - `scratch3_tm2scratch/`: TM2Scratch（Teachable Machine）
+    - `smalruby_ruby/`: Ruby の String/Array/Hash/Number メソッド意味論を実行時に再現する
+      ブロック群（id=`smalrubyRuby`。`util.thread._smalrubyReturnValue` /
+      `_smalrubyBlockParams` のスレッドローカル機構、アイコンは
+      `scripts/generate-ruby-icon-uri.js` で生成）
   - `io/`: I/O handlers (mouse, keyboard, clock, video, etc.)
   - `serialization/`: Project loading and saving
+    - `smalruby-migration.js`: Smalruby 固有。mesh v1→v2 opcode 移行
+      （`mesh_` → `meshV2_` prefix 書き換え）と koshien 検出（`detectKoshien`）。
+      `virtual-machine.js` のロード/バックパック経路から呼ばれる
   - `sprites/`: Sprite and target management
   - `util/`: Utility functions
 - `test/`: Test files
@@ -143,24 +167,77 @@ class MyExtension {
 }
 ```
 
-### Custom Smalruby Extensions
+### Smalruby 拡張の登録（2 系統ある）
 
-- **koshien**: Competition support extension
-- **microbitMore**: Extended micro:bit functionality beyond standard scratch3_microbit
-- **scratch3_mesh_v2**: Real-time collaboration using AWS AppSync GraphQL subscriptions
+Smalruby 拡張の `builtinExtensions` への登録経路は **2 系統**存在する:
+
+1. **`src/extension-support/smalruby-extensions.js` 経由（新規追加はこちら）** —
+   upstream の `extension-manager.js` には `=== Smalruby: Start of extension registration ===`
+   マーカーで囲んだ `registerSmalrubyExtensions(builtinExtensions)` の呼び出しだけがあり、
+   実際の登録は Smalruby 固有ファイル `smalruby-extensions.js` に集約されている。
+   現在の登録: `microbitMore` / `koshien` / `tm2scratch` / `g2s` / `smalrubyRuby`。
+   **新しい拡張を追加するときは `smalruby-extensions.js` に登録ロジックを足す**
+   （`extension-manager.js` は変更不要 = upstream 差分が増えない）。
+   - export 形式により 2 パターン: ES6 `export {... as blockClass}` の拡張は
+     `require(...).blockClass`、CommonJS `module.exports = Class` は `require(...)` 直接。
+   - いずれも `blockClass.formatMessage = require('format-message')` を注入してから返す。
+2. **`extension-manager.js` の `builtinExtensions` オブジェクトリテラル直書き（歴史的経緯）** —
+   `mesh` / `meshV2` / `smalrubotS1` の 3 つだけは upstream のオブジェクトリテラル内に
+   直接書かれており、**マーカーで囲まれていない**。upstream マージ時のコンフリクト解決で
+   見落としやすい既知の弱点（この 3 行を消さないこと）。**この形式を真似て新規追加しない**
+   （1. の経由にする）。
+
+`defaultHidden`（拡張ライブラリでの非表示）は **scratch-gui 側の概念**
+（`src/lib/libraries/extensions/index.jsx`）。VM の `getInfo()` には存在しない。
+
+### opcode / getInfo の規約（現行実装から）
+
+- `getInfo().blocks[].opcode` は短縮形（`connectGame` / `getSensorValue` 等）で書き、
+  **実行時の完全 opcode は `<extensionId>_<opcode>`** になる（`koshien_connectGame`,
+  `meshV2_getSensorValue`）。gui 側の ruby-generator / ruby-to-blocks-converter や
+  `startHats('<extensionId>_<opcode>')` はこの完全形を使う。
+- メニュー `menus.<name>.items` は (a) 静的配列、(b) **メソッド名の文字列**（動的メニュー。
+  extension-manager がバインドして呼ぶ）の 2 形式。
+- ブロック文言は `formatMessage({id, default, description})`。id の名前空間は拡張ごと
+  （`koshien.*` / `mesh.*` / `mbitMore.*` 等）。
+- 翻訳は拡張ディレクトリの `translations.json`（トップレベルキーは `ja` と `ja-Hira` の 2 つ）
+  + `setupTranslations()` イディオム（`formatMessage.setup()` の locale へ `Object.assign`）
+  + `getInfo()` に `translationMap: translations`。constructor で
+  `if (runtime.formatMessage) formatMessage = runtime.formatMessage` に差し替える。
+- スプライト専用ブロックは `filter: [TargetType.SPRITE]` を付ける（koshien 全ブロックの形）。
+
+### koshien の構造
+
+`src/extensions/koshien/` は `index.js`（拡張本体 + `KoshienClient` 基底 + `MockClient`）に
+加えて `map-utils.js` / `mock-game.js` / `mock-maps.js` / `mock-rival.js` に分割されている。
+バックエンドへは **`KoshienClient` インターフェース越しにのみ**アクセスし、既定実装は
+`MockClient`（練習用モックゲーム）。ゲーム状態はランタイムイベント `KOSHIEN_MOCK_STATE` で
+GUI へ通知し、緑旗/停止（`PROJECT_START` / `PROJECT_STOP_ALL`）でモック世界をリセットする。
+この分離を壊す実装（ブロックから直接ネットワーク/ゲーム状態を触る）は逸脱。
 
 ## Mesh Networking v2
 
-The mesh v2 extension uses AWS AppSync for real-time collaboration:
+mesh v2 の構成・開発フロー・デグレ確認手順の正典は
+**`.claude/rules/scratch-gui/mesh.md`**（VM 側ファイル一覧と mixin パターンを含む）。
+VM 側の規約の要点のみ:
 
-- GraphQL endpoint for data sync
-- WebSocket subscriptions for events
-- Configured via environment variables:
-  - `MESH_GRAPHQL_ENDPOINT`
-  - `MESH_API_KEY`
-  - `MESH_AWS_REGION`
-  - `MESH_DATA_UPDATE_INTERVAL_MS`
-  - `MESH_EVENT_BATCH_INTERVAL_MS`
+- `mesh-service.js` は **mixin パターン**: 各責務ファイルが `const XxxMixin = {...}` を
+  export し、`Object.assign(MeshV2Service.prototype, XxxMixin)` で合成する。
+  **新しい責務ファイルを追加したら require + `Object.assign` の両方に追加する**。
+- 環境変数: `MESH_GRAPHQL_ENDPOINT` / `MESH_API_KEY` / `MESH_AWS_REGION` /
+  `MESH_DATA_UPDATE_INTERVAL_MS` / `MESH_EVENT_BATCH_INTERVAL_MS`
+
+## Ruby ラウンドトリップとの整合（拡張ブロック追加時の必須事項）
+
+VM 拡張のブロック（opcode）を追加・変更したら、**scratch-gui 側の対応ファイルを必ず更新**
+する（Ruby ⇔ ブロックの双方向変換が壊れる）:
+
+- `packages/scratch-gui/src/lib/ruby-generator/<extension>.js`（ブロック → Ruby）
+- `packages/scratch-gui/src/lib/ruby-to-blocks-converter/<extension>.js`（Ruby → ブロック）
+
+既存拡張はすべてこの対を持つ（koshien / mesh / mesh_v2 / microbit_more / smalrubot_s1 /
+smalruby-ruby / g2s / tm2scratch 等）。片側だけの追加は逸脱。ラウンドトリップの
+リグレッションは gui 側の `test/unit/lib/ruby-roundtrip-*.test.js` 系が担保する。
 
 ## VM Architecture
 
@@ -226,6 +303,21 @@ docker compose run --rm app bash -c "cd packages/scratch-vm && npm run format"
 # フォーマットチェック
 docker compose run --rm app bash -c "cd packages/scratch-vm && npm run format:check"
 ```
+
+## dist/ と他パッケージからの参照（不変条件）
+
+scratch-gui からの `@smalruby/scratch-vm` 参照は **2 経路**あり、必要な準備が異なる:
+
+- **bare import**（`import VM from '@smalruby/scratch-vm'`）→ `package.json` の
+  `main`/`browser`（`dist/node|web/scratch-vm.js`）に解決される。gui の jest / webpack が
+  この経路を使うテスト・ビルドは **VM の dist が最新である必要がある**
+  （`npm run build:dev` で更新）。
+- **サブパス import**（`@smalruby/scratch-vm/src/...`）→ gui の jest `moduleNameMapper`
+  （`^@smalruby/scratch-vm/(.*)$` → `../scratch-vm/$1`）で **VM のソースに直接**解決される
+  （ビルド不要）。gui の ruby-roundtrip 系テストはこちら。
+
+「VM のソースを直したのに gui のテスト/dev server に反映されない」ときは bare import 経路
+（= dist が古い）を疑う。
 
 ## Development Notes
 
