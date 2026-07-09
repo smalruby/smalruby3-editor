@@ -56,6 +56,23 @@ bot 自身のコメント・解決済みスレッドは文脈として読むだ�
 - 対応の有無が辿れるよう、**まとめコメントを 1 件**残す（「指摘 N 件: 対応 a 件 / 返信 b 件 / 対応不要 c 件」）。
 - LGTM など対応不要のみで、コードに触る必要が無ければコミットしない（冪等・無駄 push をしない）。
 
+### 3.5 時間契約（実行上限 約30分・soft-limit 22分）
+
+このフェーズの**実行上限は約30分**。soft-limit（22分）を超えると runner が tmux 経由で
+「⏰ 残り約8分。新しい大きな作業を始めず、安全な区切りで停止して checkpoint 手順を実行して」
+という信号を **1 回だけ**送る。修正の途中でこれを受け取ったら（または残り時間が僅かと
+判断したら）、対応を最後まで終えられる見込みがない限り、下記 (a)(b)(c) の代わりに
+**checkpoint で安全に中断**する（詳細・JSON スキーマは `docs/autopilot/autonomous-contract.md` §2.5）:
+
+1. WIP を意味のある単位で `bin/bot-git commit` する。
+2. `tmp/autopilot-continuation-$AUTOPILOT_ISSUE.md` に「完了済み / 残タスク / 次の一手 /
+   継続して安全か」を記載し、commit する。
+3. `signal:"hitl"` + `nextAiStatus:"Awaiting Continuation"` で結果を emit し `AUTOPILOT_HITL` を出す
+   （`reason` に checkpoint である旨を書く）。
+
+再開時は `tmp/autopilot-continuation-$AUTOPILOT_ISSUE.md` の有無を先に確認し、あれば読んで
+続きから対応する。
+
 ### 4. 終了する（3 つの出口）
 
 **(a) 質問・改善依頼に対応した → 再び人間レビューへ**（再レビュー/マージ判断を仰ぐ）:

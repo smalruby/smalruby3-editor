@@ -19,6 +19,34 @@ GH_TOKEN="$(bin/bot-token)" gh issue view "$AUTOPILOT_ISSUE" --repo "${AUTOPILOT
 - プロジェクト規約（`CLAUDE.md` / `.claude/rules`）に従う。**[RED] テストを先に書き失敗を確認 → [GREEN] 実装 → [PASS]**。
 - 関連する直接のテスト + lint をローカルで実行（フル CI は push 時）。
 - 仕様が割れる/設計判断が要るなら **実装に踏み込まず**、bug コメント + `AUTOPILOT_HITL` で確認（understand と同様）。
+- **`tmp/autopilot-continuation-$AUTOPILOT_ISSUE.md` があれば checkpoint からの再開**。存在すれば
+  まず読み、「完了済み / 残タスク / 次の一手」を踏まえて続きから実装する（詳細は 1.5）。
+
+### 1.5 時間契約（実行上限 約30分・soft-limit 22分）
+
+このフェーズの**実行上限は約30分**。soft-limit（22分）を超えると runner が tmux 経由で
+「⏰ 残り約8分。新しい大きな作業を始めず、安全な区切りで停止して checkpoint 手順を実行して」
+という信号を **1 回だけ**送る。この信号を受け取ったら（または自分で残り時間が僅かと判断
+したら）、新しい大きな作業を始めず、安全な区切りで停止すること。まだ完了できる見込みが
+あれば通常どおり最後まで実装してよい（checkpoint は強制ではない。完了できた場合は 4 の
+通常完了を返す）。
+
+停止する場合の手順（詳細・JSON スキーマは `docs/autopilot/autonomous-contract.md` §2.5）:
+
+1. WIP を意味のある単位で `bin/bot-git commit` する。
+2. `tmp/autopilot-continuation-$AUTOPILOT_ISSUE.md` に「完了済み / 残タスク / 次の一手 /
+   継続して安全か」を固定フォーマットで記載し、commit する（既存ファイルがあれば
+   `iteration` を前回 +1 にする）。
+3. checkpoint を示す結果を emit する:
+
+   ```bash
+   cat > "$AUTOPILOT_RESULT_FILE" <<EOF
+   {"issue":$AUTOPILOT_ISSUE,"phase":"implement","signal":"hitl",
+   "reason":"soft-limit でチェックポイント。tmp/autopilot-continuation-$AUTOPILOT_ISSUE.md に残タスクを記載。",
+   "summary":"チェックポイント: <ひとこと>","nextAiStatus":"Awaiting Continuation"}
+   EOF
+   echo AUTOPILOT_HITL
+   ```
 
 ### 2. コミット（bot 名義）
 

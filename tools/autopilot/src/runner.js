@@ -13,6 +13,7 @@ const { setTimeout: sleep } = require('timers/promises');
 const fs = require('fs');
 const {
     evaluate, shouldResend, DEFAULT_WATCHDOG, DEFAULT_CLAUDE_COMMAND, phasePromptCommand,
+    shouldSignalCheckpoint, CHECKPOINT_SIGNAL_MESSAGE,
 } = require('./phases');
 
 // claude TUI が「実行中」のときに pane に出る指標（spinner のトークンカウンタ "· ↓"、
@@ -103,6 +104,7 @@ async function runPhase(opts) {
         let prevPane = null;
         let lastChangeAt = Date.now();
         let promptSince = 0; // 対話プロンプトを最初に検知した時刻（0 = 出ていない）
+        let softSignalSent = false; // checkpoint 信号を送信済みか（試行ごとにリセット・#911）
         // Skill のスラッシュコマンドではなく、プロンプトファイルを読ませる指示を送る（#プロンプト移設）
         const slash = phasePromptCommand(opts.skill, opts.issue, opts.promptDir);
 
@@ -155,6 +157,15 @@ async function runPhase(opts) {
                     lastChangeAt = Date.now();
                     log(`resend ${slash} (#${opts.issue}, attempt ${sendAttempts})`);
                 }
+            }
+
+            // 協調的チェックポイント（EPIC #906・#911）: soft-limit 超過で 1 回だけ worker に
+            // 「まとめに入れ」信号を送る。多重送信防止（softSignalSent）は shouldSignalCheckpoint
+            // の責務、実際の送信とフラグの立ち上げは呼び出し側（ここ）の責務。
+            if (shouldSignalCheckpoint({ elapsedMs, ready, dead, resultPresent, softSignalSent }, cfg)) {
+                log(`soft-limit exceeded (${elapsedMs}ms) -> send checkpoint signal (#${opts.issue})`);
+                sendLine(opts.session, CHECKPOINT_SIGNAL_MESSAGE);
+                softSignalSent = true;
             }
 
             const action = evaluate({ resultPresent, ready, dead, elapsedMs, idleMs, restarts, promptingMs }, cfg);

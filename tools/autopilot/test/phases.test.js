@@ -79,6 +79,7 @@ const {
     checkpointIterationDecision,
     DEFAULT_CHECKPOINT_SOFT_LIMIT_MS,
     shouldSignalCheckpoint,
+    CHECKPOINT_SIGNAL_MESSAGE,
     isSteadyStateHitlGate,
 } = require('../src/phases');
 const { PROMPT_RE } = require('../src/runner');
@@ -1386,6 +1387,17 @@ test('shouldSignalCheckpoint: soft-limit 超過かつ未送信・ready・生存�
     // カスタム tSoftMs
     assert.equal(shouldSignalCheckpoint({ ...base, elapsedMs: 100 }, { tSoftMs: 50 }), true);
     assert.equal(shouldSignalCheckpoint(null), false);
+});
+
+test('CHECKPOINT_SIGNAL_MESSAGE: worker への checkpoint 信号文言（#911）', () => {
+    assert.equal(
+        CHECKPOINT_SIGNAL_MESSAGE,
+        '⏰ 残り約8分。新しい大きな作業を始めず、安全な区切りで停止して checkpoint 手順を実行して',
+    );
+});
+
+test('DEFAULT_WATCHDOG.tSoftMs: 既定は DEFAULT_CHECKPOINT_SOFT_LIMIT_MS と同値（#911）', () => {
+    assert.equal(DEFAULT_WATCHDOG.tSoftMs, DEFAULT_CHECKPOINT_SOFT_LIMIT_MS);
 });
 
 test('phaseForItem: Awaiting Continuation は解除前 null、解除後は元フェーズへ戻る', () => {

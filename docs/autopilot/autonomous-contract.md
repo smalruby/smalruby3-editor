@@ -115,6 +115,68 @@ Runner はこの短語を pane で検出してから `AUTOPILOT_RESULT_FILE` を
 AUTOPILOT_DONE
 ```
 
+### 2.5 実行時間の契約と協調的チェックポイント（EPIC #906）
+
+worker（対話 Claude）の**実行上限は約 30 分**（runner の `tMaxMs`）。上限に達すると runner は
+容赦なく kill する（フォールバック、現状維持）。そうなる前に、runner は **soft-limit（既定 22 分、
+`tSoftMs`）を超えた時点で 1 回だけ**、tmux send-keys で次のメッセージを worker に送る:
+
+```
+⏰ 残り約8分。新しい大きな作業を始めず、安全な区切りで停止して checkpoint 手順を実行して
+```
+
+**この信号を受け取ったら（または自分で残り時間が僅かと判断したら）**、新しい大きな作業
+（新規ファイルの大規模実装・長時間かかる調査等）を始めず、**安全な区切りで停止**すること。
+まだ余裕があり、そのフェーズを最後まで完了できる見込みなら、通常どおり完了してよい
+（checkpoint は「時間切れ濃厚なときの安全な中断」であり、強制ではない）。
+
+停止する場合の手順:
+
+1. **WIP を意味のある単位で commit** する（`bin/bot-git commit`。中途半端でもビルド可能な
+   単位に区切る）。
+2. **`tmp/autopilot-continuation-<issue>.md`** に次の固定フォーマットで残タスクを記載し、
+   commit する（`<issue>` は `AUTOPILOT_ISSUE`、`<phase>` は実行中のフェーズ名、
+   `<iteration>` は今回が何回目の checkpoint か。1 始まり。前回の continuation ファイルが
+   既に存在するなら、その `iteration` + 1 を使う）:
+
+   ```markdown
+   <!-- autopilot-continuation issue=<issue> phase=<phase> iteration=<iteration> -->
+   ## 完了済み
+   - ...
+
+   ## 残タスク
+   - ...
+
+   ## 次の一手
+   （次に何から着手すべきかを自由記述で）
+
+   ## 継続して安全か
+   はい: （このまま同フェーズを再開して問題ない理由）
+   ```
+
+   見出しはこの 4 つ（完了済み / 残タスク / 次の一手 / 継続して安全か）を**この日本語表記**で
+   使う（daemon 側の parser が固定フォーマットとして読む）。
+3. **checkpoint を示す結果を emit** する。専用の `signal` 値は無く、既存の `signal:"hitl"` に
+   `nextAiStatus:"Awaiting Continuation"` を乗せて表現する:
+
+   ```json
+   {"issue":911,"phase":"implement","signal":"hitl",
+    "reason":"soft-limit でチェックポイント。tmp/autopilot-continuation-911.md に残タスクを記載。",
+    "summary":"チェックポイント: <ひとこと>","nextAiStatus":"Awaiting Continuation"}
+   ```
+   ```
+   AUTOPILOT_HITL
+   ```
+
+   `nextStatus` は付けない（Status は `In Progress` のまま動かさない）。checkpoint は**常に
+   HITL**（🙋 が付く）— 継続の承認は毎回人間が行う設計。
+
+**再開時（同じ Issue が同フェーズへ再 dispatch されたとき）**: まず対象 Issue に
+`tmp/autopilot-continuation-<issue>.md` が存在するか確認する。あれば内容（完了済み / 残タスク /
+次の一手）を読み、そこから続きを実装する。新たに checkpoint する場合は `iteration` を
+前回 +1 にする。連続 checkpoint が既定 3 回を超えると daemon が Blocked へエスカレーションする
+（`checkpointIterationDecision`。#912）。
+
 ---
 
 ## 3. 状態の書き込み責務（単一ライター原則）

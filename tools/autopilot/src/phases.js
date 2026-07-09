@@ -1400,6 +1400,16 @@ function shouldSignalCheckpoint(state, cfg = {}) {
 }
 
 /**
+ * {@link shouldSignalCheckpoint} が true を返したときに runner が tmux send-keys で
+ * worker へ送るメッセージ（実装コンポーネント A・#911）。文言は
+ * `DEFAULT_CHECKPOINT_SOFT_LIMIT_MS`（22分）と `DEFAULT_WATCHDOG.tMaxMs`（30分）の差分
+ * 「残り約8分」を前提にした固定文（EPIC #906 で確定）。worker は
+ * `docs/autopilot/autonomous-contract.md` の協調的チェックポイント手順に従う。
+ */
+const CHECKPOINT_SIGNAL_MESSAGE =
+    '⏰ 残り約8分。新しい大きな作業を始めず、安全な区切りで停止して checkpoint 手順を実行して';
+
+/**
  * GitHub に surface してよい文字列へサニタイズする（純粋関数）。
  *
  * worker の error 理由・watchdog の失敗理由には、コマンド出力由来の機密
@@ -1566,6 +1576,9 @@ const DEFAULT_WATCHDOG = {
     // これは pane が完全停止した場合の保険なので長め（10 分）にする。
     tIdleMs: 600_000,
     tMaxMs: 1_800_000,
+    // soft-limit（協調的チェックポイント・EPIC #906・#911）: tMaxMs より前に worker へ
+    // checkpoint 信号を送る。既定は DEFAULT_CHECKPOINT_SOFT_LIMIT_MS と同値（22分）。
+    tSoftMs: DEFAULT_CHECKPOINT_SOFT_LIMIT_MS,
     // 対話プロンプト（許可/確認/選択ダイアログ）が pane に出て人間入力待ちになったら、
     // これだけ経過した時点で待たずに HITL へ落とす（auto mode でも soft_deny 等で稀に
     // プロンプトが出うるが、worker は非対話なので即中断して人間に渡す）。短めにする。
@@ -1669,4 +1682,5 @@ module.exports = {
     checkpointIterationDecision,
     DEFAULT_CHECKPOINT_SOFT_LIMIT_MS,
     shouldSignalCheckpoint,
+    CHECKPOINT_SIGNAL_MESSAGE,
 };
