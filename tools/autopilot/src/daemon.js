@@ -352,8 +352,8 @@ function checkpointEscalationBody(item, iteration, maxIterations) {
         `**人間の対応**: このスレッドの \`autopilot-continuation\` コメント（残タスク・次の一手）を` +
         '確認し、実装方針の見直しや粒度の分割を検討してください。' +
         `ログ（\`/log?issue=${item.issue}\`）と worktree も参考にできます。` +
-        '`🙋 HITL` を外す（またはコメントする）と、continuation ファイルに記録された元フェーズへ' +
-        '再開します。'
+        '`🙋 HITL` を外す（またはコメントする）と autopilot が再開します' +
+        '（PR があれば指摘対応、無ければ再トリアージ）。'
     );
 }
 

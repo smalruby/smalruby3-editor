@@ -1082,6 +1082,10 @@ test('checkpointEscalationBody: 反復回数と上限を含み、worker のエ�
     assert.match(body, /3 回/);
     assert.match(body, /Blocked/);
     assert.match(body, /worker 自身がエラーを報告した/);
+    // Blocked からの再開は phaseForItem の Blocked 分岐（address-review / triage）に従う。
+    // continuation phase へは戻らないので、案内文言も指摘対応/再トリアージに揃える。
+    assert.match(body, /指摘対応/);
+    assert.match(body, /再トリアージ/);
 });
 
 test('collectContinuationContexts: Awaiting Continuation の item だけ continuation ファイルを読む', async () => {
