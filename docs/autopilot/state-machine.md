@@ -22,6 +22,12 @@ item の状態は次の 4 要素で決まる（Project が単一の真実）:
 | **D: daemon tick ステップ** | merge-progression / closed-reconcile / stuck 検知 / DoD 引き継ぎ / EPIC tracking / PR 投影 |
 | **H: 人間の操作** | Status 移動 / `🙋 HITL` ラベル解除 / **コメント・レビュー送信** / PR merge / Issue close |
 
+> **stuck 検知は 🙋 HITL 付きの item を対象外にする（#915）**。decompose/triage の提案系フェーズ
+> （#2/#6b）は Status/AI Status を動かさず HITL で承認待ちにする設計のため、run が無いのは正常
+> （人間の番）であり stall ではない。誤って Blocked にしないよう `isStuckCandidate` が
+> `item.hitlLabel` 付きを候補から除外する。解除後は #2/#6b の A トリガーが元フェーズへ
+> 再ディスパッチする（それでも動かない場合のみ、通常の run-なし判定で #11 の stuck 検知に掛かる）。
+
 ### 人間ゲートの解除は 3 系統（固着防止の核心）
 
 Review / DoD / Blocked / Discussing の「人間の番」は、次の **いずれか** で解除される:
@@ -47,16 +53,17 @@ Review / DoD / Blocked / Discussing の「人間の番」は、次の **いず�
 | # | 状態（Status / AI Status / HITL） | 意味 | 出口トリガー | 遷移先 |
 |---|---|---|---|---|
 | 1 | New Item / — / なし | 起票直後 | **A: triage** | Backlog（+提案で Discussing/HITL、質問で HITL） |
-| 2 | New Item / Triaging ほか / **あり** | triage の質問・Icebox 提案待ち | H: 解除 or コメント → **A: triage 再実行** / H: Status 移動 | 再トリアージ / 人間の決定 |
+| 2 | In Progress / Triaging / **あり** | triage の質問・Icebox 提案待ち（Status は動かさない） | H: 解除 or コメント → **A: triage 再実行** / H: Status 移動 | 再トリアージ / 人間の決定 |
 | 3 | New Item・Backlog / **Discussing** / あり | 方針提案への返信待ち | H: 解除 or **コメント** → **A: discuss** | #4 |
 | 4 | New Item・Backlog / **Discussing** / なし(解除済み) | 人間が返信済み | **A: discuss** | 承認→ Sprint Backlog（implement へ直接ハンドオフ）/ 継続→ #3 / 見送り提案→ #3（Status は動かさない） |
 | 5 | Backlog / —（Discussing 以外） / 任意 | やると決めた（キュー前） | H: Status → Sprint Backlog | #6/#7 |
-| 6 | Sprint Backlog / — / なし（Kind=EPIC・tracking 無し） | 分解待ち EPIC | **A: decompose** | In Progress + EPIC Decomposed + 🧭 tracking |
+| 6 | Sprint Backlog / — / なし（Kind=EPIC・tracking 無し） | 分解待ち EPIC | **A: decompose** | In Progress + Decomposing + HITL（#6b）/ 分解済みなら In Progress + EPIC Decomposed + 🧭 tracking |
+| 6b | In Progress / **Decomposing** / **あり** | decompose の分解案提示・承認待ち（Status は動かさない） | H: 解除 or コメント → **A: decompose 再実行**（分解案コメントの有無で phase A/B を自動判定） | sub-issue 作成 → #16 / #6 |
 | 7 | Sprint Backlog / — / なし（leaf） | 実装キュー | **A: implement**（`autopilot-after:` 未完了依存があれば待ち） | In Progress + Self-Reviewing → #9 |
 | 8 | Sprint Backlog / — / **あり** | 人間が明示的に一時停止 | H: ラベル解除 | #7 |
 | 9 | In Progress / Self-Reviewing / なし | implement 完了直後 | **A: review**（自動） | Review + HITL（#12） |
 | 10 | In Progress / Implementing 等 / 任意（run あり） | worker 実行中 | run 完了（結果ファイル） | 結果の nextStatus へ |
-| 11 | In Progress / Implementing 等 / 任意（run なし） | run 消失（daemon 再起動等） | **D: stuck 検知**（35 分） | Blocked + HITL + 説明コメント（#14） |
+| 11 | In Progress / Implementing 等 / **なし**（run なし） | run 消失（daemon 再起動等） | **D: stuck 検知**（35 分） | Blocked + HITL + 説明コメント（#14） |
 | 12 | Review・DoD / 任意 / **あり** | 人間レビュー / headful 検証待ち | H: merge → **D: merge-progression** / H: 解除 or **コメント・レビュー送信** → **A: address-review** | Close / #13 |
 | 13 | Review・DoD / 任意 / なし(解除済み) | 差し戻し済み | **A: address-review** | 対応後 Review + HITL（#12）/ LGTM は変更なし（watermark で空回りしない） |
 | 14 | Blocked / 任意 / **あり** | run 失敗・stall の人間対処待ち | H: 解除 or **コメント** → **A: address-review（PR あり）/ triage（PR なし）** / H: Status 移動 | 再開・再ルート |

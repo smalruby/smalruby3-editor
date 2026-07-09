@@ -836,6 +836,20 @@ test('isStuckCandidate: In Progress + 作業中 AI Status のみ true', () => {
     assert.equal(isStuckCandidate(null), false);
 });
 
+// #915: 🙋 HITL 承認待ち（decompose/discuss 等）は人間の番であり stuck ではない
+test('isStuckCandidate: 🙋 HITL 付き item は stuck 候補から除外', () => {
+    assert.equal(
+        isStuckCandidate({ status: 'In Progress', aiStatus: 'Decomposing', hitlLabel: true }), false,
+    );
+    assert.equal(
+        isStuckCandidate({ status: 'In Progress', aiStatus: 'Discussing', hitlLabel: true }), false,
+    );
+    // 🙋 が無ければ従来どおり stuck 候補
+    assert.equal(
+        isStuckCandidate({ status: 'In Progress', aiStatus: 'Implementing', hitlLabel: false }), true,
+    );
+});
+
 test('hitlLabelAction: non-Review reconciles toward the Issue canonical (hitlLabel)', () => {
     assert.equal(hitlLabelAction({ status: 'Blocked', hitlLabel: true }, false), 'add');
     assert.equal(hitlLabelAction({ status: 'Blocked', hitlLabel: true }, true), null);
@@ -1474,6 +1488,22 @@ test('phaseForItem: Awaiting Continuation は解除前 null、解除後は元フ
     assert.equal(
         phaseForItem(item, { humanSpokeLast: true, continuation: { phase: 'address-review' } }), 'address-review',
     );
+});
+
+// #915: decompose/triage の「Status を動かさず HITL で待つ」提案系フェーズは、解除後に
+// 元フェーズへ再ディスパッチされないと永久に固着する（isStuckCandidate の hitlLabel 除外と対）。
+test('phaseForItem: decompose の分解案 HITL は解除前 null、解除後は decompose へ再ディスパッチ', () => {
+    const item = { status: 'In Progress', aiStatus: 'Decomposing', hitlLabel: true, kind: 'EPIC' };
+    assert.equal(phaseForItem(item, {}), null);
+    assert.equal(phaseForItem({ ...item, hitlLabel: false }, {}), 'decompose');
+    assert.equal(phaseForItem(item, { humanSpokeLast: true }), 'decompose');
+});
+
+test('phaseForItem: triage の Icebox 提案 HITL は解除前 null、解除後は triage へ再ディスパッチ', () => {
+    const item = { status: 'In Progress', aiStatus: 'Triaging', hitlLabel: true, kind: 'Issue' };
+    assert.equal(phaseForItem(item, {}), null);
+    assert.equal(phaseForItem({ ...item, hitlLabel: false }, {}), 'triage');
+    assert.equal(phaseForItem(item, { humanSpokeLast: true }), 'triage');
 });
 
 test('isSteadyStateHitlGate: Review/DoD と Awaiting Continuation（In Progress）が対象', () => {

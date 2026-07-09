@@ -492,6 +492,19 @@ function phaseForItem(item, ctx = {}) {
     if ((status === 'New Item' || status === 'Backlog') && item.aiStatus === 'Discussing') {
         return isGateReleased(item, ctx) ? 'discuss' : null;
     }
+    // decompose の分解案 HITL（#915）: 分解案を提示した decompose は Status/AI Status を
+    // 動かさず（In Progress/Decomposing のまま）人間の承認を待つ（autopilot-decompose.md）。
+    // 解除されたら decompose を再ディスパッチする（分解案コメントの有無で phase A/B を
+    // 冪等に判定するので、そのまま再実行して構わない）。
+    if (status === 'In Progress' && item.aiStatus === 'Decomposing') {
+        return isGateReleased(item, ctx) ? 'decompose' : null;
+    }
+    // triage の Icebox 提案・再検討待ち HITL（#915）: 提案段階では Status を動かさず
+    // （In Progress/Triaging のまま）人間の判断を待つ（autopilot-triage.md）。解除されたら
+    // 再トリアージする（人間のコメント指示を踏まえて判定し直す想定）。
+    if (status === 'In Progress' && item.aiStatus === 'Triaging') {
+        return isGateReleased(item, ctx) ? 'triage' : null;
+    }
     if (item.hitlLabel) return null; // 人間の番（🙋 ラベルあり）
     if (status === 'New Item') return 'triage';
     if (status === 'Sprint Backlog') {
@@ -527,15 +540,18 @@ function isActionable(item, opts = {}) {
  * Awaiting Continuation（EPIC #906）も対象外 — checkpoint で worker が意図的に停止した
  * resting 状態で、run が無いのは正常（stuck ではなく HITL 待ち）。誤って Blocked にすると
  * checkpoint の HITL ゲートと stuck 検知の Blocked が二重化してしまう。
+ * 🙋 HITL ラベル付き item も対象外（#915）— decompose/discuss 等の承認待ちは人間の番であり、
+ * run が無いのは正常（stuck ではない）。
  * 実際に「実行中の run が無いか」「十分な時間が経過したか」は I/O・時間を持つ daemon 側で
  * 判定する（ここは形だけ見る）。
- * @param {object} item { status, aiStatus }
+ * @param {object} item { status, aiStatus, hitlLabel }
  * @returns {boolean}
  */
 const STUCK_EXEMPT_AI_STATUSES = new Set(['Self-Reviewing', 'EPIC Decomposed', AWAITING_CONTINUATION_STATUS]);
 function isStuckCandidate(item) {
     if (!item || item.status !== 'In Progress') return false;
     if (!item.aiStatus || STUCK_EXEMPT_AI_STATUSES.has(item.aiStatus)) return false;
+    if (item.hitlLabel) return false;
     return true;
 }
 
