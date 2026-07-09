@@ -82,20 +82,40 @@ Use integration tests **only** for behavior that cannot be tested in unit tests:
 - `test/integration/ruby-tab-completion-and-indent.test.js` — Monaco completion/indent behavior
 - `test/integration/ruby-tab/` — additional Ruby tab integration scenarios
 
-### Test Structure Example
+### Test Structure Example（実際の converter テストの形）
+
+converter テストは **`test/helpers/expect-to-equal-blocks.js` のヘルパー経由**が正典
+（20 以上のテストファイルが使用）。describe 名は `'RubyToBlocksConverter/<Category>'`、
+`beforeEach` で `new RubyToBlocksConverter(null, {version: '2'})`、テストは async:
 
 ```javascript
-// Unit test: ruby-to-blocks-converter
-import {createRubyToBlocksConverter} from '../../../src/lib/ruby-to-blocks-converter';
+// test/unit/lib/ruby-to-blocks-converter/<category>.test.js
+import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter';
+import {
+    convertAndExpectToEqualBlocks,
+    convertAndExpectRubyBlockError,
+    rubyToExpected
+} from '../../../helpers/expect-to-equal-blocks';
 
-describe('motion converter', () => {
-    test('should convert move(10) to motion_movesteps block', async () => {
-        const converter = createRubyToBlocksConverter(mockVM);
-        const blocks = await converter.convertRuby('move(10)');
-        expect(blocks).toMatchBlock({ opcode: 'motion_movesteps' });
+describe('RubyToBlocksConverter/Event', () => {
+    let converter;
+    let target;
+
+    beforeEach(() => {
+        converter = new RubyToBlocksConverter(null, {version: '2'});
+        target = null;
     });
+
+    test('invalid', async () => {
+        await convertAndExpectRubyBlockError(converter, target, 'when_flag_clicked');
+    });
+
+    // 期待ブロック列との比較は convertAndExpectToEqualBlocks(converter, target, code, expected)
 });
 ```
+
+補助ヘルパー: `test/helpers/`（`ruby-helper.js` / `smalruby-mock-state.js`（VM モック状態）/
+`intl-helpers.jsx` / `selenium-helper.js`）。round-trip 系は `test/unit/lib/ruby-roundtrip/`。
 
 ## Integration Test Development Workflow
 

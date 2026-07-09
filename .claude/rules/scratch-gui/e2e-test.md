@@ -19,6 +19,9 @@
 - 新しいボタン・フォーム要素を追加する際は、必ず `data-testid` を設定する
 - Integration tests では `data-testid` を優先的に使い、XPath や title 属性での要素指定を避ける
 - `data-testid` を使うことで、属性の追加漏れを防ぎ、テストの安定性を高める
+- **既知の未対応（負債）**: `rubytee-modal` と `palette-toggle` は data-testid が付いていない。
+  これらを改修する際は data-testid を追加してから自動テストを書く（未対応を先例として
+  新規コンポーネントで省略しないこと）
 
 ### Integration Tests での data-testid 使用パターン
 

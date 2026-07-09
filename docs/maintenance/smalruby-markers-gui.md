@@ -109,6 +109,34 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 
 | `src/lib/vm-manager-hoc.jsx` | koshien mock config wiring | VM 初期化時に `wireKoshienMockConfig(vm)` を呼び、甲子園拡張機能が練習ゲーム設定（マップ/自機サイド/相手AI）を読めるよう runtime に getter を差し込む (import + componentDidMount) |
 
+## ⚠️ 一覧の網羅性の破れ（確認日: 2026-07-09）
+
+上の表は**網羅的でない**ことが機械検査で判明している。upstream マージ時は表だけでなく
+**grep での機械検査**も併用すること:
+
+```bash
+cd packages/scratch-gui
+# upstream ファイルの Start/End ペア整合（数が一致すること）
+grep -rl 'Smalruby: Start' src/ webpack.config.js eslint.config.mjs | \
+  while read f; do s=$(grep -c 'Smalruby: Start' "$f"); e=$(grep -c 'Smalruby: End' "$f"); \
+  [ "$s" != "$e" ] && echo "MISMATCH $f: Start=$s End=$e"; done
+```
+
+確認時点で判明している破れ（表への追記・修正が済むまでの注意リスト）:
+
+- **表に未記載のマーカー持ち upstream ファイル**（Start マーカー数）: `src/lib/titled-hoc.jsx`(6),
+  `src/lib/define-dynamic-block.js`(4), `src/lib/sb-file-uploader-hoc.jsx`(3),
+  `src/lib/make-toolbox-xml.js`(1), `src/lib/locale-utils.js`(1), `src/lib/legacy-storage.ts`(1),
+  `src/lib/legacy-backpack-storage.ts`(5), `src/lib/alerts/index.jsx`(1),
+  `src/lib/libraries/extensions/index.jsx`(6), `src/components/connection-modal/connection-modal.css`(2),
+  `src/components/connection-modal/peripheral-tile.jsx`(2), `src/components/alerts/alert.jsx`(1),
+  `src/components/menu-bar/project-title-input.jsx`(4), `src/components/menu-bar/project-title-input.css`(1),
+  `src/containers/scanning-step.jsx`(5), `src/containers/alert.jsx`(3), `src/reducers/cards.js`(5)
+- **`src/containers/blocks.jsx` は Start 14 / End 15 で不整合**（`Ruby-converted toolbox update
+  deferral` の開始マーカー 1 つが `Start of` の無い bare 形式のため）。マーカー修正時に正規化する
+- `src/lib/url-params.js` は Smalruby 固有ファイル（whitelist 対象）なので本来この表の対象外
+  （「upstream ファイルのマーカーのみ記載」の原則と矛盾している既存エントリ）
+
 ## 関連ファイル
 
 マーカーで囲まれたコードが参照するファイル:
