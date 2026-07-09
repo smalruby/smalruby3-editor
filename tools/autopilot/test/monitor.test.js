@@ -6,9 +6,18 @@ const { MONITOR_HTML } = require('../src/monitor');
 test('MONITOR_HTML is a self-contained html document', () => {
     assert.match(MONITOR_HTML, /^<!doctype html>/i);
     assert.match(MONITOR_HTML, /<title>autopilot monitor<\/title>/);
-    // 外部リソースを読み込まない（自己完結）
+    // 外部リソースを読み込まない（自己完結）。data URI（favicon 等）は許容。
     assert.doesNotMatch(MONITOR_HTML, /<script[^>]+src=/);
-    assert.doesNotMatch(MONITOR_HTML, /<link[^>]+href=/);
+    assert.doesNotMatch(MONITOR_HTML, /<link[^>]+href=["'](?!data:)/);
+});
+
+test('MONITOR_HTML: タブに 🤖 絵文字の favicon（インライン SVG data URI）を設定', () => {
+    // rel="icon" の link がある
+    assert.match(MONITOR_HTML, /<link\s+rel="icon"/);
+    // favicon は data URI（外部リクエストなし）
+    assert.match(MONITOR_HTML, /<link\s+rel="icon"\s+href="data:image\/svg\+xml,/);
+    // 🤖 絵文字を href（data URI）内に含む
+    assert.match(MONITOR_HTML, /<link\s+rel="icon"\s+href="data:image\/svg\+xml,[^"]*🤖[^"]*">/);
 });
 
 test('MONITOR_HTML wires the daemon control endpoints', () => {

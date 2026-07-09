@@ -16,6 +16,7 @@
 
 const MONITOR_HTML = `<!doctype html>
 <html lang="ja"><head><meta charset="utf-8">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>autopilot monitor</title>
 <style>
