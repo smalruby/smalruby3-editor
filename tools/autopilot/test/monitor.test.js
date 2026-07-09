@@ -139,6 +139,36 @@ test('MONITOR_HTML: Awaiting Continuation は専用バッジ + 残タスク数�
     assert.match(MONITOR_HTML, /const aiStatusCell = \(it\) => \{\s*if \(!it\.aiStatus\) return '<span class="muted">—<\/span>';/);
 });
 
+test('resetLabel: resetsAt（秒 epoch）を JST 表示に整形する（#935 実データ）', () => {
+    const m = MONITOR_HTML.match(/function resetLabel\(resetsAt\) \{[\s\S]*?\n\}/);
+    assert.ok(m, 'resetLabel function exists');
+    // eslint-disable-next-line no-new-func
+    const resetLabel = new Function(m[0] + '; return resetLabel;')();
+    assert.equal(resetLabel(1783604400), '7/9(木) 22:40 JST');
+    assert.equal(resetLabel(1783778400), '7/11(土) 23:00 JST');
+    // ms epoch（13桁）も吸収する
+    assert.equal(resetLabel(1783604400000), '7/9(木) 22:40 JST');
+    // 無効値・null は空文字（title に「リセット」を出さない）
+    assert.equal(resetLabel(null), '');
+    assert.equal(resetLabel(undefined), '');
+    assert.equal(resetLabel(NaN), '');
+    assert.equal(resetLabel(0), '');
+    assert.equal(resetLabel('not-a-number'), '');
+});
+
+test('MONITOR_HTML: 使用率バーのホバーに制限リセット期限(JST)を表示（#935）', () => {
+    // usageBar が resetsAt を使って title にリセット期限を足す
+    assert.match(MONITOR_HTML, /function usageBar/);
+    assert.match(MONITOR_HTML, /w\.resetsAt/);
+    assert.match(MONITOR_HTML, /リセット /);
+    // バー本体（.ubar）と % テキスト（.upct）の両方に同じ title を付与する
+    const src = MONITOR_HTML.match(/function usageBar\([\s\S]*?\n\}/)[0];
+    const titleAttrs = src.match(/title="/g) || [];
+    assert.ok(titleAttrs.length >= 2, 'ubar と upct の両方に title を付与する');
+    // resetsAt が無い/無効なウィンドウでは既存の「—」表示を壊さない
+    assert.match(MONITOR_HTML, /class="umuted"/);
+});
+
 test('MONITOR_HTML: インライン script が構文的に妥当', () => {
     const m = MONITOR_HTML.match(/<script>([\s\S]*)<\/script>/);
     assert.ok(m, 'script block exists');

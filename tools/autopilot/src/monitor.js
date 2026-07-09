@@ -242,16 +242,32 @@ const USAGE_ICON = '<svg class="uicon" viewBox="0 0 100 100" width="15" height="
   + '<line x1="50" y1="14" x2="50" y2="86"/><line x1="14" y1="50" x2="86" y2="50"/>'
   + '<line x1="24" y1="24" x2="76" y2="76"/><line x1="76" y1="24" x2="24" y2="76"/></g></svg>';
 
+// resetsAt（秒 or ms epoch）を JST の日時文字列に整形する（#935）。無効値・null は
+// 空文字を返し、呼び出し側は title に「リセット」を付けない。Intl はブラウザ内蔵なので
+// 自己完結（monitor は外部リソース禁止の規約を守れる）。
+function resetLabel(resetsAt) {
+  if (typeof resetsAt !== 'number' || !Number.isFinite(resetsAt) || resetsAt <= 0) return '';
+  const ms = resetsAt < 1e12 ? resetsAt * 1000 : resetsAt;
+  const d = new Date(ms);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleString('ja-JP', {
+    timeZone: 'Asia/Tokyo', month: 'numeric', day: 'numeric', weekday: 'short',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  }) + ' JST';
+}
+
 // 使用率の短いバー + NN%。データが無いウィンドウは「—」でレイアウトを崩さない。
-// used ≥ 80% は警告色（残量僅少）。
+// used ≥ 80% は警告色（残量僅少）。ホバーで制限リセット期限(JST)を表示する（#935）。
 function usageBar(w, label) {
   if (!w || w.percent == null) return '<span class="umuted" title="' + esc(label) + '">—</span>';
   const pct = Math.max(0, Math.min(100, Number(w.percent) || 0));
   const warn = pct >= 80 ? ' warn' : '';
   const rounded = Math.round(pct);
-  return '<span class="ubar" title="' + esc(label) + ' ' + rounded + '%">'
+  const reset = resetLabel(w.resetsAt);
+  const title = esc(label) + ' ' + rounded + '%' + (reset ? ' — リセット ' + esc(reset) : '');
+  return '<span class="ubar" title="' + title + '">'
     + '<span class="' + warn.trim() + '" style="width:' + pct + '%"></span></span>'
-    + '<span class="upct' + warn + '">' + rounded + '%</span>';
+    + '<span class="upct' + warn + '" title="' + title + '">' + rounded + '%</span>';
 }
 
 // usage の最終更新からの経過（age）を薄字で併記する。usage は worker（claude セッション）
