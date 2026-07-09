@@ -90,6 +90,27 @@ import rubyBasics3Step3 from './steps/ruby-basics-3-3-result.png';
 import rubyBasics3Step4 from './steps/ruby-basics-3-4-sentence.png';
 import rubyBasics3Step5 from './steps/ruby-basics-3-5-modify.png';
 
+// Ruby Basics 4: 配列で遊ぼう
+import rubyBasics4Step1 from './steps/ruby-basics-4-1-intro.png';
+import rubyBasics4Step2 from './steps/ruby-basics-4-2-first-array.png';
+import rubyBasics4Step3 from './steps/ruby-basics-4-3-result.png';
+import rubyBasics4Step4 from './steps/ruby-basics-4-4-methods.png';
+import rubyBasics4Step5 from './steps/ruby-basics-4-5-modify.png';
+
+// Ruby Basics 5: ブロック（times）を使ってみよう
+import rubyBasics5Step1 from './steps/ruby-basics-5-1-intro.png';
+import rubyBasics5Step2 from './steps/ruby-basics-5-2-first-times.png';
+import rubyBasics5Step3 from './steps/ruby-basics-5-3-result.png';
+import rubyBasics5Step4 from './steps/ruby-basics-5-4-move.png';
+import rubyBasics5Step5 from './steps/ruby-basics-5-5-modify.png';
+
+// Ruby Basics 6: メソッドをつくってみよう
+import rubyBasics6Step1 from './steps/ruby-basics-6-1-intro.png';
+import rubyBasics6Step2 from './steps/ruby-basics-6-2-first-def.png';
+import rubyBasics6Step3 from './steps/ruby-basics-6-3-result.png';
+import rubyBasics6Step4 from './steps/ruby-basics-6-4-multiple-calls.png';
+import rubyBasics6Step5 from './steps/ruby-basics-6-5-modify.png';
+
 const enImages = {
     // Getting Started
     introRubyTab: introRubyTab,
@@ -169,7 +190,25 @@ const enImages = {
     rubyBasics3Step2: rubyBasics3Step2,
     rubyBasics3Step3: rubyBasics3Step3,
     rubyBasics3Step4: rubyBasics3Step4,
-    rubyBasics3Step5: rubyBasics3Step5
+    rubyBasics3Step5: rubyBasics3Step5,
+    // Ruby Basics 4: 配列で遊ぼう
+    rubyBasics4Step1: rubyBasics4Step1,
+    rubyBasics4Step2: rubyBasics4Step2,
+    rubyBasics4Step3: rubyBasics4Step3,
+    rubyBasics4Step4: rubyBasics4Step4,
+    rubyBasics4Step5: rubyBasics4Step5,
+    // Ruby Basics 5: ブロック（times）を使ってみよう
+    rubyBasics5Step1: rubyBasics5Step1,
+    rubyBasics5Step2: rubyBasics5Step2,
+    rubyBasics5Step3: rubyBasics5Step3,
+    rubyBasics5Step4: rubyBasics5Step4,
+    rubyBasics5Step5: rubyBasics5Step5,
+    // Ruby Basics 6: メソッドをつくってみよう
+    rubyBasics6Step1: rubyBasics6Step1,
+    rubyBasics6Step2: rubyBasics6Step2,
+    rubyBasics6Step3: rubyBasics6Step3,
+    rubyBasics6Step4: rubyBasics6Step4,
+    rubyBasics6Step5: rubyBasics6Step5
 };
 
 export {enImages};
