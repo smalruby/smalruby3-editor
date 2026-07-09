@@ -816,6 +816,14 @@ export default {
     'gui.howtos.ruby-basics-6-methods.step4.title': 'Call the same method again with a different name',
     'gui.howtos.ruby-basics-6-methods.step5.title': 'Change the method body to make your own greeting',
     'gui.howtos.ruby-basics-6-methods.external.tryruby.name': 'Learn more about Ruby on the external "try ruby" site',
+    'gui.howtos.ruby-basics-7-next.name': 'Next Steps (TryRuby)',
+    'gui.howtos.ruby-basics-7-next.step1.title': "You've learned the basics of Ruby!",
+    'gui.howtos.ruby-basics-7-next.step2.title': 'Review: make the cat say the result of a calculation with puts',
+    'gui.howtos.ruby-basics-7-next.step3.title': 'Press {greenFlag} and the cat will say the answers',
+    'gui.howtos.ruby-basics-7-next.step4.title': 'You can show text with puts, too',
+    'gui.howtos.ruby-basics-7-next.step5.title':
+        'The puts code you wrote in Smalruby runs as-is in TryRuby and real Ruby. Open TryRuby and give it a try!',
+    'gui.howtos.ruby-basics-7-next.step5.openTryRuby': 'Open TryRuby',
     'gui.menuBar.updateTooltip': 'Try the new Smalruby!',
     'gui.menuBar.updateConfirm':
         'A new version of Smalruby is available. Press "OK" to update now, or "Cancel" to update later.',

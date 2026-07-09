@@ -1149,6 +1149,14 @@ export default {
     'gui.howtos.ruby-basics-6-methods.step4.title': 'おなじメソッドを、ちがうなまえでなんどもよびだしてみよう',
     'gui.howtos.ruby-basics-6-methods.step5.title': 'メソッドのなかみをかえて、じぶんだけのあいさつをつくろう',
     'gui.howtos.ruby-basics-6-methods.external.tryruby.name': 'がいぶサイト「try ruby」でくわしくRubyをまなぶ',
+    'gui.howtos.ruby-basics-7-next.name': 'つぎにすすもう（TryRuby）',
+    'gui.howtos.ruby-basics-7-next.step1.title': 'Rubyのきそ、ぜんぶまなんだね！',
+    'gui.howtos.ruby-basics-7-next.step2.title': 'おさらい：putsでけいさんのこたえをしゃべらせよう',
+    'gui.howtos.ruby-basics-7-next.step3.title': '{greenFlag}をおすと、ネコがこたえをしゃべるよ',
+    'gui.howtos.ruby-basics-7-next.step4.title': 'もじだってputsでひょうじできたね',
+    'gui.howtos.ruby-basics-7-next.step5.title':
+        'Smalrubyでかいたputsのコードは、TryRubyやほんもののRubyでもそのままうごくよ。TryRubyをひらいてためしてみよう！',
+    'gui.howtos.ruby-basics-7-next.step5.openTryRuby': 'TryRubyをひらく',
     // Mesh tag
     'gui.libraryTags.mesh': 'メッシュ',
     'gui.cards.insert-ruby': 'ルビーをにゅうりょくする',

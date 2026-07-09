@@ -1105,6 +1105,14 @@ export default {
     'gui.howtos.ruby-basics-6-methods.step4.title': '同じメソッドを、ちがう名前で何度も呼び出してみよう',
     'gui.howtos.ruby-basics-6-methods.step5.title': 'メソッドの中身を変えて、自分だけのあいさつをつくろう',
     'gui.howtos.ruby-basics-6-methods.external.tryruby.name': '外部サイト「try ruby」で詳しくRubyを学ぶ',
+    'gui.howtos.ruby-basics-7-next.name': '次に進もう（TryRuby）',
+    'gui.howtos.ruby-basics-7-next.step1.title': 'Rubyの基礎、ぜんぶ学んだね！',
+    'gui.howtos.ruby-basics-7-next.step2.title': 'おさらい：putsで計算の答えをしゃべらせよう',
+    'gui.howtos.ruby-basics-7-next.step3.title': '{greenFlag}を押すと、ネコが答えをしゃべるよ',
+    'gui.howtos.ruby-basics-7-next.step4.title': '文字だってputsで表示できたね',
+    'gui.howtos.ruby-basics-7-next.step5.title':
+        'Smalrubyで書いたputsのコードは、TryRubyや本物のRubyでもそのまま動くよ。TryRubyを開いてためしてみよう！',
+    'gui.howtos.ruby-basics-7-next.step5.openTryRuby': 'TryRubyを開く',
     // Mesh tag
     'gui.libraryTags.mesh': 'メッシュ',
     'gui.cards.all-tutorials': 'チュートリアル',
