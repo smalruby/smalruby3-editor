@@ -6,6 +6,7 @@ const {
     detectStuck, markBlocked, getDirectives, applyLabelHealing, collectGateContexts,
     parseSsoDeviceOutput, startReauth,
     updateClaudeUsage, boardResponse, statusResponse,
+    patchBoardCache,
 } = require('../src/daemon');
 const { EventEmitter } = require('node:events');
 const { HITL_LABEL, AUTOPILOT_LABEL } = require('../src/phases');
@@ -894,4 +895,68 @@ test('updateClaudeUsage: usage ファイルから使用量を読み state に反
     // 取得できないときは既存値を保持（null 上書きしない）
     updateClaudeUsage(state, { usageFile: '/no/such/file.json', now: () => 99 }, () => {});
     assert.strictEqual(state.claudeUsage.updatedAt, 42);
+});
+
+test('patchBoardCache: applies intents to the cached board item (no GraphQL)', () => {
+    const state = {
+        board: {
+            updatedAt: 1,
+            items: [
+                { issue: 10, status: 'In Progress', aiStatus: 'Implementing', hitl: false },
+                { issue: 11, status: 'Backlog', aiStatus: null },
+            ],
+        },
+    };
+    const patched = patchBoardCache(state, 10, [
+        { field: 'Status', value: 'In Progress' },
+        { field: 'AI Status', value: 'Self-Reviewing' },
+    ]);
+    assert.strictEqual(patched, true);
+    assert.strictEqual(state.board.items[0].aiStatus, 'Self-Reviewing');
+    assert.strictEqual(state.board.items[0].status, 'In Progress');
+    // hitl などフィールド外のキーは保持される
+    assert.strictEqual(state.board.items[0].hitl, false);
+    // 他の item は変わらない
+    assert.strictEqual(state.board.items[1].status, 'Backlog');
+});
+
+test('patchBoardCache: null value clears the field (e.g. AI Status on close)', () => {
+    const state = { board: { items: [{ issue: 5, status: 'Review', aiStatus: 'Self-Reviewing' }] } };
+    const patched = patchBoardCache(state, 5, [
+        { field: 'Status', value: 'Close' },
+        { field: 'AI Status', value: null },
+    ]);
+    assert.strictEqual(patched, true);
+    assert.strictEqual(state.board.items[0].status, 'Close');
+    assert.strictEqual(state.board.items[0].aiStatus, null);
+});
+
+test('patchBoardCache: skips when cache is absent or issue not present (no throw)', () => {
+    // board 未在（refreshBoard 前）
+    assert.strictEqual(patchBoardCache({}, 10, [{ field: 'Status', value: 'X' }]), false);
+    assert.strictEqual(
+        patchBoardCache({ board: { items: null } }, 10, [{ field: 'Status', value: 'X' }]),
+        false,
+    );
+    // 当該 issue がキャッシュに無い
+    const state = { board: { items: [{ issue: 99, status: 'Backlog' }] } };
+    assert.strictEqual(patchBoardCache(state, 10, [{ field: 'Status', value: 'X' }]), false);
+    assert.strictEqual(state.board.items[0].status, 'Backlog');
+});
+
+test('patchBoardCache: skips on empty/missing intents', () => {
+    const state = { board: { items: [{ issue: 10, status: 'Backlog' }] } };
+    assert.strictEqual(patchBoardCache(state, 10, []), false);
+    assert.strictEqual(patchBoardCache(state, 10, null), false);
+    assert.strictEqual(state.board.items[0].status, 'Backlog');
+});
+
+test('patchBoardCache: does not mutate the original cached item object (replaces reference)', () => {
+    const original = { issue: 10, status: 'In Progress', aiStatus: 'Implementing' };
+    const state = { board: { items: [original] } };
+    patchBoardCache(state, 10, [{ field: 'AI Status', value: 'Self-Reviewing' }]);
+    // 元オブジェクトは破壊されず、配列の参照が差し替わる（applyIntentsToItem は copy を返す）
+    assert.strictEqual(original.aiStatus, 'Implementing');
+    assert.notStrictEqual(state.board.items[0], original);
+    assert.strictEqual(state.board.items[0].aiStatus, 'Self-Reviewing');
 });
