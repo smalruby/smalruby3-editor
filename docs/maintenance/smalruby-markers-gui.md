@@ -106,36 +106,45 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/containers/blocks.jsx` | extension category flyout scroll | `handleExtensionAdded` 末尾で `_pendingScrollToCategoryId` をセット。scratch-blocks v1 は追加カテゴリへ自動でフォーカスしたが v2 continuous toolbox はしないため、post-rebuild で新カテゴリへスクロールさせる (Issue #749 の v13.7.2 再整合で `setBlockStyle` 復元と共存) |
 | `src/containers/custom-procedures.jsx` | cat-blocks theme for custom procedures | `setBlocks` で `workspaceConfig.scratchTheme` に catblocks/classic を設定し、定義モーダルのブロックをメインエディタと同じテーマにする (Issue #749 の v13.7.2 再整合で upstream の `workspaceConfig.theme = theme` 採用と共存) |
 | `src/containers/stage-header.jsx` | classroom submission thumbnail | クラスルーム参加中の生徒にだけ upstream の「提出サムネイルを設定」ボタンを表示。`isStudentJoined` ヘルパー + import、`manuallySaveThumbnails`/`userOwnsProject` を joined 由来の props にマップ、`onUpdateProjectThumbnail` でキャプチャを redux にキャッシュ、`isStudentJoined` の named export (issue #631) |
-
 | `src/lib/vm-manager-hoc.jsx` | koshien mock config wiring | VM 初期化時に `wireKoshienMockConfig(vm)` を呼び、甲子園拡張機能が練習ゲーム設定（マップ/自機サイド/相手AI）を読めるよう runtime に getter を差し込む (import + componentDidMount) |
+| `src/lib/titled-hoc.jsx` | start-tutorial button | チュートリアル開始ボタンが設定した保留プロジェクトタイトル（`pendingProjectTitle`）の適用とクリア（6 ペア。`src/reducers/cards.js` と対） |
+| `src/reducers/cards.js` | start-tutorial button | `SET_PENDING_PROJECT_TITLE` アクションと `pendingProjectTitle` state — チュートリアル開始時に適用するプロジェクトタイトルの保留（5 ペア） |
+| `src/lib/define-dynamic-block.js` | argumentsByMethod support / argumentsByMethod layout / menu field support | 拡張ブロックの `argumentsByMethod`（メソッドごとの引数定義）と menu フィールドのサポート。undo/redo・プロジェクトロードのため複数回の `domToMutation` を許容 |
+| `src/lib/sb-file-uploader-hoc.jsx` | clear Google Drive state on file upload | ローカル sb3 ファイルのアップロード時に Google Drive のロード状態をクリア（3 ペア） |
+| `src/lib/make-toolbox-xml.js` | DNCL hide extensions | DNCL（日本語）モード時にツールボックスから拡張機能カテゴリを隠す |
+| `src/lib/locale-utils.js` | Japanese locale check | 日本語ロケール（ja / ja-Hira）判定ヘルパー |
+| `src/lib/legacy-storage.ts` | local sprite assets | スプライトの画像アセットをローカル配信の web store から解決する追加登録 |
+| `src/lib/legacy-backpack-storage.ts` | localStorage backpack support | バックパックを localStorage に保存する対応（5 ペア） |
+| `src/lib/alerts/index.jsx` | classroom session expired alert | クラスルームのセッション失効アラートの定義 |
+| `src/components/alerts/alert.jsx` | classroom session expired | セッション失効アラートの表示側 |
+| `src/containers/alert.jsx` | classroom session expired | セッション失効アラートのコンテナ側（3 ペア） |
+| `src/lib/libraries/extensions/index.jsx` | TM2Scratch extension / AkaDako extension / Ruby String extension | 拡張機能ライブラリへの Smalruby 拡張エントリ（各 2 ペア。取り外し可能拡張の分離マーカーと同名系列） |
+| `src/components/connection-modal/connection-modal.css` | meshV2 name search / network filter detection feature | mesh v2 グループ名検索 UI とネットワークフィルター検出表示のスタイル |
+| `src/containers/scanning-step.jsx` | meshV2 name search / meshV2 scanning step | mesh v2 のグループ名検索とスキャンステップの拡張（計 5 ペア） |
+| `src/components/connection-modal/peripheral-tile.jsx` | customizable name label | ペリフェラルタイルの名前ラベルのカスタマイズ対応（2 ペア） |
+| `src/components/menu-bar/project-title-input.jsx` | read-only project title for Google Drive | Google Drive の閲覧専用プロジェクトでタイトル入力を read-only 化（4 ペア） |
+| `src/components/menu-bar/project-title-input.css` | read-only project title for Google Drive | 同機能のスタイル |
+| `src/components/cards/card.css` | insert-code button overlay / tutorial glow animation | チュートリアルカードの「コードを挿入」ボタンのオーバーレイとハイライトアニメーションのスタイル |
 
-## ⚠️ 一覧の網羅性の破れ（確認日: 2026-07-09）
+> 注: `src/lib/url-params.js` は Smalruby 固有ファイル（`.prettierignore` ホワイトリスト対象）の
+> ため本表の対象外（旧エントリは削除済み。固有ファイル内のマーカーは取り外し可能拡張の
+> 分離用で、`.claude/rules/code-style.md` 参照）。
 
-上の表は**網羅的でない**ことが機械検査で判明している。upstream マージ時は表だけでなく
-**grep での機械検査**も併用すること:
+## 機械検査（upstream マージ時に必ず実行）
+
+表は人手で更新するため漏れうる。マージ時は grep での機械検査を併用すること:
 
 ```bash
 cd packages/scratch-gui
-# upstream ファイルの Start/End ペア整合（数が一致すること）
+# 1. Start/End ペア整合（数が一致すること）
 grep -rl 'Smalruby: Start' src/ webpack.config.js eslint.config.mjs | \
   while read f; do s=$(grep -c 'Smalruby: Start' "$f"); e=$(grep -c 'Smalruby: End' "$f"); \
   [ "$s" != "$e" ] && echo "MISMATCH $f: Start=$s End=$e"; done
+# 2. マーカー持ちファイルが本表に載っているか（NOT_IN_DOC のうち
+#    .prettierignore ホワイトリスト対象 = Smalruby 固有ファイルは載せなくてよい）
+grep -rl 'Smalruby: Start' src/ webpack.config.js eslint.config.mjs | \
+  while read f; do grep -q "$f" ../../docs/maintenance/smalruby-markers-gui.md || echo "NOT_IN_DOC: $f"; done
 ```
-
-確認時点で判明している破れ（表への追記・修正が済むまでの注意リスト）:
-
-- **表に未記載のマーカー持ち upstream ファイル**（Start マーカー数）: `src/lib/titled-hoc.jsx`(6),
-  `src/lib/define-dynamic-block.js`(4), `src/lib/sb-file-uploader-hoc.jsx`(3),
-  `src/lib/make-toolbox-xml.js`(1), `src/lib/locale-utils.js`(1), `src/lib/legacy-storage.ts`(1),
-  `src/lib/legacy-backpack-storage.ts`(5), `src/lib/alerts/index.jsx`(1),
-  `src/lib/libraries/extensions/index.jsx`(6), `src/components/connection-modal/connection-modal.css`(2),
-  `src/components/connection-modal/peripheral-tile.jsx`(2), `src/components/alerts/alert.jsx`(1),
-  `src/components/menu-bar/project-title-input.jsx`(4), `src/components/menu-bar/project-title-input.css`(1),
-  `src/containers/scanning-step.jsx`(5), `src/containers/alert.jsx`(3), `src/reducers/cards.js`(5)
-- **`src/containers/blocks.jsx` は Start 14 / End 15 で不整合**（`Ruby-converted toolbox update
-  deferral` の開始マーカー 1 つが `Start of` の無い bare 形式のため）。マーカー修正時に正規化する
-- `src/lib/url-params.js` は Smalruby 固有ファイル（whitelist 対象）なので本来この表の対象外
-  （「upstream ファイルのマーカーのみ記載」の原則と矛盾している既存エントリ）
 
 ## 関連ファイル
 
