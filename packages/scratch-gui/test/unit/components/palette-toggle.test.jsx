@@ -31,4 +31,9 @@ describe('PaletteToggle', () => {
         const { container } = render(<PaletteToggle paletteVisible={false} onClick={() => {}} />);
         expect(container.querySelector('button').title).toBe('ブロックパレットを表示する');
     });
+
+    test('has data-testid for e2e tests', () => {
+        const { getByTestId } = render(<PaletteToggle paletteVisible onClick={() => {}} />);
+        expect(getByTestId('palette-toggle-button')).toBeInTheDocument();
+    });
 });

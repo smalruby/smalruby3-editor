@@ -19,9 +19,6 @@
 - 新しいボタン・フォーム要素を追加する際は、必ず `data-testid` を設定する
 - Integration tests では `data-testid` を優先的に使い、XPath や title 属性での要素指定を避ける
 - `data-testid` を使うことで、属性の追加漏れを防ぎ、テストの安定性を高める
-- **既知の未対応（負債）**: `rubytee-modal` と `palette-toggle` は data-testid が付いていない。
-  これらを改修する際は data-testid を追加してから自動テストを書く（未対応を先例として
-  新規コンポーネントで省略しないこと）
 
 ### Integration Tests での data-testid 使用パターン
 
@@ -74,6 +71,32 @@ expect(await isActiveByTestId(driver, 'ruby-toolbar-mode-dncl')).toBe(true);
 | `ruby-toolbar-prev-sprite` | button | 前のスプライト |
 | `ruby-toolbar-next-sprite` | button | 次のスプライト |
 | `ruby-toolbar-sprite-search` | input | スプライト検索 |
+
+### Rubytee Modal (`rubytee-modal.jsx`)
+
+| data-testid | 要素 | 説明 |
+|------------|------|------|
+| `rubytee-modal` | div | モーダル全体（ドラッグ可能なコンテナ） |
+| `rubytee-modal-close` | button | 閉じる（×） |
+| `rubytee-modal-history` | div | チャット履歴領域 |
+| `rubytee-modal-message-user` | div | ユーザー発言のメッセージ（複数） |
+| `rubytee-modal-message-model` | div | ルビティー応答のメッセージ（複数） |
+| `rubytee-modal-apply-code` | button | 「このコードを挿入」（最後の応答のコードブロックごと。`data-index` でコード番号） |
+| `rubytee-modal-loading` | div | 「考え中…」ローディング表示 |
+| `rubytee-modal-error` | div | エラーメッセージ |
+| `rubytee-modal-surprise` | button | おまかせプロンプト（サプライズ） |
+| `rubytee-modal-input` | textarea | メッセージ入力欄 |
+| `rubytee-modal-send` | button | 送信（非ローディング時のみレンダリング） |
+| `rubytee-modal-cancel` | button | キャンセル（ローディング時のみレンダリング） |
+| `rubytee-modal-char-counter` | span | 文字数カウンター（`N / 250`） |
+| `rubytee-modal-reset-consent` | a | 同意をリセット |
+| `rubytee-modal-clear-history` | button | 履歴をクリア |
+
+### Palette Toggle (`palette-toggle.jsx`)
+
+| data-testid | 要素 | 説明 |
+|------------|------|------|
+| `palette-toggle-button` | button | ブロックパレットの表示/非表示トグル（◀ / ▶。SP では紫拡大版） |
 
 ### Classroom Modal (`classroom-modal.jsx`)
 

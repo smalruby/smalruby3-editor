@@ -213,6 +213,7 @@ const ModelMessageContent = ({text, isLast, isLoading, latestCodes, onApplyCode,
                         <button
                             className={styles.applyButton}
                             data-index={currentCodeIndex}
+                            data-testid="rubytee-modal-apply-code"
                             onClick={onApplyCode}
                         >
                             {applyLabel}
@@ -299,7 +300,10 @@ const RubyteeModal = ({
                 handle={`.${styles.modalHeader}`}
                 bounds="parent"
             >
-                <div className={styles.modalContainer}>
+                <div
+                    className={styles.modalContainer}
+                    data-testid="rubytee-modal"
+                >
                     {/* Header - drag handle, matches debug-modal style */}
                     <div className={styles.modalHeader}>
                         <div className={styles.headerTitle}>
@@ -312,6 +316,7 @@ const RubyteeModal = ({
                         </div>
                         <button
                             className={styles.closeButton}
+                            data-testid="rubytee-modal-close"
                             onClick={onClose}
                         >
                             <img
@@ -327,6 +332,7 @@ const RubyteeModal = ({
                         {/* Chat history */}
                         <div
                             className={styles.chatHistory}
+                            data-testid="rubytee-modal-history"
                             ref={chatHistoryRef}
                         >
                             {history.length === 0 ? (
@@ -344,6 +350,9 @@ const RubyteeModal = ({
                                                     styles.chatMessageUser :
                                                     styles.chatMessageModel
                                             }`}
+                                            data-testid={msg.role === 'user' ?
+                                                'rubytee-modal-message-user' :
+                                                'rubytee-modal-message-model'}
                                         >
                                             <span className={styles.chatLabel}>
                                                 {msg.role === 'user' ?
@@ -381,7 +390,10 @@ const RubyteeModal = ({
                                 })
                             )}
                             {isLoading && (
-                                <div className={styles.loadingIndicator}>
+                                <div
+                                    className={styles.loadingIndicator}
+                                    data-testid="rubytee-modal-loading"
+                                >
                                     <span className={styles.loadingSpinner} />
                                     {intl.formatMessage(messages.thinking, {seconds: loadingSeconds})}
                                 </div>
@@ -390,7 +402,10 @@ const RubyteeModal = ({
 
                         {/* Error message */}
                         {error && (
-                            <div className={styles.errorMessage}>
+                            <div
+                                className={styles.errorMessage}
+                                data-testid="rubytee-modal-error"
+                            >
                                 {error}
                             </div>
                         )}
@@ -399,6 +414,7 @@ const RubyteeModal = ({
                         <div className={styles.inputArea}>
                             <button
                                 className={styles.surpriseButton}
+                                data-testid="rubytee-modal-surprise"
                                 onClick={handleSurprise}
                                 disabled={isLoading}
                                 title={intl.formatMessage(messages.surprise)}
@@ -412,6 +428,7 @@ const RubyteeModal = ({
                             <textarea
                                 ref={inputRef}
                                 className={styles.messageInput}
+                                data-testid="rubytee-modal-input"
                                 placeholder={intl.formatMessage(messages.inputPlaceholder, {
                                     min: MIN_USER_MESSAGE_LENGTH,
                                     max: MAX_USER_MESSAGE_LENGTH
@@ -425,6 +442,7 @@ const RubyteeModal = ({
                                 {isLoading ? (
                                     <button
                                         className={styles.sendButton}
+                                        data-testid="rubytee-modal-cancel"
                                         onClick={onCancel}
                                     >
                                         {intl.formatMessage(messages.cancel)}
@@ -432,6 +450,7 @@ const RubyteeModal = ({
                                 ) : (
                                     <button
                                         className={styles.sendButton}
+                                        data-testid="rubytee-modal-send"
                                         onClick={onSend}
                                         disabled={!isLengthValid}
                                     >
@@ -442,6 +461,7 @@ const RubyteeModal = ({
                                     className={`${styles.charCounter} ${
                                         isLengthValid ? styles.charCounterValid : styles.charCounterInvalid
                                     }`}
+                                    data-testid="rubytee-modal-char-counter"
                                 >
                                     {inputLen} / {MAX_USER_MESSAGE_LENGTH}
                                 </span>
@@ -454,6 +474,7 @@ const RubyteeModal = ({
                                 {onResetConsent && (
                                     <a
                                         className={styles.resetConsentLink}
+                                        data-testid="rubytee-modal-reset-consent"
                                         onClick={onResetConsent}
                                         role="button"
                                         tabIndex={0}
@@ -464,6 +485,7 @@ const RubyteeModal = ({
                             </div>
                             <button
                                 className={styles.clearButton}
+                                data-testid="rubytee-modal-clear-history"
                                 onClick={onClearHistory}
                                 disabled={isLoading}
                             >

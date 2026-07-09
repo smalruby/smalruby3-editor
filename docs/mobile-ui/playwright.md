@@ -180,6 +180,14 @@ active 状態は `[data-active="true"]` 属性で表現される。
 | `ruby-toolbar-next-sprite`                    | button | 次のスプライト             |
 | `ruby-toolbar-sprite-search`                  | input  | スプライト検索 (SP 非表示) |
 
+### 3.10 PaletteToggle (`palette-toggle.jsx`)
+
+ブロックパレットの表示/非表示トグル。SP では紫拡大版のスタイルになるが、同じセレクタが使える。
+
+| data-testid             | 要素   | 役割                                    |
+| ----------------------- | ------ | --------------------------------------- |
+| `palette-toggle-button` | button | ブロックパレットの表示/非表示 (◀ / ▶) |
+
 ---
 
 ## 4. 共通操作パターン
