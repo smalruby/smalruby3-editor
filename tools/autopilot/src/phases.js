@@ -658,6 +658,45 @@ function protectedPaths(files) {
 }
 
 /**
+ * 変更ファイルのパスプレフィックスから `.claude/rules/<area>/` のエリア名へのマッピング（#921）。
+ * `touchedRuleAreas` が使う。ルート直下の一般規約（code-style.md 等）は領域に関わらず常に
+ * 対象なのでここには含めない（レビュープロンプト側で常時読む前提）。
+ */
+const RULE_AREA_PATH_PREFIXES = [
+    ['packages/scratch-gui/', 'scratch-gui'],
+    ['packages/scratch-vm/', 'scratch-vm'],
+    ['packages/scratch-render/', 'scratch-render'],
+    ['packages/scratch-svg-renderer/', 'scratch-svg-renderer'],
+    ['packages/task-herder/', 'task-herder'],
+    ['infra/', 'infra'],
+    ['ruby/', 'ruby'],
+    ['tools/autopilot/', 'autopilot'],
+    ['bin/autopilot-', 'autopilot'],
+    ['bin/bot-', 'autopilot'],
+];
+
+/**
+ * 変更ファイル一覧から、レビュー時に読むべき `.claude/rules/<area>/` のエリア名を導く（純粋関数）。
+ * どの area にも当たらないファイル（ルート直下のスクリプト等）は無視する（ルート直下の一般規約は
+ * 常に読む前提でここでは扱わない）。
+ * @param {string[]} files 変更ファイルパス（repo 相対）
+ * @returns {string[]} `.claude/rules/` 配下のディレクトリ名（重複無し・出現順）
+ */
+function touchedRuleAreas(files) {
+    const areas = [];
+    for (const f of files || []) {
+        if (!f) continue;
+        for (const [prefix, area] of RULE_AREA_PATH_PREFIXES) {
+            if (f.startsWith(prefix)) {
+                if (!areas.includes(area)) areas.push(area);
+                break;
+            }
+        }
+    }
+    return areas;
+}
+
+/**
  * sub-issue に分解済みの親（トラッカー）を示すラベル。
  * 「作業 item かどうか」を毎 tick GitHub に問い合わせて判定するコストを避け、
  * ラベル 1 つで merge 検知・PR 投影・DoD 引き継ぎ・フェーズ選択から除外できるようにする。
@@ -1457,6 +1496,81 @@ function continuationCommentBody(parsed) {
 }
 
 /**
+ * レビュー指摘の 3 分類（#921）。`autopilot-review.md` が各指摘コメントの先頭に
+ * `**[Must]**` 等のマーカーを付け、`autopilot-address-review.md` が分類に応じて
+ * 対応方針（{@link REVIEW_FINDING_POLICY}）を切り替える。
+ * - Must: セキュリティ問題・考慮漏れ（明確なバグ/退行）。必ず直す。
+ * - Question: 直した方がいいが動作する／稀なコーナーケース。人間との対話が要りうる。
+ * - FYI: 気になるが直すほどではない。
+ */
+const REVIEW_FINDING_CATEGORIES = ['Must', 'Question', 'FYI'];
+
+/** PR コメント本文中の分類マーカー（例: `**[Must]**`）を検出する正規表現 */
+const REVIEW_FINDING_MARKER_RE = /\*\*\[(Must|Question|FYI)\]\*\*/;
+
+/**
+ * コメント本文から分類マーカーを抜き出す（純粋関数）。
+ * bot のまとめコメント・sticky・人間のコメントなど、マーカーの無いものは null。
+ * @param {string} body
+ * @returns {'Must'|'Question'|'FYI'|null}
+ */
+function parseReviewFindingCategory(body) {
+    if (!body) return null;
+    const m = body.match(REVIEW_FINDING_MARKER_RE);
+    return m ? m[1] : null;
+}
+
+/**
+ * 複数コメントから分類ごとの件数を集計する（純粋関数）。マーカーの無いコメントは無視。
+ * `#893` で失われた「敵対的レビューの深さの視認性」をサマリとして復元するために使う。
+ * @param {Array<{body: string}>} comments
+ * @returns {{Must: number, Question: number, FYI: number}}
+ */
+function countReviewFindings(comments) {
+    const counts = { Must: 0, Question: 0, FYI: 0 };
+    for (const c of comments || []) {
+        const category = parseReviewFindingCategory(c && c.body);
+        if (category) counts[category] += 1;
+    }
+    return counts;
+}
+
+/**
+ * 分類集計から人間向けの 1 行サマリを作る（純粋関数）。指摘が無ければ「指摘なし」。
+ * review フェーズの完了コメント / sticky に残す想定（`renderSticky` とは独立に呼ばれる）。
+ * @param {{Must: number, Question: number, FYI: number}} counts
+ * @returns {string}
+ */
+function renderReviewFindingsSummary(counts) {
+    const c = { Must: 0, Question: 0, FYI: 0, ...counts };
+    const total = c.Must + c.Question + c.FYI;
+    if (total === 0) return '指摘なし。';
+    return `指摘 ${total} 件（Must ${c.Must} / Question ${c.Question} / FYI ${c.FYI}）`;
+}
+
+/**
+ * 分類ごとの autopilot 対応方針（#921 の DoD。review/address-review 両プロンプトが従う
+ * 唯一の真実）。
+ * - Must: 必ず修正する（'fix'）
+ * - Question: 対応コストが小さければ修正、大きければ人間へ HITL（'fix-or-hitl'）
+ * - FYI: 対応しない（コメントのみ・'ignore'）
+ */
+const REVIEW_FINDING_POLICY = {
+    Must: 'fix',
+    Question: 'fix-or-hitl',
+    FYI: 'ignore',
+};
+
+/**
+ * 分類から対応方針を返す（純粋関数）。未知の分類（マーカー無し等）は安全側で 'ignore'。
+ * @param {string} category
+ * @returns {'fix'|'fix-or-hitl'|'ignore'}
+ */
+function addressReviewPolicyFor(category) {
+    return REVIEW_FINDING_POLICY[category] || 'ignore';
+}
+
+/**
  * GitHub に surface してよい文字列へサニタイズする（純粋関数）。
  *
  * worker の error 理由・watchdog の失敗理由には、コマンド出力由来の機密
@@ -1681,6 +1795,8 @@ module.exports = {
     HUMAN_REVIEW_LABEL,
     PROTECTED_PATH_PATTERNS,
     protectedPaths,
+    RULE_AREA_PATH_PREFIXES,
+    touchedRuleAreas,
     TRACKING_LABEL,
     WAITING_LABEL,
     isTrackerItem,
@@ -1732,4 +1848,11 @@ module.exports = {
     CHECKPOINT_SIGNAL_MESSAGE,
     CHECKPOINT_CONTINUATION_COMMENT_MARKER,
     continuationCommentBody,
+    REVIEW_FINDING_CATEGORIES,
+    REVIEW_FINDING_MARKER_RE,
+    parseReviewFindingCategory,
+    countReviewFindings,
+    renderReviewFindingsSummary,
+    REVIEW_FINDING_POLICY,
+    addressReviewPolicyFor,
 };

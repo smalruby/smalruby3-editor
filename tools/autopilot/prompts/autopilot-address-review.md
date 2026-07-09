@@ -34,11 +34,35 @@ GH_TOKEN="$(bin/bot-token)" gh pr view "$PR" --repo "$AUTOPILOT_REPO" --json tit
 GH_TOKEN="$(bin/bot-token)" gh api repos/$AUTOPILOT_REPO/pulls/$PR/comments
 ```
 
-bot 自身のコメント・解決済みスレッドは文脈として読むだけ（対応対象からは外す）。
+修正が必要になった場合に備え、`autopilot-review.md` と同じ方法で、差分が touch する領域の
+`.claude/rules/<area>/`（`touchedRuleAreas`。`tools/autopilot/src/phases.js`）を読んでおく:
 
-### 2. 人間のフィードバックを分類する
+```bash
+FILES=$(GH_TOKEN="$(bin/bot-token)" gh pr diff "$PR" --repo "$AUTOPILOT_REPO" --name-only)
+for area in $(node -e '
+const { touchedRuleAreas } = require("./tools/autopilot/src/phases.js");
+const files = require("fs").readFileSync(0, "utf8").split("\n").filter(Boolean);
+console.log(touchedRuleAreas(files).join("\n"));
+' <<< "$FILES"); do
+  cat ".claude/rules/$area"/*.md
+done
+```
 
-人間（bot 以外）の各コメント・レビューを、**自由文の意図**で次のいずれかに分類する。
+### 2. フィードバックを分類する
+
+分類すべき対象は 2 系統ある。**両方**を確認する。
+
+**(A) bot 自身が review フェーズで残した分類コメント**（`**[Must]**` / `**[Question]**` /
+`**[FYI]**` マーカー付き。`.claude/rules/autopilot/` の規約と同じ形式）のうち、**まだ修正されて
+いないもの**を洗い出し、次の方針で対応する（review フェーズと同じ対応表・#921）:
+
+| 分類 | 対応 |
+|---|---|
+| **Must** | **必ず修正する**（review フェーズで対応漏れ・checkpoint 中断等で残ったもの） |
+| **Question** | **すぐ対応できるもの**は自分で直す。**改修コスト > 効果**なら**人間に質問**（後述 HITL） |
+| **FYI** | **対応しない**（コメントのみ残す） |
+
+**(B) 人間（bot 以外）の各コメント・レビュー**を、**自由文の意図**で次のいずれかに分類する。
 構造化シグナル（approve/changes-requested）だけに頼らない — approve でも本文に改善依頼が
 書かれていれば対応する。逆に "changes requested" でも実質 LGTM なら対応不要なことがある。
 
@@ -49,11 +73,15 @@ bot 自身のコメント・解決済みスレッドは文脈として読むだ�
 | **改善依頼 / 変更要求** | 「Z に直して」「テストを追加して」「命名を変えて」 | worktree で**修正**する |
 | **判断がつかない** | 意図が曖昧・複数解釈・前提が不明 | **人間に質問**（後述 HITL） |
 
+bot 自身の対応済みコメント・解決済みスレッドは文脈として読むだけ（対応対象からは外す）。
+
 ### 3. 対応する
 
-- **改善依頼**: worktree 内で修正 → 関連テスト/lint → `bin/bot-git` でコミット・push。
-- **質問**: PR に bot で返信。コード変更を伴うならあわせて push。
-- 対応の有無が辿れるよう、**まとめコメントを 1 件**残す（「指摘 N 件: 対応 a 件 / 返信 b 件 / 対応不要 c 件」）。
+- **Must / 改善依頼**: worktree 内で修正 → 関連テスト/lint → `bin/bot-git` でコミット・push。
+- **Question（対応可）/ 質問**: PR に bot で返信。コード変更を伴うならあわせて push。
+- **FYI**: 何もしない（既存のコメントを消さない）。
+- 対応の有無が辿れるよう、**まとめコメントを 1 件**残す（「指摘 N 件: 対応 a 件 / 返信 b 件 / 対応不要 c 件」。
+  bot 分類コメントの残タスクがあればそれも件数に含める）。
 - LGTM など対応不要のみで、コードに触る必要が無ければコミットしない（冪等・無駄 push をしない）。
 
 ### 3.5 時間契約（実行上限 約30分・soft-limit 22分）
@@ -95,7 +123,8 @@ EOF
 echo AUTOPILOT_DONE
 ```
 
-**(c) 判断がつかない → 人間に質問**（論点を整理してコメント済み）:
+**(c) 判断がつかない → 人間に質問**（論点を整理してコメント済み。**改修コスト > 効果と判断した
+Question 分類の指摘**もここに含める — コメントで論点を明示し、コードは変えない）:
 
 ```bash
 cat > "$AUTOPILOT_RESULT_FILE" <<EOF

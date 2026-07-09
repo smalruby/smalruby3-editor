@@ -35,6 +35,14 @@ review / verify などのプロンプトから **`/code-review` / `/security-rev
 する。レビューは**インラインの軽量敵対的レビュー**（`autopilot-review.md` の観点リスト:
 正確性・セキュリティ・再利用/簡潔性/効率・`.claude/rules` 準拠・テスト/DoD 整合）で行う。
 
+`.claude/rules` 準拠は「読んだつもり」にならないよう、変更ファイルから `phases.js` の
+`touchedRuleAreas`（純粋関数）で touch する `.claude/rules/<area>/` を機械的に導いてから読む
+（#921）。指摘は本文先頭に `**[Must]**` / `**[Question]**` / `**[FYI]**` マーカーを付けて
+3 分類し、`countReviewFindings` / `renderReviewFindingsSummary` で件数サマリを PR に残す
+（対応方針は Must=修正 / Question=対応可なら修正・困難なら人間へ / FYI=無視。
+`addressReviewPolicyFor` が唯一の真実）。`autopilot-address-review.md` も同じ分類・対応表を
+未対応の bot コメントに適用する。
+
 ## コミット・push の規約
 
 - コミット = `bin/bot-git commit`（Bot 名義の `-c` 注入。共有 `.git/config` は不変）。
