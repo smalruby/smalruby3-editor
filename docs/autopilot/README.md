@@ -45,6 +45,7 @@ autopilot は、複数の GitHub Issue を Claude が**並行**して
 | **CLI** | 単一フェーズを単一 Issue で実行（動作確認・ドライラン） | `tools/autopilot/bin/autopilot` |
 | **フェーズ・プロンプト** | 各フェーズの「頭脳」。非対話で1フェーズを遂行 | `tools/autopilot/prompts/autopilot-*` |
 | **worktree** | Issue ごとの隔離作業場（軽量・即作成） | `bin/autopilot-worktree` |
+| **UI 確認ヘルパー** | worker が headless bundled chromium で UI を確認（スクショ `tmp/`・Playwright MCP は使わない・#891） | `tools/autopilot/bin/pw-check` |
 
 > daemon は常駐の単独プロセスとして起動する。並行数は設定可能（既定 2、必要に応じて増やす）。
 
@@ -69,7 +70,7 @@ No Status(未設定) → Backlog / Icebox → Sprint Backlog(autopilot キュー
 | Sprint Backlog | autopilot のキュー（着手対象） |
 | In Progress | 実装〜PR〜敵対的レビュー |
 | Review | 人間レビュー待ち |
-| DoD | approve 後の headful 検証（daemon が引き継ぎ生成 → ホスト Claude が検証・#821） |
+| DoD | approve 後の DoD 検証（一般 UI は verify が headless で自己完結・#891 / 音・autoplay 等の実 Chrome 必須ケースのみ daemon がホスト引き継ぎ生成・#821） |
 | Close | 完了（merge 後） |
 
 > 実装メモ: Status 未設定（UI の「No Status」列）は内部的に `'New Item'` という sentinel で
@@ -91,7 +92,7 @@ Issue を状態の正とすることで daemon が落ちても現在地が分か
 | Implementing / Creating PR | autopilot-implement | In Progress |
 | Self-Reviewing | autopilot-review | In Progress |
 | Addressing Comments | autopilot-address-review | Review / DoD（NG 差し戻し） |
-| Running DoD | daemon `applyDodHandoffs`（引き継ぎ生成。autopilot-verify は手動 inject 用に残置） | DoD |
+| Running DoD | autopilot-verify（一般 UI は headless Playwright で自己完結・#891）／ 音・autoplay 等は daemon `applyDodHandoffs`（ホスト引き継ぎ生成） | DoD |
 
 ### その他フィールド
 
@@ -250,14 +251,23 @@ PR の **diff と全コメント（Issue/レビュー本文/インライン）**
 
 ---
 
-## DoD — headful 検証の引き継ぎ生成（#821）
+## DoD — headless 確認と headful 引き継ぎ（#891 / #821）
 
-DoD（Definition of Done）は実機ブラウザでの確認が要る最終ゲート。**コンテナ内の daemon は
-headless なので実ブラウザを動かせない**。そこで daemon は DoD を「自分で検証するフェーズ」では
-なく「**ホスト側 Claude（headful Playwright）に渡す引き継ぎを生成するフェーズ**」として扱う。
-LLM は in-container で回さず、**純粋な I/O + 文字列テンプレート**で完結する（child Claude 不要）。
+DoD（Definition of Done）は最終ゲート。確認手段は **UI 種別で分かれる**。
 
-### トリガと生成（daemon の tick ステップ）
+**worker は bundled chromium を headless で動かせる**（#891 で実証）。したがって **一般的な UI 確認は
+verify フェーズ（`autopilot-verify`）が headless Playwright で自己完結**する（`tools/autopilot/bin/pw-check`
+ヘルパー。Playwright MCP は host Chrome 依存で使わない）:
+
+- **自己完結ページ（autopilot monitor 等）**: dev server 不要。daemon の `http://localhost:8787/` を開くか、
+  `MONITOR_HTML` を静的 serve して確認。
+- **scratch-gui の UI**: dev server（`localhost:8601`）が必要。プレビュー URL があれば優先、無ければ起動して待機。
+
+**音・autoplay など実 Chrome が必須のケースだけ**、従来どおり daemon が「**ホスト側 Claude（headful
+Playwright / 実 Chrome）に渡す引き継ぎを生成する**」。LLM は in-container で回さず、**純粋な I/O + 文字列
+テンプレート**で完結する（child Claude 不要）。
+
+### 引き継ぎのトリガと生成（daemon の tick ステップ・限定ケース）
 
 人間がコードレビューを終え「次は DoD 検証」と判断して Status を **Review → DoD** にすると、daemon は
 ポーリングのたびに `Status=DoD` の leaf について次を行う（`applyDodHandoffs`、`🙋 HITL` は維持）:
@@ -283,8 +293,9 @@ LLM は in-container で回さず、**純粋な I/O + 文字列テンプレー�
 - **NG**: ホスト/人間が PR に NG をコメントし `🙋 HITL` を外す → daemon が **DoD 解除 → address-review**
   を起動（Review と対称。`phaseForItem` が DoD 解除 → `address-review`、OR セマンティクスも同じ）。
 
-> 既存の `autopilot-verify` プロンプト（`tools/autopilot/prompts/`）は手動 inject 用に残してよいが、
-> 自動経路はこの daemon 生成（`applyDodHandoffs`）を使う（#821）。
+> 一般 UI の DoD は `autopilot-verify` プロンプト（`tools/autopilot/prompts/`）が headless Playwright で
+> 確認する（#891）。この daemon 生成（`applyDodHandoffs`）の引き継ぎは **音・autoplay 等の実 Chrome 必須
+> ケース**向けに限定される（#821）。
 
 ---
 
