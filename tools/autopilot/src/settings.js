@@ -31,6 +31,13 @@ const DEFAULT_SETTINGS = {
     /** 非対話で gh/git が権限プロンプトに当たらないための許可ツール */
     allowedTools: ['Bash', 'Edit', 'Read', 'Glob', 'Grep', 'WebFetch'],
     /**
+     * worker の `--settings` に注入する `permissions.allow`（Issue #893）。
+     * root では `bypassPermissions`（--dangerously-skip-permissions）が使えないため、
+     * worker が使う操作を事前許可して許可プロンプトで停止しないようにする。
+     * **`Workflow` / `Skill` は入れない**（トークン浪費防止。動的 workflow を worker に起動させない）。
+     */
+    permissionAllow: ['Bash', 'Edit', 'Write', 'Read', 'Glob', 'Grep', 'WebFetch'],
+    /**
      * worker に読み書きを許可する追加ディレクトリ（`--add-dir`）。
      * 例: 参照リポジトリ群を許可するなら `"~/ghq"`。`~` はホームに展開される。
      */
@@ -147,15 +154,22 @@ function buildClaudeCommand(settings, phase, opts = {}) {
     }
     if (ph.model) parts.push('--model', ph.model);
     if (ph.effort) parts.push('--effort', ph.effort);
+    // worker の `--settings` を1オブジェクトに集約する（JSON は shellQuote でまとめて single-quote される）。
+    const settingsObj = {};
+    // 許可プロンプトで停止しないための事前許可（Issue #893）。root では bypassPermissions が
+    // 使えないため allowlist 方式で代替する。Workflow/Skill は含めない（トークン浪費防止）。
+    if (Array.isArray(s.permissionAllow) && s.permissionAllow.length) {
+        settingsObj.permissions = { allow: [...s.permissionAllow] };
+    }
     // Claude 使用率の抽出（Issue #879）: worker の status line に usage-statusline.sh を仕込み、
     // rate_limits を usage ファイルへ書き出させる。script/file は **絶対パス**を渡すこと
-    // （パスを誤ると daemon が値を読めない）。JSON は shellQuote でまとめて single-quote される。
+    // （パスを誤ると daemon が値を読めない）。
     if (opts.usageStatusline && opts.usageStatusline.script && opts.usageStatusline.file) {
         const { script, file } = opts.usageStatusline;
-        const settingsJson = JSON.stringify({
-            statusLine: { type: 'command', command: `bash ${script} ${file}` },
-        });
-        parts.push('--settings', settingsJson);
+        settingsObj.statusLine = { type: 'command', command: `bash ${script} ${file}` };
+    }
+    if (Object.keys(settingsObj).length) {
+        parts.push('--settings', JSON.stringify(settingsObj));
     }
     parts.push(...(ph.args || []));
     return parts.map(shellQuote).join(' ');

@@ -16,6 +16,18 @@ const {
     snapshotRunAssets,
 } = require('../src/settings');
 
+/**
+ * buildClaudeCommand の出力から `--settings` の JSON 引数を取り出してパースする。
+ * shellQuote が single-quote で包むので、その中身（'' エスケープを戻す）を JSON.parse する。
+ * @param {string} cmd buildClaudeCommand の返り値
+ * @returns {object} パース済み settings オブジェクト
+ */
+function parseSettingsArg(cmd) {
+    const m = cmd.match(/--settings '((?:[^']|'\\'')*)'/);
+    assert.ok(m, `--settings の single-quote 引数が見つからない: ${cmd}`);
+    return JSON.parse(m[1].replace(/'\\''/g, "'"));
+}
+
 test('mergeSettings: phases はフェーズ単位でマージ、配列は置き換え、base は破壊しない', () => {
     const base = {
         allowedTools: ['Bash', 'Read'],
@@ -88,9 +100,44 @@ test('buildClaudeCommand: usageStatusline で status line を --settings に仕�
     assert.match(cmd, /--settings /);
     assert.match(cmd, /statusLine/);
     assert.match(cmd, /bash \/wt\/tools\/autopilot\/bin\/usage-statusline\.sh \/tmp\/u\.json/);
-    // script/file が欠けていれば --settings を付けない
-    const none = buildClaudeCommand(DEFAULT_SETTINGS, 'implement', {});
-    assert.doesNotMatch(none, /--settings/);
+});
+
+test('DEFAULT_SETTINGS.permissionAllow: worker が使うツールを含み Workflow は含まない（#893）', () => {
+    const allow = DEFAULT_SETTINGS.permissionAllow;
+    assert.ok(Array.isArray(allow));
+    for (const tool of ['Bash', 'Edit', 'Write', 'Read', 'Glob', 'Grep', 'WebFetch']) {
+        assert.ok(allow.includes(tool), `${tool} が permissionAllow に含まれるべき`);
+    }
+    // トークン浪費防止: Workflow / Skill は事前許可しない
+    assert.ok(!allow.includes('Workflow'), 'Workflow は permissionAllow に含めない');
+});
+
+test('buildClaudeCommand: permissions.allow を --settings に必ず注入する（root は bypass 不可 #893）', () => {
+    // usageStatusline なしでも --settings が入り、permissions.allow を含む
+    const cmd = buildClaudeCommand(DEFAULT_SETTINGS, 'implement', {});
+    assert.match(cmd, /--settings/);
+    const json = parseSettingsArg(cmd);
+    assert.deepEqual(json.permissions.allow, DEFAULT_SETTINGS.permissionAllow);
+    // Workflow は入っていない（トークン浪費防止）
+    assert.ok(!json.permissions.allow.includes('Workflow'));
+    // statusLine は usageStatusline 未指定なので入らない
+    assert.equal(json.statusLine, undefined);
+});
+
+test('buildClaudeCommand: permissions.allow と statusLine が同一 --settings に同居する（#893）', () => {
+    const cmd = buildClaudeCommand(DEFAULT_SETTINGS, 'implement', {
+        usageStatusline: { script: '/wt/s.sh', file: '/tmp/u.json' },
+    });
+    const json = parseSettingsArg(cmd);
+    assert.ok(Array.isArray(json.permissions.allow));
+    assert.equal(json.statusLine.type, 'command');
+    assert.match(json.statusLine.command, /bash \/wt\/s\.sh \/tmp\/u\.json/);
+});
+
+test('buildClaudeCommand: permissionAllow が空なら --settings に permissions を入れない（#893）', () => {
+    const s = mergeSettings(DEFAULT_SETTINGS, { permissionAllow: [] });
+    const cmd = buildClaudeCommand(s, 'implement', {});
+    assert.doesNotMatch(cmd, /--settings/);
 });
 
 test('userSettingsPath: AUTOPILOT_SETTINGS > XDG_CONFIG_HOME > ~/.config', () => {
