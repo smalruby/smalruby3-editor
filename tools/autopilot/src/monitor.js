@@ -69,6 +69,11 @@ const MONITOR_HTML = `<!doctype html>
   td.title-cell { max-width: 34rem; }
   .t { display: inline-block; max-width: 30rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
   .status-pill { display: inline-block; padding: .05rem .45rem; border-radius: .3rem; font-size: .75rem; font-weight: 600; white-space: nowrap; }
+  /* ---- Size バッジ（S=緑 / M=琥珀 / L=赤）#884 ---- */
+  .size-badge { display: inline-block; min-width: 1.1rem; padding: .05rem .4rem; border-radius: .3rem; font-size: .75rem; font-weight: 700; text-align: center; }
+  .size-s { background: #dcfce7; color: #14532d; }
+  .size-m { background: #fef3c7; color: #92400e; }
+  .size-l { background: #fee2e2; color: #7f1d1d; }
   .muted { color: var(--muted); }
   .prchip { display: inline-block; margin: 0 .15rem .1rem 0; padding: 0 .35rem; border-radius: .3rem;
             font-size: .75rem; white-space: nowrap; border: 1px solid transparent; }
@@ -103,8 +108,8 @@ const MONITOR_HTML = `<!doctype html>
 <div id="alerts"></div>
 <main>
   <table id="board"><thead><tr>
-    <th>Issue</th><th>Status</th><th>AI</th><th>担当</th><th>PR</th><th>Sub-issues</th><th>Now</th>
-  </tr></thead><tbody id="rows"><tr><td colspan="7" class="muted">読み込み中…</td></tr></tbody></table>
+    <th>Issue</th><th>Status</th><th>Size</th><th>AI</th><th>担当</th><th>PR</th><th>Sub-issues</th><th>Now</th>
+  </tr></thead><tbody id="rows"><tr><td colspan="8" class="muted">読み込み中…</td></tr></tbody></table>
   <h2>実行履歴（最新 100 件・ログ用途のみ）</h2>
   <table id="histt"><thead><tr>
     <th>時刻</th><th>Issue</th><th>Phase</th><th>結果</th><th>メモ</th>
@@ -129,6 +134,14 @@ const STATUS_COLORS = {
 const statusPill = (s) => {
   const [bg, fg] = STATUS_COLORS[s] || ['#f1f5f9', '#475569'];
   return '<span class="status-pill" style="background:' + bg + ';color:' + fg + '">' + esc(s) + '</span>';
+};
+// Size（triage で決まる small/middle/large）を S/M/L の色付きバッジに短縮する（#884）。
+// 未設定は「—」（muted）でレイアウトを崩さない。title に元の語を残す。
+const SIZE_BADGES = { small: ['S', 'size-s'], middle: ['M', 'size-m'], large: ['L', 'size-l'] };
+const sizeBadge = (size) => {
+  const b = SIZE_BADGES[size];
+  if (!b) return '<span class="muted">—</span>';
+  return '<span class="size-badge ' + b[1] + '" title="' + esc(size) + '">' + b[0] + '</span>';
 };
 const prChip = (p) => {
   let cls = 'pr-ready', icon = '✅';
@@ -227,6 +240,7 @@ function renderBoard(d) {
       + '<td class="title-cell"><a target="_blank" rel="noopener" href="' + esc(it.url) + '">#' + it.issue + '</a> '
       + '<span class="t" title="' + esc(it.title) + '">' + esc(it.title) + '</span>' + kindMark + '</td>'
       + '<td>' + statusPill(it.status) + '</td>'
+      + '<td>' + sizeBadge(it.size) + '</td>'
       + '<td>' + (it.aiStatus ? esc(it.aiStatus) : '<span class="muted">—</span>') + '</td>'
       + '<td>' + who + '</td>'
       + '<td>' + prs + '</td>'
@@ -234,7 +248,7 @@ function renderBoard(d) {
       + '<td>' + now + '</td></tr>';
   });
   document.getElementById('rows').innerHTML = rows.join('')
-    || '<tr><td colspan="7" class="muted">（表示対象の Issue はありません）</td></tr>';
+    || '<tr><td colspan="8" class="muted">（表示対象の Issue はありません）</td></tr>';
 }
 
 function renderHistory(d) {
