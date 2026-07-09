@@ -6,6 +6,7 @@ const {
     detectStuck, markBlocked, getDirectives, applyLabelHealing, collectGateContexts,
     parseSsoDeviceOutput, startReauth,
     updateClaudeUsage, boardResponse, statusResponse,
+    checkForUpdate, startUpdateChecks,
 } = require('../src/daemon');
 const { EventEmitter } = require('node:events');
 const { HITL_LABEL, AUTOPILOT_LABEL } = require('../src/phases');
@@ -894,4 +895,68 @@ test('updateClaudeUsage: usage ファイルから使用量を読み state に反
     // 取得できないときは既存値を保持（null 上書きしない）
     updateClaudeUsage(state, { usageFile: '/no/such/file.json', now: () => 99 }, () => {});
     assert.strictEqual(state.claudeUsage.updatedAt, 42);
+});
+
+// ---- 稼働バージョン表示 + 更新検知（#885） --------------------------------
+
+test('boardResponse/statusResponse: version と autopilotUpdate を含める（無ければ null）', () => {
+    const cfg = { assignee: 'me', concurrency: 2 };
+    const empty = boardResponse(cfg, { running: new Map() });
+    assert.strictEqual(empty.version, null);
+    assert.strictEqual(empty.autopilotUpdate, null);
+    const version = { branch: 'develop', commit: 'abcdef0123', shortCommit: 'abcdef0' };
+    const upd = { available: true, behind: 2, commits: [], checkedAt: 1, error: null };
+    const b = boardResponse(cfg, { running: new Map(), version, autopilotUpdate: upd });
+    assert.deepStrictEqual(b.version, version);
+    assert.deepStrictEqual(b.autopilotUpdate, upd);
+    const s = statusResponse({ assignee: null, concurrency: 1 }, { running: new Map(), version, autopilotUpdate: upd });
+    assert.deepStrictEqual(s.version, version);
+    assert.deepStrictEqual(s.autopilotUpdate, upd);
+});
+
+test('checkForUpdate: 更新ありを state.autopilotUpdate に反映', async () => {
+    const state = { version: { commit: 'boot0' }, autopilotUpdate: null };
+    const cfg = { repoRoot: '/app', updateBranch: 'develop', now: () => 100 };
+    const logs = [];
+    const check = async (args) => {
+        assert.strictEqual(args.bootCommit, 'boot0');
+        assert.strictEqual(args.baseBranch, 'develop');
+        return { available: true, behind: 3, commits: [{ shortCommit: 'a', subject: 'x' }], checkedAt: 100, error: null };
+    };
+    await checkForUpdate(cfg, state, (m) => logs.push(m), { check });
+    assert.strictEqual(state.autopilotUpdate.available, true);
+    assert.strictEqual(state.autopilotUpdate.behind, 3);
+    // 更新あり初検知でログ
+    assert.ok(logs.some((m) => /update available/.test(m)));
+});
+
+test('checkForUpdate: 失敗時は前回の available/behind を保持し error だけ更新', async () => {
+    const state = {
+        version: { commit: 'boot0' },
+        autopilotUpdate: { available: true, behind: 5, commits: [{ shortCommit: 'a', subject: 'x' }], checkedAt: 1, error: null },
+    };
+    const cfg = { repoRoot: '/app', updateBranch: 'develop', now: () => 200 };
+    const check = async () => ({ available: false, behind: 0, commits: [], checkedAt: 200, error: 'network down' });
+    await checkForUpdate(cfg, state, () => {}, { check });
+    // 前回値保持
+    assert.strictEqual(state.autopilotUpdate.available, true);
+    assert.strictEqual(state.autopilotUpdate.behind, 5);
+    assert.strictEqual(state.autopilotUpdate.commits.length, 1);
+    // error と checkedAt は更新
+    assert.match(state.autopilotUpdate.error, /network down/);
+    assert.strictEqual(state.autopilotUpdate.checkedAt, 200);
+});
+
+test('startUpdateChecks: 起動時に 1 回チェックし unref タイマーを張る', async () => {
+    const state = { version: { commit: 'boot0' }, autopilotUpdate: null };
+    const cfg = { repoRoot: '/app', updateBranch: 'develop', updateCheckMs: 999, now: () => 1 };
+    let checkCalls = 0;
+    const check = async () => { checkCalls++; return { available: false, behind: 0, commits: [], checkedAt: 1, error: null }; };
+    let unrefed = false;
+    let scheduledMs = null;
+    const setInterval = (fn, ms) => { scheduledMs = ms; return { unref: () => { unrefed = true; } }; };
+    await startUpdateChecks(cfg, state, () => {}, { check, setInterval });
+    assert.strictEqual(checkCalls, 1); // 起動直後 1 回
+    assert.strictEqual(scheduledMs, 999);
+    assert.strictEqual(unrefed, true);
 });

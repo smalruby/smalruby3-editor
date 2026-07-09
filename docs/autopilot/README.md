@@ -398,7 +398,8 @@ daemon の `GET /`（既定 `http://localhost:8787/`）は **enroll 済み Issue
 GitHub Projects で行い、モニタは俯瞰・log 閲覧・pause/resume/即時 tick に徹する。
 
 - **1 行のコンパクトヘッダー**: タイトル + 状態 pill（RUNNING/PAUSED/AUTH ⚠）+
-  ⏸/▶/⚡tick + メタ情報（assignee・並行数・実行中・更新時刻）
+  ⏸/▶/⚡tick + **稼働バージョン（`branch @ shortCommit`）** + **⬆️ 更新ありバッジ** +
+  メタ情報（assignee・並行数・実行中・更新時刻）
 - **Claude 使用量（ヘッダー中央）**: Claude アイコン + **セッション使用率**（rolling 5 時間制限）と
   **週間使用率**（全モデルの 7 日制限）を、それぞれ短いバー + `NN%` で表示する。使用量が上限に
   達すると autopilot だけでなく人間の開発も止まるため、早めに気づけるよう常時可視化する。
@@ -421,6 +422,7 @@ GitHub Projects で行い、モニタは俯瞰・log 閲覧・pause/resume/即�
 - **除外**: Close / Done / Icebox はボードに出さない（溜まると重くなるため）。さらに
   `--assignee` 起動時は **daemon の処理対象と同じ enroll 判定（ownsItem）に限定**する
   （「ボードには映るが daemon は素通り」という不一致を無くす。未指定は全件）
+- **稼働バージョン + 更新検知**（#885）: 下の「稼働バージョン表示と更新検知」を参照
 - **実行履歴**は最下部（最新 100 件・ログ用途のみ）
 - データは `GET /board`（**poll/tick 後に再構築されるキャッシュ** + live running）。
   board の再取得（`listItems`）は 1 回 ~100 GraphQL ポイントと重いため、**専用の短周期
@@ -428,6 +430,34 @@ GitHub Projects で行い、モニタは俯瞰・log 閲覧・pause/resume/即�
   枯渇していた）。すぐ最新化したいときはヘッダーの **「🔄 更新」ボタン（`POST /refresh`）**
   でオンデマンド取得する（見たいときだけ消費）。ブラウザ側は 5 秒ごとに `/board`（キャッシュ）を
   ポーリングして描画するだけなので GraphQL は消費しない
+
+### 稼働バージョン表示と更新検知（#885）
+
+daemon はモジュールを**起動時にロード**するので「動いているコード = 起動時のコミット」。
+以降 working tree が進んでも稼働中コードは起動時コミットのままなので、**今どのブランチ・
+どのコミットで動いているか**を常時可視化し、さらに `tools/autopilot/` に更新があるかを
+定期チェックして「再起動が必要か」を判断しやすくする。
+
+- **稼働バージョン**: daemon は起動時に動作中 checkout（`project.REPO_ROOT`）の
+  `git rev-parse --abbrev-ref HEAD`（ブランチ）と `HEAD`（コミット・`--short` も）を取得して
+  `state.version = {branch, commit, shortCommit}` に保持し、`GET /board`・`GET /status` に載せる。
+  モニタのヘッダーに `develop @ 9380da0` のように**常時表示**する（取得できなければ「version —」）。
+- **更新検知（~15 分ごと）**: 起動直後に 1 回 + 以降 15 分間隔（`unref` タイマー）で
+  既定ブランチ（`origin/develop`）を `git fetch`（remote-tracking ref のみ更新・working tree は
+  触らない）し、`git log <起動時コミット>..origin/develop -- tools/autopilot` の件数で
+  **更新あり**を判定する。結果は `state.autopilotUpdate = {available, behind, commits, checkedAt, error}`
+  として `/board`・`/status` に載る。private repo なので fetch の認証は既存の gh credential
+  helper に委ねる。**失敗（ネットワーク/認証）時は前回値（available/behind/commits）を保持**し、
+  `error` だけを控えめに surface して表示を崩さない。頻度は `UPDATE_CHECK_INTERVAL_MS` 定数で調整可能。
+- **更新ありの表示 + 更新手順**: 更新ありのときヘッダーに **`⬆️ 更新あり（N 件）`** バッジを表示。
+  押すと**更新手順モーダル**（テキスト表示のみ・実行はしない）を出す:
+  - 主導線: Claude の autopilot セッションで **`update autopilot`** と指示（コピー用ボタンつき）
+  - 手動手順: `curl -X POST localhost:8787/shutdown` → `/app` で `git pull` →
+    `bash tmp/autopilot_up.sh` で再起動
+  - `tools/autopilot` の差分コミット一覧（短 SHA + 件名）も表示
+- 実装: 判定は `tools/autopilot/src/version.js`（`readVersion` / `checkAutopilotUpdate` —
+  git は `execFile` で実行し `deps.execFileP` で差し替え可能）、daemon 連携は
+  `checkForUpdate` / `startUpdateChecks`（`tools/autopilot/src/daemon.js`）。
 
 ---
 
@@ -537,8 +567,8 @@ HTTP API（curl からも操作可能）:
 | メソッド・パス | 用途 |
 |---|---|
 | `GET /` | Web モニタ（俯瞰ボード HTML） |
-| `GET /board` | 俯瞰ボードデータ（items + running + history + auth 状態 + `claudeUsage`）を JSON で返す |
-| `GET /status` | `{paused, pausedBy, authError, reauthHint, reauth, assignee, concurrency, claudeUsage, running:[{issue,phase}]}` |
+| `GET /board` | 俯瞰ボードデータ（items + running + history + auth 状態 + `claudeUsage` + `version` + `autopilotUpdate`）を JSON で返す |
+| `GET /status` | `{paused, pausedBy, authError, reauthHint, reauth, assignee, concurrency, claudeUsage, version, autopilotUpdate, running:[{issue,phase}]}` |
 | `GET /log?issue=<n>` | 実行中 item の tmux pane キャプチャ（人間観測用） |
 | `POST /tick` | interval を待たず 1 サイクル即実行。`{ran, paused, picked:[...], running:[...]}` を返す。実行中は `409 {busy:true}`、pause 中は `{ran:true, paused:true, picked:[]}` の no-op |
 | `POST /pause` | 新規ディスパッチを止める（実行中はそのまま） |
