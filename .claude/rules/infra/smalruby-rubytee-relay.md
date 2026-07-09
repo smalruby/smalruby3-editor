@@ -12,9 +12,31 @@ Proxies requests from the Ruby tab's AI chat to the Anthropic Claude API with ra
 
 ## Architecture
 
-- **API Gateway HTTP API**: POST `/generate` endpoint
-- **Lambda (Node.js 20)**: Request validation, rate limiting, Anthropic Claude API relay
-- **DynamoDB**: IP-based rate limiting with TTL
+- **API Gateway HTTP API v2**: POST `/generate` endpoint（stage スロットリング: prod 10rps/burst 30、stg 5/10）
+- **Lambda (Node.js 22)** `RubyteeRelayHandler{suffix}`: Request validation, rate limiting, Anthropic Claude API relay
+- **DynamoDB** `RubyteeRelayRateLimit{suffix}`: IP-based rate limiting with TTL (fixed window)
+
+### 認可モデル / 防御（実装事実）
+
+- **ID Token 認証は無い**（子供が匿名で利用するサービス）。防御は
+  入力バリデーション（長さ・`DANGEROUS_PATTERNS` によるプロンプトインジェクション対策）+
+  IP レート制限 + API Gateway スロットリングの 3 層。
+- **レート制限は fail-open**: DynamoDB 障害時はリクエストを**許可**する（可用性優先の意図的
+  設計。fail-close に変えるときはこの前提を確認する）。
+- エラーレスポンスは `{ "error": "<CODE>" }` 形式。主なコード: `INVALID_JSON` /
+  `INPUT_TOO_SHORT` / `INPUT_TOO_LONG` / `INVALID_INPUT` / `HISTORY_TOO_LONG` /
+  `RATE_LIMIT_EXCEEDED`(429) / `AI_OVERLOADED`(502, Anthropic 529) / `AI_API_ERROR`(502) /
+  `INTERNAL_ERROR`(500)。フロントはこのコードで分岐するため、変更は互換性破壊。
+
+## Custom Domains
+
+| Stage | Domain |
+|-------|--------|
+| stg | `stg.rubytee.api.smalruby.app` |
+| prod | `rubytee.api.smalruby.app` |
+
+`RUBYTEE_CUSTOM_DOMAIN` で上書き、`false` で無効化（親ゾーンは `ROUTE53_PARENT_ZONE_NAME`、
+既定 `api.smalruby.app`）。
 
 ## Commands
 
@@ -51,6 +73,9 @@ docker compose run --rm -w /app/infra/smalruby-rubytee-relay infra npx cdk deplo
 | `MAX_USER_MESSAGE_LENGTH` | Max user message length (default: 250) |
 | `MIN_USER_MESSAGE_LENGTH` | Min user message length (default: 10) |
 | `CORS_ALLOWED_ORIGINS` | Comma-separated allowed origins |
+| `RUBYTEE_CUSTOM_DOMAIN` | Override custom domain. Set `false` to disable |
+| `ROUTE53_PARENT_ZONE_NAME` | Parent zone for custom domain (default: `api.smalruby.app`) |
+| `RUBYTEE_RELAY_ENDPOINT` | Integration テスト用（デプロイ済み stg エンドポイント） |
 
 ## Typical Deployment Flow
 

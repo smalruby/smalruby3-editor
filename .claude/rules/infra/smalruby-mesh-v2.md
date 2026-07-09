@@ -43,12 +43,16 @@ docker compose run --rm infra npm run -w /app infra:mesh-v2:deploy
 | Variable | Description |
 |----------|-------------|
 | `STAGE` | Deployment stage (`stg`, `stg2`, or `prod`) |
-| `MESH_SECRET_KEY` | Secret key for domain validation |
+| `MESH_SECRET_KEY` | Secret key for domain validation。⚠️ **未設定だと stack 既定の固定弱鍵 `'default-secret-key'` になる** — `.env.<stage>` で必ず設定する |
 | `MESH_HOST_HEARTBEAT_INTERVAL_SECONDS` | Host heartbeat interval |
 | `MESH_HOST_HEARTBEAT_TTL_SECONDS` | Host group TTL |
 | `MESH_MEMBER_HEARTBEAT_INTERVAL_SECONDS` | Member heartbeat interval |
 | `MESH_MEMBER_HEARTBEAT_TTL_SECONDS` | Member node TTL |
-| `MESH_MAX_CONNECTION_TIME_SECONDS` | Max connection time per group |
+| `MESH_MAX_CONNECTION_TIME_SECONDS` | Max connection time per group（stack 既定: prod 1500 / 他 300） |
+| `MESH_EVENT_TTL_SECONDS` | イベントの TTL（既定 10） |
+| `MESH_POLLING_INTERVAL_SECONDS` | Polling モードの周期（既定 2） |
+| `APPSYNC_CUSTOM_DOMAIN` | カスタムドメイン上書き。`false` で無効化 |
+| `ROUTE53_PARENT_ZONE_NAME` | 親ゾーン（既定 `api.smalruby.app`） |
 
 Copy `.env.example` to `.env` inside `infra/smalruby-mesh-v2/` for local values.
 
@@ -76,6 +80,20 @@ Hexagonal Architecture (Ports & Adapters) with four layers:
 | Adapter | `lambda/handlers/` | AppSync event handling (entry point) |
 
 AppSync JavaScript resolvers (`js/resolvers/`, `js/functions/`) handle most operations directly. Ruby Lambda is used for complex business logic (e.g., group dissolution, domain creation).
+
+### スタック構成の実装事実
+
+- **DynamoDB** `MeshV2Table{suffix}`（PK `pk` / SK `sk`、PAY_PER_REQUEST、TTL `ttl`、
+  GSI `GroupIdIndex` / `GroupNameIndex`）は **RemovalPolicy: DESTROY・PITR 無効** —
+  スタック削除・差し替えでデータが消える前提。
+- **認証は API_KEY のみ**（キー有効期限 365 日。期限切れは redeploy でローテート）。
+  ID Token / IAM 認証は使っていない。
+- **Ruby Lambda** `MeshV2-GraphQL{suffix}` は `RUBY_3_4`。マルチバイト対策で
+  `LANG` / `LC_ALL=en_US.UTF-8` を注入している（外さない）。担当フィールドは
+  `createDomain` / `createGroup` / `dissolveGroup` / `leaveGroup` / `recordEventsByNode`
+  （handler の fieldName case 分岐。エラーは rescue せず AppSync に伝播させる方針）。
+- カスタムドメインの ACM 証明書は **us-east-1** に発行する（AppSync の要件。HTTP API
+  プロジェクトのリージョン内 `acm.Certificate` と異なる）。
 
 ## TDD Workflow
 
