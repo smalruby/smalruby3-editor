@@ -18,6 +18,7 @@ const MONITOR_HTML = `<!doctype html>
 <html lang="ja"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>autopilot monitor</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='47' fill='%237a1620' stroke='%23b3202f' stroke-width='5'/><path d='M50 27 L69 47 L50 73 L31 47 Z' fill='%23eaf7ff'/><path d='M31 47 L50 27 L50 50 Z' fill='%23bfeaff'/><path d='M69 47 L50 27 L50 50 Z' fill='%238fd8ff'/></svg>">
 <style>
   :root { --border:#e2e8f0; --muted:#64748b; }
   * { box-sizing: border-box; }
@@ -28,7 +29,8 @@ const MONITOR_HTML = `<!doctype html>
      3 セクションは互いを押さない。meta は固定幅で右寄せするので、内容幅が変わっても
      左端（x）が動かない（更新 Xs前 の桁変化・API残/実行中 の増減で揺れない）。 */
   header { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: .5rem;
-           padding: .4rem .8rem; background: #0f172a; color: #e2e8f0; white-space: nowrap; overflow: hidden; }
+           padding: .4rem .8rem; background: linear-gradient(100deg, #141428 0%, #3a0f1e 55%, #5c1220 100%);
+           color: #e2e8f0; white-space: nowrap; overflow: hidden; }
   .hgroup { display: flex; align-items: center; gap: .5rem; }
   .hleft { flex: 0 0 auto; }
   /* ---- Claude 使用量（ヘッダー中央）#879 ----
@@ -61,7 +63,8 @@ const MONITOR_HTML = `<!doctype html>
   /* ヘッダーは Claude 使用量バーが中央を占めて余白が無いので、稼働バージョンと更新バッジは
      常時見えるスティッキーフッターに置く（issue はヘッダー or フッターを許容）。 */
   footer { position: sticky; bottom: 0; z-index: 20; display: flex; align-items: center; gap: .6rem;
-           padding: .3rem .8rem; background: #0f172a; color: #94a3b8; font-size: .75rem;
+           padding: .3rem .8rem; background: linear-gradient(100deg, #141428 0%, #3a0f1e 55%, #5c1220 100%);
+           color: #94a3b8; font-size: .75rem;
            border-top: 1px solid #334155; font-variant-numeric: tabular-nums; }
   footer .ver code { color: #cbd5e1; background: rgba(255,255,255,.06); padding: 0 .3rem; border-radius: .2rem; }
   footer .upd-badge { padding: .1rem .55rem; font-size: .78rem; cursor: pointer; border: 1px solid #d97706;
@@ -138,7 +141,15 @@ const MONITOR_HTML = `<!doctype html>
 </style></head><body>
 <header>
   <div class="hgroup hleft">
-    <h1>🤖 autopilot</h1>
+    <h1><svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120' width='22' height='22' style='vertical-align:-4px;margin-right:.15rem'>
+        <circle cx='60' cy='60' r='55' fill='#7a1620' stroke='#b3202f' stroke-width='5'/>
+        <g fill='none' stroke='#8fd8ff' stroke-width='4.5' stroke-linecap='round'>
+          <path d='M58 58 C74 38 86 34 98 34'/><path d='M60 60 H98'/><path d='M58 62 C74 82 86 86 98 86'/>
+        </g>
+        <path d='M38 60 L54 44 L70 60 L54 76 Z' fill='#eaf7ff'/>
+        <path d='M38 60 L54 44 L54 60 Z' fill='#bfeaff'/>
+        <path d='M70 60 L54 44 L54 60 Z' fill='#8fd8ff'/>
+      </svg>autopilot</h1>
     <span id="state" class="pill ok">…</span>
     <button id="pause" title="新規ディスパッチを止める">⏸</button>
     <button id="resume" title="再開">▶</button>

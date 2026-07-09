@@ -6,9 +6,20 @@ const { MONITOR_HTML } = require('../src/monitor');
 test('MONITOR_HTML is a self-contained html document', () => {
     assert.match(MONITOR_HTML, /^<!doctype html>/i);
     assert.match(MONITOR_HTML, /<title>autopilot monitor<\/title>/);
-    // 外部リソースを読み込まない（自己完結）
+    // 外部リソースを読み込まない（自己完結）。data URI は自己完結なので許可する
+    // （favicon をインライン SVG data URI で埋め込むため）。
     assert.doesNotMatch(MONITOR_HTML, /<script[^>]+src=/);
-    assert.doesNotMatch(MONITOR_HTML, /<link[^>]+href=/);
+    assert.doesNotMatch(MONITOR_HTML, /<link[^>]+href=["'](?!data:)/);
+});
+
+test('MONITOR_HTML: ブランディング（favicon / ヘッダーグラデ / インライン SVG アイコン）#904', () => {
+    // (a) インライン SVG data URI の favicon（外部リクエスト禁止＝自己完結を維持）
+    assert.match(MONITOR_HTML, /<link\s+rel="icon"\s+href="data:image\/svg\+xml,/);
+    // (b) ヘッダー背景に紺→深紅グラデ
+    assert.match(MONITOR_HTML, /header \{[^}]*background:[^;}]*linear-gradient/);
+    // (c) <h1> にインライン SVG アイコン（🤖 絵文字を置き換え）
+    assert.match(MONITOR_HTML, /<h1>\s*<svg[\s\S]*?<\/svg>\s*autopilot<\/h1>/);
+    assert.doesNotMatch(MONITOR_HTML, /<h1>🤖 autopilot<\/h1>/);
 });
 
 test('MONITOR_HTML wires the daemon control endpoints', () => {
