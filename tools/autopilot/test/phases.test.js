@@ -36,6 +36,7 @@ const {
     TRACKING_LABEL,
     isTrackerItem,
     hasTrackingLabel,
+    waitingLabelAction,
     protectedPaths,
     STICKY_MARKER,
     PR_SYNC_STATUSES,
@@ -259,6 +260,13 @@ test('isTrackerItem / hasTrackingLabel: EPIC またはラベルでトラッカ�
     // hasTrackingLabel は Kind を見ない（未分解 EPIC は decompose 対象のため）
     assert.equal(hasTrackingLabel({ kind: 'EPIC', labels: [] }), false);
     assert.equal(hasTrackingLabel({ labels: [TRACKING_LABEL] }), true);
+});
+
+test('waitingLabelAction: 待ち↔ラベルの差分だけ add/remove を返す', () => {
+    assert.equal(waitingLabelAction(false, true), 'add'); // 待ち & ラベル無し
+    assert.equal(waitingLabelAction(true, false), 'remove'); // 解決 & ラベル有り
+    assert.equal(waitingLabelAction(true, true), null); // 待ち継続 → 無操作
+    assert.equal(waitingLabelAction(false, false), null); // 解決済み → 無操作
 });
 
 test('phaseForItem: 🧭 tracking ラベル付きは作業 item ではない（常に null）', () => {
