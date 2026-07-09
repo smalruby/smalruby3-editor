@@ -50,6 +50,11 @@ function isHumanDrivenResting(item) {
     // EPIC Decomposed（トラッカーの resting・#16）だけ。AI 作業中マーカー付きは
     // run 所有 or stuck 検知（→ Blocked）で必ず出口がある（下の hasDaemonExit）。
     if (status === 'In Progress' && (!item.aiStatus || item.aiStatus === 'EPIC Decomposed')) return true;
+    // 🙋 HITL 付きの In Progress は常に人間の番（#915）。decompose/triage の提案 HITL のように
+    // Status/AI Status を動かさず待つ設計は他にも増えうるので、個別の AI Status を列挙せず
+    // 汎用的に扱う。実際に解除で再開できるかは、解除できる具体的な状態（Decomposing/Triaging 等）
+    // について 'phase'/'phase-after-label-release' 側で別途検証する。
+    if (status === 'In Progress' && item.hitlLabel) return true;
     return false;
 }
 
