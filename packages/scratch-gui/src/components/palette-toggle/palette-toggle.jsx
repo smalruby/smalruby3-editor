@@ -11,6 +11,7 @@ const PaletteToggle = ({paletteVisible, onClick, style}) => (
         )}
         style={style}
         title={paletteVisible ? 'ブロックパレットを隠す' : 'ブロックパレットを表示する'}
+        data-testid="palette-toggle-button"
         onClick={onClick}
     >
         {paletteVisible ? '◀' : '▶'}
