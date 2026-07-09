@@ -114,4 +114,55 @@ describe('ImageStep', () => {
             expect(startButton).toBeTruthy();
         });
     });
+
+    // === Smalruby: Start of external-url button ===
+    describe('externalUrl button', () => {
+        test('renders external link when externalUrl is provided', () => {
+            const {container} = renderWithIntl(
+                <ImageStep
+                    {...defaultProps}
+                    externalUrl="https://try.ruby-lang.org/"
+                />
+            );
+            const link = container.querySelector('[data-card-action="open-external-link"]');
+            expect(link).toBeTruthy();
+            expect(link.tagName).toBe('A');
+            expect(link.getAttribute('href')).toBe('https://try.ruby-lang.org/');
+            expect(link.getAttribute('target')).toBe('_blank');
+            expect(link.getAttribute('rel')).toBe('noopener noreferrer');
+        });
+
+        test('does not render external link when externalUrl is not provided', () => {
+            const {container} = renderWithIntl(
+                <ImageStep {...defaultProps} />
+            );
+            expect(container.querySelector('[data-card-action="open-external-link"]')).toBeNull();
+        });
+
+        test('uses the provided externalUrlLabel as the link text', () => {
+            renderWithIntl(
+                <ImageStep
+                    {...defaultProps}
+                    externalUrl="https://try.ruby-lang.org/"
+                    externalUrlLabel="Open TryRuby"
+                />
+            );
+            expect(screen.getByText('Open TryRuby')).toBeTruthy();
+        });
+
+        test('renders external link alongside insert-code button', () => {
+            const onInsertCodeFactory = jest.fn(() => jest.fn());
+            const {container} = renderWithIntl(
+                <ImageStep
+                    {...defaultProps}
+                    code="puts 'hello'"
+                    onInsertCodeFactory={onInsertCodeFactory}
+                    externalUrl="https://try.ruby-lang.org/"
+                />
+            );
+            expect(container.querySelector('[data-card-action="insert-ruby"]')).toBeTruthy();
+            expect(container.querySelector('[data-card-action="open-external-link"]')).toBeTruthy();
+        });
+    });
+    // === Smalruby: End of external-url button ===
 });

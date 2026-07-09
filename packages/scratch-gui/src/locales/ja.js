@@ -1080,6 +1080,7 @@ export default {
     'gui.cards.insert-ruby': 'ルビーを入力する',
     'gui.cards.insert-blocks': 'コードを入力する',
     'gui.cards.start-tutorial': 'チュートリアルをはじめる',
+    'gui.cards.open-external-link': '外部サイトを開く',
     'gui.tipsLibrary.tutorials': 'チュートリアルを選ぶ',
     'gui.libraryTags.ruby': 'ルビー',
     'gui.libraryTags.firstTime': 'はじめて',

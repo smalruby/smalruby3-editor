@@ -157,7 +157,10 @@ VideoStep.propTypes = {
 // === Smalruby: Start of start-tutorial button ===
 const ImageStep = ({
     title, image, code, codeType, onInsertCodeFactory, animateInsertCode,
-    startTutorial, onStartTutorial, animateStartTutorial
+    startTutorial, onStartTutorial, animateStartTutorial,
+    // === Smalruby: Start of external-url button ===
+    externalUrl, externalUrlLabel
+    // === Smalruby: End of external-url button ===
 }) => (<Fragment>
     <div className={styles.stepTitle}>
         {title}
@@ -215,6 +218,25 @@ const ImageStep = ({
                 )}
             </button>
         ) : null}
+        {/* === Smalruby: Start of external-url button === */}
+        {externalUrl ? (
+            <a
+                className={classNames(styles.insertCodeButton, styles.insertCodeButtonOverlay)}
+                data-card-action="open-external-link"
+                href={externalUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+            >
+                {externalUrlLabel || (
+                    <FormattedMessage
+                        defaultMessage="Open External Link"
+                        description="Button to open an external website in a new browser tab"
+                        id="gui.cards.open-external-link"
+                    />
+                )}
+            </a>
+        ) : null}
+        {/* === Smalruby: End of external-url button === */}
     </div>
 </Fragment>
 );
@@ -224,6 +246,10 @@ ImageStep.propTypes = {
     animateStartTutorial: PropTypes.bool, // Smalruby: start-tutorial button glow
     code: PropTypes.string,
     codeType: PropTypes.string, // 'ruby' (default) or 'blocks'
+    // === Smalruby: Start of external-url button ===
+    externalUrl: PropTypes.string, // Smalruby: opens this URL in a new tab (e.g. TryRuby)
+    externalUrlLabel: PropTypes.node, // Smalruby: optional custom label for the external link button
+    // === Smalruby: End of external-url button ===
     image: PropTypes.string.isRequired,
     onInsertCodeFactory: PropTypes.func,
     onStartTutorial: PropTypes.func, // Smalruby: start-tutorial button handler
@@ -527,6 +553,10 @@ const Cards = props => {
                                             animateStartTutorial={animateStartTutorial}
                                             code={steps[step].code}
                                             codeType={steps[step].codeType}
+                                            // === Smalruby: Start of external-url button ===
+                                            externalUrl={steps[step].externalUrl}
+                                            externalUrlLabel={steps[step].externalUrlLabel}
+                                            // === Smalruby: End of external-url button ===
                                             image={translateImage(steps[step].image, locale)}
                                             onInsertCodeFactory={onInsertCodeFactory}
                                             onStartTutorial={steps[step].startTutorial ? onStartTutorial : null}
@@ -570,6 +600,10 @@ Cards.propTypes = {
                 video: PropTypes.string,
                 code: PropTypes.string,
                 codeType: PropTypes.string,
+                // === Smalruby: Start of external-url button ===
+                externalUrl: PropTypes.string,
+                externalUrlLabel: PropTypes.node,
+                // === Smalruby: End of external-url button ===
                 deckIds: PropTypes.arrayOf(PropTypes.string)
             }))
         })

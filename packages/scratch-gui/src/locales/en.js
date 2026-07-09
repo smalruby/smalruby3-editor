@@ -655,6 +655,7 @@ export default {
     'gui.cards.insert-ruby': 'Insert This Ruby',
     'gui.cards.insert-blocks': 'Insert Blocks',
     'gui.cards.start-tutorial': 'Start Tutorial',
+    'gui.cards.open-external-link': 'Open External Link',
     'gui.tipsLibrary.tutorials': 'Choose a Tutorial',
     'gui.libraryTags.ruby': 'Ruby',
     'gui.libraryTags.mesh': 'Mesh',

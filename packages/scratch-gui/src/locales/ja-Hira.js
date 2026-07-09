@@ -1113,6 +1113,7 @@ export default {
     'gui.cards.insert-ruby': 'ルビーをにゅうりょくする',
     'gui.cards.insert-blocks': 'コードをにゅうりょくする',
     'gui.cards.start-tutorial': 'チュートリアルをはじめる',
+    'gui.cards.open-external-link': 'がいぶサイトをひらく',
     'gui.libraryTags.ruby': 'ルビー',
     'gui.libraryTags.firstTime': 'はじめて',
     'gui.libraryCategories.gettingStarted': 'はじめましょう',
