@@ -63,6 +63,9 @@ const {
     PR_LINK_MARKER,
     needsPrLinkSticky,
     renderPrLinkSticky,
+    TRACKER_STICKY_MARKER,
+    needsTrackerSticky,
+    renderTrackerSticky,
     dodHandoffMarker,
     isDodHandoffComment,
     hasDodHandoffComment,
@@ -333,6 +336,57 @@ test('renderPrLinkSticky: マーカー + PR リンク + base を含む', () => {
     assert.ok(body.startsWith(PR_LINK_MARKER));
     assert.match(body, /https:\/\/github\.com\/smalruby\/smalruby3-editor\/pull\/870/);
     assert.match(body, /topic\/epic-738/);
+});
+
+test('needsTrackerSticky: トラッカー && 非終端 && total>0 の真偽表', () => {
+    assert.equal(
+        needsTrackerSticky({ tracker: true, status: 'In Progress', subIssues: { total: 4, completed: 2 } }),
+        true,
+    );
+    // トラッカーでない
+    assert.equal(
+        needsTrackerSticky({ tracker: false, status: 'In Progress', subIssues: { total: 4, completed: 2 } }),
+        false,
+    );
+    // 終端（Close/Done）
+    assert.equal(
+        needsTrackerSticky({ tracker: true, status: 'Close', subIssues: { total: 4, completed: 4 } }),
+        false,
+    );
+    assert.equal(
+        needsTrackerSticky({ tracker: true, status: 'Done', subIssues: { total: 4, completed: 4 } }),
+        false,
+    );
+    // sub-issue 0 件（未分解 or 空トラッカー）
+    assert.equal(
+        needsTrackerSticky({ tracker: true, status: 'In Progress', subIssues: { total: 0, completed: 0 } }),
+        false,
+    );
+    assert.equal(needsTrackerSticky({ tracker: true, status: 'In Progress' }), false); // subIssues 無し
+    assert.equal(needsTrackerSticky(null), false);
+});
+
+test('renderTrackerSticky: 未完了時は進捗 + 「すべて閉じたら Close」を明示', () => {
+    const body = renderTrackerSticky({ issue: 906, subIssues: { total: 4, completed: 2, percent: 50 } });
+    assert.ok(body.startsWith(TRACKER_STICKY_MARKER));
+    assert.match(body, /2\/4 \(50%\)/);
+    assert.match(body, /すべて閉じたらこの EPIC を Close/);
+    assert.match(body, /autopilot は設計上 EPIC を自動 Close しません/);
+    assert.doesNotMatch(body, /全 sub-issue が完了しました/);
+});
+
+test('renderTrackerSticky: 全完了時は Close を促す文言に切り替える', () => {
+    const body = renderTrackerSticky({ issue: 906, subIssues: { total: 4, completed: 4, percent: 100 } });
+    assert.ok(body.startsWith(TRACKER_STICKY_MARKER));
+    assert.match(body, /全 sub-issue が完了しました（4\/4）/);
+    assert.match(body, /この EPIC を Close してください/);
+    assert.match(body, /#906/);
+});
+
+test('renderTrackerSticky: total=0 は未完了文言（呼び出し側は needsTrackerSticky で除外する前提）', () => {
+    const body = renderTrackerSticky({ issue: 1, subIssues: { total: 0, completed: 0, percent: 0 } });
+    assert.match(body, /0\/0 \(0%\)/);
+    assert.doesNotMatch(body, /全 sub-issue が完了しました/);
 });
 
 test('selectMarkedCommentIds: 任意マーカーでコメント id を抽出', () => {

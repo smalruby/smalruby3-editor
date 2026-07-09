@@ -1100,6 +1100,58 @@ function normalizeBoardEnrichment(node) {
     };
 }
 
+// ---- トラッカー sticky (#934): 分解済み EPIC に sub-issue 進捗 + Close 指示を出す ----
+
+/**
+ * 分解済み EPIC（トラッカー）Issue 用 sticky コメントの識別マーカー。
+ * 連携 PR 側の Status 投影（{@link STICKY_MARKER}）とは別の面 — EPIC 本体には
+ * Status/AI Status ではなく sub-issue 進捗と人間アクション（Close 指示）を出す。
+ */
+const TRACKER_STICKY_MARKER = '<!-- autopilot-tracker-status -->';
+
+/**
+ * トラッカー Issue に sub-issue 進捗 sticky を出すべきか（純粋関数）。
+ * トラッカー && 非終端 && sub-issue が 1 件以上（total>0）のときだけ true。
+ * 俯瞰ボードの enrichment（{@link normalizeBoardEnrichment} / board キャッシュ）がそのまま
+ * 使える形（tracker: boolean, status, subIssues: {total}）を想定する — 追加の GraphQL を
+ * 発生させないため（`.claude/rules/autopilot/github-api.md` 予算規約）。
+ * @param {object} item { tracker, status, subIssues: {total} }
+ * @returns {boolean}
+ */
+function needsTrackerSticky(item) {
+    if (!item || !item.tracker) return false;
+    if (TERMINAL_STATUSES.has(item.status)) return false;
+    return Boolean(item.subIssues && item.subIssues.total > 0);
+}
+
+/**
+ * 分解済み EPIC の sub-issue 進捗 + 人間アクション sticky 本文を組み立てる（純粋関数）。
+ * 全 sub-issue 完了時（completed===total>0）は Close を促す文言に切り替える。
+ * @param {object} item { issue, subIssues: {total, completed, percent} }
+ * @returns {string}
+ */
+function renderTrackerSticky(item) {
+    const { total = 0, completed = 0, percent = 0 } = (item && item.subIssues) || {};
+    const allDone = total > 0 && completed === total;
+    const lines = [TRACKER_STICKY_MARKER, ''];
+    if (allDone) {
+        lines.push(
+            `✅ **全 sub-issue が完了しました（${completed}/${total}）** — **この EPIC を Close してください**`,
+            '（または Project の Status を Close/Done に変更）。Close すると closed-reconcile が'
+                + ' Project を Close に整合します。autopilot は EPIC を自動 Close しません。',
+        );
+    } else {
+        lines.push(
+            `🧭 **分解済み EPIC** — sub-issue: 完了 **${completed}/${total} (${percent}%)**`,
+            'サブ Issue の実装を待っています。**すべて閉じたらこの EPIC を Close**'
+                + '（または Project の Status を Close/Done に変更）してください。'
+                + ' autopilot は設計上 EPIC を自動 Close しません。',
+        );
+    }
+    lines.push('', `_Linked issue #${item.issue}. Maintained by autopilot (single writer); do not edit._`);
+    return lines.join('\n');
+}
+
 // ---- DoD handoff (#821): headful 検証をホスト Claude へ渡す引き継ぎ生成 ----
 
 /**
@@ -1844,6 +1896,9 @@ module.exports = {
     selectPrSyncCandidates,
     selectBoardItems,
     normalizeBoardEnrichment,
+    TRACKER_STICKY_MARKER,
+    needsTrackerSticky,
+    renderTrackerSticky,
     desiredDraft,
     draftAction,
     isSteadyStateHitlGate,
