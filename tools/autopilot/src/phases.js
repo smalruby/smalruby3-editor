@@ -1206,6 +1206,12 @@ function evaluate(state, cfg) {
     if (state.elapsedMs > cfg.tMaxMs) {
         return { action: 'fail', reason: `exceeded tMax (${cfg.tMaxMs}ms)` };
     }
+    // 対話プロンプト（許可/確認/選択）で人間入力待ちになった → 待たず HITL に落とす。
+    // worker は非対話運用。auto mode でも判断を要する操作で稀にプロンプトが出うるが、
+    // その場合は「質問せず打ち切って HITL」（restart はしない＝同じプロンプトの再発を避ける）。
+    if (state.promptingMs > cfg.tPromptMs) {
+        return { action: 'hitl', reason: `interactive prompt awaiting human input (auto-HITL after ${cfg.tPromptMs}ms)` };
+    }
     const canRestart = state.restarts < cfg.maxRestarts;
     // 4. 結果なしでプロセスが死んだ（課題4）
     if (state.dead) {
@@ -1251,6 +1257,10 @@ const DEFAULT_WATCHDOG = {
     // これは pane が完全停止した場合の保険なので長め（10 分）にする。
     tIdleMs: 600_000,
     tMaxMs: 1_800_000,
+    // 対話プロンプト（許可/確認/選択ダイアログ）が pane に出て人間入力待ちになったら、
+    // これだけ経過した時点で待たずに HITL へ落とす（auto mode でも soft_deny 等で稀に
+    // プロンプトが出うるが、worker は非対話なので即中断して人間に渡す）。短めにする。
+    tPromptMs: 6_000,
     maxRestarts: 2,
     pollMs: 3_000,
     // 送信後この時間内に受理（busy/結果）が確認できなければ再送（課題1: cold-start 不達）
