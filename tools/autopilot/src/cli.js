@@ -21,7 +21,8 @@
 const { execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const { PHASE_BY_COMMAND, applyResult, DEFAULT_CLAUDE_COMMAND } = require('./phases');
+const { PHASE_BY_COMMAND, applyResult } = require('./phases');
+const { loadSettings, buildClaudeCommand } = require('./settings');
 const { readResultFile } = require('./contract');
 const { runPhase } = require('./runner');
 const project = require('./project');
@@ -29,7 +30,8 @@ const project = require('./project');
 function parseArgs(argv) {
     const o = {
         owner: 'smalruby', project: 4, repo: 'smalruby/smalruby3-editor',
-        command: process.env.AUTOPILOT_CLAUDE_CMD || DEFAULT_CLAUDE_COMMAND,
+        // null なら実行時に settings（フェーズ別 model/effort）から組み立てる
+        command: process.env.AUTOPILOT_CLAUDE_CMD || null,
         dryRun: false, apply: true, worktree: null, useWorktree: true,
     };
     const rest = [];
@@ -64,6 +66,9 @@ async function runTriageLike(command, opts) {
 
     const phase = PHASE_BY_COMMAND[command];
     if (!phase) throw new Error(`unknown phase: ${command}`);
+
+    // --command / env が無ければ settings（フェーズ別 model/effort・addDirs）から組み立てる
+    if (!opts.command) opts.command = buildClaudeCommand(loadSettings({ log }), command);
 
     // worktree
     let cwd = process.cwd();
@@ -119,18 +124,18 @@ async function runTriageLike(command, opts) {
     }
 
     // Project へ反映
-    const token = project.botToken();
-    const proj = project.getProject(opts.owner, opts.project, token);
-    const fields = project.getFields(opts.owner, opts.project, token);
-    const itemId = project.addIssue(opts.owner, opts.project, opts.repo, issue, token);
-    const applied = project.applyIntents({ projectId: proj.id, fields }, itemId, intents, token);
+    const token = await project.botToken();
+    const proj = await project.getProject(opts.owner, opts.project, token);
+    const fields = await project.getFields(opts.owner, opts.project, token);
+    const itemId = await project.addIssue(opts.owner, opts.project, opts.repo, issue, token);
+    const applied = await project.applyIntents({ projectId: proj.id, fields }, itemId, intents, token);
     log(`applied to Project #${opts.project}: ${applied.join(', ')}`);
     process.stdout.write(JSON.stringify(result, null, 2) + '\n');
     return result.signal === 'error' ? 1 : 0;
 }
 
 function parseDaemonArgs(argv) {
-    const o = { owner: 'smalruby', project: 4, repo: 'smalruby/smalruby3-editor', concurrency: 2, intervalMs: 15000, port: 8787, once: false };
+    const o = { owner: 'smalruby', project: 4, repo: 'smalruby/smalruby3-editor', concurrency: 2, intervalMs: 15000, port: 8787, once: false, assignee: null };
     for (let i = 0; i < argv.length; i++) {
         const a = argv[i];
         if (a === '--owner') o.owner = argv[++i];
@@ -140,6 +145,7 @@ function parseDaemonArgs(argv) {
         else if (a === '--interval') o.intervalMs = Number(argv[++i]) * 1000;
         else if (a === '--port') o.port = Number(argv[++i]);
         else if (a === '--once') o.once = true;
+        else if (a === '--assignee') o.assignee = argv[++i];
     }
     return o;
 }
@@ -153,7 +159,7 @@ async function main(argv) {
             '  autopilot daemon [options]            run the resident daemon\n' +
             `  phases: ${Object.keys(PHASE_BY_COMMAND).join(', ')}\n` +
             '  phase options:  --owner --project --repo --command --worktree --no-worktree --dry-run --no-apply\n' +
-            '  daemon options: --owner --project --repo --concurrency --interval(sec) --port --once\n');
+            '  daemon options: --owner --project --repo --concurrency --interval(sec) --port --once --assignee <login>\n');
         return 0;
     }
     if (command === 'daemon') {

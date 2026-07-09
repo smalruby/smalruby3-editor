@@ -12,7 +12,12 @@ CDK project for Smalruby's API Gateway endpoints (HTTP API v2 + Lambda).
 | `/cors-proxy` | GET | `smalruby-api-cors-proxy` | 任意 URL のフェッチ + Google Drive URL 変換 + バイナリ Base64 化 |
 | `/mesh-domain` | GET | `smalruby-api-mesh-zone` | source IP から Mesh ドメイン (CRC32) を生成 |
 | `/scratch-api-proxy/projects/{projectId}` | GET | `smalruby-api-scratch-projects` | Scratch API のプロジェクト情報取得プロキシ (status pass-through) |
-| `/scratch-api-proxy/translate` | GET | `smalruby-api-scratch-translate` | Scratch translate サービスプロキシ |
+| `/scratch-api-proxy/translate` | GET | `smalruby-api-scratch-translate` | ⚠️ **obsolete（使わない）** — Scratch translate 専用プロキシ。翻訳拡張は**共通 `/cors-proxy` 経由に統一**（text2speech #861 と同方式・translate は #862）。新規開発でこの専用エンドポイントを使わないこと。Lambda 自体は当面残置（削除は deploy を伴うため別作業） |
+
+> **CORS 回避プロキシは共通 `/cors-proxy` に一本化する方針**。Scratch のサービス（translate /
+> synthesis 等）を CORS 回避で叩くときは、拡張機能側で `https://api.smalruby.app/cors-proxy?url=<encoded 実URL>`
+> を組む（`SERVER_HOST` 等の upstream 定数は変えず fetch 直前でラップ）。translate 専用の
+> `smalruby-api-scratch-translate` は obsolete。
 
 stg では Lambda 関数名に `-stg` サフィックスが付く (`smalruby-api-cors-proxy-stg` 等)。
 OPTIONS (preflight) は HTTP API v2 の built-in CORS で自動処理 — 旧 `cors-for-smalruby` Lambda は不要。

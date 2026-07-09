@@ -13,18 +13,25 @@
 ### 1. 対象 PR を特定
 
 ```bash
-GH_TOKEN="$(bin/bot-token)" gh pr list --repo "${AUTOPILOT_REPO:-smalruby/smalruby3-editor}" \
-  --search "Closes #$AUTOPILOT_ISSUE in:body" --state open --json number,headRefName
+PR=$(GH_TOKEN="$(bin/bot-token)" gh pr list --repo "${AUTOPILOT_REPO:-smalruby/smalruby3-editor}" \
+  --search "Closes #$AUTOPILOT_ISSUE in:body" --state open --json number -q '.[0].number')
 ```
 
-### 2. 敵対的レビューを実行
+### 2. 敵対的レビューを実行（インライン・軽量）
 
-差分に対し、**批判的観点**でレビューする。既存スキルを活用:
+差分に対し、**自分で（インラインで）批判的にレビューする**。
 
-- `/code-review` — 正確性バグ・再利用/簡潔性/効率の指摘
-- `/security-review` — 情報漏洩・認可・入力検証
+> ⚠️ **`/code-review` や `/security-review` などの Skill を起動しないこと**（Issue #893）。
+> これらは **動的マルチエージェント Workflow** を起動し、許可プロンプトで worker が停止する上に
+> トークンを大量消費する。worker は root で動き `bypassPermissions` が使えないため、
+> Skill/Workflow の許可プロンプトを避ける。**レビューは以下の観点を自分の目で確認する**
+> （どうしても機械的チェックを併用する場合でも、単発の観点チェックに留め、動的 workflow は使わない）。
 
-加えて autopilot 固有の観点:
+`GH_TOKEN="$(bin/bot-token)" gh pr diff "$PR" --repo "${AUTOPILOT_REPO:-smalruby/smalruby3-editor}"` で差分を読み、次の観点で確認する:
+
+- **正確性バグ** — 境界条件・null/undefined・非同期の取りこぼし・エラー処理漏れ・退行
+- **セキュリティ** — 情報漏洩・認可/入力検証・秘密のログ出力
+- **再利用/簡潔性/効率** — 重複・不要な複雑さ・明らかな非効率
 - プロジェクト規約（`CLAUDE.md` / `.claude/rules`）違反、マーカー漏れ、prettier 対象一覧の更新漏れ
 - テスト不足（直接の関連テストがあるか）、ドキュメント/DoD の整合
 - 「動くが脆い/将来壊れる」設計の指摘

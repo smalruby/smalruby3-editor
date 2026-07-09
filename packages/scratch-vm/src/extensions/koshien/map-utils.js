@@ -84,7 +84,8 @@ const cellAt = (grid, x, y) => {
 
 /**
  * Movement cost for entering a cell (Infinity = impassable).
- * Mirrors the real server: walls impassable, water 2, unexplored 4, else 1.
+ * Mirrors the real client library: walls impassable, water 2, unexplored 4,
+ * anything else that is not open space or an item (e.g. the goal) 3, else 1.
  * @param {(number|string)} cell - the cell value.
  * @returns {number} - the movement cost.
  */
@@ -98,7 +99,10 @@ const moveCost = cell => {
     if (cell === -1) {
         return 4;
     }
-    return 1;
+    if (cell === 0 || typeof cell === 'string') {
+        return 1;
+    }
+    return 3;
 };
 
 /**
@@ -107,7 +111,9 @@ const moveCost = cell => {
  * @param {string} src - start "x:y".
  * @param {string} dst - goal "x:y".
  * @param {Array<string>} [exceptCells] - "x:y" cells to treat as impassable.
- * @returns {Array<string>} - the route as "x:y" strings (empty when unreachable).
+ * @returns {Array<string>} - the route as "x:y" strings. When the goal is
+ *     unreachable the result has a single element (like the real client
+ *     library); malformed inputs yield an empty array.
  */
 const calcRoute = (grid, src, dst, exceptCells = []) => {
     const height = grid.length;
@@ -186,7 +192,8 @@ const calcRoute = (grid, src, dst, exceptCells = []) => {
     }
 
     if (!prev.has(goalKey)) {
-        return [];
+        // Unreachable: a single-element list, like the real client library.
+        return [formatPosition(goal.x, goal.y)];
     }
     const path = [];
     let k = goalKey;
@@ -199,7 +206,7 @@ const calcRoute = (grid, src, dst, exceptCells = []) => {
         k = prev.get(k);
     }
     if (path[0] !== formatPosition(start.x, start.y)) {
-        return [];
+        return [formatPosition(goal.x, goal.y)];
     }
     return path;
 };

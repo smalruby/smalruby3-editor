@@ -3,9 +3,10 @@
 > **🆕 Smalruby 独自** — autopilot（Claude による Issue ライフサイクル自律オーケストレーター）の
 > 中核規約。upstream には存在しない。設計の出発点は Issue #760。
 
-このドキュメントは、autopilot の各**フェーズ・プロンプト**（`autopilot-triage` / `autopilot-understand` /
-`autopilot-decompose` / `autopilot-implement` / `autopilot-review` / `autopilot-address-review` /
-`autopilot-verify`）と、それらを tmux 上で駆動する **Claude Runner** の間の**契約**を定める。
+このドキュメントは、autopilot の各**フェーズ・プロンプト**（`autopilot-triage` / `autopilot-discuss` /
+`autopilot-understand` / `autopilot-decompose` / `autopilot-implement` / `autopilot-review` /
+`autopilot-address-review` / `autopilot-verify`）と、それらを tmux 上で駆動する
+**Claude Runner** の間の**契約**を定める。
 
 すべての `autopilot-*` プロンプトは本コントラクトに従う。プロンプトの冒頭は必ず
 「**Follow the autopilot autonomous contract: `docs/autopilot/autonomous-contract.md`**」を宣言する。
@@ -24,8 +25,10 @@ autopilot のプロンプトは、**人間が enter を押すのと同じ形で 
 
 - **`AskUserQuestion` を使わない。** いかなる対話的プロンプト・選択 UI も出さない。
 - **カーソル入力待ちで停止しない。** 確認のために人間の応答を待つ動作をしない。
-- **権限プロンプトを前提にしない。** ツールは事前許可（acceptEdits / allowlist）で動く想定。
-  もしツールが拒否されたら、対話的に粘らず **`AUTOPILOT_ERROR` で終了**する（後述）。
+- **権限プロンプトを前提にしない。** worker は `--permission-mode auto`（classifier が自動許可/
+  拒否）で動くので通常は確認が出ない。もしツールが拒否されたら、対話的に粘らず
+  **`AUTOPILOT_ERROR` / `signal=hitl` で終了**する。万一プロンプトを出してしまっても、runner が
+  検知して自動的に HITL へ落とす（人間に渡る）が、**自分からプロンプトを出さない**のが前提。
 
 判断・確認・追加情報が必要になったら、**人間に聞くのではなく**:
 
@@ -67,7 +70,7 @@ Runner はこの短語を pane で検出してから `AUTOPILOT_RESULT_FILE` を
 | key | 型 | 説明 |
 |---|---|---|
 | `issue` | number | 対象 Issue 番号 |
-| `phase` | string | 実行したプロンプト（`triage`/`decompose`/`implement`/`review`/`address-review`/`verify`/`understand`） |
+| `phase` | string | 実行したプロンプト（`triage`/`discuss`/`decompose`/`implement`/`review`/`address-review`/`verify`/`understand`） |
 | `signal` | string | `done` / `hitl` / `error`（pane トークンと一致させる） |
 | `summary` | string | 人間向け 1 行要約 |
 
@@ -89,7 +92,8 @@ Runner はこの短語を pane で検出してから `AUTOPILOT_RESULT_FILE` を
 |---|---|---|
 | `reason` | string | 人間に何を判断してほしいか |
 | `commentUrl` | string | 投稿したコメントの URL |
-| `nextStatus` | string \| null | 提案する Status（任意） |
+| `nextStatus` | string \| null | 提案する Status（任意。**Icebox / Close / Done は提案しない** — 提案段階で退避系へ動かすと出口の無い状態に固着する。`state-machine.md` 不変条件 I4） |
+| `nextAiStatus` | string \| null | 提案する AI Status（任意。例: 実装前ディスカッションの `Discussing`） |
 
 `signal=error` のとき追加で:
 
@@ -138,7 +142,11 @@ AUTOPILOT_DONE
 
 ## 5. 認証・スコープ
 
-- コミット/push は **`bin/bot-git`**（bot 名義を `-c` 注入。共有 `.git/config` は書き換えない）。
+- コミットは **`bin/bot-git`**（bot 名義を `-c` 注入。共有 `.git/config` は書き換えない）。
+- push は **`bin/autopilot-push`** を使う。変更に Bot 権限外パス（`.github/workflows/**` 等）が
+  含まれると個人クレデンシャルの push に自動で切り替わる（`route=personal`）。その場合
+  PR 作成も plain `gh`（個人トークン）で行い、`👥 human-review-required` ラベルを付けて
+  本人以外のレビューを必須にする。
 - gh / GraphQL は **`GH_TOKEN="$(bin/bot-token)" gh ...`**（`bin/bot-token` は5分前自動リフレッシュ）。
 - 作業は**割り当てられた worktree（cwd）の中だけ**で行う。
 - 対象は**割り当てられた 1 つの Issue / PR のみ**。他の Issue を勝手に触らない。
@@ -152,6 +160,7 @@ AUTOPILOT_DONE
 | `AUTOPILOT_ISSUE` | 対象 Issue 番号 |
 | `AUTOPILOT_PHASE` | 実行フェーズ名 |
 | `AUTOPILOT_RESULT_FILE` | 結果 JSON の書き込み先パス |
+| （起動メッセージのプロンプトパス） | daemon 経由の run は**起動時スナップショット**の絶対パスのプロンプトを Read する（checkout のブランチ切り替えに非依存）。worker の model/effort/追加ディレクトリは `tools/autopilot/src/settings.js` 参照 |
 | `AUTOPILOT_PROJECT` | Project 番号（参照のみ。書き込みは daemon） |
 | `AUTOPILOT_REPO` | `smalruby/smalruby3-editor` |
 | `AUTOPILOT_BASE_BRANCH` | PR 先・worktree 分岐元のベースブランチ（既定 `develop`）。Issue 本文の `autopilot-base:` ディレクティブや「ベースブランチ」宣言があれば daemon が渡す（EPIC サブ Issue を親 epic ブランチに積む用）。implement は `gh pr create --base` にこれを使う |
@@ -189,21 +198,37 @@ Issue/PR の両面を賄え、成果物ページにも見える。ラベルは I
 → 人間はレビュー中に**目の前の PR の `🙋 HITL` ラベルを外すだけ**で autopilot に差し戻せる。
 PR の無い段階（triage/decompose 等）では PR ラベルは非適用（Issue ラベルのみで判定）。
 
-### DoD は daemon が headful 引き継ぎを生成する（プロンプト run ではない・#821）
+### worker は headless Playwright で一般 UI 確認まで完結できる（#891）
 
-DoD（実機ブラウザでの最終確認）は**コンテナ内 daemon が headless で実ブラウザを動かせない**ため、
-**プロンプト run ではなく daemon の tick ステップ**（`applyDodHandoffs`）として扱う。`Status=DoD` の leaf に
-対し、daemon が「プレビュー URL ＋ Issue の DoD チェックリスト ＋ 定型 headful 手順 ＋ 報告の出口」を
-**テンプレート生成**して `autopilot:dod-handoff` マーカー付きコメントを PR に投稿する（child Claude を
-起動せず、純粋な I/O + 文字列テンプレートで完結。冪等）。これを**ホスト側の Claude（headful Playwright）**
-が実施し、結果を PR にコメントする。
+worker（verify / review フェーズ）は **`playwright` パッケージの bundled chromium を headless で**
+起動し、**一般的な UI 確認は自分で完結できる**（Issue #891 で実証: worktree からも symlink 経由で
+解決、ブラウザキャッシュは `~/.cache/ms-playwright`）。dev server の要否は **UI 種別で判断**する:
+
+- **自己完結ページ（autopilot monitor 等）**: dev server 不要。daemon の `http://localhost:8787/` を
+  開くか、`MONITOR_HTML` 等を静的 serve して確認（ヘルパー `tools/autopilot/bin/pw-check`）。
+- **scratch-gui の UI**: dev server（`localhost:8601`）が必要。起動は重いので **プレビュー URL があれば優先**、
+  無ければ dev server を起動して待機してから確認。
+- **音 / autoplay 依存**: headless chromium では信用できない（`e2e-test.md` の既知事項）→ 実 Chrome が
+  要るため **ホスト/人間へ引き継ぐ**（下記 `applyDodHandoffs` の headful 引き継ぎ）。
+
+**Playwright MCP は使わない**（host Chrome 依存でコンテナ内では失敗）。必ず `playwright` パッケージ headless。
+
+### DoD の headful 引き継ぎは音/autoplay 等の限定ケースに縮小（#821 → #891）
+
+DoD の最終確認のうち **音/autoplay など実 Chrome が必須のケースのみ**、daemon が headful 引き継ぎを生成する
+（**廃止ではなく対象の明確化**）。一般 UI の DoD は verify フェーズが headless で自己完結する。
+限定ケースでは **プロンプト run ではなく daemon の tick ステップ**（`applyDodHandoffs`）として扱い、
+`Status=DoD` の leaf に対し daemon が「プレビュー URL ＋ Issue の DoD チェックリスト ＋ 定型 headful 手順
+＋ 報告の出口」を **テンプレート生成**して `autopilot:dod-handoff` マーカー付きコメントを PR に投稿する
+（child Claude を起動せず、純粋な I/O + 文字列テンプレートで完結。冪等）。これを**ホスト側の Claude
+（headful Playwright / 実 Chrome）**が実施し、結果を PR にコメントする。
 
 - **OK** → 人間が merge → merge-progression が leaf を Close。
 - **NG** → ホスト/人間が PR にコメントし `🙋 HITL` を外す → **DoD 解除 → `address-review`**（Review と対称。
   `phaseForItem` の DoD 解除パス。OR セマンティクスも同じ）。
 
-`autopilot-verify` プロンプトは手動 inject 用に残置（自動経路は使わない）。詳細は
-[`README.md`](./README.md) の「DoD — headful 検証の引き継ぎ生成」。
+`autopilot-verify` プロンプトは headless Playwright で一般 UI の DoD を確認する（#891）。詳細は
+[`README.md`](./README.md) の「DoD — headless 確認と headful 引き継ぎ」。
 
 ---
 

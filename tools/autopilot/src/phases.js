@@ -40,7 +40,9 @@ function autopilotHeadBranch(issueNumber, prefix = AUTOPILOT_BRANCH_PREFIX) {
  * 振る舞いを人間（implement スキルの判断）任せにせず、宣言があれば確実に効かせるための防御策。
  *
  * 認識する書式（いずれか）:
- *  1. ディレクティブ: `autopilot-base: <branch>`（HTML コメント内でも可）。最優先。
+ *  1. ディレクティブ: `autopilot-base: <branch>`。**行頭のみ**反応する（HTML コメントが
+ *     行頭から始まる場合は `<!-- autopilot-base: x -->` も可）。本文の途中で
+ *     「autopilot-base: と書くと…」のように**言及**しただけでは発火しない。最優先。
  *  2. 「## ベースブランチ」/「base branch」見出し・ラベルの直後にあるバッククォート囲みのブランチ。
  *
  * いずれも無ければ null（= 既定 develop）。誤検出を避けるため、明示宣言があるときだけ返す。
@@ -49,11 +51,51 @@ function autopilotHeadBranch(issueNumber, prefix = AUTOPILOT_BRANCH_PREFIX) {
  */
 function parseBaseBranch(body) {
     if (!body) return null;
-    const directive = body.match(/autopilot-base:\s*`?([\w.\/-]+)`?/i);
+    const directive = body.match(/^(?:<!--\s*)?autopilot-base:\s*`?([\w.\/-]+)`?/im);
     if (directive) return directive[1];
     const section = body.match(/(?:ベースブランチ|base[ -]?branch)[^\n]*\n+[^\n]*?`([\w.\/-]+)`/i);
     if (section) return section[1];
     return null;
+}
+
+/**
+ * Issue 本文から `autopilot-after:` ディレクティブ（着手順の依存宣言）を抽出する（純粋関数）。
+ *
+ * `autopilot-after: #123` と宣言すると、その Issue（依存）が完了（GitHub closed または
+ * Project Status が終端）するまで autopilot はこの Issue に着手しない。
+ * `autopilot-base:` と同じく**行頭のみ**反応する（行頭 HTML コメントも可）。
+ * 複数依存はカンマ/空白区切り（`autopilot-after: #12, #34`）、複数行の宣言も合算する。
+ * `#` は省略可。重複は除去する。
+ * @param {string} body Issue 本文
+ * @returns {number[]} 依存 Issue 番号（宣言順・重複なし）
+ */
+function parseAfterIssues(body) {
+    if (!body) return [];
+    const out = [];
+    const re = /^(?:<!--\s*)?autopilot-after:\s*([^\n]*)/gim;
+    let m;
+    while ((m = re.exec(body)) !== null) {
+        for (const t of m[1].matchAll(/#?(\d+)/g)) out.push(Number(t[1]));
+    }
+    return [...new Set(out)];
+}
+
+/**
+ * `autopilot-after:` の依存のうち、まだ完了していないものを返す（純粋関数）。
+ * 完了 = GitHub で closed（closedSet に含まれる）または Project Status が終端
+ * （{@link TERMINAL_STATUSES}）。Project にも closedSet にも見つからない依存は
+ * 「まだ完了していない」と保守的に扱う（依存の消し忘れ・番号ミスを人間が気付ける）。
+ * @param {number[]} after 依存 Issue 番号
+ * @param {object} ctx { closedSet: Set<number>|number[], statusByIssue: {[issue]: string} }
+ * @returns {number[]} 未完了の依存 Issue 番号
+ */
+function unresolvedAfterIssues(after, ctx = {}) {
+    const closed = ctx.closedSet instanceof Set ? ctx.closedSet : new Set(ctx.closedSet || []);
+    const statusByIssue = ctx.statusByIssue || {};
+    return (after || []).filter((n) => {
+        if (closed.has(n)) return false;
+        return !TERMINAL_STATUSES.has(statusByIssue[n]);
+    });
 }
 
 /**
@@ -64,6 +106,7 @@ function parseBaseBranch(body) {
  */
 const PHASE_BY_COMMAND = {
     triage: { skill: 'autopilot-triage', aiStatus: 'Triaging' },
+    discuss: { skill: 'autopilot-discuss', aiStatus: 'Discussing' },
     understand: { skill: 'autopilot-understand', aiStatus: 'Understanding' },
     decompose: { skill: 'autopilot-decompose', aiStatus: 'Decomposing' },
     implement: { skill: 'autopilot-implement', aiStatus: 'Implementing' },
@@ -82,10 +125,12 @@ const PROMPT_DIR = 'tools/autopilot/prompts';
  * `AUTOPILOT_ISSUE` にも入るが、確実性のためメッセージにも番号を含める。
  * @param {string} skill プロンプト basename（例 'autopilot-triage'）
  * @param {number|string} issue 対象 Issue 番号
+ * @param {string} [promptDir] プロンプト配置ディレクトリ。daemon は起動時スナップショットの
+ *   絶対パスを渡す（checkout のブランチ切り替えに非依存）。省略時は worktree 内の相対パス。
  * @returns {string} 送信メッセージ
  */
-function phasePromptCommand(skill, issue) {
-    return `${PROMPT_DIR}/${skill}.md を Read して、その手順に厳密に従ってください。` +
+function phasePromptCommand(skill, issue, promptDir = PROMPT_DIR) {
+    return `${promptDir}/${skill}.md を Read して、その手順に厳密に従ってください。` +
         `対象 Issue は AUTOPILOT_ISSUE=${issue} です。`;
 }
 
@@ -150,6 +195,92 @@ function isHitlReleased(signals) {
 }
 
 /**
+ * 時刻値（ms epoch または ISO 文字列）を ms に正規化する（純粋関数）。不正・欠損は 0。
+ * @param {number|string|null|undefined} t
+ * @returns {number}
+ */
+function toMs(t) {
+    if (typeof t === 'number' && Number.isFinite(t)) return t;
+    if (typeof t === 'string') {
+        const ms = Date.parse(t);
+        return Number.isNaN(ms) ? 0 : ms;
+    }
+    return 0;
+}
+
+/**
+ * 「ゲート開放中に人間が最後に発言したか」（純粋関数・状態固着の防止）。
+ *
+ * 人間ゲート（Review / DoD / Blocked / Discussing）の解除はラベル操作（{@link isHitlReleased}）
+ * だけだと、**人間がコメント（レビュー送信・返信）だけしてラベルを触らない**ケースで
+ * ステートが固着する。そこで「bot の最後の発言・処理済み watermark より **後に** 人間が
+ * 発言した」場合も解除シグナルとみなす。bot が応答（コメント）すると lastBotAt が進み、
+ * daemon が dispatch すると handledAt（watermark）が進むので、同じ発言で再発火しない。
+ * @param {object} activity { lastHumanAt, lastBotAt, handledAt }（ms epoch または ISO 文字列）
+ * @returns {boolean}
+ */
+function humanSpokeLast(activity = {}) {
+    const human = toMs(activity.lastHumanAt);
+    if (!human) return false;
+    return human > Math.max(toMs(activity.lastBotAt), toMs(activity.handledAt));
+}
+
+/**
+ * 2 つの活動記録（Issue 側と PR 側など）をマージして新しい方を採る（純粋関数）。
+ * @param {object} a { lastHumanAt, lastBotAt }
+ * @param {object} b { lastHumanAt, lastBotAt }
+ * @returns {{lastHumanAt: number, lastBotAt: number}} ms epoch（欠損は 0）
+ */
+function mergeActivity(a = {}, b = {}) {
+    return {
+        lastHumanAt: Math.max(toMs(a.lastHumanAt), toMs(b.lastHumanAt)),
+        lastBotAt: Math.max(toMs(a.lastBotAt), toMs(b.lastBotAt)),
+    };
+}
+
+/**
+ * 「未処理の新しい CHANGES_REQUESTED レビューがあるか」（純粋関数・#894）。
+ *
+ * approve 後に Request changes しても、コメント時刻ベースの {@link humanSpokeLast} は
+ * bot の sticky 更新（lastBotAt）や approve 時の watermark（handledAt）に leapfrog されて
+ * 拾えず、🙋 ラベルを付けるだけで何も進まない行き止まりになっていた。これを塞ぐための
+ * **構造化された解除シグナル**。approve の有無に関わらず changesRequested を優先して拾う。
+ *
+ * review.changesRequested かつ、その最新 CHANGES_REQUESTED の submittedAt
+ * （review.changesRequestedAt）が処理済み watermark（handledReviewAt）より新しいときだけ true。
+ * 一度処理して watermark を進めれば同じレビューでは false（毎 tick 再発火しない）。次に
+ * より新しい changesRequested が来たら再び true になる。時刻が不明なら false（誤発火を避ける）。
+ * @param {object} review { changesRequested, changesRequestedAt }（PR のレビュー状態）
+ * @param {number|string|null|undefined} handledReviewAt 最後に処理した changesRequested の submittedAt
+ * @returns {boolean}
+ */
+function hasUnhandledChangesRequest(review, handledReviewAt) {
+    if (!review || !review.changesRequested) return false;
+    const at = toMs(review.changesRequestedAt);
+    if (!at) return false;
+    return at > toMs(handledReviewAt);
+}
+
+/**
+ * 人間ゲートの解除判定（純粋関数・3 系統の OR）。
+ * 1. ラベル解除: Issue/PR の 🙋 ラベルのいずれかが除去された（{@link isHitlReleased}）
+ * 2. 発言解除: ゲート開放中に人間が最後に発言した（{@link humanSpokeLast} を daemon が
+ *    計算して ctx.humanSpokeLast として渡す）
+ * 3. changesRequested 解除（#894）: 未処理の新しい CHANGES_REQUESTED レビューがある
+ *    （{@link hasUnhandledChangesRequest} を daemon が計算して ctx.unhandledChangesRequested
+ *    として渡す）。approve 後の Request changes を、コメント時刻/watermark の leapfrog に
+ *    負けず確実に拾うための構造化シグナル。
+ * どれか1つでも「人間の番が終わった」とみなし autopilot が処理を進める。
+ * @param {object} item { hitlLabel }
+ * @param {object} ctx { hitlSignals, humanSpokeLast, unhandledChangesRequested }
+ * @returns {boolean}
+ */
+function isGateReleased(item, ctx = {}) {
+    const labelReleased = ctx.hitlSignals ? isHitlReleased(ctx.hitlSignals) : !(item && item.hitlLabel);
+    return labelReleased || ctx.humanSpokeLast === true || ctx.unhandledChangesRequested === true;
+}
+
+/**
  * merge は HITL と独立した「前進シグナル」。PR が merge されたとき、ひも付く Issue を
  * どの Status へ進めるかを返す（純粋関数）。
  * - leaf（Kind=Issue）: `Close`（HITL ラベル/フィールドが残っていても進める）
@@ -177,7 +308,7 @@ const MERGE_CHECK_STATUSES = new Set(['In Progress', 'Review', 'DoD']);
  */
 function selectMergeCandidates(items) {
     return (items || []).filter(
-        (it) => it && it.kind !== 'EPIC' && MERGE_CHECK_STATUSES.has(it.status),
+        (it) => it && !isTrackerItem(it) && MERGE_CHECK_STATUSES.has(it.status),
     );
 }
 
@@ -286,20 +417,38 @@ const HUMAN_GATE_STATUSES = new Set(['Review', 'DoD']);
  */
 function phaseForItem(item, ctx = {}) {
     if (!item) return null;
+    // 🧭 tracking ラベル付き = 分解済みの親トラッカー。作業 item ではないので何もしない
+    // （完了は closed-reconcile が拾う）。Kind=EPIC でも未分解なら decompose 対象なので
+    // ここではラベルだけを見る。
+    if (hasTrackingLabel(item)) return null;
     const status = item.status || 'New Item';
     if (HUMAN_GATE_STATUSES.has(status)) {
-        // 解除シグナルがあれば OR 判定、無ければ Issue の 🙋 ラベル単独で判定（#813）。
-        const released = ctx.hitlSignals
-            ? isHitlReleased(ctx.hitlSignals)
-            : !item.hitlLabel;
-        // 人間が HITL を解除したら、構造化シグナル（approve/changes-requested 等）で機械的に
+        // 解除は 2 系統の OR（ラベル解除 / 人間の発言・isGateReleased）。ラベルを触らず
+        // レビューコメントだけ出す人間の操作でも固着しない（状態遷移ドキュメント参照）。
+        // 人間がゲートを解除したら、構造化シグナル（approve/changes-requested 等）で機械的に
         // 分岐せず、必ず address-review へ渡す（#815/#821）。address-review スキルが PR の diff と
         // **全コメント（Issue/レビュー本文/インライン）**を読んで意図を分類する:
         //   - 質問・改善依頼 / DoD NG → 対応（コード修正 or 返信）
         //   - LGTM など対応不要 → 何もせず人間の merge を待つ
         //   - 判断がつかない → 人間に質問（HITL）
         // 自由文の分類は純粋関数では不可能なため、判断はスキル側に置く（daemon は dispatch のみ）。
-        return released ? 'address-review' : null;
+        return isGateReleased(item, ctx) ? 'address-review' : null;
+    }
+    // Blocked も人間ゲート: run 失敗・stall 時に autopilot が入れる状態で、Blocked コメントは
+    // 「🙋 を外すと再開」と案内する。解除されたら PR があれば address-review（スレッドを読んで
+    // 対応）、無ければ triage（再トリアージして Backlog/Sprint Backlog へ再ルート）で再開する。
+    // 以前は Blocked に出口が無く、ラベルを外しても何も起きない固着状態だった。
+    if (status === 'Blocked') {
+        if (!isGateReleased(item, ctx)) return null;
+        return ctx.pr ? 'address-review' : 'triage';
+    }
+    // 実装前ディスカッション（discuss）: triage が方針提案を出し AI Status=Discussing で
+    // 人間に渡した item は、人間が返信する（🙋 を外す or コメントする）たびにここへ戻ってくる。
+    // 議論の往復中も Status は動かさない（Backlog / New Item に固定）ので、triage との
+    // 再提案ループでステータスが固着・振動しない。承認されたら discuss が
+    // Sprint Backlog を返し、implement へ直接ハンドオフされる。
+    if ((status === 'New Item' || status === 'Backlog') && item.aiStatus === 'Discussing') {
+        return isGateReleased(item, ctx) ? 'discuss' : null;
     }
     if (item.hitlLabel) return null; // 人間の番（🙋 ラベルあり）
     if (status === 'New Item') return 'triage';
@@ -330,33 +479,97 @@ function isActionable(item, opts = {}) {
  * 死んだ場合、Status が In Progress + AI Status=xxxing のまま誰も再 dispatch せず固まる
  * （phaseForItem は In Progress を Self-Reviewing 以外では再開しないため）。
  *
- * Self-Reviewing は次 tick で自動 dispatch（review）されるので stuck 対象外。AI Status が
- * 空の In Progress（人間が手で In Progress にした等）も対象外。実際に「実行中の run が無いか」
- * 「十分な時間が経過したか」は I/O・時間を持つ daemon 側で判定する（ここは形だけ見る）。
+ * Self-Reviewing は次 tick で自動 dispatch（review）されるので stuck 対象外。EPIC Decomposed は
+ * decompose が正常終了した EPIC の resting 状態（子の実装待ち）で、run を持たなくて当然なので
+ * 対象外（#856）。AI Status が空の In Progress（人間が手で In Progress にした等）も対象外。
+ * 実際に「実行中の run が無いか」「十分な時間が経過したか」は I/O・時間を持つ daemon 側で
+ * 判定する（ここは形だけ見る）。
  * @param {object} item { status, aiStatus }
  * @returns {boolean}
  */
+const STUCK_EXEMPT_AI_STATUSES = new Set(['Self-Reviewing', 'EPIC Decomposed']);
 function isStuckCandidate(item) {
     if (!item || item.status !== 'In Progress') return false;
-    if (!item.aiStatus || item.aiStatus === 'Self-Reviewing') return false;
+    if (!item.aiStatus || STUCK_EXEMPT_AI_STATUSES.has(item.aiStatus)) return false;
     return true;
 }
 
 /**
+ * item の決定的な単一オーナーを返す（純粋関数・enroll モデル）。
+ * assignee の**辞書順先頭**をオーナーとする。複数 assignee の Issue を複数開発者の
+ * daemon が同時に拾わないための決定的なタイブレーク。未 assign は null（オーナー不在）。
+ * @param {object} item { assignees?: string[] }
+ * @returns {string|null} オーナーの GitHub login、未 assign なら null
+ */
+function itemOwner(item) {
+    const assignees = (item && item.assignees) || [];
+    if (!assignees.length) return null;
+    return [...assignees].sort()[0];
+}
+
+/**
+ * enroll 判定: assignee=login で起動した daemon がこの item を処理してよいか（純粋関数）。
+ * プロジェクトに携わる開発者が**個人ごとに autopilot を起動する**想定で、
+ * 「自分が決定的な単一オーナー（{@link itemOwner}）」の item だけ処理する。
+ * 未 assign の item は誰も拾わない（先に assign して enroll する運用）。
+ * login 未設定（従来運用・単一 daemon）は全件処理する。
+ * @param {object} item { assignees?: string[] }
+ * @param {string|null} login 自分の GitHub login（daemon の --assignee）
+ * @returns {boolean}
+ */
+function ownsItem(item, login) {
+    if (!login) return true;
+    return itemOwner(item) === login;
+}
+
+/**
+ * Status の表示順ランク（純粋関数）。Project Board view の列順 = Status フィールドの
+ * option 定義順に合わせる。'New Item'（No Status）は Board の最左列なので先頭扱い。
+ * 未知の Status は末尾。
+ * @param {string} status
+ * @param {string[]} statusOrder Status フィールドの option 名（定義順）
+ * @returns {number}
+ */
+function statusRank(status, statusOrder) {
+    const s = status || 'New Item';
+    if (s === 'New Item') return -1;
+    const idx = (statusOrder || []).indexOf(s);
+    return idx === -1 ? Number.MAX_SAFE_INTEGER : idx;
+}
+
+/**
+ * item の並びを Project Board view の見た目（Status 列順 + 列内は手動並び順）に揃える
+ * （純粋関数）。items は `gh project item-list` の手動並び順で渡ってくる前提。
+ * Array.prototype.sort は安定なので、同 Status 内の相対順（手動並び順）は保存される。
+ * @param {object[]} items
+ * @param {string[]} statusOrder Status フィールドの option 名（定義順）
+ * @returns {object[]} 新しい配列（元は破壊しない）
+ */
+function orderItemsLikeBoard(items, statusOrder) {
+    return [...(items || [])].sort(
+        (a, b) => statusRank(a && a.status, statusOrder) - statusRank(b && b.status, statusOrder),
+    );
+}
+
+/**
  * 着手すべき item を並行上限内で選ぶ（純粋関数）。
- * @param {object[]} items 各 { issue, status, aiStatus, hitlLabel, kind }
- * @param {object} opts { paused, running:Set<number>, limit, contexts }
+ * @param {object[]} items 各 { issue, status, aiStatus, hitlLabel, kind, assignees }
+ * @param {object} opts { paused, running:Set<number>, limit, contexts, assignee, statusOrder }
  *   contexts は issue 番号 → { review, hitlSignals, pr } の map（Review item の付帯情報）。
+ *   assignee を渡すと enroll フィルタ（{@link ownsItem}）が効く。
+ *   statusOrder を渡すと投入順を Board view の見た目（{@link orderItemsLikeBoard}）に揃える。
  * @returns {object[]} 実行対象（issue + phase）。Review 由来は pr 番号も付く。
  */
 function selectActionable(items, opts = {}) {
     const running = opts.running || new Set();
     const limit = opts.limit ?? 2;
     const contexts = opts.contexts || {};
+    const ordered = opts.statusOrder ? orderItemsLikeBoard(items, opts.statusOrder) : (items || []);
     const out = [];
-    for (const item of items) {
+    for (const item of ordered) {
         if (out.length >= Math.max(0, limit - running.size)) break;
         if (running.has(item.issue)) continue;
+        if (!ownsItem(item, opts.assignee)) continue;
         const ctx = contexts[item.issue] || {};
         if (!isActionable(item, { paused: opts.paused, ctx })) continue;
         out.push({ ...item, phase: phaseForItem(item, ctx), pr: ctx.pr });
@@ -370,6 +583,80 @@ function selectActionable(items, opts = {}) {
 const AUTOPILOT_LABEL = '🤖 autopilot';
 /** 人間の対応待ちを示すラベル（Project HITL=Yes を投影） */
 const HITL_LABEL = '🙋 HITL';
+/**
+ * Bot（GitHub App）の権限外パスに触れた変更を含む PR に付けるラベル。
+ * このラベルの PR は **個人トークンで作成**されており、autopilot の想定外領域
+ * （workflows 等）を変更しているため、**本人以外の人間レビューを必須**とする運用。
+ * autopilot はこのラベルを付けるだけで外さない（外すのは人間）。
+ */
+const HUMAN_REVIEW_LABEL = '👥 human-review-required';
+/**
+ * `autopilot-after:` の先行 Issue がまだ完了しておらず、ゲートで着手を待たされている
+ * ことを示すラベル。GitHub Projects の view で「他 Issue 待ち」を一目で判別できるようにする。
+ * daemon が依存状態に合わせて**毎 tick 動的に付け外し**する（先行 Close で自動除去 →
+ * 次 tick で着手）。静的に一度付けるのではなく 🧭 tracking 同様に状態から都度導出するのは、
+ * 依存が解決したときに自動で外す必要があるため。
+ */
+const WAITING_LABEL = '⏳ waiting';
+
+/** Bot（GitHub App）に書き込み権限が無いパスのパターン（bin/autopilot-push と対） */
+const PROTECTED_PATH_PATTERNS = [/^\.github\/workflows\//, /^\.github\/actions\//];
+
+/**
+ * 変更ファイル一覧から Bot 権限外パスを抽出する（純粋関数）。
+ * 1 つでも含まれる場合、push/PR 作成は個人トークン経路（`bin/autopilot-push`）になる。
+ * @param {string[]} files 変更ファイルパス（repo 相対）
+ * @returns {string[]} 権限外パスに該当するファイル
+ */
+function protectedPaths(files) {
+    return (files || []).filter((f) => PROTECTED_PATH_PATTERNS.some((re) => re.test(f)));
+}
+
+/**
+ * sub-issue に分解済みの親（トラッカー）を示すラベル。
+ * 「作業 item かどうか」を毎 tick GitHub に問い合わせて判定するコストを避け、
+ * ラベル 1 つで merge 検知・PR 投影・DoD 引き継ぎ・フェーズ選択から除外できるようにする。
+ * daemon が Kind=EPIC の item に自動付与するほか、人間が手動で付けて
+ * 任意の Issue をトラッカー扱いにもできる（外せば作業 item に戻る）。
+ */
+const TRACKING_LABEL = '🧭 tracking';
+
+/**
+ * item がトラッカー（sub-issue に分解済みの親 = 作業 item ではない）か（純粋関数）。
+ * Kind=EPIC または 🧭 tracking ラベルで判定する。
+ * @param {object} item { kind, labels }
+ * @returns {boolean}
+ */
+function isTrackerItem(item) {
+    if (!item) return false;
+    if (item.kind === 'EPIC') return true;
+    return hasTrackingLabel(item);
+}
+
+/**
+ * item に 🧭 tracking ラベルが付いているか（純粋関数）。
+ * {@link isTrackerItem} と違い Kind は見ない（フェーズ選択では「未分解の EPIC は
+ * decompose 対象」なので、Kind=EPIC だけではフェーズ対象から外さない）。
+ * @param {object} item { labels }
+ * @returns {boolean}
+ */
+function hasTrackingLabel(item) {
+    return Boolean(item) && Array.isArray(item.labels) && item.labels.includes(TRACKING_LABEL);
+}
+
+/**
+ * ⏳ waiting ラベルを付けるか外すかを決める（純粋関数）。
+ * 依存待ちなのにラベルが無ければ 'add'、依存が解決したのにラベルが残っていれば 'remove'、
+ * どちらでもなければ null（無操作）。
+ * @param {boolean} hasLabel 現在 ⏳ waiting が付いているか
+ * @param {boolean} waiting autopilot-after 依存が未完了か（true=まだ待ち）
+ * @returns {'add'|'remove'|null}
+ */
+function waitingLabelAction(hasLabel, waiting) {
+    if (waiting && !hasLabel) return 'add';
+    if (!waiting && hasLabel) return 'remove';
+    return null;
+}
 /**
  * sticky ステータスコメントの識別マーカー（bot が1コメントを upsert し続ける目印）。
  * コントラクト `docs/autopilot/autonomous-contract.md` §2/§7 が規定する正準マーカー。
@@ -401,7 +688,88 @@ function isStickyComment(body) {
  * @returns {Array<*>} マッチしたコメントの id 配列
  */
 function selectStickyCommentIds(comments) {
-    return (comments || []).filter((c) => c && isStickyComment(c.body)).map((c) => c.id);
+    return selectMarkedCommentIds(comments, STICKY_MARKERS);
+}
+
+/**
+ * コメント一覧から任意マーカーを含むコメントの id を抽出する（純粋関数・汎用版）。
+ * @param {Array<{id: *, body: string}>} comments
+ * @param {string[]} markers いずれかを含めばマッチ
+ * @returns {Array<*>} マッチしたコメントの id 配列（入力順）
+ */
+function selectMarkedCommentIds(comments, markers) {
+    const ms = markers || [];
+    return (comments || [])
+        .filter((c) => c && c.body && ms.some((m) => c.body.includes(m)))
+        .map((c) => c.id);
+}
+
+/**
+ * コメント一覧から任意マーカーを含むコメントを {id, body} のまま抽出する（純粋関数）。
+ * {@link selectMarkedCommentIds} の object 版。body は「内容が変わったときだけ書く」判定
+ * （{@link stickyUpsertPlan}）に使う。
+ * @param {Array<{id: *, body: string}>} comments
+ * @param {string[]} markers いずれかを含めばマッチ
+ * @returns {Array<{id: *, body: string}>}
+ */
+function selectMarkedComments(comments, markers) {
+    const ms = markers || [];
+    return (comments || []).filter((c) => c && c.body && ms.some((m) => c.body.includes(m)));
+}
+
+/**
+ * sticky upsert の実行計画を立てる（純粋関数・書き込み削減）。
+ * 既存の先頭コメントと本文が**同一なら PATCH をスキップ**する（毎 tick の同内容
+ * 書き換えはレート予算の無駄遣い）。重複は従来どおり先頭に集約して残りを削除する。
+ * @param {Array<{id: *, body: string}>} matched マーカーにマッチした既存コメント（入力順）
+ * @param {string} body 新しい本文
+ * @returns {{action: 'post'|'patch'|'skip', keepId: *|null, deleteIds: Array<*>}}
+ */
+function stickyUpsertPlan(matched, body) {
+    const list = matched || [];
+    if (!list.length) return { action: 'post', keepId: null, deleteIds: [] };
+    const [keep, ...dupes] = list;
+    return {
+        action: keep.body === body ? 'skip' : 'patch',
+        keepId: keep.id,
+        deleteIds: dupes.map((d) => d.id),
+    };
+}
+
+/**
+ * 対応 PR リンク sticky（Issue 側）の識別マーカー。
+ * 非デフォルト base 宛て PR は GitHub の Development 欄・`Closes #N` リンクに出ないため、
+ * Issue から対応 PR へ辿れるように daemon が 1 コメントを upsert する。
+ */
+const PR_LINK_MARKER = '<!-- autopilot-pr-link -->';
+
+/**
+ * Issue に対応 PR リンク sticky を投稿すべきか（純粋関数）。
+ * **base 非デフォルト時のみ** true（デフォルト base 宛ては GitHub の Development 欄に
+ * 自動表示されるため、重複情報のコメントを増やさない）。
+ * @param {object} pr { number, base }（base は PR の baseRefName）
+ * @param {string} [defaultBase] 既定 develop
+ * @returns {boolean}
+ */
+function needsPrLinkSticky(pr, defaultBase = DEFAULT_BASE_BRANCH) {
+    return Boolean(pr && pr.base && pr.base !== defaultBase);
+}
+
+/**
+ * 対応 PR リンク sticky の本文を組み立てる（純粋関数）。
+ * @param {object} pr { number, base }
+ * @param {string} [repo] `owner/name`（リンク生成用。省略時は `#N` 参照のみ）
+ * @returns {string}
+ */
+function renderPrLinkSticky(pr, repo) {
+    const link = repo ? `https://github.com/${repo}/pull/${pr.number}` : `#${pr.number}`;
+    return [
+        PR_LINK_MARKER,
+        `🤖 **対応 PR**: ${link} （base: \`${pr.base}\`）`,
+        '',
+        '_この PR は非デフォルト base 宛てのため GitHub の Development 欄に表示されません。'
+            + 'このコメントは autopilot が管理します（編集しないでください）。_',
+    ].join('\n');
 }
 
 /**
@@ -422,13 +790,14 @@ const PR_SYNC_STATUSES = new Set(['In Progress', 'Review', 'DoD', 'Blocked']);
 const READY_STATUSES = new Set(['Review', 'DoD', 'Close', 'Blocked']);
 
 /**
- * PR 投影の対象 item を選ぶ（純粋関数）。EPIC は実装 PR を持たないので除外。
+ * PR 投影の対象 item を選ぶ（純粋関数）。トラッカー（EPIC / 🧭 tracking）は実装 PR を
+ * 持たないので除外。
  * @param {object[]} items
  * @returns {object[]}
  */
 function selectPrSyncCandidates(items) {
     return (items || []).filter(
-        (it) => it && it.kind !== 'EPIC' && PR_SYNC_STATUSES.has(it.status),
+        (it) => it && !isTrackerItem(it) && PR_SYNC_STATUSES.has(it.status),
     );
 }
 
@@ -494,6 +863,9 @@ function labelActions(item, currentLabels, opts = {}) {
     const add = [];
     const remove = [];
     if (!cur.includes(AUTOPILOT_LABEL)) add.push(AUTOPILOT_LABEL);
+    // Kind=EPIC には 🧭 tracking を担保する（以後の tick はラベルだけで判定できる）。
+    // 自動では外さない（人間が手動で付けたトラッカー指定を潰さない）。
+    if (item && item.kind === 'EPIC' && !cur.includes(TRACKING_LABEL)) add.push(TRACKING_LABEL);
     const h = hitlLabelAction(item, cur.includes(HITL_LABEL), opts);
     if (h === 'add') add.push(HITL_LABEL);
     else if (h === 'remove') remove.push(HITL_LABEL);
@@ -557,6 +929,50 @@ function applyIntentsToItem(item, intents) {
         if (key) out[key] = value;
     }
     return out;
+}
+
+// ---- Web モニタ俯瞰ボード: 表示対象の選別と enrichment の正規化（純粋） ----
+
+/**
+ * 俯瞰ボードに表示する item を選ぶ（純粋関数）。
+ * 終端（Close/Done）と保留（Icebox）は除外する — 溜まり続けると表示も enrichment も
+ * 重くなるため。操作は GitHub Projects で行う（ボードは読み取り専用）。
+ * assignee を渡すと **daemon の処理対象（enroll 判定 {@link ownsItem}）と同じ集合**に
+ * 限定する — 「ボードには映るが daemon は素通り」という表示と処理対象の不一致を無くし、
+ * enrichment の API 消費も減らす（未指定は従来どおり全件）。
+ * @param {object[]} items
+ * @param {string|null} [assignee] daemon の --assignee（enroll モデル）
+ * @returns {object[]}
+ */
+function selectBoardItems(items, assignee = null) {
+    return (items || []).filter(
+        (it) => it && !TERMINAL_STATUSES.has(it.status) && it.status !== 'Icebox'
+            && ownsItem(it, assignee),
+    );
+}
+
+/**
+ * 俯瞰ボード enrichment（GraphQL ノード）を表示用に正規化する（純粋関数）。
+ * @param {object} node issue(number:N){ state, subIssuesSummary, closedByPullRequestsReferences }
+ * @returns {{issueState: string, subIssues: {total:number, completed:number, percent:number},
+ *   prs: Array<{number:number, state:string, isDraft:boolean}>}}
+ */
+function normalizeBoardEnrichment(node) {
+    const summary = (node && node.subIssuesSummary) || {};
+    const nodes = (node && node.closedByPullRequestsReferences && node.closedByPullRequestsReferences.nodes) || [];
+    return {
+        issueState: (node && node.state) || null,
+        subIssues: {
+            total: summary.total || 0,
+            completed: summary.completed || 0,
+            percent: summary.percentCompleted || 0,
+        },
+        prs: nodes.filter(Boolean).map((n) => ({
+            number: n.number,
+            state: n.state,
+            isDraft: Boolean(n.isDraft),
+        })),
+    };
 }
 
 // ---- DoD handoff (#821): headful 検証をホスト Claude へ渡す引き継ぎ生成 ----
@@ -643,7 +1059,7 @@ function extractDodChecklist(body) {
  * @returns {boolean}
  */
 function needsDodHandoff(item, ctx = {}) {
-    if (!item || item.kind === 'EPIC') return false;
+    if (!item || isTrackerItem(item)) return false;
     if (item.status !== 'DoD') return false;
     if (!ctx.hasPr) return false;
     return !ctx.hasHandoffComment;
@@ -724,6 +1140,96 @@ function dodHandoffBody({ issue, pr, repo, branch, previewUrl, dodChecklist }) {
 }
 
 /**
+ * GitHub に surface してよい文字列へサニタイズする（純粋関数）。
+ *
+ * worker の error 理由・watchdog の失敗理由には、コマンド出力由来の機密
+ * （トークン・API キー・秘密鍵・URL クエリ等）が混入しうる。Blocked コメントとして
+ * GitHub に投稿する前に必ずこれを通す。完全性より安全側に倒す（過剰 redact は許容）。
+ * 生ログはローカル（daemon ログ / worktree）で確認する運用。
+ * @param {string} text
+ * @param {number} [maxLen] 最大長（既定 600。超過は切り詰めて明示）
+ * @returns {string}
+ */
+function sanitizeForSurface(text, maxLen = 600) {
+    if (!text) return '';
+    let s = String(text);
+    const patterns = [
+        // GitHub トークン（ghp_/gho_/ghu_/ghs_/ghr_ + fine-grained PAT）
+        /gh[pousr]_[A-Za-z0-9_]{16,}/g,
+        /github_pat_[A-Za-z0-9_]{20,}/g,
+        // AWS アクセスキー / セッションキー
+        /(?:AKIA|ASIA)[0-9A-Z]{16}/g,
+        // Google API キー
+        /AIza[0-9A-Za-z_-]{30,}/g,
+        // Slack トークン
+        /xox[baprs]-[A-Za-z0-9-]{10,}/g,
+        // Authorization ヘッダ
+        /Bearer\s+[A-Za-z0-9._-]{16,}/gi,
+        // JWT
+        /eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{5,}/g,
+        // PEM 秘密鍵ブロック
+        /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?(?:-----END [A-Z ]*PRIVATE KEY-----|$)/g,
+    ];
+    for (const re of patterns) s = s.replace(re, '[REDACTED]');
+    // 機密らしい変数名の KEY=value / KEY: value
+    s = s.replace(
+        /([A-Za-z0-9_]*(?:TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIAL|API_?KEY|PRIVATE_?KEY)[A-Za-z0-9_]*\s*[=:]\s*)("[^"]*"|'[^']*'|\S+)/gi,
+        '$1[REDACTED]',
+    );
+    // URL のクエリ文字列（presigned URL / トークン入り URL 対策）
+    s = s.replace(/(https?:\/\/[^\s?"'<>]+)\?[^\s"'<>]*/g, '$1?[REDACTED]');
+    if (s.length > maxLen) s = `${s.slice(0, maxLen)}…（切り詰め。全文はローカルログ参照）`;
+    return s;
+}
+
+/**
+ * rate_limit の残量から実行計画を立てる（純粋関数）。
+ * 入力はトークン別の残量（例 { bot: {core:{remaining,limit}, graphql:{...}}, read: {...} }）。
+ * 最小残量が閾値を割ったら**低優先処理（PR 面投影・俯瞰ボード更新）をスキップ**して
+ * dispatch・merge 検知など本流に予算を残す。取得できなかったトークン/リソースは無視する。
+ * @param {object} limitsByToken トークン名 → { core: {remaining, limit}, graphql: {remaining, limit} }
+ * @param {object} [thresholds] { skip: 200, warn: 500 }
+ * @returns {{minRemaining: number|null, minAt: string|null, warn: boolean, skipLowPriority: boolean}}
+ */
+function rateLimitPlan(limitsByToken, thresholds = {}) {
+    const t = { skip: 200, warn: 500, ...thresholds };
+    let minRemaining = null;
+    let minAt = null;
+    for (const [tokenName, resources] of Object.entries(limitsByToken || {})) {
+        for (const [resName, r] of Object.entries(resources || {})) {
+            if (!r || typeof r.remaining !== 'number') continue;
+            if (minRemaining === null || r.remaining < minRemaining) {
+                minRemaining = r.remaining;
+                minAt = `${tokenName}/${resName}`;
+            }
+        }
+    }
+    if (minRemaining === null) return { minRemaining: null, minAt: null, warn: false, skipLowPriority: false };
+    return {
+        minRemaining,
+        minAt,
+        warn: minRemaining < t.warn,
+        skipLowPriority: minRemaining < t.skip,
+    };
+}
+
+/**
+ * closed 状態の一括確認の対象 issue 番号を選ぶ（純粋関数・問い合わせ対象の限定）。
+ * - **ステータス限定**: 終端（Close/Done）は除外（既に整合済み。定常問い合わせしない）
+ * - **ラベル限定**: `🤖 autopilot` ラベル付き = autopilot 管理対象だけを見る
+ *   （ラベルは label healing が非終端 item に毎 tick 担保するので、初回 tick 以降は全対象が持つ）
+ * 旧実装の「リポジトリ全体の closed 一覧（最大 1000 件）を毎 tick 取得」を置き換える。
+ * @param {object[]} items Project items
+ * @returns {number[]} state を確認すべき issue 番号
+ */
+function selectClosedCheckIssues(items) {
+    return (items || [])
+        .filter((it) => it && !TERMINAL_STATUSES.has(it.status)
+            && Array.isArray(it.labels) && it.labels.includes(AUTOPILOT_LABEL))
+        .map((it) => it.issue);
+}
+
+/**
  * watchdog の状態を評価して次アクションを返す（純粋関数）。
  * 完了の権威は「結果ファイルの存在」。それ以外はタイマーで stuck を処理する。
  * @param {object} state
@@ -748,6 +1254,12 @@ function evaluate(state, cfg) {
     // 3. 絶対上限超過は即失敗（暴走の最終防壁・課題3）
     if (state.elapsedMs > cfg.tMaxMs) {
         return { action: 'fail', reason: `exceeded tMax (${cfg.tMaxMs}ms)` };
+    }
+    // 対話プロンプト（許可/確認/選択）で人間入力待ちになった → 待たず HITL に落とす。
+    // worker は非対話運用。auto mode でも判断を要する操作で稀にプロンプトが出うるが、
+    // その場合は「質問せず打ち切って HITL」（restart はしない＝同じプロンプトの再発を避ける）。
+    if (state.promptingMs > cfg.tPromptMs) {
+        return { action: 'hitl', reason: `interactive prompt awaiting human input (auto-HITL after ${cfg.tPromptMs}ms)` };
     }
     const canRestart = state.restarts < cfg.maxRestarts;
     // 4. 結果なしでプロセスが死んだ（課題4）
@@ -787,11 +1299,17 @@ function shouldResend(s) {
 }
 
 const DEFAULT_WATCHDOG = {
-    tReadyMs: 60_000,
+    // worker（claude TUI）の起動は環境負荷が高いと 60s を超えることがあるため 150s。
+    // 起動失敗の検知が遅れるコストより、生きている起動を誤 kill するコストの方が高い。
+    tReadyMs: 150_000,
     // claude の思考/実行は数分に及ぶ。busy 検知（runner の BUSY_RE）が主防御で、
     // これは pane が完全停止した場合の保険なので長め（10 分）にする。
     tIdleMs: 600_000,
     tMaxMs: 1_800_000,
+    // 対話プロンプト（許可/確認/選択ダイアログ）が pane に出て人間入力待ちになったら、
+    // これだけ経過した時点で待たずに HITL へ落とす（auto mode でも soft_deny 等で稀に
+    // プロンプトが出うるが、worker は非対話なので即中断して人間に渡す）。短めにする。
+    tPromptMs: 6_000,
     maxRestarts: 2,
     pollMs: 3_000,
     // 送信後この時間内に受理（busy/結果）が確認できなければ再送（課題1: cold-start 不達）
@@ -806,11 +1324,18 @@ module.exports = {
     DEFAULT_CLAUDE_COMMAND,
     DEFAULT_BASE_BRANCH,
     parseBaseBranch,
+    parseAfterIssues,
+    unresolvedAfterIssues,
     AUTOPILOT_BRANCH_PREFIX,
     autopilotHeadBranch,
     applyResult,
     hitlDesireFromResult,
     isHitlReleased,
+    isGateReleased,
+    hasUnhandledChangesRequest,
+    humanSpokeLast,
+    mergeActivity,
+    toMs,
     progressOnMerge,
     MERGE_CHECK_STATUSES,
     selectMergeCandidates,
@@ -821,17 +1346,38 @@ module.exports = {
     phaseForItem,
     isActionable,
     isStuckCandidate,
+    itemOwner,
+    ownsItem,
+    statusRank,
+    orderItemsLikeBoard,
     selectActionable,
     shouldResend,
     evaluate,
+    sanitizeForSurface,
     DEFAULT_WATCHDOG,
     AUTOPILOT_LABEL,
     HITL_LABEL,
+    HUMAN_REVIEW_LABEL,
+    PROTECTED_PATH_PATTERNS,
+    protectedPaths,
+    TRACKING_LABEL,
+    WAITING_LABEL,
+    isTrackerItem,
+    hasTrackingLabel,
+    waitingLabelAction,
     STICKY_MARKER,
     LEGACY_STICKY_MARKERS,
     STICKY_MARKERS,
     isStickyComment,
     selectStickyCommentIds,
+    selectMarkedCommentIds,
+    selectMarkedComments,
+    stickyUpsertPlan,
+    rateLimitPlan,
+    selectClosedCheckIssues,
+    PR_LINK_MARKER,
+    needsPrLinkSticky,
+    renderPrLinkSticky,
     HUMAN_GATE_STATUSES,
     dodHandoffMarker,
     isDodHandoffComment,
@@ -843,6 +1389,8 @@ module.exports = {
     PR_SYNC_STATUSES,
     READY_STATUSES,
     selectPrSyncCandidates,
+    selectBoardItems,
+    normalizeBoardEnrichment,
     desiredDraft,
     draftAction,
     hitlLabelAction,

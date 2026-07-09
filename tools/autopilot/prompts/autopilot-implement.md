@@ -28,7 +28,10 @@ bin/bot-git commit -m "<type>(<scope>): <subject>" -m "<body 各行 ≤100 字>"
 ```
 
 - **commitlint 制約**: subject は小文字始まり（大文字始まり/略語先頭は不可）、body/footer 各行 **≤100 字**。
-- push: `bin/bot-git push -u origin HEAD:refs/heads/<branch>`。
+- push は **`bin/autopilot-push --base "${AUTOPILOT_BASE_BRANCH:-develop}"`** を使う（push 経路を自動判定）:
+  - `route=bot` → Bot 名義で push された（通常経路。従来の `bin/bot-git push` と同じ）
+  - `route=personal` → 変更に **Bot 権限外パス**（`.github/workflows/**` 等）が含まれるため、
+    **個人クレデンシャル**で push された。**次の「3.5 個人トークン PR」に従うこと**
 
 ### 3. Draft PR を作成
 
@@ -36,6 +39,23 @@ bin/bot-git commit -m "<type>(<scope>): <subject>" -m "<body 各行 ≤100 字>"
 GH_TOKEN="$(bin/bot-token)" gh pr create --repo "$AUTOPILOT_REPO" --draft --base "${AUTOPILOT_BASE_BRANCH:-develop}" \
   --head "<branch>" --title "<type>(<scope>): <title> (#$AUTOPILOT_ISSUE)" --body-file <(...)
 ```
+
+### 3.5 個人トークン PR（`route=personal` のときのみ）
+
+`bin/autopilot-push` が `route=personal` を返した場合（`.github/workflows/**` 等、Bot の
+権限外パスを含む変更）:
+
+1. PR 作成は **`GH_TOKEN` を注入せず plain `gh` で行う**（開発者の個人トークン名義になる）:
+   ```bash
+   gh pr create --repo "$AUTOPILOT_REPO" --draft --base "${AUTOPILOT_BASE_BRANCH:-develop}" ...
+   ```
+2. PR に **`👥 human-review-required` ラベル**を付ける（想定外領域の変更は本人以外の
+   レビューを必須にする運用）:
+   ```bash
+   gh pr edit <PR番号> --repo "$AUTOPILOT_REPO" --add-label "👥 human-review-required"
+   ```
+3. PR 本文に「この PR は Bot 権限外パス（`<該当ファイル>`）を含むため個人トークンで
+   作成しています。**作成者本人以外のレビューが必須**です」と明記する。
 
 - **ベースブランチ**: `--base` は **`$AUTOPILOT_BASE_BRANCH`（既定 `develop`）** を使う。daemon が Issue 本文の
   `autopilot-base:` ディレクティブや「## ベースブランチ」宣言を読み、worktree もこの base から分岐させて渡す。

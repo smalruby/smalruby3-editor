@@ -238,6 +238,7 @@ tmux source-file ~/.tmux.conf   # または prefix r
 | ホスト側 | コンテナ内 | 用途 |
 |---|---|---|
 | `~/ghq` | `/ghq` | 関連 OSS の参照・push |
+| `~/.config/smalruby-bot` | 同上 (ro) | GitHub App bot 設定 (非秘密)。rebuild/delete を跨いで永続させる。詳細は下記 |
 | `~/.claude/settings.json` | 同上 (ro) | Claude Code グローバル設定 (host で編集、container は読むだけ) |
 | `~/.claude/skills` | 同上 (ro) | 自作 skills |
 | `~/.claude/plugins` | 同上 (ro) | プラグイン |
@@ -279,6 +280,31 @@ Claude は自動アップデートしない。version 固定は IDE 側で featu
 - 本 devcontainer はこの原則に沿っている: Claude 認証は in-container ログイン、AWS は
   in-container SSO ログイン、`~/.gitconfig` は **read-only**、gh は `GH_TOKEN` env のみ
   (`~/.config/gh` には PAT 本体を含めない)。
+
+### GitHub App bot 設定を rebuild を跨いで永続させる
+
+autopilot や bot 名義コミット (`bin/bot-git` / `bin/bot-token`) が使う
+`~/.config/smalruby-bot/` は、何もしないと **コンテナ fs 上** に置かれ、
+devcontainer rebuild / `devpod delete` で消える (毎回作り直しになる)。
+
+永続させたい場合は、**秘密鍵を AWS Secrets Manager に逃がした上で**、非秘密の
+`config` だけを host から **read-only** bind マウントする (上記「個人マウント」)。
+
+1. **秘密鍵を Secrets Manager 化する**: `~/.config/smalruby-bot/config` に
+   `PRIVATE_KEY_SECRET_ID=<secret-id>` (+ 必要なら `AWS_PROFILE` / `AWS_REGION`) を
+   設定する。`bin/bot-token` はこれがあれば AWS から鍵を取得し、ローカル
+   `private-key.pem` は不要になる (手順は `.claude/rules/github-app-bot.md` /
+   `docs/github-app-bot/README.md`)。
+2. **config を host に置く**: `~/.config/smalruby-bot/config` を **host 側** に用意する
+   (中身は APP_ID / INSTALLATION_ID / APP_SLUG / PRIVATE_KEY_SECRET_ID 等の非秘密設定)。
+3. **ro マウントをアンコメント**: `devcontainer.json` の `~/.config/smalruby-bot` 行を
+   有効化して rebuild する。
+
+なぜ **read-only** か: `bin/bot-token` はこのディレクトリを **読むだけ**
+(発行済み token のキャッシュは `~/.cache/smalruby-bot/` = 別の named volume 側で、
+これは rebuild を跨いで残る)。ro にすることで、コンテナ側の誤動作で host の設定を
+消す事故を防ぐ (上記「rw でマウントしない」原則の適用)。生の `.pem` は host にも
+マウントにも載せないので、共有されるのは非秘密の識別子だけになる。
 
 ### Claude Code memory の共有メカニズム
 

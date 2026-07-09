@@ -8,10 +8,10 @@
 
 | エンドポイント | Lambda | 用途 |
 |---|---|---|
-| `GET /cors-proxy` | `smalruby-api-cors-proxy{stageSuffix}` | 任意 URL の CORS フリーフェッチ + Google Drive URL 変換 + バイナリ Base64 化 |
+| `GET /cors-proxy` | `smalruby-api-cors-proxy{stageSuffix}` | 任意 URL の CORS フリーフェッチ + Google Drive URL 変換 + バイナリ Base64 化。音声合成 (text2speech) と翻訳 (translate) もこの汎用プロキシ経由で `synthesis-service.scratch.mit.edu` / `translate-service.scratch.mit.edu` を叩く |
 | `GET /mesh-domain` | `smalruby-api-mesh-zone{stageSuffix}` | クライアント IP から Mesh ドメイン (CRC32 ハッシュ) を生成 |
 | `GET /scratch-api-proxy/projects/{projectId}` | `smalruby-api-scratch-projects{stageSuffix}` | Scratch 公式 API (project info) のステータス透過プロキシ |
-| `GET /scratch-api-proxy/translate` | `smalruby-api-scratch-translate{stageSuffix}` | Scratch 公式翻訳サービスのプロキシ |
+| `GET /scratch-api-proxy/translate` | `smalruby-api-scratch-translate{stageSuffix}` | **obsolete**。translate は共通 `cors-proxy` 経由に統一した (#862、text2speech #861 と同方式)。新規開発で使わない。Lambda/ルートは deploy を伴うため今は残置 |
 
 `OPTIONS` (preflight) は HTTP API v2 の **built-in CORS** が自動処理。旧 SAM の `cors-for-smalruby` Lambda は不要。
 
@@ -60,11 +60,15 @@ Scratch Foundation 公式 API (`https://api.scratch.mit.edu/projects/{projectId}
 
 実装: `infra/smalruby-api/lambda/scratch-api-projects.ts`
 
-### `GET /scratch-api-proxy/translate`
+### `GET /scratch-api-proxy/translate` (obsolete)
 
 Scratch translate サービス (`https://translate-service.scratch.mit.edu/translate`) のプロキシ。
 
+> ⚠️ **obsolete — 新規開発で使わない**: 翻訳 (translate) は text2speech (#861) と同じく**汎用 `GET /cors-proxy?url=<encoded 翻訳URL>`** 経由に統一した (#862)。`cors-proxy` は翻訳のテキスト応答をそのまま返すため、この専用 Lambda は不要になった。フロント側の実装は `packages/scratch-vm/src/extensions/scratch3_translate/index.js` を参照。Lambda コード (`lambda/scratch-api-translate.ts`) と CDK ルート定義は **deploy を伴うため今は削除せず残置**している (別作業で撤去予定)。
+
 実装: `infra/smalruby-api/lambda/scratch-api-translate.ts`
+
+> **音声合成 (text2speech) について**: 音声合成サービス (`https://synthesis-service.scratch.mit.edu/synth`) も同じ CORS 制約があるが、専用 Lambda は作らず**汎用 `GET /cors-proxy?url=<encoded 合成URL>`** を再利用する。`cors-proxy` は `audio/*` をバイナリと判定して Base64 返却 (`isBase64Encoded: true`) するため、API Gateway 側でバイト列にデコードされ、拡張の `arrayBuffer()` がそのまま音声を得られる。フロント側の実装は `packages/scratch-vm/src/extensions/scratch3_text2speech/index.js` を参照 (#859)。
 
 ## 環境変数
 

@@ -49,11 +49,41 @@ GH_TOKEN="$(bin/bot-token)" gh issue view "$AUTOPILOT_ISSUE" --repo "${AUTOPILOT
 
 分解案コメントが既にあり（＝承認後の再起動）、最新の人間コメントで否定されていなければ作成する。
 
-1. 各 leaf について sub-issue を作成し、**EPIC に親子リンク**する:
+#### B-0. 着手順の依存を判断する（並列衝突を防ぐ）
+
+sub-issue を作る前に、**leaf 間に着手順の依存があるか**を判断する。依存がある leaf 同士を
+Sprint Backlog にそのまま入れると autopilot が**並列着手**し、**マージ衝突**や
+**未整備の基盤への依存**でやり直しになる。順序が要る場合は、後続 leaf の本文の**行頭**に
+`autopilot - after`（実際はスペース無し）ディレクティブを書いて直列化する（記法は B-2）。
+
+**依存判断の基準:**
+
+- **基盤 → 応用**: 新しいカテゴリ・機構・共通ファイルを**新設する leaf**を先に、
+  それを**使う leaf**を後に。応用 leaf は基盤 leaf に依存させる。
+- **共有ファイルを編集する leaf は直列化**する。同じファイル（例: locale ファイル、
+  カテゴリ定義、library.jsx のような一覧ファイル）を複数 leaf が編集するなら、
+  並列着手すると必ず衝突するので**チェーン状に順序付ける**（leaf2 は leaf1 の後、
+  leaf3 は leaf2 の後…）。
+- 互いに独立で共有ファイルも触らない leaf には**依存を付けない**（並列で速く回す）。
+
+> 実例: #679 Phase 2（Ruby チュートリアル）の leaf 群は `tutorial-tags.js` /
+> `tag-messages.js` / `library.jsx` / locale 3 種を共有編集するため直列化が必須だった。
+
+#### B-1. 各 leaf の sub-issue を作成し、EPIC に親子リンクする
+
+1. 各 leaf について sub-issue を作成し、**EPIC に親子リンク**する。**依存がある leaf は
+   本文の先頭に依存ディレクティブを 1 行含める**（B-2 の記法）:
 
    ```bash
+   # 依存の無い基盤 leaf
    url=$(GH_TOKEN="$(bin/bot-token)" gh issue create --repo "$AUTOPILOT_REPO" --title "<title>" \
      --body "<scope>"$'\n\nPart of #'"$AUTOPILOT_ISSUE")
+
+   # 依存のある後続 leaf は本文の "行頭" にディレクティブを置く（$prev は先行 leaf の番号）
+   # ↓ 実際の本文では "autopilot-after"（ハイフンのみ・スペース無し）で書くこと
+   url=$(GH_TOKEN="$(bin/bot-token)" gh issue create --repo "$AUTOPILOT_REPO" --title "<title>" \
+     --body "<!-- autopilot-after: #$prev -->"$'\n\n'"<scope>"$'\n\nPart of #'"$AUTOPILOT_ISSUE")
+
    num=$(basename "$url")
    dbid=$(GH_TOKEN="$(bin/bot-token)" gh api repos/$AUTOPILOT_REPO/issues/$num --jq .id)
    GH_TOKEN="$(bin/bot-token)" gh api --method POST repos/$AUTOPILOT_REPO/issues/$AUTOPILOT_ISSUE/sub_issues -F sub_issue_id="$dbid"
@@ -62,6 +92,38 @@ GH_TOKEN="$(bin/bot-token)" gh issue view "$AUTOPILOT_ISSUE" --repo "${AUTOPILOT
 
    - **冪等**: 既に同名 sub-issue が存在する場合は作り直さない（`gh issue list` で確認）。
    - Project への追加・Status=Backlog・Kind=Issue・Size 付与は **daemon が結果ファイルの `createdSubIssues` を見て**行う（単一ライター）。スキルは Project を直接書かない。
+
+#### B-2. 依存ディレクティブの記法（`parseAfterIssues` が読む）
+
+`tools/autopilot/src/phases.js` の `parseAfterIssues` が sub-issue 本文から着手順の依存を
+抽出する。**後続 leaf の本文**に次の形で書く（正しく発火する条件）:
+
+- **行頭必須**。行の先頭がディレクティブで始まること。**空白インデントがあると発火しない**。
+- 大文字小文字は無視される。
+- **HTML コメント形式**（`<!-- autopilot-after: #12 -->`）も行頭なら可。人間の目に付かない
+  形で入れたいときはこちらを使う。
+- **複数依存はカンマまたは空白区切り**（`autopilot-after: #12, #34` / `autopilot-after: #12 #34`）。
+  複数行に分けて宣言してもよい（合算される）。
+- `#` は省略可（`autopilot-after: 12`）。
+
+> このプロンプト本文では、正規表現に**誤って拾われないよう**わざと
+> `autopilot - after`（スペース入り）やバッククォート囲みで書いている。**実際の sub-issue
+> 本文では `autopilot-after`（ハイフンのみ・スペース無し）を行頭に置くこと。**
+
+#### ⚠️ B-3. 自己参照の罠（必読）
+
+`parseAfterIssues` の判定正規表現は「**行頭 + `autopilot-after:` + 数字**」で発火する。
+そのため、**このディレクティブを説明・例示する文章を Issue 本文やコメントにそのまま書くと、
+本物の依存として誤検出され、autopilot がその Issue に永久に着手できなくなる**。
+
+- decompose の分解案コメントや sub-issue のスコープ説明で、依存ディレクティブに**言及**するときは
+  必ず**安全な書き方**を使う:
+  - `autopilot - after`（**間にスペースを入れる**）… コロン前で切れるので no-match
+  - `` `autopilot-after: #N` ``（**バッククォートで囲む**）… 行頭にならないので no-match
+  - 行頭でない位置（インデント・箇条書きの `- ` の後など）に置く … no-match
+- **本物の依存**として効かせたいときだけ、後続 leaf 本文の**行頭**に
+  スペース無しの `autopilot-after: #<先行 leaf>` を置く。
+- 本 Issue（#898）の本文自体がこの「説明はスペース入り・本物は行頭スペース無し」の見本。
 2. `done` で終了。EPIC は「分解完了＝親トラッカー化」を表す `EPIC Decomposed` へ:
 
    ```bash

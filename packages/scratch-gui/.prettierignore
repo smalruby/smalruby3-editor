@@ -43,10 +43,12 @@ src/components/*
 !src/components/dncl-mode-notice/
 !src/components/koshien-test-modal/
 !src/components/koshien-settings-modal/
+!src/components/koshien-mock-panel/
 !src/components/mesh-self-sensor-notice/
 !src/components/mobile-bottom-tabs/
 !src/components/mobile-drawer/
 !src/components/mobile-gui/
+!src/components/mobile-mode-notice/
 !src/components/mobile-orientation-gate/
 !src/components/mobile-paint-toolbar-toggle/
 !src/components/mobile-side-rail/
@@ -108,6 +110,7 @@ src/containers/*
 !src/containers/use-teacher-submissions.js
 !src/containers/extension-library.css
 !src/containers/google-drive-loader-hoc.jsx
+!src/containers/koshien-mock-panel.jsx
 !src/containers/mesh-self-sensor-notice.jsx
 !src/containers/google-drive-saver-hoc.jsx
 !src/containers/ruby-downloader.jsx
@@ -132,7 +135,7 @@ src/lib/*
 !src/lib/auto-correct.js
 !src/lib/backpack-mesh-v1-migration.js
 !src/lib/bug-report-api.js
-!src/lib/koshien-connection.js
+!src/lib/koshien-mock-config.js
 !src/lib/koshien-test-url.js
 !src/lib/deck-setup.js
 !src/lib/classroom-api.js
@@ -179,6 +182,7 @@ src/lib/*
 !src/lib/url-loader.js
 !src/lib/url-params.js
 !src/lib/url-parser.js
+!src/lib/use-display-mode.js
 !src/lib/use-is-narrow-screen.js
 !src/lib/version-checker.js
 
@@ -216,6 +220,7 @@ src/reducers/*
 !src/reducers/extension-filter.js
 !src/reducers/google-drive-file.js
 !src/reducers/koshien-file.js
+!src/reducers/koshien-mock-panel.js
 !src/reducers/mesh-v2.js
 !src/reducers/palette-visibility.js
 !src/reducers/ruby-code.js
@@ -285,6 +290,7 @@ test/unit/*
 test/unit/components/*
 !test/unit/components/action-menu.test.jsx
 !test/unit/components/bug-report-consent.test.jsx
+!test/unit/components/koshien-mock-panel.test.jsx
 !test/unit/components/koshien-settings-modal.test.jsx
 !test/unit/components/koshien-test-modal.test.jsx
 !test/unit/components/dncl-mode-notice.test.jsx
@@ -293,6 +299,7 @@ test/unit/components/*
 !test/unit/components/mesh-self-sensor-notice.test.jsx
 !test/unit/components/mobile-bottom-tabs.test.jsx
 !test/unit/components/mobile-drawer.test.jsx
+!test/unit/components/mobile-mode-notice.test.jsx
 !test/unit/components/mobile-orientation-gate.test.jsx
 !test/unit/components/mobile-side-rail.test.jsx
 !test/unit/components/mobile-sprite-panel.test.jsx
@@ -339,7 +346,7 @@ test/unit/lib/*
 !test/unit/lib/backpack-mesh-v1-migration.test.js
 !test/unit/lib/block-display-initialization.test.js
 !test/unit/lib/bug-report-api.test.js
-!test/unit/lib/koshien-connection.test.js
+!test/unit/lib/koshien-mock-config.test.js
 !test/unit/lib/koshien-test-url.test.js
 !test/unit/lib/blockly-private-api.test.js
 !test/unit/lib/blocks-gesture-recovery.test.js
@@ -362,7 +369,9 @@ test/unit/lib/*
 !test/unit/lib/make-toolbox-xml.test.js
 !test/unit/lib/mesh-v2-classroom-binding.test.js
 !test/unit/lib/mesh-v2-sensor-collision.test.js
+!test/unit/lib/display-mode-persistence.test.js
 !test/unit/lib/responsive-gui.test.jsx
+!test/unit/lib/use-display-mode.test.js
 !test/unit/lib/use-is-narrow-screen.test.js
 !test/unit/lib/module-sync.test.js
 !test/unit/lib/prism-parser.test.js
@@ -395,6 +404,7 @@ test/unit/lib/*
 # Level 3: test/unit/reducers/*
 test/unit/reducers/*
 !test/unit/reducers/bug-report-reducer.test.js
+!test/unit/reducers/koshien-mock-panel-reducer.test.js
 !test/unit/reducers/cards_reducer.test.js
 !test/unit/reducers/dncl-mode-reducer.test.js
 !test/unit/reducers/classroom-reducer.test.js

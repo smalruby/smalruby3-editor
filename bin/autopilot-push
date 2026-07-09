@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+# bin/autopilot-push — 変更内容に応じて push 経路（Bot / 個人）を自動で選ぶ。
+#
+# GitHub App bot (`smalruby3-editor-bot`) には workflows 権限が無く、
+# `.github/workflows/**` などを含む push は拒否される。そこで:
+#   - Bot 権限外パスを含まない変更 → `bin/bot-git push`（Bot 名義・通常経路）
+#   - Bot 権限外パスを含む変更     → plain `git push`（個人クレデンシャル）。
+#     呼び出し側（プロンプト）は PR 作成も個人 `gh` で行い、
+#     `👥 human-review-required` ラベルを付けて **他人のレビューを必須**にする
+#     （autopilot の想定外領域の変更は本人以外の目を通す）。
+#
+# Usage:
+#   bin/autopilot-push [--base <branch>] [--check] [git push args...]
+#     --base <branch>  変更ファイルの比較基準（既定: $AUTOPILOT_BASE_BRANCH or develop）
+#     --check          push せずに経路判定だけを出力する
+#
+# 出力（stdout・機械可読）:
+#   route=bot | route=personal
+#   protected=<改行区切りの該当ファイル>（personal のときのみ）
+set -euo pipefail
+
+REPO_ROOT=$(git rev-parse --show-toplevel)
+BASE="${AUTOPILOT_BASE_BRANCH:-develop}"
+CHECK=false
+PUSH_ARGS=()
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --base) BASE="$2"; shift ;;
+        --check) CHECK=true ;;
+        *) PUSH_ARGS+=("$1") ;;
+    esac
+    shift
+done
+BASE="${BASE#origin/}"
+
+# Bot（GitHub App）の権限外パス。ここに触れる変更は個人トークンで push する。
+PROTECTED_RE='^\.github/(workflows|actions)/'
+
+git fetch origin "$BASE" >/dev/null 2>&1 || true
+MERGE_BASE=$(git merge-base "origin/${BASE}" HEAD 2>/dev/null || echo "")
+if [[ -n "$MERGE_BASE" ]]; then
+    CHANGED=$(git diff --name-only "$MERGE_BASE"...HEAD 2>/dev/null || git diff --name-only "$MERGE_BASE" HEAD)
+else
+    CHANGED=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || true)
+fi
+
+PROTECTED=$(printf '%s\n' "$CHANGED" | grep -E "$PROTECTED_RE" || true)
+
+if [[ -z "$PROTECTED" ]]; then
+    echo "route=bot"
+    $CHECK && exit 0
+    if [[ ${#PUSH_ARGS[@]} -gt 0 ]]; then
+        exec "$REPO_ROOT/bin/bot-git" push "${PUSH_ARGS[@]}"
+    fi
+    exec "$REPO_ROOT/bin/bot-git" push -u origin HEAD
+fi
+
+echo "route=personal"
+echo "protected=${PROTECTED//$'\n'/,}"
+$CHECK && exit 0
+# 個人クレデンシャル（repo-local credential helper = 開発者の gh 認証）で push。
+# Bot トークンは注入しない。
+if [[ ${#PUSH_ARGS[@]} -gt 0 ]]; then
+    exec git push "${PUSH_ARGS[@]}"
+fi
+exec git push -u origin HEAD

@@ -5,12 +5,16 @@ import { useEffect, useState } from 'react';
  * 出し分けに使う共通ブレークポイント。
  *
  * 閾値の根拠:
- * - 幅 743px は iPad mini portrait (744) を除外する境界値
- * - 高さ 500px はスマホ横持ち (844×390 等) を拾う保険
- *   (デスクトップで 500 以下に縮めても他の min-height 制約に引っかかる範囲)
+ * - 幅 743px は iPad mini portrait (744) を除外する境界値。iPhone 縦持ちの
+ *   ように横が極端に狭い端末をスマホモードにする主条件。
+ * - 高さ 500px はスマホ横持ち (844×390 等) を拾う保険。ただし **幅 950px 以下**
+ *   に限定する。こうしないと Chromebook をズームして高さだけ縮んだ広い画面
+ *   (例 1380×480) まで拾ってしまい、意図せずスマホモードに入る (Issue #865)。
+ *   950px はスマホ横持ちの最大級 (iPhone Pro Max 系 ~932px) を含みつつ、
+ *   Chromebook / ノート PC の一般的な幅 (>=1280px) を確実に除外する境界値。
  * @returns {boolean} スマホ相当のサイズなら true
  */
-const NARROW_SCREEN_QUERY = '(max-width: 743px), (max-height: 500px)';
+const NARROW_SCREEN_QUERY = '(max-width: 743px), (max-width: 950px) and (max-height: 500px)';
 
 const useIsNarrowScreen = () => {
     const [isNarrow, setIsNarrow] = useState(() => {

@@ -2,6 +2,8 @@ import { applyDeckSetup } from '../../../src/lib/deck-setup';
 import { SET_DNCL_MODE } from '../../../src/reducers/dncl-mode';
 
 const ACTIVATE_TAB = 'scratch-gui/navigation/ACTIVATE_TAB';
+const SET_RUBY_VERSION = 'scratch-gui/settings/SET_RUBY_VERSION';
+const RUBY_VERSION_KEY = 'smalruby:rubyVersion';
 
 const BLOCKS_TAB_INDEX = 0;
 const COSTUMES_TAB_INDEX = 1;
@@ -103,6 +105,42 @@ describe('applyDeckSetup', () => {
         const dispatch = makeDispatch();
         await applyDeckSetup({ rubyMode: 'bogus' }, dispatch, makeVM());
         expect(dispatch.calls.filter((a) => a.type === SET_DNCL_MODE)).toEqual([]);
+    });
+
+    test('rubyVersion (number) dispatches setRubyVersion and persists to localStorage', async () => {
+        for (const [input, expected] of [
+            [1, '1'],
+            [2, '2'],
+        ]) {
+            const dispatch = makeDispatch();
+            window.localStorage.clear();
+            await applyDeckSetup({ rubyVersion: input }, dispatch, makeVM());
+            expect(dispatch.calls).toContainEqual({
+                type: SET_RUBY_VERSION,
+                rubyVersion: expected,
+            });
+            expect(window.localStorage.getItem(RUBY_VERSION_KEY)).toBe(expected);
+        }
+    });
+
+    test('rubyVersion (string) is accepted as well', async () => {
+        const dispatch = makeDispatch();
+        await applyDeckSetup({ rubyVersion: '1' }, dispatch, makeVM());
+        expect(dispatch.calls).toContainEqual({
+            type: SET_RUBY_VERSION,
+            rubyVersion: '1',
+        });
+        expect(window.localStorage.getItem(RUBY_VERSION_KEY)).toBe('1');
+    });
+
+    test('invalid or omitted rubyVersion is ignored', async () => {
+        for (const rubyVersion of [undefined, 3, 0, '9', 'bogus', null]) {
+            const dispatch = makeDispatch();
+            window.localStorage.clear();
+            await applyDeckSetup({ rubyVersion }, dispatch, makeVM());
+            expect(dispatch.calls.filter((a) => a.type === SET_RUBY_VERSION)).toEqual([]);
+            expect(window.localStorage.getItem(RUBY_VERSION_KEY)).toBeNull();
+        }
     });
 
     test('loads required extensions sequentially', async () => {

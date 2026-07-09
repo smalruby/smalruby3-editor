@@ -6,7 +6,7 @@ import { IntlProvider } from 'react-intl';
 // eslint-disable-next-line import/first
 import KoshienSettingsModal from '../../../src/components/koshien-settings-modal/koshien-settings-modal.jsx';
 // eslint-disable-next-line import/first
-import { loadKoshienConnection } from '../../../src/lib/koshien-connection.js';
+import { loadKoshienMockConfig } from '../../../src/lib/koshien-mock-config.js';
 
 // Avoid react-modal portal/store complexity: render the modal body inline.
 jest.mock('../../../src/containers/modal.jsx', () => {
@@ -24,11 +24,12 @@ const renderModal = (props) =>
 describe('KoshienSettingsModal', () => {
     beforeEach(() => window.localStorage.clear());
 
-    test('renders endpoint / side / game-code fields', () => {
+    test('renders map / side / rival fields and the save button', () => {
         const { getByTestId } = renderModal();
-        expect(getByTestId('koshien-settings-endpoint')).toBeInTheDocument();
+        expect(getByTestId('koshien-settings-map')).toBeInTheDocument();
         expect(getByTestId('koshien-settings-side')).toBeInTheDocument();
-        expect(getByTestId('koshien-settings-game-code')).toBeInTheDocument();
+        expect(getByTestId('koshien-settings-rival')).toBeInTheDocument();
+        expect(getByTestId('koshien-settings-save')).toBeInTheDocument();
     });
 
     test('save persists settings, wires the vm runtime getter, and closes', () => {
@@ -36,26 +37,25 @@ describe('KoshienSettingsModal', () => {
         const vm = { runtime: {} };
         const { getByTestId } = renderModal({ onRequestClose, vm });
 
-        fireEvent.change(getByTestId('koshien-settings-endpoint'), {
-            target: { value: 'http://x:3000' },
-        });
+        fireEvent.change(getByTestId('koshien-settings-map'), { target: { value: 'canal' } });
         fireEvent.change(getByTestId('koshien-settings-side'), { target: { value: '2' } });
-        fireEvent.change(getByTestId('koshien-settings-game-code'), { target: { value: 'g1' } });
+        fireEvent.change(getByTestId('koshien-settings-rival'), { target: { value: 'stop' } });
         fireEvent.click(getByTestId('koshien-settings-save'));
 
-        expect(loadKoshienConnection()).toEqual({ endpoint: 'http://x:3000', side: 2, gameCode: 'g1' });
-        expect(typeof vm.runtime.getKoshienRemoteOptions).toBe('function');
-        expect(vm.runtime.getKoshienRemoteOptions().endpoint).toBe('http://x:3000');
+        expect(loadKoshienMockConfig()).toEqual({ mapId: 'canal', side: 2, rival: 'stop' });
+        expect(typeof vm.runtime.getKoshienMockConfig).toBe('function');
+        expect(vm.runtime.getKoshienMockConfig().mapId).toBe('canal');
         expect(onRequestClose).toHaveBeenCalled();
     });
 
-    test('the save button is present and the test button is disabled until an endpoint is entered', () => {
+    test('reloads previously saved settings as the initial values', () => {
+        window.localStorage.setItem(
+            'smalruby:koshienMockConfig',
+            JSON.stringify({ mapId: 'maze', side: 2, rival: 'random' }),
+        );
         const { getByTestId } = renderModal();
-        expect(getByTestId('koshien-settings-save')).toBeInTheDocument();
-        expect(getByTestId('koshien-settings-test')).toBeDisabled();
-        fireEvent.change(getByTestId('koshien-settings-endpoint'), {
-            target: { value: 'http://x:3000' },
-        });
-        expect(getByTestId('koshien-settings-test')).not.toBeDisabled();
+        expect(getByTestId('koshien-settings-map')).toHaveValue('maze');
+        expect(getByTestId('koshien-settings-side')).toHaveValue('2');
+        expect(getByTestId('koshien-settings-rival')).toHaveValue('random');
     });
 });

@@ -59,6 +59,7 @@ import WelcomeModalHOC from '../../containers/welcome-modal-hoc.jsx';
 import URLLoaderModal from '../url-loader-modal/url-loader-modal.jsx';
 import KoshienTestModal from '../koshien-test-modal/koshien-test-modal.jsx';
 import KoshienSettingsModal from '../koshien-settings-modal/koshien-settings-modal.jsx';
+import KoshienMockPanel from '../../containers/koshien-mock-panel.jsx';
 import RubyTab from '../../containers/ruby-tab.jsx';
 
 import layout, {STAGE_DISPLAY_SIZES, STAGE_SIZE_MODES} from '../../lib/layout-constants';
@@ -429,6 +430,7 @@ const GUIComponent = props => {
                             onRequestClose={onRequestCloseKoshienSettingsModal}
                         />
                     ) : null}
+                    <KoshienMockPanel vm={vm} />
                     {loading ? (
                         <Loader />
                     ) : null}

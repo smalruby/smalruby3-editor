@@ -21,8 +21,21 @@ jest.mock('../../../src/lib/use-is-narrow-screen.js', () => ({
     default: () => mockUseIsNarrowScreen(),
 }));
 
+// Mock the display-mode override hook so we control the user preference.
+const mockUseDisplayMode = jest.fn();
+jest.mock('../../../src/lib/use-display-mode.js', () => ({
+    __esModule: true,
+    default: () => mockUseDisplayMode(),
+}));
+
+const DISPLAY_MODE_AUTO = 'auto';
+const DISPLAY_MODE_DESKTOP = 'desktop';
+const DISPLAY_MODE_MOBILE = 'mobile';
+
 beforeEach(() => {
     mockUseIsNarrowScreen.mockReset();
+    mockUseDisplayMode.mockReset();
+    mockUseDisplayMode.mockReturnValue(DISPLAY_MODE_AUTO);
 });
 
 describe('ResponsiveGui', () => {
@@ -50,5 +63,29 @@ describe('ResponsiveGui', () => {
         mockUseIsNarrowScreen.mockReturnValue(false);
         const { getByTestId } = render(<ResponsiveGui marker="passed-through" />);
         expect(getByTestId('mock-gui')).toHaveAttribute('data-prop', 'passed-through');
+    });
+
+    // Issue #865: user-selected display mode overrides the viewport auto-detection.
+    test('forces <GUI> when display mode is desktop, even on a narrow viewport', () => {
+        mockUseIsNarrowScreen.mockReturnValue(true);
+        mockUseDisplayMode.mockReturnValue(DISPLAY_MODE_DESKTOP);
+        const { queryByTestId } = render(<ResponsiveGui marker="X" />);
+        expect(queryByTestId('mock-gui')).toBeInTheDocument();
+        expect(queryByTestId('mock-mobile-gui')).not.toBeInTheDocument();
+    });
+
+    test('forces <MobileGui> when display mode is mobile, even on a wide viewport', () => {
+        mockUseIsNarrowScreen.mockReturnValue(false);
+        mockUseDisplayMode.mockReturnValue(DISPLAY_MODE_MOBILE);
+        const { queryByTestId } = render(<ResponsiveGui marker="X" />);
+        expect(queryByTestId('mock-mobile-gui')).toBeInTheDocument();
+        expect(queryByTestId('mock-gui')).not.toBeInTheDocument();
+    });
+
+    test('falls back to viewport detection when display mode is auto', () => {
+        mockUseDisplayMode.mockReturnValue(DISPLAY_MODE_AUTO);
+        mockUseIsNarrowScreen.mockReturnValue(true);
+        const { queryByTestId } = render(<ResponsiveGui marker="X" />);
+        expect(queryByTestId('mock-mobile-gui')).toBeInTheDocument();
     });
 });

@@ -236,6 +236,24 @@ describe('MobileDrawer', () => {
         expect(props.onClose).toHaveBeenCalledTimes(1);
     });
 
+    describe('Switch to PC mode (Issue #865)', () => {
+        beforeEach(() => {
+            window.localStorage.clear();
+        });
+
+        test('is always visible as a top-level item', () => {
+            const { getByTestId } = renderWithIntl();
+            expect(getByTestId('mobile-drawer-switch-to-desktop')).toBeInTheDocument();
+        });
+
+        test('clicking it persists desktop mode + closes the drawer', () => {
+            const { getByTestId, props } = renderWithIntl();
+            fireEvent.click(getByTestId('mobile-drawer-switch-to-desktop'));
+            expect(window.localStorage.getItem('smalruby:displayMode')).toBe('desktop');
+            expect(props.onClose).toHaveBeenCalledTimes(1);
+        });
+    });
+
     describe('Settings accordion', () => {
         test('settings is collapsed initially (language / ruby children hidden)', () => {
             const { queryByTestId } = renderWithIntl();
