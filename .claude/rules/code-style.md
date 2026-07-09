@@ -105,8 +105,8 @@ export default MyComponent;
    `// === Smalruby: This file is Smalruby-specific (<説明>) ===`
 3. **単一行インライン**（1 行だけの軽微な挿入に一部で使用）: `// === Smalruby: <説明> ===`。
    ただし **grep でペア整合を検査できなくなる**ため、upstream ファイルでは 1 行の挿入でも
-   ブロックペアを推奨（Start だけの bare 形式は Start/End 数の不一致を生む — 実際に
-   `blocks.jsx` で発生している既知の表記ゆれ）
+   ブロックペアを推奨（Start だけの bare 形式は Start/End 数の不一致を生む — 過去に
+   `blocks.jsx` で発生した表記ゆれ。修正済み）
 
 - Start と End は必ずペアにする（`grep -c 'Smalruby: Start'` と `'Smalruby: End'` が一致すること）
 - `<機能名>` は英語で、何の機能かわかる名前にする

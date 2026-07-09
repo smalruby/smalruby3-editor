@@ -778,7 +778,7 @@ class Blocks extends React.Component {
         // Disabling events entirely during the load ensures nothing is queued.
         this.workspace.removeChangeListener(this.toolboxUpdateChangeListener);
         let fromRuby = false;
-        // === Smalruby: Ruby-converted toolbox update deferral (issue #719) ===
+        // === Smalruby: Start of Ruby-converted toolbox update deferral ===
         // Set inside the fromRuby branch below; the actual updateToolbox()
         // call runs after `finally { Events.enable(); }` so the flyout
         // rebuild's create/delete events reach vm.flyoutBlockListener /
