@@ -9,9 +9,11 @@ const {
     updateClaudeUsage, boardResponse, statusResponse,
     checkForUpdate, startUpdateChecks,
     patchBoardCache,
+    ensureCheckpointCommit, readContinuationFromWorktree, applyCheckpointHandling,
+    collectContinuationContexts, checkpointEscalationBody,
 } = require('../src/daemon');
 const { EventEmitter } = require('node:events');
-const { HITL_LABEL, AUTOPILOT_LABEL } = require('../src/phases');
+const { HITL_LABEL, AUTOPILOT_LABEL, continuationMarker } = require('../src/phases');
 
 /** Build an injectable double for markBlocked/detectStuck that records side effects. */
 function makeBlockDeps() {
@@ -967,6 +969,158 @@ test('detectStuck: 候補でなくなった item は追跡から外す', async (
     await detectStuck(items, cfg, state, () => {}, deps);
     assert.equal(deps.calls.setField.length, 0);
     assert.equal(state.stuckSince.has(7), false);
+});
+
+// ---- 協調的チェックポイント（EPIC #906・実装コンポーネント D・#912） ----
+
+/** git status/bot-git の呼び出しを記録するフェイク execFileP を作る */
+function makeExecDeps(dirty) {
+    const calls = [];
+    return {
+        calls,
+        execFileP: async (cmd, args, opts) => {
+            calls.push({ cmd, args, opts });
+            if (cmd === 'git' && args[0] === 'status') return { stdout: dirty ? ' M file.js\n' : '' };
+            return { stdout: '' };
+        },
+    };
+}
+
+test('ensureCheckpointCommit: 未コミットの WIP があれば add + bot-git commit する', async () => {
+    const deps = makeExecDeps(true);
+    const committed = await ensureCheckpointCommit('/wt', 912, () => {}, deps);
+    assert.equal(committed, true);
+    assert.equal(deps.calls.length, 3); // status, add, commit
+    assert.equal(deps.calls[0].args[0], 'status');
+    assert.deepEqual(deps.calls[1].args, ['add', '-A']);
+    assert.equal(deps.calls[2].args[0], 'commit');
+    assert.match(deps.calls[2].args.join(' '), /checkpoint/);
+    // 全呼び出しが対象 worktree の cwd で実行される
+    assert.ok(deps.calls.every((c) => c.opts.cwd === '/wt'));
+});
+
+test('ensureCheckpointCommit: クリーンな worktree では何もしない', async () => {
+    const deps = makeExecDeps(false);
+    const committed = await ensureCheckpointCommit('/wt', 912, () => {}, deps);
+    assert.equal(committed, false);
+    assert.equal(deps.calls.length, 1); // status チェックのみ
+});
+
+test('readContinuationFromWorktree: ファイルが無ければ null、あれば解析結果を返す', () => {
+    const missing = readContinuationFromWorktree('/wt', 912, { existsSync: () => false });
+    assert.equal(missing, null);
+    const content = [continuationMarker(912, 'address-review', 2), '## 残タスク', '- x'].join('\n');
+    const parsed = readContinuationFromWorktree('/wt', 912, {
+        existsSync: () => true,
+        readFileSync: () => content,
+    });
+    assert.equal(parsed.phase, 'address-review');
+    assert.equal(parsed.iteration, 2);
+});
+
+/** applyCheckpointHandling 用の I/O フェイク一式 */
+function makeCheckpointDeps({ dirty = false, hasFile = true, iteration = 1, phase = 'implement' } = {}) {
+    const calls = { comments: [], blocked: [] };
+    return {
+        calls,
+        execFileP: async (cmd, args) => (cmd === 'git' && args[0] === 'status'
+            ? { stdout: dirty ? ' M x\n' : '' }
+            : { stdout: '' }),
+        existsSync: () => hasFile,
+        readFileSync: () => [continuationMarker(1, phase, iteration), '## 残タスク', '- foo'].join('\n'),
+        token: 't',
+        readToken: 't',
+        upsertMarkedComment: (repo, issue, markers, body) => calls.comments.push({ issue, body }),
+        markBlocked: (item, body) => calls.blocked.push({ item, body }),
+    };
+}
+
+test('applyCheckpointHandling: 上限内なら continuation コメントを upsert し Blocked にはしない', async () => {
+    const deps = makeCheckpointDeps({ iteration: 1 });
+    const item = { issue: 1, itemId: 'i1', status: 'In Progress' };
+    const result = { signal: 'hitl', nextAiStatus: 'Awaiting Continuation' };
+    await applyCheckpointHandling(item, '/wt', result, makeCfg(), {}, () => {}, deps);
+    assert.equal(deps.calls.comments.length, 1);
+    assert.equal(deps.calls.comments[0].issue, 1);
+    assert.match(deps.calls.comments[0].body, /残タスク/);
+    assert.match(deps.calls.comments[0].body, /- foo/);
+    assert.equal(deps.calls.blocked.length, 0);
+});
+
+test('applyCheckpointHandling: 反復上限（既定3）超過で markBlocked にエスカレーションする', async () => {
+    const deps = makeCheckpointDeps({ iteration: 4 });
+    const item = { issue: 1, itemId: 'i1', status: 'In Progress' };
+    const result = { signal: 'hitl', nextAiStatus: 'Awaiting Continuation' };
+    await applyCheckpointHandling(item, '/wt', result, makeCfg(), {}, () => {}, deps);
+    assert.equal(deps.calls.blocked.length, 1);
+    assert.equal(deps.calls.blocked[0].item.issue, 1);
+    assert.match(deps.calls.blocked[0].body, /反復上限/);
+    // continuation コメント自体は escalate でも投稿する（人間への文脈提供）
+    assert.equal(deps.calls.comments.length, 1);
+});
+
+test('applyCheckpointHandling: continuation ファイルが無ければコメントもエスカレーションもしない', async () => {
+    const deps = makeCheckpointDeps({ hasFile: false });
+    const item = { issue: 1, itemId: 'i1', status: 'In Progress' };
+    const result = { signal: 'hitl', nextAiStatus: 'Awaiting Continuation' };
+    await applyCheckpointHandling(item, '/wt', result, makeCfg(), {}, () => {}, deps);
+    assert.equal(deps.calls.comments.length, 0);
+    assert.equal(deps.calls.blocked.length, 0);
+});
+
+test('applyCheckpointHandling: 未コミット WIP があれば保険commit してから処理を続ける', async () => {
+    const deps = makeCheckpointDeps({ dirty: true, iteration: 1 });
+    const item = { issue: 1, itemId: 'i1', status: 'In Progress' };
+    const result = { signal: 'hitl', nextAiStatus: 'Awaiting Continuation' };
+    await applyCheckpointHandling(item, '/wt', result, makeCfg(), {}, () => {}, deps);
+    assert.equal(deps.calls.comments.length, 1); // 保険commit 後も continuation 処理は続く
+});
+
+test('checkpointEscalationBody: 反復回数と上限を含み、worker のエラーではないと明示する', () => {
+    const body = checkpointEscalationBody({ issue: 42 }, 4, 3);
+    assert.match(body, /4 回/);
+    assert.match(body, /3 回/);
+    assert.match(body, /Blocked/);
+    assert.match(body, /worker 自身がエラーを報告した/);
+});
+
+test('collectContinuationContexts: Awaiting Continuation の item だけ continuation ファイルを読む', async () => {
+    const pathCalls = [];
+    const deps = {
+        execFileP: async (cmd, args) => {
+            pathCalls.push(args);
+            return { stdout: '/wt/issue-5\n' };
+        },
+        existsSync: () => true,
+        readFileSync: () => [continuationMarker(5, 'address-review', 2), '## 残タスク', '- foo'].join('\n'),
+    };
+    const items = [
+        { issue: 5, status: 'In Progress', aiStatus: 'Awaiting Continuation' },
+        { issue: 6, status: 'In Progress', aiStatus: 'Implementing' },
+        { issue: 7, status: 'Review', aiStatus: null },
+    ];
+    const contexts = await collectContinuationContexts(items, new Set(), () => {}, deps);
+    assert.deepEqual(Object.keys(contexts), ['5']);
+    assert.equal(contexts[5].continuation.phase, 'address-review');
+    assert.equal(contexts[5].continuation.iteration, 2);
+    assert.equal(pathCalls.length, 1); // #6/#7 は対象外なので worktree にすら問い合わせない
+});
+
+test('collectContinuationContexts: 実行中の item は触らない（live phase と競合しない）', async () => {
+    const deps = { execFileP: async () => { throw new Error('should not be called'); } };
+    const items = [{ issue: 5, status: 'In Progress', aiStatus: 'Awaiting Continuation' }];
+    const contexts = await collectContinuationContexts(items, new Set([5]), () => {}, deps);
+    assert.deepEqual(contexts, {});
+});
+
+test('collectContinuationContexts: worktree にファイルが無い item は結果に含まれない（implement フォールバック側で処理）', async () => {
+    const deps = {
+        execFileP: async () => ({ stdout: '/wt/issue-5\n' }),
+        existsSync: () => false,
+    };
+    const items = [{ issue: 5, status: 'In Progress', aiStatus: 'Awaiting Continuation' }];
+    const contexts = await collectContinuationContexts(items, new Set(), () => {}, deps);
+    assert.deepEqual(contexts, {});
 });
 
 // ---- SSO 再接続（device code フロー）: parseSsoDeviceOutput / startReauth ----

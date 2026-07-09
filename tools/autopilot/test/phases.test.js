@@ -80,6 +80,8 @@ const {
     DEFAULT_CHECKPOINT_SOFT_LIMIT_MS,
     shouldSignalCheckpoint,
     CHECKPOINT_SIGNAL_MESSAGE,
+    CHECKPOINT_CONTINUATION_COMMENT_MARKER,
+    continuationCommentBody,
     isSteadyStateHitlGate,
 } = require('../src/phases');
 const { PROMPT_RE } = require('../src/runner');
@@ -1394,6 +1396,52 @@ test('CHECKPOINT_SIGNAL_MESSAGE: worker への checkpoint 信号文言（#911）
         CHECKPOINT_SIGNAL_MESSAGE,
         '⏰ 残り約8分。新しい大きな作業を始めず、安全な区切りで停止して checkpoint 手順を実行して',
     );
+});
+
+test('continuationCommentBody: 解析済み continuation からマーカー付きコメント本文を組み立てる（#912）', () => {
+    const parsed = parseContinuationFile([
+        continuationMarker(912, 'implement', 2),
+        '## 完了済み',
+        '- daemon.js の下調べ',
+        '',
+        '## 残タスク',
+        '- checkpoint 処理の実装',
+        '',
+        '## 次の一手',
+        'applyCheckpointHandling を実装する。',
+        '',
+        '## 継続して安全か',
+        'はい: WIP はコミット済み。',
+    ].join('\n'));
+    const body = continuationCommentBody(parsed);
+    assert.ok(body.startsWith(CHECKPOINT_CONTINUATION_COMMENT_MARKER));
+    assert.match(body, /2 回目/);
+    assert.match(body, /`implement`/);
+    assert.match(body, /- daemon\.js の下調べ/);
+    assert.match(body, /- checkpoint 処理の実装/);
+    assert.match(body, /applyCheckpointHandling を実装する。/);
+    assert.match(body, /はい: WIP はコミット済み。/);
+    assert.match(body, /🙋 HITL.*外すと.*implement.*再開/);
+});
+
+test('continuationCommentBody: 欠けたフィールドはフォールバック文言になる（壊れたファイル対策）', () => {
+    const body = continuationCommentBody({
+        issue: null, phase: null, iteration: null,
+        completed: [], remaining: [], nextStep: null, safeToContinue: null, reason: null,
+    });
+    assert.match(body, /`implement`/); // phase フォールバック
+    assert.match(body, /1 回目/); // iteration フォールバック
+    assert.match(body, /_\(なし\)_/);
+    assert.match(body, /_\(記載なし\)_/);
+    assert.match(body, /はい/); // safeToContinue=null はデフォルト「はい」扱い
+});
+
+test('continuationCommentBody: safeToContinue=false は「いいえ」+ reason を表示する', () => {
+    const body = continuationCommentBody({
+        phase: 'implement', iteration: 3, completed: [], remaining: [],
+        nextStep: null, safeToContinue: false, reason: 'コンフリクトが残っている',
+    });
+    assert.match(body, /いいえ: コンフリクトが残っている/);
 });
 
 test('DEFAULT_WATCHDOG.tSoftMs: 既定は DEFAULT_CHECKPOINT_SOFT_LIMIT_MS と同値（#911）', () => {

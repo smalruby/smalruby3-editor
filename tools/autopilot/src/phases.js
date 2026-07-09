@@ -1410,6 +1410,53 @@ const CHECKPOINT_SIGNAL_MESSAGE =
     '⏰ 残り約8分。新しい大きな作業を始めず、安全な区切りで停止して checkpoint 手順を実行して';
 
 /**
+ * checkpoint 継続コメント（daemon が Issue へ upsert する・実装コンポーネント D・#912）の
+ * 識別マーカー。{@link continuationMarker}（continuation ファイル冒頭の marker）とは別物
+ * （こちらはコメントの冪等 upsert 用の固定文字列で issue/phase/iteration を含まない）。
+ */
+const CHECKPOINT_CONTINUATION_COMMENT_MARKER = '<!-- autopilot-continuation-comment -->';
+
+/**
+ * {@link parseContinuationFile} の結果から、Issue へ提示する checkpoint 継続コメントの本文を
+ * 組み立てる（純粋関数・実装コンポーネント D・#912）。daemon が checkpoint 結果を受けたときに
+ * `upsertMarkedComment` で 1 コメントへ upsert する（{@link renderSticky} が出す
+ * 「`autopilot-continuation` コメントを参照」という 1 行ポインタの実体）。コメントは対象
+ * Issue のスレッド内に投稿されるため issue 番号自体は本文に埋め込む必要が無い。
+ * @param {{phase: string|null, iteration: number|null, completed: string[], remaining: string[],
+ *   nextStep: string|null, safeToContinue: boolean|null, reason: string|null}} parsed
+ *   {@link parseContinuationFile} の戻り値
+ * @returns {string}
+ */
+function continuationCommentBody(parsed) {
+    const p = parsed || {};
+    const phase = p.phase || 'implement';
+    const iteration = p.iteration || 1;
+    const bullets = (arr) => (Array.isArray(arr) && arr.length ? arr.map((l) => `- ${l}`).join('\n') : '_(なし)_');
+    const safeLabel = p.safeToContinue === false ? 'いいえ' : 'はい';
+    const safe = p.reason ? `${safeLabel}: ${p.reason}` : safeLabel;
+    return [
+        CHECKPOINT_CONTINUATION_COMMENT_MARKER,
+        `## ⏸️ チェックポイント継続待ち（${iteration} 回目・フェーズ \`${phase}\`）`,
+        '',
+        `soft-limit のため \`${phase}\` フェーズを安全な区切りで中断しました（EPIC #906）。`,
+        '',
+        '### 完了済み',
+        bullets(p.completed),
+        '',
+        '### 残タスク',
+        bullets(p.remaining),
+        '',
+        '### 次の一手',
+        p.nextStep || '_(記載なし)_',
+        '',
+        '### 継続して安全か',
+        safe,
+        '',
+        `\`🙋 HITL\` を外すと \`${phase}\` フェーズへ再開します。`,
+    ].join('\n');
+}
+
+/**
  * GitHub に surface してよい文字列へサニタイズする（純粋関数）。
  *
  * worker の error 理由・watchdog の失敗理由には、コマンド出力由来の機密
@@ -1683,4 +1730,6 @@ module.exports = {
     DEFAULT_CHECKPOINT_SOFT_LIMIT_MS,
     shouldSignalCheckpoint,
     CHECKPOINT_SIGNAL_MESSAGE,
+    CHECKPOINT_CONTINUATION_COMMENT_MARKER,
+    continuationCommentBody,
 };
