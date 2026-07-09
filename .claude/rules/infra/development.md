@@ -118,9 +118,51 @@ account ID は CDK の `cdk.context.json` コミット方針で既にリポジ�
 トークン類・認証コードは短命でも秘密であり、`~/.aws/sso/cache/` の中身を含めコミットや
 チャット転記をしない。
 
+## 全プロジェクト共通の実装規約（現行 5 プロジェクトから導出）
+
+新しい CDK プロジェクト / リソースを追加するときは以下の実装パターンに合わせる
+（全 5 プロジェクトで一致している事実）:
+
+| 項目 | 規約 |
+|------|------|
+| `.env` の読み込み | `bin/*.ts` が `dotenv.config()` で `.env`（symlink）を読む。環境変数が `.env` より優先 |
+| STAGE の解決順 | `--context stage=...` → `process.env.STAGE` → 既定 `'stg'` |
+| リソース名 suffix | `stageSuffix = stage === 'prod' ? '' : '-' + stage`（**prod は無印**、他は `-stg` 等） |
+| CFN スタック名 | prod は無印、他は `-{stage}`（`MeshV2Stack` / `ClassroomStack` / `SmalrubyApiStack` / `RubyteeRelayStack` / `BugReportStack`） |
+| リージョン | 既定 `ap-northeast-1` |
+| CDK バージョン | `aws-cdk-lib` は全プロジェクトで**同一バージョンにピン留め**（現在 `2.232.1`）。1 つだけ上げない |
+| タグ | スタック全体に `Project` / `Stage` / `Service` / `ManagedBy=CDK` |
+| Node Lambda ランタイム | **`NODEJS_22_X` に統一**（例外: mesh-v2 の Ruby Lambda は `RUBY_3_4`）。新しい Lambda も 22 に合わせる |
+| Lambda bundling | esbuild: `minify: true`, `sourceMap: stage !== 'prod'`, `externalModules: []`（全同梱） |
+| CloudWatch LogGroup | 明示生成し retention = prod `ONE_MONTH` / 他 `ONE_WEEK`、`removalPolicy: DESTROY` |
+| HTTP API スロットリング | stage-level のスロットリングを必ず設定（値はプロジェクトごと。WAF は使わない） |
+
+## 横断の認証・認可規約（実装事実）
+
+- **ID Token 認証**（classroom / bug-report）は Google / Microsoft の **`iss` 自動判別 + JWKS 検証**
+  で共通（Microsoft は `login.microsoftonline.com` の JWKS、`oid` を sub に使う）。
+- **`DEV_BYPASS_TOKEN` は prod に設定されていると stack が `throw` して deploy が失敗する**
+  （classroom / bug-report の両方に実装済み）。ID Token 認証 + dev バイパスを持つ新プロジェクト
+  でも必ずこのガードを踏襲する。
+- **認可失敗のステータスコードはプロジェクト間で非対称**（歴史的事実。テスト期待値に注意）:
+  bug-report は `ForbiddenError` → **403**、classroom は `AuthError` → **401**（+ 他人のリソースは
+  存在秘匿の **404**、kick 済みは **410**）。
+- 管理者アクションの `audit()` 構造化ログは **bug-report のみ**が持つ（classroom には無い）。
+  「管理系操作は audit ログ」と一般化しないこと。
+
+## データ保持（RemovalPolicy）と secret の互換性
+
+- **`RemovalPolicy.RETAIN` は bug-report の `BugReportAdmins` テーブルのみ**。それ以外の運用
+  テーブル（mesh-v2 / classroom の 4 テーブル / `BugReports` / rate limit）はすべて **DESTROY**
+  — スタック削除・リソース差し替えでデータが消える前提で扱うこと。
+- **互換性クリティカルな secret**: `MESH_ZONE_SECRET_KEY`（smalruby-api）はローテートすると
+  全ユーザーの mesh domain (CRC32) が変わる（詳細は `smalruby-api.md`）。mesh-v2 の
+  `MESH_SECRET_KEY` は **未設定だと stack 既定の固定弱鍵 `'default-secret-key'` になる**
+  フットガンがある（`.env.<stage>` で必ず設定する）。
+
 ## Stage Switching via `.env` Symlink
 
-Both projects use the same pattern: per-stage `.env` files (`.env.stg`, `.env.stg2`, `.env.prod`) with a `.env` symlink pointing to the active stage.
+All 5 projects use the same pattern: per-stage `.env` files (`.env.stg`, `.env.stg2`, `.env.prod`) with a `.env` symlink pointing to the active stage.
 
 ```bash
 cd infra/<project-name>
@@ -140,6 +182,10 @@ The `STAGE` value in the linked `.env` file determines the deployment target. It
 **CRITICAL**: Always use `.env` symlink switching for deployments. Never override environment variables (e.g., `APPSYNC_CUSTOM_DOMAIN=false`) directly on the command line — this can delete custom domains or other critical resources from the stack.
 
 ## Post-Deploy Verification
+
+以下は **AppSync（mesh-v2）向け**の確認。HTTP API プロジェクト（classroom / rubytee-relay /
+smalruby-api / bug-report）はそれぞれのカスタムドメイン URL への `curl`（+ integration テスト）
+で確認する（各プロジェクトのルール参照）。
 
 After deploying to `stg` or `prod`, verify that custom domains are intact:
 

@@ -1,3 +1,10 @@
+---
+paths:
+  - "infra/smalruby-api/"
+  - "infra/smalruby-api/**"
+  - "infra/smalruby-api/**/*"
+---
+
 # smalruby-api
 
 CDK project for Smalruby's API Gateway endpoints (HTTP API v2 + Lambda).
@@ -92,12 +99,22 @@ rm .env && ln -s .env.prod .env   # → prod
 | `SMALRUBY_API_CUSTOM_DOMAIN` | Override custom domain. Set `false` to disable |
 | `MESH_ZONE_SECRET_KEY` | **Secret** — used to derive Mesh group identity from source IP |
 
+## 実装事実（スタック構成の補足）
+
+- Lambda 4 本はすべて **`ARM_64`**（他プロジェクトは architecture 未指定 = x86_64。
+  このプロジェクトだけの差異）。memory/timeout は既定 128MB/10s、`cors-proxy` のみ 512MB/30s。
+- stage スロットリング: prod 200rps/burst 50、非 prod 50/50。
+- **`cors-proxy` は宛先 URL の allowlist を持たない**（scheme が http/https であることのみ検証。
+  redirect は manual 追跡・最大 5 回、タイムアウト 30 秒）。SSRF 面のリスクを承知の上での
+  汎用プロキシなので、**制限を追加する変更は既存利用（Google Drive / Scratch サービス群）を
+  壊さないか必ず確認**する。
+
 ## Migration Notes
 
 旧 SAM スタックとの主な差分:
 
 1. **REST API v1 → HTTP API v2** へ変更。built-in CORS で OPTIONS Lambda 不要に
-2. **Ruby 3.3 → Node.js 20.x (TypeScript)** で他 infra プロジェクトと言語を統一
+2. **Ruby 3.3 → Node.js (TypeScript)** で他 infra プロジェクトと言語を統一（現在は全プロジェクト `NODEJS_22_X`）
 3. **`scratch-api-proxy/projects/{projectId}` のステータスコード透過** — 旧実装は `Net::HTTP.get` でボディだけ取得 → 常に 200 を返していた (関連 Issue #573)
 4. **`mesh-zone-get` の secret key を環境変数化** — 旧実装はハードコード
 5. **stg 環境を新設** — 旧実装は prod のみ

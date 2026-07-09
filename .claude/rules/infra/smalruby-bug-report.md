@@ -1,3 +1,10 @@
+---
+paths:
+  - "infra/smalruby-bug-report/"
+  - "infra/smalruby-bug-report/**"
+  - "infra/smalruby-bug-report/**/*"
+---
+
 # smalruby-bug-report
 
 CDK project for the **program bug report** service (API Gateway HTTP API v2 + Lambda + DynamoDB + S3).
@@ -22,6 +29,8 @@ CDK project for the **program bug report** service (API Gateway HTTP API v2 + La
   - `BugReportAdmins{suffix}` — PK `email`。管理者レジストリ。**RemovalPolicy: RETAIN**。
 - **S3** `smalruby-bug-report{suffix}`: Block Public Access 全 ON + enforceSSL。
   作品は **presigned URL 経由のみ**。download は **管理者にのみ発行**、報告者には発行しない。
+  lifecycle は一律 TTL ではなく **`max(RESOLVED_TTL_DAYS * 6, 180)` 日**の孤児掃除のみ
+  （open の報告の作品を消さないための意図的設計）。
 - **認証**: Google / Microsoft ID Token (classroom と同じ `iss` 自動判別 + JWKS 検証)。
   **任意の認証済みユーザー** が報告できる (事前登録不要)。
 
@@ -29,11 +38,12 @@ CDK project for the **program bug report** service (API Gateway HTTP API v2 + La
 
 | 操作 | 認可 |
 |------|------|
-| `POST /bug-reports` (作成) | 任意の認証済みユーザー (ID Token) |
-| `GET /bug-reports` (自分の一覧) | 任意の認証済みユーザー。`ownerSub` で絞る。**S3 キー/DL URL は返さない** |
+| `POST /bug-reports` (作成) | 任意の認証済みユーザー (ID Token)。ルート個別スロットリングあり |
+| `GET /bug-reports` (自分の一覧) | 任意の認証済みユーザー。`ownerSub` で絞る。**S3 キー/DL URL は返さない**。`hiddenByOwner === true` の報告は除外 |
+| `PATCH /bug-reports/{id}` (本人の hide/unhide) | **報告者本人のみ**。`hiddenByOwner` フラグを立てる/外すだけで**削除はしない**。他人・存在しない report は 404（存在秘匿） |
 | `GET /admin/bug-reports` (全一覧) | **管理者のみ** (403 if not) |
 | `GET /admin/bug-reports/{id}` (詳細 + 作品 DL) | **管理者のみ** |
-| `PATCH /admin/bug-reports/{id}` (status / developerReply) | **管理者のみ** |
+| `PATCH /admin/bug-reports/{id}` (status / developerReply) | **管理者のみ**。更新時に `hiddenByOwner` を false に戻す（返信を報告者に見せるため）。terminal status (resolved/wont_fix) で TTL 付与、再オープンで TTL 除去 |
 | `GET/POST /admin/admins`, `DELETE /admin/admins/{email}` | **管理者のみ** |
 
 管理者の判定 (`isAdminIdentity`):
