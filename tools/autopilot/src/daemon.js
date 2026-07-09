@@ -254,8 +254,12 @@ async function checkAuthHealth(cfg, state, log, deps = {}) {
  * dispatch の run 失敗と tick の stuck 検知の両方から使う（#813/#816）。
  * @param {object} item Project item
  * @param {string|null} body 投稿する bot コメント本文（null ならコメントしない）
+ * @param {object} cfg
+ * @param {function} log
+ * @param {object} [deps] テスト用に I/O を差し替え可能
+ * @param {object|null} [state] daemon の可変状態。渡すと Blocked を board キャッシュにも live 反映する（#888）
  */
-async function markBlocked(item, body, cfg, log, deps = {}) {
+async function markBlocked(item, body, cfg, log, deps = {}, state = null) {
     const token = deps.token || await project.botToken();
     const findItemId = deps.findItemId || project.findItemId;
     const setField = deps.setField || project.setField;
@@ -263,8 +267,12 @@ async function markBlocked(item, body, cfg, log, deps = {}) {
     const syncFaces = deps.syncFaces || ((it) => syncFacesAfterIntents(it, [], cfg, log));
     const ctx = { projectId: cfg.projectId, fields: cfg.fields };
     const itemId = item.itemId || await findItemId(cfg.owner, cfg.project, item.issue, token);
-    try { await setField(ctx, itemId, 'Status', 'Blocked', token); }
-    catch (e) { log(`#${item.issue}: mark Status failed: ${e.message}`); }
+    try {
+        await setField(ctx, itemId, 'Status', 'Blocked', token);
+        // Blocked は人間の注意を要する最重要遷移。他の書き込み局面と同様に board キャッシュへも
+        // live 反映し、refreshBoard（既定 5 分間隔）を待たず monitor の 5 秒 poll で見えるようにする（#888）。
+        patchBoardCache(state, item.issue, [{ field: 'Status', value: 'Blocked' }]);
+    } catch (e) { log(`#${item.issue}: mark Status failed: ${e.message}`); }
     if (body) {
         try { await postIssueComment(cfg.repo, item.issue, body, token); }
         catch (e) { log(`#${item.issue}: block comment failed: ${e.message}`); }
@@ -333,7 +341,7 @@ async function detectStuck(items, cfg, state, log, deps = {}) {
             const minutes = Math.round(elapsed / 60000);
             log(`#${item.issue}: stuck at In Progress/${item.aiStatus} for ${minutes}min -> Blocked`);
             seen.delete(item.issue);
-            try { await markBlocked(item, stuckBlockBody(item, minutes), cfg, log, deps); }
+            try { await markBlocked(item, stuckBlockBody(item, minutes), cfg, log, deps, state); }
             catch (e) { log(`#${item.issue}: stuck block failed: ${e.message}`); }
         }
     }
@@ -401,7 +409,7 @@ async function dispatch(item, cfg, state, log) {
     // GitHub へ出す理由は必ずサニタイズする（コマンド出力由来の機密を含みうる）。生ログはローカル。
     const blockToHuman = async (reason) => {
         try {
-            await markBlocked(item, reason ? failureBlockBody(meta.skill, item.issue, sanitizeForSurface(reason)) : null, cfg, log);
+            await markBlocked(item, reason ? failureBlockBody(meta.skill, item.issue, sanitizeForSurface(reason)) : null, cfg, log, {}, state);
         } catch (e) {
             log(`#${item.issue}: blockToHuman failed: ${e.message}`);
         }
@@ -410,6 +418,12 @@ async function dispatch(item, cfg, state, log) {
         // 着手を即可視化（Issue を状態の正に）: In Progress + AI Status=xxxing
         await mark('Status', 'In Progress');
         await mark('AI Status', meta.aiStatus);
+        // 着手も worker のローカル状態変化 → board キャッシュに live 反映（#888・GraphQL は増やさない）。
+        // これで dispatch 開始が refreshBoard（既定 5 分）を待たず monitor の 5 秒 poll で見える。
+        patchBoardCache(state, item.issue, [
+            { field: 'Status', value: 'In Progress' },
+            { field: 'AI Status', value: meta.aiStatus },
+        ]);
         // PR ブランチで作業するフェーズは PR 番号を解決（inject 経由など item.pr 未設定時はここで取得）
         let pr;
         if (PR_BRANCH_PHASES.has(phase)) {
@@ -471,6 +485,9 @@ async function dispatch(item, cfg, state, log) {
         }
         const intents = applyResult(parsed.result);
         const applied = await project.applyIntents(ctx, itemId, intents, await project.botToken());
+        // ローカルで把握した状態変化を board キャッシュにも反映（#888）。GraphQL は増やさない。
+        // implement 完了→ AI Status=Self-Reviewing 等が refreshBoard を待たず monitor に live 反映される。
+        patchBoardCache(state, item.issue, intents);
         log(`#${item.issue}: ${parsed.result.signal} — applied: ${applied.join(', ')}`);
         record(parsed.result.signal, parsed.result.summary);
         // signal=error は Blocked で surface する（churn を止める）。理由はサニタイズ済みの
@@ -570,6 +587,8 @@ async function applyMergeProgression(items, cfg, state, log, deps = {}) {
         const itemId = item.itemId || await findItemId(cfg.owner, cfg.project, item.issue, token);
         try {
             const applied = await applyIntents(ctx, itemId, intents, token);
+            // merge 進行の状態変化も board キャッシュに live 反映（#888・GraphQL は増やさない）
+            patchBoardCache(state, item.issue, intents);
             log(`#${item.issue}: PR merged → ${applied.join(', ')}`);
             // Fix A（#843）: 非デフォルト base 宛て PR（EPIC サブ）では GitHub の `Closes #N` 自動
             // close が効かないため、Project を Close へ進めたら GitHub issue も明示的に閉じる（冪等）。
@@ -620,6 +639,8 @@ async function applyClosedReconcile(items, cfg, state, log, deps = {}) {
         const itemId = item.itemId || await findItemId(cfg.owner, cfg.project, item.issue, token);
         try {
             const applied = await applyIntents(ctx, itemId, intents, token);
+            // closed 整合の状態変化も board キャッシュに live 反映（#888・GraphQL は増やさない）
+            patchBoardCache(state, item.issue, intents);
             log(`#${item.issue}: closed issue → ${applied.join(', ')}`);
             // closed は終端シグナル → 人間の番は解除。🙋 ラベルを落とす（force 同期）。
             await syncFaces({ ...item, status: 'Close', hitlLabel: false }, intents);
@@ -914,6 +935,28 @@ async function refreshRateLimits(cfg, state, log, deps = {}) {
 // （実測で read/graphql が数十分で枯渇 → skipLowPriority が発動しボードが stale 化していた）。
 // そこで board 更新は **poll/tick の直後**（= interval ごと）と、モニタの「🔄 更新」ボタン
 // （POST /refresh）による **オンデマンド** のみに限定し、見たいときだけ消費する。
+
+/**
+ * daemon がローカルで把握した intents を board キャッシュ（`state.board.items`）へ反映する（#888）。
+ * worker 結果や merge 進行・closed 整合など Project を書き換えた局面で、**同じ intents** を
+ * `applyIntentsToItem` で当該 issue のキャッシュ item にも適用する。これにより AI Status
+ * （例 Implementing → Self-Reviewing）や Status が **refreshBoard を待たず** 次の poll（5 秒）で
+ * monitor に live 反映される。**GraphQL / gh を一切呼ばない**（in-memory の更新のみ）。
+ * キャッシュ未在（refreshBoard 前）や当該 issue がまだ無い場合はスキップする（次の refreshBoard で入る）。
+ * @param {object} state daemon の可変状態（`state.board.items` を持ちうる）
+ * @param {number} issue 対象 issue 番号
+ * @param {Array<{field: string, value: string|null}>} intents applyResult 等が返した intents
+ * @returns {boolean} キャッシュにパッチしたら true、スキップなら false
+ */
+function patchBoardCache(state, issue, intents) {
+    if (!state || !state.board || !Array.isArray(state.board.items)) return false;
+    if (!Array.isArray(intents) || !intents.length) return false;
+    const idx = state.board.items.findIndex((it) => it && it.issue === issue);
+    if (idx < 0) return false;
+    // applyIntentsToItem はコピーを返す純粋関数 → 配列の参照を差し替える（元 item は破壊しない）
+    state.board.items[idx] = applyIntentsToItem(state.board.items[idx], intents);
+    return true;
+}
 
 /**
  * 俯瞰ボードのデータを再構築して state.board に置く（Web モニタの `GET /board` が返す）。
@@ -1228,6 +1271,6 @@ module.exports = {
     applyDodHandoffs, detectStuck, markBlocked, getDirectives, applyLabelHealing,
     isGateItem, collectGateContexts, checkAuthHealth, REAUTH_HINT,
     parseSsoDeviceOutput, startReauth,
-    refreshBoard, recordHistory, refreshRateLimits,
+    refreshBoard, recordHistory, refreshRateLimits, patchBoardCache,
     updateClaudeUsage, boardResponse, statusResponse,
 };
