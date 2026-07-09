@@ -7,7 +7,7 @@
  *   3. runnability — every step's `code` snippet actually converts to blocks
  *      (so the "the cat says X" promise in the images is real)
  *
- * See docs/tutorial/improvement-plan.md Phase 2 and issue #852.
+ * See docs/tutorial/improvement-plan.md Phase 2 and issues #852 / #853.
  */
 import decks from '../../../../../src/lib/libraries/decks/index.jsx';
 import {CATEGORIES} from '../../../../../src/lib/libraries/tutorial-tags';
@@ -18,11 +18,14 @@ import RubyToBlocksConverter from '../../../../../src/lib/ruby-to-blocks-convert
 
 const LOCALES = {ja, 'ja-Hira': jaHira, en};
 
-// The three decks this suite guards. Deck 1 already ships; decks 2 & 3 are #852.
+// The six decks this suite guards. Decks 1-3 are #852; decks 4-6 are #853.
 const EXPECTED_DECK_IDS = [
     'ruby-basics-1-numbers',
     'ruby-basics-2-strings',
     'ruby-basics-3-variables',
+    'ruby-basics-4-arrays',
+    'ruby-basics-5-blocks',
+    'ruby-basics-6-methods',
 ];
 
 // Collect every FormattedMessage id referenced by a deck (name + step titles +
@@ -48,7 +51,7 @@ const collectMessageIds = deck => {
 };
 
 describe('Ruby Basics tutorial decks', () => {
-    test('all three decks exist under the rubyBasics category', () => {
+    test('all six decks exist under the rubyBasics category', () => {
         EXPECTED_DECK_IDS.forEach(id => {
             expect(decks[id]).toBeDefined();
             expect(decks[id].category).toBe(CATEGORIES.rubyBasics);

@@ -1122,6 +1122,33 @@ export default {
     'gui.howtos.ruby-basics-3-variables.step4.title': 'へんすうをつかって、ぶんをつくってみよう',
     'gui.howtos.ruby-basics-3-variables.step5.title': 'へんすうのなかみをすきななまえにかえてみよう',
     'gui.howtos.ruby-basics-3-variables.external.tryruby.name': 'がいぶサイト「try ruby」でくわしくRubyをまなぶ',
+    'gui.howtos.ruby-basics-4-arrays.name': 'はいれつであそぼう',
+    'gui.howtos.ruby-basics-4-arrays.step1.title': 'はいれつであそぼう！',
+    'gui.howtos.ruby-basics-4-arrays.step2.title': 'ふくすうのことばを1つのはいれつにまとめてみよう',
+    'gui.howtos.ruby-basics-4-arrays.step3.title': '{greenFlag}をおすと、ネコがはいれつのなかみをしゃべるよ',
+    'gui.howtos.ruby-basics-4-arrays.step4.title':
+        'はいれつのじゅんばんをぎゃくにしたり、ばんごうで1つだけとりだしてみよう',
+    'gui.howtos.ruby-basics-4-arrays.step5.title': 'すきなことばにかえて、じぶんだけのはいれつであそぼう',
+    'gui.howtos.ruby-basics-4-arrays.external.tryruby.name': 'がいぶサイト「try ruby」でくわしくRubyをまなぶ',
+    'gui.howtos.ruby-basics-5-blocks.name': 'ブロック（times）をつかってみよう',
+    'gui.howtos.ruby-basics-5-blocks.step1.title': 'ブロック（times）をつかってみよう！',
+    'gui.howtos.ruby-basics-5-blocks.step2.title':
+        '「5.times do |i| ... end」でおなじしょりを5かいくりかえしてみよう',
+    'gui.howtos.ruby-basics-5-blocks.step3.title':
+        '{greenFlag}をおすと、ネコが「0」から「4」までじゅんばんにしゃべるよ',
+    'gui.howtos.ruby-basics-5-blocks.step4.title':
+        'くりかえしのなかで「move(20)」もうごかして、すすみながらしゃべらせよう',
+    'gui.howtos.ruby-basics-5-blocks.step5.title':
+        'くりかえすかいすうやうごくほすうをかえて、じぶんだけのうごきをつくろう',
+    'gui.howtos.ruby-basics-5-blocks.external.tryruby.name': 'がいぶサイト「try ruby」でくわしくRubyをまなぶ',
+    'gui.howtos.ruby-basics-6-methods.name': 'メソッドをつくってみよう',
+    'gui.howtos.ruby-basics-6-methods.step1.title': 'メソッドをつくってみよう！',
+    'gui.howtos.ruby-basics-6-methods.step2.title':
+        '「def hello(name) ... end」で、なまえをよんであいさつするメソッドをつくろう',
+    'gui.howtos.ruby-basics-6-methods.step3.title': '{greenFlag}をおすと、ネコが「こんにちは、ネコ」としゃべるよ',
+    'gui.howtos.ruby-basics-6-methods.step4.title': 'おなじメソッドを、ちがうなまえでなんどもよびだしてみよう',
+    'gui.howtos.ruby-basics-6-methods.step5.title': 'メソッドのなかみをかえて、じぶんだけのあいさつをつくろう',
+    'gui.howtos.ruby-basics-6-methods.external.tryruby.name': 'がいぶサイト「try ruby」でくわしくRubyをまなぶ',
     // Mesh tag
     'gui.libraryTags.mesh': 'メッシュ',
     'gui.cards.insert-ruby': 'ルビーをにゅうりょくする',
