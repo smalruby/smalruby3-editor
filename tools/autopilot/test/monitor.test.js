@@ -37,16 +37,38 @@ test('MONITOR_HTML: 俯瞰ボード構造（first view はボード、履歴は�
     }
 });
 
-test('MONITOR_HTML: meta を 🔄 更新ボタンの左に置きボタンを右端に固定（ジッター解消）', () => {
-    // meta（API残 / 更新 Xs前）は 🔄 更新ボタンより前（左）に置き、
-    // margin-left:auto で右寄せ + 左方向に伸ばしてボタン位置を固定する。
-    const iMeta = MONITOR_HTML.indexOf('id="meta"');
+test('MONITOR_HTML: ヘッダー 3 分割 — 更新ボタンは操作群、meta は固定幅右セクション（ジッター解消）', () => {
+    // 左グループ（状態 + 操作 + 🔄 更新）/ 中央 usage / 右 meta の 3 セクション。
+    const iTick = MONITOR_HTML.indexOf('id="ticknow"');
     const iRefresh = MONITOR_HTML.indexOf('id="refreshboard"');
-    assert.ok(iMeta > -1 && iRefresh > -1, 'meta と refreshboard が存在する');
-    assert.ok(iMeta < iRefresh, 'meta は refreshboard ボタンより前（左）にある');
-    // .meta は右寄せ + 桁変化での揺れ抑制（tabular-nums）
+    const iMeta = MONITOR_HTML.indexOf('id="meta"');
+    assert.ok(iTick > -1 && iRefresh > -1 && iMeta > -1, 'ticknow / refreshboard / meta が存在する');
+    // 🔄 更新は操作群（⚡ tick の隣）に入り、右端の meta より前（左）にある
+    assert.ok(iTick < iRefresh, '🔄 更新は ⚡ tick の後（操作群の中）にある');
+    assert.ok(iRefresh < iMeta, '🔄 更新は meta より前（左グループ）にある');
+    // 左グループを囲む要素がある
+    assert.match(MONITOR_HTML, /class="hgroup hleft"/);
+    // 右 meta は固定幅（width or min-width を予約）で右寄せ + tabular-nums →
+    // 内容幅が変わっても左端（x）が動かない
     assert.match(MONITOR_HTML, /header \.meta \{[^}]*margin-left: auto/);
+    assert.match(MONITOR_HTML, /header \.meta \{[^}]*(?:^|[^-])width:/);
+    assert.match(MONITOR_HTML, /header \.meta \{[^}]*text-align: right/);
     assert.match(MONITOR_HTML, /header \.meta \{[^}]*tabular-nums/);
+    // 狭い幅では中央 usage を隠して右 meta と重ならないようにする
+    assert.match(MONITOR_HTML, /@media[^{]*max-width[^{]*\{[^}]*\.usage[^}]*display: none/);
+});
+
+test('MONITOR_HTML: usage に更新からの経過（age）を併記し、据え置き中が分かる（#883）', () => {
+    // claudeUsage.updatedAt から経過秒を出す関数がある
+    assert.match(MONITOR_HTML, /function usageAge/);
+    assert.match(MONITOR_HTML, /u\.updatedAt/);
+    // renderUsage が age を描画する
+    assert.match(MONITOR_HTML, /usageAge\(/);
+    // 一定時間更新が無ければ薄く（stale クラス）表示して据え置きを示す
+    assert.match(MONITOR_HTML, /uage stale|stale/);
+    assert.match(MONITOR_HTML, /\.uage\b/);
+    // age の値は固定幅で予約し桁変化で揺れない
+    assert.match(MONITOR_HTML, /\.uageval/);
 });
 
 test('MONITOR_HTML: アラート表示と check autopilot ショートカット', () => {
@@ -65,6 +87,31 @@ test('MONITOR_HTML: log モーダルを開いている間 10 秒ごとに自動�
     // 自動更新でも叩くのは /log のみ（新規 API を増やさない）
     const autoFetches = MONITOR_HTML.match(/fetch\('\/log\?issue='/g) || [];
     assert.ok(autoFetches.length >= 1, 'loadLog must fetch /log');
+});
+
+test('MONITOR_HTML: ボードに Size（S/M/L・色付き）列を表示（#884）', () => {
+    // <thead> に Size 列見出しがある
+    assert.match(MONITOR_HTML, /<th>Size<\/th>/);
+    // small/middle/large を S/M/L に短縮する sizeBadge ヘルパー
+    assert.match(MONITOR_HTML, /const sizeBadge = /);
+    assert.match(MONITOR_HTML, /small:\s*\['S'/);
+    assert.match(MONITOR_HTML, /middle:\s*\['M'/);
+    assert.match(MONITOR_HTML, /large:\s*\['L'/);
+    // 色分けクラス（S=緑 / M=黄 / L=赤）が CSS に定義される
+    for (const cls of ['size-badge', 'size-s', 'size-m', 'size-l']) {
+        assert.ok(MONITOR_HTML.includes(cls), `should include ${cls}`);
+    }
+    // S=緑系 / M=琥珀系 / L=赤系の配色
+    assert.match(MONITOR_HTML, /\.size-s \{[^}]*#dcfce7/);
+    assert.match(MONITOR_HTML, /\.size-m \{[^}]*#fef3c7/);
+    assert.match(MONITOR_HTML, /\.size-l \{[^}]*#fee2e2/);
+    // renderBoard が sizeBadge を呼ぶ
+    assert.match(MONITOR_HTML, /sizeBadge\(it\.size\)/);
+    // size 未設定は「—」（muted）で崩れない
+    assert.match(MONITOR_HTML, /class="muted"/);
+    // 列追加に合わせて空行の colspan を更新（7 → 8）
+    assert.match(MONITOR_HTML, /colspan="8"/);
+    assert.doesNotMatch(MONITOR_HTML, /colspan="7"/);
 });
 
 test('MONITOR_HTML: インライン script が構文的に妥当', () => {

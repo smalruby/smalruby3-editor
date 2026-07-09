@@ -23,10 +23,17 @@ const MONITOR_HTML = `<!doctype html>
   * { box-sizing: border-box; }
   body { font-family: system-ui, sans-serif; margin: 0; color: #1e293b; background:#f8fafc; }
   a { color: #2563eb; text-decoration: none; } a:hover { text-decoration: underline; }
-  /* ---- コンパクトヘッダー（1 行固定） ---- */
+  /* ---- コンパクトヘッダー（3 分割・1 行固定）#883 ----
+     左: 状態 + 操作群（🔄 更新 含む） / 中央: usage（absolute 中央）/ 右: meta（固定幅）。
+     3 セクションは互いを押さない。meta は固定幅で右寄せするので、内容幅が変わっても
+     左端（x）が動かない（更新 Xs前 の桁変化・API残/実行中 の増減で揺れない）。 */
   header { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: .5rem;
            padding: .4rem .8rem; background: #0f172a; color: #e2e8f0; white-space: nowrap; overflow: hidden; }
-  /* ---- Claude 使用量（ヘッダー中央）#879 ---- */
+  .hgroup { display: flex; align-items: center; gap: .5rem; }
+  .hleft { flex: 0 0 auto; }
+  /* ---- Claude 使用量（ヘッダー中央）#879 ----
+     内部の可変要素（%・age）は min-width で予約し、usage 全体の幅を一定に保つ。
+     幅が一定なら translateX(-50%) の中央位置（x）も動かない。 */
   .usage { position: absolute; left: 50%; transform: translateX(-50%); display: flex; align-items: center;
            gap: .3rem; font-size: .75rem; color: #cbd5e1; font-variant-numeric: tabular-nums;
            pointer-events: none; }
@@ -35,16 +42,20 @@ const MONITOR_HTML = `<!doctype html>
                  display: inline-block; vertical-align: middle; }
   .usage .ubar > span { display: block; height: 100%; background: #22c55e; }
   .usage .ubar > span.warn { background: #ef4444; }
-  .usage .upct { min-width: 2.4em; text-align: right; }
+  .usage .upct { min-width: 2.8em; text-align: right; }
   .usage .upct.warn { color: #fca5a5; }
   .usage .usep { color: #64748b; margin: 0 .05rem; }
-  .usage .umuted { color: #64748b; min-width: 2.4em; text-align: center; }
+  .usage .umuted { color: #64748b; min-width: 2.8em; text-align: center; }
+  .usage .uage { color: #64748b; margin-left: .1rem; }
+  .usage .uage.stale { color: #eab308; }
+  .usage .uageval { display: inline-block; min-width: 2.4em; text-align: right; }
   header h1 { font-size: .95rem; margin: 0; font-weight: 600; }
   header .pill { flex: none; }
   header button { padding: .15rem .55rem; font-size: .8rem; cursor: pointer; border: 1px solid #334155;
                   background: #1e293b; color: #e2e8f0; border-radius: .3rem; }
   header button:hover { background: #334155; }
-  header .meta { margin-left: auto; color: #94a3b8; font-size: .75rem; overflow: hidden; text-overflow: ellipsis;
+  header .meta { margin-left: auto; flex: 0 0 auto; width: 24rem; max-width: 40vw; text-align: right;
+                 color: #94a3b8; font-size: .75rem; overflow: hidden; text-overflow: ellipsis;
                  font-variant-numeric: tabular-nums; }
   /* ---- 稼働バージョン + 更新バッジ（#885・スティッキーフッター） ---- */
   /* ヘッダーは Claude 使用量バーが中央を占めて余白が無いので、稼働バージョンと更新バッジは
@@ -74,6 +85,8 @@ const MONITOR_HTML = `<!doctype html>
   #updmodal .commits code { font-size: .76rem; }
   #updmodal .primary { background: #2563eb; color: #fff; border: 1px solid #1d4ed8; padding: .1rem .5rem;
                        border-radius: .3rem; cursor: pointer; font-size: .78rem; }
+  /* 狭い幅では中央 usage を隠して右 meta と重ならないようにする（usage は補助情報） */
+  @media (max-width: 960px) { .usage { display: none; } }
   .pill { display: inline-block; padding: .05rem .5rem; border-radius: 1rem; font-size: .75rem; font-weight: 600; }
   .ok { background: #bbf7d0; color: #14532d; } .paused { background: #fecaca; color: #7f1d1d; }
   .auth { background: #fde047; color: #713f12; }
@@ -97,6 +110,11 @@ const MONITOR_HTML = `<!doctype html>
   td.title-cell { max-width: 34rem; }
   .t { display: inline-block; max-width: 30rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
   .status-pill { display: inline-block; padding: .05rem .45rem; border-radius: .3rem; font-size: .75rem; font-weight: 600; white-space: nowrap; }
+  /* ---- Size バッジ（S=緑 / M=琥珀 / L=赤）#884 ---- */
+  .size-badge { display: inline-block; min-width: 1.1rem; padding: .05rem .4rem; border-radius: .3rem; font-size: .75rem; font-weight: 700; text-align: center; }
+  .size-s { background: #dcfce7; color: #14532d; }
+  .size-m { background: #fef3c7; color: #92400e; }
+  .size-l { background: #fee2e2; color: #7f1d1d; }
   .muted { color: var(--muted); }
   .prchip { display: inline-block; margin: 0 .15rem .1rem 0; padding: 0 .35rem; border-radius: .3rem;
             font-size: .75rem; white-space: nowrap; border: 1px solid transparent; }
@@ -119,20 +137,22 @@ const MONITOR_HTML = `<!doctype html>
   #modal pre { margin: 0; padding: .8rem; overflow: auto; white-space: pre-wrap; font-size: .78rem; flex: 1; }
 </style></head><body>
 <header>
-  <h1>🤖 autopilot</h1>
+  <div class="hgroup hleft">
+    <h1>🤖 autopilot</h1>
+    <span id="state" class="pill ok">…</span>
+    <button id="pause" title="新規ディスパッチを止める">⏸</button>
+    <button id="resume" title="再開">▶</button>
+    <button id="ticknow" title="interval を待たず今すぐ 1 tick 実行">⚡ tick</button>
+    <button id="refreshboard" title="俯瞰ボードを今すぐ再取得（GraphQL 消費あり）">🔄 更新</button>
+  </div>
   <div id="usage" class="usage" title="Claude 使用率（セッション / 週間）"></div>
-  <span id="state" class="pill ok">…</span>
-  <button id="pause" title="新規ディスパッチを止める">⏸</button>
-  <button id="resume" title="再開">▶</button>
-  <button id="ticknow" title="interval を待たず今すぐ 1 tick 実行">⚡ tick</button>
   <span class="meta" id="meta"></span>
-  <button id="refreshboard" title="俯瞰ボードを今すぐ再取得（GraphQL 消費あり）">🔄 更新</button>
 </header>
 <div id="alerts"></div>
 <main>
   <table id="board"><thead><tr>
-    <th>Issue</th><th>Status</th><th>AI</th><th>担当</th><th>PR</th><th>Sub-issues</th><th>Now</th>
-  </tr></thead><tbody id="rows"><tr><td colspan="7" class="muted">読み込み中…</td></tr></tbody></table>
+    <th>Issue</th><th>Status</th><th>Size</th><th>AI</th><th>担当</th><th>PR</th><th>Sub-issues</th><th>Now</th>
+  </tr></thead><tbody id="rows"><tr><td colspan="8" class="muted">読み込み中…</td></tr></tbody></table>
   <h2>実行履歴（最新 100 件・ログ用途のみ）</h2>
   <table id="histt"><thead><tr>
     <th>時刻</th><th>Issue</th><th>Phase</th><th>結果</th><th>メモ</th>
@@ -169,6 +189,14 @@ const statusPill = (s) => {
   const [bg, fg] = STATUS_COLORS[s] || ['#f1f5f9', '#475569'];
   return '<span class="status-pill" style="background:' + bg + ';color:' + fg + '">' + esc(s) + '</span>';
 };
+// Size（triage で決まる small/middle/large）を S/M/L の色付きバッジに短縮する（#884）。
+// 未設定は「—」（muted）でレイアウトを崩さない。title に元の語を残す。
+const SIZE_BADGES = { small: ['S', 'size-s'], middle: ['M', 'size-m'], large: ['L', 'size-l'] };
+const sizeBadge = (size) => {
+  const b = SIZE_BADGES[size];
+  if (!b) return '<span class="muted">—</span>';
+  return '<span class="size-badge ' + b[1] + '" title="' + esc(size) + '">' + b[0] + '</span>';
+};
 const prChip = (p) => {
   let cls = 'pr-ready', icon = '✅';
   if (p.state === 'MERGED') { cls = 'pr-merged'; icon = '🟣'; }
@@ -199,12 +227,34 @@ function usageBar(w, label) {
     + '<span class="upct' + warn + '">' + rounded + '%</span>';
 }
 
+// usage の最終更新からの経過（age）を薄字で併記する。usage は worker（claude セッション）
+// 実行時にしか更新されない（データ源が status line の rate_limits）ため、worker 非稼働中は
+// 値が据え置きになる。経過を出して「固まっている」誤解を防ぐ。90 秒以上更新が無ければ
+// stale（黄色）にして据え置き中を明示する。値は uageval の min-width で予約するので桁変化で
+// usage 全体の幅が揺れない（= 中央位置 x が動かない）。
+function usageAge(u) {
+  if (!u || u.updatedAt == null) return '';
+  const sec = Math.max(0, Math.round((Date.now() - u.updatedAt) / 1000));
+  // 桁数を抑える（worker が長時間非稼働でも幅を一定に保つ）: s → m → h → d
+  const v = sec < 60 ? sec + 's'
+    : sec < 3600 ? Math.floor(sec / 60) + 'm'
+    : sec < 86400 ? Math.floor(sec / 3600) + 'h'
+    : Math.floor(sec / 86400) + 'd';
+  const stale = sec >= 90 ? ' stale' : '';
+  const title = sec >= 90
+    ? 'usage は worker 稼働時のみ更新（据え置き中）'
+    : 'usage の最終更新からの経過';
+  return '<span class="uage' + stale + '" title="' + esc(title) + '">更新<span class="uageval">'
+    + v + '</span>前</span>';
+}
+
 function renderUsage(d) {
   const u = d.claudeUsage || {};
   document.getElementById('usage').innerHTML = USAGE_ICON
     + usageBar(u.session, 'セッション使用率（直近5時間）')
     + '<span class="usep">/</span>'
-    + usageBar(u.weekly, '週間使用率（7日）');
+    + usageBar(u.weekly, '週間使用率（7日）')
+    + usageAge(u);
 }
 
 // 稼働バージョン（起動時の branch @ shortCommit）+ 更新バッジ（#885）
@@ -313,6 +363,7 @@ function renderBoard(d) {
       + '<td class="title-cell"><a target="_blank" rel="noopener" href="' + esc(it.url) + '">#' + it.issue + '</a> '
       + '<span class="t" title="' + esc(it.title) + '">' + esc(it.title) + '</span>' + kindMark + '</td>'
       + '<td>' + statusPill(it.status) + '</td>'
+      + '<td>' + sizeBadge(it.size) + '</td>'
       + '<td>' + (it.aiStatus ? esc(it.aiStatus) : '<span class="muted">—</span>') + '</td>'
       + '<td>' + who + '</td>'
       + '<td>' + prs + '</td>'
@@ -320,7 +371,7 @@ function renderBoard(d) {
       + '<td>' + now + '</td></tr>';
   });
   document.getElementById('rows').innerHTML = rows.join('')
-    || '<tr><td colspan="7" class="muted">（表示対象の Issue はありません）</td></tr>';
+    || '<tr><td colspan="8" class="muted">（表示対象の Issue はありません）</td></tr>';
 }
 
 function renderHistory(d) {
