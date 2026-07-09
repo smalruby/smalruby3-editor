@@ -18,6 +18,7 @@ const formatMessage = require('format-message');
 
 const Variable = require('./engine/variable');
 const newBlockIds = require('./util/new-block-ids');
+// === Smalruby: Start of mesh v1 to v2 migration ===
 const {
     detectMeshV1Blocks,
     detectKoshien,
@@ -25,6 +26,7 @@ const {
     migrateMeshV1InBlockArray,
     migrateMeshV1InSprite3Zip,
 } = require('./serialization/smalruby-migration');
+// === Smalruby: End of mesh v1 to v2 migration ===
 
 const {loadCostume} = require('./import/load-costume.js');
 const {loadSound} = require('./import/load-sound.js');
@@ -367,12 +369,13 @@ class VirtualMachine extends EventEmitter {
 
         return validationPromise
             .then(validatedInput => {
-                // smalruby: mesh V1 to V2 migration
+                // === Smalruby: Start of mesh v1 to v2 migration ===
                 let projectJSON = validatedInput[0];
                 if (options.migrateMeshV1ToV2) {
                     projectJSON = migrateMeshV1Blocks(projectJSON);
                 }
                 return this.deserializeProject(projectJSON, validatedInput[1]);
+                // === Smalruby: End of mesh v1 to v2 migration ===
             })
             .then(() => this.runtime.handleProjectLoaded())
             .catch(error => {
@@ -384,6 +387,7 @@ class VirtualMachine extends EventEmitter {
             });
     }
 
+    // === Smalruby: Start of mesh v1 to v2 migration ===
     /**
      * Detect if the project contains any legacy mesh blocks.
      * @param {string | object} input A json string, object, or ArrayBuffer representing the project to load.
@@ -447,6 +451,7 @@ class VirtualMachine extends EventEmitter {
     migrateMeshV1InBackpackSprite (zipBuffer) {
         return migrateMeshV1InSprite3Zip(zipBuffer);
     }
+    // === Smalruby: End of mesh v1 to v2 migration ===
 
     /**
      * Load a project from the Scratch web site, by ID.
@@ -1338,8 +1343,10 @@ class VirtualMachine extends EventEmitter {
         const sb3 = require('./serialization/sb3');
 
         const copiedBlocks = JSON.parse(JSON.stringify(blocks));
+        // === Smalruby: Start of mesh v1 to v2 migration ===
         // Mesh v1 service is gone; rewrite stray v1 opcodes so we never auto-load v1.
         migrateMeshV1InBlockArray(copiedBlocks);
+        // === Smalruby: End of mesh v1 to v2 migration ===
         newBlockIds(copiedBlocks);
         const target = this.runtime.getTargetById(targetId);
 

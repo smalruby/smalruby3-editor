@@ -183,8 +183,8 @@ Smalruby 拡張の `builtinExtensions` への登録経路は **2 系統**存在�
    - いずれも `blockClass.formatMessage = require('format-message')` を注入してから返す。
 2. **`extension-manager.js` の `builtinExtensions` オブジェクトリテラル直書き（歴史的経緯）** —
    `mesh` / `meshV2` / `smalrubotS1` の 3 つだけは upstream のオブジェクトリテラル内に
-   直接書かれており、**マーカーで囲まれていない**。upstream マージ時のコンフリクト解決で
-   見落としやすい既知の弱点（この 3 行を消さないこと）。**この形式を真似て新規追加しない**
+   直接書かれている（`=== Smalruby: Start of builtin extension entries ===` マーカーで
+   囲んである。upstream マージ時にこの 3 行を消さないこと）。**この形式を真似て新規追加しない**
    （1. の経由にする）。
 
 `defaultHidden`（拡張ライブラリでの非表示）は **scratch-gui 側の概念**
