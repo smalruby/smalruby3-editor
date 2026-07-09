@@ -105,6 +105,8 @@ const MONITOR_HTML = `<!doctype html>
   .reauth-info code { font-size: 1rem; font-weight: 700; letter-spacing: .06em; }
   /* ---- 俯瞰ボード ---- */
   main { padding: .6rem .8rem 2rem; }
+  /* #board のはみ出しはページ全体を崩さずスクロールで逃がす保険（列間引きと併用）#936 */
+  .board-wrap { overflow-x: auto; }
   table { border-collapse: collapse; width: 100%; background: #fff; font-size: .84rem; }
   th, td { border: 1px solid var(--border); padding: .3rem .5rem; text-align: left; vertical-align: middle; }
   th { background: #f1f5f9; font-size: .75rem; color: #475569; }
@@ -112,6 +114,18 @@ const MONITOR_HTML = `<!doctype html>
   tr.running-row td { background: #fffbeb; }
   td.title-cell { max-width: 34rem; }
   .t { display: inline-block; max-width: 30rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
+  /* ---- 狭幅（〜820px 目安）で情報量を落として崩れを防ぐ #936 ----
+     モバイル対応は不要（横 640px 程度が最小想定）。nth-child は表示/非表示で
+     位置番号がズレないので、Size(3) を隠しても 担当(5) の index は変わらない。
+     colspan="8" のフォールバック行は td が1つなので誤って隠れない。 */
+  @media (max-width: 820px) {
+    #board th:nth-child(3), #board td:nth-child(3) { display: none; } /* Size */
+    #board th:nth-child(5), #board td:nth-child(5) { display: none; } /* 担当 */
+    #board td:nth-child(7) .bar, #board td:nth-child(7) .sub-pct { display: none; } /* Sub-issues: バー/％を隠し件数のみ */
+    #board td:nth-child(8) .subtext { display: none; } /* Now: 「人間の番」「N分」等の subtext を隠しアイコン/phase-pill/log を残す */
+    .t { max-width: 15rem; }
+    th, td { padding: .3rem .35rem; }
+  }
   .status-pill { display: inline-block; padding: .05rem .45rem; border-radius: .3rem; font-size: .75rem; font-weight: 600; white-space: nowrap; }
   /* ---- Size バッジ（S=緑 / M=琥珀 / L=赤）#884 ---- */
   .size-badge { display: inline-block; min-width: 1.1rem; padding: .05rem .4rem; border-radius: .3rem; font-size: .75rem; font-weight: 700; text-align: center; }
@@ -164,9 +178,11 @@ const MONITOR_HTML = `<!doctype html>
 </header>
 <div id="alerts"></div>
 <main>
+  <div class="board-wrap">
   <table id="board"><thead><tr>
     <th>Issue</th><th>Status</th><th>Size</th><th>AI</th><th>担当</th><th>PR</th><th>Sub-issues</th><th>Now</th>
   </tr></thead><tbody id="rows"><tr><td colspan="8" class="muted">読み込み中…</td></tr></tbody></table>
+  </div>
   <h2>実行履歴（最新 100 件・ログ用途のみ）</h2>
   <table id="histt"><thead><tr>
     <th>時刻</th><th>Issue</th><th>Phase</th><th>結果</th><th>メモ</th>
@@ -373,9 +389,11 @@ function renderBoard(d) {
     const cls = it.status === 'Blocked' ? 'blocked-row' : (r ? 'running-row' : '');
     const prs = (it.prs || []).map(prChip).join('') || '<span class="muted">—</span>';
     const s = it.subIssues || {};
+    // 件数（.sub-count）と %（.sub-pct）を別 span に分割し、狭幅 CSS で % だけ隠せるようにする（#936）
     const sub = s.total
       ? '<span class="bar"><div style="width:' + (s.percent || 0) + '%"></div></span>'
-        + '<span class="subtext">' + s.completed + '/' + s.total + ' (' + (s.percent || 0) + '%)</span>'
+        + '<span class="subtext"><span class="sub-count">' + s.completed + '/' + s.total + '</span>'
+        + '<span class="sub-pct"> (' + (s.percent || 0) + '%)</span></span>'
       : '<span class="muted">—</span>';
     const now = r
       ? '<span class="phase-pill">' + esc(r.phase) + '</span>'

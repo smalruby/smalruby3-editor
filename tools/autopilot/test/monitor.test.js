@@ -165,3 +165,25 @@ test('MONITOR_HTML: ヘッダー中央に Claude 使用量表示（#879）', () 
     // データ欠如時は「—」でレイアウトを崩さない
     assert.match(MONITOR_HTML, /class="umuted"/);
 });
+
+test('MONITOR_HTML: 俯瞰ボードは狭幅で列を間引く（#936）', () => {
+    // #board を overflow-x: auto のコンテナで包む（保険のフォールバック）
+    assert.match(MONITOR_HTML, /overflow-x:\s*auto/);
+    // 狭幅メディアクエリ（推奨 820px）で Size(3) / 担当(5) 列を隠す
+    const media = MONITOR_HTML.match(/@media \(max-width: 820px\) \{([\s\S]*?)\n  \}/);
+    assert.ok(media, '@media (max-width: 820px) ブロックが存在する');
+    const body = media[1];
+    assert.match(body, /#board th:nth-child\(3\),\s*#board td:nth-child\(3\)\s*\{[^}]*display:\s*none/);
+    assert.match(body, /#board th:nth-child\(5\),\s*#board td:nth-child\(5\)\s*\{[^}]*display:\s*none/);
+    // Sub-issues 列（7）はバーと % を隠す（件数のみ残す）
+    assert.match(body, /#board td:nth-child\(7\)\s+\.bar[^{]*\{[^}]*display:\s*none/);
+    assert.match(body, /\.sub-pct\s*\{[^}]*display:\s*none/);
+    // Now 列（8）は subtext（「人間の番」や経過分）を隠す（アイコン/phase-pill/log は残す）
+    assert.match(body, /#board td:nth-child\(8\)\s+\.subtext\s*\{[^}]*display:\s*none/);
+});
+
+test('MONITOR_HTML: Sub-issues セルは件数 (.sub-count) と %（.sub-pct）を別 span に分割する（#936）', () => {
+    // render 側で件数と % を分割する（狭幅 CSS が .sub-pct だけ隠せるように）
+    assert.match(MONITOR_HTML, /class="sub-count"/);
+    assert.match(MONITOR_HTML, /class="sub-pct"/);
+});
