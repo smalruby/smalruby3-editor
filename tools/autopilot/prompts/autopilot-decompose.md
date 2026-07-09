@@ -102,18 +102,32 @@ Sprint Backlog にそのまま入れると autopilot が**並列着手**し、**
 
 #### B-1. 各 leaf の sub-issue を作成し、EPIC に親子リンクする
 
-1. 各 leaf について sub-issue を作成し、**EPIC に親子リンク**する。**依存がある leaf は
-   本文の先頭に依存ディレクティブを 1 行含める**（B-2 の記法）:
+0. **assignee を確定する**（未 assign 対策・#914）。EPIC 自身の assignee を引き継ぐ:
 
    ```bash
+   assignee=$(GH_TOKEN="$(bin/bot-token)" gh issue view "$AUTOPILOT_ISSUE" --repo "$AUTOPILOT_REPO" \
+     --json assignees --jq '.assignees[0].login // empty')
+   ```
+
+   EPIC に assignee が無ければ空文字になる（daemon が `--assignee` 無指定で全件処理している
+   ケース）。その場合は sub-issue も無理に assign しない（下記 `gh issue create` で
+   `--assignee` を**省略**する）。
+
+1. 各 leaf について sub-issue を作成し、**EPIC に親子リンク**する。**依存がある leaf は
+   本文の先頭に依存ディレクティブを 1 行含める**（B-2 の記法）。**assignee が取得できていれば
+   必ず `--assignee` を付ける**（未 assign だと daemon の `ownsItem` に拾われず誰も着手しない）:
+
+   ```bash
+   assign_args=(); [ -n "$assignee" ] && assign_args=(--assignee "$assignee")
+
    # 依存の無い基盤 leaf
    url=$(GH_TOKEN="$(bin/bot-token)" gh issue create --repo "$AUTOPILOT_REPO" --title "<title>" \
-     --body "<scope>"$'\n\nPart of #'"$AUTOPILOT_ISSUE")
+     --body "<scope>"$'\n\nPart of #'"$AUTOPILOT_ISSUE" "${assign_args[@]}")
 
    # 依存のある後続 leaf は本文の "行頭" にディレクティブを置く（$prev は先行 leaf の番号）
    # ↓ 実際の本文では "autopilot-after"（ハイフンのみ・スペース無し）で書くこと
    url=$(GH_TOKEN="$(bin/bot-token)" gh issue create --repo "$AUTOPILOT_REPO" --title "<title>" \
-     --body "<!-- autopilot-after: #$prev -->"$'\n\n'"<scope>"$'\n\nPart of #'"$AUTOPILOT_ISSUE")
+     --body "<!-- autopilot-after: #$prev -->"$'\n\n'"<scope>"$'\n\nPart of #'"$AUTOPILOT_ISSUE" "${assign_args[@]}")
 
    num=$(basename "$url")
    dbid=$(GH_TOKEN="$(bin/bot-token)" gh api repos/$AUTOPILOT_REPO/issues/$num --jq .id)
@@ -122,7 +136,17 @@ Sprint Backlog にそのまま入れると autopilot が**並列着手**し、**
    ```
 
    - **冪等**: 既に同名 sub-issue が存在する場合は作り直さない（`gh issue list` で確認）。
-   - Project への追加・Status=Backlog・Kind=Issue・Size 付与は **daemon が結果ファイルの `createdSubIssues` を見て**行う（単一ライター）。スキルは Project を直接書かない。
+     既存 sub-issue の assignee が空なら `gh issue edit <num> --add-assignee "$assignee"` で補う。
+   - 作成した leaf の **番号と、分解案で決めた size（small/middle/large）を控えておく**
+     （結果ファイルの `subIssueSizes` に使う。B の最後を参照）。
+   - **Project への追加・Status=Sprint Backlog・Kind=Issue・Size 付与は daemon が結果ファイルの
+     `createdSubIssues` / `subIssueSizes` を見て行う**（単一ライター）。スキルは Project を
+     直接書かない。**assignee とラベルは Issue 自体のプロパティなので上記のとおりスキルが直接
+     設定する**（Project フィールドとは別物）。
+
+2. **検証**: 作成した leaf 全件について `gh issue view <num> --json assignees` で assignee が
+   入っているか確認する（`$assignee` が空文字だった場合は対象外）。抜けがあれば
+   `gh issue edit <num> --add-assignee "$assignee"` で補正してから次に進む。
 
 #### B-2. 依存ディレクティブの記法（`parseAfterIssues` が読む）
 
@@ -155,13 +179,17 @@ Sprint Backlog にそのまま入れると autopilot が**並列着手**し、**
 - **本物の依存**として効かせたいときだけ、後続 leaf 本文の**行頭**に
   スペース無しの `autopilot-after: #<先行 leaf>` を置く。
 - 本 Issue（#898）の本文自体がこの「説明はスペース入り・本物は行頭スペース無し」の見本。
-2. `done` で終了。EPIC は「分解完了＝親トラッカー化」を表す `EPIC Decomposed` へ:
+3. `done` で終了。**`subIssueSizes` に B-1 で控えた leaf ごとの size を必ず入れる**
+   （daemon がこれを見て各 sub-issue の Status=Sprint Backlog / Kind=Issue / Size を設定する）。
+   EPIC は「分解完了＝親トラッカー化」を表す `EPIC Decomposed` へ:
 
    ```bash
    cat > "$AUTOPILOT_RESULT_FILE" <<EOF
    {"issue":$AUTOPILOT_ISSUE,"phase":"decompose","signal":"done","summary":"<N> 個の sub-issue を作成。",
    "nextStatus":"In Progress","nextAiStatus":"EPIC Decomposed","hitl":false,"size":null,"kind":"EPIC",
-   "createdSubIssues":[<作成した issue 番号...>],"prUrl":null}
+   "createdSubIssues":[<作成した issue 番号...>],
+   "subIssueSizes":{"<issue番号>":"<small|middle|large>", "...":"..."},
+   "prUrl":null}
    EOF
    echo AUTOPILOT_DONE
    ```

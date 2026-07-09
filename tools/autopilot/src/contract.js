@@ -46,6 +46,17 @@ function validateResult(obj) {
         if (obj.createdSubIssues != null && !Array.isArray(obj.createdSubIssues)) {
             errors.push('done: createdSubIssues must be an array');
         }
+        if (obj.subIssueSizes != null) {
+            if (typeof obj.subIssueSizes !== 'object' || Array.isArray(obj.subIssueSizes)) {
+                errors.push('done: subIssueSizes must be an object');
+            } else {
+                for (const [num, size] of Object.entries(obj.subIssueSizes)) {
+                    if (!VALID_SIZES.includes(size)) {
+                        errors.push(`done: subIssueSizes.${num} must be one of ${VALID_SIZES.join('|')}`);
+                    }
+                }
+            }
+        }
     }
     if (obj.signal === 'hitl') {
         if (typeof obj.reason !== 'string' || !obj.reason) errors.push('hitl: reason must be a non-empty string');

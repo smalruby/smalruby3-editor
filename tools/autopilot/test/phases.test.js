@@ -9,6 +9,7 @@ const {
     unresolvedAfterIssues,
     DEFAULT_CLAUDE_COMMAND,
     applyResult,
+    subIssueSetupIntents,
     hitlDesireFromResult,
     isHitlReleased,
     isGateReleased,
@@ -639,6 +640,35 @@ test('applyResult: done sets Status/Size/Kind, clears AI Status, no HITL field (
     assert.ok(!('HITL' in m)); // HITL は 🙋 ラベルで表現（Project 意図に含めない）
     assert.equal(m.Size, 'middle');
     assert.equal(m.Kind, 'Issue');
+});
+
+test('subIssueSetupIntents: 未設定の新規 sub-issue に Status/Kind/Size を設定する (#914)', () => {
+    const intents = subIssueSetupIntents('small', {});
+    const m = Object.fromEntries(intents.map(i => [i.field, i.value]));
+    assert.equal(m.Status, 'Sprint Backlog');
+    assert.equal(m.Kind, 'Issue');
+    assert.equal(m.Size, 'small');
+});
+
+test('subIssueSetupIntents: size が無ければ Size は設定しない (#914)', () => {
+    const intents = subIssueSetupIntents(null, {});
+    const m = Object.fromEntries(intents.map(i => [i.field, i.value]));
+    assert.equal(m.Status, 'Sprint Backlog');
+    assert.equal(m.Kind, 'Issue');
+    assert.ok(!('Size' in m));
+});
+
+test('subIssueSetupIntents: 既に設定済みのフィールドは上書きしない（冪等・#914）', () => {
+    const intents = subIssueSetupIntents('large', { status: 'In Progress', kind: 'Issue', size: 'small' });
+    assert.deepEqual(intents, []);
+});
+
+test('subIssueSetupIntents: 一部だけ設定済みなら残りだけ設定する (#914)', () => {
+    const intents = subIssueSetupIntents('middle', { status: 'Sprint Backlog' });
+    const m = Object.fromEntries(intents.map(i => [i.field, i.value]));
+    assert.ok(!('Status' in m));
+    assert.equal(m.Kind, 'Issue');
+    assert.equal(m.Size, 'middle');
 });
 
 test('applyResult: hitl sets optional Status but no HITL field', () => {

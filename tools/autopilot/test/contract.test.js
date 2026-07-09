@@ -29,6 +29,32 @@ test('validateResult: done requires boolean hitl and valid size/kind', () => {
     assert.ok(r.errors.some(e => e.includes('kind')));
 });
 
+test('validateResult: done accepts subIssueSizes with valid sizes (#914)', () => {
+    const r = validateResult({
+        issue: 906, phase: 'decompose', signal: 'done', summary: 'ok', hitl: false,
+        createdSubIssues: [910, 911], subIssueSizes: { 910: 'small', 911: 'middle' },
+    });
+    assert.deepEqual(r, { ok: true, errors: [] });
+});
+
+test('validateResult: done rejects subIssueSizes with an invalid size (#914)', () => {
+    const r = validateResult({
+        issue: 906, phase: 'decompose', signal: 'done', summary: 'ok', hitl: false,
+        createdSubIssues: [910], subIssueSizes: { 910: 'huge' },
+    });
+    assert.equal(r.ok, false);
+    assert.ok(r.errors.some(e => e.includes('subIssueSizes')));
+});
+
+test('validateResult: done rejects subIssueSizes that is not an object (#914)', () => {
+    const r = validateResult({
+        issue: 906, phase: 'decompose', signal: 'done', summary: 'ok', hitl: false,
+        createdSubIssues: [910], subIssueSizes: ['small'],
+    });
+    assert.equal(r.ok, false);
+    assert.ok(r.errors.some(e => e.includes('subIssueSizes')));
+});
+
 test('validateResult: hitl signal requires reason', () => {
     const r = validateResult({ issue: 1, phase: 'triage', signal: 'hitl', summary: 's' });
     assert.equal(r.ok, false);
