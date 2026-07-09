@@ -72,9 +72,11 @@ test('expandHome: ~ をホームに展開する', () => {
     assert.equal(expandHome('/abs/path', '/home/dev'), '/abs/path');
 });
 
-test('buildClaudeCommand: 既定設定で non-interactive なコマンドを組み立てる', () => {
+test('buildClaudeCommand: 既定（auto モード）で non-interactive なコマンドを組み立てる', () => {
     const cmd = buildClaudeCommand(DEFAULT_SETTINGS, 'implement', { homedir: '/home/dev' });
-    assert.match(cmd, /^claude --permission-mode acceptEdits --allowedTools Bash Edit Read Glob Grep WebFetch/);
+    assert.match(cmd, /^claude --permission-mode auto/);
+    // auto モードでは allowlist は classifier が握るので出力しない
+    assert.doesNotMatch(cmd, /--allowedTools/);
     assert.match(cmd, /--model opus/);
     // effort は既定では指定しない（古い CLI との互換のため opt-in）
     assert.doesNotMatch(cmd, /--effort/);
@@ -112,30 +114,37 @@ test('DEFAULT_SETTINGS.permissionAllow: worker が使うツールを含み Workf
     assert.ok(!allow.includes('Workflow'), 'Workflow は permissionAllow に含めない');
 });
 
-test('buildClaudeCommand: permissions.allow を --settings に必ず注入する（root は bypass 不可 #893）', () => {
-    // usageStatusline なしでも --settings が入り、permissions.allow を含む
+test('buildClaudeCommand: auto モードでは allowlist（--allowedTools / permissions.allow）を出力しない', () => {
+    // auto は classifier が判定するので allowlist は機能しない → 出力しない。
+    // usageStatusline も無いので --settings 自体が出ない。
     const cmd = buildClaudeCommand(DEFAULT_SETTINGS, 'implement', {});
-    assert.match(cmd, /--settings/);
-    const json = parseSettingsArg(cmd);
-    assert.deepEqual(json.permissions.allow, DEFAULT_SETTINGS.permissionAllow);
-    // Workflow は入っていない（トークン浪費防止）
-    assert.ok(!json.permissions.allow.includes('Workflow'));
-    // statusLine は usageStatusline 未指定なので入らない
-    assert.equal(json.statusLine, undefined);
+    assert.doesNotMatch(cmd, /--allowedTools/);
+    assert.doesNotMatch(cmd, /--settings/);
 });
 
-test('buildClaudeCommand: permissions.allow と statusLine が同一 --settings に同居する（#893）', () => {
+test('buildClaudeCommand: auto + usageStatusline は --settings に statusLine のみ（permissions は入れない）', () => {
     const cmd = buildClaudeCommand(DEFAULT_SETTINGS, 'implement', {
         usageStatusline: { script: '/wt/s.sh', file: '/tmp/u.json' },
     });
     const json = parseSettingsArg(cmd);
-    assert.ok(Array.isArray(json.permissions.allow));
     assert.equal(json.statusLine.type, 'command');
     assert.match(json.statusLine.command, /bash \/wt\/s\.sh \/tmp\/u\.json/);
+    // auto モードでは permissions.allow を入れない（classifier が判定）
+    assert.equal(json.permissions, undefined);
 });
 
-test('buildClaudeCommand: permissionAllow が空なら --settings に permissions を入れない（#893）', () => {
-    const s = mergeSettings(DEFAULT_SETTINGS, { permissionAllow: [] });
+test('buildClaudeCommand: acceptEdits フォールバックでは allowlist を出力する（auto 以外の保険）', () => {
+    const s = mergeSettings(DEFAULT_SETTINGS, { permissionMode: 'acceptEdits' });
+    const cmd = buildClaudeCommand(s, 'implement', {});
+    assert.match(cmd, /--permission-mode acceptEdits/);
+    assert.match(cmd, /--allowedTools Bash Edit Read Glob Grep WebFetch/);
+    const json = parseSettingsArg(cmd);
+    assert.deepEqual(json.permissions.allow, DEFAULT_SETTINGS.permissionAllow);
+    assert.ok(!json.permissions.allow.includes('Workflow'));
+});
+
+test('buildClaudeCommand: acceptEdits で permissionAllow が空なら --settings に permissions を入れない', () => {
+    const s = mergeSettings(DEFAULT_SETTINGS, { permissionMode: 'acceptEdits', permissionAllow: [] });
     const cmd = buildClaudeCommand(s, 'implement', {});
     assert.doesNotMatch(cmd, /--settings/);
 });

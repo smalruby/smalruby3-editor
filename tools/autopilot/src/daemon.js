@@ -527,6 +527,15 @@ async function dispatch(item, cfg, state, log) {
         // worker のセッションが終わったこのタイミングで Claude 使用率を更新する（#879）。
         updateClaudeUsage(state, cfg, log);
         if (!res.ok) {
+            if (res.action === 'hitl') {
+                // 対話プロンプト（要人間判断）で worker が停止しかけた → 質問させず打ち切って HITL。
+                // auto mode でも soft_deny 等で稀にプロンプトが出うるが、worker は非対話運用なので
+                // 待たせずここで人間に渡す（restart もしない＝同じプロンプトの再発を避ける）。
+                log(`#${item.issue}: interactive prompt -> HITL (${res.reason})`);
+                record('hitl', 'interactive prompt -> HITL');
+                await blockToHuman(`worker が対話プロンプト（要人間判断）で停止しかけたため中断し HITL にしました（${res.reason}）。auto mode でも判断を要する操作が出た可能性があります。ログ（\`/log?issue=${item.issue}\`）を確認し、対応のうえ 🙋 を外してください。`);
+                return;
+            }
             log(`#${item.issue}: runner failed (${res.reason})`);
             record('failed', res.reason);
             await blockToHuman(`run（${meta.skill}）が失敗・停止しました（watchdog: ${res.reason}）。`);

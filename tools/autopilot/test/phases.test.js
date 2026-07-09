@@ -66,6 +66,7 @@ const {
     needsDodHandoff,
     dodHandoffBody,
 } = require('../src/phases');
+const { PROMPT_RE } = require('../src/runner');
 
 test('shouldResend: resend after accept window if attempts remain', () => {
     const cfg = { maxAttempts: 4, acceptWindowMs: 8000 };
@@ -992,6 +993,40 @@ test('evaluate: ready but idle beyond tIdle -> restart (課題2)', () => {
 test('evaluate: normal in-progress -> wait', () => {
     const a = evaluate({ resultPresent: false, ready: true, dead: false, elapsedMs: 5000, idleMs: 1000, restarts: 0 }, cfg);
     assert.equal(a.action, 'wait');
+});
+
+test('evaluate: 対話プロンプトが tPromptMs 継続 -> hitl（質問させず即打ち切り）', () => {
+    const a = evaluate({
+        resultPresent: false, ready: true, dead: false, elapsedMs: 5000, idleMs: 1000, restarts: 0,
+        promptingMs: cfg.tPromptMs + 1,
+    }, cfg);
+    assert.equal(a.action, 'hitl');
+});
+
+test('evaluate: プロンプトが短時間（tPromptMs 未満）なら wait（誤検知しない）', () => {
+    const a = evaluate({
+        resultPresent: false, ready: true, dead: false, elapsedMs: 5000, idleMs: 1000, restarts: 0,
+        promptingMs: 1000,
+    }, cfg);
+    assert.equal(a.action, 'wait');
+});
+
+test('evaluate: 結果ファイルがあればプロンプト検知より優先して collect', () => {
+    const a = evaluate({
+        resultPresent: true, ready: true, dead: false, elapsedMs: 5000, idleMs: 0, restarts: 0,
+        promptingMs: cfg.tPromptMs + 1,
+    }, cfg);
+    assert.equal(a.action, 'collect');
+});
+
+test('PROMPT_RE: 許可/確認/選択ダイアログを検知し、通常出力は誤検知しない', () => {
+    // 実際に worker が停止したプロンプト群
+    assert.match('❯ 1. Yes\n  2. No\n Esc to cancel · Tab to amend', PROMPT_RE);
+    assert.match('Do you want to proceed?', PROMPT_RE);
+    assert.match('Do you want to create comment.md?', PROMPT_RE);
+    // 通常の作業ログは誤検知しない
+    assert.doesNotMatch('Ran 3 shell commands, read 2 files', PROMPT_RE);
+    assert.doesNotMatch('● The logic chain is coherent.', PROMPT_RE);
 });
 
 // === #827: Issue 本文からの base ブランチ宣言の抽出 ===

@@ -27,15 +27,21 @@ const { PROMPT_DIR } = require('./phases');
 const DEFAULT_SETTINGS = {
     /** claude 実行ファイル（PATH 解決） */
     claudeCommand: 'claude',
-    permissionMode: 'acceptEdits',
-    /** 非対話で gh/git が権限プロンプトに当たらないための許可ツール */
-    allowedTools: ['Bash', 'Edit', 'Read', 'Glob', 'Grep', 'WebFetch'],
     /**
-     * worker の `--settings` に注入する `permissions.allow`（Issue #893）。
-     * root では `bypassPermissions`（--dangerously-skip-permissions）が使えないため、
-     * worker が使う操作を事前許可して許可プロンプトで停止しないようにする。
-     * **`Workflow` / `Skill` は入れない**（トークン浪費防止。動的 workflow を worker に起動させない）。
+     * worker の permission モード。**`auto`**（AI classifier が allow/deny を自動判定）を採用する。
+     * root では `bypassPermissions`（= `--dangerously-skip-permissions`）が使えず（かつ社内規定で
+     * 禁止）、`acceptEdits` は skill/未許可操作で確認プロンプトを出して worker を停止させていた。
+     * `auto` は通常の開発操作を自動許可・危険操作を自動拒否し、**対話プロンプトを基本出さない**。
+     * それでも判断を要して稀にプロンプトが出た場合は runner が検知して即 HITL に落とす
+     * （`runner.js` の PROMPT_RE + watchdog `tPromptMs`）。
      */
+    permissionMode: 'auto',
+    /**
+     * `--allowedTools` / `permissions.allow` は **`auto` モードでは機能しない**（classifier が
+     * 判定を握るため）。`acceptEdits` 等にフォールバックしたときのために定義だけ残すが、
+     * buildClaudeCommand は `auto` のとき出力しない。
+     */
+    allowedTools: ['Bash', 'Edit', 'Read', 'Glob', 'Grep', 'WebFetch'],
     permissionAllow: ['Bash', 'Edit', 'Write', 'Read', 'Glob', 'Grep', 'WebFetch'],
     /**
      * worker に読み書きを許可する追加ディレクトリ（`--add-dir`）。
@@ -146,7 +152,9 @@ function buildClaudeCommand(settings, phase, opts = {}) {
     const homedir = opts.homedir || os.homedir();
     const parts = [s.claudeCommand || 'claude'];
     if (s.permissionMode) parts.push('--permission-mode', s.permissionMode);
-    if (Array.isArray(s.allowedTools) && s.allowedTools.length) {
+    // allowlist は auto モードでは機能しない（classifier が判定する）。auto 以外のときだけ出力。
+    const allowlistApplies = s.permissionMode !== 'auto';
+    if (allowlistApplies && Array.isArray(s.allowedTools) && s.allowedTools.length) {
         parts.push('--allowedTools', ...s.allowedTools);
     }
     for (const dir of [...(s.addDirs || []), ...(opts.extraDirs || [])]) {
@@ -158,7 +166,7 @@ function buildClaudeCommand(settings, phase, opts = {}) {
     const settingsObj = {};
     // 許可プロンプトで停止しないための事前許可（Issue #893）。root では bypassPermissions が
     // 使えないため allowlist 方式で代替する。Workflow/Skill は含めない（トークン浪費防止）。
-    if (Array.isArray(s.permissionAllow) && s.permissionAllow.length) {
+    if (allowlistApplies && Array.isArray(s.permissionAllow) && s.permissionAllow.length) {
         settingsObj.permissions = { allow: [...s.permissionAllow] };
     }
     // Claude 使用率の抽出（Issue #879）: worker の status line に usage-statusline.sh を仕込み、

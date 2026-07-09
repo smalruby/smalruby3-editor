@@ -19,6 +19,10 @@ const {
 // 中断ヒント "esc to interrupt"）。これらが見えていれば、テキストが変わらなくても
 // 作業中とみなし idle 判定をリセットする。
 const BUSY_RE = /esc to interrupt|·\s*↓/;
+// 対話プロンプト（許可/確認/選択ダイアログ）が pane に出ているか。Claude Code の選択 UI は
+// 「❯ 1. …」の選択肢と「Esc to cancel …」フッターを持つ。busy でなくこれが見えていれば
+// 人間の入力待ち = worker は進めない → HITL に落とす（auto mode でも稀に出る soft_deny 等）。
+const PROMPT_RE = /(^|\n)\s*❯\s*\d+\.\s|Esc to cancel|Do you want to (proceed|create|run|make)/;
 
 function tmux(args, { check = true } = {}) {
     // stderr は握りつぶす（has-session 等の "can't find session" は想定内）
@@ -98,6 +102,7 @@ async function runPhase(opts) {
         let sendAttempts = 0;
         let prevPane = null;
         let lastChangeAt = Date.now();
+        let promptSince = 0; // 対話プロンプトを最初に検知した時刻（0 = 出ていない）
         // Skill のスラッシュコマンドではなく、プロンプトファイルを読ませる指示を送る（#プロンプト移設）
         const slash = phasePromptCommand(opts.skill, opts.issue, opts.promptDir);
 
@@ -113,6 +118,11 @@ async function runPhase(opts) {
             const busy = BUSY_RE.test(pane);
             if (pane !== prevPane || busy) { lastChangeAt = Date.now(); prevPane = pane; }
             const idleMs = Date.now() - lastChangeAt;
+            // 対話プロンプトが出て人間入力待ちか（busy でない＝作業中でない場合のみ）。
+            // 一度検知したら継続時間を測り、tPromptMs 超で HITL に落とす（evaluate 側）。
+            const prompting = ready && !busy && PROMPT_RE.test(pane);
+            if (prompting) { if (!promptSince) promptSince = Date.now(); } else { promptSince = 0; }
+            const promptingMs = promptSince ? Date.now() - promptSince : 0;
 
             // 起動完了の汎用判定: 非空 & 直近で安定 & 最低ブート時間経過（課題1）
             if (!ready && pane.trim() && idleMs >= cfg.pollMs && elapsedMs >= minBootMs) {
@@ -147,7 +157,7 @@ async function runPhase(opts) {
                 }
             }
 
-            const action = evaluate({ resultPresent, ready, dead, elapsedMs, idleMs, restarts }, cfg);
+            const action = evaluate({ resultPresent, ready, dead, elapsedMs, idleMs, restarts, promptingMs }, cfg);
             if (action.action === 'wait') continue;
             outcome = action;
         }
@@ -157,6 +167,11 @@ async function runPhase(opts) {
             // 結果ファイルは呼び出し側が読む。セッションは後始末。
             killSession(opts.session);
             return { ok: true, action: 'collect', reason: outcome.reason };
+        }
+        if (outcome.action === 'hitl') {
+            // 対話プロンプトで人間入力待ちになった → 質問はさせず即中断し、daemon 側で HITL にする。
+            killSession(opts.session);
+            return { ok: false, action: 'hitl', reason: outcome.reason };
         }
         if (outcome.action === 'fail') {
             killSession(opts.session);
@@ -169,4 +184,4 @@ async function runPhase(opts) {
     }
 }
 
-module.exports = { runPhase, launch, capture, hasSession, killSession, sendLine };
+module.exports = { runPhase, launch, capture, hasSession, killSession, sendLine, BUSY_RE, PROMPT_RE };
