@@ -43,9 +43,18 @@ function autopilotHeadBranch(issueNumber, prefix = AUTOPILOT_BRANCH_PREFIX) {
  *  1. ディレクティブ: `autopilot-base: <branch>`。**行頭のみ**反応する（HTML コメントが
  *     行頭から始まる場合は `<!-- autopilot-base: x -->` も可）。本文の途中で
  *     「autopilot-base: と書くと…」のように**言及**しただけでは発火しない。最優先。
- *  2. 「## ベースブランチ」/「base branch」見出し・ラベルの直後にあるバッククォート囲みのブランチ。
+ *  2. 行頭の「ベースブランチ」/「base branch」ラベル（`##` 見出し可）。ブランチ名は
+ *     同一行の `` : `branch` ``、または直後の（空白行のみ挟んだ）**最初の非空行**にある
+ *     バッククォート囲みから拾う。
  *
  * いずれも無ければ null（= 既定 develop）。誤検出を避けるため、明示宣言があるときだけ返す。
+ *
+ * フォールバック(2) は #938 / #941 で誤マッチ事故を起こしたため厳格化してある:
+ *  - **行頭アンカー**（`^ … /im`）で、本文中に現れる識別子 `parseBaseBranch` / `baseBranch`
+ *    を拾わない（ディレクティブ規約の「誤マッチ回避」と同じく行頭のみ発火）。
+ *  - 英語は**区切り必須** `base[ -]branch` にして camelCase 識別子 `baseBranch` を弾く。
+ *  - 改行跨ぎは**空白行のみ**許可し、ラベルの後に内容行があればそこで打ち切る
+ *    （後続の無関係な行のバッククォート語を拾わない）。
  * @param {string} body Issue 本文
  * @returns {string|null} 宣言されたベースブランチ名、無ければ null
  */
@@ -53,8 +62,10 @@ function parseBaseBranch(body) {
     if (!body) return null;
     const directive = body.match(/^(?:<!--\s*)?autopilot-base:\s*`?([\w.\/-]+)`?/im);
     if (directive) return directive[1];
-    const section = body.match(/(?:ベースブランチ|base[ -]?branch)[^\n]*\n+[^\n]*?`([\w.\/-]+)`/i);
-    if (section) return section[1];
+    const section = body.match(
+        /^[ \t]*#{0,6}[ \t]*(?:ベースブランチ|base[ -]branch)[ \t]*[:：]?[ \t]*(?:`?([\w.\/-]+)`?[ \t]*\r?$|\r?\n(?:[ \t]*\r?\n)*[^\n`]*?`([\w.\/-]+)`)/im,
+    );
+    if (section) return section[1] || section[2];
     return null;
 }
 

@@ -1264,6 +1264,33 @@ test('parseBaseBranch: ディレクティブは行頭のみ反応（本文中の
     assert.equal(parseBaseBranch('  autopilot-base: topic/indented'), null);
 });
 
+test('parseBaseBranch: セクションは行頭ラベル + 同一行 : `branch`（DoD 形式）も認識', () => {
+    assert.equal(parseBaseBranch('ベースブランチ: `develop`'), 'develop');
+    assert.equal(parseBaseBranch('base branch: `develop`'), 'develop');
+    assert.equal(parseBaseBranch('ベースブランチ: develop'), 'develop');
+});
+
+test('parseBaseBranch: 識別子/改行跨ぎで誤マッチしない（#938/#941 回帰）', () => {
+    // #938 再現: 本文が `parseBaseBranch`/`baseBranch` に言及し、後続行にバッククォート語がある
+    assert.equal(
+        parseBaseBranch('本文で `parseBaseBranch` / `baseBranch` に言及。\n実装は `directiveLogin` を使う。'),
+        null,
+    );
+    // #941 自己参照: 識別子の言及 + 後続行の `.claude/...` バッククォート語を base と誤認しない
+    assert.equal(
+        parseBaseBranch(
+            '識別子 parseBaseBranch / baseBranch（"BaseBranch" を含む）\n' +
+                '変更は `tools/autopilot/**` のみ。\n' +
+                '`.claude/rules/autopilot/prompts.md` を整合。',
+        ),
+        null,
+    );
+    // camelCase 識別子 baseBranch が行頭にあっても、区切り必須なので拾わない
+    assert.equal(parseBaseBranch('baseBranch を修正する。\n`develop` で動かす。'), null);
+    // ラベル行の後に内容行があれば打ち切る（後続の無関係なバッククォート語を拾わない）
+    assert.equal(parseBaseBranch('## ベースブランチ\nなにか説明の行。\n`topic/should-not`'), null);
+});
+
 test('parseAfterIssues: 行頭の autopilot-after 宣言から依存 Issue を抽出', () => {
     assert.deepEqual(parseAfterIssues('autopilot-after: #123'), [123]);
     assert.deepEqual(parseAfterIssues('autopilot-after: #12, #34 56'), [12, 34, 56]);
