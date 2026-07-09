@@ -399,7 +399,7 @@ function renderBoard(d) {
       ? '<span class="phase-pill">' + esc(r.phase) + '</span>'
         + '<span class="subtext">' + mins(Date.now() - r.since) + '分</span> '
         + '<button onclick="openLog(' + it.issue + ')">log</button>'
-      : (it.hitl ? '🙋 <span class="subtext">人間の番</span>' : '<span class="muted">—</span>');
+      : (it.hitl ? '<span title="人間の番">🙋</span> <span class="subtext">人間の番</span>' : '<span class="muted">—</span>');
     const who = (it.assignees || []).length
       ? esc((it.assignees || []).join(', '))
       : '<span class="muted">—</span>';
