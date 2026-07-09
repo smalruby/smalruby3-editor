@@ -84,6 +84,7 @@ Runner はこの短語を pane で検出してから `AUTOPILOT_RESULT_FILE` を
 | `size` | `"small"`\|`"middle"`\|`"large"`\| null | 判定した size（triage / decompose） |
 | `kind` | `"EPIC"`\|`"Issue"`\| null | 判定した種別 |
 | `createdSubIssues` | number[] | decompose で作成した sub-issue 番号 |
+| `subIssueSizes` | object \| null | decompose で作成した leaf ごとの size（`{"<issue番号>":"small"\|"middle"\|"large"}`）。daemon が `createdSubIssues` と合わせて各 sub-issue の Status=`Sprint Backlog`/Kind=`Issue`/Size を設定する（#914） |
 | `prUrl` | string \| null | implement で作成/更新した PR |
 
 `signal=hitl` のとき追加で:
@@ -122,8 +123,9 @@ AUTOPILOT_DONE
   daemon（または CLI）が行う。** プロンプトは**結果ファイルで「こうしてほしい」という意図を伝えるだけ**で、
   Project やラベルを直接書き換えない（二重ライターによる競合を避ける）。HITL は Project フィールドではなく
   `🙋 HITL` ラベルで一本化する（#813。理由: PR は Project フィールドを持てないため）。
-- **GitHub の Issue / PR への副作用**（コメント投稿・PR 作成・sub-issue 作成・コミット）は
-  **プロンプトが行う**。これらは Project 状態とは別物。
+- **GitHub の Issue / PR への副作用**（コメント投稿・PR 作成・sub-issue 作成・コミット、
+  および sub-issue の **assignee** や `🤖 autopilot` などの**ラベル**）は**プロンプトが行う**。
+  これらは Issue 自体のプロパティであり、Project 状態とは別物（#914）。
 - daemon が落ちても **Issue / PR / Project が状態の正**。プロンプトは再実行されうる前提で冪等にする（次節）。
 
 ---

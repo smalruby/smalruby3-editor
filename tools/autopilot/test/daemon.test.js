@@ -4,6 +4,7 @@ const assert = require('node:assert');
 const {
     applyMergeProgression, applyClosedReconcile, applyPrProjection, applyDodHandoffs, runTickOnce,
     detectStuck, markBlocked, getDirectives, applyLabelHealing, applyAfterWaitLabels, collectGateContexts,
+    applyDecomposeSubIssueSetup,
     parseSsoDeviceOutput, startReauth,
     updateClaudeUsage, boardResponse, statusResponse,
     checkForUpdate, startUpdateChecks,
@@ -457,6 +458,85 @@ test('applyLabelHealing: 非終端 item に 🤖 を、EPIC には 🧭 も担�
         { number: 1, type: 'issue', add: [AUTOPILOT_LABEL, TRACKING_LABEL] },
         { number: 4, type: 'issue', add: [AUTOPILOT_LABEL] },
     ]);
+});
+
+// === decompose 完了後の sub-issue Project フィールド補完（#914） ===
+
+test('applyDecomposeSubIssueSetup: 新規 sub-issue に Status/Kind/Size を設定する (#914)', async () => {
+    const result = {
+        issue: 906, phase: 'decompose', signal: 'done', summary: 's',
+        createdSubIssues: [910, 911], subIssueSizes: { 910: 'small', 911: 'middle' },
+    };
+    const applied = [];
+    await applyDecomposeSubIssueSetup(result, makeCfg(), () => {}, {
+        token: 't',
+        addIssue: (owner, project, repo, num) => `item-${num}`,
+        listItems: () => [],
+        applyIntents: (ctx, itemId, intents) => {
+            applied.push({ itemId, intents });
+            return intents.map(i => `${i.field}=${i.value}`);
+        },
+    });
+    assert.deepEqual(applied, [
+        {
+            itemId: 'item-910',
+            intents: [
+                { field: 'Status', value: 'Sprint Backlog' },
+                { field: 'Kind', value: 'Issue' },
+                { field: 'Size', value: 'small' },
+            ],
+        },
+        {
+            itemId: 'item-911',
+            intents: [
+                { field: 'Status', value: 'Sprint Backlog' },
+                { field: 'Kind', value: 'Issue' },
+                { field: 'Size', value: 'middle' },
+            ],
+        },
+    ]);
+});
+
+test('applyDecomposeSubIssueSetup: createdSubIssues が空なら何もしない (#914)', async () => {
+    const result = { issue: 906, phase: 'decompose', signal: 'done', summary: 's', createdSubIssues: [] };
+    const calls = [];
+    await applyDecomposeSubIssueSetup(result, makeCfg(), () => {}, {
+        token: 't',
+        addIssue: () => { calls.push('addIssue'); },
+        listItems: () => { calls.push('listItems'); return []; },
+        applyIntents: () => { calls.push('applyIntents'); },
+    });
+    assert.deepEqual(calls, []);
+});
+
+test('applyDecomposeSubIssueSetup: 既に値が入っている項目は上書きしない（冪等・#914）', async () => {
+    const result = {
+        issue: 906, phase: 'decompose', signal: 'done', summary: 's',
+        createdSubIssues: [910], subIssueSizes: { 910: 'small' },
+    };
+    const applied = [];
+    await applyDecomposeSubIssueSetup(result, makeCfg(), () => {}, {
+        token: 't',
+        addIssue: () => 'item-910',
+        listItems: () => [{ issue: 910, status: 'Sprint Backlog', kind: 'Issue', size: 'large' }],
+        applyIntents: (ctx, itemId, intents) => { applied.push(intents); },
+    });
+    assert.deepEqual(applied, []);
+});
+
+test('applyDecomposeSubIssueSetup: 1 件の失敗は他の sub-issue を止めない (#914)', async () => {
+    const result = {
+        issue: 906, phase: 'decompose', signal: 'done', summary: 's',
+        createdSubIssues: [910, 911], subIssueSizes: {},
+    };
+    const applied = [];
+    await applyDecomposeSubIssueSetup(result, makeCfg(), () => {}, {
+        token: 't',
+        addIssue: (owner, project, repo, num) => { if (num === 910) throw new Error('boom'); return `item-${num}`; },
+        listItems: () => [],
+        applyIntents: (ctx, itemId) => { applied.push(itemId); },
+    });
+    assert.deepEqual(applied, ['item-911']);
 });
 
 test('applyLabelHealing: 1 件の失敗は他を止めない', async () => {

@@ -25,6 +25,7 @@ const {
     selectActionable,
     isStuckCandidate,
     applyResult,
+    subIssueSetupIntents,
     hitlDesireFromResult,
     selectMergeCandidates,
     mergeProgressionIntents,
@@ -559,6 +560,10 @@ async function dispatch(item, cfg, state, log) {
         patchBoardCache(state, item.issue, intents);
         log(`#${item.issue}: ${parsed.result.signal} — applied: ${applied.join(', ')}`);
         record(parsed.result.signal, parsed.result.summary);
+        // decompose 完了で作成された sub-issue に Status/Kind/Size を補完（単一ライター・#914）。
+        if (phase === 'decompose' && parsed.result.signal === 'done') {
+            await applyDecomposeSubIssueSetup(parsed.result, cfg, log);
+        }
         // signal=error は Blocked で surface する（churn を止める）。理由はサニタイズ済みの
         // 要約だけを GitHub に出し、生ログ（機密を含みうる）はローカル参照に誘導する。
         if (parsed.result.signal === 'error') {
@@ -833,6 +838,47 @@ async function applyLabelHealing(items, cfg, state, log, deps = {}) {
             log(`#${item.issue}: ラベル担保 ${add.join(' ')}`);
         } catch (e) {
             log(`#${item.issue}: label healing failed: ${e.message}`);
+        }
+    }
+}
+
+/**
+ * decompose の done で作成された leaf sub-issue に、既定の Project フィールド（Status/Kind/Size）
+ * を補完する（#914）。sub-issue の作成そのもの・`--assignee` 付与は decompose スキル側の
+ * GitHub Issue 直接操作（プロンプトの責務）だが、Project フィールドの単一ライターは daemon
+ * なのでここで書く。フィールド設定意図は {@link subIssueSetupIntents}（純粋関数、既に値が
+ * 入っているフィールドは上書きしない）に委譲する。1 件の失敗は他の sub-issue を止めない。
+ * @param {object} result 検証済み decompose done 結果（createdSubIssues / subIssueSizes を含む）
+ * @param {object} cfg { owner, project, repo, projectId, fields }
+ * @param {function} log
+ * @param {object} [deps] injection 用（token/addIssue/listItems/applyIntents）
+ */
+async function applyDecomposeSubIssueSetup(result, cfg, log, deps = {}) {
+    const numbers = Array.isArray(result && result.createdSubIssues) ? result.createdSubIssues : [];
+    if (!numbers.length) return;
+    const sizes = (result && result.subIssueSizes) || {};
+    const token = deps.token || await project.botToken();
+    const addIssue = deps.addIssue || project.addIssue;
+    const listItems = deps.listItems || project.listItems;
+    const applyIntentsFn = deps.applyIntents || project.applyIntents;
+    const ctx = { projectId: cfg.projectId, fields: cfg.fields };
+    let existingItems = [];
+    try {
+        existingItems = await listItems(cfg.owner, cfg.project, token);
+    } catch (e) {
+        log(`decompose #${result.issue}: sub-issue field setup — item list failed: ${e.message}`);
+    }
+    const byIssue = new Map(existingItems.map((it) => [it.issue, it]));
+    for (const num of numbers) {
+        try {
+            const itemId = await addIssue(cfg.owner, cfg.project, cfg.repo, num, token);
+            const existing = byIssue.get(num) || {};
+            const intents = subIssueSetupIntents(sizes[String(num)] || null, existing);
+            if (!intents.length) continue;
+            const applied = await applyIntentsFn(ctx, itemId, intents, token);
+            log(`decompose #${result.issue}: sub-issue #${num} — ${(applied || []).join(', ')}`);
+        } catch (e) {
+            log(`decompose #${result.issue}: sub-issue #${num} setup failed: ${e.message}`);
         }
     }
 }
@@ -1416,6 +1462,7 @@ async function main(opts = {}) {
 module.exports = {
     main, tick, runTickOnce, dispatch, applyMergeProgression, applyClosedReconcile, applyPrProjection,
     applyDodHandoffs, detectStuck, markBlocked, getDirectives, applyLabelHealing, applyAfterWaitLabels,
+    applyDecomposeSubIssueSetup,
     isGateItem, collectGateContexts, checkAuthHealth, REAUTH_HINT,
     parseSsoDeviceOutput, startReauth,
     refreshBoard, recordHistory, refreshRateLimits, patchBoardCache,

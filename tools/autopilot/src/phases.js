@@ -164,6 +164,24 @@ function applyResult(result) {
 }
 
 /**
+ * decompose が新規作成した leaf sub-issue に設定する既定 Project フィールドの意図を導く
+ * （純粋関数・#914）。Status は既定 `Sprint Backlog`、Kind は leaf 固定の `Issue`、Size は
+ * 分解案の size があれば設定する。**既に値が入っているフィールドは上書きしない**（冪等 —
+ * 人間が後で手動調整した値を decompose の再実行で潰さない）。
+ * @param {string|null} size 分解案で決めた size（'small'|'middle'|'large'）。無ければ Size は設定しない。
+ * @param {{status?: string|null, kind?: string|null, size?: string|null}} existing
+ *   対象 sub-issue の現在のフィールド値（未設定は null/undefined）
+ * @returns {Array<{field: string, value: string}>}
+ */
+function subIssueSetupIntents(size, existing = {}) {
+    const intents = [];
+    if (!existing.status) intents.push({ field: 'Status', value: 'Sprint Backlog' });
+    if (!existing.kind) intents.push({ field: 'Kind', value: 'Issue' });
+    if (size && !existing.size) intents.push({ field: 'Size', value: size });
+    return intents;
+}
+
+/**
  * 結果から「完了後に人間の番（HITL）になるか」を導く（純粋関数・#813）。
  * done は result.hitl の真偽、hitl / error は常に人間の番（true）。
  * daemon はこの真偽を face sync に渡し、🙋 ラベルの付与/除去を決める。
@@ -1329,6 +1347,7 @@ module.exports = {
     AUTOPILOT_BRANCH_PREFIX,
     autopilotHeadBranch,
     applyResult,
+    subIssueSetupIntents,
     hitlDesireFromResult,
     isHitlReleased,
     isGateReleased,
