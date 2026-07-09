@@ -27,7 +27,7 @@ PR=$(GH_TOKEN="$(bin/bot-token)" gh pr list --repo "${AUTOPILOT_REPO:-smalruby/s
 > Skill/Workflow の許可プロンプトを避ける。**レビューは以下の観点を自分の目で確認する**
 > （どうしても機械的チェックを併用する場合でも、単発の観点チェックに留め、動的 workflow は使わない）。
 
-`GH_TOKEN="$(bin/bot-token)" gh pr diff "$PR" --repo "$AUTOPILOT_REPO"` で差分を読み、次の観点で確認する:
+`GH_TOKEN="$(bin/bot-token)" gh pr diff "$PR" --repo "${AUTOPILOT_REPO:-smalruby/smalruby3-editor}"` で差分を読み、次の観点で確認する:
 
 - **正確性バグ** — 境界条件・null/undefined・非同期の取りこぼし・エラー処理漏れ・退行
 - **セキュリティ** — 情報漏洩・認可/入力検証・秘密のログ出力

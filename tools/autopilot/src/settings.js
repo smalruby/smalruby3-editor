@@ -67,7 +67,7 @@ function userSettingsPath(env = process.env, homedir = os.homedir()) {
 
 /**
  * 設定を deep merge する（純粋関数）。`phases` はフェーズ単位で shallow merge、
- * 配列（allowedTools / addDirs / args）は置き換え。base は破壊しない。
+ * 配列（allowedTools / permissionAllow / addDirs / args）は置き換え。base は破壊しない。
  * @param {object} base
  * @param {object} override
  * @returns {object}
