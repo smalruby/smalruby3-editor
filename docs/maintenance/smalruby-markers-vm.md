@@ -23,10 +23,24 @@ scratch-vm の **upstream ファイルに埋め込んだ Smalruby マーカー**
 | `src/extensions/scratch3_translate/index.js` | translate CORS proxy | 翻訳 URL を Smalruby の**汎用** CORS プロキシ (`https://api.smalruby.app/cors-proxy?url=<encoded 翻訳URL>`) で包む。Scratch の翻訳サービスは CORS を scratch.mit.edu 限定にしたため smalruby.app からの直叩きが失敗する。汎用 cors-proxy はテキスト応答をそのまま返すので専用 Lambda (`/scratch-api-proxy/translate`) は不要 (obsolete)。`serverURL` は upstream の値 (`https://translate-service.scratch.mit.edu/`) のまま維持し、URL 組み立て箇所だけラップするので upstream 差分が最小。text2speech (#859) と同じ方式に統一 (#862)。過去にマーカー無しで上書きした版が v13.7.2 upstream マージで静かに revert された (#857) ため、マーカーで囲んで次回以降のマージで検知できるようにする |
 | `src/extensions/scratch3_text2speech/index.js` | synthesis CORS proxy | 音声合成 URL を Smalruby の**汎用** CORS プロキシ (`https://api.smalruby.app/cors-proxy?url=<encoded 合成URL>`) で包む。Scratch の音声合成サービスは CORS を scratch.mit.edu 限定にしたため smalruby.app からの直叩きが失敗する。汎用 cors-proxy はバイナリ音声を Base64 で返却する (API Gateway がバイト列にデコード) ので専用 Lambda は不要。`SERVER_HOST` は upstream の値のまま維持し、URL 組み立て箇所だけラップするので upstream 差分が最小。translate (#857) と同じ根本原因 (#859) |
 
+## ⚠️ 既知の未マーカー改変（upstream マージ時に注意）
+
+以下の upstream ファイルには **標準マーカー（`=== Smalruby: Start/End ===`）で囲まれていない
+Smalruby 改変**が存在する。マーカーが無いため upstream マージのコンフリクト解決で
+**静かに revert されるリスク**がある（translate proxy が実際に #857 で消えた前例あり）。
+マージ時はこの表も突き合わせて維持を確認すること。将来これらに標準マーカーを付けたら
+上の一覧へ移動する。
+
+| ファイル | 改変内容 |
+|----------|----------|
+| `src/virtual-machine.js` | mesh v1→v2 移行の統合: `serialization/smalruby-migration.js` からの import、プロジェクトロード時の `options.migrateMeshV1ToV2` 分岐（`// smalruby: mesh V1 to V2 migration` の小文字コメントのみ）、追加メソッド `hasMeshV1Project` / `hasKoshienProject` / `migrateMeshV1InBackpackBlocks` / `migrateMeshV1InBackpackSprite`、バックパック複製時の v1 opcode 書き換え |
+| `src/extension-support/extension-manager.js` | `builtinExtensions` オブジェクトリテラル内の直書き 3 行: `mesh` / `meshV2` / `smalrubotS1`（マーカーブロックは `registerSmalrubyExtensions` の呼び出しのみを囲んでおり、この 3 行は囲まれていない） |
+
 ## 関連ファイル
 
 マーカーで囲まれたコードが参照するファイル:
 - `src/extension-support/smalruby-extensions.js` — extension-manager.js のマーカーから参照
+- `src/serialization/smalruby-migration.js` — virtual-machine.js の未マーカー改変から参照（mesh v1→v2 移行・koshien 検出）
 - `test/unit/blocks_operators_regex.js` — scratch3_operators.js の regex support のテスト
 - `test/unit/extension_translate_proxy.js` — scratch3_translate/index.js の translate CORS proxy のテスト
 - `test/unit/extension_text2speech_proxy.js` — scratch3_text2speech/index.js の synthesis CORS proxy のテスト
