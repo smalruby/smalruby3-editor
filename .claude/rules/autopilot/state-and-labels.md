@@ -91,6 +91,7 @@ daemon / プロンプトが GitHub に置く「機械が識別するコメント
 | `<!-- autopilot:dod-handoff issue=N pr=M -->` | DoD headful 引き継ぎ | `hasDodHandoffComment` — 既にあれば再投稿しない |
 | `<!-- autopilot-pr-link -->` | 非デフォルト base 宛て PR の Issue 側リンク | **base 非デフォルト時のみ**投稿（`needsPrLinkSticky`） |
 | `<!-- autopilot-continuation ... -->` | checkpoint の残タスク | ファイル + コメント。iteration で世代管理 |
+| `<!-- autopilot-tracker-status -->`（`TRACKER_STICKY_MARKER`） | 分解済み EPIC（トラッカー）Issue 本体の sub-issue 進捗 + Close 指示（#934） | `upsertMarkedComment` → 内部で `stickyUpsertPlan` を再利用（本文同一なら PATCH スキップ）。対象選別は `needsTrackerSticky`（トラッカー && 非終端 && sub-issue total>0） |
 
 新種のマーカー付きコメントを追加するときも同じ形（マーカー定数 + 判定純粋関数 +
 upsert/skip 計画を phases.js に、I/O を project.js/daemon に）にする。

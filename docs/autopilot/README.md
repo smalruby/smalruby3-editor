@@ -371,6 +371,16 @@ EPIC は「作業項目」ではなく「**トラッカー**」。
 3. 「もう十分」のときは **納品スライスを Done + 残りをフォローアップ EPIC** に切り出す
    （半分終わった EPIC を滞留させない）。
 4. EPIC を Done にする遷移は **HITL**（未クローズの子がある EPIC を勝手に閉じない）。
+5. **分解済み EPIC の Issue 本体には、daemon が sub-issue 進捗 + 人間アクションの sticky
+   コメント（`<!-- autopilot-tracker-status -->`）を維持する**（#934）。トラッカー
+   （Kind=EPIC または `🧭 tracking`）で非終端・sub-issue が 1 件以上のときだけ出る:
+   - 未完了時: 完了数/全体数と割合、「すべて閉じたらこの EPIC を Close してください」を表示。
+   - 全 sub-issue 完了時: 「この EPIC を Close してください」に文言を切り替える
+     （**autopilot は EPIC を自動 Close しない**ので、人間が Close するか Project の
+     Status を Close/Done に変更する必要がある。closed にすれば closed-reconcile が
+     Project を整合する）。
+   sub-issue 進捗は俯瞰ボードの enrichment（`refreshBoard` が既に取得済みの board キャッシュ）を
+   再利用するため追加の GraphQL は発生しない。書き込みは本文が変わった tick だけ（冪等 upsert）。
 
 ---
 

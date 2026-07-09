@@ -11,9 +11,10 @@ const {
     patchBoardCache,
     ensureCheckpointCommit, readContinuationFromWorktree, applyCheckpointHandling,
     collectContinuationContexts, checkpointEscalationBody,
+    applyTrackerStickies, refreshBoardAndProjectTrackers,
 } = require('../src/daemon');
 const { EventEmitter } = require('node:events');
-const { HITL_LABEL, AUTOPILOT_LABEL, continuationMarker } = require('../src/phases');
+const { HITL_LABEL, AUTOPILOT_LABEL, continuationMarker, TRACKER_STICKY_MARKER } = require('../src/phases');
 
 /** Build an injectable double for markBlocked/detectStuck that records side effects. */
 function makeBlockDeps() {
@@ -718,6 +719,98 @@ test('refreshBoard: レート残量僅少（skipLowPriority）では更新せず
     await refreshBoard(cfg, state, () => {}, { token: 't', listItems: () => { called += 1; return []; } });
     assert.equal(called, 0);
     assert.deepEqual(state.board.items.map((i) => i.issue), [9]);
+});
+
+// === #934: applyTrackerStickies（分解済み EPIC の sub-issue 進捗 + Close 指示 sticky） ===
+
+test('applyTrackerStickies: トラッカーで sub-issue 未完了 -> sticky を upsert する', async () => {
+    const boardItems = [
+        { issue: 906, tracker: true, status: 'In Progress', subIssues: { total: 4, completed: 2, percent: 50 } },
+        { issue: 1, tracker: false, status: 'In Progress', subIssues: { total: 0, completed: 0, percent: 0 } }, // 対象外
+    ];
+    const calls = [];
+    const deps = {
+        token: 't',
+        upsertMarkedComment: (repo, number, markers, body) => calls.push({ number, markers, body }),
+    };
+    await applyTrackerStickies(boardItems, makeCfg(), () => {}, deps);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].number, 906);
+    assert.deepEqual(calls[0].markers, [TRACKER_STICKY_MARKER]);
+    assert.match(calls[0].body, /2\/4 \(50%\)/);
+});
+
+test('applyTrackerStickies: 追加の GraphQL 無しに board キャッシュだけで動く（listItems 等は呼ばない）', async () => {
+    const boardItems = [
+        { issue: 906, tracker: true, status: 'In Progress', subIssues: { total: 4, completed: 4, percent: 100 } },
+    ];
+    const calls = [];
+    await applyTrackerStickies(boardItems, makeCfg(), () => {}, {
+        token: 't',
+        upsertMarkedComment: (repo, number, markers, body) => calls.push({ number, body }),
+        listItems: () => { throw new Error('listItems should not be called'); },
+    });
+    assert.equal(calls.length, 1);
+    assert.match(calls[0].body, /全 sub-issue が完了しました（4\/4）/);
+});
+
+test('applyTrackerStickies: 対象が無ければ何もしない（token 取得もしない）', async () => {
+    let tokenCalls = 0;
+    await applyTrackerStickies([], makeCfg(), () => {}, {
+        get token() { tokenCalls += 1; return 't'; },
+        upsertMarkedComment: () => { throw new Error('should not be called'); },
+    });
+    assert.equal(tokenCalls, 0);
+});
+
+test('applyTrackerStickies: 1 件の失敗は他を止めない', async () => {
+    const boardItems = [
+        { issue: 1, tracker: true, status: 'In Progress', subIssues: { total: 2, completed: 1, percent: 50 } },
+        { issue: 2, tracker: true, status: 'In Progress', subIssues: { total: 2, completed: 2, percent: 100 } },
+    ];
+    const posted = [];
+    await applyTrackerStickies(boardItems, makeCfg(), () => {}, {
+        token: 't',
+        upsertMarkedComment: (repo, number) => {
+            if (number === 1) throw new Error('boom');
+            posted.push(number);
+        },
+    });
+    assert.deepEqual(posted, [2]);
+});
+
+test('refreshBoardAndProjectTrackers: refreshBoard 後に board キャッシュでトラッカー sticky を投影する', async () => {
+    const cfg = { ...makeCfg(), now: () => 0, statusOrder: [] };
+    const state = { running: new Map() };
+    const posted = [];
+    await refreshBoardAndProjectTrackers(cfg, state, () => {}, {
+        token: 't',
+        listItems: () => [
+            { issue: 906, status: 'In Progress', kind: 'EPIC', title: 'e', labels: ['🧭 tracking'] },
+        ],
+        getBoardEnrichment: () => ({ 906: { subIssues: { total: 2, completed: 2, percent: 100 }, prs: [] } }),
+        listHeadPrs: () => [],
+        upsertMarkedComment: (repo, number, markers, body) => posted.push({ number, body }),
+    });
+    assert.equal(posted.length, 1);
+    assert.equal(posted[0].number, 906);
+    assert.match(posted[0].body, /全 sub-issue が完了しました（2\/2）/);
+});
+
+test('refreshBoardAndProjectTrackers: レート僅少では再投影しない（board 更新自体も refreshBoard 側でスキップ）', async () => {
+    const cfg = { ...makeCfg(), now: () => 0, statusOrder: [] };
+    const state = {
+        running: new Map(),
+        board: { updatedAt: 1, items: [{ issue: 9, tracker: true, status: 'In Progress', subIssues: { total: 1, completed: 1, percent: 100 } }] },
+        ratePlan: { skipLowPriority: true, minRemaining: 10, minAt: 'bot/graphql' },
+    };
+    let posted = 0;
+    await refreshBoardAndProjectTrackers(cfg, state, () => {}, {
+        token: 't',
+        listItems: () => { throw new Error('should not be called'); },
+        upsertMarkedComment: () => { posted += 1; },
+    });
+    assert.equal(posted, 0);
 });
 
 test('refreshRateLimits: bot/read 両トークンの残量から実行計画を立てる', async () => {

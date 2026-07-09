@@ -50,6 +50,9 @@ const {
     needsPrLinkSticky,
     renderPrLinkSticky,
     PR_LINK_MARKER,
+    needsTrackerSticky,
+    renderTrackerSticky,
+    TRACKER_STICKY_MARKER,
     sanitizeForSurface,
     labelActions,
     draftAction,
@@ -1393,6 +1396,48 @@ async function refreshBoard(cfg, state, log, deps = {}) {
 }
 
 /**
+ * 分解済み EPIC（トラッカー）Issue に sub-issue 進捗 + Close 指示の sticky を維持する（#934）。
+ * sub-issue 進捗は俯瞰ボードの enrichment（{@link refreshBoard} が既に取得済みの `state.board.items`）
+ * をそのまま使うため、追加の GraphQL は発生しない（`.claude/rules/autopilot/github-api.md` 予算規約）。
+ * 書き込みは `upsertMarkedComment` の冪等 upsert に委ね、本文が変わらない tick では PATCH しない。
+ * 1 件の失敗は他を止めない。deps は injection 可能（テスト用）。
+ * @param {object[]} boardItems refreshBoard が構築した board item（tracker/status/subIssues を含む）
+ * @param {object} cfg
+ * @param {function} log
+ * @param {object} [deps] { token, readToken, upsertMarkedComment }
+ */
+async function applyTrackerStickies(boardItems, cfg, log, deps = {}) {
+    const targets = (boardItems || []).filter(needsTrackerSticky);
+    if (!targets.length) return;
+    const token = deps.token || await project.botToken();
+    const readToken = deps.readToken || deps.token || await project.readToken();
+    const upsertMarkedComment = deps.upsertMarkedComment || project.upsertMarkedComment;
+    for (const item of targets) {
+        try {
+            await upsertMarkedComment(
+                cfg.repo, item.issue, [TRACKER_STICKY_MARKER], renderTrackerSticky(item), token,
+                { readToken },
+            );
+        } catch (e) {
+            log(`#${item.issue}: tracker sticky failed: ${e.message}`);
+        }
+    }
+}
+
+/**
+ * {@link refreshBoard} 完了後にトラッカー sticky を投影するラッパー。board を更新する呼び出し
+ * 箇所はすべてこれに置き換える（refreshBoard 自体は読み取り専用を保つ・単一責務）。
+ * refreshBoard がレート僅少で内部スキップした場合は前回キャッシュのままなので、ここでも
+ * 同条件で再投影をスキップする（同内容の再チェックで API を無駄遣いしない）。
+ * deps は injection 可能（テスト用。refreshBoard と applyTrackerStickies 両方に渡る）。
+ */
+async function refreshBoardAndProjectTrackers(cfg, state, log, deps = {}) {
+    await refreshBoard(cfg, state, log, deps);
+    if (state.ratePlan && state.ratePlan.skipLowPriority) return;
+    await applyTrackerStickies(state.board ? state.board.items : [], cfg, log, deps);
+}
+
+/**
  * tick を1回だけ実行する（再入防止つき）。HTTP `POST /tick` と interval ループの両方から使い、
  * 手動 tick と定期 tick が重ならないようにする。実行中（state.ticking）なら tick を呼ばず busy を返す。
  * @param {object} cfg
@@ -1495,7 +1540,7 @@ function startHttp(cfg, state, log) {
                 .then((result) => {
                     if (result.busy) return send(409, { ran: false, busy: true, error: 'tick already running' });
                     send(200, result);
-                    refreshBoard(cfg, state, log); // 手動 tick 後もボードを追従（fire-and-forget）
+                    refreshBoardAndProjectTrackers(cfg, state, log); // 手動 tick 後もボードを追従（fire-and-forget）
                 })
                 .catch((e) => { log(`tick error: ${e.message}`); send(500, { error: e.message }); });
             return;
@@ -1524,7 +1569,7 @@ function startHttp(cfg, state, log) {
                 // レート残量が僅少なら refreshBoard は内部で no-op になる。正直にスキップを返す。
                 return send(200, { refreshed: false, skipped: 'rate-limited', minRemaining: state.ratePlan.minRemaining });
             }
-            refreshBoard(cfg, state, log)
+            refreshBoardAndProjectTrackers(cfg, state, log)
                 .then(() => send(200, { refreshed: true, updatedAt: state.board ? state.board.updatedAt : null }))
                 .catch((e) => { log(`refresh error: ${e.message}`); send(500, { error: e.message }); });
             return;
@@ -1635,7 +1680,7 @@ async function main(opts = {}) {
     // 俯瞰ボードは起動時に 1 度だけ即時取得する。以降は専用タイマーを持たず、
     // 各 poll/tick の直後（下の refreshBoard）と、モニタの「🔄 更新」ボタン
     // （POST /refresh）によるオンデマンドでのみ更新する（GraphQL 予算の節約）。
-    refreshBoard(cfg, state, log);
+    refreshBoardAndProjectTrackers(cfg, state, log);
     /* eslint-disable no-constant-condition */
     while (!opts.once) {
         // 認証ヘルスチェック（失効 → auto-pause / 回復 → auto-resume）を tick の前に行う。
@@ -1644,13 +1689,13 @@ async function main(opts = {}) {
         // runTickOnce 経由にして、定期 tick と手動 POST /tick が重ならないようにする（再入防止）
         await runTickOnce(cfg, state, log);
         // tick で Project が動いた直後はボードも追従させる（fire-and-forget）
-        refreshBoard(cfg, state, log);
+        refreshBoardAndProjectTrackers(cfg, state, log);
         await sleep(cfg.intervalMs);
     }
     if (opts.once) {
         await checkAuthHealth(cfg, state, log);
         await runTickOnce(cfg, state, log);
-        refreshBoard(cfg, state, log);
+        refreshBoardAndProjectTrackers(cfg, state, log);
     }
 }
 
@@ -1661,6 +1706,7 @@ module.exports = {
     isGateItem, collectGateContexts, checkAuthHealth, REAUTH_HINT,
     parseSsoDeviceOutput, startReauth,
     refreshBoard, recordHistory, refreshRateLimits, patchBoardCache,
+    applyTrackerStickies, refreshBoardAndProjectTrackers,
     updateClaudeUsage, boardResponse, statusResponse,
     checkForUpdate, startUpdateChecks,
     ensureCheckpointCommit, readContinuationFromWorktree, applyCheckpointHandling,
