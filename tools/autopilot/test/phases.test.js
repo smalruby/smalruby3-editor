@@ -69,6 +69,17 @@ const {
     extractDodChecklist,
     needsDodHandoff,
     dodHandoffBody,
+    AWAITING_CONTINUATION_STATUS,
+    isCheckpointResult,
+    continuationFilePath,
+    continuationMarker,
+    parseContinuationMarker,
+    parseContinuationFile,
+    DEFAULT_MAX_CHECKPOINT_ITERATIONS,
+    checkpointIterationDecision,
+    DEFAULT_CHECKPOINT_SOFT_LIMIT_MS,
+    shouldSignalCheckpoint,
+    isSteadyStateHitlGate,
 } = require('../src/phases');
 const { PROMPT_RE } = require('../src/runner');
 
@@ -1232,4 +1243,211 @@ test('phasePromptCommand: プロンプトファイルを Read させ Issue 番�
     assert.match(cmd, /tools\/autopilot\/prompts\/autopilot-triage\.md/);
     assert.match(cmd, /AUTOPILOT_ISSUE=833/);
     assert.ok(!cmd.startsWith('/'), 'スラッシュコマンドではない');
+});
+
+// === 協調的チェックポイント（EPIC #906・基盤 leaf #910） ===
+
+test('AWAITING_CONTINUATION_STATUS: 新 AI Status 定数', () => {
+    assert.equal(AWAITING_CONTINUATION_STATUS, 'Awaiting Continuation');
+});
+
+test('isCheckpointResult: signal=hitl + nextAiStatus=Awaiting Continuation のときだけ true', () => {
+    assert.equal(
+        isCheckpointResult({ signal: 'hitl', nextAiStatus: 'Awaiting Continuation' }), true,
+    );
+    assert.equal(isCheckpointResult({ signal: 'hitl', nextAiStatus: null }), false);
+    assert.equal(isCheckpointResult({ signal: 'hitl', reason: 'x' }), false);
+    assert.equal(isCheckpointResult({ signal: 'done', nextAiStatus: 'Awaiting Continuation' }), false);
+    assert.equal(isCheckpointResult(null), false);
+    assert.equal(isCheckpointResult(undefined), false);
+});
+
+test('continuationFilePath: tmp/autopilot-continuation-<issue>.md の規約', () => {
+    assert.equal(continuationFilePath(910), 'tmp/autopilot-continuation-910.md');
+    assert.equal(continuationFilePath('852'), 'tmp/autopilot-continuation-852.md');
+});
+
+test('continuationMarker / parseContinuationMarker: ラウンドトリップ', () => {
+    const marker = continuationMarker(852, 'implement', 2);
+    assert.equal(marker, '<!-- autopilot-continuation issue=852 phase=implement iteration=2 -->');
+    assert.deepEqual(parseContinuationMarker(marker), { issue: 852, phase: 'implement', iteration: 2 });
+    assert.deepEqual(parseContinuationMarker(`${marker}\n## 完了済み\n- foo\n`), {
+        issue: 852, phase: 'implement', iteration: 2,
+    });
+});
+
+test('parseContinuationMarker: マッチしなければ null', () => {
+    assert.equal(parseContinuationMarker(''), null);
+    assert.equal(parseContinuationMarker(null), null);
+    assert.equal(parseContinuationMarker('not a marker'), null);
+    assert.equal(parseContinuationMarker('<!-- autopilot-continuation issue=1 -->'), null);
+});
+
+test('parseContinuationFile: 完全なファイルを解析する（EPIC #906 の固定フォーマット）', () => {
+    const content = [
+        continuationMarker(852, 'implement', 1),
+        '## 完了済み',
+        '- deck 1〜3 の実装',
+        '- 単体テスト追加',
+        '',
+        '## 残タスク',
+        '- deck 4〜6 の実装',
+        '- Playwright での動作確認',
+        '',
+        '## 次の一手',
+        'deck 4 のスクリーンショット撮影から再開する。',
+        '',
+        '## 継続して安全か',
+        'はい: WIP はコミット済みで、状態は綺麗。',
+    ].join('\n');
+    const parsed = parseContinuationFile(content);
+    assert.deepEqual(parsed, {
+        issue: 852,
+        phase: 'implement',
+        iteration: 1,
+        completed: ['deck 1〜3 の実装', '単体テスト追加'],
+        remaining: ['deck 4〜6 の実装', 'Playwright での動作確認'],
+        nextStep: 'deck 4 のスクリーンショット撮影から再開する。',
+        safeToContinue: true,
+        reason: 'WIP はコミット済みで、状態は綺麗。',
+    });
+});
+
+test('parseContinuationFile: 「いいえ」も解析できる', () => {
+    const content = [
+        continuationMarker(852, 'implement', 3),
+        '## 継続して安全か',
+        'いいえ: コンフリクトが残っており危険。',
+    ].join('\n');
+    const parsed = parseContinuationFile(content);
+    assert.equal(parsed.safeToContinue, false);
+    assert.equal(parsed.reason, 'コンフリクトが残っており危険。');
+});
+
+test('parseContinuationFile: 見出しが欠けていても落ちない（壊れたファイルへのフォールバック）', () => {
+    assert.deepEqual(parseContinuationFile(''), {
+        issue: null, phase: null, iteration: null,
+        completed: [], remaining: [], nextStep: null, safeToContinue: null, reason: null,
+    });
+    assert.deepEqual(parseContinuationFile(null), {
+        issue: null, phase: null, iteration: null,
+        completed: [], remaining: [], nextStep: null, safeToContinue: null, reason: null,
+    });
+    // マーカーだけあり本文が空
+    const marker = continuationMarker(1, 'review', 1);
+    const parsed = parseContinuationFile(marker);
+    assert.equal(parsed.issue, 1);
+    assert.equal(parsed.phase, 'review');
+    assert.deepEqual(parsed.completed, []);
+    assert.equal(parsed.safeToContinue, null);
+});
+
+test('checkpointIterationDecision: 上限内は continue、超過で escalate', () => {
+    assert.equal(checkpointIterationDecision(1).action, 'continue');
+    assert.equal(checkpointIterationDecision(DEFAULT_MAX_CHECKPOINT_ITERATIONS).action, 'continue');
+    assert.equal(checkpointIterationDecision(DEFAULT_MAX_CHECKPOINT_ITERATIONS + 1).action, 'escalate');
+    assert.equal(checkpointIterationDecision(10).action, 'escalate');
+    // カスタム上限
+    assert.equal(checkpointIterationDecision(2, 1).action, 'escalate');
+    assert.equal(checkpointIterationDecision(1, 1).action, 'continue');
+    // 不正値は 0 として扱う（安全側）
+    assert.equal(checkpointIterationDecision(NaN).action, 'continue');
+    assert.equal(checkpointIterationDecision(undefined).action, 'continue');
+});
+
+test('DEFAULT_MAX_CHECKPOINT_ITERATIONS: EPIC #906 で確定した既定値 3', () => {
+    assert.equal(DEFAULT_MAX_CHECKPOINT_ITERATIONS, 3);
+});
+
+test('shouldSignalCheckpoint: soft-limit 超過かつ未送信・ready・生存中のときだけ true', () => {
+    const base = { ready: true, dead: false, resultPresent: false, softSignalSent: false };
+    assert.equal(shouldSignalCheckpoint({ ...base, elapsedMs: DEFAULT_CHECKPOINT_SOFT_LIMIT_MS + 1 }), true);
+    assert.equal(shouldSignalCheckpoint({ ...base, elapsedMs: DEFAULT_CHECKPOINT_SOFT_LIMIT_MS - 1 }), false);
+    // 既に送信済みなら多重送信しない
+    assert.equal(
+        shouldSignalCheckpoint({ ...base, elapsedMs: DEFAULT_CHECKPOINT_SOFT_LIMIT_MS + 1, softSignalSent: true }),
+        false,
+    );
+    // 結果ファイルが既にあるなら送らない（collect が優先）
+    assert.equal(
+        shouldSignalCheckpoint({ ...base, elapsedMs: DEFAULT_CHECKPOINT_SOFT_LIMIT_MS + 1, resultPresent: true }),
+        false,
+    );
+    // 死んでいるなら送らない
+    assert.equal(
+        shouldSignalCheckpoint({ ...base, elapsedMs: DEFAULT_CHECKPOINT_SOFT_LIMIT_MS + 1, dead: true }),
+        false,
+    );
+    // まだ ready でないなら送らない
+    assert.equal(
+        shouldSignalCheckpoint({ ...base, elapsedMs: DEFAULT_CHECKPOINT_SOFT_LIMIT_MS + 1, ready: false }),
+        false,
+    );
+    // カスタム tSoftMs
+    assert.equal(shouldSignalCheckpoint({ ...base, elapsedMs: 100 }, { tSoftMs: 50 }), true);
+    assert.equal(shouldSignalCheckpoint(null), false);
+});
+
+test('phaseForItem: Awaiting Continuation は解除前 null、解除後は元フェーズへ戻る', () => {
+    const item = { status: 'In Progress', aiStatus: 'Awaiting Continuation', hitlLabel: true, kind: 'Issue' };
+    // 解除前は何もしない（人間の確認待ち）
+    assert.equal(phaseForItem(item, {}), null);
+    // 解除（Issue ラベル除去）後は continuation ファイルの元フェーズへ
+    assert.equal(
+        phaseForItem({ ...item, hitlLabel: false }, { continuation: { phase: 'review' } }), 'review',
+    );
+    // 元フェーズが不明なら implement にフォールバック（checkpoint は主に実装フェーズで発生）
+    assert.equal(phaseForItem({ ...item, hitlLabel: false }, {}), 'implement');
+    // PR 側ラベルのみの解除でも OR セマンティクスで再開する
+    assert.equal(
+        phaseForItem(item, { hitlSignals: { issueLabel: true, prLabel: false }, continuation: { phase: 'implement' } }),
+        'implement',
+    );
+    // ラベルを触らず人間が発言しただけでも解除される
+    assert.equal(
+        phaseForItem(item, { humanSpokeLast: true, continuation: { phase: 'address-review' } }), 'address-review',
+    );
+});
+
+test('isSteadyStateHitlGate: Review/DoD と Awaiting Continuation（In Progress）が対象', () => {
+    assert.equal(isSteadyStateHitlGate({ status: 'Review' }), true);
+    assert.equal(isSteadyStateHitlGate({ status: 'DoD' }), true);
+    assert.equal(
+        isSteadyStateHitlGate({ status: 'In Progress', aiStatus: 'Awaiting Continuation' }), true,
+    );
+    // 通常の In Progress（実装中）は対象外
+    assert.equal(isSteadyStateHitlGate({ status: 'In Progress', aiStatus: 'Implementing' }), false);
+    assert.equal(isSteadyStateHitlGate({ status: 'Blocked' }), false);
+    assert.equal(isSteadyStateHitlGate(null), false);
+});
+
+test('hitlLabelAction: Awaiting Continuation steady-state は人間が外したラベルを再付与しない', () => {
+    const item = { status: 'In Progress', aiStatus: 'Awaiting Continuation', hitlLabel: true };
+    // canonical=Yes だが face 側で外された（解除ジェスチャ）-> 再付与しない
+    assert.equal(hitlLabelAction(item, false), null);
+    // canonical=No -> 除去方向はそのまま許可
+    assert.equal(hitlLabelAction({ ...item, hitlLabel: false }, true), 'remove');
+    // force（権威的な checkpoint への遷移）なら明示的に付与する
+    assert.equal(hitlLabelAction(item, false, { force: true }), 'add');
+});
+
+test('renderSticky: Awaiting Continuation は continuation コメントへの 1 行ポインタを追加', () => {
+    const body = renderSticky({
+        issue: 910, status: 'In Progress', aiStatus: 'Awaiting Continuation', hitlLabel: true, size: 'middle',
+    });
+    assert.match(body, /チェックポイント継続待ち/);
+    assert.match(body, /autopilot-continuation/);
+});
+
+test('renderSticky: Implementing 中（通常の In Progress）はポインタを出さない', () => {
+    const body = renderSticky({
+        issue: 1, status: 'In Progress', aiStatus: 'Implementing', hitlLabel: false, size: null,
+    });
+    assert.ok(!/チェックポイント継続待ち/.test(body));
+});
+
+test('isStuckCandidate: Awaiting Continuation は stuck 対象外（意図的な resting・EPIC #906）', () => {
+    assert.equal(
+        isStuckCandidate({ status: 'In Progress', aiStatus: 'Awaiting Continuation' }), false,
+    );
 });

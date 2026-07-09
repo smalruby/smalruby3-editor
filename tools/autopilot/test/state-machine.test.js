@@ -29,6 +29,7 @@ const STATUSES = [
 const AI_STATUSES = [
     null, 'Triaging', 'Discussing', 'Understanding', 'Decomposing', 'EPIC Decomposed',
     'Implementing', 'Creating PR', 'Self-Reviewing', 'Addressing Comments', 'Running DoD',
+    'Awaiting Continuation',
 ];
 
 const KINDS = ['Issue', 'EPIC'];
@@ -112,6 +113,8 @@ const GATES = [
     { name: 'Blocked(PRなし)', item: { issue: 1, status: 'Blocked', hitlLabel: true, kind: 'Issue', labels: [] }, expect: 'triage' },
     { name: 'Discussing(Backlog)', item: { issue: 1, status: 'Backlog', aiStatus: 'Discussing', hitlLabel: true, kind: 'Issue', labels: [] }, expect: 'discuss' },
     { name: 'Discussing(New Item)', item: { issue: 1, status: 'New Item', aiStatus: 'Discussing', hitlLabel: true, kind: 'Issue', labels: [] }, expect: 'discuss' },
+    // 協調的チェックポイント（EPIC #906）: 元フェーズ不明時は implement にフォールバック
+    { name: 'Awaiting Continuation', item: { issue: 1, status: 'In Progress', aiStatus: 'Awaiting Continuation', hitlLabel: true, kind: 'Issue', labels: [] }, expect: 'implement' },
 ];
 
 test('I2/I3: 人間ゲートはラベル解除でも発言（コメント）でも必ず解除され、遷移先が定義される', () => {

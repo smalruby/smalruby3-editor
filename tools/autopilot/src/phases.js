@@ -138,6 +138,10 @@ function phasePromptCommand(skill, issue, promptDir = PROMPT_DIR) {
  * 結果ペイロードを Project フィールドの設定意図に変換する。
  * 値が null のものは「クリア」を意味する。単一ライター原則: 実際の書き込みは
  * daemon/CLI が行う（スキルは書かない）。
+ *
+ * checkpoint（{@link isCheckpointResult}・EPIC #906）は専用の分岐を持たない。
+ * `signal:'hitl'` + `nextAiStatus:'Awaiting Continuation'` として届くので、下の hitl 分岐が
+ * そのまま AI Status を設定する（Status は nextStatus が無ければ変更しない = In Progress 維持）。
  * @param {object} result 検証済み結果ペイロード
  * @returns {Array<{field: string, value: string|null}>}
  */
@@ -185,6 +189,8 @@ function subIssueSetupIntents(size, existing = {}) {
  * 結果から「完了後に人間の番（HITL）になるか」を導く（純粋関数・#813）。
  * done は result.hitl の真偽、hitl / error は常に人間の番（true）。
  * daemon はこの真偽を face sync に渡し、🙋 ラベルの付与/除去を決める。
+ * checkpoint（{@link isCheckpointResult}）は signal='hitl' として届くため、この関数は追加の
+ * 分岐なしで「常に HITL」（EPIC #906 の設計判断）を自然に満たす。
  * @param {object} result 検証済み結果ペイロード
  * @returns {boolean}
  */
@@ -422,6 +428,15 @@ function computeReviewApproval(reviews, reviewDecision, isHuman = () => true) {
 const HUMAN_GATE_STATUSES = new Set(['Review', 'DoD']);
 
 /**
+ * 協調的チェックポイント（EPIC #906）で worker が長時間実装を安全に中断したときの AI Status。
+ * Status は動かさず `In Progress` のまま、AI Status だけこの値にする（Blocked/Review/DoD と違い
+ * 専用 Status を用意しない — checkpoint は「実行中だった元フェーズへ戻る」ための一時停止であり、
+ * Status 遷移を伴う人間判断（triage/review 等）とは性質が異なるため）。**常に HITL**
+ * （🙋 を外すと同フェーズへ再 dispatch。継続の承認は毎回人間が行う設計）。
+ */
+const AWAITING_CONTINUATION_STATUS = 'Awaiting Continuation';
+
+/**
  * Project item から「次に autopilot が自律実行すべきフェーズ」を決める（純粋関数）。
  * 人間駆動の状態（Close/Backlog/Icebox/Paused）や 🙋 ラベルあり（人間の番）では null（何もしない）。
  *
@@ -459,6 +474,15 @@ function phaseForItem(item, ctx = {}) {
     if (status === 'Blocked') {
         if (!isGateReleased(item, ctx)) return null;
         return ctx.pr ? 'address-review' : 'triage';
+    }
+    // 協調的チェックポイント（EPIC #906）: soft-limit で worker が安全に中断し継続待ちになった
+    // 状態。Status は In Progress のまま、AI Status だけこの値になる。常に HITL（🙋 を外すと
+    // 同フェーズへ再 dispatch）。元フェーズ名は Project フィールドに残せないため、daemon が
+    // continuation ファイル（{@link parseContinuationFile}）から読んで ctx.continuation.phase
+    // として渡す。無ければ implement にフォールバック（checkpoint は主に実装フェーズで発生）。
+    if (status === 'In Progress' && item.aiStatus === AWAITING_CONTINUATION_STATUS) {
+        if (!isGateReleased(item, ctx)) return null;
+        return (ctx.continuation && ctx.continuation.phase) || 'implement';
     }
     // 実装前ディスカッション（discuss）: triage が方針提案を出し AI Status=Discussing で
     // 人間に渡した item は、人間が返信する（🙋 を外す or コメントする）たびにここへ戻ってくる。
@@ -500,12 +524,15 @@ function isActionable(item, opts = {}) {
  * Self-Reviewing は次 tick で自動 dispatch（review）されるので stuck 対象外。EPIC Decomposed は
  * decompose が正常終了した EPIC の resting 状態（子の実装待ち）で、run を持たなくて当然なので
  * 対象外（#856）。AI Status が空の In Progress（人間が手で In Progress にした等）も対象外。
+ * Awaiting Continuation（EPIC #906）も対象外 — checkpoint で worker が意図的に停止した
+ * resting 状態で、run が無いのは正常（stuck ではなく HITL 待ち）。誤って Blocked にすると
+ * checkpoint の HITL ゲートと stuck 検知の Blocked が二重化してしまう。
  * 実際に「実行中の run が無いか」「十分な時間が経過したか」は I/O・時間を持つ daemon 側で
  * 判定する（ここは形だけ見る）。
  * @param {object} item { status, aiStatus }
  * @returns {boolean}
  */
-const STUCK_EXEMPT_AI_STATUSES = new Set(['Self-Reviewing', 'EPIC Decomposed']);
+const STUCK_EXEMPT_AI_STATUSES = new Set(['Self-Reviewing', 'EPIC Decomposed', AWAITING_CONTINUATION_STATUS]);
 function isStuckCandidate(item) {
     if (!item || item.status !== 'In Progress') return false;
     if (!item.aiStatus || STUCK_EXEMPT_AI_STATUSES.has(item.aiStatus)) return false;
@@ -846,21 +873,36 @@ function draftAction(currentIsDraft, item) {
 }
 
 /**
+ * item が「HITL ラベルが解除ジェスチャを兼ねる」steady-state ゲート状態か（純粋関数）。
+ * Review / DoD（Status 基準）に加え、Awaiting Continuation（In Progress + AI Status 基準・
+ * EPIC #906）もここに含める。含めないと、checkpoint 中に人間が PR 側の 🙋 だけ外しても
+ * 次の per-tick 同期で Issue 側の値に合わせて再付与され、解除ジェスチャが潰れてしまう。
+ * @param {object} item { status, aiStatus }
+ * @returns {boolean}
+ */
+function isSteadyStateHitlGate(item) {
+    if (!item) return false;
+    if (HUMAN_GATE_STATUSES.has(item.status)) return true;
+    return item.status === 'In Progress' && item.aiStatus === AWAITING_CONTINUATION_STATUS;
+}
+
+/**
  * 🙋 HITL ラベルの操作を決める（純粋関数）。
  *
  * HITL の真実は 🙋 ラベルそのもの（#813）。canonical は Issue の 🙋 ラベル（item.hitlLabel）で、
- * per-tick 同期は PR 面をそこへ合わせる。ただし Review / DoD 中の HITL ラベルは「人間の解除
- * ジェスチャ」を兼ねるため、steady-state（force でない per-tick 同期）では人間が外したラベルを
- * **再付与しない**（= 解除シグナルを潰さない・#821 で DoD も対象）。Review/DoD へ渡す権威的な遷移・
- * merge 後の解除は force=true で明示する。
- * @param {object} item { status, hitlLabel }
+ * per-tick 同期は PR 面をそこへ合わせる。ただし Review / DoD / Awaiting Continuation 中の HITL
+ * ラベルは「人間の解除ジェスチャ」を兼ねるため（{@link isSteadyStateHitlGate}）、steady-state
+ * （force でない per-tick 同期）では人間が外したラベルを**再付与しない**（= 解除シグナルを潰さ
+ * ない・#821 で DoD も対象）。Review/DoD/Awaiting Continuation へ渡す権威的な遷移・merge 後の
+ * 解除は force=true で明示する。
+ * @param {object} item { status, aiStatus, hitlLabel }
  * @param {boolean} present 現在その面にラベルが付いているか
  * @param {object} [opts] { force }
  * @returns {'add'|'remove'|null}
  */
 function hitlLabelAction(item, present, opts = {}) {
     const want = Boolean(item && item.hitlLabel);
-    if (item && HUMAN_GATE_STATUSES.has(item.status) && !opts.force) {
+    if (isSteadyStateHitlGate(item) && !opts.force) {
         // steady-state: No への正規化（除去）だけ許可。Yes の再付与はしない。
         return !want && present ? 'remove' : null;
     }
@@ -916,6 +958,16 @@ function renderSticky(item) {
             '',
             '> 🧪 **DoD 引き継ぎあり** — このスレッドの `autopilot:dod-handoff` コメント'
                 + '（headful Playwright の検証手順）を参照。',
+        );
+    }
+    // Awaiting Continuation（EPIC #906）: daemon が continuation ファイルの内容を別コメント
+    // （autopilot-continuation マーカー）として提示する（sticky 本体は上書きしない）。
+    // sticky には 1 行ポインタだけ足す（DoD と同形式）。
+    if (item && item.aiStatus === AWAITING_CONTINUATION_STATUS) {
+        lines.push(
+            '',
+            '> ⏸️ **チェックポイント継続待ち** — このスレッドの `autopilot-continuation` コメント'
+                + '（残タスク・継続可否）を参照。`🙋 HITL` を外すと同フェーズへ再開します。',
         );
     }
     lines.push(
@@ -1155,6 +1207,196 @@ function dodHandoffBody({ issue, pr, repo, branch, previewUrl, dodChecklist }) {
         '',
         '検証は **本番 Chrome** で行うこと（Playwright の Chromium はポリシーが緩く誤検知することがある）。',
     ].join('\n');
+}
+
+// ---- 協調的チェックポイント（EPIC #906）: checkpoint 結果スキーマ・continuation パーサ・
+// 反復上限。worker（実装コンポーネント B・#911）と daemon（実装コンポーネント D・#912）が
+// 依存する純粋ロジックをここで先に確定する（本 Issue はこの基盤 leaf）。 ----
+
+/**
+ * 結果ペイロードが checkpoint（協調的チェックポイント）を表すか（純粋関数）。
+ *
+ * checkpoint には専用の `signal` 値を設けない。既存の `signal:'hitl'`
+ * （契約 `docs/autopilot/autonomous-contract.md` §2.3）に
+ * `nextAiStatus:'Awaiting Continuation'` を乗せた特別な形として表現する
+ * （`contract.js` の SIGNALS/TOKENS/validateResult は変更不要。「常に HITL」という設計も
+ * 既存の hitl 分岐がそのまま満たす）。
+ * @param {object} result 結果ペイロード（AUTOPILOT_RESULT_FILE の内容）
+ * @returns {boolean}
+ */
+function isCheckpointResult(result) {
+    return Boolean(result) && result.signal === 'hitl' && result.nextAiStatus === AWAITING_CONTINUATION_STATUS;
+}
+
+/**
+ * checkpoint 時に worker が書く残タスクファイルのパス規約（EPIC #906 で確定）。
+ * worktree/repo 相対パス。worker が commit し、daemon/次の worker 実行が読む。
+ * @param {number|string} issue
+ * @returns {string}
+ */
+function continuationFilePath(issue) {
+    return `tmp/autopilot-continuation-${issue}.md`;
+}
+
+/**
+ * continuation ファイル冒頭に置くマーカー行を組む（`dodHandoffMarker` と対の規約）。
+ *
+ * Project の AI Status は単一の `Awaiting Continuation` に潰れて元フェーズ名を保持できない。
+ * そこで元フェーズ名（再開時にどのフェーズへ dispatch するか）と反復回数を、commit されて
+ * 永続する continuation ファイルのマーカーに記録する。
+ * @param {number|string} issue
+ * @param {string} phase 元フェーズ名（例 'implement'）
+ * @param {number} iteration 連続 checkpoint 回数（1 始まり）
+ * @returns {string}
+ */
+function continuationMarker(issue, phase, iteration) {
+    return `<!-- autopilot-continuation issue=${issue} phase=${phase} iteration=${iteration} -->`;
+}
+
+/**
+ * continuation ファイルのマーカー行を解析する（純粋関数）。マッチしなければ null。
+ * @param {string} text マーカーを含む行（またはファイル全文）
+ * @returns {{issue: number, phase: string, iteration: number}|null}
+ */
+function parseContinuationMarker(text) {
+    if (!text) return null;
+    const m = String(text).match(
+        /<!--\s*autopilot-continuation\s+issue=(\d+)\s+phase=([\w-]+)\s+iteration=(\d+)\s*-->/,
+    );
+    if (!m) return null;
+    return { issue: Number(m[1]), phase: m[2], iteration: Number(m[3]) };
+}
+
+/**
+ * continuation ファイルの Markdown 見出しから箇条書きの各行を抜き出す内部ヘルパー。
+ * @param {string} content ファイル全文
+ * @param {string} heading 見出しテキスト（正規表現の特殊文字を含まない前提）
+ * @returns {string} 見出し直下〜次の見出しまでのブロック本文（トリム済み、無ければ空文字）
+ */
+function extractContinuationSection(content, heading) {
+    const lines = (content || '').split(/\r?\n/);
+    const headingRe = new RegExp(`^#{1,6}\\s+${heading}\\s*$`);
+    let start = -1;
+    for (let i = 0; i < lines.length; i++) {
+        if (headingRe.test(lines[i].trim())) {
+            start = i + 1;
+            break;
+        }
+    }
+    if (start === -1) return '';
+    const block = [];
+    for (let i = start; i < lines.length; i++) {
+        if (/^#{1,6}\s/.test(lines[i].trim())) break; // 次の見出しで打ち切り
+        block.push(lines[i]);
+    }
+    return block.join('\n').trim();
+}
+
+/**
+ * 箇条書きブロック（`- foo` / `* foo` の行の並び）を文字列配列に変換する内部ヘルパー。
+ * @param {string} block
+ * @returns {string[]}
+ */
+function continuationBullets(block) {
+    return (block || '')
+        .split(/\r?\n/)
+        .map((l) => l.replace(/^[-*]\s*/, '').trim())
+        .filter(Boolean);
+}
+
+/**
+ * continuation ファイル本文を解析する（純粋関数）。EPIC #906 の checkpoint 手順（worker
+ * プロンプト・実装コンポーネント B・#911 で規定）が書く固定フォーマットを想定:
+ *
+ * ```
+ * <!-- autopilot-continuation issue=123 phase=implement iteration=1 -->
+ * ## 完了済み
+ * - foo
+ *
+ * ## 残タスク
+ * - bar
+ *
+ * ## 次の一手
+ * 自由記述
+ *
+ * ## 継続して安全か
+ * はい: 理由...
+ * ```
+ *
+ * 見出しが欠けている項目は空配列/null で返す（壊れたファイルでも daemon が落ちないように
+ * フォールバックする。安全側 = safeToContinue が読めなければ null＝不明として扱う）。
+ * @param {string} content ファイル全文
+ * @returns {{issue: number|null, phase: string|null, iteration: number|null,
+ *   completed: string[], remaining: string[], nextStep: string|null,
+ *   safeToContinue: boolean|null, reason: string|null}}
+ */
+function parseContinuationFile(content) {
+    const text = content || '';
+    const marker = parseContinuationMarker(text);
+    const safeBlock = extractContinuationSection(text, '継続して安全か');
+    let safeToContinue = null;
+    let reason = null;
+    if (safeBlock) {
+        const m = safeBlock.match(/^(はい|いいえ|yes|no)\s*[:：]?\s*([\s\S]*)$/i);
+        if (m) {
+            safeToContinue = /^(はい|yes)/i.test(m[1]);
+            reason = m[2] && m[2].trim() ? m[2].trim() : null;
+        }
+    }
+    const nextStep = extractContinuationSection(text, '次の一手') || null;
+    return {
+        issue: marker ? marker.issue : null,
+        phase: marker ? marker.phase : null,
+        iteration: marker ? marker.iteration : null,
+        completed: continuationBullets(extractContinuationSection(text, '完了済み')),
+        remaining: continuationBullets(extractContinuationSection(text, '残タスク')),
+        nextStep,
+        safeToContinue,
+        reason,
+    };
+}
+
+/** 連続 checkpoint の反復上限の既定値（EPIC #906 で確定: 3 回）。 */
+const DEFAULT_MAX_CHECKPOINT_ITERATIONS = 3;
+
+/**
+ * 連続 checkpoint 回数から次アクションを決める（純粋関数・無限ループ防止）。
+ * 上限を超えたら `escalate`（daemon が Blocked にして人間へエスカレーション）、
+ * それ以外は `continue`（同フェーズへ再 dispatch）。
+ * @param {number} iteration 今回の checkpoint が何回目か（1 始まり。
+ *   {@link parseContinuationFile} が返す `iteration` を渡す想定）
+ * @param {number} [maxIterations] 上限（既定 {@link DEFAULT_MAX_CHECKPOINT_ITERATIONS}）
+ * @returns {{action: 'continue'|'escalate', reason: string}}
+ */
+function checkpointIterationDecision(iteration, maxIterations = DEFAULT_MAX_CHECKPOINT_ITERATIONS) {
+    const n = Number.isFinite(iteration) ? iteration : 0;
+    if (n > maxIterations) {
+        return { action: 'escalate', reason: `checkpoint iteration ${n} exceeds limit ${maxIterations}` };
+    }
+    return { action: 'continue', reason: `checkpoint iteration ${n} within limit ${maxIterations}` };
+}
+
+/** soft-limit（worker に「まとめに入れ」信号を送るまでの時間）の既定値: 22 分（EPIC #906 で確定）。 */
+const DEFAULT_CHECKPOINT_SOFT_LIMIT_MS = 22 * 60 * 1000;
+
+/**
+ * soft-limit を超えたら worker に checkpoint 信号（「まとめに入れ」の tmux send-keys）を送る
+ * べきかを判定する（純粋関数・実装コンポーネント A・#911 で runner が使用）。
+ *
+ * 既存の {@link evaluate}（watchdog の action 決定）とは**独立した関数**にする —
+ * `evaluate` の戻り値に新しい action を追加すると、`runner.js` の既存呼び出しが未知の
+ * action を受け取って誤動作しうる（#911 が runner.js を更新するまでの間、develop 上の
+ * 既存フェーズの watchdog ループを壊すリスクがある）。この関数は `evaluate` と並行して
+ * 呼び、送るべきなら呼び出し側が 1 回だけ tmux send-keys してから `state.softSignalSent`
+ * を true にする（多重送信防止は呼び出し側の責務）。
+ * @param {object} state { elapsedMs, ready, dead, resultPresent, softSignalSent }
+ * @param {object} [cfg] { tSoftMs }（既定 {@link DEFAULT_CHECKPOINT_SOFT_LIMIT_MS}）
+ * @returns {boolean}
+ */
+function shouldSignalCheckpoint(state, cfg = {}) {
+    if (!state || state.softSignalSent || state.resultPresent || state.dead || !state.ready) return false;
+    const tSoftMs = cfg.tSoftMs ?? DEFAULT_CHECKPOINT_SOFT_LIMIT_MS;
+    return state.elapsedMs > tSoftMs;
 }
 
 /**
@@ -1412,8 +1654,19 @@ module.exports = {
     normalizeBoardEnrichment,
     desiredDraft,
     draftAction,
+    isSteadyStateHitlGate,
     hitlLabelAction,
     labelActions,
     renderSticky,
     applyIntentsToItem,
+    AWAITING_CONTINUATION_STATUS,
+    isCheckpointResult,
+    continuationFilePath,
+    continuationMarker,
+    parseContinuationMarker,
+    parseContinuationFile,
+    DEFAULT_MAX_CHECKPOINT_ITERATIONS,
+    checkpointIterationDecision,
+    DEFAULT_CHECKPOINT_SOFT_LIMIT_MS,
+    shouldSignalCheckpoint,
 };

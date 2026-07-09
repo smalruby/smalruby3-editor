@@ -10,7 +10,7 @@
 item の状態は次の 4 要素で決まる（Project が単一の真実）:
 
 - **Status**（人間ボード列）: No Status(New Item) / Backlog / Sprint Backlog / In Progress / Blocked / Review / DoD / Close / Done / Icebox
-- **AI Status**（AI の細フェーズ）: Triaging / Discussing / Understanding / Decomposing / EPIC Decomposed / Implementing / Creating PR / Self-Reviewing / Addressing Comments / Running DoD / （空）
+- **AI Status**（AI の細フェーズ）: Triaging / Discussing / Understanding / Decomposing / EPIC Decomposed / Implementing / Creating PR / Self-Reviewing / Addressing Comments / Running DoD / **Awaiting Continuation**（協調的チェックポイント・EPIC #906） / （空）
 - **🙋 HITL ラベル**: 人間の番か（Issue/PR の両面に投影）
 - **🧭 tracking ラベル / Kind=EPIC**: トラッカー（作業 item ではない）
 
@@ -67,6 +67,7 @@ Review / DoD / Blocked / Discussing の「人間の番」は、次の **いず�
 | 19 | In Progress / —（AI Status 空） / 任意 | 人間が手動で置いた作業中 | H: Status 移動（autopilot は所有しない） | 人間の決定 |
 | 20 | Icebox / Close / Done | 終端・保留 | H: Status 移動（再開は人間のみ） | — |
 | 21 | 🧭 tracking ラベル付き（全状態） | トラッカー | #16〜#18 のみ（フェーズ対象外） | — |
+| 22 | In Progress / **Awaiting Continuation** / **あり** | 協調的チェックポイント（EPIC #906）: soft-limit で worker が安全に中断し継続待ち | H: 解除 or **コメント** → **A: 元フェーズへ再 dispatch**（continuation ファイルの marker から復元。不明なら implement） | #10 の元フェーズへ戻る（実行中の run の扱いは #10 と同じ） |
 
 ## 不変条件（テストで担保）
 
