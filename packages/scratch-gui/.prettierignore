@@ -189,6 +189,7 @@ src/lib/*
 # Level 3: src/lib/libraries/*
 src/lib/libraries/*
 !src/lib/libraries/extensions/
+!src/lib/libraries/decks/
 
 # Level 4: src/lib/libraries/extensions/*
 src/lib/libraries/extensions/*
@@ -198,6 +199,16 @@ src/lib/libraries/extensions/*
 !src/lib/libraries/extensions/microbitMore/
 !src/lib/libraries/extensions/smalruby-ruby/
 !src/lib/libraries/extensions/tm2scratch/
+
+# Level 4: src/lib/libraries/decks/*
+# index.jsx and the other pre-existing deck assets are upstream-derived and
+# not (yet) whitelisted; only the new per-category modules are Smalruby-only
+# (issue #932).
+src/lib/libraries/decks/*
+!src/lib/libraries/decks/categories/
+!src/lib/libraries/decks/green-flag-icon.jsx
+
+# Level 5: src/lib/libraries/decks/categories/* — Smalruby-only, no filter needed
 
 # ============================================================
 # Level 2: src/locales/*

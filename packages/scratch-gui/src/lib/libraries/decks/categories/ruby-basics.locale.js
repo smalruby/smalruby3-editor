@@ -1,0 +1,77 @@
+// Locale strings for the rubyBasics tutorial category.
+// Split out of src/locales/{ja,ja-Hira,en}.js so this category can be
+// edited independently of the other tutorial categories (issue #932).
+
+export const ja = {
+    'gui.howtos.ruby-basics-1-numbers.name': 'Rubyで計算してみよう',
+    'gui.howtos.ruby-basics-1-numbers.step1.title': 'Rubyで計算してみよう！',
+    'gui.howtos.ruby-basics-1-numbers.step2.title': 'まずは「puts 2 + 6」を実行してみよう',
+    'gui.howtos.ruby-basics-1-numbers.step3.title': '{greenFlag}を押すと、ネコが「8」としゃべるよ',
+    'gui.howtos.ruby-basics-1-numbers.step4.title': '他の計算も試してみよう（かけ算・わり算・ひき算）',
+    'gui.howtos.ruby-basics-1-numbers.step5.title': '数字を好きなものに変えて、自分だけの計算をしてみよう',
+    'gui.howtos.ruby-basics-1-numbers.external.tryruby.name': '外部サイト「try ruby」で詳しくRubyを学ぶ',
+    'gui.howtos.ruby-basics-2-strings.name': '文字列（もじれつ）で遊ぼう',
+    'gui.howtos.ruby-basics-2-strings.step1.title': '文字列（もじれつ）で遊ぼう！',
+    'gui.howtos.ruby-basics-2-strings.step2.title': 'まずは「puts "こんにちは"」を実行してみよう',
+    'gui.howtos.ruby-basics-2-strings.step3.title': '{greenFlag}を押すと、ネコが「こんにちは」としゃべるよ',
+    'gui.howtos.ruby-basics-2-strings.step4.title': '文字をさかさまにしたり、大文字にしてみよう',
+    'gui.howtos.ruby-basics-2-strings.step5.title': '好きな言葉に変えて、自分だけの文字列で遊ぼう',
+    'gui.howtos.ruby-basics-2-strings.external.tryruby.name': '外部サイト「try ruby」で詳しくRubyを学ぶ',
+    'gui.howtos.ruby-basics-3-variables.name': '変数（へんすう）を使ってみよう',
+    'gui.howtos.ruby-basics-3-variables.step1.title': '変数（へんすう）を使ってみよう！',
+    'gui.howtos.ruby-basics-3-variables.step2.title': '「name」に名前を入れて、しゃべらせてみよう',
+    'gui.howtos.ruby-basics-3-variables.step3.title': '{greenFlag}を押すと、ネコが「ネコ」としゃべるよ',
+    'gui.howtos.ruby-basics-3-variables.step4.title': '変数を使って、文をつくってみよう',
+    'gui.howtos.ruby-basics-3-variables.step5.title': '変数の中身を好きな名前に変えてみよう',
+    'gui.howtos.ruby-basics-3-variables.external.tryruby.name': '外部サイト「try ruby」で詳しくRubyを学ぶ',
+};
+
+export const jaHira = {
+    'gui.howtos.ruby-basics-1-numbers.name': 'Rubyでけいさんしてみよう',
+    'gui.howtos.ruby-basics-1-numbers.step1.title': 'Rubyでけいさんしてみよう！',
+    'gui.howtos.ruby-basics-1-numbers.step2.title': 'まずは「puts 2 + 6」をじっこうしてみよう',
+    'gui.howtos.ruby-basics-1-numbers.step3.title': '{greenFlag}をおすと、ネコが「8」としゃべるよ',
+    'gui.howtos.ruby-basics-1-numbers.step4.title': 'ほかのけいさんもためしてみよう（かけざん・わりざん・ひきざん）',
+    'gui.howtos.ruby-basics-1-numbers.step5.title': 'すうじをすきなものにかえて、じぶんだけのけいさんをしてみよう',
+    'gui.howtos.ruby-basics-1-numbers.external.tryruby.name': 'がいぶサイト「try ruby」でくわしくRubyをまなぶ',
+    'gui.howtos.ruby-basics-2-strings.name': 'もじれつであそぼう',
+    'gui.howtos.ruby-basics-2-strings.step1.title': 'もじれつであそぼう！',
+    'gui.howtos.ruby-basics-2-strings.step2.title': 'まずは「puts "こんにちは"」をじっこうしてみよう',
+    'gui.howtos.ruby-basics-2-strings.step3.title': '{greenFlag}をおすと、ネコが「こんにちは」としゃべるよ',
+    'gui.howtos.ruby-basics-2-strings.step4.title': 'もじをさかさまにしたり、おおもじにしてみよう',
+    'gui.howtos.ruby-basics-2-strings.step5.title': 'すきなことばにかえて、じぶんだけのもじれつであそぼう',
+    'gui.howtos.ruby-basics-2-strings.external.tryruby.name': 'がいぶサイト「try ruby」でくわしくRubyをまなぶ',
+    'gui.howtos.ruby-basics-3-variables.name': 'へんすうをつかってみよう',
+    'gui.howtos.ruby-basics-3-variables.step1.title': 'へんすうをつかってみよう！',
+    'gui.howtos.ruby-basics-3-variables.step2.title': '「name」になまえをいれて、しゃべらせてみよう',
+    'gui.howtos.ruby-basics-3-variables.step3.title': '{greenFlag}をおすと、ネコが「ネコ」としゃべるよ',
+    'gui.howtos.ruby-basics-3-variables.step4.title': 'へんすうをつかって、ぶんをつくってみよう',
+    'gui.howtos.ruby-basics-3-variables.step5.title': 'へんすうのなかみをすきななまえにかえてみよう',
+    'gui.howtos.ruby-basics-3-variables.external.tryruby.name': 'がいぶサイト「try ruby」でくわしくRubyをまなぶ',
+};
+
+export const en = {
+    'gui.howtos.ruby-basics-1-numbers.name': "Let's Do Math with Ruby",
+    'gui.howtos.ruby-basics-1-numbers.step1.title': "Let's do math with Ruby!",
+    'gui.howtos.ruby-basics-1-numbers.step2.title': 'Try running `puts 2 + 6` first',
+    'gui.howtos.ruby-basics-1-numbers.step3.title': 'Press {greenFlag} and the cat will say "8"',
+    'gui.howtos.ruby-basics-1-numbers.step4.title': 'Try other operations too (multiply / divide / subtract)',
+    'gui.howtos.ruby-basics-1-numbers.step5.title': 'Change the numbers to whatever you like and do your own math',
+    'gui.howtos.ruby-basics-1-numbers.external.tryruby.name': 'Learn more about Ruby on the external "try ruby" site',
+    'gui.howtos.ruby-basics-2-strings.name': 'Play with Strings',
+    'gui.howtos.ruby-basics-2-strings.step1.title': "Let's play with strings!",
+    'gui.howtos.ruby-basics-2-strings.step2.title': 'Try running `puts "こんにちは"` first',
+    'gui.howtos.ruby-basics-2-strings.step3.title': 'Press {greenFlag} and the cat will say "こんにちは"',
+    'gui.howtos.ruby-basics-2-strings.step4.title': 'Reverse a string or make it uppercase',
+    'gui.howtos.ruby-basics-2-strings.step5.title':
+        'Change the words to whatever you like and play with your own string',
+    'gui.howtos.ruby-basics-2-strings.external.tryruby.name': 'Learn more about Ruby on the external "try ruby" site',
+    'gui.howtos.ruby-basics-3-variables.name': 'Use Variables',
+    'gui.howtos.ruby-basics-3-variables.step1.title': "Let's use variables!",
+    'gui.howtos.ruby-basics-3-variables.step2.title': 'Put a name into `name` and make the cat say it',
+    'gui.howtos.ruby-basics-3-variables.step3.title': 'Press {greenFlag} and the cat will say "ネコ"',
+    'gui.howtos.ruby-basics-3-variables.step4.title': 'Build a sentence using a variable',
+    'gui.howtos.ruby-basics-3-variables.step5.title': 'Change the value of the variable to any name you like',
+    'gui.howtos.ruby-basics-3-variables.external.tryruby.name':
+        'Learn more about Ruby on the external "try ruby" site',
+};

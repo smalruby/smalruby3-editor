@@ -1,3 +1,10 @@
+// Tutorial category locale strings are split into per-category modules
+// (issue #932) so tutorial categories can be developed independently.
+import { jaHira as blockSeriesHowtos } from '../lib/libraries/decks/categories/block-series.locale.js';
+import { jaHira as dnclHowtos } from '../lib/libraries/decks/categories/dncl.locale.js';
+import { jaHira as gettingStartedHowtos } from '../lib/libraries/decks/categories/getting-started.locale.js';
+import { jaHira as rubyBasicsHowtos } from '../lib/libraries/decks/categories/ruby-basics.locale.js';
+
 export default {
     'gui.modal.reload': 'さいよみこみ',
     'gui.modal.stop': 'ちゅうし',
@@ -975,10 +982,7 @@ export default {
         'りようかいすうのじょうげんにたっしました。{minutes}ふんごにもういちどおためしください。',
 
     // Tutorials
-    'gui.howtos.getting-started.step.rubyTab': 'ブロックのつぎはルビー(Ruby)にチャレンジしてみよう！',
-    'gui.howtos.getting-started.step.bounceCode': 'ルビーをひょうじしてプログラムをにゅうりょくしてみよう',
-    'gui.howtos.getting-started.step.runRuby': 'じっこうボタンをおしてプログラムをじっこうしよう',
-    'gui.howtos.getting-started.step.firstProgram': 'ネコがいったりきたりするプログラムができました🎉',
+    ...gettingStartedHowtos,
     // Chat Tutorial 1 Basic 1
     'gui.howtos.chat-1-basic-1.name': 'メッセージをおくってみよう！',
     'gui.howtos.chat-1-basic-1.step1.title': 'はなれたブロックにメッセージをおくってみよう！',
@@ -1101,27 +1105,9 @@ export default {
         'かいりゅうどう やってみよう！プログラミング「チャットアプリをせいさくしよう」',
     // Ruby Basics 1: putsでけいさんしてみよう
     'gui.library.rubyBasics': 'Ruby のきほん',
-    'gui.howtos.ruby-basics-1-numbers.name': 'Rubyでけいさんしてみよう',
-    'gui.howtos.ruby-basics-1-numbers.step1.title': 'Rubyでけいさんしてみよう！',
-    'gui.howtos.ruby-basics-1-numbers.step2.title': 'まずは「puts 2 + 6」をじっこうしてみよう',
-    'gui.howtos.ruby-basics-1-numbers.step3.title': '{greenFlag}をおすと、ネコが「8」としゃべるよ',
-    'gui.howtos.ruby-basics-1-numbers.step4.title': 'ほかのけいさんもためしてみよう（かけざん・わりざん・ひきざん）',
-    'gui.howtos.ruby-basics-1-numbers.step5.title': 'すうじをすきなものにかえて、じぶんだけのけいさんをしてみよう',
-    'gui.howtos.ruby-basics-1-numbers.external.tryruby.name': 'がいぶサイト「try ruby」でくわしくRubyをまなぶ',
-    'gui.howtos.ruby-basics-2-strings.name': 'もじれつであそぼう',
-    'gui.howtos.ruby-basics-2-strings.step1.title': 'もじれつであそぼう！',
-    'gui.howtos.ruby-basics-2-strings.step2.title': 'まずは「puts "こんにちは"」をじっこうしてみよう',
-    'gui.howtos.ruby-basics-2-strings.step3.title': '{greenFlag}をおすと、ネコが「こんにちは」としゃべるよ',
-    'gui.howtos.ruby-basics-2-strings.step4.title': 'もじをさかさまにしたり、おおもじにしてみよう',
-    'gui.howtos.ruby-basics-2-strings.step5.title': 'すきなことばにかえて、じぶんだけのもじれつであそぼう',
-    'gui.howtos.ruby-basics-2-strings.external.tryruby.name': 'がいぶサイト「try ruby」でくわしくRubyをまなぶ',
-    'gui.howtos.ruby-basics-3-variables.name': 'へんすうをつかってみよう',
-    'gui.howtos.ruby-basics-3-variables.step1.title': 'へんすうをつかってみよう！',
-    'gui.howtos.ruby-basics-3-variables.step2.title': '「name」になまえをいれて、しゃべらせてみよう',
-    'gui.howtos.ruby-basics-3-variables.step3.title': '{greenFlag}をおすと、ネコが「ネコ」としゃべるよ',
-    'gui.howtos.ruby-basics-3-variables.step4.title': 'へんすうをつかって、ぶんをつくってみよう',
-    'gui.howtos.ruby-basics-3-variables.step5.title': 'へんすうのなかみをすきななまえにかえてみよう',
-    'gui.howtos.ruby-basics-3-variables.external.tryruby.name': 'がいぶサイト「try ruby」でくわしくRubyをまなぶ',
+    ...rubyBasicsHowtos,
+    ...blockSeriesHowtos,
+    ...dnclHowtos,
     // Mesh tag
     'gui.libraryTags.mesh': 'メッシュ',
     'gui.cards.insert-ruby': 'ルビーをにゅうりょくする',
