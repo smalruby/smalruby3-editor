@@ -53,12 +53,12 @@
 ### 基盤 (Phase 2 前半): `setup` プロパティ
 
 - [x] `src/lib/deck-setup.js` 新規追加 (`applyDeckSetup` ヘルパー)
-- [x] deck 定義の type 拡張 (`{ tab, rubyMode, extensions, rubyVersion }`) — `rubyVersion` は将来用フックのみ
+- [x] deck 定義の type 拡張 (`{ tab, rubyMode, extensions, rubyVersion }`) — `rubyVersion` も適用 (`dispatch(setRubyVersion)` + `persistRubyVersion`、不正値は無視)
 - [x] `tips-library.jsx` で deck 起動時に setup を適用 (vm prop 接続含む)
 - [x] `activateTab` / `setDnclMode` / `vm.extensionManager.loadExtensionURL` の冪等な呼び出し
 - [x] ロード失敗時のグレースフルデグレード (`console.warn` のみ、deck は開く)
 - [x] ふりがなフラグも考慮した rubyMode の動作 (`smalruby:furiganaEnabled` localStorage の同期)
-- [x] `test/unit/lib/deck-setup.test.js` で 10 ケースの単体テスト (全 pass)
+- [x] `test/unit/lib/deck-setup.test.js` で 13 ケースの単体テスト (全 pass)
 
 ### Phase 3 着手前に必要 (外部要因)
 
