@@ -51,7 +51,7 @@ const collectMessageIds = deck => {
 };
 
 describe('Ruby Basics tutorial decks', () => {
-    test('all three decks exist under the rubyBasics category', () => {
+    test('all six decks exist under the rubyBasics category', () => {
         EXPECTED_DECK_IDS.forEach(id => {
             expect(decks[id]).toBeDefined();
             expect(decks[id].category).toBe(CATEGORIES.rubyBasics);
