@@ -60,6 +60,14 @@ const {
     extractPreviewUrl,
     extractDodChecklist,
     dodHandoffBody,
+    AWAITING_CONTINUATION_STATUS,
+    isCheckpointResult,
+    continuationFilePath,
+    parseContinuationFile,
+    DEFAULT_MAX_CHECKPOINT_ITERATIONS,
+    checkpointIterationDecision,
+    CHECKPOINT_CONTINUATION_COMMENT_MARKER,
+    continuationCommentBody,
 } = require('./phases');
 const { readResultFile } = require('./contract');
 const { runPhase, killSession, capture } = require('./runner');
@@ -72,6 +80,8 @@ const project = require('./project');
 const execFileP = promisify(execFile);
 
 const WORKTREE_BIN = path.join(project.REPO_ROOT, 'bin', 'autopilot-worktree');
+/** checkpoint 保険commit（{@link ensureCheckpointCommit}・EPIC #906）が使う bot 名義 git */
+const BOT_GIT_BIN = path.join(project.REPO_ROOT, 'bin', 'bot-git');
 
 /** 既存 PR ブランチで作業するフェーズ（新ブランチを切らず PR ヘッドを checkout する） */
 const PR_BRANCH_PHASES = new Set(['review', 'address-review', 'verify']);
@@ -330,6 +340,24 @@ function stuckBlockBody(item, stuckMinutes) {
 }
 
 /**
+ * 連続 checkpoint が反復上限を超えたときの Blocked コメント本文（協調的チェックポイント・
+ * EPIC #906・#912）。無限ループ防止のための daemon 側エスカレーションであり、worker 自身が
+ * エラーを報告したわけではないことを明示する（errorBlockBody とは文言を分ける）。
+ */
+function checkpointEscalationBody(item, iteration, maxIterations) {
+    return (
+        `🤖 autopilot: 連続チェックポイントが ${iteration} 回に達し、反復上限（${maxIterations} 回）を` +
+        '超えました。無限ループ防止のため **Blocked** にしました（worker 自身がエラーを報告した' +
+        'わけではありません）。\n\n' +
+        `**人間の対応**: このスレッドの \`autopilot-continuation\` コメント（残タスク・次の一手）を` +
+        '確認し、実装方針の見直しや粒度の分割を検討してください。' +
+        `ログ（\`/log?issue=${item.issue}\`）と worktree も参考にできます。` +
+        '`🙋 HITL` を外す（またはコメントする）と autopilot が再開します' +
+        '（PR があれば指摘対応、無ければ再トリアージ）。'
+    );
+}
+
+/**
  * In Progress + AI 作業中のまま run が無く、一定時間動かない item を検知して Blocked にする（#816）。
  * 観測した時刻を state.stuckSince に記録し、DEFAULT_STUCK_MS を超えたら markBlocked。
  * 候補でなくなった（status が進んだ等）issue は追跡から外す。
@@ -439,6 +467,133 @@ async function startUpdateChecks(cfg, state, log, deps = {}) {
     }, interval);
     if (t && t.unref) t.unref();
     return t;
+}
+
+// ---- 協調的チェックポイント（EPIC #906・実装コンポーネント D・#912）: worker が soft-limit で
+// 安全に中断した checkpoint 結果の後処理。「本人以外の書き込み」を防ぐため単一ライター（daemon）
+// がここで (1) 保険commit (2) continuation ファイルの内容を Issue へ提示 (3) 反復上限の
+// エスカレーション を行う。AI Status=Awaiting Continuation + 🙋 HITL 自体は既存の signal=hitl
+// 汎用パス（applyResult/hitlDesireFromResult/syncFacesAfterIntents・dispatch 側で実行済み）が
+// そのまま処理するので、ここでは file I/O とエスカレーション判定だけを担う。 ----
+
+/**
+ * checkpoint 結果を受けたとき、worker が commit し忘れた WIP が worktree に残っていれば保険で
+ * commit する（#911 の契約上 worker が既に commit している前提だが、バグ対策の保険）。
+ * @param {string} cwd この run のワークツリー
+ * @param {number} issue
+ * @param {function} log
+ * @param {object} [deps] { execFileP }（テスト用）
+ * @returns {Promise<boolean>} commit した場合 true（クリーンなら false）
+ */
+async function ensureCheckpointCommit(cwd, issue, log, deps = {}) {
+    const exec = deps.execFileP || execFileP;
+    const { stdout } = await exec('git', ['status', '--porcelain'], { cwd, maxBuffer: 16 * 1024 * 1024 });
+    if (!stdout.trim()) return false;
+    log(`#${issue}: checkpoint — 未コミットの WIP を検出、保険commit します`);
+    await exec(BOT_GIT_BIN, ['add', '-A'], { cwd });
+    await exec(BOT_GIT_BIN, ['commit', '-m', `chore(autopilot): checkpoint 時の未コミット差分を保険commit (#${issue})`], { cwd });
+    return true;
+}
+
+/**
+ * continuation ファイル（{@link continuationFilePath}）をワークツリーから読み、解析する。
+ * ファイルが無ければ null（呼び出し側は implement へのフォールバック等で扱う）。
+ * @param {string} cwd
+ * @param {number} issue
+ * @param {object} [deps] { existsSync, readFileSync }（テスト用）
+ * @returns {ReturnType<typeof parseContinuationFile>|null}
+ */
+function readContinuationFromWorktree(cwd, issue, deps = {}) {
+    const exists = deps.existsSync || fs.existsSync;
+    const readFile = deps.readFileSync || fs.readFileSync;
+    const file = path.join(cwd, continuationFilePath(issue));
+    if (!exists(file)) return null;
+    return parseContinuationFile(readFile(file, 'utf8'));
+}
+
+/**
+ * checkpoint 結果の後処理（#912）。dispatch が signal=hitl の汎用処理（AI Status/HITL 反映）を
+ * 済ませた**後**に呼ぶこと — 反復上限超過時の Blocked 上書きが確実に最後の書き込みになる。
+ * 1. 保険commit（{@link ensureCheckpointCommit}）
+ * 2. continuation ファイルの内容を `autopilot-continuation-comment` マーカー付きコメントで
+ *    Issue へ upsert（差分時のみ書き込み・{@link continuationCommentBody}）
+ * 3. 連続 checkpoint 回数（continuation ファイルの `iteration`）が反復上限を超えたら
+ *    {@link markBlocked} で Blocked にエスカレーション（無限ループ防止）
+ * @param {object} item Project item（itemId 設定済み）
+ * @param {string} cwd この run のワークツリー
+ * @param {object} result 検証済み checkpoint 結果（isCheckpointResult(result) === true）
+ * @param {object} cfg
+ * @param {object} state
+ * @param {function} log
+ * @param {object} [deps] I/O 差し替え（テスト用）
+ */
+async function applyCheckpointHandling(item, cwd, result, cfg, state, log, deps = {}) {
+    try {
+        await ensureCheckpointCommit(cwd, item.issue, log, deps);
+    } catch (e) {
+        log(`#${item.issue}: checkpoint 保険commit failed: ${e.message}`);
+    }
+
+    let parsedContinuation = null;
+    try {
+        parsedContinuation = readContinuationFromWorktree(cwd, item.issue, deps);
+    } catch (e) {
+        log(`#${item.issue}: continuation file read failed: ${e.message}`);
+    }
+
+    if (parsedContinuation) {
+        const upsertMarkedComment = deps.upsertMarkedComment || project.upsertMarkedComment;
+        const token = deps.token || await project.botToken();
+        const readTok = deps.readToken || deps.token || await project.readToken();
+        try {
+            await upsertMarkedComment(
+                cfg.repo, item.issue, [CHECKPOINT_CONTINUATION_COMMENT_MARKER],
+                continuationCommentBody(parsedContinuation), token, { readToken: readTok },
+            );
+        } catch (e) {
+            log(`#${item.issue}: continuation comment failed: ${e.message}`);
+        }
+    } else {
+        log(`#${item.issue}: continuation file が見つからないため implement へフォールバックします`);
+    }
+
+    const iteration = (parsedContinuation && parsedContinuation.iteration) || 1;
+    const maxIterations = cfg.maxCheckpointIterations || DEFAULT_MAX_CHECKPOINT_ITERATIONS;
+    const decision = checkpointIterationDecision(iteration, maxIterations);
+    if (decision.action === 'escalate') {
+        log(`#${item.issue}: ${decision.reason} -> Blocked`);
+        const markBlockedFn = deps.markBlocked || markBlocked;
+        await markBlockedFn(item, checkpointEscalationBody(item, iteration, maxIterations), cfg, log, deps, state);
+    }
+}
+
+/**
+ * Awaiting Continuation 状態の item について、continuation ファイル（worktree 内）から
+ * 元フェーズ・反復回数を読み、`phaseForItem` が正しいフェーズへ再開できるよう ctx.continuation
+ * として返す（#912）。GitHub API は使わず worktree のローカルファイルシステムのみを読む。
+ * worktree/ファイルが無い item は結果に含まれない（phaseForItem は implement にフォールバック）。
+ * @param {object[]} items
+ * @param {Set<number>} running 実行中の issue（触らない）
+ * @param {function} log
+ * @param {object} [deps] { execFileP, existsSync, readFileSync }（テスト用）
+ * @returns {Promise<object>} issue -> { continuation }
+ */
+async function collectContinuationContexts(items, running, log, deps = {}) {
+    const contexts = {};
+    const exec = deps.execFileP || execFileP;
+    for (const item of items || []) {
+        if (item.status !== 'In Progress' || item.aiStatus !== AWAITING_CONTINUATION_STATUS) continue;
+        if (running.has(item.issue)) continue;
+        try {
+            const { stdout } = await exec(WORKTREE_BIN, ['path', String(item.issue)], { encoding: 'utf8' });
+            const cwd = stdout.trim();
+            const continuation = readContinuationFromWorktree(cwd, item.issue, deps);
+            if (continuation) contexts[item.issue] = { continuation };
+        } catch (e) {
+            log(`#${item.issue}: continuation context read failed: ${e.message}`);
+        }
+    }
+    return contexts;
 }
 
 /** 1 つの item を 1 フェーズ実行し、結果を Project に反映する */
@@ -575,6 +730,12 @@ async function dispatch(item, cfg, state, log) {
         // HITL は Project フィールドではなくラベルなので、結果から導いた希望を hitlLabel として渡す（#813）。
         const wantHitl = hitlDesireFromResult(parsed.result);
         await syncFacesAfterIntents({ ...item, hitlLabel: wantHitl }, intents, cfg, log);
+        // 協調的チェックポイント（EPIC #906）: 保険commit・continuation コメント・反復上限
+        // エスカレーションは上の汎用処理（AI Status=Awaiting Continuation + HITL）の**後**に行う。
+        // escalate 時の markBlocked（Status=Blocked への上書き）が確実に最後の書き込みになる。
+        if (isCheckpointResult(parsed.result)) {
+            await applyCheckpointHandling(item, cwd, parsed.result, cfg, state, log);
+        }
     } catch (e) {
         log(`#${item.issue}: error ${e.message}`);
         record('exception', e.message);
@@ -986,6 +1147,11 @@ async function tick(cfg, state, log) {
     }
     const running = new Set(state.running.keys());
     const contexts = await collectGateContexts(cfg, items, running, state, log);
+    // 協調的チェックポイント（EPIC #906・#912）: Awaiting Continuation の item は continuation
+    // ファイル（worktree 内）から元フェーズ・反復回数を読み、phaseForItem が implement 固定
+    // フォールバックに頼らず正しいフェーズ（例 address-review）へ再開できるようにする。
+    // isGateItem（Review/DoD/Blocked/Discussing）とは対象が重ならないので単純に merge する。
+    Object.assign(contexts, await collectContinuationContexts(items, running, log));
     // 候補は上限なしで Board 順に列挙し、autopilot-after の未完了依存を持つ item を
     // スキップしながら空き容量まで拾う（依存でブロックされた分は次点候補が繰り上がる）
     const candidates = selectActionable(items, {
@@ -1468,4 +1634,6 @@ module.exports = {
     refreshBoard, recordHistory, refreshRateLimits, patchBoardCache,
     updateClaudeUsage, boardResponse, statusResponse,
     checkForUpdate, startUpdateChecks,
+    ensureCheckpointCommit, readContinuationFromWorktree, applyCheckpointHandling,
+    collectContinuationContexts, checkpointEscalationBody,
 };
