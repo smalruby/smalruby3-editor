@@ -368,6 +368,26 @@ daemon は**起動時にプロンプト一式 + 解決済み settings を tmpdir
 run 中に checkout のブランチが切り替わってもプロンプト/設定が変わらない（worker は
 スナップショットの絶対パスを Read する。`--add-dir` は daemon が自動で付与）。
 
+### 許可プロンプトで停止しない — root は bypass 不可 → allowlist 方式（#893）
+
+worker は**非対話**で動くので、許可プロンプトで止まると運用が止まる。ところが worker は
+**コンテナ内 root** で動くため、`bypassPermissions`（= `--dangerously-skip-permissions`）は
+使えない（`cannot be used with root/sudo privileges for security reasons` で拒否される）。
+そこで「全許可の auto mode」ではなく、**worker が使う操作だけを事前許可する allowlist 方式**で
+許可プロンプトを回避する:
+
+- `settings.js` の `buildClaudeCommand` が worker の `--settings` に **`permissions.allow`** を注入する
+  （`DEFAULT_SETTINGS.permissionAllow` = `Bash`, `Edit`, `Write`, `Read`, `Glob`, `Grep`, `WebFetch`）。
+  `--permission-mode acceptEdits` と併用し、想定内操作の許可プロンプトで止まらないようにする。
+- **`Workflow` / `Skill` は allow に含めない**（トークン浪費防止）。特に review/verify フェーズは
+  動的マルチエージェント Workflow を起動する `/code-review` などの **Skill を使わず**、
+  プロンプト内で**軽量なインライン敵対的レビュー**を行う（`autopilot-review.md`）。
+- `permissions.allow` は **worker の `--settings` にのみ注入**され、人間や他セッションの設定
+  （`~/.claude/settings.json` 等）には影響しない。
+- セキュリティ上の位置づけ: これは「全許可(bypass)」ではなく **限定許可**。devpod は
+  ディスク隔離 + egress allowlist 前提（`.claude/rules/devpod-workflow.md`）なので、
+  worker が使う既知ツールの事前許可は許容範囲。
+
 ---
 
 ## 認証の無人運用（Secrets Manager / SSO auto-pause）
