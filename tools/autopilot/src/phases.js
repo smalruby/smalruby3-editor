@@ -590,6 +590,14 @@ const HITL_LABEL = '🙋 HITL';
  * autopilot はこのラベルを付けるだけで外さない（外すのは人間）。
  */
 const HUMAN_REVIEW_LABEL = '👥 human-review-required';
+/**
+ * `autopilot-after:` の先行 Issue がまだ完了しておらず、ゲートで着手を待たされている
+ * ことを示すラベル。GitHub Projects の view で「他 Issue 待ち」を一目で判別できるようにする。
+ * daemon が依存状態に合わせて**毎 tick 動的に付け外し**する（先行 Close で自動除去 →
+ * 次 tick で着手）。静的に一度付けるのではなく 🧭 tracking 同様に状態から都度導出するのは、
+ * 依存が解決したときに自動で外す必要があるため。
+ */
+const WAITING_LABEL = '⏳ waiting';
 
 /** Bot（GitHub App）に書き込み権限が無いパスのパターン（bin/autopilot-push と対） */
 const PROTECTED_PATH_PATTERNS = [/^\.github\/workflows\//, /^\.github\/actions\//];
@@ -634,6 +642,20 @@ function isTrackerItem(item) {
  */
 function hasTrackingLabel(item) {
     return Boolean(item) && Array.isArray(item.labels) && item.labels.includes(TRACKING_LABEL);
+}
+
+/**
+ * ⏳ waiting ラベルを付けるか外すかを決める（純粋関数）。
+ * 依存待ちなのにラベルが無ければ 'add'、依存が解決したのにラベルが残っていれば 'remove'、
+ * どちらでもなければ null（無操作）。
+ * @param {boolean} hasLabel 現在 ⏳ waiting が付いているか
+ * @param {boolean} waiting autopilot-after 依存が未完了か（true=まだ待ち）
+ * @returns {'add'|'remove'|null}
+ */
+function waitingLabelAction(hasLabel, waiting) {
+    if (waiting && !hasLabel) return 'add';
+    if (!waiting && hasLabel) return 'remove';
+    return null;
 }
 /**
  * sticky ステータスコメントの識別マーカー（bot が1コメントを upsert し続ける目印）。
@@ -1339,8 +1361,10 @@ module.exports = {
     PROTECTED_PATH_PATTERNS,
     protectedPaths,
     TRACKING_LABEL,
+    WAITING_LABEL,
     isTrackerItem,
     hasTrackingLabel,
+    waitingLabelAction,
     STICKY_MARKER,
     LEGACY_STICKY_MARKERS,
     STICKY_MARKERS,

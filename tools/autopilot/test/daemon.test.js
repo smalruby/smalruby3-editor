@@ -3,7 +3,7 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const {
     applyMergeProgression, applyClosedReconcile, applyPrProjection, applyDodHandoffs, runTickOnce,
-    detectStuck, markBlocked, getDirectives, applyLabelHealing, collectGateContexts,
+    detectStuck, markBlocked, getDirectives, applyLabelHealing, applyAfterWaitLabels, collectGateContexts,
     parseSsoDeviceOutput, startReauth,
     updateClaudeUsage, boardResponse, statusResponse,
     checkForUpdate, startUpdateChecks,
@@ -471,6 +471,41 @@ test('applyLabelHealing: 1 件の失敗は他を止めない', async () => {
         editLabels: (repo, number) => { if (number === 1) throw new Error('boom'); added.push(number); },
     });
     assert.deepEqual(added, [2]);
+});
+
+// === ⏳ waiting ラベル: applyAfterWaitLabels（autopilot-after ゲート可視化） ===
+
+test('applyAfterWaitLabels: 待ち=付与 / 解決=除去 / 変化なし・examined 外はスキップ', async () => {
+    const { WAITING_LABEL } = require('../src/phases');
+    const candidates = [
+        { issue: 1, labels: [] }, // 待ち & ラベル無し → add
+        { issue: 2, labels: [WAITING_LABEL] }, // 解決 & ラベル有り → remove
+        { issue: 3, labels: [WAITING_LABEL] }, // 待ち継続 & ラベル有り → 無操作
+        { issue: 4, labels: [] }, // 解決 & ラベル無し → 無操作
+        { issue: 5, labels: [] }, // examined 外（waitingByIssue に無い）→ スキップ
+    ];
+    const waitingByIssue = new Map([[1, true], [2, false], [3, true], [4, false]]);
+    const calls = [];
+    await applyAfterWaitLabels(candidates, waitingByIssue, makeCfg(), () => {}, {
+        token: 't',
+        editLabels: (repo, number, type, diff) => calls.push({ number, ...diff }),
+    });
+    assert.deepEqual(calls, [
+        { number: 1, add: [WAITING_LABEL] },
+        { number: 2, remove: [WAITING_LABEL] },
+    ]);
+});
+
+test('applyAfterWaitLabels: 付け外しが無ければ token も取らない（副作用ゼロ）', async () => {
+    const { WAITING_LABEL } = require('../src/phases');
+    const candidates = [{ issue: 3, labels: [WAITING_LABEL] }];
+    const waitingByIssue = new Map([[3, true]]); // 変化なし
+    let tokenAsked = false;
+    await applyAfterWaitLabels(candidates, waitingByIssue, makeCfg(), () => {}, {
+        get token() { tokenAsked = true; return 't'; },
+        editLabels: () => { throw new Error('should not be called'); },
+    });
+    assert.equal(tokenAsked, false);
 });
 
 // === 俯瞰ボード: refreshBoard / recordHistory ===

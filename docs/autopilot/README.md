@@ -126,7 +126,7 @@ Issue 本文の**行頭**に書くディレクティブで挙動を制御でき�
 | ディレクティブ | 意味 |
 |---|---|
 | `autopilot-base: <branch>` | PR 先・worktree 分岐元のベースブランチ（EPIC サブ Issue を親 epic ブランチに積む等） |
-| `autopilot-after: #N [#M ...]` | 依存宣言。N（と M …）が完了（GitHub closed / Project Close・Done）するまで着手しない。ブロック中は次点候補が繰り上がる |
+| `autopilot-after: #N [#M ...]` | 依存宣言。N（と M …）が完了（GitHub closed / Project Close・Done）するまで着手しない。ブロック中は次点候補が繰り上がる。**待ち Issue は Sprint Backlog に置く**（Backlog はそもそも着手候補にならないので先行 Close で自動着手しない）。ゲート中は daemon が `⏳ waiting` ラベルを付け、先行 Close で自動除去 → 次 tick で着手 |
 
 ### 🧭 tracking ラベル（分解済み親のトラッカー化）
 
@@ -134,6 +134,15 @@ sub-issue に分解済みの親（Kind=EPIC）には daemon が **`🧭 tracking
 以後の tick はラベルだけで「作業 item ではない」と判定でき、merge 検知・PR 投影・
 フェーズ選択から低コストに除外される（完了は closed-reconcile が拾う）。人間が任意の
 Issue に手動で付けてトラッカー化してもよい（autopilot は外さない。外せば作業 item に戻る）。
+
+### ⏳ waiting ラベル（先行 Issue 待ちの可視化）
+
+`autopilot-after:` の先行 Issue がまだ完了しておらず、ゲートで着手を待たされている leaf には
+daemon が **`⏳ waiting` ラベル**を付ける。GitHub Projects の view や Web モニタで「他 Issue 待ち」
+を一目で判別できる。🧭 tracking と同じく **状態から毎 tick 動的に導出**し（静的な一度付けでは
+なく）、先行 Issue が Close された瞬間に自動で外す → 次 tick で着手する。順序付きで分解した
+EPIC の leaf は **全部 Sprint Backlog に入れておけば**、依存順に自動で 1 つずつ流れる（並列
+衝突はゲーティングが防ぐ）。
 
 ---
 

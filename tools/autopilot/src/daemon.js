@@ -41,6 +41,8 @@ const {
     hasUnhandledChangesRequest,
     toMs,
     TRACKING_LABEL,
+    WAITING_LABEL,
+    waitingLabelAction,
     AUTOPILOT_LABEL,
     TERMINAL_STATUSES,
     isTrackerItem,
@@ -779,6 +781,42 @@ async function applyDodHandoffs(items, cfg, state, log, deps = {}) {
  * ラベルは item-list に含まれるので判定に追加 API は不要、書き込みは不足時のみ（冪等）。
  * deps は injection 可能（テスト用）。実行中の item は触らない。1 件の失敗は他を止めない。
  */
+/**
+ * autopilot-after ゲートで待たされている candidate に ⏳ waiting ラベルを担保する（純粋部は
+ * {@link waitingLabelAction}）。依存が解決したら外す。GitHub Projects の view で「他 Issue 待ち」
+ * を一目で判別できるようにするのが目的。
+ *
+ * `waitingByIssue` は dispatch ループで evaluate 済みの candidate だけを含む（true=依存未完了）。
+ * candidate は実行中/終端を含まない（selectActionable が除外）。書き込みは差分があるときだけ
+ * （冪等・API 節約）。token 取得も付け外しが 1 件でもある時だけ行う。
+ * @param {object[]} candidates selectActionable の結果
+ * @param {Map<number,boolean>} waitingByIssue issue → 依存未完了か
+ * @param {object} cfg
+ * @param {Function} log
+ * @param {object} [deps] { token, editLabels }（テスト用注入）
+ */
+async function applyAfterWaitLabels(candidates, waitingByIssue, cfg, log, deps = {}) {
+    const editLabels = deps.editLabels || project.editLabels;
+    const todo = [];
+    for (const item of candidates || []) {
+        if (!waitingByIssue.has(item.issue)) continue;
+        const has = (item.labels || []).includes(WAITING_LABEL);
+        const act = waitingLabelAction(has, waitingByIssue.get(item.issue));
+        if (act) todo.push({ issue: item.issue, act });
+    }
+    if (!todo.length) return;
+    const token = deps.token || await project.botToken();
+    for (const { issue, act } of todo) {
+        const change = act === 'add' ? { add: [WAITING_LABEL] } : { remove: [WAITING_LABEL] };
+        try {
+            await editLabels(cfg.repo, issue, 'issue', change, token);
+            log(`#${issue}: ⏳ waiting ${act === 'add' ? '付与' : '除去'}`);
+        } catch (e) {
+            log(`#${issue}: waiting label ${act} failed: ${e.message}`);
+        }
+    }
+}
+
 async function applyLabelHealing(items, cfg, state, log, deps = {}) {
     const token = deps.token || await project.botToken();
     const editLabels = deps.editLabels || project.editLabels;
@@ -928,10 +966,17 @@ async function tick(cfg, state, log) {
     const statusByIssue = Object.fromEntries(items.map((it) => [it.issue, it.status]));
     const capacity = Math.max(0, cfg.concurrency - state.running.size);
     const picked = [];
+    // autopilot-after ゲートで待たされている candidate を記録し、後で ⏳ waiting ラベルを
+    // 依存状態へ合わせる（true=依存未完了で待ち / false=解決済み）。examined な candidate のみ。
+    const waitingByIssue = new Map();
     for (const item of candidates) {
-        // ディレクティブ取得は**検討した候補の分だけ**（capacity で打ち切り。全候補の先読みは
-        // API 削減の趣旨に逆行する）。TTL キャッシュがあるので 2 tick 目以降はさらに安い。
-        if (picked.length >= capacity) break;
+        const hasWaitLabel = (item.labels || []).includes(WAITING_LABEL);
+        const capacityLeft = picked.length < capacity;
+        // ディレクティブ取得（本文 fetch）は API を食うので、**capacity 内の候補**か、
+        // **既に ⏳ が付いた候補（解決したら外すため再評価が要る）**だけに絞る。capacity が
+        // 埋まった後の未ラベル候補は従来どおり読まない（API 削減の趣旨を維持）。
+        // TTL キャッシュがあるので 2 tick 目以降はさらに安い。
+        if (!capacityLeft && !hasWaitLabel) continue;
         const after = (await getDirectives(cfg, state, item.issue, log)).after;
         // Project 外の after 依存（closedSet にも statusByIssue にも無い番号）だけ
         // オンデマンドで state を確認して closedSet にマージする（少数・稀）
@@ -944,12 +989,17 @@ async function tick(cfg, state, log) {
             }
         }
         const unresolved = unresolvedAfterIssues(after, { closedSet, statusByIssue });
+        waitingByIssue.set(item.issue, unresolved.length > 0);
         if (unresolved.length) {
             log(`#${item.issue}: autopilot-after 待ち (未完了: ${unresolved.map((n) => `#${n}`).join(', ')})`);
             continue;
         }
-        picked.push(item);
+        if (capacityLeft) picked.push(item);
     }
+    // ⏳ waiting ラベルを依存状態へ合わせる（待ち=付与 / 解決=除去）。picked を dispatch する
+    // **前**に実行するので、これから着手する item からは ⏳ が外れる（実行中は candidate に
+    // 含まれないので二重には触らない）。
+    await applyAfterWaitLabels(candidates, waitingByIssue, cfg, log);
     for (const item of picked) {
         // ゲート item を dispatch したら「人間の発言をここまで処理した」watermark を進める。
         // 発言解除（humanSpokeLast）が同じ発言で毎 tick 再発火してループするのを防ぐ
@@ -1086,6 +1136,8 @@ async function refreshBoard(cfg, state, log, deps = {}) {
                 size: it.size || null,
                 assignees: it.assignees || [],
                 tracker: isTrackerItem(it),
+                // autopilot-after ゲート待ち（daemon が毎 tick 維持する ⏳ ラベルをそのまま反映）。
+                waiting: Array.isArray(it.labels) && it.labels.includes(WAITING_LABEL),
                 owner: itemOwner(it),
                 subIssues: extra.subIssues,
                 prs: extra.prs,
@@ -1363,7 +1415,7 @@ async function main(opts = {}) {
 
 module.exports = {
     main, tick, runTickOnce, dispatch, applyMergeProgression, applyClosedReconcile, applyPrProjection,
-    applyDodHandoffs, detectStuck, markBlocked, getDirectives, applyLabelHealing,
+    applyDodHandoffs, detectStuck, markBlocked, getDirectives, applyLabelHealing, applyAfterWaitLabels,
     isGateItem, collectGateContexts, checkAuthHealth, REAUTH_HINT,
     parseSsoDeviceOutput, startReauth,
     refreshBoard, recordHistory, refreshRateLimits, patchBoardCache,

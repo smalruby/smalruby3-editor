@@ -359,9 +359,10 @@ function renderBoard(d) {
       ? esc((it.assignees || []).join(', '))
       : '<span class="muted">—</span>';
     const kindMark = it.tracker ? ' <span class="subtext" title="tracker (分解済み親)">🧭</span>' : '';
+    const waitMark = it.waiting ? ' <span class="subtext" title="先行 Issue (autopilot-after) の完了待ち">⏳</span>' : '';
     return '<tr class="' + cls + '">'
       + '<td class="title-cell"><a target="_blank" rel="noopener" href="' + esc(it.url) + '">#' + it.issue + '</a> '
-      + '<span class="t" title="' + esc(it.title) + '">' + esc(it.title) + '</span>' + kindMark + '</td>'
+      + '<span class="t" title="' + esc(it.title) + '">' + esc(it.title) + '</span>' + kindMark + waitMark + '</td>'
       + '<td>' + statusPill(it.status) + '</td>'
       + '<td>' + sizeBadge(it.size) + '</td>'
       + '<td>' + (it.aiStatus ? esc(it.aiStatus) : '<span class="muted">—</span>') + '</td>'
