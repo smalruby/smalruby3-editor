@@ -76,6 +76,20 @@ import rubyBasics1Step3 from './steps/ruby-basics-1-3-result.png';
 import rubyBasics1Step4 from './steps/ruby-basics-1-4-more-math.png';
 import rubyBasics1Step5 from './steps/ruby-basics-1-5-modify.png';
 
+// Ruby Basics 2: 文字列で遊ぼう
+import rubyBasics2Step1 from './steps/ruby-basics-2-1-intro.png';
+import rubyBasics2Step2 from './steps/ruby-basics-2-2-first-puts.png';
+import rubyBasics2Step3 from './steps/ruby-basics-2-3-result.png';
+import rubyBasics2Step4 from './steps/ruby-basics-2-4-methods.png';
+import rubyBasics2Step5 from './steps/ruby-basics-2-5-modify.png';
+
+// Ruby Basics 3: 変数を使ってみよう
+import rubyBasics3Step1 from './steps/ruby-basics-3-1-intro.png';
+import rubyBasics3Step2 from './steps/ruby-basics-3-2-first-var.png';
+import rubyBasics3Step3 from './steps/ruby-basics-3-3-result.png';
+import rubyBasics3Step4 from './steps/ruby-basics-3-4-sentence.png';
+import rubyBasics3Step5 from './steps/ruby-basics-3-5-modify.png';
+
 const enImages = {
     // Getting Started
     introRubyTab: introRubyTab,
@@ -143,7 +157,19 @@ const enImages = {
     rubyBasics1Step2: rubyBasics1Step2,
     rubyBasics1Step3: rubyBasics1Step3,
     rubyBasics1Step4: rubyBasics1Step4,
-    rubyBasics1Step5: rubyBasics1Step5
+    rubyBasics1Step5: rubyBasics1Step5,
+    // Ruby Basics 2: 文字列で遊ぼう
+    rubyBasics2Step1: rubyBasics2Step1,
+    rubyBasics2Step2: rubyBasics2Step2,
+    rubyBasics2Step3: rubyBasics2Step3,
+    rubyBasics2Step4: rubyBasics2Step4,
+    rubyBasics2Step5: rubyBasics2Step5,
+    // Ruby Basics 3: 変数を使ってみよう
+    rubyBasics3Step1: rubyBasics3Step1,
+    rubyBasics3Step2: rubyBasics3Step2,
+    rubyBasics3Step3: rubyBasics3Step3,
+    rubyBasics3Step4: rubyBasics3Step4,
+    rubyBasics3Step5: rubyBasics3Step5
 };
 
 export {enImages};

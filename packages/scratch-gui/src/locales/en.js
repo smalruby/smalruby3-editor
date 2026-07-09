@@ -726,6 +726,22 @@ export default {
     'gui.howtos.ruby-basics-1-numbers.step4.title': 'Try other operations too (multiply / divide / subtract)',
     'gui.howtos.ruby-basics-1-numbers.step5.title': 'Change the numbers to whatever you like and do your own math',
     'gui.howtos.ruby-basics-1-numbers.external.tryruby.name': 'Learn more about Ruby on the external "try ruby" site',
+    'gui.howtos.ruby-basics-2-strings.name': 'Play with Strings',
+    'gui.howtos.ruby-basics-2-strings.step1.title': "Let's play with strings!",
+    'gui.howtos.ruby-basics-2-strings.step2.title': 'Try running `puts "こんにちは"` first',
+    'gui.howtos.ruby-basics-2-strings.step3.title': 'Press {greenFlag} and the cat will say "こんにちは"',
+    'gui.howtos.ruby-basics-2-strings.step4.title': 'Reverse a string or make it uppercase',
+    'gui.howtos.ruby-basics-2-strings.step5.title':
+        'Change the words to whatever you like and play with your own string',
+    'gui.howtos.ruby-basics-2-strings.external.tryruby.name': 'Learn more about Ruby on the external "try ruby" site',
+    'gui.howtos.ruby-basics-3-variables.name': 'Use Variables',
+    'gui.howtos.ruby-basics-3-variables.step1.title': "Let's use variables!",
+    'gui.howtos.ruby-basics-3-variables.step2.title': 'Put a name into `name` and make the cat say it',
+    'gui.howtos.ruby-basics-3-variables.step3.title': 'Press {greenFlag} and the cat will say "ネコ"',
+    'gui.howtos.ruby-basics-3-variables.step4.title': 'Build a sentence using a variable',
+    'gui.howtos.ruby-basics-3-variables.step5.title': 'Change the value of the variable to any name you like',
+    'gui.howtos.ruby-basics-3-variables.external.tryruby.name':
+        'Learn more about Ruby on the external "try ruby" site',
     'gui.menuBar.updateTooltip': 'Try the new Smalruby!',
     'gui.menuBar.updateConfirm':
         'A new version of Smalruby is available. Press "OK" to update now, or "Cancel" to update later.',

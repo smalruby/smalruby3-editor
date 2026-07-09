@@ -328,6 +328,7 @@ test/unit/containers/*
 test/unit/lib/*
 # Smalruby-only directories
 !test/unit/lib/dncl/
+!test/unit/lib/libraries/
 !test/unit/lib/ruby-generator/
 !test/unit/lib/ruby-roundtrip/
 !test/unit/lib/ruby-to-blocks-converter/
