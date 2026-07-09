@@ -61,6 +61,7 @@ const { runPhase, killSession, capture } = require('./runner');
 const { MONITOR_HTML } = require('./monitor');
 const { loadSettings, buildClaudeCommand, snapshotRunAssets } = require('./settings');
 const { readClaudeUsage } = require('./usage');
+const { readVersion, checkAutopilotUpdate } = require('./version');
 const project = require('./project');
 
 const execFileP = promisify(execFile);
@@ -89,6 +90,9 @@ const DEFAULT_STUCK_MS = 35 * 60 * 1000;
 // Issue 本文ディレクティブ（autopilot-base / autopilot-after）のキャッシュ TTL。
 // 人間が本文を編集した変更は最大この時間で反映される。tick ごとの本文 fetch を避ける。
 const DIRECTIVE_TTL_MS = 10 * 60 * 1000;
+
+// `tools/autopilot/` 更新検知の間隔（#885）。git fetch は月に見合う頻度でよく、5 分より短くしない。
+const UPDATE_CHECK_INTERVAL_MS = 15 * 60 * 1000;
 
 /**
  * Issue 本文から導いたディレクティブ（base / after）を TTL キャッシュ付きで返す。
@@ -378,6 +382,58 @@ function updateClaudeUsage(state, cfg, log) {
     } catch (e) {
         log(`claude usage read failed: ${e.message}`);
     }
+}
+
+/**
+ * `tools/autopilot/` に origin 側の新コミットがあるかを判定し、state.autopilotUpdate に反映する（#885）。
+ * 稼働中コード = 起動時コミット（state.version.commit）を基準に判定する。失敗（ネットワーク/認証）
+ * 時は前回値（available/behind/commits）を保持し、error だけを控えめに surface する（表示は崩さない）。
+ * @param {object} cfg
+ * @param {object} state daemon の可変状態（state.autopilotUpdate を書き換える）
+ * @param {function} log
+ * @param {object} [deps] { check }（テスト用）
+ */
+async function checkForUpdate(cfg, state, log, deps = {}) {
+    const check = deps.check || checkAutopilotUpdate;
+    const bootCommit = state.version && state.version.commit;
+    const res = await check({
+        repoRoot: cfg.repoRoot,
+        baseBranch: cfg.updateBranch || DEFAULT_BASE_BRANCH,
+        bootCommit,
+        now: cfg.now,
+    });
+    const prev = state.autopilotUpdate || {};
+    if (res.error) {
+        // 失敗は前回の available/behind/commits を保持し、error と checkedAt だけ更新する
+        state.autopilotUpdate = {
+            available: Boolean(prev.available),
+            behind: prev.behind || 0,
+            commits: prev.commits || [],
+            checkedAt: res.checkedAt,
+            error: sanitizeForSurface(res.error, 200),
+        };
+        return;
+    }
+    state.autopilotUpdate = res;
+    if (res.available && !prev.available) {
+        log(`autopilot update available: tools/autopilot は origin/${cfg.updateBranch || DEFAULT_BASE_BRANCH} で ${res.behind} 件先行`);
+    }
+}
+
+/**
+ * 起動直後に 1 回 + 以降 UPDATE_CHECK_INTERVAL_MS 間隔で更新検知を回す（#885）。
+ * タイマーは unref して daemon の終了を妨げない。deps はテスト用に差し替え可能。
+ * @returns {Promise<object|undefined>} 生成したタイマー（テスト用）
+ */
+async function startUpdateChecks(cfg, state, log, deps = {}) {
+    await checkForUpdate(cfg, state, log, deps).catch((e) => log(`update check error: ${e.message}`));
+    const interval = cfg.updateCheckMs || UPDATE_CHECK_INTERVAL_MS;
+    const setIntervalFn = deps.setInterval || setInterval;
+    const t = setIntervalFn(() => {
+        checkForUpdate(cfg, state, log, deps).catch((e) => log(`update check error: ${e.message}`));
+    }, interval);
+    if (t && t.unref) t.unref();
+    return t;
 }
 
 /** 1 つの item を 1 フェーズ実行し、結果を Project に反映する */
@@ -1059,6 +1115,8 @@ function boardResponse(cfg, state) {
         running: [...state.running.entries()].map(([issue, v]) => ({ issue, phase: v.phase, since: v.since })),
         rate: state.ratePlan || null,
         claudeUsage: state.claudeUsage || null,
+        version: state.version || null,
+        autopilotUpdate: state.autopilotUpdate || null,
         items: state.board ? state.board.items : [],
         history: state.history || [],
     };
@@ -1082,6 +1140,8 @@ function statusResponse(cfg, state) {
         rate: state.ratePlan || null,
         rateLimits: state.rateLimits || null,
         claudeUsage: state.claudeUsage || null,
+        version: state.version || null,
+        autopilotUpdate: state.autopilotUpdate || null,
         running: [...state.running.entries()].map(([issue, v]) => ({ issue, phase: v.phase })),
     };
 }
@@ -1216,6 +1276,9 @@ async function main(opts = {}) {
         // 投入順を Board view の見た目に揃えるための Status 列順（= option 定義順）
         statusOrder: Object.keys((fields.Status && fields.Status.options) || {}),
         now: () => Date.now(),
+        // 稼働バージョン表示 + 更新検知（#885）: 動作中 checkout と監視ブランチ
+        repoRoot: opts.repoRoot || project.REPO_ROOT,
+        updateBranch: opts.updateBranch || DEFAULT_BASE_BRANCH,
     };
     // worker 設定（フェーズ別 model/effort・追加許可ディレクトリ）を読み込み、
     // プロンプト一式 + 解決済み設定を tmpdir へスナップショット（ブランチ切り替え非依存・C13）
@@ -1233,7 +1296,14 @@ async function main(opts = {}) {
     const state = {
         paused: false, pausedBy: null, authError: null, reauth: null,
         running: new Map(), ticking: false, claudeUsage: null,
+        version: null, autopilotUpdate: null,
     };
+    // 稼働バージョンを起動時に確定させる（= 動いているコード）。以降 working tree が進んでも
+    // この値は動かさない（だからこそ表示 + 更新検知が有用）。#885
+    state.version = await readVersion(cfg.repoRoot);
+    log(`running version: ${state.version.branch || '?'} @ ${state.version.shortCommit || '?'}`);
+    // 更新検知（起動直後に 1 回 + 以降 15 分間隔・unref タイマー）
+    startUpdateChecks(cfg, state, log);
     // PID ファイルを書き、安全停止（kill "$(cat <pidfile>)" / POST /shutdown）を可能にする
     try {
         fs.writeFileSync(pidFilePath(), String(process.pid));
@@ -1273,4 +1343,5 @@ module.exports = {
     parseSsoDeviceOutput, startReauth,
     refreshBoard, recordHistory, refreshRateLimits, patchBoardCache,
     updateClaudeUsage, boardResponse, statusResponse,
+    checkForUpdate, startUpdateChecks,
 };

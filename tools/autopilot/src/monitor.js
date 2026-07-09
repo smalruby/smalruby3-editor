@@ -57,6 +57,34 @@ const MONITOR_HTML = `<!doctype html>
   header .meta { margin-left: auto; flex: 0 0 auto; width: 24rem; max-width: 40vw; text-align: right;
                  color: #94a3b8; font-size: .75rem; overflow: hidden; text-overflow: ellipsis;
                  font-variant-numeric: tabular-nums; }
+  /* ---- 稼働バージョン + 更新バッジ（#885・スティッキーフッター） ---- */
+  /* ヘッダーは Claude 使用量バーが中央を占めて余白が無いので、稼働バージョンと更新バッジは
+     常時見えるスティッキーフッターに置く（issue はヘッダー or フッターを許容）。 */
+  footer { position: sticky; bottom: 0; z-index: 20; display: flex; align-items: center; gap: .6rem;
+           padding: .3rem .8rem; background: #0f172a; color: #94a3b8; font-size: .75rem;
+           border-top: 1px solid #334155; font-variant-numeric: tabular-nums; }
+  footer .ver code { color: #cbd5e1; background: rgba(255,255,255,.06); padding: 0 .3rem; border-radius: .2rem; }
+  footer .upd-badge { padding: .1rem .55rem; font-size: .78rem; cursor: pointer; border: 1px solid #d97706;
+                      background: #b45309; color: #fff; font-weight: 600; border-radius: .3rem; }
+  footer .upd-badge:hover { background: #d97706; }
+  /* ---- 更新手順モーダル ---- */
+  #updmodal { position: fixed; inset: 0; background: rgba(15,23,42,.55); display: none; align-items: center;
+              justify-content: center; z-index: 60; }
+  #updmodal.open { display: flex; }
+  #updmodal .box { background: #fff; color: #1e293b; width: min(92vw, 44rem); max-height: 85vh; border-radius: .5rem;
+                   display: flex; flex-direction: column; overflow: hidden; }
+  #updmodal .box header { position: static; border-radius: .5rem .5rem 0 0; }
+  #updmodal .body { padding: .9rem 1rem; overflow: auto; font-size: .85rem; line-height: 1.55; }
+  #updmodal h3 { font-size: .9rem; margin: .2rem 0 .5rem; }
+  #updmodal ol { margin: .3rem 0 .8rem; padding-left: 1.3rem; }
+  #updmodal code { background: #f1f5f9; padding: 0 .3rem; border-radius: .2rem; font-size: .82rem; }
+  #updmodal .cmd { display: block; background: #0f172a; color: #e2e8f0; padding: .4rem .6rem; border-radius: .3rem;
+                   margin: .3rem 0; white-space: pre-wrap; word-break: break-all; }
+  #updmodal .commits { margin: .4rem 0 0; border-top: 1px solid var(--border); padding-top: .5rem; }
+  #updmodal .commits li { font-size: .8rem; color: #334155; margin-bottom: .15rem; }
+  #updmodal .commits code { font-size: .76rem; }
+  #updmodal .primary { background: #2563eb; color: #fff; border: 1px solid #1d4ed8; padding: .1rem .5rem;
+                       border-radius: .3rem; cursor: pointer; font-size: .78rem; }
   /* 狭い幅では中央 usage を隠して右 meta と重ならないようにする（usage は補助情報） */
   @media (max-width: 960px) { .usage { display: none; } }
   .pill { display: inline-block; padding: .05rem .5rem; border-radius: 1rem; font-size: .75rem; font-weight: 600; }
@@ -130,6 +158,17 @@ const MONITOR_HTML = `<!doctype html>
     <th>時刻</th><th>Issue</th><th>Phase</th><th>結果</th><th>メモ</th>
   </tr></thead><tbody id="hist"><tr><td colspan="5" class="muted">（まだ履歴はありません）</td></tr></tbody></table>
 </main>
+<footer id="footer">
+  <span id="version" class="ver" title="稼働中コード（起動時のブランチ @ コミット）"></span>
+  <button id="updbadge" class="upd-badge" style="display:none" title="tools/autopilot に更新があります">⬆️ 更新あり</button>
+</footer>
+<div id="updmodal"><div class="box">
+  <header><h1>⬆️ autopilot の更新</h1>
+    <span class="meta"></span>
+    <button id="updclose">✕ 閉じる</button>
+  </header>
+  <div class="body" id="updbody"></div>
+</div></div>
 <div id="modal"><div class="box">
   <header><h1 id="mtitle">log</h1>
     <button id="mreload">↻ 更新</button>
@@ -217,6 +256,53 @@ function renderUsage(d) {
     + usageBar(u.weekly, '週間使用率（7日）')
     + usageAge(u);
 }
+
+// 稼働バージョン（起動時の branch @ shortCommit）+ 更新バッジ（#885）
+let lastUpdate = null; // 更新モーダルが参照する最新の autopilotUpdate
+function renderVersion(d) {
+  const v = d.version || {};
+  const el = document.getElementById('version');
+  if (v.branch || v.shortCommit) {
+    el.innerHTML = esc(v.branch || '?') + ' <code>@ ' + esc(v.shortCommit || '?') + '</code>';
+  } else {
+    el.innerHTML = '<span class="muted">version —</span>';
+  }
+  lastUpdate = d.autopilotUpdate || null;
+  const badge = document.getElementById('updbadge');
+  if (lastUpdate && lastUpdate.available) {
+    badge.style.display = '';
+    badge.textContent = '⬆️ 更新あり（' + (lastUpdate.behind || 0) + ' 件）';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+// 更新手順モーダル: 実行はせず手順テキストのみ提示する（#885）
+function openUpdateModal() {
+  const u = lastUpdate || {};
+  const commits = (u.commits || []).map((c) =>
+    '<li><code>' + esc(c.shortCommit) + '</code> ' + esc(c.subject) + '</li>').join('');
+  const commitBlock = commits
+    ? '<div class="commits"><b>tools/autopilot の差分コミット（' + (u.behind || 0) + ' 件）</b><ul>' + commits + '</ul></div>'
+    : '';
+  const errBlock = u.error
+    ? '<p class="muted">⚠️ 直近の更新チェックはエラーでした（前回値を表示）: ' + esc(u.error) + '</p>'
+    : '';
+  document.getElementById('updbody').innerHTML =
+    '<h3>autopilot の更新手順</h3>'
+    + '<p><b>おすすめ:</b> Claude の autopilot セッションで次を指示してください:</p>'
+    + '<span class="cmd">update autopilot</span>'
+    + '<button class="primary" onclick="copyText(&quot;update autopilot&quot;)">📋 コピー</button>'
+    + '<h3 style="margin-top:1rem">手動で更新する場合</h3>'
+    + '<ol>'
+    + '<li>daemon を止める:<span class="cmd">curl -X POST localhost:8787/shutdown</span></li>'
+    + '<li><code>/app</code> で最新を取り込む:<span class="cmd">git pull</span></li>'
+    + '<li>再起動する:<span class="cmd">bash tmp/autopilot_up.sh</span></li>'
+    + '</ol>'
+    + commitBlock + errBlock;
+  document.getElementById('updmodal').classList.add('open');
+}
+function closeUpdateModal() { document.getElementById('updmodal').classList.remove('open'); }
 
 function renderAlerts(d) {
   const parts = [];
@@ -313,6 +399,7 @@ async function refresh() {
       + (d.rate && d.rate.minRemaining != null ? ' · API残 ' + d.rate.minRemaining + (d.rate.warn ? '⚠' : '') : '')
       + (d.updatedAt ? ' · 更新 ' + Math.round((Date.now() - d.updatedAt) / 1000) + 's前' : '');
     renderUsage(d);
+    renderVersion(d);
     renderAlerts(d);
     renderBoard(d);
     renderHistory(d);
@@ -373,7 +460,10 @@ function closeModal() {
 document.getElementById('mclose').onclick = closeModal;
 document.getElementById('mreload').onclick = loadLog;
 document.getElementById('modal').addEventListener('click', (e) => { if (e.target.id === 'modal') closeModal(); });
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+document.getElementById('updbadge').onclick = openUpdateModal;
+document.getElementById('updclose').onclick = closeUpdateModal;
+document.getElementById('updmodal').addEventListener('click', (e) => { if (e.target.id === 'updmodal') closeUpdateModal(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeModal(); closeUpdateModal(); } });
 document.getElementById('pause').onclick = () => fetch('/pause', { method: 'POST' }).then(refresh);
 document.getElementById('resume').onclick = () => fetch('/resume', { method: 'POST' }).then(refresh);
 document.getElementById('ticknow').onclick = async () => {
