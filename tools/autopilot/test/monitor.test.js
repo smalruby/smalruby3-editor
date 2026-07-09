@@ -67,6 +67,31 @@ test('MONITOR_HTML: log モーダルを開いている間 10 秒ごとに自動�
     assert.ok(autoFetches.length >= 1, 'loadLog must fetch /log');
 });
 
+test('MONITOR_HTML: ボードに Size（S/M/L・色付き）列を表示（#884）', () => {
+    // <thead> に Size 列見出しがある
+    assert.match(MONITOR_HTML, /<th>Size<\/th>/);
+    // small/middle/large を S/M/L に短縮する sizeBadge ヘルパー
+    assert.match(MONITOR_HTML, /const sizeBadge = /);
+    assert.match(MONITOR_HTML, /small:\s*\['S'/);
+    assert.match(MONITOR_HTML, /middle:\s*\['M'/);
+    assert.match(MONITOR_HTML, /large:\s*\['L'/);
+    // 色分けクラス（S=緑 / M=黄 / L=赤）が CSS に定義される
+    for (const cls of ['size-badge', 'size-s', 'size-m', 'size-l']) {
+        assert.ok(MONITOR_HTML.includes(cls), `should include ${cls}`);
+    }
+    // S=緑系 / M=琥珀系 / L=赤系の配色
+    assert.match(MONITOR_HTML, /\.size-s \{[^}]*#dcfce7/);
+    assert.match(MONITOR_HTML, /\.size-m \{[^}]*#fef3c7/);
+    assert.match(MONITOR_HTML, /\.size-l \{[^}]*#fee2e2/);
+    // renderBoard が sizeBadge を呼ぶ
+    assert.match(MONITOR_HTML, /sizeBadge\(it\.size\)/);
+    // size 未設定は「—」（muted）で崩れない
+    assert.match(MONITOR_HTML, /class="muted"/);
+    // 列追加に合わせて空行の colspan を更新（7 → 8）
+    assert.match(MONITOR_HTML, /colspan="8"/);
+    assert.doesNotMatch(MONITOR_HTML, /colspan="7"/);
+});
+
 test('MONITOR_HTML: インライン script が構文的に妥当', () => {
     const m = MONITOR_HTML.match(/<script>([\s\S]*)<\/script>/);
     assert.ok(m, 'script block exists');
