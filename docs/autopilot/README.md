@@ -397,11 +397,18 @@ daemon の `GET /`（既定 `http://localhost:8787/`）は **enroll 済み Issue
 （読み取り専用・縦並び）を first view に表示する。操作（Status 変更・並び替え）は
 GitHub Projects で行い、モニタは俯瞰・log 閲覧・pause/resume/即時 tick に徹する。
 
-- **1 行のコンパクトヘッダー**: タイトル + 状態 pill（RUNNING/PAUSED/AUTH ⚠）+
-  ⏸/▶/⚡tick + メタ情報（assignee・並行数・実行中・更新時刻）
+- **1 行のコンパクトヘッダー（3 セクション）**: **左**にタイトル + 状態 pill（RUNNING/PAUSED/AUTH ⚠）
+  + 操作群（⏸/▶/⚡tick/**🔄 更新**）、**中央**に Claude 使用量、**右**にメタ情報（assignee・並行数・
+  実行中・API 残・更新時刻）。右メタは固定幅 + 右寄せ + `tabular-nums` にして、`更新 Xs前` の桁変化や
+  `API残`/`実行中` の増減で内容幅が変わってもヘッダーのどの要素も水平位置が動かない。中央 usage も
+  内部の可変要素を `min-width` で予約して幅を一定に保つ。狭い幅（≤ 960px）では中央 usage を隠して
+  右メタと重ならないようにする
 - **Claude 使用量（ヘッダー中央）**: Claude アイコン + **セッション使用率**（rolling 5 時間制限）と
   **週間使用率**（全モデルの 7 日制限）を、それぞれ短いバー + `NN%` で表示する。使用量が上限に
   達すると autopilot だけでなく人間の開発も止まるため、早めに気づけるよう常時可視化する。
+  使用量は **worker 実行時のみ更新**される（下記のとおりデータ源が status line の `rate_limits`）ため、
+  最終更新からの経過（age）を薄字で併記し、**90 秒以上更新が無ければ黄色（stale）表示**にして
+  worker 非稼働中の据え置きが分かるようにする。
   値の取得: `rate_limits`（`five_hour` / `seven_day` の `used_percentage`）は **Claude Code の
   status line の stdin JSON にのみ**含まれる（transcript JSONL・CLI・キャッシュには出力されない）。
   worker は対話 TUI（tmux）で動くので status line が描画される点を利用し、worker 起動時に
