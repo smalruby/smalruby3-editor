@@ -398,8 +398,9 @@ daemon の `GET /`（既定 `http://localhost:8787/`）は **enroll 済み Issue
 GitHub Projects で行い、モニタは俯瞰・log 閲覧・pause/resume/即時 tick に徹する。
 
 - **1 行のコンパクトヘッダー**: タイトル + 状態 pill（RUNNING/PAUSED/AUTH ⚠）+
-  ⏸/▶/⚡tick + **稼働バージョン（`branch @ shortCommit`）** + **⬆️ 更新ありバッジ** +
-  メタ情報（assignee・並行数・実行中・更新時刻）
+  ⏸/▶/⚡tick + メタ情報（assignee・並行数・実行中・更新時刻）
+- **スティッキーフッター**: **稼働バージョン（`branch @ shortCommit`）** + **⬆️ 更新ありバッジ**。
+  ヘッダー中央は Claude 使用量バーが占めるため、常時見えるフッターに置く（issue はヘッダー/フッターを許容）
 - **Claude 使用量（ヘッダー中央）**: Claude アイコン + **セッション使用率**（rolling 5 時間制限）と
   **週間使用率**（全モデルの 7 日制限）を、それぞれ短いバー + `NN%` で表示する。使用量が上限に
   達すると autopilot だけでなく人間の開発も止まるため、早めに気づけるよう常時可視化する。
@@ -441,7 +442,7 @@ daemon はモジュールを**起動時にロード**するので「動いてい
 - **稼働バージョン**: daemon は起動時に動作中 checkout（`project.REPO_ROOT`）の
   `git rev-parse --abbrev-ref HEAD`（ブランチ）と `HEAD`（コミット・`--short` も）を取得して
   `state.version = {branch, commit, shortCommit}` に保持し、`GET /board`・`GET /status` に載せる。
-  モニタのヘッダーに `develop @ 9380da0` のように**常時表示**する（取得できなければ「version —」）。
+  モニタのフッターに `develop @ 9380da0` のように**常時表示**する（取得できなければ「version —」）。
 - **更新検知（~15 分ごと）**: 起動直後に 1 回 + 以降 15 分間隔（`unref` タイマー）で
   既定ブランチ（`origin/develop`）を `git fetch`（remote-tracking ref のみ更新・working tree は
   触らない）し、`git log <起動時コミット>..origin/develop -- tools/autopilot` の件数で
@@ -449,7 +450,7 @@ daemon はモジュールを**起動時にロード**するので「動いてい
   として `/board`・`/status` に載る。private repo なので fetch の認証は既存の gh credential
   helper に委ねる。**失敗（ネットワーク/認証）時は前回値（available/behind/commits）を保持**し、
   `error` だけを控えめに surface して表示を崩さない。頻度は `UPDATE_CHECK_INTERVAL_MS` 定数で調整可能。
-- **更新ありの表示 + 更新手順**: 更新ありのときヘッダーに **`⬆️ 更新あり（N 件）`** バッジを表示。
+- **更新ありの表示 + 更新手順**: 更新ありのときフッターに **`⬆️ 更新あり（N 件）`** バッジを表示。
   押すと**更新手順モーダル**（テキスト表示のみ・実行はしない）を出す:
   - 主導線: Claude の autopilot セッションで **`update autopilot`** と指示（コピー用ボタンつき）
   - 手動手順: `curl -X POST localhost:8787/shutdown` → `/app` で `git pull` →
