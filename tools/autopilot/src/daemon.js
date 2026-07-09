@@ -1387,10 +1387,14 @@ async function refreshBoard(cfg, state, log, deps = {}) {
         const getBoardEnrichment = deps.getBoardEnrichment || project.getBoardEnrichment;
         const listHeadPrs = deps.listHeadPrs || project.listHeadPrs;
         const items = await listItems(cfg.owner, cfg.project, token);
-        // autopilot-assignee ディレクティブ（#938）: owner 表示・isAssignee 判定の前に解決
-        const withDirectives = await populateAssigneeDirectives(items, cfg, state, log, { ...deps, token });
-        // 表示対象は「自分が Assignees のいずれか」（オーナーに限らない・観察ユースケース）
-        const boardItems = orderItemsLikeBoard(selectBoardItems(withDirectives, cfg.assignee), cfg.statusOrder);
+        // 先に表示対象へ絞る: selectBoardItems（= isAssignee）はディレクティブ非依存なので、
+        // owner 解決の**前**に非終端 &「自分が Assignees のいずれか」だけへ限定できる。これで
+        // 終端 Status や他人の multi-assignee item の本文 fetch を避ける（#938・
+        // `.claude/rules/autopilot/github-api.md` の「終端 Status を定常問い合わせから除外」）。
+        const visible = selectBoardItems(items, cfg.assignee);
+        // autopilot-assignee ディレクティブ（#938）: owner 表示の前に、表示対象だけ解決する
+        const withDirectives = await populateAssigneeDirectives(visible, cfg, state, log, { ...deps, token });
+        const boardItems = orderItemsLikeBoard(withDirectives, cfg.statusOrder);
         let enrichment = {};
         try {
             enrichment = await getBoardEnrichment(cfg.repo, boardItems.map((i) => i.issue), token);

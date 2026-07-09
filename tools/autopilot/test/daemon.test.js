@@ -730,6 +730,29 @@ test('refreshBoard: autopilot-assignee ディレクティブが board の owner 
     assert.equal(item4.owner, 'me');
 });
 
+test('refreshBoard: 非表示（終端 / 非自分担当）の multi-assignee item は本文 fetch しない（#938・API 予算）', async () => {
+    const { refreshBoard } = require('../src/daemon');
+    const cfg = { ...makeCfg(), now: () => 0, statusOrder: [], assignee: 'me' };
+    const state = { running: new Map() };
+    const fetched = [];
+    await refreshBoard(cfg, state, () => {}, {
+        token: 't',
+        listItems: () => [
+            // 表示対象（自分が Assignees・非終端・2人）→ fetch する
+            { issue: 1, status: 'Review', kind: 'Issue', title: 'mine', labels: [], assignees: ['aa', 'me'] },
+            // 終端 Status の 2人 assign → selectBoardItems で除外されるので fetch しない
+            { issue: 2, status: 'Close', kind: 'Issue', title: 'done', labels: [], assignees: ['aa', 'bb'] },
+            // 自分が Assignees でない 2人 assign → 表示対象外なので fetch しない
+            { issue: 3, status: 'Review', kind: 'Issue', title: 'others', labels: [], assignees: ['aa', 'bb'] },
+        ],
+        getBoardEnrichment: () => ({}),
+        listHeadPrs: () => [],
+        getIssueBody: (repo, issue) => { fetched.push(issue); return ''; },
+    });
+    assert.deepEqual(fetched, [1]); // 表示対象の 1 だけ本文 fetch
+    assert.deepEqual(state.board.items.map((i) => i.issue), [1]);
+});
+
 test('refreshBoard: レート残量僅少（skipLowPriority）では更新せず前回キャッシュを維持', async () => {
     const { refreshBoard } = require('../src/daemon');
     const cfg = { ...makeCfg(), now: () => 0, statusOrder: [] };
