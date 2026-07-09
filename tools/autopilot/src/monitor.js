@@ -400,6 +400,8 @@ function renderAlerts(d) {
 function renderBoard(d) {
   const runningBy = {};
   for (const r of d.running || []) runningBy[r.issue] = r;
+  // 自分の login（--assignee）。共同担当で自分がオーナーでない行に「観察中」マーカーを出す（#938）。
+  const myAssignee = d.assignee || null;
   const rows = (d.items || []).map((it) => {
     const r = runningBy[it.issue];
     const cls = it.status === 'Blocked' ? 'blocked-row' : (r ? 'running-row' : '');
@@ -416,9 +418,15 @@ function renderBoard(d) {
         + '<span class="subtext">' + mins(Date.now() - r.since) + '分</span> '
         + '<button onclick="openLog(' + it.issue + ')">log</button>'
       : (it.hitl ? '<span title="人間の番">🙋</span> <span class="subtext">人間の番</span>' : '<span class="muted">—</span>');
-    const who = (it.assignees || []).length
-      ? esc((it.assignees || []).join(', '))
+    const assignees = it.assignees || [];
+    // オーナー（駆動担当）を太字で明示。自分がオーナーでない共同担当行には 👁 + オーナー login
+    // を付け、「観察中（他人が駆動）」であることを示す（#938）。
+    const who = assignees.length
+      ? assignees.map((a) => (a === it.owner ? '<b>' + esc(a) + '</b>' : esc(a))).join(', ')
       : '<span class="muted">—</span>';
+    const observing = (myAssignee && it.owner && it.owner !== myAssignee)
+      ? ' <span class="subtext" title="駆動者は ' + esc(it.owner) + '（自分は観察中・live 反映は更新周期/手動更新のみ）">👁 ' + esc(it.owner) + '</span>'
+      : '';
     const kindMark = it.tracker ? ' <span class="subtext" title="tracker (分解済み親)">🧭</span>' : '';
     const waitMark = it.waiting ? ' <span class="subtext" title="先行 Issue (autopilot-after) の完了待ち">⏳</span>' : '';
     return '<tr class="' + cls + '">'
@@ -427,7 +435,7 @@ function renderBoard(d) {
       + '<td>' + statusPill(it.status) + '</td>'
       + '<td>' + sizeBadge(it.size) + '</td>'
       + '<td>' + aiStatusCell(it) + '</td>'
-      + '<td>' + who + '</td>'
+      + '<td>' + who + observing + '</td>'
       + '<td>' + prs + '</td>'
       + '<td>' + sub + '</td>'
       + '<td>' + now + '</td></tr>';

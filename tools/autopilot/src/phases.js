@@ -99,6 +99,46 @@ function unresolvedAfterIssues(after, ctx = {}) {
 }
 
 /**
+ * Issue 本文から `autopilot-assignee:` ディレクティブ（駆動担当の明示指定）を抽出する（純粋関数）。
+ *
+ * 複数 assignee の Issue は既定で assignee の辞書順先頭が単一オーナー（{@link itemOwner}）に
+ * なるが、`autopilot-assignee: <login>` を本文に書くとそのオーナーを明示できる（#938）。
+ * `autopilot-base:` / `autopilot-after:` と同じく**行頭のみ**反応する（行頭 HTML コメントも可）。
+ * `@login` のように `@` 付きでも許容する。本文の**説明（最初のコメント）のみ**を渡す前提
+ * （呼び出し側がコメント/PR 本文を渡さない）。
+ * @param {string} body Issue 本文
+ * @returns {string|null} 指定された GitHub login、無ければ null（Assignees に含まれるかの検証は
+ *   {@link resolveOwner} 側で行う）
+ */
+function parseAssigneeDirective(body) {
+    if (!body) return null;
+    const m = body.match(/^(?:<!--\s*)?autopilot-assignee:\s*@?([A-Za-z0-9-]+)/im);
+    return m ? m[1] : null;
+}
+
+/**
+ * item の決定的なオーナー（駆動担当）を assignees と `autopilot-assignee:` ディレクティブから
+ * 解決する（純粋関数）。
+ *
+ * directiveLogin が assignees のいずれかと一致（大文字小文字無視 — GitHub login は
+ * 大文字小文字を区別しない）すればそれを採用し、一致しない/未指定なら**辞書順先頭**
+ * （従来のタイブレーク）にフォールバックする。
+ * @param {string[]} assignees
+ * @param {string|null} [directiveLogin] `autopilot-assignee:` で指定された login
+ * @returns {string|null} オーナーの GitHub login（元 assignees の表記のまま）、未 assign は null
+ */
+function resolveOwner(assignees, directiveLogin) {
+    const list = assignees || [];
+    if (!list.length) return null;
+    if (directiveLogin) {
+        const wanted = directiveLogin.toLowerCase();
+        const hit = list.find((a) => String(a).toLowerCase() === wanted);
+        if (hit) return hit;
+    }
+    return [...list].sort()[0];
+}
+
+/**
  * CLI コマンド名 → { skill, aiStatus }。
  * `skill` は **フェーズプロンプトのファイル basename**（`tools/autopilot/prompts/<skill>.md`）。
  * 以前は `.claude/skills/` の Skill だったが、開発者が誤ってスラッシュ起動するのを防ぐため
@@ -557,15 +597,17 @@ function isStuckCandidate(item) {
 
 /**
  * item の決定的な単一オーナーを返す（純粋関数・enroll モデル）。
- * assignee の**辞書順先頭**をオーナーとする。複数 assignee の Issue を複数開発者の
- * daemon が同時に拾わないための決定的なタイブレーク。未 assign は null（オーナー不在）。
- * @param {object} item { assignees?: string[] }
+ * 既定は assignee の**辞書順先頭**（複数 assignee の Issue を複数開発者の daemon が
+ * 同時に拾わないための決定的なタイブレーク）。本文に `autopilot-assignee:` ディレクティブが
+ * あり（{@link parseAssigneeDirective}）それが assignees に含まれていれば、そちらを優先する
+ * （{@link resolveOwner}・#938）。`item.assigneeDirective` 未設定（従来の item 形）なら
+ * 完全に従来と同じ挙動（後方互換）。未 assign は null（オーナー不在）。
+ * @param {object} item { assignees?: string[], assigneeDirective?: string|null }
  * @returns {string|null} オーナーの GitHub login、未 assign なら null
  */
 function itemOwner(item) {
     const assignees = (item && item.assignees) || [];
-    if (!assignees.length) return null;
-    return [...assignees].sort()[0];
+    return resolveOwner(assignees, item && item.assigneeDirective);
 }
 
 /**
@@ -581,6 +623,21 @@ function itemOwner(item) {
 function ownsItem(item, login) {
     if (!login) return true;
     return itemOwner(item) === login;
+}
+
+/**
+ * board 表示用: login が item の Assignees の**いずれか**であるか（オーナーに限らない）
+ * （純粋関数）。オーナーでない共同担当も自分の monitor で item を観察できるようにする
+ * ための判定（{@link selectBoardItems} が使う・#938）。GitHub login は大文字小文字を
+ * 区別しないため比較も大文字小文字を無視する。login 未指定（従来運用）は全件許可。
+ * @param {object} item { assignees?: string[] }
+ * @param {string|null} login 自分の GitHub login（daemon の --assignee）
+ * @returns {boolean}
+ */
+function isAssignee(item, login) {
+    if (!login) return true;
+    const wanted = login.toLowerCase();
+    return ((item && item.assignees) || []).some((a) => String(a).toLowerCase() === wanted);
 }
 
 /**
@@ -1062,9 +1119,11 @@ function applyIntentsToItem(item, intents) {
  * 俯瞰ボードに表示する item を選ぶ（純粋関数）。
  * 終端（Close/Done）と保留（Icebox）は除外する — 溜まり続けると表示も enrichment も
  * 重くなるため。操作は GitHub Projects で行う（ボードは読み取り専用）。
- * assignee を渡すと **daemon の処理対象（enroll 判定 {@link ownsItem}）と同じ集合**に
- * 限定する — 「ボードには映るが daemon は素通り」という表示と処理対象の不一致を無くし、
- * enrichment の API 消費も減らす（未指定は従来どおり全件）。
+ * assignee を渡すと**自分が Assignees のいずれかである item**（{@link isAssignee}）に限定する
+ * （未指定は従来どおり全件）。以前は daemon の dispatch 対象（enroll 判定 {@link ownsItem} =
+ * 単一オーナーのみ）と厳密に一致させていたが、#938 でオーナーでない共同担当も自分の
+ * monitor で観察できるよう**表示条件を広げた**（観察 = 状態閲覧のみで dispatch はしない。
+ * board item の `owner` が実際に駆動する担当を示す）。
  * @param {object[]} items
  * @param {string|null} [assignee] daemon の --assignee（enroll モデル）
  * @returns {object[]}
@@ -1072,7 +1131,7 @@ function applyIntentsToItem(item, intents) {
 function selectBoardItems(items, assignee = null) {
     return (items || []).filter(
         (it) => it && !TERMINAL_STATUSES.has(it.status) && it.status !== 'Icebox'
-            && ownsItem(it, assignee),
+            && isAssignee(it, assignee),
     );
 }
 
@@ -1828,6 +1887,8 @@ module.exports = {
     parseBaseBranch,
     parseAfterIssues,
     unresolvedAfterIssues,
+    parseAssigneeDirective,
+    resolveOwner,
     AUTOPILOT_BRANCH_PREFIX,
     autopilotHeadBranch,
     applyResult,
@@ -1851,6 +1912,7 @@ module.exports = {
     isStuckCandidate,
     itemOwner,
     ownsItem,
+    isAssignee,
     statusRank,
     orderItemsLikeBoard,
     selectActionable,
