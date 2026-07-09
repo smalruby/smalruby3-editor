@@ -82,15 +82,18 @@ export default MyComponent;
 
 ### マーカーが必要なファイル / 不要なファイルの判定
 
-**Smalruby 固有ファイル（＝ Prettier 対象ファイル）にはマーカー不要。**
+**Smalruby 固有ファイル（＝ Prettier 対象ファイル）にはマーカー原則不要。**
 
-- Prettier 対象ファイル（各パッケージの `.prettierignore` のホワイトリストに含まれるファイル）は Smalruby 独自ファイル
-- これらのファイルを修正する際、`=== Smalruby:` マーカーは **一切不要**（ファイル内のどこにも付けない）
-- upstream（Scratch）のファイルを修正する際のみ、修正箇所にマーカーコメントを付ける
+- Prettier 対象ファイル（各パッケージの `.prettierignore` のホワイトリストに含まれるファイル）は Smalruby 独自ファイルで、マーカーは**必須ではない**
+- upstream（Scratch）のファイルを修正する際は、修正箇所に**必ず**マーカーコメントを付ける
+- 例外（実装済みの慣行）: Smalruby 固有ファイル内でも、**取り外し可能な拡張機能のコード**
+  （tm2scratch / g2s / smalruby-ruby 等）を区別する目的で Start/End ペアを使ってよい
+  （`register-converters.js` / `ruby-generator/index.js` / `url-params.js` 等に実在する）。
+  この用途のマーカーは Smalruby 固有ファイル内なのでマーカー一覧 doc には**載せない**
 
-### upstream ファイルのマーカー記法
+### マーカーの 3 形式（実コードで使われている形）
 
-upstream のファイルに Smalruby 固有のコードを追加する際は、必ず **マーカーコメント** で囲む。
+1. **ブロックペア**（upstream ファイルへの挿入は必ずこれ）:
 
 ```javascript
 // === Smalruby: Start of <機能名> ===
@@ -98,9 +101,16 @@ upstream のファイルに Smalruby 固有のコードを追加する際は、�
 // === Smalruby: End of <機能名> ===
 ```
 
-- Start と End は必ずペアにする
+2. **ファイルヘッダ**（Smalruby 固有ファイルの冒頭宣言。任意）:
+   `// === Smalruby: This file is Smalruby-specific (<説明>) ===`
+3. **単一行インライン**（1 行だけの軽微な挿入に一部で使用）: `// === Smalruby: <説明> ===`。
+   ただし **grep でペア整合を検査できなくなる**ため、upstream ファイルでは 1 行の挿入でも
+   ブロックペアを推奨（Start だけの bare 形式は Start/End 数の不一致を生む — 実際に
+   `blocks.jsx` で発生している既知の表記ゆれ）
+
+- Start と End は必ずペアにする（`grep -c 'Smalruby: Start'` と `'Smalruby: End'` が一致すること）
 - `<機能名>` は英語で、何の機能かわかる名前にする
-- マーカーを追加・削除したら、該当パッケージのマーカー一覧を更新する
+- **upstream ファイル**のマーカーを追加・削除したら、該当パッケージのマーカー一覧を更新する
 
 マーカー一覧（`.claude/` の外に置く。実装時に編集しても確認プロンプトで止まらないため #820）:
 - `docs/maintenance/smalruby-markers-gui.md` — scratch-gui のマーカー一覧

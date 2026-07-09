@@ -112,6 +112,58 @@ Rubytee（ルビティー）は Anthropic Claude API を利用した AI コー�
 - `RUBYTEE_RELAY_ENDPOINT`: Relay API のエンドポイント URL（webpack で注入、monorepo root `.env` に設定）
 - ローカル開発: stg エンドポイントを使用（prod は CORS で localhost を許可しない）
 
+## Smalruby 独自コードの実装規約（現行実装から導出）
+
+### Redux reducer の登録は `smalruby-registry.ts` 経由
+
+- Smalruby 独自 reducer は **`src/reducers/smalruby-registry.ts`** の `smalrubyReducers` /
+  `smalrubyInitialState` に登録する。upstream の `gui.ts` は registry を spread する
+  マーカー付き 3 行だけで済む（upstream 差分を増やさない）。
+- **既存例外**: `block-display` と `extension-filter` の 2 つは歴史的経緯で `gui.ts` に
+  直接 import されている（しかもマーカー外）。**この形式を真似ない**（新規は registry 経由）。
+- reducer ファイルの形: action type は `'scratch-gui/<domain>/<ACTION>'` prefix、
+  `reducer as default` + `initialState as <domain>InitialState` + action creators を
+  named export（例: `src/reducers/dncl-mode.js`）。
+
+### localStorage キーは `smalruby:` prefix + SSR ガード
+
+- キーは **`smalruby:<camelCaseName>`**（例: `smalruby:dnclMode` / `smalruby:rubyVersion` /
+  `smalruby:classroom`）。モジュール定数化して使う。
+- アクセスは必ず `typeof window !== 'undefined' && window.localStorage` ガード付き。
+- **settings モジュールパターン**: ユーザー設定は `src/lib/settings/<name>/` に
+  `index.js`（定数 + `defineMessages` + map）と `persistence.js`
+  （`STORAGE_KEY = 'smalruby:<name>'` + `detectXxx()` / `persistXxx()`）を対で置く
+  （ruby-version / display-mode / theme / color-mode が同構造）。新しいユーザー設定は
+  この形に合わせる。
+
+### URL パラメータの正典パーサは `src/lib/url-params.js`
+
+- URL パラメータは **`getUrlParams()`（キャッシュ付き）に一元化**されている。個別に
+  `URLSearchParams` を直接パースする実装を追加しない（新パラメータは url-params.js に足す）。
+- 現行パラメータ: `no_beforeunload` / `tab` / `ruby_version` / `rubyMode`（alias:
+  DNCL=`dncl|dnclv2|ja|japanese`、furigana=`rubi|furigana`）/ `features` / `classcode`
+  （`clearClasscode()` で一回消費）/ `devlogin` / `welcome` / `force_polling`。
+
+### コンポーネント規約
+
+- 新規は**関数コンポーネント + hooks**（`ruby-toolbar.jsx` / `classroom-modal.jsx` の形。
+  memory の feedback とも一致）。`propTypes` はファイル末尾。CSS Modules
+  （`import styles from './x.css'`）。
+- コンテナの HOC ファイルは **`-hoc.jsx` サフィックス**（`rubytee-modal-hoc.jsx` 等）。
+- 大型モーダルはフェーズ別サブコンポーネントに分割する（`classroom-modal/` の
+  `student-*.jsx` / `teacher-*.jsx` が先例）。
+- モーダル本文の背景色は必須（`.claude/rules/scratch-gui/modals.md`）、操作要素には
+  data-testid（`.claude/rules/scratch-gui/e2e-test.md`）。
+
+### i18n（Smalruby 文字列の追加）
+
+- `src/locales/index.js` が scratch-l10n の editor-msgs に `en` / `ja` / `ja-Hira` を
+  `Object.assign` で上書き合成する。追加はフラットな `{'gui.x.y': '訳'}` を各言語ファイルへ。
+- **`ja.js` と `ja-Hira.js` は必ず対で追加する**（現状 Smalruby キーは両者で同数 = 対で
+  メンテされている不変条件）。`en.js` は任意（`defineMessages` の `defaultMessage` が代替）。
+- `defineMessages` の id 名前空間は **`gui.<featureCamel>.<key>`**（`gui.rubyToolbar.*` /
+  `gui.classroom.*` 等）。id は ja.js / ja-Hira.js のキーと一致させる。
+
 ## Prettier (Code Formatting)
 
 Smalruby 固有ファイルのみに Prettier を適用。upstream ファイルは `.prettierignore` で除外。
