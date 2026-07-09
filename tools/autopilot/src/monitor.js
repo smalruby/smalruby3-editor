@@ -118,6 +118,9 @@ const MONITOR_HTML = `<!doctype html>
   .size-s { background: #dcfce7; color: #14532d; }
   .size-m { background: #fef3c7; color: #92400e; }
   .size-l { background: #fee2e2; color: #7f1d1d; }
+  /* ---- Awaiting Continuation バッジ（協調的チェックポイント・EPIC #906）#913 ---- */
+  .ai-continuation-badge { display: inline-block; padding: .05rem .45rem; border-radius: .3rem; font-size: .75rem;
+                            font-weight: 600; white-space: nowrap; background: #ede9fe; color: #5b21b6; }
   .muted { color: var(--muted); }
   .prchip { display: inline-block; margin: 0 .15rem .1rem 0; padding: 0 .35rem; border-radius: .3rem;
             font-size: .75rem; white-space: nowrap; border: 1px solid transparent; }
@@ -207,6 +210,19 @@ const sizeBadge = (size) => {
   const b = SIZE_BADGES[size];
   if (!b) return '<span class="muted">—</span>';
   return '<span class="size-badge ' + b[1] + '" title="' + esc(size) + '">' + b[0] + '</span>';
+};
+// Awaiting Continuation（協調的チェックポイント・EPIC #906）だけ専用バッジにする（#913）。
+// 他の AI Status（Implementing 等）はプレーンテキストのまま。
+const AI_STATUS_CONTINUATION = 'Awaiting Continuation';
+const aiStatusCell = (it) => {
+  if (!it.aiStatus) return '<span class="muted">—</span>';
+  if (it.aiStatus !== AI_STATUS_CONTINUATION) return esc(it.aiStatus);
+  const remaining = it.continuationRemaining;
+  const sub = remaining != null
+    ? '<span class="subtext" title="continuation ファイルの残タスク数">残 ' + remaining + '</span>'
+    : '';
+  return '<span class="ai-continuation-badge" title="soft-limit で安全に中断・継続待ち（EPIC #906）">'
+    + '⏸️ ' + esc(it.aiStatus) + '</span>' + sub;
 };
 const prChip = (p) => {
   let cls = 'pr-ready', icon = '✅';
@@ -376,7 +392,7 @@ function renderBoard(d) {
       + '<span class="t" title="' + esc(it.title) + '">' + esc(it.title) + '</span>' + kindMark + waitMark + '</td>'
       + '<td>' + statusPill(it.status) + '</td>'
       + '<td>' + sizeBadge(it.size) + '</td>'
-      + '<td>' + (it.aiStatus ? esc(it.aiStatus) : '<span class="muted">—</span>') + '</td>'
+      + '<td>' + aiStatusCell(it) + '</td>'
       + '<td>' + who + '</td>'
       + '<td>' + prs + '</td>'
       + '<td>' + sub + '</td>'

@@ -125,6 +125,20 @@ test('MONITOR_HTML: ボードに Size（S/M/L・色付き）列を表示（#884�
     assert.doesNotMatch(MONITOR_HTML, /colspan="7"/);
 });
 
+test('MONITOR_HTML: Awaiting Continuation は専用バッジ + 残タスク数を表示（#913）', () => {
+    // 専用の描画ヘルパーと CSS バッジクラスがある
+    assert.match(MONITOR_HTML, /const aiStatusCell = /);
+    assert.ok(MONITOR_HTML.includes('ai-continuation-badge'), 'should include ai-continuation-badge class');
+    assert.match(MONITOR_HTML, /\.ai-continuation-badge \{[^}]*background:\s*#ede9fe/);
+    // renderBoard の AI 列が aiStatusCell を呼ぶ（他 AI Status はプレーンテキストのまま）
+    assert.match(MONITOR_HTML, /aiStatusCell\(it\)/);
+    // continuation ファイルの残タスク数（continuationRemaining）を subtext で出す
+    assert.match(MONITOR_HTML, /it\.continuationRemaining/);
+    assert.match(MONITOR_HTML, /残\s*'\s*\+\s*remaining/);
+    // 未設定（他フェーズ）は既存どおり muted の「—」にフォールバック
+    assert.match(MONITOR_HTML, /const aiStatusCell = \(it\) => \{\s*if \(!it\.aiStatus\) return '<span class="muted">—<\/span>';/);
+});
+
 test('MONITOR_HTML: インライン script が構文的に妥当', () => {
     const m = MONITOR_HTML.match(/<script>([\s\S]*)<\/script>/);
     assert.ok(m, 'script block exists');
