@@ -239,18 +239,45 @@ function mergeActivity(a = {}, b = {}) {
 }
 
 /**
- * 人間ゲートの解除判定（純粋関数・2 系統の OR）。
+ * 「未処理の新しい CHANGES_REQUESTED レビューがあるか」（純粋関数・#894）。
+ *
+ * approve 後に Request changes しても、コメント時刻ベースの {@link humanSpokeLast} は
+ * bot の sticky 更新（lastBotAt）や approve 時の watermark（handledAt）に leapfrog されて
+ * 拾えず、🙋 ラベルを付けるだけで何も進まない行き止まりになっていた。これを塞ぐための
+ * **構造化された解除シグナル**。approve の有無に関わらず changesRequested を優先して拾う。
+ *
+ * review.changesRequested かつ、その最新 CHANGES_REQUESTED の submittedAt
+ * （review.changesRequestedAt）が処理済み watermark（handledReviewAt）より新しいときだけ true。
+ * 一度処理して watermark を進めれば同じレビューでは false（毎 tick 再発火しない）。次に
+ * より新しい changesRequested が来たら再び true になる。時刻が不明なら false（誤発火を避ける）。
+ * @param {object} review { changesRequested, changesRequestedAt }（PR のレビュー状態）
+ * @param {number|string|null|undefined} handledReviewAt 最後に処理した changesRequested の submittedAt
+ * @returns {boolean}
+ */
+function hasUnhandledChangesRequest(review, handledReviewAt) {
+    if (!review || !review.changesRequested) return false;
+    const at = toMs(review.changesRequestedAt);
+    if (!at) return false;
+    return at > toMs(handledReviewAt);
+}
+
+/**
+ * 人間ゲートの解除判定（純粋関数・3 系統の OR）。
  * 1. ラベル解除: Issue/PR の 🙋 ラベルのいずれかが除去された（{@link isHitlReleased}）
  * 2. 発言解除: ゲート開放中に人間が最後に発言した（{@link humanSpokeLast} を daemon が
  *    計算して ctx.humanSpokeLast として渡す）
- * どちらでも「人間の番が終わった」とみなし autopilot が処理を進める。
+ * 3. changesRequested 解除（#894）: 未処理の新しい CHANGES_REQUESTED レビューがある
+ *    （{@link hasUnhandledChangesRequest} を daemon が計算して ctx.unhandledChangesRequested
+ *    として渡す）。approve 後の Request changes を、コメント時刻/watermark の leapfrog に
+ *    負けず確実に拾うための構造化シグナル。
+ * どれか1つでも「人間の番が終わった」とみなし autopilot が処理を進める。
  * @param {object} item { hitlLabel }
- * @param {object} ctx { hitlSignals, humanSpokeLast }
+ * @param {object} ctx { hitlSignals, humanSpokeLast, unhandledChangesRequested }
  * @returns {boolean}
  */
 function isGateReleased(item, ctx = {}) {
     const labelReleased = ctx.hitlSignals ? isHitlReleased(ctx.hitlSignals) : !(item && item.hitlLabel);
-    return labelReleased || ctx.humanSpokeLast === true;
+    return labelReleased || ctx.humanSpokeLast === true || ctx.unhandledChangesRequested === true;
 }
 
 /**
@@ -1283,6 +1310,7 @@ module.exports = {
     hitlDesireFromResult,
     isHitlReleased,
     isGateReleased,
+    hasUnhandledChangesRequest,
     humanSpokeLast,
     mergeActivity,
     toMs,

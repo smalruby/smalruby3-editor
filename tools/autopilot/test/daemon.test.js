@@ -679,6 +679,57 @@ test('collectGateContexts: watermark（gateHandled）より古い発言では再
     assert.equal(contexts2[1].humanSpokeLast, true);
 });
 
+test('collectGateContexts: 未処理 changesRequested を構造化シグナルとして導く (#894)', async () => {
+    // approve 後の Request changes: bot sticky が lastBotAt を now に更新し humanSpokeLast が
+    // false でも、changesRequested の submittedAt が review watermark より新しければ解除する。
+    const items = [{ issue: 1, status: 'Review', kind: 'Issue', hitlLabel: true }];
+    const state = { running: new Map() };
+    const deps = {
+        token: 't',
+        getGateContext: () => ({
+            hitlSignals: { issueLabel: true, prLabel: true },
+            review: { approved: false, changesRequested: true, changesRequestedAt: 300 },
+            pr: 10,
+            // bot sticky が leapfrog: lastBotAt > lastHumanAt → humanSpokeLast は false
+            activity: { lastHumanAt: 300, lastBotAt: 999 },
+        }),
+    };
+    const contexts = await collectGateContexts(makeCfg(), items, new Set(), state, () => {}, deps);
+    assert.equal(contexts[1].humanSpokeLast, false, 'sticky leapfrog で発言解除は効かない');
+    assert.equal(contexts[1].unhandledChangesRequested, true, '構造化シグナルで解除される');
+
+    // watermark を進める（dispatch 済み相当）と同じ changesRequested では再発火しない
+    state.gateReviewHandled = new Map([[1, 300]]);
+    const contexts2 = await collectGateContexts(makeCfg(), items, new Set(), state, () => {}, deps);
+    assert.equal(contexts2[1].unhandledChangesRequested, false, '同じレビューでは再発火しない');
+
+    // さらに新しい Request changes（submittedAt=400）が来たら再度解除
+    deps.getGateContext = () => ({
+        hitlSignals: { issueLabel: true, prLabel: true },
+        review: { approved: false, changesRequested: true, changesRequestedAt: 400 },
+        pr: 10,
+        activity: { lastHumanAt: 400, lastBotAt: 999 },
+    });
+    const contexts3 = await collectGateContexts(makeCfg(), items, new Set(), state, () => {}, deps);
+    assert.equal(contexts3[1].unhandledChangesRequested, true, '新しい changesRequested で再度解除');
+});
+
+test('collectGateContexts: approve 単独（changesRequested 無し）は解除しない (#894)', async () => {
+    const items = [{ issue: 1, status: 'Review', kind: 'Issue', hitlLabel: true }];
+    const state = { running: new Map() };
+    const deps = {
+        token: 't',
+        getGateContext: () => ({
+            hitlSignals: { issueLabel: true, prLabel: true },
+            review: { approved: true, changesRequested: false, changesRequestedAt: null },
+            pr: 10,
+            activity: { lastHumanAt: 100, lastBotAt: 999 },
+        }),
+    };
+    const contexts = await collectGateContexts(makeCfg(), items, new Set(), state, () => {}, deps);
+    assert.equal(contexts[1].unhandledChangesRequested, false);
+});
+
 // === directives: getDirectives（autopilot-base / autopilot-after の TTL キャッシュ） ===
 
 test('getDirectives: 本文から base/after を導き TTL 内はキャッシュを返す', async () => {

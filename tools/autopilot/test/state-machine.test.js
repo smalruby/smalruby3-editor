@@ -12,6 +12,7 @@ const {
     phaseForItem,
     isGateReleased,
     humanSpokeLast,
+    hasUnhandledChangesRequest,
     isStuckCandidate,
     selectClosedToReconcile,
     TERMINAL_STATUSES,
@@ -157,13 +158,41 @@ test('I5: 発言解除は bot の応答・処理済み watermark より後の発
     assert.equal(humanSpokeLast({ lastHumanAt: '2026-07-07T10:00:00Z', lastBotAt: '2026-07-07T09:00:00Z' }), true);
 });
 
-test('isGateReleased: ラベル解除 OR 発言解除', () => {
+test('isGateReleased: ラベル解除 OR 発言解除 OR 未処理 changesRequested', () => {
     const item = { hitlLabel: true };
     assert.equal(isGateReleased(item, {}), false);
     assert.equal(isGateReleased({ hitlLabel: false }, {}), true);
     assert.equal(isGateReleased(item, { hitlSignals: { issueLabel: true, prLabel: false } }), true);
     assert.equal(isGateReleased(item, { hitlSignals: { issueLabel: true, prLabel: true } }), false);
     assert.equal(isGateReleased(item, { humanSpokeLast: true }), true);
+    // #894: 未処理の新しい changesRequested があれば、ラベル/発言解除が無くても解除
+    assert.equal(isGateReleased(item, { unhandledChangesRequested: true }), true);
+});
+
+test('I6: approve 後の Request changes は bot sticky の leapfrog に負けず address-review へ (#894)', () => {
+    // 構造化シグナルの核: changesRequested の submittedAt が review watermark より新しいかだけを見る
+    // （コメント時刻・humanSpokeLast とは独立）。
+    const review = { approved: false, changesRequested: true, changesRequestedAt: 300 };
+    // approve 直後の dispatch で通常 watermark（handledAt）は進んでいるが review watermark は未設定
+    assert.equal(hasUnhandledChangesRequest(review, undefined), true);
+    // Review item: 🙋 ラベルは projection が付け直したまま（両面あり）＋ humanSpokeLast は
+    // sticky leapfrog で false。それでも address-review へ倒れる。
+    const item = { status: 'Review', hitlLabel: true, kind: 'Issue', labels: [] };
+    const ctx = {
+        hitlSignals: { issueLabel: true, prLabel: true },
+        humanSpokeLast: false,
+        review,
+        unhandledChangesRequested: hasUnhandledChangesRequest(review, undefined),
+    };
+    assert.equal(phaseForItem(item, ctx), 'address-review');
+    // 一度処理して review watermark が追いつく → 同じレビューでは再発火しない
+    assert.equal(hasUnhandledChangesRequest(review, 300), false);
+    assert.equal(
+        phaseForItem(item, { ...ctx, unhandledChangesRequested: hasUnhandledChangesRequest(review, 300) }),
+        null,
+    );
+    // approve 単独（changesRequested 無し）は発火しない
+    assert.equal(hasUnhandledChangesRequest({ approved: true, changesRequested: false }, undefined), false);
 });
 
 test('I4: hitl 提案は Status を Icebox/Close へ動かさない（プロンプト規約の静的検査）', () => {
