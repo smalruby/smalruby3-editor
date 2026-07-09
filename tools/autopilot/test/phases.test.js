@@ -39,6 +39,7 @@ const {
     hasTrackingLabel,
     waitingLabelAction,
     protectedPaths,
+    touchedRuleAreas,
     STICKY_MARKER,
     PR_SYNC_STATUSES,
     READY_STATUSES,
@@ -83,6 +84,12 @@ const {
     CHECKPOINT_CONTINUATION_COMMENT_MARKER,
     continuationCommentBody,
     isSteadyStateHitlGate,
+    REVIEW_FINDING_CATEGORIES,
+    parseReviewFindingCategory,
+    countReviewFindings,
+    renderReviewFindingsSummary,
+    REVIEW_FINDING_POLICY,
+    addressReviewPolicyFor,
 } = require('../src/phases');
 const { PROMPT_RE } = require('../src/runner');
 
@@ -1510,4 +1517,76 @@ test('isStuckCandidate: Awaiting Continuation は stuck 対象外（意図的な
     assert.equal(
         isStuckCandidate({ status: 'In Progress', aiStatus: 'Awaiting Continuation' }), false,
     );
+});
+
+test('parseReviewFindingCategory: マーカーから分類を抜き出す（#921）', () => {
+    assert.equal(parseReviewFindingCategory('**[Must]** null チェック漏れ'), 'Must');
+    assert.equal(parseReviewFindingCategory('**[Question]** ここは意図的？'), 'Question');
+    assert.equal(parseReviewFindingCategory('**[FYI]** 将来的には整理してもよい'), 'FYI');
+    assert.equal(parseReviewFindingCategory('マーカー無しのコメント'), null);
+    assert.equal(parseReviewFindingCategory(''), null);
+    assert.equal(parseReviewFindingCategory(null), null);
+});
+
+test('countReviewFindings: 複数コメントから分類ごとの件数を集計する', () => {
+    const comments = [
+        { body: '**[Must]** バグ A' },
+        { body: '**[Must]** バグ B' },
+        { body: '**[Question]** 設計確認' },
+        { body: '**[FYI]** 気になる点' },
+        { body: '<!-- autopilot-sticky-status -->\n## 🤖 autopilot status' },
+    ];
+    assert.deepEqual(countReviewFindings(comments), { Must: 2, Question: 1, FYI: 1 });
+    assert.deepEqual(countReviewFindings([]), { Must: 0, Question: 0, FYI: 0 });
+    assert.deepEqual(countReviewFindings(undefined), { Must: 0, Question: 0, FYI: 0 });
+});
+
+test('renderReviewFindingsSummary: 件数からサマリ行を作る', () => {
+    assert.equal(
+        renderReviewFindingsSummary({ Must: 1, Question: 2, FYI: 0 }),
+        '指摘 3 件（Must 1 / Question 2 / FYI 0）',
+    );
+    assert.equal(renderReviewFindingsSummary({ Must: 0, Question: 0, FYI: 0 }), '指摘なし。');
+    assert.equal(renderReviewFindingsSummary({}), '指摘なし。');
+});
+
+test('addressReviewPolicyFor: 分類から対応方針を返す（#921 DoD の対応表）', () => {
+    assert.equal(addressReviewPolicyFor('Must'), 'fix');
+    assert.equal(addressReviewPolicyFor('Question'), 'fix-or-hitl');
+    assert.equal(addressReviewPolicyFor('FYI'), 'ignore');
+    // 未知の分類は安全側で無視
+    assert.equal(addressReviewPolicyFor('Unknown'), 'ignore');
+    assert.equal(addressReviewPolicyFor(undefined), 'ignore');
+});
+
+test('REVIEW_FINDING_CATEGORIES / REVIEW_FINDING_POLICY: 3 分類すべてに方針が定義されている', () => {
+    assert.deepEqual(REVIEW_FINDING_CATEGORIES, ['Must', 'Question', 'FYI']);
+    for (const category of REVIEW_FINDING_CATEGORIES) {
+        assert.ok(category in REVIEW_FINDING_POLICY, `${category} に対応方針が無い`);
+    }
+});
+
+test('touchedRuleAreas: 変更ファイルから .claude/rules/<area>/ を導く（#921）', () => {
+    assert.deepEqual(
+        touchedRuleAreas(['packages/scratch-gui/src/lib/foo.js', 'packages/scratch-gui/test/unit/foo.test.js']),
+        ['scratch-gui'],
+    );
+    // 複数エリア・出現順・重複無し
+    assert.deepEqual(
+        touchedRuleAreas([
+            'packages/scratch-vm/src/extensions/foo.js',
+            'infra/smalruby-mesh-v2/lib/foo.ts',
+            'packages/scratch-vm/test/unit/foo.js',
+        ]),
+        ['scratch-vm', 'infra'],
+    );
+    // tools/autopilot と bin/autopilot-* / bin/bot-* はどれも autopilot エリア
+    assert.deepEqual(
+        touchedRuleAreas(['tools/autopilot/src/phases.js', 'bin/autopilot-push', 'bin/bot-git']),
+        ['autopilot'],
+    );
+    // どの area にも当たらないファイルは無視
+    assert.deepEqual(touchedRuleAreas(['README.md', 'CLAUDE.md']), []);
+    assert.deepEqual(touchedRuleAreas([]), []);
+    assert.deepEqual(touchedRuleAreas(undefined), []);
 });

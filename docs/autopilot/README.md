@@ -231,6 +231,32 @@ close した leaf、(B) 統合 PR の `Closes #<epic>` で閉じた EPIC、(C) �
 - 二重起動は daemon の running セットで防止（review 実行中も In Progress / Self-Reviewing のままだが
   `selectActionable` が running の item を除外する）。
 
+### レビューは `.claude/rules` 準拠 + Must/Question/FYI 分類（#921）
+
+`/code-review` 等の動的マルチエージェント Workflow は使わない（#893・トークン浪費）ため、
+レビューの深さと視認性を **`.claude/rules` 準拠のインラインレビュー + 指摘の 3 分類**で確保する。
+
+1. 差分の変更ファイルから `touchedRuleAreas`（`phases.js` の純粋関数）で touch する
+   `.claude/rules/<area>/` を機械的に導き、それを読んでからレビューする（プロジェクト固有の
+   実装規約・マーカー・不変条件の逸脱を見落とさない）。
+2. 各指摘を **Must / Question / FYI** に分類し、PR コメント本文の先頭に `**[Must]**` 等の
+   マーカーを付ける（`REVIEW_FINDING_MARKER_RE` が検出する形式）:
+
+   | 分類 | 定義 | autopilot の対応 |
+   |---|---|---|
+   | **Must** | セキュリティ問題・考慮漏れ（明確なバグ/退行） | **必ず修正する** |
+   | **Question** | 直した方がいいが動作する。稀なコーナーケース | 対応コストが小さければ修正、大きければ人間へ（`🙋 HITL` は Review 遷移で既に立つので追加分岐は無い） |
+   | **FYI** | 気になるが直すほどではない | 対応しない（コメントのみ） |
+
+3. 件数サマリ（`countReviewFindings` / `renderReviewFindingsSummary`）を PR コメントに残す
+   （「指摘 N 件（Must a / Question b / FYI c）」形式）。#893 で失われた「敵対的レビューの
+   深さの可視性」をこのサマリで回復する。
+
+分類・件数集計・対応方針テーブルは `phases.js` の純粋関数（`parseReviewFindingCategory` /
+`countReviewFindings` / `renderReviewFindingsSummary` / `addressReviewPolicyFor`）でテスト済み。
+分類の実行（何が Must/Question/FYI か）自体は LLM の判断で、機械的に検証できるのは
+マーカー形式・集計・対応表の整合性のみ。
+
 ---
 
 ## Review 解除後の自動遷移（address-review に一本化・#815）
@@ -243,7 +269,11 @@ approve でも本文に改善依頼が書かれていたり、"changes requested
 自由文の意図は構造化シグナルでは判定できない。そこで**判断はプロンプト側に置く**: address-review が
 PR の **diff と全コメント（Issue/レビュー本文/インライン）**を読んで分類する。
 
-| プロンプトの分類（HITL 解除後） | 対応 |
+分類対象は 2 系統（#921）: (A) review フェーズが残した `Must`/`Question`/`FYI` マーカー付き
+コメントのうち未対応のもの、(B) 人間の自由文コメント・レビュー。(A) は review フェーズと同じ対応表
+（Must=修正 / Question=対応可なら修正・困難なら HITL / FYI=無視）に従う。(B) は次の表:
+
+| プロンプトの分類（HITL 解除後・人間コメント） | 対応 |
 |---|---|
 | 質問 | bot で返信（必要ならコード修正）→ 再レビューへ |
 | 改善依頼 / 変更要求 | worktree で修正・push → 再レビューへ |
