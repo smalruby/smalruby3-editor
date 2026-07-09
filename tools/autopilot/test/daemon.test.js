@@ -740,6 +740,31 @@ test('markBlocked: body 無しならコメントしない（Status と face sync
     assert.equal(deps.calls.setField.length, 1);
 });
 
+test('markBlocked: state を渡すと board キャッシュも Blocked へ live 反映する (#888)', async () => {
+    const deps = makeBlockDeps();
+    const state = { board: { items: [{ issue: 9, status: 'In Progress', aiStatus: 'Implementing' }] } };
+    const item = { issue: 9, itemId: 'i9', status: 'In Progress', kind: 'Issue' };
+    await markBlocked(item, null, makeCfg(), () => {}, deps, state);
+    assert.equal(state.board.items[0].status, 'Blocked');
+    // AI Status は markBlocked が触らないので保持される
+    assert.equal(state.board.items[0].aiStatus, 'Implementing');
+});
+
+test('markBlocked: state 未指定でも従来どおり動く（board 反映はスキップ・後方互換）', async () => {
+    const deps = makeBlockDeps();
+    await markBlocked({ issue: 9, itemId: 'i9' }, null, makeCfg(), () => {}, deps);
+    assert.equal(deps.calls.setField.length, 1);
+});
+
+test('markBlocked: setField 失敗時は board キャッシュを汚さない (#888)', async () => {
+    const deps = makeBlockDeps();
+    deps.setField = () => { throw new Error('boom'); };
+    const state = { board: { items: [{ issue: 9, status: 'In Progress' }] } };
+    await markBlocked({ issue: 9, itemId: 'i9' }, null, makeCfg(), () => {}, deps, state);
+    // 書き込みが失敗したら board も Blocked にしない（Project の実状態と一致させる）
+    assert.equal(state.board.items[0].status, 'In Progress');
+});
+
 test('detectStuck: stuckMs 未満は記録のみ、超過で Blocked + コメント (#816)', async () => {
     const deps = makeBlockDeps();
     const cfg = { ...makeCfg(), now: () => 1000, stuckMs: 5000 };
