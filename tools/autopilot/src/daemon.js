@@ -38,6 +38,8 @@ const {
     rateLimitPlan,
     PR_SYNC_STATUSES,
     humanSpokeLast,
+    hasUnhandledChangesRequest,
+    toMs,
     TRACKING_LABEL,
     AUTOPILOT_LABEL,
     TERMINAL_STATUSES,
@@ -537,6 +539,7 @@ async function collectGateContexts(cfg, items, running, state, log, deps = {}) {
     const token = deps.token || await project.readToken();
     const getGateContext = deps.getGateContext || project.getGateContext;
     const handled = state.gateHandled || (state.gateHandled = new Map());
+    const reviewHandled = state.gateReviewHandled || (state.gateReviewHandled = new Map());
     for (const item of items) {
         if (!isGateItem(item)) continue;
         if (running.has(item.issue)) continue;
@@ -548,6 +551,12 @@ async function collectGateContexts(cfg, items, running, state, log, deps = {}) {
             contexts[item.issue] = {
                 ...ctx,
                 humanSpokeLast: humanSpokeLast({ ...ctx.activity, handledAt: handled.get(item.issue) }),
+                // 構造化シグナル（#894）: approve 後の Request changes を、コメント時刻ベースの
+                // humanSpokeLast が bot sticky（lastBotAt）や handledAt に leapfrog されても
+                // 確実に拾う。処理済みレビュー watermark より新しい changesRequested だけ解除。
+                unhandledChangesRequested: hasUnhandledChangesRequest(
+                    ctx.review, reviewHandled.get(item.issue),
+                ),
             };
         } catch (e) {
             log(`#${item.issue}: gate context error ${e.message}`);
@@ -883,6 +892,13 @@ async function tick(cfg, state, log) {
         if (contexts[item.issue]) {
             if (!state.gateHandled) state.gateHandled = new Map();
             state.gateHandled.set(item.issue, cfg.now());
+            // #894: 処理した changesRequested レビューの submittedAt を watermark に記録し、
+            // 同じレビューで毎 tick 再発火しないようにする（新しい changesRequested で再度発火）。
+            const review = contexts[item.issue].review;
+            if (review && review.changesRequestedAt) {
+                if (!state.gateReviewHandled) state.gateReviewHandled = new Map();
+                state.gateReviewHandled.set(item.issue, toMs(review.changesRequestedAt));
+            }
         }
         // fire-and-forget（running で重複防止）
         dispatch(item, cfg, state, log);

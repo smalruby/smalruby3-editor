@@ -22,15 +22,23 @@ item の状態は次の 4 要素で決まる（Project が単一の真実）:
 | **D: daemon tick ステップ** | merge-progression / closed-reconcile / stuck 検知 / DoD 引き継ぎ / EPIC tracking / PR 投影 |
 | **H: 人間の操作** | Status 移動 / `🙋 HITL` ラベル解除 / **コメント・レビュー送信** / PR merge / Issue close |
 
-### 人間ゲートの解除は 2 系統（固着防止の核心）
+### 人間ゲートの解除は 3 系統（固着防止の核心）
 
-Review / DoD / Blocked / Discussing の「人間の番」は、次の **どちらでも** 解除される:
+Review / DoD / Blocked / Discussing の「人間の番」は、次の **いずれか** で解除される:
 
 1. **ラベル解除**: Issue / PR いずれかの `🙋 HITL` ラベルを外す（OR セマンティクス・#813）
 2. **発言解除**: ゲート開放中に**人間が最後に発言**した（Issue コメント / PR コメント / レビュー送信。
    `humanSpokeLast`）。**ラベルを触らずコメントだけ出す操作でも固着しない**。
    bot が応答すると「bot が最後」になり、daemon の dispatch で watermark（`state.gateHandled`）が
    進むため、同じ発言で再発火・空回りしない。
+3. **changesRequested 解除（構造化シグナル・#894）**: 未処理の新しい `CHANGES_REQUESTED` レビューが
+   ある（`hasUnhandledChangesRequest`）。**approve 後に Request changes** すると、発言解除
+   （`humanSpokeLast`）は bot の sticky 更新（`lastBotAt`）や approve 時の watermark に
+   leapfrog され拾えないことがあった（🙋 ラベルを付けるだけで address-review が dispatch されず
+   停止する行き止まり）。そこで changesRequested の submittedAt を**コメント時刻とは独立に**
+   専用 watermark（`state.gateReviewHandled`）と比較し、より新しければ approve の有無に関わらず
+   address-review へ倒す。一度 dispatch すれば watermark が進み同じレビューでは再発火せず、次に
+   より新しい Request changes が来たら再度発火する。
 
 ## 状態遷移表
 
@@ -79,6 +87,10 @@ Review / DoD / Blocked / Discussing の「人間の番」は、次の **どち�
 - **I5（再発火防止）**: 発言解除は「bot の最終発言・処理済み watermark より後の人間の発言」に
   のみ反応する。bot が応答しない分類（LGTM 等）でも watermark（dispatch 時に更新）により
   同じ発言で毎 tick 再 dispatch されない。
+- **I6（approve 後の Request changes・#894）**: approve 済みでも新しい `CHANGES_REQUESTED` レビューが
+  来たら、bot sticky が `lastBotAt` を更新して発言解除を潰しても **address-review が dispatch される**
+  （構造化シグナル `hasUnhandledChangesRequest`）。専用 watermark（`state.gateReviewHandled`）で同じ
+  レビューでは再発火せず、より新しい changesRequested で再度発火する。approve 単独では発火しない。
 
 ## 状態・トリガーを変更するときのチェックリスト
 

@@ -11,6 +11,8 @@ const {
     applyResult,
     hitlDesireFromResult,
     isHitlReleased,
+    isGateReleased,
+    hasUnhandledChangesRequest,
     progressOnMerge,
     computeReviewApproval,
     mergeProgressionIntents,
@@ -146,6 +148,68 @@ test('phaseForItem: Review with all HITL signals waiting -> null', () => {
 test('phaseForItem: Review released even without review state -> address-review (#815)', () => {
     // 旧実装は review 状態不明だと null（待ち）。新実装は解除されたらスキルに判断を委ねる。
     assert.equal(phaseForItem({ status: 'Review', hitlLabel: false }, {}), 'address-review');
+});
+
+test('hasUnhandledChangesRequest: 未処理の新しい changesRequested だけ true (#894)', () => {
+    // changesRequested でない（approve のみ）→ false（無限ループしない）
+    assert.equal(hasUnhandledChangesRequest({ approved: true }, null), false);
+    assert.equal(hasUnhandledChangesRequest(null, null), false);
+    assert.equal(hasUnhandledChangesRequest(undefined, 100), false);
+    // changesRequested だが時刻不明 → false（誤発火を避ける）
+    assert.equal(hasUnhandledChangesRequest({ changesRequested: true }, null), false);
+    // watermark 未設定で changesRequested あり → 未処理なので true
+    assert.equal(
+        hasUnhandledChangesRequest({ changesRequested: true, changesRequestedAt: 200 }, null),
+        true,
+    );
+    // watermark より新しい → true（新しい Request changes）
+    assert.equal(
+        hasUnhandledChangesRequest({ changesRequested: true, changesRequestedAt: 300 }, 200),
+        true,
+    );
+    // watermark と同じ（一度処理済み）→ false（毎 tick 再発火しない）
+    assert.equal(
+        hasUnhandledChangesRequest({ changesRequested: true, changesRequestedAt: 200 }, 200),
+        false,
+    );
+    // watermark より古い → false
+    assert.equal(
+        hasUnhandledChangesRequest({ changesRequested: true, changesRequestedAt: 100 }, 200),
+        false,
+    );
+    // ISO 文字列でも動く（GraphQL の submittedAt）
+    assert.equal(
+        hasUnhandledChangesRequest(
+            { changesRequested: true, changesRequestedAt: '2026-07-08T10:00:00Z' },
+            '2026-07-08T09:00:00Z',
+        ),
+        true,
+    );
+});
+
+test('isGateReleased: 未処理 changesRequested でも解除する (#894)', () => {
+    const item = { hitlLabel: true };
+    // ラベルも発言解除も無いが、未処理の changesRequested があれば解除
+    assert.equal(isGateReleased(item, { unhandledChangesRequested: true }), true);
+    // 未処理 changesRequested 無し + ラベルあり → 待ち
+    assert.equal(isGateReleased(item, { unhandledChangesRequested: false }), false);
+});
+
+test('phaseForItem: approve 後の Request changes は HITL ラベルが残っていても address-review (#894)', () => {
+    // approve 済みで 🙋 ラベルは付いたまま（projection が付け直した）状態でも、
+    // 未処理の新しい changesRequested があれば address-review へ倒す（行き止まり解消）。
+    const item = { status: 'Review', hitlLabel: true };
+    const ctx = {
+        hitlSignals: { issueLabel: true, prLabel: true },
+        review: { approved: false, changesRequested: true, changesRequestedAt: 300 },
+        unhandledChangesRequested: true,
+    };
+    assert.equal(phaseForItem(item, ctx), 'address-review');
+    // 一度処理して watermark が追いついた（unhandledChangesRequested=false）→ 待ちに戻る
+    assert.equal(
+        phaseForItem(item, { ...ctx, unhandledChangesRequested: false }),
+        null,
+    );
 });
 
 test('isActionable: paused -> false', () => {

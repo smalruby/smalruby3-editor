@@ -287,8 +287,10 @@ async function findPrForIssue(repo, issueNumber, token, deps = {}) {
  * - approved / changesRequested: {@link computeReviewApproval} で導く。reviewDecision は
  *   ブランチ保護でレビュー必須でないと空になり approve を検知できないため、空のときは
  *   個々の review の著者ごと最新 state から判定する（#815）。
+ * - changesRequestedAt: 最新の CHANGES_REQUESTED レビューの submittedAt（ms、無ければ null・#894）
  * - unresolvedHumanComments: 人間が立てた未解決レビュースレッド数（bot は除外）
- * @returns {{approved:boolean, changesRequested:boolean, unresolvedHumanComments:number}}
+ * @returns {{approved:boolean, changesRequested:boolean, changesRequestedAt:number|null,
+ *   unresolvedHumanComments:number}}
  */
 async function getPrReviewState(repo, prNumber, token) {
     const [owner, name] = repo.split('/');
@@ -316,6 +318,17 @@ async function getPrReviewState(repo, prNumber, token) {
     ).length;
     const reviews = (pr.reviews && pr.reviews.nodes) || [];
     const { approved, changesRequested } = computeReviewApproval(reviews, pr.reviewDecision, isHuman);
+    // 最新の人間 CHANGES_REQUESTED レビューの submittedAt（#894 の構造化解除シグナル用）。
+    // approve 後に Request changes しても、その submittedAt が処理済み watermark より新しければ
+    // ゲートを解除して address-review へ倒す（hasUnhandledChangesRequest）。
+    let changesRequestedAt = null;
+    for (const r of reviews) {
+        const login = r && r.author && r.author.login;
+        if (!isHuman(login) || r.state !== 'CHANGES_REQUESTED') continue;
+        const ms = r.submittedAt ? Date.parse(r.submittedAt) : NaN;
+        if (Number.isNaN(ms)) continue;
+        if (changesRequestedAt == null || ms > changesRequestedAt) changesRequestedAt = ms;
+    }
     // 発言アクティビティ（ゲート解除の「人間が最後に発言したか」判定用）: PR コメント +
     // レビュー送信 + レビュースレッドコメントの、人間/bot 別の最新時刻を集める。
     const activity = { lastHumanAt: 0, lastBotAt: 0 };
@@ -330,7 +343,7 @@ async function getPrReviewState(repo, prNumber, token) {
     for (const t of threads) {
         for (const c of t.comments.nodes || []) record(c.author && c.author.login, c.createdAt);
     }
-    return { approved, changesRequested, unresolvedHumanComments, activity };
+    return { approved, changesRequested, changesRequestedAt, unresolvedHumanComments, activity };
 }
 
 /**
