@@ -1752,6 +1752,28 @@ function sanitizeForSurface(text, maxLen = 600) {
 }
 
 /**
+ * 認証系エラー（AWS SSO 失効・bot-token 取得不能等）かを判定する純粋関数。
+ *
+ * `bin/bot-token` は SSO 失効時に「AWS 認証が失効/未設定…」を stderr に出して die する。
+ * `project.botToken()` はそれを execFile の失敗として throw するため、error の
+ * `message` と `stderr` の双方を突き合わせる。tick の途中でこの種のエラーが飛んでも
+ * プロセスを落とさず auto-pause（pausedBy='auth'）へ合流させるための分類器（#949）。
+ * @param {Error|string|null|undefined} err 判定対象（Error / 文字列いずれも可）
+ * @returns {boolean} 認証系エラーなら true
+ */
+function isAuthError(err) {
+    if (!err) return false;
+    const text =
+        typeof err === 'string'
+            ? err
+            : `${err.message || ''}\n${err.stderr || ''}`;
+    if (!text.trim()) return false;
+    return /認証が失効|AWS 認証|aws sso login|token has expired|refresh failed|token.*(expired|invalid)|expired.*token|sso.*(session|token|login)|Unable to locate credentials|security token/i.test(
+        text,
+    );
+}
+
+/**
  * rate_limit の残量から実行計画を立てる（純粋関数）。
  * 入力はトークン別の残量（例 { bot: {core:{remaining,limit}, graphql:{...}}, read: {...} }）。
  * 最小残量が閾値を割ったら**低優先処理（PR 面投影・俯瞰ボード更新）をスキップ**して
@@ -1930,6 +1952,7 @@ module.exports = {
     shouldResend,
     evaluate,
     sanitizeForSurface,
+    isAuthError,
     DEFAULT_WATCHDOG,
     AUTOPILOT_LABEL,
     HITL_LABEL,

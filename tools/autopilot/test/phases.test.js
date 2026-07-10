@@ -34,6 +34,7 @@ const {
     shouldResend,
     evaluate,
     sanitizeForSurface,
+    isAuthError,
     DEFAULT_WATCHDOG,
     HITL_LABEL,
     AUTOPILOT_LABEL,
@@ -429,6 +430,29 @@ test('sanitizeForSurface: トークン・鍵・機密変数・URL クエリを r
     assert.match(s, /push failed/);
     assert.match(s, /not authorized/);
     assert.match(s, /https:\/\/s3\.amazonaws\.com\/bucket\/key\?\[REDACTED\]/);
+});
+
+test('isAuthError: SSO 失効・bot-token 取得不能を認証系と判定する（#949）', () => {
+    // bot-token が SSO 失効時に die するときの実メッセージ（message / stderr の双方を見る）
+    assert.equal(isAuthError(new Error('AWS 認証が失効/未設定のため Secrets Manager から秘密鍵を取得できません')), true);
+    assert.equal(isAuthError(Object.assign(new Error('Command failed: /app/bin/bot-token'), {
+        stderr: 'aws: Error when retrieving token from sso: Token has expired and refresh failed',
+    })), true);
+    assert.equal(isAuthError('aws sso login が必要です'), true);
+    assert.equal(isAuthError('The security token included in the request is expired'), true);
+    assert.equal(isAuthError('Unable to locate credentials'), true);
+    // 文字列でも Error でも受ける
+    assert.equal(isAuthError(new Error('token has expired')), true);
+});
+
+test('isAuthError: 非認証エラー・空入力は false（#949）', () => {
+    assert.equal(isAuthError(null), false);
+    assert.equal(isAuthError(undefined), false);
+    assert.equal(isAuthError(''), false);
+    assert.equal(isAuthError(new Error('')), false);
+    assert.equal(isAuthError(new Error('ECONNRESET: socket hang up')), false);
+    assert.equal(isAuthError(new Error('GraphQL: rate limit exceeded')), false);
+    assert.equal(isAuthError('some random failure'), false);
 });
 
 test('protectedPaths: Bot 権限外パス（workflows/actions）を抽出する', () => {

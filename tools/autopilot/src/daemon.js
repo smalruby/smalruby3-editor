@@ -55,6 +55,7 @@ const {
     renderTrackerSticky,
     TRACKER_STICKY_MARKER,
     sanitizeForSurface,
+    isAuthError,
     labelActions,
     draftAction,
     renderSticky,
@@ -287,18 +288,66 @@ async function checkAuthHealth(cfg, state, log, deps = {}) {
         }
         return true;
     } catch (e) {
-        const msg = sanitizeForSurface(`${e.message || e}${e.stderr ? `: ${e.stderr}` : ''}`, 300);
-        if (state.pausedBy === 'human') {
-            // 人間の pause を尊重しつつエラーだけ記録する
-            state.authError = msg;
-            return false;
-        }
-        if (state.pausedBy !== 'auth') log(`auth failure — auto-pause: ${msg}`);
-        state.paused = true;
-        state.pausedBy = 'auth';
-        state.authError = msg;
+        recordAuthFailure(state, e, log);
         return false;
     }
+}
+
+/**
+ * 認証失敗を state に記録し **auto-pause（pausedBy='auth'）** へ落とす（#949）。
+ * checkAuthHealth の onError 経路と、tick 途中・非同期経路（safety net）で捕捉した
+ * 認証系エラーの合流点。人間が明示 pause 中（pausedBy='human'）はエラー記録のみで
+ * pause の主体を上書きしない（`pausedBy` の区別を保つ不変条件）。
+ * @param {object} state daemon の可変状態
+ * @param {Error|string} err 認証系エラー
+ * @param {function} log
+ * @returns {string} surface 用にサニタイズ済みのメッセージ
+ */
+function recordAuthFailure(state, err, log) {
+    const msg = sanitizeForSurface(
+        `${(err && err.message) || err}${err && err.stderr ? `: ${err.stderr}` : ''}`,
+        300,
+    );
+    if (state.pausedBy === 'human') {
+        // 人間の pause を尊重しつつエラーだけ記録する
+        state.authError = msg;
+        return msg;
+    }
+    if (state.pausedBy !== 'auth') log(`auth failure — auto-pause: ${msg}`);
+    state.paused = true;
+    state.pausedBy = 'auth';
+    state.authError = msg;
+    return msg;
+}
+
+/**
+ * プロセスレベルの安全網（#949）。tick の各 apply ステップ・PR 投影・face sync 等は
+ * fire-and-forget で呼ばれる箇所があり、その非同期経路で bot-token 由来の認証エラーが
+ * reject すると未捕捉のまま **プロセス全体が落ちる**（本 issue の実害）。
+ * `unhandledRejection` / `uncaughtException` を捕まえ、認証系なら auto-pause、それ以外は
+ * サニタイズして log に残し、**プロセスを継続**させる（無人運用のため daemon は落ちてはならない）。
+ * @param {object} state daemon の可変状態
+ * @param {Error|string} err
+ * @param {function} log
+ * @param {string} [kind] ログ用のイベント種別（'unhandledRejection' 等）
+ */
+function handleProcessError(state, err, log, kind = 'error') {
+    if (isAuthError(err)) {
+        recordAuthFailure(state, err, log);
+        return;
+    }
+    log(`${kind}（プロセス継続）: ${sanitizeForSurface(`${(err && err.message) || err}`, 300)}`);
+}
+
+/**
+ * {@link handleProcessError} を process のグローバルハンドラとして 1 度だけ張る（#949）。
+ * @param {object} state
+ * @param {function} log
+ * @param {object} [proc] テスト用に process を差し替え可能
+ */
+function installProcessSafetyNet(state, log, proc = process) {
+    proc.on('unhandledRejection', (reason) => handleProcessError(state, reason, log, 'unhandledRejection'));
+    proc.on('uncaughtException', (err) => handleProcessError(state, err, log, 'uncaughtException'));
 }
 
 /**
@@ -1498,6 +1547,16 @@ async function runTickOnce(cfg, state, log, deps = {}) {
     try {
         const summary = await tickFn(cfg, state, log);
         return { ran: true, ...summary, running: [...state.running.keys()] };
+    } catch (e) {
+        // tick 途中で bot-token 由来の認証エラー等が飛んでも **プロセスを落とさない**（#949）。
+        // 認証系なら checkAuthHealth の onError と同じ経路（auto-pause）へ合流させ、
+        // それ以外はサニタイズして log に残し、次 interval で通常継続する（無人運用）。
+        if (isAuthError(e)) {
+            recordAuthFailure(state, e, log);
+            return { ran: false, authPaused: true, running: [...state.running.keys()] };
+        }
+        log(`tick error（プロセス継続）: ${sanitizeForSurface(`${(e && e.message) || e}`, 300)}`);
+        return { ran: false, error: true, running: [...state.running.keys()] };
     } finally {
         state.ticking = false;
     }
@@ -1706,6 +1765,9 @@ async function main(opts = {}) {
         running: new Map(), ticking: false, claudeUsage: null,
         version: null, autopilotUpdate: null,
     };
+    // プロセスレベルの安全網（#949）: fire-and-forget な非同期経路の認証エラー等で
+    // daemon プロセスが落ちないようにする（認証系は auto-pause、他は log して継続）。
+    installProcessSafetyNet(state, log);
     // 稼働バージョンを起動時に確定させる（= 動いているコード）。以降 working tree が進んでも
     // この値は動かさない（だからこそ表示 + 更新検知が有用）。#885
     state.version = await readVersion(cfg.repoRoot);
@@ -1750,6 +1812,7 @@ module.exports = {
     applyLabelHealing, applyAfterWaitLabels,
     applyDecomposeSubIssueSetup,
     isGateItem, collectGateContexts, checkAuthHealth, REAUTH_HINT,
+    recordAuthFailure, handleProcessError, installProcessSafetyNet,
     parseSsoDeviceOutput, startReauth,
     refreshBoard, recordHistory, refreshRateLimits, patchBoardCache,
     applyTrackerStickies, refreshBoardAndProjectTrackers,
