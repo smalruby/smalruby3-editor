@@ -38,7 +38,10 @@ const EXPECTED_DECK_ID_ORDER = [
     'chat-3-mesh-3',
     'ruby-basics-1-numbers',
     'ruby-basics-2-strings',
-    'ruby-basics-3-variables'
+    'ruby-basics-3-variables',
+    'ruby-basics-4-arrays',
+    'ruby-basics-5-blocks',
+    'ruby-basics-6-methods'
 ];
 
 describe('Tutorial deck category split (issue #932)', () => {
@@ -51,6 +54,9 @@ describe('Tutorial deck category split (issue #932)', () => {
         expect(decks['ruby-basics-1-numbers']).toBe(rubyBasicsDecks['ruby-basics-1-numbers']);
         expect(decks['ruby-basics-2-strings']).toBe(rubyBasicsDecks['ruby-basics-2-strings']);
         expect(decks['ruby-basics-3-variables']).toBe(rubyBasicsDecks['ruby-basics-3-variables']);
+        expect(decks['ruby-basics-4-arrays']).toBe(rubyBasicsDecks['ruby-basics-4-arrays']);
+        expect(decks['ruby-basics-5-blocks']).toBe(rubyBasicsDecks['ruby-basics-5-blocks']);
+        expect(decks['ruby-basics-6-methods']).toBe(rubyBasicsDecks['ruby-basics-6-methods']);
     });
 
     test('block-series and dncl are empty stub categories that add no deck ids', () => {
