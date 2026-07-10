@@ -342,11 +342,84 @@ test('runTickOnce: paused tick is a no-op surfaced in the response', async () =>
     assert.deepEqual(result.picked, []);
 });
 
-test('runTickOnce: releases the ticking flag even when tick throws', async () => {
-    const state = { paused: false, running: new Map(), ticking: false };
+test('runTickOnce: tick が throw してもプロセスを落とさず error:true で返し flag を解放（#949）', async () => {
+    // 無人運用のため runTickOnce は tick 内の例外を再送出しない（main の while は try/catch を
+    // 持たないので、reject すると daemon プロセスごと落ちる）。非認証エラーは log して継続する。
+    const state = { paused: false, pausedBy: null, running: new Map(), ticking: false };
     const fakeTick = async () => { throw new Error('boom'); };
-    await assert.rejects(() => runTickOnce(makeCfg(), state, () => {}, { tick: fakeTick }), /boom/);
+    const result = await runTickOnce(makeCfg(), state, () => {}, { tick: fakeTick });
+    assert.equal(result.ran, false);
+    assert.equal(result.error, true);
     assert.equal(state.ticking, false);
+    // 非認証エラーで勝手に auto-pause しない
+    assert.equal(state.paused, false);
+    assert.equal(state.pausedBy, null);
+});
+
+test('runTickOnce: tick 途中の認証エラー（SSO 失効）は auto-pause へ合流し落ちない（#949）', async () => {
+    const state = { paused: false, pausedBy: null, authError: null, running: new Map(), ticking: false };
+    const fakeTick = async () => {
+        const e = new Error('Command failed: /app/bin/bot-token');
+        e.stderr = 'aws: Error when retrieving token from sso: Token has expired and refresh failed';
+        throw e;
+    };
+    const result = await runTickOnce(makeCfg(), state, () => {}, { tick: fakeTick });
+    assert.equal(result.ran, false);
+    assert.equal(result.authPaused, true);
+    assert.equal(state.paused, true);
+    assert.equal(state.pausedBy, 'auth');
+    assert.match(state.authError, /expired|bot-token/i);
+    assert.equal(state.ticking, false);
+});
+
+// === プロセスレベルの安全網: installProcessSafetyNet / handleProcessError（#949） ===
+
+test('handleProcessError: 認証系エラーは auto-pause、非認証は log して継続', () => {
+    const { handleProcessError } = require('../src/daemon');
+    // 認証系 → auto-pause
+    const authState = { paused: false, pausedBy: null, authError: null, running: new Map() };
+    const e = new Error('AWS 認証が失効/未設定のため Secrets Manager から秘密鍵を取得できません');
+    handleProcessError(authState, e, () => {}, 'unhandledRejection');
+    assert.equal(authState.paused, true);
+    assert.equal(authState.pausedBy, 'auth');
+    assert.match(authState.authError, /失効/);
+    // 非認証 → auto-pause しない、log されるがプロセス継続（例外を再送出しない）
+    const otherState = { paused: false, pausedBy: null, running: new Map() };
+    const logs = [];
+    assert.doesNotThrow(() =>
+        handleProcessError(otherState, new Error('random glitch'), (m) => logs.push(m), 'uncaughtException'));
+    assert.equal(otherState.paused, false);
+    assert.equal(otherState.pausedBy, null);
+    assert.ok(logs.some((m) => /random glitch/.test(m)));
+});
+
+test('handleProcessError: 人間の pause を auth の自動処理で上書きしない（#949）', () => {
+    const { handleProcessError } = require('../src/daemon');
+    const state = { paused: true, pausedBy: 'human', authError: null, running: new Map() };
+    handleProcessError(state, new Error('token has expired'), () => {}, 'unhandledRejection');
+    assert.equal(state.pausedBy, 'human'); // 上書きしない
+    assert.equal(state.paused, true);
+    assert.match(state.authError, /expired/); // エラーだけ surface
+});
+
+test('installProcessSafetyNet: unhandledRejection/uncaughtException を張り、認証系で auto-pause', () => {
+    const { installProcessSafetyNet } = require('../src/daemon');
+    const proc = new EventEmitter();
+    const state = { paused: false, pausedBy: null, authError: null, running: new Map() };
+    installProcessSafetyNet(state, () => {}, proc);
+    assert.equal(proc.listenerCount('unhandledRejection'), 1);
+    assert.equal(proc.listenerCount('uncaughtException'), 1);
+    // 認証系の rejection を投げてもプロセスは落ちず auto-pause に落ちる
+    proc.emit('unhandledRejection', Object.assign(new Error('bot-token failed'), {
+        stderr: 'Token has expired and refresh failed',
+    }));
+    assert.equal(state.paused, true);
+    assert.equal(state.pausedBy, 'auth');
+    // 非認証 rejection は継続（auto-pause しない）
+    state.paused = false; state.pausedBy = null;
+    proc.emit('unhandledRejection', new Error('some non-auth error'));
+    assert.equal(state.paused, false);
+    assert.equal(state.pausedBy, null);
 });
 
 test('applyPrProjection: a failing item does not block others', async () => {
