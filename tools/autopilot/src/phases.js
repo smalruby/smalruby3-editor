@@ -1083,9 +1083,12 @@ function labelActions(item, currentLabels, opts = {}) {
     const add = [];
     const remove = [];
     if (!cur.includes(AUTOPILOT_LABEL)) add.push(AUTOPILOT_LABEL);
-    // Kind=EPIC には 🧭 tracking を担保する（以後の tick はラベルだけで判定できる）。
+    // 🧭 tracking は **分解済み**（sub-issue を持つ）Kind=EPIC にだけ担保する。未分解の EPIC に
+    // 付けると phaseForItem（hasTrackingLabel）が decompose の前に作業対象から除外してしまい、
+    // 分解が永久に走らないデッドロックになる（#680/#681 が着手できなかった原因）。
     // 自動では外さない（人間が手動で付けたトラッカー指定を潰さない）。
-    if (item && item.kind === 'EPIC' && !cur.includes(TRACKING_LABEL)) add.push(TRACKING_LABEL);
+    const decomposed = Boolean(item && item.subIssues && item.subIssues.total > 0);
+    if (item && item.kind === 'EPIC' && decomposed && !cur.includes(TRACKING_LABEL)) add.push(TRACKING_LABEL);
     const h = hitlLabelAction(item, cur.includes(HITL_LABEL), opts);
     if (h === 'add') add.push(HITL_LABEL);
     else if (h === 'remove') remove.push(HITL_LABEL);
