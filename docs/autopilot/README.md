@@ -693,6 +693,16 @@ env `AUTOPILOT_ASSIGNEE` でも可）。起動すると PID ファイル（`$TMP
 tmux new -d -s autopilot 'node tools/autopilot/bin/autopilot daemon 2>&1 | tee /tmp/autopilot-daemon.log'
 ```
 
+> **起動 / 再起動 / 更新反映（update autopilot）は Claude（autopilot スキル）が実行してよい。**
+> autopilot スキルが生成する tmux 起動ラッパ `tmp/autopilot_up.sh` があれば、Claude が
+> `bash tmp/autopilot_up.sh` で起動・再起動できる（従来「人間のみ」だったが解禁）。
+> **前提: 起動前に `bin/bot-token` が成功すること** — bot トークンを取得できないと daemon は
+> 未捕捉例外でクラッシュする（実際に SSO 失効でプロセスごと落ちた事例あり）。
+> **AWS SSO 再認証だけは人間**（device code + ブラウザ承認は代行不可）: 失効時は
+> `aws sso login --sso-session smalruby --use-device-code` を人間が実行し、`bin/bot-token --whoami`
+> で回復を確認してから Claude が起動する。再起動は `POST /shutdown` →（必要なら `git pull`）→
+> `bash tmp/autopilot_up.sh`。詳細は `.claude/skills/autopilot/SKILL.md`。
+
 #### 監視（Web モニタ）
 
 ブラウザで **`http://localhost:8787/`** を開くと**俯瞰ボード**が表示される
