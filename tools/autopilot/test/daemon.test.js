@@ -3,7 +3,8 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const {
     applyMergeProgression, applyClosedReconcile, applyPrProjection, applyDodHandoffs, runTickOnce,
-    detectStuck, markBlocked, getDirectives, applyLabelHealing, applyAfterWaitLabels, collectGateContexts,
+    detectStuck, markBlocked, getDirectives, populateAssigneeDirectives,
+    applyLabelHealing, applyAfterWaitLabels, collectGateContexts,
     applyDecomposeSubIssueSetup,
     parseSsoDeviceOutput, startReauth,
     updateClaudeUsage, boardResponse, statusResponse,
@@ -12,6 +13,7 @@ const {
     ensureCheckpointCommit, readContinuationFromWorktree, applyCheckpointHandling,
     collectContinuationContexts, checkpointEscalationBody,
     applyTrackerStickies, refreshBoardAndProjectTrackers,
+    followBaseBranch,
 } = require('../src/daemon');
 const { EventEmitter } = require('node:events');
 const { HITL_LABEL, AUTOPILOT_LABEL, continuationMarker, TRACKER_STICKY_MARKER } = require('../src/phases');
@@ -341,11 +343,84 @@ test('runTickOnce: paused tick is a no-op surfaced in the response', async () =>
     assert.deepEqual(result.picked, []);
 });
 
-test('runTickOnce: releases the ticking flag even when tick throws', async () => {
-    const state = { paused: false, running: new Map(), ticking: false };
+test('runTickOnce: tick が throw してもプロセスを落とさず error:true で返し flag を解放（#949）', async () => {
+    // 無人運用のため runTickOnce は tick 内の例外を再送出しない（main の while は try/catch を
+    // 持たないので、reject すると daemon プロセスごと落ちる）。非認証エラーは log して継続する。
+    const state = { paused: false, pausedBy: null, running: new Map(), ticking: false };
     const fakeTick = async () => { throw new Error('boom'); };
-    await assert.rejects(() => runTickOnce(makeCfg(), state, () => {}, { tick: fakeTick }), /boom/);
+    const result = await runTickOnce(makeCfg(), state, () => {}, { tick: fakeTick });
+    assert.equal(result.ran, false);
+    assert.equal(result.error, true);
     assert.equal(state.ticking, false);
+    // 非認証エラーで勝手に auto-pause しない
+    assert.equal(state.paused, false);
+    assert.equal(state.pausedBy, null);
+});
+
+test('runTickOnce: tick 途中の認証エラー（SSO 失効）は auto-pause へ合流し落ちない（#949）', async () => {
+    const state = { paused: false, pausedBy: null, authError: null, running: new Map(), ticking: false };
+    const fakeTick = async () => {
+        const e = new Error('Command failed: /app/bin/bot-token');
+        e.stderr = 'aws: Error when retrieving token from sso: Token has expired and refresh failed';
+        throw e;
+    };
+    const result = await runTickOnce(makeCfg(), state, () => {}, { tick: fakeTick });
+    assert.equal(result.ran, false);
+    assert.equal(result.authPaused, true);
+    assert.equal(state.paused, true);
+    assert.equal(state.pausedBy, 'auth');
+    assert.match(state.authError, /expired|bot-token/i);
+    assert.equal(state.ticking, false);
+});
+
+// === プロセスレベルの安全網: installProcessSafetyNet / handleProcessError（#949） ===
+
+test('handleProcessError: 認証系エラーは auto-pause、非認証は log して継続', () => {
+    const { handleProcessError } = require('../src/daemon');
+    // 認証系 → auto-pause
+    const authState = { paused: false, pausedBy: null, authError: null, running: new Map() };
+    const e = new Error('AWS 認証が失効/未設定のため Secrets Manager から秘密鍵を取得できません');
+    handleProcessError(authState, e, () => {}, 'unhandledRejection');
+    assert.equal(authState.paused, true);
+    assert.equal(authState.pausedBy, 'auth');
+    assert.match(authState.authError, /失効/);
+    // 非認証 → auto-pause しない、log されるがプロセス継続（例外を再送出しない）
+    const otherState = { paused: false, pausedBy: null, running: new Map() };
+    const logs = [];
+    assert.doesNotThrow(() =>
+        handleProcessError(otherState, new Error('random glitch'), (m) => logs.push(m), 'uncaughtException'));
+    assert.equal(otherState.paused, false);
+    assert.equal(otherState.pausedBy, null);
+    assert.ok(logs.some((m) => /random glitch/.test(m)));
+});
+
+test('handleProcessError: 人間の pause を auth の自動処理で上書きしない（#949）', () => {
+    const { handleProcessError } = require('../src/daemon');
+    const state = { paused: true, pausedBy: 'human', authError: null, running: new Map() };
+    handleProcessError(state, new Error('token has expired'), () => {}, 'unhandledRejection');
+    assert.equal(state.pausedBy, 'human'); // 上書きしない
+    assert.equal(state.paused, true);
+    assert.match(state.authError, /expired/); // エラーだけ surface
+});
+
+test('installProcessSafetyNet: unhandledRejection/uncaughtException を張り、認証系で auto-pause', () => {
+    const { installProcessSafetyNet } = require('../src/daemon');
+    const proc = new EventEmitter();
+    const state = { paused: false, pausedBy: null, authError: null, running: new Map() };
+    installProcessSafetyNet(state, () => {}, proc);
+    assert.equal(proc.listenerCount('unhandledRejection'), 1);
+    assert.equal(proc.listenerCount('uncaughtException'), 1);
+    // 認証系の rejection を投げてもプロセスは落ちず auto-pause に落ちる
+    proc.emit('unhandledRejection', Object.assign(new Error('bot-token failed'), {
+        stderr: 'Token has expired and refresh failed',
+    }));
+    assert.equal(state.paused, true);
+    assert.equal(state.pausedBy, 'auth');
+    // 非認証 rejection は継続（auto-pause しない）
+    state.paused = false; state.pausedBy = null;
+    proc.emit('unhandledRejection', new Error('some non-auth error'));
+    assert.equal(state.paused, false);
+    assert.equal(state.pausedBy, null);
 });
 
 test('applyPrProjection: a failing item does not block others', async () => {
@@ -689,7 +764,7 @@ test('recordHistory: 新しい run が先頭、上限 100 件', () => {
     assert.equal(state.history[0].issue, 104); // 最新が先頭
 });
 
-test('refreshBoard: assignee 指定でボードも enroll 判定（ownsItem）に限定される', async () => {
+test('refreshBoard: assignee 指定でボードは「自分が Assignees のいずれか」に限定される（#938）', async () => {
     const { refreshBoard } = require('../src/daemon');
     const cfg = { ...makeCfg(), now: () => 0, statusOrder: [], assignee: 'me' };
     const state = { running: new Map() };
@@ -699,11 +774,56 @@ test('refreshBoard: assignee 指定でボードも enroll 判定（ownsItem）�
             { issue: 1, status: 'Review', kind: 'Issue', title: 'mine', labels: [], assignees: ['me'] },
             { issue: 2, status: 'Review', kind: 'Issue', title: 'other', labels: [], assignees: ['other'] },
             { issue: 3, status: 'Review', kind: 'Issue', title: 'none', labels: [], assignees: [] }, // 未 assign
-            { issue: 4, status: 'Review', kind: 'Issue', title: 'second', labels: [], assignees: ['aa', 'me'] }, // 先頭でない
+            // 共同担当（辞書順先頭ではない=オーナーでない）も観察のため表示対象になる
+            { issue: 4, status: 'Review', kind: 'Issue', title: 'second', labels: [], assignees: ['aa', 'me'] },
         ],
         getBoardEnrichment: () => ({}),
         listHeadPrs: () => [],
+        getIssueBody: () => '', // 4 は 2 人 assign なのでディレクティブ解決の本文 fetch が走る
     });
+    assert.deepEqual(state.board.items.map((i) => i.issue), [1, 4]);
+    // owner はディレクティブ無しなので辞書順先頭（'aa'）— 'me' はオーナーではない=観察対象
+    const item4 = state.board.items.find((i) => i.issue === 4);
+    assert.equal(item4.owner, 'aa');
+});
+
+test('refreshBoard: autopilot-assignee ディレクティブが board の owner 表示に反映される（#938）', async () => {
+    const { refreshBoard } = require('../src/daemon');
+    const cfg = { ...makeCfg(), now: () => 0, statusOrder: [], assignee: 'me' };
+    const state = { running: new Map() };
+    await refreshBoard(cfg, state, () => {}, {
+        token: 't',
+        listItems: () => [
+            { issue: 4, status: 'Review', kind: 'Issue', title: 'second', labels: [], assignees: ['aa', 'me'] },
+        ],
+        getBoardEnrichment: () => ({}),
+        listHeadPrs: () => [],
+        getIssueBody: () => 'autopilot-assignee: me',
+    });
+    const item4 = state.board.items.find((i) => i.issue === 4);
+    assert.equal(item4.owner, 'me');
+});
+
+test('refreshBoard: 非表示（終端 / 非自分担当）の multi-assignee item は本文 fetch しない（#938・API 予算）', async () => {
+    const { refreshBoard } = require('../src/daemon');
+    const cfg = { ...makeCfg(), now: () => 0, statusOrder: [], assignee: 'me' };
+    const state = { running: new Map() };
+    const fetched = [];
+    await refreshBoard(cfg, state, () => {}, {
+        token: 't',
+        listItems: () => [
+            // 表示対象（自分が Assignees・非終端・2人）→ fetch する
+            { issue: 1, status: 'Review', kind: 'Issue', title: 'mine', labels: [], assignees: ['aa', 'me'] },
+            // 終端 Status の 2人 assign → selectBoardItems で除外されるので fetch しない
+            { issue: 2, status: 'Close', kind: 'Issue', title: 'done', labels: [], assignees: ['aa', 'bb'] },
+            // 自分が Assignees でない 2人 assign → 表示対象外なので fetch しない
+            { issue: 3, status: 'Review', kind: 'Issue', title: 'others', labels: [], assignees: ['aa', 'bb'] },
+        ],
+        getBoardEnrichment: () => ({}),
+        listHeadPrs: () => [],
+        getIssueBody: (repo, issue) => { fetched.push(issue); return ''; },
+    });
+    assert.deepEqual(fetched, [1]); // 表示対象の 1 だけ本文 fetch
     assert.deepEqual(state.board.items.map((i) => i.issue), [1]);
 });
 
@@ -1015,9 +1135,55 @@ test('getDirectives: 取得失敗は空ディレクティブへフォールバ�
     const d1 = await getDirectives(cfg, state, 5, () => {}, deps);
     assert.equal(d1.base, null);
     assert.deepEqual(d1.after, []);
+    assert.equal(d1.assignee, null);
     // 失敗エントリは TTL 切れ扱い → 次回すぐ再取得して成功する
     const d2 = await getDirectives(cfg, state, 5, () => {}, deps);
     assert.deepEqual(d2.after, [3]);
+});
+
+test('getDirectives: 本文の autopilot-assignee ディレクティブも解決する（#938）', async () => {
+    const cfg = { ...makeCfg(), now: () => 0, directiveTtlMs: 1000 };
+    const state = {};
+    const deps = { token: 't', getIssueBody: () => 'autopilot-assignee: takaokouji' };
+    const d = await getDirectives(cfg, state, 5, () => {}, deps);
+    assert.equal(d.assignee, 'takaokouji');
+});
+
+// === #938: populateAssigneeDirectives（assignees 2人以上の item だけ本文 fetch） ===
+
+test('populateAssigneeDirectives: assignees が 2 人以上の item だけ本文を fetch して assigneeDirective を補う', async () => {
+    let fetches = 0;
+    const cfg = { ...makeCfg(), now: () => 0 };
+    const state = {};
+    const deps = {
+        token: 't',
+        getIssueBody: (repo, issue) => { fetches += 1; return issue === 4 ? 'autopilot-assignee: me' : ''; },
+    };
+    const items = [
+        { issue: 1, assignees: ['me'] }, // 1人 → fetch しない
+        { issue: 2, assignees: [] }, // 未 assign → fetch しない
+        { issue: 3, assignees: ['aa', 'bb'] }, // 2人 → fetch する（ディレクティブ無し）
+        { issue: 4, assignees: ['aa', 'me'] }, // 2人 → fetch する（ディレクティブ有り）
+    ];
+    const out = await populateAssigneeDirectives(items, cfg, state, () => {}, deps);
+    assert.equal(fetches, 2);
+    assert.equal(out.find((i) => i.issue === 1).assigneeDirective, undefined);
+    assert.equal(out.find((i) => i.issue === 2).assigneeDirective, undefined);
+    assert.equal(out.find((i) => i.issue === 3).assigneeDirective, null);
+    assert.equal(out.find((i) => i.issue === 4).assigneeDirective, 'me');
+    // 元の配列/item は変更しない
+    assert.equal(items[3].assigneeDirective, undefined);
+});
+
+test('populateAssigneeDirectives: TTL キャッシュを getDirectives と共用する（重複 fetch なし）', async () => {
+    let fetches = 0;
+    const cfg = { ...makeCfg(), now: () => 0, directiveTtlMs: 1000 };
+    const state = {};
+    const deps = { token: 't', getIssueBody: () => { fetches += 1; return 'autopilot-assignee: me'; } };
+    const items = [{ issue: 9, assignees: ['aa', 'me'] }];
+    await populateAssigneeDirectives(items, cfg, state, () => {}, deps);
+    await getDirectives(cfg, state, 9, () => {}, deps); // base/after 解決も同じキャッシュを見る
+    assert.equal(fetches, 1);
 });
 
 // === #816: markBlocked / detectStuck（失敗・stall 時の人間ハンドオフ） ===
@@ -1136,6 +1302,74 @@ test('ensureCheckpointCommit: クリーンな worktree では何もしない', a
     const committed = await ensureCheckpointCommit('/wt', 912, () => {}, deps);
     assert.equal(committed, false);
     assert.equal(deps.calls.length, 1); // status チェックのみ
+});
+
+/**
+ * followBaseBranch 用の execFileP フェイク（#950）。
+ * @param {object} opts { dirty, behind, mergeFails }
+ */
+function makeFollowDeps({ dirty = false, behind = 0, mergeFails = false } = {}) {
+    const calls = [];
+    return {
+        calls,
+        botGitBin: '/bot-git',
+        execFileP: async (cmd, args) => {
+            calls.push({ cmd, args });
+            if (cmd === 'git' && args[0] === 'status') return { stdout: dirty ? ' M f.js\n' : '' };
+            if (cmd === 'git' && args[0] === 'rev-list') return { stdout: `${behind}\n` };
+            if (cmd === '/bot-git' && args[0] === 'merge') {
+                if (mergeFails) { const e = new Error('merge failed'); e.stderr = 'CONFLICT (content): f.js'; throw e; }
+                return { stdout: '' };
+            }
+            return { stdout: '' };
+        },
+    };
+}
+
+test('followBaseBranch: base より遅れていなければ merge しない（current・#950）', async () => {
+    const deps = makeFollowDeps({ behind: 0 });
+    const res = await followBaseBranch('/wt', null, () => {}, deps);
+    assert.equal(res.status, 'current');
+    assert.equal(res.baseRef, 'origin/develop');
+    // merge/abort は呼ばれない
+    assert.ok(!deps.calls.some((c) => c.args[0] === 'merge'));
+});
+
+test('followBaseBranch: base が先行していれば bot-git で merge する（followed・#950）', async () => {
+    const deps = makeFollowDeps({ behind: 3 });
+    const res = await followBaseBranch('/wt', 'develop', () => {}, deps);
+    assert.equal(res.status, 'followed');
+    assert.equal(res.behind, 3);
+    const merge = deps.calls.find((c) => c.cmd === '/bot-git' && c.args[0] === 'merge');
+    assert.ok(merge, 'bot-git で merge する');
+    assert.deepEqual(merge.args, ['merge', '--no-edit', 'origin/develop']);
+    assert.ok(!deps.calls.some((c) => c.args[0] === 'merge' && c.args[1] === '--abort'));
+});
+
+test('followBaseBranch: コンフリクトなら merge --abort で戻し conflict を返す（#950）', async () => {
+    const deps = makeFollowDeps({ behind: 2, mergeFails: true });
+    const res = await followBaseBranch('/wt', null, () => {}, deps);
+    assert.equal(res.status, 'conflict');
+    assert.match(res.detail, /CONFLICT/);
+    const abort = deps.calls.find((c) => c.cmd === 'git' && c.args[0] === 'merge' && c.args[1] === '--abort');
+    assert.ok(abort, 'merge --abort で元に戻す');
+});
+
+test('followBaseBranch: ダーティな worktree では触らない（skipped-dirty・#950）', async () => {
+    const deps = makeFollowDeps({ dirty: true, behind: 5 });
+    const res = await followBaseBranch('/wt', null, () => {}, deps);
+    assert.equal(res.status, 'skipped-dirty');
+    // fetch / rev-list / merge は行わない
+    assert.equal(deps.calls.length, 1);
+    assert.equal(deps.calls[0].args[0], 'status');
+});
+
+test('followBaseBranch: 宣言 base を尊重する（origin/<branch>・#950）', async () => {
+    const deps = makeFollowDeps({ behind: 1 });
+    const res = await followBaseBranch('/wt', 'epic/koshien-738', () => {}, deps);
+    assert.equal(res.baseRef, 'origin/epic/koshien-738');
+    const fetch = deps.calls.find((c) => c.args[0] === 'fetch');
+    assert.deepEqual(fetch.args, ['fetch', 'origin', 'epic/koshien-738']);
 });
 
 test('readContinuationFromWorktree: ファイルが無ければ null、あれば解析結果を返す', () => {

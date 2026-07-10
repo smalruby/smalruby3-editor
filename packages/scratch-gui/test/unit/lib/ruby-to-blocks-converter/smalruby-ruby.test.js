@@ -87,6 +87,22 @@ describe('RubyToBlocksConverter/SmalrubyRuby', () => {
             const code = 'ticket = [12, 47, 35]\nticket.reverse';
             const result = await converter.targetCodeToBlocks(target, code);
             expect(result).toBe(true);
+            const blocks = Object.values(converter._context.blocks);
+            const methodBlock = blocks.find(
+                (b) => b.opcode === 'smalrubyRuby_arrayMethod',
+            );
+            expect(methodBlock).toBeTruthy();
+            expect(methodBlock.fields.METHOD.value).toBe('reverse');
+            // No String#reverse block should be generated for a list variable.
+            expect(
+                blocks.find(
+                    (b) => b.opcode === 'smalrubyRuby_stringMethod',
+                ),
+            ).toBeFalsy();
+            // The receiver must be rewritten to a list read.
+            const receiverBlock =
+                converter._context.blocks[methodBlock.inputs.RECEIVER.block];
+            expect(receiverBlock.opcode).toBe('data_listcontents');
         });
 
         test('should convert ticket.join(", ")', async () => {
@@ -105,6 +121,64 @@ describe('RubyToBlocksConverter/SmalrubyRuby', () => {
             const code = 'ticket = [12, 47, 35]\nticket.last';
             const result = await converter.targetCodeToBlocks(target, code);
             expect(result).toBe(true);
+        });
+    });
+
+    describe('reverse disambiguation (String vs Array)', () => {
+        const findOpcode = (opcode) =>
+            Object.values(converter._context.blocks).find(
+                (b) => b.opcode === opcode,
+            );
+
+        test('array (string) variable .reverse -> arrayMethod + list receiver', async () => {
+            const code = 'ticket = ["赤", "青", "黄"]\nticket.reverse';
+            const result = await converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
+            const methodBlock = findOpcode('smalrubyRuby_arrayMethod');
+            expect(methodBlock).toBeTruthy();
+            expect(methodBlock.fields.METHOD.value).toBe('reverse');
+            expect(findOpcode('smalrubyRuby_stringMethod')).toBeFalsy();
+            const receiverBlock =
+                converter._context.blocks[methodBlock.inputs.RECEIVER.block];
+            expect(receiverBlock.opcode).toBe('data_listcontents');
+        });
+
+        test('string variable .reverse stays stringMethod (regression)', async () => {
+            const code = 'name = "hello"\nname.reverse';
+            const result = await converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
+            const methodBlock = findOpcode('smalrubyRuby_stringMethod');
+            expect(methodBlock).toBeTruthy();
+            expect(methodBlock.fields.METHOD.value).toBe('reverse');
+            expect(findOpcode('smalrubyRuby_arrayMethod')).toBeFalsy();
+        });
+
+        test('string literal .reverse stays stringMethod (regression)', async () => {
+            const code = '"hello".reverse';
+            const result = await converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
+            expect(findOpcode('smalrubyRuby_stringMethod')).toBeTruthy();
+            expect(findOpcode('smalrubyRuby_arrayMethod')).toBeFalsy();
+        });
+
+        test('array variable .reverse! -> arrayMethod', async () => {
+            const code = 'ticket = [12, 47, 35]\nticket.reverse!';
+            const result = await converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
+            const methodBlock = findOpcode('smalrubyRuby_arrayMethod');
+            expect(methodBlock).toBeTruthy();
+            expect(methodBlock.fields.METHOD.value).toBe('reverse!');
+            expect(findOpcode('smalrubyRuby_stringMethod')).toBeFalsy();
+        });
+
+        test('global array variable .reverse -> arrayMethod', async () => {
+            const code = '$ticket = [12, 47, 35]\n$ticket.reverse';
+            const result = await converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
+            const methodBlock = findOpcode('smalrubyRuby_arrayMethod');
+            expect(methodBlock).toBeTruthy();
+            expect(methodBlock.fields.METHOD.value).toBe('reverse');
+            expect(findOpcode('smalrubyRuby_stringMethod')).toBeFalsy();
         });
     });
 

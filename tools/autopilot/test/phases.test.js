@@ -5,8 +5,12 @@ const {
     PHASE_BY_COMMAND,
     phasePromptCommand,
     parseBaseBranch,
+    resolveBaseRef,
+    baseFollowConflictBody,
     parseAfterIssues,
     unresolvedAfterIssues,
+    parseAssigneeDirective,
+    resolveOwner,
     DEFAULT_CLAUDE_COMMAND,
     applyResult,
     subIssueSetupIntents,
@@ -25,12 +29,14 @@ const {
     isStuckCandidate,
     itemOwner,
     ownsItem,
+    isAssignee,
     statusRank,
     orderItemsLikeBoard,
     selectActionable,
     shouldResend,
     evaluate,
     sanitizeForSurface,
+    isAuthError,
     DEFAULT_WATCHDOG,
     HITL_LABEL,
     AUTOPILOT_LABEL,
@@ -428,6 +434,29 @@ test('sanitizeForSurface: トークン・鍵・機密変数・URL クエリを r
     assert.match(s, /https:\/\/s3\.amazonaws\.com\/bucket\/key\?\[REDACTED\]/);
 });
 
+test('isAuthError: SSO 失効・bot-token 取得不能を認証系と判定する（#949）', () => {
+    // bot-token が SSO 失効時に die するときの実メッセージ（message / stderr の双方を見る）
+    assert.equal(isAuthError(new Error('AWS 認証が失効/未設定のため Secrets Manager から秘密鍵を取得できません')), true);
+    assert.equal(isAuthError(Object.assign(new Error('Command failed: /app/bin/bot-token'), {
+        stderr: 'aws: Error when retrieving token from sso: Token has expired and refresh failed',
+    })), true);
+    assert.equal(isAuthError('aws sso login が必要です'), true);
+    assert.equal(isAuthError('The security token included in the request is expired'), true);
+    assert.equal(isAuthError('Unable to locate credentials'), true);
+    // 文字列でも Error でも受ける
+    assert.equal(isAuthError(new Error('token has expired')), true);
+});
+
+test('isAuthError: 非認証エラー・空入力は false（#949）', () => {
+    assert.equal(isAuthError(null), false);
+    assert.equal(isAuthError(undefined), false);
+    assert.equal(isAuthError(''), false);
+    assert.equal(isAuthError(new Error('')), false);
+    assert.equal(isAuthError(new Error('ECONNRESET: socket hang up')), false);
+    assert.equal(isAuthError(new Error('GraphQL: rate limit exceeded')), false);
+    assert.equal(isAuthError('some random failure'), false);
+});
+
 test('protectedPaths: Bot 権限外パス（workflows/actions）を抽出する', () => {
     const files = [
         'packages/scratch-gui/src/index.js',
@@ -508,16 +537,18 @@ test('selectClosedCheckIssues: 非終端 + 🤖 ラベル付きだけを closed 
     assert.deepEqual(selectClosedCheckIssues([]), []);
 });
 
-test('selectBoardItems: assignee 指定でボード表示も enroll 判定（ownsItem）に限定', () => {
+test('selectBoardItems: assignee 指定でボード表示は「自分が Assignees のいずれか」に限定（#938）', () => {
     const items = [
         { issue: 1, status: 'Review', assignees: ['me'] },
         { issue: 2, status: 'Review', assignees: ['other'] },
         { issue: 3, status: 'Review', assignees: [] }, // 未 assign（daemon が素通りする item）
         { issue: 4, status: 'Close', assignees: ['me'] }, // 終端
+        // 共同担当（オーナーでない = 辞書順先頭でない）も観察のため表示対象になる
+        { issue: 5, status: 'Review', assignees: ['aaa', 'me'] },
     ];
-    assert.deepEqual(selectBoardItems(items, 'me').map((i) => i.issue), [1]);
+    assert.deepEqual(selectBoardItems(items, 'me').map((i) => i.issue), [1, 5]);
     // 未指定は従来どおり（非終端すべて）
-    assert.deepEqual(selectBoardItems(items).map((i) => i.issue), [1, 2, 3]);
+    assert.deepEqual(selectBoardItems(items).map((i) => i.issue), [1, 2, 3, 5]);
 });
 
 test('itemOwner: 辞書順先頭の assignee が決定的な単一オーナー', () => {
@@ -1264,6 +1295,33 @@ test('parseBaseBranch: ディレクティブは行頭のみ反応（本文中の
     assert.equal(parseBaseBranch('  autopilot-base: topic/indented'), null);
 });
 
+test('parseBaseBranch: セクションは行頭ラベル + 同一行 : `branch`（DoD 形式）も認識', () => {
+    assert.equal(parseBaseBranch('ベースブランチ: `develop`'), 'develop');
+    assert.equal(parseBaseBranch('base branch: `develop`'), 'develop');
+    assert.equal(parseBaseBranch('ベースブランチ: develop'), 'develop');
+});
+
+test('parseBaseBranch: 識別子/改行跨ぎで誤マッチしない（#938/#941 回帰）', () => {
+    // #938 再現: 本文が `parseBaseBranch`/`baseBranch` に言及し、後続行にバッククォート語がある
+    assert.equal(
+        parseBaseBranch('本文で `parseBaseBranch` / `baseBranch` に言及。\n実装は `directiveLogin` を使う。'),
+        null,
+    );
+    // #941 自己参照: 識別子の言及 + 後続行の `.claude/...` バッククォート語を base と誤認しない
+    assert.equal(
+        parseBaseBranch(
+            '識別子 parseBaseBranch / baseBranch（"BaseBranch" を含む）\n' +
+                '変更は `tools/autopilot/**` のみ。\n' +
+                '`.claude/rules/autopilot/prompts.md` を整合。',
+        ),
+        null,
+    );
+    // camelCase 識別子 baseBranch が行頭にあっても、区切り必須なので拾わない
+    assert.equal(parseBaseBranch('baseBranch を修正する。\n`develop` で動かす。'), null);
+    // ラベル行の後に内容行があれば打ち切る（後続の無関係なバッククォート語を拾わない）
+    assert.equal(parseBaseBranch('## ベースブランチ\nなにか説明の行。\n`topic/should-not`'), null);
+});
+
 test('parseAfterIssues: 行頭の autopilot-after 宣言から依存 Issue を抽出', () => {
     assert.deepEqual(parseAfterIssues('autopilot-after: #123'), [123]);
     assert.deepEqual(parseAfterIssues('autopilot-after: #12, #34 56'), [12, 34, 56]);
@@ -1298,6 +1356,69 @@ test('parseAfterIssues: 説明用の安全表記（スペース入り・非行�
         'autopilot-after: #123',
     ].join('\n');
     assert.deepEqual(parseAfterIssues(doc), [123]);
+});
+
+test('parseAssigneeDirective: 行頭の autopilot-assignee 宣言から login を抽出', () => {
+    assert.equal(parseAssigneeDirective('autopilot-assignee: takaokouji'), 'takaokouji');
+    // @ 付きも許容
+    assert.equal(parseAssigneeDirective('autopilot-assignee: @takaokouji'), 'takaokouji');
+    // 行頭 HTML コメント内も可
+    assert.equal(parseAssigneeDirective('<!-- autopilot-assignee: someone -->'), 'someone');
+    // 大文字小文字は無視（ディレクティブ名自体）
+    assert.equal(parseAssigneeDirective('Autopilot-Assignee:  Bob-2 '), 'Bob-2');
+    // 複数行あれば最初の一致
+    assert.equal(
+        parseAssigneeDirective('autopilot-assignee: first\n本文\nautopilot-assignee: second'),
+        'first',
+    );
+    // 無ければ null
+    assert.equal(parseAssigneeDirective(''), null);
+    assert.equal(parseAssigneeDirective(null), null);
+    assert.equal(parseAssigneeDirective('ふつうの本文。担当は takaokouji です。'), null);
+});
+
+test('parseAssigneeDirective: 行頭でない言及では発火しない（説明用の安全表記）', () => {
+    assert.equal(parseAssigneeDirective('説明のために autopilot-assignee: bob と書く'), null);
+    assert.equal(parseAssigneeDirective('- リスト内の `autopilot-assignee: bob` も無効'), null);
+    assert.equal(parseAssigneeDirective('  autopilot-assignee: indented'), null);
+});
+
+test('resolveOwner: ディレクティブが assignees に含まれれば採用、無ければ辞書順先頭', () => {
+    // 指定が assignees に有る → 採用
+    assert.equal(resolveOwner(['aaa', 'bbb'], 'bbb'), 'bbb');
+    // 大文字小文字を無視して一致（元 assignees の表記を返す）
+    assert.equal(resolveOwner(['aaa', 'Bbb'], 'BBB'), 'Bbb');
+    // 指定が assignees に無い → 無視して辞書順先頭
+    assert.equal(resolveOwner(['aaa', 'bbb'], 'takaokouji'), 'aaa');
+    // 未指定 → 辞書順先頭
+    assert.equal(resolveOwner(['zeta', 'alpha'], null), 'alpha');
+    assert.equal(resolveOwner(['zeta', 'alpha'], undefined), 'alpha');
+    // 空/未 assign → null
+    assert.equal(resolveOwner([], 'bbb'), null);
+    assert.equal(resolveOwner(undefined, 'bbb'), null);
+});
+
+test('itemOwner: assigneeDirective が assignees に含まれればそれを優先（#938・後方互換）', () => {
+    // ディレクティブ指定が assignees に含まれる → 優先
+    assert.equal(itemOwner({ assignees: ['aaa', 'bbb'], assigneeDirective: 'bbb' }), 'bbb');
+    // ディレクティブが assignees に無い → 無視して辞書順先頭
+    assert.equal(itemOwner({ assignees: ['aaa', 'bbb'], assigneeDirective: 'ccc' }), 'aaa');
+    // assigneeDirective 未設定（従来の item 形）は従来どおり辞書順先頭
+    assert.equal(itemOwner({ assignees: ['zeta', 'alpha'] }), 'alpha');
+});
+
+test('isAssignee: login が Assignees のいずれかであれば true（オーナーに限らない・#938）', () => {
+    // 自分がオーナーでなくても Assignees に含まれていれば true（board 観察ユースケース）
+    assert.equal(isAssignee({ assignees: ['aaa', 'me'] }, 'me'), true);
+    assert.equal(isAssignee({ assignees: ['aaa', 'me'] }, 'aaa'), true);
+    // 大文字小文字は無視
+    assert.equal(isAssignee({ assignees: ['Me'] }, 'me'), true);
+    // 含まれない / 未 assign → false
+    assert.equal(isAssignee({ assignees: ['other'] }, 'me'), false);
+    assert.equal(isAssignee({ assignees: [] }, 'me'), false);
+    // login 未指定（従来運用）→ 全件許可
+    assert.equal(isAssignee({ assignees: [] }, null), true);
+    assert.equal(isAssignee({ assignees: ['someone'] }, null), true);
 });
 
 test('unresolvedAfterIssues: closed or 終端 Status の依存は解決済み', () => {
@@ -1673,4 +1794,30 @@ test('touchedRuleAreas: 変更ファイルから .claude/rules/<area>/ を導く
     assert.deepEqual(touchedRuleAreas(['README.md', 'CLAUDE.md']), []);
     assert.deepEqual(touchedRuleAreas([]), []);
     assert.deepEqual(touchedRuleAreas(undefined), []);
+});
+
+test('resolveBaseRef: 宣言 base を origin/<branch> へ正規化する（#950）', () => {
+    // null/空/未指定 は既定 develop
+    assert.equal(resolveBaseRef(null), 'origin/develop');
+    assert.equal(resolveBaseRef(''), 'origin/develop');
+    assert.equal(resolveBaseRef(undefined), 'origin/develop');
+    assert.equal(resolveBaseRef('   '), 'origin/develop');
+    // ブランチ名は origin/ を付ける
+    assert.equal(resolveBaseRef('develop'), 'origin/develop');
+    assert.equal(resolveBaseRef('epic/koshien-738'), 'origin/epic/koshien-738');
+    // 既に origin/ 付きは重複させない
+    assert.equal(resolveBaseRef('origin/develop'), 'origin/develop');
+    // 既定 base の差し替え
+    assert.equal(resolveBaseRef(null, 'main'), 'origin/main');
+});
+
+test('baseFollowConflictBody: コンフリクト理由と復旧手順を含む Blocked 本文（#950）', () => {
+    const body = baseFollowConflictBody('autopilot-implement', 950, 'origin/develop', 'CONFLICT in foo.js');
+    assert.match(body, /Blocked/);
+    assert.match(body, /origin\/develop/);
+    assert.match(body, /コンフリクト/);
+    assert.match(body, /CONFLICT in foo\.js/);
+    assert.match(body, /🙋 HITL/);
+    // detail 空でもローカルログ参照へ誘導する
+    assert.match(baseFollowConflictBody('s', 1, 'origin/develop', ''), /ローカルログ参照/);
 });

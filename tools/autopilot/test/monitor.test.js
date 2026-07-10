@@ -217,3 +217,13 @@ test('MONITOR_HTML: Sub-issues セルは件数 (.sub-count) と %（.sub-pct）�
     assert.match(MONITOR_HTML, /class="sub-count"/);
     assert.match(MONITOR_HTML, /class="sub-pct"/);
 });
+
+test('MONITOR_HTML: 担当列にオーナー（駆動者）を明示し、非オーナー行は観察中マーカーを出す（#938）', () => {
+    // /board の assignee（自分の login）を保持する
+    assert.match(MONITOR_HTML, /const myAssignee = d\.assignee/);
+    // オーナー（it.owner と一致する assignee）は太字で明示
+    assert.match(MONITOR_HTML, /a === it\.owner/);
+    // 自分がオーナーでない行には 👁 + オーナー login のマーカーを付ける
+    assert.match(MONITOR_HTML, /it\.owner !== myAssignee/);
+    assert.ok(MONITOR_HTML.includes('👁'), 'should include the observing marker emoji');
+});

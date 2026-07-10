@@ -110,9 +110,15 @@ daemon に `--assignee <GitHub login>`（または env `AUTOPILOT_ASSIGNEE`）�
 
 - **自分がオーナーの item だけ**を処理する。オーナー = **assignee の辞書順先頭**
   （複数 assignee の Issue を複数開発者の daemon が同時に拾わない決定的タイブレーク）。
+  本文に `autopilot-assignee: <login>` ディレクティブがあり、それが Assignees に含まれて
+  いれば辞書順先頭より優先してオーナーになる（下記ディレクティブ表・#938）。
 - **未 assign の item は誰も拾わない**。Issue を autopilot に処理させる enroll 手順は
   「① Project に追加 → ② 担当者を assign → ③ Status を設定（例 Sprint Backlog）」。
 - `--assignee` 未指定は従来どおり全件処理（単一 daemon 運用）。
+- **共同担当（オーナーでない Assignees）は自分の monitor で観察できる**（dispatch はしない）。
+  Web モニタの俯瞰ボードは「自分がオーナー」ではなく「**自分が Assignees のいずれか**」の
+  item を表示する（下記「俯瞰ボード」参照）。ある機能に詳しくない担当が別の担当に駆動を
+  引き継ぎつつ、進捗だけ自分の monitor で見続けたいケースを想定する。
 
 ### 投入順は Project Board view の見た目
 
@@ -128,6 +134,7 @@ Issue 本文の**行頭**に書くディレクティブで挙動を制御でき�
 |---|---|
 | `autopilot-base: <branch>` | PR 先・worktree 分岐元のベースブランチ（EPIC サブ Issue を親 epic ブランチに積む等） |
 | `autopilot-after: #N [#M ...]` | 依存宣言。N（と M …）が完了（GitHub closed / Project Close・Done）するまで着手しない。ブロック中は次点候補が繰り上がる。**待ち Issue は Sprint Backlog に置く**（Backlog はそもそも着手候補にならないので先行 Close で自動着手しない）。ゲート中は daemon が `⏳ waiting` ラベルを付け、先行 Close で自動除去 → 次 tick で着手 |
+| `autopilot-assignee: <login>`（`@login` も可） | 複数 assignee の Issue でオーナー（駆動する担当）を明示指定する（#938）。指定 login が Assignees に含まれていなければ無視して従来どおり辞書順先頭。指定した担当の daemon（`--assignee <login>`）だけが駆動し、他の担当の daemon は駆動しない。共同担当（非オーナー）は自分の monitor で Issue を観察できる（下記「俯瞰ボード」参照） |
 
 ### 🧭 tracking ラベル（分解済み親のトラッカー化）
 
@@ -531,6 +538,12 @@ GitHub Projects で行い、モニタは俯瞰・log 閲覧・pause/resume/即�
 - **ボード行**: Issue（リンク + タイトル）/ Status pill / AI Status（live）/ 担当 /
   **複数 PR チップ**（📝 draft / ✅ ready / 🟣 merged / ❌ closed の色・絵文字）/
   **sub-issue 進捗**（N/M・%・バー）/ Now（実行中フェーズ + 経過分 + **log ボタン → モーダル**）
+  - **担当列はオーナー（駆動者）を太字で明示**する（`autopilot-assignee:` ディレクティブが
+    あれば反映）。**自分がオーナーでない**共同担当の行には **👁 + オーナー login** の
+    「観察中」マーカーを付ける（#938）。観察対象（他人が駆動する item）はこの daemon の
+    dispatch では更新されないため、live 反映（`patchBoardCache`）は効かず、
+    **`refreshBoard` の周期実行（既定 5 分）または「🔄 更新」ボタン（`POST /refresh`）**
+    でのみ最新化される点に注意（観察＝状態閲覧なので許容範囲）
   - **Awaiting Continuation（協調的チェックポイント・EPIC #906）は専用バッジ**（`⏸️ Awaiting
     Continuation`・紫系配色）で表示し、他の AI Status（Implementing 等）と一目で区別できる（#913）。
     バッジの右に continuation ファイル（`tmp/autopilot-continuation-<issue>.md`）の
@@ -538,8 +551,10 @@ GitHub Projects で行い、モニタは俯瞰・log 閲覧・pause/resume/即�
     worktree からローカルファイルとして読む（GraphQL は消費しない）。worktree/ファイルが無い・
     解析できない場合は件数を省略する（バッジ自体は表示する）
 - **除外**: Close / Done / Icebox はボードに出さない（溜まると重くなるため）。さらに
-  `--assignee` 起動時は **daemon の処理対象と同じ enroll 判定（ownsItem）に限定**する
-  （「ボードには映るが daemon は素通り」という不一致を無くす。未指定は全件）
+  `--assignee` 起動時は **自分が Assignees のいずれかである item に限定**する
+  （`isAssignee`。未指定は全件）。dispatch 対象（`ownsItem` = 単一オーナーのみ）より
+  **広い**集合になる点に注意 — 共同担当（非オーナー）も観察のため表示される（#938。
+  上記「担当列」参照）
 - **稼働バージョン + 更新検知**（#885）: 下の「稼働バージョン表示と更新検知」を参照
 - **実行履歴**は最下部（最新 100 件・ログ用途のみ）
 - データは `GET /board`（**poll/tick 後に再構築されるキャッシュ** + live running）。
@@ -641,6 +656,13 @@ bin/autopilot-worktree list
 `npm install` / `build:dev` 無しで即作業できる（`@smalruby/*` は main の dist に解決される）。
 単一パッケージのソース編集を想定。クロスパッケージのソース編集は `--full`。
 
+**base 追従（stale 起点の衝突防止・#950）**: 新ブランチ作業フェーズ（implement 等）の着手時、
+daemon はブランチを最新の base（`autopilot-base:` 指定 or develop）へ **merge** して自動追従する
+（rebase ではなく merge = 既に push 済みの Draft PR ブランチでも force push 不要）。長時間・
+複数日にまたがる implement で起点が古いまま PR が大量コンフリクトになる問題を防ぐ。コンフリクトは
+**自動解決せず** `git merge --abort` で元に戻し、Blocked + `🙋 HITL` にサニタイズ理由を出して
+人間へエスカレーションする（勝手に壊さない）。
+
 ### daemon（常駐・本番運用）
 
 実ワークロードは **常駐 daemon** が回す。Project をポーリングし、着手可能な item を並行上限内で
@@ -670,6 +692,16 @@ env `AUTOPILOT_ASSIGNEE` でも可）。起動すると PID ファイル（`$TMP
 # tmux で常駐させる例
 tmux new -d -s autopilot 'node tools/autopilot/bin/autopilot daemon 2>&1 | tee /tmp/autopilot-daemon.log'
 ```
+
+> **起動 / 再起動 / 更新反映（update autopilot）は Claude（autopilot スキル）が実行してよい。**
+> autopilot スキルが生成する tmux 起動ラッパ `tmp/autopilot_up.sh` があれば、Claude が
+> `bash tmp/autopilot_up.sh` で起動・再起動できる（従来「人間のみ」だったが解禁）。
+> **前提: 起動前に `bin/bot-token` が成功すること** — bot トークンを取得できないと daemon は
+> 未捕捉例外でクラッシュする（実際に SSO 失効でプロセスごと落ちた事例あり）。
+> **AWS SSO 再認証だけは人間**（device code + ブラウザ承認は代行不可）: 失効時は
+> `aws sso login --sso-session smalruby --use-device-code` を人間が実行し、`bin/bot-token --whoami`
+> で回復を確認してから Claude が起動する。再起動は `POST /shutdown` →（必要なら `git pull`）→
+> `bash tmp/autopilot_up.sh`。詳細は `.claude/skills/autopilot/SKILL.md`。
 
 #### 監視（Web モニタ）
 

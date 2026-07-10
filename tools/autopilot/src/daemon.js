@@ -20,8 +20,11 @@ const {
     PHASE_BY_COMMAND,
     DEFAULT_BASE_BRANCH,
     parseBaseBranch,
+    resolveBaseRef,
+    baseFollowConflictBody,
     parseAfterIssues,
     unresolvedAfterIssues,
+    parseAssigneeDirective,
     selectActionable,
     isStuckCandidate,
     applyResult,
@@ -54,6 +57,7 @@ const {
     renderTrackerSticky,
     TRACKER_STICKY_MARKER,
     sanitizeForSurface,
+    isAuthError,
     labelActions,
     draftAction,
     renderSticky,
@@ -100,6 +104,59 @@ async function ensureWorktree(issue, pr, base) {
     return stdout.trim();
 }
 
+/**
+ * 作業ブランチを最新の base へ自動追従（merge）させる（#950）。
+ *
+ * autopilot の worktree は作成時点の base から分岐するが、その後 base が前進しても自動追従しない。
+ * 長時間・複数日にまたがる implement（checkpoint / Blocked 復旧などで再開が遅れる）では起点が
+ * 古いままになり、PR が大量コンフリクトになる（#932）。着手/PR 化のタイミングでこの関数を挟み、
+ * base を merge して stale 化を防ぐ。
+ *
+ * 方針:
+ *  - rebase ではなく **merge**（既に push 済みの Draft PR ブランチでも force push 不要で追従できる）。
+ *    merge commit は bot 名義（`bin/bot-git`）で作る（共有 config は書き換えない）。
+ *  - 追従前に worktree がダーティなら触らない（`skipped-dirty`。worker 起動前提でクリーンなはず）。
+ *  - base より遅れていなければ何もしない（`current`）。
+ *  - コンフリクトしたら **勝手に解決せず** `git merge --abort` で元に戻し `conflict` を返す
+ *    （呼び出し側が Blocked + 🙋 HITL にエスカレーションする）。
+ *
+ * 判断ロジック（追従 ref 解決）は phases.js の純粋関数 {@link resolveBaseRef} に寄せ、
+ * ここは git I/O のみ（`.claude/rules/autopilot/development.md` のレイヤリング）。
+ * @param {string} cwd 作業 worktree
+ * @param {string|null} baseBranch 宣言 base（null は既定 develop）
+ * @param {Function} log ロガー
+ * @param {object} [deps] { execFileP, botGitBin }（テスト用の差し替え）
+ * @returns {Promise<{status: 'current'|'followed'|'conflict'|'skipped-dirty', baseRef: string, behind?: number, detail?: string}>}
+ */
+async function followBaseBranch(cwd, baseBranch, log, deps = {}) {
+    const exec = deps.execFileP || execFileP;
+    const botGit = deps.botGitBin || BOT_GIT_BIN;
+    const baseRef = resolveBaseRef(baseBranch);
+    const baseName = baseRef.replace(/^origin\//, '');
+    const opts = { cwd, maxBuffer: 16 * 1024 * 1024 };
+    // ダーティな worktree では merge できない（安全側で触らない）
+    const { stdout: status } = await exec('git', ['status', '--porcelain'], opts);
+    if (status.trim()) {
+        log(`base 追従スキップ: worktree に未コミット変更あり（${baseRef}）`);
+        return { status: 'skipped-dirty', baseRef };
+    }
+    // 最新 origin を取得（失敗しても致命ではない: 手前の worktree 作成で develop は fetch 済み）
+    await exec('git', ['fetch', 'origin', baseName], opts).catch(() => {});
+    const { stdout: behindOut } = await exec('git', ['rev-list', '--count', `HEAD..${baseRef}`], opts);
+    const behind = Number(String(behindOut).trim()) || 0;
+    if (behind === 0) return { status: 'current', baseRef, behind: 0 };
+    try {
+        await exec(botGit, ['merge', '--no-edit', baseRef], opts);
+        log(`base 追従: ${baseRef} を merge（${behind} commits 先行していた base に追従）`);
+        return { status: 'followed', baseRef, behind };
+    } catch (e) {
+        // コンフリクト等 → 勝手に解決せず元に戻す
+        await exec('git', ['merge', '--abort'], opts).catch(() => {});
+        const detail = e.stderr || e.stdout || e.message || '';
+        return { status: 'conflict', baseRef, behind, detail: String(detail) };
+    }
+}
+
 // In Progress + AI 作業中のまま run が無くなってから Blocked にするまでの猶予（#816）。
 // 1 回の run の最大時間（watchdog tMaxMs=30分）より長くして、生きている run を誤って
 // 止めない。daemon 再起動後はこの daemon が初めて観測した時刻から測り直す（保守的）。
@@ -113,9 +170,9 @@ const DIRECTIVE_TTL_MS = 10 * 60 * 1000;
 const UPDATE_CHECK_INTERVAL_MS = 15 * 60 * 1000;
 
 /**
- * Issue 本文から導いたディレクティブ（base / after）を TTL キャッシュ付きで返す。
+ * Issue 本文から導いたディレクティブ（base / after / assignee）を TTL キャッシュ付きで返す。
  * 失敗時は空ディレクティブ（既定動作）にフォールバックし、次回また取りに行く。
- * @returns {{base: string|null, after: number[]}}
+ * @returns {{base: string|null, after: number[], assignee: string|null}}
  */
 async function getDirectives(cfg, state, issue, log, deps = {}) {
     const getIssueBody = deps.getIssueBody || project.getIssueBody;
@@ -123,16 +180,45 @@ async function getDirectives(cfg, state, issue, log, deps = {}) {
     const cached = state.directives.get(issue);
     const now = cfg.now();
     if (cached && now - cached.at < (cfg.directiveTtlMs || DIRECTIVE_TTL_MS)) return cached;
-    let entry = { base: null, after: [], at: now };
+    let entry = { base: null, after: [], assignee: null, at: now };
     try {
         const body = await getIssueBody(cfg.repo, issue, deps.token || await project.readToken());
-        entry = { base: parseBaseBranch(body), after: parseAfterIssues(body), at: now };
+        entry = {
+            base: parseBaseBranch(body), after: parseAfterIssues(body),
+            assignee: parseAssigneeDirective(body), at: now,
+        };
     } catch (e) {
         log(`#${issue}: directive fetch failed: ${e.message}`);
         entry.at = now - (cfg.directiveTtlMs || DIRECTIVE_TTL_MS); // 失敗は次 tick で再取得
     }
     state.directives.set(issue, entry);
     return entry;
+}
+
+/**
+ * assignees が 2 人以上の item だけ、本文の `autopilot-assignee:` ディレクティブを解決して
+ * `item.assigneeDirective` を補う（#938）。0/1 人の item はディレクティブが無意味なので
+ * 本文 fetch をスキップする（`.claude/rules/autopilot/github-api.md` の API 予算規約）。
+ * 取得は {@link getDirectives} の TTL キャッシュを共用するため、後続の base/after 解決
+ * （同じ tick 内の候補選別）と合わせて追加の GraphQL/REST は増えない。
+ * dispatch（{@link tick}）と board（{@link refreshBoard}）の両方で、
+ * `selectActionable`/`selectBoardItems`（= `itemOwner`/`ownsItem`/`isAssignee` を使う箇所）の
+ * **前**に呼ぶ必要がある。
+ * @param {object[]} items
+ * @param {object} cfg
+ * @param {object} state
+ * @param {Function} log
+ * @param {object} [deps] getDirectives へそのまま渡す（テスト用の差し替え）
+ * @returns {Promise<object[]>} assigneeDirective を補った新しい配列（元の item は変更しない）
+ */
+async function populateAssigneeDirectives(items, cfg, state, log, deps = {}) {
+    const out = [];
+    for (const item of items || []) {
+        if (!item || (item.assignees || []).length < 2) { out.push(item); continue; }
+        const { assignee } = await getDirectives(cfg, state, item.issue, log, deps);
+        out.push({ ...item, assigneeDirective: assignee });
+    }
+    return out;
 }
 
 /** SSO セッション名（`aws sso login --sso-session <name>`）。infra/aws-sso.env と一致 */
@@ -257,18 +343,66 @@ async function checkAuthHealth(cfg, state, log, deps = {}) {
         }
         return true;
     } catch (e) {
-        const msg = sanitizeForSurface(`${e.message || e}${e.stderr ? `: ${e.stderr}` : ''}`, 300);
-        if (state.pausedBy === 'human') {
-            // 人間の pause を尊重しつつエラーだけ記録する
-            state.authError = msg;
-            return false;
-        }
-        if (state.pausedBy !== 'auth') log(`auth failure — auto-pause: ${msg}`);
-        state.paused = true;
-        state.pausedBy = 'auth';
-        state.authError = msg;
+        recordAuthFailure(state, e, log);
         return false;
     }
+}
+
+/**
+ * 認証失敗を state に記録し **auto-pause（pausedBy='auth'）** へ落とす（#949）。
+ * checkAuthHealth の onError 経路と、tick 途中・非同期経路（safety net）で捕捉した
+ * 認証系エラーの合流点。人間が明示 pause 中（pausedBy='human'）はエラー記録のみで
+ * pause の主体を上書きしない（`pausedBy` の区別を保つ不変条件）。
+ * @param {object} state daemon の可変状態
+ * @param {Error|string} err 認証系エラー
+ * @param {function} log
+ * @returns {string} surface 用にサニタイズ済みのメッセージ
+ */
+function recordAuthFailure(state, err, log) {
+    const msg = sanitizeForSurface(
+        `${(err && err.message) || err}${err && err.stderr ? `: ${err.stderr}` : ''}`,
+        300,
+    );
+    if (state.pausedBy === 'human') {
+        // 人間の pause を尊重しつつエラーだけ記録する
+        state.authError = msg;
+        return msg;
+    }
+    if (state.pausedBy !== 'auth') log(`auth failure — auto-pause: ${msg}`);
+    state.paused = true;
+    state.pausedBy = 'auth';
+    state.authError = msg;
+    return msg;
+}
+
+/**
+ * プロセスレベルの安全網（#949）。tick の各 apply ステップ・PR 投影・face sync 等は
+ * fire-and-forget で呼ばれる箇所があり、その非同期経路で bot-token 由来の認証エラーが
+ * reject すると未捕捉のまま **プロセス全体が落ちる**（本 issue の実害）。
+ * `unhandledRejection` / `uncaughtException` を捕まえ、認証系なら auto-pause、それ以外は
+ * サニタイズして log に残し、**プロセスを継続**させる（無人運用のため daemon は落ちてはならない）。
+ * @param {object} state daemon の可変状態
+ * @param {Error|string} err
+ * @param {function} log
+ * @param {string} [kind] ログ用のイベント種別（'unhandledRejection' 等）
+ */
+function handleProcessError(state, err, log, kind = 'error') {
+    if (isAuthError(err)) {
+        recordAuthFailure(state, err, log);
+        return;
+    }
+    log(`${kind}（プロセス継続）: ${sanitizeForSurface(`${(err && err.message) || err}`, 300)}`);
+}
+
+/**
+ * {@link handleProcessError} を process のグローバルハンドラとして 1 度だけ張る（#949）。
+ * @param {object} state
+ * @param {function} log
+ * @param {object} [proc] テスト用に process を差し替え可能
+ */
+function installProcessSafetyNet(state, log, proc = process) {
+    proc.on('unhandledRejection', (reason) => handleProcessError(state, reason, log, 'unhandledRejection'));
+    proc.on('uncaughtException', (err) => handleProcessError(state, err, log, 'uncaughtException'));
 }
 
 /**
@@ -656,6 +790,22 @@ async function dispatch(item, cfg, state, log) {
             if (declared) { baseBranch = declared; log(`#${item.issue}: base branch = ${baseBranch} (declared)`); }
         }
         const cwd = await ensureWorktree(item.issue, pr, baseBranch);
+        // base 追従（#950）: 新ブランチ作業フェーズ（pr なし）は着手時にブランチを最新 base へ
+        // merge して stale 起点の衝突を防ぐ。PR ブランチ作業フェーズ（pr あり）は PR の base を
+        // 継ぐので対象外。コンフリクトは自動解決せず Blocked + 🙋 HITL にエスカレーションする。
+        if (!pr) {
+            const follow = await followBaseBranch(cwd, baseBranch, (m) => log(`#${item.issue}: ${m}`));
+            if (follow.status === 'conflict') {
+                log(`#${item.issue}: base 追従でコンフリクト（${follow.baseRef}）→ Blocked`);
+                record('base-follow-conflict', `${follow.baseRef}: ${follow.detail || ''}`);
+                await markBlocked(
+                    item,
+                    baseFollowConflictBody(meta.skill, item.issue, follow.baseRef, sanitizeForSurface(follow.detail || '')),
+                    cfg, log, {}, state,
+                );
+                return;
+            }
+        }
         const resultDir = path.join(cwd, 'tmp');
         fs.mkdirSync(resultDir, { recursive: true });
         const resultFile = path.join(resultDir, `autopilot-result-${item.issue}.json`);
@@ -1148,6 +1298,9 @@ async function tick(cfg, state, log) {
         log(`poll error: ${e.message}`);
         return { paused: false, picked: [] };
     }
+    // autopilot-assignee ディレクティブ（#938）: itemOwner/ownsItem が使う前に解決しておく
+    // （2人以上 assign の item のみ本文 fetch）。
+    items = await populateAssigneeDirectives(items, cfg, state, log);
     const running = new Set(state.running.keys());
     const contexts = await collectGateContexts(cfg, items, running, state, log);
     // 協調的チェックポイント（EPIC #906・#912）: Awaiting Continuation の item は continuation
@@ -1328,8 +1481,14 @@ async function readContinuationRemainingCount(issue, log, deps = {}) {
 
 /**
  * 俯瞰ボードのデータを再構築して state.board に置く（Web モニタの `GET /board` が返す）。
- * 表示対象は非終端・非 Icebox の item（selectBoardItems）を Board view の見た目順に並べ、
- * sub-issue 進捗と連携 PR 群（state/draft）をバッチ GraphQL で enrich する。
+ * 表示対象は非終端・非 Icebox かつ「自分が Assignees のいずれか」（selectBoardItems /
+ * isAssignee・#938）の item を Board view の見た目順に並べ、sub-issue 進捗と連携 PR 群
+ * （state/draft）をバッチ GraphQL で enrich する。共同担当（オーナーでない Assignees）も
+ * 表示対象になるが、**この daemon が dispatch するのは自分がオーナーの item だけ**
+ * （itemOwner/ownsItem）— 観察対象（他人が駆動する item）の状態は、この daemon 自身の
+ * dispatch では更新されず、`refreshBoard` の周期実行（既定 5 分）または「🔄 更新」ボタン
+ * （`POST /refresh`）でのみ最新化される（`patchBoardCache` は自 worker 実行分のみの
+ * live 反映で、観察対象には効かない）。
  * 非デフォルト base 宛て PR は close リンクに出ないため、PR を持ちうる Status なのに
  * PR が見つからない item は head ブランチ検索で補完する（#831 と同じ理由）。
  * Awaiting Continuation（#906/#912）の item は continuation ファイルの残タスク数も
@@ -1348,8 +1507,14 @@ async function refreshBoard(cfg, state, log, deps = {}) {
         const getBoardEnrichment = deps.getBoardEnrichment || project.getBoardEnrichment;
         const listHeadPrs = deps.listHeadPrs || project.listHeadPrs;
         const items = await listItems(cfg.owner, cfg.project, token);
-        // 表示対象は daemon の処理対象と同じ enroll 判定（ownsItem）に限定する
-        const boardItems = orderItemsLikeBoard(selectBoardItems(items, cfg.assignee), cfg.statusOrder);
+        // 先に表示対象へ絞る: selectBoardItems（= isAssignee）はディレクティブ非依存なので、
+        // owner 解決の**前**に非終端 &「自分が Assignees のいずれか」だけへ限定できる。これで
+        // 終端 Status や他人の multi-assignee item の本文 fetch を避ける（#938・
+        // `.claude/rules/autopilot/github-api.md` の「終端 Status を定常問い合わせから除外」）。
+        const visible = selectBoardItems(items, cfg.assignee);
+        // autopilot-assignee ディレクティブ（#938）: owner 表示の前に、表示対象だけ解決する
+        const withDirectives = await populateAssigneeDirectives(visible, cfg, state, log, { ...deps, token });
+        const boardItems = orderItemsLikeBoard(withDirectives, cfg.statusOrder);
         let enrichment = {};
         try {
             enrichment = await getBoardEnrichment(cfg.repo, boardItems.map((i) => i.issue), token);
@@ -1453,6 +1618,16 @@ async function runTickOnce(cfg, state, log, deps = {}) {
     try {
         const summary = await tickFn(cfg, state, log);
         return { ran: true, ...summary, running: [...state.running.keys()] };
+    } catch (e) {
+        // tick 途中で bot-token 由来の認証エラー等が飛んでも **プロセスを落とさない**（#949）。
+        // 認証系なら checkAuthHealth の onError と同じ経路（auto-pause）へ合流させ、
+        // それ以外はサニタイズして log に残し、次 interval で通常継続する（無人運用）。
+        if (isAuthError(e)) {
+            recordAuthFailure(state, e, log);
+            return { ran: false, authPaused: true, running: [...state.running.keys()] };
+        }
+        log(`tick error（プロセス継続）: ${sanitizeForSurface(`${(e && e.message) || e}`, 300)}`);
+        return { ran: false, error: true, running: [...state.running.keys()] };
     } finally {
         state.ticking = false;
     }
@@ -1661,6 +1836,9 @@ async function main(opts = {}) {
         running: new Map(), ticking: false, claudeUsage: null,
         version: null, autopilotUpdate: null,
     };
+    // プロセスレベルの安全網（#949）: fire-and-forget な非同期経路の認証エラー等で
+    // daemon プロセスが落ちないようにする（認証系は auto-pause、他は log して継続）。
+    installProcessSafetyNet(state, log);
     // 稼働バージョンを起動時に確定させる（= 動いているコード）。以降 working tree が進んでも
     // この値は動かさない（だからこそ表示 + 更新検知が有用）。#885
     state.version = await readVersion(cfg.repoRoot);
@@ -1701,9 +1879,11 @@ async function main(opts = {}) {
 
 module.exports = {
     main, tick, runTickOnce, dispatch, applyMergeProgression, applyClosedReconcile, applyPrProjection,
-    applyDodHandoffs, detectStuck, markBlocked, getDirectives, applyLabelHealing, applyAfterWaitLabels,
+    applyDodHandoffs, detectStuck, markBlocked, getDirectives, populateAssigneeDirectives,
+    applyLabelHealing, applyAfterWaitLabels,
     applyDecomposeSubIssueSetup,
     isGateItem, collectGateContexts, checkAuthHealth, REAUTH_HINT,
+    recordAuthFailure, handleProcessError, installProcessSafetyNet,
     parseSsoDeviceOutput, startReauth,
     refreshBoard, recordHistory, refreshRateLimits, patchBoardCache,
     applyTrackerStickies, refreshBoardAndProjectTrackers,
@@ -1711,4 +1891,5 @@ module.exports = {
     checkForUpdate, startUpdateChecks,
     ensureCheckpointCommit, readContinuationFromWorktree, applyCheckpointHandling,
     collectContinuationContexts, checkpointEscalationBody,
+    followBaseBranch,
 };

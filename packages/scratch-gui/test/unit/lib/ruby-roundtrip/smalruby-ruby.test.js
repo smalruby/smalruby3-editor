@@ -105,6 +105,43 @@ describe('Ruby Roundtrip: smalrubyRuby extension', () => {
         );
     });
 
+    test('Array#reverse with puts (issue #943)', async () => {
+        await expectRoundTrip(
+            converter,
+            target,
+            dedent`
+            when_flag_clicked do
+              ticket = ["赤", "青", "黄"]
+              puts(ticket.reverse)
+            end
+        `,
+            null,
+            opts,
+        );
+    });
+
+    test('Array#reverse! with a list variable', async () => {
+        // Bang methods emit the internal list name (@_ticket_1_) in generator
+        // output, matching the existing sort! behavior.
+        await expectRoundTrip(
+            converter,
+            target,
+            dedent`
+            when_flag_clicked do
+              ticket = [35, 12, 47]
+              ticket.reverse!
+            end
+        `,
+            dedent`
+            when_flag_clicked do
+              ticket = [35, 12, 47]
+              @_ticket_1_.reverse!
+            end
+        `,
+            opts,
+        );
+    });
+
     test('String#* with say', async () => {
         await expectRoundTrip(
             converter,

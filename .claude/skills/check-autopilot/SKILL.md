@@ -21,8 +21,12 @@ console.log("--- history (直近10) ---");
 for (const h of d.history.slice(0,10)) console.log(new Date(h.endedAt).toISOString(), `#${h.issue}`, h.phase, h.outcome, h.note||"");'
 ```
 
-- 接続できない場合: daemon が起動していない。`/tmp/autopilot-daemon.pid` と
-  `docs/autopilot/README.md` の起動手順を案内する。
+- 接続できない場合: daemon が起動していない（クラッシュ含む）。`tmux has-session -t autopilot-daemon`・
+  `/tmp/autopilot-daemon.pid`・`tmp/autopilot-daemon.log` の末尾でクラッシュ理由を確認する。
+  **認証（`bin/bot-token >/dev/null 2>&1`）が有効なら Claude が `bash tmp/autopilot_up.sh` で再起動してよい**
+  （SSO 失効なら先に人間へ `aws sso login --sso-session smalruby --use-device-code` を依頼 → 回復確認 → 起動）。
+  起動後に `curl -s localhost:8787/status` で疎通・authError・boot commit を確認して報告する。
+  daemon が bot-token 取得不能で未捕捉例外クラッシュした事例があるため、**再起動前の認証確認は必須**。
 
 ### 2. 異常の種類ごとに診断する
 
@@ -39,6 +43,11 @@ for (const h of d.history.slice(0,10)) console.log(new Date(h.endedAt).toISOStri
    （`bin/autopilot-worktree path <N>`）の状態（`git -C <path> status` / `tmp/autopilot-result-<N>.json`）を確認。
 3. 原因を特定して要約し、次の選択肢を提示する（勝手に実行しない。ユーザーの指示を待つ）:
    - 原因を取り除いたうえで `🙋 HITL` ラベルを外す（→ autopilot が再開: PR あり=address-review / 無し=triage）
+   - **Status=Blocked のまま resume する場合の注意**: `🙋 HITL` を外しても、daemon の
+     face-sync（特に再起動時）が Blocked を人間ゲートとみなして `🙋 HITL` を再付与し得る。
+     確実に再開させるには **Status を Blocked → In Progress に戻す**（`gh project item-edit` で
+     Status フィールドを設定）+ HITL 除去をセットで行う。Blocked 復旧の再ルートは単一ライター
+     原則の例外として許容される（本スキルで実施可）。
    - `POST /inject?issue=<N>&phase=<p>` で特定フェーズを再投入
    - worktree を作り直す: `bin/autopilot-worktree remove <N>` → 次の dispatch で再作成
    - 不要なら Status を Icebox / Close へ（GitHub Projects で操作）
