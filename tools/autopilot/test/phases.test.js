@@ -7,6 +7,7 @@ const {
     parseBaseBranch,
     resolveBaseRef,
     baseFollowConflictBody,
+    shouldPushAfterFollow,
     parseAfterIssues,
     unresolvedAfterIssues,
     parseAssigneeDirective,
@@ -1820,4 +1821,17 @@ test('baseFollowConflictBody: コンフリクト理由と復旧手順を含む B
     assert.match(body, /🙋 HITL/);
     // detail 空でもローカルログ参照へ誘導する
     assert.match(baseFollowConflictBody('s', 1, 'origin/develop', ''), /ローカルログ参照/);
+});
+
+test('shouldPushAfterFollow: PR フェーズで followed のときだけ push する（#953）', () => {
+    // PR あり × followed → push（リモート PR を mergeable に保つ）
+    assert.equal(shouldPushAfterFollow(954, 'followed'), true);
+    // PR あり だが merge していない状態は push しない
+    assert.equal(shouldPushAfterFollow(954, 'current'), false);
+    assert.equal(shouldPushAfterFollow(954, 'skipped-dirty'), false);
+    assert.equal(shouldPushAfterFollow(954, 'conflict'), false);
+    // implement（pr なし）は followed でも push しない（worker が後で自分の commit ごと push する）
+    assert.equal(shouldPushAfterFollow(undefined, 'followed'), false);
+    assert.equal(shouldPushAfterFollow(null, 'followed'), false);
+    assert.equal(shouldPushAfterFollow(0, 'followed'), false);
 });

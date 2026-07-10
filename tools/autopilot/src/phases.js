@@ -70,6 +70,25 @@ function baseFollowConflictBody(skill, issue, baseRef, detail) {
 }
 
 /**
+ * base 追従（#950）後にリモートへ push すべきか（純粋関数）。
+ *
+ * `followBaseBranch` は base をローカルブランチへ merge するだけで push しない。
+ *  - 新ブランチ作業フェーズ（implement・pr なし）は、この後 worker 自身が自分の commit を
+ *    push する（その push が merge も運ぶ）ので、ここでの push は不要。
+ *  - PR ブランチ作業フェーズ（review / address-review・pr あり）は、worker が必ずしも
+ *    push しないため、clean な追従（`followed`）の後にこの merge を push しないと**リモートの
+ *    PR が CONFLICTING のまま**になり mergeable にならない（#953/#954 の退行）。
+ * したがって「pr が真 かつ follow 結果が followed」のときだけ push する。`current`（既に最新）/
+ * `skipped-dirty`（未コミット変更）/`conflict`（中断済み）は push 対象外。
+ * @param {number|string|null|undefined} pr PR 番号（PR ブランチ作業フェーズのときだけ真）
+ * @param {string} followStatus followBaseBranch の status
+ * @returns {boolean} push すべきなら true
+ */
+function shouldPushAfterFollow(pr, followStatus) {
+    return Boolean(pr) && followStatus === 'followed';
+}
+
+/**
  * Issue 本文から「明示的に宣言されたベースブランチ」を抽出する（純粋関数）。
  *
  * 既定では develop から分岐し PR も develop 宛てにするが、EPIC のサブ Issue など
@@ -1963,6 +1982,7 @@ module.exports = {
     autopilotHeadBranch,
     resolveBaseRef,
     baseFollowConflictBody,
+    shouldPushAfterFollow,
     applyResult,
     subIssueSetupIntents,
     hitlDesireFromResult,
