@@ -13,6 +13,7 @@ const {
     ensureCheckpointCommit, readContinuationFromWorktree, applyCheckpointHandling,
     collectContinuationContexts, checkpointEscalationBody,
     applyTrackerStickies, refreshBoardAndProjectTrackers,
+    followBaseBranch,
 } = require('../src/daemon');
 const { EventEmitter } = require('node:events');
 const { HITL_LABEL, AUTOPILOT_LABEL, continuationMarker, TRACKER_STICKY_MARKER } = require('../src/phases');
@@ -1228,6 +1229,74 @@ test('ensureCheckpointCommit: クリーンな worktree では何もしない', a
     const committed = await ensureCheckpointCommit('/wt', 912, () => {}, deps);
     assert.equal(committed, false);
     assert.equal(deps.calls.length, 1); // status チェックのみ
+});
+
+/**
+ * followBaseBranch 用の execFileP フェイク（#950）。
+ * @param {object} opts { dirty, behind, mergeFails }
+ */
+function makeFollowDeps({ dirty = false, behind = 0, mergeFails = false } = {}) {
+    const calls = [];
+    return {
+        calls,
+        botGitBin: '/bot-git',
+        execFileP: async (cmd, args) => {
+            calls.push({ cmd, args });
+            if (cmd === 'git' && args[0] === 'status') return { stdout: dirty ? ' M f.js\n' : '' };
+            if (cmd === 'git' && args[0] === 'rev-list') return { stdout: `${behind}\n` };
+            if (cmd === '/bot-git' && args[0] === 'merge') {
+                if (mergeFails) { const e = new Error('merge failed'); e.stderr = 'CONFLICT (content): f.js'; throw e; }
+                return { stdout: '' };
+            }
+            return { stdout: '' };
+        },
+    };
+}
+
+test('followBaseBranch: base より遅れていなければ merge しない（current・#950）', async () => {
+    const deps = makeFollowDeps({ behind: 0 });
+    const res = await followBaseBranch('/wt', null, () => {}, deps);
+    assert.equal(res.status, 'current');
+    assert.equal(res.baseRef, 'origin/develop');
+    // merge/abort は呼ばれない
+    assert.ok(!deps.calls.some((c) => c.args[0] === 'merge'));
+});
+
+test('followBaseBranch: base が先行していれば bot-git で merge する（followed・#950）', async () => {
+    const deps = makeFollowDeps({ behind: 3 });
+    const res = await followBaseBranch('/wt', 'develop', () => {}, deps);
+    assert.equal(res.status, 'followed');
+    assert.equal(res.behind, 3);
+    const merge = deps.calls.find((c) => c.cmd === '/bot-git' && c.args[0] === 'merge');
+    assert.ok(merge, 'bot-git で merge する');
+    assert.deepEqual(merge.args, ['merge', '--no-edit', 'origin/develop']);
+    assert.ok(!deps.calls.some((c) => c.args[0] === 'merge' && c.args[1] === '--abort'));
+});
+
+test('followBaseBranch: コンフリクトなら merge --abort で戻し conflict を返す（#950）', async () => {
+    const deps = makeFollowDeps({ behind: 2, mergeFails: true });
+    const res = await followBaseBranch('/wt', null, () => {}, deps);
+    assert.equal(res.status, 'conflict');
+    assert.match(res.detail, /CONFLICT/);
+    const abort = deps.calls.find((c) => c.cmd === 'git' && c.args[0] === 'merge' && c.args[1] === '--abort');
+    assert.ok(abort, 'merge --abort で元に戻す');
+});
+
+test('followBaseBranch: ダーティな worktree では触らない（skipped-dirty・#950）', async () => {
+    const deps = makeFollowDeps({ dirty: true, behind: 5 });
+    const res = await followBaseBranch('/wt', null, () => {}, deps);
+    assert.equal(res.status, 'skipped-dirty');
+    // fetch / rev-list / merge は行わない
+    assert.equal(deps.calls.length, 1);
+    assert.equal(deps.calls[0].args[0], 'status');
+});
+
+test('followBaseBranch: 宣言 base を尊重する（origin/<branch>・#950）', async () => {
+    const deps = makeFollowDeps({ behind: 1 });
+    const res = await followBaseBranch('/wt', 'epic/koshien-738', () => {}, deps);
+    assert.equal(res.baseRef, 'origin/epic/koshien-738');
+    const fetch = deps.calls.find((c) => c.args[0] === 'fetch');
+    assert.deepEqual(fetch.args, ['fetch', 'origin', 'epic/koshien-738']);
 });
 
 test('readContinuationFromWorktree: ファイルが無ければ null、あれば解析結果を返す', () => {

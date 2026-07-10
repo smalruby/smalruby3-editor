@@ -20,6 +20,8 @@ const {
     PHASE_BY_COMMAND,
     DEFAULT_BASE_BRANCH,
     parseBaseBranch,
+    resolveBaseRef,
+    baseFollowConflictBody,
     parseAfterIssues,
     unresolvedAfterIssues,
     parseAssigneeDirective,
@@ -99,6 +101,59 @@ async function ensureWorktree(issue, pr, base) {
     await execFileP(WORKTREE_BIN, args, { maxBuffer: 16 * 1024 * 1024 });
     const { stdout } = await execFileP(WORKTREE_BIN, ['path', String(issue)], { encoding: 'utf8' });
     return stdout.trim();
+}
+
+/**
+ * 作業ブランチを最新の base へ自動追従（merge）させる（#950）。
+ *
+ * autopilot の worktree は作成時点の base から分岐するが、その後 base が前進しても自動追従しない。
+ * 長時間・複数日にまたがる implement（checkpoint / Blocked 復旧などで再開が遅れる）では起点が
+ * 古いままになり、PR が大量コンフリクトになる（#932）。着手/PR 化のタイミングでこの関数を挟み、
+ * base を merge して stale 化を防ぐ。
+ *
+ * 方針:
+ *  - rebase ではなく **merge**（既に push 済みの Draft PR ブランチでも force push 不要で追従できる）。
+ *    merge commit は bot 名義（`bin/bot-git`）で作る（共有 config は書き換えない）。
+ *  - 追従前に worktree がダーティなら触らない（`skipped-dirty`。worker 起動前提でクリーンなはず）。
+ *  - base より遅れていなければ何もしない（`current`）。
+ *  - コンフリクトしたら **勝手に解決せず** `git merge --abort` で元に戻し `conflict` を返す
+ *    （呼び出し側が Blocked + 🙋 HITL にエスカレーションする）。
+ *
+ * 判断ロジック（追従 ref 解決）は phases.js の純粋関数 {@link resolveBaseRef} に寄せ、
+ * ここは git I/O のみ（`.claude/rules/autopilot/development.md` のレイヤリング）。
+ * @param {string} cwd 作業 worktree
+ * @param {string|null} baseBranch 宣言 base（null は既定 develop）
+ * @param {Function} log ロガー
+ * @param {object} [deps] { execFileP, botGitBin }（テスト用の差し替え）
+ * @returns {Promise<{status: 'current'|'followed'|'conflict'|'skipped-dirty', baseRef: string, behind?: number, detail?: string}>}
+ */
+async function followBaseBranch(cwd, baseBranch, log, deps = {}) {
+    const exec = deps.execFileP || execFileP;
+    const botGit = deps.botGitBin || BOT_GIT_BIN;
+    const baseRef = resolveBaseRef(baseBranch);
+    const baseName = baseRef.replace(/^origin\//, '');
+    const opts = { cwd, maxBuffer: 16 * 1024 * 1024 };
+    // ダーティな worktree では merge できない（安全側で触らない）
+    const { stdout: status } = await exec('git', ['status', '--porcelain'], opts);
+    if (status.trim()) {
+        log(`base 追従スキップ: worktree に未コミット変更あり（${baseRef}）`);
+        return { status: 'skipped-dirty', baseRef };
+    }
+    // 最新 origin を取得（失敗しても致命ではない: 手前の worktree 作成で develop は fetch 済み）
+    await exec('git', ['fetch', 'origin', baseName], opts).catch(() => {});
+    const { stdout: behindOut } = await exec('git', ['rev-list', '--count', `HEAD..${baseRef}`], opts);
+    const behind = Number(String(behindOut).trim()) || 0;
+    if (behind === 0) return { status: 'current', baseRef, behind: 0 };
+    try {
+        await exec(botGit, ['merge', '--no-edit', baseRef], opts);
+        log(`base 追従: ${baseRef} を merge（${behind} commits 先行していた base に追従）`);
+        return { status: 'followed', baseRef, behind };
+    } catch (e) {
+        // コンフリクト等 → 勝手に解決せず元に戻す
+        await exec('git', ['merge', '--abort'], opts).catch(() => {});
+        const detail = e.stderr || e.stdout || e.message || '';
+        return { status: 'conflict', baseRef, behind, detail: String(detail) };
+    }
 }
 
 // In Progress + AI 作業中のまま run が無くなってから Blocked にするまでの猶予（#816）。
@@ -686,6 +741,22 @@ async function dispatch(item, cfg, state, log) {
             if (declared) { baseBranch = declared; log(`#${item.issue}: base branch = ${baseBranch} (declared)`); }
         }
         const cwd = await ensureWorktree(item.issue, pr, baseBranch);
+        // base 追従（#950）: 新ブランチ作業フェーズ（pr なし）は着手時にブランチを最新 base へ
+        // merge して stale 起点の衝突を防ぐ。PR ブランチ作業フェーズ（pr あり）は PR の base を
+        // 継ぐので対象外。コンフリクトは自動解決せず Blocked + 🙋 HITL にエスカレーションする。
+        if (!pr) {
+            const follow = await followBaseBranch(cwd, baseBranch, (m) => log(`#${item.issue}: ${m}`));
+            if (follow.status === 'conflict') {
+                log(`#${item.issue}: base 追従でコンフリクト（${follow.baseRef}）→ Blocked`);
+                record('base-follow-conflict', `${follow.baseRef}: ${follow.detail || ''}`);
+                await markBlocked(
+                    item,
+                    baseFollowConflictBody(meta.skill, item.issue, follow.baseRef, sanitizeForSurface(follow.detail || '')),
+                    cfg, log, {}, state,
+                );
+                return;
+            }
+        }
         const resultDir = path.join(cwd, 'tmp');
         fs.mkdirSync(resultDir, { recursive: true });
         const resultFile = path.join(resultDir, `autopilot-result-${item.issue}.json`);
@@ -1757,4 +1828,5 @@ module.exports = {
     checkForUpdate, startUpdateChecks,
     ensureCheckpointCommit, readContinuationFromWorktree, applyCheckpointHandling,
     collectContinuationContexts, checkpointEscalationBody,
+    followBaseBranch,
 };

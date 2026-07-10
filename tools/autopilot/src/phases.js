@@ -33,6 +33,43 @@ function autopilotHeadBranch(issueNumber, prefix = AUTOPILOT_BRANCH_PREFIX) {
 }
 
 /**
+ * 宣言 base を「追従に使う ref（`origin/<branch>`）」へ正規化する（純粋関数・#950）。
+ *
+ * autopilot の worktree ブランチは作成時点の base から分岐するが、その後 base が前進しても
+ * 自動で追従しない。長時間・複数日にまたがる implement（checkpoint / Blocked 復旧などで再開が
+ * 遅れる）ではブランチが古い起点のままになり PR が大量コンフリクトになる（#932）。着手/PR 化時に
+ * この ref へ追従（merge）して stale 化を防ぐ。ローカルブランチではなく **リモート追跡 ref** を
+ * 使うのは、最新の origin を fetch した直後の状態に確実に合わせるため。
+ * @param {string|null} base 宣言 base（`autopilot-base:` 由来。null/空 は既定 develop）
+ * @param {string} [defaultBase] 既定 base（既定 {@link DEFAULT_BASE_BRANCH}）
+ * @returns {string} 追従 ref（例 `origin/develop`）。`origin/` は重複させない
+ */
+function resolveBaseRef(base, defaultBase = DEFAULT_BASE_BRANCH) {
+    const b = (base && String(base).trim()) || defaultBase;
+    return b.startsWith('origin/') ? b : `origin/${b}`;
+}
+
+/**
+ * base 追従（#950）でコンフリクトし自動追従できなかったときの Blocked コメント本文（純粋関数）。
+ * 勝手にコンフリクトを解決せず、merge を中断（`--abort`）して元に戻したうえで人間へ渡す。
+ * @param {string} skill フェーズスキル名
+ * @param {number} issue Issue 番号
+ * @param {string} baseRef 追従しようとした ref（例 `origin/develop`）
+ * @param {string} detail サニタイズ済みの git 出力（呼び出し側で {@link sanitizeForSurface} 済み）
+ * @returns {string} Blocked コメント本文
+ */
+function baseFollowConflictBody(skill, issue, baseRef, detail) {
+    return (
+        `🤖 autopilot: \`${skill}\` フェーズの着手時に、作業ブランチを最新の base（\`${baseRef}\`）へ` +
+        '自動追従（merge）しようとしましたが**コンフリクト**したため、安全のため merge を中断して' +
+        '元に戻し **Blocked** にしました（古い起点のまま進めると PR が大量コンフリクトになるため）。\n\n' +
+        `**詳細（サニタイズ済み）**: ${detail || '（ローカルログ参照）'}\n\n` +
+        '**人間の対応**: worktree で base を手動 merge / rebase してコンフリクトを解決し、' +
+        '`🙋 HITL` を外す（またはコメントする）と autopilot が再開します。'
+    );
+}
+
+/**
  * Issue 本文から「明示的に宣言されたベースブランチ」を抽出する（純粋関数）。
  *
  * 既定では develop から分岐し PR も develop 宛てにするが、EPIC のサブ Issue など
@@ -1902,6 +1939,8 @@ module.exports = {
     resolveOwner,
     AUTOPILOT_BRANCH_PREFIX,
     autopilotHeadBranch,
+    resolveBaseRef,
+    baseFollowConflictBody,
     applyResult,
     subIssueSetupIntents,
     hitlDesireFromResult,
