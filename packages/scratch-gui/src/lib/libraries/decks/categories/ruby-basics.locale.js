@@ -46,6 +46,14 @@ export const ja = {
     'gui.howtos.ruby-basics-6-methods.step4.title': '同じメソッドを、ちがう名前で何度も呼び出してみよう',
     'gui.howtos.ruby-basics-6-methods.step5.title': 'メソッドの中身を変えて、自分だけのあいさつをつくろう',
     'gui.howtos.ruby-basics-6-methods.external.tryruby.name': '外部サイト「try ruby」で詳しくRubyを学ぶ',
+    'gui.howtos.ruby-basics-7-next.name': '次に進もう（TryRuby）',
+    'gui.howtos.ruby-basics-7-next.step1.title': 'Rubyの基礎、ぜんぶ学んだね！',
+    'gui.howtos.ruby-basics-7-next.step2.title': 'おさらい：putsで計算の答えをしゃべらせよう',
+    'gui.howtos.ruby-basics-7-next.step3.title': '{greenFlag}を押すと、ネコが答えをしゃべるよ',
+    'gui.howtos.ruby-basics-7-next.step4.title': '文字だってputsで表示できたね',
+    'gui.howtos.ruby-basics-7-next.step5.title':
+        'Smalrubyで書いたputsのコードは、TryRubyや本物のRubyでもそのまま動くよ。TryRubyを開いてためしてみよう！',
+    'gui.howtos.ruby-basics-7-next.step5.openTryRuby': 'TryRubyを開く',
 };
 
 export const jaHira = {
@@ -97,6 +105,14 @@ export const jaHira = {
     'gui.howtos.ruby-basics-6-methods.step4.title': 'おなじメソッドを、ちがうなまえでなんどもよびだしてみよう',
     'gui.howtos.ruby-basics-6-methods.step5.title': 'メソッドのなかみをかえて、じぶんだけのあいさつをつくろう',
     'gui.howtos.ruby-basics-6-methods.external.tryruby.name': 'がいぶサイト「try ruby」でくわしくRubyをまなぶ',
+    'gui.howtos.ruby-basics-7-next.name': 'つぎにすすもう（TryRuby）',
+    'gui.howtos.ruby-basics-7-next.step1.title': 'Rubyのきそ、ぜんぶまなんだね！',
+    'gui.howtos.ruby-basics-7-next.step2.title': 'おさらい：putsでけいさんのこたえをしゃべらせよう',
+    'gui.howtos.ruby-basics-7-next.step3.title': '{greenFlag}をおすと、ネコがこたえをしゃべるよ',
+    'gui.howtos.ruby-basics-7-next.step4.title': 'もじだってputsでひょうじできたね',
+    'gui.howtos.ruby-basics-7-next.step5.title':
+        'Smalrubyでかいたputsのコードは、TryRubyやほんもののRubyでもそのままうごくよ。TryRubyをひらいてためしてみよう！',
+    'gui.howtos.ruby-basics-7-next.step5.openTryRuby': 'TryRubyをひらく',
 };
 
 export const en = {
@@ -145,4 +161,12 @@ export const en = {
     'gui.howtos.ruby-basics-6-methods.step4.title': 'Call the same method again with a different name',
     'gui.howtos.ruby-basics-6-methods.step5.title': 'Change the method body to make your own greeting',
     'gui.howtos.ruby-basics-6-methods.external.tryruby.name': 'Learn more about Ruby on the external "try ruby" site',
+    'gui.howtos.ruby-basics-7-next.name': 'Next Steps (TryRuby)',
+    'gui.howtos.ruby-basics-7-next.step1.title': "You've learned the basics of Ruby!",
+    'gui.howtos.ruby-basics-7-next.step2.title': 'Review: make the cat say the result of a calculation with puts',
+    'gui.howtos.ruby-basics-7-next.step3.title': 'Press {greenFlag} and the cat will say the answers',
+    'gui.howtos.ruby-basics-7-next.step4.title': 'You can show text with puts, too',
+    'gui.howtos.ruby-basics-7-next.step5.title':
+        'The puts code you wrote in Smalruby runs as-is in TryRuby and real Ruby. Open TryRuby and give it a try!',
+    'gui.howtos.ruby-basics-7-next.step5.openTryRuby': 'Open TryRuby',
 };

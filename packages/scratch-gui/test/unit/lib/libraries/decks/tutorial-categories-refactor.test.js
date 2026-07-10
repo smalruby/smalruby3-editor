@@ -41,7 +41,8 @@ const EXPECTED_DECK_ID_ORDER = [
     'ruby-basics-3-variables',
     'ruby-basics-4-arrays',
     'ruby-basics-5-blocks',
-    'ruby-basics-6-methods'
+    'ruby-basics-6-methods',
+    'ruby-basics-7-next'
 ];
 
 describe('Tutorial deck category split (issue #932)', () => {

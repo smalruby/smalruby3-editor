@@ -722,6 +722,116 @@ end`,
             }
         ],
         urlId: 'rubyBasics6Methods'
+    },
+
+    'ruby-basics-7-next': {
+        name: (
+            <FormattedMessage
+                defaultMessage="次に進もう（TryRuby）"
+                description="Name for Ruby Basics 7: bridge to TryRuby / real Ruby"
+                id="gui.howtos.ruby-basics-7-next.name"
+            />
+        ),
+        tags: ['ruby'],
+        category: CATEGORIES.rubyBasics,
+        // Reuse the TryRuby screenshot as the deck thumbnail — this deck is all
+        // about the bridge to try.ruby-lang.org.
+        img: libraryRubyBasics1TryRuby,
+        nameMessageId: 'gui.howtos.ruby-basics-7-next.name',
+        // Same "open the Ruby tab in Ruby mode" setup as decks 1-6 — see
+        // docs/tutorial/improvement-plan.md "チュートリアル起動時の環境セットアップ".
+        setup: {
+            tab: 'ruby',
+            rubyMode: 'ruby'
+        },
+        allowedBlocks: {
+            motion: [],
+            looks: ['looks_sayforsecs', 'looks_say'],
+            sound: [],
+            event: ['event_whenflagclicked'],
+            control: [],
+            sensing: [],
+            operators: []
+        },
+        steps: [
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="Rubyの基礎、ぜんぶ学んだね！"
+                        description="Ruby Basics 7 Step 1: Congratulations intro"
+                        id="gui.howtos.ruby-basics-7-next.step1.title"
+                    />
+                ),
+                // Reuse deck 1 intro image.
+                image: 'rubyBasics1Step1',
+                startTutorial: true,
+                animationTarget: 'startTutorialButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="おさらい：putsで計算の答えをしゃべらせよう"
+                        description="Ruby Basics 7 Step 2: Review arithmetic with puts"
+                        id="gui.howtos.ruby-basics-7-next.step2.title"
+                    />
+                ),
+                // Reuse deck 1 "first puts" image.
+                image: 'rubyBasics1Step2',
+                code: `when_flag_clicked do
+  puts 3 + 4
+  puts 10 * 5
+end`,
+                animationTarget: 'insertCodeButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="{greenFlag}を押すと、ネコが答えをしゃべるよ"
+                        description="Ruby Basics 7 Step 3: Run the review program"
+                        id="gui.howtos.ruby-basics-7-next.step3.title"
+                        values={{greenFlag: <GreenFlagIcon />}}
+                    />
+                ),
+                // Reuse deck 1 result image.
+                image: 'rubyBasics1Step3',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="文字だってputsで表示できたね"
+                        description="Ruby Basics 7 Step 4: Review strings with puts"
+                        id="gui.howtos.ruby-basics-7-next.step4.title"
+                    />
+                ),
+                // Reuse deck 2 "first puts" (string reverse) image.
+                image: 'rubyBasics2Step2',
+                code: `when_flag_clicked do
+  puts "スモウルビー".reverse
+end`,
+                animationTarget: 'insertCodeButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="Smalrubyで書いたputsのコードは、TryRubyや本物のRubyでもそのまま動くよ。TryRubyを開いてためしてみよう！"
+                        description="Ruby Basics 7 Step 5: Bridge message to TryRuby with external link"
+                        id="gui.howtos.ruby-basics-7-next.step5.title"
+                    />
+                ),
+                image: 'rubyBasics7TryRuby',
+                // TryRuby does not accept a language path segment, so always use the root URL.
+                externalUrl: 'https://try.ruby-lang.org/',
+                externalUrlLabel: (
+                    <FormattedMessage
+                        defaultMessage="TryRubyを開く"
+                        description="Button label to open the TryRuby website in a new tab"
+                        id="gui.howtos.ruby-basics-7-next.step5.openTryRuby"
+                    />
+                )
+            }
+        ],
+        urlId: 'rubyBasics7Next'
     }
 };
 
