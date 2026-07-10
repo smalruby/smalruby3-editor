@@ -322,11 +322,15 @@ test('selectMergeCandidates / selectPrSyncCandidates: 🧭 tracking も除外', 
     assert.deepEqual(selectPrSyncCandidates(items).map((i) => i.issue), [1]);
 });
 
-test('labelActions: Kind=EPIC には 🧭 tracking を担保する（自動では外さない）', () => {
-    const epic = { kind: 'EPIC', hitlLabel: false, status: 'In Progress' };
-    assert.ok(labelActions(epic, [AUTOPILOT_LABEL]).add.includes(TRACKING_LABEL));
+test('labelActions: 🧭 tracking は分解済み EPIC にだけ担保する（自動では外さない）', () => {
+    // 分解済み（sub-issue あり）の EPIC には付与する
+    const decomposed = { kind: 'EPIC', hitlLabel: false, status: 'In Progress', subIssues: { total: 3, completed: 1 } };
+    assert.ok(labelActions(decomposed, [AUTOPILOT_LABEL]).add.includes(TRACKING_LABEL));
     // 既に付いていれば何もしない
-    assert.ok(!labelActions(epic, [AUTOPILOT_LABEL, TRACKING_LABEL]).add.includes(TRACKING_LABEL));
+    assert.ok(!labelActions(decomposed, [AUTOPILOT_LABEL, TRACKING_LABEL]).add.includes(TRACKING_LABEL));
+    // 未分解（sub-issue 0/未設定）の EPIC には付与しない（decompose 対象を締め出さない・#680/#681）
+    assert.ok(!labelActions({ kind: 'EPIC', hitlLabel: false, status: 'Sprint Backlog', subIssues: { total: 0 } }, [AUTOPILOT_LABEL]).add.includes(TRACKING_LABEL));
+    assert.ok(!labelActions({ kind: 'EPIC', hitlLabel: false, status: 'Sprint Backlog' }, [AUTOPILOT_LABEL]).add.includes(TRACKING_LABEL));
     // leaf に人間が手動で付けた tracking は剥がさない
     const leaf = { kind: 'Issue', hitlLabel: false, status: 'In Progress' };
     assert.ok(!labelActions(leaf, [AUTOPILOT_LABEL, TRACKING_LABEL]).remove.includes(TRACKING_LABEL));
