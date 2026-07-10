@@ -5,6 +5,8 @@ const {
     PHASE_BY_COMMAND,
     phasePromptCommand,
     parseBaseBranch,
+    resolveBaseRef,
+    baseFollowConflictBody,
     parseAfterIssues,
     unresolvedAfterIssues,
     parseAssigneeDirective,
@@ -1792,4 +1794,30 @@ test('touchedRuleAreas: 変更ファイルから .claude/rules/<area>/ を導く
     assert.deepEqual(touchedRuleAreas(['README.md', 'CLAUDE.md']), []);
     assert.deepEqual(touchedRuleAreas([]), []);
     assert.deepEqual(touchedRuleAreas(undefined), []);
+});
+
+test('resolveBaseRef: 宣言 base を origin/<branch> へ正規化する（#950）', () => {
+    // null/空/未指定 は既定 develop
+    assert.equal(resolveBaseRef(null), 'origin/develop');
+    assert.equal(resolveBaseRef(''), 'origin/develop');
+    assert.equal(resolveBaseRef(undefined), 'origin/develop');
+    assert.equal(resolveBaseRef('   '), 'origin/develop');
+    // ブランチ名は origin/ を付ける
+    assert.equal(resolveBaseRef('develop'), 'origin/develop');
+    assert.equal(resolveBaseRef('epic/koshien-738'), 'origin/epic/koshien-738');
+    // 既に origin/ 付きは重複させない
+    assert.equal(resolveBaseRef('origin/develop'), 'origin/develop');
+    // 既定 base の差し替え
+    assert.equal(resolveBaseRef(null, 'main'), 'origin/main');
+});
+
+test('baseFollowConflictBody: コンフリクト理由と復旧手順を含む Blocked 本文（#950）', () => {
+    const body = baseFollowConflictBody('autopilot-implement', 950, 'origin/develop', 'CONFLICT in foo.js');
+    assert.match(body, /Blocked/);
+    assert.match(body, /origin\/develop/);
+    assert.match(body, /コンフリクト/);
+    assert.match(body, /CONFLICT in foo\.js/);
+    assert.match(body, /🙋 HITL/);
+    // detail 空でもローカルログ参照へ誘導する
+    assert.match(baseFollowConflictBody('s', 1, 'origin/develop', ''), /ローカルログ参照/);
 });
