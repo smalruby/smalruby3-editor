@@ -663,8 +663,6 @@ export default {
     'gui.libraryCategories.gettingStarted': 'Getting Started',
     'gui.library.blockBasics': 'Block Basics: First Steps',
     'gui.library.blockGames': 'Block Games: Shooting Game',
-    'gui.library.blockMath': 'Block Math: Geometric Patterns',
-    'gui.library.blockScience': 'Block Science: micro:bit',
     'gui.library.meshStep1': 'Intro to Communication ① Send a Message',
     'gui.library.meshStep2': 'Intro to Communication ② Chat Between Two Sprites',
     'gui.library.meshStep3': 'Intro to Communication ③ Chat Across Devices (Mesh)',

@@ -6,13 +6,13 @@ import messages from './tag-messages.js';
 // steps -> (DNCL, added in Phase 4). See docs/tutorial/improvement-plan.md.
 export const CATEGORIES = {
     gettingStarted: 'gettingStarted',
-    // Phase 3: Block-axis series (教科ラベル型). These four categories are the
+    // Phase 3: Block-axis series (教科ラベル型). These two categories are the
     // common foundation shared by the follow-up Block decks (#680); each is a
-    // book-excerpt "試食" tutorial (see book-promo.jsx).
-    blockBasics: 'blockBasics', // はじめての操作
-    blockGames: 'blockGames', // ゲームを作ろう
-    blockMath: 'blockMath', // 算数: 幾何学模様
-    blockScience: 'blockScience', // 理科: マイクロビット
+    // book-excerpt "試食" tutorial (see book-promo.jsx). Only chapters 1 and 4
+    // are covered because the source book PDFs were provided for those chapters
+    // only (ch5/ch6 dropped — no source; see #962).
+    blockBasics: 'blockBasics', // 第1章 はじめての操作
+    blockGames: 'blockGames', // 第4章 ゲームを作ろう
     // Phase 2: Ruby basics — TryRuby-inspired, puts-centric series
     rubyBasics: 'rubyBasics', // Ruby のきほん
     // Mesh tutorial series — split from the former single `chatApp` category

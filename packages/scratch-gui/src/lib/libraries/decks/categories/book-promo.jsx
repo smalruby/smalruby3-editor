@@ -1,7 +1,7 @@
 // === Smalruby: This file is Smalruby-specific (Block-axis book promotion) ===
 //
 // Shared book-promotion elements for the Block-axis tutorial series
-// (blockBasics/blockGames/blockMath/blockScience). Phase 3 of the tutorial
+// (blockBasics/blockGames). Phase 3 of the tutorial
 // improvement plan positions these decks as an excerpt/"試食" of Kengo
 // Fujimura's Smalruby book, so every deck opens with the book's
 // bibliographic info and closes with a "続きは書籍で" purchase link.

@@ -1,6 +1,7 @@
 /**
- * Guards the Block-axis common foundation (issue #956): the four block
- * tutorial categories (blockBasics/blockGames/blockMath/blockScience), the
+ * Guards the Block-axis common foundation (issue #956): the two block
+ * tutorial categories (blockBasics/blockGames — chapters 1 and 4; chapters
+ * 5/6 dropped because no source PDF was provided, see #962), the
  * library category display order, and the shared book-promotion helpers
  * (BOOK constants + opening/closing step factories) that the follow-up
  * Block series decks (#680) build on.
@@ -17,10 +18,10 @@ import ja from '../../../../../src/locales/ja';
 import jaHira from '../../../../../src/locales/ja-Hira';
 import en from '../../../../../src/locales/en';
 
-const BLOCK_CATEGORIES = ['blockBasics', 'blockGames', 'blockMath', 'blockScience'];
+const BLOCK_CATEGORIES = ['blockBasics', 'blockGames'];
 
 describe('Block-axis taxonomy (issue #956)', () => {
-    test('CATEGORIES contains the four block categories', () => {
+    test('CATEGORIES contains the two block categories', () => {
         BLOCK_CATEGORIES.forEach(key => {
             expect(CATEGORIES[key]).toBe(key);
         });
@@ -31,8 +32,8 @@ describe('Block-axis taxonomy (issue #956)', () => {
         const idx = key => order.indexOf(key);
         // gettingStarted first
         expect(idx('gettingStarted')).toBe(0);
-        // the four block categories come next, in the intended sequence
-        expect(order.slice(1, 5)).toEqual(BLOCK_CATEGORIES);
+        // the block categories come next, in the intended sequence
+        expect(order.slice(1, 1 + BLOCK_CATEGORIES.length)).toEqual(BLOCK_CATEGORIES);
         // rubyBasics after all block categories
         BLOCK_CATEGORIES.forEach(key => {
             expect(idx('rubyBasics')).toBeGreaterThan(idx(key));
@@ -82,9 +83,9 @@ describe('Book promotion shared helpers (issue #956)', () => {
     });
 
     test('bookAdvancedClosingStep links to the purchase URL via externalUrl', () => {
-        const step = bookAdvancedClosingStep(5, 'blockMathAdvancedClosing');
+        const step = bookAdvancedClosingStep(4, 'blockGamesAdvancedClosing');
         expect(step.title).toBeDefined();
-        expect(step.image).toBe('blockMathAdvancedClosing');
+        expect(step.image).toBe('blockGamesAdvancedClosing');
         expect(step.externalUrl).toBe(BOOK_URL);
         expect(step.externalUrlLabel).toBeDefined();
     });

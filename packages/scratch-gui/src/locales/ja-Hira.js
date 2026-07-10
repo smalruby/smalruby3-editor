@@ -1119,8 +1119,6 @@ export default {
     'gui.libraryCategories.gettingStarted': 'はじめましょう',
     'gui.library.blockBasics': 'ブロックのきほん：はじめてのそうさ',
     'gui.library.blockGames': 'ブロックでゲーム：シューティング',
-    'gui.library.blockMath': 'ブロックでさんすう：きかがくもよう',
-    'gui.library.blockScience': 'ブロックでりか：マイクロビット',
     'gui.library.meshStep1': 'つうしんにゅうもん ① メッセージをおくってみよう',
     'gui.library.meshStep2': 'つうしんにゅうもん ② ふたりでかいわしよう',
     'gui.library.meshStep3': 'つうしんにゅうもん ③ みんなでかいわしよう (メッシュ)',

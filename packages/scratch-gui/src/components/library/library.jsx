@@ -45,16 +45,6 @@ const messages = defineMessages({
         defaultMessage: 'ブロックでゲーム：シューティング',
         description: 'Label for the Block Games tutorial category — make a shooting game'
     },
-    [CATEGORIES.blockMath]: {
-        id: `gui.library.blockMath`,
-        defaultMessage: 'ブロックで算数：幾何学模様',
-        description: 'Label for the Block Math tutorial category — geometric patterns with the pen'
-    },
-    [CATEGORIES.blockScience]: {
-        id: `gui.library.blockScience`,
-        defaultMessage: 'ブロックで理科：マイクロビット',
-        description: 'Label for the Block Science tutorial category — micro:bit sensors'
-    },
     [CATEGORIES.meshStep1]: {
         id: `gui.library.meshStep1`,
         defaultMessage: '通信入門 ① メッセージを送ってみよう',

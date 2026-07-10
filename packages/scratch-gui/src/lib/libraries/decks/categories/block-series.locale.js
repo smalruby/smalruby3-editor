@@ -1,5 +1,5 @@
-// Locale strings for the blockBasics/blockGames/blockMath/blockScience
-// tutorial categories (Phase 3, issue #680), split out so this category can
+// Locale strings for the blockBasics/blockGames tutorial categories
+// (Phase 3, issue #680), split out so this category can
 // be developed without touching index.jsx or the central locale files
 // (issue #932).
 //
