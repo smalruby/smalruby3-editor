@@ -1,6 +1,6 @@
 ---
 name: autopilot
-description: autopilot の総合サポート。初期設定（必要情報のインタビュー → 起動スクリプト tmp/autopilot_up.sh の生成 → 起動コマンド提示）、Issue の enroll ショートカット（本文や末尾に「enroll autopilot」）、トラブル診断（check-autopilot へ委譲）、運用中の操作支援。「init autopilot」「autopilot開始」「go autopilot」「play autopilot」「enroll autopilot」など、autopilot と一緒にやろうと汲み取れるひとことで起動する。
+description: autopilot の総合サポート。初期設定（必要情報のインタビュー → 起動スクリプト tmp/autopilot_up.sh の生成 → 認証確認の上 Claude が起動/再起動）、Issue の enroll ショートカット（本文や末尾に「enroll autopilot」）、トラブル診断（check-autopilot へ委譲）、運用中の操作支援。「init autopilot」「autopilot開始」「go autopilot」「play autopilot」「enroll autopilot」「update autopilot」など、autopilot と一緒にやろうと汲み取れるひとことで起動する。
 ---
 
 # autopilot — 総合サポートスキル
@@ -29,7 +29,8 @@ description: autopilot の総合サポート。初期設定（必要情報のイ
 ## A: 初期化 & 起動サポート
 
 ゴール: 必要な情報を揃え、起動スクリプト **`tmp/autopilot_up.sh`** を用意し、
-**起動コマンドを人間に提示**する（**起動は人間が行う。Claude は実行しない**）。
+**認証が有効なら Claude が自分で daemon を起動する**（AWS SSO 再認証だけは人間 —
+末尾「起動/再起動は Claude が実行してよい」を参照）。
 
 ### A-1. 前提チェック（揃っているものはスキップ）
 
@@ -88,18 +89,18 @@ echo "  stop:    curl -X POST localhost:<PORT>/shutdown"
 
 `<LOGIN>`（未指定なら `--assignee` ごと省略）/`<N>`/`<SEC>`/`<PORT>` はインタビュー結果で埋める。
 
-### A-4. 起動コマンドの提示（実行しない）
+### A-4. 起動（Claude が実行してよい）
 
-以下を人間に提示して A を終える:
+**認証が有効なら Claude が自分で起動する。** まず `bin/bot-token >/dev/null 2>&1` で認証を確認し:
 
-> 準備ができました。次のコマンドで起動してください（このセッションで `! bash tmp/autopilot_up.sh` でも可）:
-> ```
-> bash tmp/autopilot_up.sh
-> ```
-> 起動後にモニタ `http://localhost:<PORT>/` を開けます。起動を確認したら教えてください。
+- **成功**: `bash tmp/autopilot_up.sh` を実行して起動する（`docker compose` 等でラップしない）。
+  数秒待って `curl -s localhost:<PORT>/status` で疎通・assignee・paused・authError を確認し、
+  結果を報告して **D: 運用サポート** に移る。
+- **失敗（AWS SSO 失効など）**: **起動しない**（daemon は bot-token 取得不能だとクラッシュしうる）。
+  人間に `aws sso login --sso-session smalruby --use-device-code`（device code + ブラウザ承認 =
+  人間のみ）を依頼し、完了後 `bin/bot-token --whoami` で疎通を再確認してから起動する。
 
-人間が「起動した」と言ったら `curl -s localhost:<PORT>/status` で疎通・assignee・paused を
-確認して結果を報告し、以降は **D: 運用サポート** に移る。
+> 起動/再起動の条件と再起動（update autopilot）手順は末尾「起動/再起動は Claude が実行してよい」を参照。
 
 ---
 
@@ -152,12 +153,31 @@ echo "  stop:    curl -X POST localhost:<PORT>/shutdown"
   日本語で要約する（モニタ URL も添える）
 - **操作**（人間の依頼があったとき）: `POST /tick`（今すぐ確認）/ `/pause` / `/resume` /
   `/stop?issue=N` / `/inject?issue=N&phase=<p>`。破壊的な stop / inject は実行前に確認する
+- **起動 / 再起動 / 更新反映（update autopilot）**: Claude が実行してよい（末尾の規約に従う）。
+  「update autopilot」は `git pull`（develop）→ 再起動で最新スナップショットを反映する
 - **enroll 依頼**（B）や **トラブル**（C）を検知したら該当モードへ
 - **質問対応**: 状態遷移・HITL 解除・ディレクティブ等は `docs/autopilot/` を根拠に答える
 
+## 起動/再起動は Claude が実行してよい
+
+`tmp/autopilot_up.sh` が用意されていれば、**daemon の起動・再起動・更新反映は Claude が
+自分で実行してよい**（従来「人間のみ」だったが解禁）。ただし次を守る:
+
+- **起動前に必ず認証を確認する**: `bin/bot-token >/dev/null 2>&1`（または `--whoami`）。
+  失敗したら**起動しない**。daemon は bot-token 取得不能だと未捕捉例外でクラッシュしうる
+  （実際に SSO 失効でプロセスごと落ちた事例あり）。
+- **AWS SSO 再認証は人間のみ**: device code + ブラウザ承認は Claude が代行できない。失効時は
+  `aws sso login --sso-session smalruby --use-device-code` を人間に依頼し、
+  `bin/bot-token --whoami` で回復を確認してから起動する。
+- **起動**: `bash tmp/autopilot_up.sh`（tmux 未起動なら新規起動・既起動なら no-op）。
+- **再起動 / 更新反映（update autopilot）**: `curl -X POST localhost:<PORT>/shutdown` →
+  必要なら `/app` で `git pull origin develop` → `bash tmp/autopilot_up.sh`。走行中 worker が
+  あれば中断されるので、**完了を待つか中断可否を人間に確認**する。
+- **起動後は必ず疎通確認**: `curl -s localhost:<PORT>/status` で paused / authError / boot commit を確認して報告する。
+- スクリプトが無い場合は Mode A の手順で `tmp/autopilot_up.sh` を生成してから起動する。
+
 ## 注意
 
-- **daemon の起動・再起動は人間が行う**（Claude はスクリプト生成とコマンド提示まで）。
 - Project の Status / AI Status を Claude が直接書き換えない（単一ライターは daemon。
-  例外は B の enroll 時の初期フィールド設定のみ）。
+  例外は B の enroll 時の初期フィールド設定、および Blocked 復旧時の再ルートのみ）。
 - 秘密（トークン・鍵・SSO 情報）を出力・コミットに含めない。
