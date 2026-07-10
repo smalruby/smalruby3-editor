@@ -79,12 +79,16 @@ if tmux has-session -t "$SESSION" 2>/dev/null; then
     exit 0
 fi
 mkdir -p tmp
+# daemon は未知エラーで Node 準拠に exit する（#953）。外部 supervisor（autopilot-supervise）が
+# 非ゼロ終了のみ再起動し、exit 0（意図的停止）では再起動しない。60 秒 5 回でクラッシュループと
+# 見なして諦める。node を直接叩かず必ず supervisor 経由で起動する。ログは supervisor が
+# tmp/autopilot-daemon.log に追記する。
 tmux new-session -d -s "$SESSION" \
-  "node tools/autopilot/bin/autopilot daemon --assignee <LOGIN> --concurrency <N> --interval <SEC> --port <PORT> 2>&1 | tee tmp/autopilot-daemon.log"
-echo "started."
+  "tools/autopilot/bin/autopilot-supervise --assignee <LOGIN> --concurrency <N> --interval <SEC> --port <PORT>"
+echo "started (supervised)."
 echo "  monitor: http://localhost:<PORT>/"
 echo "  log:     tail -f tmp/autopilot-daemon.log  (or tmux attach -t $SESSION)"
-echo "  stop:    curl -X POST localhost:<PORT>/shutdown"
+echo "  stop:    curl -X POST localhost:<PORT>/shutdown  (supervisor も停止する)"
 ```
 
 `<LOGIN>`（未指定なら `--assignee` ごと省略）/`<N>`/`<SEC>`/`<PORT>` はインタビュー結果で埋める。

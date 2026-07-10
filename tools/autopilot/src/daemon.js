@@ -27,6 +27,8 @@ const {
     parseAssigneeDirective,
     selectActionable,
     isStuckCandidate,
+    selectOrphanedInFlightItems,
+    liveWorkerIssuesFromSessions,
     applyResult,
     subIssueSetupIntents,
     hitlDesireFromResult,
@@ -77,7 +79,7 @@ const {
     continuationCommentBody,
 } = require('./phases');
 const { readResultFile } = require('./contract');
-const { runPhase, killSession, capture } = require('./runner');
+const { runPhase, killSession, capture, listSessions } = require('./runner');
 const { MONITOR_HTML } = require('./monitor');
 const { loadSettings, buildClaudeCommand, snapshotRunAssets } = require('./settings');
 const { readClaudeUsage } = require('./usage');
@@ -161,6 +163,14 @@ async function followBaseBranch(cwd, baseBranch, log, deps = {}) {
 // 1 回の run の最大時間（watchdog tMaxMs=30分）より長くして、生きている run を誤って
 // 止めない。daemon 再起動後はこの daemon が初めて観測した時刻から測り直す（保守的）。
 const DEFAULT_STUCK_MS = 35 * 60 * 1000;
+
+// 終了コード規約（#953）。外部 supervisor（tools/autopilot/bin/autopilot-supervise）は
+// この規約で「再起動するか停止のままにするか」を決める:
+//   EXIT_OK   (0)  = 意図的な停止（POST /shutdown・SIGTERM・SIGINT）→ supervisor は再起動しない
+//   EXIT_CRASH(1)  = 未知の非認証エラーによるクラッシュ → supervisor が再起動する
+// 認証エラーは exit せずプロセス内 auto-pause（pausedBy='auth'・#949）で耐えるので、この規約の外。
+const EXIT_OK = 0;
+const EXIT_CRASH = 1;
 
 // Issue 本文ディレクティブ（autopilot-base / autopilot-after）のキャッシュ TTL。
 // 人間が本文を編集した変更は最大この時間で反映される。tick ごとの本文 fetch を避ける。
@@ -376,33 +386,41 @@ function recordAuthFailure(state, err, log) {
 }
 
 /**
- * プロセスレベルの安全網（#949）。tick の各 apply ステップ・PR 投影・face sync 等は
- * fire-and-forget で呼ばれる箇所があり、その非同期経路で bot-token 由来の認証エラーが
- * reject すると未捕捉のまま **プロセス全体が落ちる**（本 issue の実害）。
- * `unhandledRejection` / `uncaughtException` を捕まえ、認証系なら auto-pause、それ以外は
- * サニタイズして log に残し、**プロセスを継続**させる（無人運用のため daemon は落ちてはならない）。
+ * プロセスレベルの安全網（#949 → #953 で方針転換）。tick の各 apply ステップ・PR 投影・
+ * face sync 等は fire-and-forget で呼ばれる箇所があり、その非同期経路で reject/throw が
+ * 未捕捉のままプロセスに届きうる。
+ *
+ * - **認証系エラー**: 従来どおりプロセス内で auto-pause（pausedBy='auth'・#949）。SSO 瞬断は
+ *   これで耐える。**終了しない**。
+ * - **未知の非認証エラー**: Node 公式ドキュメントでは `uncaughtException` 後のプロセスは
+ *   「未定義の状態」であり継続は非推奨（データ不整合・ゾンビ状態を招く）。よって
+ *   サニタイズして log に残したうえで **`process.exit(EXIT_CRASH)`** し、外部 supervisor
+ *   （`autopilot-supervise`）に再起動を委ねる（#953）。「log して継続」分岐は廃止した。
  * @param {object} state daemon の可変状態
  * @param {Error|string} err
  * @param {function} log
  * @param {string} [kind] ログ用のイベント種別（'unhandledRejection' 等）
+ * @param {object} [proc] exit を呼ぶ process（テスト用に差し替え可能）
  */
-function handleProcessError(state, err, log, kind = 'error') {
+function handleProcessError(state, err, log, kind = 'error', proc = process) {
     if (isAuthError(err)) {
         recordAuthFailure(state, err, log);
         return;
     }
-    log(`${kind}（プロセス継続）: ${sanitizeForSurface(`${(err && err.message) || err}`, 300)}`);
+    // 未知の非認証エラーは Node 準拠でクラッシュ扱い。supervisor が再起動する。
+    log(`${kind}（プロセス終了 exit ${EXIT_CRASH} — supervisor が再起動）: ${sanitizeForSurface(`${(err && err.message) || err}`, 300)}`);
+    proc.exit(EXIT_CRASH);
 }
 
 /**
- * {@link handleProcessError} を process のグローバルハンドラとして 1 度だけ張る（#949）。
+ * {@link handleProcessError} を process のグローバルハンドラとして 1 度だけ張る（#949/#953）。
  * @param {object} state
  * @param {function} log
  * @param {object} [proc] テスト用に process を差し替え可能
  */
 function installProcessSafetyNet(state, log, proc = process) {
-    proc.on('unhandledRejection', (reason) => handleProcessError(state, reason, log, 'unhandledRejection'));
-    proc.on('uncaughtException', (err) => handleProcessError(state, err, log, 'uncaughtException'));
+    proc.on('unhandledRejection', (reason) => handleProcessError(state, reason, log, 'unhandledRejection', proc));
+    proc.on('uncaughtException', (err) => handleProcessError(state, err, log, 'uncaughtException', proc));
 }
 
 /**
@@ -520,6 +538,51 @@ async function detectStuck(items, cfg, state, log, deps = {}) {
         }
     }
     for (const issue of [...seen.keys()]) if (!live.has(issue)) seen.delete(issue);
+}
+
+/**
+ * 起動時の孤児 worker 自動復帰（#953）。crash → 外部 supervisor による再起動では in-memory の
+ * `state.running` を失う一方、tmux の worker セッションは別プロセスなので生き残りうる。
+ * この関数は起動時に 1 度だけ呼ばれ:
+ *   1. `tmux list-sessions` から**実際に生存中**の worker の issue 集合を得る（in-memory
+ *      running は起動直後は常に空なので使わない）、
+ *   2. in-flight の AI Status（Implementing 等）なのに worker が生存していない item を
+ *      {@link selectOrphanedInFlightItems}（純粋関数）で選び、
+ *   3. enroll フィルタ（{@link ownsItem}）を通したものを対応フェーズへ再ディスパッチする。
+ * これで crash → supervisor 再起動 → 孤児自動復帰まで自己修復し、手動 inject が不要になる。
+ * 生存中 worker を持つ item は触らない（走行中の run をそのまま完走させる）。
+ * @param {object} cfg
+ * @param {object} state daemon の可変状態
+ * @param {function} log
+ * @param {object} [deps] { listSessions, listItems, readToken, dispatch }（テスト用）
+ * @returns {Promise<{issue:number, phase:string}[]>} 再ディスパッチした孤児
+ */
+async function recoverOrphanedWorkers(cfg, state, log, deps = {}) {
+    const listSess = deps.listSessions || listSessions;
+    const listItemsFn = deps.listItems || project.listItems;
+    const readToken = deps.readToken || project.readToken;
+    const dispatchFn = deps.dispatch || dispatch;
+    let items;
+    try {
+        items = await listItemsFn(cfg.owner, cfg.project, await readToken());
+    } catch (e) {
+        log(`orphan recovery: poll 失敗（スキップ）: ${e.message}`);
+        return [];
+    }
+    const live = liveWorkerIssuesFromSessions(listSess());
+    const orphans = selectOrphanedInFlightItems(items, live);
+    const byIssue = new Map(items.map((it) => [it.issue, it]));
+    const recovered = [];
+    for (const o of orphans) {
+        const item = byIssue.get(o.issue);
+        if (!ownsItem(item, cfg.assignee)) continue; // 自分がオーナーの item だけ復帰させる
+        if (state.running.has(o.issue)) continue; // 既にこの daemon が所有中なら触らない
+        log(`#${o.issue}: 孤児 in-flight worker（${o.phase} / worker 不在）→ 再ディスパッチ`);
+        dispatchFn({ ...item, phase: o.phase }, cfg, state, log);
+        recovered.push(o);
+    }
+    if (recovered.length) log(`orphan recovery: ${recovered.length} 件を再ディスパッチ`);
+    return recovered;
 }
 
 /** 実行履歴の上限（モニタ最下部の表示用。ログとしての意味のみ） */
@@ -1769,7 +1832,8 @@ function startHttp(cfg, state, log) {
             // 安全停止: pkill -f は自己 kill するため使わず、この HTTP か PID ファイルで止める
             log('shutdown requested');
             send(200, { shutdown: true });
-            setTimeout(() => process.exit(0), 100);
+            // 意図的な停止 → EXIT_OK。supervisor は再起動せず停止のままにする（#953）。
+            setTimeout(() => process.exit(EXIT_OK), 100);
             return;
         }
         send(404, { error: 'not found' });
@@ -1836,8 +1900,8 @@ async function main(opts = {}) {
         running: new Map(), ticking: false, claudeUsage: null,
         version: null, autopilotUpdate: null,
     };
-    // プロセスレベルの安全網（#949）: fire-and-forget な非同期経路の認証エラー等で
-    // daemon プロセスが落ちないようにする（認証系は auto-pause、他は log して継続）。
+    // プロセスレベルの安全網（#949/#953）: fire-and-forget な非同期経路のエラーを捕捉し、
+    // 認証系は auto-pause で耐え、未知の非認証エラーは Node 準拠で exit（supervisor が再起動）。
     installProcessSafetyNet(state, log);
     // 稼働バージョンを起動時に確定させる（= 動いているコード）。以降 working tree が進んでも
     // この値は動かさない（だからこそ表示 + 更新検知が有用）。#885
@@ -1850,8 +1914,9 @@ async function main(opts = {}) {
         fs.writeFileSync(pidFilePath(), String(process.pid));
         const cleanup = () => { try { fs.rmSync(pidFilePath(), { force: true }); } catch { /* noop */ } };
         process.on('exit', cleanup);
-        process.on('SIGTERM', () => process.exit(0));
-        process.on('SIGINT', () => process.exit(0));
+        // シグナルによる停止も意図的停止 → EXIT_OK（supervisor は再起動しない・#953）。
+        process.on('SIGTERM', () => process.exit(EXIT_OK));
+        process.on('SIGINT', () => process.exit(EXIT_OK));
     } catch (e) { log(`pid file warn: ${e.message}`); }
     startHttp(cfg, state, log);
     log(`daemon up: project #${cfg.project}, assignee ${cfg.assignee || '(all)'}, concurrency ${cfg.concurrency}, interval ${cfg.intervalMs}ms, pid ${process.pid} (${pidFilePath()})`);
@@ -1859,6 +1924,9 @@ async function main(opts = {}) {
     // 各 poll/tick の直後（下の refreshBoard）と、モニタの「🔄 更新」ボタン
     // （POST /refresh）によるオンデマンドでのみ更新する（GraphQL 予算の節約）。
     refreshBoardAndProjectTrackers(cfg, state, log);
+    // 起動時の孤児 worker 自動復帰（#953）: crash → supervisor 再起動で in-memory running を
+    // 失っても、in-flight のまま worker 不在の item を検出して対応フェーズへ再ディスパッチする。
+    await recoverOrphanedWorkers(cfg, state, log).catch((e) => log(`orphan recovery error: ${e.message}`));
     /* eslint-disable no-constant-condition */
     while (!opts.once) {
         // 認証ヘルスチェック（失効 → auto-pause / 回復 → auto-resume）を tick の前に行う。
@@ -1879,7 +1947,7 @@ async function main(opts = {}) {
 
 module.exports = {
     main, tick, runTickOnce, dispatch, applyMergeProgression, applyClosedReconcile, applyPrProjection,
-    applyDodHandoffs, detectStuck, markBlocked, getDirectives, populateAssigneeDirectives,
+    applyDodHandoffs, detectStuck, recoverOrphanedWorkers, markBlocked, getDirectives, populateAssigneeDirectives,
     applyLabelHealing, applyAfterWaitLabels,
     applyDecomposeSubIssueSetup,
     isGateItem, collectGateContexts, checkAuthHealth, REAUTH_HINT,

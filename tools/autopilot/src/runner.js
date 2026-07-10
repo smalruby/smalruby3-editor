@@ -40,6 +40,18 @@ function hasSession(session) {
     return tmux(['has-session', '-t', session], { check: false }).code === 0;
 }
 
+/**
+ * 生存中の tmux セッション名を一覧する（#953）。孤児 worker 復帰で、daemon crash を
+ * 跨いで生き残った worker セッション（`autopilot-<phase>-<issue>`）を検出するために使う。
+ * tmux サーバーが無い（1 つも session が無い）ときは非ゼロ終了するので、空配列を返す。
+ * @returns {string[]} セッション名の配列
+ */
+function listSessions() {
+    const r = tmux(['list-sessions', '-F', '#{session_name}'], { check: false });
+    if (r.code !== 0 || !r.out) return [];
+    return r.out.split('\n').map((s) => s.trim()).filter(Boolean);
+}
+
 function capture(session) {
     return tmux(['capture-pane', '-p', '-t', session], { check: false }).out || '';
 }
@@ -195,4 +207,4 @@ async function runPhase(opts) {
     }
 }
 
-module.exports = { runPhase, launch, capture, hasSession, killSession, sendLine, BUSY_RE, PROMPT_RE };
+module.exports = { runPhase, launch, capture, hasSession, listSessions, killSession, sendLine, BUSY_RE, PROMPT_RE };
