@@ -56,6 +56,7 @@ Smalruby Classroom の各フェーズ（教師ログイン、クラス作成、�
 | `packages/scratch-gui/src/reducers/tutorial-onboarding.js` | onboarding state（`MARK_TUTORIAL_SEEN`, `MARK_RUBY_TAB_USED`, `DISMISS_TOOLTIP`）|
 | `packages/scratch-gui/src/components/classroom-tutorial/` | クラスルーム機能のチュートリアル UI |
 | `packages/scratch-gui/src/reducers/classroom-tutorial.js` | クラスルームチュートリアル state |
+| `packages/scratch-gui/src/lib/libraries/decks/categories/book-promo.jsx` | Block 軸シリーズ共通の書籍プロモ要素（`BOOK` 書誌プレースホルダ / `BOOK_URL` / オープニング・クロージング step ファクトリ）。書誌確定後は `BOOK` 定数 1 箇所を差し替える（Phase 3, #956）|
 
 #### Smalruby マーカー (upstream への埋め込み)
 

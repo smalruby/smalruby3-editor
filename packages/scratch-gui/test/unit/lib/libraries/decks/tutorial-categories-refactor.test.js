@@ -69,13 +69,22 @@ describe('Tutorial deck category split (issue #932)', () => {
         });
     });
 
-    test('block-series and dncl locale stubs are empty for all three locales', () => {
-        expect(blockSeriesLocale.ja).toEqual({});
-        expect(blockSeriesLocale.jaHira).toEqual({});
-        expect(blockSeriesLocale.en).toEqual({});
+    test('dncl locale stub is empty for all three locales', () => {
         expect(dnclLocale.ja).toEqual({});
         expect(dnclLocale.jaHira).toEqual({});
         expect(dnclLocale.en).toEqual({});
+    });
+
+    test('block-series locale holds only the shared book-promo foundation (issue #956), no deck-id howtos', () => {
+        // #956 populates the Block-axis common book-promotion strings; the
+        // per-deck howto strings still come later (#680).
+        [blockSeriesLocale.ja, blockSeriesLocale.jaHira, blockSeriesLocale.en].forEach(table => {
+            const keys = Object.keys(table);
+            expect(keys.length).toBeGreaterThan(0);
+            keys.forEach(id => {
+                expect(id.startsWith('gui.howtos.book-promo.')).toBe(true);
+            });
+        });
     });
 
     test('central locale files still contain every getting-started / ruby-basics key (via spread)', () => {
