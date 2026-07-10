@@ -59,6 +59,45 @@ export const convertToListBlock = function (converter, messages, block) {
 };
 
 /**
+ * Determine whether a receiver block refers to a *known* list variable,
+ * WITHOUT creating one.
+ *
+ * A variable read is always a data_variable block regardless of whether it
+ * holds a scalar/String or an Array, so methods registered for both String and
+ * Array receivers (reverse / reverse!) cannot be disambiguated by block type
+ * alone. This inspects the tracked variable/list stores to decide which class
+ * the receiver belongs to.
+ *
+ * Unlike convertToListBlock / _lookupOrCreateList, this never creates a list, so
+ * it safely returns false for genuine scalar/String variables (avoiding the
+ * side effect of accidentally registering a list for them).
+ * @param {object} converter - The converter instance.
+ * @param {object} block - The receiver block to inspect.
+ * @returns {boolean} true if the receiver is (or references) a known list.
+ */
+export const isKnownListReceiver = function (converter, block) {
+    if (!converter._isBlock(block)) return false;
+
+    // Already a list block (data_listcontents).
+    if (converter.isListBlock(block)) return true;
+
+    if (block.opcode !== 'data_variable' ||
+        !block.fields || !block.fields.VARIABLE) {
+        return false;
+    }
+
+    // A data_variable's VARIABLE.value is the key under which a corresponding
+    // list would live in _context.lists: the bare name for global/instance and
+    // the transformed name (e.g. `_ticket_1_`) for locals. Local scalars and
+    // lists deliberately share this transformed name so that convertToListBlock
+    // can recover the list from a scalar read; here we only *peek* (never
+    // create). A genuine scalar/String variable has no matching list entry, so
+    // this correctly returns false for them.
+    const varName = block.fields.VARIABLE.value;
+    return Boolean(converter._context.lists[varName]);
+};
+
+/**
  * Adjust a 0-indexed Ruby array index to 1-indexed Scratch list index.
  * Always wraps in operator_add(index, 1) with `@ruby`:array:index comment
  * to enable round-trip conversion.
