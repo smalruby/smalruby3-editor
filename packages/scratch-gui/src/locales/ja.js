@@ -1,3 +1,10 @@
+// Tutorial category locale strings are split into per-category modules
+// (issue #932) so tutorial categories can be developed independently.
+import { ja as blockSeriesHowtos } from '../lib/libraries/decks/categories/block-series.locale.js';
+import { ja as dnclHowtos } from '../lib/libraries/decks/categories/dncl.locale.js';
+import { ja as gettingStartedHowtos } from '../lib/libraries/decks/categories/getting-started.locale.js';
+import { ja as rubyBasicsHowtos } from '../lib/libraries/decks/categories/ruby-basics.locale.js';
+
 export default {
     'gui.modal.reload': '再読み込み',
     'gui.modal.stop': '中止',
@@ -942,14 +949,7 @@ export default {
     'gui.rubyteeModal.rateLimitError': '利用回数の上限に達しました。{minutes}分後にもう一度お試しください。',
 
     // Tutorials
-    'gui.howtos.getting-started.name': 'さあ、始めましょう',
-    'gui.howtos.getting-started.step.move': '「10歩動かす」ブロックを追加する',
-    'gui.howtos.getting-started.step.say': '「こんにちはと言う」ブロックを追加する',
-    'gui.howtos.getting-started.step.greenFlag': '🏁をクリックしてスタート！',
-    'gui.howtos.getting-started.step.rubyTab': 'ブロックの次はルビー(Ruby)にチャレンジしてみよう！',
-    'gui.howtos.getting-started.step.bounceCode': 'ルビーを表示してプログラムを入力してみよう',
-    'gui.howtos.getting-started.step.runRuby': '実行ボタンを押してプログラムを実行しよう',
-    'gui.howtos.getting-started.step.firstProgram': 'ネコが行ったり来たりするプログラムができました🎉',
+    ...gettingStartedHowtos,
     // Chat Tutorial 1 Basic 1
     'gui.howtos.chat-1-basic-1.name': 'メッセージを送ってみよう！',
     'gui.howtos.chat-1-basic-1.step1.title': '離れたブロックにメッセージを送ってみよう！',
@@ -1062,49 +1062,9 @@ export default {
         '開隆堂 やってみよう！プログラミング「チャットアプリを制作しよう」',
     // Ruby Basics 1: putsで計算してみよう
     'gui.library.rubyBasics': 'Ruby のきほん',
-    'gui.howtos.ruby-basics-1-numbers.name': 'Rubyで計算してみよう',
-    'gui.howtos.ruby-basics-1-numbers.step1.title': 'Rubyで計算してみよう！',
-    'gui.howtos.ruby-basics-1-numbers.step2.title': 'まずは「puts 2 + 6」を実行してみよう',
-    'gui.howtos.ruby-basics-1-numbers.step3.title': '{greenFlag}を押すと、ネコが「8」としゃべるよ',
-    'gui.howtos.ruby-basics-1-numbers.step4.title': '他の計算も試してみよう（かけ算・わり算・ひき算）',
-    'gui.howtos.ruby-basics-1-numbers.step5.title': '数字を好きなものに変えて、自分だけの計算をしてみよう',
-    'gui.howtos.ruby-basics-1-numbers.external.tryruby.name': '外部サイト「try ruby」で詳しくRubyを学ぶ',
-    'gui.howtos.ruby-basics-2-strings.name': '文字列（もじれつ）で遊ぼう',
-    'gui.howtos.ruby-basics-2-strings.step1.title': '文字列（もじれつ）で遊ぼう！',
-    'gui.howtos.ruby-basics-2-strings.step2.title': 'まずは「puts "こんにちは"」を実行してみよう',
-    'gui.howtos.ruby-basics-2-strings.step3.title': '{greenFlag}を押すと、ネコが「こんにちは」としゃべるよ',
-    'gui.howtos.ruby-basics-2-strings.step4.title': '文字をさかさまにしたり、大文字にしてみよう',
-    'gui.howtos.ruby-basics-2-strings.step5.title': '好きな言葉に変えて、自分だけの文字列で遊ぼう',
-    'gui.howtos.ruby-basics-2-strings.external.tryruby.name': '外部サイト「try ruby」で詳しくRubyを学ぶ',
-    'gui.howtos.ruby-basics-3-variables.name': '変数（へんすう）を使ってみよう',
-    'gui.howtos.ruby-basics-3-variables.step1.title': '変数（へんすう）を使ってみよう！',
-    'gui.howtos.ruby-basics-3-variables.step2.title': '「name」に名前を入れて、しゃべらせてみよう',
-    'gui.howtos.ruby-basics-3-variables.step3.title': '{greenFlag}を押すと、ネコが「ネコ」としゃべるよ',
-    'gui.howtos.ruby-basics-3-variables.step4.title': '変数を使って、文をつくってみよう',
-    'gui.howtos.ruby-basics-3-variables.step5.title': '変数の中身を好きな名前に変えてみよう',
-    'gui.howtos.ruby-basics-3-variables.external.tryruby.name': '外部サイト「try ruby」で詳しくRubyを学ぶ',
-    'gui.howtos.ruby-basics-4-arrays.name': '配列（はいれつ）で遊ぼう',
-    'gui.howtos.ruby-basics-4-arrays.step1.title': '配列（はいれつ）で遊ぼう！',
-    'gui.howtos.ruby-basics-4-arrays.step2.title': '複数のことばを1つの配列にまとめてみよう',
-    'gui.howtos.ruby-basics-4-arrays.step3.title': '{greenFlag}を押すと、ネコが配列の中身をしゃべるよ',
-    'gui.howtos.ruby-basics-4-arrays.step4.title': '配列の順番を逆にしたり、番号で1つだけ取り出してみよう',
-    'gui.howtos.ruby-basics-4-arrays.step5.title': '好きなことばに変えて、自分だけの配列で遊ぼう',
-    'gui.howtos.ruby-basics-4-arrays.external.tryruby.name': '外部サイト「try ruby」で詳しくRubyを学ぶ',
-    'gui.howtos.ruby-basics-5-blocks.name': 'ブロック（times）を使ってみよう',
-    'gui.howtos.ruby-basics-5-blocks.step1.title': 'ブロック（times）を使ってみよう！',
-    'gui.howtos.ruby-basics-5-blocks.step2.title': '「5.times do |i| ... end」で同じ処理を5回くり返してみよう',
-    'gui.howtos.ruby-basics-5-blocks.step3.title': '{greenFlag}を押すと、ネコが「0」から「4」まで順番にしゃべるよ',
-    'gui.howtos.ruby-basics-5-blocks.step4.title': 'くり返しの中で「move(20)」も動かして、進みながらしゃべらせよう',
-    'gui.howtos.ruby-basics-5-blocks.step5.title': 'くり返す回数や動く歩数を変えて、自分だけの動きをつくろう',
-    'gui.howtos.ruby-basics-5-blocks.external.tryruby.name': '外部サイト「try ruby」で詳しくRubyを学ぶ',
-    'gui.howtos.ruby-basics-6-methods.name': 'メソッドをつくってみよう',
-    'gui.howtos.ruby-basics-6-methods.step1.title': 'メソッドをつくってみよう！',
-    'gui.howtos.ruby-basics-6-methods.step2.title':
-        '「def hello(name) ... end」で、名前を呼んであいさつするメソッドをつくろう',
-    'gui.howtos.ruby-basics-6-methods.step3.title': '{greenFlag}を押すと、ネコが「こんにちは、ネコ」としゃべるよ',
-    'gui.howtos.ruby-basics-6-methods.step4.title': '同じメソッドを、ちがう名前で何度も呼び出してみよう',
-    'gui.howtos.ruby-basics-6-methods.step5.title': 'メソッドの中身を変えて、自分だけのあいさつをつくろう',
-    'gui.howtos.ruby-basics-6-methods.external.tryruby.name': '外部サイト「try ruby」で詳しくRubyを学ぶ',
+    ...rubyBasicsHowtos,
+    ...blockSeriesHowtos,
+    ...dnclHowtos,
     // Mesh tag
     'gui.libraryTags.mesh': 'メッシュ',
     'gui.cards.all-tutorials': 'チュートリアル',

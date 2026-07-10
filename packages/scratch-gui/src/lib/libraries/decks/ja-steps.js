@@ -111,6 +111,11 @@ import rubyBasics6Step3 from './steps/ruby-basics-6-3-result.png';
 import rubyBasics6Step4 from './steps/ruby-basics-6-4-multiple-calls.png';
 import rubyBasics6Step5 from './steps/ruby-basics-6-5-modify.png';
 
+// Ruby Basics 7: 次に進もう (TryRuby 導線)。レビュー用ステップは deck 1/2 の
+// 画像を流用し、最終ステップだけ TryRuby のスクリーンショットを見せる
+// (docs/tutorial/improvement-plan.md Phase 2 / tutorial.md「画像の流用ルール」)。
+import rubyBasics7TryRuby from './thumbnails/ruby-basics-1-tryruby.png';
+
 const jaImages = {
     // Getting Started
     introRubyTab: introRubyTab,
@@ -208,7 +213,9 @@ const jaImages = {
     rubyBasics6Step2: rubyBasics6Step2,
     rubyBasics6Step3: rubyBasics6Step3,
     rubyBasics6Step4: rubyBasics6Step4,
-    rubyBasics6Step5: rubyBasics6Step5
+    rubyBasics6Step5: rubyBasics6Step5,
+
+    rubyBasics7TryRuby: rubyBasics7TryRuby
 };
 
 export {jaImages};

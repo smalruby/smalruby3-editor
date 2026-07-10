@@ -1,3 +1,10 @@
+// Tutorial category locale strings are split into per-category modules
+// (issue #932) so tutorial categories can be developed independently.
+import { en as blockSeriesHowtos } from '../lib/libraries/decks/categories/block-series.locale.js';
+import { en as dnclHowtos } from '../lib/libraries/decks/categories/dncl.locale.js';
+import { en as gettingStartedHowtos } from '../lib/libraries/decks/categories/getting-started.locale.js';
+import { en as rubyBasicsHowtos } from '../lib/libraries/decks/categories/ruby-basics.locale.js';
+
 export default {
     'gui.sharedMessages.migrateMeshV1Warning':
         'This project contains legacy Mesh extensions and can only be used until April 30th. Select OK to continue using the legacy Mesh extensions. Select Cancel to use the new Mesh extensions instead.',
@@ -638,14 +645,7 @@ export default {
     'gui.rubyToolbar.stage': 'Stage',
 
     // Tutorials
-    'gui.howtos.getting-started.name': 'Getting Started',
-    'gui.howtos.getting-started.step.move': 'Add a move block',
-    'gui.howtos.getting-started.step.say': 'Add a say block',
-    'gui.howtos.getting-started.step.greenFlag': 'Click the green flag to start',
-    'gui.howtos.getting-started.step.rubyTab': "Let's challenge Ruby next after blocks!",
-    'gui.howtos.getting-started.step.bounceCode': 'Show Ruby and enter your program',
-    'gui.howtos.getting-started.step.runRuby': 'Press the run button to execute the program',
-    'gui.howtos.getting-started.step.firstProgram': "You've made a program where the cat moves back and forth! 🎉",
+    ...gettingStartedHowtos,
     'gui.cards.all-tutorials': 'Tutorials',
     'gui.cards.shrink': 'Shrink',
     'gui.cards.expand': 'Expand',
@@ -771,51 +771,9 @@ export default {
     'gui.howtos.chat-3-mesh-3.external.kairyudo.name': 'Kairyudo: Try Programming! "Create a Chat App"',
     // Ruby Basics 1: calculate with puts
     'gui.library.rubyBasics': 'Ruby Basics',
-    'gui.howtos.ruby-basics-1-numbers.name': "Let's Do Math with Ruby",
-    'gui.howtos.ruby-basics-1-numbers.step1.title': "Let's do math with Ruby!",
-    'gui.howtos.ruby-basics-1-numbers.step2.title': 'Try running `puts 2 + 6` first',
-    'gui.howtos.ruby-basics-1-numbers.step3.title': 'Press {greenFlag} and the cat will say "8"',
-    'gui.howtos.ruby-basics-1-numbers.step4.title': 'Try other operations too (multiply / divide / subtract)',
-    'gui.howtos.ruby-basics-1-numbers.step5.title': 'Change the numbers to whatever you like and do your own math',
-    'gui.howtos.ruby-basics-1-numbers.external.tryruby.name': 'Learn more about Ruby on the external "try ruby" site',
-    'gui.howtos.ruby-basics-2-strings.name': 'Play with Strings',
-    'gui.howtos.ruby-basics-2-strings.step1.title': "Let's play with strings!",
-    'gui.howtos.ruby-basics-2-strings.step2.title': 'Try running `puts "こんにちは"` first',
-    'gui.howtos.ruby-basics-2-strings.step3.title': 'Press {greenFlag} and the cat will say "こんにちは"',
-    'gui.howtos.ruby-basics-2-strings.step4.title': 'Reverse a string or make it uppercase',
-    'gui.howtos.ruby-basics-2-strings.step5.title':
-        'Change the words to whatever you like and play with your own string',
-    'gui.howtos.ruby-basics-2-strings.external.tryruby.name': 'Learn more about Ruby on the external "try ruby" site',
-    'gui.howtos.ruby-basics-3-variables.name': 'Use Variables',
-    'gui.howtos.ruby-basics-3-variables.step1.title': "Let's use variables!",
-    'gui.howtos.ruby-basics-3-variables.step2.title': 'Put a name into `name` and make the cat say it',
-    'gui.howtos.ruby-basics-3-variables.step3.title': 'Press {greenFlag} and the cat will say "ネコ"',
-    'gui.howtos.ruby-basics-3-variables.step4.title': 'Build a sentence using a variable',
-    'gui.howtos.ruby-basics-3-variables.step5.title': 'Change the value of the variable to any name you like',
-    'gui.howtos.ruby-basics-3-variables.external.tryruby.name':
-        'Learn more about Ruby on the external "try ruby" site',
-    'gui.howtos.ruby-basics-4-arrays.name': 'Use Arrays',
-    'gui.howtos.ruby-basics-4-arrays.step1.title': "Let's use arrays!",
-    'gui.howtos.ruby-basics-4-arrays.step2.title': 'Put several words into one array',
-    'gui.howtos.ruby-basics-4-arrays.step3.title': 'Press {greenFlag} and the cat will say the array',
-    'gui.howtos.ruby-basics-4-arrays.step4.title':
-        'Reverse the order of the array, or pick out one item by its index',
-    'gui.howtos.ruby-basics-4-arrays.step5.title': 'Change the words to make your own array',
-    'gui.howtos.ruby-basics-4-arrays.external.tryruby.name': 'Learn more about Ruby on the external "try ruby" site',
-    'gui.howtos.ruby-basics-5-blocks.name': 'Use Blocks (times)',
-    'gui.howtos.ruby-basics-5-blocks.step1.title': "Let's use blocks (times)!",
-    'gui.howtos.ruby-basics-5-blocks.step2.title': 'Repeat the same action 5 times with `5.times do |i| ... end`',
-    'gui.howtos.ruby-basics-5-blocks.step3.title': 'Press {greenFlag} and the cat will say "0" through "4" in order',
-    'gui.howtos.ruby-basics-5-blocks.step4.title': 'Add `move(20)` inside the loop to move while saying the numbers',
-    'gui.howtos.ruby-basics-5-blocks.step5.title': 'Change the repeat count or move distance to make your own motion',
-    'gui.howtos.ruby-basics-5-blocks.external.tryruby.name': 'Learn more about Ruby on the external "try ruby" site',
-    'gui.howtos.ruby-basics-6-methods.name': 'Create Methods',
-    'gui.howtos.ruby-basics-6-methods.step1.title': "Let's create methods!",
-    'gui.howtos.ruby-basics-6-methods.step2.title': 'Create a greeting method with `def hello(name) ... end`',
-    'gui.howtos.ruby-basics-6-methods.step3.title': 'Press {greenFlag} and the cat will say "こんにちは、ネコ"',
-    'gui.howtos.ruby-basics-6-methods.step4.title': 'Call the same method again with a different name',
-    'gui.howtos.ruby-basics-6-methods.step5.title': 'Change the method body to make your own greeting',
-    'gui.howtos.ruby-basics-6-methods.external.tryruby.name': 'Learn more about Ruby on the external "try ruby" site',
+    ...rubyBasicsHowtos,
+    ...blockSeriesHowtos,
+    ...dnclHowtos,
     'gui.menuBar.updateTooltip': 'Try the new Smalruby!',
     'gui.menuBar.updateConfirm':
         'A new version of Smalruby is available. Press "OK" to update now, or "Cancel" to update later.',

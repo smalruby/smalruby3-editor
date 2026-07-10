@@ -111,6 +111,10 @@ import rubyBasics6Step3 from './steps/ruby-basics-6-3-result.png';
 import rubyBasics6Step4 from './steps/ruby-basics-6-4-multiple-calls.png';
 import rubyBasics6Step5 from './steps/ruby-basics-6-5-modify.png';
 
+// Ruby Basics 7: Next steps (TryRuby bridge). Review steps reuse deck 1/2 images;
+// only the final step shows the TryRuby screenshot (see tutorial.md image reuse rule).
+import rubyBasics7TryRuby from './thumbnails/ruby-basics-1-tryruby.png';
+
 const enImages = {
     // Getting Started
     introRubyTab: introRubyTab,
@@ -208,7 +212,9 @@ const enImages = {
     rubyBasics6Step2: rubyBasics6Step2,
     rubyBasics6Step3: rubyBasics6Step3,
     rubyBasics6Step4: rubyBasics6Step4,
-    rubyBasics6Step5: rubyBasics6Step5
+    rubyBasics6Step5: rubyBasics6Step5,
+
+    rubyBasics7TryRuby: rubyBasics7TryRuby
 };
 
 export {enImages};

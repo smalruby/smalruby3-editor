@@ -18,7 +18,8 @@ import RubyToBlocksConverter from '../../../../../src/lib/ruby-to-blocks-convert
 
 const LOCALES = {ja, 'ja-Hira': jaHira, en};
 
-// The six decks this suite guards. Decks 1-3 are #852; decks 4-6 are #853.
+// The seven decks this suite guards. Decks 1-3 are #852; decks 4-6 are #853;
+// deck 7 (TryRuby bridge) is #854.
 const EXPECTED_DECK_IDS = [
     'ruby-basics-1-numbers',
     'ruby-basics-2-strings',
@@ -26,6 +27,7 @@ const EXPECTED_DECK_IDS = [
     'ruby-basics-4-arrays',
     'ruby-basics-5-blocks',
     'ruby-basics-6-methods',
+    'ruby-basics-7-next',
 ];
 
 // Collect every FormattedMessage id referenced by a deck (name + step titles +
@@ -51,7 +53,7 @@ const collectMessageIds = deck => {
 };
 
 describe('Ruby Basics tutorial decks', () => {
-    test('all six decks exist under the rubyBasics category', () => {
+    test('all seven decks exist under the rubyBasics category', () => {
         EXPECTED_DECK_IDS.forEach(id => {
             expect(decks[id]).toBeDefined();
             expect(decks[id].category).toBe(CATEGORIES.rubyBasics);
@@ -98,6 +100,35 @@ describe('Ruby Basics tutorial decks', () => {
                 expect(converter.errors).toHaveLength(0);
                 expect(res).toBeTruthy();
             }
+        });
+    });
+
+    // Deck 7 is the "next steps" bridge to TryRuby. Unlike decks 1-6 (whose last
+    // step is an externalResources preview card), deck 7 uses the externalUrl
+    // step mechanism (#853) to place an "Open TryRuby" button on an image step.
+    describe('ruby-basics-7-next (TryRuby bridge)', () => {
+        const deck = decks['ruby-basics-7-next'];
+
+        test('has exactly one step with an externalUrl pointing at TryRuby root', () => {
+            const externalSteps = deck.steps.filter(step => step.externalUrl);
+            expect(externalSteps).toHaveLength(1);
+            // TryRuby does not accept a language path segment, so the root URL is required.
+            expect(externalSteps[0].externalUrl).toBe('https://try.ruby-lang.org/');
+        });
+
+        test('the externalUrl step keeps a title image and a localized button label', () => {
+            const step = deck.steps.find(s => s.externalUrl);
+            expect(step.title).toBeTruthy();
+            expect(typeof step.image).toBe('string');
+            const labelId = step.externalUrlLabel && step.externalUrlLabel.props &&
+                step.externalUrlLabel.props.id;
+            expect(typeof labelId).toBe('string');
+            Object.entries(LOCALES).forEach(([locale, table]) => {
+                expect(Object.prototype.hasOwnProperty.call(table, labelId)).toBe(true);
+                if (!Object.prototype.hasOwnProperty.call(table, labelId)) {
+                    throw new Error(`${labelId} missing in ${locale}`);
+                }
+            });
         });
     });
 });
