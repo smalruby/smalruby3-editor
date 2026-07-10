@@ -656,10 +656,13 @@ bin/autopilot-worktree list
 `npm install` / `build:dev` 無しで即作業できる（`@smalruby/*` は main の dist に解決される）。
 単一パッケージのソース編集を想定。クロスパッケージのソース編集は `--full`。
 
-**base 追従（stale 起点の衝突防止・#950）**: 新ブランチ作業フェーズ（implement 等）の着手時、
-daemon はブランチを最新の base（`autopilot-base:` 指定 or develop）へ **merge** して自動追従する
-（rebase ではなく merge = 既に push 済みの Draft PR ブランチでも force push 不要）。長時間・
-複数日にまたがる implement で起点が古いまま PR が大量コンフリクトになる問題を防ぐ。コンフリクトは
+**base 追従（stale 起点の衝突防止・#950/#953）**: 新ブランチ作業フェーズ（implement 等）**と**
+PR ブランチ作業フェーズ（review / address-review）の**両方**で、着手時に daemon が作業ブランチを
+最新の base（`autopilot-base:` 指定 or develop）へ **merge** して自動追従する（rebase ではなく
+merge = 既に push 済みの Draft PR ブランチでも force push 不要）。長時間・複数日にまたがる作業や、
+PR 作成後に develop が進んで PR が CONFLICTING になる問題を防ぐ。PR フェーズでは worker が必ずしも
+push しないため、clean に追従できたら daemon がその merge を **push** してリモートの PR を mergeable
+に保つ（implement は後で worker が自分の commit ごと push するので push 不要）。コンフリクトは両者とも
 **自動解決せず** `git merge --abort` で元に戻し、Blocked + `🙋 HITL` にサニタイズ理由を出して
 人間へエスカレーションする（勝手に壊さない）。
 

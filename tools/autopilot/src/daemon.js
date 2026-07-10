@@ -22,6 +22,7 @@ const {
     parseBaseBranch,
     resolveBaseRef,
     baseFollowConflictBody,
+    shouldPushAfterFollow,
     parseAfterIssues,
     unresolvedAfterIssues,
     parseAssigneeDirective,
@@ -845,18 +846,21 @@ async function dispatch(item, cfg, state, log) {
         if (PR_BRANCH_PHASES.has(phase)) {
             pr = item.pr || (await project.findPrForIssue(cfg.repo, item.issue, await project.readToken()) || {}).number;
         }
-        // 新ブランチを切るフェーズ（implement）は Issue 本文の base 宣言を尊重する（#827・EPIC サブ）。
-        // 既定は develop。PR ブランチ作業フェーズは PR の base を継ぐので解決不要。
+        // base 宣言（Issue 本文の `autopilot-base:`）を implement / PR フェーズの**両方**で解決する。
+        // PR は implement が同じ base で作成しているため、宣言 base は PR の base と一致する（#953）。
+        // 既定は develop。getDirectives は TTL キャッシュ付きなので毎 tick の本文 fetch にはならない。
         let baseBranch = DEFAULT_BASE_BRANCH;
-        if (!pr) {
-            const declared = (await getDirectives(cfg, state, item.issue, log)).base;
-            if (declared) { baseBranch = declared; log(`#${item.issue}: base branch = ${baseBranch} (declared)`); }
-        }
+        const declared = (await getDirectives(cfg, state, item.issue, log)).base;
+        if (declared) { baseBranch = declared; log(`#${item.issue}: base branch = ${baseBranch} (declared)`); }
         const cwd = await ensureWorktree(item.issue, pr, baseBranch);
-        // base 追従（#950）: 新ブランチ作業フェーズ（pr なし）は着手時にブランチを最新 base へ
-        // merge して stale 起点の衝突を防ぐ。PR ブランチ作業フェーズ（pr あり）は PR の base を
-        // 継ぐので対象外。コンフリクトは自動解決せず Blocked + 🙋 HITL にエスカレーションする。
-        if (!pr) {
+        // base 追従（#950/#953）: 新ブランチ作業フェーズ（implement・pr なし）も PR ブランチ作業フェーズ
+        // （review / address-review・pr あり）も、着手時に作業ブランチを最新 base へ merge して stale
+        // 起点の衝突を防ぐ。PR の base を継ぐこと（ref の一致）とブランチが base に追従済みであることは
+        // 別物で、PR 化後に develop が進むと PR が CONFLICTING になり自動復旧できなくなる（#953/#954）。
+        // clean に追従できた場合、PR フェーズでは worker が push しないことがあるため、この merge を
+        // push してリモートの PR を mergeable に保つ（implement は後で worker が自分の commit ごと push
+        // するので push 不要）。コンフリクトは自動解決せず Blocked + 🙋 HITL にエスカレーションする（両者共通）。
+        {
             const follow = await followBaseBranch(cwd, baseBranch, (m) => log(`#${item.issue}: ${m}`));
             if (follow.status === 'conflict') {
                 log(`#${item.issue}: base 追従でコンフリクト（${follow.baseRef}）→ Blocked`);
@@ -867,6 +871,15 @@ async function dispatch(item, cfg, state, log) {
                     cfg, log, {}, state,
                 );
                 return;
+            }
+            if (shouldPushAfterFollow(pr, follow.status)) {
+                try {
+                    await execFileP(BOT_GIT_BIN, ['push', 'origin', 'HEAD'], { cwd, maxBuffer: 16 * 1024 * 1024 });
+                    log(`#${item.issue}: base 追従の merge を push（PR #${pr} を mergeable に保つ）`);
+                } catch (e) {
+                    // push 失敗は致命ではない（ローカル merge は健全）。次 dispatch で再試行される。
+                    log(`#${item.issue}: base 追従 merge の push 失敗（継続）: ${sanitizeForSurface(e.message || '')}`);
+                }
             }
         }
         const resultDir = path.join(cwd, 'tmp');
