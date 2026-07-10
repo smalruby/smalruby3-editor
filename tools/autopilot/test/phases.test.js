@@ -27,6 +27,9 @@ const {
     phaseForItem,
     isActionable,
     isStuckCandidate,
+    liveWorkerIssuesFromSessions,
+    selectOrphanedInFlightItems,
+    PHASE_BY_AI_STATUS,
     itemOwner,
     ownsItem,
     isAssignee,
@@ -933,6 +936,51 @@ test('isStuckCandidate: 🙋 HITL 付き item は stuck 候補から除外', () 
     assert.equal(
         isStuckCandidate({ status: 'In Progress', aiStatus: 'Implementing', hitlLabel: false }), true,
     );
+});
+
+// === 孤児 worker の自動復帰（#953） ===
+
+test('PHASE_BY_AI_STATUS: PHASE_BY_COMMAND の全 aiStatus を逆引きできる', () => {
+    for (const [command, meta] of Object.entries(PHASE_BY_COMMAND)) {
+        assert.equal(PHASE_BY_AI_STATUS[meta.aiStatus], command);
+    }
+    assert.equal(PHASE_BY_AI_STATUS.Implementing, 'implement');
+    assert.equal(PHASE_BY_AI_STATUS['Addressing Comments'], 'address-review');
+    assert.equal(PHASE_BY_AI_STATUS['Running DoD'], 'verify');
+});
+
+test('liveWorkerIssuesFromSessions: autopilot-<phase>-<issue> から issue を抽出', () => {
+    const live = liveWorkerIssuesFromSessions([
+        'autopilot-implement-10',
+        'autopilot-address-review-20', // フェーズ名にハイフンを含む
+        'autopilot-daemon',            // 数字末尾でない → 無視
+        'other-session-99',            // 接頭辞が違う → 無視
+        '  autopilot-verify-30  ',     // 前後空白は trim
+    ]);
+    assert.deepEqual([...live].sort((a, b) => a - b), [10, 20, 30]);
+    assert.equal(liveWorkerIssuesFromSessions(null).size, 0);
+    assert.equal(liveWorkerIssuesFromSessions([]).size, 0);
+});
+
+test('selectOrphanedInFlightItems: worker 不在の in-flight のみ {issue, phase} で返す', () => {
+    const items = [
+        { issue: 1, status: 'In Progress', aiStatus: 'Implementing', hitlLabel: false },        // 孤児
+        { issue: 2, status: 'In Progress', aiStatus: 'Addressing Comments', hitlLabel: false }, // 生存 worker あり
+        { issue: 3, status: 'In Progress', aiStatus: 'Triaging', hitlLabel: true },             // HITL → 除外
+        { issue: 4, status: 'In Progress', aiStatus: 'Self-Reviewing', hitlLabel: false },      // exempt → 除外
+        { issue: 5, status: 'In Progress', aiStatus: 'Understanding', hitlLabel: false },       // 孤児
+        { issue: 6, status: 'Backlog', aiStatus: 'Implementing', hitlLabel: false },            // In Progress でない → 除外
+    ];
+    const orphans = selectOrphanedInFlightItems(items, new Set([2]));
+    assert.deepEqual(orphans, [
+        { issue: 1, phase: 'implement' },
+        { issue: 5, phase: 'understand' },
+    ]);
+});
+
+test('selectOrphanedInFlightItems: 空入力は空配列', () => {
+    assert.deepEqual(selectOrphanedInFlightItems(null, null), []);
+    assert.deepEqual(selectOrphanedInFlightItems([], new Set()), []);
 });
 
 test('hitlLabelAction: non-Review reconciles toward the Issue canonical (hitlLabel)', () => {

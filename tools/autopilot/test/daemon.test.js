@@ -3,7 +3,7 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const {
     applyMergeProgression, applyClosedReconcile, applyPrProjection, applyDodHandoffs, runTickOnce,
-    detectStuck, markBlocked, getDirectives, populateAssigneeDirectives,
+    detectStuck, recoverOrphanedWorkers, markBlocked, getDirectives, populateAssigneeDirectives,
     applyLabelHealing, applyAfterWaitLabels, collectGateContexts,
     applyDecomposeSubIssueSetup,
     parseSsoDeviceOutput, startReauth,
@@ -373,39 +373,51 @@ test('runTickOnce: tick 途中の認証エラー（SSO 失効）は auto-pause �
     assert.equal(state.ticking, false);
 });
 
-// === プロセスレベルの安全網: installProcessSafetyNet / handleProcessError（#949） ===
+// === プロセスレベルの安全網: installProcessSafetyNet / handleProcessError（#949/#953） ===
 
-test('handleProcessError: 認証系エラーは auto-pause、非認証は log して継続', () => {
+/** exit を記録するだけの fake process。テストで実プロセスを落とさないため必須。 */
+function makeFakeProc() {
+    const proc = new EventEmitter();
+    proc.exits = [];
+    proc.exit = (code) => proc.exits.push(code);
+    return proc;
+}
+
+test('handleProcessError: 認証系エラーは auto-pause、非認証は exit(1)（#953）', () => {
     const { handleProcessError } = require('../src/daemon');
-    // 認証系 → auto-pause
+    // 認証系 → auto-pause（exit しない）
     const authState = { paused: false, pausedBy: null, authError: null, running: new Map() };
+    const proc = makeFakeProc();
     const e = new Error('AWS 認証が失効/未設定のため Secrets Manager から秘密鍵を取得できません');
-    handleProcessError(authState, e, () => {}, 'unhandledRejection');
+    handleProcessError(authState, e, () => {}, 'unhandledRejection', proc);
     assert.equal(authState.paused, true);
     assert.equal(authState.pausedBy, 'auth');
     assert.match(authState.authError, /失効/);
-    // 非認証 → auto-pause しない、log されるがプロセス継続（例外を再送出しない）
+    assert.deepEqual(proc.exits, []); // 認証系は exit しない
+    // 非認証 → auto-pause せず、log してから exit(1)（Node 準拠でクラッシュ扱い）
     const otherState = { paused: false, pausedBy: null, running: new Map() };
     const logs = [];
-    assert.doesNotThrow(() =>
-        handleProcessError(otherState, new Error('random glitch'), (m) => logs.push(m), 'uncaughtException'));
+    handleProcessError(otherState, new Error('random glitch'), (m) => logs.push(m), 'uncaughtException', proc);
     assert.equal(otherState.paused, false);
     assert.equal(otherState.pausedBy, null);
     assert.ok(logs.some((m) => /random glitch/.test(m)));
+    assert.deepEqual(proc.exits, [1]); // supervisor に再起動を委ねる
 });
 
 test('handleProcessError: 人間の pause を auth の自動処理で上書きしない（#949）', () => {
     const { handleProcessError } = require('../src/daemon');
+    const proc = makeFakeProc();
     const state = { paused: true, pausedBy: 'human', authError: null, running: new Map() };
-    handleProcessError(state, new Error('token has expired'), () => {}, 'unhandledRejection');
+    handleProcessError(state, new Error('token has expired'), () => {}, 'unhandledRejection', proc);
     assert.equal(state.pausedBy, 'human'); // 上書きしない
     assert.equal(state.paused, true);
     assert.match(state.authError, /expired/); // エラーだけ surface
+    assert.deepEqual(proc.exits, []); // 認証系は exit しない
 });
 
-test('installProcessSafetyNet: unhandledRejection/uncaughtException を張り、認証系で auto-pause', () => {
+test('installProcessSafetyNet: 認証系は auto-pause で耐え、非認証は exit(1) で supervisor に委ねる（#953）', () => {
     const { installProcessSafetyNet } = require('../src/daemon');
-    const proc = new EventEmitter();
+    const proc = makeFakeProc();
     const state = { paused: false, pausedBy: null, authError: null, running: new Map() };
     installProcessSafetyNet(state, () => {}, proc);
     assert.equal(proc.listenerCount('unhandledRejection'), 1);
@@ -416,11 +428,66 @@ test('installProcessSafetyNet: unhandledRejection/uncaughtException を張り、
     }));
     assert.equal(state.paused, true);
     assert.equal(state.pausedBy, 'auth');
-    // 非認証 rejection は継続（auto-pause しない）
+    assert.deepEqual(proc.exits, []); // 認証系は exit しない
+    // 非認証 rejection は exit(1)（auto-pause しない）
     state.paused = false; state.pausedBy = null;
-    proc.emit('unhandledRejection', new Error('some non-auth error'));
+    proc.emit('uncaughtException', new Error('some non-auth error'));
     assert.equal(state.paused, false);
     assert.equal(state.pausedBy, null);
+    assert.deepEqual(proc.exits, [1]);
+});
+
+// === 孤児 worker の自動復帰: recoverOrphanedWorkers（#953） ===
+
+test('recoverOrphanedWorkers: worker 不在の in-flight を再ディスパッチ、生存中は触らない', async () => {
+    const items = [
+        // 孤児（Implementing だが worker セッション無し）→ 再ディスパッチ
+        { issue: 10, itemId: 'i10', status: 'In Progress', aiStatus: 'Implementing', hitlLabel: false },
+        // 生存 worker あり（address-review セッションが tmux に残っている）→ 触らない
+        { issue: 20, itemId: 'i20', status: 'In Progress', aiStatus: 'Addressing Comments', hitlLabel: false },
+        // HITL 待ち（正常完了）→ 対象外
+        { issue: 30, itemId: 'i30', status: 'In Progress', aiStatus: 'Triaging', hitlLabel: true },
+        // resting（Self-Reviewing は次 tick の phaseForItem→review に委ねる）→ 対象外
+        { issue: 40, itemId: 'i40', status: 'In Progress', aiStatus: 'Self-Reviewing', hitlLabel: false },
+    ];
+    const dispatched = [];
+    const state = { running: new Map() };
+    const recovered = await recoverOrphanedWorkers(makeCfg(), state, () => {}, {
+        listSessions: () => ['autopilot-address-review-20', 'other-session'],
+        listItems: async () => items,
+        readToken: async () => 't',
+        dispatch: (item) => dispatched.push({ issue: item.issue, phase: item.phase }),
+    });
+    assert.deepEqual(recovered, [{ issue: 10, phase: 'implement' }]);
+    assert.deepEqual(dispatched, [{ issue: 10, phase: 'implement' }]);
+});
+
+test('recoverOrphanedWorkers: enroll フィルタ（自分がオーナーの item だけ復帰）', async () => {
+    const items = [
+        { issue: 11, itemId: 'i11', status: 'In Progress', aiStatus: 'Implementing', hitlLabel: false, assignees: ['alice'] },
+        { issue: 12, itemId: 'i12', status: 'In Progress', aiStatus: 'Implementing', hitlLabel: false, assignees: ['bob'] },
+    ];
+    const dispatched = [];
+    const cfg = { ...makeCfg(), assignee: 'alice' };
+    await recoverOrphanedWorkers(cfg, { running: new Map() }, () => {}, {
+        listSessions: () => [],
+        listItems: async () => items,
+        readToken: async () => 't',
+        dispatch: (item) => dispatched.push(item.issue),
+    });
+    assert.deepEqual(dispatched, [11]); // bob の 12 は復帰しない
+});
+
+test('recoverOrphanedWorkers: poll 失敗でも落ちず空配列を返す', async () => {
+    const logs = [];
+    const recovered = await recoverOrphanedWorkers(makeCfg(), { running: new Map() }, (m) => logs.push(m), {
+        listSessions: () => [],
+        listItems: async () => { throw new Error('poll boom'); },
+        readToken: async () => 't',
+        dispatch: () => { throw new Error('should not dispatch'); },
+    });
+    assert.deepEqual(recovered, []);
+    assert.ok(logs.some((m) => /poll boom/.test(m)));
 });
 
 test('applyPrProjection: a failing item does not block others', async () => {

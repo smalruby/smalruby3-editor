@@ -689,9 +689,35 @@ env `AUTOPILOT_ASSIGNEE` でも可）。起動すると PID ファイル（`$TMP
 `nohup ... &` で。
 
 ```bash
-# tmux で常駐させる例
-tmux new -d -s autopilot 'node tools/autopilot/bin/autopilot daemon 2>&1 | tee /tmp/autopilot-daemon.log'
+# tmux で常駐させる例（クラッシュ耐性を持たせるため supervisor 経由で起動する・#953）
+tmux new -d -s autopilot 'tools/autopilot/bin/autopilot-supervise --port 8787'
 ```
+
+##### クラッシュ耐性（外部 supervisor・#953）
+
+daemon の**未知の非認証エラー**は、Node 公式の指針（`uncaughtException` 後のプロセスは
+「未定義の状態」で継続は非推奨）に従い **`process.exit(1)` でいったん終了**する（「log して
+継続」はしない）。落ちた daemon を無人で立て直すために **`tools/autopilot/bin/autopilot-supervise`**
+（bash 監視ループ・MIT）経由で起動する。`tmp/autopilot_up.sh`（autopilot スキルが生成）も
+これを使う。
+
+- **非ゼロ終了（クラッシュ）のみ再起動**する。**exit 0（`POST /shutdown` / SIGTERM / SIGINT に
+  よる意図的停止）ではループを抜けて停止のまま**にする（正常に止めたものを再起動し続けない）。
+- **クラッシュループ防止**: 60 秒以内に 5 回落ちたら再起動を諦め、人間向けの明示メッセージを
+  ログに残して終了する（閾値は `AUTOPILOT_MAX_RESTARTS` / `AUTOPILOT_RESTART_WINDOW`）。
+- 各 (再)起動を **時刻 + 前回 exit code** 付きで `tmp/autopilot-daemon.log` に記録する。
+- **認証エラーは exit しない**: SSO 失効等は従来どおりプロセス内で **auto-pause**
+  （`pausedBy:"auth"`・#949）して耐え、再認証で auto-resume する（下の認証の無人運用を参照）。
+
+##### 孤児 worker の自動復帰（#953）
+
+crash → supervisor 再起動では daemon の in-memory 状態（`state.running`）を失うが、worker は
+tmux の別プロセスなので**生き残りうる**。daemon は**起動時に 1 度**、`tmux list-sessions` で
+**実際に生存中**の worker を調べ（起動直後の in-memory running は常に空なので使わない）、
+**in-flight の AI Status（Implementing 等）なのに worker が生存していない item を対応フェーズへ
+自動で再ディスパッチ**する（`selectOrphanedInFlightItems` 純粋関数 + `recoverOrphanedWorkers`）。
+これで手動 inject なしに孤児が復帰する。生存中 worker を持つ item は触らず完走させる。
+正常完了して HITL 待ち（🙋 ラベル付き）の item は復帰対象にしない。
 
 #### 監視（Web モニタ）
 

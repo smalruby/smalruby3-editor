@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# autopilot-supervise — autopilot daemon の外部 supervisor（#953）。
+#
+# なぜ必要か: daemon は未知の非認証エラーで Node 準拠に `process.exit(1)` する
+# （`uncaughtException` 後のプロセスは「未定義の状態」で継続は非推奨）。落ちたら誰かが
+# 再起動しないと無人運用が止まる。この bash 監視ループがその役割を担う。
+#
+# 終了コード規約（daemon 側 EXIT_OK / EXIT_CRASH と対）:
+#   - 非ゼロ終了（クラッシュ）  → **再起動する**
+#   - ゼロ終了（POST /shutdown / SIGTERM / SIGINT による意図的停止）→ **ループを抜けて停止のまま**
+#     （正常に止めたものを勝手に再起動し続けない）
+#
+# クラッシュループ防止: WINDOW_SECONDS 秒以内に MAX_RESTARTS 回落ちたら再起動を諦め、
+# 人間向けの明示メッセージをログに残して終了する（壊れたビルド・持続的障害で無限ループしない）。
+#
+# 使い方（daemon にそのまま渡す引数を後ろに付ける）:
+#   tools/autopilot/bin/autopilot-supervise --assignee <LOGIN> --concurrency 2 --interval 300 --port 8787
+#
+# 環境変数:
+#   AUTOPILOT_LOG          ログの出力先（既定: <repo>/tmp/autopilot-daemon.log）
+#   AUTOPILOT_MAX_RESTARTS クラッシュループ判定の上限回数（既定 5）
+#   AUTOPILOT_RESTART_WINDOW クラッシュループ判定の時間窓・秒（既定 60）
+#   AUTOPILOT_DAEMON_CMD   daemon 起動コマンド（既定: node tools/autopilot/bin/autopilot daemon）。
+#                          テスト用に stub へ差し替える seam。引数はこの後ろに続けて渡される。
+#
+# ライセンス: MIT（tools/autopilot/LICENSE。リポジトリ全体の AGPL-3.0 ではない）。
+set -uo pipefail
+
+cd "$(git rev-parse --show-toplevel)"
+
+LOG="${AUTOPILOT_LOG:-tmp/autopilot-daemon.log}"
+MAX_RESTARTS="${AUTOPILOT_MAX_RESTARTS:-5}"
+WINDOW_SECONDS="${AUTOPILOT_RESTART_WINDOW:-60}"
+DAEMON_CMD="${AUTOPILOT_DAEMON_CMD:-node tools/autopilot/bin/autopilot daemon}"
+
+mkdir -p "$(dirname "$LOG")"
+
+# supervise 自身のマーカー行を stdout（tmux pane で見える）とログの両方に残す。
+supervise_log() {
+    local line
+    line="[autopilot-supervise $(date '+%Y-%m-%dT%H:%M:%S%z')] $*"
+    printf '%s\n' "$line" | tee -a "$LOG"
+}
+
+# 直近の再起動時刻（epoch 秒）を保持し、時間窓内の回数でクラッシュループを判定する。
+restart_times=()
+
+supervise_log "start: daemon args = $*"
+last_code=0
+
+while true; do
+    supervise_log "launch daemon (前回 exit code: ${last_code})"
+    # daemon の stdout/stderr もログに追記しつつ pane にも流す。exit code は daemon 自身
+    # のもの（tee ではなく PIPESTATUS[0]）を見る。
+    $DAEMON_CMD "$@" 2>&1 | tee -a "$LOG"
+    last_code="${PIPESTATUS[0]}"
+
+    if [ "$last_code" -eq 0 ]; then
+        supervise_log "daemon が exit 0（意図的停止）で終了。再起動しない。"
+        exit 0
+    fi
+
+    # クラッシュ（非ゼロ）: 時間窓内の再起動回数を数え、上限超なら諦める。
+    now="$(date +%s)"
+    restart_times+=("$now")
+    # 時間窓の外に出た記録を落とす
+    pruned=()
+    for t in "${restart_times[@]}"; do
+        if [ $(( now - t )) -lt "$WINDOW_SECONDS" ]; then
+            pruned+=("$t")
+        fi
+    done
+    restart_times=("${pruned[@]}")
+
+    if [ "${#restart_times[@]}" -ge "$MAX_RESTARTS" ]; then
+        supervise_log "‼️ ${WINDOW_SECONDS}秒以内に ${#restart_times[@]} 回クラッシュ（上限 ${MAX_RESTARTS}）。"
+        supervise_log "‼️ 再起動を諦めて停止します。壊れたビルドや持続的障害の可能性が高いので、"
+        supervise_log "‼️ ログ（${LOG}）を確認し、原因を解消してから手動で再起動してください。"
+        exit 1
+    fi
+
+    supervise_log "daemon が exit ${last_code}（クラッシュ）で終了。再起動します（${WINDOW_SECONDS}秒窓で ${#restart_times[@]}/${MAX_RESTARTS} 回目）。"
+done

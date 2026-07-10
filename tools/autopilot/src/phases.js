@@ -203,6 +203,15 @@ const PHASE_BY_COMMAND = {
     verify: { skill: 'autopilot-verify', aiStatus: 'Running DoD' },
 };
 
+/**
+ * AI Status → CLI コマンド名の逆引き（#953）。孤児 worker 復帰で、in-flight の AI Status
+ * （dispatch が着手時に設定する {@link PHASE_BY_COMMAND}.aiStatus）から再開すべきフェーズを
+ * 引くために使う。{@link PHASE_BY_COMMAND} から機械的に導出するので追加漏れが起きない。
+ */
+const PHASE_BY_AI_STATUS = Object.fromEntries(
+    Object.entries(PHASE_BY_COMMAND).map(([command, meta]) => [meta.aiStatus, command]),
+);
+
 /** フェーズプロンプトファイルの配置ディレクトリ（worktree/repo 内の相対パス） */
 const PROMPT_DIR = 'tools/autopilot/prompts';
 
@@ -641,6 +650,63 @@ function isStuckCandidate(item) {
     if (!item.aiStatus || STUCK_EXEMPT_AI_STATUSES.has(item.aiStatus)) return false;
     if (item.hitlLabel) return false;
     return true;
+}
+
+/** autopilot worker の tmux セッション名接頭辞（{@link ... dispatch} の `autopilot-<phase>-<issue>`）。 */
+const WORKER_SESSION_PREFIX = 'autopilot-';
+
+/**
+ * tmux セッション名の一覧から、生存中の autopilot worker の issue 番号集合を作る
+ * （純粋関数・#953）。セッション名は `autopilot-<phase>-<issue>`（dispatch が命名）。
+ * 末尾の数値を issue 番号として拾う。フェーズ名にハイフンを含む（`address-review`）ため
+ * 中間は貪欲に食い、最後の `-<digits>` だけを issue とする。
+ * @param {string[]} sessionNames tmux list-sessions の名前一覧
+ * @returns {Set<number>} 生存 worker の issue 番号
+ */
+function liveWorkerIssuesFromSessions(sessionNames) {
+    const out = new Set();
+    for (const raw of sessionNames || []) {
+        const name = String(raw).trim();
+        if (!name.startsWith(WORKER_SESSION_PREFIX)) continue;
+        const m = /-(\d+)$/.exec(name);
+        if (m) out.add(Number(m[1]));
+    }
+    return out;
+}
+
+/**
+ * 起動時の孤児 worker 復帰（#953）: in-flight の AI Status（Implementing / Understanding /
+ * Addressing Comments / Running DoD 等）なのに実 worker セッションが生存していない item を、
+ * 対応フェーズへ再ディスパッチするために選ぶ（純粋関数）。
+ *
+ * crash → 外部 supervisor による daemon 再起動では in-memory の `state.running` を失うが、
+ * tmux の worker セッションは daemon と別プロセスなので**生き残りうる**。そのため
+ * 「生存中 worker の issue 集合」を I/O 側（`tmux list-sessions`）から受け取り、生存して
+ * いない item だけを対象にする（daemon 起動直後の in-memory running は常に空なので判定に
+ * 使わない、という不変条件）。
+ *
+ * 対象は {@link isStuckCandidate}（In Progress + AI 作業中 + 非 HITL + 非 resting）かつ
+ * AI Status が既知フェーズに逆引きできるもの。dispatch は着手時に Status=In Progress /
+ * AI Status=<phase> を設定するので、worker が結果を emit せず死ぬと In Progress のまま残る。
+ * 逆に triage/discuss/decompose が**正常完了**して HITL 待ちになった item は 🙋 ラベル付き
+ * （hitlLabel=true）なので isStuckCandidate で弾かれ、ここでは復帰対象にしない。
+ * Self-Reviewing は STUCK_EXEMPT なので除外され、通常 tick の phaseForItem→review 自動再開に
+ * 委ねる（二重ディスパッチしない）。
+ * @param {object[]} items 各 { issue, status, aiStatus, hitlLabel }
+ * @param {Set<number>} liveWorkerIssues 生存中 worker の issue 番号集合
+ * @returns {{issue:number, phase:string}[]} 再ディスパッチ対象（issue + phase）
+ */
+function selectOrphanedInFlightItems(items, liveWorkerIssues) {
+    const live = liveWorkerIssues || new Set();
+    const out = [];
+    for (const item of items || []) {
+        if (!isStuckCandidate(item)) continue;
+        if (live.has(item.issue)) continue;
+        const phase = PHASE_BY_AI_STATUS[item.aiStatus];
+        if (!phase) continue;
+        out.push({ issue: item.issue, phase });
+    }
+    return out;
 }
 
 /**
@@ -1950,6 +2016,9 @@ const DEFAULT_WATCHDOG = {
 
 module.exports = {
     PHASE_BY_COMMAND,
+    PHASE_BY_AI_STATUS,
+    liveWorkerIssuesFromSessions,
+    selectOrphanedInFlightItems,
     PROMPT_DIR,
     phasePromptCommand,
     DEFAULT_CLAUDE_COMMAND,
