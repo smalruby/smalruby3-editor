@@ -22,6 +22,7 @@ const {
     parseBaseBranch,
     parseAfterIssues,
     unresolvedAfterIssues,
+    parseAssigneeDirective,
     selectActionable,
     isStuckCandidate,
     applyResult,
@@ -50,6 +51,9 @@ const {
     needsPrLinkSticky,
     renderPrLinkSticky,
     PR_LINK_MARKER,
+    needsTrackerSticky,
+    renderTrackerSticky,
+    TRACKER_STICKY_MARKER,
     sanitizeForSurface,
     labelActions,
     draftAction,
@@ -110,9 +114,9 @@ const DIRECTIVE_TTL_MS = 10 * 60 * 1000;
 const UPDATE_CHECK_INTERVAL_MS = 15 * 60 * 1000;
 
 /**
- * Issue 本文から導いたディレクティブ（base / after）を TTL キャッシュ付きで返す。
+ * Issue 本文から導いたディレクティブ（base / after / assignee）を TTL キャッシュ付きで返す。
  * 失敗時は空ディレクティブ（既定動作）にフォールバックし、次回また取りに行く。
- * @returns {{base: string|null, after: number[]}}
+ * @returns {{base: string|null, after: number[], assignee: string|null}}
  */
 async function getDirectives(cfg, state, issue, log, deps = {}) {
     const getIssueBody = deps.getIssueBody || project.getIssueBody;
@@ -120,16 +124,45 @@ async function getDirectives(cfg, state, issue, log, deps = {}) {
     const cached = state.directives.get(issue);
     const now = cfg.now();
     if (cached && now - cached.at < (cfg.directiveTtlMs || DIRECTIVE_TTL_MS)) return cached;
-    let entry = { base: null, after: [], at: now };
+    let entry = { base: null, after: [], assignee: null, at: now };
     try {
         const body = await getIssueBody(cfg.repo, issue, deps.token || await project.readToken());
-        entry = { base: parseBaseBranch(body), after: parseAfterIssues(body), at: now };
+        entry = {
+            base: parseBaseBranch(body), after: parseAfterIssues(body),
+            assignee: parseAssigneeDirective(body), at: now,
+        };
     } catch (e) {
         log(`#${issue}: directive fetch failed: ${e.message}`);
         entry.at = now - (cfg.directiveTtlMs || DIRECTIVE_TTL_MS); // 失敗は次 tick で再取得
     }
     state.directives.set(issue, entry);
     return entry;
+}
+
+/**
+ * assignees が 2 人以上の item だけ、本文の `autopilot-assignee:` ディレクティブを解決して
+ * `item.assigneeDirective` を補う（#938）。0/1 人の item はディレクティブが無意味なので
+ * 本文 fetch をスキップする（`.claude/rules/autopilot/github-api.md` の API 予算規約）。
+ * 取得は {@link getDirectives} の TTL キャッシュを共用するため、後続の base/after 解決
+ * （同じ tick 内の候補選別）と合わせて追加の GraphQL/REST は増えない。
+ * dispatch（{@link tick}）と board（{@link refreshBoard}）の両方で、
+ * `selectActionable`/`selectBoardItems`（= `itemOwner`/`ownsItem`/`isAssignee` を使う箇所）の
+ * **前**に呼ぶ必要がある。
+ * @param {object[]} items
+ * @param {object} cfg
+ * @param {object} state
+ * @param {Function} log
+ * @param {object} [deps] getDirectives へそのまま渡す（テスト用の差し替え）
+ * @returns {Promise<object[]>} assigneeDirective を補った新しい配列（元の item は変更しない）
+ */
+async function populateAssigneeDirectives(items, cfg, state, log, deps = {}) {
+    const out = [];
+    for (const item of items || []) {
+        if (!item || (item.assignees || []).length < 2) { out.push(item); continue; }
+        const { assignee } = await getDirectives(cfg, state, item.issue, log, deps);
+        out.push({ ...item, assigneeDirective: assignee });
+    }
+    return out;
 }
 
 /** SSO セッション名（`aws sso login --sso-session <name>`）。infra/aws-sso.env と一致 */
@@ -1145,6 +1178,9 @@ async function tick(cfg, state, log) {
         log(`poll error: ${e.message}`);
         return { paused: false, picked: [] };
     }
+    // autopilot-assignee ディレクティブ（#938）: itemOwner/ownsItem が使う前に解決しておく
+    // （2人以上 assign の item のみ本文 fetch）。
+    items = await populateAssigneeDirectives(items, cfg, state, log);
     const running = new Set(state.running.keys());
     const contexts = await collectGateContexts(cfg, items, running, state, log);
     // 協調的チェックポイント（EPIC #906・#912）: Awaiting Continuation の item は continuation
@@ -1325,8 +1361,14 @@ async function readContinuationRemainingCount(issue, log, deps = {}) {
 
 /**
  * 俯瞰ボードのデータを再構築して state.board に置く（Web モニタの `GET /board` が返す）。
- * 表示対象は非終端・非 Icebox の item（selectBoardItems）を Board view の見た目順に並べ、
- * sub-issue 進捗と連携 PR 群（state/draft）をバッチ GraphQL で enrich する。
+ * 表示対象は非終端・非 Icebox かつ「自分が Assignees のいずれか」（selectBoardItems /
+ * isAssignee・#938）の item を Board view の見た目順に並べ、sub-issue 進捗と連携 PR 群
+ * （state/draft）をバッチ GraphQL で enrich する。共同担当（オーナーでない Assignees）も
+ * 表示対象になるが、**この daemon が dispatch するのは自分がオーナーの item だけ**
+ * （itemOwner/ownsItem）— 観察対象（他人が駆動する item）の状態は、この daemon 自身の
+ * dispatch では更新されず、`refreshBoard` の周期実行（既定 5 分）または「🔄 更新」ボタン
+ * （`POST /refresh`）でのみ最新化される（`patchBoardCache` は自 worker 実行分のみの
+ * live 反映で、観察対象には効かない）。
  * 非デフォルト base 宛て PR は close リンクに出ないため、PR を持ちうる Status なのに
  * PR が見つからない item は head ブランチ検索で補完する（#831 と同じ理由）。
  * Awaiting Continuation（#906/#912）の item は continuation ファイルの残タスク数も
@@ -1345,8 +1387,14 @@ async function refreshBoard(cfg, state, log, deps = {}) {
         const getBoardEnrichment = deps.getBoardEnrichment || project.getBoardEnrichment;
         const listHeadPrs = deps.listHeadPrs || project.listHeadPrs;
         const items = await listItems(cfg.owner, cfg.project, token);
-        // 表示対象は daemon の処理対象と同じ enroll 判定（ownsItem）に限定する
-        const boardItems = orderItemsLikeBoard(selectBoardItems(items, cfg.assignee), cfg.statusOrder);
+        // 先に表示対象へ絞る: selectBoardItems（= isAssignee）はディレクティブ非依存なので、
+        // owner 解決の**前**に非終端 &「自分が Assignees のいずれか」だけへ限定できる。これで
+        // 終端 Status や他人の multi-assignee item の本文 fetch を避ける（#938・
+        // `.claude/rules/autopilot/github-api.md` の「終端 Status を定常問い合わせから除外」）。
+        const visible = selectBoardItems(items, cfg.assignee);
+        // autopilot-assignee ディレクティブ（#938）: owner 表示の前に、表示対象だけ解決する
+        const withDirectives = await populateAssigneeDirectives(visible, cfg, state, log, { ...deps, token });
+        const boardItems = orderItemsLikeBoard(withDirectives, cfg.statusOrder);
         let enrichment = {};
         try {
             enrichment = await getBoardEnrichment(cfg.repo, boardItems.map((i) => i.issue), token);
@@ -1390,6 +1438,48 @@ async function refreshBoard(cfg, state, log, deps = {}) {
     } finally {
         state.boardRefreshing = false;
     }
+}
+
+/**
+ * 分解済み EPIC（トラッカー）Issue に sub-issue 進捗 + Close 指示の sticky を維持する（#934）。
+ * sub-issue 進捗は俯瞰ボードの enrichment（{@link refreshBoard} が既に取得済みの `state.board.items`）
+ * をそのまま使うため、追加の GraphQL は発生しない（`.claude/rules/autopilot/github-api.md` 予算規約）。
+ * 書き込みは `upsertMarkedComment` の冪等 upsert に委ね、本文が変わらない tick では PATCH しない。
+ * 1 件の失敗は他を止めない。deps は injection 可能（テスト用）。
+ * @param {object[]} boardItems refreshBoard が構築した board item（tracker/status/subIssues を含む）
+ * @param {object} cfg
+ * @param {function} log
+ * @param {object} [deps] { token, readToken, upsertMarkedComment }
+ */
+async function applyTrackerStickies(boardItems, cfg, log, deps = {}) {
+    const targets = (boardItems || []).filter(needsTrackerSticky);
+    if (!targets.length) return;
+    const token = deps.token || await project.botToken();
+    const readToken = deps.readToken || deps.token || await project.readToken();
+    const upsertMarkedComment = deps.upsertMarkedComment || project.upsertMarkedComment;
+    for (const item of targets) {
+        try {
+            await upsertMarkedComment(
+                cfg.repo, item.issue, [TRACKER_STICKY_MARKER], renderTrackerSticky(item), token,
+                { readToken },
+            );
+        } catch (e) {
+            log(`#${item.issue}: tracker sticky failed: ${e.message}`);
+        }
+    }
+}
+
+/**
+ * {@link refreshBoard} 完了後にトラッカー sticky を投影するラッパー。board を更新する呼び出し
+ * 箇所はすべてこれに置き換える（refreshBoard 自体は読み取り専用を保つ・単一責務）。
+ * refreshBoard がレート僅少で内部スキップした場合は前回キャッシュのままなので、ここでも
+ * 同条件で再投影をスキップする（同内容の再チェックで API を無駄遣いしない）。
+ * deps は injection 可能（テスト用。refreshBoard と applyTrackerStickies 両方に渡る）。
+ */
+async function refreshBoardAndProjectTrackers(cfg, state, log, deps = {}) {
+    await refreshBoard(cfg, state, log, deps);
+    if (state.ratePlan && state.ratePlan.skipLowPriority) return;
+    await applyTrackerStickies(state.board ? state.board.items : [], cfg, log, deps);
 }
 
 /**
@@ -1495,7 +1585,7 @@ function startHttp(cfg, state, log) {
                 .then((result) => {
                     if (result.busy) return send(409, { ran: false, busy: true, error: 'tick already running' });
                     send(200, result);
-                    refreshBoard(cfg, state, log); // 手動 tick 後もボードを追従（fire-and-forget）
+                    refreshBoardAndProjectTrackers(cfg, state, log); // 手動 tick 後もボードを追従（fire-and-forget）
                 })
                 .catch((e) => { log(`tick error: ${e.message}`); send(500, { error: e.message }); });
             return;
@@ -1524,7 +1614,7 @@ function startHttp(cfg, state, log) {
                 // レート残量が僅少なら refreshBoard は内部で no-op になる。正直にスキップを返す。
                 return send(200, { refreshed: false, skipped: 'rate-limited', minRemaining: state.ratePlan.minRemaining });
             }
-            refreshBoard(cfg, state, log)
+            refreshBoardAndProjectTrackers(cfg, state, log)
                 .then(() => send(200, { refreshed: true, updatedAt: state.board ? state.board.updatedAt : null }))
                 .catch((e) => { log(`refresh error: ${e.message}`); send(500, { error: e.message }); });
             return;
@@ -1635,7 +1725,7 @@ async function main(opts = {}) {
     // 俯瞰ボードは起動時に 1 度だけ即時取得する。以降は専用タイマーを持たず、
     // 各 poll/tick の直後（下の refreshBoard）と、モニタの「🔄 更新」ボタン
     // （POST /refresh）によるオンデマンドでのみ更新する（GraphQL 予算の節約）。
-    refreshBoard(cfg, state, log);
+    refreshBoardAndProjectTrackers(cfg, state, log);
     /* eslint-disable no-constant-condition */
     while (!opts.once) {
         // 認証ヘルスチェック（失効 → auto-pause / 回復 → auto-resume）を tick の前に行う。
@@ -1644,23 +1734,25 @@ async function main(opts = {}) {
         // runTickOnce 経由にして、定期 tick と手動 POST /tick が重ならないようにする（再入防止）
         await runTickOnce(cfg, state, log);
         // tick で Project が動いた直後はボードも追従させる（fire-and-forget）
-        refreshBoard(cfg, state, log);
+        refreshBoardAndProjectTrackers(cfg, state, log);
         await sleep(cfg.intervalMs);
     }
     if (opts.once) {
         await checkAuthHealth(cfg, state, log);
         await runTickOnce(cfg, state, log);
-        refreshBoard(cfg, state, log);
+        refreshBoardAndProjectTrackers(cfg, state, log);
     }
 }
 
 module.exports = {
     main, tick, runTickOnce, dispatch, applyMergeProgression, applyClosedReconcile, applyPrProjection,
-    applyDodHandoffs, detectStuck, markBlocked, getDirectives, applyLabelHealing, applyAfterWaitLabels,
+    applyDodHandoffs, detectStuck, markBlocked, getDirectives, populateAssigneeDirectives,
+    applyLabelHealing, applyAfterWaitLabels,
     applyDecomposeSubIssueSetup,
     isGateItem, collectGateContexts, checkAuthHealth, REAUTH_HINT,
     parseSsoDeviceOutput, startReauth,
     refreshBoard, recordHistory, refreshRateLimits, patchBoardCache,
+    applyTrackerStickies, refreshBoardAndProjectTrackers,
     updateClaudeUsage, boardResponse, statusResponse,
     checkForUpdate, startUpdateChecks,
     ensureCheckpointCommit, readContinuationFromWorktree, applyCheckpointHandling,

@@ -7,6 +7,8 @@ const {
     parseBaseBranch,
     parseAfterIssues,
     unresolvedAfterIssues,
+    parseAssigneeDirective,
+    resolveOwner,
     DEFAULT_CLAUDE_COMMAND,
     applyResult,
     subIssueSetupIntents,
@@ -25,6 +27,7 @@ const {
     isStuckCandidate,
     itemOwner,
     ownsItem,
+    isAssignee,
     statusRank,
     orderItemsLikeBoard,
     selectActionable,
@@ -63,6 +66,9 @@ const {
     PR_LINK_MARKER,
     needsPrLinkSticky,
     renderPrLinkSticky,
+    TRACKER_STICKY_MARKER,
+    needsTrackerSticky,
+    renderTrackerSticky,
     dodHandoffMarker,
     isDodHandoffComment,
     hasDodHandoffComment,
@@ -335,6 +341,57 @@ test('renderPrLinkSticky: マーカー + PR リンク + base を含む', () => {
     assert.match(body, /topic\/epic-738/);
 });
 
+test('needsTrackerSticky: トラッカー && 非終端 && total>0 の真偽表', () => {
+    assert.equal(
+        needsTrackerSticky({ tracker: true, status: 'In Progress', subIssues: { total: 4, completed: 2 } }),
+        true,
+    );
+    // トラッカーでない
+    assert.equal(
+        needsTrackerSticky({ tracker: false, status: 'In Progress', subIssues: { total: 4, completed: 2 } }),
+        false,
+    );
+    // 終端（Close/Done）
+    assert.equal(
+        needsTrackerSticky({ tracker: true, status: 'Close', subIssues: { total: 4, completed: 4 } }),
+        false,
+    );
+    assert.equal(
+        needsTrackerSticky({ tracker: true, status: 'Done', subIssues: { total: 4, completed: 4 } }),
+        false,
+    );
+    // sub-issue 0 件（未分解 or 空トラッカー）
+    assert.equal(
+        needsTrackerSticky({ tracker: true, status: 'In Progress', subIssues: { total: 0, completed: 0 } }),
+        false,
+    );
+    assert.equal(needsTrackerSticky({ tracker: true, status: 'In Progress' }), false); // subIssues 無し
+    assert.equal(needsTrackerSticky(null), false);
+});
+
+test('renderTrackerSticky: 未完了時は進捗 + 「すべて閉じたら Close」を明示', () => {
+    const body = renderTrackerSticky({ issue: 906, subIssues: { total: 4, completed: 2, percent: 50 } });
+    assert.ok(body.startsWith(TRACKER_STICKY_MARKER));
+    assert.match(body, /2\/4 \(50%\)/);
+    assert.match(body, /すべて閉じたらこの EPIC を Close/);
+    assert.match(body, /autopilot は設計上 EPIC を自動 Close しません/);
+    assert.doesNotMatch(body, /全 sub-issue が完了しました/);
+});
+
+test('renderTrackerSticky: 全完了時は Close を促す文言に切り替える', () => {
+    const body = renderTrackerSticky({ issue: 906, subIssues: { total: 4, completed: 4, percent: 100 } });
+    assert.ok(body.startsWith(TRACKER_STICKY_MARKER));
+    assert.match(body, /全 sub-issue が完了しました（4\/4）/);
+    assert.match(body, /この EPIC を Close してください/);
+    assert.match(body, /#906/);
+});
+
+test('renderTrackerSticky: total=0 は未完了文言（呼び出し側は needsTrackerSticky で除外する前提）', () => {
+    const body = renderTrackerSticky({ issue: 1, subIssues: { total: 0, completed: 0, percent: 0 } });
+    assert.match(body, /0\/0 \(0%\)/);
+    assert.doesNotMatch(body, /全 sub-issue が完了しました/);
+});
+
 test('selectMarkedCommentIds: 任意マーカーでコメント id を抽出', () => {
     const comments = [
         { id: 1, body: 'ふつうのコメント' },
@@ -454,16 +511,18 @@ test('selectClosedCheckIssues: 非終端 + 🤖 ラベル付きだけを closed 
     assert.deepEqual(selectClosedCheckIssues([]), []);
 });
 
-test('selectBoardItems: assignee 指定でボード表示も enroll 判定（ownsItem）に限定', () => {
+test('selectBoardItems: assignee 指定でボード表示は「自分が Assignees のいずれか」に限定（#938）', () => {
     const items = [
         { issue: 1, status: 'Review', assignees: ['me'] },
         { issue: 2, status: 'Review', assignees: ['other'] },
         { issue: 3, status: 'Review', assignees: [] }, // 未 assign（daemon が素通りする item）
         { issue: 4, status: 'Close', assignees: ['me'] }, // 終端
+        // 共同担当（オーナーでない = 辞書順先頭でない）も観察のため表示対象になる
+        { issue: 5, status: 'Review', assignees: ['aaa', 'me'] },
     ];
-    assert.deepEqual(selectBoardItems(items, 'me').map((i) => i.issue), [1]);
+    assert.deepEqual(selectBoardItems(items, 'me').map((i) => i.issue), [1, 5]);
     // 未指定は従来どおり（非終端すべて）
-    assert.deepEqual(selectBoardItems(items).map((i) => i.issue), [1, 2, 3]);
+    assert.deepEqual(selectBoardItems(items).map((i) => i.issue), [1, 2, 3, 5]);
 });
 
 test('itemOwner: 辞書順先頭の assignee が決定的な単一オーナー', () => {
@@ -1210,6 +1269,33 @@ test('parseBaseBranch: ディレクティブは行頭のみ反応（本文中の
     assert.equal(parseBaseBranch('  autopilot-base: topic/indented'), null);
 });
 
+test('parseBaseBranch: セクションは行頭ラベル + 同一行 : `branch`（DoD 形式）も認識', () => {
+    assert.equal(parseBaseBranch('ベースブランチ: `develop`'), 'develop');
+    assert.equal(parseBaseBranch('base branch: `develop`'), 'develop');
+    assert.equal(parseBaseBranch('ベースブランチ: develop'), 'develop');
+});
+
+test('parseBaseBranch: 識別子/改行跨ぎで誤マッチしない（#938/#941 回帰）', () => {
+    // #938 再現: 本文が `parseBaseBranch`/`baseBranch` に言及し、後続行にバッククォート語がある
+    assert.equal(
+        parseBaseBranch('本文で `parseBaseBranch` / `baseBranch` に言及。\n実装は `directiveLogin` を使う。'),
+        null,
+    );
+    // #941 自己参照: 識別子の言及 + 後続行の `.claude/...` バッククォート語を base と誤認しない
+    assert.equal(
+        parseBaseBranch(
+            '識別子 parseBaseBranch / baseBranch（"BaseBranch" を含む）\n' +
+                '変更は `tools/autopilot/**` のみ。\n' +
+                '`.claude/rules/autopilot/prompts.md` を整合。',
+        ),
+        null,
+    );
+    // camelCase 識別子 baseBranch が行頭にあっても、区切り必須なので拾わない
+    assert.equal(parseBaseBranch('baseBranch を修正する。\n`develop` で動かす。'), null);
+    // ラベル行の後に内容行があれば打ち切る（後続の無関係なバッククォート語を拾わない）
+    assert.equal(parseBaseBranch('## ベースブランチ\nなにか説明の行。\n`topic/should-not`'), null);
+});
+
 test('parseAfterIssues: 行頭の autopilot-after 宣言から依存 Issue を抽出', () => {
     assert.deepEqual(parseAfterIssues('autopilot-after: #123'), [123]);
     assert.deepEqual(parseAfterIssues('autopilot-after: #12, #34 56'), [12, 34, 56]);
@@ -1244,6 +1330,69 @@ test('parseAfterIssues: 説明用の安全表記（スペース入り・非行�
         'autopilot-after: #123',
     ].join('\n');
     assert.deepEqual(parseAfterIssues(doc), [123]);
+});
+
+test('parseAssigneeDirective: 行頭の autopilot-assignee 宣言から login を抽出', () => {
+    assert.equal(parseAssigneeDirective('autopilot-assignee: takaokouji'), 'takaokouji');
+    // @ 付きも許容
+    assert.equal(parseAssigneeDirective('autopilot-assignee: @takaokouji'), 'takaokouji');
+    // 行頭 HTML コメント内も可
+    assert.equal(parseAssigneeDirective('<!-- autopilot-assignee: someone -->'), 'someone');
+    // 大文字小文字は無視（ディレクティブ名自体）
+    assert.equal(parseAssigneeDirective('Autopilot-Assignee:  Bob-2 '), 'Bob-2');
+    // 複数行あれば最初の一致
+    assert.equal(
+        parseAssigneeDirective('autopilot-assignee: first\n本文\nautopilot-assignee: second'),
+        'first',
+    );
+    // 無ければ null
+    assert.equal(parseAssigneeDirective(''), null);
+    assert.equal(parseAssigneeDirective(null), null);
+    assert.equal(parseAssigneeDirective('ふつうの本文。担当は takaokouji です。'), null);
+});
+
+test('parseAssigneeDirective: 行頭でない言及では発火しない（説明用の安全表記）', () => {
+    assert.equal(parseAssigneeDirective('説明のために autopilot-assignee: bob と書く'), null);
+    assert.equal(parseAssigneeDirective('- リスト内の `autopilot-assignee: bob` も無効'), null);
+    assert.equal(parseAssigneeDirective('  autopilot-assignee: indented'), null);
+});
+
+test('resolveOwner: ディレクティブが assignees に含まれれば採用、無ければ辞書順先頭', () => {
+    // 指定が assignees に有る → 採用
+    assert.equal(resolveOwner(['aaa', 'bbb'], 'bbb'), 'bbb');
+    // 大文字小文字を無視して一致（元 assignees の表記を返す）
+    assert.equal(resolveOwner(['aaa', 'Bbb'], 'BBB'), 'Bbb');
+    // 指定が assignees に無い → 無視して辞書順先頭
+    assert.equal(resolveOwner(['aaa', 'bbb'], 'takaokouji'), 'aaa');
+    // 未指定 → 辞書順先頭
+    assert.equal(resolveOwner(['zeta', 'alpha'], null), 'alpha');
+    assert.equal(resolveOwner(['zeta', 'alpha'], undefined), 'alpha');
+    // 空/未 assign → null
+    assert.equal(resolveOwner([], 'bbb'), null);
+    assert.equal(resolveOwner(undefined, 'bbb'), null);
+});
+
+test('itemOwner: assigneeDirective が assignees に含まれればそれを優先（#938・後方互換）', () => {
+    // ディレクティブ指定が assignees に含まれる → 優先
+    assert.equal(itemOwner({ assignees: ['aaa', 'bbb'], assigneeDirective: 'bbb' }), 'bbb');
+    // ディレクティブが assignees に無い → 無視して辞書順先頭
+    assert.equal(itemOwner({ assignees: ['aaa', 'bbb'], assigneeDirective: 'ccc' }), 'aaa');
+    // assigneeDirective 未設定（従来の item 形）は従来どおり辞書順先頭
+    assert.equal(itemOwner({ assignees: ['zeta', 'alpha'] }), 'alpha');
+});
+
+test('isAssignee: login が Assignees のいずれかであれば true（オーナーに限らない・#938）', () => {
+    // 自分がオーナーでなくても Assignees に含まれていれば true（board 観察ユースケース）
+    assert.equal(isAssignee({ assignees: ['aaa', 'me'] }, 'me'), true);
+    assert.equal(isAssignee({ assignees: ['aaa', 'me'] }, 'aaa'), true);
+    // 大文字小文字は無視
+    assert.equal(isAssignee({ assignees: ['Me'] }, 'me'), true);
+    // 含まれない / 未 assign → false
+    assert.equal(isAssignee({ assignees: ['other'] }, 'me'), false);
+    assert.equal(isAssignee({ assignees: [] }, 'me'), false);
+    // login 未指定（従来運用）→ 全件許可
+    assert.equal(isAssignee({ assignees: [] }, null), true);
+    assert.equal(isAssignee({ assignees: ['someone'] }, null), true);
 });
 
 test('unresolvedAfterIssues: closed or 終端 Status の依存は解決済み', () => {

@@ -105,6 +105,8 @@ const MONITOR_HTML = `<!doctype html>
   .reauth-info code { font-size: 1rem; font-weight: 700; letter-spacing: .06em; }
   /* ---- 俯瞰ボード ---- */
   main { padding: .6rem .8rem 2rem; }
+  /* #board のはみ出しはページ全体を崩さずスクロールで逃がす保険（列間引きと併用）#936 */
+  .board-wrap { overflow-x: auto; }
   table { border-collapse: collapse; width: 100%; background: #fff; font-size: .84rem; }
   th, td { border: 1px solid var(--border); padding: .3rem .5rem; text-align: left; vertical-align: middle; }
   th { background: #f1f5f9; font-size: .75rem; color: #475569; }
@@ -112,6 +114,18 @@ const MONITOR_HTML = `<!doctype html>
   tr.running-row td { background: #fffbeb; }
   td.title-cell { max-width: 34rem; }
   .t { display: inline-block; max-width: 30rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
+  /* ---- 狭幅（〜820px 目安）で情報量を落として崩れを防ぐ #936 ----
+     モバイル対応は不要（横 640px 程度が最小想定）。nth-child は表示/非表示で
+     位置番号がズレないので、Size(3) を隠しても 担当(5) の index は変わらない。
+     colspan="8" のフォールバック行は td が1つなので誤って隠れない。 */
+  @media (max-width: 820px) {
+    #board th:nth-child(3), #board td:nth-child(3) { display: none; } /* Size */
+    #board th:nth-child(5), #board td:nth-child(5) { display: none; } /* 担当 */
+    #board td:nth-child(7) .bar, #board td:nth-child(7) .sub-pct { display: none; } /* Sub-issues: バー/％を隠し件数のみ */
+    #board td:nth-child(8) .subtext { display: none; } /* Now: 「人間の番」「N分」等の subtext を隠しアイコン/phase-pill/log を残す */
+    .t { max-width: 15rem; }
+    th, td { padding: .3rem .35rem; }
+  }
   .status-pill { display: inline-block; padding: .05rem .45rem; border-radius: .3rem; font-size: .75rem; font-weight: 600; white-space: nowrap; }
   /* ---- Size バッジ（S=緑 / M=琥珀 / L=赤）#884 ---- */
   .size-badge { display: inline-block; min-width: 1.1rem; padding: .05rem .4rem; border-radius: .3rem; font-size: .75rem; font-weight: 700; text-align: center; }
@@ -164,9 +178,11 @@ const MONITOR_HTML = `<!doctype html>
 </header>
 <div id="alerts"></div>
 <main>
+  <div class="board-wrap">
   <table id="board"><thead><tr>
     <th>Issue</th><th>Status</th><th>Size</th><th>AI</th><th>担当</th><th>PR</th><th>Sub-issues</th><th>Now</th>
   </tr></thead><tbody id="rows"><tr><td colspan="8" class="muted">読み込み中…</td></tr></tbody></table>
+  </div>
   <h2>実行履歴（最新 100 件・ログ用途のみ）</h2>
   <table id="histt"><thead><tr>
     <th>時刻</th><th>Issue</th><th>Phase</th><th>結果</th><th>メモ</th>
@@ -242,16 +258,32 @@ const USAGE_ICON = '<svg class="uicon" viewBox="0 0 100 100" width="15" height="
   + '<line x1="50" y1="14" x2="50" y2="86"/><line x1="14" y1="50" x2="86" y2="50"/>'
   + '<line x1="24" y1="24" x2="76" y2="76"/><line x1="76" y1="24" x2="24" y2="76"/></g></svg>';
 
+// resetsAt（秒 or ms epoch）を JST の日時文字列に整形する（#935）。無効値・null は
+// 空文字を返し、呼び出し側は title に「リセット」を付けない。Intl はブラウザ内蔵なので
+// 自己完結（monitor は外部リソース禁止の規約を守れる）。
+function resetLabel(resetsAt) {
+  if (typeof resetsAt !== 'number' || !Number.isFinite(resetsAt) || resetsAt <= 0) return '';
+  const ms = resetsAt < 1e12 ? resetsAt * 1000 : resetsAt;
+  const d = new Date(ms);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleString('ja-JP', {
+    timeZone: 'Asia/Tokyo', month: 'numeric', day: 'numeric', weekday: 'short',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  }) + ' JST';
+}
+
 // 使用率の短いバー + NN%。データが無いウィンドウは「—」でレイアウトを崩さない。
-// used ≥ 80% は警告色（残量僅少）。
+// used ≥ 80% は警告色（残量僅少）。ホバーで制限リセット期限(JST)を表示する（#935）。
 function usageBar(w, label) {
   if (!w || w.percent == null) return '<span class="umuted" title="' + esc(label) + '">—</span>';
   const pct = Math.max(0, Math.min(100, Number(w.percent) || 0));
   const warn = pct >= 80 ? ' warn' : '';
   const rounded = Math.round(pct);
-  return '<span class="ubar" title="' + esc(label) + ' ' + rounded + '%">'
+  const reset = resetLabel(w.resetsAt);
+  const title = esc(label) + ' ' + rounded + '%' + (reset ? ' — リセット ' + esc(reset) : '');
+  return '<span class="ubar" title="' + title + '">'
     + '<span class="' + warn.trim() + '" style="width:' + pct + '%"></span></span>'
-    + '<span class="upct' + warn + '">' + rounded + '%</span>';
+    + '<span class="upct' + warn + '" title="' + title + '">' + rounded + '%</span>';
 }
 
 // usage の最終更新からの経過（age）を薄字で併記する。usage は worker（claude セッション）
@@ -368,23 +400,33 @@ function renderAlerts(d) {
 function renderBoard(d) {
   const runningBy = {};
   for (const r of d.running || []) runningBy[r.issue] = r;
+  // 自分の login（--assignee）。共同担当で自分がオーナーでない行に「観察中」マーカーを出す（#938）。
+  const myAssignee = d.assignee || null;
   const rows = (d.items || []).map((it) => {
     const r = runningBy[it.issue];
     const cls = it.status === 'Blocked' ? 'blocked-row' : (r ? 'running-row' : '');
     const prs = (it.prs || []).map(prChip).join('') || '<span class="muted">—</span>';
     const s = it.subIssues || {};
+    // 件数（.sub-count）と %（.sub-pct）を別 span に分割し、狭幅 CSS で % だけ隠せるようにする（#936）
     const sub = s.total
       ? '<span class="bar"><div style="width:' + (s.percent || 0) + '%"></div></span>'
-        + '<span class="subtext">' + s.completed + '/' + s.total + ' (' + (s.percent || 0) + '%)</span>'
+        + '<span class="subtext"><span class="sub-count">' + s.completed + '/' + s.total + '</span>'
+        + '<span class="sub-pct"> (' + (s.percent || 0) + '%)</span></span>'
       : '<span class="muted">—</span>';
     const now = r
       ? '<span class="phase-pill">' + esc(r.phase) + '</span>'
         + '<span class="subtext">' + mins(Date.now() - r.since) + '分</span> '
         + '<button onclick="openLog(' + it.issue + ')">log</button>'
-      : (it.hitl ? '🙋 <span class="subtext">人間の番</span>' : '<span class="muted">—</span>');
-    const who = (it.assignees || []).length
-      ? esc((it.assignees || []).join(', '))
+      : (it.hitl ? '<span title="人間の番">🙋</span> <span class="subtext">人間の番</span>' : '<span class="muted">—</span>');
+    const assignees = it.assignees || [];
+    // オーナー（駆動担当）を太字で明示。自分がオーナーでない共同担当行には 👁 + オーナー login
+    // を付け、「観察中（他人が駆動）」であることを示す（#938）。
+    const who = assignees.length
+      ? assignees.map((a) => (a === it.owner ? '<b>' + esc(a) + '</b>' : esc(a))).join(', ')
       : '<span class="muted">—</span>';
+    const observing = (myAssignee && it.owner && it.owner !== myAssignee)
+      ? ' <span class="subtext" title="駆動者は ' + esc(it.owner) + '（自分は観察中・live 反映は更新周期/手動更新のみ）">👁 ' + esc(it.owner) + '</span>'
+      : '';
     const kindMark = it.tracker ? ' <span class="subtext" title="tracker (分解済み親)">🧭</span>' : '';
     const waitMark = it.waiting ? ' <span class="subtext" title="先行 Issue (autopilot-after) の完了待ち">⏳</span>' : '';
     return '<tr class="' + cls + '">'
@@ -393,7 +435,7 @@ function renderBoard(d) {
       + '<td>' + statusPill(it.status) + '</td>'
       + '<td>' + sizeBadge(it.size) + '</td>'
       + '<td>' + aiStatusCell(it) + '</td>'
-      + '<td>' + who + '</td>'
+      + '<td>' + who + observing + '</td>'
       + '<td>' + prs + '</td>'
       + '<td>' + sub + '</td>'
       + '<td>' + now + '</td></tr>';

@@ -3,7 +3,8 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const {
     applyMergeProgression, applyClosedReconcile, applyPrProjection, applyDodHandoffs, runTickOnce,
-    detectStuck, markBlocked, getDirectives, applyLabelHealing, applyAfterWaitLabels, collectGateContexts,
+    detectStuck, markBlocked, getDirectives, populateAssigneeDirectives,
+    applyLabelHealing, applyAfterWaitLabels, collectGateContexts,
     applyDecomposeSubIssueSetup,
     parseSsoDeviceOutput, startReauth,
     updateClaudeUsage, boardResponse, statusResponse,
@@ -11,9 +12,10 @@ const {
     patchBoardCache,
     ensureCheckpointCommit, readContinuationFromWorktree, applyCheckpointHandling,
     collectContinuationContexts, checkpointEscalationBody,
+    applyTrackerStickies, refreshBoardAndProjectTrackers,
 } = require('../src/daemon');
 const { EventEmitter } = require('node:events');
-const { HITL_LABEL, AUTOPILOT_LABEL, continuationMarker } = require('../src/phases');
+const { HITL_LABEL, AUTOPILOT_LABEL, continuationMarker, TRACKER_STICKY_MARKER } = require('../src/phases');
 
 /** Build an injectable double for markBlocked/detectStuck that records side effects. */
 function makeBlockDeps() {
@@ -688,7 +690,7 @@ test('recordHistory: 新しい run が先頭、上限 100 件', () => {
     assert.equal(state.history[0].issue, 104); // 最新が先頭
 });
 
-test('refreshBoard: assignee 指定でボードも enroll 判定（ownsItem）に限定される', async () => {
+test('refreshBoard: assignee 指定でボードは「自分が Assignees のいずれか」に限定される（#938）', async () => {
     const { refreshBoard } = require('../src/daemon');
     const cfg = { ...makeCfg(), now: () => 0, statusOrder: [], assignee: 'me' };
     const state = { running: new Map() };
@@ -698,11 +700,56 @@ test('refreshBoard: assignee 指定でボードも enroll 判定（ownsItem）�
             { issue: 1, status: 'Review', kind: 'Issue', title: 'mine', labels: [], assignees: ['me'] },
             { issue: 2, status: 'Review', kind: 'Issue', title: 'other', labels: [], assignees: ['other'] },
             { issue: 3, status: 'Review', kind: 'Issue', title: 'none', labels: [], assignees: [] }, // 未 assign
-            { issue: 4, status: 'Review', kind: 'Issue', title: 'second', labels: [], assignees: ['aa', 'me'] }, // 先頭でない
+            // 共同担当（辞書順先頭ではない=オーナーでない）も観察のため表示対象になる
+            { issue: 4, status: 'Review', kind: 'Issue', title: 'second', labels: [], assignees: ['aa', 'me'] },
         ],
         getBoardEnrichment: () => ({}),
         listHeadPrs: () => [],
+        getIssueBody: () => '', // 4 は 2 人 assign なのでディレクティブ解決の本文 fetch が走る
     });
+    assert.deepEqual(state.board.items.map((i) => i.issue), [1, 4]);
+    // owner はディレクティブ無しなので辞書順先頭（'aa'）— 'me' はオーナーではない=観察対象
+    const item4 = state.board.items.find((i) => i.issue === 4);
+    assert.equal(item4.owner, 'aa');
+});
+
+test('refreshBoard: autopilot-assignee ディレクティブが board の owner 表示に反映される（#938）', async () => {
+    const { refreshBoard } = require('../src/daemon');
+    const cfg = { ...makeCfg(), now: () => 0, statusOrder: [], assignee: 'me' };
+    const state = { running: new Map() };
+    await refreshBoard(cfg, state, () => {}, {
+        token: 't',
+        listItems: () => [
+            { issue: 4, status: 'Review', kind: 'Issue', title: 'second', labels: [], assignees: ['aa', 'me'] },
+        ],
+        getBoardEnrichment: () => ({}),
+        listHeadPrs: () => [],
+        getIssueBody: () => 'autopilot-assignee: me',
+    });
+    const item4 = state.board.items.find((i) => i.issue === 4);
+    assert.equal(item4.owner, 'me');
+});
+
+test('refreshBoard: 非表示（終端 / 非自分担当）の multi-assignee item は本文 fetch しない（#938・API 予算）', async () => {
+    const { refreshBoard } = require('../src/daemon');
+    const cfg = { ...makeCfg(), now: () => 0, statusOrder: [], assignee: 'me' };
+    const state = { running: new Map() };
+    const fetched = [];
+    await refreshBoard(cfg, state, () => {}, {
+        token: 't',
+        listItems: () => [
+            // 表示対象（自分が Assignees・非終端・2人）→ fetch する
+            { issue: 1, status: 'Review', kind: 'Issue', title: 'mine', labels: [], assignees: ['aa', 'me'] },
+            // 終端 Status の 2人 assign → selectBoardItems で除外されるので fetch しない
+            { issue: 2, status: 'Close', kind: 'Issue', title: 'done', labels: [], assignees: ['aa', 'bb'] },
+            // 自分が Assignees でない 2人 assign → 表示対象外なので fetch しない
+            { issue: 3, status: 'Review', kind: 'Issue', title: 'others', labels: [], assignees: ['aa', 'bb'] },
+        ],
+        getBoardEnrichment: () => ({}),
+        listHeadPrs: () => [],
+        getIssueBody: (repo, issue) => { fetched.push(issue); return ''; },
+    });
+    assert.deepEqual(fetched, [1]); // 表示対象の 1 だけ本文 fetch
     assert.deepEqual(state.board.items.map((i) => i.issue), [1]);
 });
 
@@ -718,6 +765,98 @@ test('refreshBoard: レート残量僅少（skipLowPriority）では更新せず
     await refreshBoard(cfg, state, () => {}, { token: 't', listItems: () => { called += 1; return []; } });
     assert.equal(called, 0);
     assert.deepEqual(state.board.items.map((i) => i.issue), [9]);
+});
+
+// === #934: applyTrackerStickies（分解済み EPIC の sub-issue 進捗 + Close 指示 sticky） ===
+
+test('applyTrackerStickies: トラッカーで sub-issue 未完了 -> sticky を upsert する', async () => {
+    const boardItems = [
+        { issue: 906, tracker: true, status: 'In Progress', subIssues: { total: 4, completed: 2, percent: 50 } },
+        { issue: 1, tracker: false, status: 'In Progress', subIssues: { total: 0, completed: 0, percent: 0 } }, // 対象外
+    ];
+    const calls = [];
+    const deps = {
+        token: 't',
+        upsertMarkedComment: (repo, number, markers, body) => calls.push({ number, markers, body }),
+    };
+    await applyTrackerStickies(boardItems, makeCfg(), () => {}, deps);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].number, 906);
+    assert.deepEqual(calls[0].markers, [TRACKER_STICKY_MARKER]);
+    assert.match(calls[0].body, /2\/4 \(50%\)/);
+});
+
+test('applyTrackerStickies: 追加の GraphQL 無しに board キャッシュだけで動く（listItems 等は呼ばない）', async () => {
+    const boardItems = [
+        { issue: 906, tracker: true, status: 'In Progress', subIssues: { total: 4, completed: 4, percent: 100 } },
+    ];
+    const calls = [];
+    await applyTrackerStickies(boardItems, makeCfg(), () => {}, {
+        token: 't',
+        upsertMarkedComment: (repo, number, markers, body) => calls.push({ number, body }),
+        listItems: () => { throw new Error('listItems should not be called'); },
+    });
+    assert.equal(calls.length, 1);
+    assert.match(calls[0].body, /全 sub-issue が完了しました（4\/4）/);
+});
+
+test('applyTrackerStickies: 対象が無ければ何もしない（token 取得もしない）', async () => {
+    let tokenCalls = 0;
+    await applyTrackerStickies([], makeCfg(), () => {}, {
+        get token() { tokenCalls += 1; return 't'; },
+        upsertMarkedComment: () => { throw new Error('should not be called'); },
+    });
+    assert.equal(tokenCalls, 0);
+});
+
+test('applyTrackerStickies: 1 件の失敗は他を止めない', async () => {
+    const boardItems = [
+        { issue: 1, tracker: true, status: 'In Progress', subIssues: { total: 2, completed: 1, percent: 50 } },
+        { issue: 2, tracker: true, status: 'In Progress', subIssues: { total: 2, completed: 2, percent: 100 } },
+    ];
+    const posted = [];
+    await applyTrackerStickies(boardItems, makeCfg(), () => {}, {
+        token: 't',
+        upsertMarkedComment: (repo, number) => {
+            if (number === 1) throw new Error('boom');
+            posted.push(number);
+        },
+    });
+    assert.deepEqual(posted, [2]);
+});
+
+test('refreshBoardAndProjectTrackers: refreshBoard 後に board キャッシュでトラッカー sticky を投影する', async () => {
+    const cfg = { ...makeCfg(), now: () => 0, statusOrder: [] };
+    const state = { running: new Map() };
+    const posted = [];
+    await refreshBoardAndProjectTrackers(cfg, state, () => {}, {
+        token: 't',
+        listItems: () => [
+            { issue: 906, status: 'In Progress', kind: 'EPIC', title: 'e', labels: ['🧭 tracking'] },
+        ],
+        getBoardEnrichment: () => ({ 906: { subIssues: { total: 2, completed: 2, percent: 100 }, prs: [] } }),
+        listHeadPrs: () => [],
+        upsertMarkedComment: (repo, number, markers, body) => posted.push({ number, body }),
+    });
+    assert.equal(posted.length, 1);
+    assert.equal(posted[0].number, 906);
+    assert.match(posted[0].body, /全 sub-issue が完了しました（2\/2）/);
+});
+
+test('refreshBoardAndProjectTrackers: レート僅少では再投影しない（board 更新自体も refreshBoard 側でスキップ）', async () => {
+    const cfg = { ...makeCfg(), now: () => 0, statusOrder: [] };
+    const state = {
+        running: new Map(),
+        board: { updatedAt: 1, items: [{ issue: 9, tracker: true, status: 'In Progress', subIssues: { total: 1, completed: 1, percent: 100 } }] },
+        ratePlan: { skipLowPriority: true, minRemaining: 10, minAt: 'bot/graphql' },
+    };
+    let posted = 0;
+    await refreshBoardAndProjectTrackers(cfg, state, () => {}, {
+        token: 't',
+        listItems: () => { throw new Error('should not be called'); },
+        upsertMarkedComment: () => { posted += 1; },
+    });
+    assert.equal(posted, 0);
 });
 
 test('refreshRateLimits: bot/read 両トークンの残量から実行計画を立てる', async () => {
@@ -922,9 +1061,55 @@ test('getDirectives: 取得失敗は空ディレクティブへフォールバ�
     const d1 = await getDirectives(cfg, state, 5, () => {}, deps);
     assert.equal(d1.base, null);
     assert.deepEqual(d1.after, []);
+    assert.equal(d1.assignee, null);
     // 失敗エントリは TTL 切れ扱い → 次回すぐ再取得して成功する
     const d2 = await getDirectives(cfg, state, 5, () => {}, deps);
     assert.deepEqual(d2.after, [3]);
+});
+
+test('getDirectives: 本文の autopilot-assignee ディレクティブも解決する（#938）', async () => {
+    const cfg = { ...makeCfg(), now: () => 0, directiveTtlMs: 1000 };
+    const state = {};
+    const deps = { token: 't', getIssueBody: () => 'autopilot-assignee: takaokouji' };
+    const d = await getDirectives(cfg, state, 5, () => {}, deps);
+    assert.equal(d.assignee, 'takaokouji');
+});
+
+// === #938: populateAssigneeDirectives（assignees 2人以上の item だけ本文 fetch） ===
+
+test('populateAssigneeDirectives: assignees が 2 人以上の item だけ本文を fetch して assigneeDirective を補う', async () => {
+    let fetches = 0;
+    const cfg = { ...makeCfg(), now: () => 0 };
+    const state = {};
+    const deps = {
+        token: 't',
+        getIssueBody: (repo, issue) => { fetches += 1; return issue === 4 ? 'autopilot-assignee: me' : ''; },
+    };
+    const items = [
+        { issue: 1, assignees: ['me'] }, // 1人 → fetch しない
+        { issue: 2, assignees: [] }, // 未 assign → fetch しない
+        { issue: 3, assignees: ['aa', 'bb'] }, // 2人 → fetch する（ディレクティブ無し）
+        { issue: 4, assignees: ['aa', 'me'] }, // 2人 → fetch する（ディレクティブ有り）
+    ];
+    const out = await populateAssigneeDirectives(items, cfg, state, () => {}, deps);
+    assert.equal(fetches, 2);
+    assert.equal(out.find((i) => i.issue === 1).assigneeDirective, undefined);
+    assert.equal(out.find((i) => i.issue === 2).assigneeDirective, undefined);
+    assert.equal(out.find((i) => i.issue === 3).assigneeDirective, null);
+    assert.equal(out.find((i) => i.issue === 4).assigneeDirective, 'me');
+    // 元の配列/item は変更しない
+    assert.equal(items[3].assigneeDirective, undefined);
+});
+
+test('populateAssigneeDirectives: TTL キャッシュを getDirectives と共用する（重複 fetch なし）', async () => {
+    let fetches = 0;
+    const cfg = { ...makeCfg(), now: () => 0, directiveTtlMs: 1000 };
+    const state = {};
+    const deps = { token: 't', getIssueBody: () => { fetches += 1; return 'autopilot-assignee: me'; } };
+    const items = [{ issue: 9, assignees: ['aa', 'me'] }];
+    await populateAssigneeDirectives(items, cfg, state, () => {}, deps);
+    await getDirectives(cfg, state, 9, () => {}, deps); // base/after 解決も同じキャッシュを見る
+    assert.equal(fetches, 1);
 });
 
 // === #816: markBlocked / detectStuck（失敗・stall 時の人間ハンドオフ） ===

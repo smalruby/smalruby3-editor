@@ -5,6 +5,9 @@ import libraryRubyBasics1Numbers from '../thumbnails/ruby-basics-1-numbers.jpg';
 import libraryRubyBasics1TryRuby from '../thumbnails/ruby-basics-1-tryruby.png';
 import libraryRubyBasics2Strings from '../thumbnails/ruby-basics-2-strings.jpg';
 import libraryRubyBasics3Variables from '../thumbnails/ruby-basics-3-variables.jpg';
+import libraryRubyBasics4Arrays from '../thumbnails/ruby-basics-4-arrays.jpg';
+import libraryRubyBasics5Blocks from '../thumbnails/ruby-basics-5-blocks.jpg';
+import libraryRubyBasics6Methods from '../thumbnails/ruby-basics-6-methods.jpg';
 import {CATEGORIES} from '../../tutorial-tags';
 import GreenFlagIcon from '../green-flag-icon.jsx';
 
@@ -352,6 +355,373 @@ end`,
             }
         ],
         urlId: 'rubyBasics3Variables'
+    },
+
+    // ─── Ruby Basics 4: 配列で遊ぼう ─────────────────────────────────────────
+    'ruby-basics-4-arrays': {
+        name: (
+            <FormattedMessage
+                defaultMessage="配列（はいれつ）で遊ぼう"
+                description="Name for Ruby Basics 4: use arrays with puts"
+                id="gui.howtos.ruby-basics-4-arrays.name"
+            />
+        ),
+        tags: ['ruby'],
+        category: CATEGORIES.rubyBasics,
+        img: libraryRubyBasics4Arrays,
+        nameMessageId: 'gui.howtos.ruby-basics-4-arrays.name',
+        // Same "open the Ruby tab in Ruby mode" setup as deck 1 — see
+        // docs/tutorial/improvement-plan.md "チュートリアル起動時の環境セットアップ".
+        setup: {
+            tab: 'ruby',
+            rubyMode: 'ruby'
+        },
+        allowedBlocks: {
+            motion: [],
+            looks: ['looks_sayforsecs', 'looks_say'],
+            sound: [],
+            event: ['event_whenflagclicked'],
+            control: [],
+            sensing: [],
+            operators: []
+        },
+        steps: [
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="配列（はいれつ）で遊ぼう！"
+                        description="Ruby Basics 4 Step 1: Intro to arrays with puts"
+                        id="gui.howtos.ruby-basics-4-arrays.step1.title"
+                    />
+                ),
+                image: 'rubyBasics4Step1',
+                startTutorial: true,
+                animationTarget: 'startTutorialButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="複数のことばを1つの配列にまとめてみよう"
+                        description="Ruby Basics 4 Step 2: Insert first array code"
+                        id="gui.howtos.ruby-basics-4-arrays.step2.title"
+                    />
+                ),
+                image: 'rubyBasics4Step2',
+                code: `when_flag_clicked do
+  ticket = ["赤", "青", "黄"]
+  puts ticket
+end`,
+                animationTarget: 'insertCodeButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="{greenFlag}を押すと、ネコが配列の中身をしゃべるよ"
+                        description="Ruby Basics 4 Step 3: Run the program"
+                        id="gui.howtos.ruby-basics-4-arrays.step3.title"
+                        values={{greenFlag: <GreenFlagIcon />}}
+                    />
+                ),
+                image: 'rubyBasics4Step3',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="配列の順番を逆にしたり、番号で1つだけ取り出してみよう"
+                        description="Ruby Basics 4 Step 4: reverse / index access array methods"
+                        id="gui.howtos.ruby-basics-4-arrays.step4.title"
+                    />
+                ),
+                image: 'rubyBasics4Step4',
+                code: `when_flag_clicked do
+  ticket = ["赤", "青", "黄"]
+  puts ticket.reverse
+  puts ticket[0]
+end`,
+                animationTarget: 'insertCodeButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="好きなことばに変えて、自分だけの配列で遊ぼう"
+                        description="Ruby Basics 4 Step 5: Modify the array"
+                        id="gui.howtos.ruby-basics-4-arrays.step5.title"
+                    />
+                ),
+                image: 'rubyBasics4Step5',
+                code: `when_flag_clicked do
+  ticket = ["いぬ", "ねこ", "とり"]
+  puts ticket.reverse
+end`,
+                animationTarget: 'insertCodeButton'
+            },
+            {
+                externalResources: {
+                    tryruby: {
+                        url: 'https://try.ruby-lang.org/',
+                        img: libraryRubyBasics1TryRuby,
+                        name: (
+                            <FormattedMessage
+                                defaultMessage="外部サイト「try ruby」で詳しくRubyを学ぶ"
+                                description="External resource: TryRuby online playground"
+                                id="gui.howtos.ruby-basics-4-arrays.external.tryruby.name"
+                            />
+                        )
+                    }
+                }
+            }
+        ],
+        urlId: 'rubyBasics4Arrays'
+    },
+
+    // ─── Ruby Basics 5: ブロックを使ってみよう ─────────────────────────────────
+    'ruby-basics-5-blocks': {
+        name: (
+            <FormattedMessage
+                defaultMessage="ブロック（times）を使ってみよう"
+                description="Name for Ruby Basics 5: repeat with N.times { |i| ... }"
+                id="gui.howtos.ruby-basics-5-blocks.name"
+            />
+        ),
+        tags: ['ruby'],
+        category: CATEGORIES.rubyBasics,
+        img: libraryRubyBasics5Blocks,
+        nameMessageId: 'gui.howtos.ruby-basics-5-blocks.name',
+        // Same "open the Ruby tab in Ruby mode" setup as deck 1 — see
+        // docs/tutorial/improvement-plan.md "チュートリアル起動時の環境セットアップ".
+        setup: {
+            tab: 'ruby',
+            rubyMode: 'ruby'
+        },
+        allowedBlocks: {
+            motion: ['motion_movesteps'],
+            looks: ['looks_sayforsecs', 'looks_say'],
+            sound: [],
+            event: ['event_whenflagclicked'],
+            control: [],
+            sensing: [],
+            operators: []
+        },
+        steps: [
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="ブロック（times）を使ってみよう！"
+                        description="Ruby Basics 5 Step 1: Intro to N.times blocks"
+                        id="gui.howtos.ruby-basics-5-blocks.step1.title"
+                    />
+                ),
+                image: 'rubyBasics5Step1',
+                startTutorial: true,
+                animationTarget: 'startTutorialButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="「5.times do |i| ... end」で同じ処理を5回くり返してみよう"
+                        description="Ruby Basics 5 Step 2: Insert first N.times code"
+                        id="gui.howtos.ruby-basics-5-blocks.step2.title"
+                    />
+                ),
+                image: 'rubyBasics5Step2',
+                code: `when_flag_clicked do
+  5.times do |i|
+    puts i
+  end
+end`,
+                animationTarget: 'insertCodeButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="{greenFlag}を押すと、ネコが「0」から「4」まで順番にしゃべるよ"
+                        description="Ruby Basics 5 Step 3: Run the program"
+                        id="gui.howtos.ruby-basics-5-blocks.step3.title"
+                        values={{greenFlag: <GreenFlagIcon />}}
+                    />
+                ),
+                image: 'rubyBasics5Step3',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="くり返しの中で「move(20)」も動かして、進みながらしゃべらせよう"
+                        description="Ruby Basics 5 Step 4: Combine N.times with move"
+                        id="gui.howtos.ruby-basics-5-blocks.step4.title"
+                    />
+                ),
+                image: 'rubyBasics5Step4',
+                code: `when_flag_clicked do
+  5.times do |i|
+    puts i
+    move(20)
+  end
+end`,
+                animationTarget: 'insertCodeButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="くり返す回数や動く歩数を変えて、自分だけの動きをつくろう"
+                        description="Ruby Basics 5 Step 5: Modify the repeat count and move distance"
+                        id="gui.howtos.ruby-basics-5-blocks.step5.title"
+                    />
+                ),
+                image: 'rubyBasics5Step5',
+                code: `when_flag_clicked do
+  10.times do |i|
+    puts i
+    move(10)
+  end
+end`,
+                animationTarget: 'insertCodeButton'
+            },
+            {
+                externalResources: {
+                    tryruby: {
+                        url: 'https://try.ruby-lang.org/',
+                        img: libraryRubyBasics1TryRuby,
+                        name: (
+                            <FormattedMessage
+                                defaultMessage="外部サイト「try ruby」で詳しくRubyを学ぶ"
+                                description="External resource: TryRuby online playground"
+                                id="gui.howtos.ruby-basics-5-blocks.external.tryruby.name"
+                            />
+                        )
+                    }
+                }
+            }
+        ],
+        urlId: 'rubyBasics5Blocks'
+    },
+
+    // ─── Ruby Basics 6: メソッドをつくってみよう ───────────────────────────────
+    'ruby-basics-6-methods': {
+        name: (
+            <FormattedMessage
+                defaultMessage="メソッドをつくってみよう"
+                description="Name for Ruby Basics 6: define methods with def"
+                id="gui.howtos.ruby-basics-6-methods.name"
+            />
+        ),
+        tags: ['ruby'],
+        category: CATEGORIES.rubyBasics,
+        img: libraryRubyBasics6Methods,
+        nameMessageId: 'gui.howtos.ruby-basics-6-methods.name',
+        // Same "open the Ruby tab in Ruby mode" setup as deck 1 — see
+        // docs/tutorial/improvement-plan.md "チュートリアル起動時の環境セットアップ".
+        setup: {
+            tab: 'ruby',
+            rubyMode: 'ruby'
+        },
+        allowedBlocks: {
+            motion: [],
+            looks: ['looks_sayforsecs', 'looks_say'],
+            sound: [],
+            event: ['event_whenflagclicked'],
+            control: [],
+            sensing: [],
+            operators: []
+        },
+        steps: [
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="メソッドをつくってみよう！"
+                        description="Ruby Basics 6 Step 1: Intro to defining methods"
+                        id="gui.howtos.ruby-basics-6-methods.step1.title"
+                    />
+                ),
+                image: 'rubyBasics6Step1',
+                startTutorial: true,
+                animationTarget: 'startTutorialButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="「def hello(name) ... end」で、名前を呼んであいさつするメソッドをつくろう"
+                        description="Ruby Basics 6 Step 2: Insert first method definition"
+                        id="gui.howtos.ruby-basics-6-methods.step2.title"
+                    />
+                ),
+                image: 'rubyBasics6Step2',
+                code: `def hello(name)
+  puts "こんにちは、" + name
+end
+
+when_flag_clicked do
+  hello("ネコ")
+end`,
+                animationTarget: 'insertCodeButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="{greenFlag}を押すと、ネコが「こんにちは、ネコ」としゃべるよ"
+                        description="Ruby Basics 6 Step 3: Run the program"
+                        id="gui.howtos.ruby-basics-6-methods.step3.title"
+                        values={{greenFlag: <GreenFlagIcon />}}
+                    />
+                ),
+                image: 'rubyBasics6Step3',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="同じメソッドを、ちがう名前で何度も呼び出してみよう"
+                        description="Ruby Basics 6 Step 4: Call the same method multiple times"
+                        id="gui.howtos.ruby-basics-6-methods.step4.title"
+                    />
+                ),
+                image: 'rubyBasics6Step4',
+                code: `def hello(name)
+  puts "こんにちは、" + name
+end
+
+when_flag_clicked do
+  hello("ネコ")
+  hello("イヌ")
+end`,
+                animationTarget: 'insertCodeButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="メソッドの中身を変えて、自分だけのあいさつをつくろう"
+                        description="Ruby Basics 6 Step 5: Modify the method body"
+                        id="gui.howtos.ruby-basics-6-methods.step5.title"
+                    />
+                ),
+                image: 'rubyBasics6Step5',
+                code: `def hello(name)
+  puts "やあ、" + name + "！"
+end
+
+when_flag_clicked do
+  hello("あなたのなまえ")
+end`,
+                animationTarget: 'insertCodeButton'
+            },
+            {
+                externalResources: {
+                    tryruby: {
+                        url: 'https://try.ruby-lang.org/',
+                        img: libraryRubyBasics1TryRuby,
+                        name: (
+                            <FormattedMessage
+                                defaultMessage="外部サイト「try ruby」で詳しくRubyを学ぶ"
+                                description="External resource: TryRuby online playground"
+                                id="gui.howtos.ruby-basics-6-methods.external.tryruby.name"
+                            />
+                        )
+                    }
+                }
+            }
+        ],
+        urlId: 'rubyBasics6Methods'
     }
 };
 

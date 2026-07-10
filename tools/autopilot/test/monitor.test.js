@@ -139,6 +139,36 @@ test('MONITOR_HTML: Awaiting Continuation は専用バッジ + 残タスク数�
     assert.match(MONITOR_HTML, /const aiStatusCell = \(it\) => \{\s*if \(!it\.aiStatus\) return '<span class="muted">—<\/span>';/);
 });
 
+test('resetLabel: resetsAt（秒 epoch）を JST 表示に整形する（#935 実データ）', () => {
+    const m = MONITOR_HTML.match(/function resetLabel\(resetsAt\) \{[\s\S]*?\n\}/);
+    assert.ok(m, 'resetLabel function exists');
+    // eslint-disable-next-line no-new-func
+    const resetLabel = new Function(m[0] + '; return resetLabel;')();
+    assert.equal(resetLabel(1783604400), '7/9(木) 22:40 JST');
+    assert.equal(resetLabel(1783778400), '7/11(土) 23:00 JST');
+    // ms epoch（13桁）も吸収する
+    assert.equal(resetLabel(1783604400000), '7/9(木) 22:40 JST');
+    // 無効値・null は空文字（title に「リセット」を出さない）
+    assert.equal(resetLabel(null), '');
+    assert.equal(resetLabel(undefined), '');
+    assert.equal(resetLabel(NaN), '');
+    assert.equal(resetLabel(0), '');
+    assert.equal(resetLabel('not-a-number'), '');
+});
+
+test('MONITOR_HTML: 使用率バーのホバーに制限リセット期限(JST)を表示（#935）', () => {
+    // usageBar が resetsAt を使って title にリセット期限を足す
+    assert.match(MONITOR_HTML, /function usageBar/);
+    assert.match(MONITOR_HTML, /w\.resetsAt/);
+    assert.match(MONITOR_HTML, /リセット /);
+    // バー本体（.ubar）と % テキスト（.upct）の両方に同じ title を付与する
+    const src = MONITOR_HTML.match(/function usageBar\([\s\S]*?\n\}/)[0];
+    const titleAttrs = src.match(/title="/g) || [];
+    assert.ok(titleAttrs.length >= 2, 'ubar と upct の両方に title を付与する');
+    // resetsAt が無い/無効なウィンドウでは既存の「—」表示を壊さない
+    assert.match(MONITOR_HTML, /class="umuted"/);
+});
+
 test('MONITOR_HTML: インライン script が構文的に妥当', () => {
     const m = MONITOR_HTML.match(/<script>([\s\S]*)<\/script>/);
     assert.ok(m, 'script block exists');
@@ -164,4 +194,36 @@ test('MONITOR_HTML: ヘッダー中央に Claude 使用量表示（#879）', () 
     assert.match(MONITOR_HTML, /pct >= 80/);
     // データ欠如時は「—」でレイアウトを崩さない
     assert.match(MONITOR_HTML, /class="umuted"/);
+});
+
+test('MONITOR_HTML: 俯瞰ボードは狭幅で列を間引く（#936）', () => {
+    // #board を overflow-x: auto のコンテナで包む（保険のフォールバック）
+    assert.match(MONITOR_HTML, /overflow-x:\s*auto/);
+    // 狭幅メディアクエリ（推奨 820px）で Size(3) / 担当(5) 列を隠す
+    const media = MONITOR_HTML.match(/@media \(max-width: 820px\) \{([\s\S]*?)\n  \}/);
+    assert.ok(media, '@media (max-width: 820px) ブロックが存在する');
+    const body = media[1];
+    assert.match(body, /#board th:nth-child\(3\),\s*#board td:nth-child\(3\)\s*\{[^}]*display:\s*none/);
+    assert.match(body, /#board th:nth-child\(5\),\s*#board td:nth-child\(5\)\s*\{[^}]*display:\s*none/);
+    // Sub-issues 列（7）はバーと % を隠す（件数のみ残す）
+    assert.match(body, /#board td:nth-child\(7\)\s+\.bar[^{]*\{[^}]*display:\s*none/);
+    assert.match(body, /\.sub-pct\s*\{[^}]*display:\s*none/);
+    // Now 列（8）は subtext（「人間の番」や経過分）を隠す（アイコン/phase-pill/log は残す）
+    assert.match(body, /#board td:nth-child\(8\)\s+\.subtext\s*\{[^}]*display:\s*none/);
+});
+
+test('MONITOR_HTML: Sub-issues セルは件数 (.sub-count) と %（.sub-pct）を別 span に分割する（#936）', () => {
+    // render 側で件数と % を分割する（狭幅 CSS が .sub-pct だけ隠せるように）
+    assert.match(MONITOR_HTML, /class="sub-count"/);
+    assert.match(MONITOR_HTML, /class="sub-pct"/);
+});
+
+test('MONITOR_HTML: 担当列にオーナー（駆動者）を明示し、非オーナー行は観察中マーカーを出す（#938）', () => {
+    // /board の assignee（自分の login）を保持する
+    assert.match(MONITOR_HTML, /const myAssignee = d\.assignee/);
+    // オーナー（it.owner と一致する assignee）は太字で明示
+    assert.match(MONITOR_HTML, /a === it\.owner/);
+    // 自分がオーナーでない行には 👁 + オーナー login のマーカーを付ける
+    assert.match(MONITOR_HTML, /it\.owner !== myAssignee/);
+    assert.ok(MONITOR_HTML.includes('👁'), 'should include the observing marker emoji');
 });

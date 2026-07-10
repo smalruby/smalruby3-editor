@@ -1,6 +1,6 @@
 // === Smalruby: This file is Smalruby-specific (Ruby method extension converter) ===
 
-import { convertToListBlock } from './variable-hash-ops';
+import { convertToListBlock, isKnownListReceiver } from './variable-hash-ops';
 import { messages } from './converter-errors';
 import {
     buildMutation,
@@ -78,10 +78,21 @@ const SmalrubyRubyConverter = {
         };
 
         // --- Register string methods ---
+        // `reverse` / `reverse!` are registered for both String and Array
+        // receivers. A variable read is always a data_variable block, so when
+        // the receiver is a *known list variable* the String handler must
+        // decline (return null) to let dispatch fall through to the Array
+        // handler (which rewrites the receiver to data_listcontents). Genuine
+        // scalar/String variables and string literals are not known lists, so
+        // they keep using String#<method> (no regression).
+        const declineForListReceiver = (method, receiver) =>
+            ARRAY_METHODS.has(method) && isKnownListReceiver(converter, receiver);
+
         const registerStringMethod = (method, numArgs) => {
             if (method.endsWith('!')) {
                 converter.registerOnSend(['variable'], method, numArgs, (params) => {
                     const { receiver, args } = params;
+                    if (declineForListReceiver(method, receiver)) return null;
                     return createBangMethodBlock(
                         'smalrubyRuby_stringMethod',
                         method,
@@ -98,6 +109,7 @@ const SmalrubyRubyConverter = {
                     numArgs,
                     (params) => {
                         const { receiver, args } = params;
+                        if (declineForListReceiver(method, receiver)) return null;
                         return createMethodBlock(
                             'smalrubyRuby_stringMethod',
                             method,

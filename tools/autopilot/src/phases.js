@@ -43,9 +43,18 @@ function autopilotHeadBranch(issueNumber, prefix = AUTOPILOT_BRANCH_PREFIX) {
  *  1. ディレクティブ: `autopilot-base: <branch>`。**行頭のみ**反応する（HTML コメントが
  *     行頭から始まる場合は `<!-- autopilot-base: x -->` も可）。本文の途中で
  *     「autopilot-base: と書くと…」のように**言及**しただけでは発火しない。最優先。
- *  2. 「## ベースブランチ」/「base branch」見出し・ラベルの直後にあるバッククォート囲みのブランチ。
+ *  2. 行頭の「ベースブランチ」/「base branch」ラベル（`##` 見出し可）。ブランチ名は
+ *     同一行の `` : `branch` ``、または直後の（空白行のみ挟んだ）**最初の非空行**にある
+ *     バッククォート囲みから拾う。
  *
  * いずれも無ければ null（= 既定 develop）。誤検出を避けるため、明示宣言があるときだけ返す。
+ *
+ * フォールバック(2) は #938 / #941 で誤マッチ事故を起こしたため厳格化してある:
+ *  - **行頭アンカー**（`^ … /im`）で、本文中に現れる識別子 `parseBaseBranch` / `baseBranch`
+ *    を拾わない（ディレクティブ規約の「誤マッチ回避」と同じく行頭のみ発火）。
+ *  - 英語は**区切り必須** `base[ -]branch` にして camelCase 識別子 `baseBranch` を弾く。
+ *  - 改行跨ぎは**空白行のみ**許可し、ラベルの後に内容行があればそこで打ち切る
+ *    （後続の無関係な行のバッククォート語を拾わない）。
  * @param {string} body Issue 本文
  * @returns {string|null} 宣言されたベースブランチ名、無ければ null
  */
@@ -53,8 +62,10 @@ function parseBaseBranch(body) {
     if (!body) return null;
     const directive = body.match(/^(?:<!--\s*)?autopilot-base:\s*`?([\w.\/-]+)`?/im);
     if (directive) return directive[1];
-    const section = body.match(/(?:ベースブランチ|base[ -]?branch)[^\n]*\n+[^\n]*?`([\w.\/-]+)`/i);
-    if (section) return section[1];
+    const section = body.match(
+        /^[ \t]*#{0,6}[ \t]*(?:ベースブランチ|base[ -]branch)[ \t]*[:：]?[ \t]*(?:`?([\w.\/-]+)`?[ \t]*\r?$|\r?\n(?:[ \t]*\r?\n)*[^\n`]*?`([\w.\/-]+)`)/im,
+    );
+    if (section) return section[1] || section[2];
     return null;
 }
 
@@ -96,6 +107,46 @@ function unresolvedAfterIssues(after, ctx = {}) {
         if (closed.has(n)) return false;
         return !TERMINAL_STATUSES.has(statusByIssue[n]);
     });
+}
+
+/**
+ * Issue 本文から `autopilot-assignee:` ディレクティブ（駆動担当の明示指定）を抽出する（純粋関数）。
+ *
+ * 複数 assignee の Issue は既定で assignee の辞書順先頭が単一オーナー（{@link itemOwner}）に
+ * なるが、`autopilot-assignee: <login>` を本文に書くとそのオーナーを明示できる（#938）。
+ * `autopilot-base:` / `autopilot-after:` と同じく**行頭のみ**反応する（行頭 HTML コメントも可）。
+ * `@login` のように `@` 付きでも許容する。本文の**説明（最初のコメント）のみ**を渡す前提
+ * （呼び出し側がコメント/PR 本文を渡さない）。
+ * @param {string} body Issue 本文
+ * @returns {string|null} 指定された GitHub login、無ければ null（Assignees に含まれるかの検証は
+ *   {@link resolveOwner} 側で行う）
+ */
+function parseAssigneeDirective(body) {
+    if (!body) return null;
+    const m = body.match(/^(?:<!--\s*)?autopilot-assignee:\s*@?([A-Za-z0-9-]+)/im);
+    return m ? m[1] : null;
+}
+
+/**
+ * item の決定的なオーナー（駆動担当）を assignees と `autopilot-assignee:` ディレクティブから
+ * 解決する（純粋関数）。
+ *
+ * directiveLogin が assignees のいずれかと一致（大文字小文字無視 — GitHub login は
+ * 大文字小文字を区別しない）すればそれを採用し、一致しない/未指定なら**辞書順先頭**
+ * （従来のタイブレーク）にフォールバックする。
+ * @param {string[]} assignees
+ * @param {string|null} [directiveLogin] `autopilot-assignee:` で指定された login
+ * @returns {string|null} オーナーの GitHub login（元 assignees の表記のまま）、未 assign は null
+ */
+function resolveOwner(assignees, directiveLogin) {
+    const list = assignees || [];
+    if (!list.length) return null;
+    if (directiveLogin) {
+        const wanted = directiveLogin.toLowerCase();
+        const hit = list.find((a) => String(a).toLowerCase() === wanted);
+        if (hit) return hit;
+    }
+    return [...list].sort()[0];
 }
 
 /**
@@ -557,15 +608,17 @@ function isStuckCandidate(item) {
 
 /**
  * item の決定的な単一オーナーを返す（純粋関数・enroll モデル）。
- * assignee の**辞書順先頭**をオーナーとする。複数 assignee の Issue を複数開発者の
- * daemon が同時に拾わないための決定的なタイブレーク。未 assign は null（オーナー不在）。
- * @param {object} item { assignees?: string[] }
+ * 既定は assignee の**辞書順先頭**（複数 assignee の Issue を複数開発者の daemon が
+ * 同時に拾わないための決定的なタイブレーク）。本文に `autopilot-assignee:` ディレクティブが
+ * あり（{@link parseAssigneeDirective}）それが assignees に含まれていれば、そちらを優先する
+ * （{@link resolveOwner}・#938）。`item.assigneeDirective` 未設定（従来の item 形）なら
+ * 完全に従来と同じ挙動（後方互換）。未 assign は null（オーナー不在）。
+ * @param {object} item { assignees?: string[], assigneeDirective?: string|null }
  * @returns {string|null} オーナーの GitHub login、未 assign なら null
  */
 function itemOwner(item) {
     const assignees = (item && item.assignees) || [];
-    if (!assignees.length) return null;
-    return [...assignees].sort()[0];
+    return resolveOwner(assignees, item && item.assigneeDirective);
 }
 
 /**
@@ -581,6 +634,21 @@ function itemOwner(item) {
 function ownsItem(item, login) {
     if (!login) return true;
     return itemOwner(item) === login;
+}
+
+/**
+ * board 表示用: login が item の Assignees の**いずれか**であるか（オーナーに限らない）
+ * （純粋関数）。オーナーでない共同担当も自分の monitor で item を観察できるようにする
+ * ための判定（{@link selectBoardItems} が使う・#938）。GitHub login は大文字小文字を
+ * 区別しないため比較も大文字小文字を無視する。login 未指定（従来運用）は全件許可。
+ * @param {object} item { assignees?: string[] }
+ * @param {string|null} login 自分の GitHub login（daemon の --assignee）
+ * @returns {boolean}
+ */
+function isAssignee(item, login) {
+    if (!login) return true;
+    const wanted = login.toLowerCase();
+    return ((item && item.assignees) || []).some((a) => String(a).toLowerCase() === wanted);
 }
 
 /**
@@ -1062,9 +1130,11 @@ function applyIntentsToItem(item, intents) {
  * 俯瞰ボードに表示する item を選ぶ（純粋関数）。
  * 終端（Close/Done）と保留（Icebox）は除外する — 溜まり続けると表示も enrichment も
  * 重くなるため。操作は GitHub Projects で行う（ボードは読み取り専用）。
- * assignee を渡すと **daemon の処理対象（enroll 判定 {@link ownsItem}）と同じ集合**に
- * 限定する — 「ボードには映るが daemon は素通り」という表示と処理対象の不一致を無くし、
- * enrichment の API 消費も減らす（未指定は従来どおり全件）。
+ * assignee を渡すと**自分が Assignees のいずれかである item**（{@link isAssignee}）に限定する
+ * （未指定は従来どおり全件）。以前は daemon の dispatch 対象（enroll 判定 {@link ownsItem} =
+ * 単一オーナーのみ）と厳密に一致させていたが、#938 でオーナーでない共同担当も自分の
+ * monitor で観察できるよう**表示条件を広げた**（観察 = 状態閲覧のみで dispatch はしない。
+ * board item の `owner` が実際に駆動する担当を示す）。
  * @param {object[]} items
  * @param {string|null} [assignee] daemon の --assignee（enroll モデル）
  * @returns {object[]}
@@ -1072,7 +1142,7 @@ function applyIntentsToItem(item, intents) {
 function selectBoardItems(items, assignee = null) {
     return (items || []).filter(
         (it) => it && !TERMINAL_STATUSES.has(it.status) && it.status !== 'Icebox'
-            && ownsItem(it, assignee),
+            && isAssignee(it, assignee),
     );
 }
 
@@ -1098,6 +1168,58 @@ function normalizeBoardEnrichment(node) {
             isDraft: Boolean(n.isDraft),
         })),
     };
+}
+
+// ---- トラッカー sticky (#934): 分解済み EPIC に sub-issue 進捗 + Close 指示を出す ----
+
+/**
+ * 分解済み EPIC（トラッカー）Issue 用 sticky コメントの識別マーカー。
+ * 連携 PR 側の Status 投影（{@link STICKY_MARKER}）とは別の面 — EPIC 本体には
+ * Status/AI Status ではなく sub-issue 進捗と人間アクション（Close 指示）を出す。
+ */
+const TRACKER_STICKY_MARKER = '<!-- autopilot-tracker-status -->';
+
+/**
+ * トラッカー Issue に sub-issue 進捗 sticky を出すべきか（純粋関数）。
+ * トラッカー && 非終端 && sub-issue が 1 件以上（total>0）のときだけ true。
+ * 俯瞰ボードの enrichment（{@link normalizeBoardEnrichment} / board キャッシュ）がそのまま
+ * 使える形（tracker: boolean, status, subIssues: {total}）を想定する — 追加の GraphQL を
+ * 発生させないため（`.claude/rules/autopilot/github-api.md` 予算規約）。
+ * @param {object} item { tracker, status, subIssues: {total} }
+ * @returns {boolean}
+ */
+function needsTrackerSticky(item) {
+    if (!item || !item.tracker) return false;
+    if (TERMINAL_STATUSES.has(item.status)) return false;
+    return Boolean(item.subIssues && item.subIssues.total > 0);
+}
+
+/**
+ * 分解済み EPIC の sub-issue 進捗 + 人間アクション sticky 本文を組み立てる（純粋関数）。
+ * 全 sub-issue 完了時（completed===total>0）は Close を促す文言に切り替える。
+ * @param {object} item { issue, subIssues: {total, completed, percent} }
+ * @returns {string}
+ */
+function renderTrackerSticky(item) {
+    const { total = 0, completed = 0, percent = 0 } = (item && item.subIssues) || {};
+    const allDone = total > 0 && completed === total;
+    const lines = [TRACKER_STICKY_MARKER, ''];
+    if (allDone) {
+        lines.push(
+            `✅ **全 sub-issue が完了しました（${completed}/${total}）** — **この EPIC を Close してください**`,
+            '（または Project の Status を Close/Done に変更）。Close すると closed-reconcile が'
+                + ' Project を Close に整合します。autopilot は EPIC を自動 Close しません。',
+        );
+    } else {
+        lines.push(
+            `🧭 **分解済み EPIC** — sub-issue: 完了 **${completed}/${total} (${percent}%)**`,
+            'サブ Issue の実装を待っています。**すべて閉じたらこの EPIC を Close**'
+                + '（または Project の Status を Close/Done に変更）してください。'
+                + ' autopilot は設計上 EPIC を自動 Close しません。',
+        );
+    }
+    lines.push('', `_Linked issue #${item.issue}. Maintained by autopilot (single writer); do not edit._`);
+    return lines.join('\n');
 }
 
 // ---- DoD handoff (#821): headful 検証をホスト Claude へ渡す引き継ぎ生成 ----
@@ -1776,6 +1898,8 @@ module.exports = {
     parseBaseBranch,
     parseAfterIssues,
     unresolvedAfterIssues,
+    parseAssigneeDirective,
+    resolveOwner,
     AUTOPILOT_BRANCH_PREFIX,
     autopilotHeadBranch,
     applyResult,
@@ -1799,6 +1923,7 @@ module.exports = {
     isStuckCandidate,
     itemOwner,
     ownsItem,
+    isAssignee,
     statusRank,
     orderItemsLikeBoard,
     selectActionable,
@@ -1844,6 +1969,9 @@ module.exports = {
     selectPrSyncCandidates,
     selectBoardItems,
     normalizeBoardEnrichment,
+    TRACKER_STICKY_MARKER,
+    needsTrackerSticky,
+    renderTrackerSticky,
     desiredDraft,
     draftAction,
     isSteadyStateHitlGate,

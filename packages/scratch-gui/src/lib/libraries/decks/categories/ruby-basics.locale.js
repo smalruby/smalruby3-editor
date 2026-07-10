@@ -24,6 +24,28 @@ export const ja = {
     'gui.howtos.ruby-basics-3-variables.step4.title': '変数を使って、文をつくってみよう',
     'gui.howtos.ruby-basics-3-variables.step5.title': '変数の中身を好きな名前に変えてみよう',
     'gui.howtos.ruby-basics-3-variables.external.tryruby.name': '外部サイト「try ruby」で詳しくRubyを学ぶ',
+    'gui.howtos.ruby-basics-4-arrays.name': '配列（はいれつ）で遊ぼう',
+    'gui.howtos.ruby-basics-4-arrays.step1.title': '配列（はいれつ）で遊ぼう！',
+    'gui.howtos.ruby-basics-4-arrays.step2.title': '複数のことばを1つの配列にまとめてみよう',
+    'gui.howtos.ruby-basics-4-arrays.step3.title': '{greenFlag}を押すと、ネコが配列の中身をしゃべるよ',
+    'gui.howtos.ruby-basics-4-arrays.step4.title': '配列の順番を逆にしたり、番号で1つだけ取り出してみよう',
+    'gui.howtos.ruby-basics-4-arrays.step5.title': '好きなことばに変えて、自分だけの配列で遊ぼう',
+    'gui.howtos.ruby-basics-4-arrays.external.tryruby.name': '外部サイト「try ruby」で詳しくRubyを学ぶ',
+    'gui.howtos.ruby-basics-5-blocks.name': 'ブロック（times）を使ってみよう',
+    'gui.howtos.ruby-basics-5-blocks.step1.title': 'ブロック（times）を使ってみよう！',
+    'gui.howtos.ruby-basics-5-blocks.step2.title': '「5.times do |i| ... end」で同じ処理を5回くり返してみよう',
+    'gui.howtos.ruby-basics-5-blocks.step3.title': '{greenFlag}を押すと、ネコが「0」から「4」まで順番にしゃべるよ',
+    'gui.howtos.ruby-basics-5-blocks.step4.title': 'くり返しの中で「move(20)」も動かして、進みながらしゃべらせよう',
+    'gui.howtos.ruby-basics-5-blocks.step5.title': 'くり返す回数や動く歩数を変えて、自分だけの動きをつくろう',
+    'gui.howtos.ruby-basics-5-blocks.external.tryruby.name': '外部サイト「try ruby」で詳しくRubyを学ぶ',
+    'gui.howtos.ruby-basics-6-methods.name': 'メソッドをつくってみよう',
+    'gui.howtos.ruby-basics-6-methods.step1.title': 'メソッドをつくってみよう！',
+    'gui.howtos.ruby-basics-6-methods.step2.title':
+        '「def hello(name) ... end」で、名前を呼んであいさつするメソッドをつくろう',
+    'gui.howtos.ruby-basics-6-methods.step3.title': '{greenFlag}を押すと、ネコが「こんにちは、ネコ」としゃべるよ',
+    'gui.howtos.ruby-basics-6-methods.step4.title': '同じメソッドを、ちがう名前で何度も呼び出してみよう',
+    'gui.howtos.ruby-basics-6-methods.step5.title': 'メソッドの中身を変えて、自分だけのあいさつをつくろう',
+    'gui.howtos.ruby-basics-6-methods.external.tryruby.name': '外部サイト「try ruby」で詳しくRubyを学ぶ',
 };
 
 export const jaHira = {
@@ -48,6 +70,33 @@ export const jaHira = {
     'gui.howtos.ruby-basics-3-variables.step4.title': 'へんすうをつかって、ぶんをつくってみよう',
     'gui.howtos.ruby-basics-3-variables.step5.title': 'へんすうのなかみをすきななまえにかえてみよう',
     'gui.howtos.ruby-basics-3-variables.external.tryruby.name': 'がいぶサイト「try ruby」でくわしくRubyをまなぶ',
+    'gui.howtos.ruby-basics-4-arrays.name': 'はいれつであそぼう',
+    'gui.howtos.ruby-basics-4-arrays.step1.title': 'はいれつであそぼう！',
+    'gui.howtos.ruby-basics-4-arrays.step2.title': 'ふくすうのことばを1つのはいれつにまとめてみよう',
+    'gui.howtos.ruby-basics-4-arrays.step3.title': '{greenFlag}をおすと、ネコがはいれつのなかみをしゃべるよ',
+    'gui.howtos.ruby-basics-4-arrays.step4.title':
+        'はいれつのじゅんばんをぎゃくにしたり、ばんごうで1つだけとりだしてみよう',
+    'gui.howtos.ruby-basics-4-arrays.step5.title': 'すきなことばにかえて、じぶんだけのはいれつであそぼう',
+    'gui.howtos.ruby-basics-4-arrays.external.tryruby.name': 'がいぶサイト「try ruby」でくわしくRubyをまなぶ',
+    'gui.howtos.ruby-basics-5-blocks.name': 'ブロック（times）をつかってみよう',
+    'gui.howtos.ruby-basics-5-blocks.step1.title': 'ブロック（times）をつかってみよう！',
+    'gui.howtos.ruby-basics-5-blocks.step2.title':
+        '「5.times do |i| ... end」でおなじしょりを5かいくりかえしてみよう',
+    'gui.howtos.ruby-basics-5-blocks.step3.title':
+        '{greenFlag}をおすと、ネコが「0」から「4」までじゅんばんにしゃべるよ',
+    'gui.howtos.ruby-basics-5-blocks.step4.title':
+        'くりかえしのなかで「move(20)」もうごかして、すすみながらしゃべらせよう',
+    'gui.howtos.ruby-basics-5-blocks.step5.title':
+        'くりかえすかいすうやうごくほすうをかえて、じぶんだけのうごきをつくろう',
+    'gui.howtos.ruby-basics-5-blocks.external.tryruby.name': 'がいぶサイト「try ruby」でくわしくRubyをまなぶ',
+    'gui.howtos.ruby-basics-6-methods.name': 'メソッドをつくってみよう',
+    'gui.howtos.ruby-basics-6-methods.step1.title': 'メソッドをつくってみよう！',
+    'gui.howtos.ruby-basics-6-methods.step2.title':
+        '「def hello(name) ... end」で、なまえをよんであいさつするメソッドをつくろう',
+    'gui.howtos.ruby-basics-6-methods.step3.title': '{greenFlag}をおすと、ネコが「こんにちは、ネコ」としゃべるよ',
+    'gui.howtos.ruby-basics-6-methods.step4.title': 'おなじメソッドを、ちがうなまえでなんどもよびだしてみよう',
+    'gui.howtos.ruby-basics-6-methods.step5.title': 'メソッドのなかみをかえて、じぶんだけのあいさつをつくろう',
+    'gui.howtos.ruby-basics-6-methods.external.tryruby.name': 'がいぶサイト「try ruby」でくわしくRubyをまなぶ',
 };
 
 export const en = {
@@ -74,4 +123,26 @@ export const en = {
     'gui.howtos.ruby-basics-3-variables.step5.title': 'Change the value of the variable to any name you like',
     'gui.howtos.ruby-basics-3-variables.external.tryruby.name':
         'Learn more about Ruby on the external "try ruby" site',
+    'gui.howtos.ruby-basics-4-arrays.name': 'Use Arrays',
+    'gui.howtos.ruby-basics-4-arrays.step1.title': "Let's use arrays!",
+    'gui.howtos.ruby-basics-4-arrays.step2.title': 'Put several words into one array',
+    'gui.howtos.ruby-basics-4-arrays.step3.title': 'Press {greenFlag} and the cat will say the array',
+    'gui.howtos.ruby-basics-4-arrays.step4.title':
+        'Reverse the order of the array, or pick out one item by its index',
+    'gui.howtos.ruby-basics-4-arrays.step5.title': 'Change the words to make your own array',
+    'gui.howtos.ruby-basics-4-arrays.external.tryruby.name': 'Learn more about Ruby on the external "try ruby" site',
+    'gui.howtos.ruby-basics-5-blocks.name': 'Use Blocks (times)',
+    'gui.howtos.ruby-basics-5-blocks.step1.title': "Let's use blocks (times)!",
+    'gui.howtos.ruby-basics-5-blocks.step2.title': 'Repeat the same action 5 times with `5.times do |i| ... end`',
+    'gui.howtos.ruby-basics-5-blocks.step3.title': 'Press {greenFlag} and the cat will say "0" through "4" in order',
+    'gui.howtos.ruby-basics-5-blocks.step4.title': 'Add `move(20)` inside the loop to move while saying the numbers',
+    'gui.howtos.ruby-basics-5-blocks.step5.title': 'Change the repeat count or move distance to make your own motion',
+    'gui.howtos.ruby-basics-5-blocks.external.tryruby.name': 'Learn more about Ruby on the external "try ruby" site',
+    'gui.howtos.ruby-basics-6-methods.name': 'Create Methods',
+    'gui.howtos.ruby-basics-6-methods.step1.title': "Let's create methods!",
+    'gui.howtos.ruby-basics-6-methods.step2.title': 'Create a greeting method with `def hello(name) ... end`',
+    'gui.howtos.ruby-basics-6-methods.step3.title': 'Press {greenFlag} and the cat will say "こんにちは、ネコ"',
+    'gui.howtos.ruby-basics-6-methods.step4.title': 'Call the same method again with a different name',
+    'gui.howtos.ruby-basics-6-methods.step5.title': 'Change the method body to make your own greeting',
+    'gui.howtos.ruby-basics-6-methods.external.tryruby.name': 'Learn more about Ruby on the external "try ruby" site',
 };

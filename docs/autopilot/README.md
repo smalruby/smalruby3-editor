@@ -110,9 +110,15 @@ daemon に `--assignee <GitHub login>`（または env `AUTOPILOT_ASSIGNEE`）�
 
 - **自分がオーナーの item だけ**を処理する。オーナー = **assignee の辞書順先頭**
   （複数 assignee の Issue を複数開発者の daemon が同時に拾わない決定的タイブレーク）。
+  本文に `autopilot-assignee: <login>` ディレクティブがあり、それが Assignees に含まれて
+  いれば辞書順先頭より優先してオーナーになる（下記ディレクティブ表・#938）。
 - **未 assign の item は誰も拾わない**。Issue を autopilot に処理させる enroll 手順は
   「① Project に追加 → ② 担当者を assign → ③ Status を設定（例 Sprint Backlog）」。
 - `--assignee` 未指定は従来どおり全件処理（単一 daemon 運用）。
+- **共同担当（オーナーでない Assignees）は自分の monitor で観察できる**（dispatch はしない）。
+  Web モニタの俯瞰ボードは「自分がオーナー」ではなく「**自分が Assignees のいずれか**」の
+  item を表示する（下記「俯瞰ボード」参照）。ある機能に詳しくない担当が別の担当に駆動を
+  引き継ぎつつ、進捗だけ自分の monitor で見続けたいケースを想定する。
 
 ### 投入順は Project Board view の見た目
 
@@ -128,6 +134,7 @@ Issue 本文の**行頭**に書くディレクティブで挙動を制御でき�
 |---|---|
 | `autopilot-base: <branch>` | PR 先・worktree 分岐元のベースブランチ（EPIC サブ Issue を親 epic ブランチに積む等） |
 | `autopilot-after: #N [#M ...]` | 依存宣言。N（と M …）が完了（GitHub closed / Project Close・Done）するまで着手しない。ブロック中は次点候補が繰り上がる。**待ち Issue は Sprint Backlog に置く**（Backlog はそもそも着手候補にならないので先行 Close で自動着手しない）。ゲート中は daemon が `⏳ waiting` ラベルを付け、先行 Close で自動除去 → 次 tick で着手 |
+| `autopilot-assignee: <login>`（`@login` も可） | 複数 assignee の Issue でオーナー（駆動する担当）を明示指定する（#938）。指定 login が Assignees に含まれていなければ無視して従来どおり辞書順先頭。指定した担当の daemon（`--assignee <login>`）だけが駆動し、他の担当の daemon は駆動しない。共同担当（非オーナー）は自分の monitor で Issue を観察できる（下記「俯瞰ボード」参照） |
 
 ### 🧭 tracking ラベル（分解済み親のトラッカー化）
 
@@ -371,6 +378,16 @@ EPIC は「作業項目」ではなく「**トラッカー**」。
 3. 「もう十分」のときは **納品スライスを Done + 残りをフォローアップ EPIC** に切り出す
    （半分終わった EPIC を滞留させない）。
 4. EPIC を Done にする遷移は **HITL**（未クローズの子がある EPIC を勝手に閉じない）。
+5. **分解済み EPIC の Issue 本体には、daemon が sub-issue 進捗 + 人間アクションの sticky
+   コメント（`<!-- autopilot-tracker-status -->`）を維持する**（#934）。トラッカー
+   （Kind=EPIC または `🧭 tracking`）で非終端・sub-issue が 1 件以上のときだけ出る:
+   - 未完了時: 完了数/全体数と割合、「すべて閉じたらこの EPIC を Close してください」を表示。
+   - 全 sub-issue 完了時: 「この EPIC を Close してください」に文言を切り替える
+     （**autopilot は EPIC を自動 Close しない**ので、人間が Close するか Project の
+     Status を Close/Done に変更する必要がある。closed にすれば closed-reconcile が
+     Project を整合する）。
+   sub-issue 進捗は俯瞰ボードの enrichment（`refreshBoard` が既に取得済みの board キャッシュ）を
+   再利用するため追加の GraphQL は発生しない。書き込みは本文が変わった tick だけ（冪等 upsert）。
 
 ---
 
@@ -521,6 +538,12 @@ GitHub Projects で行い、モニタは俯瞰・log 閲覧・pause/resume/即�
 - **ボード行**: Issue（リンク + タイトル）/ Status pill / AI Status（live）/ 担当 /
   **複数 PR チップ**（📝 draft / ✅ ready / 🟣 merged / ❌ closed の色・絵文字）/
   **sub-issue 進捗**（N/M・%・バー）/ Now（実行中フェーズ + 経過分 + **log ボタン → モーダル**）
+  - **担当列はオーナー（駆動者）を太字で明示**する（`autopilot-assignee:` ディレクティブが
+    あれば反映）。**自分がオーナーでない**共同担当の行には **👁 + オーナー login** の
+    「観察中」マーカーを付ける（#938）。観察対象（他人が駆動する item）はこの daemon の
+    dispatch では更新されないため、live 反映（`patchBoardCache`）は効かず、
+    **`refreshBoard` の周期実行（既定 5 分）または「🔄 更新」ボタン（`POST /refresh`）**
+    でのみ最新化される点に注意（観察＝状態閲覧なので許容範囲）
   - **Awaiting Continuation（協調的チェックポイント・EPIC #906）は専用バッジ**（`⏸️ Awaiting
     Continuation`・紫系配色）で表示し、他の AI Status（Implementing 等）と一目で区別できる（#913）。
     バッジの右に continuation ファイル（`tmp/autopilot-continuation-<issue>.md`）の
@@ -528,8 +551,10 @@ GitHub Projects で行い、モニタは俯瞰・log 閲覧・pause/resume/即�
     worktree からローカルファイルとして読む（GraphQL は消費しない）。worktree/ファイルが無い・
     解析できない場合は件数を省略する（バッジ自体は表示する）
 - **除外**: Close / Done / Icebox はボードに出さない（溜まると重くなるため）。さらに
-  `--assignee` 起動時は **daemon の処理対象と同じ enroll 判定（ownsItem）に限定**する
-  （「ボードには映るが daemon は素通り」という不一致を無くす。未指定は全件）
+  `--assignee` 起動時は **自分が Assignees のいずれかである item に限定**する
+  （`isAssignee`。未指定は全件）。dispatch 対象（`ownsItem` = 単一オーナーのみ）より
+  **広い**集合になる点に注意 — 共同担当（非オーナー）も観察のため表示される（#938。
+  上記「担当列」参照）
 - **稼働バージョン + 更新検知**（#885）: 下の「稼働バージョン表示と更新検知」を参照
 - **実行履歴**は最下部（最新 100 件・ログ用途のみ）
 - データは `GET /board`（**poll/tick 後に再構築されるキャッシュ** + live running）。
