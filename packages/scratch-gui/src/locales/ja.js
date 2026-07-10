@@ -1081,6 +1081,8 @@ export default {
     'gui.libraryTags.ruby': 'ルビー',
     'gui.libraryTags.firstTime': 'はじめて',
     'gui.libraryCategories.gettingStarted': '始めましょう',
+    'gui.library.blockBasics': 'ブロックのきほん：はじめての操作',
+    'gui.library.blockGames': 'ブロックでゲーム：シューティング',
     'gui.library.meshStep1': '通信入門 ① メッセージを送ってみよう',
     'gui.library.meshStep2': '通信入門 ② ふたりで会話しよう',
     'gui.library.meshStep3': '通信入門 ③ みんなで会話しよう (メッシュ)',
