@@ -3,7 +3,8 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const {
     applyMergeProgression, applyClosedReconcile, applyPrProjection, applyDodHandoffs, runTickOnce,
-    detectStuck, markBlocked, getDirectives, applyLabelHealing, applyAfterWaitLabels, collectGateContexts,
+    detectStuck, markBlocked, getDirectives, populateAssigneeDirectives,
+    applyLabelHealing, applyAfterWaitLabels, collectGateContexts,
     applyDecomposeSubIssueSetup,
     parseSsoDeviceOutput, startReauth,
     updateClaudeUsage, boardResponse, statusResponse,
@@ -689,7 +690,7 @@ test('recordHistory: 新しい run が先頭、上限 100 件', () => {
     assert.equal(state.history[0].issue, 104); // 最新が先頭
 });
 
-test('refreshBoard: assignee 指定でボードも enroll 判定（ownsItem）に限定される', async () => {
+test('refreshBoard: assignee 指定でボードは「自分が Assignees のいずれか」に限定される（#938）', async () => {
     const { refreshBoard } = require('../src/daemon');
     const cfg = { ...makeCfg(), now: () => 0, statusOrder: [], assignee: 'me' };
     const state = { running: new Map() };
@@ -699,11 +700,56 @@ test('refreshBoard: assignee 指定でボードも enroll 判定（ownsItem）�
             { issue: 1, status: 'Review', kind: 'Issue', title: 'mine', labels: [], assignees: ['me'] },
             { issue: 2, status: 'Review', kind: 'Issue', title: 'other', labels: [], assignees: ['other'] },
             { issue: 3, status: 'Review', kind: 'Issue', title: 'none', labels: [], assignees: [] }, // 未 assign
-            { issue: 4, status: 'Review', kind: 'Issue', title: 'second', labels: [], assignees: ['aa', 'me'] }, // 先頭でない
+            // 共同担当（辞書順先頭ではない=オーナーでない）も観察のため表示対象になる
+            { issue: 4, status: 'Review', kind: 'Issue', title: 'second', labels: [], assignees: ['aa', 'me'] },
         ],
         getBoardEnrichment: () => ({}),
         listHeadPrs: () => [],
+        getIssueBody: () => '', // 4 は 2 人 assign なのでディレクティブ解決の本文 fetch が走る
     });
+    assert.deepEqual(state.board.items.map((i) => i.issue), [1, 4]);
+    // owner はディレクティブ無しなので辞書順先頭（'aa'）— 'me' はオーナーではない=観察対象
+    const item4 = state.board.items.find((i) => i.issue === 4);
+    assert.equal(item4.owner, 'aa');
+});
+
+test('refreshBoard: autopilot-assignee ディレクティブが board の owner 表示に反映される（#938）', async () => {
+    const { refreshBoard } = require('../src/daemon');
+    const cfg = { ...makeCfg(), now: () => 0, statusOrder: [], assignee: 'me' };
+    const state = { running: new Map() };
+    await refreshBoard(cfg, state, () => {}, {
+        token: 't',
+        listItems: () => [
+            { issue: 4, status: 'Review', kind: 'Issue', title: 'second', labels: [], assignees: ['aa', 'me'] },
+        ],
+        getBoardEnrichment: () => ({}),
+        listHeadPrs: () => [],
+        getIssueBody: () => 'autopilot-assignee: me',
+    });
+    const item4 = state.board.items.find((i) => i.issue === 4);
+    assert.equal(item4.owner, 'me');
+});
+
+test('refreshBoard: 非表示（終端 / 非自分担当）の multi-assignee item は本文 fetch しない（#938・API 予算）', async () => {
+    const { refreshBoard } = require('../src/daemon');
+    const cfg = { ...makeCfg(), now: () => 0, statusOrder: [], assignee: 'me' };
+    const state = { running: new Map() };
+    const fetched = [];
+    await refreshBoard(cfg, state, () => {}, {
+        token: 't',
+        listItems: () => [
+            // 表示対象（自分が Assignees・非終端・2人）→ fetch する
+            { issue: 1, status: 'Review', kind: 'Issue', title: 'mine', labels: [], assignees: ['aa', 'me'] },
+            // 終端 Status の 2人 assign → selectBoardItems で除外されるので fetch しない
+            { issue: 2, status: 'Close', kind: 'Issue', title: 'done', labels: [], assignees: ['aa', 'bb'] },
+            // 自分が Assignees でない 2人 assign → 表示対象外なので fetch しない
+            { issue: 3, status: 'Review', kind: 'Issue', title: 'others', labels: [], assignees: ['aa', 'bb'] },
+        ],
+        getBoardEnrichment: () => ({}),
+        listHeadPrs: () => [],
+        getIssueBody: (repo, issue) => { fetched.push(issue); return ''; },
+    });
+    assert.deepEqual(fetched, [1]); // 表示対象の 1 だけ本文 fetch
     assert.deepEqual(state.board.items.map((i) => i.issue), [1]);
 });
 
@@ -1015,9 +1061,55 @@ test('getDirectives: 取得失敗は空ディレクティブへフォールバ�
     const d1 = await getDirectives(cfg, state, 5, () => {}, deps);
     assert.equal(d1.base, null);
     assert.deepEqual(d1.after, []);
+    assert.equal(d1.assignee, null);
     // 失敗エントリは TTL 切れ扱い → 次回すぐ再取得して成功する
     const d2 = await getDirectives(cfg, state, 5, () => {}, deps);
     assert.deepEqual(d2.after, [3]);
+});
+
+test('getDirectives: 本文の autopilot-assignee ディレクティブも解決する（#938）', async () => {
+    const cfg = { ...makeCfg(), now: () => 0, directiveTtlMs: 1000 };
+    const state = {};
+    const deps = { token: 't', getIssueBody: () => 'autopilot-assignee: takaokouji' };
+    const d = await getDirectives(cfg, state, 5, () => {}, deps);
+    assert.equal(d.assignee, 'takaokouji');
+});
+
+// === #938: populateAssigneeDirectives（assignees 2人以上の item だけ本文 fetch） ===
+
+test('populateAssigneeDirectives: assignees が 2 人以上の item だけ本文を fetch して assigneeDirective を補う', async () => {
+    let fetches = 0;
+    const cfg = { ...makeCfg(), now: () => 0 };
+    const state = {};
+    const deps = {
+        token: 't',
+        getIssueBody: (repo, issue) => { fetches += 1; return issue === 4 ? 'autopilot-assignee: me' : ''; },
+    };
+    const items = [
+        { issue: 1, assignees: ['me'] }, // 1人 → fetch しない
+        { issue: 2, assignees: [] }, // 未 assign → fetch しない
+        { issue: 3, assignees: ['aa', 'bb'] }, // 2人 → fetch する（ディレクティブ無し）
+        { issue: 4, assignees: ['aa', 'me'] }, // 2人 → fetch する（ディレクティブ有り）
+    ];
+    const out = await populateAssigneeDirectives(items, cfg, state, () => {}, deps);
+    assert.equal(fetches, 2);
+    assert.equal(out.find((i) => i.issue === 1).assigneeDirective, undefined);
+    assert.equal(out.find((i) => i.issue === 2).assigneeDirective, undefined);
+    assert.equal(out.find((i) => i.issue === 3).assigneeDirective, null);
+    assert.equal(out.find((i) => i.issue === 4).assigneeDirective, 'me');
+    // 元の配列/item は変更しない
+    assert.equal(items[3].assigneeDirective, undefined);
+});
+
+test('populateAssigneeDirectives: TTL キャッシュを getDirectives と共用する（重複 fetch なし）', async () => {
+    let fetches = 0;
+    const cfg = { ...makeCfg(), now: () => 0, directiveTtlMs: 1000 };
+    const state = {};
+    const deps = { token: 't', getIssueBody: () => { fetches += 1; return 'autopilot-assignee: me'; } };
+    const items = [{ issue: 9, assignees: ['aa', 'me'] }];
+    await populateAssigneeDirectives(items, cfg, state, () => {}, deps);
+    await getDirectives(cfg, state, 9, () => {}, deps); // base/after 解決も同じキャッシュを見る
+    assert.equal(fetches, 1);
 });
 
 // === #816: markBlocked / detectStuck（失敗・stall 時の人間ハンドオフ） ===

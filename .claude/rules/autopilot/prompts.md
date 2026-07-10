@@ -64,6 +64,11 @@ Issue 本文のディレクティブは **行頭のみ**で発火する（`phase
 - `autopilot-after: #N [#M ...]` — 依存宣言。カンマ/空白区切り・複数行合算・`#` 省略可・
   重複除去。未完了判定は `unresolvedAfterIssues`（closed でも Project 終端でもないものは
   保守的に「未完了」扱い — 番号 typo に人間が気付けるように）。
+- `autopilot-assignee: <login>`（`@login` も可）— 複数 assignee の Issue でオーナー
+  （駆動する担当）を明示指定する（#938）。**Issue の説明（本文＝最初のコメント）のみ**から
+  探索する（コメント・PR は見ない）。指定 login が Assignees に含まれていなければ無視して
+  従来どおり辞書順先頭（`resolveOwner`）。0/1 人の Issue はディレクティブが無意味なので
+  本文 fetch 自体を行わない（`populateAssigneeDirectives`・API 予算規約）。
 - **誤マッチ回避**: 本文や docs でディレクティブを**説明**するときは行頭に置かない
   （箇条書き `- \`autopilot-after: ...\`` やインラインコードにする）。行頭に生で書くと
   実際に発火する。

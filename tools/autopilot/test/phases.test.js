@@ -7,6 +7,8 @@ const {
     parseBaseBranch,
     parseAfterIssues,
     unresolvedAfterIssues,
+    parseAssigneeDirective,
+    resolveOwner,
     DEFAULT_CLAUDE_COMMAND,
     applyResult,
     subIssueSetupIntents,
@@ -25,6 +27,7 @@ const {
     isStuckCandidate,
     itemOwner,
     ownsItem,
+    isAssignee,
     statusRank,
     orderItemsLikeBoard,
     selectActionable,
@@ -508,16 +511,18 @@ test('selectClosedCheckIssues: 非終端 + 🤖 ラベル付きだけを closed 
     assert.deepEqual(selectClosedCheckIssues([]), []);
 });
 
-test('selectBoardItems: assignee 指定でボード表示も enroll 判定（ownsItem）に限定', () => {
+test('selectBoardItems: assignee 指定でボード表示は「自分が Assignees のいずれか」に限定（#938）', () => {
     const items = [
         { issue: 1, status: 'Review', assignees: ['me'] },
         { issue: 2, status: 'Review', assignees: ['other'] },
         { issue: 3, status: 'Review', assignees: [] }, // 未 assign（daemon が素通りする item）
         { issue: 4, status: 'Close', assignees: ['me'] }, // 終端
+        // 共同担当（オーナーでない = 辞書順先頭でない）も観察のため表示対象になる
+        { issue: 5, status: 'Review', assignees: ['aaa', 'me'] },
     ];
-    assert.deepEqual(selectBoardItems(items, 'me').map((i) => i.issue), [1]);
+    assert.deepEqual(selectBoardItems(items, 'me').map((i) => i.issue), [1, 5]);
     // 未指定は従来どおり（非終端すべて）
-    assert.deepEqual(selectBoardItems(items).map((i) => i.issue), [1, 2, 3]);
+    assert.deepEqual(selectBoardItems(items).map((i) => i.issue), [1, 2, 3, 5]);
 });
 
 test('itemOwner: 辞書順先頭の assignee が決定的な単一オーナー', () => {
@@ -1325,6 +1330,69 @@ test('parseAfterIssues: 説明用の安全表記（スペース入り・非行�
         'autopilot-after: #123',
     ].join('\n');
     assert.deepEqual(parseAfterIssues(doc), [123]);
+});
+
+test('parseAssigneeDirective: 行頭の autopilot-assignee 宣言から login を抽出', () => {
+    assert.equal(parseAssigneeDirective('autopilot-assignee: takaokouji'), 'takaokouji');
+    // @ 付きも許容
+    assert.equal(parseAssigneeDirective('autopilot-assignee: @takaokouji'), 'takaokouji');
+    // 行頭 HTML コメント内も可
+    assert.equal(parseAssigneeDirective('<!-- autopilot-assignee: someone -->'), 'someone');
+    // 大文字小文字は無視（ディレクティブ名自体）
+    assert.equal(parseAssigneeDirective('Autopilot-Assignee:  Bob-2 '), 'Bob-2');
+    // 複数行あれば最初の一致
+    assert.equal(
+        parseAssigneeDirective('autopilot-assignee: first\n本文\nautopilot-assignee: second'),
+        'first',
+    );
+    // 無ければ null
+    assert.equal(parseAssigneeDirective(''), null);
+    assert.equal(parseAssigneeDirective(null), null);
+    assert.equal(parseAssigneeDirective('ふつうの本文。担当は takaokouji です。'), null);
+});
+
+test('parseAssigneeDirective: 行頭でない言及では発火しない（説明用の安全表記）', () => {
+    assert.equal(parseAssigneeDirective('説明のために autopilot-assignee: bob と書く'), null);
+    assert.equal(parseAssigneeDirective('- リスト内の `autopilot-assignee: bob` も無効'), null);
+    assert.equal(parseAssigneeDirective('  autopilot-assignee: indented'), null);
+});
+
+test('resolveOwner: ディレクティブが assignees に含まれれば採用、無ければ辞書順先頭', () => {
+    // 指定が assignees に有る → 採用
+    assert.equal(resolveOwner(['aaa', 'bbb'], 'bbb'), 'bbb');
+    // 大文字小文字を無視して一致（元 assignees の表記を返す）
+    assert.equal(resolveOwner(['aaa', 'Bbb'], 'BBB'), 'Bbb');
+    // 指定が assignees に無い → 無視して辞書順先頭
+    assert.equal(resolveOwner(['aaa', 'bbb'], 'takaokouji'), 'aaa');
+    // 未指定 → 辞書順先頭
+    assert.equal(resolveOwner(['zeta', 'alpha'], null), 'alpha');
+    assert.equal(resolveOwner(['zeta', 'alpha'], undefined), 'alpha');
+    // 空/未 assign → null
+    assert.equal(resolveOwner([], 'bbb'), null);
+    assert.equal(resolveOwner(undefined, 'bbb'), null);
+});
+
+test('itemOwner: assigneeDirective が assignees に含まれればそれを優先（#938・後方互換）', () => {
+    // ディレクティブ指定が assignees に含まれる → 優先
+    assert.equal(itemOwner({ assignees: ['aaa', 'bbb'], assigneeDirective: 'bbb' }), 'bbb');
+    // ディレクティブが assignees に無い → 無視して辞書順先頭
+    assert.equal(itemOwner({ assignees: ['aaa', 'bbb'], assigneeDirective: 'ccc' }), 'aaa');
+    // assigneeDirective 未設定（従来の item 形）は従来どおり辞書順先頭
+    assert.equal(itemOwner({ assignees: ['zeta', 'alpha'] }), 'alpha');
+});
+
+test('isAssignee: login が Assignees のいずれかであれば true（オーナーに限らない・#938）', () => {
+    // 自分がオーナーでなくても Assignees に含まれていれば true（board 観察ユースケース）
+    assert.equal(isAssignee({ assignees: ['aaa', 'me'] }, 'me'), true);
+    assert.equal(isAssignee({ assignees: ['aaa', 'me'] }, 'aaa'), true);
+    // 大文字小文字は無視
+    assert.equal(isAssignee({ assignees: ['Me'] }, 'me'), true);
+    // 含まれない / 未 assign → false
+    assert.equal(isAssignee({ assignees: ['other'] }, 'me'), false);
+    assert.equal(isAssignee({ assignees: [] }, 'me'), false);
+    // login 未指定（従来運用）→ 全件許可
+    assert.equal(isAssignee({ assignees: [] }, null), true);
+    assert.equal(isAssignee({ assignees: ['someone'] }, null), true);
 });
 
 test('unresolvedAfterIssues: closed or 終端 Status の依存は解決済み', () => {
