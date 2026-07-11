@@ -34,6 +34,7 @@ const TeacherClassDetail = ({
     onCloseCodeDisplay,
     onCopyInviteLink,
     onToggleCodeFullscreen,
+    onShowAssignmentEditor,
     onShowPostAssignment,
     onUpdateAssignmentName,
     onUpdateStudentCount,
@@ -220,6 +221,19 @@ const TeacherClassDetail = ({
                                     onBlur={handleAssignmentNameBlur}
                                     onChange={handleAssignmentNameChange}
                                 />
+                                {onShowAssignmentEditor && (
+                                    <button
+                                        className={styles.secondaryButton}
+                                        data-testid="classroom-edit-assignment-content"
+                                        onClick={onShowAssignmentEditor}
+                                    >
+                                        <FormattedMessage
+                                            defaultMessage="Edit Assignment"
+                                            description="Open the assignment content editor from class detail"
+                                            id="gui.classroom.assignmentEditor.openButton"
+                                        />
+                                    </button>
+                                )}
                                 {selectedClassroom.googleClassroomCourseId &&
                                     (selectedClassroom.googleClassroomAlternateLink ? (
                                         <a
@@ -678,6 +692,7 @@ TeacherClassDetail.propTypes = {
     onReturnSubmission: PropTypes.func.isRequired,
     onSelectMember: PropTypes.func.isRequired,
     onShowCodeDisplay: PropTypes.func.isRequired,
+    onShowAssignmentEditor: PropTypes.func,
     onShowPostAssignment: PropTypes.func,
     onToggleCodeFullscreen: PropTypes.func.isRequired,
     onUpdateAssignmentName: PropTypes.func,
