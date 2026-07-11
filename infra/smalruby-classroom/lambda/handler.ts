@@ -10,7 +10,7 @@ import {
   UpdateCommand,
   BatchWriteCommand,
 } from '@aws-sdk/lib-dynamodb';
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, CopyObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { OAuth2Client } from 'google-auth-library';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
@@ -22,6 +22,7 @@ const CLASSROOMS_TABLE = process.env.CLASSROOMS_TABLE_NAME || 'Classrooms';
 const MEMBERSHIPS_TABLE = process.env.MEMBERSHIPS_TABLE_NAME || 'ClassroomMemberships';
 const SUBMISSIONS_TABLE = process.env.SUBMISSIONS_TABLE_NAME || 'ClassroomSubmissions';
 const KICK_REQUESTS_TABLE = process.env.KICK_REQUESTS_TABLE_NAME || 'ClassroomKickRequests';
+const GROUPS_TABLE = process.env.GROUPS_TABLE_NAME || 'ClassroomGroups';
 const SUBMISSIONS_BUCKET = process.env.SUBMISSIONS_BUCKET_NAME || 'smalruby-classroom-submissions';
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
 const MICROSOFT_CLIENT_ID = process.env.MICROSOFT_CLIENT_ID || '';
@@ -63,6 +64,15 @@ const MAX_TEACHER_COMMENT_LENGTH = 500;
 // for the teacher to act. Expired requests are removed by DynamoDB TTL.
 const KICK_REQUEST_TTL_SECONDS = parseInt(process.env.KICK_REQUEST_TTL_SECONDS || '3600', 10);
 const MAX_KICK_REQUEST_REASON_LENGTH = 200;
+// Group (組) metadata TTL: groups are the teacher's year-long organizing
+// concept and carry no student work, so they outlive the 90-day classroom
+// retention. 400 days covers a school year (April–March) plus a buffer.
+const GROUP_TTL_DAYS = parseInt(process.env.GROUP_TTL_DAYS || '400', 10);
+const GROUP_TTL_SECONDS = GROUP_TTL_DAYS * 24 * 60 * 60;
+const MAX_GROUP_NAME_LENGTH = 50;
+// How many prior lessons of the same group to inspect when looking up the
+// student's previous returned comment on join (personalized recap).
+const PREVIOUS_COMMENT_LOOKBACK = 3;
 // Assignment content (lesson delivery): teacher-authored pages of
 // (short text + optional image) plus an optional starter project, attached to
 // a classroom. Objects live under {classroomId}/assignment/ in the
@@ -414,6 +424,13 @@ async function handleCreateClassroom(identity: TeacherIdentity, body: Record<str
   const studentCount = validateStudentCount(body.studentCount);
   const googleClassroomCourseId = typeof body.googleClassroomCourseId === 'string' ? body.googleClassroomCourseId.trim() : undefined;
 
+  // Optional group (組) assignment — must be a group this teacher owns.
+  let groupId: string | undefined;
+  if (typeof body.groupId === 'string' && body.groupId) {
+    await getOwnedGroup(identity, body.groupId);
+    groupId = body.groupId;
+  }
+
   // Auto-number duplicate assignment names within the same class
   const existingClassrooms = await docClient.send(new QueryCommand({
     TableName: CLASSROOMS_TABLE,
@@ -469,6 +486,7 @@ async function handleCreateClassroom(identity: TeacherIdentity, body: Record<str
       joinCode,
       studentCount,
       googleClassroomCourseId: googleClassroomCourseId || undefined,
+      groupId,
       status: 'active',
       createdAt: now,
       updatedAt: now,
@@ -478,7 +496,7 @@ async function handleCreateClassroom(identity: TeacherIdentity, body: Record<str
 
   return {
     statusCode: 201,
-    body: JSON.stringify({ classroomId, className, assignmentName, joinCode, studentCount, googleClassroomCourseId: googleClassroomCourseId || null, status: 'active', createdAt: now, expiresAt }),
+    body: JSON.stringify({ classroomId, className, assignmentName, joinCode, studentCount, googleClassroomCourseId: googleClassroomCourseId || null, groupId: groupId || null, status: 'active', createdAt: now, expiresAt }),
   };
 }
 
@@ -503,6 +521,8 @@ function mapClassroomSummary(item: Record<string, unknown>, identity: TeacherIde
     createdAt: item.createdAt,
     expiresAt: item.ttl ? new Date((item.ttl as number) * 1000).toISOString() : null,
     coTeacherEmails: readCoTeacherEmails(item),
+    groupId: item.groupId || null,
+    hasAssignment: hasAssignmentContent(item),
     role: item.teacherSub === identity.sub ? 'owner' : 'co-teacher',
   };
 }
@@ -570,6 +590,8 @@ async function handleGetClassroom(identity: TeacherIdentity, classroomId: string
       createdAt: result.Item.createdAt,
       expiresAt: result.Item.ttl ? new Date((result.Item.ttl as number) * 1000).toISOString() : null,
       coTeacherEmails: readCoTeacherEmails(result.Item),
+      groupId: result.Item.groupId || null,
+      hasAssignment: hasAssignmentContent(result.Item),
       role: result.Item.teacherSub === identity.sub ? 'owner' : 'co-teacher',
     }),
   };
@@ -696,6 +718,18 @@ async function handleUpdateClassroom(identity: TeacherIdentity, classroomId: str
   if (body.regenerateJoinCode === true) {
     updates.joinCode = generateJoinCode();
   }
+  // Assign to / remove from a group (組). `groupId: null` clears the
+  // assignment; a string must be a group this teacher owns.
+  if (body.groupId !== undefined) {
+    if (body.groupId === null || body.groupId === '') {
+      updates.groupId = null;
+    } else if (typeof body.groupId === 'string') {
+      await getOwnedGroup(identity, body.groupId);
+      updates.groupId = body.groupId;
+    } else {
+      throw new ValidationError('groupId must be a string or null');
+    }
+  }
 
   const expressionParts: string[] = [];
   const expressionValues: Record<string, unknown> = {};
@@ -815,6 +849,49 @@ async function handleJoinClassroom(sourceIp: string, body: Record<string, unknow
     throw err;
   }
 
+  // Personalized recap: when the lesson belongs to a group (組), surface the
+  // returned teacher comment this seat received in the most recent prior
+  // lesson of the same group. Best-effort — joining must never fail on this.
+  let previousComment: Record<string, unknown> | null = null;
+  if (classroom.groupId) {
+    try {
+      const siblings = await docClient.send(new QueryCommand({
+        TableName: CLASSROOMS_TABLE,
+        IndexName: 'teacherSub-index',
+        KeyConditionExpression: 'teacherSub = :ts',
+        ExpressionAttributeValues: { ':ts': classroom.teacherSub },
+      }));
+      const prior = selectPriorClassrooms(
+        siblings.Items || [],
+        classroom.groupId as string,
+        classroom.classroomId as string,
+      );
+      for (const priorClassroom of prior) {
+        const subResult = await docClient.send(new QueryCommand({
+          TableName: SUBMISSIONS_TABLE,
+          IndexName: 'classroomId-memberId-index',
+          KeyConditionExpression: 'classroomId = :cid AND memberId = :mid',
+          ExpressionAttributeValues: {
+            ':cid': priorClassroom.classroomId,
+            ':mid': memberId,
+          },
+          Limit: 1,
+        }));
+        const sub = subResult.Items?.[0];
+        if (sub && sub.status === 'returned' && sub.teacherComment) {
+          previousComment = {
+            assignmentName: priorClassroom.assignmentName || null,
+            teacherComment: sub.teacherComment,
+            submittedAt: sub.submittedAt || null,
+          };
+          break;
+        }
+      }
+    } catch (err) {
+      console.error('previousComment lookup failed (ignored):', err);
+    }
+  }
+
   return {
     statusCode: 200,
     body: JSON.stringify({
@@ -825,6 +902,7 @@ async function handleJoinClassroom(sourceIp: string, body: Record<string, unknow
       seatNumber,
       memberId,
       hasAssignment: hasAssignmentContent(classroom),
+      previousComment,
     }),
   };
 }
@@ -1825,6 +1903,278 @@ async function handleVerifySession(sessionToken: string): Promise<APIGatewayProx
   };
 }
 
+// --- Group (組) handlers ---
+// A group is the teacher-side organizing concept: one school class (組) that
+// owns many lesson classrooms over the year. Students never see groups —
+// their model (join code per lesson, anonymous seat) is unchanged.
+
+export function validateGroupName(name: unknown): string {
+  if (typeof name !== 'string' || name.trim().length === 0) {
+    throw new ValidationError('Group name is required');
+  }
+  const trimmed = name.trim();
+  if (trimmed.length > MAX_GROUP_NAME_LENGTH) {
+    throw new ValidationError(`Group name must be ${MAX_GROUP_NAME_LENGTH} characters or less`);
+  }
+  return trimmed;
+}
+
+export function validateGroupYear(year: unknown): number {
+  const n = typeof year === 'number' ? year : parseInt(String(year), 10);
+  if (isNaN(n) || n < 2000 || n > 2100) {
+    throw new ValidationError('Year must be between 2000 and 2100');
+  }
+  return n;
+}
+
+/**
+ * Sort prior lessons of a group (excluding the one being joined) newest
+ * first, capped to the recap lookback. Pure — exported for unit tests.
+ */
+export function selectPriorClassrooms(
+  items: Record<string, unknown>[],
+  groupId: string,
+  excludeClassroomId: string,
+  limit: number = PREVIOUS_COMMENT_LOOKBACK,
+): Record<string, unknown>[] {
+  return items
+    .filter(item => item.groupId === groupId && item.classroomId !== excludeClassroomId && item.status === 'active')
+    .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))
+    .slice(0, limit);
+}
+
+/**
+ * Rewrite assignment S3 keys from the source classroom prefix to the
+ * duplicated classroom's prefix. Pure — exported for unit tests.
+ * @returns the new assignment plus the list of {from, to} copies to perform
+ */
+export function buildDuplicatedAssignment(
+  assignment: AssignmentContent | undefined,
+  sourceClassroomId: string,
+  newClassroomId: string,
+): { assignment: AssignmentContent | undefined; copies: { from: string; to: string }[] } {
+  if (!assignment || ((!assignment.pages || assignment.pages.length === 0) && !assignment.starterKey)) {
+    return { assignment: undefined, copies: [] };
+  }
+  const copies: { from: string; to: string }[] = [];
+  const rewriteKey = (key: string): string => {
+    const to = `${newClassroomId}/assignment/${key.split('/').pop()}`;
+    copies.push({ from: key, to });
+    return to;
+  };
+  const pages = (assignment.pages || []).map(page =>
+    page.imageKey ? { text: page.text, imageKey: rewriteKey(page.imageKey) } : { text: page.text },
+  );
+  const starterKey = assignment.starterKey ? rewriteKey(assignment.starterKey) : undefined;
+  return {
+    assignment: { pages, starterKey, updatedAt: new Date().toISOString() },
+    copies,
+  };
+}
+
+/** Fetch a group and assert the teacher owns it. */
+async function getOwnedGroup(identity: TeacherIdentity, groupId: string): Promise<Record<string, unknown>> {
+  const result = await docClient.send(new GetCommand({
+    TableName: GROUPS_TABLE,
+    Key: { groupId },
+  }));
+  if (!result.Item || result.Item.teacherSub !== identity.sub) {
+    // Existence-hiding 404, same policy as classrooms.
+    throw new NotFoundError('Group not found');
+  }
+  return result.Item;
+}
+
+function mapGroupSummary(item: Record<string, unknown>) {
+  return {
+    groupId: item.groupId,
+    name: item.name,
+    year: item.year,
+    status: item.status,
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
+  };
+}
+
+async function handleCreateGroup(identity: TeacherIdentity, body: Record<string, unknown>): Promise<APIGatewayProxyStructuredResultV2> {
+  const name = validateGroupName(body.name);
+  const year = validateGroupYear(body.year);
+
+  const now = new Date().toISOString();
+  const groupId = crypto.randomUUID();
+  const item = {
+    groupId,
+    teacherSub: identity.sub,
+    name,
+    year,
+    status: 'active',
+    createdAt: now,
+    updatedAt: now,
+    ttl: Math.floor(Date.now() / 1000) + GROUP_TTL_SECONDS,
+  };
+  await docClient.send(new PutCommand({ TableName: GROUPS_TABLE, Item: item }));
+
+  return { statusCode: 201, body: JSON.stringify(mapGroupSummary(item)) };
+}
+
+async function handleListGroups(identity: TeacherIdentity): Promise<APIGatewayProxyStructuredResultV2> {
+  const result = await docClient.send(new QueryCommand({
+    TableName: GROUPS_TABLE,
+    IndexName: 'teacherSub-index',
+    KeyConditionExpression: 'teacherSub = :ts',
+    ExpressionAttributeValues: { ':ts': identity.sub },
+  }));
+  const groups = (result.Items || []).map(mapGroupSummary);
+  return { statusCode: 200, body: JSON.stringify({ groups }) };
+}
+
+async function handleUpdateGroup(identity: TeacherIdentity, groupId: string, body: Record<string, unknown>): Promise<APIGatewayProxyStructuredResultV2> {
+  await getOwnedGroup(identity, groupId);
+
+  const updates: Record<string, unknown> = { updatedAt: new Date().toISOString() };
+  if (body.name !== undefined) {
+    updates.name = validateGroupName(body.name);
+  }
+  if (body.year !== undefined) {
+    updates.year = validateGroupYear(body.year);
+  }
+  if (body.status !== undefined) {
+    if (body.status !== 'active' && body.status !== 'archived') {
+      throw new ValidationError('Status must be "active" or "archived"');
+    }
+    updates.status = body.status;
+  }
+
+  const expressionParts: string[] = [];
+  const expressionValues: Record<string, unknown> = {};
+  const expressionNames: Record<string, string> = {};
+  let i = 0;
+  for (const [key, value] of Object.entries(updates)) {
+    expressionNames[`#attr${i}`] = key;
+    expressionValues[`:val${i}`] = value;
+    expressionParts.push(`#attr${i} = :val${i}`);
+    i++;
+  }
+  const result = await docClient.send(new UpdateCommand({
+    TableName: GROUPS_TABLE,
+    Key: { groupId },
+    UpdateExpression: `SET ${expressionParts.join(', ')}`,
+    ExpressionAttributeNames: expressionNames,
+    ExpressionAttributeValues: expressionValues,
+    ReturnValues: 'ALL_NEW',
+  }));
+
+  return { statusCode: 200, body: JSON.stringify(mapGroupSummary(result.Attributes || {})) };
+}
+
+/**
+ * Duplicate a classroom (lesson) — className/assignmentName/studentCount and
+ * the assignment content (pages + starter, S3 objects copied) — into the
+ * same or another group, with a fresh join code and no members/submissions.
+ * This is how a teacher reuses a lesson for another 組 or the next year.
+ */
+async function handleDuplicateClassroom(
+  identity: TeacherIdentity, classroomId: string, body: Record<string, unknown>,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const sourceResult = await docClient.send(new GetCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId },
+  }));
+  if (!sourceResult.Item || sourceResult.Item.status !== 'active') {
+    throw new NotFoundError('Classroom not found');
+  }
+  const source = sourceResult.Item;
+  if (!canManageClassroom(source, identity)) {
+    throw new AuthError('Not authorized to duplicate this classroom');
+  }
+
+  // Optional target group (defaults to no group; duplicating keeps things
+  // explicit rather than silently inheriting the source group).
+  let groupId: string | undefined;
+  if (typeof body.groupId === 'string' && body.groupId) {
+    await getOwnedGroup(identity, body.groupId);
+    groupId = body.groupId;
+  }
+
+  const className = body.className !== undefined ? validateClassName(body.className) : (source.className as string);
+  const assignmentName = body.assignmentName !== undefined
+    ? validateClassName(body.assignmentName)
+    : (source.assignmentName as string);
+
+  // Fresh unique join code (same retry policy as creation).
+  let joinCode = '';
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const candidate = generateJoinCode();
+    const existing = await docClient.send(new QueryCommand({
+      TableName: CLASSROOMS_TABLE,
+      IndexName: 'joinCode-index',
+      KeyConditionExpression: 'joinCode = :jc',
+      ExpressionAttributeValues: { ':jc': candidate },
+      Limit: 1,
+    }));
+    if (!existing.Items || existing.Items.length === 0) {
+      joinCode = candidate;
+      break;
+    }
+  }
+  if (!joinCode) {
+    return { statusCode: 500, body: JSON.stringify({ error: 'Failed to generate unique join code' }) };
+  }
+
+  const newClassroomId = crypto.randomUUID();
+  const { assignment, copies } = buildDuplicatedAssignment(
+    source.assignment as AssignmentContent | undefined,
+    classroomId,
+    newClassroomId,
+  );
+
+  // Copy assignment objects first so the new record never references
+  // missing objects. A failed copy aborts the duplication (502 from S3).
+  for (const { from, to } of copies) {
+    await s3Client.send(new CopyObjectCommand({
+      Bucket: SUBMISSIONS_BUCKET,
+      CopySource: `${SUBMISSIONS_BUCKET}/${encodeURIComponent(from)}`,
+      Key: to,
+    }));
+  }
+
+  const now = new Date().toISOString();
+  const ttl = Math.floor(Date.now() / 1000) + CLASSROOM_TTL_SECONDS;
+  await docClient.send(new PutCommand({
+    TableName: CLASSROOMS_TABLE,
+    Item: {
+      classroomId: newClassroomId,
+      teacherSub: identity.sub,
+      className,
+      assignmentName,
+      joinCode,
+      studentCount: source.studentCount,
+      groupId,
+      assignment,
+      status: 'active',
+      createdAt: now,
+      updatedAt: now,
+      ttl,
+    },
+  }));
+
+  return {
+    statusCode: 201,
+    body: JSON.stringify({
+      classroomId: newClassroomId,
+      className,
+      assignmentName,
+      joinCode,
+      studentCount: source.studentCount,
+      groupId: groupId || null,
+      hasAssignment: !!assignment,
+      status: 'active',
+      createdAt: now,
+      expiresAt: new Date(ttl * 1000).toISOString(),
+    }),
+  };
+}
+
 // --- Assignment content handlers ---
 // A classroom may carry assignment content: pages of (short text + optional
 // image) plus an optional starter project. The teacher edits it; students
@@ -2130,6 +2480,29 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
     } else if (method === 'POST' && path === '/classrooms/verify-session') {
       const token = extractBearerToken(event.headers?.authorization);
       result = await handleVerifySession(token);
+
+    // --- Group (組) routes (own root path — no conflict with /classrooms) ---
+    } else if (method === 'POST' && path === '/classroom-groups') {
+      const token = extractBearerToken(event.headers?.authorization);
+      const identity = await verifyTeacherIdToken(token);
+      result = await handleCreateGroup(identity, body);
+
+    } else if (method === 'GET' && path === '/classroom-groups') {
+      const token = extractBearerToken(event.headers?.authorization);
+      const identity = await verifyTeacherIdToken(token);
+      result = await handleListGroups(identity);
+
+    } else if (method === 'PATCH' && /^\/classroom-groups\/[^/]+$/.test(path)) {
+      const token = extractBearerToken(event.headers?.authorization);
+      const identity = await verifyTeacherIdToken(token);
+      const groupId = event.pathParameters?.groupId || '';
+      result = await handleUpdateGroup(identity, groupId, body);
+
+    } else if (method === 'POST' && /^\/classrooms\/[^/]+\/duplicate$/.test(path)) {
+      const token = extractBearerToken(event.headers?.authorization);
+      const identity = await verifyTeacherIdToken(token);
+      const classroomId = event.pathParameters?.classroomId || '';
+      result = await handleDuplicateClassroom(identity, classroomId, body);
 
     // --- Google Classroom routes (must be before /classrooms/{classroomId}) ---
     } else if (method === 'GET' && path === '/classrooms/google-courses') {
