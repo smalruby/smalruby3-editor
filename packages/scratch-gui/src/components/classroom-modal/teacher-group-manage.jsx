@@ -19,11 +19,12 @@ const currentSchoolYear = () => {
     return now.getMonth() + 1 >= 4 ? now.getFullYear() : now.getFullYear() - 1;
 };
 
-const GroupRow = ({ group, isLoading, onUpdateGroup }) => {
+const GroupRow = ({ group, isLoading, onShowEvaluation, onUpdateGroup }) => {
     const intl = useIntl();
     const [editName, setEditName] = useState(group.name);
 
     const handleNameChange = useCallback((e) => setEditName(e.target.value), []);
+    const handleShowEvaluation = useCallback(() => onShowEvaluation(group), [onShowEvaluation, group]);
     const handleNameBlur = useCallback(() => {
         const trimmed = editName.trim();
         if (trimmed && trimmed !== group.name) {
@@ -69,6 +70,20 @@ const GroupRow = ({ group, isLoading, onUpdateGroup }) => {
                     />
                 </span>
             )}
+            {onShowEvaluation && group.status === 'active' && (
+                <button
+                    className={styles.secondaryButton}
+                    data-testid={`classroom-group-evaluate-${group.groupId}`}
+                    disabled={isLoading}
+                    onClick={handleShowEvaluation}
+                >
+                    <FormattedMessage
+                        defaultMessage="Evaluate"
+                        description="Open the term-end evaluation screen for a group"
+                        id="gui.classroom.groups.evaluate"
+                    />
+                </button>
+            )}
             <button
                 className={styles.secondaryButton}
                 data-testid={`classroom-group-archive-${group.groupId}`}
@@ -101,10 +116,20 @@ GroupRow.propTypes = {
         status: PropTypes.string,
     }).isRequired,
     isLoading: PropTypes.bool,
+    onShowEvaluation: PropTypes.func,
     onUpdateGroup: PropTypes.func.isRequired,
 };
 
-const TeacherGroupManage = ({ error, errorTitle, groups, isLoading, onBack, onCreateGroup, onUpdateGroup }) => {
+const TeacherGroupManage = ({
+    error,
+    errorTitle,
+    groups,
+    isLoading,
+    onBack,
+    onCreateGroup,
+    onShowEvaluation,
+    onUpdateGroup,
+}) => {
     const intl = useIntl();
     const [newName, setNewName] = useState('');
     const [newYear, setNewYear] = useState(String(currentSchoolYear()));
@@ -188,7 +213,13 @@ const TeacherGroupManage = ({ error, errorTitle, groups, isLoading, onBack, onCr
                     </li>
                 )}
                 {groups.map((group) => (
-                    <GroupRow group={group} isLoading={isLoading} key={group.groupId} onUpdateGroup={onUpdateGroup} />
+                    <GroupRow
+                        group={group}
+                        isLoading={isLoading}
+                        key={group.groupId}
+                        onShowEvaluation={onShowEvaluation}
+                        onUpdateGroup={onUpdateGroup}
+                    />
                 ))}
             </ul>
 
@@ -216,6 +247,7 @@ TeacherGroupManage.propTypes = {
     isLoading: PropTypes.bool,
     onBack: PropTypes.func.isRequired,
     onCreateGroup: PropTypes.func.isRequired,
+    onShowEvaluation: PropTypes.func,
     onUpdateGroup: PropTypes.func.isRequired,
 };
 

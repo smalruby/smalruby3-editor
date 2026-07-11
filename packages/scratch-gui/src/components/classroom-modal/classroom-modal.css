@@ -1933,3 +1933,177 @@
     white-space: pre-wrap;
     word-break: break-word;
 }
+
+/* --- Term-end evaluation (teacher) --- */
+
+.evaluation-screen {
+    max-width: 100%;
+}
+
+.eval-section {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.eval-lesson-checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.9rem;
+    color: #575e75;
+    border: 1px solid #c9cdd3;
+    border-radius: 0.4rem;
+    padding: 0.25rem 0.5rem;
+    background-color: white;
+}
+
+.eval-rubric-row {
+    display: flex;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.eval-rubric-name {
+    width: 12rem;
+    padding: 0.35rem 0.5rem;
+    border: 1px solid #c9cdd3;
+    border-radius: 0.4rem;
+    font-size: 0.85rem;
+}
+
+.eval-rubric-description {
+    flex: 1 1 auto;
+    padding: 0.35rem 0.5rem;
+    border: 1px solid #c9cdd3;
+    border-radius: 0.4rem;
+    font-size: 0.85rem;
+}
+
+.eval-strictness-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: #575e75;
+}
+
+.eval-progress {
+    background-color: #e9f1fc;
+    border: 1px solid #b5cff5;
+    border-radius: 0.4rem;
+    color: #3373cc;
+    font-size: 0.9rem;
+    padding: 0.4rem 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.eval-matrix-wrapper {
+    overflow-x: auto;
+    margin-bottom: 0.75rem;
+    border: 1px solid #e5e8ec;
+    border-radius: 0.4rem;
+}
+
+.eval-matrix {
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    min-width: 100%;
+}
+
+.eval-matrix th {
+    background-color: #f4f6f8;
+    border-bottom: 1px solid #e5e8ec;
+    color: #575e75;
+    padding: 0.4rem 0.5rem;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.eval-matrix td {
+    border-bottom: 1px solid #eef1f4;
+    padding: 0.3rem 0.4rem;
+    vertical-align: top;
+}
+
+.eval-seat-cell {
+    font-weight: bold;
+    color: #575e75;
+    white-space: nowrap;
+}
+
+.eval-cell {
+    min-width: 14rem;
+}
+
+.eval-cell-empty {
+    color: #b7bec9;
+    text-align: center;
+}
+
+.eval-cell-needs-review {
+    background-color: #fff4e5;
+}
+
+.eval-cell-row {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-bottom: 0.2rem;
+}
+
+.eval-grade-select {
+    padding: 0.15rem 0.3rem;
+    border: 1px solid #c9cdd3;
+    border-radius: 0.3rem;
+    font-size: 0.9rem;
+    background-color: white;
+}
+
+.eval-needs-review-badge {
+    background-color: #ffab19;
+    border-radius: 0.3rem;
+    color: white;
+    font-size: 0.7rem;
+    padding: 0.05rem 0.3rem;
+    white-space: nowrap;
+}
+
+.eval-returned-badge {
+    background-color: #b7dfc2;
+    border-radius: 0.3rem;
+    color: #2d7a43;
+    font-size: 0.7rem;
+    padding: 0.05rem 0.3rem;
+    white-space: nowrap;
+}
+
+.eval-reason-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.2rem 0.35rem;
+    border: 1px solid #dfe3e8;
+    border-radius: 0.3rem;
+    font-size: 0.8rem;
+}
+
+.eval-comment-input {
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 0.2rem;
+    padding: 0.2rem 0.35rem;
+    border: 1px solid #dfe3e8;
+    border-radius: 0.3rem;
+    font-size: 0.8rem;
+    font-family: inherit;
+    resize: vertical;
+}
+
+.eval-overall-cell {
+    font-weight: bold;
+    color: #575e75;
+    text-align: center;
+    white-space: nowrap;
+}
