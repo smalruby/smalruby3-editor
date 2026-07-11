@@ -36,6 +36,9 @@ const TeacherClassDetail = ({
     onToggleCodeFullscreen,
     onShowAssignmentEditor,
     onShowPostAssignment,
+    groups,
+    onAssignClassToGroup,
+    onDuplicateClassroom,
     onUpdateAssignmentName,
     onUpdateStudentCount,
     codeDisplayClassroom,
@@ -110,6 +113,17 @@ const TeacherClassDetail = ({
             onUpdateAssignmentName(trimmed);
         }
     }, [editAssignmentName, selectedClassroom, onUpdateAssignmentName]);
+
+    const handleGroupChange = useCallback(
+        (e) => {
+            onAssignClassToGroup(selectedClassroom.classroomId, e.target.value || null);
+        },
+        [onAssignClassToGroup, selectedClassroom],
+    );
+
+    const handleDuplicate = useCallback(() => {
+        onDuplicateClassroom(selectedClassroom);
+    }, [onDuplicateClassroom, selectedClassroom]);
 
     const handleOpenStudentCountDialog = useCallback(() => {
         setEditStudentCount(selectedClassroom.studentCount);
@@ -234,6 +248,19 @@ const TeacherClassDetail = ({
                                         />
                                     </button>
                                 )}
+                                {onDuplicateClassroom && (
+                                    <button
+                                        className={styles.secondaryButton}
+                                        data-testid="classroom-duplicate"
+                                        onClick={handleDuplicate}
+                                    >
+                                        <FormattedMessage
+                                            defaultMessage="Duplicate"
+                                            description="Duplicate this lesson (classroom) with its assignment"
+                                            id="gui.classroom.groups.duplicate"
+                                        />
+                                    </button>
+                                )}
                                 {selectedClassroom.googleClassroomCourseId &&
                                     (selectedClassroom.googleClassroomAlternateLink ? (
                                         <a
@@ -289,6 +316,41 @@ const TeacherClassDetail = ({
                                         </button>
                                     ))}
                             </div>
+
+                            {/* Group (組) assignment */}
+                            {onAssignClassToGroup && (
+                                <div className={styles.groupSelectRow}>
+                                    <span className={styles.assignmentNameLabel}>
+                                        <FormattedMessage
+                                            defaultMessage="Group"
+                                            description="Group (school class) selector label in class detail"
+                                            id="gui.classroom.groups.selectorLabel"
+                                        />
+                                        {': '}
+                                    </span>
+                                    <select
+                                        className={styles.groupSelect}
+                                        data-testid="classroom-detail-group-select"
+                                        value={selectedClassroom.groupId || ''}
+                                        onChange={handleGroupChange}
+                                    >
+                                        <option value="">
+                                            {intl.formatMessage({
+                                                defaultMessage: '(none)',
+                                                description: 'No group option in the group selector',
+                                                id: 'gui.classroom.groups.selectorNone',
+                                            })}
+                                        </option>
+                                        {(groups || [])
+                                            .filter((g) => g.status === 'active')
+                                            .map((g) => (
+                                                <option key={g.groupId} value={g.groupId}>
+                                                    {`${g.name} (${g.year})`}
+                                                </option>
+                                            ))}
+                                    </select>
+                                </div>
+                            )}
 
                             {/* Join code with expand button */}
                             <div className={styles.joinCodeDisplay}>
@@ -692,6 +754,9 @@ TeacherClassDetail.propTypes = {
     onReturnSubmission: PropTypes.func.isRequired,
     onSelectMember: PropTypes.func.isRequired,
     onShowCodeDisplay: PropTypes.func.isRequired,
+    groups: PropTypes.arrayOf(PropTypes.object),
+    onAssignClassToGroup: PropTypes.func,
+    onDuplicateClassroom: PropTypes.func,
     onShowAssignmentEditor: PropTypes.func,
     onShowPostAssignment: PropTypes.func,
     onToggleCodeFullscreen: PropTypes.func.isRequired,

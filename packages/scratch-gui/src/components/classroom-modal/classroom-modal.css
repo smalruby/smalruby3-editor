@@ -1827,3 +1827,84 @@
     min-width: 3.5rem;
     text-align: center;
 }
+
+/* --- Group (組) management --- */
+
+.group-create-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.group-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid #e5e8ec;
+}
+
+.group-row-name-input {
+    flex: 1 1 auto;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid #c9cdd3;
+    border-radius: 0.4rem;
+    font-size: 0.9rem;
+}
+
+.group-row-name-input:focus {
+    border-color: #4c97ff;
+    outline: none;
+}
+
+.group-create-year-input {
+    width: 6rem;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid #c9cdd3;
+    border-radius: 0.4rem;
+    font-size: 0.9rem;
+}
+
+.group-row-year {
+    color: #575e75;
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
+.group-row-archived-badge {
+    background-color: #eceff2;
+    border-radius: 0.3rem;
+    color: #8b93a5;
+    font-size: 0.75rem;
+    padding: 0.1rem 0.4rem;
+    white-space: nowrap;
+}
+
+.group-list {
+    list-style: none;
+    margin: 0 0 1rem;
+    padding: 0;
+    max-width: 560px;
+}
+
+.group-list-empty {
+    color: #8b93a5;
+    font-size: 0.9rem;
+    padding: 0.5rem 0;
+}
+
+.group-select-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.group-select {
+    padding: 0.35rem 0.5rem;
+    border: 1px solid #c9cdd3;
+    border-radius: 0.4rem;
+    font-size: 0.9rem;
+    background-color: white;
+}
