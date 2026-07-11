@@ -84,6 +84,18 @@ const ASSIGNMENT_IMAGE_CONTENT_TYPES: Record<string, string> = {
   'image/png': 'png',
   'image/jpeg': 'jpg',
 };
+// AI evaluation support (teacher-facing): the Lambda relays static-analysis
+// results to the Anthropic API and returns grade proposals / comment drafts.
+// One call handles at most EVAL_MAX_SUBMISSIONS submissions so the response
+// fits API Gateway's hard 30s integration timeout — the client chunks a
+// whole class into several calls (the cached system prompt is shared).
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
+const CLAUDE_MODEL = process.env.CLAUDE_MODEL || 'claude-haiku-4-5-20251001';
+const EVAL_MAX_SUBMISSIONS = parseInt(process.env.EVAL_MAX_SUBMISSIONS || '10', 10);
+const EVAL_MAX_PSEUDOCODE_LENGTH = parseInt(process.env.EVAL_MAX_PSEUDOCODE_LENGTH || '4000', 10);
+const EVAL_RATE_LIMIT_WINDOW_SECONDS = parseInt(process.env.EVAL_RATE_LIMIT_WINDOW_SECONDS || '3600', 10);
+const EVAL_RATE_LIMIT_MAX_REQUESTS = parseInt(process.env.EVAL_RATE_LIMIT_MAX_REQUESTS || '60', 10);
+const EVAL_GRADES = ['S', 'A', 'B', 'C'];
 
 // --- DynamoDB Client ---
 
@@ -2432,6 +2444,316 @@ async function handleGetAssignment(rawToken: string, classroomId: string): Promi
   };
 }
 
+// --- AI evaluation handlers ---
+// Grade proposals / positive comment drafts from static-analysis results.
+// The AI is a proposal engine, never the grader: every result carries a
+// reason quoting machine signals, an explicit needsReview flag, and the
+// teacher confirms everything in the UI before anything is recorded.
+
+interface EvalSubmission {
+  seatNumber: number;
+  signals: Record<string, unknown>;
+  pseudocode: string;
+}
+
+interface EvalRubricAxis {
+  name: string;
+  description: string;
+}
+
+interface EvalSample {
+  seatNumber: number;
+  grade: string;
+  reason?: string;
+}
+
+interface EvaluateRequest {
+  mode: 'grade' | 'comment';
+  assignmentName: string;
+  assignmentText: string;
+  rubricAxes: EvalRubricAxis[];
+  strictness: 'lenient' | 'standard' | 'strict';
+  samples: EvalSample[];
+  submissions: EvalSubmission[];
+}
+
+/**
+ * Validate + normalize an evaluate request body. Exported for unit tests.
+ */
+export function validateEvaluateRequest(body: Record<string, unknown>): EvaluateRequest {
+  const mode = body.mode === 'comment' ? 'comment' : body.mode === 'grade' ? 'grade' : null;
+  if (!mode) throw new ValidationError('mode must be "grade" or "comment"');
+
+  const assignmentName = typeof body.assignmentName === 'string' ? body.assignmentName.slice(0, 100) : '';
+  const assignmentText = typeof body.assignmentText === 'string' ? body.assignmentText.slice(0, 3000) : '';
+
+  const rawAxes = Array.isArray(body.rubricAxes) ? body.rubricAxes : [];
+  if (mode === 'grade' && (rawAxes.length < 1 || rawAxes.length > 6)) {
+    throw new ValidationError('rubricAxes must have 1 to 6 entries');
+  }
+  const rubricAxes: EvalRubricAxis[] = rawAxes.map((axis, i) => {
+    const a = axis as Record<string, unknown>;
+    if (typeof a?.name !== 'string' || a.name.trim().length === 0) {
+      throw new ValidationError(`rubricAxes[${i}].name is required`);
+    }
+    return {
+      name: String(a.name).slice(0, 50),
+      description: typeof a.description === 'string' ? a.description.slice(0, 300) : '',
+    };
+  });
+
+  const strictness =
+    body.strictness === 'lenient' || body.strictness === 'strict' ? body.strictness : 'standard';
+
+  const rawSamples = Array.isArray(body.samples) ? body.samples : [];
+  if (rawSamples.length > 5) throw new ValidationError('samples must have at most 5 entries');
+  const samples: EvalSample[] = rawSamples.map((sample, i) => {
+    const s = sample as Record<string, unknown>;
+    const seatNumber = typeof s?.seatNumber === 'number' ? s.seatNumber : NaN;
+    if (isNaN(seatNumber)) throw new ValidationError(`samples[${i}].seatNumber is required`);
+    if (typeof s.grade !== 'string' || !EVAL_GRADES.includes(s.grade)) {
+      throw new ValidationError(`samples[${i}].grade must be one of ${EVAL_GRADES.join('/')}`);
+    }
+    return {
+      seatNumber,
+      grade: s.grade,
+      reason: typeof s.reason === 'string' ? s.reason.slice(0, 200) : undefined,
+    };
+  });
+
+  const rawSubmissions = Array.isArray(body.submissions) ? body.submissions : [];
+  if (rawSubmissions.length < 1 || rawSubmissions.length > EVAL_MAX_SUBMISSIONS) {
+    throw new ValidationError(`submissions must have 1 to ${EVAL_MAX_SUBMISSIONS} entries`);
+  }
+  const submissions: EvalSubmission[] = rawSubmissions.map((submission, i) => {
+    const s = submission as Record<string, unknown>;
+    const seatNumber = typeof s?.seatNumber === 'number' ? s.seatNumber : NaN;
+    if (isNaN(seatNumber)) throw new ValidationError(`submissions[${i}].seatNumber is required`);
+    let pseudocode = typeof s.pseudocode === 'string' ? s.pseudocode : '';
+    if (pseudocode.length > EVAL_MAX_PSEUDOCODE_LENGTH) {
+      pseudocode = `${pseudocode.slice(0, EVAL_MAX_PSEUDOCODE_LENGTH)}\n…(以降省略)`;
+    }
+    const signals =
+      s.signals && typeof s.signals === 'object' && !Array.isArray(s.signals)
+        ? (s.signals as Record<string, unknown>)
+        : {};
+    return { seatNumber, signals, pseudocode };
+  });
+
+  return { mode, assignmentName, assignmentText, rubricAxes, strictness, samples, submissions };
+}
+
+/**
+ * Build the Anthropic system + user prompts. Pure — exported for unit tests.
+ */
+export function buildEvaluationPrompt(request: EvaluateRequest): { system: string; user: string } {
+  const strictnessLabel = {
+    lenient: 'やや甘め（迷ったら上の評価に寄せる）',
+    standard: '標準',
+    strict: 'やや厳しめ（迷ったら下の評価に寄せる）',
+  }[request.strictness];
+
+  const commonHeader = [
+    'あなたは日本の中学校技術科の先生を支援する採点補助AIです。',
+    '提出された Scratch/スモウルビー作品の静的解析結果（機械シグナルと、全スクリプトを日本語テキスト化した擬似コード）を読み取ります。',
+    '◆ の付いたスクリプトはイベントに接続されていて実行されます。◇ は接続されておらず実行されません（この区別は重要です）。',
+    '',
+  ];
+
+  let system: string[];
+  if (request.mode === 'grade') {
+    system = [
+      ...commonHeader,
+      '先生が設定した評価軸に照らして、各生徒の評価案（S / A / B / C の4段階）を作ります。',
+      '',
+      '原則:',
+      '- 評価はあくまで「提案」です。最終判断は先生が行います。',
+      '- reason は100文字以内の日本語で、必ず機械シグナルまたは擬似コードの具体的な事実を引用してください。',
+      '- 判断に迷う場合、シグナルと擬似コードが矛盾する場合、作品が課題と無関係に見える場合は needsReview を true にしてください。',
+      `- 評価の厳しさ: ${strictnessLabel}`,
+      '',
+      '評価軸:',
+      ...request.rubricAxes.map((axis, i) => `${i + 1}. ${axis.name}${axis.description ? ` — ${axis.description}` : ''}`),
+      '',
+      '出力は次の JSON のみ（説明文・コードフェンス禁止）:',
+      '{"results":[{"seatNumber":1,"grade":"A","reason":"…","needsReview":false}]}',
+    ];
+  } else {
+    system = [
+      ...commonHeader,
+      '各生徒に返す「ポジティブな返却コメント」の下書きを作ります。次の授業へのモチベーションにつなげるのが目的です。',
+      '',
+      '原則:',
+      '- 読み手は中学生です。やさしい言葉で、45〜120文字。',
+      '- 必ずその生徒の作品の具体的な良い点（擬似コードから読み取れる工夫）を1つ挙げて褒めてください。',
+      '- 次にやってみたくなる一言を添えてください。評点・順位・他の生徒との比較は書かないでください。',
+      '- 作品が空・断片のみの場合も、取り組みを認めて次の一歩を示してください。',
+      '',
+      '出力は次の JSON のみ（説明文・コードフェンス禁止）:',
+      '{"results":[{"seatNumber":1,"comment":"…"}]}',
+    ];
+  }
+
+  const user: string[] = [
+    `課題名: ${request.assignmentName || '(未設定)'}`,
+    request.assignmentText ? `課題の内容:\n${request.assignmentText}` : '',
+    '',
+  ];
+  if (request.samples.length > 0) {
+    user.push('先生が採点した較正サンプル（この基準に厳しさを合わせること）:');
+    for (const sample of request.samples) {
+      user.push(`- 出席番号${sample.seatNumber}: ${sample.grade}${sample.reason ? `（${sample.reason}）` : ''}`);
+    }
+    user.push('');
+  }
+  user.push('提出作品:');
+  for (const submission of request.submissions) {
+    user.push(`--- 出席番号${submission.seatNumber} ---`);
+    user.push(`機械シグナル: ${JSON.stringify(submission.signals)}`);
+    user.push('擬似コード:');
+    user.push(submission.pseudocode || '(提出なし/空)');
+    user.push('');
+  }
+
+  return { system: system.join('\n'), user: user.filter(line => line !== null).join('\n') };
+}
+
+/**
+ * Parse + validate the model's JSON response. Pure — exported for unit
+ * tests. Tolerates code fences and stray text around the JSON object.
+ */
+export function parseEvaluationResponse(
+  text: string,
+  mode: 'grade' | 'comment',
+  expectedSeats: number[],
+): Record<string, unknown>[] {
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start < 0 || end <= start) throw new Error('AI response contains no JSON object');
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text.slice(start, end + 1));
+  } catch {
+    throw new Error('AI response JSON is malformed');
+  }
+  const results = (parsed as Record<string, unknown>)?.results;
+  if (!Array.isArray(results)) throw new Error('AI response has no results array');
+
+  const bySeat = new Map<number, Record<string, unknown>>();
+  for (const result of results) {
+    const r = result as Record<string, unknown>;
+    if (typeof r?.seatNumber !== 'number') continue;
+    if (mode === 'grade') {
+      if (typeof r.grade !== 'string' || !EVAL_GRADES.includes(r.grade)) continue;
+      bySeat.set(r.seatNumber, {
+        seatNumber: r.seatNumber,
+        grade: r.grade,
+        reason: typeof r.reason === 'string' ? r.reason.slice(0, 200) : '',
+        needsReview: r.needsReview === true,
+      });
+    } else {
+      if (typeof r.comment !== 'string' || r.comment.length === 0) continue;
+      bySeat.set(r.seatNumber, {
+        seatNumber: r.seatNumber,
+        comment: r.comment.slice(0, MAX_TEACHER_COMMENT_LENGTH),
+      });
+    }
+  }
+
+  // Every requested seat must come back — a missing seat is flagged for
+  // review rather than silently dropped.
+  return expectedSeats.map(seatNumber => {
+    const found = bySeat.get(seatNumber);
+    if (found) return found;
+    return mode === 'grade'
+      ? { seatNumber, grade: 'C', reason: 'AI応答に含まれず（要確認）', needsReview: true }
+      : { seatNumber, comment: '' };
+  });
+}
+
+// Per-teacher rate limiter for the evaluation endpoint (in-memory, same
+// pattern as the join limiter — best-effort per Lambda instance).
+const evalAttempts = new Map<string, { count: number; windowStart: number }>();
+
+function checkEvalRateLimit(teacherSub: string): void {
+  const now = Math.floor(Date.now() / 1000);
+  const entry = evalAttempts.get(teacherSub);
+  if (entry && (now - entry.windowStart) < EVAL_RATE_LIMIT_WINDOW_SECONDS) {
+    if (entry.count >= EVAL_RATE_LIMIT_MAX_REQUESTS) {
+      throw new ValidationError('Too many evaluation requests. Please try again later.');
+    }
+    entry.count++;
+  } else {
+    evalAttempts.set(teacherSub, { count: 1, windowStart: now });
+  }
+}
+
+async function handleEvaluateSubmissions(
+  identity: TeacherIdentity, classroomId: string, body: Record<string, unknown>,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  if (!ANTHROPIC_API_KEY) {
+    return { statusCode: 503, body: JSON.stringify({ error: 'AI evaluation is not configured' }) };
+  }
+  const classroomResult = await docClient.send(new GetCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId },
+  }));
+  if (!classroomResult.Item || !canManageClassroom(classroomResult.Item, identity)) {
+    throw new AuthError('Not authorized to evaluate this classroom');
+  }
+  checkEvalRateLimit(identity.sub);
+
+  const request = validateEvaluateRequest(body);
+  const { system, user } = buildEvaluationPrompt(request);
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
+      'anthropic-beta': 'prompt-caching-2024-07-31',
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: CLAUDE_MODEL,
+      max_tokens: 4096,
+      system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
+      messages: [{ role: 'user', content: user }],
+    }),
+  });
+
+  if (!response.ok) {
+    const status = response.status === 529 ? 502 : 502;
+    console.error('Anthropic API error:', response.status, await response.text().catch(() => ''));
+    return { statusCode: status, body: JSON.stringify({ error: 'AI_API_ERROR' }) };
+  }
+
+  const data = (await response.json()) as Record<string, unknown>;
+  const content = Array.isArray(data.content) ? (data.content[0] as Record<string, unknown>) : null;
+  const text = typeof content?.text === 'string' ? content.text : '';
+  const usage = (data.usage || {}) as Record<string, unknown>;
+  console.log(JSON.stringify({
+    event: 'classroom_evaluate',
+    mode: request.mode,
+    submissionCount: request.submissions.length,
+    model: CLAUDE_MODEL,
+    inputTokens: usage.input_tokens,
+    outputTokens: usage.output_tokens,
+    cacheCreationTokens: usage.cache_creation_input_tokens,
+    cacheReadTokens: usage.cache_read_input_tokens,
+  }));
+
+  let results: Record<string, unknown>[];
+  try {
+    results = parseEvaluationResponse(text, request.mode, request.submissions.map(s => s.seatNumber));
+  } catch (err) {
+    console.error('Evaluation response parse error:', err, text.slice(0, 500));
+    return { statusCode: 502, body: JSON.stringify({ error: 'AI_RESPONSE_INVALID' }) };
+  }
+
+  return { statusCode: 200, body: JSON.stringify({ mode: request.mode, results }) };
+}
+
 // --- Main handler ---
 
 export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
@@ -2602,6 +2924,12 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
         const identity = await verifyTeacherIdToken(token);
         result = await handleDeleteMember(identity, classroomId, memberId);
       }
+
+    } else if (method === 'POST' && /^\/classrooms\/[^/]+\/evaluate$/.test(path)) {
+      const token = extractBearerToken(event.headers?.authorization);
+      const identity = await verifyTeacherIdToken(token);
+      const classroomId = event.pathParameters?.classroomId || '';
+      result = await handleEvaluateSubmissions(identity, classroomId, body);
 
     } else if (method === 'PUT' && /^\/classrooms\/[^/]+\/assignment$/.test(path)) {
       const token = extractBearerToken(event.headers?.authorization);
