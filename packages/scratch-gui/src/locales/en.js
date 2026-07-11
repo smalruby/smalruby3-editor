@@ -176,6 +176,7 @@ export default {
     'gui.classroom.googleCourses.import': 'Import',
     'gui.classroom.googleCourses.empty': 'No courses found',
     'gui.classroom.googleCourses.students': '{count} students',
+    'gui.classroom.previousComment.title': 'From your teacher last time ({assignmentName}):',
     'gui.classroom.groups.title': 'Manage Groups (Classes)',
     'gui.classroom.groups.hint':
         'A group is one school class (e.g. Year 2 Class 1). Assign each lesson to a group to organize the year and enable the previous-comment recap for students.',

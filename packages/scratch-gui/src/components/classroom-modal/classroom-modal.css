@@ -1908,3 +1908,28 @@
     font-size: 0.9rem;
     background-color: white;
 }
+
+/* --- Previous returned comment recap (student) --- */
+
+.previous-comment-box {
+    background-color: #fff8e5;
+    border: 1px solid #f2d675;
+    border-radius: 0.4rem;
+    padding: 0.6rem 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.previous-comment-title {
+    color: #8a6d1a;
+    font-size: 0.8rem;
+    font-weight: bold;
+    margin-bottom: 0.25rem;
+}
+
+.previous-comment-text {
+    color: #575e75;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
