@@ -10,6 +10,7 @@ import useGoogleClassroom from './use-google-classroom.js';
 import useTeacherAssignment from './use-teacher-assignment.js';
 import useTeacherAuth, { getCachedTeacherIdToken, setCachedTeacherIdToken } from './use-teacher-auth.js';
 import useTeacherClassrooms from './use-teacher-classrooms.js';
+import useTeacherEvaluation from './use-teacher-evaluation.js';
 import useTeacherGroups from './use-teacher-groups.js';
 import useTeacherSubmissions from './use-teacher-submissions.js';
 
@@ -113,6 +114,16 @@ const useTeacherClassroom = ({
         setPhase,
     });
 
+    const evaluation = useTeacherEvaluation({
+        idToken: auth.idToken,
+        classrooms: classrooms.classrooms,
+        handleTeacher401: auth.handleTeacher401,
+        clearError,
+        showError,
+        intl,
+        setPhase,
+    });
+
     // --- Composed handlers ---
 
     const handleTeacherLogout = useCallback(() => {
@@ -207,6 +218,9 @@ const useTeacherClassroom = ({
         handleAssignmentRemoveStarter: assignment.handleRemoveStarter,
         handleAssignmentSave: assignment.handleSaveAssignment,
         handleAssignmentCancel: assignment.handleCancelAssignmentEdit,
+
+        // Evaluation (期末評価)
+        evaluation,
 
         // Groups (組)
         groups: groups.groups,

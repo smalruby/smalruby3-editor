@@ -193,6 +193,7 @@ const ClassroomTeacherModal = () => {
         onUpdateGroup: teacher.handleUpdateGroup,
         onAssignClassToGroup: teacher.handleAssignClassToGroup,
         onDuplicateClassroom: teacher.handleDuplicateClassroom,
+        evaluation: teacher.evaluation,
     };
     return <ClassroomTeacherModalComponent containerProps={teacherContainerProps} onClose={handleClose} />;
 };
