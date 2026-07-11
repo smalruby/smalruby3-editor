@@ -24,6 +24,7 @@ smalruby3-editor/
 │   │   │   │   ├── teacher-class-detail.jsx ← 先生クラス詳細 (退室リクエストバッジ + 退室通知バナー)
 │   │   │   │   ├── teacher-member-detail.jsx ← メンバー詳細パネル (承認/却下ボタン)
 │   │   │   │   ├── teacher-create-form.jsx ← クラス作成フォーム
+│   │   │   │   ├── teacher-assignment-editor.jsx ← 課題エディタ（ページ + スターター）
 │   │   │   │   └── teacher-post-assignment.jsx ← 課題配信
 │   │   │   ├── classroom-teacher-modal/ ← 先生用フルスクリーンモーダル
 │   │   │   │   ├── classroom-teacher-modal.jsx ← メイン（ダッシュボード/詳細/作成等）
@@ -40,12 +41,14 @@ smalruby3-editor/
 │   │   │   ├── use-teacher-auth.js    ← 認証フック（Google/Microsoft 共通）
 │   │   │   ├── use-teacher-classrooms.js ← クラス CRUD + 自動リフレッシュ
 │   │   │   ├── use-teacher-submissions.js ← 提出管理・一括ダウンロード
+│   │   │   ├── use-teacher-assignment.js ← 課題コンテンツ編集フロー
 │   │   │   ├── use-student-submit.js  ← 生徒提出フロー
 │   │   │   ├── use-google-classroom.js ← Google Classroom API 連携
 │   │   │   ├── classroom-error-utils.js ← エラーメッセージ変換
 │   │   │   └── alert.jsx             ← Alert コンテナ（参加しなおす対応）
 │   │   ├── lib/
-│   │   │   ├── classroom-api.js       ← API クライアント (24メソッド, リトライ付き)
+│   │   │   ├── classroom-api.js       ← API クライアント (リトライ付き)
+│   │   │   ├── classroom-assignment-utils.js ← 課題エディタの純粋ヘルパー
 │   │   │   ├── classroom-kick-request-storage.js ← 退室依頼の localStorage 永続化 (#692)
 │   │   │   ├── google-classroom-auth.js ← Google Classroom OAuth
 │   │   │   └── alerts/index.jsx       ← Alert 定義（classroomSessionExpired 追加）
