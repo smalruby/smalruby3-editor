@@ -103,6 +103,7 @@ src/containers/*
 !src/containers/classroom-modal.jsx
 !src/containers/classroom-teacher-modal.jsx
 !src/containers/use-google-classroom.js
+!src/containers/use-student-assignment.js
 !src/containers/use-student-submit.js
 !src/containers/use-teacher-assignment.js
 !src/containers/use-teacher-auth.js
@@ -310,6 +311,7 @@ test/unit/components/*
 !test/unit/components/extension-button-dncl.test.jsx
 !test/unit/components/connected-step.test.jsx
 !test/unit/components/mesh-self-sensor-notice.test.jsx
+!test/unit/components/student-assignment-panel.test.jsx
 !test/unit/components/mobile-bottom-tabs.test.jsx
 !test/unit/components/mobile-drawer.test.jsx
 !test/unit/components/mobile-mode-notice.test.jsx

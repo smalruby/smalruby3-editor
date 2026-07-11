@@ -1772,3 +1772,58 @@
     width: 1rem;
     height: 1rem;
 }
+
+/* --- Assignment panel (student) --- */
+
+.assignment-joined-notice {
+    background-color: #e6f4ea;
+    border: 1px solid #b7dfc2;
+    border-radius: 0.4rem;
+    color: #2d7a43;
+    font-size: 0.9rem;
+    font-weight: bold;
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.assignment-view-page {
+    border: 1px solid #c9cdd3;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    background-color: #fafbfc;
+    min-height: 8rem;
+}
+
+.assignment-view-image {
+    display: block;
+    max-width: 100%;
+    max-height: 240px;
+    object-fit: contain;
+    margin: 0 auto 0.75rem;
+    border-radius: 0.3rem;
+    background-color: white;
+}
+
+.assignment-view-text {
+    color: #333;
+    font-size: 1rem;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.assignment-pager {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.assignment-pager-label {
+    color: #575e75;
+    font-size: 0.9rem;
+    min-width: 3.5rem;
+    text-align: center;
+}
