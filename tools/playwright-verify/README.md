@@ -63,6 +63,7 @@ env トグル: `HEADLESS=false` 表示 / `CHANNEL=chrome` 実 Chrome / `SLOWMO=<
 | ファイル | 検証対象 |
 |---|---|
 | `mesh-v2-classroom-binding.mjs` | クラス管理と Mesh v2 ドメインの連動。教師タブでクラス作成→サイドバーで選択、生徒タブで `?classcode=` 経由参加し、両方の `state.scratchGui.meshV2.domain` が参加コードに揃うこと、接続モーダル入力欄が disabled になること、解除時に元のドメインに戻ることをチェック |
+| `verify-lesson-support-phase2.mjs` | 組（EPIC #974 Phase 2）の UI 通し。組作成→サイドバー階層→クラスの組割当→授業複製（のコピー）→アーカイブでクラス名グルーピングへフォールバック。ポート・CORS の注意は phase1 と同じ |
 | `verify-lesson-support-phase1.mjs` | 課題配信（EPIC #974 Phase 1）の通し。教師: クラス作成→課題エディタで2ページ+スターター（今開いているプロジェクト）を保存。生徒: `?classcode=` 参加→課題パネル自動表示→ページ送り→スターターボタン→「はじめる！」→ステータスの「課題を見る」で再表示。8601 以外のポートで動かすときは `DISABLE_WEB_SECURITY=1`（stg の CORS が localhost:8601 のみ許可のため） |
 
 ## 自動化のキー知見
