@@ -98,6 +98,8 @@ CDK スタック定義。以下のリソースを作成:
 | `handleCreateSubmission()` | 提出 (Presigned URL 生成) |
 | `handleListSubmissions()` | 提出一覧 |
 | `handleUpdateSubmission()` | 提出更新 (返却・コメント) |
+| `handleSetAssignment()` | 課題コンテンツ設定 (ページ + スターター、Presigned URL 生成) |
+| `handleGetAssignment()` | 課題コンテンツ取得 (生徒 Session Token / 先生 ID Token 両対応) |
 | `handleListGoogleCourses()` | Google Classroom コース一覧 |
 | `handleImportGoogleClassroom()` | Google Classroom コースインポート |
 | `handlePostAssignment()` | Google Classroom に課題投稿 |
