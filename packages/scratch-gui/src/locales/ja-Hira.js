@@ -188,6 +188,7 @@ export default {
     'gui.classroom.googleCourses.import': 'インポート',
     'gui.classroom.googleCourses.empty': 'クラスがみつかりません',
     'gui.classroom.googleCourses.students': '{count}にん',
+    'gui.classroom.previousComment.title': 'ぜんかいのせんせいからのコメント（{assignmentName}）:',
     'gui.classroom.groups.title': 'くみのかんり',
     'gui.classroom.groups.hint':
         'くみは1つのがっきゅう（れい: 2ねん1くみ）です。じゅぎょうをくみにわりあてるとねんかんのせいりができ、せいとにはぜんかいのへんきゃくコメントがさいひょうじされます。',

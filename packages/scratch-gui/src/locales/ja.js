@@ -183,6 +183,7 @@ export default {
     'gui.classroom.googleCourses.import': 'インポート',
     'gui.classroom.googleCourses.empty': 'クラスが見つかりません',
     'gui.classroom.googleCourses.students': '{count}人',
+    'gui.classroom.previousComment.title': '前回の先生からのコメント（{assignmentName}）:',
     'gui.classroom.groups.title': '組の管理',
     'gui.classroom.groups.hint':
         '組は1つの学級（例: 2年1組）です。授業を組に割り当てると年間の整理ができ、生徒には前回の返却コメントが再表示されます。',
