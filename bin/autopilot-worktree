@@ -58,6 +58,31 @@ BRANCH_PREFIX="${AUTOPILOT_BRANCH_PREFIX:-topic/autopilot-}"
 wt_path() { echo "${WT_ROOT}/issue-$1"; }
 wt_branch() { echo "${BRANCH_PREFIX}$1"; }
 
+# `git worktree add -b` は新ブランチの upstream 設定で共有 .git/config をロックする。
+# daemon が複数 Issue を同時ディスパッチすると複数の `autopilot-worktree create` が並行し、
+# `could not lock config file .git/config: File exists` で worktree 作成が失敗する（#681/#958）。
+# ロック競合はジッタ付きで数回リトライして吸収する（それ以外のエラーはそのまま返す）。
+git_wt_add_retry() {
+    local attempt out rc
+    for attempt in 1 2 3 4 5 6; do
+        if out=$(git -C "${MAIN_CHECKOUT}" worktree add "$@" 2>&1); then
+            [[ -n "${out}" ]] && printf '%s\n' "${out}"
+            return 0
+        fi
+        rc=$?
+        if printf '%s' "${out}" | grep -q "could not lock config file"; then
+            echo "info: .git/config ロック競合で worktree add 失敗、リトライ ${attempt}/6" >&2
+            sleep "0.$((RANDOM % 7 + 3))"   # 0.3〜0.9s のジッタで再衝突を避ける
+            continue
+        fi
+        printf '%s\n' "${out}" >&2
+        return "${rc}"
+    done
+    echo "error: worktree add が .git/config ロック競合で 6 回失敗しました（並行作成の輻輳）" >&2
+    printf '%s\n' "${out}" >&2
+    return 1
+}
+
 # worktree の git exclude に node_modules を追記（冪等・コミット不要）。
 # 理由: node_modules を main へ symlink して共有するが、古い base ブランチの
 # `.gitignore` は `node_modules/`（末尾スラッシュ=ディレクトリのみ）で symlink を
@@ -146,14 +171,14 @@ cmd_create() {
     if git -C "${MAIN_CHECKOUT}" worktree list --porcelain | grep -qx "worktree ${wt}"; then
         echo "info: worktree already exists: ${wt} (re-preparing)"
     elif git -C "${MAIN_CHECKOUT}" show-ref --verify --quiet "refs/heads/${branch}"; then
-        git -C "${MAIN_CHECKOUT}" worktree add "${wt}" "${branch}"
+        git_wt_add_retry "${wt}" "${branch}"
     elif [[ -n "${explicit_branch}" ]] && git -C "${MAIN_CHECKOUT}" show-ref --verify --quiet "refs/remotes/origin/${branch}"; then
         # 既存リモートブランチ（既存ブランチ / PR ヘッド）を追跡 checkout
-        git -C "${MAIN_CHECKOUT}" worktree add -b "${branch}" "${wt}" "origin/${branch}"
+        git_wt_add_retry -b "${branch}" "${wt}" "origin/${branch}"
     elif [[ -n "${explicit_branch}" ]]; then
         echo "error: branch not found locally or on origin: ${branch}" >&2; exit 1
     else
-        git -C "${MAIN_CHECKOUT}" worktree add -b "${branch}" "${wt}" "${base}"
+        git_wt_add_retry -b "${branch}" "${wt}" "${base}"
     fi
 
     if [[ "${full}" == "true" ]]; then
