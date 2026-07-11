@@ -169,6 +169,23 @@ const ClassroomTeacherModal = () => {
         onRejectKickRequest: teacher.handleRejectKickRequest,
         onAddCoTeacher: teacher.handleAddCoTeacher,
         onRemoveCoTeacher: teacher.handleRemoveCoTeacher,
+        assignmentEditorPages: teacher.assignmentEditorPages,
+        assignmentStarterMode: teacher.assignmentStarterMode,
+        assignmentStarterSource: teacher.assignmentStarterSource,
+        assignmentHasExistingStarter: teacher.assignmentHasExistingStarter,
+        assignmentIsSaving: teacher.assignmentIsSaving,
+        onShowAssignmentEditor: teacher.handleShowAssignmentEditor,
+        onAssignmentAddPage: teacher.handleAssignmentAddPage,
+        onAssignmentRemovePage: teacher.handleAssignmentRemovePage,
+        onAssignmentMovePage: teacher.handleAssignmentMovePage,
+        onAssignmentChangePageText: teacher.handleAssignmentChangePageText,
+        onAssignmentAttachPageImage: teacher.handleAssignmentAttachPageImage,
+        onAssignmentRemovePageImage: teacher.handleAssignmentRemovePageImage,
+        onAssignmentUseCurrentProject: teacher.handleAssignmentUseCurrentProject,
+        onAssignmentUseFile: teacher.handleAssignmentUseFile,
+        onAssignmentRemoveStarter: teacher.handleAssignmentRemoveStarter,
+        onAssignmentSave: teacher.handleAssignmentSave,
+        onAssignmentCancel: teacher.handleAssignmentCancel,
     };
     return <ClassroomTeacherModalComponent containerProps={teacherContainerProps} onClose={handleClose} />;
 };

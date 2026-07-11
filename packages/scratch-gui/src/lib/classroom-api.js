@@ -264,6 +264,31 @@ class ClassroomAPI {
     }
 
     /**
+     * Set (replace) the assignment content of a classroom (teacher only).
+     * Pages carry either `newImage` (MIME type, requests a fresh upload URL)
+     * or `imageKey` (keep the existing object). `newStarter` / `keepStarter`
+     * control the starter project. An empty payload clears the assignment.
+     * @param {string} idToken - Teacher ID token
+     * @param {string} classroomId - Classroom ID
+     * @param {object} payload - {pages, newStarter, keepStarter}
+     * @returns {Promise<object>} {assignment, imageUploadUrls, starterUploadUrl}
+     */
+    async setAssignment(idToken, classroomId, payload) {
+        return this._request('PUT', `/classrooms/${classroomId}/assignment`, payload, idToken);
+    }
+
+    /**
+     * Get the assignment content of a classroom with download URLs.
+     * Accepts either a teacher ID token or a student session token.
+     * @param {string} token - Teacher ID token or student session token
+     * @param {string} classroomId - Classroom ID
+     * @returns {Promise<object>} {assignment} — null when no assignment is set
+     */
+    async getAssignment(token, classroomId) {
+        return this._request('GET', `/classrooms/${classroomId}/assignment`, null, token);
+    }
+
+    /**
      * Upload data to a presigned URL.
      * @param {string} url - Presigned URL
      * @param {ArrayBuffer|Blob|string} data - Data to upload
@@ -347,7 +372,7 @@ class ClassroomAPI {
         }
 
         const options = { method, headers };
-        if (body && (method === 'POST' || method === 'PATCH')) {
+        if (body && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
             options.body = JSON.stringify(body);
         }
 

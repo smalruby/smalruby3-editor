@@ -11,6 +11,7 @@ import { defineMessages, useIntl, FormattedMessage } from 'react-intl';
 import Modal from '../../containers/modal.jsx';
 
 import ClassCodeDisplay from '../classroom-modal/class-code-display.jsx';
+import TeacherAssignmentEditor from '../classroom-modal/teacher-assignment-editor.jsx';
 import TeacherClassDetail from '../classroom-modal/teacher-class-detail.jsx';
 import TeacherCreateForm from '../classroom-modal/teacher-create-form.jsx';
 import TeacherPostAssignment from '../classroom-modal/teacher-post-assignment.jsx';
@@ -83,6 +84,23 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         onRejectKickRequest,
         onAddCoTeacher,
         onRemoveCoTeacher,
+        assignmentEditorPages,
+        assignmentStarterMode,
+        assignmentStarterSource,
+        assignmentHasExistingStarter,
+        assignmentIsSaving,
+        onShowAssignmentEditor,
+        onAssignmentAddPage,
+        onAssignmentRemovePage,
+        onAssignmentMovePage,
+        onAssignmentChangePageText,
+        onAssignmentAttachPageImage,
+        onAssignmentRemovePageImage,
+        onAssignmentUseCurrentProject,
+        onAssignmentUseFile,
+        onAssignmentRemoveStarter,
+        onAssignmentSave,
+        onAssignmentCancel,
     } = containerProps;
 
     const renderMain = () => {
@@ -141,6 +159,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         onRejectKickRequest={onRejectKickRequest}
                         onReturnSubmission={onReturnSubmission}
                         onSelectMember={onSelectMember}
+                        onShowAssignmentEditor={onShowAssignmentEditor}
                         onShowCodeDisplay={onShowCodeDisplay}
                         onShowPostAssignment={authProvider === 'google' ? onShowPostAssignment : null}
                         onToggleCodeFullscreen={onToggleCodeFullscreen}
@@ -167,6 +186,34 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                                 ? onShowGoogleCourses
                                 : null
                         }
+                    />
+                </div>
+            );
+        }
+
+        if (phase === 'teacher-assignment-edit' && selectedClassroom) {
+            return (
+                <div className={styles.mainRelative}>
+                    <TeacherAssignmentEditor
+                        editorPages={assignmentEditorPages}
+                        error={error}
+                        errorTitle={errorTitle}
+                        hasExistingStarter={assignmentHasExistingStarter}
+                        isSaving={assignmentIsSaving}
+                        selectedClassroom={selectedClassroom}
+                        starterMode={assignmentStarterMode}
+                        starterSource={assignmentStarterSource}
+                        onAddPage={onAssignmentAddPage}
+                        onAttachPageImage={onAssignmentAttachPageImage}
+                        onCancel={onAssignmentCancel}
+                        onChangePageText={onAssignmentChangePageText}
+                        onMovePage={onAssignmentMovePage}
+                        onRemovePage={onAssignmentRemovePage}
+                        onRemovePageImage={onAssignmentRemovePageImage}
+                        onRemoveStarter={onAssignmentRemoveStarter}
+                        onSave={onAssignmentSave}
+                        onUseCurrentProject={onAssignmentUseCurrentProject}
+                        onUseFile={onAssignmentUseFile}
                     />
                 </div>
             );

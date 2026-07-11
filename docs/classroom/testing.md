@@ -158,6 +158,27 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-post-assignment-submit` | button | 配信実行 |
 | `classroom-post-assignment-success` | div | 配信成功メッセージ |
 
+### 課題エディタ（課題コンテンツ）
+
+| data-testid | 要素 | 説明 |
+|------------|------|------|
+| `classroom-edit-assignment-content` | button | 課題を編集（詳細画面から課題エディタを開く） |
+| `classroom-phase-teacher-assignment-edit` | div | 課題エディタフェーズのルート |
+| `classroom-assignment-page-{n}` | div | ページ n（0-indexed）のカード |
+| `classroom-assignment-page-text-{n}` | textarea | ページ n の本文（最大500文字） |
+| `classroom-assignment-page-up-{n}` / `classroom-assignment-page-down-{n}` | button | ページの並べ替え |
+| `classroom-assignment-page-remove-{n}` | button | ページ削除 |
+| `classroom-assignment-page-image-attach-{n}` | button | 画像を追加（png/jpeg） |
+| `classroom-assignment-page-image-{n}` | img | 画像プレビュー |
+| `classroom-assignment-page-image-remove-{n}` | button | 画像を削除 |
+| `classroom-assignment-add-page` | button | ページを追加（最大10） |
+| `classroom-assignment-starter-status` | div | スターターの状態表示 |
+| `classroom-assignment-starter-current` | button | 今開いているプロジェクトをスターターに設定 |
+| `classroom-assignment-starter-file` | button | .sb3 ファイルをスターターに設定 |
+| `classroom-assignment-starter-remove` | button | スターターを削除 |
+| `classroom-assignment-save` | button | 課題を保存 |
+| `classroom-assignment-cancel` | button | キャンセル（詳細画面へ戻る） |
+
 ### メニューバー
 
 | data-testid | 要素 | 説明 |
