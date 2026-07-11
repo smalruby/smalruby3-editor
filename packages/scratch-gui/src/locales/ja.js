@@ -183,6 +183,16 @@ export default {
     'gui.classroom.googleCourses.import': 'インポート',
     'gui.classroom.googleCourses.empty': 'クラスが見つかりません',
     'gui.classroom.googleCourses.students': '{count}人',
+    'gui.classroom.studentAssignment.title': '課題',
+    'gui.classroom.studentAssignment.joinedNotice': '参加しました！ 出席番号 {seatNumber}',
+    'gui.classroom.studentAssignment.prevPage': '← 前へ',
+    'gui.classroom.studentAssignment.nextPage': '次へ →',
+    'gui.classroom.studentAssignment.reloadStarter': 'スタータープロジェクトを開く',
+    'gui.classroom.studentAssignment.close': 'はじめる！',
+    'gui.classroom.studentAssignment.viewButton': '課題を見る',
+    'gui.classroom.studentAssignment.overwriteConfirm':
+        '課題のスタータープロジェクトを開きますか？ 今つくっているプロジェクトは置きかわります。',
+    'gui.classroom.studentAssignment.starterLoadFailed': 'スタータープロジェクトを開けませんでした',
     'gui.classroom.assignmentEditor.openButton': '課題を編集',
     'gui.classroom.assignmentEditor.title': '課題を編集',
     'gui.classroom.assignmentEditor.hint':

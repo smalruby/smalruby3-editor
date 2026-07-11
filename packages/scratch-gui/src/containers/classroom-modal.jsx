@@ -22,6 +22,7 @@ import {
 import { setProjectTitle } from '../reducers/project-title.js';
 import { decideClasscodeAction } from './classroom-classcode-utils.js';
 import translateError, { extractKickReason } from './classroom-error-utils.js';
+import useStudentAssignment from './use-student-assignment.js';
 import useStudentSubmit from './use-student-submit.js';
 
 const ClassroomModal = () => {
@@ -77,6 +78,18 @@ const ClassroomModal = () => {
         showError,
         showSessionExpiredError: stableShowSessionExpiredError,
         intl,
+        setIsLoading,
+        setPhase,
+    });
+
+    // Student assignment hook (assignment pages + starter auto-load)
+    const studentAssignment = useStudentAssignment({
+        classroomState,
+        vm,
+        intl,
+        dispatch,
+        clearError,
+        showError,
         setIsLoading,
         setPhase,
     });
@@ -322,7 +335,19 @@ const ClassroomModal = () => {
             clearPendingKickRequest();
             setKickRequestPending(null);
             setKickRequestRejectedNotice(null);
-            setPhase('student-joined');
+            if (data.hasAssignment) {
+                // Assignment delivery: fetch the assignment, auto-load the
+                // starter (never clobbering an edited project silently), and
+                // jump straight to the assignment pages when there are any.
+                const nextPhase = await studentAssignment.handleJoinedWithAssignment(
+                    data.sessionToken,
+                    data.classroomId,
+                );
+                setPhase(nextPhase || 'student-joined');
+            } else {
+                studentAssignment.setHasAssignment(false);
+                setPhase('student-joined');
+            }
         } catch (err) {
             if (err.status === 409) {
                 setTakenSeats((prev) => [...prev, selectedSeat]);
@@ -332,7 +357,16 @@ const ClassroomModal = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [dispatch, pendingJoinCode, selectedSeat, pendingClassroomInfo, clearError, showError, intl]);
+    }, [
+        dispatch,
+        pendingJoinCode,
+        selectedSeat,
+        pendingClassroomInfo,
+        clearError,
+        showError,
+        intl,
+        studentAssignment,
+    ]);
 
     // --- Verify session + fetch submission status ---
 
@@ -347,6 +381,7 @@ const ClassroomModal = () => {
                 dispatch(setSubmissionStatus(result.submission.status, result.submission.submittedAt));
                 setStudentTeacherComment(result.submission.teacherComment || null);
             }
+            studentAssignment.setHasAssignment(!!result.hasAssignment);
         } catch (err) {
             const kick = extractKickReason(err);
             if (kick) {
@@ -365,7 +400,7 @@ const ClassroomModal = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [classroomState.sessionToken, dispatch, showSessionExpiredError, intl, handleJoinWithCode]);
+    }, [classroomState.sessionToken, dispatch, showSessionExpiredError, intl, handleJoinWithCode, studentAssignment]);
 
     useEffect(() => {
         if (phase === 'student-status' && classroomState.sessionToken) {
@@ -423,8 +458,15 @@ const ClassroomModal = () => {
 
     return (
         <ClassroomModalComponent
+            assignment={studentAssignment.assignment}
+            assignmentPageIndex={studentAssignment.assignmentPageIndex}
             classroomState={classroomState}
             error={error}
+            hasAssignment={studentAssignment.hasAssignment}
+            onAssignmentNextPage={studentAssignment.handleAssignmentNextPage}
+            onAssignmentPrevPage={studentAssignment.handleAssignmentPrevPage}
+            onOpenAssignment={studentAssignment.handleOpenAssignment}
+            onReloadStarter={studentAssignment.handleReloadStarter}
             errorActionHandler={errorActionHandler}
             errorActionLabel={errorActionLabel}
             errorTitle={errorTitle}

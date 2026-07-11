@@ -176,6 +176,16 @@ export default {
     'gui.classroom.googleCourses.import': 'Import',
     'gui.classroom.googleCourses.empty': 'No courses found',
     'gui.classroom.googleCourses.students': '{count} students',
+    'gui.classroom.studentAssignment.title': 'Assignment',
+    'gui.classroom.studentAssignment.joinedNotice': 'Joined! Seat {seatNumber}',
+    'gui.classroom.studentAssignment.prevPage': '← Previous',
+    'gui.classroom.studentAssignment.nextPage': 'Next →',
+    'gui.classroom.studentAssignment.reloadStarter': 'Open the Starter Project',
+    'gui.classroom.studentAssignment.close': 'Start Working!',
+    'gui.classroom.studentAssignment.viewButton': 'View Assignment',
+    'gui.classroom.studentAssignment.overwriteConfirm':
+        'Open the assignment starter project? Your current project will be replaced.',
+    'gui.classroom.studentAssignment.starterLoadFailed': 'Failed to open the starter project',
     'gui.classroom.assignmentEditor.openButton': 'Edit Assignment',
     'gui.classroom.assignmentEditor.title': 'Edit Assignment',
     'gui.classroom.assignmentEditor.hint':

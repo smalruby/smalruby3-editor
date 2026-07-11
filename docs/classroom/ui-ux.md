@@ -492,6 +492,34 @@ owner または co-teacher が、別の先生を **email で招待**して共同
 
 ---
 
+## 課題配信（課題エディタ + 生徒の課題パネル）
+
+クラスには任意で**課題コンテンツ**（(数行テキスト + 画像1枚) × 最大10ページ + スタータープロジェクト1つ）を持たせられます。生徒は参加コードで参加した瞬間に課題ページが表示され、スタータープロジェクトが自動で開きます（プログラム配付の手作業をなくす機能）。
+
+### 課題エディタ（先生: teacher-assignment-edit フェーズ）
+
+クラス詳細の課題名の行にある「課題を編集」ボタン（`classroom-edit-assignment-content`）から開きます。
+
+![課題エディタ（ページ2枚 + スターター設定済み）](screenshots/0209-teacher-assignment-editor.png)
+
+- ページの追加・削除・並べ替え（↑↓）、1ページ500文字 + 画像1枚（png/jpeg）
+- スターターは「今開いているプロジェクトを使う」（保存時に `vm.saveProjectSb3()` で生成）か「.sb3 ファイルを選ぶ」
+- 保存すると画像・スターターは Presigned URL で S3 に直接アップロードされる
+- data-testid 一覧は [testing.md](testing.md) の「課題エディタ」参照
+
+### 課題パネル（生徒: student-assignment フェーズ）
+
+join 完了直後に自動で開きます（課題が設定されているクラスのみ）。ステータス画面の「課題を見る」（`classroom-view-assignment-button`）からいつでも開き直せます。
+
+![課題パネル（join 直後・参加通知つき）](screenshots/0314-student-assignment-panel.png)
+
+- スターターの自動ロードは**編集中のプロジェクトを勝手に上書きしない**（未編集なら自動、編集ありなら confirm）
+- 「スタータープロジェクトを開く」で明示的に開き直せる（同じく confirm あり）
+- 「はじめる！」でモーダルを閉じて作業開始
+- data-testid 一覧は [testing.md](testing.md) の「課題パネル（生徒）」参照
+
+---
+
 ## 10. 先生: Google Classroom コース一覧 (`teacher-google-courses`)
 
 Google Classroom のアクティブなコース一覧を表示し、インポートするコースを選択します。クラス作成画面の「Google Classroom からクラス名と人数をインポート」リンクから遷移します。
