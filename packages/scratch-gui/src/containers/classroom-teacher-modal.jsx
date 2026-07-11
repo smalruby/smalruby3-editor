@@ -186,6 +186,7 @@ const ClassroomTeacherModal = () => {
         onAssignmentRemoveStarter: teacher.handleAssignmentRemoveStarter,
         onAssignmentSave: teacher.handleAssignmentSave,
         onAssignmentCancel: teacher.handleAssignmentCancel,
+        onAssignmentApplyTemplate: teacher.handleAssignmentApplyTemplate,
         groups: teacher.groups,
         onShowGroupManage: teacher.handleShowGroupManage,
         onBackFromGroupManage: teacher.handleBackFromGroupManage,

@@ -42,6 +42,11 @@ const messages = defineMessages({
         description: 'Assignment editor error: vm.saveProjectSb3 failed',
         id: 'gui.classroom.assignmentEditor.errorStarterSave',
     },
+    templateOverwriteConfirm: {
+        defaultMessage: 'Replace the current pages with the template?',
+        description: 'Confirm before a template replaces edited pages',
+        id: 'gui.classroom.assignmentEditor.templateOverwriteConfirm',
+    },
 });
 
 /**
@@ -116,6 +121,29 @@ const useTeacherAssignment = ({
     const handleAddPage = useCallback(() => {
         setEditorPages((pages) => (pages.length >= MAX_ASSIGNMENT_PAGES ? pages : [...pages, { text: '' }]));
     }, []);
+
+    /**
+     * Apply an official template: replaces the pages with the template's
+     * pages (asks first when the editor already has content). The teacher
+     * customizes the text afterwards and attaches a starter as usual.
+     */
+    const handleApplyTemplate = useCallback(
+        (template) => {
+            if (!template) return;
+            setEditorPages((pages) => {
+                const hasContent = pages.some((page) => (page.text || '').trim() || page.imageKey || page.previewUrl);
+                if (hasContent) {
+                    // eslint-disable-next-line no-alert
+                    if (!window.confirm(intl.formatMessage(messages.templateOverwriteConfirm))) {
+                        return pages;
+                    }
+                    releasePreviews(pages);
+                }
+                return template.pages.map((page) => ({ text: page.text }));
+            });
+        },
+        [intl, releasePreviews],
+    );
 
     const handleRemovePage = useCallback((index) => {
         setEditorPages((pages) => {
@@ -299,6 +327,7 @@ const useTeacherAssignment = ({
         handleRemoveStarter,
         handleSaveAssignment,
         handleCancelAssignmentEdit,
+        handleApplyTemplate,
     };
 };
 
