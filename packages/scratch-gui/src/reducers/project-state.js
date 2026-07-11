@@ -12,6 +12,9 @@ const DONE_UPDATING = 'scratch-gui/project-state/DONE_UPDATING';
 const DONE_UPDATING_BEFORE_COPY = 'scratch-gui/project-state/DONE_UPDATING_BEFORE_COPY';
 const DONE_UPDATING_BEFORE_NEW = 'scratch-gui/project-state/DONE_UPDATING_BEFORE_NEW';
 const RETURN_TO_SHOWING = 'scratch-gui/project-state/RETURN_TO_SHOWING';
+// === Smalruby: Start of restore project state after URL load failure (#972) ===
+const RESTORE_PROJECT_STATE = 'scratch-gui/project-state/RESTORE_PROJECT_STATE';
+// === Smalruby: End of restore project state after URL load failure (#972) ===
 const SET_PROJECT_ID = 'scratch-gui/project-state/SET_PROJECT_ID';
 const START_AUTO_UPDATING = 'scratch-gui/project-state/START_AUTO_UPDATING';
 const START_CREATING_NEW = 'scratch-gui/project-state/START_CREATING_NEW';
@@ -217,6 +220,26 @@ const reducer = function (state, action) {
         return Object.assign({}, state, {
             loadingState: LoadingState.SHOWING_WITH_ID
         });
+    // === Smalruby: Start of restore project state after URL load failure (#972) ===
+    case RESTORE_PROJECT_STATE:
+        // Atomically restore the projectId together with a showing loadingState
+        // after a failed URL load. loadProjectWithChecks has already restored
+        // the VM to the previously-loaded project, so redux must match it;
+        // leaving the *failed* project's id in state (with SHOWING_WITH_ID)
+        // desynchronizes redux from the VM. Going straight to a showing state in
+        // a single dispatch also means project-fetcher-hoc never observes an
+        // intermediate FETCHING_WITH_ID and does not re-fetch (#972).
+        if (action.projectId === null || action.projectId === defaultProjectId) {
+            return Object.assign({}, state, {
+                loadingState: LoadingState.SHOWING_WITHOUT_ID,
+                projectId: defaultProjectId
+            });
+        }
+        return Object.assign({}, state, {
+            loadingState: LoadingState.SHOWING_WITH_ID,
+            projectId: action.projectId
+        });
+    // === Smalruby: End of restore project state after URL load failure (#972) ===
     case SET_PROJECT_ID:
         // if the projectId hasn't actually changed do nothing
         if (state.projectId === action.projectId) {
@@ -476,6 +499,13 @@ const setProjectId = id => ({
     projectId: id
 });
 
+// === Smalruby: Start of restore project state after URL load failure (#972) ===
+const restoreProjectState = projectId => ({
+    type: RESTORE_PROJECT_STATE,
+    projectId: projectId
+});
+// === Smalruby: End of restore project state after URL load failure (#972) ===
+
 const requestNewProject = needSave => {
     if (needSave) return {type: START_UPDATING_BEFORE_CREATING_NEW};
     return {type: START_FETCHING_NEW};
@@ -542,6 +572,9 @@ export {
     remixProject,
     requestNewProject,
     requestProjectUpload,
+    // === Smalruby: Start of restore project state after URL load failure (#972) ===
+    restoreProjectState,
+    // === Smalruby: End of restore project state after URL load failure (#972) ===
     saveProjectAsCopy,
     setProjectId
 };

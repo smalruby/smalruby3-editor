@@ -89,6 +89,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/lib/project-fetcher-hoc.jsx` | URL params for Playwright | URL パラメーター import |
 | `src/lib/project-fetcher-hoc.jsx` | initial tab from URL param | 初期タブ URL パラメーター |
 | `src/reducers/editor-tab.js` | initial tab from URL param | 初期タブ URL パラメーター |
+| `src/reducers/project-state.js` | restore project state after URL load failure (#972) | Scratch URL 読み込み失敗時に、直前プロジェクトの id + 表示状態へアトミックに復帰する `RESTORE_PROJECT_STATE` アクション/reducer case/`restoreProjectState` action creator（VM 復元内容と redux の projectId 不整合・ERROR 化を防ぐ。4 ペア） |
 | `src/reducers/settings.js` | URL params for Playwright | URL パラメーター import |
 | `src/reducers/settings.js` | ruby_version URL param | Ruby バージョン URL パラメーター |
 | `src/lib/url-params.js` | welcome URL param | `?welcome=1` でウェルカムモーダルを初回ロード時に自動表示 |

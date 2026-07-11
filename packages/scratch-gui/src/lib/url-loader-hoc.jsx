@@ -12,6 +12,7 @@ import {
     getIsLoadingUpload,
     getIsShowingWithoutId,
     onLoadedProject,
+    restoreProjectState,
     setProjectId,
     requestProjectUpload,
 } from '../reducers/project-state';
@@ -95,6 +96,11 @@ const URLLoaderHOC = function (WrappedComponent) {
         }
 
         loadScratchProjectFromUrl(projectId) {
+            // Capture the project id we are showing *before* setProjectId() moves
+            // it to the target id. If the load fails, loadProjectWithChecks
+            // restores the VM to this previous project, so we must restore redux
+            // to the same id to keep app state and VM content consistent (#972).
+            const previousProjectId = this.props.reduxProjectId;
             this.props.onLoadingStarted();
             this.props.setProjectId(projectId.toString());
 
@@ -134,10 +140,11 @@ const URLLoaderHOC = function (WrappedComponent) {
                     // vm.loadProject() disposes the current project before it
                     // deserializes, so a failed load empties the runtime.
                     // loadProjectWithChecks has already restored the previous
-                    // project into the VM; transition back to the (non-fatal)
-                    // "showing" state instead of the fatal ERROR state, which
-                    // would make gui.jsx throw and reset the whole editor (#972).
-                    this.props.onLoadedProject(this.props.loadingState, false, false);
+                    // project into the VM; restore redux to that same project
+                    // (id + showing state) instead of leaving the failed target
+                    // id in a fatal ERROR / mismatched state, which would make
+                    // gui.jsx throw and reset the whole editor (#972).
+                    this.props.restorePreviousProjectState(previousProjectId);
                     const message = formatLoadError(error, this.props.intl);
                     if (this.urlLoaderErrorCallback) {
                         // The modal is still mounted (we did not close it on
@@ -177,7 +184,9 @@ const URLLoaderHOC = function (WrappedComponent) {
                 onSetRubyVersion: _onSetRubyVersion,
                 openUrlLoaderModal: _openUrlLoaderModalProp,
                 projectChanged: _projectChanged,
+                reduxProjectId: _reduxProjectId,
                 requestProjectUpload: _requestProjectUploadProp,
+                restorePreviousProjectState: _restorePreviousProjectStateProp,
                 rubyVersion: _rubyVersion,
                 setProjectId: _setProjectIdProp,
                 userOwnsProject: _userOwnsProject,
@@ -215,7 +224,9 @@ const URLLoaderHOC = function (WrappedComponent) {
         onStartSelectingUrlLoad: PropTypes.func,
         openUrlLoaderModal: PropTypes.func,
         projectChanged: PropTypes.bool,
+        reduxProjectId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
         requestProjectUpload: PropTypes.func,
+        restorePreviousProjectState: PropTypes.func,
         rubyVersion: PropTypes.string,
         setProjectId: PropTypes.func,
         storage: GUIStoragePropType,
@@ -238,6 +249,7 @@ const URLLoaderHOC = function (WrappedComponent) {
             isShowingWithoutId: getIsShowingWithoutId(loadingState),
             loadingState: loadingState,
             projectChanged: state.scratchGui.projectChanged,
+            reduxProjectId: state.scratchGui.projectState.projectId,
             rubyVersion: state.scratchGui.settings.rubyVersion,
             storage: state.scratchGui.config.storage,
             userOwnsProject: ownProps.authorUsername && user && ownProps.authorUsername === user.username,
@@ -263,6 +275,7 @@ const URLLoaderHOC = function (WrappedComponent) {
         },
         openUrlLoaderModal: () => dispatch(openUrlLoaderModal()),
         requestProjectUpload: (loadingState) => dispatch(requestProjectUpload(loadingState)),
+        restorePreviousProjectState: (projectId) => dispatch(restoreProjectState(projectId)),
         setProjectId: (projectId) => dispatch(setProjectId(projectId)),
     });
 
