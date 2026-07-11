@@ -179,6 +179,7 @@ sequenceDiagram
 | `GET` | `/classroom-groups` | 自分の組一覧（active + archived） |
 | `PATCH` | `/classroom-groups/{groupId}` | 組のリネーム・年度変更・アーカイブ/復帰 |
 | `POST` | `/classrooms/{id}/duplicate` | クラス（授業）の複製。課題コンテンツの S3 オブジェクトもコピー。`groupId` / `className` / `assignmentName` を上書き可。メンバー・提出は複製しない |
+| `POST` | `/classrooms/{id}/evaluate` | AI 評価支援。静的解析結果（シグナル + 擬似コード）を Anthropic API にリレーし、`mode: grade` は S/A/B/C 案 + 根拠 + needsReview、`mode: comment` は生徒向けポジティブコメント下書きを返す。1リクエスト最大10提出（API GW の30秒制限対策、クライアントがチャンク分割）。先生ごとにレート制限（既定 60回/時） |
 
 ### 生徒用 (認証不要 / Session Token)
 
@@ -331,6 +332,15 @@ erDiagram
 - 組のアーカイブは表示上の整理。授業データ自体は 90 日 TTL で自然消滅する
 - 所有は作成者のみ（`teacherSub` 一致）。co-teacher は組を共有しない（共同管理はクラス単位のまま）
 - **前回コメント再掲**: 組に属するクラスに生徒が join すると、同じ組の直近の授業（最大3回分遡る）で同じ席に返却されたコメントが `previousComment` として join レスポンスに載る（連休明けの個別リキャップ用）
+
+### AI 評価支援（evaluate）
+
+先生の評価作業を支援する。**AI は判定者ではなく提案者**: 全結果に機械シグナルを引用した根拠と needsReview フラグが付き、先生が UI で確認・修正・承認してはじめて記録される。
+
+- 入力: 課題名/課題文 + 評価軸（1〜6、grade モードのみ必須）+ 厳しさ（lenient/standard/strict）+ 較正サンプル（先生が採点した実例、最大5件）+ 提出（席番号・シグナル・擬似コード最大4000字）
+- モデル: `CLAUDE_MODEL`（既定 claude-haiku-4-5）。システムプロンプトに prompt caching（ephemeral）を適用し、同一クラスのチャンク分割呼び出しでキャッシュを共有
+- `ANTHROPIC_API_KEY` 未設定のステージではエンドポイントは 503（機能無効）
+- CloudWatch に `classroom_evaluate` イベント（トークン数・キャッシュヒット）を構造化ログ出力
 
 ### 課題コンテンツ（assignment）
 
