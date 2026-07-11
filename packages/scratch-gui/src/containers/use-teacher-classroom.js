@@ -10,6 +10,7 @@ import useGoogleClassroom from './use-google-classroom.js';
 import useTeacherAssignment from './use-teacher-assignment.js';
 import useTeacherAuth, { getCachedTeacherIdToken, setCachedTeacherIdToken } from './use-teacher-auth.js';
 import useTeacherClassrooms from './use-teacher-classrooms.js';
+import useTeacherGroups from './use-teacher-groups.js';
 import useTeacherSubmissions from './use-teacher-submissions.js';
 
 export { getCachedTeacherIdToken, setCachedTeacherIdToken };
@@ -98,6 +99,18 @@ const useTeacherClassroom = ({
         setIsLoading,
         setPhase,
         vm,
+    });
+
+    const groups = useTeacherGroups({
+        idToken: auth.idToken,
+        handleTeacher401: auth.handleTeacher401,
+        setClassrooms: classrooms.setClassrooms,
+        setSelectedClassroom: classrooms.setSelectedClassroom,
+        clearError,
+        showError,
+        intl,
+        setIsLoading,
+        setPhase,
     });
 
     // --- Composed handlers ---
@@ -194,6 +207,15 @@ const useTeacherClassroom = ({
         handleAssignmentRemoveStarter: assignment.handleRemoveStarter,
         handleAssignmentSave: assignment.handleSaveAssignment,
         handleAssignmentCancel: assignment.handleCancelAssignmentEdit,
+
+        // Groups (組)
+        groups: groups.groups,
+        handleShowGroupManage: groups.handleShowGroupManage,
+        handleBackFromGroupManage: groups.handleBackFromGroupManage,
+        handleCreateGroup: groups.handleCreateGroup,
+        handleUpdateGroup: groups.handleUpdateGroup,
+        handleAssignClassToGroup: groups.handleAssignClassToGroup,
+        handleDuplicateClassroom: groups.handleDuplicateClassroom,
 
         // Google Classroom
         googleCourses: google.googleCourses,

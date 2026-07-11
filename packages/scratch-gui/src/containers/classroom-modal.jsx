@@ -330,6 +330,7 @@ const ClassroomModal = () => {
                 className: data.className,
                 assignmentName: data.assignmentName || null,
                 seatNumber: data.seatNumber,
+                previousComment: data.previousComment || null,
             });
             setKickedNotice(null);
             clearPendingKickRequest();

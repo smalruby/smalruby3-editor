@@ -17,6 +17,7 @@ export class ClassroomStack extends cdk.Stack {
   public readonly membershipsTable: dynamodb.Table;
   public readonly submissionsTable: dynamodb.Table;
   public readonly kickRequestsTable: dynamodb.Table;
+  public readonly groupsTable: dynamodb.Table;
   public readonly submissionsBucket: s3.Bucket;
   public readonly api: apigatewayv2.HttpApi;
 
@@ -196,6 +197,35 @@ export class ClassroomStack extends cdk.Stack {
 
     cdk.Tags.of(this.kickRequestsTable).add('ResourceType', 'DynamoDB');
 
+    // Groups (組) table — the teacher-side organizing concept: one school
+    // class that owns many lesson classrooms over the year. Carries no
+    // student data, so it uses a long TTL (default 400 days ≈ school year +
+    // buffer) instead of the 90-day classroom retention.
+    this.groupsTable = new dynamodb.Table(this, 'GroupsTable', {
+      tableName: `ClassroomGroups${stageSuffix}`,
+      partitionKey: {
+        name: 'groupId',
+        type: dynamodb.AttributeType.STRING,
+      },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      pointInTimeRecoverySpecification: {
+        pointInTimeRecoveryEnabled: false,
+      },
+      timeToLiveAttribute: 'ttl',
+    });
+
+    this.groupsTable.addGlobalSecondaryIndex({
+      indexName: 'teacherSub-index',
+      partitionKey: {
+        name: 'teacherSub',
+        type: dynamodb.AttributeType.STRING,
+      },
+      projectionType: dynamodb.ProjectionType.ALL,
+    });
+
+    cdk.Tags.of(this.groupsTable).add('ResourceType', 'DynamoDB');
+
     // --- S3 Bucket for submissions ---
 
     this.submissionsBucket = new s3.Bucket(this, 'SubmissionsBucket', {
@@ -242,6 +272,7 @@ export class ClassroomStack extends cdk.Stack {
         MEMBERSHIPS_TABLE_NAME: this.membershipsTable.tableName,
         SUBMISSIONS_TABLE_NAME: this.submissionsTable.tableName,
         KICK_REQUESTS_TABLE_NAME: this.kickRequestsTable.tableName,
+        GROUPS_TABLE_NAME: this.groupsTable.tableName,
         SUBMISSIONS_BUCKET_NAME: this.submissionsBucket.bucketName,
         GOOGLE_CLIENT_ID: googleClientId,
         MICROSOFT_CLIENT_ID: microsoftClientId,
@@ -267,6 +298,7 @@ export class ClassroomStack extends cdk.Stack {
     this.membershipsTable.grantReadWriteData(handlerFn);
     this.submissionsTable.grantReadWriteData(handlerFn);
     this.kickRequestsTable.grantReadWriteData(handlerFn);
+    this.groupsTable.grantReadWriteData(handlerFn);
     this.submissionsBucket.grantPut(handlerFn);
     this.submissionsBucket.grantRead(handlerFn);
 
@@ -413,6 +445,27 @@ export class ClassroomStack extends cdk.Stack {
     this.api.addRoutes({
       path: '/classrooms/{classroomId}/assignment',
       methods: [apigatewayv2.HttpMethod.PUT, apigatewayv2.HttpMethod.GET],
+      integration,
+    });
+
+    // Groups (組) — teacher-side organizing concept. Own root path so the
+    // /classrooms/{classroomId} patterns never shadow it.
+    this.api.addRoutes({
+      path: '/classroom-groups',
+      methods: [apigatewayv2.HttpMethod.POST, apigatewayv2.HttpMethod.GET],
+      integration,
+    });
+
+    this.api.addRoutes({
+      path: '/classroom-groups/{groupId}',
+      methods: [apigatewayv2.HttpMethod.PATCH],
+      integration,
+    });
+
+    // Duplicate a lesson (classroom) into the same or another group.
+    this.api.addRoutes({
+      path: '/classrooms/{classroomId}/duplicate',
+      methods: [apigatewayv2.HttpMethod.POST],
       integration,
     });
 

@@ -10,6 +10,7 @@ import React from 'react';
 import { FormattedMessage } from 'react-intl';
 
 import ErrorDisplay from './error-display.jsx';
+import StudentPreviousComment from './student-previous-comment.jsx';
 
 import styles from './classroom-modal.css';
 
@@ -42,6 +43,7 @@ const StudentAssignmentPanel = ({
                     />
                 </div>
             )}
+            {joinedInfo && <StudentPreviousComment previousComment={joinedInfo.previousComment} />}
             <h2 className={styles.phaseTitle}>
                 <FormattedMessage
                     defaultMessage="Assignment"
@@ -146,6 +148,7 @@ StudentAssignmentPanel.propTypes = {
     isLoading: PropTypes.bool,
     joinedInfo: PropTypes.shape({
         seatNumber: PropTypes.number,
+        previousComment: PropTypes.object,
     }),
     pageIndex: PropTypes.number.isRequired,
     onClose: PropTypes.func.isRequired,
