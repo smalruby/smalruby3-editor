@@ -176,6 +176,8 @@ export default {
     'gui.classroom.googleCourses.import': 'Import',
     'gui.classroom.googleCourses.empty': 'No courses found',
     'gui.classroom.googleCourses.students': '{count} students',
+    'gui.classroom.assignmentEditor.templatePlaceholder': 'Start from a template…',
+    'gui.classroom.assignmentEditor.templateOverwriteConfirm': 'Replace the current pages with the template?',
     'gui.classroom.evaluation.title': 'Evaluate — {name} ({year})',
     'gui.classroom.evaluation.hint':
         'AI proposals are drafts — you decide. Grading a few students by hand first calibrates the AI to your standard. Term grades are never shown to students; only the positive comments are returned.',
