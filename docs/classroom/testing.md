@@ -179,6 +179,21 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-assignment-save` | button | 課題を保存 |
 | `classroom-assignment-cancel` | button | キャンセル（詳細画面へ戻る） |
 
+### 課題パネル（生徒）
+
+| data-testid | 要素 | 説明 |
+|------------|------|------|
+| `classroom-phase-student-assignment` | div | 課題パネルフェーズのルート（join 直後に自動表示） |
+| `classroom-assignment-joined-notice` | div | 「参加しました！」通知（join 直後のみ） |
+| `classroom-assignment-view-page` | div | 現在の課題ページ |
+| `classroom-assignment-view-text` | div | ページ本文 |
+| `classroom-assignment-view-image` | img | ページ画像 |
+| `classroom-assignment-prev-page` / `classroom-assignment-next-page` | button | ページ送り |
+| `classroom-assignment-page-indicator` | span | ページ位置（`1 / 3`） |
+| `classroom-assignment-reload-starter` | button | スタータープロジェクトを開く（編集中は confirm） |
+| `classroom-assignment-close` | button | はじめる！（モーダルを閉じる） |
+| `classroom-view-assignment-button` | button | ステータス画面の「課題を見る」（hasAssignment 時のみ） |
+
 ### メニューバー
 
 | data-testid | 要素 | 説明 |

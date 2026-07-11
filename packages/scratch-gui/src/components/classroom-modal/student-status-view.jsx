@@ -8,12 +8,14 @@ import styles from './classroom-modal.css';
 
 const StudentStatusView = ({
     classroomState,
+    hasAssignment,
     teacherComment,
     isLoading,
     error,
     errorTitle,
     errorActionLabel,
     errorActionHandler,
+    onOpenAssignment,
     onRefreshStudentStatus,
     onLeaveClassroom,
     onStartSubmit,
@@ -193,6 +195,20 @@ const StudentStatusView = ({
                     id="gui.classroom.studentStatus.leave"
                 />
             </button>
+            {hasAssignment && onOpenAssignment && (
+                <button
+                    className={styles.secondaryButton}
+                    data-testid="classroom-view-assignment-button"
+                    disabled={isLoading}
+                    onClick={onOpenAssignment}
+                >
+                    <FormattedMessage
+                        defaultMessage="View Assignment"
+                        description="Open the assignment panel from the student status view"
+                        id="gui.classroom.studentAssignment.viewButton"
+                    />
+                </button>
+            )}
             <button
                 className={styles.primaryButton}
                 data-testid="classroom-submit-button"
@@ -229,8 +245,10 @@ StudentStatusView.propTypes = {
     errorActionHandler: PropTypes.func,
     errorActionLabel: PropTypes.string,
     errorTitle: PropTypes.string,
+    hasAssignment: PropTypes.bool,
     isLoading: PropTypes.bool,
     onLeaveClassroom: PropTypes.func.isRequired,
+    onOpenAssignment: PropTypes.func,
     onRefreshStudentStatus: PropTypes.func.isRequired,
     onStartSubmit: PropTypes.func.isRequired,
     teacherComment: PropTypes.string,

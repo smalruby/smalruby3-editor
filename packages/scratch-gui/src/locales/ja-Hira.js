@@ -188,6 +188,16 @@ export default {
     'gui.classroom.googleCourses.import': 'インポート',
     'gui.classroom.googleCourses.empty': 'クラスがみつかりません',
     'gui.classroom.googleCourses.students': '{count}にん',
+    'gui.classroom.studentAssignment.title': 'かだい',
+    'gui.classroom.studentAssignment.joinedNotice': 'さんかしました！ しゅっせきばんごう {seatNumber}',
+    'gui.classroom.studentAssignment.prevPage': '← まえへ',
+    'gui.classroom.studentAssignment.nextPage': 'つぎへ →',
+    'gui.classroom.studentAssignment.reloadStarter': 'スタータープロジェクトをひらく',
+    'gui.classroom.studentAssignment.close': 'はじめる！',
+    'gui.classroom.studentAssignment.viewButton': 'かだいをみる',
+    'gui.classroom.studentAssignment.overwriteConfirm':
+        'かだいのスタータープロジェクトをひらきますか？ いまつくっているプロジェクトはおきかわります。',
+    'gui.classroom.studentAssignment.starterLoadFailed': 'スタータープロジェクトをひらけませんでした',
     'gui.classroom.assignmentEditor.openButton': 'かだいをへんしゅう',
     'gui.classroom.assignmentEditor.title': 'かだいをへんしゅう',
     'gui.classroom.assignmentEditor.hint':
