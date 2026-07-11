@@ -186,6 +186,13 @@ const ClassroomTeacherModal = () => {
         onAssignmentRemoveStarter: teacher.handleAssignmentRemoveStarter,
         onAssignmentSave: teacher.handleAssignmentSave,
         onAssignmentCancel: teacher.handleAssignmentCancel,
+        groups: teacher.groups,
+        onShowGroupManage: teacher.handleShowGroupManage,
+        onBackFromGroupManage: teacher.handleBackFromGroupManage,
+        onCreateGroup: teacher.handleCreateGroup,
+        onUpdateGroup: teacher.handleUpdateGroup,
+        onAssignClassToGroup: teacher.handleAssignClassToGroup,
+        onDuplicateClassroom: teacher.handleDuplicateClassroom,
     };
     return <ClassroomTeacherModalComponent containerProps={teacherContainerProps} onClose={handleClose} />;
 };

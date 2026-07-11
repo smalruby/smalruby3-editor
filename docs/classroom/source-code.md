@@ -25,6 +25,7 @@ smalruby3-editor/
 │   │   │   │   ├── teacher-member-detail.jsx ← メンバー詳細パネル (承認/却下ボタン)
 │   │   │   │   ├── teacher-create-form.jsx ← クラス作成フォーム
 │   │   │   │   ├── teacher-assignment-editor.jsx ← 課題エディタ（ページ + スターター）
+│   │   │   │   ├── teacher-group-manage.jsx ← 組（グループ）管理
 │   │   │   │   └── teacher-post-assignment.jsx ← 課題配信
 │   │   │   ├── classroom-teacher-modal/ ← 先生用フルスクリーンモーダル
 │   │   │   │   ├── classroom-teacher-modal.jsx ← メイン（ダッシュボード/詳細/作成等）
@@ -42,6 +43,7 @@ smalruby3-editor/
 │   │   │   ├── use-teacher-classrooms.js ← クラス CRUD + 自動リフレッシュ
 │   │   │   ├── use-teacher-submissions.js ← 提出管理・一括ダウンロード
 │   │   │   ├── use-teacher-assignment.js ← 課題コンテンツ編集フロー
+│   │   │   ├── use-teacher-groups.js ← 組（グループ）管理・複製フロー
 │   │   │   ├── use-student-submit.js  ← 生徒提出フロー
 │   │   │   ├── use-google-classroom.js ← Google Classroom API 連携
 │   │   │   ├── classroom-error-utils.js ← エラーメッセージ変換
@@ -49,6 +51,7 @@ smalruby3-editor/
 │   │   ├── lib/
 │   │   │   ├── classroom-api.js       ← API クライアント (リトライ付き)
 │   │   │   ├── classroom-assignment-utils.js ← 課題エディタの純粋ヘルパー
+│   │   │   ├── classroom-group-utils.js ← サイドバー組階層の純粋ヘルパー
 │   │   │   ├── classroom-kick-request-storage.js ← 退室依頼の localStorage 永続化 (#692)
 │   │   │   ├── google-classroom-auth.js ← Google Classroom OAuth
 │   │   │   └── alerts/index.jsx       ← Alert 定義（classroomSessionExpired 追加）
@@ -103,6 +106,8 @@ CDK スタック定義。以下のリソースを作成:
 | `handleUpdateSubmission()` | 提出更新 (返却・コメント) |
 | `handleSetAssignment()` | 課題コンテンツ設定 (ページ + スターター、Presigned URL 生成) |
 | `handleGetAssignment()` | 課題コンテンツ取得 (生徒 Session Token / 先生 ID Token 両対応) |
+| `handleCreateGroup()` / `handleListGroups()` / `handleUpdateGroup()` | 組（グループ）の作成・一覧・更新/アーカイブ |
+| `handleDuplicateClassroom()` | クラス複製（課題の S3 オブジェクトコピー含む） |
 | `handleListGoogleCourses()` | Google Classroom コース一覧 |
 | `handleImportGoogleClassroom()` | Google Classroom コースインポート |
 | `handlePostAssignment()` | Google Classroom に課題投稿 |

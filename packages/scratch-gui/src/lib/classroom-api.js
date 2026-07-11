@@ -263,6 +263,50 @@ class ClassroomAPI {
         return this._request('PATCH', `/classrooms/${classroomId}/submissions/${submissionId}`, updates, idToken);
     }
 
+    // --- Groups (組) ---
+
+    /**
+     * Create a group (組) — the teacher-side organizing concept.
+     * @param {string} idToken - Teacher ID token
+     * @param {string} name - Group name (e.g. 2年1組)
+     * @param {number} year - School year
+     * @returns {Promise<object>} Created group
+     */
+    async createGroup(idToken, name, year) {
+        return this._request('POST', '/classroom-groups', { name, year }, idToken);
+    }
+
+    /**
+     * List the teacher's groups (active and archived).
+     * @param {string} idToken - Teacher ID token
+     * @returns {Promise<object>} {groups}
+     */
+    async listGroups(idToken) {
+        return this._request('GET', '/classroom-groups', null, idToken);
+    }
+
+    /**
+     * Update a group (rename / change year / archive / unarchive).
+     * @param {string} idToken - Teacher ID token
+     * @param {string} groupId - Group ID
+     * @param {object} updates - {name?, year?, status?}
+     * @returns {Promise<object>} Updated group
+     */
+    async updateGroup(idToken, groupId, updates) {
+        return this._request('PATCH', `/classroom-groups/${groupId}`, updates, idToken);
+    }
+
+    /**
+     * Duplicate a classroom (lesson) with its assignment content.
+     * @param {string} idToken - Teacher ID token
+     * @param {string} classroomId - Source classroom ID
+     * @param {object} [options] - {groupId?, className?, assignmentName?}
+     * @returns {Promise<object>} Created classroom
+     */
+    async duplicateClassroom(idToken, classroomId, options = {}) {
+        return this._request('POST', `/classrooms/${classroomId}/duplicate`, options, idToken);
+    }
+
     /**
      * Set (replace) the assignment content of a classroom (teacher only).
      * Pages carry either `newImage` (MIME type, requests a fresh upload URL)

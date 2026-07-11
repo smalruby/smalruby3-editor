@@ -4,19 +4,23 @@
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React, { useCallback, useMemo } from 'react';
-import { FormattedMessage } from 'react-intl';
+import { FormattedMessage, useIntl } from 'react-intl';
 
+import { buildSidebarSections } from '../../lib/classroom-group-utils.js';
 import googleClassroomIcon from './google-classroom-icon.png';
 import styles from './classroom-teacher-modal.css';
 
 const TeacherSidebar = ({
     classrooms,
+    groups,
     isLoading,
     selectedClassroom,
     onSelectClassroom,
     onShowCreateForm,
+    onShowGroupManage,
     onTeacherLogout,
 }) => {
+    const intl = useIntl();
     const handleSelectClassroom = useCallback(
         (e) => {
             onSelectClassroom(e.currentTarget.dataset.classroomId);
@@ -24,44 +28,16 @@ const TeacherSidebar = ({
         [onSelectClassroom],
     );
 
-    // Group classrooms by className for sidebar display (hide expired)
-    const groupedClassrooms = useMemo(() => {
+    // Sections: real groups (組) first, then the legacy className grouping
+    // for classrooms without a group (hide expired classrooms).
+    const sections = useMemo(() => {
         const now = new Date();
         const activeClassrooms = classrooms.filter((c) => {
             if (!c.expiresAt) return true;
             return new Date(c.expiresAt) > now;
         });
-        const groups = {};
-        for (const c of activeClassrooms) {
-            const name = c.className || '';
-            if (!groups[name]) {
-                groups[name] = [];
-            }
-            groups[name].push(c);
-        }
-        const sortedGroupNames = Object.keys(groups).sort((a, b) =>
-            a.localeCompare(b, 'ja'),
-        );
-        for (const name of sortedGroupNames) {
-            groups[name].sort((a, b) => {
-                const nameComp = (a.assignmentName || '').localeCompare(
-                    b.assignmentName || '',
-                    'ja',
-                );
-                if (nameComp !== 0) return nameComp;
-                return (
-                    new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
-                );
-            });
-        }
-        return sortedGroupNames.map((name) => ({
-            className: name,
-            hasGoogleClassroom: groups[name].some(
-                (c) => c.googleClassroomCourseId,
-            ),
-            classrooms: groups[name],
-        }));
-    }, [classrooms]);
+        return buildSidebarSections(activeClassrooms, groups);
+    }, [classrooms, groups]);
 
     return (
         <aside className={styles.sidebar}>
@@ -82,21 +58,48 @@ const TeacherSidebar = ({
                         />
                     </li>
                 )}
-                {groupedClassrooms.map((group) => (
-                    <React.Fragment key={group.className}>
+                {sections.map((group) => (
+                    <React.Fragment key={group.kind === 'group' ? group.groupId : `cn-${group.className}`}>
                         <li
                             className={styles.sidebarGroupHeader}
-                            data-testid={`classroom-sidebar-group-${group.className}`}
+                            data-testid={
+                                group.kind === 'group'
+                                    ? `classroom-sidebar-teachergroup-${group.groupId}`
+                                    : `classroom-sidebar-group-${group.className}`
+                            }
                         >
-                            {group.hasGoogleClassroom && (
-                                <img
-                                    alt=""
-                                    className={styles.sidebarGroupIcon}
-                                    src={googleClassroomIcon}
-                                />
-                            )}
-                            <span>{group.className}</span>
+                            {group.kind !== 'group' &&
+                                group.classrooms.some((c) => c.googleClassroomCourseId) && (
+                                    <img
+                                        alt=""
+                                        className={styles.sidebarGroupIcon}
+                                        src={googleClassroomIcon}
+                                    />
+                                )}
+                            <span>
+                                {group.kind === 'group'
+                                    ? intl.formatMessage(
+                                          {
+                                              defaultMessage: '{name} ({year})',
+                                              description: 'Sidebar group header: group name + school year',
+                                              id: 'gui.classroom.groups.sidebarHeader',
+                                          },
+                                          { name: group.name, year: group.year },
+                                      )
+                                    : group.className}
+                            </span>
                         </li>
+                        {group.kind === 'group' && group.classrooms.length === 0 && (
+                            <li className={classNames(styles.sidebarItem, styles.sidebarItemIndented)}>
+                                <span className={styles.sidebarItemMeta}>
+                                    <FormattedMessage
+                                        defaultMessage="No lessons yet"
+                                        description="Empty group section in the sidebar"
+                                        id="gui.classroom.groups.sidebarEmpty"
+                                    />
+                                </span>
+                            </li>
+                        )}
                         {group.classrooms.map((c) => (
                             <li
                                 className={classNames(
@@ -150,6 +153,19 @@ const TeacherSidebar = ({
                         id="gui.classroom.management.create"
                     />
                 </button>
+                {onShowGroupManage && (
+                    <button
+                        className={styles.sidebarButton}
+                        data-testid="classroom-group-manage"
+                        onClick={onShowGroupManage}
+                    >
+                        <FormattedMessage
+                            defaultMessage="Manage Groups"
+                            description="Open group (school class) management from the sidebar"
+                            id="gui.classroom.groups.manageButton"
+                        />
+                    </button>
+                )}
                 <button
                     className={classNames(
                         styles.sidebarButton,
@@ -171,9 +187,11 @@ const TeacherSidebar = ({
 
 TeacherSidebar.propTypes = {
     classrooms: PropTypes.arrayOf(PropTypes.object).isRequired,
+    groups: PropTypes.arrayOf(PropTypes.object),
     isLoading: PropTypes.bool,
     onSelectClassroom: PropTypes.func.isRequired,
     onShowCreateForm: PropTypes.func.isRequired,
+    onShowGroupManage: PropTypes.func,
     onTeacherLogout: PropTypes.func.isRequired,
     selectedClassroom: PropTypes.object,
 };

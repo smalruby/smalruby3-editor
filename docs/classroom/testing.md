@@ -194,6 +194,23 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-assignment-close` | button | はじめる！（モーダルを閉じる） |
 | `classroom-view-assignment-button` | button | ステータス画面の「課題を見る」（hasAssignment 時のみ） |
 
+### 組（グループ）管理
+
+| data-testid | 要素 | 説明 |
+|------------|------|------|
+| `classroom-group-manage` | button | サイドバーの「組の管理」 |
+| `classroom-phase-teacher-group-manage` | div | 組管理フェーズのルート |
+| `classroom-group-create-name` / `classroom-group-create-year` | input | 新規組の名前 / 年度 |
+| `classroom-group-create-submit` | button | 組をつくる |
+| `classroom-group-list` | ul | 組一覧 |
+| `classroom-group-row-{groupId}` | li | 組の行 |
+| `classroom-group-name-{groupId}` | input | 組名（インライン編集、blur で保存） |
+| `classroom-group-archive-{groupId}` | button | アーカイブ / もどす |
+| `classroom-group-manage-back` | button | もどる |
+| `classroom-sidebar-teachergroup-{groupId}` | li | サイドバーの組ヘッダー |
+| `classroom-detail-group-select` | select | クラス詳細の組セレクタ |
+| `classroom-duplicate` | button | クラス（授業）の複製 |
+
 ### メニューバー
 
 | data-testid | 要素 | 説明 |

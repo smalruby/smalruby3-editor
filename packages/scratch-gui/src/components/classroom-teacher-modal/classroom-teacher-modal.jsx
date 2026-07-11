@@ -14,6 +14,7 @@ import ClassCodeDisplay from '../classroom-modal/class-code-display.jsx';
 import TeacherAssignmentEditor from '../classroom-modal/teacher-assignment-editor.jsx';
 import TeacherClassDetail from '../classroom-modal/teacher-class-detail.jsx';
 import TeacherCreateForm from '../classroom-modal/teacher-create-form.jsx';
+import TeacherGroupManage from '../classroom-modal/teacher-group-manage.jsx';
 import TeacherPostAssignment from '../classroom-modal/teacher-post-assignment.jsx';
 import ClassroomTutorial from '../classroom-tutorial/classroom-tutorial.jsx';
 import Spinner from '../spinner/spinner.jsx';
@@ -101,6 +102,13 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         onAssignmentRemoveStarter,
         onAssignmentSave,
         onAssignmentCancel,
+        groups,
+        onShowGroupManage,
+        onBackFromGroupManage,
+        onCreateGroup,
+        onUpdateGroup,
+        onAssignClassToGroup,
+        onDuplicateClassroom,
     } = containerProps;
 
     const renderMain = () => {
@@ -129,6 +137,22 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
             );
         }
 
+        if (phase === 'teacher-group-manage') {
+            return (
+                <div className={styles.mainRelative}>
+                    <TeacherGroupManage
+                        error={error}
+                        errorTitle={errorTitle}
+                        groups={groups || []}
+                        isLoading={isLoading}
+                        onBack={onBackFromGroupManage}
+                        onCreateGroup={onCreateGroup}
+                        onUpdateGroup={onUpdateGroup}
+                    />
+                </div>
+            );
+        }
+
         if (phase === 'teacher-class-detail' && selectedClassroom) {
             return (
                 <div className={styles.mainRelative}>
@@ -140,6 +164,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         errorActionHandler={errorActionHandler}
                         errorActionLabel={errorActionLabel}
                         errorTitle={errorTitle}
+                        groups={groups}
                         isLoading={isLoading}
                         kickRequestsBySeat={kickRequestsBySeat}
                         members={members}
@@ -147,6 +172,8 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         selectedClassroom={selectedClassroom}
                         selectedMember={selectedMember}
                         onAddCoTeacher={onAddCoTeacher}
+                        onAssignClassToGroup={onAssignClassToGroup}
+                        onDuplicateClassroom={onDuplicateClassroom}
                         onApproveKickRequest={onApproveKickRequest}
                         onRemoveCoTeacher={onRemoveCoTeacher}
                         onCloseCodeDisplay={onCloseCodeDisplay}
@@ -291,10 +318,12 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                 {phase !== 'teacher-login' && (
                     <TeacherSidebar
                         classrooms={classrooms}
+                        groups={groups}
                         isLoading={isLoading}
                         selectedClassroom={selectedClassroom}
                         onSelectClassroom={onSelectClassroom}
                         onShowCreateForm={onShowCreateForm}
+                        onShowGroupManage={onShowGroupManage}
                         onTeacherLogout={onTeacherLogout}
                     />
                 )}

@@ -175,6 +175,10 @@ sequenceDiagram
 | `GET` | `/classrooms/{id}/submissions` | 提出一覧 (ダウンロード URL 付き) |
 | `PATCH` | `/classrooms/{id}/submissions/{subId}` | 提出の返却・コメント |
 | `PUT` | `/classrooms/{id}/assignment` | 課題コンテンツの設定・更新（ページ + スターター。画像/スターターの Presigned upload URL を返す。空 body で削除） |
+| `POST` | `/classroom-groups` | 組（グループ）の作成（name, year） |
+| `GET` | `/classroom-groups` | 自分の組一覧（active + archived） |
+| `PATCH` | `/classroom-groups/{groupId}` | 組のリネーム・年度変更・アーカイブ/復帰 |
+| `POST` | `/classrooms/{id}/duplicate` | クラス（授業）の複製。課題コンテンツの S3 オブジェクトもコピー。`groupId` / `className` / `assignmentName` を上書き可。メンバー・提出は複製しない |
 
 ### 生徒用 (認証不要 / Session Token)
 
@@ -211,6 +215,7 @@ erDiagram
         string googleClassroomCourseId "任意"
         list coTeacherEmails "共同管理者の email 配列 (任意, 最大10)"
         map assignment "課題コンテンツ (任意): {pages: [{text, imageKey?}], starterKey?, updatedAt}"
+        string groupId "所属する組 (任意)"
         string status "active / archived"
         string createdAt "ISO8601"
         string updatedAt "ISO8601"
@@ -301,6 +306,31 @@ erDiagram
 
 **GSI:**
 - `classroomId-memberId-index` — 生徒ごとの提出検索
+
+### ClassroomGroups テーブル（組）
+
+```mermaid
+erDiagram
+    ClassroomGroups {
+        string groupId PK "UUID"
+        string teacherSub "先生の Subject ID (GSI)"
+        string name "組名 (最大50文字, 例: 2年1組)"
+        number year "年度 (2000-2100)"
+        string status "active / archived"
+        string createdAt "ISO8601"
+        string updatedAt "ISO8601"
+        number ttl "Unix timestamp (既定400日)"
+    }
+```
+
+**GSI:** `teacherSub-index` — 先生の組一覧
+
+組（グループ）は**先生側の管理概念**で、1つの学級（組）が年間の複数の授業（クラス）を束ねる。生徒には見えない（生徒のモデル = 授業ごとの参加コード + 匿名席番号は不変）。
+
+- 組は生徒の作品を持たないため、90日ではなく**長期 TTL（既定400日 ≈ 年度 + バッファ、`GROUP_TTL_DAYS`）**
+- 組のアーカイブは表示上の整理。授業データ自体は 90 日 TTL で自然消滅する
+- 所有は作成者のみ（`teacherSub` 一致）。co-teacher は組を共有しない（共同管理はクラス単位のまま）
+- **前回コメント再掲**: 組に属するクラスに生徒が join すると、同じ組の直近の授業（最大3回分遡る）で同じ席に返却されたコメントが `previousComment` として join レスポンスに載る（連休明けの個別リキャップ用）
 
 ### 課題コンテンツ（assignment）
 
