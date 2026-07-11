@@ -285,6 +285,12 @@ export class ClassroomStack extends cdk.Stack {
         PRESIGNED_URL_DOWNLOAD_EXPIRY: process.env.PRESIGNED_URL_DOWNLOAD_EXPIRY || '3600',
         JOIN_RATE_LIMIT_WINDOW_SECONDS: process.env.JOIN_RATE_LIMIT_WINDOW_SECONDS || '60',
         JOIN_RATE_LIMIT_MAX_ATTEMPTS: process.env.JOIN_RATE_LIMIT_MAX_ATTEMPTS || '50',
+        // AI evaluation support (empty key disables the endpoint with 503)
+        ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || '',
+        CLAUDE_MODEL: process.env.CLAUDE_MODEL || 'claude-haiku-4-5-20251001',
+        EVAL_MAX_SUBMISSIONS: process.env.EVAL_MAX_SUBMISSIONS || '10',
+        EVAL_RATE_LIMIT_WINDOW_SECONDS: process.env.EVAL_RATE_LIMIT_WINDOW_SECONDS || '3600',
+        EVAL_RATE_LIMIT_MAX_REQUESTS: process.env.EVAL_RATE_LIMIT_MAX_REQUESTS || '60',
         STAGE: stage,
       },
       bundling: {
@@ -465,6 +471,14 @@ export class ClassroomStack extends cdk.Stack {
     // Duplicate a lesson (classroom) into the same or another group.
     this.api.addRoutes({
       path: '/classrooms/{classroomId}/duplicate',
+      methods: [apigatewayv2.HttpMethod.POST],
+      integration,
+    });
+
+    // AI evaluation support — grade proposals / comment drafts from
+    // static-analysis results (teacher auth; relays to the Anthropic API).
+    this.api.addRoutes({
+      path: '/classrooms/{classroomId}/evaluate',
       methods: [apigatewayv2.HttpMethod.POST],
       integration,
     });
