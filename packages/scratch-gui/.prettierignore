@@ -109,6 +109,7 @@ src/containers/*
 !src/containers/use-teacher-auth.js
 !src/containers/use-teacher-classroom.js
 !src/containers/use-teacher-classrooms.js
+!src/containers/use-teacher-evaluation.js
 !src/containers/use-teacher-groups.js
 !src/containers/use-teacher-submissions.js
 !src/containers/extension-library.css
@@ -372,6 +373,7 @@ test/unit/lib/*
 !test/unit/lib/classroom-api.test.js
 !test/unit/lib/classroom-assignment-utils.test.js
 !test/unit/lib/classroom-group-utils.test.js
+!test/unit/lib/evaluation-utils.test.js
 !test/unit/lib/sb3-analyzer.test.js
 !test/unit/lib/classroom-kick-request-storage.test.js
 !test/unit/lib/deck-setup.test.js
