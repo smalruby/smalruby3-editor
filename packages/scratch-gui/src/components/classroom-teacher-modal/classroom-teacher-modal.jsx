@@ -14,6 +14,7 @@ import ClassCodeDisplay from '../classroom-modal/class-code-display.jsx';
 import TeacherAssignmentEditor from '../classroom-modal/teacher-assignment-editor.jsx';
 import TeacherClassDetail from '../classroom-modal/teacher-class-detail.jsx';
 import TeacherCreateForm from '../classroom-modal/teacher-create-form.jsx';
+import TeacherEvaluation from '../classroom-modal/teacher-evaluation.jsx';
 import TeacherGroupManage from '../classroom-modal/teacher-group-manage.jsx';
 import TeacherPostAssignment from '../classroom-modal/teacher-post-assignment.jsx';
 import ClassroomTutorial from '../classroom-tutorial/classroom-tutorial.jsx';
@@ -109,6 +110,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         onUpdateGroup,
         onAssignClassToGroup,
         onDuplicateClassroom,
+        evaluation,
     } = containerProps;
 
     const renderMain = () => {
@@ -147,7 +149,40 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         isLoading={isLoading}
                         onBack={onBackFromGroupManage}
                         onCreateGroup={onCreateGroup}
+                        onShowEvaluation={evaluation?.handleShowEvaluation}
                         onUpdateGroup={onUpdateGroup}
+                    />
+                </div>
+            );
+        }
+
+        if (phase === 'teacher-evaluation' && evaluation) {
+            return (
+                <div className={styles.mainRelative}>
+                    <TeacherEvaluation
+                        comments={evaluation.comments}
+                        error={error}
+                        errorTitle={errorTitle}
+                        evalGroup={evaluation.evalGroup}
+                        evalLessons={evaluation.evalLessons}
+                        evalProgress={evaluation.evalProgress}
+                        getCell={evaluation.getCell}
+                        rubricAxes={evaluation.rubricAxes}
+                        seats={evaluation.seats}
+                        selectedLessonIds={evaluation.selectedLessonIds}
+                        strictness={evaluation.strictness}
+                        onBack={evaluation.handleBackFromEvaluation}
+                        onChangeRubricAxis={evaluation.handleChangeRubricAxis}
+                        onExportAuditCsv={evaluation.handleExportAuditCsv}
+                        onExportEvaluationCsv={evaluation.handleExportEvaluationCsv}
+                        onLoadSubmissions={evaluation.handleLoadSubmissions}
+                        onReturnComments={evaluation.handleReturnComments}
+                        onRunAi={evaluation.handleRunAi}
+                        onSetCellGrade={evaluation.handleSetCellGrade}
+                        onSetCellReason={evaluation.handleSetCellReason}
+                        onSetComment={evaluation.handleSetComment}
+                        onSetStrictness={evaluation.handleSetStrictness}
+                        onToggleLesson={evaluation.handleToggleLesson}
                     />
                 </div>
             );

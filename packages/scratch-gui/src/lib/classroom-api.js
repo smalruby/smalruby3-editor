@@ -308,6 +308,19 @@ class ClassroomAPI {
     }
 
     /**
+     * AI evaluation support: grade proposals or comment drafts from
+     * static-analysis results (max 10 submissions per call — chunk a class).
+     * @param {string} idToken - Teacher ID token
+     * @param {string} classroomId - Classroom ID
+     * @param {object} payload - {mode, assignmentName, assignmentText,
+     *   rubricAxes, strictness, samples, submissions}
+     * @returns {Promise<object>} {mode, results}
+     */
+    async evaluateSubmissions(idToken, classroomId, payload) {
+        return this._request('POST', `/classrooms/${classroomId}/evaluate`, payload, idToken);
+    }
+
+    /**
      * Set (replace) the assignment content of a classroom (teacher only).
      * Pages carry either `newImage` (MIME type, requests a fresh upload URL)
      * or `imageKey` (keep the existing object). `newStarter` / `keepStarter`

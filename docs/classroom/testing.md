@@ -211,6 +211,29 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-detail-group-select` | select | クラス詳細の組セレクタ |
 | `classroom-duplicate` | button | クラス（授業）の複製 |
 
+### 学期末評価（AI 評価支援）
+
+| data-testid | 要素 | 説明 |
+|------------|------|------|
+| `classroom-group-evaluate-{groupId}` | button | 組管理画面の「評価」（評価画面を開く） |
+| `classroom-phase-teacher-evaluation` | div | 評価フェーズのルート |
+| `classroom-eval-lesson-{classroomId}` | input | 授業の選択チェックボックス |
+| `classroom-eval-load` | button | 提出を読み込む（sb3 をブラウザ内で静的解析） |
+| `classroom-eval-axis-name-{i}` / `classroom-eval-axis-desc-{i}` | input | 評価軸の名前 / 説明 |
+| `classroom-eval-strictness` | select | 厳しさ（やや甘め/標準/やや厳しめ） |
+| `classroom-eval-progress` | div | 進捗表示 |
+| `classroom-eval-matrix` | table | 席 × 授業マトリクス |
+| `classroom-eval-cell-{seat}-{classroomId}` | td | セル（未提出は ×、要確認はオレンジ） |
+| `classroom-eval-grade-{seat}-{classroomId}` | select | 評価（S/A/B/C。手動変更は較正サンプルになる） |
+| `classroom-eval-reason-{seat}-{classroomId}` | input | 根拠 |
+| `classroom-eval-comment-{seat}-{classroomId}` | textarea | 生徒向けコメント |
+| `classroom-eval-overall-{seat}` | td | 総合評価 |
+| `classroom-eval-run-grade` | button | AI評価を実行 |
+| `classroom-eval-run-comment` | button | コメント下書きを生成 |
+| `classroom-eval-export` / `classroom-eval-export-audit` | button | 評価CSV / 検証用CSV |
+| `classroom-eval-return-comments` | button | コメントを返却 |
+| `classroom-eval-back` | button | もどる |
+
 ### メニューバー
 
 | data-testid | 要素 | 説明 |
