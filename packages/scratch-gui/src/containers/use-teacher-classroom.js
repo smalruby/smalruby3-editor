@@ -7,6 +7,7 @@
  */
 import { useCallback } from 'react';
 import useGoogleClassroom from './use-google-classroom.js';
+import useTeacherAssignment from './use-teacher-assignment.js';
 import useTeacherAuth, { getCachedTeacherIdToken, setCachedTeacherIdToken } from './use-teacher-auth.js';
 import useTeacherClassrooms from './use-teacher-classrooms.js';
 import useTeacherSubmissions from './use-teacher-submissions.js';
@@ -87,6 +88,18 @@ const useTeacherClassroom = ({
         setPhase,
     });
 
+    const assignment = useTeacherAssignment({
+        idToken: auth.idToken,
+        selectedClassroom: classrooms.selectedClassroom,
+        handleTeacher401: auth.handleTeacher401,
+        clearError,
+        showError,
+        intl,
+        setIsLoading,
+        setPhase,
+        vm,
+    });
+
     // --- Composed handlers ---
 
     const handleTeacherLogout = useCallback(() => {
@@ -162,6 +175,25 @@ const useTeacherClassroom = ({
         handleCopyInviteLink: submissions.handleCopyInviteLink,
         handleReturnSubmission: submissions.handleReturnSubmission,
         handleDownloadAll: submissions.handleDownloadAll,
+
+        // Assignment content editor
+        assignmentEditorPages: assignment.editorPages,
+        assignmentStarterMode: assignment.starterMode,
+        assignmentStarterSource: assignment.starterSource,
+        assignmentHasExistingStarter: assignment.hasExistingStarter,
+        assignmentIsSaving: assignment.isSaving,
+        handleShowAssignmentEditor: assignment.handleShowAssignmentEditor,
+        handleAssignmentAddPage: assignment.handleAddPage,
+        handleAssignmentRemovePage: assignment.handleRemovePage,
+        handleAssignmentMovePage: assignment.handleMovePage,
+        handleAssignmentChangePageText: assignment.handleChangePageText,
+        handleAssignmentAttachPageImage: assignment.handleAttachPageImage,
+        handleAssignmentRemovePageImage: assignment.handleRemovePageImage,
+        handleAssignmentUseCurrentProject: assignment.handleUseCurrentProjectAsStarter,
+        handleAssignmentUseFile: assignment.handleUseFileAsStarter,
+        handleAssignmentRemoveStarter: assignment.handleRemoveStarter,
+        handleAssignmentSave: assignment.handleSaveAssignment,
+        handleAssignmentCancel: assignment.handleCancelAssignmentEdit,
 
         // Google Classroom
         googleCourses: google.googleCourses,
