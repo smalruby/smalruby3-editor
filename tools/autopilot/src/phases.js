@@ -1877,12 +1877,47 @@ function sanitizeForSurface(text, maxLen = 600) {
 }
 
 /**
+ * 認証系エラーとみなす語彙（#949 / #982）。行ごとに由来をコメントする。
+ *
+ * `bin/bot-token` が取れない＝認証/クレデンシャルの問題なので、bot-token・SSO・OIDC・
+ * Secrets Manager 由来の失敗はすべてここに含める（daemon が exit(1) せず auto-pause で耐え、
+ * 再認証で auto-resume するため）。過剰マッチを避けるため、対象は上記 4 種に限定し、
+ * AWS 一般や汎用ネットワーク断（ECONNRESET / 認証と無関係なエンドポイント接続断）は含めない。
+ */
+const AUTH_ERROR_PATTERNS = [
+    // #949: SSO / クレデンシャル失効の代表語彙
+    '認証が失効',
+    'AWS 認証',
+    'aws sso login',
+    'token has expired',
+    'refresh failed',
+    'token.*(expired|invalid)',
+    'expired.*token',
+    'sso.*(session|token|login)',
+    'Unable to locate credentials',
+    'security token',
+    // #982: bin/bot-token 実行失敗そのもの（"Command failed: /app/bin/bot-token" / die の "bot-token:" 前置）。
+    // bot-token が取れない時点で認証不能なので、失敗理由を問わず auto-pause に倒す。
+    'bot-token',
+    // #982: Secrets Manager から GitHub App 秘密鍵を取得できない
+    'secretsmanager\\s+get-secret-value',
+    // #982: SSO / OIDC エンドポイントへ接続できない（一時的な到達不能も再認証待ちに倒す）。
+    //       認証と無関係なエンドポイント断まで拾わないよう oidc / sso を伴う場合だけ拾う。
+    'Could not connect to the endpoint URL.*(oidc|sso)',
+    // #982: SSO トークンキャッシュが無い（`aws sso login` 前 / キャッシュ失効）
+    'Error loading SSO Token',
+    'Token for .+ does not exist',
+];
+const AUTH_ERROR_RE = new RegExp(AUTH_ERROR_PATTERNS.join('|'), 'i');
+
+/**
  * 認証系エラー（AWS SSO 失効・bot-token 取得不能等）かを判定する純粋関数。
  *
  * `bin/bot-token` は SSO 失効時に「AWS 認証が失効/未設定…」を stderr に出して die する。
  * `project.botToken()` はそれを execFile の失敗として throw するため、error の
  * `message` と `stderr` の双方を突き合わせる。tick の途中でこの種のエラーが飛んでも
  * プロセスを落とさず auto-pause（pausedBy='auth'）へ合流させるための分類器（#949）。
+ * bot-token / SSO / OIDC / Secrets Manager 由来の失敗を広く拾う（#982）。
  * @param {Error|string|null|undefined} err 判定対象（Error / 文字列いずれも可）
  * @returns {boolean} 認証系エラーなら true
  */
@@ -1893,9 +1928,7 @@ function isAuthError(err) {
             ? err
             : `${err.message || ''}\n${err.stderr || ''}`;
     if (!text.trim()) return false;
-    return /認証が失効|AWS 認証|aws sso login|token has expired|refresh failed|token.*(expired|invalid)|expired.*token|sso.*(session|token|login)|Unable to locate credentials|security token/i.test(
-        text,
-    );
+    return AUTH_ERROR_RE.test(text);
 }
 
 /**

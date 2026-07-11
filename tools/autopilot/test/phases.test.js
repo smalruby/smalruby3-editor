@@ -465,6 +465,36 @@ test('isAuthError: 非認証エラー・空入力は false（#949）', () => {
     assert.equal(isAuthError('some random failure'), false);
 });
 
+test('isAuthError: bot-token/SSO/OIDC/Secrets Manager 失敗を認証系と判定する（#982）', () => {
+    // クラッシュした時の実メッセージ: bot-token が OIDC エンドポイントに接続できず die
+    assert.equal(isAuthError(Object.assign(new Error('Command failed: /app/bin/bot-token'), {
+        stderr:
+            'bot-token: aws secretsmanager get-secret-value failed: aws: [ERROR]: ' +
+            'Could not connect to the endpoint URL: "https://oidc.ap-northeast-1.amazonaws.com/token"',
+    })), true);
+    // bot-token 実行そのものの失敗（stderr が拾えず message のみのケース）
+    assert.equal(isAuthError(new Error('Command failed: /app/bin/bot-token')), true);
+    // Secrets Manager から秘密鍵を取得できない（文字列のみ）
+    assert.equal(isAuthError('aws secretsmanager get-secret-value failed: An error occurred'), true);
+    // SSO トークンキャッシュ不在（AWS CLI の実メッセージ）
+    assert.equal(isAuthError('Error loading SSO Token: Token for smalruby does not exist'), true);
+    assert.equal(isAuthError('Token for smalruby-bot does not exist'), true);
+    // OIDC 接続断（bot-token prefix を伴わなくても oidc/sso を含めば拾う）
+    assert.equal(
+        isAuthError('Could not connect to the endpoint URL: "https://oidc.ap-northeast-1.amazonaws.com/token"'),
+        true,
+    );
+});
+
+test('isAuthError: 認証と無関係な接続断は false のまま（過剰マッチ防止・#982）', () => {
+    // 認証系と無関係な AWS サービスへの接続断は auth 扱いにしない（従来どおり exit させる）
+    assert.equal(
+        isAuthError('Could not connect to the endpoint URL: "https://dynamodb.ap-northeast-1.amazonaws.com/"'),
+        false,
+    );
+    assert.equal(isAuthError(new Error('ENOTFOUND api.github.com')), false);
+});
+
 test('protectedPaths: Bot 権限外パス（workflows/actions）を抽出する', () => {
     const files = [
         'packages/scratch-gui/src/index.js',
