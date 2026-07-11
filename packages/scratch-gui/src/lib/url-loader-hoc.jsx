@@ -12,7 +12,6 @@ import {
     getIsLoadingUpload,
     getIsShowingWithoutId,
     onLoadedProject,
-    projectError,
     setProjectId,
     requestProjectUpload,
 } from '../reducers/project-state';
@@ -132,7 +131,13 @@ const URLLoaderHOC = function (WrappedComponent) {
                 })
                 .catch((error) => {
                     log.warn('URL loader error:', error);
-                    this.props.onError(error);
+                    // vm.loadProject() disposes the current project before it
+                    // deserializes, so a failed load empties the runtime.
+                    // loadProjectWithChecks has already restored the previous
+                    // project into the VM; transition back to the (non-fatal)
+                    // "showing" state instead of the fatal ERROR state, which
+                    // would make gui.jsx throw and reset the whole editor (#972).
+                    this.props.onLoadedProject(this.props.loadingState, false, false);
                     const message = formatLoadError(error, this.props.intl);
                     if (this.urlLoaderErrorCallback) {
                         // The modal is still mounted (we did not close it on
@@ -165,7 +170,6 @@ const URLLoaderHOC = function (WrappedComponent) {
                 isLoadingUpload: _isLoadingUpload,
                 isShowingWithoutId: _isShowingWithoutId,
                 loadingState: _loadingState,
-                onError: _onError,
                 onLoadedProject: _onLoadedProjectProp,
                 onLoadingFinished: _onLoadingFinished,
                 onLoadingStarted: _onLoadingStarted,
@@ -203,7 +207,6 @@ const URLLoaderHOC = function (WrappedComponent) {
         isLoadingUpload: PropTypes.bool,
         isShowingWithoutId: PropTypes.bool,
         loadingState: PropTypes.oneOf(LoadingStates),
-        onError: PropTypes.func,
         onLoadedProject: PropTypes.func,
         onLoadingFinished: PropTypes.func,
         onLoadingStarted: PropTypes.func,
@@ -246,7 +249,6 @@ const URLLoaderHOC = function (WrappedComponent) {
         cancelFileUpload: (loadingState) => dispatch(onLoadedProject(loadingState, false, false)),
         closeFileMenu: () => dispatch(closeFileMenu()),
         closeUrlLoaderModal: () => dispatch(closeUrlLoaderModal()),
-        onError: (error) => dispatch(projectError(error)),
         onLoadedProject: (loadingState, canSave, success) =>
             dispatch(onLoadedProject(loadingState, canSave, success)),
         onLoadingFinished: () => {

@@ -373,6 +373,7 @@ test/unit/lib/*
 !test/unit/lib/google-drive-api.test.js
 !test/unit/lib/touch-device.test.js
 !test/unit/lib/url-loader.test.js
+!test/unit/lib/project-loader-utils.test.js
 !test/unit/lib/insert-class.test.js
 !test/unit/lib/join-code-history.test.js
 !test/unit/lib/layout-constants.test.js

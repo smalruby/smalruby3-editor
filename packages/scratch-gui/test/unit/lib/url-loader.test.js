@@ -1,4 +1,10 @@
-import { UrlLoaderError, fetchProjectInfo, formatLoadError, urlLoaderMessages } from '../../../src/lib/url-loader';
+import {
+    ProjectLoadError,
+    UrlLoaderError,
+    fetchProjectInfo,
+    formatLoadError,
+    urlLoaderMessages,
+} from '../../../src/lib/url-loader';
 
 const mockIntl = {
     formatMessage: (msg) => msg.defaultMessage,
@@ -43,6 +49,29 @@ describe('formatLoadError', () => {
     test('400 (Bad Request) → loadError fallback (not specifically mapped)', () => {
         const err = new UrlLoaderError('hi', 400);
         expect(formatLoadError(err, mockIntl)).toBe(urlLoaderMessages.loadError.defaultMessage);
+    });
+
+    test('ProjectLoadError → projectLoadFailed (VM deserialization/conversion failure)', () => {
+        const err = new ProjectLoadError(new Error('deserialize boom'));
+        expect(formatLoadError(err, mockIntl)).toBe(urlLoaderMessages.projectLoadFailed.defaultMessage);
+    });
+});
+
+describe('ProjectLoadError', () => {
+    test('wraps an Error cause and exposes its message', () => {
+        const cause = new Error('deserialize boom');
+        const err = new ProjectLoadError(cause);
+        expect(err.name).toBe('ProjectLoadError');
+        expect(err.cause).toBe(cause);
+        expect(err.message).toBe('deserialize boom');
+        expect(err).toBeInstanceOf(Error);
+    });
+
+    test('wraps a string cause (scratch-parser rejects with a JSON string)', () => {
+        const err = new ProjectLoadError('{"validationError":"bad"}');
+        expect(err.name).toBe('ProjectLoadError');
+        expect(err.cause).toBe('{"validationError":"bad"}');
+        expect(err.message).toBe('{"validationError":"bad"}');
     });
 });
 

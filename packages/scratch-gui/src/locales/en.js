@@ -573,6 +573,9 @@ export default {
     'gui.urlLoader.projectAccessDenied': 'Access to this project is denied.',
     'gui.urlLoader.serverError': 'Scratch server-side error. Please try again later.',
     'gui.urlLoader.networkError': 'Network error. Please check your internet connection.',
+    'gui.urlLoader.projectLoadFailed':
+        'The project could not be loaded. It may use blocks or features that are not supported. ' +
+        'Your previous project has been kept.',
     'gui.urlLoader.title': 'Load from URL',
     'gui.urlLoader.urlPlaceholder': 'Enter project URL...',
     'gui.urlLoader.openButton': 'Open',
