@@ -35,8 +35,9 @@ const MAX_NICKNAME_LENGTH = 20;
 // 6-digit alphanumeric, excluding confusing chars (I, O, 0, 1)
 const JOIN_CODE_CHARS = 'abcdefghjklmnpqrstuvwxyz23456789';
 const JOIN_CODE_LENGTH = 6;
-// Classroom TTL from environment (default 30 days)
-const CLASSROOM_TTL_DAYS = parseInt(process.env.CLASSROOM_TTL_DAYS || '30', 10);
+// Classroom TTL from environment (default 90 days — covers a school term so
+// term-end batch evaluation can still read every submission)
+const CLASSROOM_TTL_DAYS = parseInt(process.env.CLASSROOM_TTL_DAYS || '90', 10);
 const CLASSROOM_TTL_SECONDS = CLASSROOM_TTL_DAYS * 24 * 60 * 60;
 // Session and membership TTL matches classroom TTL
 const SESSION_TTL_SECONDS = CLASSROOM_TTL_SECONDS;
@@ -62,6 +63,17 @@ const MAX_TEACHER_COMMENT_LENGTH = 500;
 // for the teacher to act. Expired requests are removed by DynamoDB TTL.
 const KICK_REQUEST_TTL_SECONDS = parseInt(process.env.KICK_REQUEST_TTL_SECONDS || '3600', 10);
 const MAX_KICK_REQUEST_REASON_LENGTH = 200;
+// Assignment content (lesson delivery): teacher-authored pages of
+// (short text + optional image) plus an optional starter project, attached to
+// a classroom. Objects live under {classroomId}/assignment/ in the
+// submissions bucket and share its lifecycle expiry.
+const MAX_ASSIGNMENT_PAGES = 10;
+const MAX_ASSIGNMENT_PAGE_TEXT_LENGTH = 500;
+// Content types accepted for assignment page images (MIME → S3 key extension).
+const ASSIGNMENT_IMAGE_CONTENT_TYPES: Record<string, string> = {
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+};
 
 // --- DynamoDB Client ---
 
@@ -84,7 +96,7 @@ export function getCorsHeaders(origin?: string): Record<string, string> {
   const allowed = origin && CORS_ALLOWED_ORIGINS.includes(origin) ? origin : CORS_ALLOWED_ORIGINS[0] || '*';
   return {
     'Access-Control-Allow-Origin': allowed,
-    'Access-Control-Allow-Methods': 'GET,POST,PATCH,DELETE,OPTIONS',
+    'Access-Control-Allow-Methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Google-Access-Token',
     'Content-Type': 'application/json',
   };
@@ -812,6 +824,7 @@ async function handleJoinClassroom(sourceIp: string, body: Record<string, unknow
       assignmentName: classroom.assignmentName || null,
       seatNumber,
       memberId,
+      hasAssignment: hasAssignmentContent(classroom),
     }),
   };
 }
@@ -982,6 +995,7 @@ async function handleLookupClassroom(sourceIp: string, body: Record<string, unkn
       takenSeats,
       activeKickRequestIds,
       expiresAt: classroom.ttl ? new Date((classroom.ttl as number) * 1000).toISOString() : null,
+      hasAssignment: hasAssignmentContent(classroom),
     }),
   };
 }
@@ -1771,19 +1785,27 @@ async function handleVerifySession(sessionToken: string): Promise<APIGatewayProx
     },
   }));
 
-  // Look up latest submission for this member
+  // Look up latest submission for this member, plus the classroom item so the
+  // student UI knows whether assignment content exists (panel / starter
+  // reload) without an extra round-trip.
   let submission: Record<string, unknown> | null = null;
-  const subResult = await docClient.send(new QueryCommand({
-    TableName: SUBMISSIONS_TABLE,
-    IndexName: 'classroomId-memberId-index',
-    KeyConditionExpression: 'classroomId = :cid AND memberId = :mid',
-    ExpressionAttributeValues: {
-      ':cid': session.classroomId,
-      ':mid': session.memberId,
-    },
-    ScanIndexForward: false,
-    Limit: 1,
-  }));
+  const [subResult, classroomResult] = await Promise.all([
+    docClient.send(new QueryCommand({
+      TableName: SUBMISSIONS_TABLE,
+      IndexName: 'classroomId-memberId-index',
+      KeyConditionExpression: 'classroomId = :cid AND memberId = :mid',
+      ExpressionAttributeValues: {
+        ':cid': session.classroomId,
+        ':mid': session.memberId,
+      },
+      ScanIndexForward: false,
+      Limit: 1,
+    })),
+    docClient.send(new GetCommand({
+      TableName: CLASSROOMS_TABLE,
+      Key: { classroomId: session.classroomId },
+    })),
+  ]);
   if (subResult.Items && subResult.Items.length > 0) {
     const item = subResult.Items[0];
     submission = {
@@ -1795,7 +1817,268 @@ async function handleVerifySession(sessionToken: string): Promise<APIGatewayProx
 
   return {
     statusCode: 200,
-    body: JSON.stringify({ valid: true, submission }),
+    body: JSON.stringify({
+      valid: true,
+      submission,
+      hasAssignment: hasAssignmentContent(classroomResult.Item),
+    }),
+  };
+}
+
+// --- Assignment content handlers ---
+// A classroom may carry assignment content: pages of (short text + optional
+// image) plus an optional starter project. The teacher edits it; students
+// read it after joining so the lesson starts without manual file
+// distribution.
+
+/** An assignment page as stored in DynamoDB. */
+interface AssignmentPage {
+  text: string;
+  imageKey?: string;
+}
+
+interface AssignmentContent {
+  pages?: AssignmentPage[];
+  starterKey?: string;
+  updatedAt?: string;
+}
+
+/**
+ * Validate the `pages` array of a set-assignment request. Each page carries a
+ * short text and optionally either an existing `imageKey` (kept as-is; must
+ * belong to this classroom's assignment prefix) or `newImage` (a MIME type
+ * from ASSIGNMENT_IMAGE_CONTENT_TYPES requesting a fresh upload URL).
+ */
+export function validateAssignmentPages(
+  pages: unknown,
+  classroomId: string,
+): { text: string; imageKey?: string; newImage?: string }[] {
+  if (pages === undefined || pages === null) return [];
+  if (!Array.isArray(pages)) {
+    throw new ValidationError('pages must be an array');
+  }
+  if (pages.length > MAX_ASSIGNMENT_PAGES) {
+    throw new ValidationError(`Assignment may have at most ${MAX_ASSIGNMENT_PAGES} pages`);
+  }
+  return pages.map((page, i) => {
+    if (!page || typeof page !== 'object' || Array.isArray(page)) {
+      throw new ValidationError(`pages[${i}] must be an object`);
+    }
+    const { text, imageKey, newImage } = page as Record<string, unknown>;
+    if (typeof text !== 'string') {
+      throw new ValidationError(`pages[${i}].text is required`);
+    }
+    if (text.length > MAX_ASSIGNMENT_PAGE_TEXT_LENGTH) {
+      throw new ValidationError(`pages[${i}].text must be ${MAX_ASSIGNMENT_PAGE_TEXT_LENGTH} characters or less`);
+    }
+    if (imageKey !== undefined && newImage !== undefined) {
+      throw new ValidationError(`pages[${i}] cannot have both imageKey and newImage`);
+    }
+    if (imageKey !== undefined) {
+      if (typeof imageKey !== 'string' || !imageKey.startsWith(`${classroomId}/assignment/`)) {
+        throw new ValidationError(`pages[${i}].imageKey does not belong to this classroom`);
+      }
+      return { text, imageKey };
+    }
+    if (newImage !== undefined) {
+      if (typeof newImage !== 'string' || !ASSIGNMENT_IMAGE_CONTENT_TYPES[newImage]) {
+        throw new ValidationError(
+          `pages[${i}].newImage must be one of: ${Object.keys(ASSIGNMENT_IMAGE_CONTENT_TYPES).join(', ')}`,
+        );
+      }
+      return { text, newImage };
+    }
+    return { text };
+  });
+}
+
+/** Whether a classroom item carries assignment content (pages or a starter). */
+export function hasAssignmentContent(item: Record<string, unknown> | undefined): boolean {
+  if (!item) return false;
+  const assignment = item.assignment as AssignmentContent | undefined;
+  if (!assignment) return false;
+  return (Array.isArray(assignment.pages) && assignment.pages.length > 0) || !!assignment.starterKey;
+}
+
+async function handleSetAssignment(
+  identity: TeacherIdentity, classroomId: string, body: Record<string, unknown>,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const classroomResult = await docClient.send(new GetCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId },
+  }));
+  if (!classroomResult.Item || classroomResult.Item.status !== 'active') {
+    throw new NotFoundError('Classroom not found');
+  }
+  if (!canManageClassroom(classroomResult.Item, identity)) {
+    throw new AuthError('Not authorized to edit this classroom');
+  }
+
+  const pagesInput = validateAssignmentPages(body.pages, classroomId);
+  const keepStarter = body.keepStarter === true;
+  const newStarter = body.newStarter === true;
+  if (keepStarter && newStarter) {
+    throw new ValidationError('keepStarter and newStarter are mutually exclusive');
+  }
+
+  const existing = (classroomResult.Item.assignment || {}) as AssignmentContent;
+
+  let starterKey: string | undefined;
+  let starterUploadUrl: string | null = null;
+  if (newStarter) {
+    // Fresh key per upload so an edited starter never fights browser caches
+    // and a failed upload never corrupts the previous one.
+    starterKey = `${classroomId}/assignment/starter-${crypto.randomUUID()}.sb3`;
+    starterUploadUrl = await getSignedUrl(
+      s3Client,
+      new PutObjectCommand({
+        Bucket: SUBMISSIONS_BUCKET,
+        Key: starterKey,
+        ContentType: 'application/octet-stream',
+      }),
+      { expiresIn: PRESIGNED_URL_UPLOAD_EXPIRY },
+    );
+  } else if (keepStarter) {
+    if (!existing.starterKey) {
+      throw new ValidationError('No existing starter project to keep');
+    }
+    starterKey = existing.starterKey;
+  }
+
+  const pages: AssignmentPage[] = [];
+  const imageUploadUrls: (string | null)[] = [];
+  for (const page of pagesInput) {
+    if (page.newImage) {
+      const ext = ASSIGNMENT_IMAGE_CONTENT_TYPES[page.newImage];
+      const imageKey = `${classroomId}/assignment/image-${crypto.randomUUID()}.${ext}`;
+      const url = await getSignedUrl(
+        s3Client,
+        new PutObjectCommand({ Bucket: SUBMISSIONS_BUCKET, Key: imageKey, ContentType: page.newImage }),
+        { expiresIn: PRESIGNED_URL_UPLOAD_EXPIRY },
+      );
+      pages.push({ text: page.text, imageKey });
+      imageUploadUrls.push(url);
+    } else {
+      pages.push(page.imageKey ? { text: page.text, imageKey: page.imageKey } : { text: page.text });
+      imageUploadUrls.push(null);
+    }
+  }
+
+  // Best-effort cleanup of replaced objects (same pattern as re-submission):
+  // previously stored assignment objects no longer referenced get deleted.
+  const keptKeys = new Set<string>([
+    ...pages.map(p => p.imageKey).filter((k): k is string => !!k),
+    ...(starterKey ? [starterKey] : []),
+  ]);
+  const orphanedKeys = [
+    ...(existing.pages || []).map(p => p.imageKey).filter((k): k is string => !!k),
+    ...(existing.starterKey ? [existing.starterKey] : []),
+  ].filter(key => !keptKeys.has(key));
+  if (orphanedKeys.length > 0) {
+    await Promise.allSettled(
+      orphanedKeys.map(key => s3Client.send(new DeleteObjectCommand({ Bucket: SUBMISSIONS_BUCKET, Key: key }))),
+    );
+  }
+
+  const now = new Date().toISOString();
+  if (pages.length === 0 && !starterKey) {
+    // An empty request clears the assignment entirely.
+    await docClient.send(new UpdateCommand({
+      TableName: CLASSROOMS_TABLE,
+      Key: { classroomId },
+      UpdateExpression: 'REMOVE assignment SET updatedAt = :now',
+      ExpressionAttributeValues: { ':now': now },
+    }));
+    return { statusCode: 200, body: JSON.stringify({ assignment: null }) };
+  }
+
+  await docClient.send(new UpdateCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId },
+    UpdateExpression: 'SET assignment = :assignment, updatedAt = :now',
+    ExpressionAttributeValues: {
+      ':assignment': { pages, starterKey, updatedAt: now },
+      ':now': now,
+    },
+  }));
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify({
+      assignment: { pages, starterKey: starterKey || null, updatedAt: now },
+      imageUploadUrls,
+      starterUploadUrl,
+    }),
+  };
+}
+
+/**
+ * Read the assignment content with download URLs. Dual-auth: students use
+ * their opaque session token (UUID — no dots) and may only read their own
+ * classroom's assignment; teachers use a JWT ID token (contains dots) and
+ * must pass canManageClassroom. The DEV_BYPASS_TOKEN is opaque too, so it is
+ * routed to the teacher path explicitly.
+ */
+async function handleGetAssignment(rawToken: string, classroomId: string): Promise<APIGatewayProxyStructuredResultV2> {
+  const classroomResult = await docClient.send(new GetCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId },
+  }));
+  if (!classroomResult.Item || classroomResult.Item.status !== 'active') {
+    throw new NotFoundError('Classroom not found');
+  }
+
+  const isDevBypass = DEV_BYPASS_TOKEN !== '' && rawToken === DEV_BYPASS_TOKEN && STAGE !== 'prod';
+  if (isDevBypass || rawToken.includes('.')) {
+    const identity = await verifyTeacherIdToken(rawToken);
+    if (!canManageClassroom(classroomResult.Item, identity)) {
+      throw new AuthError('Not authorized to view this classroom');
+    }
+  } else {
+    const session = await verifySessionToken(rawToken);
+    if (session.classroomId !== classroomId) {
+      throw new AuthError('Session does not match this classroom');
+    }
+  }
+
+  const assignment = classroomResult.Item.assignment as AssignmentContent | undefined;
+  if (!hasAssignmentContent(classroomResult.Item)) {
+    return { statusCode: 200, body: JSON.stringify({ assignment: null }) };
+  }
+
+  // imageKey is echoed back so the teacher editor can round-trip unchanged
+  // pages ({imageKey} instead of re-uploading) on the next PUT.
+  const pages = await Promise.all((assignment?.pages || []).map(async page => {
+    let imageUrl: string | null = null;
+    if (page.imageKey) {
+      imageUrl = await getSignedUrl(
+        s3Client,
+        new GetObjectCommand({ Bucket: SUBMISSIONS_BUCKET, Key: page.imageKey }),
+        { expiresIn: PRESIGNED_URL_DOWNLOAD_EXPIRY },
+      );
+    }
+    return { text: page.text, imageKey: page.imageKey || null, imageUrl };
+  }));
+
+  let starterUrl: string | null = null;
+  if (assignment?.starterKey) {
+    starterUrl = await getSignedUrl(
+      s3Client,
+      new GetObjectCommand({ Bucket: SUBMISSIONS_BUCKET, Key: assignment.starterKey }),
+      { expiresIn: PRESIGNED_URL_DOWNLOAD_EXPIRY },
+    );
+  }
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify({
+      assignment: {
+        pages,
+        starterKey: assignment?.starterKey || null,
+        starterUrl,
+        updatedAt: assignment?.updatedAt || null,
+      },
+    }),
   };
 }
 
@@ -1946,6 +2229,18 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
         const identity = await verifyTeacherIdToken(token);
         result = await handleDeleteMember(identity, classroomId, memberId);
       }
+
+    } else if (method === 'PUT' && /^\/classrooms\/[^/]+\/assignment$/.test(path)) {
+      const token = extractBearerToken(event.headers?.authorization);
+      const identity = await verifyTeacherIdToken(token);
+      const classroomId = event.pathParameters?.classroomId || '';
+      result = await handleSetAssignment(identity, classroomId, body);
+
+    } else if (method === 'GET' && /^\/classrooms\/[^/]+\/assignment$/.test(path)) {
+      // Dual-auth (teacher ID token or student session token) — see handler.
+      const token = extractBearerToken(event.headers?.authorization);
+      const classroomId = event.pathParameters?.classroomId || '';
+      result = await handleGetAssignment(token, classroomId);
 
     } else if (method === 'POST' && /^\/classrooms\/[^/]+\/submissions$/.test(path)) {
       const token = extractBearerToken(event.headers?.authorization);

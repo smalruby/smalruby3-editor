@@ -43,8 +43,9 @@ export class ClassroomStack extends cdk.Stack {
       throw new Error('DEV_BYPASS_TOKEN must not be set in production. Remove it from .env.prod.');
     }
 
-    // Classroom TTL in days (default 30, configurable via env)
-    const classroomTtlDays = parseInt(process.env.CLASSROOM_TTL_DAYS || '30', 10);
+    // Classroom TTL in days (default 90 — covers a school term so term-end
+    // batch evaluation can still read every submission; configurable via env)
+    const classroomTtlDays = parseInt(process.env.CLASSROOM_TTL_DAYS || '90', 10);
 
     // Tags
     cdk.Tags.of(this).add('Project', 'Classroom');
@@ -307,6 +308,7 @@ export class ClassroomStack extends cdk.Stack {
         allowMethods: [
           apigatewayv2.CorsHttpMethod.GET,
           apigatewayv2.CorsHttpMethod.POST,
+          apigatewayv2.CorsHttpMethod.PUT,
           apigatewayv2.CorsHttpMethod.PATCH,
           apigatewayv2.CorsHttpMethod.DELETE,
           apigatewayv2.CorsHttpMethod.OPTIONS,
@@ -403,6 +405,14 @@ export class ClassroomStack extends cdk.Stack {
     this.api.addRoutes({
       path: '/classrooms/{classroomId}/kick-requests/{requestId}/approve',
       methods: [apigatewayv2.HttpMethod.POST],
+      integration,
+    });
+
+    // Assignment content — teacher edits (PUT), teacher or joined student
+    // reads (GET; dual-auth resolved in the Lambda handler).
+    this.api.addRoutes({
+      path: '/classrooms/{classroomId}/assignment',
+      methods: [apigatewayv2.HttpMethod.PUT, apigatewayv2.HttpMethod.GET],
       integration,
     });
 
