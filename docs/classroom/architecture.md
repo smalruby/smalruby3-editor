@@ -114,7 +114,7 @@ sequenceDiagram
 | 項目 | 内容 |
 |------|------|
 | 認証方式 | Session Token (UUID)、DynamoDB に保存 |
-| 有効期限 | 30日（stg は 1日）。verify-session ごとに TTL を延長 |
+| 有効期限 | 90日（stg は 1日）。verify-session ごとに TTL を延長 |
 | セッション期限切れ時 | Alert バナー + 「参加しなおす」ボタンで参加コード入力画面に戻る |
 
 ## AWS サービス
@@ -174,6 +174,7 @@ sequenceDiagram
 | `DELETE` | `/classrooms/{id}/kick-requests/{requestId}` | 却下 = リクエストのみ削除、メンバーは残る |
 | `GET` | `/classrooms/{id}/submissions` | 提出一覧 (ダウンロード URL 付き) |
 | `PATCH` | `/classrooms/{id}/submissions/{subId}` | 提出の返却・コメント |
+| `PUT` | `/classrooms/{id}/assignment` | 課題コンテンツの設定・更新（ページ + スターター。画像/スターターの Presigned upload URL を返す。空 body で削除） |
 
 ### 生徒用 (認証不要 / Session Token)
 
@@ -185,6 +186,7 @@ sequenceDiagram
 | `POST` | `/classrooms/verify-session` | Session Token | セッション検証 + 提出状況取得。kick された生徒には 410 + `{reason: 'kicked', joinCode, className, seatNumber}` を返す |
 | `POST` | `/classrooms/{id}/submissions` | Session Token | 提出 (Presigned URL 取得) |
 | `DELETE` | `/classrooms/{id}/members/me` | Session Token | 自主退出 |
+| `GET` | `/classrooms/{id}/assignment` | Session Token または 先生 ID Token | 課題コンテンツ取得（ページ + 画像/スターターのダウンロード URL）。lookup / join / verify-session は `hasAssignment` フラグを返す |
 
 ### Google Classroom 連携 (ID Token + Access Token)
 
@@ -208,6 +210,7 @@ erDiagram
         number studentCount "1-50"
         string googleClassroomCourseId "任意"
         list coTeacherEmails "共同管理者の email 配列 (任意, 最大10)"
+        map assignment "課題コンテンツ (任意): {pages: [{text, imageKey?}], starterKey?, updatedAt}"
         string status "active / archived"
         string createdAt "ISO8601"
         string updatedAt "ISO8601"
@@ -227,7 +230,7 @@ erDiagram
 - 先生トークン検証 (`verifyTeacherIdToken`) は `{sub, email}` を返す。Google は `email_verified` のときのみ email を採用、Microsoft は `email` / `preferred_username`。
 - 所有権判定は `canManageClassroom(classroom, identity)` = 「`teacherSub === sub` または `coTeacherEmails` に自分の email が含まれる」。全ての先生向け操作で使用。co-teacher は owner と**完全同等**（クラス削除・共同管理者の追加/解除も可）。
 - 作成者は `teacherSub` で管理され `coTeacherEmails` には含めないため、co-teacher API から作成者を外すことはできない（管理者ゼロを防止）。
-- `GET /classrooms` は owner 分（`teacherSub-index`）と co-taught 分（`coTeacherEmails` への Scan + `contains` フィルタ）の和集合。DynamoDB はリスト属性を GSI 化できないため Scan を使用。Classrooms テーブルは小規模（単一組織・30日 TTL）のため許容。各クラスは `role`（owner / co-teacher）を返し、フロントの「共同管理」バッジに使う。
+- `GET /classrooms` は owner 分（`teacherSub-index`）と co-taught 分（`coTeacherEmails` への Scan + `contains` フィルタ）の和集合。DynamoDB はリスト属性を GSI 化できないため Scan を使用。Classrooms テーブルは小規模（単一組織・90日 TTL）のため許容。各クラスは `role`（owner / co-teacher）を返し、フロントの「共同管理」バッジに使う。
 
 ### ClassroomMemberships テーブル
 
@@ -299,11 +302,24 @@ erDiagram
 **GSI:**
 - `classroomId-memberId-index` — 生徒ごとの提出検索
 
+### 課題コンテンツ（assignment）
+
+クラス（= 授業）には任意で**課題コンテンツ**を持たせられる。先生が編集し、参加済みの生徒が読む。プログラム配付を自動化するための仕組み（生徒は参加するだけで課題とスターターが手に入る）。
+
+- `pages`: （数行テキスト + 画像1枚）× 最大10ページ。テキストは1ページ500文字まで
+- `starterKey`: スタータープロジェクト（.sb3）の S3 キー。1課題に1つ
+- 画像は `image/png` / `image/jpeg` のみ。オブジェクトは `{classroomId}/assignment/` プレフィックスに置かれ、編集で参照されなくなったものは best-effort で削除される
+- `PUT` は `pages` の各要素に `newImage`（新規アップロード。MIME 指定）か `imageKey`（既存維持）を指定し、`newStarter` / `keepStarter` でスターターを制御する。レスポンスの Presigned URL にクライアントが直接 PUT する（提出フローと同型）
+- `GET` は生徒（Session Token）と先生（ID Token）の両対応。トークンに `.` を含むかで判別する（Session Token は UUID、ID Token は JWT）
+
 ### S3 オブジェクト構造
 
 ```
 smalruby-classroom-submissions-{stage}/
   {classroomId}/
+    assignment/
+      image-{uuid}.png|.jpg  ← 課題ページの画像
+      starter-{uuid}.sb3     ← スタータープロジェクト
     {submissionId}/
       project.sb3           ← Scratch 3 プロジェクトファイル
       thumbnail.png          ← プロジェクトサムネイル
@@ -316,7 +332,7 @@ smalruby-classroom-submissions-{stage}/
 
 | 項目 | 有効期間 (prod) | 有効期間 (stg) |
 |------|----------------|---------------|
-| クラス | 30日 | 1日 |
+| クラス | 90日 | 1日 |
 | メンバー | クラスと同じ | クラスと同じ |
 | 提出 | クラスと同じ | クラスと同じ |
 | S3 ファイル | クラスと同じ (ライフサイクルルール) | クラスと同じ |

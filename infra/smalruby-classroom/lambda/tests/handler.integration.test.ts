@@ -19,6 +19,8 @@
 
 const ENDPOINT = process.env.CLASSROOM_API_ENDPOINT || '';
 const GOOGLE_ID_TOKEN = process.env.GOOGLE_ID_TOKEN || '';
+// 教師フローの自動テスト用バイパストークン（stg のみ有効。.env.stg の DEV_BYPASS_TOKEN）
+const DEV_BYPASS_TOKEN = process.env.DEV_BYPASS_TOKEN || '';
 
 /** HTTP リクエストヘルパー */
 async function request(
@@ -35,7 +37,7 @@ async function request(
             ...headers,
         },
     };
-    if (body && (method === 'POST' || method === 'PATCH')) {
+    if (body && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
         opts.body = JSON.stringify(body);
     }
     const res = await fetch(url, opts);
@@ -206,6 +208,220 @@ describe('提出エンドポイント — 認証エラー', () => {
             { Authorization: 'Bearer invalid-token' },
         );
         expect(status).toBe(401);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// 課題コンテンツエンドポイント — 認証エラー
+// ---------------------------------------------------------------------------
+describe('課題コンテンツエンドポイント — 認証エラー', () => {
+    test('PUT /classrooms/{id}/assignment — Authorization なしで 401', async () => {
+        const { status } = await request('PUT', '/classrooms/dummy-id/assignment', {
+            pages: [{ text: 'test' }],
+        });
+        expect(status).toBe(401);
+    });
+
+    test('GET /classrooms/{id}/assignment — Authorization なしで 401', async () => {
+        const { status } = await request('GET', '/classrooms/dummy-id/assignment');
+        expect(status).toBe(401);
+    });
+
+    test('GET /classrooms/{id}/assignment — 無効なセッショントークンで 404/401', async () => {
+        const { status } = await request('GET', '/classrooms/dummy-id/assignment', null, {
+            Authorization: 'Bearer invalid-session-token',
+        });
+        // 存在しないクラスは 404（存在秘匿）、実在クラスなら 401
+        expect([401, 404]).toContain(status);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// 課題コンテンツ — 教師/生徒フルフロー（DEV_BYPASS_TOKEN があるときのみ実行）
+// ---------------------------------------------------------------------------
+(DEV_BYPASS_TOKEN ? describe : describe.skip)('課題コンテンツ — フルフロー', () => {
+    const teacherAuth = { Authorization: `Bearer ${DEV_BYPASS_TOKEN}` };
+    let classroomId = '';
+    let joinCode = '';
+    let sessionToken = '';
+
+    beforeAll(async () => {
+        const { status, data } = await request(
+            'POST',
+            '/classrooms',
+            {
+                className: '結合テスト(assignment)',
+                assignmentName: '課題配信テスト',
+                studentCount: 3,
+            },
+            teacherAuth,
+        );
+        expect(status).toBe(201);
+        classroomId = data.classroomId as string;
+        joinCode = data.joinCode as string;
+    });
+
+    afterAll(async () => {
+        if (classroomId) {
+            await request('DELETE', `/classrooms/${classroomId}`, null, teacherAuth);
+        }
+    });
+
+    test('課題未設定の GET は assignment: null（教師）', async () => {
+        const { status, data } = await request(
+            'GET',
+            `/classrooms/${classroomId}/assignment`,
+            null,
+            teacherAuth,
+        );
+        expect(status).toBe(200);
+        expect(data.assignment).toBeNull();
+    });
+
+    test('PUT で課題を設定し、Presigned upload URL が返る', async () => {
+        const { status, data } = await request(
+            'PUT',
+            `/classrooms/${classroomId}/assignment`,
+            {
+                pages: [
+                    { text: 'ねこを動かそう' },
+                    { text: '画像つきページ', newImage: 'image/png' },
+                ],
+                newStarter: true,
+            },
+            teacherAuth,
+        );
+        expect(status).toBe(200);
+        const assignment = data.assignment as Record<string, unknown>;
+        const pages = assignment.pages as Record<string, unknown>[];
+        expect(pages).toHaveLength(2);
+        expect(pages[1].imageKey).toContain(`${classroomId}/assignment/image-`);
+        expect(assignment.starterKey).toContain(`${classroomId}/assignment/starter-`);
+        const imageUploadUrls = data.imageUploadUrls as (string | null)[];
+        expect(imageUploadUrls[0]).toBeNull();
+        expect(typeof imageUploadUrls[1]).toBe('string');
+        expect(typeof data.starterUploadUrl).toBe('string');
+
+        // Presigned URL に実際にアップロードする（1x1 PNG / ダミー sb3）
+        const pngBytes = Buffer.from(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+            'base64',
+        );
+        const imgRes = await fetch(imageUploadUrls[1] as string, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'image/png' },
+            body: pngBytes,
+        });
+        expect(imgRes.status).toBe(200);
+        const sb3Res = await fetch(data.starterUploadUrl as string, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/octet-stream' },
+            body: Buffer.from('PKdummy-sb3'),
+        });
+        expect(sb3Res.status).toBe(200);
+    });
+
+    test('lookup が hasAssignment: true を返す', async () => {
+        const { status, data } = await request('POST', '/classrooms/lookup', { joinCode });
+        expect(status).toBe(200);
+        expect(data.hasAssignment).toBe(true);
+    });
+
+    test('join が hasAssignment: true を返し、生徒が課題を取得できる', async () => {
+        const joinRes = await request('POST', '/classrooms/join', {
+            joinCode,
+            seatNumber: 1,
+        });
+        expect(joinRes.status).toBe(200);
+        expect(joinRes.data.hasAssignment).toBe(true);
+        sessionToken = joinRes.data.sessionToken as string;
+
+        const { status, data } = await request(
+            'GET',
+            `/classrooms/${classroomId}/assignment`,
+            null,
+            { Authorization: `Bearer ${sessionToken}` },
+        );
+        expect(status).toBe(200);
+        const assignment = data.assignment as Record<string, unknown>;
+        const pages = assignment.pages as Record<string, unknown>[];
+        expect(pages).toHaveLength(2);
+        expect(pages[0].text).toBe('ねこを動かそう');
+        expect(pages[0].imageUrl).toBeNull();
+        expect(typeof pages[1].imageUrl).toBe('string');
+        expect(typeof assignment.starterUrl).toBe('string');
+
+        // 生徒がダウンロード URL から実際に取得できる
+        const dl = await fetch(assignment.starterUrl as string);
+        expect(dl.status).toBe(200);
+    });
+
+    test('verify-session が hasAssignment: true を返す', async () => {
+        const { status, data } = await request('POST', '/classrooms/verify-session', null, {
+            Authorization: `Bearer ${sessionToken}`,
+        });
+        expect(status).toBe(200);
+        expect(data.hasAssignment).toBe(true);
+    });
+
+    test('別クラスの生徒セッションでは課題を取得できない (401)', async () => {
+        // 同じ教師でもう1クラス作り、その生徒セッションで最初のクラスの課題を読む
+        const other = await request(
+            'POST',
+            '/classrooms',
+            { className: '結合テスト(assignment-他クラス)', assignmentName: 'x', studentCount: 2 },
+            teacherAuth,
+        );
+        expect(other.status).toBe(201);
+        try {
+            const otherJoin = await request('POST', '/classrooms/join', {
+                joinCode: other.data.joinCode as string,
+                seatNumber: 1,
+            });
+            expect(otherJoin.status).toBe(200);
+            const { status } = await request(
+                'GET',
+                `/classrooms/${classroomId}/assignment`,
+                null,
+                { Authorization: `Bearer ${otherJoin.data.sessionToken as string}` },
+            );
+            expect(status).toBe(401);
+        } finally {
+            await request('DELETE', `/classrooms/${other.data.classroomId as string}`, null, teacherAuth);
+        }
+    });
+
+    test('keepStarter でページだけ更新でき、既存スターターが残る', async () => {
+        const before = await request('GET', `/classrooms/${classroomId}/assignment`, null, teacherAuth);
+        const beforeStarterKey = (before.data.assignment as Record<string, unknown>).starterKey;
+
+        const { status, data } = await request(
+            'PUT',
+            `/classrooms/${classroomId}/assignment`,
+            { pages: [{ text: '更新後のページ' }], keepStarter: true },
+            teacherAuth,
+        );
+        expect(status).toBe(200);
+        const assignment = data.assignment as Record<string, unknown>;
+        expect((assignment.pages as unknown[]).length).toBe(1);
+        expect(assignment.starterKey).toBe(beforeStarterKey);
+    });
+
+    test('空 body の PUT で課題がクリアされる', async () => {
+        const { status, data } = await request(
+            'PUT',
+            `/classrooms/${classroomId}/assignment`,
+            {},
+            teacherAuth,
+        );
+        expect(status).toBe(200);
+        expect(data.assignment).toBeNull();
+
+        const after = await request('GET', `/classrooms/${classroomId}/assignment`, null, teacherAuth);
+        expect(after.data.assignment).toBeNull();
+
+        const lookup = await request('POST', '/classrooms/lookup', { joinCode });
+        expect(lookup.data.hasAssignment).toBe(false);
     });
 });
 
