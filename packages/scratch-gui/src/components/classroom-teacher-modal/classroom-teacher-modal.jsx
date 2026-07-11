@@ -103,6 +103,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         onAssignmentRemoveStarter,
         onAssignmentSave,
         onAssignmentCancel,
+        onAssignmentApplyTemplate,
         groups,
         onShowGroupManage,
         onBackFromGroupManage,
@@ -267,6 +268,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         starterSource={assignmentStarterSource}
                         onAddPage={onAssignmentAddPage}
                         onAttachPageImage={onAssignmentAttachPageImage}
+                        onApplyTemplate={onAssignmentApplyTemplate}
                         onCancel={onAssignmentCancel}
                         onChangePageText={onAssignmentChangePageText}
                         onMovePage={onAssignmentMovePage}

@@ -218,6 +218,7 @@ const useTeacherClassroom = ({
         handleAssignmentRemoveStarter: assignment.handleRemoveStarter,
         handleAssignmentSave: assignment.handleSaveAssignment,
         handleAssignmentCancel: assignment.handleCancelAssignmentEdit,
+        handleAssignmentApplyTemplate: assignment.handleApplyTemplate,
 
         // Evaluation (期末評価)
         evaluation,

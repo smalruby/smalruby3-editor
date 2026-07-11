@@ -188,6 +188,8 @@ export default {
     'gui.classroom.googleCourses.import': 'インポート',
     'gui.classroom.googleCourses.empty': 'クラスがみつかりません',
     'gui.classroom.googleCourses.students': '{count}にん',
+    'gui.classroom.assignmentEditor.templatePlaceholder': 'テンプレートからはじめる…',
+    'gui.classroom.assignmentEditor.templateOverwriteConfirm': 'いまのページをテンプレートでおきかえますか？',
     'gui.classroom.evaluation.title': 'ひょうか — {name}（{year}ねんど）',
     'gui.classroom.evaluation.hint':
         'AIのひょうかはしたがきです。きめるのはせんせいです。さきにすうにんをてでさいてんすると、AIがせんせいのきじゅんにあわせます。きまつひょうかはせいとにはみえません。へんきゃくされるのはポジティブなコメントだけです。',

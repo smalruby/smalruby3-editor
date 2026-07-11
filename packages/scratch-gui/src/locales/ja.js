@@ -183,6 +183,8 @@ export default {
     'gui.classroom.googleCourses.import': 'インポート',
     'gui.classroom.googleCourses.empty': 'クラスが見つかりません',
     'gui.classroom.googleCourses.students': '{count}人',
+    'gui.classroom.assignmentEditor.templatePlaceholder': 'テンプレートから始める…',
+    'gui.classroom.assignmentEditor.templateOverwriteConfirm': '今のページをテンプレートで置きかえますか？',
     'gui.classroom.evaluation.title': '評価 — {name}（{year}年度）',
     'gui.classroom.evaluation.hint':
         'AIの評価は下書きです。決めるのは先生です。先に数人を手で採点すると、AIが先生の基準に合わせます。期末評価は生徒には見えません。返却されるのはポジティブなコメントだけです。',
