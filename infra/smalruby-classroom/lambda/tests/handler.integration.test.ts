@@ -426,6 +426,167 @@ describe('課題コンテンツエンドポイント — 認証エラー', () =>
 });
 
 // ---------------------------------------------------------------------------
+// 組 (グループ) — フルフロー（DEV_BYPASS_TOKEN があるときのみ実行）
+// ---------------------------------------------------------------------------
+(DEV_BYPASS_TOKEN ? describe : describe.skip)('組 (グループ) — フルフロー', () => {
+    const teacherAuth = { Authorization: `Bearer ${DEV_BYPASS_TOKEN}` };
+    let groupId = '';
+    let firstClassroomId = '';
+    let firstJoinCode = '';
+    let secondClassroomId = '';
+    let secondJoinCode = '';
+    let duplicatedClassroomId = '';
+
+    afterAll(async () => {
+        for (const id of [firstClassroomId, secondClassroomId, duplicatedClassroomId]) {
+            if (id) await request('DELETE', `/classrooms/${id}`, null, teacherAuth);
+        }
+        if (groupId) {
+            await request('PATCH', `/classroom-groups/${groupId}`, { status: 'archived' }, teacherAuth);
+        }
+    });
+
+    test('POST /classroom-groups — 組を作成できる', async () => {
+        const { status, data } = await request(
+            'POST',
+            '/classroom-groups',
+            { name: '結合テスト2年1組', year: 2026 },
+            teacherAuth,
+        );
+        expect(status).toBe(201);
+        expect(data.name).toBe('結合テスト2年1組');
+        expect(data.year).toBe(2026);
+        expect(data.status).toBe('active');
+        groupId = data.groupId as string;
+    });
+
+    test('GET /classroom-groups — 一覧に作成した組が含まれる', async () => {
+        const { status, data } = await request('GET', '/classroom-groups', null, teacherAuth);
+        expect(status).toBe(200);
+        const groups = data.groups as Record<string, unknown>[];
+        expect(groups.some((g) => g.groupId === groupId)).toBe(true);
+    });
+
+    test('POST /classrooms — groupId 付きでクラスを作成できる', async () => {
+        const { status, data } = await request(
+            'POST',
+            '/classrooms',
+            { className: '結合テスト2年1組', assignmentName: '第1回', studentCount: 3, groupId },
+            teacherAuth,
+        );
+        expect(status).toBe(201);
+        expect(data.groupId).toBe(groupId);
+        firstClassroomId = data.classroomId as string;
+        firstJoinCode = data.joinCode as string;
+    });
+
+    test('存在しない groupId でのクラス作成は 404', async () => {
+        const { status } = await request(
+            'POST',
+            '/classrooms',
+            { className: 'x', assignmentName: 'x', studentCount: 2, groupId: 'no-such-group' },
+            teacherAuth,
+        );
+        expect(status).toBe(404);
+    });
+
+    test('前回コメント: 第1回で返却コメント→第2回 join で previousComment が返る', async () => {
+        // 生徒が第1回に参加して提出
+        const join1 = await request('POST', '/classrooms/join', { joinCode: firstJoinCode, seatNumber: 2 });
+        expect(join1.status).toBe(200);
+        expect(join1.data.previousComment).toBeNull();
+        const sub = await request(
+            'POST',
+            `/classrooms/${firstClassroomId}/submissions`,
+            { projectName: '第1回作品' },
+            { Authorization: `Bearer ${join1.data.sessionToken as string}` },
+        );
+        expect(sub.status).toBe(201);
+
+        // 先生が返却コメント
+        const ret = await request(
+            'PATCH',
+            `/classrooms/${firstClassroomId}/submissions/${sub.data.submissionId as string}`,
+            { status: 'returned', teacherComment: '音をイベントにつなげられたね！' },
+            teacherAuth,
+        );
+        expect(ret.status).toBe(200);
+
+        // 第2回のクラスを同じ組に作成し、同じ席で join
+        const create2 = await request(
+            'POST',
+            '/classrooms',
+            { className: '結合テスト2年1組', assignmentName: '第2回', studentCount: 3, groupId },
+            teacherAuth,
+        );
+        expect(create2.status).toBe(201);
+        secondClassroomId = create2.data.classroomId as string;
+        secondJoinCode = create2.data.joinCode as string;
+
+        const join2 = await request('POST', '/classrooms/join', { joinCode: secondJoinCode, seatNumber: 2 });
+        expect(join2.status).toBe(200);
+        const prev = join2.data.previousComment as Record<string, unknown>;
+        expect(prev).not.toBeNull();
+        expect(prev.teacherComment).toBe('音をイベントにつなげられたね！');
+        expect(prev.assignmentName).toBe('第1回');
+
+        // 別の席で join した場合は前回コメントなし
+        const join3 = await request('POST', '/classrooms/join', { joinCode: secondJoinCode, seatNumber: 3 });
+        expect(join3.status).toBe(200);
+        expect(join3.data.previousComment).toBeNull();
+    });
+
+    test('POST /classrooms/{id}/duplicate — 課題ごと複製できる', async () => {
+        // 第1回に課題を付けてから複製
+        const setAssign = await request(
+            'PUT',
+            `/classrooms/${firstClassroomId}/assignment`,
+            { pages: [{ text: '複製テストページ' }] },
+            teacherAuth,
+        );
+        expect(setAssign.status).toBe(200);
+
+        const { status, data } = await request(
+            'POST',
+            `/classrooms/${firstClassroomId}/duplicate`,
+            { groupId, assignmentName: '第1回(翌年度)' },
+            teacherAuth,
+        );
+        expect(status).toBe(201);
+        expect(data.groupId).toBe(groupId);
+        expect(data.hasAssignment).toBe(true);
+        expect(data.joinCode).not.toBe(firstJoinCode);
+        duplicatedClassroomId = data.classroomId as string;
+
+        // 複製先の課題が読める（ページ内容が引き継がれている）
+        const dup = await request('GET', `/classrooms/${duplicatedClassroomId}/assignment`, null, teacherAuth);
+        expect(dup.status).toBe(200);
+        const pages = (dup.data.assignment as Record<string, unknown>).pages as Record<string, unknown>[];
+        expect(pages[0].text).toBe('複製テストページ');
+    });
+
+    test('PATCH /classroom-groups/{id} — リネームとアーカイブ', async () => {
+        const rename = await request(
+            'PATCH',
+            `/classroom-groups/${groupId}`,
+            { name: '結合テスト2年1組(改)' },
+            teacherAuth,
+        );
+        expect(rename.status).toBe(200);
+        expect(rename.data.name).toBe('結合テスト2年1組(改)');
+
+        const archive = await request(
+            'PATCH',
+            `/classroom-groups/${groupId}`,
+            { status: 'archived' },
+            teacherAuth,
+        );
+        expect(archive.status).toBe(200);
+        expect(archive.data.status).toBe('archived');
+    });
+});
+
+// ---------------------------------------------------------------------------
 // CORS
 // ---------------------------------------------------------------------------
 describe('CORS', () => {

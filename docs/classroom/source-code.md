@@ -103,6 +103,8 @@ CDK スタック定義。以下のリソースを作成:
 | `handleUpdateSubmission()` | 提出更新 (返却・コメント) |
 | `handleSetAssignment()` | 課題コンテンツ設定 (ページ + スターター、Presigned URL 生成) |
 | `handleGetAssignment()` | 課題コンテンツ取得 (生徒 Session Token / 先生 ID Token 両対応) |
+| `handleCreateGroup()` / `handleListGroups()` / `handleUpdateGroup()` | 組（グループ）の作成・一覧・更新/アーカイブ |
+| `handleDuplicateClassroom()` | クラス複製（課題の S3 オブジェクトコピー含む） |
 | `handleListGoogleCourses()` | Google Classroom コース一覧 |
 | `handleImportGoogleClassroom()` | Google Classroom コースインポート |
 | `handlePostAssignment()` | Google Classroom に課題投稿 |
