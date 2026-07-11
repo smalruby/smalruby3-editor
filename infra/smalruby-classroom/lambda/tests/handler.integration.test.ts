@@ -426,6 +426,117 @@ describe('課題コンテンツエンドポイント — 認証エラー', () =>
 });
 
 // ---------------------------------------------------------------------------
+// AI 評価 — 実 Claude 呼び出し（DEV_BYPASS_TOKEN があるときのみ実行）
+// ---------------------------------------------------------------------------
+(DEV_BYPASS_TOKEN ? describe : describe.skip)('AI 評価 — フルフロー', () => {
+    const teacherAuth = { Authorization: `Bearer ${DEV_BYPASS_TOKEN}` };
+    let classroomId = '';
+
+    const submissions = [
+        {
+            seatNumber: 1,
+            signals: { wiredScriptCount: 1, usesLoops: true, totalBlocks: 6 },
+            pseudocode:
+                '=== スプライト: ねこ ===\n◆ スクリプト:\n    緑の旗が押されたとき\n    ずっと\n        10 歩動かす\n        もし端に着いたら、跳ね返る',
+        },
+        {
+            seatNumber: 2,
+            signals: { wiredScriptCount: 0, totalBlocks: 1 },
+            pseudocode: '=== スプライト: ねこ ===\n◇ スクリプト:\n    10 歩動かす',
+        },
+    ];
+
+    beforeAll(async () => {
+        const { status, data } = await request(
+            'POST',
+            '/classrooms',
+            { className: '結合テスト(AI評価)', assignmentName: 'ねこを動かそう', studentCount: 3 },
+            teacherAuth,
+        );
+        expect(status).toBe(201);
+        classroomId = data.classroomId as string;
+    });
+
+    afterAll(async () => {
+        if (classroomId) await request('DELETE', `/classrooms/${classroomId}`, null, teacherAuth);
+    });
+
+    test('grade モード: S/A/B/C + 根拠 + needsReview が返る', async () => {
+        const { status, data } = await request(
+            'POST',
+            `/classrooms/${classroomId}/evaluate`,
+            {
+                mode: 'grade',
+                assignmentName: 'ねこを動かそう',
+                assignmentText: 'ねこが動き続けるプログラムを作ろう',
+                rubricAxes: [
+                    { name: '動くこと', description: 'イベントに接続されて実行される（◆）' },
+                    { name: '繰り返しの活用', description: 'ずっと/繰り返すブロックを使っている' },
+                ],
+                strictness: 'standard',
+                samples: [],
+                submissions,
+            },
+            teacherAuth,
+        );
+        expect(status).toBe(200);
+        const results = data.results as Record<string, unknown>[];
+        expect(results).toHaveLength(2);
+        for (const result of results) {
+            expect(['S', 'A', 'B', 'C']).toContain(result.grade);
+            expect(typeof result.reason).toBe('string');
+            expect(typeof result.needsReview).toBe('boolean');
+        }
+        // 席2 は未接続（◇のみ）なので 席1 より良い評価にはならないはず
+        const seat1 = results.find((r) => r.seatNumber === 1);
+        const seat2 = results.find((r) => r.seatNumber === 2);
+        expect(seat1).toBeDefined();
+        expect(seat2).toBeDefined();
+        const order = ['C', 'B', 'A', 'S'];
+        expect(order.indexOf((seat2 as Record<string, unknown>).grade as string)).toBeLessThanOrEqual(
+            order.indexOf((seat1 as Record<string, unknown>).grade as string),
+        );
+    }, 60000);
+
+    test('comment モード: 生徒向けポジティブコメントが返る', async () => {
+        const { status, data } = await request(
+            'POST',
+            `/classrooms/${classroomId}/evaluate`,
+            {
+                mode: 'comment',
+                assignmentName: 'ねこを動かそう',
+                assignmentText: '',
+                rubricAxes: [],
+                strictness: 'standard',
+                samples: [],
+                submissions: [submissions[0]],
+            },
+            teacherAuth,
+        );
+        expect(status).toBe(200);
+        const results = data.results as Record<string, unknown>[];
+        expect(results).toHaveLength(1);
+        expect(typeof results[0].comment).toBe('string');
+        expect((results[0].comment as string).length).toBeGreaterThan(10);
+    }, 60000);
+
+    test('バリデーション: mode 不正は 400、認証なしは 401', async () => {
+        const bad = await request(
+            'POST',
+            `/classrooms/${classroomId}/evaluate`,
+            { mode: 'rank', submissions },
+            teacherAuth,
+        );
+        expect(bad.status).toBe(400);
+        const noAuth = await request('POST', `/classrooms/${classroomId}/evaluate`, {
+            mode: 'grade',
+            submissions,
+        });
+        expect(noAuth.status).toBe(401);
+    });
+});
+
+// ---------------------------------------------------------------------------
 // 組 (グループ) — フルフロー（DEV_BYPASS_TOKEN があるときのみ実行）
 // ---------------------------------------------------------------------------
 (DEV_BYPASS_TOKEN ? describe : describe.skip)('組 (グループ) — フルフロー', () => {
