@@ -11,10 +11,9 @@
     },
     "playwright": {
       "type": "stdio",
-      "command": "npx",
+      "command": "node",
       "args": [
-        "-y",
-        "@playwright/mcp@latest"
+        "tools/mcp/playwright-mcp.mjs"
       ],
       "env": {}
     },
