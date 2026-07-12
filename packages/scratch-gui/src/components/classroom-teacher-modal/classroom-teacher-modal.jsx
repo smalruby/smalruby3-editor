@@ -114,8 +114,8 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         onAssignmentRemoveStarter,
         onAssignmentSave,
         onAssignmentCancel,
-        onAssignmentApplyTemplate,
         groups,
+        teacherEmail,
         selectedGroup,
         onSelectGroup,
         onShowClassList,
@@ -242,7 +242,6 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                             hasExistingStarter: assignmentHasExistingStarter,
                             isSaving: assignmentIsSaving,
                             onAddPage: onAssignmentAddPage,
-                            onApplyTemplate: onAssignmentApplyTemplate,
                             onAttachPageImage: onAssignmentAttachPageImage,
                             onCancel: onAssignmentCancel,
                             onChangePageText: onAssignmentChangePageText,
@@ -296,6 +295,9 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                     error={error}
                     errorTitle={errorTitle}
                     googleCourses={googleCourses}
+                    importedCourseIds={(groups || [])
+                        .map((g) => g.googleClassroomCourseId)
+                        .filter(Boolean)}
                     isLoading={isLoading}
                     selectedGoogleCourse={selectedGoogleCourse}
                     onBack={onShowClassList}
@@ -383,6 +385,11 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
             >
                 {/* Logout lives in the title bar (top-right, before the
                     close ×) so it is reachable from every teacher view. */}
+                {phase !== 'teacher-login' && teacherEmail ? (
+                    <span className={styles.titleBarEmail} data-testid="classroom-teacher-email">
+                        {teacherEmail}
+                    </span>
+                ) : null}
                 {phase !== 'teacher-login' && (
                     <button
                         className={styles.titleBarLogout}

@@ -247,6 +247,10 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-description-preview` | div | 右ペインの生徒視点プレビュー |
 | `classroom-description-preview-body` | div | プレビュー本文（テキスト+画像） |
 | `classroom-description-preview-prev` / `-next` | button | プレビューのページ送り |
+| `classroom-teacher-email` | span | タイトルバーのユーザーメール（OIDC トークンに email がある場合のみ） |
+| `classroom-board-create-cancel` / `classroom-board-reuse-cancel` | button | インラインフォームのキャンセル |
+| `classroom-google-course-imported-{courseId}` | span | GC コースの「インポート済み」バッジ |
+| `classroom-breadcrumb-assignments` | button | パンくず「課題一覧」リンク |
 | `classroom-phase-teacher-group-manage` | div | 組管理フェーズのルート |
 | `classroom-group-create-name` / `classroom-group-create-year` | input | 新規組の名前 / 年度 |
 | `classroom-group-create-submit` | button | 組をつくる |

@@ -10,6 +10,7 @@ import { FormattedMessage, useIntl } from 'react-intl';
 
 import { formatClassLabel } from '../../lib/classroom-class-label.js';
 import ErrorDisplay from './error-display.jsx';
+import TeacherBreadcrumbs from './teacher-breadcrumbs.jsx';
 
 import styles from './classroom-modal.css';
 
@@ -387,6 +388,17 @@ const TeacherClassList = ({
 
     return (
         <div className={styles.classList} data-testid="classroom-phase-teacher-class-list">
+            <TeacherBreadcrumbs
+                items={[
+                    {
+                        label: intl.formatMessage({
+                            defaultMessage: 'Class list',
+                            description: 'Breadcrumb label of the class list (current view)',
+                            id: 'gui.classroom.breadcrumbs.classList',
+                        }),
+                    },
+                ]}
+            />
             <h2 className={styles.classListTitle}>
                 <FormattedMessage
                     defaultMessage="Your classes"

@@ -405,3 +405,28 @@
 .detail-breadcrumbs {
     padding: 0.75rem 1.25rem 0;
 }
+
+.title-bar-email {
+    position: fixed;
+    top: 0.85rem;
+    right: 10.5rem;
+    z-index: 1000;
+    color: white;
+    font-size: 0.8rem;
+    max-width: 18rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.google-courses-view {
+    padding: 1.25rem 2rem;
+    max-width: 60rem;
+    overflow-y: auto;
+}
+
+.google-courses-title {
+    margin: 0.25rem 0 1rem;
+    font-size: 1.3rem;
+    color: #575e75;
+}

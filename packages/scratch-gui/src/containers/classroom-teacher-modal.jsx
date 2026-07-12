@@ -2,6 +2,7 @@ import React, { useCallback, useRef, useState, useEffect } from 'react';
 import { useIntl } from 'react-intl';
 import { useDispatch, useSelector } from 'react-redux';
 import ClassroomTeacherModalComponent from '../components/classroom-teacher-modal/classroom-teacher-modal.jsx';
+import { teacherEmailFromToken } from '../lib/classroom-class-label.js';
 import { getUrlParams } from '../lib/url-params.js';
 import { showAlertWithTimeout } from '../reducers/alerts.js';
 import {
@@ -181,8 +182,8 @@ const ClassroomTeacherModal = () => {
         onAssignmentRemoveStarter: teacher.handleAssignmentRemoveStarter,
         onAssignmentSave: teacher.handleAssignmentSave,
         onAssignmentCancel: teacher.handleAssignmentCancel,
-        onAssignmentApplyTemplate: teacher.handleAssignmentApplyTemplate,
         groups: teacher.groups,
+        teacherEmail: teacherEmailFromToken(teacher.idToken),
         selectedGroup: teacher.selectedGroup,
         onSelectGroup: teacher.handleSelectGroup,
         onShowClassList: teacher.handleShowClassList,
