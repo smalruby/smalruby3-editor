@@ -9,7 +9,7 @@
  *   'keep' — keep the server-side starter as-is
  *   'new'  — upload a new starter on save (from the open project or a file)
  */
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { defineMessages } from 'react-intl';
 import classroomAPI from '../lib/classroom-api.js';
 import {
@@ -58,6 +58,7 @@ const messages = defineMessages({
  * @param {Function} params.showError - error display helper
  * @param {object} params.intl - react-intl intl object
  * @param {Function} params.setIsLoading - loading state setter
+ * @param {string} params.phase - current UI phase (drives the auto-load)
  * @param {Function} params.setPhase - phase setter
  * @param {object} params.vm - Scratch VM instance (for "use open project")
  * @returns {object} assignment editor state and handlers
@@ -70,6 +71,7 @@ const useTeacherAssignment = ({
     showError,
     intl,
     setIsLoading,
+    phase,
     setPhase,
     vm,
 }) => {
@@ -89,7 +91,8 @@ const useTeacherAssignment = ({
         }
     }, []);
 
-    const handleShowAssignmentEditor = useCallback(async () => {
+    /** Load the saved assignment content into the editor state (no phase change). */
+    const loadAssignmentEditor = useCallback(async () => {
         if (!selectedClassroom) return;
         clearError();
         setIsLoading(true);
@@ -106,7 +109,6 @@ const useTeacherAssignment = ({
             setHasExistingStarter(hasStarter);
             setStarterMode(hasStarter ? 'keep' : 'none');
             setStarterSource(null);
-            setPhase('teacher-assignment-edit');
         } catch (err) {
             if (err.status === 401) {
                 handleTeacher401();
@@ -117,6 +119,16 @@ const useTeacherAssignment = ({
             setIsLoading(false);
         }
     }, [idToken, selectedClassroom, clearError, showError, intl, setIsLoading, setPhase, handleTeacher401]);
+
+    // The description tab is the detail view's default — keep the editor
+    // in sync with the opened assignment.
+    useEffect(() => {
+        if (phase === 'teacher-class-detail' && selectedClassroom) {
+            loadAssignmentEditor();
+        }
+        // loadAssignmentEditor identity changes with the classroom — the two
+        // deps below are the actual triggers.
+    }, [phase === 'teacher-class-detail', selectedClassroom && selectedClassroom.classroomId]);
 
     const handleAddPage = useCallback(() => {
         setEditorPages((pages) => (pages.length >= MAX_ASSIGNMENT_PAGES ? pages : [...pages, { text: '' }]));
@@ -274,9 +286,10 @@ const useTeacherAssignment = ({
             await Promise.all(uploads);
 
             releasePreviews(editorPages);
-            setEditorPages([]);
             setStarterSource(null);
-            setPhase('teacher-class-detail');
+            // Embedded in the description tab: reload the saved content so
+            // image previews point at fresh signed URLs.
+            await loadAssignmentEditor();
         } catch (err) {
             if (err.status === 401) {
                 handleTeacher401();
@@ -315,7 +328,7 @@ const useTeacherAssignment = ({
         starterSource,
         hasExistingStarter,
         isSaving,
-        handleShowAssignmentEditor,
+        loadAssignmentEditor,
         handleAddPage,
         handleRemovePage,
         handleMovePage,

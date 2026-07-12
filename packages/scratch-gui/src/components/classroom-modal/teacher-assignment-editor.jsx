@@ -185,6 +185,7 @@ const TeacherAssignmentEditor = ({
     starterSource,
     onAddPage,
     onAttachPageImage,
+    embedded,
     onCancel,
     onChangePageText,
     onMovePage,
@@ -255,7 +256,11 @@ const TeacherAssignmentEditor = ({
     };
 
     return (
-        <div className={styles.assignmentEditor} data-testid="classroom-phase-teacher-assignment-edit">
+        <div
+            className={styles.assignmentEditor}
+            data-testid={embedded ? 'classroom-description-editor' : 'classroom-phase-teacher-assignment-edit'}
+        >
+            {!embedded && (
             <h2 className={styles.phaseTitle}>
                 <FormattedMessage
                     defaultMessage="Edit Assignment"
@@ -264,6 +269,7 @@ const TeacherAssignmentEditor = ({
                 />
                 {selectedClassroom ? ` — ${selectedClassroom.className}` : ''}
             </h2>
+            )}
             <p className={styles.assignmentEditorHint}>
                 <FormattedMessage
                     defaultMessage="Students see these pages and the starter project opens automatically when they join with the class code."
@@ -392,6 +398,7 @@ const TeacherAssignmentEditor = ({
             </div>
 
             <div className={styles.buttonRow}>
+                {!embedded && (
                 <button
                     className={styles.secondaryButton}
                     data-testid="classroom-assignment-cancel"
@@ -404,6 +411,7 @@ const TeacherAssignmentEditor = ({
                         id="gui.classroom.assignmentEditor.cancel"
                     />
                 </button>
+                )}
                 <button
                     className={styles.primaryButton}
                     data-testid="classroom-assignment-save"
@@ -443,7 +451,8 @@ TeacherAssignmentEditor.propTypes = {
     starterSource: PropTypes.object,
     onAddPage: PropTypes.func.isRequired,
     onAttachPageImage: PropTypes.func.isRequired,
-    onCancel: PropTypes.func.isRequired,
+    embedded: PropTypes.bool,
+    onCancel: PropTypes.func,
     onChangePageText: PropTypes.func.isRequired,
     onMovePage: PropTypes.func.isRequired,
     onRemovePage: PropTypes.func.isRequired,

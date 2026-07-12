@@ -146,7 +146,7 @@ export default {
     'gui.classroom.teacherDashboard.logout': 'ログアウト',
     'gui.classroom.teacherDashboard.studentCountSuffix': 'にん',
     'gui.classroom.teacherDetail.delete': 'さくじょ',
-    'gui.classroom.teacherDetail.deleteClassroom': 'クラスをさくじょ',
+    'gui.classroom.teacherDetail.deleteClassroom': 'かだいをさくじょ',
     'gui.classroom.teacherDetail.deleteConfirm':
         'ほんとうにこのクラスをさくじょしますか？すべてのメンバーがさくじょされます。',
     'gui.classroom.teacherDetail.studentCountTitle': 'にんずうをへんこう',
@@ -208,6 +208,8 @@ export default {
     'gui.classroom.evaluation.exportCsv': 'ひょうかCSV',
     'gui.classroom.evaluation.exportAuditCsv': 'けんしょうようCSV',
     'gui.classroom.evaluation.returnComments': 'コメントをへんきゃく',
+    'gui.classroom.teacherDetail.descriptionTab': 'せつめい',
+    'gui.classroom.teacherDetail.previewTitle': 'せいとにみえるないよう（プレビュー）',
     'gui.classroom.breadcrumbs.classList': 'クラスいちらん',
     'gui.classroom.breadcrumbs.assignments': 'かだいいちらん',
     'gui.classroom.breadcrumbs.assignmentDetail': 'かだいしょうさい',

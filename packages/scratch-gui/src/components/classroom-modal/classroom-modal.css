@@ -1347,7 +1347,8 @@
 }
 
 .detail-right-pane {
-    width: 300px;
+    /* Wider now that the sidebar is gone (teacher review round 2) */
+    width: 380px;
     flex-shrink: 0;
     border-left: 1px solid #e0e0e0;
     padding-left: 1rem;
@@ -2631,5 +2632,59 @@
 
 .reuse-row-copy:disabled {
     opacity: 0.5;
+    cursor: default;
+}
+
+/* --- Description tab preview (student view) --- */
+
+.assignment-preview {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    height: 100%;
+}
+
+.assignment-preview-title {
+    font-weight: bold;
+    font-size: 0.9rem;
+    color: hsla(225, 15%, 40%, 1);
+}
+
+.assignment-preview-body {
+    flex: 1;
+    border: 1px solid hsla(0, 0%, 0%, 0.12);
+    border-radius: 0.5rem;
+    background: white;
+    padding: 1rem;
+    overflow-y: auto;
+}
+
+.assignment-preview-text {
+    white-space: pre-wrap;
+    margin: 0 0 0.75rem;
+}
+
+.assignment-preview-image {
+    max-width: 100%;
+    border-radius: 0.25rem;
+}
+
+.assignment-preview-pager {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+}
+
+.assignment-preview-pager button {
+    border: 1px solid hsla(0, 0%, 0%, 0.2);
+    background: white;
+    border-radius: 0.3rem;
+    padding: 0.25rem 0.7rem;
+    cursor: pointer;
+}
+
+.assignment-preview-pager button:disabled {
+    opacity: 0.4;
     cursor: default;
 }

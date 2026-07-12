@@ -134,7 +134,7 @@ export default {
     'gui.classroom.teacherDashboard.logout': 'Logout',
     'gui.classroom.teacherDashboard.studentCountSuffix': ' students',
     'gui.classroom.teacherDetail.delete': 'Delete',
-    'gui.classroom.teacherDetail.deleteClassroom': 'Delete Classroom',
+    'gui.classroom.teacherDetail.deleteClassroom': 'Delete the assignment',
     'gui.classroom.teacherDetail.deleteConfirm':
         'Are you sure you want to delete this classroom? All members will be removed.',
     'gui.classroom.teacherDetail.studentCountTitle': 'Change Student Count',
@@ -198,6 +198,8 @@ export default {
     'gui.classroom.evaluation.returnComments': 'Return Comments',
     'gui.classroom.groups.evaluate': 'Evaluate',
     'gui.classroom.previousComment.title': 'From your teacher last time ({assignmentName}):',
+    'gui.classroom.teacherDetail.descriptionTab': 'Description',
+    'gui.classroom.teacherDetail.previewTitle': 'Student view preview',
     'gui.classroom.breadcrumbs.classList': 'Class list',
     'gui.classroom.breadcrumbs.assignments': 'Assignments',
     'gui.classroom.breadcrumbs.assignmentDetail': 'Assignment detail',
