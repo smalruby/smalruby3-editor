@@ -3,6 +3,7 @@ import {
   validateGroupYear,
   selectPriorClassrooms,
   buildDuplicatedAssignment,
+  topicToEnsureForDuplicate,
 } from '../handler';
 
 describe('validateGroupName', () => {
@@ -91,5 +92,25 @@ describe('buildDuplicatedAssignment', () => {
     expect(assignment?.pages).toEqual([{ text: 'p' }]);
     expect(assignment?.starterKey).toBeUndefined();
     expect(copies).toEqual([]);
+  });
+});
+
+describe('topicToEnsureForDuplicate', () => {
+  test('returns the source topic when the copy is filed under a target group', () => {
+    // Reuse into a group that may not list this topic yet — the duplicate
+    // must register it so the assignment lands in a visible section.
+    expect(topicToEnsureForDuplicate({ topic: 'ループ' }, 'g1')).toBe('ループ');
+  });
+
+  test('returns undefined when the duplicate has no target group', () => {
+    // Ungrouped duplicate: no class to register the topic on.
+    expect(topicToEnsureForDuplicate({ topic: 'ループ' }, undefined)).toBeUndefined();
+    expect(topicToEnsureForDuplicate({ topic: 'ループ' }, '')).toBeUndefined();
+  });
+
+  test('returns undefined when the source carries no usable topic', () => {
+    expect(topicToEnsureForDuplicate({}, 'g1')).toBeUndefined();
+    expect(topicToEnsureForDuplicate({ topic: '' }, 'g1')).toBeUndefined();
+    expect(topicToEnsureForDuplicate({ topic: 42 as unknown as string }, 'g1')).toBeUndefined();
   });
 });
