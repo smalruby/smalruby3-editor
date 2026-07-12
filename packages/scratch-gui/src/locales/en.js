@@ -198,6 +198,13 @@ export default {
     'gui.classroom.evaluation.returnComments': 'Return Comments',
     'gui.classroom.groups.evaluate': 'Evaluate',
     'gui.classroom.previousComment.title': 'From your teacher last time ({assignmentName}):',
+    'gui.classroom.board.yearLabel': '{year} school year',
+    'gui.classroom.board.create': 'Create an assignment',
+    'gui.classroom.board.topicLabel': 'Topic',
+    'gui.classroom.board.noTopic': '(no topic)',
+    'gui.classroom.board.newTopicPlaceholder': 'New topic',
+    'gui.classroom.board.addTopic': 'Add topic',
+    'gui.classroom.board.empty': 'No assignments yet. Press "Create an assignment" to add one.',
     'gui.classroom.classList.title': 'Your classes',
     'gui.classroom.classList.hint':
         'A class is one homeroom (e.g. Year 2 Class 1). Open a class to manage its assignments.',

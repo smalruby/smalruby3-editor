@@ -184,6 +184,40 @@ const useTeacherGroups = ({
         [idToken, setClassrooms, clearError, showError, intl, setIsLoading, handleTeacher401],
     );
 
+    /**
+     * Manage the class's topics. The server cascades rename/remove to the
+     * assignments; mirror that deterministically in local state instead of
+     * refetching the whole list.
+     */
+    const handleUpdateGroupTopics = useCallback(
+        async (groupId, payload) => {
+            clearError();
+            setIsLoading(true);
+            try {
+                const updated = await classroomAPI.updateGroupTopics(idToken, groupId, payload);
+                setGroups((prev) => prev.map((g) => (g.groupId === groupId ? { ...g, ...updated } : g)));
+                setSelectedGroup((prev) => (prev && prev.groupId === groupId ? { ...prev, ...updated } : prev));
+                if (payload.action === 'rename' || payload.action === 'remove') {
+                    const to = payload.action === 'rename' ? payload.to : null;
+                    setClassrooms((prev) =>
+                        prev.map((c) =>
+                            c.groupId === groupId && c.topic === payload.name ? { ...c, topic: to } : c,
+                        ),
+                    );
+                }
+            } catch (err) {
+                if (err.status === 401) {
+                    handleTeacher401();
+                    return;
+                }
+                showError(translateError(intl, err));
+            } finally {
+                setIsLoading(false);
+            }
+        },
+        [idToken, setClassrooms, clearError, showError, intl, setIsLoading, handleTeacher401],
+    );
+
     /** Open a class from the class list — scope the workspace to it. */
     const handleSelectGroup = useCallback(
         (group) => {
@@ -257,6 +291,7 @@ const useTeacherGroups = ({
         handleSelectGroup,
         handleShowClassList,
         handleCreateClassWithAssignment,
+        handleUpdateGroupTopics,
         handleShowGroupManage,
         handleBackFromGroupManage,
         handleCreateGroup,

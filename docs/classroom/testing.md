@@ -212,6 +212,20 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-class-card-{groupId}` | li | クラスカード |
 | `classroom-class-open-{groupId}` | button | クラスカード本体（クリックでクラスをひらく） |
 | `classroom-class-evaluate-{groupId}` | button | クラスカードの「評価」 |
+| `classroom-board` | div | 課題管理ボード（クラス内のメイン領域） |
+| `classroom-board-create` | button | ボードの「課題を作る」 |
+| `classroom-board-empty` | p | ボードの空メッセージ |
+| `classroom-board-section-{topic}` | div | トピックセクション（未設定は `-none`） |
+| `classroom-board-row-{classroomId}` | li | 課題行 |
+| `classroom-board-open-{classroomId}` | button | 課題行本体（クリックで課題詳細へ） |
+| `classroom-board-topic-{classroomId}` | select | 課題行のトピック選択（その場編集） |
+| `classroom-board-date-{classroomId}` | input | 課題行の日付（並び順キー・その場編集） |
+| `classroom-topic-add-input` | input | 新しいトピック入力 |
+| `classroom-topic-add` | button | トピックを追加 |
+| `classroom-topic-chip-{topic}` | span | トピックチップ |
+| `classroom-topic-rename-{topic}` | button | チップ名（クリックでリネーム開始） |
+| `classroom-topic-rename-input-{topic}` | input | リネーム入力（Enter/blur で確定） |
+| `classroom-topic-remove-{topic}` | button | トピック削除（課題側はトピックなしへ） |
 | `classroom-phase-teacher-group-manage` | div | 組管理フェーズのルート |
 | `classroom-group-create-name` / `classroom-group-create-year` | input | 新規組の名前 / 年度 |
 | `classroom-group-create-submit` | button | 組をつくる |

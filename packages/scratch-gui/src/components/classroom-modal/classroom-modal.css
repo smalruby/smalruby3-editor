@@ -2251,3 +2251,173 @@
     opacity: 0.5;
     cursor: default;
 }
+
+/* --- Assignment board (inside a class) --- */
+
+.assignment-board {
+    padding: 1.5rem 2rem;
+    max-width: 52rem;
+    margin: 0 auto;
+    overflow-y: auto;
+}
+
+.board-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.board-title {
+    margin: 0;
+    font-size: 1.2rem;
+}
+
+.board-year {
+    margin-left: 0.5rem;
+    font-size: 0.8rem;
+    font-weight: normal;
+    color: hsla(225, 15%, 40%, 1);
+}
+
+.board-create-button {
+    background: #855cd6;
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.5rem 1.25rem;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.board-create-button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.board-topics {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 1rem 0;
+}
+
+.topic-chip {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid hsla(260, 60%, 60%, 0.4);
+    border-radius: 1rem;
+    background: hsla(260, 60%, 60%, 0.08);
+    overflow: hidden;
+}
+
+.topic-chip-name {
+    border: none;
+    background: transparent;
+    color: #855cd6;
+    padding: 0.2rem 0.2rem 0.2rem 0.7rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.topic-chip-remove {
+    border: none;
+    background: transparent;
+    color: #855cd6;
+    padding: 0.2rem 0.5rem 0.2rem 0.2rem;
+    cursor: pointer;
+}
+
+.topic-chip-input,
+.topic-add-input {
+    padding: 0.25rem 0.5rem;
+    border: 1px solid hsla(0, 0%, 0%, 0.2);
+    border-radius: 1rem;
+    font-size: 0.8rem;
+    width: 10rem;
+}
+
+.topic-add-button {
+    border: 1px solid #855cd6;
+    background: white;
+    color: #855cd6;
+    border-radius: 1rem;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.topic-add-button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.board-empty {
+    color: hsla(225, 15%, 40%, 1);
+    margin: 1.5rem 0;
+}
+
+.board-section {
+    margin-bottom: 1rem;
+}
+
+.board-section-title {
+    margin: 0.75rem 0 0.4rem;
+    font-size: 0.95rem;
+    color: #855cd6;
+    border-bottom: 1px solid hsla(260, 60%, 60%, 0.25);
+    padding-bottom: 0.2rem;
+}
+
+.board-rows {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.board-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.board-row-main {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.6rem 0.9rem;
+    border: 1px solid hsla(0, 0%, 0%, 0.12);
+    border-radius: 0.4rem;
+    background: white;
+    cursor: pointer;
+    text-align: left;
+}
+
+.board-row-main:hover {
+    border-color: #855cd6;
+}
+
+.board-row-name {
+    font-size: 0.95rem;
+}
+
+.board-row-code {
+    font-family: monospace;
+    font-size: 0.8rem;
+    color: hsla(225, 15%, 40%, 1);
+}
+
+.board-row-topic,
+.board-row-date {
+    padding: 0.35rem 0.4rem;
+    border: 1px solid hsla(0, 0%, 0%, 0.15);
+    border-radius: 0.3rem;
+    font-size: 0.8rem;
+    background: white;
+}
