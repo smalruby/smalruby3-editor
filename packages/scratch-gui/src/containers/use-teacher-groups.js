@@ -11,6 +11,23 @@ import log from '../lib/log.js';
 import translateError from './classroom-error-utils.js';
 
 /**
+ * Local-state mirror of the server's ensureGroupTopic-on-duplicate: when a
+ * reused (duplicated) classroom carries a topic the target class doesn't list
+ * yet, append it so the topic chip / assignment-row dropdown appears without a
+ * reload. The server has already committed the same change (a duplicate only
+ * succeeds after ensureGroupTopic), so mirroring is always in bounds.
+ * @param {object} group - target group
+ * @param {string} topic - topic carried by the duplicated classroom (may be null/empty)
+ * @returns {object} group with the topic appended when newly introduced (else unchanged)
+ */
+export const appendReusedTopic = (group, topic) => {
+    if (!group || !topic) return group;
+    const topics = Array.isArray(group.topics) ? group.topics : [];
+    if (topics.includes(topic)) return group;
+    return { ...group, topics: [...topics, topic] };
+};
+
+/**
  * @param {object} params - hook dependencies
  * @param {string} params.idToken - teacher ID token
  * @param {Function} params.handleTeacher401 - 401 handler (session expiry)
@@ -217,6 +234,19 @@ const useTeacherGroups = ({
                     assignmentName,
                 });
                 setClassrooms((prev) => [...prev, { ...created, role: 'owner', coTeacherEmails: [] }]);
+                // The server may have added a new topic to the target class
+                // (ensureGroupTopic). Mirror it locally so the topic chip /
+                // dropdown reflects it without a reload.
+                if (created.topic) {
+                    setGroups((prev) =>
+                        prev.map((g) =>
+                            g.groupId === targetGroup.groupId ? appendReusedTopic(g, created.topic) : g,
+                        ),
+                    );
+                    setSelectedGroup((prev) =>
+                        prev && prev.groupId === targetGroup.groupId ? appendReusedTopic(prev, created.topic) : prev,
+                    );
+                }
             } catch (err) {
                 if (err.status === 401) {
                     handleTeacher401();

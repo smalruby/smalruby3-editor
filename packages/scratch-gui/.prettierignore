@@ -343,6 +343,7 @@ test/unit/containers/*
 !test/unit/containers/connection-modal-connected-message.test.jsx
 !test/unit/containers/connection-modal-smalrubot-s1.test.jsx
 !test/unit/containers/connection-modal.test.jsx
+!test/unit/containers/use-teacher-groups-topics.test.js
 !test/unit/containers/google-drive-saver-hoc.test.jsx
 !test/unit/containers/google-drive-state-management.test.jsx
 !test/unit/containers/ruby-downloader.test.jsx

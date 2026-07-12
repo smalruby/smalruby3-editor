@@ -2259,6 +2259,21 @@ export function buildDuplicatedAssignment(
   };
 }
 
+/**
+ * Decide which topic (if any) the target class must list before a duplicated
+ * classroom lands in it. Reuse carries the source topic along, but a topic is
+ * only meaningful when the copy is filed under a target group — an ungrouped
+ * duplicate has nowhere to register it. Returns the topic to ensure, or
+ * undefined when there is nothing to add.
+ */
+export function topicToEnsureForDuplicate(
+  source: Record<string, unknown>,
+  groupId: string | undefined,
+): string | undefined {
+  const topic = typeof source.topic === 'string' && source.topic ? source.topic : undefined;
+  return topic && groupId ? topic : undefined;
+}
+
 /** Fetch a group and assert the teacher owns it. */
 async function getOwnedGroup(identity: TeacherIdentity, groupId: string): Promise<Record<string, unknown>> {
   const result = await docClient.send(new GetCommand({
@@ -2681,8 +2696,9 @@ async function handleDuplicateClassroom(
   // Reuse carries the topic along; make sure the target class lists it so
   // the assignment lands in a visible section (cross-class reuse included).
   const topic = typeof source.topic === 'string' && source.topic ? source.topic : undefined;
-  if (topic && groupId) {
-    await ensureGroupTopic(groupId, undefined, topic);
+  const topicToEnsure = topicToEnsureForDuplicate(source, groupId);
+  if (topicToEnsure) {
+    await ensureGroupTopic(groupId as string, undefined, topicToEnsure);
   }
 
   const now = new Date().toISOString();
