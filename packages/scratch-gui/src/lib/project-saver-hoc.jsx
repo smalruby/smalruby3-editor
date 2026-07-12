@@ -145,7 +145,11 @@ const ProjectSaverHOC = function (WrappedComponent) {
             this.props.onSetProjectSaver(null);
         }
         leavePageConfirm (e) {
-            if (this.props.projectChanged) {
+            // === Smalruby: Start of classroom beforeunload guard ===
+            // Also prompt while the classroom management (teacher) or student join modal is
+            // open so an accidental reload does not discard in-progress class/assignment setup.
+            if (this.props.projectChanged || this.props.classroomModalOpen) {
+                // === Smalruby: End of classroom beforeunload guard ===
                 // both methods of returning a value may be necessary for browser compatibility
                 (e || window.event).returnValue = true;
                 return true;
@@ -318,6 +322,9 @@ const ProjectSaverHOC = function (WrappedComponent) {
                  
                 autoSaveTimeoutId: _autoSaveTimeoutId,
                 autoSaveIntervalSecs: _autoSaveIntervalSecs,
+                // === Smalruby: Start of classroom beforeunload guard ===
+                classroomModalOpen: _classroomModalOpen,
+                // === Smalruby: End of classroom beforeunload guard ===
                 isCreatingCopy: _isCreatingCopy,
                 isCreatingNew: _isCreatingNew,
                 projectChanged: _projectChanged,
@@ -369,6 +376,9 @@ const ProjectSaverHOC = function (WrappedComponent) {
         autoSaveTimeoutId: PropTypes.number,
         canCreateNew: PropTypes.bool,
         canSave: PropTypes.bool,
+        // === Smalruby: Start of classroom beforeunload guard ===
+        classroomModalOpen: PropTypes.bool,
+        // === Smalruby: End of classroom beforeunload guard ===
         isAnyCreatingNewState: PropTypes.bool,
         isCreatingCopy: PropTypes.bool,
         isCreatingNew: PropTypes.bool,
@@ -423,9 +433,20 @@ const ProjectSaverHOC = function (WrappedComponent) {
         const loadingState = state.scratchGui.projectState.loadingState;
         const isShowingWithId = getIsShowingWithId(loadingState);
         const storage = state.scratchGui.config.storage;
+        // === Smalruby: Start of classroom beforeunload guard ===
+        // Guard reload/close while the teacher (class management) or student join modal is open.
+        // state.scratchGui.classroom may be absent in embeds that omit the classroom reducer.
+        const classroom = state.scratchGui.classroom;
+        const classroomModalOpen = Boolean(
+            classroom && (classroom.teacherModalVisible || classroom.modalVisible)
+        );
+        // === Smalruby: End of classroom beforeunload guard ===
         return {
             storage,
             autoSaveTimeoutId: state.scratchGui.timeout.autoSaveTimeoutId,
+            // === Smalruby: Start of classroom beforeunload guard ===
+            classroomModalOpen,
+            // === Smalruby: End of classroom beforeunload guard ===
             isAnyCreatingNewState: getIsAnyCreatingNewState(loadingState),
             isLoading: getIsLoading(loadingState),
             isCreatingCopy: getIsCreatingCopy(loadingState),
