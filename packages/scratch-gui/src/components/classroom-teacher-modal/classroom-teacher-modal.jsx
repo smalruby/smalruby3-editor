@@ -11,6 +11,7 @@ import { defineMessages, useIntl, FormattedMessage } from 'react-intl';
 import Modal from '../../containers/modal.jsx';
 
 import ClassCodeDisplay from '../classroom-modal/class-code-display.jsx';
+import TeacherAssignmentBoard from '../classroom-modal/teacher-assignment-board.jsx';
 import TeacherAssignmentEditor from '../classroom-modal/teacher-assignment-editor.jsx';
 import TeacherClassDetail from '../classroom-modal/teacher-class-detail.jsx';
 import TeacherClassList from '../classroom-modal/teacher-class-list.jsx';
@@ -110,6 +111,8 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         onSelectGroup,
         onShowClassList,
         onCreateClassWithAssignment,
+        onUpdateGroupTopics,
+        onUpdateAssignmentMeta,
         onShowGroupManage,
         onBackFromGroupManage,
         onCreateGroup,
@@ -340,7 +343,26 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
             );
         }
 
-        // Default: dashboard (no class selected)
+        // Default: dashboard. Inside a class this is the assignment board
+        // (topic sections, newest first); without a class it stays the
+        // legacy empty prompt.
+        if (selectedGroup) {
+            return (
+                <div className={styles.mainRelative}>
+                    <TeacherAssignmentBoard
+                        classrooms={scopedClassrooms}
+                        error={error}
+                        errorTitle={errorTitle}
+                        group={selectedGroup}
+                        isLoading={isLoading}
+                        onSelectClassroom={onSelectClassroom}
+                        onShowCreateForm={onShowCreateForm}
+                        onUpdateAssignmentMeta={onUpdateAssignmentMeta}
+                        onUpdateGroupTopics={onUpdateGroupTopics}
+                    />
+                </div>
+            );
+        }
         if (isLoading) {
             return (
                 <div className={styles.mainEmpty} data-testid="classroom-phase-teacher-dashboard">

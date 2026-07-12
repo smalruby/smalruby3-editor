@@ -203,6 +203,13 @@ export default {
     'gui.classroom.evaluation.exportCsv': '評価CSV',
     'gui.classroom.evaluation.exportAuditCsv': '検証用CSV',
     'gui.classroom.evaluation.returnComments': 'コメントを返却',
+    'gui.classroom.board.yearLabel': '{year}年度',
+    'gui.classroom.board.create': '課題を作る',
+    'gui.classroom.board.topicLabel': 'トピック',
+    'gui.classroom.board.noTopic': '（トピックなし）',
+    'gui.classroom.board.newTopicPlaceholder': '新しいトピック',
+    'gui.classroom.board.addTopic': 'トピックを追加',
+    'gui.classroom.board.empty': 'まだ課題がありません。「課題を作る」から追加しましょう。',
     'gui.classroom.classList.title': 'あなたのクラス',
     'gui.classroom.classList.hint':
         'クラスは1つの学級（例: 2年1組）です。クラスをひらくと、その中の課題を管理できます。',

@@ -74,4 +74,40 @@ const buildSidebarSections = (classrooms, groups) => {
     return sections;
 };
 
-export { buildSidebarSections };
+/**
+ * Build the assignment board sections for one class (Google Classroom
+ * style): assignments without a topic come first with no heading (topics
+ * are opt-in — interview Q5), then one section per class topic, each
+ * sorted by sortDate (fallback createdAt) descending. Topics that only
+ * exist on assignments (stale after a class-list edit) are appended so
+ * nothing disappears from the board.
+ * @param {Array<object>} classrooms - assignments of the class
+ * @param {Array<string>} topics - the class's topic list (order preserved)
+ * @returns {Array<{topic: string|null, classrooms: Array<object>}>} sections
+ */
+const buildAssignmentSections = (classrooms, topics) => {
+    const sortDesc = (a, b) =>
+        String(b.sortDate || b.createdAt || '').localeCompare(String(a.sortDate || a.createdAt || ''));
+    const sections = [];
+    const untopiced = classrooms.filter((c) => !c.topic).sort(sortDesc);
+    if (untopiced.length > 0) {
+        sections.push({ topic: null, classrooms: untopiced });
+    }
+    for (const topic of topics || []) {
+        sections.push({
+            topic,
+            classrooms: classrooms.filter((c) => c.topic === topic).sort(sortDesc),
+        });
+    }
+    const known = new Set(topics || []);
+    const strayTopics = [...new Set(classrooms.filter((c) => c.topic && !known.has(c.topic)).map((c) => c.topic))];
+    for (const topic of strayTopics) {
+        sections.push({
+            topic,
+            classrooms: classrooms.filter((c) => c.topic === topic).sort(sortDesc),
+        });
+    }
+    return sections;
+};
+
+export { buildSidebarSections, buildAssignmentSections };

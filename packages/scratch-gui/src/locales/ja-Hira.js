@@ -208,6 +208,13 @@ export default {
     'gui.classroom.evaluation.exportCsv': 'ひょうかCSV',
     'gui.classroom.evaluation.exportAuditCsv': 'けんしょうようCSV',
     'gui.classroom.evaluation.returnComments': 'コメントをへんきゃく',
+    'gui.classroom.board.yearLabel': '{year}ねんど',
+    'gui.classroom.board.create': 'かだいをつくる',
+    'gui.classroom.board.topicLabel': 'トピック',
+    'gui.classroom.board.noTopic': '（トピックなし）',
+    'gui.classroom.board.newTopicPlaceholder': 'あたらしいトピック',
+    'gui.classroom.board.addTopic': 'トピックをついか',
+    'gui.classroom.board.empty': 'まだかだいがありません。「かだいをつくる」からついかしましょう。',
     'gui.classroom.classList.title': 'あなたのクラス',
     'gui.classroom.classList.hint':
         'クラスは1つのがっきゅう（れい: 2ねん1くみ）です。クラスをひらくと、そのなかのかだいをかんりできます。',

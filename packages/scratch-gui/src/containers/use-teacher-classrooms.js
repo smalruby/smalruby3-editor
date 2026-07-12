@@ -325,6 +325,32 @@ const useTeacherClassrooms = ({
 
     // --- Update classroom settings ---
 
+    /**
+     * Update board-editable assignment metadata (topic / sortDate) for any
+     * assignment in the class — the board edits rows in place, so this
+     * patches both the list and the selection instead of refetching.
+     */
+    const handleUpdateAssignmentMeta = useCallback(
+        async (classroomId, updates) => {
+            if (!idToken) return;
+            clearError();
+            try {
+                await classroomAPI.updateClassroom(idToken, classroomId, updates);
+                setClassrooms((prev) => prev.map((c) => (c.classroomId === classroomId ? { ...c, ...updates } : c)));
+                setSelectedClassroom((prev) =>
+                    prev && prev.classroomId === classroomId ? { ...prev, ...updates } : prev,
+                );
+            } catch (err) {
+                if (err.status === 401) {
+                    await handleTeacher401();
+                } else {
+                    showError(translateError(intl, err));
+                }
+            }
+        },
+        [idToken, clearError, showError, handleTeacher401, intl],
+    );
+
     const handleUpdateAssignmentName = useCallback(
         async (assignmentName) => {
             if (!idToken || !selectedClassroom) return;
@@ -470,6 +496,7 @@ const useTeacherClassrooms = ({
         handleRefreshDetail,
         handleDeleteMember,
         handleSelectMember,
+        handleUpdateAssignmentMeta,
         handleUpdateAssignmentName,
         handleUpdateStudentCount,
         handleApproveKickRequest,

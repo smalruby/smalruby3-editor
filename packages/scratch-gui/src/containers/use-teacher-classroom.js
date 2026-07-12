@@ -177,6 +177,7 @@ const useTeacherClassroom = ({
         handleDeleteMember: classrooms.handleDeleteMember,
         handleSelectMember: classrooms.handleSelectMember,
         handleUpdateAssignmentName: classrooms.handleUpdateAssignmentName,
+        handleUpdateAssignmentMeta: classrooms.handleUpdateAssignmentMeta,
         handleUpdateStudentCount: classrooms.handleUpdateStudentCount,
 
         // Kick requests (Phase 4-6)
@@ -229,6 +230,7 @@ const useTeacherClassroom = ({
         handleSelectGroup: groups.handleSelectGroup,
         handleShowClassList: groups.handleShowClassList,
         handleCreateClassWithAssignment: groups.handleCreateClassWithAssignment,
+        handleUpdateGroupTopics: groups.handleUpdateGroupTopics,
         handleShowGroupManage: groups.handleShowGroupManage,
         handleBackFromGroupManage: groups.handleBackFromGroupManage,
         handleCreateGroup: groups.handleCreateGroup,

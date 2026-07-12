@@ -193,6 +193,8 @@ const ClassroomTeacherModal = () => {
         onSelectGroup: teacher.handleSelectGroup,
         onShowClassList: teacher.handleShowClassList,
         onCreateClassWithAssignment: teacher.handleCreateClassWithAssignment,
+        onUpdateGroupTopics: teacher.handleUpdateGroupTopics,
+        onUpdateAssignmentMeta: teacher.handleUpdateAssignmentMeta,
         onShowGroupManage: teacher.handleShowGroupManage,
         onBackFromGroupManage: teacher.handleBackFromGroupManage,
         onCreateGroup: teacher.handleCreateGroup,
