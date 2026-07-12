@@ -54,7 +54,7 @@ try {
     await page.click('[data-testid="settings-menu"]');
     await sleep(300);
     await page.click('[data-testid="settings-classroom-management"]');
-    await page.waitForSelector('[data-testid="classroom-create"]', { timeout: 60000 });
+    await page.waitForSelector('[data-testid="classroom-phase-teacher-class-list"]', { timeout: 60000 });
 
     // Dismiss tutorials that overlay clicks.
     await page.evaluate(() => {
@@ -119,15 +119,15 @@ try {
         log(`locale set to ${process.env.LOCALE}`);
     }
 
-    log('creating a class...');
-    await page.click('[data-testid="classroom-create"]');
-    await page.waitForSelector('[data-testid="classroom-phase-teacher-create"]', { timeout: 10000 });
+    log('creating a class (v2 combined form)...');
+    await page.click('[data-testid="classroom-class-create"]');
     const stamp = `${Date.now()}`.slice(-6);
-    await page.fill('[data-testid="classroom-name-input"]', `CoTeacher検証-${stamp}`);
-    await page.fill('[data-testid="classroom-count-input"]', '3');
-    await page.fill('[data-testid="classroom-assignment-name-input"]', `課題-${stamp}`);
-    await page.click('[data-testid="classroom-create-submit"]');
-    await sleep(1500);
+    await page.fill('[data-testid="classroom-class-create-name"]', `CoTeacher検証-${stamp}`);
+    await page.fill('[data-testid="classroom-class-create-count"]', '3');
+    await page.fill('[data-testid="classroom-class-create-assignment"]', `課題-${stamp}`);
+    await page.click('[data-testid="classroom-class-create-submit"]');
+    await page.waitForSelector('[data-testid="classroom-board"]', { timeout: 30000 });
+    await sleep(500);
 
     log('opening the new class detail...');
     await page.waitForFunction(

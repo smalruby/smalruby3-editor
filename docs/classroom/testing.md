@@ -212,6 +212,8 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-class-card-{groupId}` | li | クラスカード |
 | `classroom-class-open-{groupId}` | button | クラスカード本体（クリックでクラスをひらく） |
 | `classroom-class-evaluate-{groupId}` | button | クラスカードの「評価」 |
+| `classroom-class-import-gc` | button | クラス一覧の「Google Classroom からインポート」（Google ログイン時のみ） |
+| `classroom-teacher-logout` | button | ログアウト（クラス一覧 / サイドバー。表示は排他） |
 | `classroom-board` | div | 課題管理ボード（クラス内のメイン領域） |
 | `classroom-board-create` | button | ボードの「課題を作る」 |
 | `classroom-board-empty` | p | ボードの空メッセージ |

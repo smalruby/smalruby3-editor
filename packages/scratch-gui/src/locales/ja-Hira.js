@@ -215,6 +215,7 @@ export default {
     'gui.classroom.board.newTopicPlaceholder': 'あたらしいトピック',
     'gui.classroom.board.addTopic': 'トピックをついか',
     'gui.classroom.board.empty': 'まだかだいがありません。「かだいをつくる」からついかしましょう。',
+    'gui.classroom.classList.logout': 'ログアウト',
     'gui.classroom.classList.importGc': 'Google Classroom からインポート',
     'gui.classroom.classList.title': 'あなたのクラス',
     'gui.classroom.classList.hint':

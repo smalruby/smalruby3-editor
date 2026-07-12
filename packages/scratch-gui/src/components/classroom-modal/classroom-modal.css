@@ -2437,3 +2437,14 @@
     opacity: 0.5;
     cursor: default;
 }
+
+.class-list-logout {
+    margin-top: 1.5rem;
+    border: none;
+    background: transparent;
+    color: hsla(225, 15%, 40%, 1);
+    text-decoration: underline;
+    font-size: 0.8rem;
+    cursor: pointer;
+    padding: 0;
+}

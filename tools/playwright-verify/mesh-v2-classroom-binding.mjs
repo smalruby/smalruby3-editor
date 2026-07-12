@@ -114,7 +114,7 @@ await sleep(300);
 await teacher.click('[data-testid="settings-classroom-management"]');
 // devlogin auto-logs in, so we may go straight to dashboard. Otherwise we see login phase.
 await teacher.waitForSelector(
-    '[data-testid="classroom-phase-teacher-login"], [data-testid="classroom-phase-teacher-dashboard"], [data-testid="classroom-create"]',
+    '[data-testid="classroom-phase-teacher-login"], [data-testid="classroom-phase-teacher-class-list"]',
     { timeout: 15000 },
 );
 log('classroom modal opened.');
@@ -123,7 +123,7 @@ log('classroom modal opened.');
 // the "create" button is visible immediately. Otherwise we still need to click
 // the Google login button.
 const onDashboardImmediately = await teacher
-    .$('[data-testid="classroom-create"]')
+    .$('[data-testid="classroom-phase-teacher-class-list"]')
     .then((el) => !!el)
     .catch(() => false);
 
@@ -139,7 +139,7 @@ const deadline = Date.now() + 10 * 60 * 1000;
 let lastPhaseLog = 0;
 while (Date.now() < deadline) {
     const onDashboard = await teacher
-        .$('[data-testid="classroom-create"]')
+        .$('[data-testid="classroom-phase-teacher-class-list"]')
         .then((el) => !!el)
         .catch(() => false);
     if (onDashboard) {
@@ -171,18 +171,17 @@ await teacher.evaluate(() => {
 });
 await sleep(200);
 
-// Click "Create class"
+// v2: class + first assignment in one form from the class list
 await sleep(500);
-await teacher.click('[data-testid="classroom-create"]');
-await teacher.waitForSelector('[data-testid="classroom-phase-teacher-create"]', { timeout: 10000 });
-
+await teacher.click('[data-testid="classroom-class-create"]');
 const stamp = Date.now().toString().slice(-6);
 const className = `自動検証-${stamp}`;
 const assignmentName = `課題-${stamp}`;
-await teacher.fill('[data-testid="classroom-name-input"]', className);
-await teacher.fill('[data-testid="classroom-count-input"]', '5');
-await teacher.fill('[data-testid="classroom-assignment-name-input"]', assignmentName);
-await teacher.click('[data-testid="classroom-create-submit"]');
+await teacher.fill('[data-testid="classroom-class-create-name"]', className);
+await teacher.fill('[data-testid="classroom-class-create-count"]', '5');
+await teacher.fill('[data-testid="classroom-class-create-assignment"]', assignmentName);
+await teacher.click('[data-testid="classroom-class-create-submit"]');
+await teacher.waitForSelector('[data-testid="classroom-board"]', { timeout: 30000 });
 
 // === Pre-bind a custom domain on the teacher tab so we can later assert it
 // is restored on unbind (i.e. domain returns to "myhome", not null). ===
