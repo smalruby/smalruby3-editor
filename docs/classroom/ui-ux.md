@@ -120,6 +120,8 @@ Google または Microsoft アカウントでサインインする画面。先�
 
 ログイン直後に表示される v2 の入口。Google Classroom の「クラス」に相当する学級のカードが並ぶ。初回表示時に v1→v2 の冪等 migration（`POST /classroom-groups/migrate`）を自動実行する。
 
+クラスのプロパティは GC 準拠: **クラス名（必須・例: 技術）/ 年度（必須・現在年度デフォルト）/ セクション（オプション・例: 2年1組）/ 人数**。同時作成フォームの課題名はオプション（空欄=クラスのみ作成）。カードの「設定」でインライン編集（名前・年度・セクション・人数・**クラス単位の共同管理者**・アーカイブ）。表示形式は「%クラス名% %年度%年度 / %セクション%」。**ログアウトはタイトルバー右端に常時表示**。
+
 - カード: クラス名・年度・課題数・GC/共同管理/アーカイブバッジ・「評価」ボタン
 - 「クラスを作る」: クラスと最初の課題を **1 画面で同時作成**し、作成後は新しいクラスの中（課題ボード）に着地する
 - 「Google Classroom からインポート」（Google ログイン時のみ）: コースを選ぶとクラスを作成（コース名→クラス名・生徒数→人数・courseId をクラスへ）
@@ -135,7 +137,19 @@ Google または Microsoft アカウントでサインインする画面。先�
 - トピック未設定の課題を見出しなしで最上部に、以下クラスのトピック順のセクション。各セクションは日付（`sortDate`、既定=作成日・意味を持たない並び順キー・生徒非表示）降順
 - トピックチップ: 追加・クリックでリネーム（クラス内の課題へ一括追従）・×で削除（課題はトピックなしへ）
 - 課題行: トピック select と日付 input の**その場編集**、行クリックで課題詳細へ
-- 主な data-testid: `classroom-board` / `classroom-board-create` / `classroom-board-section-{topic|none}` / `classroom-board-row-{classroomId}` / `classroom-board-open|topic|date-{classroomId}` / `classroom-topic-add[-input]` / `classroom-topic-chip|rename|remove-{topic}`
+- **サイドバーは無い**。ナビは**パンくず**「クラス一覧 > 課題一覧 (> 課題詳細)」
+- 課題作成は課題名のみの**インラインフォーム**（クラス名・人数はクラスから）。「**課題を再利用**」で全クラスの課題を日付降順に表示し、クラスフィルタ → 「このクラスに複製」（説明・スターター・トピックごと複製。同一クラスは「のコピー」付き）
+- 主な data-testid: `classroom-board` / `classroom-board-create[-name|-submit]` / `classroom-board-reuse[-view|-filter|-copy-{id}]` / `classroom-board-section-{topic|none}` / `classroom-board-row|open|topic|date-{classroomId}` / `classroom-topic-add[-input]` / `classroom-topic-chip|rename|remove-{topic}` / `classroom-breadcrumbs`
+
+## 1.7 先生: 課題詳細の「説明」タブ（デフォルトアクティブ）
+
+![課題詳細 — 説明タブ](screenshots/0212-teacher-detail-description.png)
+
+課題をひらくと「説明」タブが最初に表示される。左に生徒へ表示する説明・画像・スターターの編集フォーム、**右ペインに生徒視点プレビュー**（編集内容をライブ表示・ページ送り。生徒への反映は保存時のみ）。
+
+- 出席・提出のポーリング（30秒）は**メンバータブ表示中のみ**（費用抑制）
+- 課題の所属クラス変更・人数編集・課題単位の共同管理者・複製は**できない**（クラス設定 / 課題一覧の再利用へ集約）。削除ボタンは「課題を削除」
+- 主な data-testid: `classroom-tab-description` / `classroom-description-editor` / `classroom-description-preview[-body|-prev|-next]` / `classroom-tab-members`
 
 ## 2. 先生: ダッシュボード (`teacher-dashboard`)
 

@@ -177,7 +177,6 @@ const useTeacherClassroom = ({
         selectedClassroom: classrooms.selectedClassroom,
         members: classrooms.members,
         selectedMember: classrooms.selectedMember,
-        handleShowCreateForm: google.handleShowCreateForm,
         handleCreateClassroom,
         handleDeleteClassroom: classrooms.handleDeleteClassroom,
         handleSelectClassroom: classrooms.handleSelectClassroom,
@@ -189,7 +188,6 @@ const useTeacherClassroom = ({
         handleUpdateAssignmentName: classrooms.handleUpdateAssignmentName,
         handleUpdateAssignmentMeta: classrooms.handleUpdateAssignmentMeta,
         setDetailTab: classrooms.setDetailTab,
-        handleUpdateStudentCount: classrooms.handleUpdateStudentCount,
 
         // Kick requests (Phase 4-6)
         kickRequestsBySeat: classrooms.kickRequestsBySeat,
@@ -197,8 +195,6 @@ const useTeacherClassroom = ({
         handleRejectKickRequest: classrooms.handleRejectKickRequest,
 
         // Co-teachers (shared classroom management)
-        handleAddCoTeacher: classrooms.handleAddCoTeacher,
-        handleRemoveCoTeacher: classrooms.handleRemoveCoTeacher,
 
         // Submissions
         codeDisplayClassroom: submissions.codeDisplayClassroom,
@@ -243,12 +239,7 @@ const useTeacherClassroom = ({
         handleUpdateGroupTopics: groups.handleUpdateGroupTopics,
         handleCreateAssignmentInClass: groups.handleCreateAssignmentInClass,
         handleReuseAssignment: groups.handleReuseAssignment,
-        handleShowGroupManage: groups.handleShowGroupManage,
-        handleBackFromGroupManage: groups.handleBackFromGroupManage,
-        handleCreateGroup: groups.handleCreateGroup,
         handleUpdateGroup: groups.handleUpdateGroup,
-        handleAssignClassToGroup: groups.handleAssignClassToGroup,
-        handleDuplicateClassroom: groups.handleDuplicateClassroom,
 
         // Google Classroom
         googleCourses: google.googleCourses,

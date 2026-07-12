@@ -195,23 +195,23 @@ await teacher.evaluate((d) => {
 }, TEACHER_PRE_DOMAIN);
 await sleep(200);
 
-// After creation we are back at the dashboard (not auto-selected). Click the
-// newly created class in the sidebar to select it — that triggers our binding.
-log('waiting for new class to appear in sidebar, then clicking it...');
+// v2: combined creation lands inside the class; select the lesson by
+// clicking its row on the assignment board — that triggers our binding.
+log('waiting for the new assignment on the board, then clicking it...');
 await teacher.waitForFunction(
     (label) => {
-        const items = Array.from(document.querySelectorAll('[data-testid^="classroom-sidebar-item-"]'));
+        const items = Array.from(document.querySelectorAll('[data-testid^="classroom-board-open-"]'));
         return items.some((el) => el.textContent && el.textContent.includes(label));
     },
     assignmentName,
     { timeout: 30000 },
 );
 const clickedClassroomId = await teacher.evaluate((label) => {
-    const items = Array.from(document.querySelectorAll('[data-testid^="classroom-sidebar-item-"]'));
-    const match = items.find((el) => el.textContent && el.textContent.includes(label));
-    if (!match) return null;
-    match.click();
-    return match.getAttribute('data-classroom-id');
+    const items = Array.from(document.querySelectorAll('[data-testid^="classroom-board-open-"]'));
+    const el = items.find((x) => x.textContent && x.textContent.includes(label));
+    if (!el) return null;
+    el.click();
+    return el.getAttribute('data-testid').replace('classroom-board-open-', '');
 }, assignmentName);
 log('clicked sidebar item, classroomId:', clickedClassroomId);
 
