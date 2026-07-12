@@ -74,7 +74,6 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         isMicrosoftAuthAvailable,
         authProvider,
         onTeacherLogout,
-        onCreateClassroom,
         onSelectClassroom,
         onBackToDashboard,
         onDeleteClassroom,

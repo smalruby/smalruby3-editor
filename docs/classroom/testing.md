@@ -199,8 +199,6 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 
 | data-testid | 要素 | 説明 |
 |------------|------|------|
-| `classroom-group-manage` | button | サイドバーの「クラスの設定」（旧: 組の管理） |
-| `classroom-sidebar-back-to-class-list` | button | サイドバーの「‹ クラス一覧」 |
 | `classroom-class-create` | button | クラス一覧の「クラスを作る」（同時作成フォームを開く） |
 | `classroom-class-create-name` | input | 同時作成: クラス名 |
 | `classroom-class-create-year` | input | 同時作成: 年度 |

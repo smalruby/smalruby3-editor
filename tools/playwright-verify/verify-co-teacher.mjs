@@ -129,67 +129,53 @@ try {
     await page.waitForSelector('[data-testid="classroom-board"]', { timeout: 30000 });
     await sleep(500);
 
-    log('opening the new class detail...');
-    await page.waitForFunction(
-        (label) => Array.from(document.querySelectorAll('[data-testid^="classroom-sidebar-item-"]'))
-            .some((el) => el.textContent && el.textContent.includes(label)),
-        `課題-${stamp}`,
-        { timeout: 30000 },
-    );
-    await page.evaluate((label) => {
-        const item = Array.from(document.querySelectorAll('[data-testid^="classroom-sidebar-item-"]'))
-            .find((el) => el.textContent && el.textContent.includes(label));
-        if (item) item.click();
-    }, `課題-${stamp}`);
-    await page.waitForSelector('[data-testid="classroom-phase-teacher-detail"]', { timeout: 15000 });
-    await sleep(500);
-
-    // Members/Co-teachers are tabbed; the Members tab is default.
-    const membersTab = await page.$('[data-testid="classroom-tab-members"]').then((el) => !!el);
-    const coTeacherTab = await page.$('[data-testid="classroom-tab-co-teachers"]').then((el) => !!el);
-    check('member/co-teacher tabs render', membersTab && coTeacherTab);
-    // Co-teacher section is hidden until its tab is selected.
-    const hiddenByDefault = await page.$('[data-testid="classroom-co-teachers"]').then((el) => !el);
-    check('co-teacher section hidden on the Members tab by default', hiddenByDefault);
-
-    // Switch to the Co-teachers tab.
-    await page.click('[data-testid="classroom-tab-co-teachers"]');
-    await sleep(400);
-
-    // 1. Co-teacher section renders once its tab is active.
-    const sectionVisible = await page.$('[data-testid="classroom-co-teachers"]').then((el) => !!el);
-    check('co-teacher section renders on the Co-teachers tab', sectionVisible);
+    log('opening the class settings on the class list (v2: co-teachers are class-wide)...');
+    await page.click('[data-testid="classroom-breadcrumb-class-list"]');
+    await page.waitForSelector('[data-testid="classroom-phase-teacher-class-list"]', { timeout: 20000 });
+    const card = page.locator('[data-testid^="classroom-class-card-"]', { hasText: `CoTeacher検証-${stamp}` });
+    await card.waitFor({ state: 'visible', timeout: 20000 });
+    const groupId = (await card.getAttribute('data-testid')).replace('classroom-class-card-', '');
+    await page.click(`[data-testid="classroom-class-settings-open-${groupId}"]`);
+    await page.waitForSelector(`[data-testid="classroom-class-settings-${groupId}"]`, { timeout: 10000 });
+    check('class settings form renders', true);
     await page.screenshot({ path: resolve(SHOTS, 'co-teacher-section.png') });
 
-    // 2. Invite a co-teacher (requires the co-teacher API on the stage).
-    if (sectionVisible) {
-        await page.fill('[data-testid="classroom-co-teacher-invite-input"]', INVITE_EMAIL);
-        await page.click('[data-testid="classroom-co-teacher-invite-submit"]');
-        await sleep(2000);
-        const invited = await page
-            .$(`[data-testid="classroom-co-teacher-item-${INVITE_EMAIL}"]`)
-            .then((el) => !!el);
-        const apiError = await page
-            .$('[data-testid="classroom-error"]')
-            .then((el) => (el ? el.textContent() : null))
-            .catch(() => null);
-        check(
-            'invited co-teacher appears in the list',
-            invited,
-            invited ? '' : `(API likely not deployed to this stage yet${apiError ? `: ${apiError}` : ''})`,
-        );
-        await page.screenshot({ path: resolve(SHOTS, 'co-teacher-invited.png') });
+    // 1. Add a co-teacher email as a chip and save.
+    await page.fill('[data-testid="classroom-class-settings-co-teacher-input"]', INVITE_EMAIL);
+    await page.click('[data-testid="classroom-class-settings-add-co-teacher"]');
+    await sleep(300);
+    const chipShown = await page
+        .$(`[data-testid="classroom-class-settings-remove-co-teacher-${INVITE_EMAIL}"]`)
+        .then((el) => !!el);
+    check('co-teacher chip added in the form', chipShown);
+    await page.click('[data-testid="classroom-class-settings-save"]');
+    await sleep(2000);
 
-        // 3. Remove the co-teacher (only meaningful if the invite landed).
-        if (invited) {
-            await page.click(`[data-testid="classroom-co-teacher-remove-${INVITE_EMAIL}"]`);
-            await sleep(2000);
-            const removed = await page
-                .$(`[data-testid="classroom-co-teacher-item-${INVITE_EMAIL}"]`)
-                .then((el) => !el);
-            check('removed co-teacher disappears from the list', removed);
-        }
-    }
+    // 2. Reopen: the saved co-teacher is listed (server round-trip).
+    await page.click(`[data-testid="classroom-class-settings-open-${groupId}"]`);
+    await page.waitForSelector(`[data-testid="classroom-class-settings-${groupId}"]`, { timeout: 10000 });
+    const persisted = await page
+        .$(`[data-testid="classroom-class-settings-remove-co-teacher-${INVITE_EMAIL}"]`)
+        .then((el) => !!el);
+    check('co-teacher persisted on the class', persisted);
+
+    // 3. Remove and save; reopen shows it gone.
+    await page.click(`[data-testid="classroom-class-settings-remove-co-teacher-${INVITE_EMAIL}"]`);
+    await page.click('[data-testid="classroom-class-settings-save"]');
+    await sleep(2000);
+    await page.click(`[data-testid="classroom-class-settings-open-${groupId}"]`);
+    await page.waitForSelector(`[data-testid="classroom-class-settings-${groupId}"]`, { timeout: 10000 });
+    const removed = await page
+        .$(`[data-testid="classroom-class-settings-remove-co-teacher-${INVITE_EMAIL}"]`)
+        .then((el) => !el);
+    check('co-teacher removed from the class', removed);
+    await page.click('[data-testid="classroom-class-settings-cancel"]');
+
+    // Cleanup: archive the class.
+    await page.click(`[data-testid="classroom-class-settings-open-${groupId}"]`);
+    await page.waitForSelector(`[data-testid="classroom-class-settings-${groupId}"]`, { timeout: 10000 });
+    await page.click('[data-testid="classroom-class-settings-archive"]');
+    await sleep(1000);
 } catch (e) {
     log('ERROR:', e.message);
     check('script completed without throwing', false, e.message);

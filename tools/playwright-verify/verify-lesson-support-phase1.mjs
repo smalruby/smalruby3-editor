@@ -97,9 +97,9 @@ try {
     const joinCode = (await teacherPage.textContent('[data-testid="classroom-detail-join-code"]')).trim();
     assert(/^[a-z0-9]{6}$/.test(joinCode), `join code obtained (${joinCode})`);
 
-    log('teacher: opening assignment editor...');
-    await teacherPage.click('[data-testid="classroom-edit-assignment-content"]');
-    await teacherPage.waitForSelector('[data-testid="classroom-phase-teacher-assignment-edit"]', { timeout: 20000 });
+    log('teacher: description tab hosts the editor (default active)...');
+    await teacherPage.waitForSelector('[data-testid="classroom-description-editor"]', { timeout: 20000 });
+    await teacherPage.waitForSelector('[data-testid="classroom-assignment-page-text-0"]', { timeout: 20000 });
     await teacherPage.screenshot({ path: resolve(SHOTS, 'lesson-support-1-editor-empty.png') });
 
     log('teacher: writing pages...');
@@ -115,8 +115,12 @@ try {
 
     log('teacher: saving assignment...');
     await teacherPage.click('[data-testid="classroom-assignment-save"]');
-    await teacherPage.waitForSelector('[data-testid="classroom-phase-teacher-detail"]', { timeout: 30000 });
-    assert(true, 'assignment saved (returned to detail)');
+    // Embedded editor stays on the description tab; the preview mirrors it.
+    await teacherPage
+        .locator('[data-testid="classroom-description-preview-body"]')
+        .waitFor({ state: 'visible', timeout: 30000 });
+    await sleep(3000);
+    assert(true, 'assignment saved (editor stays on the description tab)');
 
     // ---------------- Student: join -> auto assignment ----------------
     log('student: opening classcode URL...');

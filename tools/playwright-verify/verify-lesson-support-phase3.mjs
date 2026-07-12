@@ -81,11 +81,10 @@ try {
         .first()
         .click();
     await teacherPage.waitForSelector('[data-testid="classroom-phase-teacher-detail"]', { timeout: 20000 });
-    // Combined creation already assigned the lesson to the class
-    const selectedGroupLabel = await teacherPage
-        .locator('[data-testid="classroom-detail-group-select"] option:checked')
-        .textContent();
-    assert(selectedGroupLabel.includes(GROUP_NAME), 'lesson already assigned to the class');
+    // Combined creation already assigned the lesson to the class — the
+    // breadcrumb trail confirms we are inside it.
+    await teacherPage.waitForSelector('[data-testid="classroom-breadcrumbs"]', { timeout: 10000 });
+    assert(true, 'lesson opened inside the class (breadcrumbs present)');
     const joinCode = (await teacherPage.textContent('[data-testid="classroom-detail-join-code"]')).trim();
     assert(/^[a-z0-9]{6}$/.test(joinCode), `lesson in group, join code ${joinCode}`);
 
@@ -114,12 +113,11 @@ try {
     // ---- Teacher: evaluation flow ----
     log('teacher: evaluation screen...');
     await teacherPage.bringToFront();
-    await teacherPage.click('[data-testid="classroom-group-manage"]');
-    await teacherPage.waitForSelector('[data-testid="classroom-phase-teacher-group-manage"]', { timeout: 20000 });
-    const row = teacherPage
-        .locator('[data-testid^="classroom-group-row-"]')
-        .filter({ has: teacherPage.locator(`input[value="${GROUP_NAME}"]`) });
-    await row.locator('[data-testid^="classroom-group-evaluate-"]').click();
+    // Evaluation opens from the class card on the class list (v2).
+    await teacherPage.click('[data-testid="classroom-breadcrumb-class-list"]');
+    await teacherPage.waitForSelector('[data-testid="classroom-phase-teacher-class-list"]', { timeout: 20000 });
+    const evalCard = teacherPage.locator('[data-testid^="classroom-class-card-"]', { hasText: GROUP_NAME });
+    await evalCard.locator('[data-testid^="classroom-class-evaluate-"]').click();
     await teacherPage.waitForSelector('[data-testid="classroom-phase-teacher-evaluation"]', { timeout: 20000 });
 
     log('teacher: load submissions (in-browser sb3 analysis)...');

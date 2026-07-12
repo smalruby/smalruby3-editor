@@ -79,69 +79,59 @@ try {
     await sleep(500);
     await dismissTutorial(page);
 
-    // The class appears in the class settings list and as a sidebar header
-    await page.click('[data-testid="classroom-group-manage"]');
-    await page.waitForSelector('[data-testid="classroom-phase-teacher-group-manage"]', { timeout: 20000 });
-    await page.waitForSelector(`[data-testid="classroom-group-list"] input[value="${GROUP_NAME}"]`, {
-        timeout: 20000,
-    });
-    assert(true, 'class created and listed in class settings');
-    await page.screenshot({ path: resolve(SHOTS, 'lesson-support-p2-1-group-manage.png') });
-    await page.click('[data-testid="classroom-group-manage-back"]');
-    // Inside a class the dashboard main is the assignment board
-    await page.waitForSelector('[data-testid="classroom-board"]', { timeout: 10000 });
-    await page.waitForSelector('[data-testid^="classroom-sidebar-teachergroup-"]', { timeout: 10000 });
-    assert(true, 'sidebar shows the class header');
+    // The class appears on the class list with its card settings (v2)
+    await page.click('[data-testid="classroom-breadcrumb-class-list"]');
+    await page.waitForSelector('[data-testid="classroom-phase-teacher-class-list"]', { timeout: 20000 });
+    const card = page.locator('[data-testid^="classroom-class-card-"]', { hasText: GROUP_NAME });
+    await card.waitFor({ state: 'visible', timeout: 20000 });
+    const groupId = (await card.getAttribute('data-testid')).replace('classroom-class-card-', '');
+    assert(true, 'class card present on the class list');
+    await page.screenshot({ path: resolve(SHOTS, 'lesson-support-p2-1-class-list.png') });
 
-    log('teacher: opening the assignment...');
+    log('teacher: opening the assignment from the board...');
+    await page.click(`[data-testid="classroom-class-open-${groupId}"]`);
+    await page.waitForSelector('[data-testid="classroom-board"]', { timeout: 20000 });
     await page
-        .locator('[data-testid^="classroom-sidebar-item-"]', { hasText: ASSIGNMENT_NAME })
+        .locator('[data-testid^="classroom-board-open-"]', { hasText: ASSIGNMENT_NAME })
         .first()
         .click();
     await page.waitForSelector('[data-testid="classroom-phase-teacher-detail"]', { timeout: 20000 });
+    await page.waitForSelector('[data-testid="classroom-breadcrumbs"]', { timeout: 10000 });
+    assert(true, 'assignment detail shows breadcrumbs');
+    await page.screenshot({ path: resolve(SHOTS, 'lesson-support-p2-2-detail.png') });
 
-    // Combined creation already assigned the lesson to the class
-    const groupSelect = page.locator('[data-testid="classroom-detail-group-select"]');
-    const selectedLabel = await groupSelect
-        .locator('option:checked')
-        .textContent();
-    assert(selectedLabel.includes(GROUP_NAME), 'lesson already assigned to the class');
-
-    // Sidebar hierarchy: the class card now sits under the group header
-    const groupHeader = page.locator('[data-testid^="classroom-sidebar-teachergroup-"]', {
-        hasText: GROUP_NAME,
-    });
-    assert((await groupHeader.count()) === 1, 'sidebar group header present');
-    await page.screenshot({ path: resolve(SHOTS, 'lesson-support-p2-2-sidebar-hierarchy.png') });
-
-    log('teacher: duplicating the lesson...');
-    const itemsBefore = await page.$$eval('[data-testid^="classroom-sidebar-item-"]', (els) => els.length);
-    await page.click('[data-testid="classroom-duplicate"]');
-    await sleep(2500);
-    const itemsAfter = await page.$$eval('[data-testid^="classroom-sidebar-item-"]', (els) => els.length);
-    assert(itemsAfter === itemsBefore + 1, `duplicate added a sidebar item (${itemsBefore} -> ${itemsAfter})`);
-    const copyItem = page.locator('[data-testid^="classroom-sidebar-item-"]', {
-        hasText: `${ASSIGNMENT_NAME}のコピー`,
-    });
-    assert((await copyItem.count()) >= 1, 'duplicated lesson labeled のコピー');
+    log('teacher: reusing the lesson (duplicate via the board)...');
+    await page.click('[data-testid="classroom-breadcrumb-assignments"]');
+    await page.waitForSelector('[data-testid="classroom-board"]', { timeout: 10000 });
+    const rowsBefore = await page.$$eval('[data-testid^="classroom-board-row-"]', (els) => els.length);
+    await page.click('[data-testid="classroom-board-reuse"]');
+    await page.waitForSelector('[data-testid="classroom-board-reuse-view"]', { timeout: 10000 });
+    await page.selectOption('[data-testid="classroom-board-reuse-filter"]', { index: 1 });
+    // pick our own assignment (filter may show other classes' too — select by name)
+    await page.selectOption('[data-testid="classroom-board-reuse-filter"]', '');
+    await page
+        .locator('[data-testid="classroom-board-reuse-view"] li', { hasText: ASSIGNMENT_NAME })
+        .first()
+        .locator('[data-testid^="classroom-board-reuse-copy-"]')
+        .click();
+    await page
+        .locator('[data-testid^="classroom-board-row-"]', { hasText: `${ASSIGNMENT_NAME}のコピー` })
+        .first()
+        .waitFor({ state: 'visible', timeout: 20000 });
+    const rowsAfter = await page.$$eval('[data-testid^="classroom-board-row-"]', (els) => els.length);
+    assert(rowsAfter === rowsBefore + 1, `reuse added a board row (${rowsBefore} -> ${rowsAfter})`);
+    assert(true, 'duplicated lesson labeled のコピー');
     await page.screenshot({ path: resolve(SHOTS, 'lesson-support-p2-3-duplicated.png') });
 
-    log('teacher: archiving the group (classes fall back to className grouping)...');
-    await page.click('[data-testid="classroom-group-manage"]');
-    await page.waitForSelector('[data-testid="classroom-phase-teacher-group-manage"]', { timeout: 20000 });
-    const row = page.locator('[data-testid^="classroom-group-row-"]', { hasText: '2026' }).filter({
-        has: page.locator(`input[value="${GROUP_NAME}"]`),
-    });
-    await row.locator('[data-testid^="classroom-group-archive-"]').click();
+    log('teacher: archiving the class via card settings...');
+    await page.click('[data-testid="classroom-breadcrumb-class-list"]');
+    await page.waitForSelector('[data-testid="classroom-phase-teacher-class-list"]', { timeout: 20000 });
+    await page.click(`[data-testid="classroom-class-settings-open-${groupId}"]`);
+    await page.waitForSelector(`[data-testid="classroom-class-settings-${groupId}"]`, { timeout: 10000 });
+    await page.click('[data-testid="classroom-class-settings-archive"]');
     await sleep(1500);
-    await page.click('[data-testid="classroom-group-manage-back"]');
-    await sleep(500);
-    const archivedHeader = page.locator('[data-testid^="classroom-sidebar-teachergroup-"]', {
-        hasText: GROUP_NAME,
-    });
-    assert((await archivedHeader.count()) === 0, 'archived group hidden from sidebar');
-    const classNameHeader = page.locator(`[data-testid="classroom-sidebar-group-${GROUP_NAME}"]`);
-    assert((await classNameHeader.count()) === 1, 'classes fell back to className grouping');
+    const archivedCard = page.locator(`[data-testid="classroom-class-card-${groupId}"]`);
+    assert((await archivedCard.count()) === 0, 'archived class hidden from the class list');
 
     ok = true;
     log('ALL PASS');
