@@ -167,7 +167,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         onSelectGroup={onSelectGroup}
                         onShowEvaluation={evaluation?.handleShowEvaluation}
                         onShowGoogleCourses={authProvider === 'google' ? onShowGoogleCourses : null}
-                        onTeacherLogout={onTeacherLogout}
+                        onUpdateGroup={onUpdateGroup}
                     />
                 </div>
             );
@@ -399,6 +399,22 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                 className={styles.layout}
                 data-testid="classroom-teacher-modal"
             >
+                {/* Logout lives in the title bar (top-right, before the
+                    close ×) so it is reachable from every teacher view. */}
+                {phase !== 'teacher-login' && (
+                    <button
+                        className={styles.titleBarLogout}
+                        data-testid="classroom-teacher-logout"
+                        type="button"
+                        onClick={onTeacherLogout}
+                    >
+                        <FormattedMessage
+                            defaultMessage="Logout"
+                            description="Logout button in the class management title bar"
+                            id="gui.classroom.management.titleBarLogout"
+                        />
+                    </button>
+                )}
                 {/* Sidebar: visible when logged in and inside a class
                     (the class list is the landing view and fills the main) */}
                 {phase !== 'teacher-login' && phase !== 'teacher-class-list' && (
@@ -411,7 +427,6 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         onShowClassList={onShowClassList}
                         onShowCreateForm={onShowCreateForm}
                         onShowGroupManage={onShowGroupManage}
-                        onTeacherLogout={onTeacherLogout}
                     />
                 )}
                 {/* Main area */}

@@ -16,6 +16,7 @@ import translateError from './classroom-error-utils.js';
  * @param {Function} params.handleTeacher401 - 401 handler (session expiry)
  * @param {Function} params.setClassrooms - classrooms list setter
  * @param {Function} params.setSelectedClassroom - selected classroom setter
+ * @param {Function} params.loadClassrooms - reload the assignments list (post-migration counts)
  * @param {Function} params.clearError - clear error helper
  * @param {Function} params.showError - error display helper
  * @param {object} params.intl - react-intl intl object
@@ -28,6 +29,7 @@ const useTeacherGroups = ({
     handleTeacher401,
     setClassrooms,
     setSelectedClassroom,
+    loadClassrooms,
     clearError,
     showError,
     intl,
@@ -66,6 +68,11 @@ const useTeacherGroups = ({
                 migratedForToken.current = idToken;
                 try {
                     await classroomAPI.migrateGroups(idToken);
+                    // Migration may have assigned groupIds — refresh the
+                    // assignments so the class cards count correctly.
+                    if (loadClassrooms) {
+                        await loadClassrooms();
+                    }
                 } catch (err) {
                     log.error('Group migration failed (continuing):', err);
                 }
@@ -293,20 +300,27 @@ const useTeacherGroups = ({
      * and its first assignment, then lands inside the new class.
      */
     const handleCreateClassWithAssignment = useCallback(
-        async ({ name, year, studentCount, assignmentName }) => {
+        async ({ name, year, studentCount, section, assignmentName }) => {
             clearError();
             setIsLoading(true);
             try {
-                const group = await classroomAPI.createGroup(idToken, name, year, { studentCount });
-                const created = await classroomAPI.createClassroom(
-                    idToken,
-                    name,
-                    assignmentName,
-                    null, // inherit studentCount from the class
-                    null,
-                    group.groupId,
-                );
-                setClassrooms((prev) => [...prev, { ...created, role: 'owner', coTeacherEmails: [] }]);
+                const group = await classroomAPI.createGroup(idToken, name, year, {
+                    studentCount,
+                    ...(section ? { section } : {}),
+                });
+                // The first assignment is optional — a teacher may create
+                // just the class and add assignments later.
+                if (assignmentName) {
+                    const created = await classroomAPI.createClassroom(
+                        idToken,
+                        name,
+                        assignmentName,
+                        null, // inherit studentCount from the class
+                        null,
+                        group.groupId,
+                    );
+                    setClassrooms((prev) => [...prev, { ...created, role: 'owner', coTeacherEmails: [] }]);
+                }
                 await loadGroups();
                 setSelectedGroup(group);
                 setSelectedClassroom(null);

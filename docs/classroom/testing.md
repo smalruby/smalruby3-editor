@@ -213,7 +213,16 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-class-open-{groupId}` | button | クラスカード本体（クリックでクラスをひらく） |
 | `classroom-class-evaluate-{groupId}` | button | クラスカードの「評価」 |
 | `classroom-class-import-gc` | button | クラス一覧の「Google Classroom からインポート」（Google ログイン時のみ） |
-| `classroom-teacher-logout` | button | ログアウト（クラス一覧 / サイドバー。表示は排他） |
+| `classroom-teacher-logout` | button | ログアウト（タイトルバー右端に常時表示） |
+| `classroom-class-create-section` | input | 同時作成: セクション（オプション） |
+| `classroom-class-settings-open-{groupId}` | button | クラスカードの「設定」（インライン編集を開く） |
+| `classroom-class-settings-{groupId}` | form | クラス設定のインライン編集フォーム |
+| `classroom-class-settings-name/year/section/count` | input | クラス設定の各フィールド |
+| `classroom-class-settings-co-teacher-input` | input | 共同管理者メール入力（クラス単位） |
+| `classroom-class-settings-add-co-teacher` | button | 共同管理者を追加 |
+| `classroom-class-settings-remove-co-teacher-{email}` | button | 共同管理者を削除 |
+| `classroom-class-settings-archive` | button | アーカイブ/もどす |
+| `classroom-class-settings-save` / `classroom-class-settings-cancel` | button | 保存 / キャンセル |
 | `classroom-board` | div | 課題管理ボード（クラス内のメイン領域） |
 | `classroom-board-create` | button | ボードの「課題を作る」 |
 | `classroom-board-empty` | p | ボードの空メッセージ |

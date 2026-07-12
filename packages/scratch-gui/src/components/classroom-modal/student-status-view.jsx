@@ -4,6 +4,7 @@ import React from 'react';
 
 import ErrorDisplay from './error-display.jsx';
 
+import { formatStudentClassName } from '../../lib/classroom-class-label.js';
 import styles from './classroom-modal.css';
 
 const StudentStatusView = ({
@@ -41,7 +42,7 @@ const StudentStatusView = ({
                     className={styles.statusValue}
                     data-testid="classroom-status-class-name"
                 >
-                    {classroomState.className}
+                    {formatStudentClassName(classroomState.className, classroomState.classYear)}
                 </span>
             </div>
             <div className={styles.statusRow}>

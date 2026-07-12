@@ -299,6 +299,7 @@ const ClassroomModal = () => {
                     role: 'student',
                     classroomId: data.classroomId,
                     className: data.className,
+                    classYear: typeof data.classYear === 'number' ? data.classYear : null,
                     assignmentName: data.assignmentName || null,
                     joinCode: pendingJoinCode,
                     seatNumber: data.seatNumber,
@@ -328,6 +329,7 @@ const ClassroomModal = () => {
             setJoinCodeHistory(loadHistory());
             setJoinedInfo({
                 className: data.className,
+                classYear: typeof data.classYear === 'number' ? data.classYear : null,
                 assignmentName: data.assignmentName || null,
                 seatNumber: data.seatNumber,
                 previousComment: data.previousComment || null,

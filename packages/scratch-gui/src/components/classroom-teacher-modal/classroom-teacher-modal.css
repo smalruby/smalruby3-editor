@@ -386,3 +386,18 @@
     font-size: 0.85rem;
     cursor: pointer;
 }
+
+/* Logout pinned to the title bar (fullscreen modal header), left of the ×. */
+.title-bar-logout {
+    position: fixed;
+    top: 0.55rem;
+    right: 4.5rem;
+    z-index: 1000;
+    border: 1px solid hsla(0, 0%, 100%, 0.6);
+    border-radius: 0.4rem;
+    background: transparent;
+    color: white;
+    padding: 0.3rem 0.9rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
