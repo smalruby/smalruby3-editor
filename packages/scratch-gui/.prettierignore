@@ -318,6 +318,7 @@ test/unit/components/*
 !test/unit/components/connected-step.test.jsx
 !test/unit/components/mesh-self-sensor-notice.test.jsx
 !test/unit/components/student-assignment-panel.test.jsx
+!test/unit/components/teacher-class-detail.test.jsx
 !test/unit/components/mobile-bottom-tabs.test.jsx
 !test/unit/components/mobile-drawer.test.jsx
 !test/unit/components/mobile-mode-notice.test.jsx

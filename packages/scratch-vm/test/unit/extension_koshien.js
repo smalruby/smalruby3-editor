@@ -485,5 +485,50 @@ test('Koshien Blocks', (t) => {
         st.end();
     });
 
+    t.test('turnOver with turnInterval=0 stays synchronous (legacy no-wait)', (st) => {
+        const blocks = new KoshienBlocks(createMockRuntime({ rival: 'stop' }));
+        connectDefault(blocks);
+        st.equal(blocks._client._turnInterval, 0, 'default interval is 0');
+        let slept = false;
+        blocks._client._sleep = () => {
+            slept = true;
+            return Promise.resolve();
+        };
+        st.equal(blocks.turnOver({}), null, 'returns no delay promise');
+        st.notOk(slept, 'does not sleep');
+        st.end();
+    });
+
+    t.test('turnOver with turnInterval>0 returns a delay promise while playing', (st) => {
+        const blocks = new KoshienBlocks(createMockRuntime({ rival: 'stop', turnInterval: 1 }));
+        connectDefault(blocks);
+        st.equal(blocks._client._turnInterval, 1, 'interval read from config');
+        const sentinel = Promise.resolve('sentinel');
+        let sleptMs = null;
+        blocks._client._sleep = (ms) => {
+            sleptMs = ms;
+            return sentinel;
+        };
+        const result = blocks.turnOver({});
+        st.equal(result, sentinel, 'returns the delay promise');
+        st.equal(sleptMs, 1000, 'sleeps interval seconds in ms');
+        st.end();
+    });
+
+    t.test('turnOver does not sleep once the game is over', (st) => {
+        const blocks = new KoshienBlocks(createMockRuntime({ rival: 'stop', turnInterval: 1 }));
+        connectDefault(blocks);
+        let slept = false;
+        blocks._client._sleep = () => {
+            slept = true;
+            return Promise.resolve();
+        };
+        // Simulate the game having ended: no next turn, so no sleep.
+        blocks._client._session._over = true;
+        st.equal(blocks.turnOver({}), null, 'returns no delay promise when over');
+        st.notOk(slept, 'does not sleep after the game ends');
+        st.end();
+    });
+
     t.end();
 });
