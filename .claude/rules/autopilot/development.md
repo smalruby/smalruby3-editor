@@ -65,8 +65,17 @@ unit テストを付ける → ③ daemon/runner から呼ぶ。逆順（daemon 
   `acceptEdits` は確認プロンプトで worker が停止した実績があるため。
   **`auto` のとき `--allowedTools` / `permissions.allow` を出力しない**
   （classifier が判定を握るため機能しない。`buildClaudeCommand` の `allowlistApplies` 分岐）。
-- `effort` は **opt-in**（既定 null。指定すると `--effort` フラグになり、未対応の
-  Claude Code では起動が壊れるため既定で出さない）。
+- `effort` は `DEFAULT_SETTINGS` では **opt-in**（既定 null。指定すると `--effort` フラグに
+  なり、未対応の Claude Code では起動が壊れるため既定では出さない）。
+  ただし **repo `tools/autopilot/settings.json` が全フェーズに `model: "opus"` +
+  明示 `effort` を設定して上書き**している（実装・分類系 = medium、understand/decompose/
+  review/address-review/discuss = high、`default` catch-all = medium）。理由: ①`--effort` を
+  渡さないと worker が**グローバル `~/.claude/settings.json` の `effortLevel`（環境により
+  xhigh）を漏れ継承**し、小タスクで過剰にコストを消費していた ②triage/discuss は sonnet
+  だと Large 誤判定 → 不要な decompose を誘発するため opus 必須（過去 feedback）。
+  effort レベルを変えるときはこの JSON を編集する（`DEFAULT_SETTINGS` ではなく repo settings が
+  真実）。`--effort` 非対応の Claude Code を使う開発者は `~/.config/autopilot/settings.json`
+  で phase の effort を null に戻して無効化できる。
 - env `AUTOPILOT_CLAUDE_CMD` は settings より**最優先**（固定コマンド起動）。
 - 壊れた settings JSON は **warn してスキップ**し既定で動き続ける（無人運用優先。
   ロード失敗で daemon を落とさない）。
