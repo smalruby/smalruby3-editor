@@ -523,16 +523,20 @@ GitHub Projects で行い、モニタは俯瞰・log 閲覧・pause/resume/即�
   **使用率とリセット日時（JST）**を明示したポップオーバーを表示する（もう一度クリック / 外側クリック /
   Esc で閉じる）。ヘッダーは `overflow:hidden` なのでポップオーバーは `position:fixed` でアイコン直下に
   出し、使用量バーの中央位置を揺らさない（#996）。使用率が未取得のウィンドウは「—（未取得）」と表示する。
-  使用量は **worker 実行時のみ更新**される（下記のとおりデータ源が status line の `rate_limits`）ため、
-  最終更新からの経過（age）を薄字で併記し、**90 秒以上更新が無ければ黄色（stale）表示**にして
-  worker 非稼働中の据え置きが分かるようにする。
+  usage ファイルはローカルの小さな JSON（API 予算を消費しない）なので、daemon は **毎 tick・
+  `GET /board`・`POST /refresh`（🔄 更新ボタン）で高頻度に読み直す**（#1027）。これにより
+  worker 稼働中でも完了を待たず、モニタの 5 秒 poll でほぼライブ追従する。最終更新からの経過
+  （age）を薄字で併記し、**90 秒以上更新が無ければ黄色（stale）表示**にして worker 非稼働中の
+  据え置きが分かるようにする。age の基準 `updatedAt` は **usage ファイルの mtime**（＝ worker が
+  最後に statusline を書いた時刻）で、読取時刻ではない（#1027）。高頻度に読み直しても、古い
+  ファイルなら age が正しく増え（stale を隠さない）、逆に読み直しで age が誤って 0 にならない。
   値の取得: `rate_limits`（`five_hour` / `seven_day` の `used_percentage`）は **Claude Code の
   status line の stdin JSON にのみ**含まれる（transcript JSONL・CLI・キャッシュには出力されない）。
   worker は対話 TUI（tmux）で動くので status line が描画される点を利用し、worker 起動時に
   `--settings` で **`tools/autopilot/bin/usage-statusline.sh`** を status line に仕込み、
   `rate_limits` を usage ファイル（`os.tmpdir()/autopilot-claude-usage.json`）へ書き出させる。
-  daemon は **worker 実行のたびに**そのファイルを読み（`tools/autopilot/src/usage.js`）
-  `state.claudeUsage` に反映し、`GET /board`・`GET /status` にも `claudeUsage` として載る。
+  daemon はそのファイルを読み（`tools/autopilot/src/usage.js`）`state.claudeUsage` に反映し、
+  `GET /board`・`GET /status` にも `claudeUsage` として載る。
   **used ≥ 80% は警告色**。Pro/Max サブスク以外や初回 API 応答前は `rate_limits` が無いため
   **「—」表示**にしてレイアウトを崩さない。
 - **アラート帯**: 認証失効（auto-pause 中・再認証手順つき + **「🔐 再接続（SSO ログイン）」
