@@ -240,6 +240,8 @@ const useTeacherClassroom = ({
         handleShowClassList: groups.handleShowClassList,
         handleCreateClassWithAssignment: groups.handleCreateClassWithAssignment,
         handleUpdateGroupTopics: groups.handleUpdateGroupTopics,
+        handleCreateAssignmentInClass: groups.handleCreateAssignmentInClass,
+        handleReuseAssignment: groups.handleReuseAssignment,
         handleShowGroupManage: groups.handleShowGroupManage,
         handleBackFromGroupManage: groups.handleBackFromGroupManage,
         handleCreateGroup: groups.handleCreateGroup,

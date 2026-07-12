@@ -237,6 +237,13 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-topic-rename-{topic}` | button | チップ名（クリックでリネーム開始） |
 | `classroom-topic-rename-input-{topic}` | input | リネーム入力（Enter/blur で確定） |
 | `classroom-topic-remove-{topic}` | button | トピック削除（課題側はトピックなしへ） |
+| `classroom-breadcrumbs` | nav | パンくず（クラス一覧 > 課題一覧 > 課題詳細） |
+| `classroom-breadcrumb-class-list` / `classroom-breadcrumb-assignments` | button | パンくずリンク |
+| `classroom-board-create-name` / `classroom-board-create-submit` | input / button | インライン課題作成（課題名のみ） |
+| `classroom-board-reuse` | button | 「課題を再利用」（作る の右隣） |
+| `classroom-board-reuse-view` | div | 再利用ビュー（全課題を日付降順） |
+| `classroom-board-reuse-filter` | select | 再利用ビューのクラスフィルタ |
+| `classroom-board-reuse-copy-{classroomId}` | button | このクラスに複製 |
 | `classroom-phase-teacher-group-manage` | div | 組管理フェーズのルート |
 | `classroom-group-create-name` / `classroom-group-create-year` | input | 新規組の名前 / 年度 |
 | `classroom-group-create-submit` | button | 組をつくる |
