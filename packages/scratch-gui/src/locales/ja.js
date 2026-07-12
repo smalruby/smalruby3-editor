@@ -398,8 +398,6 @@ export default {
         '従来のメッシュ拡張機能のサービスは終了しました。プロジェクト内のブロックを新しいメッシュ拡張機能に自動で置き換えました。動作を確認してください。',
     'gui.sharedMessages.meshV1BackpackAutoMigrated':
         'バックパックの中の従来のメッシュブロックを{count}件、新しいメッシュブロックに自動で置き換えました。',
-    'gui.sharedMessages.changedRubyVersionByKoshien':
-        'このプロジェクトにはスモウルビー甲子園拡張機能が含まれていますのでルビーをバージョン1に変更しました',
     'gui.menuBar.loadFromGoogleDrive': 'Google ドライブから読み込む',
     'gui.menuBar.saveToGoogleDrive': 'Googleドライブにコピーを保存...',
     'gui.menuBar.saveDirectlyToGoogleDrive': 'Googleドライブに直ちに保存',

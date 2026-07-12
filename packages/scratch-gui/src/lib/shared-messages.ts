@@ -49,12 +49,6 @@ const reactIntlMessages = defineMessages({
             '{count, plural, one {# legacy Mesh item in your backpack was} other {# legacy Mesh items in your backpack were}} ' +
             'automatically replaced with the new Mesh blocks.',
         description: 'Alert shown when legacy Mesh blocks/sprites in the backpack are auto-migrated',
-    },
-    changedRubyVersionByKoshien: {
-        id: 'gui.sharedMessages.changedRubyVersionByKoshien',
-        defaultMessage: 'This project contains the Smalruby Koshien extension, ' +
-            'so the Ruby version has been changed to version 1.',
-        description: 'Alert message when Ruby version is changed to 1 because project contains Koshien extension'
     }
 });
 

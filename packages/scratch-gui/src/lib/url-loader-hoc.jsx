@@ -17,10 +17,8 @@ import {
     requestProjectUpload,
 } from '../reducers/project-state';
 import { setProjectTitle } from '../reducers/project-title';
-import { setRubyVersion } from '../reducers/settings';
 import intlShape from './intlShape';
 import { loadProjectWithChecks } from './project-loader-utils';
-import { persistRubyVersion } from './settings/ruby-version/persistence';
 import sharedMessages from './shared-messages';
 import { UrlLoaderError, fetchProjectInfo, formatLoadError, urlLoaderMessages } from './url-loader';
 import { extractScratchProjectId, isValidScratchProjectUrl } from './url-parser';
@@ -138,13 +136,7 @@ const URLLoaderHOC = function (WrappedComponent) {
                 })
                 .then((projectAsset) => {
                     if (projectAsset) {
-                        return loadProjectWithChecks(
-                            this.props.vm,
-                            this.props.intl,
-                            projectAsset.data,
-                            this.props.rubyVersion,
-                            this.props.onSetRubyVersion,
-                        );
+                        return loadProjectWithChecks(this.props.vm, this.props.intl, projectAsset.data);
                     }
                     throw new UrlLoaderError('Could not find project', 404);
                 })
@@ -205,13 +197,11 @@ const URLLoaderHOC = function (WrappedComponent) {
                 onLoadingFinished: _onLoadingFinished,
                 onLoadingStarted: _onLoadingStarted,
                 onSetProjectTitle: _onSetProjectTitle,
-                onSetRubyVersion: _onSetRubyVersion,
                 openUrlLoaderModal: _openUrlLoaderModalProp,
                 projectChanged: _projectChanged,
                 reduxProjectId: _reduxProjectId,
                 requestProjectUpload: _requestProjectUploadProp,
                 restorePreviousProjectState: _restorePreviousProjectStateProp,
-                rubyVersion: _rubyVersion,
                 setProjectId: _setProjectIdProp,
                 userOwnsProject: _userOwnsProject,
                 vm,
@@ -245,21 +235,18 @@ const URLLoaderHOC = function (WrappedComponent) {
         onLoadingFinished: PropTypes.func,
         onLoadingStarted: PropTypes.func,
         onSetProjectTitle: PropTypes.func,
-        onSetRubyVersion: PropTypes.func,
         onStartSelectingUrlLoad: PropTypes.func,
         openUrlLoaderModal: PropTypes.func,
         projectChanged: PropTypes.bool,
         reduxProjectId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
         requestProjectUpload: PropTypes.func,
         restorePreviousProjectState: PropTypes.func,
-        rubyVersion: PropTypes.string,
         setProjectId: PropTypes.func,
         storage: GUIStoragePropType,
         userOwnsProject: PropTypes.bool,
         vm: PropTypes.shape({
             loadProject: PropTypes.func,
             hasMeshV1Project: PropTypes.func,
-            hasKoshienProject: PropTypes.func,
             runtime: PropTypes.shape({
                 storage: PropTypes.shape({}),
             }),
@@ -275,7 +262,6 @@ const URLLoaderHOC = function (WrappedComponent) {
             loadingState: loadingState,
             projectChanged: state.scratchGui.projectChanged,
             reduxProjectId: state.scratchGui.projectState.projectId,
-            rubyVersion: state.scratchGui.settings.rubyVersion,
             storage: state.scratchGui.config.storage,
             userOwnsProject: ownProps.authorUsername && user && ownProps.authorUsername === user.username,
             vm: state.scratchGui.vm,
@@ -294,10 +280,6 @@ const URLLoaderHOC = function (WrappedComponent) {
         },
         onLoadingStarted: () => dispatch(openLoadingProject()),
         onSetProjectTitle: (title) => dispatch(setProjectTitle(title)),
-        onSetRubyVersion: (version) => {
-            dispatch(setRubyVersion(version));
-            persistRubyVersion(version);
-        },
         openUrlLoaderModal: () => dispatch(openUrlLoaderModal()),
         requestProjectUpload: (loadingState) => dispatch(requestProjectUpload(loadingState)),
         restorePreviousProjectState: (projectId) => dispatch(restoreProjectState(projectId)),

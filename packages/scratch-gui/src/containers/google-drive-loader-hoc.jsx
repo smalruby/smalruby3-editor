@@ -8,15 +8,12 @@ import googleDriveAPI from '../lib/google-drive-api';
 import intlShape from '../lib/intlShape.js';
 import log from '../lib/log';
 import { loadProjectWithChecks } from '../lib/project-loader-utils';
-import { persistRubyVersion } from '../lib/settings/ruby-version/persistence';
-import sharedMessages from '../lib/shared-messages';
 import { setGoogleDriveFile } from '../reducers/google-drive-file';
 import { closeFileMenu } from '../reducers/menus';
 import { openLoadingProject, closeLoadingProject } from '../reducers/modals';
 import { setProjectUnchanged } from '../reducers/project-changed';
 import { LoadingStates, getIsLoadingUpload, onLoadedProject } from '../reducers/project-state';
 import { setProjectTitle } from '../reducers/project-title';
-import { setRubyVersion } from '../reducers/settings';
 
 const messages = defineMessages({
     loadError: {
@@ -148,13 +145,7 @@ const GoogleDriveLoaderHOC = function (WrappedComponent) {
                 const content = new Uint8Array(fileData);
 
                 // Load the project
-                loadProjectWithChecks(
-                    this.props.vm,
-                    this.props.intl,
-                    content,
-                    this.props.rubyVersion,
-                    this.props.onSetRubyVersion,
-                )
+                loadProjectWithChecks(this.props.vm, this.props.intl, content)
                     .then(() => {
                         // Store Google Drive file metadata for direct save functionality
                         this.props.onSetGoogleDriveFile(fileId, fileName, null);
@@ -204,9 +195,7 @@ const GoogleDriveLoaderHOC = function (WrappedComponent) {
                 onLoadingFinished: _onLoadingFinished,
                 onLoadingStarted: _onLoadingStarted,
                 onSetProjectTitle: _onSetProjectTitle,
-                onSetRubyVersion: _onSetRubyVersion,
                 openUrlLoaderModal: _openUrlLoaderModal,
-                rubyVersion: _rubyVersion,
                 vm: _vm,
                 ...componentProps
             } = this.props;
@@ -232,14 +221,11 @@ const GoogleDriveLoaderHOC = function (WrappedComponent) {
         onLoadingStarted: PropTypes.func,
         onSetGoogleDriveFile: PropTypes.func,
         onSetProjectTitle: PropTypes.func,
-        onSetRubyVersion: PropTypes.func,
         onSetProjectUnchanged: PropTypes.func,
         openUrlLoaderModal: PropTypes.func,
-        rubyVersion: PropTypes.string,
         vm: PropTypes.shape({
             loadProject: PropTypes.func,
             hasMeshV1Project: PropTypes.func,
-            hasKoshienProject: PropTypes.func,
         }),
     };
 
@@ -247,7 +233,6 @@ const GoogleDriveLoaderHOC = function (WrappedComponent) {
         isLoadingUpload: getIsLoadingUpload(state.scratchGui.projectState.loadingState),
         loadingState: state.scratchGui.projectState.loadingState,
         locale: state.locales.locale,
-        rubyVersion: state.scratchGui.settings.rubyVersion,
         vm: state.scratchGui.vm,
     });
 
@@ -262,10 +247,6 @@ const GoogleDriveLoaderHOC = function (WrappedComponent) {
         onSetGoogleDriveFile: (fileId, fileName, folderId) =>
             dispatch(setGoogleDriveFile(fileId, fileName, folderId)),
         onSetProjectTitle: (title) => dispatch(setProjectTitle(title)),
-        onSetRubyVersion: (version) => {
-            dispatch(setRubyVersion(version));
-            persistRubyVersion(version);
-        },
         onSetProjectUnchanged: () => dispatch(setProjectUnchanged()),
     });
 

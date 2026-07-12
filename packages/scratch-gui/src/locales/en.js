@@ -18,8 +18,6 @@ export default {
     'gui.alerts.settingThumbnail': 'Setting submission thumbnail…',
     'gui.alerts.thumbnailSuccess': 'Submission thumbnail set.',
     'gui.alerts.thumbnailError': 'Couldn’t set the submission thumbnail. Please try again later.',
-    'gui.sharedMessages.changedRubyVersionByKoshien':
-        'This project contains the Smalruby Koshien extension, so the Ruby version has been changed to version 1.',
 
     'gui.smalruby3.crashMessage.description':
         'We are so sorry, but it looks like Smalruby has crashed. This bug has been automatically reported to the Smalruby Team. Please refresh your page to try again.',
