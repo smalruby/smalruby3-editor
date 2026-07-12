@@ -252,7 +252,8 @@ class MockClient extends KoshienClient {
         this._side = Number(config.side) === 2 ? 2 : 1;
         this._strategy = RIVAL_STRATEGIES.includes(config.rival) ? config.rival : 'goal';
         // Seconds to sleep after each turn is resolved so the path can be
-        // followed by eye. 0 (default) keeps the legacy no-wait behavior.
+        // followed by eye. The GUI config defaults this to 3s; a missing value
+        // here (non-GUI runtime) keeps the legacy no-wait behavior.
         this._turnInterval = Number(config.turnInterval) > 0 ? Number(config.turnInterval) : 0;
         this._session = new MockGame({
             map,

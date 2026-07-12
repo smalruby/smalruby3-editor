@@ -33,6 +33,11 @@ describe('KoshienSettingsModal', () => {
         expect(getByTestId('koshien-settings-save')).toBeInTheDocument();
     });
 
+    test('defaults the turn interval to 3 seconds when nothing is saved', () => {
+        const { getByTestId } = renderModal();
+        expect(getByTestId('koshien-settings-turn-interval')).toHaveValue(3);
+    });
+
     test('save persists settings, wires the vm runtime getter, and closes', () => {
         const onRequestClose = jest.fn();
         const vm = { runtime: {} };

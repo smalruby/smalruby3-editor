@@ -24,7 +24,7 @@ describe('koshien-mock-config', () => {
             mapId: KOSHIEN_MOCK_MAPS[0].id,
             side: 1,
             rival: 'goal',
-            turnInterval: 0,
+            turnInterval: 3,
         });
     });
 
@@ -43,16 +43,17 @@ describe('koshien-mock-config', () => {
             mapId: KOSHIEN_MOCK_MAPS[0].id,
             side: 1,
             rival: 'goal',
-            turnInterval: 0,
+            turnInterval: 3,
         });
     });
 
-    test('normalize clamps turnInterval into [0, 5] and defaults invalid to 0', () => {
+    test('normalize clamps turnInterval into [0, 5], defaults missing to 3, keeps explicit 0', () => {
         expect(normalizeKoshienMockConfig({ turnInterval: 2 }).turnInterval).toBe(2);
         expect(normalizeKoshienMockConfig({ turnInterval: 99 }).turnInterval).toBe(5);
+        expect(normalizeKoshienMockConfig({ turnInterval: 0 }).turnInterval).toBe(0);
         expect(normalizeKoshienMockConfig({ turnInterval: -1 }).turnInterval).toBe(0);
-        expect(normalizeKoshienMockConfig({ turnInterval: 'abc' }).turnInterval).toBe(0);
-        expect(normalizeKoshienMockConfig({}).turnInterval).toBe(0);
+        expect(normalizeKoshienMockConfig({ turnInterval: 'abc' }).turnInterval).toBe(3);
+        expect(normalizeKoshienMockConfig({}).turnInterval).toBe(3);
     });
 
     test('load survives corrupted storage', () => {
@@ -68,7 +69,7 @@ describe('koshien-mock-config', () => {
             mapId: 'maze',
             side: 2,
             rival: 'random',
-            turnInterval: 0,
+            turnInterval: 3,
         });
         expect(() => wireKoshienMockConfig(null)).not.toThrow();
     });

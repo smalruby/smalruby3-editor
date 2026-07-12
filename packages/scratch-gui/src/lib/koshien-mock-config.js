@@ -28,14 +28,23 @@ const hasLocalStorage = () => typeof window !== 'undefined' && !!window.localSto
 const MAX_TURN_INTERVAL = 5;
 
 /**
+ * The default per-turn sleep (seconds) used when nothing is saved yet, so a
+ * fresh practice game already slows down enough to follow the path by eye.
+ * @type {number}
+ */
+const DEFAULT_TURN_INTERVAL = 3;
+
+/**
  * Clamp a raw turn-interval value into [0, MAX_TURN_INTERVAL] seconds.
- * Invalid / missing values normalize to 0 (the legacy no-wait behavior).
+ * Missing / non-numeric values normalize to DEFAULT_TURN_INTERVAL, while an
+ * explicit 0 (or negative) stays 0 — an intentional no-wait choice.
  * @param {*} value - the raw turn-interval value.
  * @returns {number} - a valid interval in seconds.
  */
 const clampTurnInterval = (value) => {
     const n = Number(value);
-    if (!Number.isFinite(n) || n <= 0) return 0;
+    if (!Number.isFinite(n)) return DEFAULT_TURN_INTERVAL;
+    if (n <= 0) return 0;
     return Math.min(n, MAX_TURN_INTERVAL);
 };
 
@@ -96,6 +105,7 @@ export {
     MOCK_MAPS as KOSHIEN_MOCK_MAPS,
     RIVAL_STRATEGIES,
     MAX_TURN_INTERVAL,
+    DEFAULT_TURN_INTERVAL,
     normalizeKoshienMockConfig,
     loadKoshienMockConfig,
     saveKoshienMockConfig,
