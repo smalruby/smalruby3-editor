@@ -19,6 +19,7 @@ import translateError from './classroom-error-utils.js';
  * @param {object} params.intl - react-intl intl object
  * @param {Function} params.setIsLoading - loading state setter
  * @param {Function} params.setPhase - phase setter
+ * @param {Function} params.onImportCourse - create a class from a GC course (v2)
  * @returns {object} Google Classroom state and handler functions
  */
 const useGoogleClassroom = ({
@@ -31,6 +32,7 @@ const useGoogleClassroom = ({
     intl,
     setIsLoading,
     setPhase,
+    onImportCourse,
 }) => {
     const [googleAccessToken, setGoogleAccessToken] = useState(null);
     const [googleCourses, setGoogleCourses] = useState([]);
@@ -66,10 +68,12 @@ const useGoogleClassroom = ({
         setSelectedGoogleCourse(course);
     }, []);
 
+    // v2: confirming an import creates a class from the course (wired via a
+    // ref in the facade because the groups hook is created later).
     const handleConfirmGoogleImport = useCallback(() => {
         if (!selectedGoogleCourse) return;
-        setPhase('teacher-create');
-    }, [selectedGoogleCourse, setPhase]);
+        onImportCourse(selectedGoogleCourse);
+    }, [selectedGoogleCourse, onImportCourse]);
 
     const handleShowCreateForm = useCallback(() => {
         setSelectedGoogleCourse(null);

@@ -166,6 +166,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         onCreateClassWithAssignment={onCreateClassWithAssignment}
                         onSelectGroup={onSelectGroup}
                         onShowEvaluation={evaluation?.handleShowEvaluation}
+                        onShowGoogleCourses={authProvider === 'google' ? onShowGoogleCourses : null}
                     />
                 </div>
             );
@@ -275,11 +276,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         noBackButton
                         onBack={onBackToDashboard}
                         onCreate={onCreateClassroom}
-                        onImportFromGC={
-                            authProvider === 'google'
-                                ? onShowGoogleCourses
-                                : null
-                        }
+                        onImportFromGC={null}
                     />
                 </div>
             );
@@ -322,7 +319,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                     googleCourses={googleCourses}
                     isLoading={isLoading}
                     selectedGoogleCourse={selectedGoogleCourse}
-                    onBack={onShowCreateForm}
+                    onBack={onShowClassList}
                     onConfirmGoogleImport={onConfirmGoogleImport}
                     onLoadGoogleCourses={onLoadGoogleCourses}
                     onSelectGoogleCourse={onSelectGoogleCourse}

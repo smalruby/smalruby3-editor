@@ -116,6 +116,7 @@ const TeacherClassList = ({
     onCreateClassWithAssignment,
     onSelectGroup,
     onShowEvaluation,
+    onShowGoogleCourses,
 }) => {
     const intl = useIntl();
     const [showCreateForm, setShowCreateForm] = useState(false);
@@ -183,6 +184,21 @@ const TeacherClassList = ({
                     id="gui.classroom.classList.create"
                 />
             </button>
+            {onShowGoogleCourses ? (
+                <button
+                    className={styles.classListImportButton}
+                    data-testid="classroom-class-import-gc"
+                    disabled={isLoading}
+                    type="button"
+                    onClick={onShowGoogleCourses}
+                >
+                    <FormattedMessage
+                        defaultMessage="Import from Google Classroom"
+                        description="Button on the class list to import a GC course as a class"
+                        id="gui.classroom.classList.importGc"
+                    />
+                </button>
+            ) : null}
             {showCreateForm ? (
                 <form className={styles.classListCreateForm} onSubmit={handleSubmit}>
                     <input
@@ -281,6 +297,7 @@ TeacherClassList.propTypes = {
     onCreateClassWithAssignment: PropTypes.func.isRequired,
     onSelectGroup: PropTypes.func.isRequired,
     onShowEvaluation: PropTypes.func.isRequired,
+    onShowGoogleCourses: PropTypes.func,
 };
 
 export default TeacherClassList;

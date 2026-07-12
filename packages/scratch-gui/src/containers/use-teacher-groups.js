@@ -238,6 +238,57 @@ const useTeacherGroups = ({
     }, [clearError, setSelectedClassroom, setPhase]);
 
     /**
+     * v2 GC integration: importing a Google Classroom course creates a
+     * class (not an assignment) — the course name, student count and the
+     * course link land on the class, so every assignment inside it can post
+     * coursework without its own link.
+     */
+    const handleCreateClassFromCourse = useCallback(
+        async (course) => {
+            if (!course) return;
+            clearError();
+            setIsLoading(true);
+            try {
+                const now = new Date();
+                const year = now.getMonth() + 1 >= 4 ? now.getFullYear() : now.getFullYear() - 1;
+                const options = { googleClassroomCourseId: course.courseId };
+                if (typeof course.studentCount === 'number' && course.studentCount > 0) {
+                    options.studentCount = Math.min(course.studentCount, 50);
+                }
+                const group = await classroomAPI.createGroup(
+                    idToken,
+                    String(course.name || '').slice(0, 50),
+                    year,
+                    options,
+                );
+                await loadGroups();
+                setSelectedGroup(group);
+                setSelectedClassroom(null);
+                setPhase('teacher-dashboard');
+            } catch (err) {
+                if (err.status === 401) {
+                    handleTeacher401();
+                    return;
+                }
+                showError(translateError(intl, err));
+            } finally {
+                setIsLoading(false);
+            }
+        },
+        [
+            idToken,
+            loadGroups,
+            setSelectedClassroom,
+            setPhase,
+            clearError,
+            showError,
+            intl,
+            setIsLoading,
+            handleTeacher401,
+        ],
+    );
+
+    /**
      * Combined creation (teacher interview Q2): one form creates the class
      * and its first assignment, then lands inside the new class.
      */
@@ -292,6 +343,7 @@ const useTeacherGroups = ({
         handleShowClassList,
         handleCreateClassWithAssignment,
         handleUpdateGroupTopics,
+        handleCreateClassFromCourse,
         handleShowGroupManage,
         handleBackFromGroupManage,
         handleCreateGroup,
