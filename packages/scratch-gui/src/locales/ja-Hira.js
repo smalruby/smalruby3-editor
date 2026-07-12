@@ -190,7 +190,6 @@ export default {
     'gui.classroom.googleCourses.students': '{count}にん',
     'gui.classroom.assignmentEditor.templatePlaceholder': 'テンプレートからはじめる…',
     'gui.classroom.assignmentEditor.templateOverwriteConfirm': 'いまのページをテンプレートでおきかえますか？',
-    'gui.classroom.evaluation.title': 'ひょうか — {label}',
     'gui.classroom.evaluation.hint':
         'AIのひょうかはしたがきです。きめるのはせんせいです。さきにすうにんをてでさいてんすると、AIがせんせいのきじゅんにあわせます。きまつひょうかはせいとにはみえません。へんきゃくされるのはポジティブなコメントだけです。',
     'gui.classroom.evaluation.lessons': 'じゅぎょう:',
@@ -234,6 +233,7 @@ export default {
     'gui.classroom.classList.logout': 'ログアウト',
     'gui.classroom.classList.importGc': 'Google Classroom からインポート',
     'gui.classroom.classList.sectionPlaceholder': 'セクション（オプション・れい: 2ねん1くみ）',
+    'gui.classroom.classList.createCancel': 'キャンセル',
     'gui.classroom.classList.createClassOnly': 'クラスのみつくる',
     'gui.classroom.classList.settings': 'せってい',
     'gui.classroom.classSettings.namePlaceholder': 'クラスめい（ひっす・れい: ぎじゅつ）',

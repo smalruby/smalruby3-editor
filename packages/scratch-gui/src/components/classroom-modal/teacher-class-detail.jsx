@@ -8,6 +8,7 @@ import ErrorDisplay from './error-display.jsx';
 import TeacherAssignmentEditor from './teacher-assignment-editor.jsx';
 import TeacherMemberDetail from './teacher-member-detail.jsx';
 
+import { formatClassLabel } from '../../lib/classroom-class-label.js';
 import googleClassroomIcon from '../classroom-teacher-modal/google-classroom-icon.png';
 import styles from './classroom-modal.css';
 
@@ -43,6 +44,7 @@ const TeacherClassDetail = ({
     onRejectKickRequest,
     onDetailTabChange,
     assignmentEditor,
+    group,
 }) => {
     const intl = useIntl();
     // Destructured with handle-prefixed names for the embedded editor
@@ -211,10 +213,10 @@ const TeacherClassDetail = ({
                         {/* Left pane */}
                         <div className={styles.detailLeftPane}>
                             <div
-                                className={styles.phaseTitle}
+                                className={styles.teacherViewTitle}
                                 data-testid="classroom-detail-name"
                             >
-                                {selectedClassroom.className}
+                                {group ? formatClassLabel(group) : selectedClassroom.className}
                             </div>
 
                             {/* Editable assignment name + post assignment button */}
@@ -717,6 +719,7 @@ TeacherClassDetail.propTypes = {
     onRejectKickRequest: PropTypes.func,
     onDetailTabChange: PropTypes.func,
     assignmentEditor: PropTypes.object,
+    group: PropTypes.object,
     selectedClassroom: PropTypes.object.isRequired,
     selectedMember: PropTypes.string,
 };

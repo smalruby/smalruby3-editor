@@ -260,6 +260,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         errorActionHandler={errorActionHandler}
                         errorActionLabel={errorActionLabel}
                         errorTitle={errorTitle}
+                        group={selectedGroup}
                         isLoading={isLoading}
                         kickRequestsBySeat={kickRequestsBySeat}
                         members={members}
@@ -296,6 +297,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                     errorTitle={errorTitle}
                     googleCourses={googleCourses}
                     importedCourseIds={(groups || [])
+                        .filter((g) => g.status !== 'archived')
                         .map((g) => g.googleClassroomCourseId)
                         .filter(Boolean)}
                     isLoading={isLoading}

@@ -443,7 +443,10 @@ const TeacherClassList = ({
                 </button>
             ) : null}
             {showCreateForm ? (
-                <form className={styles.classListCreateForm} onSubmit={handleSubmit}>
+                <form
+                    className={`${styles.boardPopover} ${styles.classListCreateForm}`}
+                    onSubmit={handleSubmit}
+                >
                     <input
                         data-testid="classroom-class-create-name"
                         disabled={isLoading}
@@ -526,6 +529,18 @@ const TeacherClassList = ({
                                 id="gui.classroom.classList.createClassOnly"
                             />
                         )}
+                    </button>
+                    <button
+                        className={styles.popoverCancel}
+                        data-testid="classroom-class-create-cancel"
+                        type="button"
+                        onClick={handleToggleCreateForm}
+                    >
+                        <FormattedMessage
+                            defaultMessage="Cancel"
+                            description="Cancel button of the class creation form"
+                            id="gui.classroom.classList.createCancel"
+                        />
                     </button>
                 </form>
             ) : null}
