@@ -14,6 +14,8 @@ import ErrorDisplay from './error-display.jsx';
 
 import { GRADE_ORDER, combineOverall } from '../../lib/classroom-evaluation/evaluation-utils.js';
 
+import { formatClassLabel } from '../../lib/classroom-class-label.js';
+import TeacherBreadcrumbs from './teacher-breadcrumbs.jsx';
 import styles from './classroom-modal.css';
 
 const GRADES = [...GRADE_ORDER].reverse(); // S, A, B, C
@@ -138,13 +140,40 @@ const TeacherEvaluation = ({
     const handleRunComment = useCallback(() => onRunAi('comment'), [onRunAi]);
 
     return (
-        <div className={styles.evaluationScreen} data-testid="classroom-phase-teacher-evaluation">
-            <h2 className={styles.phaseTitle}>
+        <div
+            className={`${styles.teacherView} ${styles.evaluationScreen}`}
+            data-testid="classroom-phase-teacher-evaluation"
+        >
+            <TeacherBreadcrumbs
+                items={[
+                    {
+                        label: (
+                            <FormattedMessage
+                                defaultMessage="Class list"
+                                description="Breadcrumb link back to the class list"
+                                id="gui.classroom.breadcrumbs.classList"
+                            />
+                        ),
+                        onClick: onBack,
+                        testId: 'classroom-breadcrumb-class-list',
+                    },
+                    {
+                        label: (
+                            <FormattedMessage
+                                defaultMessage="Evaluation"
+                                description="Breadcrumb label of the evaluation view"
+                                id="gui.classroom.breadcrumbs.evaluation"
+                            />
+                        ),
+                    },
+                ]}
+            />
+            <h2 className={styles.teacherViewTitle}>
                 <FormattedMessage
-                    defaultMessage="Evaluate — {name} ({year})"
+                    defaultMessage="Evaluation — {label}"
                     description="Evaluation screen title"
                     id="gui.classroom.evaluation.title"
-                    values={{ name: evalGroup?.name || '', year: evalGroup?.year || '' }}
+                    values={{ label: evalGroup ? formatClassLabel(evalGroup) : '' }}
                 />
             </h2>
             <p className={styles.assignmentEditorHint}>
@@ -333,18 +362,6 @@ const TeacherEvaluation = ({
 
             {/* Actions */}
             <div className={styles.buttonRow}>
-                <button
-                    className={styles.secondaryButton}
-                    data-testid="classroom-eval-back"
-                    disabled={busy}
-                    onClick={onBack}
-                >
-                    <FormattedMessage
-                        defaultMessage="Back"
-                        description="Back from evaluation"
-                        id="gui.classroom.evaluation.back"
-                    />
-                </button>
                 <button
                     className={styles.primaryButton}
                     data-testid="classroom-eval-run-grade"

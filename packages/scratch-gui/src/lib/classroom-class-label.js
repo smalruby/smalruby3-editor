@@ -28,4 +28,23 @@ const formatStudentClassName = (className, classYear) => {
     return typeof classYear === 'number' ? `${className} ${classYear}年度` : className;
 };
 
-export { formatClassLabel, formatStudentClassName };
+/**
+ * Best-effort teacher email from an OIDC ID token (Google/Microsoft JWT).
+ * Dev-bypass tokens are opaque strings — returns null, callers hide the
+ * label.
+ * @param {string} idToken - raw ID token
+ * @returns {string|null} email claim or null
+ */
+const teacherEmailFromToken = (idToken) => {
+    if (typeof idToken !== 'string') return null;
+    const parts = idToken.split('.');
+    if (parts.length !== 3) return null;
+    try {
+        const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+        return typeof payload.email === 'string' ? payload.email : null;
+    } catch (_e) {
+        return null;
+    }
+};
+
+export { formatClassLabel, formatStudentClassName, teacherEmailFromToken };

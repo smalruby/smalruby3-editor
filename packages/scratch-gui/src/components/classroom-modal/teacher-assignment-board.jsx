@@ -306,7 +306,10 @@ const TeacherAssignmentBoard = ({
             </div>
             <ErrorDisplay error={error} errorTitle={errorTitle} />
             {showInlineCreate ? (
-                <form className={styles.boardInlineCreate} onSubmit={handleSubmitInlineCreate}>
+                <form
+                    className={`${styles.boardPopover} ${styles.boardInlineCreate}`}
+                    onSubmit={handleSubmitInlineCreate}
+                >
                     <input
                         autoFocus
                         data-testid="classroom-board-create-name"
@@ -332,10 +335,25 @@ const TeacherAssignmentBoard = ({
                             id="gui.classroom.board.createSubmit"
                         />
                     </button>
+                    <button
+                        className={styles.popoverCancel}
+                        data-testid="classroom-board-create-cancel"
+                        type="button"
+                        onClick={handleToggleInlineCreate}
+                    >
+                        <FormattedMessage
+                            defaultMessage="Cancel"
+                            description="Cancel button of the inline assignment creation form"
+                            id="gui.classroom.board.createCancel"
+                        />
+                    </button>
                 </form>
             ) : null}
             {showReuse ? (
-                <div className={styles.boardSection} data-testid="classroom-board-reuse-view">
+                <div
+                    className={`${styles.boardPopover} ${styles.boardSection}`}
+                    data-testid="classroom-board-reuse-view"
+                >
                     <div className={styles.reuseFilter}>
                         <FormattedMessage
                             defaultMessage="Copy an existing assignment into this class:"
@@ -361,6 +379,18 @@ const TeacherAssignmentBoard = ({
                                 </option>
                             ))}
                         </select>
+                        <button
+                            className={styles.popoverCancel}
+                            data-testid="classroom-board-reuse-cancel"
+                            type="button"
+                            onClick={handleToggleReuse}
+                        >
+                            <FormattedMessage
+                                defaultMessage="Cancel"
+                                description="Close the reuse picker without copying"
+                                id="gui.classroom.board.reuseCancel"
+                            />
+                        </button>
                     </div>
                     <ul className={styles.boardRows}>
                         {reuseCandidates.map((c) => (

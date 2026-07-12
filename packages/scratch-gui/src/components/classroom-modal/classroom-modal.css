@@ -2112,15 +2112,18 @@
 /* --- Class list (post-login landing view) --- */
 
 .class-list {
-    padding: 2rem;
-    max-width: 44rem;
-    margin: 0 auto;
+    padding: 1.25rem 2rem;
+    max-width: 60rem;
     overflow-y: auto;
 }
 
 .class-list-title {
-    margin: 0 0 0.25rem;
-    font-size: 1.25rem;
+    margin: 0.25rem 0 1rem;
+    font-size: 1.3rem;
+    color: #575e75;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .class-list-hint {
@@ -2256,9 +2259,8 @@
 /* --- Assignment board (inside a class) --- */
 
 .assignment-board {
-    padding: 1.5rem 2rem;
-    max-width: 52rem;
-    margin: 0 auto;
+    padding: 1.25rem 2rem;
+    max-width: 60rem;
     overflow-y: auto;
 }
 
@@ -2270,8 +2272,13 @@
 }
 
 .board-title {
+    flex: 1;
     margin: 0;
-    font-size: 1.2rem;
+    font-size: 1.3rem;
+    color: #575e75;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .board-year {
@@ -2555,14 +2562,6 @@
     color: hsla(225, 15%, 40%, 1);
 }
 
-/* Long class names truncate with an ellipsis (spec) */
-.board-title {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 36rem;
-}
-
 .board-inline-create {
     display: flex;
     gap: 0.5rem;
@@ -2687,4 +2686,62 @@
 .assignment-preview-pager button:disabled {
     opacity: 0.4;
     cursor: default;
+}
+
+
+/* --- Unified teacher view layout (review round 3) --- */
+
+.teacher-view {
+    padding: 1.25rem 2rem;
+    max-width: 60rem;
+    overflow-y: auto;
+}
+
+.teacher-view-title {
+    margin: 0.25rem 0 1rem;
+    font-size: 1.3rem;
+    color: #575e75;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Floating (modal-like) inline forms: border + shadow lift them above the
+   list so their extent is obvious. */
+.board-popover {
+    border: 1px solid hsla(0, 0%, 0%, 0.15);
+    border-radius: 0.6rem;
+    background: white;
+    box-shadow: 0 8px 24px hsla(0, 0%, 0%, 0.18);
+    padding: 1rem;
+    margin: 0.75rem 0;
+}
+
+.popover-cancel {
+    border: 1px solid hsla(0, 0%, 0%, 0.2);
+    background: white;
+    border-radius: 0.4rem;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+}
+
+.assignment-preview-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.detail-tabs-download {
+    margin-left: auto;
+}
+
+.course-tile-imported {
+    display: inline-block;
+    margin-top: 0.25rem;
+    font-size: 0.7rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 0.25rem;
+    background: hsla(120, 50%, 45%, 0.15);
+    color: hsl(120, 50%, 30%);
 }

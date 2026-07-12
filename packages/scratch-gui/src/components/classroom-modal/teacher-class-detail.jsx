@@ -1,7 +1,7 @@
 import classNames from 'classnames';
 import { FormattedMessage, useIntl } from 'react-intl';
 import PropTypes from 'prop-types';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 import ClassCodeDisplay from './class-code-display.jsx';
 import ErrorDisplay from './error-display.jsx';
@@ -49,7 +49,6 @@ const TeacherClassDetail = ({
     // (react/jsx-handler-names requires handler props to look like handlers).
     const descEditor = assignmentEditor || {};
     const handleDescAddPage = descEditor.onAddPage;
-    const handleDescApplyTemplate = descEditor.onApplyTemplate;
     const handleDescAttachPageImage = descEditor.onAttachPageImage;
     const handleDescCancel = descEditor.onCancel;
     const handleDescChangePageText = descEditor.onChangePageText;
@@ -61,6 +60,7 @@ const TeacherClassDetail = ({
     const handleDescUseCurrentProject = descEditor.onUseCurrentProject;
     const handleDescUseFile = descEditor.onUseFile;
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const deleteConfirmRef = useRef(null);
     const [showCodeDisplay, setShowCodeDisplay] = useState(false);
     // The description tab is the entry view (teacher review): editing the
     // student-facing pages is the primary task when opening an assignment.
@@ -114,6 +114,14 @@ const TeacherClassDetail = ({
     const handleDeleteClick = useCallback(() => {
         setShowDeleteConfirm(true);
     }, []);
+
+    // The confirm box appears at the bottom of a long page — bring it into
+    // view so the teacher notices it (review round 3).
+    useEffect(() => {
+        if (showDeleteConfirm && deleteConfirmRef.current) {
+            deleteConfirmRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }
+    }, [showDeleteConfirm]);
 
     const handleDeleteConfirm = useCallback(() => {
         setShowDeleteConfirm(false);
@@ -361,6 +369,22 @@ const TeacherClassDetail = ({
                                         id="gui.classroom.members.title"
                                     />
                                 </button>
+                                <button
+                                    className={classNames(styles.secondaryButton, styles.detailTabsDownload)}
+                                    data-testid="classroom-download-all"
+                                    disabled={isLoading || !!downloadProgress}
+                                    onClick={onDownloadAll}
+                                >
+                                    {downloadProgress ? (
+                                        `${downloadProgress.current}/${downloadProgress.total}`
+                                    ) : (
+                                        <FormattedMessage
+                                            defaultMessage="Download All"
+                                            description="Download all submissions button"
+                                            id="gui.classroom.teacherDetail.downloadAll"
+                                        />
+                                    )}
+                                </button>
                             </div>
 
                             {/* Description tab: the student-facing pages editor.
@@ -377,7 +401,6 @@ const TeacherClassDetail = ({
                                     starterMode={descEditor.starterMode}
                                     starterSource={descEditor.starterSource}
                                     onAddPage={handleDescAddPage}
-                                    onApplyTemplate={handleDescApplyTemplate}
                                     onAttachPageImage={handleDescAttachPageImage}
                                     onCancel={handleDescCancel}
                                     onChangePageText={handleDescChangePageText}
@@ -508,7 +531,7 @@ const TeacherClassDetail = ({
                                     onAction={errorActionHandler}
                                 />
                                 {showDeleteConfirm ? (
-                                    <div className={styles.deleteConfirmBox}>
+                                    <div className={styles.deleteConfirmBox} ref={deleteConfirmRef}>
                                         <div
                                             className={
                                                 styles.deleteConfirmMessage
@@ -556,27 +579,6 @@ const TeacherClassDetail = ({
                                         }
                                     >
                                         <button
-                                            className={
-                                                styles.secondaryButton
-                                            }
-                                            data-testid="classroom-download-all"
-                                            disabled={
-                                                isLoading ||
-                                                !!downloadProgress
-                                            }
-                                            onClick={onDownloadAll}
-                                        >
-                                            {downloadProgress ? (
-                                                `${downloadProgress.current}/${downloadProgress.total}`
-                                            ) : (
-                                                <FormattedMessage
-                                                    defaultMessage="Download All"
-                                                    description="Download all submissions button"
-                                                    id="gui.classroom.teacherDetail.downloadAll"
-                                                />
-                                            )}
-                                        </button>
-                                        <button
                                             className={styles.dangerButton}
                                             data-testid="classroom-delete-classroom"
                                             disabled={isLoading}
@@ -597,26 +599,49 @@ const TeacherClassDetail = ({
                         <div className={styles.detailRightPane}>
                             {activeTab === 'description' && assignmentEditor ? (
                                 <div className={styles.assignmentPreview} data-testid="classroom-description-preview">
-                                    <div className={styles.assignmentPreviewTitle}>
-                                        <FormattedMessage
-                                            defaultMessage="Student view preview"
-                                            description="Title of the student-view preview pane"
-                                            id="gui.classroom.teacherDetail.previewTitle"
-                                        />
-                                    </div>
                                     {(() => {
                                         const pages = descEditor.editorPages || [];
                                         const index = Math.min(previewPage, Math.max(0, pages.length - 1));
                                         const page = pages[index];
                                         return (
                                             <React.Fragment>
+                                                {/* Pager on top so it is visible without scrolling
+                                                    past a tall preview (review round 3). */}
+                                                <div className={styles.assignmentPreviewHeader}>
+                                                    <div className={styles.assignmentPreviewTitle}>
+                                                        <FormattedMessage
+                                                            defaultMessage="Student view preview"
+                                                            description="Title of the student-view preview pane"
+                                                            id="gui.classroom.teacherDetail.previewTitle"
+                                                        />
+                                                    </div>
+                                                    {pages.length > 1 ? (
+                                                        <div className={styles.assignmentPreviewPager}>
+                                                            <button
+                                                                data-testid="classroom-description-preview-prev"
+                                                                disabled={index === 0}
+                                                                type="button"
+                                                                onClick={handlePreviewPrev}
+                                                            >
+                                                                {'←'}
+                                                            </button>
+                                                            <span>{`${index + 1} / ${pages.length}`}</span>
+                                                            <button
+                                                                data-testid="classroom-description-preview-next"
+                                                                disabled={index >= pages.length - 1}
+                                                                type="button"
+                                                                onClick={handlePreviewNext}
+                                                            >
+                                                                {'→'}
+                                                            </button>
+                                                        </div>
+                                                    ) : null}
+                                                </div>
                                                 <div
                                                     className={styles.assignmentPreviewBody}
                                                     data-testid="classroom-description-preview-body"
                                                 >
-                                                    <p className={styles.assignmentPreviewText}>
-                                                        {page ? page.text : ''}
-                                                    </p>
+                                                    {/* Image above text — matches the student panel. */}
                                                     {page && (page.previewUrl || page.imageUrl) ? (
                                                         <img
                                                             alt=""
@@ -624,28 +649,10 @@ const TeacherClassDetail = ({
                                                             src={page.previewUrl || page.imageUrl}
                                                         />
                                                     ) : null}
+                                                    <p className={styles.assignmentPreviewText}>
+                                                        {page ? page.text : ''}
+                                                    </p>
                                                 </div>
-                                                {pages.length > 1 ? (
-                                                    <div className={styles.assignmentPreviewPager}>
-                                                        <button
-                                                            data-testid="classroom-description-preview-prev"
-                                                            disabled={index === 0}
-                                                            type="button"
-                                                            onClick={handlePreviewPrev}
-                                                        >
-                                                            {'←'}
-                                                        </button>
-                                                        <span>{`${index + 1} / ${pages.length}`}</span>
-                                                        <button
-                                                            data-testid="classroom-description-preview-next"
-                                                            disabled={index >= pages.length - 1}
-                                                            type="button"
-                                                            onClick={handlePreviewNext}
-                                                        >
-                                                            {'→'}
-                                                        </button>
-                                                    </div>
-                                                ) : null}
                                             </React.Fragment>
                                         );
                                     })()}

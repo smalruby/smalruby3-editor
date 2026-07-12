@@ -12,7 +12,6 @@ import { FormattedMessage, useIntl } from 'react-intl';
 import Spinner from '../spinner/spinner.jsx';
 import ErrorDisplay from './error-display.jsx';
 
-import { ASSIGNMENT_TEMPLATES, getAssignmentTemplate } from '../../lib/classroom-assignment-templates/index.js';
 import { MAX_ASSIGNMENT_PAGES, MAX_ASSIGNMENT_PAGE_TEXT_LENGTH } from '../../lib/classroom-assignment-utils.js';
 
 import styles from './classroom-modal.css';
@@ -191,7 +190,6 @@ const TeacherAssignmentEditor = ({
     onMovePage,
     onRemovePage,
     onRemovePageImage,
-    onApplyTemplate,
     onRemoveStarter,
     onSave,
     onUseCurrentProject,
@@ -207,14 +205,6 @@ const TeacherAssignmentEditor = ({
             e.target.value = '';
         },
         [onUseFile],
-    );
-    const handleTemplateChange = useCallback(
-        (e) => {
-            if (!e.target.value) return;
-            onApplyTemplate(getAssignmentTemplate(e.target.value));
-            e.target.value = '';
-        },
-        [onApplyTemplate],
     );
 
     const renderStarterStatus = () => {
@@ -280,27 +270,6 @@ const TeacherAssignmentEditor = ({
 
             <ErrorDisplay error={error} errorTitle={errorTitle} />
 
-            <div className={styles.buttonRow}>
-                <select
-                    className={styles.groupSelect}
-                    data-testid="classroom-assignment-template-select"
-                    defaultValue=""
-                    onChange={handleTemplateChange}
-                >
-                    <option value="">
-                        {intl.formatMessage({
-                            defaultMessage: 'Start from a template…',
-                            description: 'Assignment template selector placeholder',
-                            id: 'gui.classroom.assignmentEditor.templatePlaceholder',
-                        })}
-                    </option>
-                    {ASSIGNMENT_TEMPLATES.map((template) => (
-                        <option key={template.id} value={template.id}>
-                            {`${template.title} — ${template.description}`}
-                        </option>
-                    ))}
-                </select>
-            </div>
 
             {editorPages.map((page, i) => (
                 <AssignmentPageEditor
@@ -460,7 +429,6 @@ TeacherAssignmentEditor.propTypes = {
     onRemoveStarter: PropTypes.func.isRequired,
     onSave: PropTypes.func.isRequired,
     onUseCurrentProject: PropTypes.func.isRequired,
-    onApplyTemplate: PropTypes.func.isRequired,
     onUseFile: PropTypes.func.isRequired,
 };
 
