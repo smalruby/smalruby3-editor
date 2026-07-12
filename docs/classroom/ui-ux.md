@@ -174,6 +174,9 @@ Google または Microsoft アカウントでサインインする画面。先�
 | フェーズルート | — | `classroom-phase-teacher-detail` | — |
 | 戻るリンク | 「< 戻る」 | `classroom-back` | → teacher-dashboard |
 | クラス名 | 「第3回 チャットアプリを作ろう」 | `classroom-detail-name` | — |
+| 課題名入力 | 課題名（編集可） | `classroom-detail-assignment-name` | blur で保存 |
+| 課題配信ボタン | 「Google Classroom に配信」 | `classroom-post-assignment` | → teacher-post-assignment。**未配信のとき**表示 |
+| 課題確認リンク | 「Google Classroom で確認」 | `classroom-view-assignment` | 配信済みのとき表示（新しいタブ） |
 | 参加コード表示 | 「参加コード: 3cexm5」 | `classroom-detail-join-code` | 大きなフォントで中央表示 |
 | コード拡大ボタン | ⛶ アイコン（ツールチップ: 「全画面表示」） | `classroom-detail-expand-code` | 全画面コード表示 |
 | 有効期限 | 「有効期限: 2026/4/6」 | — | — |
@@ -183,6 +186,8 @@ Google または Microsoft アカウントでサインインする画面。先�
 | 座席グリッド | — | `classroom-members-grid` | — |
 | 全作品ダウンロード | 「全作品ダウンロード」 | `classroom-download-all` | 左寄せ |
 | クラス削除ボタン | 「クラスを削除」 | `classroom-delete-classroom` | 赤枠ボタン、右寄せ |
+
+**課題配信ボタンの表示条件:** Google Classroom 連携はクラス（group）単位に移行したため、配信ボタン（`classroom-post-assignment`）は **クラスが GC 連携済み（`group.googleClassroomCourseId`）** であれば、その課題自体に courseId が無くても表示されます（課題の投稿先はクラスのコース）。課題単位の `googleClassroomCourseId`（v2 以前のフォールバック）が有る場合も表示されます。どちらの courseId も無い（非連携クラス）ときは表示されません。配信済み（課題に `googleClassroomAlternateLink` が保存済み）になると「Google Classroom で確認」リンク（`classroom-view-assignment`）に切り替わります。
 
 **座席グリッド:**
 

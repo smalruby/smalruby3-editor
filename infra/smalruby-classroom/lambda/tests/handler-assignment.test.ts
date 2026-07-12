@@ -2,6 +2,7 @@ import {
   validateAssignmentPages,
   hasAssignmentContent,
   getCorsHeaders,
+  resolveGoogleCourseId,
 } from '../handler';
 
 const CLASSROOM_ID = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
@@ -124,6 +125,38 @@ describe('hasAssignmentContent', () => {
 
   test('true when only a starter exists', () => {
     expect(hasAssignmentContent({ assignment: { starterKey: 'cid/assignment/starter-x.sb3' } })).toBe(true);
+  });
+});
+
+describe('resolveGoogleCourseId (post assignment target)', () => {
+  test('falls back to the group course when the assignment has no courseId (v2)', () => {
+    // The reported bug: v2 moved the GC link to the class (group), so the
+    // assignment itself is null but posting must still target the group course.
+    expect(
+      resolveGoogleCourseId(
+        { googleClassroomCourseId: null, groupId: 'g1' },
+        { googleClassroomCourseId: 'course-123' },
+      ),
+    ).toBe('course-123');
+  });
+
+  test('prefers the assignment own courseId (pre-v2 fallback wins)', () => {
+    expect(
+      resolveGoogleCourseId(
+        { googleClassroomCourseId: 'course-own' },
+        { googleClassroomCourseId: 'course-group' },
+      ),
+    ).toBe('course-own');
+  });
+
+  test('returns empty string when neither the assignment nor the group is linked', () => {
+    expect(resolveGoogleCourseId({ googleClassroomCourseId: null }, undefined)).toBe('');
+    expect(resolveGoogleCourseId({}, {})).toBe('');
+    expect(resolveGoogleCourseId(undefined, undefined)).toBe('');
+  });
+
+  test('ignores a non-string courseId', () => {
+    expect(resolveGoogleCourseId({ googleClassroomCourseId: 42 }, undefined)).toBe('');
   });
 });
 
