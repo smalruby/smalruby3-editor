@@ -227,3 +227,85 @@ test('MONITOR_HTML: 担当列にオーナー（駆動者）を明示し、非オ
     assert.match(MONITOR_HTML, /it\.owner !== myAssignee/);
     assert.ok(MONITOR_HTML.includes('👁'), 'should include the observing marker emoji');
 });
+
+test('MONITOR_HTML: 使用量アイコンはクリック/キーボードで開閉するポップオーバーのトリガー（#996）', () => {
+    // アイコンは role=button / tabindex / aria-expanded / aria-haspopup を持つ（キーボード操作可能）
+    assert.match(MONITOR_HTML, /class="uicon"[^>]*role="button"/);
+    assert.match(MONITOR_HTML, /class="uicon"[^>]*tabindex="0"/);
+    assert.match(MONITOR_HTML, /class="uicon"[^>]*aria-expanded=/);
+    assert.match(MONITOR_HTML, /class="uicon"[^>]*aria-haspopup=/);
+    // aria-label="Claude" は #879 の互換で維持する
+    assert.match(MONITOR_HTML, /aria-label="Claude"/);
+    // アイコンだけをクリック可能にする（.usage 全体は pointer-events:none のまま = バー幅/中央位置に影響させない）
+    assert.match(MONITOR_HTML, /\.usage \.uicon \{[^}]*pointer-events:\s*auto/);
+    assert.match(MONITOR_HTML, /\.usage \.uicon \{[^}]*cursor:\s*pointer/);
+    assert.match(MONITOR_HTML, /\.usage \{[^}]*pointer-events:\s*none/);
+});
+
+test('MONITOR_HTML: 使用量ポップオーバーは fixed 配置で header の overflow:hidden に切られない（#996）', () => {
+    // #usagepop 要素があり dialog ロール + ラベルを持つ
+    assert.match(MONITOR_HTML, /id="usagepop"/);
+    assert.match(MONITOR_HTML, /id="usagepop"[^>]*role="dialog"/);
+    assert.match(MONITOR_HTML, /id="usagepop"[^>]*aria-label=/);
+    // header は overflow:hidden なので fixed 配置し JS で位置を決める（切り取られない）
+    assert.match(MONITOR_HTML, /\.usagepop \{[^}]*position:\s*fixed/);
+    // 開いている時だけ表示（.open）
+    assert.match(MONITOR_HTML, /\.usagepop \{[^}]*display:\s*none/);
+    assert.match(MONITOR_HTML, /\.usagepop\.open \{[^}]*display:\s*block/);
+    // ヘッダー(10)より上・log モーダル(50)より下の z-index
+    assert.match(MONITOR_HTML, /\.usagepop \{[^}]*z-index:\s*40/);
+});
+
+test('MONITOR_HTML: 使用量ポップオーバーの開閉ロジック（トグル / 外側クリック / Esc / 委譲）（#996）', () => {
+    // 開閉・配置関数
+    assert.match(MONITOR_HTML, /function openUsagePop/);
+    assert.match(MONITOR_HTML, /function closeUsagePop/);
+    assert.match(MONITOR_HTML, /function toggleUsagePop/);
+    assert.match(MONITOR_HTML, /function positionUsagePop/);
+    // 開閉状態を保持する
+    assert.match(MONITOR_HTML, /let usagePopOpen = false/);
+    // アイコンは refresh のたび innerHTML で再生成されるのでイベント委譲で拾う
+    assert.match(MONITOR_HTML, /getElementById\('usage'\)\.addEventListener\('click'/);
+    assert.match(MONITOR_HTML, /getElementById\('usage'\)\.addEventListener\('keydown'/);
+    // Enter / Space で開閉（キーボード操作）
+    assert.match(MONITOR_HTML, /e\.key === 'Enter'/);
+    // 外側クリックで閉じる（document への委譲）
+    assert.match(MONITOR_HTML, /closeUsagePop\(\)/);
+    // Esc は既存の keydown ハンドラで closeModal と同列に閉じる
+    assert.match(MONITOR_HTML, /Escape[\s\S]*?closeUsagePop\(\)/);
+});
+
+test('MONITOR_HTML: renderUsage がポップオーバー本文を更新し aria-expanded を同期する（#996）', () => {
+    // renderUsage が usagepopbody を描画する（新規のデータ取得はしない = claudeUsage を再利用）
+    assert.match(MONITOR_HTML, /getElementById\('usagepopbody'\)/);
+    assert.match(MONITOR_HTML, /renderUsagePop\(/);
+    // アイコン再描画後に aria-expanded を現在の開閉状態へ同期する
+    assert.match(MONITOR_HTML, /setAttribute\('aria-expanded'/);
+});
+
+test('renderUsagePop: セッション/週間の % とリセット日時を出し、未取得は崩さず表示（#996）', () => {
+    const escM = MONITOR_HTML.match(/const esc = [\s\S]*?;\n/);
+    const resetM = MONITOR_HTML.match(/function resetLabel\(resetsAt\) \{[\s\S]*?\n\}/);
+    const rowM = MONITOR_HTML.match(/function usagePopRow\([\s\S]*?\n\}/);
+    const popM = MONITOR_HTML.match(/function renderUsagePop\([\s\S]*?\n\}/);
+    assert.ok(escM && resetM && rowM && popM, 'esc / resetLabel / usagePopRow / renderUsagePop が抽出できる');
+    // eslint-disable-next-line no-new-func
+    const renderUsagePop = new Function(
+        escM[0] + resetM[0] + rowM[0] + popM[0] + '; return renderUsagePop;',
+    )();
+    const html = renderUsagePop({
+        session: { percent: 39, resetsAt: 1783604400 },
+        weekly: { percent: null, resetsAt: 1783778400 },
+    });
+    // セッション: % + リセット日時（JST）
+    assert.match(html, /現在のセッション/);
+    assert.match(html, /39%/);
+    assert.match(html, /7\/9\(木\) 22:40 JST/);
+    // 週間: percent が null のときは「未取得」でレイアウトを崩さない（リセット日時は出せる）
+    assert.match(html, /週間制限/);
+    assert.match(html, /未取得/);
+    assert.match(html, /7\/11\(土\) 23:00 JST/);
+    // usage 全体が空（claudeUsage 無し）でも例外を投げない
+    assert.doesNotThrow(() => renderUsagePop(undefined));
+    assert.doesNotThrow(() => renderUsagePop({}));
+});

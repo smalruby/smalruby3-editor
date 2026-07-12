@@ -41,6 +41,11 @@ const messages = defineMessages({
         defaultMessage: 'Cancel',
         description: 'Label for cancel button',
         id: 'gui.urlLoader.cancelButton'
+    },
+    loading: {
+        defaultMessage: 'Loading…',
+        description: 'Shown in the modal while a project is being fetched and loaded from a URL',
+        id: 'gui.urlLoader.loading'
     }
 });
 
@@ -73,6 +78,11 @@ class URLLoaderModal extends React.Component {
     }
 
     handleOpenClick () {
+        // Ignore clicks while a load is already running so the project is only
+        // loaded once even if the user taps "Open"/Enter repeatedly (#972).
+        if (this.props.loading) {
+            return;
+        }
         const {url} = this.state;
         if (url.trim()) {
             this.props.onLoadUrl(url.trim(), error => {
@@ -94,7 +104,7 @@ class URLLoaderModal extends React.Component {
     }
 
     render () {
-        const {intl, onRequestClose} = this.props;
+        const {intl, loading, onRequestClose} = this.props;
         const {url, error} = this.state;
 
         return (
@@ -117,6 +127,7 @@ class URLLoaderModal extends React.Component {
                             placeholder={intl.formatMessage(messages.urlPlaceholder)}
                             onChange={this.handleUrlChange}
                             onKeyPress={this.handleKeyPress}
+                            disabled={loading}
                             autoFocus
                         />
                         {error && (
@@ -125,6 +136,18 @@ class URLLoaderModal extends React.Component {
                             </div>
                         )}
                     </Box>
+
+                    {loading && (
+                        <Box
+                            className={styles.loadingIndicator}
+                            data-testid="url-loader-loading"
+                        >
+                            <span className={styles.loadingSpinner} />
+                            <FormattedMessage
+                                {...messages.loading}
+                            />
+                        </Box>
+                    )}
 
                     <Box className={styles.examplesSection}>
                         <div className={styles.examplesTitle}>
@@ -152,10 +175,10 @@ class URLLoaderModal extends React.Component {
                         </button>
                         <button
                             className={classNames(styles.openButton, {
-                                [styles.disabled]: !url.trim()
+                                [styles.disabled]: !url.trim() || loading
                             })}
                             onClick={this.handleOpenClick}
-                            disabled={!url.trim()}
+                            disabled={!url.trim() || loading}
                         >
                             <FormattedMessage
                                 {...messages.openButton}
@@ -170,6 +193,7 @@ class URLLoaderModal extends React.Component {
 
 URLLoaderModal.propTypes = {
     intl: intlShape.isRequired,
+    loading: PropTypes.bool,
     onRequestClose: PropTypes.func.isRequired,
     onLoadUrl: PropTypes.func.isRequired
 };

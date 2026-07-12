@@ -396,6 +396,10 @@ export default {
         'Scratchサーバーがわでエラーがはっせいしました。しばらくたってからもういちどおためしください。',
     'gui.urlLoader.networkError':
         'ネットワークエラーがはっせいしました。インターネットせつぞくをかくにんしてください。',
+    'gui.urlLoader.projectLoadFailed':
+        'プロジェクトをよみこめませんでした。たいおうしていないブロックやきのうがふくまれているかもしれません。' +
+        'ちょくぜんのプロジェクトはそのままのこしています。',
+    'gui.urlLoader.loading': 'よみこみちゅう…',
     'gui.urlLoader.title': 'Scratchからよみこむ',
     'gui.urlLoader.urlPlaceholder': 'プロジェクトのURLをにゅうりょく...',
     'gui.urlLoader.openButton': 'ひらく',

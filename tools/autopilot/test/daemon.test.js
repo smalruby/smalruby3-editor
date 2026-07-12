@@ -3,7 +3,7 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const {
     applyMergeProgression, applyClosedReconcile, applyPrProjection, applyDodHandoffs, runTickOnce,
-    detectStuck, recoverOrphanedWorkers, markBlocked, getDirectives, populateAssigneeDirectives,
+    detectStuck, recoverOrphanedWorkers, recoverStalledInFlightWorkers, markBlocked, getDirectives, populateAssigneeDirectives,
     applyLabelHealing, applyAfterWaitLabels, collectGateContexts,
     applyDecomposeSubIssueSetup,
     parseSsoDeviceOutput, startReauth,
@@ -437,45 +437,128 @@ test('installProcessSafetyNet: 認証系は auto-pause で耐え、非認証は 
     assert.deepEqual(proc.exits, [1]);
 });
 
-// === 孤児 worker の自動復帰: recoverOrphanedWorkers（#953） ===
+// === ストール worker の自動復帰: recoverStalledInFlightWorkers（#953 起動時 → #995 定常 tick） ===
 
-test('recoverOrphanedWorkers: worker 不在の in-flight を再ディスパッチ、生存中は触らない', async () => {
+test('recoverStalledInFlightWorkers: worker 不在の in-flight を再ディスパッチ、生存中は触らない', async () => {
     const items = [
-        // 孤児（Implementing だが worker セッション無し）→ 再ディスパッチ
+        // stalled（Implementing だが worker セッション無し）→ 再ディスパッチ
         { issue: 10, itemId: 'i10', status: 'In Progress', aiStatus: 'Implementing', hitlLabel: false },
         // 生存 worker あり（address-review セッションが tmux に残っている）→ 触らない
         { issue: 20, itemId: 'i20', status: 'In Progress', aiStatus: 'Addressing Comments', hitlLabel: false },
-        // HITL 待ち（正常完了）→ 対象外
+        // 人間の判断待ち HITL（実作業系でない Triaging）→ 対象外
         { issue: 30, itemId: 'i30', status: 'In Progress', aiStatus: 'Triaging', hitlLabel: true },
-        // resting（Self-Reviewing は次 tick の phaseForItem→review に委ねる）→ 対象外
+        // Self-Reviewing（実作業系）+ worker 不在 → #995 で復帰対象に変更（review へ）
         { issue: 40, itemId: 'i40', status: 'In Progress', aiStatus: 'Self-Reviewing', hitlLabel: false },
     ];
     const dispatched = [];
     const state = { running: new Map() };
-    const recovered = await recoverOrphanedWorkers(makeCfg(), state, () => {}, {
+    const recovered = await recoverStalledInFlightWorkers(items, makeCfg(), state, () => {}, {
         listSessions: () => ['autopilot-address-review-20', 'other-session'],
-        listItems: async () => items,
-        readToken: async () => 't',
         dispatch: (item) => dispatched.push({ issue: item.issue, phase: item.phase }),
     });
-    assert.deepEqual(recovered, [{ issue: 10, phase: 'implement' }]);
-    assert.deepEqual(dispatched, [{ issue: 10, phase: 'implement' }]);
+    assert.deepEqual(recovered, [
+        { issue: 10, phase: 'implement' },
+        { issue: 40, phase: 'review' },
+    ]);
+    assert.deepEqual(dispatched, [
+        { issue: 10, phase: 'implement' },
+        { issue: 40, phase: 'review' },
+    ]);
 });
 
-test('recoverOrphanedWorkers: enroll フィルタ（自分がオーナーの item だけ復帰）', async () => {
+test('#972 回帰: In Progress + Addressing Comments + 🙋 HITL + worker 不在 → address-review へ再ディスパッチ', async () => {
+    // Blocked マーキングが SSO 失効で失敗し 🙋 だけ残った残渣（#972）。worker 不在なら
+    // 人間の番ではなく異常終了の残渣として address-review へ再開する。
+    const items = [
+        { issue: 973, itemId: 'i973', status: 'In Progress', aiStatus: 'Addressing Comments', hitlLabel: true },
+    ];
+    const dispatched = [];
+    const recovered = await recoverStalledInFlightWorkers(items, makeCfg(), { running: new Map() }, () => {}, {
+        listSessions: () => [], // worker 不在
+        dispatch: (item) => dispatched.push({ issue: item.issue, phase: item.phase }),
+    });
+    assert.deepEqual(recovered, [{ issue: 973, phase: 'address-review' }]);
+    assert.deepEqual(dispatched, [{ issue: 973, phase: 'address-review' }]);
+});
+
+test('recoverStalledInFlightWorkers: in-memory running の item は再開しない（tmux 不在でも）', async () => {
+    // 定常 tick では in-memory running が最新。tmux セッション名が拾えなくても
+    // running に居れば「走行中」なので横取りしない（live = running ∪ tmux のユニオン）。
+    const items = [
+        { issue: 50, itemId: 'i50', status: 'In Progress', aiStatus: 'Implementing', hitlLabel: false },
+    ];
+    const dispatched = [];
+    const state = { running: new Map([[50, { phase: 'implement' }]]) };
+    const recovered = await recoverStalledInFlightWorkers(items, makeCfg(), state, () => {}, {
+        listSessions: () => [], // tmux では見えない
+        dispatch: (item) => dispatched.push(item.issue),
+    });
+    assert.deepEqual(recovered, []);
+    assert.deepEqual(dispatched, []);
+});
+
+test('recoverStalledInFlightWorkers: 並行上限を尊重し、溢れた分は再開しない（#995）', async () => {
+    // Self-Reviewing の happy-path が毎 tick recovery に載っても capacity を跨がないこと。
+    const items = [
+        { issue: 61, itemId: 'i61', status: 'In Progress', aiStatus: 'Self-Reviewing', hitlLabel: false },
+        { issue: 62, itemId: 'i62', status: 'In Progress', aiStatus: 'Self-Reviewing', hitlLabel: false },
+        { issue: 63, itemId: 'i63', status: 'In Progress', aiStatus: 'Implementing', hitlLabel: false },
+    ];
+    const dispatched = [];
+    const state = { running: new Map() };
+    const cfg = { ...makeCfg(), concurrency: 2 };
+    const recovered = await recoverStalledInFlightWorkers(items, cfg, state, () => {}, {
+        listSessions: () => [],
+        // 本物の dispatch と同じく running を同期 set する double（capacity カウントの前提）
+        dispatch: (item) => { dispatched.push(item.issue); state.running.set(item.issue, {}); },
+    });
+    assert.equal(recovered.length, 2, '空き容量 2 の分だけ再開する');
+    assert.deepEqual(dispatched, [61, 62]);
+    assert.equal(state.running.size, 2);
+});
+
+test('recoverStalledInFlightWorkers: 既に capacity 一杯なら 1 件も再開しない（#995）', async () => {
+    const items = [
+        { issue: 71, itemId: 'i71', status: 'In Progress', aiStatus: 'Addressing Comments', hitlLabel: true },
+    ];
+    const dispatched = [];
+    const state = { running: new Map([[99, { phase: 'implement' }], [98, { phase: 'review' }]]) };
+    const cfg = { ...makeCfg(), concurrency: 2 };
+    const recovered = await recoverStalledInFlightWorkers(items, cfg, state, () => {}, {
+        listSessions: () => [],
+        dispatch: (item) => { dispatched.push(item.issue); state.running.set(item.issue, {}); },
+    });
+    assert.deepEqual(recovered, []);
+    assert.deepEqual(dispatched, []);
+});
+
+test('recoverStalledInFlightWorkers: enroll フィルタ（自分がオーナーの item だけ復帰）', async () => {
     const items = [
         { issue: 11, itemId: 'i11', status: 'In Progress', aiStatus: 'Implementing', hitlLabel: false, assignees: ['alice'] },
         { issue: 12, itemId: 'i12', status: 'In Progress', aiStatus: 'Implementing', hitlLabel: false, assignees: ['bob'] },
     ];
     const dispatched = [];
     const cfg = { ...makeCfg(), assignee: 'alice' };
-    await recoverOrphanedWorkers(cfg, { running: new Map() }, () => {}, {
+    await recoverStalledInFlightWorkers(items, cfg, { running: new Map() }, () => {}, {
         listSessions: () => [],
-        listItems: async () => items,
-        readToken: async () => 't',
         dispatch: (item) => dispatched.push(item.issue),
     });
     assert.deepEqual(dispatched, [11]); // bob の 12 は復帰しない
+});
+
+test('recoverOrphanedWorkers: 起動時ラッパは items を fetch して core へ委譲する', async () => {
+    const items = [
+        { issue: 10, itemId: 'i10', status: 'In Progress', aiStatus: 'Implementing', hitlLabel: false },
+    ];
+    const dispatched = [];
+    const recovered = await recoverOrphanedWorkers(makeCfg(), { running: new Map() }, () => {}, {
+        listSessions: () => [],
+        listItems: async () => items,
+        readToken: async () => 't',
+        dispatch: (item) => dispatched.push({ issue: item.issue, phase: item.phase }),
+    });
+    assert.deepEqual(recovered, [{ issue: 10, phase: 'implement' }]);
+    assert.deepEqual(dispatched, [{ issue: 10, phase: 'implement' }]);
 });
 
 test('recoverOrphanedWorkers: poll 失敗でも落ちず空配列を返す', async () => {

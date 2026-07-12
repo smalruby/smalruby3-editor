@@ -304,6 +304,7 @@ test/unit/components/*
 !test/unit/components/koshien-mock-panel.test.jsx
 !test/unit/components/koshien-settings-modal.test.jsx
 !test/unit/components/koshien-test-modal.test.jsx
+!test/unit/components/url-loader-modal.test.jsx
 !test/unit/components/dncl-mode-notice.test.jsx
 !test/unit/components/extension-button-dncl.test.jsx
 !test/unit/components/connected-step.test.jsx
@@ -373,6 +374,9 @@ test/unit/lib/*
 !test/unit/lib/google-drive-api.test.js
 !test/unit/lib/touch-device.test.js
 !test/unit/lib/url-loader.test.js
+!test/unit/lib/url-loader-hoc.test.jsx
+!test/unit/lib/project-loader-utils.test.js
+!test/unit/reducers/project-state-restore.test.js
 !test/unit/lib/insert-class.test.js
 !test/unit/lib/join-code-history.test.js
 !test/unit/lib/layout-constants.test.js

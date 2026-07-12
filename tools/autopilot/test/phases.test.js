@@ -29,7 +29,8 @@ const {
     isActionable,
     isStuckCandidate,
     liveWorkerIssuesFromSessions,
-    selectOrphanedInFlightItems,
+    selectStalledInFlightItems,
+    IN_FLIGHT_WORK_PHASE_BY_AI_STATUS,
     PHASE_BY_AI_STATUS,
     itemOwner,
     ownsItem,
@@ -463,6 +464,36 @@ test('isAuthError: 非認証エラー・空入力は false（#949）', () => {
     assert.equal(isAuthError(new Error('ECONNRESET: socket hang up')), false);
     assert.equal(isAuthError(new Error('GraphQL: rate limit exceeded')), false);
     assert.equal(isAuthError('some random failure'), false);
+});
+
+test('isAuthError: bot-token/SSO/OIDC/Secrets Manager 失敗を認証系と判定する（#982）', () => {
+    // クラッシュした時の実メッセージ: bot-token が OIDC エンドポイントに接続できず die
+    assert.equal(isAuthError(Object.assign(new Error('Command failed: /app/bin/bot-token'), {
+        stderr:
+            'bot-token: aws secretsmanager get-secret-value failed: aws: [ERROR]: ' +
+            'Could not connect to the endpoint URL: "https://oidc.ap-northeast-1.amazonaws.com/token"',
+    })), true);
+    // bot-token 実行そのものの失敗（stderr が拾えず message のみのケース）
+    assert.equal(isAuthError(new Error('Command failed: /app/bin/bot-token')), true);
+    // Secrets Manager から秘密鍵を取得できない（文字列のみ）
+    assert.equal(isAuthError('aws secretsmanager get-secret-value failed: An error occurred'), true);
+    // SSO トークンキャッシュ不在（AWS CLI の実メッセージ）
+    assert.equal(isAuthError('Error loading SSO Token: Token for smalruby does not exist'), true);
+    assert.equal(isAuthError('Token for smalruby-bot does not exist'), true);
+    // OIDC 接続断（bot-token prefix を伴わなくても oidc/sso を含めば拾う）
+    assert.equal(
+        isAuthError('Could not connect to the endpoint URL: "https://oidc.ap-northeast-1.amazonaws.com/token"'),
+        true,
+    );
+});
+
+test('isAuthError: 認証と無関係な接続断は false のまま（過剰マッチ防止・#982）', () => {
+    // 認証系と無関係な AWS サービスへの接続断は auth 扱いにしない（従来どおり exit させる）
+    assert.equal(
+        isAuthError('Could not connect to the endpoint URL: "https://dynamodb.ap-northeast-1.amazonaws.com/"'),
+        false,
+    );
+    assert.equal(isAuthError(new Error('ENOTFOUND api.github.com')), false);
 });
 
 test('protectedPaths: Bot 権限外パス（workflows/actions）を抽出する', () => {
@@ -967,25 +998,51 @@ test('liveWorkerIssuesFromSessions: autopilot-<phase>-<issue> から issue を�
     assert.equal(liveWorkerIssuesFromSessions([]).size, 0);
 });
 
-test('selectOrphanedInFlightItems: worker 不在の in-flight のみ {issue, phase} で返す', () => {
+test('IN_FLIGHT_WORK_PHASE_BY_AI_STATUS: 実作業系 AI Status → 再開フェーズの写像', () => {
+    // dispatch のみが設定する in-flight AI Status を、対応する再開フェーズへ写す（#995）。
+    // Creating PR は PHASE_BY_COMMAND に対応コマンドが無いので個別に implement へ。
+    assert.deepEqual(IN_FLIGHT_WORK_PHASE_BY_AI_STATUS, {
+        Understanding: 'understand',
+        Implementing: 'implement',
+        'Creating PR': 'implement',
+        'Self-Reviewing': 'review',
+        'Addressing Comments': 'address-review',
+        'Running DoD': 'verify',
+    });
+});
+
+test('selectStalledInFlightItems: worker 不在の in-flight を {issue, phase} で返す（HITL/Self-Reviewing も含む）', () => {
     const items = [
-        { issue: 1, status: 'In Progress', aiStatus: 'Implementing', hitlLabel: false },        // 孤児
-        { issue: 2, status: 'In Progress', aiStatus: 'Addressing Comments', hitlLabel: false }, // 生存 worker あり
-        { issue: 3, status: 'In Progress', aiStatus: 'Triaging', hitlLabel: true },             // HITL → 除外
-        { issue: 4, status: 'In Progress', aiStatus: 'Self-Reviewing', hitlLabel: false },      // exempt → 除外
-        { issue: 5, status: 'In Progress', aiStatus: 'Understanding', hitlLabel: false },       // 孤児
+        { issue: 1, status: 'In Progress', aiStatus: 'Implementing', hitlLabel: false },        // stalled
+        { issue: 2, status: 'In Progress', aiStatus: 'Addressing Comments', hitlLabel: false }, // 生存 worker あり → 除外
+        { issue: 3, status: 'In Progress', aiStatus: 'Triaging', hitlLabel: true },             // 実作業系でない → 除外
+        { issue: 4, status: 'In Progress', aiStatus: 'Self-Reviewing', hitlLabel: false },      // 実作業系 → 含む（#995 で変更）
+        { issue: 5, status: 'In Progress', aiStatus: 'Understanding', hitlLabel: false },       // stalled
         { issue: 6, status: 'Backlog', aiStatus: 'Implementing', hitlLabel: false },            // In Progress でない → 除外
+        { issue: 7, status: 'In Progress', aiStatus: 'Addressing Comments', hitlLabel: true },  // #972 残渣（HITL でも含む）
     ];
-    const orphans = selectOrphanedInFlightItems(items, new Set([2]));
-    assert.deepEqual(orphans, [
+    const stalled = selectStalledInFlightItems(items, new Set([2]));
+    assert.deepEqual(stalled, [
         { issue: 1, phase: 'implement' },
+        { issue: 4, phase: 'review' },
         { issue: 5, phase: 'understand' },
+        { issue: 7, phase: 'address-review' },
     ]);
 });
 
-test('selectOrphanedInFlightItems: 空入力は空配列', () => {
-    assert.deepEqual(selectOrphanedInFlightItems(null, null), []);
-    assert.deepEqual(selectOrphanedInFlightItems([], new Set()), []);
+test('selectStalledInFlightItems: 生存 worker（liveIssues）に含まれる item は再開しない', () => {
+    const items = [
+        { issue: 10, status: 'In Progress', aiStatus: 'Implementing', hitlLabel: false },
+        { issue: 11, status: 'In Progress', aiStatus: 'Implementing', hitlLabel: true },
+    ];
+    // 両方 live なら空。片方だけ live なら残りのみ返す。
+    assert.deepEqual(selectStalledInFlightItems(items, new Set([10, 11])), []);
+    assert.deepEqual(selectStalledInFlightItems(items, new Set([10])), [{ issue: 11, phase: 'implement' }]);
+});
+
+test('selectStalledInFlightItems: 空入力は空配列', () => {
+    assert.deepEqual(selectStalledInFlightItems(null, null), []);
+    assert.deepEqual(selectStalledInFlightItems([], new Set()), []);
 });
 
 test('hitlLabelAction: non-Review reconciles toward the Issue canonical (hitlLabel)', () => {

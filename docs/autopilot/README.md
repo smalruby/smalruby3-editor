@@ -519,6 +519,10 @@ GitHub Projects で行い、モニタは俯瞰・log 閲覧・pause/resume/即�
 - **Claude 使用量（ヘッダー中央）**: Claude アイコン + **セッション使用率**（rolling 5 時間制限）と
   **週間使用率**（全モデルの 7 日制限）を、それぞれ短いバー + `NN%` で表示する。使用量が上限に
   達すると autopilot だけでなく人間の開発も止まるため、早めに気づけるよう常時可視化する。
+  **Claude アイコンをクリック**（またはキーボードで Enter/Space）すると、セッション / 週間それぞれの
+  **使用率とリセット日時（JST）**を明示したポップオーバーを表示する（もう一度クリック / 外側クリック /
+  Esc で閉じる）。ヘッダーは `overflow:hidden` なのでポップオーバーは `position:fixed` でアイコン直下に
+  出し、使用量バーの中央位置を揺らさない（#996）。使用率が未取得のウィンドウは「—（未取得）」と表示する。
   使用量は **worker 実行時のみ更新**される（下記のとおりデータ源が status line の `rate_limits`）ため、
   最終更新からの経過（age）を薄字で併記し、**90 秒以上更新が無ければ黄色（stale）表示**にして
   worker 非稼働中の据え置きが分かるようにする。
@@ -722,15 +726,27 @@ daemon の**未知の非認証エラー**は、Node 公式の指針（`uncaughtE
 - **認証エラーは exit しない**: SSO 失効等は従来どおりプロセス内で **auto-pause**
   （`pausedBy:"auth"`・#949）して耐え、再認証で auto-resume する（下の認証の無人運用を参照）。
 
-##### 孤児 worker の自動復帰（#953）
+##### stalled / 孤児 worker の自動復帰（#953 起動時 → #995 定常 tick）
 
 crash → supervisor 再起動では daemon の in-memory 状態（`state.running`）を失うが、worker は
-tmux の別プロセスなので**生き残りうる**。daemon は**起動時に 1 度**、`tmux list-sessions` で
-**実際に生存中**の worker を調べ（起動直後の in-memory running は常に空なので使わない）、
-**in-flight の AI Status（Implementing 等）なのに worker が生存していない item を対応フェーズへ
-自動で再ディスパッチ**する（`selectOrphanedInFlightItems` 純粋関数 + `recoverOrphanedWorkers`）。
-これで手動 inject なしに孤児が復帰する。生存中 worker を持つ item は触らず完走させる。
-正常完了して HITL 待ち（🙋 ラベル付き）の item は復帰対象にしない。
+tmux の別プロセスなので**生き残りうる**。また worker が異常終了・**Blocked マーキングの一時失敗**
+（#972: address-review の tMax 失敗 → Blocked にする `gh` が SSO 失効で失敗 → Status=In Progress /
+🙋 HITL のまま残留）でも in-flight AI Status のまま worker が消える。
+
+daemon は **起動時に 1 度**（`recoverOrphanedWorkers`）と **毎 tick 冒頭**（`recoverStalledInFlightWorkers`）
+の両方で、**実作業系 AI Status（Understanding / Implementing / Creating PR / Self-Reviewing /
+Addressing Comments / Running DoD）なのに worker が生存していない item を対応フェーズへ自動で
+再ディスパッチ**する（`selectStalledInFlightItems` 純粋関数）。生存判定は
+**in-memory running ∪ `tmux list-sessions`** のユニオン。これで手動 inject なしに復帰する。
+
+- 実作業系 AI Status は dispatch のみが設定するため、**🙋 HITL が付いていても**「人間の番」では
+  なく異常終了の残渣とみなし再開する（#972 の固着解消）。人間の判断待ち HITL（Triaging /
+  Decomposing / Discussing / Awaiting Continuation / EPIC Decomposed）はこの集合に入らないので
+  誤って再開されない。
+- 生存中 worker を持つ item・この daemon が所有中の item は触らず完走させる。
+- 毎 tick 走るため Self-Reviewing の happy-path も対象に入るが、**空き容量（`cfg.concurrency -
+  running`）の分だけ再開**し溢れは次 tick へ回すので並行上限を跨がない。recovery が tick 冒頭で
+  running を埋めるので selectActionable / stuck 検知と二重ディスパッチせず、Blocked より再開を優先する。
 
 #### 監視（Web モニタ）
 

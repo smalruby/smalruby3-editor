@@ -39,7 +39,10 @@ const MONITOR_HTML = `<!doctype html>
   .usage { position: absolute; left: 50%; transform: translateX(-50%); display: flex; align-items: center;
            gap: .3rem; font-size: .75rem; color: #cbd5e1; font-variant-numeric: tabular-nums;
            pointer-events: none; }
-  .usage .uicon { flex: none; display: block; }
+  /* .usage 全体は pointer-events:none（バー幅・中央位置に影響させない）だが、
+     アイコンだけはクリック/フォーカス可能にして使用量詳細ポップオーバーを開く（#996）。 */
+  .usage .uicon { flex: none; display: block; pointer-events: auto; cursor: pointer; }
+  .usage .uicon:focus-visible { outline: 2px solid #93c5fd; outline-offset: 2px; border-radius: 2px; }
   .usage .ubar { width: 40px; height: 8px; background: #334155; border-radius: 4px; overflow: hidden;
                  display: inline-block; vertical-align: middle; }
   .usage .ubar > span { display: block; height: 100%; background: #22c55e; }
@@ -51,6 +54,20 @@ const MONITOR_HTML = `<!doctype html>
   .usage .uage { color: #64748b; margin-left: .1rem; }
   .usage .uage.stale { color: #eab308; }
   .usage .uageval { display: inline-block; min-width: 2.4em; text-align: right; }
+  /* ---- Claude 使用量の詳細ポップオーバー（#996） ----
+     header は overflow:hidden なので、ヘッダー内に置くと下方向へ出るポップオーバーが
+     切り取られる。そこで body 直下・position:fixed にし、開いた時に JS でアイコン直下へ
+     配置する（usage フローの外なのでバー幅・中央位置に一切影響しない）。z-index は
+     header(10)/footer(20) より上・log モーダル(50) より下に置く。 */
+  .usagepop { position: fixed; display: none; z-index: 40; min-width: 15rem; max-width: 22rem;
+              background: #0f172a; color: #e2e8f0; border: 1px solid #334155; border-radius: .4rem;
+              padding: .6rem .75rem; font-size: .78rem; line-height: 1.5;
+              box-shadow: 0 8px 24px rgba(0,0,0,.4); }
+  .usagepop.open { display: block; }
+  .usagepop .upop-row { margin-bottom: .5rem; }
+  .usagepop .upop-row:last-child { margin-bottom: 0; }
+  .usagepop .upop-label { font-weight: 600; color: #cbd5e1; margin-bottom: .1rem; }
+  .usagepop .upop-detail { color: #94a3b8; font-variant-numeric: tabular-nums; }
   header h1 { font-size: .95rem; margin: 0; font-weight: 600; }
   header .pill { flex: none; }
   header button { padding: .15rem .55rem; font-size: .8rem; cursor: pointer; border: 1px solid #334155;
@@ -199,6 +216,7 @@ const MONITOR_HTML = `<!doctype html>
   </header>
   <div class="body" id="updbody"></div>
 </div></div>
+<div id="usagepop" role="dialog" aria-label="Claude 使用量の詳細" class="usagepop"><div id="usagepopbody"></div></div>
 <div id="modal"><div class="box">
   <header><h1 id="mtitle">log</h1>
     <button id="mreload">↻ 更新</button>
@@ -252,8 +270,12 @@ const mins = (ms) => Math.max(0, Math.round(ms / 60000));
 let logIssue = null;
 let logTimer = null;
 
-// Claude アイコン（インライン SVG・自己完結。外部リソース禁止）
-const USAGE_ICON = '<svg class="uicon" viewBox="0 0 100 100" width="15" height="15" aria-label="Claude">'
+// Claude アイコン（インライン SVG・自己完結。外部リソース禁止）。
+// クリック/キーボードで使用量詳細ポップオーバーを開くトリガーを兼ねる（#996）。
+// aria-label="Claude" は #879 の互換のため維持し、操作ヒントは title で補う。
+const USAGE_ICON = '<svg class="uicon" viewBox="0 0 100 100" width="15" height="15"'
+  + ' role="button" tabindex="0" aria-expanded="false" aria-haspopup="dialog" aria-label="Claude"'
+  + ' title="クリックで使用量の詳細（セッション / 週間）を表示">'
   + '<g stroke="#d97757" stroke-width="10" stroke-linecap="round">'
   + '<line x1="50" y1="14" x2="50" y2="86"/><line x1="14" y1="50" x2="86" y2="50"/>'
   + '<line x1="24" y1="24" x2="76" y2="76"/><line x1="76" y1="24" x2="24" y2="76"/></g></svg>';
@@ -307,6 +329,27 @@ function usageAge(u) {
     + v + '</span>前</span>';
 }
 
+// 使用量詳細ポップオーバー 1 行分（ラベル + 「N% 使用済み ・ <日時> にリセット」）を組む。
+// percent が取れないウィンドウは「—（未取得）」でレイアウトを崩さない（#996）。
+// リセット日時は既存の resetLabel(resetsAt)（JST 整形）を再利用する。
+function usagePopRow(label, w) {
+  const hasPct = w && w.percent != null;
+  const pct = hasPct ? Math.round(Math.max(0, Math.min(100, Number(w.percent) || 0))) : null;
+  const reset = w ? resetLabel(w.resetsAt) : '';
+  const detail = (hasPct ? pct + '% 使用済み' : '—（未取得）')
+    + (reset ? ' ・ ' + esc(reset) + ' にリセット' : '');
+  return '<div class="upop-row"><div class="upop-label">' + esc(label) + '</div>'
+    + '<div class="upop-detail">' + detail + '</div></div>';
+}
+
+// ポップオーバー本文（セッション + 週間の 2 行）を組む。新規のデータ取得はせず
+// renderUsage に渡ってくる claudeUsage をそのまま使う（#996）。
+function renderUsagePop(u) {
+  const uu = u || {};
+  return usagePopRow('現在のセッション', uu.session)
+    + usagePopRow('週間制限（すべてのモデル）', uu.weekly);
+}
+
 function renderUsage(d) {
   const u = d.claudeUsage || {};
   document.getElementById('usage').innerHTML = USAGE_ICON
@@ -314,7 +357,44 @@ function renderUsage(d) {
     + '<span class="usep">/</span>'
     + usageBar(u.weekly, '週間使用率（7日）')
     + usageAge(u);
+  // 詳細ポップオーバー本文を最新値で更新（開いていなくても次に開いた時に最新になる）。
+  document.getElementById('usagepopbody').innerHTML = renderUsagePop(u);
+  // アイコンは innerHTML で置き換わり aria-expanded が既定（false）に戻るので、
+  // 現在の開閉状態へ同期し直す（開いたまま refresh されても状態が食い違わない）。
+  const icon = document.querySelector('#usage .uicon');
+  if (icon) icon.setAttribute('aria-expanded', usagePopOpen ? 'true' : 'false');
 }
+
+// ---- 使用量詳細ポップオーバーの開閉（#996） ----
+// アイコンのクリック / Enter / Space で開閉、外側クリック・Esc で閉じる。
+// アイコンは refresh のたび innerHTML で再生成されるためイベント委譲で拾う。
+let usagePopOpen = false;
+function positionUsagePop() {
+  const icon = document.querySelector('#usage .uicon');
+  const pop = document.getElementById('usagepop');
+  if (!icon || !pop) return;
+  const r = icon.getBoundingClientRect();
+  pop.style.top = (r.bottom + 6) + 'px';
+  // 右端がビューポートをはみ出さないよう収める（左端は 8px を下限に）。
+  const left = Math.min(r.left, window.innerWidth - pop.offsetWidth - 8);
+  pop.style.left = Math.max(8, left) + 'px';
+}
+function openUsagePop() {
+  const pop = document.getElementById('usagepop');
+  pop.classList.add('open');
+  usagePopOpen = true;
+  positionUsagePop();
+  const icon = document.querySelector('#usage .uicon');
+  if (icon) icon.setAttribute('aria-expanded', 'true');
+}
+function closeUsagePop() {
+  const pop = document.getElementById('usagepop');
+  pop.classList.remove('open');
+  usagePopOpen = false;
+  const icon = document.querySelector('#usage .uicon');
+  if (icon) icon.setAttribute('aria-expanded', 'false');
+}
+function toggleUsagePop() { if (usagePopOpen) closeUsagePop(); else openUsagePop(); }
 
 // 稼働バージョン（起動時の branch @ shortCommit）+ 更新バッジ（#885）
 let lastUpdate = null; // 更新モーダルが参照する最新の autopilotUpdate
@@ -533,7 +613,29 @@ document.getElementById('modal').addEventListener('click', (e) => { if (e.target
 document.getElementById('updbadge').onclick = openUpdateModal;
 document.getElementById('updclose').onclick = closeUpdateModal;
 document.getElementById('updmodal').addEventListener('click', (e) => { if (e.target.id === 'updmodal') closeUpdateModal(); });
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeModal(); closeUpdateModal(); } });
+// ---- 使用量詳細ポップオーバーのイベント委譲（#996） ----
+// アイコンは refresh のたび innerHTML で再生成されるので #usage への委譲で拾う。
+document.getElementById('usage').addEventListener('click', (e) => {
+  if (!e.target.closest('.uicon')) return;
+  e.stopPropagation(); // 直後の document クリック（外側クリック判定）で閉じないように
+  toggleUsagePop();
+});
+document.getElementById('usage').addEventListener('keydown', (e) => {
+  if (!e.target.closest('.uicon')) return;
+  if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); toggleUsagePop(); }
+});
+// 外側クリックで閉じる（ポップオーバー内・アイコン上のクリックは維持）。
+document.addEventListener('click', (e) => {
+  if (!usagePopOpen) return;
+  if (e.target.closest('#usagepop') || e.target.closest('.uicon')) return;
+  closeUsagePop();
+});
+// 幅が変わったら追従。狭幅（usage 非表示・960px 以下）では開いたままにせず閉じる。
+window.addEventListener('resize', () => {
+  if (!usagePopOpen) return;
+  if (window.innerWidth <= 960) closeUsagePop(); else positionUsagePop();
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeModal(); closeUpdateModal(); closeUsagePop(); } });
 document.getElementById('pause').onclick = () => fetch('/pause', { method: 'POST' }).then(refresh);
 document.getElementById('resume').onclick = () => fetch('/resume', { method: 'POST' }).then(refresh);
 document.getElementById('ticknow').onclick = async () => {

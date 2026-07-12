@@ -14,10 +14,19 @@ const {
     humanSpokeLast,
     hasUnhandledChangesRequest,
     isStuckCandidate,
+    selectStalledInFlightItems,
+    IN_FLIGHT_WORK_PHASE_BY_AI_STATUS,
     selectClosedToReconcile,
     TERMINAL_STATUSES,
     TRACKING_LABEL,
 } = require('../src/phases');
+
+/**
+ * In Progress のとき dispatch のみが設定する実作業系 AI Status（#995）。これらに HITL が
+ * 付いていても「人間の番」ではなく異常終了の残渣なので、human-resting とはみなさず
+ * worker 不在時に必ず再開の出口を持たねばならない（whitelist で誤魔化さない）。
+ */
+const IN_FLIGHT_WORK_AI_STATUSES = new Set(Object.keys(IN_FLIGHT_WORK_PHASE_BY_AI_STATUS));
 
 /** Project の Status 全列（New Item は No Status の内部表現） */
 const STATUSES = [
@@ -50,11 +59,15 @@ function isHumanDrivenResting(item) {
     // EPIC Decomposed（トラッカーの resting・#16）だけ。AI 作業中マーカー付きは
     // run 所有 or stuck 検知（→ Blocked）で必ず出口がある（下の hasDaemonExit）。
     if (status === 'In Progress' && (!item.aiStatus || item.aiStatus === 'EPIC Decomposed')) return true;
-    // 🙋 HITL 付きの In Progress は常に人間の番（#915）。decompose/triage の提案 HITL のように
+    // 🙋 HITL 付きの In Progress は原則人間の番（#915）。decompose/triage の提案 HITL のように
     // Status/AI Status を動かさず待つ設計は他にも増えうるので、個別の AI Status を列挙せず
     // 汎用的に扱う。実際に解除で再開できるかは、解除できる具体的な状態（Decomposing/Triaging 等）
     // について 'phase'/'phase-after-label-release' 側で別途検証する。
-    if (status === 'In Progress' && item.hitlLabel) return true;
+    // ★ ただし**実作業系 AI Status**（#995）は例外: これらは dispatch のみが設定する in-flight
+    //   マーカーで、HITL が付いていても「人間の番」ではなく異常終了の残渣（例 #972: Blocked
+    //   マーキングの一時失敗で In Progress のまま 🙋 だけ付いた）。human-resting として逃がすと
+    //   whitelist で出口なしを誤魔化すことになるので、必ず daemon の再開出口を要求する（下参照）。
+    if (status === 'In Progress' && item.hitlLabel && !IN_FLIGHT_WORK_AI_STATUSES.has(item.aiStatus)) return true;
     return false;
 }
 
@@ -65,7 +78,11 @@ function isHumanDrivenResting(item) {
  */
 function hasDaemonExit(item) {
     // stuck 検知（In Progress + AI 作業中 + run 無し → Blocked + HITL）
-    return isStuckCandidate(item);
+    if (isStuckCandidate(item)) return true;
+    // ストール復帰（#995）: In Progress + 実作業系 AI Status で worker が不在なら
+    // 対応フェーズへ再ディスパッチする（HITL 残渣も含む）。live 空 = worker 不在で判定。
+    if (selectStalledInFlightItems([item], new Set()).length > 0) return true;
+    return false;
 }
 
 test('I1: 全状態に出口がある（固着状態が存在しない）', () => {
@@ -226,4 +243,28 @@ test('固着の回帰: In Progress で run が消えても stuck 検知 → Bloc
     const blocked = { issue: 1, status: 'Blocked', aiStatus: 'Implementing', hitlLabel: true, labels: [] };
     assert.equal(phaseForItem({ ...blocked, hitlLabel: false }, {}), 'triage');
     assert.equal(phaseForItem(blocked, { humanSpokeLast: true, pr: 55 }), 'address-review');
+});
+
+test('#972 回帰: In Progress + 実作業系 AI Status + 🙋 HITL 残渣は worker 不在なら再開の出口を持つ', () => {
+    // #972 のデッドエンド: phaseForItem 単体では null（出口なし）— これ自体は happy-path を
+    // 壊さないよう温存されている。
+    const residue = { issue: 973, status: 'In Progress', aiStatus: 'Addressing Comments', hitlLabel: true, labels: [] };
+    assert.equal(phaseForItem(residue, { pr: 973 }), null, 'phaseForItem は従来どおり null（残渣は phase では動かさない）');
+    // 実作業系 AI Status は human-resting とみなさない（whitelist で誤魔化さない）
+    assert.equal(isHumanDrivenResting(residue), false);
+    // stuck 検知は HITL を除外するので拾えない（#972 が固着した理由）
+    assert.equal(isStuckCandidate(residue), false);
+    // worker 不在（live 空）なら selectStalledInFlightItems が対応フェーズを与える = daemon 出口あり
+    assert.deepEqual(
+        selectStalledInFlightItems([residue], new Set()),
+        [{ issue: 973, phase: 'address-review' }],
+    );
+    assert.equal(hasDaemonExit(residue), true);
+    // 各 in-flight AI Status × HITL が worker 不在で出口を持つことを網羅的に確認
+    for (const [aiStatus, phase] of Object.entries(IN_FLIGHT_WORK_PHASE_BY_AI_STATUS)) {
+        const item = { issue: 5, status: 'In Progress', aiStatus, hitlLabel: true, labels: [] };
+        assert.deepEqual(selectStalledInFlightItems([item], new Set()), [{ issue: 5, phase }]);
+    }
+    // worker が生存している間は再開しない（走行中の run を横取りしない）
+    assert.deepEqual(selectStalledInFlightItems([residue], new Set([973])), []);
 });
