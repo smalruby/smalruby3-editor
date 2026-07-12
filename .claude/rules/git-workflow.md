@@ -45,8 +45,9 @@ bin/setup-worktree   # all-in-one setup: env + node_modules + dist/
 | host 側 `node_modules` symlink | husky の commit-msg hook（`npx --no-install commitlint`） | `bin/sync-worktree-env` |
 | `packages/*/node_modules` (per-package) | jest の workspace 依存解決（例: `scratch-blocks` は scratch-gui の local node_modules にある） | `npm install`（docker 経由） |
 | `packages/scratch-vm/dist/`, `packages/scratch-svg-renderer/dist/`, `packages/scratch-render/dist/` | jest が `@smalruby/scratch-vm` 等の bare package import を解決するときに `package.json` の `"main"` / `"exports"` が指す `dist/...` を読む | `npm run build:dev`（docker 経由） |
+| `packages/scratch-gui/src/generated`, `static/microbit`, `static/microbitMore`（prepare 生成物: microbit hex とその URL モジュール、すべて gitignored） | webpack dev server（無いと `Module not found: microbit-*-hex-url` で起動失敗） | `npm install`（`scripts/prepare.mjs` が DL 生成）。autopilot 軽量 worktree（`bin/autopilot-worktree`）は npm install しないので main へ **symlink** する（#1001） |
 
-`bin/setup-worktree` は上記 4 ステップを順に実行する。
+`bin/setup-worktree` は上記 4 ステップを順に実行する（prepare 生成物は `npm install` に含まれる）。
 
 ### What `bin/sync-worktree-env` does (低レベル)
 

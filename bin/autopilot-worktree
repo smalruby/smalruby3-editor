@@ -97,14 +97,31 @@ exclude_node_modules() {
     [[ -n "${exclude}" ]] || return 0
     mkdir -p "$(dirname "${exclude}")"
     touch "${exclude}"
+
     local marker="# autopilot: ignore shared node_modules symlinks (Issue #801)"
-    grep -qxF "${marker}" "${exclude}" 2>/dev/null && return 0
-    {
-        echo "${marker}"
-        echo "node_modules"
-        echo "packages/*/node_modules"
-    } >> "${exclude}"
-    echo "excluded: node_modules symlinks via ${exclude}"
+    if ! grep -qxF "${marker}" "${exclude}" 2>/dev/null; then
+        {
+            echo "${marker}"
+            echo "node_modules"
+            echo "packages/*/node_modules"
+        } >> "${exclude}"
+        echo "excluded: node_modules symlinks via ${exclude}"
+    fi
+
+    # scratch-gui の prepare 生成物 symlink も同様に保険で無視する（Issue #1001）。
+    # これらは packages/scratch-gui/.gitignore が末尾スラッシュ（`src/generated/` 等）で
+    # 無視するが、末尾スラッシュはディレクトリのみに一致し symlink には効かない（#801 と同型）。
+    # 末尾スラッシュ無し・root 相対のパターンで symlink も確実に無視させる。
+    local prep_marker="# autopilot: ignore shared scratch-gui prepare artifact symlinks (Issue #1001)"
+    if ! grep -qxF "${prep_marker}" "${exclude}" 2>/dev/null; then
+        {
+            echo "${prep_marker}"
+            echo "packages/scratch-gui/src/generated"
+            echo "packages/scratch-gui/static/microbit"
+            echo "packages/scratch-gui/static/microbitMore"
+        } >> "${exclude}"
+        echo "excluded: scratch-gui prepare artifact symlinks via ${exclude}"
+    fi
 }
 
 # 各 packages/*/node_modules を main へ symlink（無い場合のみ）
@@ -120,6 +137,33 @@ link_package_node_modules() {
         mkdir -p "$(dirname "${dst}")"
         ln -s "${src}" "${dst}"
         echo "linked: packages/${pkg}/node_modules -> main"
+    done
+}
+
+# scratch-gui の prepare 生成物（gitignored）を main へ symlink（無い場合のみ・冪等）。
+# 理由（Issue #1001）: `packages/scratch-gui` の prepare ライフサイクル
+# (`node scripts/prepare.mjs`) が microbit の hex とその URL モジュールをネットワークから
+# DL 生成する。軽量 worktree は node_modules を symlink するだけで npm install（=prepare）を
+# 走らせないため、以下が空のままだと webpack が resolve 失敗し dev server が
+# `Module not found` で落ちる。main の生成物を共有すれば追加 DL 無しで dev server が起動する。
+#   - packages/scratch-gui/src/generated       … microbit(-more)-hex-url.cjs
+#   - packages/scratch-gui/static/microbit      … scratch-microbit-*.hex
+#   - packages/scratch-gui/static/microbitMore  … microbit-mbit-more-v2-*.hex
+# --full モードは npm install で prepare が実ファイルを生成するため対象外（軽量モードのみ）。
+link_prepare_artifacts() {
+    local wt="$1"
+    local rel
+    for rel in \
+        packages/scratch-gui/src/generated \
+        packages/scratch-gui/static/microbit \
+        packages/scratch-gui/static/microbitMore; do
+        local src="${MAIN_CHECKOUT}/${rel}"
+        local dst="${wt}/${rel}"
+        [[ -d "${src}" ]] || continue
+        if [[ -e "${dst}" || -L "${dst}" ]]; then continue; fi
+        mkdir -p "$(dirname "${dst}")"
+        ln -s "${src}" "${dst}"
+        echo "linked: ${rel} -> main"
     done
 }
 
@@ -189,9 +233,11 @@ cmd_create() {
         ( cd "${wt}" && "${MAIN_CHECKOUT}/bin/sync-worktree-env" )
         # 各 package の node_modules も symlink
         link_package_node_modules "${wt}"
+        # scratch-gui の prepare 生成物（microbit hex 等）も main へ symlink（#1001）
+        link_prepare_artifacts "${wt}"
     fi
 
-    # symlink した node_modules を確実に無視させる保険（base が古くても効く）
+    # symlink した node_modules / prepare 生成物を確実に無視させる保険（base が古くても効く）
     exclude_node_modules "${wt}"
 
     echo ""
