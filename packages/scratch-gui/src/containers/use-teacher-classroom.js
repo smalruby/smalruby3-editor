@@ -113,6 +113,7 @@ const useTeacherClassroom = ({
         handleTeacher401: auth.handleTeacher401,
         setClassrooms: classrooms.setClassrooms,
         setSelectedClassroom: classrooms.setSelectedClassroom,
+        loadClassrooms: classrooms.loadClassrooms,
         clearError,
         showError,
         intl,

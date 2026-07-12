@@ -27,6 +27,7 @@ const defaultProps = () => ({
     onCreateClassWithAssignment: jest.fn(),
     onSelectGroup: jest.fn(),
     onShowEvaluation: jest.fn(),
+    onUpdateGroup: jest.fn(),
 });
 
 const renderList = (props) =>
@@ -71,7 +72,7 @@ describe('TeacherClassList', () => {
         expect(document.querySelector('[data-testid="classroom-class-card-g1"]')).toHaveTextContent('Co-managed');
     });
 
-    test('should submit the combined creation form only when all fields are filled', () => {
+    test('should submit with the first assignment being optional (class-only creation)', () => {
         const onCreateClassWithAssignment = jest.fn();
         renderList({ onCreateClassWithAssignment });
         fireEvent.click(document.querySelector('[data-testid="classroom-class-create"]'));
@@ -80,23 +81,60 @@ describe('TeacherClassList', () => {
         expect(submit).toBeDisabled();
 
         fireEvent.change(document.querySelector('[data-testid="classroom-class-create-name"]'), {
-            target: { value: ' 3年1組 ' },
+            target: { value: ' 技術 ' },
         });
         fireEvent.change(document.querySelector('[data-testid="classroom-class-create-count"]'), {
             target: { value: '30' },
         });
-        fireEvent.change(document.querySelector('[data-testid="classroom-class-create-assignment"]'), {
-            target: { value: 'ねこを動かそう' },
-        });
+        // Assignment name empty — the class can still be created
         expect(submit).not.toBeDisabled();
+        expect(submit).toHaveTextContent('Create the class only');
 
+        fireEvent.change(document.querySelector('[data-testid="classroom-class-create-section"]'), {
+            target: { value: '2年1組' },
+        });
         fireEvent.click(submit);
         expect(onCreateClassWithAssignment).toHaveBeenCalledWith(
             expect.objectContaining({
-                name: '3年1組',
+                name: '技術',
+                section: '2年1組',
                 studentCount: 30,
-                assignmentName: 'ねこを動かそう',
+                assignmentName: null,
             }),
         );
+    });
+
+    test('should show the class label with year and section', () => {
+        renderList({ groups: [group({ name: '技術', section: '2年1組' })] });
+        expect(document.querySelector('[data-testid="classroom-class-open-g1"]')).toHaveTextContent(
+            '技術 2026年度 / 2年1組',
+        );
+    });
+
+    test('should open inline settings and save the edited fields', () => {
+        const onUpdateGroup = jest.fn();
+        renderList({ onUpdateGroup });
+        fireEvent.click(document.querySelector('[data-testid="classroom-class-settings-open-g1"]'));
+        expect(document.querySelector('[data-testid="classroom-class-settings-g1"]')).toBeInTheDocument();
+
+        fireEvent.change(document.querySelector('[data-testid="classroom-class-settings-section"]'), {
+            target: { value: '2年3組' },
+        });
+        fireEvent.change(document.querySelector('[data-testid="classroom-class-settings-co-teacher-input"]'), {
+            target: { value: 'co@example.com' },
+        });
+        fireEvent.click(document.querySelector('[data-testid="classroom-class-settings-add-co-teacher"]'));
+        fireEvent.click(document.querySelector('[data-testid="classroom-class-settings-save"]'));
+
+        expect(onUpdateGroup).toHaveBeenCalledWith(
+            'g1',
+            expect.objectContaining({
+                name: '2年1組',
+                section: '2年3組',
+                coTeacherEmails: ['co@example.com'],
+            }),
+        );
+        // The form closes back to the card
+        expect(document.querySelector('[data-testid="classroom-class-settings-g1"]')).not.toBeInTheDocument();
     });
 });

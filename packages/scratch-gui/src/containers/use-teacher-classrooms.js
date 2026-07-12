@@ -97,36 +97,42 @@ const useTeacherClassrooms = ({
 
     const refreshTimerRef = useRef(null);
 
-    // --- Load classrooms on entering dashboard ---
+    // --- Load classrooms (assignments) ---
 
-    useEffect(() => {
-        if (phase === 'teacher-dashboard' && idToken) {
-            setIsLoading(true);
-            clearError();
-            (async () => {
-                try {
-                    const data = await classroomAPI.listClassrooms(idToken);
-                    setClassrooms(data.classrooms || []);
-                } catch (err) {
-                    if (err.status === 401) {
-                        const newToken = await handleTeacher401();
-                        if (newToken) {
-                            try {
-                                const retryData = await classroomAPI.listClassrooms(newToken);
-                                setClassrooms(retryData.classrooms || []);
-                            } catch {
-                                // Retry also failed
-                            }
-                        }
-                    } else {
-                        showError(translateError(intl, err));
+    const loadClassrooms = useCallback(async () => {
+        if (!idToken) return;
+        setIsLoading(true);
+        try {
+            const data = await classroomAPI.listClassrooms(idToken);
+            setClassrooms(data.classrooms || []);
+        } catch (err) {
+            if (err.status === 401) {
+                const newToken = await handleTeacher401();
+                if (newToken) {
+                    try {
+                        const retryData = await classroomAPI.listClassrooms(newToken);
+                        setClassrooms(retryData.classrooms || []);
+                    } catch {
+                        // Retry also failed
                     }
-                } finally {
-                    setIsLoading(false);
                 }
-            })();
+            } else {
+                showError(translateError(intl, err));
+            }
+        } finally {
+            setIsLoading(false);
         }
-    }, [phase, idToken, clearError, showError, handleTeacher401, intl, setIsLoading]);
+    }, [idToken, showError, handleTeacher401, intl, setIsLoading]);
+
+    // The class list needs assignment counts, so load on both entry phases
+    // (the landing view and inside a class).
+    const onListingPhase = phase === 'teacher-dashboard' || phase === 'teacher-class-list';
+    useEffect(() => {
+        if (onListingPhase && idToken) {
+            clearError();
+            loadClassrooms();
+        }
+    }, [onListingPhase, idToken, clearError, loadClassrooms]);
 
     // --- Fetch classroom detail ---
 
@@ -496,6 +502,7 @@ const useTeacherClassrooms = ({
         handleRefreshDetail,
         handleDeleteMember,
         handleSelectMember,
+        loadClassrooms,
         handleUpdateAssignmentMeta,
         handleUpdateAssignmentName,
         handleUpdateStudentCount,

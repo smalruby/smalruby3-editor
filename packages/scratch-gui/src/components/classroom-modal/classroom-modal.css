@@ -2448,3 +2448,80 @@
     cursor: pointer;
     padding: 0;
 }
+
+/* --- Class settings (inline card editor) --- */
+
+.class-settings-form {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid #855cd6;
+    border-radius: 0.5rem;
+    background: white;
+}
+
+.class-settings-form input {
+    padding: 0.45rem;
+    border: 1px solid hsla(0, 0%, 0%, 0.15);
+    border-radius: 0.25rem;
+    font-size: 0.9rem;
+}
+
+.class-settings-row {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.class-settings-row input {
+    flex: 1;
+    min-width: 0;
+}
+
+.class-settings-co-teachers {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.class-settings-label {
+    font-size: 0.8rem;
+    color: hsla(225, 15%, 40%, 1);
+}
+
+.co-teacher-chip-email {
+    padding: 0.2rem 0.2rem 0.2rem 0.7rem;
+    font-size: 0.8rem;
+    color: #855cd6;
+}
+
+.class-settings-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.class-settings-actions button {
+    padding: 0.4rem 0.9rem;
+    border: 1px solid hsla(0, 0%, 0%, 0.2);
+    border-radius: 0.4rem;
+    background: white;
+    cursor: pointer;
+}
+
+.class-settings-spacer {
+    flex: 1;
+}
+
+.class-settings-save {
+    background: #855cd6 !important;
+    color: white;
+    border-color: #855cd6 !important;
+}
+
+.class-settings-save:disabled {
+    opacity: 0.5;
+    cursor: default;
+}

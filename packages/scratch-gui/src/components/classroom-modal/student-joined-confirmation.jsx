@@ -4,6 +4,7 @@ import React from 'react';
 
 import StudentPreviousComment from './student-previous-comment.jsx';
 
+import { formatStudentClassName } from '../../lib/classroom-class-label.js';
 import styles from './classroom-modal.css';
 
 const StudentJoinedConfirmation = ({ joinedInfo, onClose }) => (
@@ -14,7 +15,7 @@ const StudentJoinedConfirmation = ({ joinedInfo, onClose }) => (
                 data-testid="classroom-joined-details"
             >
                 <span data-testid="classroom-joined-class-name">
-                    {joinedInfo.className}
+                    {formatStudentClassName(joinedInfo.className, joinedInfo.classYear)}
                 </span>
                 {' / '}
                 <span data-testid="classroom-joined-seat-number">
@@ -75,6 +76,7 @@ StudentJoinedConfirmation.propTypes = {
     joinedInfo: PropTypes.shape({
         assignmentName: PropTypes.string,
         className: PropTypes.string,
+        classYear: PropTypes.number,
         seatNumber: PropTypes.number,
         previousComment: PropTypes.object,
     }).isRequired,

@@ -19,7 +19,6 @@ const TeacherSidebar = ({
     onShowClassList,
     onShowCreateForm,
     onShowGroupManage,
-    onTeacherLogout,
 }) => {
     const intl = useIntl();
     const handleSelectClassroom = useCallback(
@@ -181,20 +180,6 @@ const TeacherSidebar = ({
                         />
                     </button>
                 )}
-                <button
-                    className={classNames(
-                        styles.sidebarButton,
-                        styles.sidebarButtonDanger,
-                    )}
-                    data-testid="classroom-teacher-logout"
-                    onClick={onTeacherLogout}
-                >
-                    <FormattedMessage
-                        defaultMessage="Logout"
-                        description="Teacher logout button in sidebar"
-                        id="gui.classroom.management.logout"
-                    />
-                </button>
             </div>
         </aside>
     );
@@ -208,7 +193,6 @@ TeacherSidebar.propTypes = {
     onShowCreateForm: PropTypes.func.isRequired,
     onShowClassList: PropTypes.func,
     onShowGroupManage: PropTypes.func,
-    onTeacherLogout: PropTypes.func.isRequired,
     selectedClassroom: PropTypes.object,
 };
 
