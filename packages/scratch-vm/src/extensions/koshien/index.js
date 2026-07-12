@@ -208,6 +208,9 @@ class MockClient extends KoshienClient {
      */
     constructor (runtime, extensionId) {
         super(runtime, extensionId);
+        // Injectable sleep so tests can avoid real timers. Returns a promise
+        // that resolves after `ms` milliseconds.
+        this._sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
         this.reset();
     }
 
@@ -220,6 +223,7 @@ class MockClient extends KoshienClient {
         this._playerName = null;
         this._side = 1;
         this._strategy = 'goal';
+        this._turnInterval = 0;
         this._myMap = [];
         this._pos = null;
         this._goal = null;
@@ -247,6 +251,9 @@ class MockClient extends KoshienClient {
         const map = findMockMap(config.mapId);
         this._side = Number(config.side) === 2 ? 2 : 1;
         this._strategy = RIVAL_STRATEGIES.includes(config.rival) ? config.rival : 'goal';
+        // Seconds to sleep after each turn is resolved so the path can be
+        // followed by eye. 0 (default) keeps the legacy no-wait behavior.
+        this._turnInterval = Number(config.turnInterval) > 0 ? Number(config.turnInterval) : 0;
         this._session = new MockGame({
             map,
             userSide: this._side,
@@ -563,10 +570,13 @@ class MockClient extends KoshienClient {
     /**
      * End the turn: the rival AI takes its turn and the whole turn resolves
      * (moves apply, items are picked up, the fiend moves, scores update).
+     * @returns {?Promise} - a delay promise when a per-turn sleep is
+     *   configured and the game is still running; null otherwise (no wait,
+     *   the legacy synchronous behavior).
      */
     turnOver () {
         if (!this._requireSession('ターン終了')) {
-            return;
+            return null;
         }
         if (!this._finished && !this._session.over) {
             playRivalTurn(this._session, this._rivalSide(), this._strategy);
@@ -588,6 +598,15 @@ class MockClient extends KoshienClient {
             this._journalPush('event', `50ターンをすぎました（タイムアップ、スコア ${info.score}）`);
         }
         this._emitState();
+        // Sleep between turns so the path can be followed by eye. Only when a
+        // positive interval is configured and the game is still running (no
+        // next turn once it is over). interval=0 keeps the legacy no-wait
+        // behavior (returns null). A pending timer after the promise
+        // resolves has no side effect (the thread is discarded on stop).
+        if (this._turnInterval > 0 && !this._session.over) {
+            return this._sleep(this._turnInterval * 1000);
+        }
+        return null;
     }
 }
 
@@ -1494,7 +1513,8 @@ class KoshienBlocks {
 
     /**
      * turn over
-     * @returns {(Promise|undefined)} - resolves on next turn (remote); undefined for mock.
+     * @returns {?Promise} - resolves on next turn (remote / mock with a
+     *   per-turn sleep); null when there is no wait.
      */
     turnOver () {
         return this._client.turnOver();

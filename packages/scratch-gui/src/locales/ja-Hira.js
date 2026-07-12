@@ -453,6 +453,7 @@ export default {
     'gui.koshienSettingsModal.rivalItem': 'アイテムゆうせん',
     'gui.koshienSettingsModal.rivalStop': 'ていし',
     'gui.koshienSettingsModal.rivalRandom': 'ランダム',
+    'gui.koshienSettingsModal.turnInterval': 'ターンかんかく(びょう)',
     'gui.koshienSettingsModal.hint': 'せっていは、つぎにAIがゲームサーバーへせつぞくしたときからつかわれます。',
     'gui.koshienSettingsModal.save': 'ほぞん',
     'gui.menuBar.koshienMockPanel': 'れんしゅうゲームパネル',
