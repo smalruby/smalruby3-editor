@@ -1334,3 +1334,125 @@ describeIfToken('教師フロー — 退室リクエスト (kick request)', () =
         expect(status).toBe(204);
     });
 });
+
+// ---------------------------------------------------------------------------
+// データモデル v2 — migration・トピック・クラス人数（DEV_BYPASS_TOKEN 必須）
+// ---------------------------------------------------------------------------
+(DEV_BYPASS_TOKEN ? describe : describe.skip)('v2 移行とトピック — フルフロー', () => {
+    const teacherAuth = { Authorization: `Bearer ${DEV_BYPASS_TOKEN}` };
+    const marker = `v2移行 ${Date.now().toString().slice(-6)}`;
+    let ungroupedClassroomId = '';
+    let migratedGroupId = '';
+    let topicClassroomId = '';
+    let joinCode = '';
+
+    test('v1 相当のクラス無し課題を作成できる', async () => {
+        const { status, data } = await request('POST', '/classrooms', {
+            className: marker,
+            assignmentName: 'ねこを動かそう',
+            studentCount: 5,
+        }, teacherAuth);
+        expect(status).toBe(201);
+        ungroupedClassroomId = data.classroomId as string;
+        joinCode = data.joinCode as string;
+        expect(data.groupId).toBeNull();
+    });
+
+    test('migrate が className からクラスを自動作成して課題を割り当てる', async () => {
+        const { status, data } = await request('POST', '/classroom-groups/migrate', {}, teacherAuth);
+        expect(status).toBe(200);
+        expect(data.schemaVersion).toBe(2);
+        expect(data.assignedClassrooms as number).toBeGreaterThanOrEqual(1);
+
+        const groups = await request('GET', '/classroom-groups', null, teacherAuth);
+        const created = (groups.data.groups as Record<string, unknown>[]).find(g => g.name === marker);
+        expect(created).toBeDefined();
+        expect(created!.schemaVersion).toBe(2);
+        expect(created!.studentCount).toBe(5);
+        migratedGroupId = created!.groupId as string;
+
+        const classroom = await request('GET', `/classrooms/${ungroupedClassroomId}`, null, teacherAuth);
+        expect(classroom.data.groupId).toBe(migratedGroupId);
+    });
+
+    test('migrate は冪等（同名クラスを重複作成しない）', async () => {
+        const { status } = await request('POST', '/classroom-groups/migrate', {}, teacherAuth);
+        expect(status).toBe(200);
+        const groups = await request('GET', '/classroom-groups', null, teacherAuth);
+        const sameName = (groups.data.groups as Record<string, unknown>[]).filter(g => g.name === marker);
+        expect(sameName).toHaveLength(1);
+    });
+
+    test('トピックを追加でき、課題作成時の新規トピックはクラスへ自動追加される', async () => {
+        const add = await request('PATCH', `/classroom-groups/${migratedGroupId}/topics`, {
+            action: 'add',
+            name: '単元A',
+        }, teacherAuth);
+        expect(add.status).toBe(200);
+        expect(add.data.topics).toContain('単元A');
+
+        const create = await request('POST', '/classrooms', {
+            className: marker,
+            assignmentName: 'トピック課題',
+            groupId: migratedGroupId,
+            topic: '単元B',
+            sortDate: '2026-07-01T00:00:00Z',
+        }, teacherAuth);
+        expect(create.status).toBe(201);
+        expect(create.data.topic).toBe('単元B');
+        // studentCount 省略時はクラスから継承される
+        expect(create.data.studentCount).toBe(5);
+        topicClassroomId = create.data.classroomId as string;
+
+        const groups = await request('GET', '/classroom-groups', null, teacherAuth);
+        const group = (groups.data.groups as Record<string, unknown>[]).find(g => g.groupId === migratedGroupId);
+        expect(group!.topics).toEqual(expect.arrayContaining(['単元A', '単元B']));
+    });
+
+    test('トピックの rename が課題側へ追従する', async () => {
+        const rename = await request('PATCH', `/classroom-groups/${migratedGroupId}/topics`, {
+            action: 'rename',
+            name: '単元B',
+            to: '単元C',
+        }, teacherAuth);
+        expect(rename.status).toBe(200);
+        expect(rename.data.topics).toContain('単元C');
+        expect(rename.data.topics).not.toContain('単元B');
+
+        const classroom = await request('GET', `/classrooms/${topicClassroomId}`, null, teacherAuth);
+        expect(classroom.data.topic).toBe('単元C');
+    });
+
+    test('トピックの remove で課題側のトピックが外れる', async () => {
+        const remove = await request('PATCH', `/classroom-groups/${migratedGroupId}/topics`, {
+            action: 'remove',
+            name: '単元C',
+        }, teacherAuth);
+        expect(remove.status).toBe(200);
+
+        const classroom = await request('GET', `/classrooms/${topicClassroomId}`, null, teacherAuth);
+        expect(classroom.data.topic).toBeNull();
+    });
+
+    test('クラスの人数が生徒の lookup に反映される（増加方向）', async () => {
+        const update = await request('PATCH', `/classroom-groups/${migratedGroupId}`, {
+            studentCount: 8,
+        }, teacherAuth);
+        expect(update.status).toBe(200);
+
+        const lookup = await request('POST', '/classrooms/lookup', { joinCode });
+        expect(lookup.status).toBe(200);
+        expect(lookup.data.studentCount).toBe(8);
+    });
+
+    test('クリーンアップ: 課題削除 + クラスをアーカイブ', async () => {
+        for (const id of [ungroupedClassroomId, topicClassroomId]) {
+            const { status } = await request('DELETE', `/classrooms/${id}`, null, teacherAuth);
+            expect(status).toBe(204);
+        }
+        const archive = await request('PATCH', `/classroom-groups/${migratedGroupId}`, {
+            status: 'archived',
+        }, teacherAuth);
+        expect(archive.status).toBe(200);
+    });
+});
