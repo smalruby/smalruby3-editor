@@ -347,6 +347,7 @@ erDiagram
 - **認可はクラス経由でも成立**（`canManageViaGroup`）: クラスの所有者・クラス単位の共同管理者は、中のすべての課題を管理できる。課題単位の旧 `coTeacherEmails` も引き続き有効（後方互換）
 - **座席数はクラスの `studentCount` が真実**: 生徒の lookup / join はクラスの人数と課題側スナップショットの **max** を使う（人数を減らしても既存の着席と衝突しない増加方向のみの反映）
 - **トピック**（`PATCH /classroom-groups/{groupId}/topics`、body `{action: add|remove|rename, name, to?}`）: クラスの `topics` 配列を管理。**rename / remove はクラス内の課題の `topic` へ一括追従**（rename は付け替え、remove は解除）。課題の作成・更新で新しいトピック名を使うとクラスの一覧へ自動追加される
+- **AI 評価の日次上限**: 先生ごとに `EVAL_DAILY_LIMIT`（既定 50 呼び出し/日 ≈ フルクラスの採点+コメントで約 5 回分）を DynamoDB のアトミックカウンタ（`Classrooms` テーブルの予約キー `eval-quota#<teacherSub>#<日付>`、TTL 2 日）で永続的に強制。インスタンス内メモリの時間窓（`EVAL_RATE_LIMIT_*`）は高速な一次ゲートとして併用
 - **課題の `topic` / `sortDate`**: `topic` はクラスのトピックへの文字列参照。`sortDate` は並び順キー（既定=作成日・意味なし・生徒非表示・自由変更可）で、課題管理画面はトピックごと・sortDate 降順に表示する
 
 ### AI 評価支援（evaluate）

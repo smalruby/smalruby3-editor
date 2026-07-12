@@ -103,6 +103,12 @@ const EVAL_MAX_SUBMISSIONS = parseInt(process.env.EVAL_MAX_SUBMISSIONS || '10', 
 const EVAL_MAX_PSEUDOCODE_LENGTH = parseInt(process.env.EVAL_MAX_PSEUDOCODE_LENGTH || '4000', 10);
 const EVAL_RATE_LIMIT_WINDOW_SECONDS = parseInt(process.env.EVAL_RATE_LIMIT_WINDOW_SECONDS || '3600', 10);
 const EVAL_RATE_LIMIT_MAX_REQUESTS = parseInt(process.env.EVAL_RATE_LIMIT_MAX_REQUESTS || '60', 10);
+// Durable per-teacher daily cap on Claude API calls (adversarial review):
+// the in-memory hourly window resets on cold starts and is per-instance, so
+// a DynamoDB counter enforces the real budget. One 35-student class costs
+// ~4 chunked calls per run (grade or comment), so 50 calls/day ≈ 5 full
+// grade+comment runs. Env-configurable for tests and per-stage tuning.
+const EVAL_DAILY_LIMIT = parseInt(process.env.EVAL_DAILY_LIMIT || '50', 10);
 const EVAL_GRADES = ['S', 'A', 'B', 'C'];
 
 // --- DynamoDB Client ---
@@ -3208,6 +3214,32 @@ export function parseEvaluationResponse(
 // pattern as the join limiter — best-effort per Lambda instance).
 const evalAttempts = new Map<string, { count: number; windowStart: number }>();
 
+/**
+ * Durable daily quota: an atomic counter item per teacher per UTC day in the
+ * Classrooms table (reuses the table key space with a reserved prefix; TTL
+ * cleans it up after two days). Throws when the day's budget is exhausted.
+ */
+async function checkEvalDailyLimit(teacherSub: string): Promise<void> {
+  const day = new Date().toISOString().slice(0, 10);
+  const result = await docClient.send(new UpdateCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId: `eval-quota#${teacherSub}#${day}` },
+    UpdateExpression: 'ADD #c :one SET #ttl = if_not_exists(#ttl, :ttl)',
+    ExpressionAttributeNames: { '#c': 'count', '#ttl': 'ttl' },
+    ExpressionAttributeValues: {
+      ':one': 1,
+      ':ttl': Math.floor(Date.now() / 1000) + 2 * 24 * 60 * 60,
+    },
+    ReturnValues: 'UPDATED_NEW',
+  }));
+  const count = (result.Attributes?.count as number) || 0;
+  if (count > EVAL_DAILY_LIMIT) {
+    throw new ValidationError(
+      `Daily AI evaluation limit reached (${EVAL_DAILY_LIMIT} calls/day). Please continue tomorrow.`,
+    );
+  }
+}
+
 function checkEvalRateLimit(teacherSub: string): void {
   const now = Math.floor(Date.now() / 1000);
   const entry = evalAttempts.get(teacherSub);
@@ -3235,6 +3267,7 @@ async function handleEvaluateSubmissions(
     throw new AuthError('Not authorized to evaluate this classroom');
   }
   checkEvalRateLimit(identity.sub);
+  await checkEvalDailyLimit(identity.sub);
 
   const request = validateEvaluateRequest(body);
   const { system, user } = buildEvaluationPrompt(request);

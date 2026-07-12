@@ -192,7 +192,7 @@ export default {
     'gui.classroom.assignmentEditor.templateOverwriteConfirm': 'いまのページをテンプレートでおきかえますか？',
     'gui.classroom.evaluation.hint':
         'AIのひょうかはしたがきです。きめるのはせんせいです。さきにすうにんをてでさいてんすると、AIがせんせいのきじゅんにあわせます。きまつひょうかはせいとにはみえません。へんきゃくされるのはポジティブなコメントだけです。',
-    'gui.classroom.evaluation.lessons': 'じゅぎょう:',
+    'gui.classroom.evaluation.lessons': 'かだい:',
     'gui.classroom.evaluation.load': 'ていしゅつをよみこむ',
     'gui.classroom.evaluation.rubric': 'ひょうかじく:',
     'gui.classroom.evaluation.strictness': 'きびしさ:',
@@ -233,6 +233,8 @@ export default {
     'gui.classroom.classList.logout': 'ログアウト',
     'gui.classroom.classList.importGc': 'Google Classroom からインポート',
     'gui.classroom.classList.sectionPlaceholder': 'セクション（オプション・れい: 2ねん1くみ）',
+    'gui.classroom.classList.ungroupedHint':
+        'どのクラスにもはいっていないかだい（きょうどうかんりできょうゆうされたもの・みいこうのもの）:',
     'gui.classroom.classList.createCancel': 'キャンセル',
     'gui.classroom.classList.createClassOnly': 'クラスのみつくる',
     'gui.classroom.classList.settings': 'せってい',
@@ -372,7 +374,7 @@ export default {
     'gui.classroom.tutorial.checkboxes':
         'Google Classroomとれんけいするには、2つのチェックボックスのりょうほうにチェックをいれてください。',
     'gui.classroom.tutorial.classCreation':
-        'まずは「クラス」をつくりましょう！\n「3じかんめ：チャットアプリをつくろう」のように、1つのじゅぎょうに1つのクラスをつくります。\nひだりのサイドバーの「クラスをつくる」ボタンをおしてください。',
+        'まずは「クラス」をつくりましょう！\nクラス（れい: ぎじゅつ 2026ねんど）をつくって、そのなかに「だい3かい チャットアプリをつくろう」のようなかだいをついかします。\n「クラスをつくる」ボタンをおしてください。',
     'gui.classroom.teacherDetail.legend.seated': 'ちゃくせき',
     'gui.classroom.teacherDetail.legend.submitted': 'ていしゅつずみ',
     'gui.classroom.teacherDetail.legend.returned': 'へんきゃくずみ',
