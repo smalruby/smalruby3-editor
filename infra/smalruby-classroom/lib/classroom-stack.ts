@@ -17,6 +17,7 @@ export class ClassroomStack extends cdk.Stack {
   public readonly membershipsTable: dynamodb.Table;
   public readonly submissionsTable: dynamodb.Table;
   public readonly kickRequestsTable: dynamodb.Table;
+  public readonly groupsTable: dynamodb.Table;
   public readonly submissionsBucket: s3.Bucket;
   public readonly api: apigatewayv2.HttpApi;
 
@@ -43,8 +44,9 @@ export class ClassroomStack extends cdk.Stack {
       throw new Error('DEV_BYPASS_TOKEN must not be set in production. Remove it from .env.prod.');
     }
 
-    // Classroom TTL in days (default 30, configurable via env)
-    const classroomTtlDays = parseInt(process.env.CLASSROOM_TTL_DAYS || '30', 10);
+    // Classroom TTL in days (default 90 — covers a school term so term-end
+    // batch evaluation can still read every submission; configurable via env)
+    const classroomTtlDays = parseInt(process.env.CLASSROOM_TTL_DAYS || '90', 10);
 
     // Tags
     cdk.Tags.of(this).add('Project', 'Classroom');
@@ -195,6 +197,35 @@ export class ClassroomStack extends cdk.Stack {
 
     cdk.Tags.of(this.kickRequestsTable).add('ResourceType', 'DynamoDB');
 
+    // Groups (組) table — the teacher-side organizing concept: one school
+    // class that owns many lesson classrooms over the year. Carries no
+    // student data, so it uses a long TTL (default 400 days ≈ school year +
+    // buffer) instead of the 90-day classroom retention.
+    this.groupsTable = new dynamodb.Table(this, 'GroupsTable', {
+      tableName: `ClassroomGroups${stageSuffix}`,
+      partitionKey: {
+        name: 'groupId',
+        type: dynamodb.AttributeType.STRING,
+      },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      pointInTimeRecoverySpecification: {
+        pointInTimeRecoveryEnabled: false,
+      },
+      timeToLiveAttribute: 'ttl',
+    });
+
+    this.groupsTable.addGlobalSecondaryIndex({
+      indexName: 'teacherSub-index',
+      partitionKey: {
+        name: 'teacherSub',
+        type: dynamodb.AttributeType.STRING,
+      },
+      projectionType: dynamodb.ProjectionType.ALL,
+    });
+
+    cdk.Tags.of(this.groupsTable).add('ResourceType', 'DynamoDB');
+
     // --- S3 Bucket for submissions ---
 
     this.submissionsBucket = new s3.Bucket(this, 'SubmissionsBucket', {
@@ -241,6 +272,7 @@ export class ClassroomStack extends cdk.Stack {
         MEMBERSHIPS_TABLE_NAME: this.membershipsTable.tableName,
         SUBMISSIONS_TABLE_NAME: this.submissionsTable.tableName,
         KICK_REQUESTS_TABLE_NAME: this.kickRequestsTable.tableName,
+        GROUPS_TABLE_NAME: this.groupsTable.tableName,
         SUBMISSIONS_BUCKET_NAME: this.submissionsBucket.bucketName,
         GOOGLE_CLIENT_ID: googleClientId,
         MICROSOFT_CLIENT_ID: microsoftClientId,
@@ -253,6 +285,13 @@ export class ClassroomStack extends cdk.Stack {
         PRESIGNED_URL_DOWNLOAD_EXPIRY: process.env.PRESIGNED_URL_DOWNLOAD_EXPIRY || '3600',
         JOIN_RATE_LIMIT_WINDOW_SECONDS: process.env.JOIN_RATE_LIMIT_WINDOW_SECONDS || '60',
         JOIN_RATE_LIMIT_MAX_ATTEMPTS: process.env.JOIN_RATE_LIMIT_MAX_ATTEMPTS || '50',
+        // AI evaluation support (empty key disables the endpoint with 503)
+        ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || '',
+        CLAUDE_MODEL: process.env.CLAUDE_MODEL || 'claude-haiku-4-5-20251001',
+        EVAL_MAX_SUBMISSIONS: process.env.EVAL_MAX_SUBMISSIONS || '10',
+        EVAL_RATE_LIMIT_WINDOW_SECONDS: process.env.EVAL_RATE_LIMIT_WINDOW_SECONDS || '3600',
+        EVAL_RATE_LIMIT_MAX_REQUESTS: process.env.EVAL_RATE_LIMIT_MAX_REQUESTS || '60',
+        EVAL_DAILY_LIMIT: process.env.EVAL_DAILY_LIMIT || '50',
         STAGE: stage,
       },
       bundling: {
@@ -266,6 +305,7 @@ export class ClassroomStack extends cdk.Stack {
     this.membershipsTable.grantReadWriteData(handlerFn);
     this.submissionsTable.grantReadWriteData(handlerFn);
     this.kickRequestsTable.grantReadWriteData(handlerFn);
+    this.groupsTable.grantReadWriteData(handlerFn);
     this.submissionsBucket.grantPut(handlerFn);
     this.submissionsBucket.grantRead(handlerFn);
 
@@ -307,6 +347,7 @@ export class ClassroomStack extends cdk.Stack {
         allowMethods: [
           apigatewayv2.CorsHttpMethod.GET,
           apigatewayv2.CorsHttpMethod.POST,
+          apigatewayv2.CorsHttpMethod.PUT,
           apigatewayv2.CorsHttpMethod.PATCH,
           apigatewayv2.CorsHttpMethod.DELETE,
           apigatewayv2.CorsHttpMethod.OPTIONS,
@@ -402,6 +443,58 @@ export class ClassroomStack extends cdk.Stack {
 
     this.api.addRoutes({
       path: '/classrooms/{classroomId}/kick-requests/{requestId}/approve',
+      methods: [apigatewayv2.HttpMethod.POST],
+      integration,
+    });
+
+    // Assignment content — teacher edits (PUT), teacher or joined student
+    // reads (GET; dual-auth resolved in the Lambda handler).
+    this.api.addRoutes({
+      path: '/classrooms/{classroomId}/assignment',
+      methods: [apigatewayv2.HttpMethod.PUT, apigatewayv2.HttpMethod.GET],
+      integration,
+    });
+
+    // Groups (組) — teacher-side organizing concept. Own root path so the
+    // /classrooms/{classroomId} patterns never shadow it.
+    this.api.addRoutes({
+      path: '/classroom-groups',
+      methods: [apigatewayv2.HttpMethod.POST, apigatewayv2.HttpMethod.GET],
+      integration,
+    });
+
+    this.api.addRoutes({
+      path: '/classroom-groups/{groupId}',
+      methods: [apigatewayv2.HttpMethod.PATCH],
+      integration,
+    });
+
+    // v1->v2 bulk migration (idempotent) — adopt ungrouped assignments into
+    // classes and lift class-level fields. Triggered from the class list.
+    this.api.addRoutes({
+      path: '/classroom-groups/migrate',
+      methods: [apigatewayv2.HttpMethod.POST],
+      integration,
+    });
+
+    // Topic list management (add/remove/rename with cascade to assignments).
+    this.api.addRoutes({
+      path: '/classroom-groups/{groupId}/topics',
+      methods: [apigatewayv2.HttpMethod.PATCH],
+      integration,
+    });
+
+    // Duplicate a lesson (classroom) into the same or another group.
+    this.api.addRoutes({
+      path: '/classrooms/{classroomId}/duplicate',
+      methods: [apigatewayv2.HttpMethod.POST],
+      integration,
+    });
+
+    // AI evaluation support — grade proposals / comment drafts from
+    // static-analysis results (teacher auth; relays to the Anthropic API).
+    this.api.addRoutes({
+      path: '/classrooms/{classroomId}/evaluate',
       methods: [apigatewayv2.HttpMethod.POST],
       integration,
     });

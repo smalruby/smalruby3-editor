@@ -1331,6 +1331,9 @@
 .detail-layout {
     display: flex;
     flex-direction: column;
+    /* Align with the unified teacher views; the breadcrumb wrapper above
+       carries the top offset. */
+    padding: 0 2rem 1.25rem;
 }
 
 .detail-two-pane-layout {
@@ -1347,7 +1350,8 @@
 }
 
 .detail-right-pane {
-    width: 300px;
+    /* Wider now that the sidebar is gone (teacher review round 2) */
+    width: 380px;
     flex-shrink: 0;
     border-left: 1px solid #e0e0e0;
     padding-left: 1rem;
@@ -1642,4 +1646,1113 @@
 .co-teacher-invite-input:focus {
     border-color: #4c97ff;
     outline: none;
+}
+
+/* --- Assignment editor (teacher) --- */
+
+.assignment-editor {
+    max-width: 640px;
+}
+
+.assignment-editor-hint {
+    color: #575e75;
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+    line-height: 1.5;
+}
+
+.assignment-page {
+    border: 1px solid #c9cdd3;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+    background-color: #fafbfc;
+}
+
+.assignment-page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.assignment-page-number {
+    font-weight: bold;
+    color: #575e75;
+    font-size: 0.9rem;
+}
+
+.assignment-page-actions {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.assignment-icon-button {
+    border: 1px solid #c9cdd3;
+    border-radius: 0.3rem;
+    background-color: white;
+    color: #575e75;
+    width: 1.8rem;
+    height: 1.8rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    line-height: 1;
+}
+
+.assignment-icon-button:hover:not(:disabled) {
+    background-color: #e9f1fc;
+}
+
+.assignment-icon-button:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.assignment-page-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.5rem 0.6rem;
+    border: 1px solid #c9cdd3;
+    border-radius: 0.4rem;
+    font-size: 0.9rem;
+    font-family: inherit;
+    resize: vertical;
+}
+
+.assignment-page-textarea:focus {
+    border-color: #4c97ff;
+    outline: none;
+}
+
+.assignment-page-char-count {
+    text-align: right;
+    color: #8b93a5;
+    font-size: 0.75rem;
+    margin-top: 0.15rem;
+}
+
+.assignment-page-image-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.assignment-page-image-preview {
+    max-width: 200px;
+    max-height: 120px;
+    border: 1px solid #c9cdd3;
+    border-radius: 0.3rem;
+    object-fit: contain;
+    background-color: white;
+}
+
+.assignment-starter-section {
+    border-top: 1px solid #e5e8ec;
+    margin-top: 1rem;
+    padding-top: 1rem;
+}
+
+.assignment-starter-title {
+    font-size: 1rem;
+    font-weight: bold;
+    color: #575e75;
+    margin: 0 0 0.5rem;
+}
+
+.assignment-starter-status {
+    color: #575e75;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.assignment-starter-warning {
+    color: #b3661a;
+    font-size: 0.85rem;
+    margin-top: 0.5rem;
+}
+
+.button-spinner {
+    width: 1rem;
+    height: 1rem;
+}
+
+/* --- Assignment panel (student) --- */
+
+.assignment-joined-notice {
+    background-color: #e6f4ea;
+    border: 1px solid #b7dfc2;
+    border-radius: 0.4rem;
+    color: #2d7a43;
+    font-size: 0.9rem;
+    font-weight: bold;
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.assignment-view-page {
+    border: 1px solid #c9cdd3;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    background-color: #fafbfc;
+    min-height: 8rem;
+}
+
+.assignment-view-image {
+    display: block;
+    max-width: 100%;
+    max-height: 240px;
+    object-fit: contain;
+    margin: 0 auto 0.75rem;
+    border-radius: 0.3rem;
+    background-color: white;
+}
+
+.assignment-view-text {
+    color: #333;
+    font-size: 1rem;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.assignment-pager {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.assignment-pager-label {
+    color: #575e75;
+    font-size: 0.9rem;
+    min-width: 3.5rem;
+    text-align: center;
+}
+
+/* --- Group (組) management --- */
+
+.group-create-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.group-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid #e5e8ec;
+}
+
+.group-row-name-input {
+    flex: 1 1 auto;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid #c9cdd3;
+    border-radius: 0.4rem;
+    font-size: 0.9rem;
+}
+
+.group-row-name-input:focus {
+    border-color: #4c97ff;
+    outline: none;
+}
+
+.group-create-year-input {
+    width: 6rem;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid #c9cdd3;
+    border-radius: 0.4rem;
+    font-size: 0.9rem;
+}
+
+.group-row-year {
+    color: #575e75;
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
+.group-row-archived-badge {
+    background-color: #eceff2;
+    border-radius: 0.3rem;
+    color: #8b93a5;
+    font-size: 0.75rem;
+    padding: 0.1rem 0.4rem;
+    white-space: nowrap;
+}
+
+.group-list {
+    list-style: none;
+    margin: 0 0 1rem;
+    padding: 0;
+    max-width: 560px;
+}
+
+.group-list-empty {
+    color: #8b93a5;
+    font-size: 0.9rem;
+    padding: 0.5rem 0;
+}
+
+.group-select-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.group-select {
+    padding: 0.35rem 0.5rem;
+    border: 1px solid #c9cdd3;
+    border-radius: 0.4rem;
+    font-size: 0.9rem;
+    background-color: white;
+}
+
+/* --- Previous returned comment recap (student) --- */
+
+.previous-comment-box {
+    background-color: #fff8e5;
+    border: 1px solid #f2d675;
+    border-radius: 0.4rem;
+    padding: 0.6rem 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.previous-comment-title {
+    color: #8a6d1a;
+    font-size: 0.8rem;
+    font-weight: bold;
+    margin-bottom: 0.25rem;
+}
+
+.previous-comment-text {
+    color: #575e75;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* --- Term-end evaluation (teacher) --- */
+
+.evaluation-screen {
+    max-width: 100%;
+}
+
+.eval-section {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.eval-lesson-checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.9rem;
+    color: #575e75;
+    border: 1px solid #c9cdd3;
+    border-radius: 0.4rem;
+    padding: 0.25rem 0.5rem;
+    background-color: white;
+}
+
+.eval-rubric-row {
+    display: flex;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.eval-rubric-name {
+    width: 12rem;
+    padding: 0.35rem 0.5rem;
+    border: 1px solid #c9cdd3;
+    border-radius: 0.4rem;
+    font-size: 0.85rem;
+}
+
+.eval-rubric-description {
+    flex: 1 1 auto;
+    padding: 0.35rem 0.5rem;
+    border: 1px solid #c9cdd3;
+    border-radius: 0.4rem;
+    font-size: 0.85rem;
+}
+
+.eval-strictness-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: #575e75;
+}
+
+.eval-progress {
+    background-color: #e9f1fc;
+    border: 1px solid #b5cff5;
+    border-radius: 0.4rem;
+    color: #3373cc;
+    font-size: 0.9rem;
+    padding: 0.4rem 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.eval-matrix-wrapper {
+    overflow-x: auto;
+    margin-bottom: 0.75rem;
+    border: 1px solid #e5e8ec;
+    border-radius: 0.4rem;
+}
+
+.eval-matrix {
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    min-width: 100%;
+}
+
+.eval-matrix th {
+    background-color: #f4f6f8;
+    border-bottom: 1px solid #e5e8ec;
+    color: #575e75;
+    padding: 0.4rem 0.5rem;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.eval-matrix td {
+    border-bottom: 1px solid #eef1f4;
+    padding: 0.3rem 0.4rem;
+    vertical-align: top;
+}
+
+.eval-seat-cell {
+    font-weight: bold;
+    color: #575e75;
+    white-space: nowrap;
+}
+
+.eval-cell {
+    min-width: 14rem;
+}
+
+.eval-cell-empty {
+    color: #b7bec9;
+    text-align: center;
+}
+
+.eval-cell-needs-review {
+    background-color: #fff4e5;
+}
+
+.eval-cell-row {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-bottom: 0.2rem;
+}
+
+.eval-grade-select {
+    padding: 0.15rem 0.3rem;
+    border: 1px solid #c9cdd3;
+    border-radius: 0.3rem;
+    font-size: 0.9rem;
+    background-color: white;
+}
+
+.eval-needs-review-badge {
+    background-color: #ffab19;
+    border-radius: 0.3rem;
+    color: white;
+    font-size: 0.7rem;
+    padding: 0.05rem 0.3rem;
+    white-space: nowrap;
+}
+
+.eval-returned-badge {
+    background-color: #b7dfc2;
+    border-radius: 0.3rem;
+    color: #2d7a43;
+    font-size: 0.7rem;
+    padding: 0.05rem 0.3rem;
+    white-space: nowrap;
+}
+
+.eval-reason-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.2rem 0.35rem;
+    border: 1px solid #dfe3e8;
+    border-radius: 0.3rem;
+    font-size: 0.8rem;
+}
+
+.eval-comment-input {
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 0.2rem;
+    padding: 0.2rem 0.35rem;
+    border: 1px solid #dfe3e8;
+    border-radius: 0.3rem;
+    font-size: 0.8rem;
+    font-family: inherit;
+    resize: vertical;
+}
+
+.eval-overall-cell {
+    font-weight: bold;
+    color: #575e75;
+    text-align: center;
+    white-space: nowrap;
+}
+
+/* --- Class list (post-login landing view) --- */
+
+.class-list {
+    padding: 1.25rem 2rem;
+    max-width: 60rem;
+    overflow-y: auto;
+}
+
+.class-list-title {
+    margin: 0.25rem 0 1rem;
+    font-size: 1.3rem;
+    color: #575e75;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.class-list-hint {
+    margin: 0 0 1rem;
+    color: hsla(225, 15%, 40%, 1);
+    font-size: 0.85rem;
+}
+
+.class-list-create-button {
+    background: #855cd6;
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.5rem 1.25rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.class-list-create-button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.class-list-create-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin: 1rem 0;
+    padding: 1rem;
+    border: 1px solid hsla(0, 0%, 0%, 0.15);
+    border-radius: 0.5rem;
+    background: white;
+}
+
+.class-list-create-form input {
+    padding: 0.5rem;
+    border: 1px solid hsla(0, 0%, 0%, 0.15);
+    border-radius: 0.25rem;
+    font-size: 0.9rem;
+}
+
+.class-list-create-form button[type='submit'] {
+    background: #855cd6;
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    cursor: pointer;
+}
+
+.class-list-create-form button[type='submit']:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.class-list-empty {
+    margin: 1.5rem 0;
+    color: hsla(225, 15%, 40%, 1);
+}
+
+.class-cards {
+    list-style: none;
+    margin: 1rem 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.class-card {
+    display: flex;
+    align-items: stretch;
+    gap: 0.5rem;
+}
+
+.class-card-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid hsla(0, 0%, 0%, 0.15);
+    border-radius: 0.5rem;
+    background: white;
+    cursor: pointer;
+    text-align: left;
+}
+
+.class-card-main:hover:not(:disabled) {
+    border-color: #855cd6;
+}
+
+.class-card-name {
+    font-size: 1.05rem;
+    font-weight: bold;
+}
+
+.class-card-meta {
+    font-size: 0.8rem;
+    color: hsla(225, 15%, 40%, 1);
+}
+
+.class-card-badges {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.class-card-badge {
+    font-size: 0.7rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 0.25rem;
+    background: hsla(260, 60%, 60%, 0.12);
+    color: #855cd6;
+}
+
+.class-card-evaluate {
+    align-self: center;
+    padding: 0.5rem 1rem;
+    border: 1px solid #855cd6;
+    border-radius: 0.5rem;
+    background: white;
+    color: #855cd6;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.class-card-evaluate:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+/* --- Assignment board (inside a class) --- */
+
+.assignment-board {
+    padding: 1.25rem 2rem;
+    max-width: 60rem;
+    overflow-y: auto;
+}
+
+.board-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.board-title {
+    flex: 1;
+    margin: 0;
+    font-size: 1.3rem;
+    color: #575e75;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.board-year {
+    margin-left: 0.5rem;
+    font-size: 0.8rem;
+    font-weight: normal;
+    color: hsla(225, 15%, 40%, 1);
+}
+
+.board-create-button {
+    background: #855cd6;
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.5rem 1.25rem;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.board-create-button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.board-topics {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 1rem 0;
+}
+
+.topic-chip {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid hsla(260, 60%, 60%, 0.4);
+    border-radius: 1rem;
+    background: hsla(260, 60%, 60%, 0.08);
+    overflow: hidden;
+}
+
+.topic-chip-name {
+    border: none;
+    background: transparent;
+    color: #855cd6;
+    padding: 0.2rem 0.2rem 0.2rem 0.7rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.topic-chip-remove {
+    border: none;
+    background: transparent;
+    color: #855cd6;
+    padding: 0.2rem 0.5rem 0.2rem 0.2rem;
+    cursor: pointer;
+}
+
+.topic-chip-input,
+.topic-add-input {
+    padding: 0.25rem 0.5rem;
+    border: 1px solid hsla(0, 0%, 0%, 0.2);
+    border-radius: 1rem;
+    font-size: 0.8rem;
+    width: 10rem;
+}
+
+.topic-add-button {
+    border: 1px solid #855cd6;
+    background: white;
+    color: #855cd6;
+    border-radius: 1rem;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.topic-add-button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.board-empty {
+    color: hsla(225, 15%, 40%, 1);
+    margin: 1.5rem 0;
+}
+
+.board-section {
+    margin-bottom: 1rem;
+}
+
+.board-section-title {
+    margin: 0.75rem 0 0.4rem;
+    font-size: 0.95rem;
+    color: #855cd6;
+    border-bottom: 1px solid hsla(260, 60%, 60%, 0.25);
+    padding-bottom: 0.2rem;
+}
+
+.board-rows {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.board-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.board-row-main {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.6rem 0.9rem;
+    border: 1px solid hsla(0, 0%, 0%, 0.12);
+    border-radius: 0.4rem;
+    background: white;
+    cursor: pointer;
+    text-align: left;
+}
+
+.board-row-main:hover {
+    border-color: #855cd6;
+}
+
+.board-row-name {
+    font-size: 0.95rem;
+}
+
+.board-row-code {
+    font-family: monospace;
+    font-size: 0.8rem;
+    color: hsla(225, 15%, 40%, 1);
+}
+
+.board-row-topic,
+.board-row-date {
+    padding: 0.35rem 0.4rem;
+    border: 1px solid hsla(0, 0%, 0%, 0.15);
+    border-radius: 0.3rem;
+    font-size: 0.8rem;
+    background: white;
+}
+
+.class-list-import-button {
+    margin-left: 0.5rem;
+    border: 1px solid #855cd6;
+    background: white;
+    color: #855cd6;
+    border-radius: 0.5rem;
+    padding: 0.5rem 1.25rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.class-list-import-button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.class-list-logout {
+    margin-top: 1.5rem;
+    border: none;
+    background: transparent;
+    color: hsla(225, 15%, 40%, 1);
+    text-decoration: underline;
+    font-size: 0.8rem;
+    cursor: pointer;
+    padding: 0;
+}
+
+/* --- Class settings (inline card editor) --- */
+
+.class-settings-form {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid #855cd6;
+    border-radius: 0.5rem;
+    background: white;
+}
+
+.class-settings-form input {
+    padding: 0.45rem;
+    border: 1px solid hsla(0, 0%, 0%, 0.15);
+    border-radius: 0.25rem;
+    font-size: 0.9rem;
+}
+
+.class-settings-row {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.class-settings-row input {
+    flex: 1;
+    min-width: 0;
+}
+
+.class-settings-co-teachers {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.class-settings-label {
+    font-size: 0.8rem;
+    color: hsla(225, 15%, 40%, 1);
+}
+
+.co-teacher-chip-email {
+    padding: 0.2rem 0.2rem 0.2rem 0.7rem;
+    font-size: 0.8rem;
+    color: #855cd6;
+}
+
+.class-settings-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.class-settings-actions button {
+    padding: 0.4rem 0.9rem;
+    border: 1px solid hsla(0, 0%, 0%, 0.2);
+    border-radius: 0.4rem;
+    background: white;
+    cursor: pointer;
+}
+
+.class-settings-spacer {
+    flex: 1;
+}
+
+.class-settings-save {
+    background: #855cd6 !important;
+    color: white;
+    border-color: #855cd6 !important;
+}
+
+.class-settings-save:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+/* --- Breadcrumbs (v2 navigation, no sidebar) --- */
+
+.breadcrumbs {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.75rem;
+    font-size: 0.85rem;
+}
+
+.breadcrumb-link {
+    border: none;
+    background: transparent;
+    color: #855cd6;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 0;
+    font-size: 0.85rem;
+}
+
+.breadcrumb-separator {
+    color: hsla(225, 15%, 40%, 1);
+}
+
+.breadcrumb-current {
+    color: hsla(225, 15%, 40%, 1);
+}
+
+.board-inline-create {
+    display: flex;
+    gap: 0.5rem;
+    margin: 0.75rem 0;
+}
+
+.board-inline-create input {
+    flex: 1;
+    padding: 0.5rem;
+    border: 1px solid hsla(0, 0%, 0%, 0.15);
+    border-radius: 0.4rem;
+    font-size: 0.9rem;
+}
+
+.board-inline-create button {
+    background: #855cd6;
+    color: white;
+    border: none;
+    border-radius: 0.4rem;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+}
+
+.board-inline-create button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.board-reuse-button {
+    border: 1px solid #855cd6;
+    background: white;
+    color: #855cd6;
+    border-radius: 0.5rem;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.board-reuse-button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.reuse-filter {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.75rem 0;
+}
+
+.reuse-filter select {
+    padding: 0.4rem;
+    border: 1px solid hsla(0, 0%, 0%, 0.15);
+    border-radius: 0.3rem;
+    background: white;
+}
+
+.reuse-row-copy {
+    border: 1px solid #855cd6;
+    background: white;
+    color: #855cd6;
+    border-radius: 0.4rem;
+    padding: 0.35rem 0.8rem;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.reuse-row-copy:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+/* --- Description tab preview (student view) --- */
+
+.assignment-preview {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    /* The whole preview (title + pager + content) follows the teacher while
+       they scroll down to page 2/3 inputs (final review). */
+    position: sticky;
+    top: 1rem;
+    max-height: calc(100vh - 8rem);
+}
+
+.assignment-preview-title {
+    font-weight: bold;
+    font-size: 0.9rem;
+    color: hsla(225, 15%, 40%, 1);
+}
+
+.assignment-preview-body {
+    flex: 1;
+    border: 1px solid hsla(0, 0%, 0%, 0.12);
+    border-radius: 0.5rem;
+    background: white;
+    padding: 1rem;
+    overflow-y: auto;
+}
+
+.assignment-preview-text {
+    white-space: pre-wrap;
+    margin: 0 0 0.75rem;
+}
+
+.assignment-preview-image {
+    max-width: 100%;
+    border-radius: 0.25rem;
+}
+
+.assignment-preview-pager {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+}
+
+.assignment-preview-pager button {
+    border: 1px solid hsla(0, 0%, 0%, 0.2);
+    background: white;
+    border-radius: 0.3rem;
+    padding: 0.25rem 0.7rem;
+    cursor: pointer;
+}
+
+.assignment-preview-pager button:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+
+/* --- Unified teacher view layout (review round 3) --- */
+
+.teacher-view {
+    padding: 1.25rem 2rem;
+    max-width: 60rem;
+    overflow-y: auto;
+}
+
+.teacher-view-title {
+    margin: 0.25rem 0 1rem;
+    font-size: 1.3rem;
+    color: #575e75;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Floating (modal-like) inline forms: border + shadow lift them above the
+   list so their extent is obvious. */
+.board-popover {
+    border: 1px solid hsla(0, 0%, 0%, 0.15);
+    border-radius: 0.6rem;
+    background: white;
+    box-shadow: 0 8px 24px hsla(0, 0%, 0%, 0.18);
+    padding: 1rem;
+    margin: 0.75rem 0;
+}
+
+.popover-cancel {
+    border: 1px solid hsla(0, 0%, 0%, 0.2);
+    background: white;
+    border-radius: 0.4rem;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+}
+
+.assignment-preview-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.detail-tabs-download {
+    margin-left: auto;
+}
+
+.course-tile-imported {
+    display: inline-block;
+    margin-top: 0.25rem;
+    font-size: 0.7rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 0.25rem;
+    background: hsla(120, 50%, 45%, 0.15);
+    color: hsl(120, 50%, 30%);
+}
+
+.ungrouped-section {
+    margin-top: 1rem;
 }

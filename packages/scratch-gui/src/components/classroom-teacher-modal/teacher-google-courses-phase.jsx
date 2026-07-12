@@ -12,6 +12,7 @@ import { useDispatch, useSelector } from 'react-redux';
 
 import ErrorDisplay from '../classroom-modal/error-display.jsx';
 import GoogleCourseList from '../classroom-modal/google-course-list.jsx';
+import TeacherBreadcrumbs from '../classroom-modal/teacher-breadcrumbs.jsx';
 import Spinner from '../spinner/spinner.jsx';
 
 import {
@@ -26,6 +27,7 @@ const TeacherGoogleCoursesPhase = ({
     error,
     errorTitle,
     googleCourses,
+    importedCourseIds,
     isLoading,
     selectedGoogleCourse,
     onBack,
@@ -107,25 +109,38 @@ const TeacherGoogleCoursesPhase = ({
                     </div>
                 </div>
             )}
-            <button
-                className={styles.backLink}
-                data-testid="classroom-back"
-                onClick={onBack}
-            >
-                {'< '}
+            <div className={styles.googleCoursesView}>
+            <TeacherBreadcrumbs
+                items={[
+                    {
+                        label: (
+                            <FormattedMessage
+                                defaultMessage="Class list"
+                                description="Breadcrumb link back to the class list"
+                                id="gui.classroom.breadcrumbs.classList"
+                            />
+                        ),
+                        onClick: onBack,
+                        testId: 'classroom-breadcrumb-class-list',
+                    },
+                    {
+                        label: (
+                            <FormattedMessage
+                                defaultMessage="Import from Google Classroom"
+                                description="Breadcrumb label of the GC import view"
+                                id="gui.classroom.breadcrumbs.importGc"
+                            />
+                        ),
+                    },
+                ]}
+            />
+            <h2 className={styles.googleCoursesTitle}>
                 <FormattedMessage
-                    defaultMessage="Back"
-                    description="Back button"
-                    id="gui.classroom.back"
-                />
-            </button>
-            <div className={styles.mainPhaseTitle}>
-                <FormattedMessage
-                    defaultMessage="Google Classroom Classes"
-                    description="Google Classroom courses list title"
+                    defaultMessage="Import from Google Classroom"
+                    description="Google Classroom import view title"
                     id="gui.classroom.management.googleCoursesTitle"
                 />
-            </div>
+            </h2>
             <p className={styles.mainPhaseGuide}>
                 <FormattedMessage
                     defaultMessage="Select a class to import and click the Import button."
@@ -149,6 +164,7 @@ const TeacherGoogleCoursesPhase = ({
             ) : (
                 <GoogleCourseList
                     courses={googleCourses}
+                    importedCourseIds={importedCourseIds}
                     selectedCourseId={selectedGoogleCourse?.courseId}
                     onSelect={onSelectGoogleCourse}
                 />
@@ -167,11 +183,13 @@ const TeacherGoogleCoursesPhase = ({
                     />
                 </button>
             </div>
+            </div>
         </div>
     );
 };
 
 TeacherGoogleCoursesPhase.propTypes = {
+    importedCourseIds: PropTypes.arrayOf(PropTypes.string),
     error: PropTypes.string,
     errorTitle: PropTypes.string,
     googleCourses: PropTypes.arrayOf(PropTypes.object),
