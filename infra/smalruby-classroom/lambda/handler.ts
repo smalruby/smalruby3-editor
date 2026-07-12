@@ -1901,6 +1901,25 @@ async function handleImportGoogleClassroom(
   };
 }
 
+/**
+ * Resolve the Google Classroom course an assignment should be posted to.
+ *
+ * v2 moved the GC link from the assignment (classroom) to the class (group),
+ * so an assignment usually has no courseId of its own. The assignment's own
+ * field is kept only as a pre-v2 fallback and, when present, wins. Returns an
+ * empty string when neither is linked.
+ */
+export function resolveGoogleCourseId(
+  classroomItem: Record<string, unknown> | undefined,
+  groupItem: Record<string, unknown> | undefined,
+): string {
+  const own = classroomItem?.googleClassroomCourseId;
+  if (typeof own === 'string' && own) return own;
+  const group = groupItem?.googleClassroomCourseId;
+  if (typeof group === 'string' && group) return group;
+  return '';
+}
+
 async function handlePostAssignment(
   identity: TeacherIdentity,
   accessToken: string,
@@ -1916,14 +1935,15 @@ async function handlePostAssignment(
     throw new NotFoundError('Classroom not found');
   }
   // v2: the GC link lives on the class (group); the assignment's own field
-  // remains as a pre-v2 fallback.
-  let courseId = result.Item.googleClassroomCourseId as string;
+  // remains as a pre-v2 fallback. Only look the group up when the assignment
+  // itself carries no courseId.
+  let courseId = resolveGoogleCourseId(result.Item, undefined);
   if (!courseId && typeof result.Item.groupId === 'string' && result.Item.groupId) {
     const groupResult = await docClient.send(new GetCommand({
       TableName: GROUPS_TABLE,
       Key: { groupId: result.Item.groupId },
     }));
-    courseId = (groupResult.Item?.googleClassroomCourseId as string) || '';
+    courseId = resolveGoogleCourseId(result.Item, groupResult.Item);
   }
   if (!courseId) {
     throw new ValidationError('This classroom is not linked to Google Classroom');
