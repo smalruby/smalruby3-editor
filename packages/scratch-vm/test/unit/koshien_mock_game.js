@@ -37,6 +37,40 @@ const makeGame = (opts) =>
         ),
     );
 
+// --- 2026 scoring-rule fixtures -------------------------------------------
+// A tiny board for exercising the turn-scaled goal bonus. p1 starts right next
+// to the goal (3,1) -> (4,1). The lone fiend starts on the goal and, because it
+// keeps its distance from an adjacent pawn, never leaves it, so arriving always
+// costs the -10 fiend contact on top of that turn's goal bonus. p2 starts far
+// away (9,1) and never interferes.
+const TIER_ROWS = ['22222222222', '20003000001', '21111111111'];
+
+const makeTierGame = () =>
+    new MockGame({
+        map: {
+            id: 'tiers',
+            rows: TIER_ROWS,
+            starts: [
+                [3, 1],
+                [9, 1],
+            ],
+        },
+        userSide: 1,
+        seed: 1,
+    });
+
+// Idle beside the goal until `targetTurn`, then step onto it on that turn.
+const goalOnTurn = (targetTurn) => {
+    const game = makeTierGame();
+    game.join(1, 'p1');
+    for (let i = 0; i < targetTurn - 1; i++) {
+        game.finishTurn(1); // wait a turn without moving
+    }
+    game.step(1, 4, 1); // reserve the step onto the goal
+    const info = game.finishTurn(1).info;
+    return { game, info };
+};
+
 test('Koshien mock game engine', (t) => {
     t.test('join reports the initial player state', (st) => {
         const game = makeGame();
@@ -383,6 +417,95 @@ test('Koshien mock game engine', (t) => {
         st.notOk(game.say(1, 'こんにちは').error, 'no count_lack even after 2 actions');
         const { info } = game.finishTurn(1);
         st.equal(info.msg, 'こんにちは');
+        st.end();
+    });
+
+    // --- 2026 official rules: five-tier goal bonus + -70 timeup penalty ------
+
+    t.test('the goal bonus matches the 2026 five-tier table by turn', (st) => {
+        // Published 2026 rule: 1-10T=100, 11-20T=90, 21-30T=80, 31-40T=70,
+        // 41-50T=60. Pin the raw bonus (no board noise) at every decade edge.
+        const game = makeGame();
+        const table = [
+            [1, 100],
+            [10, 100],
+            [11, 90],
+            [20, 90],
+            [21, 80],
+            [30, 80],
+            [31, 70],
+            [40, 70],
+            [41, 60],
+            [50, 60],
+        ];
+        for (const [turn, bonus] of table) {
+            game._turn = turn;
+            st.equal(game._currentGoalBonus(), bonus, `turn ${turn} earns +${bonus}`);
+        }
+        st.end();
+    });
+
+    t.test('each goal-bonus tier is awarded end to end when a pawn reaches the goal', (st) => {
+        // Confirms the table above is wired to the real arrival turn. The score
+        // is the tier bonus minus the -10 contact with the fiend on the goal.
+        const tiers = [
+            [1, 100],
+            [10, 100],
+            [11, 90],
+            [20, 90],
+            [21, 80],
+            [30, 80],
+            [31, 70],
+            [40, 70],
+            [41, 60],
+            [50, 60],
+        ];
+        for (const [turn, bonus] of tiers) {
+            const { info } = goalOnTurn(turn);
+            st.equal(info.status, 'completed', `turn ${turn}: round completed`);
+            st.equal(info.score, bonus - 10, `turn ${turn}: +${bonus} goal bonus (-10 fiend contact)`);
+        }
+        st.end();
+    });
+
+    t.test('reaching the goal on the 50th turn scores +60 and is not a timeup', (st) => {
+        // Boundary: arriving exactly on the final turn still counts as a goal,
+        // so the -70 timeup penalty must NOT apply.
+        const { game, info } = goalOnTurn(50);
+        st.equal(info.status, 'completed', 'goal on turn 50 completes rather than timing up');
+        st.equal(info.score, 60 - 10, '41-50T bonus +60 minus fiend contact, no -70 penalty');
+        st.ok(game.over, 'the round is over');
+        st.end();
+    });
+
+    t.test('the -70 timeup penalty combines with other score components', (st) => {
+        // Minimal construction: a pawn banks +20 from an item, then never
+        // reaches the goal. At game over the -70 timeup penalty adds to (does
+        // not replace) that +20. The fiend is boxed on an unreachable goal so
+        // it never interferes.
+        const rows = ['2222222', '20b0002', '2222222', '2223222', '2222222'];
+        const game = new MockGame({
+            map: {
+                id: 'boxed',
+                rows,
+                starts: [
+                    [1, 1],
+                    [5, 1],
+                ],
+            },
+            userSide: 1,
+            seed: 1,
+        });
+        game.join(1, 'p1');
+        game.step(1, 2, 1); // step onto item b (+20)
+        game.finishTurn(1);
+        st.equal(game.stateOf(1).score, 20, 'banked the +20 item first');
+        let info = null;
+        while (!game.over) {
+            info = game.finishTurn(1).info; // idle to the turn limit
+        }
+        st.equal(info.status, 'timeup', 'never goaled ends in timeup');
+        st.equal(info.score, 20 - 70, 'the +20 item and the -70 penalty combine to -50');
         st.end();
     });
 
