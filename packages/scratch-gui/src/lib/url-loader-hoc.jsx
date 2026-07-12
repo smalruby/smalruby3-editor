@@ -12,7 +12,7 @@ import {
     getIsLoadingUpload,
     getIsShowingWithoutId,
     onLoadedProject,
-    projectError,
+    restoreProjectState,
     setProjectId,
     requestProjectUpload,
 } from '../reducers/project-state';
@@ -42,6 +42,14 @@ const URLLoaderHOC = function (WrappedComponent) {
                 'clearLoadingReferences',
             ]);
             this.urlLoaderErrorCallback = null;
+            // Synchronous re-entry guard. Instance flag (not React state) because
+            // rapid "Open" clicks fire in the same tick, before a setState-based
+            // flag would flush, so a state flag cannot stop the double submit that
+            // kicked off vm.loadProject() multiple times (#972).
+            this.loadInFlight = false;
+            // Drives the modal's loading UX (spinner + disabled controls). Mirrors
+            // loadInFlight but goes through setState so the modal re-renders.
+            this.state = { loading: false };
         }
 
         componentDidUpdate(prevProps) {
@@ -57,6 +65,13 @@ const URLLoaderHOC = function (WrappedComponent) {
 
         handleUrlSubmit(url, errorCallback) {
             const { intl, isShowingWithoutId, loadingState, projectChanged, userOwnsProject } = this.props;
+
+            // Ignore repeated submits while a load is in flight. The modal also
+            // disables its controls, but this guards the programmatic path (e.g.
+            // Enter key) so a project is only ever loaded once per request (#972).
+            if (this.loadInFlight) {
+                return;
+            }
 
             if (!isValidScratchProjectUrl(url)) {
                 if (errorCallback) {
@@ -76,6 +91,11 @@ const URLLoaderHOC = function (WrappedComponent) {
             }
 
             if (uploadAllowed) {
+                // Mark the load in flight *before* kicking it off so the modal
+                // shows its loading state and disables its controls, and so a
+                // second submit is rejected by the guard above (#972).
+                this.loadInFlight = true;
+                this.setState({ loading: true });
                 // Keep the modal open during the fetch so that the errorCallback
                 // can post the error back into the *same* modal instance on
                 // failure. The modal is closed in `loadScratchProjectFromUrl`
@@ -96,6 +116,11 @@ const URLLoaderHOC = function (WrappedComponent) {
         }
 
         loadScratchProjectFromUrl(projectId) {
+            // Capture the project id we are showing *before* setProjectId() moves
+            // it to the target id. If the load fails, loadProjectWithChecks
+            // restores the VM to this previous project, so we must restore redux
+            // to the same id to keep app state and VM content consistent (#972).
+            const previousProjectId = this.props.reduxProjectId;
             this.props.onLoadingStarted();
             this.props.setProjectId(projectId.toString());
 
@@ -132,7 +157,14 @@ const URLLoaderHOC = function (WrappedComponent) {
                 })
                 .catch((error) => {
                     log.warn('URL loader error:', error);
-                    this.props.onError(error);
+                    // vm.loadProject() disposes the current project before it
+                    // deserializes, so a failed load empties the runtime.
+                    // loadProjectWithChecks has already restored the previous
+                    // project into the VM; restore redux to that same project
+                    // (id + showing state) instead of leaving the failed target
+                    // id in a fatal ERROR / mismatched state, which would make
+                    // gui.jsx throw and reset the whole editor (#972).
+                    this.props.restorePreviousProjectState(previousProjectId);
                     const message = formatLoadError(error, this.props.intl);
                     if (this.urlLoaderErrorCallback) {
                         // The modal is still mounted (we did not close it on
@@ -154,6 +186,10 @@ const URLLoaderHOC = function (WrappedComponent) {
             this.projectIdToLoad = null;
             this.projectUrlToLoad = null;
             this.urlLoaderErrorCallback = null;
+            // Load finished (success closed the modal, failure re-enables it):
+            // clear both the re-entry guard and the modal's loading UX (#972).
+            this.loadInFlight = false;
+            this.setState({ loading: false });
         }
 
         render() {
@@ -165,7 +201,6 @@ const URLLoaderHOC = function (WrappedComponent) {
                 isLoadingUpload: _isLoadingUpload,
                 isShowingWithoutId: _isShowingWithoutId,
                 loadingState: _loadingState,
-                onError: _onError,
                 onLoadedProject: _onLoadedProjectProp,
                 onLoadingFinished: _onLoadingFinished,
                 onLoadingStarted: _onLoadingStarted,
@@ -173,7 +208,9 @@ const URLLoaderHOC = function (WrappedComponent) {
                 onSetRubyVersion: _onSetRubyVersion,
                 openUrlLoaderModal: _openUrlLoaderModalProp,
                 projectChanged: _projectChanged,
+                reduxProjectId: _reduxProjectId,
                 requestProjectUpload: _requestProjectUploadProp,
+                restorePreviousProjectState: _restorePreviousProjectStateProp,
                 rubyVersion: _rubyVersion,
                 setProjectId: _setProjectIdProp,
                 userOwnsProject: _userOwnsProject,
@@ -186,6 +223,7 @@ const URLLoaderHOC = function (WrappedComponent) {
                     <WrappedComponent
                         onStartSelectingUrlLoad={this.handleStartSelectingUrlLoad}
                         onUrlLoaderSubmit={this.handleUrlSubmit}
+                        urlLoaderLoading={this.state.loading}
                         vm={vm}
                         {...componentProps}
                     />
@@ -203,7 +241,6 @@ const URLLoaderHOC = function (WrappedComponent) {
         isLoadingUpload: PropTypes.bool,
         isShowingWithoutId: PropTypes.bool,
         loadingState: PropTypes.oneOf(LoadingStates),
-        onError: PropTypes.func,
         onLoadedProject: PropTypes.func,
         onLoadingFinished: PropTypes.func,
         onLoadingStarted: PropTypes.func,
@@ -212,7 +249,9 @@ const URLLoaderHOC = function (WrappedComponent) {
         onStartSelectingUrlLoad: PropTypes.func,
         openUrlLoaderModal: PropTypes.func,
         projectChanged: PropTypes.bool,
+        reduxProjectId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
         requestProjectUpload: PropTypes.func,
+        restorePreviousProjectState: PropTypes.func,
         rubyVersion: PropTypes.string,
         setProjectId: PropTypes.func,
         storage: GUIStoragePropType,
@@ -235,6 +274,7 @@ const URLLoaderHOC = function (WrappedComponent) {
             isShowingWithoutId: getIsShowingWithoutId(loadingState),
             loadingState: loadingState,
             projectChanged: state.scratchGui.projectChanged,
+            reduxProjectId: state.scratchGui.projectState.projectId,
             rubyVersion: state.scratchGui.settings.rubyVersion,
             storage: state.scratchGui.config.storage,
             userOwnsProject: ownProps.authorUsername && user && ownProps.authorUsername === user.username,
@@ -246,7 +286,6 @@ const URLLoaderHOC = function (WrappedComponent) {
         cancelFileUpload: (loadingState) => dispatch(onLoadedProject(loadingState, false, false)),
         closeFileMenu: () => dispatch(closeFileMenu()),
         closeUrlLoaderModal: () => dispatch(closeUrlLoaderModal()),
-        onError: (error) => dispatch(projectError(error)),
         onLoadedProject: (loadingState, canSave, success) =>
             dispatch(onLoadedProject(loadingState, canSave, success)),
         onLoadingFinished: () => {
@@ -261,6 +300,7 @@ const URLLoaderHOC = function (WrappedComponent) {
         },
         openUrlLoaderModal: () => dispatch(openUrlLoaderModal()),
         requestProjectUpload: (loadingState) => dispatch(requestProjectUpload(loadingState)),
+        restorePreviousProjectState: (projectId) => dispatch(restoreProjectState(projectId)),
         setProjectId: (projectId) => dispatch(setProjectId(projectId)),
     });
 

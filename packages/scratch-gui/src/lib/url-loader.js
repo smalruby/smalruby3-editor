@@ -35,6 +35,13 @@ const urlLoaderMessages = defineMessages({
         defaultMessage: 'Network error. Please check your internet connection.',
         description: 'Shown when fetch throws a TypeError (offline, DNS failure, blocked by extension).',
     },
+    projectLoadFailed: {
+        id: 'gui.urlLoader.projectLoadFailed',
+        defaultMessage:
+            'The project could not be loaded. It may use blocks or features that are not supported. ' +
+            'Your previous project has been kept.',
+        description: 'Shown when the project is fetched but fails to load into the VM (deserialization/conversion).',
+    },
 });
 
 /**
@@ -54,12 +61,36 @@ class UrlLoaderError extends Error {
 }
 
 /**
+ * Error thrown when a project was fetched successfully but failed to load into
+ * the VM (validation / deserialization / block-conversion failure). Because
+ * `vm.loadProject()` disposes the current project before deserializing, this
+ * kind of failure would otherwise leave the editor on an empty screen — see
+ * `loadProjectWithChecks`, which restores the previous project and rethrows
+ * the original error wrapped in this type so it maps to a clearer message.
+ */
+class ProjectLoadError extends Error {
+    /**
+     * @param {Error|string} cause - The original error thrown by the VM load
+     *   pipeline. scratch-parser rejects with a JSON string, so a string cause
+     *   is supported in addition to an Error.
+     */
+    constructor(cause) {
+        super(typeof cause === 'string' ? cause : (cause && cause.message) || 'Project load failed');
+        this.name = 'ProjectLoadError';
+        this.cause = cause;
+    }
+}
+
+/**
  * Map a thrown error from the load pipeline to a user-facing localized message.
  * @param {Error|UrlLoaderError} error - The error caught from the load pipeline.
  * @param {object} intl - react-intl `intl` object (must have formatMessage).
  * @returns {string} Localized error message.
  */
 const formatLoadError = (error, intl) => {
+    if (error && error.name === 'ProjectLoadError') {
+        return intl.formatMessage(urlLoaderMessages.projectLoadFailed);
+    }
     if (error && error.status === 404) {
         return intl.formatMessage(urlLoaderMessages.projectNotFound);
     }
@@ -110,4 +141,4 @@ const fetchProjectInfo = async (endpoint, projectId) => {
     return data;
 };
 
-export { UrlLoaderError, fetchProjectInfo, formatLoadError, urlLoaderMessages };
+export { ProjectLoadError, UrlLoaderError, fetchProjectInfo, formatLoadError, urlLoaderMessages };

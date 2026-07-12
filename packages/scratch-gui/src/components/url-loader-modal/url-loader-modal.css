@@ -56,6 +56,39 @@
     line-height: 1.4;
 }
 
+.loadingIndicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    color: $text-primary-transparent;
+    font-size: 0.875rem;
+    font-style: italic;
+    margin-top: -0.5rem;
+}
+
+.loadingSpinner {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid $ui-black-transparent;
+    border-top-color: $motion-primary;
+    border-radius: 50%;
+    animation: url-loader-spin 0.8s linear infinite;
+    flex-shrink: 0;
+}
+
+@keyframes url-loader-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.urlInput:disabled {
+    background: $ui-secondary;
+    cursor: not-allowed;
+}
+
 .examplesSection {
     display: flex;
     flex-direction: column;
