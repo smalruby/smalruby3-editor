@@ -12,8 +12,9 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 |------------|---------|
 | `classroom-modal` | モーダル全体 |
 | `classroom-phase-teacher-login` | 先生: ログイン (Google / Microsoft) |
-| `classroom-phase-teacher-dashboard` | 先生: ダッシュボード |
-| `classroom-phase-teacher-create` | 先生: クラス作成 |
+| `classroom-phase-teacher-class-list` | 先生: クラス一覧（ログイン後の入口。v2 landing） |
+| `classroom-phase-teacher-dashboard` | 先生: 課題ダッシュボード（クラス選択後） |
+| `classroom-phase-teacher-create` | 先生: 課題作成 |
 | `classroom-phase-teacher-detail` | 先生: クラス詳細 |
 | `classroom-phase-teacher-google-courses` | 先生: GC コース一覧 |
 | `classroom-phase-teacher-post-assignment` | 先生: 課題配信 |
@@ -198,7 +199,19 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 
 | data-testid | 要素 | 説明 |
 |------------|------|------|
-| `classroom-group-manage` | button | サイドバーの「組の管理」 |
+| `classroom-group-manage` | button | サイドバーの「クラスの設定」（旧: 組の管理） |
+| `classroom-sidebar-back-to-class-list` | button | サイドバーの「‹ クラス一覧」 |
+| `classroom-class-create` | button | クラス一覧の「クラスを作る」（同時作成フォームを開く） |
+| `classroom-class-create-name` | input | 同時作成: クラス名 |
+| `classroom-class-create-year` | input | 同時作成: 年度 |
+| `classroom-class-create-count` | input | 同時作成: 人数 |
+| `classroom-class-create-assignment` | input | 同時作成: 最初の課題名 |
+| `classroom-class-create-submit` | button | 同時作成: クラスと課題を作成 |
+| `classroom-class-list` | ul | クラス一覧（カード） |
+| `classroom-class-list-empty` | p | クラス一覧の空メッセージ |
+| `classroom-class-card-{groupId}` | li | クラスカード |
+| `classroom-class-open-{groupId}` | button | クラスカード本体（クリックでクラスをひらく） |
+| `classroom-class-evaluate-{groupId}` | button | クラスカードの「評価」 |
 | `classroom-phase-teacher-group-manage` | div | 組管理フェーズのルート |
 | `classroom-group-create-name` / `classroom-group-create-year` | input | 新規組の名前 / 年度 |
 | `classroom-group-create-submit` | button | 組をつくる |

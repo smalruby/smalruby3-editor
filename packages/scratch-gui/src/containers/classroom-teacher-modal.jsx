@@ -26,8 +26,9 @@ const ClassroomTeacherModal = () => {
         setCachedTeacherIdToken(urlParams.devlogin);
     }
 
-    // Determine initial phase from cached idToken
-    const getInitialPhase = () => (getCachedTeacherIdToken() ? 'teacher-dashboard' : 'teacher-login');
+    // Determine initial phase from cached idToken. v2: land on the class
+    // list (GC-style) instead of the assignment dashboard.
+    const getInitialPhase = () => (getCachedTeacherIdToken() ? 'teacher-class-list' : 'teacher-login');
 
     // UI state
     const [phase, setPhase] = useState(getInitialPhase);
@@ -188,6 +189,10 @@ const ClassroomTeacherModal = () => {
         onAssignmentCancel: teacher.handleAssignmentCancel,
         onAssignmentApplyTemplate: teacher.handleAssignmentApplyTemplate,
         groups: teacher.groups,
+        selectedGroup: teacher.selectedGroup,
+        onSelectGroup: teacher.handleSelectGroup,
+        onShowClassList: teacher.handleShowClassList,
+        onCreateClassWithAssignment: teacher.handleCreateClassWithAssignment,
         onShowGroupManage: teacher.handleShowGroupManage,
         onBackFromGroupManage: teacher.handleBackFromGroupManage,
         onCreateGroup: teacher.handleCreateGroup,

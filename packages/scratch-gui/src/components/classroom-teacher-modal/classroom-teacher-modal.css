@@ -372,3 +372,17 @@
     padding: 0;
     margin-bottom: 0.5rem;
 }
+
+/* Back to the class list (v2 landing view) */
+.sidebar-back-to-class-list {
+    display: block;
+    width: 100%;
+    padding: 0.6rem 1rem;
+    border: none;
+    border-bottom: 1px solid #e0e0e0;
+    background: transparent;
+    color: #855cd6;
+    text-align: left;
+    font-size: 0.85rem;
+    cursor: pointer;
+}

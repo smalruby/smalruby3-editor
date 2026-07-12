@@ -16,6 +16,7 @@ const TeacherSidebar = ({
     isLoading,
     selectedClassroom,
     onSelectClassroom,
+    onShowClassList,
     onShowCreateForm,
     onShowGroupManage,
     onTeacherLogout,
@@ -41,6 +42,20 @@ const TeacherSidebar = ({
 
     return (
         <aside className={styles.sidebar}>
+            {onShowClassList && (
+                <button
+                    className={styles.sidebarBackToClassList}
+                    data-testid="classroom-sidebar-back-to-class-list"
+                    type="button"
+                    onClick={onShowClassList}
+                >
+                    <FormattedMessage
+                        defaultMessage="&lsaquo; Class list"
+                        description="Sidebar button back to the class list"
+                        id="gui.classroom.classList.back"
+                    />
+                </button>
+            )}
             <div className={styles.sidebarHeader}>
                 <FormattedMessage
                     defaultMessage="Your Classes & Assignments"
@@ -191,6 +206,7 @@ TeacherSidebar.propTypes = {
     isLoading: PropTypes.bool,
     onSelectClassroom: PropTypes.func.isRequired,
     onShowCreateForm: PropTypes.func.isRequired,
+    onShowClassList: PropTypes.func,
     onShowGroupManage: PropTypes.func,
     onTeacherLogout: PropTypes.func.isRequired,
     selectedClassroom: PropTypes.object,

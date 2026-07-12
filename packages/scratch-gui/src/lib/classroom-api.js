@@ -23,12 +23,20 @@ class ClassroomAPI {
      * @param {string} assignmentName - Name of the assignment
      * @param {number} studentCount - Number of students
      * @param {string} [googleClassroomCourseId] - Google Classroom course ID (for imported classes)
+     * @param {string} [groupId] - Owning class (group) — inherits studentCount when omitted
      * @returns {Promise<object>} Created classroom data
      */
-    async createClassroom(idToken, className, assignmentName, studentCount, googleClassroomCourseId) {
-        const body = { className, assignmentName, studentCount };
+    async createClassroom(idToken, className, assignmentName, studentCount, googleClassroomCourseId, groupId) {
+        const body = { className, assignmentName };
+        // v2: omit studentCount to inherit it from the owning class (group)
+        if (typeof studentCount === 'number') {
+            body.studentCount = studentCount;
+        }
         if (googleClassroomCourseId) {
             body.googleClassroomCourseId = googleClassroomCourseId;
+        }
+        if (groupId) {
+            body.groupId = groupId;
         }
         return this._request('POST', '/classrooms', body, idToken);
     }
@@ -270,10 +278,33 @@ class ClassroomAPI {
      * @param {string} idToken - Teacher ID token
      * @param {string} name - Group name (e.g. 2年1組)
      * @param {number} year - School year
+     * @param {object} [options] - Additional class fields (studentCount, googleClassroomCourseId)
      * @returns {Promise<object>} Created group
      */
-    async createGroup(idToken, name, year) {
-        return this._request('POST', '/classroom-groups', { name, year }, idToken);
+    async createGroup(idToken, name, year, options = {}) {
+        return this._request('POST', '/classroom-groups', { name, year, ...options }, idToken);
+    }
+
+    /**
+     * Run the idempotent v1→v2 migration for this teacher: adopt ungrouped
+     * assignments into auto-created classes and lift class-level fields.
+     * Called from the class list on login; a migrated account is a no-op.
+     * @param {string} idToken - Teacher ID token
+     * @returns {Promise<object>} Migration summary
+     */
+    async migrateGroups(idToken) {
+        return this._request('POST', '/classroom-groups/migrate', {}, idToken);
+    }
+
+    /**
+     * Manage the class's topic list. Rename/remove cascade to assignments.
+     * @param {string} idToken - Teacher ID token
+     * @param {string} groupId - Group (class) ID
+     * @param {object} payload - {action: 'add'|'remove'|'rename', name, to?}
+     * @returns {Promise<object>} Updated group summary
+     */
+    async updateGroupTopics(idToken, groupId, payload) {
+        return this._request('PATCH', `/classroom-groups/${groupId}/topics`, payload, idToken);
     }
 
     /**
