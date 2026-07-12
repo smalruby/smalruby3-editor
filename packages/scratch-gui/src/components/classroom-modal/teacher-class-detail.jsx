@@ -238,7 +238,13 @@ const TeacherClassDetail = ({
                                     onBlur={handleAssignmentNameBlur}
                                     onChange={handleAssignmentNameChange}
                                 />
-                                {selectedClassroom.googleClassroomCourseId &&
+                                {/* Google Classroom linkage now lives on the class
+                                    (group), so an assignment posts to the group's
+                                    course even when it has no courseId of its own.
+                                    The posted/unposted branch below still keys off
+                                    the assignment's own alternateLink. */}
+                                {(selectedClassroom.googleClassroomCourseId ||
+                                    (group && group.googleClassroomCourseId)) &&
                                     (selectedClassroom.googleClassroomAlternateLink ? (
                                         <a
                                             className={
