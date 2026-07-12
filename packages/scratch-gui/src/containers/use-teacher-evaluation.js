@@ -88,7 +88,7 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
     const handleBackFromEvaluation = useCallback(() => {
         clearError();
         setEvalProgress(null);
-        setPhase('teacher-group-manage');
+        setPhase('teacher-class-list');
     }, [clearError, setPhase]);
 
     const handleToggleLesson = useCallback((classroomId) => {

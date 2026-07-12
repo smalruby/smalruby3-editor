@@ -245,6 +245,75 @@ const useTeacherGroups = ({
     }, [clearError, setSelectedClassroom, setPhase]);
 
     /**
+     * Inline assignment creation inside a class (E-3): only the assignment
+     * name is asked — className and studentCount come from the class.
+     */
+    const handleCreateAssignmentInClass = useCallback(
+        async (group, assignmentName) => {
+            clearError();
+            setIsLoading(true);
+            try {
+                const created = await classroomAPI.createClassroom(
+                    idToken,
+                    group.name,
+                    assignmentName,
+                    null, // inherit studentCount from the class
+                    null,
+                    group.groupId,
+                );
+                setClassrooms((prev) => [...prev, { ...created, role: 'owner', coTeacherEmails: [] }]);
+            } catch (err) {
+                if (err.status === 401) {
+                    handleTeacher401();
+                    return;
+                }
+                showError(translateError(intl, err));
+            } finally {
+                setIsLoading(false);
+            }
+        },
+        [idToken, setClassrooms, clearError, showError, intl, setIsLoading, handleTeacher401],
+    );
+
+    /**
+     * Reuse an existing assignment (own or another class's) into the target
+     * class — server-side duplicate carries pages/starter/topic. Same-class
+     * reuse gets the copy suffix so the two are distinguishable.
+     */
+    const handleReuseAssignment = useCallback(
+        async (sourceClassroom, targetGroup) => {
+            clearError();
+            setIsLoading(true);
+            try {
+                const copySuffix = intl.formatMessage({
+                    defaultMessage: ' (copy)',
+                    description: 'Suffix appended to the assignment name of a duplicated lesson',
+                    id: 'gui.classroom.groups.duplicateSuffix',
+                });
+                const sameClass = sourceClassroom.groupId === targetGroup.groupId;
+                const assignmentName = sameClass
+                    ? `${sourceClassroom.assignmentName || ''}${copySuffix}`.trim().slice(0, 50)
+                    : sourceClassroom.assignmentName;
+                const created = await classroomAPI.duplicateClassroom(idToken, sourceClassroom.classroomId, {
+                    groupId: targetGroup.groupId,
+                    className: targetGroup.name,
+                    assignmentName,
+                });
+                setClassrooms((prev) => [...prev, { ...created, role: 'owner', coTeacherEmails: [] }]);
+            } catch (err) {
+                if (err.status === 401) {
+                    handleTeacher401();
+                    return;
+                }
+                showError(translateError(intl, err));
+            } finally {
+                setIsLoading(false);
+            }
+        },
+        [idToken, setClassrooms, clearError, showError, intl, setIsLoading, handleTeacher401],
+    );
+
+    /**
      * v2 GC integration: importing a Google Classroom course creates a
      * class (not an assignment) — the course name, student count and the
      * course link land on the class, so every assignment inside it can post
@@ -357,6 +426,8 @@ const useTeacherGroups = ({
         handleShowClassList,
         handleCreateClassWithAssignment,
         handleUpdateGroupTopics,
+        handleCreateAssignmentInClass,
+        handleReuseAssignment,
         handleCreateClassFromCourse,
         handleShowGroupManage,
         handleBackFromGroupManage,

@@ -10,7 +10,9 @@ import React, { useCallback, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 
 import { buildAssignmentSections } from '../../lib/classroom-group-utils.js';
+import { formatClassLabel } from '../../lib/classroom-class-label.js';
 import ErrorDisplay from './error-display.jsx';
+import TeacherBreadcrumbs from './teacher-breadcrumbs.jsx';
 
 import styles from './classroom-modal.css';
 
@@ -168,20 +170,72 @@ AssignmentRow.propTypes = {
 };
 
 const TeacherAssignmentBoard = ({
+    allClassrooms,
+    allGroups,
     classrooms,
     error,
     errorTitle,
     group,
     isLoading,
+    onCreateAssignmentInClass,
+    onReuseAssignment,
     onSelectClassroom,
-    onShowCreateForm,
+    onShowClassList,
     onUpdateAssignmentMeta,
     onUpdateGroupTopics,
 }) => {
     const intl = useIntl();
     const [newTopic, setNewTopic] = useState('');
+    const [showInlineCreate, setShowInlineCreate] = useState(false);
+    const [newAssignmentName, setNewAssignmentName] = useState('');
+    const [showReuse, setShowReuse] = useState(false);
+    const [reuseFilterGroupId, setReuseFilterGroupId] = useState('');
     const topics = Array.isArray(group.topics) ? group.topics : [];
     const sections = buildAssignmentSections(classrooms, topics);
+
+    const handleToggleInlineCreate = useCallback(() => {
+        setShowReuse(false);
+        setShowInlineCreate((v) => !v);
+    }, []);
+    const handleNewAssignmentNameChange = useCallback((e) => setNewAssignmentName(e.target.value), []);
+    const handleSubmitInlineCreate = useCallback(
+        (e) => {
+            e.preventDefault();
+            const trimmed = newAssignmentName.trim();
+            if (!trimmed || isLoading) return;
+            onCreateAssignmentInClass(group, trimmed);
+            setNewAssignmentName('');
+            setShowInlineCreate(false);
+        },
+        [newAssignmentName, isLoading, onCreateAssignmentInClass, group],
+    );
+    const handleToggleReuse = useCallback(() => {
+        setShowInlineCreate(false);
+        setShowReuse((v) => !v);
+    }, []);
+    const handleReuseFilterChange = useCallback((e) => setReuseFilterGroupId(e.target.value), []);
+    const handleReuseCopy = useCallback(
+        (e) => {
+            const sourceId = e.currentTarget.dataset.classroomId;
+            const source = (allClassrooms || []).find((c) => c.classroomId === sourceId);
+            if (source) {
+                onReuseAssignment(source, group);
+                setShowReuse(false);
+            }
+        },
+        [allClassrooms, onReuseAssignment, group],
+    );
+
+    // Reuse picker: every assignment (any class), newest first, filterable.
+    const reuseCandidates = (allClassrooms || [])
+        .filter((c) => !reuseFilterGroupId || c.groupId === reuseFilterGroupId)
+        .sort((a, b) =>
+            String(b.sortDate || b.createdAt || '').localeCompare(String(a.sortDate || a.createdAt || '')),
+        );
+    const groupLabelFor = (groupId) => {
+        const g = (allGroups || []).find((x) => x.groupId === groupId);
+        return g ? formatClassLabel(g) : '';
+    };
 
     const handleNewTopicChange = useCallback((e) => setNewTopic(e.target.value), []);
     const handleAddTopic = useCallback(() => {
@@ -201,26 +255,34 @@ const TeacherAssignmentBoard = ({
 
     return (
         <div className={styles.assignmentBoard} data-testid="classroom-board">
+            <TeacherBreadcrumbs
+                items={[
+                    {
+                        label: intl.formatMessage({
+                            defaultMessage: 'Class list',
+                            description: 'Breadcrumb link back to the class list',
+                            id: 'gui.classroom.breadcrumbs.classList',
+                        }),
+                        onClick: onShowClassList,
+                        testId: 'classroom-breadcrumb-class-list',
+                    },
+                    {
+                        label: intl.formatMessage({
+                            defaultMessage: 'Assignments',
+                            description: 'Breadcrumb label of the assignment board',
+                            id: 'gui.classroom.breadcrumbs.assignments',
+                        }),
+                    },
+                ]}
+            />
             <div className={styles.boardHeader}>
-                <h2 className={styles.boardTitle}>
-                    {group.name}
-                    <span className={styles.boardYear}>
-                        {intl.formatMessage(
-                            {
-                                defaultMessage: '{year} school year',
-                                description: 'School year shown in the board header',
-                                id: 'gui.classroom.board.yearLabel',
-                            },
-                            { year: group.year },
-                        )}
-                    </span>
-                </h2>
+                <h2 className={styles.boardTitle}>{formatClassLabel(group)}</h2>
                 <button
                     className={styles.boardCreateButton}
                     data-testid="classroom-board-create"
                     disabled={isLoading}
                     type="button"
-                    onClick={onShowCreateForm}
+                    onClick={handleToggleInlineCreate}
                 >
                     <FormattedMessage
                         defaultMessage="Create an assignment"
@@ -228,8 +290,106 @@ const TeacherAssignmentBoard = ({
                         id="gui.classroom.board.create"
                     />
                 </button>
+                <button
+                    className={styles.boardReuseButton}
+                    data-testid="classroom-board-reuse"
+                    disabled={isLoading}
+                    type="button"
+                    onClick={handleToggleReuse}
+                >
+                    <FormattedMessage
+                        defaultMessage="Reuse an assignment"
+                        description="Button on the board to reuse (duplicate) an existing assignment"
+                        id="gui.classroom.board.reuse"
+                    />
+                </button>
             </div>
             <ErrorDisplay error={error} errorTitle={errorTitle} />
+            {showInlineCreate ? (
+                <form className={styles.boardInlineCreate} onSubmit={handleSubmitInlineCreate}>
+                    <input
+                        autoFocus
+                        data-testid="classroom-board-create-name"
+                        disabled={isLoading}
+                        maxLength={50}
+                        placeholder={intl.formatMessage({
+                            defaultMessage: 'Assignment name (e.g. Move the cat)',
+                            description: 'Placeholder of the inline assignment name input',
+                            id: 'gui.classroom.board.createNamePlaceholder',
+                        })}
+                        type="text"
+                        value={newAssignmentName}
+                        onChange={handleNewAssignmentNameChange}
+                    />
+                    <button
+                        data-testid="classroom-board-create-submit"
+                        disabled={isLoading || newAssignmentName.trim().length === 0}
+                        type="submit"
+                    >
+                        <FormattedMessage
+                            defaultMessage="Create"
+                            description="Submit button of the inline assignment creation form"
+                            id="gui.classroom.board.createSubmit"
+                        />
+                    </button>
+                </form>
+            ) : null}
+            {showReuse ? (
+                <div className={styles.boardSection} data-testid="classroom-board-reuse-view">
+                    <div className={styles.reuseFilter}>
+                        <FormattedMessage
+                            defaultMessage="Copy an existing assignment into this class:"
+                            description="Explanation above the reuse picker"
+                            id="gui.classroom.board.reuseHint"
+                        />
+                        <select
+                            data-testid="classroom-board-reuse-filter"
+                            disabled={isLoading}
+                            value={reuseFilterGroupId}
+                            onChange={handleReuseFilterChange}
+                        >
+                            <option value="">
+                                {intl.formatMessage({
+                                    defaultMessage: 'All classes',
+                                    description: 'Reuse filter option showing every class',
+                                    id: 'gui.classroom.board.reuseFilterAll',
+                                })}
+                            </option>
+                            {(allGroups || []).map((g) => (
+                                <option key={g.groupId} value={g.groupId}>
+                                    {formatClassLabel(g)}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <ul className={styles.boardRows}>
+                        {reuseCandidates.map((c) => (
+                            <li key={c.classroomId} className={styles.boardRow}>
+                                <span className={styles.boardRowMain}>
+                                    <span className={styles.boardRowName}>
+                                        {c.assignmentName || c.className}
+                                    </span>
+                                    <span className={styles.boardRowCode}>{groupLabelFor(c.groupId)}</span>
+                                </span>
+                                <button
+                                    className={styles.reuseRowCopy}
+                                    data-classroom-id={c.classroomId}
+                                    data-testid={`classroom-board-reuse-copy-${c.classroomId}`}
+                                    disabled={isLoading}
+                                    type="button"
+                                    onClick={handleReuseCopy}
+                                >
+                                    <FormattedMessage
+                                        defaultMessage="Copy into this class"
+                                        description="Button that duplicates the assignment into the current class"
+                                        id="gui.classroom.board.reuseCopy"
+                                    />
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            ) : null}
             <div className={styles.boardTopics}>
                 {topics.map((topic) => (
                     <TopicChip
@@ -303,13 +463,17 @@ const TeacherAssignmentBoard = ({
 };
 
 TeacherAssignmentBoard.propTypes = {
+    allClassrooms: PropTypes.arrayOf(PropTypes.object),
+    allGroups: PropTypes.arrayOf(PropTypes.object),
     classrooms: PropTypes.arrayOf(PropTypes.object).isRequired,
     error: PropTypes.string,
     errorTitle: PropTypes.string,
     group: PropTypes.object.isRequired,
     isLoading: PropTypes.bool,
+    onCreateAssignmentInClass: PropTypes.func.isRequired,
+    onReuseAssignment: PropTypes.func.isRequired,
     onSelectClassroom: PropTypes.func.isRequired,
-    onShowCreateForm: PropTypes.func.isRequired,
+    onShowClassList: PropTypes.func.isRequired,
     onUpdateAssignmentMeta: PropTypes.func.isRequired,
     onUpdateGroupTopics: PropTypes.func.isRequired,
 };

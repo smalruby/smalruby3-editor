@@ -15,18 +15,34 @@ import TeacherAssignmentBoard from '../classroom-modal/teacher-assignment-board.
 import TeacherAssignmentEditor from '../classroom-modal/teacher-assignment-editor.jsx';
 import TeacherClassDetail from '../classroom-modal/teacher-class-detail.jsx';
 import TeacherClassList from '../classroom-modal/teacher-class-list.jsx';
-import TeacherCreateForm from '../classroom-modal/teacher-create-form.jsx';
 import TeacherEvaluation from '../classroom-modal/teacher-evaluation.jsx';
-import TeacherGroupManage from '../classroom-modal/teacher-group-manage.jsx';
 import TeacherPostAssignment from '../classroom-modal/teacher-post-assignment.jsx';
+import TeacherBreadcrumbs from '../classroom-modal/teacher-breadcrumbs.jsx';
 import ClassroomTutorial from '../classroom-tutorial/classroom-tutorial.jsx';
 import Spinner from '../spinner/spinner.jsx';
 
 import TeacherGoogleCoursesPhase from './teacher-google-courses-phase.jsx';
 import TeacherLoginPhase from './teacher-login-phase.jsx';
-import TeacherSidebar from './teacher-sidebar.jsx';
 
 import styles from './classroom-teacher-modal.css';
+
+const messagesBreadcrumbs = defineMessages({
+    classList: {
+        defaultMessage: 'Class list',
+        description: 'Breadcrumb link back to the class list',
+        id: 'gui.classroom.breadcrumbs.classList',
+    },
+    assignments: {
+        defaultMessage: 'Assignments',
+        description: 'Breadcrumb link back to the assignment board',
+        id: 'gui.classroom.breadcrumbs.assignments',
+    },
+    assignmentDetail: {
+        defaultMessage: 'Assignment detail',
+        description: 'Breadcrumb label of the assignment detail view',
+        id: 'gui.classroom.breadcrumbs.assignmentDetail',
+    },
+});
 
 const messages = defineMessages({
     title: {
@@ -59,7 +75,6 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         isMicrosoftAuthAvailable,
         authProvider,
         onTeacherLogout,
-        onShowCreateForm,
         onCreateClassroom,
         onSelectClassroom,
         onBackToDashboard,
@@ -113,7 +128,8 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         onCreateClassWithAssignment,
         onUpdateGroupTopics,
         onUpdateAssignmentMeta,
-        onShowGroupManage,
+        onCreateAssignmentInClass,
+        onReuseAssignment,
         onBackFromGroupManage,
         onCreateGroup,
         onUpdateGroup,
@@ -122,11 +138,10 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         evaluation,
     } = containerProps;
 
-    // Opening a class scopes the sidebar to its assignments (GC style).
+    // Opening a class scopes the board to its assignments (GC style).
     const scopedClassrooms = selectedGroup
         ? classrooms.filter((c) => c.groupId === selectedGroup.groupId)
         : classrooms;
-    const scopedGroups = selectedGroup ? (groups || []).filter((g) => g.groupId === selectedGroup.groupId) : groups;
 
     const renderMain = () => {
         // Fullscreen code display overlay
@@ -173,22 +188,6 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
             );
         }
 
-        if (phase === 'teacher-group-manage') {
-            return (
-                <div className={styles.mainRelative}>
-                    <TeacherGroupManage
-                        error={error}
-                        errorTitle={errorTitle}
-                        groups={groups || []}
-                        isLoading={isLoading}
-                        onBack={onBackFromGroupManage}
-                        onCreateGroup={onCreateGroup}
-                        onShowEvaluation={evaluation?.handleShowEvaluation}
-                        onUpdateGroup={onUpdateGroup}
-                    />
-                </div>
-            );
-        }
 
         if (phase === 'teacher-evaluation' && evaluation) {
             return (
@@ -225,6 +224,23 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         if (phase === 'teacher-class-detail' && selectedClassroom) {
             return (
                 <div className={styles.mainRelative}>
+                    <div className={styles.detailBreadcrumbs}>
+                        <TeacherBreadcrumbs
+                            items={[
+                                {
+                                    label: intl.formatMessage(messagesBreadcrumbs.classList),
+                                    onClick: onShowClassList,
+                                    testId: 'classroom-breadcrumb-class-list',
+                                },
+                                {
+                                    label: intl.formatMessage(messagesBreadcrumbs.assignments),
+                                    onClick: onBackToDashboard,
+                                    testId: 'classroom-breadcrumb-assignments',
+                                },
+                                { label: intl.formatMessage(messagesBreadcrumbs.assignmentDetail) },
+                            ]}
+                        />
+                    </div>
                     <TeacherClassDetail
                         codeDisplayClassroom={codeDisplayClassroom}
                         codeDisplayFullscreen={false}
@@ -266,22 +282,6 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
             );
         }
 
-        if (phase === 'teacher-create') {
-            return (
-                <div className={styles.mainRelative}>
-                    <TeacherCreateForm
-                        error={error}
-                        errorTitle={errorTitle}
-                        importSource={selectedGoogleCourse}
-                        isLoading={isLoading}
-                        noBackButton
-                        onBack={onBackToDashboard}
-                        onCreate={onCreateClassroom}
-                        onImportFromGC={null}
-                    />
-                </div>
-            );
-        }
 
         if (phase === 'teacher-assignment-edit' && selectedClassroom) {
             return (
@@ -348,13 +348,17 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
             return (
                 <div className={styles.mainRelative}>
                     <TeacherAssignmentBoard
+                        allClassrooms={classrooms}
+                        allGroups={groups || []}
                         classrooms={scopedClassrooms}
                         error={error}
                         errorTitle={errorTitle}
                         group={selectedGroup}
                         isLoading={isLoading}
+                        onCreateAssignmentInClass={onCreateAssignmentInClass}
+                        onReuseAssignment={onReuseAssignment}
                         onSelectClassroom={onSelectClassroom}
-                        onShowCreateForm={onShowCreateForm}
+                        onShowClassList={onShowClassList}
                         onUpdateAssignmentMeta={onUpdateAssignmentMeta}
                         onUpdateGroupTopics={onUpdateGroupTopics}
                     />
@@ -414,20 +418,6 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                             id="gui.classroom.management.titleBarLogout"
                         />
                     </button>
-                )}
-                {/* Sidebar: visible when logged in and inside a class
-                    (the class list is the landing view and fills the main) */}
-                {phase !== 'teacher-login' && phase !== 'teacher-class-list' && (
-                    <TeacherSidebar
-                        classrooms={scopedClassrooms}
-                        groups={scopedGroups}
-                        isLoading={isLoading}
-                        selectedClassroom={selectedClassroom}
-                        onSelectClassroom={onSelectClassroom}
-                        onShowClassList={onShowClassList}
-                        onShowCreateForm={onShowCreateForm}
-                        onShowGroupManage={onShowGroupManage}
-                    />
                 )}
                 {/* Main area */}
                 <main className={styles.main}>{renderMain()}</main>
