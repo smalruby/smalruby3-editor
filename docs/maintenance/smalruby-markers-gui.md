@@ -87,6 +87,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/playground/player.jsx` | no_beforeunload URL param | beforeunload 無効化 |
 | `src/lib/project-saver-hoc.jsx` | URL params for Playwright | URL パラメーター import |
 | `src/lib/project-saver-hoc.jsx` | no_beforeunload URL param | beforeunload 無効化 |
+| `src/lib/project-saver-hoc.jsx` | classroom beforeunload guard | クラス管理（教師）/生徒参加モーダル表示中はリロード/タブ閉じで beforeunload 確認ダイアログを出す。`mapStateToProps` の `classroomModalOpen` 導出（`teacherModalVisible \|\| modalVisible`、classroom reducer 不在でも安全）、`leavePageConfirm` の OR 条件、propType、props 伝播防止 (issue #1030) |
 | `src/lib/project-fetcher-hoc.jsx` | URL params for Playwright | URL パラメーター import |
 | `src/lib/project-fetcher-hoc.jsx` | initial tab from URL param | 初期タブ URL パラメーター |
 | `src/reducers/editor-tab.js` | initial tab from URL param | 初期タブ URL パラメーター |

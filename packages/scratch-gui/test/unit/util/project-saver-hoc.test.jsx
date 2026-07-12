@@ -666,4 +666,88 @@ describe('projectSaverHOC', () => {
         expect(setSaver).toHaveBeenCalledTimes(2);
         expect(setSaver.mock.calls[1][0]).toBe(null);
     });
+
+    // === Smalruby: Start of classroom beforeunload guard tests ===
+    describe('leavePageConfirm classroom guard', () => {
+        // Renders the HOC (which assigns window.onbeforeunload in UNSAFE_componentWillMount)
+        // and returns that handler so we can inspect leavePageConfirm's return value directly.
+        const renderAndGetBeforeUnload = (props, customStore = store) => {
+            const Component = () => <div />;
+            const WrappedComponent = projectSaverHOC(Component);
+            render(
+                <WrappedComponent
+                    store={customStore}
+                    vm={vm}
+                    {...props}
+                />
+            );
+            return window.onbeforeunload;
+        };
+
+        const storeWithClassroom = classroom => mockStore({
+            scratchGui: {
+                config: legacyConfig,
+                projectChanged: false,
+                projectState: {},
+                projectTitle: 'Scratch Project',
+                timeout: {autoSaveTimeoutId: null},
+                classroom
+            },
+            locales: {locale: 'en'}
+        });
+
+        test('does NOT prompt when project unchanged and no classroom modal open', () => {
+            const handler = renderAndGetBeforeUnload({
+                projectChanged: false,
+                classroomModalOpen: false
+            });
+            expect(handler({})).toBeUndefined();
+        });
+
+        test('prompts when classroom modal is open even if project is unchanged', () => {
+            const handler = renderAndGetBeforeUnload({
+                projectChanged: false,
+                classroomModalOpen: true
+            });
+            expect(handler({})).toBe(true);
+        });
+
+        test('still prompts when project changed and classroom modal closed', () => {
+            const handler = renderAndGetBeforeUnload({
+                projectChanged: true,
+                classroomModalOpen: false
+            });
+            expect(handler({})).toBe(true);
+        });
+
+        test('derives classroomModalOpen from classroom.teacherModalVisible in redux', () => {
+            const handler = renderAndGetBeforeUnload(
+                {},
+                storeWithClassroom({teacherModalVisible: true, modalVisible: false})
+            );
+            expect(handler({})).toBe(true);
+        });
+
+        test('derives classroomModalOpen from classroom.modalVisible (student) in redux', () => {
+            const handler = renderAndGetBeforeUnload(
+                {},
+                storeWithClassroom({teacherModalVisible: false, modalVisible: true})
+            );
+            expect(handler({})).toBe(true);
+        });
+
+        test('does NOT prompt when classroom exists but both modals are closed', () => {
+            const handler = renderAndGetBeforeUnload(
+                {},
+                storeWithClassroom({teacherModalVisible: false, modalVisible: false})
+            );
+            expect(handler({})).toBeUndefined();
+        });
+
+        test('does NOT crash when state.scratchGui.classroom is absent', () => {
+            const handler = renderAndGetBeforeUnload({});
+            expect(handler({})).toBeUndefined();
+        });
+    });
+    // === Smalruby: End of classroom beforeunload guard tests ===
 });
