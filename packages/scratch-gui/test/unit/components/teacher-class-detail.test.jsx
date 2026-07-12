@@ -50,9 +50,7 @@ describe('TeacherClassDetail — Google Classroom post button', () => {
             selectedClassroom: classroom({ googleClassroomCourseId: null }),
             group: { groupId: 'g1', googleClassroomCourseId: 'course-123' },
         });
-        expect(
-            document.querySelector('[data-testid="classroom-post-assignment"]'),
-        ).toBeInTheDocument();
+        expect(document.querySelector('[data-testid="classroom-post-assignment"]')).toBeInTheDocument();
     });
 
     test('should show the post button when the assignment itself has a courseId', () => {
@@ -60,9 +58,7 @@ describe('TeacherClassDetail — Google Classroom post button', () => {
             selectedClassroom: classroom({ googleClassroomCourseId: 'course-123' }),
             group: { groupId: 'g1', googleClassroomCourseId: null },
         });
-        expect(
-            document.querySelector('[data-testid="classroom-post-assignment"]'),
-        ).toBeInTheDocument();
+        expect(document.querySelector('[data-testid="classroom-post-assignment"]')).toBeInTheDocument();
     });
 
     test('should hide the post button when neither the class nor the assignment is linked', () => {
@@ -70,9 +66,7 @@ describe('TeacherClassDetail — Google Classroom post button', () => {
             selectedClassroom: classroom({ googleClassroomCourseId: null }),
             group: { groupId: 'g1', googleClassroomCourseId: null },
         });
-        expect(
-            document.querySelector('[data-testid="classroom-post-assignment"]'),
-        ).not.toBeInTheDocument();
+        expect(document.querySelector('[data-testid="classroom-post-assignment"]')).not.toBeInTheDocument();
     });
 
     test('should show the view-assignment link (not the post button) once this assignment was posted', () => {
@@ -83,11 +77,7 @@ describe('TeacherClassDetail — Google Classroom post button', () => {
             }),
             group: { groupId: 'g1', googleClassroomCourseId: 'course-123' },
         });
-        expect(
-            document.querySelector('[data-testid="classroom-view-assignment"]'),
-        ).toBeInTheDocument();
-        expect(
-            document.querySelector('[data-testid="classroom-post-assignment"]'),
-        ).not.toBeInTheDocument();
+        expect(document.querySelector('[data-testid="classroom-view-assignment"]')).toBeInTheDocument();
+        expect(document.querySelector('[data-testid="classroom-post-assignment"]')).not.toBeInTheDocument();
     });
 });

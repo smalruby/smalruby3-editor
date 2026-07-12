@@ -175,8 +175,8 @@ Google または Microsoft アカウントでサインインする画面。先�
 | 戻るリンク | 「< 戻る」 | `classroom-back` | → teacher-dashboard |
 | クラス名 | 「第3回 チャットアプリを作ろう」 | `classroom-detail-name` | — |
 | 課題名入力 | 課題名（編集可） | `classroom-detail-assignment-name` | blur で保存 |
-| 課題配信ボタン | 「Google Classroom に配信」 | `classroom-post-assignment` | → teacher-post-assignment。**未配信のとき**表示 |
-| 課題確認リンク | 「Google Classroom で確認」 | `classroom-view-assignment` | 配信済みのとき表示（新しいタブ） |
+| 課題配信ボタン | 「課題を配信」 | `classroom-post-assignment` | → teacher-post-assignment。**未配信のとき**表示 |
+| 課題確認リンク | 「課題を確認」 | `classroom-view-assignment` | 配信済みのとき表示（新しいタブ） |
 | 参加コード表示 | 「参加コード: 3cexm5」 | `classroom-detail-join-code` | 大きなフォントで中央表示 |
 | コード拡大ボタン | ⛶ アイコン（ツールチップ: 「全画面表示」） | `classroom-detail-expand-code` | 全画面コード表示 |
 | 有効期限 | 「有効期限: 2026/4/6」 | — | — |
