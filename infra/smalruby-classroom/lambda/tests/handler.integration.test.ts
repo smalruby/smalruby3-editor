@@ -1445,6 +1445,41 @@ describeIfToken('教師フロー — 退室リクエスト (kick request)', () =
         expect(lookup.data.studentCount).toBe(8);
     });
 
+    test('セクションを設定・クリアでき、classYear が生徒の lookup に載る', async () => {
+        const withSection = await request('PATCH', `/classroom-groups/${migratedGroupId}`, {
+            section: '2年1組',
+        }, teacherAuth);
+        expect(withSection.status).toBe(200);
+        expect(withSection.data.section).toBe('2年1組');
+
+        const lookup = await request('POST', '/classrooms/lookup', { joinCode });
+        expect(lookup.status).toBe(200);
+        expect(lookup.data.classYear as number).toBeGreaterThanOrEqual(2020);
+        expect(lookup.data.className).toBe(marker);
+
+        const cleared = await request('PATCH', `/classroom-groups/${migratedGroupId}`, {
+            section: null,
+        }, teacherAuth);
+        expect(cleared.data.section).toBeNull();
+    });
+
+    test('複製が topic を引き継ぎ、対象クラスのトピック一覧にも追加される', async () => {
+        await request('PATCH', `/classroom-groups/${migratedGroupId}/topics`, {
+            action: 'add',
+            name: '複製元トピック',
+        }, teacherAuth);
+        await request('PATCH', `/classrooms/${topicClassroomId}`, { topic: '複製元トピック' }, teacherAuth);
+
+        const dup = await request('POST', `/classrooms/${topicClassroomId}/duplicate`, {
+            groupId: migratedGroupId,
+            assignmentName: '複製された課題',
+        }, teacherAuth);
+        expect(dup.status).toBe(201);
+        expect(dup.data.topic).toBe('複製元トピック');
+        // cleanup the duplicate right away
+        await request('DELETE', `/classrooms/${dup.data.classroomId}`, null, teacherAuth);
+    });
+
     test('クリーンアップ: 課題削除 + クラスをアーカイブ', async () => {
         for (const id of [ungroupedClassroomId, topicClassroomId]) {
             const { status } = await request('DELETE', `/classrooms/${id}`, null, teacherAuth);

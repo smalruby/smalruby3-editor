@@ -570,24 +570,32 @@ function readCoTeacherEmails(item: Record<string, unknown>): string[] {
   return Array.isArray(item.coTeacherEmails) ? (item.coTeacherEmails as string[]) : [];
 }
 
+/** Fetch the owning class (group) of an assignment, or undefined (pre-v2). */
+async function getOwningGroup(
+  classroom: Record<string, unknown>,
+): Promise<Record<string, unknown> | undefined> {
+  if (typeof classroom.groupId !== 'string' || !classroom.groupId) {
+    return undefined;
+  }
+  const result = await docClient.send(new GetCommand({
+    TableName: GROUPS_TABLE,
+    Key: { groupId: classroom.groupId },
+  }));
+  return result.Item;
+}
+
 /**
  * v2 seat count: the class's studentCount is authoritative, but only ever
  * grows the grid — max() with the assignment's own snapshot so an older
  * lesson never loses occupied seats when the class count is set smaller.
  */
-async function resolveSeatCount(classroom: Record<string, unknown>): Promise<number> {
+function seatCountFor(
+  classroom: Record<string, unknown>,
+  group: Record<string, unknown> | undefined,
+): number {
   const own = typeof classroom.studentCount === 'number' ? classroom.studentCount : 0;
-  if (typeof classroom.groupId === 'string' && classroom.groupId) {
-    const result = await docClient.send(new GetCommand({
-      TableName: GROUPS_TABLE,
-      Key: { groupId: classroom.groupId },
-    }));
-    const groupCount = result.Item && typeof result.Item.studentCount === 'number'
-      ? result.Item.studentCount
-      : 0;
-    return Math.max(own, groupCount);
-  }
-  return own;
+  const groupCount = group && typeof group.studentCount === 'number' ? group.studentCount : 0;
+  return Math.max(own, groupCount);
 }
 
 /**
@@ -918,7 +926,8 @@ async function handleJoinClassroom(sourceIp: string, body: Record<string, unknow
     throw new NotFoundError('This classroom is no longer active');
   }
 
-  const seatNumber = validateSeatNumber(body.seatNumber, await resolveSeatCount(classroom));
+  const owningGroup = await getOwningGroup(classroom);
+  const seatNumber = validateSeatNumber(body.seatNumber, seatCountFor(classroom, owningGroup));
   const nickname = validateNickname(body.nickname);
   const memberId = `seat-${String(seatNumber).padStart(2, '0')}`;
 
@@ -1002,7 +1011,11 @@ async function handleJoinClassroom(sourceIp: string, body: Record<string, unknow
     body: JSON.stringify({
       sessionToken,
       classroomId: classroom.classroomId,
-      className: classroom.className,
+      // Students see the class name + school year (e.g. 技術 2026年度) —
+      // the owning class is authoritative so renames follow; pre-v2
+      // assignments fall back to their own snapshot with no year.
+      className: (owningGroup && owningGroup.name) || classroom.className,
+      classYear: owningGroup && typeof owningGroup.year === 'number' ? owningGroup.year : null,
       assignmentName: classroom.assignmentName || null,
       seatNumber,
       memberId,
@@ -1167,14 +1180,16 @@ async function handleLookupClassroom(sourceIp: string, body: Record<string, unkn
     ProjectionExpression: 'requestId',
   }));
   const activeKickRequestIds = (kickRequestResult.Items || []).map(item => item.requestId as string);
+  const lookupGroup = await getOwningGroup(classroom);
 
   return {
     statusCode: 200,
     body: JSON.stringify({
       classroomId: classroom.classroomId,
-      className: classroom.className,
+      className: (lookupGroup && lookupGroup.name) || classroom.className,
+      classYear: lookupGroup && typeof lookupGroup.year === 'number' ? lookupGroup.year : null,
       assignmentName: classroom.assignmentName || null,
-      studentCount: await resolveSeatCount(classroom),
+      studentCount: seatCountFor(classroom, lookupGroup),
       takenSeats,
       activeKickRequestIds,
       expiresAt: classroom.ttl ? new Date((classroom.ttl as number) * 1000).toISOString() : null,
@@ -2041,6 +2056,24 @@ export function validateGroupYear(year: unknown): number {
   return n;
 }
 
+/** Optional class section (GC-style, e.g. 2年1組). Empty/null clears it. */
+export function validateSection(value: unknown): string | null {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+  if (typeof value !== 'string') {
+    throw new ValidationError('Section must be a string');
+  }
+  const trimmed = value.trim();
+  if (trimmed.length === 0) {
+    return null;
+  }
+  if (trimmed.length > MAX_GROUP_NAME_LENGTH) {
+    throw new ValidationError(`Section must be ${MAX_GROUP_NAME_LENGTH} characters or less`);
+  }
+  return trimmed;
+}
+
 export function validateTopicName(name: unknown): string {
   if (typeof name !== 'string' || name.trim().length === 0) {
     throw new ValidationError('Topic name is required');
@@ -2269,6 +2302,7 @@ function mapGroupSummary(item: Record<string, unknown>) {
     name: item.name,
     year: item.year,
     status: item.status,
+    section: item.section || null,
     schemaVersion: typeof item.schemaVersion === 'number' ? item.schemaVersion : 1,
     topics: Array.isArray(item.topics) ? item.topics : [],
     googleClassroomCourseId: item.googleClassroomCourseId || null,
@@ -2299,6 +2333,12 @@ async function handleCreateGroup(identity: TeacherIdentity, body: Record<string,
   };
   if (body.studentCount !== undefined) {
     item.studentCount = validateStudentCount(body.studentCount);
+  }
+  if (body.section !== undefined) {
+    const section = validateSection(body.section);
+    if (section) {
+      item.section = section;
+    }
   }
   if (typeof body.googleClassroomCourseId === 'string' && body.googleClassroomCourseId.trim()) {
     item.googleClassroomCourseId = body.googleClassroomCourseId.trim();
@@ -2351,6 +2391,9 @@ async function handleUpdateGroup(identity: TeacherIdentity, groupId: string, bod
   }
   if (body.studentCount !== undefined) {
     updates.studentCount = validateStudentCount(body.studentCount);
+  }
+  if (body.section !== undefined) {
+    updates.section = validateSection(body.section);
   }
   if (body.googleClassroomCourseId !== undefined) {
     if (body.googleClassroomCourseId === null || body.googleClassroomCourseId === '') {
@@ -2629,6 +2672,13 @@ async function handleDuplicateClassroom(
     }));
   }
 
+  // Reuse carries the topic along; make sure the target class lists it so
+  // the assignment lands in a visible section (cross-class reuse included).
+  const topic = typeof source.topic === 'string' && source.topic ? source.topic : undefined;
+  if (topic && groupId) {
+    await ensureGroupTopic(groupId, undefined, topic);
+  }
+
   const now = new Date().toISOString();
   const ttl = Math.floor(Date.now() / 1000) + CLASSROOM_TTL_SECONDS;
   await docClient.send(new PutCommand({
@@ -2641,6 +2691,8 @@ async function handleDuplicateClassroom(
       joinCode,
       studentCount: source.studentCount,
       groupId,
+      topic,
+      sortDate: now,
       assignment,
       status: 'active',
       createdAt: now,
@@ -2658,6 +2710,8 @@ async function handleDuplicateClassroom(
       joinCode,
       studentCount: source.studentCount,
       groupId: groupId || null,
+      topic: topic || null,
+      sortDate: now,
       hasAssignment: !!assignment,
       status: 'active',
       createdAt: now,
