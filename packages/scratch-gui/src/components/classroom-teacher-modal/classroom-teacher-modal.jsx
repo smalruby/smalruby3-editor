@@ -13,6 +13,7 @@ import Modal from '../../containers/modal.jsx';
 import ClassCodeDisplay from '../classroom-modal/class-code-display.jsx';
 import TeacherAssignmentEditor from '../classroom-modal/teacher-assignment-editor.jsx';
 import TeacherClassDetail from '../classroom-modal/teacher-class-detail.jsx';
+import TeacherClassList from '../classroom-modal/teacher-class-list.jsx';
 import TeacherCreateForm from '../classroom-modal/teacher-create-form.jsx';
 import TeacherEvaluation from '../classroom-modal/teacher-evaluation.jsx';
 import TeacherGroupManage from '../classroom-modal/teacher-group-manage.jsx';
@@ -105,6 +106,10 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         onAssignmentCancel,
         onAssignmentApplyTemplate,
         groups,
+        selectedGroup,
+        onSelectGroup,
+        onShowClassList,
+        onCreateClassWithAssignment,
         onShowGroupManage,
         onBackFromGroupManage,
         onCreateGroup,
@@ -113,6 +118,12 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         onDuplicateClassroom,
         evaluation,
     } = containerProps;
+
+    // Opening a class scopes the sidebar to its assignments (GC style).
+    const scopedClassrooms = selectedGroup
+        ? classrooms.filter((c) => c.groupId === selectedGroup.groupId)
+        : classrooms;
+    const scopedGroups = selectedGroup ? (groups || []).filter((g) => g.groupId === selectedGroup.groupId) : groups;
 
     const renderMain = () => {
         // Fullscreen code display overlay
@@ -137,6 +148,23 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                     onGoogleLogin={onGoogleLogin}
                     onMicrosoftLogin={onMicrosoftLogin}
                 />
+            );
+        }
+
+        if (phase === 'teacher-class-list') {
+            return (
+                <div className={styles.mainRelative}>
+                    <TeacherClassList
+                        classrooms={classrooms}
+                        error={error}
+                        errorTitle={errorTitle}
+                        groups={groups || []}
+                        isLoading={isLoading}
+                        onCreateClassWithAssignment={onCreateClassWithAssignment}
+                        onSelectGroup={onSelectGroup}
+                        onShowEvaluation={evaluation?.handleShowEvaluation}
+                    />
+                </div>
             );
         }
 
@@ -351,14 +379,16 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                 className={styles.layout}
                 data-testid="classroom-teacher-modal"
             >
-                {/* Sidebar: visible when logged in */}
-                {phase !== 'teacher-login' && (
+                {/* Sidebar: visible when logged in and inside a class
+                    (the class list is the landing view and fills the main) */}
+                {phase !== 'teacher-login' && phase !== 'teacher-class-list' && (
                     <TeacherSidebar
-                        classrooms={classrooms}
-                        groups={groups}
+                        classrooms={scopedClassrooms}
+                        groups={scopedGroups}
                         isLoading={isLoading}
                         selectedClassroom={selectedClassroom}
                         onSelectClassroom={onSelectClassroom}
+                        onShowClassList={onShowClassList}
                         onShowCreateForm={onShowCreateForm}
                         onShowGroupManage={onShowGroupManage}
                         onTeacherLogout={onTeacherLogout}

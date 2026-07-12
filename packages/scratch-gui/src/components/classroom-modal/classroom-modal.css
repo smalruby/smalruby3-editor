@@ -2107,3 +2107,147 @@
     text-align: center;
     white-space: nowrap;
 }
+
+/* --- Class list (post-login landing view) --- */
+
+.class-list {
+    padding: 2rem;
+    max-width: 44rem;
+    margin: 0 auto;
+    overflow-y: auto;
+}
+
+.class-list-title {
+    margin: 0 0 0.25rem;
+    font-size: 1.25rem;
+}
+
+.class-list-hint {
+    margin: 0 0 1rem;
+    color: hsla(225, 15%, 40%, 1);
+    font-size: 0.85rem;
+}
+
+.class-list-create-button {
+    background: #855cd6;
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.5rem 1.25rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.class-list-create-button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.class-list-create-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin: 1rem 0;
+    padding: 1rem;
+    border: 1px solid hsla(0, 0%, 0%, 0.15);
+    border-radius: 0.5rem;
+    background: white;
+}
+
+.class-list-create-form input {
+    padding: 0.5rem;
+    border: 1px solid hsla(0, 0%, 0%, 0.15);
+    border-radius: 0.25rem;
+    font-size: 0.9rem;
+}
+
+.class-list-create-form button[type='submit'] {
+    background: #855cd6;
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    cursor: pointer;
+}
+
+.class-list-create-form button[type='submit']:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.class-list-empty {
+    margin: 1.5rem 0;
+    color: hsla(225, 15%, 40%, 1);
+}
+
+.class-cards {
+    list-style: none;
+    margin: 1rem 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.class-card {
+    display: flex;
+    align-items: stretch;
+    gap: 0.5rem;
+}
+
+.class-card-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid hsla(0, 0%, 0%, 0.15);
+    border-radius: 0.5rem;
+    background: white;
+    cursor: pointer;
+    text-align: left;
+}
+
+.class-card-main:hover:not(:disabled) {
+    border-color: #855cd6;
+}
+
+.class-card-name {
+    font-size: 1.05rem;
+    font-weight: bold;
+}
+
+.class-card-meta {
+    font-size: 0.8rem;
+    color: hsla(225, 15%, 40%, 1);
+}
+
+.class-card-badges {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.class-card-badge {
+    font-size: 0.7rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 0.25rem;
+    background: hsla(260, 60%, 60%, 0.12);
+    color: #855cd6;
+}
+
+.class-card-evaluate {
+    align-self: center;
+    padding: 0.5rem 1rem;
+    border: 1px solid #855cd6;
+    border-radius: 0.5rem;
+    background: white;
+    color: #855cd6;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.class-card-evaluate:disabled {
+    opacity: 0.5;
+    cursor: default;
+}

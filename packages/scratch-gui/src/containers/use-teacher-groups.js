@@ -5,7 +5,7 @@
  * archiving groups, assigning classrooms to a group, and duplicating a
  * lesson (classroom) with its assignment content.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import classroomAPI from '../lib/classroom-api.js';
 import log from '../lib/log.js';
 import translateError from './classroom-error-utils.js';
@@ -35,6 +35,10 @@ const useTeacherGroups = ({
     setPhase,
 }) => {
     const [groups, setGroups] = useState([]);
+    // The class the teacher opened from the class list. Scopes the sidebar
+    // (and the assignment views) to a single class, Google Classroom style.
+    const [selectedGroup, setSelectedGroup] = useState(null);
+    const migratedForToken = useRef(null);
 
     const loadGroups = useCallback(async () => {
         if (!idToken) return;
@@ -52,10 +56,23 @@ const useTeacherGroups = ({
         }
     }, [idToken, handleTeacher401]);
 
-    // Load once per login (and after re-login).
+    // Once per login: run the idempotent v1→v2 migration, then load classes.
+    // A migration failure must not block the class list — the server keeps
+    // serving pre-v2 data, so log and continue.
     useEffect(() => {
-        loadGroups();
-    }, [loadGroups]);
+        if (!idToken) return;
+        (async () => {
+            if (migratedForToken.current !== idToken) {
+                migratedForToken.current = idToken;
+                try {
+                    await classroomAPI.migrateGroups(idToken);
+                } catch (err) {
+                    log.error('Group migration failed (continuing):', err);
+                }
+            }
+            await loadGroups();
+        })();
+    }, [idToken, loadGroups]);
 
     const handleShowGroupManage = useCallback(() => {
         clearError();
@@ -167,9 +184,79 @@ const useTeacherGroups = ({
         [idToken, setClassrooms, clearError, showError, intl, setIsLoading, handleTeacher401],
     );
 
+    /** Open a class from the class list — scope the workspace to it. */
+    const handleSelectGroup = useCallback(
+        (group) => {
+            clearError();
+            setSelectedGroup(group);
+            setSelectedClassroom(null);
+            setPhase('teacher-dashboard');
+        },
+        [clearError, setSelectedClassroom, setPhase],
+    );
+
+    /** Back to the class list (the post-login landing view). */
+    const handleShowClassList = useCallback(() => {
+        clearError();
+        setSelectedGroup(null);
+        setSelectedClassroom(null);
+        setPhase('teacher-class-list');
+    }, [clearError, setSelectedClassroom, setPhase]);
+
+    /**
+     * Combined creation (teacher interview Q2): one form creates the class
+     * and its first assignment, then lands inside the new class.
+     */
+    const handleCreateClassWithAssignment = useCallback(
+        async ({ name, year, studentCount, assignmentName }) => {
+            clearError();
+            setIsLoading(true);
+            try {
+                const group = await classroomAPI.createGroup(idToken, name, year, { studentCount });
+                const created = await classroomAPI.createClassroom(
+                    idToken,
+                    name,
+                    assignmentName,
+                    null, // inherit studentCount from the class
+                    null,
+                    group.groupId,
+                );
+                setClassrooms((prev) => [...prev, { ...created, role: 'owner', coTeacherEmails: [] }]);
+                await loadGroups();
+                setSelectedGroup(group);
+                setSelectedClassroom(null);
+                setPhase('teacher-dashboard');
+            } catch (err) {
+                if (err.status === 401) {
+                    handleTeacher401();
+                    return;
+                }
+                showError(translateError(intl, err));
+            } finally {
+                setIsLoading(false);
+            }
+        },
+        [
+            idToken,
+            loadGroups,
+            setClassrooms,
+            setSelectedClassroom,
+            setPhase,
+            clearError,
+            showError,
+            intl,
+            setIsLoading,
+            handleTeacher401,
+        ],
+    );
+
     return {
         groups,
         loadGroups,
+        selectedGroup,
+        handleSelectGroup,
+        handleShowClassList,
+        handleCreateClassWithAssignment,
         handleShowGroupManage,
         handleBackFromGroupManage,
         handleCreateGroup,
