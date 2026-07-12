@@ -441,6 +441,7 @@ export default {
     'gui.koshienSettingsModal.rivalItem': 'アイテム優先',
     'gui.koshienSettingsModal.rivalStop': '停止',
     'gui.koshienSettingsModal.rivalRandom': 'ランダム',
+    'gui.koshienSettingsModal.turnInterval': 'ターン間隔(秒)',
     'gui.koshienSettingsModal.hint': '設定は、次にAIがゲームサーバーへ接続したときから使われます。',
     'gui.koshienSettingsModal.save': '保存',
     'gui.menuBar.koshienMockPanel': '練習ゲームパネル',

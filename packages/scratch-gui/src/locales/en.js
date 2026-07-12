@@ -485,6 +485,7 @@ export default {
     'gui.koshienSettingsModal.rivalItem': 'Hunts for items',
     'gui.koshienSettingsModal.rivalStop': 'Stands still',
     'gui.koshienSettingsModal.rivalRandom': 'Moves randomly',
+    'gui.koshienSettingsModal.turnInterval': 'Turn interval (sec)',
     'gui.koshienSettingsModal.hint': 'The settings apply the next time your AI connects to the game server.',
     'gui.koshienSettingsModal.save': 'Save',
     'gui.koshienMockPanel.title': 'Koshien practice game',

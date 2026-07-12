@@ -22,9 +22,36 @@ const RIVAL_STRATEGIES = ['goal', 'item', 'stop', 'random'];
 const hasLocalStorage = () => typeof window !== 'undefined' && !!window.localStorage;
 
 /**
+ * The maximum per-turn sleep (seconds) the practice game accepts.
+ * @type {number}
+ */
+const MAX_TURN_INTERVAL = 5;
+
+/**
+ * The default per-turn sleep (seconds) used when nothing is saved yet, so a
+ * fresh practice game already slows down enough to follow the path by eye.
+ * @type {number}
+ */
+const DEFAULT_TURN_INTERVAL = 3;
+
+/**
+ * Clamp a raw turn-interval value into [0, MAX_TURN_INTERVAL] seconds.
+ * Missing / non-numeric values normalize to DEFAULT_TURN_INTERVAL, while an
+ * explicit 0 (or negative) stays 0 — an intentional no-wait choice.
+ * @param {*} value - the raw turn-interval value.
+ * @returns {number} - a valid interval in seconds.
+ */
+const clampTurnInterval = (value) => {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return DEFAULT_TURN_INTERVAL;
+    if (n <= 0) return 0;
+    return Math.min(n, MAX_TURN_INTERVAL);
+};
+
+/**
  * Clamp raw (possibly stale/foreign) values into a valid config.
  * @param {object} raw - the raw settings.
- * @returns {object} - {mapId, side, rival} with valid values.
+ * @returns {object} - {mapId, side, rival, turnInterval} with valid values.
  */
 const normalizeKoshienMockConfig = (raw) => {
     const settings = raw || {};
@@ -32,12 +59,13 @@ const normalizeKoshienMockConfig = (raw) => {
         mapId: MOCK_MAPS.some((m) => m.id === settings.mapId) ? settings.mapId : MOCK_MAPS[0].id,
         side: Number(settings.side) === 2 ? 2 : 1,
         rival: RIVAL_STRATEGIES.includes(settings.rival) ? settings.rival : 'goal',
+        turnInterval: clampTurnInterval(settings.turnInterval),
     };
 };
 
 /**
  * Load the saved practice game settings.
- * @returns {object} - {mapId, side, rival} (always valid values).
+ * @returns {object} - {mapId, side, rival, turnInterval} (always valid values).
  */
 const loadKoshienMockConfig = () => {
     if (!hasLocalStorage()) return normalizeKoshienMockConfig({});
@@ -51,7 +79,7 @@ const loadKoshienMockConfig = () => {
 
 /**
  * Persist the practice game settings.
- * @param {object} settings - {mapId, side, rival}.
+ * @param {object} settings - {mapId, side, rival, turnInterval}.
  */
 const saveKoshienMockConfig = (settings) => {
     if (!hasLocalStorage()) return;
@@ -76,6 +104,8 @@ export {
     STORAGE_KEY,
     MOCK_MAPS as KOSHIEN_MOCK_MAPS,
     RIVAL_STRATEGIES,
+    MAX_TURN_INTERVAL,
+    DEFAULT_TURN_INTERVAL,
     normalizeKoshienMockConfig,
     loadKoshienMockConfig,
     saveKoshienMockConfig,
