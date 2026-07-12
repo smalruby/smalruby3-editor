@@ -1331,6 +1331,9 @@
 .detail-layout {
     display: flex;
     flex-direction: column;
+    /* Align with the unified teacher views; the breadcrumb wrapper above
+       carries the top offset. */
+    padding: 0 2rem 1.25rem;
 }
 
 .detail-two-pane-layout {

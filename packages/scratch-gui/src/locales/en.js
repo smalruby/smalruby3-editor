@@ -178,7 +178,6 @@ export default {
     'gui.classroom.googleCourses.students': '{count} students',
     'gui.classroom.assignmentEditor.templatePlaceholder': 'Start from a template…',
     'gui.classroom.assignmentEditor.templateOverwriteConfirm': 'Replace the current pages with the template?',
-    'gui.classroom.evaluation.title': 'Evaluation — {label}',
     'gui.classroom.evaluation.hint':
         'AI proposals are drafts — you decide. Grading a few students by hand first calibrates the AI to your standard. Term grades are never shown to students; only the positive comments are returned.',
     'gui.classroom.evaluation.lessons': 'Lessons:',
@@ -224,6 +223,7 @@ export default {
     'gui.classroom.classList.logout': 'Logout',
     'gui.classroom.classList.importGc': 'Import from Google Classroom',
     'gui.classroom.classList.sectionPlaceholder': 'Section (optional, e.g. Year 2 Class 1)',
+    'gui.classroom.classList.createCancel': 'Cancel',
     'gui.classroom.classList.createClassOnly': 'Create the class only',
     'gui.classroom.classList.settings': 'Settings',
     'gui.classroom.classSettings.namePlaceholder': 'Class name (required, e.g. Technology)',

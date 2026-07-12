@@ -168,14 +168,7 @@ const TeacherEvaluation = ({
                     },
                 ]}
             />
-            <h2 className={styles.teacherViewTitle}>
-                <FormattedMessage
-                    defaultMessage="Evaluation — {label}"
-                    description="Evaluation screen title"
-                    id="gui.classroom.evaluation.title"
-                    values={{ label: evalGroup ? formatClassLabel(evalGroup) : '' }}
-                />
-            </h2>
+            <h2 className={styles.teacherViewTitle}>{evalGroup ? formatClassLabel(evalGroup) : ''}</h2>
             <p className={styles.assignmentEditorHint}>
                 <FormattedMessage
                     defaultMessage="AI proposals are drafts — you decide. Grading a few students by hand first calibrates the AI to your standard. Term grades are never shown to students; only the positive comments are returned."
