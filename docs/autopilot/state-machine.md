@@ -19,7 +19,7 @@ item の状態は次の 4 要素で決まる（Project が単一の真実）:
 | 種類 | 実体 |
 |---|---|
 | **A: autopilot フェーズ** | daemon が `phaseForItem` で決めて worker を dispatch（triage / discuss / decompose / implement / review / address-review） |
-| **D: daemon tick ステップ** | merge-progression / closed-reconcile / stuck 検知 / DoD 引き継ぎ / EPIC tracking / PR 投影 |
+| **D: daemon tick ステップ** | merge-progression / closed-reconcile / **stalled 復帰（worker 不在の in-flight 再開・#995）** / stuck 検知 / DoD 引き継ぎ / EPIC tracking / PR 投影 |
 | **H: 人間の操作** | Status 移動 / `🙋 HITL` ラベル解除 / **コメント・レビュー送信** / PR merge / Issue close |
 
 > **stuck 検知は 🙋 HITL 付きの item を対象外にする（#915）**。decompose/triage の提案系フェーズ
@@ -27,6 +27,20 @@ item の状態は次の 4 要素で決まる（Project が単一の真実）:
 > （人間の番）であり stall ではない。誤って Blocked にしないよう `isStuckCandidate` が
 > `item.hitlLabel` 付きを候補から除外する。解除後は #2/#6b の A トリガーが元フェーズへ
 > 再ディスパッチする（それでも動かない場合のみ、通常の run-なし判定で #11 の stuck 検知に掛かる）。
+
+> **stalled 復帰は stuck 検知の穴（#972）を埋める（#995）**。**実作業系 AI Status**（Understanding /
+> Implementing / Creating PR / Self-Reviewing / Addressing Comments / Running DoD）は dispatch のみが
+> 設定する in-flight マーカーで、`phaseForItem` は Self-Reviewing の happy-path を除き出口を持たない。
+> worker が異常終了・daemon 再起動・**Blocked マーキングの一時失敗**（#972: address-review の
+> tMax 失敗 → Blocked にする `gh` が SSO 失効で失敗 → Status=In Progress / 🙋 HITL のまま残留）で
+> 消えると、stuck 検知は 🙋 を除外するため拾えず出口が無くなる。`selectStalledInFlightItems` は
+> **worker 不在**（in-memory running ∪ `tmux list-sessions` に不在）を根拠に、HITL の有無を問わず
+> 対応フェーズへ**毎 tick**再ディスパッチする（#953 の起動時孤児復帰を定常 tick へ拡張）。
+> recovery は tick 冒頭で走り running に同期登録するので、selectActionable / stuck 検知と二重
+> ディスパッチせず、Blocked より再開を優先する。毎 tick 走るため Self-Reviewing の happy-path も
+> 対象に入るが、**空き容量（`cfg.concurrency - running`）の分だけ再開**し溢れは次 tick へ回すので
+> 並行上限を跨がない。人間の判断待ち HITL（Triaging / Decomposing / Discussing / Awaiting
+> Continuation / EPIC Decomposed）は実作業系 AI Status 集合に入らないため誤って再開されない。
 
 ### 人間ゲートの解除は 3 系統（固着防止の核心）
 
@@ -63,7 +77,7 @@ Review / DoD / Blocked / Discussing の「人間の番」は、次の **いず�
 | 8 | Sprint Backlog / — / **あり** | 人間が明示的に一時停止 | H: ラベル解除 | #7 |
 | 9 | In Progress / Self-Reviewing / なし | implement 完了直後 | **A: review**（自動） | Review + HITL（#12） |
 | 10 | In Progress / Implementing 等 / 任意（run あり） | worker 実行中 | run 完了（結果ファイル） | 結果の nextStatus へ |
-| 11 | In Progress / Implementing 等 / **なし**（run なし） | run 消失（daemon 再起動等） | **D: stuck 検知**（35 分） | Blocked + HITL + 説明コメント（#14） |
+| 11 | In Progress / 実作業系 AI Status / **任意**（run なし） | worker 消失（異常終了・daemon 再起動・Blocked マーキング失敗の残渣 #972） | **D: stalled 復帰**（毎 tick・worker 不在なら対応フェーズへ再 dispatch。🙋 HITL 残渣も含む・#995）。非 HITL でなお動かない深いケースは **D: stuck 検知**（35 分）| 対応フェーズへ再開（Implementing/Creating PR→implement, Self-Reviewing→review, Addressing Comments→address-review, Running DoD→verify, Understanding→understand）/ deeper fallback は Blocked + HITL（#14） |
 | 12 | Review・DoD / 任意 / **あり** | 人間レビュー / headful 検証待ち | H: merge → **D: merge-progression** / H: 解除 or **コメント・レビュー送信** → **A: address-review** | Close / #13 |
 | 13 | Review・DoD / 任意 / なし(解除済み) | 差し戻し済み | **A: address-review** | 対応後 Review + HITL（#12）/ LGTM は変更なし（watermark で空回りしない） |
 | 14 | Blocked / 任意 / **あり** | run 失敗・stall の人間対処待ち | H: 解除 or **コメント** → **A: address-review（PR あり）/ triage（PR なし）** / H: Status 移動 | 再開・再ルート |

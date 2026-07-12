@@ -28,7 +28,7 @@ const {
     parseAssigneeDirective,
     selectActionable,
     isStuckCandidate,
-    selectOrphanedInFlightItems,
+    selectStalledInFlightItems,
     liveWorkerIssuesFromSessions,
     applyResult,
     subIssueSetupIntents,
@@ -542,16 +542,65 @@ async function detectStuck(items, cfg, state, log, deps = {}) {
 }
 
 /**
+ * In Progress + 実作業系 AI Status のまま worker が不在（stalled）の item を対応フェーズへ
+ * 再ディスパッチする（#995）。#953 の「起動時だけの孤児復帰」を**定常 tick でも**適用する
+ * 拡張で、既に fetch 済みの `items` を受け取る core 関数（poll は呼び出し側が済ませる）。
+ *
+ * 背景（#972）: address-review worker が tMax 超過で失敗 → daemon が Blocked にしようとした
+ * `gh project item-edit` がちょうど SSO 失効で失敗 → item が Status=In Progress /
+ * AI Status=Addressing Comments / 🙋 HITL のまま残り、`phaseForItem` が null（出口なし）を
+ * 返して完全にストールした。実作業系 AI Status は dispatch のみが設定するので、worker が居ない
+ * なら「人間の番」ではなく異常終了の残渣であり、HITL の有無を問わず自動再開してよい。
+ *
+ * 生存判定は **in-memory running ∪ tmux list-sessions** のユニオン: crash → 外部 supervisor に
+ * よる再起動では in-memory running を失う一方、tmux の worker セッションは生き残りうる。逆に
+ * 定常運転中は in-memory running が最新なので、両方を見て「本当に worker が居ない」ものだけ拾う。
+ * 生存中 worker を持つ item・この daemon が所有中の item は触らない（走行中の run を完走させる）。
+ *
+ * **並行上限を尊重する（#995）**: この関数は tick 冒頭で**毎 tick**走るため、Self-Reviewing の
+ * happy-path（implement 完了直後・次 tick で worker 不在）も対象に入る。無制限に再ディスパッチ
+ * すると `selectActionable` が守る `cfg.concurrency` を跨いで worker を起こしてしまう。空き容量
+ * （`cfg.concurrency - state.running.size`）の分だけ再開し、溢れた分は次 tick に委ねる（capacity が
+ * 空けば `selectStalledInFlightItems` が再度拾う）。recovery が tick 冒頭で running を埋めるので、
+ * この後の `selectActionable` は残り容量だけを使い、二重ディスパッチや過剰起動が起きない。
+ * @param {object[]} items fetch 済みの Project item 一覧（tick が渡す）
+ * @param {object} cfg
+ * @param {object} state daemon の可変状態
+ * @param {function} log
+ * @param {object} [deps] { listSessions, dispatch }（テスト用）
+ * @returns {Promise<{issue:number, phase:string}[]>} 再ディスパッチした item
+ */
+async function recoverStalledInFlightWorkers(items, cfg, state, log, deps = {}) {
+    const listSess = deps.listSessions || listSessions;
+    const dispatchFn = deps.dispatch || dispatch;
+    const concurrency = cfg.concurrency || Infinity;
+    const live = new Set([
+        ...state.running.keys(),
+        ...liveWorkerIssuesFromSessions(listSess()),
+    ]);
+    const stalled = selectStalledInFlightItems(items, live);
+    const byIssue = new Map(items.map((it) => [it.issue, it]));
+    const recovered = [];
+    for (const s of stalled) {
+        // 空き容量が尽きたら停止（残りは次 tick で拾う）。dispatch は running を同期 set するので
+        // running.size はこのループ内で増える = 実際の起動数を数えて上限を守れる。
+        if (state.running.size >= concurrency) break;
+        const item = byIssue.get(s.issue);
+        if (!ownsItem(item, cfg.assignee)) continue; // 自分がオーナーの item だけ復帰させる
+        if (state.running.has(s.issue)) continue; // 既にこの daemon が所有中なら触らない
+        log(`#${s.issue}: stalled in-flight worker（${s.phase} / worker 不在）→ 再ディスパッチ`);
+        dispatchFn({ ...item, phase: s.phase }, cfg, state, log);
+        recovered.push(s);
+    }
+    if (recovered.length) log(`stalled recovery: ${recovered.length} 件を再ディスパッチ`);
+    return recovered;
+}
+
+/**
  * 起動時の孤児 worker 自動復帰（#953）。crash → 外部 supervisor による再起動では in-memory の
  * `state.running` を失う一方、tmux の worker セッションは別プロセスなので生き残りうる。
- * この関数は起動時に 1 度だけ呼ばれ:
- *   1. `tmux list-sessions` から**実際に生存中**の worker の issue 集合を得る（in-memory
- *      running は起動直後は常に空なので使わない）、
- *   2. in-flight の AI Status（Implementing 等）なのに worker が生存していない item を
- *      {@link selectOrphanedInFlightItems}（純粋関数）で選び、
- *   3. enroll フィルタ（{@link ownsItem}）を通したものを対応フェーズへ再ディスパッチする。
- * これで crash → supervisor 再起動 → 孤児自動復帰まで自己修復し、手動 inject が不要になる。
- * 生存中 worker を持つ item は触らない（走行中の run をそのまま完走させる）。
+ * この関数は起動時に 1 度だけ呼ばれ、items を fetch してから
+ * {@link recoverStalledInFlightWorkers}（定常 tick と共通の core）に委譲する。
  * @param {object} cfg
  * @param {object} state daemon の可変状態
  * @param {function} log
@@ -559,10 +608,8 @@ async function detectStuck(items, cfg, state, log, deps = {}) {
  * @returns {Promise<{issue:number, phase:string}[]>} 再ディスパッチした孤児
  */
 async function recoverOrphanedWorkers(cfg, state, log, deps = {}) {
-    const listSess = deps.listSessions || listSessions;
     const listItemsFn = deps.listItems || project.listItems;
     const readToken = deps.readToken || project.readToken;
-    const dispatchFn = deps.dispatch || dispatch;
     let items;
     try {
         items = await listItemsFn(cfg.owner, cfg.project, await readToken());
@@ -570,20 +617,7 @@ async function recoverOrphanedWorkers(cfg, state, log, deps = {}) {
         log(`orphan recovery: poll 失敗（スキップ）: ${e.message}`);
         return [];
     }
-    const live = liveWorkerIssuesFromSessions(listSess());
-    const orphans = selectOrphanedInFlightItems(items, live);
-    const byIssue = new Map(items.map((it) => [it.issue, it]));
-    const recovered = [];
-    for (const o of orphans) {
-        const item = byIssue.get(o.issue);
-        if (!ownsItem(item, cfg.assignee)) continue; // 自分がオーナーの item だけ復帰させる
-        if (state.running.has(o.issue)) continue; // 既にこの daemon が所有中なら触らない
-        log(`#${o.issue}: 孤児 in-flight worker（${o.phase} / worker 不在）→ 再ディスパッチ`);
-        dispatchFn({ ...item, phase: o.phase }, cfg, state, log);
-        recovered.push(o);
-    }
-    if (recovered.length) log(`orphan recovery: ${recovered.length} 件を再ディスパッチ`);
-    return recovered;
+    return recoverStalledInFlightWorkers(items, cfg, state, log, deps);
 }
 
 /** 実行履歴の上限（モニタ最下部の表示用。ログとしての意味のみ） */
@@ -1377,6 +1411,12 @@ async function tick(cfg, state, log) {
     // autopilot-assignee ディレクティブ（#938）: itemOwner/ownsItem が使う前に解決しておく
     // （2人以上 assign の item のみ本文 fetch）。
     items = await populateAssigneeDirectives(items, cfg, state, log);
+    // ストール復帰（#995）: In Progress + 実作業系 AI Status のまま worker が不在の item を
+    // 対応フェーズへ再ディスパッチする（#972 のデッドエンド解消）。dispatch は running を
+    // 同期的に set するので、直後の running スナップショットに含まれ selectActionable /
+    // detectStuck と二重ディスパッチせず、Blocked より再開を優先できる。
+    await recoverStalledInFlightWorkers(items, cfg, state, log)
+        .catch((e) => log(`stalled recovery error: ${e.message}`));
     const running = new Set(state.running.keys());
     const contexts = await collectGateContexts(cfg, items, running, state, log);
     // 協調的チェックポイント（EPIC #906・#912）: Awaiting Continuation の item は continuation
@@ -1960,7 +2000,8 @@ async function main(opts = {}) {
 
 module.exports = {
     main, tick, runTickOnce, dispatch, applyMergeProgression, applyClosedReconcile, applyPrProjection,
-    applyDodHandoffs, detectStuck, recoverOrphanedWorkers, markBlocked, getDirectives, populateAssigneeDirectives,
+    applyDodHandoffs, detectStuck, recoverOrphanedWorkers, recoverStalledInFlightWorkers,
+    markBlocked, getDirectives, populateAssigneeDirectives,
     applyLabelHealing, applyAfterWaitLabels,
     applyDecomposeSubIssueSetup,
     isGateItem, collectGateContexts, checkAuthHealth, REAUTH_HINT,

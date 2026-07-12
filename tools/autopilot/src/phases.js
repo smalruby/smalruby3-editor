@@ -231,6 +231,32 @@ const PHASE_BY_AI_STATUS = Object.fromEntries(
     Object.entries(PHASE_BY_COMMAND).map(([command, meta]) => [meta.aiStatus, command]),
 );
 
+/**
+ * In Progress のとき「worker が実行中であるべき」実作業系 AI Status → 再開フェーズ（#995）。
+ *
+ * これらは dispatch が worker 起動時に設定する状態で、`phaseForItem` が（Self-Reviewing の
+ * happy-path を除き）出口を持たない。worker が異常終了・daemon 再起動・**Blocked マーキングの
+ * 一時失敗**（#972）で消えると、Status=In Progress / AI Status=実作業系 のまま（🙋 HITL 残渣が
+ * 付くこともある）誰も再 dispatch せずストールする。`selectStalledInFlightItems` が「worker 不在」
+ * を根拠にこの表から再開フェーズを引き、daemon が対応フェーズへ再ディスパッチする。
+ *
+ * 人間の判断待ち HITL（Triaging / Decomposing / Discussing / Awaiting Continuation / EPIC
+ * Decomposed）とはこの **AI Status 集合そのもの** で区別できる（実作業系 AI Status は dispatch の
+ * みが設定し、人間はゲート/resting 系 AI Status で待つ）。だからこの集合に入る item の HITL は
+ * 「人間の番」ではなく異常終了の残渣とみなして自動再開してよい（Issue #995 の設計判断）。
+ *
+ * `Creating PR` は {@link PHASE_BY_COMMAND} に対応コマンドが無い（AI Status option のみ）ため
+ * 個別に implement へ写像する。それ以外は {@link PHASE_BY_AI_STATUS} と同じ写像。
+ */
+const IN_FLIGHT_WORK_PHASE_BY_AI_STATUS = {
+    Understanding: 'understand',
+    Implementing: 'implement',
+    'Creating PR': 'implement',
+    'Self-Reviewing': 'review',
+    'Addressing Comments': 'address-review',
+    'Running DoD': 'verify',
+};
+
 /** フェーズプロンプトファイルの配置ディレクトリ（worktree/repo 内の相対パス） */
 const PROMPT_DIR = 'tools/autopilot/prompts';
 
@@ -694,35 +720,34 @@ function liveWorkerIssuesFromSessions(sessionNames) {
 }
 
 /**
- * 起動時の孤児 worker 復帰（#953）: in-flight の AI Status（Implementing / Understanding /
- * Addressing Comments / Running DoD 等）なのに実 worker セッションが生存していない item を、
- * 対応フェーズへ再ディスパッチするために選ぶ（純粋関数）。
+ * In Progress + 実作業系 AI Status のまま worker が不在（stalled）の item を、対応フェーズへ
+ * 再ディスパッチするために選ぶ（純粋関数・#953 の起動時孤児復帰を定常 tick へ拡張した #995）。
  *
- * crash → 外部 supervisor による daemon 再起動では in-memory の `state.running` を失うが、
- * tmux の worker セッションは daemon と別プロセスなので**生き残りうる**。そのため
- * 「生存中 worker の issue 集合」を I/O 側（`tmux list-sessions`）から受け取り、生存して
- * いない item だけを対象にする（daemon 起動直後の in-memory running は常に空なので判定に
- * 使わない、という不変条件）。
+ * 対象は In Progress かつ AI Status が {@link IN_FLIGHT_WORK_PHASE_BY_AI_STATUS} に載る
+ * （= dispatch のみが設定する実作業系）item で、`liveIssues` に**含まれない**もの。dispatch は
+ * 着手時に Status=In Progress / AI Status=<phase> を設定するので、worker が結果を emit せず
+ * 死ぬと In Progress のまま残る。crash → 外部 supervisor による再起動では in-memory の
+ * `state.running` を失うが tmux の worker セッションは生き残りうるため、生存判定は I/O 側
+ * （daemon）が **in-memory running ∪ `tmux list-sessions`** のユニオンを `liveIssues` として渡す。
  *
- * 対象は {@link isStuckCandidate}（In Progress + AI 作業中 + 非 HITL + 非 resting）かつ
- * AI Status が既知フェーズに逆引きできるもの。dispatch は着手時に Status=In Progress /
- * AI Status=<phase> を設定するので、worker が結果を emit せず死ぬと In Progress のまま残る。
- * 逆に triage/discuss/decompose が**正常完了**して HITL 待ちになった item は 🙋 ラベル付き
- * （hitlLabel=true）なので isStuckCandidate で弾かれ、ここでは復帰対象にしない。
- * Self-Reviewing は STUCK_EXEMPT なので除外され、通常 tick の phaseForItem→review 自動再開に
- * 委ねる（二重ディスパッチしない）。
- * @param {object[]} items 各 { issue, status, aiStatus, hitlLabel }
- * @param {Set<number>} liveWorkerIssues 生存中 worker の issue 番号集合
+ * **HITL の有無は問わない**: 実作業系 AI Status は dispatch のみが設定し、人間の判断待ち HITL
+ * （Triaging / Decomposing / Discussing / Awaiting Continuation / EPIC Decomposed）とは AI Status
+ * 集合そのもので区別できる。よってこの集合に入る item の 🙋 HITL は「人間の番」ではなく
+ * **異常終了の残渣**（例: Blocked マーキングの一時失敗で Status は In Progress のまま syncFaces が
+ * 🙋 だけ付けた・#972）とみなし、worker 不在なら自動再開してよい。人間が意図的に付けた HITL は
+ * 上記のゲート/resting 系 AI Status を使うので、この関数の対象にはならない。
+ * @param {object[]} items 各 { issue, status, aiStatus }
+ * @param {Set<number>} liveIssues 生存中 worker の issue 番号集合（in-memory running ∪ tmux）
  * @returns {{issue:number, phase:string}[]} 再ディスパッチ対象（issue + phase）
  */
-function selectOrphanedInFlightItems(items, liveWorkerIssues) {
-    const live = liveWorkerIssues || new Set();
+function selectStalledInFlightItems(items, liveIssues) {
+    const live = liveIssues || new Set();
     const out = [];
     for (const item of items || []) {
-        if (!isStuckCandidate(item)) continue;
-        if (live.has(item.issue)) continue;
-        const phase = PHASE_BY_AI_STATUS[item.aiStatus];
+        if (!item || item.status !== 'In Progress') continue;
+        const phase = IN_FLIGHT_WORK_PHASE_BY_AI_STATUS[item.aiStatus];
         if (!phase) continue;
+        if (live.has(item.issue)) continue;
         out.push({ issue: item.issue, phase });
     }
     return out;
@@ -2072,8 +2097,9 @@ const DEFAULT_WATCHDOG = {
 module.exports = {
     PHASE_BY_COMMAND,
     PHASE_BY_AI_STATUS,
+    IN_FLIGHT_WORK_PHASE_BY_AI_STATUS,
     liveWorkerIssuesFromSessions,
-    selectOrphanedInFlightItems,
+    selectStalledInFlightItems,
     PROMPT_DIR,
     phasePromptCommand,
     DEFAULT_CLAUDE_COMMAND,
