@@ -468,6 +468,21 @@ export class ClassroomStack extends cdk.Stack {
       integration,
     });
 
+    // v1->v2 bulk migration (idempotent) — adopt ungrouped assignments into
+    // classes and lift class-level fields. Triggered from the class list.
+    this.api.addRoutes({
+      path: '/classroom-groups/migrate',
+      methods: [apigatewayv2.HttpMethod.POST],
+      integration,
+    });
+
+    // Topic list management (add/remove/rename with cascade to assignments).
+    this.api.addRoutes({
+      path: '/classroom-groups/{groupId}/topics',
+      methods: [apigatewayv2.HttpMethod.PATCH],
+      integration,
+    });
+
     // Duplicate a lesson (classroom) into the same or another group.
     this.api.addRoutes({
       path: '/classrooms/{classroomId}/duplicate',

@@ -73,6 +73,14 @@ const MAX_GROUP_NAME_LENGTH = 50;
 // How many prior lessons of the same group to inspect when looking up the
 // student's previous returned comment on join (personalized recap).
 const PREVIOUS_COMMENT_LOOKBACK = 3;
+// Class (旧組) v2 data model: every assignment (Classrooms record) belongs to
+// a class (ClassroomGroups record), and class-level GC linkage / co-teachers /
+// studentCount are authoritative. The version is stamped on each group record
+// so the client can trigger the one-time bulk migration when it sees older
+// (or missing) versions on first class-list view.
+const CLASSROOM_SCHEMA_VERSION = 2;
+const MAX_TOPICS_PER_CLASS = 20;
+const MAX_TOPIC_NAME_LENGTH = 50;
 // Assignment content (lesson delivery): teacher-authored pages of
 // (short text + optional image) plus an optional starter project, attached to
 // a classroom. Objects live under {classroomId}/assignment/ in the
@@ -421,6 +429,37 @@ export function canManageClassroom(
   return Array.isArray(coTeacherEmails) && coTeacherEmails.includes(identity.email);
 }
 
+/**
+ * Class-aware manage check: classroom-level owner/co-teacher first (cheap,
+ * no I/O), then the owning class (group) — its owner and class-level
+ * co-teachers may manage every assignment inside it. Classroom-level
+ * coTeacherEmails stay honored for pre-v2 records.
+ */
+async function canManageViaGroup(
+  item: Record<string, unknown>,
+  identity: TeacherIdentity,
+): Promise<boolean> {
+  if (canManageClassroom(item, identity)) {
+    return true;
+  }
+  if (typeof item.groupId === 'string' && item.groupId) {
+    const groupResult = await docClient.send(new GetCommand({
+      TableName: GROUPS_TABLE,
+      Key: { groupId: item.groupId },
+    }));
+    const group = groupResult.Item;
+    if (group) {
+      if (group.teacherSub === identity.sub) {
+        return true;
+      }
+      if (identity.email && Array.isArray(group.coTeacherEmails)) {
+        return (group.coTeacherEmails as string[]).includes(normalizeEmail(identity.email));
+      }
+    }
+  }
+  return false;
+}
+
 function extractBearerToken(authHeader?: string): string {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     throw new AuthError('Authorization header with Bearer token is required');
@@ -433,15 +472,27 @@ function extractBearerToken(authHeader?: string): string {
 async function handleCreateClassroom(identity: TeacherIdentity, body: Record<string, unknown>): Promise<APIGatewayProxyStructuredResultV2> {
   const className = validateClassName(body.className);
   let assignmentName = validateClassName(body.assignmentName); // reuse same validator (1-50 chars)
-  const studentCount = validateStudentCount(body.studentCount);
   const googleClassroomCourseId = typeof body.googleClassroomCourseId === 'string' ? body.googleClassroomCourseId.trim() : undefined;
 
-  // Optional group (組) assignment — must be a group this teacher owns.
+  // Optional group (クラス) assignment — must be a group this teacher owns.
   let groupId: string | undefined;
+  let group: Record<string, unknown> | undefined;
   if (typeof body.groupId === 'string' && body.groupId) {
-    await getOwnedGroup(identity, body.groupId);
+    group = await getOwnedGroup(identity, body.groupId);
     groupId = body.groupId;
   }
+  // v2: the class's studentCount is the source of truth — an assignment
+  // created inside a class inherits it when the request omits the count.
+  const studentCount = body.studentCount === undefined && group && typeof group.studentCount === 'number'
+    ? group.studentCount
+    : validateStudentCount(body.studentCount);
+  const topic = body.topic !== undefined && body.topic !== null && body.topic !== ''
+    ? validateTopicName(body.topic)
+    : undefined;
+  if (topic && groupId) {
+    await ensureGroupTopic(groupId, group, topic);
+  }
+  const sortDate = body.sortDate !== undefined ? validateSortDate(body.sortDate) : undefined;
 
   // Auto-number duplicate assignment names within the same class
   const existingClassrooms = await docClient.send(new QueryCommand({
@@ -499,6 +550,8 @@ async function handleCreateClassroom(identity: TeacherIdentity, body: Record<str
       studentCount,
       googleClassroomCourseId: googleClassroomCourseId || undefined,
       groupId,
+      topic,
+      sortDate: sortDate || now,
       status: 'active',
       createdAt: now,
       updatedAt: now,
@@ -508,13 +561,33 @@ async function handleCreateClassroom(identity: TeacherIdentity, body: Record<str
 
   return {
     statusCode: 201,
-    body: JSON.stringify({ classroomId, className, assignmentName, joinCode, studentCount, googleClassroomCourseId: googleClassroomCourseId || null, groupId: groupId || null, status: 'active', createdAt: now, expiresAt }),
+    body: JSON.stringify({ classroomId, className, assignmentName, joinCode, studentCount, googleClassroomCourseId: googleClassroomCourseId || null, groupId: groupId || null, topic: topic || null, sortDate: sortDate || now, status: 'active', createdAt: now, expiresAt }),
   };
 }
 
 /** Read the coTeacherEmails list from a classroom item, defaulting to []. */
 function readCoTeacherEmails(item: Record<string, unknown>): string[] {
   return Array.isArray(item.coTeacherEmails) ? (item.coTeacherEmails as string[]) : [];
+}
+
+/**
+ * v2 seat count: the class's studentCount is authoritative, but only ever
+ * grows the grid — max() with the assignment's own snapshot so an older
+ * lesson never loses occupied seats when the class count is set smaller.
+ */
+async function resolveSeatCount(classroom: Record<string, unknown>): Promise<number> {
+  const own = typeof classroom.studentCount === 'number' ? classroom.studentCount : 0;
+  if (typeof classroom.groupId === 'string' && classroom.groupId) {
+    const result = await docClient.send(new GetCommand({
+      TableName: GROUPS_TABLE,
+      Key: { groupId: classroom.groupId },
+    }));
+    const groupCount = result.Item && typeof result.Item.studentCount === 'number'
+      ? result.Item.studentCount
+      : 0;
+    return Math.max(own, groupCount);
+  }
+  return own;
 }
 
 /**
@@ -534,6 +607,8 @@ function mapClassroomSummary(item: Record<string, unknown>, identity: TeacherIde
     expiresAt: item.ttl ? new Date((item.ttl as number) * 1000).toISOString() : null,
     coTeacherEmails: readCoTeacherEmails(item),
     groupId: item.groupId || null,
+    topic: item.topic || null,
+    sortDate: item.sortDate || item.createdAt || null,
     hasAssignment: hasAssignmentContent(item),
     role: item.teacherSub === identity.sub ? 'owner' : 'co-teacher',
   };
@@ -584,7 +659,7 @@ async function handleGetClassroom(identity: TeacherIdentity, classroomId: string
   if (!result.Item || result.Item.status !== 'active') {
     throw new NotFoundError('Classroom not found');
   }
-  if (!canManageClassroom(result.Item, identity)) {
+  if (!(await canManageViaGroup(result.Item, identity))) {
     throw new AuthError('Not authorized to view this classroom');
   }
 
@@ -626,7 +701,7 @@ async function handleListCoTeachers(identity: TeacherIdentity, classroomId: stri
   if (!result.Item || result.Item.status !== 'active') {
     throw new NotFoundError('Classroom not found');
   }
-  if (!canManageClassroom(result.Item, identity)) {
+  if (!(await canManageViaGroup(result.Item, identity))) {
     throw new AuthError('Not authorized to view co-teachers for this classroom');
   }
   return {
@@ -648,7 +723,7 @@ async function handleAddCoTeacher(identity: TeacherIdentity, classroomId: string
   if (!result.Item || result.Item.status !== 'active') {
     throw new NotFoundError('Classroom not found');
   }
-  if (!canManageClassroom(result.Item, identity)) {
+  if (!(await canManageViaGroup(result.Item, identity))) {
     throw new AuthError('Not authorized to manage co-teachers for this classroom');
   }
 
@@ -682,7 +757,7 @@ async function handleRemoveCoTeacher(identity: TeacherIdentity, classroomId: str
   if (!result.Item || result.Item.status !== 'active') {
     throw new NotFoundError('Classroom not found');
   }
-  if (!canManageClassroom(result.Item, identity)) {
+  if (!(await canManageViaGroup(result.Item, identity))) {
     throw new AuthError('Not authorized to manage co-teachers for this classroom');
   }
 
@@ -706,7 +781,7 @@ async function handleUpdateClassroom(identity: TeacherIdentity, classroomId: str
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId },
   }));
-  if (!classroom.Item || !canManageClassroom(classroom.Item, identity)) {
+  if (!classroom.Item || !(await canManageViaGroup(classroom.Item, identity))) {
     throw new AuthError('Not authorized to update this classroom');
   }
 
@@ -730,7 +805,7 @@ async function handleUpdateClassroom(identity: TeacherIdentity, classroomId: str
   if (body.regenerateJoinCode === true) {
     updates.joinCode = generateJoinCode();
   }
-  // Assign to / remove from a group (組). `groupId: null` clears the
+  // Assign to / remove from a group (クラス). `groupId: null` clears the
   // assignment; a string must be a group this teacher owns.
   if (body.groupId !== undefined) {
     if (body.groupId === null || body.groupId === '') {
@@ -741,6 +816,22 @@ async function handleUpdateClassroom(identity: TeacherIdentity, classroomId: str
     } else {
       throw new ValidationError('groupId must be a string or null');
     }
+  }
+  if (body.topic !== undefined) {
+    if (body.topic === null || body.topic === '') {
+      updates.topic = null;
+    } else {
+      updates.topic = validateTopicName(body.topic);
+      // A new topic used on an assignment becomes part of the class's list.
+      const effectiveGroupId = (updates.groupId !== undefined ? updates.groupId : classroom.Item.groupId) as
+        string | null | undefined;
+      if (effectiveGroupId) {
+        await ensureGroupTopic(effectiveGroupId, undefined, updates.topic as string);
+      }
+    }
+  }
+  if (body.sortDate !== undefined) {
+    updates.sortDate = validateSortDate(body.sortDate);
   }
 
   const expressionParts: string[] = [];
@@ -825,7 +916,7 @@ async function handleJoinClassroom(sourceIp: string, body: Record<string, unknow
     throw new NotFoundError('This classroom is no longer active');
   }
 
-  const seatNumber = validateSeatNumber(body.seatNumber, classroom.studentCount);
+  const seatNumber = validateSeatNumber(body.seatNumber, await resolveSeatCount(classroom));
   const nickname = validateNickname(body.nickname);
   const memberId = `seat-${String(seatNumber).padStart(2, '0')}`;
 
@@ -925,7 +1016,7 @@ async function handleListMembers(identity: TeacherIdentity, classroomId: string)
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId },
   }));
-  if (!classroom.Item || !canManageClassroom(classroom.Item, identity)) {
+  if (!classroom.Item || !(await canManageViaGroup(classroom.Item, identity))) {
     throw new AuthError('Not authorized to view this classroom');
   }
 
@@ -984,7 +1075,7 @@ async function handleDeleteClassroom(identity: TeacherIdentity, classroomId: str
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId },
   }));
-  if (!classroom.Item || !canManageClassroom(classroom.Item, identity)) {
+  if (!classroom.Item || !(await canManageViaGroup(classroom.Item, identity))) {
     throw new AuthError('Not authorized to delete this classroom');
   }
   if (classroom.Item.status !== 'active') {
@@ -1081,7 +1172,7 @@ async function handleLookupClassroom(sourceIp: string, body: Record<string, unkn
       classroomId: classroom.classroomId,
       className: classroom.className,
       assignmentName: classroom.assignmentName || null,
-      studentCount: classroom.studentCount,
+      studentCount: await resolveSeatCount(classroom),
       takenSeats,
       activeKickRequestIds,
       expiresAt: classroom.ttl ? new Date((classroom.ttl as number) * 1000).toISOString() : null,
@@ -1096,7 +1187,7 @@ async function handleDeleteMember(identity: TeacherIdentity, classroomId: string
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId },
   }));
-  if (!classroom.Item || !canManageClassroom(classroom.Item, identity)) {
+  if (!classroom.Item || !(await canManageViaGroup(classroom.Item, identity))) {
     throw new AuthError('Not authorized to modify this classroom');
   }
 
@@ -1248,7 +1339,7 @@ async function handleListKickRequests(
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId },
   }));
-  if (!classroom.Item || !canManageClassroom(classroom.Item, identity)) {
+  if (!classroom.Item || !(await canManageViaGroup(classroom.Item, identity))) {
     throw new AuthError('Not authorized to view kick requests for this classroom');
   }
 
@@ -1280,7 +1371,7 @@ async function handleApproveKickRequest(
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId },
   }));
-  if (!classroom.Item || !canManageClassroom(classroom.Item, identity)) {
+  if (!classroom.Item || !(await canManageViaGroup(classroom.Item, identity))) {
     throw new AuthError('Not authorized to modify kick requests for this classroom');
   }
   const reqResult = await docClient.send(new GetCommand({
@@ -1335,7 +1426,7 @@ async function handleRejectKickRequest(
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId },
   }));
-  if (!classroom.Item || !canManageClassroom(classroom.Item, identity)) {
+  if (!classroom.Item || !(await canManageViaGroup(classroom.Item, identity))) {
     throw new AuthError('Not authorized to modify kick requests for this classroom');
   }
   await docClient.send(new DeleteCommand({
@@ -1523,7 +1614,7 @@ async function handleListSubmissions(
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId },
   }));
-  if (!classroom.Item || !canManageClassroom(classroom.Item, identity)) {
+  if (!classroom.Item || !(await canManageViaGroup(classroom.Item, identity))) {
     throw new AuthError('Not authorized to view submissions');
   }
 
@@ -1600,7 +1691,7 @@ async function handleUpdateSubmission(
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId },
   }));
-  if (!classroom.Item || !canManageClassroom(classroom.Item, identity)) {
+  if (!classroom.Item || !(await canManageViaGroup(classroom.Item, identity))) {
     throw new AuthError('Not authorized to update submissions');
   }
 
@@ -1798,7 +1889,7 @@ async function handlePostAssignment(
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId },
   }));
-  if (!result.Item || !canManageClassroom(result.Item, identity)) {
+  if (!result.Item || !(await canManageViaGroup(result.Item, identity))) {
     throw new NotFoundError('Classroom not found');
   }
   const courseId = result.Item.googleClassroomCourseId as string;
@@ -1939,6 +2030,140 @@ export function validateGroupYear(year: unknown): number {
   return n;
 }
 
+export function validateTopicName(name: unknown): string {
+  if (typeof name !== 'string' || name.trim().length === 0) {
+    throw new ValidationError('Topic name is required');
+  }
+  const trimmed = name.trim();
+  if (trimmed.length > MAX_TOPIC_NAME_LENGTH) {
+    throw new ValidationError(`Topic name must be ${MAX_TOPIC_NAME_LENGTH} characters or less`);
+  }
+  return trimmed;
+}
+
+/**
+ * Sort key for assignments inside a class. Meaning-free by design (teacher
+ * interview): defaults to createdAt, freely editable, never shown to students.
+ */
+export function validateSortDate(value: unknown): string {
+  if (typeof value !== 'string' || isNaN(Date.parse(value))) {
+    throw new ValidationError('sortDate must be an ISO 8601 date string');
+  }
+  return new Date(value).toISOString();
+}
+
+/**
+ * Japanese school year (April boundary) for a timestamp, evaluated in JST —
+ * a lesson created 2026-01-15 belongs to school year 2025. Used to name the
+ * classes auto-created by the v2 migration. Pure — exported for unit tests.
+ */
+export function schoolYearFromIso(iso: string): number {
+  const jst = new Date(new Date(iso).getTime() + 9 * 60 * 60 * 1000);
+  const month = jst.getUTCMonth() + 1;
+  return month >= 4 ? jst.getUTCFullYear() : jst.getUTCFullYear() - 1;
+}
+
+export interface GroupMigrationPlan {
+  /** Classes to auto-create, keyed so assignments can reference them before IDs exist. */
+  createGroups: { key: string; name: string; year: number }[];
+  /** groupKey is either an existing groupId or a createGroups key. */
+  assignments: { classroomId: string; groupKey: string }[];
+  /** Field lifts + schemaVersion stamp per group (existing id or create key). */
+  groupUpdates: { groupKey: string; set: Record<string, unknown> }[];
+}
+
+/**
+ * Plan the v1→v2 migration for one teacher: adopt ungrouped assignments into
+ * classes auto-created per className (school year estimated from creation
+ * date), then lift assignment-level GC courseId (earliest wins) /
+ * co-teachers (union) / studentCount (max) up to each class. Idempotent by
+ * construction: a second run finds nothing ungrouped and produces lifts that
+ * only stamp schemaVersion. Pure — exported for unit tests.
+ */
+export function planGroupMigration(
+  classrooms: Record<string, unknown>[],
+  groups: Record<string, unknown>[],
+): GroupMigrationPlan {
+  const active = classrooms.filter(c => c.status === 'active');
+  const createGroups: GroupMigrationPlan['createGroups'] = [];
+  const assignments: GroupMigrationPlan['assignments'] = [];
+  const groupKeyByClassroomId = new Map<string, string>();
+
+  for (const classroom of active) {
+    if (typeof classroom.groupId === 'string' && classroom.groupId) {
+      groupKeyByClassroomId.set(String(classroom.classroomId), classroom.groupId);
+      continue;
+    }
+    const name = String(classroom.className || '');
+    const year = schoolYearFromIso(String(classroom.createdAt || new Date(0).toISOString()));
+    // Prefer an existing class with the same name (same year first, else the
+    // newest) so a teacher's manual class is reused instead of duplicated.
+    const sameName = groups.filter(g => g.name === name && g.status === 'active');
+    const existing = sameName.find(g => g.year === year)
+      || sameName.sort((a, b) => Number(b.year || 0) - Number(a.year || 0))[0];
+    let groupKey: string;
+    if (existing) {
+      groupKey = String(existing.groupId);
+    } else {
+      groupKey = `new:${name}:${year}`;
+      if (!createGroups.some(g => g.key === groupKey)) {
+        createGroups.push({ key: groupKey, name, year });
+      }
+    }
+    assignments.push({ classroomId: String(classroom.classroomId), groupKey });
+    groupKeyByClassroomId.set(String(classroom.classroomId), groupKey);
+  }
+
+  // Lift assignment-level fields up to each class (including classes that
+  // gain no new assignments — they still need the schemaVersion stamp).
+  const allKeys = new Set<string>([
+    ...groups.map(g => String(g.groupId)),
+    ...createGroups.map(g => g.key),
+  ]);
+  const groupUpdates: GroupMigrationPlan['groupUpdates'] = [];
+  for (const groupKey of allKeys) {
+    const existing = groups.find(g => String(g.groupId) === groupKey);
+    const members = active
+      .filter(c => groupKeyByClassroomId.get(String(c.classroomId)) === groupKey)
+      .sort((a, b) => String(a.createdAt || '').localeCompare(String(b.createdAt || '')));
+    const set: Record<string, unknown> = {};
+    if (!existing || existing.schemaVersion !== CLASSROOM_SCHEMA_VERSION) {
+      set.schemaVersion = CLASSROOM_SCHEMA_VERSION;
+    }
+    if (!(existing && existing.googleClassroomCourseId)) {
+      const withCourse = members.find(c => c.googleClassroomCourseId);
+      if (withCourse) {
+        set.googleClassroomCourseId = withCourse.googleClassroomCourseId;
+      }
+    }
+    const emailUnion = new Set<string>(
+      existing && Array.isArray(existing.coTeacherEmails) ? (existing.coTeacherEmails as string[]) : [],
+    );
+    const before = emailUnion.size;
+    for (const c of members) {
+      for (const email of (Array.isArray(c.coTeacherEmails) ? (c.coTeacherEmails as string[]) : [])) {
+        emailUnion.add(email);
+      }
+    }
+    if (emailUnion.size > before) {
+      set.coTeacherEmails = [...emailUnion];
+    }
+    const maxCount = Math.max(
+      existing && typeof existing.studentCount === 'number' ? existing.studentCount : 0,
+      ...members.map(c => (typeof c.studentCount === 'number' ? c.studentCount : 0)),
+    );
+    const existingCount = existing && typeof existing.studentCount === 'number' ? existing.studentCount : 0;
+    if (maxCount > 0 && maxCount !== existingCount) {
+      set.studentCount = maxCount;
+    }
+    if (Object.keys(set).length > 0) {
+      groupUpdates.push({ groupKey, set });
+    }
+  }
+
+  return { createGroups, assignments, groupUpdates };
+}
+
 /**
  * Sort prior lessons of a group (excluding the one being joined) newest
  * first, capped to the recap lookback. Pure — exported for unit tests.
@@ -1997,12 +2222,47 @@ async function getOwnedGroup(identity: TeacherIdentity, groupId: string): Promis
   return result.Item;
 }
 
+/**
+ * Add a topic to the class's list when an assignment starts using it (the
+ * dropdown's "create new topic" path). No-op when already present.
+ */
+async function ensureGroupTopic(
+  groupId: string,
+  group: Record<string, unknown> | undefined,
+  topic: string,
+): Promise<void> {
+  let topics: string[];
+  if (group && Array.isArray(group.topics)) {
+    topics = group.topics as string[];
+  } else {
+    const result = await docClient.send(new GetCommand({ TableName: GROUPS_TABLE, Key: { groupId } }));
+    topics = result.Item && Array.isArray(result.Item.topics) ? (result.Item.topics as string[]) : [];
+  }
+  if (topics.includes(topic)) {
+    return;
+  }
+  if (topics.length >= MAX_TOPICS_PER_CLASS) {
+    throw new ValidationError(`A class can have at most ${MAX_TOPICS_PER_CLASS} topics`);
+  }
+  await docClient.send(new UpdateCommand({
+    TableName: GROUPS_TABLE,
+    Key: { groupId },
+    UpdateExpression: 'SET topics = :topics, updatedAt = :now',
+    ExpressionAttributeValues: { ':topics': [...topics, topic], ':now': new Date().toISOString() },
+  }));
+}
+
 function mapGroupSummary(item: Record<string, unknown>) {
   return {
     groupId: item.groupId,
     name: item.name,
     year: item.year,
     status: item.status,
+    schemaVersion: typeof item.schemaVersion === 'number' ? item.schemaVersion : 1,
+    topics: Array.isArray(item.topics) ? item.topics : [],
+    googleClassroomCourseId: item.googleClassroomCourseId || null,
+    studentCount: typeof item.studentCount === 'number' ? item.studentCount : null,
+    coTeacherEmails: readCoTeacherEmails(item),
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
   };
@@ -2014,16 +2274,24 @@ async function handleCreateGroup(identity: TeacherIdentity, body: Record<string,
 
   const now = new Date().toISOString();
   const groupId = crypto.randomUUID();
-  const item = {
+  const item: Record<string, unknown> = {
     groupId,
     teacherSub: identity.sub,
     name,
     year,
     status: 'active',
+    schemaVersion: CLASSROOM_SCHEMA_VERSION,
+    topics: [],
     createdAt: now,
     updatedAt: now,
     ttl: Math.floor(Date.now() / 1000) + GROUP_TTL_SECONDS,
   };
+  if (body.studentCount !== undefined) {
+    item.studentCount = validateStudentCount(body.studentCount);
+  }
+  if (typeof body.googleClassroomCourseId === 'string' && body.googleClassroomCourseId.trim()) {
+    item.googleClassroomCourseId = body.googleClassroomCourseId.trim();
+  }
   await docClient.send(new PutCommand({ TableName: GROUPS_TABLE, Item: item }));
 
   return { statusCode: 201, body: JSON.stringify(mapGroupSummary(item)) };
@@ -2036,7 +2304,21 @@ async function handleListGroups(identity: TeacherIdentity): Promise<APIGatewayPr
     KeyConditionExpression: 'teacherSub = :ts',
     ExpressionAttributeValues: { ':ts': identity.sub },
   }));
-  const groups = (result.Items || []).map(mapGroupSummary);
+  // Classes shared with this teacher as a class-level co-teacher. Same scan
+  // trade-off as the co-managed classroom list: small table, low frequency.
+  let coManaged: Record<string, unknown>[] = [];
+  if (identity.email) {
+    const scanned = await docClient.send(new ScanCommand({
+      TableName: GROUPS_TABLE,
+      FilterExpression: 'contains(coTeacherEmails, :email)',
+      ExpressionAttributeValues: { ':email': normalizeEmail(identity.email) },
+    }));
+    coManaged = (scanned.Items || []).filter(item => item.teacherSub !== identity.sub);
+  }
+  const groups = [...(result.Items || []), ...coManaged].map(item => ({
+    ...mapGroupSummary(item),
+    role: item.teacherSub === identity.sub ? 'owner' : 'co-teacher',
+  }));
   return { statusCode: 200, body: JSON.stringify({ groups }) };
 }
 
@@ -2055,6 +2337,24 @@ async function handleUpdateGroup(identity: TeacherIdentity, groupId: string, bod
       throw new ValidationError('Status must be "active" or "archived"');
     }
     updates.status = body.status;
+  }
+  if (body.studentCount !== undefined) {
+    updates.studentCount = validateStudentCount(body.studentCount);
+  }
+  if (body.googleClassroomCourseId !== undefined) {
+    if (body.googleClassroomCourseId === null || body.googleClassroomCourseId === '') {
+      updates.googleClassroomCourseId = null;
+    } else if (typeof body.googleClassroomCourseId === 'string') {
+      updates.googleClassroomCourseId = body.googleClassroomCourseId.trim();
+    } else {
+      throw new ValidationError('googleClassroomCourseId must be a string or null');
+    }
+  }
+  if (body.coTeacherEmails !== undefined) {
+    if (!Array.isArray(body.coTeacherEmails)) {
+      throw new ValidationError('coTeacherEmails must be an array');
+    }
+    updates.coTeacherEmails = [...new Set(body.coTeacherEmails.map(validateCoTeacherEmail))];
   }
 
   const expressionParts: string[] = [];
@@ -2080,6 +2380,174 @@ async function handleUpdateGroup(identity: TeacherIdentity, groupId: string, bod
 }
 
 /**
+ * One-time (but idempotent) v1→v2 bulk migration for the calling teacher.
+ * Runs the pure plan against the teacher's classrooms + groups, then executes
+ * it: create classes, adopt ungrouped assignments, lift class-level fields.
+ * Safe to call on every class-list view — a fully migrated account produces
+ * an empty plan.
+ */
+async function handleMigrateGroups(identity: TeacherIdentity): Promise<APIGatewayProxyStructuredResultV2> {
+  const [classroomsResult, groupsResult] = await Promise.all([
+    docClient.send(new QueryCommand({
+      TableName: CLASSROOMS_TABLE,
+      IndexName: 'teacherSub-index',
+      KeyConditionExpression: 'teacherSub = :ts',
+      ExpressionAttributeValues: { ':ts': identity.sub },
+    })),
+    docClient.send(new QueryCommand({
+      TableName: GROUPS_TABLE,
+      IndexName: 'teacherSub-index',
+      KeyConditionExpression: 'teacherSub = :ts',
+      ExpressionAttributeValues: { ':ts': identity.sub },
+    })),
+  ]);
+  const plan = planGroupMigration(classroomsResult.Items || [], groupsResult.Items || []);
+
+  const now = new Date().toISOString();
+  const groupIdByKey = new Map<string, string>();
+  for (const create of plan.createGroups) {
+    const groupId = crypto.randomUUID();
+    groupIdByKey.set(create.key, groupId);
+    await docClient.send(new PutCommand({
+      TableName: GROUPS_TABLE,
+      Item: {
+        groupId,
+        teacherSub: identity.sub,
+        name: create.name,
+        year: create.year,
+        status: 'active',
+        schemaVersion: CLASSROOM_SCHEMA_VERSION,
+        topics: [],
+        createdAt: now,
+        updatedAt: now,
+        ttl: Math.floor(Date.now() / 1000) + GROUP_TTL_SECONDS,
+      },
+    }));
+  }
+  const resolveKey = (key: string): string => groupIdByKey.get(key) || key;
+
+  for (const assign of plan.assignments) {
+    await docClient.send(new UpdateCommand({
+      TableName: CLASSROOMS_TABLE,
+      Key: { classroomId: assign.classroomId },
+      UpdateExpression: 'SET groupId = :gid, updatedAt = :now',
+      ExpressionAttributeValues: { ':gid': resolveKey(assign.groupKey), ':now': now },
+    }));
+  }
+
+  for (const update of plan.groupUpdates) {
+    const groupId = resolveKey(update.groupKey);
+    // Freshly created groups already carry the v2 shape; skip pure stamps.
+    if (groupIdByKey.has(update.groupKey)) {
+      const rest = { ...update.set };
+      delete rest.schemaVersion;
+      if (Object.keys(rest).length === 0) continue;
+    }
+    const parts: string[] = ['updatedAt = :now'];
+    const values: Record<string, unknown> = { ':now': now };
+    const names: Record<string, string> = {};
+    let i = 0;
+    for (const [key, value] of Object.entries(update.set)) {
+      names[`#m${i}`] = key;
+      values[`:m${i}`] = value;
+      parts.push(`#m${i} = :m${i}`);
+      i++;
+    }
+    await docClient.send(new UpdateCommand({
+      TableName: GROUPS_TABLE,
+      Key: { groupId },
+      UpdateExpression: `SET ${parts.join(', ')}`,
+      ...(Object.keys(names).length > 0 ? { ExpressionAttributeNames: names } : {}),
+      ExpressionAttributeValues: values,
+    }));
+  }
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify({
+      createdGroups: plan.createGroups.length,
+      assignedClassrooms: plan.assignments.length,
+      updatedGroups: plan.groupUpdates.length,
+      schemaVersion: CLASSROOM_SCHEMA_VERSION,
+    }),
+  };
+}
+
+/**
+ * Manage the class's topic list. Renaming (and removing) a topic cascades to
+ * the assignments inside the class so their topic strings never dangle
+ * (teacher interview: rename must follow through).
+ */
+async function handleUpdateGroupTopics(
+  identity: TeacherIdentity, groupId: string, body: Record<string, unknown>,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const group = await getOwnedGroup(identity, groupId);
+  const topics: string[] = Array.isArray(group.topics) ? [...(group.topics as string[])] : [];
+  const action = body.action;
+  const now = new Date().toISOString();
+
+  const cascadeAssignments = async (fromTopic: string, toTopic: string | null): Promise<void> => {
+    const result = await docClient.send(new QueryCommand({
+      TableName: CLASSROOMS_TABLE,
+      IndexName: 'teacherSub-index',
+      KeyConditionExpression: 'teacherSub = :ts',
+      FilterExpression: 'groupId = :gid AND topic = :from',
+      ExpressionAttributeValues: { ':ts': String(group.teacherSub), ':gid': groupId, ':from': fromTopic },
+    }));
+    for (const item of result.Items || []) {
+      await docClient.send(new UpdateCommand({
+        TableName: CLASSROOMS_TABLE,
+        Key: { classroomId: item.classroomId },
+        UpdateExpression: toTopic === null
+          ? 'REMOVE topic SET updatedAt = :now'
+          : 'SET topic = :to, updatedAt = :now',
+        ExpressionAttributeValues: toTopic === null ? { ':now': now } : { ':to': toTopic, ':now': now },
+      }));
+    }
+  };
+
+  if (action === 'add') {
+    const name = validateTopicName(body.name);
+    if (!topics.includes(name)) {
+      if (topics.length >= MAX_TOPICS_PER_CLASS) {
+        throw new ValidationError(`A class can have at most ${MAX_TOPICS_PER_CLASS} topics`);
+      }
+      topics.push(name);
+    }
+  } else if (action === 'remove') {
+    const name = validateTopicName(body.name);
+    const index = topics.indexOf(name);
+    if (index >= 0) {
+      topics.splice(index, 1);
+      await cascadeAssignments(name, null);
+    }
+  } else if (action === 'rename') {
+    const from = validateTopicName(body.name);
+    const to = validateTopicName(body.to);
+    const index = topics.indexOf(from);
+    if (index < 0) {
+      throw new NotFoundError('Topic not found');
+    }
+    if (topics.includes(to)) {
+      throw new ValidationError('A topic with the new name already exists');
+    }
+    topics[index] = to;
+    await cascadeAssignments(from, to);
+  } else {
+    throw new ValidationError('action must be "add", "remove", or "rename"');
+  }
+
+  const result = await docClient.send(new UpdateCommand({
+    TableName: GROUPS_TABLE,
+    Key: { groupId },
+    UpdateExpression: 'SET topics = :topics, updatedAt = :now',
+    ExpressionAttributeValues: { ':topics': topics, ':now': now },
+    ReturnValues: 'ALL_NEW',
+  }));
+  return { statusCode: 200, body: JSON.stringify(mapGroupSummary(result.Attributes || {})) };
+}
+
+/**
  * Duplicate a classroom (lesson) — className/assignmentName/studentCount and
  * the assignment content (pages + starter, S3 objects copied) — into the
  * same or another group, with a fresh join code and no members/submissions.
@@ -2096,7 +2564,7 @@ async function handleDuplicateClassroom(
     throw new NotFoundError('Classroom not found');
   }
   const source = sourceResult.Item;
-  if (!canManageClassroom(source, identity)) {
+  if (!(await canManageViaGroup(source, identity))) {
     throw new AuthError('Not authorized to duplicate this classroom');
   }
 
@@ -2272,7 +2740,7 @@ async function handleSetAssignment(
   if (!classroomResult.Item || classroomResult.Item.status !== 'active') {
     throw new NotFoundError('Classroom not found');
   }
-  if (!canManageClassroom(classroomResult.Item, identity)) {
+  if (!(await canManageViaGroup(classroomResult.Item, identity))) {
     throw new AuthError('Not authorized to edit this classroom');
   }
 
@@ -2393,7 +2861,7 @@ async function handleGetAssignment(rawToken: string, classroomId: string): Promi
   const isDevBypass = DEV_BYPASS_TOKEN !== '' && rawToken === DEV_BYPASS_TOKEN && STAGE !== 'prod';
   if (isDevBypass || rawToken.includes('.')) {
     const identity = await verifyTeacherIdToken(rawToken);
-    if (!canManageClassroom(classroomResult.Item, identity)) {
+    if (!(await canManageViaGroup(classroomResult.Item, identity))) {
       throw new AuthError('Not authorized to view this classroom');
     }
   } else {
@@ -2698,7 +3166,7 @@ async function handleEvaluateSubmissions(
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId },
   }));
-  if (!classroomResult.Item || !canManageClassroom(classroomResult.Item, identity)) {
+  if (!classroomResult.Item || !(await canManageViaGroup(classroomResult.Item, identity))) {
     throw new AuthError('Not authorized to evaluate this classroom');
   }
   checkEvalRateLimit(identity.sub);
@@ -2813,6 +3281,17 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
       const token = extractBearerToken(event.headers?.authorization);
       const identity = await verifyTeacherIdToken(token);
       result = await handleListGroups(identity);
+
+    } else if (method === 'POST' && path === '/classroom-groups/migrate') {
+      const token = extractBearerToken(event.headers?.authorization);
+      const identity = await verifyTeacherIdToken(token);
+      result = await handleMigrateGroups(identity);
+
+    } else if (method === 'PATCH' && /^\/classroom-groups\/[^/]+\/topics$/.test(path)) {
+      const token = extractBearerToken(event.headers?.authorization);
+      const identity = await verifyTeacherIdToken(token);
+      const groupId = event.pathParameters?.groupId || '';
+      result = await handleUpdateGroupTopics(identity, groupId, body);
 
     } else if (method === 'PATCH' && /^\/classroom-groups\/[^/]+$/.test(path)) {
       const token = extractBearerToken(event.headers?.authorization);
