@@ -1,10 +1,11 @@
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React, { useCallback } from 'react';
+import { FormattedMessage } from 'react-intl';
 
 import styles from './classroom-modal.css';
 
-const GoogleCourseList = ({ courses, selectedCourseId, onSelect }) => {
+const GoogleCourseList = ({ courses, importedCourseIds, selectedCourseId, onSelect }) => {
     const handleClick = useCallback(
         (e) => {
             const courseId = e.currentTarget.dataset.courseId;
@@ -35,6 +36,18 @@ const GoogleCourseList = ({ courses, selectedCourseId, onSelect }) => {
                             {course.section}
                         </span>
                     )}
+                    {(importedCourseIds || []).includes(course.courseId) && (
+                        <span
+                            className={styles.courseTileImported}
+                            data-testid={`classroom-google-course-imported-${course.courseId}`}
+                        >
+                            <FormattedMessage
+                                defaultMessage="Imported"
+                                description="Badge on a Google Classroom course that was already imported"
+                                id="gui.classroom.management.importedBadge"
+                            />
+                        </span>
+                    )}
                 </button>
             ))}
         </div>
@@ -42,6 +55,7 @@ const GoogleCourseList = ({ courses, selectedCourseId, onSelect }) => {
 };
 
 GoogleCourseList.propTypes = {
+    importedCourseIds: PropTypes.arrayOf(PropTypes.string),
     courses: PropTypes.arrayOf(
         PropTypes.shape({
             courseId: PropTypes.string,

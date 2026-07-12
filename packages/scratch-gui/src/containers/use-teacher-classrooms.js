@@ -96,37 +96,46 @@ const useTeacherClassrooms = ({
     const [kickRequestsBySeat, setKickRequestsBySeat] = useState({});
 
     const refreshTimerRef = useRef(null);
+    // Which detail tab is visible. Polling of attendance/submissions runs
+    // only on the members tab (cost control — teacher review round 2).
+    const [detailTab, setDetailTab] = useState('description');
 
-    // --- Load classrooms on entering dashboard ---
+    // --- Load classrooms (assignments) ---
 
-    useEffect(() => {
-        if (phase === 'teacher-dashboard' && idToken) {
-            setIsLoading(true);
-            clearError();
-            (async () => {
-                try {
-                    const data = await classroomAPI.listClassrooms(idToken);
-                    setClassrooms(data.classrooms || []);
-                } catch (err) {
-                    if (err.status === 401) {
-                        const newToken = await handleTeacher401();
-                        if (newToken) {
-                            try {
-                                const retryData = await classroomAPI.listClassrooms(newToken);
-                                setClassrooms(retryData.classrooms || []);
-                            } catch {
-                                // Retry also failed
-                            }
-                        }
-                    } else {
-                        showError(translateError(intl, err));
+    const loadClassrooms = useCallback(async () => {
+        if (!idToken) return;
+        setIsLoading(true);
+        try {
+            const data = await classroomAPI.listClassrooms(idToken);
+            setClassrooms(data.classrooms || []);
+        } catch (err) {
+            if (err.status === 401) {
+                const newToken = await handleTeacher401();
+                if (newToken) {
+                    try {
+                        const retryData = await classroomAPI.listClassrooms(newToken);
+                        setClassrooms(retryData.classrooms || []);
+                    } catch {
+                        // Retry also failed
                     }
-                } finally {
-                    setIsLoading(false);
                 }
-            })();
+            } else {
+                showError(translateError(intl, err));
+            }
+        } finally {
+            setIsLoading(false);
         }
-    }, [phase, idToken, clearError, showError, handleTeacher401, intl, setIsLoading]);
+    }, [idToken, showError, handleTeacher401, intl, setIsLoading]);
+
+    // The class list needs assignment counts, so load on both entry phases
+    // (the landing view and inside a class).
+    const onListingPhase = phase === 'teacher-dashboard' || phase === 'teacher-class-list';
+    useEffect(() => {
+        if (onListingPhase && idToken) {
+            clearError();
+            loadClassrooms();
+        }
+    }, [onListingPhase, idToken, clearError, loadClassrooms]);
 
     // --- Fetch classroom detail ---
 
@@ -271,7 +280,9 @@ const useTeacherClassrooms = ({
     );
 
     useEffect(() => {
-        if (phase === 'teacher-class-detail' && selectedClassroom && idToken) {
+        if (phase === 'teacher-class-detail' && selectedClassroom && idToken && detailTab === 'members') {
+            // Refresh immediately when the members tab opens, then poll.
+            refreshMembersOnly(selectedClassroom.classroomId);
             refreshTimerRef.current = setInterval(() => {
                 refreshMembersOnly(selectedClassroom.classroomId);
             }, REFRESH_INTERVAL_MS);
@@ -282,7 +293,7 @@ const useTeacherClassrooms = ({
                 clearInterval(refreshTimerRef.current);
             }
         };
-    }, [phase, selectedClassroom, idToken, refreshMembersOnly]);
+    }, [phase, selectedClassroom, idToken, refreshMembersOnly, detailTab]);
 
     // --- Navigation ---
 
@@ -324,6 +335,32 @@ const useTeacherClassrooms = ({
     }, []);
 
     // --- Update classroom settings ---
+
+    /**
+     * Update board-editable assignment metadata (topic / sortDate) for any
+     * assignment in the class — the board edits rows in place, so this
+     * patches both the list and the selection instead of refetching.
+     */
+    const handleUpdateAssignmentMeta = useCallback(
+        async (classroomId, updates) => {
+            if (!idToken) return;
+            clearError();
+            try {
+                await classroomAPI.updateClassroom(idToken, classroomId, updates);
+                setClassrooms((prev) => prev.map((c) => (c.classroomId === classroomId ? { ...c, ...updates } : c)));
+                setSelectedClassroom((prev) =>
+                    prev && prev.classroomId === classroomId ? { ...prev, ...updates } : prev,
+                );
+            } catch (err) {
+                if (err.status === 401) {
+                    await handleTeacher401();
+                } else {
+                    showError(translateError(intl, err));
+                }
+            }
+        },
+        [idToken, clearError, showError, handleTeacher401, intl],
+    );
 
     const handleUpdateAssignmentName = useCallback(
         async (assignmentName) => {
@@ -470,6 +507,10 @@ const useTeacherClassrooms = ({
         handleRefreshDetail,
         handleDeleteMember,
         handleSelectMember,
+        loadClassrooms,
+        detailTab,
+        setDetailTab,
+        handleUpdateAssignmentMeta,
         handleUpdateAssignmentName,
         handleUpdateStudentCount,
         handleApproveKickRequest,

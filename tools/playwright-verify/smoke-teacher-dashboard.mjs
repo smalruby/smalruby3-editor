@@ -63,14 +63,14 @@ try {
 
     log('waiting for classroom modal (login or dashboard)...');
     await page.waitForSelector(
-        '[data-testid="classroom-phase-teacher-login"], [data-testid="classroom-create"]',
+        '[data-testid="classroom-phase-teacher-login"], [data-testid="classroom-phase-teacher-class-list"]',
         { timeout: 20000 },
     );
 
-    log('polling for teacher dashboard (devlogin auto-login, up to 60s)...');
+    log('polling for the class list (devlogin auto-login, up to 60s)...');
     const deadline = Date.now() + 60000;
     while (Date.now() < deadline) {
-        if (await page.$('[data-testid="classroom-create"]')) {
+        if (await page.$('[data-testid="classroom-phase-teacher-class-list"]')) {
             ok = true;
             break;
         }
@@ -83,10 +83,10 @@ try {
 
     if (ok) {
         const classCount = await page.$$eval(
-            '[data-testid^="classroom-sidebar-item-"]',
+            '[data-testid^="classroom-class-card-"]',
             (els) => els.length,
         ).catch(() => 0);
-        log(`PASS: teacher dashboard reached. sidebar classes visible: ${classCount}`);
+        log(`PASS: class list reached. class cards visible: ${classCount}`);
     } else {
         const phase = await page
             .evaluate(() => {

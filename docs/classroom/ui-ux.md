@@ -114,74 +114,42 @@ Google または Microsoft アカウントでサインインする画面。先�
 
 ---
 
-## 2. 先生: ダッシュボード (`teacher-dashboard`)
+## 1.5 先生: クラス一覧 (`teacher-class-list`) — ログイン後の入口
 
-先生のメイン画面。作成したクラスがカード形式で一覧表示されます。
+![クラス一覧](screenshots/0210-teacher-class-list.png)
 
-![ダッシュボード](screenshots/0202-teacher-dashboard.png)
+ログイン直後に表示される v2 の入口。Google Classroom の「クラス」に相当する学級のカードが並ぶ。初回表示時に v1→v2 の冪等 migration（`POST /classroom-groups/migrate`）を自動実行する。
 
-**パーツ:**
+クラスのプロパティは GC 準拠: **クラス名（必須・例: 技術）/ 年度（必須・現在年度デフォルト）/ セクション（オプション・例: 2年1組）/ 人数**。同時作成フォームの課題名はオプション（空欄=クラスのみ作成）。カードの「設定」でインライン編集（名前・年度・セクション・人数・**クラス単位の共同管理者**・アーカイブ）。表示形式は「%クラス名% %年度%年度 / %セクション%」。**ログアウトはタイトルバー右端に常時表示**。
 
-| 要素 | テキスト/内容 | data-testid | 操作 |
-|------|-------------|-------------|------|
-| フェーズルート | — | `classroom-phase-teacher-dashboard` | — |
-| 見出し | 「あなたのクラス」 | — | — |
-| クラス一覧 | — | `classroom-list` | — |
-| クラスなし表示 | 「まだクラスがありません」 | `classroom-empty-message` | クラスが0件時に表示 |
+- カード: クラス名・年度・課題数・GC/共同管理/アーカイブバッジ・「評価」ボタン
+- 「クラスを作る」: クラスと最初の課題を **1 画面で同時作成**し、作成後は新しいクラスの中（課題ボード）に着地する
+- 「Google Classroom からインポート」（Google ログイン時のみ）: コースを選ぶとクラスを作成（コース名→クラス名・生徒数→人数・courseId をクラスへ）
+- クラスをひらくとサイドバーがそのクラスの課題にスコープされる（「‹ クラス一覧」で戻る）
+- 主な data-testid: `classroom-phase-teacher-class-list` / `classroom-class-create[-name|-year|-count|-assignment|-submit]` / `classroom-class-card-{groupId}` / `classroom-class-open-{groupId}` / `classroom-class-evaluate-{groupId}` / `classroom-class-import-gc` / `classroom-teacher-logout`
 
-**クラスカード (各クラスごと):**
+## 1.6 先生: 課題管理ボード（クラス内の `teacher-dashboard`）
 
-| 要素 | テキスト例 | data-testid | 操作 |
-|------|----------|-------------|------|
-| カード | — | `classroom-item-{classroomId}` | — |
-| クラス名 | 「第3回 チャットアプリを作ろう」 | `classroom-item-name-{classroomId}` | — |
-| 参加コード | 「3cexm5」 | `classroom-item-code-{classroomId}` | 青い等幅フォント、右上 |
-| 情報行 | 「35人  2026/4/5  有効期限: 2026/4/6」 | — | 人数・作成日・有効期限 |
-| 詳細ボタン | 「詳細」 | `classroom-item-details-{classroomId}` | → teacher-detail |
-| 共同管理バッジ | 「共同管理」(自分が co-teacher のクラスのみ) | `classroom-item-co-managed-badge-{classroomId}` | 作成者クラスと区別 |
+![課題管理ボード](screenshots/0211-teacher-assignment-board.png)
 
-**フッターボタン:**
+クラスをひらいたときのメイン領域。GC の「授業」タブに相当する。
 
-| 要素 | テキスト | data-testid | 操作 |
-|------|---------|-------------|------|
-| ログアウト | 「ログアウト」 | `classroom-teacher-logout` | → teacher-login |
-| クラス作成 | 「クラスを作る」 | `classroom-create` | → teacher-create（青色、強調） |
-| GCインポート | 「Google Classroom からインポート」 | `classroom-google-import` | → teacher-google-courses |
+- トピック未設定の課題を見出しなしで最上部に、以下クラスのトピック順のセクション。各セクションは日付（`sortDate`、既定=作成日・意味を持たない並び順キー・生徒非表示）降順
+- トピックチップ: 追加・クリックでリネーム（クラス内の課題へ一括追従）・×で削除（課題はトピックなしへ）
+- 課題行: トピック select と日付 input の**その場編集**、行クリックで課題詳細へ
+- **サイドバーは無い**。ナビは**パンくず**「クラス一覧 > 課題一覧 (> 課題詳細)」
+- 課題作成は課題名のみの**インラインフォーム**（クラス名・人数はクラスから）。「**課題を再利用**」で全クラスの課題を日付降順に表示し、クラスフィルタ → 「このクラスに複製」（説明・スターター・トピックごと複製。同一クラスは「のコピー」付き）
+- 主な data-testid: `classroom-board` / `classroom-board-create[-name|-submit]` / `classroom-board-reuse[-view|-filter|-copy-{id}]` / `classroom-board-section-{topic|none}` / `classroom-board-row|open|topic|date-{classroomId}` / `classroom-topic-add[-input]` / `classroom-topic-chip|rename|remove-{topic}` / `classroom-breadcrumbs`
 
-**レイアウト:** サイドバー（左）にクラス一覧、メインエリア（右）にクラス詳細またはプロンプト。フッターにクラス作成ボタンとログアウト。
+## 1.7 先生: 課題詳細の「説明」タブ（デフォルトアクティブ）
 
-**チュートリアル:** 初回ログイン後、ダッシュボードにチュートリアルダイアログが表示される（「まずは「クラス」を作りましょう！」）。OK クリックで非表示。
+![課題詳細 — 説明タブ](screenshots/0212-teacher-detail-description.png)
 
----
+課題をひらくと「説明」タブが最初に表示される。左に生徒へ表示する説明・画像・スターターの編集フォーム、**右ペインに生徒視点プレビュー**（編集内容をライブ表示・ページ送り。生徒への反映は保存時のみ）。
 
-## 3. 先生: クラス作成 (`teacher-create`)
-
-クラス名・人数・課題名を入力してクラスを作成する画面。
-
-![クラス作成画面](screenshots/0203-teacher-create.png)
-
-**パーツ:**
-
-| 要素 | テキスト/内容 | data-testid | 操作 |
-|------|-------------|-------------|------|
-| フェーズルート | — | `classroom-phase-teacher-create` | — |
-| 見出し | 「クラスを作る」 | — | — |
-| 説明文 | 「1つの授業に1つのクラスを作ります。クラス名（例：「5-2」）、人数、課題名（例：「第3回 チャットアプリを作ろう」）を入力してください。」 | — | — |
-| GCインポートリンク | 「Google Classroom からクラス名と人数をインポート」 | `classroom-import-from-gc` | → teacher-google-courses |
-| クラス名ラベル | 「クラス名」 | — | — |
-| クラス名入力 | テキスト入力 | `classroom-name-input` | — |
-| 人数ラベル | 「人数」 | — | — |
-| 人数入力 | 数値入力（デフォルト: 35） | `classroom-count-input` | 1〜50 |
-| 課題名ラベル | 「課題名」 | — | — |
-| 課題名入力 | テキスト入力 | `classroom-assignment-name-input` | — |
-| ヒント | 「人数と課題名はいつでも変更できます。」 | — | — |
-| 作成ボタン | 「作成」 | `classroom-create-submit` | クラス名または課題名未入力時は disabled |
-
-**レイアウト:** フォームフィールドは縦並び。「作成」ボタンは右寄せ、灰色（disabled） or 青色。
-
-Google Classroom からインポートした場合は「インポート元: {コース名}」が表示され、人数が自動入力されます。
-
----
+- 出席・提出のポーリング（30秒）は**メンバータブ表示中のみ**（費用抑制）
+- 課題の所属クラス変更・人数編集・課題単位の共同管理者・複製は**できない**（クラス設定 / 課題一覧の再利用へ集約）。削除ボタンは「課題を削除」
+- 主な data-testid: `classroom-tab-description` / `classroom-description-editor` / `classroom-description-preview[-body|-prev|-next]` / `classroom-tab-members`
 
 ## 4. 先生: クラス詳細 (`teacher-detail`)
 
@@ -257,14 +225,14 @@ Google Classroom からインポートした場合は「インポート元: {コ
 | 前の画像ボタン | `classroom-member-detail-prev` | — |
 | 次の画像ボタン | `classroom-member-detail-next` | — |
 
-**メンバー / 共同管理者タブ:**
+**説明 / メンバータブ:**
 
-クラス詳細はタブ切替。座席グリッドと共同管理者を縦に積むと下にはみ出すため、参加コード表示の下にタブバーを置く。
+課題詳細はタブ切替（「説明」がデフォルト = 課題編集フォーム + 生徒視点プレビュー、「メンバー」= 出席・提出の座席グリッド）。共同管理者は**クラス設定（クラス一覧）**に移動した。タブ行の右端に「全作品ダウンロード」。
 
 | 要素 | テキスト | data-testid | 操作 |
 |------|---------|-------------|------|
-| メンバータブ | 「メンバー」 | `classroom-tab-members` | 凡例 + 人数 + 更新 + 座席グリッドを表示（既定）|
-| 共同管理者タブ | 「共同管理者」 | `classroom-tab-co-teachers` | 共同管理者セクションを表示。owner/co-teacher のみ表示 |
+| メンバータブ | 「メンバー」 | `classroom-tab-members` | 凡例 + 人数 + 更新 + 座席グリッド（表示中のみ 30 秒ポーリング）|
+| 説明タブ | 「説明」 | `classroom-tab-description` | 課題編集フォーム + 右ペインの生徒視点プレビュー（既定）|
 
 クラスを切り替えるとメンバータブに戻る。
 
@@ -489,6 +457,34 @@ owner または co-teacher が、別の先生を **email で招待**して共同
 3. ステージのスクリーンショットを撮影
 4. Presigned URL 経由で S3 にアップロード
 5. 完了後 → student-status に遷移
+
+---
+
+## 課題配信（課題エディタ + 生徒の課題パネル）
+
+クラスには任意で**課題コンテンツ**（(数行テキスト + 画像1枚) × 最大10ページ + スタータープロジェクト1つ）を持たせられます。生徒は参加コードで参加した瞬間に課題ページが表示され、スタータープロジェクトが自動で開きます（プログラム配付の手作業をなくす機能）。
+
+### 課題の編集（先生: 課題詳細の「説明」タブ）
+
+課題詳細をひらくと「説明」タブがデフォルトで表示され、そこが編集フォームです（旧 teacher-assignment-edit フェーズは廃止）。右ペインに生徒視点プレビュー（sticky・ページャ上部）。
+
+![課題詳細 — 説明タブ](screenshots/0212-teacher-detail-description.png)
+
+- ページの追加・削除・並べ替え（↑↓）、1ページ500文字 + 画像1枚（png/jpeg・**画像が上、テキストが下**）
+- スターターは「今開いているプロジェクトを使う」（保存時に `vm.saveProjectSb3()` で生成）か「.sb3 ファイルを選ぶ」
+- 保存すると画像・スターターは Presigned URL で S3 に直接アップロードされる
+- data-testid 一覧は [testing.md](testing.md) の「課題エディタ」参照
+
+### 課題パネル（生徒: student-assignment フェーズ）
+
+join 完了直後に自動で開きます（課題が設定されているクラスのみ）。ステータス画面の「課題を見る」（`classroom-view-assignment-button`）からいつでも開き直せます。
+
+![課題パネル（join 直後・参加通知つき）](screenshots/0314-student-assignment-panel.png)
+
+- スターターの自動ロードは**編集中のプロジェクトを勝手に上書きしない**（未編集なら自動、編集ありなら confirm）
+- 「スタータープロジェクトを開く」で明示的に開き直せる（同じく confirm あり）
+- 「はじめる！」でモーダルを閉じて作業開始
+- data-testid 一覧は [testing.md](testing.md) の「課題パネル（生徒）」参照
 
 ---
 

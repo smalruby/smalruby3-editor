@@ -2,6 +2,7 @@ import React, { useCallback, useRef, useState, useEffect } from 'react';
 import { useIntl } from 'react-intl';
 import { useDispatch, useSelector } from 'react-redux';
 import ClassroomTeacherModalComponent from '../components/classroom-teacher-modal/classroom-teacher-modal.jsx';
+import { teacherEmailFromToken } from '../lib/classroom-class-label.js';
 import { getUrlParams } from '../lib/url-params.js';
 import { showAlertWithTimeout } from '../reducers/alerts.js';
 import {
@@ -26,8 +27,9 @@ const ClassroomTeacherModal = () => {
         setCachedTeacherIdToken(urlParams.devlogin);
     }
 
-    // Determine initial phase from cached idToken
-    const getInitialPhase = () => (getCachedTeacherIdToken() ? 'teacher-dashboard' : 'teacher-login');
+    // Determine initial phase from cached idToken. v2: land on the class
+    // list (GC-style) instead of the assignment dashboard.
+    const getInitialPhase = () => (getCachedTeacherIdToken() ? 'teacher-class-list' : 'teacher-login');
 
     // UI state
     const [phase, setPhase] = useState(getInitialPhase);
@@ -140,8 +142,6 @@ const ClassroomTeacherModal = () => {
         isMicrosoftAuthAvailable: teacher.isMicrosoftAuthAvailable,
         authProvider: teacher.authProvider,
         onTeacherLogout: handleTeacherLogoutWithReduxClear,
-        onShowCreateForm: teacher.handleShowCreateForm,
-        onCreateClassroom: teacher.handleCreateClassroom,
         onSelectClassroom: teacher.handleSelectClassroom,
         onBackToDashboard: teacher.handleBackToDashboard,
         onDeleteClassroom: teacher.handleDeleteClassroom,
@@ -163,12 +163,38 @@ const ClassroomTeacherModal = () => {
         onSelectGoogleCourse: teacher.handleSelectGoogleCourse,
         onConfirmGoogleImport: teacher.handleConfirmGoogleImport,
         onUpdateAssignmentName: teacher.handleUpdateAssignmentName,
-        onUpdateStudentCount: teacher.handleUpdateStudentCount,
         kickRequestsBySeat: teacher.kickRequestsBySeat,
         onApproveKickRequest: teacher.handleApproveKickRequest,
         onRejectKickRequest: teacher.handleRejectKickRequest,
-        onAddCoTeacher: teacher.handleAddCoTeacher,
-        onRemoveCoTeacher: teacher.handleRemoveCoTeacher,
+        assignmentEditorPages: teacher.assignmentEditorPages,
+        assignmentStarterMode: teacher.assignmentStarterMode,
+        assignmentStarterSource: teacher.assignmentStarterSource,
+        assignmentHasExistingStarter: teacher.assignmentHasExistingStarter,
+        assignmentIsSaving: teacher.assignmentIsSaving,
+        onAssignmentAddPage: teacher.handleAssignmentAddPage,
+        onAssignmentRemovePage: teacher.handleAssignmentRemovePage,
+        onAssignmentMovePage: teacher.handleAssignmentMovePage,
+        onAssignmentChangePageText: teacher.handleAssignmentChangePageText,
+        onAssignmentAttachPageImage: teacher.handleAssignmentAttachPageImage,
+        onAssignmentRemovePageImage: teacher.handleAssignmentRemovePageImage,
+        onAssignmentUseCurrentProject: teacher.handleAssignmentUseCurrentProject,
+        onAssignmentUseFile: teacher.handleAssignmentUseFile,
+        onAssignmentRemoveStarter: teacher.handleAssignmentRemoveStarter,
+        onAssignmentSave: teacher.handleAssignmentSave,
+        onAssignmentCancel: teacher.handleAssignmentCancel,
+        groups: teacher.groups,
+        teacherEmail: teacherEmailFromToken(teacher.idToken),
+        selectedGroup: teacher.selectedGroup,
+        onSelectGroup: teacher.handleSelectGroup,
+        onShowClassList: teacher.handleShowClassList,
+        onCreateClassWithAssignment: teacher.handleCreateClassWithAssignment,
+        onUpdateGroupTopics: teacher.handleUpdateGroupTopics,
+        onUpdateAssignmentMeta: teacher.handleUpdateAssignmentMeta,
+        onCreateAssignmentInClass: teacher.handleCreateAssignmentInClass,
+        onDetailTabChange: teacher.setDetailTab,
+        onReuseAssignment: teacher.handleReuseAssignment,
+        onUpdateGroup: teacher.handleUpdateGroup,
+        evaluation: teacher.evaluation,
     };
     return <ClassroomTeacherModalComponent containerProps={teacherContainerProps} onClose={handleClose} />;
 };

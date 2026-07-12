@@ -5,6 +5,7 @@ import React from 'react';
 import Modal from '../../containers/modal.jsx';
 import Box from '../box/box.jsx';
 
+import StudentAssignmentPanel from './student-assignment-panel.jsx';
 import StudentJoinForm from './student-join-form.jsx';
 import StudentJoinedConfirmation from './student-joined-confirmation.jsx';
 import StudentSeatSelector from './student-seat-selector.jsx';
@@ -57,6 +58,13 @@ const ClassroomModal = ({
     onRefreshStudentStatus,
     thumbnailDataUrl,
     classroomState,
+    assignment,
+    assignmentPageIndex,
+    hasAssignment,
+    onOpenAssignment,
+    onAssignmentPrevPage,
+    onAssignmentNextPage,
+    onReloadStarter,
 }) => {
     const intl = useIntl();
 
@@ -115,6 +123,22 @@ const ClassroomModal = ({
                     />
                 )}
 
+                {/* Phase: student-assignment (assignment pages + starter) */}
+                {phase === 'student-assignment' && (
+                    <StudentAssignmentPanel
+                        assignment={assignment}
+                        error={error}
+                        errorTitle={errorTitle}
+                        isLoading={isLoading}
+                        joinedInfo={joinedInfo}
+                        pageIndex={assignmentPageIndex}
+                        onClose={onClose}
+                        onNextPage={onAssignmentNextPage}
+                        onPrevPage={onAssignmentPrevPage}
+                        onReloadStarter={onReloadStarter}
+                    />
+                )}
+
                 {/* Phase: student-status (already joined) */}
                 {phase === 'student-status' && classroomState && (
                     <StudentStatusView
@@ -123,9 +147,11 @@ const ClassroomModal = ({
                         errorActionHandler={errorActionHandler}
                         errorActionLabel={errorActionLabel}
                         errorTitle={errorTitle}
+                        hasAssignment={hasAssignment}
                         isLoading={isLoading}
                         teacherComment={teacherComment}
                         onLeaveClassroom={onLeaveClassroom}
+                        onOpenAssignment={onOpenAssignment}
                         onRefreshStudentStatus={onRefreshStudentStatus}
                         onStartSubmit={onStartSubmit}
                     />
@@ -149,7 +175,14 @@ const ClassroomModal = ({
 };
 
 ClassroomModal.propTypes = {
+    assignment: PropTypes.object,
+    assignmentPageIndex: PropTypes.number,
     classroomState: PropTypes.object,
+    hasAssignment: PropTypes.bool,
+    onAssignmentNextPage: PropTypes.func,
+    onAssignmentPrevPage: PropTypes.func,
+    onOpenAssignment: PropTypes.func,
+    onReloadStarter: PropTypes.func,
     error: PropTypes.string,
     errorActionHandler: PropTypes.func,
     errorActionLabel: PropTypes.string,

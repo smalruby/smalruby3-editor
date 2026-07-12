@@ -372,3 +372,62 @@
     padding: 0;
     margin-bottom: 0.5rem;
 }
+
+/* Back to the class list (v2 landing view) */
+.sidebar-back-to-class-list {
+    display: block;
+    width: 100%;
+    padding: 0.6rem 1rem;
+    border: none;
+    border-bottom: 1px solid #e0e0e0;
+    background: transparent;
+    color: #855cd6;
+    text-align: left;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+/* Logout pinned to the title bar (fullscreen modal header), left of the ×. */
+.title-bar-logout {
+    position: fixed;
+    top: 0.55rem;
+    right: 4.5rem;
+    z-index: 1000;
+    border: 1px solid hsla(0, 0%, 100%, 0.6);
+    border-radius: 0.4rem;
+    background: transparent;
+    color: white;
+    padding: 0.3rem 0.9rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.detail-breadcrumbs {
+    /* Same offsets as the unified teacher views (class list / board). */
+    padding: 1.25rem 2rem 0;
+}
+
+.title-bar-email {
+    position: fixed;
+    top: 0.85rem;
+    right: 10.5rem;
+    z-index: 1000;
+    color: white;
+    font-size: 0.8rem;
+    max-width: 18rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.google-courses-view {
+    padding: 1.25rem 2rem;
+    max-width: 60rem;
+    overflow-y: auto;
+}
+
+.google-courses-title {
+    margin: 0.25rem 0 1rem;
+    font-size: 1.3rem;
+    color: #575e75;
+}
