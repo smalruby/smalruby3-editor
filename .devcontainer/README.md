@@ -176,6 +176,69 @@ iptables -L OUTPUT -n --line-numbers    # ルールを確認
 - 一時的に切りたいときは `devcontainer.json` の `postStartCommand` 行をコメントアウト
   (非推奨)。次回起動から firewall 無しになる。
 
+## Playwright MCP (devpod 内外どちらでも動く headless 構成)
+
+リポジトリの `.mcp.json` は `playwright` MCP サーバを **committed 済み**で、devpod 内でも
+ホストでも**追加設定なしで headless 動作**する。実体は薄いラッパー
+`tools/mcp/playwright-mcp.mjs` を経由する:
+
+```json
+"playwright": {
+  "type": "stdio",
+  "command": "node",
+  "args": ["tools/mcp/playwright-mcp.mjs"],
+  "env": {}
+}
+```
+
+### なぜ素の `npx @playwright/mcp@latest` ではダメか (Issue #999)
+
+- `@playwright/mcp@latest` は既定で **headful** 起動する → **display の無い devpod
+  コンテナではブラウザ起動に失敗**する。
+- `--browser chromium --headless` を足しても、その MCP 版がバンドルする playwright-core は
+  **自分専用の新しい chromium リビジョン**を要求し、未導入なら**起動時に
+  `cdn.playwright.dev` からダウンロード**しようとする。このホストは **egress allowlist
+  で `cdn.playwright.dev` を遮断**しているため**ダウンロードに失敗**する
+  （「Playwright was just installed or updated. Please run npx playwright install」で停止）。
+
+### ラッパーが何をするか
+
+`tools/mcp/playwright-mcp.mjs` は、**リポジトリの `playwright`（root `node_modules`）が
+イメージビルド時（firewall 適用前）に既に導入済みの chromium** の実行ファイルパスを
+`require('playwright').chromium.executablePath()` で解決し、それを
+`@playwright/mcp` に `--executable-path <path> --headless` で渡す。
+
+- **devpod 内**: ビルド時導入済み chromium を使うので**追加ダウンロード不要**→ 動く。
+- **ホスト**: 同じ解決でホストの chromium を使う（未導入でもホストは egress 制限が
+  無いので通常どおり取得される）→ 動く。
+- 解決できない場合は `--executable-path` を付けず、MCP 既定挙動へフォールバックする。
+
+疎通確認（コンテナ内、root）:
+
+```bash
+node --test tools/mcp/playwright-mcp.test.mjs          # ラッパーの単体テスト
+claude mcp list                                         # playwright が ✓ connected
+```
+
+### ホストで headful に見たい場合 (opt-in・committed 設定は変えない)
+
+headful はホスト固有なので committed `.mcp.json` には入れない。ホストで
+**HTTP server mode の Playwright MCP** を起動し、コンテナ側は **local scope** で
+上書きする（local が project scope より優先されるので `.mcp.json` は変更不要）:
+
+```bash
+# ホスト側 (iTerm2)。ヘルパースクリプトが用意してある:
+tools/host-playwright-mcp.sh
+# コンテナ側で一度だけ local scope を張る:
+claude mcp add --scope local --transport http playwright http://host.docker.internal:8931/mcp
+# /mcp で Reconnect
+```
+
+`--host 0.0.0.0` 必須・`--allowed-hosts` はポート込みカンマ区切り 1 引数など、
+ハマりどころは `tools/host-playwright-mcp.sh` の先頭コメントに集約してある。
+ホスト Chrome を直接操作する一般的な背景は `.claude/rules/scratch-gui/e2e-test.md`
+（→ memory `reference_host_playwright_mcp.md`）も参照。
+
 ## tmux
 
 ### 設定の構成

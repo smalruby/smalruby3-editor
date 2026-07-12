@@ -90,10 +90,15 @@ Issue 本文のディレクティブは **行頭のみ**で発火する（`phase
   **symlink** する。→ `@smalruby/*` は **main checkout の dist に解決される**ため、
   worktree 側でのクロスパッケージのソース編集は反映されない。クロスパッケージ編集は
   `--full`（実 npm install + build:dev）。
+- 軽量モードは scratch-gui の **prepare 生成物**（`src/generated` の microbit hex URL
+  モジュールと `static/microbit` / `static/microbitMore` の hex 本体・すべて gitignored）も
+  main へ **symlink** する（#1001）。npm install（=prepare の DL 生成）を走らせないため、
+  これが無いと webpack dev server が `Module not found: microbit-*-hex-url` で起動しない。
+  `--full` は npm install で実ファイルが生成されるため対象外。
 - 既存 PR ブランチでの作業（review / address-review）は `--pr <number>`（daemon の
   `ensureWorktree` が使う経路）。
-- worktree 内では node_modules symlink の誤ステージ防止を `git-common-dir` の
-  `info/exclude` で担保している（Issue #801）。この保険を外さない。
+- worktree 内では node_modules / prepare 生成物 symlink の誤ステージ防止を `git-common-dir`
+  の `info/exclude` で担保している（Issue #801 / #1001）。この保険を外さない。
 
 ## UI 確認（pw-check）
 
