@@ -117,6 +117,7 @@ const TeacherClassList = ({
     onSelectGroup,
     onShowEvaluation,
     onShowGoogleCourses,
+    onTeacherLogout,
 }) => {
     const intl = useIntl();
     const [showCreateForm, setShowCreateForm] = useState(false);
@@ -284,6 +285,20 @@ const TeacherClassList = ({
                     />
                 ))}
             </ul>
+            {onTeacherLogout ? (
+                <button
+                    className={styles.classListLogout}
+                    data-testid="classroom-teacher-logout"
+                    type="button"
+                    onClick={onTeacherLogout}
+                >
+                    <FormattedMessage
+                        defaultMessage="Logout"
+                        description="Logout link on the class list"
+                        id="gui.classroom.classList.logout"
+                    />
+                </button>
+            ) : null}
         </div>
     );
 };
@@ -298,6 +313,7 @@ TeacherClassList.propTypes = {
     onSelectGroup: PropTypes.func.isRequired,
     onShowEvaluation: PropTypes.func.isRequired,
     onShowGoogleCourses: PropTypes.func,
+    onTeacherLogout: PropTypes.func,
 };
 
 export default TeacherClassList;

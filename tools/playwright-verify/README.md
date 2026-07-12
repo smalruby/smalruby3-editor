@@ -98,3 +98,7 @@ env トグル: `HEADLESS=false` 表示 / `CHANNEL=chrome` 実 Chrome / `SLOWMO=<
 - **「同じ assignmentName を 2 度使うと前回のクラスが選ばれてしまう」**: `Date.now()` でユニーク化する
 - **「全席 taken でテストが進まない」**: 同じクラスに既に上限まで参加している。新規クラスを作成するか、空席を `:not([disabled])` で動的に選ぶ
 - **「modal が閉じる」**: persistent context は同じプロファイルを使い回すので、前回のテストで残った state が悪さする場合がある。`rm -rf .profiles` してやり直す
+
+## v2 フロー前提（クラス→課題モデル）
+
+先生ログイン後の landing は **クラス一覧**（`classroom-phase-teacher-class-list`）。各スクリプトは「クラスを作る」（クラス + 最初の課題の同時作成フォーム `classroom-class-create-*`）でセットアップし、クラス内の課題ボード（`classroom-board`）から課題をひらく。旧フロー（サイドバーの `classroom-create` から作成）は存在しない。

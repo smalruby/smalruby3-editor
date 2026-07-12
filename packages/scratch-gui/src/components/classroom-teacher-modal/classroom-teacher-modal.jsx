@@ -167,6 +167,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         onSelectGroup={onSelectGroup}
                         onShowEvaluation={evaluation?.handleShowEvaluation}
                         onShowGoogleCourses={authProvider === 'google' ? onShowGoogleCourses : null}
+                        onTeacherLogout={onTeacherLogout}
                     />
                 </div>
             );

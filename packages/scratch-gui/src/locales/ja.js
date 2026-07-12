@@ -210,6 +210,7 @@ export default {
     'gui.classroom.board.newTopicPlaceholder': '新しいトピック',
     'gui.classroom.board.addTopic': 'トピックを追加',
     'gui.classroom.board.empty': 'まだ課題がありません。「課題を作る」から追加しましょう。',
+    'gui.classroom.classList.logout': 'ログアウト',
     'gui.classroom.classList.importGc': 'Google Classroom からインポート',
     'gui.classroom.classList.title': 'あなたのクラス',
     'gui.classroom.classList.hint':

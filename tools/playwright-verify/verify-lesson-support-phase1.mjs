@@ -79,24 +79,20 @@ try {
     await teacherPage.click('[data-testid="settings-menu"]');
     await sleep(300);
     await teacherPage.click('[data-testid="settings-classroom-management"]');
-    await teacherPage.waitForSelector('[data-testid="classroom-create"]', { timeout: 60000 });
-    await dismissTutorial(teacherPage);
+    // v2: login lands on the class list; class + first assignment in one form
+    await teacherPage.waitForSelector('[data-testid="classroom-phase-teacher-class-list"]', { timeout: 60000 });
 
-    log('teacher: creating class...');
-    await teacherPage.click('[data-testid="classroom-create"]');
-    await teacherPage.fill('[data-testid="classroom-name-input"]', CLASS_NAME);
-    await teacherPage.fill('[data-testid="classroom-count-input"]', '5');
-    await teacherPage.fill('[data-testid="classroom-assignment-name-input"]', ASSIGNMENT_NAME);
-    await teacherPage.click('[data-testid="classroom-create-submit"]');
-    // Creation returns to the dashboard; the new class appears in the sidebar
-    // (grouped by class name; the clickable card shows the assignment name).
-    await teacherPage.waitForSelector('[data-testid^="classroom-sidebar-item-"]', { timeout: 30000 });
-    await sleep(1000);
+    log('teacher: creating class + first assignment...');
+    await teacherPage.click('[data-testid="classroom-class-create"]');
+    await teacherPage.fill('[data-testid="classroom-class-create-name"]', CLASS_NAME);
+    await teacherPage.fill('[data-testid="classroom-class-create-count"]', '5');
+    await teacherPage.fill('[data-testid="classroom-class-create-assignment"]', ASSIGNMENT_NAME);
+    await teacherPage.click('[data-testid="classroom-class-create-submit"]');
+    // Lands inside the new class: the assignment board lists the first lesson
+    await teacherPage.waitForSelector('[data-testid="classroom-board"]', { timeout: 30000 });
+    await sleep(500);
     await dismissTutorial(teacherPage);
-    const sidebarItem = teacherPage
-        .locator('[data-testid^="classroom-sidebar-item-"]', { hasText: ASSIGNMENT_NAME })
-        .first();
-    await sidebarItem.click();
+    await teacherPage.locator('[data-testid^="classroom-board-open-"]').first().click();
     await teacherPage.waitForSelector('[data-testid="classroom-phase-teacher-detail"]', { timeout: 20000 });
     const joinCode = (await teacherPage.textContent('[data-testid="classroom-detail-join-code"]')).trim();
     assert(/^[a-z0-9]{6}$/.test(joinCode), `join code obtained (${joinCode})`);

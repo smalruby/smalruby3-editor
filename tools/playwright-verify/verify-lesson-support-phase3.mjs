@@ -66,33 +66,26 @@ try {
     await teacherPage.click('[data-testid="settings-menu"]');
     await sleep(300);
     await teacherPage.click('[data-testid="settings-classroom-management"]');
-    await teacherPage.waitForSelector('[data-testid="classroom-create"]', { timeout: 60000 });
-    await dismissTutorial(teacherPage);
-
-    await teacherPage.click('[data-testid="classroom-group-manage"]');
-    await teacherPage.waitForSelector('[data-testid="classroom-phase-teacher-group-manage"]', { timeout: 20000 });
-    await teacherPage.fill('[data-testid="classroom-group-create-name"]', GROUP_NAME);
-    await teacherPage.click('[data-testid="classroom-group-create-submit"]');
-    await teacherPage.waitForSelector(`[data-testid="classroom-group-list"] input[value="${GROUP_NAME}"]`, {
-        timeout: 20000,
-    });
-    await teacherPage.click('[data-testid="classroom-group-manage-back"]');
-    await teacherPage.click('[data-testid="classroom-create"]');
-    await teacherPage.fill('[data-testid="classroom-name-input"]', CLASS_NAME);
-    await teacherPage.fill('[data-testid="classroom-count-input"]', '3');
-    await teacherPage.fill('[data-testid="classroom-assignment-name-input"]', ASSIGNMENT_NAME);
-    await teacherPage.click('[data-testid="classroom-create-submit"]');
-    await sleep(1000);
+    // v2: login lands on the class list; class + first assignment in one form
+    await teacherPage.waitForSelector('[data-testid="classroom-phase-teacher-class-list"]', { timeout: 60000 });
+    await teacherPage.click('[data-testid="classroom-class-create"]');
+    await teacherPage.fill('[data-testid="classroom-class-create-name"]', GROUP_NAME);
+    await teacherPage.fill('[data-testid="classroom-class-create-count"]', '3');
+    await teacherPage.fill('[data-testid="classroom-class-create-assignment"]', ASSIGNMENT_NAME);
+    await teacherPage.click('[data-testid="classroom-class-create-submit"]');
+    await teacherPage.waitForSelector('[data-testid="classroom-board"]', { timeout: 30000 });
+    await sleep(500);
     await dismissTutorial(teacherPage);
     await teacherPage
-        .locator('[data-testid^="classroom-sidebar-item-"]', { hasText: ASSIGNMENT_NAME })
+        .locator('[data-testid^="classroom-board-open-"]')
         .first()
         .click();
     await teacherPage.waitForSelector('[data-testid="classroom-phase-teacher-detail"]', { timeout: 20000 });
-    await teacherPage
-        .locator('[data-testid="classroom-detail-group-select"]')
-        .selectOption({ label: `${GROUP_NAME} (2026)` });
-    await sleep(1000);
+    // Combined creation already assigned the lesson to the class
+    const selectedGroupLabel = await teacherPage
+        .locator('[data-testid="classroom-detail-group-select"] option:checked')
+        .textContent();
+    assert(selectedGroupLabel.includes(GROUP_NAME), 'lesson already assigned to the class');
     const joinCode = (await teacherPage.textContent('[data-testid="classroom-detail-join-code"]')).trim();
     assert(/^[a-z0-9]{6}$/.test(joinCode), `lesson in group, join code ${joinCode}`);
 

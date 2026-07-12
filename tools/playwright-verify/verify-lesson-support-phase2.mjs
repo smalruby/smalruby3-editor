@@ -27,7 +27,6 @@ const BASE_URL = process.env.BASE_URL || 'http://localhost:8601';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const RUN_TAG = new Date().toISOString().slice(11, 19);
 const GROUP_NAME = `E2E 2年1組 ${RUN_TAG}`;
-const CLASS_NAME = `E2E組テスト ${RUN_TAG}`;
 const ASSIGNMENT_NAME = `第1回 ${RUN_TAG}`;
 
 const dismissTutorial = async (page) => {
@@ -67,47 +66,46 @@ try {
     await page.click('[data-testid="settings-menu"]');
     await sleep(300);
     await page.click('[data-testid="settings-classroom-management"]');
-    await page.waitForSelector('[data-testid="classroom-create"]', { timeout: 60000 });
+    // v2: login lands on the class list; class + first assignment in one form
+    await page.waitForSelector('[data-testid="classroom-phase-teacher-class-list"]', { timeout: 60000 });
+
+    log('teacher: creating a class with its first assignment...');
+    await page.click('[data-testid="classroom-class-create"]');
+    await page.fill('[data-testid="classroom-class-create-name"]', GROUP_NAME);
+    await page.fill('[data-testid="classroom-class-create-count"]', '4');
+    await page.fill('[data-testid="classroom-class-create-assignment"]', ASSIGNMENT_NAME);
+    await page.click('[data-testid="classroom-class-create-submit"]');
+    await page.waitForSelector('[data-testid="classroom-board"]', { timeout: 30000 });
+    await sleep(500);
     await dismissTutorial(page);
 
-    log('teacher: creating a group...');
+    // The class appears in the class settings list and as a sidebar header
     await page.click('[data-testid="classroom-group-manage"]');
     await page.waitForSelector('[data-testid="classroom-phase-teacher-group-manage"]', { timeout: 20000 });
-    await page.fill('[data-testid="classroom-group-create-name"]', GROUP_NAME);
-    await page.click('[data-testid="classroom-group-create-submit"]');
     await page.waitForSelector(`[data-testid="classroom-group-list"] input[value="${GROUP_NAME}"]`, {
         timeout: 20000,
     });
-    assert(true, 'group created and listed');
+    assert(true, 'class created and listed in class settings');
     await page.screenshot({ path: resolve(SHOTS, 'lesson-support-p2-1-group-manage.png') });
-    // Empty group appears in the sidebar immediately
-    await page.waitForSelector('[data-testid^="classroom-sidebar-teachergroup-"]', { timeout: 10000 });
-    assert(true, 'sidebar shows the group header');
     await page.click('[data-testid="classroom-group-manage-back"]');
-    await page.waitForSelector('[data-testid="classroom-phase-teacher-dashboard"]', { timeout: 10000 });
+    // Inside a class the dashboard main is the assignment board
+    await page.waitForSelector('[data-testid="classroom-board"]', { timeout: 10000 });
+    await page.waitForSelector('[data-testid^="classroom-sidebar-teachergroup-"]', { timeout: 10000 });
+    assert(true, 'sidebar shows the class header');
 
-    log('teacher: creating a class and assigning it to the group...');
-    await page.click('[data-testid="classroom-create"]');
-    await page.fill('[data-testid="classroom-name-input"]', CLASS_NAME);
-    await page.fill('[data-testid="classroom-count-input"]', '4');
-    await page.fill('[data-testid="classroom-assignment-name-input"]', ASSIGNMENT_NAME);
-    await page.click('[data-testid="classroom-create-submit"]');
-    await sleep(1000);
-    await dismissTutorial(page);
+    log('teacher: opening the assignment...');
     await page
         .locator('[data-testid^="classroom-sidebar-item-"]', { hasText: ASSIGNMENT_NAME })
         .first()
         .click();
     await page.waitForSelector('[data-testid="classroom-phase-teacher-detail"]', { timeout: 20000 });
 
-    // Assign to the group via the detail selector
+    // Combined creation already assigned the lesson to the class
     const groupSelect = page.locator('[data-testid="classroom-detail-group-select"]');
-    await groupSelect.selectOption({ label: `${GROUP_NAME} (2026)` });
-    await sleep(1500);
     const selectedLabel = await groupSelect
         .locator('option:checked')
         .textContent();
-    assert(selectedLabel.includes(GROUP_NAME), 'class assigned to the group');
+    assert(selectedLabel.includes(GROUP_NAME), 'lesson already assigned to the class');
 
     // Sidebar hierarchy: the class card now sits under the group header
     const groupHeader = page.locator('[data-testid^="classroom-sidebar-teachergroup-"]', {
@@ -142,7 +140,7 @@ try {
         hasText: GROUP_NAME,
     });
     assert((await archivedHeader.count()) === 0, 'archived group hidden from sidebar');
-    const classNameHeader = page.locator(`[data-testid="classroom-sidebar-group-${CLASS_NAME}"]`);
+    const classNameHeader = page.locator(`[data-testid="classroom-sidebar-group-${GROUP_NAME}"]`);
     assert((await classNameHeader.count()) === 1, 'classes fell back to className grouping');
 
     ok = true;

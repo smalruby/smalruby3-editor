@@ -205,6 +205,7 @@ export default {
     'gui.classroom.board.newTopicPlaceholder': 'New topic',
     'gui.classroom.board.addTopic': 'Add topic',
     'gui.classroom.board.empty': 'No assignments yet. Press "Create an assignment" to add one.',
+    'gui.classroom.classList.logout': 'Logout',
     'gui.classroom.classList.importGc': 'Import from Google Classroom',
     'gui.classroom.classList.title': 'Your classes',
     'gui.classroom.classList.hint':
