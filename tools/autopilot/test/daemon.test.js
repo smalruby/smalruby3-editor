@@ -1742,7 +1742,7 @@ test('statusResponse: state.claudeUsage を含める', () => {
     assert.strictEqual(statusResponse(cfg, { running: new Map() }).claudeUsage, null);
 });
 
-test('updateClaudeUsage: usage ファイルから使用量を読み state に反映', () => {
+test('updateClaudeUsage: usage ファイルから使用量を読み state に反映（updatedAt=mtime・#1027）', () => {
     const fs = require('node:fs');
     const os = require('node:os');
     const path = require('node:path');
@@ -1754,13 +1754,149 @@ test('updateClaudeUsage: usage ファイルから使用量を読み state に反
         },
     }) + '\n');
     const state = { claudeUsage: null };
-    updateClaudeUsage(state, { usageFile, now: () => 42 }, () => {});
+    // updatedAt は mtime 由来（読取時刻 now ではない）
+    updateClaudeUsage(state, { usageFile, now: () => 42, statSync: () => ({ mtimeMs: 700 }) }, () => {});
     assert.strictEqual(state.claudeUsage.session.percent, 30);
     assert.strictEqual(state.claudeUsage.weekly.percent, 60);
-    assert.strictEqual(state.claudeUsage.updatedAt, 42);
+    assert.strictEqual(state.claudeUsage.updatedAt, 700);
+    // ファイルが更新されなければ、高頻度に読み直しても updatedAt は mtime のまま（age を偽装しない）
+    updateClaudeUsage(state, { usageFile, now: () => 9999, statSync: () => ({ mtimeMs: 700 }) }, () => {});
+    assert.strictEqual(state.claudeUsage.updatedAt, 700);
     // 取得できないときは既存値を保持（null 上書きしない）
     updateClaudeUsage(state, { usageFile: '/no/such/file.json', now: () => 99 }, () => {});
-    assert.strictEqual(state.claudeUsage.updatedAt, 42);
+    assert.strictEqual(state.claudeUsage.updatedAt, 700);
+});
+
+test('updateClaudeUsage: 値が変わったときだけログする（毎 tick 読取でのログ肥大を防ぐ・#1027）', () => {
+    const fs = require('node:fs');
+    const os = require('node:os');
+    const path = require('node:path');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'daemon-usage-log-'));
+    const usageFile = path.join(dir, 'claude-usage.json');
+    const write = (pct) => fs.writeFileSync(usageFile, JSON.stringify({
+        rate_limits: { five_hour: { used_percentage: pct }, seven_day: { used_percentage: 60 } },
+    }) + '\n');
+    const logs = [];
+    const log = (m) => logs.push(m);
+    const state = { claudeUsage: null };
+    write(30);
+    updateClaudeUsage(state, { usageFile, statSync: () => ({ mtimeMs: 1 }) }, log);
+    // 値が同じなら再読取してもログしない（updatedAt=mtime だけ更新）
+    updateClaudeUsage(state, { usageFile, statSync: () => ({ mtimeMs: 2 }) }, log);
+    // 値が変わったらログする
+    write(55);
+    updateClaudeUsage(state, { usageFile, statSync: () => ({ mtimeMs: 3 }) }, log);
+    const usageLogs = logs.filter((m) => m.startsWith('claude usage:'));
+    assert.strictEqual(usageLogs.length, 2);
+    assert.match(usageLogs[0], /session=30%/);
+    assert.match(usageLogs[1], /session=55%/);
+    assert.strictEqual(state.claudeUsage.updatedAt, 3);
+});
+
+test('tick: 毎 tick で Claude 使用量を読み直す（pause 中でも・#1027）', async () => {
+    const { tick } = require('../src/daemon');
+    const fs = require('node:fs');
+    const os = require('node:os');
+    const path = require('node:path');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'daemon-tick-usage-'));
+    const usageFile = path.join(dir, 'claude-usage.json');
+    fs.writeFileSync(usageFile, JSON.stringify({
+        rate_limits: { five_hour: { used_percentage: 12 }, seven_day: { used_percentage: 34 } },
+    }) + '\n');
+    // pause 中は project へ一切触れず即 return するが、その前に usage は更新される。
+    // これにより GitHub をモックせずに「tick が usage を読む」配線を検証できる。
+    const state = { paused: true, running: new Map(), claudeUsage: null };
+    const res = await tick({ usageFile, statSync: () => ({ mtimeMs: 800 }) }, state, () => {});
+    assert.deepStrictEqual(res, { paused: true, picked: [] });
+    assert.strictEqual(state.claudeUsage.session.percent, 12);
+    assert.strictEqual(state.claudeUsage.weekly.percent, 34);
+    assert.strictEqual(state.claudeUsage.updatedAt, 800);
+});
+
+// ---- HTTP: usage をライブ読取（GET /board・POST /refresh・#1027） ----------
+
+/** テスト用: 起動済み server に対して method/path でリクエストし JSON を返す小ヘルパー */
+function httpRequestJson(port, method, pathname) {
+    const http = require('node:http');
+    return new Promise((resolve, reject) => {
+        const req = http.request({ host: '127.0.0.1', port, method, path: pathname }, (res) => {
+            let data = '';
+            res.on('data', (c) => { data += c; });
+            res.on('end', () => {
+                try { resolve({ status: res.statusCode, body: data ? JSON.parse(data) : null }); } catch (e) { reject(e); }
+            });
+        });
+        req.on('error', reject);
+        req.end();
+    });
+}
+
+/** startHttp を port 0 で起動し listening を待つ */
+async function startTestHttp(cfg, state) {
+    const { startHttp } = require('../src/daemon');
+    const server = startHttp(cfg, state, () => {});
+    if (!server.listening) await new Promise((r) => server.once('listening', r));
+    return { server, port: server.address().port };
+}
+
+test('startHttp GET /board: usage をライブ読取して返す（worker 完了を待たない・#1027）', async () => {
+    const fs = require('node:fs');
+    const os = require('node:os');
+    const path = require('node:path');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'daemon-board-usage-'));
+    const usageFile = path.join(dir, 'claude-usage.json');
+    fs.writeFileSync(usageFile, JSON.stringify({
+        rate_limits: { five_hour: { used_percentage: 22 }, seven_day: { used_percentage: 44 } },
+    }) + '\n');
+    const cfg = {
+        ...makeCfg(), port: 0, assignee: null, concurrency: 1,
+        usageFile, statSync: () => ({ mtimeMs: 111 }),
+    };
+    const state = { paused: false, running: new Map(), board: null, claudeUsage: null };
+    const { server, port } = await startTestHttp(cfg, state);
+    try {
+        const { status, body } = await httpRequestJson(port, 'GET', '/board');
+        assert.strictEqual(status, 200);
+        assert.strictEqual(body.claudeUsage.session.percent, 22);
+        assert.strictEqual(body.claudeUsage.weekly.percent, 44);
+        assert.strictEqual(body.claudeUsage.updatedAt, 111);
+        // state にも反映されている（ライブ読取）
+        assert.strictEqual(state.claudeUsage.session.percent, 22);
+    } finally {
+        await new Promise((r) => server.close(r));
+    }
+});
+
+test('startHttp POST /refresh: レート残量が僅少でも usage は更新する（skipLowPriority 非適用・#1027）', async () => {
+    const fs = require('node:fs');
+    const os = require('node:os');
+    const path = require('node:path');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'daemon-refresh-usage-'));
+    const usageFile = path.join(dir, 'claude-usage.json');
+    fs.writeFileSync(usageFile, JSON.stringify({
+        rate_limits: { five_hour: { used_percentage: 33 }, seven_day: { used_percentage: 66 } },
+    }) + '\n');
+    const cfg = {
+        ...makeCfg(), port: 0, assignee: null, concurrency: 1,
+        usageFile, statSync: () => ({ mtimeMs: 222 }),
+    };
+    // skipLowPriority=true: board refresh（GraphQL）はスキップされるが usage は更新されるべき
+    const state = {
+        paused: false, running: new Map(), board: null, claudeUsage: null,
+        ratePlan: { skipLowPriority: true, minRemaining: 5 },
+    };
+    const { server, port } = await startTestHttp(cfg, state);
+    try {
+        const { status, body } = await httpRequestJson(port, 'POST', '/refresh');
+        assert.strictEqual(status, 200);
+        assert.strictEqual(body.refreshed, false); // board refresh はレート僅少でスキップ
+        assert.strictEqual(body.skipped, 'rate-limited');
+        // だが usage はライブ読取されている（API を叩かないため skipLowPriority を適用しない）
+        assert.strictEqual(state.claudeUsage.session.percent, 33);
+        assert.strictEqual(state.claudeUsage.updatedAt, 222);
+    } finally {
+        await new Promise((r) => server.close(r));
+    }
 });
 
 // ---- 稼働バージョン表示 + 更新検知（#885） --------------------------------

@@ -73,12 +73,19 @@ function parseClaudeUsage(text) {
 /**
  * status line が書き出した usage ファイルから最新の Claude 使用量を読む。
  * ファイルが無い / rate_limits が取れなければ null（非サブスク / 初回応答前 / 未生成）。
+ *
+ * `updatedAt` は **読取時刻ではなく usage ファイルの mtime**（= worker が最後に
+ * statusline を書いた時刻）にする（#1027）。daemon が毎 tick / GET /board で高頻度に
+ * 読み直しても、古いファイルなら age（updatedAt からの経過）が正しく増え、逆に古い
+ * ファイルを読み直しても age が誤って 0 にならない（stale を隠さない）。stat に失敗した
+ * ときだけ now() にフォールバックする（テスト用に now 注入は残す）。
  * @param {string} file usage ファイルの絶対パス（usage-statusline.sh の書き出し先と一致させる）
  * @param {object} [opts]
- * @param {function} [opts.now] 現在時刻（ms）を返す関数（テスト用）
+ * @param {function} [opts.now] 現在時刻（ms）を返す関数（stat 失敗時のフォールバック・テスト用）
+ * @param {function} [opts.statSync] `fs.statSync` 相当（mtimeMs を持つ stat を返す・テスト用）
  * @returns {{session, weekly, updatedAt:number}|null}
  */
-function readClaudeUsage(file, { now = Date.now } = {}) {
+function readClaudeUsage(file, { now = Date.now, statSync = fs.statSync } = {}) {
     if (!file) return null;
     let text;
     try {
@@ -88,7 +95,13 @@ function readClaudeUsage(file, { now = Date.now } = {}) {
     }
     const usage = parseClaudeUsage(text);
     if (!usage) return null;
-    return { ...usage, updatedAt: now() };
+    let updatedAt;
+    try {
+        updatedAt = statSync(file).mtimeMs;
+    } catch {
+        updatedAt = now();
+    }
+    return { ...usage, updatedAt };
 }
 
 module.exports = { findRateLimits, toWindow, parseClaudeUsage, readClaudeUsage };

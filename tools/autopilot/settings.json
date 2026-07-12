@@ -1,0 +1,13 @@
+{
+  "phases": {
+    "default": { "model": "opus", "effort": "medium" },
+    "triage": { "model": "opus", "effort": "medium" },
+    "understand": { "model": "opus", "effort": "high" },
+    "decompose": { "model": "opus", "effort": "high" },
+    "discuss": { "model": "opus", "effort": "high" },
+    "implement": { "model": "opus", "effort": "medium" },
+    "review": { "model": "opus", "effort": "high" },
+    "address-review": { "model": "opus", "effort": "high" },
+    "verify": { "model": "opus", "effort": "medium" }
+  }
+}

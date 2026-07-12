@@ -61,10 +61,52 @@ test('readClaudeUsage: usage ファイルから使用量を読む', () => {
             seven_day: { used_percentage: 80, resets_at: 200 },
         },
     }) + '\n');
-    const u = readClaudeUsage(file, { now: () => 999 });
+    // updatedAt は「読取時刻(now)」ではなく usage ファイルの mtime を使う（#1027）。
+    // 高頻度に読み直しても、古いファイルなら age が正しく増える（stale を隠さない）。
+    const u = readClaudeUsage(file, { now: () => 999, statSync: () => ({ mtimeMs: 555000 }) });
     assert.strictEqual(u.session.percent, 12.5);
     assert.strictEqual(u.weekly.percent, 80);
-    assert.strictEqual(u.updatedAt, 999);
+    assert.strictEqual(u.updatedAt, 555000);
+});
+
+test('readClaudeUsage: updatedAt は実ファイルの mtime（読取時刻ではない）', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'usage-file-'));
+    const file = path.join(dir, 'claude-usage.json');
+    fs.writeFileSync(file, JSON.stringify({
+        rate_limits: { five_hour: { used_percentage: 5 } },
+    }) + '\n');
+    // mtime を過去（60 秒前）に固定し、それが updatedAt に反映されることを確認する。
+    const mtimeMs = fs.statSync(file).mtimeMs - 60_000;
+    fs.utimesSync(file, mtimeMs / 1000, mtimeMs / 1000);
+    const u = readClaudeUsage(file);
+    // fs の mtime 精度で丸めが入りうるので近似で比較（ms 未満は許容）
+    assert.ok(Math.abs(u.updatedAt - mtimeMs) < 1000, `updatedAt=${u.updatedAt} mtimeMs=${mtimeMs}`);
+});
+
+test('readClaudeUsage: mtime を再取得しても古いファイルなら age が誤って 0 にならない', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'usage-file-'));
+    const file = path.join(dir, 'claude-usage.json');
+    fs.writeFileSync(file, JSON.stringify({
+        rate_limits: { five_hour: { used_percentage: 5 } },
+    }) + '\n');
+    // 「今」が進んでもファイルが更新されなければ updatedAt は一定（= mtime）のまま。
+    const first = readClaudeUsage(file, { now: () => 1000, statSync: () => ({ mtimeMs: 100 }) });
+    const second = readClaudeUsage(file, { now: () => 9999, statSync: () => ({ mtimeMs: 100 }) });
+    assert.strictEqual(first.updatedAt, 100);
+    assert.strictEqual(second.updatedAt, 100);
+});
+
+test('readClaudeUsage: stat 失敗時は now() にフォールバック', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'usage-file-'));
+    const file = path.join(dir, 'claude-usage.json');
+    fs.writeFileSync(file, JSON.stringify({
+        rate_limits: { five_hour: { used_percentage: 5 } },
+    }) + '\n');
+    const u = readClaudeUsage(file, {
+        now: () => 42,
+        statSync: () => { throw new Error('stat failed'); },
+    });
+    assert.strictEqual(u.updatedAt, 42);
 });
 
 test('readClaudeUsage: ファイル無し / 使用量無しは null（グレースフル）', () => {

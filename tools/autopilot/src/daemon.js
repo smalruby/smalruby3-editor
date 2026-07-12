@@ -635,17 +635,25 @@ function recordHistory(state, entry) {
  * Claude 使用率（session/weekly）を読み、state.claudeUsage に反映する（Issue #879）。
  * 取得できなければ既存値を保持する（非サブスク / 初回応答前は rate_limits が無い →
  * 無理に null 上書きしない）。
+ *
+ * usage ファイルはローカルの小さな JSON（GraphQL/API 予算を消費しない）ので、毎 tick /
+ * GET /board / POST /refresh から高頻度に呼んでよい（#1027）。ログは値が変わったときだけ
+ * 出す（毎 tick 読取でのログ肥大を防ぐ）。updatedAt はファイル mtime 由来（readClaudeUsage）。
  * @param {object} state daemon の可変状態（state.claudeUsage を書き換える）
  * @param {object} cfg
  * @param {function} log
  */
 function updateClaudeUsage(state, cfg, log) {
     try {
-        const usage = readClaudeUsage(cfg.usageFile || usageFilePath(), { now: cfg.now });
+        const usage = readClaudeUsage(cfg.usageFile || usageFilePath(), { now: cfg.now, statSync: cfg.statSync });
         if (usage) {
+            const prev = state.claudeUsage;
             state.claudeUsage = usage;
             const pct = (w) => (w && w.percent != null ? `${Math.round(w.percent)}%` : '—');
-            log(`claude usage: session=${pct(usage.session)} weekly=${pct(usage.weekly)}`);
+            const changed = !prev
+                || pct(prev.session) !== pct(usage.session)
+                || pct(prev.weekly) !== pct(usage.weekly);
+            if (changed) log(`claude usage: session=${pct(usage.session)} weekly=${pct(usage.weekly)}`);
         }
     } catch (e) {
         log(`claude usage read failed: ${e.message}`);
@@ -1398,6 +1406,10 @@ async function syncFacesAfterIntents(item, intents, cfg, log) {
  *   - picked: このサイクルで dispatch を起動した issue 番号（並行上限内の actionable）
  */
 async function tick(cfg, state, log) {
+    // Claude 使用率はローカルの小さな JSON（API 予算を消費しない）。毎 tick 読み直して
+    // モニタが worker 完了を待たずライブ追従できるようにする（#1027）。pause 中も更新する
+    // （稼働中 worker があれば statusline が書き続けるため）。rate 状態には依存させない。
+    updateClaudeUsage(state, cfg, log);
     if (state.paused) return { paused: true, picked: [] };
     // レート残量の監視（rate_limit はレート消費なし）。残量僅少なら低優先処理をスキップする
     await refreshRateLimits(cfg, state, log);
@@ -1819,6 +1831,9 @@ function startHttp(cfg, state, log) {
             return res.end(r ? capture(r.session) : `#${issue} は実行中ではありません`);
         }
         if (req.method === 'GET' && url.pathname === '/board') {
+            // usage をライブ読取（ローカルファイル・API 予算ゼロ）してから返す。monitor の
+            // 5 秒 poll でほぼライブ追従させる（worker 完了を待たない）（#1027）。
+            updateClaudeUsage(state, cfg, log);
             return send(200, boardResponse(cfg, state));
         }
         if (req.method === 'GET' && url.pathname === '/status') {
@@ -1853,6 +1868,9 @@ function startHttp(cfg, state, log) {
             return;
         }
         if (req.method === 'POST' && url.pathname === '/refresh') {
+            // usage はローカルファイル読取（API 予算を消費しない）ので、レート状態に関わらず
+            // まず更新する。「🔄 更新」ボタンで使用量も更新される（#1027・skipLowPriority 非適用）。
+            updateClaudeUsage(state, cfg, log);
             // 俯瞰ボードを即時再取得する（モニタの「🔄 更新」ボタン）。board は専用タイマーを
             // 持たず poll/tick 後にのみ更新するため、ユーザーが見たいときはここで消費する。
             // listItems は ~100 GraphQL ポイントと重いので、オンデマンドに限定して節約する。
@@ -2009,7 +2027,7 @@ module.exports = {
     parseSsoDeviceOutput, startReauth,
     refreshBoard, recordHistory, refreshRateLimits, patchBoardCache,
     applyTrackerStickies, refreshBoardAndProjectTrackers,
-    updateClaudeUsage, boardResponse, statusResponse,
+    updateClaudeUsage, boardResponse, statusResponse, startHttp,
     checkForUpdate, startUpdateChecks,
     ensureCheckpointCommit, readContinuationFromWorktree, applyCheckpointHandling,
     collectContinuationContexts, checkpointEscalationBody,
