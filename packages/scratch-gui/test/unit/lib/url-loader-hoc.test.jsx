@@ -1,4 +1,5 @@
 // === Smalruby: This file is Smalruby-specific (URL loader failure recovery, #972) ===
+import { act } from '@testing-library/react';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
 import configureStore from 'redux-mock-store';
@@ -18,15 +19,52 @@ jest.mock('../../../src/lib/url-loader', () => {
     };
 });
 
+const SCRATCH_URL = 'https://scratch.mit.edu/projects/123456789/';
+
+// The wrapped component records the props it last received so tests can observe
+// what the HOC injects (e.g. urlLoaderLoading) and drive it via the injected
+// onUrlLoaderSubmit handler.
+let capturedProps;
+const RecordingChild = (props) => {
+    capturedProps = props;
+    return <div />;
+};
+const WrappedComponent = URLLoaderHOC(RecordingChild);
+
 // url-loader-hoc's mergeProps puts ownProps last, so props passed in the test
 // override the connected state/dispatch — letting us drive the HOC directly and
 // observe which recovery action it dispatches.
-describe('URLLoaderHOC failure handling (#972)', () => {
+describe('URLLoaderHOC (#972)', () => {
     const mockStore = configureStore();
     let store;
 
+    const makeProps = (overrides = {}) => ({
+        store,
+        vm: {},
+        storage: {},
+        reduxProjectId: null,
+        loadingState: LoadingState.SHOWING_WITHOUT_ID,
+        isShowingWithoutId: true,
+        projectChanged: false,
+        userOwnsProject: false,
+        onLoadingStarted: jest.fn(),
+        onLoadingFinished: jest.fn(),
+        onSetProjectTitle: jest.fn(),
+        onSetRubyVersion: jest.fn(),
+        setProjectId: jest.fn(),
+        requestProjectUpload: jest.fn(),
+        closeUrlLoaderModal: jest.fn(),
+        closeFileMenu: jest.fn(),
+        openUrlLoaderModal: jest.fn(),
+        cancelFileUpload: jest.fn(),
+        restorePreviousProjectState: jest.fn(),
+        onLoadedProject: jest.fn(),
+        ...overrides,
+    });
+
     beforeEach(() => {
         fetchProjectInfo.mockReset();
+        capturedProps = null;
         store = mockStore({
             scratchGui: {
                 projectState: { loadingState: LoadingState.SHOWING_WITHOUT_ID, projectId: null },
@@ -42,60 +80,65 @@ describe('URLLoaderHOC failure handling (#972)', () => {
     test('a failed URL load restores the previous project instead of erroring the editor', async () => {
         fetchProjectInfo.mockRejectedValue(new Error('boom'));
 
+        const props = makeProps();
         const errorCallback = jest.fn();
-        // eslint-disable-next-line react/prop-types
-        const Child = ({ onUrlLoaderSubmit }) => {
-            React.useEffect(() => {
-                onUrlLoaderSubmit('https://scratch.mit.edu/projects/123456789/', errorCallback);
-            }, []); // eslint-disable-line react-hooks/exhaustive-deps
-            return <div />;
-        };
-        const WrappedComponent = URLLoaderHOC(Child);
+        const { rerender } = renderWithIntl(<WrappedComponent {...props} isLoadingUpload={false} />);
 
-        const restorePreviousProjectState = jest.fn();
-        const onLoadedProject = jest.fn();
-        const commonProps = {
-            store,
-            vm: {},
-            storage: {},
-            reduxProjectId: null,
-            loadingState: LoadingState.SHOWING_WITHOUT_ID,
-            isShowingWithoutId: true,
-            projectChanged: false,
-            userOwnsProject: false,
-            onLoadingStarted: jest.fn(),
-            onLoadingFinished: jest.fn(),
-            onSetProjectTitle: jest.fn(),
-            onSetRubyVersion: jest.fn(),
-            setProjectId: jest.fn(),
-            requestProjectUpload: jest.fn(),
-            closeUrlLoaderModal: jest.fn(),
-            closeFileMenu: jest.fn(),
-            openUrlLoaderModal: jest.fn(),
-            cancelFileUpload: jest.fn(),
-            restorePreviousProjectState,
-            onLoadedProject,
-        };
-
-        const { rerender } = renderWithIntl(<WrappedComponent {...commonProps} isLoadingUpload={false} />);
-
-        // Flip isLoadingUpload so componentDidUpdate kicks off the load, mimicking
-        // the upload-machinery finishing.
+        // Submit sets the pending project id; the load only kicks off once the
+        // upload machinery flips isLoadingUpload (componentDidUpdate).
+        act(() => {
+            capturedProps.onUrlLoaderSubmit(SCRATCH_URL, errorCallback);
+        });
         rerender(
             <IntlProvider locale="en" messages={{}}>
-                <WrappedComponent {...commonProps} isLoadingUpload />
+                <WrappedComponent {...props} isLoadingUpload />
             </IntlProvider>,
         );
 
         // Flush the async fetch/catch chain.
-        await new Promise((resolve) => setTimeout(resolve, 0));
+        await act(async () => {
+            await new Promise((resolve) => setTimeout(resolve, 0));
+        });
 
         // Recovery must restore the previous project (null → default) ...
-        expect(restorePreviousProjectState).toHaveBeenCalledWith(null);
+        expect(props.restorePreviousProjectState).toHaveBeenCalledWith(null);
         // ... and must NOT go through the load-project state machine, whose
         // FETCHING_WITH_ID failure branch resolves to the fatal ERROR state.
-        expect(onLoadedProject).not.toHaveBeenCalled();
+        expect(props.onLoadedProject).not.toHaveBeenCalled();
         // The user still gets a message in the (still-open) modal.
         expect(errorCallback).toHaveBeenCalled();
+        // The loading UX must clear once the (failed) load settles (#972).
+        expect(capturedProps.urlLoaderLoading).toBe(false);
+    });
+
+    test('exposes urlLoaderLoading=true to the modal while a load is in flight (#972)', () => {
+        const props = makeProps();
+        renderWithIntl(<WrappedComponent {...props} isLoadingUpload={false} />);
+
+        expect(capturedProps.urlLoaderLoading).toBe(false);
+
+        act(() => {
+            capturedProps.onUrlLoaderSubmit(SCRATCH_URL, jest.fn());
+        });
+
+        // Marked in flight synchronously so the modal disables its controls and
+        // shows the spinner before the fetch even begins.
+        expect(capturedProps.urlLoaderLoading).toBe(true);
+    });
+
+    test('rapid repeat submits only kick off a single load (#972)', () => {
+        const requestProjectUpload = jest.fn();
+        const props = makeProps({ requestProjectUpload });
+        renderWithIntl(<WrappedComponent {...props} isLoadingUpload={false} />);
+
+        act(() => {
+            // Two submits in the same tick, before any re-render — mimics a user
+            // hammering "Open"/Enter. The synchronous re-entry guard must drop
+            // the second one so vm.loadProject() cannot run twice.
+            capturedProps.onUrlLoaderSubmit(SCRATCH_URL, jest.fn());
+            capturedProps.onUrlLoaderSubmit(SCRATCH_URL, jest.fn());
+        });
+
+        expect(requestProjectUpload).toHaveBeenCalledTimes(1);
     });
 });

@@ -259,6 +259,7 @@ const GUIComponent = props => {
         onTelemetryModalOptOut,
         onUpdateProjectThumbnail,
         onUrlLoaderSubmit,
+        urlLoaderLoading, // === Smalruby: url loader loading state (#972) ===
         // === Smalruby: Start of Redux action props prevention ===
         // When adding new Redux actions in mapDispatchToProps that start with "on",
         // add them here to prevent React warnings about unknown event handler props
@@ -379,6 +380,7 @@ const GUIComponent = props => {
                 ) : null}
                 {urlLoaderModalVisible ? (
                     <URLLoaderModal
+                        loading={urlLoaderLoading} // === Smalruby: url loader loading state (#972) ===
                         onRequestClose={onRequestCloseUrlLoaderModal}
                         onLoadUrl={onUrlLoaderSubmit}
                     />
@@ -415,6 +417,7 @@ const GUIComponent = props => {
                     ) : null}
                     {urlLoaderModalVisible ? (
                         <URLLoaderModal
+                            loading={urlLoaderLoading} // === Smalruby: url loader loading state (#972) ===
                             onRequestClose={onRequestCloseUrlLoaderModal}
                             onLoadUrl={onUrlLoaderSubmit}
                         />
@@ -937,6 +940,7 @@ GUIComponent.propTypes = {
     onToggleLoginOpen: PropTypes.func,
     onUpdateProjectThumbnail: PropTypes.func,
     onUrlLoaderSubmit: PropTypes.func,
+    urlLoaderLoading: PropTypes.bool, // === Smalruby: url loader loading state (#972) ===
     platform: PropTypes.oneOf(Object.keys(PLATFORM)),
     renderLogin: PropTypes.func,
     rubyTabVisible: PropTypes.bool,

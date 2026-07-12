@@ -386,6 +386,7 @@ export default {
     'gui.urlLoader.projectLoadFailed':
         'プロジェクトを読み込めませんでした。対応していないブロックや機能が含まれている可能性があります。' +
         '直前のプロジェクトはそのまま残しています。',
+    'gui.urlLoader.loading': '読み込み中…',
     'gui.urlLoader.title': 'Scratchから読み込む',
     'gui.urlLoader.urlPlaceholder': 'プロジェクトのURLを入力...',
     'gui.urlLoader.openButton': '開く',

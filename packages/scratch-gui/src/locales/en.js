@@ -576,6 +576,7 @@ export default {
     'gui.urlLoader.projectLoadFailed':
         'The project could not be loaded. It may use blocks or features that are not supported. ' +
         'Your previous project has been kept.',
+    'gui.urlLoader.loading': 'Loading…',
     'gui.urlLoader.title': 'Load from URL',
     'gui.urlLoader.urlPlaceholder': 'Enter project URL...',
     'gui.urlLoader.openButton': 'Open',

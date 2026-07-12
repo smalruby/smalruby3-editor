@@ -399,6 +399,7 @@ export default {
     'gui.urlLoader.projectLoadFailed':
         'プロジェクトをよみこめませんでした。たいおうしていないブロックやきのうがふくまれているかもしれません。' +
         'ちょくぜんのプロジェクトはそのままのこしています。',
+    'gui.urlLoader.loading': 'よみこみちゅう…',
     'gui.urlLoader.title': 'Scratchからよみこむ',
     'gui.urlLoader.urlPlaceholder': 'プロジェクトのURLをにゅうりょく...',
     'gui.urlLoader.openButton': 'ひらく',

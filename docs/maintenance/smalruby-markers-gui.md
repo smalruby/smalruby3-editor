@@ -50,6 +50,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/components/extension-button/extension-button.jsx` | DNCL extension confirm | DNCL モード時の拡張機能ボタンを confirm ダイアログ化（メッセージ定義 + クリックハンドラの 2 箇所）。OK でふりがなモードに戻して拡張機能ライブラリを開く |
 | `src/components/extension-button/extension-button.css` | DNCL extension disabled | DNCL モード時の拡張機能ボタンの無効化スタイル |
 | `src/components/gui/gui.jsx` | Redux action props prevention | Redux action props の伝播防止 |
+| `src/components/gui/gui.jsx` | url loader loading state (#972) | URL ローダーモーダルのローディング状態 `urlLoaderLoading`（URLLoaderHOC 注入）を destructure し、`<URLLoaderModal loading>` 2 箇所へ伝播 + propType。ロード中に「開く」/入力を無効化しスピナー表示する UX 用（1 行インライン ×4） |
 | `src/components/gui/gui.jsx` | iPad portrait narrow desktop stage size | 744〜1023px viewport で stage を small に強制 (issue #572 Phase 3-C, #599 で 768→744 拡張) |
 | `src/components/gui/gui.css` | iPad portrait narrow desktop layout | 744〜1023px viewport で editor-wrapper の flex-basis を緩める (issue #572 Phase 3-C, #599 で 768→744 拡張) |
 | `src/components/gui/gui.css` | iPad portrait legal links cleanup | 744〜1023px viewport でフィードバックリンク + セパレータを非表示 (issue #600, #599 で 768→744 拡張) |
