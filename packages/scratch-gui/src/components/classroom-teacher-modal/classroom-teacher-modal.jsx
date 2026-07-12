@@ -12,7 +12,6 @@ import Modal from '../../containers/modal.jsx';
 
 import ClassCodeDisplay from '../classroom-modal/class-code-display.jsx';
 import TeacherAssignmentBoard from '../classroom-modal/teacher-assignment-board.jsx';
-import TeacherAssignmentEditor from '../classroom-modal/teacher-assignment-editor.jsx';
 import TeacherClassDetail from '../classroom-modal/teacher-class-detail.jsx';
 import TeacherClassList from '../classroom-modal/teacher-class-list.jsx';
 import TeacherEvaluation from '../classroom-modal/teacher-evaluation.jsx';
@@ -97,18 +96,14 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         onSelectGoogleCourse,
         onConfirmGoogleImport,
         onUpdateAssignmentName,
-        onUpdateStudentCount,
         kickRequestsBySeat,
         onApproveKickRequest,
         onRejectKickRequest,
-        onAddCoTeacher,
-        onRemoveCoTeacher,
         assignmentEditorPages,
         assignmentStarterMode,
         assignmentStarterSource,
         assignmentHasExistingStarter,
         assignmentIsSaving,
-        onShowAssignmentEditor,
         onAssignmentAddPage,
         onAssignmentRemovePage,
         onAssignmentMovePage,
@@ -130,11 +125,10 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         onUpdateAssignmentMeta,
         onCreateAssignmentInClass,
         onReuseAssignment,
+        onDetailTabChange,
         onBackFromGroupManage,
         onCreateGroup,
         onUpdateGroup,
-        onAssignClassToGroup,
-        onDuplicateClassroom,
         evaluation,
     } = containerProps;
 
@@ -242,6 +236,25 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         />
                     </div>
                     <TeacherClassDetail
+                        assignmentEditor={{
+                            editorPages: assignmentEditorPages,
+                            starterMode: assignmentStarterMode,
+                            starterSource: assignmentStarterSource,
+                            hasExistingStarter: assignmentHasExistingStarter,
+                            isSaving: assignmentIsSaving,
+                            onAddPage: onAssignmentAddPage,
+                            onApplyTemplate: onAssignmentApplyTemplate,
+                            onAttachPageImage: onAssignmentAttachPageImage,
+                            onCancel: onAssignmentCancel,
+                            onChangePageText: onAssignmentChangePageText,
+                            onMovePage: onAssignmentMovePage,
+                            onRemovePage: onAssignmentRemovePage,
+                            onRemovePageImage: onAssignmentRemovePageImage,
+                            onRemoveStarter: onAssignmentRemoveStarter,
+                            onSave: onAssignmentSave,
+                            onUseCurrentProject: onAssignmentUseCurrentProject,
+                            onUseFile: onAssignmentUseFile,
+                        }}
                         codeDisplayClassroom={codeDisplayClassroom}
                         codeDisplayFullscreen={false}
                         downloadProgress={downloadProgress}
@@ -249,68 +262,34 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         errorActionHandler={errorActionHandler}
                         errorActionLabel={errorActionLabel}
                         errorTitle={errorTitle}
-                        groups={groups}
                         isLoading={isLoading}
                         kickRequestsBySeat={kickRequestsBySeat}
                         members={members}
                         noBackButton
                         selectedClassroom={selectedClassroom}
                         selectedMember={selectedMember}
-                        onAddCoTeacher={onAddCoTeacher}
-                        onAssignClassToGroup={onAssignClassToGroup}
-                        onDuplicateClassroom={onDuplicateClassroom}
                         onApproveKickRequest={onApproveKickRequest}
-                        onRemoveCoTeacher={onRemoveCoTeacher}
                         onCloseCodeDisplay={onCloseCodeDisplay}
                         onCopyInviteLink={onCopyInviteLink}
                         onDeleteClassroom={onDeleteClassroom}
                         onDeleteMember={onDeleteMember}
+                        onDetailTabChange={onDetailTabChange}
                         onDownloadAll={onDownloadAll}
                         onOpenSubmission={onOpenSubmission}
                         onRefresh={onRefreshDetail}
                         onRejectKickRequest={onRejectKickRequest}
                         onReturnSubmission={onReturnSubmission}
                         onSelectMember={onSelectMember}
-                        onShowAssignmentEditor={onShowAssignmentEditor}
                         onShowCodeDisplay={onShowCodeDisplay}
                         onShowPostAssignment={authProvider === 'google' ? onShowPostAssignment : null}
                         onToggleCodeFullscreen={onToggleCodeFullscreen}
                         onUpdateAssignmentName={onUpdateAssignmentName}
-                        onUpdateStudentCount={onUpdateStudentCount}
                     />
                 </div>
             );
         }
 
 
-        if (phase === 'teacher-assignment-edit' && selectedClassroom) {
-            return (
-                <div className={styles.mainRelative}>
-                    <TeacherAssignmentEditor
-                        editorPages={assignmentEditorPages}
-                        error={error}
-                        errorTitle={errorTitle}
-                        hasExistingStarter={assignmentHasExistingStarter}
-                        isSaving={assignmentIsSaving}
-                        selectedClassroom={selectedClassroom}
-                        starterMode={assignmentStarterMode}
-                        starterSource={assignmentStarterSource}
-                        onAddPage={onAssignmentAddPage}
-                        onAttachPageImage={onAssignmentAttachPageImage}
-                        onApplyTemplate={onAssignmentApplyTemplate}
-                        onCancel={onAssignmentCancel}
-                        onChangePageText={onAssignmentChangePageText}
-                        onMovePage={onAssignmentMovePage}
-                        onRemovePage={onAssignmentRemovePage}
-                        onRemovePageImage={onAssignmentRemovePageImage}
-                        onRemoveStarter={onAssignmentRemoveStarter}
-                        onSave={onAssignmentSave}
-                        onUseCurrentProject={onAssignmentUseCurrentProject}
-                        onUseFile={onAssignmentUseFile}
-                    />
-                </div>
-            );
-        }
 
         if (phase === 'teacher-google-courses') {
             return (

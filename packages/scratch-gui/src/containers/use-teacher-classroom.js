@@ -100,6 +100,7 @@ const useTeacherClassroom = ({
         idToken: auth.idToken,
         selectedClassroom: classrooms.selectedClassroom,
         handleTeacher401: auth.handleTeacher401,
+        phase,
         clearError,
         showError,
         intl,
@@ -187,6 +188,7 @@ const useTeacherClassroom = ({
         handleSelectMember: classrooms.handleSelectMember,
         handleUpdateAssignmentName: classrooms.handleUpdateAssignmentName,
         handleUpdateAssignmentMeta: classrooms.handleUpdateAssignmentMeta,
+        setDetailTab: classrooms.setDetailTab,
         handleUpdateStudentCount: classrooms.handleUpdateStudentCount,
 
         // Kick requests (Phase 4-6)
@@ -216,7 +218,6 @@ const useTeacherClassroom = ({
         assignmentStarterSource: assignment.starterSource,
         assignmentHasExistingStarter: assignment.hasExistingStarter,
         assignmentIsSaving: assignment.isSaving,
-        handleShowAssignmentEditor: assignment.handleShowAssignmentEditor,
         handleAssignmentAddPage: assignment.handleAddPage,
         handleAssignmentRemovePage: assignment.handleRemovePage,
         handleAssignmentMovePage: assignment.handleMovePage,

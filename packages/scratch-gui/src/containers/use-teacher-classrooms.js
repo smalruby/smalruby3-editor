@@ -96,6 +96,9 @@ const useTeacherClassrooms = ({
     const [kickRequestsBySeat, setKickRequestsBySeat] = useState({});
 
     const refreshTimerRef = useRef(null);
+    // Which detail tab is visible. Polling of attendance/submissions runs
+    // only on the members tab (cost control — teacher review round 2).
+    const [detailTab, setDetailTab] = useState('description');
 
     // --- Load classrooms (assignments) ---
 
@@ -277,7 +280,9 @@ const useTeacherClassrooms = ({
     );
 
     useEffect(() => {
-        if (phase === 'teacher-class-detail' && selectedClassroom && idToken) {
+        if (phase === 'teacher-class-detail' && selectedClassroom && idToken && detailTab === 'members') {
+            // Refresh immediately when the members tab opens, then poll.
+            refreshMembersOnly(selectedClassroom.classroomId);
             refreshTimerRef.current = setInterval(() => {
                 refreshMembersOnly(selectedClassroom.classroomId);
             }, REFRESH_INTERVAL_MS);
@@ -288,7 +293,7 @@ const useTeacherClassrooms = ({
                 clearInterval(refreshTimerRef.current);
             }
         };
-    }, [phase, selectedClassroom, idToken, refreshMembersOnly]);
+    }, [phase, selectedClassroom, idToken, refreshMembersOnly, detailTab]);
 
     // --- Navigation ---
 
@@ -503,6 +508,8 @@ const useTeacherClassrooms = ({
         handleDeleteMember,
         handleSelectMember,
         loadClassrooms,
+        detailTab,
+        setDetailTab,
         handleUpdateAssignmentMeta,
         handleUpdateAssignmentName,
         handleUpdateStudentCount,

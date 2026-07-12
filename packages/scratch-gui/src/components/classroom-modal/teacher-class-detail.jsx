@@ -5,7 +5,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 
 import ClassCodeDisplay from './class-code-display.jsx';
 import ErrorDisplay from './error-display.jsx';
-import TeacherCoTeachers from './teacher-co-teachers.jsx';
+import TeacherAssignmentEditor from './teacher-assignment-editor.jsx';
 import TeacherMemberDetail from './teacher-member-detail.jsx';
 
 import googleClassroomIcon from '../classroom-teacher-modal/google-classroom-icon.png';
@@ -34,27 +34,38 @@ const TeacherClassDetail = ({
     onCloseCodeDisplay,
     onCopyInviteLink,
     onToggleCodeFullscreen,
-    onShowAssignmentEditor,
     onShowPostAssignment,
-    groups,
-    onAssignClassToGroup,
-    onDuplicateClassroom,
     onUpdateAssignmentName,
-    onUpdateStudentCount,
     codeDisplayClassroom,
     codeDisplayFullscreen,
     kickRequestsBySeat,
     onApproveKickRequest,
     onRejectKickRequest,
-    onAddCoTeacher,
-    onRemoveCoTeacher,
+    onDetailTabChange,
+    assignmentEditor,
 }) => {
     const intl = useIntl();
+    // Destructured with handle-prefixed names for the embedded editor
+    // (react/jsx-handler-names requires handler props to look like handlers).
+    const descEditor = assignmentEditor || {};
+    const handleDescAddPage = descEditor.onAddPage;
+    const handleDescApplyTemplate = descEditor.onApplyTemplate;
+    const handleDescAttachPageImage = descEditor.onAttachPageImage;
+    const handleDescCancel = descEditor.onCancel;
+    const handleDescChangePageText = descEditor.onChangePageText;
+    const handleDescMovePage = descEditor.onMovePage;
+    const handleDescRemovePage = descEditor.onRemovePage;
+    const handleDescRemovePageImage = descEditor.onRemovePageImage;
+    const handleDescRemoveStarter = descEditor.onRemoveStarter;
+    const handleDescSave = descEditor.onSave;
+    const handleDescUseCurrentProject = descEditor.onUseCurrentProject;
+    const handleDescUseFile = descEditor.onUseFile;
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [showCodeDisplay, setShowCodeDisplay] = useState(false);
-    const [showStudentCountDialog, setShowStudentCountDialog] = useState(false);
-    const [activeTab, setActiveTab] = useState('members');
-    const [editStudentCount, setEditStudentCount] = useState(0);
+    // The description tab is the entry view (teacher review): editing the
+    // student-facing pages is the primary task when opening an assignment.
+    const [activeTab, setActiveTab] = useState('description');
+    const [previewPage, setPreviewPage] = useState(0);
     const [editAssignmentName, setEditAssignmentName] = useState(
         selectedClassroom.assignmentName || '',
     );
@@ -64,13 +75,23 @@ const TeacherClassDetail = ({
         setEditAssignmentName(selectedClassroom.assignmentName || '');
         setShowDeleteConfirm(false);
         setShowCodeDisplay(false);
-        setShowStudentCountDialog(false);
-        setActiveTab('members');
+        setActiveTab('description');
+        setPreviewPage(0);
+        if (onDetailTabChange) onDetailTabChange('description');
     }, [selectedClassroom.classroomId]);
 
-    const handleTabClick = useCallback((e) => {
-        setActiveTab(e.currentTarget.dataset.tab);
-    }, []);
+    const handleTabClick = useCallback(
+        (e) => {
+            const tab = e.currentTarget.dataset.tab;
+            setActiveTab(tab);
+            // Attendance/submission polling runs only while the members tab
+            // is visible (cost control — teacher review).
+            if (onDetailTabChange) onDetailTabChange(tab);
+        },
+        [onDetailTabChange],
+    );
+    const handlePreviewPrev = useCallback(() => setPreviewPage((i) => Math.max(0, i - 1)), []);
+    const handlePreviewNext = useCallback(() => setPreviewPage((i) => i + 1), []);
 
     const memberMap = React.useMemo(() => {
         const map = {};
@@ -114,36 +135,8 @@ const TeacherClassDetail = ({
         }
     }, [editAssignmentName, selectedClassroom, onUpdateAssignmentName]);
 
-    const handleGroupChange = useCallback(
-        (e) => {
-            onAssignClassToGroup(selectedClassroom.classroomId, e.target.value || null);
-        },
-        [onAssignClassToGroup, selectedClassroom],
-    );
 
-    const handleDuplicate = useCallback(() => {
-        onDuplicateClassroom(selectedClassroom);
-    }, [onDuplicateClassroom, selectedClassroom]);
 
-    const handleOpenStudentCountDialog = useCallback(() => {
-        setEditStudentCount(selectedClassroom.studentCount);
-        setShowStudentCountDialog(true);
-    }, [selectedClassroom]);
-
-    const handleIncrementStudentCount = useCallback(() => {
-        setEditStudentCount((prev) => prev + 1);
-    }, []);
-
-    const handleConfirmStudentCount = useCallback(() => {
-        setShowStudentCountDialog(false);
-        if (editStudentCount > selectedClassroom.studentCount && onUpdateStudentCount) {
-            onUpdateStudentCount(editStudentCount);
-        }
-    }, [editStudentCount, selectedClassroom, onUpdateStudentCount]);
-
-    const handleCancelStudentCount = useCallback(() => {
-        setShowStudentCountDialog(false);
-    }, []);
 
     const handleShowCode = useCallback(() => {
         setShowCodeDisplay(true);
@@ -235,32 +228,6 @@ const TeacherClassDetail = ({
                                     onBlur={handleAssignmentNameBlur}
                                     onChange={handleAssignmentNameChange}
                                 />
-                                {onShowAssignmentEditor && (
-                                    <button
-                                        className={styles.secondaryButton}
-                                        data-testid="classroom-edit-assignment-content"
-                                        onClick={onShowAssignmentEditor}
-                                    >
-                                        <FormattedMessage
-                                            defaultMessage="Edit Assignment"
-                                            description="Open the assignment content editor from class detail"
-                                            id="gui.classroom.assignmentEditor.openButton"
-                                        />
-                                    </button>
-                                )}
-                                {onDuplicateClassroom && (
-                                    <button
-                                        className={styles.secondaryButton}
-                                        data-testid="classroom-duplicate"
-                                        onClick={handleDuplicate}
-                                    >
-                                        <FormattedMessage
-                                            defaultMessage="Duplicate"
-                                            description="Duplicate this lesson (classroom) with its assignment"
-                                            id="gui.classroom.groups.duplicate"
-                                        />
-                                    </button>
-                                )}
                                 {selectedClassroom.googleClassroomCourseId &&
                                     (selectedClassroom.googleClassroomAlternateLink ? (
                                         <a
@@ -317,40 +284,6 @@ const TeacherClassDetail = ({
                                     ))}
                             </div>
 
-                            {/* Group (組) assignment */}
-                            {onAssignClassToGroup && (
-                                <div className={styles.groupSelectRow}>
-                                    <span className={styles.assignmentNameLabel}>
-                                        <FormattedMessage
-                                            defaultMessage="Group"
-                                            description="Group (school class) selector label in class detail"
-                                            id="gui.classroom.groups.selectorLabel"
-                                        />
-                                        {': '}
-                                    </span>
-                                    <select
-                                        className={styles.groupSelect}
-                                        data-testid="classroom-detail-group-select"
-                                        value={selectedClassroom.groupId || ''}
-                                        onChange={handleGroupChange}
-                                    >
-                                        <option value="">
-                                            {intl.formatMessage({
-                                                defaultMessage: '(none)',
-                                                description: 'No group option in the group selector',
-                                                id: 'gui.classroom.groups.selectorNone',
-                                            })}
-                                        </option>
-                                        {(groups || [])
-                                            .filter((g) => g.status === 'active')
-                                            .map((g) => (
-                                                <option key={g.groupId} value={g.groupId}>
-                                                    {`${g.name} (${g.year})`}
-                                                </option>
-                                            ))}
-                                    </select>
-                                </div>
-                            )}
 
                             {/* Join code with expand button */}
                             <div className={styles.joinCodeDisplay}>
@@ -396,8 +329,23 @@ const TeacherClassDetail = ({
                                 </div>
                             )}
 
-                            {/* Tabs: Members / Co-teachers */}
+                            {/* Tabs: Description (default) / Members */}
                             <div className={styles.detailTabs} role="tablist">
+                                <button
+                                    className={classNames(
+                                        styles.detailTab,
+                                        activeTab === 'description' && styles.detailTabActive,
+                                    )}
+                                    data-tab="description"
+                                    data-testid="classroom-tab-description"
+                                    onClick={handleTabClick}
+                                >
+                                    <FormattedMessage
+                                        defaultMessage="Description"
+                                        description="Assignment description tab label"
+                                        id="gui.classroom.teacherDetail.descriptionTab"
+                                    />
+                                </button>
                                 <button
                                     className={classNames(
                                         styles.detailTab,
@@ -413,24 +361,35 @@ const TeacherClassDetail = ({
                                         id="gui.classroom.members.title"
                                     />
                                 </button>
-                                {onAddCoTeacher && onRemoveCoTeacher && (
-                                    <button
-                                        className={classNames(
-                                            styles.detailTab,
-                                            activeTab === 'co-teachers' && styles.detailTabActive,
-                                        )}
-                                        data-tab="co-teachers"
-                                        data-testid="classroom-tab-co-teachers"
-                                        onClick={handleTabClick}
-                                    >
-                                        <FormattedMessage
-                                            defaultMessage="Co-teachers"
-                                            description="Co-teachers tab label"
-                                            id="gui.classroom.coTeachers.title"
-                                        />
-                                    </button>
-                                )}
                             </div>
+
+                            {/* Description tab: the student-facing pages editor.
+                                Changes reach students only on save. */}
+                            {activeTab === 'description' && assignmentEditor && (
+                                <TeacherAssignmentEditor
+                                    editorPages={descEditor.editorPages}
+                                    embedded
+                                    error={null}
+                                    errorTitle={null}
+                                    hasExistingStarter={descEditor.hasExistingStarter}
+                                    isSaving={descEditor.isSaving}
+                                    selectedClassroom={selectedClassroom}
+                                    starterMode={descEditor.starterMode}
+                                    starterSource={descEditor.starterSource}
+                                    onAddPage={handleDescAddPage}
+                                    onApplyTemplate={handleDescApplyTemplate}
+                                    onAttachPageImage={handleDescAttachPageImage}
+                                    onCancel={handleDescCancel}
+                                    onChangePageText={handleDescChangePageText}
+                                    onMovePage={handleDescMovePage}
+                                    onRemovePage={handleDescRemovePage}
+                                    onRemovePageImage={handleDescRemovePageImage}
+                                    onRemoveStarter={handleDescRemoveStarter}
+                                    onSave={handleDescSave}
+                                    onUseCurrentProject={handleDescUseCurrentProject}
+                                    onUseFile={handleDescUseFile}
+                                />
+                            )}
 
                             {/* Members tab: legend + count/refresh + seat grid */}
                             {activeTab === 'members' && (
@@ -454,14 +413,9 @@ const TeacherClassDetail = ({
                                         className={styles.membersCount}
                                         data-testid="classroom-members-count"
                                     >
-                                        {joinedCount} /{' '}
-                                        <button
-                                            className={styles.studentCountButton}
-                                            data-testid="classroom-student-count-btn"
-                                            onClick={handleOpenStudentCountDialog}
-                                        >
-                                            {totalCount}
-                                        </button>
+                                        {joinedCount}
+                                        {' / '}
+                                        {totalCount}
                                     </span>
                                     <button
                                         className={styles.refreshButton}
@@ -544,15 +498,6 @@ const TeacherClassDetail = ({
                                 </React.Fragment>
                             )}
 
-                            {/* Co-teachers tab */}
-                            {activeTab === 'co-teachers' && onAddCoTeacher && onRemoveCoTeacher && (
-                                <TeacherCoTeachers
-                                    classroom={selectedClassroom}
-                                    isLoading={isLoading}
-                                    onAddCoTeacher={onAddCoTeacher}
-                                    onRemoveCoTeacher={onRemoveCoTeacher}
-                                />
-                            )}
 
                             {/* Delete classroom */}
                             <div className={styles.detailFooter}>
@@ -648,62 +593,64 @@ const TeacherClassDetail = ({
                             </div>
                         </div>
 
-                        {showStudentCountDialog && (
-                            <div className={styles.studentCountDialog} data-testid="classroom-student-count-dialog">
-                                <div className={styles.studentCountDialogContent}>
-                                    <div className={styles.studentCountDialogTitle}>
-                                        <FormattedMessage
-                                            defaultMessage="Change Student Count"
-                                            description="Student count dialog title"
-                                            id="gui.classroom.teacherDetail.studentCountTitle"
-                                        />
-                                    </div>
-                                    <div className={styles.studentCountDialogBody}>
-                                        <span className={styles.studentCountValue} data-testid="classroom-student-count-value">
-                                            {editStudentCount}
-                                        </span>
-                                        <button
-                                            className={styles.studentCountIncrement}
-                                            data-testid="classroom-student-count-increment"
-                                            onClick={handleIncrementStudentCount}
-                                        >
-                                            {'+'}
-                                        </button>
-                                    </div>
-                                    <div className={styles.studentCountDialogHint}>
-                                        <FormattedMessage
-                                            defaultMessage="You can increase the number of seats. Decreasing is not allowed."
-                                            description="Student count dialog hint"
-                                            id="gui.classroom.teacherDetail.studentCountHint"
-                                        />
-                                    </div>
-                                    <div className={styles.buttonRow}>
-                                        <button
-                                            className={styles.secondaryButton}
-                                            data-testid="classroom-student-count-cancel"
-                                            onClick={handleCancelStudentCount}
-                                        >
-                                            <FormattedMessage
-                                                defaultMessage="Cancel"
-                                                description="Cancel button"
-                                                id="gui.classroom.teacherDetail.cancelStudentCount"
-                                            />
-                                        </button>
-                                        <button
-                                            className={styles.primaryButton}
-                                            data-testid="classroom-student-count-ok"
-                                            disabled={editStudentCount <= selectedClassroom.studentCount}
-                                            onClick={handleConfirmStudentCount}
-                                        >
-                                            {'OK'}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
                         {/* Right pane - member detail */}
                         <div className={styles.detailRightPane}>
+                            {activeTab === 'description' && assignmentEditor ? (
+                                <div className={styles.assignmentPreview} data-testid="classroom-description-preview">
+                                    <div className={styles.assignmentPreviewTitle}>
+                                        <FormattedMessage
+                                            defaultMessage="Student view preview"
+                                            description="Title of the student-view preview pane"
+                                            id="gui.classroom.teacherDetail.previewTitle"
+                                        />
+                                    </div>
+                                    {(() => {
+                                        const pages = descEditor.editorPages || [];
+                                        const index = Math.min(previewPage, Math.max(0, pages.length - 1));
+                                        const page = pages[index];
+                                        return (
+                                            <React.Fragment>
+                                                <div
+                                                    className={styles.assignmentPreviewBody}
+                                                    data-testid="classroom-description-preview-body"
+                                                >
+                                                    <p className={styles.assignmentPreviewText}>
+                                                        {page ? page.text : ''}
+                                                    </p>
+                                                    {page && (page.previewUrl || page.imageUrl) ? (
+                                                        <img
+                                                            alt=""
+                                                            className={styles.assignmentPreviewImage}
+                                                            src={page.previewUrl || page.imageUrl}
+                                                        />
+                                                    ) : null}
+                                                </div>
+                                                {pages.length > 1 ? (
+                                                    <div className={styles.assignmentPreviewPager}>
+                                                        <button
+                                                            data-testid="classroom-description-preview-prev"
+                                                            disabled={index === 0}
+                                                            type="button"
+                                                            onClick={handlePreviewPrev}
+                                                        >
+                                                            {'←'}
+                                                        </button>
+                                                        <span>{`${index + 1} / ${pages.length}`}</span>
+                                                        <button
+                                                            data-testid="classroom-description-preview-next"
+                                                            disabled={index >= pages.length - 1}
+                                                            type="button"
+                                                            onClick={handlePreviewNext}
+                                                        >
+                                                            {'→'}
+                                                        </button>
+                                                    </div>
+                                                ) : null}
+                                            </React.Fragment>
+                                        );
+                                    })()}
+                                </div>
+                            ) : (
                             <TeacherMemberDetail
                                 isLoading={isLoading}
                                 kickRequestsForSelectedSeat={(() => {
@@ -721,6 +668,7 @@ const TeacherClassDetail = ({
                                 onRejectKickRequest={onRejectKickRequest}
                                 onReturnSubmission={onReturnSubmission}
                             />
+                            )}
                         </div>
                     </div>
                 </React.Fragment>
@@ -754,19 +702,14 @@ TeacherClassDetail.propTypes = {
     onReturnSubmission: PropTypes.func.isRequired,
     onSelectMember: PropTypes.func.isRequired,
     onShowCodeDisplay: PropTypes.func.isRequired,
-    groups: PropTypes.arrayOf(PropTypes.object),
-    onAssignClassToGroup: PropTypes.func,
-    onDuplicateClassroom: PropTypes.func,
-    onShowAssignmentEditor: PropTypes.func,
     onShowPostAssignment: PropTypes.func,
     onToggleCodeFullscreen: PropTypes.func.isRequired,
     onUpdateAssignmentName: PropTypes.func,
-    onUpdateStudentCount: PropTypes.func,
     kickRequestsBySeat: PropTypes.object,
     onApproveKickRequest: PropTypes.func,
     onRejectKickRequest: PropTypes.func,
-    onAddCoTeacher: PropTypes.func,
-    onRemoveCoTeacher: PropTypes.func,
+    onDetailTabChange: PropTypes.func,
+    assignmentEditor: PropTypes.object,
     selectedClassroom: PropTypes.object.isRequired,
     selectedMember: PropTypes.string,
 };
