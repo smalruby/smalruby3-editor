@@ -175,9 +175,11 @@ sequenceDiagram
 | `GET` | `/classrooms/{id}/submissions` | 提出一覧 (ダウンロード URL 付き) |
 | `PATCH` | `/classrooms/{id}/submissions/{subId}` | 提出の返却・コメント |
 | `PUT` | `/classrooms/{id}/assignment` | 課題コンテンツの設定・更新（ページ + スターター。画像/スターターの Presigned upload URL を返す。空 body で削除） |
-| `POST` | `/classroom-groups` | 組（グループ）の作成（name, year） |
-| `GET` | `/classroom-groups` | 自分の組一覧（active + archived） |
-| `PATCH` | `/classroom-groups/{groupId}` | 組のリネーム・年度変更・アーカイブ/復帰 |
+| `POST` | `/classroom-groups` | クラス（学級）の作成（name, year, 任意で studentCount / googleClassroomCourseId） |
+| `GET` | `/classroom-groups` | 自分のクラス一覧（active + archived、共同管理分は role=co-teacher で合流） |
+| `PATCH` | `/classroom-groups/{groupId}` | クラスのリネーム・年度変更・人数・GC 紐づけ・共同管理者・アーカイブ/復帰 |
+| `POST` | `/classroom-groups/migrate` | v1→v2 冪等 bulk migration（未所属課題のクラス自動作成・割当 + フィールド引き上げ） |
+| `PATCH` | `/classroom-groups/{groupId}/topics` | トピックの add / remove / rename（rename・remove は課題へ一括追従） |
 | `POST` | `/classrooms/{id}/duplicate` | クラス（授業）の複製。課題コンテンツの S3 オブジェクトもコピー。`groupId` / `className` / `assignmentName` を上書き可。メンバー・提出は複製しない |
 | `POST` | `/classrooms/{id}/evaluate` | AI 評価支援。静的解析結果（シグナル + 擬似コード）を Anthropic API にリレーし、`mode: grade` は S/A/B/C 案 + 根拠 + needsReview、`mode: comment` は生徒向けポジティブコメント下書きを返す。1リクエスト最大10提出（API GW の30秒制限対策、クライアントがチャンク分割）。先生ごとにレート制限（既定 60回/時） |
 
@@ -308,30 +310,44 @@ erDiagram
 **GSI:**
 - `classroomId-memberId-index` — 生徒ごとの提出検索
 
-### ClassroomGroups テーブル（組）
+### ClassroomGroups テーブル（クラス = 学級。旧称: 組）
 
 ```mermaid
 erDiagram
     ClassroomGroups {
         string groupId PK "UUID"
         string teacherSub "先生の Subject ID (GSI)"
-        string name "組名 (最大50文字, 例: 2年1組)"
+        string name "クラス名 (最大50文字, 例: 2年1組)"
         number year "年度 (2000-2100)"
         string status "active / archived"
+        number schemaVersion "データモデル版 (v2 = クラス→課題モデル)"
+        string_array topics "課題のトピック一覧 (最大20件)"
+        string googleClassroomCourseId "GC コース紐づけ (クラス単位, 任意)"
+        number studentCount "人数 (課題の座席数の真実, 任意)"
+        string_array coTeacherEmails "クラス単位の共同管理者 (任意)"
         string createdAt "ISO8601"
         string updatedAt "ISO8601"
         number ttl "Unix timestamp (既定400日)"
     }
 ```
 
-**GSI:** `teacherSub-index` — 先生の組一覧
+**GSI:** `teacherSub-index` — 先生のクラス一覧
 
-組（グループ）は**先生側の管理概念**で、1つの学級（組）が年間の複数の授業（クラス）を束ねる。生徒には見えない（生徒のモデル = 授業ごとの参加コード + 匿名席番号は不変）。
+クラス（Group）は**先生側の管理概念**で、1つの学級が年間の複数の課題（Classrooms レコード = 1授業）を束ねる。生徒には見えない（生徒のモデル = 課題ごとの参加コード + 匿名席番号は不変）。
 
-- 組は生徒の作品を持たないため、90日ではなく**長期 TTL（既定400日 ≈ 年度 + バッファ、`GROUP_TTL_DAYS`）**
-- 組のアーカイブは表示上の整理。授業データ自体は 90 日 TTL で自然消滅する
-- 所有は作成者のみ（`teacherSub` 一致）。co-teacher は組を共有しない（共同管理はクラス単位のまま）
-- **前回コメント再掲**: 組に属するクラスに生徒が join すると、同じ組の直近の授業（最大3回分遡る）で同じ席に返却されたコメントが `previousComment` として join レスポンスに載る（連休明けの個別リキャップ用）
+- クラスは生徒の作品を持たないため、90日ではなく**長期 TTL（既定400日 ≈ 年度 + バッファ、`GROUP_TTL_DAYS`）**
+- クラスのアーカイブは表示上の整理。課題データ自体は 90 日 TTL で自然消滅する
+- **前回コメント再掲**: クラスに属する課題に生徒が join すると、同じクラスの直近の授業（最大3回分遡る）で同じ席に返却されたコメントが `previousComment` として join レスポンスに載る（連休明けの個別リキャップ用）
+
+#### データモデル v2（クラス→課題モデル）
+
+`schemaVersion: 2` = すべての課題がクラスに属し、クラス単位の GC 紐づけ・共同管理・人数が真実、という状態。Google Classroom の「クラス → 課題」構造に合わせた再構成で、既存データとは **冪等な bulk migration** で互換を取る:
+
+- **`POST /classroom-groups/migrate`**（クラス一覧の初回表示時にクライアントが呼ぶ）: groupId の無い既存課題を className ごとに自動作成したクラスへ割当（年度は課題作成日の JST 4月区切りから推定、同名クラスがあれば再利用）。課題単位の GC courseId（最古優先・クラス側優先）/ coTeacherEmails（和集合）/ studentCount（最大値）をクラスへ引き上げ、schemaVersion=2 をスタンプ。移行済みデータでは何もしない
+- **認可はクラス経由でも成立**（`canManageViaGroup`）: クラスの所有者・クラス単位の共同管理者は、中のすべての課題を管理できる。課題単位の旧 `coTeacherEmails` も引き続き有効（後方互換）
+- **座席数はクラスの `studentCount` が真実**: 生徒の lookup / join はクラスの人数と課題側スナップショットの **max** を使う（人数を減らしても既存の着席と衝突しない増加方向のみの反映）
+- **トピック**（`PATCH /classroom-groups/{groupId}/topics`、body `{action: add|remove|rename, name, to?}`）: クラスの `topics` 配列を管理。**rename / remove はクラス内の課題の `topic` へ一括追従**（rename は付け替え、remove は解除）。課題の作成・更新で新しいトピック名を使うとクラスの一覧へ自動追加される
+- **課題の `topic` / `sortDate`**: `topic` はクラスのトピックへの文字列参照。`sortDate` は並び順キー（既定=作成日・意味なし・生徒非表示・自由変更可）で、課題管理画面はトピックごと・sortDate 降順に表示する
 
 ### AI 評価支援（evaluate）
 

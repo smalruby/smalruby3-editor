@@ -678,6 +678,8 @@ async function handleGetClassroom(identity: TeacherIdentity, classroomId: string
       expiresAt: result.Item.ttl ? new Date((result.Item.ttl as number) * 1000).toISOString() : null,
       coTeacherEmails: readCoTeacherEmails(result.Item),
       groupId: result.Item.groupId || null,
+      topic: result.Item.topic || null,
+      sortDate: result.Item.sortDate || result.Item.createdAt || null,
       hasAssignment: hasAssignmentContent(result.Item),
       role: result.Item.teacherSub === identity.sub ? 'owner' : 'co-teacher',
     }),
