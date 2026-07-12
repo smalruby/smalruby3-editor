@@ -160,3 +160,19 @@ describe('planGroupMigration', () => {
     expect(second).toEqual({ createGroups: [], assignments: [], groupUpdates: [] });
   });
 });
+
+import { validateSection } from '../handler';
+
+describe('validateSection', () => {
+    test('accepts and trims a section, clears on empty/null', () => {
+        expect(validateSection(' 2年1組 ')).toBe('2年1組');
+        expect(validateSection('')).toBeNull();
+        expect(validateSection(null)).toBeNull();
+        expect(validateSection('   ')).toBeNull();
+    });
+
+    test('rejects non-strings and over-long sections', () => {
+        expect(() => validateSection(42)).toThrow('Section must be a string');
+        expect(() => validateSection('あ'.repeat(51))).toThrow('50 characters or less');
+    });
+});
