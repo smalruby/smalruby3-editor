@@ -573,10 +573,13 @@ const KoshienMockPanel = ({snapshot, onClose, onGreenFlag, onStopAll}) => {
     }, [snapshot, expanded, game, view]);
 
     useEffect(() => {
-        // Keep the newest journal entry in view.
+        // Keep the newest journal entry in view while the game is running.
+        // After game over, stop auto-scrolling so the user can scroll up and
+        // read the full journal (it resumes when a new game sets over=false).
+        if (game && game.over) return;
         const el = journalRef.current;
         if (el) el.scrollTop = el.scrollHeight;
-    }, [snapshot]);
+    }, [snapshot, game]);
 
     const me = game && game.pawns.find(pawn => pawn.isUser);
     const rival = game && game.pawns.find(pawn => !pawn.isUser);

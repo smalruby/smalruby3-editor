@@ -22,7 +22,7 @@ const restorePreviousProject = (vm, previousProjectJSON) => {
 };
 
 /**
- * Load a project into the VM with Smalruby-specific checks (Mesh V1, Koshien).
+ * Load a project into the VM with Smalruby-specific checks (Mesh V1 auto-migration).
  *
  * If the new project fails to load, the previously-loaded project is restored
  * so the editor is never stranded on an empty initial screen, and the original
@@ -31,11 +31,9 @@ const restorePreviousProject = (vm, previousProjectJSON) => {
  * @param {VirtualMachine} vm The VM instance.
  * @param {Intl} intl The intl instance for localized messages.
  * @param {string | object} projectData The project data to load.
- * @param {string} currentRubyVersion The current Ruby version.
- * @param {Function} onSetRubyVersion Callback to set the Ruby version.
  * @returns {Promise} A promise that resolves when the project is loaded.
  */
-const loadProjectWithChecks = (vm, intl, projectData, currentRubyVersion, onSetRubyVersion) => {
+const loadProjectWithChecks = (vm, intl, projectData) => {
     // Snapshot the currently-loaded project *before* vm.loadProject() disposes
     // it, so we can restore it if the new project fails to load (#972).
     let previousProjectJSON = null;
@@ -46,29 +44,17 @@ const loadProjectWithChecks = (vm, intl, projectData, currentRubyVersion, onSetR
         previousProjectJSON = null;
     }
 
-    return vm
-        .hasMeshV1Project(projectData)
-        .then((hasMeshV1) => {
-            if (hasMeshV1) {
-                // eslint-disable-next-line no-alert
-                alert(intl.formatMessage(sharedMessages.meshV1AutoMigrated));
-            }
-            return vm.loadProject(projectData, { migrateMeshV1ToV2: hasMeshV1 }).catch((error) =>
-                restorePreviousProject(vm, previousProjectJSON).then(() => {
-                    throw new ProjectLoadError(error);
-                }),
-            );
-        })
-        .then(() => vm.hasKoshienProject(projectData))
-        .then((hasKoshien) => {
-            if (hasKoshien) {
-                if (currentRubyVersion !== '1') {
-                    // eslint-disable-next-line no-alert
-                    alert(intl.formatMessage(sharedMessages.changedRubyVersionByKoshien));
-                }
-                onSetRubyVersion('1');
-            }
-        });
+    return vm.hasMeshV1Project(projectData).then((hasMeshV1) => {
+        if (hasMeshV1) {
+            // eslint-disable-next-line no-alert
+            alert(intl.formatMessage(sharedMessages.meshV1AutoMigrated));
+        }
+        return vm.loadProject(projectData, { migrateMeshV1ToV2: hasMeshV1 }).catch((error) =>
+            restorePreviousProject(vm, previousProjectJSON).then(() => {
+                throw new ProjectLoadError(error);
+            }),
+        );
+    });
 };
 
 export { loadProjectWithChecks };
