@@ -96,22 +96,6 @@ const AssignmentPageEditor = ({
                     </button>
                 </span>
             </div>
-            <textarea
-                className={styles.assignmentPageTextarea}
-                data-testid={`classroom-assignment-page-text-${index}`}
-                maxLength={MAX_ASSIGNMENT_PAGE_TEXT_LENGTH}
-                placeholder={intl.formatMessage({
-                    defaultMessage: 'Write instructions for this page (a few lines)',
-                    description: 'Assignment editor page text placeholder',
-                    id: 'gui.classroom.assignmentEditor.pageTextPlaceholder',
-                })}
-                rows={4}
-                value={page.text}
-                onChange={handleChangeText}
-            />
-            <div className={styles.assignmentPageCharCount}>
-                {`${(page.text || '').length} / ${MAX_ASSIGNMENT_PAGE_TEXT_LENGTH}`}
-            </div>
             <div className={styles.assignmentPageImageRow}>
                 {imageUrl ? (
                     <>
@@ -153,6 +137,22 @@ const AssignmentPageEditor = ({
                     type="file"
                     onChange={handleFileChange}
                 />
+            </div>
+            <textarea
+                className={styles.assignmentPageTextarea}
+                data-testid={`classroom-assignment-page-text-${index}`}
+                maxLength={MAX_ASSIGNMENT_PAGE_TEXT_LENGTH}
+                placeholder={intl.formatMessage({
+                    defaultMessage: 'Write instructions for this page (a few lines)',
+                    description: 'Assignment editor page text placeholder',
+                    id: 'gui.classroom.assignmentEditor.pageTextPlaceholder',
+                })}
+                rows={4}
+                value={page.text}
+                onChange={handleChangeText}
+            />
+            <div className={styles.assignmentPageCharCount}>
+                {`${(page.text || '').length} / ${MAX_ASSIGNMENT_PAGE_TEXT_LENGTH}`}
             </div>
         </div>
     );

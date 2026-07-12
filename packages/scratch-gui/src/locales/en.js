@@ -180,7 +180,7 @@ export default {
     'gui.classroom.assignmentEditor.templateOverwriteConfirm': 'Replace the current pages with the template?',
     'gui.classroom.evaluation.hint':
         'AI proposals are drafts — you decide. Grading a few students by hand first calibrates the AI to your standard. Term grades are never shown to students; only the positive comments are returned.',
-    'gui.classroom.evaluation.lessons': 'Lessons:',
+    'gui.classroom.evaluation.lessons': 'Assignments:',
     'gui.classroom.evaluation.load': 'Load Submissions',
     'gui.classroom.evaluation.rubric': 'Rubric:',
     'gui.classroom.evaluation.strictness': 'Strictness:',
@@ -223,6 +223,8 @@ export default {
     'gui.classroom.classList.logout': 'Logout',
     'gui.classroom.classList.importGc': 'Import from Google Classroom',
     'gui.classroom.classList.sectionPlaceholder': 'Section (optional, e.g. Year 2 Class 1)',
+    'gui.classroom.classList.ungroupedHint':
+        'Assignments not in any of your classes (shared with you or not yet migrated):',
     'gui.classroom.classList.createCancel': 'Cancel',
     'gui.classroom.classList.createClassOnly': 'Create the class only',
     'gui.classroom.classList.settings': 'Settings',

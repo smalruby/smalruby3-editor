@@ -43,33 +43,41 @@ const useTeacherGroups = ({
     const migratedForToken = useRef(null);
 
     const loadGroups = useCallback(async () => {
-        if (!idToken) return;
+        if (!idToken) return [];
         try {
             const data = await classroomAPI.listGroups(idToken);
             setGroups(data.groups || []);
+            return data.groups || [];
         } catch (err) {
             if (err.status === 401) {
                 handleTeacher401();
-                return;
+                return [];
             }
             // Groups are auxiliary — a failed load must not break the
             // dashboard, so log and keep the previous list.
             log.error('Failed to load groups:', err);
+            return [];
         }
     }, [idToken, handleTeacher401]);
 
-    // Once per login: run the idempotent v1→v2 migration, then load classes.
-    // A migration failure must not block the class list — the server keeps
-    // serving pre-v2 data, so log and continue.
+    // Once per login: run the idempotent v1→v2 migration, but only when the
+    // loaded classes still show v1 signals (no classes at all, or a class
+    // without the v2 stamp). Fully migrated accounts skip the extra Lambda
+    // call entirely (adversarial review: minimize AWS traffic). The server
+    // stamps schemaVersion after adopting assignments, so a partially failed
+    // migration always leaves an unstamped class behind and re-triggers here.
     useEffect(() => {
         if (!idToken) return;
         (async () => {
-            if (migratedForToken.current !== idToken) {
+            const loaded = await loadGroups();
+            const showsV1 = loaded.length === 0 || loaded.some((g) => (g.schemaVersion || 1) < 2);
+            if (migratedForToken.current !== idToken && showsV1) {
                 migratedForToken.current = idToken;
                 try {
                     await classroomAPI.migrateGroups(idToken);
-                    // Migration may have assigned groupIds — refresh the
-                    // assignments so the class cards count correctly.
+                    // Migration may have created classes / assigned groupIds —
+                    // refresh both lists so the cards and counts are correct.
+                    await loadGroups();
                     if (loadClassrooms) {
                         await loadClassrooms();
                     }
@@ -77,9 +85,8 @@ const useTeacherGroups = ({
                     log.error('Group migration failed (continuing):', err);
                 }
             }
-            await loadGroups();
         })();
-    }, [idToken, loadGroups]);
+    }, [idToken, loadClassrooms, loadGroups]);
 
     const handleUpdateGroup = useCallback(
         async (groupId, updates) => {

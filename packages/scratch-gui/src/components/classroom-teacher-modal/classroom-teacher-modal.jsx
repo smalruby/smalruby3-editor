@@ -172,6 +172,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         groups={groups || []}
                         isLoading={isLoading}
                         onCreateClassWithAssignment={onCreateClassWithAssignment}
+                        onOpenUngrouped={onSelectClassroom}
                         onSelectGroup={onSelectGroup}
                         onShowEvaluation={evaluation?.handleShowEvaluation}
                         onShowGoogleCourses={authProvider === 'google' ? onShowGoogleCourses : null}

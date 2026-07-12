@@ -342,6 +342,7 @@ const TeacherClassList = ({
     groups,
     isLoading,
     onCreateClassWithAssignment,
+    onOpenUngrouped,
     onSelectGroup,
     onShowEvaluation,
     onShowGoogleCourses,
@@ -363,6 +364,10 @@ const TeacherClassList = ({
     const handleStudentCountChange = useCallback((e) => setStudentCount(e.target.value), []);
     const handleAssignmentNameChange = useCallback((e) => setAssignmentName(e.target.value), []);
     const handleShowSettings = useCallback((groupId) => setSettingsGroupId(groupId), []);
+    const handleOpenUngrouped = useCallback(
+        (e) => onOpenUngrouped(e.currentTarget.dataset.classroomId),
+        [onOpenUngrouped],
+    );
     const handleCloseSettings = useCallback(() => setSettingsGroupId(null), []);
 
     // The first assignment is optional: a class can be created on its own.
@@ -385,6 +390,11 @@ const TeacherClassList = ({
 
     const activeGroups = groups.filter((g) => g.status !== 'archived');
     const countFor = (groupId) => classrooms.filter((c) => c.groupId === groupId).length;
+    // develop-compat safety net: assignments that do not belong to any class
+    // yet (e.g. a co-teacher logs in before the owner's account migrated, or
+    // migration failed). They must never be hidden — list them directly.
+    const knownGroupIds = new Set(groups.map((g) => g.groupId));
+    const ungrouped = classrooms.filter((c) => !c.groupId || !knownGroupIds.has(c.groupId));
 
     return (
         <div className={styles.classList} data-testid="classroom-phase-teacher-class-list">
@@ -553,6 +563,36 @@ const TeacherClassList = ({
                     />
                 </p>
             ) : null}
+            {ungrouped.length > 0 ? (
+                <div className={styles.ungroupedSection} data-testid="classroom-ungrouped-list">
+                    <p className={styles.classListHint}>
+                        <FormattedMessage
+                            defaultMessage="Assignments not in any of your classes (shared with you or not yet migrated):"
+                            description="Heading of the ungrouped assignments fallback list"
+                            id="gui.classroom.classList.ungroupedHint"
+                        />
+                    </p>
+                    <ul className={styles.classCards}>
+                        {ungrouped.map((c) => (
+                            <li key={c.classroomId} className={styles.classCard}>
+                                <button
+                                    className={styles.classCardMain}
+                                    data-classroom-id={c.classroomId}
+                                    data-testid={`classroom-ungrouped-open-${c.classroomId}`}
+                                    disabled={isLoading}
+                                    type="button"
+                                    onClick={handleOpenUngrouped}
+                                >
+                                    <span className={styles.classCardName}>
+                                        {c.assignmentName || c.className}
+                                    </span>
+                                    <span className={styles.classCardMeta}>{c.className}</span>
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            ) : null}
             <ul className={styles.classCards} data-testid="classroom-class-list">
                 {activeGroups.map((group) =>
                     settingsGroupId === group.groupId ? (
@@ -588,6 +628,7 @@ TeacherClassList.propTypes = {
     groups: PropTypes.arrayOf(PropTypes.object).isRequired,
     isLoading: PropTypes.bool,
     onCreateClassWithAssignment: PropTypes.func.isRequired,
+    onOpenUngrouped: PropTypes.func.isRequired,
     onSelectGroup: PropTypes.func.isRequired,
     onShowEvaluation: PropTypes.func.isRequired,
     onShowGoogleCourses: PropTypes.func,

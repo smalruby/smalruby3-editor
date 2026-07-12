@@ -151,75 +151,6 @@ Google または Microsoft アカウントでサインインする画面。先�
 - 課題の所属クラス変更・人数編集・課題単位の共同管理者・複製は**できない**（クラス設定 / 課題一覧の再利用へ集約）。削除ボタンは「課題を削除」
 - 主な data-testid: `classroom-tab-description` / `classroom-description-editor` / `classroom-description-preview[-body|-prev|-next]` / `classroom-tab-members`
 
-## 2. 先生: ダッシュボード (`teacher-dashboard`)
-
-先生のメイン画面。作成したクラスがカード形式で一覧表示されます。
-
-![ダッシュボード](screenshots/0202-teacher-dashboard.png)
-
-**パーツ:**
-
-| 要素 | テキスト/内容 | data-testid | 操作 |
-|------|-------------|-------------|------|
-| フェーズルート | — | `classroom-phase-teacher-dashboard` | — |
-| 見出し | 「あなたのクラス」 | — | — |
-| クラス一覧 | — | `classroom-list` | — |
-| クラスなし表示 | 「まだクラスがありません」 | `classroom-empty-message` | クラスが0件時に表示 |
-
-**クラスカード (各クラスごと):**
-
-| 要素 | テキスト例 | data-testid | 操作 |
-|------|----------|-------------|------|
-| カード | — | `classroom-item-{classroomId}` | — |
-| クラス名 | 「第3回 チャットアプリを作ろう」 | `classroom-item-name-{classroomId}` | — |
-| 参加コード | 「3cexm5」 | `classroom-item-code-{classroomId}` | 青い等幅フォント、右上 |
-| 情報行 | 「35人  2026/4/5  有効期限: 2026/4/6」 | — | 人数・作成日・有効期限 |
-| 詳細ボタン | 「詳細」 | `classroom-item-details-{classroomId}` | → teacher-detail |
-| 共同管理バッジ | 「共同管理」(自分が co-teacher のクラスのみ) | `classroom-item-co-managed-badge-{classroomId}` | 作成者クラスと区別 |
-
-**フッターボタン:**
-
-| 要素 | テキスト | data-testid | 操作 |
-|------|---------|-------------|------|
-| ログアウト | 「ログアウト」 | `classroom-teacher-logout` | → teacher-login |
-| クラス作成 | 「クラスを作る」 | `classroom-create` | → teacher-create（青色、強調） |
-| GCインポート | 「Google Classroom からインポート」 | `classroom-google-import` | → teacher-google-courses |
-
-**レイアウト:** サイドバー（左）にクラス一覧、メインエリア（右）にクラス詳細またはプロンプト。フッターにクラス作成ボタンとログアウト。
-
-**チュートリアル:** 初回ログイン後、ダッシュボードにチュートリアルダイアログが表示される（「まずは「クラス」を作りましょう！」）。OK クリックで非表示。
-
----
-
-## 3. 先生: クラス作成 (`teacher-create`)
-
-クラス名・人数・課題名を入力してクラスを作成する画面。
-
-![クラス作成画面](screenshots/0203-teacher-create.png)
-
-**パーツ:**
-
-| 要素 | テキスト/内容 | data-testid | 操作 |
-|------|-------------|-------------|------|
-| フェーズルート | — | `classroom-phase-teacher-create` | — |
-| 見出し | 「クラスを作る」 | — | — |
-| 説明文 | 「1つの授業に1つのクラスを作ります。クラス名（例：「5-2」）、人数、課題名（例：「第3回 チャットアプリを作ろう」）を入力してください。」 | — | — |
-| GCインポートリンク | 「Google Classroom からクラス名と人数をインポート」 | `classroom-import-from-gc` | → teacher-google-courses |
-| クラス名ラベル | 「クラス名」 | — | — |
-| クラス名入力 | テキスト入力 | `classroom-name-input` | — |
-| 人数ラベル | 「人数」 | — | — |
-| 人数入力 | 数値入力（デフォルト: 35） | `classroom-count-input` | 1〜50 |
-| 課題名ラベル | 「課題名」 | — | — |
-| 課題名入力 | テキスト入力 | `classroom-assignment-name-input` | — |
-| ヒント | 「人数と課題名はいつでも変更できます。」 | — | — |
-| 作成ボタン | 「作成」 | `classroom-create-submit` | クラス名または課題名未入力時は disabled |
-
-**レイアウト:** フォームフィールドは縦並び。「作成」ボタンは右寄せ、灰色（disabled） or 青色。
-
-Google Classroom からインポートした場合は「インポート元: {コース名}」が表示され、人数が自動入力されます。
-
----
-
 ## 4. 先生: クラス詳細 (`teacher-detail`)
 
 クラスの参加状況と提出を管理する画面。モーダルが**ワイド表示 (968px)** に広がります。
@@ -294,14 +225,14 @@ Google Classroom からインポートした場合は「インポート元: {コ
 | 前の画像ボタン | `classroom-member-detail-prev` | — |
 | 次の画像ボタン | `classroom-member-detail-next` | — |
 
-**メンバー / 共同管理者タブ:**
+**説明 / メンバータブ:**
 
-クラス詳細はタブ切替。座席グリッドと共同管理者を縦に積むと下にはみ出すため、参加コード表示の下にタブバーを置く。
+課題詳細はタブ切替（「説明」がデフォルト = 課題編集フォーム + 生徒視点プレビュー、「メンバー」= 出席・提出の座席グリッド）。共同管理者は**クラス設定（クラス一覧）**に移動した。タブ行の右端に「全作品ダウンロード」。
 
 | 要素 | テキスト | data-testid | 操作 |
 |------|---------|-------------|------|
-| メンバータブ | 「メンバー」 | `classroom-tab-members` | 凡例 + 人数 + 更新 + 座席グリッドを表示（既定）|
-| 共同管理者タブ | 「共同管理者」 | `classroom-tab-co-teachers` | 共同管理者セクションを表示。owner/co-teacher のみ表示 |
+| メンバータブ | 「メンバー」 | `classroom-tab-members` | 凡例 + 人数 + 更新 + 座席グリッド（表示中のみ 30 秒ポーリング）|
+| 説明タブ | 「説明」 | `classroom-tab-description` | 課題編集フォーム + 右ペインの生徒視点プレビュー（既定）|
 
 クラスを切り替えるとメンバータブに戻る。
 
@@ -533,13 +464,13 @@ owner または co-teacher が、別の先生を **email で招待**して共同
 
 クラスには任意で**課題コンテンツ**（(数行テキスト + 画像1枚) × 最大10ページ + スタータープロジェクト1つ）を持たせられます。生徒は参加コードで参加した瞬間に課題ページが表示され、スタータープロジェクトが自動で開きます（プログラム配付の手作業をなくす機能）。
 
-### 課題エディタ（先生: teacher-assignment-edit フェーズ）
+### 課題の編集（先生: 課題詳細の「説明」タブ）
 
-クラス詳細の課題名の行にある「課題を編集」ボタン（`classroom-edit-assignment-content`）から開きます。
+課題詳細をひらくと「説明」タブがデフォルトで表示され、そこが編集フォームです（旧 teacher-assignment-edit フェーズは廃止）。右ペインに生徒視点プレビュー（sticky・ページャ上部）。
 
-![課題エディタ（ページ2枚 + スターター設定済み）](screenshots/0209-teacher-assignment-editor.png)
+![課題詳細 — 説明タブ](screenshots/0212-teacher-detail-description.png)
 
-- ページの追加・削除・並べ替え（↑↓）、1ページ500文字 + 画像1枚（png/jpeg）
+- ページの追加・削除・並べ替え（↑↓）、1ページ500文字 + 画像1枚（png/jpeg・**画像が上、テキストが下**）
 - スターターは「今開いているプロジェクトを使う」（保存時に `vm.saveProjectSb3()` で生成）か「.sb3 ファイルを選ぶ」
 - 保存すると画像・スターターは Presigned URL で S3 に直接アップロードされる
 - data-testid 一覧は [testing.md](testing.md) の「課題エディタ」参照

@@ -187,7 +187,7 @@ export default {
     'gui.classroom.assignmentEditor.templateOverwriteConfirm': '今のページをテンプレートで置きかえますか？',
     'gui.classroom.evaluation.hint':
         'AIの評価は下書きです。決めるのは先生です。先に数人を手で採点すると、AIが先生の基準に合わせます。期末評価は生徒には見えません。返却されるのはポジティブなコメントだけです。',
-    'gui.classroom.evaluation.lessons': '授業:',
+    'gui.classroom.evaluation.lessons': '課題:',
     'gui.classroom.evaluation.load': '提出を読み込む',
     'gui.classroom.evaluation.rubric': '評価軸:',
     'gui.classroom.evaluation.strictness': '厳しさ:',
@@ -228,6 +228,8 @@ export default {
     'gui.classroom.classList.logout': 'ログアウト',
     'gui.classroom.classList.importGc': 'Google Classroom からインポート',
     'gui.classroom.classList.sectionPlaceholder': 'セクション（オプション・例: 2年1組）',
+    'gui.classroom.classList.ungroupedHint':
+        'どのクラスにも入っていない課題（共同管理で共有されたもの・未移行のもの）:',
     'gui.classroom.classList.createCancel': 'キャンセル',
     'gui.classroom.classList.createClassOnly': 'クラスのみ作成',
     'gui.classroom.classList.settings': '設定',
@@ -365,7 +367,7 @@ export default {
     'gui.classroom.tutorial.checkboxes':
         'Google Classroomと連携するには、2つのチェックボックスの両方にチェックを入れてください。',
     'gui.classroom.tutorial.classCreation':
-        'まずは「クラス」を作りましょう！\n「3時間目：チャットアプリを作ろう」のように、1つの授業に1つのクラスを作ります。\n左のサイドバーの「クラスを作る」ボタンを押してください。',
+        'まずは「クラス」を作りましょう！\nクラス（例: 技術 2026年度）を作って、その中に「第3回 チャットアプリを作ろう」のような課題を追加します。\n「クラスを作る」ボタンを押してください。',
     'gui.classroom.teacherDetail.legend.seated': '着席',
     'gui.classroom.teacherDetail.legend.submitted': '提出済',
     'gui.classroom.teacherDetail.legend.returned': '返却済',

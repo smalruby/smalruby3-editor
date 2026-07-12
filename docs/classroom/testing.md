@@ -35,7 +35,6 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-microsoft-login` | button | Microsoft ログイン |
 | `classroom-back` | button | 戻る |
 | `classroom-refresh` | button | 更新 (↻) |
-| `classroom-create` | button | クラス作成 (ダッシュボード) |
 | `classroom-google-import` | button | Google Classroom からインポート |
 | `classroom-teacher-logout` | button | ログアウト |
 
@@ -43,12 +42,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 
 | data-testid | 要素 | 説明 |
 |------------|------|------|
-| `classroom-name-input` | input | クラス名入力 |
-| `classroom-count-input` | input | 人数入力 |
-| `classroom-assignment-name-input` | input | 課題名入力 |
-| `classroom-create-submit` | button | 作成実行（クラス名・人数・課題名の **3 つすべて必須**。1 つでも空だと disabled）|
 
-**作成後の挙動**: `classroom-create-submit` を押すと API 呼び出し成功後 `phase` は `teacher-dashboard` に戻り、新しいクラスはサイドバー一覧 (`classroom-sidebar-item-{id}`) に追加される。`teacher-class-detail` には自動遷移せず、サイドバーの該当アイテムをクリックして明示的に選択する必要がある。
 
 ### サイドバー (先生・常時表示、login 以外のフェーズで visible)
 
@@ -163,7 +157,6 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 
 | data-testid | 要素 | 説明 |
 |------------|------|------|
-| `classroom-edit-assignment-content` | button | 課題を編集（詳細画面から課題エディタを開く） |
 | `classroom-phase-teacher-assignment-edit` | div | 課題エディタフェーズのルート |
 | `classroom-assignment-page-{n}` | div | ページ n（0-indexed）のカード |
 | `classroom-assignment-page-text-{n}` | textarea | ページ n の本文（最大500文字） |
@@ -251,23 +244,15 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-board-create-cancel` / `classroom-board-reuse-cancel` | button | インラインフォームのキャンセル |
 | `classroom-google-course-imported-{courseId}` | span | GC コースの「インポート済み」バッジ |
 | `classroom-breadcrumb-assignments` | button | パンくず「課題一覧」リンク |
+| `classroom-ungrouped-list` | div | クラス未所属の課題のフォールバック一覧（develop 互換） |
+| `classroom-ungrouped-open-{classroomId}` | button | 未所属課題をひらく |
 | `classroom-phase-teacher-group-manage` | div | 組管理フェーズのルート |
-| `classroom-group-create-name` / `classroom-group-create-year` | input | 新規組の名前 / 年度 |
-| `classroom-group-create-submit` | button | 組をつくる |
-| `classroom-group-list` | ul | 組一覧 |
-| `classroom-group-row-{groupId}` | li | 組の行 |
-| `classroom-group-name-{groupId}` | input | 組名（インライン編集、blur で保存） |
-| `classroom-group-archive-{groupId}` | button | アーカイブ / もどす |
-| `classroom-group-manage-back` | button | もどる |
 | `classroom-sidebar-teachergroup-{groupId}` | li | サイドバーの組ヘッダー |
-| `classroom-detail-group-select` | select | クラス詳細の組セレクタ |
-| `classroom-duplicate` | button | クラス（授業）の複製 |
 
 ### 学期末評価（AI 評価支援）
 
 | data-testid | 要素 | 説明 |
 |------------|------|------|
-| `classroom-group-evaluate-{groupId}` | button | 組管理画面の「評価」（評価画面を開く） |
 | `classroom-phase-teacher-evaluation` | div | 評価フェーズのルート |
 | `classroom-eval-lesson-{classroomId}` | input | 授業の選択チェックボックス |
 | `classroom-eval-load` | button | 提出を読み込む（sb3 をブラウザ内で静的解析） |
