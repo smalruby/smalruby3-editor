@@ -235,8 +235,9 @@ claude mcp add --scope local --transport http playwright http://host.docker.inte
 ```
 
 `--host 0.0.0.0` 必須・`--allowed-hosts` はポート込みカンマ区切り 1 引数など、
-ハマりどころは `tools/host-playwright-mcp.sh` の先頭コメントと
-`.claude/rules/scratch-gui/e2e-test.md` を参照。
+ハマりどころは `tools/host-playwright-mcp.sh` の先頭コメントに集約してある。
+ホスト Chrome を直接操作する一般的な背景は `.claude/rules/scratch-gui/e2e-test.md`
+（→ memory `reference_host_playwright_mcp.md`）も参照。
 
 ## tmux
 

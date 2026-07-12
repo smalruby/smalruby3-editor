@@ -18,8 +18,8 @@
  *   単一の committable 設定で両環境が動作する。
  *
  * ホストで headful に見たい場合は committed 設定を変えず local-scope の HTTP MCP で
- * opt-in する（`tools/host-playwright-mcp.sh` と
- * `.claude/rules/scratch-gui/e2e-test.md` の「ホストで headful に見たい場合」参照）。
+ * opt-in する（`tools/host-playwright-mcp.sh` と `.devcontainer/README.md` の
+ * 「ホストで headful に見たい場合」参照）。
  *
  * `.mcp.json` からは `command: "node", args: ["tools/mcp/playwright-mcp.mjs"]` で呼ぶ。
  * stdio transport はこのプロセスの stdin/stdout を子 (`npx` → MCP) にそのまま
