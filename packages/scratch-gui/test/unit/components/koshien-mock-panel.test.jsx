@@ -156,6 +156,46 @@ describe('KoshienMockPanel', () => {
         }
     });
 
+    test('stops auto-scrolling the journal once the game is over', () => {
+        const tree = (snapshot) => (
+            <IntlProvider locale="en">
+                <KoshienMockPanel
+                    onClose={jest.fn()}
+                    onGreenFlag={jest.fn()}
+                    onStopAll={jest.fn()}
+                    snapshot={snapshot}
+                />
+            </IntlProvider>
+        );
+        const { getByTestId, rerender } = render(tree(fakeSnapshot()));
+        const journal = getByTestId('koshien-mock-panel-journal');
+        let scrollWrites = 0;
+        Object.defineProperty(journal, 'scrollTop', {
+            configurable: true,
+            get: () => 0,
+            set: () => {
+                scrollWrites += 1;
+            },
+        });
+        Object.defineProperty(journal, 'scrollHeight', { configurable: true, get: () => 999 });
+
+        // A running-game snapshot update still auto-scrolls to the newest entry.
+        rerender(tree(fakeSnapshot()));
+        expect(scrollWrites).toBeGreaterThan(0);
+
+        // After game over, snapshot updates must not force the journal to the bottom,
+        // so the user can scroll up and read the full log.
+        scrollWrites = 0;
+        const over = fakeSnapshot();
+        over.game.over = true;
+        rerender(tree(over));
+        expect(scrollWrites).toBe(0);
+
+        // Starting a new game (over back to false) resumes auto-scrolling.
+        rerender(tree(fakeSnapshot()));
+        expect(scrollWrites).toBeGreaterThan(0);
+    });
+
     test('the all / my-AI view switch renders and toggles without crashing', () => {
         const { getByTestId } = renderPanel({ snapshot: fakeSnapshot() });
         expect(getByTestId('koshien-mock-panel-view-all')).toHaveAttribute('aria-pressed', 'true');
