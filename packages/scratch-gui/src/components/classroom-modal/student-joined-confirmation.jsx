@@ -2,6 +2,9 @@ import { FormattedMessage } from 'react-intl';
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import StudentPreviousComment from './student-previous-comment.jsx';
+
+import { formatStudentClassName } from '../../lib/classroom-class-label.js';
 import styles from './classroom-modal.css';
 
 const StudentJoinedConfirmation = ({ joinedInfo, onClose }) => (
@@ -12,7 +15,7 @@ const StudentJoinedConfirmation = ({ joinedInfo, onClose }) => (
                 data-testid="classroom-joined-details"
             >
                 <span data-testid="classroom-joined-class-name">
-                    {joinedInfo.className}
+                    {formatStudentClassName(joinedInfo.className, joinedInfo.classYear)}
                 </span>
                 {' / '}
                 <span data-testid="classroom-joined-seat-number">
@@ -35,6 +38,7 @@ const StudentJoinedConfirmation = ({ joinedInfo, onClose }) => (
                 </div>
             )}
         </div>
+        <StudentPreviousComment previousComment={joinedInfo.previousComment} />
         <div className={styles.joinHintBox}>
             <div className={styles.joinHintTitle}>
                 <FormattedMessage
@@ -72,7 +76,9 @@ StudentJoinedConfirmation.propTypes = {
     joinedInfo: PropTypes.shape({
         assignmentName: PropTypes.string,
         className: PropTypes.string,
+        classYear: PropTypes.number,
         seatNumber: PropTypes.number,
+        previousComment: PropTypes.object,
     }).isRequired,
     onClose: PropTypes.func.isRequired,
 };

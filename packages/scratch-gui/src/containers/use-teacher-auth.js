@@ -62,7 +62,7 @@ const useTeacherAuth = ({ mode, clearError, setPhase, showSessionExpiredError })
             const token = await loginWithGoogle();
             setIdToken(token);
             setAuthProvider('google');
-            setPhase('teacher-dashboard');
+            setPhase('teacher-class-list');
         } catch {
             clearError();
         }
@@ -74,7 +74,7 @@ const useTeacherAuth = ({ mode, clearError, setPhase, showSessionExpiredError })
             const token = await requestMicrosoftIdToken();
             setIdToken(token);
             setAuthProvider('microsoft');
-            setPhase('teacher-dashboard');
+            setPhase('teacher-class-list');
         } catch {
             clearError();
         }

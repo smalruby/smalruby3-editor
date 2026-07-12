@@ -12,8 +12,9 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 |------------|---------|
 | `classroom-modal` | モーダル全体 |
 | `classroom-phase-teacher-login` | 先生: ログイン (Google / Microsoft) |
-| `classroom-phase-teacher-dashboard` | 先生: ダッシュボード |
-| `classroom-phase-teacher-create` | 先生: クラス作成 |
+| `classroom-phase-teacher-class-list` | 先生: クラス一覧（ログイン後の入口。v2 landing） |
+| `classroom-phase-teacher-dashboard` | 先生: 課題ダッシュボード（クラス選択後） |
+| `classroom-phase-teacher-create` | 先生: 課題作成 |
 | `classroom-phase-teacher-detail` | 先生: クラス詳細 |
 | `classroom-phase-teacher-google-courses` | 先生: GC コース一覧 |
 | `classroom-phase-teacher-post-assignment` | 先生: 課題配信 |
@@ -34,7 +35,6 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-microsoft-login` | button | Microsoft ログイン |
 | `classroom-back` | button | 戻る |
 | `classroom-refresh` | button | 更新 (↻) |
-| `classroom-create` | button | クラス作成 (ダッシュボード) |
 | `classroom-google-import` | button | Google Classroom からインポート |
 | `classroom-teacher-logout` | button | ログアウト |
 
@@ -42,12 +42,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 
 | data-testid | 要素 | 説明 |
 |------------|------|------|
-| `classroom-name-input` | input | クラス名入力 |
-| `classroom-count-input` | input | 人数入力 |
-| `classroom-assignment-name-input` | input | 課題名入力 |
-| `classroom-create-submit` | button | 作成実行（クラス名・人数・課題名の **3 つすべて必須**。1 つでも空だと disabled）|
 
-**作成後の挙動**: `classroom-create-submit` を押すと API 呼び出し成功後 `phase` は `teacher-dashboard` に戻り、新しいクラスはサイドバー一覧 (`classroom-sidebar-item-{id}`) に追加される。`teacher-class-detail` には自動遷移せず、サイドバーの該当アイテムをクリックして明示的に選択する必要がある。
 
 ### サイドバー (先生・常時表示、login 以外のフェーズで visible)
 
@@ -157,6 +152,124 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-post-assignment-description` | textarea | 説明 |
 | `classroom-post-assignment-submit` | button | 配信実行 |
 | `classroom-post-assignment-success` | div | 配信成功メッセージ |
+
+### 課題エディタ（課題コンテンツ）
+
+| data-testid | 要素 | 説明 |
+|------------|------|------|
+| `classroom-phase-teacher-assignment-edit` | div | 課題エディタフェーズのルート |
+| `classroom-assignment-page-{n}` | div | ページ n（0-indexed）のカード |
+| `classroom-assignment-page-text-{n}` | textarea | ページ n の本文（最大500文字） |
+| `classroom-assignment-page-up-{n}` / `classroom-assignment-page-down-{n}` | button | ページの並べ替え |
+| `classroom-assignment-page-remove-{n}` | button | ページ削除 |
+| `classroom-assignment-page-image-attach-{n}` | button | 画像を追加（png/jpeg） |
+| `classroom-assignment-page-image-{n}` | img | 画像プレビュー |
+| `classroom-assignment-page-image-remove-{n}` | button | 画像を削除 |
+| `classroom-assignment-add-page` | button | ページを追加（最大10） |
+| `classroom-assignment-starter-status` | div | スターターの状態表示 |
+| `classroom-assignment-starter-current` | button | 今開いているプロジェクトをスターターに設定 |
+| `classroom-assignment-starter-file` | button | .sb3 ファイルをスターターに設定 |
+| `classroom-assignment-starter-remove` | button | スターターを削除 |
+| `classroom-assignment-save` | button | 課題を保存 |
+| `classroom-assignment-cancel` | button | キャンセル（詳細画面へ戻る） |
+
+### 課題パネル（生徒）
+
+| data-testid | 要素 | 説明 |
+|------------|------|------|
+| `classroom-phase-student-assignment` | div | 課題パネルフェーズのルート（join 直後に自動表示） |
+| `classroom-assignment-joined-notice` | div | 「参加しました！」通知（join 直後のみ） |
+| `classroom-assignment-view-page` | div | 現在の課題ページ |
+| `classroom-assignment-view-text` | div | ページ本文 |
+| `classroom-assignment-view-image` | img | ページ画像 |
+| `classroom-assignment-prev-page` / `classroom-assignment-next-page` | button | ページ送り |
+| `classroom-assignment-page-indicator` | span | ページ位置（`1 / 3`） |
+| `classroom-assignment-reload-starter` | button | スタータープロジェクトを開く（編集中は confirm） |
+| `classroom-assignment-close` | button | はじめる！（モーダルを閉じる） |
+| `classroom-view-assignment-button` | button | ステータス画面の「課題を見る」（hasAssignment 時のみ） |
+
+### 組（グループ）管理
+
+| data-testid | 要素 | 説明 |
+|------------|------|------|
+| `classroom-class-create` | button | クラス一覧の「クラスを作る」（同時作成フォームを開く） |
+| `classroom-class-create-name` | input | 同時作成: クラス名 |
+| `classroom-class-create-year` | input | 同時作成: 年度 |
+| `classroom-class-create-count` | input | 同時作成: 人数 |
+| `classroom-class-create-assignment` | input | 同時作成: 最初の課題名 |
+| `classroom-class-create-submit` | button | 同時作成: クラスと課題を作成 |
+| `classroom-class-list` | ul | クラス一覧（カード） |
+| `classroom-class-list-empty` | p | クラス一覧の空メッセージ |
+| `classroom-class-card-{groupId}` | li | クラスカード |
+| `classroom-class-open-{groupId}` | button | クラスカード本体（クリックでクラスをひらく） |
+| `classroom-class-evaluate-{groupId}` | button | クラスカードの「評価」 |
+| `classroom-class-import-gc` | button | クラス一覧の「Google Classroom からインポート」（Google ログイン時のみ） |
+| `classroom-teacher-logout` | button | ログアウト（タイトルバー右端に常時表示） |
+| `classroom-class-create-section` | input | 同時作成: セクション（オプション） |
+| `classroom-class-settings-open-{groupId}` | button | クラスカードの「設定」（インライン編集を開く） |
+| `classroom-class-settings-{groupId}` | form | クラス設定のインライン編集フォーム |
+| `classroom-class-settings-name/year/section/count` | input | クラス設定の各フィールド |
+| `classroom-class-settings-co-teacher-input` | input | 共同管理者メール入力（クラス単位） |
+| `classroom-class-settings-add-co-teacher` | button | 共同管理者を追加 |
+| `classroom-class-settings-remove-co-teacher-{email}` | button | 共同管理者を削除 |
+| `classroom-class-settings-archive` | button | アーカイブ/もどす |
+| `classroom-class-settings-save` / `classroom-class-settings-cancel` | button | 保存 / キャンセル |
+| `classroom-board` | div | 課題管理ボード（クラス内のメイン領域） |
+| `classroom-board-create` | button | ボードの「課題を作る」 |
+| `classroom-board-empty` | p | ボードの空メッセージ |
+| `classroom-board-section-{topic}` | div | トピックセクション（未設定は `-none`） |
+| `classroom-board-row-{classroomId}` | li | 課題行 |
+| `classroom-board-open-{classroomId}` | button | 課題行本体（クリックで課題詳細へ） |
+| `classroom-board-topic-{classroomId}` | select | 課題行のトピック選択（その場編集） |
+| `classroom-board-date-{classroomId}` | input | 課題行の日付（並び順キー・その場編集） |
+| `classroom-topic-add-input` | input | 新しいトピック入力 |
+| `classroom-topic-add` | button | トピックを追加 |
+| `classroom-topic-chip-{topic}` | span | トピックチップ |
+| `classroom-topic-rename-{topic}` | button | チップ名（クリックでリネーム開始） |
+| `classroom-topic-rename-input-{topic}` | input | リネーム入力（Enter/blur で確定） |
+| `classroom-topic-remove-{topic}` | button | トピック削除（課題側はトピックなしへ） |
+| `classroom-breadcrumbs` | nav | パンくず（クラス一覧 > 課題一覧 > 課題詳細） |
+| `classroom-breadcrumb-class-list` / `classroom-breadcrumb-assignments` | button | パンくずリンク |
+| `classroom-board-create-name` / `classroom-board-create-submit` | input / button | インライン課題作成（課題名のみ） |
+| `classroom-board-reuse` | button | 「課題を再利用」（作る の右隣） |
+| `classroom-board-reuse-view` | div | 再利用ビュー（全課題を日付降順） |
+| `classroom-board-reuse-filter` | select | 再利用ビューのクラスフィルタ |
+| `classroom-board-reuse-copy-{classroomId}` | button | このクラスに複製 |
+| `classroom-tab-description` | button | 課題詳細の「説明」タブ（デフォルトアクティブ） |
+| `classroom-description-editor` | div | 説明タブの課題編集フォーム（埋め込み） |
+| `classroom-description-preview` | div | 右ペインの生徒視点プレビュー |
+| `classroom-description-preview-body` | div | プレビュー本文（テキスト+画像） |
+| `classroom-description-preview-prev` / `-next` | button | プレビューのページ送り |
+| `classroom-teacher-email` | span | タイトルバーのユーザーメール（OIDC トークンに email がある場合のみ） |
+| `classroom-board-create-cancel` / `classroom-board-reuse-cancel` | button | インラインフォームのキャンセル |
+| `classroom-google-course-imported-{courseId}` | span | GC コースの「インポート済み」バッジ |
+| `classroom-breadcrumb-assignments` | button | パンくず「課題一覧」リンク |
+| `classroom-ungrouped-list` | div | クラス未所属の課題のフォールバック一覧（develop 互換） |
+| `classroom-ungrouped-open-{classroomId}` | button | 未所属課題をひらく |
+| `classroom-phase-teacher-group-manage` | div | 組管理フェーズのルート |
+| `classroom-sidebar-teachergroup-{groupId}` | li | サイドバーの組ヘッダー |
+
+### 学期末評価（AI 評価支援）
+
+| data-testid | 要素 | 説明 |
+|------------|------|------|
+| `classroom-phase-teacher-evaluation` | div | 評価フェーズのルート |
+| `classroom-eval-lesson-{classroomId}` | input | 授業の選択チェックボックス |
+| `classroom-eval-load` | button | 提出を読み込む（sb3 をブラウザ内で静的解析） |
+| `classroom-eval-axis-name-{i}` / `classroom-eval-axis-desc-{i}` | input | 評価軸の名前 / 説明 |
+| `classroom-eval-strictness` | select | 厳しさ（やや甘め/標準/やや厳しめ） |
+| `classroom-eval-progress` | div | 進捗表示 |
+| `classroom-eval-matrix` | table | 席 × 授業マトリクス |
+| `classroom-eval-cell-{seat}-{classroomId}` | td | セル（未提出は ×、要確認はオレンジ） |
+| `classroom-eval-grade-{seat}-{classroomId}` | select | 評価（S/A/B/C。手動変更は較正サンプルになる） |
+| `classroom-eval-reason-{seat}-{classroomId}` | input | 根拠 |
+| `classroom-eval-comment-{seat}-{classroomId}` | textarea | 生徒向けコメント |
+| `classroom-eval-overall-{seat}` | td | 総合評価 |
+| `classroom-eval-run-grade` | button | AI評価を実行 |
+| `classroom-eval-run-comment` | button | コメント下書きを生成 |
+| `classroom-eval-export` / `classroom-eval-export-audit` | button | 評価CSV / 検証用CSV |
+| `classroom-eval-return-comments` | button | コメントを返却 |
+| `classroom-eval-back` | button | もどる |
 
 ### メニューバー
 

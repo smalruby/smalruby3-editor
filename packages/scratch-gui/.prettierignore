@@ -103,10 +103,14 @@ src/containers/*
 !src/containers/classroom-modal.jsx
 !src/containers/classroom-teacher-modal.jsx
 !src/containers/use-google-classroom.js
+!src/containers/use-student-assignment.js
 !src/containers/use-student-submit.js
+!src/containers/use-teacher-assignment.js
 !src/containers/use-teacher-auth.js
 !src/containers/use-teacher-classroom.js
 !src/containers/use-teacher-classrooms.js
+!src/containers/use-teacher-evaluation.js
+!src/containers/use-teacher-groups.js
 !src/containers/use-teacher-submissions.js
 !src/containers/extension-library.css
 !src/containers/google-drive-loader-hoc.jsx
@@ -139,6 +143,10 @@ src/lib/*
 !src/lib/koshien-test-url.js
 !src/lib/deck-setup.js
 !src/lib/classroom-api.js
+!src/lib/classroom-assignment-utils.js
+!src/lib/classroom-assignment-templates/
+!src/lib/classroom-evaluation/
+!src/lib/classroom-group-utils.js
 !src/lib/classroom-kick-request-storage.js
 !src/lib/google-classroom-auth.js
 !src/lib/block-utils.js
@@ -309,6 +317,7 @@ test/unit/components/*
 !test/unit/components/extension-button-dncl.test.jsx
 !test/unit/components/connected-step.test.jsx
 !test/unit/components/mesh-self-sensor-notice.test.jsx
+!test/unit/components/student-assignment-panel.test.jsx
 !test/unit/components/mobile-bottom-tabs.test.jsx
 !test/unit/components/mobile-drawer.test.jsx
 !test/unit/components/mobile-mode-notice.test.jsx
@@ -363,6 +372,11 @@ test/unit/lib/*
 !test/unit/lib/blockly-private-api.test.js
 !test/unit/lib/blocks-gesture-recovery.test.js
 !test/unit/lib/classroom-api.test.js
+!test/unit/lib/classroom-assignment-templates.test.js
+!test/unit/lib/classroom-assignment-utils.test.js
+!test/unit/lib/classroom-group-utils.test.js
+!test/unit/lib/evaluation-utils.test.js
+!test/unit/lib/sb3-analyzer.test.js
 !test/unit/lib/classroom-kick-request-storage.test.js
 !test/unit/lib/deck-setup.test.js
 !test/unit/lib/blocks-screenshot.test.js

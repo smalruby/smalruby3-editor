@@ -5,10 +5,13 @@
  * {@link useTeacherSubmissions}, and {@link useGoogleClassroom} into
  * a single return object consumed by {@link ClassroomModal}.
  */
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import useGoogleClassroom from './use-google-classroom.js';
+import useTeacherAssignment from './use-teacher-assignment.js';
 import useTeacherAuth, { getCachedTeacherIdToken, setCachedTeacherIdToken } from './use-teacher-auth.js';
 import useTeacherClassrooms from './use-teacher-classrooms.js';
+import useTeacherEvaluation from './use-teacher-evaluation.js';
+import useTeacherGroups from './use-teacher-groups.js';
 import useTeacherSubmissions from './use-teacher-submissions.js';
 
 export { getCachedTeacherIdToken, setCachedTeacherIdToken };
@@ -75,8 +78,14 @@ const useTeacherClassroom = ({
         dispatch,
     });
 
+    // The groups hook is created after this one; bridge with a ref so the
+    // GC import confirm can create a class (v2) without reordering hooks.
+    const importCourseRef = useRef(null);
+    const handleImportCourse = useCallback((course) => importCourseRef.current?.(course), []);
+
     const google = useGoogleClassroom({
         idToken: auth.idToken,
+        onImportCourse: handleImportCourse,
         selectedClassroom: classrooms.selectedClassroom,
         setSelectedClassroom: classrooms.setSelectedClassroom,
         setClassrooms: classrooms.setClassrooms,
@@ -84,6 +93,44 @@ const useTeacherClassroom = ({
         showError,
         intl,
         setIsLoading,
+        setPhase,
+    });
+
+    const assignment = useTeacherAssignment({
+        idToken: auth.idToken,
+        selectedClassroom: classrooms.selectedClassroom,
+        handleTeacher401: auth.handleTeacher401,
+        phase,
+        clearError,
+        showError,
+        intl,
+        setIsLoading,
+        setPhase,
+        vm,
+    });
+
+    const groups = useTeacherGroups({
+        idToken: auth.idToken,
+        handleTeacher401: auth.handleTeacher401,
+        setClassrooms: classrooms.setClassrooms,
+        setSelectedClassroom: classrooms.setSelectedClassroom,
+        loadClassrooms: classrooms.loadClassrooms,
+        clearError,
+        showError,
+        intl,
+        setIsLoading,
+        setPhase,
+    });
+
+    importCourseRef.current = groups.handleCreateClassFromCourse;
+
+    const evaluation = useTeacherEvaluation({
+        idToken: auth.idToken,
+        classrooms: classrooms.classrooms,
+        handleTeacher401: auth.handleTeacher401,
+        clearError,
+        showError,
+        intl,
         setPhase,
     });
 
@@ -130,7 +177,6 @@ const useTeacherClassroom = ({
         selectedClassroom: classrooms.selectedClassroom,
         members: classrooms.members,
         selectedMember: classrooms.selectedMember,
-        handleShowCreateForm: google.handleShowCreateForm,
         handleCreateClassroom,
         handleDeleteClassroom: classrooms.handleDeleteClassroom,
         handleSelectClassroom: classrooms.handleSelectClassroom,
@@ -140,7 +186,8 @@ const useTeacherClassroom = ({
         handleDeleteMember: classrooms.handleDeleteMember,
         handleSelectMember: classrooms.handleSelectMember,
         handleUpdateAssignmentName: classrooms.handleUpdateAssignmentName,
-        handleUpdateStudentCount: classrooms.handleUpdateStudentCount,
+        handleUpdateAssignmentMeta: classrooms.handleUpdateAssignmentMeta,
+        setDetailTab: classrooms.setDetailTab,
 
         // Kick requests (Phase 4-6)
         kickRequestsBySeat: classrooms.kickRequestsBySeat,
@@ -148,8 +195,6 @@ const useTeacherClassroom = ({
         handleRejectKickRequest: classrooms.handleRejectKickRequest,
 
         // Co-teachers (shared classroom management)
-        handleAddCoTeacher: classrooms.handleAddCoTeacher,
-        handleRemoveCoTeacher: classrooms.handleRemoveCoTeacher,
 
         // Submissions
         codeDisplayClassroom: submissions.codeDisplayClassroom,
@@ -162,6 +207,39 @@ const useTeacherClassroom = ({
         handleCopyInviteLink: submissions.handleCopyInviteLink,
         handleReturnSubmission: submissions.handleReturnSubmission,
         handleDownloadAll: submissions.handleDownloadAll,
+
+        // Assignment content editor
+        assignmentEditorPages: assignment.editorPages,
+        assignmentStarterMode: assignment.starterMode,
+        assignmentStarterSource: assignment.starterSource,
+        assignmentHasExistingStarter: assignment.hasExistingStarter,
+        assignmentIsSaving: assignment.isSaving,
+        handleAssignmentAddPage: assignment.handleAddPage,
+        handleAssignmentRemovePage: assignment.handleRemovePage,
+        handleAssignmentMovePage: assignment.handleMovePage,
+        handleAssignmentChangePageText: assignment.handleChangePageText,
+        handleAssignmentAttachPageImage: assignment.handleAttachPageImage,
+        handleAssignmentRemovePageImage: assignment.handleRemovePageImage,
+        handleAssignmentUseCurrentProject: assignment.handleUseCurrentProjectAsStarter,
+        handleAssignmentUseFile: assignment.handleUseFileAsStarter,
+        handleAssignmentRemoveStarter: assignment.handleRemoveStarter,
+        handleAssignmentSave: assignment.handleSaveAssignment,
+        handleAssignmentCancel: assignment.handleCancelAssignmentEdit,
+        handleAssignmentApplyTemplate: assignment.handleApplyTemplate,
+
+        // Evaluation (期末評価)
+        evaluation,
+
+        // Groups (組)
+        groups: groups.groups,
+        selectedGroup: groups.selectedGroup,
+        handleSelectGroup: groups.handleSelectGroup,
+        handleShowClassList: groups.handleShowClassList,
+        handleCreateClassWithAssignment: groups.handleCreateClassWithAssignment,
+        handleUpdateGroupTopics: groups.handleUpdateGroupTopics,
+        handleCreateAssignmentInClass: groups.handleCreateAssignmentInClass,
+        handleReuseAssignment: groups.handleReuseAssignment,
+        handleUpdateGroup: groups.handleUpdateGroup,
 
         // Google Classroom
         googleCourses: google.googleCourses,

@@ -10,7 +10,7 @@ import {
   UpdateCommand,
   BatchWriteCommand,
 } from '@aws-sdk/lib-dynamodb';
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, CopyObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { OAuth2Client } from 'google-auth-library';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
@@ -22,6 +22,7 @@ const CLASSROOMS_TABLE = process.env.CLASSROOMS_TABLE_NAME || 'Classrooms';
 const MEMBERSHIPS_TABLE = process.env.MEMBERSHIPS_TABLE_NAME || 'ClassroomMemberships';
 const SUBMISSIONS_TABLE = process.env.SUBMISSIONS_TABLE_NAME || 'ClassroomSubmissions';
 const KICK_REQUESTS_TABLE = process.env.KICK_REQUESTS_TABLE_NAME || 'ClassroomKickRequests';
+const GROUPS_TABLE = process.env.GROUPS_TABLE_NAME || 'ClassroomGroups';
 const SUBMISSIONS_BUCKET = process.env.SUBMISSIONS_BUCKET_NAME || 'smalruby-classroom-submissions';
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
 const MICROSOFT_CLIENT_ID = process.env.MICROSOFT_CLIENT_ID || '';
@@ -35,8 +36,9 @@ const MAX_NICKNAME_LENGTH = 20;
 // 6-digit alphanumeric, excluding confusing chars (I, O, 0, 1)
 const JOIN_CODE_CHARS = 'abcdefghjklmnpqrstuvwxyz23456789';
 const JOIN_CODE_LENGTH = 6;
-// Classroom TTL from environment (default 30 days)
-const CLASSROOM_TTL_DAYS = parseInt(process.env.CLASSROOM_TTL_DAYS || '30', 10);
+// Classroom TTL from environment (default 90 days — covers a school term so
+// term-end batch evaluation can still read every submission)
+const CLASSROOM_TTL_DAYS = parseInt(process.env.CLASSROOM_TTL_DAYS || '90', 10);
 const CLASSROOM_TTL_SECONDS = CLASSROOM_TTL_DAYS * 24 * 60 * 60;
 // Session and membership TTL matches classroom TTL
 const SESSION_TTL_SECONDS = CLASSROOM_TTL_SECONDS;
@@ -62,6 +64,52 @@ const MAX_TEACHER_COMMENT_LENGTH = 500;
 // for the teacher to act. Expired requests are removed by DynamoDB TTL.
 const KICK_REQUEST_TTL_SECONDS = parseInt(process.env.KICK_REQUEST_TTL_SECONDS || '3600', 10);
 const MAX_KICK_REQUEST_REASON_LENGTH = 200;
+// Group (組) metadata TTL: groups are the teacher's year-long organizing
+// concept and carry no student work, so they outlive the 90-day classroom
+// retention. 400 days covers a school year (April–March) plus a buffer.
+const GROUP_TTL_DAYS = parseInt(process.env.GROUP_TTL_DAYS || '400', 10);
+const GROUP_TTL_SECONDS = GROUP_TTL_DAYS * 24 * 60 * 60;
+const MAX_GROUP_NAME_LENGTH = 50;
+// How many prior lessons of the same group to inspect when looking up the
+// student's previous returned comment on join (personalized recap).
+const PREVIOUS_COMMENT_LOOKBACK = 3;
+// Class (旧組) v2 data model: every assignment (Classrooms record) belongs to
+// a class (ClassroomGroups record), and class-level GC linkage / co-teachers /
+// studentCount are authoritative. The version is stamped on each group record
+// so the client can trigger the one-time bulk migration when it sees older
+// (or missing) versions on first class-list view.
+const CLASSROOM_SCHEMA_VERSION = 2;
+const MAX_TOPICS_PER_CLASS = 20;
+const MAX_TOPIC_NAME_LENGTH = 50;
+// Assignment content (lesson delivery): teacher-authored pages of
+// (short text + optional image) plus an optional starter project, attached to
+// a classroom. Objects live under {classroomId}/assignment/ in the
+// submissions bucket and share its lifecycle expiry.
+const MAX_ASSIGNMENT_PAGES = 10;
+const MAX_ASSIGNMENT_PAGE_TEXT_LENGTH = 500;
+// Content types accepted for assignment page images (MIME → S3 key extension).
+const ASSIGNMENT_IMAGE_CONTENT_TYPES: Record<string, string> = {
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+};
+// AI evaluation support (teacher-facing): the Lambda relays static-analysis
+// results to the Anthropic API and returns grade proposals / comment drafts.
+// One call handles at most EVAL_MAX_SUBMISSIONS submissions so the response
+// fits API Gateway's hard 30s integration timeout — the client chunks a
+// whole class into several calls (the cached system prompt is shared).
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
+const CLAUDE_MODEL = process.env.CLAUDE_MODEL || 'claude-haiku-4-5-20251001';
+const EVAL_MAX_SUBMISSIONS = parseInt(process.env.EVAL_MAX_SUBMISSIONS || '10', 10);
+const EVAL_MAX_PSEUDOCODE_LENGTH = parseInt(process.env.EVAL_MAX_PSEUDOCODE_LENGTH || '4000', 10);
+const EVAL_RATE_LIMIT_WINDOW_SECONDS = parseInt(process.env.EVAL_RATE_LIMIT_WINDOW_SECONDS || '3600', 10);
+const EVAL_RATE_LIMIT_MAX_REQUESTS = parseInt(process.env.EVAL_RATE_LIMIT_MAX_REQUESTS || '60', 10);
+// Durable per-teacher daily cap on Claude API calls (adversarial review):
+// the in-memory hourly window resets on cold starts and is per-instance, so
+// a DynamoDB counter enforces the real budget. One 35-student class costs
+// ~4 chunked calls per run (grade or comment), so 50 calls/day ≈ 5 full
+// grade+comment runs. Env-configurable for tests and per-stage tuning.
+const EVAL_DAILY_LIMIT = parseInt(process.env.EVAL_DAILY_LIMIT || '50', 10);
+const EVAL_GRADES = ['S', 'A', 'B', 'C'];
 
 // --- DynamoDB Client ---
 
@@ -84,7 +132,7 @@ export function getCorsHeaders(origin?: string): Record<string, string> {
   const allowed = origin && CORS_ALLOWED_ORIGINS.includes(origin) ? origin : CORS_ALLOWED_ORIGINS[0] || '*';
   return {
     'Access-Control-Allow-Origin': allowed,
-    'Access-Control-Allow-Methods': 'GET,POST,PATCH,DELETE,OPTIONS',
+    'Access-Control-Allow-Methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Google-Access-Token',
     'Content-Type': 'application/json',
   };
@@ -387,6 +435,37 @@ export function canManageClassroom(
   return Array.isArray(coTeacherEmails) && coTeacherEmails.includes(identity.email);
 }
 
+/**
+ * Class-aware manage check: classroom-level owner/co-teacher first (cheap,
+ * no I/O), then the owning class (group) — its owner and class-level
+ * co-teachers may manage every assignment inside it. Classroom-level
+ * coTeacherEmails stay honored for pre-v2 records.
+ */
+async function canManageViaGroup(
+  item: Record<string, unknown>,
+  identity: TeacherIdentity,
+): Promise<boolean> {
+  if (canManageClassroom(item, identity)) {
+    return true;
+  }
+  if (typeof item.groupId === 'string' && item.groupId) {
+    const groupResult = await docClient.send(new GetCommand({
+      TableName: GROUPS_TABLE,
+      Key: { groupId: item.groupId },
+    }));
+    const group = groupResult.Item;
+    if (group) {
+      if (group.teacherSub === identity.sub) {
+        return true;
+      }
+      if (identity.email && Array.isArray(group.coTeacherEmails)) {
+        return (group.coTeacherEmails as string[]).includes(normalizeEmail(identity.email));
+      }
+    }
+  }
+  return false;
+}
+
 function extractBearerToken(authHeader?: string): string {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     throw new AuthError('Authorization header with Bearer token is required');
@@ -399,8 +478,27 @@ function extractBearerToken(authHeader?: string): string {
 async function handleCreateClassroom(identity: TeacherIdentity, body: Record<string, unknown>): Promise<APIGatewayProxyStructuredResultV2> {
   const className = validateClassName(body.className);
   let assignmentName = validateClassName(body.assignmentName); // reuse same validator (1-50 chars)
-  const studentCount = validateStudentCount(body.studentCount);
   const googleClassroomCourseId = typeof body.googleClassroomCourseId === 'string' ? body.googleClassroomCourseId.trim() : undefined;
+
+  // Optional group (クラス) assignment — must be a group this teacher owns.
+  let groupId: string | undefined;
+  let group: Record<string, unknown> | undefined;
+  if (typeof body.groupId === 'string' && body.groupId) {
+    group = await getOwnedGroup(identity, body.groupId);
+    groupId = body.groupId;
+  }
+  // v2: the class's studentCount is the source of truth — an assignment
+  // created inside a class inherits it when the request omits the count.
+  const studentCount = body.studentCount === undefined && group && typeof group.studentCount === 'number'
+    ? group.studentCount
+    : validateStudentCount(body.studentCount);
+  const topic = body.topic !== undefined && body.topic !== null && body.topic !== ''
+    ? validateTopicName(body.topic)
+    : undefined;
+  if (topic && groupId) {
+    await ensureGroupTopic(groupId, group, topic);
+  }
+  const sortDate = body.sortDate !== undefined ? validateSortDate(body.sortDate) : undefined;
 
   // Auto-number duplicate assignment names within the same class
   const existingClassrooms = await docClient.send(new QueryCommand({
@@ -457,6 +555,9 @@ async function handleCreateClassroom(identity: TeacherIdentity, body: Record<str
       joinCode,
       studentCount,
       googleClassroomCourseId: googleClassroomCourseId || undefined,
+      groupId,
+      topic,
+      sortDate: sortDate || now,
       status: 'active',
       createdAt: now,
       updatedAt: now,
@@ -466,13 +567,41 @@ async function handleCreateClassroom(identity: TeacherIdentity, body: Record<str
 
   return {
     statusCode: 201,
-    body: JSON.stringify({ classroomId, className, assignmentName, joinCode, studentCount, googleClassroomCourseId: googleClassroomCourseId || null, status: 'active', createdAt: now, expiresAt }),
+    body: JSON.stringify({ classroomId, className, assignmentName, joinCode, studentCount, googleClassroomCourseId: googleClassroomCourseId || null, groupId: groupId || null, topic: topic || null, sortDate: sortDate || now, status: 'active', createdAt: now, expiresAt }),
   };
 }
 
 /** Read the coTeacherEmails list from a classroom item, defaulting to []. */
 function readCoTeacherEmails(item: Record<string, unknown>): string[] {
   return Array.isArray(item.coTeacherEmails) ? (item.coTeacherEmails as string[]) : [];
+}
+
+/** Fetch the owning class (group) of an assignment, or undefined (pre-v2). */
+async function getOwningGroup(
+  classroom: Record<string, unknown>,
+): Promise<Record<string, unknown> | undefined> {
+  if (typeof classroom.groupId !== 'string' || !classroom.groupId) {
+    return undefined;
+  }
+  const result = await docClient.send(new GetCommand({
+    TableName: GROUPS_TABLE,
+    Key: { groupId: classroom.groupId },
+  }));
+  return result.Item;
+}
+
+/**
+ * v2 seat count: the class's studentCount is authoritative, but only ever
+ * grows the grid — max() with the assignment's own snapshot so an older
+ * lesson never loses occupied seats when the class count is set smaller.
+ */
+function seatCountFor(
+  classroom: Record<string, unknown>,
+  group: Record<string, unknown> | undefined,
+): number {
+  const own = typeof classroom.studentCount === 'number' ? classroom.studentCount : 0;
+  const groupCount = group && typeof group.studentCount === 'number' ? group.studentCount : 0;
+  return Math.max(own, groupCount);
 }
 
 /**
@@ -491,6 +620,10 @@ function mapClassroomSummary(item: Record<string, unknown>, identity: TeacherIde
     createdAt: item.createdAt,
     expiresAt: item.ttl ? new Date((item.ttl as number) * 1000).toISOString() : null,
     coTeacherEmails: readCoTeacherEmails(item),
+    groupId: item.groupId || null,
+    topic: item.topic || null,
+    sortDate: item.sortDate || item.createdAt || null,
+    hasAssignment: hasAssignmentContent(item),
     role: item.teacherSub === identity.sub ? 'owner' : 'co-teacher',
   };
 }
@@ -540,7 +673,7 @@ async function handleGetClassroom(identity: TeacherIdentity, classroomId: string
   if (!result.Item || result.Item.status !== 'active') {
     throw new NotFoundError('Classroom not found');
   }
-  if (!canManageClassroom(result.Item, identity)) {
+  if (!(await canManageViaGroup(result.Item, identity))) {
     throw new AuthError('Not authorized to view this classroom');
   }
 
@@ -558,6 +691,10 @@ async function handleGetClassroom(identity: TeacherIdentity, classroomId: string
       createdAt: result.Item.createdAt,
       expiresAt: result.Item.ttl ? new Date((result.Item.ttl as number) * 1000).toISOString() : null,
       coTeacherEmails: readCoTeacherEmails(result.Item),
+      groupId: result.Item.groupId || null,
+      topic: result.Item.topic || null,
+      sortDate: result.Item.sortDate || result.Item.createdAt || null,
+      hasAssignment: hasAssignmentContent(result.Item),
       role: result.Item.teacherSub === identity.sub ? 'owner' : 'co-teacher',
     }),
   };
@@ -580,7 +717,7 @@ async function handleListCoTeachers(identity: TeacherIdentity, classroomId: stri
   if (!result.Item || result.Item.status !== 'active') {
     throw new NotFoundError('Classroom not found');
   }
-  if (!canManageClassroom(result.Item, identity)) {
+  if (!(await canManageViaGroup(result.Item, identity))) {
     throw new AuthError('Not authorized to view co-teachers for this classroom');
   }
   return {
@@ -602,7 +739,7 @@ async function handleAddCoTeacher(identity: TeacherIdentity, classroomId: string
   if (!result.Item || result.Item.status !== 'active') {
     throw new NotFoundError('Classroom not found');
   }
-  if (!canManageClassroom(result.Item, identity)) {
+  if (!(await canManageViaGroup(result.Item, identity))) {
     throw new AuthError('Not authorized to manage co-teachers for this classroom');
   }
 
@@ -636,7 +773,7 @@ async function handleRemoveCoTeacher(identity: TeacherIdentity, classroomId: str
   if (!result.Item || result.Item.status !== 'active') {
     throw new NotFoundError('Classroom not found');
   }
-  if (!canManageClassroom(result.Item, identity)) {
+  if (!(await canManageViaGroup(result.Item, identity))) {
     throw new AuthError('Not authorized to manage co-teachers for this classroom');
   }
 
@@ -660,7 +797,7 @@ async function handleUpdateClassroom(identity: TeacherIdentity, classroomId: str
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId },
   }));
-  if (!classroom.Item || !canManageClassroom(classroom.Item, identity)) {
+  if (!classroom.Item || !(await canManageViaGroup(classroom.Item, identity))) {
     throw new AuthError('Not authorized to update this classroom');
   }
 
@@ -683,6 +820,34 @@ async function handleUpdateClassroom(identity: TeacherIdentity, classroomId: str
   }
   if (body.regenerateJoinCode === true) {
     updates.joinCode = generateJoinCode();
+  }
+  // Assign to / remove from a group (クラス). `groupId: null` clears the
+  // assignment; a string must be a group this teacher owns.
+  if (body.groupId !== undefined) {
+    if (body.groupId === null || body.groupId === '') {
+      updates.groupId = null;
+    } else if (typeof body.groupId === 'string') {
+      await getOwnedGroup(identity, body.groupId);
+      updates.groupId = body.groupId;
+    } else {
+      throw new ValidationError('groupId must be a string or null');
+    }
+  }
+  if (body.topic !== undefined) {
+    if (body.topic === null || body.topic === '') {
+      updates.topic = null;
+    } else {
+      updates.topic = validateTopicName(body.topic);
+      // A new topic used on an assignment becomes part of the class's list.
+      const effectiveGroupId = (updates.groupId !== undefined ? updates.groupId : classroom.Item.groupId) as
+        string | null | undefined;
+      if (effectiveGroupId) {
+        await ensureGroupTopic(effectiveGroupId, undefined, updates.topic as string);
+      }
+    }
+  }
+  if (body.sortDate !== undefined) {
+    updates.sortDate = validateSortDate(body.sortDate);
   }
 
   const expressionParts: string[] = [];
@@ -767,7 +932,8 @@ async function handleJoinClassroom(sourceIp: string, body: Record<string, unknow
     throw new NotFoundError('This classroom is no longer active');
   }
 
-  const seatNumber = validateSeatNumber(body.seatNumber, classroom.studentCount);
+  const owningGroup = await getOwningGroup(classroom);
+  const seatNumber = validateSeatNumber(body.seatNumber, seatCountFor(classroom, owningGroup));
   const nickname = validateNickname(body.nickname);
   const memberId = `seat-${String(seatNumber).padStart(2, '0')}`;
 
@@ -803,15 +969,64 @@ async function handleJoinClassroom(sourceIp: string, body: Record<string, unknow
     throw err;
   }
 
+  // Personalized recap: when the lesson belongs to a group (組), surface the
+  // returned teacher comment this seat received in the most recent prior
+  // lesson of the same group. Best-effort — joining must never fail on this.
+  let previousComment: Record<string, unknown> | null = null;
+  if (classroom.groupId) {
+    try {
+      const siblings = await docClient.send(new QueryCommand({
+        TableName: CLASSROOMS_TABLE,
+        IndexName: 'teacherSub-index',
+        KeyConditionExpression: 'teacherSub = :ts',
+        ExpressionAttributeValues: { ':ts': classroom.teacherSub },
+      }));
+      const prior = selectPriorClassrooms(
+        siblings.Items || [],
+        classroom.groupId as string,
+        classroom.classroomId as string,
+      );
+      for (const priorClassroom of prior) {
+        const subResult = await docClient.send(new QueryCommand({
+          TableName: SUBMISSIONS_TABLE,
+          IndexName: 'classroomId-memberId-index',
+          KeyConditionExpression: 'classroomId = :cid AND memberId = :mid',
+          ExpressionAttributeValues: {
+            ':cid': priorClassroom.classroomId,
+            ':mid': memberId,
+          },
+          Limit: 1,
+        }));
+        const sub = subResult.Items?.[0];
+        if (sub && sub.status === 'returned' && sub.teacherComment) {
+          previousComment = {
+            assignmentName: priorClassroom.assignmentName || null,
+            teacherComment: sub.teacherComment,
+            submittedAt: sub.submittedAt || null,
+          };
+          break;
+        }
+      }
+    } catch (err) {
+      console.error('previousComment lookup failed (ignored):', err);
+    }
+  }
+
   return {
     statusCode: 200,
     body: JSON.stringify({
       sessionToken,
       classroomId: classroom.classroomId,
-      className: classroom.className,
+      // Students see the class name + school year (e.g. 技術 2026年度) —
+      // the owning class is authoritative so renames follow; pre-v2
+      // assignments fall back to their own snapshot with no year.
+      className: (owningGroup && owningGroup.name) || classroom.className,
+      classYear: owningGroup && typeof owningGroup.year === 'number' ? owningGroup.year : null,
       assignmentName: classroom.assignmentName || null,
       seatNumber,
       memberId,
+      hasAssignment: hasAssignmentContent(classroom),
+      previousComment,
     }),
   };
 }
@@ -822,7 +1037,7 @@ async function handleListMembers(identity: TeacherIdentity, classroomId: string)
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId },
   }));
-  if (!classroom.Item || !canManageClassroom(classroom.Item, identity)) {
+  if (!classroom.Item || !(await canManageViaGroup(classroom.Item, identity))) {
     throw new AuthError('Not authorized to view this classroom');
   }
 
@@ -881,7 +1096,7 @@ async function handleDeleteClassroom(identity: TeacherIdentity, classroomId: str
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId },
   }));
-  if (!classroom.Item || !canManageClassroom(classroom.Item, identity)) {
+  if (!classroom.Item || !(await canManageViaGroup(classroom.Item, identity))) {
     throw new AuthError('Not authorized to delete this classroom');
   }
   if (classroom.Item.status !== 'active') {
@@ -971,17 +1186,20 @@ async function handleLookupClassroom(sourceIp: string, body: Record<string, unkn
     ProjectionExpression: 'requestId',
   }));
   const activeKickRequestIds = (kickRequestResult.Items || []).map(item => item.requestId as string);
+  const lookupGroup = await getOwningGroup(classroom);
 
   return {
     statusCode: 200,
     body: JSON.stringify({
       classroomId: classroom.classroomId,
-      className: classroom.className,
+      className: (lookupGroup && lookupGroup.name) || classroom.className,
+      classYear: lookupGroup && typeof lookupGroup.year === 'number' ? lookupGroup.year : null,
       assignmentName: classroom.assignmentName || null,
-      studentCount: classroom.studentCount,
+      studentCount: seatCountFor(classroom, lookupGroup),
       takenSeats,
       activeKickRequestIds,
       expiresAt: classroom.ttl ? new Date((classroom.ttl as number) * 1000).toISOString() : null,
+      hasAssignment: hasAssignmentContent(classroom),
     }),
   };
 }
@@ -992,7 +1210,7 @@ async function handleDeleteMember(identity: TeacherIdentity, classroomId: string
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId },
   }));
-  if (!classroom.Item || !canManageClassroom(classroom.Item, identity)) {
+  if (!classroom.Item || !(await canManageViaGroup(classroom.Item, identity))) {
     throw new AuthError('Not authorized to modify this classroom');
   }
 
@@ -1144,7 +1362,7 @@ async function handleListKickRequests(
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId },
   }));
-  if (!classroom.Item || !canManageClassroom(classroom.Item, identity)) {
+  if (!classroom.Item || !(await canManageViaGroup(classroom.Item, identity))) {
     throw new AuthError('Not authorized to view kick requests for this classroom');
   }
 
@@ -1176,7 +1394,7 @@ async function handleApproveKickRequest(
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId },
   }));
-  if (!classroom.Item || !canManageClassroom(classroom.Item, identity)) {
+  if (!classroom.Item || !(await canManageViaGroup(classroom.Item, identity))) {
     throw new AuthError('Not authorized to modify kick requests for this classroom');
   }
   const reqResult = await docClient.send(new GetCommand({
@@ -1231,7 +1449,7 @@ async function handleRejectKickRequest(
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId },
   }));
-  if (!classroom.Item || !canManageClassroom(classroom.Item, identity)) {
+  if (!classroom.Item || !(await canManageViaGroup(classroom.Item, identity))) {
     throw new AuthError('Not authorized to modify kick requests for this classroom');
   }
   await docClient.send(new DeleteCommand({
@@ -1419,7 +1637,7 @@ async function handleListSubmissions(
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId },
   }));
-  if (!classroom.Item || !canManageClassroom(classroom.Item, identity)) {
+  if (!classroom.Item || !(await canManageViaGroup(classroom.Item, identity))) {
     throw new AuthError('Not authorized to view submissions');
   }
 
@@ -1496,7 +1714,7 @@ async function handleUpdateSubmission(
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId },
   }));
-  if (!classroom.Item || !canManageClassroom(classroom.Item, identity)) {
+  if (!classroom.Item || !(await canManageViaGroup(classroom.Item, identity))) {
     throw new AuthError('Not authorized to update submissions');
   }
 
@@ -1694,10 +1912,19 @@ async function handlePostAssignment(
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId },
   }));
-  if (!result.Item || !canManageClassroom(result.Item, identity)) {
+  if (!result.Item || !(await canManageViaGroup(result.Item, identity))) {
     throw new NotFoundError('Classroom not found');
   }
-  const courseId = result.Item.googleClassroomCourseId as string;
+  // v2: the GC link lives on the class (group); the assignment's own field
+  // remains as a pre-v2 fallback.
+  let courseId = result.Item.googleClassroomCourseId as string;
+  if (!courseId && typeof result.Item.groupId === 'string' && result.Item.groupId) {
+    const groupResult = await docClient.send(new GetCommand({
+      TableName: GROUPS_TABLE,
+      Key: { groupId: result.Item.groupId },
+    }));
+    courseId = (groupResult.Item?.googleClassroomCourseId as string) || '';
+  }
   if (!courseId) {
     throw new ValidationError('This classroom is not linked to Google Classroom');
   }
@@ -1771,19 +1998,27 @@ async function handleVerifySession(sessionToken: string): Promise<APIGatewayProx
     },
   }));
 
-  // Look up latest submission for this member
+  // Look up latest submission for this member, plus the classroom item so the
+  // student UI knows whether assignment content exists (panel / starter
+  // reload) without an extra round-trip.
   let submission: Record<string, unknown> | null = null;
-  const subResult = await docClient.send(new QueryCommand({
-    TableName: SUBMISSIONS_TABLE,
-    IndexName: 'classroomId-memberId-index',
-    KeyConditionExpression: 'classroomId = :cid AND memberId = :mid',
-    ExpressionAttributeValues: {
-      ':cid': session.classroomId,
-      ':mid': session.memberId,
-    },
-    ScanIndexForward: false,
-    Limit: 1,
-  }));
+  const [subResult, classroomResult] = await Promise.all([
+    docClient.send(new QueryCommand({
+      TableName: SUBMISSIONS_TABLE,
+      IndexName: 'classroomId-memberId-index',
+      KeyConditionExpression: 'classroomId = :cid AND memberId = :mid',
+      ExpressionAttributeValues: {
+        ':cid': session.classroomId,
+        ':mid': session.memberId,
+      },
+      ScanIndexForward: false,
+      Limit: 1,
+    })),
+    docClient.send(new GetCommand({
+      TableName: CLASSROOMS_TABLE,
+      Key: { classroomId: session.classroomId },
+    })),
+  ]);
   if (subResult.Items && subResult.Items.length > 0) {
     const item = subResult.Items[0];
     submission = {
@@ -1795,8 +2030,1294 @@ async function handleVerifySession(sessionToken: string): Promise<APIGatewayProx
 
   return {
     statusCode: 200,
-    body: JSON.stringify({ valid: true, submission }),
+    body: JSON.stringify({
+      valid: true,
+      submission,
+      hasAssignment: hasAssignmentContent(classroomResult.Item),
+    }),
   };
+}
+
+// --- Group (組) handlers ---
+// A group is the teacher-side organizing concept: one school class (組) that
+// owns many lesson classrooms over the year. Students never see groups —
+// their model (join code per lesson, anonymous seat) is unchanged.
+
+export function validateGroupName(name: unknown): string {
+  if (typeof name !== 'string' || name.trim().length === 0) {
+    throw new ValidationError('Group name is required');
+  }
+  const trimmed = name.trim();
+  if (trimmed.length > MAX_GROUP_NAME_LENGTH) {
+    throw new ValidationError(`Group name must be ${MAX_GROUP_NAME_LENGTH} characters or less`);
+  }
+  return trimmed;
+}
+
+export function validateGroupYear(year: unknown): number {
+  const n = typeof year === 'number' ? year : parseInt(String(year), 10);
+  if (isNaN(n) || n < 2000 || n > 2100) {
+    throw new ValidationError('Year must be between 2000 and 2100');
+  }
+  return n;
+}
+
+/** Optional class section (GC-style, e.g. 2年1組). Empty/null clears it. */
+export function validateSection(value: unknown): string | null {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+  if (typeof value !== 'string') {
+    throw new ValidationError('Section must be a string');
+  }
+  const trimmed = value.trim();
+  if (trimmed.length === 0) {
+    return null;
+  }
+  if (trimmed.length > MAX_GROUP_NAME_LENGTH) {
+    throw new ValidationError(`Section must be ${MAX_GROUP_NAME_LENGTH} characters or less`);
+  }
+  return trimmed;
+}
+
+export function validateTopicName(name: unknown): string {
+  if (typeof name !== 'string' || name.trim().length === 0) {
+    throw new ValidationError('Topic name is required');
+  }
+  const trimmed = name.trim();
+  if (trimmed.length > MAX_TOPIC_NAME_LENGTH) {
+    throw new ValidationError(`Topic name must be ${MAX_TOPIC_NAME_LENGTH} characters or less`);
+  }
+  return trimmed;
+}
+
+/**
+ * Sort key for assignments inside a class. Meaning-free by design (teacher
+ * interview): defaults to createdAt, freely editable, never shown to students.
+ */
+export function validateSortDate(value: unknown): string {
+  if (typeof value !== 'string' || isNaN(Date.parse(value))) {
+    throw new ValidationError('sortDate must be an ISO 8601 date string');
+  }
+  return new Date(value).toISOString();
+}
+
+/**
+ * Japanese school year (April boundary) for a timestamp, evaluated in JST —
+ * a lesson created 2026-01-15 belongs to school year 2025. Used to name the
+ * classes auto-created by the v2 migration. Pure — exported for unit tests.
+ */
+export function schoolYearFromIso(iso: string): number {
+  const jst = new Date(new Date(iso).getTime() + 9 * 60 * 60 * 1000);
+  const month = jst.getUTCMonth() + 1;
+  return month >= 4 ? jst.getUTCFullYear() : jst.getUTCFullYear() - 1;
+}
+
+export interface GroupMigrationPlan {
+  /** Classes to auto-create, keyed so assignments can reference them before IDs exist. */
+  createGroups: { key: string; name: string; year: number }[];
+  /** groupKey is either an existing groupId or a createGroups key. */
+  assignments: { classroomId: string; groupKey: string }[];
+  /** Field lifts + schemaVersion stamp per group (existing id or create key). */
+  groupUpdates: { groupKey: string; set: Record<string, unknown> }[];
+}
+
+/**
+ * Plan the v1→v2 migration for one teacher: adopt ungrouped assignments into
+ * classes auto-created per className (school year estimated from creation
+ * date), then lift assignment-level GC courseId (earliest wins) /
+ * co-teachers (union) / studentCount (max) up to each class. Idempotent by
+ * construction: a second run finds nothing ungrouped and produces lifts that
+ * only stamp schemaVersion. Pure — exported for unit tests.
+ */
+export function planGroupMigration(
+  classrooms: Record<string, unknown>[],
+  groups: Record<string, unknown>[],
+): GroupMigrationPlan {
+  const active = classrooms.filter(c => c.status === 'active');
+  const createGroups: GroupMigrationPlan['createGroups'] = [];
+  const assignments: GroupMigrationPlan['assignments'] = [];
+  const groupKeyByClassroomId = new Map<string, string>();
+
+  for (const classroom of active) {
+    if (typeof classroom.groupId === 'string' && classroom.groupId) {
+      groupKeyByClassroomId.set(String(classroom.classroomId), classroom.groupId);
+      continue;
+    }
+    const name = String(classroom.className || '');
+    const year = schoolYearFromIso(String(classroom.createdAt || new Date(0).toISOString()));
+    // Prefer an existing class with the same name (same year first, else the
+    // newest) so a teacher's manual class is reused instead of duplicated.
+    const sameName = groups.filter(g => g.name === name && g.status === 'active');
+    const existing = sameName.find(g => g.year === year)
+      || sameName.sort((a, b) => Number(b.year || 0) - Number(a.year || 0))[0];
+    let groupKey: string;
+    if (existing) {
+      groupKey = String(existing.groupId);
+    } else {
+      groupKey = `new:${name}:${year}`;
+      if (!createGroups.some(g => g.key === groupKey)) {
+        createGroups.push({ key: groupKey, name, year });
+      }
+    }
+    assignments.push({ classroomId: String(classroom.classroomId), groupKey });
+    groupKeyByClassroomId.set(String(classroom.classroomId), groupKey);
+  }
+
+  // Lift assignment-level fields up to each class (including classes that
+  // gain no new assignments — they still need the schemaVersion stamp).
+  const allKeys = new Set<string>([
+    ...groups.map(g => String(g.groupId)),
+    ...createGroups.map(g => g.key),
+  ]);
+  const groupUpdates: GroupMigrationPlan['groupUpdates'] = [];
+  for (const groupKey of allKeys) {
+    const existing = groups.find(g => String(g.groupId) === groupKey);
+    const members = active
+      .filter(c => groupKeyByClassroomId.get(String(c.classroomId)) === groupKey)
+      .sort((a, b) => String(a.createdAt || '').localeCompare(String(b.createdAt || '')));
+    const set: Record<string, unknown> = {};
+    if (!existing || existing.schemaVersion !== CLASSROOM_SCHEMA_VERSION) {
+      set.schemaVersion = CLASSROOM_SCHEMA_VERSION;
+    }
+    if (!(existing && existing.googleClassroomCourseId)) {
+      const withCourse = members.find(c => c.googleClassroomCourseId);
+      if (withCourse) {
+        set.googleClassroomCourseId = withCourse.googleClassroomCourseId;
+      }
+    }
+    const emailUnion = new Set<string>(
+      existing && Array.isArray(existing.coTeacherEmails) ? (existing.coTeacherEmails as string[]) : [],
+    );
+    const before = emailUnion.size;
+    for (const c of members) {
+      for (const email of (Array.isArray(c.coTeacherEmails) ? (c.coTeacherEmails as string[]) : [])) {
+        emailUnion.add(email);
+      }
+    }
+    if (emailUnion.size > before) {
+      set.coTeacherEmails = [...emailUnion];
+    }
+    const maxCount = Math.max(
+      existing && typeof existing.studentCount === 'number' ? existing.studentCount : 0,
+      ...members.map(c => (typeof c.studentCount === 'number' ? c.studentCount : 0)),
+    );
+    const existingCount = existing && typeof existing.studentCount === 'number' ? existing.studentCount : 0;
+    if (maxCount > 0 && maxCount !== existingCount) {
+      set.studentCount = maxCount;
+    }
+    if (Object.keys(set).length > 0) {
+      groupUpdates.push({ groupKey, set });
+    }
+  }
+
+  return { createGroups, assignments, groupUpdates };
+}
+
+/**
+ * Sort prior lessons of a group (excluding the one being joined) newest
+ * first, capped to the recap lookback. Pure — exported for unit tests.
+ */
+export function selectPriorClassrooms(
+  items: Record<string, unknown>[],
+  groupId: string,
+  excludeClassroomId: string,
+  limit: number = PREVIOUS_COMMENT_LOOKBACK,
+): Record<string, unknown>[] {
+  return items
+    .filter(item => item.groupId === groupId && item.classroomId !== excludeClassroomId && item.status === 'active')
+    .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))
+    .slice(0, limit);
+}
+
+/**
+ * Rewrite assignment S3 keys from the source classroom prefix to the
+ * duplicated classroom's prefix. Pure — exported for unit tests.
+ * @returns the new assignment plus the list of {from, to} copies to perform
+ */
+export function buildDuplicatedAssignment(
+  assignment: AssignmentContent | undefined,
+  sourceClassroomId: string,
+  newClassroomId: string,
+): { assignment: AssignmentContent | undefined; copies: { from: string; to: string }[] } {
+  if (!assignment || ((!assignment.pages || assignment.pages.length === 0) && !assignment.starterKey)) {
+    return { assignment: undefined, copies: [] };
+  }
+  const copies: { from: string; to: string }[] = [];
+  const rewriteKey = (key: string): string => {
+    const to = `${newClassroomId}/assignment/${key.split('/').pop()}`;
+    copies.push({ from: key, to });
+    return to;
+  };
+  const pages = (assignment.pages || []).map(page =>
+    page.imageKey ? { text: page.text, imageKey: rewriteKey(page.imageKey) } : { text: page.text },
+  );
+  const starterKey = assignment.starterKey ? rewriteKey(assignment.starterKey) : undefined;
+  return {
+    assignment: { pages, starterKey, updatedAt: new Date().toISOString() },
+    copies,
+  };
+}
+
+/** Fetch a group and assert the teacher owns it. */
+async function getOwnedGroup(identity: TeacherIdentity, groupId: string): Promise<Record<string, unknown>> {
+  const result = await docClient.send(new GetCommand({
+    TableName: GROUPS_TABLE,
+    Key: { groupId },
+  }));
+  if (!result.Item || result.Item.teacherSub !== identity.sub) {
+    // Existence-hiding 404, same policy as classrooms.
+    throw new NotFoundError('Group not found');
+  }
+  return result.Item;
+}
+
+/**
+ * Add a topic to the class's list when an assignment starts using it (the
+ * dropdown's "create new topic" path). No-op when already present.
+ */
+async function ensureGroupTopic(
+  groupId: string,
+  group: Record<string, unknown> | undefined,
+  topic: string,
+): Promise<void> {
+  let topics: string[];
+  if (group && Array.isArray(group.topics)) {
+    topics = group.topics as string[];
+  } else {
+    const result = await docClient.send(new GetCommand({ TableName: GROUPS_TABLE, Key: { groupId } }));
+    topics = result.Item && Array.isArray(result.Item.topics) ? (result.Item.topics as string[]) : [];
+  }
+  if (topics.includes(topic)) {
+    return;
+  }
+  if (topics.length >= MAX_TOPICS_PER_CLASS) {
+    throw new ValidationError(`A class can have at most ${MAX_TOPICS_PER_CLASS} topics`);
+  }
+  await docClient.send(new UpdateCommand({
+    TableName: GROUPS_TABLE,
+    Key: { groupId },
+    UpdateExpression: 'SET topics = :topics, updatedAt = :now',
+    ExpressionAttributeValues: { ':topics': [...topics, topic], ':now': new Date().toISOString() },
+  }));
+}
+
+function mapGroupSummary(item: Record<string, unknown>) {
+  return {
+    groupId: item.groupId,
+    name: item.name,
+    year: item.year,
+    status: item.status,
+    section: item.section || null,
+    schemaVersion: typeof item.schemaVersion === 'number' ? item.schemaVersion : 1,
+    topics: Array.isArray(item.topics) ? item.topics : [],
+    googleClassroomCourseId: item.googleClassroomCourseId || null,
+    studentCount: typeof item.studentCount === 'number' ? item.studentCount : null,
+    coTeacherEmails: readCoTeacherEmails(item),
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
+  };
+}
+
+async function handleCreateGroup(identity: TeacherIdentity, body: Record<string, unknown>): Promise<APIGatewayProxyStructuredResultV2> {
+  const name = validateGroupName(body.name);
+  const year = validateGroupYear(body.year);
+
+  const now = new Date().toISOString();
+  const groupId = crypto.randomUUID();
+  const item: Record<string, unknown> = {
+    groupId,
+    teacherSub: identity.sub,
+    name,
+    year,
+    status: 'active',
+    schemaVersion: CLASSROOM_SCHEMA_VERSION,
+    topics: [],
+    createdAt: now,
+    updatedAt: now,
+    ttl: Math.floor(Date.now() / 1000) + GROUP_TTL_SECONDS,
+  };
+  if (body.studentCount !== undefined) {
+    item.studentCount = validateStudentCount(body.studentCount);
+  }
+  if (body.section !== undefined) {
+    const section = validateSection(body.section);
+    if (section) {
+      item.section = section;
+    }
+  }
+  if (typeof body.googleClassroomCourseId === 'string' && body.googleClassroomCourseId.trim()) {
+    item.googleClassroomCourseId = body.googleClassroomCourseId.trim();
+  }
+  await docClient.send(new PutCommand({ TableName: GROUPS_TABLE, Item: item }));
+
+  return { statusCode: 201, body: JSON.stringify(mapGroupSummary(item)) };
+}
+
+async function handleListGroups(identity: TeacherIdentity): Promise<APIGatewayProxyStructuredResultV2> {
+  const result = await docClient.send(new QueryCommand({
+    TableName: GROUPS_TABLE,
+    IndexName: 'teacherSub-index',
+    KeyConditionExpression: 'teacherSub = :ts',
+    ExpressionAttributeValues: { ':ts': identity.sub },
+  }));
+  // Classes shared with this teacher as a class-level co-teacher. Same scan
+  // trade-off as the co-managed classroom list: small table, low frequency.
+  let coManaged: Record<string, unknown>[] = [];
+  if (identity.email) {
+    const scanned = await docClient.send(new ScanCommand({
+      TableName: GROUPS_TABLE,
+      FilterExpression: 'contains(coTeacherEmails, :email)',
+      ExpressionAttributeValues: { ':email': normalizeEmail(identity.email) },
+    }));
+    coManaged = (scanned.Items || []).filter(item => item.teacherSub !== identity.sub);
+  }
+  const groups = [...(result.Items || []), ...coManaged].map(item => ({
+    ...mapGroupSummary(item),
+    role: item.teacherSub === identity.sub ? 'owner' : 'co-teacher',
+  }));
+  return { statusCode: 200, body: JSON.stringify({ groups }) };
+}
+
+async function handleUpdateGroup(identity: TeacherIdentity, groupId: string, body: Record<string, unknown>): Promise<APIGatewayProxyStructuredResultV2> {
+  await getOwnedGroup(identity, groupId);
+
+  const updates: Record<string, unknown> = { updatedAt: new Date().toISOString() };
+  if (body.name !== undefined) {
+    updates.name = validateGroupName(body.name);
+  }
+  if (body.year !== undefined) {
+    updates.year = validateGroupYear(body.year);
+  }
+  if (body.status !== undefined) {
+    if (body.status !== 'active' && body.status !== 'archived') {
+      throw new ValidationError('Status must be "active" or "archived"');
+    }
+    updates.status = body.status;
+  }
+  if (body.studentCount !== undefined) {
+    updates.studentCount = validateStudentCount(body.studentCount);
+  }
+  if (body.section !== undefined) {
+    updates.section = validateSection(body.section);
+  }
+  if (body.googleClassroomCourseId !== undefined) {
+    if (body.googleClassroomCourseId === null || body.googleClassroomCourseId === '') {
+      updates.googleClassroomCourseId = null;
+    } else if (typeof body.googleClassroomCourseId === 'string') {
+      updates.googleClassroomCourseId = body.googleClassroomCourseId.trim();
+    } else {
+      throw new ValidationError('googleClassroomCourseId must be a string or null');
+    }
+  }
+  if (body.coTeacherEmails !== undefined) {
+    if (!Array.isArray(body.coTeacherEmails)) {
+      throw new ValidationError('coTeacherEmails must be an array');
+    }
+    updates.coTeacherEmails = [...new Set(body.coTeacherEmails.map(validateCoTeacherEmail))];
+  }
+
+  const expressionParts: string[] = [];
+  const expressionValues: Record<string, unknown> = {};
+  const expressionNames: Record<string, string> = {};
+  let i = 0;
+  for (const [key, value] of Object.entries(updates)) {
+    expressionNames[`#attr${i}`] = key;
+    expressionValues[`:val${i}`] = value;
+    expressionParts.push(`#attr${i} = :val${i}`);
+    i++;
+  }
+  const result = await docClient.send(new UpdateCommand({
+    TableName: GROUPS_TABLE,
+    Key: { groupId },
+    UpdateExpression: `SET ${expressionParts.join(', ')}`,
+    ExpressionAttributeNames: expressionNames,
+    ExpressionAttributeValues: expressionValues,
+    ReturnValues: 'ALL_NEW',
+  }));
+
+  return { statusCode: 200, body: JSON.stringify(mapGroupSummary(result.Attributes || {})) };
+}
+
+/**
+ * One-time (but idempotent) v1→v2 bulk migration for the calling teacher.
+ * Runs the pure plan against the teacher's classrooms + groups, then executes
+ * it: create classes, adopt ungrouped assignments, lift class-level fields.
+ * Safe to call on every class-list view — a fully migrated account produces
+ * an empty plan.
+ */
+async function handleMigrateGroups(identity: TeacherIdentity): Promise<APIGatewayProxyStructuredResultV2> {
+  const [classroomsResult, groupsResult] = await Promise.all([
+    docClient.send(new QueryCommand({
+      TableName: CLASSROOMS_TABLE,
+      IndexName: 'teacherSub-index',
+      KeyConditionExpression: 'teacherSub = :ts',
+      ExpressionAttributeValues: { ':ts': identity.sub },
+    })),
+    docClient.send(new QueryCommand({
+      TableName: GROUPS_TABLE,
+      IndexName: 'teacherSub-index',
+      KeyConditionExpression: 'teacherSub = :ts',
+      ExpressionAttributeValues: { ':ts': identity.sub },
+    })),
+  ]);
+  const plan = planGroupMigration(classroomsResult.Items || [], groupsResult.Items || []);
+
+  const now = new Date().toISOString();
+  const groupIdByKey = new Map<string, string>();
+  for (const create of plan.createGroups) {
+    const groupId = crypto.randomUUID();
+    groupIdByKey.set(create.key, groupId);
+    await docClient.send(new PutCommand({
+      TableName: GROUPS_TABLE,
+      Item: {
+        groupId,
+        teacherSub: identity.sub,
+        name: create.name,
+        year: create.year,
+        status: 'active',
+        schemaVersion: CLASSROOM_SCHEMA_VERSION,
+        topics: [],
+        createdAt: now,
+        updatedAt: now,
+        ttl: Math.floor(Date.now() / 1000) + GROUP_TTL_SECONDS,
+      },
+    }));
+  }
+  const resolveKey = (key: string): string => groupIdByKey.get(key) || key;
+
+  for (const assign of plan.assignments) {
+    await docClient.send(new UpdateCommand({
+      TableName: CLASSROOMS_TABLE,
+      Key: { classroomId: assign.classroomId },
+      UpdateExpression: 'SET groupId = :gid, updatedAt = :now',
+      ExpressionAttributeValues: { ':gid': resolveKey(assign.groupKey), ':now': now },
+    }));
+  }
+
+  for (const update of plan.groupUpdates) {
+    const groupId = resolveKey(update.groupKey);
+    // Freshly created groups already carry the v2 shape; skip pure stamps.
+    if (groupIdByKey.has(update.groupKey)) {
+      const rest = { ...update.set };
+      delete rest.schemaVersion;
+      if (Object.keys(rest).length === 0) continue;
+    }
+    const parts: string[] = ['updatedAt = :now'];
+    const values: Record<string, unknown> = { ':now': now };
+    const names: Record<string, string> = {};
+    let i = 0;
+    for (const [key, value] of Object.entries(update.set)) {
+      names[`#m${i}`] = key;
+      values[`:m${i}`] = value;
+      parts.push(`#m${i} = :m${i}`);
+      i++;
+    }
+    await docClient.send(new UpdateCommand({
+      TableName: GROUPS_TABLE,
+      Key: { groupId },
+      UpdateExpression: `SET ${parts.join(', ')}`,
+      ...(Object.keys(names).length > 0 ? { ExpressionAttributeNames: names } : {}),
+      ExpressionAttributeValues: values,
+    }));
+  }
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify({
+      createdGroups: plan.createGroups.length,
+      assignedClassrooms: plan.assignments.length,
+      updatedGroups: plan.groupUpdates.length,
+      schemaVersion: CLASSROOM_SCHEMA_VERSION,
+    }),
+  };
+}
+
+/**
+ * Manage the class's topic list. Renaming (and removing) a topic cascades to
+ * the assignments inside the class so their topic strings never dangle
+ * (teacher interview: rename must follow through).
+ */
+async function handleUpdateGroupTopics(
+  identity: TeacherIdentity, groupId: string, body: Record<string, unknown>,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const group = await getOwnedGroup(identity, groupId);
+  const topics: string[] = Array.isArray(group.topics) ? [...(group.topics as string[])] : [];
+  const action = body.action;
+  const now = new Date().toISOString();
+
+  const cascadeAssignments = async (fromTopic: string, toTopic: string | null): Promise<void> => {
+    const result = await docClient.send(new QueryCommand({
+      TableName: CLASSROOMS_TABLE,
+      IndexName: 'teacherSub-index',
+      KeyConditionExpression: 'teacherSub = :ts',
+      FilterExpression: 'groupId = :gid AND topic = :from',
+      ExpressionAttributeValues: { ':ts': String(group.teacherSub), ':gid': groupId, ':from': fromTopic },
+    }));
+    for (const item of result.Items || []) {
+      await docClient.send(new UpdateCommand({
+        TableName: CLASSROOMS_TABLE,
+        Key: { classroomId: item.classroomId },
+        UpdateExpression: toTopic === null
+          ? 'REMOVE topic SET updatedAt = :now'
+          : 'SET topic = :to, updatedAt = :now',
+        ExpressionAttributeValues: toTopic === null ? { ':now': now } : { ':to': toTopic, ':now': now },
+      }));
+    }
+  };
+
+  if (action === 'add') {
+    const name = validateTopicName(body.name);
+    if (!topics.includes(name)) {
+      if (topics.length >= MAX_TOPICS_PER_CLASS) {
+        throw new ValidationError(`A class can have at most ${MAX_TOPICS_PER_CLASS} topics`);
+      }
+      topics.push(name);
+    }
+  } else if (action === 'remove') {
+    const name = validateTopicName(body.name);
+    const index = topics.indexOf(name);
+    if (index >= 0) {
+      topics.splice(index, 1);
+      await cascadeAssignments(name, null);
+    }
+  } else if (action === 'rename') {
+    const from = validateTopicName(body.name);
+    const to = validateTopicName(body.to);
+    const index = topics.indexOf(from);
+    if (index < 0) {
+      throw new NotFoundError('Topic not found');
+    }
+    if (topics.includes(to)) {
+      throw new ValidationError('A topic with the new name already exists');
+    }
+    topics[index] = to;
+    await cascadeAssignments(from, to);
+  } else {
+    throw new ValidationError('action must be "add", "remove", or "rename"');
+  }
+
+  const result = await docClient.send(new UpdateCommand({
+    TableName: GROUPS_TABLE,
+    Key: { groupId },
+    UpdateExpression: 'SET topics = :topics, updatedAt = :now',
+    ExpressionAttributeValues: { ':topics': topics, ':now': now },
+    ReturnValues: 'ALL_NEW',
+  }));
+  return { statusCode: 200, body: JSON.stringify(mapGroupSummary(result.Attributes || {})) };
+}
+
+/**
+ * Duplicate a classroom (lesson) — className/assignmentName/studentCount and
+ * the assignment content (pages + starter, S3 objects copied) — into the
+ * same or another group, with a fresh join code and no members/submissions.
+ * This is how a teacher reuses a lesson for another 組 or the next year.
+ */
+async function handleDuplicateClassroom(
+  identity: TeacherIdentity, classroomId: string, body: Record<string, unknown>,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const sourceResult = await docClient.send(new GetCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId },
+  }));
+  if (!sourceResult.Item || sourceResult.Item.status !== 'active') {
+    throw new NotFoundError('Classroom not found');
+  }
+  const source = sourceResult.Item;
+  if (!(await canManageViaGroup(source, identity))) {
+    throw new AuthError('Not authorized to duplicate this classroom');
+  }
+
+  // Optional target group (defaults to no group; duplicating keeps things
+  // explicit rather than silently inheriting the source group).
+  let groupId: string | undefined;
+  if (typeof body.groupId === 'string' && body.groupId) {
+    await getOwnedGroup(identity, body.groupId);
+    groupId = body.groupId;
+  }
+
+  const className = body.className !== undefined ? validateClassName(body.className) : (source.className as string);
+  const assignmentName = body.assignmentName !== undefined
+    ? validateClassName(body.assignmentName)
+    : (source.assignmentName as string);
+
+  // Fresh unique join code (same retry policy as creation).
+  let joinCode = '';
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const candidate = generateJoinCode();
+    const existing = await docClient.send(new QueryCommand({
+      TableName: CLASSROOMS_TABLE,
+      IndexName: 'joinCode-index',
+      KeyConditionExpression: 'joinCode = :jc',
+      ExpressionAttributeValues: { ':jc': candidate },
+      Limit: 1,
+    }));
+    if (!existing.Items || existing.Items.length === 0) {
+      joinCode = candidate;
+      break;
+    }
+  }
+  if (!joinCode) {
+    return { statusCode: 500, body: JSON.stringify({ error: 'Failed to generate unique join code' }) };
+  }
+
+  const newClassroomId = crypto.randomUUID();
+  const { assignment, copies } = buildDuplicatedAssignment(
+    source.assignment as AssignmentContent | undefined,
+    classroomId,
+    newClassroomId,
+  );
+
+  // Copy assignment objects first so the new record never references
+  // missing objects. A failed copy aborts the duplication (502 from S3).
+  for (const { from, to } of copies) {
+    await s3Client.send(new CopyObjectCommand({
+      Bucket: SUBMISSIONS_BUCKET,
+      CopySource: `${SUBMISSIONS_BUCKET}/${encodeURIComponent(from)}`,
+      Key: to,
+    }));
+  }
+
+  // Reuse carries the topic along; make sure the target class lists it so
+  // the assignment lands in a visible section (cross-class reuse included).
+  const topic = typeof source.topic === 'string' && source.topic ? source.topic : undefined;
+  if (topic && groupId) {
+    await ensureGroupTopic(groupId, undefined, topic);
+  }
+
+  const now = new Date().toISOString();
+  const ttl = Math.floor(Date.now() / 1000) + CLASSROOM_TTL_SECONDS;
+  await docClient.send(new PutCommand({
+    TableName: CLASSROOMS_TABLE,
+    Item: {
+      classroomId: newClassroomId,
+      teacherSub: identity.sub,
+      className,
+      assignmentName,
+      joinCode,
+      studentCount: source.studentCount,
+      groupId,
+      topic,
+      sortDate: now,
+      assignment,
+      status: 'active',
+      createdAt: now,
+      updatedAt: now,
+      ttl,
+    },
+  }));
+
+  return {
+    statusCode: 201,
+    body: JSON.stringify({
+      classroomId: newClassroomId,
+      className,
+      assignmentName,
+      joinCode,
+      studentCount: source.studentCount,
+      groupId: groupId || null,
+      topic: topic || null,
+      sortDate: now,
+      hasAssignment: !!assignment,
+      status: 'active',
+      createdAt: now,
+      expiresAt: new Date(ttl * 1000).toISOString(),
+    }),
+  };
+}
+
+// --- Assignment content handlers ---
+// A classroom may carry assignment content: pages of (short text + optional
+// image) plus an optional starter project. The teacher edits it; students
+// read it after joining so the lesson starts without manual file
+// distribution.
+
+/** An assignment page as stored in DynamoDB. */
+interface AssignmentPage {
+  text: string;
+  imageKey?: string;
+}
+
+interface AssignmentContent {
+  pages?: AssignmentPage[];
+  starterKey?: string;
+  updatedAt?: string;
+}
+
+/**
+ * Validate the `pages` array of a set-assignment request. Each page carries a
+ * short text and optionally either an existing `imageKey` (kept as-is; must
+ * belong to this classroom's assignment prefix) or `newImage` (a MIME type
+ * from ASSIGNMENT_IMAGE_CONTENT_TYPES requesting a fresh upload URL).
+ */
+export function validateAssignmentPages(
+  pages: unknown,
+  classroomId: string,
+): { text: string; imageKey?: string; newImage?: string }[] {
+  if (pages === undefined || pages === null) return [];
+  if (!Array.isArray(pages)) {
+    throw new ValidationError('pages must be an array');
+  }
+  if (pages.length > MAX_ASSIGNMENT_PAGES) {
+    throw new ValidationError(`Assignment may have at most ${MAX_ASSIGNMENT_PAGES} pages`);
+  }
+  return pages.map((page, i) => {
+    if (!page || typeof page !== 'object' || Array.isArray(page)) {
+      throw new ValidationError(`pages[${i}] must be an object`);
+    }
+    const { text, imageKey, newImage } = page as Record<string, unknown>;
+    if (typeof text !== 'string') {
+      throw new ValidationError(`pages[${i}].text is required`);
+    }
+    if (text.length > MAX_ASSIGNMENT_PAGE_TEXT_LENGTH) {
+      throw new ValidationError(`pages[${i}].text must be ${MAX_ASSIGNMENT_PAGE_TEXT_LENGTH} characters or less`);
+    }
+    if (imageKey !== undefined && newImage !== undefined) {
+      throw new ValidationError(`pages[${i}] cannot have both imageKey and newImage`);
+    }
+    if (imageKey !== undefined) {
+      if (typeof imageKey !== 'string' || !imageKey.startsWith(`${classroomId}/assignment/`)) {
+        throw new ValidationError(`pages[${i}].imageKey does not belong to this classroom`);
+      }
+      return { text, imageKey };
+    }
+    if (newImage !== undefined) {
+      if (typeof newImage !== 'string' || !ASSIGNMENT_IMAGE_CONTENT_TYPES[newImage]) {
+        throw new ValidationError(
+          `pages[${i}].newImage must be one of: ${Object.keys(ASSIGNMENT_IMAGE_CONTENT_TYPES).join(', ')}`,
+        );
+      }
+      return { text, newImage };
+    }
+    return { text };
+  });
+}
+
+/** Whether a classroom item carries assignment content (pages or a starter). */
+export function hasAssignmentContent(item: Record<string, unknown> | undefined): boolean {
+  if (!item) return false;
+  const assignment = item.assignment as AssignmentContent | undefined;
+  if (!assignment) return false;
+  return (Array.isArray(assignment.pages) && assignment.pages.length > 0) || !!assignment.starterKey;
+}
+
+async function handleSetAssignment(
+  identity: TeacherIdentity, classroomId: string, body: Record<string, unknown>,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const classroomResult = await docClient.send(new GetCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId },
+  }));
+  if (!classroomResult.Item || classroomResult.Item.status !== 'active') {
+    throw new NotFoundError('Classroom not found');
+  }
+  if (!(await canManageViaGroup(classroomResult.Item, identity))) {
+    throw new AuthError('Not authorized to edit this classroom');
+  }
+
+  const pagesInput = validateAssignmentPages(body.pages, classroomId);
+  const keepStarter = body.keepStarter === true;
+  const newStarter = body.newStarter === true;
+  if (keepStarter && newStarter) {
+    throw new ValidationError('keepStarter and newStarter are mutually exclusive');
+  }
+
+  const existing = (classroomResult.Item.assignment || {}) as AssignmentContent;
+
+  let starterKey: string | undefined;
+  let starterUploadUrl: string | null = null;
+  if (newStarter) {
+    // Fresh key per upload so an edited starter never fights browser caches
+    // and a failed upload never corrupts the previous one.
+    starterKey = `${classroomId}/assignment/starter-${crypto.randomUUID()}.sb3`;
+    starterUploadUrl = await getSignedUrl(
+      s3Client,
+      new PutObjectCommand({
+        Bucket: SUBMISSIONS_BUCKET,
+        Key: starterKey,
+        ContentType: 'application/octet-stream',
+      }),
+      { expiresIn: PRESIGNED_URL_UPLOAD_EXPIRY },
+    );
+  } else if (keepStarter) {
+    if (!existing.starterKey) {
+      throw new ValidationError('No existing starter project to keep');
+    }
+    starterKey = existing.starterKey;
+  }
+
+  const pages: AssignmentPage[] = [];
+  const imageUploadUrls: (string | null)[] = [];
+  for (const page of pagesInput) {
+    if (page.newImage) {
+      const ext = ASSIGNMENT_IMAGE_CONTENT_TYPES[page.newImage];
+      const imageKey = `${classroomId}/assignment/image-${crypto.randomUUID()}.${ext}`;
+      const url = await getSignedUrl(
+        s3Client,
+        new PutObjectCommand({ Bucket: SUBMISSIONS_BUCKET, Key: imageKey, ContentType: page.newImage }),
+        { expiresIn: PRESIGNED_URL_UPLOAD_EXPIRY },
+      );
+      pages.push({ text: page.text, imageKey });
+      imageUploadUrls.push(url);
+    } else {
+      pages.push(page.imageKey ? { text: page.text, imageKey: page.imageKey } : { text: page.text });
+      imageUploadUrls.push(null);
+    }
+  }
+
+  // Best-effort cleanup of replaced objects (same pattern as re-submission):
+  // previously stored assignment objects no longer referenced get deleted.
+  const keptKeys = new Set<string>([
+    ...pages.map(p => p.imageKey).filter((k): k is string => !!k),
+    ...(starterKey ? [starterKey] : []),
+  ]);
+  const orphanedKeys = [
+    ...(existing.pages || []).map(p => p.imageKey).filter((k): k is string => !!k),
+    ...(existing.starterKey ? [existing.starterKey] : []),
+  ].filter(key => !keptKeys.has(key));
+  if (orphanedKeys.length > 0) {
+    await Promise.allSettled(
+      orphanedKeys.map(key => s3Client.send(new DeleteObjectCommand({ Bucket: SUBMISSIONS_BUCKET, Key: key }))),
+    );
+  }
+
+  const now = new Date().toISOString();
+  if (pages.length === 0 && !starterKey) {
+    // An empty request clears the assignment entirely.
+    await docClient.send(new UpdateCommand({
+      TableName: CLASSROOMS_TABLE,
+      Key: { classroomId },
+      UpdateExpression: 'REMOVE assignment SET updatedAt = :now',
+      ExpressionAttributeValues: { ':now': now },
+    }));
+    return { statusCode: 200, body: JSON.stringify({ assignment: null }) };
+  }
+
+  await docClient.send(new UpdateCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId },
+    UpdateExpression: 'SET assignment = :assignment, updatedAt = :now',
+    ExpressionAttributeValues: {
+      ':assignment': { pages, starterKey, updatedAt: now },
+      ':now': now,
+    },
+  }));
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify({
+      assignment: { pages, starterKey: starterKey || null, updatedAt: now },
+      imageUploadUrls,
+      starterUploadUrl,
+    }),
+  };
+}
+
+/**
+ * Read the assignment content with download URLs. Dual-auth: students use
+ * their opaque session token (UUID — no dots) and may only read their own
+ * classroom's assignment; teachers use a JWT ID token (contains dots) and
+ * must pass canManageClassroom. The DEV_BYPASS_TOKEN is opaque too, so it is
+ * routed to the teacher path explicitly.
+ */
+async function handleGetAssignment(rawToken: string, classroomId: string): Promise<APIGatewayProxyStructuredResultV2> {
+  const classroomResult = await docClient.send(new GetCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId },
+  }));
+  if (!classroomResult.Item || classroomResult.Item.status !== 'active') {
+    throw new NotFoundError('Classroom not found');
+  }
+
+  const isDevBypass = DEV_BYPASS_TOKEN !== '' && rawToken === DEV_BYPASS_TOKEN && STAGE !== 'prod';
+  if (isDevBypass || rawToken.includes('.')) {
+    const identity = await verifyTeacherIdToken(rawToken);
+    if (!(await canManageViaGroup(classroomResult.Item, identity))) {
+      throw new AuthError('Not authorized to view this classroom');
+    }
+  } else {
+    const session = await verifySessionToken(rawToken);
+    if (session.classroomId !== classroomId) {
+      throw new AuthError('Session does not match this classroom');
+    }
+  }
+
+  const assignment = classroomResult.Item.assignment as AssignmentContent | undefined;
+  if (!hasAssignmentContent(classroomResult.Item)) {
+    return { statusCode: 200, body: JSON.stringify({ assignment: null }) };
+  }
+
+  // imageKey is echoed back so the teacher editor can round-trip unchanged
+  // pages ({imageKey} instead of re-uploading) on the next PUT.
+  const pages = await Promise.all((assignment?.pages || []).map(async page => {
+    let imageUrl: string | null = null;
+    if (page.imageKey) {
+      imageUrl = await getSignedUrl(
+        s3Client,
+        new GetObjectCommand({ Bucket: SUBMISSIONS_BUCKET, Key: page.imageKey }),
+        { expiresIn: PRESIGNED_URL_DOWNLOAD_EXPIRY },
+      );
+    }
+    return { text: page.text, imageKey: page.imageKey || null, imageUrl };
+  }));
+
+  let starterUrl: string | null = null;
+  if (assignment?.starterKey) {
+    starterUrl = await getSignedUrl(
+      s3Client,
+      new GetObjectCommand({ Bucket: SUBMISSIONS_BUCKET, Key: assignment.starterKey }),
+      { expiresIn: PRESIGNED_URL_DOWNLOAD_EXPIRY },
+    );
+  }
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify({
+      assignment: {
+        pages,
+        starterKey: assignment?.starterKey || null,
+        starterUrl,
+        updatedAt: assignment?.updatedAt || null,
+      },
+    }),
+  };
+}
+
+// --- AI evaluation handlers ---
+// Grade proposals / positive comment drafts from static-analysis results.
+// The AI is a proposal engine, never the grader: every result carries a
+// reason quoting machine signals, an explicit needsReview flag, and the
+// teacher confirms everything in the UI before anything is recorded.
+
+interface EvalSubmission {
+  seatNumber: number;
+  signals: Record<string, unknown>;
+  pseudocode: string;
+}
+
+interface EvalRubricAxis {
+  name: string;
+  description: string;
+}
+
+interface EvalSample {
+  seatNumber: number;
+  grade: string;
+  reason?: string;
+}
+
+interface EvaluateRequest {
+  mode: 'grade' | 'comment';
+  assignmentName: string;
+  assignmentText: string;
+  rubricAxes: EvalRubricAxis[];
+  strictness: 'lenient' | 'standard' | 'strict';
+  samples: EvalSample[];
+  submissions: EvalSubmission[];
+}
+
+/**
+ * Validate + normalize an evaluate request body. Exported for unit tests.
+ */
+export function validateEvaluateRequest(body: Record<string, unknown>): EvaluateRequest {
+  const mode = body.mode === 'comment' ? 'comment' : body.mode === 'grade' ? 'grade' : null;
+  if (!mode) throw new ValidationError('mode must be "grade" or "comment"');
+
+  const assignmentName = typeof body.assignmentName === 'string' ? body.assignmentName.slice(0, 100) : '';
+  const assignmentText = typeof body.assignmentText === 'string' ? body.assignmentText.slice(0, 3000) : '';
+
+  const rawAxes = Array.isArray(body.rubricAxes) ? body.rubricAxes : [];
+  if (mode === 'grade' && (rawAxes.length < 1 || rawAxes.length > 6)) {
+    throw new ValidationError('rubricAxes must have 1 to 6 entries');
+  }
+  const rubricAxes: EvalRubricAxis[] = rawAxes.map((axis, i) => {
+    const a = axis as Record<string, unknown>;
+    if (typeof a?.name !== 'string' || a.name.trim().length === 0) {
+      throw new ValidationError(`rubricAxes[${i}].name is required`);
+    }
+    return {
+      name: String(a.name).slice(0, 50),
+      description: typeof a.description === 'string' ? a.description.slice(0, 300) : '',
+    };
+  });
+
+  const strictness =
+    body.strictness === 'lenient' || body.strictness === 'strict' ? body.strictness : 'standard';
+
+  const rawSamples = Array.isArray(body.samples) ? body.samples : [];
+  if (rawSamples.length > 5) throw new ValidationError('samples must have at most 5 entries');
+  const samples: EvalSample[] = rawSamples.map((sample, i) => {
+    const s = sample as Record<string, unknown>;
+    const seatNumber = typeof s?.seatNumber === 'number' ? s.seatNumber : NaN;
+    if (isNaN(seatNumber)) throw new ValidationError(`samples[${i}].seatNumber is required`);
+    if (typeof s.grade !== 'string' || !EVAL_GRADES.includes(s.grade)) {
+      throw new ValidationError(`samples[${i}].grade must be one of ${EVAL_GRADES.join('/')}`);
+    }
+    return {
+      seatNumber,
+      grade: s.grade,
+      reason: typeof s.reason === 'string' ? s.reason.slice(0, 200) : undefined,
+    };
+  });
+
+  const rawSubmissions = Array.isArray(body.submissions) ? body.submissions : [];
+  if (rawSubmissions.length < 1 || rawSubmissions.length > EVAL_MAX_SUBMISSIONS) {
+    throw new ValidationError(`submissions must have 1 to ${EVAL_MAX_SUBMISSIONS} entries`);
+  }
+  const submissions: EvalSubmission[] = rawSubmissions.map((submission, i) => {
+    const s = submission as Record<string, unknown>;
+    const seatNumber = typeof s?.seatNumber === 'number' ? s.seatNumber : NaN;
+    if (isNaN(seatNumber)) throw new ValidationError(`submissions[${i}].seatNumber is required`);
+    let pseudocode = typeof s.pseudocode === 'string' ? s.pseudocode : '';
+    if (pseudocode.length > EVAL_MAX_PSEUDOCODE_LENGTH) {
+      pseudocode = `${pseudocode.slice(0, EVAL_MAX_PSEUDOCODE_LENGTH)}\n…(以降省略)`;
+    }
+    const signals =
+      s.signals && typeof s.signals === 'object' && !Array.isArray(s.signals)
+        ? (s.signals as Record<string, unknown>)
+        : {};
+    return { seatNumber, signals, pseudocode };
+  });
+
+  return { mode, assignmentName, assignmentText, rubricAxes, strictness, samples, submissions };
+}
+
+/**
+ * Build the Anthropic system + user prompts. Pure — exported for unit tests.
+ */
+export function buildEvaluationPrompt(request: EvaluateRequest): { system: string; user: string } {
+  const strictnessLabel = {
+    lenient: 'やや甘め（迷ったら上の評価に寄せる）',
+    standard: '標準',
+    strict: 'やや厳しめ（迷ったら下の評価に寄せる）',
+  }[request.strictness];
+
+  const commonHeader = [
+    'あなたは日本の中学校技術科の先生を支援する採点補助AIです。',
+    '提出された Scratch/スモウルビー作品の静的解析結果（機械シグナルと、全スクリプトを日本語テキスト化した擬似コード）を読み取ります。',
+    '◆ の付いたスクリプトはイベントに接続されていて実行されます。◇ は接続されておらず実行されません（この区別は重要です）。',
+    '',
+  ];
+
+  let system: string[];
+  if (request.mode === 'grade') {
+    system = [
+      ...commonHeader,
+      '先生が設定した評価軸に照らして、各生徒の評価案（S / A / B / C の4段階）を作ります。',
+      '',
+      '原則:',
+      '- 評価はあくまで「提案」です。最終判断は先生が行います。',
+      '- reason は100文字以内の日本語で、必ず機械シグナルまたは擬似コードの具体的な事実を引用してください。',
+      '- 判断に迷う場合、シグナルと擬似コードが矛盾する場合、作品が課題と無関係に見える場合は needsReview を true にしてください。',
+      `- 評価の厳しさ: ${strictnessLabel}`,
+      '',
+      '評価軸:',
+      ...request.rubricAxes.map((axis, i) => `${i + 1}. ${axis.name}${axis.description ? ` — ${axis.description}` : ''}`),
+      '',
+      '出力は次の JSON のみ（説明文・コードフェンス禁止）:',
+      '{"results":[{"seatNumber":1,"grade":"A","reason":"…","needsReview":false}]}',
+    ];
+  } else {
+    system = [
+      ...commonHeader,
+      '各生徒に返す「ポジティブな返却コメント」の下書きを作ります。次の授業へのモチベーションにつなげるのが目的です。',
+      '',
+      '原則:',
+      '- 読み手は中学生です。やさしい言葉で、45〜120文字。',
+      '- 必ずその生徒の作品の具体的な良い点（擬似コードから読み取れる工夫）を1つ挙げて褒めてください。',
+      '- 次にやってみたくなる一言を添えてください。評点・順位・他の生徒との比較は書かないでください。',
+      '- 作品が空・断片のみの場合も、取り組みを認めて次の一歩を示してください。',
+      '',
+      '出力は次の JSON のみ（説明文・コードフェンス禁止）:',
+      '{"results":[{"seatNumber":1,"comment":"…"}]}',
+    ];
+  }
+
+  const user: string[] = [
+    `課題名: ${request.assignmentName || '(未設定)'}`,
+    request.assignmentText ? `課題の内容:\n${request.assignmentText}` : '',
+    '',
+  ];
+  if (request.samples.length > 0) {
+    user.push('先生が採点した較正サンプル（この基準に厳しさを合わせること）:');
+    for (const sample of request.samples) {
+      user.push(`- 出席番号${sample.seatNumber}: ${sample.grade}${sample.reason ? `（${sample.reason}）` : ''}`);
+    }
+    user.push('');
+  }
+  user.push('提出作品:');
+  for (const submission of request.submissions) {
+    user.push(`--- 出席番号${submission.seatNumber} ---`);
+    user.push(`機械シグナル: ${JSON.stringify(submission.signals)}`);
+    user.push('擬似コード:');
+    user.push(submission.pseudocode || '(提出なし/空)');
+    user.push('');
+  }
+
+  return { system: system.join('\n'), user: user.filter(line => line !== null).join('\n') };
+}
+
+/**
+ * Parse + validate the model's JSON response. Pure — exported for unit
+ * tests. Tolerates code fences and stray text around the JSON object.
+ */
+export function parseEvaluationResponse(
+  text: string,
+  mode: 'grade' | 'comment',
+  expectedSeats: number[],
+): Record<string, unknown>[] {
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start < 0 || end <= start) throw new Error('AI response contains no JSON object');
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text.slice(start, end + 1));
+  } catch {
+    throw new Error('AI response JSON is malformed');
+  }
+  const results = (parsed as Record<string, unknown>)?.results;
+  if (!Array.isArray(results)) throw new Error('AI response has no results array');
+
+  const bySeat = new Map<number, Record<string, unknown>>();
+  for (const result of results) {
+    const r = result as Record<string, unknown>;
+    if (typeof r?.seatNumber !== 'number') continue;
+    if (mode === 'grade') {
+      if (typeof r.grade !== 'string' || !EVAL_GRADES.includes(r.grade)) continue;
+      bySeat.set(r.seatNumber, {
+        seatNumber: r.seatNumber,
+        grade: r.grade,
+        reason: typeof r.reason === 'string' ? r.reason.slice(0, 200) : '',
+        needsReview: r.needsReview === true,
+      });
+    } else {
+      if (typeof r.comment !== 'string' || r.comment.length === 0) continue;
+      bySeat.set(r.seatNumber, {
+        seatNumber: r.seatNumber,
+        comment: r.comment.slice(0, MAX_TEACHER_COMMENT_LENGTH),
+      });
+    }
+  }
+
+  // Every requested seat must come back — a missing seat is flagged for
+  // review rather than silently dropped.
+  return expectedSeats.map(seatNumber => {
+    const found = bySeat.get(seatNumber);
+    if (found) return found;
+    return mode === 'grade'
+      ? { seatNumber, grade: 'C', reason: 'AI応答に含まれず（要確認）', needsReview: true }
+      : { seatNumber, comment: '' };
+  });
+}
+
+// Per-teacher rate limiter for the evaluation endpoint (in-memory, same
+// pattern as the join limiter — best-effort per Lambda instance).
+const evalAttempts = new Map<string, { count: number; windowStart: number }>();
+
+/**
+ * Durable daily quota: an atomic counter item per teacher per UTC day in the
+ * Classrooms table (reuses the table key space with a reserved prefix; TTL
+ * cleans it up after two days). Throws when the day's budget is exhausted.
+ */
+async function checkEvalDailyLimit(teacherSub: string): Promise<void> {
+  const day = new Date().toISOString().slice(0, 10);
+  const result = await docClient.send(new UpdateCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId: `eval-quota#${teacherSub}#${day}` },
+    UpdateExpression: 'ADD #c :one SET #ttl = if_not_exists(#ttl, :ttl)',
+    ExpressionAttributeNames: { '#c': 'count', '#ttl': 'ttl' },
+    ExpressionAttributeValues: {
+      ':one': 1,
+      ':ttl': Math.floor(Date.now() / 1000) + 2 * 24 * 60 * 60,
+    },
+    ReturnValues: 'UPDATED_NEW',
+  }));
+  const count = (result.Attributes?.count as number) || 0;
+  if (count > EVAL_DAILY_LIMIT) {
+    throw new ValidationError(
+      `Daily AI evaluation limit reached (${EVAL_DAILY_LIMIT} calls/day). Please continue tomorrow.`,
+    );
+  }
+}
+
+function checkEvalRateLimit(teacherSub: string): void {
+  const now = Math.floor(Date.now() / 1000);
+  const entry = evalAttempts.get(teacherSub);
+  if (entry && (now - entry.windowStart) < EVAL_RATE_LIMIT_WINDOW_SECONDS) {
+    if (entry.count >= EVAL_RATE_LIMIT_MAX_REQUESTS) {
+      throw new ValidationError('Too many evaluation requests. Please try again later.');
+    }
+    entry.count++;
+  } else {
+    evalAttempts.set(teacherSub, { count: 1, windowStart: now });
+  }
+}
+
+async function handleEvaluateSubmissions(
+  identity: TeacherIdentity, classroomId: string, body: Record<string, unknown>,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  if (!ANTHROPIC_API_KEY) {
+    return { statusCode: 503, body: JSON.stringify({ error: 'AI evaluation is not configured' }) };
+  }
+  const classroomResult = await docClient.send(new GetCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId },
+  }));
+  if (!classroomResult.Item || !(await canManageViaGroup(classroomResult.Item, identity))) {
+    throw new AuthError('Not authorized to evaluate this classroom');
+  }
+  checkEvalRateLimit(identity.sub);
+  await checkEvalDailyLimit(identity.sub);
+
+  const request = validateEvaluateRequest(body);
+  const { system, user } = buildEvaluationPrompt(request);
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
+      'anthropic-beta': 'prompt-caching-2024-07-31',
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: CLAUDE_MODEL,
+      max_tokens: 4096,
+      system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
+      messages: [{ role: 'user', content: user }],
+    }),
+  });
+
+  if (!response.ok) {
+    const status = response.status === 529 ? 502 : 502;
+    console.error('Anthropic API error:', response.status, await response.text().catch(() => ''));
+    return { statusCode: status, body: JSON.stringify({ error: 'AI_API_ERROR' }) };
+  }
+
+  const data = (await response.json()) as Record<string, unknown>;
+  const content = Array.isArray(data.content) ? (data.content[0] as Record<string, unknown>) : null;
+  const text = typeof content?.text === 'string' ? content.text : '';
+  const usage = (data.usage || {}) as Record<string, unknown>;
+  console.log(JSON.stringify({
+    event: 'classroom_evaluate',
+    mode: request.mode,
+    submissionCount: request.submissions.length,
+    model: CLAUDE_MODEL,
+    inputTokens: usage.input_tokens,
+    outputTokens: usage.output_tokens,
+    cacheCreationTokens: usage.cache_creation_input_tokens,
+    cacheReadTokens: usage.cache_read_input_tokens,
+  }));
+
+  let results: Record<string, unknown>[];
+  try {
+    results = parseEvaluationResponse(text, request.mode, request.submissions.map(s => s.seatNumber));
+  } catch (err) {
+    console.error('Evaluation response parse error:', err, text.slice(0, 500));
+    return { statusCode: 502, body: JSON.stringify({ error: 'AI_RESPONSE_INVALID' }) };
+  }
+
+  return { statusCode: 200, body: JSON.stringify({ mode: request.mode, results }) };
 }
 
 // --- Main handler ---
@@ -1847,6 +3368,40 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
     } else if (method === 'POST' && path === '/classrooms/verify-session') {
       const token = extractBearerToken(event.headers?.authorization);
       result = await handleVerifySession(token);
+
+    // --- Group (組) routes (own root path — no conflict with /classrooms) ---
+    } else if (method === 'POST' && path === '/classroom-groups') {
+      const token = extractBearerToken(event.headers?.authorization);
+      const identity = await verifyTeacherIdToken(token);
+      result = await handleCreateGroup(identity, body);
+
+    } else if (method === 'GET' && path === '/classroom-groups') {
+      const token = extractBearerToken(event.headers?.authorization);
+      const identity = await verifyTeacherIdToken(token);
+      result = await handleListGroups(identity);
+
+    } else if (method === 'POST' && path === '/classroom-groups/migrate') {
+      const token = extractBearerToken(event.headers?.authorization);
+      const identity = await verifyTeacherIdToken(token);
+      result = await handleMigrateGroups(identity);
+
+    } else if (method === 'PATCH' && /^\/classroom-groups\/[^/]+\/topics$/.test(path)) {
+      const token = extractBearerToken(event.headers?.authorization);
+      const identity = await verifyTeacherIdToken(token);
+      const groupId = event.pathParameters?.groupId || '';
+      result = await handleUpdateGroupTopics(identity, groupId, body);
+
+    } else if (method === 'PATCH' && /^\/classroom-groups\/[^/]+$/.test(path)) {
+      const token = extractBearerToken(event.headers?.authorization);
+      const identity = await verifyTeacherIdToken(token);
+      const groupId = event.pathParameters?.groupId || '';
+      result = await handleUpdateGroup(identity, groupId, body);
+
+    } else if (method === 'POST' && /^\/classrooms\/[^/]+\/duplicate$/.test(path)) {
+      const token = extractBearerToken(event.headers?.authorization);
+      const identity = await verifyTeacherIdToken(token);
+      const classroomId = event.pathParameters?.classroomId || '';
+      result = await handleDuplicateClassroom(identity, classroomId, body);
 
     // --- Google Classroom routes (must be before /classrooms/{classroomId}) ---
     } else if (method === 'GET' && path === '/classrooms/google-courses') {
@@ -1946,6 +3501,24 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
         const identity = await verifyTeacherIdToken(token);
         result = await handleDeleteMember(identity, classroomId, memberId);
       }
+
+    } else if (method === 'POST' && /^\/classrooms\/[^/]+\/evaluate$/.test(path)) {
+      const token = extractBearerToken(event.headers?.authorization);
+      const identity = await verifyTeacherIdToken(token);
+      const classroomId = event.pathParameters?.classroomId || '';
+      result = await handleEvaluateSubmissions(identity, classroomId, body);
+
+    } else if (method === 'PUT' && /^\/classrooms\/[^/]+\/assignment$/.test(path)) {
+      const token = extractBearerToken(event.headers?.authorization);
+      const identity = await verifyTeacherIdToken(token);
+      const classroomId = event.pathParameters?.classroomId || '';
+      result = await handleSetAssignment(identity, classroomId, body);
+
+    } else if (method === 'GET' && /^\/classrooms\/[^/]+\/assignment$/.test(path)) {
+      // Dual-auth (teacher ID token or student session token) — see handler.
+      const token = extractBearerToken(event.headers?.authorization);
+      const classroomId = event.pathParameters?.classroomId || '';
+      result = await handleGetAssignment(token, classroomId);
 
     } else if (method === 'POST' && /^\/classrooms\/[^/]+\/submissions$/.test(path)) {
       const token = extractBearerToken(event.headers?.authorization);
