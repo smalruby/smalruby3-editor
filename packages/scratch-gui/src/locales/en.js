@@ -205,6 +205,7 @@ export default {
     'gui.classroom.board.newTopicPlaceholder': 'New topic',
     'gui.classroom.board.addTopic': 'Add topic',
     'gui.classroom.board.empty': 'No assignments yet. Press "Create an assignment" to add one.',
+    'gui.classroom.classList.importGc': 'Import from Google Classroom',
     'gui.classroom.classList.title': 'Your classes',
     'gui.classroom.classList.hint':
         'A class is one homeroom (e.g. Year 2 Class 1). Open a class to manage its assignments.',

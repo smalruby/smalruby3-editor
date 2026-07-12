@@ -5,7 +5,7 @@
  * {@link useTeacherSubmissions}, and {@link useGoogleClassroom} into
  * a single return object consumed by {@link ClassroomModal}.
  */
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import useGoogleClassroom from './use-google-classroom.js';
 import useTeacherAssignment from './use-teacher-assignment.js';
 import useTeacherAuth, { getCachedTeacherIdToken, setCachedTeacherIdToken } from './use-teacher-auth.js';
@@ -78,8 +78,14 @@ const useTeacherClassroom = ({
         dispatch,
     });
 
+    // The groups hook is created after this one; bridge with a ref so the
+    // GC import confirm can create a class (v2) without reordering hooks.
+    const importCourseRef = useRef(null);
+    const handleImportCourse = useCallback((course) => importCourseRef.current?.(course), []);
+
     const google = useGoogleClassroom({
         idToken: auth.idToken,
+        onImportCourse: handleImportCourse,
         selectedClassroom: classrooms.selectedClassroom,
         setSelectedClassroom: classrooms.setSelectedClassroom,
         setClassrooms: classrooms.setClassrooms,
@@ -113,6 +119,8 @@ const useTeacherClassroom = ({
         setIsLoading,
         setPhase,
     });
+
+    importCourseRef.current = groups.handleCreateClassFromCourse;
 
     const evaluation = useTeacherEvaluation({
         idToken: auth.idToken,

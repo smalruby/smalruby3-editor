@@ -2421,3 +2421,19 @@
     font-size: 0.8rem;
     background: white;
 }
+
+.class-list-import-button {
+    margin-left: 0.5rem;
+    border: 1px solid #855cd6;
+    background: white;
+    color: #855cd6;
+    border-radius: 0.5rem;
+    padding: 0.5rem 1.25rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.class-list-import-button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}

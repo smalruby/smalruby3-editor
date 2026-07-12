@@ -1894,7 +1894,16 @@ async function handlePostAssignment(
   if (!result.Item || !(await canManageViaGroup(result.Item, identity))) {
     throw new NotFoundError('Classroom not found');
   }
-  const courseId = result.Item.googleClassroomCourseId as string;
+  // v2: the GC link lives on the class (group); the assignment's own field
+  // remains as a pre-v2 fallback.
+  let courseId = result.Item.googleClassroomCourseId as string;
+  if (!courseId && typeof result.Item.groupId === 'string' && result.Item.groupId) {
+    const groupResult = await docClient.send(new GetCommand({
+      TableName: GROUPS_TABLE,
+      Key: { groupId: result.Item.groupId },
+    }));
+    courseId = (groupResult.Item?.googleClassroomCourseId as string) || '';
+  }
   if (!courseId) {
     throw new ValidationError('This classroom is not linked to Google Classroom');
   }
