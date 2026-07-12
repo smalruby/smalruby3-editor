@@ -50,7 +50,6 @@ describe('URLLoaderHOC (#972)', () => {
         onLoadingStarted: jest.fn(),
         onLoadingFinished: jest.fn(),
         onSetProjectTitle: jest.fn(),
-        onSetRubyVersion: jest.fn(),
         setProjectId: jest.fn(),
         requestProjectUpload: jest.fn(),
         closeUrlLoaderModal: jest.fn(),

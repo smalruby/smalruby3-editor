@@ -36,7 +36,7 @@ describe('loadProjectWithChecks', () => {
     test('successful load: snapshots the current project and loads the new one (no restore)', async () => {
         const vm = makeVm();
 
-        await loadProjectWithChecks(vm, mockIntl, PROJECT_DATA, '2', jest.fn());
+        await loadProjectWithChecks(vm, mockIntl, PROJECT_DATA);
 
         expect(vm.toJSON).toHaveBeenCalledTimes(1);
         expect(vm.loadProject).toHaveBeenCalledTimes(1);
@@ -52,7 +52,7 @@ describe('loadProjectWithChecks', () => {
                 .mockImplementationOnce(() => Promise.resolve()), // restore succeeds
         });
 
-        await expect(loadProjectWithChecks(vm, mockIntl, PROJECT_DATA, '2', jest.fn())).rejects.toMatchObject({
+        await expect(loadProjectWithChecks(vm, mockIntl, PROJECT_DATA)).rejects.toMatchObject({
             name: 'ProjectLoadError',
             cause: loadErr,
         });
@@ -71,9 +71,7 @@ describe('loadProjectWithChecks', () => {
                 .mockImplementationOnce(() => Promise.resolve()),
         });
 
-        await expect(loadProjectWithChecks(vm, mockIntl, PROJECT_DATA, '2', jest.fn())).rejects.toBeInstanceOf(
-            ProjectLoadError,
-        );
+        await expect(loadProjectWithChecks(vm, mockIntl, PROJECT_DATA)).rejects.toBeInstanceOf(ProjectLoadError);
     });
 
     test('failed load with no snapshot available: does not attempt restore', async () => {
@@ -84,7 +82,7 @@ describe('loadProjectWithChecks', () => {
             loadProject: jest.fn(() => Promise.reject(new Error('boom'))),
         });
 
-        await expect(loadProjectWithChecks(vm, mockIntl, PROJECT_DATA, '2', jest.fn())).rejects.toMatchObject({
+        await expect(loadProjectWithChecks(vm, mockIntl, PROJECT_DATA)).rejects.toMatchObject({
             name: 'ProjectLoadError',
         });
 
@@ -101,7 +99,7 @@ describe('loadProjectWithChecks', () => {
                 .mockImplementationOnce(() => Promise.reject(new Error('restore fail'))), // restore fails
         });
 
-        await expect(loadProjectWithChecks(vm, mockIntl, PROJECT_DATA, '2', jest.fn())).rejects.toMatchObject({
+        await expect(loadProjectWithChecks(vm, mockIntl, PROJECT_DATA)).rejects.toMatchObject({
             name: 'ProjectLoadError',
             cause: loadErr,
         });
@@ -111,28 +109,22 @@ describe('loadProjectWithChecks', () => {
     test('mesh v1 project: loads with migrateMeshV1ToV2 true', async () => {
         const vm = makeVm({ hasMeshV1Project: jest.fn(() => Promise.resolve(true)) });
 
-        await loadProjectWithChecks(vm, mockIntl, PROJECT_DATA, '2', jest.fn());
+        await loadProjectWithChecks(vm, mockIntl, PROJECT_DATA);
 
         expect(vm.loadProject).toHaveBeenCalledWith(PROJECT_DATA, { migrateMeshV1ToV2: true });
     });
 
-    test('koshien project: forces ruby version 1', async () => {
-        const onSetRubyVersion = jest.fn();
-        const vm = makeVm({ hasKoshienProject: jest.fn(() => Promise.resolve(true)) });
+    test('koshien project: does not alert and does not force the Ruby version', async () => {
+        // A koshien project must load like any other: no Koshien detection, no
+        // alert, and no forced downgrade to Ruby version 1 (v1 and v2 both work,
+        // and v2 is the correct default).
+        const hasKoshienProject = jest.fn(() => Promise.resolve(true));
+        const vm = makeVm({ hasKoshienProject });
 
-        await loadProjectWithChecks(vm, mockIntl, PROJECT_DATA, '2', onSetRubyVersion);
+        await loadProjectWithChecks(vm, mockIntl, PROJECT_DATA);
 
-        expect(onSetRubyVersion).toHaveBeenCalledWith('1');
-    });
-
-    test('post-load check failure is not treated as a load failure (no restore, not ProjectLoadError)', async () => {
-        const koshienErr = new Error('koshien detect boom');
-        const vm = makeVm({
-            hasKoshienProject: jest.fn(() => Promise.reject(koshienErr)),
-        });
-
-        await expect(loadProjectWithChecks(vm, mockIntl, PROJECT_DATA, '2', jest.fn())).rejects.toBe(koshienErr);
-        // New project loaded successfully; no restore should be attempted.
+        expect(hasKoshienProject).not.toHaveBeenCalled();
+        expect(window.alert).not.toHaveBeenCalled();
         expect(vm.loadProject).toHaveBeenCalledTimes(1);
     });
 });

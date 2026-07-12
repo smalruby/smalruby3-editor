@@ -408,8 +408,6 @@ export default {
         'じゅうらいのメッシュかくちょうきのうのサービスはしゅうりょうしました。プロジェクトのなかのブロックをあたらしいメッシュかくちょうきのうにじどうでおきかえました。どうさをかくにんしてください。',
     'gui.sharedMessages.meshV1BackpackAutoMigrated':
         'バックパックのなかのじゅうらいのメッシュブロックを{count}けん、あたらしいメッシュブロックにじどうでおきかえました。',
-    'gui.sharedMessages.changedRubyVersionByKoshien':
-        'このプロジェクトにはスモウルビーこうしえんかくちょうきのうがふくまれていますのでルビーをバージョン1にへんこうしました',
     'gui.menuBar.loadFromGoogleDrive': 'Google ドライブからよみこむ',
     'gui.menuBar.saveToGoogleDrive': 'Googleドライブにコピーをほぞん...',
     'gui.menuBar.saveDirectlyToGoogleDrive': 'Googleドライブにただちにほぞん',
