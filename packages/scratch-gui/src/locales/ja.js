@@ -155,6 +155,8 @@ export default {
     'gui.classroom.sessionExpiredBanner': 'セッションが無効になりました。',
     'gui.classroom.alert.rejoin': '参加しなおす',
     'gui.classroom.error.classroomInactive': 'このクラスは現在利用できません。',
+    'gui.classroom.error.networkUnreachable':
+        'サーバーに接続できませんでした。ネットワークやファイアウォールの設定で {host}（HTTPS / 443）への通信が許可されているかご確認ください。',
     'gui.classroom.error.generic': '予期しないエラーが発生しました。もう一度お試しください。',
     'gui.classroom.error.goToLogin': 'ログイン画面を表示',
     'gui.classroom.error.goToJoin': '参加画面を表示',

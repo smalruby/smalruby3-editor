@@ -146,6 +146,8 @@ export default {
     'gui.classroom.sessionExpiredBanner': 'Session expired.',
     'gui.classroom.alert.rejoin': 'Rejoin',
     'gui.classroom.error.classroomInactive': 'This classroom is no longer active.',
+    'gui.classroom.error.networkUnreachable':
+        'Could not connect to the server. Please check that your network or firewall allows access to {host} (HTTPS / port 443).',
     'gui.classroom.error.generic': 'An unexpected error occurred. Please try again.',
     'gui.classroom.error.goToLogin': 'Go to login screen',
     'gui.classroom.error.goToJoin': 'Go to join screen',

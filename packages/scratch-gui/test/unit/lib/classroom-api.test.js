@@ -72,6 +72,33 @@ describe('ClassroomAPI._request error handling', () => {
             message: 'API error 500',
         });
     });
+
+    test('network failure (fetch rejects with TypeError) is flagged as a network error', async () => {
+        // fetch throws a TypeError ("Failed to fetch") when the host is
+        // unreachable (DNS / firewall / offline). This must be distinguished
+        // from HTTP response errors so the UI can show an actionable message.
+        global.fetch.mockRejectedValue(new TypeError('Failed to fetch'));
+
+        let thrown;
+        try {
+            await classroomAPI.verifySession('any');
+        } catch (err) {
+            thrown = err;
+        }
+        expect(thrown).toBeDefined();
+        expect(thrown.isNetworkError).toBe(true);
+        // status must NOT be set — it is not an HTTP response error
+        expect(thrown.status).toBeUndefined();
+        // the unreachable host is exposed so callers can build a message
+        expect(typeof thrown.endpointHost).toBe('string');
+    });
+
+    test('network failure is not retried and surfaces immediately', async () => {
+        global.fetch.mockRejectedValue(new TypeError('Failed to fetch'));
+        await expect(classroomAPI.verifySession('any')).rejects.toHaveProperty('isNetworkError', true);
+        // no retry loop for network failures
+        expect(global.fetch).toHaveBeenCalledTimes(1);
+    });
 });
 
 describe('ClassroomAPI.createKickRequest', () => {

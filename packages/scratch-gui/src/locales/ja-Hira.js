@@ -160,6 +160,8 @@ export default {
     'gui.classroom.sessionExpiredBanner': 'セッションがむこうになりました。',
     'gui.classroom.alert.rejoin': 'さんかしなおす',
     'gui.classroom.error.classroomInactive': 'このクラスはげんざいりようできません。',
+    'gui.classroom.error.networkUnreachable':
+        'サーバーにせつぞくできませんでした。ネットワークやファイアウォールのせっていで {host}（HTTPS / 443）へのつうしんがきょかされているかごかくにんください。',
     'gui.classroom.error.generic': 'よきしないエラーがはっせいしました。もういちどおためしください。',
     'gui.classroom.error.goToLogin': 'ログインがめんをひょうじ',
     'gui.classroom.error.goToJoin': 'さんかがめんをひょうじ',
