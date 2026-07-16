@@ -9,6 +9,23 @@ const translateError = (intl, err, context = 'general') => {
     const msg = err.message || '';
     const status = err.status;
 
+    // Network reachability failure (fetch rejected with a TypeError). Take
+    // precedence over every HTTP/context branch: there is no HTTP status here,
+    // and the raw "Failed to fetch" is useless to the user. Show the host and
+    // point at the network/firewall so the failure can be self-diagnosed.
+    if (err.isNetworkError) {
+        return intl.formatMessage(
+            {
+                defaultMessage:
+                    'Could not connect to the server. Please check that your network or ' +
+                    'firewall allows access to {host} (HTTPS / port 443).',
+                description: 'Error when the classroom API host is unreachable (DNS/firewall/offline)',
+                id: 'gui.classroom.error.networkUnreachable',
+            },
+            { host: err.endpointHost || '' },
+        );
+    }
+
     if (context === 'join' && (status === 404 || msg.includes('Invalid join code'))) {
         return intl.formatMessage({
             defaultMessage: 'Could not join the classroom. Please check the join code and try again.',

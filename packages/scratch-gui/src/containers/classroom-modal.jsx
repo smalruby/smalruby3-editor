@@ -87,7 +87,6 @@ const ClassroomModal = () => {
         classroomState,
         vm,
         intl,
-        dispatch,
         clearError,
         showError,
         setIsLoading,

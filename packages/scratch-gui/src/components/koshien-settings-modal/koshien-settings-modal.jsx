@@ -7,6 +7,7 @@ import Box from '../box/box.jsx';
 import Modal from '../../containers/modal.jsx';
 import {
     KOSHIEN_MOCK_MAPS,
+    MAX_TURN_INTERVAL,
     loadKoshienMockConfig,
     saveKoshienMockConfig,
     wireKoshienMockConfig,
@@ -56,17 +57,19 @@ const KoshienSettingsModal = props => {
     const [mapId, setMapId] = React.useState(initial.mapId);
     const [side, setSide] = React.useState(initial.side);
     const [rival, setRival] = React.useState(initial.rival);
+    const [turnInterval, setTurnInterval] = React.useState(initial.turnInterval);
 
     const handleMapChange = React.useCallback(e => setMapId(e.target.value), []);
     const handleSideChange = React.useCallback(e => setSide(Number(e.target.value)), []);
     const handleRivalChange = React.useCallback(e => setRival(e.target.value), []);
+    const handleTurnIntervalChange = React.useCallback(e => setTurnInterval(Number(e.target.value)), []);
 
     const handleSave = React.useCallback(() => {
-        saveKoshienMockConfig({mapId, side, rival});
+        saveKoshienMockConfig({mapId, side, rival, turnInterval});
         // Re-install the runtime getter so the extension reads the latest settings.
         if (vm) wireKoshienMockConfig(vm);
         onRequestClose();
-    }, [mapId, side, rival, vm, onRequestClose]);
+    }, [mapId, side, rival, turnInterval, vm, onRequestClose]);
 
     const rivalLabels = {
         goal: intl.formatMessage(messages.rivalGoal),
@@ -150,6 +153,26 @@ const KoshienSettingsModal = props => {
                             </option>
                         ))}
                     </select>
+                </label>
+
+                <label className={styles.field}>
+                    <span className={styles.label}>
+                        <FormattedMessage
+                            defaultMessage="Turn interval (sec)"
+                            description="Label for the koshien per-turn sleep field"
+                            id="gui.koshienSettingsModal.turnInterval"
+                        />
+                    </span>
+                    <input
+                        className={styles.input}
+                        data-testid="koshien-settings-turn-interval"
+                        max={MAX_TURN_INTERVAL}
+                        min={0}
+                        step={0.1}
+                        type="number"
+                        value={turnInterval}
+                        onChange={handleTurnIntervalChange}
+                    />
                 </label>
 
                 <div className={styles.hint}>

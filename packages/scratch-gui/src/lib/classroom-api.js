@@ -7,6 +7,21 @@
 
 const CLASSROOM_API_ENDPOINT = process.env.CLASSROOM_API_ENDPOINT || '';
 
+/**
+ * Extract the host (e.g. "classroom.api.smalruby.app") from the configured
+ * classroom API endpoint. Used to build an actionable network-error message
+ * without hard-coding the host (it differs between prod/stg). Falls back to
+ * the raw endpoint string if it cannot be parsed as a URL.
+ * @returns {string} The endpoint host, or the raw endpoint if unparseable.
+ */
+const getEndpointHost = () => {
+    try {
+        return new URL(CLASSROOM_API_ENDPOINT).host;
+    } catch (e) {
+        return CLASSROOM_API_ENDPOINT;
+    }
+};
+
 class ClassroomAPI {
     /**
      * Check if the classroom API is configured.
@@ -467,7 +482,25 @@ class ClassroomAPI {
         const maxRetries = 3;
         let lastError;
         for (let attempt = 0; attempt <= maxRetries; attempt++) {
-            const response = await fetch(url, options);
+            let response;
+            try {
+                response = await fetch(url, options);
+            } catch (err) {
+                // fetch rejects with a TypeError when the request never reaches
+                // the server (DNS failure, firewall block, offline, CORS
+                // preflight refusal). This is NOT an HTTP response error, so we
+                // flag it distinctly and expose the unreachable host so the UI
+                // can show an actionable message instead of the raw
+                // "Failed to fetch". Do not retry — retrying an unreachable
+                // host just delays the error.
+                if (err instanceof TypeError) {
+                    const netError = new Error(err.message || 'Network request failed');
+                    netError.isNetworkError = true;
+                    netError.endpointHost = getEndpointHost();
+                    throw netError;
+                }
+                throw err;
+            }
 
             if (response.status === 204) return null;
 

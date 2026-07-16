@@ -18,8 +18,6 @@ export default {
     'gui.alerts.settingThumbnail': 'Setting submission thumbnail…',
     'gui.alerts.thumbnailSuccess': 'Submission thumbnail set.',
     'gui.alerts.thumbnailError': 'Couldn’t set the submission thumbnail. Please try again later.',
-    'gui.sharedMessages.changedRubyVersionByKoshien':
-        'This project contains the Smalruby Koshien extension, so the Ruby version has been changed to version 1.',
 
     'gui.smalruby3.crashMessage.description':
         'We are so sorry, but it looks like Smalruby has crashed. This bug has been automatically reported to the Smalruby Team. Please refresh your page to try again.',
@@ -148,6 +146,8 @@ export default {
     'gui.classroom.sessionExpiredBanner': 'Session expired.',
     'gui.classroom.alert.rejoin': 'Rejoin',
     'gui.classroom.error.classroomInactive': 'This classroom is no longer active.',
+    'gui.classroom.error.networkUnreachable':
+        'Could not connect to the server. Please check that your network or firewall allows access to {host} (HTTPS / port 443).',
     'gui.classroom.error.generic': 'An unexpected error occurred. Please try again.',
     'gui.classroom.error.goToLogin': 'Go to login screen',
     'gui.classroom.error.goToJoin': 'Go to join screen',
@@ -487,6 +487,7 @@ export default {
     'gui.koshienSettingsModal.rivalItem': 'Hunts for items',
     'gui.koshienSettingsModal.rivalStop': 'Stands still',
     'gui.koshienSettingsModal.rivalRandom': 'Moves randomly',
+    'gui.koshienSettingsModal.turnInterval': 'Turn interval (sec)',
     'gui.koshienSettingsModal.hint': 'The settings apply the next time your AI connects to the game server.',
     'gui.koshienSettingsModal.save': 'Save',
     'gui.koshienMockPanel.title': 'Koshien practice game',

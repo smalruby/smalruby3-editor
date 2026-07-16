@@ -10,8 +10,6 @@ import { defineMessages } from 'react-intl';
 import { useSelector } from 'react-redux';
 import classroomAPI from '../lib/classroom-api.js';
 import { loadProjectWithChecks } from '../lib/project-loader-utils.js';
-import { persistRubyVersion } from '../lib/settings/ruby-version/persistence';
-import { setRubyVersion } from '../reducers/settings';
 import translateError from './classroom-error-utils.js';
 
 const messages = defineMessages({
@@ -32,25 +30,14 @@ const messages = defineMessages({
  * @param {object} params.classroomState - Redux classroom state (session)
  * @param {object} params.vm - Scratch VM instance
  * @param {object} params.intl - react-intl intl object
- * @param {Function} params.dispatch - Redux dispatch
  * @param {Function} params.clearError - clear error helper
  * @param {Function} params.showError - error display helper
  * @param {Function} params.setIsLoading - loading state setter
  * @param {Function} params.setPhase - phase setter
  * @returns {object} student assignment state and handlers
  */
-const useStudentAssignment = ({
-    classroomState,
-    vm,
-    intl,
-    dispatch,
-    clearError,
-    showError,
-    setIsLoading,
-    setPhase,
-}) => {
+const useStudentAssignment = ({ classroomState, vm, intl, clearError, showError, setIsLoading, setPhase }) => {
     const projectChanged = useSelector((state) => state.scratchGui.projectChanged);
-    const rubyVersion = useSelector((state) => state.scratchGui.settings.rubyVersion);
 
     const [assignment, setAssignment] = useState(null);
     const [assignmentPageIndex, setAssignmentPageIndex] = useState(0);
@@ -79,13 +66,10 @@ const useStudentAssignment = ({
                 throw new Error(`Starter download failed: ${response.status}`);
             }
             const projectData = await response.arrayBuffer();
-            await loadProjectWithChecks(vm, intl, projectData, rubyVersion, (version) => {
-                dispatch(setRubyVersion(version));
-                persistRubyVersion(version);
-            });
+            await loadProjectWithChecks(vm, intl, projectData);
             return true;
         },
-        [projectChanged, vm, intl, rubyVersion, dispatch],
+        [projectChanged, vm, intl],
     );
 
     /**

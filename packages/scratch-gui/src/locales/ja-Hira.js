@@ -160,6 +160,8 @@ export default {
     'gui.classroom.sessionExpiredBanner': 'セッションがむこうになりました。',
     'gui.classroom.alert.rejoin': 'さんかしなおす',
     'gui.classroom.error.classroomInactive': 'このクラスはげんざいりようできません。',
+    'gui.classroom.error.networkUnreachable':
+        'サーバーにせつぞくできませんでした。ネットワークやファイアウォールのせっていで {host}（HTTPS / 443）へのつうしんがきょかされているかごかくにんください。',
     'gui.classroom.error.generic': 'よきしないエラーがはっせいしました。もういちどおためしください。',
     'gui.classroom.error.goToLogin': 'ログインがめんをひょうじ',
     'gui.classroom.error.goToJoin': 'さんかがめんをひょうじ',
@@ -408,8 +410,6 @@ export default {
         'じゅうらいのメッシュかくちょうきのうのサービスはしゅうりょうしました。プロジェクトのなかのブロックをあたらしいメッシュかくちょうきのうにじどうでおきかえました。どうさをかくにんしてください。',
     'gui.sharedMessages.meshV1BackpackAutoMigrated':
         'バックパックのなかのじゅうらいのメッシュブロックを{count}けん、あたらしいメッシュブロックにじどうでおきかえました。',
-    'gui.sharedMessages.changedRubyVersionByKoshien':
-        'このプロジェクトにはスモウルビーこうしえんかくちょうきのうがふくまれていますのでルビーをバージョン1にへんこうしました',
     'gui.menuBar.loadFromGoogleDrive': 'Google ドライブからよみこむ',
     'gui.menuBar.saveToGoogleDrive': 'Googleドライブにコピーをほぞん...',
     'gui.menuBar.saveDirectlyToGoogleDrive': 'Googleドライブにただちにほぞん',
@@ -453,6 +453,7 @@ export default {
     'gui.koshienSettingsModal.rivalItem': 'アイテムゆうせん',
     'gui.koshienSettingsModal.rivalStop': 'ていし',
     'gui.koshienSettingsModal.rivalRandom': 'ランダム',
+    'gui.koshienSettingsModal.turnInterval': 'ターンかんかく(びょう)',
     'gui.koshienSettingsModal.hint': 'せっていは、つぎにAIがゲームサーバーへせつぞくしたときからつかわれます。',
     'gui.koshienSettingsModal.save': 'ほぞん',
     'gui.menuBar.koshienMockPanel': 'れんしゅうゲームパネル',

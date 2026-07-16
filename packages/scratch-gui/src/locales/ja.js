@@ -155,6 +155,8 @@ export default {
     'gui.classroom.sessionExpiredBanner': 'セッションが無効になりました。',
     'gui.classroom.alert.rejoin': '参加しなおす',
     'gui.classroom.error.classroomInactive': 'このクラスは現在利用できません。',
+    'gui.classroom.error.networkUnreachable':
+        'サーバーに接続できませんでした。ネットワークやファイアウォールの設定で {host}（HTTPS / 443）への通信が許可されているかご確認ください。',
     'gui.classroom.error.generic': '予期しないエラーが発生しました。もう一度お試しください。',
     'gui.classroom.error.goToLogin': 'ログイン画面を表示',
     'gui.classroom.error.goToJoin': '参加画面を表示',
@@ -398,8 +400,6 @@ export default {
         '従来のメッシュ拡張機能のサービスは終了しました。プロジェクト内のブロックを新しいメッシュ拡張機能に自動で置き換えました。動作を確認してください。',
     'gui.sharedMessages.meshV1BackpackAutoMigrated':
         'バックパックの中の従来のメッシュブロックを{count}件、新しいメッシュブロックに自動で置き換えました。',
-    'gui.sharedMessages.changedRubyVersionByKoshien':
-        'このプロジェクトにはスモウルビー甲子園拡張機能が含まれていますのでルビーをバージョン1に変更しました',
     'gui.menuBar.loadFromGoogleDrive': 'Google ドライブから読み込む',
     'gui.menuBar.saveToGoogleDrive': 'Googleドライブにコピーを保存...',
     'gui.menuBar.saveDirectlyToGoogleDrive': 'Googleドライブに直ちに保存',
@@ -443,6 +443,7 @@ export default {
     'gui.koshienSettingsModal.rivalItem': 'アイテム優先',
     'gui.koshienSettingsModal.rivalStop': '停止',
     'gui.koshienSettingsModal.rivalRandom': 'ランダム',
+    'gui.koshienSettingsModal.turnInterval': 'ターン間隔(秒)',
     'gui.koshienSettingsModal.hint': '設定は、次にAIがゲームサーバーへ接続したときから使われます。',
     'gui.koshienSettingsModal.save': '保存',
     'gui.menuBar.koshienMockPanel': '練習ゲームパネル',
