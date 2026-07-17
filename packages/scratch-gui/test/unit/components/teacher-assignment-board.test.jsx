@@ -93,3 +93,25 @@ describe('TeacherAssignmentBoard — archived assignments section (issue #1051)'
         expect(rows).toEqual(['classroom-board-archived-row-new', 'classroom-board-archived-row-old']);
     });
 });
+
+describe('TeacherAssignmentBoard — retention badge (issue #1052)', () => {
+    const DAY = 24 * 60 * 60 * 1000;
+    const inDays = (days) => new Date(Date.now() + days * DAY).toISOString();
+
+    test('shows no badge while the deadline is far away', () => {
+        renderBoard({ classrooms: [classroom({ expiresAt: inDays(60) })] });
+        expect(byTestId('classroom-board-expiry-c1')).not.toBeInTheDocument();
+    });
+
+    test('shows a days-left badge within 30 days of deletion', () => {
+        renderBoard({ classrooms: [classroom({ expiresAt: inDays(20) })] });
+        const badge = byTestId('classroom-board-expiry-c1');
+        expect(badge).toBeInTheDocument();
+        expect(badge.textContent).toContain('20 days left');
+    });
+
+    test('shows the badge for assignments without a deadline never', () => {
+        renderBoard({ classrooms: [classroom({ expiresAt: null })] });
+        expect(byTestId('classroom-board-expiry-c1')).not.toBeInTheDocument();
+    });
+});

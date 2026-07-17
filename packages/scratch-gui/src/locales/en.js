@@ -342,6 +342,10 @@ export default {
     'gui.classroom.board.archivedToggle': 'Archived assignments ({count})',
     'gui.classroom.board.archivedExpires': 'Kept until {date}',
     'gui.classroom.board.restore': 'Restore',
+    'gui.classroom.board.expiryBadge': '{days} days left',
+    'gui.classroom.teacherDetail.retentionBanner':
+        'This assignment and its submissions will be deleted automatically on {date}. ' +
+        'Download them to keep a copy.',
     'gui.classroom.codeDisplay.title': 'Join Code',
     'gui.classroom.codeDisplay.copyLink': 'Copy invite link',
     'gui.classroom.codeDisplay.copied': 'Copied',
@@ -377,7 +381,7 @@ export default {
     'gui.classroom.teacherDetail.assignmentNameLabel': 'Assignment Name',
     'gui.classroom.teacherDetail.seatNumber': 'Seat {number}',
     'gui.classroom.teacherDashboard.expiresAt': 'Expires: {date}',
-    'gui.classroom.teacherDetail.expiresAt': 'Expires: {date}',
+    'gui.classroom.teacherDetail.expiresAt': 'Kept until: {date}',
     'gui.classroom.teacherCreate.assignmentNameHint': 'You can change the student count and assignment name anytime.',
     'gui.classroom.carousel.submitTitle': 'Students can submit assignments',
     'gui.classroom.carousel.submitDesc': 'Students join with a code and submit their work with one click.',

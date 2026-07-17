@@ -349,6 +349,9 @@ export default {
     'gui.classroom.board.archivedToggle': 'アーカイブ済みの課題（{count}）',
     'gui.classroom.board.archivedExpires': '保存期限: {date}',
     'gui.classroom.board.restore': '元に戻す',
+    'gui.classroom.board.expiryBadge': 'あと{days}日',
+    'gui.classroom.teacherDetail.retentionBanner':
+        'この課題と提出物は {date} に自動削除されます。ダウンロードして保存してください。',
     'gui.classroom.codeDisplay.title': '参加コード',
     'gui.classroom.codeDisplay.copyLink': '招待リンクをコピー',
     'gui.classroom.codeDisplay.copied': 'コピーしました',
@@ -386,7 +389,7 @@ export default {
     'gui.classroom.teacherDetail.assignmentNameLabel': '課題名',
     'gui.classroom.teacherDetail.seatNumber': '出席番号{number}',
     'gui.classroom.teacherDashboard.expiresAt': '有効期限: {date}',
-    'gui.classroom.teacherDetail.expiresAt': '有効期限: {date}',
+    'gui.classroom.teacherDetail.expiresAt': '保存期限: {date}',
     'gui.classroom.teacherCreate.assignmentNameHint': '人数と課題名はいつでも変更できます。',
     'gui.classroom.carousel.submitTitle': '生徒が課題を提出できる',
     'gui.classroom.carousel.submitDesc': '参加コードでクラスに参加して、ワンクリックで作品を提出できます。',
