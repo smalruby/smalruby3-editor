@@ -50,8 +50,12 @@ async function readSnapshot(key: string): Promise<Snapshot | null> {
     const res = await s3.send(new GetObjectCommand({ Bucket: names.bucket, Key: key }));
     const body = await res.Body?.transformToString();
     return body ? (JSON.parse(body) as Snapshot) : null;
-  } catch {
-    return null;
+  } catch (err) {
+    // Missing snapshot is an expected outcome; anything else (credentials,
+    // region, permissions) must be surfaced, not mistaken for "not found".
+    const name = err instanceof Error ? err.name : '';
+    if (name === 'NoSuchKey' || name === 'NotFound') return null;
+    throw err;
   }
 }
 
