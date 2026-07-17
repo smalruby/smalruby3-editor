@@ -174,6 +174,8 @@ const useTeacherClassroom = ({
 
         // Classrooms
         classrooms: classrooms.classrooms,
+        archivedClassrooms: classrooms.archivedClassrooms,
+        handleRestoreClassroom: classrooms.handleRestoreClassroom,
         selectedClassroom: classrooms.selectedClassroom,
         members: classrooms.members,
         selectedMember: classrooms.selectedMember,

@@ -2259,6 +2259,37 @@
     cursor: default;
 }
 
+/* --- Archived section (class list & assignment board, issue #1051) --- */
+
+.archived-section {
+    margin-top: 1.5rem;
+    padding-top: 0.75rem;
+    border-top: 1px dashed hsla(0, 0%, 0%, 0.15);
+}
+
+.archived-toggle {
+    display: block;
+    padding: 0.4rem 0;
+    border: none;
+    background: none;
+    color: hsla(225, 15%, 40%, 1);
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+.archived-toggle:hover {
+    color: #855cd6;
+}
+
+.class-settings-archive-confirm {
+    margin: 0.5rem 0 0;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    background: hsla(35, 90%, 55%, 0.12);
+    color: hsla(30, 60%, 30%, 1);
+    font-size: 0.875rem;
+}
+
 /* --- Assignment board (inside a class) --- */
 
 .assignment-board {

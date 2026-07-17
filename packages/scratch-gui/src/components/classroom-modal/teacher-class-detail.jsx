@@ -530,7 +530,8 @@ const TeacherClassDetail = ({
                             )}
 
 
-                            {/* Delete classroom */}
+                            {/* Archive assignment (soft-delete, restorable — issue #1051).
+                                data-testids keep the historical "delete" names for E2E stability. */}
                             <div className={styles.detailFooter}>
                                 <ErrorDisplay
                                     actionLabel={errorActionLabel}
@@ -546,9 +547,9 @@ const TeacherClassDetail = ({
                                             }
                                         >
                                             <FormattedMessage
-                                                defaultMessage="Are you sure you want to delete this classroom? All members will be removed."
-                                                description="Delete classroom confirmation message"
-                                                id="gui.classroom.teacherDetail.deleteConfirm"
+                                                defaultMessage="Archive this assignment? It disappears from the board, but you can restore it anytime from the archived assignments section."
+                                                description="Archive assignment confirmation message"
+                                                id="gui.classroom.teacherDetail.archiveConfirm"
                                             />
                                         </div>
                                         <div className={styles.buttonRow}>
@@ -561,8 +562,8 @@ const TeacherClassDetail = ({
                                             >
                                                 <FormattedMessage
                                                     defaultMessage="Cancel"
-                                                    description="Cancel delete classroom button"
-                                                    id="gui.classroom.teacherDetail.cancelDelete"
+                                                    description="Cancel archiving the assignment"
+                                                    id="gui.classroom.teacherDetail.archiveCancel"
                                                 />
                                             </button>
                                             <button
@@ -573,9 +574,9 @@ const TeacherClassDetail = ({
                                                 onClick={handleDeleteConfirm}
                                             >
                                                 <FormattedMessage
-                                                    defaultMessage="Delete"
-                                                    description="Confirm delete classroom button"
-                                                    id="gui.classroom.teacherDetail.delete"
+                                                    defaultMessage="Archive"
+                                                    description="Confirm archive assignment button"
+                                                    id="gui.classroom.teacherDetail.archive"
                                                 />
                                             </button>
                                         </div>
@@ -593,9 +594,9 @@ const TeacherClassDetail = ({
                                             onClick={handleDeleteClick}
                                         >
                                             <FormattedMessage
-                                                defaultMessage="Delete Classroom"
-                                                description="Delete classroom button"
-                                                id="gui.classroom.teacherDetail.deleteClassroom"
+                                                defaultMessage="Archive the assignment"
+                                                description="Archive assignment button (soft-delete, restorable)"
+                                                id="gui.classroom.teacherDetail.archiveClassroom"
                                             />
                                         </button>
                                     </div>

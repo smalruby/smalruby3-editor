@@ -56,6 +56,8 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
     const {
         phase,
         classrooms,
+        archivedClassrooms,
+        onRestoreClassroom,
         selectedClassroom,
         members,
         error,
@@ -135,6 +137,9 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
     const scopedClassrooms = selectedGroup
         ? classrooms.filter((c) => c.groupId === selectedGroup.groupId)
         : classrooms;
+    const scopedArchivedClassrooms = selectedGroup
+        ? (archivedClassrooms || []).filter((c) => c.groupId === selectedGroup.groupId)
+        : archivedClassrooms || [];
 
     const renderMain = () => {
         // Fullscreen code display overlay
@@ -333,12 +338,14 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                     <TeacherAssignmentBoard
                         allClassrooms={classrooms}
                         allGroups={groups || []}
+                        archivedClassrooms={scopedArchivedClassrooms}
                         classrooms={scopedClassrooms}
                         error={error}
                         errorTitle={errorTitle}
                         group={selectedGroup}
                         isLoading={isLoading}
                         onCreateAssignmentInClass={onCreateAssignmentInClass}
+                        onRestoreClassroom={onRestoreClassroom}
                         onReuseAssignment={onReuseAssignment}
                         onSelectClassroom={onSelectClassroom}
                         onShowClassList={onShowClassList}

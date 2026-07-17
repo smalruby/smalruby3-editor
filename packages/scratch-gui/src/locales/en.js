@@ -131,10 +131,11 @@ export default {
     'gui.classroom.submitConfirm.submitting': 'Submitting...',
     'gui.classroom.teacherDashboard.logout': 'Logout',
     'gui.classroom.teacherDashboard.studentCountSuffix': ' students',
-    'gui.classroom.teacherDetail.delete': 'Delete',
-    'gui.classroom.teacherDetail.deleteClassroom': 'Delete the assignment',
-    'gui.classroom.teacherDetail.deleteConfirm':
-        'Are you sure you want to delete this classroom? All members will be removed.',
+    'gui.classroom.teacherDetail.archive': 'Archive',
+    'gui.classroom.teacherDetail.archiveClassroom': 'Archive the assignment',
+    'gui.classroom.teacherDetail.archiveConfirm':
+        'Archive this assignment? It disappears from the board, but you can restore it anytime ' +
+        'from the archived assignments section.',
     'gui.classroom.teacherDetail.studentCountTitle': 'Change Student Count',
     'gui.classroom.teacherDetail.studentCountHint':
         'You can increase the number of seats. Decreasing is not allowed.',
@@ -330,7 +331,17 @@ export default {
     'gui.classroom.error.fileTooLarge': 'Project is too large ({size}MB). Maximum size is 10MB.',
     'gui.classroom.studentStatus.returned': 'Returned',
     'gui.classroom.studentStatus.teacherComment': "Teacher's Comment",
-    'gui.classroom.teacherDetail.cancelDelete': 'Cancel',
+    'gui.classroom.teacherDetail.archiveCancel': 'Cancel',
+    'gui.classroom.classList.showArchived': 'Archived classes ({count})',
+    'gui.classroom.classList.restore': 'Restore',
+    'gui.classroom.classSettings.archiveConfirmMessage':
+        'Archive this class? It will be hidden from the class list, but you can restore it ' +
+        'anytime from the archived section.',
+    'gui.classroom.classSettings.archiveConfirmYes': 'Yes, archive',
+    'gui.classroom.classSettings.archiveConfirmNo': 'Keep the class',
+    'gui.classroom.board.archivedToggle': 'Archived assignments ({count})',
+    'gui.classroom.board.archivedExpires': 'Kept until {date}',
+    'gui.classroom.board.restore': 'Restore',
     'gui.classroom.codeDisplay.title': 'Join Code',
     'gui.classroom.codeDisplay.copyLink': 'Copy invite link',
     'gui.classroom.codeDisplay.copied': 'Copied',

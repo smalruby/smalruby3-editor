@@ -172,12 +172,14 @@ AssignmentRow.propTypes = {
 const TeacherAssignmentBoard = ({
     allClassrooms,
     allGroups,
+    archivedClassrooms,
     classrooms,
     error,
     errorTitle,
     group,
     isLoading,
     onCreateAssignmentInClass,
+    onRestoreClassroom,
     onReuseAssignment,
     onSelectClassroom,
     onShowClassList,
@@ -190,8 +192,22 @@ const TeacherAssignmentBoard = ({
     const [newAssignmentName, setNewAssignmentName] = useState('');
     const [showReuse, setShowReuse] = useState(false);
     const [reuseFilterGroupId, setReuseFilterGroupId] = useState('');
+    const [showArchived, setShowArchived] = useState(false);
     const topics = Array.isArray(group.topics) ? group.topics : [];
     const sections = buildAssignmentSections(classrooms, topics);
+    // Archived assignments of this class (issue #1051), newest first. Shown
+    // in a collapsed section so an accidental archive is always recoverable.
+    const archivedRows = (archivedClassrooms || [])
+        .slice()
+        .sort((a, b) =>
+            String(b.sortDate || b.createdAt || '').localeCompare(String(a.sortDate || a.createdAt || '')),
+        );
+
+    const handleToggleArchived = useCallback(() => setShowArchived((v) => !v), []);
+    const handleRestore = useCallback(
+        (e) => onRestoreClassroom(e.currentTarget.dataset.classroomId),
+        [onRestoreClassroom],
+    );
 
     const handleToggleInlineCreate = useCallback(() => {
         setShowReuse(false);
@@ -488,6 +504,74 @@ const TeacherAssignmentBoard = ({
                     </ul>
                 </div>
             ))}
+            {archivedRows.length > 0 ? (
+                <div className={styles.boardSection} data-testid="classroom-board-archived-section">
+                    <button
+                        className={styles.archivedToggle}
+                        data-testid="classroom-board-archived-toggle"
+                        type="button"
+                        onClick={handleToggleArchived}
+                    >
+                        {showArchived ? '▼ ' : '▶ '}
+                        {intl.formatMessage(
+                            {
+                                defaultMessage: 'Archived assignments ({count})',
+                                description: 'Toggle of the archived assignments section on the board',
+                                id: 'gui.classroom.board.archivedToggle',
+                            },
+                            { count: archivedRows.length },
+                        )}
+                    </button>
+                    {showArchived ? (
+                        <ul className={styles.boardRows} data-testid="classroom-board-archived-list">
+                            {archivedRows.map((classroom) => (
+                                <li
+                                    key={classroom.classroomId}
+                                    className={styles.boardRow}
+                                    data-testid={`classroom-board-archived-row-${classroom.classroomId}`}
+                                >
+                                    <span className={styles.boardRowMain}>
+                                        <span className={styles.boardRowName}>
+                                            {classroom.assignmentName || classroom.className}
+                                        </span>
+                                        <span className={styles.boardRowCode}>
+                                            {classroom.expiresAt
+                                                ? intl.formatMessage(
+                                                      {
+                                                          defaultMessage: 'Kept until {date}',
+                                                          description:
+                                                              'Retention deadline shown on an archived assignment row',
+                                                          id: 'gui.classroom.board.archivedExpires',
+                                                      },
+                                                      {
+                                                          date: new Date(
+                                                              classroom.expiresAt,
+                                                          ).toLocaleDateString(),
+                                                      },
+                                                  )
+                                                : null}
+                                        </span>
+                                    </span>
+                                    <button
+                                        className={styles.reuseRowCopy}
+                                        data-classroom-id={classroom.classroomId}
+                                        data-testid={`classroom-board-restore-${classroom.classroomId}`}
+                                        disabled={isLoading}
+                                        type="button"
+                                        onClick={handleRestore}
+                                    >
+                                        <FormattedMessage
+                                            defaultMessage="Restore"
+                                            description="Button that restores an archived assignment"
+                                            id="gui.classroom.board.restore"
+                                        />
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : null}
+                </div>
+            ) : null}
         </div>
     );
 };
@@ -495,12 +579,14 @@ const TeacherAssignmentBoard = ({
 TeacherAssignmentBoard.propTypes = {
     allClassrooms: PropTypes.arrayOf(PropTypes.object),
     allGroups: PropTypes.arrayOf(PropTypes.object),
+    archivedClassrooms: PropTypes.arrayOf(PropTypes.object),
     classrooms: PropTypes.arrayOf(PropTypes.object).isRequired,
     error: PropTypes.string,
     errorTitle: PropTypes.string,
     group: PropTypes.object.isRequired,
     isLoading: PropTypes.bool,
     onCreateAssignmentInClass: PropTypes.func.isRequired,
+    onRestoreClassroom: PropTypes.func,
     onReuseAssignment: PropTypes.func.isRequired,
     onSelectClassroom: PropTypes.func.isRequired,
     onShowClassList: PropTypes.func.isRequired,
