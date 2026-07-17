@@ -62,9 +62,9 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-detail-expand-code` | button | コード拡大表示 |
 | `classroom-members-grid` | div | 座席グリッド |
 | `classroom-members-count` | span | メンバー数 |
-| `classroom-delete-classroom` | button | クラス削除 |
-| `classroom-delete-confirm` | button | 削除確認 |
-| `classroom-delete-cancel` | button | 削除キャンセル |
+| `classroom-delete-classroom` | button | 課題をアーカイブ（歴史的経緯で testid は delete のまま。soft-delete・復元可能） |
+| `classroom-delete-confirm` | button | アーカイブ確認 |
+| `classroom-delete-cancel` | button | アーカイブキャンセル |
 | `classroom-download-all` | button | 全提出ダウンロード |
 
 ### メンバー詳細パネル (先生)
@@ -212,8 +212,13 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-class-settings-co-teacher-input` | input | 共同管理者メール入力（クラス単位） |
 | `classroom-class-settings-add-co-teacher` | button | 共同管理者を追加 |
 | `classroom-class-settings-remove-co-teacher-{email}` | button | 共同管理者を削除 |
-| `classroom-class-settings-archive` | button | アーカイブ/もどす |
+| `classroom-class-settings-archive` | button | アーカイブ/もどす（アーカイブは 2 段階確認: 1 回目で確認表示、2 回目で実行） |
+| `classroom-class-settings-archive-confirm-message` | p | アーカイブ確認メッセージ |
+| `classroom-class-settings-archive-cancel` | button | アーカイブ確認のキャンセル |
 | `classroom-class-settings-save` / `classroom-class-settings-cancel` | button | 保存 / キャンセル |
+| `classroom-show-archived` | button | 「アーカイブ済みのクラス（{count}）」トグル（アーカイブ済みが 1 件以上のとき表示） |
+| `classroom-archived-class-list` | ul | アーカイブ済みクラスのカード一覧 |
+| `classroom-class-restore-{groupId}` | button | アーカイブ済みクラスカードの「元に戻す」 |
 | `classroom-board` | div | 課題管理ボード（クラス内のメイン領域） |
 | `classroom-board-create` | button | ボードの「課題を作る」 |
 | `classroom-board-empty` | p | ボードの空メッセージ |
@@ -228,6 +233,11 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-topic-rename-{topic}` | button | チップ名（クリックでリネーム開始） |
 | `classroom-topic-rename-input-{topic}` | input | リネーム入力（Enter/blur で確定） |
 | `classroom-topic-remove-{topic}` | button | トピック削除（課題側はトピックなしへ） |
+| `classroom-board-archived-section` | div | アーカイブ済み課題セクション（1 件以上のとき表示） |
+| `classroom-board-archived-toggle` | button | 「アーカイブ済みの課題（{count}）」トグル |
+| `classroom-board-archived-list` | ul | アーカイブ済み課題の行一覧 |
+| `classroom-board-archived-row-{classroomId}` | li | アーカイブ済み課題行（保存期限を表示） |
+| `classroom-board-restore-{classroomId}` | button | アーカイブ済み課題の「元に戻す」 |
 | `classroom-breadcrumbs` | nav | パンくず（クラス一覧 > 課題一覧 > 課題詳細） |
 | `classroom-breadcrumb-class-list` / `classroom-breadcrumb-assignments` | button | パンくずリンク |
 | `classroom-board-create-name` / `classroom-board-create-submit` | input / button | インライン課題作成（課題名のみ） |

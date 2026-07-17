@@ -31,6 +31,9 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
     );
     const [coTeachers, setCoTeachers] = useState(group.coTeacherEmails || []);
     const [newCoTeacher, setNewCoTeacher] = useState('');
+    // Archiving asks for confirmation (issue #1051: an accidental one-click
+    // archive was the original support inquiry). Unarchiving stays immediate.
+    const [confirmingArchive, setConfirmingArchive] = useState(false);
 
     const handleNameChange = useCallback((e) => setName(e.target.value), []);
     const handleYearChange = useCallback((e) => setYear(e.target.value), []);
@@ -48,11 +51,16 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
         setCoTeachers((prev) => prev.filter((x) => x !== email));
     }, []);
     const handleToggleArchive = useCallback(() => {
+        if (group.status !== 'archived' && !confirmingArchive) {
+            setConfirmingArchive(true);
+            return;
+        }
         onUpdateGroup(group.groupId, {
             status: group.status === 'archived' ? 'active' : 'archived',
         });
         onCancel();
-    }, [group, onUpdateGroup, onCancel]);
+    }, [group, confirmingArchive, onUpdateGroup, onCancel]);
+    const handleCancelArchive = useCallback(() => setConfirmingArchive(false), []);
 
     const canSave = name.trim().length > 0 && parseInt(year, 10) >= 2000;
     const handleSave = useCallback(
@@ -182,6 +190,18 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
                     />
                 </button>
             </div>
+            {confirmingArchive ? (
+                <p
+                    className={styles.classSettingsArchiveConfirm}
+                    data-testid="classroom-class-settings-archive-confirm-message"
+                >
+                    <FormattedMessage
+                        defaultMessage="Archive this class? It will be hidden from the class list, but you can restore it anytime from the archived section."
+                        description="Confirmation message before archiving a class"
+                        id="gui.classroom.classSettings.archiveConfirmMessage"
+                    />
+                </p>
+            ) : null}
             <div className={styles.classSettingsActions}>
                 <button
                     data-testid="classroom-class-settings-archive"
@@ -195,6 +215,12 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
                             description="Button to unarchive a class"
                             id="gui.classroom.classSettings.unarchive"
                         />
+                    ) : confirmingArchive ? (
+                        <FormattedMessage
+                            defaultMessage="Yes, archive"
+                            description="Confirm button that actually archives the class"
+                            id="gui.classroom.classSettings.archiveConfirmYes"
+                        />
                     ) : (
                         <FormattedMessage
                             defaultMessage="Archive"
@@ -203,6 +229,20 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
                         />
                     )}
                 </button>
+                {confirmingArchive ? (
+                    <button
+                        data-testid="classroom-class-settings-archive-cancel"
+                        disabled={isLoading}
+                        type="button"
+                        onClick={handleCancelArchive}
+                    >
+                        <FormattedMessage
+                            defaultMessage="Keep the class"
+                            description="Button that cancels archiving the class"
+                            id="gui.classroom.classSettings.archiveConfirmNo"
+                        />
+                    </button>
+                ) : null}
                 <span className={styles.classSettingsSpacer} />
                 <button
                     data-testid="classroom-class-settings-cancel"
@@ -240,11 +280,21 @@ ClassSettingsForm.propTypes = {
     onUpdateGroup: PropTypes.func.isRequired,
 };
 
-const ClassCard = ({ group, assignmentCount, isLoading, onSelectGroup, onShowEvaluation, onShowSettings }) => {
+const ClassCard = ({
+    group,
+    assignmentCount,
+    isLoading,
+    onRestoreGroup,
+    onSelectGroup,
+    onShowEvaluation,
+    onShowSettings,
+}) => {
     const intl = useIntl();
     const handleOpen = useCallback(() => onSelectGroup(group), [onSelectGroup, group]);
     const handleEvaluate = useCallback(() => onShowEvaluation(group), [onShowEvaluation, group]);
     const handleSettings = useCallback(() => onShowSettings(group.groupId), [onShowSettings, group.groupId]);
+    const handleRestore = useCallback(() => onRestoreGroup(group.groupId), [onRestoreGroup, group.groupId]);
+    const isArchived = group.status === 'archived';
 
     return (
         <li className={styles.classCard} data-testid={`classroom-class-card-${group.groupId}`}>
@@ -296,19 +346,35 @@ const ClassCard = ({ group, assignmentCount, isLoading, onSelectGroup, onShowEva
                     ) : null}
                 </span>
             </button>
-            <button
-                className={styles.classCardEvaluate}
-                data-testid={`classroom-class-evaluate-${group.groupId}`}
-                disabled={isLoading}
-                type="button"
-                onClick={handleEvaluate}
-            >
-                <FormattedMessage
-                    defaultMessage="Evaluate"
-                    description="Button on a class card to open term-end evaluation"
-                    id="gui.classroom.classList.evaluate"
-                />
-            </button>
+            {isArchived ? (
+                <button
+                    className={styles.classCardEvaluate}
+                    data-testid={`classroom-class-restore-${group.groupId}`}
+                    disabled={isLoading}
+                    type="button"
+                    onClick={handleRestore}
+                >
+                    <FormattedMessage
+                        defaultMessage="Restore"
+                        description="Button on an archived class card to restore it"
+                        id="gui.classroom.classList.restore"
+                    />
+                </button>
+            ) : (
+                <button
+                    className={styles.classCardEvaluate}
+                    data-testid={`classroom-class-evaluate-${group.groupId}`}
+                    disabled={isLoading}
+                    type="button"
+                    onClick={handleEvaluate}
+                >
+                    <FormattedMessage
+                        defaultMessage="Evaluate"
+                        description="Button on a class card to open term-end evaluation"
+                        id="gui.classroom.classList.evaluate"
+                    />
+                </button>
+            )}
             <button
                 className={styles.classCardEvaluate}
                 data-testid={`classroom-class-settings-open-${group.groupId}`}
@@ -330,6 +396,7 @@ ClassCard.propTypes = {
     assignmentCount: PropTypes.number.isRequired,
     group: PropTypes.object.isRequired,
     isLoading: PropTypes.bool,
+    onRestoreGroup: PropTypes.func,
     onSelectGroup: PropTypes.func.isRequired,
     onShowEvaluation: PropTypes.func.isRequired,
     onShowSettings: PropTypes.func.isRequired,
@@ -351,6 +418,7 @@ const TeacherClassList = ({
     const intl = useIntl();
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [settingsGroupId, setSettingsGroupId] = useState(null);
+    const [showArchived, setShowArchived] = useState(false);
     const [name, setName] = useState('');
     const [year, setYear] = useState(String(currentSchoolYear()));
     const [section, setSection] = useState('');
@@ -369,6 +437,11 @@ const TeacherClassList = ({
         [onOpenUngrouped],
     );
     const handleCloseSettings = useCallback(() => setSettingsGroupId(null), []);
+    const handleToggleArchived = useCallback(() => setShowArchived((v) => !v), []);
+    const handleRestoreGroup = useCallback(
+        (groupId) => onUpdateGroup(groupId, { status: 'active' }),
+        [onUpdateGroup],
+    );
 
     // The first assignment is optional: a class can be created on its own.
     const canSubmit = name.trim().length > 0 && parseInt(studentCount, 10) > 0 && parseInt(year, 10) >= 2000;
@@ -389,6 +462,10 @@ const TeacherClassList = ({
     );
 
     const activeGroups = groups.filter((g) => g.status !== 'archived');
+    // Archived classes stay reachable (issue #1051): a collapsed section at
+    // the bottom lists them with a restore button, so an accidental archive
+    // is self-recoverable instead of a support inquiry.
+    const archivedGroups = groups.filter((g) => g.status === 'archived');
     const countFor = (groupId) => classrooms.filter((c) => c.groupId === groupId).length;
     // develop-compat safety net: assignments that do not belong to any class
     // yet (e.g. a co-teacher logs in before the owner's account migrated, or
@@ -617,6 +694,53 @@ const TeacherClassList = ({
                     ),
                 )}
             </ul>
+            {archivedGroups.length > 0 ? (
+                <div className={styles.archivedSection}>
+                    <button
+                        className={styles.archivedToggle}
+                        data-testid="classroom-show-archived"
+                        type="button"
+                        onClick={handleToggleArchived}
+                    >
+                        {showArchived ? '▼ ' : '▶ '}
+                        {intl.formatMessage(
+                            {
+                                defaultMessage: 'Archived classes ({count})',
+                                description: 'Toggle of the archived classes section in the class list',
+                                id: 'gui.classroom.classList.showArchived',
+                            },
+                            { count: archivedGroups.length },
+                        )}
+                    </button>
+                    {showArchived ? (
+                        <ul className={styles.classCards} data-testid="classroom-archived-class-list">
+                            {archivedGroups.map((group) =>
+                                settingsGroupId === group.groupId ? (
+                                    <li key={group.groupId} className={styles.classCard}>
+                                        <ClassSettingsForm
+                                            group={group}
+                                            isLoading={isLoading}
+                                            onCancel={handleCloseSettings}
+                                            onUpdateGroup={onUpdateGroup}
+                                        />
+                                    </li>
+                                ) : (
+                                    <ClassCard
+                                        key={group.groupId}
+                                        assignmentCount={countFor(group.groupId)}
+                                        group={group}
+                                        isLoading={isLoading}
+                                        onRestoreGroup={handleRestoreGroup}
+                                        onSelectGroup={onSelectGroup}
+                                        onShowEvaluation={onShowEvaluation}
+                                        onShowSettings={handleShowSettings}
+                                    />
+                                ),
+                            )}
+                        </ul>
+                    ) : null}
+                </div>
+            ) : null}
         </div>
     );
 };

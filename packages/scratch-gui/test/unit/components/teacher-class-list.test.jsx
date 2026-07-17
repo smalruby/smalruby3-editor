@@ -138,3 +138,78 @@ describe('TeacherClassList', () => {
         expect(document.querySelector('[data-testid="classroom-class-settings-g1"]')).not.toBeInTheDocument();
     });
 });
+
+describe('TeacherClassList — archived classes section (issue #1051)', () => {
+    const byTestId = (id) => document.querySelector(`[data-testid="${id}"]`);
+
+    test('shows no archived section when every class is active', () => {
+        renderList();
+        expect(byTestId('classroom-show-archived')).not.toBeInTheDocument();
+    });
+
+    test('archived classes are revealed by the toggle with a restore button', () => {
+        renderList({
+            groups: [group(), group({ groupId: 'g2', name: '2年2組', status: 'archived' })],
+        });
+
+        fireEvent.click(byTestId('classroom-show-archived'));
+        expect(byTestId('classroom-archived-class-list')).toBeInTheDocument();
+        expect(byTestId('classroom-class-card-g2')).toBeInTheDocument();
+        expect(byTestId('classroom-class-card-g2')).toHaveTextContent('Archived');
+        expect(byTestId('classroom-class-restore-g2')).toBeInTheDocument();
+    });
+
+    test('restore button unarchives the class via onUpdateGroup', () => {
+        const onUpdateGroup = jest.fn();
+        renderList({
+            groups: [group({ groupId: 'g2', status: 'archived' })],
+            onUpdateGroup,
+        });
+
+        fireEvent.click(byTestId('classroom-show-archived'));
+        fireEvent.click(byTestId('classroom-class-restore-g2'));
+
+        expect(onUpdateGroup).toHaveBeenCalledWith('g2', { status: 'active' });
+    });
+
+    test('archiving from settings requires an explicit confirmation step', () => {
+        const onUpdateGroup = jest.fn();
+        renderList({ onUpdateGroup });
+
+        fireEvent.click(byTestId('classroom-class-settings-open-g1'));
+        // First click arms the confirmation instead of archiving.
+        fireEvent.click(byTestId('classroom-class-settings-archive'));
+        expect(onUpdateGroup).not.toHaveBeenCalled();
+        expect(byTestId('classroom-class-settings-archive-confirm-message')).toBeInTheDocument();
+
+        // Second click actually archives.
+        fireEvent.click(byTestId('classroom-class-settings-archive'));
+        expect(onUpdateGroup).toHaveBeenCalledWith('g1', { status: 'archived' });
+    });
+
+    test('the confirmation can be cancelled without archiving', () => {
+        const onUpdateGroup = jest.fn();
+        renderList({ onUpdateGroup });
+
+        fireEvent.click(byTestId('classroom-class-settings-open-g1'));
+        fireEvent.click(byTestId('classroom-class-settings-archive'));
+        fireEvent.click(byTestId('classroom-class-settings-archive-cancel'));
+
+        expect(onUpdateGroup).not.toHaveBeenCalled();
+        expect(byTestId('classroom-class-settings-archive-confirm-message')).not.toBeInTheDocument();
+    });
+
+    test('unarchiving from settings stays immediate (no confirmation)', () => {
+        const onUpdateGroup = jest.fn();
+        renderList({
+            groups: [group({ groupId: 'g2', status: 'archived' })],
+            onUpdateGroup,
+        });
+
+        fireEvent.click(byTestId('classroom-show-archived'));
+        fireEvent.click(byTestId('classroom-class-settings-open-g2'));
+        fireEvent.click(byTestId('classroom-class-settings-archive'));
+
+        expect(onUpdateGroup).toHaveBeenCalledWith('g2', { status: 'active' });
+    });
+});

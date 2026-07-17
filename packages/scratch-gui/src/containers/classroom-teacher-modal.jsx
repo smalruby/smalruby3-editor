@@ -124,6 +124,8 @@ const ClassroomTeacherModal = () => {
     const teacherContainerProps = {
         phase,
         classrooms: teacher.classrooms,
+        archivedClassrooms: teacher.archivedClassrooms,
+        onRestoreClassroom: teacher.handleRestoreClassroom,
         selectedClassroom: teacher.selectedClassroom,
         members: teacher.members,
         error,
