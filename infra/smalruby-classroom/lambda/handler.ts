@@ -624,11 +624,12 @@ function mapClassroomSummary(item: Record<string, unknown>, identity: TeacherIde
     topic: item.topic || null,
     sortDate: item.sortDate || item.createdAt || null,
     hasAssignment: hasAssignmentContent(item),
+    status: item.status,
     role: item.teacherSub === identity.sub ? 'owner' : 'co-teacher',
   };
 }
 
-async function handleListClassrooms(identity: TeacherIdentity): Promise<APIGatewayProxyStructuredResultV2> {
+async function handleListClassrooms(identity: TeacherIdentity, includeArchived = false): Promise<APIGatewayProxyStructuredResultV2> {
   // Classes the teacher owns — fast GSI query on teacherSub.
   const owned = await docClient.send(new QueryCommand({
     TableName: CLASSROOMS_TABLE,
@@ -651,11 +652,15 @@ async function handleListClassrooms(identity: TeacherIdentity): Promise<APIGatew
     coManaged = scan.Items || [];
   }
 
-  // Merge by classroomId (owned wins) and keep only active classes.
+  // Merge by classroomId (owned wins). Archived classes are excluded unless
+  // the caller opts in with ?includeArchived=1 (the archive-list / restore UI,
+  // issue #1050) — the default stays active-only so already-deployed frontends
+  // never see archived items reappear.
   const byId = new Map<string, Record<string, unknown>>();
   for (const item of [...(owned.Items || []), ...coManaged]) {
     const id = item.classroomId as string;
-    if (item.status === 'active' && !byId.has(id)) {
+    const visible = item.status === 'active' || (includeArchived && item.status === 'archived');
+    if (visible && !byId.has(id)) {
       byId.set(id, item);
     }
   }
@@ -1103,7 +1108,11 @@ async function handleDeleteClassroom(identity: TeacherIdentity, classroomId: str
     throw new NotFoundError('Classroom not found');
   }
 
-  // Soft-delete: set status to 'archived'
+  // Soft-delete: set status to 'archived'. Memberships are deliberately kept
+  // (issue #1050, D1): student access is blocked by status guards
+  // (join/lookup/verify-session/submission all reject non-active classrooms),
+  // and keeping the seat/nickname/session rows makes a later restore
+  // (PATCH {status:'active'}) lossless — students resume without rejoining.
   await docClient.send(new UpdateCommand({
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId },
@@ -1111,28 +1120,6 @@ async function handleDeleteClassroom(identity: TeacherIdentity, classroomId: str
     ExpressionAttributeNames: { '#status': 'status' },
     ExpressionAttributeValues: { ':status': 'archived', ':now': new Date().toISOString() },
   }));
-
-  // Delete all members (invalidates their sessions)
-  const membersResult = await docClient.send(new QueryCommand({
-    TableName: MEMBERSHIPS_TABLE,
-    KeyConditionExpression: 'classroomId = :cid',
-    ExpressionAttributeValues: { ':cid': classroomId },
-    ProjectionExpression: 'memberId',
-  }));
-
-  if (membersResult.Items && membersResult.Items.length > 0) {
-    const items = membersResult.Items;
-    for (let i = 0; i < items.length; i += 25) {
-      const batch = items.slice(i, i + 25);
-      await docClient.send(new BatchWriteCommand({
-        RequestItems: {
-          [MEMBERSHIPS_TABLE]: batch.map(item => ({
-            DeleteRequest: { Key: { classroomId, memberId: item.memberId as string } },
-          })),
-        },
-      }));
-    }
-  }
 
   return { statusCode: 204, body: '' };
 }
@@ -1527,6 +1514,17 @@ async function handleCreateSubmission(
 ): Promise<APIGatewayProxyStructuredResultV2> {
   const projectName = validateProjectName(body.projectName);
   const screenshotCount = validateScreenshotCount(body.screenshotCount);
+
+  // Reject submissions to archived / expired classrooms. Memberships survive
+  // an archive (issue #1050, D1), so the session token may still resolve —
+  // this status guard is the actual lockout.
+  const classroomResult = await docClient.send(new GetCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId },
+  }));
+  if (!classroomResult.Item || classroomResult.Item.status !== 'active') {
+    throw new NotFoundError('This classroom is no longer active');
+  }
 
   // Single-submission model: find and clean up previous submission
   const prevResult = await docClient.send(new QueryCommand({
@@ -2005,19 +2003,6 @@ async function handleVerifySession(sessionToken: string): Promise<APIGatewayProx
   // student UI can navigate back to seat selection with the right context.
   const session = await verifySessionToken(sessionToken);
 
-  // Update lastActiveAt and extend TTL on each verify call
-  const now = new Date().toISOString();
-  await docClient.send(new UpdateCommand({
-    TableName: MEMBERSHIPS_TABLE,
-    Key: { classroomId: session.classroomId, memberId: session.memberId },
-    UpdateExpression: 'SET lastActiveAt = :now, #ttl = :ttl',
-    ExpressionAttributeNames: { '#ttl': 'ttl' },
-    ExpressionAttributeValues: {
-      ':now': now,
-      ':ttl': Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS,
-    },
-  }));
-
   // Look up latest submission for this member, plus the classroom item so the
   // student UI knows whether assignment content exists (panel / starter
   // reload) without an extra round-trip.
@@ -2039,6 +2024,29 @@ async function handleVerifySession(sessionToken: string): Promise<APIGatewayProx
       Key: { classroomId: session.classroomId },
     })),
   ]);
+
+  // Archived (or TTL-expired) classrooms end the session. Memberships are no
+  // longer purged on archive (issue #1050, D1), so this status guard is what
+  // locks students out — and what lets them resume when the teacher restores
+  // the classroom. Checked before the TTL extend so dead classrooms do not
+  // keep refreshing their membership rows.
+  if (!classroomResult.Item || classroomResult.Item.status !== 'active') {
+    throw new AuthError('This classroom is no longer active');
+  }
+
+  // Update lastActiveAt and extend TTL on each verify call
+  const now = new Date().toISOString();
+  await docClient.send(new UpdateCommand({
+    TableName: MEMBERSHIPS_TABLE,
+    Key: { classroomId: session.classroomId, memberId: session.memberId },
+    UpdateExpression: 'SET lastActiveAt = :now, #ttl = :ttl',
+    ExpressionAttributeNames: { '#ttl': 'ttl' },
+    ExpressionAttributeValues: {
+      ':now': now,
+      ':ttl': Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS,
+    },
+  }));
+
   if (subResult.Items && subResult.Items.length > 0) {
     const item = subResult.Items[0];
     submission = {
@@ -3383,7 +3391,9 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
     } else if (method === 'GET' && path === '/classrooms') {
       const token = extractBearerToken(event.headers?.authorization);
       const identity = await verifyTeacherIdToken(token);
-      result = await handleListClassrooms(identity);
+      const includeArchivedParam = event.queryStringParameters?.includeArchived;
+      const includeArchived = includeArchivedParam === '1' || includeArchivedParam === 'true';
+      result = await handleListClassrooms(identity, includeArchived);
 
     } else if (method === 'POST' && path === '/classrooms/join') {
       const sourceIp = event.requestContext.http.sourceIp || 'unknown';
