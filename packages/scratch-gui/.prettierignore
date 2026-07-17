@@ -146,6 +146,7 @@ src/lib/*
 !src/lib/classroom-assignment-utils.js
 !src/lib/classroom-assignment-templates/
 !src/lib/classroom-evaluation/
+!src/lib/classroom-download-utils.js
 !src/lib/classroom-group-utils.js
 !src/lib/classroom-retention.js
 !src/lib/classroom-kick-request-storage.js
@@ -377,6 +378,7 @@ test/unit/lib/*
 !test/unit/lib/classroom-api.test.js
 !test/unit/lib/classroom-assignment-templates.test.js
 !test/unit/lib/classroom-assignment-utils.test.js
+!test/unit/lib/classroom-download-utils.test.js
 !test/unit/lib/classroom-group-utils.test.js
 !test/unit/lib/classroom-retention.test.js
 !test/unit/lib/evaluation-utils.test.js

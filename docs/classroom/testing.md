@@ -239,6 +239,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-board-archived-row-{classroomId}` | li | アーカイブ済み課題行（保存期限を表示） |
 | `classroom-board-restore-{classroomId}` | button | アーカイブ済み課題の「元に戻す」 |
 | `classroom-board-expiry-{classroomId}` | span | 課題行の残り日数バッジ（保存期限 30 日以下で表示、7 日以下は警告色） |
+| `classroom-board-download-class` | button | ボードの「全課題の提出物をダウンロード」（active + アーカイブ済みを 1 つの zip に） |
 | `classroom-retention-banner` | div | 課題詳細の保存期限アラートバナー（30 日以下で表示） |
 | `classroom-retention-banner-download` | button | バナー内の「全作品ダウンロード」 |
 | `classroom-breadcrumbs` | nav | パンくず（クラス一覧 > 課題一覧 > 課題詳細） |

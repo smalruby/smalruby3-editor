@@ -142,6 +142,7 @@ Google または Microsoft アカウントでサインインする画面。先�
 - 課題作成は課題名のみの**インラインフォーム**（クラス名・人数はクラスから）。「**課題を再利用**」で全クラスの課題を日付降順に表示し、クラスフィルタ → 「このクラスに複製」（説明・スターター・トピックごと複製。同一クラスは「のコピー」付き）
 - **アーカイブ済みの課題**: ボード最下部に「アーカイブ済みの課題（{count}）」トグル（1 件以上のとき表示）。展開すると課題名・保存期限（TTL 由来の `expiresAt`）・「元に戻す」ボタンの行が日付降順に並ぶ。アーカイブしても保存期限は延長されない
 - **残り日数バッジ**: 保存期限（自動削除）まで 30 日以下の課題行に「あと{days}日」バッジを表示（7 日以下は警告色）。閾値の根拠は EPIC #1049 の D8
+- **全課題の提出物をダウンロード**（`classroom-board-download-class`）: クラス内の全課題（アーカイブ済み含む — どちらも保存期限で消えるため）の提出物を 1 つの zip（`課題名/席番号_名前/作品.sb3` + サムネ/スクショ + `提出状況.csv`）でダウンロード。進捗は「n/m」表示
 - 主な data-testid: `classroom-board` / `classroom-board-create[-name|-submit]` / `classroom-board-reuse[-view|-filter|-copy-{id}]` / `classroom-board-section-{topic|none}` / `classroom-board-row|open|topic|date-{classroomId}` / `classroom-topic-add[-input]` / `classroom-topic-chip|rename|remove-{topic}` / `classroom-breadcrumbs` / `classroom-board-archived-[section|toggle|list]` / `classroom-board-archived-row-{classroomId}` / `classroom-board-restore-{classroomId}`
 
 ## 1.7 先生: 課題詳細の「説明」タブ（デフォルトアクティブ）

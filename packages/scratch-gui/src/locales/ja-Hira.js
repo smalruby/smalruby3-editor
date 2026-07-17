@@ -355,6 +355,7 @@ export default {
     'gui.classroom.board.archivedExpires': 'ほぞんきげん: {date}',
     'gui.classroom.board.restore': 'もとにもどす',
     'gui.classroom.board.expiryBadge': 'あと{days}にち',
+    'gui.classroom.board.downloadClass': 'ぜんかだいのていしゅつぶつをダウンロード',
     'gui.classroom.teacherDetail.retentionBanner':
         'このかだいとていしゅつぶつは {date} にじどうさくじょされます。ダウンロードしてほぞんしてください。',
     'gui.classroom.codeDisplay.title': 'さんかコード',
