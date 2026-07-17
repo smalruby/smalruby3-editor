@@ -127,6 +127,10 @@ Google または Microsoft アカウントでサインインする画面。先�
 - 「Google Classroom からインポート」（Google ログイン時のみ）: コースを選ぶとクラスを作成（コース名→クラス名・生徒数→人数・courseId をクラスへ）
 - クラスをひらくとサイドバーがそのクラスの課題にスコープされる（「‹ クラス一覧」で戻る）
 - **アーカイブ済みのクラス**: 一覧の下部に「アーカイブ済みのクラス（{count}）」トグル（1 件以上のとき表示）。展開するとアーカイブ済みカード（アーカイブバッジ + 「元に戻す」ボタン）が並び、ワンクリックで復元できる。設定からのアーカイブは **2 段階確認**（1 回目で警告メッセージ、2 回目で実行）
+
+![クラス設定のアーカイブ確認](screenshots/0215-class-archive-confirm.png)
+
+![アーカイブ済みクラスの一覧と復元](screenshots/0216-class-list-archived.png)
 - 主な data-testid: `classroom-phase-teacher-class-list` / `classroom-class-create[-name|-year|-count|-assignment|-submit]` / `classroom-class-card-{groupId}` / `classroom-class-open-{groupId}` / `classroom-class-evaluate-{groupId}` / `classroom-class-import-gc` / `classroom-teacher-logout` / `classroom-show-archived` / `classroom-archived-class-list` / `classroom-class-restore-{groupId}`
 
 ## 1.6 先生: 課題管理ボード（クラス内の `teacher-dashboard`）
@@ -143,6 +147,8 @@ Google または Microsoft アカウントでサインインする画面。先�
 - **アーカイブ済みの課題**: ボード最下部に「アーカイブ済みの課題（{count}）」トグル（1 件以上のとき表示）。展開すると課題名・保存期限（TTL 由来の `expiresAt`）・「元に戻す」ボタンの行が日付降順に並ぶ。アーカイブしても保存期限は延長されない
 - **残り日数バッジ**: 保存期限（自動削除）まで 30 日以下の課題行に「あと{days}日」バッジを表示（7 日以下は警告色）。閾値の根拠は EPIC #1049 の D8
 - **全課題の提出物をダウンロード**（`classroom-board-download-class`）: クラス内の全課題（アーカイブ済み含む — どちらも保存期限で消えるため）の提出物を 1 つの zip（`課題名/席番号_名前/作品.sb3` + サムネ/スクショ + `提出状況.csv`）でダウンロード。進捗は「n/m」表示
+
+![残り日数バッジと全課題ダウンロード](screenshots/0213-board-expiry-badge-download.png)
 - 主な data-testid: `classroom-board` / `classroom-board-create[-name|-submit]` / `classroom-board-reuse[-view|-filter|-copy-{id}]` / `classroom-board-section-{topic|none}` / `classroom-board-row|open|topic|date-{classroomId}` / `classroom-topic-add[-input]` / `classroom-topic-chip|rename|remove-{topic}` / `classroom-breadcrumbs` / `classroom-board-archived-[section|toggle|list]` / `classroom-board-archived-row-{classroomId}` / `classroom-board-restore-{classroomId}`
 
 ## 1.7 先生: 課題詳細の「説明」タブ（デフォルトアクティブ）
@@ -183,7 +189,9 @@ Google または Microsoft アカウントでサインインする画面。先�
 | 課題確認リンク | 「課題を確認」 | `classroom-view-assignment` | 配信済みのとき表示（新しいタブ） |
 | 参加コード表示 | 「参加コード: 3cexm5」 | `classroom-detail-join-code` | 大きなフォントで中央表示 |
 | コード拡大ボタン | ⛶ アイコン（ツールチップ: 「全画面表示」） | `classroom-detail-expand-code` | 全画面コード表示 |
-| 保存期限 | 「保存期限: 2026/4/6」 | — | 自動削除の期日（TTL）。30 日以下になると下に警告バナー（`classroom-retention-banner`）が出て「全作品ダウンロード」を促す |
+| 保存期限 | 「保存期限: 2026/4/6」 | — | 自動削除の期日（TTL）。30 日以下になると下に警告バナー（`classroom-retention-banner`）が出て「全作品ダウンロード」を促す（下図） |
+
+![課題詳細の保存期限バナー](screenshots/0214-detail-retention-banner.png)
 | メンバー見出し | 「メンバー」 | — | — |
 | メンバー数 | 「1 / 35」 | `classroom-members-count` | 参加人数 / 最大人数 |
 | 更新ボタン | ↻ アイコン | `classroom-refresh` | メンバー・提出を再取得 |
