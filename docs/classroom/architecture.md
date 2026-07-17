@@ -122,14 +122,16 @@ sequenceDiagram
 | サービス | リソース名 | 用途 |
 |---------|-----------|------|
 | **API Gateway** | `ClassroomApi-{stage}` | HTTP API エンドポイント |
-| **Lambda** | `ClassroomHandler-{stage}` | ビジネスロジック (Node.js 20, 256MB, 30秒) |
-| **DynamoDB** | `Classrooms-{stage}` | クラス情報 |
-| **DynamoDB** | `ClassroomMemberships-{stage}` | メンバー (生徒) 情報 |
-| **DynamoDB** | `ClassroomSubmissions-{stage}` | 提出情報 |
-| **S3** | `smalruby-classroom-submissions-{stage}` | 提出ファイル (.sb3, サムネイル, スクリーンショット) |
+| **Lambda** | `ClassroomHandler-{stage}` | ビジネスロジック (Node.js 22, 256MB, 30秒) |
+| **Lambda** | `ClassroomArchiver-{stage}` | DynamoDB Streams の REMOVE を S3 へスナップショット（下記「削除スナップショットと長期保持」） |
+| **DynamoDB** | `Classrooms-{stage}` | クラス情報（Streams: OLD_IMAGE） |
+| **DynamoDB** | `ClassroomMemberships-{stage}` | メンバー (生徒) 情報（Streams: OLD_IMAGE） |
+| **DynamoDB** | `ClassroomSubmissions-{stage}` | 提出情報（Streams: OLD_IMAGE） |
+| **DynamoDB** | `ClassroomGroups-{stage}` | クラス（学級）情報（Streams: OLD_IMAGE） |
+| **S3** | `smalruby-classroom-submissions-{stage}` | 提出ファイル (.sb3, サムネイル, スクリーンショット) + `ddb-archive/` スナップショット。lifecycle = `ARCHIVE_RETENTION_DAYS`（既定 365 日） |
 | **Route53** | A レコード | カスタムドメイン |
 | **ACM** | SSL 証明書 | HTTPS |
-| **CloudWatch Logs** | `/aws/lambda/ClassroomHandler-{stage}` | ログ (stg: 1週間, prod: 1ヶ月) |
+| **CloudWatch Logs** | `/aws/lambda/ClassroomHandler-{stage}` / `/aws/lambda/ClassroomArchiver-{stage}` | ログ (stg: 1週間, prod: 1ヶ月) |
 
 ### カスタムドメイン
 
@@ -392,7 +394,24 @@ smalruby-classroom-submissions-{stage}/
 | クラス | 90日 | 1日 |
 | メンバー | クラスと同じ | クラスと同じ |
 | 提出 | クラスと同じ | クラスと同じ |
-| S3 ファイル | クラスと同じ (ライフサイクルルール) | クラスと同じ |
+| S3 ファイル | `ARCHIVE_RETENTION_DAYS`（365日。ライフサイクルルール） | 同（stg は 30日） |
+
+ユーザーがアクセスできるのは **メタデータ（DynamoDB）が生きている TTL 期間内のみ**（presigned URL はメタデータからのみ発行される）。TTL 後〜`ARCHIVE_RETENTION_DAYS` の間は運用者のみが復元に使える（下記）。
+
+## 削除スナップショットと長期保持（期限切れ復元の最後の砦）
+
+「期限が切れたが、どうしても復元してほしい」という問い合わせに応えるための仕組み（EPIC #1049 D7）。
+
+- `Classrooms` / `ClassroomMemberships` / `ClassroomSubmissions` / `ClassroomGroups` に DynamoDB Streams（OLD_IMAGE）を有効化。`ClassroomKickRequests`（1時間 TTL の一時データ）は対象外
+- **`ClassroomArchiver-{stage}`** Lambda が REMOVE イベント（TTL 削除・明示削除の両方）を受け、削除されたアイテムを JSON で S3 に退避:
+  - `ddb-archive/classrooms/{classroomId}.json`
+  - `ddb-archive/memberships/{classroomId}/{memberId}.json`
+  - `ddb-archive/submissions/{classroomId}/{submissionId}.json`
+  - `ddb-archive/groups/{groupId}.json`
+  - `eval-quota#` プレフィックスのカウンタ行はスキップ
+- イベントソースは REMOVE のみのフィルタ + `bisectBatchOnError` + 有限リトライ（不正レコード 1 件で shard が詰まらない設計。S3 書き込み失敗のみ throw して再試行）
+- S3 lifecycle は `ARCHIVE_RETENTION_DAYS`（既定 365 日、`CLASSROOM_TTL_DAYS` 以上必須 — スタックがガード）
+- 復元手順は `docs/classroom/operations.md`（運用者向け）
 
 ## CORS
 
