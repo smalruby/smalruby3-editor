@@ -350,6 +350,7 @@ export default {
     'gui.classroom.board.archivedExpires': '保存期限: {date}',
     'gui.classroom.board.restore': '元に戻す',
     'gui.classroom.board.expiryBadge': 'あと{days}日',
+    'gui.classroom.board.downloadClass': '全課題の提出物をダウンロード',
     'gui.classroom.teacherDetail.retentionBanner':
         'この課題と提出物は {date} に自動削除されます。ダウンロードして保存してください。',
     'gui.classroom.codeDisplay.title': '参加コード',

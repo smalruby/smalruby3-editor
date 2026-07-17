@@ -153,6 +153,7 @@ const ClassroomTeacherModal = () => {
         onOpenSubmission: teacher.handleOpenSubmission,
         onReturnSubmission: teacher.handleReturnSubmission,
         onDownloadAll: teacher.handleDownloadAll,
+        onDownloadClassAll: teacher.handleDownloadClassAll,
         onShowCodeDisplay: teacher.handleShowCodeDisplay,
         onCloseCodeDisplay: teacher.handleCloseCodeDisplay,
         onCopyInviteLink: teacher.handleCopyInviteLink,

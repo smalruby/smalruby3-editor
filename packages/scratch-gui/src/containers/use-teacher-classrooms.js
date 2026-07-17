@@ -27,11 +27,13 @@ export const splitClassroomsByStatus = (list) => {
 
 /**
  * Build enriched member list by joining members with their latest submission.
+ * Exported for the class-wide bulk download (issue #1055), which runs the
+ * same join per assignment.
  * @param {object} membersData - API response from listMembers
  * @param {object} submissionsData - API response from listSubmissions
  * @returns {Array} enriched member list
  */
-const enrichMembers = (membersData, submissionsData) => {
+export const enrichMembers = (membersData, submissionsData) => {
     const subMap = {};
     for (const sub of submissionsData.submissions || []) {
         const existing = subMap[sub.memberId];

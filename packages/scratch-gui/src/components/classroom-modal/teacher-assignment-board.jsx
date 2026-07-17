@@ -203,11 +203,13 @@ const TeacherAssignmentBoard = ({
     allGroups,
     archivedClassrooms,
     classrooms,
+    downloadProgress,
     error,
     errorTitle,
     group,
     isLoading,
     onCreateAssignmentInClass,
+    onDownloadClassAll,
     onRestoreClassroom,
     onReuseAssignment,
     onSelectClassroom,
@@ -236,6 +238,12 @@ const TeacherAssignmentBoard = ({
     const handleRestore = useCallback(
         (e) => onRestoreClassroom(e.currentTarget.dataset.classroomId),
         [onRestoreClassroom],
+    );
+    // Class-wide bulk download (issue #1055): active + archived assignments —
+    // both are TTL-bound, and the point is saving everything before expiry.
+    const handleDownloadClassAll = useCallback(
+        () => onDownloadClassAll(group, [...classrooms, ...(archivedClassrooms || [])]),
+        [onDownloadClassAll, group, classrooms, archivedClassrooms],
     );
 
     const handleToggleInlineCreate = useCallback(() => {
@@ -348,6 +356,25 @@ const TeacherAssignmentBoard = ({
                         id="gui.classroom.board.reuse"
                     />
                 </button>
+                {onDownloadClassAll ? (
+                    <button
+                        className={styles.boardReuseButton}
+                        data-testid="classroom-board-download-class"
+                        disabled={isLoading || !!downloadProgress}
+                        type="button"
+                        onClick={handleDownloadClassAll}
+                    >
+                        {downloadProgress ? (
+                            `${downloadProgress.current}/${downloadProgress.total}`
+                        ) : (
+                            <FormattedMessage
+                                defaultMessage="Download all submissions"
+                                description="Button that downloads every assignment's submissions as one zip"
+                                id="gui.classroom.board.downloadClass"
+                            />
+                        )}
+                    </button>
+                ) : null}
             </div>
             <ErrorDisplay error={error} errorTitle={errorTitle} />
             {showInlineCreate ? (
@@ -610,11 +637,16 @@ TeacherAssignmentBoard.propTypes = {
     allGroups: PropTypes.arrayOf(PropTypes.object),
     archivedClassrooms: PropTypes.arrayOf(PropTypes.object),
     classrooms: PropTypes.arrayOf(PropTypes.object).isRequired,
+    downloadProgress: PropTypes.shape({
+        current: PropTypes.number,
+        total: PropTypes.number,
+    }),
     error: PropTypes.string,
     errorTitle: PropTypes.string,
     group: PropTypes.object.isRequired,
     isLoading: PropTypes.bool,
     onCreateAssignmentInClass: PropTypes.func.isRequired,
+    onDownloadClassAll: PropTypes.func,
     onRestoreClassroom: PropTypes.func,
     onReuseAssignment: PropTypes.func.isRequired,
     onSelectClassroom: PropTypes.func.isRequired,

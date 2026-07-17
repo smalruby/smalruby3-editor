@@ -343,6 +343,7 @@ export default {
     'gui.classroom.board.archivedExpires': 'Kept until {date}',
     'gui.classroom.board.restore': 'Restore',
     'gui.classroom.board.expiryBadge': '{days} days left',
+    'gui.classroom.board.downloadClass': 'Download all submissions',
     'gui.classroom.teacherDetail.retentionBanner':
         'This assignment and its submissions will be deleted automatically on {date}. ' +
         'Download them to keep a copy.',

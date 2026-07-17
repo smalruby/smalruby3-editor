@@ -209,6 +209,7 @@ const useTeacherClassroom = ({
         handleCopyInviteLink: submissions.handleCopyInviteLink,
         handleReturnSubmission: submissions.handleReturnSubmission,
         handleDownloadAll: submissions.handleDownloadAll,
+        handleDownloadClassAll: submissions.handleDownloadClassAll,
 
         // Assignment content editor
         assignmentEditorPages: assignment.editorPages,

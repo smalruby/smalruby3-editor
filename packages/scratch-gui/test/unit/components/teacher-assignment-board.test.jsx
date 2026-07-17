@@ -23,6 +23,7 @@ const defaultProps = () => ({
     group: { groupId: 'g1', name: '技術', year: 2026, topics: [] },
     isLoading: false,
     onCreateAssignmentInClass: jest.fn(),
+    onDownloadClassAll: jest.fn(),
     onRestoreClassroom: jest.fn(),
     onReuseAssignment: jest.fn(),
     onSelectClassroom: jest.fn(),
@@ -91,6 +92,33 @@ describe('TeacherAssignmentBoard — archived assignments section (issue #1051)'
             document.querySelectorAll('[data-testid^="classroom-board-archived-row-"]'),
         ).map((el) => el.getAttribute('data-testid'));
         expect(rows).toEqual(['classroom-board-archived-row-new', 'classroom-board-archived-row-old']);
+    });
+});
+
+describe('TeacherAssignmentBoard — class-wide bulk download (issue #1055)', () => {
+    test('the header button downloads active and archived assignments together', () => {
+        const props = defaultProps();
+        props.classrooms = [classroom()];
+        props.archivedClassrooms = [classroom({ classroomId: 'c2', status: 'archived' })];
+        props.onDownloadClassAll = jest.fn();
+        renderBoard(props);
+
+        fireEvent.click(byTestId('classroom-board-download-class'));
+
+        expect(props.onDownloadClassAll).toHaveBeenCalledWith(
+            props.group,
+            expect.arrayContaining([
+                expect.objectContaining({ classroomId: 'c1' }),
+                expect.objectContaining({ classroomId: 'c2' }),
+            ]),
+        );
+    });
+
+    test('shows progress and disables the button while downloading', () => {
+        renderBoard({ downloadProgress: { current: 2, total: 5 } });
+        const button = byTestId('classroom-board-download-class');
+        expect(button).toBeDisabled();
+        expect(button.textContent).toContain('2/5');
     });
 });
 

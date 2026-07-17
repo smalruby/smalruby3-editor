@@ -85,6 +85,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         onOpenSubmission,
         onReturnSubmission,
         onDownloadAll,
+        onDownloadClassAll,
         onShowCodeDisplay,
         onCloseCodeDisplay,
         onCopyInviteLink,
@@ -340,11 +341,13 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         allGroups={groups || []}
                         archivedClassrooms={scopedArchivedClassrooms}
                         classrooms={scopedClassrooms}
+                        downloadProgress={downloadProgress}
                         error={error}
                         errorTitle={errorTitle}
                         group={selectedGroup}
                         isLoading={isLoading}
                         onCreateAssignmentInClass={onCreateAssignmentInClass}
+                        onDownloadClassAll={onDownloadClassAll}
                         onRestoreClassroom={onRestoreClassroom}
                         onReuseAssignment={onReuseAssignment}
                         onSelectClassroom={onSelectClassroom}
