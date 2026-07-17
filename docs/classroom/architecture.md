@@ -160,10 +160,10 @@ sequenceDiagram
 | Method | Path | 説明 |
 |--------|------|------|
 | `POST` | `/classrooms` | クラス作成 |
-| `GET` | `/classrooms` | クラス一覧 |
+| `GET` | `/classrooms` | クラス一覧（既定は active のみ。`?includeArchived=1` でアーカイブ済みも返す。各要素に `status` を含む） |
 | `GET` | `/classrooms/{id}` | クラス詳細 |
-| `PATCH` | `/classrooms/{id}` | クラス更新 |
-| `DELETE` | `/classrooms/{id}` | クラス削除 (アーカイブ) |
+| `PATCH` | `/classrooms/{id}` | クラス更新。`{status: 'active'}` でアーカイブ済み課題の復元も行う |
+| `DELETE` | `/classrooms/{id}` | クラス削除 (アーカイブ)。soft-delete でメンバー・提出メタ・S3 は保持され、PATCH で復元可能。生徒の遮断は status ガード（join / lookup / verify-session / 提出がすべて非 active を拒否） |
 | `GET` | `/classrooms/{id}/co-teachers` | 共同管理者一覧 (`{ownerSub, coTeacherEmails}`) |
 | `POST` | `/classrooms/{id}/co-teachers` | 共同管理者を email で招待 (`{email}`)。冪等・最大10・email 形式検証 |
 | `DELETE` | `/classrooms/{id}/co-teachers/{email}` | 共同管理者を解除 |
@@ -190,8 +190,8 @@ sequenceDiagram
 | `POST` | `/classrooms/lookup` | 不要 | 参加コードでクラス検索 |
 | `POST` | `/classrooms/lookup/kick-request` | 不要 | 「使用中の席」を空けてもらう依頼を先生に送信 (Issue #692) |
 | `POST` | `/classrooms/join` | 不要 | クラスに参加 (→ sessionToken 取得) |
-| `POST` | `/classrooms/verify-session` | Session Token | セッション検証 + 提出状況取得。kick された生徒には 410 + `{reason: 'kicked', joinCode, className, seatNumber}` を返す |
-| `POST` | `/classrooms/{id}/submissions` | Session Token | 提出 (Presigned URL 取得) |
+| `POST` | `/classrooms/verify-session` | Session Token | セッション検証 + 提出状況取得。kick された生徒には 410 + `{reason: 'kicked', joinCode, className, seatNumber}` を返す。クラスが非 active（アーカイブ/期限切れ）なら 401 |
+| `POST` | `/classrooms/{id}/submissions` | Session Token | 提出 (Presigned URL 取得)。クラスが非 active なら 404 |
 | `DELETE` | `/classrooms/{id}/members/me` | Session Token | 自主退出 |
 | `GET` | `/classrooms/{id}/assignment` | Session Token または 先生 ID Token | 課題コンテンツ取得（ページ + 画像/スターターのダウンロード URL）。lookup / join / verify-session は `hasAssignment` フラグを返す |
 
