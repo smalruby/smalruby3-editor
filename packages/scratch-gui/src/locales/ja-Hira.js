@@ -354,6 +354,9 @@ export default {
     'gui.classroom.board.archivedToggle': 'アーカイブずみのかだい（{count}）',
     'gui.classroom.board.archivedExpires': 'ほぞんきげん: {date}',
     'gui.classroom.board.restore': 'もとにもどす',
+    'gui.classroom.board.expiryBadge': 'あと{days}にち',
+    'gui.classroom.teacherDetail.retentionBanner':
+        'このかだいとていしゅつぶつは {date} にじどうさくじょされます。ダウンロードしてほぞんしてください。',
     'gui.classroom.codeDisplay.title': 'さんかコード',
     'gui.classroom.codeDisplay.copyLink': 'しょうたいリンクをコピー',
     'gui.classroom.codeDisplay.copied': 'コピーしました',
@@ -392,7 +395,7 @@ export default {
     'gui.classroom.teacherDetail.assignmentNameLabel': 'かだいめい',
     'gui.classroom.teacherDetail.seatNumber': 'しゅっせきばんごう{number}',
     'gui.classroom.teacherDashboard.expiresAt': 'ゆうこうきげん: {date}',
-    'gui.classroom.teacherDetail.expiresAt': 'ゆうこうきげん: {date}',
+    'gui.classroom.teacherDetail.expiresAt': 'ほぞんきげん: {date}',
     'gui.classroom.teacherCreate.assignmentNameHint': 'にんずうとかだいめいはいつでもへんこうできます。',
     'gui.classroom.carousel.submitTitle': 'せいとがかだいをていしゅつできる',
     'gui.classroom.carousel.submitDesc':

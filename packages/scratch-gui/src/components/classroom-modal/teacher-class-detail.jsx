@@ -9,6 +9,7 @@ import TeacherAssignmentEditor from './teacher-assignment-editor.jsx';
 import TeacherMemberDetail from './teacher-member-detail.jsx';
 
 import { formatClassLabel } from '../../lib/classroom-class-label.js';
+import { retentionLevel } from '../../lib/classroom-retention.js';
 import googleClassroomIcon from '../classroom-teacher-modal/google-classroom-icon.png';
 import styles from './classroom-modal.css';
 
@@ -333,8 +334,8 @@ const TeacherClassDetail = ({
                             {selectedClassroom.expiresAt && (
                                 <div className={styles.expiresAtText}>
                                     <FormattedMessage
-                                        defaultMessage="Expires: {date}"
-                                        description="Expiry date in class detail"
+                                        defaultMessage="Kept until: {date}"
+                                        description="Retention deadline in assignment detail"
                                         id="gui.classroom.teacherDetail.expiresAt"
                                         values={{
                                             date: new Date(
@@ -342,6 +343,50 @@ const TeacherClassDetail = ({
                                             ).toLocaleDateString(),
                                         }}
                                     />
+                                </div>
+                            )}
+
+                            {/* Retention alert (issue #1052): within 30 days
+                                of auto-deletion, prompt a bulk download. */}
+                            {retentionLevel(selectedClassroom.expiresAt) === 'none' ? null : (
+                                <div
+                                    className={
+                                        retentionLevel(selectedClassroom.expiresAt) === 'warning'
+                                            ? styles.retentionBannerWarning
+                                            : styles.retentionBanner
+                                    }
+                                    data-testid="classroom-retention-banner"
+                                >
+                                    <FormattedMessage
+                                        defaultMessage={
+                                            'This assignment and its submissions will be deleted ' +
+                                            'automatically on {date}. Download them to keep a copy.'
+                                        }
+                                        description="Banner prompting a bulk download before auto-deletion"
+                                        id="gui.classroom.teacherDetail.retentionBanner"
+                                        values={{
+                                            date: new Date(
+                                                selectedClassroom.expiresAt,
+                                            ).toLocaleDateString(),
+                                        }}
+                                    />
+                                    <button
+                                        className={styles.retentionBannerDownload}
+                                        data-testid="classroom-retention-banner-download"
+                                        disabled={isLoading || !!downloadProgress}
+                                        type="button"
+                                        onClick={onDownloadAll}
+                                    >
+                                        {downloadProgress ? (
+                                            `${downloadProgress.current}/${downloadProgress.total}`
+                                        ) : (
+                                            <FormattedMessage
+                                                defaultMessage="Download All"
+                                                description="Download all submissions button"
+                                                id="gui.classroom.teacherDetail.downloadAll"
+                                            />
+                                        )}
+                                    </button>
                                 </div>
                             )}
 

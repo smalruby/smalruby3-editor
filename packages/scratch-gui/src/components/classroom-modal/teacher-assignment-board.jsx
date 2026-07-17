@@ -11,6 +11,7 @@ import { FormattedMessage, useIntl } from 'react-intl';
 
 import { buildAssignmentSections } from '../../lib/classroom-group-utils.js';
 import { formatClassLabel } from '../../lib/classroom-class-label.js';
+import { daysUntil, retentionLevel } from '../../lib/classroom-retention.js';
 import ErrorDisplay from './error-display.jsx';
 import TeacherBreadcrumbs from './teacher-breadcrumbs.jsx';
 
@@ -112,6 +113,9 @@ const AssignmentRow = ({ classroom, topics, isLoading, onSelectClassroom, onUpda
     );
 
     const dateValue = (classroom.sortDate || classroom.createdAt || '').slice(0, 10);
+    // Retention alert (issue #1052): make the auto-delete deadline visible
+    // before it hits, so "expired" never looks like a mysterious archive.
+    const retention = retentionLevel(classroom.expiresAt);
 
     return (
         <li className={styles.boardRow} data-testid={`classroom-board-row-${classroom.classroomId}`}>
@@ -124,6 +128,31 @@ const AssignmentRow = ({ classroom, topics, isLoading, onSelectClassroom, onUpda
                 <span className={styles.boardRowName}>{classroom.assignmentName || classroom.className}</span>
                 <span className={styles.boardRowCode}>{classroom.joinCode}</span>
             </button>
+            {retention === 'none' ? null : (
+                <span
+                    className={
+                        retention === 'warning' ? styles.expiryBadgeWarning : styles.expiryBadgeNotice
+                    }
+                    data-testid={`classroom-board-expiry-${classroom.classroomId}`}
+                    title={intl.formatMessage(
+                        {
+                            defaultMessage: 'Kept until {date}',
+                            description: 'Retention deadline shown on an archived assignment row',
+                            id: 'gui.classroom.board.archivedExpires',
+                        },
+                        { date: new Date(classroom.expiresAt).toLocaleDateString() },
+                    )}
+                >
+                    {intl.formatMessage(
+                        {
+                            defaultMessage: '{days} days left',
+                            description: 'Days-until-deletion badge on an assignment row',
+                            id: 'gui.classroom.board.expiryBadge',
+                        },
+                        { days: daysUntil(classroom.expiresAt) },
+                    )}
+                </span>
+            )}
             <select
                 aria-label={intl.formatMessage({
                     defaultMessage: 'Topic',

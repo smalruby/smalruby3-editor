@@ -1,6 +1,6 @@
 /* eslint-env jest */
 import '@testing-library/jest-dom';
-import { render } from '@testing-library/react';
+import { fireEvent, render } from '@testing-library/react';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
 import TeacherClassDetail from '../../../src/components/classroom-modal/teacher-class-detail.jsx';
@@ -79,5 +79,33 @@ describe('TeacherClassDetail — Google Classroom post button', () => {
         });
         expect(document.querySelector('[data-testid="classroom-view-assignment"]')).toBeInTheDocument();
         expect(document.querySelector('[data-testid="classroom-post-assignment"]')).not.toBeInTheDocument();
+    });
+});
+
+describe('TeacherClassDetail — retention banner (issue #1052)', () => {
+    const DAY = 24 * 60 * 60 * 1000;
+    const inDays = (days) => new Date(Date.now() + days * DAY).toISOString();
+    const byTestId = (id) => document.querySelector(`[data-testid="${id}"]`);
+
+    test('shows no banner while the deadline is far away', () => {
+        renderDetail({ selectedClassroom: classroom({ expiresAt: inDays(60) }) });
+        expect(byTestId('classroom-retention-banner')).not.toBeInTheDocument();
+    });
+
+    test('shows the banner with the deadline within 30 days of deletion', () => {
+        renderDetail({ selectedClassroom: classroom({ expiresAt: inDays(20) }) });
+        const banner = byTestId('classroom-retention-banner');
+        expect(banner).toBeInTheDocument();
+        expect(banner.textContent).toContain('deleted automatically');
+    });
+
+    test('the banner download button triggers onDownloadAll', () => {
+        const onDownloadAll = jest.fn();
+        renderDetail({
+            selectedClassroom: classroom({ expiresAt: inDays(5) }),
+            onDownloadAll,
+        });
+        fireEvent.click(byTestId('classroom-retention-banner-download'));
+        expect(onDownloadAll).toHaveBeenCalled();
     });
 });
