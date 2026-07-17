@@ -11,6 +11,7 @@ import { FormattedMessage, useIntl } from 'react-intl';
 
 import { buildAssignmentSections } from '../../lib/classroom-group-utils.js';
 import { formatClassLabel } from '../../lib/classroom-class-label.js';
+import { daysUntil, retentionLevel } from '../../lib/classroom-retention.js';
 import ErrorDisplay from './error-display.jsx';
 import TeacherBreadcrumbs from './teacher-breadcrumbs.jsx';
 
@@ -112,6 +113,9 @@ const AssignmentRow = ({ classroom, topics, isLoading, onSelectClassroom, onUpda
     );
 
     const dateValue = (classroom.sortDate || classroom.createdAt || '').slice(0, 10);
+    // Retention alert (issue #1052): make the auto-delete deadline visible
+    // before it hits, so "expired" never looks like a mysterious archive.
+    const retention = retentionLevel(classroom.expiresAt);
 
     return (
         <li className={styles.boardRow} data-testid={`classroom-board-row-${classroom.classroomId}`}>
@@ -124,6 +128,31 @@ const AssignmentRow = ({ classroom, topics, isLoading, onSelectClassroom, onUpda
                 <span className={styles.boardRowName}>{classroom.assignmentName || classroom.className}</span>
                 <span className={styles.boardRowCode}>{classroom.joinCode}</span>
             </button>
+            {retention === 'none' ? null : (
+                <span
+                    className={
+                        retention === 'warning' ? styles.expiryBadgeWarning : styles.expiryBadgeNotice
+                    }
+                    data-testid={`classroom-board-expiry-${classroom.classroomId}`}
+                    title={intl.formatMessage(
+                        {
+                            defaultMessage: 'Kept until {date}',
+                            description: 'Retention deadline shown on an archived assignment row',
+                            id: 'gui.classroom.board.archivedExpires',
+                        },
+                        { date: new Date(classroom.expiresAt).toLocaleDateString() },
+                    )}
+                >
+                    {intl.formatMessage(
+                        {
+                            defaultMessage: '{days} days left',
+                            description: 'Days-until-deletion badge on an assignment row',
+                            id: 'gui.classroom.board.expiryBadge',
+                        },
+                        { days: daysUntil(classroom.expiresAt) },
+                    )}
+                </span>
+            )}
             <select
                 aria-label={intl.formatMessage({
                     defaultMessage: 'Topic',
@@ -172,12 +201,16 @@ AssignmentRow.propTypes = {
 const TeacherAssignmentBoard = ({
     allClassrooms,
     allGroups,
+    archivedClassrooms,
     classrooms,
+    downloadProgress,
     error,
     errorTitle,
     group,
     isLoading,
     onCreateAssignmentInClass,
+    onDownloadClassAll,
+    onRestoreClassroom,
     onReuseAssignment,
     onSelectClassroom,
     onShowClassList,
@@ -190,8 +223,28 @@ const TeacherAssignmentBoard = ({
     const [newAssignmentName, setNewAssignmentName] = useState('');
     const [showReuse, setShowReuse] = useState(false);
     const [reuseFilterGroupId, setReuseFilterGroupId] = useState('');
+    const [showArchived, setShowArchived] = useState(false);
     const topics = Array.isArray(group.topics) ? group.topics : [];
     const sections = buildAssignmentSections(classrooms, topics);
+    // Archived assignments of this class (issue #1051), newest first. Shown
+    // in a collapsed section so an accidental archive is always recoverable.
+    const archivedRows = (archivedClassrooms || [])
+        .slice()
+        .sort((a, b) =>
+            String(b.sortDate || b.createdAt || '').localeCompare(String(a.sortDate || a.createdAt || '')),
+        );
+
+    const handleToggleArchived = useCallback(() => setShowArchived((v) => !v), []);
+    const handleRestore = useCallback(
+        (e) => onRestoreClassroom(e.currentTarget.dataset.classroomId),
+        [onRestoreClassroom],
+    );
+    // Class-wide bulk download (issue #1055): active + archived assignments —
+    // both are TTL-bound, and the point is saving everything before expiry.
+    const handleDownloadClassAll = useCallback(
+        () => onDownloadClassAll(group, [...classrooms, ...(archivedClassrooms || [])]),
+        [onDownloadClassAll, group, classrooms, archivedClassrooms],
+    );
 
     const handleToggleInlineCreate = useCallback(() => {
         setShowReuse(false);
@@ -303,6 +356,25 @@ const TeacherAssignmentBoard = ({
                         id="gui.classroom.board.reuse"
                     />
                 </button>
+                {onDownloadClassAll ? (
+                    <button
+                        className={styles.boardReuseButton}
+                        data-testid="classroom-board-download-class"
+                        disabled={isLoading || !!downloadProgress}
+                        type="button"
+                        onClick={handleDownloadClassAll}
+                    >
+                        {downloadProgress ? (
+                            `${downloadProgress.current}/${downloadProgress.total}`
+                        ) : (
+                            <FormattedMessage
+                                defaultMessage="Download all submissions"
+                                description="Button that downloads every assignment's submissions as one zip"
+                                id="gui.classroom.board.downloadClass"
+                            />
+                        )}
+                    </button>
+                ) : null}
             </div>
             <ErrorDisplay error={error} errorTitle={errorTitle} />
             {showInlineCreate ? (
@@ -488,6 +560,74 @@ const TeacherAssignmentBoard = ({
                     </ul>
                 </div>
             ))}
+            {archivedRows.length > 0 ? (
+                <div className={styles.boardSection} data-testid="classroom-board-archived-section">
+                    <button
+                        className={styles.archivedToggle}
+                        data-testid="classroom-board-archived-toggle"
+                        type="button"
+                        onClick={handleToggleArchived}
+                    >
+                        {showArchived ? '▼ ' : '▶ '}
+                        {intl.formatMessage(
+                            {
+                                defaultMessage: 'Archived assignments ({count})',
+                                description: 'Toggle of the archived assignments section on the board',
+                                id: 'gui.classroom.board.archivedToggle',
+                            },
+                            { count: archivedRows.length },
+                        )}
+                    </button>
+                    {showArchived ? (
+                        <ul className={styles.boardRows} data-testid="classroom-board-archived-list">
+                            {archivedRows.map((classroom) => (
+                                <li
+                                    key={classroom.classroomId}
+                                    className={styles.boardRow}
+                                    data-testid={`classroom-board-archived-row-${classroom.classroomId}`}
+                                >
+                                    <span className={styles.boardRowMain}>
+                                        <span className={styles.boardRowName}>
+                                            {classroom.assignmentName || classroom.className}
+                                        </span>
+                                        <span className={styles.boardRowCode}>
+                                            {classroom.expiresAt
+                                                ? intl.formatMessage(
+                                                      {
+                                                          defaultMessage: 'Kept until {date}',
+                                                          description:
+                                                              'Retention deadline shown on an archived assignment row',
+                                                          id: 'gui.classroom.board.archivedExpires',
+                                                      },
+                                                      {
+                                                          date: new Date(
+                                                              classroom.expiresAt,
+                                                          ).toLocaleDateString(),
+                                                      },
+                                                  )
+                                                : null}
+                                        </span>
+                                    </span>
+                                    <button
+                                        className={styles.reuseRowCopy}
+                                        data-classroom-id={classroom.classroomId}
+                                        data-testid={`classroom-board-restore-${classroom.classroomId}`}
+                                        disabled={isLoading}
+                                        type="button"
+                                        onClick={handleRestore}
+                                    >
+                                        <FormattedMessage
+                                            defaultMessage="Restore"
+                                            description="Button that restores an archived assignment"
+                                            id="gui.classroom.board.restore"
+                                        />
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : null}
+                </div>
+            ) : null}
         </div>
     );
 };
@@ -495,12 +635,19 @@ const TeacherAssignmentBoard = ({
 TeacherAssignmentBoard.propTypes = {
     allClassrooms: PropTypes.arrayOf(PropTypes.object),
     allGroups: PropTypes.arrayOf(PropTypes.object),
+    archivedClassrooms: PropTypes.arrayOf(PropTypes.object),
     classrooms: PropTypes.arrayOf(PropTypes.object).isRequired,
+    downloadProgress: PropTypes.shape({
+        current: PropTypes.number,
+        total: PropTypes.number,
+    }),
     error: PropTypes.string,
     errorTitle: PropTypes.string,
     group: PropTypes.object.isRequired,
     isLoading: PropTypes.bool,
     onCreateAssignmentInClass: PropTypes.func.isRequired,
+    onDownloadClassAll: PropTypes.func,
+    onRestoreClassroom: PropTypes.func,
     onReuseAssignment: PropTypes.func.isRequired,
     onSelectClassroom: PropTypes.func.isRequired,
     onShowClassList: PropTypes.func.isRequired,

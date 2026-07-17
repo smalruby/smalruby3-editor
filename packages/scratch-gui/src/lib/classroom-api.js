@@ -59,10 +59,14 @@ class ClassroomAPI {
     /**
      * List classrooms for the authenticated teacher.
      * @param {string} idToken - Google ID token
+     * @param {object} [options] - list options
+     * @param {boolean} [options.includeArchived] - also return archived
+     *     classrooms (each item carries a `status` field). Default: active only.
      * @returns {Promise<object>} List of classrooms
      */
-    async listClassrooms(idToken) {
-        return this._request('GET', '/classrooms', null, idToken);
+    async listClassrooms(idToken, { includeArchived = false } = {}) {
+        const path = includeArchived ? '/classrooms?includeArchived=1' : '/classrooms';
+        return this._request('GET', path, null, idToken);
     }
 
     /**

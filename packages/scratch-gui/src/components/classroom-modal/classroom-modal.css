@@ -2259,6 +2259,96 @@
     cursor: default;
 }
 
+/* --- Archived section (class list & assignment board, issue #1051) --- */
+
+.archived-section {
+    margin-top: 1.5rem;
+    padding-top: 0.75rem;
+    border-top: 1px dashed hsla(0, 0%, 0%, 0.15);
+}
+
+.archived-toggle {
+    display: block;
+    padding: 0.4rem 0;
+    border: none;
+    background: none;
+    color: hsla(225, 15%, 40%, 1);
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+.archived-toggle:hover {
+    color: #855cd6;
+}
+
+.class-settings-archive-confirm {
+    margin: 0.5rem 0 0;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    background: hsla(35, 90%, 55%, 0.12);
+    color: hsla(30, 60%, 30%, 1);
+    font-size: 0.875rem;
+}
+
+/* --- Retention (auto-delete) alerts (issue #1052) --- */
+
+.expiry-badge-notice,
+.expiry-badge-warning {
+    align-self: center;
+    flex-shrink: 0;
+    padding: 0.1rem 0.5rem;
+    border-radius: 0.75rem;
+    font-size: 0.75rem;
+    white-space: nowrap;
+}
+
+.expiry-badge-notice {
+    background: hsla(35, 90%, 55%, 0.15);
+    color: hsla(30, 70%, 35%, 1);
+}
+
+.expiry-badge-warning {
+    background: hsla(20, 100%, 55%, 0.18);
+    color: hsla(10, 80%, 40%, 1);
+}
+
+.retention-banner,
+.retention-banner-warning {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0.75rem 0;
+    padding: 0.6rem 0.9rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.retention-banner {
+    background: hsla(35, 90%, 55%, 0.12);
+    color: hsla(30, 60%, 30%, 1);
+}
+
+.retention-banner-warning {
+    background: hsla(20, 100%, 55%, 0.15);
+    color: hsla(10, 80%, 35%, 1);
+}
+
+.retention-banner-download {
+    flex-shrink: 0;
+    padding: 0.35rem 0.8rem;
+    border: 1px solid #855cd6;
+    border-radius: 0.5rem;
+    background: white;
+    color: #855cd6;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.retention-banner-download:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
 /* --- Assignment board (inside a class) --- */
 
 .assignment-board {

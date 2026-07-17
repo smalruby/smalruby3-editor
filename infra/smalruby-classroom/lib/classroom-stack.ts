@@ -1,6 +1,7 @@
 import * as cdk from 'aws-cdk-lib/core';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as lambdaEventSources from 'aws-cdk-lib/aws-lambda-event-sources';
 import * as lambdaNodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as apigatewayv2 from 'aws-cdk-lib/aws-apigatewayv2';
 import * as apigatewayv2Integrations from 'aws-cdk-lib/aws-apigatewayv2-integrations';
@@ -48,6 +49,18 @@ export class ClassroomStack extends cdk.Stack {
     // batch evaluation can still read every submission; configurable via env)
     const classroomTtlDays = parseInt(process.env.CLASSROOM_TTL_DAYS || '90', 10);
 
+    // Last-resort retention (issue #1053, EPIC #1049 D7): S3 keeps submission
+    // files and DynamoDB delete-snapshots for this many days so operators can
+    // restore an expired classroom on request. Must not be shorter than the
+    // classroom TTL — the presigned download URLs assume the S3 object
+    // outlives the metadata.
+    const archiveRetentionDays = parseInt(process.env.ARCHIVE_RETENTION_DAYS || '365', 10);
+    if (archiveRetentionDays < classroomTtlDays) {
+      throw new Error(
+        `ARCHIVE_RETENTION_DAYS (${archiveRetentionDays}) must be >= CLASSROOM_TTL_DAYS (${classroomTtlDays}).`,
+      );
+    }
+
     // Tags
     cdk.Tags.of(this).add('Project', 'Classroom');
     cdk.Tags.of(this).add('Stage', stage);
@@ -68,6 +81,8 @@ export class ClassroomStack extends cdk.Stack {
       pointInTimeRecoverySpecification: {
         pointInTimeRecoveryEnabled: false,
       },
+      // Delete-snapshot stream for the archiver (issue #1053)
+      stream: dynamodb.StreamViewType.OLD_IMAGE,
       timeToLiveAttribute: 'ttl',
     });
 
@@ -109,6 +124,8 @@ export class ClassroomStack extends cdk.Stack {
       pointInTimeRecoverySpecification: {
         pointInTimeRecoveryEnabled: false,
       },
+      // Delete-snapshot stream for the archiver (issue #1053)
+      stream: dynamodb.StreamViewType.OLD_IMAGE,
       timeToLiveAttribute: 'ttl',
     });
 
@@ -140,6 +157,8 @@ export class ClassroomStack extends cdk.Stack {
       pointInTimeRecoverySpecification: {
         pointInTimeRecoveryEnabled: false,
       },
+      // Delete-snapshot stream for the archiver (issue #1053)
+      stream: dynamodb.StreamViewType.OLD_IMAGE,
       timeToLiveAttribute: 'ttl',
     });
 
@@ -212,6 +231,8 @@ export class ClassroomStack extends cdk.Stack {
       pointInTimeRecoverySpecification: {
         pointInTimeRecoveryEnabled: false,
       },
+      // Delete-snapshot stream for the archiver (issue #1053)
+      stream: dynamodb.StreamViewType.OLD_IMAGE,
       timeToLiveAttribute: 'ttl',
     });
 
@@ -234,7 +255,10 @@ export class ClassroomStack extends cdk.Stack {
       autoDeleteObjects: stage !== 'prod',
       lifecycleRules: [
         {
-          expiration: cdk.Duration.days(classroomTtlDays),
+          // Last-resort retention (issue #1053): user-facing access still
+          // closes at the classroom TTL (presigned URLs are only minted from
+          // live metadata); after that, only operators can reach the files.
+          expiration: cdk.Duration.days(archiveRetentionDays),
         },
       ],
       cors: [
@@ -308,6 +332,62 @@ export class ClassroomStack extends cdk.Stack {
     this.groupsTable.grantReadWriteData(handlerFn);
     this.submissionsBucket.grantPut(handlerFn);
     this.submissionsBucket.grantRead(handlerFn);
+
+    // --- Delete-snapshot archiver (issue #1053) ---
+    // Streams on the four data tables feed every REMOVE (TTL sweep or
+    // explicit delete) into a small Lambda that snapshots the old item to
+    // `ddb-archive/…` in the submissions bucket. KickRequests (1h ephemera)
+    // is deliberately not archived.
+
+    const archiverLogGroup = new logs.LogGroup(this, 'ClassroomArchiverLogGroup', {
+      logGroupName: `/aws/lambda/ClassroomArchiver${stageSuffix}`,
+      retention: stage === 'prod' ? logs.RetentionDays.ONE_MONTH : logs.RetentionDays.ONE_WEEK,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+
+    const archiverFn = new lambdaNodejs.NodejsFunction(this, 'ClassroomArchiver', {
+      functionName: `ClassroomArchiver${stageSuffix}`,
+      runtime: lambda.Runtime.NODEJS_22_X,
+      entry: path.join(__dirname, '../lambda/archiver.ts'),
+      handler: 'handler',
+      timeout: cdk.Duration.seconds(60),
+      memorySize: 256,
+      logGroup: archiverLogGroup,
+      environment: {
+        ARCHIVE_BUCKET_NAME: this.submissionsBucket.bucketName,
+        STAGE: stage,
+      },
+      bundling: {
+        minify: true,
+        sourceMap: stage !== 'prod',
+        externalModules: [],
+      },
+    });
+
+    this.submissionsBucket.grantPut(archiverFn);
+
+    const archivedTables = [
+      this.classroomsTable,
+      this.membershipsTable,
+      this.submissionsTable,
+      this.groupsTable,
+    ];
+    for (const table of archivedTables) {
+      archiverFn.addEventSource(new lambdaEventSources.DynamoEventSource(table, {
+        startingPosition: lambda.StartingPosition.LATEST,
+        batchSize: 100,
+        // A failing batch is split and retried a bounded number of times so
+        // one poisoned record cannot block the shard forever; the snapshot
+        // handler itself skips malformed records and only throws on S3
+        // write failures (worth retrying).
+        bisectBatchOnError: true,
+        retryAttempts: 10,
+        // Only deletions carry an image worth archiving.
+        filters: [
+          lambda.FilterCriteria.filter({ eventName: lambda.FilterRule.isEqual('REMOVE') }),
+        ],
+      }));
+    }
 
     // --- Custom Domain ---
 
