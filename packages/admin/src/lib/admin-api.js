@@ -94,3 +94,64 @@ const setSharedStatus = (sharedId, status) =>
     request('PATCH', `/admin/shared-assignments/${sharedId}`, {status});
 
 export {fetchSharedReports, fetchSharedAssignments, fetchSharedAssignment, setSharedStatus};
+
+// --- クラス・課題管理 + 期限切れ復元 (S4 #1084) ---
+
+/**
+ * Fleet-wide classroom list (quota rows filtered server-side).
+ * @param {string} [q] - join code (exact) or class/assignment name (substring)
+ * @returns {Promise<object>} {items}
+ */
+const fetchClassrooms = q =>
+    request('GET', `/admin/classrooms${q ? `?q=${encodeURIComponent(q)}` : ''}`);
+
+/**
+ * Classroom detail with member/submission counts.
+ * @param {string} classroomId - classroom id
+ * @returns {Promise<object>} detail
+ */
+const fetchClassroom = classroomId => request('GET', `/admin/classrooms/${classroomId}`);
+
+/**
+ * Flip a classroom between active and archived (audited server-side).
+ * @param {string} classroomId - classroom id
+ * @param {string} status - 'active' | 'archived'
+ * @returns {Promise<object>} updated summary
+ */
+const setClassroomStatus = (classroomId, status) =>
+    request('PATCH', `/admin/classrooms/${classroomId}`, {status});
+
+/**
+ * Search ddb-archive snapshots of expired classrooms.
+ * @param {string} q - join code (exact) or class/assignment name (substring)
+ * @returns {Promise<object>} {items} (each with deletedAt)
+ */
+const fetchRestoreCandidates = q =>
+    request('GET', `/admin/classrooms/restore-candidates?q=${encodeURIComponent(q)}`);
+
+/**
+ * Dry-run summary for one restore ({alive:true} when the classroom still
+ * exists — the teacher UI handles that case).
+ * @param {string} classroomId - classroom id
+ * @returns {Promise<object>} plan summary
+ */
+const fetchRestorePlan = classroomId =>
+    request('GET', `/admin/classrooms/${classroomId}/restore-plan`);
+
+/**
+ * Execute the restore (rehydrates group/classroom/members/submissions with
+ * fresh TTLs; audited server-side).
+ * @param {string} classroomId - classroom id
+ * @returns {Promise<object>} {restored, missingFiles, classroom}
+ */
+const executeRestore = classroomId =>
+    request('POST', `/admin/classrooms/${classroomId}/restore`);
+
+export {
+    fetchClassrooms,
+    fetchClassroom,
+    setClassroomStatus,
+    fetchRestoreCandidates,
+    fetchRestorePlan,
+    executeRestore
+};

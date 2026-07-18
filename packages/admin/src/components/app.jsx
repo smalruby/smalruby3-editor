@@ -5,15 +5,25 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {fetchMe, setIdToken} from '../lib/admin-api.js';
 import {getDevLoginToken, initGoogleSignIn} from '../lib/google-auth.js';
+import ClassroomsView from './classrooms-view.jsx';
 import SharedAssignmentsView from './shared-assignments-view.jsx';
 import './app.css';
+
+const SECTIONS = [
+    {key: 'shared', label: 'みんなの課題'},
+    {key: 'classrooms', label: 'クラス・課題'}
+    // S5 バグ報告 のセクションはここに追加
+];
 
 // signed-out → checking → authorized | forbidden | error
 const App = () => {
     const [phase, setPhase] = useState('signed-out');
     const [me, setMe] = useState(null);
     const [errorMessage, setErrorMessage] = useState('');
+    const [section, setSection] = useState('shared');
     const buttonRef = useRef(null);
+
+    const handleSection = useCallback(e => setSection(e.currentTarget.dataset.section), []);
 
     const handleCredential = useCallback(async token => {
         setIdToken(token);
@@ -60,10 +70,22 @@ const App = () => {
                         data-testid="admin-me-email"
                     >{me.email}</span>
                 </header>
+                <nav className="admin-nav">
+                    {SECTIONS.map(s => (
+                        <button
+                            className={section === s.key ? 'admin-tab-active' : 'admin-tab'}
+                            data-section={s.key}
+                            data-testid={`admin-nav-${s.key}`}
+                            key={s.key}
+                            type="button"
+                            onClick={handleSection}
+                        >{s.label}</button>
+                    ))}
+                </nav>
                 <main className="admin-main">
-                    <h2>{'みんなの課題'}</h2>
-                    <SharedAssignmentsView />
-                    {/* S4 クラス・課題 / S5 バグ報告 のビューはここに追加 */}
+                    <h2>{SECTIONS.find(s => s.key === section).label}</h2>
+                    {section === 'shared' && <SharedAssignmentsView />}
+                    {section === 'classrooms' && <ClassroomsView />}
                 </main>
             </div>
         );

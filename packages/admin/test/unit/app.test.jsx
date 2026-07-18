@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom';
-import {render, screen, waitFor} from '@testing-library/react';
+import {fireEvent, render, screen, waitFor} from '@testing-library/react';
 
 const mockFetchMe = jest.fn();
 const mockSetIdToken = jest.fn();
@@ -17,6 +17,7 @@ jest.mock('../../src/lib/google-auth.js', () => ({
 
 // The dashboard embeds the management views; they get their own tests.
 jest.mock('../../src/components/shared-assignments-view.jsx', () => () => null);
+jest.mock('../../src/components/classrooms-view.jsx', () => () => null);
 
 import App from '../../src/components/app.jsx';
 
@@ -59,5 +60,20 @@ describe('App auth flow', () => {
 
         render(<App />);
         await waitFor(() => expect(screen.getByTestId('admin-error')).toHaveTextContent('boom'));
+    });
+
+    test('the section nav switches between management views (issue #1084)', async () => {
+        mockGetDevLoginToken.mockReturnValue('dev-token');
+        mockFetchMe.mockResolvedValue({email: 'admin@example.com', name: null, stage: 'stg'});
+
+        render(<App />);
+        await waitFor(() => expect(screen.getByTestId('admin-dashboard')).toBeInTheDocument());
+        expect(screen.getByRole('heading', {level: 2})).toHaveTextContent('みんなの課題');
+
+        fireEvent.click(screen.getByTestId('admin-nav-classrooms'));
+        expect(screen.getByRole('heading', {level: 2})).toHaveTextContent('クラス・課題');
+
+        fireEvent.click(screen.getByTestId('admin-nav-shared'));
+        expect(screen.getByRole('heading', {level: 2})).toHaveTextContent('みんなの課題');
     });
 });

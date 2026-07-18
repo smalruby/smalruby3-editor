@@ -172,3 +172,31 @@ body {
     background: hsla(35, 90%, 55%, 0.12);
     font-size: 0.85rem;
 }
+
+.admin-nav {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem 0;
+}
+
+.admin-search {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.admin-search input {
+    flex: 1;
+    max-width: 24rem;
+    padding: 0.35rem 0.6rem;
+    border: 1px solid hsl(220, 15%, 75%);
+    border-radius: 0.4rem;
+}
+
+.admin-search button {
+    padding: 0.35rem 0.9rem;
+    border: 1px solid hsl(220, 15%, 75%);
+    border-radius: 0.4rem;
+    background: white;
+    cursor: pointer;
+}
