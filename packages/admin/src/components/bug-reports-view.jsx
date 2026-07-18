@@ -33,6 +33,10 @@ const formatDate = iso => (iso ?
         .slice(0, 16) :
     '-');
 
+// Real reports store appContext as a JSON object (the reporter's app state),
+// older ones as a string — render both.
+const asText = value => (typeof value === 'string' ? value : JSON.stringify(value, null, 2));
+
 const BugReportDetail = ({reportId, onBack}) => {
     const [detail, setDetail] = useState(null);
     const [error, setError] = useState('');
@@ -76,7 +80,10 @@ const BugReportDetail = ({reportId, onBack}) => {
             {detail.appContext ? (
                 <details>
                     <summary>{'アプリの状態 (appContext)'}</summary>
-                    <pre className="admin-pre">{detail.appContext}</pre>
+                    <pre
+                        className="admin-pre"
+                        data-testid="bug-admin-app-context"
+                    >{asText(detail.appContext)}</pre>
                 </details>
             ) : null}
             {detail.userAgent ? (

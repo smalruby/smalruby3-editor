@@ -23,7 +23,9 @@ const listEntry = {
 const detail = {
     ...listEntry,
     userAgent: 'Mozilla/5.0',
-    appContext: '{"tab":"ruby"}',
+    // Real reports carry appContext as an OBJECT (crashed the first E2E run) —
+    // the view must render it as JSON text, never as a React child.
+    appContext: {rubyVersion: 2, url: 'https://smalruby.app/'},
     developerReply: '',
     projectUrl: 'https://signed.example/project.sb3',
     thumbnailUrl: 'https://signed.example/thumb.png',
@@ -64,6 +66,7 @@ describe('BugReportsView (issue #1085, read-only)', () => {
             'href', 'https://signed.example/project.sb3');
         expect(screen.getByTestId('bug-admin-screenshot-0')).toHaveAttribute(
             'src', 'https://signed.example/ss0.png');
+        expect(screen.getByTestId('bug-admin-app-context').textContent).toContain('rubyVersion');
         // Read-only surface: no status select / reply textarea in the detail.
         expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
         expect(mockFetchReport).toHaveBeenCalledWith('r1');
