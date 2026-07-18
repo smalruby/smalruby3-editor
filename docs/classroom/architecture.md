@@ -128,6 +128,9 @@ sequenceDiagram
 | **DynamoDB** | `ClassroomMemberships-{stage}` | メンバー (生徒) 情報（Streams: OLD_IMAGE） |
 | **DynamoDB** | `ClassroomSubmissions-{stage}` | 提出情報（Streams: OLD_IMAGE） |
 | **DynamoDB** | `ClassroomGroups-{stage}` | クラス（学級）情報（Streams: OLD_IMAGE） |
+| **DynamoDB** | `SharedAssignments-{stage}` | みんなの課題（TTL なし・prod RETAIN + PITR） |
+| **DynamoDB** | `SharedAssignmentReports-{stage}` | みんなの課題の通報（TTL 90日） |
+| **S3** | `smalruby-shared-assignments-{stage}` | 共有課題のスナップショット（lifecycle なし = 永続・prod RETAIN） |
 | **S3** | `smalruby-classroom-submissions-{stage}` | 提出ファイル (.sb3, サムネイル, スクリーンショット) + `ddb-archive/` スナップショット。lifecycle = `ARCHIVE_RETENTION_DAYS`（既定 365 日） |
 | **Route53** | A レコード | カスタムドメイン |
 | **ACM** | SSL 証明書 | HTTPS |
@@ -184,6 +187,24 @@ sequenceDiagram
 | `PATCH` | `/classroom-groups/{groupId}/topics` | トピックの add / remove / rename（rename・remove は課題へ一括追従） |
 | `POST` | `/classrooms/{id}/duplicate` | クラス（授業）の複製。課題コンテンツの S3 オブジェクトもコピー。`groupId` / `className` / `assignmentName` を上書き可。メンバー・提出は複製しない |
 | `POST` | `/classrooms/{id}/evaluate` | AI 評価支援。静的解析結果（シグナル + 擬似コード）を Anthropic API にリレーし、`mode: grade` は S/A/B/C 案 + 根拠 + needsReview、`mode: comment` は生徒向けポジティブコメント下書きを返す。1リクエスト最大10提出（API GW の30秒制限対策、クライアントがチャンク分割）。先生ごとにレート制限（既定 60回/時） |
+
+### みんなの課題 (共有課題ライブラリ・先生 ID Token 認証)
+
+全国の先生が課題（説明ページ + スターター + 補足資料 URL）を共有・再利用する機能（EPIC #1066。設計の正典は spike #1067）。
+
+| Method | Path | 説明 |
+|--------|------|------|
+| `POST` | `/shared-assignments` | 課題を共有（自分のクラスの課題スナップショットを共有ストアへコピー。CC BY 4.0 同意必須・スターター 50MB 上限・10件/日制限） |
+| `GET` | `/shared-assignments` | カタログ一覧（新着順・`schoolLevel`/`subject`/`grade`/`tag` で絞り込み・`cursor` ページネーション・`mine=1` で自分の投稿一覧） |
+| `GET` | `/shared-assignments/{id}` | 詳細（ページ・画像/スターターの presigned URL・投稿者表示名。authorSub は返さない） |
+| `POST` | `/shared-assignments/{id}/import` | 自分のクラス（groupId）に課題として取り込み（S3 逆コピー + reuseCount 増分） |
+| `PATCH` | `/shared-assignments/{id}` | 更新（投稿者本人のみ。メタデータ + `classroomId` 指定で内容の再スナップショット=上書き） |
+| `DELETE` | `/shared-assignments/{id}` | 取り下げ = `status: 'unlisted'`（物理削除しない。本人のみ） |
+| `POST` | `/shared-assignments/{id}/report` | 通報（理由必須・20件/日制限。reporterSub は内部保持のみ） |
+
+- データ: `SharedAssignments{suffix}`（**TTL なし・prod は RETAIN + PITR**。GSI: `status-createdAt-index` / `authorSub-createdAt-index`）、`SharedAssignmentReports{suffix}`（TTL 90日）
+- ファイル: 専用バケット `smalruby-shared-assignments{suffix}`（**lifecycle なし = 永続**、`shared/{sharedId}/` プレフィックス）。クラス側の保存期限と完全に分離
+- 共有/取り込みの実体は既存 duplicate と同じ S3 サーバー側コピー（クロスバケット）
 
 ### 生徒用 (認証不要 / Session Token)
 
