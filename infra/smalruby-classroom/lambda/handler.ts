@@ -10,7 +10,14 @@ import {
   UpdateCommand,
   BatchWriteCommand,
 } from '@aws-sdk/lib-dynamodb';
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, CopyObjectCommand } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+  CopyObjectCommand,
+  HeadObjectCommand,
+} from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { OAuth2Client } from 'google-auth-library';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
@@ -24,6 +31,10 @@ const SUBMISSIONS_TABLE = process.env.SUBMISSIONS_TABLE_NAME || 'ClassroomSubmis
 const KICK_REQUESTS_TABLE = process.env.KICK_REQUESTS_TABLE_NAME || 'ClassroomKickRequests';
 const GROUPS_TABLE = process.env.GROUPS_TABLE_NAME || 'ClassroomGroups';
 const SUBMISSIONS_BUCKET = process.env.SUBMISSIONS_BUCKET_NAME || 'smalruby-classroom-submissions';
+// みんなの課題 — nationwide shared assignment library (EPIC #1066)
+const SHARED_ASSIGNMENTS_TABLE = process.env.SHARED_ASSIGNMENTS_TABLE_NAME || 'SharedAssignments';
+const SHARED_REPORTS_TABLE = process.env.SHARED_REPORTS_TABLE_NAME || 'SharedAssignmentReports';
+const SHARED_BUCKET = process.env.SHARED_BUCKET_NAME || 'smalruby-shared-assignments';
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
 const MICROSOFT_CLIENT_ID = process.env.MICROSOFT_CLIENT_ID || '';
 const DEV_BYPASS_TOKEN = process.env.DEV_BYPASS_TOKEN || '';
@@ -73,6 +84,23 @@ const MAX_GROUP_NAME_LENGTH = 50;
 // How many prior lessons of the same group to inspect when looking up the
 // student's previous returned comment on join (personalized recap).
 const PREVIOUS_COMMENT_LOOKBACK = 3;
+// みんなの課題 (EPIC #1066): shared items are permanent (no TTL), so quota
+// counters reuse the Classrooms table's reserved key space (TTL-cleaned)
+// instead. Retention decisions: spike #1067 D10-D12.
+const SHARE_DAILY_LIMIT = parseInt(process.env.SHARE_DAILY_LIMIT || '10', 10);
+const REPORT_DAILY_LIMIT = parseInt(process.env.REPORT_DAILY_LIMIT || '20', 10);
+const SHARED_STARTER_MAX_BYTES = parseInt(process.env.SHARED_STARTER_MAX_BYTES || String(50 * 1024 * 1024), 10);
+const SHARED_REPORT_TTL_SECONDS = 90 * 24 * 60 * 60;
+const SHARED_LIST_PAGE_SIZE = 30;
+const MAX_SHARED_TITLE_LENGTH = 50;
+const MAX_SHARED_SUMMARY_LENGTH = 100;
+const MAX_SHARED_TAGS = 5;
+const MAX_SHARED_TAG_LENGTH = 20;
+const MAX_SUPPLEMENT_URL_LENGTH = 500;
+const MAX_AUTHOR_NAME_LENGTH = 30;
+const MAX_AUTHOR_AFFILIATION_LENGTH = 50;
+const MAX_SHARED_REPORT_REASON_LENGTH = 200;
+
 // Class (旧組) v2 data model: every assignment (Classrooms record) belongs to
 // a class (ClassroomGroups record), and class-level GC linkage / co-teachers /
 // studentCount are authoritative. The version is stamped on each group record
@@ -3364,6 +3392,715 @@ async function handleEvaluateSubmissions(
   return { statusCode: 200, body: JSON.stringify({ mode: request.mode, results }) };
 }
 
+// --- みんなの課題 (shared assignment library, EPIC #1066) ---
+// Teachers publish an assignment snapshot (pages + starter + supplement URL
+// + minimal author profile) under CC BY 4.0; other teachers browse, filter,
+// and import it into their own class. Shared items are permanent (no TTL,
+// D7) and live in their own bucket so the classroom lifecycle never sweeps
+// them. Design canon: spike #1067 (D1-D12).
+
+export const SHARED_SCHOOL_LEVELS = ['elementary', 'junior-high', 'high', 'other'] as const;
+
+/** Controlled subject vocabulary per school level (D5). 'other' is free text. */
+export const SHARED_SUBJECTS: Record<string, readonly string[]> = {
+  elementary: ['総合的な学習の時間', '算数', '理科', '図画工作', '特別活動・クラブ', 'その他'],
+  'junior-high': ['技術・家庭（技術分野）', '数学', '理科', '総合的な学習の時間', 'その他'],
+  high: ['情報Ⅰ', '情報Ⅱ', 'その他'],
+  other: [],
+};
+
+const SHARED_MAX_GRADE: Record<string, number> = {
+  elementary: 6,
+  'junior-high': 3,
+  high: 3,
+  other: 6,
+};
+
+interface SharedAttributes {
+  schoolLevel: string;
+  grades: number[];
+  subject: string;
+  tags: string[];
+  lessonCount: number | null;
+}
+
+/**
+ * Validate the school attributes of a share/update request (D5).
+ * @param body - request body
+ * @returns normalized attributes
+ */
+export function validateSharedAttributes(body: Record<string, unknown>): SharedAttributes {
+  const schoolLevel = body.schoolLevel;
+  if (typeof schoolLevel !== 'string' || !(SHARED_SCHOOL_LEVELS as readonly string[]).includes(schoolLevel)) {
+    throw new ValidationError(`schoolLevel must be one of: ${SHARED_SCHOOL_LEVELS.join(', ')}`);
+  }
+
+  const subject = body.subject;
+  if (typeof subject !== 'string' || subject.trim().length === 0) {
+    throw new ValidationError('subject is required');
+  }
+  const vocabulary = SHARED_SUBJECTS[schoolLevel];
+  if (vocabulary.length > 0 && !vocabulary.includes(subject)) {
+    throw new ValidationError(`subject must be one of: ${vocabulary.join(' / ')}`);
+  }
+  if (vocabulary.length === 0 && subject.trim().length > MAX_SHARED_TAG_LENGTH) {
+    throw new ValidationError(`subject must be ${MAX_SHARED_TAG_LENGTH} characters or less`);
+  }
+
+  const maxGrade = SHARED_MAX_GRADE[schoolLevel];
+  let grades: number[] = [];
+  if (body.grades !== undefined) {
+    if (!Array.isArray(body.grades)) {
+      throw new ValidationError('grades must be an array');
+    }
+    grades = [...new Set(body.grades)].map(g => {
+      if (typeof g !== 'number' || !Number.isInteger(g) || g < 1 || g > maxGrade) {
+        throw new ValidationError(`grades must be integers between 1 and ${maxGrade}`);
+      }
+      return g;
+    }).sort((a, b) => a - b);
+  }
+
+  let tags: string[] = [];
+  if (body.tags !== undefined) {
+    if (!Array.isArray(body.tags)) {
+      throw new ValidationError('tags must be an array');
+    }
+    tags = [...new Set(body.tags.map(t => {
+      if (typeof t !== 'string' || t.trim().length === 0 || t.trim().length > MAX_SHARED_TAG_LENGTH) {
+        throw new ValidationError(`each tag must be 1-${MAX_SHARED_TAG_LENGTH} characters`);
+      }
+      return t.trim();
+    }))];
+    if (tags.length > MAX_SHARED_TAGS) {
+      throw new ValidationError(`at most ${MAX_SHARED_TAGS} tags are allowed`);
+    }
+  }
+
+  let lessonCount: number | null = null;
+  if (body.lessonCount !== undefined && body.lessonCount !== null) {
+    if (typeof body.lessonCount !== 'number' || !Number.isInteger(body.lessonCount) ||
+        body.lessonCount < 1 || body.lessonCount > 20) {
+      throw new ValidationError('lessonCount must be an integer between 1 and 20');
+    }
+    lessonCount = body.lessonCount;
+  }
+
+  return { schoolLevel, grades, subject: subject.trim(), tags, lessonCount };
+}
+
+/**
+ * Validate the supplement URL (D4): https only, parseable, bounded length.
+ * @param value - raw URL from the request
+ * @returns normalized URL or null when absent
+ */
+export function validateSupplementUrl(value: unknown): string | null {
+  if (value === undefined || value === null || value === '') return null;
+  if (typeof value !== 'string' || value.length > MAX_SUPPLEMENT_URL_LENGTH) {
+    throw new ValidationError(`supplementUrl must be a string of at most ${MAX_SUPPLEMENT_URL_LENGTH} characters`);
+  }
+  let parsed: URL;
+  try {
+    parsed = new URL(value);
+  } catch {
+    throw new ValidationError('supplementUrl must be a valid URL');
+  }
+  if (parsed.protocol !== 'https:') {
+    throw new ValidationError('supplementUrl must use https');
+  }
+  return value;
+}
+
+/**
+ * Validate the minimal public author profile (D6).
+ * @param body - request body
+ * @returns display name + optional affiliation
+ */
+export function validateAuthorProfile(body: Record<string, unknown>): {
+  authorName: string;
+  authorAffiliation: string | null;
+} {
+  const name = body.authorName;
+  if (typeof name !== 'string' || name.trim().length === 0 || name.trim().length > MAX_AUTHOR_NAME_LENGTH) {
+    throw new ValidationError(`authorName is required (at most ${MAX_AUTHOR_NAME_LENGTH} characters)`);
+  }
+  let affiliation: string | null = null;
+  if (body.authorAffiliation !== undefined && body.authorAffiliation !== null && body.authorAffiliation !== '') {
+    if (typeof body.authorAffiliation !== 'string' ||
+        body.authorAffiliation.trim().length > MAX_AUTHOR_AFFILIATION_LENGTH) {
+      throw new ValidationError(`authorAffiliation must be at most ${MAX_AUTHOR_AFFILIATION_LENGTH} characters`);
+    }
+    affiliation = body.authorAffiliation.trim();
+  }
+  return { authorName: name.trim(), authorAffiliation: affiliation };
+}
+
+/**
+ * Build the shared snapshot of an assignment: pages/starter keys rewritten
+ * into the shared bucket's `shared/{sharedId}/` prefix plus the copy plan.
+ * Mirror of buildDuplicatedAssignment, kept pure for tests.
+ * @param assignment - the classroom's assignment content
+ * @param sharedId - target shared item id
+ * @returns rewritten pages/starterKey and the copy list
+ */
+export function buildSharedSnapshot(
+  assignment: AssignmentContent | undefined,
+  sharedId: string,
+): { pages: AssignmentPage[]; starterKey?: string; copies: { from: string; to: string }[] } {
+  const copies: { from: string; to: string }[] = [];
+  const rewriteKey = (key: string): string => {
+    const to = `shared/${sharedId}/${key.split('/').pop()}`;
+    copies.push({ from: key, to });
+    return to;
+  };
+  const pages = (assignment?.pages || []).map(page =>
+    page.imageKey ? { text: page.text, imageKey: rewriteKey(page.imageKey) } : { text: page.text },
+  );
+  const starterKey = assignment?.starterKey ? rewriteKey(assignment.starterKey) : undefined;
+  return { pages, starterKey, copies };
+}
+
+/** Public list/detail projection — never exposes authorSub / internal keys. */
+function mapSharedSummary(item: Record<string, unknown>) {
+  return {
+    sharedId: item.sharedId,
+    title: item.title,
+    summary: item.summary || null,
+    schoolLevel: item.schoolLevel,
+    grades: item.grades || [],
+    subject: item.subject,
+    tags: item.tags || [],
+    lessonCount: item.lessonCount || null,
+    supplementUrl: item.supplementUrl || null,
+    authorName: item.authorName,
+    authorAffiliation: item.authorAffiliation || null,
+    pageCount: Array.isArray((item.content as AssignmentContent | undefined)?.pages)
+      ? (item.content as AssignmentContent).pages!.length
+      : 0,
+    hasStarter: !!(item.content as AssignmentContent | undefined)?.starterKey,
+    reuseCount: (item.reuseCount as number) || 0,
+    status: item.status,
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
+  };
+}
+
+/**
+ * Durable daily quota shared by the share/report endpoints (D12): an atomic
+ * counter per teacher per UTC day, stored in the Classrooms table's reserved
+ * key space (same pattern as eval-quota; TTL cleans it after two days).
+ */
+async function checkSharedDailyLimit(kind: string, teacherSub: string, limit: number): Promise<void> {
+  const day = new Date().toISOString().slice(0, 10);
+  const result = await docClient.send(new UpdateCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId: `${kind}-quota#${teacherSub}#${day}` },
+    UpdateExpression: 'ADD #c :one SET #ttl = if_not_exists(#ttl, :ttl)',
+    ExpressionAttributeNames: { '#c': 'count', '#ttl': 'ttl' },
+    ExpressionAttributeValues: {
+      ':one': 1,
+      ':ttl': Math.floor(Date.now() / 1000) + 2 * 24 * 60 * 60,
+    },
+    ReturnValues: 'UPDATED_NEW',
+  }));
+  const count = (result.Attributes?.count as number) || 0;
+  if (count > limit) {
+    throw new ValidationError(`Daily limit reached (${limit}/day). Please continue tomorrow.`);
+  }
+}
+
+async function getSharedItem(sharedId: string): Promise<Record<string, unknown> | null> {
+  const result = await docClient.send(new GetCommand({
+    TableName: SHARED_ASSIGNMENTS_TABLE,
+    Key: { sharedId },
+  }));
+  return (result.Item as Record<string, unknown>) || null;
+}
+
+async function handleShareAssignment(
+  identity: TeacherIdentity, body: Record<string, unknown>,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  if (body.licenseConsent !== true) {
+    throw new ValidationError('licenseConsent (CC BY 4.0) is required');
+  }
+  const title = body.title;
+  if (typeof title !== 'string' || title.trim().length === 0 || title.trim().length > MAX_SHARED_TITLE_LENGTH) {
+    throw new ValidationError(`title is required (at most ${MAX_SHARED_TITLE_LENGTH} characters)`);
+  }
+  let summary: string | null = null;
+  if (body.summary !== undefined && body.summary !== null && body.summary !== '') {
+    if (typeof body.summary !== 'string' || body.summary.trim().length > MAX_SHARED_SUMMARY_LENGTH) {
+      throw new ValidationError(`summary must be at most ${MAX_SHARED_SUMMARY_LENGTH} characters`);
+    }
+    summary = body.summary.trim();
+  }
+  const attributes = validateSharedAttributes(body);
+  const supplementUrl = validateSupplementUrl(body.supplementUrl);
+  const profile = validateAuthorProfile(body);
+
+  // Source classroom: must be the teacher's own, active, with content.
+  const classroomId = body.classroomId;
+  if (typeof classroomId !== 'string' || !classroomId) {
+    throw new ValidationError('classroomId is required');
+  }
+  const classroomResult = await docClient.send(new GetCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId },
+  }));
+  if (!classroomResult.Item || classroomResult.Item.status !== 'active') {
+    throw new NotFoundError('Classroom not found');
+  }
+  if (!(await canManageViaGroup(classroomResult.Item, identity))) {
+    throw new AuthError('Not authorized to share this classroom');
+  }
+  const assignment = classroomResult.Item.assignment as AssignmentContent | undefined;
+  if (!assignment || ((!assignment.pages || assignment.pages.length === 0) && !assignment.starterKey)) {
+    throw new ValidationError('This assignment has no content (pages or starter project) to share');
+  }
+
+  // Starter size cap (D11) — checked before any copy.
+  if (assignment.starterKey) {
+    const head = await s3Client.send(new HeadObjectCommand({
+      Bucket: SUBMISSIONS_BUCKET,
+      Key: assignment.starterKey,
+    }));
+    if ((head.ContentLength || 0) > SHARED_STARTER_MAX_BYTES) {
+      throw new ValidationError(
+        `Starter project exceeds the ${Math.floor(SHARED_STARTER_MAX_BYTES / (1024 * 1024))}MB limit`,
+      );
+    }
+  }
+
+  await checkSharedDailyLimit('share', identity.sub, SHARE_DAILY_LIMIT);
+
+  const sharedId = crypto.randomUUID();
+  const { pages, starterKey, copies } = buildSharedSnapshot(assignment, sharedId);
+
+  // Copy content into the shared bucket first so the record never
+  // references missing objects (same ordering as duplicate).
+  for (const { from, to } of copies) {
+    await s3Client.send(new CopyObjectCommand({
+      Bucket: SHARED_BUCKET,
+      CopySource: `${SUBMISSIONS_BUCKET}/${encodeURIComponent(from)}`,
+      Key: to,
+    }));
+  }
+
+  const now = new Date().toISOString();
+  const item: Record<string, unknown> = {
+    sharedId,
+    title: title.trim(),
+    summary,
+    content: { pages, starterKey },
+    supplementUrl,
+    ...attributes,
+    ...profile,
+    authorSub: identity.sub,
+    status: 'published',
+    reuseCount: 0,
+    createdAt: now,
+    updatedAt: now,
+  };
+  await docClient.send(new PutCommand({
+    TableName: SHARED_ASSIGNMENTS_TABLE,
+    Item: item,
+  }));
+
+  return { statusCode: 201, body: JSON.stringify(mapSharedSummary(item)) };
+}
+
+async function handleListSharedAssignments(
+  identity: TeacherIdentity, query: Record<string, string | undefined>,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const mine = query.mine === '1' || query.mine === 'true';
+
+  // Optional attribute filters (D8): applied server-side as a
+  // FilterExpression on top of the newest-first GSI query.
+  const filterParts: string[] = [];
+  const names: Record<string, string> = {};
+  const values: Record<string, unknown> = {};
+  if (query.schoolLevel) {
+    filterParts.push('#sl = :sl');
+    names['#sl'] = 'schoolLevel';
+    values[':sl'] = query.schoolLevel;
+  }
+  if (query.subject) {
+    filterParts.push('#sub = :sub');
+    names['#sub'] = 'subject';
+    values[':sub'] = query.subject;
+  }
+  if (query.grade) {
+    const grade = parseInt(query.grade, 10);
+    if (!Number.isNaN(grade)) {
+      filterParts.push('contains(#gr, :gr)');
+      names['#gr'] = 'grades';
+      values[':gr'] = grade;
+    }
+  }
+  if (query.tag) {
+    filterParts.push('contains(#tg, :tg)');
+    names['#tg'] = 'tags';
+    values[':tg'] = query.tag;
+  }
+
+  let exclusiveStartKey: Record<string, unknown> | undefined;
+  if (query.cursor) {
+    try {
+      exclusiveStartKey = JSON.parse(Buffer.from(query.cursor, 'base64url').toString('utf8'));
+    } catch {
+      throw new ValidationError('Invalid cursor');
+    }
+  }
+
+  const result = await docClient.send(new QueryCommand({
+    TableName: SHARED_ASSIGNMENTS_TABLE,
+    IndexName: mine ? 'authorSub-createdAt-index' : 'status-createdAt-index',
+    KeyConditionExpression: mine ? 'authorSub = :pk' : '#status = :pk',
+    ExpressionAttributeNames: {
+      ...(mine ? {} : { '#status': 'status' }),
+      ...names,
+    },
+    ExpressionAttributeValues: {
+      ':pk': mine ? identity.sub : 'published',
+      ...values,
+    },
+    FilterExpression: filterParts.length > 0 ? filterParts.join(' AND ') : undefined,
+    ScanIndexForward: false,
+    Limit: SHARED_LIST_PAGE_SIZE,
+    ExclusiveStartKey: exclusiveStartKey,
+  }));
+
+  const cursor = result.LastEvaluatedKey
+    ? Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString('base64url')
+    : null;
+  return {
+    statusCode: 200,
+    body: JSON.stringify({
+      items: (result.Items || []).map(mapSharedSummary),
+      cursor,
+    }),
+  };
+}
+
+async function handleGetSharedAssignment(
+  identity: TeacherIdentity, sharedId: string,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const item = await getSharedItem(sharedId);
+  // Existence-hiding 404; the author may still view their own unlisted item.
+  if (!item || (item.status !== 'published' && item.authorSub !== identity.sub)) {
+    throw new NotFoundError('Shared assignment not found');
+  }
+
+  const content = (item.content as AssignmentContent | undefined) || {};
+  const pages = await Promise.all((content.pages || []).map(async page => ({
+    text: page.text,
+    imageUrl: page.imageKey
+      ? await getSignedUrl(
+          s3Client,
+          new GetObjectCommand({ Bucket: SHARED_BUCKET, Key: page.imageKey }),
+          { expiresIn: PRESIGNED_URL_DOWNLOAD_EXPIRY },
+        )
+      : null,
+  })));
+  const starterUrl = content.starterKey
+    ? await getSignedUrl(
+        s3Client,
+        new GetObjectCommand({ Bucket: SHARED_BUCKET, Key: content.starterKey }),
+        { expiresIn: PRESIGNED_URL_DOWNLOAD_EXPIRY },
+      )
+    : null;
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify({
+      ...mapSharedSummary(item),
+      pages,
+      starterUrl,
+      isMine: item.authorSub === identity.sub,
+    }),
+  };
+}
+
+async function handleImportSharedAssignment(
+  identity: TeacherIdentity, sharedId: string, body: Record<string, unknown>,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const item = await getSharedItem(sharedId);
+  if (!item || item.status !== 'published') {
+    throw new NotFoundError('Shared assignment not found');
+  }
+
+  const groupId = body.groupId;
+  if (typeof groupId !== 'string' || !groupId) {
+    throw new ValidationError('groupId is required');
+  }
+  const group = await getOwnedGroup(identity, groupId);
+
+  const assignmentName = body.assignmentName !== undefined
+    ? validateClassName(body.assignmentName)
+    : (item.title as string);
+
+  // Fresh unique join code (same retry policy as creation/duplication).
+  let joinCode = '';
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const candidate = generateJoinCode();
+    const existing = await docClient.send(new QueryCommand({
+      TableName: CLASSROOMS_TABLE,
+      IndexName: 'joinCode-index',
+      KeyConditionExpression: 'joinCode = :jc',
+      ExpressionAttributeValues: { ':jc': candidate },
+      Limit: 1,
+    }));
+    if (!existing.Items || existing.Items.length === 0) {
+      joinCode = candidate;
+      break;
+    }
+  }
+  if (!joinCode) {
+    return { statusCode: 500, body: JSON.stringify({ error: 'Failed to generate unique join code' }) };
+  }
+
+  const newClassroomId = crypto.randomUUID();
+  const content = (item.content as AssignmentContent | undefined) || {};
+  const { assignment, copies } = buildDuplicatedAssignment(content, `shared/${sharedId}`, newClassroomId);
+
+  // Copy shared objects into the classroom bucket first (never reference
+  // missing objects). Source is the shared bucket.
+  for (const { from, to } of copies) {
+    await s3Client.send(new CopyObjectCommand({
+      Bucket: SUBMISSIONS_BUCKET,
+      CopySource: `${SHARED_BUCKET}/${encodeURIComponent(from)}`,
+      Key: to,
+    }));
+  }
+
+  const now = new Date().toISOString();
+  const ttl = Math.floor(Date.now() / 1000) + CLASSROOM_TTL_SECONDS;
+  const studentCount = typeof group.studentCount === 'number' ? group.studentCount : 40;
+  await docClient.send(new PutCommand({
+    TableName: CLASSROOMS_TABLE,
+    Item: {
+      classroomId: newClassroomId,
+      teacherSub: identity.sub,
+      className: group.name,
+      assignmentName,
+      joinCode,
+      studentCount,
+      groupId,
+      sortDate: now,
+      assignment,
+      status: 'active',
+      createdAt: now,
+      updatedAt: now,
+      ttl,
+    },
+  }));
+
+  // Popularity signal (D8 future sort) — best effort, never blocks import.
+  try {
+    await docClient.send(new UpdateCommand({
+      TableName: SHARED_ASSIGNMENTS_TABLE,
+      Key: { sharedId },
+      UpdateExpression: 'ADD reuseCount :one',
+      ExpressionAttributeValues: { ':one': 1 },
+    }));
+  } catch (err) {
+    console.error('Failed to bump reuseCount:', err);
+  }
+
+  return {
+    statusCode: 201,
+    body: JSON.stringify({
+      classroomId: newClassroomId,
+      className: group.name,
+      assignmentName,
+      joinCode,
+      studentCount,
+      groupId,
+      sortDate: now,
+      hasAssignment: !!assignment,
+      status: 'active',
+      createdAt: now,
+      expiresAt: new Date(ttl * 1000).toISOString(),
+    }),
+  };
+}
+
+async function handleUpdateSharedAssignment(
+  identity: TeacherIdentity, sharedId: string, body: Record<string, unknown>,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const item = await getSharedItem(sharedId);
+  if (!item || item.authorSub !== identity.sub) {
+    throw new NotFoundError('Shared assignment not found');
+  }
+
+  const updates: Record<string, unknown> = { updatedAt: new Date().toISOString() };
+  if (body.title !== undefined) {
+    if (typeof body.title !== 'string' || body.title.trim().length === 0 ||
+        body.title.trim().length > MAX_SHARED_TITLE_LENGTH) {
+      throw new ValidationError(`title must be 1-${MAX_SHARED_TITLE_LENGTH} characters`);
+    }
+    updates.title = body.title.trim();
+  }
+  if (body.summary !== undefined) {
+    if (body.summary === null || body.summary === '') {
+      updates.summary = null;
+    } else if (typeof body.summary === 'string' && body.summary.trim().length <= MAX_SHARED_SUMMARY_LENGTH) {
+      updates.summary = body.summary.trim();
+    } else {
+      throw new ValidationError(`summary must be at most ${MAX_SHARED_SUMMARY_LENGTH} characters`);
+    }
+  }
+  if (body.schoolLevel !== undefined || body.subject !== undefined ||
+      body.grades !== undefined || body.tags !== undefined || body.lessonCount !== undefined) {
+    // Attributes are validated as a set (subject depends on schoolLevel).
+    const merged = {
+      schoolLevel: body.schoolLevel !== undefined ? body.schoolLevel : item.schoolLevel,
+      subject: body.subject !== undefined ? body.subject : item.subject,
+      grades: body.grades !== undefined ? body.grades : item.grades,
+      tags: body.tags !== undefined ? body.tags : item.tags,
+      lessonCount: body.lessonCount !== undefined ? body.lessonCount : item.lessonCount,
+    };
+    Object.assign(updates, validateSharedAttributes(merged as Record<string, unknown>));
+  }
+  if (body.supplementUrl !== undefined) {
+    updates.supplementUrl = validateSupplementUrl(body.supplementUrl);
+  }
+  if (body.authorName !== undefined || body.authorAffiliation !== undefined) {
+    const profile = validateAuthorProfile({
+      authorName: body.authorName !== undefined ? body.authorName : item.authorName,
+      authorAffiliation: body.authorAffiliation !== undefined ? body.authorAffiliation : item.authorAffiliation,
+    });
+    Object.assign(updates, profile);
+  }
+  if (body.status !== undefined) {
+    if (body.status !== 'published' && body.status !== 'unlisted') {
+      throw new ValidationError('Status must be "published" or "unlisted"');
+    }
+    updates.status = body.status;
+  }
+
+  // Optional content re-snapshot (D10, overwrite semantics): pull the
+  // current pages/starter from one of the teacher's own classrooms.
+  if (body.classroomId !== undefined) {
+    if (typeof body.classroomId !== 'string' || !body.classroomId) {
+      throw new ValidationError('classroomId must be a string');
+    }
+    const classroomResult = await docClient.send(new GetCommand({
+      TableName: CLASSROOMS_TABLE,
+      Key: { classroomId: body.classroomId },
+    }));
+    if (!classroomResult.Item || classroomResult.Item.status !== 'active') {
+      throw new NotFoundError('Classroom not found');
+    }
+    if (!(await canManageViaGroup(classroomResult.Item, identity))) {
+      throw new AuthError('Not authorized to share this classroom');
+    }
+    const assignment = classroomResult.Item.assignment as AssignmentContent | undefined;
+    if (!assignment || ((!assignment.pages || assignment.pages.length === 0) && !assignment.starterKey)) {
+      throw new ValidationError('This assignment has no content (pages or starter project) to share');
+    }
+    if (assignment.starterKey) {
+      const head = await s3Client.send(new HeadObjectCommand({
+        Bucket: SUBMISSIONS_BUCKET,
+        Key: assignment.starterKey,
+      }));
+      if ((head.ContentLength || 0) > SHARED_STARTER_MAX_BYTES) {
+        throw new ValidationError(
+          `Starter project exceeds the ${Math.floor(SHARED_STARTER_MAX_BYTES / (1024 * 1024))}MB limit`,
+        );
+      }
+    }
+    const { pages, starterKey, copies } = buildSharedSnapshot(assignment, sharedId);
+    for (const { from, to } of copies) {
+      await s3Client.send(new CopyObjectCommand({
+        Bucket: SHARED_BUCKET,
+        CopySource: `${SUBMISSIONS_BUCKET}/${encodeURIComponent(from)}`,
+        Key: to,
+      }));
+    }
+    // Best-effort cleanup of orphaned old objects (keys are content-unique).
+    const oldContent = (item.content as AssignmentContent | undefined) || {};
+    const newKeys = new Set([...pages.map(p => p.imageKey), starterKey].filter(Boolean));
+    const oldKeys = [
+      ...(oldContent.pages || []).map(p => p.imageKey),
+      oldContent.starterKey,
+    ].filter((key): key is string => !!key && !newKeys.has(key));
+    await Promise.allSettled(oldKeys.map(key =>
+      s3Client.send(new DeleteObjectCommand({ Bucket: SHARED_BUCKET, Key: key })),
+    ));
+    updates.content = { pages, starterKey };
+  }
+
+  const expressionParts: string[] = [];
+  const expressionValues: Record<string, unknown> = {};
+  const expressionNames: Record<string, string> = {};
+  let i = 0;
+  for (const [key, value] of Object.entries(updates)) {
+    expressionNames[`#attr${i}`] = key;
+    expressionValues[`:val${i}`] = value;
+    expressionParts.push(`#attr${i} = :val${i}`);
+    i++;
+  }
+  const result = await docClient.send(new UpdateCommand({
+    TableName: SHARED_ASSIGNMENTS_TABLE,
+    Key: { sharedId },
+    UpdateExpression: `SET ${expressionParts.join(', ')}`,
+    ExpressionAttributeNames: expressionNames,
+    ExpressionAttributeValues: expressionValues,
+    ReturnValues: 'ALL_NEW',
+  }));
+
+  return { statusCode: 200, body: JSON.stringify(mapSharedSummary(result.Attributes || {})) };
+}
+
+async function handleUnlistSharedAssignment(
+  identity: TeacherIdentity, sharedId: string,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const item = await getSharedItem(sharedId);
+  if (!item || item.authorSub !== identity.sub) {
+    throw new NotFoundError('Shared assignment not found');
+  }
+  await docClient.send(new UpdateCommand({
+    TableName: SHARED_ASSIGNMENTS_TABLE,
+    Key: { sharedId },
+    UpdateExpression: 'SET #status = :status, updatedAt = :now',
+    ExpressionAttributeNames: { '#status': 'status' },
+    ExpressionAttributeValues: { ':status': 'unlisted', ':now': new Date().toISOString() },
+  }));
+  return { statusCode: 204, body: '' };
+}
+
+async function handleReportSharedAssignment(
+  identity: TeacherIdentity, sharedId: string, body: Record<string, unknown>,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const reason = body.reason;
+  if (typeof reason !== 'string' || reason.trim().length === 0 ||
+      reason.trim().length > MAX_SHARED_REPORT_REASON_LENGTH) {
+    throw new ValidationError(`reason is required (at most ${MAX_SHARED_REPORT_REASON_LENGTH} characters)`);
+  }
+  const item = await getSharedItem(sharedId);
+  if (!item || item.status !== 'published') {
+    throw new NotFoundError('Shared assignment not found');
+  }
+
+  await checkSharedDailyLimit('report', identity.sub, REPORT_DAILY_LIMIT);
+
+  await docClient.send(new PutCommand({
+    TableName: SHARED_REPORTS_TABLE,
+    Item: {
+      sharedId,
+      reportId: crypto.randomUUID(),
+      reason: reason.trim(),
+      // Internal only (abuse tracing) — never returned by any endpoint.
+      reporterSub: identity.sub,
+      createdAt: new Date().toISOString(),
+      ttl: Math.floor(Date.now() / 1000) + SHARED_REPORT_TTL_SECONDS,
+    },
+  }));
+
+  return { statusCode: 201, body: JSON.stringify({}) };
+}
+
 // --- Main handler ---
 
 export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
@@ -3414,6 +4151,47 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
     } else if (method === 'POST' && path === '/classrooms/verify-session') {
       const token = extractBearerToken(event.headers?.authorization);
       result = await handleVerifySession(token);
+
+    // --- みんなの課題 (shared assignment library) routes (own root path) ---
+    } else if (method === 'POST' && path === '/shared-assignments') {
+      const token = extractBearerToken(event.headers?.authorization);
+      const identity = await verifyTeacherIdToken(token);
+      result = await handleShareAssignment(identity, body);
+
+    } else if (method === 'GET' && path === '/shared-assignments') {
+      const token = extractBearerToken(event.headers?.authorization);
+      const identity = await verifyTeacherIdToken(token);
+      result = await handleListSharedAssignments(identity, event.queryStringParameters || {});
+
+    } else if (method === 'POST' && /^\/shared-assignments\/[^/]+\/import$/.test(path)) {
+      const token = extractBearerToken(event.headers?.authorization);
+      const identity = await verifyTeacherIdToken(token);
+      const sharedId = event.pathParameters?.sharedId || '';
+      result = await handleImportSharedAssignment(identity, sharedId, body);
+
+    } else if (method === 'POST' && /^\/shared-assignments\/[^/]+\/report$/.test(path)) {
+      const token = extractBearerToken(event.headers?.authorization);
+      const identity = await verifyTeacherIdToken(token);
+      const sharedId = event.pathParameters?.sharedId || '';
+      result = await handleReportSharedAssignment(identity, sharedId, body);
+
+    } else if (method === 'GET' && /^\/shared-assignments\/[^/]+$/.test(path)) {
+      const token = extractBearerToken(event.headers?.authorization);
+      const identity = await verifyTeacherIdToken(token);
+      const sharedId = event.pathParameters?.sharedId || '';
+      result = await handleGetSharedAssignment(identity, sharedId);
+
+    } else if (method === 'PATCH' && /^\/shared-assignments\/[^/]+$/.test(path)) {
+      const token = extractBearerToken(event.headers?.authorization);
+      const identity = await verifyTeacherIdToken(token);
+      const sharedId = event.pathParameters?.sharedId || '';
+      result = await handleUpdateSharedAssignment(identity, sharedId, body);
+
+    } else if (method === 'DELETE' && /^\/shared-assignments\/[^/]+$/.test(path)) {
+      const token = extractBearerToken(event.headers?.authorization);
+      const identity = await verifyTeacherIdToken(token);
+      const sharedId = event.pathParameters?.sharedId || '';
+      result = await handleUnlistSharedAssignment(identity, sharedId);
 
     // --- Group (組) routes (own root path — no conflict with /classrooms) ---
     } else if (method === 'POST' && path === '/classroom-groups') {
