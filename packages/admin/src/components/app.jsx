@@ -5,14 +5,15 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {fetchMe, setIdToken} from '../lib/admin-api.js';
 import {getDevLoginToken, initGoogleSignIn} from '../lib/google-auth.js';
+import BugReportsView from './bug-reports-view.jsx';
 import ClassroomsView from './classrooms-view.jsx';
 import SharedAssignmentsView from './shared-assignments-view.jsx';
 import './app.css';
 
 const SECTIONS = [
     {key: 'shared', label: 'みんなの課題'},
-    {key: 'classrooms', label: 'クラス・課題'}
-    // S5 バグ報告 のセクションはここに追加
+    {key: 'classrooms', label: 'クラス・課題'},
+    {key: 'bug-reports', label: 'バグ報告'}
 ];
 
 // signed-out → checking → authorized | forbidden | error
@@ -86,6 +87,7 @@ const App = () => {
                     <h2>{SECTIONS.find(s => s.key === section).label}</h2>
                     {section === 'shared' && <SharedAssignmentsView />}
                     {section === 'classrooms' && <ClassroomsView />}
+                    {section === 'bug-reports' && <BugReportsView />}
                 </main>
             </div>
         );

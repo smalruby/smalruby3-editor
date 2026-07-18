@@ -18,6 +18,7 @@ jest.mock('../../src/lib/google-auth.js', () => ({
 // The dashboard embeds the management views; they get their own tests.
 jest.mock('../../src/components/shared-assignments-view.jsx', () => () => null);
 jest.mock('../../src/components/classrooms-view.jsx', () => () => null);
+jest.mock('../../src/components/bug-reports-view.jsx', () => () => null);
 
 import App from '../../src/components/app.jsx';
 

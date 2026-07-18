@@ -22,6 +22,13 @@ const setIdToken = token => {
 const hasIdToken = () => Boolean(idToken);
 
 /**
+ * Expose the held token to sibling API clients (the bug-report read view) —
+ * still module memory only, never persisted.
+ * @returns {string|null} the current id_token
+ */
+const getIdToken = () => idToken;
+
+/**
  * Perform an authenticated request against the admin API.
  * @param {string} method - HTTP method
  * @param {string} path - API path (starting with /admin/)
@@ -54,7 +61,7 @@ const request = async (method, path, body) => {
  */
 const fetchMe = () => request('GET', '/admin/me');
 
-export {ADMIN_API_ENDPOINT, setIdToken, hasIdToken, request, fetchMe};
+export {ADMIN_API_ENDPOINT, setIdToken, hasIdToken, getIdToken, request, fetchMe};
 
 // --- みんなの課題 management (S3 #1083) ---
 

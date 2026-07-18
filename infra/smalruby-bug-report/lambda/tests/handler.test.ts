@@ -201,3 +201,40 @@ describe('verifyMicrosoftIdToken', () => {
     await expect(fresh('whatever')).rejects.toThrow();
   });
 });
+
+describe('verifyGoogleIdToken audience (EPIC #1073 decision F)', () => {
+  const ORIGINAL_ADMIN_ID = process.env.ADMIN_GOOGLE_CLIENT_ID;
+
+  afterEach(() => {
+    jest.dontMock('google-auth-library');
+    jest.resetModules();
+    if (ORIGINAL_ADMIN_ID === undefined) {
+      delete process.env.ADMIN_GOOGLE_CLIENT_ID;
+    } else {
+      process.env.ADMIN_GOOGLE_CLIENT_ID = ORIGINAL_ADMIN_ID;
+    }
+  });
+
+  const captureAudience = async (adminClientId: string) => {
+    jest.resetModules();
+    process.env.GOOGLE_CLIENT_ID = 'editor-client-id';
+    process.env.ADMIN_GOOGLE_CLIENT_ID = adminClientId;
+    const verifyMock = jest.fn(async (_args: { idToken: string; audience: string | string[] }) => ({
+      getPayload: () => ({ sub: 'g-sub', email: 'a@example.com', email_verified: true }),
+    }));
+    jest.doMock('google-auth-library', () => ({
+      OAuth2Client: jest.fn(() => ({ verifyIdToken: verifyMock })),
+    }));
+    const { verifyGoogleIdToken } = require('../handler');
+    await verifyGoogleIdToken('some-google-token');
+    return verifyMock.mock.calls[0]?.[0]?.audience;
+  };
+
+  test('accepts the admin console client ID as an additional audience when configured', async () => {
+    expect(await captureAudience('admin-client-id')).toEqual(['editor-client-id', 'admin-client-id']);
+  });
+
+  test('keeps the single editor audience when not configured (pre-#1073 behavior)', async () => {
+    expect(await captureAudience('')).toBe('editor-client-id');
+  });
+});

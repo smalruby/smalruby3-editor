@@ -200,3 +200,23 @@ body {
     background: white;
     cursor: pointer;
 }
+
+.admin-thumb {
+    width: 4rem;
+    height: 3rem;
+    object-fit: cover;
+    border-radius: 0.3rem;
+    margin-right: 0.5rem;
+    vertical-align: middle;
+}
+
+.admin-pre {
+    max-height: 16rem;
+    overflow: auto;
+    padding: 0.5rem;
+    background: hsl(220, 20%, 96%);
+    border-radius: 0.4rem;
+    font-size: 0.8rem;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
