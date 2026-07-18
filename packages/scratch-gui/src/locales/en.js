@@ -344,6 +344,36 @@ export default {
     'gui.classroom.board.restore': 'Restore',
     'gui.classroom.board.expiryBadge': '{days} days left',
     'gui.classroom.board.downloadClass': 'Download all submissions',
+    'gui.classroom.shared.levelElementary': 'Elementary school',
+    'gui.classroom.shared.levelJuniorHigh': 'Junior high school',
+    'gui.classroom.shared.levelHigh': 'High school',
+    'gui.classroom.shared.levelOther': 'Other',
+    'gui.classroom.shared.formTitle': 'Share this assignment with teachers nationwide',
+    'gui.classroom.shared.formHint':
+        'The assignment pages and starter project are published as a snapshot. ' +
+        'Submissions and student data are never shared.',
+    'gui.classroom.shared.titlePlaceholder': 'Title (required)',
+    'gui.classroom.shared.summaryPlaceholder': 'Short description shown on the catalog card (optional)',
+    'gui.classroom.shared.subjectPlaceholder': 'Subject (required)',
+    'gui.classroom.shared.lessonCountPlaceholder': 'Lessons',
+    'gui.classroom.shared.gradesLabel': 'Grades (optional)',
+    'gui.classroom.shared.gradeN': 'Grade {grade}',
+    'gui.classroom.shared.tagsPlaceholder': 'Tags, comma separated — e.g. 甲子園, メッシュ (up to 5)',
+    'gui.classroom.shared.urlPlaceholder': 'Supplement URL (optional, https only)',
+    'gui.classroom.shared.urlHint':
+        'Link to material that shows how to run the lesson — a lesson plan, slides, or a study ' +
+        'report. We recommend a Google Drive / Google Docs link set to ' +
+        '“anyone with the link can view”.',
+    'gui.classroom.shared.urlError': 'The URL must start with https://',
+    'gui.classroom.shared.authorNamePlaceholder': 'Display name (required — shown as the author credit)',
+    'gui.classroom.shared.affiliationPlaceholder': 'Affiliation (optional — e.g. Shimane / public junior high)',
+    'gui.classroom.shared.consent':
+        'I publish this assignment under the CC BY 4.0 license and allow other teachers to use ' +
+        'and adapt it in their lessons (credited to my display name).',
+    'gui.classroom.shared.cancel': 'Cancel',
+    'gui.classroom.shared.submit': 'Share',
+    'gui.classroom.shared.openForm': 'Share this assignment',
+    'gui.classroom.shared.published': 'Published to みんなの課題: "{title}" (© {author} / CC BY 4.0)',
     'gui.classroom.teacherDetail.retentionBanner':
         'This assignment and its submissions will be deleted automatically on {date}. ' +
         'Download them to keep a copy.',

@@ -109,6 +109,7 @@ src/containers/*
 !src/containers/use-teacher-auth.js
 !src/containers/use-teacher-classroom.js
 !src/containers/use-teacher-classrooms.js
+!src/containers/use-shared-assignments.js
 !src/containers/use-teacher-evaluation.js
 !src/containers/use-teacher-groups.js
 !src/containers/use-teacher-submissions.js
@@ -149,6 +150,8 @@ src/lib/*
 !src/lib/classroom-download-utils.js
 !src/lib/classroom-group-utils.js
 !src/lib/classroom-retention.js
+!src/lib/shared-assignment-taxonomy.js
+!src/lib/shared-author-profile.js
 !src/lib/classroom-kick-request-storage.js
 !src/lib/google-classroom-auth.js
 !src/lib/block-utils.js
@@ -381,6 +384,8 @@ test/unit/lib/*
 !test/unit/lib/classroom-download-utils.test.js
 !test/unit/lib/classroom-group-utils.test.js
 !test/unit/lib/classroom-retention.test.js
+!test/unit/lib/shared-assignment-taxonomy.test.js
+!test/unit/lib/shared-author-profile.test.js
 !test/unit/lib/evaluation-utils.test.js
 !test/unit/lib/sb3-analyzer.test.js
 !test/unit/lib/classroom-kick-request-storage.test.js

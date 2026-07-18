@@ -242,6 +242,19 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-board-download-class` | button | ボードの「全課題の提出物をダウンロード」（active + アーカイブ済みを 1 つの zip に） |
 | `classroom-retention-banner` | div | 課題詳細の保存期限アラートバナー（30 日以下で表示） |
 | `classroom-retention-banner-download` | button | バナー内の「全作品ダウンロード」 |
+| `classroom-share-assignment` | button | 課題詳細の「この課題を共有」（みんなの課題フォームを開く） |
+| `shared-form` | form | みんなの課題の共有フォーム |
+| `shared-form-title` / `shared-form-summary` | input | タイトル / 短い説明 |
+| `shared-form-level` | select | 学校種 |
+| `shared-form-subject` | select | 教科（制御語彙。学校種=その他のときは `shared-form-subject-free` input） |
+| `shared-form-grade-{n}` | checkbox | 対象学年 |
+| `shared-form-tags` | input | タグ（カンマ区切り・最大5） |
+| `shared-form-lesson-count` | input | 想定コマ数 |
+| `shared-form-url` | input | 補足資料 URL（https のみ。ガイダンス=`shared-form-url-hint`、エラー=`shared-form-url-error`） |
+| `shared-form-author-name` / `shared-form-author-affiliation` | input | 表示名 / 所属表記（localStorage 記憶） |
+| `shared-form-consent` | checkbox | CC BY 4.0 同意（未チェックだと送信不可） |
+| `shared-form-submit` / `shared-form-cancel` | button | 共有する / キャンセル |
+| `shared-form-success` | p | 公開完了メッセージ（© 表示名 / CC BY 4.0） |
 | `classroom-breadcrumbs` | nav | パンくず（クラス一覧 > 課題一覧 > 課題詳細） |
 | `classroom-breadcrumb-class-list` / `classroom-breadcrumb-assignments` | button | パンくずリンク |
 | `classroom-board-create-name` / `classroom-board-create-submit` | input / button | インライン課題作成（課題名のみ） |

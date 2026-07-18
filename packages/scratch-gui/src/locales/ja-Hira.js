@@ -356,6 +356,34 @@ export default {
     'gui.classroom.board.restore': 'もとにもどす',
     'gui.classroom.board.expiryBadge': 'あと{days}にち',
     'gui.classroom.board.downloadClass': 'ぜんかだいのていしゅつぶつをダウンロード',
+    'gui.classroom.shared.levelElementary': 'しょうがっこう',
+    'gui.classroom.shared.levelJuniorHigh': 'ちゅうがっこう',
+    'gui.classroom.shared.levelHigh': 'こうとうがっこう',
+    'gui.classroom.shared.levelOther': 'そのた',
+    'gui.classroom.shared.formTitle': 'このかだいをぜんこくのせんせいにきょうゆう',
+    'gui.classroom.shared.formHint':
+        'かだいのせつめいページとスタータープロジェクトがスナップショットとしてこうかいされます。ていしゅつぶつやせいとのじょうほうはきょうゆうされません。',
+    'gui.classroom.shared.titlePlaceholder': 'タイトル（ひっす）',
+    'gui.classroom.shared.summaryPlaceholder': 'カタログのカードにひょうじするみじかいせつめい（にんい）',
+    'gui.classroom.shared.subjectPlaceholder': 'きょうか（ひっす）',
+    'gui.classroom.shared.lessonCountPlaceholder': 'コマすう',
+    'gui.classroom.shared.gradesLabel': 'たいしょうがくねん（にんい）:',
+    'gui.classroom.shared.gradeN': '{grade}ねん',
+    'gui.classroom.shared.tagsPlaceholder': 'タグ（カンマくぎり・さいだい5こ）れい: こうしえん, メッシュ',
+    'gui.classroom.shared.urlPlaceholder': 'ほそくしりょうの URL（にんい・https のみ）',
+    'gui.classroom.shared.urlHint':
+        'がくしゅうしどうあん・じゅぎょうスライド・けんきゅうはっぴょうしりょうなど、じゅぎょうのすすめかたがわかるしりょうへのリンクをいれてください。Google ドライブ / Google ドキュメントの「リンクをしっているぜんいんがえつらんか」のきょうゆうリンクをすいしょうします。',
+    'gui.classroom.shared.urlError': 'URL は https:// ではじまるひつようがあります',
+    'gui.classroom.shared.authorNamePlaceholder':
+        'ひょうじめい（ひっす・とうこうしゃクレジットとしてこうかいされます）',
+    'gui.classroom.shared.affiliationPlaceholder':
+        'しょぞくひょうき（にんい）れい: しまねけん こうりつちゅうがっこう',
+    'gui.classroom.shared.consent':
+        'このかだいを CC BY 4.0 ライセンスでこうかいし、ほかのせんせいがじゅぎょうでりよう・かいへんすることをきょだくします（クレジットはひょうじめいでひょうじされます）。',
+    'gui.classroom.shared.cancel': 'キャンセル',
+    'gui.classroom.shared.submit': 'きょうゆうする',
+    'gui.classroom.shared.openForm': 'このかだいをきょうゆう',
+    'gui.classroom.shared.published': '「みんなのかだい」にこうかいしました: {title}（© {author} / CC BY 4.0）',
     'gui.classroom.teacherDetail.retentionBanner':
         'このかだいとていしゅつぶつは {date} にじどうさくじょされます。ダウンロードしてほぞんしてください。',
     'gui.classroom.codeDisplay.title': 'さんかコード',

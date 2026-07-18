@@ -132,6 +132,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         onCreateGroup,
         onUpdateGroup,
         evaluation,
+        shared,
     } = containerProps;
 
     // Opening a class scopes the board to its assignments (GC style).
@@ -287,6 +288,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         onReturnSubmission={onReturnSubmission}
                         onSelectMember={onSelectMember}
                         onShowCodeDisplay={onShowCodeDisplay}
+                        shared={shared}
                         onShowPostAssignment={authProvider === 'google' ? onShowPostAssignment : null}
                         onToggleCodeFullscreen={onToggleCodeFullscreen}
                         onUpdateAssignmentName={onUpdateAssignmentName}
