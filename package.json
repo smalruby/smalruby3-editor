@@ -20,7 +20,8 @@
     "packages/scratch-render",
     "packages/scratch-vm",
     "packages/scratch-gui",
-    "packages/scratch-media-lib-scripts"
+    "packages/scratch-media-lib-scripts",
+    "packages/admin"
   ],
   "scripts": {
     "build": "cross-env NODE_ENV=production npm run --workspaces build",
