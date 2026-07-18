@@ -2488,6 +2488,178 @@
     font-size: 0.875rem;
 }
 
+/* --- みんなの課題: catalog (EPIC #1066 S3) --- */
+
+.shared-catalog {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin: 0.75rem 0;
+    padding: 1rem;
+    border: 1px solid hsla(260, 60%, 60%, 0.35);
+    border-radius: 0.5rem;
+    background: white;
+}
+
+.shared-catalog-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.shared-catalog-filters select,
+.shared-catalog-filters input,
+.shared-catalog-filters button {
+    padding: 0.35rem 0.5rem;
+    border: 1px solid hsla(0, 0%, 0%, 0.15);
+    border-radius: 0.4rem;
+    background: white;
+    font-size: 0.8rem;
+}
+
+.shared-cards {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.shared-card {
+    border: 1px solid hsla(0, 0%, 0%, 0.1);
+    border-radius: 0.5rem;
+}
+
+.shared-card-main {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    width: 100%;
+    padding: 0.6rem 0.8rem;
+    border: none;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+}
+
+.shared-card-main:hover {
+    background: hsla(260, 60%, 60%, 0.05);
+}
+
+.shared-card-title {
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.shared-card-unlisted {
+    padding: 0.05rem 0.4rem;
+    border-radius: 0.25rem;
+    background: hsla(0, 0%, 0%, 0.08);
+    color: hsla(225, 15%, 40%, 1);
+    font-size: 0.7rem;
+    font-weight: normal;
+}
+
+.shared-card-summary {
+    font-size: 0.8rem;
+    color: hsla(225, 15%, 40%, 1);
+}
+
+.shared-card-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+}
+
+.shared-card-tag {
+    font-size: 0.75rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 0.25rem;
+    background: hsla(200, 70%, 55%, 0.12);
+    color: hsla(205, 70%, 35%, 1);
+}
+
+.shared-card-meta {
+    font-size: 0.75rem;
+    color: hsla(225, 15%, 45%, 1);
+}
+
+.shared-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.shared-detail-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.shared-detail-header button {
+    padding: 0.35rem 0.8rem;
+    border: 1px solid hsla(0, 0%, 0%, 0.15);
+    border-radius: 0.4rem;
+    background: white;
+    cursor: pointer;
+}
+
+.shared-detail-page {
+    padding: 0.6rem;
+    border: 1px solid hsla(0, 0%, 0%, 0.08);
+    border-radius: 0.4rem;
+}
+
+.shared-detail-url-block button,
+.shared-detail-url-confirm a,
+.shared-detail-url-confirm button {
+    padding: 0.3rem 0.7rem;
+    border: 1px solid #855cd6;
+    border-radius: 0.4rem;
+    background: white;
+    color: #855cd6;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 0.8rem;
+}
+
+.shared-detail-url-confirm {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.7rem;
+    border-radius: 0.4rem;
+    background: hsla(35, 90%, 55%, 0.12);
+    font-size: 0.8rem;
+}
+
+.shared-report-form {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-start;
+}
+
+.shared-report-form textarea {
+    flex: 1;
+    min-height: 3rem;
+    padding: 0.45rem 0.6rem;
+    border: 1px solid hsla(0, 0%, 0%, 0.15);
+    border-radius: 0.4rem;
+    font-size: 0.85rem;
+}
+
+.shared-report-form button {
+    padding: 0.45rem 0.8rem;
+    border: 1px solid hsla(0, 0%, 0%, 0.15);
+    border-radius: 0.4rem;
+    background: white;
+    cursor: pointer;
+}
+
 /* --- Assignment board (inside a class) --- */
 
 .assignment-board {

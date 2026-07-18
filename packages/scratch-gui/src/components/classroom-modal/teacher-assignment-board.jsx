@@ -13,6 +13,7 @@ import { buildAssignmentSections } from '../../lib/classroom-group-utils.js';
 import { formatClassLabel } from '../../lib/classroom-class-label.js';
 import { daysUntil, retentionLevel } from '../../lib/classroom-retention.js';
 import ErrorDisplay from './error-display.jsx';
+import SharedAssignmentCatalog from './shared-assignment-catalog.jsx';
 import TeacherBreadcrumbs from './teacher-breadcrumbs.jsx';
 
 import styles from './classroom-modal.css';
@@ -216,6 +217,7 @@ const TeacherAssignmentBoard = ({
     onShowClassList,
     onUpdateAssignmentMeta,
     onUpdateGroupTopics,
+    shared,
 }) => {
     const intl = useIntl();
     const [newTopic, setNewTopic] = useState('');
@@ -375,8 +377,37 @@ const TeacherAssignmentBoard = ({
                         )}
                     </button>
                 ) : null}
+                {shared ? (
+                    <button
+                        className={styles.boardReuseButton}
+                        data-testid="classroom-board-shared-catalog"
+                        disabled={isLoading}
+                        type="button"
+                        onClick={shared.handleOpenCatalog}
+                    >
+                        <FormattedMessage
+                            defaultMessage="Find in みんなの課題"
+                            description="Button that opens the shared assignment catalog"
+                            id="gui.classroom.shared.openCatalog"
+                        />
+                    </button>
+                ) : null}
             </div>
             <ErrorDisplay error={error} errorTitle={errorTitle} />
+            {shared && shared.lastImported ? (
+                <p className={styles.sharedFormSuccess} data-testid="shared-import-success">
+                    <FormattedMessage
+                        defaultMessage={'Imported "{name}" into this class. A new join code was issued.'}
+                        description="Confirmation after importing a shared assignment"
+                        id="gui.classroom.shared.imported"
+                        values={{ name: shared.lastImported.assignmentName }}
+                    />
+                </p>
+            ) : null}
+            {shared && shared.showCatalog ? (
+                <SharedAssignmentCatalog group={group} isLoading={isLoading} shared={shared} />
+            ) : (
+                <React.Fragment>
             {showInlineCreate ? (
                 <form
                     className={`${styles.boardPopover} ${styles.boardInlineCreate}`}
@@ -628,6 +659,8 @@ const TeacherAssignmentBoard = ({
                     ) : null}
                 </div>
             ) : null}
+                </React.Fragment>
+            )}
         </div>
     );
 };
@@ -653,6 +686,7 @@ TeacherAssignmentBoard.propTypes = {
     onShowClassList: PropTypes.func.isRequired,
     onUpdateAssignmentMeta: PropTypes.func.isRequired,
     onUpdateGroupTopics: PropTypes.func.isRequired,
+    shared: PropTypes.object,
 };
 
 export default TeacherAssignmentBoard;

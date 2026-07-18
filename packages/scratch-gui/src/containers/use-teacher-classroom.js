@@ -138,6 +138,7 @@ const useTeacherClassroom = ({
     const shared = useSharedAssignments({
         idToken: auth.idToken,
         handleTeacher401: auth.handleTeacher401,
+        loadClassrooms: classrooms.loadClassrooms,
         clearError,
         showError,
         intl,
