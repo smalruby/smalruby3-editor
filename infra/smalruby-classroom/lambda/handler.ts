@@ -3752,14 +3752,17 @@ async function handleListSharedAssignments(
     }
   }
 
+  // DynamoDB rejects an EMPTY ExpressionAttributeNames map, so the key must
+  // be omitted when there is nothing to alias (mine=1 with no filters).
+  const expressionNames = {
+    ...(mine ? {} : { '#status': 'status' }),
+    ...names,
+  };
   const result = await docClient.send(new QueryCommand({
     TableName: SHARED_ASSIGNMENTS_TABLE,
     IndexName: mine ? 'authorSub-createdAt-index' : 'status-createdAt-index',
     KeyConditionExpression: mine ? 'authorSub = :pk' : '#status = :pk',
-    ExpressionAttributeNames: {
-      ...(mine ? {} : { '#status': 'status' }),
-      ...names,
-    },
+    ...(Object.keys(expressionNames).length > 0 ? { ExpressionAttributeNames: expressionNames } : {}),
     ExpressionAttributeValues: {
       ':pk': mine ? identity.sub : 'published',
       ...values,
