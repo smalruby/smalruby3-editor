@@ -2349,6 +2349,145 @@
     cursor: default;
 }
 
+/* --- みんなの課題: share form (EPIC #1066 S2) --- */
+
+.shared-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin: 0.75rem 0;
+    padding: 1rem;
+    border: 1px solid hsla(260, 60%, 60%, 0.35);
+    border-radius: 0.5rem;
+    background: hsla(260, 60%, 60%, 0.05);
+}
+
+.shared-form input[type='text'],
+.shared-form input[type='url'],
+.shared-form input[type='number'],
+.shared-form select {
+    padding: 0.45rem 0.6rem;
+    border: 1px solid hsla(0, 0%, 0%, 0.15);
+    border-radius: 0.4rem;
+    font-size: 0.875rem;
+}
+
+.shared-form-title {
+    margin: 0;
+    font-size: 1rem;
+    color: #855cd6;
+}
+
+.shared-form-hint {
+    margin: 0;
+    font-size: 0.8rem;
+    color: hsla(225, 15%, 40%, 1);
+}
+
+.shared-form-row {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.shared-form-row > * {
+    flex: 1;
+}
+
+.shared-form-row input[type='number'] {
+    max-width: 6rem;
+}
+
+.shared-form-grades {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    align-items: center;
+    font-size: 0.875rem;
+}
+
+.shared-form-grade {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    cursor: pointer;
+}
+
+.shared-form-label {
+    color: hsla(225, 15%, 40%, 1);
+}
+
+.shared-form-url-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.shared-form-url-block input {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.shared-form-url-hint {
+    margin: 0;
+    font-size: 0.75rem;
+    color: hsla(225, 15%, 40%, 1);
+}
+
+.shared-form-url-error {
+    margin: 0;
+    font-size: 0.75rem;
+    color: hsla(10, 80%, 40%, 1);
+}
+
+.shared-form-consent {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.6rem;
+    border-radius: 0.4rem;
+    background: hsla(35, 90%, 55%, 0.1);
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.shared-form-consent input {
+    margin-top: 0.15rem;
+}
+
+.shared-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.shared-form-actions button {
+    padding: 0.45rem 1rem;
+    border: 1px solid hsla(0, 0%, 0%, 0.15);
+    border-radius: 0.4rem;
+    background: white;
+    cursor: pointer;
+}
+
+.shared-form-submit {
+    border-color: #855cd6 !important;
+    background: #855cd6 !important;
+    color: white;
+}
+
+.shared-form-submit:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.shared-form-success {
+    margin: 0.5rem 0;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.4rem;
+    background: hsla(145, 60%, 45%, 0.12);
+    color: hsla(145, 70%, 25%, 1);
+    font-size: 0.875rem;
+}
+
 /* --- Assignment board (inside a class) --- */
 
 .assignment-board {

@@ -7,6 +7,7 @@ import ClassCodeDisplay from './class-code-display.jsx';
 import ErrorDisplay from './error-display.jsx';
 import TeacherAssignmentEditor from './teacher-assignment-editor.jsx';
 import TeacherMemberDetail from './teacher-member-detail.jsx';
+import SharedAssignmentForm from './shared-assignment-form.jsx';
 
 import { formatClassLabel } from '../../lib/classroom-class-label.js';
 import { retentionLevel } from '../../lib/classroom-retention.js';
@@ -46,6 +47,7 @@ const TeacherClassDetail = ({
     onDetailTabChange,
     assignmentEditor,
     group,
+    shared,
 }) => {
     const intl = useIntl();
     // Destructured with handle-prefixed names for the embedded editor
@@ -438,7 +440,46 @@ const TeacherClassDetail = ({
                                         />
                                     )}
                                 </button>
+                                {shared ? (
+                                    <button
+                                        className={classNames(styles.secondaryButton, styles.detailTabsDownload)}
+                                        data-testid="classroom-share-assignment"
+                                        disabled={isLoading}
+                                        type="button"
+                                        onClick={shared.handleOpenShareForm}
+                                    >
+                                        <FormattedMessage
+                                            defaultMessage="Share this assignment"
+                                            description="Button that opens the shared assignment form"
+                                            id="gui.classroom.shared.openForm"
+                                        />
+                                    </button>
+                                ) : null}
                             </div>
+
+                            {/* みんなの課題: share form + publish confirmation
+                                (EPIC #1066 S2) */}
+                            {shared && shared.showShareForm ? (
+                                <SharedAssignmentForm
+                                    isLoading={isLoading}
+                                    selectedClassroom={selectedClassroom}
+                                    onCancel={shared.handleCloseShareForm}
+                                    onShare={shared.handleShareAssignment}
+                                />
+                            ) : null}
+                            {shared && shared.lastShared && !shared.showShareForm ? (
+                                <p className={styles.sharedFormSuccess} data-testid="shared-form-success">
+                                    <FormattedMessage
+                                        defaultMessage={'Published to みんなの課題: "{title}" (© {author} / CC BY 4.0)'}
+                                        description="Confirmation after publishing to the shared library"
+                                        id="gui.classroom.shared.published"
+                                        values={{
+                                            title: shared.lastShared.title,
+                                            author: shared.lastShared.authorName,
+                                        }}
+                                    />
+                                </p>
+                            ) : null}
 
                             {/* Description tab: the student-facing pages editor.
                                 Changes reach students only on save. */}
@@ -772,6 +813,7 @@ TeacherClassDetail.propTypes = {
     onDetailTabChange: PropTypes.func,
     assignmentEditor: PropTypes.object,
     group: PropTypes.object,
+    shared: PropTypes.object,
     selectedClassroom: PropTypes.object.isRequired,
     selectedMember: PropTypes.string,
 };
