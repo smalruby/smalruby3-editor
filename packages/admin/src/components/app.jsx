@@ -5,6 +5,7 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {fetchMe, setIdToken} from '../lib/admin-api.js';
 import {getDevLoginToken, initGoogleSignIn} from '../lib/google-auth.js';
+import SharedAssignmentsView from './shared-assignments-view.jsx';
 import './app.css';
 
 // signed-out → checking → authorized | forbidden | error
@@ -60,10 +61,9 @@ const App = () => {
                     >{me.email}</span>
                 </header>
                 <main className="admin-main">
-                    {/* Management domains land here: S3 みんなの課題 / S4 クラス / S5 バグ報告 */}
-                    <p data-testid="admin-placeholder">
-                        {'管理メニューは準備中です（S3: みんなの課題 / S4: クラス・課題 / S5: バグ報告）。'}
-                    </p>
+                    <h2>{'みんなの課題'}</h2>
+                    <SharedAssignmentsView />
+                    {/* S4 クラス・課題 / S5 バグ報告 のビューはここに追加 */}
                 </main>
             </div>
         );

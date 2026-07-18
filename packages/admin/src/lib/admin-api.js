@@ -55,3 +55,42 @@ const request = async (method, path, body) => {
 const fetchMe = () => request('GET', '/admin/me');
 
 export {ADMIN_API_ENDPOINT, setIdToken, hasIdToken, request, fetchMe};
+
+// --- みんなの課題 management (S3 #1083) ---
+
+/**
+ * Report queue: reported items grouped, most-reported first.
+ * @returns {Promise<object>} {queue: [{sharedId, count, reports, item}]}
+ */
+const fetchSharedReports = () => request('GET', '/admin/shared-assignments/reports');
+
+/**
+ * Fleet-wide shared assignment list.
+ * @param {object} [filters] - {status?, q?}
+ * @returns {Promise<object>} {items}
+ */
+const fetchSharedAssignments = (filters = {}) => {
+    const params = new URLSearchParams();
+    if (filters.status) params.set('status', filters.status);
+    if (filters.q) params.set('q', filters.q);
+    const qs = params.toString();
+    return request('GET', `/admin/shared-assignments${qs ? `?${qs}` : ''}`);
+};
+
+/**
+ * Shared assignment detail (pages with presigned image URLs).
+ * @param {string} sharedId - shared assignment id
+ * @returns {Promise<object>} detail
+ */
+const fetchSharedAssignment = sharedId => request('GET', `/admin/shared-assignments/${sharedId}`);
+
+/**
+ * Moderation action: flip publication status (audited server-side).
+ * @param {string} sharedId - shared assignment id
+ * @param {string} status - 'published' | 'unlisted'
+ * @returns {Promise<object>} updated summary
+ */
+const setSharedStatus = (sharedId, status) =>
+    request('PATCH', `/admin/shared-assignments/${sharedId}`, {status});
+
+export {fetchSharedReports, fetchSharedAssignments, fetchSharedAssignment, setSharedStatus};

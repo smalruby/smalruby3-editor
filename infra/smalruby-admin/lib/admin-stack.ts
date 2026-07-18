@@ -1,5 +1,6 @@
 import * as cdk from 'aws-cdk-lib/core';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
+import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as lambdaNodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as apigatewayv2 from 'aws-cdk-lib/aws-apigatewayv2';
@@ -101,6 +102,9 @@ export class SmalrubyAdminStack extends cdk.Stack {
         ADMIN_GOOGLE_CLIENT_ID: adminGoogleClientId,
         DEV_BYPASS_TOKEN: devBypassToken,
         CORS_ALLOWED_ORIGINS: corsOriginsEnv,
+        SHARED_ASSIGNMENTS_TABLE_NAME: `SharedAssignments${stageSuffix}`,
+        SHARED_REPORTS_TABLE_NAME: `SharedAssignmentReports${stageSuffix}`,
+        SHARED_BUCKET_NAME: `smalruby-shared-assignments${stageSuffix}`,
         STAGE: stage,
       },
       bundling: {
@@ -112,6 +116,29 @@ export class SmalrubyAdminStack extends cdk.Stack {
 
     // The allowlist check reads; the first-login sub pin writes.
     this.adminsTable.grantReadWriteData(handlerFn);
+
+    // --- Cross-service access (decision A / N2) ---
+    // Managed resources are IMPORTED by the fleet's stage naming convention —
+    // the classroom stack is never modified by this project. Grants on
+    // imported tables include their GSIs (grantIndexPermissions).
+
+    const sharedAssignmentsTable = dynamodb.Table.fromTableAttributes(this, 'SharedAssignmentsRef', {
+      tableName: `SharedAssignments${stageSuffix}`,
+      grantIndexPermissions: true,
+    });
+    const sharedReportsTable = dynamodb.Table.fromTableAttributes(this, 'SharedReportsRef', {
+      tableName: `SharedAssignmentReports${stageSuffix}`,
+      grantIndexPermissions: true,
+    });
+    const sharedBucket = s3.Bucket.fromBucketName(
+      this, 'SharedBucketRef', `smalruby-shared-assignments${stageSuffix}`,
+    );
+
+    // Moderation: read everything, write only the status flip (RW grant —
+    // DynamoDB IAM cannot scope to attributes; the handler enforces it).
+    sharedAssignmentsTable.grantReadWriteData(handlerFn);
+    sharedReportsTable.grantReadData(handlerFn);
+    sharedBucket.grantRead(handlerFn);
 
     // --- Custom Domain ---
 
@@ -171,6 +198,23 @@ export class SmalrubyAdminStack extends cdk.Stack {
     this.api.addRoutes({
       path: '/admin/me',
       methods: [apigatewayv2.HttpMethod.GET],
+      integration,
+    });
+
+    // みんなの課題 moderation (S3 #1083)
+    this.api.addRoutes({
+      path: '/admin/shared-assignments',
+      methods: [apigatewayv2.HttpMethod.GET],
+      integration,
+    });
+    this.api.addRoutes({
+      path: '/admin/shared-assignments/reports',
+      methods: [apigatewayv2.HttpMethod.GET],
+      integration,
+    });
+    this.api.addRoutes({
+      path: '/admin/shared-assignments/{sharedId}',
+      methods: [apigatewayv2.HttpMethod.GET, apigatewayv2.HttpMethod.PATCH],
       integration,
     });
 

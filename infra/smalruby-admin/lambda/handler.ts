@@ -21,7 +21,9 @@
  */
 import { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from 'aws-lambda';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, GetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, GetCommand, ScanCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { OAuth2Client } from 'google-auth-library';
 
 // --- Configuration ---
@@ -31,9 +33,16 @@ const ADMIN_GOOGLE_CLIENT_ID = process.env.ADMIN_GOOGLE_CLIENT_ID || '';
 const DEV_BYPASS_TOKEN = process.env.DEV_BYPASS_TOKEN || '';
 const STAGE = process.env.STAGE || 'stg';
 const CORS_ALLOWED_ORIGINS = (process.env.CORS_ALLOWED_ORIGINS || '').split(',').map(o => o.trim());
+// Managed services, resolved by the fleet's stage naming convention (N2:
+// the classroom stack is never touched).
+const SHARED_ASSIGNMENTS_TABLE = process.env.SHARED_ASSIGNMENTS_TABLE_NAME || 'SharedAssignments';
+const SHARED_REPORTS_TABLE = process.env.SHARED_REPORTS_TABLE_NAME || 'SharedAssignmentReports';
+const SHARED_BUCKET = process.env.SHARED_BUCKET_NAME || 'smalruby-shared-assignments';
+const PRESIGNED_URL_DOWNLOAD_EXPIRY = parseInt(process.env.PRESIGNED_URL_DOWNLOAD_EXPIRY || '3600', 10);
 
 const dynamoClient = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(dynamoClient);
+const s3Client = new S3Client({});
 const googleClient = new OAuth2Client(ADMIN_GOOGLE_CLIENT_ID);
 
 // --- Errors (bug-report conventions: authn 401 / authz 403) ---
@@ -41,6 +50,7 @@ const googleClient = new OAuth2Client(ADMIN_GOOGLE_CLIENT_ID);
 class AuthError extends Error {}
 class ForbiddenError extends Error {}
 class NotFoundError extends Error {}
+class ValidationError extends Error {}
 
 // --- Identity ---
 
@@ -168,6 +178,182 @@ async function handleMe(identity: AdminIdentity): Promise<APIGatewayProxyStructu
   };
 }
 
+// --- みんなの課題 management (S3 #1083, moderation per EPIC #1066 D3) ---
+
+interface SharedPage {
+  text: string;
+  imageKey?: string;
+}
+
+/**
+ * Admin projection of a shared item. authorSub stays internal even for
+ * operators — the public author profile (name/affiliation) is what matters
+ * for moderation.
+ */
+function mapSharedItemForAdmin(item: Record<string, unknown>) {
+  const content = (item.content || {}) as { pages?: SharedPage[]; starterKey?: string };
+  return {
+    sharedId: item.sharedId,
+    title: item.title,
+    summary: item.summary || null,
+    schoolLevel: item.schoolLevel,
+    grades: item.grades || [],
+    subject: item.subject,
+    tags: item.tags || [],
+    supplementUrl: item.supplementUrl || null,
+    authorName: item.authorName,
+    authorAffiliation: item.authorAffiliation || null,
+    status: item.status,
+    reuseCount: (item.reuseCount as number) || 0,
+    pageCount: (content.pages || []).length,
+    hasStarter: !!content.starterKey,
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
+  };
+}
+
+/** Scan a whole (small) table — admin listings are fleet-wide by design. */
+async function scanAll(tableName: string): Promise<Record<string, unknown>[]> {
+  const items: Record<string, unknown>[] = [];
+  let lastKey: Record<string, unknown> | undefined;
+  do {
+    const page = await docClient.send(new ScanCommand({
+      TableName: tableName,
+      ExclusiveStartKey: lastKey,
+    }));
+    items.push(...((page.Items as Record<string, unknown>[]) || []));
+    lastKey = page.LastEvaluatedKey as Record<string, unknown> | undefined;
+  } while (lastKey);
+  return items;
+}
+
+/**
+ * Group reports by sharedId (most-reported first, newest first inside).
+ * Pure and exported for tests. reporterSub is never exposed.
+ * @param reports - raw report items
+ * @returns per-item report summaries
+ */
+export function buildReportQueue(reports: Record<string, unknown>[]): {
+  sharedId: string;
+  count: number;
+  reports: { reason: string; createdAt: string }[];
+}[] {
+  const byId = new Map<string, { reason: string; createdAt: string }[]>();
+  for (const report of reports) {
+    const sharedId = String(report.sharedId);
+    const list = byId.get(sharedId) || [];
+    list.push({
+      reason: String(report.reason || ''),
+      createdAt: String(report.createdAt || ''),
+    });
+    byId.set(sharedId, list);
+  }
+  return [...byId.entries()]
+    .map(([sharedId, list]) => ({
+      sharedId,
+      count: list.length,
+      reports: list.sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    }))
+    .sort((a, b) => b.count - a.count);
+}
+
+async function handleListSharedReports(identity: AdminIdentity): Promise<APIGatewayProxyStructuredResultV2> {
+  audit('shared.listReports', identity, {});
+  const reports = await scanAll(SHARED_REPORTS_TABLE);
+  const queue = buildReportQueue(reports);
+
+  // Join the reported items so the operator sees titles/status inline.
+  const withItems = await Promise.all(queue.map(async entry => {
+    const result = await docClient.send(new GetCommand({
+      TableName: SHARED_ASSIGNMENTS_TABLE,
+      Key: { sharedId: entry.sharedId },
+    }));
+    return {
+      ...entry,
+      item: result.Item ? mapSharedItemForAdmin(result.Item as Record<string, unknown>) : null,
+    };
+  }));
+
+  return { statusCode: 200, body: JSON.stringify({ queue: withItems }) };
+}
+
+async function handleListSharedAssignments(
+  identity: AdminIdentity, query: Record<string, string | undefined>,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  audit('shared.list', identity, { q: query.q || null, status: query.status || null });
+  let items = (await scanAll(SHARED_ASSIGNMENTS_TABLE)).map(mapSharedItemForAdmin);
+  if (query.status) {
+    items = items.filter(item => item.status === query.status);
+  }
+  if (query.q) {
+    const q = query.q.toLowerCase();
+    items = items.filter(item =>
+      String(item.title).toLowerCase().includes(q) ||
+      String(item.authorName).toLowerCase().includes(q));
+  }
+  items.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+  return { statusCode: 200, body: JSON.stringify({ items }) };
+}
+
+async function handleGetSharedAssignment(
+  identity: AdminIdentity, sharedId: string,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  audit('shared.get', identity, { sharedId });
+  const result = await docClient.send(new GetCommand({
+    TableName: SHARED_ASSIGNMENTS_TABLE,
+    Key: { sharedId },
+  }));
+  if (!result.Item) {
+    throw new NotFoundError('Shared assignment not found');
+  }
+  const item = result.Item as Record<string, unknown>;
+  const content = (item.content || {}) as { pages?: SharedPage[]; starterKey?: string };
+  const pages = await Promise.all((content.pages || []).map(async page => ({
+    text: page.text,
+    imageUrl: page.imageKey
+      ? await getSignedUrl(
+          s3Client,
+          new GetObjectCommand({ Bucket: SHARED_BUCKET, Key: page.imageKey }),
+          { expiresIn: PRESIGNED_URL_DOWNLOAD_EXPIRY },
+        )
+      : null,
+  })));
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ ...mapSharedItemForAdmin(item), pages }),
+  };
+}
+
+async function handleSetSharedStatus(
+  identity: AdminIdentity, sharedId: string, body: Record<string, unknown>,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  if (body.status !== 'published' && body.status !== 'unlisted') {
+    throw new ValidationError('Status must be "published" or "unlisted"');
+  }
+  const result = await docClient.send(new GetCommand({
+    TableName: SHARED_ASSIGNMENTS_TABLE,
+    Key: { sharedId },
+  }));
+  if (!result.Item) {
+    throw new NotFoundError('Shared assignment not found');
+  }
+
+  await docClient.send(new UpdateCommand({
+    TableName: SHARED_ASSIGNMENTS_TABLE,
+    Key: { sharedId },
+    UpdateExpression: 'SET #status = :status, updatedAt = :now',
+    ExpressionAttributeNames: { '#status': 'status' },
+    ExpressionAttributeValues: { ':status': body.status, ':now': new Date().toISOString() },
+  }));
+  audit('shared.setStatus', identity, { sharedId, status: body.status });
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify(mapSharedItemForAdmin({ ...result.Item, status: body.status })),
+  };
+}
+
 // --- Main handler ---
 
 export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
@@ -187,9 +373,26 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
     const identity = await verifyGoogleIdToken(token);
     await requireAdmin(identity);
 
+    const body = event.body ? JSON.parse(event.body) : {};
+
     let result: APIGatewayProxyStructuredResultV2;
     if (method === 'GET' && path === '/admin/me') {
       result = await handleMe(identity);
+
+    } else if (method === 'GET' && path === '/admin/shared-assignments/reports') {
+      result = await handleListSharedReports(identity);
+
+    } else if (method === 'GET' && path === '/admin/shared-assignments') {
+      result = await handleListSharedAssignments(identity, event.queryStringParameters || {});
+
+    } else if (method === 'GET' && /^\/admin\/shared-assignments\/[^/]+$/.test(path)) {
+      const sharedId = event.pathParameters?.sharedId || '';
+      result = await handleGetSharedAssignment(identity, sharedId);
+
+    } else if (method === 'PATCH' && /^\/admin\/shared-assignments\/[^/]+$/.test(path)) {
+      const sharedId = event.pathParameters?.sharedId || '';
+      result = await handleSetSharedStatus(identity, sharedId, body);
+
     } else {
       throw new NotFoundError('Not found');
     }
@@ -204,6 +407,9 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
     }
     if (err instanceof NotFoundError) {
       return { statusCode: 404, headers: corsHeaders, body: JSON.stringify({ error: err.message }) };
+    }
+    if (err instanceof ValidationError) {
+      return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: err.message }) };
     }
     console.error('Handler error:', err);
     return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: 'Internal server error' }) };
