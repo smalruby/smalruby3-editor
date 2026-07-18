@@ -348,6 +348,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         errorTitle={errorTitle}
                         group={selectedGroup}
                         isLoading={isLoading}
+                        shared={shared}
                         onCreateAssignmentInClass={onCreateAssignmentInClass}
                         onDownloadClassAll={onDownloadClassAll}
                         onRestoreClassroom={onRestoreClassroom}
