@@ -16,6 +16,10 @@ jest.mock('@aws-sdk/lib-dynamodb', () => {
 });
 
 // google-auth-library is fully mocked: token → payload mapping per test.
+jest.mock('@aws-sdk/s3-request-presigner', () => ({
+  getSignedUrl: jest.fn(async () => 'https://signed.example/get'),
+}));
+
 const mockVerifyIdToken = jest.fn();
 jest.mock('google-auth-library', () => ({
   OAuth2Client: jest.fn(() => ({ verifyIdToken: mockVerifyIdToken })),
@@ -180,5 +184,145 @@ describe('Smalruby Admin API (issue #1081)', () => {
       expect(res.headers['Access-Control-Allow-Origin']).toBe('http://localhost:8602');
       expect(mockSend).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe('みんなの課題 management (issue #1083)', () => {
+  const adminRow = { Item: { email: 'dev-admin@example.com', sub: 'dev-admin' } };
+  const sharedItem = {
+    sharedId: 's1',
+    title: 'ねこあつめ入門',
+    schoolLevel: 'junior-high',
+    subject: '技術・家庭（技術分野）',
+    authorName: 'るびお',
+    authorSub: 'secret-sub',
+    status: 'published',
+    reuseCount: 2,
+    content: { pages: [{ text: 'ページ1', imageKey: 'shared/s1/image.png' }], starterKey: 'shared/s1/starter.sb3' },
+    createdAt: '2026-07-18T00:00:00.000Z',
+    updatedAt: '2026-07-18T00:00:00.000Z',
+  };
+
+  let handler: (event: unknown) => Promise<{ statusCode?: number; body?: string }>;
+  let buildReportQueue: (reports: Record<string, unknown>[]) => {
+    sharedId: string; count: number; reports: { reason: string; createdAt: string }[];
+  }[];
+
+  beforeEach(() => {
+    jest.resetModules();
+    process.env.DEV_BYPASS_TOKEN = DEV_TOKEN;
+    process.env.STAGE = 'stg';
+    process.env.ADMIN_GOOGLE_CLIENT_ID = 'admin-client-id';
+    mockSend.mockReset();
+    mockVerifyIdToken.mockReset();
+    const mod = require('../handler');
+    handler = mod.handler;
+    buildReportQueue = mod.buildReportQueue;
+  });
+
+  test('buildReportQueue groups by item, most-reported first, without reporterSub', () => {
+    const queue = buildReportQueue([
+      { sharedId: 'a', reason: 'r1', createdAt: '2026-07-18T01:00:00Z', reporterSub: 'x' },
+      { sharedId: 'b', reason: 'r2', createdAt: '2026-07-18T02:00:00Z', reporterSub: 'y' },
+      { sharedId: 'b', reason: 'r3', createdAt: '2026-07-18T03:00:00Z', reporterSub: 'z' },
+    ]);
+    expect(queue.map(q => q.sharedId)).toEqual(['b', 'a']);
+    expect(queue[0].reports.map(r => r.reason)).toEqual(['r3', 'r2']);
+    expect(JSON.stringify(queue)).not.toContain('reporterSub');
+  });
+
+  test('GET /admin/shared-assignments lists fleet-wide items without authorSub', async () => {
+    mockSend.mockImplementation(async (command: {
+      constructor: { name: string }; input?: Record<string, unknown>;
+    }) => {
+      if (command.constructor.name === 'GetCommand') return adminRow;
+      if (command.constructor.name === 'ScanCommand') return { Items: [sharedItem] };
+      return {};
+    });
+
+    const res = await handler({
+      requestContext: { http: { method: 'GET', path: '/admin/shared-assignments' } },
+      headers: { authorization: `Bearer ${DEV_TOKEN}`, origin: 'https://smalruby.app' },
+    });
+    expect(res.statusCode).toBe(200);
+    const { items } = JSON.parse(res.body as string);
+    expect(items[0].title).toBe('ねこあつめ入門');
+    expect(items[0].hasStarter).toBe(true);
+    expect(items[0].authorSub).toBeUndefined();
+  });
+
+  test('GET /admin/shared-assignments/reports joins the reported items', async () => {
+    mockSend.mockImplementation(async (command: {
+      constructor: { name: string }; input?: { TableName?: string };
+    }) => {
+      const name = command.constructor.name;
+      if (name === 'GetCommand' && command.input?.TableName?.includes('Admins')) return adminRow;
+      if (name === 'GetCommand') return { Item: sharedItem };
+      if (name === 'ScanCommand') {
+        return { Items: [{ sharedId: 's1', reason: '不適切', createdAt: '2026-07-18T00:00:00Z' }] };
+      }
+      return {};
+    });
+
+    const res = await handler({
+      requestContext: { http: { method: 'GET', path: '/admin/shared-assignments/reports' } },
+      headers: { authorization: `Bearer ${DEV_TOKEN}`, origin: 'https://smalruby.app' },
+    });
+    expect(res.statusCode).toBe(200);
+    const { queue } = JSON.parse(res.body as string);
+    expect(queue[0].count).toBe(1);
+    expect(queue[0].item.title).toBe('ねこあつめ入門');
+  });
+
+  test('PATCH flips the status and audits the action', async () => {
+    const logs: string[] = [];
+    const spy = jest.spyOn(console, 'log').mockImplementation((line: string) => {
+      logs.push(String(line));
+    });
+    mockSend.mockImplementation(async (command: {
+      constructor: { name: string }; input?: { TableName?: string };
+    }) => {
+      const name = command.constructor.name;
+      if (name === 'GetCommand' && command.input?.TableName?.includes('Admins')) return adminRow;
+      if (name === 'GetCommand') return { Item: sharedItem };
+      return {};
+    });
+
+    const res = await handler({
+      requestContext: { http: { method: 'PATCH', path: '/admin/shared-assignments/s1' } },
+      pathParameters: { sharedId: 's1' },
+      headers: { authorization: `Bearer ${DEV_TOKEN}`, origin: 'https://smalruby.app' },
+      body: JSON.stringify({ status: 'unlisted' }),
+    });
+    spy.mockRestore();
+
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body as string).status).toBe('unlisted');
+    expect(logs.some(line => line.includes('"action":"shared.setStatus"') && line.includes('"status":"unlisted"'))).toBe(true);
+  });
+
+  test('PATCH rejects an unknown status (400) and an unknown item (404)', async () => {
+    mockSend.mockImplementation(async (command: {
+      constructor: { name: string }; input?: { TableName?: string };
+    }) => {
+      if (command.constructor.name === 'GetCommand' && command.input?.TableName?.includes('Admins')) return adminRow;
+      return {};
+    });
+
+    const bad = await handler({
+      requestContext: { http: { method: 'PATCH', path: '/admin/shared-assignments/s1' } },
+      pathParameters: { sharedId: 's1' },
+      headers: { authorization: `Bearer ${DEV_TOKEN}`, origin: 'https://smalruby.app' },
+      body: JSON.stringify({ status: 'deleted' }),
+    });
+    expect(bad.statusCode).toBe(400);
+
+    const missing = await handler({
+      requestContext: { http: { method: 'PATCH', path: '/admin/shared-assignments/s1' } },
+      pathParameters: { sharedId: 's1' },
+      headers: { authorization: `Bearer ${DEV_TOKEN}`, origin: 'https://smalruby.app' },
+      body: JSON.stringify({ status: 'unlisted' }),
+    });
+    expect(missing.statusCode).toBe(404);
   });
 });

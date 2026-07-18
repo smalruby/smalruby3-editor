@@ -15,6 +15,9 @@ jest.mock('../../src/lib/google-auth.js', () => ({
     initGoogleSignIn: (...args) => mockInitGoogleSignIn(...args)
 }));
 
+// The dashboard embeds the management views; they get their own tests.
+jest.mock('../../src/components/shared-assignments-view.jsx', () => () => null);
+
 import App from '../../src/components/app.jsx';
 
 describe('App auth flow', () => {

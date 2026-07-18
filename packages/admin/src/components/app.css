@@ -54,3 +54,121 @@ body {
 .admin-main {
     padding: 1.25rem;
 }
+
+.admin-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.admin-tab,
+.admin-tab-active {
+    padding: 0.35rem 0.9rem;
+    border: 1px solid hsl(220, 15%, 80%);
+    border-radius: 0.4rem;
+    background: white;
+    cursor: pointer;
+}
+
+.admin-tab-active {
+    border-color: hsl(260, 60%, 60%);
+    color: hsl(260, 60%, 45%);
+    font-weight: bold;
+}
+
+.admin-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.admin-list > li > button {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+    width: 100%;
+    padding: 0.6rem 0.8rem;
+    border: 1px solid hsl(220, 15%, 85%);
+    border-radius: 0.5rem;
+    background: white;
+    text-align: left;
+    cursor: pointer;
+}
+
+.admin-list > li > button:hover {
+    border-color: hsl(260, 60%, 60%);
+}
+
+.admin-badge {
+    padding: 0.05rem 0.45rem;
+    border-radius: 0.6rem;
+    font-size: 0.75rem;
+    margin-left: 0.4rem;
+}
+
+.admin-badge-ok {
+    background: hsla(145, 60%, 45%, 0.15);
+    color: hsl(145, 70%, 25%);
+}
+
+.admin-badge-muted {
+    background: hsla(0, 0%, 0%, 0.08);
+    color: hsl(225, 15%, 40%);
+}
+
+.admin-badge-warn {
+    background: hsla(10, 80%, 50%, 0.12);
+    color: hsl(10, 70%, 35%);
+}
+
+.admin-meta {
+    font-size: 0.8rem;
+    color: hsl(225, 15%, 45%);
+}
+
+.admin-error {
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.4rem;
+    background: hsla(10, 80%, 50%, 0.1);
+    color: hsl(10, 70%, 35%);
+}
+
+.admin-page {
+    margin: 0.5rem 0;
+    padding: 0.6rem;
+    border: 1px solid hsl(220, 15%, 88%);
+    border-radius: 0.4rem;
+    background: white;
+}
+
+.admin-page-image {
+    max-width: 24rem;
+    display: block;
+    margin-bottom: 0.4rem;
+}
+
+.admin-actions {
+    margin-top: 0.75rem;
+}
+
+.admin-actions button {
+    padding: 0.4rem 0.9rem;
+    border: 1px solid hsl(220, 15%, 75%);
+    border-radius: 0.4rem;
+    background: white;
+    cursor: pointer;
+}
+
+.admin-confirm {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.7rem;
+    border-radius: 0.4rem;
+    background: hsla(35, 90%, 55%, 0.12);
+    font-size: 0.85rem;
+}
