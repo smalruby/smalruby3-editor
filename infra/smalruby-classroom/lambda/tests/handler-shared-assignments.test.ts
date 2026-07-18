@@ -325,6 +325,10 @@ describe('みんなの課題 (issue #1068)', () => {
       }));
       expect(captured?.IndexName).toBe('authorSub-createdAt-index');
       expect((captured?.ExpressionAttributeValues as Record<string, unknown>)[':pk']).toBe('dev-test-teacher');
+      // DynamoDB rejects an EMPTY ExpressionAttributeNames map — with no
+      // filters and no #status alias, the key must be omitted entirely
+      // (prod 500 on 自分の投稿, 2026-07-18).
+      expect(captured?.ExpressionAttributeNames).toBeUndefined();
       expect(JSON.parse(res.body as string).items[0].status).toBe('unlisted');
     });
   });
