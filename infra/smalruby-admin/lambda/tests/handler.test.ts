@@ -20,6 +20,16 @@ jest.mock('@aws-sdk/s3-request-presigner', () => ({
   getSignedUrl: jest.fn(async () => 'https://signed.example/get'),
 }));
 
+// S3: snapshot reads (restore, S4) go through S3Client.send.
+const mockS3Send = jest.fn();
+jest.mock('@aws-sdk/client-s3', () => {
+  const actual = jest.requireActual('@aws-sdk/client-s3');
+  return {
+    ...actual,
+    S3Client: jest.fn(() => ({ send: mockS3Send })),
+  };
+});
+
 const mockVerifyIdToken = jest.fn();
 jest.mock('google-auth-library', () => ({
   OAuth2Client: jest.fn(() => ({ verifyIdToken: mockVerifyIdToken })),
@@ -323,6 +333,261 @@ describe('みんなの課題 management (issue #1083)', () => {
       headers: { authorization: `Bearer ${DEV_TOKEN}`, origin: 'https://smalruby.app' },
       body: JSON.stringify({ status: 'unlisted' }),
     });
+    expect(missing.statusCode).toBe(404);
+  });
+});
+
+describe('クラス管理 + 期限切れ復元 (issue #1084)', () => {
+  const adminRow = { Item: { email: 'dev-admin@example.com', sub: 'dev-admin' } };
+  const classroomItem = {
+    classroomId: 'c1',
+    className: '5年1組',
+    assignmentName: 'ねこあつめ',
+    joinCode: 'ABC123',
+    studentCount: 30,
+    groupId: 'g1',
+    status: 'active',
+    createdAt: '2026-07-01T00:00:00.000Z',
+    ttl: 1800000000,
+  };
+
+  /** An S3 GetObject result whose Body parses as the given snapshot. */
+  const s3Json = (item: Record<string, unknown>, deletedAt = '2026-07-10T00:00:00.000Z') => ({
+    Body: { transformToString: async () => JSON.stringify({ table: 'x', deletedAt, eventId: null, item }) },
+  });
+
+  let handler: (event: unknown) => Promise<{ statusCode?: number; body?: string }>;
+
+  const makeAuthedEvent = (
+    method: string, path: string,
+    extra: Record<string, unknown> = {},
+  ) => ({
+    requestContext: { http: { method, path } },
+    headers: { authorization: `Bearer ${DEV_TOKEN}`, origin: 'https://smalruby.app' },
+    ...extra,
+  });
+
+  beforeEach(() => {
+    jest.resetModules();
+    process.env.DEV_BYPASS_TOKEN = DEV_TOKEN;
+    process.env.STAGE = 'stg';
+    process.env.ADMIN_GOOGLE_CLIENT_ID = 'admin-client-id';
+    mockSend.mockReset();
+    mockS3Send.mockReset();
+    mockVerifyIdToken.mockReset();
+    handler = require('../handler').handler;
+  });
+
+  test('GET /admin/classrooms filters quota rows and matches join code / names', async () => {
+    mockSend.mockImplementation(async (command: {
+      constructor: { name: string }; input?: { TableName?: string };
+    }) => {
+      if (command.constructor.name === 'GetCommand') return adminRow;
+      if (command.constructor.name === 'ScanCommand') {
+        return { Items: [
+          classroomItem,
+          { ...classroomItem, classroomId: 'c2', className: '6年2組', joinCode: 'XYZ999' },
+          { classroomId: 'eval-quota#t1#2026-07-18', count: 3 },
+          { classroomId: 'share-quota#t1#2026-07-18', count: 1 },
+        ] };
+      }
+      return {};
+    });
+
+    const all = await handler(makeAuthedEvent('GET', '/admin/classrooms'));
+    expect(all.statusCode).toBe(200);
+    expect(JSON.parse(all.body as string).items).toHaveLength(2);
+
+    const byCode = await handler(makeAuthedEvent('GET', '/admin/classrooms', {
+      queryStringParameters: { q: 'abc123' },
+    }));
+    const { items } = JSON.parse(byCode.body as string);
+    expect(items).toHaveLength(1);
+    expect(items[0].className).toBe('5年1組');
+    // The ttl epoch is surfaced as a readable expiry.
+    expect(items[0].expiresAt).toBe(new Date(1800000000 * 1000).toISOString());
+  });
+
+  test('GET /admin/classrooms/{id} joins member/submission counts', async () => {
+    mockSend.mockImplementation(async (command: {
+      constructor: { name: string }; input?: { TableName?: string };
+    }) => {
+      const name = command.constructor.name;
+      if (name === 'GetCommand' && command.input?.TableName?.includes('Admins')) return adminRow;
+      if (name === 'GetCommand') return { Item: classroomItem };
+      if (name === 'QueryCommand') return { Count: 7 };
+      return {};
+    });
+
+    const res = await handler(makeAuthedEvent('GET', '/admin/classrooms/c1', {
+      pathParameters: { classroomId: 'c1' },
+    }));
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body as string);
+    expect(body.memberCount).toBe(7);
+    expect(body.submissionCount).toBe(7);
+  });
+
+  test('PATCH /admin/classrooms/{id} flips the status and audits it', async () => {
+    const logs: string[] = [];
+    const spy = jest.spyOn(console, 'log').mockImplementation((line: string) => {
+      logs.push(String(line));
+    });
+    mockSend.mockImplementation(async (command: {
+      constructor: { name: string }; input?: { TableName?: string };
+    }) => {
+      const name = command.constructor.name;
+      if (name === 'GetCommand' && command.input?.TableName?.includes('Admins')) return adminRow;
+      if (name === 'GetCommand') return { Item: classroomItem };
+      return {};
+    });
+
+    const res = await handler(makeAuthedEvent('PATCH', '/admin/classrooms/c1', {
+      pathParameters: { classroomId: 'c1' },
+      body: JSON.stringify({ status: 'archived' }),
+    }));
+    spy.mockRestore();
+
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body as string).status).toBe('archived');
+    expect(logs.some(line =>
+      line.includes('"action":"classroom.setStatus"') && line.includes('"status":"archived"'))).toBe(true);
+
+    const bad = await handler(makeAuthedEvent('PATCH', '/admin/classrooms/c1', {
+      pathParameters: { classroomId: 'c1' },
+      body: JSON.stringify({ status: 'deleted' }),
+    }));
+    expect(bad.statusCode).toBe(400);
+  });
+
+  test('GET restore-candidates searches snapshots and requires q', async () => {
+    mockSend.mockResolvedValue(adminRow);
+    mockS3Send.mockImplementation(async (command: { constructor: { name: string }; input?: { Key?: string } }) => {
+      if (command.constructor.name === 'ListObjectsV2Command') {
+        return { Contents: [
+          { Key: 'ddb-archive/classrooms/c1.json' },
+          { Key: 'ddb-archive/classrooms/c2.json' },
+        ] };
+      }
+      if (command.input?.Key === 'ddb-archive/classrooms/c1.json') return s3Json(classroomItem);
+      return s3Json({ ...classroomItem, classroomId: 'c2', className: '6年2組', joinCode: 'XYZ999' });
+    });
+
+    const missing = await handler(makeAuthedEvent('GET', '/admin/classrooms/restore-candidates'));
+    expect(missing.statusCode).toBe(400);
+
+    const res = await handler(makeAuthedEvent('GET', '/admin/classrooms/restore-candidates', {
+      queryStringParameters: { q: '5年' },
+    }));
+    expect(res.statusCode).toBe(200);
+    const { items } = JSON.parse(res.body as string);
+    expect(items).toHaveLength(1);
+    expect(items[0].classroomId).toBe('c1');
+    expect(items[0].deletedAt).toBe('2026-07-10T00:00:00.000Z');
+  });
+
+  test('GET restore-plan reports a live classroom instead of planning', async () => {
+    mockSend.mockImplementation(async (command: {
+      constructor: { name: string }; input?: { TableName?: string };
+    }) => {
+      const name = command.constructor.name;
+      if (name === 'GetCommand' && command.input?.TableName?.includes('Admins')) return adminRow;
+      if (name === 'GetCommand') return { Item: { ...classroomItem, status: 'archived' } };
+      return {};
+    });
+
+    const res = await handler(makeAuthedEvent('GET', '/admin/classrooms/c1/restore-plan', {
+      pathParameters: { classroomId: 'c1' },
+    }));
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body as string)).toEqual({ alive: true, status: 'archived' });
+    expect(mockS3Send).not.toHaveBeenCalled();
+  });
+
+  test('POST restore rehydrates group→classroom→children with a no-clobber condition', async () => {
+    const puts: { TableName: string; Item: Record<string, unknown>; ConditionExpression?: string }[] = [];
+    mockSend.mockImplementation(async (command: {
+      constructor: { name: string }; input?: { TableName?: string };
+    }) => {
+      const name = command.constructor.name;
+      if (name === 'GetCommand' && command.input?.TableName?.includes('Admins')) return adminRow;
+      if (name === 'GetCommand') return {}; // classroom and group both swept
+      if (name === 'PutCommand') {
+        puts.push(command.input as typeof puts[number]);
+        return {};
+      }
+      return {};
+    });
+    mockS3Send.mockImplementation(async (command: {
+      constructor: { name: string }; input?: { Key?: string; Prefix?: string };
+    }) => {
+      const name = command.constructor.name;
+      if (name === 'ListObjectsV2Command') {
+        if (command.input?.Prefix?.startsWith('ddb-archive/memberships/')) {
+          return { Contents: [{ Key: 'ddb-archive/memberships/c1/seat-01.json' }] };
+        }
+        return { Contents: [{ Key: 'ddb-archive/submissions/c1/s1.json' }] };
+      }
+      if (name === 'HeadObjectCommand') {
+        const err = new Error('gone');
+        err.name = 'NotFound';
+        throw err; // the submission binary was lifecycle-swept
+      }
+      const key = command.input?.Key || '';
+      if (key === 'ddb-archive/classrooms/c1.json') return s3Json(classroomItem);
+      if (key === 'ddb-archive/groups/g1.json') return s3Json({ groupId: 'g1', status: 'archived' });
+      if (key.includes('memberships')) return s3Json({ classroomId: 'c1', memberId: 'seat-01' });
+      return s3Json({ classroomId: 'c1', submissionId: 's1', s3Key: 'submissions/c1/s1/project.sb3' });
+    });
+
+    const res = await handler(makeAuthedEvent('POST', '/admin/classrooms/c1/restore', {
+      pathParameters: { classroomId: 'c1' },
+    }));
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body as string);
+    expect(body.restored).toBe(4); // group + classroom + membership + submission
+    expect(body.missingFiles).toBe(1);
+    expect(body.classroom.status).toBe('active');
+
+    expect(puts.map(p => p.TableName)).toEqual([
+      'ClassroomGroups', 'Classrooms', 'ClassroomMemberships', 'ClassroomSubmissions',
+    ]);
+    // The classroom put must never clobber a live row (raced restore).
+    expect(puts[1].ConditionExpression).toContain('attribute_not_exists');
+    expect(puts[1].Item.status).toBe('active');
+    expect(puts[1].Item.restoredAt).toBeTruthy();
+  });
+
+  test('POST restore refuses a live classroom and 404s a missing snapshot', async () => {
+    mockSend.mockImplementation(async (command: {
+      constructor: { name: string }; input?: { TableName?: string };
+    }) => {
+      const name = command.constructor.name;
+      if (name === 'GetCommand' && command.input?.TableName?.includes('Admins')) return adminRow;
+      if (name === 'GetCommand') return { Item: classroomItem }; // alive
+      return {};
+    });
+
+    const alive = await handler(makeAuthedEvent('POST', '/admin/classrooms/c1/restore', {
+      pathParameters: { classroomId: 'c1' },
+    }));
+    expect(alive.statusCode).toBe(400);
+
+    // Now: not alive, but no snapshot either.
+    mockSend.mockImplementation(async (command: {
+      constructor: { name: string }; input?: { TableName?: string };
+    }) => {
+      if (command.constructor.name === 'GetCommand' && command.input?.TableName?.includes('Admins')) return adminRow;
+      return {};
+    });
+    mockS3Send.mockImplementation(async () => {
+      const err = new Error('missing');
+      err.name = 'NoSuchKey';
+      throw err;
+    });
+    const missing = await handler(makeAuthedEvent('POST', '/admin/classrooms/c1/restore', {
+      pathParameters: { classroomId: 'c1' },
+    }));
     expect(missing.statusCode).toBe(404);
   });
 });

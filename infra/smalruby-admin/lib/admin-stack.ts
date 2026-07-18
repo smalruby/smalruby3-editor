@@ -105,6 +105,11 @@ export class SmalrubyAdminStack extends cdk.Stack {
         SHARED_ASSIGNMENTS_TABLE_NAME: `SharedAssignments${stageSuffix}`,
         SHARED_REPORTS_TABLE_NAME: `SharedAssignmentReports${stageSuffix}`,
         SHARED_BUCKET_NAME: `smalruby-shared-assignments${stageSuffix}`,
+        CLASSROOMS_TABLE_NAME: `Classrooms${stageSuffix}`,
+        MEMBERSHIPS_TABLE_NAME: `ClassroomMemberships${stageSuffix}`,
+        SUBMISSIONS_TABLE_NAME: `ClassroomSubmissions${stageSuffix}`,
+        GROUPS_TABLE_NAME: `ClassroomGroups${stageSuffix}`,
+        SUBMISSIONS_BUCKET_NAME: `smalruby-classroom-submissions${stageSuffix}`,
         STAGE: stage,
       },
       bundling: {
@@ -139,6 +144,36 @@ export class SmalrubyAdminStack extends cdk.Stack {
     sharedAssignmentsTable.grantReadWriteData(handlerFn);
     sharedReportsTable.grantReadData(handlerFn);
     sharedBucket.grantRead(handlerFn);
+
+    // Classroom management + expired restore (S4 #1084): the restore
+    // rehydrates archived items back INTO the classroom tables, so all four
+    // need RW; the submissions bucket is read-only (snapshot JSON under
+    // ddb-archive/ + HeadObject existence checks on submission binaries).
+    const classroomsTable = dynamodb.Table.fromTableAttributes(this, 'ClassroomsRef', {
+      tableName: `Classrooms${stageSuffix}`,
+      grantIndexPermissions: true,
+    });
+    const membershipsTable = dynamodb.Table.fromTableAttributes(this, 'MembershipsRef', {
+      tableName: `ClassroomMemberships${stageSuffix}`,
+      grantIndexPermissions: true,
+    });
+    const submissionsTable = dynamodb.Table.fromTableAttributes(this, 'SubmissionsRef', {
+      tableName: `ClassroomSubmissions${stageSuffix}`,
+      grantIndexPermissions: true,
+    });
+    const groupsTable = dynamodb.Table.fromTableAttributes(this, 'GroupsRef', {
+      tableName: `ClassroomGroups${stageSuffix}`,
+      grantIndexPermissions: true,
+    });
+    const submissionsBucket = s3.Bucket.fromBucketName(
+      this, 'SubmissionsBucketRef', `smalruby-classroom-submissions${stageSuffix}`,
+    );
+
+    classroomsTable.grantReadWriteData(handlerFn);
+    membershipsTable.grantReadWriteData(handlerFn);
+    submissionsTable.grantReadWriteData(handlerFn);
+    groupsTable.grantReadWriteData(handlerFn);
+    submissionsBucket.grantRead(handlerFn);
 
     // --- Custom Domain ---
 
@@ -215,6 +250,34 @@ export class SmalrubyAdminStack extends cdk.Stack {
     this.api.addRoutes({
       path: '/admin/shared-assignments/{sharedId}',
       methods: [apigatewayv2.HttpMethod.GET, apigatewayv2.HttpMethod.PATCH],
+      integration,
+    });
+
+    // Classroom management + expired restore (S4 #1084). HTTP API prefers
+    // the literal restore-candidates route over {classroomId} by specificity.
+    this.api.addRoutes({
+      path: '/admin/classrooms',
+      methods: [apigatewayv2.HttpMethod.GET],
+      integration,
+    });
+    this.api.addRoutes({
+      path: '/admin/classrooms/restore-candidates',
+      methods: [apigatewayv2.HttpMethod.GET],
+      integration,
+    });
+    this.api.addRoutes({
+      path: '/admin/classrooms/{classroomId}',
+      methods: [apigatewayv2.HttpMethod.GET, apigatewayv2.HttpMethod.PATCH],
+      integration,
+    });
+    this.api.addRoutes({
+      path: '/admin/classrooms/{classroomId}/restore-plan',
+      methods: [apigatewayv2.HttpMethod.GET],
+      integration,
+    });
+    this.api.addRoutes({
+      path: '/admin/classrooms/{classroomId}/restore',
+      methods: [apigatewayv2.HttpMethod.POST],
       integration,
     });
 

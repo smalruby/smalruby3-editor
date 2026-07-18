@@ -21,10 +21,15 @@
  */
 import { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from 'aws-lambda';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, GetCommand, ScanCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
-import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import {
+  DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand, ScanCommand, UpdateCommand,
+} from '@aws-sdk/lib-dynamodb';
+import { GetObjectCommand, HeadObjectCommand, ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { OAuth2Client } from 'google-auth-library';
+import {
+  buildRestorePlan, matchSnapshot, PlannedItem, RestorePlanInput, Snapshot,
+} from './restore-plan';
 
 // --- Configuration ---
 
@@ -38,6 +43,11 @@ const CORS_ALLOWED_ORIGINS = (process.env.CORS_ALLOWED_ORIGINS || '').split(',')
 const SHARED_ASSIGNMENTS_TABLE = process.env.SHARED_ASSIGNMENTS_TABLE_NAME || 'SharedAssignments';
 const SHARED_REPORTS_TABLE = process.env.SHARED_REPORTS_TABLE_NAME || 'SharedAssignmentReports';
 const SHARED_BUCKET = process.env.SHARED_BUCKET_NAME || 'smalruby-shared-assignments';
+const CLASSROOMS_TABLE = process.env.CLASSROOMS_TABLE_NAME || 'Classrooms';
+const MEMBERSHIPS_TABLE = process.env.MEMBERSHIPS_TABLE_NAME || 'ClassroomMemberships';
+const SUBMISSIONS_TABLE = process.env.SUBMISSIONS_TABLE_NAME || 'ClassroomSubmissions';
+const GROUPS_TABLE = process.env.GROUPS_TABLE_NAME || 'ClassroomGroups';
+const SUBMISSIONS_BUCKET = process.env.SUBMISSIONS_BUCKET_NAME || 'smalruby-classroom-submissions';
 const PRESIGNED_URL_DOWNLOAD_EXPIRY = parseInt(process.env.PRESIGNED_URL_DOWNLOAD_EXPIRY || '3600', 10);
 
 const dynamoClient = new DynamoDBClient({});
@@ -354,6 +364,305 @@ async function handleSetSharedStatus(
   };
 }
 
+// --- Classroom management + expired restore (S4 #1084) ---
+// The restore UI supersedes classroom's ops CLI (EPIC #1049 D6 update):
+// snapshots written by the classroom archiver under
+// s3://<submissions-bucket>/ddb-archive/ are searched, planned and
+// rehydrated from here, all audited.
+
+const ARCHIVE_PREFIX = 'ddb-archive';
+
+function mapClassroomForAdmin(item: Record<string, unknown>) {
+  return {
+    classroomId: item.classroomId,
+    className: item.className,
+    assignmentName: item.assignmentName || null,
+    joinCode: item.joinCode,
+    studentCount: item.studentCount,
+    groupId: item.groupId || null,
+    status: item.status,
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt || null,
+    restoredAt: item.restoredAt || null,
+    expiresAt: item.ttl ? new Date((item.ttl as number) * 1000).toISOString() : null,
+  };
+}
+
+async function handleListClassrooms(
+  identity: AdminIdentity, query: Record<string, string | undefined>,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  audit('classroom.list', identity, { q: query.q || null });
+  const q = (query.q || '').trim().toLowerCase();
+  let items = (await scanAll(CLASSROOMS_TABLE))
+    // The classrooms table reuses its key space for quota counters.
+    .filter(item => typeof item.classroomId === 'string' && !String(item.classroomId).includes('-quota#'))
+    .map(mapClassroomForAdmin);
+  if (q) {
+    items = items.filter(item =>
+      String(item.joinCode || '').toLowerCase() === q ||
+      String(item.className || '').toLowerCase().includes(q) ||
+      String(item.assignmentName || '').toLowerCase().includes(q));
+  }
+  items.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+  return { statusCode: 200, body: JSON.stringify({ items: items.slice(0, 100) }) };
+}
+
+async function handleGetClassroom(
+  identity: AdminIdentity, classroomId: string,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  audit('classroom.get', identity, { classroomId });
+  const result = await docClient.send(new GetCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId },
+  }));
+  if (!result.Item) {
+    throw new NotFoundError('Classroom not found');
+  }
+  const [members, submissions] = await Promise.all([
+    docClient.send(new QueryCommand({
+      TableName: MEMBERSHIPS_TABLE,
+      KeyConditionExpression: 'classroomId = :cid',
+      ExpressionAttributeValues: { ':cid': classroomId },
+      Select: 'COUNT',
+    })),
+    docClient.send(new QueryCommand({
+      TableName: SUBMISSIONS_TABLE,
+      KeyConditionExpression: 'classroomId = :cid',
+      ExpressionAttributeValues: { ':cid': classroomId },
+      Select: 'COUNT',
+    })),
+  ]);
+  return {
+    statusCode: 200,
+    body: JSON.stringify({
+      ...mapClassroomForAdmin(result.Item as Record<string, unknown>),
+      memberCount: members.Count || 0,
+      submissionCount: submissions.Count || 0,
+    }),
+  };
+}
+
+async function handleSetClassroomStatus(
+  identity: AdminIdentity, classroomId: string, body: Record<string, unknown>,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  if (body.status !== 'active' && body.status !== 'archived') {
+    throw new ValidationError('Status must be "active" or "archived"');
+  }
+  const result = await docClient.send(new GetCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId },
+  }));
+  if (!result.Item) {
+    throw new NotFoundError('Classroom not found');
+  }
+  await docClient.send(new UpdateCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId },
+    UpdateExpression: 'SET #status = :status, updatedAt = :now',
+    ExpressionAttributeNames: { '#status': 'status' },
+    ExpressionAttributeValues: { ':status': body.status, ':now': new Date().toISOString() },
+  }));
+  audit('classroom.setStatus', identity, { classroomId, status: body.status });
+  return {
+    statusCode: 200,
+    body: JSON.stringify(mapClassroomForAdmin({ ...result.Item, status: body.status })),
+  };
+}
+
+// --- ddb-archive snapshot helpers ---
+
+async function readSnapshot(key: string): Promise<Snapshot | null> {
+  try {
+    const result = await s3Client.send(new GetObjectCommand({ Bucket: SUBMISSIONS_BUCKET, Key: key }));
+    const body = await result.Body?.transformToString();
+    return body ? (JSON.parse(body) as Snapshot) : null;
+  } catch (err) {
+    const name = err instanceof Error ? err.name : '';
+    if (name === 'NoSuchKey' || name === 'NotFound') return null;
+    throw err;
+  }
+}
+
+async function listArchiveKeys(prefix: string): Promise<string[]> {
+  const keys: string[] = [];
+  let token: string | undefined;
+  do {
+    const page = await s3Client.send(new ListObjectsV2Command({
+      Bucket: SUBMISSIONS_BUCKET,
+      Prefix: prefix,
+      ContinuationToken: token,
+    }));
+    for (const object of page.Contents || []) {
+      if (object.Key) keys.push(object.Key);
+    }
+    token = page.IsTruncated ? page.NextContinuationToken : undefined;
+  } while (token);
+  return keys;
+}
+
+async function collectSnapshotChildren(kind: string, classroomId: string): Promise<Record<string, unknown>[]> {
+  const keys = await listArchiveKeys(`${ARCHIVE_PREFIX}/${kind}/${classroomId}/`);
+  const items: Record<string, unknown>[] = [];
+  for (const key of keys) {
+    const snapshot = await readSnapshot(key);
+    if (snapshot?.item) items.push(snapshot.item);
+  }
+  return items;
+}
+
+async function handleSearchRestoreCandidates(
+  identity: AdminIdentity, query: Record<string, string | undefined>,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const q = (query.q || '').trim();
+  if (!q) {
+    throw new ValidationError('q is required');
+  }
+  audit('classroom.searchSnapshots', identity, { q });
+
+  const keys = await listArchiveKeys(`${ARCHIVE_PREFIX}/classrooms/`);
+  const matches: Record<string, unknown>[] = [];
+  for (const key of keys) {
+    const snapshot = await readSnapshot(key);
+    if (snapshot && matchSnapshot(snapshot, q)) {
+      matches.push({
+        ...mapClassroomForAdmin(snapshot.item),
+        deletedAt: snapshot.deletedAt,
+      });
+    }
+  }
+  return { statusCode: 200, body: JSON.stringify({ items: matches }) };
+}
+
+async function gatherRestoreInput(classroomId: string): Promise<{
+  input: RestorePlanInput;
+  deletedAt: string | null;
+  missingFiles: number;
+} | null> {
+  const snapshot = await readSnapshot(`${ARCHIVE_PREFIX}/classrooms/${classroomId}.json`);
+  if (!snapshot?.item) return null;
+
+  const classroom = snapshot.item;
+  const [memberships, submissions] = await Promise.all([
+    collectSnapshotChildren('memberships', classroomId),
+    collectSnapshotChildren('submissions', classroomId),
+  ]);
+
+  // Restore the owning group too when it was swept.
+  let group: Record<string, unknown> | null = null;
+  if (typeof classroom.groupId === 'string' && classroom.groupId) {
+    const liveGroup = await docClient.send(new GetCommand({
+      TableName: GROUPS_TABLE,
+      Key: { groupId: classroom.groupId },
+    }));
+    if (!liveGroup.Item) {
+      const groupSnapshot = await readSnapshot(`${ARCHIVE_PREFIX}/groups/${classroom.groupId}.json`);
+      group = groupSnapshot?.item || null;
+    }
+  }
+
+  // Verify the submission binaries still exist.
+  let missingFiles = 0;
+  for (const submission of submissions) {
+    if (typeof submission.s3Key !== 'string') continue;
+    try {
+      await s3Client.send(new HeadObjectCommand({ Bucket: SUBMISSIONS_BUCKET, Key: submission.s3Key }));
+    } catch {
+      missingFiles++;
+    }
+  }
+
+  return {
+    input: { classroom, memberships, submissions, group },
+    deletedAt: snapshot.deletedAt,
+    missingFiles,
+  };
+}
+
+async function handleRestorePlan(
+  identity: AdminIdentity, classroomId: string,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  audit('classroom.restorePlan', identity, { classroomId });
+
+  const live = await docClient.send(new GetCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId },
+  }));
+  if (live.Item) {
+    // Still alive — an accidental archive is the teacher's own UI restore.
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ alive: true, status: live.Item.status }),
+    };
+  }
+
+  const gathered = await gatherRestoreInput(classroomId);
+  if (!gathered) {
+    throw new NotFoundError('No snapshot found for this classroom');
+  }
+  return {
+    statusCode: 200,
+    body: JSON.stringify({
+      alive: false,
+      classroom: mapClassroomForAdmin(gathered.input.classroom),
+      deletedAt: gathered.deletedAt,
+      memberCount: gathered.input.memberships.length,
+      submissionCount: gathered.input.submissions.length,
+      restoresGroup: !!gathered.input.group,
+      missingFiles: gathered.missingFiles,
+    }),
+  };
+}
+
+const RESTORE_TABLE_FOR: Record<PlannedItem['table'], () => string> = {
+  classrooms: () => CLASSROOMS_TABLE,
+  memberships: () => MEMBERSHIPS_TABLE,
+  submissions: () => SUBMISSIONS_TABLE,
+  groups: () => GROUPS_TABLE,
+};
+
+async function handleRestoreExecute(
+  identity: AdminIdentity, classroomId: string,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const live = await docClient.send(new GetCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId },
+  }));
+  if (live.Item) {
+    throw new ValidationError('Classroom is still alive — restore it from the teacher UI instead');
+  }
+  const gathered = await gatherRestoreInput(classroomId);
+  if (!gathered) {
+    throw new NotFoundError('No snapshot found for this classroom');
+  }
+
+  const plan = buildRestorePlan(gathered.input, Date.now());
+  for (const planned of plan) {
+    const put: { TableName: string; Item: Record<string, unknown>; ConditionExpression?: string } = {
+      TableName: RESTORE_TABLE_FOR[planned.table](),
+      Item: planned.item,
+    };
+    if (planned.table === 'classrooms') {
+      // Never clobber a live classroom (raced restore).
+      put.ConditionExpression = 'attribute_not_exists(classroomId)';
+    }
+    await docClient.send(new PutCommand(put));
+  }
+  audit('classroom.restore', identity, {
+    classroomId,
+    items: plan.length,
+    missingFiles: gathered.missingFiles,
+  });
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify({
+      restored: plan.length,
+      missingFiles: gathered.missingFiles,
+      classroom: mapClassroomForAdmin({ ...gathered.input.classroom, status: 'active' }),
+    }),
+  };
+}
+
 // --- Main handler ---
 
 export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
@@ -392,6 +701,29 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
     } else if (method === 'PATCH' && /^\/admin\/shared-assignments\/[^/]+$/.test(path)) {
       const sharedId = event.pathParameters?.sharedId || '';
       result = await handleSetSharedStatus(identity, sharedId, body);
+
+    } else if (method === 'GET' && path === '/admin/classrooms') {
+      result = await handleListClassrooms(identity, event.queryStringParameters || {});
+
+    // Literal route first — it would otherwise match the {classroomId} shapes.
+    } else if (method === 'GET' && path === '/admin/classrooms/restore-candidates') {
+      result = await handleSearchRestoreCandidates(identity, event.queryStringParameters || {});
+
+    } else if (method === 'GET' && /^\/admin\/classrooms\/[^/]+\/restore-plan$/.test(path)) {
+      const classroomId = event.pathParameters?.classroomId || '';
+      result = await handleRestorePlan(identity, classroomId);
+
+    } else if (method === 'POST' && /^\/admin\/classrooms\/[^/]+\/restore$/.test(path)) {
+      const classroomId = event.pathParameters?.classroomId || '';
+      result = await handleRestoreExecute(identity, classroomId);
+
+    } else if (method === 'GET' && /^\/admin\/classrooms\/[^/]+$/.test(path)) {
+      const classroomId = event.pathParameters?.classroomId || '';
+      result = await handleGetClassroom(identity, classroomId);
+
+    } else if (method === 'PATCH' && /^\/admin\/classrooms\/[^/]+$/.test(path)) {
+      const classroomId = event.pathParameters?.classroomId || '';
+      result = await handleSetClassroomStatus(identity, classroomId, body);
 
     } else {
       throw new NotFoundError('Not found');
