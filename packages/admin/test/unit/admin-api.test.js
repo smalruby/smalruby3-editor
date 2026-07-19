@@ -48,3 +48,38 @@ describe('admin-api', () => {
         expect(await request('DELETE', '/admin/whatever')).toBeNull();
     });
 });
+
+describe('session expiry broadcast (401)', () => {
+    beforeEach(() => {
+        setIdToken('token-1');
+        global.fetch = jest.fn();
+    });
+
+    test('a 401 dispatches smalruby-admin:unauthorized before rejecting', async () => {
+        global.fetch.mockResolvedValue({
+            ok: false,
+            status: 401,
+            json: () => Promise.resolve({error: 'Invalid ID token'})
+        });
+        const listener = jest.fn();
+        window.addEventListener('smalruby-admin:unauthorized', listener);
+
+        await expect(request('GET', '/admin/me')).rejects.toMatchObject({status: 401});
+        expect(listener).toHaveBeenCalledTimes(1);
+        window.removeEventListener('smalruby-admin:unauthorized', listener);
+    });
+
+    test('non-401 errors do not broadcast', async () => {
+        global.fetch.mockResolvedValue({
+            ok: false,
+            status: 403,
+            json: () => Promise.resolve({error: 'Not an administrator'})
+        });
+        const listener = jest.fn();
+        window.addEventListener('smalruby-admin:unauthorized', listener);
+
+        await expect(request('GET', '/admin/me')).rejects.toMatchObject({status: 403});
+        expect(listener).not.toHaveBeenCalled();
+        window.removeEventListener('smalruby-admin:unauthorized', listener);
+    });
+});
