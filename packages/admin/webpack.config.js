@@ -48,7 +48,10 @@ module.exports = {
     ],
     devServer: {
         port: process.env.PORT || 8602,
-        historyApiFallback: true
+        // Rewrite unknown paths (including the slashless /admin) to the SPA
+        // index, which lives under publicPath — GitHub Pages does the
+        // trailing-slash redirect in production, the dev server does not.
+        historyApiFallback: {index: '/admin/'}
     },
     devtool: process.env.NODE_ENV === 'production' ? false : 'cheap-module-source-map'
 };
