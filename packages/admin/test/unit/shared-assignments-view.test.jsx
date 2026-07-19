@@ -32,7 +32,8 @@ const detail = {
     tags: ['甲子園'],
     supplementUrl: 'https://docs.google.com/x',
     reuseCount: 4,
-    pages: [{text: 'ページ1', imageUrl: null}]
+    pages: [{text: 'ページ1', imageUrl: null}],
+    starterUrl: 'https://signed.example/starter.sb3'
 };
 
 describe('SharedAssignmentsView (issue #1083)', () => {
@@ -75,6 +76,25 @@ describe('SharedAssignmentsView (issue #1083)', () => {
         await waitFor(() => expect(mockSetStatus).toHaveBeenCalledWith('s1', 'unlisted'));
         // The queue reloads after a change.
         await waitFor(() => expect(mockFetchReports.mock.calls.length).toBeGreaterThan(1));
+    });
+
+    test('the detail offers the starter download, or says there is none', async () => {
+        const first = render(<SharedAssignmentsView />);
+        await waitFor(() => screen.getByTestId('shared-admin-queue-item-s1'));
+        fireEvent.click(screen.getByTestId('shared-admin-queue-item-s1'));
+        await waitFor(() => screen.getByTestId('shared-admin-detail'));
+        expect(screen.getByTestId('shared-admin-starter-download')).toHaveAttribute(
+            'href', 'https://signed.example/starter.sb3');
+        first.unmount();
+
+        // Without a starter: an explicit "none" note, no dead link.
+        mockFetchDetail.mockResolvedValue({...detail, starterUrl: null});
+        render(<SharedAssignmentsView />);
+        await waitFor(() => screen.getByTestId('shared-admin-queue-item-s1'));
+        fireEvent.click(screen.getByTestId('shared-admin-queue-item-s1'));
+        await waitFor(() => expect(screen.getByTestId('shared-admin-starter').textContent)
+            .toContain('スタータープロジェクトなし'));
+        expect(screen.queryByTestId('shared-admin-starter-download')).not.toBeInTheDocument();
     });
 
     test('the confirmation can be cancelled without any API call', async () => {
