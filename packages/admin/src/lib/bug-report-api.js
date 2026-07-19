@@ -1,26 +1,32 @@
 /**
- * Bug-report API client (EPIC #1073 S5, decision D) — READ-ONLY.
+ * Bug-report API client (EPIC #1073 S5, decision D — extended 2026-07-19).
  *
- * The bug-report feature itself is unchanged; the admin console only adds a
- * viewing surface. This client therefore exposes GET endpoints exclusively —
- * status changes and developer replies stay on the existing workflow. The
- * admin's Google id_token is accepted by the bug-report Lambda as an
- * additional audience (decision F), and the operator must be registered in
- * the BugReportAdmins email registry.
+ * The bug-report backend is unchanged: the admin console talks to the
+ * EXISTING bug-report admin API. Originally view-only, the console now also
+ * uses the existing PATCH endpoint for status changes and developer replies
+ * (owner-requested spec addition). The admin's Google id_token is accepted
+ * by the bug-report Lambda as an additional audience (decision F), and the
+ * operator must be registered in the BugReportAdmins email registry.
  */
 import {getIdToken} from './admin-api.js';
 
 const BUG_REPORT_API_ENDPOINT = process.env.BUG_REPORT_API_ENDPOINT || '';
 
 /**
- * Perform an authenticated GET against the bug-report API.
+ * Perform an authenticated request against the bug-report API.
+ * @param {string} method - HTTP method
  * @param {string} path - API path (starting with /admin/)
+ * @param {object} [body] - JSON body for mutations
  * @returns {Promise<object>} parsed JSON
  */
-const get = async path => {
+const request = async (method, path, body) => {
     const response = await fetch(`${BUG_REPORT_API_ENDPOINT}${path}`, {
-        method: 'GET',
-        headers: {Authorization: `Bearer ${getIdToken()}`}
+        method,
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${getIdToken()}`
+        },
+        ...(body ? {body: JSON.stringify(body)} : {})
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
@@ -41,13 +47,25 @@ const get = async path => {
  * @returns {Promise<object>} {reports}
  */
 const fetchBugReports = status =>
-    get(`/admin/bug-reports${status ? `?status=${encodeURIComponent(status)}` : ''}`);
+    request('GET', `/admin/bug-reports${status ? `?status=${encodeURIComponent(status)}` : ''}`);
 
 /**
  * One report with presigned download URLs (project / thumbnail / screenshots).
  * @param {string} reportId - report id
  * @returns {Promise<object>} report detail
  */
-const fetchBugReport = reportId => get(`/admin/bug-reports/${reportId}`);
+const fetchBugReport = reportId => request('GET', `/admin/bug-reports/${reportId}`);
 
-export {BUG_REPORT_API_ENDPOINT, fetchBugReports, fetchBugReport};
+/**
+ * Update the status and/or developer reply (existing bug-report admin API).
+ * Server side effects: the report is un-hidden for the reporter; a terminal
+ * status (resolved / wont_fix) starts the auto-delete TTL, reopening clears
+ * it.
+ * @param {string} reportId - report id
+ * @param {object} updates - {status?, developerReply?} (send only changes)
+ * @returns {Promise<object>} updated report
+ */
+const updateBugReport = (reportId, updates) =>
+    request('PATCH', `/admin/bug-reports/${reportId}`, updates);
+
+export {BUG_REPORT_API_ENDPOINT, fetchBugReports, fetchBugReport, updateBugReport};

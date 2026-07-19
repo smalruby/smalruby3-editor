@@ -162,9 +162,12 @@ try {
     if (reportButtons.length > 0) {
         await reportButtons[0].click();
         await page.waitForSelector(tid('bug-admin-detail'), { timeout: 20000 });
-        // Read-only surface: no writable form controls in the detail.
-        const writable = await page.$$('textarea, input[type="text"]');
-        assert(writable.length === 0, 'the bug-report detail offers no write controls');
+        // Respond section: status select + reply comment, save armed only on
+        // change (the E2E does NOT save — keep stg reports untouched).
+        await page.waitForSelector(tid('bug-admin-status-select'), { timeout: 10000 });
+        await page.waitForSelector(tid('bug-admin-reply-input'), { timeout: 10000 });
+        const saveDisabled = await page.getAttribute(tid('bug-admin-save'), 'disabled');
+        assert(saveDisabled !== null, 'save stays disabled until something changes');
         await shot('bug-report-detail');
         await page.click(tid('bug-admin-back'));
     } else {
