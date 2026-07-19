@@ -277,6 +277,10 @@ jobs:
           GTM_ID: ${{ github.ref == 'refs/heads/develop' && secrets.GTM_ID || '' }}
           GTM_ENV_AUTH: ${{ github.ref == 'refs/heads/develop' && secrets.GTM_ENV_AUTH || '' }}
           COMMIT_SHA: ${{ github.sha }}
+          # Admin SPA (packages/admin — EPIC #1073). Register these in
+          # Settings > Secrets and variables > Actions > Variables.
+          ADMIN_API_ENDPOINT: ${{ vars.ADMIN_API_ENDPOINT }}
+          ADMIN_GOOGLE_CLIENT_ID: ${{ vars.ADMIN_GOOGLE_CLIENT_ID }}
         run: npm run build
       - name: Generate version.json
         run: |
@@ -303,6 +307,20 @@ jobs:
           publish_dir: ./packages/scratch-gui/dist
           full_commit_message: "Build for ${{ github.sha }} ${{ github.event.head_commit.message }}"
           cname: smalruby.app
+          external_repository: smalruby/smalruby.app
+      # Admin SPA at smalruby.app/admin/ (EPIC #1073). Must run AFTER the
+      # main deploy: that step replaces the gh-pages content, so the admin
+      # subdirectory is re-published on every release (destination_dir +
+      # keep_files is the same pattern the branch previews use).
+      - name: Deploy admin SPA to smalruby.app/admin/
+        uses: peaceiris/actions-gh-pages@4f9cc6602d3f66b9c108549d475ec49e8ef4d45e # v4
+        if: github.ref == 'refs/heads/develop'
+        with:
+          deploy_key: ${{ secrets.SMALRUBY_APP_DEPLOY_KEY }}
+          publish_dir: ./packages/admin/build
+          destination_dir: admin
+          keep_files: true
+          full_commit_message: "Admin build for ${{ github.sha }}"
           external_repository: smalruby/smalruby.app
       - name: Rebuild for smalruby3-editor GitHub Pages
         if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'

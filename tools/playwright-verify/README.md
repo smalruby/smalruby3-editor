@@ -62,6 +62,7 @@ env トグル: `HEADLESS=false` 表示 / `CHANNEL=chrome` 実 Chrome / `SLOWMO=<
 
 | ファイル | 検証対象 |
 |---|---|
+| `verify-admin.mjs` | 管理 SPA（EPIC #1073）の通し。stg API への `/admin/me` プリフライト（403 = allowlist 未登録を明示）→ 8602 の SPA dev server を自前起動（`REUSE_SERVER=1` で再利用）→ ログインゲート → `?devlogin=` バイパス → みんなの課題キュー → クラス検索 + 期限切れ復元タブ → バグ報告一覧（詳細に書き込み UI が無いこと）。前提: AdminStack-stg デプロイ + `SmalrubyAdmins-stg` に `dev-admin@example.com` 登録（docs/admin/operations.md） |
 | `verify-classroom-archive-recovery.mjs` | アーカイブ復旧（EPIC #1049）の通し。クラス+課題作成→保存期限バッジ（`あと{days}日`）→課題詳細の期限バナー+全作品DL CTA→クラス全体一括DL（zip 名 `_全課題.zip`）→課題アーカイブ（確認文言が「アーカイブ」であること）→（S1 API デプロイ後）アーカイブ済み課題の復元→クラスの 2 段階アーカイブ確認→アーカイブ済みクラス一覧→復元。`LOCALE=ja-JP` で日本語スクリーンショット（docs 用） |
 | `mesh-v2-classroom-binding.mjs` | クラス管理と Mesh v2 ドメインの連動。教師タブでクラス作成→サイドバーで選択、生徒タブで `?classcode=` 経由参加し、両方の `state.scratchGui.meshV2.domain` が参加コードに揃うこと、接続モーダル入力欄が disabled になること、解除時に元のドメインに戻ることをチェック |
 | `verify-lesson-support-phase3.mjs` | AI 評価（EPIC #974 Phase 3）の通し。生徒提出→評価画面で読み込み（ブラウザ内 sb3 解析）→AI評価実行（実 Claude via stg）→根拠付き S/A/B/C→コメント下書き→返却→生徒側で表示確認。ポート・CORS の注意は phase1 と同じ |
