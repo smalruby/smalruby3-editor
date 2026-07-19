@@ -284,6 +284,44 @@ describe('みんなの課題 management (issue #1083)', () => {
     expect(queue[0].item.title).toBe('ねこあつめ入門');
   });
 
+  test('GET detail presigns page images and the starter project', async () => {
+    mockSend.mockImplementation(async (command: {
+      constructor: { name: string }; input?: { TableName?: string };
+    }) => {
+      const name = command.constructor.name;
+      if (name === 'GetCommand' && command.input?.TableName?.includes('Admins')) return adminRow;
+      if (name === 'GetCommand') return { Item: sharedItem };
+      return {};
+    });
+
+    const res = await handler({
+      requestContext: { http: { method: 'GET', path: '/admin/shared-assignments/s1' } },
+      pathParameters: { sharedId: 's1' },
+      headers: { authorization: `Bearer ${DEV_TOKEN}`, origin: 'https://smalruby.app' },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body as string);
+    expect(body.pages[0].imageUrl).toBe('https://signed.example/get');
+    // The starter is moderated content too — the operator gets a download URL.
+    expect(body.starterUrl).toBe('https://signed.example/get');
+
+    // Without a starterKey the field is null, not a broken link.
+    mockSend.mockImplementation(async (command: {
+      constructor: { name: string }; input?: { TableName?: string };
+    }) => {
+      const name = command.constructor.name;
+      if (name === 'GetCommand' && command.input?.TableName?.includes('Admins')) return adminRow;
+      if (name === 'GetCommand') return { Item: { ...sharedItem, content: { pages: [] } } };
+      return {};
+    });
+    const bare = await handler({
+      requestContext: { http: { method: 'GET', path: '/admin/shared-assignments/s1' } },
+      pathParameters: { sharedId: 's1' },
+      headers: { authorization: `Bearer ${DEV_TOKEN}`, origin: 'https://smalruby.app' },
+    });
+    expect(JSON.parse(bare.body as string).starterUrl).toBeNull();
+  });
+
   test('PATCH flips the status and audits the action', async () => {
     const logs: string[] = [];
     const spy = jest.spyOn(console, 'log').mockImplementation((line: string) => {

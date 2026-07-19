@@ -328,10 +328,19 @@ async function handleGetSharedAssignment(
         )
       : null,
   })));
+  // The starter project is part of what gets moderated — let the operator
+  // download and inspect the actual .sb3.
+  const starterUrl = content.starterKey
+    ? await getSignedUrl(
+        s3Client,
+        new GetObjectCommand({ Bucket: SHARED_BUCKET, Key: content.starterKey }),
+        { expiresIn: PRESIGNED_URL_DOWNLOAD_EXPIRY },
+      )
+    : null;
 
   return {
     statusCode: 200,
-    body: JSON.stringify({ ...mapSharedItemForAdmin(item), pages }),
+    body: JSON.stringify({ ...mapSharedItemForAdmin(item), pages, starterUrl }),
   };
 }
 

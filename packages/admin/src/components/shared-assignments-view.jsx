@@ -94,6 +94,21 @@ const SharedDetail = ({sharedId, onBack, onChanged}) => {
                     >{detail.supplementUrl}</a>
                 </p>
             ) : null}
+            <p
+                className="admin-meta"
+                data-testid="shared-admin-starter"
+            >
+                {detail.starterUrl ? (
+                    <a
+                        data-testid="shared-admin-starter-download"
+                        href={detail.starterUrl}
+                        rel="noopener noreferrer"
+                        target="_blank"
+                    >{'スタータープロジェクト (.sb3) をダウンロード'}</a>
+                ) : (
+                    'スタータープロジェクトなし'
+                )}
+            </p>
             {(detail.pages || []).map((page, index) => (
                 <div
                     className="admin-page"
