@@ -5,8 +5,8 @@
     "description": "Smalruby operator admin SPA (served at smalruby.app/admin/)",
     "license": "AGPL-3.0",
     "scripts": {
-        "start": "webpack serve --mode development",
-        "build": "webpack --mode production",
+        "start": "webpack-cli serve --mode development",
+        "build": "webpack-cli build --mode production",
         "clean": "rimraf build",
         "test": "npm run test:lint && npm run test:unit",
         "test:lint": "eslint",
