@@ -1,10 +1,12 @@
 /**
- * クラス・課題管理 + 期限切れ復元 view (EPIC #1073 S4 #1084).
+ * クラス・課題管理 view (EPIC #1073 S4 #1084 + 俯瞰ダッシュボード 2026-07-19).
  *
- * Two tabs: live classroom search (archive⇄active flip) and the
- * ddb-archive snapshot restore — the UI successor to classroom's
- * bin/restore-classroom.ts (EPIC #1049 D6). Every mutation goes through an
- * explicit two-step confirmation, matching the moderation view.
+ * Three tabs:
+ * - 俯瞰: dashboard (creation trend / content richness / theme / candidates).
+ * - クラス検索: live classroom search (archive⇄active flip).
+ * - 期限切れ復元: ddb-archive snapshot restore, narrowed by facets
+ *   (削除時期 / 先生) so a large deleted set is browsable みんなの課題-style.
+ * Every mutation goes through an explicit two-step confirmation.
  */
 import PropTypes from 'prop-types';
 import {useCallback, useEffect, useState} from 'react';
@@ -16,6 +18,7 @@ import {
     fetchRestorePlan,
     setClassroomStatus
 } from '../lib/admin-api.js';
+import ClassroomOverviewView from './classroom-overview-view.jsx';
 
 const ClassroomStatusBadge = ({status}) => (
     <span className={`admin-badge ${status === 'active' ? 'admin-badge-ok' : 'admin-badge-muted'}`}>
@@ -26,6 +29,10 @@ const ClassroomStatusBadge = ({status}) => (
 ClassroomStatusBadge.propTypes = {status: PropTypes.string};
 
 const formatDate = iso => (iso ? iso.replace('T', ' ').slice(0, 16) : '-');
+
+// One-line summary shared by the live and restore item rows.
+const itemLine = (item, tail) =>
+    `課題: ${item.assignmentName || '-'} ・ コード: ${item.joinCode} ・ ${tail}`;
 
 const ClassroomDetail = ({classroomId, onBack, onChanged}) => {
     const [detail, setDetail] = useState(null);
@@ -261,90 +268,171 @@ RestorePanel.propTypes = {
     onBack: PropTypes.func.isRequired
 };
 
-const ClassroomsView = () => {
-    const [tab, setTab] = useState('live');
+// 期限切れ復元タブ: q は任意。ファセット（削除時期 / 先生）で大量の削除済みを
+// 絞り込んでからクラス丸ごと復元する。
+const RestoreBrowser = ({onOpen}) => {
     const [query, setQuery] = useState('');
-    const [items, setItems] = useState(null);
-    const [selectedId, setSelectedId] = useState(null);
+    const [month, setMonth] = useState('');
+    const [teacher, setTeacher] = useState('');
+    const [data, setData] = useState(null);
     const [error, setError] = useState('');
 
-    const search = useCallback(async () => {
+    const load = useCallback(async filters => {
+        setError('');
+        setData(null);
+        try {
+            setData(await fetchRestoreCandidates(filters));
+        } catch (err) {
+            setError(err.message);
+        }
+    }, []);
+
+    // First open browses everything (so the facets are populated).
+    useEffect(() => {
+        load({});
+    }, [load]);
+
+    const handleSubmit = useCallback(e => {
+        e.preventDefault();
+        load({q: query.trim(), month, teacher});
+    }, [load, query, month, teacher]);
+    const handleQueryChange = useCallback(e => setQuery(e.target.value), []);
+    const handleMonth = useCallback(e => {
+        const next = e.currentTarget.dataset.month === month ? '' : e.currentTarget.dataset.month;
+        setMonth(next);
+        load({q: query.trim(), month: next, teacher});
+    }, [load, query, month, teacher]);
+    const handleTeacher = useCallback(e => {
+        const next = e.currentTarget.dataset.teacher === teacher ? '' : e.currentTarget.dataset.teacher;
+        setTeacher(next);
+        load({q: query.trim(), month, teacher: next});
+    }, [load, query, month, teacher]);
+
+    return (
+        <div>
+            <form
+                className="admin-search"
+                onSubmit={handleSubmit}
+            >
+                <input
+                    data-testid="classroom-admin-query"
+                    placeholder="参加コード・クラス名・課題名（任意）"
+                    type="text"
+                    value={query}
+                    onChange={handleQueryChange}
+                />
+                <button
+                    data-testid="classroom-admin-search"
+                    type="submit"
+                >{'絞り込み'}</button>
+            </form>
+            {error ? <p
+                className="admin-error"
+                data-testid="classroom-admin-error"
+            >{error}</p> : null}
+            {data === null ? (
+                <p data-testid="classroom-admin-hint">{'読み込み中…'}</p>
+            ) : (
+                <div>
+                    <div
+                        className="admin-facets"
+                        data-testid="restore-facets"
+                    >
+                        <span className="admin-facet-group">
+                            <span className="admin-meta">{'削除時期:'}</span>
+                            {data.facets.byMonth.map(f => (
+                                <button
+                                    className={month === f.month ? 'admin-chip-active' : 'admin-chip'}
+                                    data-month={f.month}
+                                    data-testid={`restore-facet-month-${f.month}`}
+                                    key={f.month}
+                                    type="button"
+                                    onClick={handleMonth}
+                                >{`${f.month} (${f.count})`}</button>
+                            ))}
+                        </span>
+                        <span className="admin-facet-group">
+                            <span className="admin-meta">{'先生:'}</span>
+                            {data.facets.byTeacher.slice(0, 8).map(f => (
+                                <button
+                                    className={teacher === f.teacherSub ? 'admin-chip-active' : 'admin-chip'}
+                                    data-teacher={f.teacherSub}
+                                    data-testid={`restore-facet-teacher-${f.teacherSub}`}
+                                    key={f.teacherSub}
+                                    type="button"
+                                    onClick={handleTeacher}
+                                >{`${f.teacherSub.slice(0, 8)}… (${f.count})`}</button>
+                            ))}
+                        </span>
+                    </div>
+                    <p className="admin-meta">{`${data.total} 件中 ${Math.min(data.total, data.items.length)} 件を表示`}</p>
+                    {data.items.length === 0 ? (
+                        <p data-testid="classroom-admin-empty">{'該当する削除済みクラスはありません。'}</p>
+                    ) : (
+                        <ul
+                            className="admin-list"
+                            data-testid="classroom-admin-list"
+                        >
+                            {data.items.map(item => (
+                                <li key={item.classroomId}>
+                                    <button
+                                        data-classroom-id={item.classroomId}
+                                        data-testid={`classroom-admin-item-${item.classroomId}`}
+                                        type="button"
+                                        onClick={onOpen}
+                                    >
+                                        <strong>{item.className}</strong>
+                                        <span className="admin-badge admin-badge-warn">{'削除済み'}</span>
+                                        <span className="admin-meta">
+                                            {itemLine(item, `削除 ${formatDate(item.deletedAt)}`)}
+                                        </span>
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+};
+
+RestoreBrowser.propTypes = {
+    onOpen: PropTypes.func.isRequired
+};
+
+// クラス検索タブ: 生きているクラスの一覧・検索 + アーカイブ切替。
+const LiveBrowser = ({onOpen, reloadKey}) => {
+    const [query, setQuery] = useState('');
+    const [items, setItems] = useState(null);
+    const [error, setError] = useState('');
+
+    // search takes the query explicitly so it stays referentially stable — the
+    // effect can then key on reloadKey without refetching on every keystroke.
+    const search = useCallback(async q => {
         setError('');
         setItems(null);
         try {
-            const data = tab === 'live' ?
-                await fetchClassrooms(query.trim()) :
-                await fetchRestoreCandidates(query.trim());
+            const data = await fetchClassrooms(q.trim());
             setItems(data.items || []);
         } catch (err) {
             setError(err.message);
         }
-    }, [tab, query]);
+    }, []);
 
-    // The live tab lists everything up-front; the snapshot tab waits for an
-    // explicit query (a full S3 sweep per keystroke would be wasteful) —
-    // hence the effect keys on the tab alone, not on the query/search pair.
+    // reloadKey bumps after a detail change so the list refreshes.
     useEffect(() => {
-        if (tab === 'live') {
-            search();
-        } else {
-            setItems(null);
-        }
-    }, [tab]);
+        search('');
+    }, [reloadKey, search]);
 
-    const handleTabLive = useCallback(() => {
-        setTab('live');
-        setSelectedId(null);
-    }, []);
-    const handleTabRestore = useCallback(() => {
-        setTab('restore');
-        setSelectedId(null);
-    }, []);
-    const handleQueryChange = useCallback(e => setQuery(e.target.value), []);
     const handleSubmit = useCallback(e => {
         e.preventDefault();
-        search();
-    }, [search]);
-    const handleOpen = useCallback(e => setSelectedId(e.currentTarget.dataset.classroomId), []);
-    const handleBack = useCallback(() => {
-        setSelectedId(null);
-        search();
-    }, [search]);
-
-    if (selectedId && tab === 'live') {
-        return (
-            <ClassroomDetail
-                classroomId={selectedId}
-                onBack={handleBack}
-                onChanged={search}
-            />
-        );
-    }
-    if (selectedId && tab === 'restore') {
-        return (
-            <RestorePanel
-                classroomId={selectedId}
-                onBack={handleBack}
-            />
-        );
-    }
+        search(query);
+    }, [search, query]);
+    const handleQueryChange = useCallback(e => setQuery(e.target.value), []);
 
     return (
-        <div data-testid="classroom-admin-view">
-            <div className="admin-tabs">
-                <button
-                    className={tab === 'live' ? 'admin-tab-active' : 'admin-tab'}
-                    data-testid="classroom-admin-tab-live"
-                    type="button"
-                    onClick={handleTabLive}
-                >{'クラス検索'}</button>
-                <button
-                    className={tab === 'restore' ? 'admin-tab-active' : 'admin-tab'}
-                    data-testid="classroom-admin-tab-restore"
-                    type="button"
-                    onClick={handleTabRestore}
-                >{'期限切れ復元'}</button>
-            </div>
+        <div>
             <form
                 className="admin-search"
                 onSubmit={handleSubmit}
@@ -366,11 +454,7 @@ const ClassroomsView = () => {
                 data-testid="classroom-admin-error"
             >{error}</p> : null}
             {items === null ? (
-                <p data-testid="classroom-admin-hint">
-                    {tab === 'restore' ?
-                        '参加コードかクラス名・課題名で、期限切れで消えたクラスを検索します。' :
-                        '読み込み中…'}
-                </p>
+                <p data-testid="classroom-admin-hint">{'読み込み中…'}</p>
             ) : items.length === 0 ? (
                 <p data-testid="classroom-admin-empty">{'見つかりませんでした。'}</p>
             ) : (
@@ -384,23 +468,102 @@ const ClassroomsView = () => {
                                 data-classroom-id={item.classroomId}
                                 data-testid={`classroom-admin-item-${item.classroomId}`}
                                 type="button"
-                                onClick={handleOpen}
+                                onClick={onOpen}
                             >
                                 <strong>{item.className}</strong>
-                                {tab === 'live' ?
-                                    <ClassroomStatusBadge status={item.status} /> :
-                                    <span className="admin-badge admin-badge-warn">{'期限切れ'}</span>}
+                                <ClassroomStatusBadge status={item.status} />
                                 <span className="admin-meta">
-                                    {`課題: ${item.assignmentName || '-'} ・ コード: ${item.joinCode}`}
-                                    {tab === 'live' ?
-                                        ` ・ 期限 ${formatDate(item.expiresAt)}` :
-                                        ` ・ 削除 ${formatDate(item.deletedAt)}`}
+                                    {itemLine(item, `期限 ${formatDate(item.expiresAt)}`)}
                                 </span>
                             </button>
                         </li>
                     ))}
                 </ul>
             )}
+        </div>
+    );
+};
+
+LiveBrowser.propTypes = {
+    onOpen: PropTypes.func.isRequired,
+    reloadKey: PropTypes.number.isRequired
+};
+
+const ClassroomsView = () => {
+    const [tab, setTab] = useState('overview');
+    // 'live' detail (archive flip) vs 'restore' panel — track which kind is open.
+    const [selected, setSelected] = useState(null); // {id, kind}
+    const [reloadKey, setReloadKey] = useState(0);
+
+    const handleTabOverview = useCallback(() => {
+        setTab('overview');
+        setSelected(null);
+    }, []);
+    const handleTabLive = useCallback(() => {
+        setTab('live');
+        setSelected(null);
+    }, []);
+    const handleTabRestore = useCallback(() => {
+        setTab('restore');
+        setSelected(null);
+    }, []);
+
+    // Candidates and live items open the live classroom detail; restore items
+    // open the restore panel.
+    const openLive = useCallback(e => setSelected({id: e.currentTarget.dataset.classroomId, kind: 'live'}), []);
+    const openRestore = useCallback(e => setSelected({id: e.currentTarget.dataset.classroomId, kind: 'restore'}), []);
+    const handleBack = useCallback(() => {
+        setSelected(null);
+        setReloadKey(k => k + 1);
+    }, []);
+    const bumpReload = useCallback(() => setReloadKey(k => k + 1), []);
+
+    if (selected && selected.kind === 'live') {
+        return (
+            <ClassroomDetail
+                classroomId={selected.id}
+                onBack={handleBack}
+                onChanged={bumpReload}
+            />
+        );
+    }
+    if (selected && selected.kind === 'restore') {
+        return (
+            <RestorePanel
+                classroomId={selected.id}
+                onBack={handleBack}
+            />
+        );
+    }
+
+    return (
+        <div data-testid="classroom-admin-view">
+            <div className="admin-tabs">
+                <button
+                    className={tab === 'overview' ? 'admin-tab-active' : 'admin-tab'}
+                    data-testid="classroom-admin-tab-overview"
+                    type="button"
+                    onClick={handleTabOverview}
+                >{'俯瞰'}</button>
+                <button
+                    className={tab === 'live' ? 'admin-tab-active' : 'admin-tab'}
+                    data-testid="classroom-admin-tab-live"
+                    type="button"
+                    onClick={handleTabLive}
+                >{'クラス検索'}</button>
+                <button
+                    className={tab === 'restore' ? 'admin-tab-active' : 'admin-tab'}
+                    data-testid="classroom-admin-tab-restore"
+                    type="button"
+                    onClick={handleTabRestore}
+                >{'期限切れ復元'}</button>
+            </div>
+            {tab === 'overview' && <ClassroomOverviewView onOpenCandidate={openLive} />}
+            {tab === 'live' && <LiveBrowser
+                reloadKey={reloadKey}
+                onOpen={openLive}
+            />}
+            {tab === 'restore' && <RestoreBrowser onOpen={openRestore} />}
         </div>
     );
 };

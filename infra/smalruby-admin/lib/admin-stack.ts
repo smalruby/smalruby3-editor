@@ -266,6 +266,7 @@ export class SmalrubyAdminStack extends cdk.Stack {
 
     // Classroom management + expired restore (S4 #1084). HTTP API prefers
     // the literal restore-candidates route over {classroomId} by specificity.
+    addRoute('/admin/classrooms/overview', [apigatewayv2.HttpMethod.GET]);
     addRoute('/admin/classrooms', [apigatewayv2.HttpMethod.GET]);
     addRoute('/admin/classrooms/restore-candidates', [apigatewayv2.HttpMethod.GET]);
     addRoute('/admin/classrooms/{classroomId}',
