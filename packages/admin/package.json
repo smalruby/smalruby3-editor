@@ -7,6 +7,7 @@
     "scripts": {
         "start": "webpack-cli serve --mode development",
         "build": "webpack-cli build --mode production",
+        "build:dev": "webpack-cli build --mode development",
         "clean": "rimraf build",
         "test": "npm run test:lint && npm run test:unit",
         "test:lint": "eslint",
