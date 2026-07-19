@@ -18,7 +18,7 @@
 
 1. **みんなの課題**（S3 #1083）: 通報キュー（多い順）/ 全投稿一覧 / 詳細（ページ・画像・クレジット）/ 非公開⇄再公開（2 段階確認・audit）
 2. **クラス・課題**（S4 #1084）: 全クラス検索（参加コード完全一致・名前部分一致）/ 詳細（参加・提出カウント）/ アーカイブ切替 / **期限切れクラスの復元**（ddb-archive スナップショット検索 → dry-run プラン → 実行。EPIC #1049 の CLI `bin/restore-classroom.ts` の UI 後継）
-3. **バグ報告**（S5 #1085 + 対応機能追加）: 既存バグ報告の一覧・状態フィルタ・詳細・添付 presigned DL に加え、**状態の変更と進捗コメント（開発者からの返信）**を既存 bug-report admin API の PATCH で行える（2 段階確認・終端ステータスは自動削除 TTL の警告つき。返信は報告者の「私の不具合報告」に表示され、非表示にしていた報告も再表示される — サーバー側の既存挙動）
+3. **バグ報告**（S5 #1085 + 対応機能追加）: 既存バグ報告の一覧・状態フィルタ・詳細・添付 presigned DL に加え、**状態の変更と進捗コメント（開発者からの返信）**を既存 bug-report admin API の PATCH で行える（2 段階確認・終端ステータスは自動削除 TTL の警告つき。返信は報告者の「私の不具合報告」に表示され、非表示にしていた報告も再表示される — サーバー側の既存挙動）。詳細には**状態に応じた Claude 連携プロンプト**（`/bug-report` スキル向け・受付→Issue 化 / 改修 / 解決返信 / 再開）が表示され、ワンクリックでコピーして Claude Code に貼り付けられる
 
 ## 認証・認可モデル（要点）
 
@@ -44,6 +44,7 @@
 | `src/components/bug-reports-view.jsx` | バグ報告閲覧（read-only） |
 | `src/lib/admin-api.js` | admin API クライアント（トークンはモジュールメモリ） |
 | `src/lib/bug-report-api.js` | bug-report API クライアント（一覧・詳細 + 状態/返信の PATCH。既存 API のみ使用） |
+| `src/lib/bug-report-prompts.js` | 状態別の Claude 連携プロンプト生成（`/bug-report` スキルにワンクリックコピーで渡す） |
 | `src/lib/google-auth.js` | GIS ロード + `?devlogin=` バイパス（stg のみ） |
 | `webpack.config.js` | 独立ビルド（publicPath `/admin/`、port 8602、DefinePlugin で endpoint 埋め込み） |
 

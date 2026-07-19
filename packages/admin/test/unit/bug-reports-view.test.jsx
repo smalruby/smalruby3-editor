@@ -112,6 +112,24 @@ describe('BugReportsView (issue #1085 + 状態変更/コメント)', () => {
         await waitFor(() => expect(mockUpdateReport).toHaveBeenCalledWith('r1', {status: 'resolved'}));
     });
 
+    test('Claude prompt suggestions match the status and copy on one click', async () => {
+        const writeText = jest.fn().mockResolvedValue();
+        Object.assign(navigator, {clipboard: {writeText}});
+
+        render(<BugReportsView stage="stg" />);
+        await waitFor(() => screen.getByTestId('bug-admin-item-r1'));
+        fireEvent.click(screen.getByTestId('bug-admin-item-r1'));
+        await waitFor(() => screen.getByTestId('bug-admin-detail'));
+
+        // status=open → 受付プロンプトが提示され、スキル呼び出し + stg 引数を含む
+        expect(screen.getByTestId('bug-admin-claude')).toBeInTheDocument();
+        const copy = screen.getByTestId('bug-admin-copy-triage');
+        fireEvent.click(copy);
+        await waitFor(() => expect(writeText).toHaveBeenCalled());
+        expect(writeText.mock.calls[0][0]).toContain('/bug-report show r1 stg');
+        await waitFor(() => expect(copy.textContent).toContain('コピーしました'));
+    });
+
     test('the confirmation can be cancelled without any API call', async () => {
         render(<BugReportsView />);
         await waitFor(() => screen.getByTestId('bug-admin-item-r1'));

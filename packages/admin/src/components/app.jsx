@@ -112,7 +112,7 @@ const App = () => {
                     <h2>{SECTIONS.find(s => s.key === section).label}</h2>
                     {section === 'shared' && <SharedAssignmentsView />}
                     {section === 'classrooms' && <ClassroomsView />}
-                    {section === 'bug-reports' && <BugReportsView />}
+                    {section === 'bug-reports' && <BugReportsView stage={me.stage} />}
                 </main>
                 {sessionExpired && (
                     <div
