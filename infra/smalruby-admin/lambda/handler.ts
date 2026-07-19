@@ -30,6 +30,7 @@ import { OAuth2Client } from 'google-auth-library';
 import {
   buildRestorePlan, matchSnapshot, PlannedItem, RestorePlanInput, Snapshot,
 } from './restore-plan';
+import { buildOverview, buildRestoreFacets, ClassroomRow } from './classroom-overview';
 
 // --- Configuration ---
 
@@ -416,6 +417,22 @@ async function handleListClassrooms(
   return { statusCode: 200, body: JSON.stringify({ items: items.slice(0, 100) }) };
 }
 
+async function handleClassroomOverview(
+  identity: AdminIdentity,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  audit('classroom.overview', identity, {});
+  const [classroomRows, sharedRows] = await Promise.all([
+    scanAll(CLASSROOMS_TABLE),
+    // Titles already on みんなの課題 — flag likely-shared candidates.
+    scanAll(SHARED_ASSIGNMENTS_TABLE).catch(() => [] as Record<string, unknown>[]),
+  ]);
+  const sharedTitles = sharedRows
+    .map(r => (typeof r.title === 'string' ? r.title : ''))
+    .filter(Boolean);
+  const overview = buildOverview(classroomRows as ClassroomRow[], sharedTitles, Date.now());
+  return { statusCode: 200, body: JSON.stringify(overview) };
+}
+
 async function handleGetClassroom(
   identity: AdminIdentity, classroomId: string,
 ): Promise<APIGatewayProxyStructuredResultV2> {
@@ -522,24 +539,45 @@ async function collectSnapshotChildren(kind: string, classroomId: string): Promi
 async function handleSearchRestoreCandidates(
   identity: AdminIdentity, query: Record<string, string | undefined>,
 ): Promise<APIGatewayProxyStructuredResultV2> {
+  // q is now optional: the operator can browse ALL deleted snapshots and
+  // narrow with facets (削除時期 / 先生) instead of only text search, because
+  // the raw list is too large to eyeball (みんなの課題 catalog style).
   const q = (query.q || '').trim();
-  if (!q) {
-    throw new ValidationError('q is required');
-  }
-  audit('classroom.searchSnapshots', identity, { q });
+  const monthFilter = (query.month || '').trim();
+  const teacherFilter = (query.teacher || '').trim();
+  audit('classroom.searchSnapshots', identity, { q: q || null, month: monthFilter || null });
 
   const keys = await listArchiveKeys(`${ARCHIVE_PREFIX}/classrooms/`);
-  const matches: Record<string, unknown>[] = [];
+  const all: { item: Record<string, unknown>; deletedAt: string | null; teacherSub: string }[] = [];
   for (const key of keys) {
     const snapshot = await readSnapshot(key);
-    if (snapshot && matchSnapshot(snapshot, q)) {
-      matches.push({
-        ...mapClassroomForAdmin(snapshot.item),
+    if (snapshot?.item) {
+      all.push({
+        item: snapshot.item,
         deletedAt: snapshot.deletedAt,
+        teacherSub: typeof snapshot.item.teacherSub === 'string' ? snapshot.item.teacherSub : '',
       });
     }
   }
-  return { statusCode: 200, body: JSON.stringify({ items: matches }) };
+
+  // Facets are computed over everything (so the operator sees the full shape),
+  // the item list is what survives the active filters.
+  const facets = buildRestoreFacets(all);
+  const matches = all
+    .filter(s => !q || matchSnapshot({ table: 'classrooms', deletedAt: s.deletedAt, eventId: null, item: s.item }, q))
+    .filter(s => !monthFilter || (s.deletedAt || '').slice(0, 7) === monthFilter)
+    .filter(s => !teacherFilter || s.teacherSub === teacherFilter)
+    .map(s => ({
+      ...mapClassroomForAdmin(s.item),
+      teacherSub: s.teacherSub,
+      deletedAt: s.deletedAt,
+    }))
+    .sort((a, b) => String(b.deletedAt || '').localeCompare(String(a.deletedAt || '')));
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ items: matches.slice(0, 200), total: matches.length, facets }),
+  };
 }
 
 async function gatherRestoreInput(classroomId: string): Promise<{
@@ -710,6 +748,9 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
     } else if (method === 'PATCH' && /^\/admin\/shared-assignments\/[^/]+$/.test(path)) {
       const sharedId = event.pathParameters?.sharedId || '';
       result = await handleSetSharedStatus(identity, sharedId, body);
+
+    } else if (method === 'GET' && path === '/admin/classrooms/overview') {
+      result = await handleClassroomOverview(identity);
 
     } else if (method === 'GET' && path === '/admin/classrooms') {
       result = await handleListClassrooms(identity, event.queryStringParameters || {});

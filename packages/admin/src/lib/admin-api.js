@@ -135,12 +135,27 @@ const setClassroomStatus = (classroomId, status) =>
     request('PATCH', `/admin/classrooms/${classroomId}`, {status});
 
 /**
- * Search ddb-archive snapshots of expired classrooms.
- * @param {string} q - join code (exact) or class/assignment name (substring)
- * @returns {Promise<object>} {items} (each with deletedAt)
+ * Fleet-wide overview aggregation for the dashboard (creation trend, content
+ * richness, theme keywords, みんなの課題 candidates).
+ * @returns {Promise<object>} {summary, creationTrend, richnessDistribution, candidates, themeKeywords}
  */
-const fetchRestoreCandidates = q =>
-    request('GET', `/admin/classrooms/restore-candidates?q=${encodeURIComponent(q)}`);
+const fetchClassroomOverview = () => request('GET', '/admin/classrooms/overview');
+
+/**
+ * Browse ddb-archive snapshots of deleted classrooms, narrowed by facets.
+ * q is optional now — omit it to browse everything and classify with the
+ * returned facets (削除時期 / 先生).
+ * @param {object} [filters] - {q?, month?, teacher?}
+ * @returns {Promise<object>} {items, total, facets:{byMonth, byTeacher}}
+ */
+const fetchRestoreCandidates = (filters = {}) => {
+    const params = new URLSearchParams();
+    if (filters.q) params.set('q', filters.q);
+    if (filters.month) params.set('month', filters.month);
+    if (filters.teacher) params.set('teacher', filters.teacher);
+    const qs = params.toString();
+    return request('GET', `/admin/classrooms/restore-candidates${qs ? `?${qs}` : ''}`);
+};
 
 /**
  * Dry-run summary for one restore ({alive:true} when the classroom still
@@ -164,6 +179,7 @@ export {
     fetchClassrooms,
     fetchClassroom,
     setClassroomStatus,
+    fetchClassroomOverview,
     fetchRestoreCandidates,
     fetchRestorePlan,
     executeRestore

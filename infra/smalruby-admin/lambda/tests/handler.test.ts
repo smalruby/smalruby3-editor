@@ -498,7 +498,36 @@ describe('クラス管理 + 期限切れ復元 (issue #1084)', () => {
     expect(bad.statusCode).toBe(400);
   });
 
-  test('GET restore-candidates searches snapshots and requires q', async () => {
+  test('GET /admin/classrooms/overview aggregates the dashboard', async () => {
+    mockSend.mockImplementation(async (command: {
+      constructor: { name: string }; input?: { TableName?: string };
+    }) => {
+      const name = command.constructor.name;
+      if (name === 'GetCommand') return adminRow;
+      if (name === 'ScanCommand' && command.input?.TableName?.includes('SharedAssignments')) {
+        return { Items: [{ title: '共有済みの課題' }] };
+      }
+      if (name === 'ScanCommand') {
+        return { Items: [
+          { classroomId: 'c1', className: '5年1組', assignmentName: 'ねこ迷路ゲーム', teacherSub: 't1',
+            status: 'active', createdAt: '2026-07-10T00:00:00.000Z',
+            content: { pages: [{ text: 'a', imageKey: 'k' }, { text: 'b' }], starterKey: 's' } },
+          { classroomId: 'eval-quota#t1#2026-07-19', status: 'active' },
+        ] };
+      }
+      return {};
+    });
+
+    const res = await handler(makeAuthedEvent('GET', '/admin/classrooms/overview'));
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body as string);
+    expect(body.summary.total).toBe(1); // quota row excluded
+    expect(body.candidates[0].classroomId).toBe('c1');
+    expect(body.candidates[0].hasStarter).toBe(true);
+    expect(body.creationTrend[0].month).toBe('2026-07');
+  });
+
+  test('GET restore-candidates browses all with facets, filters by q', async () => {
     mockSend.mockResolvedValue(adminRow);
     mockS3Send.mockImplementation(async (command: { constructor: { name: string }; input?: { Key?: string } }) => {
       if (command.constructor.name === 'ListObjectsV2Command') {
@@ -507,13 +536,21 @@ describe('クラス管理 + 期限切れ復元 (issue #1084)', () => {
           { Key: 'ddb-archive/classrooms/c2.json' },
         ] };
       }
-      if (command.input?.Key === 'ddb-archive/classrooms/c1.json') return s3Json(classroomItem);
-      return s3Json({ ...classroomItem, classroomId: 'c2', className: '6年2組', joinCode: 'XYZ999' });
+      if (command.input?.Key === 'ddb-archive/classrooms/c1.json') {
+        return s3Json({ ...classroomItem, teacherSub: 't1' });
+      }
+      return s3Json({ ...classroomItem, classroomId: 'c2', className: '6年2組', joinCode: 'XYZ999', teacherSub: 't2' });
     });
 
-    const missing = await handler(makeAuthedEvent('GET', '/admin/classrooms/restore-candidates'));
-    expect(missing.statusCode).toBe(400);
+    // No q → browse everything, with facets (削除時期/先生) for narrowing.
+    const all = await handler(makeAuthedEvent('GET', '/admin/classrooms/restore-candidates'));
+    expect(all.statusCode).toBe(200);
+    const allBody = JSON.parse(all.body as string);
+    expect(allBody.items).toHaveLength(2);
+    expect(allBody.facets.byTeacher.map((t: { teacherSub: string }) => t.teacherSub).sort()).toEqual(['t1', 't2']);
+    expect(allBody.facets.byMonth[0].month).toBe('2026-07');
 
+    // q filters the item list (facets still reflect the whole set).
     const res = await handler(makeAuthedEvent('GET', '/admin/classrooms/restore-candidates', {
       queryStringParameters: { q: '5年' },
     }));
