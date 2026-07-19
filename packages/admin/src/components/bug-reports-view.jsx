@@ -37,6 +37,13 @@ const formatDate = iso => (iso ?
 // older ones as a string — render both.
 const asText = value => (typeof value === 'string' ? value : JSON.stringify(value, null, 2));
 
+// A report can declare attachments whose upload never completed (the S3
+// object 404s even though the presigned URL is valid) — hide those instead
+// of showing a broken image.
+const hideBrokenImage = event => {
+    event.currentTarget.style.display = 'none';
+};
+
 const BugReportDetail = ({reportId, onBack}) => {
     const [detail, setDetail] = useState(null);
     const [error, setError] = useState('');
@@ -108,6 +115,7 @@ const BugReportDetail = ({reportId, onBack}) => {
                     data-testid={`bug-admin-screenshot-${index}`}
                     key={index}
                     src={url}
+                    onError={hideBrokenImage}
                 />
             ))}
         </div>
@@ -192,6 +200,7 @@ const BugReportsView = () => {
                                         alt=""
                                         className="admin-thumb"
                                         src={report.thumbnailUrl}
+                                        onError={hideBrokenImage}
                                     />
                                 ) : null}
                                 <strong>{report.projectName || '(プロジェクト名なし)'}</strong>

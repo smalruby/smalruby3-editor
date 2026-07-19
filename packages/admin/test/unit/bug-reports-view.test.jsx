@@ -72,6 +72,20 @@ describe('BugReportsView (issue #1085, read-only)', () => {
         expect(mockFetchReport).toHaveBeenCalledWith('r1');
     });
 
+    test('an attachment whose upload never completed is hidden, not broken', async () => {
+        render(<BugReportsView />);
+        await waitFor(() => screen.getByTestId('bug-admin-item-r1'));
+        const thumb = screen.getByTestId('bug-admin-item-r1').querySelector('img');
+        fireEvent.error(thumb);
+        expect(thumb).toHaveStyle({display: 'none'});
+
+        fireEvent.click(screen.getByTestId('bug-admin-item-r1'));
+        await waitFor(() => screen.getByTestId('bug-admin-detail'));
+        const screenshot = screen.getByTestId('bug-admin-screenshot-0');
+        fireEvent.error(screenshot);
+        expect(screenshot).toHaveStyle({display: 'none'});
+    });
+
     test('an API error surfaces instead of the list', async () => {
         mockFetchReports.mockRejectedValue(new Error('Administrator privileges are required'));
         render(<BugReportsView />);
