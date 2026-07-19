@@ -308,6 +308,16 @@ jobs:
           full_commit_message: "Build for ${{ github.sha }} ${{ github.event.head_commit.message }}"
           cname: smalruby.app
           external_repository: smalruby/smalruby.app
+      # peaceiris/actions-gh-pages binds a fixed SSH_AUTH_SOCK
+      # (/tmp/ssh-auth.sock) when deploying with deploy_key. The main deploy
+      # above leaves that ssh-agent running, so the second (admin) deploy
+      # cannot rebind the socket and fails with "Address already in use".
+      # Free it before the second deploy.
+      - name: Free ssh-agent socket before the admin deploy
+        if: github.ref == 'refs/heads/develop'
+        run: |
+          pkill ssh-agent || true
+          rm -f /tmp/ssh-auth.sock
       # Admin SPA at smalruby.app/admin/ (EPIC #1073). Must run AFTER the
       # main deploy: that step replaces the gh-pages content, so the admin
       # subdirectory is re-published on every release (destination_dir +
