@@ -8,6 +8,7 @@
 import PropTypes from 'prop-types';
 import {useCallback, useEffect, useState} from 'react';
 import {fetchBugReport, fetchBugReports, updateBugReport} from '../lib/bug-report-api.js';
+import {buildClaudePrompts} from '../lib/bug-report-prompts.js';
 
 const STATUS_LABELS = {
     open: '未対応',
@@ -44,7 +45,7 @@ const hideBrokenImage = event => {
     event.currentTarget.style.display = 'none';
 };
 
-const BugReportDetail = ({reportId, onBack, onChanged}) => {
+const BugReportDetail = ({reportId, stage, onBack, onChanged}) => {
     const [detail, setDetail] = useState(null);
     const [error, setError] = useState('');
     const [nextStatus, setNextStatus] = useState('');
@@ -52,6 +53,7 @@ const BugReportDetail = ({reportId, onBack, onChanged}) => {
     const [confirming, setConfirming] = useState(false);
     const [busy, setBusy] = useState(false);
     const [savedAt, setSavedAt] = useState(null);
+    const [copiedKey, setCopiedKey] = useState(null);
 
     useEffect(() => {
         fetchBugReport(reportId)
@@ -92,6 +94,16 @@ const BugReportDetail = ({reportId, onBack, onChanged}) => {
             setBusy(false);
         }
     }, [detail, nextStatus, reply, reportId, onChanged]);
+
+    const handleCopyPrompt = useCallback(async e => {
+        const {key, prompt} = e.currentTarget.dataset;
+        try {
+            await navigator.clipboard.writeText(prompt);
+            setCopiedKey(key);
+        } catch {
+            setCopiedKey(null);
+        }
+    }, []);
 
     if (error && !detail) {
         return (<p
@@ -220,6 +232,35 @@ const BugReportDetail = ({reportId, onBack, onChanged}) => {
                     ) : null}
                 </div>
             </div>
+            <div
+                className="admin-respond"
+                data-testid="bug-admin-claude"
+            >
+                <h4>{'Claude に依頼（/bug-report スキル）'}</h4>
+                <p className="admin-meta">
+                    {'いまの状態に合わせたプロンプト案です。コピーして Claude Code に貼り付けてください。'}
+                </p>
+                {buildClaudePrompts(detail, stage).map(suggestion => (
+                    <div
+                        className="admin-prompt"
+                        key={suggestion.key}
+                    >
+                        <div className="admin-prompt-head">
+                            <strong>{suggestion.title}</strong>
+                            <button
+                                data-key={suggestion.key}
+                                data-prompt={suggestion.prompt}
+                                data-testid={`bug-admin-copy-${suggestion.key}`}
+                                type="button"
+                                onClick={handleCopyPrompt}
+                            >
+                                {copiedKey === suggestion.key ? 'コピーしました ✓' : 'コピー'}
+                            </button>
+                        </div>
+                        <pre className="admin-pre">{suggestion.prompt}</pre>
+                    </div>
+                ))}
+            </div>
         </div>
     );
 };
@@ -227,10 +268,11 @@ const BugReportDetail = ({reportId, onBack, onChanged}) => {
 BugReportDetail.propTypes = {
     onBack: PropTypes.func.isRequired,
     onChanged: PropTypes.func.isRequired,
-    reportId: PropTypes.string.isRequired
+    reportId: PropTypes.string.isRequired,
+    stage: PropTypes.string
 };
 
-const BugReportsView = () => {
+const BugReportsView = ({stage}) => {
     const [status, setStatus] = useState('');
     const [reports, setReports] = useState(null);
     const [selectedId, setSelectedId] = useState(null);
@@ -254,6 +296,7 @@ const BugReportsView = () => {
         return (
             <BugReportDetail
                 reportId={selectedId}
+                stage={stage}
                 onBack={handleBack}
                 onChanged={reload}
             />
@@ -321,6 +364,10 @@ const BugReportsView = () => {
             )}
         </div>
     );
+};
+
+BugReportsView.propTypes = {
+    stage: PropTypes.string
 };
 
 export default BugReportsView;
