@@ -2,6 +2,7 @@ import * as cdk from 'aws-cdk-lib/core';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as appsync from 'aws-cdk-lib/aws-appsync';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as logs from 'aws-cdk-lib/aws-logs';
 import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import * as targets from 'aws-cdk-lib/aws-route53-targets';
@@ -143,8 +144,17 @@ export class MeshV2Stack extends cdk.Stack {
 
       xrayEnabled: stage !== 'prod',
       logConfig: {
-        fieldLogLevel: stage === 'prod' ? appsync.FieldLogLevel.ERROR : appsync.FieldLogLevel.ALL,
-        excludeVerboseContent: stage === 'prod',
+        // stg was ALL + verbose, which grows the CloudWatch log group fast
+        // (blew the free tier). Only escalate to ALL when explicitly debugging
+        // via MESH_VERBOSE_LOGS=1; otherwise ERROR + exclude verbose on every
+        // stage.
+        fieldLogLevel: process.env.MESH_VERBOSE_LOGS === '1'
+          ? appsync.FieldLogLevel.ALL
+          : appsync.FieldLogLevel.ERROR,
+        excludeVerboseContent: process.env.MESH_VERBOSE_LOGS !== '1',
+        // Cap retention so the AppSync-managed log group cannot accumulate
+        // forever (the prod group had reached ~7.8GB with no expiry).
+        retention: logs.RetentionDays.ONE_MONTH,
       },
     });
 
