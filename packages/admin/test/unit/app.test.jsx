@@ -63,6 +63,49 @@ describe('App auth flow', () => {
         await waitFor(() => expect(screen.getByTestId('admin-error')).toHaveTextContent('boom'));
     });
 
+    test('the initial section is restored from the URL hash (session-expiry reload)', async () => {
+        window.location.hash = '#/classrooms';
+        mockGetDevLoginToken.mockReturnValue('dev-token');
+        mockFetchMe.mockResolvedValue({email: 'admin@example.com', name: null, stage: 'stg'});
+
+        render(<App />);
+        await waitFor(() => expect(screen.getByTestId('admin-dashboard')).toBeInTheDocument());
+        expect(screen.getByRole('heading', {level: 2})).toHaveTextContent('クラス・課題');
+        window.location.hash = '';
+    });
+
+    test('an expired session (API 401) shows the reload prompt instead of raw errors', async () => {
+        mockGetDevLoginToken.mockReturnValue('dev-token');
+        mockFetchMe.mockResolvedValue({email: 'admin@example.com', name: null, stage: 'stg'});
+
+        render(<App />);
+        await waitFor(() => expect(screen.getByTestId('admin-dashboard')).toBeInTheDocument());
+        expect(screen.queryByTestId('admin-session-expired')).not.toBeInTheDocument();
+
+        // Any API client broadcasts this on 401 (token lifetime ~1 hour).
+        fireEvent(window, new Event('smalruby-admin:unauthorized'));
+        expect(screen.getByTestId('admin-session-expired')).toBeInTheDocument();
+        expect(screen.getByTestId('admin-session-expired').textContent).toContain('有効期限');
+
+        const reloadMock = jest.fn();
+        const original = window.location;
+        delete window.location;
+        window.location = {...original, reload: reloadMock};
+        fireEvent.click(screen.getByTestId('admin-session-reload'));
+        expect(reloadMock).toHaveBeenCalled();
+        window.location = original;
+    });
+
+    test('a 401 before authorization does NOT trigger the session overlay', async () => {
+        mockGetDevLoginToken.mockReturnValue('dev-token');
+        mockFetchMe.mockRejectedValue(Object.assign(new Error('Invalid ID token'), {status: 401}));
+
+        render(<App />);
+        await waitFor(() => expect(screen.getByTestId('admin-error')).toBeInTheDocument());
+        fireEvent(window, new Event('smalruby-admin:unauthorized'));
+        expect(screen.queryByTestId('admin-session-expired')).not.toBeInTheDocument();
+    });
+
     test('the section nav switches between management views (issue #1084)', async () => {
         mockGetDevLoginToken.mockReturnValue('dev-token');
         mockFetchMe.mockResolvedValue({email: 'admin@example.com', name: null, stage: 'stg'});

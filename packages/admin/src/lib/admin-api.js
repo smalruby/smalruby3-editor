@@ -47,6 +47,12 @@ const request = async (method, path, body) => {
     if (response.status === 204) return null;
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
+        // Google ID tokens expire after ~1 hour: broadcast 401s so the app
+        // shell can prompt for a reload (no listener is attached while the
+        // login probe itself runs, so a bad first login stays a plain error).
+        if (response.status === 401 && typeof window !== 'undefined') {
+            window.dispatchEvent(new Event('smalruby-admin:unauthorized'));
+        }
         const error = new Error(data.error || `API error ${response.status}`);
         error.status = response.status;
         throw error;

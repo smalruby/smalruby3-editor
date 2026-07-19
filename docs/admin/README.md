@@ -26,6 +26,7 @@
 - **deny-by-default 許可リスト**: `SmalrubyAdmins` テーブル（PK: email、RETAIN）への存在照合のみ。登録は AWS コンソール手動操作が唯一の経路（アプリ内に管理者管理 UI は無い・F4）
 - **sub 固定**: 初回ログインで Google `sub` を行に固定。以後 email 一致でも sub 不一致は 403（email 再利用防御）
 - トークンは**モジュールメモリのみ**（localStorage に保存しない・N1）。リロード時は再ログイン
+- **セッション切れ（約 1 時間）**: API が 401 を返すと全画面の再読み込みプロンプトを表示。表示中のセクションは **URL ハッシュ**（`#/classrooms` 等）に保持しているため、再読み込み → 再ログイン後に元のセクションへ復帰する（localStorage 不使用）
 - すべての管理操作は `audit()` 構造化ログ（prod の CloudWatch 保持は **1 年**）
 - バグ報告の閲覧は bug-report 側の既存レジストリ `BugReportAdmins`（email）で認可される（両方への登録が必要）
 

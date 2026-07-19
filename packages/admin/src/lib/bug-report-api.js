@@ -24,6 +24,10 @@ const get = async path => {
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
+        // Same session-expiry broadcast as admin-api (the token is shared).
+        if (response.status === 401 && typeof window !== 'undefined') {
+            window.dispatchEvent(new Event('smalruby-admin:unauthorized'));
+        }
         const error = new Error(data.error || `API error ${response.status}`);
         error.status = response.status;
         throw error;

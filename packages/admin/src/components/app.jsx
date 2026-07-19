@@ -16,15 +16,40 @@ const SECTIONS = [
     {key: 'bug-reports', label: 'バグ報告'}
 ];
 
+// The current section lives in the URL hash (#/classrooms) so a full reload
+// — including the one we prompt for on session expiry — lands the operator
+// back on the same section after re-login. Deliberately not localStorage.
+const sectionFromHash = () => {
+    const key = window.location.hash.replace(/^#\/?/, '');
+    return SECTIONS.some(s => s.key === key) ? key : 'shared';
+};
+
 // signed-out → checking → authorized | forbidden | error
 const App = () => {
     const [phase, setPhase] = useState('signed-out');
     const [me, setMe] = useState(null);
     const [errorMessage, setErrorMessage] = useState('');
-    const [section, setSection] = useState('shared');
+    const [section, setSection] = useState(sectionFromHash);
+    const [sessionExpired, setSessionExpired] = useState(false);
     const buttonRef = useRef(null);
 
-    const handleSection = useCallback(e => setSection(e.currentTarget.dataset.section), []);
+    const handleSection = useCallback(e => {
+        const key = e.currentTarget.dataset.section;
+        setSection(key);
+        window.history.replaceState(null, '', `#/${key}`);
+    }, []);
+
+    const handleReload = useCallback(() => window.location.reload(), []);
+
+    // Google ID tokens live ~1 hour and the SPA keeps them in memory only, so
+    // an expired session surfaces as API 401s. The clients broadcast those;
+    // show one clear prompt instead of per-view raw errors.
+    useEffect(() => {
+        if (phase !== 'authorized') return () => {};
+        const handleUnauthorized = () => setSessionExpired(true);
+        window.addEventListener('smalruby-admin:unauthorized', handleUnauthorized);
+        return () => window.removeEventListener('smalruby-admin:unauthorized', handleUnauthorized);
+    }, [phase]);
 
     const handleCredential = useCallback(async token => {
         setIdToken(token);
@@ -89,6 +114,24 @@ const App = () => {
                     {section === 'classrooms' && <ClassroomsView />}
                     {section === 'bug-reports' && <BugReportsView />}
                 </main>
+                {sessionExpired && (
+                    <div
+                        className="admin-session-expired"
+                        data-testid="admin-session-expired"
+                    >
+                        <div className="admin-session-expired-card">
+                            <p>
+                                {'セッションの有効期限が切れました（ログインから約 1 時間）。'}
+                                {'再読み込みして、もう一度ログインしてください。いまのページに戻ります。'}
+                            </p>
+                            <button
+                                data-testid="admin-session-reload"
+                                type="button"
+                                onClick={handleReload}
+                            >{'再読み込みしてログイン'}</button>
+                        </div>
+                    </div>
+                )}
             </div>
         );
     }
