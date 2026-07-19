@@ -22,7 +22,18 @@
 
 - **admin 専用 Google OAuth Client ID**（決定 B）: エディタの `GOOGLE_CLIENT_ID` とは別に GCP コンソールで作成し、`.env.prod` / `.env.stg` の `ADMIN_GOOGLE_CLIENT_ID` に設定する（**prod は未設定だとデプロイが落ちる**ガードあり）
   - 承認済み JavaScript 生成元: `https://smalruby.app`（+ stg 用に `http://localhost:8602`）
-- stg のみ `DEV_BYPASS_TOKEN` による自動テスト用バイパスあり（prod 設定はデプロイ時に throw。バイパス identity `dev-admin@example.com` も **allowlist 登録が必要**）
+- stg のみ `DEV_BYPASS_TOKEN` による自動テスト用バイパスあり（prod 設定はデプロイ時に throw。バイパス identity `dev-admin@example.com` も **allowlist 登録が必要**）。**`dev-admin@example.com` は stg の allowlist にのみ登録し、prod には絶対に登録しない**（prod ではバイパスが無効なので実害はないが、`example.com` は IANA 予約で verified email を取得できないため無意味かつ紛らわしい）
+
+## セキュリティ・コスト方針（ソース公開前提の脅威モデル）
+
+Admin を含む Smalruby のソースは公開されるため、攻撃者は既知のエンドポイント（`admin.api.smalruby.app`）とルート・env 変数名を把握して攻撃してくる前提で設計している。
+
+- **多層の認可（fail-closed）**: すべてのルートで ① Google 署名 + `aud=ADMIN_GOOGLE_CLIENT_ID` 検証 → ② `SmalrubyAdmins` 許可リスト（deny-by-default）→ ③ sub 固定。空クライアント ID は全拒否、未登録 email は 403、email 一致でも sub 不一致は 403。DynamoDB / S3 は非公開（S3 Block Public Access、アクセスは Lambda の IAM ロールか短命 presigned URL のみ）
+- **prod のゲートレベル JWT authorizer**: prod は API Gateway の JWT authorizer（issuer `https://accounts.google.com` / audience = admin Client ID）で、**正当な署名トークンでない要求を Lambda 到達前に 401 で弾く**。→ 認証なしの DoS フラッドは Lambda 起動も Lambda ログ ingestion も発生させられない（費用がかからない）。stg は dev bypass（JWT ではない）を使う E2E のため authorizer なし（Lambda 側の同じ fail-closed 認可のみ）
+  - ⚠️ prod デプロイ後の初回ログインで **必ず疎通確認**する。Google ID トークンの `iss` が万一 `accounts.google.com`（`https://` 無し）だと authorizer が弾くため、ログインできなければ authorizer の issuer 設定を疑う（現行トークンは `https://accounts.google.com`）
+- **スロットリング**: 単一運用者ツールなのでレート 5 / バースト 10 に絞り、攻撃者が積み上げられる API Gateway リクエスト課金の上限を抑える（人間の操作は毎秒数回で十分）
+- **追加コスト源を持たない**: X-Ray（トレーシング）不使用・API Gateway アクセスログ無効。Lambda ログは監査行と 500 のみ（401/403 はアプリログを出さない）。retention は prod 1 年（監査目的・低volume）/ stg 1 週間
+- **CloudWatch 費用**: Admin のログ量は極小。艦隊全体の CloudWatch 無料枠超過は mesh-v2 の prod AppSync ログ（無期限保持）が主因であり Admin とは別問題（mesh-v2 側で retention と field log level を見直す）
 
 ## 監査ログ
 
