@@ -421,6 +421,8 @@ export default {
     'gui.classroom.codeDisplay.copied': 'コピーしました',
     'gui.classroom.teacherDetail.selectMember': 'しゅっせきばんごうをクリックしてせいとのしょうさいをみる',
     'gui.classroom.joinCode.fullscreen': 'ぜんがめんひょうじ',
+    'gui.classroom.joinCode.shareToGc': 'Google Classroom に さんかコードを きょうゆう',
+    'gui.classroom.joinCode.openInGc': 'Google Classroom で ひらく',
     'gui.classroom.teacherDetail.selectClassroom': 'サイドバーからクラスをせんたくしてください',
     'gui.classroom.management.loginPrompt': 'ログインしてクラスをかんり',
     'gui.classroom.management.loginDescription':
