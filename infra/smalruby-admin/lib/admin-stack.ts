@@ -5,6 +5,7 @@ import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as lambdaNodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as apigatewayv2 from 'aws-cdk-lib/aws-apigatewayv2';
 import * as apigatewayv2Integrations from 'aws-cdk-lib/aws-apigatewayv2-integrations';
+import * as apigatewayv2Authorizers from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as route53Targets from 'aws-cdk-lib/aws-route53-targets';
@@ -230,63 +231,56 @@ export class SmalrubyAdminStack extends cdk.Stack {
       handlerFn,
     );
 
-    this.api.addRoutes({
-      path: '/admin/me',
-      methods: [apigatewayv2.HttpMethod.GET],
-      integration,
-    });
+    // DoS cost defense (source is public — attackers hammer the known
+    // endpoint). In prod, a gateway-level Google JWT authorizer rejects any
+    // request without a validly-signed token for our admin audience BEFORE
+    // the Lambda runs, so an unauthenticated flood cannot burn Lambda
+    // invocations or Lambda log ingestion — only (throttled) API-GW requests.
+    // The Lambda still re-verifies + checks the allowlist (defense in depth).
+    //
+    // stg keeps NO authorizer so the dev-bypass token (not a JWT) still works
+    // for automated E2E. stg is the same fail-closed Lambda auth, just without
+    // the extra gateway filter.
+    const authorizer = (stage === 'prod' && adminGoogleClientId)
+      ? new apigatewayv2Authorizers.HttpJwtAuthorizer(
+          'AdminJwtAuthorizer',
+          'https://accounts.google.com',
+          {
+            identitySource: ['$request.header.Authorization'],
+            jwtAudience: [adminGoogleClientId],
+          },
+        )
+      : undefined;
+
+    const addRoute = (routePath: string, methods: apigatewayv2.HttpMethod[]) => {
+      this.api.addRoutes({ path: routePath, methods, integration, authorizer });
+    };
+
+    addRoute('/admin/me', [apigatewayv2.HttpMethod.GET]);
 
     // みんなの課題 moderation (S3 #1083)
-    this.api.addRoutes({
-      path: '/admin/shared-assignments',
-      methods: [apigatewayv2.HttpMethod.GET],
-      integration,
-    });
-    this.api.addRoutes({
-      path: '/admin/shared-assignments/reports',
-      methods: [apigatewayv2.HttpMethod.GET],
-      integration,
-    });
-    this.api.addRoutes({
-      path: '/admin/shared-assignments/{sharedId}',
-      methods: [apigatewayv2.HttpMethod.GET, apigatewayv2.HttpMethod.PATCH],
-      integration,
-    });
+    addRoute('/admin/shared-assignments', [apigatewayv2.HttpMethod.GET]);
+    addRoute('/admin/shared-assignments/reports', [apigatewayv2.HttpMethod.GET]);
+    addRoute('/admin/shared-assignments/{sharedId}',
+      [apigatewayv2.HttpMethod.GET, apigatewayv2.HttpMethod.PATCH]);
 
     // Classroom management + expired restore (S4 #1084). HTTP API prefers
     // the literal restore-candidates route over {classroomId} by specificity.
-    this.api.addRoutes({
-      path: '/admin/classrooms',
-      methods: [apigatewayv2.HttpMethod.GET],
-      integration,
-    });
-    this.api.addRoutes({
-      path: '/admin/classrooms/restore-candidates',
-      methods: [apigatewayv2.HttpMethod.GET],
-      integration,
-    });
-    this.api.addRoutes({
-      path: '/admin/classrooms/{classroomId}',
-      methods: [apigatewayv2.HttpMethod.GET, apigatewayv2.HttpMethod.PATCH],
-      integration,
-    });
-    this.api.addRoutes({
-      path: '/admin/classrooms/{classroomId}/restore-plan',
-      methods: [apigatewayv2.HttpMethod.GET],
-      integration,
-    });
-    this.api.addRoutes({
-      path: '/admin/classrooms/{classroomId}/restore',
-      methods: [apigatewayv2.HttpMethod.POST],
-      integration,
-    });
+    addRoute('/admin/classrooms', [apigatewayv2.HttpMethod.GET]);
+    addRoute('/admin/classrooms/restore-candidates', [apigatewayv2.HttpMethod.GET]);
+    addRoute('/admin/classrooms/{classroomId}',
+      [apigatewayv2.HttpMethod.GET, apigatewayv2.HttpMethod.PATCH]);
+    addRoute('/admin/classrooms/{classroomId}/restore-plan', [apigatewayv2.HttpMethod.GET]);
+    addRoute('/admin/classrooms/{classroomId}/restore', [apigatewayv2.HttpMethod.POST]);
 
-    // Single-operator tool: keep throttling tight.
+    // Single-operator tool: a human never needs more than a couple of
+    // requests per second, so throttle hard to cap the API-GW request bill an
+    // attacker can run up (the JWT authorizer already caps Lambda/log cost).
     const defaultStage = this.api.defaultStage?.node.defaultChild as apigatewayv2.CfnStage;
     if (defaultStage) {
       defaultStage.defaultRouteSettings = {
-        throttlingRateLimit: 10,
-        throttlingBurstLimit: 20,
+        throttlingRateLimit: 5,
+        throttlingBurstLimit: 10,
       };
     }
 
