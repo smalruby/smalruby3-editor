@@ -7,7 +7,7 @@
  */
 import PropTypes from 'prop-types';
 import {useCallback, useEffect, useState} from 'react';
-import {fetchBugReport, fetchBugReports} from '../lib/bug-report-api.js';
+import {fetchBugReport, fetchBugReports, updateBugReport} from '../lib/bug-report-api.js';
 
 const STATUS_LABELS = {
     open: '未対応',
@@ -44,17 +44,56 @@ const hideBrokenImage = event => {
     event.currentTarget.style.display = 'none';
 };
 
-const BugReportDetail = ({reportId, onBack}) => {
+const BugReportDetail = ({reportId, onBack, onChanged}) => {
     const [detail, setDetail] = useState(null);
     const [error, setError] = useState('');
+    const [nextStatus, setNextStatus] = useState('');
+    const [reply, setReply] = useState('');
+    const [confirming, setConfirming] = useState(false);
+    const [busy, setBusy] = useState(false);
+    const [savedAt, setSavedAt] = useState(null);
 
     useEffect(() => {
         fetchBugReport(reportId)
-            .then(setDetail)
+            .then(data => {
+                setDetail(data);
+                setNextStatus(data.status);
+                setReply(data.developerReply || '');
+            })
             .catch(err => setError(err.message));
     }, [reportId]);
 
-    if (error) {
+    const dirty = detail &&
+        (nextStatus !== detail.status || reply !== (detail.developerReply || ''));
+    const turnsTerminal = detail && nextStatus !== detail.status &&
+        (nextStatus === 'resolved' || nextStatus === 'wont_fix');
+
+    const handleStatusChange = useCallback(e => setNextStatus(e.target.value), []);
+    const handleReplyChange = useCallback(e => setReply(e.target.value), []);
+    const handleArm = useCallback(() => setConfirming(true), []);
+    const handleDisarm = useCallback(() => setConfirming(false), []);
+    const handleSave = useCallback(async () => {
+        if (!detail) return;
+        setBusy(true);
+        setError('');
+        try {
+            // Send only what changed — the API rejects an empty update.
+            const updates = {};
+            if (nextStatus !== detail.status) updates.status = nextStatus;
+            if (reply !== (detail.developerReply || '')) updates.developerReply = reply;
+            await updateBugReport(reportId, updates);
+            setDetail(prev => ({...prev, status: nextStatus, developerReply: reply}));
+            setConfirming(false);
+            setSavedAt(new Date().toISOString());
+            onChanged();
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setBusy(false);
+        }
+    }, [detail, nextStatus, reply, reportId, onChanged]);
+
+    if (error && !detail) {
         return (<p
             className="admin-error"
             data-testid="bug-admin-error"
@@ -78,12 +117,6 @@ const BugReportDetail = ({reportId, onBack}) => {
                 {`報告者: ${detail.ownerEmail || '(メール非公開)'} ・ ${formatDate(detail.createdAt)}`}
             </p>
             <p data-testid="bug-admin-description">{detail.description}</p>
-            {detail.developerReply ? (
-                <p
-                    className="admin-meta"
-                    data-testid="bug-admin-reply"
-                >{`開発者からの返信: ${detail.developerReply}`}</p>
-            ) : null}
             {detail.appContext ? (
                 <details>
                     <summary>{'アプリの状態 (appContext)'}</summary>
@@ -118,12 +151,82 @@ const BugReportDetail = ({reportId, onBack}) => {
                     onError={hideBrokenImage}
                 />
             ))}
+            <div className="admin-respond">
+                <h4>{'対応（報告者に表示されます）'}</h4>
+                <label className="admin-meta">
+                    {'状態: '}
+                    <select
+                        data-testid="bug-admin-status-select"
+                        disabled={busy}
+                        value={nextStatus}
+                        onChange={handleStatusChange}
+                    >
+                        {Object.entries(STATUS_LABELS).map(([value, label]) => (
+                            <option
+                                key={value}
+                                value={value}
+                            >{label}</option>
+                        ))}
+                    </select>
+                </label>
+                <textarea
+                    data-testid="bug-admin-reply-input"
+                    disabled={busy}
+                    maxLength={2000}
+                    placeholder="進捗や対応内容のコメント（報告者の「私の不具合報告」に表示されます）"
+                    rows={4}
+                    value={reply}
+                    onChange={handleReplyChange}
+                />
+                {error ? <p
+                    className="admin-error"
+                    data-testid="bug-admin-save-error"
+                >{error}</p> : null}
+                <div className="admin-actions">
+                    {confirming ? (
+                        <span
+                            className="admin-confirm"
+                            data-testid="bug-admin-save-confirm"
+                        >
+                            {turnsTerminal ?
+                                'この状態にすると報告と添付は一定期間後に自動削除されます。保存しますか？' :
+                                '状態・コメントを保存しますか？報告者にも表示されます。'}
+                            <button
+                                data-testid="bug-admin-save-yes"
+                                disabled={busy}
+                                type="button"
+                                onClick={handleSave}
+                            >{'保存する'}</button>
+                            <button
+                                data-testid="bug-admin-save-no"
+                                disabled={busy}
+                                type="button"
+                                onClick={handleDisarm}
+                            >{'やめる'}</button>
+                        </span>
+                    ) : (
+                        <button
+                            data-testid="bug-admin-save"
+                            disabled={!dirty || busy}
+                            type="button"
+                            onClick={handleArm}
+                        >{'保存'}</button>
+                    )}
+                    {savedAt && !dirty ? (
+                        <span
+                            className="admin-meta"
+                            data-testid="bug-admin-saved"
+                        >{'保存しました。'}</span>
+                    ) : null}
+                </div>
+            </div>
         </div>
     );
 };
 
 BugReportDetail.propTypes = {
     onBack: PropTypes.func.isRequired,
+    onChanged: PropTypes.func.isRequired,
     reportId: PropTypes.string.isRequired
 };
 
@@ -133,13 +236,15 @@ const BugReportsView = () => {
     const [selectedId, setSelectedId] = useState(null);
     const [error, setError] = useState('');
 
-    useEffect(() => {
+    const reload = useCallback(() => {
         setError('');
         setReports(null);
         fetchBugReports(status)
             .then(data => setReports(data.reports || []))
             .catch(err => setError(err.message));
     }, [status]);
+
+    useEffect(reload, [reload]);
 
     const handleStatusChange = useCallback(e => setStatus(e.target.value), []);
     const handleOpen = useCallback(e => setSelectedId(e.currentTarget.dataset.reportId), []);
@@ -150,6 +255,7 @@ const BugReportsView = () => {
             <BugReportDetail
                 reportId={selectedId}
                 onBack={handleBack}
+                onChanged={reload}
             />
         );
     }
@@ -157,7 +263,7 @@ const BugReportsView = () => {
     return (
         <div data-testid="bug-admin-view">
             <p className="admin-meta">
-                {'閲覧専用です。状態の変更・返信は従来の運用手段で行ってください。'}
+                {'状態の変更とコメント（開発者からの返信）は、報告者の「私の不具合報告」にも反映されます。'}
             </p>
             <div className="admin-search">
                 <select

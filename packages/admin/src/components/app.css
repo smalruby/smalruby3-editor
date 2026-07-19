@@ -250,3 +250,32 @@ body {
     font-size: 1rem;
     cursor: pointer;
 }
+
+.admin-respond {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    border: 1px solid hsl(220, 15%, 85%);
+    border-radius: 0.5rem;
+    background: hsl(220, 25%, 98%);
+}
+
+.admin-respond h4 {
+    margin: 0 0 0.5rem;
+}
+
+.admin-respond textarea {
+    display: block;
+    width: 100%;
+    max-width: 40rem;
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    border: 1px solid hsl(220, 15%, 75%);
+    border-radius: 0.4rem;
+    font-size: 0.9rem;
+}
+
+.admin-respond select {
+    padding: 0.25rem 0.5rem;
+    border: 1px solid hsl(220, 15%, 75%);
+    border-radius: 0.4rem;
+}

@@ -3,9 +3,11 @@ import {fireEvent, render, screen, waitFor} from '@testing-library/react';
 
 const mockFetchReports = jest.fn();
 const mockFetchReport = jest.fn();
+const mockUpdateReport = jest.fn();
 jest.mock('../../src/lib/bug-report-api.js', () => ({
     fetchBugReports: (...args) => mockFetchReports(...args),
-    fetchBugReport: (...args) => mockFetchReport(...args)
+    fetchBugReport: (...args) => mockFetchReport(...args),
+    updateBugReport: (...args) => mockUpdateReport(...args)
 }));
 
 import BugReportsView from '../../src/components/bug-reports-view.jsx';
@@ -32,10 +34,11 @@ const detail = {
     screenshotUrls: ['https://signed.example/ss0.png']
 };
 
-describe('BugReportsView (issue #1085, read-only)', () => {
+describe('BugReportsView (issue #1085 + 状態変更/コメント)', () => {
     beforeEach(() => {
         mockFetchReports.mockReset().mockResolvedValue({reports: [listEntry]});
         mockFetchReport.mockReset().mockResolvedValue(detail);
+        mockUpdateReport.mockReset().mockResolvedValue({});
     });
 
     test('lists reports with status badge and owner', async () => {
@@ -55,7 +58,7 @@ describe('BugReportsView (issue #1085, read-only)', () => {
         await waitFor(() => expect(mockFetchReports).toHaveBeenLastCalledWith('resolved'));
     });
 
-    test('the detail shows attachments via presigned URLs — and offers no write actions', async () => {
+    test('the detail shows attachments via presigned URLs', async () => {
         render(<BugReportsView />);
         await waitFor(() => screen.getByTestId('bug-admin-item-r1'));
         fireEvent.click(screen.getByTestId('bug-admin-item-r1'));
@@ -67,9 +70,60 @@ describe('BugReportsView (issue #1085, read-only)', () => {
         expect(screen.getByTestId('bug-admin-screenshot-0')).toHaveAttribute(
             'src', 'https://signed.example/ss0.png');
         expect(screen.getByTestId('bug-admin-app-context').textContent).toContain('rubyVersion');
-        // Read-only surface: no status select / reply textarea in the detail.
-        expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
         expect(mockFetchReport).toHaveBeenCalledWith('r1');
+    });
+
+    test('save is disabled until something changes, then sends only the changes', async () => {
+        render(<BugReportsView />);
+        await waitFor(() => screen.getByTestId('bug-admin-item-r1'));
+        fireEvent.click(screen.getByTestId('bug-admin-item-r1'));
+        await waitFor(() => screen.getByTestId('bug-admin-detail'));
+
+        expect(screen.getByTestId('bug-admin-save')).toBeDisabled();
+
+        fireEvent.change(screen.getByTestId('bug-admin-reply-input'),
+            {target: {value: '再現を確認しました。次のリリースで修正します。'}});
+        expect(screen.getByTestId('bug-admin-save')).toBeEnabled();
+
+        fireEvent.click(screen.getByTestId('bug-admin-save'));
+        expect(mockUpdateReport).not.toHaveBeenCalled();
+        expect(screen.getByTestId('bug-admin-save-confirm').textContent).toContain('報告者にも表示');
+
+        fireEvent.click(screen.getByTestId('bug-admin-save-yes'));
+        await waitFor(() => expect(mockUpdateReport).toHaveBeenCalledWith('r1',
+            {developerReply: '再現を確認しました。次のリリースで修正します。'}));
+        await waitFor(() => screen.getByTestId('bug-admin-saved'));
+        // The list refetches after a change.
+        expect(mockFetchReports.mock.calls.length).toBeGreaterThan(1);
+    });
+
+    test('a terminal status change warns about the auto-delete TTL', async () => {
+        render(<BugReportsView />);
+        await waitFor(() => screen.getByTestId('bug-admin-item-r1'));
+        fireEvent.click(screen.getByTestId('bug-admin-item-r1'));
+        await waitFor(() => screen.getByTestId('bug-admin-detail'));
+
+        fireEvent.change(screen.getByTestId('bug-admin-status-select'),
+            {target: {value: 'resolved'}});
+        fireEvent.click(screen.getByTestId('bug-admin-save'));
+        expect(screen.getByTestId('bug-admin-save-confirm').textContent).toContain('自動削除');
+
+        fireEvent.click(screen.getByTestId('bug-admin-save-yes'));
+        await waitFor(() => expect(mockUpdateReport).toHaveBeenCalledWith('r1', {status: 'resolved'}));
+    });
+
+    test('the confirmation can be cancelled without any API call', async () => {
+        render(<BugReportsView />);
+        await waitFor(() => screen.getByTestId('bug-admin-item-r1'));
+        fireEvent.click(screen.getByTestId('bug-admin-item-r1'));
+        await waitFor(() => screen.getByTestId('bug-admin-detail'));
+
+        fireEvent.change(screen.getByTestId('bug-admin-status-select'),
+            {target: {value: 'in_progress'}});
+        fireEvent.click(screen.getByTestId('bug-admin-save'));
+        fireEvent.click(screen.getByTestId('bug-admin-save-no'));
+        expect(mockUpdateReport).not.toHaveBeenCalled();
+        expect(screen.queryByTestId('bug-admin-save-confirm')).not.toBeInTheDocument();
     });
 
     test('an attachment whose upload never completed is hidden, not broken', async () => {

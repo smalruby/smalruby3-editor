@@ -18,7 +18,7 @@
 
 1. **みんなの課題**（S3 #1083）: 通報キュー（多い順）/ 全投稿一覧 / 詳細（ページ・画像・クレジット）/ 非公開⇄再公開（2 段階確認・audit）
 2. **クラス・課題**（S4 #1084）: 全クラス検索（参加コード完全一致・名前部分一致）/ 詳細（参加・提出カウント）/ アーカイブ切替 / **期限切れクラスの復元**（ddb-archive スナップショット検索 → dry-run プラン → 実行。EPIC #1049 の CLI `bin/restore-classroom.ts` の UI 後継）
-3. **バグ報告**（S5 #1085）: 既存バグ報告の**閲覧のみ**（一覧・状態フィルタ・詳細・添付 presigned DL）。状態変更・返信は従来の運用手段を継続
+3. **バグ報告**（S5 #1085 + 対応機能追加）: 既存バグ報告の一覧・状態フィルタ・詳細・添付 presigned DL に加え、**状態の変更と進捗コメント（開発者からの返信）**を既存 bug-report admin API の PATCH で行える（2 段階確認・終端ステータスは自動削除 TTL の警告つき。返信は報告者の「私の不具合報告」に表示され、非表示にしていた報告も再表示される — サーバー側の既存挙動）
 
 ## 認証・認可モデル（要点）
 
@@ -28,7 +28,7 @@
 - トークンは**モジュールメモリのみ**（localStorage に保存しない・N1）。リロード時は再ログイン
 - **セッション切れ（約 1 時間）**: API が 401 を返すと全画面の再読み込みプロンプトを表示。表示中のセクションは **URL ハッシュ**（`#/classrooms` 等）に保持しているため、再読み込み → 再ログイン後に元のセクションへ復帰する（localStorage 不使用）
 - すべての管理操作は `audit()` 構造化ログ（prod の CloudWatch 保持は **1 年**）
-- バグ報告の閲覧は bug-report 側の既存レジストリ `BugReportAdmins`（email）で認可される（両方への登録が必要）
+- バグ報告の閲覧・対応は bug-report 側の既存レジストリ `BugReportAdmins`（email）で認可される（両方への登録が必要）
 
 詳細な登録手順・監査ログ検索・デプロイ手順は [operations.md](operations.md)。
 
@@ -43,7 +43,7 @@
 | `src/components/classrooms-view.jsx` | クラス・課題管理 + 期限切れ復元 |
 | `src/components/bug-reports-view.jsx` | バグ報告閲覧（read-only） |
 | `src/lib/admin-api.js` | admin API クライアント（トークンはモジュールメモリ） |
-| `src/lib/bug-report-api.js` | bug-report API クライアント（**GET 専用**） |
+| `src/lib/bug-report-api.js` | bug-report API クライアント（一覧・詳細 + 状態/返信の PATCH。既存 API のみ使用） |
 | `src/lib/google-auth.js` | GIS ロード + `?devlogin=` バイパス（stg のみ） |
 | `webpack.config.js` | 独立ビルド（publicPath `/admin/`、port 8602、DefinePlugin で endpoint 埋め込み） |
 
