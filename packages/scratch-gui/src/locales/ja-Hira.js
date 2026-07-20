@@ -351,6 +351,10 @@ export default {
         'このクラスをアーカイブしますか？クラスいちらんからみえなくなりますが、「アーカイブずみのクラス」からいつでももとにもどせます。',
     'gui.classroom.classSettings.archiveConfirmYes': 'アーカイブする',
     'gui.classroom.classSettings.archiveConfirmNo': 'アーカイブしない',
+    'gui.classroom.classSettings.decreaseConfirmMessage':
+        'このクラスの にんずうを {count} にん に へらしますか？このクラスの すべての かだいで {from}〜{to} ばんの せきが なくなり、その せきに ていしゅつされた さくひんは ひょうじされなくなります。',
+    'gui.classroom.classSettings.decreaseConfirmYes': 'へらして ほぞん',
+    'gui.classroom.classSettings.decreaseConfirmNo': 'にんずうは そのまま',
     'gui.classroom.board.archivedToggle': 'アーカイブずみのかだい（{count}）',
     'gui.classroom.board.archivedExpires': 'ほぞんきげん: {date}',
     'gui.classroom.board.restore': 'もとにもどす',

@@ -34,6 +34,10 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
     // Archiving asks for confirmation (issue #1051: an accidental one-click
     // archive was the original support inquiry). Unarchiving stays immediate.
     const [confirmingArchive, setConfirmingArchive] = useState(false);
+    // Lowering the seat count drops seats from every assignment, so submissions
+    // on the removed seats stop showing — warn before that. Raising is silent.
+    const [confirmingDecrease, setConfirmingDecrease] = useState(false);
+    const originalCount = typeof group.studentCount === 'number' ? group.studentCount : 0;
 
     const handleNameChange = useCallback((e) => setName(e.target.value), []);
     const handleYearChange = useCallback((e) => setYear(e.target.value), []);
@@ -63,25 +67,38 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
     const handleCancelArchive = useCallback(() => setConfirmingArchive(false), []);
 
     const canSave = name.trim().length > 0 && parseInt(year, 10) >= 2000;
+    const newCount = parseInt(studentCount, 10);
+    const isDecrease = newCount > 0 && originalCount > 0 && newCount < originalCount;
+
+    const doSave = useCallback(() => {
+        const updates = {
+            name: name.trim(),
+            year: parseInt(year, 10),
+            section: section.trim() || null,
+            coTeacherEmails: coTeachers,
+        };
+        const count = parseInt(studentCount, 10);
+        if (count > 0) {
+            updates.studentCount = count;
+        }
+        onUpdateGroup(group.groupId, updates);
+        onCancel();
+    }, [name, year, section, studentCount, coTeachers, onUpdateGroup, group.groupId, onCancel]);
+
     const handleSave = useCallback(
         (e) => {
             e.preventDefault();
             if (!canSave || isLoading) return;
-            const updates = {
-                name: name.trim(),
-                year: parseInt(year, 10),
-                section: section.trim() || null,
-                coTeacherEmails: coTeachers,
-            };
-            const count = parseInt(studentCount, 10);
-            if (count > 0) {
-                updates.studentCount = count;
+            // Decreasing the seat count needs an explicit confirmation first.
+            if (isDecrease && !confirmingDecrease) {
+                setConfirmingDecrease(true);
+                return;
             }
-            onUpdateGroup(group.groupId, updates);
-            onCancel();
+            doSave();
         },
-        [canSave, isLoading, name, year, section, studentCount, coTeachers, onUpdateGroup, group.groupId, onCancel],
+        [canSave, isLoading, isDecrease, confirmingDecrease, doSave],
     );
+    const handleCancelDecrease = useCallback(() => setConfirmingDecrease(false), []);
 
     return (
         <form
@@ -202,6 +219,23 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
                     />
                 </p>
             ) : null}
+            {confirmingDecrease ? (
+                <p
+                    className={styles.classSettingsArchiveConfirm}
+                    data-testid="classroom-class-settings-decrease-confirm-message"
+                >
+                    <FormattedMessage
+                        defaultMessage="Reduce the class to {count} students? Seats {from}–{to} are removed from every assignment in this class, and any work submitted on those seats will no longer be shown."
+                        description="Warning before decreasing a class's student count"
+                        id="gui.classroom.classSettings.decreaseConfirmMessage"
+                        values={{
+                            count: newCount,
+                            from: newCount + 1,
+                            to: originalCount,
+                        }}
+                    />
+                </p>
+            ) : null}
             <div className={styles.classSettingsActions}>
                 <button
                     data-testid="classroom-class-settings-archive"
@@ -248,13 +282,21 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
                     data-testid="classroom-class-settings-cancel"
                     disabled={isLoading}
                     type="button"
-                    onClick={onCancel}
+                    onClick={confirmingDecrease ? handleCancelDecrease : onCancel}
                 >
-                    <FormattedMessage
-                        defaultMessage="Cancel"
-                        description="Cancel button of the class settings form"
-                        id="gui.classroom.classSettings.cancel"
-                    />
+                    {confirmingDecrease ? (
+                        <FormattedMessage
+                            defaultMessage="Keep the count"
+                            description="Button that cancels decreasing the student count"
+                            id="gui.classroom.classSettings.decreaseConfirmNo"
+                        />
+                    ) : (
+                        <FormattedMessage
+                            defaultMessage="Cancel"
+                            description="Cancel button of the class settings form"
+                            id="gui.classroom.classSettings.cancel"
+                        />
+                    )}
                 </button>
                 <button
                     className={styles.classSettingsSave}
@@ -262,11 +304,19 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
                     disabled={!canSave || isLoading}
                     type="submit"
                 >
-                    <FormattedMessage
-                        defaultMessage="Save"
-                        description="Save button of the class settings form"
-                        id="gui.classroom.classSettings.save"
-                    />
+                    {confirmingDecrease ? (
+                        <FormattedMessage
+                            defaultMessage="Reduce and save"
+                            description="Confirm button that decreases the student count and saves"
+                            id="gui.classroom.classSettings.decreaseConfirmYes"
+                        />
+                    ) : (
+                        <FormattedMessage
+                            defaultMessage="Save"
+                            description="Save button of the class settings form"
+                            id="gui.classroom.classSettings.save"
+                        />
+                    )}
                 </button>
             </div>
         </form>

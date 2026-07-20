@@ -137,6 +137,56 @@ describe('TeacherClassList', () => {
         // The form closes back to the card
         expect(document.querySelector('[data-testid="classroom-class-settings-g1"]')).not.toBeInTheDocument();
     });
+
+    test('increasing the student count saves immediately without a warning', () => {
+        const onUpdateGroup = jest.fn();
+        renderList({ groups: [group({ studentCount: 30 })], onUpdateGroup });
+        fireEvent.click(document.querySelector('[data-testid="classroom-class-settings-open-g1"]'));
+        fireEvent.change(document.querySelector('[data-testid="classroom-class-settings-count"]'), {
+            target: { value: '35' },
+        });
+        fireEvent.click(document.querySelector('[data-testid="classroom-class-settings-save"]'));
+
+        expect(document.querySelector('[data-testid="classroom-class-settings-decrease-confirm-message"]'))
+            .not.toBeInTheDocument();
+        expect(onUpdateGroup).toHaveBeenCalledWith('g1', expect.objectContaining({ studentCount: 35 }));
+    });
+
+    test('decreasing the student count warns first, then saves on confirm', () => {
+        const onUpdateGroup = jest.fn();
+        renderList({ groups: [group({ studentCount: 30 })], onUpdateGroup });
+        fireEvent.click(document.querySelector('[data-testid="classroom-class-settings-open-g1"]'));
+        fireEvent.change(document.querySelector('[data-testid="classroom-class-settings-count"]'), {
+            target: { value: '20' },
+        });
+
+        // First save shows the warning and does NOT call the API.
+        fireEvent.click(document.querySelector('[data-testid="classroom-class-settings-save"]'));
+        expect(onUpdateGroup).not.toHaveBeenCalled();
+        expect(document.querySelector('[data-testid="classroom-class-settings-decrease-confirm-message"]'))
+            .toBeInTheDocument();
+
+        // Confirming saves the reduced count.
+        fireEvent.click(document.querySelector('[data-testid="classroom-class-settings-save"]'));
+        expect(onUpdateGroup).toHaveBeenCalledWith('g1', expect.objectContaining({ studentCount: 20 }));
+    });
+
+    test('cancelling the decrease warning keeps the count and calls nothing', () => {
+        const onUpdateGroup = jest.fn();
+        renderList({ groups: [group({ studentCount: 30 })], onUpdateGroup });
+        fireEvent.click(document.querySelector('[data-testid="classroom-class-settings-open-g1"]'));
+        fireEvent.change(document.querySelector('[data-testid="classroom-class-settings-count"]'), {
+            target: { value: '20' },
+        });
+        fireEvent.click(document.querySelector('[data-testid="classroom-class-settings-save"]'));
+        fireEvent.click(document.querySelector('[data-testid="classroom-class-settings-cancel"]'));
+
+        expect(onUpdateGroup).not.toHaveBeenCalled();
+        expect(document.querySelector('[data-testid="classroom-class-settings-decrease-confirm-message"]'))
+            .not.toBeInTheDocument();
+        // The form stays open (only the warning was dismissed).
+        expect(document.querySelector('[data-testid="classroom-class-settings-g1"]')).toBeInTheDocument();
+    });
 });
 
 describe('TeacherClassList — archived classes section (issue #1051)', () => {

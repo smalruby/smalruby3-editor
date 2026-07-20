@@ -241,7 +241,7 @@ const TeacherClassDetail = ({
                                 分け、各カラムを 2 行に収める。参加コードカードが
                                 縦に伸びて全体が崩れるのを防ぐ。 */}
                             <div className={styles.nameCodeRow}>
-                                {/* 左: 課題名（ラベル + 入力を縦積み） */}
+                                {/* 左: 課題名（ラベルと 2 行入力を横並び・ラベルは縦中央） */}
                                 <div className={styles.nameCol}>
                                     <span className={styles.assignmentNameLabel}>
                                         <FormattedMessage
@@ -264,8 +264,8 @@ const TeacherClassDetail = ({
                                 </div>
 
                                 {/* 右: 参加コードカード
-                                    行1: 参加コード: xxxxxx [全画面表示]
-                                    行2: [招待リンクをコピー] [GC に参加コードを共有] */}
+                                    行1: 参加コード: xxxxxx（値はラベルと同サイズ）
+                                    行2: ボタン群を flex-wrap（狭ければアイコンのみ／2 行折返し） */}
                                 <div className={styles.joinCodeCard}>
                                     <div className={styles.joinCodeRow}>
                                         <span className={styles.joinCodeLabel}>
@@ -282,40 +282,63 @@ const TeacherClassDetail = ({
                                         >
                                             {selectedClassroom.joinCode.toLowerCase()}
                                         </span>
+                                    </div>
+                                    <div className={styles.joinCodeActions}>
                                         <button
                                             className={styles.joinCodeAction}
                                             data-testid="classroom-detail-expand-code"
                                             type="button"
                                             onClick={handleShowCode}
                                         >
-                                            {'⛶ '}
-                                            <FormattedMessage
-                                                defaultMessage="Show fullscreen"
-                                                description="Fullscreen the join code"
-                                                id="gui.classroom.joinCode.fullscreen"
-                                            />
+                                            <span className={styles.joinCodeIcon}>{'⛶'}</span>
+                                            <span className={styles.joinCodeBtnLabel}>
+                                                <FormattedMessage
+                                                    defaultMessage="Show fullscreen"
+                                                    description="Fullscreen the join code"
+                                                    id="gui.classroom.joinCode.fullscreen"
+                                                />
+                                            </span>
                                         </button>
-                                    </div>
-                                    <div className={styles.joinCodeActions}>
                                         <button
                                             className={styles.joinCodeAction}
                                             data-testid="classroom-detail-copy-link"
                                             type="button"
                                             onClick={handleCopyInvite}
                                         >
-                                            {inviteCopied ? (
-                                                <FormattedMessage
-                                                    defaultMessage="Copied"
-                                                    description="Confirmation after copying invite link"
-                                                    id="gui.classroom.codeDisplay.copied"
+                                            <svg
+                                                className={styles.joinCodeIcon}
+                                                fill="none"
+                                                height="15"
+                                                stroke="currentColor"
+                                                strokeWidth="2"
+                                                viewBox="0 0 24 24"
+                                                width="15"
+                                            >
+                                                <rect
+                                                    height="13"
+                                                    rx="2"
+                                                    ry="2"
+                                                    width="13"
+                                                    x="9"
+                                                    y="9"
                                                 />
-                                            ) : (
-                                                <FormattedMessage
-                                                    defaultMessage="Copy invite link"
-                                                    description="Button to copy classroom invite link"
-                                                    id="gui.classroom.codeDisplay.copyLink"
-                                                />
-                                            )}
+                                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                                            </svg>
+                                            <span className={styles.joinCodeBtnLabel}>
+                                                {inviteCopied ? (
+                                                    <FormattedMessage
+                                                        defaultMessage="Copied"
+                                                        description="Confirmation after copying invite link"
+                                                        id="gui.classroom.codeDisplay.copied"
+                                                    />
+                                                ) : (
+                                                    <FormattedMessage
+                                                        defaultMessage="Copy invite link"
+                                                        description="Button to copy classroom invite link"
+                                                        id="gui.classroom.codeDisplay.copyLink"
+                                                    />
+                                                )}
+                                            </span>
                                         </button>
                                         {/* Google Classroom linkage lives on the class
                                             (group), so an assignment posts to the group's

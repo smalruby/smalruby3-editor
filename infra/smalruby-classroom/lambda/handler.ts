@@ -2507,7 +2507,50 @@ async function handleUpdateGroup(identity: TeacherIdentity, groupId: string, bod
     ReturnValues: 'ALL_NEW',
   }));
 
+  // The class's studentCount is authoritative, so a change must flow down to
+  // its existing assignments (classrooms) — otherwise growing/shrinking the
+  // class leaves old assignments on their creation-time snapshot. Increasing
+  // adds seats (safe); decreasing drops seats — the teacher UI warns first
+  // that submissions on the removed seats stop showing.
+  if (updates.studentCount !== undefined) {
+    await propagateStudentCountToClassrooms(
+      String((result.Attributes as Record<string, unknown>)?.teacherSub ?? identity.sub),
+      groupId,
+      updates.studentCount as number,
+    );
+  }
+
   return { statusCode: 200, body: JSON.stringify(mapGroupSummary(result.Attributes || {})) };
+}
+
+/**
+ * Set every active classroom (assignment) in a class to the class's new seat
+ * count. Enumerates via teacherSub-index + a groupId filter (no groupId GSI on
+ * the classrooms table), the same pattern topic cascades use.
+ * @param teacherSub - owning teacher (partition key of teacherSub-index)
+ * @param groupId - the class whose assignments to update
+ * @param studentCount - the new seat count to write
+ */
+async function propagateStudentCountToClassrooms(
+  teacherSub: string, groupId: string, studentCount: number,
+): Promise<void> {
+  const now = new Date().toISOString();
+  const result = await docClient.send(new QueryCommand({
+    TableName: CLASSROOMS_TABLE,
+    IndexName: 'teacherSub-index',
+    KeyConditionExpression: 'teacherSub = :ts',
+    FilterExpression: 'groupId = :gid AND #status = :active',
+    ExpressionAttributeNames: { '#status': 'status' },
+    ExpressionAttributeValues: { ':ts': teacherSub, ':gid': groupId, ':active': 'active' },
+  }));
+  for (const item of result.Items || []) {
+    await docClient.send(new UpdateCommand({
+      TableName: CLASSROOMS_TABLE,
+      Key: { classroomId: item.classroomId },
+      UpdateExpression: 'SET studentCount = :sc, updatedAt = :now',
+      ExpressionAttributeValues: { ':sc': studentCount, ':now': now },
+    }));
+  }
 }
 
 /**

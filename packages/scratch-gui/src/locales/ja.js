@@ -346,6 +346,10 @@ export default {
         'このクラスをアーカイブしますか？クラス一覧から見えなくなりますが、「アーカイブ済みのクラス」からいつでも元に戻せます。',
     'gui.classroom.classSettings.archiveConfirmYes': 'アーカイブする',
     'gui.classroom.classSettings.archiveConfirmNo': 'アーカイブしない',
+    'gui.classroom.classSettings.decreaseConfirmMessage':
+        'このクラスの人数を {count} 人に減らしますか？このクラスのすべての課題で {from}〜{to} 番の席がなくなり、その席に提出された作品は表示されなくなります。',
+    'gui.classroom.classSettings.decreaseConfirmYes': '減らして保存',
+    'gui.classroom.classSettings.decreaseConfirmNo': '人数はそのまま',
     'gui.classroom.board.archivedToggle': 'アーカイブ済みの課題（{count}）',
     'gui.classroom.board.archivedExpires': '保存期限: {date}',
     'gui.classroom.board.restore': '元に戻す',
