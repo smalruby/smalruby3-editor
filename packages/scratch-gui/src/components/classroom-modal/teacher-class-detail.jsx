@@ -140,6 +140,15 @@ const TeacherClassDetail = ({
         setEditAssignmentName(e.target.value);
     }, []);
 
+    // The name field is a 2-row textarea (long names wrap), but it is still a
+    // single-line value — Enter saves and leaves rather than inserting a break.
+    const handleAssignmentNameKeyDown = useCallback((e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            e.target.blur();
+        }
+    }, []);
+
     const handleAssignmentNameBlur = useCallback(() => {
         const trimmed = editAssignmentName.trim();
         if (trimmed && trimmed !== (selectedClassroom.assignmentName || '') && onUpdateAssignmentName) {
@@ -228,126 +237,150 @@ const TeacherClassDetail = ({
                                 {group ? formatClassLabel(group) : selectedClassroom.className}
                             </div>
 
-                            {/* Editable assignment name + post assignment button */}
-                            <div className={styles.assignmentNameRow}>
-                                <span className={styles.assignmentNameLabel}>
-                                    <FormattedMessage
-                                        defaultMessage="Assignment Name"
-                                        description="Assignment name label in class detail"
-                                        id="gui.classroom.teacherDetail.assignmentNameLabel"
-                                    />
-                                    {': '}
-                                </span>
-                                <input
-                                    className={styles.assignmentNameInput}
-                                    data-testid="classroom-detail-assignment-name"
-                                    maxLength={50}
-                                    type="text"
-                                    value={editAssignmentName}
-                                    onBlur={handleAssignmentNameBlur}
-                                    onChange={handleAssignmentNameChange}
-                                />
-                            </div>
-
-
-                            {/* 参加コードカード: コード + 全画面 / 招待リンク /
-                                Google Classroom に参加コードを共有 をまとめる。
-                                「配信」の何をするか（＝参加コードを GC で生徒に
-                                配る）が一目でわかるよう文言・配置を整理した。 */}
-                            <div className={styles.joinCodeCard}>
-                                <div className={styles.joinCodeRow}>
-                                    <span className={styles.joinCodeLabel}>
+                            {/* 課題名（左）と参加コード（右）を均等幅の 2 カラムに
+                                分け、各カラムを 2 行に収める。参加コードカードが
+                                縦に伸びて全体が崩れるのを防ぐ。 */}
+                            <div className={styles.nameCodeRow}>
+                                {/* 左: 課題名（ラベル + 入力を縦積み） */}
+                                <div className={styles.nameCol}>
+                                    <span className={styles.assignmentNameLabel}>
                                         <FormattedMessage
-                                            defaultMessage="Join Code"
-                                            description="Join code label"
-                                            id="gui.classroom.joinCode.label"
+                                            defaultMessage="Assignment Name"
+                                            description="Assignment name label in class detail"
+                                            id="gui.classroom.teacherDetail.assignmentNameLabel"
                                         />
                                         {': '}
                                     </span>
-                                    <span
-                                        className={styles.joinCodeValue}
-                                        data-testid="classroom-detail-join-code"
-                                    >
-                                        {selectedClassroom.joinCode.toLowerCase()}
-                                    </span>
+                                    <textarea
+                                        className={styles.assignmentNameInput}
+                                        data-testid="classroom-detail-assignment-name"
+                                        maxLength={50}
+                                        rows={2}
+                                        value={editAssignmentName}
+                                        onBlur={handleAssignmentNameBlur}
+                                        onChange={handleAssignmentNameChange}
+                                        onKeyDown={handleAssignmentNameKeyDown}
+                                    />
                                 </div>
-                                <div className={styles.joinCodeActions}>
-                                    <button
-                                        className={styles.joinCodeAction}
-                                        data-testid="classroom-detail-expand-code"
-                                        type="button"
-                                        onClick={handleShowCode}
-                                    >
-                                        {'⛶ '}
-                                        <FormattedMessage
-                                            defaultMessage="Show fullscreen"
-                                            description="Fullscreen the join code"
-                                            id="gui.classroom.joinCode.fullscreen"
-                                        />
-                                    </button>
-                                    <button
-                                        className={styles.joinCodeAction}
-                                        data-testid="classroom-detail-copy-link"
-                                        type="button"
-                                        onClick={handleCopyInvite}
-                                    >
-                                        {inviteCopied ? (
+
+                                {/* 右: 参加コードカード
+                                    行1: 参加コード: xxxxxx [全画面表示]
+                                    行2: [招待リンクをコピー] [GC に参加コードを共有] */}
+                                <div className={styles.joinCodeCard}>
+                                    <div className={styles.joinCodeRow}>
+                                        <span className={styles.joinCodeLabel}>
                                             <FormattedMessage
-                                                defaultMessage="Copied"
-                                                description="Confirmation after copying invite link"
-                                                id="gui.classroom.codeDisplay.copied"
+                                                defaultMessage="Join Code"
+                                                description="Join code label"
+                                                id="gui.classroom.joinCode.label"
                                             />
-                                        ) : (
+                                            {': '}
+                                        </span>
+                                        <span
+                                            className={styles.joinCodeValue}
+                                            data-testid="classroom-detail-join-code"
+                                        >
+                                            {selectedClassroom.joinCode.toLowerCase()}
+                                        </span>
+                                        <button
+                                            className={styles.joinCodeAction}
+                                            data-testid="classroom-detail-expand-code"
+                                            type="button"
+                                            onClick={handleShowCode}
+                                        >
+                                            {'⛶ '}
                                             <FormattedMessage
-                                                defaultMessage="Copy invite link"
-                                                description="Button to copy classroom invite link"
-                                                id="gui.classroom.codeDisplay.copyLink"
+                                                defaultMessage="Show fullscreen"
+                                                description="Fullscreen the join code"
+                                                id="gui.classroom.joinCode.fullscreen"
                                             />
-                                        )}
-                                    </button>
-                                    {/* Google Classroom linkage lives on the class
-                                        (group), so an assignment posts to the group's
-                                        course even without its own courseId. */}
-                                    {(selectedClassroom.googleClassroomCourseId ||
-                                        (group && group.googleClassroomCourseId)) &&
-                                        (selectedClassroom.googleClassroomAlternateLink ? (
-                                            <a
-                                                className={classNames(styles.joinCodeAction, styles.joinCodeActionGc)}
-                                                data-testid="classroom-view-assignment"
-                                                href={selectedClassroom.googleClassroomAlternateLink}
-                                                rel="noopener noreferrer"
-                                                target="_blank"
-                                            >
-                                                <img
-                                                    alt=""
-                                                    className={styles.gcImportIcon}
-                                                    src={googleClassroomIcon}
-                                                />
+                                        </button>
+                                    </div>
+                                    <div className={styles.joinCodeActions}>
+                                        <button
+                                            className={styles.joinCodeAction}
+                                            data-testid="classroom-detail-copy-link"
+                                            type="button"
+                                            onClick={handleCopyInvite}
+                                        >
+                                            {inviteCopied ? (
                                                 <FormattedMessage
-                                                    defaultMessage="Open in Google Classroom"
-                                                    description="Open the posted assignment on Google Classroom"
-                                                    id="gui.classroom.joinCode.openInGc"
+                                                    defaultMessage="Copied"
+                                                    description="Confirmation after copying invite link"
+                                                    id="gui.classroom.codeDisplay.copied"
                                                 />
-                                            </a>
-                                        ) : (
-                                            <button
-                                                className={classNames(styles.joinCodeAction, styles.joinCodeActionGc)}
-                                                data-testid="classroom-post-assignment"
-                                                type="button"
-                                                onClick={onShowPostAssignment}
-                                            >
-                                                <img
-                                                    alt=""
-                                                    className={styles.gcImportIcon}
-                                                    src={googleClassroomIcon}
-                                                />
+                                            ) : (
                                                 <FormattedMessage
-                                                    defaultMessage="Share join code to Google Classroom"
-                                                    description="Post the join code to Google Classroom for students"
-                                                    id="gui.classroom.joinCode.shareToGc"
+                                                    defaultMessage="Copy invite link"
+                                                    description="Button to copy classroom invite link"
+                                                    id="gui.classroom.codeDisplay.copyLink"
                                                 />
-                                            </button>
-                                        ))}
+                                            )}
+                                        </button>
+                                        {/* Google Classroom linkage lives on the class
+                                            (group), so an assignment posts to the group's
+                                            course even without its own courseId. 狭い幅では
+                                            "Google Classroom" を省いて "…に参加コードを共有"
+                                            にし、表示領域を確保する（CSS の media query）。 */}
+                                        {(selectedClassroom.googleClassroomCourseId ||
+                                            (group && group.googleClassroomCourseId)) &&
+                                            (selectedClassroom.googleClassroomAlternateLink ? (
+                                                <a
+                                                    className={classNames(styles.joinCodeAction, styles.joinCodeActionGc)}
+                                                    data-testid="classroom-view-assignment"
+                                                    href={selectedClassroom.googleClassroomAlternateLink}
+                                                    rel="noopener noreferrer"
+                                                    target="_blank"
+                                                >
+                                                    <img
+                                                        alt=""
+                                                        className={styles.gcImportIcon}
+                                                        src={googleClassroomIcon}
+                                                    />
+                                                    <span className={styles.joinCodeGcFull}>
+                                                        <FormattedMessage
+                                                            defaultMessage="Open in Google Classroom"
+                                                            description="Open the posted assignment on Google Classroom"
+                                                            id="gui.classroom.joinCode.openInGc"
+                                                        />
+                                                    </span>
+                                                    <span className={styles.joinCodeGcShort}>
+                                                        <FormattedMessage
+                                                            defaultMessage="Open"
+                                                            description="Short label (icon shows Google Classroom) to open the assignment"
+                                                            id="gui.classroom.joinCode.openInGcShort"
+                                                        />
+                                                    </span>
+                                                </a>
+                                            ) : (
+                                                <button
+                                                    className={classNames(styles.joinCodeAction, styles.joinCodeActionGc)}
+                                                    data-testid="classroom-post-assignment"
+                                                    type="button"
+                                                    onClick={onShowPostAssignment}
+                                                >
+                                                    <img
+                                                        alt=""
+                                                        className={styles.gcImportIcon}
+                                                        src={googleClassroomIcon}
+                                                    />
+                                                    <span className={styles.joinCodeGcFull}>
+                                                        <FormattedMessage
+                                                            defaultMessage="Share join code to Google Classroom"
+                                                            description="Post the join code to Google Classroom for students"
+                                                            id="gui.classroom.joinCode.shareToGc"
+                                                        />
+                                                    </span>
+                                                    <span className={styles.joinCodeGcShort}>
+                                                        <FormattedMessage
+                                                            defaultMessage="Share join code"
+                                                            description="Short label (icon shows Google Classroom) to share the join code"
+                                                            id="gui.classroom.joinCode.shareToGcShort"
+                                                        />
+                                                    </span>
+                                                </button>
+                                            ))}
+                                    </div>
                                 </div>
                             </div>
                             {selectedClassroom.expiresAt && (
