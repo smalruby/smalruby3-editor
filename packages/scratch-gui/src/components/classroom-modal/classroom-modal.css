@@ -3296,6 +3296,8 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
 .teacher-view-title {
     margin: 0.25rem 0 1rem;
     font-size: 1.3rem;
+    /* 課題一覧の見出し（h2.board-title）と同じ太字に揃える。 */
+    font-weight: bold;
     color: #575e75;
     overflow: hidden;
     text-overflow: ellipsis;
