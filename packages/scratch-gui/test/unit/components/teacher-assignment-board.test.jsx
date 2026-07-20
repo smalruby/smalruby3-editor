@@ -122,6 +122,42 @@ describe('TeacherAssignmentBoard — class-wide bulk download (issue #1055)', ()
     });
 });
 
+describe('TeacherAssignmentBoard — share entry (#1109)', () => {
+    const sharedStub = (over = {}) => ({
+        shareTarget: null,
+        showCatalog: false,
+        lastShared: null,
+        lastImported: null,
+        handleOpenShareFor: jest.fn(),
+        handleCloseShareForm: jest.fn(),
+        handleShareAssignment: jest.fn(),
+        handleOpenCatalog: jest.fn(),
+        ...over,
+    });
+
+    test('each assignment row has a 共有 button that opens the share step for that class', () => {
+        const shared = sharedStub();
+        renderBoard({ shared });
+        const btn = byTestId('classroom-board-share-c1');
+        expect(btn).toBeInTheDocument();
+        fireEvent.click(btn);
+        expect(shared.handleOpenShareFor).toHaveBeenCalledWith(expect.objectContaining({ classroomId: 'c1' }));
+    });
+
+    test('with a shareTarget the share step replaces the board body', () => {
+        const shared = sharedStub({ shareTarget: classroom() });
+        renderBoard({ shared });
+        expect(byTestId('classroom-phase-share-step')).toBeInTheDocument();
+        // The create action bar is hidden while sharing.
+        expect(byTestId('classroom-board-create')).not.toBeInTheDocument();
+    });
+
+    test('no 共有 button when the shared hook is absent', () => {
+        renderBoard();
+        expect(byTestId('classroom-board-share-c1')).not.toBeInTheDocument();
+    });
+});
+
 describe('TeacherAssignmentBoard — retention notice (issue #1052)', () => {
     const DAY = 24 * 60 * 60 * 1000;
     const inDays = (days) => new Date(Date.now() + days * DAY).toISOString();

@@ -14,6 +14,7 @@ import { formatClassLabel } from '../../lib/classroom-class-label.js';
 import { retentionLevel } from '../../lib/classroom-retention.js';
 import ErrorDisplay from './error-display.jsx';
 import SharedAssignmentCatalog from './shared-assignment-catalog.jsx';
+import TeacherShareStep from './teacher-share-step.jsx';
 import TeacherBreadcrumbs from './teacher-breadcrumbs.jsx';
 
 import styles from './classroom-modal.css';
@@ -99,12 +100,14 @@ const AssignmentRow = ({
     onSelectClassroom,
     onUpdateAssignmentMeta,
     onDownloadAssignment,
+    onShare,
 }) => {
     const intl = useIntl();
     const handleOpen = useCallback(
         () => onSelectClassroom(classroom.classroomId),
         [onSelectClassroom, classroom.classroomId],
     );
+    const handleShare = useCallback(() => onShare(classroom), [onShare, classroom]);
     const handleDownload = useCallback(
         () => onDownloadAssignment(classroom),
         [onDownloadAssignment, classroom],
@@ -183,6 +186,23 @@ const AssignmentRow = ({
                     value={dateValue}
                     onChange={handleDateChange}
                 />
+                {/* 共有導線はここ（ボード各行）に一本化（#1109・課題詳細からは廃止）。
+                    深さは クラス > 課題 > 共有 に収まる。 */}
+                {onShare ? (
+                    <button
+                        className={styles.boardRowShare}
+                        data-testid={`classroom-board-share-${classroom.classroomId}`}
+                        disabled={isLoading}
+                        type="button"
+                        onClick={handleShare}
+                    >
+                        <FormattedMessage
+                            defaultMessage="Share"
+                            description="Per-row button that opens the share settings step"
+                            id="gui.classroom.shared.shareRow"
+                        />
+                    </button>
+                ) : null}
             </div>
             {/* 期限が近い課題は「あと N 日」バッジをやめ、課題詳細と同じ自動削除
                 メッセージ + 全作品ダウンロードを行に表示する（issue #1052/#1049）。 */}
@@ -239,6 +259,7 @@ AssignmentRow.propTypes = {
     isLoading: PropTypes.bool,
     onDownloadAssignment: PropTypes.func.isRequired,
     onSelectClassroom: PropTypes.func.isRequired,
+    onShare: PropTypes.func,
     onUpdateAssignmentMeta: PropTypes.func.isRequired,
     topics: PropTypes.arrayOf(PropTypes.string).isRequired,
 };
@@ -388,6 +409,7 @@ const TeacherAssignmentBoard = ({
                     },
                 ]}
             />
+            {!(shared && shared.shareTarget) && (
             <div className={styles.boardHeader}>
                 <h2 className={styles.boardTitle}>{formatClassLabel(group)}</h2>
                 <button
@@ -451,6 +473,7 @@ const TeacherAssignmentBoard = ({
                     </button>
                 ) : null}
             </div>
+            )}
             <ErrorDisplay error={error} errorTitle={errorTitle} />
             {shared && shared.lastImported ? (
                 <p className={styles.sharedFormSuccess} data-testid="shared-import-success">
@@ -462,7 +485,15 @@ const TeacherAssignmentBoard = ({
                     />
                 </p>
             ) : null}
-            {shared && shared.showCatalog ? (
+            {shared && shared.shareTarget ? (
+                <TeacherShareStep
+                    classroom={shared.shareTarget}
+                    isLoading={isLoading}
+                    lastShared={shared.lastShared}
+                    onCancel={shared.handleCloseShareForm}
+                    onShare={shared.handleShareAssignment}
+                />
+            ) : shared && shared.showCatalog ? (
                 <SharedAssignmentCatalog group={group} isLoading={isLoading} shared={shared} />
             ) : (
                 <React.Fragment>
@@ -646,6 +677,7 @@ const TeacherAssignmentBoard = ({
                                 topics={topics}
                                 onDownloadAssignment={handleDownloadAssignment}
                                 onSelectClassroom={onSelectClassroom}
+                                onShare={shared ? shared.handleOpenShareFor : null}
                                 onUpdateAssignmentMeta={onUpdateAssignmentMeta}
                             />
                         ))}

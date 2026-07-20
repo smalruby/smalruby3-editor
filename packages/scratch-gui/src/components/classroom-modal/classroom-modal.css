@@ -559,6 +559,73 @@
     margin-top: 1.5rem;
 }
 
+/* 共有設定ステップ（#1109）: 公開範囲の選択カード + 合言葉の表示。 */
+.share-mode-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin: 0.5rem 0 1rem;
+}
+
+.share-mode-card {
+    flex: 1 1 260px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0.7rem 0.9rem;
+    border: 2px solid #d9d9d9;
+    border-radius: 8px;
+    background: #fff;
+    cursor: pointer;
+    text-align: left;
+}
+
+.share-mode-card:hover {
+    border-color: #b3c7ff;
+}
+
+.share-mode-card-active {
+    border-color: #4c97ff;
+    background: #e9f0ff;
+}
+
+.share-mode-name {
+    font-weight: bold;
+    color: #575e75;
+}
+
+.share-mode-desc {
+    font-size: 0.8rem;
+    color: #888;
+}
+
+.share-passcode-box {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.8rem 1rem;
+    margin: 0.5rem 0;
+    background: #f2f7ff;
+    border: 2px dashed #4c97ff;
+    border-radius: 8px;
+}
+
+.share-passcode-label {
+    font-weight: bold;
+    color: #575e75;
+}
+
+.share-passcode-value {
+    font-family: monospace;
+    font-size: 1.6rem;
+    font-weight: bold;
+    letter-spacing: 0.2em;
+    color: #3373cc;
+    user-select: text;
+    cursor: text;
+}
+
 .class-item-main {
     display: flex;
     justify-content: space-between;
@@ -3020,6 +3087,29 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
     border-radius: 0.3rem;
     font-size: 0.8rem;
     background: white;
+}
+
+/* 各行の「共有」ボタン（#1109。共有導線をボードに一本化）。 */
+.board-row-share {
+    flex: 0 0 auto;
+    padding: 0.35rem 0.7rem;
+    border: 1px solid #4c97ff;
+    border-radius: 0.3rem;
+    background: white;
+    color: #3373cc;
+    font-size: 0.8rem;
+    font-weight: bold;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.board-row-share:hover:not(:disabled) {
+    background: #e9f0ff;
+}
+
+.board-row-share:disabled {
+    opacity: 0.5;
+    cursor: default;
 }
 
 .class-list-import-button {

@@ -370,7 +370,6 @@ export default {
         'and adapt it in their lessons (credited to my display name).',
     'gui.classroom.shared.cancel': 'Cancel',
     'gui.classroom.shared.submit': 'Share',
-    'gui.classroom.shared.openForm': 'Share this assignment',
     'gui.classroom.shared.published': 'Published to みんなの課題: "{title}" (© {author} / CC BY 4.0)',
     'gui.classroom.shared.openCatalog': 'Find in みんなの課題',
     'gui.classroom.shared.catalogTitle': 'みんなの課題 — assignments shared by teachers nationwide',

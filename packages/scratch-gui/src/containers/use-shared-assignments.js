@@ -29,10 +29,10 @@ const useSharedAssignments = ({
     intl,
     setIsLoading,
 }) => {
-    // The share form is shown inline in the assignment detail; after a
-    // successful publish we keep the created summary so the detail view can
-    // confirm ("公開しました") instead of silently closing.
-    const [showShareForm, setShowShareForm] = useState(false);
+    // 共有導線はボード（課題一覧）の各行から開く（#1109）。shareTarget が
+    // その課題（classroom）で、これが立っている間だけ共有設定ステップを出す。
+    // lastShared に発行結果（限定公開なら合言葉）を保持してステップ内で確認する。
+    const [shareTarget, setShareTarget] = useState(null);
     const [lastShared, setLastShared] = useState(null);
 
     // Catalog state (S3). `catalogTab` switches the whole list between the
@@ -46,11 +46,14 @@ const useSharedAssignments = ({
     const [lastImported, setLastImported] = useState(null);
     const [reportSent, setReportSent] = useState(false);
 
-    const handleOpenShareForm = useCallback(() => {
+    const handleOpenShareFor = useCallback((classroom) => {
         setLastShared(null);
-        setShowShareForm(true);
+        setShareTarget(classroom);
     }, []);
-    const handleCloseShareForm = useCallback(() => setShowShareForm(false), []);
+    const handleCloseShareForm = useCallback(() => {
+        setShareTarget(null);
+        setLastShared(null);
+    }, []);
 
     const handleShareAssignment = useCallback(
         async (payload) => {
@@ -58,8 +61,8 @@ const useSharedAssignments = ({
             setIsLoading(true);
             try {
                 const shared = await classroomAPI.shareAssignment(idToken, payload);
+                // ステップに留まり、結果（限定公開なら合言葉）を確認させる。
                 setLastShared(shared);
-                setShowShareForm(false);
             } catch (err) {
                 if (err.status === 401) {
                     await handleTeacher401();
@@ -224,7 +227,7 @@ const useSharedAssignments = ({
 
     /** Reset share state (view switch / logout). */
     const resetSharedAssignments = useCallback(() => {
-        setShowShareForm(false);
+        setShareTarget(null);
         setLastShared(null);
         setShowCatalog(false);
         setCatalogItems([]);
@@ -235,9 +238,9 @@ const useSharedAssignments = ({
     }, []);
 
     return {
-        showShareForm,
+        shareTarget,
         lastShared,
-        handleOpenShareForm,
+        handleOpenShareFor,
         handleCloseShareForm,
         handleShareAssignment,
         showCatalog,
