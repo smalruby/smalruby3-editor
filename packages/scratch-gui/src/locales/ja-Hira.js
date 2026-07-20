@@ -407,6 +407,13 @@ export default {
         'このあいことばをくばると、うちわのせんせいだけが「あいことばでとりこみ」できます。あとでぜんたいこうかいにひろげられます。',
     'gui.classroom.shared.copyPasscode': 'コピー',
     'gui.classroom.shared.publishedShort': '「みんなのかだい」にこうかいしました: {title}',
+    'gui.classroom.shared.passcodeImport': 'あいことばでとりこみ',
+    'gui.classroom.shared.passcodeImportTitle': 'あいことばでとりこみ',
+    'gui.classroom.shared.passcodeImportHint':
+        'せんせいからもらったあいことばをにゅうりょくすると、このクラスにかだいとしてとりこめます。',
+    'gui.classroom.shared.passcodeLookupBtn': 'かくにん',
+    'gui.classroom.shared.passcodePreview': '「{title}」をとりこみます。',
+    'gui.classroom.shared.passcodeImportBtn': 'このクラスにとりこむ',
     'gui.classroom.shared.openCatalog': 'みんなのかだいからさがす',
     'gui.classroom.shared.catalogTitle': 'みんなのかだい — ぜんこくのせんせいがきょうゆうしたかだい',
     'gui.classroom.shared.catalogClose': 'とじる',

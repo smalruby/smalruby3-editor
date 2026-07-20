@@ -626,6 +626,22 @@
     cursor: text;
 }
 
+/* 合言葉で取り込み（#1109・受け取る側）のプレビュー / エラー。 */
+.passcode-preview {
+    padding: 0.6rem 0.9rem;
+    margin: 0.5rem 0;
+    background: #e9f0ff;
+    border-radius: 8px;
+    color: #575e75;
+    font-weight: bold;
+}
+
+.passcode-error {
+    color: hsla(10, 80%, 42%, 1);
+    font-size: 0.85rem;
+    margin: 0.3rem 0;
+}
+
 .class-item-main {
     display: flex;
     justify-content: space-between;

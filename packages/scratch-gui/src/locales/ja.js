@@ -399,6 +399,13 @@ export default {
         'この合言葉を配ると、内輪の先生だけが「合言葉で取り込み」できます。あとで全体公開に広げられます。',
     'gui.classroom.shared.copyPasscode': 'コピー',
     'gui.classroom.shared.publishedShort': '「みんなの課題」に公開しました: {title}',
+    'gui.classroom.shared.passcodeImport': '合言葉で取り込み',
+    'gui.classroom.shared.passcodeImportTitle': '合言葉で取り込み',
+    'gui.classroom.shared.passcodeImportHint':
+        '先生からもらった合言葉を入力すると、このクラスに課題として取り込めます。',
+    'gui.classroom.shared.passcodeLookupBtn': '確認',
+    'gui.classroom.shared.passcodePreview': '「{title}」を取り込みます。',
+    'gui.classroom.shared.passcodeImportBtn': 'このクラスに取り込む',
     'gui.classroom.shared.openCatalog': 'みんなの課題からさがす',
     'gui.classroom.shared.catalogTitle': 'みんなの課題 — 全国の先生が共有した課題',
     'gui.classroom.shared.catalogClose': '閉じる',

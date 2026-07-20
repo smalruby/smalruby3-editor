@@ -15,6 +15,7 @@ import { retentionLevel } from '../../lib/classroom-retention.js';
 import ErrorDisplay from './error-display.jsx';
 import SharedAssignmentCatalog from './shared-assignment-catalog.jsx';
 import TeacherShareStep from './teacher-share-step.jsx';
+import TeacherPasscodeImport from './teacher-passcode-import.jsx';
 import TeacherBreadcrumbs from './teacher-breadcrumbs.jsx';
 
 import styles from './classroom-modal.css';
@@ -409,7 +410,7 @@ const TeacherAssignmentBoard = ({
                     },
                 ]}
             />
-            {!(shared && shared.shareTarget) && (
+            {!(shared && (shared.shareTarget || shared.showPasscodeImport)) && (
             <div className={styles.boardHeader}>
                 <h2 className={styles.boardTitle}>{formatClassLabel(group)}</h2>
                 <button
@@ -472,6 +473,21 @@ const TeacherAssignmentBoard = ({
                         />
                     </button>
                 ) : null}
+                {shared ? (
+                    <button
+                        className={styles.boardReuseButton}
+                        data-testid="classroom-board-passcode-import"
+                        disabled={isLoading}
+                        type="button"
+                        onClick={shared.handleOpenPasscodeImport}
+                    >
+                        <FormattedMessage
+                            defaultMessage="Import by passcode"
+                            description="Button that opens the passcode import step"
+                            id="gui.classroom.shared.passcodeImport"
+                        />
+                    </button>
+                ) : null}
             </div>
             )}
             <ErrorDisplay error={error} errorTitle={errorTitle} />
@@ -492,6 +508,16 @@ const TeacherAssignmentBoard = ({
                     lastShared={shared.lastShared}
                     onCancel={shared.handleCloseShareForm}
                     onShare={shared.handleShareAssignment}
+                />
+            ) : shared && shared.showPasscodeImport ? (
+                <TeacherPasscodeImport
+                    error={shared.passcodeError}
+                    group={group}
+                    isLoading={isLoading}
+                    lookup={shared.passcodeLookup}
+                    onCancel={shared.handleClosePasscodeImport}
+                    onImport={shared.handleImportByPasscode}
+                    onLookup={shared.handleLookupPasscode}
                 />
             ) : shared && shared.showCatalog ? (
                 <SharedAssignmentCatalog group={group} isLoading={isLoading} shared={shared} />

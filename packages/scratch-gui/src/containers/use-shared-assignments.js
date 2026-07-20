@@ -37,6 +37,11 @@ const useSharedAssignments = ({
 
     // Catalog state (S3). `catalogTab` switches the whole list between the
     // public catalog and the caller's own posts (mine=1).
+    // 合言葉で取り込み（#1109・受け取る側）。プレビュー（lookup）→ 取り込み。
+    const [showPasscodeImport, setShowPasscodeImport] = useState(false);
+    const [passcodeLookup, setPasscodeLookup] = useState(null);
+    const [passcodeError, setPasscodeError] = useState(null);
+
     const [showCatalog, setShowCatalog] = useState(false);
     const [catalogTab, setCatalogTab] = useState('all');
     const [catalogItems, setCatalogItems] = useState([]);
@@ -74,6 +79,66 @@ const useSharedAssignments = ({
             }
         },
         [idToken, clearError, showError, handleTeacher401, intl, setIsLoading],
+    );
+
+    // --- 合言葉で取り込み（#1109・受け取る側） ---
+
+    const handleOpenPasscodeImport = useCallback(() => {
+        setPasscodeLookup(null);
+        setPasscodeError(null);
+        setShowPasscodeImport(true);
+    }, []);
+    const handleClosePasscodeImport = useCallback(() => {
+        setShowPasscodeImport(false);
+        setPasscodeLookup(null);
+        setPasscodeError(null);
+    }, []);
+
+    /** Preview a limited-published item by 合言葉 (sharedId は返らない). */
+    const handleLookupPasscode = useCallback(
+        async (passcode) => {
+            setPasscodeError(null);
+            setPasscodeLookup(null);
+            setIsLoading(true);
+            try {
+                setPasscodeLookup(await classroomAPI.lookupSharedByPasscode(idToken, passcode));
+            } catch (err) {
+                if (err.status === 401) {
+                    await handleTeacher401();
+                } else {
+                    setPasscodeError(translateError(intl, err));
+                }
+            } finally {
+                setIsLoading(false);
+            }
+        },
+        [idToken, handleTeacher401, intl, setIsLoading],
+    );
+
+    /** Import a limited item by 合言葉 into the given class (組). */
+    const handleImportByPasscode = useCallback(
+        async (passcode, groupId) => {
+            setPasscodeError(null);
+            setIsLoading(true);
+            try {
+                const created = await classroomAPI.importSharedByPasscode(idToken, { passcode, groupId });
+                setLastImported(created);
+                setShowPasscodeImport(false);
+                setPasscodeLookup(null);
+                if (loadClassrooms) {
+                    await loadClassrooms();
+                }
+            } catch (err) {
+                if (err.status === 401) {
+                    await handleTeacher401();
+                } else {
+                    setPasscodeError(translateError(intl, err));
+                }
+            } finally {
+                setIsLoading(false);
+            }
+        },
+        [idToken, loadClassrooms, handleTeacher401, intl, setIsLoading],
     );
 
     // --- Catalog (S3) ---
@@ -229,6 +294,9 @@ const useSharedAssignments = ({
     const resetSharedAssignments = useCallback(() => {
         setShareTarget(null);
         setLastShared(null);
+        setShowPasscodeImport(false);
+        setPasscodeLookup(null);
+        setPasscodeError(null);
         setShowCatalog(false);
         setCatalogItems([]);
         setCatalogCursor(null);
@@ -243,6 +311,13 @@ const useSharedAssignments = ({
         handleOpenShareFor,
         handleCloseShareForm,
         handleShareAssignment,
+        showPasscodeImport,
+        passcodeLookup,
+        passcodeError,
+        handleOpenPasscodeImport,
+        handleClosePasscodeImport,
+        handleLookupPasscode,
+        handleImportByPasscode,
         showCatalog,
         catalogTab,
         catalogItems,
