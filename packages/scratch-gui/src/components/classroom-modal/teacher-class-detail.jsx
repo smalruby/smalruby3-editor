@@ -161,6 +161,10 @@ const TeacherClassDetail = ({
 
     const intl = useIntl();
 
+    // Retention alert level (issue #1052/#1049): drives the inline warning
+    // next to the deadline and the urgent styling on the download button.
+    const retention = retentionLevel(selectedClassroom && selectedClassroom.expiresAt);
+
     const handleShowCode = useCallback(() => {
         setShowCodeDisplay(true);
         onShowCodeDisplay(selectedClassroom.classroomId);
@@ -407,62 +411,52 @@ const TeacherClassDetail = ({
                                             ))}
                                 </div>
                             </div>
+                            {/* 保存期限とその警告を1行に統合（issue #1052/#1049）:
+                                期限が近いときだけ日付の右に警告を出し、専用バナーを
+                                廃して縦の表示領域を確保する。狭い幅では「ダウンロード
+                                して保存してください」を省略する（CSS の container query）。 */}
                             {selectedClassroom.expiresAt && (
-                                <div className={styles.expiresAtText}>
-                                    <FormattedMessage
-                                        defaultMessage="Kept until: {date}"
-                                        description="Retention deadline in assignment detail"
-                                        id="gui.classroom.teacherDetail.expiresAt"
-                                        values={{
-                                            date: new Date(
-                                                selectedClassroom.expiresAt,
-                                            ).toLocaleDateString(),
-                                        }}
-                                    />
-                                </div>
-                            )}
-
-                            {/* Retention alert (issue #1052): within 30 days
-                                of auto-deletion, prompt a bulk download. */}
-                            {retentionLevel(selectedClassroom.expiresAt) === 'none' ? null : (
                                 <div
-                                    className={
-                                        retentionLevel(selectedClassroom.expiresAt) === 'warning'
-                                            ? styles.retentionBannerWarning
-                                            : styles.retentionBanner
-                                    }
-                                    data-testid="classroom-retention-banner"
+                                    className={classNames(styles.expiresAtText, {
+                                        [styles.expiresAtNotice]: retention === 'notice',
+                                        [styles.expiresAtWarning]: retention === 'warning',
+                                    })}
                                 >
-                                    <FormattedMessage
-                                        defaultMessage={
-                                            'This assignment and its submissions will be deleted ' +
-                                            'automatically on {date}. Download them to keep a copy.'
-                                        }
-                                        description="Banner prompting a bulk download before auto-deletion"
-                                        id="gui.classroom.teacherDetail.retentionBanner"
-                                        values={{
-                                            date: new Date(
-                                                selectedClassroom.expiresAt,
-                                            ).toLocaleDateString(),
-                                        }}
-                                    />
-                                    <button
-                                        className={styles.retentionBannerDownload}
-                                        data-testid="classroom-retention-banner-download"
-                                        disabled={isLoading || !!downloadProgress}
-                                        type="button"
-                                        onClick={onDownloadAll}
-                                    >
-                                        {downloadProgress ? (
-                                            `${downloadProgress.current}/${downloadProgress.total}`
-                                        ) : (
+                                    <span className={styles.expiresAtDate}>
+                                        <FormattedMessage
+                                            defaultMessage="Kept until: {date}"
+                                            description="Retention deadline in assignment detail"
+                                            id="gui.classroom.teacherDetail.expiresAt"
+                                            values={{
+                                                date: new Date(
+                                                    selectedClassroom.expiresAt,
+                                                ).toLocaleDateString(),
+                                            }}
+                                        />
+                                    </span>
+                                    {retention !== 'none' && (
+                                        <span
+                                            className={styles.expiresAtAlert}
+                                            data-testid="classroom-retention-banner"
+                                        >
+                                            <span className={styles.expiresAtAlertMark}>{'⚠'}</span>
                                             <FormattedMessage
-                                                defaultMessage="Download All"
-                                                description="Download all submissions button"
-                                                id="gui.classroom.teacherDetail.downloadAll"
+                                                defaultMessage={
+                                                    'Once the deadline passes, this assignment ' +
+                                                    'and its submissions are deleted automatically.'
+                                                }
+                                                description="Inline retention warning next to the deadline"
+                                                id="gui.classroom.teacherDetail.retentionInline"
                                             />
-                                        )}
-                                    </button>
+                                            <span className={styles.expiresAtHint}>
+                                                <FormattedMessage
+                                                    defaultMessage="Download them to keep a copy."
+                                                    description="Retention hint omitted on narrow widths"
+                                                    id="gui.classroom.teacherDetail.retentionInlineHint"
+                                                />
+                                            </span>
+                                        </span>
+                                    )}
                                 </div>
                             )}
 
@@ -499,7 +493,9 @@ const TeacherClassDetail = ({
                                     />
                                 </button>
                                 <button
-                                    className={classNames(styles.secondaryButton, styles.detailTabsDownload)}
+                                    className={classNames(styles.secondaryButton, styles.detailTabsDownload, {
+                                        [styles.detailTabsDownloadUrgent]: retention !== 'none',
+                                    })}
                                     data-testid="classroom-download-all"
                                     disabled={isLoading || !!downloadProgress}
                                     onClick={onDownloadAll}

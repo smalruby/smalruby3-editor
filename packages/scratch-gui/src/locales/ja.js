@@ -353,7 +353,6 @@ export default {
     'gui.classroom.board.archivedToggle': 'アーカイブ済みの課題（{count}）',
     'gui.classroom.board.archivedExpires': '保存期限: {date}',
     'gui.classroom.board.restore': '元に戻す',
-    'gui.classroom.board.expiryBadge': 'あと{days}日',
     'gui.classroom.board.downloadClass': '全課題の提出物をダウンロード',
     'gui.classroom.shared.levelElementary': '小学校',
     'gui.classroom.shared.levelJuniorHigh': '中学校',
@@ -411,6 +410,8 @@ export default {
     'gui.classroom.shared.imported': '「{name}」をこのクラスに取り込みました。新しい参加コードが発行されています。',
     'gui.classroom.teacherDetail.retentionBanner':
         'この課題と提出物は {date} に自動削除されます。ダウンロードして保存してください。',
+    'gui.classroom.teacherDetail.retentionInline': '保存期限をすぎるとこの課題と提出物は自動削除されます。',
+    'gui.classroom.teacherDetail.retentionInlineHint': 'ダウンロードして保存してください。',
     'gui.classroom.codeDisplay.title': '参加コード',
     'gui.classroom.codeDisplay.copyLink': '招待リンクをコピー',
     'gui.classroom.codeDisplay.copied': 'コピーしました',

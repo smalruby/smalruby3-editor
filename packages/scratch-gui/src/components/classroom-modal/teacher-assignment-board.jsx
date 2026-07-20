@@ -6,12 +6,12 @@
  * assignments on the server).
  */
 import PropTypes from 'prop-types';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 
 import { buildAssignmentSections } from '../../lib/classroom-group-utils.js';
 import { formatClassLabel } from '../../lib/classroom-class-label.js';
-import { daysUntil, retentionLevel } from '../../lib/classroom-retention.js';
+import { retentionLevel } from '../../lib/classroom-retention.js';
 import ErrorDisplay from './error-display.jsx';
 import SharedAssignmentCatalog from './shared-assignment-catalog.jsx';
 import TeacherBreadcrumbs from './teacher-breadcrumbs.jsx';
@@ -90,11 +90,24 @@ TopicChip.propTypes = {
     topic: PropTypes.string.isRequired,
 };
 
-const AssignmentRow = ({ classroom, topics, isLoading, onSelectClassroom, onUpdateAssignmentMeta }) => {
+const AssignmentRow = ({
+    classroom,
+    topics,
+    isLoading,
+    downloadProgress,
+    downloadingId,
+    onSelectClassroom,
+    onUpdateAssignmentMeta,
+    onDownloadAssignment,
+}) => {
     const intl = useIntl();
     const handleOpen = useCallback(
         () => onSelectClassroom(classroom.classroomId),
         [onSelectClassroom, classroom.classroomId],
+    );
+    const handleDownload = useCallback(
+        () => onDownloadAssignment(classroom),
+        [onDownloadAssignment, classroom],
     );
     const handleTopicChange = useCallback(
         (e) => {
@@ -118,82 +131,113 @@ const AssignmentRow = ({ classroom, topics, isLoading, onSelectClassroom, onUpda
     // before it hits, so "expired" never looks like a mysterious archive.
     const retention = retentionLevel(classroom.expiresAt);
 
+    const isDownloading = downloadingId === classroom.classroomId && !!downloadProgress;
+
     return (
-        <li className={styles.boardRow} data-testid={`classroom-board-row-${classroom.classroomId}`}>
-            <button
-                className={styles.boardRowMain}
-                data-testid={`classroom-board-open-${classroom.classroomId}`}
-                type="button"
-                onClick={handleOpen}
-            >
-                <span className={styles.boardRowName}>{classroom.assignmentName || classroom.className}</span>
-                <span className={styles.boardRowCode}>{classroom.joinCode}</span>
-            </button>
+        <li
+            className={styles.boardRowItem}
+            data-testid={`classroom-board-row-${classroom.classroomId}`}
+        >
+            <div className={styles.boardRowControls}>
+                <button
+                    className={styles.boardRowMain}
+                    data-testid={`classroom-board-open-${classroom.classroomId}`}
+                    type="button"
+                    onClick={handleOpen}
+                >
+                    <span className={styles.boardRowName}>
+                        {classroom.assignmentName || classroom.className}
+                    </span>
+                    <span className={styles.boardRowCode}>{classroom.joinCode}</span>
+                </button>
+                <select
+                    aria-label={intl.formatMessage({
+                        defaultMessage: 'Topic',
+                        description: 'Label of the topic selector on an assignment row',
+                        id: 'gui.classroom.board.topicLabel',
+                    })}
+                    className={styles.boardRowTopic}
+                    data-testid={`classroom-board-topic-${classroom.classroomId}`}
+                    disabled={isLoading}
+                    value={classroom.topic || ''}
+                    onChange={handleTopicChange}
+                >
+                    <option value="">
+                        {intl.formatMessage({
+                            defaultMessage: '(no topic)',
+                            description: 'Option for an assignment without a topic',
+                            id: 'gui.classroom.board.noTopic',
+                        })}
+                    </option>
+                    {topics.map((t) => (
+                        <option key={t} value={t}>
+                            {t}
+                        </option>
+                    ))}
+                </select>
+                <input
+                    className={styles.boardRowDate}
+                    data-testid={`classroom-board-date-${classroom.classroomId}`}
+                    disabled={isLoading}
+                    type="date"
+                    value={dateValue}
+                    onChange={handleDateChange}
+                />
+            </div>
+            {/* 期限が近い課題は「あと N 日」バッジをやめ、課題詳細と同じ自動削除
+                メッセージ + 全作品ダウンロードを行に表示する（issue #1052/#1049）。 */}
             {retention === 'none' ? null : (
-                <span
+                <div
                     className={
-                        retention === 'warning' ? styles.expiryBadgeWarning : styles.expiryBadgeNotice
+                        retention === 'warning'
+                            ? styles.boardRowRetentionWarning
+                            : styles.boardRowRetention
                     }
                     data-testid={`classroom-board-expiry-${classroom.classroomId}`}
-                    title={intl.formatMessage(
-                        {
-                            defaultMessage: 'Kept until {date}',
-                            description: 'Retention deadline shown on an archived assignment row',
-                            id: 'gui.classroom.board.archivedExpires',
-                        },
-                        { date: new Date(classroom.expiresAt).toLocaleDateString() },
-                    )}
                 >
-                    {intl.formatMessage(
-                        {
-                            defaultMessage: '{days} days left',
-                            description: 'Days-until-deletion badge on an assignment row',
-                            id: 'gui.classroom.board.expiryBadge',
-                        },
-                        { days: daysUntil(classroom.expiresAt) },
-                    )}
-                </span>
+                    <span className={styles.boardRowRetentionMark}>{'⚠'}</span>
+                    <span className={styles.boardRowRetentionText}>
+                        <FormattedMessage
+                            defaultMessage={
+                                'This assignment and its submissions will be deleted ' +
+                                'automatically on {date}. Download them to keep a copy.'
+                            }
+                            description="Inline retention warning on an assignment row"
+                            id="gui.classroom.teacherDetail.retentionBanner"
+                            values={{
+                                date: new Date(classroom.expiresAt).toLocaleDateString(),
+                            }}
+                        />
+                    </span>
+                    <button
+                        className={styles.boardRowRetentionDownload}
+                        data-testid={`classroom-board-download-${classroom.classroomId}`}
+                        disabled={isLoading || !!downloadProgress}
+                        type="button"
+                        onClick={handleDownload}
+                    >
+                        {isDownloading ? (
+                            `${downloadProgress.current}/${downloadProgress.total}`
+                        ) : (
+                            <FormattedMessage
+                                defaultMessage="Download All"
+                                description="Download all submissions button"
+                                id="gui.classroom.teacherDetail.downloadAll"
+                            />
+                        )}
+                    </button>
+                </div>
             )}
-            <select
-                aria-label={intl.formatMessage({
-                    defaultMessage: 'Topic',
-                    description: 'Label of the topic selector on an assignment row',
-                    id: 'gui.classroom.board.topicLabel',
-                })}
-                className={styles.boardRowTopic}
-                data-testid={`classroom-board-topic-${classroom.classroomId}`}
-                disabled={isLoading}
-                value={classroom.topic || ''}
-                onChange={handleTopicChange}
-            >
-                <option value="">
-                    {intl.formatMessage({
-                        defaultMessage: '(no topic)',
-                        description: 'Option for an assignment without a topic',
-                        id: 'gui.classroom.board.noTopic',
-                    })}
-                </option>
-                {topics.map((t) => (
-                    <option key={t} value={t}>
-                        {t}
-                    </option>
-                ))}
-            </select>
-            <input
-                className={styles.boardRowDate}
-                data-testid={`classroom-board-date-${classroom.classroomId}`}
-                disabled={isLoading}
-                type="date"
-                value={dateValue}
-                onChange={handleDateChange}
-            />
         </li>
     );
 };
 
 AssignmentRow.propTypes = {
     classroom: PropTypes.object.isRequired,
+    downloadingId: PropTypes.string,
+    downloadProgress: PropTypes.shape({ current: PropTypes.number, total: PropTypes.number }),
     isLoading: PropTypes.bool,
+    onDownloadAssignment: PropTypes.func.isRequired,
     onSelectClassroom: PropTypes.func.isRequired,
     onUpdateAssignmentMeta: PropTypes.func.isRequired,
     topics: PropTypes.arrayOf(PropTypes.string).isRequired,
@@ -246,6 +290,20 @@ const TeacherAssignmentBoard = ({
     const handleDownloadClassAll = useCallback(
         () => onDownloadClassAll(group, [...classrooms, ...(archivedClassrooms || [])]),
         [onDownloadClassAll, group, classrooms, archivedClassrooms],
+    );
+    // Per-assignment download from a near-deadline row (issue #1052): reuse the
+    // class-wide zipper with a single assignment. Track which row is downloading
+    // so only that row's button shows progress (download runs one at a time).
+    const [downloadingId, setDownloadingId] = useState(null);
+    useEffect(() => {
+        if (!downloadProgress) setDownloadingId(null);
+    }, [downloadProgress]);
+    const handleDownloadAssignment = useCallback(
+        (classroom) => {
+            setDownloadingId(classroom.classroomId);
+            onDownloadClassAll(group, [classroom]);
+        },
+        [onDownloadClassAll, group],
     );
 
     const handleToggleInlineCreate = useCallback(() => {
@@ -582,8 +640,11 @@ const TeacherAssignmentBoard = ({
                             <AssignmentRow
                                 key={classroom.classroomId}
                                 classroom={classroom}
+                                downloadingId={downloadingId}
+                                downloadProgress={downloadProgress}
                                 isLoading={isLoading}
                                 topics={topics}
+                                onDownloadAssignment={handleDownloadAssignment}
                                 onSelectClassroom={onSelectClassroom}
                                 onUpdateAssignmentMeta={onUpdateAssignmentMeta}
                             />

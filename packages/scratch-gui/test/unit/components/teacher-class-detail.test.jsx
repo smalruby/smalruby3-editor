@@ -87,25 +87,25 @@ describe('TeacherClassDetail — retention banner (issue #1052)', () => {
     const inDays = (days) => new Date(Date.now() + days * DAY).toISOString();
     const byTestId = (id) => document.querySelector(`[data-testid="${id}"]`);
 
-    test('shows no banner while the deadline is far away', () => {
+    test('shows no inline alert while the deadline is far away', () => {
         renderDetail({ selectedClassroom: classroom({ expiresAt: inDays(60) }) });
         expect(byTestId('classroom-retention-banner')).not.toBeInTheDocument();
     });
 
-    test('shows the banner with the deadline within 30 days of deletion', () => {
+    test('shows the inline alert next to the deadline within 30 days of deletion', () => {
         renderDetail({ selectedClassroom: classroom({ expiresAt: inDays(20) }) });
-        const banner = byTestId('classroom-retention-banner');
-        expect(banner).toBeInTheDocument();
-        expect(banner.textContent).toContain('deleted automatically');
+        const alert = byTestId('classroom-retention-banner');
+        expect(alert).toBeInTheDocument();
+        expect(alert.textContent).toContain('deleted automatically');
     });
 
-    test('the banner download button triggers onDownloadAll', () => {
+    test('the download-all button triggers onDownloadAll near the deadline', () => {
         const onDownloadAll = jest.fn();
         renderDetail({
             selectedClassroom: classroom({ expiresAt: inDays(5) }),
             onDownloadAll,
         });
-        fireEvent.click(byTestId('classroom-retention-banner-download'));
+        fireEvent.click(byTestId('classroom-download-all'));
         expect(onDownloadAll).toHaveBeenCalled();
     });
 });

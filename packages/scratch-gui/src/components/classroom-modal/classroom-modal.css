@@ -419,10 +419,45 @@
     font-size: 0.85rem;
 }
 
+/* 保存期限 + 期限警告を1行に。狭い幅では末尾ヒントを省く container query。 */
 .expires-at-text {
+    container-type: inline-size;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem;
     font-size: 0.8rem;
     color: #999;
     margin: 0.25rem 0 0.5rem;
+}
+
+.expires-at-date {
+    flex: 0 0 auto;
+}
+
+/* 期限が近いときの警告メッセージ（保存期限の右側にインライン表示）。 */
+.expires-at-alert {
+    display: inline-flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.15rem 0.3rem;
+    font-weight: bold;
+    color: hsla(30, 70%, 35%, 1);
+}
+
+.expires-at-warning .expires-at-alert {
+    color: hsla(10, 80%, 42%, 1);
+}
+
+.expires-at-alert-mark {
+    align-self: center;
+}
+
+/* 幅が狭ければ「ダウンロードして保存してください」を省いて領域を確保。 */
+@container (max-width: 520px) {
+    .expires-at-hint {
+        display: none;
+    }
 }
 
 .assignment-name-label {
@@ -2418,61 +2453,69 @@
 
 /* --- Retention (auto-delete) alerts (issue #1052) --- */
 
-.expiry-badge-notice,
-.expiry-badge-warning {
-    align-self: center;
-    flex-shrink: 0;
-    padding: 0.1rem 0.5rem;
-    border-radius: 0.75rem;
-    font-size: 0.75rem;
-    white-space: nowrap;
+/* 期限が近い課題の行に出す自動削除メッセージ + 全作品ダウンロード。
+   バッジ（あと N 日）は廃止し、詳細と同じ文面 + DL 動線を一覧にも置く。 */
+.board-row-retention,
+.board-row-retention-warning {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.6rem;
+    padding: 0.1rem 0.3rem 0.2rem;
+    font-size: 0.8rem;
+    font-weight: bold;
 }
 
-.expiry-badge-notice {
-    background: hsla(35, 90%, 55%, 0.15);
+.board-row-retention {
     color: hsla(30, 70%, 35%, 1);
 }
 
-.expiry-badge-warning {
-    background: hsla(20, 100%, 55%, 0.18);
-    color: hsla(10, 80%, 40%, 1);
+.board-row-retention-warning {
+    color: hsla(10, 80%, 42%, 1);
 }
 
-.retention-banner,
-.retention-banner-warning {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin: 0.75rem 0;
-    padding: 0.6rem 0.9rem;
-    border-radius: 0.5rem;
-    font-size: 0.875rem;
+.board-row-retention-mark {
+    flex: 0 0 auto;
 }
 
-.retention-banner {
-    background: hsla(35, 90%, 55%, 0.12);
-    color: hsla(30, 60%, 30%, 1);
+.board-row-retention-text {
+    flex: 1 1 auto;
+    min-width: 0;
 }
 
-.retention-banner-warning {
-    background: hsla(20, 100%, 55%, 0.15);
-    color: hsla(10, 80%, 35%, 1);
-}
-
-.retention-banner-download {
-    flex-shrink: 0;
-    padding: 0.35rem 0.8rem;
-    border: 1px solid #855cd6;
-    border-radius: 0.5rem;
+.board-row-retention-download {
+    flex: 0 0 auto;
+    padding: 0.3rem 0.7rem;
+    border: 1px solid currentColor;
+    border-radius: 0.4rem;
     background: white;
-    color: #855cd6;
+    color: inherit;
+    font-weight: bold;
     cursor: pointer;
     white-space: nowrap;
 }
 
-.retention-banner-download:disabled {
+.board-row-retention-download:hover:not(:disabled) {
+    background: hsla(10, 85%, 55%, 0.1);
+}
+
+.board-row-retention-download:disabled {
     opacity: 0.5;
     cursor: default;
+}
+
+/* 期限が近いとき、全作品ダウンロードボタンを警告色にしてDLを促す（#1052）。
+   secondary-button / detail-tabs-download より後に定義し、element+class で
+   確実に色を上書きする。 */
+button.detail-tabs-download-urgent {
+    border-color: hsla(10, 80%, 45%, 1);
+    background: hsla(10, 85%, 55%, 1);
+    color: white;
+    font-weight: bold;
+}
+
+button.detail-tabs-download-urgent:hover:not(:disabled) {
+    background: hsla(10, 85%, 48%, 1);
 }
 
 /* --- みんなの課題: share form (EPIC #1066 S2) --- */
@@ -2918,6 +2961,21 @@
 }
 
 .board-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* 期限メッセージを行の下に積むため、アクティブ課題の行は縦積みにする
+   （アーカイブ行は従来どおり .board-row の横並びのまま）。 */
+.board-row-item {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.25rem;
+}
+
+.board-row-controls {
     display: flex;
     align-items: center;
     gap: 0.5rem;

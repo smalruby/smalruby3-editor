@@ -122,23 +122,37 @@ describe('TeacherAssignmentBoard — class-wide bulk download (issue #1055)', ()
     });
 });
 
-describe('TeacherAssignmentBoard — retention badge (issue #1052)', () => {
+describe('TeacherAssignmentBoard — retention notice (issue #1052)', () => {
     const DAY = 24 * 60 * 60 * 1000;
     const inDays = (days) => new Date(Date.now() + days * DAY).toISOString();
 
-    test('shows no badge while the deadline is far away', () => {
+    test('shows no retention notice while the deadline is far away', () => {
         renderBoard({ classrooms: [classroom({ expiresAt: inDays(60) })] });
         expect(byTestId('classroom-board-expiry-c1')).not.toBeInTheDocument();
     });
 
-    test('shows a days-left badge within 30 days of deletion', () => {
+    test('shows the auto-delete notice with a download button within 30 days', () => {
         renderBoard({ classrooms: [classroom({ expiresAt: inDays(20) })] });
-        const badge = byTestId('classroom-board-expiry-c1');
-        expect(badge).toBeInTheDocument();
-        expect(badge.textContent).toContain('20 days left');
+        const notice = byTestId('classroom-board-expiry-c1');
+        expect(notice).toBeInTheDocument();
+        expect(notice.textContent).toContain('deleted automatically');
+        expect(byTestId('classroom-board-download-c1')).toBeInTheDocument();
     });
 
-    test('shows the badge for assignments without a deadline never', () => {
+    test('the row download button downloads that one assignment', () => {
+        const onDownloadClassAll = jest.fn();
+        renderBoard({
+            classrooms: [classroom({ expiresAt: inDays(5) })],
+            onDownloadClassAll,
+        });
+        fireEvent.click(byTestId('classroom-board-download-c1'));
+        expect(onDownloadClassAll).toHaveBeenCalledWith(
+            expect.objectContaining({ groupId: 'g1' }),
+            [expect.objectContaining({ classroomId: 'c1' })],
+        );
+    });
+
+    test('never shows the notice for assignments without a deadline', () => {
         renderBoard({ classrooms: [classroom({ expiresAt: null })] });
         expect(byTestId('classroom-board-expiry-c1')).not.toBeInTheDocument();
     });

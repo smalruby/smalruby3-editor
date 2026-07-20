@@ -358,7 +358,6 @@ export default {
     'gui.classroom.board.archivedToggle': 'アーカイブずみのかだい（{count}）',
     'gui.classroom.board.archivedExpires': 'ほぞんきげん: {date}',
     'gui.classroom.board.restore': 'もとにもどす',
-    'gui.classroom.board.expiryBadge': 'あと{days}にち',
     'gui.classroom.board.downloadClass': 'ぜんかだいのていしゅつぶつをダウンロード',
     'gui.classroom.shared.levelElementary': 'しょうがっこう',
     'gui.classroom.shared.levelJuniorHigh': 'ちゅうがっこう',
@@ -420,6 +419,9 @@ export default {
         '「{name}」をこのクラスにとりこみました。あたらしいさんかコードがはっこうされています。',
     'gui.classroom.teacherDetail.retentionBanner':
         'このかだいとていしゅつぶつは {date} にじどうさくじょされます。ダウンロードしてほぞんしてください。',
+    'gui.classroom.teacherDetail.retentionInline':
+        'ほぞんきげんをすぎるとこのかだいとていしゅつぶつはじどうさくじょされます。',
+    'gui.classroom.teacherDetail.retentionInlineHint': 'ダウンロードしてほぞんしてください。',
     'gui.classroom.codeDisplay.title': 'さんかコード',
     'gui.classroom.codeDisplay.copyLink': 'しょうたいリンクをコピー',
     'gui.classroom.codeDisplay.copied': 'コピーしました',

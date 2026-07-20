@@ -342,7 +342,6 @@ export default {
     'gui.classroom.board.archivedToggle': 'Archived assignments ({count})',
     'gui.classroom.board.archivedExpires': 'Kept until {date}',
     'gui.classroom.board.restore': 'Restore',
-    'gui.classroom.board.expiryBadge': '{days} days left',
     'gui.classroom.board.downloadClass': 'Download all submissions',
     'gui.classroom.shared.levelElementary': 'Elementary school',
     'gui.classroom.shared.levelJuniorHigh': 'Junior high school',
