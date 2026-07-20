@@ -298,6 +298,17 @@ export class ClassroomStack extends cdk.Stack {
       projectionType: dynamodb.ProjectionType.ALL,
     });
 
+    // 合言葉（限定公開）での取り込み（#1109）: passcode で一意ルックアップする。
+    // limited 項目のみ passcode を持つのでスパースな索引になる。
+    this.sharedAssignmentsTable.addGlobalSecondaryIndex({
+      indexName: 'passcode-index',
+      partitionKey: {
+        name: 'passcode',
+        type: dynamodb.AttributeType.STRING,
+      },
+      projectionType: dynamodb.ProjectionType.ALL,
+    });
+
     cdk.Tags.of(this.sharedAssignmentsTable).add('ResourceType', 'DynamoDB');
 
     // Reports are ephemeral moderation inputs (90-day TTL, D3).
@@ -663,6 +674,20 @@ export class ClassroomStack extends cdk.Stack {
 
     this.api.addRoutes({
       path: '/shared-assignments/{sharedId}/report',
+      methods: [apigatewayv2.HttpMethod.POST],
+      integration,
+    });
+
+    // 合言葉（限定公開）による preview / 取り込み（#1109）。POST の literal path
+    // なので GET/PATCH/DELETE の /{sharedId} ルートとは衝突しない。
+    this.api.addRoutes({
+      path: '/shared-assignments/lookup',
+      methods: [apigatewayv2.HttpMethod.POST],
+      integration,
+    });
+
+    this.api.addRoutes({
+      path: '/shared-assignments/import-by-passcode',
       methods: [apigatewayv2.HttpMethod.POST],
       integration,
     });

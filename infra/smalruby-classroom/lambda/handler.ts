@@ -3604,7 +3604,14 @@ export function buildSharedSnapshot(
 }
 
 /** Public list/detail projection — never exposes authorSub / internal keys. */
-function mapSharedSummary(item: Record<string, unknown>) {
+/**
+ * Public-facing shape of a shared assignment.
+ * @param item - the DynamoDB shared item
+ * @param opts - includePasscode echoes the 合言葉 (author-only; never in the
+ *   public catalog). visibility defaults to 'public' for pre-#1109 items.
+ * @returns the summary object sent to clients
+ */
+function mapSharedSummary(item: Record<string, unknown>, opts: { includePasscode?: boolean } = {}) {
   return {
     sharedId: item.sharedId,
     title: item.title,
@@ -3622,10 +3629,54 @@ function mapSharedSummary(item: Record<string, unknown>) {
       : 0,
     hasStarter: !!(item.content as AssignmentContent | undefined)?.starterKey,
     reuseCount: (item.reuseCount as number) || 0,
+    // 公開範囲: 'public' = みんなの課題カタログ / 'limited' = 合言葉限定公開。
+    visibility: (item.visibility as string) || 'public',
     status: item.status,
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
+    ...(opts.includePasscode && item.passcode ? { passcode: item.passcode } : {}),
   };
+}
+
+/**
+ * Generate a shared-assignment 合言葉 (passcode) unique across limited items.
+ * Reuses the join-code alphabet/length and the passcode-index GSI for the
+ * uniqueness check (same retry policy as classroom join codes).
+ * @returns a unique passcode, or '' if none was found after retries
+ */
+async function generateUniqueSharedPasscode(): Promise<string> {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const candidate = generateJoinCode();
+    const existing = await docClient.send(new QueryCommand({
+      TableName: SHARED_ASSIGNMENTS_TABLE,
+      IndexName: 'passcode-index',
+      KeyConditionExpression: 'passcode = :pc',
+      ExpressionAttributeValues: { ':pc': candidate },
+      Limit: 1,
+    }));
+    if (!existing.Items || existing.Items.length === 0) {
+      return candidate;
+    }
+  }
+  return '';
+}
+
+/**
+ * Look up a limited-published shared item by its 合言葉 (passcode).
+ * @param passcode - the 合言葉
+ * @returns the shared item, or null when no limited item matches
+ */
+async function getSharedItemByPasscode(passcode: string): Promise<Record<string, unknown> | null> {
+  const result = await docClient.send(new QueryCommand({
+    TableName: SHARED_ASSIGNMENTS_TABLE,
+    IndexName: 'passcode-index',
+    KeyConditionExpression: 'passcode = :pc',
+    ExpressionAttributeValues: { ':pc': passcode },
+    Limit: 1,
+  }));
+  const item = (result.Items && result.Items[0]) as Record<string, unknown> | undefined;
+  if (!item || item.status !== 'published' || item.visibility !== 'limited') return null;
+  return item;
 }
 
 /**
@@ -3663,9 +3714,9 @@ async function getSharedItem(sharedId: string): Promise<Record<string, unknown> 
 async function handleShareAssignment(
   identity: TeacherIdentity, body: Record<string, unknown>,
 ): Promise<APIGatewayProxyStructuredResultV2> {
-  if (body.licenseConsent !== true) {
-    throw new ValidationError('licenseConsent (CC BY 4.0) is required');
-  }
+  // 公開範囲（#1109）: 'public' = みんなの課題カタログ / 'limited' = 合言葉限定公開。
+  const visibility = body.visibility === 'limited' ? 'limited' : 'public';
+
   const title = body.title;
   if (typeof title !== 'string' || title.trim().length === 0 || title.trim().length > MAX_SHARED_TITLE_LENGTH) {
     throw new ValidationError(`title is required (at most ${MAX_SHARED_TITLE_LENGTH} characters)`);
@@ -3677,9 +3728,25 @@ async function handleShareAssignment(
     }
     summary = body.summary.trim();
   }
-  const attributes = validateSharedAttributes(body);
-  const supplementUrl = validateSupplementUrl(body.supplementUrl);
-  const profile = validateAuthorProfile(body);
+
+  // 全体公開は CC BY 同意・属性・著者名が必須。限定公開（合言葉）は内輪向けで
+  // それらは任意（後で全体公開へ広げるときに必須化する。障壁＝完璧さの圧を下げる）。
+  let attributes: Record<string, unknown> = {};
+  let profile: Record<string, unknown> = {};
+  let supplementUrl: string | null = null;
+  if (visibility === 'public') {
+    if (body.licenseConsent !== true) {
+      throw new ValidationError('licenseConsent (CC BY 4.0) is required');
+    }
+    attributes = validateSharedAttributes(body) as unknown as Record<string, unknown>;
+    supplementUrl = validateSupplementUrl(body.supplementUrl);
+    profile = validateAuthorProfile(body) as unknown as Record<string, unknown>;
+  } else {
+    supplementUrl = validateSupplementUrl(body.supplementUrl);
+    if (body.authorName !== undefined && body.authorName !== null && body.authorName !== '') {
+      profile = validateAuthorProfile(body) as unknown as Record<string, unknown>;
+    }
+  }
 
   // Source classroom: must be the teacher's own, active, with content.
   const classroomId = body.classroomId;
@@ -3730,6 +3797,14 @@ async function handleShareAssignment(
   }
 
   const now = new Date().toISOString();
+  // 限定公開は合言葉（参加コード同型）を発行。全体公開は発行しない。
+  let passcode = '';
+  if (visibility === 'limited') {
+    passcode = await generateUniqueSharedPasscode();
+    if (!passcode) {
+      return { statusCode: 500, body: JSON.stringify({ error: 'Failed to generate a unique passcode' }) };
+    }
+  }
   const item: Record<string, unknown> = {
     sharedId,
     title: title.trim(),
@@ -3739,6 +3814,8 @@ async function handleShareAssignment(
     ...attributes,
     ...profile,
     authorSub: identity.sub,
+    visibility,
+    ...(passcode ? { passcode } : {}),
     status: 'published',
     reuseCount: 0,
     createdAt: now,
@@ -3749,7 +3826,7 @@ async function handleShareAssignment(
     Item: item,
   }));
 
-  return { statusCode: 201, body: JSON.stringify(mapSharedSummary(item)) };
+  return { statusCode: 201, body: JSON.stringify(mapSharedSummary(item, { includePasscode: true })) };
 }
 
 async function handleListSharedAssignments(
@@ -3784,6 +3861,13 @@ async function handleListSharedAssignments(
     filterParts.push('contains(#tg, :tg)');
     names['#tg'] = 'tags';
     values[':tg'] = query.tag;
+  }
+  // 公開カタログ（mine 以外）は限定公開（合言葉）を除外する。#1109 より前の
+  // 項目は visibility 属性を持たないので「公開」とみなす。mine は両方見せる。
+  if (!mine) {
+    filterParts.push('(attribute_not_exists(#vis) OR #vis = :pub)');
+    names['#vis'] = 'visibility';
+    values[':pub'] = 'public';
   }
 
   let exclusiveStartKey: Record<string, unknown> | undefined;
@@ -3822,7 +3906,8 @@ async function handleListSharedAssignments(
   return {
     statusCode: 200,
     body: JSON.stringify({
-      items: (result.Items || []).map(mapSharedSummary),
+      // mine の一覧は自分の項目なので合言葉を含める（限定公開の共有に使う）。
+      items: (result.Items || []).map((it) => mapSharedSummary(it, { includePasscode: mine })),
       cursor,
     }),
   };
@@ -3832,8 +3917,11 @@ async function handleGetSharedAssignment(
   identity: TeacherIdentity, sharedId: string,
 ): Promise<APIGatewayProxyStructuredResultV2> {
   const item = await getSharedItem(sharedId);
-  // Existence-hiding 404; the author may still view their own unlisted item.
-  if (!item || (item.status !== 'published' && item.authorSub !== identity.sub)) {
+  // Existence-hiding 404. The author may view their own unlisted item.
+  // 限定公開（合言葉）は sharedId を知っていても著者以外には見せない
+  // （非著者は合言葉ルックアップ経由でのみ取り込む）。
+  const isMine = !!item && item.authorSub === identity.sub;
+  if (!item || (!isMine && (item.status !== 'published' || item.visibility === 'limited'))) {
     throw new NotFoundError('Shared assignment not found');
   }
 
@@ -3859,10 +3947,10 @@ async function handleGetSharedAssignment(
   return {
     statusCode: 200,
     body: JSON.stringify({
-      ...mapSharedSummary(item),
+      ...mapSharedSummary(item, { includePasscode: isMine }),
       pages,
       starterUrl,
-      isMine: item.authorSub === identity.sub,
+      isMine,
     }),
   };
 }
@@ -3871,10 +3959,27 @@ async function handleImportSharedAssignment(
   identity: TeacherIdentity, sharedId: string, body: Record<string, unknown>,
 ): Promise<APIGatewayProxyStructuredResultV2> {
   const item = await getSharedItem(sharedId);
-  if (!item || item.status !== 'published') {
+  // 全体公開のみ sharedId で取り込める。限定公開（合言葉）は
+  // handleImportByPasscode 経由でのみ取り込む（sharedId は非著者に露出しない）。
+  if (!item || item.status !== 'published' || item.visibility === 'limited') {
     throw new NotFoundError('Shared assignment not found');
   }
+  return importSharedItem(identity, item, body);
+}
 
+/**
+ * Import a resolved shared item into one of the caller's classes as a new
+ * assignment. Copies content into the classroom bucket, mints a fresh join
+ * code, and bumps reuseCount. Shared by sharedId-import and passcode-import.
+ * @param identity - the importing teacher
+ * @param item - the resolved shared assignment item
+ * @param body - request body (groupId required, assignmentName optional)
+ * @returns the created classroom summary
+ */
+async function importSharedItem(
+  identity: TeacherIdentity, item: Record<string, unknown>, body: Record<string, unknown>,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const sharedId = item.sharedId as string;
   const groupId = body.groupId;
   if (typeof groupId !== 'string' || !groupId) {
     throw new ValidationError('groupId is required');
@@ -3971,6 +4076,44 @@ async function handleImportSharedAssignment(
   };
 }
 
+/**
+ * Look up a limited-published shared assignment by 合言葉 for a preview/confirm
+ * step. Does not expose the sharedId (import re-supplies the passcode), so the
+ * passcode remains the only access token to a limited item.
+ * @param identity - the requesting teacher
+ * @param body - request body ({ passcode })
+ * @returns the shared summary (no sharedId, no passcode echoed)
+ */
+async function handleLookupSharedByPasscode(
+  identity: TeacherIdentity, body: Record<string, unknown>,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const passcode = validateJoinCode(body.passcode);
+  const item = await getSharedItemByPasscode(passcode);
+  if (!item) {
+    throw new NotFoundError('Shared assignment not found');
+  }
+  const { sharedId: _omit, ...summary } = mapSharedSummary(item);
+  return { statusCode: 200, body: JSON.stringify(summary) };
+}
+
+/**
+ * Import a limited-published shared assignment by 合言葉 (内輪取り込み).
+ * The passcode is the authorization; the sharedId is never surfaced.
+ * @param identity - the importing teacher
+ * @param body - request body ({ passcode, groupId, assignmentName? })
+ * @returns the created classroom summary
+ */
+async function handleImportSharedByPasscode(
+  identity: TeacherIdentity, body: Record<string, unknown>,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const passcode = validateJoinCode(body.passcode);
+  const item = await getSharedItemByPasscode(passcode);
+  if (!item) {
+    throw new NotFoundError('Shared assignment not found');
+  }
+  return importSharedItem(identity, item, body);
+}
+
 async function handleUpdateSharedAssignment(
   identity: TeacherIdentity, sharedId: string, body: Record<string, unknown>,
 ): Promise<APIGatewayProxyStructuredResultV2> {
@@ -4023,6 +4166,41 @@ async function handleUpdateSharedAssignment(
       throw new ValidationError('Status must be "published" or "unlisted"');
     }
     updates.status = body.status;
+  }
+
+  // 公開範囲の変更（#1109）。限定公開 → 全体公開に広げるときは、全体公開に
+  // 必要な属性・著者名・CC BY 同意（body か既存値）が揃っていることを要求する。
+  if (body.visibility !== undefined) {
+    if (body.visibility !== 'public' && body.visibility !== 'limited') {
+      throw new ValidationError('visibility must be "public" or "limited"');
+    }
+    const currentVisibility = (item.visibility as string) || 'public';
+    if (body.visibility === 'public' && currentVisibility !== 'public') {
+      if (body.licenseConsent !== true) {
+        throw new ValidationError('licenseConsent (CC BY 4.0) is required to make it public');
+      }
+      Object.assign(updates, validateSharedAttributes({
+        schoolLevel: body.schoolLevel ?? item.schoolLevel,
+        subject: body.subject ?? item.subject,
+        grades: body.grades ?? item.grades,
+        tags: body.tags ?? item.tags,
+        lessonCount: body.lessonCount ?? item.lessonCount,
+      } as Record<string, unknown>));
+      Object.assign(updates, validateAuthorProfile({
+        authorName: body.authorName ?? item.authorName,
+        authorAffiliation: body.authorAffiliation ?? item.authorAffiliation,
+      }));
+      updates.visibility = 'public';
+    } else if (body.visibility === 'limited' && currentVisibility !== 'limited') {
+      updates.visibility = 'limited';
+      if (!item.passcode) {
+        const pc = await generateUniqueSharedPasscode();
+        if (!pc) {
+          return { statusCode: 500, body: JSON.stringify({ error: 'Failed to generate a unique passcode' }) };
+        }
+        updates.passcode = pc;
+      }
+    }
   }
 
   // Optional content re-snapshot (D10, overwrite semantics): pull the
@@ -4096,7 +4274,10 @@ async function handleUpdateSharedAssignment(
     ReturnValues: 'ALL_NEW',
   }));
 
-  return { statusCode: 200, body: JSON.stringify(mapSharedSummary(result.Attributes || {})) };
+  return {
+    statusCode: 200,
+    body: JSON.stringify(mapSharedSummary(result.Attributes || {}, { includePasscode: true })),
+  };
 }
 
 async function handleUnlistSharedAssignment(
@@ -4203,6 +4384,16 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
       const token = extractBearerToken(event.headers?.authorization);
       const identity = await verifyTeacherIdToken(token);
       result = await handleShareAssignment(identity, body);
+
+    } else if (method === 'POST' && path === '/shared-assignments/lookup') {
+      const token = extractBearerToken(event.headers?.authorization);
+      const identity = await verifyTeacherIdToken(token);
+      result = await handleLookupSharedByPasscode(identity, body);
+
+    } else if (method === 'POST' && path === '/shared-assignments/import-by-passcode') {
+      const token = extractBearerToken(event.headers?.authorization);
+      const identity = await verifyTeacherIdToken(token);
+      result = await handleImportSharedByPasscode(identity, body);
 
     } else if (method === 'GET' && path === '/shared-assignments') {
       const token = extractBearerToken(event.headers?.authorization);

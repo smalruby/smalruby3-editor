@@ -106,6 +106,14 @@ const publishedItem = {
   updatedAt: '2026-07-18T00:00:00.000Z',
 };
 
+// 合言葉限定公開の項目（#1109）。他人の限定公開を合言葉で内輪取り込みする想定。
+const limitedItem = {
+  ...publishedItem,
+  visibility: 'limited',
+  passcode: 'abc234',
+  status: 'published',
+};
+
 describe('みんなの課題 (issue #1068)', () => {
   let handler: (event: unknown) => Promise<{ statusCode?: number; body?: string }>;
   let validateSharedAttributes: (body: Record<string, unknown>) => Record<string, unknown>;
@@ -309,7 +317,11 @@ describe('みんなの課題 (issue #1068)', () => {
         query: { schoolLevel: 'junior-high', subject: '技術・家庭（技術分野）', grade: '2', tag: '甲子園' },
       }));
 
-      expect(captured?.FilterExpression).toBe('#sl = :sl AND #sub = :sub AND contains(#gr, :gr) AND contains(#tg, :tg)');
+      // 公開カタログは限定公開（合言葉）を除外する句が末尾に付く（#1109）。
+      expect(captured?.FilterExpression).toBe(
+        '#sl = :sl AND #sub = :sub AND contains(#gr, :gr) AND contains(#tg, :tg) AND ' +
+        '(attribute_not_exists(#vis) OR #vis = :pub)',
+      );
       expect((captured?.ExpressionAttributeValues as Record<string, unknown>)[':gr']).toBe(2);
     });
 
@@ -429,6 +441,129 @@ describe('みんなの課題 (issue #1068)', () => {
         token: DEV_TOKEN, body: { groupId: 'g1' },
       }));
       expect(res.statusCode).toBe(404);
+    });
+  });
+
+  describe('限定公開・合言葉 (#1109)', () => {
+    test('限定公開は同意なしで発行され、passcode と visibility を返す', async () => {
+      mockSend.mockImplementation(async (command: { constructor: { name: string } }) => {
+        const name = command.constructor.name;
+        if (name === 'GetCommand') return { Item: ownClassroom };
+        if (name === 'UpdateCommand') return { Attributes: { count: 1 } };
+        if (name === 'QueryCommand') return { Items: [] }; // passcode uniqueness
+        return {};
+      });
+      const res = await handler(makeEvent('POST', '/shared-assignments', {}, {
+        token: DEV_TOKEN, body: { classroomId: 'c1', title: 'ためし課題', visibility: 'limited' },
+      }));
+      expect(res.statusCode).toBe(201);
+      const pub = JSON.parse(res.body as string);
+      expect(pub.visibility).toBe('limited');
+      expect(typeof pub.passcode).toBe('string');
+      expect(pub.passcode).toHaveLength(6);
+      const put = mockSend.mock.calls.find((c) => c[0]?.constructor?.name === 'PutCommand');
+      expect((put?.[0].input.Item as Record<string, unknown>).visibility).toBe('limited');
+      expect((put?.[0].input.Item as Record<string, unknown>).passcode).toBe(pub.passcode);
+    });
+
+    test('公開カタログは限定公開を除外する FilterExpression を持つ', async () => {
+      let captured: Record<string, unknown> | undefined;
+      mockSend.mockImplementation(async (command: { input?: Record<string, unknown> }) => {
+        captured = command.input;
+        return { Items: [] };
+      });
+      await handler(makeEvent('GET', '/shared-assignments', {}, { token: DEV_TOKEN }));
+      expect(captured?.FilterExpression).toContain('attribute_not_exists(#vis) OR #vis = :pub');
+      expect((captured?.ExpressionAttributeValues as Record<string, unknown>)[':pub']).toBe('public');
+    });
+
+    test('mine=1 は自分の限定公開の合言葉を含める', async () => {
+      mockSend.mockImplementation(async () => ({
+        Items: [{ ...limitedItem, authorSub: 'dev-test-teacher' }],
+      }));
+      const res = await handler(makeEvent('GET', '/shared-assignments', {}, {
+        token: DEV_TOKEN, query: { mine: '1' },
+      }));
+      const { items } = JSON.parse(res.body as string);
+      expect(items[0].visibility).toBe('limited');
+      expect(items[0].passcode).toBe('abc234');
+    });
+
+    test('合言葉ルックアップは summary を返し sharedId / passcode は出さない', async () => {
+      mockSend.mockImplementation(async (command: { constructor: { name: string } }) => {
+        if (command.constructor.name === 'QueryCommand') return { Items: [limitedItem] };
+        return {};
+      });
+      const res = await handler(makeEvent('POST', '/shared-assignments/lookup', {}, {
+        token: DEV_TOKEN, body: { passcode: 'abc234' },
+      }));
+      expect(res.statusCode).toBe(200);
+      const s = JSON.parse(res.body as string);
+      expect(s.title).toBe(limitedItem.title);
+      expect(s.sharedId).toBeUndefined();
+      expect(s.passcode).toBeUndefined();
+    });
+
+    test('合言葉取り込みはクラスを作成し reuseCount を増やす', async () => {
+      mockSend.mockImplementation(async (command: {
+        constructor: { name: string }; input?: Record<string, unknown>;
+      }) => {
+        const name = command.constructor.name;
+        const idx = command.input?.IndexName;
+        if (name === 'QueryCommand' && idx === 'passcode-index') return { Items: [limitedItem] };
+        if (name === 'QueryCommand' && idx === 'joinCode-index') return { Items: [] };
+        if (name === 'GetCommand') {
+          return { Item: { groupId: 'g1', teacherSub: 'dev-test-teacher', name: '2年1組', studentCount: 32 } };
+        }
+        return {};
+      });
+      const res = await handler(makeEvent('POST', '/shared-assignments/import-by-passcode', {}, {
+        token: DEV_TOKEN, body: { passcode: 'abc234', groupId: 'g1' },
+      }));
+      expect(res.statusCode).toBe(201);
+      const created = JSON.parse(res.body as string);
+      expect(created.className).toBe('2年1組');
+      expect(commandNames()).toContain('PutCommand');
+      expect(commandNames()).toContain('UpdateCommand');
+    });
+
+    test('不明な合言葉は 404', async () => {
+      mockSend.mockImplementation(async (command: { constructor: { name: string } }) => {
+        if (command.constructor.name === 'QueryCommand') return { Items: [] };
+        return {};
+      });
+      const res = await handler(makeEvent('POST', '/shared-assignments/import-by-passcode', {}, {
+        token: DEV_TOKEN, body: { passcode: 'zzz999', groupId: 'g1' },
+      }));
+      expect(res.statusCode).toBe(404);
+    });
+
+    test('限定公開は sharedId を知っていても非著者には 404', async () => {
+      mockSend.mockResolvedValue({ Item: limitedItem }); // authorSub 'someone-else'
+      const res = await handler(makeEvent('GET', '/shared-assignments/s1', { sharedId: 's1' }, {
+        token: DEV_TOKEN,
+      }));
+      expect(res.statusCode).toBe(404);
+    });
+
+    test('限定公開→全体公開は同意が無ければ 400、あれば 200', async () => {
+      const mine = { ...limitedItem, authorSub: 'dev-test-teacher' };
+      mockSend.mockImplementation(async (command: { constructor: { name: string } }) => {
+        const name = command.constructor.name;
+        if (name === 'GetCommand') return { Item: mine };
+        if (name === 'UpdateCommand') return { Attributes: { ...mine, visibility: 'public' } };
+        if (name === 'QueryCommand') return { Items: [] };
+        return {};
+      });
+      const noConsent = await handler(makeEvent('PATCH', '/shared-assignments/s1', { sharedId: 's1' }, {
+        token: DEV_TOKEN, body: { visibility: 'public' },
+      }));
+      expect(noConsent.statusCode).toBe(400);
+
+      const withConsent = await handler(makeEvent('PATCH', '/shared-assignments/s1', { sharedId: 's1' }, {
+        token: DEV_TOKEN, body: { visibility: 'public', licenseConsent: true },
+      }));
+      expect(withConsent.statusCode).toBe(200);
     });
   });
 
