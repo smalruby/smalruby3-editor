@@ -278,32 +278,37 @@
     margin: 0.3rem 0;
 }
 
-/* 課題名（左）と参加コード（右）を均等幅 2 カラムに分け、各カラムを
-   2 行に収める。参加コードが縦に伸びて全体が崩れるのを防ぐ。 */
+/* 課題名（左）と参加コード（右）を均等幅 2 カラムに分ける。両カラムは
+   stretch で高さが揃うので、課題名入力の高さは参加コードカードに一致する。
+   幅が足りず参加コードカードが 340px を割り込むと、行が折り返して参加コード
+   カードは単独行（フル幅）になり、狭いウインドウでも 2 行に収まる。 */
 .name-code-row {
     display: flex;
+    flex-wrap: wrap;
     gap: 0.5rem;
     align-items: stretch;
     margin: 0.3rem 0;
 }
 
-/* 課題名: ラベルと 2 行入力を横並び。入力が 2 行あるのでラベルは縦中央。 */
+/* 課題名: ラベルと 2 行入力を横並び。ラベルは縦中央、入力はカラム（=カード）
+   高さいっぱいに伸ばして参加コードカードと高さを揃える。 */
 .name-col {
-    flex: 1 1 0;
+    flex: 1 1 340px;
     min-width: 0;
     display: flex;
     flex-direction: row;
-    align-items: center;
+    align-items: stretch;
     gap: 0.3rem;
 }
 
 .name-col .assignment-name-label {
     flex: 0 0 auto;
+    align-self: center;
     white-space: nowrap;
 }
 
-/* 課題名は 2 行分の入力領域（長い名前が折り返して見える）。単一行の値なので
-   monospace を避け、リサイズは無効。 */
+/* 課題名は 2 行分の入力領域（長い名前が折り返して見える）。カード高さに
+   合わせて縦に伸びる。単一行の値なので monospace を避け、リサイズは無効。 */
 .name-col .assignment-name-input {
     flex: 1 1 auto;
     min-width: 0;
@@ -315,69 +320,34 @@
     overflow-y: auto;
 }
 
-/* 参加コードカード (redesign): 右カラム。行1 = コード + 全画面、
-   行2 = 招待リンク / Google Classroom 共有。 */
+/* 参加コードカード (redesign): 右カラム。コードと 3 つのボタンを 1 つの
+   flex flow に並べ、同じ行から始めることで（幅が足りなくても）2 行に収める。 */
 .join-code-card {
-    flex: 1 1 0;
+    flex: 1 1 340px;
     min-width: 0;
     container-type: inline-size;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem 0.4rem;
     background-color: #f2f2f2;
     border: 2px dashed #d9d9d9;
     border-radius: 8px;
     padding: 0.4rem 0.5rem;
 }
 
-.join-code-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
-    gap: 0.3rem;
-    margin-bottom: 0.4rem;
-}
-
-/* ボタンは最初から flex-wrap。幅が足りなければ 2 行に折り返す。 */
-.join-code-actions {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 0.4rem;
-}
-
-.join-code-action {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-}
-
-.join-code-icon {
+/* 参加コード（ラベル + 値）は折り返さず 1 単位として先頭に置く。 */
+.join-code-codepart {
     flex: 0 0 auto;
     display: inline-flex;
-    align-items: center;
-}
-
-/* 狭い幅では表示領域を確保する（カード自身の幅で切り替える container query）:
-   - 全画面表示 / 招待リンクをコピー はアイコンのみ
-   - Google Classroom 共有は "Google Classroom" を省略 */
-.join-code-gc-short {
-    display: none;
-}
-
-@container (max-width: 460px) {
-    .join-code-btn-label {
-        display: none;
-    }
-
-    .join-code-gc-full {
-        display: none;
-    }
-
-    .join-code-gc-short {
-        display: inline;
-    }
+    align-items: baseline;
+    gap: 0.2rem;
+    white-space: nowrap;
 }
 
 .join-code-action {
+    flex: 0 0 auto;
     display: inline-flex;
     align-items: center;
     gap: 0.25rem;
@@ -409,9 +379,15 @@
     background-color: #d6e7ff;
 }
 
-/* 値はラベルと同サイズに（ボールド・色は維持）。カードを 2 行に収めるため。 */
+.join-code-icon {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+}
+
+/* 値・ラベルは課題名ラベル (1rem) と同サイズ（値はボールド・色を維持）。 */
 .join-code-value {
-    font-size: 0.75rem;
+    font-size: 1rem;
     font-weight: bold;
     font-family: monospace;
     letter-spacing: 0.15em;
@@ -420,15 +396,37 @@
     cursor: text;
 }
 
+.join-code-label {
+    font-size: 1rem;
+    color: #575e75;
+}
+
+/* 狭い幅（カードが小さく 3 行になりそうなとき）は表示領域を確保する
+   （カード自身の幅で切り替える container query）:
+   - 全画面表示 / 招待リンクをコピー はアイコンのみ
+   - Google Classroom 共有は "Google Classroom" を省略 */
+.join-code-gc-short {
+    display: none;
+}
+
+@container (max-width: 440px) {
+    .join-code-btn-label {
+        display: none;
+    }
+
+    .join-code-gc-full {
+        display: none;
+    }
+
+    .join-code-gc-short {
+        display: inline;
+    }
+}
+
 .expires-at-text {
     font-size: 0.8rem;
     color: #999;
     margin: 0.25rem 0 0.5rem;
-}
-
-.join-code-label {
-    font-size: 0.75rem;
-    color: #575e75;
 }
 
 .assignment-name-label {

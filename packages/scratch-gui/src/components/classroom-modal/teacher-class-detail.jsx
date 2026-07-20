@@ -263,11 +263,12 @@ const TeacherClassDetail = ({
                                     />
                                 </div>
 
-                                {/* 右: 参加コードカード
-                                    行1: 参加コード: xxxxxx（値はラベルと同サイズ）
-                                    行2: ボタン群を flex-wrap（狭ければアイコンのみ／2 行折返し） */}
+                                {/* 右: 参加コードカード。コードとボタンを 1 つの
+                                    flex flow に並べ、同じ行から始めることで 3 つの
+                                    ボタンが 2 行に収まる。狭い幅では全画面表示・招待
+                                    リンクコピーをアイコンのみ、GC 共有を短縮表示。 */}
                                 <div className={styles.joinCodeCard}>
-                                    <div className={styles.joinCodeRow}>
+                                    <span className={styles.joinCodeCodePart}>
                                         <span className={styles.joinCodeLabel}>
                                             <FormattedMessage
                                                 defaultMessage="Join Code"
@@ -282,9 +283,8 @@ const TeacherClassDetail = ({
                                         >
                                             {selectedClassroom.joinCode.toLowerCase()}
                                         </span>
-                                    </div>
-                                    <div className={styles.joinCodeActions}>
-                                        <button
+                                    </span>
+                                    <button
                                             className={styles.joinCodeAction}
                                             data-testid="classroom-detail-expand-code"
                                             type="button"
@@ -403,7 +403,6 @@ const TeacherClassDetail = ({
                                                     </span>
                                                 </button>
                                             ))}
-                                    </div>
                                 </div>
                             </div>
                             {selectedClassroom.expiresAt && (
