@@ -318,7 +318,6 @@ export default {
     'gui.classroom.assignmentEditor.errorStarterSave': 'Failed to save the current project as starter',
     'gui.classroom.postAssignment.title': 'Post Assignment',
     'gui.classroom.postAssignment.pageTitle': 'Post Assignment to Google Classroom',
-    'gui.classroom.postAssignment.target': 'Target: {className}',
     'gui.classroom.postAssignment.titleLabel': 'Title:',
     'gui.classroom.postAssignment.descriptionLabel': 'Assignment details (optional)',
     'gui.classroom.postAssignment.hint':

@@ -140,6 +140,7 @@
     font-size: 0.9rem;
     cursor: pointer;
     font-weight: bold;
+    text-decoration: none;
 }
 
 .primary-button:hover {
@@ -517,16 +518,10 @@
     background-color: #e9f0ff;
 }
 
-.success-message {
-    color: #0fbd8c;
-    font-weight: bold;
-    text-align: center;
-    padding: 2rem 0;
-    font-size: 1.1rem;
-}
-
+/* クラス名（課題詳細と同じ表記）を配信画面のサブタイトルとして表示。 */
 .post-assignment-target {
-    font-size: 0.9rem;
+    font-size: 1rem;
+    font-weight: bold;
     color: #575e75;
     margin-bottom: 1rem;
 }
@@ -539,20 +534,22 @@
     margin-bottom: 1rem;
 }
 
-.post-assignment-success-area {
-    text-align: center;
-    padding: 2rem 0;
+/* 配信後の成功タイトル（基本レイアウトに合わせ左寄せ・緑で強調）。 */
+.post-assignment-success-title {
+    color: #0fbd8c;
+    font-weight: bold;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
 }
 
-.post-assignment-actions {
-    margin-bottom: 1rem;
-}
-
-.post-assignment-hint-center {
-    font-size: 0.8rem;
-    color: #888;
-    line-height: 1.5;
-    text-align: center;
+/* フォーム下部の共通フッター: キャンセル（左）+ プライマリー（右）。
+   クラス管理の各入力フォームで共有するポリシー（プライマリー右下）。 */
+.form-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
 }
 
 .class-item-main {

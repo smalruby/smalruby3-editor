@@ -41,6 +41,11 @@ const messagesBreadcrumbs = defineMessages({
         description: 'Breadcrumb label of the assignment detail view',
         id: 'gui.classroom.breadcrumbs.assignmentDetail',
     },
+    shareGc: {
+        defaultMessage: 'Share to Google Classroom',
+        description: 'Breadcrumb label of the Google Classroom share view',
+        id: 'gui.classroom.breadcrumbs.shareGc',
+    },
 });
 
 const messages = defineMessages({
@@ -321,14 +326,39 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
 
         if (phase === 'teacher-post-assignment') {
             return (
-                <TeacherPostAssignment
-                    error={error}
-                    errorTitle={errorTitle}
-                    isLoading={isLoading}
-                    selectedClassroom={selectedClassroom}
-                    onBack={onBackToDetail}
-                    onPostAssignment={onPostAssignment}
-                />
+                <div className={styles.mainRelative}>
+                    <div className={styles.detailBreadcrumbs}>
+                        <TeacherBreadcrumbs
+                            items={[
+                                {
+                                    label: intl.formatMessage(messagesBreadcrumbs.classList),
+                                    onClick: onShowClassList,
+                                    testId: 'classroom-breadcrumb-class-list',
+                                },
+                                {
+                                    label: intl.formatMessage(messagesBreadcrumbs.assignments),
+                                    onClick: onBackToDashboard,
+                                    testId: 'classroom-breadcrumb-assignments',
+                                },
+                                {
+                                    label: intl.formatMessage(messagesBreadcrumbs.assignmentDetail),
+                                    onClick: onBackToDetail,
+                                    testId: 'classroom-breadcrumb-assignment-detail',
+                                },
+                                { label: intl.formatMessage(messagesBreadcrumbs.shareGc) },
+                            ]}
+                        />
+                    </div>
+                    <TeacherPostAssignment
+                        error={error}
+                        errorTitle={errorTitle}
+                        group={selectedGroup}
+                        isLoading={isLoading}
+                        selectedClassroom={selectedClassroom}
+                        onBack={onBackToDetail}
+                        onPostAssignment={onPostAssignment}
+                    />
+                </div>
             );
         }
 
