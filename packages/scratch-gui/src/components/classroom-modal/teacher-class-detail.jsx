@@ -1,5 +1,5 @@
 import classNames from 'classnames';
-import { FormattedMessage } from 'react-intl';
+import { FormattedMessage, useIntl } from 'react-intl';
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -159,6 +159,8 @@ const TeacherClassDetail = ({
 
 
 
+    const intl = useIntl();
+
     const handleShowCode = useCallback(() => {
         setShowCodeDisplay(true);
         onShowCodeDisplay(selectedClassroom.classroomId);
@@ -284,67 +286,81 @@ const TeacherClassDetail = ({
                                             {selectedClassroom.joinCode.toLowerCase()}
                                         </span>
                                     </span>
+                                    {/* 全画面表示: 幅に関わらずアイコンのみ（tooltip でラベル補足） */}
                                     <button
                                             className={styles.joinCodeAction}
                                             data-testid="classroom-detail-expand-code"
+                                            title={intl.formatMessage({
+                                                id: 'gui.classroom.joinCode.fullscreen',
+                                                defaultMessage: 'Show fullscreen',
+                                                description: 'Fullscreen the join code',
+                                            })}
                                             type="button"
                                             onClick={handleShowCode}
                                         >
                                             <span className={styles.joinCodeIcon}>{'⛶'}</span>
-                                            <span className={styles.joinCodeBtnLabel}>
-                                                <FormattedMessage
-                                                    defaultMessage="Show fullscreen"
-                                                    description="Fullscreen the join code"
-                                                    id="gui.classroom.joinCode.fullscreen"
-                                                />
-                                            </span>
                                         </button>
+                                        {/* 招待リンクをコピー: アイコンのみ。クリックすると
+                                            アイコンがチェックに変わり、コピー完了を示す。 */}
                                         <button
-                                            className={styles.joinCodeAction}
+                                            className={classNames(styles.joinCodeAction, {
+                                                [styles.joinCodeActionCopied]: inviteCopied,
+                                            })}
                                             data-testid="classroom-detail-copy-link"
+                                            title={intl.formatMessage(
+                                                inviteCopied
+                                                    ? {
+                                                          id: 'gui.classroom.codeDisplay.copied',
+                                                          defaultMessage: 'Copied',
+                                                          description: 'Confirmation after copying invite link',
+                                                      }
+                                                    : {
+                                                          id: 'gui.classroom.codeDisplay.copyLink',
+                                                          defaultMessage: 'Copy invite link',
+                                                          description: 'Button to copy classroom invite link',
+                                                      },
+                                            )}
                                             type="button"
                                             onClick={handleCopyInvite}
                                         >
-                                            <svg
-                                                className={styles.joinCodeIcon}
-                                                fill="none"
-                                                height="15"
-                                                stroke="currentColor"
-                                                strokeWidth="2"
-                                                viewBox="0 0 24 24"
-                                                width="15"
-                                            >
-                                                <rect
-                                                    height="13"
-                                                    rx="2"
-                                                    ry="2"
-                                                    width="13"
-                                                    x="9"
-                                                    y="9"
-                                                />
-                                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                                            </svg>
-                                            <span className={styles.joinCodeBtnLabel}>
-                                                {inviteCopied ? (
-                                                    <FormattedMessage
-                                                        defaultMessage="Copied"
-                                                        description="Confirmation after copying invite link"
-                                                        id="gui.classroom.codeDisplay.copied"
+                                            {inviteCopied ? (
+                                                <svg
+                                                    className={styles.joinCodeIcon}
+                                                    fill="none"
+                                                    height="15"
+                                                    stroke="currentColor"
+                                                    strokeWidth="2.5"
+                                                    viewBox="0 0 24 24"
+                                                    width="15"
+                                                >
+                                                    <path d="M20 6L9 17l-5-5" />
+                                                </svg>
+                                            ) : (
+                                                <svg
+                                                    className={styles.joinCodeIcon}
+                                                    fill="none"
+                                                    height="15"
+                                                    stroke="currentColor"
+                                                    strokeWidth="2"
+                                                    viewBox="0 0 24 24"
+                                                    width="15"
+                                                >
+                                                    <rect
+                                                        height="13"
+                                                        rx="2"
+                                                        ry="2"
+                                                        width="13"
+                                                        x="9"
+                                                        y="9"
                                                     />
-                                                ) : (
-                                                    <FormattedMessage
-                                                        defaultMessage="Copy invite link"
-                                                        description="Button to copy classroom invite link"
-                                                        id="gui.classroom.codeDisplay.copyLink"
-                                                    />
-                                                )}
-                                            </span>
+                                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                                                </svg>
+                                            )}
                                         </button>
                                         {/* Google Classroom linkage lives on the class
                                             (group), so an assignment posts to the group's
-                                            course even without its own courseId. 狭い幅では
-                                            "Google Classroom" を省いて "…に参加コードを共有"
-                                            にし、表示領域を確保する（CSS の media query）。 */}
+                                            course even without its own courseId. ボタンは
+                                            幅に関わらず "[アイコン]に共有" の短縮表示で固定。 */}
                                         {(selectedClassroom.googleClassroomCourseId ||
                                             (group && group.googleClassroomCourseId)) &&
                                             (selectedClassroom.googleClassroomAlternateLink ? (
@@ -360,14 +376,7 @@ const TeacherClassDetail = ({
                                                         className={styles.gcImportIcon}
                                                         src={googleClassroomIcon}
                                                     />
-                                                    <span className={styles.joinCodeGcFull}>
-                                                        <FormattedMessage
-                                                            defaultMessage="Open in Google Classroom"
-                                                            description="Open the posted assignment on Google Classroom"
-                                                            id="gui.classroom.joinCode.openInGc"
-                                                        />
-                                                    </span>
-                                                    <span className={styles.joinCodeGcShort}>
+                                                    <span className={styles.joinCodeGcLabel}>
                                                         <FormattedMessage
                                                             defaultMessage="Open"
                                                             description="Short label (icon shows Google Classroom) to open the assignment"
@@ -387,14 +396,7 @@ const TeacherClassDetail = ({
                                                         className={styles.gcImportIcon}
                                                         src={googleClassroomIcon}
                                                     />
-                                                    <span className={styles.joinCodeGcFull}>
-                                                        <FormattedMessage
-                                                            defaultMessage="Share join code to Google Classroom"
-                                                            description="Post the join code to Google Classroom for students"
-                                                            id="gui.classroom.joinCode.shareToGc"
-                                                        />
-                                                    </span>
-                                                    <span className={styles.joinCodeGcShort}>
+                                                    <span className={styles.joinCodeGcLabel}>
                                                         <FormattedMessage
                                                             defaultMessage="Share join code"
                                                             description="Short label (icon shows Google Classroom) to share the join code"

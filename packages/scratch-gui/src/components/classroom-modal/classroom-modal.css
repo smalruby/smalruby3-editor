@@ -379,6 +379,17 @@
     background-color: #d6e7ff;
 }
 
+/* コピー完了のリアクション: アイコンがチェックに変わり緑で強調 */
+.join-code-action-copied {
+    border-color: #4caf50;
+    background-color: #eafaea;
+    color: #4caf50;
+}
+
+.join-code-action-copied:hover {
+    background-color: #d9f5d9;
+}
+
 .join-code-icon {
     flex: 0 0 auto;
     display: inline-flex;
@@ -401,26 +412,11 @@
     color: #575e75;
 }
 
-/* 狭い幅（カードが小さく 3 行になりそうなとき）は表示領域を確保する
-   （カード自身の幅で切り替える container query）:
-   - 全画面表示 / 招待リンクをコピー はアイコンのみ
-   - Google Classroom 共有は "Google Classroom" を省略 */
-.join-code-gc-short {
-    display: none;
-}
-
-@container (max-width: 440px) {
-    .join-code-btn-label {
-        display: none;
-    }
-
-    .join-code-gc-full {
-        display: none;
-    }
-
-    .join-code-gc-short {
-        display: inline;
-    }
+/* 全画面表示・招待リンクコピーは幅に関わらずアイコンのみ、Google Classroom
+   共有は "[アイコン]に共有" の短縮表示で固定。ラベル切り替えの container query
+   は廃止し、常にコンパクトにしてレイアウト崩れを防ぐ。 */
+.join-code-gc-label {
+    font-size: 0.85rem;
 }
 
 .expires-at-text {
