@@ -49,7 +49,7 @@ const TeacherPostAssignment = ({
 
     return (
         <div
-            className={styles.phaseContainer}
+            className={styles.postAssignmentContainer}
             data-testid="classroom-phase-teacher-post-assignment"
         >
             {posted ? (

@@ -518,6 +518,13 @@
     background-color: #e9f0ff;
 }
 
+/* 配信画面の本文コンテナ。課題詳細（.detail-layout）と同じ左右オフセットに
+   合わせる（上端はパンくずラッパーが持つ）。旧 .phaseContainer は未定義で
+   左マージンが出ていなかったため専用クラスに置き換え。 */
+.post-assignment-container {
+    padding: 0 2rem 1.25rem;
+}
+
 /* クラス名（課題詳細と同じ表記）を配信画面のサブタイトルとして表示。 */
 .post-assignment-target {
     font-size: 1rem;
