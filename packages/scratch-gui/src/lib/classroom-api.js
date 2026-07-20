@@ -330,14 +330,39 @@ class ClassroomAPI {
 
     /**
      * Publish one of the teacher's assignments to the shared library.
+     * `visibility: 'limited'` (#1109) shares as 合言葉限定公開 with light
+     * validation and returns a passcode; 'public' (default) is the みんなの課題
+     * catalog and requires the full metadata + CC BY consent.
      * @param {string} idToken - Teacher ID token
-     * @param {object} payload - {classroomId, title, summary?, schoolLevel,
-     *     grades?, subject, tags?, lessonCount?, supplementUrl?, authorName,
-     *     authorAffiliation?, licenseConsent}
-     * @returns {Promise<object>} Published item summary
+     * @param {object} payload - {classroomId, title, visibility?, summary?,
+     *     schoolLevel?, grades?, subject?, tags?, lessonCount?, supplementUrl?,
+     *     authorName?, authorAffiliation?, licenseConsent?}
+     * @returns {Promise<object>} Published item summary (passcode when limited)
      */
     async shareAssignment(idToken, payload) {
         return this._request('POST', '/shared-assignments', payload, idToken);
+    }
+
+    /**
+     * Preview a limited-published shared assignment by 合言葉 (#1109) before
+     * importing. Does not expose the sharedId.
+     * @param {string} idToken - Teacher ID token
+     * @param {string} passcode - the 合言葉
+     * @returns {Promise<object>} Shared summary (no sharedId)
+     */
+    async lookupSharedByPasscode(idToken, passcode) {
+        return this._request('POST', '/shared-assignments/lookup', { passcode }, idToken);
+    }
+
+    /**
+     * Import a limited-published shared assignment by 合言葉 (#1109) into one of
+     * the teacher's own classes.
+     * @param {string} idToken - Teacher ID token
+     * @param {object} payload - {passcode, groupId, assignmentName?}
+     * @returns {Promise<object>} Created classroom summary
+     */
+    async importSharedByPasscode(idToken, payload) {
+        return this._request('POST', '/shared-assignments/import-by-passcode', payload, idToken);
     }
 
     /**
