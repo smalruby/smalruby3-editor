@@ -135,13 +135,19 @@ describe('TeacherAssignmentBoard — share entry (#1109)', () => {
         ...over,
     });
 
-    test('each assignment row has a 共有 button that opens the share step for that class', () => {
+    test('a 共有 button appears only for assignments with content, and opens the share step', () => {
         const shared = sharedStub();
-        renderBoard({ shared });
+        renderBoard({ shared, classrooms: [classroom({ hasAssignment: true })] });
         const btn = byTestId('classroom-board-share-c1');
         expect(btn).toBeInTheDocument();
         fireEvent.click(btn);
         expect(shared.handleOpenShareFor).toHaveBeenCalledWith(expect.objectContaining({ classroomId: 'c1' }));
+    });
+
+    test('no 共有 button when the assignment has no content (説明/スターターなし)', () => {
+        const shared = sharedStub();
+        renderBoard({ shared, classrooms: [classroom({ hasAssignment: false })] });
+        expect(byTestId('classroom-board-share-c1')).not.toBeInTheDocument();
     });
 
     test('with a shareTarget the share step replaces the board body', () => {

@@ -188,8 +188,9 @@ const AssignmentRow = ({
                     onChange={handleDateChange}
                 />
                 {/* 共有導線はここ（ボード各行）に一本化（#1109・課題詳細からは廃止）。
-                    深さは クラス > 課題 > 共有 に収まる。 */}
-                {onShare ? (
+                    深さは クラス > 課題 > 共有 に収まる。中身（説明ページ or スターター
+                    プロジェクト）がある課題だけに表示する（無いと共有APIがエラーになるため）。 */}
+                {onShare && classroom.hasAssignment ? (
                     <button
                         className={styles.boardRowShare}
                         data-testid={`classroom-board-share-${classroom.classroomId}`}
