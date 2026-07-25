@@ -184,9 +184,19 @@ const useTeacherClassroom = ({
                     if (group) groups.handleSelectGroup(group);
                 }
                 classrooms.handleSelectClassroom(link.classroomId);
+            } else if (link.kind === 'shared-mine') {
+                // 推薦通知 (#1110) のジャンプ先: みんなの課題の「自分の投稿」。
+                // カタログはボード内サブビューなのでクラスの文脈が要る —
+                // 未選択ならアクティブな先頭のクラスを開いてから表示する。
+                if (!groups.selectedGroup) {
+                    const first = (groups.groups || []).find((g) => g.status !== 'archived');
+                    if (!first) return;
+                    groups.handleSelectGroup(first);
+                }
+                shared.handleOpenCatalogMine();
             }
         },
-        [notifications, classrooms, groups],
+        [notifications, classrooms, groups, shared],
     );
 
     const handleBackToDashboard = useCallback(() => {

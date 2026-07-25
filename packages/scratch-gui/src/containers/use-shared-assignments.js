@@ -50,6 +50,10 @@ const useSharedAssignments = ({
     const [sharedDetail, setSharedDetail] = useState(null);
     const [lastImported, setLastImported] = useState(null);
     const [reportSent, setReportSent] = useState(false);
+    // 限定公開 → 全体公開に広げる (#1110)。broadenTarget は自分の限定公開
+    // 項目の detail で、これが立っている間はカタログ内に公開フォームを出す。
+    const [broadenTarget, setBroadenTarget] = useState(null);
+    const [broadenDone, setBroadenDone] = useState(false);
 
     const handleOpenShareFor = useCallback((classroom) => {
         setLastShared(null);
@@ -176,6 +180,18 @@ const useSharedAssignments = ({
         loadCatalog({ tab: 'all' });
     }, [loadCatalog]);
 
+    /**
+     * Open the catalog directly on 自分の投稿 (お知らせの推薦通知からの
+     * ジャンプ先 #1110/#1111).
+     */
+    const handleOpenCatalogMine = useCallback(() => {
+        setShowCatalog(true);
+        setCatalogTab('mine');
+        setSharedDetail(null);
+        setLastImported(null);
+        loadCatalog({ tab: 'mine' });
+    }, [loadCatalog]);
+
     const handleCloseCatalog = useCallback(() => {
         setShowCatalog(false);
         setSharedDetail(null);
@@ -270,6 +286,47 @@ const useSharedAssignments = ({
         [idToken, clearError, loadCatalog, showError, handleTeacher401, intl],
     );
 
+    // --- 限定公開 → 全体公開に広げる (#1110) ---
+
+    const handleOpenBroaden = useCallback((detail) => {
+        setBroadenDone(false);
+        setBroadenTarget(detail);
+    }, []);
+    const handleCloseBroaden = useCallback(() => setBroadenTarget(null), []);
+
+    /**
+     * PATCH the caller's own limited item to public. The server requires the
+     * full public metadata + CC BY consent on this transition (#1109), so the
+     * payload comes from the share form in edit mode.
+     * @param {object} payload - metadata + licenseConsent from the form
+     */
+    const handleBroadenShared = useCallback(
+        async (payload) => {
+            if (!broadenTarget) return;
+            clearError();
+            setIsLoading(true);
+            try {
+                await classroomAPI.updateSharedAssignment(idToken, broadenTarget.sharedId, {
+                    ...payload,
+                    visibility: 'public',
+                });
+                setBroadenTarget(null);
+                setBroadenDone(true);
+                setSharedDetail(null);
+                await loadCatalog({ tab: 'mine' });
+            } catch (err) {
+                if (err.status === 401) {
+                    await handleTeacher401();
+                } else {
+                    showError(translateError(intl, err));
+                }
+            } finally {
+                setIsLoading(false);
+            }
+        },
+        [idToken, broadenTarget, clearError, loadCatalog, showError, handleTeacher401, intl, setIsLoading],
+    );
+
     const handleReportShared = useCallback(
         async (sharedId, reason) => {
             clearError();
@@ -303,6 +360,8 @@ const useSharedAssignments = ({
         setSharedDetail(null);
         setLastImported(null);
         setReportSent(false);
+        setBroadenTarget(null);
+        setBroadenDone(false);
     }, []);
 
     return {
@@ -327,6 +386,7 @@ const useSharedAssignments = ({
         lastImported,
         reportSent,
         handleOpenCatalog,
+        handleOpenCatalogMine,
         handleCloseCatalog,
         handleCatalogTabChange,
         handleApplyCatalogFilters,
@@ -336,6 +396,11 @@ const useSharedAssignments = ({
         handleImportShared,
         handleSetSharedStatus,
         handleReportShared,
+        broadenTarget,
+        broadenDone,
+        handleOpenBroaden,
+        handleCloseBroaden,
+        handleBroadenShared,
         resetSharedAssignments,
     };
 };

@@ -2832,6 +2832,16 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
     font-weight: normal;
 }
 
+/* 運営の推薦バッジ (#1110): 金色系で「選ばれた」ことが一目でわかる形。 */
+.shared-card-recommended {
+    padding: 0.05rem 0.4rem;
+    border-radius: 0.25rem;
+    background: hsla(40, 90%, 55%, 0.2);
+    color: hsla(30, 80%, 35%, 1);
+    font-size: 0.7rem;
+    font-weight: bold;
+}
+
 .shared-card-summary {
     font-size: 0.8rem;
     color: hsla(225, 15%, 40%, 1);
