@@ -111,6 +111,8 @@ export class SmalrubyAdminStack extends cdk.Stack {
         SUBMISSIONS_TABLE_NAME: `ClassroomSubmissions${stageSuffix}`,
         GROUPS_TABLE_NAME: `ClassroomGroups${stageSuffix}`,
         SUBMISSIONS_BUCKET_NAME: `smalruby-classroom-submissions${stageSuffix}`,
+        NOTIFICATIONS_TABLE_NAME: `ClassroomNotifications${stageSuffix}`,
+        NOTIFICATION_TTL_DAYS: process.env.NOTIFICATION_TTL_DAYS || '180',
         STAGE: stage,
       },
       bundling: {
@@ -175,6 +177,14 @@ export class SmalrubyAdminStack extends cdk.Stack {
     submissionsTable.grantReadWriteData(handlerFn);
     groupsTable.grantReadWriteData(handlerFn);
     submissionsBucket.grantRead(handlerFn);
+
+    // お知らせ (notification center, EPIC #1111): this stack is the single
+    // WRITER of teacher notices; reads happen through the classroom API with
+    // the teacher's own auth. Write-only grant keeps that asymmetry honest.
+    const notificationsTable = dynamodb.Table.fromTableAttributes(this, 'NotificationsRef', {
+      tableName: `ClassroomNotifications${stageSuffix}`,
+    });
+    notificationsTable.grantWriteData(handlerFn);
 
     // --- Custom Domain ---
 
@@ -273,6 +283,9 @@ export class SmalrubyAdminStack extends cdk.Stack {
       [apigatewayv2.HttpMethod.GET, apigatewayv2.HttpMethod.PATCH]);
     addRoute('/admin/classrooms/{classroomId}/restore-plan', [apigatewayv2.HttpMethod.GET]);
     addRoute('/admin/classrooms/{classroomId}/restore', [apigatewayv2.HttpMethod.POST]);
+
+    // お知らせ送信 (notification center #1111)
+    addRoute('/admin/notifications', [apigatewayv2.HttpMethod.POST]);
 
     // Single-operator tool: a human never needs more than a couple of
     // requests per second, so throttle hard to cap the API-GW request bill an

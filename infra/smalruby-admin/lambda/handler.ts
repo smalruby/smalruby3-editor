@@ -27,6 +27,7 @@ import {
 import { GetObjectCommand, HeadObjectCommand, ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { OAuth2Client } from 'google-auth-library';
+import { randomUUID } from 'crypto';
 import {
   buildRestorePlan, matchSnapshot, PlannedItem, RestorePlanInput, Snapshot,
 } from './restore-plan';
@@ -50,6 +51,13 @@ const SUBMISSIONS_TABLE = process.env.SUBMISSIONS_TABLE_NAME || 'ClassroomSubmis
 const GROUPS_TABLE = process.env.GROUPS_TABLE_NAME || 'ClassroomGroups';
 const SUBMISSIONS_BUCKET = process.env.SUBMISSIONS_BUCKET_NAME || 'smalruby-classroom-submissions';
 const PRESIGNED_URL_DOWNLOAD_EXPIRY = parseInt(process.env.PRESIGNED_URL_DOWNLOAD_EXPIRY || '3600', 10);
+// お知らせ (notification center, EPIC #1111): this stack is the single
+// writer; teachers read through the classroom API. Notices are ephemeral
+// guidance, so the writer stamps a TTL (default 180 days).
+const NOTIFICATIONS_TABLE = process.env.NOTIFICATIONS_TABLE_NAME || 'ClassroomNotifications';
+const NOTIFICATION_TTL_DAYS = parseInt(process.env.NOTIFICATION_TTL_DAYS || '180', 10);
+const MAX_NOTIFICATION_TITLE_LENGTH = 100;
+const MAX_NOTIFICATION_MESSAGE_LENGTH = 1000;
 
 const dynamoClient = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(dynamoClient);
@@ -495,6 +503,100 @@ async function handleSetClassroomStatus(
   };
 }
 
+// --- お知らせ (notification center, EPIC #1111) ---
+
+/**
+ * Notification link targets the teacher UI knows how to open. Kept as a
+ * whitelist so a typo'd kind can never be stored (the editor ignores
+ * unknown kinds, but the audit trail should stay clean).
+ */
+const NOTIFICATION_LINK_KINDS = new Set(['classroom']);
+
+/**
+ * Write one notice into the teacher's inbox (single-writer: only this stack
+ * ever creates rows; the classroom API lists/marks-read them).
+ * @param teacherSub - recipient (resolved internally, never sent by the SPA)
+ * @param fields - type/title/body/link + the acting admin's email
+ * @returns the created notificationId
+ */
+async function putNotification(
+  teacherSub: string,
+  fields: {
+    type: string;
+    title: string;
+    body: string;
+    link: Record<string, unknown> | null;
+    createdBy: string;
+  },
+): Promise<string> {
+  const createdAt = new Date().toISOString();
+  // createdAt-prefixed sort key → the inbox Query returns newest first.
+  const notificationId = `${createdAt}#${randomUUID()}`;
+  await docClient.send(new PutCommand({
+    TableName: NOTIFICATIONS_TABLE,
+    Item: {
+      teacherSub,
+      notificationId,
+      type: fields.type,
+      title: fields.title,
+      body: fields.body,
+      ...(fields.link ? { link: fields.link } : {}),
+      createdBy: fields.createdBy,
+      createdAt,
+      ttl: Math.floor(Date.now() / 1000) + NOTIFICATION_TTL_DAYS * 24 * 60 * 60,
+    },
+  }));
+  return notificationId;
+}
+
+/**
+ * POST /admin/notifications — send a notice to the teacher who owns the
+ * given classroom. The SPA sends a classroomId, never a teacherSub: subs
+ * stay internal (same principle as authorSub in the shared projections).
+ */
+async function handleSendNotification(
+  identity: AdminIdentity, body: Record<string, unknown>,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const classroomId = typeof body.classroomId === 'string' ? body.classroomId.trim() : '';
+  if (!classroomId) {
+    throw new ValidationError('classroomId is required');
+  }
+  const title = typeof body.title === 'string' ? body.title.trim() : '';
+  if (!title || title.length > MAX_NOTIFICATION_TITLE_LENGTH) {
+    throw new ValidationError(`title is required (at most ${MAX_NOTIFICATION_TITLE_LENGTH} characters)`);
+  }
+  const message = typeof body.message === 'string' ? body.message.trim() : '';
+  if (!message || message.length > MAX_NOTIFICATION_MESSAGE_LENGTH) {
+    throw new ValidationError(`message is required (at most ${MAX_NOTIFICATION_MESSAGE_LENGTH} characters)`);
+  }
+
+  const result = await docClient.send(new GetCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId },
+  }));
+  const teacherSub = result.Item && typeof result.Item.teacherSub === 'string'
+    ? result.Item.teacherSub
+    : '';
+  if (!teacherSub) {
+    throw new NotFoundError('Classroom not found');
+  }
+
+  const link = { kind: 'classroom', classroomId };
+  if (!NOTIFICATION_LINK_KINDS.has(link.kind)) {
+    throw new ValidationError('Unsupported link kind');
+  }
+  const notificationId = await putNotification(teacherSub, {
+    type: 'admin_message',
+    title,
+    body: message,
+    link,
+    createdBy: identity.email,
+  });
+  audit('notification.send', identity, { classroomId, type: 'admin_message' });
+
+  return { statusCode: 201, body: JSON.stringify({ notificationId }) };
+}
+
 // --- ddb-archive snapshot helpers ---
 
 async function readSnapshot(key: string): Promise<Snapshot | null> {
@@ -774,6 +876,9 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
     } else if (method === 'PATCH' && /^\/admin\/classrooms\/[^/]+$/.test(path)) {
       const classroomId = event.pathParameters?.classroomId || '';
       result = await handleSetClassroomStatus(identity, classroomId, body);
+
+    } else if (method === 'POST' && path === '/admin/notifications') {
+      result = await handleSendNotification(identity, body);
 
     } else {
       throw new NotFoundError('Not found');
