@@ -177,6 +177,10 @@ const useSharedAssignments = ({
         setCatalogTab('all');
         setSharedDetail(null);
         setLastImported(null);
+        // broaden 状態はカタログの開閉・タブ切替のたびに必ず捨てる
+        // （レビュー指摘: 残すと後で古い公開フォームが再表示される）。
+        setBroadenTarget(null);
+        setBroadenDone(false);
         loadCatalog({ tab: 'all' });
     }, [loadCatalog]);
 
@@ -189,18 +193,24 @@ const useSharedAssignments = ({
         setCatalogTab('mine');
         setSharedDetail(null);
         setLastImported(null);
+        setBroadenTarget(null);
+        setBroadenDone(false);
         loadCatalog({ tab: 'mine' });
     }, [loadCatalog]);
 
     const handleCloseCatalog = useCallback(() => {
         setShowCatalog(false);
         setSharedDetail(null);
+        setBroadenTarget(null);
+        setBroadenDone(false);
     }, []);
 
     const handleCatalogTabChange = useCallback(
         (tab) => {
             setCatalogTab(tab);
             setSharedDetail(null);
+            setBroadenTarget(null);
+            setBroadenDone(false);
             loadCatalog({ tab });
         },
         [loadCatalog],

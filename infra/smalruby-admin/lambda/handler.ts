@@ -418,15 +418,17 @@ async function handleSetSharedRecommendation(
 
   const alreadyRecommended = !!item.recommendedAt;
   if (recommended && !alreadyRecommended) {
+    // 推薦は「限定公開 → 全体公開への発展」の働きかけ (#1110)。公開済みの
+    // 項目に送っても通知文（全体公開の検討を促す）が意味を成さないため
+    // 限定公開に限定する（レビュー指摘）。取り消し (下) は無条件に許す。
+    if (((item.visibility as string) || 'public') !== 'limited') {
+      throw new ValidationError('Only limited-visibility items can be recommended');
+    }
     const now = new Date().toISOString();
-    await docClient.send(new UpdateCommand({
-      TableName: SHARED_ASSIGNMENTS_TABLE,
-      Key: { sharedId },
-      UpdateExpression: 'SET recommendedAt = :now, recommendedBy = :email, updatedAt = :now',
-      ExpressionAttributeValues: { ':now': now, ':email': identity.email },
-    }));
-    // 推薦の主目的は先生への働きかけ: お知らせセンター (#1111) へ通知する。
-    // 通知は best-effort ではなく本体 — 失敗したらエラーにして運営が気付く。
+    // 通知が主目的なので先に通知 → 印付けの順にする。印付けが失敗しても
+    // リトライで再通知 + 印付けが成立する（逆順だと印だけ付いて通知が
+    // 永久に失われ、no-op ガードで再送もできない — レビュー指摘）。最悪
+    // ケースは通知の重複で、先生側では既読で流せる無害な事象。
     const authorSub = typeof item.authorSub === 'string' ? item.authorSub : '';
     if (authorSub) {
       await putNotification(authorSub, {
@@ -436,6 +438,20 @@ async function handleSetSharedRecommendation(
         link: { kind: 'shared-mine', sharedId },
         createdBy: identity.email,
       });
+    }
+    try {
+      await docClient.send(new UpdateCommand({
+        TableName: SHARED_ASSIGNMENTS_TABLE,
+        Key: { sharedId },
+        UpdateExpression: 'SET recommendedAt = :now, recommendedBy = :email, updatedAt = :now',
+        // 2 人の運営が同時に推薦しても印付けと通知が二重にならないよう、
+        // 冪等判定を原子的にする（レビュー指摘）。
+        ConditionExpression: 'attribute_not_exists(recommendedAt)',
+        ExpressionAttributeValues: { ':now': now, ':email': identity.email },
+      }));
+    } catch (err) {
+      // 競合で先に推薦されていた場合は already-recommended と同じ扱い。
+      if ((err as { name?: string }).name !== 'ConditionalCheckFailedException') throw err;
     }
     audit('shared.recommend', identity, { sharedId });
     return {

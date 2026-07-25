@@ -216,7 +216,9 @@ const SharedDetail = ({sharedId, onBack, onChanged}) => {
                     </button>
                 )}
                 {' '}
-                {detail.status === 'published' ? (
+                {/* 推薦は限定公開のみ（サーバー側も同じ制約）。ただし推薦済みなら
+                    公開に広がった後でも取り消しは出す。 */}
+                {detail.status === 'published' && (detail.visibility === 'limited' || detail.recommended) ? (
                     confirmingRecommend ? (
                         <span
                             className="admin-confirm"

@@ -103,11 +103,24 @@ describe('POST/DELETE /admin/shared-assignments/{id}/recommend (EPIC #1110)', ()
 
   test('recommend marks the item and notifies the author (#1111 inbox)', async () => {
     const { updates, puts } = wireMocks(limitedItem());
+    const commandOrder: string[] = [];
+    const prevImpl = mockSend.getMockImplementation()!;
+    mockSend.mockImplementation(async (command: {
+      constructor: { name: string }; input?: Record<string, unknown>;
+    }) => {
+      commandOrder.push(command.constructor.name);
+      return prevImpl(command);
+    });
     const res = await handler(makeEvent('POST', '/admin/shared-assignments/s1/recommend', 's1'));
     expect(res.statusCode).toBe(200);
 
     expect(updates).toHaveLength(1);
     expect(updates[0].UpdateExpression).toContain('SET recommendedAt');
+    // 冪等判定は原子的（同時 POST の二重通知防止）。
+    expect(updates[0].ConditionExpression).toContain('attribute_not_exists(recommendedAt)');
+    // 通知が主目的なので Put（通知）→ Update（印付け）の順。逆だと印付け後の
+    // 通知失敗をリトライで回復できない。
+    expect(commandOrder.indexOf('PutCommand')).toBeLessThan(commandOrder.indexOf('UpdateCommand'));
 
     expect(puts).toHaveLength(1);
     const notice = puts[0].Item as Record<string, unknown>;
@@ -145,6 +158,26 @@ describe('POST/DELETE /admin/shared-assignments/{id}/recommend (EPIC #1110)', ()
     expect(updates[0].UpdateExpression).toContain('REMOVE recommendedAt, recommendedBy');
     expect(puts).toHaveLength(0);
     expect(JSON.parse(res.body as string).recommended).toBe(false);
+  });
+
+  test('400 when recommending a public item (発展の働きかけ先ではない)', async () => {
+    const { updates, puts } = wireMocks(limitedItem({ visibility: 'public', passcode: undefined }));
+    const res = await handler(makeEvent('POST', '/admin/shared-assignments/s1/recommend', 's1'));
+    expect(res.statusCode).toBe(400);
+    expect(updates).toHaveLength(0);
+    expect(puts).toHaveLength(0);
+  });
+
+  test('withdrawal still works after the item became public (推薦は残っている)', async () => {
+    const { updates } = wireMocks(limitedItem({
+      visibility: 'public',
+      passcode: undefined,
+      recommendedAt: '2026-07-21T00:00:00.000Z',
+      recommendedBy: 'dev-admin@example.com',
+    }));
+    const res = await handler(makeEvent('DELETE', '/admin/shared-assignments/s1/recommend', 's1'));
+    expect(res.statusCode).toBe(200);
+    expect(updates).toHaveLength(1);
   });
 
   test('404 for missing or unlisted items (author withdrew it)', async () => {
