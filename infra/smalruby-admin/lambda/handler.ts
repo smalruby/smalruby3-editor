@@ -528,20 +528,36 @@ async function handleSetSharingRecommendation(
     Key: { classroomId },
   }));
   const item = result.Item as Record<string, unknown> | undefined;
-  // Quota rows share the key space; archived rows are invisible to teachers.
-  if (!item || String(classroomId).includes('-quota#') || item.status !== 'active') {
+  // Quota rows share the key space.
+  if (!item || String(classroomId).includes('-quota#')) {
     throw new NotFoundError('Classroom not found');
   }
   const teacherSub = typeof item.teacherSub === 'string' ? item.teacherSub : '';
   if (!teacherSub) {
     throw new NotFoundError('Classroom not found');
   }
+  // アーカイブ済みは先生から見えないので新規の推奨はしない。ただし取り消し
+  // (下) は許す — 推奨後にアーカイブされるとフラグが運営から触れなくなり、
+  // 復元時に古いバナーが再出現するため（レビュー指摘）。
+  if (recommended && item.status !== 'active') {
+    throw new NotFoundError('Classroom not found');
+  }
+  // 中身（説明ページ or スターター）が無い課題は共有 API が拒否するので、
+  // 「共有しませんか？」と促しても行き止まりになる — 推奨自体を拒否する
+  // （レビュー指摘）。
+  const assignment = item.assignment as { pages?: unknown[]; starterKey?: string } | undefined;
+  const hasAssignmentContent = !!assignment &&
+    ((Array.isArray(assignment.pages) && assignment.pages.length > 0) || !!assignment.starterKey);
+  if (recommended && !hasAssignmentContent) {
+    throw new ValidationError('Classroom has no assignment content to share');
+  }
 
   const alreadyRecommended = !!item.recommendedForSharingAt;
   if (recommended && !alreadyRecommended) {
     const now = new Date().toISOString();
-    // #1110 と同じ「通知 → 印付け」の順 + 原子的な冪等判定（印付け後の通知
-    // 失敗は回復不能になる / 同時 POST の二重通知防止）。
+    // #1110 と同じ「通知 → 印付け」の順 + 印付けの冪等を原子化。真に同時の
+    // POST では通知が重複しうる（SPA の busy 無効化で実質防止・最悪ケースは
+    // 重複通知で無害 — #1110 と同じ割り切り）。
     const title = String(item.assignmentName || item.className || '課題');
     await putNotification(teacherSub, {
       type: 'share_suggestion',

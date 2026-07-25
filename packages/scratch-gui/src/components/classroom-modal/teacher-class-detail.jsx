@@ -461,15 +461,20 @@ const TeacherClassDetail = ({
 
                             {/* 共有推奨バナー (#1106): 運営が「みんなの課題に
                                 共有する価値がある」と判断した課題。公開は
-                                CC BY 同意を伴う先生本人の共有フローのみ。 */}
-                            {selectedClassroom.recommendedForSharing && onOpenShareSuggestion && (
+                                CC BY 同意を伴う先生本人の共有フローのみ。
+                                hasAssignment ゲートはボード行の共有ボタンと同じ
+                                (中身が無いと共有 API がエラーになる — 推奨後に
+                                先生が説明を空にしたケースもここで吸収)。 */}
+                            {selectedClassroom.recommendedForSharing &&
+                                selectedClassroom.hasAssignment &&
+                                onOpenShareSuggestion && (
                                 <div
                                     className={styles.shareSuggestionBanner}
                                     data-testid="classroom-share-suggestion-banner"
                                 >
                                     <span className={styles.shareSuggestionText}>
                                         <FormattedMessage
-                                            defaultMessage="この課題、みんなの課題に共有しませんか？ Operators picked this assignment as worth sharing with teachers nationwide."
+                                            defaultMessage="Why not share this assignment to みんなの課題? Operators picked it as worth sharing with teachers nationwide."
                                             description="Banner prompting the teacher to share an operator-recommended assignment (#1106)"
                                             id="gui.classroom.teacherDetail.shareSuggestion"
                                         />

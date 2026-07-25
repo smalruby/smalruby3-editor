@@ -8,6 +8,8 @@
  *   2. 詳細に「この課題、みんなの課題に共有しませんか？」バナー
  *   3. バナーの CTA → ボードへ戻って共有ステップ (share-step) が開く
  *   4. ボード行に「共有おすすめ」マーク
+ *   5. 未グループ (レガシー groupId) の課題でも CTA が先頭のアクティブ
+ *      クラスのボードへフォールバックして共有ステップが開く
  *
  *   node verify-share-suggestion.mjs                     # コンテナ内 (headless)
  *   HEADLESS=false CHANNEL=chrome node verify-share-suggestion.mjs
@@ -106,6 +108,40 @@ await page.screenshot({ path: resolve(REPO_ROOT, 'tmp', 'share-suggestion-share-
 await page.locator('[data-testid="classroom-breadcrumb-assignments"]').click();
 await page.waitForTimeout(1000);
 check('board row mark', await page.locator('[data-testid="classroom-board-share-suggested-c1"]').isVisible().catch(() => false));
+
+// 5. 未グループ (レガシー) の課題: 通知ジャンプではグループが選ばれず、
+// CTA のフォールバック (#1106 レビュー Must 1 対応) が効くことを確認。
+const page2 = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+const legacyClassroom = { ...classroomSummary, groupId: 'g-legacy' };
+await page2.route('**/notifications', (r) => r.fulfill({ json: { notifications: [notification], unreadCount: 1 } }));
+await page2.route('**/notifications/mark-read', (r) => r.fulfill({ json: { updated: 1 } }));
+await page2.route('**/classroom-groups', (r) => r.fulfill({
+    json: { groups: [{ groupId: 'g1', name: '技術', year: 2026, status: 'active', schemaVersion: 2, topics: [] }] },
+}));
+await page2.route('**/classroom-groups/migrate', (r) => r.fulfill({ json: { migrated: 0 } }));
+await page2.route('**/classrooms?**', (r) => r.fulfill({ json: { classrooms: [legacyClassroom] } }));
+await page2.route(/\/classrooms$/, (r) => r.fulfill({ json: { classrooms: [legacyClassroom] } }));
+await page2.route('**/classrooms/c1', (r) => r.fulfill({ json: legacyClassroom }));
+await page2.route('**/classrooms/c1/members', (r) => r.fulfill({ json: { members: [] } }));
+await page2.route('**/classrooms/c1/kick-requests', (r) => r.fulfill({ json: { requests: [] } }));
+await page2.route('**/classrooms/c1/submissions', (r) => r.fulfill({ json: { submissions: [] } }));
+await page2.route('**/classrooms/c1/assignment', (r) => r.fulfill({
+    json: { pages: [{ text: 'ページ1', imageUrl: null }], starterUrl: null },
+}));
+await page2.goto(`${BASE}/?no_beforeunload=1&locale=ja&devlogin=stub-token`, { waitUntil: 'load' });
+await page2.waitForTimeout(3000);
+await page2.locator('[data-testid="settings-menu"]').click();
+await page2.locator('[data-testid="settings-classroom-management"]').click();
+await page2.waitForTimeout(2000);
+await page2.locator('[data-testid="classroom-notifications-button"]').click();
+await page2.waitForTimeout(500);
+await page2.locator(`[data-testid="classroom-notification-item-${notification.notificationId}"]`).click();
+await page2.waitForTimeout(2500);
+check('ungrouped: banner on detail', await page2.locator('[data-testid="classroom-share-suggestion-banner"]').isVisible().catch(() => false));
+await page2.locator('[data-testid="classroom-share-suggestion-open"]').click();
+await page2.waitForTimeout(1500);
+check('ungrouped: share step opens via fallback group',
+    await page2.locator('[data-testid="classroom-phase-share-step"]').isVisible().catch(() => false));
 
 await browser.close();
 const failed = results.filter((r) => !r.ok);

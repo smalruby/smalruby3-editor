@@ -48,6 +48,7 @@ const classroomItem = (over: Record<string, unknown> = {}) => ({
   teacherSub: 'teacher-sub-9',
   joinCode: 'abc234',
   studentCount: 30,
+  assignment: { pages: [{ text: 'ページ1' }], starterKey: 'c1/assignment/starter.sb3' },
   status: 'active',
   createdAt: '2026-07-10T00:00:00.000Z',
   ...over,
@@ -143,6 +144,26 @@ describe('POST/DELETE /admin/classrooms/{id}/recommend-sharing (EPIC #1106)', ()
     expect(updates[0].UpdateExpression).toContain('REMOVE recommendedForSharingAt, recommendedForSharingBy');
     expect(puts).toHaveLength(0);
     expect(JSON.parse(res.body as string).recommendedForSharing).toBe(false);
+  });
+
+  test('400 when the assignment has no content (共有の行き止まり防止)', async () => {
+    const { updates, puts } = wireMocks(classroomItem({ assignment: undefined }));
+    const res = await handler(makeEvent('POST', '/admin/classrooms/c1/recommend-sharing', 'c1'));
+    expect(res.statusCode).toBe(400);
+    expect(updates).toHaveLength(0);
+    expect(puts).toHaveLength(0);
+  });
+
+  test('withdrawal works even after the classroom was archived (復元時の古いバナー防止)', async () => {
+    const { updates, puts } = wireMocks(classroomItem({
+      status: 'archived',
+      recommendedForSharingAt: '2026-07-20T00:00:00.000Z',
+      recommendedForSharingBy: 'dev-admin@example.com',
+    }));
+    const res = await handler(makeEvent('DELETE', '/admin/classrooms/c1/recommend-sharing', 'c1'));
+    expect(res.statusCode).toBe(200);
+    expect(updates).toHaveLength(1);
+    expect(puts).toHaveLength(0);
   });
 
   test('404 for missing / archived / quota-row classrooms', async () => {
