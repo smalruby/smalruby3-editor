@@ -165,6 +165,26 @@ Google または Microsoft アカウントでサインインする画面。先�
 - 課題の所属クラス変更・人数編集・課題単位の共同管理者・複製は**できない**（クラス設定 / 課題一覧の再利用へ集約）。フッターのボタンは「**課題をアーカイブ**」（soft-delete。ボードの「アーカイブ済みの課題」からいつでも復元可能。testid は歴史的経緯で `classroom-delete-classroom` のまま）
 - 主な data-testid: `classroom-tab-description` / `classroom-description-editor` / `classroom-description-preview[-body|-prev|-next]` / `classroom-tab-members`
 
+## 1.8 先生: お知らせセンター（タイトルバー 🔔・EPIC #1111）
+
+![お知らせセンター](screenshots/0218-teacher-notifications.png)
+
+クラス管理のタイトルバー右上（× の左隣）に 🔔 ボタン。運営（Admin）からのお知らせが届くと未読数バッジが付く。
+
+- クリックで一覧パネルを開閉。**開いた時点で全既読**になりバッジが消える（その場では未読ドットで新着を見分けられる）
+- お知らせ本文をクリックすると、`link` の種類に応じて該当画面へジャンプ（`kind: 'classroom'` → そのクラスを選択して課題詳細へ）。未知の kind は無視（前方互換）
+- 60 秒間隔でポーリング。取得エラーはクラス管理本体に影響させない（表示しない）
+- 送信側は Admin SPA（クラス詳細の「先生へのお知らせ」フォーム → `POST /admin/notifications`）。`docs/admin/README.md` を参照
+
+| 要素 | data-testid | 操作 |
+|------|-------------|------|
+| 🔔 ボタン | `classroom-notifications-button` | クリックでパネル開閉 |
+| 未読バッジ | `classroom-notifications-badge` | 未読数（10 以上は「9+」）。未読 0 で非表示 |
+| 一覧パネル | `classroom-notifications-panel` | — |
+| お知らせ 1 件 | `classroom-notification-item-{notificationId}` | クリックでリンク先へジャンプ + パネルを閉じる |
+| 未読ドット | `classroom-notification-unread-dot` | 未読アイテムのみ |
+| 空メッセージ | `classroom-notifications-empty` | お知らせ 0 件のとき |
+
 ## 4. 先生: クラス詳細 (`teacher-detail`)
 
 クラスの参加状況と提出を管理する画面。モーダルが**ワイド表示 (968px)** に広がります。
