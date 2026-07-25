@@ -237,6 +237,8 @@ export default {
     'gui.classroom.classList.ungroupedHint':
         'どのクラスにも入っていない課題（共同管理で共有されたもの・未移行のもの）:',
     'gui.classroom.classList.createCancel': 'キャンセル',
+    'gui.classroom.classList.createCoTeacherHint':
+        '共同管理者（クラスを一緒に管理する先生）は、あとから「設定」で追加できます。',
     'gui.classroom.classList.createClassOnly': 'クラスのみ作成',
     'gui.classroom.classList.settings': '設定',
     'gui.classroom.classSettings.namePlaceholder': 'クラス名（必須・例: 技術）',

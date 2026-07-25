@@ -241,6 +241,8 @@ export default {
     'gui.classroom.classList.ungroupedHint':
         'どのクラスにもはいっていないかだい（きょうどうかんりできょうゆうされたもの・みいこうのもの）:',
     'gui.classroom.classList.createCancel': 'キャンセル',
+    'gui.classroom.classList.createCoTeacherHint':
+        'きょうどうかんりしゃ（クラスをいっしょにかんりするせんせい）は、あとから「せってい」でついかできます。',
     'gui.classroom.classList.createClassOnly': 'クラスのみつくる',
     'gui.classroom.classList.settings': 'せってい',
     'gui.classroom.classSettings.namePlaceholder': 'クラスめい（ひっす・れい: ぎじゅつ）',

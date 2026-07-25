@@ -651,6 +651,13 @@ const TeacherClassList = ({
                         value={assignmentName}
                         onChange={handleAssignmentNameChange}
                     />
+                    <p className={styles.formHint}>
+                        <FormattedMessage
+                            defaultMessage="You can add co-teachers (fellow teachers who help manage this class) later in Settings."
+                            description="Hint on the create form that co-teachers can be added later in settings"
+                            id="gui.classroom.classList.createCoTeacherHint"
+                        />
+                    </p>
                     <div className={styles.formFooter}>
                         <button
                             className={styles.secondaryButton}
