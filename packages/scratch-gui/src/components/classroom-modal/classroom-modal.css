@@ -559,6 +559,13 @@
     margin-top: 1.5rem;
 }
 
+/* フッター右側のグループ（例: アーカイブ + 保存 を右寄せで並べる）。 */
+.footer-right-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
 /* 共有設定ステップ（#1109）: 公開範囲の選択カード + 合言葉の表示。 */
 .share-mode-row {
     display: flex;

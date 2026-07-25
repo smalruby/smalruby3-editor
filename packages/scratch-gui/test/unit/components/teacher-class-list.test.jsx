@@ -249,17 +249,29 @@ describe('TeacherClassList — archived classes section (issue #1051)', () => {
         expect(byTestId('classroom-class-settings-archive-confirm-message')).not.toBeInTheDocument();
     });
 
-    test('unarchiving from settings stays immediate (no confirmation)', () => {
-        const onUpdateGroup = jest.fn();
-        renderList({
-            groups: [group({ groupId: 'g2', status: 'archived' })],
-            onUpdateGroup,
-        });
+    test('pressing Archive hides cancel/save and shows only archive yes/no (review feedback)', () => {
+        renderList();
+        fireEvent.click(byTestId('classroom-class-settings-open-g1'));
+        expect(byTestId('classroom-class-settings-cancel')).toBeInTheDocument();
+        expect(byTestId('classroom-class-settings-save')).toBeInTheDocument();
 
-        fireEvent.click(byTestId('classroom-show-archived'));
-        fireEvent.click(byTestId('classroom-class-settings-open-g2'));
         fireEvent.click(byTestId('classroom-class-settings-archive'));
+        // Only the archive yes/no buttons remain.
+        expect(byTestId('classroom-class-settings-cancel')).not.toBeInTheDocument();
+        expect(byTestId('classroom-class-settings-save')).not.toBeInTheDocument();
+        expect(byTestId('classroom-class-settings-archive-cancel')).toBeInTheDocument();
+        expect(byTestId('classroom-class-settings-archive')).toBeInTheDocument();
 
-        expect(onUpdateGroup).toHaveBeenCalledWith('g2', { status: 'active' });
+        // "Keep the class" restores cancel/save.
+        fireEvent.click(byTestId('classroom-class-settings-archive-cancel'));
+        expect(byTestId('classroom-class-settings-cancel')).toBeInTheDocument();
+        expect(byTestId('classroom-class-settings-save')).toBeInTheDocument();
+    });
+
+    test('archived classes have no settings button — only restore (review feedback)', () => {
+        renderList({ groups: [group({ groupId: 'g2', status: 'archived' })] });
+        fireEvent.click(byTestId('classroom-show-archived'));
+        expect(byTestId('classroom-class-settings-open-g2')).not.toBeInTheDocument();
+        expect(byTestId('classroom-class-restore-g2')).toBeInTheDocument();
     });
 });

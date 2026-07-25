@@ -209,6 +209,7 @@ export default {
     'gui.classroom.evaluation.exportCsv': 'ひょうかCSV',
     'gui.classroom.evaluation.exportAuditCsv': 'けんしょうようCSV',
     'gui.classroom.evaluation.returnComments': 'コメントをへんきゃく',
+    'gui.classroom.evaluation.cancel': 'キャンセル',
     'gui.classroom.teacherDetail.descriptionTab': 'せつめい',
     'gui.classroom.teacherDetail.previewTitle': 'せいとにみえるないよう（プレビュー）',
     'gui.classroom.breadcrumbs.evaluation': 'ひょうか',

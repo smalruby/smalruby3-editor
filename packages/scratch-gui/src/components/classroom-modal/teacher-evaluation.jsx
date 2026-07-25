@@ -416,6 +416,22 @@ const TeacherEvaluation = ({
                     />
                 </button>
             </div>
+            {/* 左下にキャンセル（クラス一覧へ戻る）を追加（レビュー指摘）。 */}
+            <div className={styles.formFooter}>
+                <button
+                    className={styles.secondaryButton}
+                    data-testid="classroom-evaluation-cancel"
+                    type="button"
+                    onClick={onBack}
+                >
+                    <FormattedMessage
+                        defaultMessage="Cancel"
+                        description="Cancel button of the evaluation screen (returns to the class list)"
+                        id="gui.classroom.evaluation.cancel"
+                    />
+                </button>
+                <span />
+            </div>
         </div>
     );
 };

@@ -236,88 +236,107 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
                     />
                 </p>
             ) : null}
-            <div className={styles.classSettingsActions}>
-                <button
-                    data-testid="classroom-class-settings-archive"
-                    disabled={isLoading}
-                    type="button"
-                    onClick={handleToggleArchive}
-                >
-                    {group.status === 'archived' ? (
-                        <FormattedMessage
-                            defaultMessage="Unarchive"
-                            description="Button to unarchive a class"
-                            id="gui.classroom.classSettings.unarchive"
-                        />
-                    ) : confirmingArchive ? (
-                        <FormattedMessage
-                            defaultMessage="Yes, archive"
-                            description="Confirm button that actually archives the class"
-                            id="gui.classroom.classSettings.archiveConfirmYes"
-                        />
-                    ) : (
-                        <FormattedMessage
-                            defaultMessage="Archive"
-                            description="Button to archive a class"
-                            id="gui.classroom.classSettings.archive"
-                        />
-                    )}
-                </button>
+            {/* フッター（レビュー指摘）: 通常は キャンセル左 / アーカイブ・保存 右
+                （アーカイブは保存の左）。アーカイブ押下中は キャンセル・保存を隠し
+                「アーカイブしない / アーカイブする」のみ表示。 */}
+            <div className={styles.formFooter}>
                 {confirmingArchive ? (
-                    <button
-                        data-testid="classroom-class-settings-archive-cancel"
-                        disabled={isLoading}
-                        type="button"
-                        onClick={handleCancelArchive}
-                    >
-                        <FormattedMessage
-                            defaultMessage="Keep the class"
-                            description="Button that cancels archiving the class"
-                            id="gui.classroom.classSettings.archiveConfirmNo"
-                        />
-                    </button>
-                ) : null}
-                <span className={styles.classSettingsSpacer} />
-                <button
-                    data-testid="classroom-class-settings-cancel"
-                    disabled={isLoading}
-                    type="button"
-                    onClick={confirmingDecrease ? handleCancelDecrease : onCancel}
-                >
-                    {confirmingDecrease ? (
-                        <FormattedMessage
-                            defaultMessage="Keep the count"
-                            description="Button that cancels decreasing the student count"
-                            id="gui.classroom.classSettings.decreaseConfirmNo"
-                        />
-                    ) : (
-                        <FormattedMessage
-                            defaultMessage="Cancel"
-                            description="Cancel button of the class settings form"
-                            id="gui.classroom.classSettings.cancel"
-                        />
-                    )}
-                </button>
-                <button
-                    className={styles.classSettingsSave}
-                    data-testid="classroom-class-settings-save"
-                    disabled={!canSave || isLoading}
-                    type="submit"
-                >
-                    {confirmingDecrease ? (
-                        <FormattedMessage
-                            defaultMessage="Reduce and save"
-                            description="Confirm button that decreases the student count and saves"
-                            id="gui.classroom.classSettings.decreaseConfirmYes"
-                        />
-                    ) : (
-                        <FormattedMessage
-                            defaultMessage="Save"
-                            description="Save button of the class settings form"
-                            id="gui.classroom.classSettings.save"
-                        />
-                    )}
-                </button>
+                    <React.Fragment>
+                        <button
+                            className={styles.secondaryButton}
+                            data-testid="classroom-class-settings-archive-cancel"
+                            disabled={isLoading}
+                            type="button"
+                            onClick={handleCancelArchive}
+                        >
+                            <FormattedMessage
+                                defaultMessage="Keep the class"
+                                description="Button that cancels archiving the class"
+                                id="gui.classroom.classSettings.archiveConfirmNo"
+                            />
+                        </button>
+                        <button
+                            className={styles.dangerButton}
+                            data-testid="classroom-class-settings-archive"
+                            disabled={isLoading}
+                            type="button"
+                            onClick={handleToggleArchive}
+                        >
+                            <FormattedMessage
+                                defaultMessage="Yes, archive"
+                                description="Confirm button that actually archives the class"
+                                id="gui.classroom.classSettings.archiveConfirmYes"
+                            />
+                        </button>
+                    </React.Fragment>
+                ) : (
+                    <React.Fragment>
+                        <button
+                            className={styles.secondaryButton}
+                            data-testid="classroom-class-settings-cancel"
+                            disabled={isLoading}
+                            type="button"
+                            onClick={confirmingDecrease ? handleCancelDecrease : onCancel}
+                        >
+                            {confirmingDecrease ? (
+                                <FormattedMessage
+                                    defaultMessage="Keep the count"
+                                    description="Button that cancels decreasing the student count"
+                                    id="gui.classroom.classSettings.decreaseConfirmNo"
+                                />
+                            ) : (
+                                <FormattedMessage
+                                    defaultMessage="Cancel"
+                                    description="Cancel button of the class settings form"
+                                    id="gui.classroom.classSettings.cancel"
+                                />
+                            )}
+                        </button>
+                        <div className={styles.footerRightGroup}>
+                            <button
+                                className={styles.secondaryButton}
+                                data-testid="classroom-class-settings-archive"
+                                disabled={isLoading}
+                                type="button"
+                                onClick={handleToggleArchive}
+                            >
+                                {group.status === 'archived' ? (
+                                    <FormattedMessage
+                                        defaultMessage="Unarchive"
+                                        description="Button to unarchive a class"
+                                        id="gui.classroom.classSettings.unarchive"
+                                    />
+                                ) : (
+                                    <FormattedMessage
+                                        defaultMessage="Archive"
+                                        description="Button to archive a class"
+                                        id="gui.classroom.classSettings.archive"
+                                    />
+                                )}
+                            </button>
+                            <button
+                                className={styles.primaryButton}
+                                data-testid="classroom-class-settings-save"
+                                disabled={!canSave || isLoading}
+                                type="submit"
+                            >
+                                {confirmingDecrease ? (
+                                    <FormattedMessage
+                                        defaultMessage="Reduce and save"
+                                        description="Confirm button that decreases the student count and saves"
+                                        id="gui.classroom.classSettings.decreaseConfirmYes"
+                                    />
+                                ) : (
+                                    <FormattedMessage
+                                        defaultMessage="Save"
+                                        description="Save button of the class settings form"
+                                        id="gui.classroom.classSettings.save"
+                                    />
+                                )}
+                            </button>
+                        </div>
+                    </React.Fragment>
+                )}
             </div>
         </form>
     );
@@ -425,19 +444,22 @@ const ClassCard = ({
                     />
                 </button>
             )}
-            <button
-                className={styles.classCardEvaluate}
-                data-testid={`classroom-class-settings-open-${group.groupId}`}
-                disabled={isLoading}
-                type="button"
-                onClick={handleSettings}
-            >
-                <FormattedMessage
-                    defaultMessage="Settings"
-                    description="Button on a class card to open its settings"
-                    id="gui.classroom.classList.settings"
-                />
-            </button>
+            {/* アーカイブ済みは「元に戻す」だけ。設定ボタンは出さない（レビュー指摘）。 */}
+            {isArchived ? null : (
+                <button
+                    className={styles.classCardEvaluate}
+                    data-testid={`classroom-class-settings-open-${group.groupId}`}
+                    disabled={isLoading}
+                    type="button"
+                    onClick={handleSettings}
+                >
+                    <FormattedMessage
+                        defaultMessage="Settings"
+                        description="Button on a class card to open its settings"
+                        id="gui.classroom.classList.settings"
+                    />
+                </button>
+            )}
         </li>
     );
 };

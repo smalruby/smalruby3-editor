@@ -205,6 +205,7 @@ export default {
     'gui.classroom.evaluation.exportCsv': '評価CSV',
     'gui.classroom.evaluation.exportAuditCsv': '検証用CSV',
     'gui.classroom.evaluation.returnComments': 'コメントを返却',
+    'gui.classroom.evaluation.cancel': 'キャンセル',
     'gui.classroom.teacherDetail.descriptionTab': '説明',
     'gui.classroom.teacherDetail.previewTitle': '生徒に見える内容（プレビュー）',
     'gui.classroom.breadcrumbs.evaluation': '評価',
