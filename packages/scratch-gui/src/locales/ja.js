@@ -217,6 +217,7 @@ export default {
     'gui.classroom.breadcrumbs.assignmentDetail': '課題詳細',
     'gui.classroom.breadcrumbs.shareGc': 'Google Classroom に共有',
     'gui.classroom.board.createNamePlaceholder': '課題名（例: ねこを動かそう）',
+    'gui.classroom.board.createNameLabel': '課題名:',
     'gui.classroom.board.createSubmit': '作成',
     'gui.classroom.board.reuse': '課題を再利用',
     'gui.classroom.board.reuseHint': '作成済みの課題をこのクラスに複製:',

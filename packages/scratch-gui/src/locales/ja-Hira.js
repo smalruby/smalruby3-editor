@@ -221,6 +221,7 @@ export default {
     'gui.classroom.breadcrumbs.assignmentDetail': 'かだいしょうさい',
     'gui.classroom.breadcrumbs.shareGc': 'Google Classroom に きょうゆう',
     'gui.classroom.board.createNamePlaceholder': 'かだいめい（れい: ねこをうごかそう）',
+    'gui.classroom.board.createNameLabel': 'かだいめい:',
     'gui.classroom.board.createSubmit': 'つくる',
     'gui.classroom.board.reuse': 'かだいをさいりよう',
     'gui.classroom.board.reuseHint': 'つくったかだいをこのクラスにふくせい:',
