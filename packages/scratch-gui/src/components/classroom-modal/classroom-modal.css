@@ -2832,6 +2832,52 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
     font-weight: normal;
 }
 
+/* 共有推奨バナー (#1106): 課題詳細の上部。運営のおすすめ→共有フォーム誘導。 */
+.share-suggestion-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0.75rem 0;
+    padding: 0.6rem 0.9rem;
+    border: 1px solid hsla(40, 90%, 55%, 0.5);
+    border-radius: 0.5rem;
+    background: hsla(40, 90%, 55%, 0.12);
+    color: hsla(30, 80%, 30%, 1);
+}
+
+.share-suggestion-text {
+    flex: 1;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.share-suggestion-button {
+    flex: none;
+    padding: 0.4rem 1rem;
+    border: none;
+    border-radius: 0.4rem;
+    background: hsla(30, 80%, 45%, 1);
+    color: white;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.share-suggestion-button:hover:not(:disabled) {
+    background: hsla(30, 80%, 38%, 1);
+}
+
+/* ボード行の共有推奨マーク (#1106)。推薦バッジ (#1110) と同系色。 */
+.board-row-share-suggested {
+    flex: none;
+    margin-left: 0.4rem;
+    padding: 0.05rem 0.4rem;
+    border-radius: 0.25rem;
+    background: hsla(40, 90%, 55%, 0.2);
+    color: hsla(30, 80%, 35%, 1);
+    font-size: 0.7rem;
+    font-weight: bold;
+}
+
 /* 運営の推薦バッジ (#1110): 金色系で「選ばれた」ことが一目でわかる形。 */
 .shared-card-recommended {
     padding: 0.05rem 0.4rem;

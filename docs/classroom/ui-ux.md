@@ -185,6 +185,22 @@ Google または Microsoft アカウントでサインインする画面。先�
 | 未読ドット | `classroom-notification-unread-dot` | 未読アイテムのみ |
 | 空メッセージ | `classroom-notifications-empty` | お知らせ 0 件のとき |
 
+## 1.9 先生: 共有推奨バナー（#1106）
+
+![共有推奨バナー](screenshots/0219-share-suggestion-banner.png)
+
+運営（Admin）が「みんなの課題に共有する価値がある」と判断した課題には、課題詳細の上部に「**この課題、みんなの課題に共有しませんか？**」バナーが出る。「共有フォームを開く」でボードの共有ステップ（既存の共有フロー）が開く。公開はあくまで CC BY 同意を伴う**先生本人の共有操作のみ**（運営による代理公開はしない）。
+
+- 推奨と同時に運営からのお知らせ（🔔・`share_suggestion`）も届き、クリックでこの課題の詳細へジャンプする
+- 課題一覧（ボード）の該当行には「**共有おすすめ**」マークが付く
+- フラグは admin が取り消すまで表示される（先生側から消す操作は無い）
+
+| 要素 | data-testid | 操作 |
+|------|-------------|------|
+| バナー | `classroom-share-suggestion-banner` | — |
+| 共有フォームを開く | `classroom-share-suggestion-open` | ボードへ戻って共有ステップを開く |
+| ボード行のマーク | `classroom-board-share-suggested-{classroomId}` | — |
+
 ## 4. 先生: クラス詳細 (`teacher-detail`)
 
 クラスの参加状況と提出を管理する画面。モーダルが**ワイド表示 (968px)** に広がります。

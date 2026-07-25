@@ -509,9 +509,11 @@ describe('クラス管理 + 期限切れ復元 (issue #1084)', () => {
       }
       if (name === 'ScanCommand') {
         return { Items: [
+          // classroom item の課題コンテンツは `assignment` 属性（`content` は
+          // SharedAssignments 側の名前 — 取り違えの回帰防止 #1106）。
           { classroomId: 'c1', className: '5年1組', assignmentName: 'ねこ迷路ゲーム', teacherSub: 't1',
             status: 'active', createdAt: '2026-07-10T00:00:00.000Z',
-            content: { pages: [{ text: 'a', imageKey: 'k' }, { text: 'b' }], starterKey: 's' } },
+            assignment: { pages: [{ text: 'a', imageKey: 'k' }, { text: 'b' }], starterKey: 's' } },
           { classroomId: 'eval-quota#t1#2026-07-19', status: 'active' },
         ] };
       }

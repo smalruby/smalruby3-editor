@@ -5,7 +5,7 @@
  * with a sidebar (class list) and a main area that shows phase content.
  */
 import PropTypes from 'prop-types';
-import React from 'react';
+import React, { useCallback } from 'react';
 import { defineMessages, useIntl, FormattedMessage } from 'react-intl';
 
 import Modal from '../../containers/modal.jsx';
@@ -56,6 +56,20 @@ const messages = defineMessages({
         id: 'gui.classroom.management.title',
     },
 });
+
+/**
+ * 共有ステップ (#1106 バナー CTA) を載せるボードのグループを選ぶ。
+ * 優先順: この課題の所属グループ → 現在選択中 → 先頭のアクティブグループ。
+ * @param {object} selectedClassroom - 対象の課題 (classroom summary)
+ * @param {object|null} selectedGroup - 現在選択中のグループ
+ * @param {Array<object>} groups - 先生の全グループ
+ * @returns {object|null} 選ばれたグループ (無ければ null)
+ */
+export const pickShareSuggestionGroup = (selectedClassroom, selectedGroup, groups) =>
+    (groups || []).find((g) => g.groupId === selectedClassroom?.groupId) ||
+    selectedGroup ||
+    (groups || []).find((g) => g.status !== 'archived') ||
+    null;
 
 const ClassroomTeacherModal = ({ containerProps, onClose }) => {
     const intl = useIntl();
@@ -141,6 +155,19 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         shared,
         notificationsCenter,
     } = containerProps;
+
+    // 共有推奨バナー (#1106) の CTA: 共有ステップはボード内サブビュー
+    // (= selectedGroup が必須) なので、必ずグループを選んでから開く。
+    // 未グループの課題 (レガシー) や selectedGroup が無い経路でも、この課題の
+    // 所属グループ → 現在のグループ → 先頭のアクティブグループの順で拾う
+    // (#1110 レビューと同型の「phase を戻さず無反応」欠陥への対処)。
+    const handleOpenShareSuggestion = useCallback(() => {
+        if (!selectedClassroom || !shared) return;
+        const group = pickShareSuggestionGroup(selectedClassroom, selectedGroup, groups);
+        if (!group) return; // クラスが無い = 共有ステップを出す場所が無い
+        onSelectGroup(group);
+        shared.handleOpenShareFor(selectedClassroom);
+    }, [selectedClassroom, selectedGroup, groups, shared, onSelectGroup]);
 
     // Opening a class scopes the board to its assignments (GC style).
     const scopedClassrooms = selectedGroup
@@ -296,6 +323,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         onSelectMember={onSelectMember}
                         onShowCodeDisplay={onShowCodeDisplay}
                         shared={shared}
+                        onOpenShareSuggestion={handleOpenShareSuggestion}
                         onShowPostAssignment={authProvider === 'google' ? onShowPostAssignment : null}
                         onToggleCodeFullscreen={onToggleCodeFullscreen}
                         onUpdateAssignmentName={onUpdateAssignmentName}

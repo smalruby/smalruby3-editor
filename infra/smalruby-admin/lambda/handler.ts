@@ -504,7 +504,108 @@ function mapClassroomForAdmin(item: Record<string, unknown>) {
     updatedAt: item.updatedAt || null,
     restoredAt: item.restoredAt || null,
     expiresAt: item.ttl ? new Date((item.ttl as number) * 1000).toISOString() : null,
+    // 共有推奨 (#1106)
+    recommendedForSharing: !!item.recommendedForSharingAt,
+    recommendedForSharingAt: item.recommendedForSharingAt || null,
+    recommendedForSharingBy: item.recommendedForSharingBy || null,
   };
+}
+
+// --- 共有推奨 (EPIC #1106): 有益な課題を先生に「みんなの課題へ共有」促す ---
+
+/**
+ * POST/DELETE /admin/classrooms/{classroomId}/recommend-sharing — flag an
+ * assignment as "worth sharing to みんなの課題" (or withdraw the flag).
+ * Flagging notifies the owning teacher through the notification center
+ * (#1111); the teacher's own share flow (CC BY consent) stays the only
+ * publication path — admins never publish on a teacher's behalf.
+ */
+async function handleSetSharingRecommendation(
+  identity: AdminIdentity, classroomId: string, recommended: boolean,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const result = await docClient.send(new GetCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId },
+  }));
+  const item = result.Item as Record<string, unknown> | undefined;
+  // Quota rows share the key space.
+  if (!item || String(classroomId).includes('-quota#')) {
+    throw new NotFoundError('Classroom not found');
+  }
+  const teacherSub = typeof item.teacherSub === 'string' ? item.teacherSub : '';
+  if (!teacherSub) {
+    throw new NotFoundError('Classroom not found');
+  }
+  // アーカイブ済みは先生から見えないので新規の推奨はしない。ただし取り消し
+  // (下) は許す — 推奨後にアーカイブされるとフラグが運営から触れなくなり、
+  // 復元時に古いバナーが再出現するため（レビュー指摘）。
+  if (recommended && item.status !== 'active') {
+    throw new NotFoundError('Classroom not found');
+  }
+  // 中身（説明ページ or スターター）が無い課題は共有 API が拒否するので、
+  // 「共有しませんか？」と促しても行き止まりになる — 推奨自体を拒否する
+  // （レビュー指摘）。
+  const assignment = item.assignment as { pages?: unknown[]; starterKey?: string } | undefined;
+  const hasAssignmentContent = !!assignment &&
+    ((Array.isArray(assignment.pages) && assignment.pages.length > 0) || !!assignment.starterKey);
+  if (recommended && !hasAssignmentContent) {
+    throw new ValidationError('Classroom has no assignment content to share');
+  }
+
+  const alreadyRecommended = !!item.recommendedForSharingAt;
+  if (recommended && !alreadyRecommended) {
+    const now = new Date().toISOString();
+    // #1110 と同じ「通知 → 印付け」の順 + 印付けの冪等を原子化。真に同時の
+    // POST では通知が重複しうる（SPA の busy 無効化で実質防止・最悪ケースは
+    // 重複通知で無害 — #1110 と同じ割り切り）。
+    const title = String(item.assignmentName || item.className || '課題');
+    await putNotification(teacherSub, {
+      type: 'share_suggestion',
+      title: 'この課題、みんなの課題に共有しませんか？',
+      body: `「${title}」が内容の充実した課題として運営のおすすめに選ばれました。課題一覧の「共有」から、全国の先生に共有できます。`,
+      link: { kind: 'classroom', classroomId },
+      createdBy: identity.email,
+    });
+    try {
+      await docClient.send(new UpdateCommand({
+        TableName: CLASSROOMS_TABLE,
+        Key: { classroomId },
+        UpdateExpression:
+          'SET recommendedForSharingAt = :now, recommendedForSharingBy = :email, updatedAt = :now',
+        ConditionExpression: 'attribute_not_exists(recommendedForSharingAt)',
+        ExpressionAttributeValues: { ':now': now, ':email': identity.email },
+      }));
+    } catch (err) {
+      if ((err as { name?: string }).name !== 'ConditionalCheckFailedException') throw err;
+    }
+    audit('classroom.recommendSharing', identity, { classroomId });
+    return {
+      statusCode: 200,
+      body: JSON.stringify(mapClassroomForAdmin({
+        ...item, recommendedForSharingAt: now, recommendedForSharingBy: identity.email,
+      })),
+    };
+  }
+
+  if (!recommended && alreadyRecommended) {
+    await docClient.send(new UpdateCommand({
+      TableName: CLASSROOMS_TABLE,
+      Key: { classroomId },
+      UpdateExpression: 'REMOVE recommendedForSharingAt, recommendedForSharingBy SET updatedAt = :now',
+      ExpressionAttributeValues: { ':now': new Date().toISOString() },
+    }));
+    // 取り消しは通知しない（先生を騒がせない）。audit で追跡できる。
+    audit('classroom.unrecommendSharing', identity, { classroomId });
+    return {
+      statusCode: 200,
+      body: JSON.stringify(mapClassroomForAdmin({
+        ...item, recommendedForSharingAt: undefined, recommendedForSharingBy: undefined,
+      })),
+    };
+  }
+
+  // No-op (already in the requested state) — idempotent success.
+  return { statusCode: 200, body: JSON.stringify(mapClassroomForAdmin(item)) };
 }
 
 async function handleListClassrooms(
@@ -972,6 +1073,14 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
     // Literal route first — it would otherwise match the {classroomId} shapes.
     } else if (method === 'GET' && path === '/admin/classrooms/restore-candidates') {
       result = await handleSearchRestoreCandidates(identity, event.queryStringParameters || {});
+
+    } else if (method === 'POST' && /^\/admin\/classrooms\/[^/]+\/recommend-sharing$/.test(path)) {
+      const classroomId = event.pathParameters?.classroomId || '';
+      result = await handleSetSharingRecommendation(identity, classroomId, true);
+
+    } else if (method === 'DELETE' && /^\/admin\/classrooms\/[^/]+\/recommend-sharing$/.test(path)) {
+      const classroomId = event.pathParameters?.classroomId || '';
+      result = await handleSetSharingRecommendation(identity, classroomId, false);
 
     } else if (method === 'GET' && /^\/admin\/classrooms\/[^/]+\/restore-plan$/.test(path)) {
       const classroomId = event.pathParameters?.classroomId || '';

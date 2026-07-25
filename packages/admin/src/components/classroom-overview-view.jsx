@@ -144,6 +144,12 @@ const ClassroomOverviewView = ({onOpenCandidate}) => {
                                     ) : (
                                         <span className="admin-badge admin-badge-ok">{'未共有らしい'}</span>
                                     )}
+                                    {c.recommendedForSharing ? (
+                                        <span
+                                            className="admin-badge admin-badge-ok"
+                                            data-testid={`overview-candidate-recommended-${c.classroomId}`}
+                                        >{'推奨済み'}</span>
+                                    ) : null}
                                     <span className="admin-meta">
                                         {`${c.className} ・ ページ${c.pageCount}`}
                                         {c.hasImages ? '・画像あり' : ''}

@@ -658,6 +658,9 @@ function mapClassroomSummary(item: Record<string, unknown>, identity: TeacherIde
     topic: item.topic || null,
     sortDate: item.sortDate || item.createdAt || null,
     hasAssignment: hasAssignmentContent(item),
+    // 共有推奨 (#1106): 書き込みは admin スタックのみ。boolean へ投影する
+    // （recommendedForSharingBy = admin email は内部情報）。
+    recommendedForSharing: !!item.recommendedForSharingAt,
     status: item.status,
     role: item.teacherSub === identity.sub ? 'owner' : 'co-teacher',
   };
@@ -734,6 +737,7 @@ async function handleGetClassroom(identity: TeacherIdentity, classroomId: string
       topic: result.Item.topic || null,
       sortDate: result.Item.sortDate || result.Item.createdAt || null,
       hasAssignment: hasAssignmentContent(result.Item),
+      recommendedForSharing: !!result.Item.recommendedForSharingAt,
       role: result.Item.teacherSub === identity.sub ? 'owner' : 'co-teacher',
     }),
   };

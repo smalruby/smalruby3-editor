@@ -15,7 +15,12 @@ export interface ClassroomRow {
   teacherSub?: unknown;
   status?: unknown; // 'active' | 'archived'
   createdAt?: unknown;
-  content?: { pages?: { text?: string; imageKey?: string }[]; starterKey?: string };
+  // 課題コンテンツは classroom item の `assignment` 属性（`content` は
+  // SharedAssignments 側のフィールド名 — 取り違えると richness が常に 0 で
+  // 有益候補が空になるバグだった #1106）。
+  assignment?: { pages?: { text?: string; imageKey?: string }[]; starterKey?: string };
+  // 共有推奨 (#1106): admin が立てるフラグ。候補一覧に「推奨済み」を出す。
+  recommendedForSharingAt?: unknown;
 }
 
 /** Quota rows reuse the classrooms key space; never count them. */
@@ -33,10 +38,10 @@ export function isRealClassroom(row: ClassroomRow): boolean {
 export function richness(row: ClassroomRow): {
   score: number; pageCount: number; hasImages: boolean; hasStarter: boolean;
 } {
-  const pages = row.content?.pages || [];
+  const pages = row.assignment?.pages || [];
   const pageCount = pages.length;
   const hasImages = pages.some(p => typeof p?.imageKey === 'string' && p.imageKey.length > 0);
-  const hasStarter = typeof row.content?.starterKey === 'string' && row.content.starterKey.length > 0;
+  const hasStarter = typeof row.assignment?.starterKey === 'string' && row.assignment.starterKey.length > 0;
   let score = 0;
   if (pageCount >= 1) score += 1;
   if (pageCount >= 2) score += 1;
@@ -78,6 +83,7 @@ export function buildOverview(
     classroomId: string; className: string; assignmentName: string;
     teacherSub: string; score: number; pageCount: number;
     hasImages: boolean; hasStarter: boolean; createdAt: string; likelyShared: boolean;
+    recommendedForSharing: boolean;
   }[];
   themeKeywords: { keyword: string; count: number }[];
 } {
@@ -127,6 +133,7 @@ export function buildOverview(
         hasStarter: r.hasStarter,
         createdAt,
         likelyShared,
+        recommendedForSharing: !!row.recommendedForSharingAt,
       });
     }
   }
