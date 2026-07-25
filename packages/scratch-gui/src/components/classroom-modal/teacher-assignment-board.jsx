@@ -362,8 +362,15 @@ const TeacherAssignmentBoard = ({
         [allClassrooms, onReuseAssignment, group],
     );
 
-    // Reuse picker: every assignment (any class), newest first, filterable.
+    // 再利用の対象はアクティブなクラス・課題のみ（レビュー指摘）。アーカイブ済みの
+    // クラス（組）に属する課題や、アーカイブ済みの課題は候補・フィルタから除外する。
+    const activeGroupIds = new Set(
+        (allGroups || []).filter((g) => g.status !== 'archived').map((g) => g.groupId),
+    );
+    const reuseGroups = (allGroups || []).filter((g) => g.status !== 'archived');
+    // Reuse picker: active assignments (of active classes), newest first, filterable.
     const reuseCandidates = (allClassrooms || [])
+        .filter((c) => c.status !== 'archived' && activeGroupIds.has(c.groupId))
         .filter((c) => !reuseFilterGroupId || c.groupId === reuseFilterGroupId)
         .sort((a, b) =>
             String(b.sortDate || b.createdAt || '').localeCompare(String(a.sortDate || a.createdAt || '')),
@@ -694,7 +701,7 @@ const TeacherAssignmentBoard = ({
                                     id: 'gui.classroom.board.reuseFilterAll',
                                 })}
                             </option>
-                            {(allGroups || []).map((g) => (
+                            {reuseGroups.map((g) => (
                                 <option key={g.groupId} value={g.groupId}>
                                     {formatClassLabel(g)}
                                 </option>
