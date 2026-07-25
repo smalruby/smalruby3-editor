@@ -459,6 +459,7 @@ export default {
     'gui.classroom.management.googleCoursesTitle': 'Google Classroomからインポート',
     'gui.classroom.management.noCourses': 'クラスが見つかりません',
     'gui.classroom.management.importButton': 'インポート',
+    'gui.classroom.management.importCancel': 'キャンセル',
     'gui.classroom.management.authHintTitle': 'Google Classroom からインポートする前に',
     'gui.classroom.management.authHintGuide':
         '認可の画面が表示されたら、下の画像のようにすべてのチェックボックスにチェックを入れてください。',

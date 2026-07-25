@@ -471,6 +471,7 @@ export default {
     'gui.classroom.management.googleCoursesTitle': 'Google Classroomからインポート',
     'gui.classroom.management.noCourses': 'クラスがみつかりません',
     'gui.classroom.management.importButton': 'インポート',
+    'gui.classroom.management.importCancel': 'キャンセル',
     'gui.classroom.management.authHintTitle': 'Google Classroom からインポートするまえに',
     'gui.classroom.management.authHintGuide':
         'にんかのがめんがひょうじされたら、したのがぞうのようにすべてのチェックボックスにチェックをいれてください。',
