@@ -573,11 +573,8 @@ const TeacherClassList = ({
                     ]}
                 />
                 <ErrorDisplay error={error} errorTitle={errorTitle} />
-                <form
-                    className={styles.postAssignmentContainer}
-                    data-testid="classroom-class-create-view"
-                    onSubmit={handleSubmit}
-                >
+                <div className={styles.postAssignmentContainer}>
+                    {/* 設定画面と同じ枠付きフォーム（.class-settings-form）に揃える。 */}
                     <div className={styles.phaseTitle}>
                         <FormattedMessage
                             defaultMessage="Create a class"
@@ -585,8 +582,12 @@ const TeacherClassList = ({
                             id="gui.classroom.classList.create"
                         />
                     </div>
+                    <form
+                        className={styles.classSettingsForm}
+                        data-testid="classroom-class-create-view"
+                        onSubmit={handleSubmit}
+                    >
                     <input
-                        className={styles.input}
                         data-testid="classroom-class-create-name"
                         disabled={isLoading}
                         maxLength={50}
@@ -638,7 +639,6 @@ const TeacherClassList = ({
                         />
                     </div>
                     <input
-                        className={styles.input}
                         data-testid="classroom-class-create-assignment"
                         disabled={isLoading}
                         maxLength={50}
@@ -685,7 +685,8 @@ const TeacherClassList = ({
                             )}
                         </button>
                     </div>
-                </form>
+                    </form>
+                </div>
             </div>
         );
     }
