@@ -209,6 +209,7 @@ export default {
     'gui.classroom.evaluation.exportCsv': 'ひょうかCSV',
     'gui.classroom.evaluation.exportAuditCsv': 'けんしょうようCSV',
     'gui.classroom.evaluation.returnComments': 'コメントをへんきゃく',
+    'gui.classroom.evaluation.cancel': 'キャンセル',
     'gui.classroom.teacherDetail.descriptionTab': 'せつめい',
     'gui.classroom.teacherDetail.previewTitle': 'せいとにみえるないよう（プレビュー）',
     'gui.classroom.breadcrumbs.evaluation': 'ひょうか',
@@ -221,6 +222,7 @@ export default {
     'gui.classroom.breadcrumbs.assignmentDetail': 'かだいしょうさい',
     'gui.classroom.breadcrumbs.shareGc': 'Google Classroom に きょうゆう',
     'gui.classroom.board.createNamePlaceholder': 'かだいめい（れい: ねこをうごかそう）',
+    'gui.classroom.board.createNameLabel': 'かだいめい:',
     'gui.classroom.board.createSubmit': 'つくる',
     'gui.classroom.board.reuse': 'かだいをさいりよう',
     'gui.classroom.board.reuseHint': 'つくったかだいをこのクラスにふくせい:',
@@ -228,6 +230,8 @@ export default {
     'gui.classroom.board.reuseCopy': 'このクラスにふくせい',
     'gui.classroom.board.yearLabel': '{year}ねんど',
     'gui.classroom.board.create': 'かだいをつくる',
+    'gui.classroom.board.hint':
+        'このクラスのかだいをさくせい・かんりします。かだいをひらくとていしゅつじょうきょうのかくにんやひょうかができます。',
     'gui.classroom.board.topicLabel': 'トピック',
     'gui.classroom.board.noTopic': '（トピックなし）',
     'gui.classroom.board.newTopicPlaceholder': 'あたらしいトピック',
@@ -239,6 +243,8 @@ export default {
     'gui.classroom.classList.ungroupedHint':
         'どのクラスにもはいっていないかだい（きょうどうかんりできょうゆうされたもの・みいこうのもの）:',
     'gui.classroom.classList.createCancel': 'キャンセル',
+    'gui.classroom.classList.createCoTeacherHint':
+        'きょうどうかんりしゃ（クラスをいっしょにかんりするせんせい）は、あとから「せってい」でついかできます。',
     'gui.classroom.classList.createClassOnly': 'クラスのみつくる',
     'gui.classroom.classList.settings': 'せってい',
     'gui.classroom.classSettings.namePlaceholder': 'クラスめい（ひっす・れい: ぎじゅつ）',
@@ -416,7 +422,7 @@ export default {
     'gui.classroom.shared.passcodeImportBtn': 'このクラスにとりこむ',
     'gui.classroom.shared.openCatalog': 'みんなのかだいからさがす',
     'gui.classroom.shared.catalogTitle': 'みんなのかだい — ぜんこくのせんせいがきょうゆうしたかだい',
-    'gui.classroom.shared.catalogClose': 'とじる',
+    'gui.classroom.shared.catalogClose': 'キャンセル',
     'gui.classroom.shared.tabAll': 'すべて',
     'gui.classroom.shared.tabMine': 'じぶんのとうこう',
     'gui.classroom.shared.filterAllLevels': 'すべてのがっこうしゅ',
@@ -470,6 +476,7 @@ export default {
     'gui.classroom.management.googleCoursesTitle': 'Google Classroomからインポート',
     'gui.classroom.management.noCourses': 'クラスがみつかりません',
     'gui.classroom.management.importButton': 'インポート',
+    'gui.classroom.management.importCancel': 'キャンセル',
     'gui.classroom.management.authHintTitle': 'Google Classroom からインポートするまえに',
     'gui.classroom.management.authHintGuide':
         'にんかのがめんがひょうじされたら、したのがぞうのようにすべてのチェックボックスにチェックをいれてください。',

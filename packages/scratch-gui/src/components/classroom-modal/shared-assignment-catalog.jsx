@@ -4,6 +4,7 @@
  * manage the caller's own posts (unlist / republish). Supplement URLs open
  * behind an explicit confirmation that names the external domain (D4).
  */
+import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React, { useCallback, useState } from 'react';
 import { FormattedMessage, defineMessages, useIntl } from 'react-intl';
@@ -390,8 +391,8 @@ const SharedAssignmentCatalog = ({ group, isLoading, shared }) => {
                 </h3>
                 <button data-testid="shared-catalog-close" type="button" onClick={shared.handleCloseCatalog}>
                     <FormattedMessage
-                        defaultMessage="Close"
-                        description="Close the shared catalog"
+                        defaultMessage="Cancel"
+                        description="Cancel button that leaves the shared catalog"
                         id="gui.classroom.shared.catalogClose"
                     />
                 </button>
@@ -399,7 +400,9 @@ const SharedAssignmentCatalog = ({ group, isLoading, shared }) => {
 
             <div className={styles.detailTabs} role="tablist">
                 <button
-                    className={shared.catalogTab === 'all' ? styles.detailTabActive : styles.detailTab}
+                    className={classNames(styles.detailTab, {
+                        [styles.detailTabActive]: shared.catalogTab === 'all',
+                    })}
                     data-testid="shared-catalog-tab-all"
                     type="button"
                     onClick={handleTabAll}
@@ -411,7 +414,9 @@ const SharedAssignmentCatalog = ({ group, isLoading, shared }) => {
                     />
                 </button>
                 <button
-                    className={shared.catalogTab === 'mine' ? styles.detailTabActive : styles.detailTab}
+                    className={classNames(styles.detailTab, {
+                        [styles.detailTabActive]: shared.catalogTab === 'mine',
+                    })}
                     data-testid="shared-catalog-tab-mine"
                     type="button"
                     onClick={handleTabMine}

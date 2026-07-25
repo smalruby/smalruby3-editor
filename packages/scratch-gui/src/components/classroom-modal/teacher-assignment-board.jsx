@@ -362,8 +362,15 @@ const TeacherAssignmentBoard = ({
         [allClassrooms, onReuseAssignment, group],
     );
 
-    // Reuse picker: every assignment (any class), newest first, filterable.
+    // 再利用の対象はアクティブなクラス・課題のみ（レビュー指摘）。アーカイブ済みの
+    // クラス（組）に属する課題や、アーカイブ済みの課題は候補・フィルタから除外する。
+    const activeGroupIds = new Set(
+        (allGroups || []).filter((g) => g.status !== 'archived').map((g) => g.groupId),
+    );
+    const reuseGroups = (allGroups || []).filter((g) => g.status !== 'archived');
+    // Reuse picker: active assignments (of active classes), newest first, filterable.
     const reuseCandidates = (allClassrooms || [])
+        .filter((c) => c.status !== 'archived' && activeGroupIds.has(c.groupId))
         .filter((c) => !reuseFilterGroupId || c.groupId === reuseFilterGroupId)
         .sort((a, b) =>
             String(b.sortDate || b.createdAt || '').localeCompare(String(a.sortDate || a.createdAt || '')),
@@ -389,6 +396,58 @@ const TeacherAssignmentBoard = ({
         [onUpdateGroupTopics, group.groupId],
     );
 
+    // 画面遷移サブビュー（#1108）: 作成/再利用/共有/合言葉/カタログ。開いている間は
+    // 上部アクションバーを隠し、パンくずに現在地を出す。「課題一覧」で元に戻る。
+    const subView = showInlineCreate
+        ? 'create'
+        : showReuse
+          ? 'reuse'
+          : shared && shared.shareTarget
+            ? 'share'
+            : shared && shared.showPasscodeImport
+              ? 'passcode'
+              : shared && shared.showCatalog
+                ? 'catalog'
+                : null;
+    // 各 id の descriptor は元の使用箇所と一致させる（react-intl は同一 id で
+    // defaultMessage/description の不一致を許さない）。
+    const subViewMessages = {
+        create: {
+            defaultMessage: 'Create an assignment',
+            description: 'Button on the board to create a new assignment',
+            id: 'gui.classroom.board.create',
+        },
+        reuse: {
+            defaultMessage: 'Reuse an assignment',
+            description: 'Button on the board to reuse (duplicate) an existing assignment',
+            id: 'gui.classroom.board.reuse',
+        },
+        share: {
+            defaultMessage: 'Share this assignment',
+            description: 'Share step title',
+            id: 'gui.classroom.shared.shareStepTitle',
+        },
+        passcode: {
+            defaultMessage: 'Import by passcode',
+            description: 'Passcode import step title',
+            id: 'gui.classroom.shared.passcodeImportTitle',
+        },
+        catalog: {
+            defaultMessage: 'Find in みんなの課題',
+            description: 'Button that opens the shared assignment catalog',
+            id: 'gui.classroom.shared.openCatalog',
+        },
+    };
+    const handleBoardHome = useCallback(() => {
+        setShowInlineCreate(false);
+        setShowReuse(false);
+        if (shared) {
+            if (shared.shareTarget) shared.handleCloseShareForm();
+            if (shared.showPasscodeImport) shared.handleClosePasscodeImport();
+            if (shared.showCatalog) shared.handleCloseCatalog();
+        }
+    }, [shared]);
+
     return (
         <div className={styles.assignmentBoard} data-testid="classroom-board">
             <TeacherBreadcrumbs
@@ -402,18 +461,40 @@ const TeacherAssignmentBoard = ({
                         onClick: onShowClassList,
                         testId: 'classroom-breadcrumb-class-list',
                     },
-                    {
-                        label: intl.formatMessage({
-                            defaultMessage: 'Assignments',
-                            description: 'Breadcrumb label of the assignment board',
-                            id: 'gui.classroom.breadcrumbs.assignments',
-                        }),
-                    },
+                    // サブビュー中は「課題一覧」を戻るリンクにし、現在地の crumb を足す。
+                    subView
+                        ? {
+                              label: intl.formatMessage({
+                                  defaultMessage: 'Assignments',
+                                  description: 'Breadcrumb label of the assignment board',
+                                  id: 'gui.classroom.breadcrumbs.assignments',
+                              }),
+                              onClick: handleBoardHome,
+                              testId: 'classroom-breadcrumb-assignments',
+                          }
+                        : {
+                              label: intl.formatMessage({
+                                  defaultMessage: 'Assignments',
+                                  description: 'Breadcrumb label of the assignment board',
+                                  id: 'gui.classroom.breadcrumbs.assignments',
+                              }),
+                          },
+                    ...(subView ? [{ label: intl.formatMessage(subViewMessages[subView]) }] : []),
                 ]}
             />
-            {!(shared && (shared.shareTarget || shared.showPasscodeImport)) && (
+            {!subView && (
+            <React.Fragment>
+            {/* クラス名は独立行にして省略されないようにする（レビュー指摘）。
+                下に画面の説明、その下にアクションボタン行を置く。 */}
+            <h2 className={styles.boardTitle}>{formatClassLabel(group)}</h2>
+            <p className={styles.boardHint}>
+                <FormattedMessage
+                    defaultMessage="Create and organize this class's assignments here. Open an assignment to check submissions or grade."
+                    description="Short description of what the assignment board (課題一覧) is for"
+                    id="gui.classroom.board.hint"
+                />
+            </p>
             <div className={styles.boardHeader}>
-                <h2 className={styles.boardTitle}>{formatClassLabel(group)}</h2>
                 <button
                     className={styles.boardCreateButton}
                     data-testid="classroom-board-create"
@@ -440,25 +521,8 @@ const TeacherAssignmentBoard = ({
                         id="gui.classroom.board.reuse"
                     />
                 </button>
-                {onDownloadClassAll ? (
-                    <button
-                        className={styles.boardReuseButton}
-                        data-testid="classroom-board-download-class"
-                        disabled={isLoading || !!downloadProgress}
-                        type="button"
-                        onClick={handleDownloadClassAll}
-                    >
-                        {downloadProgress ? (
-                            `${downloadProgress.current}/${downloadProgress.total}`
-                        ) : (
-                            <FormattedMessage
-                                defaultMessage="Download all submissions"
-                                description="Button that downloads every assignment's submissions as one zip"
-                                id="gui.classroom.board.downloadClass"
-                            />
-                        )}
-                    </button>
-                ) : null}
+                {/* 並び順（レビュー指摘）: 作る → 再利用 → みんなの課題からさがす →
+                    合言葉で取り込み → 全課題の提出物をダウンロード。 */}
                 {shared ? (
                     <button
                         className={styles.boardReuseButton}
@@ -489,7 +553,27 @@ const TeacherAssignmentBoard = ({
                         />
                     </button>
                 ) : null}
+                {onDownloadClassAll ? (
+                    <button
+                        className={styles.boardReuseButton}
+                        data-testid="classroom-board-download-class"
+                        disabled={isLoading || !!downloadProgress}
+                        type="button"
+                        onClick={handleDownloadClassAll}
+                    >
+                        {downloadProgress ? (
+                            `${downloadProgress.current}/${downloadProgress.total}`
+                        ) : (
+                            <FormattedMessage
+                                defaultMessage="Download all submissions"
+                                description="Button that downloads every assignment's submissions as one zip"
+                                id="gui.classroom.board.downloadClass"
+                            />
+                        )}
+                    </button>
+                ) : null}
             </div>
+            </React.Fragment>
             )}
             <ErrorDisplay error={error} errorTitle={errorTitle} />
             {shared && shared.lastImported ? (
@@ -522,64 +606,91 @@ const TeacherAssignmentBoard = ({
                 />
             ) : shared && shared.showCatalog ? (
                 <SharedAssignmentCatalog group={group} isLoading={isLoading} shared={shared} />
-            ) : (
-                <React.Fragment>
-            {showInlineCreate ? (
+            ) : showInlineCreate ? (
+                // 課題を作る（#1108: popover → 画面遷移。フッター キャンセル左/作成右）
                 <form
-                    className={`${styles.boardPopover} ${styles.boardInlineCreate}`}
+                    className={styles.postAssignmentContainer}
+                    data-testid="classroom-board-create-view"
                     onSubmit={handleSubmitInlineCreate}
                 >
-                    <input
-                        autoFocus
-                        data-testid="classroom-board-create-name"
-                        disabled={isLoading}
-                        maxLength={50}
-                        placeholder={intl.formatMessage({
-                            defaultMessage: 'Assignment name (e.g. Move the cat)',
-                            description: 'Placeholder of the inline assignment name input',
-                            id: 'gui.classroom.board.createNamePlaceholder',
-                        })}
-                        type="text"
-                        value={newAssignmentName}
-                        onChange={handleNewAssignmentNameChange}
-                    />
-                    <button
-                        data-testid="classroom-board-create-submit"
-                        disabled={isLoading || newAssignmentName.trim().length === 0}
-                        type="submit"
-                    >
+                    <div className={styles.phaseTitle}>
                         <FormattedMessage
-                            defaultMessage="Create"
-                            description="Submit button of the inline assignment creation form"
-                            id="gui.classroom.board.createSubmit"
+                            defaultMessage="Create an assignment"
+                            description="Button on the board to create a new assignment"
+                            id="gui.classroom.board.create"
                         />
-                    </button>
-                    <button
-                        className={styles.popoverCancel}
-                        data-testid="classroom-board-create-cancel"
-                        type="button"
-                        onClick={handleToggleInlineCreate}
-                    >
-                        <FormattedMessage
-                            defaultMessage="Cancel"
-                            description="Cancel button of the inline assignment creation form"
-                            id="gui.classroom.board.createCancel"
+                    </div>
+                    <div className={styles.formGroup}>
+                        <label className={styles.label}>
+                            <FormattedMessage
+                                defaultMessage="Assignment name:"
+                                description="Label for the assignment name on the create screen"
+                                id="gui.classroom.board.createNameLabel"
+                            />
+                        </label>
+                        <input
+                            autoFocus
+                            className={styles.input}
+                            data-testid="classroom-board-create-name"
+                            disabled={isLoading}
+                            maxLength={50}
+                            placeholder={intl.formatMessage({
+                                defaultMessage: 'Assignment name (e.g. Move the cat)',
+                                description: 'Placeholder of the assignment name input',
+                                id: 'gui.classroom.board.createNamePlaceholder',
+                            })}
+                            type="text"
+                            value={newAssignmentName}
+                            onChange={handleNewAssignmentNameChange}
                         />
-                    </button>
+                    </div>
+                    <div className={styles.formFooter}>
+                        <button
+                            className={styles.secondaryButton}
+                            data-testid="classroom-board-create-cancel"
+                            type="button"
+                            onClick={handleToggleInlineCreate}
+                        >
+                            <FormattedMessage
+                                defaultMessage="Cancel"
+                                description="Cancel button of the assignment create screen"
+                                id="gui.classroom.board.createCancel"
+                            />
+                        </button>
+                        <button
+                            className={styles.primaryButton}
+                            data-testid="classroom-board-create-submit"
+                            disabled={isLoading || newAssignmentName.trim().length === 0}
+                            type="submit"
+                        >
+                            <FormattedMessage
+                                defaultMessage="Create"
+                                description="Submit button of the assignment create screen"
+                                id="gui.classroom.board.createSubmit"
+                            />
+                        </button>
+                    </div>
                 </form>
-            ) : null}
-            {showReuse ? (
-                <div
-                    className={`${styles.boardPopover} ${styles.boardSection}`}
-                    data-testid="classroom-board-reuse-view"
-                >
-                    <div className={styles.reuseFilter}>
+            ) : showReuse ? (
+                // 課題を再利用（#1108: popover → 画面遷移。コピーは候補ごと、キャンセル左）
+                <div className={styles.postAssignmentContainer} data-testid="classroom-board-reuse-view">
+                    <div className={styles.phaseTitle}>
+                        <FormattedMessage
+                            defaultMessage="Reuse an assignment"
+                            description="Button on the board to reuse (duplicate) an existing assignment"
+                            id="gui.classroom.board.reuse"
+                        />
+                    </div>
+                    <p className={styles.postAssignmentHint}>
                         <FormattedMessage
                             defaultMessage="Copy an existing assignment into this class:"
                             description="Explanation above the reuse picker"
                             id="gui.classroom.board.reuseHint"
                         />
+                    </p>
+                    <div className={styles.formGroup}>
                         <select
+                            className={styles.input}
                             data-testid="classroom-board-reuse-filter"
                             disabled={isLoading}
                             value={reuseFilterGroupId}
@@ -592,24 +703,12 @@ const TeacherAssignmentBoard = ({
                                     id: 'gui.classroom.board.reuseFilterAll',
                                 })}
                             </option>
-                            {(allGroups || []).map((g) => (
+                            {reuseGroups.map((g) => (
                                 <option key={g.groupId} value={g.groupId}>
                                     {formatClassLabel(g)}
                                 </option>
                             ))}
                         </select>
-                        <button
-                            className={styles.popoverCancel}
-                            data-testid="classroom-board-reuse-cancel"
-                            type="button"
-                            onClick={handleToggleReuse}
-                        >
-                            <FormattedMessage
-                                defaultMessage="Cancel"
-                                description="Close the reuse picker without copying"
-                                id="gui.classroom.board.reuseCancel"
-                            />
-                        </button>
                     </div>
                     <ul className={styles.boardRows}>
                         {reuseCandidates.map((c) => (
@@ -637,8 +736,24 @@ const TeacherAssignmentBoard = ({
                             </li>
                         ))}
                     </ul>
+                    <div className={styles.formFooter}>
+                        <button
+                            className={styles.secondaryButton}
+                            data-testid="classroom-board-reuse-cancel"
+                            type="button"
+                            onClick={handleToggleReuse}
+                        >
+                            <FormattedMessage
+                                defaultMessage="Cancel"
+                                description="Close the reuse picker without copying"
+                                id="gui.classroom.board.reuseCancel"
+                            />
+                        </button>
+                        <span />
+                    </div>
                 </div>
-            ) : null}
+            ) : (
+                <React.Fragment>
             <div className={styles.boardTopics}>
                 {topics.map((topic) => (
                     <TopicChip
