@@ -149,6 +149,7 @@ Google または Microsoft アカウントでサインインする画面。先�
 ![アーカイブ済み課題の一覧と復元](screenshots/0217-board-archived-section.png)
 - **残り日数バッジ**: 保存期限（自動削除）まで 30 日以下の課題行に「あと{days}日」バッジを表示（7 日以下は警告色）。閾値の根拠は EPIC #1049 の D8
 - **全課題の提出物をダウンロード**（`classroom-board-download-class`）: クラス内の全課題（アーカイブ済み含む — どちらも保存期限で消えるため）の提出物を 1 つの zip（`課題名/席番号_名前/作品.sb3` + サムネ/スクショ + `提出状況.csv`）でダウンロード。進捗は「n/m」表示
+- **みんなの課題からさがす**（`classroom-board-shared-catalog`、EPIC #1066）: 全国の先生が共有した課題のカタログをボード内に展開。学校種・教科・学年・タグで絞り込み → 詳細プレビュー（説明ページ・「© 表示名 / CC BY 4.0」クレジット・補足資料リンクは外部ドメイン名付き確認を挟んで新規タブ）→「このクラスに取り込む」でスターターごと課題として複製（新しい参加コードが発行される）。「自分の投稿」タブから取り下げ / 再公開。他人の投稿には通報（理由必須）
 
 ![残り日数バッジと全課題ダウンロード](screenshots/0213-board-expiry-badge-download.png)
 - 主な data-testid: `classroom-board` / `classroom-board-create[-name|-submit]` / `classroom-board-reuse[-view|-filter|-copy-{id}]` / `classroom-board-section-{topic|none}` / `classroom-board-row|open|topic|date-{classroomId}` / `classroom-topic-add[-input]` / `classroom-topic-chip|rename|remove-{topic}` / `classroom-breadcrumbs` / `classroom-board-archived-[section|toggle|list]` / `classroom-board-archived-row-{classroomId}` / `classroom-board-restore-{classroomId}`
@@ -160,6 +161,7 @@ Google または Microsoft アカウントでサインインする画面。先�
 課題をひらくと「説明」タブが最初に表示される。左に生徒へ表示する説明・画像・スターターの編集フォーム、**右ペインに生徒視点プレビュー**（編集内容をライブ表示・ページ送り。生徒への反映は保存時のみ）。
 
 - 出席・提出のポーリング（30秒）は**メンバータブ表示中のみ**（費用抑制）
+- **この課題を共有**（`classroom-share-assignment`）: 課題（説明ページ + スターター）を「みんなの課題」（全国の先生の共有ライブラリ、EPIC #1066）に公開するフォームを開く。属性（学校種・学年・教科・タグ・コマ数）、補足資料 URL（https のみ + 期待内容のガイダンス表示）、表示名・所属（localStorage 記憶）、**CC BY 4.0 同意チェック必須**。公開後は「© 表示名 / CC BY 4.0」付きの完了メッセージを表示
 - 課題の所属クラス変更・人数編集・課題単位の共同管理者・複製は**できない**（クラス設定 / 課題一覧の再利用へ集約）。フッターのボタンは「**課題をアーカイブ**」（soft-delete。ボードの「アーカイブ済みの課題」からいつでも復元可能。testid は歴史的経緯で `classroom-delete-classroom` のまま）
 - 主な data-testid: `classroom-tab-description` / `classroom-description-editor` / `classroom-description-preview[-body|-prev|-next]` / `classroom-tab-members`
 

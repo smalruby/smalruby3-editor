@@ -128,6 +128,9 @@ sequenceDiagram
 | **DynamoDB** | `ClassroomMemberships-{stage}` | メンバー (生徒) 情報（Streams: OLD_IMAGE） |
 | **DynamoDB** | `ClassroomSubmissions-{stage}` | 提出情報（Streams: OLD_IMAGE） |
 | **DynamoDB** | `ClassroomGroups-{stage}` | クラス（学級）情報（Streams: OLD_IMAGE） |
+| **DynamoDB** | `SharedAssignments-{stage}` | みんなの課題（TTL なし・prod RETAIN + PITR） |
+| **DynamoDB** | `SharedAssignmentReports-{stage}` | みんなの課題の通報（TTL 90日） |
+| **S3** | `smalruby-shared-assignments-{stage}` | 共有課題のスナップショット（lifecycle なし = 永続・prod RETAIN） |
 | **S3** | `smalruby-classroom-submissions-{stage}` | 提出ファイル (.sb3, サムネイル, スクリーンショット) + `ddb-archive/` スナップショット。lifecycle = `ARCHIVE_RETENTION_DAYS`（既定 365 日） |
 | **Route53** | A レコード | カスタムドメイン |
 | **ACM** | SSL 証明書 | HTTPS |
@@ -184,6 +187,27 @@ sequenceDiagram
 | `PATCH` | `/classroom-groups/{groupId}/topics` | トピックの add / remove / rename（rename・remove は課題へ一括追従） |
 | `POST` | `/classrooms/{id}/duplicate` | クラス（授業）の複製。課題コンテンツの S3 オブジェクトもコピー。`groupId` / `className` / `assignmentName` を上書き可。メンバー・提出は複製しない |
 | `POST` | `/classrooms/{id}/evaluate` | AI 評価支援。静的解析結果（シグナル + 擬似コード）を Anthropic API にリレーし、`mode: grade` は S/A/B/C 案 + 根拠 + needsReview、`mode: comment` は生徒向けポジティブコメント下書きを返す。1リクエスト最大10提出（API GW の30秒制限対策、クライアントがチャンク分割）。先生ごとにレート制限（既定 60回/時） |
+
+### みんなの課題 (共有課題ライブラリ・先生 ID Token 認証)
+
+全国の先生が課題（説明ページ + スターター + 補足資料 URL）を共有・再利用する機能（EPIC #1066。設計の正典は spike #1067）。
+
+| Method | Path | 説明 |
+|--------|------|------|
+| `POST` | `/shared-assignments` | 課題を共有。`visibility`（省略時 `public`）で公開範囲を選ぶ。`public`=みんなの課題カタログ（CC BY 4.0 同意・属性・著者名 必須）。`limited`=合言葉限定公開（#1109。同意・属性・著者名は任意で、参加コード同型の合言葉を発行）。スターター 50MB 上限・10件/日制限 |
+| `GET` | `/shared-assignments` | カタログ一覧（新着順・`schoolLevel`/`subject`/`grade`/`tag` で絞り込み・`cursor` ページネーション・`mine=1` で自分の投稿一覧）。**公開カタログは限定公開を除外**。`mine=1` は自分の合言葉を含む |
+| `GET` | `/shared-assignments/{id}` | 詳細（ページ・画像/スターターの presigned URL・投稿者表示名。authorSub は返さない）。**限定公開は sharedId を知っていても非著者には 404**（合言葉ルックアップ経由でのみアクセス） |
+| `POST` | `/shared-assignments/lookup` | 合言葉プレビュー（#1109）。`{passcode}` → summary（**sharedId は返さない**） |
+| `POST` | `/shared-assignments/import-by-passcode` | 合言葉で取り込み（#1109）。`{passcode, groupId, assignmentName?}` → 自分のクラスに課題として取り込み。sharedId を露出しない内輪取り込み |
+| `POST` | `/shared-assignments/{id}/import` | 自分のクラス（groupId）に課題として取り込み（**全体公開のみ**。限定公開は import-by-passcode を使う）。S3 逆コピー + reuseCount 増分 |
+| `PATCH` | `/shared-assignments/{id}` | 更新（投稿者本人のみ。メタデータ + `classroomId` 指定で内容の再スナップショット=上書き）。**`visibility` を `limited`→`public` に広げる時は CC BY 同意・属性・著者名を必須化** |
+| `DELETE` | `/shared-assignments/{id}` | 取り下げ = `status: 'unlisted'`（物理削除しない。本人のみ） |
+| `POST` | `/shared-assignments/{id}/report` | 通報（理由必須・20件/日制限。reporterSub は内部保持のみ） |
+
+- **公開範囲（#1109）**: 項目は `visibility`（`public`/`limited`）を持つ。#1109 以前の項目は属性を持たず `public` とみなす（後方互換）。`limited` は `passcode`（合言葉）を持ち、公開カタログには出ない。「限定公開（合言葉・内輪）→ Admin が把握 → 推薦 → 全体公開」パイプラインの土台
+- データ: `SharedAssignments{suffix}`（**TTL なし・prod は RETAIN + PITR**。GSI: `status-createdAt-index` / `authorSub-createdAt-index` / `passcode-index`（合言葉ルックアップ・#1109））、`SharedAssignmentReports{suffix}`（TTL 90日）
+- ファイル: 専用バケット `smalruby-shared-assignments{suffix}`（**lifecycle なし = 永続**、`shared/{sharedId}/` プレフィックス）。クラス側の保存期限と完全に分離
+- 共有/取り込みの実体は既存 duplicate と同じ S3 サーバー側コピー（クロスバケット）
 
 ### 生徒用 (認証不要 / Session Token)
 

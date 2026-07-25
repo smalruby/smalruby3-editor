@@ -169,7 +169,21 @@ const TeacherGoogleCoursesPhase = ({
                     onSelect={onSelectGoogleCourse}
                 />
             )}
-            <div className={styles.mainFooter}>
+            {/* フッターを基本ポリシーに統一（#1108）: キャンセル左 / インポート右 */}
+            <div className={styles.mainFooterSplit}>
+                <button
+                    className={styles.secondaryFooterButton}
+                    data-testid="classroom-google-import-cancel"
+                    disabled={isLoading}
+                    type="button"
+                    onClick={onBack}
+                >
+                    <FormattedMessage
+                        defaultMessage="Cancel"
+                        description="Cancel the Google Classroom import and go back to the class list"
+                        id="gui.classroom.management.importCancel"
+                    />
+                </button>
                 <button
                     className={styles.loginButton}
                     data-testid="classroom-google-import-confirm"

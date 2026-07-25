@@ -242,6 +242,40 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-board-download-class` | button | ボードの「全課題の提出物をダウンロード」（active + アーカイブ済みを 1 つの zip に） |
 | `classroom-retention-banner` | div | 課題詳細の保存期限アラートバナー（30 日以下で表示） |
 | `classroom-retention-banner-download` | button | バナー内の「全作品ダウンロード」 |
+| `classroom-share-assignment` | button | 課題詳細の「この課題を共有」（みんなの課題フォームを開く） |
+| `shared-form` | form | みんなの課題の共有フォーム |
+| `shared-form-title` / `shared-form-summary` | input | タイトル / 短い説明 |
+| `shared-form-level` | select | 学校種 |
+| `shared-form-subject` | select | 教科（制御語彙。学校種=その他のときは `shared-form-subject-free` input） |
+| `shared-form-grade-{n}` | checkbox | 対象学年 |
+| `shared-form-tags` | input | タグ（カンマ区切り・最大5） |
+| `shared-form-lesson-count` | input | 想定コマ数 |
+| `shared-form-url` | input | 補足資料 URL（https のみ。ガイダンス=`shared-form-url-hint`、エラー=`shared-form-url-error`） |
+| `shared-form-author-name` / `shared-form-author-affiliation` | input | 表示名 / 所属表記（localStorage 記憶） |
+| `shared-form-consent` | checkbox | CC BY 4.0 同意（未チェックだと送信不可） |
+| `shared-form-submit` / `shared-form-cancel` | button | 共有する / キャンセル |
+| `shared-form-success` | p | 公開完了メッセージ（© 表示名 / CC BY 4.0） |
+| `classroom-board-shared-catalog` | button | ボードの「みんなの課題からさがす」 |
+| `shared-catalog` | div | みんなの課題カタログ（ボード内に展開） |
+| `shared-catalog-close` | button | カタログを閉じる |
+| `shared-catalog-tab-all` / `shared-catalog-tab-mine` | button | すべて / 自分の投稿 タブ |
+| `shared-catalog-filter-level/subject/grade/tag` | select/input | 絞り込み（学校種・教科・学年・タグ） |
+| `shared-catalog-filter-apply` | button | 絞り込み実行 |
+| `shared-catalog-list` / `shared-catalog-item-{id}` / `shared-catalog-open-{id}` | ul/li/button | カード一覧（属性バッジ・投稿者・取り込み回数） |
+| `shared-catalog-load-more` | button | 次ページ読み込み（cursor があるときのみ） |
+| `shared-catalog-empty` | p | 空メッセージ |
+| `shared-catalog-detail` | div | 詳細プレビュー |
+| `shared-detail-close` | button | 一覧に戻る |
+| `shared-detail-credit` | p | 「© 表示名（所属） / CC BY 4.0」クレジット行 |
+| `shared-detail-starter` | p | スターター付きの説明 |
+| `shared-detail-url` | button | 補足資料リンク（クリックで確認表示） |
+| `shared-detail-url-confirm` / `shared-detail-url-open` / `shared-detail-url-cancel` | span/a/button | 外部ドメイン名付き確認 →「開く」（rel=noopener・新規タブ） |
+| `shared-detail-import` | button | このクラスに取り込む（published のみ表示） |
+| `shared-detail-report` | button | 通報フォームを開く（他人の投稿のみ） |
+| `shared-report-form` / `shared-report-reason` / `shared-report-submit` | div/textarea/button | 通報理由（必須）と送信 |
+| `shared-report-sent` | p | 通報完了メッセージ |
+| `shared-detail-unlist` / `shared-detail-republish` | button | 自分の投稿の取り下げ / 再公開 |
+| `shared-import-success` | p | 取り込み完了メッセージ（ボード上） |
 | `classroom-breadcrumbs` | nav | パンくず（クラス一覧 > 課題一覧 > 課題詳細） |
 | `classroom-breadcrumb-class-list` / `classroom-breadcrumb-assignments` | button | パンくずリンク |
 | `classroom-board-create-name` / `classroom-board-create-submit` | input / button | インライン課題作成（課題名のみ） |

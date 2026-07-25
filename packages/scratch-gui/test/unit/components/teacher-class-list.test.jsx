@@ -137,6 +137,56 @@ describe('TeacherClassList', () => {
         // The form closes back to the card
         expect(document.querySelector('[data-testid="classroom-class-settings-g1"]')).not.toBeInTheDocument();
     });
+
+    test('increasing the student count saves immediately without a warning', () => {
+        const onUpdateGroup = jest.fn();
+        renderList({ groups: [group({ studentCount: 30 })], onUpdateGroup });
+        fireEvent.click(document.querySelector('[data-testid="classroom-class-settings-open-g1"]'));
+        fireEvent.change(document.querySelector('[data-testid="classroom-class-settings-count"]'), {
+            target: { value: '35' },
+        });
+        fireEvent.click(document.querySelector('[data-testid="classroom-class-settings-save"]'));
+
+        expect(document.querySelector('[data-testid="classroom-class-settings-decrease-confirm-message"]'))
+            .not.toBeInTheDocument();
+        expect(onUpdateGroup).toHaveBeenCalledWith('g1', expect.objectContaining({ studentCount: 35 }));
+    });
+
+    test('decreasing the student count warns first, then saves on confirm', () => {
+        const onUpdateGroup = jest.fn();
+        renderList({ groups: [group({ studentCount: 30 })], onUpdateGroup });
+        fireEvent.click(document.querySelector('[data-testid="classroom-class-settings-open-g1"]'));
+        fireEvent.change(document.querySelector('[data-testid="classroom-class-settings-count"]'), {
+            target: { value: '20' },
+        });
+
+        // First save shows the warning and does NOT call the API.
+        fireEvent.click(document.querySelector('[data-testid="classroom-class-settings-save"]'));
+        expect(onUpdateGroup).not.toHaveBeenCalled();
+        expect(document.querySelector('[data-testid="classroom-class-settings-decrease-confirm-message"]'))
+            .toBeInTheDocument();
+
+        // Confirming saves the reduced count.
+        fireEvent.click(document.querySelector('[data-testid="classroom-class-settings-save"]'));
+        expect(onUpdateGroup).toHaveBeenCalledWith('g1', expect.objectContaining({ studentCount: 20 }));
+    });
+
+    test('cancelling the decrease warning keeps the count and calls nothing', () => {
+        const onUpdateGroup = jest.fn();
+        renderList({ groups: [group({ studentCount: 30 })], onUpdateGroup });
+        fireEvent.click(document.querySelector('[data-testid="classroom-class-settings-open-g1"]'));
+        fireEvent.change(document.querySelector('[data-testid="classroom-class-settings-count"]'), {
+            target: { value: '20' },
+        });
+        fireEvent.click(document.querySelector('[data-testid="classroom-class-settings-save"]'));
+        fireEvent.click(document.querySelector('[data-testid="classroom-class-settings-cancel"]'));
+
+        expect(onUpdateGroup).not.toHaveBeenCalled();
+        expect(document.querySelector('[data-testid="classroom-class-settings-decrease-confirm-message"]'))
+            .not.toBeInTheDocument();
+        // The form stays open (only the warning was dismissed).
+        expect(document.querySelector('[data-testid="classroom-class-settings-g1"]')).toBeInTheDocument();
+    });
 });
 
 describe('TeacherClassList — archived classes section (issue #1051)', () => {
@@ -199,17 +249,29 @@ describe('TeacherClassList — archived classes section (issue #1051)', () => {
         expect(byTestId('classroom-class-settings-archive-confirm-message')).not.toBeInTheDocument();
     });
 
-    test('unarchiving from settings stays immediate (no confirmation)', () => {
-        const onUpdateGroup = jest.fn();
-        renderList({
-            groups: [group({ groupId: 'g2', status: 'archived' })],
-            onUpdateGroup,
-        });
+    test('pressing Archive hides cancel/save and shows only archive yes/no (review feedback)', () => {
+        renderList();
+        fireEvent.click(byTestId('classroom-class-settings-open-g1'));
+        expect(byTestId('classroom-class-settings-cancel')).toBeInTheDocument();
+        expect(byTestId('classroom-class-settings-save')).toBeInTheDocument();
 
-        fireEvent.click(byTestId('classroom-show-archived'));
-        fireEvent.click(byTestId('classroom-class-settings-open-g2'));
         fireEvent.click(byTestId('classroom-class-settings-archive'));
+        // Only the archive yes/no buttons remain.
+        expect(byTestId('classroom-class-settings-cancel')).not.toBeInTheDocument();
+        expect(byTestId('classroom-class-settings-save')).not.toBeInTheDocument();
+        expect(byTestId('classroom-class-settings-archive-cancel')).toBeInTheDocument();
+        expect(byTestId('classroom-class-settings-archive')).toBeInTheDocument();
 
-        expect(onUpdateGroup).toHaveBeenCalledWith('g2', { status: 'active' });
+        // "Keep the class" restores cancel/save.
+        fireEvent.click(byTestId('classroom-class-settings-archive-cancel'));
+        expect(byTestId('classroom-class-settings-cancel')).toBeInTheDocument();
+        expect(byTestId('classroom-class-settings-save')).toBeInTheDocument();
+    });
+
+    test('archived classes have no settings button — only restore (review feedback)', () => {
+        renderList({ groups: [group({ groupId: 'g2', status: 'archived' })] });
+        fireEvent.click(byTestId('classroom-show-archived'));
+        expect(byTestId('classroom-class-settings-open-g2')).not.toBeInTheDocument();
+        expect(byTestId('classroom-class-restore-g2')).toBeInTheDocument();
     });
 });

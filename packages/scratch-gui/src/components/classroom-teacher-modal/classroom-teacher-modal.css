@@ -308,6 +308,34 @@
     text-align: right;
 }
 
+/* 基本ポリシーのフッター（#1108）: キャンセル左 / プライマリー右。 */
+.main-footer-split {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.secondary-footer-button {
+    padding: 0.6rem 1.2rem;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+    background-color: white;
+    color: #575e75;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.secondary-footer-button:hover:not(:disabled) {
+    background-color: #f2f2f2;
+}
+
+.secondary-footer-button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
 .auth-hint-overlay {
     position: absolute;
     top: 0;

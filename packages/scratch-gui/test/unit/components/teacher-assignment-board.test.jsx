@@ -122,24 +122,110 @@ describe('TeacherAssignmentBoard — class-wide bulk download (issue #1055)', ()
     });
 });
 
-describe('TeacherAssignmentBoard — retention badge (issue #1052)', () => {
+describe('TeacherAssignmentBoard — share entry (#1109)', () => {
+    const sharedStub = (over = {}) => ({
+        shareTarget: null,
+        showCatalog: false,
+        lastShared: null,
+        lastImported: null,
+        handleOpenShareFor: jest.fn(),
+        handleCloseShareForm: jest.fn(),
+        handleShareAssignment: jest.fn(),
+        handleOpenCatalog: jest.fn(),
+        ...over,
+    });
+
+    test('a 共有 button appears only for assignments with content, and opens the share step', () => {
+        const shared = sharedStub();
+        renderBoard({ shared, classrooms: [classroom({ hasAssignment: true })] });
+        const btn = byTestId('classroom-board-share-c1');
+        expect(btn).toBeInTheDocument();
+        fireEvent.click(btn);
+        expect(shared.handleOpenShareFor).toHaveBeenCalledWith(expect.objectContaining({ classroomId: 'c1' }));
+    });
+
+    test('no 共有 button when the assignment has no content (説明/スターターなし)', () => {
+        const shared = sharedStub();
+        renderBoard({ shared, classrooms: [classroom({ hasAssignment: false })] });
+        expect(byTestId('classroom-board-share-c1')).not.toBeInTheDocument();
+    });
+
+    test('with a shareTarget the share step replaces the board body', () => {
+        const shared = sharedStub({ shareTarget: classroom() });
+        renderBoard({ shared });
+        expect(byTestId('classroom-phase-share-step')).toBeInTheDocument();
+        // The create action bar is hidden while sharing.
+        expect(byTestId('classroom-board-create')).not.toBeInTheDocument();
+    });
+
+    test('no 共有 button when the shared hook is absent', () => {
+        renderBoard();
+        expect(byTestId('classroom-board-share-c1')).not.toBeInTheDocument();
+    });
+});
+
+describe('TeacherAssignmentBoard — retention notice (issue #1052)', () => {
     const DAY = 24 * 60 * 60 * 1000;
     const inDays = (days) => new Date(Date.now() + days * DAY).toISOString();
 
-    test('shows no badge while the deadline is far away', () => {
+    test('shows no retention notice while the deadline is far away', () => {
         renderBoard({ classrooms: [classroom({ expiresAt: inDays(60) })] });
         expect(byTestId('classroom-board-expiry-c1')).not.toBeInTheDocument();
     });
 
-    test('shows a days-left badge within 30 days of deletion', () => {
+    test('shows the auto-delete notice with a download button within 30 days', () => {
         renderBoard({ classrooms: [classroom({ expiresAt: inDays(20) })] });
-        const badge = byTestId('classroom-board-expiry-c1');
-        expect(badge).toBeInTheDocument();
-        expect(badge.textContent).toContain('20 days left');
+        const notice = byTestId('classroom-board-expiry-c1');
+        expect(notice).toBeInTheDocument();
+        expect(notice.textContent).toContain('deleted automatically');
+        expect(byTestId('classroom-board-download-c1')).toBeInTheDocument();
     });
 
-    test('shows the badge for assignments without a deadline never', () => {
+    test('the row download button downloads that one assignment', () => {
+        const onDownloadClassAll = jest.fn();
+        renderBoard({
+            classrooms: [classroom({ expiresAt: inDays(5) })],
+            onDownloadClassAll,
+        });
+        fireEvent.click(byTestId('classroom-board-download-c1'));
+        expect(onDownloadClassAll).toHaveBeenCalledWith(
+            expect.objectContaining({ groupId: 'g1' }),
+            [expect.objectContaining({ classroomId: 'c1' })],
+        );
+    });
+
+    test('never shows the notice for assignments without a deadline', () => {
         renderBoard({ classrooms: [classroom({ expiresAt: null })] });
         expect(byTestId('classroom-board-expiry-c1')).not.toBeInTheDocument();
+    });
+});
+
+describe('TeacherAssignmentBoard — reuse excludes archived (review feedback)', () => {
+    test('reuse candidates and the class filter exclude archived classes and assignments', () => {
+        const allGroups = [
+            { groupId: 'g1', name: 'A', year: 2026, status: 'active', topics: [] },
+            { groupId: 'gArch', name: 'B', year: 2026, status: 'archived', topics: [] },
+        ];
+        const allClassrooms = [
+            { classroomId: 'active1', groupId: 'g1', assignmentName: 'A課題', status: 'active' },
+            { classroomId: 'archAssign', groupId: 'g1', assignmentName: 'アーカイブ課題', status: 'archived' },
+            { classroomId: 'inArchGroup', groupId: 'gArch', assignmentName: 'アーカイブ組の課題', status: 'active' },
+        ];
+        renderBoard({
+            group: { groupId: 'g1', name: 'A', year: 2026, topics: [] },
+            allGroups,
+            allClassrooms,
+        });
+        fireEvent.click(byTestId('classroom-board-reuse'));
+
+        // Only the active assignment of an active class is a candidate.
+        expect(byTestId('classroom-board-reuse-copy-active1')).toBeInTheDocument();
+        expect(byTestId('classroom-board-reuse-copy-archAssign')).not.toBeInTheDocument();
+        expect(byTestId('classroom-board-reuse-copy-inArchGroup')).not.toBeInTheDocument();
+
+        // The class filter lists only the active class.
+        const values = [...byTestId('classroom-board-reuse-filter').options].map((o) => o.value);
+        expect(values).toContain('g1');
+        expect(values).not.toContain('gArch');
     });
 });

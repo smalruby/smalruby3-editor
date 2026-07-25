@@ -7,6 +7,7 @@
  */
 import { useCallback, useRef } from 'react';
 import useGoogleClassroom from './use-google-classroom.js';
+import useSharedAssignments from './use-shared-assignments.js';
 import useTeacherAssignment from './use-teacher-assignment.js';
 import useTeacherAuth, { getCachedTeacherIdToken, setCachedTeacherIdToken } from './use-teacher-auth.js';
 import useTeacherClassrooms from './use-teacher-classrooms.js';
@@ -134,6 +135,16 @@ const useTeacherClassroom = ({
         setPhase,
     });
 
+    const shared = useSharedAssignments({
+        idToken: auth.idToken,
+        handleTeacher401: auth.handleTeacher401,
+        loadClassrooms: classrooms.loadClassrooms,
+        clearError,
+        showError,
+        intl,
+        setIsLoading,
+    });
+
     // --- Composed handlers ---
 
     const handleTeacherLogout = useCallback(() => {
@@ -232,6 +243,7 @@ const useTeacherClassroom = ({
 
         // Evaluation (期末評価)
         evaluation,
+        shared,
 
         // Groups (組)
         groups: groups.groups,
