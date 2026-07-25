@@ -112,6 +112,7 @@ src/containers/*
 !src/containers/use-shared-assignments.js
 !src/containers/use-teacher-evaluation.js
 !src/containers/use-teacher-groups.js
+!src/containers/use-teacher-notifications.js
 !src/containers/use-teacher-submissions.js
 !src/containers/extension-library.css
 !src/containers/google-drive-loader-hoc.jsx
@@ -324,6 +325,7 @@ test/unit/components/*
 !test/unit/components/mesh-self-sensor-notice.test.jsx
 !test/unit/components/student-assignment-panel.test.jsx
 !test/unit/components/teacher-class-detail.test.jsx
+!test/unit/components/teacher-notifications.test.jsx
 !test/unit/components/mobile-bottom-tabs.test.jsx
 !test/unit/components/mobile-drawer.test.jsx
 !test/unit/components/mobile-mode-notice.test.jsx

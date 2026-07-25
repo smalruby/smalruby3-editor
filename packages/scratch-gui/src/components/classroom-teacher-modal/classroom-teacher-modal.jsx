@@ -22,6 +22,7 @@ import Spinner from '../spinner/spinner.jsx';
 
 import TeacherGoogleCoursesPhase from './teacher-google-courses-phase.jsx';
 import TeacherLoginPhase from './teacher-login-phase.jsx';
+import TeacherNotifications from './teacher-notifications.jsx';
 
 import styles from './classroom-teacher-modal.css';
 
@@ -138,6 +139,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         onUpdateGroup,
         evaluation,
         shared,
+        notificationsCenter,
     } = containerProps;
 
     // Opening a class scopes the board to its assignments (GC style).
@@ -449,6 +451,16 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                             id="gui.classroom.management.titleBarLogout"
                         />
                     </button>
+                )}
+                {/* お知らせセンター (#1111) — bell + dropdown, next to the ×. */}
+                {phase !== 'teacher-login' && notificationsCenter && (
+                    <TeacherNotifications
+                        isOpen={notificationsCenter.isOpen}
+                        notifications={notificationsCenter.notifications}
+                        unreadCount={notificationsCenter.unreadCount}
+                        onOpenLink={notificationsCenter.handleOpenLink}
+                        onToggle={notificationsCenter.handleToggleNotifications}
+                    />
                 )}
                 {/* Main area */}
                 <main className={styles.main}>{renderMain()}</main>

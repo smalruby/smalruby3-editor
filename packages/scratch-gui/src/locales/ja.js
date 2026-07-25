@@ -253,6 +253,9 @@ export default {
     'gui.classroom.classSettings.cancel': 'キャンセル',
     'gui.classroom.classSettings.save': '保存',
     'gui.classroom.management.titleBarLogout': 'ログアウト',
+    'gui.classroom.notifications.buttonLabel': 'お知らせ',
+    'gui.classroom.notifications.title': 'お知らせ',
+    'gui.classroom.notifications.empty': 'お知らせはありません',
     'gui.classroom.classList.title': 'あなたのクラス',
     'gui.classroom.classList.hint':
         'クラスは1つの学級（例: 2年1組）です。クラスをひらくと、その中の課題を管理できます。',

@@ -415,11 +415,13 @@
     cursor: pointer;
 }
 
-/* Logout pinned to the title bar (fullscreen modal header), left of the ×. */
+/* Title bar cluster (fullscreen modal header), right to left:
+   × (Modal) → 🔔 notifications → logout → email. The bell sits closest to
+   the × so the badge is the most visible element in the top-right corner. */
 .title-bar-logout {
     position: fixed;
     top: 0.55rem;
-    right: 4.5rem;
+    right: 7.5rem;
     z-index: 1000;
     border: 1px solid hsla(0, 0%, 100%, 0.6);
     border-radius: 0.4rem;
@@ -430,6 +432,122 @@
     cursor: pointer;
 }
 
+/* お知らせ (notification center #1111) bell button. */
+.title-bar-notifications {
+    position: fixed;
+    top: 0.45rem;
+    right: 4.5rem;
+    z-index: 1000;
+    border: none;
+    background: transparent;
+    color: white;
+    font-size: 1.1rem;
+    line-height: 1.5rem;
+    padding: 0.1rem 0.4rem;
+    cursor: pointer;
+}
+
+.notifications-badge {
+    position: absolute;
+    top: -0.15rem;
+    right: -0.1rem;
+    min-width: 0.95rem;
+    padding: 0 0.25rem;
+    border-radius: 0.6rem;
+    background: #e74c3c;
+    color: white;
+    font-size: 0.6rem;
+    font-weight: bold;
+    line-height: 1.1rem;
+    text-align: center;
+}
+
+/* Dropdown panel under the bell. Explicit white background — the shared
+   modal body is transparent (see .claude/rules/scratch-gui/modals.md). */
+.notifications-panel {
+    position: fixed;
+    top: 3.2rem;
+    right: 1rem;
+    z-index: 1001;
+    width: 22rem;
+    max-width: calc(100vw - 2rem);
+    max-height: 60vh;
+    overflow-y: auto;
+    background-color: white;
+    border: 1px solid #d9d9d9;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    color: #575e75;
+    text-align: left;
+}
+
+.notifications-header {
+    padding: 0.6rem 0.8rem;
+    font-size: 0.9rem;
+    font-weight: bold;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.notifications-empty {
+    padding: 1rem;
+    font-size: 0.85rem;
+    color: #888;
+    text-align: center;
+}
+
+.notifications-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.notification-item {
+    display: block;
+    width: 100%;
+    padding: 0.6rem 0.8rem;
+    border: none;
+    border-bottom: 1px solid #f0f0f0;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+    color: inherit;
+}
+
+.notification-item:hover {
+    background-color: #f0f6ff;
+}
+
+.notification-title {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.85rem;
+    font-weight: bold;
+}
+
+.notification-unread-dot {
+    flex: none;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: #4c97ff;
+}
+
+.notification-body {
+    display: block;
+    margin-top: 0.15rem;
+    font-size: 0.8rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.notification-date {
+    display: block;
+    margin-top: 0.15rem;
+    font-size: 0.7rem;
+    color: #999;
+}
+
 .detail-breadcrumbs {
     /* Same offsets as the unified teacher views (class list / board). */
     padding: 1.25rem 2rem 0;
@@ -438,7 +556,7 @@
 .title-bar-email {
     position: fixed;
     top: 0.85rem;
-    right: 10.5rem;
+    right: 13.5rem;
     z-index: 1000;
     color: white;
     font-size: 0.8rem;

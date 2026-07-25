@@ -13,6 +13,7 @@ import useTeacherAuth, { getCachedTeacherIdToken, setCachedTeacherIdToken } from
 import useTeacherClassrooms from './use-teacher-classrooms.js';
 import useTeacherEvaluation from './use-teacher-evaluation.js';
 import useTeacherGroups from './use-teacher-groups.js';
+import useTeacherNotifications from './use-teacher-notifications.js';
 import useTeacherSubmissions from './use-teacher-submissions.js';
 
 export { getCachedTeacherIdToken, setCachedTeacherIdToken };
@@ -145,15 +146,48 @@ const useTeacherClassroom = ({
         setIsLoading,
     });
 
+    // お知らせセンター (EPIC #1111)
+    const notifications = useTeacherNotifications({
+        idToken: auth.idToken,
+        handleTeacher401: auth.handleTeacher401,
+    });
+
     // --- Composed handlers ---
 
     const handleTeacherLogout = useCallback(() => {
         auth.logoutAuth();
         classrooms.resetClassrooms();
         submissions.resetSubmissionDisplay();
+        notifications.resetNotifications();
         clearError();
         setPhase(mode === 'teacher' ? 'teacher-login' : 'student-join');
-    }, [auth, classrooms, submissions, mode, clearError, setPhase]);
+    }, [auth, classrooms, submissions, notifications, mode, clearError, setPhase]);
+
+    /**
+     * Open the view an お知らせ links to. Kinds are a small whitelist the
+     * admin side also enforces; unknown kinds just close the panel (a newer
+     * server may send kinds this build doesn't know yet).
+     * @param {object|null} link - {kind, ...} from the notification item
+     */
+    const handleOpenNotificationLink = useCallback(
+        (link) => {
+            notifications.handleCloseNotifications();
+            if (!link || !link.kind) return;
+            if (link.kind === 'classroom') {
+                // Scope the board to the owning class first (breadcrumbs and
+                // back-navigation then behave as if opened from the board),
+                // then open the assignment detail itself.
+                const all = [...(classrooms.classrooms || []), ...(classrooms.archivedClassrooms || [])];
+                const target = all.find((c) => c.classroomId === link.classroomId);
+                if (target && target.groupId) {
+                    const group = (groups.groups || []).find((g) => g.groupId === target.groupId);
+                    if (group) groups.handleSelectGroup(group);
+                }
+                classrooms.handleSelectClassroom(link.classroomId);
+            }
+        },
+        [notifications, classrooms, groups],
+    );
 
     const handleBackToDashboard = useCallback(() => {
         classrooms.handleBackToDashboard();
@@ -244,6 +278,15 @@ const useTeacherClassroom = ({
         // Evaluation (期末評価)
         evaluation,
         shared,
+
+        // お知らせセンター (#1111)
+        notificationsCenter: {
+            notifications: notifications.notifications,
+            unreadCount: notifications.unreadCount,
+            isOpen: notifications.isOpen,
+            handleToggleNotifications: notifications.handleToggleNotifications,
+            handleOpenLink: handleOpenNotificationLink,
+        },
 
         // Groups (組)
         groups: groups.groups,
