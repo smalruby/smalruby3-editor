@@ -51,18 +51,18 @@ const useTeacherNotifications = ({ idToken, handleTeacher401 }) => {
     }, [idToken, loadNotifications]);
 
     const handleToggleNotifications = useCallback(() => {
-        setIsOpen((prev) => {
-            const next = !prev;
-            if (next && unreadCount > 0) {
-                // Opening the panel = the teacher saw everything: clear the
-                // badge immediately and persist server-side (best effort —
-                // a failure just resurfaces the badge on the next poll).
-                setUnreadCount(0);
-                classroomAPI.markNotificationsRead(idToken).catch(() => {});
-            }
-            return next;
-        });
-    }, [idToken, unreadCount]);
+        // Side effects stay OUTSIDE the state updater (React may re-invoke
+        // updaters under StrictMode / concurrent rendering — review finding).
+        const next = !isOpen;
+        if (next && unreadCount > 0) {
+            // Opening the panel = the teacher saw everything: clear the
+            // badge immediately and persist server-side (best effort —
+            // a failure just resurfaces the badge on the next poll).
+            setUnreadCount(0);
+            classroomAPI.markNotificationsRead(idToken).catch(() => {});
+        }
+        setIsOpen(next);
+    }, [idToken, isOpen, unreadCount]);
 
     const handleCloseNotifications = useCallback(() => setIsOpen(false), []);
 

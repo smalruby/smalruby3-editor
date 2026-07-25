@@ -476,7 +476,11 @@ export class ClassroomStack extends cdk.Stack {
     this.groupsTable.grantReadWriteData(handlerFn);
     this.sharedAssignmentsTable.grantReadWriteData(handlerFn);
     this.sharedReportsTable.grantReadWriteData(handlerFn);
-    this.notificationsTable.grantReadWriteData(handlerFn);
+    // お知らせは admin スタックが単一の書き手 (#1111)。この Lambda は一覧
+    // (Query) と既読化 (UpdateItem) しか行わないので、PutItem を含む RW では
+    // なく必要最小限だけ grant して「エディタからお知らせを偽造できない」を
+    // IAM でも担保する（レビュー指摘）。
+    this.notificationsTable.grant(handlerFn, 'dynamodb:Query', 'dynamodb:UpdateItem');
     this.submissionsBucket.grantPut(handlerFn);
     this.submissionsBucket.grantRead(handlerFn);
     this.sharedBucket.grantPut(handlerFn);

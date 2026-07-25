@@ -4370,6 +4370,11 @@ async function handleMarkNotificationsRead(
   identity: TeacherIdentity,
   body: Record<string, unknown>,
 ): Promise<APIGatewayProxyStructuredResultV2> {
+  // A top-level JSON array would read `body.notificationIds` as undefined and
+  // silently take the mark-all path — reject it explicitly (review finding).
+  if (Array.isArray(body)) {
+    throw new ValidationError('Request body must be a JSON object');
+  }
   let ids: string[];
   if (body.notificationIds === undefined || body.notificationIds === null) {
     // No explicit ids = mark everything currently unread, bounded by the
@@ -4388,7 +4393,9 @@ async function handleMarkNotificationsRead(
   } else if (
     Array.isArray(body.notificationIds) &&
     body.notificationIds.length <= NOTIFICATION_LIST_LIMIT &&
-    body.notificationIds.every(id => typeof id === 'string')
+    // Length-bound each id so a garbage id fails as 400, not as a DynamoDB
+    // ValidationException → 500 (real ids are ~61 chars: ISO + '#' + UUID).
+    body.notificationIds.every(id => typeof id === 'string' && id.length <= 200)
   ) {
     ids = body.notificationIds as string[];
   } else {

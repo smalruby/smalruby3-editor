@@ -190,13 +190,28 @@ describe('お知らせセンター (EPIC #1111)', () => {
     });
 
     test('400 on malformed notificationIds', async () => {
-      for (const bad of ['x', [1, 2], Array.from({ length: 51 }, (_, i) => `n${i}`)]) {
+      const bads = [
+        'x',
+        [1, 2],
+        Array.from({ length: 51 }, (_, i) => `n${i}`),
+        ['x'.repeat(201)], // overlong id → 400, not a DynamoDB 500
+      ];
+      for (const bad of bads) {
         const res = await handler(makeEvent('POST', '/notifications/mark-read', {
           token: DEV_TOKEN,
           body: { notificationIds: bad },
         }));
         expect(res.statusCode).toBe(400);
       }
+    });
+
+    test('400 when the whole body is a JSON array (would silently mark all)', async () => {
+      const res = await handler(makeEvent('POST', '/notifications/mark-read', {
+        token: DEV_TOKEN,
+        body: ['n1', 'n2'],
+      }));
+      expect(res.statusCode).toBe(400);
+      expect(mockSend).not.toHaveBeenCalled();
     });
   });
 });

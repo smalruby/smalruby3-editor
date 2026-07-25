@@ -20,7 +20,13 @@ const messages = defineMessages({
     },
 });
 
-const formatDateTime = (iso) => (iso ? `${iso.slice(0, 10)} ${iso.slice(11, 16)}` : '');
+// ローカルタイムで表示する（ISO の slice だと UTC のまま出て日本では 9 時間
+// ずれる — レビュー指摘）。兄弟コンポーネントの toLocaleString 慣行に合わせる。
+const formatDateTime = (iso) => {
+    if (!iso) return '';
+    const date = new Date(iso);
+    return isNaN(date.getTime()) ? '' : date.toLocaleString();
+};
 
 const NotificationItem = ({ notification, onOpenLink }) => {
     const handleClick = useCallback(() => {

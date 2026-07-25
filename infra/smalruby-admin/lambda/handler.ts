@@ -529,6 +529,11 @@ async function putNotification(
     createdBy: string;
   },
 ): Promise<string> {
+  // Validate here (not at each call site) so every future send path — e.g.
+  // the recommendation notices of #1110/#1106 — goes through the whitelist.
+  if (fields.link && !NOTIFICATION_LINK_KINDS.has(String(fields.link.kind))) {
+    throw new ValidationError('Unsupported link kind');
+  }
   const createdAt = new Date().toISOString();
   // createdAt-prefixed sort key → the inbox Query returns newest first.
   const notificationId = `${createdAt}#${randomUUID()}`;
@@ -581,15 +586,11 @@ async function handleSendNotification(
     throw new NotFoundError('Classroom not found');
   }
 
-  const link = { kind: 'classroom', classroomId };
-  if (!NOTIFICATION_LINK_KINDS.has(link.kind)) {
-    throw new ValidationError('Unsupported link kind');
-  }
   const notificationId = await putNotification(teacherSub, {
     type: 'admin_message',
     title,
     body: message,
-    link,
+    link: { kind: 'classroom', classroomId },
     createdBy: identity.email,
   });
   audit('notification.send', identity, { classroomId, type: 'admin_message' });
