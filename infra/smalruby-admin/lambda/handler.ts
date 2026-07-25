@@ -226,6 +226,12 @@ function mapSharedItemForAdmin(item: Record<string, unknown>) {
     reuseCount: (item.reuseCount as number) || 0,
     pageCount: (content.pages || []).length,
     hasStarter: !!content.starterKey,
+    // 公開範囲 (#1109) と Admin 推薦 (#1110)。passcode 自体は運営にも不要
+    // なので出さない（最小露出）。
+    visibility: (item.visibility as string) || 'public',
+    recommended: !!item.recommendedAt,
+    recommendedAt: item.recommendedAt || null,
+    recommendedBy: item.recommendedBy || null,
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
   };
@@ -299,10 +305,16 @@ async function handleListSharedReports(identity: AdminIdentity): Promise<APIGate
 async function handleListSharedAssignments(
   identity: AdminIdentity, query: Record<string, string | undefined>,
 ): Promise<APIGatewayProxyStructuredResultV2> {
-  audit('shared.list', identity, { q: query.q || null, status: query.status || null });
+  audit('shared.list', identity, {
+    q: query.q || null, status: query.status || null, visibility: query.visibility || null,
+  });
   let items = (await scanAll(SHARED_ASSIGNMENTS_TABLE)).map(mapSharedItemForAdmin);
   if (query.status) {
     items = items.filter(item => item.status === query.status);
+  }
+  // 限定公開の把握 (#1110): 推薦候補の母集団を絞る。
+  if (query.visibility) {
+    items = items.filter(item => item.visibility === query.visibility);
   }
   if (query.q) {
     const q = query.q.toLowerCase();
@@ -380,6 +392,79 @@ async function handleSetSharedStatus(
     statusCode: 200,
     body: JSON.stringify(mapSharedItemForAdmin({ ...result.Item, status: body.status })),
   };
+}
+
+// --- Admin 推薦 (EPIC #1110): 限定公開 → みんなの課題への発展 ---
+
+/**
+ * POST/DELETE /admin/shared-assignments/{sharedId}/recommend — mark a shared
+ * assignment as operator-recommended (or withdraw the mark). Recommending
+ * notifies the author through the notification center (#1111) so the teacher
+ * can broaden a 限定公開 item to the public catalog. Idempotent: recommending
+ * an already-recommended item neither rewrites the mark nor re-notifies.
+ */
+async function handleSetSharedRecommendation(
+  identity: AdminIdentity, sharedId: string, recommended: boolean,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const result = await docClient.send(new GetCommand({
+    TableName: SHARED_ASSIGNMENTS_TABLE,
+    Key: { sharedId },
+  }));
+  const item = result.Item as Record<string, unknown> | undefined;
+  if (!item || item.status !== 'published') {
+    // Unlisted items are not recommendable — the author withdrew them.
+    throw new NotFoundError('Shared assignment not found');
+  }
+
+  const alreadyRecommended = !!item.recommendedAt;
+  if (recommended && !alreadyRecommended) {
+    const now = new Date().toISOString();
+    await docClient.send(new UpdateCommand({
+      TableName: SHARED_ASSIGNMENTS_TABLE,
+      Key: { sharedId },
+      UpdateExpression: 'SET recommendedAt = :now, recommendedBy = :email, updatedAt = :now',
+      ExpressionAttributeValues: { ':now': now, ':email': identity.email },
+    }));
+    // 推薦の主目的は先生への働きかけ: お知らせセンター (#1111) へ通知する。
+    // 通知は best-effort ではなく本体 — 失敗したらエラーにして運営が気付く。
+    const authorSub = typeof item.authorSub === 'string' ? item.authorSub : '';
+    if (authorSub) {
+      await putNotification(authorSub, {
+        type: 'shared_recommended',
+        title: 'あなたの課題が推薦されました',
+        body: `「${String(item.title)}」が運営の推薦を受けました。みんなの課題への全体公開を検討してみませんか？`,
+        link: { kind: 'shared-mine', sharedId },
+        createdBy: identity.email,
+      });
+    }
+    audit('shared.recommend', identity, { sharedId });
+    return {
+      statusCode: 200,
+      body: JSON.stringify(mapSharedItemForAdmin({
+        ...item, recommendedAt: now, recommendedBy: identity.email,
+      })),
+    };
+  }
+
+  if (!recommended && alreadyRecommended) {
+    await docClient.send(new UpdateCommand({
+      TableName: SHARED_ASSIGNMENTS_TABLE,
+      Key: { sharedId },
+      UpdateExpression: 'REMOVE recommendedAt, recommendedBy SET updatedAt = :now',
+      ExpressionAttributeValues: { ':now': new Date().toISOString() },
+    }));
+    // 取り消しは通知しない（先生を騒がせない）。audit で追跡できる。
+    audit('shared.unrecommend', identity, { sharedId });
+    return {
+      statusCode: 200,
+      body: JSON.stringify(mapSharedItemForAdmin({
+        ...item, recommendedAt: undefined, recommendedBy: undefined,
+      })),
+    };
+  }
+
+  // No-op (already in the requested state) — idempotent success.
+  return { statusCode: 200, body: JSON.stringify(mapSharedItemForAdmin(item)) };
 }
 
 // --- Classroom management + expired restore (S4 #1084) ---
@@ -509,8 +594,10 @@ async function handleSetClassroomStatus(
  * Notification link targets the teacher UI knows how to open. Kept as a
  * whitelist so a typo'd kind can never be stored (the editor ignores
  * unknown kinds, but the audit trail should stay clean).
+ * - 'classroom': open the referenced assignment in its class board context
+ * - 'shared-mine': open みんなの課題 の「自分の投稿」 (#1110 recommendation)
  */
-const NOTIFICATION_LINK_KINDS = new Set(['classroom']);
+const NOTIFICATION_LINK_KINDS = new Set(['classroom', 'shared-mine']);
 
 /**
  * Write one notice into the teacher's inbox (single-writer: only this stack
@@ -843,6 +930,14 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
 
     } else if (method === 'GET' && path === '/admin/shared-assignments') {
       result = await handleListSharedAssignments(identity, event.queryStringParameters || {});
+
+    } else if (method === 'POST' && /^\/admin\/shared-assignments\/[^/]+\/recommend$/.test(path)) {
+      const sharedId = event.pathParameters?.sharedId || '';
+      result = await handleSetSharedRecommendation(identity, sharedId, true);
+
+    } else if (method === 'DELETE' && /^\/admin\/shared-assignments\/[^/]+\/recommend$/.test(path)) {
+      const sharedId = event.pathParameters?.sharedId || '';
+      result = await handleSetSharedRecommendation(identity, sharedId, false);
 
     } else if (method === 'GET' && /^\/admin\/shared-assignments\/[^/]+$/.test(path)) {
       const sharedId = event.pathParameters?.sharedId || '';

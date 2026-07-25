@@ -273,6 +273,9 @@ export class SmalrubyAdminStack extends cdk.Stack {
     addRoute('/admin/shared-assignments/reports', [apigatewayv2.HttpMethod.GET]);
     addRoute('/admin/shared-assignments/{sharedId}',
       [apigatewayv2.HttpMethod.GET, apigatewayv2.HttpMethod.PATCH]);
+    // Admin 推薦 (#1110)
+    addRoute('/admin/shared-assignments/{sharedId}/recommend',
+      [apigatewayv2.HttpMethod.POST, apigatewayv2.HttpMethod.DELETE]);
 
     // Classroom management + expired restore (S4 #1084). HTTP API prefers
     // the literal restore-candidates route over {classroomId} by specificity.

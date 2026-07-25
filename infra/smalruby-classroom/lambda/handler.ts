@@ -3637,6 +3637,9 @@ function mapSharedSummary(item: Record<string, unknown>, opts: { includePasscode
     reuseCount: (item.reuseCount as number) || 0,
     // 公開範囲: 'public' = みんなの課題カタログ / 'limited' = 合言葉限定公開。
     visibility: (item.visibility as string) || 'public',
+    // Admin 推薦 (#1110): 書き込みは admin スタックのみ。boolean へ投影する
+    // （recommendedBy = admin email は内部情報なので先生側 API には出さない）。
+    recommended: !!item.recommendedAt,
     status: item.status,
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
