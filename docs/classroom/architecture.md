@@ -208,6 +208,7 @@ sequenceDiagram
 | `POST` | `/shared-assignments/{id}/report` | 通報（理由必須・20件/日制限。reporterSub は内部保持のみ） |
 
 - **公開範囲（#1109）**: 項目は `visibility`（`public`/`limited`）を持つ。#1109 以前の項目は属性を持たず `public` とみなす（後方互換）。`limited` は `passcode`（合言葉）を持ち、公開カタログには出ない。「限定公開（合言葉・内輪）→ Admin が把握 → 推薦 → 全体公開」パイプラインの土台
+- **Admin 推薦（#1110）**: 項目は `recommendedAt` / `recommendedBy`（admin email）を持ちうる。書き込みは admin API（`POST/DELETE /admin/shared-assignments/{id}/recommend`）のみ。先生側 API には boolean の `recommended` だけを投影（`recommendedBy` は内部情報）。推薦時は著者へお知らせ（#1111・type `shared_recommended`・`link.kind='shared-mine'`）が飛ぶ
 - データ: `SharedAssignments{suffix}`（**TTL なし・prod は RETAIN + PITR**。GSI: `status-createdAt-index` / `authorSub-createdAt-index` / `passcode-index`（合言葉ルックアップ・#1109））、`SharedAssignmentReports{suffix}`（TTL 90日）
 - ファイル: 専用バケット `smalruby-shared-assignments{suffix}`（**lifecycle なし = 永続**、`shared/{sharedId}/` プレフィックス）。クラス側の保存期限と完全に分離
 - 共有/取り込みの実体は既存 duplicate と同じ S3 サーバー側コピー（クロスバケット）

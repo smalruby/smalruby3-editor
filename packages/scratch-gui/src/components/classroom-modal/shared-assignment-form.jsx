@@ -42,21 +42,26 @@ const schoolLevelMessages = {
     },
 };
 
-const SharedAssignmentForm = ({ selectedClassroom, isLoading, onCancel, onShare }) => {
+const SharedAssignmentForm = ({ selectedClassroom, initialValues, heading, isLoading, onCancel, onShare, submitLabel }) => {
     const intl = useIntl();
     const savedProfile = detectSharedAuthorProfile();
+    // 編集モード (#1110: 限定公開 → 全体公開に広げる) では既存項目の値を
+    // 初期値にする。新規共有では対象課題の名前から始める。
+    const initial = initialValues || {};
     const [title, setTitle] = useState(
-        selectedClassroom.assignmentName || selectedClassroom.className || '',
+        initial.title || selectedClassroom?.assignmentName || selectedClassroom?.className || '',
     );
-    const [summary, setSummary] = useState('');
-    const [schoolLevel, setSchoolLevel] = useState('junior-high');
-    const [grades, setGrades] = useState([]);
-    const [subject, setSubject] = useState('');
-    const [tagsText, setTagsText] = useState('');
-    const [lessonCount, setLessonCount] = useState('');
-    const [supplementUrl, setSupplementUrl] = useState('');
-    const [authorName, setAuthorName] = useState(savedProfile.authorName);
-    const [authorAffiliation, setAuthorAffiliation] = useState(savedProfile.authorAffiliation);
+    const [summary, setSummary] = useState(initial.summary || '');
+    const [schoolLevel, setSchoolLevel] = useState(initial.schoolLevel || 'junior-high');
+    const [grades, setGrades] = useState(initial.grades || []);
+    const [subject, setSubject] = useState(initial.subject || '');
+    const [tagsText, setTagsText] = useState((initial.tags || []).join(', '));
+    const [lessonCount, setLessonCount] = useState(initial.lessonCount ? String(initial.lessonCount) : '');
+    const [supplementUrl, setSupplementUrl] = useState(initial.supplementUrl || '');
+    const [authorName, setAuthorName] = useState(initial.authorName || savedProfile.authorName);
+    const [authorAffiliation, setAuthorAffiliation] = useState(
+        initial.authorAffiliation || savedProfile.authorAffiliation,
+    );
     const [consent, setConsent] = useState(false);
 
     const handleTitleChange = useCallback((e) => setTitle(e.target.value), []);
@@ -95,7 +100,8 @@ const SharedAssignmentForm = ({ selectedClassroom, isLoading, onCancel, onShare 
             if (!canSubmit) return;
             persistSharedAuthorProfile({ authorName: authorName.trim(), authorAffiliation: authorAffiliation.trim() });
             onShare({
-                classroomId: selectedClassroom.classroomId,
+                // 編集モード (selectedClassroom なし) では classroomId を送らない。
+                ...(selectedClassroom ? { classroomId: selectedClassroom.classroomId } : {}),
                 title: title.trim(),
                 summary: summary.trim() || null,
                 schoolLevel,
@@ -110,7 +116,7 @@ const SharedAssignmentForm = ({ selectedClassroom, isLoading, onCancel, onShare 
             });
         },
         [
-            canSubmit, onShare, selectedClassroom.classroomId, title, summary, schoolLevel,
+            canSubmit, onShare, selectedClassroom, title, summary, schoolLevel,
             grades, subject, tagsText, lessonCount, supplementUrl, authorName, authorAffiliation,
         ],
     );
@@ -118,11 +124,13 @@ const SharedAssignmentForm = ({ selectedClassroom, isLoading, onCancel, onShare 
     return (
         <form className={styles.sharedForm} data-testid="shared-form" onSubmit={handleSubmit}>
             <h3 className={styles.sharedFormTitle}>
-                <FormattedMessage
-                    defaultMessage="Share this assignment with teachers nationwide"
-                    description="Title of the shared assignment form"
-                    id="gui.classroom.shared.formTitle"
-                />
+                {heading || (
+                    <FormattedMessage
+                        defaultMessage="Share this assignment with teachers nationwide"
+                        description="Title of the shared assignment form"
+                        id="gui.classroom.shared.formTitle"
+                    />
+                )}
             </h3>
             <p className={styles.sharedFormHint}>
                 <FormattedMessage
@@ -359,11 +367,13 @@ const SharedAssignmentForm = ({ selectedClassroom, isLoading, onCancel, onShare 
                     disabled={!canSubmit}
                     type="submit"
                 >
-                    <FormattedMessage
-                        defaultMessage="Share"
-                        description="Submit button of the share form"
-                        id="gui.classroom.shared.submit"
-                    />
+                    {submitLabel || (
+                        <FormattedMessage
+                            defaultMessage="Share"
+                            description="Submit button of the share form"
+                            id="gui.classroom.shared.submit"
+                        />
+                    )}
                 </button>
             </div>
         </form>
@@ -371,10 +381,13 @@ const SharedAssignmentForm = ({ selectedClassroom, isLoading, onCancel, onShare 
 };
 
 SharedAssignmentForm.propTypes = {
+    heading: PropTypes.node,
+    initialValues: PropTypes.object,
     isLoading: PropTypes.bool,
     onCancel: PropTypes.func.isRequired,
     onShare: PropTypes.func.isRequired,
-    selectedClassroom: PropTypes.object.isRequired,
+    selectedClassroom: PropTypes.object,
+    submitLabel: PropTypes.node,
 };
 
 export default SharedAssignmentForm;

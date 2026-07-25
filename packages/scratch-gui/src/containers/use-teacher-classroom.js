@@ -184,9 +184,30 @@ const useTeacherClassroom = ({
                     if (group) groups.handleSelectGroup(group);
                 }
                 classrooms.handleSelectClassroom(link.classroomId);
+            } else if (link.kind === 'shared-mine') {
+                // 推薦通知 (#1110) のジャンプ先: みんなの課題の「自分の投稿」。
+                // カタログはボード内サブビューなので、課題詳細など別フェーズに
+                // いても必ず handleSelectGroup でボード (teacher-dashboard) へ
+                // 戻してから開く（レビュー指摘: phase を戻さないと無反応になる）。
+                const target = groups.selectedGroup || (groups.groups || []).find((g) => g.status !== 'archived');
+                if (!target) {
+                    // クラスが 1 つも無いとカタログを載せる場所が無い。黙って
+                    // 何も起きないのが最悪なので理由を表示する。
+                    showError(
+                        intl.formatMessage({
+                            defaultMessage: 'Create a class first to open みんなの課題.',
+                            description:
+                                'Error when a notification link needs a class but the teacher has none (#1110)',
+                            id: 'gui.classroom.shared.noClassForCatalog',
+                        }),
+                    );
+                    return;
+                }
+                groups.handleSelectGroup(target);
+                shared.handleOpenCatalogMine();
             }
         },
-        [notifications, classrooms, groups],
+        [notifications, classrooms, groups, shared, showError, intl],
     );
 
     const handleBackToDashboard = useCallback(() => {

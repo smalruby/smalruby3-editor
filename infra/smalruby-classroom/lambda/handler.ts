@@ -3637,6 +3637,9 @@ function mapSharedSummary(item: Record<string, unknown>, opts: { includePasscode
     reuseCount: (item.reuseCount as number) || 0,
     // 公開範囲: 'public' = みんなの課題カタログ / 'limited' = 合言葉限定公開。
     visibility: (item.visibility as string) || 'public',
+    // Admin 推薦 (#1110): 書き込みは admin スタックのみ。boolean へ投影する
+    // （recommendedBy = admin email は内部情報なので先生側 API には出さない）。
+    recommended: !!item.recommendedAt,
     status: item.status,
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
@@ -4185,16 +4188,21 @@ async function handleUpdateSharedAssignment(
       if (body.licenseConsent !== true) {
         throw new ValidationError('licenseConsent (CC BY 4.0) is required to make it public');
       }
+      // `??` だと body の明示的な null（= クリア）が既存値へ巻き戻る
+      // （例: 発展フォームでコマ数を空にしても旧値が残る）。他の per-field
+      // ブロックと同じ「undefined のときだけ既存値」で合成する。
       Object.assign(updates, validateSharedAttributes({
-        schoolLevel: body.schoolLevel ?? item.schoolLevel,
-        subject: body.subject ?? item.subject,
-        grades: body.grades ?? item.grades,
-        tags: body.tags ?? item.tags,
-        lessonCount: body.lessonCount ?? item.lessonCount,
+        schoolLevel: body.schoolLevel !== undefined ? body.schoolLevel : item.schoolLevel,
+        subject: body.subject !== undefined ? body.subject : item.subject,
+        grades: body.grades !== undefined ? body.grades : item.grades,
+        tags: body.tags !== undefined ? body.tags : item.tags,
+        lessonCount: body.lessonCount !== undefined ? body.lessonCount : item.lessonCount,
       } as Record<string, unknown>));
       Object.assign(updates, validateAuthorProfile({
-        authorName: body.authorName ?? item.authorName,
-        authorAffiliation: body.authorAffiliation ?? item.authorAffiliation,
+        authorName: body.authorName !== undefined ? body.authorName : item.authorName,
+        authorAffiliation: body.authorAffiliation !== undefined
+          ? body.authorAffiliation
+          : item.authorAffiliation,
       }));
       updates.visibility = 'public';
     } else if (body.visibility === 'limited' && currentVisibility !== 'limited') {

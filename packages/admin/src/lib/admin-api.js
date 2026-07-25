@@ -79,13 +79,14 @@ const fetchSharedReports = () => request('GET', '/admin/shared-assignments/repor
 
 /**
  * Fleet-wide shared assignment list.
- * @param {object} [filters] - {status?, q?}
+ * @param {object} [filters] - {status?, q?, visibility?}
  * @returns {Promise<object>} {items}
  */
 const fetchSharedAssignments = (filters = {}) => {
     const params = new URLSearchParams();
     if (filters.status) params.set('status', filters.status);
     if (filters.q) params.set('q', filters.q);
+    if (filters.visibility) params.set('visibility', filters.visibility);
     const qs = params.toString();
     return request('GET', `/admin/shared-assignments${qs ? `?${qs}` : ''}`);
 };
@@ -106,7 +107,24 @@ const fetchSharedAssignment = sharedId => request('GET', `/admin/shared-assignme
 const setSharedStatus = (sharedId, status) =>
     request('PATCH', `/admin/shared-assignments/${sharedId}`, {status});
 
-export {fetchSharedReports, fetchSharedAssignments, fetchSharedAssignment, setSharedStatus};
+/**
+ * Admin 推薦 (#1110): mark / unmark a shared assignment as recommended.
+ * Recommending notifies the author through the notification center (#1111);
+ * withdrawal is silent. Audited server-side.
+ * @param {string} sharedId - shared assignment id
+ * @param {boolean} recommended - true = recommend, false = withdraw
+ * @returns {Promise<object>} updated summary
+ */
+const setSharedRecommendation = (sharedId, recommended) =>
+    request(recommended ? 'POST' : 'DELETE', `/admin/shared-assignments/${sharedId}/recommend`);
+
+export {
+    fetchSharedReports,
+    fetchSharedAssignments,
+    fetchSharedAssignment,
+    setSharedStatus,
+    setSharedRecommendation
+};
 
 // --- クラス・課題管理 + 期限切れ復元 (S4 #1084) ---
 

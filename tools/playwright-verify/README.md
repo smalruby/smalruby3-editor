@@ -63,6 +63,7 @@ env トグル: `HEADLESS=false` 表示 / `CHANNEL=chrome` 実 Chrome / `SLOWMO=<
 | ファイル | 検証対象 |
 |---|---|
 | `verify-notification-center.mjs` | お知らせセンター（EPIC #1111）。classroom API を route interception で**スタブ**するので stg 不要（dev server 8601 のみ前提）。教師モーダル右上 🔔 + 未読バッジ → パネル開で mark-read が飛びバッジが消える → 未読ドット 1 個 → アイテムクリックでパネルが閉じる |
+| `verify-shared-recommendation.mjs` | Admin 推薦 → 全体公開への発展（EPIC #1110）。同じくスタブ式で stg 不要。推薦通知（`link.kind='shared-mine'`）クリック → 自分の投稿へジャンプ → 限定公開/推薦バッジ → 「みんなの課題に公開する」フォーム（初期値・CC BY 同意必須）→ PATCH `visibility='public'` の payload まで検証 |
 | `verify-assignment-sharing.mjs` | みんなの課題（EPIC #1066）の通し。クラス+課題作成→説明ページ保存→共有フォーム（CC BY 同意）→カタログ絞り込み→詳細（© クレジット・外部リンク確認 D4）→このクラスに取り込み→ボードに新行→自分の投稿で取り下げ/再公開。stg に S1 API（#1068）が必要。`LOCALE=ja-JP` で日本語スクリーンショット |
 | `verify-admin.mjs` | 管理 SPA（EPIC #1073）の通し。stg API への `/admin/me` プリフライト（403 = allowlist 未登録を明示）→ 8602 の SPA dev server を自前起動（`REUSE_SERVER=1` で再利用）→ ログインゲート → `?devlogin=` バイパス → みんなの課題キュー → クラス検索 + 期限切れ復元タブ → バグ報告一覧（詳細に書き込み UI が無いこと）。前提: AdminStack-stg デプロイ + `SmalrubyAdmins-stg` に `dev-admin@example.com` 登録（docs/admin/operations.md） |
 | `verify-classroom-archive-recovery.mjs` | アーカイブ復旧（EPIC #1049）の通し。クラス+課題作成→保存期限バッジ（`あと{days}日`）→課題詳細の期限バナー+全作品DL CTA→クラス全体一括DL（zip 名 `_全課題.zip`）→課題アーカイブ（確認文言が「アーカイブ」であること）→（S1 API デプロイ後）アーカイブ済み課題の復元→クラスの 2 段階アーカイブ確認→アーカイブ済みクラス一覧→復元。`LOCALE=ja-JP` で日本語スクリーンショット（docs 用） |
