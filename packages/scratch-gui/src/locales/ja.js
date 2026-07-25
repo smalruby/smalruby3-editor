@@ -226,6 +226,7 @@ export default {
     'gui.classroom.board.reuseCopy': 'このクラスに複製',
     'gui.classroom.board.yearLabel': '{year}年度',
     'gui.classroom.board.create': '課題を作る',
+    'gui.classroom.board.hint': 'このクラスの課題を作成・管理します。課題を開くと提出状況の確認や評価ができます。',
     'gui.classroom.board.topicLabel': 'トピック',
     'gui.classroom.board.noTopic': '（トピックなし）',
     'gui.classroom.board.newTopicPlaceholder': '新しいトピック',

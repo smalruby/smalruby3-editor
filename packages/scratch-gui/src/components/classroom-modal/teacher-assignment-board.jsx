@@ -476,8 +476,18 @@ const TeacherAssignmentBoard = ({
                 ]}
             />
             {!subView && (
+            <React.Fragment>
+            {/* クラス名は独立行にして省略されないようにする（レビュー指摘）。
+                下に画面の説明、その下にアクションボタン行を置く。 */}
+            <h2 className={styles.boardTitle}>{formatClassLabel(group)}</h2>
+            <p className={styles.boardHint}>
+                <FormattedMessage
+                    defaultMessage="Create and organize this class's assignments here. Open an assignment to check submissions or grade."
+                    description="Short description of what the assignment board (課題一覧) is for"
+                    id="gui.classroom.board.hint"
+                />
+            </p>
             <div className={styles.boardHeader}>
-                <h2 className={styles.boardTitle}>{formatClassLabel(group)}</h2>
                 <button
                     className={styles.boardCreateButton}
                     data-testid="classroom-board-create"
@@ -554,6 +564,7 @@ const TeacherAssignmentBoard = ({
                     </button>
                 ) : null}
             </div>
+            </React.Fragment>
             )}
             <ErrorDisplay error={error} errorTitle={errorTitle} />
             {shared && shared.lastImported ? (

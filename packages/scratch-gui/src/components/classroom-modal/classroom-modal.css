@@ -2937,21 +2937,29 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
     overflow-y: auto;
 }
 
+/* クラス名を独立行にしたので、ヘッダーはアクションボタンの折り返し行にする
+   （左寄せ・省略しない。レビュー指摘 #1108）。 */
 .board-header {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
 }
 
 .board-title {
-    flex: 1;
-    margin: 0;
+    margin: 0.25rem 0 0.25rem;
     font-size: 1.3rem;
+    font-weight: bold;
     color: #575e75;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+}
+
+/* 課題一覧（ボード）の簡単な説明。 */
+.board-hint {
+    font-size: 0.85rem;
+    color: #888;
+    line-height: 1.5;
+    margin: 0 0 0.75rem;
 }
 
 .board-year {

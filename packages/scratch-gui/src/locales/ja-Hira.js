@@ -230,6 +230,8 @@ export default {
     'gui.classroom.board.reuseCopy': 'このクラスにふくせい',
     'gui.classroom.board.yearLabel': '{year}ねんど',
     'gui.classroom.board.create': 'かだいをつくる',
+    'gui.classroom.board.hint':
+        'このクラスのかだいをさくせい・かんりします。かだいをひらくとていしゅつじょうきょうのかくにんやひょうかができます。',
     'gui.classroom.board.topicLabel': 'トピック',
     'gui.classroom.board.noTopic': '（トピックなし）',
     'gui.classroom.board.newTopicPlaceholder': 'あたらしいトピック',
