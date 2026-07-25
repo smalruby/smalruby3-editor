@@ -17,7 +17,8 @@ import {
     fetchRestoreCandidates,
     fetchRestorePlan,
     sendNotification,
-    setClassroomStatus
+    setClassroomStatus,
+    setSharingRecommendation
 } from '../lib/admin-api.js';
 import ClassroomOverviewView from './classroom-overview-view.jsx';
 
@@ -140,6 +141,9 @@ const ClassroomDetail = ({classroomId, onBack, onChanged}) => {
     const [detail, setDetail] = useState(null);
     const [error, setError] = useState('');
     const [confirming, setConfirming] = useState(false);
+    // 共有推奨 (#1106) はアーカイブ切替とは独立した確認ステップ
+    // （同時にどちらか一方しか arm できない）。
+    const [confirmingRecommend, setConfirmingRecommend] = useState(false);
     const [busy, setBusy] = useState(false);
 
     useEffect(() => {
@@ -148,7 +152,10 @@ const ClassroomDetail = ({classroomId, onBack, onChanged}) => {
             .catch(err => setError(err.message));
     }, [classroomId]);
 
-    const handleArm = useCallback(() => setConfirming(true), []);
+    const handleArm = useCallback(() => {
+        setConfirmingRecommend(false);
+        setConfirming(true);
+    }, []);
     const handleDisarm = useCallback(() => setConfirming(false), []);
     const handleFlip = useCallback(async () => {
         if (!detail) return;
@@ -159,6 +166,32 @@ const ClassroomDetail = ({classroomId, onBack, onChanged}) => {
             const updated = await setClassroomStatus(classroomId, next);
             setDetail(prev => ({...prev, status: updated.status}));
             setConfirming(false);
+            onChanged();
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setBusy(false);
+        }
+    }, [detail, classroomId, onChanged]);
+
+    const handleArmRecommend = useCallback(() => {
+        setConfirming(false);
+        setConfirmingRecommend(true);
+    }, []);
+    const handleDisarmRecommend = useCallback(() => setConfirmingRecommend(false), []);
+    const handleFlipRecommend = useCallback(async () => {
+        if (!detail) return;
+        setBusy(true);
+        setError('');
+        try {
+            const updated = await setSharingRecommendation(classroomId, !detail.recommendedForSharing);
+            setDetail(prev => ({
+                ...prev,
+                recommendedForSharing: updated.recommendedForSharing,
+                recommendedForSharingAt: updated.recommendedForSharingAt,
+                recommendedForSharingBy: updated.recommendedForSharingBy
+            }));
+            setConfirmingRecommend(false);
             onChanged();
         } catch (err) {
             setError(err.message);
@@ -186,6 +219,13 @@ const ClassroomDetail = ({classroomId, onBack, onChanged}) => {
                 {detail.className}
                 {' '}
                 <ClassroomStatusBadge status={detail.status} />
+                {' '}
+                {detail.recommendedForSharing ? (
+                    <span
+                        className="admin-badge admin-badge-ok"
+                        data-testid="classroom-admin-recommended-badge"
+                    >{'共有推奨中'}</span>
+                ) : null}
             </h3>
             <p className="admin-meta">
                 {`課題: ${detail.assignmentName || '-'} ・ 参加コード: ${detail.joinCode}`}
@@ -228,6 +268,40 @@ const ClassroomDetail = ({classroomId, onBack, onChanged}) => {
                         {detail.status === 'active' ? 'アーカイブする' : '利用中に戻す'}
                     </button>
                 )}
+                {' '}
+                {detail.status === 'active' ? (
+                    confirmingRecommend ? (
+                        <span
+                            className="admin-confirm"
+                            data-testid="classroom-admin-recommend-confirm"
+                        >
+                            {detail.recommendedForSharing ?
+                                '共有推奨を取り消しますか？（先生には通知されません）' :
+                                'この課題の共有を推奨しますか？（作成した先生にお知らせが届き、課題にバナーが出ます）'}
+                            <button
+                                data-testid="classroom-admin-recommend-confirm-yes"
+                                disabled={busy}
+                                type="button"
+                                onClick={handleFlipRecommend}
+                            >{'実行'}</button>
+                            <button
+                                data-testid="classroom-admin-recommend-confirm-no"
+                                disabled={busy}
+                                type="button"
+                                onClick={handleDisarmRecommend}
+                            >{'やめる'}</button>
+                        </span>
+                    ) : (
+                        <button
+                            data-testid="classroom-admin-recommend"
+                            disabled={busy}
+                            type="button"
+                            onClick={handleArmRecommend}
+                        >
+                            {detail.recommendedForSharing ? '共有推奨を取り消す' : 'みんなの課題への共有を推奨する'}
+                        </button>
+                    )
+                ) : null}
             </div>
             <NotificationSendPanel classroomId={classroomId} />
         </div>

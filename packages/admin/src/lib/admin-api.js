@@ -206,6 +206,17 @@ const executeRestore = classroomId =>
 const sendNotification = (classroomId, {title, message}) =>
     request('POST', '/admin/notifications', {classroomId, title, message});
 
+/**
+ * 共有推奨 (#1106): flag / unflag an assignment as "worth sharing to
+ * みんなの課題". Flagging notifies the owning teacher (#1111) and lights the
+ * banner in their editing view; withdrawal is silent. Audited server-side.
+ * @param {string} classroomId - classroom id
+ * @param {boolean} recommended - true = flag, false = withdraw
+ * @returns {Promise<object>} updated classroom summary
+ */
+const setSharingRecommendation = (classroomId, recommended) =>
+    request(recommended ? 'POST' : 'DELETE', `/admin/classrooms/${classroomId}/recommend-sharing`);
+
 export {
     fetchClassrooms,
     fetchClassroom,
@@ -214,5 +225,6 @@ export {
     fetchRestoreCandidates,
     fetchRestorePlan,
     executeRestore,
-    sendNotification
+    sendNotification,
+    setSharingRecommendation
 };

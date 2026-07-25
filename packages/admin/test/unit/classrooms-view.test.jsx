@@ -9,6 +9,7 @@ const mockFetchCandidates = jest.fn();
 const mockFetchPlan = jest.fn();
 const mockExecuteRestore = jest.fn();
 const mockSendNotification = jest.fn();
+const mockSetSharingRecommendation = jest.fn();
 jest.mock('../../src/lib/admin-api.js', () => ({
     fetchClassrooms: (...args) => mockFetchClassrooms(...args),
     fetchClassroom: (...args) => mockFetchClassroom(...args),
@@ -17,7 +18,8 @@ jest.mock('../../src/lib/admin-api.js', () => ({
     fetchRestoreCandidates: (...args) => mockFetchCandidates(...args),
     fetchRestorePlan: (...args) => mockFetchPlan(...args),
     executeRestore: (...args) => mockExecuteRestore(...args),
-    sendNotification: (...args) => mockSendNotification(...args)
+    sendNotification: (...args) => mockSendNotification(...args),
+    setSharingRecommendation: (...args) => mockSetSharingRecommendation(...args)
 }));
 
 import ClassroomsView from '../../src/components/classrooms-view.jsx';
@@ -82,6 +84,7 @@ describe('ClassroomsView (issue #1084 + 俯瞰 #1106)', () => {
         mockFetchPlan.mockReset().mockResolvedValue(plan);
         mockExecuteRestore.mockReset();
         mockSendNotification.mockReset();
+        mockSetSharingRecommendation.mockReset();
     });
 
     test('the default tab is the overview dashboard', async () => {
@@ -127,6 +130,40 @@ describe('ClassroomsView (issue #1084 + 俯瞰 #1106)', () => {
         fireEvent.click(screen.getByTestId('restore-facet-month-2026-07'));
         await waitFor(() => expect(mockFetchCandidates).toHaveBeenCalledWith(
             {q: '', month: '2026-07', teacher: ''}));
+    });
+
+    test('共有推奨は二段階確認を通ってから API を呼ぶ (#1106)', async () => {
+        mockSetSharingRecommendation.mockResolvedValue({
+            ...detail,
+            recommendedForSharing: true,
+            recommendedForSharingAt: '2026-07-25T00:00:00Z',
+            recommendedForSharingBy: 'admin@example.com'
+        });
+        render(<ClassroomsView />);
+        fireEvent.click(screen.getByTestId('classroom-admin-tab-live'));
+        await waitFor(() => screen.getByTestId('classroom-admin-item-c1'));
+        fireEvent.click(screen.getByTestId('classroom-admin-item-c1'));
+        await waitFor(() => screen.getByTestId('classroom-admin-detail'));
+
+        fireEvent.click(screen.getByTestId('classroom-admin-recommend'));
+        expect(mockSetSharingRecommendation).not.toHaveBeenCalled();
+        expect(screen.getByTestId('classroom-admin-recommend-confirm').textContent)
+            .toContain('お知らせが届き');
+
+        fireEvent.click(screen.getByTestId('classroom-admin-recommend-confirm-yes'));
+        await waitFor(() => expect(mockSetSharingRecommendation).toHaveBeenCalledWith('c1', true));
+        // 推奨後はバッジが付き、ボタンが取り消しに変わる。
+        await waitFor(() => screen.getByTestId('classroom-admin-recommended-badge'));
+        expect(screen.getByTestId('classroom-admin-recommend').textContent).toContain('取り消す');
+    });
+
+    test('俯瞰候補に推奨済みバッジが出る (#1106)', async () => {
+        mockFetchOverview.mockResolvedValue({
+            ...overview,
+            candidates: [{...overview.candidates[0], recommendedForSharing: true}]
+        });
+        render(<ClassroomsView />);
+        await waitFor(() => screen.getByTestId('overview-candidate-recommended-c1'));
     });
 
     test('お知らせ送信は本文必須・確認後に classroomId で送る (#1111)', async () => {
