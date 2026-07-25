@@ -521,25 +521,8 @@ const TeacherAssignmentBoard = ({
                         id="gui.classroom.board.reuse"
                     />
                 </button>
-                {onDownloadClassAll ? (
-                    <button
-                        className={styles.boardReuseButton}
-                        data-testid="classroom-board-download-class"
-                        disabled={isLoading || !!downloadProgress}
-                        type="button"
-                        onClick={handleDownloadClassAll}
-                    >
-                        {downloadProgress ? (
-                            `${downloadProgress.current}/${downloadProgress.total}`
-                        ) : (
-                            <FormattedMessage
-                                defaultMessage="Download all submissions"
-                                description="Button that downloads every assignment's submissions as one zip"
-                                id="gui.classroom.board.downloadClass"
-                            />
-                        )}
-                    </button>
-                ) : null}
+                {/* 並び順（レビュー指摘）: 作る → 再利用 → みんなの課題からさがす →
+                    合言葉で取り込み → 全課題の提出物をダウンロード。 */}
                 {shared ? (
                     <button
                         className={styles.boardReuseButton}
@@ -568,6 +551,25 @@ const TeacherAssignmentBoard = ({
                             description="Button that opens the passcode import step"
                             id="gui.classroom.shared.passcodeImport"
                         />
+                    </button>
+                ) : null}
+                {onDownloadClassAll ? (
+                    <button
+                        className={styles.boardReuseButton}
+                        data-testid="classroom-board-download-class"
+                        disabled={isLoading || !!downloadProgress}
+                        type="button"
+                        onClick={handleDownloadClassAll}
+                    >
+                        {downloadProgress ? (
+                            `${downloadProgress.current}/${downloadProgress.total}`
+                        ) : (
+                            <FormattedMessage
+                                defaultMessage="Download all submissions"
+                                description="Button that downloads every assignment's submissions as one zip"
+                                id="gui.classroom.board.downloadClass"
+                            />
+                        )}
                     </button>
                 ) : null}
             </div>

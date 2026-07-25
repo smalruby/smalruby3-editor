@@ -413,7 +413,7 @@ export default {
     'gui.classroom.shared.passcodeImportBtn': 'このクラスに取り込む',
     'gui.classroom.shared.openCatalog': 'みんなの課題からさがす',
     'gui.classroom.shared.catalogTitle': 'みんなの課題 — 全国の先生が共有した課題',
-    'gui.classroom.shared.catalogClose': '閉じる',
+    'gui.classroom.shared.catalogClose': 'キャンセル',
     'gui.classroom.shared.tabAll': 'すべて',
     'gui.classroom.shared.tabMine': '自分の投稿',
     'gui.classroom.shared.filterAllLevels': 'すべての学校種',
