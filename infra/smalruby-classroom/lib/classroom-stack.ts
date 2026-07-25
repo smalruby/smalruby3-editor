@@ -21,6 +21,7 @@ export class ClassroomStack extends cdk.Stack {
   public readonly groupsTable: dynamodb.Table;
   public readonly sharedAssignmentsTable: dynamodb.Table;
   public readonly sharedReportsTable: dynamodb.Table;
+  public readonly notificationsTable: dynamodb.Table;
   public readonly submissionsBucket: s3.Bucket;
   public readonly sharedBucket: s3.Bucket;
   public readonly api: apigatewayv2.HttpApi;
@@ -332,6 +333,35 @@ export class ClassroomStack extends cdk.Stack {
 
     cdk.Tags.of(this.sharedReportsTable).add('ResourceType', 'DynamoDB');
 
+    // --- お知らせ (notification center, EPIC #1111) ---
+    // Admin → teacher notices surfaced in the class management UI. This stack
+    // owns the table because teachers read it through this API with their
+    // existing ID-token auth; the admin stack imports it by the fleet's stage
+    // naming convention and only writes (mirror of the SharedAssignments
+    // arrangement — N2: the admin stack never modifies this stack).
+    // PK teacherSub / SK notificationId (createdAt-prefixed → chronological),
+    // so a single Query serves the per-teacher inbox. Notices are ephemeral
+    // guidance, not records: TTL is set by the writer (admin stack).
+    this.notificationsTable = new dynamodb.Table(this, 'NotificationsTable', {
+      tableName: `ClassroomNotifications${stageSuffix}`,
+      partitionKey: {
+        name: 'teacherSub',
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: 'notificationId',
+        type: dynamodb.AttributeType.STRING,
+      },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      pointInTimeRecoverySpecification: {
+        pointInTimeRecoveryEnabled: false,
+      },
+      timeToLiveAttribute: 'ttl',
+    });
+
+    cdk.Tags.of(this.notificationsTable).add('ResourceType', 'DynamoDB');
+
     // --- S3 Bucket for submissions ---
 
     this.submissionsBucket = new s3.Bucket(this, 'SubmissionsBucket', {
@@ -407,6 +437,7 @@ export class ClassroomStack extends cdk.Stack {
         GROUPS_TABLE_NAME: this.groupsTable.tableName,
         SHARED_ASSIGNMENTS_TABLE_NAME: this.sharedAssignmentsTable.tableName,
         SHARED_REPORTS_TABLE_NAME: this.sharedReportsTable.tableName,
+        NOTIFICATIONS_TABLE_NAME: this.notificationsTable.tableName,
         SUBMISSIONS_BUCKET_NAME: this.submissionsBucket.bucketName,
         SHARED_BUCKET_NAME: this.sharedBucket.bucketName,
         SHARE_DAILY_LIMIT: process.env.SHARE_DAILY_LIMIT || '10',
@@ -445,6 +476,7 @@ export class ClassroomStack extends cdk.Stack {
     this.groupsTable.grantReadWriteData(handlerFn);
     this.sharedAssignmentsTable.grantReadWriteData(handlerFn);
     this.sharedReportsTable.grantReadWriteData(handlerFn);
+    this.notificationsTable.grantReadWriteData(handlerFn);
     this.submissionsBucket.grantPut(handlerFn);
     this.submissionsBucket.grantRead(handlerFn);
     this.sharedBucket.grantPut(handlerFn);
@@ -688,6 +720,21 @@ export class ClassroomStack extends cdk.Stack {
 
     this.api.addRoutes({
       path: '/shared-assignments/import-by-passcode',
+      methods: [apigatewayv2.HttpMethod.POST],
+      integration,
+    });
+
+    // お知らせ (notification center #1111) — teacher-facing inbox. Own root
+    // path; writes happen from the admin stack, so this API only lists and
+    // marks-read for the authenticated teacher.
+    this.api.addRoutes({
+      path: '/notifications',
+      methods: [apigatewayv2.HttpMethod.GET],
+      integration,
+    });
+
+    this.api.addRoutes({
+      path: '/notifications/mark-read',
       methods: [apigatewayv2.HttpMethod.POST],
       integration,
     });
