@@ -444,6 +444,10 @@ export default {
     'gui.classroom.shared.broadenSubmit': 'ぜんたいこうかいする',
     'gui.classroom.shared.broadenDone': 'みんなのかだいに こうかいしました。きょうゆう ありがとうございます！',
     'gui.classroom.shared.noClassForCatalog': 'みんなのかだいを ひらくには、さきに クラスを つくってください。',
+    'gui.classroom.teacherDetail.shareSuggestion':
+        'このかだい、みんなのかだいに きょうゆうしませんか？ ないようの じゅうじつした かだいとして うんえいの おすすめに えらばれました。',
+    'gui.classroom.teacherDetail.shareSuggestionOpen': 'きょうゆうフォームを ひらく',
+    'gui.classroom.board.shareSuggested': 'きょうゆう おすすめ',
     'gui.classroom.shared.gradesBadge': '{grades}ねん',
     'gui.classroom.shared.cardMeta': 'とうこう: {author} ・ とりこみ {count} かい',
     'gui.classroom.shared.detailBack': 'いちらんにもどる',

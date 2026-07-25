@@ -44,6 +44,7 @@ const TeacherClassDetail = ({
     onApproveKickRequest,
     onRejectKickRequest,
     onDetailTabChange,
+    onOpenShareSuggestion,
     assignmentEditor,
     group,
 }) => {
@@ -458,6 +459,36 @@ const TeacherClassDetail = ({
                                 </div>
                             )}
 
+                            {/* 共有推奨バナー (#1106): 運営が「みんなの課題に
+                                共有する価値がある」と判断した課題。公開は
+                                CC BY 同意を伴う先生本人の共有フローのみ。 */}
+                            {selectedClassroom.recommendedForSharing && onOpenShareSuggestion && (
+                                <div
+                                    className={styles.shareSuggestionBanner}
+                                    data-testid="classroom-share-suggestion-banner"
+                                >
+                                    <span className={styles.shareSuggestionText}>
+                                        <FormattedMessage
+                                            defaultMessage="この課題、みんなの課題に共有しませんか？ Operators picked this assignment as worth sharing with teachers nationwide."
+                                            description="Banner prompting the teacher to share an operator-recommended assignment (#1106)"
+                                            id="gui.classroom.teacherDetail.shareSuggestion"
+                                        />
+                                    </span>
+                                    <button
+                                        className={styles.shareSuggestionButton}
+                                        data-testid="classroom-share-suggestion-open"
+                                        type="button"
+                                        onClick={onOpenShareSuggestion}
+                                    >
+                                        <FormattedMessage
+                                            defaultMessage="Open the share form"
+                                            description="Banner CTA that opens the existing share flow (#1106)"
+                                            id="gui.classroom.teacherDetail.shareSuggestionOpen"
+                                        />
+                                    </button>
+                                </div>
+                            )}
+
                             {/* Tabs: Description (default) / Members */}
                             <div className={styles.detailTabs} role="tablist">
                                 <button
@@ -842,6 +873,7 @@ TeacherClassDetail.propTypes = {
     onApproveKickRequest: PropTypes.func,
     onRejectKickRequest: PropTypes.func,
     onDetailTabChange: PropTypes.func,
+    onOpenShareSuggestion: PropTypes.func,
     assignmentEditor: PropTypes.object,
     group: PropTypes.object,
     selectedClassroom: PropTypes.object.isRequired,

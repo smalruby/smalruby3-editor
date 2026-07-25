@@ -108,4 +108,23 @@ describe('TeacherClassDetail — retention banner (issue #1052)', () => {
         fireEvent.click(byTestId('classroom-download-all'));
         expect(onDownloadAll).toHaveBeenCalled();
     });
+
+    test('共有推奨バナー (#1106): recommendedForSharing のときだけ出て CTA が動く', () => {
+        const onOpenShareSuggestion = jest.fn();
+        const { unmount } = renderDetail({
+            selectedClassroom: classroom({ recommendedForSharing: true }),
+            onOpenShareSuggestion,
+        });
+        expect(byTestId('classroom-share-suggestion-banner')).toBeInTheDocument();
+        fireEvent.click(byTestId('classroom-share-suggestion-open'));
+        expect(onOpenShareSuggestion).toHaveBeenCalled();
+        unmount();
+
+        // フラグ無しでは出ない。
+        renderDetail({
+            selectedClassroom: classroom(),
+            onOpenShareSuggestion,
+        });
+        expect(byTestId('classroom-share-suggestion-banner')).not.toBeInTheDocument();
+    });
 });

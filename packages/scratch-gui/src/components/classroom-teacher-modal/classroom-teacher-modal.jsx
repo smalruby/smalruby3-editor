@@ -5,7 +5,7 @@
  * with a sidebar (class list) and a main area that shows phase content.
  */
 import PropTypes from 'prop-types';
-import React from 'react';
+import React, { useCallback } from 'react';
 import { defineMessages, useIntl, FormattedMessage } from 'react-intl';
 
 import Modal from '../../containers/modal.jsx';
@@ -141,6 +141,14 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         shared,
         notificationsCenter,
     } = containerProps;
+
+    // 共有推奨バナー (#1106) の CTA: 共有ステップはボード内サブビューなので、
+    // ボードへ戻ってからこの課題の共有設定を開く。
+    const handleOpenShareSuggestion = useCallback(() => {
+        if (!selectedClassroom || !shared) return;
+        onBackToDashboard();
+        shared.handleOpenShareFor(selectedClassroom);
+    }, [selectedClassroom, shared, onBackToDashboard]);
 
     // Opening a class scopes the board to its assignments (GC style).
     const scopedClassrooms = selectedGroup
@@ -296,6 +304,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         onSelectMember={onSelectMember}
                         onShowCodeDisplay={onShowCodeDisplay}
                         shared={shared}
+                        onOpenShareSuggestion={handleOpenShareSuggestion}
                         onShowPostAssignment={authProvider === 'google' ? onShowPostAssignment : null}
                         onToggleCodeFullscreen={onToggleCodeFullscreen}
                         onUpdateAssignmentName={onUpdateAssignmentName}

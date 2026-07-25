@@ -228,4 +228,15 @@ describe('TeacherAssignmentBoard — reuse excludes archived (review feedback)',
         expect(values).toContain('g1');
         expect(values).not.toContain('gArch');
     });
+
+    test('共有おすすめマーク (#1106): recommendedForSharing の行だけに出る', () => {
+        renderBoard({
+            classrooms: [
+                classroom({ recommendedForSharing: true }),
+                classroom({ classroomId: 'c2', assignmentName: '課題2' }),
+            ],
+        });
+        expect(byTestId('classroom-board-share-suggested-c1')).toBeInTheDocument();
+        expect(byTestId('classroom-board-share-suggested-c2')).not.toBeInTheDocument();
+    });
 });

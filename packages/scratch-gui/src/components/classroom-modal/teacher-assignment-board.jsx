@@ -152,6 +152,19 @@ const AssignmentRow = ({
                     <span className={styles.boardRowName}>
                         {classroom.assignmentName || classroom.className}
                     </span>
+                    {/* 共有推奨マーク (#1106): 運営が共有をおすすめした課題。 */}
+                    {classroom.recommendedForSharing ? (
+                        <span
+                            className={styles.boardRowShareSuggested}
+                            data-testid={`classroom-board-share-suggested-${classroom.classroomId}`}
+                        >
+                            <FormattedMessage
+                                defaultMessage="Sharing recommended"
+                                description="Per-row mark on an assignment the operators recommended sharing (#1106)"
+                                id="gui.classroom.board.shareSuggested"
+                            />
+                        </span>
+                    ) : null}
                     <span className={styles.boardRowCode}>{classroom.joinCode}</span>
                 </button>
                 <select

@@ -435,6 +435,10 @@ export default {
     'gui.classroom.shared.broadenSubmit': '全体公開する',
     'gui.classroom.shared.broadenDone': 'みんなの課題に公開しました。共有ありがとうございます！',
     'gui.classroom.shared.noClassForCatalog': 'みんなの課題を開くには、先にクラスを作成してください。',
+    'gui.classroom.teacherDetail.shareSuggestion':
+        'この課題、みんなの課題に共有しませんか？ 内容の充実した課題として運営のおすすめに選ばれました。',
+    'gui.classroom.teacherDetail.shareSuggestionOpen': '共有フォームを開く',
+    'gui.classroom.board.shareSuggested': '共有おすすめ',
     'gui.classroom.shared.gradesBadge': '{grades}年',
     'gui.classroom.shared.cardMeta': '投稿: {author} ・ 取り込み {count} 回',
     'gui.classroom.shared.detailBack': '一覧に戻る',
