@@ -286,6 +286,9 @@ export class SmalrubyAdminStack extends cdk.Stack {
       [apigatewayv2.HttpMethod.GET, apigatewayv2.HttpMethod.PATCH]);
     addRoute('/admin/classrooms/{classroomId}/restore-plan', [apigatewayv2.HttpMethod.GET]);
     addRoute('/admin/classrooms/{classroomId}/restore', [apigatewayv2.HttpMethod.POST]);
+    // 共有推奨 (#1106)
+    addRoute('/admin/classrooms/{classroomId}/recommend-sharing',
+      [apigatewayv2.HttpMethod.POST, apigatewayv2.HttpMethod.DELETE]);
 
     // お知らせ送信 (notification center #1111)
     addRoute('/admin/notifications', [apigatewayv2.HttpMethod.POST]);

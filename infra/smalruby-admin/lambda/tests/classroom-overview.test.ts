@@ -9,19 +9,20 @@ const rows = [
   {
     classroomId: 'c1', className: '5年1組', assignmentName: 'ねこ迷路ゲーム', teacherSub: 't1',
     status: 'active', createdAt: '2026-07-10T00:00:00.000Z',
-    content: { pages: [{ text: 'a', imageKey: 'k1' }, { text: 'b' }], starterKey: 's1' },
+    assignment: { pages: [{ text: 'a', imageKey: 'k1' }, { text: 'b' }], starterKey: 's1' },
+    recommendedForSharingAt: '2026-07-15T00:00:00.000Z',
   },
   // rich but already shared
   {
     classroomId: 'c2', className: '6年2組', assignmentName: 'ねこあつめ入門', teacherSub: 't2',
     status: 'archived', createdAt: '2026-06-05T00:00:00.000Z',
-    content: { pages: [{ text: 'a', imageKey: 'k' }, { text: 'b' }], starterKey: 's' },
+    assignment: { pages: [{ text: 'a', imageKey: 'k' }, { text: 'b' }], starterKey: 's' },
   },
   // thin content → not a candidate
   {
     classroomId: 'c3', className: '5年1組', assignmentName: 'ねこ体操', teacherSub: 't1',
     status: 'active', createdAt: '2026-07-01T00:00:00.000Z',
-    content: { pages: [{ text: 'a' }] },
+    assignment: { pages: [{ text: 'a' }] },
   },
   // quota row → excluded from everything
   { classroomId: 'eval-quota#t1#2026-07-19', status: 'active', createdAt: '2026-07-19T00:00:00.000Z' },
@@ -73,6 +74,15 @@ describe('buildOverview (issue #1106 dashboard)', () => {
     expect(o.candidates[0].likelyShared).toBe(false);
     expect(o.candidates[1].likelyShared).toBe(true); // ねこあつめ入門 already shared
     expect(o.candidates.some(c => c.classroomId === 'c3')).toBe(false);
+  });
+
+  test('候補に共有推奨フラグが載る (#1106)', () => {
+    expect(o.candidates.find(c => c.classroomId === 'c1')?.recommendedForSharing).toBe(true);
+    expect(o.candidates.find(c => c.classroomId === 'c2')?.recommendedForSharing).toBe(false);
+  });
+
+  test('classroom item の実フィールド名は assignment（content だと richness が 0 になる回帰）', () => {
+    expect(richness({ content: { pages: [{ text: 'a' }], starterKey: 's' } } as never).score).toBe(0);
   });
 
   test('theme keywords tally repeated tokens only', () => {
