@@ -175,6 +175,19 @@ const fetchRestorePlan = classroomId =>
 const executeRestore = classroomId =>
     request('POST', `/admin/classrooms/${classroomId}/restore`);
 
+/**
+ * お知らせ送信 (notification center #1111): notify the teacher who owns the
+ * classroom. The recipient is resolved server-side from the classroomId —
+ * teacher subs never reach the SPA. Audited server-side.
+ * @param {string} classroomId - classroom id
+ * @param {object} payload - notice content
+ * @param {string} payload.title - short heading (max 100 chars)
+ * @param {string} payload.message - body text (max 1000 chars)
+ * @returns {Promise<object>} {notificationId}
+ */
+const sendNotification = (classroomId, {title, message}) =>
+    request('POST', '/admin/notifications', {classroomId, title, message});
+
 export {
     fetchClassrooms,
     fetchClassroom,
@@ -182,5 +195,6 @@ export {
     fetchClassroomOverview,
     fetchRestoreCandidates,
     fetchRestorePlan,
-    executeRestore
+    executeRestore,
+    sendNotification
 };

@@ -16,6 +16,7 @@ import {
     fetchClassrooms,
     fetchRestoreCandidates,
     fetchRestorePlan,
+    sendNotification,
     setClassroomStatus
 } from '../lib/admin-api.js';
 import ClassroomOverviewView from './classroom-overview-view.jsx';
@@ -33,6 +34,107 @@ const formatDate = iso => (iso ? iso.replace('T', ' ').slice(0, 16) : '-');
 // One-line summary shared by the live and restore item rows.
 const itemLine = (item, tail) =>
     `課題: ${item.assignmentName || '-'} ・ コード: ${item.joinCode} ・ ${tail}`;
+
+// お知らせ送信 (notification center #1111): この課題を作った先生の
+// クラス管理画面右上「お知らせ」に届く。宛先はサーバー側で classroomId
+// から解決される（teacherSub は SPA に出さない）。
+const NotificationSendPanel = ({classroomId}) => {
+    const [title, setTitle] = useState('運営からのお知らせ');
+    const [message, setMessage] = useState('');
+    const [confirming, setConfirming] = useState(false);
+    const [busy, setBusy] = useState(false);
+    const [sent, setSent] = useState(false);
+    const [error, setError] = useState('');
+
+    const handleTitle = useCallback(e => setTitle(e.target.value), []);
+    const handleMessage = useCallback(e => setMessage(e.target.value), []);
+    const handleArm = useCallback(() => {
+        setSent(false);
+        setError('');
+        setConfirming(true);
+    }, []);
+    const handleDisarm = useCallback(() => setConfirming(false), []);
+    const handleSend = useCallback(async () => {
+        setBusy(true);
+        setError('');
+        try {
+            await sendNotification(classroomId, {title: title.trim(), message: message.trim()});
+            setConfirming(false);
+            setSent(true);
+            setMessage('');
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setBusy(false);
+        }
+    }, [classroomId, title, message]);
+
+    return (
+        <div
+            className="admin-panel"
+            data-testid="classroom-admin-notify"
+        >
+            <h4>{'先生へのお知らせ'}</h4>
+            <p className="admin-meta">
+                {'この課題を作成した先生のクラス管理画面（右上「お知らせ」）に届きます。'}
+            </p>
+            <input
+                data-testid="classroom-admin-notify-title"
+                maxLength={100}
+                placeholder="タイトル"
+                type="text"
+                value={title}
+                onChange={handleTitle}
+            />
+            <textarea
+                data-testid="classroom-admin-notify-message"
+                maxLength={1000}
+                placeholder="本文（例: この課題、みんなの課題に共有しませんか？）"
+                rows={3}
+                value={message}
+                onChange={handleMessage}
+            />
+            {error ? <p
+                className="admin-error"
+                data-testid="classroom-admin-notify-error"
+            >{error}</p> : null}
+            {sent ? <p data-testid="classroom-admin-notify-done">{'送信しました。'}</p> : null}
+            <div className="admin-actions">
+                {confirming ? (
+                    <span
+                        className="admin-confirm"
+                        data-testid="classroom-admin-notify-confirm"
+                    >
+                        {'この内容で先生にお知らせを送りますか？'}
+                        <button
+                            data-testid="classroom-admin-notify-confirm-yes"
+                            disabled={busy}
+                            type="button"
+                            onClick={handleSend}
+                        >{'送信'}</button>
+                        <button
+                            data-testid="classroom-admin-notify-confirm-no"
+                            disabled={busy}
+                            type="button"
+                            onClick={handleDisarm}
+                        >{'やめる'}</button>
+                    </span>
+                ) : (
+                    <button
+                        data-testid="classroom-admin-notify-send"
+                        disabled={busy || !title.trim() || !message.trim()}
+                        type="button"
+                        onClick={handleArm}
+                    >{'お知らせを送る'}</button>
+                )}
+            </div>
+        </div>
+    );
+};
+
+NotificationSendPanel.propTypes = {
+    classroomId: PropTypes.string.isRequired
+};
 
 const ClassroomDetail = ({classroomId, onBack, onChanged}) => {
     const [detail, setDetail] = useState(null);
@@ -127,6 +229,7 @@ const ClassroomDetail = ({classroomId, onBack, onChanged}) => {
                     </button>
                 )}
             </div>
+            <NotificationSendPanel classroomId={classroomId} />
         </div>
     );
 };
