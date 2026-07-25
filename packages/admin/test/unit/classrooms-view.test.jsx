@@ -8,6 +8,7 @@ const mockFetchOverview = jest.fn();
 const mockFetchCandidates = jest.fn();
 const mockFetchPlan = jest.fn();
 const mockExecuteRestore = jest.fn();
+const mockSendNotification = jest.fn();
 jest.mock('../../src/lib/admin-api.js', () => ({
     fetchClassrooms: (...args) => mockFetchClassrooms(...args),
     fetchClassroom: (...args) => mockFetchClassroom(...args),
@@ -15,7 +16,8 @@ jest.mock('../../src/lib/admin-api.js', () => ({
     fetchClassroomOverview: (...args) => mockFetchOverview(...args),
     fetchRestoreCandidates: (...args) => mockFetchCandidates(...args),
     fetchRestorePlan: (...args) => mockFetchPlan(...args),
-    executeRestore: (...args) => mockExecuteRestore(...args)
+    executeRestore: (...args) => mockExecuteRestore(...args),
+    sendNotification: (...args) => mockSendNotification(...args)
 }));
 
 import ClassroomsView from '../../src/components/classrooms-view.jsx';
@@ -79,6 +81,7 @@ describe('ClassroomsView (issue #1084 + 俯瞰 #1106)', () => {
         mockFetchCandidates.mockReset().mockResolvedValue(restoreResponse);
         mockFetchPlan.mockReset().mockResolvedValue(plan);
         mockExecuteRestore.mockReset();
+        mockSendNotification.mockReset();
     });
 
     test('the default tab is the overview dashboard', async () => {
@@ -124,6 +127,30 @@ describe('ClassroomsView (issue #1084 + 俯瞰 #1106)', () => {
         fireEvent.click(screen.getByTestId('restore-facet-month-2026-07'));
         await waitFor(() => expect(mockFetchCandidates).toHaveBeenCalledWith(
             {q: '', month: '2026-07', teacher: ''}));
+    });
+
+    test('お知らせ送信は本文必須・確認後に classroomId で送る (#1111)', async () => {
+        mockSendNotification.mockResolvedValue({notificationId: 'n1'});
+        render(<ClassroomsView />);
+        fireEvent.click(screen.getByTestId('classroom-admin-tab-live'));
+        await waitFor(() => screen.getByTestId('classroom-admin-item-c1'));
+        fireEvent.click(screen.getByTestId('classroom-admin-item-c1'));
+        await waitFor(() => screen.getByTestId('classroom-admin-notify'));
+
+        // 本文が空の間は送信ボタンが無効。
+        expect(screen.getByTestId('classroom-admin-notify-send')).toBeDisabled();
+        fireEvent.change(screen.getByTestId('classroom-admin-notify-message'), {
+            target: {value: 'この課題、みんなの課題に共有しませんか？'}
+        });
+        fireEvent.click(screen.getByTestId('classroom-admin-notify-send'));
+        // 二段階確認を通るまで API は呼ばれない。
+        expect(mockSendNotification).not.toHaveBeenCalled();
+        fireEvent.click(screen.getByTestId('classroom-admin-notify-confirm-yes'));
+        await waitFor(() => expect(mockSendNotification).toHaveBeenCalledWith('c1', {
+            title: '運営からのお知らせ',
+            message: 'この課題、みんなの課題に共有しませんか？'
+        }));
+        await waitFor(() => screen.getByTestId('classroom-admin-notify-done'));
     });
 
     test('restore executes only after confirmation', async () => {

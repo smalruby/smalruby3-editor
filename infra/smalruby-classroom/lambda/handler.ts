@@ -34,6 +34,9 @@ const SUBMISSIONS_BUCKET = process.env.SUBMISSIONS_BUCKET_NAME || 'smalruby-clas
 // みんなの課題 — nationwide shared assignment library (EPIC #1066)
 const SHARED_ASSIGNMENTS_TABLE = process.env.SHARED_ASSIGNMENTS_TABLE_NAME || 'SharedAssignments';
 const SHARED_REPORTS_TABLE = process.env.SHARED_REPORTS_TABLE_NAME || 'SharedAssignmentReports';
+// お知らせ (notification center, EPIC #1111) — admin → teacher notices. The
+// admin stack writes items; this API lists/marks-read for the teacher.
+const NOTIFICATIONS_TABLE = process.env.NOTIFICATIONS_TABLE_NAME || 'ClassroomNotifications';
 const SHARED_BUCKET = process.env.SHARED_BUCKET_NAME || 'smalruby-shared-assignments';
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
 const MICROSOFT_CLIENT_ID = process.env.MICROSOFT_CLIENT_ID || '';
@@ -100,6 +103,9 @@ const MAX_SUPPLEMENT_URL_LENGTH = 500;
 const MAX_AUTHOR_NAME_LENGTH = 30;
 const MAX_AUTHOR_AFFILIATION_LENGTH = 50;
 const MAX_SHARED_REPORT_REASON_LENGTH = 200;
+// お知らせの一覧窓（= mark-read が既読化する範囲）。通知は短命な案内なので
+// 直近 50 件で足りる想定（TTL は書き手の admin スタックが付ける）。
+const NOTIFICATION_LIST_LIMIT = 50;
 
 // Class (旧組) v2 data model: every assignment (Classrooms record) belongs to
 // a class (ClassroomGroups record), and class-level GC linkage / co-teachers /
@@ -4328,6 +4334,98 @@ async function handleReportSharedAssignment(
   return { statusCode: 201, body: JSON.stringify({}) };
 }
 
+// --- お知らせ (notification center, EPIC #1111) ---
+// Items are written by the admin stack with this shape:
+//   { teacherSub, notificationId (createdAt-prefixed for chronological SK),
+//     type, title, body, link?, createdBy, createdAt, ttl }
+// This API is deliberately read-only for teachers (list + mark-read): the
+// single writer stays on the admin side, so notices cannot be forged from
+// the editor.
+
+async function handleListNotifications(
+  identity: TeacherIdentity,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const result = await docClient.send(new QueryCommand({
+    TableName: NOTIFICATIONS_TABLE,
+    KeyConditionExpression: 'teacherSub = :sub',
+    ExpressionAttributeValues: { ':sub': identity.sub },
+    // notificationId starts with the ISO createdAt → newest first.
+    ScanIndexForward: false,
+    Limit: NOTIFICATION_LIST_LIMIT,
+  }));
+  const notifications = (result.Items || []).map(item => ({
+    notificationId: item.notificationId,
+    type: item.type || 'admin_message',
+    title: item.title,
+    body: item.body || null,
+    link: item.link || null,
+    readAt: item.readAt || null,
+    createdAt: item.createdAt,
+  }));
+  const unreadCount = notifications.filter(n => !n.readAt).length;
+  return { statusCode: 200, body: JSON.stringify({ notifications, unreadCount }) };
+}
+
+async function handleMarkNotificationsRead(
+  identity: TeacherIdentity,
+  body: Record<string, unknown>,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  // A top-level JSON array would read `body.notificationIds` as undefined and
+  // silently take the mark-all path — reject it explicitly (review finding).
+  if (Array.isArray(body)) {
+    throw new ValidationError('Request body must be a JSON object');
+  }
+  let ids: string[];
+  if (body.notificationIds === undefined || body.notificationIds === null) {
+    // No explicit ids = mark everything currently unread, bounded by the
+    // same window the list endpoint shows, so "open panel → clear badge"
+    // stays consistent with what the teacher actually saw.
+    const result = await docClient.send(new QueryCommand({
+      TableName: NOTIFICATIONS_TABLE,
+      KeyConditionExpression: 'teacherSub = :sub',
+      ExpressionAttributeValues: { ':sub': identity.sub },
+      ScanIndexForward: false,
+      Limit: NOTIFICATION_LIST_LIMIT,
+    }));
+    ids = (result.Items || [])
+      .filter(item => !item.readAt)
+      .map(item => String(item.notificationId));
+  } else if (
+    Array.isArray(body.notificationIds) &&
+    body.notificationIds.length <= NOTIFICATION_LIST_LIMIT &&
+    // Length-bound each id so a garbage id fails as 400, not as a DynamoDB
+    // ValidationException → 500 (real ids are ~61 chars: ISO + '#' + UUID).
+    body.notificationIds.every(id => typeof id === 'string' && id.length <= 200)
+  ) {
+    ids = body.notificationIds as string[];
+  } else {
+    throw new ValidationError(
+      `notificationIds must be an array of at most ${NOTIFICATION_LIST_LIMIT} strings`,
+    );
+  }
+
+  const now = new Date().toISOString();
+  let updated = 0;
+  for (const notificationId of ids) {
+    try {
+      await docClient.send(new UpdateCommand({
+        TableName: NOTIFICATIONS_TABLE,
+        // The key includes the caller's own teacherSub, so a teacher can
+        // never touch another teacher's rows regardless of the ids sent.
+        Key: { teacherSub: identity.sub, notificationId },
+        UpdateExpression: 'SET readAt = if_not_exists(readAt, :now)',
+        // Never create phantom rows for ids that don't exist (TTL races).
+        ConditionExpression: 'attribute_exists(notificationId)',
+        ExpressionAttributeValues: { ':now': now },
+      }));
+      updated += 1;
+    } catch (err) {
+      if ((err as { name?: string }).name !== 'ConditionalCheckFailedException') throw err;
+    }
+  }
+  return { statusCode: 200, body: JSON.stringify({ updated }) };
+}
+
 // --- Main handler ---
 
 export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
@@ -4378,6 +4476,17 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
     } else if (method === 'POST' && path === '/classrooms/verify-session') {
       const token = extractBearerToken(event.headers?.authorization);
       result = await handleVerifySession(token);
+
+    // --- お知らせ (notification center #1111) routes (own root path) ---
+    } else if (method === 'GET' && path === '/notifications') {
+      const token = extractBearerToken(event.headers?.authorization);
+      const identity = await verifyTeacherIdToken(token);
+      result = await handleListNotifications(identity);
+
+    } else if (method === 'POST' && path === '/notifications/mark-read') {
+      const token = extractBearerToken(event.headers?.authorization);
+      const identity = await verifyTeacherIdToken(token);
+      result = await handleMarkNotificationsRead(identity, body);
 
     // --- みんなの課題 (shared assignment library) routes (own root path) ---
     } else if (method === 'POST' && path === '/shared-assignments') {

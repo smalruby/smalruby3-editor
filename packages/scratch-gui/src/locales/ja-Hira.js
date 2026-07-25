@@ -258,6 +258,9 @@ export default {
     'gui.classroom.classSettings.cancel': 'キャンセル',
     'gui.classroom.classSettings.save': 'ほぞん',
     'gui.classroom.management.titleBarLogout': 'ログアウト',
+    'gui.classroom.notifications.buttonLabel': 'おしらせ',
+    'gui.classroom.notifications.title': 'おしらせ',
+    'gui.classroom.notifications.empty': 'おしらせは ありません',
     'gui.classroom.classList.title': 'あなたのクラス',
     'gui.classroom.classList.hint':
         'クラスは1つのがっきゅう（れい: 2ねん1くみ）です。クラスをひらくと、そのなかのかだいをかんりできます。',

@@ -155,6 +155,27 @@ body {
     margin-top: 0.75rem;
 }
 
+/* Bordered sub-section inside a detail view (お知らせ送信 #1111 など). */
+.admin-panel {
+    margin-top: 1.25rem;
+    padding: 0.75rem;
+    border: 1px solid hsl(220, 15%, 88%);
+    border-radius: 0.4rem;
+    background: white;
+}
+
+.admin-panel input,
+.admin-panel textarea {
+    display: block;
+    width: 100%;
+    max-width: 32rem;
+    margin: 0.4rem 0;
+    padding: 0.4rem;
+    border: 1px solid hsl(220, 15%, 75%);
+    border-radius: 0.4rem;
+    font: inherit;
+}
+
 .admin-actions button {
     padding: 0.4rem 0.9rem;
     border: 1px solid hsl(220, 15%, 75%);
