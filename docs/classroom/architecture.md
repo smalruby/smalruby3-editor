@@ -248,6 +248,8 @@ erDiagram
         string googleClassroomCourseId "任意"
         list coTeacherEmails "共同管理者の email 配列 (任意, 最大10)"
         map assignment "課題コンテンツ (任意): {pages: [{text, imageKey?}], starterKey?, updatedAt}"
+        string recommendedForSharingAt "共有推奨 (#1106, 任意)。書き込みは admin API のみ。先生側 API には boolean recommendedForSharing を投影"
+        string recommendedForSharingBy "推奨した admin の email (内部用・先生側 API では返さない)"
         string groupId "所属する組 (任意)"
         string status "active / archived"
         string createdAt "ISO8601"
