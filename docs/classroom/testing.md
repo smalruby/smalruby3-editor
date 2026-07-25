@@ -275,6 +275,10 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `shared-report-form` / `shared-report-reason` / `shared-report-submit` | div/textarea/button | 通報理由（必須）と送信 |
 | `shared-report-sent` | p | 通報完了メッセージ |
 | `shared-detail-unlist` / `shared-detail-republish` | button | 自分の投稿の取り下げ / 再公開 |
+| `shared-card-limited-badge` / `shared-card-recommended-badge` | span | カードの 限定公開 / 推薦 バッジ（#1110） |
+| `shared-detail-recommended-note` | p | 自分の限定公開が推薦を受けたときの注記（#1110） |
+| `shared-detail-broaden` | button | 「みんなの課題に公開する」（自分の限定公開のみ・#1110） |
+| `shared-broaden-done` | p | 全体公開の完了メッセージ（#1110） |
 | `shared-import-success` | p | 取り込み完了メッセージ（ボード上） |
 | `classroom-breadcrumbs` | nav | パンくず（クラス一覧 > 課題一覧 > 課題詳細） |
 | `classroom-breadcrumb-class-list` / `classroom-breadcrumb-assignments` | button | パンくずリンク |
