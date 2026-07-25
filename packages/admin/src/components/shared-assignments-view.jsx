@@ -9,6 +9,7 @@ import {
     fetchSharedAssignment,
     fetchSharedAssignments,
     fetchSharedReports,
+    setSharedRecommendation,
     setSharedStatus
 } from '../lib/admin-api.js';
 
@@ -20,10 +21,35 @@ const StatusBadge = ({status}) => (
 
 StatusBadge.propTypes = {status: PropTypes.string};
 
+// 公開範囲 (#1109) と推薦 (#1110) のバッジ。限定公開は合言葉でしか届かない
+// 内輪公開なので、運営が推薦候補を見分けられるよう明示する。
+const VisibilityBadge = ({visibility}) =>
+    (visibility === 'limited' ? (
+        <span
+            className="admin-badge admin-badge-muted"
+            data-testid="shared-admin-limited-badge"
+        >{'限定公開'}</span>
+    ) : null);
+
+VisibilityBadge.propTypes = {visibility: PropTypes.string};
+
+const RecommendedBadge = ({recommended}) =>
+    (recommended ? (
+        <span
+            className="admin-badge admin-badge-ok"
+            data-testid="shared-admin-recommended-badge"
+        >{'推薦中'}</span>
+    ) : null);
+
+RecommendedBadge.propTypes = {recommended: PropTypes.bool};
+
 const SharedDetail = ({sharedId, onBack, onChanged}) => {
     const [detail, setDetail] = useState(null);
     const [error, setError] = useState('');
     const [confirming, setConfirming] = useState(false);
+    // 推薦 (#1110) は非公開化とは別の確認ステップを持つ（誤操作防止のため
+    // 同時にどちらか一方しか arm できない）。
+    const [confirmingRecommend, setConfirmingRecommend] = useState(false);
     const [busy, setBusy] = useState(false);
 
     useEffect(() => {
@@ -32,7 +58,10 @@ const SharedDetail = ({sharedId, onBack, onChanged}) => {
             .catch(err => setError(err.message));
     }, [sharedId]);
 
-    const handleArm = useCallback(() => setConfirming(true), []);
+    const handleArm = useCallback(() => {
+        setConfirmingRecommend(false);
+        setConfirming(true);
+    }, []);
     const handleDisarm = useCallback(() => setConfirming(false), []);
     const handleFlip = useCallback(async () => {
         if (!detail) return;
@@ -43,6 +72,32 @@ const SharedDetail = ({sharedId, onBack, onChanged}) => {
             const updated = await setSharedStatus(sharedId, next);
             setDetail(prev => ({...prev, status: updated.status}));
             setConfirming(false);
+            onChanged();
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setBusy(false);
+        }
+    }, [detail, sharedId, onChanged]);
+
+    const handleArmRecommend = useCallback(() => {
+        setConfirming(false);
+        setConfirmingRecommend(true);
+    }, []);
+    const handleDisarmRecommend = useCallback(() => setConfirmingRecommend(false), []);
+    const handleFlipRecommend = useCallback(async () => {
+        if (!detail) return;
+        setBusy(true);
+        setError('');
+        try {
+            const updated = await setSharedRecommendation(sharedId, !detail.recommended);
+            setDetail(prev => ({
+                ...prev,
+                recommended: updated.recommended,
+                recommendedAt: updated.recommendedAt,
+                recommendedBy: updated.recommendedBy
+            }));
+            setConfirmingRecommend(false);
             onChanged();
         } catch (err) {
             setError(err.message);
@@ -70,6 +125,10 @@ const SharedDetail = ({sharedId, onBack, onChanged}) => {
                 {detail.title}
                 {' '}
                 <StatusBadge status={detail.status} />
+                {' '}
+                <VisibilityBadge visibility={detail.visibility} />
+                {' '}
+                <RecommendedBadge recommended={detail.recommended} />
             </h3>
             <p
                 className="admin-meta"
@@ -156,6 +215,40 @@ const SharedDetail = ({sharedId, onBack, onChanged}) => {
                         {detail.status === 'published' ? '非公開にする' : '再公開する'}
                     </button>
                 )}
+                {' '}
+                {detail.status === 'published' ? (
+                    confirmingRecommend ? (
+                        <span
+                            className="admin-confirm"
+                            data-testid="shared-admin-recommend-confirm"
+                        >
+                            {detail.recommended ?
+                                '推薦を取り消しますか？（先生には通知されません）' :
+                                'この課題を推薦しますか？（作成した先生にお知らせが届きます）'}
+                            <button
+                                data-testid="shared-admin-recommend-confirm-yes"
+                                disabled={busy}
+                                type="button"
+                                onClick={handleFlipRecommend}
+                            >{'実行'}</button>
+                            <button
+                                data-testid="shared-admin-recommend-confirm-no"
+                                disabled={busy}
+                                type="button"
+                                onClick={handleDisarmRecommend}
+                            >{'やめる'}</button>
+                        </span>
+                    ) : (
+                        <button
+                            data-testid="shared-admin-recommend"
+                            disabled={busy}
+                            type="button"
+                            onClick={handleArmRecommend}
+                        >
+                            {detail.recommended ? '推薦を取り消す' : '推薦する'}
+                        </button>
+                    )
+                ) : null}
             </div>
         </div>
     );
@@ -181,7 +274,8 @@ const SharedAssignmentsView = () => {
                 .then(data => setQueue(data.queue || []))
                 .catch(err => setError(err.message));
         } else {
-            fetchSharedAssignments()
+            // 限定公開タブ (#1110) は推薦候補の母集団: visibility で絞る。
+            fetchSharedAssignments(tab === 'limited' ? {visibility: 'limited'} : {})
                 .then(data => setItems(data.items || []))
                 .catch(err => setError(err.message));
         }
@@ -195,6 +289,10 @@ const SharedAssignmentsView = () => {
     }, []);
     const handleTabAll = useCallback(() => {
         setTab('all');
+        setSelectedId(null);
+    }, []);
+    const handleTabLimited = useCallback(() => {
+        setTab('limited');
         setSelectedId(null);
     }, []);
     const handleOpen = useCallback(e => setSelectedId(e.currentTarget.dataset.sharedId), []);
@@ -225,6 +323,12 @@ const SharedAssignmentsView = () => {
                     type="button"
                     onClick={handleTabAll}
                 >{'すべての投稿'}</button>
+                <button
+                    className={tab === 'limited' ? 'admin-tab-active' : 'admin-tab'}
+                    data-testid="shared-admin-tab-limited"
+                    type="button"
+                    onClick={handleTabLimited}
+                >{'限定公開'}</button>
             </div>
             {error ? <p
                 className="admin-error"
@@ -279,6 +383,8 @@ const SharedAssignmentsView = () => {
                             >
                                 <strong>{item.title}</strong>
                                 <StatusBadge status={item.status} />
+                                <VisibilityBadge visibility={item.visibility} />
+                                <RecommendedBadge recommended={item.recommended} />
                                 <span className="admin-meta">
                                     {`${item.authorName} ・ 取り込み ${item.reuseCount} 回 ・ ${item.createdAt}`}
                                 </span>

@@ -5,11 +5,13 @@ const mockFetchReports = jest.fn();
 const mockFetchList = jest.fn();
 const mockFetchDetail = jest.fn();
 const mockSetStatus = jest.fn();
+const mockSetRecommendation = jest.fn();
 jest.mock('../../src/lib/admin-api.js', () => ({
     fetchSharedReports: (...args) => mockFetchReports(...args),
     fetchSharedAssignments: (...args) => mockFetchList(...args),
     fetchSharedAssignment: (...args) => mockFetchDetail(...args),
-    setSharedStatus: (...args) => mockSetStatus(...args)
+    setSharedStatus: (...args) => mockSetStatus(...args),
+    setSharedRecommendation: (...args) => mockSetRecommendation(...args)
 }));
 
 import SharedAssignmentsView from '../../src/components/shared-assignments-view.jsx';
@@ -42,6 +44,7 @@ describe('SharedAssignmentsView (issue #1083)', () => {
         mockFetchList.mockReset().mockResolvedValue({items: [queueEntry.item]});
         mockFetchDetail.mockReset().mockResolvedValue(detail);
         mockSetStatus.mockReset();
+        mockSetRecommendation.mockReset();
     });
 
     test('shows the report queue with counts and reasons', async () => {
@@ -95,6 +98,43 @@ describe('SharedAssignmentsView (issue #1083)', () => {
         await waitFor(() => expect(screen.getByTestId('shared-admin-starter').textContent)
             .toContain('スタータープロジェクトなし'));
         expect(screen.queryByTestId('shared-admin-starter-download')).not.toBeInTheDocument();
+    });
+
+    test('限定公開タブは visibility フィルタで一覧を絞る (#1110)', async () => {
+        mockFetchList.mockResolvedValue({
+            items: [{...queueEntry.item, visibility: 'limited', recommended: true}]
+        });
+        render(<SharedAssignmentsView />);
+        fireEvent.click(screen.getByTestId('shared-admin-tab-limited'));
+        await waitFor(() => expect(screen.getByTestId('shared-admin-list')).toBeInTheDocument());
+        expect(mockFetchList).toHaveBeenCalledWith({visibility: 'limited'});
+        expect(screen.getByTestId('shared-admin-limited-badge')).toBeInTheDocument();
+        expect(screen.getByTestId('shared-admin-recommended-badge')).toBeInTheDocument();
+    });
+
+    test('推薦は二段階確認を通ってから API を呼ぶ (#1110)', async () => {
+        mockFetchDetail.mockResolvedValue({...detail, visibility: 'limited', recommended: false});
+        mockSetRecommendation.mockResolvedValue({
+            ...detail,
+            recommended: true,
+            recommendedAt: '2026-07-25T00:00:00Z',
+            recommendedBy: 'admin@example.com'
+        });
+        render(<SharedAssignmentsView />);
+        await waitFor(() => screen.getByTestId('shared-admin-queue-item-s1'));
+        fireEvent.click(screen.getByTestId('shared-admin-queue-item-s1'));
+        await waitFor(() => screen.getByTestId('shared-admin-detail'));
+
+        fireEvent.click(screen.getByTestId('shared-admin-recommend'));
+        expect(mockSetRecommendation).not.toHaveBeenCalled();
+        expect(screen.getByTestId('shared-admin-recommend-confirm').textContent)
+            .toContain('お知らせが届きます');
+
+        fireEvent.click(screen.getByTestId('shared-admin-recommend-confirm-yes'));
+        await waitFor(() => expect(mockSetRecommendation).toHaveBeenCalledWith('s1', true));
+        // 推薦後はボタンが取り消しに変わる。
+        await waitFor(() => expect(screen.getByTestId('shared-admin-recommend').textContent)
+            .toContain('推薦を取り消す'));
     });
 
     test('the confirmation can be cancelled without any API call', async () => {
