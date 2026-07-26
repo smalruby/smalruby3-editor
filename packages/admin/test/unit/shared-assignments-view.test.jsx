@@ -148,4 +148,27 @@ describe('SharedAssignmentsView (issue #1083)', () => {
         expect(mockSetStatus).not.toHaveBeenCalled();
         expect(screen.queryByTestId('shared-admin-confirm')).not.toBeInTheDocument();
     });
+
+    test('限定公開で未入力の属性は undefined でなく「未指定」と表示する (レビュー指摘)', async () => {
+        // 限定公開は authorName / schoolLevel / subject 等を省略できる
+        // （キーそのものが無い＝undefined になる）。
+        mockFetchDetail.mockResolvedValue({
+            sharedId: 's1',
+            title: 'smoke限定公開',
+            status: 'published',
+            visibility: 'limited',
+            tags: [],
+            reuseCount: 0,
+            pages: [{text: 'ページ1', imageUrl: null}],
+            starterUrl: null
+        });
+        render(<SharedAssignmentsView />);
+        await waitFor(() => screen.getByTestId('shared-admin-queue-item-s1'));
+        fireEvent.click(screen.getByTestId('shared-admin-queue-item-s1'));
+        await waitFor(() => screen.getByTestId('shared-admin-detail'));
+
+        const detailEl = screen.getByTestId('shared-admin-detail');
+        expect(detailEl.textContent).not.toContain('undefined');
+        expect(screen.getByTestId('shared-admin-credit').textContent).toContain('未指定');
+    });
 });
