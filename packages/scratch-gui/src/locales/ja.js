@@ -257,7 +257,10 @@ export default {
     'gui.classroom.notifications.title': 'お知らせ',
     'gui.classroom.notifications.empty': 'お知らせはありません',
     'gui.classroom.avatar.buttonLabel': 'アカウントメニュー',
-    'gui.classroom.notifications.seeAll': 'すべて見る（{count}件）',
+    'gui.classroom.notifications.menuLabel': 'お知らせメニュー',
+    'gui.classroom.notifications.markAllRead': 'すべて既読にする',
+    'gui.classroom.notifications.back': '戻る',
+    'gui.classroom.notifications.openAll': 'お知らせを開く',
     'gui.classroom.notifications.pageIndicator': '{current} / {total}',
     'gui.classroom.classList.title': 'あなたのクラス',
     'gui.classroom.classList.hint':

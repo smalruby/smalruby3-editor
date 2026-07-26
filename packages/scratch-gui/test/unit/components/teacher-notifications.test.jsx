@@ -20,6 +20,7 @@ const defaultProps = () => ({
     isOpen: false,
     notifications: [],
     unreadCount: 0,
+    onMarkAllRead: jest.fn(),
     onOpenLink: jest.fn(),
     onShowAll: jest.fn(),
     onToggle: jest.fn(),
@@ -82,20 +83,31 @@ describe('TeacherNotifications (EPIC #1111)', () => {
         expect(onOpenLink).toHaveBeenCalledWith({ kind: 'classroom', classroomId: 'c1' });
     });
 
-    test('パネルは先頭5件のみ表示し、6件以上で「すべて見る」を出す (#1111 レビュー)', () => {
+    test('パネルは先頭5件のみプレビュー表示する (#1111)', () => {
+        renderNotifications({ isOpen: true, notifications: many(8) });
+        expect(screen.getAllByTestId(/classroom-notification-item-/)).toHaveLength(5);
+    });
+
+    test('⋯メニューから「すべて既読にする」「お知らせを開く」を選べる (#1111 レビュー)', () => {
+        const onMarkAllRead = jest.fn();
         const onShowAll = jest.fn();
-        renderNotifications({ isOpen: true, notifications: many(8), onShowAll });
-        // 5 件だけ表示。
-        const items = screen.getAllByTestId(/classroom-notification-item-/);
-        expect(items).toHaveLength(5);
-        const seeAll = screen.getByTestId('classroom-notifications-see-all');
-        expect(seeAll).toHaveTextContent('8');
-        fireEvent.click(seeAll);
+        renderNotifications({ isOpen: true, notifications: many(3), unreadCount: 3, onMarkAllRead, onShowAll });
+        // メニューは閉じている。
+        expect(screen.queryByTestId('classroom-notifications-menu')).not.toBeInTheDocument();
+        fireEvent.click(screen.getByTestId('classroom-notifications-menu-button'));
+        // すべて既読にする
+        fireEvent.click(screen.getByTestId('classroom-notifications-mark-all-read'));
+        expect(onMarkAllRead).toHaveBeenCalled();
+        // 再度開いて お知らせを開く
+        fireEvent.click(screen.getByTestId('classroom-notifications-menu-button'));
+        fireEvent.click(screen.getByTestId('classroom-notifications-open-all'));
         expect(onShowAll).toHaveBeenCalled();
     });
 
-    test('5件以下なら「すべて見る」を出さない', () => {
-        renderNotifications({ isOpen: true, notifications: many(5) });
-        expect(screen.queryByTestId('classroom-notifications-see-all')).not.toBeInTheDocument();
+    test('未読0なら「すべて既読にする」は無効。1件でも一覧は件数に依らず開ける', () => {
+        renderNotifications({ isOpen: true, notifications: many(1), unreadCount: 0 });
+        fireEvent.click(screen.getByTestId('classroom-notifications-menu-button'));
+        expect(screen.getByTestId('classroom-notifications-mark-all-read')).toBeDisabled();
+        expect(screen.getByTestId('classroom-notifications-open-all')).toBeEnabled();
     });
 });

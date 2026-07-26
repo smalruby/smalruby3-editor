@@ -209,12 +209,14 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
             return (
                 <div className={styles.mainRelative}>
                     <div className={styles.detailBreadcrumbs}>
+                        {/* ポリシー: パンくずの先頭「クラス管理」でいつでもトップ
+                            （クラス一覧）へ戻れる（#1111 レビュー）。 */}
                         <TeacherBreadcrumbs
                             items={[
                                 {
-                                    label: intl.formatMessage(messagesBreadcrumbs.classList),
+                                    label: intl.formatMessage(messages.title),
                                     onClick: onShowClassList,
-                                    testId: 'classroom-breadcrumb-class-list',
+                                    testId: 'classroom-breadcrumb-top',
                                 },
                                 {
                                     label: intl.formatMessage({
@@ -228,6 +230,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                     </div>
                     <TeacherNotificationsList
                         notifications={notificationsCenter.notifications}
+                        onBack={onShowClassList}
                         onOpenLink={notificationsCenter.handleOpenLink}
                     />
                 </div>
@@ -498,6 +501,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         isOpen={notificationsCenter.isOpen}
                         notifications={notificationsCenter.notifications}
                         unreadCount={notificationsCenter.unreadCount}
+                        onMarkAllRead={notificationsCenter.handleMarkAllRead}
                         onOpenLink={notificationsCenter.handleOpenLink}
                         onShowAll={notificationsCenter.handleShowAll}
                         onToggle={notificationsCenter.handleToggleNotifications}

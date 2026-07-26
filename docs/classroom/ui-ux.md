@@ -172,9 +172,10 @@ Google または Microsoft アカウントでサインインする画面。先�
 クラス管理のタイトルバー右上（× の左隣）は **アバターメニュー**（メール頭文字 + ▼）に固定。その左に **白一色のベル**（お知らせ）を置く。運営（Admin）からのお知らせが届くと未読数バッジが付く。
 
 - **アバターメニュー**: メール頭文字（`kouji@…`→`K` / `kouji.takao@…`→`KT`）の丸アイコン + ▼。クリックでポップアップ（メール表示 + ログアウト。将来の設定項目もここに集約）。紫背景で視認できる白丸 + 紫文字
-- ベルのクリックで一覧パネルを開閉。**開いた時点で全既読**になりバッジが消える（その場では未読ドットで新着を見分けられる）
-- パネルは **先頭 5 件**のみ表示。6 件以上あるときは「すべて見る（N件）」で **全件一覧ページ**（`teacher-notifications` フェーズ・**10 件/ページ**）へ遷移
+- ベルのクリックで一覧パネルを開閉。**開くだけでは既読にしない**（バッジは残る）。既読はパネルヘッダーの **⋯ メニュー**から明示的に行う
+- パネルは **先頭 5 件**のみプレビュー表示。ヘッダーの **⋯ メニュー**に「**すべて既読にする**」「**お知らせを開く**（全件一覧ページ・`teacher-notifications` フェーズ・**10 件/ページ**）」。一覧は件数に関係なく開ける
 - お知らせ本文をクリックすると、`link` の種類に応じて該当画面へジャンプ（`kind: 'classroom'` → そのクラスを選択して課題詳細へ / `kind: 'shared-mine'` → みんなの課題の自分の投稿へ）。未知の kind は無視（前方互換）
+- **全件一覧ページ**は「**クラス管理 > お知らせ**」パンくず（先頭「クラス管理」でトップ=クラス一覧へ戻れる）+ **左下に「戻る」ボタン**（キャンセルが不適切な画面のポリシー）
 - **取得は 1 日 1 回**（コスト削減）: その日はじめてクラス管理を開いたときだけ `GET /notifications` を 1 回呼び、localStorage に日付つきでキャッシュ。同じ日の再オープンは API を叩かない（旧 60 秒ポーリングは廃止）。共有 PC 対策として先生メールでキャッシュを識別。取得エラーはクラス管理本体に影響させない（表示しない）。※その日の初回取得後に届いたお知らせは翌日反映（運営連絡は多くて週 1 回程度の前提）
 - 送信側は Admin SPA（クラス詳細の「先生へのお知らせ」フォーム → `POST /admin/notifications`）。`docs/admin/README.md` を参照
 
@@ -186,12 +187,17 @@ Google または Microsoft アカウントでサインインする画面。先�
 | ログアウト | `classroom-teacher-logout` | アカウントメニュー内 |
 | ベルボタン | `classroom-notifications-button` | クリックでパネル開閉 |
 | 未読バッジ | `classroom-notifications-badge` | 未読数（10 以上は「9+」）。未読 0 で非表示 |
-| 一覧パネル | `classroom-notifications-panel` | 先頭 5 件 |
-| すべて見る | `classroom-notifications-see-all` | 全件一覧ページへ（6 件以上のとき） |
+| 一覧パネル | `classroom-notifications-panel` | 先頭 5 件プレビュー |
+| ⋯ メニューボタン | `classroom-notifications-menu-button` | パネルヘッダー右の三点 |
+| ⋯ メニュー | `classroom-notifications-menu` | — |
+| すべて既読にする | `classroom-notifications-mark-all-read` | 全件既読（未読 0 で無効） |
+| お知らせを開く | `classroom-notifications-open-all` | 全件一覧ページへ（件数不問） |
 | お知らせ 1 件（パネル） | `classroom-notification-item-{notificationId}` | クリックでリンク先へジャンプ + パネルを閉じる |
 | 未読ドット | `classroom-notification-unread-dot` | 未読アイテムのみ |
 | 空メッセージ | `classroom-notifications-empty` | お知らせ 0 件のとき |
 | 全件一覧ページ | `classroom-notifications-page` | `teacher-notifications` フェーズ |
+| パンくず先頭 | `classroom-breadcrumb-top` | 「クラス管理」→ トップ（クラス一覧）へ |
+| 左下戻る | `classroom-notifications-back` | トップ（クラス一覧）へ戻る |
 | ページ内 1 件 | `classroom-notification-page-item-{notificationId}` | クリックでリンク先へジャンプ |
 | ページャ | `classroom-notifications-pager` / `-prev` / `-next` | 10 件/ページ |
 

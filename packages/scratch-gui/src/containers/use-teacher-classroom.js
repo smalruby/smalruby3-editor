@@ -312,6 +312,7 @@ const useTeacherClassroom = ({
             unreadCount: notifications.unreadCount,
             isOpen: notifications.isOpen,
             handleToggleNotifications: notifications.handleToggleNotifications,
+            handleMarkAllRead: notifications.handleMarkAllRead,
             handleOpenLink: handleOpenNotificationLink,
             handleShowAll: handleShowAllNotifications,
         },

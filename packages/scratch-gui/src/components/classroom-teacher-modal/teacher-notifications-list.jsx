@@ -52,7 +52,7 @@ NotificationRow.propTypes = {
     onOpenLink: PropTypes.func.isRequired,
 };
 
-const TeacherNotificationsList = ({ notifications, onOpenLink }) => {
+const TeacherNotificationsList = ({ notifications, onBack, onOpenLink }) => {
     const [page, setPage] = useState(0);
     const totalPages = Math.max(1, Math.ceil(notifications.length / PAGE_SIZE));
     const clampedPage = Math.min(page, totalPages - 1);
@@ -114,12 +114,31 @@ const TeacherNotificationsList = ({ notifications, onOpenLink }) => {
                     </div>
                 </React.Fragment>
             )}
+            {/* キャンセルが不適切な画面なので、左下に戻るボタンを置く（ポリシー・
+                #1111 レビュー）。パンくずの「クラス管理」と同じくトップへ戻る。 */}
+            {onBack ? (
+                <div className={styles.notificationsPageFooter}>
+                    <button
+                        className={styles.notificationsBackButton}
+                        data-testid="classroom-notifications-back"
+                        type="button"
+                        onClick={onBack}
+                    >
+                        <FormattedMessage
+                            defaultMessage="Back"
+                            description="Bottom-left back button on the notification list page"
+                            id="gui.classroom.notifications.back"
+                        />
+                    </button>
+                </div>
+            ) : null}
         </div>
     );
 };
 
 TeacherNotificationsList.propTypes = {
     notifications: PropTypes.arrayOf(PropTypes.object).isRequired,
+    onBack: PropTypes.func,
     onOpenLink: PropTypes.func.isRequired,
 };
 
