@@ -12,8 +12,26 @@ daemon は常駐で GitHub をポーリングするため、**API レート予�
 - **読み取り**（一覧・PR/Issue 情報・レビュー状態・アクティビティ）= **`project.readToken()`**。
   解決順: env `AUTOPILOT_READ_TOKEN` → env `GH_TOKEN` → `gh auth token` → Bot フォールバック。
   `AUTOPILOT_READS=bot` で従来動作（読みも Bot）に戻せる。
-- 新しい読み取りを Bot トークンで書く / 新しい書き込みを個人トークンで書くのは逸脱
-  （前者は予算の一点集中、後者は名義の混在）。
+- **例外: 俯瞰ボード再取得の読み取り**（`refreshBoard` の listItems キャッシュミス時 / enrichment /
+  head-PR 補完）= **`project.boardToken()`（既定 Bot）**。これは *表示専用で可視な成果物を
+  生まない* 読み取りなので、read（個人）トークンの GraphQL 予算に一点集中させず、遊んでいる
+  Bot の GraphQL 予算へ振り分けて実効予算を分散する。dispatch 判断の tick 系 read（listItems /
+  getIssueStates）は従来どおり `readToken()` のまま。`AUTOPILOT_BOARD_READS=read` で従来へ戻せる。
+- 上記 2 例外以外で、新しい読み取りを Bot トークンで書く / 新しい書き込みを個人トークンで書くのは
+  逸脱（前者は予算の一点集中の逆・名義の混同、後者は名義の混在）。
+
+## 1b. 俯瞰ボード再取得の GraphQL 節約（read 一点集中の緩和）
+
+`refreshBoard`（`gh project item-list` ≈ 100 GraphQL pt / enrichment）は read GraphQL の最大消費源。
+以下を守る（純粋関数 `shouldReuseItemsCache` / `shouldRefreshBoardPeriodic` + daemon の I/O）:
+
+- **listItems の重複排除**: `tick` が取得した item スナップショットを `state.itemsCache` に保存し、
+  直後に走る `refreshBoard` は十分新しければ（既定 interval の半分以内）**再取得しない**。
+  `POST /refresh` は `forceFetch=true` で明示的に取り直す。
+- **未観測時の抑制**: 定期（main loop）の board 追従は `maybeRefreshBoardPeriodic` を通し、
+  直近に `GET /board` が読まれていない間は board の read を撃たない。ただしトラッカー sticky が
+  古くなり過ぎないよう、アップキープ間隔（既定 30 分）を超えたら 1 度は走らせる。
+  `POST /refresh`・`POST /tick` 直後・起動時はこの判定を通さず常に実行する。
 
 ## 2. GraphQL / REST の使い分け（別枠予算の並行活用）
 

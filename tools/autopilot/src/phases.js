@@ -1320,6 +1320,59 @@ function normalizeBoardEnrichment(node) {
     };
 }
 
+// ---- 俯瞰ボード再取得の GraphQL 予算節約（read GraphQL 一点集中の緩和） ----
+
+/**
+ * 俯瞰ボード表示を「アクティブに見られている」とみなす猶予（ms）。モニタは開いている間
+ * `GET /board` を 5 秒ごとに叩くので、直近このTTL以内に board が読まれていれば観測中と判断する。
+ */
+const BOARD_WATCH_TTL_MS = 120_000;
+
+/**
+ * 誰もモニタを見ていないときでも、トラッカー sticky（sub-issue 進捗）が無限に古くならないよう
+ * 最低限この間隔では refreshBoard を回す（アップキープ）。観測中は毎サイクル走るので影響なし。
+ */
+const BOARD_UPKEEP_MS = 1_800_000;
+
+/**
+ * tick が直前に取得した Project item スナップショット（`state.itemsCache`）を、後続の
+ * refreshBoard が `gh project item-list`（~100 GraphQL pt）を撃ち直さず再利用してよいか
+ * （純粋関数）。tick と refreshBoard は main loop で連続実行されるため、同一サイクル内では
+ * 数秒差でしかなく再取得は完全な無駄になる（`.claude/rules/autopilot/github-api.md` 予算規約）。
+ * @param {object} p
+ * @param {number|string} p.now 現在時刻（ms epoch / ISO）
+ * @param {?{items:object[], at:number|string}} p.cache tick が保存したスナップショット
+ * @param {number} p.maxAgeMs これより新しければ再利用（既定は interval の半分）
+ * @param {boolean} [p.forceFetch] モニタ「🔄 更新」など、明示的に最新を要求する場合は再取得
+ * @returns {boolean} true=キャッシュ再利用可 / false=listItems を撃つ
+ */
+function shouldReuseItemsCache({ now, cache, maxAgeMs, forceFetch = false }) {
+    if (forceFetch) return false;
+    if (!cache || !Array.isArray(cache.items)) return false;
+    if (!(maxAgeMs > 0)) return false;
+    return toMs(now) - toMs(cache.at) < maxAgeMs;
+}
+
+/**
+ * 定期（main loop）の refreshBoard を実行すべきか（純粋関数）。俯瞰ボードは *表示専用* なので、
+ * 誰も見ていない間は listItems / enrichment の read を撃たない。ただしトラッカー sticky が
+ * 無限に古くならないよう、未観測でもアップキープ間隔を超えたら 1 度は走らせる。
+ * POST /refresh・POST /tick 直後・起動時はこの判定を通さず常に実行する（呼び出し側で分岐）。
+ * @param {object} p
+ * @param {number|string} p.now 現在時刻
+ * @param {?number|string} p.watchedAt 直近に `GET /board` が読まれた時刻（未観測なら null）
+ * @param {?number|string} p.lastBoardAt 直近に board を実構築した時刻（`state.board.updatedAt`）
+ * @param {number} p.watchTtlMs これ以内に観測されていれば「観測中」
+ * @param {number} p.upkeepMs 未観測時にトラッカー維持のため走らせる最低間隔
+ * @returns {boolean}
+ */
+function shouldRefreshBoardPeriodic({ now, watchedAt, lastBoardAt, watchTtlMs, upkeepMs }) {
+    const n = toMs(now);
+    if (watchedAt != null && n - toMs(watchedAt) <= watchTtlMs) return true;
+    if (lastBoardAt == null) return true;
+    return n - toMs(lastBoardAt) >= upkeepMs;
+}
+
 // ---- トラッカー sticky (#934): 分解済み EPIC に sub-issue 進捗 + Close 指示を出す ----
 
 /**
@@ -2182,6 +2235,10 @@ module.exports = {
     selectPrSyncCandidates,
     selectBoardItems,
     normalizeBoardEnrichment,
+    BOARD_WATCH_TTL_MS,
+    BOARD_UPKEEP_MS,
+    shouldReuseItemsCache,
+    shouldRefreshBoardPeriodic,
     TRACKER_STICKY_MARKER,
     needsTrackerSticky,
     renderTrackerSticky,
