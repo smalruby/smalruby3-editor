@@ -416,35 +416,108 @@
 }
 
 /* Title bar cluster (fullscreen modal header), right to left:
-   × (Modal) → 🔔 notifications → logout → email. The bell sits closest to
-   the × so the badge is the most visible element in the top-right corner. */
-.title-bar-logout {
+   × (Modal) → avatar menu → bell notifications. アバターを右上（× の隣）に
+   固定し、その左に通知ベルを置く（#1111 レビュー: 他アプリ準拠）。 */
+
+/* アバターメニュー（メール頭文字 + ▼ → ログアウト等ポップアップ）。 */
+/* フルスクリーン Modal の閉じるは左の「戻る」ボタン（右上に × は無い）。
+   admin と同じく右端 (1.25rem) にアバターを寄せて余白を作らない。 */
+.avatar-menu {
     position: fixed;
-    top: 0.55rem;
-    right: 7.5rem;
+    top: 0.45rem;
+    right: 1.25rem;
     z-index: 1000;
-    border: 1px solid hsla(0, 0%, 100%, 0.6);
-    border-radius: 0.4rem;
+}
+
+.avatar-button {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    border: none;
     background: transparent;
-    color: white;
-    padding: 0.3rem 0.9rem;
-    font-size: 0.8rem;
+    padding: 0.1rem;
     cursor: pointer;
 }
 
-/* お知らせ (notification center #1111) bell button. */
+/* 紫背景でも視認できるよう白丸 + 紫文字（監視されている感の強い絵文字を避け
+   た落ち着いた見た目）。 */
+.avatar-initials {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.9rem;
+    height: 1.9rem;
+    border-radius: 50%;
+    background: white;
+    color: #855cd6;
+    font-size: 0.75rem;
+    font-weight: bold;
+    letter-spacing: 0.02em;
+}
+
+.avatar-caret {
+    color: white;
+    font-size: 0.6rem;
+    line-height: 1;
+}
+
+.avatar-popup {
+    position: absolute;
+    top: 2.6rem;
+    right: 0;
+    min-width: 12rem;
+    background-color: white;
+    border: 1px solid #d9d9d9;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    color: #575e75;
+    text-align: left;
+    overflow: hidden;
+}
+
+.avatar-popup-email {
+    padding: 0.6rem 0.9rem;
+    font-size: 0.75rem;
+    color: #888;
+    border-bottom: 1px solid #eee;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.avatar-popup-item {
+    display: block;
+    width: 100%;
+    padding: 0.6rem 0.9rem;
+    border: none;
+    background: none;
+    text-align: left;
+    font-size: 0.85rem;
+    color: inherit;
+    cursor: pointer;
+}
+
+.avatar-popup-item:hover {
+    background-color: #f0f6ff;
+}
+
+/* お知らせ (notification center #1111) bell button — 白一色。アバターの左。 */
 .title-bar-notifications {
     position: fixed;
-    top: 0.45rem;
+    top: 0.5rem;
     right: 4.5rem;
     z-index: 1000;
     border: none;
     background: transparent;
     color: white;
-    font-size: 1.1rem;
-    line-height: 1.5rem;
-    padding: 0.1rem 0.4rem;
+    line-height: 0;
+    padding: 0.3rem;
     cursor: pointer;
+}
+
+.bell-icon {
+    display: block;
+    color: white;
 }
 
 .notifications-badge {
@@ -553,17 +626,87 @@
     padding: 1.25rem 2rem 0;
 }
 
-.title-bar-email {
-    position: fixed;
-    top: 0.85rem;
-    right: 13.5rem;
-    z-index: 1000;
-    color: white;
+/* お知らせパネルの「すべて見る」リンク + 全件一覧ページ + ページネーション。 */
+.notifications-see-all {
+    display: block;
+    width: 100%;
+    padding: 0.6rem 0.8rem;
+    border: none;
+    border-top: 1px solid #e0e0e0;
+    background: none;
+    text-align: center;
     font-size: 0.8rem;
-    max-width: 18rem;
+    font-weight: bold;
+    color: #4c97ff;
+    cursor: pointer;
+}
+
+.notifications-see-all:hover {
+    background-color: #f0f6ff;
+}
+
+.notifications-page {
+    padding: 1.25rem 2rem;
+    max-width: 48rem;
+}
+
+.notifications-page-title {
+    font-size: 1.3rem;
+    color: #575e75;
+    margin: 0.25rem 0 1rem;
+}
+
+.notifications-page-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border: 1px solid #e0e0e0;
+    border-radius: 0.5rem;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+}
+
+.notification-page-item {
+    display: block;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: none;
+    border-bottom: 1px solid #f0f0f0;
+    background: none;
+    text-align: left;
+    color: #575e75;
+    cursor: pointer;
+}
+
+.notification-page-item:hover {
+    background-color: #f0f6ff;
+}
+
+.notifications-pager {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.notifications-pager button {
+    border: 1px solid #d0d7e3;
+    border-radius: 0.4rem;
+    background: white;
+    color: #575e75;
+    padding: 0.3rem 0.9rem;
+    cursor: pointer;
+}
+
+.notifications-pager button:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.notifications-pager-label {
+    font-size: 0.85rem;
+    color: #888;
+    font-variant-numeric: tabular-nums;
 }
 
 .google-courses-view {

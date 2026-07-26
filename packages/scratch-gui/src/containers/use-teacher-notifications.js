@@ -1,18 +1,47 @@
 /**
  * お知らせセンター hook — EPIC #1111.
  *
- * Admin → teacher notices shown behind the 🔔 button in the class management
- * title bar. Notices are fetched on login and refreshed on a slow interval;
- * opening the panel marks everything read (the badge clears) while the
- * just-fetched readAt values keep the unread dots visible for that viewing.
+ * Admin → teacher notices shown behind the bell in the class management title
+ * bar. 運営からの連絡は多くても週 1 回程度なので、**取得は 1 日 1 回**に絞る
+ * （コスト削減・レビュー指摘）: その日はじめてクラス管理を開いたときだけ
+ * `GET /notifications` を 1 回呼び、結果を localStorage に日付つきで保存する。
+ * 同じ日の再オープンはキャッシュを読むだけで API を叩かない（旧実装の 60 秒
+ * ポーリングは廃止）。
+ *
+ * パネルを開くと全件を既読化する（バッジは即消える。未読ドットはその表示
+ * 中だけ残す）。
  */
 import { useCallback, useEffect, useState } from 'react';
 import classroomAPI from '../lib/classroom-api.js';
+import { teacherEmailFromToken } from '../lib/classroom-class-label.js';
 
-// Slow poll: notices are low-urgency guidance from the operators, so one
-// refresh a minute is plenty (the classroom list already polls every 30s —
-// this stays separate to keep the hooks decoupled).
-const NOTIFICATIONS_REFRESH_INTERVAL_MS = 60 * 1000;
+// localStorage: 日次取得ガード + キャッシュ（smalruby: プレフィックス規約）。
+const STORAGE_KEY = 'smalruby:classroomNotifications';
+
+/** ローカル日付 YYYY-MM-DD（日次ガードのキー）。 */
+const todayStr = () => {
+    const d = new Date();
+    const p = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+};
+
+const readCache = () => {
+    if (typeof window === 'undefined' || !window.localStorage) return null;
+    try {
+        return JSON.parse(window.localStorage.getItem(STORAGE_KEY) || 'null');
+    } catch (e) {
+        return null;
+    }
+};
+
+const writeCache = (value) => {
+    if (typeof window === 'undefined' || !window.localStorage) return;
+    try {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
+    } catch (e) {
+        // quota / private mode — キャッシュは best-effort。
+    }
+};
 
 /**
  * @param {object} params - hook dependencies
@@ -25,48 +54,62 @@ const useTeacherNotifications = ({ idToken, handleTeacher401 }) => {
     const [unreadCount, setUnreadCount] = useState(0);
     const [isOpen, setIsOpen] = useState(false);
 
-    const loadNotifications = useCallback(async () => {
-        if (!idToken) return;
-        try {
-            const data = await classroomAPI.listNotifications(idToken);
-            setNotifications(data.notifications || []);
-            setUnreadCount(data.unreadCount || 0);
-        } catch (err) {
-            // Notices are auxiliary — swallow load errors quietly so a
-            // notification outage can never break class management. Only a
-            // 401 matters (session expiry → silent re-auth).
-            if (err.status === 401) {
-                await handleTeacher401();
-            }
-        }
-    }, [idToken, handleTeacher401]);
+    // 共有 PC 対策: 同じ日でも先生が違えばキャッシュを使わず取り直す。
+    const teacherKey = teacherEmailFromToken(idToken) || '';
 
     useEffect(() => {
-        if (!idToken) {
+        if (!idToken) return () => {};
+        const today = todayStr();
+        const cache = readCache();
+        if (cache && cache.date === today && cache.teacher === teacherKey) {
+            // 今日はすでに取得済み（同じ先生）→ API を叩かずキャッシュを使う。
+            setNotifications(cache.notifications || []);
+            setUnreadCount(cache.unreadCount || 0);
             return () => {};
         }
-        loadNotifications();
-        const timer = setInterval(loadNotifications, NOTIFICATIONS_REFRESH_INTERVAL_MS);
-        return () => clearInterval(timer);
-    }, [idToken, loadNotifications]);
+        // その日はじめてのオープン → 1 回だけ取得してキャッシュする。
+        let cancelled = false;
+        (async () => {
+            try {
+                const data = await classroomAPI.listNotifications(idToken);
+                if (cancelled) return;
+                const list = data.notifications || [];
+                const unread = data.unreadCount || 0;
+                setNotifications(list);
+                setUnreadCount(unread);
+                writeCache({ date: today, teacher: teacherKey, notifications: list, unreadCount: unread });
+            } catch (err) {
+                // お知らせは補助機能 — 取得失敗はクラス管理本体に影響させない。
+                // 401（セッション切れ）のときだけサイレント再認証。
+                if (err.status === 401) {
+                    await handleTeacher401();
+                }
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [idToken, teacherKey, handleTeacher401]);
 
     const handleToggleNotifications = useCallback(() => {
-        // Side effects stay OUTSIDE the state updater (React may re-invoke
-        // updaters under StrictMode / concurrent rendering — review finding).
+        // 副作用は state updater の外（StrictMode / concurrent での二重実行対策）。
         const next = !isOpen;
         if (next && unreadCount > 0) {
-            // Opening the panel = the teacher saw everything: clear the
-            // badge immediately and persist server-side (best effort —
-            // a failure just resurfaces the badge on the next poll).
+            // パネルを開いた = すべて見た。バッジを即消し、サーバーへ既読を永続化。
+            // 当日キャッシュの未読数も 0 にして同日再オープンと整合させる（未読
+            // ドットは今の表示中だけ残すため in-memory の readAt は書き換えない）。
             setUnreadCount(0);
             classroomAPI.markNotificationsRead(idToken).catch(() => {});
+            const cache = readCache();
+            if (cache) writeCache({ ...cache, unreadCount: 0 });
         }
         setIsOpen(next);
     }, [idToken, isOpen, unreadCount]);
 
     const handleCloseNotifications = useCallback(() => setIsOpen(false), []);
 
-    /** Reset state (logout / go-to-login). */
+    // Reset in-memory state (logout / go-to-login). 日次キャッシュは残す
+    // （同じ先生が同じ日に入り直しても取得は 1 回に保つ）。
     const resetNotifications = useCallback(() => {
         setNotifications([]);
         setUnreadCount(0);
@@ -80,7 +123,6 @@ const useTeacherNotifications = ({ idToken, handleTeacher401 }) => {
         handleToggleNotifications,
         handleCloseNotifications,
         resetNotifications,
-        loadNotifications,
     };
 };
 

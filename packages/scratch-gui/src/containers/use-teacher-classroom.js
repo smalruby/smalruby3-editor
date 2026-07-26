@@ -210,6 +210,12 @@ const useTeacherClassroom = ({
         [notifications, classrooms, groups, shared, showError, intl],
     );
 
+    // お知らせパネルの「すべて見る」→ 全件一覧ページ（#1111 レビュー）。
+    const handleShowAllNotifications = useCallback(() => {
+        notifications.handleCloseNotifications();
+        setPhase('teacher-notifications');
+    }, [notifications, setPhase]);
+
     const handleBackToDashboard = useCallback(() => {
         classrooms.handleBackToDashboard();
         submissions.resetSubmissionDisplay();
@@ -307,6 +313,7 @@ const useTeacherClassroom = ({
             isOpen: notifications.isOpen,
             handleToggleNotifications: notifications.handleToggleNotifications,
             handleOpenLink: handleOpenNotificationLink,
+            handleShowAll: handleShowAllNotifications,
         },
 
         // Groups (組)
