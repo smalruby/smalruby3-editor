@@ -79,13 +79,14 @@ const fetchSharedReports = () => request('GET', '/admin/shared-assignments/repor
 
 /**
  * Fleet-wide shared assignment list.
- * @param {object} [filters] - {status?, q?}
+ * @param {object} [filters] - {status?, q?, visibility?}
  * @returns {Promise<object>} {items}
  */
 const fetchSharedAssignments = (filters = {}) => {
     const params = new URLSearchParams();
     if (filters.status) params.set('status', filters.status);
     if (filters.q) params.set('q', filters.q);
+    if (filters.visibility) params.set('visibility', filters.visibility);
     const qs = params.toString();
     return request('GET', `/admin/shared-assignments${qs ? `?${qs}` : ''}`);
 };
@@ -106,7 +107,24 @@ const fetchSharedAssignment = sharedId => request('GET', `/admin/shared-assignme
 const setSharedStatus = (sharedId, status) =>
     request('PATCH', `/admin/shared-assignments/${sharedId}`, {status});
 
-export {fetchSharedReports, fetchSharedAssignments, fetchSharedAssignment, setSharedStatus};
+/**
+ * Admin 推薦 (#1110): mark / unmark a shared assignment as recommended.
+ * Recommending notifies the author through the notification center (#1111);
+ * withdrawal is silent. Audited server-side.
+ * @param {string} sharedId - shared assignment id
+ * @param {boolean} recommended - true = recommend, false = withdraw
+ * @returns {Promise<object>} updated summary
+ */
+const setSharedRecommendation = (sharedId, recommended) =>
+    request(recommended ? 'POST' : 'DELETE', `/admin/shared-assignments/${sharedId}/recommend`);
+
+export {
+    fetchSharedReports,
+    fetchSharedAssignments,
+    fetchSharedAssignment,
+    setSharedStatus,
+    setSharedRecommendation
+};
 
 // --- クラス・課題管理 + 期限切れ復元 (S4 #1084) ---
 
@@ -175,6 +193,30 @@ const fetchRestorePlan = classroomId =>
 const executeRestore = classroomId =>
     request('POST', `/admin/classrooms/${classroomId}/restore`);
 
+/**
+ * お知らせ送信 (notification center #1111): notify the teacher who owns the
+ * classroom. The recipient is resolved server-side from the classroomId —
+ * teacher subs never reach the SPA. Audited server-side.
+ * @param {string} classroomId - classroom id
+ * @param {object} payload - notice content
+ * @param {string} payload.title - short heading (max 100 chars)
+ * @param {string} payload.message - body text (max 1000 chars)
+ * @returns {Promise<object>} {notificationId}
+ */
+const sendNotification = (classroomId, {title, message}) =>
+    request('POST', '/admin/notifications', {classroomId, title, message});
+
+/**
+ * 共有推奨 (#1106): flag / unflag an assignment as "worth sharing to
+ * みんなの課題". Flagging notifies the owning teacher (#1111) and lights the
+ * banner in their editing view; withdrawal is silent. Audited server-side.
+ * @param {string} classroomId - classroom id
+ * @param {boolean} recommended - true = flag, false = withdraw
+ * @returns {Promise<object>} updated classroom summary
+ */
+const setSharingRecommendation = (classroomId, recommended) =>
+    request(recommended ? 'POST' : 'DELETE', `/admin/classrooms/${classroomId}/recommend-sharing`);
+
 export {
     fetchClassrooms,
     fetchClassroom,
@@ -182,5 +224,7 @@ export {
     fetchClassroomOverview,
     fetchRestoreCandidates,
     fetchRestorePlan,
-    executeRestore
+    executeRestore,
+    sendNotification,
+    setSharingRecommendation
 };

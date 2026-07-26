@@ -11,6 +11,7 @@ import { FormattedMessage, defineMessages, useIntl } from 'react-intl';
 
 import { SCHOOL_LEVELS, SUBJECTS_BY_LEVEL } from '../../lib/shared-assignment-taxonomy.js';
 
+import SharedAssignmentForm from './shared-assignment-form.jsx';
 import styles from './classroom-modal.css';
 
 // Static message map so the level label can be resolved at runtime from the
@@ -57,6 +58,24 @@ const CatalogCard = ({ item, onOpenDetail }) => {
                                 defaultMessage="Unlisted"
                                 description="Badge for an unlisted own post"
                                 id="gui.classroom.shared.unlistedBadge"
+                            />
+                        </span>
+                    ) : null}
+                    {item.visibility === 'limited' ? (
+                        <span className={styles.sharedCardUnlisted} data-testid="shared-card-limited-badge">
+                            <FormattedMessage
+                                defaultMessage="Limited (passcode)"
+                                description="Badge for a passcode-limited own post"
+                                id="gui.classroom.shared.limitedBadge"
+                            />
+                        </span>
+                    ) : null}
+                    {item.recommended ? (
+                        <span className={styles.sharedCardRecommended} data-testid="shared-card-recommended-badge">
+                            <FormattedMessage
+                                defaultMessage="Recommended"
+                                description="Badge for an operator-recommended shared assignment (#1110)"
+                                id="gui.classroom.shared.recommendedBadge"
                             />
                         </span>
                     ) : null}
@@ -107,6 +126,7 @@ const SharedAssignmentDetail = ({
     detail,
     group,
     isLoading,
+    onOpenBroaden,
     reportSent,
     onClose,
     onImport,
@@ -139,6 +159,7 @@ const SharedAssignmentDetail = ({
         () => onSetStatus(detail.sharedId, 'published'),
         [onSetStatus, detail.sharedId],
     );
+    const handleBroaden = useCallback(() => onOpenBroaden(detail), [onOpenBroaden, detail]);
 
     let urlDomain = '';
     if (detail.supplementUrl) {
@@ -235,7 +256,32 @@ const SharedAssignmentDetail = ({
                 </div>
             ) : null}
 
+            {/* 推薦を受けた自分の限定公開 (#1110): 全体公開への発展導線。 */}
+            {detail.isMine && detail.recommended && detail.visibility === 'limited' ? (
+                <p className={styles.sharedFormSuccess} data-testid="shared-detail-recommended-note">
+                    <FormattedMessage
+                        defaultMessage="The operators recommended this assignment. Consider publishing it to the nationwide catalog!"
+                        description="Note on an own limited post that operators recommended (#1110)"
+                        id="gui.classroom.shared.recommendedNote"
+                    />
+                </p>
+            ) : null}
             <div className={styles.sharedFormActions}>
+                {detail.isMine && detail.visibility === 'limited' && detail.status === 'published' && onOpenBroaden ? (
+                    <button
+                        className={styles.sharedFormSubmit}
+                        data-testid="shared-detail-broaden"
+                        disabled={isLoading}
+                        type="button"
+                        onClick={handleBroaden}
+                    >
+                        <FormattedMessage
+                            defaultMessage="Publish to みんなの課題"
+                            description="Broaden an own limited post to the public catalog (#1110)"
+                            id="gui.classroom.shared.broaden"
+                        />
+                    </button>
+                ) : null}
                 {detail.isMine ? (
                     detail.status === 'published' ? (
                         <button
@@ -342,6 +388,7 @@ SharedAssignmentDetail.propTypes = {
     isLoading: PropTypes.bool,
     onClose: PropTypes.func.isRequired,
     onImport: PropTypes.func.isRequired,
+    onOpenBroaden: PropTypes.func,
     onReport: PropTypes.func.isRequired,
     onSetStatus: PropTypes.func.isRequired,
     reportSent: PropTypes.bool,
@@ -429,7 +476,31 @@ const SharedAssignmentCatalog = ({ group, isLoading, shared }) => {
                 </button>
             </div>
 
-            {shared.sharedDetail ? (
+            {shared.broadenTarget ? (
+                // 限定公開 → 全体公開に広げる (#1110): 共有フォームを編集モード
+                // (既存メタデータが初期値・classroomId なし) で出す。全体公開に
+                // 必要な CC BY 同意はフォーム側で必須。
+                <SharedAssignmentForm
+                    heading={
+                        <FormattedMessage
+                            defaultMessage="Publish to みんなの課題"
+                            description="Broaden an own limited post to the public catalog (#1110)"
+                            id="gui.classroom.shared.broaden"
+                        />
+                    }
+                    initialValues={shared.broadenTarget}
+                    isLoading={busy}
+                    submitLabel={
+                        <FormattedMessage
+                            defaultMessage="Publish"
+                            description="Submit button when broadening a limited post to public (#1110)"
+                            id="gui.classroom.shared.broadenSubmit"
+                        />
+                    }
+                    onCancel={shared.handleCloseBroaden}
+                    onShare={shared.handleBroadenShared}
+                />
+            ) : shared.sharedDetail ? (
                 <SharedAssignmentDetail
                     detail={shared.sharedDetail}
                     group={group}
@@ -437,11 +508,21 @@ const SharedAssignmentCatalog = ({ group, isLoading, shared }) => {
                     reportSent={shared.reportSent}
                     onClose={shared.handleCloseSharedDetail}
                     onImport={shared.handleImportShared}
+                    onOpenBroaden={shared.handleOpenBroaden}
                     onReport={shared.handleReportShared}
                     onSetStatus={shared.handleSetSharedStatus}
                 />
             ) : (
                 <React.Fragment>
+                    {shared.broadenDone ? (
+                        <p className={styles.sharedFormSuccess} data-testid="shared-broaden-done">
+                            <FormattedMessage
+                                defaultMessage="Published to みんなの課題. Thank you for sharing!"
+                                description="Success note after broadening a limited post to public (#1110)"
+                                id="gui.classroom.shared.broadenDone"
+                            />
+                        </p>
+                    ) : null}
                     {shared.catalogTab === 'all' ? (
                         <div className={styles.sharedCatalogFilters}>
                             <select

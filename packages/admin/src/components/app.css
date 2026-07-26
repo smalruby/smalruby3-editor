@@ -45,10 +45,81 @@ body {
     font-size: 0.75rem;
 }
 
-.admin-header-email {
+
+/* アバターメニュー（右上固定・#1111 レビュー）。 */
+.admin-avatar-menu {
+    position: relative;
     margin-left: auto;
+}
+
+.admin-avatar-button {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    border: none;
+    background: transparent;
+    padding: 0;
+    cursor: pointer;
+}
+
+.admin-avatar-initials {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.9rem;
+    height: 1.9rem;
+    border-radius: 50%;
+    background: white;
+    color: hsl(260, 60%, 50%);
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+
+.admin-avatar-caret {
+    color: white;
+    font-size: 0.6rem;
+    line-height: 1;
+}
+
+.admin-avatar-popup {
+    position: absolute;
+    top: 2.6rem;
+    right: 0;
+    min-width: 13rem;
+    background: white;
+    border: 1px solid hsl(220, 15%, 85%);
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    color: hsl(220, 15%, 25%);
+    text-align: left;
+    overflow: hidden;
+    z-index: 100;
+}
+
+.admin-avatar-popup-email {
+    padding: 0.6rem 0.9rem;
+    font-size: 0.75rem;
+    color: hsl(220, 10%, 45%);
+    border-bottom: 1px solid hsl(220, 15%, 92%);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.admin-avatar-popup-item {
+    display: block;
+    width: 100%;
+    padding: 0.6rem 0.9rem;
+    border: none;
+    background: none;
+    text-align: left;
     font-size: 0.85rem;
-    opacity: 0.9;
+    color: inherit;
+    cursor: pointer;
+}
+
+.admin-avatar-popup-item:hover {
+    background: hsl(220, 20%, 96%);
 }
 
 .admin-main {
@@ -155,12 +226,45 @@ body {
     margin-top: 0.75rem;
 }
 
-.admin-actions button {
+/* Bordered sub-section inside a detail view (お知らせ送信 #1111 など). */
+.admin-panel {
+    margin-top: 1.25rem;
+    padding: 0.75rem;
+    border: 1px solid hsl(220, 15%, 88%);
+    border-radius: 0.4rem;
+    background: white;
+}
+
+.admin-panel input,
+.admin-panel textarea {
+    display: block;
+    width: 100%;
+    max-width: 32rem;
+    margin: 0.4rem 0;
+    padding: 0.4rem;
+    border: 1px solid hsl(220, 15%, 75%);
+    border-radius: 0.4rem;
+    font: inherit;
+}
+
+/* 「← 一覧に戻る」など詳細画面の戻るボタンもアクションボタンと同一ルールに
+   統合して見た目を完全一致させる（font を指定すると UA 既定より大きくなり
+   一回り大きく見えたため、両者で font 未指定=UA 既定に揃える）。 */
+.admin-actions button,
+.admin-back-button {
     padding: 0.4rem 0.9rem;
     border: 1px solid hsl(220, 15%, 75%);
     border-radius: 0.4rem;
     background: white;
     cursor: pointer;
+}
+
+.admin-back-button {
+    margin-bottom: 1rem;
+}
+
+.admin-back-button:hover {
+    background: hsl(220, 15%, 96%);
 }
 
 .admin-confirm {

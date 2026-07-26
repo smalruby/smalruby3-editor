@@ -415,19 +415,269 @@
     cursor: pointer;
 }
 
-/* Logout pinned to the title bar (fullscreen modal header), left of the ×. */
-.title-bar-logout {
+/* Title bar cluster (fullscreen modal header), right to left:
+   × (Modal) → avatar menu → bell notifications. アバターを右上（× の隣）に
+   固定し、その左に通知ベルを置く（#1111 レビュー: 他アプリ準拠）。 */
+
+/* アバターメニュー（メール頭文字 + ▼ → ログアウト等ポップアップ）。 */
+/* フルスクリーン Modal の閉じるは左の「戻る」ボタン（右上に × は無い）。
+   admin と同じく右端 (1.25rem) にアバターを寄せて余白を作らない。 */
+.avatar-menu {
     position: fixed;
-    top: 0.55rem;
+    top: 0.45rem;
+    right: 1.25rem;
+    z-index: 1000;
+}
+
+.avatar-button {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    border: none;
+    background: transparent;
+    padding: 0.1rem;
+    cursor: pointer;
+}
+
+/* 紫背景でも視認できるよう白丸 + 紫文字（監視されている感の強い絵文字を避け
+   た落ち着いた見た目）。 */
+.avatar-initials {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.9rem;
+    height: 1.9rem;
+    border-radius: 50%;
+    background: white;
+    color: #855cd6;
+    font-size: 0.75rem;
+    font-weight: bold;
+    letter-spacing: 0.02em;
+}
+
+.avatar-caret {
+    color: white;
+    font-size: 0.6rem;
+    line-height: 1;
+}
+
+.avatar-popup {
+    position: absolute;
+    top: 2.6rem;
+    right: 0;
+    min-width: 12rem;
+    background-color: white;
+    border: 1px solid #d9d9d9;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    color: #575e75;
+    text-align: left;
+    overflow: hidden;
+}
+
+.avatar-popup-email {
+    padding: 0.6rem 0.9rem;
+    font-size: 0.75rem;
+    color: #888;
+    border-bottom: 1px solid #eee;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.avatar-popup-item {
+    display: block;
+    width: 100%;
+    padding: 0.6rem 0.9rem;
+    border: none;
+    background: none;
+    text-align: left;
+    font-size: 0.85rem;
+    color: inherit;
+    cursor: pointer;
+}
+
+.avatar-popup-item:hover {
+    background-color: #f0f6ff;
+}
+
+/* お知らせ (notification center #1111) bell button — 白一色。アバターの左。 */
+.title-bar-notifications {
+    position: fixed;
+    top: 0.5rem;
     right: 4.5rem;
     z-index: 1000;
-    border: 1px solid hsla(0, 0%, 100%, 0.6);
-    border-radius: 0.4rem;
+    border: none;
     background: transparent;
     color: white;
-    padding: 0.3rem 0.9rem;
-    font-size: 0.8rem;
+    line-height: 0;
+    padding: 0.3rem;
     cursor: pointer;
+}
+
+.bell-icon {
+    display: block;
+    color: white;
+}
+
+.notifications-badge {
+    position: absolute;
+    top: -0.15rem;
+    right: -0.1rem;
+    min-width: 0.95rem;
+    padding: 0 0.25rem;
+    border-radius: 0.6rem;
+    background: #e74c3c;
+    color: white;
+    font-size: 0.6rem;
+    font-weight: bold;
+    line-height: 1.1rem;
+    text-align: center;
+}
+
+/* Dropdown panel under the bell. Explicit white background — the shared
+   modal body is transparent (see .claude/rules/scratch-gui/modals.md). */
+.notifications-panel {
+    position: fixed;
+    top: 3.2rem;
+    right: 1rem;
+    z-index: 1001;
+    width: 22rem;
+    max-width: calc(100vw - 2rem);
+    /* プレビューは最大 5 件で高さが有界なのでパネルはスクロールさせない
+       （overflow を付けるとヘッダーの ⋯ ポップアップがクリップされる）。 */
+    background-color: white;
+    border: 1px solid #d9d9d9;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    color: #575e75;
+    text-align: left;
+}
+
+.notifications-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 0.8rem;
+    font-size: 0.9rem;
+    font-weight: bold;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+/* ヘッダーの ⋯ メニュー（すべて既読にする / お知らせを開く）。 */
+.notifications-menu {
+    position: relative;
+}
+
+.notifications-menu-button {
+    border: none;
+    background: none;
+    color: #888;
+    font-size: 1.1rem;
+    line-height: 1;
+    padding: 0.1rem 0.3rem;
+    border-radius: 0.3rem;
+    cursor: pointer;
+}
+
+.notifications-menu-button:hover {
+    background: #f0f0f6;
+    color: #575e75;
+}
+
+.notifications-menu-popup {
+    position: absolute;
+    top: 1.8rem;
+    right: 0;
+    z-index: 1002;
+    min-width: 12rem;
+    background: white;
+    border: 1px solid #d9d9d9;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+}
+
+.notifications-menu-item {
+    display: block;
+    width: 100%;
+    padding: 0.6rem 0.9rem;
+    border: none;
+    background: none;
+    text-align: left;
+    font-size: 0.85rem;
+    font-weight: normal;
+    color: #575e75;
+    cursor: pointer;
+}
+
+.notifications-menu-item:hover:not(:disabled) {
+    background: #f0f6ff;
+}
+
+.notifications-menu-item:disabled {
+    color: #bbb;
+    cursor: default;
+}
+
+.notifications-empty {
+    padding: 1rem;
+    font-size: 0.85rem;
+    color: #888;
+    text-align: center;
+}
+
+.notifications-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.notification-item {
+    display: block;
+    width: 100%;
+    padding: 0.6rem 0.8rem;
+    border: none;
+    border-bottom: 1px solid #f0f0f0;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+    color: inherit;
+}
+
+.notification-item:hover {
+    background-color: #f0f6ff;
+}
+
+.notification-title {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.85rem;
+    font-weight: bold;
+}
+
+.notification-unread-dot {
+    flex: none;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: #4c97ff;
+}
+
+.notification-body {
+    display: block;
+    margin-top: 0.15rem;
+    font-size: 0.8rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.notification-date {
+    display: block;
+    margin-top: 0.15rem;
+    font-size: 0.7rem;
+    color: #999;
 }
 
 .detail-breadcrumbs {
@@ -435,17 +685,88 @@
     padding: 1.25rem 2rem 0;
 }
 
-.title-bar-email {
-    position: fixed;
-    top: 0.85rem;
-    right: 10.5rem;
-    z-index: 1000;
-    color: white;
-    font-size: 0.8rem;
-    max-width: 18rem;
+/* お知らせ全件一覧ページ + ページネーション。 */
+.notifications-page {
+    padding: 1.25rem 2rem;
+    max-width: 48rem;
+}
+
+.notifications-page-title {
+    font-size: 1.3rem;
+    color: #575e75;
+    margin: 0.25rem 0 1rem;
+}
+
+.notifications-page-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border: 1px solid #e0e0e0;
+    border-radius: 0.5rem;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+}
+
+.notification-page-item {
+    display: block;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: none;
+    border-bottom: 1px solid #f0f0f0;
+    background: none;
+    text-align: left;
+    color: #575e75;
+    cursor: pointer;
+}
+
+.notification-page-item:hover {
+    background-color: #f0f6ff;
+}
+
+.notifications-pager {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.notifications-pager button {
+    border: 1px solid #d0d7e3;
+    border-radius: 0.4rem;
+    background: white;
+    color: #575e75;
+    padding: 0.3rem 0.9rem;
+    cursor: pointer;
+}
+
+.notifications-pager button:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.notifications-pager-label {
+    font-size: 0.85rem;
+    color: #888;
+    font-variant-numeric: tabular-nums;
+}
+
+/* キャンセルが不適切な画面の左下戻るボタン（ポリシー・#1111 レビュー）。 */
+.notifications-page-footer {
+    margin-top: 1.5rem;
+}
+
+.notifications-back-button {
+    border: 1px solid #d0d7e3;
+    border-radius: 0.4rem;
+    background: white;
+    color: #575e75;
+    padding: 0.4rem 1.1rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.notifications-back-button:hover {
+    background: #f0f6ff;
 }
 
 .google-courses-view {

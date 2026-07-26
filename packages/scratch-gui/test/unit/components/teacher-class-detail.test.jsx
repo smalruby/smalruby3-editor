@@ -108,4 +108,32 @@ describe('TeacherClassDetail — retention banner (issue #1052)', () => {
         fireEvent.click(byTestId('classroom-download-all'));
         expect(onDownloadAll).toHaveBeenCalled();
     });
+
+    test('共有推奨バナー (#1106): フラグ + 中身ありのときだけ出て CTA が動く', () => {
+        const onOpenShareSuggestion = jest.fn();
+        const { unmount } = renderDetail({
+            selectedClassroom: classroom({ recommendedForSharing: true, hasAssignment: true }),
+            onOpenShareSuggestion,
+        });
+        expect(byTestId('classroom-share-suggestion-banner')).toBeInTheDocument();
+        fireEvent.click(byTestId('classroom-share-suggestion-open'));
+        expect(onOpenShareSuggestion).toHaveBeenCalled();
+        unmount();
+
+        // フラグ無しでは出ない。
+        const second = renderDetail({
+            selectedClassroom: classroom({ hasAssignment: true }),
+            onOpenShareSuggestion,
+        });
+        expect(byTestId('classroom-share-suggestion-banner')).not.toBeInTheDocument();
+        second.unmount();
+
+        // 中身の無い課題では出ない（共有 API が拒否する行き止まりを防ぐ。
+        // 推奨後に先生が説明を空にしたケースを含む）。
+        renderDetail({
+            selectedClassroom: classroom({ recommendedForSharing: true, hasAssignment: false }),
+            onOpenShareSuggestion,
+        });
+        expect(byTestId('classroom-share-suggestion-banner')).not.toBeInTheDocument();
+    });
 });

@@ -391,6 +391,10 @@ await dumpDomainState(teacher, 'teacher BEFORE logout');
 await teacher.evaluate(() => window.__store.dispatch({ type: 'scratch-gui/modals/CLOSE_MODAL', modal: 'connectionModal' }));
 await sleep(200);
 await teacher.evaluate(() => window.__store.dispatch({ type: 'scratch-gui/classroom/OPEN_TEACHER_MODAL' }));
+// ログアウトはタイトルバー右上のアバターメニュー内に移動した（#1111 レビュー）。
+// 先にアバターボタンを開いてからログアウトをクリックする。
+await teacher.waitForSelector('[data-testid="classroom-avatar-button"]', { timeout: 10000 });
+await teacher.click('[data-testid="classroom-avatar-button"]');
 await teacher.waitForSelector('[data-testid="classroom-teacher-logout"]', { timeout: 10000 });
 await teacher.click('[data-testid="classroom-teacher-logout"]');
 const logoutConfirm = await teacher.$('[data-testid="classroom-teacher-logout-confirm"]');

@@ -437,6 +437,28 @@ class ClassroomAPI {
     }
 
     /**
+     * お知らせ (notification center #1111): list the teacher's notices,
+     * newest first, with the server-computed unread count.
+     * @param {string} idToken - Teacher ID token
+     * @returns {Promise<object>} {notifications, unreadCount}
+     */
+    async listNotifications(idToken) {
+        return this._request('GET', '/notifications', null, idToken);
+    }
+
+    /**
+     * Mark notices as read. Omit notificationIds to mark everything
+     * currently unread (used when the notification panel opens).
+     * @param {string} idToken - Teacher ID token
+     * @param {Array<string>} [notificationIds] - specific ids (optional)
+     * @returns {Promise<object>} {updated}
+     */
+    async markNotificationsRead(idToken, notificationIds) {
+        const body = notificationIds ? { notificationIds } : {};
+        return this._request('POST', '/notifications/mark-read', body, idToken);
+    }
+
+    /**
      * List the teacher's groups (active and archived).
      * @param {string} idToken - Teacher ID token
      * @returns {Promise<object>} {groups}

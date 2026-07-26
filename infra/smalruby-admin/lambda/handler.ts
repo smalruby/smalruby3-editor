@@ -27,6 +27,7 @@ import {
 import { GetObjectCommand, HeadObjectCommand, ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { OAuth2Client } from 'google-auth-library';
+import { randomUUID } from 'crypto';
 import {
   buildRestorePlan, matchSnapshot, PlannedItem, RestorePlanInput, Snapshot,
 } from './restore-plan';
@@ -50,6 +51,13 @@ const SUBMISSIONS_TABLE = process.env.SUBMISSIONS_TABLE_NAME || 'ClassroomSubmis
 const GROUPS_TABLE = process.env.GROUPS_TABLE_NAME || 'ClassroomGroups';
 const SUBMISSIONS_BUCKET = process.env.SUBMISSIONS_BUCKET_NAME || 'smalruby-classroom-submissions';
 const PRESIGNED_URL_DOWNLOAD_EXPIRY = parseInt(process.env.PRESIGNED_URL_DOWNLOAD_EXPIRY || '3600', 10);
+// お知らせ (notification center, EPIC #1111): this stack is the single
+// writer; teachers read through the classroom API. Notices are ephemeral
+// guidance, so the writer stamps a TTL (default 180 days).
+const NOTIFICATIONS_TABLE = process.env.NOTIFICATIONS_TABLE_NAME || 'ClassroomNotifications';
+const NOTIFICATION_TTL_DAYS = parseInt(process.env.NOTIFICATION_TTL_DAYS || '180', 10);
+const MAX_NOTIFICATION_TITLE_LENGTH = 100;
+const MAX_NOTIFICATION_MESSAGE_LENGTH = 1000;
 
 const dynamoClient = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(dynamoClient);
@@ -218,6 +226,12 @@ function mapSharedItemForAdmin(item: Record<string, unknown>) {
     reuseCount: (item.reuseCount as number) || 0,
     pageCount: (content.pages || []).length,
     hasStarter: !!content.starterKey,
+    // 公開範囲 (#1109) と Admin 推薦 (#1110)。passcode 自体は運営にも不要
+    // なので出さない（最小露出）。
+    visibility: (item.visibility as string) || 'public',
+    recommended: !!item.recommendedAt,
+    recommendedAt: item.recommendedAt || null,
+    recommendedBy: item.recommendedBy || null,
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
   };
@@ -291,10 +305,16 @@ async function handleListSharedReports(identity: AdminIdentity): Promise<APIGate
 async function handleListSharedAssignments(
   identity: AdminIdentity, query: Record<string, string | undefined>,
 ): Promise<APIGatewayProxyStructuredResultV2> {
-  audit('shared.list', identity, { q: query.q || null, status: query.status || null });
+  audit('shared.list', identity, {
+    q: query.q || null, status: query.status || null, visibility: query.visibility || null,
+  });
   let items = (await scanAll(SHARED_ASSIGNMENTS_TABLE)).map(mapSharedItemForAdmin);
   if (query.status) {
     items = items.filter(item => item.status === query.status);
+  }
+  // 限定公開の把握 (#1110): 推薦候補の母集団を絞る。
+  if (query.visibility) {
+    items = items.filter(item => item.visibility === query.visibility);
   }
   if (query.q) {
     const q = query.q.toLowerCase();
@@ -374,6 +394,95 @@ async function handleSetSharedStatus(
   };
 }
 
+// --- Admin 推薦 (EPIC #1110): 限定公開 → みんなの課題への発展 ---
+
+/**
+ * POST/DELETE /admin/shared-assignments/{sharedId}/recommend — mark a shared
+ * assignment as operator-recommended (or withdraw the mark). Recommending
+ * notifies the author through the notification center (#1111) so the teacher
+ * can broaden a 限定公開 item to the public catalog. Idempotent: recommending
+ * an already-recommended item neither rewrites the mark nor re-notifies.
+ */
+async function handleSetSharedRecommendation(
+  identity: AdminIdentity, sharedId: string, recommended: boolean,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const result = await docClient.send(new GetCommand({
+    TableName: SHARED_ASSIGNMENTS_TABLE,
+    Key: { sharedId },
+  }));
+  const item = result.Item as Record<string, unknown> | undefined;
+  if (!item || item.status !== 'published') {
+    // Unlisted items are not recommendable — the author withdrew them.
+    throw new NotFoundError('Shared assignment not found');
+  }
+
+  const alreadyRecommended = !!item.recommendedAt;
+  if (recommended && !alreadyRecommended) {
+    // 推薦は「限定公開 → 全体公開への発展」の働きかけ (#1110)。公開済みの
+    // 項目に送っても通知文（全体公開の検討を促す）が意味を成さないため
+    // 限定公開に限定する（レビュー指摘）。取り消し (下) は無条件に許す。
+    if (((item.visibility as string) || 'public') !== 'limited') {
+      throw new ValidationError('Only limited-visibility items can be recommended');
+    }
+    const now = new Date().toISOString();
+    // 通知が主目的なので先に通知 → 印付けの順にする。印付けが失敗しても
+    // リトライで再通知 + 印付けが成立する（逆順だと印だけ付いて通知が
+    // 永久に失われ、no-op ガードで再送もできない — レビュー指摘）。最悪
+    // ケースは通知の重複で、先生側では既読で流せる無害な事象。
+    const authorSub = typeof item.authorSub === 'string' ? item.authorSub : '';
+    if (authorSub) {
+      await putNotification(authorSub, {
+        type: 'shared_recommended',
+        title: 'あなたの課題が推薦されました',
+        body: `「${String(item.title)}」が運営の推薦を受けました。みんなの課題への全体公開を検討してみませんか？`,
+        link: { kind: 'shared-mine', sharedId },
+        createdBy: identity.email,
+      });
+    }
+    try {
+      await docClient.send(new UpdateCommand({
+        TableName: SHARED_ASSIGNMENTS_TABLE,
+        Key: { sharedId },
+        UpdateExpression: 'SET recommendedAt = :now, recommendedBy = :email, updatedAt = :now',
+        // 2 人の運営が同時に推薦しても印付けと通知が二重にならないよう、
+        // 冪等判定を原子的にする（レビュー指摘）。
+        ConditionExpression: 'attribute_not_exists(recommendedAt)',
+        ExpressionAttributeValues: { ':now': now, ':email': identity.email },
+      }));
+    } catch (err) {
+      // 競合で先に推薦されていた場合は already-recommended と同じ扱い。
+      if ((err as { name?: string }).name !== 'ConditionalCheckFailedException') throw err;
+    }
+    audit('shared.recommend', identity, { sharedId });
+    return {
+      statusCode: 200,
+      body: JSON.stringify(mapSharedItemForAdmin({
+        ...item, recommendedAt: now, recommendedBy: identity.email,
+      })),
+    };
+  }
+
+  if (!recommended && alreadyRecommended) {
+    await docClient.send(new UpdateCommand({
+      TableName: SHARED_ASSIGNMENTS_TABLE,
+      Key: { sharedId },
+      UpdateExpression: 'REMOVE recommendedAt, recommendedBy SET updatedAt = :now',
+      ExpressionAttributeValues: { ':now': new Date().toISOString() },
+    }));
+    // 取り消しは通知しない（先生を騒がせない）。audit で追跡できる。
+    audit('shared.unrecommend', identity, { sharedId });
+    return {
+      statusCode: 200,
+      body: JSON.stringify(mapSharedItemForAdmin({
+        ...item, recommendedAt: undefined, recommendedBy: undefined,
+      })),
+    };
+  }
+
+  // No-op (already in the requested state) — idempotent success.
+  return { statusCode: 200, body: JSON.stringify(mapSharedItemForAdmin(item)) };
+}
+
 // --- Classroom management + expired restore (S4 #1084) ---
 // The restore UI supersedes classroom's ops CLI (EPIC #1049 D6 update):
 // snapshots written by the classroom archiver under
@@ -395,7 +504,108 @@ function mapClassroomForAdmin(item: Record<string, unknown>) {
     updatedAt: item.updatedAt || null,
     restoredAt: item.restoredAt || null,
     expiresAt: item.ttl ? new Date((item.ttl as number) * 1000).toISOString() : null,
+    // 共有推奨 (#1106)
+    recommendedForSharing: !!item.recommendedForSharingAt,
+    recommendedForSharingAt: item.recommendedForSharingAt || null,
+    recommendedForSharingBy: item.recommendedForSharingBy || null,
   };
+}
+
+// --- 共有推奨 (EPIC #1106): 有益な課題を先生に「みんなの課題へ共有」促す ---
+
+/**
+ * POST/DELETE /admin/classrooms/{classroomId}/recommend-sharing — flag an
+ * assignment as "worth sharing to みんなの課題" (or withdraw the flag).
+ * Flagging notifies the owning teacher through the notification center
+ * (#1111); the teacher's own share flow (CC BY consent) stays the only
+ * publication path — admins never publish on a teacher's behalf.
+ */
+async function handleSetSharingRecommendation(
+  identity: AdminIdentity, classroomId: string, recommended: boolean,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const result = await docClient.send(new GetCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId },
+  }));
+  const item = result.Item as Record<string, unknown> | undefined;
+  // Quota rows share the key space.
+  if (!item || String(classroomId).includes('-quota#')) {
+    throw new NotFoundError('Classroom not found');
+  }
+  const teacherSub = typeof item.teacherSub === 'string' ? item.teacherSub : '';
+  if (!teacherSub) {
+    throw new NotFoundError('Classroom not found');
+  }
+  // アーカイブ済みは先生から見えないので新規の推奨はしない。ただし取り消し
+  // (下) は許す — 推奨後にアーカイブされるとフラグが運営から触れなくなり、
+  // 復元時に古いバナーが再出現するため（レビュー指摘）。
+  if (recommended && item.status !== 'active') {
+    throw new NotFoundError('Classroom not found');
+  }
+  // 中身（説明ページ or スターター）が無い課題は共有 API が拒否するので、
+  // 「共有しませんか？」と促しても行き止まりになる — 推奨自体を拒否する
+  // （レビュー指摘）。
+  const assignment = item.assignment as { pages?: unknown[]; starterKey?: string } | undefined;
+  const hasAssignmentContent = !!assignment &&
+    ((Array.isArray(assignment.pages) && assignment.pages.length > 0) || !!assignment.starterKey);
+  if (recommended && !hasAssignmentContent) {
+    throw new ValidationError('Classroom has no assignment content to share');
+  }
+
+  const alreadyRecommended = !!item.recommendedForSharingAt;
+  if (recommended && !alreadyRecommended) {
+    const now = new Date().toISOString();
+    // #1110 と同じ「通知 → 印付け」の順 + 印付けの冪等を原子化。真に同時の
+    // POST では通知が重複しうる（SPA の busy 無効化で実質防止・最悪ケースは
+    // 重複通知で無害 — #1110 と同じ割り切り）。
+    const title = String(item.assignmentName || item.className || '課題');
+    await putNotification(teacherSub, {
+      type: 'share_suggestion',
+      title: 'この課題、みんなの課題に共有しませんか？',
+      body: `「${title}」が内容の充実した課題として運営のおすすめに選ばれました。課題一覧の「共有」から、全国の先生に共有できます。`,
+      link: { kind: 'classroom', classroomId },
+      createdBy: identity.email,
+    });
+    try {
+      await docClient.send(new UpdateCommand({
+        TableName: CLASSROOMS_TABLE,
+        Key: { classroomId },
+        UpdateExpression:
+          'SET recommendedForSharingAt = :now, recommendedForSharingBy = :email, updatedAt = :now',
+        ConditionExpression: 'attribute_not_exists(recommendedForSharingAt)',
+        ExpressionAttributeValues: { ':now': now, ':email': identity.email },
+      }));
+    } catch (err) {
+      if ((err as { name?: string }).name !== 'ConditionalCheckFailedException') throw err;
+    }
+    audit('classroom.recommendSharing', identity, { classroomId });
+    return {
+      statusCode: 200,
+      body: JSON.stringify(mapClassroomForAdmin({
+        ...item, recommendedForSharingAt: now, recommendedForSharingBy: identity.email,
+      })),
+    };
+  }
+
+  if (!recommended && alreadyRecommended) {
+    await docClient.send(new UpdateCommand({
+      TableName: CLASSROOMS_TABLE,
+      Key: { classroomId },
+      UpdateExpression: 'REMOVE recommendedForSharingAt, recommendedForSharingBy SET updatedAt = :now',
+      ExpressionAttributeValues: { ':now': new Date().toISOString() },
+    }));
+    // 取り消しは通知しない（先生を騒がせない）。audit で追跡できる。
+    audit('classroom.unrecommendSharing', identity, { classroomId });
+    return {
+      statusCode: 200,
+      body: JSON.stringify(mapClassroomForAdmin({
+        ...item, recommendedForSharingAt: undefined, recommendedForSharingBy: undefined,
+      })),
+    };
+  }
+
+  // No-op (already in the requested state) — idempotent success.
+  return { statusCode: 200, body: JSON.stringify(mapClassroomForAdmin(item)) };
 }
 
 async function handleListClassrooms(
@@ -493,6 +703,103 @@ async function handleSetClassroomStatus(
     statusCode: 200,
     body: JSON.stringify(mapClassroomForAdmin({ ...result.Item, status: body.status })),
   };
+}
+
+// --- お知らせ (notification center, EPIC #1111) ---
+
+/**
+ * Notification link targets the teacher UI knows how to open. Kept as a
+ * whitelist so a typo'd kind can never be stored (the editor ignores
+ * unknown kinds, but the audit trail should stay clean).
+ * - 'classroom': open the referenced assignment in its class board context
+ * - 'shared-mine': open みんなの課題 の「自分の投稿」 (#1110 recommendation)
+ */
+const NOTIFICATION_LINK_KINDS = new Set(['classroom', 'shared-mine']);
+
+/**
+ * Write one notice into the teacher's inbox (single-writer: only this stack
+ * ever creates rows; the classroom API lists/marks-read them).
+ * @param teacherSub - recipient (resolved internally, never sent by the SPA)
+ * @param fields - type/title/body/link + the acting admin's email
+ * @returns the created notificationId
+ */
+async function putNotification(
+  teacherSub: string,
+  fields: {
+    type: string;
+    title: string;
+    body: string;
+    link: Record<string, unknown> | null;
+    createdBy: string;
+  },
+): Promise<string> {
+  // Validate here (not at each call site) so every future send path — e.g.
+  // the recommendation notices of #1110/#1106 — goes through the whitelist.
+  if (fields.link && !NOTIFICATION_LINK_KINDS.has(String(fields.link.kind))) {
+    throw new ValidationError('Unsupported link kind');
+  }
+  const createdAt = new Date().toISOString();
+  // createdAt-prefixed sort key → the inbox Query returns newest first.
+  const notificationId = `${createdAt}#${randomUUID()}`;
+  await docClient.send(new PutCommand({
+    TableName: NOTIFICATIONS_TABLE,
+    Item: {
+      teacherSub,
+      notificationId,
+      type: fields.type,
+      title: fields.title,
+      body: fields.body,
+      ...(fields.link ? { link: fields.link } : {}),
+      createdBy: fields.createdBy,
+      createdAt,
+      ttl: Math.floor(Date.now() / 1000) + NOTIFICATION_TTL_DAYS * 24 * 60 * 60,
+    },
+  }));
+  return notificationId;
+}
+
+/**
+ * POST /admin/notifications — send a notice to the teacher who owns the
+ * given classroom. The SPA sends a classroomId, never a teacherSub: subs
+ * stay internal (same principle as authorSub in the shared projections).
+ */
+async function handleSendNotification(
+  identity: AdminIdentity, body: Record<string, unknown>,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const classroomId = typeof body.classroomId === 'string' ? body.classroomId.trim() : '';
+  if (!classroomId) {
+    throw new ValidationError('classroomId is required');
+  }
+  const title = typeof body.title === 'string' ? body.title.trim() : '';
+  if (!title || title.length > MAX_NOTIFICATION_TITLE_LENGTH) {
+    throw new ValidationError(`title is required (at most ${MAX_NOTIFICATION_TITLE_LENGTH} characters)`);
+  }
+  const message = typeof body.message === 'string' ? body.message.trim() : '';
+  if (!message || message.length > MAX_NOTIFICATION_MESSAGE_LENGTH) {
+    throw new ValidationError(`message is required (at most ${MAX_NOTIFICATION_MESSAGE_LENGTH} characters)`);
+  }
+
+  const result = await docClient.send(new GetCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId },
+  }));
+  const teacherSub = result.Item && typeof result.Item.teacherSub === 'string'
+    ? result.Item.teacherSub
+    : '';
+  if (!teacherSub) {
+    throw new NotFoundError('Classroom not found');
+  }
+
+  const notificationId = await putNotification(teacherSub, {
+    type: 'admin_message',
+    title,
+    body: message,
+    link: { kind: 'classroom', classroomId },
+    createdBy: identity.email,
+  });
+  audit('notification.send', identity, { classroomId, type: 'admin_message' });
+
+  return { statusCode: 201, body: JSON.stringify({ notificationId }) };
 }
 
 // --- ddb-archive snapshot helpers ---
@@ -741,6 +1048,14 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
     } else if (method === 'GET' && path === '/admin/shared-assignments') {
       result = await handleListSharedAssignments(identity, event.queryStringParameters || {});
 
+    } else if (method === 'POST' && /^\/admin\/shared-assignments\/[^/]+\/recommend$/.test(path)) {
+      const sharedId = event.pathParameters?.sharedId || '';
+      result = await handleSetSharedRecommendation(identity, sharedId, true);
+
+    } else if (method === 'DELETE' && /^\/admin\/shared-assignments\/[^/]+\/recommend$/.test(path)) {
+      const sharedId = event.pathParameters?.sharedId || '';
+      result = await handleSetSharedRecommendation(identity, sharedId, false);
+
     } else if (method === 'GET' && /^\/admin\/shared-assignments\/[^/]+$/.test(path)) {
       const sharedId = event.pathParameters?.sharedId || '';
       result = await handleGetSharedAssignment(identity, sharedId);
@@ -759,6 +1074,14 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
     } else if (method === 'GET' && path === '/admin/classrooms/restore-candidates') {
       result = await handleSearchRestoreCandidates(identity, event.queryStringParameters || {});
 
+    } else if (method === 'POST' && /^\/admin\/classrooms\/[^/]+\/recommend-sharing$/.test(path)) {
+      const classroomId = event.pathParameters?.classroomId || '';
+      result = await handleSetSharingRecommendation(identity, classroomId, true);
+
+    } else if (method === 'DELETE' && /^\/admin\/classrooms\/[^/]+\/recommend-sharing$/.test(path)) {
+      const classroomId = event.pathParameters?.classroomId || '';
+      result = await handleSetSharingRecommendation(identity, classroomId, false);
+
     } else if (method === 'GET' && /^\/admin\/classrooms\/[^/]+\/restore-plan$/.test(path)) {
       const classroomId = event.pathParameters?.classroomId || '';
       result = await handleRestorePlan(identity, classroomId);
@@ -774,6 +1097,9 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
     } else if (method === 'PATCH' && /^\/admin\/classrooms\/[^/]+$/.test(path)) {
       const classroomId = event.pathParameters?.classroomId || '';
       result = await handleSetClassroomStatus(identity, classroomId, body);
+
+    } else if (method === 'POST' && path === '/admin/notifications') {
+      result = await handleSendNotification(identity, body);
 
     } else {
       throw new NotFoundError('Not found');
