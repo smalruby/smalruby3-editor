@@ -373,7 +373,7 @@ export default {
     'gui.classroom.shared.published': 'Published to みんなの課題: "{title}" (© {author} / CC BY 4.0)',
     'gui.classroom.shared.openCatalog': 'Find in みんなの課題',
     'gui.classroom.shared.catalogTitle': 'みんなの課題 — assignments shared by teachers nationwide',
-    'gui.classroom.shared.catalogClose': 'Close',
+    'gui.classroom.shared.catalogClose': 'Back',
     'gui.classroom.shared.tabAll': 'Browse all',
     'gui.classroom.shared.tabMine': 'My posts',
     'gui.classroom.shared.filterAllLevels': 'All school levels',

@@ -163,6 +163,19 @@ describe('SharedAssignmentCatalog (issue #1070)', () => {
         expect(shared.handleLoadMoreCatalog).toHaveBeenCalled();
     });
 
+    test('the header back button is labelled "Back" and returns to the assignment list (issue #1121)', () => {
+        const shared = sharedState();
+        renderCatalog(shared);
+        const back = byTestId('shared-catalog-close');
+        expect(back).toBeInTheDocument();
+        // Label must read "戻る" (Back), not "キャンセル"/"閉じる".
+        expect(back.textContent).toBe('Back');
+        // Clicking it only closes the catalog, returning to the assignment
+        // board (課題一覧) — it must not navigate to the class list.
+        fireEvent.click(back);
+        expect(shared.handleCloseCatalog).toHaveBeenCalled();
+    });
+
     test('the mine tab hides the filters and marks unlisted items', () => {
         renderCatalog(sharedState({
             catalogTab: 'mine',
