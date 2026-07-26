@@ -13,6 +13,15 @@ import {
     setSharedStatus
 } from '../lib/admin-api.js';
 
+// 限定公開は属性・著者名・教科などを省略できる（#1109）。データ欠損では
+// なく「先生が未入力」なので、運営が見て意味がわかるよう undefined を
+// そのまま出さず「未指定」と明示する。
+const UNSPECIFIED = '未指定';
+const orUnspecified = value => {
+    if (typeof value === 'undefined' || value === null || value === '') return UNSPECIFIED;
+    return value;
+};
+
 const StatusBadge = ({status}) => (
     <span className={`admin-badge ${status === 'published' ? 'admin-badge-ok' : 'admin-badge-muted'}`}>
         {status === 'published' ? '公開中' : '非公開'}
@@ -135,11 +144,13 @@ const SharedDetail = ({sharedId, onBack, onChanged}) => {
                 className="admin-meta"
                 data-testid="shared-admin-credit"
             >
-                {`© ${detail.authorName}${detail.authorAffiliation ? `（${detail.authorAffiliation}）` : ''} / CC BY 4.0`}
-                {` ・ 取り込み ${detail.reuseCount} 回`}
+                {`© ${orUnspecified(detail.authorName)}`}
+                {detail.authorAffiliation ? `（${detail.authorAffiliation}）` : ''}
+                {` / CC BY 4.0 ・ 取り込み ${detail.reuseCount} 回`}
             </p>
             <p className="admin-meta">
-                {`${detail.schoolLevel} / ${detail.subject} / タグ: ${(detail.tags || []).join(', ') || '-'}`}
+                {`${orUnspecified(detail.schoolLevel)} / ${orUnspecified(detail.subject)}`}
+                {` / タグ: ${(detail.tags || []).join(', ') || UNSPECIFIED}`}
             </p>
             {detail.supplementUrl ? (
                 <p
@@ -389,7 +400,8 @@ const SharedAssignmentsView = () => {
                                 <VisibilityBadge visibility={item.visibility} />
                                 <RecommendedBadge recommended={item.recommended} />
                                 <span className="admin-meta">
-                                    {`${item.authorName} ・ 取り込み ${item.reuseCount} 回 ・ ${item.createdAt}`}
+                                    {`${orUnspecified(item.authorName)} ・ 取り込み ${item.reuseCount} 回`}
+                                    {` ・ ${item.createdAt}`}
                                 </span>
                             </button>
                         </li>

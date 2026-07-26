@@ -176,7 +176,11 @@ body {
     font: inherit;
 }
 
-.admin-actions button {
+/* 「← 一覧に戻る」など詳細画面の戻るボタンもアクションボタンと同一ルールに
+   統合して見た目を完全一致させる（font を指定すると UA 既定より大きくなり
+   一回り大きく見えたため、両者で font 未指定=UA 既定に揃える）。 */
+.admin-actions button,
+.admin-back-button {
     padding: 0.4rem 0.9rem;
     border: 1px solid hsl(220, 15%, 75%);
     border-radius: 0.4rem;
@@ -184,17 +188,8 @@ body {
     cursor: pointer;
 }
 
-/* 「← 一覧に戻る」など詳細画面の戻るボタン。既定の素ボタンだと浮くので
-   アクションボタンと同じ見た目に揃える（全ビュー共通）。 */
 .admin-back-button {
     margin-bottom: 1rem;
-    padding: 0.4rem 0.9rem;
-    border: 1px solid hsl(220, 15%, 75%);
-    border-radius: 0.4rem;
-    background: white;
-    color: inherit;
-    font: inherit;
-    cursor: pointer;
 }
 
 .admin-back-button:hover {
