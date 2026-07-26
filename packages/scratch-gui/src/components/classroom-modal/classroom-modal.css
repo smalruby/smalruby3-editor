@@ -2383,14 +2383,19 @@
     font-size: 0.85rem;
 }
 
+/* プライマリ = 青塗り（評価画面に統一・#1122）。 */
 .class-list-create-button {
-    background: #855cd6;
+    background: #4c97ff;
     color: white;
     border: none;
     border-radius: 0.5rem;
     padding: 0.5rem 1.25rem;
     font-size: 0.9rem;
     cursor: pointer;
+}
+
+.class-list-create-button:hover {
+    background: #3d89f0;
 }
 
 .class-list-create-button:disabled {
@@ -2628,10 +2633,12 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
     font-size: 0.875rem;
 }
 
+/* 評価画面の見出し（.teacher-view-title）に統一: 濃い太字・紫を使わない（#1122）。 */
 .shared-form-title {
-    margin: 0;
-    font-size: 1rem;
-    color: #855cd6;
+    margin: 0.25rem 0 1rem;
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: #575e75;
 }
 
 .shared-form-hint {
@@ -2724,10 +2731,15 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
     cursor: pointer;
 }
 
+/* プライマリは評価画面と同じ青塗りに統一（#1122）。 */
 .shared-form-submit {
-    border-color: #855cd6 !important;
-    background: #855cd6 !important;
+    border-color: #4c97ff !important;
+    background: #4c97ff !important;
     color: white;
+}
+
+.shared-form-submit:hover {
+    background: #3d89f0 !important;
 }
 
 .shared-form-submit:disabled {
@@ -2746,15 +2758,19 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
 
 /* --- みんなの課題: catalog (EPIC #1066 S3) --- */
 
+/* 枠なし（#1122）: 課題ボードの本文幅にそのまま乗せ、パンくず左端にそろえる。 */
 .shared-catalog {
     display: flex;
     flex-direction: column;
     gap: 0.6rem;
     margin: 0.75rem 0;
-    padding: 1rem;
-    border: 1px solid hsla(260, 60%, 60%, 0.35);
-    border-radius: 0.5rem;
-    background: white;
+}
+
+/* 合言葉で取り込み（#1122）: 課題ボード内に描画されるため、ボード側が持つ
+   左右パディング（.assignment-board = 2rem）に二重で足さない。左端をパンくずに
+   そろえるため水平パディングは 0。 */
+.passcode-import-view {
+    padding: 0 0 1.25rem;
 }
 
 .shared-catalog-filters {
@@ -2948,14 +2964,19 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
     color: hsla(225, 15%, 40%, 1);
 }
 
+/* プライマリ = 青塗り（評価画面に統一・#1122）。 */
 .board-create-button {
-    background: #855cd6;
+    background: #4c97ff;
     color: white;
     border: none;
     border-radius: 0.5rem;
     padding: 0.5rem 1.25rem;
     cursor: pointer;
     white-space: nowrap;
+}
+
+.board-create-button:hover {
+    background: #3d89f0;
 }
 
 .board-create-button:disabled {
@@ -3128,15 +3149,20 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
     cursor: default;
 }
 
+/* セカンダリ = 白地 + 中立の枠線（評価画面に統一・#1122）。 */
 .class-list-import-button {
     margin-left: 0.5rem;
-    border: 1px solid #855cd6;
+    border: 1px solid #d9d9d9;
     background: white;
-    color: #855cd6;
+    color: #575e75;
     border-radius: 0.5rem;
     padding: 0.5rem 1.25rem;
     font-size: 0.9rem;
     cursor: pointer;
+}
+
+.class-list-import-button:hover {
+    background: #f2f2f2;
 }
 
 .class-list-import-button:disabled {
@@ -3157,13 +3183,14 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
 
 /* --- Class settings (inline card editor) --- */
 
+/* 紫枠をやめ、他の評価画面系レイアウトと同じ控えめな枠に統一（#1122）。 */
 .class-settings-form {
     flex: 1;
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
     padding: 0.9rem 1rem;
-    border: 1px solid #855cd6;
+    border: 1px solid #d9d9d9;
     border-radius: 0.5rem;
     background: white;
 }
@@ -3221,10 +3248,15 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
     flex: 1;
 }
 
+/* プライマリ = 青塗り（評価画面に統一・#1122）。 */
 .class-settings-save {
-    background: #855cd6 !important;
+    background: #4c97ff !important;
     color: white;
-    border-color: #855cd6 !important;
+    border-color: #4c97ff !important;
+}
+
+.class-settings-save:hover {
+    background: #3d89f0 !important;
 }
 
 .class-settings-save:disabled {
@@ -3274,8 +3306,10 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
     font-size: 0.9rem;
 }
 
-.board-inline-create button {
-    background: #855cd6;
+/* プライマリ = 青塗り（評価画面に統一・#1122）。キャンセル（.popover-cancel）は
+   セカンダリのままにするため除外する。 */
+.board-inline-create button:not(.popover-cancel) {
+    background: #4c97ff;
     color: white;
     border: none;
     border-radius: 0.4rem;
@@ -3283,19 +3317,28 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
     cursor: pointer;
 }
 
-.board-inline-create button:disabled {
+.board-inline-create button:not(.popover-cancel):hover {
+    background: #3d89f0;
+}
+
+.board-inline-create button:not(.popover-cancel):disabled {
     opacity: 0.5;
     cursor: default;
 }
 
+/* セカンダリ = 白地 + 中立の枠線（評価画面に統一・#1122）。 */
 .board-reuse-button {
-    border: 1px solid #855cd6;
+    border: 1px solid #d9d9d9;
     background: white;
-    color: #855cd6;
+    color: #575e75;
     border-radius: 0.5rem;
     padding: 0.5rem 1rem;
     cursor: pointer;
     white-space: nowrap;
+}
+
+.board-reuse-button:hover {
+    background: #f2f2f2;
 }
 
 .board-reuse-button:disabled {
@@ -3317,14 +3360,19 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
     background: white;
 }
 
+/* セカンダリ = 白地 + 中立の枠線（評価画面に統一・#1122）。 */
 .reuse-row-copy {
-    border: 1px solid #855cd6;
+    border: 1px solid #d9d9d9;
     background: white;
-    color: #855cd6;
+    color: #575e75;
     border-radius: 0.4rem;
     padding: 0.35rem 0.8rem;
     cursor: pointer;
     white-space: nowrap;
+}
+
+.reuse-row-copy:hover {
+    background: #f2f2f2;
 }
 
 .reuse-row-copy:disabled {
@@ -3410,23 +3458,24 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
     white-space: nowrap;
 }
 
-/* Floating (modal-like) inline forms: border + shadow lift them above the
-   list so their extent is obvious. */
+/* 枠なし（#1122）: 評価画面に合わせてカードフレーム（枠・影）を外し、
+   本文はボードの左端にそろえる。 */
 .board-popover {
-    border: 1px solid hsla(0, 0%, 0%, 0.15);
-    border-radius: 0.6rem;
-    background: white;
-    box-shadow: 0 8px 24px hsla(0, 0%, 0%, 0.18);
-    padding: 1rem;
     margin: 0.75rem 0;
 }
 
+/* セカンダリ = 白地 + 中立の枠線（評価画面の .secondary-button に統一・#1122）。 */
 .popover-cancel {
-    border: 1px solid hsla(0, 0%, 0%, 0.2);
+    border: 1px solid #d9d9d9;
     background: white;
+    color: #575e75;
     border-radius: 0.4rem;
     padding: 0.5rem 1rem;
     cursor: pointer;
+}
+
+.popover-cancel:hover {
+    background: #f2f2f2;
 }
 
 .assignment-preview-header {
