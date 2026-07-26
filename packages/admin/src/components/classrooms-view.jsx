@@ -211,6 +211,7 @@ const ClassroomDetail = ({classroomId, onBack, onChanged}) => {
     return (
         <div data-testid="classroom-admin-detail">
             <button
+                className="admin-back-button"
                 data-testid="classroom-admin-back"
                 type="button"
                 onClick={onBack}
@@ -360,6 +361,7 @@ const RestorePanel = ({classroomId, onBack}) => {
                     </p>
                 )}
                 <button
+                    className="admin-back-button"
                     data-testid="restore-admin-done-back"
                     type="button"
                     onClick={onBack}
@@ -373,6 +375,7 @@ const RestorePanel = ({classroomId, onBack}) => {
             <div data-testid="restore-admin-alive">
                 <p>{'このクラスはまだ存在しています。アーカイブからの復旧は先生自身のクラス管理画面から行えます。'}</p>
                 <button
+                    className="admin-back-button"
                     data-testid="restore-admin-back"
                     type="button"
                     onClick={onBack}
@@ -384,6 +387,7 @@ const RestorePanel = ({classroomId, onBack}) => {
     return (
         <div data-testid="restore-admin-plan">
             <button
+                className="admin-back-button"
                 data-testid="restore-admin-back"
                 type="button"
                 onClick={onBack}

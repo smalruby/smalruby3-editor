@@ -117,6 +117,7 @@ const SharedDetail = ({sharedId, onBack, onChanged}) => {
     return (
         <div data-testid="shared-admin-detail">
             <button
+                className="admin-back-button"
                 data-testid="shared-admin-back"
                 type="button"
                 onClick={onBack}

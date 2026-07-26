@@ -184,6 +184,23 @@ body {
     cursor: pointer;
 }
 
+/* 「← 一覧に戻る」など詳細画面の戻るボタン。既定の素ボタンだと浮くので
+   アクションボタンと同じ見た目に揃える（全ビュー共通）。 */
+.admin-back-button {
+    margin-bottom: 1rem;
+    padding: 0.4rem 0.9rem;
+    border: 1px solid hsl(220, 15%, 75%);
+    border-radius: 0.4rem;
+    background: white;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+}
+
+.admin-back-button:hover {
+    background: hsl(220, 15%, 96%);
+}
+
 .admin-confirm {
     display: inline-flex;
     align-items: center;

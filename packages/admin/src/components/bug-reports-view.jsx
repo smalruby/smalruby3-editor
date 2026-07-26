@@ -116,6 +116,7 @@ const BugReportDetail = ({reportId, stage, onBack, onChanged}) => {
     return (
         <div data-testid="bug-admin-detail">
             <button
+                className="admin-back-button"
                 data-testid="bug-admin-back"
                 type="button"
                 onClick={onBack}
