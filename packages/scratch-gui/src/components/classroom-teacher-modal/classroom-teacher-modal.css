@@ -687,12 +687,17 @@
 
 /* お知らせ全件一覧ページ + ページネーション。 */
 .notifications-page {
-    padding: 1.25rem 2rem;
+    /* 上のパンくずラッパー (.detail-breadcrumbs) が top offset を持つので、
+       他のクラス管理画面 (.detail-layout) と同じく top padding は 0 にする。
+       これで「パンくず → タイトル」の間隔が評価画面などと揃う (#1123)。 */
+    padding: 0 2rem 1.25rem;
     max-width: 48rem;
 }
 
 .notifications-page-title {
     font-size: 1.3rem;
+    /* 他のクラス管理画面のタイトル (.teacher-view-title) と同じ濃い太字に揃える (#1123)。 */
+    font-weight: bold;
     color: #575e75;
     margin: 0.25rem 0 1rem;
 }
