@@ -256,6 +256,9 @@ export default {
     'gui.classroom.notifications.buttonLabel': 'お知らせ',
     'gui.classroom.notifications.title': 'お知らせ',
     'gui.classroom.notifications.empty': 'お知らせはありません',
+    'gui.classroom.avatar.buttonLabel': 'アカウントメニュー',
+    'gui.classroom.notifications.seeAll': 'すべて見る（{count}件）',
+    'gui.classroom.notifications.pageIndicator': '{current} / {total}',
     'gui.classroom.classList.title': 'あなたのクラス',
     'gui.classroom.classList.hint':
         'クラスは1つの学級（例: 2年1組）です。クラスをひらくと、その中の課題を管理できます。',

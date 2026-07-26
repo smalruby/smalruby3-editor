@@ -261,6 +261,9 @@ export default {
     'gui.classroom.notifications.buttonLabel': 'おしらせ',
     'gui.classroom.notifications.title': 'おしらせ',
     'gui.classroom.notifications.empty': 'おしらせは ありません',
+    'gui.classroom.avatar.buttonLabel': 'アカウントメニュー',
+    'gui.classroom.notifications.seeAll': 'すべて みる（{count}けん）',
+    'gui.classroom.notifications.pageIndicator': '{current} / {total}',
     'gui.classroom.classList.title': 'あなたのクラス',
     'gui.classroom.classList.hint':
         'クラスは1つのがっきゅう（れい: 2ねん1くみ）です。クラスをひらくと、そのなかのかだいをかんりできます。',

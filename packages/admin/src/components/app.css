@@ -45,10 +45,81 @@ body {
     font-size: 0.75rem;
 }
 
-.admin-header-email {
+
+/* アバターメニュー（右上固定・#1111 レビュー）。 */
+.admin-avatar-menu {
+    position: relative;
     margin-left: auto;
+}
+
+.admin-avatar-button {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    border: none;
+    background: transparent;
+    padding: 0;
+    cursor: pointer;
+}
+
+.admin-avatar-initials {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.9rem;
+    height: 1.9rem;
+    border-radius: 50%;
+    background: white;
+    color: hsl(260, 60%, 50%);
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+
+.admin-avatar-caret {
+    color: white;
+    font-size: 0.6rem;
+    line-height: 1;
+}
+
+.admin-avatar-popup {
+    position: absolute;
+    top: 2.6rem;
+    right: 0;
+    min-width: 13rem;
+    background: white;
+    border: 1px solid hsl(220, 15%, 85%);
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    color: hsl(220, 15%, 25%);
+    text-align: left;
+    overflow: hidden;
+    z-index: 100;
+}
+
+.admin-avatar-popup-email {
+    padding: 0.6rem 0.9rem;
+    font-size: 0.75rem;
+    color: hsl(220, 10%, 45%);
+    border-bottom: 1px solid hsl(220, 15%, 92%);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.admin-avatar-popup-item {
+    display: block;
+    width: 100%;
+    padding: 0.6rem 0.9rem;
+    border: none;
+    background: none;
+    text-align: left;
     font-size: 0.85rem;
-    opacity: 0.9;
+    color: inherit;
+    cursor: pointer;
+}
+
+.admin-avatar-popup-item:hover {
+    background: hsl(220, 20%, 96%);
 }
 
 .admin-main {

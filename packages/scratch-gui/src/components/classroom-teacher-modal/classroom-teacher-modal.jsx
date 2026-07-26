@@ -23,6 +23,8 @@ import Spinner from '../spinner/spinner.jsx';
 import TeacherGoogleCoursesPhase from './teacher-google-courses-phase.jsx';
 import TeacherLoginPhase from './teacher-login-phase.jsx';
 import TeacherNotifications from './teacher-notifications.jsx';
+import TeacherNotificationsList from './teacher-notifications-list.jsx';
+import TeacherAvatarMenu from './teacher-avatar-menu.jsx';
 
 import styles from './classroom-teacher-modal.css';
 
@@ -200,6 +202,35 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                     onGoogleLogin={onGoogleLogin}
                     onMicrosoftLogin={onMicrosoftLogin}
                 />
+            );
+        }
+
+        if (phase === 'teacher-notifications' && notificationsCenter) {
+            return (
+                <div className={styles.mainRelative}>
+                    <div className={styles.detailBreadcrumbs}>
+                        <TeacherBreadcrumbs
+                            items={[
+                                {
+                                    label: intl.formatMessage(messagesBreadcrumbs.classList),
+                                    onClick: onShowClassList,
+                                    testId: 'classroom-breadcrumb-class-list',
+                                },
+                                {
+                                    label: intl.formatMessage({
+                                        defaultMessage: 'Notifications',
+                                        description: 'Breadcrumb label of the notification list page',
+                                        id: 'gui.classroom.notifications.title',
+                                    }),
+                                },
+                            ]}
+                        />
+                    </div>
+                    <TeacherNotificationsList
+                        notifications={notificationsCenter.notifications}
+                        onOpenLink={notificationsCenter.handleOpenLink}
+                    />
+                </div>
             );
         }
 
@@ -459,36 +490,21 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                 className={styles.layout}
                 data-testid="classroom-teacher-modal"
             >
-                {/* Logout lives in the title bar (top-right, before the
-                    close ×) so it is reachable from every teacher view. */}
-                {phase !== 'teacher-login' && teacherEmail ? (
-                    <span className={styles.titleBarEmail} data-testid="classroom-teacher-email">
-                        {teacherEmail}
-                    </span>
-                ) : null}
-                {phase !== 'teacher-login' && (
-                    <button
-                        className={styles.titleBarLogout}
-                        data-testid="classroom-teacher-logout"
-                        type="button"
-                        onClick={onTeacherLogout}
-                    >
-                        <FormattedMessage
-                            defaultMessage="Logout"
-                            description="Logout button in the class management title bar"
-                            id="gui.classroom.management.titleBarLogout"
-                        />
-                    </button>
-                )}
-                {/* お知らせセンター (#1111) — bell + dropdown, next to the ×. */}
+                {/* タイトルバー右上（× の左）: 通知ベル → アバターメニュー。
+                    アバターは右上固定でアカウント（メール頭文字）を示し、
+                    クリックでログアウト等のメニューを出す（#1111 レビュー）。 */}
                 {phase !== 'teacher-login' && notificationsCenter && (
                     <TeacherNotifications
                         isOpen={notificationsCenter.isOpen}
                         notifications={notificationsCenter.notifications}
                         unreadCount={notificationsCenter.unreadCount}
                         onOpenLink={notificationsCenter.handleOpenLink}
+                        onShowAll={notificationsCenter.handleShowAll}
                         onToggle={notificationsCenter.handleToggleNotifications}
                     />
+                )}
+                {phase !== 'teacher-login' && (
+                    <TeacherAvatarMenu email={teacherEmail} onLogout={onTeacherLogout} />
                 )}
                 {/* Main area */}
                 <main className={styles.main}>{renderMain()}</main>

@@ -36,7 +36,8 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-back` | button | 戻る |
 | `classroom-refresh` | button | 更新 (↻) |
 | `classroom-google-import` | button | Google Classroom からインポート |
-| `classroom-teacher-logout` | button | ログアウト |
+| `classroom-avatar-button` | button | アカウントメニュー（タイトルバー右上・メール頭文字 + ▼） |
+| `classroom-teacher-logout` | button | ログアウト（アカウントメニュー内） |
 
 ### クラス作成
 
@@ -204,7 +205,8 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-class-open-{groupId}` | button | クラスカード本体（クリックでクラスをひらく） |
 | `classroom-class-evaluate-{groupId}` | button | クラスカードの「評価」 |
 | `classroom-class-import-gc` | button | クラス一覧の「Google Classroom からインポート」（Google ログイン時のみ） |
-| `classroom-teacher-logout` | button | ログアウト（タイトルバー右端に常時表示） |
+| `classroom-avatar-button` / `classroom-avatar-initials` / `classroom-avatar-email` | button/span | アカウントメニュー（右上・メール頭文字 + ▼。クリックでメール表示 + ログアウト） |
+| `classroom-teacher-logout` | button | ログアウト（アカウントメニュー内。#1111 レビューでタイトルバー常時表示から移動） |
 | `classroom-class-create-section` | input | 同時作成: セクション（オプション） |
 | `classroom-class-settings-open-{groupId}` | button | クラスカードの「設定」（インライン編集を開く） |
 | `classroom-class-settings-{groupId}` | form | クラス設定のインライン編集フォーム |
@@ -294,7 +296,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-description-preview` | div | 右ペインの生徒視点プレビュー |
 | `classroom-description-preview-body` | div | プレビュー本文（テキスト+画像） |
 | `classroom-description-preview-prev` / `-next` | button | プレビューのページ送り |
-| `classroom-teacher-email` | span | タイトルバーのユーザーメール（OIDC トークンに email がある場合のみ） |
+| `classroom-avatar-email` | span | アカウントメニュー内のユーザーメール（OIDC トークンに email がある場合のみ。旧 `classroom-teacher-email` は廃止） |
 | `classroom-board-create-cancel` / `classroom-board-reuse-cancel` | button | インラインフォームのキャンセル |
 | `classroom-google-course-imported-{courseId}` | span | GC コースの「インポート済み」バッジ |
 | `classroom-breadcrumb-assignments` | button | パンくず「課題一覧」リンク |

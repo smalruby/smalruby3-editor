@@ -21,8 +21,12 @@ const defaultProps = () => ({
     notifications: [],
     unreadCount: 0,
     onOpenLink: jest.fn(),
+    onShowAll: jest.fn(),
     onToggle: jest.fn(),
 });
+
+const many = (n) =>
+    Array.from({ length: n }, (_, i) => notification({ notificationId: `id-${i}`, title: `お知らせ${i}` }));
 
 const renderNotifications = (props) =>
     render(
@@ -76,5 +80,22 @@ describe('TeacherNotifications (EPIC #1111)', () => {
 
         fireEvent.click(unreadItem);
         expect(onOpenLink).toHaveBeenCalledWith({ kind: 'classroom', classroomId: 'c1' });
+    });
+
+    test('パネルは先頭5件のみ表示し、6件以上で「すべて見る」を出す (#1111 レビュー)', () => {
+        const onShowAll = jest.fn();
+        renderNotifications({ isOpen: true, notifications: many(8), onShowAll });
+        // 5 件だけ表示。
+        const items = screen.getAllByTestId(/classroom-notification-item-/);
+        expect(items).toHaveLength(5);
+        const seeAll = screen.getByTestId('classroom-notifications-see-all');
+        expect(seeAll).toHaveTextContent('8');
+        fireEvent.click(seeAll);
+        expect(onShowAll).toHaveBeenCalled();
+    });
+
+    test('5件以下なら「すべて見る」を出さない', () => {
+        renderNotifications({ isOpen: true, notifications: many(5) });
+        expect(screen.queryByTestId('classroom-notifications-see-all')).not.toBeInTheDocument();
     });
 });

@@ -42,7 +42,10 @@ describe('App auth flow', () => {
 
         render(<App />);
         await waitFor(() => expect(screen.getByTestId('admin-dashboard')).toBeInTheDocument());
-        expect(screen.getByTestId('admin-me-email')).toHaveTextContent('admin@example.com');
+        // 右上はアバター（メール頭文字）。メールはメニューを開くと出る（#1111）。
+        expect(screen.getByTestId('admin-avatar-initials')).toHaveTextContent('A');
+        fireEvent.click(screen.getByTestId('admin-avatar-button'));
+        expect(screen.getByTestId('admin-avatar-email')).toHaveTextContent('admin@example.com');
         expect(mockSetIdToken).toHaveBeenCalledWith('dev-token');
     });
 

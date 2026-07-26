@@ -5,6 +5,7 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {fetchMe, setIdToken} from '../lib/admin-api.js';
 import {getDevLoginToken, initGoogleSignIn} from '../lib/google-auth.js';
+import AvatarMenu from './avatar-menu.jsx';
 import BugReportsView from './bug-reports-view.jsx';
 import ClassroomsView from './classrooms-view.jsx';
 import SharedAssignmentsView from './shared-assignments-view.jsx';
@@ -40,6 +41,13 @@ const App = () => {
     }, []);
 
     const handleReload = useCallback(() => window.location.reload(), []);
+
+    // トークンはモジュールメモリのみ。ログアウトはリロードで確実に破棄し
+    // サインイン画面へ戻す（session-expired の再読み込みと同じ手当て）。
+    const handleLogout = useCallback(() => {
+        setIdToken(null);
+        window.location.reload();
+    }, []);
 
     // Google ID tokens live ~1 hour and the SPA keeps them in memory only, so
     // an expired session surfaces as API 401s. The clients broadcast those;
@@ -91,10 +99,10 @@ const App = () => {
                 <header className="admin-header">
                     <h1>{'Smalruby Admin'}</h1>
                     <span className="admin-header-stage">{me.stage}</span>
-                    <span
-                        className="admin-header-email"
-                        data-testid="admin-me-email"
-                    >{me.email}</span>
+                    <AvatarMenu
+                        email={me.email}
+                        onLogout={handleLogout}
+                    />
                 </header>
                 <nav className="admin-nav">
                     {SECTIONS.map(s => (
