@@ -129,20 +129,33 @@ describe('useTeacherNotifications (EPIC #1111 / 日次取得)', () => {
         }
     });
 
-    test('開封でバッジを消し既読を永続化。キャッシュの未読も 0 になる', async () => {
+    test('開くだけでは既読にしない（自動既読を廃止・レビュー指摘）', async () => {
         mockListNotifications.mockResolvedValue({ notifications: [notice('n1')], unreadCount: 1 });
         const { result } = renderHook(() => useTeacherNotifications({ idToken: TOKEN, handleTeacher401 }));
         await waitFor(() => expect(result.current.unreadCount).toBe(1));
 
         act(() => result.current.handleToggleNotifications());
         expect(result.current.isOpen).toBe(true);
-        expect(result.current.unreadCount).toBe(0);
-        expect(mockMarkNotificationsRead).toHaveBeenCalledWith(TOKEN);
-        expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY)).unreadCount).toBe(0);
+        // バッジは残る。API も呼ばない。
+        expect(result.current.unreadCount).toBe(1);
+        expect(mockMarkNotificationsRead).not.toHaveBeenCalled();
+    });
 
-        // 既読 0 件の再オープンでは再送しない。
-        act(() => result.current.handleToggleNotifications());
-        act(() => result.current.handleToggleNotifications());
+    test('handleMarkAllRead でバッジを消し既読を永続化。キャッシュとドットも既読に', async () => {
+        mockListNotifications.mockResolvedValue({ notifications: [notice('n1')], unreadCount: 1 });
+        const { result } = renderHook(() => useTeacherNotifications({ idToken: TOKEN, handleTeacher401 }));
+        await waitFor(() => expect(result.current.unreadCount).toBe(1));
+
+        act(() => result.current.handleMarkAllRead());
+        expect(result.current.unreadCount).toBe(0);
+        expect(result.current.notifications[0].readAt).toBeTruthy();
+        expect(mockMarkNotificationsRead).toHaveBeenCalledWith(TOKEN);
+        const cache = JSON.parse(window.localStorage.getItem(STORAGE_KEY));
+        expect(cache.unreadCount).toBe(0);
+        expect(cache.notifications[0].readAt).toBeTruthy();
+
+        // 既読 0 件で再度呼んでも API を再送しない。
+        act(() => result.current.handleMarkAllRead());
         expect(mockMarkNotificationsRead).toHaveBeenCalledTimes(1);
     });
 

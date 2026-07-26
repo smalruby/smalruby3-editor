@@ -555,10 +555,69 @@
 }
 
 .notifications-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     padding: 0.6rem 0.8rem;
     font-size: 0.9rem;
     font-weight: bold;
     border-bottom: 1px solid #e0e0e0;
+}
+
+/* ヘッダーの ⋯ メニュー（すべて既読にする / お知らせを開く）。 */
+.notifications-menu {
+    position: relative;
+}
+
+.notifications-menu-button {
+    border: none;
+    background: none;
+    color: #888;
+    font-size: 1.1rem;
+    line-height: 1;
+    padding: 0.1rem 0.3rem;
+    border-radius: 0.3rem;
+    cursor: pointer;
+}
+
+.notifications-menu-button:hover {
+    background: #f0f0f6;
+    color: #575e75;
+}
+
+.notifications-menu-popup {
+    position: absolute;
+    top: 1.8rem;
+    right: 0;
+    z-index: 1002;
+    min-width: 12rem;
+    background: white;
+    border: 1px solid #d9d9d9;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+}
+
+.notifications-menu-item {
+    display: block;
+    width: 100%;
+    padding: 0.6rem 0.9rem;
+    border: none;
+    background: none;
+    text-align: left;
+    font-size: 0.85rem;
+    font-weight: normal;
+    color: #575e75;
+    cursor: pointer;
+}
+
+.notifications-menu-item:hover:not(:disabled) {
+    background: #f0f6ff;
+}
+
+.notifications-menu-item:disabled {
+    color: #bbb;
+    cursor: default;
 }
 
 .notifications-empty {
@@ -626,25 +685,7 @@
     padding: 1.25rem 2rem 0;
 }
 
-/* お知らせパネルの「すべて見る」リンク + 全件一覧ページ + ページネーション。 */
-.notifications-see-all {
-    display: block;
-    width: 100%;
-    padding: 0.6rem 0.8rem;
-    border: none;
-    border-top: 1px solid #e0e0e0;
-    background: none;
-    text-align: center;
-    font-size: 0.8rem;
-    font-weight: bold;
-    color: #4c97ff;
-    cursor: pointer;
-}
-
-.notifications-see-all:hover {
-    background-color: #f0f6ff;
-}
-
+/* お知らせ全件一覧ページ + ページネーション。 */
 .notifications-page {
     padding: 1.25rem 2rem;
     max-width: 48rem;
@@ -707,6 +748,25 @@
     font-size: 0.85rem;
     color: #888;
     font-variant-numeric: tabular-nums;
+}
+
+/* キャンセルが不適切な画面の左下戻るボタン（ポリシー・#1111 レビュー）。 */
+.notifications-page-footer {
+    margin-top: 1.5rem;
+}
+
+.notifications-back-button {
+    border: 1px solid #d0d7e3;
+    border-radius: 0.4rem;
+    background: white;
+    color: #575e75;
+    padding: 0.4rem 1.1rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.notifications-back-button:hover {
+    background: #f0f6ff;
 }
 
 .google-courses-view {

@@ -98,22 +98,29 @@ const useTeacherNotifications = ({ idToken, handleTeacher401 }) => {
         };
     }, [idToken, teacherKey, handleTeacher401]);
 
-    const handleToggleNotifications = useCallback(() => {
-        // 副作用は state updater の外（StrictMode / concurrent での二重実行対策）。
-        const next = !isOpen;
-        if (next && unreadCount > 0) {
-            // パネルを開いた = すべて見た。バッジを即消し、サーバーへ既読を永続化。
-            // 当日キャッシュの未読数も 0 にして同日再オープンと整合させる（未読
-            // ドットは今の表示中だけ残すため in-memory の readAt は書き換えない）。
-            setUnreadCount(0);
-            classroomAPI.markNotificationsRead(idToken).catch(() => {});
-            const cache = readCache();
-            if (cache) writeCache({ ...cache, unreadCount: 0 });
-        }
-        setIsOpen(next);
-    }, [idToken, isOpen, unreadCount]);
+    // パネルは開くだけ（自動既読はしない）。既読はパネルの ⋯ メニュー
+    // 「すべて既読にする」で明示的に行う（#1111 レビュー: 参考 UI 準拠）。
+    const handleToggleNotifications = useCallback(() => setIsOpen((o) => !o), []);
 
     const handleCloseNotifications = useCallback(() => setIsOpen(false), []);
+
+    // ⋯ メニュー「すべて既読にする」: バッジを消し、サーバーへ既読を永続化し、
+    // in-memory の readAt とキャッシュも既読に揃える（同日再オープンと整合）。
+    const handleMarkAllRead = useCallback(() => {
+        if (unreadCount === 0) return;
+        const now = new Date().toISOString();
+        setUnreadCount(0);
+        setNotifications((prev) => prev.map((n) => (n.readAt ? n : { ...n, readAt: now })));
+        classroomAPI.markNotificationsRead(idToken).catch(() => {});
+        const cache = readCache();
+        if (cache) {
+            writeCache({
+                ...cache,
+                unreadCount: 0,
+                notifications: (cache.notifications || []).map((n) => (n.readAt ? n : { ...n, readAt: now })),
+            });
+        }
+    }, [idToken, unreadCount]);
 
     // Reset in-memory state (logout / go-to-login). 日次キャッシュは残す
     // （同じ先生が同じ日に入り直しても取得は 1 回に保つ）。
@@ -129,6 +136,7 @@ const useTeacherNotifications = ({ idToken, handleTeacher401 }) => {
         isOpen,
         handleToggleNotifications,
         handleCloseNotifications,
+        handleMarkAllRead,
         resetNotifications,
     };
 };

@@ -16,10 +16,10 @@ const many = (n) =>
         createdAt: '2026-07-26T00:00:00.000Z',
     }));
 
-const renderList = (notifications, onOpenLink = jest.fn()) =>
+const renderList = (notifications, onOpenLink = jest.fn(), onBack = jest.fn()) =>
     render(
         <IntlProvider locale="en">
-            <TeacherNotificationsList notifications={notifications} onOpenLink={onOpenLink} />
+            <TeacherNotificationsList notifications={notifications} onBack={onBack} onOpenLink={onOpenLink} />
         </IntlProvider>,
     );
 
@@ -59,5 +59,17 @@ describe('TeacherNotificationsList (#1111 レビュー・10件/頁)', () => {
         renderList(many(3), onOpenLink);
         fireEvent.click(screen.getByTestId('classroom-notification-page-item-id-1'));
         expect(onOpenLink).toHaveBeenCalledWith({ kind: 'classroom', classroomId: 'c1' });
+    });
+
+    test('左下の戻るボタンが onBack を呼ぶ (#1111 レビュー)', () => {
+        const onBack = jest.fn();
+        renderList(many(3), jest.fn(), onBack);
+        fireEvent.click(screen.getByTestId('classroom-notifications-back'));
+        expect(onBack).toHaveBeenCalled();
+    });
+
+    test('空でも戻るボタンは出る', () => {
+        renderList([]);
+        expect(screen.getByTestId('classroom-notifications-back')).toBeInTheDocument();
     });
 });
