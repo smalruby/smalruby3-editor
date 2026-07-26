@@ -544,8 +544,8 @@
     z-index: 1001;
     width: 22rem;
     max-width: calc(100vw - 2rem);
-    max-height: 60vh;
-    overflow-y: auto;
+    /* プレビューは最大 5 件で高さが有界なのでパネルはスクロールさせない
+       （overflow を付けるとヘッダーの ⋯ ポップアップがクリップされる）。 */
     background-color: white;
     border: 1px solid #d9d9d9;
     border-radius: 0.5rem;

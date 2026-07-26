@@ -8,8 +8,8 @@
  * 同じ日の再オープンはキャッシュを読むだけで API を叩かない（旧実装の 60 秒
  * ポーリングは廃止）。
  *
- * パネルを開くと全件を既読化する（バッジは即消える。未読ドットはその表示
- * 中だけ残す）。
+ * パネルを開くだけでは既読にしない（バッジは残る）。既読はパネルの ⋯ メニュー
+ * 「すべて既読にする」で明示的に行う（handleMarkAllRead）。
  */
 import { useCallback, useEffect, useState } from 'react';
 import classroomAPI from '../lib/classroom-api.js';
