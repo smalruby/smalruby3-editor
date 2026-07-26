@@ -45,11 +45,6 @@ body {
     font-size: 0.75rem;
 }
 
-.admin-header-email {
-    margin-left: auto;
-    font-size: 0.85rem;
-    opacity: 0.9;
-}
 
 /* アバターメニュー（右上固定・#1111 レビュー）。 */
 .admin-avatar-menu {

@@ -16,8 +16,15 @@ jest.mock('../../../src/lib/classroom-api.js', () => ({
     },
 }));
 
-// dev-bypass token 相当（JWT でないので email 判定は null → teacher='' 扱い）。
+// teacherEmailFromToken をモック（実装は JWT デコード）。既定は非空 email を
+// 返し、キャッシュキーが立つようにする。空キーのテストで null に差し替える。
+const mockEmailFromToken = jest.fn(() => TEACHER_EMAIL);
+jest.mock('../../../src/lib/classroom-class-label.js', () => ({
+    teacherEmailFromToken: (...args) => mockEmailFromToken(...args),
+}));
+
 const TOKEN = 'tok';
+const TEACHER_EMAIL = 'teacher@example.com';
 const STORAGE_KEY = 'smalruby:classroomNotifications';
 const todayStr = () => {
     const d = new Date();
@@ -43,6 +50,7 @@ describe('useTeacherNotifications (EPIC #1111 / 日次取得)', () => {
         window.localStorage.clear();
         mockListNotifications.mockReset().mockResolvedValue({ notifications: [], unreadCount: 0 });
         mockMarkNotificationsRead.mockReset().mockResolvedValue({ updated: 0 });
+        mockEmailFromToken.mockReset().mockReturnValue(TEACHER_EMAIL);
     });
 
     test('idToken が無ければ取得しない', () => {
@@ -65,7 +73,7 @@ describe('useTeacherNotifications (EPIC #1111 / 日次取得)', () => {
             STORAGE_KEY,
             JSON.stringify({
                 date: todayStr(),
-                teacher: '',
+                teacher: TEACHER_EMAIL,
                 notifications: [notice('n1')],
                 unreadCount: 1,
             }),
@@ -81,7 +89,7 @@ describe('useTeacherNotifications (EPIC #1111 / 日次取得)', () => {
             STORAGE_KEY,
             JSON.stringify({
                 date: '2000-01-01',
-                teacher: '',
+                teacher: TEACHER_EMAIL,
                 notifications: [],
                 unreadCount: 0,
             }),
@@ -89,6 +97,21 @@ describe('useTeacherNotifications (EPIC #1111 / 日次取得)', () => {
         mockListNotifications.mockResolvedValue({ notifications: [notice('n1')], unreadCount: 1 });
         renderHook(() => useTeacherNotifications({ idToken: TOKEN, handleTeacher401 }));
         await waitFor(() => expect(mockListNotifications).toHaveBeenCalledTimes(1));
+    });
+
+    test('email 不明（空キー）ならキャッシュを使わず毎回取得する（共有PC取り違え防止）', async () => {
+        mockEmailFromToken.mockReturnValue(null); // dev-bypass 等の非 JWT トークン
+        window.localStorage.setItem(
+            STORAGE_KEY,
+            JSON.stringify({ date: todayStr(), teacher: '', notifications: [notice('x')], unreadCount: 9 }),
+        );
+        mockListNotifications.mockResolvedValue({ notifications: [notice('n1')], unreadCount: 1 });
+        const { result } = renderHook(() => useTeacherNotifications({ idToken: TOKEN, handleTeacher401 }));
+        await waitFor(() => expect(mockListNotifications).toHaveBeenCalledTimes(1));
+        expect(result.current.unreadCount).toBe(1);
+        // 空キーではキャッシュを書かない（他の空キー先生と共有されないように）。
+        const cache = JSON.parse(window.localStorage.getItem(STORAGE_KEY));
+        expect(cache.notifications[0].notificationId).toBe('x');
     });
 
     test('ポーリングしない（時間が経っても再取得されない）', async () => {

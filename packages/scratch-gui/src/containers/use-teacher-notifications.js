@@ -60,7 +60,11 @@ const useTeacherNotifications = ({ idToken, handleTeacher401 }) => {
     useEffect(() => {
         if (!idToken) return () => {};
         const today = todayStr();
-        const cache = readCache();
+        // teacherKey が空（dev-bypass 等の非 JWT トークンで email を取れない）
+        // ときはキャッシュを使わず毎回取得する。空キー同士だと共有 PC で別の
+        // 先生の通知が混ざるため（レビュー指摘）。本番の Google/Microsoft ID
+        // トークンは email を持つのでキャッシュが効く。
+        const cache = teacherKey ? readCache() : null;
         if (cache && cache.date === today && cache.teacher === teacherKey) {
             // 今日はすでに取得済み（同じ先生）→ API を叩かずキャッシュを使う。
             setNotifications(cache.notifications || []);
@@ -77,7 +81,10 @@ const useTeacherNotifications = ({ idToken, handleTeacher401 }) => {
                 const unread = data.unreadCount || 0;
                 setNotifications(list);
                 setUnreadCount(unread);
-                writeCache({ date: today, teacher: teacherKey, notifications: list, unreadCount: unread });
+                // 空キー（識別不能）はキャッシュしない（共有 PC での取り違え防止）。
+                if (teacherKey) {
+                    writeCache({ date: today, teacher: teacherKey, notifications: list, unreadCount: unread });
+                }
             } catch (err) {
                 // お知らせは補助機能 — 取得失敗はクラス管理本体に影響させない。
                 // 401（セッション切れ）のときだけサイレント再認証。
