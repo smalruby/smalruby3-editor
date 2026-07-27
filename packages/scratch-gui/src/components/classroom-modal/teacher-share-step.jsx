@@ -36,7 +36,7 @@ const TeacherShareStep = ({ classroom, isLoading, lastShared, onShare, onCancel 
     // 発行後の確認。限定公開なら合言葉を大きく表示し、配布を促す。
     if (lastShared) {
         return (
-            <div className={styles.postAssignmentContainer} data-testid="classroom-phase-share-step">
+            <div className={styles.boardInnerView} data-testid="classroom-phase-share-step">
                 <div className={styles.phaseTitle}>
                     <FormattedMessage
                         defaultMessage="Shared"
@@ -123,7 +123,7 @@ const TeacherShareStep = ({ classroom, isLoading, lastShared, onShare, onCancel 
     }
 
     return (
-        <div className={styles.postAssignmentContainer} data-testid="classroom-phase-share-step">
+        <div className={styles.boardInnerView} data-testid="classroom-phase-share-step">
             <div className={styles.phaseTitle}>
                 <FormattedMessage
                     defaultMessage="Share this assignment"

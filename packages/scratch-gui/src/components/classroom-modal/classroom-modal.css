@@ -2779,10 +2779,11 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
     margin: 0.75rem 0;
 }
 
-/* 合言葉で取り込み（#1122）: 課題ボード内に描画されるため、ボード側が持つ
-   左右パディング（.assignment-board = 2rem）に二重で足さない。左端をパンくずに
-   そろえるため水平パディングは 0。 */
-.passcode-import-view {
+/* 課題ボード内サブビュー共通コンテナ（#1122）: 合言葉で取り込み・共有ステップなど、
+   課題ボード（.assignment-board）内に描画されるビューが共有する。ボード側が持つ
+   左右パディング（2rem）に二重で足さないよう水平パディングは 0 にし、左端を
+   パンくずにそろえる。ボード内に新しいサブビューを足すときもこのクラスを使う。 */
+.board-inner-view {
     padding: 0 0 1.25rem;
 }
 
