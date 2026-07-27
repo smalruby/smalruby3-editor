@@ -431,7 +431,7 @@ export default {
     'gui.classroom.shared.passcodeImportBtn': 'このクラスにとりこむ',
     'gui.classroom.shared.openCatalog': 'みんなのかだいからさがす',
     'gui.classroom.shared.catalogTitle': 'みんなのかだい — ぜんこくのせんせいがきょうゆうしたかだい',
-    'gui.classroom.shared.catalogClose': 'キャンセル',
+    'gui.classroom.shared.catalogClose': 'もどる',
     'gui.classroom.shared.tabAll': 'すべて',
     'gui.classroom.shared.tabMine': 'じぶんのとうこう',
     'gui.classroom.shared.filterAllLevels': 'すべてのがっこうしゅ',

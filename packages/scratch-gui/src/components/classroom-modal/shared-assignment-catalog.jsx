@@ -438,8 +438,8 @@ const SharedAssignmentCatalog = ({ group, isLoading, shared }) => {
                 </h3>
                 <button data-testid="shared-catalog-close" type="button" onClick={shared.handleCloseCatalog}>
                     <FormattedMessage
-                        defaultMessage="Cancel"
-                        description="Cancel button that leaves the shared catalog"
+                        defaultMessage="Back"
+                        description="Go back from the shared catalog to the assignment list"
                         id="gui.classroom.shared.catalogClose"
                     />
                 </button>
