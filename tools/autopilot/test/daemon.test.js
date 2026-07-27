@@ -1850,7 +1850,7 @@ test('startHttp GET /board: usage をライブ読取して返す（worker 完了
     }) + '\n');
     const cfg = {
         ...makeCfg(), port: 0, assignee: null, concurrency: 1,
-        usageFile, statSync: () => ({ mtimeMs: 111 }),
+        now: () => 111, usageFile, statSync: () => ({ mtimeMs: 111 }),
     };
     const state = { paused: false, running: new Map(), board: null, claudeUsage: null };
     const { server, port } = await startTestHttp(cfg, state);
