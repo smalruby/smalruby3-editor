@@ -48,6 +48,11 @@ const sharedState = (over = {}) => ({
     handleImportShared: jest.fn(),
     handleSetSharedStatus: jest.fn(),
     handleReportShared: jest.fn(),
+    broadenTarget: null,
+    broadenDone: false,
+    handleOpenBroaden: jest.fn(),
+    handleCloseBroaden: jest.fn(),
+    handleBroadenShared: jest.fn(),
     ...over,
 });
 
@@ -158,6 +163,19 @@ describe('SharedAssignmentCatalog (issue #1070)', () => {
         expect(shared.handleLoadMoreCatalog).toHaveBeenCalled();
     });
 
+    test('the header back button is labelled "Back" and returns to the assignment list (issue #1121)', () => {
+        const shared = sharedState();
+        renderCatalog(shared);
+        const back = byTestId('shared-catalog-close');
+        expect(back).toBeInTheDocument();
+        // Label must read "戻る" (Back), not "キャンセル"/"閉じる".
+        expect(back.textContent).toBe('Back');
+        // Clicking it only closes the catalog, returning to the assignment
+        // board (課題一覧) — it must not navigate to the class list.
+        fireEvent.click(back);
+        expect(shared.handleCloseCatalog).toHaveBeenCalled();
+    });
+
     test('the mine tab hides the filters and marks unlisted items', () => {
         renderCatalog(sharedState({
             catalogTab: 'mine',
@@ -165,5 +183,57 @@ describe('SharedAssignmentCatalog (issue #1070)', () => {
         }));
         expect(byTestId('shared-catalog-filter-apply')).not.toBeInTheDocument();
         expect(byTestId('shared-catalog-item-s1').textContent).toContain('Unlisted');
+    });
+
+    test('限定公開と推薦のバッジがカードに出る (#1110)', () => {
+        renderCatalog(sharedState({
+            catalogTab: 'mine',
+            catalogItems: [item({ visibility: 'limited', recommended: true })],
+        }));
+        expect(byTestId('shared-card-limited-badge')).toBeInTheDocument();
+        expect(byTestId('shared-card-recommended-badge')).toBeInTheDocument();
+    });
+
+    test('自分の限定公開の詳細に「みんなの課題に公開する」CTA が出る (#1110)', () => {
+        const shared = sharedState({
+            sharedDetail: detail({ isMine: true, visibility: 'limited', recommended: true }),
+        });
+        renderCatalog(shared);
+        // 推薦済みの注記 + CTA。
+        expect(byTestId('shared-detail-recommended-note')).toBeInTheDocument();
+        fireEvent.click(byTestId('shared-detail-broaden'));
+        expect(shared.handleOpenBroaden).toHaveBeenCalledWith(
+            expect.objectContaining({ sharedId: 's1' }),
+        );
+    });
+
+    test('公開項目や他人の詳細には broaden CTA を出さない (#1110)', () => {
+        const publicMine = sharedState({ sharedDetail: detail({ isMine: true }) });
+        const { unmount } = renderCatalog(publicMine);
+        expect(byTestId('shared-detail-broaden')).not.toBeInTheDocument();
+        unmount();
+
+        const someoneElses = sharedState({
+            sharedDetail: detail({ isMine: false, visibility: 'limited' }),
+        });
+        renderCatalog(someoneElses);
+        expect(byTestId('shared-detail-broaden')).not.toBeInTheDocument();
+    });
+
+    test('broadenTarget が立つと公開フォームが編集モードで出る (#1110)', () => {
+        const shared = sharedState({
+            broadenTarget: detail({ isMine: true, visibility: 'limited', title: 'ねこあつめ入門' }),
+        });
+        renderCatalog(shared);
+        const form = byTestId('shared-form');
+        expect(form).toBeInTheDocument();
+        expect(byTestId('shared-form-title').value).toBe('ねこあつめ入門');
+        // 全体公開には CC BY 同意が改めて必要 (未チェックなので submit 不可)。
+        expect(byTestId('shared-form-submit')).toBeDisabled();
+    });
+
+    test('broadenDone で一覧に完了メッセージが出る (#1110)', () => {
+        renderCatalog(sharedState({ catalogTab: 'mine', broadenDone: true }));
+        expect(byTestId('shared-broaden-done')).toBeInTheDocument();
     });
 });

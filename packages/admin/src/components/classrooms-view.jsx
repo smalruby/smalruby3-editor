@@ -16,7 +16,9 @@ import {
     fetchClassrooms,
     fetchRestoreCandidates,
     fetchRestorePlan,
-    setClassroomStatus
+    sendNotification,
+    setClassroomStatus,
+    setSharingRecommendation
 } from '../lib/admin-api.js';
 import ClassroomOverviewView from './classroom-overview-view.jsx';
 
@@ -34,10 +36,114 @@ const formatDate = iso => (iso ? iso.replace('T', ' ').slice(0, 16) : '-');
 const itemLine = (item, tail) =>
     `課題: ${item.assignmentName || '-'} ・ コード: ${item.joinCode} ・ ${tail}`;
 
+// お知らせ送信 (notification center #1111): この課題を作った先生の
+// クラス管理画面右上「お知らせ」に届く。宛先はサーバー側で classroomId
+// から解決される（teacherSub は SPA に出さない）。
+const NotificationSendPanel = ({classroomId}) => {
+    const [title, setTitle] = useState('運営からのお知らせ');
+    const [message, setMessage] = useState('');
+    const [confirming, setConfirming] = useState(false);
+    const [busy, setBusy] = useState(false);
+    const [sent, setSent] = useState(false);
+    const [error, setError] = useState('');
+
+    const handleTitle = useCallback(e => setTitle(e.target.value), []);
+    const handleMessage = useCallback(e => setMessage(e.target.value), []);
+    const handleArm = useCallback(() => {
+        setSent(false);
+        setError('');
+        setConfirming(true);
+    }, []);
+    const handleDisarm = useCallback(() => setConfirming(false), []);
+    const handleSend = useCallback(async () => {
+        setBusy(true);
+        setError('');
+        try {
+            await sendNotification(classroomId, {title: title.trim(), message: message.trim()});
+            setConfirming(false);
+            setSent(true);
+            setMessage('');
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setBusy(false);
+        }
+    }, [classroomId, title, message]);
+
+    return (
+        <div
+            className="admin-panel"
+            data-testid="classroom-admin-notify"
+        >
+            <h4>{'先生へのお知らせ'}</h4>
+            <p className="admin-meta">
+                {'この課題を作成した先生のクラス管理画面（右上「お知らせ」）に届きます。'}
+            </p>
+            <input
+                data-testid="classroom-admin-notify-title"
+                maxLength={100}
+                placeholder="タイトル"
+                type="text"
+                value={title}
+                onChange={handleTitle}
+            />
+            <textarea
+                data-testid="classroom-admin-notify-message"
+                maxLength={1000}
+                placeholder="本文（例: この課題、みんなの課題に共有しませんか？）"
+                rows={3}
+                value={message}
+                onChange={handleMessage}
+            />
+            {error ? <p
+                className="admin-error"
+                data-testid="classroom-admin-notify-error"
+            >{error}</p> : null}
+            {sent ? <p data-testid="classroom-admin-notify-done">{'送信しました。'}</p> : null}
+            <div className="admin-actions">
+                {confirming ? (
+                    <span
+                        className="admin-confirm"
+                        data-testid="classroom-admin-notify-confirm"
+                    >
+                        {'この内容で先生にお知らせを送りますか？'}
+                        <button
+                            data-testid="classroom-admin-notify-confirm-yes"
+                            disabled={busy}
+                            type="button"
+                            onClick={handleSend}
+                        >{'送信'}</button>
+                        <button
+                            data-testid="classroom-admin-notify-confirm-no"
+                            disabled={busy}
+                            type="button"
+                            onClick={handleDisarm}
+                        >{'やめる'}</button>
+                    </span>
+                ) : (
+                    <button
+                        data-testid="classroom-admin-notify-send"
+                        disabled={busy || !title.trim() || !message.trim()}
+                        type="button"
+                        onClick={handleArm}
+                    >{'お知らせを送る'}</button>
+                )}
+            </div>
+        </div>
+    );
+};
+
+NotificationSendPanel.propTypes = {
+    classroomId: PropTypes.string.isRequired
+};
+
 const ClassroomDetail = ({classroomId, onBack, onChanged}) => {
     const [detail, setDetail] = useState(null);
     const [error, setError] = useState('');
     const [confirming, setConfirming] = useState(false);
+    // 共有推奨 (#1106) はアーカイブ切替とは独立した確認ステップ
+    // （同時にどちらか一方しか arm できない）。
+    const [confirmingRecommend, setConfirmingRecommend] = useState(false);
     const [busy, setBusy] = useState(false);
 
     useEffect(() => {
@@ -46,7 +152,10 @@ const ClassroomDetail = ({classroomId, onBack, onChanged}) => {
             .catch(err => setError(err.message));
     }, [classroomId]);
 
-    const handleArm = useCallback(() => setConfirming(true), []);
+    const handleArm = useCallback(() => {
+        setConfirmingRecommend(false);
+        setConfirming(true);
+    }, []);
     const handleDisarm = useCallback(() => setConfirming(false), []);
     const handleFlip = useCallback(async () => {
         if (!detail) return;
@@ -57,6 +166,32 @@ const ClassroomDetail = ({classroomId, onBack, onChanged}) => {
             const updated = await setClassroomStatus(classroomId, next);
             setDetail(prev => ({...prev, status: updated.status}));
             setConfirming(false);
+            onChanged();
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setBusy(false);
+        }
+    }, [detail, classroomId, onChanged]);
+
+    const handleArmRecommend = useCallback(() => {
+        setConfirming(false);
+        setConfirmingRecommend(true);
+    }, []);
+    const handleDisarmRecommend = useCallback(() => setConfirmingRecommend(false), []);
+    const handleFlipRecommend = useCallback(async () => {
+        if (!detail) return;
+        setBusy(true);
+        setError('');
+        try {
+            const updated = await setSharingRecommendation(classroomId, !detail.recommendedForSharing);
+            setDetail(prev => ({
+                ...prev,
+                recommendedForSharing: updated.recommendedForSharing,
+                recommendedForSharingAt: updated.recommendedForSharingAt,
+                recommendedForSharingBy: updated.recommendedForSharingBy
+            }));
+            setConfirmingRecommend(false);
             onChanged();
         } catch (err) {
             setError(err.message);
@@ -76,6 +211,7 @@ const ClassroomDetail = ({classroomId, onBack, onChanged}) => {
     return (
         <div data-testid="classroom-admin-detail">
             <button
+                className="admin-back-button"
                 data-testid="classroom-admin-back"
                 type="button"
                 onClick={onBack}
@@ -84,6 +220,13 @@ const ClassroomDetail = ({classroomId, onBack, onChanged}) => {
                 {detail.className}
                 {' '}
                 <ClassroomStatusBadge status={detail.status} />
+                {' '}
+                {detail.recommendedForSharing ? (
+                    <span
+                        className="admin-badge admin-badge-ok"
+                        data-testid="classroom-admin-recommended-badge"
+                    >{'共有推奨中'}</span>
+                ) : null}
             </h3>
             <p className="admin-meta">
                 {`課題: ${detail.assignmentName || '-'} ・ 参加コード: ${detail.joinCode}`}
@@ -126,7 +269,42 @@ const ClassroomDetail = ({classroomId, onBack, onChanged}) => {
                         {detail.status === 'active' ? 'アーカイブする' : '利用中に戻す'}
                     </button>
                 )}
+                {' '}
+                {detail.status === 'active' ? (
+                    confirmingRecommend ? (
+                        <span
+                            className="admin-confirm"
+                            data-testid="classroom-admin-recommend-confirm"
+                        >
+                            {detail.recommendedForSharing ?
+                                '共有推奨を取り消しますか？（先生には通知されません）' :
+                                'この課題の共有を推奨しますか？（作成した先生にお知らせが届き、課題にバナーが出ます）'}
+                            <button
+                                data-testid="classroom-admin-recommend-confirm-yes"
+                                disabled={busy}
+                                type="button"
+                                onClick={handleFlipRecommend}
+                            >{'実行'}</button>
+                            <button
+                                data-testid="classroom-admin-recommend-confirm-no"
+                                disabled={busy}
+                                type="button"
+                                onClick={handleDisarmRecommend}
+                            >{'やめる'}</button>
+                        </span>
+                    ) : (
+                        <button
+                            data-testid="classroom-admin-recommend"
+                            disabled={busy}
+                            type="button"
+                            onClick={handleArmRecommend}
+                        >
+                            {detail.recommendedForSharing ? '共有推奨を取り消す' : 'みんなの課題への共有を推奨する'}
+                        </button>
+                    )
+                ) : null}
             </div>
+            <NotificationSendPanel classroomId={classroomId} />
         </div>
     );
 };
@@ -183,6 +361,7 @@ const RestorePanel = ({classroomId, onBack}) => {
                     </p>
                 )}
                 <button
+                    className="admin-back-button"
                     data-testid="restore-admin-done-back"
                     type="button"
                     onClick={onBack}
@@ -196,6 +375,7 @@ const RestorePanel = ({classroomId, onBack}) => {
             <div data-testid="restore-admin-alive">
                 <p>{'このクラスはまだ存在しています。アーカイブからの復旧は先生自身のクラス管理画面から行えます。'}</p>
                 <button
+                    className="admin-back-button"
                     data-testid="restore-admin-back"
                     type="button"
                     onClick={onBack}
@@ -207,6 +387,7 @@ const RestorePanel = ({classroomId, onBack}) => {
     return (
         <div data-testid="restore-admin-plan">
             <button
+                className="admin-back-button"
                 data-testid="restore-admin-back"
                 type="button"
                 onClick={onBack}

@@ -116,4 +116,44 @@ describe('SharedAssignmentForm (issue #1069)', () => {
         expect(byTestId('shared-form-author-name')).toHaveValue('記憶済み');
         expect(byTestId('shared-form-author-affiliation')).toHaveValue('島根県');
     });
+
+    test('編集モード: initialValues が初期値になり classroomId を送らない (#1110)', () => {
+        const onShare = jest.fn();
+        renderForm({
+            selectedClassroom: null,
+            initialValues: {
+                title: '限定公開の課題',
+                summary: '説明',
+                schoolLevel: 'high',
+                grades: [2],
+                subject: '情報Ⅰ',
+                tags: ['AI'],
+                lessonCount: 3,
+                supplementUrl: 'https://docs.google.com/document/d/x/view',
+                authorName: 'るびお',
+                authorAffiliation: '島根県',
+            },
+            onShare,
+        });
+        expect(byTestId('shared-form-title')).toHaveValue('限定公開の課題');
+        expect(byTestId('shared-form-subject')).toHaveValue('情報Ⅰ');
+        expect(byTestId('shared-form-tags')).toHaveValue('AI');
+        // CC BY 同意は編集モードでも改めて必要。
+        expect(byTestId('shared-form-submit')).toBeDisabled();
+        fireEvent.click(byTestId('shared-form-consent'));
+        fireEvent.click(byTestId('shared-form-submit'));
+
+        const payload = onShare.mock.calls[0][0];
+        expect(payload.classroomId).toBeUndefined();
+        expect(payload).toEqual(
+            expect.objectContaining({
+                title: '限定公開の課題',
+                schoolLevel: 'high',
+                grades: [2],
+                subject: '情報Ⅰ',
+                lessonCount: 3,
+                licenseConsent: true,
+            }),
+        );
+    });
 });

@@ -130,6 +130,7 @@ sequenceDiagram
 | **DynamoDB** | `ClassroomGroups-{stage}` | クラス（学級）情報（Streams: OLD_IMAGE） |
 | **DynamoDB** | `SharedAssignments-{stage}` | みんなの課題（TTL なし・prod RETAIN + PITR） |
 | **DynamoDB** | `SharedAssignmentReports-{stage}` | みんなの課題の通報（TTL 90日） |
+| **DynamoDB** | `ClassroomNotifications-{stage}` | お知らせ（EPIC #1111。TTL は書き手の admin スタックが付与・既定 180 日） |
 | **S3** | `smalruby-shared-assignments-{stage}` | 共有課題のスナップショット（lifecycle なし = 永続・prod RETAIN） |
 | **S3** | `smalruby-classroom-submissions-{stage}` | 提出ファイル (.sb3, サムネイル, スクリーンショット) + `ddb-archive/` スナップショット。lifecycle = `ARCHIVE_RETENTION_DAYS`（既定 365 日） |
 | **Route53** | A レコード | カスタムドメイン |
@@ -187,6 +188,8 @@ sequenceDiagram
 | `PATCH` | `/classroom-groups/{groupId}/topics` | トピックの add / remove / rename（rename・remove は課題へ一括追従） |
 | `POST` | `/classrooms/{id}/duplicate` | クラス（授業）の複製。課題コンテンツの S3 オブジェクトもコピー。`groupId` / `className` / `assignmentName` を上書き可。メンバー・提出は複製しない |
 | `POST` | `/classrooms/{id}/evaluate` | AI 評価支援。静的解析結果（シグナル + 擬似コード）を Anthropic API にリレーし、`mode: grade` は S/A/B/C 案 + 根拠 + needsReview、`mode: comment` は生徒向けポジティブコメント下書きを返す。1リクエスト最大10提出（API GW の30秒制限対策、クライアントがチャンク分割）。先生ごとにレート制限（既定 60回/時） |
+| `GET` | `/notifications` | お知らせ一覧（EPIC #1111）。自分宛て（teacherSub）の直近 50 件 + `unreadCount` を返す。書き込みは admin スタックのみ（単一ライター） |
+| `POST` | `/notifications/mark-read` | お知らせ既読化。`{notificationIds?}` — 省略時は一覧窓（直近 50 件）の未読を全既読化（パネルを開いたらバッジが消える UX） |
 
 ### みんなの課題 (共有課題ライブラリ・先生 ID Token 認証)
 
@@ -205,6 +208,7 @@ sequenceDiagram
 | `POST` | `/shared-assignments/{id}/report` | 通報（理由必須・20件/日制限。reporterSub は内部保持のみ） |
 
 - **公開範囲（#1109）**: 項目は `visibility`（`public`/`limited`）を持つ。#1109 以前の項目は属性を持たず `public` とみなす（後方互換）。`limited` は `passcode`（合言葉）を持ち、公開カタログには出ない。「限定公開（合言葉・内輪）→ Admin が把握 → 推薦 → 全体公開」パイプラインの土台
+- **Admin 推薦（#1110）**: 項目は `recommendedAt` / `recommendedBy`（admin email）を持ちうる。書き込みは admin API（`POST/DELETE /admin/shared-assignments/{id}/recommend`）のみ。先生側 API には boolean の `recommended` だけを投影（`recommendedBy` は内部情報）。推薦時は著者へお知らせ（#1111・type `shared_recommended`・`link.kind='shared-mine'`）が飛ぶ
 - データ: `SharedAssignments{suffix}`（**TTL なし・prod は RETAIN + PITR**。GSI: `status-createdAt-index` / `authorSub-createdAt-index` / `passcode-index`（合言葉ルックアップ・#1109））、`SharedAssignmentReports{suffix}`（TTL 90日）
 - ファイル: 専用バケット `smalruby-shared-assignments{suffix}`（**lifecycle なし = 永続**、`shared/{sharedId}/` プレフィックス）。クラス側の保存期限と完全に分離
 - 共有/取り込みの実体は既存 duplicate と同じ S3 サーバー側コピー（クロスバケット）
@@ -244,6 +248,8 @@ erDiagram
         string googleClassroomCourseId "任意"
         list coTeacherEmails "共同管理者の email 配列 (任意, 最大10)"
         map assignment "課題コンテンツ (任意): {pages: [{text, imageKey?}], starterKey?, updatedAt}"
+        string recommendedForSharingAt "共有推奨 (#1106, 任意)。書き込みは admin API のみ。先生側 API には boolean recommendedForSharing を投影"
+        string recommendedForSharingBy "推奨した admin の email (内部用・先生側 API では返さない)"
         string groupId "所属する組 (任意)"
         string status "active / archived"
         string createdAt "ISO8601"
@@ -312,6 +318,31 @@ erDiagram
 - これにより、kick された生徒の次回 `verify-session` 呼出で 410 reason='kicked' を返せる
 - `listMembers` / `lookup takenSeats` は `FilterExpression: attribute_not_exists(kicked) OR kicked <> :true` で tombstone を除外
 - `joinClassroom` の `ConditionExpression: attribute_not_exists(memberId) OR kicked = :true` で新生徒が kicked 行を上書き可能 (tombstone はその時点で消滅)
+
+### ClassroomNotifications テーブル（お知らせ・EPIC #1111）
+
+```mermaid
+erDiagram
+    ClassroomNotifications {
+        string teacherSub PK "宛先の先生 (Google/Microsoft sub)"
+        string notificationId SK "createdAt ISO + '#' + UUID (時系列ソート)"
+        string type "admin_message など (リンク種別の意味付け)"
+        string title "最大100文字"
+        string body "最大1000文字"
+        map link "任意: {kind: 'classroom', classroomId} — クリック時のジャンプ先"
+        string readAt "既読日時 (未読は属性なし)"
+        string createdBy "送信した admin の email (内部用・API では返さない)"
+        string createdAt "ISO8601"
+        number ttl "Unix timestamp (既定180日)"
+    }
+```
+
+**GSI なし** — 宛先 (PK) への Query だけで受信箱になる。
+
+- **単一ライター**: 書き込みは admin スタック（`POST /admin/notifications`、名前規約 import + write-only grant）のみ。classroom API は一覧と既読化だけを提供するので、エディタ側からお知らせを偽造できない
+- 宛先の `teacherSub` は admin SPA に出さず、admin API が classroomId から解決する
+- `link.kind` は whitelist（現在 `classroom` のみ）。エディタは未知の kind を無視する（前方互換）
+- GUI は先生モーダルのタイトルバー 🔔 から一覧を開く。パネルを開いた時点で mark-read（全件）が走りバッジが消える。60 秒間隔でポーリング
 
 ### ClassroomSubmissions テーブル
 

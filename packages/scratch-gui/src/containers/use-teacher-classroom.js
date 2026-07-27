@@ -13,6 +13,7 @@ import useTeacherAuth, { getCachedTeacherIdToken, setCachedTeacherIdToken } from
 import useTeacherClassrooms from './use-teacher-classrooms.js';
 import useTeacherEvaluation from './use-teacher-evaluation.js';
 import useTeacherGroups from './use-teacher-groups.js';
+import useTeacherNotifications from './use-teacher-notifications.js';
 import useTeacherSubmissions from './use-teacher-submissions.js';
 
 export { getCachedTeacherIdToken, setCachedTeacherIdToken };
@@ -145,15 +146,75 @@ const useTeacherClassroom = ({
         setIsLoading,
     });
 
+    // お知らせセンター (EPIC #1111)
+    const notifications = useTeacherNotifications({
+        idToken: auth.idToken,
+        handleTeacher401: auth.handleTeacher401,
+    });
+
     // --- Composed handlers ---
 
     const handleTeacherLogout = useCallback(() => {
         auth.logoutAuth();
         classrooms.resetClassrooms();
         submissions.resetSubmissionDisplay();
+        notifications.resetNotifications();
         clearError();
         setPhase(mode === 'teacher' ? 'teacher-login' : 'student-join');
-    }, [auth, classrooms, submissions, mode, clearError, setPhase]);
+    }, [auth, classrooms, submissions, notifications, mode, clearError, setPhase]);
+
+    /**
+     * Open the view an お知らせ links to. Kinds are a small whitelist the
+     * admin side also enforces; unknown kinds just close the panel (a newer
+     * server may send kinds this build doesn't know yet).
+     * @param {object|null} link - {kind, ...} from the notification item
+     */
+    const handleOpenNotificationLink = useCallback(
+        (link) => {
+            notifications.handleCloseNotifications();
+            if (!link || !link.kind) return;
+            if (link.kind === 'classroom') {
+                // Scope the board to the owning class first (breadcrumbs and
+                // back-navigation then behave as if opened from the board),
+                // then open the assignment detail itself.
+                const all = [...(classrooms.classrooms || []), ...(classrooms.archivedClassrooms || [])];
+                const target = all.find((c) => c.classroomId === link.classroomId);
+                if (target && target.groupId) {
+                    const group = (groups.groups || []).find((g) => g.groupId === target.groupId);
+                    if (group) groups.handleSelectGroup(group);
+                }
+                classrooms.handleSelectClassroom(link.classroomId);
+            } else if (link.kind === 'shared-mine') {
+                // 推薦通知 (#1110) のジャンプ先: みんなの課題の「自分の投稿」。
+                // カタログはボード内サブビューなので、課題詳細など別フェーズに
+                // いても必ず handleSelectGroup でボード (teacher-dashboard) へ
+                // 戻してから開く（レビュー指摘: phase を戻さないと無反応になる）。
+                const target = groups.selectedGroup || (groups.groups || []).find((g) => g.status !== 'archived');
+                if (!target) {
+                    // クラスが 1 つも無いとカタログを載せる場所が無い。黙って
+                    // 何も起きないのが最悪なので理由を表示する。
+                    showError(
+                        intl.formatMessage({
+                            defaultMessage: 'Create a class first to open みんなの課題.',
+                            description:
+                                'Error when a notification link needs a class but the teacher has none (#1110)',
+                            id: 'gui.classroom.shared.noClassForCatalog',
+                        }),
+                    );
+                    return;
+                }
+                groups.handleSelectGroup(target);
+                shared.handleOpenCatalogMine();
+            }
+        },
+        [notifications, classrooms, groups, shared, showError, intl],
+    );
+
+    // お知らせパネルの「すべて見る」→ 全件一覧ページ（#1111 レビュー）。
+    const handleShowAllNotifications = useCallback(() => {
+        notifications.handleCloseNotifications();
+        setPhase('teacher-notifications');
+    }, [notifications, setPhase]);
 
     const handleBackToDashboard = useCallback(() => {
         classrooms.handleBackToDashboard();
@@ -244,6 +305,17 @@ const useTeacherClassroom = ({
         // Evaluation (期末評価)
         evaluation,
         shared,
+
+        // お知らせセンター (#1111)
+        notificationsCenter: {
+            notifications: notifications.notifications,
+            unreadCount: notifications.unreadCount,
+            isOpen: notifications.isOpen,
+            handleToggleNotifications: notifications.handleToggleNotifications,
+            handleMarkAllRead: notifications.handleMarkAllRead,
+            handleOpenLink: handleOpenNotificationLink,
+            handleShowAll: handleShowAllNotifications,
+        },
 
         // Groups (組)
         groups: groups.groups,

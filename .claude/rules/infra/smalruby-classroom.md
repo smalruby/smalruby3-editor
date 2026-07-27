@@ -27,12 +27,16 @@ CDK project for the Classroom service (API Gateway + Lambda + DynamoDB + S3).
   `X-Google-Access-Token` を含む）。stage スロットリングに加え、`/classrooms/join` と
   `/classrooms/lookup` はルート個別に厳しめのスロットリングを設定
 - **Lambda (Node.js 22)**: 単一ハンドラー (`lambda/handler.ts`) に全ビジネスロジック
-- **DynamoDB (4 テーブル)**:
+- **DynamoDB (8 テーブル)**:
   - `Classrooms{suffix}` — GSI `joinCode-index` / `teacherSub-index`
   - `ClassroomMemberships{suffix}` — GSI `sessionToken-index`
   - `ClassroomSubmissions{suffix}` — GSI `classroomId-memberId-index`
   - `ClassroomKickRequests{suffix}` — GSI `classroomId-seatNumber-index`（退室依頼 #692）
-  - すべて TTL `ttl`・**RemovalPolicy: DESTROY**
+  - `ClassroomGroups{suffix}` — GSI `teacherSub-index`（クラス=学級、長期 TTL 400日）
+  - `SharedAssignments{suffix}` — GSI `status-createdAt-index` / `authorSub-createdAt-index` / `passcode-index`（みんなの課題 #1066。**TTL なし・prod RETAIN + PITR**）
+  - `SharedAssignmentReports{suffix}` — 通報（TTL 90日）
+  - `ClassroomNotifications{suffix}` — お知らせ #1111（PK teacherSub / SK notificationId。**書き手は admin スタックのみ**・この Lambda は Query/UpdateItem だけ grant）
+  - 上記注記のないものは TTL `ttl`・**RemovalPolicy: DESTROY**
 - **S3** `smalruby-classroom-submissions{suffix}`: 提出ファイル (project.sb3, thumbnail.png,
   screenshots)。lifecycle 期限 = `CLASSROOM_TTL_DAYS`
 - **認証**: Google / Microsoft ID Token（`iss` 自動判別 + JWKS 検証。bug-report と同型）。

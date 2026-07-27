@@ -199,3 +199,44 @@ describe('TeacherAssignmentBoard — retention notice (issue #1052)', () => {
         expect(byTestId('classroom-board-expiry-c1')).not.toBeInTheDocument();
     });
 });
+
+describe('TeacherAssignmentBoard — reuse excludes archived (review feedback)', () => {
+    test('reuse candidates and the class filter exclude archived classes and assignments', () => {
+        const allGroups = [
+            { groupId: 'g1', name: 'A', year: 2026, status: 'active', topics: [] },
+            { groupId: 'gArch', name: 'B', year: 2026, status: 'archived', topics: [] },
+        ];
+        const allClassrooms = [
+            { classroomId: 'active1', groupId: 'g1', assignmentName: 'A課題', status: 'active' },
+            { classroomId: 'archAssign', groupId: 'g1', assignmentName: 'アーカイブ課題', status: 'archived' },
+            { classroomId: 'inArchGroup', groupId: 'gArch', assignmentName: 'アーカイブ組の課題', status: 'active' },
+        ];
+        renderBoard({
+            group: { groupId: 'g1', name: 'A', year: 2026, topics: [] },
+            allGroups,
+            allClassrooms,
+        });
+        fireEvent.click(byTestId('classroom-board-reuse'));
+
+        // Only the active assignment of an active class is a candidate.
+        expect(byTestId('classroom-board-reuse-copy-active1')).toBeInTheDocument();
+        expect(byTestId('classroom-board-reuse-copy-archAssign')).not.toBeInTheDocument();
+        expect(byTestId('classroom-board-reuse-copy-inArchGroup')).not.toBeInTheDocument();
+
+        // The class filter lists only the active class.
+        const values = [...byTestId('classroom-board-reuse-filter').options].map((o) => o.value);
+        expect(values).toContain('g1');
+        expect(values).not.toContain('gArch');
+    });
+
+    test('共有おすすめマーク (#1106): recommendedForSharing の行だけに出る', () => {
+        renderBoard({
+            classrooms: [
+                classroom({ recommendedForSharing: true }),
+                classroom({ classroomId: 'c2', assignmentName: '課題2' }),
+            ],
+        });
+        expect(byTestId('classroom-board-share-suggested-c1')).toBeInTheDocument();
+        expect(byTestId('classroom-board-share-suggested-c2')).not.toBeInTheDocument();
+    });
+});
