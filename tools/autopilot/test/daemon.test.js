@@ -769,6 +769,23 @@ test('applyLabelHealing: sub-issue 件数の取得失敗でも 🤖 担保は続
     assert.ok(!added.some((a) => a.add.includes(TRACKING_LABEL)));
 });
 
+test('applyLabelHealing: レート残量が僅少なら sub-issue 件数の追加 read を撃たない（🤖 担保は継続）', async () => {
+    const { TRACKING_LABEL, AUTOPILOT_LABEL } = require('../src/phases');
+    const items = [{ issue: 1, status: 'In Progress', kind: 'EPIC', labels: [] }];
+    const added = [];
+    let fetched = 0;
+    const state = { running: new Map(), ratePlan: { skipLowPriority: true, minRemaining: 42 } };
+    await applyLabelHealing(items, makeCfg(), state, () => {}, {
+        token: 't',
+        readToken: 'r',
+        getBoardEnrichment: () => { fetched += 1; return {}; },
+        editLabels: (repo, number, type, diff) => added.push({ number, ...diff }),
+    });
+    assert.equal(fetched, 0, 'レート僅少時は enrichment を撃たない');
+    assert.deepEqual(added, [{ number: 1, add: [AUTOPILOT_LABEL] }]);
+    assert.ok(!added.some((a) => a.add.includes(TRACKING_LABEL)));
+});
+
 // === decompose 完了後の sub-issue Project フィールド補完（#914） ===
 
 test('applyDecomposeSubIssueSetup: 新規 sub-issue に Status/Kind/Size を設定する (#914)', async () => {
