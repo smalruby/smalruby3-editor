@@ -1143,6 +1143,26 @@ function draftAction(currentIsDraft, item) {
 }
 
 /**
+ * item が人間ゲート状態（daemon が解除シグナルの付帯情報を集めるべき状態）か（純粋関数）。
+ * Review / DoD（{@link HUMAN_GATE_STATUSES}）、Blocked（人間の対処待ち）、実装前ディスカッション
+ * （New Item / Backlog + AI Status=Discussing）が該当し、{@link phaseForItem} が
+ * {@link isGateReleased} で出口を決める状態と対になっている。
+ *
+ * 判定を daemon 側に置くとゲート状態を増やしたとき ctx 収集だけ漏れて「解除しても再開しない」
+ * 固着を生むため、phaseForItem と同じファイルに置いて一緒に更新できるようにする（#1130 の
+ * ラベル判定二重定義と同じ轍を踏まないため）。checkpoint（Awaiting Continuation）は
+ * continuation ファイル由来の別経路で ctx を集めるのでここには含めない。
+ * @param {object} item { status, aiStatus }
+ * @returns {boolean}
+ */
+function isGateItem(item) {
+    if (!item) return false;
+    const status = item.status || 'New Item';
+    if (HUMAN_GATE_STATUSES.has(status) || status === 'Blocked') return true;
+    return (status === 'New Item' || status === 'Backlog') && item.aiStatus === 'Discussing';
+}
+
+/**
  * item が「HITL ラベルが解除ジェスチャを兼ねる」steady-state ゲート状態か（純粋関数）。
  * Review / DoD（Status 基準）に加え、Awaiting Continuation（In Progress + AI Status 基準・
  * EPIC #906）もここに含める。含めないと、checkpoint 中に人間が PR 側の 🙋 だけ外しても
@@ -1185,7 +1205,8 @@ function hitlLabelAction(item, present, opts = {}) {
  * autopilot ラベルは常時担保し、HITL ラベルは {@link hitlLabelAction} に従う。
  * @param {object} item
  * @param {string[]} currentLabels 現在付いているラベル名
- * @param {object} [opts] { force }
+ * @param {object} [opts] { force, skipHitl } — skipHitl=true は 🙋 を一切扱わない
+ *   （label healing 用。{@link healingLabelActions}）
  * @returns {{add: string[], remove: string[]}}
  */
 function labelActions(item, currentLabels, opts = {}) {
@@ -1199,10 +1220,55 @@ function labelActions(item, currentLabels, opts = {}) {
     // 自動では外さない（人間が手動で付けたトラッカー指定を潰さない）。
     const decomposed = Boolean(item && item.subIssues && item.subIssues.total > 0);
     if (item && item.kind === 'EPIC' && decomposed && !cur.includes(TRACKING_LABEL)) add.push(TRACKING_LABEL);
+    if (opts.skipHitl) return { add, remove };
     const h = hitlLabelAction(item, cur.includes(HITL_LABEL), opts);
     if (h === 'add') add.push(HITL_LABEL);
     else if (h === 'remove') remove.push(HITL_LABEL);
     return { add, remove };
+}
+
+/**
+ * label healing（daemon が毎 tick 行う「管理対象ラベルの担保」）で付けるラベル差分（純粋関数）。
+ *
+ * 判定は {@link labelActions} に一本化する — daemon 側で同じ判定を再実装すると、`decomposed`
+ * ガードのような後付けの修正が片方の経路にしか当たらない（#1130 = #680/#681 の再発）。
+ * 🙋 HITL は healing の責務外（`skipHitl`）: 人間が外した 🙋 は「ゲート解除シグナル」なので、
+ * healing が再付与すると人間ゲートで固着する。🙋 の同期は面投影（syncFacesForItem）が行う。
+ * @param {object} item { kind, status, subIssues }
+ * @param {string[]} currentLabels 現在付いているラベル名
+ * @returns {{add: string[], remove: string[]}}
+ */
+function healingLabelActions(item, currentLabels) {
+    return labelActions(item, currentLabels, { skipHitl: true });
+}
+
+/**
+ * label healing の対象 item を選ぶ（純粋関数）。終端 Status は問い合わせ対象外（API 予算規約）、
+ * 実行中の item は live phase が所有するので触らない。
+ * @param {object[]} items
+ * @param {{has: Function}} running 実行中 issue の Map/Set
+ * @returns {object[]}
+ */
+function selectLabelHealingItems(items, running) {
+    const isRunning = (n) => Boolean(running && running.has(n));
+    return (items || []).filter(
+        (it) => it && !TERMINAL_STATUSES.has(it.status) && !isRunning(it.issue),
+    );
+}
+
+/**
+ * 🧭 tracking の担保判定に sub-issue 件数が要る item の issue 番号を返す（純粋関数）。
+ * Project の item-list は sub-issue 件数を返さないため、`labelActions` の `decomposed` ガードを
+ * daemon 経路でも効かせるには件数の補完が要る（#1130）。取得対象は **🧭 未付与の Kind=EPIC で
+ * 件数が未知のもの**だけに絞る（既に付いていれば再付与不要・leaf は無関係 — API 予算規約）。
+ * @param {object[]} items
+ * @returns {number[]}
+ */
+function selectSubIssueCountTargets(items) {
+    return (items || [])
+        .filter((it) => it && it.kind === 'EPIC' && !it.subIssues
+            && !(it.labels || []).includes(TRACKING_LABEL))
+        .map((it) => it.issue);
 }
 
 /**
@@ -2223,6 +2289,7 @@ module.exports = {
     needsPrLinkSticky,
     renderPrLinkSticky,
     HUMAN_GATE_STATUSES,
+    isGateItem,
     dodHandoffMarker,
     isDodHandoffComment,
     hasDodHandoffComment,
@@ -2247,6 +2314,9 @@ module.exports = {
     isSteadyStateHitlGate,
     hitlLabelAction,
     labelActions,
+    healingLabelActions,
+    selectLabelHealingItems,
+    selectSubIssueCountTargets,
     renderSticky,
     applyIntentsToItem,
     AWAITING_CONTINUATION_STATUS,

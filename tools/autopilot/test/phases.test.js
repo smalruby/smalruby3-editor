@@ -337,6 +337,72 @@ test('labelActions: 🧭 tracking は分解済み EPIC にだけ担保する（�
     assert.ok(!labelActions(leaf, [AUTOPILOT_LABEL, TRACKING_LABEL]).remove.includes(TRACKING_LABEL));
 });
 
+test('healingLabelActions: 判定は labelActions に一本化し、🙋 HITL は扱わない (#1130)', () => {
+    const { healingLabelActions } = require('../src/phases');
+    // 未分解 EPIC には 🧭 を付けない（daemon の label healing 経路でも・#1130）
+    const undecomposed = { kind: 'EPIC', status: 'In Progress', aiStatus: 'Decomposing', hitlLabel: true };
+    assert.deepEqual(healingLabelActions(undecomposed, []).add, [AUTOPILOT_LABEL]);
+    // 分解済み EPIC には付ける
+    const decomposed = { kind: 'EPIC', status: 'In Progress', subIssues: { total: 2, completed: 0 } };
+    assert.deepEqual(healingLabelActions(decomposed, []).add, [AUTOPILOT_LABEL, TRACKING_LABEL]);
+    // 人間が外した 🙋 を healing が再付与しない（Review/DoD/Awaiting Continuation でも他状態でも）
+    for (const item of [
+        { kind: 'Issue', status: 'Review', hitlLabel: true },
+        { kind: 'Issue', status: 'Blocked', hitlLabel: true },
+        { kind: 'Issue', status: 'In Progress', aiStatus: 'Awaiting Continuation', hitlLabel: true },
+    ]) {
+        const acts = healingLabelActions(item, [AUTOPILOT_LABEL]);
+        assert.ok(!acts.add.includes(HITL_LABEL), `${item.status}: healing が 🙋 を付与している`);
+        assert.ok(!acts.remove.includes(HITL_LABEL), `${item.status}: healing が 🙋 を除去している`);
+    }
+    // 🙋 が付いていて Project 上は HITL でない item でも healing は 🙋 に触らない（面同期の責務）
+    const stale = { kind: 'Issue', status: 'Sprint Backlog', hitlLabel: false };
+    assert.deepEqual(healingLabelActions(stale, [AUTOPILOT_LABEL, HITL_LABEL]), { add: [], remove: [] });
+});
+
+test('selectLabelHealingItems: 非終端かつ実行中でない item だけを返す (#1130)', () => {
+    const { selectLabelHealingItems } = require('../src/phases');
+    const items = [
+        { issue: 1, status: 'In Progress' },
+        { issue: 2, status: 'Close' },
+        { issue: 3, status: 'Done' },
+        { issue: 4, status: 'Backlog' },
+        null,
+    ];
+    const running = new Map([[4, {}]]);
+    assert.deepEqual(selectLabelHealingItems(items, running).map((i) => i.issue), [1]);
+    assert.deepEqual(selectLabelHealingItems(items, new Set()).map((i) => i.issue), [1, 4]);
+    assert.deepEqual(selectLabelHealingItems(null, new Set()), []);
+});
+
+test('selectSubIssueCountTargets: 🧭 未付与 EPIC で件数未知のものだけ返す (#1130)', () => {
+    const { selectSubIssueCountTargets } = require('../src/phases');
+    const items = [
+        { issue: 1, kind: 'EPIC', labels: [] }, // 件数不明 → 要取得
+        { issue: 2, kind: 'EPIC', labels: [TRACKING_LABEL] }, // 既に 🧭 → 不要
+        { issue: 3, kind: 'EPIC', labels: [], subIssues: { total: 0 } }, // 既知 → 不要
+        { issue: 4, kind: 'Issue', labels: [] }, // leaf → 不要
+    ];
+    assert.deepEqual(selectSubIssueCountTargets(items), [1]);
+    assert.deepEqual(selectSubIssueCountTargets(null), []);
+});
+
+test('isGateItem: 人間ゲート状態の判定は phases.js に集約する (#1130 audit)', () => {
+    const { isGateItem } = require('../src/phases');
+    // HUMAN_GATE_STATUSES（Review/DoD）+ Blocked + 実装前ディスカッション（Discussing）
+    assert.equal(isGateItem({ status: 'Review' }), true);
+    assert.equal(isGateItem({ status: 'DoD' }), true);
+    assert.equal(isGateItem({ status: 'Blocked' }), true);
+    assert.equal(isGateItem({ status: 'Backlog', aiStatus: 'Discussing' }), true);
+    assert.equal(isGateItem({ status: null, aiStatus: 'Discussing' }), true); // New Item 相当
+    assert.equal(isGateItem({ status: 'Backlog' }), false);
+    assert.equal(isGateItem({ status: 'In Progress', aiStatus: 'Implementing' }), false);
+    assert.equal(isGateItem(null), false);
+    // phaseForItem が解除で動かす状態は必ず ctx 収集の対象（= isGateItem）である
+    const { HUMAN_GATE_STATUSES } = require('../src/phases');
+    for (const status of HUMAN_GATE_STATUSES) assert.equal(isGateItem({ status }), true);
+});
+
 test('needsPrLinkSticky: base 非デフォルト時のみ true', () => {
     assert.equal(needsPrLinkSticky({ number: 1, base: 'topic/epic-738' }), true);
     assert.equal(needsPrLinkSticky({ number: 1, base: 'develop' }), false);

@@ -48,9 +48,24 @@ Status / AI Status / ラベルの集合を変更したら、**必ず次の 3 つ
 |---|---|---|---|
 | `🤖 autopilot` | `AUTOPILOT_LABEL` | autopilot 管理対象。**広い GitHub 問い合わせの限定キー**を兼ねる | daemon が非終端 item に毎 tick 担保（label healing）。外さない |
 | `🙋 HITL` | `HITL_LABEL` | 人間の番（**HITL の唯一の真実**・#813。Project に HITL フィールドは無い） | set = daemon が Issue/PR 両面へ一括付与。release = 人間（どちらか片面の除去で OR 解除）。steady-state 同期では**人間が外したラベルを再付与しない**（`hitlLabelAction` の force 分岐） |
-| `🧭 tracking` | `TRACKING_LABEL` | 分解済み親のトラッカー（作業 item ではない） | daemon が**分解済み**（`subIssues.total > 0`）の Kind=EPIC に付与（`labelActions`）。**未分解 EPIC には付けない**（付けると `phaseForItem` が decompose 前に締め出して分解が走らないデッドロックになる・#680/#681）。**自動では外さない**（人間の手動トラッカー指定を潰さない） |
+| `🧭 tracking` | `TRACKING_LABEL` | 分解済み親のトラッカー（作業 item ではない） | daemon が**分解済み**（`subIssues.total > 0`）の Kind=EPIC に付与（`labelActions`）。**未分解 EPIC には付けない**（付けると `phaseForItem` が decompose 前に締め出して分解が走らないデッドロックになる・#680/#681/#1130）。**自動では外さない**（人間の手動トラッカー指定を潰さない） |
 | `⏳ waiting` | `WAITING_LABEL` | `autopilot-after` の先行 Issue 待ち | daemon が**毎 tick 状態から動的に導出**して付け外し（`waitingLabelAction`）。静的に一度付ける実装にしない |
 | `👥 human-review-required` | `HUMAN_REVIEW_LABEL` | Bot 権限外パスを含む PR（個人トークン経路） | プロンプトが付与。**autopilot は外さない**（外すのは人間） |
+
+### ラベル判定は `labelActions()` が唯一の真実（二重定義しない）
+
+ラベルの付け外しを決める判定は **`phases.js` の `labelActions()`（と薄いラッパ
+`healingLabelActions()`）だけ**に置く。daemon の label healing（`applyLabelHealing`）は
+この純粋関数を呼ぶだけで、**同じ判定を自前で書かない** — 判定を 2 経路に持つと
+`decomposed` ガードのような後付け修正が片方にしか当たらず、未分解 EPIC への 🧭 付与
+（= decompose デッドロック）が復活する（#1130 が #680/#681 の再発）。
+
+- Project の item-list は sub-issue 件数を返さないため、healing は 🧭 未付与の EPIC についてのみ
+  件数を補完してから判定する（board キャッシュ優先 + 不足分だけバッチ GraphQL）。
+  **件数が取れないときは 🧭 を付けない**（デッドロック側に倒れない安全側の既定）。
+- healing は **🙋 HITL を扱わない**（`skipHitl`）。人間が外した 🙋 は解除シグナルなので、
+  healing が再付与すると今度は人間ゲートで固着する。🙋 の同期は面投影（`syncFacesForItem`）の責務。
+- 同じ理由で、ゲート ctx 収集の対象判定（`isGateItem`）も `phaseForItem` と同じ `phases.js` に置く。
 
 新しいラベルを追加するときは: phases.js に定数 + 純粋な action 関数 → daemon が実行、の形に
 する（ラベル名リテラルを daemon / プロンプトに直書きしない）。

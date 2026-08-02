@@ -268,3 +268,24 @@ test('#972 回帰: In Progress + 実作業系 AI Status + 🙋 HITL 残渣は wo
     // worker が生存している間は再開しない（走行中の run を横取りしない）
     assert.deepEqual(selectStalledInFlightItems([residue], new Set([973])), []);
 });
+
+test('#1130 回帰: 未分解 EPIC は 🧭 tracking で締め出されず、HITL 解除で decompose へ戻る', () => {
+    // #1129 の状況: decompose が分解案 HITL で停止（In Progress / Decomposing / 🙋）
+    const undecomposed = {
+        issue: 1129, status: 'In Progress', aiStatus: 'Decomposing', kind: 'EPIC',
+        hitlLabel: true, labels: [], subIssues: { total: 0, completed: 0 },
+    };
+    // 人間が 🙋 を外す（= 分解案の承認）と decompose が再ディスパッチされる
+    assert.equal(phaseForItem({ ...undecomposed, hitlLabel: false }, {}), 'decompose');
+    // 発言による解除（ラベルを触らない人間）でも同じ
+    assert.equal(phaseForItem(undecomposed, { humanSpokeLast: true }), 'decompose');
+    // 🧭 tracking が付いていると出口が消える（= 未分解 EPIC には決して付けてはいけない）
+    assert.equal(
+        phaseForItem({ ...undecomposed, hitlLabel: false, labels: [TRACKING_LABEL] }, {}),
+        null,
+    );
+    // ラベル判定は labelActions/healingLabelActions のどちらの経路でも 🧭 を付けない
+    const { labelActions, healingLabelActions, AUTOPILOT_LABEL } = require('../src/phases');
+    assert.ok(!labelActions(undecomposed, [AUTOPILOT_LABEL]).add.includes(TRACKING_LABEL));
+    assert.ok(!healingLabelActions(undecomposed, [AUTOPILOT_LABEL]).add.includes(TRACKING_LABEL));
+});
