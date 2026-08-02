@@ -48,6 +48,13 @@ const formatDate = iso => (iso ? iso.replace('T', ' ').slice(0, 16) : '-');
 const itemLine = (item, tail) =>
     `課題: ${item.assignmentName || '-'} ・ コード: ${item.joinCode} ・ ${tail}`;
 
+// 行・詳細の主タイトルに使う見出し (#1131)。`Classrooms.className` は課題に
+// 写された **クラス（学級）名** なので、無ラベルで太字に置くと「これが課題名だ」と
+// 読まれる（EPIC #1129 の発端になった誤読）。俯瞰の候補行と同じく `クラス: ` を
+// 付けて、下段の `課題: …` と役割を対にする。
+// className はサーバーが未設定を '' に正規化して返しうる。
+const classTitle = className => `クラス: ${className || '(名称なし)'}`;
+
 // お知らせ送信 (notification center #1111): この課題を作った先生の
 // クラス管理画面右上「お知らせ」に届く。宛先はサーバー側で classroomId
 // から解決される（teacherSub は SPA に出さない）。
@@ -229,7 +236,7 @@ const ClassroomDetail = ({classroomId, onBack, onChanged}) => {
                 onClick={onBack}
             >{'← 一覧に戻る'}</button>
             <h3>
-                {detail.className}
+                {classTitle(detail.className)}
                 {' '}
                 <ClassroomStatusBadge status={detail.status} />
                 {' '}
@@ -577,7 +584,7 @@ const RestoreBrowser = ({onOpen}) => {
                                         type="button"
                                         onClick={onOpen}
                                     >
-                                        <strong>{item.className}</strong>
+                                        <strong>{classTitle(item.className)}</strong>
                                         <span className="admin-badge admin-badge-warn">{'削除済み'}</span>
                                         <span className="admin-meta">
                                             {itemLine(item, `削除 ${formatDate(item.deletedAt)}`)}
@@ -667,7 +674,7 @@ const LiveBrowser = ({onOpen, reloadKey}) => {
                                 type="button"
                                 onClick={onOpen}
                             >
-                                <strong>{item.className}</strong>
+                                <strong>{classTitle(item.className)}</strong>
                                 <ClassroomStatusBadge status={item.status} />
                                 <span className="admin-meta">
                                     {itemLine(item, `期限 ${formatDate(item.expiresAt)}`)}
