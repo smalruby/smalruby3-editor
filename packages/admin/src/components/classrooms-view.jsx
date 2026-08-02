@@ -9,8 +9,11 @@
  * Every mutation goes through an explicit two-step confirmation.
  *
  * 用語 (#1131・辞典は docs/admin/README.md「用語辞典」):
- * この view が読み書きするのは **課題（1授業）= `Classrooms` / `classroomId`** だけで、
- * **クラス（学級）= `ClassroomGroups` / `groupId`** の状態は一切変えない。
+ * この view の操作対象は **課題（1授業）= `Classrooms` / `classroomId`**。俯瞰・
+ * 課題検索・アーカイブ切替は `Classrooms` にしか書き込まない。唯一の例外が期限切れ
+ * 復元で、削除スナップショットに親の **クラス（学級）= `ClassroomGroups` /
+ * `groupId`** が含まれていればサーバー側で一緒に復元する（そのときだけプランに
+ * 「クラス（学級）も復元します」と出す）。
  * ユーザー可視文言は必ず「課題」と呼ぶこと（「クラス」と呼ぶと、運用者が
  * 「先生の画面に戻った」と誤読する — EPIC #1129 の発端になった実際の事故）。
  * 一方で `classroomId` / `classroom-admin-*` testid / `/admin/classrooms` API パスは

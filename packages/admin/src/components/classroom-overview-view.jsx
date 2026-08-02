@@ -155,7 +155,10 @@ const ClassroomOverviewView = ({onOpenCandidate}) => {
                                         >{'推奨済み'}</span>
                                     ) : null}
                                     <span className="admin-meta">
-                                        {`クラス: ${c.className} ・ ページ${c.pageCount}`}
+                                        {/* className はサーバーが未設定を '' に正規化するので、空なら
+                                            ラベルごと出さない（「クラス: 」だけが残るのを避ける）。 */}
+                                        {c.className ? `クラス: ${c.className} ・ ` : ''}
+                                        {`ページ${c.pageCount}`}
                                         {c.hasImages ? '・画像あり' : ''}
                                         {c.hasStarter ? '・スターターあり' : ''}
                                         {` ・ ${String(c.createdAt).slice(0, 10)}`}
