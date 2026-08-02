@@ -3,10 +3,19 @@
  *
  * Three tabs:
  * - 俯瞰: dashboard (creation trend / content richness / theme / candidates).
- * - クラス検索: live classroom search (archive⇄active flip).
+ * - 課題検索: live assignment search (archive⇄active flip).
  * - 期限切れ復元: ddb-archive snapshot restore, narrowed by facets
  *   (削除時期 / 先生) so a large deleted set is browsable みんなの課題-style.
  * Every mutation goes through an explicit two-step confirmation.
+ *
+ * 用語 (#1131・辞典は docs/admin/README.md「用語辞典」):
+ * この view が読み書きするのは **課題（1授業）= `Classrooms` / `classroomId`** だけで、
+ * **クラス（学級）= `ClassroomGroups` / `groupId`** の状態は一切変えない。
+ * ユーザー可視文言は必ず「課題」と呼ぶこと（「クラス」と呼ぶと、運用者が
+ * 「先生の画面に戻った」と誤読する — EPIC #1129 の発端になった実際の事故）。
+ * 一方で `classroomId` / `classroom-admin-*` testid / `/admin/classrooms` API パスは
+ * **意図的に現状維持**（サーバー・スナップショット・E2E と一体の互換識別子。
+ * 対応表と理由は docs/admin/README.md）。
  */
 import PropTypes from 'prop-types';
 import {useCallback, useEffect, useState} from 'react';
@@ -244,8 +253,8 @@ const ClassroomDetail = ({classroomId, onBack, onChanged}) => {
                         data-testid="classroom-admin-confirm"
                     >
                         {detail.status === 'active' ?
-                            'このクラスをアーカイブしますか？（先生の一覧から非表示になります）' :
-                            'このクラスを利用中に戻しますか？'}
+                            'この課題をアーカイブしますか？（先生の課題一覧から非表示になります）' :
+                            'この課題を利用中に戻しますか？'}
                         <button
                             data-testid="classroom-admin-confirm-yes"
                             disabled={busy}
@@ -373,7 +382,10 @@ const RestorePanel = ({classroomId, onBack}) => {
     if (plan.alive) {
         return (
             <div data-testid="restore-admin-alive">
-                <p>{'このクラスはまだ存在しています。アーカイブからの復旧は先生自身のクラス管理画面から行えます。'}</p>
+                <p>
+                    {'この課題はまだ存在しています（削除されていません）。'}
+                    {'アーカイブ済みなら、先生自身のクラス管理画面から戻せます。'}
+                </p>
                 <button
                     className="admin-back-button"
                     data-testid="restore-admin-back"
@@ -401,7 +413,7 @@ const RestorePanel = ({classroomId, onBack}) => {
                 data-testid="restore-admin-summary"
             >
                 {`削除日時: ${formatDate(plan.deletedAt)} ・ 参加 ${plan.memberCount} 人 ・ 提出 ${plan.submissionCount} 件`}
-                {plan.restoresGroup ? ' ・ 組も復元します' : ''}
+                {plan.restoresGroup ? ' ・ クラス（学級）も復元します' : ''}
             </p>
             {plan.missingFiles > 0 && (
                 <p
@@ -417,7 +429,7 @@ const RestorePanel = ({classroomId, onBack}) => {
                         className="admin-confirm"
                         data-testid="restore-admin-confirm"
                     >
-                        {'このクラスを復元しますか？（保存期間は今日から数え直されます）'}
+                        {'この課題を復元しますか？（保存期間は今日から数え直されます）'}
                         <button
                             data-testid="restore-admin-confirm-yes"
                             disabled={busy}
@@ -450,7 +462,7 @@ RestorePanel.propTypes = {
 };
 
 // 期限切れ復元タブ: q は任意。ファセット（削除時期 / 先生）で大量の削除済みを
-// 絞り込んでからクラス丸ごと復元する。
+// 絞り込んでから課題（と、消えていれば親クラス）を丸ごと復元する。
 const RestoreBrowser = ({onOpen}) => {
     const [query, setQuery] = useState('');
     const [month, setMonth] = useState('');
@@ -548,7 +560,7 @@ const RestoreBrowser = ({onOpen}) => {
                     </div>
                     <p className="admin-meta">{`${data.total} 件中 ${Math.min(data.total, data.items.length)} 件を表示`}</p>
                     {data.items.length === 0 ? (
-                        <p data-testid="classroom-admin-empty">{'該当する削除済みクラスはありません。'}</p>
+                        <p data-testid="classroom-admin-empty">{'該当する削除済み課題はありません。'}</p>
                     ) : (
                         <ul
                             className="admin-list"
@@ -582,7 +594,8 @@ RestoreBrowser.propTypes = {
     onOpen: PropTypes.func.isRequired
 };
 
-// クラス検索タブ: 生きているクラスの一覧・検索 + アーカイブ切替。
+// 課題検索タブ: 生きている課題の一覧・検索 + アーカイブ切替（クラス（学級）は
+// 対象外 — 検索・アーカイブ解除は EPIC #1129 の C で扱う）。
 const LiveBrowser = ({onOpen, reloadKey}) => {
     const [query, setQuery] = useState('');
     const [items, setItems] = useState(null);
@@ -673,6 +686,7 @@ LiveBrowser.propTypes = {
 const ClassroomsView = () => {
     const [tab, setTab] = useState('overview');
     // 'live' detail (archive flip) vs 'restore' panel — track which kind is open.
+    // どちらも対象は課題（classroomId）。
     const [selected, setSelected] = useState(null); // {id, kind}
     const [reloadKey, setReloadKey] = useState(0);
 
@@ -689,7 +703,7 @@ const ClassroomsView = () => {
         setSelected(null);
     }, []);
 
-    // Candidates and live items open the live classroom detail; restore items
+    // Candidates and live items open the live assignment detail; restore items
     // open the restore panel.
     const openLive = useCallback(e => setSelected({id: e.currentTarget.dataset.classroomId, kind: 'live'}), []);
     const openRestore = useCallback(e => setSelected({id: e.currentTarget.dataset.classroomId, kind: 'restore'}), []);
@@ -731,7 +745,7 @@ const ClassroomsView = () => {
                     data-testid="classroom-admin-tab-live"
                     type="button"
                     onClick={handleTabLive}
-                >{'クラス検索'}</button>
+                >{'課題検索'}</button>
                 <button
                     className={tab === 'restore' ? 'admin-tab-active' : 'admin-tab'}
                     data-testid="classroom-admin-tab-restore"

@@ -25,6 +25,8 @@ Smalruby Classroom は、日本の学校の授業で Smalruby を使うための
 
 - 既存データは初回のクラス一覧表示時に冪等 migration で v2 へ移行（詳細: [architecture.md](architecture.md) の「データモデル v2」）
 - Google Classroom 連携はクラス単位（インポート = クラス作成、課題配信はクラスの courseId）
+
+**用語の正**: クラス（学級）= `ClassroomGroups` / `groupId`、課題（1授業）= `Classrooms` / `classroomId`。「組」「学級」「クラスルーム」といった揺れの扱いと、改名しない識別子（`/admin/classrooms` 等）の対応表は [管理 SPA の用語辞典](../admin/README.md#用語辞典クラス--課題) にまとめてある。
 | [UI/UX](ui-ux.md) | 画面遷移、各フェーズの説明 |
 | [費用見積もり](cost-estimate.md) | AWS / GCP の想定費用 |
 | [ソースコード](source-code.md) | 関連ファイル一覧 |

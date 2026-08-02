@@ -1,6 +1,10 @@
 /**
  * クラス・課題 俯瞰ダッシュボード (EPIC #1073, design 2026-07-19).
  *
+ * 集計対象は **課題（1授業）= `Classrooms`** の全件。クラス（学級）=
+ * `ClassroomGroups` は集計しないので、件数の文言は「課題」と呼ぶ
+ * （用語辞典: docs/admin/README.md・#1131）。
+ *
  * 「どんな課題がどれくらい作られているか」を、作成の推移・内容の充実度・
  * テーマ傾向の 3 軸で掴み、みんなの課題に載せると有益そうな候補を見える化
  * する（人気/提出数ではなく中身と傾向で判断）。チャートは外部ライブラリを
@@ -72,7 +76,7 @@ const ClassroomOverviewView = ({onOpenCandidate}) => {
             >
                 <div className="admin-card">
                     <span className="admin-card-num">{data.summary.total}</span>
-                    <span className="admin-card-label">{'クラス総数'}</span>
+                    <span className="admin-card-label">{'課題総数'}</span>
                 </div>
                 <div className="admin-card">
                     <span className="admin-card-num">{data.summary.active}</span>
@@ -151,7 +155,7 @@ const ClassroomOverviewView = ({onOpenCandidate}) => {
                                         >{'推奨済み'}</span>
                                     ) : null}
                                     <span className="admin-meta">
-                                        {`${c.className} ・ ページ${c.pageCount}`}
+                                        {`クラス: ${c.className} ・ ページ${c.pageCount}`}
                                         {c.hasImages ? '・画像あり' : ''}
                                         {c.hasStarter ? '・スターターあり' : ''}
                                         {` ・ ${String(c.createdAt).slice(0, 10)}`}
