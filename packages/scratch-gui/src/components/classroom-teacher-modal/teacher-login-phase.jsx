@@ -150,40 +150,45 @@ const TeacherLoginPhase = ({
                     id="gui.classroom.management.loginDescription"
                 />
             </p>
-            {!googleButtonTookOver && (
-                <button
-                    className={styles.loginButton}
-                    data-testid="classroom-google-login"
-                    onClick={onGoogleLogin}
-                >
-                    <FormattedMessage
-                        defaultMessage="Sign in with Google"
-                        description="Google sign in button"
-                        id="gui.classroom.management.loginButton"
-                    />
-                </button>
-            )}
-            {/* Google's own button lives here, inside the modal, so it cannot
-                float over the screen or outlive the login (#1149). */}
-            <GoogleSignInSlot
-                active={googleButtonTookOver}
-                className={styles.googleSignInSlot}
-                ref={googleSignInRef}
-                showHint={googleButtonTookOver && googleFallbackReason !== 'unsupported'}
-            />
-            {isMicrosoftAuthAvailable && (
-                <button
-                    className={styles.loginButton}
-                    data-testid="classroom-microsoft-login"
-                    onClick={onMicrosoftLogin}
-                >
-                    <FormattedMessage
-                        defaultMessage="Sign in with Microsoft"
-                        description="Microsoft sign in button"
-                        id="gui.classroom.management.microsoftLoginButton"
-                    />
-                </button>
-            )}
+            {/* The providers sit side by side where there is room for it, and
+                stack on narrow screens. The hint spans the whole row so the
+                buttons stay on one line. */}
+            <div className={styles.providerRow}>
+                {!googleButtonTookOver && (
+                    <button
+                        className={styles.loginButton}
+                        data-testid="classroom-google-login"
+                        onClick={onGoogleLogin}
+                    >
+                        <FormattedMessage
+                            defaultMessage="Sign in with Google"
+                            description="Google sign in button"
+                            id="gui.classroom.management.loginButton"
+                        />
+                    </button>
+                )}
+                {/* Google's own button lives here, inside the modal, so it
+                    cannot float over the screen or outlive the login (#1149). */}
+                <GoogleSignInSlot
+                    active={googleButtonTookOver}
+                    className={styles.googleSignInSlot}
+                    ref={googleSignInRef}
+                    showHint={googleButtonTookOver && googleFallbackReason !== 'unsupported'}
+                />
+                {isMicrosoftAuthAvailable && (
+                    <button
+                        className={styles.loginButton}
+                        data-testid="classroom-microsoft-login"
+                        onClick={onMicrosoftLogin}
+                    >
+                        <FormattedMessage
+                            defaultMessage="Sign in with Microsoft"
+                            description="Microsoft sign in button"
+                            id="gui.classroom.management.microsoftLoginButton"
+                        />
+                    </button>
+                )}
+            </div>
             <ErrorDisplay error={error} errorTitle={errorTitle} />
         </div>
         <div className={styles.loginBottom}>

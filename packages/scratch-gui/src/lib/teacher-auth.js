@@ -18,6 +18,10 @@ import {
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const REAUTH_TIMEOUT_MS = 5000;
 
+// Width of Google's rendered button, in px. Kept in step with the width the
+// modals give their own login buttons so the two never look mismatched.
+const GOOGLE_BUTTON_WIDTH_PX = 208;
+
 /**
  * Whether this browser can show Google's own sign-in prompt (FedCM).
  *
@@ -159,6 +163,9 @@ export const loginWithGoogle = async ({ container, onFallbackVisible } = {}) => 
             google.accounts.id.renderButton(mount, {
                 theme: 'outline',
                 size: 'large',
+                // Matches the width our own login buttons use, so whichever
+                // one is on screen the row keeps its shape (13rem at 16px).
+                width: GOOGLE_BUTTON_WIDTH_PX,
             });
         }
 

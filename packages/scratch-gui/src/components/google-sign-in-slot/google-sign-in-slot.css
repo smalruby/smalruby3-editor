@@ -2,7 +2,9 @@
    button appears only after the browser prompt failed, so the line has to say
    why a second sign-in button turned up. */
 .hint {
-    margin-top: 1rem;
+    /* Takes a line of its own when the providers sit side by side. */
+    flex: 0 0 100%;
+    margin-top: 0;
     margin-bottom: 0;
     color: #888;
     font-size: 0.9rem;

@@ -183,16 +183,39 @@
     cursor: not-allowed;
 }
 
-/* Host for the GIS-rendered sign-in button (#1149). Collapses while empty so
-   it costs nothing when One Tap handles the login. */
+/* Host for the GIS-rendered sign-in button (#1149). */
 .google-sign-in-slot {
     display: flex;
     justify-content: center;
+}
+
+/* Google and Microsoft are alternatives, so they read better next to each
+   other than stacked — but only where the row actually fits. Below the
+   narrow-screen breakpoint (and whenever the buttons would not fit) they
+   stack instead. */
+.provider-row {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
     margin-top: 1rem;
 }
 
-.google-sign-in-slot:empty {
-    display: none;
+@media (min-width: 744px) {
+    .provider-row {
+        flex-direction: row;
+    }
+}
+
+/* Both providers get the same box so neither looks like the main one. The
+   width matches the `width` passed to Google's renderButton. */
+.provider-row .login-button {
+    width: 13rem;
+    min-height: 2.5rem;
+    margin-top: 0;
+    padding: 0.5rem 1rem;
 }
 
 .login-area {
