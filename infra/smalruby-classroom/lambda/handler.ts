@@ -152,6 +152,48 @@ const docClient = DynamoDBDocumentClient.from(ddbClient, {
   marshallOptions: { removeUndefinedValues: true },
 });
 
+// --- Paginated reads (#1146) ---
+
+// DynamoDB は 1 回の Query/Scan で最大 1MB しか読まず、続きは
+// LastEvaluatedKey で辿る。しかもこの 1MB 上限は **FilterExpression 適用前**
+// に効くため、辿らないとテーブルが育った時点でエラーも出さずに黙って
+// 取りこぼす。一覧系の読み取りは下の queryAll / scanAll に寄せる。
+// 上限は暴走（壊れたページャで無限ループ）を防ぐ保険。
+const MAX_PAGES = parseInt(process.env.DDB_MAX_PAGES || '25', 10);
+
+/**
+ * Query / Scan を LastEvaluatedKey が無くなるまで辿って全項目を返す。
+ * `Limit` 付き（= 上位 N 件だけ欲しい）の呼び出しには使わない。
+ */
+async function paginateAll(
+  makeCommand: (startKey?: Record<string, unknown>) => QueryCommand | ScanCommand,
+): Promise<Record<string, unknown>[]> {
+  const items: Record<string, unknown>[] = [];
+  let startKey: Record<string, unknown> | undefined;
+  for (let page = 0; page < MAX_PAGES; page++) {
+    const result = await docClient.send(makeCommand(startKey) as QueryCommand);
+    items.push(...((result.Items || []) as Record<string, unknown>[]));
+    startKey = result.LastEvaluatedKey as Record<string, unknown> | undefined;
+    if (!startKey) {
+      return items;
+    }
+  }
+  // ページ上限に達した = 想定より遥かに大きいテーブル。取りこぼしは
+  // 起きるが、無限ループよりは検知可能な形（ログ）で止める。
+  console.warn('[ddb] pagination truncated at MAX_PAGES', { maxPages: MAX_PAGES, items: items.length });
+  return items;
+}
+
+/** ページングする Query（GSI 一覧など）。 */
+async function queryAll(input: QueryCommand['input']): Promise<Record<string, unknown>[]> {
+  return paginateAll(startKey => new QueryCommand({ ...input, ExclusiveStartKey: startKey }));
+}
+
+/** ページングする Scan（リスト属性フィルタなど、GSI にできない絞り込み）。 */
+async function scanAll(input: ScanCommand['input']): Promise<Record<string, unknown>[]> {
+  return paginateAll(startKey => new ScanCommand({ ...input, ExclusiveStartKey: startKey }));
+}
+
 // --- S3 Client ---
 
 const s3Client = new S3Client({});
@@ -636,12 +678,12 @@ async function listCoManagedGroups(identity: TeacherIdentity): Promise<Record<st
   if (!identity.email) {
     return [];
   }
-  const scanned = await docClient.send(new ScanCommand({
+  const scanned = await scanAll({
     TableName: GROUPS_TABLE,
     FilterExpression: 'contains(coTeacherEmails, :email)',
     ExpressionAttributeValues: { ':email': normalizeEmail(identity.email) },
-  }));
-  return (scanned.Items || []).filter(item => item.teacherSub !== identity.sub);
+  });
+  return scanned.filter(item => item.teacherSub !== identity.sub);
 }
 
 /**
@@ -649,14 +691,14 @@ async function listCoManagedGroups(identity: TeacherIdentity): Promise<Record<st
  * ones they co-manage. Used to collect the assignments inside them (#1138).
  */
 async function listManageableGroupIds(identity: TeacherIdentity): Promise<string[]> {
-  const owned = await docClient.send(new QueryCommand({
+  const owned = await queryAll({
     TableName: GROUPS_TABLE,
     IndexName: 'teacherSub-index',
     KeyConditionExpression: 'teacherSub = :ts',
     ExpressionAttributeValues: { ':ts': identity.sub },
-  }));
+  });
   const ids = new Set<string>();
-  for (const group of [...(owned.Items || []), ...(await listCoManagedGroups(identity))]) {
+  for (const group of [...owned, ...(await listCoManagedGroups(identity))]) {
     if (typeof group.groupId === 'string') {
       ids.add(group.groupId);
     }
@@ -664,29 +706,62 @@ async function listManageableGroupIds(identity: TeacherIdentity): Promise<string
   return [...ids];
 }
 
+// DynamoDB は IN のオペランドを 100 個までしか受け付けない。
+const IN_OPERAND_LIMIT = 100;
+
 /**
- * Assignments filed under any of the given classes, whoever created them. The
- * classrooms table has no groupId index, so this is a Scan with a groupId IN
- * filter — one Scan for all classes rather than one query per class. Chunked
- * because DynamoDB caps an IN list at 100 operands.
+ * Assignments the teacher may see but does not own: the ones shared with them
+ * assignment-by-assignment (`coTeacherEmails`) plus the ones filed under a
+ * class they manage (`groupId`). The classrooms table can index neither a list
+ * attribute nor groupId, so both are Scan filters — and RCU is charged on the
+ * items read *before* the filter, so the two predicates share **one** Scan
+ * instead of scanning the whole table twice (#1146).
+ *
+ * Chunked when the teacher manages more than 100 classes, since DynamoDB caps
+ * an IN list at 100 operands; the email predicate rides on the first chunk
+ * only so it is never evaluated twice.
  */
-async function listAssignmentsInGroups(groupIds: string[]): Promise<Record<string, unknown>[]> {
+async function listSharedAssignments(
+  email: string | null,
+  groupIds: string[],
+): Promise<Record<string, unknown>[]> {
   const items: Record<string, unknown>[] = [];
-  for (let i = 0; i < groupIds.length; i += 100) {
-    const chunk = groupIds.slice(i, i + 100);
+  const chunks: string[][] = [];
+  for (let i = 0; i < groupIds.length; i += IN_OPERAND_LIMIT) {
+    chunks.push(groupIds.slice(i, i + IN_OPERAND_LIMIT));
+  }
+  if (chunks.length === 0) {
+    chunks.push([]);
+  }
+  for (const [chunkIndex, chunk] of chunks.entries()) {
     const values: Record<string, string> = {};
+    const clauses: string[] = [];
+    if (email && chunkIndex === 0) {
+      values[':email'] = email;
+      clauses.push('contains(coTeacherEmails, :email)');
+    }
     const placeholders = chunk.map((id, index) => {
       values[`:g${index}`] = id;
       return `:g${index}`;
     });
-    const scanned = await docClient.send(new ScanCommand({
+    if (placeholders.length > 0) {
+      clauses.push(`groupId IN (${placeholders.join(', ')})`);
+    }
+    if (clauses.length === 0) {
+      continue;
+    }
+    items.push(...(await scanAll({
       TableName: CLASSROOMS_TABLE,
-      FilterExpression: `groupId IN (${placeholders.join(', ')})`,
+      FilterExpression: clauses.join(' OR '),
       ExpressionAttributeValues: values,
-    }));
-    items.push(...(scanned.Items || []));
+    })));
   }
   return items;
+}
+
+/** Assignments filed under any of the given classes, whoever created them. */
+async function listAssignmentsInGroups(groupIds: string[]): Promise<Record<string, unknown>[]> {
+  return listSharedAssignments(null, groupIds);
 }
 
 /** Fetch the owning class (group) of an assignment, or undefined (pre-v2). */
@@ -746,42 +821,35 @@ function mapClassroomSummary(item: Record<string, unknown>, identity: TeacherIde
 }
 
 async function handleListClassrooms(identity: TeacherIdentity, includeArchived = false): Promise<APIGatewayProxyStructuredResultV2> {
-  // Classes the teacher owns — fast GSI query on teacherSub.
-  const owned = await docClient.send(new QueryCommand({
+  // Assignments the teacher owns — fast GSI query on teacherSub.
+  const owned = await queryAll({
     TableName: CLASSROOMS_TABLE,
     IndexName: 'teacherSub-index',
     KeyConditionExpression: 'teacherSub = :ts',
     ExpressionAttributeValues: { ':ts': identity.sub },
-  }));
+  });
 
-  // Classes the teacher co-manages — matched by verified email. DynamoDB cannot
-  // index a list attribute with a GSI, so we Scan + filter on coTeacherEmails.
-  // The classrooms table is small (single org, 30-day TTL) so this is fine;
-  // revisit with a reverse-index table (email -> classroomId) if it grows large.
-  let coManaged: Record<string, unknown>[] = [];
-  if (identity.email) {
-    const scan = await docClient.send(new ScanCommand({
-      TableName: CLASSROOMS_TABLE,
-      FilterExpression: 'contains(coTeacherEmails, :email)',
-      ExpressionAttributeValues: { ':email': normalizeEmail(identity.email) },
-    }));
-    coManaged = scan.Items || [];
-  }
-
-  // Assignments that live inside a class (組) the teacher may manage — the ones
-  // they own *and* the ones they co-manage. Managing a class grants access to
-  // everything inside it regardless of who created each assignment, so this
-  // covers both directions (issue #1138): a co-teacher must see the owner's
-  // assignments, and the owner must see assignments a co-teacher created.
-  // Keying off teacherSub would miss the other party, so filter by groupId.
-  const viaGroup = await listAssignmentsInGroups(await listManageableGroupIds(identity));
+  // Everything else the teacher may see, in a single Scan of the classrooms
+  // table (#1146):
+  //   - assignments co-taught one by one, matched by verified email
+  //     (DynamoDB cannot index a list attribute with a GSI);
+  //   - assignments living inside a class (組) the teacher may manage, whether
+  //     they own that class or co-manage it. Managing a class grants access to
+  //     everything inside it regardless of who created each assignment, so this
+  //     covers both directions (issue #1138): a co-teacher must see the owner's
+  //     assignments, and the owner must see assignments a co-teacher created.
+  //     Keying off teacherSub would miss the other party, so filter by groupId.
+  const shared = await listSharedAssignments(
+    identity.email ? normalizeEmail(identity.email) : null,
+    await listManageableGroupIds(identity),
+  );
 
   // Merge by classroomId (owned wins). Archived classes are excluded unless
   // the caller opts in with ?includeArchived=1 (the archive-list / restore UI,
   // issue #1050) — the default stays active-only so already-deployed frontends
   // never see archived items reappear.
   const byId = new Map<string, Record<string, unknown>>();
-  for (const item of [...(owned.Items || []), ...coManaged, ...viaGroup]) {
+  for (const item of [...owned, ...shared]) {
     const id = item.classroomId as string;
     const visible = item.status === 'active' || (includeArchived && item.status === 'archived');
     if (visible && !byId.has(id)) {
@@ -2527,14 +2595,14 @@ async function handleCreateGroup(identity: TeacherIdentity, body: Record<string,
 }
 
 async function handleListGroups(identity: TeacherIdentity): Promise<APIGatewayProxyStructuredResultV2> {
-  const result = await docClient.send(new QueryCommand({
+  const result = await queryAll({
     TableName: GROUPS_TABLE,
     IndexName: 'teacherSub-index',
     KeyConditionExpression: 'teacherSub = :ts',
     ExpressionAttributeValues: { ':ts': identity.sub },
-  }));
+  });
   const coManaged = await listCoManagedGroups(identity);
-  const groups = [...(result.Items || []), ...coManaged].map(item => ({
+  const groups = [...result, ...coManaged].map(item => ({
     ...mapGroupSummary(item),
     role: item.teacherSub === identity.sub ? 'owner' : 'co-teacher',
   }));

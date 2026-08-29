@@ -166,19 +166,32 @@ describe('class-level co-teacher authorization (issue #1138)', () => {
             }
             if (name === 'ScanCommand') {
                 const filter: string = input.FilterExpression || '';
-                if (filter.startsWith('contains(coTeacherEmails')) {
-                    // DynamoDB's contains() is an exact, case-sensitive element
-                    // match — do not soften it here, or the mock would certify
-                    // a case-insensitivity the real table does not have.
-                    return Promise.resolve({
-                        Items: rows.filter((r: any) => (r.coTeacherEmails || []).includes(values[':email'])),
-                    });
+                if (!filter) {
+                    return Promise.resolve({ Items: rows });
                 }
-                if (filter.startsWith('groupId IN')) {
-                    const wanted = Object.values(values);
-                    return Promise.resolve({ Items: rows.filter((r: any) => wanted.includes(r.groupId)) });
-                }
-                return Promise.resolve({ Items: rows });
+                // The list path ORs the two predicates into a single Scan
+                // (#1146), so evaluate each clause and union the matches.
+                const matches = (row: any, clause: string): boolean => {
+                    if (clause.startsWith('contains(coTeacherEmails')) {
+                        // DynamoDB's contains() is an exact, case-sensitive
+                        // element match — do not soften it here, or the mock
+                        // would certify a case-insensitivity the real table
+                        // does not have.
+                        return (row.coTeacherEmails || []).includes(values[':email']);
+                    }
+                    if (clause.startsWith('groupId IN')) {
+                        const wanted = /\(([^)]*)\)/
+                            .exec(clause)![1]
+                            .split(',')
+                            .map((p: string) => values[p.trim()]);
+                        return wanted.includes(row.groupId);
+                    }
+                    throw new Error(`unsupported filter clause: ${clause}`);
+                };
+                const clauses = filter.split(' OR ').map((c: string) => c.trim());
+                return Promise.resolve({
+                    Items: rows.filter((r: any) => clauses.some((c: string) => matches(r, c))),
+                });
             }
             return Promise.resolve({});
         });
