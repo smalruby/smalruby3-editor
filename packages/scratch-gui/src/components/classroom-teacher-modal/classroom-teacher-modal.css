@@ -183,6 +183,18 @@
     cursor: not-allowed;
 }
 
+/* Host for the GIS-rendered sign-in button (#1149). Collapses while empty so
+   it costs nothing when One Tap handles the login. */
+.google-sign-in-slot {
+    display: flex;
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+.google-sign-in-slot:empty {
+    display: none;
+}
+
 .login-area {
     display: flex;
     flex-direction: row;

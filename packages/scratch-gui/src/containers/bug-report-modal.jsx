@@ -12,7 +12,12 @@ import { useDispatch, useSelector } from 'react-redux';
 import BugReportConsent from '../components/bug-report-consent/bug-report-consent.jsx';
 import BugReportModalComponent from '../components/bug-report-modal/bug-report-modal.jsx';
 import bugReportAPI, { isBugReportConfigured } from '../lib/bug-report-api.js';
-import { loginWithGoogle, requestMicrosoftIdToken, isMicrosoftAuthAvailable } from '../lib/teacher-auth.js';
+import {
+    cancelGoogleLogin,
+    loginWithGoogle,
+    requestMicrosoftIdToken,
+    isMicrosoftAuthAvailable,
+} from '../lib/teacher-auth.js';
 import { closeBugReportModal, setBugReportView, VIEW_MY_REPORTS } from '../reducers/bug-report.js';
 import useBugReportSubmit from './use-bug-report-submit.js';
 
@@ -174,8 +179,19 @@ const BugReportModal = () => {
         [advanceAfterAuth, intl],
     );
 
-    const handleLoginGoogle = useCallback(() => handleLogin(loginWithGoogle), [handleLogin]);
-    const handleLoginMicrosoft = useCallback(() => handleLogin(requestMicrosoftIdToken), [handleLogin]);
+    // The GIS sign-in button is rendered into this in-modal node so it cannot
+    // outlive the login phase as a body-level overlay (#1149).
+    const googleSignInRef = useRef(null);
+
+    const handleLoginGoogle = useCallback(
+        () => handleLogin(() => loginWithGoogle({ container: googleSignInRef.current })),
+        [handleLogin],
+    );
+    const handleLoginMicrosoft = useCallback(() => {
+        // Switching providers abandons the Google attempt (#1149).
+        cancelGoogleLogin();
+        return handleLogin(requestMicrosoftIdToken);
+    }, [handleLogin]);
 
     const handleConsentAccept = useCallback(() => {
         try {
@@ -303,6 +319,7 @@ const BugReportModal = () => {
             reportsLoading={reportsLoading}
             submitProgressLabel={submitProgressLabel}
             onRequestClose={handleClose}
+            googleSignInRef={googleSignInRef}
             onLoginGoogle={handleLoginGoogle}
             onLoginMicrosoft={handleLoginMicrosoft}
             onDescriptionChange={handleDescriptionChange}

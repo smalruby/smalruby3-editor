@@ -7,6 +7,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+    cancelGoogleLogin,
     loginWithGoogle,
     requestMicrosoftIdToken,
     isMicrosoftAuthAvailable as checkMicrosoftAuth,
@@ -56,10 +57,19 @@ const useTeacherAuth = ({ mode, clearError, setPhase, showSessionExpiredError })
         _cachedAuthProvider = authProvider;
     }, [authProvider]);
 
+    // Host node for the GIS sign-in button. Keeping it inside the modal means
+    // the button disappears with the modal instead of sticking to the screen
+    // as a body-level overlay (#1149).
+    const googleSignInRef = useRef(null);
+
+    // Abandoning the login (closing the modal, choosing Microsoft, unmounting)
+    // must tear the GIS UI down and settle the pending promise.
+    useEffect(() => () => cancelGoogleLogin(), []);
+
     const handleGoogleLogin = useCallback(async () => {
         clearError();
         try {
-            const token = await loginWithGoogle();
+            const token = await loginWithGoogle({ container: googleSignInRef.current });
             setIdToken(token);
             setAuthProvider('google');
             setPhase('teacher-class-list');
@@ -70,6 +80,8 @@ const useTeacherAuth = ({ mode, clearError, setPhase, showSessionExpiredError })
 
     const handleMicrosoftLogin = useCallback(async () => {
         clearError();
+        // Switching providers abandons the Google attempt (#1149).
+        cancelGoogleLogin();
         try {
             const token = await requestMicrosoftIdToken();
             setIdToken(token);
@@ -145,6 +157,7 @@ const useTeacherAuth = ({ mode, clearError, setPhase, showSessionExpiredError })
         authProvider,
         setAuthProvider,
         isMicrosoftAuthAvailable: checkMicrosoftAuth(),
+        googleSignInRef,
         handleGoogleLogin,
         handleMicrosoftLogin,
         logoutAuth,

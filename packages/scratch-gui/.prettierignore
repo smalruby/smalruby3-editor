@@ -40,6 +40,7 @@ src/components/*
 !src/components/smalrubot-firmware-modal/
 !src/components/blocks-screenshot-button/
 !src/components/google-drive-save-dialog/
+!src/components/google-sign-in-slot/
 !src/components/dncl-mode-notice/
 !src/components/koshien-test-modal/
 !src/components/koshien-settings-modal/
@@ -328,6 +329,7 @@ test/unit/components/*
 !test/unit/components/teacher-class-detail.test.jsx
 !test/unit/components/teacher-notifications.test.jsx
 !test/unit/components/teacher-avatar-menu.test.jsx
+!test/unit/components/google-sign-in-slot.test.jsx
 !test/unit/components/teacher-notifications-list.test.jsx
 !test/unit/components/classroom-teacher-modal-share-suggestion.test.js
 !test/unit/components/mobile-bottom-tabs.test.jsx
@@ -394,6 +396,7 @@ test/unit/lib/*
 !test/unit/lib/classroom-retention.test.js
 !test/unit/lib/shared-assignment-taxonomy.test.js
 !test/unit/lib/shared-author-profile.test.js
+!test/unit/lib/teacher-auth-google-signin.test.js
 !test/unit/lib/evaluation-utils.test.js
 !test/unit/lib/sb3-analyzer.test.js
 !test/unit/lib/classroom-kick-request-storage.test.js

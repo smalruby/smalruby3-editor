@@ -234,6 +234,7 @@ const useTeacherClassroom = ({
         idToken: auth.idToken,
         authProvider: auth.authProvider,
         isMicrosoftAuthAvailable: auth.isMicrosoftAuthAvailable,
+        googleSignInRef: auth.googleSignInRef,
         handleGoogleLogin: auth.handleGoogleLogin,
         handleMicrosoftLogin: auth.handleMicrosoftLogin,
         handleTeacherLogout,

@@ -6,6 +6,7 @@ import Box from '../box/box.jsx';
 import Modal from '../../containers/modal.jsx';
 import intlShape from '../../lib/intlShape.js';
 import closeIcon from '../close-button/icon--close.svg';
+import GoogleSignInSlot from '../google-sign-in-slot/google-sign-in-slot.jsx';
 
 import styles from './bug-report-modal.css';
 
@@ -220,6 +221,7 @@ const BugReportModal = (props) => {
         reports,
         reportsLoading,
         submitProgressLabel,
+        googleSignInRef,
         onRequestClose,
         onLoginGoogle,
         onLoginMicrosoft,
@@ -270,6 +272,9 @@ const BugReportModal = (props) => {
                         >
                             <FormattedMessage {...messages.loginGoogle} />
                         </button>
+                        {/* GIS renders its own sign-in button here when One Tap
+                            cannot be shown (#1149). */}
+                        <GoogleSignInSlot className={styles.googleSignInSlot} ref={googleSignInRef} />
                         {microsoftAvailable ? (
                             <button
                                 className={styles.loginButton}
@@ -439,6 +444,7 @@ BugReportModal.propTypes = {
     reportsLoading: PropTypes.bool,
     submitProgressLabel: PropTypes.string,
     onRequestClose: PropTypes.func.isRequired,
+    googleSignInRef: PropTypes.shape({ current: PropTypes.any }),
     onLoginGoogle: PropTypes.func.isRequired,
     onLoginMicrosoft: PropTypes.func.isRequired,
     onDescriptionChange: PropTypes.func.isRequired,

@@ -6,6 +6,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 
 import ErrorDisplay from '../classroom-modal/error-display.jsx';
+import GoogleSignInSlot from '../google-sign-in-slot/google-sign-in-slot.jsx';
 
 import carouselImage1 from './carousel-1-submit.png';
 import carouselImage2 from './carousel-2-overview.png';
@@ -104,6 +105,7 @@ const LoginCarousel = () => {
 const TeacherLoginPhase = ({
     error,
     errorTitle,
+    googleSignInRef,
     isMicrosoftAuthAvailable,
     onGoogleLogin,
     onMicrosoftLogin,
@@ -138,6 +140,10 @@ const TeacherLoginPhase = ({
                     id="gui.classroom.management.loginButton"
                 />
             </button>
+            {/* GIS renders its own sign-in button here when One Tap cannot be
+                shown; keeping it in the modal stops it from floating over the
+                screen and outliving the login (#1149). */}
+            <GoogleSignInSlot className={styles.googleSignInSlot} ref={googleSignInRef} />
             {isMicrosoftAuthAvailable && (
                 <button
                     className={styles.loginButton}
@@ -162,6 +168,7 @@ const TeacherLoginPhase = ({
 TeacherLoginPhase.propTypes = {
     error: PropTypes.string,
     errorTitle: PropTypes.string,
+    googleSignInRef: PropTypes.shape({ current: PropTypes.any }),
     isMicrosoftAuthAvailable: PropTypes.bool,
     onGoogleLogin: PropTypes.func.isRequired,
     onMicrosoftLogin: PropTypes.func.isRequired,
