@@ -1,6 +1,6 @@
 /* eslint-env jest */
 import '@testing-library/jest-dom';
-import { render } from '@testing-library/react';
+import { fireEvent, render } from '@testing-library/react';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
 import TeacherClassDetail from '../../../src/components/classroom-modal/teacher-class-detail.jsx';
@@ -79,5 +79,61 @@ describe('TeacherClassDetail — Google Classroom post button', () => {
         });
         expect(document.querySelector('[data-testid="classroom-view-assignment"]')).toBeInTheDocument();
         expect(document.querySelector('[data-testid="classroom-post-assignment"]')).not.toBeInTheDocument();
+    });
+});
+
+describe('TeacherClassDetail — retention banner (issue #1052)', () => {
+    const DAY = 24 * 60 * 60 * 1000;
+    const inDays = (days) => new Date(Date.now() + days * DAY).toISOString();
+    const byTestId = (id) => document.querySelector(`[data-testid="${id}"]`);
+
+    test('shows no inline alert while the deadline is far away', () => {
+        renderDetail({ selectedClassroom: classroom({ expiresAt: inDays(60) }) });
+        expect(byTestId('classroom-retention-banner')).not.toBeInTheDocument();
+    });
+
+    test('shows the inline alert next to the deadline within 30 days of deletion', () => {
+        renderDetail({ selectedClassroom: classroom({ expiresAt: inDays(20) }) });
+        const alert = byTestId('classroom-retention-banner');
+        expect(alert).toBeInTheDocument();
+        expect(alert.textContent).toContain('deleted automatically');
+    });
+
+    test('the download-all button triggers onDownloadAll near the deadline', () => {
+        const onDownloadAll = jest.fn();
+        renderDetail({
+            selectedClassroom: classroom({ expiresAt: inDays(5) }),
+            onDownloadAll,
+        });
+        fireEvent.click(byTestId('classroom-download-all'));
+        expect(onDownloadAll).toHaveBeenCalled();
+    });
+
+    test('共有推奨バナー (#1106): フラグ + 中身ありのときだけ出て CTA が動く', () => {
+        const onOpenShareSuggestion = jest.fn();
+        const { unmount } = renderDetail({
+            selectedClassroom: classroom({ recommendedForSharing: true, hasAssignment: true }),
+            onOpenShareSuggestion,
+        });
+        expect(byTestId('classroom-share-suggestion-banner')).toBeInTheDocument();
+        fireEvent.click(byTestId('classroom-share-suggestion-open'));
+        expect(onOpenShareSuggestion).toHaveBeenCalled();
+        unmount();
+
+        // フラグ無しでは出ない。
+        const second = renderDetail({
+            selectedClassroom: classroom({ hasAssignment: true }),
+            onOpenShareSuggestion,
+        });
+        expect(byTestId('classroom-share-suggestion-banner')).not.toBeInTheDocument();
+        second.unmount();
+
+        // 中身の無い課題では出ない（共有 API が拒否する行き止まりを防ぐ。
+        // 推奨後に先生が説明を空にしたケースを含む）。
+        renderDetail({
+            selectedClassroom: classroom({ recommendedForSharing: true, hasAssignment: false }),
+            onOpenShareSuggestion,
+        });
+        expect(byTestId('classroom-share-suggestion-banner')).not.toBeInTheDocument();
     });
 });

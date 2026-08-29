@@ -1,6 +1,7 @@
 import * as cdk from 'aws-cdk-lib/core';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as lambdaEventSources from 'aws-cdk-lib/aws-lambda-event-sources';
 import * as lambdaNodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as apigatewayv2 from 'aws-cdk-lib/aws-apigatewayv2';
 import * as apigatewayv2Integrations from 'aws-cdk-lib/aws-apigatewayv2-integrations';
@@ -18,7 +19,11 @@ export class ClassroomStack extends cdk.Stack {
   public readonly submissionsTable: dynamodb.Table;
   public readonly kickRequestsTable: dynamodb.Table;
   public readonly groupsTable: dynamodb.Table;
+  public readonly sharedAssignmentsTable: dynamodb.Table;
+  public readonly sharedReportsTable: dynamodb.Table;
+  public readonly notificationsTable: dynamodb.Table;
   public readonly submissionsBucket: s3.Bucket;
+  public readonly sharedBucket: s3.Bucket;
   public readonly api: apigatewayv2.HttpApi;
 
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -48,6 +53,18 @@ export class ClassroomStack extends cdk.Stack {
     // batch evaluation can still read every submission; configurable via env)
     const classroomTtlDays = parseInt(process.env.CLASSROOM_TTL_DAYS || '90', 10);
 
+    // Last-resort retention (issue #1053, EPIC #1049 D7): S3 keeps submission
+    // files and DynamoDB delete-snapshots for this many days so operators can
+    // restore an expired classroom on request. Must not be shorter than the
+    // classroom TTL — the presigned download URLs assume the S3 object
+    // outlives the metadata.
+    const archiveRetentionDays = parseInt(process.env.ARCHIVE_RETENTION_DAYS || '365', 10);
+    if (archiveRetentionDays < classroomTtlDays) {
+      throw new Error(
+        `ARCHIVE_RETENTION_DAYS (${archiveRetentionDays}) must be >= CLASSROOM_TTL_DAYS (${classroomTtlDays}).`,
+      );
+    }
+
     // Tags
     cdk.Tags.of(this).add('Project', 'Classroom');
     cdk.Tags.of(this).add('Stage', stage);
@@ -68,6 +85,8 @@ export class ClassroomStack extends cdk.Stack {
       pointInTimeRecoverySpecification: {
         pointInTimeRecoveryEnabled: false,
       },
+      // Delete-snapshot stream for the archiver (issue #1053)
+      stream: dynamodb.StreamViewType.OLD_IMAGE,
       timeToLiveAttribute: 'ttl',
     });
 
@@ -109,6 +128,8 @@ export class ClassroomStack extends cdk.Stack {
       pointInTimeRecoverySpecification: {
         pointInTimeRecoveryEnabled: false,
       },
+      // Delete-snapshot stream for the archiver (issue #1053)
+      stream: dynamodb.StreamViewType.OLD_IMAGE,
       timeToLiveAttribute: 'ttl',
     });
 
@@ -140,6 +161,8 @@ export class ClassroomStack extends cdk.Stack {
       pointInTimeRecoverySpecification: {
         pointInTimeRecoveryEnabled: false,
       },
+      // Delete-snapshot stream for the archiver (issue #1053)
+      stream: dynamodb.StreamViewType.OLD_IMAGE,
       timeToLiveAttribute: 'ttl',
     });
 
@@ -212,6 +235,8 @@ export class ClassroomStack extends cdk.Stack {
       pointInTimeRecoverySpecification: {
         pointInTimeRecoveryEnabled: false,
       },
+      // Delete-snapshot stream for the archiver (issue #1053)
+      stream: dynamodb.StreamViewType.OLD_IMAGE,
       timeToLiveAttribute: 'ttl',
     });
 
@@ -226,6 +251,117 @@ export class ClassroomStack extends cdk.Stack {
 
     cdk.Tags.of(this.groupsTable).add('ResourceType', 'DynamoDB');
 
+    // --- みんなの課題 (shared assignment library, EPIC #1066) ---
+    // Shared items are nationwide teacher contributions: permanent (no TTL)
+    // and RETAINed in prod so a stack replacement can never destroy them
+    // (deliberately different from the DESTROY classroom tables).
+
+    const sharedRemovalPolicy = stage === 'prod' ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY;
+
+    this.sharedAssignmentsTable = new dynamodb.Table(this, 'SharedAssignmentsTable', {
+      tableName: `SharedAssignments${stageSuffix}`,
+      partitionKey: {
+        name: 'sharedId',
+        type: dynamodb.AttributeType.STRING,
+      },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      removalPolicy: sharedRemovalPolicy,
+      pointInTimeRecoverySpecification: {
+        pointInTimeRecoveryEnabled: stage === 'prod',
+      },
+    });
+
+    // Newest-first catalog (D8).
+    this.sharedAssignmentsTable.addGlobalSecondaryIndex({
+      indexName: 'status-createdAt-index',
+      partitionKey: {
+        name: 'status',
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: 'createdAt',
+        type: dynamodb.AttributeType.STRING,
+      },
+      projectionType: dynamodb.ProjectionType.ALL,
+    });
+
+    // "自分の投稿" tab: an author lists their own items incl. unlisted ones.
+    this.sharedAssignmentsTable.addGlobalSecondaryIndex({
+      indexName: 'authorSub-createdAt-index',
+      partitionKey: {
+        name: 'authorSub',
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: 'createdAt',
+        type: dynamodb.AttributeType.STRING,
+      },
+      projectionType: dynamodb.ProjectionType.ALL,
+    });
+
+    // 合言葉（限定公開）での取り込み（#1109）: passcode で一意ルックアップする。
+    // limited 項目のみ passcode を持つのでスパースな索引になる。
+    this.sharedAssignmentsTable.addGlobalSecondaryIndex({
+      indexName: 'passcode-index',
+      partitionKey: {
+        name: 'passcode',
+        type: dynamodb.AttributeType.STRING,
+      },
+      projectionType: dynamodb.ProjectionType.ALL,
+    });
+
+    cdk.Tags.of(this.sharedAssignmentsTable).add('ResourceType', 'DynamoDB');
+
+    // Reports are ephemeral moderation inputs (90-day TTL, D3).
+    this.sharedReportsTable = new dynamodb.Table(this, 'SharedReportsTable', {
+      tableName: `SharedAssignmentReports${stageSuffix}`,
+      partitionKey: {
+        name: 'sharedId',
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: 'reportId',
+        type: dynamodb.AttributeType.STRING,
+      },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      pointInTimeRecoverySpecification: {
+        pointInTimeRecoveryEnabled: false,
+      },
+      timeToLiveAttribute: 'ttl',
+    });
+
+    cdk.Tags.of(this.sharedReportsTable).add('ResourceType', 'DynamoDB');
+
+    // --- お知らせ (notification center, EPIC #1111) ---
+    // Admin → teacher notices surfaced in the class management UI. This stack
+    // owns the table because teachers read it through this API with their
+    // existing ID-token auth; the admin stack imports it by the fleet's stage
+    // naming convention and only writes (mirror of the SharedAssignments
+    // arrangement — N2: the admin stack never modifies this stack).
+    // PK teacherSub / SK notificationId (createdAt-prefixed → chronological),
+    // so a single Query serves the per-teacher inbox. Notices are ephemeral
+    // guidance, not records: TTL is set by the writer (admin stack).
+    this.notificationsTable = new dynamodb.Table(this, 'NotificationsTable', {
+      tableName: `ClassroomNotifications${stageSuffix}`,
+      partitionKey: {
+        name: 'teacherSub',
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: 'notificationId',
+        type: dynamodb.AttributeType.STRING,
+      },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      pointInTimeRecoverySpecification: {
+        pointInTimeRecoveryEnabled: false,
+      },
+      timeToLiveAttribute: 'ttl',
+    });
+
+    cdk.Tags.of(this.notificationsTable).add('ResourceType', 'DynamoDB');
+
     // --- S3 Bucket for submissions ---
 
     this.submissionsBucket = new s3.Bucket(this, 'SubmissionsBucket', {
@@ -234,7 +370,10 @@ export class ClassroomStack extends cdk.Stack {
       autoDeleteObjects: stage !== 'prod',
       lifecycleRules: [
         {
-          expiration: cdk.Duration.days(classroomTtlDays),
+          // Last-resort retention (issue #1053): user-facing access still
+          // closes at the classroom TTL (presigned URLs are only minted from
+          // live metadata); after that, only operators can reach the files.
+          expiration: cdk.Duration.days(archiveRetentionDays),
         },
       ],
       cors: [
@@ -250,6 +389,29 @@ export class ClassroomStack extends cdk.Stack {
     });
 
     cdk.Tags.of(this.submissionsBucket).add('ResourceType', 'S3');
+
+    // --- S3 Bucket for shared assignments (みんなの課題) ---
+    // No lifecycle rule: shared content is permanent (D7). The classroom
+    // bucket's retention sweep must never touch these objects, hence the
+    // separate bucket. RETAINed in prod like the table.
+
+    this.sharedBucket = new s3.Bucket(this, 'SharedAssignmentsBucket', {
+      bucketName: `smalruby-shared-assignments${stageSuffix}`,
+      removalPolicy: sharedRemovalPolicy,
+      autoDeleteObjects: stage !== 'prod',
+      cors: [
+        {
+          allowedMethods: [s3.HttpMethods.GET],
+          allowedOrigins: corsAllowOrigins,
+          allowedHeaders: ['Content-Type'],
+          maxAge: 3600,
+        },
+      ],
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      encryption: s3.BucketEncryption.S3_MANAGED,
+    });
+
+    cdk.Tags.of(this.sharedBucket).add('ResourceType', 'S3');
 
     // --- Lambda ---
 
@@ -273,7 +435,13 @@ export class ClassroomStack extends cdk.Stack {
         SUBMISSIONS_TABLE_NAME: this.submissionsTable.tableName,
         KICK_REQUESTS_TABLE_NAME: this.kickRequestsTable.tableName,
         GROUPS_TABLE_NAME: this.groupsTable.tableName,
+        SHARED_ASSIGNMENTS_TABLE_NAME: this.sharedAssignmentsTable.tableName,
+        SHARED_REPORTS_TABLE_NAME: this.sharedReportsTable.tableName,
+        NOTIFICATIONS_TABLE_NAME: this.notificationsTable.tableName,
         SUBMISSIONS_BUCKET_NAME: this.submissionsBucket.bucketName,
+        SHARED_BUCKET_NAME: this.sharedBucket.bucketName,
+        SHARE_DAILY_LIMIT: process.env.SHARE_DAILY_LIMIT || '10',
+        REPORT_DAILY_LIMIT: process.env.REPORT_DAILY_LIMIT || '20',
         GOOGLE_CLIENT_ID: googleClientId,
         MICROSOFT_CLIENT_ID: microsoftClientId,
         DEV_BYPASS_TOKEN: devBypassToken,
@@ -306,8 +474,74 @@ export class ClassroomStack extends cdk.Stack {
     this.submissionsTable.grantReadWriteData(handlerFn);
     this.kickRequestsTable.grantReadWriteData(handlerFn);
     this.groupsTable.grantReadWriteData(handlerFn);
+    this.sharedAssignmentsTable.grantReadWriteData(handlerFn);
+    this.sharedReportsTable.grantReadWriteData(handlerFn);
+    // お知らせは admin スタックが単一の書き手 (#1111)。この Lambda は一覧
+    // (Query) と既読化 (UpdateItem) しか行わないので、PutItem を含む RW では
+    // なく必要最小限だけ grant して「エディタからお知らせを偽造できない」を
+    // IAM でも担保する（レビュー指摘）。
+    this.notificationsTable.grant(handlerFn, 'dynamodb:Query', 'dynamodb:UpdateItem');
     this.submissionsBucket.grantPut(handlerFn);
     this.submissionsBucket.grantRead(handlerFn);
+    this.sharedBucket.grantPut(handlerFn);
+    this.sharedBucket.grantRead(handlerFn);
+    this.sharedBucket.grantDelete(handlerFn);
+
+    // --- Delete-snapshot archiver (issue #1053) ---
+    // Streams on the four data tables feed every REMOVE (TTL sweep or
+    // explicit delete) into a small Lambda that snapshots the old item to
+    // `ddb-archive/…` in the submissions bucket. KickRequests (1h ephemera)
+    // is deliberately not archived.
+
+    const archiverLogGroup = new logs.LogGroup(this, 'ClassroomArchiverLogGroup', {
+      logGroupName: `/aws/lambda/ClassroomArchiver${stageSuffix}`,
+      retention: stage === 'prod' ? logs.RetentionDays.ONE_MONTH : logs.RetentionDays.ONE_WEEK,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+
+    const archiverFn = new lambdaNodejs.NodejsFunction(this, 'ClassroomArchiver', {
+      functionName: `ClassroomArchiver${stageSuffix}`,
+      runtime: lambda.Runtime.NODEJS_22_X,
+      entry: path.join(__dirname, '../lambda/archiver.ts'),
+      handler: 'handler',
+      timeout: cdk.Duration.seconds(60),
+      memorySize: 256,
+      logGroup: archiverLogGroup,
+      environment: {
+        ARCHIVE_BUCKET_NAME: this.submissionsBucket.bucketName,
+        STAGE: stage,
+      },
+      bundling: {
+        minify: true,
+        sourceMap: stage !== 'prod',
+        externalModules: [],
+      },
+    });
+
+    this.submissionsBucket.grantPut(archiverFn);
+
+    const archivedTables = [
+      this.classroomsTable,
+      this.membershipsTable,
+      this.submissionsTable,
+      this.groupsTable,
+    ];
+    for (const table of archivedTables) {
+      archiverFn.addEventSource(new lambdaEventSources.DynamoEventSource(table, {
+        startingPosition: lambda.StartingPosition.LATEST,
+        batchSize: 100,
+        // A failing batch is split and retried a bounded number of times so
+        // one poisoned record cannot block the shard forever; the snapshot
+        // handler itself skips malformed records and only throws on S3
+        // write failures (worth retrying).
+        bisectBatchOnError: true,
+        retryAttempts: 10,
+        // Only deletions carry an image worth archiving.
+        filters: [
+          lambda.FilterCriteria.filter({ eventName: lambda.FilterRule.isEqual('REMOVE') }),
+        ],
+      }));
+    }
 
     // --- Custom Domain ---
 
@@ -452,6 +686,60 @@ export class ClassroomStack extends cdk.Stack {
     this.api.addRoutes({
       path: '/classrooms/{classroomId}/assignment',
       methods: [apigatewayv2.HttpMethod.PUT, apigatewayv2.HttpMethod.GET],
+      integration,
+    });
+
+    // みんなの課題 (shared assignment library) — own root path.
+    this.api.addRoutes({
+      path: '/shared-assignments',
+      methods: [apigatewayv2.HttpMethod.POST, apigatewayv2.HttpMethod.GET],
+      integration,
+    });
+
+    this.api.addRoutes({
+      path: '/shared-assignments/{sharedId}',
+      methods: [apigatewayv2.HttpMethod.GET, apigatewayv2.HttpMethod.PATCH, apigatewayv2.HttpMethod.DELETE],
+      integration,
+    });
+
+    this.api.addRoutes({
+      path: '/shared-assignments/{sharedId}/import',
+      methods: [apigatewayv2.HttpMethod.POST],
+      integration,
+    });
+
+    this.api.addRoutes({
+      path: '/shared-assignments/{sharedId}/report',
+      methods: [apigatewayv2.HttpMethod.POST],
+      integration,
+    });
+
+    // 合言葉（限定公開）による preview / 取り込み（#1109）。POST の literal path
+    // なので GET/PATCH/DELETE の /{sharedId} ルートとは衝突しない。
+    this.api.addRoutes({
+      path: '/shared-assignments/lookup',
+      methods: [apigatewayv2.HttpMethod.POST],
+      integration,
+    });
+
+    this.api.addRoutes({
+      path: '/shared-assignments/import-by-passcode',
+      methods: [apigatewayv2.HttpMethod.POST],
+      integration,
+    });
+
+    // お知らせ (notification center #1111) — teacher-facing inbox. Own root
+    // path; writes happen from the admin stack, so this API only lists and
+    // marks-read for the authenticated teacher.
+    this.api.addRoutes({
+      path: '/notifications',
+      methods: [apigatewayv2.HttpMethod.GET],
+      integration,
+    });
+
+    this.api.addRoutes({
+      path: '/notifications/mark-read',
+      methods: [apigatewayv2.HttpMethod.POST],
       integration,
     });
 

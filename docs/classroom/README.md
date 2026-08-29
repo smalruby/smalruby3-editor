@@ -30,6 +30,8 @@ Smalruby Classroom は、日本の学校の授業で Smalruby を使うための
 | [ソースコード](source-code.md) | 関連ファイル一覧 |
 | [テスト](testing.md) | data-testid 一覧、Playwright / 結合テスト |
 | [Microsoft 認証](microsoft-authentication.md) | MSAL.js 統合、サイレント再認証、Azure Portal 設定 |
+| [運用手順書](operations.md) | 「消えたクラスを復旧してほしい」問い合わせ対応（アーカイブ復元の案内 / 期限切れ復元スクリプト） |
+| [みんなの課題](../assignment-sharing/README.md) | 全国の先生と課題を共有・再利用する機能（別 feature ディレクトリ） |
 
 ![Smalruby メニューバーの「クラス」ボタン](screenshots/0101-menu-bar.png)
 

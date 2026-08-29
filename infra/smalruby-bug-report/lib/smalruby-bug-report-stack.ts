@@ -134,6 +134,9 @@ export class SmalrubyBugReportStack extends cdk.Stack {
         ADMINS_TABLE_NAME: this.adminsTable.tableName,
         REPORTS_BUCKET_NAME: this.reportsBucket.bucketName,
         GOOGLE_CLIENT_ID: googleClientId,
+        // Additional accepted audience for the admin console (EPIC #1073
+        // decision F). Empty = admin tokens rejected (pre-#1073 behavior).
+        ADMIN_GOOGLE_CLIENT_ID: process.env.ADMIN_GOOGLE_CLIENT_ID || '',
         MICROSOFT_CLIENT_ID: microsoftClientId,
         BOOTSTRAP_ADMIN_EMAILS: bootstrapAdminEmails,
         DEV_BYPASS_TOKEN: devBypassToken,

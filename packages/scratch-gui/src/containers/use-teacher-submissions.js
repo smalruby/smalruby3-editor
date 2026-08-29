@@ -7,8 +7,15 @@
 import JSZip from 'jszip';
 import { useCallback, useState } from 'react';
 import classroomAPI from '../lib/classroom-api.js';
+import {
+    assignmentFolderNames,
+    buildSubmissionsCsv,
+    sanitizeEntryName,
+    submissionStatusLabel,
+} from '../lib/classroom-download-utils.js';
 import { closeClassroomModal } from '../reducers/classroom.js';
 import translateError from './classroom-error-utils.js';
+import { enrichMembers } from './use-teacher-classrooms.js';
 
 /**
  * @param {object} params - hook dependencies
@@ -205,6 +212,114 @@ const useTeacherSubmissions = ({
         }
     }, [selectedClassroom, members, clearError, showError, intl]);
 
+    // --- Download the whole class (every assignment) as one ZIP ---
+
+    /**
+     * Class-wide bulk download (issue #1055): one zip with
+     * `課題名/席番号_名前/作品.sb3` (+ thumbnail / screenshots) for every
+     * assignment of the class, plus a 提出状況.csv summary. Archived
+     * assignments are included — their submissions are TTL-bound too, and
+     * "save everything before the deadline" is the whole point.
+     * @param {object} group - the class (group) being downloaded
+     * @param {Array<object>} assignments - the class's classrooms (active + archived)
+     */
+    const handleDownloadClassAll = useCallback(
+        async (group, assignments) => {
+            if (!group || !assignments || assignments.length === 0) return;
+            clearError();
+            setDownloadProgress({ current: 0, total: assignments.length });
+
+            try {
+                const folderNames = assignmentFolderNames(assignments);
+                const zip = new JSZip();
+                const csvRows = [];
+
+                for (let ai = 0; ai < assignments.length; ai++) {
+                    const assignment = assignments[ai];
+                    setDownloadProgress({ current: ai + 1, total: assignments.length });
+
+                    let enriched;
+                    try {
+                        const [membersData, submissionsData] = await Promise.all([
+                            classroomAPI.listMembers(idToken, assignment.classroomId),
+                            classroomAPI.listSubmissions(idToken, assignment.classroomId),
+                        ]);
+                        enriched = enrichMembers(membersData, submissionsData);
+                    } catch (err) {
+                        if (err.status === 401) {
+                            await handleTeacher401();
+                            return;
+                        }
+                        // Skip assignments that fail to load; the rest of the
+                        // class is still worth saving.
+                        continue;
+                    }
+
+                    const assignmentFolder = folderNames.get(assignment.classroomId);
+                    for (const m of enriched) {
+                        const seatLabel = (m.memberId || '').replace('seat-', '');
+                        csvRows.push({
+                            assignmentName: assignment.assignmentName || assignment.className,
+                            seat: seatLabel,
+                            name: m.displayName || '',
+                            projectName: m.projectName || '',
+                            submittedAt: m.submittedAt || '',
+                            status: submissionStatusLabel(m),
+                        });
+                        if (!m.hasSubmission || !m.projectUrl) continue;
+
+                        const name = m.displayName || '';
+                        const folder = zip.folder(
+                            `${assignmentFolder}/${sanitizeEntryName(name ? `${seatLabel}_${name}` : seatLabel)}`,
+                        );
+
+                        try {
+                            const res = await fetch(m.projectUrl);
+                            if (res.ok) {
+                                folder.file(`${sanitizeEntryName(m.projectName || 'project')}.sb3`, await res.blob());
+                            }
+                        } catch {
+                            // Skip failed downloads
+                        }
+                        if (m.thumbnailUrl) {
+                            try {
+                                const res = await fetch(m.thumbnailUrl);
+                                if (res.ok) folder.file('thumbnail.png', await res.blob());
+                            } catch {
+                                // Skip
+                            }
+                        }
+                        for (let si = 0; si < (m.screenshotUrls || []).length; si++) {
+                            try {
+                                const res = await fetch(m.screenshotUrls[si]);
+                                if (res.ok) folder.file(`screenshot-${si}.png`, await res.blob());
+                            } catch {
+                                // Skip
+                            }
+                        }
+                    }
+                }
+
+                zip.file('提出状況.csv', buildSubmissionsCsv(csvRows));
+
+                const blob = await zip.generateAsync({ type: 'blob' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${sanitizeEntryName(group.name || 'class')}_全課題.zip`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (err) {
+                showError(translateError(intl, err));
+            } finally {
+                setDownloadProgress(null);
+            }
+        },
+        [idToken, clearError, showError, handleTeacher401, intl],
+    );
+
     /** Reset display state (used by back-to-dashboard). */
     const resetSubmissionDisplay = useCallback(() => {
         setCodeDisplayClassroom(null);
@@ -222,6 +337,7 @@ const useTeacherSubmissions = ({
         handleCopyInviteLink,
         handleReturnSubmission,
         handleDownloadAll,
+        handleDownloadClassAll,
         resetSubmissionDisplay,
     };
 };

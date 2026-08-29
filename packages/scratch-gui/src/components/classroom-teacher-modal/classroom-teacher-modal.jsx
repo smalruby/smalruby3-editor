@@ -5,7 +5,7 @@
  * with a sidebar (class list) and a main area that shows phase content.
  */
 import PropTypes from 'prop-types';
-import React from 'react';
+import React, { useCallback } from 'react';
 import { defineMessages, useIntl, FormattedMessage } from 'react-intl';
 
 import Modal from '../../containers/modal.jsx';
@@ -22,6 +22,9 @@ import Spinner from '../spinner/spinner.jsx';
 
 import TeacherGoogleCoursesPhase from './teacher-google-courses-phase.jsx';
 import TeacherLoginPhase from './teacher-login-phase.jsx';
+import TeacherNotifications from './teacher-notifications.jsx';
+import TeacherNotificationsList from './teacher-notifications-list.jsx';
+import TeacherAvatarMenu from './teacher-avatar-menu.jsx';
 
 import styles from './classroom-teacher-modal.css';
 
@@ -41,6 +44,11 @@ const messagesBreadcrumbs = defineMessages({
         description: 'Breadcrumb label of the assignment detail view',
         id: 'gui.classroom.breadcrumbs.assignmentDetail',
     },
+    shareGc: {
+        defaultMessage: 'Share to Google Classroom',
+        description: 'Breadcrumb label of the Google Classroom share view',
+        id: 'gui.classroom.breadcrumbs.shareGc',
+    },
 });
 
 const messages = defineMessages({
@@ -51,11 +59,27 @@ const messages = defineMessages({
     },
 });
 
+/**
+ * 共有ステップ (#1106 バナー CTA) を載せるボードのグループを選ぶ。
+ * 優先順: この課題の所属グループ → 現在選択中 → 先頭のアクティブグループ。
+ * @param {object} selectedClassroom - 対象の課題 (classroom summary)
+ * @param {object|null} selectedGroup - 現在選択中のグループ
+ * @param {Array<object>} groups - 先生の全グループ
+ * @returns {object|null} 選ばれたグループ (無ければ null)
+ */
+export const pickShareSuggestionGroup = (selectedClassroom, selectedGroup, groups) =>
+    (groups || []).find((g) => g.groupId === selectedClassroom?.groupId) ||
+    selectedGroup ||
+    (groups || []).find((g) => g.status !== 'archived') ||
+    null;
+
 const ClassroomTeacherModal = ({ containerProps, onClose }) => {
     const intl = useIntl();
     const {
         phase,
         classrooms,
+        archivedClassrooms,
+        onRestoreClassroom,
         selectedClassroom,
         members,
         error,
@@ -83,6 +107,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         onOpenSubmission,
         onReturnSubmission,
         onDownloadAll,
+        onDownloadClassAll,
         onShowCodeDisplay,
         onCloseCodeDisplay,
         onCopyInviteLink,
@@ -129,12 +154,30 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         onCreateGroup,
         onUpdateGroup,
         evaluation,
+        shared,
+        notificationsCenter,
     } = containerProps;
+
+    // 共有推奨バナー (#1106) の CTA: 共有ステップはボード内サブビュー
+    // (= selectedGroup が必須) なので、必ずグループを選んでから開く。
+    // 未グループの課題 (レガシー) や selectedGroup が無い経路でも、この課題の
+    // 所属グループ → 現在のグループ → 先頭のアクティブグループの順で拾う
+    // (#1110 レビューと同型の「phase を戻さず無反応」欠陥への対処)。
+    const handleOpenShareSuggestion = useCallback(() => {
+        if (!selectedClassroom || !shared) return;
+        const group = pickShareSuggestionGroup(selectedClassroom, selectedGroup, groups);
+        if (!group) return; // クラスが無い = 共有ステップを出す場所が無い
+        onSelectGroup(group);
+        shared.handleOpenShareFor(selectedClassroom);
+    }, [selectedClassroom, selectedGroup, groups, shared, onSelectGroup]);
 
     // Opening a class scopes the board to its assignments (GC style).
     const scopedClassrooms = selectedGroup
         ? classrooms.filter((c) => c.groupId === selectedGroup.groupId)
         : classrooms;
+    const scopedArchivedClassrooms = selectedGroup
+        ? (archivedClassrooms || []).filter((c) => c.groupId === selectedGroup.groupId)
+        : archivedClassrooms || [];
 
     const renderMain = () => {
         // Fullscreen code display overlay
@@ -159,6 +202,38 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                     onGoogleLogin={onGoogleLogin}
                     onMicrosoftLogin={onMicrosoftLogin}
                 />
+            );
+        }
+
+        if (phase === 'teacher-notifications' && notificationsCenter) {
+            return (
+                <div className={styles.mainRelative}>
+                    <div className={styles.detailBreadcrumbs}>
+                        {/* ポリシー: パンくずの先頭「クラス管理」でいつでもトップ
+                            （クラス一覧）へ戻れる（#1111 レビュー）。 */}
+                        <TeacherBreadcrumbs
+                            items={[
+                                {
+                                    label: intl.formatMessage(messages.title),
+                                    onClick: onShowClassList,
+                                    testId: 'classroom-breadcrumb-top',
+                                },
+                                {
+                                    label: intl.formatMessage({
+                                        defaultMessage: 'Notifications',
+                                        description: 'Breadcrumb label of the notification list page',
+                                        id: 'gui.classroom.notifications.title',
+                                    }),
+                                },
+                            ]}
+                        />
+                    </div>
+                    <TeacherNotificationsList
+                        notifications={notificationsCenter.notifications}
+                        onBack={onShowClassList}
+                        onOpenLink={notificationsCenter.handleOpenLink}
+                    />
+                </div>
             );
         }
 
@@ -281,6 +356,8 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         onReturnSubmission={onReturnSubmission}
                         onSelectMember={onSelectMember}
                         onShowCodeDisplay={onShowCodeDisplay}
+                        shared={shared}
+                        onOpenShareSuggestion={handleOpenShareSuggestion}
                         onShowPostAssignment={authProvider === 'google' ? onShowPostAssignment : null}
                         onToggleCodeFullscreen={onToggleCodeFullscreen}
                         onUpdateAssignmentName={onUpdateAssignmentName}
@@ -313,14 +390,39 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
 
         if (phase === 'teacher-post-assignment') {
             return (
-                <TeacherPostAssignment
-                    error={error}
-                    errorTitle={errorTitle}
-                    isLoading={isLoading}
-                    selectedClassroom={selectedClassroom}
-                    onBack={onBackToDetail}
-                    onPostAssignment={onPostAssignment}
-                />
+                <div className={styles.mainRelative}>
+                    <div className={styles.detailBreadcrumbs}>
+                        <TeacherBreadcrumbs
+                            items={[
+                                {
+                                    label: intl.formatMessage(messagesBreadcrumbs.classList),
+                                    onClick: onShowClassList,
+                                    testId: 'classroom-breadcrumb-class-list',
+                                },
+                                {
+                                    label: intl.formatMessage(messagesBreadcrumbs.assignments),
+                                    onClick: onBackToDashboard,
+                                    testId: 'classroom-breadcrumb-assignments',
+                                },
+                                {
+                                    label: intl.formatMessage(messagesBreadcrumbs.assignmentDetail),
+                                    onClick: onBackToDetail,
+                                    testId: 'classroom-breadcrumb-assignment-detail',
+                                },
+                                { label: intl.formatMessage(messagesBreadcrumbs.shareGc) },
+                            ]}
+                        />
+                    </div>
+                    <TeacherPostAssignment
+                        error={error}
+                        errorTitle={errorTitle}
+                        group={selectedGroup}
+                        isLoading={isLoading}
+                        selectedClassroom={selectedClassroom}
+                        onBack={onBackToDetail}
+                        onPostAssignment={onPostAssignment}
+                    />
+                </div>
             );
         }
 
@@ -333,12 +435,17 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                     <TeacherAssignmentBoard
                         allClassrooms={classrooms}
                         allGroups={groups || []}
+                        archivedClassrooms={scopedArchivedClassrooms}
                         classrooms={scopedClassrooms}
+                        downloadProgress={downloadProgress}
                         error={error}
                         errorTitle={errorTitle}
                         group={selectedGroup}
                         isLoading={isLoading}
+                        shared={shared}
                         onCreateAssignmentInClass={onCreateAssignmentInClass}
+                        onDownloadClassAll={onDownloadClassAll}
+                        onRestoreClassroom={onRestoreClassroom}
                         onReuseAssignment={onReuseAssignment}
                         onSelectClassroom={onSelectClassroom}
                         onShowClassList={onShowClassList}
@@ -386,26 +493,22 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                 className={styles.layout}
                 data-testid="classroom-teacher-modal"
             >
-                {/* Logout lives in the title bar (top-right, before the
-                    close ×) so it is reachable from every teacher view. */}
-                {phase !== 'teacher-login' && teacherEmail ? (
-                    <span className={styles.titleBarEmail} data-testid="classroom-teacher-email">
-                        {teacherEmail}
-                    </span>
-                ) : null}
+                {/* タイトルバー右上（× の左）: 通知ベル → アバターメニュー。
+                    アバターは右上固定でアカウント（メール頭文字）を示し、
+                    クリックでログアウト等のメニューを出す（#1111 レビュー）。 */}
+                {phase !== 'teacher-login' && notificationsCenter && (
+                    <TeacherNotifications
+                        isOpen={notificationsCenter.isOpen}
+                        notifications={notificationsCenter.notifications}
+                        unreadCount={notificationsCenter.unreadCount}
+                        onMarkAllRead={notificationsCenter.handleMarkAllRead}
+                        onOpenLink={notificationsCenter.handleOpenLink}
+                        onShowAll={notificationsCenter.handleShowAll}
+                        onToggle={notificationsCenter.handleToggleNotifications}
+                    />
+                )}
                 {phase !== 'teacher-login' && (
-                    <button
-                        className={styles.titleBarLogout}
-                        data-testid="classroom-teacher-logout"
-                        type="button"
-                        onClick={onTeacherLogout}
-                    >
-                        <FormattedMessage
-                            defaultMessage="Logout"
-                            description="Logout button in the class management title bar"
-                            id="gui.classroom.management.titleBarLogout"
-                        />
-                    </button>
+                    <TeacherAvatarMenu email={teacherEmail} onLogout={onTeacherLogout} />
                 )}
                 {/* Main area */}
                 <main className={styles.main}>{renderMain()}</main>

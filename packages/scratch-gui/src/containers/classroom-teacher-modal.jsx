@@ -124,6 +124,8 @@ const ClassroomTeacherModal = () => {
     const teacherContainerProps = {
         phase,
         classrooms: teacher.classrooms,
+        archivedClassrooms: teacher.archivedClassrooms,
+        onRestoreClassroom: teacher.handleRestoreClassroom,
         selectedClassroom: teacher.selectedClassroom,
         members: teacher.members,
         error,
@@ -151,6 +153,7 @@ const ClassroomTeacherModal = () => {
         onOpenSubmission: teacher.handleOpenSubmission,
         onReturnSubmission: teacher.handleReturnSubmission,
         onDownloadAll: teacher.handleDownloadAll,
+        onDownloadClassAll: teacher.handleDownloadClassAll,
         onShowCodeDisplay: teacher.handleShowCodeDisplay,
         onCloseCodeDisplay: teacher.handleCloseCodeDisplay,
         onCopyInviteLink: teacher.handleCopyInviteLink,
@@ -195,6 +198,8 @@ const ClassroomTeacherModal = () => {
         onReuseAssignment: teacher.handleReuseAssignment,
         onUpdateGroup: teacher.handleUpdateGroup,
         evaluation: teacher.evaluation,
+        shared: teacher.shared,
+        notificationsCenter: teacher.notificationsCenter,
     };
     return <ClassroomTeacherModalComponent containerProps={teacherContainerProps} onClose={handleClose} />;
 };

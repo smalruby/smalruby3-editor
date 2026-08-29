@@ -59,10 +59,14 @@ class ClassroomAPI {
     /**
      * List classrooms for the authenticated teacher.
      * @param {string} idToken - Google ID token
+     * @param {object} [options] - list options
+     * @param {boolean} [options.includeArchived] - also return archived
+     *     classrooms (each item carries a `status` field). Default: active only.
      * @returns {Promise<object>} List of classrooms
      */
-    async listClassrooms(idToken) {
-        return this._request('GET', '/classrooms', null, idToken);
+    async listClassrooms(idToken, { includeArchived = false } = {}) {
+        const path = includeArchived ? '/classrooms?includeArchived=1' : '/classrooms';
+        return this._request('GET', path, null, idToken);
     }
 
     /**
@@ -320,6 +324,138 @@ class ClassroomAPI {
      */
     async updateGroupTopics(idToken, groupId, payload) {
         return this._request('PATCH', `/classroom-groups/${groupId}/topics`, payload, idToken);
+    }
+
+    // --- みんなの課題 (shared assignment library, EPIC #1066) ---
+
+    /**
+     * Publish one of the teacher's assignments to the shared library.
+     * `visibility: 'limited'` (#1109) shares as 合言葉限定公開 with light
+     * validation and returns a passcode; 'public' (default) is the みんなの課題
+     * catalog and requires the full metadata + CC BY consent.
+     * @param {string} idToken - Teacher ID token
+     * @param {object} payload - {classroomId, title, visibility?, summary?,
+     *     schoolLevel?, grades?, subject?, tags?, lessonCount?, supplementUrl?,
+     *     authorName?, authorAffiliation?, licenseConsent?}
+     * @returns {Promise<object>} Published item summary (passcode when limited)
+     */
+    async shareAssignment(idToken, payload) {
+        return this._request('POST', '/shared-assignments', payload, idToken);
+    }
+
+    /**
+     * Preview a limited-published shared assignment by 合言葉 (#1109) before
+     * importing. Does not expose the sharedId.
+     * @param {string} idToken - Teacher ID token
+     * @param {string} passcode - the 合言葉
+     * @returns {Promise<object>} Shared summary (no sharedId)
+     */
+    async lookupSharedByPasscode(idToken, passcode) {
+        return this._request('POST', '/shared-assignments/lookup', { passcode }, idToken);
+    }
+
+    /**
+     * Import a limited-published shared assignment by 合言葉 (#1109) into one of
+     * the teacher's own classes.
+     * @param {string} idToken - Teacher ID token
+     * @param {object} payload - {passcode, groupId, assignmentName?}
+     * @returns {Promise<object>} Created classroom summary
+     */
+    async importSharedByPasscode(idToken, payload) {
+        return this._request('POST', '/shared-assignments/import-by-passcode', payload, idToken);
+    }
+
+    /**
+     * Browse the shared assignment catalog (newest first).
+     * @param {string} idToken - Teacher ID token
+     * @param {object} [filters] - {schoolLevel?, subject?, grade?, tag?, cursor?, mine?}
+     * @returns {Promise<object>} {items, cursor}
+     */
+    async listSharedAssignments(idToken, filters = {}) {
+        const params = new URLSearchParams();
+        for (const [key, value] of Object.entries(filters)) {
+            if (typeof value !== 'undefined' && value !== null && value !== '') {
+                params.set(key, String(value));
+            }
+        }
+        const qs = params.toString();
+        return this._request('GET', `/shared-assignments${qs ? `?${qs}` : ''}`, null, idToken);
+    }
+
+    /**
+     * Get a shared assignment's detail (pages with presigned image URLs).
+     * @param {string} idToken - Teacher ID token
+     * @param {string} sharedId - Shared assignment ID
+     * @returns {Promise<object>} Detail including pages and starterUrl
+     */
+    async getSharedAssignment(idToken, sharedId) {
+        return this._request('GET', `/shared-assignments/${sharedId}`, null, idToken);
+    }
+
+    /**
+     * Import a shared assignment into one of the teacher's own classes.
+     * @param {string} idToken - Teacher ID token
+     * @param {string} sharedId - Shared assignment ID
+     * @param {object} payload - {groupId, assignmentName?}
+     * @returns {Promise<object>} Created classroom summary
+     */
+    async importSharedAssignment(idToken, sharedId, payload) {
+        return this._request('POST', `/shared-assignments/${sharedId}/import`, payload, idToken);
+    }
+
+    /**
+     * Update the caller's own shared assignment (metadata, or content
+     * re-snapshot when classroomId is given — overwrite semantics).
+     * @param {string} idToken - Teacher ID token
+     * @param {string} sharedId - Shared assignment ID
+     * @param {object} updates - Fields to update
+     * @returns {Promise<object>} Updated item summary
+     */
+    async updateSharedAssignment(idToken, sharedId, updates) {
+        return this._request('PATCH', `/shared-assignments/${sharedId}`, updates, idToken);
+    }
+
+    /**
+     * Unlist (withdraw) the caller's own shared assignment.
+     * @param {string} idToken - Teacher ID token
+     * @param {string} sharedId - Shared assignment ID
+     * @returns {Promise<void>} resolves on 204
+     */
+    async unlistSharedAssignment(idToken, sharedId) {
+        return this._request('DELETE', `/shared-assignments/${sharedId}`, null, idToken);
+    }
+
+    /**
+     * Report a shared assignment for moderation.
+     * @param {string} idToken - Teacher ID token
+     * @param {string} sharedId - Shared assignment ID
+     * @param {string} reason - Report reason (required)
+     * @returns {Promise<object>} empty object on success
+     */
+    async reportSharedAssignment(idToken, sharedId, reason) {
+        return this._request('POST', `/shared-assignments/${sharedId}/report`, { reason }, idToken);
+    }
+
+    /**
+     * お知らせ (notification center #1111): list the teacher's notices,
+     * newest first, with the server-computed unread count.
+     * @param {string} idToken - Teacher ID token
+     * @returns {Promise<object>} {notifications, unreadCount}
+     */
+    async listNotifications(idToken) {
+        return this._request('GET', '/notifications', null, idToken);
+    }
+
+    /**
+     * Mark notices as read. Omit notificationIds to mark everything
+     * currently unread (used when the notification panel opens).
+     * @param {string} idToken - Teacher ID token
+     * @param {Array<string>} [notificationIds] - specific ids (optional)
+     * @returns {Promise<object>} {updated}
+     */
+    async markNotificationsRead(idToken, notificationIds) {
+        const body = notificationIds ? { notificationIds } : {};
+        return this._request('POST', '/notifications/mark-read', body, idToken);
     }
 
     /**

@@ -353,8 +353,20 @@ const TeacherEvaluation = ({
                 </div>
             )}
 
-            {/* Actions */}
+            {/* Actions（左端にキャンセル、他ボタンは右寄せ。レビュー指摘で同一行に揃える） */}
             <div className={styles.buttonRow}>
+                <button
+                    className={classNames(styles.secondaryButton, styles.evalCancel)}
+                    data-testid="classroom-evaluation-cancel"
+                    type="button"
+                    onClick={onBack}
+                >
+                    <FormattedMessage
+                        defaultMessage="Cancel"
+                        description="Cancel button of the evaluation screen (returns to the class list)"
+                        id="gui.classroom.evaluation.cancel"
+                    />
+                </button>
                 <button
                     className={styles.primaryButton}
                     data-testid="classroom-eval-run-grade"

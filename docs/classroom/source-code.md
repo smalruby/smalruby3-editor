@@ -40,6 +40,7 @@ smalruby3-editor/
 │   │   ├── containers/
 │   │   │   ├── classroom-modal.jsx    ← コンテナ（生徒/先生モードの振り分け）
 │   │   │   ├── use-teacher-classroom.js ← 先生用フック統合（他フックを束ねる）
+│   │   │   ├── use-teacher-notifications.js ← お知らせセンター (EPIC #1111)
 │   │   │   ├── use-teacher-auth.js    ← 認証フック（Google/Microsoft 共通）
 │   │   │   ├── use-teacher-classrooms.js ← クラス CRUD + 自動リフレッシュ
 │   │   │   ├── use-teacher-submissions.js ← 提出管理・一括ダウンロード
@@ -109,6 +110,8 @@ CDK スタック定義。以下のリソースを作成:
 | `handleUpdateSubmission()` | 提出更新 (返却・コメント) |
 | `handleSetAssignment()` | 課題コンテンツ設定 (ページ + スターター、Presigned URL 生成) |
 | `handleGetAssignment()` | 課題コンテンツ取得 (生徒 Session Token / 先生 ID Token 両対応) |
+| `handleListNotifications()` | お知らせ一覧 + 未読数 (EPIC #1111) |
+| `handleMarkNotificationsRead()` | お知らせ既読化 (ids 省略で全既読) |
 | `handleCreateGroup()` / `handleListGroups()` / `handleUpdateGroup()` | 組（グループ）の作成・一覧・更新/アーカイブ |
 | `handleDuplicateClassroom()` | クラス複製（課題の S3 オブジェクトコピー含む） |
 | `handleListGoogleCourses()` | Google Classroom コース一覧 |
@@ -180,6 +183,7 @@ GOOGLE_ID_TOKEN=eyJ... docker compose run --rm -w /app/infra/smalruby-classroom 
 | `teacher-login-phase.jsx` | ログイン画面（Google / Microsoft ボタン + カルーセル） |
 | `teacher-sidebar.jsx` | サイドバー（クラス一覧ナビゲーション） |
 | `teacher-google-courses-phase.jsx` | Google Classroom コースインポート画面 |
+| `teacher-notifications.jsx` | お知らせセンター（🔔 + 未読バッジ + 一覧パネル、EPIC #1111） |
 
 ### `packages/scratch-gui/src/lib/classroom-api.js`
 

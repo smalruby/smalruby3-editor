@@ -204,3 +204,50 @@ describe('ClassroomAPI co-teacher methods', () => {
         expect(url).not.toContain('a+b@example.com'); // raw '+'/'@' must be encoded
     });
 });
+
+describe('ClassroomAPI notification methods (EPIC #1111)', () => {
+    let classroomAPI;
+
+    beforeEach(() => {
+        jest.resetModules();
+        global.fetch = jest.fn();
+        classroomAPI = require('../../../src/lib/classroom-api.js').default;
+    });
+
+    afterEach(() => {
+        jest.clearAllMocks();
+    });
+
+    const mockOk = (body) =>
+        global.fetch.mockResolvedValue({
+            ok: true,
+            status: 200,
+            json: jest.fn().mockResolvedValue(body),
+        });
+
+    test('listNotifications GETs /notifications with the teacher token', async () => {
+        mockOk({ notifications: [{ notificationId: 'n1' }], unreadCount: 1 });
+        const data = await classroomAPI.listNotifications('id-token');
+        const [url, opts] = global.fetch.mock.calls[0];
+        expect(url).toContain('/notifications');
+        expect(opts.method).toBe('GET');
+        expect(opts.headers.Authorization).toBe('Bearer id-token');
+        expect(data.unreadCount).toBe(1);
+    });
+
+    test('markNotificationsRead POSTs an empty body to mark everything read', async () => {
+        mockOk({ updated: 2 });
+        await classroomAPI.markNotificationsRead('id-token');
+        const [url, opts] = global.fetch.mock.calls[0];
+        expect(url).toContain('/notifications/mark-read');
+        expect(opts.method).toBe('POST');
+        expect(JSON.parse(opts.body)).toEqual({});
+    });
+
+    test('markNotificationsRead forwards specific ids when given', async () => {
+        mockOk({ updated: 1 });
+        await classroomAPI.markNotificationsRead('id-token', ['n1']);
+        const [, opts] = global.fetch.mock.calls[0];
+        expect(JSON.parse(opts.body)).toEqual({ notificationIds: ['n1'] });
+    });
+});

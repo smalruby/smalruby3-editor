@@ -140,6 +140,7 @@
     font-size: 0.9rem;
     cursor: pointer;
     font-weight: bold;
+    text-decoration: none;
 }
 
 .primary-button:hover {
@@ -278,25 +279,186 @@
     margin: 0.3rem 0;
 }
 
+/* 課題名（左）と参加コード（右）を均等幅 2 カラムに分ける。両カラムは
+   stretch で高さが揃うので、課題名入力の高さは参加コードカードに一致する。
+   幅が足りず参加コードカードが 340px を割り込むと、行が折り返して参加コード
+   カードは単独行（フル幅）になり、狭いウインドウでも 2 行に収まる。 */
+.name-code-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: stretch;
+    margin: 0.3rem 0;
+}
+
+/* 課題名: ラベルと 2 行入力を横並び。ラベルは縦中央、入力はカラム（=カード）
+   高さいっぱいに伸ばして参加コードカードと高さを揃える。 */
+.name-col {
+    flex: 1 1 340px;
+    min-width: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 0.3rem;
+}
+
+.name-col .assignment-name-label {
+    flex: 0 0 auto;
+    align-self: center;
+    white-space: nowrap;
+}
+
+/* 課題名は 2 行分の入力領域（長い名前が折り返して見える）。カード高さに
+   合わせて縦に伸びる。単一行の値なので monospace を避け、リサイズは無効。 */
+.name-col .assignment-name-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 2.8rem;
+    box-sizing: border-box;
+    resize: none;
+    font-family: inherit;
+    line-height: 1.3;
+    overflow-y: auto;
+}
+
+/* 参加コードカード (redesign): 右カラム。コードと 3 つのボタンを 1 つの
+   flex flow に並べ、同じ行から始めることで（幅が足りなくても）2 行に収める。 */
+.join-code-card {
+    flex: 1 1 340px;
+    min-width: 0;
+    container-type: inline-size;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem 0.4rem;
+    background-color: #f2f2f2;
+    border: 2px dashed #d9d9d9;
+    border-radius: 8px;
+    padding: 0.4rem 0.5rem;
+}
+
+/* 参加コード（ラベル + 値）は折り返さず 1 単位として先頭に置く。 */
+.join-code-codepart {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.2rem;
+    white-space: nowrap;
+}
+
+.join-code-action {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.3rem 0.7rem;
+    border: 1px solid #c8cdd8;
+    border-radius: 6px;
+    background-color: #fff;
+    color: #575e75;
+    font-size: 0.85rem;
+    line-height: 1.2;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.join-code-action:hover {
+    background-color: #f6f7fa;
+}
+
+/* Google Classroom への共有は主要導線として強調 */
+.join-code-action-gc {
+    border-color: #4c97ff;
+    background-color: #e5f0ff;
+    color: #3373cc;
+    font-weight: bold;
+}
+
+.join-code-action-gc:hover {
+    background-color: #d6e7ff;
+}
+
+/* コピー完了のリアクション: アイコンがチェックに変わり緑で強調 */
+.join-code-action-copied {
+    border-color: #4caf50;
+    background-color: #eafaea;
+    color: #4caf50;
+}
+
+.join-code-action-copied:hover {
+    background-color: #d9f5d9;
+}
+
+.join-code-icon {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+}
+
+/* 値・ラベルは課題名ラベル (1rem) と同サイズ（値はボールド・色を維持）。 */
 .join-code-value {
-    font-size: 1.5rem;
+    font-size: 1rem;
     font-weight: bold;
     font-family: monospace;
-    letter-spacing: 0.3em;
+    letter-spacing: 0.15em;
     color: #4c97ff;
     user-select: text;
     cursor: text;
 }
 
+.join-code-label {
+    font-size: 1rem;
+    color: #575e75;
+}
+
+/* 全画面表示・招待リンクコピーは幅に関わらずアイコンのみ、Google Classroom
+   共有は "[アイコン]に共有" の短縮表示で固定。ラベル切り替えの container query
+   は廃止し、常にコンパクトにしてレイアウト崩れを防ぐ。 */
+.join-code-gc-label {
+    font-size: 0.85rem;
+}
+
+/* 保存期限 + 期限警告を1行に。狭い幅では末尾ヒントを省く container query。 */
 .expires-at-text {
+    container-type: inline-size;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem;
     font-size: 0.8rem;
     color: #999;
     margin: 0.25rem 0 0.5rem;
 }
 
-.join-code-label {
-    font-size: 0.75rem;
-    color: #575e75;
+.expires-at-date {
+    flex: 0 0 auto;
+}
+
+/* 期限が近いときの警告メッセージ（保存期限の右側にインライン表示）。 */
+.expires-at-alert {
+    display: inline-flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.15rem 0.3rem;
+    font-weight: bold;
+    color: hsla(30, 70%, 35%, 1);
+}
+
+.expires-at-warning .expires-at-alert {
+    color: hsla(10, 80%, 42%, 1);
+}
+
+.expires-at-alert-mark {
+    align-self: center;
+}
+
+/* 幅が狭ければ「ダウンロードして保存してください」を省いて領域を確保。 */
+@container (max-width: 520px) {
+    .expires-at-hint {
+        display: none;
+    }
 }
 
 .assignment-name-label {
@@ -356,16 +518,17 @@
     background-color: #e9f0ff;
 }
 
-.success-message {
-    color: #0fbd8c;
-    font-weight: bold;
-    text-align: center;
-    padding: 2rem 0;
-    font-size: 1.1rem;
+/* 配信画面の本文コンテナ。課題詳細（.detail-layout）と同じ左右オフセットに
+   合わせる（上端はパンくずラッパーが持つ）。旧 .phaseContainer は未定義で
+   左マージンが出ていなかったため専用クラスに置き換え。 */
+.post-assignment-container {
+    padding: 0 2rem 1.25rem;
 }
 
+/* クラス名（課題詳細と同じ表記）を配信画面のサブタイトルとして表示。 */
 .post-assignment-target {
-    font-size: 0.9rem;
+    font-size: 1rem;
+    font-weight: bold;
     color: #575e75;
     margin-bottom: 1rem;
 }
@@ -378,20 +541,118 @@
     margin-bottom: 1rem;
 }
 
-.post-assignment-success-area {
-    text-align: center;
-    padding: 2rem 0;
+/* 配信後の成功タイトル（基本レイアウトに合わせ左寄せ・緑で強調）。 */
+.post-assignment-success-title {
+    color: #0fbd8c;
+    font-weight: bold;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
 }
 
-.post-assignment-actions {
-    margin-bottom: 1rem;
+/* フォーム下部の共通フッター: キャンセル（左）+ プライマリー（右）。
+   クラス管理の各入力フォームで共有するポリシー（プライマリー右下）。 */
+.form-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
 }
 
-.post-assignment-hint-center {
+/* フッター右側のグループ（例: アーカイブ + 保存 を右寄せで並べる）。 */
+.footer-right-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* 評価画面: キャンセルをアクションボタン行の左端に置く（右寄せの他ボタンと
+   同じ行で左に離す。レビュー指摘）。 */
+.eval-cancel {
+    margin-right: auto;
+}
+
+/* 共有設定ステップ（#1109）: 公開範囲の選択カード + 合言葉の表示。 */
+.share-mode-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin: 0.5rem 0 1rem;
+}
+
+.share-mode-card {
+    flex: 1 1 260px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0.7rem 0.9rem;
+    border: 2px solid #d9d9d9;
+    border-radius: 8px;
+    background: #fff;
+    cursor: pointer;
+    text-align: left;
+}
+
+.share-mode-card:hover {
+    border-color: #b3c7ff;
+}
+
+.share-mode-card-active {
+    border-color: #4c97ff;
+    background: #e9f0ff;
+}
+
+.share-mode-name {
+    font-weight: bold;
+    color: #575e75;
+}
+
+.share-mode-desc {
     font-size: 0.8rem;
     color: #888;
-    line-height: 1.5;
-    text-align: center;
+}
+
+.share-passcode-box {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.8rem 1rem;
+    margin: 0.5rem 0;
+    background: #f2f7ff;
+    border: 2px dashed #4c97ff;
+    border-radius: 8px;
+}
+
+.share-passcode-label {
+    font-weight: bold;
+    color: #575e75;
+}
+
+.share-passcode-value {
+    font-family: monospace;
+    font-size: 1.6rem;
+    font-weight: bold;
+    letter-spacing: 0.2em;
+    color: #3373cc;
+    user-select: text;
+    cursor: text;
+}
+
+/* 合言葉で取り込み（#1109・受け取る側）のプレビュー / エラー。 */
+.passcode-preview {
+    padding: 0.6rem 0.9rem;
+    margin: 0.5rem 0;
+    background: #e9f0ff;
+    border-radius: 8px;
+    color: #575e75;
+    font-weight: bold;
+}
+
+.passcode-error {
+    color: hsla(10, 80%, 42%, 1);
+    font-size: 0.85rem;
+    margin: 0.3rem 0;
 }
 
 .class-item-main {
@@ -2259,6 +2520,471 @@
     cursor: default;
 }
 
+/* --- Archived section (class list & assignment board, issue #1051) --- */
+
+.archived-section {
+    margin-top: 1.5rem;
+    padding-top: 0.75rem;
+    border-top: 1px dashed hsla(0, 0%, 0%, 0.15);
+}
+
+.archived-toggle {
+    display: block;
+    padding: 0.4rem 0;
+    border: none;
+    background: none;
+    color: hsla(225, 15%, 40%, 1);
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+.archived-toggle:hover {
+    color: #855cd6;
+}
+
+.class-settings-archive-confirm {
+    margin: 0.5rem 0 0;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    background: hsla(35, 90%, 55%, 0.12);
+    color: hsla(30, 60%, 30%, 1);
+    font-size: 0.875rem;
+}
+
+/* --- Retention (auto-delete) alerts (issue #1052) --- */
+
+/* 期限が近い課題の行に出す自動削除メッセージ + 全作品ダウンロード。
+   バッジ（あと N 日）は廃止し、詳細と同じ文面 + DL 動線を一覧にも置く。 */
+.board-row-retention,
+.board-row-retention-warning {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.6rem;
+    padding: 0.1rem 0.3rem 0.2rem;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.board-row-retention {
+    color: hsla(30, 70%, 35%, 1);
+}
+
+.board-row-retention-warning {
+    color: hsla(10, 80%, 42%, 1);
+}
+
+.board-row-retention-mark {
+    flex: 0 0 auto;
+}
+
+.board-row-retention-text {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.board-row-retention-download {
+    flex: 0 0 auto;
+    padding: 0.3rem 0.7rem;
+    border: 1px solid currentColor;
+    border-radius: 0.4rem;
+    background: white;
+    color: inherit;
+    font-weight: bold;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.board-row-retention-download:hover:not(:disabled) {
+    background: hsla(10, 85%, 55%, 0.1);
+}
+
+.board-row-retention-download:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+/* 期限が近いとき、全作品ダウンロードボタンを警告色にしてDLを促す（#1052）。
+   secondary-button / detail-tabs-download より後に定義し、element+class で
+   確実に色を上書きする。 */
+button.detail-tabs-download-urgent {
+    border-color: hsla(10, 80%, 45%, 1);
+    background: hsla(10, 85%, 55%, 1);
+    color: white;
+    font-weight: bold;
+}
+
+button.detail-tabs-download-urgent:hover:not(:disabled) {
+    background: hsla(10, 85%, 48%, 1);
+}
+
+/* --- みんなの課題: share form (EPIC #1066 S2) --- */
+
+.shared-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin: 0.75rem 0;
+    padding: 1rem;
+    border: 1px solid hsla(260, 60%, 60%, 0.35);
+    border-radius: 0.5rem;
+    background: hsla(260, 60%, 60%, 0.05);
+}
+
+.shared-form input[type='text'],
+.shared-form input[type='url'],
+.shared-form input[type='number'],
+.shared-form select {
+    padding: 0.45rem 0.6rem;
+    border: 1px solid hsla(0, 0%, 0%, 0.15);
+    border-radius: 0.4rem;
+    font-size: 0.875rem;
+}
+
+.shared-form-title {
+    margin: 0;
+    font-size: 1rem;
+    color: #855cd6;
+}
+
+.shared-form-hint {
+    margin: 0;
+    font-size: 0.8rem;
+    color: hsla(225, 15%, 40%, 1);
+}
+
+.shared-form-row {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.shared-form-row > * {
+    flex: 1;
+}
+
+.shared-form-row input[type='number'] {
+    max-width: 6rem;
+}
+
+.shared-form-grades {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    align-items: center;
+    font-size: 0.875rem;
+}
+
+.shared-form-grade {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    cursor: pointer;
+}
+
+.shared-form-label {
+    color: hsla(225, 15%, 40%, 1);
+}
+
+.shared-form-url-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.shared-form-url-block input {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.shared-form-url-hint {
+    margin: 0;
+    font-size: 0.75rem;
+    color: hsla(225, 15%, 40%, 1);
+}
+
+.shared-form-url-error {
+    margin: 0;
+    font-size: 0.75rem;
+    color: hsla(10, 80%, 40%, 1);
+}
+
+.shared-form-consent {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.6rem;
+    border-radius: 0.4rem;
+    background: hsla(35, 90%, 55%, 0.1);
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.shared-form-consent input {
+    margin-top: 0.15rem;
+}
+
+.shared-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.shared-form-actions button {
+    padding: 0.45rem 1rem;
+    border: 1px solid hsla(0, 0%, 0%, 0.15);
+    border-radius: 0.4rem;
+    background: white;
+    cursor: pointer;
+}
+
+.shared-form-submit {
+    border-color: #855cd6 !important;
+    background: #855cd6 !important;
+    color: white;
+}
+
+.shared-form-submit:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.shared-form-success {
+    margin: 0.5rem 0;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.4rem;
+    background: hsla(145, 60%, 45%, 0.12);
+    color: hsla(145, 70%, 25%, 1);
+    font-size: 0.875rem;
+}
+
+/* --- みんなの課題: catalog (EPIC #1066 S3) --- */
+
+.shared-catalog {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin: 0.75rem 0;
+    padding: 1rem;
+    border: 1px solid hsla(260, 60%, 60%, 0.35);
+    border-radius: 0.5rem;
+    background: white;
+}
+
+.shared-catalog-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.shared-catalog-filters select,
+.shared-catalog-filters input,
+.shared-catalog-filters button {
+    padding: 0.35rem 0.5rem;
+    border: 1px solid hsla(0, 0%, 0%, 0.15);
+    border-radius: 0.4rem;
+    background: white;
+    font-size: 0.8rem;
+}
+
+.shared-cards {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.shared-card {
+    border: 1px solid hsla(0, 0%, 0%, 0.1);
+    border-radius: 0.5rem;
+}
+
+.shared-card-main {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    width: 100%;
+    padding: 0.6rem 0.8rem;
+    border: none;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+}
+
+.shared-card-main:hover {
+    background: hsla(260, 60%, 60%, 0.05);
+}
+
+.shared-card-title {
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.shared-card-unlisted {
+    padding: 0.05rem 0.4rem;
+    border-radius: 0.25rem;
+    background: hsla(0, 0%, 0%, 0.08);
+    color: hsla(225, 15%, 40%, 1);
+    font-size: 0.7rem;
+    font-weight: normal;
+}
+
+/* 共有推奨バナー (#1106): 課題詳細の上部。運営のおすすめ→共有フォーム誘導。 */
+.share-suggestion-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0.75rem 0;
+    padding: 0.6rem 0.9rem;
+    border: 1px solid hsla(40, 90%, 55%, 0.5);
+    border-radius: 0.5rem;
+    background: hsla(40, 90%, 55%, 0.12);
+    color: hsla(30, 80%, 30%, 1);
+}
+
+.share-suggestion-text {
+    flex: 1;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.share-suggestion-button {
+    flex: none;
+    padding: 0.4rem 1rem;
+    border: none;
+    border-radius: 0.4rem;
+    background: hsla(30, 80%, 45%, 1);
+    color: white;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.share-suggestion-button:hover:not(:disabled) {
+    background: hsla(30, 80%, 38%, 1);
+}
+
+/* ボード行の共有推奨マーク (#1106)。推薦バッジ (#1110) と同系色。 */
+.board-row-share-suggested {
+    flex: none;
+    margin-left: 0.4rem;
+    padding: 0.05rem 0.4rem;
+    border-radius: 0.25rem;
+    background: hsla(40, 90%, 55%, 0.2);
+    color: hsla(30, 80%, 35%, 1);
+    font-size: 0.7rem;
+    font-weight: bold;
+}
+
+/* 運営の推薦バッジ (#1110): 金色系で「選ばれた」ことが一目でわかる形。 */
+.shared-card-recommended {
+    padding: 0.05rem 0.4rem;
+    border-radius: 0.25rem;
+    background: hsla(40, 90%, 55%, 0.2);
+    color: hsla(30, 80%, 35%, 1);
+    font-size: 0.7rem;
+    font-weight: bold;
+}
+
+.shared-card-summary {
+    font-size: 0.8rem;
+    color: hsla(225, 15%, 40%, 1);
+}
+
+.shared-card-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+}
+
+.shared-card-tag {
+    font-size: 0.75rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 0.25rem;
+    background: hsla(200, 70%, 55%, 0.12);
+    color: hsla(205, 70%, 35%, 1);
+}
+
+.shared-card-meta {
+    font-size: 0.75rem;
+    color: hsla(225, 15%, 45%, 1);
+}
+
+.shared-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.shared-detail-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.shared-detail-header button {
+    padding: 0.35rem 0.8rem;
+    border: 1px solid hsla(0, 0%, 0%, 0.15);
+    border-radius: 0.4rem;
+    background: white;
+    cursor: pointer;
+}
+
+.shared-detail-page {
+    padding: 0.6rem;
+    border: 1px solid hsla(0, 0%, 0%, 0.08);
+    border-radius: 0.4rem;
+}
+
+.shared-detail-url-block button,
+.shared-detail-url-confirm a,
+.shared-detail-url-confirm button {
+    padding: 0.3rem 0.7rem;
+    border: 1px solid #855cd6;
+    border-radius: 0.4rem;
+    background: white;
+    color: #855cd6;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 0.8rem;
+}
+
+.shared-detail-url-confirm {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.7rem;
+    border-radius: 0.4rem;
+    background: hsla(35, 90%, 55%, 0.12);
+    font-size: 0.8rem;
+}
+
+.shared-report-form {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-start;
+}
+
+.shared-report-form textarea {
+    flex: 1;
+    min-height: 3rem;
+    padding: 0.45rem 0.6rem;
+    border: 1px solid hsla(0, 0%, 0%, 0.15);
+    border-radius: 0.4rem;
+    font-size: 0.85rem;
+}
+
+.shared-report-form button {
+    padding: 0.45rem 0.8rem;
+    border: 1px solid hsla(0, 0%, 0%, 0.15);
+    border-radius: 0.4rem;
+    background: white;
+    cursor: pointer;
+}
+
 /* --- Assignment board (inside a class) --- */
 
 .assignment-board {
@@ -2267,21 +2993,29 @@
     overflow-y: auto;
 }
 
+/* クラス名を独立行にしたので、ヘッダーはアクションボタンの折り返し行にする
+   （左寄せ・省略しない。レビュー指摘 #1108）。 */
 .board-header {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
 }
 
 .board-title {
-    flex: 1;
-    margin: 0;
+    margin: 0.25rem 0 0.25rem;
     font-size: 1.3rem;
+    font-weight: bold;
     color: #575e75;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+}
+
+/* 課題一覧（ボード）の簡単な説明。 */
+.board-hint {
+    font-size: 0.85rem;
+    color: #888;
+    line-height: 1.5;
+    margin: 0 0 0.75rem;
 }
 
 .board-year {
@@ -2396,6 +3130,21 @@
     gap: 0.5rem;
 }
 
+/* 期限メッセージを行の下に積むため、アクティブ課題の行は縦積みにする
+   （アーカイブ行は従来どおり .board-row の横並びのまま）。 */
+.board-row-item {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.25rem;
+}
+
+.board-row-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
 .board-row-main {
     flex: 1;
     display: flex;
@@ -2431,6 +3180,29 @@
     border-radius: 0.3rem;
     font-size: 0.8rem;
     background: white;
+}
+
+/* 各行の「共有」ボタン（#1109。共有導線をボードに一本化）。 */
+.board-row-share {
+    flex: 0 0 auto;
+    padding: 0.35rem 0.7rem;
+    border: 1px solid #4c97ff;
+    border-radius: 0.3rem;
+    background: white;
+    color: #3373cc;
+    font-size: 0.8rem;
+    font-weight: bold;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.board-row-share:hover:not(:disabled) {
+    background: #e9f0ff;
+}
+
+.board-row-share:disabled {
+    opacity: 0.5;
+    cursor: default;
 }
 
 .class-list-import-button {
@@ -2707,6 +3479,8 @@
 .teacher-view-title {
     margin: 0.25rem 0 1rem;
     font-size: 1.3rem;
+    /* 課題一覧の見出し（h2.board-title）と同じ太字に揃える。 */
+    font-weight: bold;
     color: #575e75;
     overflow: hidden;
     text-overflow: ellipsis;

@@ -21,6 +21,11 @@ const REPORTS_TABLE = process.env.REPORTS_TABLE_NAME || 'BugReports';
 const ADMINS_TABLE = process.env.ADMINS_TABLE_NAME || 'BugReportAdmins';
 const REPORTS_BUCKET = process.env.REPORTS_BUCKET_NAME || 'smalruby-bug-report';
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
+// Admin SPA tokens are minted for the admin-dedicated client ID (EPIC #1073
+// decision B/F): accept it as an additional audience so operators can READ
+// bug reports from the admin console. The email-based admin registry gate
+// below is unchanged — this only widens token verification.
+const ADMIN_GOOGLE_CLIENT_ID = process.env.ADMIN_GOOGLE_CLIENT_ID || '';
 const MICROSOFT_CLIENT_ID = process.env.MICROSOFT_CLIENT_ID || '';
 const DEV_BYPASS_TOKEN = process.env.DEV_BYPASS_TOKEN || '';
 const STAGE = process.env.STAGE || 'stg';
@@ -147,7 +152,7 @@ export async function verifyGoogleIdToken(idToken: string): Promise<Identity> {
   try {
     const ticket = await googleClient.verifyIdToken({
       idToken,
-      audience: GOOGLE_CLIENT_ID,
+      audience: ADMIN_GOOGLE_CLIENT_ID ? [GOOGLE_CLIENT_ID, ADMIN_GOOGLE_CLIENT_ID] : GOOGLE_CLIENT_ID,
     });
     const payload = ticket.getPayload();
     if (!payload || !payload.sub) {

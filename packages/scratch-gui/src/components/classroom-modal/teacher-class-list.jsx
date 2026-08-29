@@ -31,6 +31,13 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
     );
     const [coTeachers, setCoTeachers] = useState(group.coTeacherEmails || []);
     const [newCoTeacher, setNewCoTeacher] = useState('');
+    // Archiving asks for confirmation (issue #1051: an accidental one-click
+    // archive was the original support inquiry). Unarchiving stays immediate.
+    const [confirmingArchive, setConfirmingArchive] = useState(false);
+    // Lowering the seat count drops seats from every assignment, so submissions
+    // on the removed seats stop showing — warn before that. Raising is silent.
+    const [confirmingDecrease, setConfirmingDecrease] = useState(false);
+    const originalCount = typeof group.studentCount === 'number' ? group.studentCount : 0;
 
     const handleNameChange = useCallback((e) => setName(e.target.value), []);
     const handleYearChange = useCallback((e) => setYear(e.target.value), []);
@@ -48,32 +55,50 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
         setCoTeachers((prev) => prev.filter((x) => x !== email));
     }, []);
     const handleToggleArchive = useCallback(() => {
+        if (group.status !== 'archived' && !confirmingArchive) {
+            setConfirmingArchive(true);
+            return;
+        }
         onUpdateGroup(group.groupId, {
             status: group.status === 'archived' ? 'active' : 'archived',
         });
         onCancel();
-    }, [group, onUpdateGroup, onCancel]);
+    }, [group, confirmingArchive, onUpdateGroup, onCancel]);
+    const handleCancelArchive = useCallback(() => setConfirmingArchive(false), []);
 
     const canSave = name.trim().length > 0 && parseInt(year, 10) >= 2000;
+    const newCount = parseInt(studentCount, 10);
+    const isDecrease = newCount > 0 && originalCount > 0 && newCount < originalCount;
+
+    const doSave = useCallback(() => {
+        const updates = {
+            name: name.trim(),
+            year: parseInt(year, 10),
+            section: section.trim() || null,
+            coTeacherEmails: coTeachers,
+        };
+        const count = parseInt(studentCount, 10);
+        if (count > 0) {
+            updates.studentCount = count;
+        }
+        onUpdateGroup(group.groupId, updates);
+        onCancel();
+    }, [name, year, section, studentCount, coTeachers, onUpdateGroup, group.groupId, onCancel]);
+
     const handleSave = useCallback(
         (e) => {
             e.preventDefault();
             if (!canSave || isLoading) return;
-            const updates = {
-                name: name.trim(),
-                year: parseInt(year, 10),
-                section: section.trim() || null,
-                coTeacherEmails: coTeachers,
-            };
-            const count = parseInt(studentCount, 10);
-            if (count > 0) {
-                updates.studentCount = count;
+            // Decreasing the seat count needs an explicit confirmation first.
+            if (isDecrease && !confirmingDecrease) {
+                setConfirmingDecrease(true);
+                return;
             }
-            onUpdateGroup(group.groupId, updates);
-            onCancel();
+            doSave();
         },
-        [canSave, isLoading, name, year, section, studentCount, coTeachers, onUpdateGroup, group.groupId, onCancel],
+        [canSave, isLoading, isDecrease, confirmingDecrease, doSave],
     );
+    const handleCancelDecrease = useCallback(() => setConfirmingDecrease(false), []);
 
     return (
         <form
@@ -182,52 +207,136 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
                     />
                 </button>
             </div>
-            <div className={styles.classSettingsActions}>
-                <button
-                    data-testid="classroom-class-settings-archive"
-                    disabled={isLoading}
-                    type="button"
-                    onClick={handleToggleArchive}
-                >
-                    {group.status === 'archived' ? (
-                        <FormattedMessage
-                            defaultMessage="Unarchive"
-                            description="Button to unarchive a class"
-                            id="gui.classroom.classSettings.unarchive"
-                        />
-                    ) : (
-                        <FormattedMessage
-                            defaultMessage="Archive"
-                            description="Button to archive a class"
-                            id="gui.classroom.classSettings.archive"
-                        />
-                    )}
-                </button>
-                <span className={styles.classSettingsSpacer} />
-                <button
-                    data-testid="classroom-class-settings-cancel"
-                    disabled={isLoading}
-                    type="button"
-                    onClick={onCancel}
+            {confirmingArchive ? (
+                <p
+                    className={styles.classSettingsArchiveConfirm}
+                    data-testid="classroom-class-settings-archive-confirm-message"
                 >
                     <FormattedMessage
-                        defaultMessage="Cancel"
-                        description="Cancel button of the class settings form"
-                        id="gui.classroom.classSettings.cancel"
+                        defaultMessage="Archive this class? It will be hidden from the class list, but you can restore it anytime from the archived section."
+                        description="Confirmation message before archiving a class"
+                        id="gui.classroom.classSettings.archiveConfirmMessage"
                     />
-                </button>
-                <button
-                    className={styles.classSettingsSave}
-                    data-testid="classroom-class-settings-save"
-                    disabled={!canSave || isLoading}
-                    type="submit"
+                </p>
+            ) : null}
+            {confirmingDecrease ? (
+                <p
+                    className={styles.classSettingsArchiveConfirm}
+                    data-testid="classroom-class-settings-decrease-confirm-message"
                 >
                     <FormattedMessage
-                        defaultMessage="Save"
-                        description="Save button of the class settings form"
-                        id="gui.classroom.classSettings.save"
+                        defaultMessage="Reduce the class to {count} students? Seats {from}–{to} are removed from every assignment in this class, and any work submitted on those seats will no longer be shown."
+                        description="Warning before decreasing a class's student count"
+                        id="gui.classroom.classSettings.decreaseConfirmMessage"
+                        values={{
+                            count: newCount,
+                            from: newCount + 1,
+                            to: originalCount,
+                        }}
                     />
-                </button>
+                </p>
+            ) : null}
+            {/* フッター（レビュー指摘）: 通常は キャンセル左 / アーカイブ・保存 右
+                （アーカイブは保存の左）。アーカイブ押下中は キャンセル・保存を隠し
+                「アーカイブしない / アーカイブする」のみ表示。 */}
+            <div className={styles.formFooter}>
+                {confirmingArchive ? (
+                    <React.Fragment>
+                        <button
+                            className={styles.secondaryButton}
+                            data-testid="classroom-class-settings-archive-cancel"
+                            disabled={isLoading}
+                            type="button"
+                            onClick={handleCancelArchive}
+                        >
+                            <FormattedMessage
+                                defaultMessage="Keep the class"
+                                description="Button that cancels archiving the class"
+                                id="gui.classroom.classSettings.archiveConfirmNo"
+                            />
+                        </button>
+                        <button
+                            className={styles.dangerButton}
+                            data-testid="classroom-class-settings-archive"
+                            disabled={isLoading}
+                            type="button"
+                            onClick={handleToggleArchive}
+                        >
+                            <FormattedMessage
+                                defaultMessage="Yes, archive"
+                                description="Confirm button that actually archives the class"
+                                id="gui.classroom.classSettings.archiveConfirmYes"
+                            />
+                        </button>
+                    </React.Fragment>
+                ) : (
+                    <React.Fragment>
+                        <button
+                            className={styles.secondaryButton}
+                            data-testid="classroom-class-settings-cancel"
+                            disabled={isLoading}
+                            type="button"
+                            onClick={confirmingDecrease ? handleCancelDecrease : onCancel}
+                        >
+                            {confirmingDecrease ? (
+                                <FormattedMessage
+                                    defaultMessage="Keep the count"
+                                    description="Button that cancels decreasing the student count"
+                                    id="gui.classroom.classSettings.decreaseConfirmNo"
+                                />
+                            ) : (
+                                <FormattedMessage
+                                    defaultMessage="Cancel"
+                                    description="Cancel button of the class settings form"
+                                    id="gui.classroom.classSettings.cancel"
+                                />
+                            )}
+                        </button>
+                        <div className={styles.footerRightGroup}>
+                            <button
+                                className={styles.secondaryButton}
+                                data-testid="classroom-class-settings-archive"
+                                disabled={isLoading}
+                                type="button"
+                                onClick={handleToggleArchive}
+                            >
+                                {group.status === 'archived' ? (
+                                    <FormattedMessage
+                                        defaultMessage="Unarchive"
+                                        description="Button to unarchive a class"
+                                        id="gui.classroom.classSettings.unarchive"
+                                    />
+                                ) : (
+                                    <FormattedMessage
+                                        defaultMessage="Archive"
+                                        description="Button to archive a class"
+                                        id="gui.classroom.classSettings.archive"
+                                    />
+                                )}
+                            </button>
+                            <button
+                                className={styles.primaryButton}
+                                data-testid="classroom-class-settings-save"
+                                disabled={!canSave || isLoading}
+                                type="submit"
+                            >
+                                {confirmingDecrease ? (
+                                    <FormattedMessage
+                                        defaultMessage="Reduce and save"
+                                        description="Confirm button that decreases the student count and saves"
+                                        id="gui.classroom.classSettings.decreaseConfirmYes"
+                                    />
+                                ) : (
+                                    <FormattedMessage
+                                        defaultMessage="Save"
+                                        description="Save button of the class settings form"
+                                        id="gui.classroom.classSettings.save"
+                                    />
+                                )}
+                            </button>
+                        </div>
+                    </React.Fragment>
+                )}
             </div>
         </form>
     );
@@ -240,11 +349,21 @@ ClassSettingsForm.propTypes = {
     onUpdateGroup: PropTypes.func.isRequired,
 };
 
-const ClassCard = ({ group, assignmentCount, isLoading, onSelectGroup, onShowEvaluation, onShowSettings }) => {
+const ClassCard = ({
+    group,
+    assignmentCount,
+    isLoading,
+    onRestoreGroup,
+    onSelectGroup,
+    onShowEvaluation,
+    onShowSettings,
+}) => {
     const intl = useIntl();
     const handleOpen = useCallback(() => onSelectGroup(group), [onSelectGroup, group]);
     const handleEvaluate = useCallback(() => onShowEvaluation(group), [onShowEvaluation, group]);
     const handleSettings = useCallback(() => onShowSettings(group.groupId), [onShowSettings, group.groupId]);
+    const handleRestore = useCallback(() => onRestoreGroup(group.groupId), [onRestoreGroup, group.groupId]);
+    const isArchived = group.status === 'archived';
 
     return (
         <li className={styles.classCard} data-testid={`classroom-class-card-${group.groupId}`}>
@@ -296,32 +415,51 @@ const ClassCard = ({ group, assignmentCount, isLoading, onSelectGroup, onShowEva
                     ) : null}
                 </span>
             </button>
-            <button
-                className={styles.classCardEvaluate}
-                data-testid={`classroom-class-evaluate-${group.groupId}`}
-                disabled={isLoading}
-                type="button"
-                onClick={handleEvaluate}
-            >
-                <FormattedMessage
-                    defaultMessage="Evaluate"
-                    description="Button on a class card to open term-end evaluation"
-                    id="gui.classroom.classList.evaluate"
-                />
-            </button>
-            <button
-                className={styles.classCardEvaluate}
-                data-testid={`classroom-class-settings-open-${group.groupId}`}
-                disabled={isLoading}
-                type="button"
-                onClick={handleSettings}
-            >
-                <FormattedMessage
-                    defaultMessage="Settings"
-                    description="Button on a class card to open its settings"
-                    id="gui.classroom.classList.settings"
-                />
-            </button>
+            {isArchived ? (
+                <button
+                    className={styles.classCardEvaluate}
+                    data-testid={`classroom-class-restore-${group.groupId}`}
+                    disabled={isLoading}
+                    type="button"
+                    onClick={handleRestore}
+                >
+                    <FormattedMessage
+                        defaultMessage="Restore"
+                        description="Button on an archived class card to restore it"
+                        id="gui.classroom.classList.restore"
+                    />
+                </button>
+            ) : (
+                <button
+                    className={styles.classCardEvaluate}
+                    data-testid={`classroom-class-evaluate-${group.groupId}`}
+                    disabled={isLoading}
+                    type="button"
+                    onClick={handleEvaluate}
+                >
+                    <FormattedMessage
+                        defaultMessage="Evaluate"
+                        description="Button on a class card to open term-end evaluation"
+                        id="gui.classroom.classList.evaluate"
+                    />
+                </button>
+            )}
+            {/* アーカイブ済みは「元に戻す」だけ。設定ボタンは出さない（レビュー指摘）。 */}
+            {isArchived ? null : (
+                <button
+                    className={styles.classCardEvaluate}
+                    data-testid={`classroom-class-settings-open-${group.groupId}`}
+                    disabled={isLoading}
+                    type="button"
+                    onClick={handleSettings}
+                >
+                    <FormattedMessage
+                        defaultMessage="Settings"
+                        description="Button on a class card to open its settings"
+                        id="gui.classroom.classList.settings"
+                    />
+                </button>
+            )}
         </li>
     );
 };
@@ -330,6 +468,7 @@ ClassCard.propTypes = {
     assignmentCount: PropTypes.number.isRequired,
     group: PropTypes.object.isRequired,
     isLoading: PropTypes.bool,
+    onRestoreGroup: PropTypes.func,
     onSelectGroup: PropTypes.func.isRequired,
     onShowEvaluation: PropTypes.func.isRequired,
     onShowSettings: PropTypes.func.isRequired,
@@ -351,6 +490,7 @@ const TeacherClassList = ({
     const intl = useIntl();
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [settingsGroupId, setSettingsGroupId] = useState(null);
+    const [showArchived, setShowArchived] = useState(false);
     const [name, setName] = useState('');
     const [year, setYear] = useState(String(currentSchoolYear()));
     const [section, setSection] = useState('');
@@ -369,6 +509,11 @@ const TeacherClassList = ({
         [onOpenUngrouped],
     );
     const handleCloseSettings = useCallback(() => setSettingsGroupId(null), []);
+    const handleToggleArchived = useCallback(() => setShowArchived((v) => !v), []);
+    const handleRestoreGroup = useCallback(
+        (groupId) => onUpdateGroup(groupId, { status: 'active' }),
+        [onUpdateGroup],
+    );
 
     // The first assignment is optional: a class can be created on its own.
     const canSubmit = name.trim().length > 0 && parseInt(studentCount, 10) > 0 && parseInt(year, 10) >= 2000;
@@ -389,74 +534,59 @@ const TeacherClassList = ({
     );
 
     const activeGroups = groups.filter((g) => g.status !== 'archived');
+    // Archived classes stay reachable (issue #1051): a collapsed section at
+    // the bottom lists them with a restore button, so an accidental archive
+    // is self-recoverable instead of a support inquiry.
+    const archivedGroups = groups.filter((g) => g.status === 'archived');
     const countFor = (groupId) => classrooms.filter((c) => c.groupId === groupId).length;
     // develop-compat safety net: assignments that do not belong to any class
     // yet (e.g. a co-teacher logs in before the owner's account migrated, or
     // migration failed). They must never be hidden — list them directly.
     const knownGroupIds = new Set(groups.map((g) => g.groupId));
     const ungrouped = classrooms.filter((c) => !c.groupId || !knownGroupIds.has(c.groupId));
+    const settingsGroup = groups.find((g) => g.groupId === settingsGroupId);
 
-    return (
-        <div className={styles.classList} data-testid="classroom-phase-teacher-class-list">
-            <TeacherBreadcrumbs
-                items={[
-                    {
-                        label: intl.formatMessage({
-                            defaultMessage: 'Class list',
-                            description: 'Breadcrumb label of the class list (current view)',
-                            id: 'gui.classroom.breadcrumbs.classList',
-                        }),
-                    },
-                ]}
-            />
-            <h2 className={styles.classListTitle}>
-                <FormattedMessage
-                    defaultMessage="Your classes"
-                    description="Title of the class list (post-login landing view)"
-                    id="gui.classroom.classList.title"
+    const classListCrumb = {
+        label: intl.formatMessage({
+            defaultMessage: 'Class list',
+            description: 'Breadcrumb link back to the class list',
+            id: 'gui.classroom.breadcrumbs.classList',
+        }),
+        onClick: showCreateForm ? handleToggleCreateForm : handleCloseSettings,
+        testId: 'classroom-breadcrumb-class-list',
+    };
+
+    // クラスを作る（#1108: popover → 画面遷移。フッター キャンセル左/作成右）
+    if (showCreateForm) {
+        return (
+            <div className={styles.classList} data-testid="classroom-phase-teacher-class-list">
+                <TeacherBreadcrumbs
+                    items={[
+                        classListCrumb,
+                        {
+                            label: intl.formatMessage({
+                                defaultMessage: 'Create a class',
+                                description: 'Button that opens the combined class creation form',
+                                id: 'gui.classroom.classList.create',
+                            }),
+                        },
+                    ]}
                 />
-            </h2>
-            <p className={styles.classListHint}>
-                <FormattedMessage
-                    defaultMessage="A class is one homeroom (e.g. Year 2 Class 1). Open a class to manage its assignments."
-                    description="Hint below the class list title"
-                    id="gui.classroom.classList.hint"
-                />
-            </p>
-            <ErrorDisplay error={error} errorTitle={errorTitle} />
-            <button
-                className={styles.classListCreateButton}
-                data-testid="classroom-class-create"
-                disabled={isLoading}
-                type="button"
-                onClick={handleToggleCreateForm}
-            >
-                <FormattedMessage
-                    defaultMessage="Create a class"
-                    description="Button that opens the combined class creation form"
-                    id="gui.classroom.classList.create"
-                />
-            </button>
-            {onShowGoogleCourses ? (
-                <button
-                    className={styles.classListImportButton}
-                    data-testid="classroom-class-import-gc"
-                    disabled={isLoading}
-                    type="button"
-                    onClick={onShowGoogleCourses}
-                >
-                    <FormattedMessage
-                        defaultMessage="Import from Google Classroom"
-                        description="Button on the class list to import a GC course as a class"
-                        id="gui.classroom.classList.importGc"
-                    />
-                </button>
-            ) : null}
-            {showCreateForm ? (
-                <form
-                    className={`${styles.boardPopover} ${styles.classListCreateForm}`}
-                    onSubmit={handleSubmit}
-                >
+                <ErrorDisplay error={error} errorTitle={errorTitle} />
+                <div className={styles.postAssignmentContainer}>
+                    {/* 設定画面と同じ枠付きフォーム（.class-settings-form）に揃える。 */}
+                    <div className={styles.phaseTitle}>
+                        <FormattedMessage
+                            defaultMessage="Create a class"
+                            description="Button that opens the combined class creation form"
+                            id="gui.classroom.classList.create"
+                        />
+                    </div>
+                    <form
+                        className={styles.classSettingsForm}
+                        data-testid="classroom-class-create-view"
+                        onSubmit={handleSubmit}
+                    >
                     <input
                         data-testid="classroom-class-create-name"
                         disabled={isLoading}
@@ -521,40 +651,140 @@ const TeacherClassList = ({
                         value={assignmentName}
                         onChange={handleAssignmentNameChange}
                     />
-                    <button
-                        data-testid="classroom-class-create-submit"
-                        disabled={!canSubmit || isLoading}
-                        type="submit"
-                    >
-                        {assignmentName.trim() ? (
-                            <FormattedMessage
-                                defaultMessage="Create class and assignment"
-                                description="Submit button when a first assignment is given"
-                                id="gui.classroom.classList.createSubmit"
-                            />
-                        ) : (
-                            <FormattedMessage
-                                defaultMessage="Create the class only"
-                                description="Submit button when no first assignment is given"
-                                id="gui.classroom.classList.createClassOnly"
-                            />
-                        )}
-                    </button>
-                    <button
-                        className={styles.popoverCancel}
-                        data-testid="classroom-class-create-cancel"
-                        type="button"
-                        onClick={handleToggleCreateForm}
-                    >
+                    <p className={styles.formHint}>
                         <FormattedMessage
-                            defaultMessage="Cancel"
-                            description="Cancel button of the class creation form"
-                            id="gui.classroom.classList.createCancel"
+                            defaultMessage="You can add co-teachers (fellow teachers who help manage this class) later in Settings."
+                            description="Hint on the create form that co-teachers can be added later in settings"
+                            id="gui.classroom.classList.createCoTeacherHint"
                         />
-                    </button>
-                </form>
+                    </p>
+                    <div className={styles.formFooter}>
+                        <button
+                            className={styles.secondaryButton}
+                            data-testid="classroom-class-create-cancel"
+                            type="button"
+                            onClick={handleToggleCreateForm}
+                        >
+                            <FormattedMessage
+                                defaultMessage="Cancel"
+                                description="Cancel button of the class creation form"
+                                id="gui.classroom.classList.createCancel"
+                            />
+                        </button>
+                        <button
+                            className={styles.primaryButton}
+                            data-testid="classroom-class-create-submit"
+                            disabled={!canSubmit || isLoading}
+                            type="submit"
+                        >
+                            {assignmentName.trim() ? (
+                                <FormattedMessage
+                                    defaultMessage="Create class and assignment"
+                                    description="Submit button when a first assignment is given"
+                                    id="gui.classroom.classList.createSubmit"
+                                />
+                            ) : (
+                                <FormattedMessage
+                                    defaultMessage="Create the class only"
+                                    description="Submit button when no first assignment is given"
+                                    id="gui.classroom.classList.createClassOnly"
+                                />
+                            )}
+                        </button>
+                    </div>
+                    </form>
+                </div>
+            </div>
+        );
+    }
+
+    // クラス設定（#1108: インラインカード → 画面遷移）
+    if (settingsGroup) {
+        return (
+            <div className={styles.classList} data-testid="classroom-phase-teacher-class-list">
+                <TeacherBreadcrumbs
+                    items={[
+                        classListCrumb,
+                        {
+                            label: intl.formatMessage({
+                                defaultMessage: 'Settings',
+                                description: 'Button on a class card to open its settings',
+                                id: 'gui.classroom.classList.settings',
+                            }),
+                        },
+                    ]}
+                />
+                <ErrorDisplay error={error} errorTitle={errorTitle} />
+                <div className={styles.postAssignmentContainer}>
+                    <div className={styles.phaseTitle}>{formatClassLabel(settingsGroup)}</div>
+                    <ClassSettingsForm
+                        group={settingsGroup}
+                        isLoading={isLoading}
+                        onCancel={handleCloseSettings}
+                        onUpdateGroup={onUpdateGroup}
+                    />
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className={styles.classList} data-testid="classroom-phase-teacher-class-list">
+            <TeacherBreadcrumbs
+                items={[
+                    {
+                        label: intl.formatMessage({
+                            defaultMessage: 'Class list',
+                            description: 'Breadcrumb label of the class list (current view)',
+                            id: 'gui.classroom.breadcrumbs.classList',
+                        }),
+                    },
+                ]}
+            />
+            <h2 className={styles.classListTitle}>
+                <FormattedMessage
+                    defaultMessage="Your classes"
+                    description="Title of the class list (post-login landing view)"
+                    id="gui.classroom.classList.title"
+                />
+            </h2>
+            <p className={styles.classListHint}>
+                <FormattedMessage
+                    defaultMessage="A class is one homeroom (e.g. Year 2 Class 1). Open a class to manage its assignments."
+                    description="Hint below the class list title"
+                    id="gui.classroom.classList.hint"
+                />
+            </p>
+            <ErrorDisplay error={error} errorTitle={errorTitle} />
+            <button
+                className={styles.classListCreateButton}
+                data-testid="classroom-class-create"
+                disabled={isLoading}
+                type="button"
+                onClick={handleToggleCreateForm}
+            >
+                <FormattedMessage
+                    defaultMessage="Create a class"
+                    description="Button that opens the combined class creation form"
+                    id="gui.classroom.classList.create"
+                />
+            </button>
+            {onShowGoogleCourses ? (
+                <button
+                    className={styles.classListImportButton}
+                    data-testid="classroom-class-import-gc"
+                    disabled={isLoading}
+                    type="button"
+                    onClick={onShowGoogleCourses}
+                >
+                    <FormattedMessage
+                        defaultMessage="Import from Google Classroom"
+                        description="Button on the class list to import a GC course as a class"
+                        id="gui.classroom.classList.importGc"
+                    />
+                </button>
             ) : null}
-            {activeGroups.length === 0 && !showCreateForm ? (
+            {activeGroups.length === 0 ? (
                 <p className={styles.classListEmpty} data-testid="classroom-class-list-empty">
                     <FormattedMessage
                         defaultMessage={'No classes yet. Press "Create a class" to get started.'}
@@ -594,29 +824,54 @@ const TeacherClassList = ({
                 </div>
             ) : null}
             <ul className={styles.classCards} data-testid="classroom-class-list">
-                {activeGroups.map((group) =>
-                    settingsGroupId === group.groupId ? (
-                        <li key={group.groupId} className={styles.classCard}>
-                            <ClassSettingsForm
-                                group={group}
-                                isLoading={isLoading}
-                                onCancel={handleCloseSettings}
-                                onUpdateGroup={onUpdateGroup}
-                            />
-                        </li>
-                    ) : (
-                        <ClassCard
-                            key={group.groupId}
-                            assignmentCount={countFor(group.groupId)}
-                            group={group}
-                            isLoading={isLoading}
-                            onSelectGroup={onSelectGroup}
-                            onShowEvaluation={onShowEvaluation}
-                            onShowSettings={handleShowSettings}
-                        />
-                    ),
-                )}
+                {activeGroups.map((group) => (
+                    <ClassCard
+                        key={group.groupId}
+                        assignmentCount={countFor(group.groupId)}
+                        group={group}
+                        isLoading={isLoading}
+                        onSelectGroup={onSelectGroup}
+                        onShowEvaluation={onShowEvaluation}
+                        onShowSettings={handleShowSettings}
+                    />
+                ))}
             </ul>
+            {archivedGroups.length > 0 ? (
+                <div className={styles.archivedSection}>
+                    <button
+                        className={styles.archivedToggle}
+                        data-testid="classroom-show-archived"
+                        type="button"
+                        onClick={handleToggleArchived}
+                    >
+                        {showArchived ? '▼ ' : '▶ '}
+                        {intl.formatMessage(
+                            {
+                                defaultMessage: 'Archived classes ({count})',
+                                description: 'Toggle of the archived classes section in the class list',
+                                id: 'gui.classroom.classList.showArchived',
+                            },
+                            { count: archivedGroups.length },
+                        )}
+                    </button>
+                    {showArchived ? (
+                        <ul className={styles.classCards} data-testid="classroom-archived-class-list">
+                            {archivedGroups.map((group) => (
+                                <ClassCard
+                                    key={group.groupId}
+                                    assignmentCount={countFor(group.groupId)}
+                                    group={group}
+                                    isLoading={isLoading}
+                                    onRestoreGroup={handleRestoreGroup}
+                                    onSelectGroup={onSelectGroup}
+                                    onShowEvaluation={onShowEvaluation}
+                                    onShowSettings={handleShowSettings}
+                                />
+                            ))}
+                        </ul>
+                    ) : null}
+                </div>
+            ) : null}
         </div>
     );
 };

@@ -10,12 +10,30 @@ import translateError from './classroom-error-utils.js';
 const REFRESH_INTERVAL_MS = parseInt(process.env.CLASSROOM_REFRESH_INTERVAL_MS || '30000', 10);
 
 /**
+ * Split an includeArchived=1 list response into active and archived arrays.
+ * Items without a status field (old backend) are treated as active, so the
+ * archive list degrades to empty instead of misfiling assignments.
+ * @param {Array} list - classrooms from the API response
+ * @returns {{active: Array, archived: Array}} the two partitions
+ */
+export const splitClassroomsByStatus = (list) => {
+    const active = [];
+    const archived = [];
+    for (const c of list || []) {
+        (c.status === 'archived' ? archived : active).push(c);
+    }
+    return { active, archived };
+};
+
+/**
  * Build enriched member list by joining members with their latest submission.
+ * Exported for the class-wide bulk download (issue #1055), which runs the
+ * same join per assignment.
  * @param {object} membersData - API response from listMembers
  * @param {object} submissionsData - API response from listSubmissions
  * @returns {Array} enriched member list
  */
-const enrichMembers = (membersData, submissionsData) => {
+export const enrichMembers = (membersData, submissionsData) => {
     const subMap = {};
     for (const sub of submissionsData.submissions || []) {
         const existing = subMap[sub.memberId];
@@ -86,6 +104,9 @@ const useTeacherClassrooms = ({
     setIsLoading,
 }) => {
     const [classrooms, setClassrooms] = useState([]);
+    // Archived assignments (issue #1051): kept separate so every existing
+    // consumer of `classrooms` keeps its active-only semantics untouched.
+    const [archivedClassrooms, setArchivedClassrooms] = useState([]);
     const [selectedClassroom, setSelectedClassroom] = useState(null);
     const [members, setMembers] = useState([]);
     const [selectedMember, setSelectedMember] = useState(null);
@@ -102,19 +123,25 @@ const useTeacherClassrooms = ({
 
     // --- Load classrooms (assignments) ---
 
+    const applyClassroomList = useCallback((data) => {
+        const { active, archived } = splitClassroomsByStatus(data.classrooms);
+        setClassrooms(active);
+        setArchivedClassrooms(archived);
+    }, []);
+
     const loadClassrooms = useCallback(async () => {
         if (!idToken) return;
         setIsLoading(true);
         try {
-            const data = await classroomAPI.listClassrooms(idToken);
-            setClassrooms(data.classrooms || []);
+            const data = await classroomAPI.listClassrooms(idToken, { includeArchived: true });
+            applyClassroomList(data);
         } catch (err) {
             if (err.status === 401) {
                 const newToken = await handleTeacher401();
                 if (newToken) {
                     try {
-                        const retryData = await classroomAPI.listClassrooms(newToken);
-                        setClassrooms(retryData.classrooms || []);
+                        const retryData = await classroomAPI.listClassrooms(newToken, { includeArchived: true });
+                        applyClassroomList(retryData);
                     } catch {
                         // Retry also failed
                     }
@@ -125,7 +152,7 @@ const useTeacherClassrooms = ({
         } finally {
             setIsLoading(false);
         }
-    }, [idToken, showError, handleTeacher401, intl, setIsLoading]);
+    }, [idToken, applyClassroomList, showError, handleTeacher401, intl, setIsLoading]);
 
     // The class list needs assignment counts, so load on both entry phases
     // (the landing view and inside a class).
@@ -247,6 +274,31 @@ const useTeacherClassrooms = ({
             setIsLoading(false);
         },
         [clearError, loadClassroomDetail, setIsLoading, setPhase],
+    );
+
+    /**
+     * Restore an archived assignment (issue #1051): flips status back to
+     * active and refreshes the list so it moves from the archived section
+     * back onto the board.
+     */
+    const handleRestoreClassroom = useCallback(
+        async (classroomId) => {
+            clearError();
+            setIsLoading(true);
+            try {
+                await classroomAPI.updateClassroom(idToken, classroomId, { status: 'active' });
+                await loadClassrooms();
+            } catch (err) {
+                if (err.status === 401) {
+                    await handleTeacher401();
+                } else {
+                    showError(translateError(intl, err));
+                }
+            } finally {
+                setIsLoading(false);
+            }
+        },
+        [idToken, clearError, loadClassrooms, showError, handleTeacher401, intl, setIsLoading],
     );
 
     const handleRefreshDetail = useCallback(async () => {
@@ -485,6 +537,7 @@ const useTeacherClassrooms = ({
     /** Reset all classroom state (used by logout). */
     const resetClassrooms = useCallback(() => {
         setClassrooms([]);
+        setArchivedClassrooms([]);
         setSelectedClassroom(null);
         setMembers([]);
         setKickRequestsBySeat({});
@@ -493,6 +546,8 @@ const useTeacherClassrooms = ({
     return {
         classrooms,
         setClassrooms,
+        archivedClassrooms,
+        handleRestoreClassroom,
         selectedClassroom,
         setSelectedClassroom,
         members,
