@@ -16,7 +16,8 @@ import ErrorDisplay from './error-display.jsx';
 import SharedAssignmentCatalog from './shared-assignment-catalog.jsx';
 import TeacherShareStep from './teacher-share-step.jsx';
 import TeacherPasscodeImport from './teacher-passcode-import.jsx';
-import TeacherBreadcrumbs from './teacher-breadcrumbs.jsx';
+import ClassroomButton from './classroom-button.jsx';
+import { TeacherScreen, TeacherSubView } from './teacher-view-layout.jsx';
 
 import styles from './classroom-modal.css';
 
@@ -462,9 +463,8 @@ const TeacherAssignmentBoard = ({
     }, [shared]);
 
     return (
-        <div className={styles.assignmentBoard} data-testid="classroom-board">
-            <TeacherBreadcrumbs
-                items={[
+        <TeacherScreen
+            breadcrumbs={[
                     {
                         label: intl.formatMessage({
                             defaultMessage: 'Class list',
@@ -492,9 +492,10 @@ const TeacherAssignmentBoard = ({
                                   id: 'gui.classroom.breadcrumbs.assignments',
                               }),
                           },
-                    ...(subView ? [{ label: intl.formatMessage(subViewMessages[subView]) }] : []),
-                ]}
-            />
+                ...(subView ? [{ label: intl.formatMessage(subViewMessages[subView]) }] : []),
+            ]}
+            testId="classroom-board"
+        >
             {!subView && (
             <React.Fragment>
             {/* クラス名は独立行にして省略されないようにする（レビュー指摘）。
@@ -621,18 +622,44 @@ const TeacherAssignmentBoard = ({
                 <SharedAssignmentCatalog group={group} isLoading={isLoading} shared={shared} />
             ) : showInlineCreate ? (
                 // 課題を作る（#1108: popover → 画面遷移。フッター キャンセル左/作成右）
-                <form
-                    className={styles.panelInnerView}
-                    data-testid="classroom-board-create-view"
-                    onSubmit={handleSubmitInlineCreate}
-                >
-                    <div className={styles.phaseTitle}>
+                <TeacherSubView
+                    as="form"
+                    footer={
+                        <>
+                            <ClassroomButton
+                                dataTestId="classroom-board-create-cancel"
+                                onClick={handleToggleInlineCreate}
+                            >
+                                <FormattedMessage
+                                    defaultMessage="Cancel"
+                                    description="Cancel button of the assignment create screen"
+                                    id="gui.classroom.board.createCancel"
+                                />
+                            </ClassroomButton>
+                            <ClassroomButton
+                                dataTestId="classroom-board-create-submit"
+                                disabled={isLoading || newAssignmentName.trim().length === 0}
+                                type="submit"
+                                variant="primary"
+                            >
+                                <FormattedMessage
+                                    defaultMessage="Create"
+                                    description="Submit button of the assignment create screen"
+                                    id="gui.classroom.board.createSubmit"
+                                />
+                            </ClassroomButton>
+                        </>
+                    }
+                    testId="classroom-board-create-view"
+                    title={
                         <FormattedMessage
                             defaultMessage="Create an assignment"
                             description="Button on the board to create a new assignment"
                             id="gui.classroom.board.create"
                         />
-                    </div>
+                    }
+                    onSubmit={handleSubmitInlineCreate}
+                >
                     <div className={styles.formGroup}>
                         <label className={styles.label}>
                             <FormattedMessage
@@ -657,50 +684,41 @@ const TeacherAssignmentBoard = ({
                             onChange={handleNewAssignmentNameChange}
                         />
                     </div>
-                    <div className={styles.formFooter}>
-                        <button
-                            className={styles.secondaryButton}
-                            data-testid="classroom-board-create-cancel"
-                            type="button"
-                            onClick={handleToggleInlineCreate}
-                        >
-                            <FormattedMessage
-                                defaultMessage="Cancel"
-                                description="Cancel button of the assignment create screen"
-                                id="gui.classroom.board.createCancel"
-                            />
-                        </button>
-                        <button
-                            className={styles.primaryButton}
-                            data-testid="classroom-board-create-submit"
-                            disabled={isLoading || newAssignmentName.trim().length === 0}
-                            type="submit"
-                        >
-                            <FormattedMessage
-                                defaultMessage="Create"
-                                description="Submit button of the assignment create screen"
-                                id="gui.classroom.board.createSubmit"
-                            />
-                        </button>
-                    </div>
-                </form>
+                </TeacherSubView>
             ) : showReuse ? (
                 // 課題を再利用（#1108: popover → 画面遷移。コピーは候補ごと、キャンセル左）
-                <div className={styles.panelInnerView} data-testid="classroom-board-reuse-view">
-                    <div className={styles.phaseTitle}>
-                        <FormattedMessage
-                            defaultMessage="Reuse an assignment"
-                            description="Button on the board to reuse (duplicate) an existing assignment"
-                            id="gui.classroom.board.reuse"
-                        />
-                    </div>
-                    <p className={styles.postAssignmentHint}>
+                <TeacherSubView
+                    footer={
+                        <>
+                            <ClassroomButton
+                                dataTestId="classroom-board-reuse-cancel"
+                                onClick={handleToggleReuse}
+                            >
+                                <FormattedMessage
+                                    defaultMessage="Cancel"
+                                    description="Close the reuse picker without copying"
+                                    id="gui.classroom.board.reuseCancel"
+                                />
+                            </ClassroomButton>
+                            <span />
+                        </>
+                    }
+                    hint={
                         <FormattedMessage
                             defaultMessage="Copy an existing assignment into this class:"
                             description="Explanation above the reuse picker"
                             id="gui.classroom.board.reuseHint"
                         />
-                    </p>
+                    }
+                    testId="classroom-board-reuse-view"
+                    title={
+                        <FormattedMessage
+                            defaultMessage="Reuse an assignment"
+                            description="Button on the board to reuse (duplicate) an existing assignment"
+                            id="gui.classroom.board.reuse"
+                        />
+                    }
+                >
                     <div className={styles.formGroup}>
                         <select
                             className={styles.input}
@@ -749,22 +767,7 @@ const TeacherAssignmentBoard = ({
                             </li>
                         ))}
                     </ul>
-                    <div className={styles.formFooter}>
-                        <button
-                            className={styles.secondaryButton}
-                            data-testid="classroom-board-reuse-cancel"
-                            type="button"
-                            onClick={handleToggleReuse}
-                        >
-                            <FormattedMessage
-                                defaultMessage="Cancel"
-                                description="Close the reuse picker without copying"
-                                id="gui.classroom.board.reuseCancel"
-                            />
-                        </button>
-                        <span />
-                    </div>
-                </div>
+                </TeacherSubView>
             ) : (
                 <React.Fragment>
             <div className={styles.boardTopics}>
@@ -909,7 +912,7 @@ const TeacherAssignmentBoard = ({
             ) : null}
                 </React.Fragment>
             )}
-        </div>
+        </TeacherScreen>
     );
 };
 

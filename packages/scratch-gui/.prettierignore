@@ -330,6 +330,7 @@ test/unit/components/*
 !test/unit/components/teacher-avatar-menu.test.jsx
 !test/unit/components/teacher-notifications-list.test.jsx
 !test/unit/components/classroom-teacher-modal-share-suggestion.test.js
+!test/unit/components/classroom-teacher-view-layout.test.jsx
 !test/unit/components/mobile-bottom-tabs.test.jsx
 !test/unit/components/mobile-drawer.test.jsx
 !test/unit/components/mobile-mode-notice.test.jsx

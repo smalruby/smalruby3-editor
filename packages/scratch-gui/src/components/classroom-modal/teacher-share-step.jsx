@@ -10,7 +10,9 @@ import PropTypes from 'prop-types';
 import React, { useCallback, useState } from 'react';
 import { FormattedMessage } from 'react-intl';
 
+import ClassroomButton from './classroom-button.jsx';
 import SharedAssignmentForm from './shared-assignment-form.jsx';
+import { TeacherSubView } from './teacher-view-layout.jsx';
 import styles from './classroom-modal.css';
 
 const TeacherShareStep = ({ classroom, isLoading, lastShared, onShare, onCancel }) => {
@@ -36,14 +38,32 @@ const TeacherShareStep = ({ classroom, isLoading, lastShared, onShare, onCancel 
     // 発行後の確認。限定公開なら合言葉を大きく表示し、配布を促す。
     if (lastShared) {
         return (
-            <div className={styles.panelInnerView} data-testid="classroom-phase-share-step">
-                <div className={styles.phaseTitle}>
+            <TeacherSubView
+                footer={
+                    <>
+                        <span />
+                        <ClassroomButton
+                            dataTestId="classroom-share-done"
+                            variant="primary"
+                            onClick={onCancel}
+                        >
+                            <FormattedMessage
+                                defaultMessage="Close"
+                                description="Close the share step"
+                                id="gui.classroom.shared.shareClose"
+                            />
+                        </ClassroomButton>
+                    </>
+                }
+                testId="classroom-phase-share-step"
+                title={
                     <FormattedMessage
                         defaultMessage="Shared"
                         description="Title after sharing an assignment"
                         id="gui.classroom.shared.shareDoneTitle"
                     />
-                </div>
+                }
+            >
                 {lastShared.passcode ? (
                     <>
                         <div className={styles.sharePasscodeBox} data-testid="classroom-share-passcode">
@@ -82,7 +102,7 @@ const TeacherShareStep = ({ classroom, isLoading, lastShared, onShare, onCancel 
                                 )}
                             </button>
                         </div>
-                        <p className={styles.postAssignmentHint}>
+                        <p className={styles.subViewHint}>
                             <FormattedMessage
                                 defaultMessage={
                                     'Share this passcode so fellow teachers can import it with ' +
@@ -103,34 +123,21 @@ const TeacherShareStep = ({ classroom, isLoading, lastShared, onShare, onCancel 
                         />
                     </p>
                 )}
-                <div className={styles.formFooter}>
-                    <span />
-                    <button
-                        className={styles.primaryButton}
-                        data-testid="classroom-share-done"
-                        type="button"
-                        onClick={onCancel}
-                    >
-                        <FormattedMessage
-                            defaultMessage="Close"
-                            description="Close the share step"
-                            id="gui.classroom.shared.shareClose"
-                        />
-                    </button>
-                </div>
-            </div>
+            </TeacherSubView>
         );
     }
 
     return (
-        <div className={styles.panelInnerView} data-testid="classroom-phase-share-step">
-            <div className={styles.phaseTitle}>
+        <TeacherSubView
+            testId="classroom-phase-share-step"
+            title={
                 <FormattedMessage
                     defaultMessage="Share this assignment"
                     description="Share step title"
                     id="gui.classroom.shared.shareStepTitle"
                 />
-            </div>
+            }
+        >
             <div className={styles.postAssignmentTarget}>
                 {classroom.assignmentName || classroom.className}
             </div>
@@ -200,7 +207,7 @@ const TeacherShareStep = ({ classroom, isLoading, lastShared, onShare, onCancel 
                             onChange={handleTitleChange}
                         />
                     </div>
-                    <p className={styles.postAssignmentHint}>
+                    <p className={styles.subViewHint}>
                         <FormattedMessage
                             defaultMessage={
                                 'A passcode will be issued. Even a lesson you only tried a little in a ' +
@@ -211,23 +218,17 @@ const TeacherShareStep = ({ classroom, isLoading, lastShared, onShare, onCancel 
                         />
                     </p>
                     <div className={styles.formFooter}>
-                        <button
-                            className={styles.secondaryButton}
-                            data-testid="classroom-share-cancel"
-                            type="button"
-                            onClick={onCancel}
-                        >
+                        <ClassroomButton dataTestId="classroom-share-cancel" onClick={onCancel}>
                             <FormattedMessage
                                 defaultMessage="Cancel"
                                 description="Cancel sharing"
                                 id="gui.classroom.shared.shareCancel"
                             />
-                        </button>
-                        <button
-                            className={styles.primaryButton}
-                            data-testid="classroom-share-limited-submit"
+                        </ClassroomButton>
+                        <ClassroomButton
+                            dataTestId="classroom-share-limited-submit"
                             disabled={!title.trim() || isLoading}
-                            type="button"
+                            variant="primary"
                             onClick={handleShareLimited}
                         >
                             <FormattedMessage
@@ -235,7 +236,7 @@ const TeacherShareStep = ({ classroom, isLoading, lastShared, onShare, onCancel 
                                 description="Limited share submit button"
                                 id="gui.classroom.shared.limitedSubmit"
                             />
-                        </button>
+                        </ClassroomButton>
                     </div>
                 </>
             ) : (
@@ -246,7 +247,7 @@ const TeacherShareStep = ({ classroom, isLoading, lastShared, onShare, onCancel 
                     onShare={onShare}
                 />
             )}
-        </div>
+        </TeacherSubView>
     );
 };
 

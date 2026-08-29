@@ -52,13 +52,6 @@
     margin-top: 0.2rem;
 }
 
-.form-footer-hint {
-    color: #888;
-    font-size: 0.75rem;
-    margin-top: 0.5rem;
-    text-align: center;
-}
-
 .form-group {
     margin-bottom: 1rem;
 }
@@ -152,22 +145,29 @@
     cursor: not-allowed;
 }
 
+/* セカンダリボタン（#1125: 同名定義が 2 つあり後勝ちで実効値が混ざっていたのを、
+   その実効値どおりに 1 つへ統合した）。 */
 .secondary-button {
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
-    background-color: white;
+    background-color: #fff;
     color: #575e75;
-    border: 1px solid #d9d9d9;
-    border-radius: 4px;
-    padding: 0.6rem 1.2rem;
+    border: 1px solid #b8b8b8;
+    border-radius: 0.5rem;
+    padding: 0.5rem 1rem;
     font-size: 0.9rem;
     cursor: pointer;
     text-decoration: none;
 }
 
 .secondary-button:hover {
-    background-color: #f2f2f2;
+    background-color: #f0f0f0;
+}
+
+.secondary-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 .danger-button {
@@ -187,13 +187,6 @@
 .danger-button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-}
-
-.role-buttons {
-    display: flex;
-    gap: 1rem;
-    justify-content: center;
-    margin: 2rem 0;
 }
 
 .status-card {
@@ -227,22 +220,6 @@
     color: #575e75;
     font-size: 0.85rem;
     text-align: right;
-}
-
-.role-button {
-    background-color: #4c97ff;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    padding: 1.2rem 2rem;
-    font-size: 1.1rem;
-    cursor: pointer;
-    font-weight: bold;
-    min-width: 120px;
-}
-
-.role-button:hover {
-    background-color: #3d89f0;
 }
 
 .assignment-name-row {
@@ -533,7 +510,8 @@
     margin-bottom: 1rem;
 }
 
-.post-assignment-hint {
+/* パネル内サブ画面（TeacherSubView）の説明文。#1125 で .post-assignment-hint から改名。 */
+.sub-view-hint {
     font-size: 0.8rem;
     color: #888;
     line-height: 1.5;
@@ -955,25 +933,6 @@
     justify-content: flex-end;
     gap: 0.6rem;
     margin-top: 1rem;
-}
-
-.secondary-button {
-    background-color: #fff;
-    color: #575e75;
-    border: 1px solid #b8b8b8;
-    border-radius: 0.5rem;
-    padding: 0.5rem 1rem;
-    cursor: pointer;
-    font-size: 0.9rem;
-}
-
-.secondary-button:hover {
-    background-color: #f0f0f0;
-}
-
-.secondary-button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
 }
 
 .kicked-banner-text {
@@ -1915,7 +1874,9 @@
     max-width: 640px;
 }
 
-.assignment-editor-hint {
+/* トップレベル画面（TeacherScreen）の説明文。#1125 で .assignment-editor-hint から
+   改名し、同色・同サイズだった .class-list-hint を統合した。 */
+.teacher-view-hint {
     color: #575e75;
     font-size: 0.85rem;
     margin-bottom: 1rem;
@@ -2381,21 +2342,6 @@
     overflow-y: auto;
 }
 
-.class-list-title {
-    margin: 0.25rem 0 1rem;
-    font-size: 1.3rem;
-    color: #575e75;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.class-list-hint {
-    margin: 0 0 1rem;
-    color: hsla(225, 15%, 40%, 1);
-    font-size: 0.85rem;
-}
-
 /* プライマリ = 青塗り（評価画面に統一・#1122）。 */
 .class-list-create-button {
     background: #4c97ff;
@@ -2412,38 +2358,6 @@
 }
 
 .class-list-create-button:disabled {
-    opacity: 0.5;
-    cursor: default;
-}
-
-.class-list-create-form {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    margin: 1rem 0;
-    padding: 1rem;
-    border: 1px solid hsla(0, 0%, 0%, 0.15);
-    border-radius: 0.5rem;
-    background: white;
-}
-
-.class-list-create-form input {
-    padding: 0.5rem;
-    border: 1px solid hsla(0, 0%, 0%, 0.15);
-    border-radius: 0.25rem;
-    font-size: 0.9rem;
-}
-
-.class-list-create-form button[type='submit'] {
-    background: #855cd6;
-    color: white;
-    border: none;
-    border-radius: 0.5rem;
-    padding: 0.5rem;
-    cursor: pointer;
-}
-
-.class-list-create-form button[type='submit']:disabled {
     opacity: 0.5;
     cursor: default;
 }
@@ -2781,7 +2695,7 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
 
 /* クラス管理パネル内サブビュー共通コンテナ（#1122）: 課題を作る・課題を再利用・
    みんなの課題・合言葉で取り込み・共有ステップ・クラスを作る・クラス設定など、
-   パンくずを持つパネル（.assignment-board / .class-list）の中に描画されるビューが
+   パンくずを持つパネル（.teacher-view）の中に描画されるビューが
    共有する。パネル側が持つ左右パディング（2rem）に二重で足さないよう水平パディングは
    0 にし、左端をパンくずにそろえる。パネル内に新しいサブビューを足すときもこのクラスを
    使う（.post-assignment-container はパネル外＝.main-relative 直下の配信画面用）。 */
@@ -3005,12 +2919,6 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
 }
 
 /* --- Assignment board (inside a class) --- */
-
-.assignment-board {
-    padding: 1.25rem 2rem;
-    max-width: 60rem;
-    overflow-y: auto;
-}
 
 /* クラス名を独立行にしたので、ヘッダーはアクションボタンの折り返し行にする
    （左寄せ・省略しない。レビュー指摘 #1108）。 */
@@ -3310,38 +3218,8 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
     color: #855cd6;
 }
 
-.class-settings-actions {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.class-settings-actions button {
-    padding: 0.4rem 0.9rem;
-    border: 1px solid hsla(0, 0%, 0%, 0.2);
-    border-radius: 0.4rem;
-    background: white;
-    cursor: pointer;
-}
-
 .class-settings-spacer {
     flex: 1;
-}
-
-/* プライマリ = 青塗り（評価画面に統一・#1122）。 */
-.class-settings-save {
-    background: #4c97ff !important;
-    color: white;
-    border-color: #4c97ff !important;
-}
-
-.class-settings-save:hover {
-    background: #3d89f0 !important;
-}
-
-.class-settings-save:disabled {
-    opacity: 0.5;
-    cursor: default;
 }
 
 /* --- Breadcrumbs (v2 navigation, no sidebar) --- */
@@ -3370,40 +3248,6 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
 
 .breadcrumb-current {
     color: hsla(225, 15%, 40%, 1);
-}
-
-.board-inline-create {
-    display: flex;
-    gap: 0.5rem;
-    margin: 0.75rem 0;
-}
-
-.board-inline-create input {
-    flex: 1;
-    padding: 0.5rem;
-    border: 1px solid hsla(0, 0%, 0%, 0.15);
-    border-radius: 0.4rem;
-    font-size: 0.9rem;
-}
-
-/* プライマリ = 青塗り（評価画面に統一・#1122）。キャンセル（.popover-cancel）は
-   セカンダリのままにするため除外する。 */
-.board-inline-create button:not(.popover-cancel) {
-    background: #4c97ff;
-    color: white;
-    border: none;
-    border-radius: 0.4rem;
-    padding: 0.5rem 1rem;
-    cursor: pointer;
-}
-
-.board-inline-create button:not(.popover-cancel):hover {
-    background: #3d89f0;
-}
-
-.board-inline-create button:not(.popover-cancel):disabled {
-    opacity: 0.5;
-    cursor: default;
 }
 
 /* セカンダリ = 白地 + 中立の枠線（評価画面に統一・#1122）。 */
@@ -3519,7 +3363,11 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
 }
 
 
-/* --- Unified teacher view layout (review round 3) --- */
+/* --- Unified teacher view layout (review round 3) ---
+   クラス管理のトップレベル画面（評価・クラス一覧・課題ボード）の共通コンテナ。
+   #1125 で同一宣言だった .assignment-board を統合した。新しい画面は
+   teacher-view-layout.jsx の TeacherScreen / TeacherSubView を使えば
+   このスタイルが自動的に適用される。 */
 
 .teacher-view {
     padding: 1.25rem 2rem;
@@ -3536,26 +3384,6 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-}
-
-/* 枠なし（#1122）: 評価画面に合わせてカードフレーム（枠・影）を外し、
-   本文はボードの左端にそろえる。 */
-.board-popover {
-    margin: 0.75rem 0;
-}
-
-/* セカンダリ = 白地 + 中立の枠線（評価画面の .secondary-button に統一・#1122）。 */
-.popover-cancel {
-    border: 1px solid #d9d9d9;
-    background: white;
-    color: #575e75;
-    border-radius: 0.4rem;
-    padding: 0.5rem 1rem;
-    cursor: pointer;
-}
-
-.popover-cancel:hover {
-    background: #f2f2f2;
 }
 
 .assignment-preview-header {
