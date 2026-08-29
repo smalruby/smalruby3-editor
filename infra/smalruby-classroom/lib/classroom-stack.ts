@@ -19,6 +19,7 @@ export class ClassroomStack extends cdk.Stack {
   public readonly submissionsTable: dynamodb.Table;
   public readonly kickRequestsTable: dynamodb.Table;
   public readonly groupsTable: dynamodb.Table;
+  public readonly coTeacherIndexTable: dynamodb.Table;
   public readonly sharedAssignmentsTable: dynamodb.Table;
   public readonly sharedReportsTable: dynamodb.Table;
   public readonly notificationsTable: dynamodb.Table;
@@ -105,6 +106,19 @@ export class ClassroomStack extends cdk.Stack {
       indexName: 'teacherSub-index',
       partitionKey: {
         name: 'teacherSub',
+        type: dynamodb.AttributeType.STRING,
+      },
+      projectionType: dynamodb.ProjectionType.ALL,
+    });
+
+    // GSI: groupId lookup — every assignment filed under a class (組), whoever
+    // created it. Replaces the `groupId IN (...)` Scan of the whole table
+    // (#1146): a Scan is charged on the items read *before* the filter, so it
+    // grows with the table, while this query only reads the matching rows.
+    this.classroomsTable.addGlobalSecondaryIndex({
+      indexName: 'groupId-index',
+      partitionKey: {
+        name: 'groupId',
         type: dynamodb.AttributeType.STRING,
       },
       projectionType: dynamodb.ProjectionType.ALL,
@@ -250,6 +264,37 @@ export class ClassroomStack extends cdk.Stack {
     });
 
     cdk.Tags.of(this.groupsTable).add('ResourceType', 'DynamoDB');
+
+    // Co-teacher reverse index (#1146). DynamoDB cannot index a list
+    // attribute, so "which assignments / classes is this email a co-teacher
+    // of?" used to be answered by scanning the whole table with
+    // `contains(coTeacherEmails, :email)` — a read that grows with the table
+    // even though the answer is a handful of rows. This table keeps one row
+    // per (co-teacher email × resource), written whenever a co-teacher list
+    // changes, so the lookup becomes a Query on the email.
+    //
+    // Rows carry the ttl of the resource they point at, so they expire with
+    // it. A stale row is harmless: the reader fetches the real item and skips
+    // the ones that are gone.
+    this.coTeacherIndexTable = new dynamodb.Table(this, 'CoTeacherIndexTable', {
+      tableName: `ClassroomCoTeacherIndex${stageSuffix}`,
+      partitionKey: {
+        name: 'coTeacherEmail',
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: 'resourceKey',
+        type: dynamodb.AttributeType.STRING,
+      },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      pointInTimeRecoverySpecification: {
+        pointInTimeRecoveryEnabled: false,
+      },
+      timeToLiveAttribute: 'ttl',
+    });
+
+    cdk.Tags.of(this.coTeacherIndexTable).add('ResourceType', 'DynamoDB');
 
     // --- みんなの課題 (shared assignment library, EPIC #1066) ---
     // Shared items are nationwide teacher contributions: permanent (no TTL)
@@ -435,6 +480,7 @@ export class ClassroomStack extends cdk.Stack {
         SUBMISSIONS_TABLE_NAME: this.submissionsTable.tableName,
         KICK_REQUESTS_TABLE_NAME: this.kickRequestsTable.tableName,
         GROUPS_TABLE_NAME: this.groupsTable.tableName,
+        CO_TEACHER_INDEX_TABLE_NAME: this.coTeacherIndexTable.tableName,
         SHARED_ASSIGNMENTS_TABLE_NAME: this.sharedAssignmentsTable.tableName,
         SHARED_REPORTS_TABLE_NAME: this.sharedReportsTable.tableName,
         NOTIFICATIONS_TABLE_NAME: this.notificationsTable.tableName,
@@ -478,6 +524,7 @@ export class ClassroomStack extends cdk.Stack {
     this.submissionsTable.grantReadWriteData(handlerFn);
     this.kickRequestsTable.grantReadWriteData(handlerFn);
     this.groupsTable.grantReadWriteData(handlerFn);
+    this.coTeacherIndexTable.grantReadWriteData(handlerFn);
     this.sharedAssignmentsTable.grantReadWriteData(handlerFn);
     this.sharedReportsTable.grantReadWriteData(handlerFn);
     // お知らせは admin スタックが単一の書き手 (#1111)。この Lambda は一覧

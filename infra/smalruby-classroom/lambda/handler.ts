@@ -30,6 +30,8 @@ const MEMBERSHIPS_TABLE = process.env.MEMBERSHIPS_TABLE_NAME || 'ClassroomMember
 const SUBMISSIONS_TABLE = process.env.SUBMISSIONS_TABLE_NAME || 'ClassroomSubmissions';
 const KICK_REQUESTS_TABLE = process.env.KICK_REQUESTS_TABLE_NAME || 'ClassroomKickRequests';
 const GROUPS_TABLE = process.env.GROUPS_TABLE_NAME || 'ClassroomGroups';
+// 共同管理者 email → 資源 の逆引き（#1146）。list 属性は GSI にできないため別テーブル。
+const CO_TEACHER_INDEX_TABLE = process.env.CO_TEACHER_INDEX_TABLE_NAME || 'ClassroomCoTeacherIndex';
 const SUBMISSIONS_BUCKET = process.env.SUBMISSIONS_BUCKET_NAME || 'smalruby-classroom-submissions';
 // みんなの課題 — nationwide shared assignment library (EPIC #1066)
 const SHARED_ASSIGNMENTS_TABLE = process.env.SHARED_ASSIGNMENTS_TABLE_NAME || 'SharedAssignments';
@@ -175,7 +177,13 @@ async function paginateAll(
   const items: Record<string, unknown>[] = [];
   let startKey: Record<string, unknown> | undefined;
   for (let page = 0; page < MAX_PAGES; page++) {
-    const result = await docClient.send(makeCommand(startKey) as QueryCommand);
+    // Narrow instead of casting one command type to the other: Query and Scan
+    // have the same paged shape, but pretending a ScanCommand is a
+    // QueryCommand would be a lie the compiler cannot check.
+    const command = makeCommand(startKey);
+    const result = command instanceof ScanCommand
+      ? await docClient.send(command)
+      : await docClient.send(command);
     items.push(...((result.Items || []) as Record<string, unknown>[]));
     startKey = result.LastEvaluatedKey as Record<string, unknown> | undefined;
     if (!startKey) {
@@ -673,6 +681,70 @@ async function handleCreateClassroom(identity: TeacherIdentity, body: Record<str
   };
 }
 
+// --- Co-teacher reverse index (#1146) ---
+
+/** What a reverse-index row points at: an assignment (課題) or a class (組). */
+type CoTeacherResourceType = 'assignment' | 'group';
+
+/** Sort key of a reverse-index row. Prefixed so one email lists either kind. */
+function coTeacherResourceKey(type: CoTeacherResourceType, id: string): string {
+  return `${type}#${id}`;
+}
+
+/**
+ * Keep the co-teacher reverse index in step with a resource's coTeacherEmails.
+ * Writes only the difference, so re-saving an unchanged list costs nothing.
+ *
+ * Called after the resource itself is written: if this throws the caller gets
+ * a 500 and retries, and because the sync is a diff of the *current* list the
+ * retry (or any later edit of the same list) repairs the index. Authorization
+ * never depends on the index — `canManageClassroom` still reads the list off
+ * the item — so a lagging index only delays the resource showing up in the
+ * teacher's list.
+ * @param type - resource kind the row points at
+ * @param id - classroomId or groupId
+ * @param before - the co-teacher list as it was stored
+ * @param after - the co-teacher list just written
+ * @param ttl - the resource's ttl (epoch seconds), so rows expire with it
+ */
+async function syncCoTeacherIndex(
+  type: CoTeacherResourceType,
+  id: string,
+  before: string[],
+  after: string[],
+  ttl?: unknown,
+): Promise<void> {
+  const beforeSet = new Set(before.map(normalizeEmail));
+  const afterSet = new Set(after.map(normalizeEmail));
+  const resourceKey = coTeacherResourceKey(type, id);
+  const now = new Date().toISOString();
+  const writes: Promise<unknown>[] = [];
+  for (const email of afterSet) {
+    if (!beforeSet.has(email)) {
+      writes.push(docClient.send(new PutCommand({
+        TableName: CO_TEACHER_INDEX_TABLE,
+        Item: {
+          coTeacherEmail: email,
+          resourceKey,
+          resourceType: type,
+          resourceId: id,
+          updatedAt: now,
+          ...(typeof ttl === 'number' ? { ttl } : {}),
+        },
+      })));
+    }
+  }
+  for (const email of beforeSet) {
+    if (!afterSet.has(email)) {
+      writes.push(docClient.send(new DeleteCommand({
+        TableName: CO_TEACHER_INDEX_TABLE,
+        Key: { coTeacherEmail: email, resourceKey },
+      })));
+    }
+  }
+  await Promise.all(writes);
+}
+
 /** Read the coTeacherEmails list from a classroom item, defaulting to []. */
 function readCoTeacherEmails(item: Record<string, unknown>): string[] {
   return Array.isArray(item.coTeacherEmails) ? (item.coTeacherEmails as string[]) : [];
@@ -966,6 +1038,7 @@ async function handleAddCoTeacher(identity: TeacherIdentity, classroomId: string
     UpdateExpression: 'SET coTeacherEmails = :list, updatedAt = :now',
     ExpressionAttributeValues: { ':list': updated, ':now': new Date().toISOString() },
   }));
+  await syncCoTeacherIndex('assignment', classroomId, existing, updated, result.Item.ttl);
 
   return { statusCode: 200, body: JSON.stringify({ coTeacherEmails: updated }) };
 }
@@ -993,6 +1066,7 @@ async function handleRemoveCoTeacher(identity: TeacherIdentity, classroomId: str
       UpdateExpression: 'SET coTeacherEmails = :list, updatedAt = :now',
       ExpressionAttributeValues: { ':list': updated, ':now': new Date().toISOString() },
     }));
+    await syncCoTeacherIndex('assignment', classroomId, existing, updated, result.Item.ttl);
   }
 
   return { statusCode: 200, body: JSON.stringify({ coTeacherEmails: updated }) };
@@ -2678,6 +2752,16 @@ async function handleUpdateGroup(identity: TeacherIdentity, groupId: string, bod
     ExpressionAttributeValues: expressionValues,
     ReturnValues: 'ALL_NEW',
   }));
+
+  if (updates.coTeacherEmails !== undefined) {
+    await syncCoTeacherIndex(
+      'group',
+      groupId,
+      readCoTeacherEmails(group),
+      updates.coTeacherEmails as string[],
+      group.ttl,
+    );
+  }
 
   // The class's studentCount is authoritative, so a change must flow down to
   // its existing assignments (classrooms) — otherwise growing/shrinking the
