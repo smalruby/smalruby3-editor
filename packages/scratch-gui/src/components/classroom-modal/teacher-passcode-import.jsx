@@ -24,7 +24,7 @@ const TeacherPasscodeImport = ({ group, isLoading, lookup, error, onLookup, onIm
     }, [onImport, passcode, group]);
 
     return (
-        <div className={styles.boardInnerView} data-testid="classroom-phase-passcode-import">
+        <div className={styles.panelInnerView} data-testid="classroom-phase-passcode-import">
             <div className={styles.phaseTitle}>
                 <FormattedMessage
                     defaultMessage="Import by passcode"
