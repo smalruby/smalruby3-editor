@@ -38,6 +38,15 @@ export default eslintConfigScratch.defineConfig(
         }
     },
     {
+        // Tests run under jest's CommonJS runtime, so node globals (require,
+        // __dirname) are available on top of the browser/jsdom ones — the
+        // terminology audit (#1131) reads src/ from disk.
+        files: ['test/**/*.{js,jsx}'],
+        languageOptions: {
+            globals: globals.node
+        }
+    },
+    {
         ignores: ['build/**', 'node_modules/**']
     }
 );

@@ -666,10 +666,10 @@ test('applyDodHandoffs: a failing item does not block others', async () => {
 
 // === ラベル整合: applyLabelHealing（🤖 autopilot 担保 + 🧭 tracking トラッカー化） ===
 
-test('applyLabelHealing: 非終端 item に 🤖 を、EPIC には 🧭 も担保。終端/付与済み/実行中はスキップ', async () => {
+test('applyLabelHealing: 非終端 item に 🤖 を、分解済み EPIC には 🧭 も担保。終端/付与済み/実行中はスキップ', async () => {
     const { TRACKING_LABEL, AUTOPILOT_LABEL } = require('../src/phases');
     const items = [
-        { issue: 1, status: 'In Progress', kind: 'EPIC', labels: [] }, // 🤖 + 🧭
+        { issue: 1, status: 'In Progress', kind: 'EPIC', labels: [] }, // 分解済み → 🤖 + 🧭
         { issue: 2, status: 'In Progress', kind: 'EPIC', labels: [AUTOPILOT_LABEL, TRACKING_LABEL] }, // 完備
         { issue: 3, status: 'Close', kind: 'EPIC', labels: [] }, // 終端 → 触らない
         { issue: 4, status: 'In Progress', kind: 'Issue', labels: [] }, // leaf → 🤖 のみ
@@ -680,12 +680,110 @@ test('applyLabelHealing: 非終端 item に 🤖 を、EPIC には 🧭 も担�
     const state = { running: new Map([[5, { phase: 'decompose' }]]) };
     await applyLabelHealing(items, makeCfg(), state, () => {}, {
         token: 't',
+        readToken: 'r',
+        getBoardEnrichment: () => ({ 1: { subIssues: { total: 3, completed: 1, percent: 33 } } }),
         editLabels: (repo, number, type, diff) => added.push({ number, type, ...diff }),
     });
     assert.deepEqual(added, [
         { number: 1, type: 'issue', add: [AUTOPILOT_LABEL, TRACKING_LABEL] },
         { number: 4, type: 'issue', add: [AUTOPILOT_LABEL] },
     ]);
+});
+
+test('applyLabelHealing: 未分解 EPIC に 🧭 tracking を付けない（decompose デッドロック回帰・#1130）', async () => {
+    const { TRACKING_LABEL, AUTOPILOT_LABEL } = require('../src/phases');
+    // #1129 の状況: decompose が分解案 HITL で停止中（sub-issue はまだ 0 件）
+    const items = [{ issue: 1129, status: 'In Progress', aiStatus: 'Decomposing', kind: 'EPIC', hitlLabel: true, labels: [] }];
+    const added = [];
+    const state = { running: new Map() };
+    await applyLabelHealing(items, makeCfg(), state, () => {}, {
+        token: 't',
+        readToken: 'r',
+        getBoardEnrichment: () => ({ 1129: { subIssues: { total: 0, completed: 0, percent: 0 } } }),
+        editLabels: (repo, number, type, diff) => added.push({ number, type, ...diff }),
+    });
+    assert.deepEqual(added, [{ number: 1129, type: 'issue', add: [AUTOPILOT_LABEL] }]);
+    assert.ok(!added.some((a) => (a.add || []).includes(TRACKING_LABEL)));
+});
+
+test('applyLabelHealing: 人間が外した 🙋 HITL を再付与しない（#1130）', async () => {
+    const { HITL_LABEL: HL, AUTOPILOT_LABEL } = require('../src/phases');
+    const items = [
+        // Project 上は HITL だが人間が 🙋 を外した（= 解除シグナル）→ healing は触らない
+        { issue: 1, status: 'Review', kind: 'Issue', hitlLabel: true, labels: [AUTOPILOT_LABEL] },
+        { issue: 2, status: 'Blocked', kind: 'Issue', hitlLabel: true, labels: [AUTOPILOT_LABEL] },
+        // 🙋 が残っているが Project 上は非 HITL → 除去も healing の責務ではない（面同期が行う）
+        { issue: 3, status: 'Sprint Backlog', kind: 'Issue', hitlLabel: false, labels: [AUTOPILOT_LABEL, HL] },
+    ];
+    const calls = [];
+    const state = { running: new Map() };
+    await applyLabelHealing(items, makeCfg(), state, () => {}, {
+        token: 't',
+        readToken: 'r',
+        getBoardEnrichment: () => ({}),
+        editLabels: (repo, number, type, diff) => calls.push({ number, ...diff }),
+    });
+    assert.deepEqual(calls, []);
+});
+
+test('applyLabelHealing: sub-issue 件数は board キャッシュを優先し、不足分だけバッチ取得する（#1130）', async () => {
+    const { TRACKING_LABEL, AUTOPILOT_LABEL } = require('../src/phases');
+    const items = [
+        { issue: 1, status: 'In Progress', kind: 'EPIC', labels: [] }, // board キャッシュ済み（分解済み）
+        { issue: 2, status: 'In Progress', kind: 'EPIC', labels: [] }, // キャッシュ外 → 取得
+    ];
+    const fetched = [];
+    const added = [];
+    const state = {
+        running: new Map(),
+        board: { items: [{ issue: 1, subIssues: { total: 2, completed: 0, percent: 0 } }] },
+    };
+    await applyLabelHealing(items, makeCfg(), state, () => {}, {
+        token: 't',
+        readToken: 'r',
+        getBoardEnrichment: (repo, nums) => {
+            fetched.push(...nums);
+            return { 2: { subIssues: { total: 0, completed: 0, percent: 0 } } };
+        },
+        editLabels: (repo, number, type, diff) => added.push({ number, ...diff }),
+    });
+    assert.deepEqual(fetched, [2], 'board キャッシュにある item は再取得しない');
+    assert.deepEqual(added, [
+        { number: 1, add: [AUTOPILOT_LABEL, TRACKING_LABEL] },
+        { number: 2, add: [AUTOPILOT_LABEL] },
+    ]);
+});
+
+test('applyLabelHealing: sub-issue 件数の取得失敗でも 🤖 担保は続行し 🧭 は付けない（#1130）', async () => {
+    const { TRACKING_LABEL, AUTOPILOT_LABEL } = require('../src/phases');
+    const items = [{ issue: 1, status: 'In Progress', kind: 'EPIC', labels: [] }];
+    const added = [];
+    const state = { running: new Map() };
+    await applyLabelHealing(items, makeCfg(), state, () => {}, {
+        token: 't',
+        readToken: 'r',
+        getBoardEnrichment: () => { throw new Error('boom'); },
+        editLabels: (repo, number, type, diff) => added.push({ number, ...diff }),
+    });
+    assert.deepEqual(added, [{ number: 1, add: [AUTOPILOT_LABEL] }]);
+    assert.ok(!added.some((a) => a.add.includes(TRACKING_LABEL)));
+});
+
+test('applyLabelHealing: レート残量が僅少なら sub-issue 件数の追加 read を撃たない（🤖 担保は継続）', async () => {
+    const { TRACKING_LABEL, AUTOPILOT_LABEL } = require('../src/phases');
+    const items = [{ issue: 1, status: 'In Progress', kind: 'EPIC', labels: [] }];
+    const added = [];
+    let fetched = 0;
+    const state = { running: new Map(), ratePlan: { skipLowPriority: true, minRemaining: 42 } };
+    await applyLabelHealing(items, makeCfg(), state, () => {}, {
+        token: 't',
+        readToken: 'r',
+        getBoardEnrichment: () => { fetched += 1; return {}; },
+        editLabels: (repo, number, type, diff) => added.push({ number, ...diff }),
+    });
+    assert.equal(fetched, 0, 'レート僅少時は enrichment を撃たない');
+    assert.deepEqual(added, [{ number: 1, add: [AUTOPILOT_LABEL] }]);
+    assert.ok(!added.some((a) => a.add.includes(TRACKING_LABEL)));
 });
 
 // === decompose 完了後の sub-issue Project フィールド補完（#914） ===
@@ -776,6 +874,8 @@ test('applyLabelHealing: 1 件の失敗は他を止めない', async () => {
     const state = { running: new Map() };
     await applyLabelHealing(items, makeCfg(), state, () => {}, {
         token: 't',
+        readToken: 'r',
+        getBoardEnrichment: () => ({}),
         editLabels: (repo, number) => { if (number === 1) throw new Error('boom'); added.push(number); },
     });
     assert.deepEqual(added, [2]);

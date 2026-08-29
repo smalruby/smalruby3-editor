@@ -127,6 +127,16 @@ export {
 };
 
 // --- クラス・課題管理 + 期限切れ復元 (S4 #1084) ---
+//
+// 用語 (#1131・辞典は docs/admin/README.md「用語辞典」): ここで扱う "classroom" は
+// すべて **課題（1授業）= `Classrooms` テーブル / `classroomId`** を指す。
+// クラス（学級）= `ClassroomGroups` / `groupId` を直接操作する API はまだ無い
+// （Admin からのクラス検索・アーカイブ解除は EPIC #1129 の C）。例外は
+// `executeRestore` で、親クラスも一緒に削除されていた場合はサーバー側が
+// `ClassroomGroups` も復元する（下の JSDoc と restore-plan の dry-run を参照）。
+// 関数名・API パスの `classroom` は **意図的に現状維持**（サーバー実装・
+// ddb-archive スナップショットのキー・E2E と一体の互換識別子）。改名すると
+// 破壊的変更になるため、ねじれは日本語の文言と本コメントで吸収する。
 
 /**
  * Fleet-wide classroom list (quota rows filtered server-side).

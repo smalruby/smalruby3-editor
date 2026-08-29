@@ -51,11 +51,8 @@ const {
     humanSpokeLast,
     hasUnhandledChangesRequest,
     toMs,
-    TRACKING_LABEL,
     WAITING_LABEL,
     waitingLabelAction,
-    AUTOPILOT_LABEL,
-    TERMINAL_STATUSES,
     isTrackerItem,
     needsPrLinkSticky,
     renderPrLinkSticky,
@@ -66,6 +63,10 @@ const {
     sanitizeForSurface,
     isAuthError,
     labelActions,
+    isGateItem,
+    healingLabelActions,
+    selectLabelHealingItems,
+    selectSubIssueCountTargets,
     draftAction,
     renderSticky,
     applyIntentsToItem,
@@ -1021,18 +1022,6 @@ async function dispatch(item, cfg, state, log) {
 }
 
 /**
- * item が人間ゲート状態（付帯情報の収集が要る状態）か。
- * Review / DoD（レビュー・検証待ち）、Blocked（人間の対処待ち）、
- * Discussing（実装前ディスカッションの返信待ち）が該当する。
- */
-function isGateItem(item) {
-    if (!item) return false;
-    if (item.status === 'Review' || item.status === 'DoD' || item.status === 'Blocked') return true;
-    const status = item.status || 'New Item';
-    return (status === 'New Item' || status === 'Backlog') && item.aiStatus === 'Discussing';
-}
-
-/**
  * 人間ゲート状態（Review / DoD / Blocked / Discussing）かつ未実行の item について、
  * HITL 解除シグナル + PR レビュー状態 + 発言アクティビティを集める。phaseForItem の ctx として
  * 渡すと、(1) ラベル解除、(2) **人間がコメントだけ出してラベルを触らない**操作、のどちらでも
@@ -1214,15 +1203,6 @@ async function applyDodHandoffs(items, cfg, state, log, deps = {}) {
 }
 
 /**
- * ラベル整合（label healing）: 非終端の Project item に管理ラベルを担保する。
- * - 全 item: `🤖 autopilot`（**広い問い合わせをこのラベル限定にする前提**。closed 状態の
- *   一括確認やフォールバックの closed 一覧はラベル付きだけを見る）
- * - Kind=EPIC: `🧭 tracking`（以後の tick はラベルだけでトラッカーと判定できる）
- * ラベルは自動では外さない（人間の手動指定を潰さない）。終端（Close/Done）は触らない。
- * ラベルは item-list に含まれるので判定に追加 API は不要、書き込みは不足時のみ（冪等）。
- * deps は injection 可能（テスト用）。実行中の item は触らない。1 件の失敗は他を止めない。
- */
-/**
  * autopilot-after ゲートで待たされている candidate に ⏳ waiting ラベルを担保する（純粋部は
  * {@link waitingLabelAction}）。依存が解決したら外す。GitHub Projects の view で「他 Issue 待ち」
  * を一目で判別できるようにするのが目的。
@@ -1258,22 +1238,77 @@ async function applyAfterWaitLabels(candidates, waitingByIssue, cfg, log, deps =
     }
 }
 
+/**
+ * 🧭 tracking の担保判定に要る sub-issue 件数を解決する（#1130）。Project の item-list は
+ * 件数を返さないので補完する。俯瞰ボードのキャッシュ（{@link refreshBoard} が enrichment 済み）
+ * を優先し、そこに無い分だけ 1 回のバッチ GraphQL で取る（`.claude/rules/autopilot/github-api.md`
+ * の「バッチ読み = GraphQL / 問い合わせ対象の限定」）。取得失敗・レート残量僅少は握りつぶす
+ * （件数不明 = 未分解扱いになり 🧭 を付けないので、デッドロック側に倒れない安全側の既定）。
+ * @param {number[]} numbers 件数が要る issue 番号（{@link selectSubIssueCountTargets} の結果）
+ * @param {object} cfg
+ * @param {object} state board キャッシュを持つ可変状態
+ * @param {Function} log
+ * @param {object} [deps] { readToken, getBoardEnrichment }（テスト用注入）
+ * @returns {Promise<Map<number, {total:number}>>}
+ */
+async function resolveSubIssueCounts(numbers, cfg, state, log, deps = {}) {
+    const out = new Map();
+    if (!numbers.length) return out;
+    const wanted = new Set(numbers);
+    for (const it of (state.board && state.board.items) || []) {
+        if (it && it.subIssues && wanted.has(it.issue)) out.set(it.issue, it.subIssues);
+    }
+    const missing = numbers.filter((n) => !out.has(n));
+    if (!missing.length) return out;
+    // 🧭 の担保は低優先（付かなくても安全側 = デッドロックしない）。レート残量が僅少な tick では
+    // PR 面投影・俯瞰ボード更新と同じく追加の read を撃たない（github-api.md §5 の自動退避）。
+    // 🤖 autopilot の担保（問い合わせ限定キー）は追加 read 不要なので、この後も継続する。
+    if (state.ratePlan && state.ratePlan.skipLowPriority) return out;
+    const getBoardEnrichment = deps.getBoardEnrichment || project.getBoardEnrichment;
+    try {
+        const readToken = deps.readToken || await project.readToken();
+        const enrichment = await getBoardEnrichment(cfg.repo, missing, readToken);
+        for (const [num, extra] of Object.entries(enrichment || {})) {
+            if (extra && extra.subIssues) out.set(Number(num), extra.subIssues);
+        }
+    } catch (e) {
+        log(`label healing: sub-issue 件数の取得に失敗 (${e.message})`);
+    }
+    return out;
+}
+
+/**
+ * 非終端 item に管理対象ラベル（🤖 autopilot / 分解済み EPIC の 🧭 tracking）を担保する。
+ * 判定は {@link healingLabelActions}（= `labelActions`）に一本化する — 自前で再実装すると
+ * 未分解 EPIC に 🧭 が付いて decompose が永久に走らないデッドロックが復活する（#1130）。
+ * 書き込みは差分があるときだけ（冪等・API 節約）で、token 取得も付与が 1 件でもある時だけ行う。
+ * 1 件の失敗は他を止めない。
+ * @param {object[]} items Project item
+ * @param {object} cfg
+ * @param {object} state { running, board }
+ * @param {Function} log
+ * @param {object} [deps] { token, readToken, editLabels, getBoardEnrichment }（テスト用注入）
+ */
 async function applyLabelHealing(items, cfg, state, log, deps = {}) {
-    const token = deps.token || await project.botToken();
     const editLabels = deps.editLabels || project.editLabels;
-    for (const item of items) {
-        if (!item || TERMINAL_STATUSES.has(item.status)) continue;
-        if (state.running.has(item.issue)) continue;
-        const labels = item.labels || [];
-        const add = [];
-        if (!labels.includes(AUTOPILOT_LABEL)) add.push(AUTOPILOT_LABEL);
-        if (item.kind === 'EPIC' && !labels.includes(TRACKING_LABEL)) add.push(TRACKING_LABEL);
-        if (!add.length) continue;
+    const targets = selectLabelHealingItems(items, state.running);
+    const counts = await resolveSubIssueCounts(
+        selectSubIssueCountTargets(targets), cfg, state, log, deps,
+    );
+    const todo = [];
+    for (const item of targets) {
+        const withCounts = counts.has(item.issue) ? { ...item, subIssues: counts.get(item.issue) } : item;
+        const { add } = healingLabelActions(withCounts, item.labels || []);
+        if (add.length) todo.push({ issue: item.issue, add });
+    }
+    if (!todo.length) return;
+    const token = deps.token || await project.botToken();
+    for (const { issue, add } of todo) {
         try {
-            await editLabels(cfg.repo, item.issue, 'issue', { add }, token);
-            log(`#${item.issue}: ラベル担保 ${add.join(' ')}`);
+            await editLabels(cfg.repo, issue, 'issue', { add }, token);
+            log(`#${issue}: ラベル担保 ${add.join(' ')}`);
         } catch (e) {
-            log(`#${item.issue}: label healing failed: ${e.message}`);
+            log(`#${issue}: label healing failed: ${e.message}`);
         }
     }
 }
