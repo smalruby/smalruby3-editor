@@ -55,13 +55,17 @@ const MAIN_NOISE = [
 
 /**
  * 使い捨ての main checkout + worktree を作り、`bin/sync-worktree-env` を worktree 内で実行する。
+ * 一時ディレクトリは `t.after` で必ず片付ける（兄弟の worktree-*.test.js と同じ方針。
+ * 片付けないと 1 回の `node --test` ごとに git worktree 入りの temp dir が 4 つ残る）。
+ * @param {object} t node:test のテストコンテキスト（後片付けの登録に使う）。
  * @param {object} options オプション。
  * @param {string[]} options.args スクリプトに渡す引数（`--force` など）。
  * @param {Function} options.before 実行前に worktree を触るフック。引数は worktree の絶対パス。
  * @returns {{main: string, worktree: string, stdout: string}} 生成パスと標準出力。
  */
-function runSync({ args = [], before } = {}) {
+function runSync(t, { args = [], before } = {}) {
     const base = fs.mkdtempSync(path.join(os.tmpdir(), 'sync-env-'));
+    t.after(() => fs.rmSync(base, { recursive: true, force: true }));
     const main = path.join(base, 'main');
     const worktree = path.join(base, 'wt');
     fs.mkdirSync(main);
@@ -92,8 +96,8 @@ function runSync({ args = [], before } = {}) {
     return { main, worktree, stdout };
 }
 
-test('copies per-stage env files of every infra project', () => {
-    const { worktree } = runSync();
+test('copies per-stage env files of every infra project', (t) => {
+    const { worktree } = runSync(t);
 
     for (const rel of MAIN_FILES) {
         assert.strictEqual(
@@ -104,8 +108,8 @@ test('copies per-stage env files of every infra project', () => {
     }
 });
 
-test('skips .env.example, dated backups, and the .env symlink', () => {
-    const { worktree } = runSync();
+test('skips .env.example, dated backups, and the .env symlink', (t) => {
+    const { worktree } = runSync(t);
 
     for (const rel of MAIN_NOISE) {
         assert.ok(!fs.existsSync(path.join(worktree, rel)), `${rel} should not be copied`);
@@ -116,8 +120,8 @@ test('skips .env.example, dated backups, and the .env symlink', () => {
     }
 });
 
-test('tolerates infra projects that have no env file in main', () => {
-    const { worktree, stdout } = runSync({
+test('tolerates infra projects that have no env file in main', (t) => {
+    const { worktree, stdout } = runSync(t, {
         before: (wt) => {
             // An infra project that exists only in the worktree (no env in main).
             fs.mkdirSync(path.join(wt, 'infra', 'smalruby-future'), { recursive: true });
@@ -128,9 +132,9 @@ test('tolerates infra projects that have no env file in main', () => {
     assert.ok(fs.existsSync(path.join(worktree, 'infra/smalruby-admin/.env.prod')));
 });
 
-test('is idempotent: a second run keeps existing files unless --force', () => {
+test('is idempotent: a second run keeps existing files unless --force', (t) => {
     const rel = 'infra/smalruby-admin/.env.prod';
-    const { worktree } = runSync();
+    const { worktree } = runSync(t);
 
     fs.writeFileSync(path.join(worktree, rel), 'local edit\n');
     execFileSync(SCRIPT, [], { cwd: worktree, encoding: 'utf8' });
