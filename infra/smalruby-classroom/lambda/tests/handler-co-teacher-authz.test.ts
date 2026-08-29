@@ -13,6 +13,10 @@
  * a legitimately authenticated teacher but a stranger to the mocked classroom.
  */
 
+// モジュール化。トップレベル宣言をファイルスコープに閉じる（他のテストファイルと
+// 同名の mockSend / DEV_TOKEN / makeEvent があり、スクリプト扱いだと TS2451 で衝突する）。
+export {};
+
 // Replace only the DynamoDB document client's send(); keep the real command
 // classes so the handler can still build Get/Update/Query/Scan commands.
 const mockSend = jest.fn();

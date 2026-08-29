@@ -200,10 +200,12 @@ describe('クラス単位の課題列挙は groupId 起点（issue #1145）', ()
         const classroomUpdates = updates
             .filter(update => update.table === 'Classrooms')
             .map(update => ({ classroomId: update.key.classroomId, studentCount: update.values[':sc'] }));
-        expect(classroomUpdates).toEqual([
+        // DynamoDB の Scan は返却順を保証しないので、順序ではなく集合として比較する。
+        expect(classroomUpdates).toHaveLength(2);
+        expect(classroomUpdates).toEqual(expect.arrayContaining([
             { classroomId: 'c-owner', studentCount: 35 },
             { classroomId: 'c-co', studentCount: 35 },
-        ]);
+        ]));
     });
 
     test('人数の波及対象は同じクラスのアクティブな課題だけ', async () => {

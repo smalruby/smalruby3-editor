@@ -17,6 +17,10 @@
  *     コンソールで window._classroomIdToken を参照）
  */
 
+// モジュール化。トップレベル宣言をファイルスコープに閉じる（他のテストファイルと
+// 同名の mockSend / DEV_TOKEN / makeEvent があり、スクリプト扱いだと TS2451 で衝突する）。
+export {};
+
 const ENDPOINT = process.env.CLASSROOM_API_ENDPOINT || '';
 const GOOGLE_ID_TOKEN = process.env.GOOGLE_ID_TOKEN || '';
 // 教師フローの自動テスト用バイパストークン（stg のみ有効。.env.stg の DEV_BYPASS_TOKEN）
