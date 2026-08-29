@@ -1,3 +1,4 @@
+
 /**
  * `GET /classrooms` の読み取り構成を固定するテスト (issue #1146)。
  *
@@ -156,12 +157,40 @@ describe('GET /classrooms — DynamoDB 読み取り構成 (issue #1146)', () => 
         expect(scansAgainst('ClassroomGroups')).toHaveLength(1);
     });
 
-    test('統合後も email を持たない教師では Scan がクラス経由分だけになる', async () => {
+    test('2 つの述語が 1 つの Scan に OR 結合される', async () => {
         useTables([ownGroup], [assignment('c-in-own-group', { groupId: 'g-own' })]);
 
         expect(await listIds()).toEqual(['c-in-own-group']);
-        const scan = scansAgainst('Classrooms')[0];
-        expect(scan.input.FilterExpression).toContain('groupId IN');
+        const scans = scansAgainst('Classrooms');
+        expect(scans).toHaveLength(1);
+        // 統合されている＝1 本の FilterExpression に両方が載っていること。
+        // （分割されていれば Scan が 2 回になり上の assert で落ちる。）
+        const filter: string = scans[0].input.FilterExpression;
+        expect(filter).toContain('contains(coTeacherEmails');
+        expect(filter).toContain('groupId IN');
+        expect(filter).toContain(' OR ');
+    });
+
+    test('DDB_MAX_PAGES が不正値でも既定にフォールバックして全件返す', async () => {
+        // 不正値をそのまま上限に使うと 1 ページも読まずに空を返し、
+        // ページングが防ごうとしている「黙って取りこぼす」状態になる。
+        jest.resetModules();
+        process.env.DDB_MAX_PAGES = 'not-a-number';
+        handler = require('../handler').handler;
+        useTables(
+            [],
+            [
+                assignment('c-1', { teacherSub: SELF_SUB }),
+                assignment('c-2', { teacherSub: SELF_SUB }),
+            ],
+            1,
+        );
+
+        try {
+            expect(await listIds()).toEqual(['c-1', 'c-2']);
+        } finally {
+            delete process.env.DDB_MAX_PAGES;
+        }
     });
 
     test('LastEvaluatedKey が返るときは全ページを辿る (Scan)', async () => {
@@ -238,3 +267,9 @@ describe('GET /classrooms — DynamoDB 読み取り構成 (issue #1146)', () => 
         expect(mockSend.mock.calls.length).toBeLessThan(500);
     });
 });
+
+// import / export を持たないテストファイルは TS の「スクリプト」扱いになり、
+// ts-jest が 1 プロセスで複数のテストを型付けすると `const mockSend` などが
+// グローバルスコープで衝突して "Cannot redeclare block-scoped variable" になる。
+// 空 export でモジュール化してファイルごとのスコープに閉じる。
+export {};

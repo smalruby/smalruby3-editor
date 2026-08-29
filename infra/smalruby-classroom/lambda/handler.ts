@@ -159,7 +159,11 @@ const docClient = DynamoDBDocumentClient.from(ddbClient, {
 // に効くため、辿らないとテーブルが育った時点でエラーも出さずに黙って
 // 取りこぼす。一覧系の読み取りは下の queryAll / scanAll に寄せる。
 // 上限は暴走（壊れたページャで無限ループ）を防ぐ保険。
-const MAX_PAGES = parseInt(process.env.DDB_MAX_PAGES || '25', 10);
+// 不正値（NaN / 0 以下）はそのまま使うと 1 ページも読まずに空配列を返し、
+// このヘルパーが無くそうとしている「黙って取りこぼす」挙動そのものになる。
+// 既定へフォールバックして、設定ミスが一覧の消失に化けないようにする。
+const parsedMaxPages = parseInt(process.env.DDB_MAX_PAGES || '25', 10);
+const MAX_PAGES = Number.isFinite(parsedMaxPages) && parsedMaxPages > 0 ? parsedMaxPages : 25;
 
 /**
  * Query / Scan を LastEvaluatedKey が無くなるまで辿って全項目を返す。
@@ -593,24 +597,23 @@ async function handleCreateClassroom(identity: TeacherIdentity, body: Record<str
   }
   const sortDate = body.sortDate !== undefined ? validateSortDate(body.sortDate) : undefined;
 
-  // Auto-number duplicate assignment names within the same class
-  const existingClassrooms = await docClient.send(new QueryCommand({
+  // Auto-number duplicate assignment names within the same class. Paginated:
+  // a truncated read would miss an existing name and hand out a duplicate.
+  const existingClassrooms = await queryAll({
     TableName: CLASSROOMS_TABLE,
     IndexName: 'teacherSub-index',
     KeyConditionExpression: 'teacherSub = :ts',
     ExpressionAttributeValues: { ':ts': identity.sub },
-  }));
-  if (existingClassrooms.Items) {
-    const sameClassAssignments = existingClassrooms.Items
-      .filter(item => item.className === className && item.status === 'active')
-      .map(item => item.assignmentName as string);
-    if (sameClassAssignments.includes(assignmentName)) {
-      let suffix = 2;
-      while (sameClassAssignments.includes(`${assignmentName} (${suffix})`)) {
-        suffix++;
-      }
-      assignmentName = `${assignmentName} (${suffix})`;
+  });
+  const sameClassAssignments = existingClassrooms
+    .filter(item => item.className === className && item.status === 'active')
+    .map(item => item.assignmentName as string);
+  if (sameClassAssignments.includes(assignmentName)) {
+    let suffix = 2;
+    while (sameClassAssignments.includes(`${assignmentName} (${suffix})`)) {
+      suffix++;
     }
+    assignmentName = `${assignmentName} (${suffix})`;
   }
 
   // Generate unique join code (retry up to 5 times)
@@ -1173,14 +1176,14 @@ async function handleJoinClassroom(sourceIp: string, body: Record<string, unknow
   let previousComment: Record<string, unknown> | null = null;
   if (classroom.groupId) {
     try {
-      const siblings = await docClient.send(new QueryCommand({
+      const siblings = await queryAll({
         TableName: CLASSROOMS_TABLE,
         IndexName: 'teacherSub-index',
         KeyConditionExpression: 'teacherSub = :ts',
         ExpressionAttributeValues: { ':ts': classroom.teacherSub },
-      }));
+      });
       const prior = selectPriorClassrooms(
-        siblings.Items || [],
+        siblings,
         classroom.groupId as string,
         classroom.classroomId as string,
       );
@@ -2700,15 +2703,17 @@ async function propagateStudentCountToClassrooms(
   teacherSub: string, groupId: string, studentCount: number,
 ): Promise<void> {
   const now = new Date().toISOString();
-  const result = await docClient.send(new QueryCommand({
+  // Paginated: the 1MB cap applies before the groupId filter, so a truncated
+  // read would leave some assignments in the class on the old seat count.
+  const result = await queryAll({
     TableName: CLASSROOMS_TABLE,
     IndexName: 'teacherSub-index',
     KeyConditionExpression: 'teacherSub = :ts',
     FilterExpression: 'groupId = :gid AND #status = :active',
     ExpressionAttributeNames: { '#status': 'status' },
     ExpressionAttributeValues: { ':ts': teacherSub, ':gid': groupId, ':active': 'active' },
-  }));
-  for (const item of result.Items || []) {
+  });
+  for (const item of result) {
     await docClient.send(new UpdateCommand({
       TableName: CLASSROOMS_TABLE,
       Key: { classroomId: item.classroomId },
@@ -2726,21 +2731,23 @@ async function propagateStudentCountToClassrooms(
  * an empty plan.
  */
 async function handleMigrateGroups(identity: TeacherIdentity): Promise<APIGatewayProxyStructuredResultV2> {
+  // Paginated: the plan drives writes (create classes, adopt assignments), so
+  // a truncated read would silently leave part of the account unmigrated.
   const [classroomsResult, groupsResult] = await Promise.all([
-    docClient.send(new QueryCommand({
+    queryAll({
       TableName: CLASSROOMS_TABLE,
       IndexName: 'teacherSub-index',
       KeyConditionExpression: 'teacherSub = :ts',
       ExpressionAttributeValues: { ':ts': identity.sub },
-    })),
-    docClient.send(new QueryCommand({
+    }),
+    queryAll({
       TableName: GROUPS_TABLE,
       IndexName: 'teacherSub-index',
       KeyConditionExpression: 'teacherSub = :ts',
       ExpressionAttributeValues: { ':ts': identity.sub },
-    })),
+    }),
   ]);
-  const plan = planGroupMigration(classroomsResult.Items || [], groupsResult.Items || []);
+  const plan = planGroupMigration(classroomsResult, groupsResult);
 
   const now = new Date().toISOString();
   const groupIdByKey = new Map<string, string>();

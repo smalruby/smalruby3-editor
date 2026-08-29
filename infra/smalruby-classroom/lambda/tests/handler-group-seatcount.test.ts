@@ -1,3 +1,4 @@
+
 /**
  * Class (group) seat-count propagation to existing assignments.
  *
@@ -117,4 +118,46 @@ describe('class seat-count propagation (PATCH /classroom-groups/{id})', () => {
     expect(values[':gid']).toBe('g1');
     expect(values[':active']).toBe('active');
   });
+
+  test('LastEvaluatedKey が返るときも全ページ分の課題を更新する (#1146)', async () => {
+    // 1MB 上限は groupId フィルタの「前」に効くので、ページを辿らないと
+    // クラス内の一部の課題だけ古い人数のまま残る（エラーは出ない）。
+    const rows = [{ classroomId: 'c1' }, { classroomId: 'c2' }, { classroomId: 'c3' }];
+    const classroomUpdates: string[] = [];
+    mockSend.mockImplementation(async (command: {
+      constructor: { name: string }; input?: Record<string, unknown>;
+    }) => {
+      const name = command.constructor.name;
+      const table = String(command.input?.TableName || '');
+      if (name === 'GetCommand') {
+        return { Item: { groupId: 'g1', teacherSub: 'dev-test-teacher', studentCount: 30, schemaVersion: 2 } };
+      }
+      if (name === 'UpdateCommand' && table.includes('Group')) {
+        return { Attributes: { groupId: 'g1', teacherSub: 'dev-test-teacher', studentCount: 33 } };
+      }
+      if (name === 'QueryCommand') {
+        const start = (command.input?.ExclusiveStartKey as { index?: number } | undefined)?.index || 0;
+        const end = Math.min(start + 1, rows.length);
+        return {
+          Items: rows.slice(start, end),
+          ...(end < rows.length ? { LastEvaluatedKey: { index: end } } : {}),
+        };
+      }
+      if (name === 'UpdateCommand') {
+        classroomUpdates.push(String((command.input?.Key as Record<string, unknown>).classroomId));
+        return {};
+      }
+      return {};
+    });
+
+    const res = await handler(makeEvent('PATCH', '/classroom-groups/g1', { groupId: 'g1' }, { studentCount: 33 }));
+    expect(res.statusCode).toBe(200);
+    expect(classroomUpdates).toEqual(['c1', 'c2', 'c3']);
+  });
 });
+
+// import / export を持たないテストファイルは TS の「スクリプト」扱いになり、
+// ts-jest が 1 プロセスで複数のテストを型付けすると `const mockSend` などが
+// グローバルスコープで衝突して "Cannot redeclare block-scoped variable" になる。
+// 空 export でモジュール化してファイルごとのスコープに閉じる。
+export {};

@@ -453,6 +453,10 @@ export class ClassroomStack extends cdk.Stack {
         PRESIGNED_URL_DOWNLOAD_EXPIRY: process.env.PRESIGNED_URL_DOWNLOAD_EXPIRY || '3600',
         JOIN_RATE_LIMIT_WINDOW_SECONDS: process.env.JOIN_RATE_LIMIT_WINDOW_SECONDS || '60',
         JOIN_RATE_LIMIT_MAX_ATTEMPTS: process.env.JOIN_RATE_LIMIT_MAX_ATTEMPTS || '50',
+        // Page cap for the paginated list reads (#1146). The Lambda env is an
+        // explicit allowlist, so this has to be here for the documented knob
+        // to actually be settable from .env.<stage>.
+        DDB_MAX_PAGES: process.env.DDB_MAX_PAGES || '25',
         // AI evaluation support (empty key disables the endpoint with 503)
         ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || '',
         CLAUDE_MODEL: process.env.CLAUDE_MODEL || 'claude-haiku-4-5-20251001',
