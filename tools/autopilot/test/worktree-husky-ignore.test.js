@@ -96,10 +96,30 @@ test('bin/autopilot-worktree symlinks .husky/_ from main in lightweight mode', (
     );
 });
 
+// Slice out a shell function body so an assertion about the exclude patterns cannot
+// be satisfied by an unrelated comment elsewhere in the script. Without this, a
+// whole-file `includes()` check stays green even if the exclude block is deleted.
+function shellFunctionBody(src, name) {
+    const start = src.indexOf(`${name}() {`);
+    assert.notStrictEqual(start, -1, `${name}() not found in bin/autopilot-worktree`);
+    const end = src.indexOf('\n}\n', start);
+    assert.notStrictEqual(end, -1, `${name}() has no closing brace`);
+    return src.slice(start, end);
+}
+
 test('bin/autopilot-worktree records .husky/_ in git info/exclude', () => {
     const src = fs.readFileSync(SCRIPT, 'utf8');
+    const lines = shellFunctionBody(src, 'exclude_node_modules')
+        .split('\n')
+        .map((line) => line.trim());
+    // The pattern must be written *slash-less*: a trailing slash matches directories
+    // only and would let the symlink slip through again (the #801 / #1001 trap).
     assert.ok(
-        /Issue #1137/.test(src),
+        lines.includes(`echo "${HUSKY_HELPER_PATH}"`),
+        'exclude_node_modules must append the slash-less .husky/_ pattern',
+    );
+    assert.ok(
+        lines.some((line) => line.includes('Issue #1137')),
         'exclude block should reference Issue #1137 for traceability',
     );
 });

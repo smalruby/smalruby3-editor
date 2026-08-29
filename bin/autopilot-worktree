@@ -196,7 +196,12 @@ link_husky_helpers() {
     local wt="$1"
     local src="${MAIN_CHECKOUT}/.husky/_"
     local dst="${wt}/.husky/_"
-    [[ -d "${src}" ]] || return 0
+    # main 側にも無いときは黙って諦めない。ここで沈黙すると worktree の commit が
+    # 冒頭の cryptic なエラーで落ち、daemon には base-follow-conflict にしか見えない。
+    if [[ ! -d "${src}" ]]; then
+        echo "warn: main checkout has no .husky/_ (run 'npm install' in main); commits in the worktree will fail" >&2
+        return 0
+    fi
     # 解決できない symlink（main 側が作り直された等）は張り直す。放置すると
     # 「存在するのでスキップ」で commit が壊れたままになる。
     if [[ -L "${dst}" && ! -e "${dst}" ]]; then
