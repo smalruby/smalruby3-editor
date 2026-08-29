@@ -71,6 +71,7 @@ env トグル: `HEADLESS=false` 表示 / `CHANNEL=chrome` 実 Chrome / `SLOWMO=<
 | `mesh-v2-classroom-binding.mjs` | クラス管理と Mesh v2 ドメインの連動。教師タブでクラス作成→サイドバーで選択、生徒タブで `?classcode=` 経由参加し、両方の `state.scratchGui.meshV2.domain` が参加コードに揃うこと、接続モーダル入力欄が disabled になること、解除時に元のドメインに戻ることをチェック |
 | `verify-lesson-support-phase3.mjs` | AI 評価（EPIC #974 Phase 3）の通し。生徒提出→評価画面で読み込み（ブラウザ内 sb3 解析）→AI評価実行（実 Claude via stg）→根拠付き S/A/B/C→コメント下書き→返却→生徒側で表示確認。ポート・CORS の注意は phase1 と同じ |
 | `verify-lesson-support-phase2.mjs` | 組（EPIC #974 Phase 2）の UI 通し。組作成→サイドバー階層→クラスの組割当→授業複製（のコピー）→アーカイブでクラス名グルーピングへフォールバック。ポート・CORS の注意は phase1 と同じ |
+| `generate-dncl-basics-1-3-steps.mjs` | 検証ではなく**素材生成**。DNCL チュートリアル（`dncl-basics-1〜3`, #964）の step 画像 15 枚とサムネイル 3 枚を、HTML カードの Playwright スクリーンショットとして再生成する。deck の DNCL 表示を変えたら再実行する（dev server 不要）|
 | `verify-lesson-support-phase1.mjs` | 課題配信（EPIC #974 Phase 1）の通し。教師: クラス作成→課題エディタで2ページ+スターター（今開いているプロジェクト）を保存。生徒: `?classcode=` 参加→課題パネル自動表示→ページ送り→スターターボタン→「はじめる！」→ステータスの「課題を見る」で再表示。8601 以外のポートで動かすときは `DISABLE_WEB_SECURITY=1`（stg の CORS が localhost:8601 のみ許可のため） |
 
 ## 自動化のキー知見

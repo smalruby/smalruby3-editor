@@ -1336,8 +1336,11 @@ export default {
     ...rubyBasicsHowtos,
     ...blockSeriesHowtos,
     ...dnclHowtos,
+    'gui.library.dnclBasics': 'DNCL のきほん',
     // Mesh tag
     'gui.libraryTags.mesh': 'メッシュ',
+    // DNCL tag
+    'gui.libraryTags.dncl': '日本語（DNCL）',
     'gui.cards.all-tutorials': 'チュートリアル',
     'gui.cards.shrink': '縮小',
     'gui.cards.expand': '展開',

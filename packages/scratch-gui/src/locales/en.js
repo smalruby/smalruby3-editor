@@ -991,6 +991,8 @@ export default {
     ...rubyBasicsHowtos,
     ...blockSeriesHowtos,
     ...dnclHowtos,
+    'gui.library.dnclBasics': 'DNCL Basics',
+    'gui.libraryTags.dncl': 'DNCL',
     'gui.menuBar.updateTooltip': 'Try the new Smalruby!',
     'gui.menuBar.updateConfirm':
         'A new version of Smalruby is available. Press "OK" to update now, or "Cancel" to update later.',

@@ -226,9 +226,22 @@ Smalruby は **DNCLv2 形式のプログラムをそのまま実行** できる�
   - `packages/scratch-gui/test/unit/components/dncl-mode-notice.test.jsx` — 通知バナー
 - 結合テスト: `packages/scratch-gui/test/integration/dncl-mode-validation.test.js`（DNCL バリデーション + 通知バナー/confirm フロー）
 
+## チュートリアル
+
+DNCL モードの入り口として、チュートリアル一覧に **「DNCL のきほん」カテゴリ**（`dnclBasics`）がある。各 deck は `setup.rubyMode: 'dncl'` を持ち、開くと Ruby タブが日本語モードに切り替わるので、利用者が先に 日本語(DNCL) ボタンを探す必要はない。
+
+| deck | 学ぶこと |
+|---|---|
+| `dncl-basics-1-display` | `表示する(...)` で文字・数字・計算結果を表示する |
+| `dncl-basics-2-variables` | 変数への代入（`=` / `←`）と、変数を使った計算・表示 |
+| `dncl-basics-3-conditionals` | `もし ... ならば` / `そうでなければ` / `そうでなくもし ... ならば` |
+
+deck が挿入する `code` は **Ruby のまま**で、エディタが `rubyToDncl` で日本語表記に変換して見せる。そのため deck の Ruby は `puts("...")` のように **括弧付きの呼び出し**で書く必要がある（括弧なしの `puts "..."` は `表示する(...)` に変換されず、日本語モードなのに英語が残る）。deck 定義は `packages/scratch-gui/src/lib/libraries/decks/categories/dncl.jsx`、詳細は [`docs/tutorial/`](../tutorial/) を参照。
+
 ## 関連ドキュメント
 
 - [`docs/smalruby-dncl-spec.ja.md`](../smalruby-dncl-spec.ja.md) — DNCL 言語仕様完全版
+- [`docs/tutorial/`](../tutorial/) — チュートリアル機能（DNCL のきほんカテゴリ）
 - [`docs/ruby-editor/`](../ruby-editor/) — Ruby エディタ全般（DNCL の親機能）
 - [`docs/furigana/`](../furigana/) — ふりがなモード（DNCL とは排他）
 
