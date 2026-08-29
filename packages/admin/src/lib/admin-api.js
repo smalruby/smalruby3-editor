@@ -130,10 +130,10 @@ export {
 //
 // 用語 (#1131・辞典は docs/admin/README.md「用語辞典」): ここで扱う "classroom" は
 // すべて **課題（1授業）= `Classrooms` テーブル / `classroomId`** を指す。
-// クラス（学級）= `ClassroomGroups` / `groupId` を直接操作する API はまだ無い
-// （Admin からのクラス検索・アーカイブ解除は EPIC #1129 の C）。例外は
-// `executeRestore` で、親クラスも一緒に削除されていた場合はサーバー側が
-// `ClassroomGroups` も復元する（下の JSDoc と restore-plan の dry-run を参照）。
+// クラス（学級）= `ClassroomGroups` / `groupId` を操作するのは末尾の
+// `fetchClassroomGroups` 以下（#1133）。この節の API は例外として
+// `executeRestore` だけが `ClassroomGroups` に触れる（親クラスも一緒に
+// 削除されていた場合にサーバー側が復元する。restore-plan の dry-run を参照）。
 // 関数名・API パスの `classroom` は **意図的に現状維持**（サーバー実装・
 // ddb-archive スナップショットのキー・E2E と一体の互換識別子）。改名すると
 // 破壊的変更になるため、ねじれは日本語の文言と本コメントで吸収する。
@@ -237,4 +237,47 @@ export {
     executeRestore,
     sendNotification,
     setSharingRecommendation
+};
+
+// --- クラス（学級）管理 (EPIC #1129 C #1133) ---
+//
+// ここだけが **クラス（学級）= `ClassroomGroups` / `groupId`** を扱う
+// （上の `classroom*` 群はすべて課題）。パスも `/admin/classroom-groups` と
+// 分けてあり、先生用 API の `/classroom-groups` と同じ命名。
+
+/**
+ * クラス（学級）の検索。同名クラスが並ぶので、クラス名だけでなく年度・組・
+ * 中の課題名も検索対象になる（サーバー側で判定）。
+ * @param {object} [filters] - {q?, status?}
+ * @returns {Promise<object>} {items, total}
+ */
+const fetchClassroomGroups = (filters = {}) => {
+    const params = new URLSearchParams();
+    if (filters.q) params.set('q', filters.q);
+    if (filters.status) params.set('status', filters.status);
+    const qs = params.toString();
+    return request('GET', `/admin/classroom-groups${qs ? `?${qs}` : ''}`);
+};
+
+/**
+ * クラス（学級）の詳細と、そのクラスに属する課題の一覧。
+ * @param {string} groupId - クラス（学級）ID
+ * @returns {Promise<object>} detail
+ */
+const fetchClassroomGroup = groupId => request('GET', `/admin/classroom-groups/${groupId}`);
+
+/**
+ * クラス（学級）のアーカイブ⇄利用中を切り替える（監査ログはサーバー側）。
+ * 利用中に戻すと保持期間は実行時点から数え直され、中の課題の状態は変わらない。
+ * @param {string} groupId - クラス（学級）ID
+ * @param {string} status - 'active' | 'archived'
+ * @returns {Promise<object>} 更新後のクラス
+ */
+const setClassroomGroupStatus = (groupId, status) =>
+    request('PATCH', `/admin/classroom-groups/${groupId}`, {status});
+
+export {
+    fetchClassroomGroups,
+    fetchClassroomGroup,
+    setClassroomGroupStatus
 };

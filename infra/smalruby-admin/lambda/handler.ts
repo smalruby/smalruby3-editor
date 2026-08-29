@@ -801,6 +801,248 @@ async function handleSetClassroomStatus(
   };
 }
 
+// --- クラス（学級）管理 (EPIC #1129 C, #1133) ---
+//
+// ここだけが `ClassroomGroups`（= クラス（学級） / `groupId`）を書き換える面。
+// 上の `/admin/classrooms` 系はすべて **課題（1 授業）** を扱う（用語辞典:
+// docs/admin/README.md）。アーカイブ済みのクラスを戻せるのが先生用 UI だけ
+// だったため、先生がその画面に到達できない問い合わせに運用者が対応できな
+// かった（EPIC #1129 の発端）。
+//
+// 単一ライターは壊さない: 先生用 UI (`PATCH /classroom-groups/{groupId}`) と
+// 同じ更新形（`status` + `updatedAt`）で書き、復元時のスタンプは
+// `restore-plan.ts` と同じ `restoredAt` + 実行時点からの TTL に揃える。
+
+// 復元時に振り直すクラスの保持期間。`restore-plan.ts` の groupTtlDays と
+// classroom スタックの GROUP_TTL_DAYS（既定 400 日 = 学年度スケール）に合わせる。
+const GROUP_TTL_DAYS = parseInt(process.env.GROUP_TTL_DAYS || '400', 10);
+
+function mapGroupForAdmin(item: Record<string, unknown>) {
+  return {
+    groupId: item.groupId,
+    name: item.name || null,
+    year: typeof item.year === 'number' ? item.year : null,
+    section: item.section || null,
+    status: item.status || 'active',
+    studentCount: typeof item.studentCount === 'number' ? item.studentCount : null,
+    topics: Array.isArray(item.topics) ? item.topics : [],
+    googleClassroomCourseId: item.googleClassroomCourseId || null,
+    createdAt: item.createdAt || null,
+    updatedAt: item.updatedAt || null,
+    restoredAt: item.restoredAt || null,
+    expiresAt: item.ttl ? new Date((item.ttl as number) * 1000).toISOString() : null,
+  };
+}
+
+/**
+ * クラス検索の一致判定 (#1133)。純関数・テスト用に export。
+ *
+ * 同名クラスが並ぶ（Google Classroom 連携での二重作成）ので、クラス名だけ
+ * ではなく **年度・組・中の課題名** も検索対象にする。運用者は先生から
+ * 課題名しか聞けていないことが多く、そこからクラスへ辿れないと詰む。
+ * @param group - `mapGroupForAdmin` の結果
+ * @param assignmentNames - そのクラスに属する課題名
+ * @param q - 検索語（小文字化済みでなくてよい。空なら常に一致）
+ * @returns 一致するか
+ */
+export function matchesGroupQuery(
+  group: { groupId?: unknown; name?: unknown; year?: unknown; section?: unknown },
+  assignmentNames: string[],
+  q: string,
+): boolean {
+  const needle = (q || '').trim().toLowerCase();
+  if (!needle) return true;
+  const haystacks = [
+    String(group.groupId || ''),
+    String(group.name || ''),
+    String(group.year || ''),
+    String(group.section || ''),
+    ...assignmentNames,
+  ];
+  return haystacks.some(value => value.toLowerCase().includes(needle));
+}
+
+/**
+ * クラスの状態更新で書き込む属性を決める (#1133)。純関数・テスト用に export。
+ *
+ * アーカイブ解除は「復元」なので `restoredAt` を刻み、**TTL を実行時点から
+ * 数え直す**（過去の TTL のまま戻すと即座に再スイープされる —
+ * `docs/classroom/operations.md` の既存規約）。アーカイブ方向では TTL を
+ * 触らない（延命は復元の意味を持つ操作でだけ行う）。
+ * @param status - 'active' | 'archived'
+ * @param nowMs - 現在時刻 ms（テスト注入用）
+ * @param ttlDays - 解除時に振り直す保持日数
+ * @returns 書き込む属性名 → 値
+ */
+export function buildGroupStatusUpdate(
+  status: string, nowMs: number, ttlDays = GROUP_TTL_DAYS,
+): Record<string, unknown> {
+  const now = new Date(nowMs).toISOString();
+  const fields: Record<string, unknown> = { status, updatedAt: now };
+  if (status === 'active') {
+    fields.restoredAt = now;
+    fields.ttl = Math.floor(nowMs / 1000) + ttlDays * 24 * 60 * 60;
+  }
+  return fields;
+}
+
+/**
+ * クラスに属する課題を groupId ごとにまとめる。
+ * @param classrooms - `Classrooms` の全行（quota 行を含んでよい）
+ * @returns groupId → 課題行（作成日時の新しい順）
+ */
+function assignmentsByGroup(
+  classrooms: Record<string, unknown>[],
+): Map<string, Record<string, unknown>[]> {
+  const byGroup = new Map<string, Record<string, unknown>[]>();
+  for (const item of classrooms) {
+    // The classrooms table reuses its key space for quota counters.
+    if (typeof item.classroomId !== 'string' || item.classroomId.includes('-quota#')) continue;
+    const groupId = typeof item.groupId === 'string' ? item.groupId : '';
+    if (!groupId) continue;
+    const list = byGroup.get(groupId);
+    if (list) list.push(item);
+    else byGroup.set(groupId, [item]);
+  }
+  for (const list of byGroup.values()) {
+    list.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+  }
+  return byGroup;
+}
+
+/** 一覧の行に載せる課題名の上限（同名クラスの区別に足りる件数）。 */
+const GROUP_ASSIGNMENT_NAME_PREVIEW = 5;
+
+// 1 レスポンスで返す最大件数。`total` も一緒に返し、SPA 側で「打ち切られた」
+// ことを必ず見せる — 既定の並びは作成日時の新しい順なので、黙って切ると
+// 運用者が探している **古いアーカイブ済みクラス** から先に消える。
+const GROUP_LIST_LIMIT = 200;
+
+async function handleListClassroomGroups(
+  identity: AdminIdentity, query: Record<string, string | undefined>,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const q = (query.q || '').trim();
+  const statusFilter = query.status || '';
+  audit('classroomGroup.list', identity, { q: q || null, status: statusFilter || null });
+
+  const [groupRows, classroomRows] = await Promise.all([
+    scanAll(GROUPS_TABLE),
+    scanAll(CLASSROOMS_TABLE),
+  ]);
+  const byGroup = assignmentsByGroup(classroomRows);
+
+  const items = groupRows
+    .filter(row => typeof row.groupId === 'string')
+    .map(row => {
+      const assignments = byGroup.get(String(row.groupId)) || [];
+      const assignmentNames = assignments
+        .map(a => String(a.assignmentName || ''))
+        .filter(Boolean);
+      return {
+        ...mapGroupForAdmin(row),
+        assignmentCount: assignments.length,
+        activeAssignmentCount: assignments.filter(a => a.status === 'active').length,
+        assignmentNames: assignmentNames.slice(0, GROUP_ASSIGNMENT_NAME_PREVIEW),
+        // 検索は全課題名を対象にする（プレビューの打ち切りに引きずられない）。
+        allAssignmentNames: assignmentNames,
+      };
+    })
+    .filter(item => !statusFilter || item.status === statusFilter)
+    .filter(item => matchesGroupQuery(item, item.allAssignmentNames, q))
+    .map(({ allAssignmentNames, ...item }) => item)
+    .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ items: items.slice(0, GROUP_LIST_LIMIT), total: items.length }),
+  };
+}
+
+async function handleGetClassroomGroup(
+  identity: AdminIdentity, groupId: string,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  audit('classroomGroup.get', identity, { groupId });
+  const group = await fetchGroup(groupId);
+  if (!group) {
+    throw new NotFoundError('Class not found');
+  }
+  // 中の課題は groupId で引く。クラスの持ち主ではなく groupId 起点なのは、
+  // 共同担任が同じクラスに置いた課題（自分の teacherSub を持つ）も一覧に
+  // 出さないと「中の課題名で区別する」が成り立たないため (#1138 と同じ理由)。
+  const assignments = (assignmentsByGroup(await scanAll(CLASSROOMS_TABLE)).get(groupId) || [])
+    .map(item => ({
+      classroomId: item.classroomId,
+      assignmentName: item.assignmentName || null,
+      className: item.className || null,
+      joinCode: item.joinCode || null,
+      status: item.status || null,
+      createdAt: item.createdAt || null,
+    }));
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify({
+      ...mapGroupForAdmin(group),
+      assignmentCount: assignments.length,
+      assignments,
+    }),
+  };
+}
+
+async function handleSetClassroomGroupStatus(
+  identity: AdminIdentity, groupId: string, body: Record<string, unknown>,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  if (body.status !== 'active' && body.status !== 'archived') {
+    throw new ValidationError('Status must be "active" or "archived"');
+  }
+  const group = await fetchGroup(groupId);
+  if (!group) {
+    throw new NotFoundError('Class not found');
+  }
+
+  // クラスを戻しても **中の課題の status は変えない**（無関係な課題を勝手に
+  // 復活させない）。書き込みは ClassroomGroups の 1 行だけ。
+  const fields = buildGroupStatusUpdate(body.status as string, Date.now());
+  const names: Record<string, string> = {};
+  const values: Record<string, unknown> = {};
+  const parts: string[] = [];
+  Object.entries(fields).forEach(([attr, value], i) => {
+    // `status` / `ttl` は予約語なので必ずプレースホルダを通す。
+    names[`#attr${i}`] = attr;
+    values[`:val${i}`] = value;
+    parts.push(`#attr${i} = :val${i}`);
+  });
+  let result;
+  try {
+    result = await docClient.send(new UpdateCommand({
+      TableName: GROUPS_TABLE,
+      Key: { groupId },
+      UpdateExpression: `SET ${parts.join(', ')}`,
+      // UpdateItem は upsert なので、Get と Update の間に TTL でスイープされると
+      // `teacherSub` も `name` も無い抜け殻の行を 400 日の TTL 付きで作ってしまう
+      // （先生の teacherSub-index には出ず、Admin 一覧にだけ残る幽霊）。運用者に
+      // 戻せたと誤報しないよう、行が消えていたら 404 にする。
+      ConditionExpression: 'attribute_exists(groupId)',
+      ExpressionAttributeNames: names,
+      ExpressionAttributeValues: values,
+      ReturnValues: 'ALL_NEW',
+    }));
+  } catch (err) {
+    if ((err as { name?: string }).name === 'ConditionalCheckFailedException') {
+      throw new NotFoundError('Class not found');
+    }
+    throw err;
+  }
+  audit('classroomGroup.setStatus', identity, { groupId, status: body.status });
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify(mapGroupForAdmin(
+      (result.Attributes as Record<string, unknown>) || { ...group, ...fields },
+    )),
+  };
+}
+
 // --- お知らせ (notification center, EPIC #1111) ---
 
 /**
@@ -1201,6 +1443,17 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
     } else if (method === 'PATCH' && /^\/admin\/classrooms\/[^/]+$/.test(path)) {
       const classroomId = event.pathParameters?.classroomId || '';
       result = await handleSetClassroomStatus(identity, classroomId, body);
+
+    // クラス（学級）= ClassroomGroups (#1133)。上の /admin/classrooms 系は
+    // すべて課題（Classrooms）で、対象が別物なのでパスを分けている。
+    } else if (method === 'GET' && path === '/admin/classroom-groups') {
+      result = await handleListClassroomGroups(identity, event.queryStringParameters || {});
+
+    } else if (method === 'GET' && /^\/admin\/classroom-groups\/[^/]+$/.test(path)) {
+      result = await handleGetClassroomGroup(identity, event.pathParameters?.groupId || '');
+
+    } else if (method === 'PATCH' && /^\/admin\/classroom-groups\/[^/]+$/.test(path)) {
+      result = await handleSetClassroomGroupStatus(identity, event.pathParameters?.groupId || '', body);
 
     } else if (method === 'POST' && path === '/admin/notifications') {
       result = await handleSendNotification(identity, body);
