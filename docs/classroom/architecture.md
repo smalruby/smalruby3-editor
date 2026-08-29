@@ -270,7 +270,10 @@ erDiagram
 - 先生トークン検証 (`verifyTeacherIdToken`) は `{sub, email}` を返す。Google は `email_verified` のときのみ email を採用、Microsoft は `email` / `preferred_username`。
 - 所有権判定は `canManageClassroom(classroom, identity)` = 「`teacherSub === sub` または `coTeacherEmails` に自分の email が含まれる」。全ての先生向け操作で使用。co-teacher は owner と**完全同等**（クラス削除・共同管理者の追加/解除も可）。
 - 作成者は `teacherSub` で管理され `coTeacherEmails` には含めないため、co-teacher API から作成者を外すことはできない（管理者ゼロを防止）。
-- `GET /classrooms` は owner 分（`teacherSub-index`）と co-taught 分（`coTeacherEmails` への Scan + `contains` フィルタ）の和集合。DynamoDB はリスト属性を GSI 化できないため Scan を使用。Classrooms テーブルは小規模（単一組織・90日 TTL）のため許容。各クラスは `role`（owner / co-teacher）を返し、フロントの「共同管理」バッジに使う。
+- `GET /classrooms` は次の 3 つの和集合: owner 分（`teacherSub-index`）、課題単位の co-taught 分（課題の `coTeacherEmails` への Scan + `contains` フィルタ）、**クラス単位で共同管理しているクラスに属する課題**（共同管理クラスを Scan で引き、各クラスの所有者の `teacherSub-index` を `groupId` でフィルタ）。DynamoDB はリスト属性を GSI 化できないため Scan を使用。Classrooms テーブルは小規模（単一組織・90日 TTL）のため許容。各クラスは `role`（owner / co-teacher）を返し、フロントの「共同管理」バッジに使う。
+- **クラス（組）単位の共同管理**の判定は `canManageGroup(group, identity)` = 「`teacherSub === sub` または クラスの `coTeacherEmails` に自分の email が含まれる」。クラス単位の共同管理者は、そのクラスの中では owner と同等に振る舞える（課題の一覧・作成・更新・複製・トピック管理・クラス設定の編集）。**例外はクラスの共同管理者リストそのもの**（`PATCH /classroom-groups/{groupId}` の `coTeacherEmails`）で、これは owner のみ変更できる（共同管理者が勝手に招待・自己解除できないようにするため）。
+- email 比較は判定関数間で常に正規化（trim + 小文字）して行うため、大文字小文字が違っても共同管理者として認識される。
+- 所有者でも共同管理者でもない先生には、クラスの存在を秘匿して **404 `Group not found`** を返す。
 
 ### ClassroomMemberships テーブル
 
@@ -401,7 +404,7 @@ erDiagram
 `schemaVersion: 2` = すべての課題がクラスに属し、クラス単位の GC 紐づけ・共同管理・人数が真実、という状態。Google Classroom の「クラス → 課題」構造に合わせた再構成で、既存データとは **冪等な bulk migration** で互換を取る:
 
 - **`POST /classroom-groups/migrate`**（クラス一覧の初回表示時にクライアントが呼ぶ）: groupId の無い既存課題を className ごとに自動作成したクラスへ割当（年度は課題作成日の JST 4月区切りから推定、同名クラスがあれば再利用）。課題単位の GC courseId（最古優先・クラス側優先）/ coTeacherEmails（和集合）/ studentCount（最大値）をクラスへ引き上げ、schemaVersion=2 をスタンプ。移行済みデータでは何もしない
-- **認可はクラス経由でも成立**（`canManageViaGroup`）: クラスの所有者・クラス単位の共同管理者は、中のすべての課題を管理できる。課題単位の旧 `coTeacherEmails` も引き続き有効（後方互換）
+- **認可はクラス経由でも成立**（`canManageViaGroup` / `canManageGroup`）: クラスの所有者・クラス単位の共同管理者は、中のすべての課題を**一覧・作成・管理**できる（クラス単位の入口 `getManageableGroup` も同じ判定）。課題単位の旧 `coTeacherEmails` も引き続き有効（後方互換）
 - **座席数はクラスの `studentCount` が真実**: 生徒の lookup / join はクラスの人数と課題側スナップショットの **max** を使う（人数を減らしても既存の着席と衝突しない増加方向のみの反映）
 - **トピック**（`PATCH /classroom-groups/{groupId}/topics`、body `{action: add|remove|rename, name, to?}`）: クラスの `topics` 配列を管理。**rename / remove はクラス内の課題の `topic` へ一括追従**（rename は付け替え、remove は解除）。課題の作成・更新で新しいトピック名を使うとクラスの一覧へ自動追加される
 - **AI 評価の日次上限**: 先生ごとに `EVAL_DAILY_LIMIT`（既定 50 呼び出し/日 ≈ フルクラスの採点+コメントで約 5 回分）を DynamoDB のアトミックカウンタ（`Classrooms` テーブルの予約キー `eval-quota#<teacherSub>#<日付>`、TTL 2 日）で永続的に強制。インスタンス内メモリの時間窓（`EVAL_RATE_LIMIT_*`）は高速な一次ゲートとして併用

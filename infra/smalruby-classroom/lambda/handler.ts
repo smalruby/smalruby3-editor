@@ -454,6 +454,18 @@ export function validateCoTeacherEmail(value: unknown): string {
 }
 
 /**
+ * Whether `email` appears in a stored co-teacher list. Both sides are
+ * normalized: writes go through validateCoTeacherEmail, but older records (and
+ * hand-edited items) may hold mixed case, and a case difference must never
+ * decide authorization.
+ */
+function emailInCoTeacherList(list: unknown, email: string | null): boolean {
+  if (!email || !Array.isArray(list)) return false;
+  const target = normalizeEmail(email);
+  return list.some(entry => typeof entry === 'string' && normalizeEmail(entry) === target);
+}
+
+/**
  * Whether the given teacher identity may manage the classroom: either they are
  * the owner (teacherSub) or their verified email is in the classroom's
  * coTeacherEmails list. Used by every teacher-facing ownership check.
@@ -464,9 +476,22 @@ export function canManageClassroom(
 ): boolean {
   if (!classroom) return false;
   if (classroom.teacherSub === identity.sub) return true;
-  if (!identity.email) return false;
-  const coTeacherEmails = classroom.coTeacherEmails;
-  return Array.isArray(coTeacherEmails) && coTeacherEmails.includes(identity.email);
+  return emailInCoTeacherList(classroom.coTeacherEmails, identity.email);
+}
+
+/**
+ * Whether the teacher may manage the class (group): its owner, or a
+ * class-level co-teacher. Shared by the group gate and by the assignment-level
+ * check so a co-teacher never sees a class through one door and a 404 through
+ * another (issue #1138).
+ */
+export function canManageGroup(
+  group: Record<string, unknown> | undefined,
+  identity: TeacherIdentity,
+): boolean {
+  if (!group) return false;
+  if (group.teacherSub === identity.sub) return true;
+  return emailInCoTeacherList(group.coTeacherEmails, identity.email);
 }
 
 /**
@@ -487,15 +512,7 @@ async function canManageViaGroup(
       TableName: GROUPS_TABLE,
       Key: { groupId: item.groupId },
     }));
-    const group = groupResult.Item;
-    if (group) {
-      if (group.teacherSub === identity.sub) {
-        return true;
-      }
-      if (identity.email && Array.isArray(group.coTeacherEmails)) {
-        return (group.coTeacherEmails as string[]).includes(normalizeEmail(identity.email));
-      }
-    }
+    return canManageGroup(groupResult.Item, identity);
   }
   return false;
 }
@@ -514,11 +531,11 @@ async function handleCreateClassroom(identity: TeacherIdentity, body: Record<str
   let assignmentName = validateClassName(body.assignmentName); // reuse same validator (1-50 chars)
   const googleClassroomCourseId = typeof body.googleClassroomCourseId === 'string' ? body.googleClassroomCourseId.trim() : undefined;
 
-  // Optional group (クラス) assignment — must be a group this teacher owns.
+  // Optional group (クラス) assignment — must be a class this teacher owns or co-manages.
   let groupId: string | undefined;
   let group: Record<string, unknown> | undefined;
   if (typeof body.groupId === 'string' && body.groupId) {
-    group = await getOwnedGroup(identity, body.groupId);
+    group = await getManageableGroup(identity, body.groupId);
     groupId = body.groupId;
   }
   // v2: the class's studentCount is the source of truth — an assignment
@@ -610,6 +627,23 @@ function readCoTeacherEmails(item: Record<string, unknown>): string[] {
   return Array.isArray(item.coTeacherEmails) ? (item.coTeacherEmails as string[]) : [];
 }
 
+/**
+ * Classes (組) shared with this teacher as a class-level co-teacher. DynamoDB
+ * cannot index a list attribute, so this is a Scan + filter — the groups table
+ * is small (one row per class) and this runs on list-style requests only.
+ */
+async function listCoManagedGroups(identity: TeacherIdentity): Promise<Record<string, unknown>[]> {
+  if (!identity.email) {
+    return [];
+  }
+  const scanned = await docClient.send(new ScanCommand({
+    TableName: GROUPS_TABLE,
+    FilterExpression: 'contains(coTeacherEmails, :email)',
+    ExpressionAttributeValues: { ':email': normalizeEmail(identity.email) },
+  }));
+  return (scanned.Items || []).filter(item => item.teacherSub !== identity.sub);
+}
+
 /** Fetch the owning class (group) of an assignment, or undefined (pre-v2). */
 async function getOwningGroup(
   classroom: Record<string, unknown>,
@@ -684,9 +718,27 @@ async function handleListClassrooms(identity: TeacherIdentity, includeArchived =
     const scan = await docClient.send(new ScanCommand({
       TableName: CLASSROOMS_TABLE,
       FilterExpression: 'contains(coTeacherEmails, :email)',
-      ExpressionAttributeValues: { ':email': identity.email },
+      ExpressionAttributeValues: { ':email': normalizeEmail(identity.email) },
     }));
     coManaged = scan.Items || [];
+  }
+
+  // Assignments that live inside a class (組) the teacher co-manages. Being a
+  // class-level co-teacher grants access to everything in that class, so those
+  // assignments must show up even when the assignment record itself lists no
+  // co-teacher (issue #1138 — the assignments the owner created were invisible).
+  // There is no groupId index on the classrooms table, so we reuse the owner's
+  // teacherSub GSI and filter by groupId (same shape as the topic cascade).
+  const viaGroup: Record<string, unknown>[] = [];
+  for (const group of await listCoManagedGroups(identity)) {
+    const result = await docClient.send(new QueryCommand({
+      TableName: CLASSROOMS_TABLE,
+      IndexName: 'teacherSub-index',
+      KeyConditionExpression: 'teacherSub = :ts',
+      FilterExpression: 'groupId = :gid',
+      ExpressionAttributeValues: { ':ts': group.teacherSub, ':gid': group.groupId },
+    }));
+    viaGroup.push(...(result.Items || []));
   }
 
   // Merge by classroomId (owned wins). Archived classes are excluded unless
@@ -694,7 +746,7 @@ async function handleListClassrooms(identity: TeacherIdentity, includeArchived =
   // issue #1050) — the default stays active-only so already-deployed frontends
   // never see archived items reappear.
   const byId = new Map<string, Record<string, unknown>>();
-  for (const item of [...(owned.Items || []), ...coManaged]) {
+  for (const item of [...(owned.Items || []), ...coManaged, ...viaGroup]) {
     const id = item.classroomId as string;
     const visible = item.status === 'active' || (includeArchived && item.status === 'archived');
     if (visible && !byId.has(id)) {
@@ -865,12 +917,12 @@ async function handleUpdateClassroom(identity: TeacherIdentity, classroomId: str
     updates.joinCode = generateJoinCode();
   }
   // Assign to / remove from a group (クラス). `groupId: null` clears the
-  // assignment; a string must be a group this teacher owns.
+  // assignment; a string must be a class this teacher owns or co-manages.
   if (body.groupId !== undefined) {
     if (body.groupId === null || body.groupId === '') {
       updates.groupId = null;
     } else if (typeof body.groupId === 'string') {
-      await getOwnedGroup(identity, body.groupId);
+      await getManageableGroup(identity, body.groupId);
       updates.groupId = body.groupId;
     } else {
       throw new ValidationError('groupId must be a string or null');
@@ -2340,17 +2392,21 @@ export function topicToEnsureForDuplicate(
   return topic && groupId ? topic : undefined;
 }
 
-/** Fetch a group and assert the teacher owns it. */
-async function getOwnedGroup(identity: TeacherIdentity, groupId: string): Promise<Record<string, unknown>> {
+/**
+ * Fetch a class (group) and assert the teacher may manage it — its owner or a
+ * class-level co-teacher (issue #1138). Teachers with no relationship to the
+ * class still get the existence-hiding 404, same policy as classrooms.
+ */
+async function getManageableGroup(identity: TeacherIdentity, groupId: string): Promise<Record<string, unknown>> {
   const result = await docClient.send(new GetCommand({
     TableName: GROUPS_TABLE,
     Key: { groupId },
   }));
-  if (!result.Item || result.Item.teacherSub !== identity.sub) {
+  if (!canManageGroup(result.Item, identity)) {
     // Existence-hiding 404, same policy as classrooms.
     throw new NotFoundError('Group not found');
   }
-  return result.Item;
+  return result.Item as Record<string, unknown>;
 }
 
 /**
@@ -2442,17 +2498,7 @@ async function handleListGroups(identity: TeacherIdentity): Promise<APIGatewayPr
     KeyConditionExpression: 'teacherSub = :ts',
     ExpressionAttributeValues: { ':ts': identity.sub },
   }));
-  // Classes shared with this teacher as a class-level co-teacher. Same scan
-  // trade-off as the co-managed classroom list: small table, low frequency.
-  let coManaged: Record<string, unknown>[] = [];
-  if (identity.email) {
-    const scanned = await docClient.send(new ScanCommand({
-      TableName: GROUPS_TABLE,
-      FilterExpression: 'contains(coTeacherEmails, :email)',
-      ExpressionAttributeValues: { ':email': normalizeEmail(identity.email) },
-    }));
-    coManaged = (scanned.Items || []).filter(item => item.teacherSub !== identity.sub);
-  }
+  const coManaged = await listCoManagedGroups(identity);
   const groups = [...(result.Items || []), ...coManaged].map(item => ({
     ...mapGroupSummary(item),
     role: item.teacherSub === identity.sub ? 'owner' : 'co-teacher',
@@ -2461,7 +2507,13 @@ async function handleListGroups(identity: TeacherIdentity): Promise<APIGatewayPr
 }
 
 async function handleUpdateGroup(identity: TeacherIdentity, groupId: string, body: Record<string, unknown>): Promise<APIGatewayProxyStructuredResultV2> {
-  await getOwnedGroup(identity, groupId);
+  const group = await getManageableGroup(identity, groupId);
+  // A class co-teacher works inside the class like its owner, but the
+  // membership list itself stays owner-only — otherwise a co-teacher could
+  // invite others or remove themselves out of the owner's control (#1138).
+  if (body.coTeacherEmails !== undefined && group.teacherSub !== identity.sub) {
+    throw new AuthError('Only the class owner can change the co-teacher list');
+  }
 
   const updates: Record<string, unknown> = { updatedAt: new Date().toISOString() };
   if (body.name !== undefined) {
@@ -2665,7 +2717,7 @@ async function handleMigrateGroups(identity: TeacherIdentity): Promise<APIGatewa
 async function handleUpdateGroupTopics(
   identity: TeacherIdentity, groupId: string, body: Record<string, unknown>,
 ): Promise<APIGatewayProxyStructuredResultV2> {
-  const group = await getOwnedGroup(identity, groupId);
+  const group = await getManageableGroup(identity, groupId);
   const topics: string[] = Array.isArray(group.topics) ? [...(group.topics as string[])] : [];
   const action = body.action;
   const now = new Date().toISOString();
@@ -2756,7 +2808,7 @@ async function handleDuplicateClassroom(
   // explicit rather than silently inheriting the source group).
   let groupId: string | undefined;
   if (typeof body.groupId === 'string' && body.groupId) {
-    await getOwnedGroup(identity, body.groupId);
+    await getManageableGroup(identity, body.groupId);
     groupId = body.groupId;
   }
 
@@ -3997,7 +4049,7 @@ async function importSharedItem(
   if (typeof groupId !== 'string' || !groupId) {
     throw new ValidationError('groupId is required');
   }
-  const group = await getOwnedGroup(identity, groupId);
+  const group = await getManageableGroup(identity, groupId);
 
   const assignmentName = body.assignmentName !== undefined
     ? validateClassName(body.assignmentName)
