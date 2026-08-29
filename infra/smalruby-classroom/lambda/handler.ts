@@ -454,6 +454,18 @@ export function validateCoTeacherEmail(value: unknown): string {
 }
 
 /**
+ * Whether `email` appears in a stored co-teacher list. Both sides are
+ * normalized: writes go through validateCoTeacherEmail, but older records (and
+ * hand-edited items) may hold mixed case, and a case difference must never
+ * decide authorization.
+ */
+function emailInCoTeacherList(list: unknown, email: string | null): boolean {
+  if (!email || !Array.isArray(list)) return false;
+  const target = normalizeEmail(email);
+  return list.some(entry => typeof entry === 'string' && normalizeEmail(entry) === target);
+}
+
+/**
  * Whether the given teacher identity may manage the classroom: either they are
  * the owner (teacherSub) or their verified email is in the classroom's
  * coTeacherEmails list. Used by every teacher-facing ownership check.
@@ -464,9 +476,22 @@ export function canManageClassroom(
 ): boolean {
   if (!classroom) return false;
   if (classroom.teacherSub === identity.sub) return true;
-  if (!identity.email) return false;
-  const coTeacherEmails = classroom.coTeacherEmails;
-  return Array.isArray(coTeacherEmails) && coTeacherEmails.includes(identity.email);
+  return emailInCoTeacherList(classroom.coTeacherEmails, identity.email);
+}
+
+/**
+ * Whether the teacher may manage the class (group): its owner, or a
+ * class-level co-teacher. Shared by the group gate and by the assignment-level
+ * check so a co-teacher never sees a class through one door and a 404 through
+ * another (issue #1138).
+ */
+export function canManageGroup(
+  group: Record<string, unknown> | undefined,
+  identity: TeacherIdentity,
+): boolean {
+  if (!group) return false;
+  if (group.teacherSub === identity.sub) return true;
+  return emailInCoTeacherList(group.coTeacherEmails, identity.email);
 }
 
 /**
@@ -487,15 +512,7 @@ async function canManageViaGroup(
       TableName: GROUPS_TABLE,
       Key: { groupId: item.groupId },
     }));
-    const group = groupResult.Item;
-    if (group) {
-      if (group.teacherSub === identity.sub) {
-        return true;
-      }
-      if (identity.email && Array.isArray(group.coTeacherEmails)) {
-        return (group.coTeacherEmails as string[]).includes(normalizeEmail(identity.email));
-      }
-    }
+    return canManageGroup(groupResult.Item, identity);
   }
   return false;
 }
@@ -514,11 +531,11 @@ async function handleCreateClassroom(identity: TeacherIdentity, body: Record<str
   let assignmentName = validateClassName(body.assignmentName); // reuse same validator (1-50 chars)
   const googleClassroomCourseId = typeof body.googleClassroomCourseId === 'string' ? body.googleClassroomCourseId.trim() : undefined;
 
-  // Optional group (クラス) assignment — must be a group this teacher owns.
+  // Optional group (クラス) assignment — must be a class this teacher owns or co-manages.
   let groupId: string | undefined;
   let group: Record<string, unknown> | undefined;
   if (typeof body.groupId === 'string' && body.groupId) {
-    group = await getOwnedGroup(identity, body.groupId);
+    group = await getManageableGroup(identity, body.groupId);
     groupId = body.groupId;
   }
   // v2: the class's studentCount is the source of truth — an assignment
@@ -534,24 +551,28 @@ async function handleCreateClassroom(identity: TeacherIdentity, body: Record<str
   }
   const sortDate = body.sortDate !== undefined ? validateSortDate(body.sortDate) : undefined;
 
-  // Auto-number duplicate assignment names within the same class
-  const existingClassrooms = await docClient.send(new QueryCommand({
-    TableName: CLASSROOMS_TABLE,
-    IndexName: 'teacherSub-index',
-    KeyConditionExpression: 'teacherSub = :ts',
-    ExpressionAttributeValues: { ':ts': identity.sub },
-  }));
-  if (existingClassrooms.Items) {
-    const sameClassAssignments = existingClassrooms.Items
-      .filter(item => item.className === className && item.status === 'active')
-      .map(item => item.assignmentName as string);
-    if (sameClassAssignments.includes(assignmentName)) {
-      let suffix = 2;
-      while (sameClassAssignments.includes(`${assignmentName} (${suffix})`)) {
-        suffix++;
-      }
-      assignmentName = `${assignmentName} (${suffix})`;
+  // Auto-number duplicate assignment names within the same class. Inside a
+  // class (組) the siblings are enumerated by groupId so a co-teacher's
+  // assignments count too (#1138 / #1145); ungrouped (pre-v2) assignments have
+  // no class row to key off, so they still match on className within the
+  // creator's own assignments.
+  const existingClassrooms = groupId
+    ? await listAssignmentsInGroups([groupId])
+    : (await docClient.send(new QueryCommand({
+      TableName: CLASSROOMS_TABLE,
+      IndexName: 'teacherSub-index',
+      KeyConditionExpression: 'teacherSub = :ts',
+      ExpressionAttributeValues: { ':ts': identity.sub },
+    }))).Items || [];
+  const sameClassAssignments = existingClassrooms
+    .filter(item => (groupId ? true : item.className === className) && item.status === 'active')
+    .map(item => item.assignmentName as string);
+  if (sameClassAssignments.includes(assignmentName)) {
+    let suffix = 2;
+    while (sameClassAssignments.includes(`${assignmentName} (${suffix})`)) {
+      suffix++;
     }
+    assignmentName = `${assignmentName} (${suffix})`;
   }
 
   // Generate unique join code (retry up to 5 times)
@@ -608,6 +629,68 @@ async function handleCreateClassroom(identity: TeacherIdentity, body: Record<str
 /** Read the coTeacherEmails list from a classroom item, defaulting to []. */
 function readCoTeacherEmails(item: Record<string, unknown>): string[] {
   return Array.isArray(item.coTeacherEmails) ? (item.coTeacherEmails as string[]) : [];
+}
+
+/**
+ * Classes (組) shared with this teacher as a class-level co-teacher. DynamoDB
+ * cannot index a list attribute, so this is a Scan + filter — the groups table
+ * is small (one row per class) and this runs on list-style requests only.
+ */
+async function listCoManagedGroups(identity: TeacherIdentity): Promise<Record<string, unknown>[]> {
+  if (!identity.email) {
+    return [];
+  }
+  const scanned = await docClient.send(new ScanCommand({
+    TableName: GROUPS_TABLE,
+    FilterExpression: 'contains(coTeacherEmails, :email)',
+    ExpressionAttributeValues: { ':email': normalizeEmail(identity.email) },
+  }));
+  return (scanned.Items || []).filter(item => item.teacherSub !== identity.sub);
+}
+
+/**
+ * Ids of every class (組) this teacher may manage: the ones they own plus the
+ * ones they co-manage. Used to collect the assignments inside them (#1138).
+ */
+async function listManageableGroupIds(identity: TeacherIdentity): Promise<string[]> {
+  const owned = await docClient.send(new QueryCommand({
+    TableName: GROUPS_TABLE,
+    IndexName: 'teacherSub-index',
+    KeyConditionExpression: 'teacherSub = :ts',
+    ExpressionAttributeValues: { ':ts': identity.sub },
+  }));
+  const ids = new Set<string>();
+  for (const group of [...(owned.Items || []), ...(await listCoManagedGroups(identity))]) {
+    if (typeof group.groupId === 'string') {
+      ids.add(group.groupId);
+    }
+  }
+  return [...ids];
+}
+
+/**
+ * Assignments filed under any of the given classes, whoever created them. The
+ * classrooms table has no groupId index, so this is a Scan with a groupId IN
+ * filter — one Scan for all classes rather than one query per class. Chunked
+ * because DynamoDB caps an IN list at 100 operands.
+ */
+async function listAssignmentsInGroups(groupIds: string[]): Promise<Record<string, unknown>[]> {
+  const items: Record<string, unknown>[] = [];
+  for (let i = 0; i < groupIds.length; i += 100) {
+    const chunk = groupIds.slice(i, i + 100);
+    const values: Record<string, string> = {};
+    const placeholders = chunk.map((id, index) => {
+      values[`:g${index}`] = id;
+      return `:g${index}`;
+    });
+    const scanned = await docClient.send(new ScanCommand({
+      TableName: CLASSROOMS_TABLE,
+      FilterExpression: `groupId IN (${placeholders.join(', ')})`,
+      ExpressionAttributeValues: values,
+    }));
+    items.push(...(scanned.Items || []));
+  }
+  return items;
 }
 
 /** Fetch the owning class (group) of an assignment, or undefined (pre-v2). */
@@ -684,17 +767,25 @@ async function handleListClassrooms(identity: TeacherIdentity, includeArchived =
     const scan = await docClient.send(new ScanCommand({
       TableName: CLASSROOMS_TABLE,
       FilterExpression: 'contains(coTeacherEmails, :email)',
-      ExpressionAttributeValues: { ':email': identity.email },
+      ExpressionAttributeValues: { ':email': normalizeEmail(identity.email) },
     }));
     coManaged = scan.Items || [];
   }
+
+  // Assignments that live inside a class (組) the teacher may manage — the ones
+  // they own *and* the ones they co-manage. Managing a class grants access to
+  // everything inside it regardless of who created each assignment, so this
+  // covers both directions (issue #1138): a co-teacher must see the owner's
+  // assignments, and the owner must see assignments a co-teacher created.
+  // Keying off teacherSub would miss the other party, so filter by groupId.
+  const viaGroup = await listAssignmentsInGroups(await listManageableGroupIds(identity));
 
   // Merge by classroomId (owned wins). Archived classes are excluded unless
   // the caller opts in with ?includeArchived=1 (the archive-list / restore UI,
   // issue #1050) — the default stays active-only so already-deployed frontends
   // never see archived items reappear.
   const byId = new Map<string, Record<string, unknown>>();
-  for (const item of [...(owned.Items || []), ...coManaged]) {
+  for (const item of [...(owned.Items || []), ...coManaged, ...viaGroup]) {
     const id = item.classroomId as string;
     const visible = item.status === 'active' || (includeArchived && item.status === 'archived');
     if (visible && !byId.has(id)) {
@@ -865,12 +956,12 @@ async function handleUpdateClassroom(identity: TeacherIdentity, classroomId: str
     updates.joinCode = generateJoinCode();
   }
   // Assign to / remove from a group (クラス). `groupId: null` clears the
-  // assignment; a string must be a group this teacher owns.
+  // assignment; a string must be a class this teacher owns or co-manages.
   if (body.groupId !== undefined) {
     if (body.groupId === null || body.groupId === '') {
       updates.groupId = null;
     } else if (typeof body.groupId === 'string') {
-      await getOwnedGroup(identity, body.groupId);
+      await getManageableGroup(identity, body.groupId);
       updates.groupId = body.groupId;
     } else {
       throw new ValidationError('groupId must be a string or null');
@@ -1015,17 +1106,15 @@ async function handleJoinClassroom(sourceIp: string, body: Record<string, unknow
   // Personalized recap: when the lesson belongs to a group (組), surface the
   // returned teacher comment this seat received in the most recent prior
   // lesson of the same group. Best-effort — joining must never fail on this.
+  // Enumerated by groupId, not by the class owner's teacherSub: a prior lesson
+  // in the same class may have been created by a class co-teacher (#1138), and
+  // that row carries their own teacherSub (#1145).
   let previousComment: Record<string, unknown> | null = null;
   if (classroom.groupId) {
     try {
-      const siblings = await docClient.send(new QueryCommand({
-        TableName: CLASSROOMS_TABLE,
-        IndexName: 'teacherSub-index',
-        KeyConditionExpression: 'teacherSub = :ts',
-        ExpressionAttributeValues: { ':ts': classroom.teacherSub },
-      }));
+      const siblings = await listAssignmentsInGroups([classroom.groupId as string]);
       const prior = selectPriorClassrooms(
-        siblings.Items || [],
+        siblings,
         classroom.groupId as string,
         classroom.classroomId as string,
       );
@@ -2340,17 +2429,21 @@ export function topicToEnsureForDuplicate(
   return topic && groupId ? topic : undefined;
 }
 
-/** Fetch a group and assert the teacher owns it. */
-async function getOwnedGroup(identity: TeacherIdentity, groupId: string): Promise<Record<string, unknown>> {
+/**
+ * Fetch a class (group) and assert the teacher may manage it — its owner or a
+ * class-level co-teacher (issue #1138). Teachers with no relationship to the
+ * class still get the existence-hiding 404, same policy as classrooms.
+ */
+async function getManageableGroup(identity: TeacherIdentity, groupId: string): Promise<Record<string, unknown>> {
   const result = await docClient.send(new GetCommand({
     TableName: GROUPS_TABLE,
     Key: { groupId },
   }));
-  if (!result.Item || result.Item.teacherSub !== identity.sub) {
+  if (!canManageGroup(result.Item, identity)) {
     // Existence-hiding 404, same policy as classrooms.
     throw new NotFoundError('Group not found');
   }
-  return result.Item;
+  return result.Item as Record<string, unknown>;
 }
 
 /**
@@ -2442,17 +2535,7 @@ async function handleListGroups(identity: TeacherIdentity): Promise<APIGatewayPr
     KeyConditionExpression: 'teacherSub = :ts',
     ExpressionAttributeValues: { ':ts': identity.sub },
   }));
-  // Classes shared with this teacher as a class-level co-teacher. Same scan
-  // trade-off as the co-managed classroom list: small table, low frequency.
-  let coManaged: Record<string, unknown>[] = [];
-  if (identity.email) {
-    const scanned = await docClient.send(new ScanCommand({
-      TableName: GROUPS_TABLE,
-      FilterExpression: 'contains(coTeacherEmails, :email)',
-      ExpressionAttributeValues: { ':email': normalizeEmail(identity.email) },
-    }));
-    coManaged = (scanned.Items || []).filter(item => item.teacherSub !== identity.sub);
-  }
+  const coManaged = await listCoManagedGroups(identity);
   const groups = [...(result.Items || []), ...coManaged].map(item => ({
     ...mapGroupSummary(item),
     role: item.teacherSub === identity.sub ? 'owner' : 'co-teacher',
@@ -2461,7 +2544,13 @@ async function handleListGroups(identity: TeacherIdentity): Promise<APIGatewayPr
 }
 
 async function handleUpdateGroup(identity: TeacherIdentity, groupId: string, body: Record<string, unknown>): Promise<APIGatewayProxyStructuredResultV2> {
-  await getOwnedGroup(identity, groupId);
+  const group = await getManageableGroup(identity, groupId);
+  // A class co-teacher works inside the class like its owner, but the
+  // membership list itself stays owner-only — otherwise a co-teacher could
+  // invite others or remove themselves out of the owner's control (#1138).
+  if (body.coTeacherEmails !== undefined && group.teacherSub !== identity.sub) {
+    throw new AuthError('Only the class owner can change the co-teacher list');
+  }
 
   const updates: Record<string, unknown> = { updatedAt: new Date().toISOString() };
   if (body.name !== undefined) {
@@ -2523,11 +2612,7 @@ async function handleUpdateGroup(identity: TeacherIdentity, groupId: string, bod
   // adds seats (safe); decreasing drops seats — the teacher UI warns first
   // that submissions on the removed seats stop showing.
   if (updates.studentCount !== undefined) {
-    await propagateStudentCountToClassrooms(
-      String((result.Attributes as Record<string, unknown>)?.teacherSub ?? identity.sub),
-      groupId,
-      updates.studentCount as number,
-    );
+    await propagateStudentCountToClassrooms(groupId, updates.studentCount as number);
   }
 
   return { statusCode: 200, body: JSON.stringify(mapGroupSummary(result.Attributes || {})) };
@@ -2535,25 +2620,20 @@ async function handleUpdateGroup(identity: TeacherIdentity, groupId: string, bod
 
 /**
  * Set every active classroom (assignment) in a class to the class's new seat
- * count. Enumerates via teacherSub-index + a groupId filter (no groupId GSI on
- * the classrooms table), the same pattern topic cascades use.
- * @param teacherSub - owning teacher (partition key of teacherSub-index)
+ * count. Enumerated by groupId, not by the class owner's teacherSub: a class
+ * co-teacher can file assignments in this class too (#1138) and those rows
+ * carry their own teacherSub, so keying off the owner would leave their
+ * assignments showing a stale student count (#1145).
  * @param groupId - the class whose assignments to update
  * @param studentCount - the new seat count to write
  */
 async function propagateStudentCountToClassrooms(
-  teacherSub: string, groupId: string, studentCount: number,
+  groupId: string, studentCount: number,
 ): Promise<void> {
   const now = new Date().toISOString();
-  const result = await docClient.send(new QueryCommand({
-    TableName: CLASSROOMS_TABLE,
-    IndexName: 'teacherSub-index',
-    KeyConditionExpression: 'teacherSub = :ts',
-    FilterExpression: 'groupId = :gid AND #status = :active',
-    ExpressionAttributeNames: { '#status': 'status' },
-    ExpressionAttributeValues: { ':ts': teacherSub, ':gid': groupId, ':active': 'active' },
-  }));
-  for (const item of result.Items || []) {
+  const assignments = (await listAssignmentsInGroups([groupId]))
+    .filter(item => item.status === 'active');
+  for (const item of assignments) {
     await docClient.send(new UpdateCommand({
       TableName: CLASSROOMS_TABLE,
       Key: { classroomId: item.classroomId },
@@ -2569,6 +2649,10 @@ async function propagateStudentCountToClassrooms(
  * it: create classes, adopt ungrouped assignments, lift class-level fields.
  * Safe to call on every class-list view — a fully migrated account produces
  * an empty plan.
+ *
+ * Deliberately keyed off the caller's own teacherSub (not groupId): this
+ * migrates the caller's *ungrouped* (pre-v2) rows, which have no class to
+ * enumerate from, and each teacher migrates their own account (#1145).
  */
 async function handleMigrateGroups(identity: TeacherIdentity): Promise<APIGatewayProxyStructuredResultV2> {
   const [classroomsResult, groupsResult] = await Promise.all([
@@ -2665,20 +2749,19 @@ async function handleMigrateGroups(identity: TeacherIdentity): Promise<APIGatewa
 async function handleUpdateGroupTopics(
   identity: TeacherIdentity, groupId: string, body: Record<string, unknown>,
 ): Promise<APIGatewayProxyStructuredResultV2> {
-  const group = await getOwnedGroup(identity, groupId);
+  const group = await getManageableGroup(identity, groupId);
   const topics: string[] = Array.isArray(group.topics) ? [...(group.topics as string[])] : [];
   const action = body.action;
   const now = new Date().toISOString();
 
+  // Enumerated by groupId, not by the class owner's teacherSub: a class
+  // co-teacher can file assignments in this class too (#1138) and those rows
+  // carry their own teacherSub, so keying off the owner would leave them
+  // pointing at a topic the class no longer has.
   const cascadeAssignments = async (fromTopic: string, toTopic: string | null): Promise<void> => {
-    const result = await docClient.send(new QueryCommand({
-      TableName: CLASSROOMS_TABLE,
-      IndexName: 'teacherSub-index',
-      KeyConditionExpression: 'teacherSub = :ts',
-      FilterExpression: 'groupId = :gid AND topic = :from',
-      ExpressionAttributeValues: { ':ts': String(group.teacherSub), ':gid': groupId, ':from': fromTopic },
-    }));
-    for (const item of result.Items || []) {
+    const targets = (await listAssignmentsInGroups([groupId]))
+      .filter(assignment => assignment.topic === fromTopic);
+    for (const item of targets) {
       await docClient.send(new UpdateCommand({
         TableName: CLASSROOMS_TABLE,
         Key: { classroomId: item.classroomId },
@@ -2756,7 +2839,7 @@ async function handleDuplicateClassroom(
   // explicit rather than silently inheriting the source group).
   let groupId: string | undefined;
   if (typeof body.groupId === 'string' && body.groupId) {
-    await getOwnedGroup(identity, body.groupId);
+    await getManageableGroup(identity, body.groupId);
     groupId = body.groupId;
   }
 
@@ -3997,7 +4080,7 @@ async function importSharedItem(
   if (typeof groupId !== 'string' || !groupId) {
     throw new ValidationError('groupId is required');
   }
-  const group = await getOwnedGroup(identity, groupId);
+  const group = await getManageableGroup(identity, groupId);
 
   const assignmentName = body.assignmentName !== undefined
     ? validateClassName(body.assignmentName)

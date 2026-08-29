@@ -14,6 +14,9 @@
 #     scratch-blocks 等 local 依存の解決用）。
 #   - `.env.*` は `bin/sync-worktree-env` で**コピー**（symlink にしない:
 #     誤書き込みで main の秘密を壊さないため。`.claude/rules/env-file.md`）。
+#   - `.husky/_` も main へ symlink。commit-msg フック（共有 `core.hooksPath`）が
+#     source する husky.sh は npm install の生成物なので、無いと commit / merge が
+#     まるごと失敗する（Issue #1137）。
 #
 # 制約（lightweight モードの前提）:
 #   - **単一パッケージのソース編集**を想定。`@smalruby/<pkg>` は main checkout に
@@ -122,6 +125,18 @@ exclude_node_modules() {
         } >> "${exclude}"
         echo "excluded: scratch-gui prepare artifact symlinks via ${exclude}"
     fi
+
+    # husky の生成物 symlink も同様（Issue #1137）。husky は `.husky/_/.gitignore`（中身は `*`）
+    # で自分自身を無視するが、git は **symlink を辿ってその .gitignore を読まない**ため、
+    # `.husky/_` symlink は未追跡として現れてしまう（#801 / #1001 と同型の抜け）。
+    local husky_marker="# autopilot: ignore shared husky helper symlink (Issue #1137)"
+    if ! grep -qxF "${husky_marker}" "${exclude}" 2>/dev/null; then
+        {
+            echo "${husky_marker}"
+            echo ".husky/_"
+        } >> "${exclude}"
+        echo "excluded: husky helper symlink via ${exclude}"
+    fi
 }
 
 # 各 packages/*/node_modules を main へ symlink（無い場合のみ）
@@ -165,6 +180,37 @@ link_prepare_artifacts() {
         ln -s "${src}" "${dst}"
         echo "linked: ${rel} -> main"
     done
+}
+
+# husky の生成物 `.husky/_` を main へ symlink（冪等）。
+# 理由（Issue #1137）: `core.hooksPath=.husky` は共有設定なので `.husky/commit-msg` は
+# worktree でも起動するが、フックが source する `.husky/_/husky.sh` は gitignored な
+# npm install（=prepare の `husky install`）の生成物で、軽量 worktree には存在しない。
+# その結果すべての commit が
+#   .husky/commit-msg: 2: .: cannot open .husky/_/husky.sh: No such file
+# で失敗する。特に daemon の base 追従（`git merge origin/<base>`）は **merge コミットの
+# 作成段階**で落ちるため、コンフリクトが 1 件も無いのに `base-follow-conflict` として
+# Blocked になっていた（#957）。main の生成物を共有すればフックがそのまま通る。
+# --full モードは npm install が実ファイルを生成するため対象外（軽量モードのみ）。
+link_husky_helpers() {
+    local wt="$1"
+    local src="${MAIN_CHECKOUT}/.husky/_"
+    local dst="${wt}/.husky/_"
+    # main 側にも無いときは黙って諦めない。ここで沈黙すると worktree の commit が
+    # 冒頭の cryptic なエラーで落ち、daemon には base-follow-conflict にしか見えない。
+    if [[ ! -d "${src}" ]]; then
+        echo "warn: main checkout has no .husky/_ (run 'npm install' in main); commits in the worktree will fail" >&2
+        return 0
+    fi
+    # 解決できない symlink（main 側が作り直された等）は張り直す。放置すると
+    # 「存在するのでスキップ」で commit が壊れたままになる。
+    if [[ -L "${dst}" && ! -e "${dst}" ]]; then
+        rm -f "${dst}"
+    fi
+    if [[ -e "${dst}" || -L "${dst}" ]]; then return 0; fi
+    mkdir -p "$(dirname "${dst}")"
+    ln -s "${src}" "${dst}"
+    echo "linked: .husky/_ -> main"
 }
 
 cmd_create() {
@@ -235,6 +281,8 @@ cmd_create() {
         link_package_node_modules "${wt}"
         # scratch-gui の prepare 生成物（microbit hex 等）も main へ symlink（#1001）
         link_prepare_artifacts "${wt}"
+        # husky の生成物（commit-msg フックが source する husky.sh）も main へ symlink（#1137）
+        link_husky_helpers "${wt}"
     fi
 
     # symlink した node_modules / prepare 生成物を確実に無視させる保険（base が古くても効く）

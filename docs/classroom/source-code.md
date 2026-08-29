@@ -175,6 +175,20 @@ GOOGLE_ID_TOKEN=eyJ... docker compose run --rm -w /app/infra/smalruby-classroom 
 - `SeatGrid` — 座席グリッド
 - `MemberDetailPanel` — メンバー詳細パネル (右側)
 
+### クラス管理画面の共通レイアウト / 共通ボタン
+
+**新しいクラス管理画面は、必ずこの 2 つをベースに作る。** そうすればヘッダー・
+マージン・枠・ボタンのスタイルが自動でそろい、画面ごとのズレが起きない。
+
+| ファイル | 責務 |
+|---------|------|
+| `classroom-modal/teacher-view-layout.jsx` | `TeacherScreen`（パンくずを持つトップレベル画面）と `TeacherSubView`（パネル内サブ画面。`as="form"` で `<form>` になる）。パンくず → タイトル → 説明 → エラー → 本文 → フッター の順を固定する |
+| `classroom-modal/classroom-button.jsx` | `ClassroomButton`（`variant="primary" / "secondary" / "danger"`）。ボタンの見た目はここだけが持つ |
+
+画面側で `<h2 className={styles.xxxTitle}>` やボタンのクラスを書き起こさないこと
+（それが #1121 / #1122 のズレの発生源だった）。フッターは `footer` スロットに
+セカンダリ（左）→ プライマリ（右）の順で渡す。
+
 ### 先生用コンポーネント (`src/components/classroom-teacher-modal/`)
 
 | ファイル | 責務 |

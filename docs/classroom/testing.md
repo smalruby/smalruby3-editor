@@ -32,6 +32,8 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `settings-classroom-management` | MenuItem | 設定 → クラス管理 |
 | `classroom-menu-button` | div | メニューバーのクラスボタン |
 | `classroom-google-login` | button | Google ログイン |
+| `google-signin-slot` | div | GIS が描画するサインインボタンのホスト（不具合報告モーダルにも同 testid で存在） |
+| `google-signin-button` | div | 上記スロット内に GIS 用に生成されるノード |
 | `classroom-microsoft-login` | button | Microsoft ログイン |
 | `classroom-back` | button | 戻る |
 | `classroom-refresh` | button | 更新 (↻) |

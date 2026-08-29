@@ -1,3 +1,7 @@
+// このファイルをモジュールにするための宣言。import/export を持たない .ts は TypeScript の
+// グローバルスクリプト扱いになり、トップレベルの const がテストファイル間で衝突する（#1144）。
+export {};
+
 /**
  * smalruby-classroom 結合テスト
  *
@@ -16,6 +20,10 @@
  *   （ブラウザの開発者ツールで取得: Smalruby でクラスモーダルを開き、教師ログイン後に
  *     コンソールで window._classroomIdToken を参照）
  */
+
+// モジュール化。トップレベル宣言をファイルスコープに閉じる（他のテストファイルと
+// 同名の mockSend / DEV_TOKEN / makeEvent があり、スクリプト扱いだと TS2451 で衝突する）。
+export {};
 
 const ENDPOINT = process.env.CLASSROOM_API_ENDPOINT || '';
 const GOOGLE_ID_TOKEN = process.env.GOOGLE_ID_TOKEN || '';

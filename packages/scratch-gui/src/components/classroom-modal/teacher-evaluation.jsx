@@ -10,12 +10,11 @@ import PropTypes from 'prop-types';
 import React, { useCallback } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 
-import ErrorDisplay from './error-display.jsx';
-
 import { GRADE_ORDER, combineOverall } from '../../lib/classroom-evaluation/evaluation-utils.js';
 
 import { formatClassLabel } from '../../lib/classroom-class-label.js';
-import TeacherBreadcrumbs from './teacher-breadcrumbs.jsx';
+import ClassroomButton from './classroom-button.jsx';
+import { TeacherScreen } from './teacher-view-layout.jsx';
 import styles from './classroom-modal.css';
 
 const GRADES = [...GRADE_ORDER].reverse(); // S, A, B, C
@@ -139,45 +138,117 @@ const TeacherEvaluation = ({
     const handleRunGrade = useCallback(() => onRunAi('grade'), [onRunAi]);
     const handleRunComment = useCallback(() => onRunAi('comment'), [onRunAi]);
 
+    /* Actions（左端にキャンセル、他ボタンは右寄せ。レビュー指摘で同一行に揃える） */
+    const footer = (
+        <>
+            <ClassroomButton
+                className={styles.evalCancel}
+                dataTestId="classroom-evaluation-cancel"
+                onClick={onBack}
+            >
+                <FormattedMessage
+                    defaultMessage="Cancel"
+                    description="Cancel button of the evaluation screen (returns to the class list)"
+                    id="gui.classroom.evaluation.cancel"
+                />
+            </ClassroomButton>
+            <ClassroomButton
+                dataTestId="classroom-eval-run-grade"
+                disabled={busy || !loaded}
+                variant="primary"
+                onClick={handleRunGrade}
+            >
+                <FormattedMessage
+                    defaultMessage="Run AI Grading"
+                    description="Run AI grade proposals"
+                    id="gui.classroom.evaluation.runGrade"
+                />
+            </ClassroomButton>
+            <ClassroomButton
+                dataTestId="classroom-eval-run-comment"
+                disabled={busy || !loaded}
+                onClick={handleRunComment}
+            >
+                <FormattedMessage
+                    defaultMessage="Draft Student Comments"
+                    description="Run AI comment drafts"
+                    id="gui.classroom.evaluation.runComment"
+                />
+            </ClassroomButton>
+            <ClassroomButton
+                dataTestId="classroom-eval-export"
+                disabled={busy || !loaded}
+                onClick={onExportEvaluationCsv}
+            >
+                <FormattedMessage
+                    defaultMessage="Evaluation CSV"
+                    description="Export evaluation CSV"
+                    id="gui.classroom.evaluation.exportCsv"
+                />
+            </ClassroomButton>
+            <ClassroomButton
+                dataTestId="classroom-eval-export-audit"
+                disabled={busy || !loaded}
+                onClick={onExportAuditCsv}
+            >
+                <FormattedMessage
+                    defaultMessage="Audit CSV"
+                    description="Export engineer-audit CSV"
+                    id="gui.classroom.evaluation.exportAuditCsv"
+                />
+            </ClassroomButton>
+            <ClassroomButton
+                dataTestId="classroom-eval-return-comments"
+                disabled={busy || !loaded}
+                onClick={onReturnComments}
+            >
+                <FormattedMessage
+                    defaultMessage="Return Comments"
+                    description="Return comment drafts to students"
+                    id="gui.classroom.evaluation.returnComments"
+                />
+            </ClassroomButton>
+        </>
+    );
+
     return (
-        <div
+        <TeacherScreen
+            breadcrumbs={[
+                {
+                    label: (
+                        <FormattedMessage
+                            defaultMessage="Class list"
+                            description="Breadcrumb link back to the class list"
+                            id="gui.classroom.breadcrumbs.classList"
+                        />
+                    ),
+                    onClick: onBack,
+                    testId: 'classroom-breadcrumb-class-list',
+                },
+                {
+                    label: (
+                        <FormattedMessage
+                            defaultMessage="Evaluation"
+                            description="Breadcrumb label of the evaluation view"
+                            id="gui.classroom.breadcrumbs.evaluation"
+                        />
+                    ),
+                },
+            ]}
             className={`${styles.teacherView} ${styles.evaluationScreen}`}
-            data-testid="classroom-phase-teacher-evaluation"
-        >
-            <TeacherBreadcrumbs
-                items={[
-                    {
-                        label: (
-                            <FormattedMessage
-                                defaultMessage="Class list"
-                                description="Breadcrumb link back to the class list"
-                                id="gui.classroom.breadcrumbs.classList"
-                            />
-                        ),
-                        onClick: onBack,
-                        testId: 'classroom-breadcrumb-class-list',
-                    },
-                    {
-                        label: (
-                            <FormattedMessage
-                                defaultMessage="Evaluation"
-                                description="Breadcrumb label of the evaluation view"
-                                id="gui.classroom.breadcrumbs.evaluation"
-                            />
-                        ),
-                    },
-                ]}
-            />
-            <h2 className={styles.teacherViewTitle}>{evalGroup ? formatClassLabel(evalGroup) : ''}</h2>
-            <p className={styles.assignmentEditorHint}>
+            error={error}
+            errorTitle={errorTitle}
+            footer={footer}
+            hint={
                 <FormattedMessage
                     defaultMessage="AI proposals are drafts — you decide. Grading a few students by hand first calibrates the AI to your standard. Term grades are never shown to students; only the positive comments are returned."
                     description="Evaluation screen explanation"
                     id="gui.classroom.evaluation.hint"
                 />
-            </p>
-
-            <ErrorDisplay error={error} errorTitle={errorTitle} />
+            }
+            testId="classroom-phase-teacher-evaluation"
+            title={evalGroup ? formatClassLabel(evalGroup) : ''}
+        >
 
             {/* Lesson selection */}
             <div className={styles.evalSection}>
@@ -353,82 +424,7 @@ const TeacherEvaluation = ({
                 </div>
             )}
 
-            {/* Actions（左端にキャンセル、他ボタンは右寄せ。レビュー指摘で同一行に揃える） */}
-            <div className={styles.buttonRow}>
-                <button
-                    className={classNames(styles.secondaryButton, styles.evalCancel)}
-                    data-testid="classroom-evaluation-cancel"
-                    type="button"
-                    onClick={onBack}
-                >
-                    <FormattedMessage
-                        defaultMessage="Cancel"
-                        description="Cancel button of the evaluation screen (returns to the class list)"
-                        id="gui.classroom.evaluation.cancel"
-                    />
-                </button>
-                <button
-                    className={styles.primaryButton}
-                    data-testid="classroom-eval-run-grade"
-                    disabled={busy || !loaded}
-                    onClick={handleRunGrade}
-                >
-                    <FormattedMessage
-                        defaultMessage="Run AI Grading"
-                        description="Run AI grade proposals"
-                        id="gui.classroom.evaluation.runGrade"
-                    />
-                </button>
-                <button
-                    className={styles.secondaryButton}
-                    data-testid="classroom-eval-run-comment"
-                    disabled={busy || !loaded}
-                    onClick={handleRunComment}
-                >
-                    <FormattedMessage
-                        defaultMessage="Draft Student Comments"
-                        description="Run AI comment drafts"
-                        id="gui.classroom.evaluation.runComment"
-                    />
-                </button>
-                <button
-                    className={styles.secondaryButton}
-                    data-testid="classroom-eval-export"
-                    disabled={busy || !loaded}
-                    onClick={onExportEvaluationCsv}
-                >
-                    <FormattedMessage
-                        defaultMessage="Evaluation CSV"
-                        description="Export evaluation CSV"
-                        id="gui.classroom.evaluation.exportCsv"
-                    />
-                </button>
-                <button
-                    className={styles.secondaryButton}
-                    data-testid="classroom-eval-export-audit"
-                    disabled={busy || !loaded}
-                    onClick={onExportAuditCsv}
-                >
-                    <FormattedMessage
-                        defaultMessage="Audit CSV"
-                        description="Export engineer-audit CSV"
-                        id="gui.classroom.evaluation.exportAuditCsv"
-                    />
-                </button>
-                <button
-                    className={styles.secondaryButton}
-                    data-testid="classroom-eval-return-comments"
-                    disabled={busy || !loaded}
-                    onClick={onReturnComments}
-                >
-                    <FormattedMessage
-                        defaultMessage="Return Comments"
-                        description="Return comment drafts to students"
-                        id="gui.classroom.evaluation.returnComments"
-                    />
-                </button>
-            </div>
-        </div>
+        </TeacherScreen>
     );
 };
 
