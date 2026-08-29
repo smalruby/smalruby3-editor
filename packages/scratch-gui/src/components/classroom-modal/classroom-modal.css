@@ -3172,15 +3172,13 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
 /* --- Class settings (inline card editor) --- */
 
 /* 紫枠をやめ、他の評価画面系レイアウトと同じ控えめな枠に統一（#1122）。 */
+/* 他のサブ画面と同じく枠なし・左端そろえ（#1125）。カード枠と内側パディングを
+   持っていた頃はこの画面だけ本文とフッターが 17px 内側にずれていた。 */
 .class-settings-form {
     flex: 1;
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    padding: 0.9rem 1rem;
-    border: 1px solid #d9d9d9;
-    border-radius: 0.5rem;
-    background: white;
 }
 
 .class-settings-form input {
