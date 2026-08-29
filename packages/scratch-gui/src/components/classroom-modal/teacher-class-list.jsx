@@ -573,7 +573,7 @@ const TeacherClassList = ({
                     ]}
                 />
                 <ErrorDisplay error={error} errorTitle={errorTitle} />
-                <div className={styles.postAssignmentContainer}>
+                <div className={styles.panelInnerView}>
                     {/* 設定画面と同じ枠付きフォーム（.class-settings-form）に揃える。 */}
                     <div className={styles.phaseTitle}>
                         <FormattedMessage
@@ -715,7 +715,7 @@ const TeacherClassList = ({
                     ]}
                 />
                 <ErrorDisplay error={error} errorTitle={errorTitle} />
-                <div className={styles.postAssignmentContainer}>
+                <div className={styles.panelInnerView}>
                     <div className={styles.phaseTitle}>{formatClassLabel(settingsGroup)}</div>
                     <ClassSettingsForm
                         group={settingsGroup}

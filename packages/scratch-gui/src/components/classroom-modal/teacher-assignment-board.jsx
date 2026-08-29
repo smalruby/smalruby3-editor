@@ -622,7 +622,7 @@ const TeacherAssignmentBoard = ({
             ) : showInlineCreate ? (
                 // 課題を作る（#1108: popover → 画面遷移。フッター キャンセル左/作成右）
                 <form
-                    className={styles.postAssignmentContainer}
+                    className={styles.panelInnerView}
                     data-testid="classroom-board-create-view"
                     onSubmit={handleSubmitInlineCreate}
                 >
@@ -686,7 +686,7 @@ const TeacherAssignmentBoard = ({
                 </form>
             ) : showReuse ? (
                 // 課題を再利用（#1108: popover → 画面遷移。コピーは候補ごと、キャンセル左）
-                <div className={styles.postAssignmentContainer} data-testid="classroom-board-reuse-view">
+                <div className={styles.panelInnerView} data-testid="classroom-board-reuse-view">
                     <div className={styles.phaseTitle}>
                         <FormattedMessage
                             defaultMessage="Reuse an assignment"
