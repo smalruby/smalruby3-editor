@@ -309,7 +309,9 @@ Google または Microsoft アカウントでサインインする画面。先�
 
 課題を切り替えるとメンバータブに戻る。
 
-**共同管理者セクション (co-teachers タブ内):**
+**共同管理者セクション (課題単位・現在の UI には無い):**
+
+> ⚠️ 画面上の共同管理者の追加・解除は **クラス（学級）設定**（「1.5 先生: クラス一覧」のカードの「設定」）に移動済み。以下は移動前の課題詳細タブの構成で、課題単位の共同管理は API（`/classrooms/{id}/co-teachers`）としてのみ後方互換で残っている。
 
 owner または co-teacher が、別の先生を **email で招待**して共同管理できる（→ [architecture.md の共同管理](architecture.md#共同管理co-teacher)）。
 
@@ -322,7 +324,7 @@ owner または co-teacher が、別の先生を **email で招待**して共同
 | 招待入力 | email 入力 (placeholder: teacher@example.com) | `classroom-co-teacher-invite-input` | Enter でも招待 |
 | 招待ボタン | 「招待」 | `classroom-co-teacher-invite-submit` | email 未入力時は disabled |
 
-招待された先生は次回ログイン時、ダッシュボードに該当課題が**「共同管理」バッジ**付きで表示される（即時反映・承認不要）。
+招待された先生は次回ログイン時、**クラス一覧に該当クラス（学級）が「共同管理」バッジ**付きで表示され、その中のすべての課題を管理できる（即時反映・承認不要）。
 
 **コード表示 (全画面):**
 
@@ -341,7 +343,7 @@ owner または co-teacher が、別の先生を **email で招待**して共同
 
 | 要素 | テキスト | data-testid | 操作 |
 |------|---------|-------------|------|
-| 確認ボタン | 「削除」 | `classroom-delete-confirm` | 課題のアーカイブ（soft-delete）を実行 |
+| 確認ボタン | 「アーカイブする」 | `classroom-delete-confirm` | 課題のアーカイブ（soft-delete）を実行 |
 | キャンセルボタン | 「キャンセル」 | `classroom-delete-cancel` | ダイアログを閉じる |
 
 ---
