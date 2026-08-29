@@ -90,7 +90,7 @@ describe('ClassroomsView (issue #1084 + 俯瞰 #1106)', () => {
     test('the default tab is the overview dashboard', async () => {
         render(<ClassroomsView />);
         await waitFor(() => expect(screen.getByTestId('overview-view')).toBeInTheDocument());
-        expect(screen.getByTestId('overview-summary').textContent).toContain('クラス総数');
+        expect(screen.getByTestId('overview-summary').textContent).toContain('課題総数');
         expect(screen.getByTestId('overview-candidates').textContent).toContain('ねこ迷路ゲーム');
         expect(screen.getByTestId('overview-candidates').textContent).toContain('未共有らしい');
     });
@@ -188,6 +188,101 @@ describe('ClassroomsView (issue #1084 + 俯瞰 #1106)', () => {
             message: 'この課題、みんなの課題に共有しませんか？'
         }));
         await waitFor(() => screen.getByTestId('classroom-admin-notify-done'));
+    });
+
+    // 用語統一 (#1131): この面の操作対象は Classrooms テーブル = 「課題（1授業）」で、
+    // クラス（学級）= ClassroomGroups は一切変更しない。文言が「クラス」を名乗ると
+    // 運用者が「先生の画面に戻った」と誤読するため、テストで固定する。
+    test('課題を操作する文言は「クラス」ではなく「課題」と呼ぶ (#1131)', async () => {
+        mockSetStatus.mockResolvedValue({...detail, status: 'archived'});
+        render(<ClassroomsView />);
+
+        // 俯瞰: 件数カードは Classrooms の総数 = 課題総数。
+        await waitFor(() => screen.getByTestId('overview-summary'));
+        expect(screen.getByTestId('overview-summary').textContent).toContain('課題総数');
+        expect(screen.getByTestId('overview-summary').textContent).not.toContain('クラス総数');
+
+        // タブ名も検索対象（課題）に合わせる。
+        expect(screen.getByTestId('classroom-admin-tab-live').textContent).toBe('課題検索');
+
+        // アーカイブ確認。
+        fireEvent.click(screen.getByTestId('classroom-admin-tab-live'));
+        await waitFor(() => screen.getByTestId('classroom-admin-item-c1'));
+        fireEvent.click(screen.getByTestId('classroom-admin-item-c1'));
+        await waitFor(() => screen.getByTestId('classroom-admin-detail'));
+        fireEvent.click(screen.getByTestId('classroom-admin-flip'));
+        expect(screen.getByTestId('classroom-admin-confirm').textContent)
+            .toContain('この課題をアーカイブしますか');
+    });
+
+    test('復元まわりの文言も「課題」と呼ぶ (#1131)', async () => {
+        render(<ClassroomsView />);
+        fireEvent.click(screen.getByTestId('classroom-admin-tab-restore'));
+        await waitFor(() => screen.getByTestId('classroom-admin-item-c1'));
+        fireEvent.click(screen.getByTestId('classroom-admin-item-c1'));
+        await waitFor(() => screen.getByTestId('restore-admin-plan'));
+
+        // 親クラス（学級）のスナップショットも一緒に復元することを明示する。
+        expect(screen.getByTestId('restore-admin-summary').textContent)
+            .toContain('クラス（学級）も復元します');
+
+        fireEvent.click(screen.getByTestId('restore-admin-execute'));
+        expect(screen.getByTestId('restore-admin-confirm').textContent)
+            .toContain('この課題を復元しますか');
+    });
+
+    test('生存している課題の案内と空表示も「課題」と呼ぶ (#1131)', async () => {
+        mockFetchPlan.mockResolvedValue({alive: true});
+        mockFetchCandidates.mockResolvedValue({
+            items: [], total: 0, facets: {byMonth: [], byTeacher: []}
+        });
+        render(<ClassroomsView />);
+        fireEvent.click(screen.getByTestId('classroom-admin-tab-restore'));
+        await waitFor(() => screen.getByTestId('classroom-admin-empty'));
+        expect(screen.getByTestId('classroom-admin-empty').textContent)
+            .toBe('該当する削除済み課題はありません。');
+
+        // alive パネル（削除されていない課題を開いたとき）。
+        mockFetchCandidates.mockResolvedValue(restoreResponse);
+        fireEvent.click(screen.getByTestId('classroom-admin-tab-live'));
+        fireEvent.click(screen.getByTestId('classroom-admin-tab-restore'));
+        await waitFor(() => screen.getByTestId('classroom-admin-item-c1'));
+        fireEvent.click(screen.getByTestId('classroom-admin-item-c1'));
+        await waitFor(() => screen.getByTestId('restore-admin-alive'));
+        expect(screen.getByTestId('restore-admin-alive').textContent)
+            .toContain('この課題はまだ存在しています');
+    });
+
+    // 行・詳細の主タイトルは Classrooms.className = クラス（学級）名。無ラベルだと
+    // 課題名と読み違えるので、俯瞰の候補行と同じく「クラス: 」を付けて対にする。
+    test('一覧・詳細の主タイトルはクラス（学級）名だとラベルで示す (#1131)', async () => {
+        render(<ClassroomsView />);
+
+        // 課題検索の行: 主タイトル = クラス、下段 = 課題。
+        fireEvent.click(screen.getByTestId('classroom-admin-tab-live'));
+        await waitFor(() => screen.getByTestId('classroom-admin-item-c1'));
+        expect(screen.getByTestId('classroom-admin-item-c1').textContent)
+            .toContain('クラス: 5年1組');
+        expect(screen.getByTestId('classroom-admin-item-c1').textContent)
+            .toContain('課題: ねこあつめ');
+
+        // 詳細見出しも同じ。
+        fireEvent.click(screen.getByTestId('classroom-admin-item-c1'));
+        await waitFor(() => screen.getByTestId('classroom-admin-detail'));
+        expect(screen.getByRole('heading', {level: 3}).textContent)
+            .toContain('クラス: 5年1組');
+    });
+
+    test('期限切れ復元の行にも同じラベルが付き、空のクラス名は (名称なし) (#1131)', async () => {
+        mockFetchCandidates.mockResolvedValue({
+            ...restoreResponse,
+            items: [{...restoreResponse.items[0], className: ''}]
+        });
+        render(<ClassroomsView />);
+        fireEvent.click(screen.getByTestId('classroom-admin-tab-restore'));
+        await waitFor(() => screen.getByTestId('classroom-admin-item-c1'));
+        expect(screen.getByTestId('classroom-admin-item-c1').textContent)
+            .toContain('クラス: (名称なし)');
     });
 
     test('restore executes only after confirmation', async () => {
