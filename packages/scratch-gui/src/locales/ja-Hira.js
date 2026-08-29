@@ -488,6 +488,8 @@ export default {
     'gui.classroom.management.loginDescription':
         'がっこうのアカウントでログインして、クラスをつくったりかんりしたりします。',
     'gui.classroom.management.loginButton': 'Googleでログイン',
+    'gui.classroom.management.googleSignInHint':
+        'じどうで ログインできませんでした。したの ボタンから ログインしてください。',
     'gui.classroom.management.microsoftLoginButton': 'Microsoftでログイン',
     'gui.classroom.management.sidebarTitle': 'あなたのクラス・かだい',
     'gui.classroom.management.loading': 'よみこみちゅう...',

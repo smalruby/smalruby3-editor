@@ -140,6 +140,7 @@ const ClassroomTeacherModal = () => {
         googleCourses: teacher.googleCourses,
         selectedGoogleCourse: teacher.selectedGoogleCourse,
         googleSignInRef: teacher.googleSignInRef,
+        googleFallbackVisible: teacher.googleFallbackVisible,
         onGoogleLogin: teacher.handleGoogleLogin,
         onMicrosoftLogin: teacher.handleMicrosoftLogin,
         isMicrosoftAuthAvailable: teacher.isMicrosoftAuthAvailable,

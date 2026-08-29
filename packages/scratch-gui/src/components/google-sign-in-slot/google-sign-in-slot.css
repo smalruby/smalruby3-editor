@@ -1,0 +1,10 @@
+/* Explanation shown above the fallback Google sign-in button (#1149). The
+   button appears only after the browser prompt failed, so the line has to say
+   why a second sign-in button turned up. */
+.hint {
+    margin-top: 1rem;
+    margin-bottom: 0;
+    color: #888;
+    font-size: 0.9rem;
+    text-align: center;
+}

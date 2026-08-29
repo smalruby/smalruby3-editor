@@ -66,15 +66,25 @@ const useTeacherAuth = ({ mode, clearError, setPhase, showSessionExpiredError })
     // must tear the GIS UI down and settle the pending promise.
     useEffect(() => () => cancelGoogleLogin(), []);
 
+    // True once the in-modal Google button is revealed, so the UI can explain
+    // why a second sign-in button appeared (#1149).
+    const [googleFallbackVisible, setGoogleFallbackVisible] = useState(false);
+
     const handleGoogleLogin = useCallback(async () => {
         clearError();
+        setGoogleFallbackVisible(false);
         try {
-            const token = await loginWithGoogle({ container: googleSignInRef.current });
+            const token = await loginWithGoogle({
+                container: googleSignInRef.current,
+                onFallbackVisible: () => setGoogleFallbackVisible(true),
+            });
             setIdToken(token);
             setAuthProvider('google');
             setPhase('teacher-class-list');
         } catch {
             clearError();
+        } finally {
+            setGoogleFallbackVisible(false);
         }
     }, [clearError, setPhase]);
 
@@ -82,6 +92,7 @@ const useTeacherAuth = ({ mode, clearError, setPhase, showSessionExpiredError })
         clearError();
         // Switching providers abandons the Google attempt (#1149).
         cancelGoogleLogin();
+        setGoogleFallbackVisible(false);
         try {
             const token = await requestMicrosoftIdToken();
             setIdToken(token);
@@ -158,6 +169,7 @@ const useTeacherAuth = ({ mode, clearError, setPhase, showSessionExpiredError })
         setAuthProvider,
         isMicrosoftAuthAvailable: checkMicrosoftAuth(),
         googleSignInRef,
+        googleFallbackVisible,
         handleGoogleLogin,
         handleMicrosoftLogin,
         logoutAuth,

@@ -182,14 +182,26 @@ const BugReportModal = () => {
     // The GIS sign-in button is rendered into this in-modal node so it cannot
     // outlive the login phase as a body-level overlay (#1149).
     const googleSignInRef = useRef(null);
+    // True once the in-modal Google button is revealed (#1149).
+    const [googleFallbackVisible, setGoogleFallbackVisible] = useState(false);
 
-    const handleLoginGoogle = useCallback(
-        () => handleLogin(() => loginWithGoogle({ container: googleSignInRef.current })),
-        [handleLogin],
-    );
+    const handleLoginGoogle = useCallback(async () => {
+        setGoogleFallbackVisible(false);
+        try {
+            await handleLogin(() =>
+                loginWithGoogle({
+                    container: googleSignInRef.current,
+                    onFallbackVisible: () => setGoogleFallbackVisible(true),
+                }),
+            );
+        } finally {
+            setGoogleFallbackVisible(false);
+        }
+    }, [handleLogin]);
     const handleLoginMicrosoft = useCallback(() => {
         // Switching providers abandons the Google attempt (#1149).
         cancelGoogleLogin();
+        setGoogleFallbackVisible(false);
         return handleLogin(requestMicrosoftIdToken);
     }, [handleLogin]);
 
@@ -319,6 +331,7 @@ const BugReportModal = () => {
             reportsLoading={reportsLoading}
             submitProgressLabel={submitProgressLabel}
             onRequestClose={handleClose}
+            googleFallbackVisible={googleFallbackVisible}
             googleSignInRef={googleSignInRef}
             onLoginGoogle={handleLoginGoogle}
             onLoginMicrosoft={handleLoginMicrosoft}

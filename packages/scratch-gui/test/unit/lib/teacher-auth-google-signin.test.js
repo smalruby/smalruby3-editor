@@ -150,9 +150,114 @@ describe('teacher-auth Google sign-in fallback UI (#1149)', () => {
         await Promise.resolve();
 
         expect(gis.initializeConfig.use_fedcm_for_prompt).toBe(true);
-        // prompt() must not be given a callback that inspects deprecated
-        // isNotDisplayed()/isSkippedMoment()/isDisplayMoment() moments.
-        expect(gis.promptCallback).toBeNull();
+
+        // The moment listener may only read isDismissedMoment(): the others
+        // stop working once FedCM is mandatory.
+        const deprecated = {
+            isNotDisplayed: jest.fn(() => true),
+            isSkippedMoment: jest.fn(() => true),
+            isDisplayMoment: jest.fn(() => true),
+        };
+        gis.promptCallback({
+            ...deprecated,
+            isDismissedMoment: () => false,
+        });
+
+        expect(deprecated.isNotDisplayed).not.toHaveBeenCalled();
+        expect(deprecated.isSkippedMoment).not.toHaveBeenCalled();
+        expect(deprecated.isDisplayMoment).not.toHaveBeenCalled();
+    });
+});
+
+/**
+ * The in-modal button is a fallback: while the browser's own Google prompt is
+ * up, a second "Sign in as ..." button beside our own login button only
+ * confuses people. It stays hidden until that prompt is known not to help.
+ */
+describe('teacher-auth Google fallback button reveal (#1149)', () => {
+    let container;
+
+    beforeEach(() => {
+        jest.useFakeTimers();
+        setupGoogleStub();
+        document.body.innerHTML = '';
+        container = document.createElement('div');
+        document.body.appendChild(container);
+    });
+
+    afterEach(() => {
+        cancelGoogleLogin();
+        jest.useRealTimers();
+        delete global.google;
+    });
+
+    /**
+     * Start a login and let the awaited script loader settle. The pending
+     * promise is wrapped so awaiting this helper cannot accidentally await the
+     * login itself (which only settles on success or cancellation).
+     */
+    const start = async (onFallbackVisible) => {
+        const pending = loginWithGoogle({ container, onFallbackVisible });
+        pending.catch(() => {});
+        await Promise.resolve();
+        await Promise.resolve();
+        return { pending };
+    };
+
+    const button = () => container.querySelector('[data-testid="google-signin-button"]');
+
+    test('is hidden while the browser prompt has a chance to sign the user in', async () => {
+        const onFallbackVisible = jest.fn();
+        await start(onFallbackVisible);
+
+        expect(button().hidden).toBe(true);
+        expect(onFallbackVisible).not.toHaveBeenCalled();
+    });
+
+    test('is revealed once the prompt produced nothing in time', async () => {
+        const onFallbackVisible = jest.fn();
+        await start(onFallbackVisible);
+
+        jest.advanceTimersByTime(4000);
+
+        expect(button().hidden).toBe(false);
+        expect(onFallbackVisible).toHaveBeenCalledTimes(1);
+    });
+
+    test('is revealed as soon as the user dismisses the prompt', async () => {
+        const onFallbackVisible = jest.fn();
+        await start(onFallbackVisible);
+
+        gis.promptCallback({
+            isDismissedMoment: () => true,
+            getDismissedReason: () => 'cancel_called',
+        });
+
+        expect(button().hidden).toBe(false);
+        expect(onFallbackVisible).toHaveBeenCalledTimes(1);
+    });
+
+    test('stays hidden when the prompt closed because it returned a credential', async () => {
+        const onFallbackVisible = jest.fn();
+        await start(onFallbackVisible);
+
+        gis.promptCallback({
+            isDismissedMoment: () => true,
+            getDismissedReason: () => 'credential_returned',
+        });
+
+        expect(button().hidden).toBe(true);
+        expect(onFallbackVisible).not.toHaveBeenCalled();
+    });
+
+    test('does not reveal after the login was cancelled', async () => {
+        const onFallbackVisible = jest.fn();
+        await start(onFallbackVisible);
+
+        cancelGoogleLogin();
+        jest.advanceTimersByTime(10000);
+
+        expect(onFallbackVisible).not.toHaveBeenCalled();
     });
 });
 

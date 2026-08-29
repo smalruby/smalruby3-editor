@@ -105,6 +105,7 @@ const LoginCarousel = () => {
 const TeacherLoginPhase = ({
     error,
     errorTitle,
+    googleFallbackVisible,
     googleSignInRef,
     isMicrosoftAuthAvailable,
     onGoogleLogin,
@@ -143,7 +144,11 @@ const TeacherLoginPhase = ({
             {/* GIS renders its own sign-in button here when One Tap cannot be
                 shown; keeping it in the modal stops it from floating over the
                 screen and outliving the login (#1149). */}
-            <GoogleSignInSlot className={styles.googleSignInSlot} ref={googleSignInRef} />
+            <GoogleSignInSlot
+                className={styles.googleSignInSlot}
+                ref={googleSignInRef}
+                showHint={googleFallbackVisible}
+            />
             {isMicrosoftAuthAvailable && (
                 <button
                     className={styles.loginButton}
@@ -168,6 +173,7 @@ const TeacherLoginPhase = ({
 TeacherLoginPhase.propTypes = {
     error: PropTypes.string,
     errorTitle: PropTypes.string,
+    googleFallbackVisible: PropTypes.bool,
     googleSignInRef: PropTypes.shape({ current: PropTypes.any }),
     isMicrosoftAuthAvailable: PropTypes.bool,
     onGoogleLogin: PropTypes.func.isRequired,
