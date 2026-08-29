@@ -22,7 +22,8 @@
 import { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from 'aws-lambda';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import {
-  DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand, ScanCommand, UpdateCommand,
+  BatchGetCommand, DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand, ScanCommand,
+  UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { GetObjectCommand, HeadObjectCommand, ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
@@ -511,6 +512,88 @@ function mapClassroomForAdmin(item: Record<string, unknown>) {
   };
 }
 
+/**
+ * 親クラス（学級 = `ClassroomGroups`）の状態を課題レスポンスへ載せる (#1132)。
+ *
+ * 課題が `active` でも親クラスが `archived`（あるいは既にスイープされて無い）なら、
+ * その課題は**先生の画面に出ない**。運用者が「課題が生きている＝先生に見えている」と
+ * 誤読したのが EPIC #1129 の発端なので、実効的な可視性を判断できる材料を必ず返す。
+ * @param mapped - `mapClassroomForAdmin` の結果
+ * @param group - 引いた親クラスの行。引いた上で存在しなければ `null`、
+ *   そもそも引けなかった（スロットリング等）なら `undefined`
+ * @returns `groupName` / `groupStatus` を足したレスポンス。`groupStatus` は
+ *   親クラス無し = `null` / 行が消えている = `'missing'` / 引けなかった =
+ *   `'unknown'` / それ以外は行の status
+ */
+export function attachGroupInfo<T extends { groupId?: unknown }>(
+  mapped: T, group: Record<string, unknown> | null | undefined,
+): T & { groupName: string | null; groupStatus: string | null } {
+  const groupId = typeof mapped.groupId === 'string' ? mapped.groupId : '';
+  if (!groupId) {
+    return { ...mapped, groupName: null, groupStatus: null };
+  }
+  if (group === undefined) {
+    // 引けていないものを「行が消えている」と断定しない（運用者の誤読を招く）。
+    return { ...mapped, groupName: null, groupStatus: 'unknown' };
+  }
+  if (!group) {
+    return { ...mapped, groupName: null, groupStatus: 'missing' };
+  }
+  return {
+    ...mapped,
+    groupName: typeof group.name === 'string' ? group.name : null,
+    groupStatus: typeof group.status === 'string' ? group.status : 'active',
+  };
+}
+
+/**
+ * 親クラスをまとめて引く (#1132)。一覧は最大 100 件返すので、1 件ずつ
+ * GetCommand を撃つ N+1 を避けて BatchGet でまとめる。
+ * @param groupIds - 課題が指す groupId（重複・空文字を含んでよい）
+ * @returns groupId → 行（引いた上で存在しなければ null）の Map。**引き切れなかった
+ *   groupId はキーごと入らない**（`Map.get` が `undefined` = 未取得 → `'unknown'`）。
+ *   取り切れなかったキーを null にすると `'missing'`（行が消えている）と区別できず、
+ *   運用者に「先生の操作では戻せない」と誤った案内を出してしまう。
+ */
+async function fetchGroups(groupIds: string[]): Promise<Map<string, Record<string, unknown> | null>> {
+  const unique = [...new Set(groupIds.filter(id => typeof id === 'string' && id))];
+  const found = new Map<string, Record<string, unknown> | null>();
+  for (let i = 0; i < unique.length; i += 100) {
+    // BatchGet は 1 回あたり 100 キーが上限。未処理キーは数回だけ再試行する。
+    let keys: Record<string, unknown>[] = unique.slice(i, i + 100).map(groupId => ({ groupId }));
+    for (let attempt = 0; keys.length > 0 && attempt < 3; attempt++) {
+      const requested = keys.map(key => String(key.groupId));
+      const result = await docClient.send(new BatchGetCommand({
+        RequestItems: { [GROUPS_TABLE]: { Keys: keys } },
+      }));
+      keys = (result.UnprocessedKeys?.[GROUPS_TABLE]?.Keys || []) as Record<string, unknown>[];
+      // 処理されたキーだけ「引けた」と確定する（応答に無い = 行が無い）。
+      const unprocessed = new Set(keys.map(key => String(key.groupId)));
+      for (const groupId of requested) {
+        if (!unprocessed.has(groupId)) found.set(groupId, null);
+      }
+      for (const row of (result.Responses?.[GROUPS_TABLE] || []) as Record<string, unknown>[]) {
+        if (typeof row.groupId === 'string') found.set(row.groupId, row);
+      }
+    }
+  }
+  return found;
+}
+
+/**
+ * 親クラスを 1 件引く (#1132)。
+ * @param groupId - 課題が指す groupId（空なら引かない）
+ * @returns 行、または存在しなければ null
+ */
+async function fetchGroup(groupId: string): Promise<Record<string, unknown> | null> {
+  if (!groupId) return null;
+  const result = await docClient.send(new GetCommand({
+    TableName: GROUPS_TABLE,
+    Key: { groupId },
+  }));
+  return (result.Item as Record<string, unknown> | undefined) || null;
+}
+
 // --- 共有推奨 (EPIC #1106): 有益な課題を先生に「みんなの課題へ共有」促す ---
 
 /**
@@ -624,7 +707,18 @@ async function handleListClassrooms(
       String(item.assignmentName || '').toLowerCase().includes(q));
   }
   items.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
-  return { statusCode: 200, body: JSON.stringify({ items: items.slice(0, 100) }) };
+  // 返す 1 ページ分だけ親クラスを引く（#1132）。全件引くとスキャン結果が
+  // 増えたときに読み取りが跳ねるため、slice の後に絞ってからバッチ取得する。
+  const page = items.slice(0, 100);
+  const groups = await fetchGroups(page.map(item => String(item.groupId || '')));
+  return {
+    statusCode: 200,
+    body: JSON.stringify({
+      // `groups.get` の undefined（引き切れなかった）は 'unknown' に落とす。
+      // `|| null` で潰すと「行が消えている」と誤って断定してしまう。
+      items: page.map(item => attachGroupInfo(item, groups.get(String(item.groupId || '')))),
+    }),
+  };
 }
 
 async function handleClassroomOverview(
@@ -654,7 +748,8 @@ async function handleGetClassroom(
   if (!result.Item) {
     throw new NotFoundError('Classroom not found');
   }
-  const [members, submissions] = await Promise.all([
+  const item = result.Item as Record<string, unknown>;
+  const [members, submissions, group] = await Promise.all([
     docClient.send(new QueryCommand({
       TableName: MEMBERSHIPS_TABLE,
       KeyConditionExpression: 'classroomId = :cid',
@@ -667,11 +762,12 @@ async function handleGetClassroom(
       ExpressionAttributeValues: { ':cid': classroomId },
       Select: 'COUNT',
     })),
+    fetchGroup(typeof item.groupId === 'string' ? item.groupId : ''),
   ]);
   return {
     statusCode: 200,
     body: JSON.stringify({
-      ...mapClassroomForAdmin(result.Item as Record<string, unknown>),
+      ...attachGroupInfo(mapClassroomForAdmin(item), group),
       memberCount: members.Count || 0,
       submissionCount: submissions.Count || 0,
     }),
@@ -943,9 +1039,17 @@ async function handleRestorePlan(
   }));
   if (live.Item) {
     // Still alive — an accidental archive is the teacher's own UI restore.
+    // 親クラスの状態も返す（#1132）。課題が生きていても親クラスがアーカイブ中なら
+    // 「先生自身のクラス管理画面から戻せます」は誤誘導になり、案内すべき操作が
+    // 変わる（課題の復帰ではなくクラス（学級）のアーカイブ解除）。
+    const groupId = typeof live.Item.groupId === 'string' ? live.Item.groupId : '';
+    const group = await fetchGroup(groupId);
     return {
       statusCode: 200,
-      body: JSON.stringify({ alive: true, status: live.Item.status }),
+      body: JSON.stringify(attachGroupInfo(
+        { alive: true, status: live.Item.status, groupId: groupId || null },
+        group,
+      )),
     };
   }
 
