@@ -236,7 +236,12 @@ DNCL モードの入り口として、チュートリアル一覧に **「DNCL �
 | `dncl-basics-2-variables` | 変数への代入（`=` / `←`）と、変数を使った計算・表示 |
 | `dncl-basics-3-conditionals` | `もし ... ならば` / `そうでなければ` / `そうでなくもし ... ならば` |
 
-deck が挿入する `code` は **Ruby のまま**で、エディタが `rubyToDncl` で日本語表記に変換して見せる。そのため deck の Ruby は `puts("...")` のように **括弧付きの呼び出し**で書く必要がある（括弧なしの `puts "..."` は `表示する(...)` に変換されず、日本語モードなのに英語が残る）。deck 定義は `packages/scratch-gui/src/lib/libraries/decks/categories/dncl.jsx`、詳細は [`docs/tutorial/`](../tutorial/) を参照。
+deck が挿入する `code` は **Ruby のまま**で、エディタが `rubyToDncl` で日本語表記に変換して見せる。そのため deck の Ruby には次の 2 つの制約がある。deck 定義は `packages/scratch-gui/src/lib/libraries/decks/categories/dncl.jsx`、詳細は [`docs/tutorial/`](../tutorial/) を参照。
+
+1. **括弧付きの呼び出しで書く** — `puts("...")` のように書く。括弧なしの `puts "..."` は `表示する(...)` に変換されず、日本語モードなのに英語が残る。
+2. **ハットブロックを使わない（`when_flag_clicked do ... end` を書かない）** — ハットには DNCL 表記が無いため `rubyToDncl` は識別子をそのまま素通しし、逆方向の `dnclToRuby` はそれを変数と解釈して `@when_flag_clicked do` に戻してしまう。ruby-tab は**キー入力のたびに**エディタのテキストから Ruby を作り直す（`dispatchCode`）ので、ハットがあると利用者が 1 文字打った瞬間に構文エラーになる。これはモード切替バリデータが `when_flag_clicked` を弾くのと同じ制約（`test/unit/lib/dncl/dncl-validation.test.js`）。
+
+ハット無しのスクリプトは、Ruby ツールバーの **▶「すべて実行」ボタン**（`ruby-toolbar-execute`。DNCL モードではすべてのトップレベルスクリプトを実行する）で走らせる。緑の旗ではないので、deck の説明文も ▶ を案内している。
 
 ## 関連ドキュメント
 

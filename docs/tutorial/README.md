@@ -56,7 +56,7 @@ Smalruby Classroom の各フェーズ（教師ログイン、クラス作成、�
 | `packages/scratch-gui/src/reducers/tutorial-onboarding.js` | onboarding state（`MARK_TUTORIAL_SEEN`, `MARK_RUBY_TAB_USED`, `DISMISS_TOOLTIP`）|
 | `packages/scratch-gui/src/components/classroom-tutorial/` | クラスルーム機能のチュートリアル UI |
 | `packages/scratch-gui/src/reducers/classroom-tutorial.js` | クラスルームチュートリアル state |
-| `packages/scratch-gui/src/lib/libraries/decks/categories/dncl.jsx` / `dncl.locale.js` | DNCL 軸（`dnclBasics`）の deck 定義と locale。`setup.rubyMode: 'dncl'` で Ruby タブを日本語モードで開く。deck の `code` は Ruby のままで、エディタが `rubyToDncl` で日本語表記に変換して見せるため、`puts("...")` のように **括弧付きの呼び出し**で書く（括弧なしは `表示する(...)` に変換されない）|
+| `packages/scratch-gui/src/lib/libraries/decks/categories/dncl.jsx` / `dncl.locale.js` | DNCL 軸（`dnclBasics`）の deck 定義と locale。`setup.rubyMode: 'dncl'` で Ruby タブを日本語モードで開く。deck の `code` は Ruby のままで、エディタが `rubyToDncl` で日本語表記に変換して見せるため、①`puts("...")` のように **括弧付きの呼び出し**で書く（括弧なしは `表示する(...)` に変換されない）②**ハットブロックを書かない**（`when_flag_clicked` は DNCL 表記が無く、逆変換で `@when_flag_clicked` に化けて最初の編集で壊れる）。実行は ▶「すべて実行」ボタン。詳細は [`docs/dncl/`](../dncl/) の「チュートリアル」|
 | `tools/playwright-verify/generate-dncl-basics-1-3-steps.mjs` | DNCL deck の step 画像・サムネイル生成スクリプト（Playwright で HTML カードを撮影。再生成可能）|
 | `packages/scratch-gui/src/lib/libraries/decks/categories/book-promo.jsx` | Block 軸シリーズ共通の書籍プロモ要素（`BOOK` 書誌プレースホルダ / `BOOK_URL` / オープニング・クロージング step ファクトリ）。書誌確定後は `BOOK` 定数 1 箇所を差し替える（Phase 3, #956）。カテゴリは `blockBasics`（第1章）と `blockGames`（第4章）の 2 章のみ。第5章・第6章（`blockMath` / `blockScience`）は元となる書籍 PDF が提供されなかったため対象外（#962）|
 

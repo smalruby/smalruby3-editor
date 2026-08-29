@@ -13,6 +13,11 @@
 // test/unit/lib/libraries/decks/dncl-basics-decks.test.js guards the code
 // side, these images are the human-facing side of the same snippet.
 //
+// The snippets are hat-less on purpose: `when_flag_clicked do ... end` has no
+// DNCL representation and breaks the DNCL -> Ruby direction (see the comment
+// at the top of categories/dncl.jsx). A hat-less script is run from the Ruby
+// toolbar's run-all button, which is what the cards tell the learner.
+//
 // Usage (from repo root, inside the container):
 //   node tools/playwright-verify/generate-dncl-basics-1-3-steps.mjs
 
@@ -44,7 +49,7 @@ const escapeHtml = s =>
 // keywords that replace the Ruby ones.
 const lineColor = raw => {
     if (raw.trim().startsWith('#')) return '#94e2d5'; // comment
-    if (/(表示する|もし|ならば|そうでなければ|そうでなくもし|を実行する|when_flag_clicked|do)/.test(raw)) {
+    if (/(表示する|もし|ならば|そうでなければ|そうでなくもし|を実行する)/.test(raw)) {
         return '#cba6f7'; // keyword
     }
     return '#cdd6f4'; // foreground
@@ -130,18 +135,14 @@ const STEPS = [
         file: 'dncl-basics-1-2-first-display.png',
         header: 'dncl-basics-1 · Step 2: 表示する',
         lines: [
-            'when_flag_clicked do',
-            '  表示する("こんにちは")',
-            'を実行する',
+            '表示する("こんにちは")',
         ],
     },
     {
         file: 'dncl-basics-1-3-result.png',
         header: 'dncl-basics-1 · Step 3: 実行結果',
         lines: [
-            'when_flag_clicked do',
-            '  表示する("こんにちは")',
-            'を実行する',
+            '表示する("こんにちは")',
             '',
             '# → ネコが「こんにちは」としゃべるよ',
         ],
@@ -150,21 +151,17 @@ const STEPS = [
         file: 'dncl-basics-1-4-numbers.png',
         header: 'dncl-basics-1 · Step 4: 数字も表示',
         lines: [
-            'when_flag_clicked do',
-            '  表示する("こんにちは")',
-            '  表示する(2 + 6)                    # → 8',
-            '  表示する("こたえは", (2 + 6), "です")',
-            'を実行する',
+            '表示する("こんにちは")',
+            '表示する(2 + 6)                    # → 8',
+            '表示する("こたえは", (2 + 6), "です")',
         ],
     },
     {
         file: 'dncl-basics-1-5-modify.png',
         header: 'dncl-basics-1 · Step 5: 自由に編集',
         lines: [
-            'when_flag_clicked do',
-            '  表示する("すきなことば")  # ← 好きなことばに変えてみよう！',
-            '  表示する(12 * 8)',
-            'を実行する',
+            '表示する("すきなことば")  # ← 好きなことばに変えてみよう！',
+            '表示する(12 * 8)',
         ],
     },
     // ── Deck 2: 変数を使おう ────────────────────────────────────────────────
@@ -183,20 +180,16 @@ const STEPS = [
         file: 'dncl-basics-2-2-first-var.png',
         header: 'dncl-basics-2 · Step 2: 代入する',
         lines: [
-            'when_flag_clicked do',
-            '  tensuu = 80',
-            '  表示する(tensuu)',
-            'を実行する',
+            'tensuu = 80',
+            '表示する(tensuu)',
         ],
     },
     {
         file: 'dncl-basics-2-3-result.png',
         header: 'dncl-basics-2 · Step 3: 実行結果',
         lines: [
-            'when_flag_clicked do',
-            '  tensuu = 80',
-            '  表示する(tensuu)',
-            'を実行する',
+            'tensuu = 80',
+            '表示する(tensuu)',
             '',
             '# → ネコが「80」としゃべるよ',
         ],
@@ -205,22 +198,18 @@ const STEPS = [
         file: 'dncl-basics-2-4-update.png',
         header: 'dncl-basics-2 · Step 4: 値を変える',
         lines: [
-            'when_flag_clicked do',
-            '  tensuu = 80',
-            '  tensuu = tensuu + 15                       # → 95',
-            '  表示する("てんすうは", tensuu, "てんです")',
-            'を実行する',
+            'tensuu = 80',
+            'tensuu = tensuu + 15                       # → 95',
+            '表示する("てんすうは", tensuu, "てんです")',
         ],
     },
     {
         file: 'dncl-basics-2-5-modify.png',
         header: 'dncl-basics-2 · Step 5: 自由に編集',
         lines: [
-            'when_flag_clicked do',
-            '  nedan = 120   # ← 好きな数に変えてみよう！',
-            '  kosuu = 3',
-            '  表示する("ごうけいは", (nedan * kosuu), "えんです")',
-            'を実行する',
+            'nedan = 120   # ← 好きな数に変えてみよう！',
+            'kosuu = 3',
+            '表示する("ごうけいは", (nedan * kosuu), "えんです")',
         ],
     },
     // ── Deck 3: もし〜ならば ────────────────────────────────────────────────
@@ -239,11 +228,9 @@ const STEPS = [
         file: 'dncl-basics-3-2-if.png',
         header: 'dncl-basics-3 · Step 2: もし〜ならば',
         lines: [
-            'when_flag_clicked do',
-            '  tensuu = 80',
-            '  もし tensuu >= 60 ならば',
-            '    表示する("ごうかく")',
-            '  を実行する',
+            'tensuu = 80',
+            'もし tensuu >= 60 ならば',
+            '  表示する("ごうかく")',
             'を実行する',
         ],
     },
@@ -251,11 +238,9 @@ const STEPS = [
         file: 'dncl-basics-3-3-result.png',
         header: 'dncl-basics-3 · Step 3: 実行結果',
         lines: [
-            'when_flag_clicked do',
-            '  tensuu = 80',
-            '  もし tensuu >= 60 ならば',
-            '    表示する("ごうかく")   # → 80 は 60 以上なので表示される',
-            '  を実行する',
+            'tensuu = 80',
+            'もし tensuu >= 60 ならば',
+            '  表示する("ごうかく")   # → 80 は 60 以上なので表示される',
             'を実行する',
         ],
     },
@@ -263,13 +248,11 @@ const STEPS = [
         file: 'dncl-basics-3-4-else.png',
         header: 'dncl-basics-3 · Step 4: そうでなければ',
         lines: [
-            'when_flag_clicked do',
-            '  tensuu = 45',
-            '  もし tensuu >= 60 ならば',
-            '    表示する("ごうかく")',
-            '  そうでなければ',
-            '    表示する("ふごうかく")   # → 45 なのでこちら',
-            '  を実行する',
+            'tensuu = 45',
+            'もし tensuu >= 60 ならば',
+            '  表示する("ごうかく")',
+            'そうでなければ',
+            '  表示する("ふごうかく")   # → 45 なのでこちら',
             'を実行する',
         ],
     },
@@ -277,15 +260,13 @@ const STEPS = [
         file: 'dncl-basics-3-5-elsif.png',
         header: 'dncl-basics-3 · Step 5: 3つに分ける',
         lines: [
-            'when_flag_clicked do',
-            '  tensuu = 95',
-            '  もし tensuu >= 90 ならば',
-            '    表示する("たいへんよくできました")',
-            '  そうでなくもし tensuu >= 60 ならば',
-            '    表示する("ごうかく")',
-            '  そうでなければ',
-            '    表示する("ふごうかく")',
-            '  を実行する',
+            'tensuu = 95',
+            'もし tensuu >= 90 ならば',
+            '  表示する("たいへんよくできました")',
+            'そうでなくもし tensuu >= 60 ならば',
+            '  表示する("ごうかく")',
+            'そうでなければ',
+            '  表示する("ふごうかく")',
             'を実行する',
         ],
     },

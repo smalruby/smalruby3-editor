@@ -6,11 +6,17 @@
  *   1. deck wiring — category / setup (DNCL mode!) / urlId / step shape
  *   2. locale completeness — every FormattedMessage id resolves in ja / ja-Hira / en
  *   3. runnability — every step's `code` snippet converts to blocks, so the
- *      "press the green flag and the cat says X" promise is real
+ *      "press ▶ and the cat says X" promise is real
  *   4. DNCL readability — the decks run in `rubyMode: 'dncl'`, so the Ruby
  *      snippet the card inserts must render as DNCL (表示する / もし ... ならば)
  *      and survive the DNCL → Ruby round trip. A snippet that only reads well
  *      in Ruby would show the learner English keywords in DNCL mode.
+ *   5. edit safety — ruby-tab re-derives the Ruby from the editor text on
+ *      every keystroke (`dispatchCode` → `dnclToRuby`), so the round trip must
+ *      be an *identity*. A construct with no DNCL form (notably the
+ *      `when_flag_clicked do ... end` hat, which comes back as
+ *      `@when_flag_clicked do`) turns the learner's first edit into a syntax
+ *      error — and every deck's last step asks them to edit.
  *
  * See docs/tutorial/improvement-plan.md Phase 4 and issues #681 / #964.
  */
@@ -149,6 +155,33 @@ describe('DNCL Basics tutorial decks', () => {
                 const back = dnclToRuby(dncl);
                 expect(back.errors).toEqual([]);
             });
+        });
+
+        // Guards the edit-safety invariant (5) in the file header. `toEqual`
+        // on the whole list keeps the failure message readable: it shows the
+        // mangled Ruby next to the original.
+        test('the Ruby → DNCL → Ruby round trip is an identity, so editing is safe', () => {
+            const codeSteps = deck.steps.filter(step => step.code);
+            const roundTripped = codeSteps.map(step => dnclToRuby(rubyToDncl(step.code).dncl).ruby.trim());
+            expect(roundTripped).toEqual(codeSteps.map(step => step.code.trim()));
+        });
+
+        // `when_flag_clicked` is explicitly rejected by the DNCL mode-switch
+        // validator (test/unit/lib/dncl/dncl-validation.test.js), so a deck
+        // that inserts one hands the learner code the editor itself refuses.
+        test('no snippet uses a hat block, which DNCL mode cannot represent', () => {
+            deck.steps
+                .filter(step => step.code)
+                .forEach(step => {
+                    expect(step.code).not.toMatch(/when_[a-z_]+/);
+                });
+        });
+
+        // The DNCL palette filter (src/lib/dncl/dncl-block-filter.js) already
+        // narrows the toolbox and takes priority over `tutorialAllowedBlocks`,
+        // so a per-deck list can only drift out of sync with it.
+        test('does not carry a deck-level allowedBlocks list', () => {
+            expect(deck.allowedBlocks).toBeUndefined();
         });
     });
 
