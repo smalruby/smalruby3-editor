@@ -1,3 +1,4 @@
+
 /**
  * お知らせ (notification center) tests — EPIC #1111.
  *
@@ -215,3 +216,9 @@ describe('お知らせセンター (EPIC #1111)', () => {
     });
   });
 });
+
+// import / export を持たないテストファイルは TS の「スクリプト」扱いになり、
+// ts-jest が 1 プロセスで複数のテストを型付けすると `const mockSend` などが
+// グローバルスコープで衝突して "Cannot redeclare block-scoped variable" になる。
+// 空 export でモジュール化してファイルごとのスコープに閉じる。
+export {};

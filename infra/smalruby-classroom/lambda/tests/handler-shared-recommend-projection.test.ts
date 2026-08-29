@@ -1,3 +1,4 @@
+
 /**
  * 先生側 API と Admin 推薦 (#1110) の境界のテスト。
  *
@@ -167,3 +168,9 @@ describe('先生側 API と Admin 推薦の境界 (#1110)', () => {
     expect(res.body).not.toContain('recommendedBy');
   });
 });
+
+// import / export を持たないテストファイルは TS の「スクリプト」扱いになり、
+// ts-jest が 1 プロセスで複数のテストを型付けすると `const mockSend` などが
+// グローバルスコープで衝突して "Cannot redeclare block-scoped variable" になる。
+// 空 export でモジュール化してファイルごとのスコープに閉じる。
+export {};

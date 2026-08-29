@@ -1,3 +1,4 @@
+
 /**
  * みんなの課題 (shared assignment library) tests — issue #1068 / EPIC #1066.
  *
@@ -649,3 +650,9 @@ describe('みんなの課題 (issue #1068)', () => {
     });
   });
 });
+
+// import / export を持たないテストファイルは TS の「スクリプト」扱いになり、
+// ts-jest が 1 プロセスで複数のテストを型付けすると `const mockSend` などが
+// グローバルスコープで衝突して "Cannot redeclare block-scoped variable" になる。
+// 空 export でモジュール化してファイルごとのスコープに閉じる。
+export {};

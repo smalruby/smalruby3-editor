@@ -1,3 +1,4 @@
+
 /**
  * Class-level (group) co-teacher authorization tests (issue #1138).
  *
@@ -321,3 +322,9 @@ describe('canManageGroup / canManageClassroom email normalization (issue #1138)'
         expect(mod.canManageClassroom(classroom, { sub: 'x', email: 'other@example.com' })).toBe(false);
     });
 });
+
+// import / export を持たないテストファイルは TS の「スクリプト」扱いになり、
+// ts-jest が 1 プロセスで複数のテストを型付けすると `const mockSend` などが
+// グローバルスコープで衝突して "Cannot redeclare block-scoped variable" になる。
+// 空 export でモジュール化してファイルごとのスコープに閉じる。
+export {};

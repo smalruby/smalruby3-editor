@@ -1,3 +1,4 @@
+
 /**
  * Handler-level authorization tests for the co-teacher endpoints.
  *
@@ -128,3 +129,9 @@ describe('co-teacher endpoints — cross-tenant authorization', () => {
         expect(JSON.parse(res.body as string).coTeacherEmails).toContain('dev-test-teacher@example.com');
     });
 });
+
+// import / export を持たないテストファイルは TS の「スクリプト」扱いになり、
+// ts-jest が 1 プロセスで複数のテストを型付けすると `const mockSend` などが
+// グローバルスコープで衝突して "Cannot redeclare block-scoped variable" になる。
+// 空 export でモジュール化してファイルごとのスコープに閉じる。
+export {};
