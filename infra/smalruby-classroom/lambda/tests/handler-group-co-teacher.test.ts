@@ -139,24 +139,50 @@ describe('class-level co-teacher authorization (issue #1138)', () => {
         expect(commandNames()).not.toContain('PutCommand');
     });
 
-    test('GET /classrooms lists assignments that live in a co-managed class', async () => {
+    /**
+     * Route reads against in-memory tables so the list tests assert on the
+     * result rather than on the exact query shape (which class/assignment scan
+     * runs in which order is an implementation detail).
+     */
+    const useTables = (allGroups: Record<string, unknown>[], allAssignments: Record<string, unknown>[]) => {
         mockSend.mockImplementation((cmd: { constructor: { name: string }; input: Record<string, any> }) => {
             const name = cmd.constructor.name;
             const input = cmd.input;
-            if (name === 'ScanCommand' && input.TableName === 'ClassroomGroups') {
-                return Promise.resolve({ Items: [coManagedGroup] });
+            const rows = input.TableName === 'ClassroomGroups' ? allGroups : allAssignments;
+            const values = input.ExpressionAttributeValues || {};
+            if (name === 'GetCommand') {
+                if (input.TableName === 'ClassroomGroups') {
+                    return Promise.resolve({ Item: groups[input.Key.groupId] });
+                }
+                return Promise.resolve({});
+            }
+            if (name === 'QueryCommand') {
+                // Every GSI query in the list path keys off teacherSub.
+                return Promise.resolve({ Items: rows.filter((r: any) => r.teacherSub === values[':ts']) });
             }
             if (name === 'ScanCommand') {
-                return Promise.resolve({ Items: [] });
+                const filter: string = input.FilterExpression || '';
+                if (filter.startsWith('contains(coTeacherEmails')) {
+                    return Promise.resolve({
+                        Items: rows.filter((r: any) =>
+                            (r.coTeacherEmails || []).some(
+                                (e: string) => e.toLowerCase() === String(values[':email']).toLowerCase(),
+                            ),
+                        ),
+                    });
+                }
+                if (filter.startsWith('groupId IN')) {
+                    const wanted = Object.values(values);
+                    return Promise.resolve({ Items: rows.filter((r: any) => wanted.includes(r.groupId)) });
+                }
+                return Promise.resolve({ Items: rows });
             }
-            if (name === 'QueryCommand' && input.TableName === 'Classrooms') {
-                // Owned assignments for the requester: none. The owner's query
-                // (issued for the co-managed class) returns the assignment.
-                const ts = input.ExpressionAttributeValues?.[':ts'];
-                return Promise.resolve({ Items: ts === OWNER_SUB ? [assignmentInGroup] : [] });
-            }
-            return Promise.resolve({ Items: [] });
+            return Promise.resolve({});
         });
+    };
+
+    test('GET /classrooms lists assignments that live in a co-managed class', async () => {
+        useTables([coManagedGroup, foreignGroup], [assignmentInGroup]);
 
         const res = await handler(makeEvent('GET', '/classrooms', {}));
         expect(res.statusCode).toBe(200);
@@ -164,6 +190,29 @@ describe('class-level co-teacher authorization (issue #1138)', () => {
         expect(classrooms).toHaveLength(1);
         expect(classrooms[0].classroomId).toBe('c1');
         expect(classrooms[0].role).toBe('co-teacher');
+    });
+
+    test('GET /classrooms does not leak assignments from a class the teacher has no part in', async () => {
+        const foreignAssignment = { ...assignmentInGroup, classroomId: 'c9', groupId: 'g2' };
+        useTables([coManagedGroup, foreignGroup], [assignmentInGroup, foreignAssignment]);
+
+        const res = await handler(makeEvent('GET', '/classrooms', {}));
+        const { classrooms } = JSON.parse(res.body || '{}');
+        expect(classrooms.map((c: { classroomId: string }) => c.classroomId)).toEqual(['c1']);
+    });
+
+    test('the class owner sees an assignment a co-teacher created in their class', async () => {
+        // Mirror image of the reported bug: now that co-teachers can create
+        // assignments, keying the list off teacherSub would hide them from the
+        // owner. The dev-test-teacher owns the class here.
+        const ownedGroup = { ...coManagedGroup, teacherSub: 'dev-test-teacher', coTeacherEmails: ['co@example.com'] };
+        const byCoTeacher = { ...assignmentInGroup, classroomId: 'c2', teacherSub: 'co-teacher-sub' };
+        useTables([ownedGroup], [byCoTeacher]);
+
+        const res = await handler(makeEvent('GET', '/classrooms', {}));
+        expect(res.statusCode).toBe(200);
+        const { classrooms } = JSON.parse(res.body || '{}');
+        expect(classrooms.map((c: { classroomId: string }) => c.classroomId)).toEqual(['c2']);
     });
 
     test('a class co-teacher can rename the class (200)', async () => {

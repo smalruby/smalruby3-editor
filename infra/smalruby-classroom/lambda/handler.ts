@@ -644,6 +644,51 @@ async function listCoManagedGroups(identity: TeacherIdentity): Promise<Record<st
   return (scanned.Items || []).filter(item => item.teacherSub !== identity.sub);
 }
 
+/**
+ * Ids of every class (組) this teacher may manage: the ones they own plus the
+ * ones they co-manage. Used to collect the assignments inside them (#1138).
+ */
+async function listManageableGroupIds(identity: TeacherIdentity): Promise<string[]> {
+  const owned = await docClient.send(new QueryCommand({
+    TableName: GROUPS_TABLE,
+    IndexName: 'teacherSub-index',
+    KeyConditionExpression: 'teacherSub = :ts',
+    ExpressionAttributeValues: { ':ts': identity.sub },
+  }));
+  const ids = new Set<string>();
+  for (const group of [...(owned.Items || []), ...(await listCoManagedGroups(identity))]) {
+    if (typeof group.groupId === 'string') {
+      ids.add(group.groupId);
+    }
+  }
+  return [...ids];
+}
+
+/**
+ * Assignments filed under any of the given classes, whoever created them. The
+ * classrooms table has no groupId index, so this is a Scan with a groupId IN
+ * filter — one Scan for all classes rather than one query per class. Chunked
+ * because DynamoDB caps an IN list at 100 operands.
+ */
+async function listAssignmentsInGroups(groupIds: string[]): Promise<Record<string, unknown>[]> {
+  const items: Record<string, unknown>[] = [];
+  for (let i = 0; i < groupIds.length; i += 100) {
+    const chunk = groupIds.slice(i, i + 100);
+    const values: Record<string, string> = {};
+    const placeholders = chunk.map((id, index) => {
+      values[`:g${index}`] = id;
+      return `:g${index}`;
+    });
+    const scanned = await docClient.send(new ScanCommand({
+      TableName: CLASSROOMS_TABLE,
+      FilterExpression: `groupId IN (${placeholders.join(', ')})`,
+      ExpressionAttributeValues: values,
+    }));
+    items.push(...(scanned.Items || []));
+  }
+  return items;
+}
+
 /** Fetch the owning class (group) of an assignment, or undefined (pre-v2). */
 async function getOwningGroup(
   classroom: Record<string, unknown>,
@@ -723,23 +768,13 @@ async function handleListClassrooms(identity: TeacherIdentity, includeArchived =
     coManaged = scan.Items || [];
   }
 
-  // Assignments that live inside a class (組) the teacher co-manages. Being a
-  // class-level co-teacher grants access to everything in that class, so those
-  // assignments must show up even when the assignment record itself lists no
-  // co-teacher (issue #1138 — the assignments the owner created were invisible).
-  // There is no groupId index on the classrooms table, so we reuse the owner's
-  // teacherSub GSI and filter by groupId (same shape as the topic cascade).
-  const viaGroup: Record<string, unknown>[] = [];
-  for (const group of await listCoManagedGroups(identity)) {
-    const result = await docClient.send(new QueryCommand({
-      TableName: CLASSROOMS_TABLE,
-      IndexName: 'teacherSub-index',
-      KeyConditionExpression: 'teacherSub = :ts',
-      FilterExpression: 'groupId = :gid',
-      ExpressionAttributeValues: { ':ts': group.teacherSub, ':gid': group.groupId },
-    }));
-    viaGroup.push(...(result.Items || []));
-  }
+  // Assignments that live inside a class (組) the teacher may manage — the ones
+  // they own *and* the ones they co-manage. Managing a class grants access to
+  // everything inside it regardless of who created each assignment, so this
+  // covers both directions (issue #1138): a co-teacher must see the owner's
+  // assignments, and the owner must see assignments a co-teacher created.
+  // Keying off teacherSub would miss the other party, so filter by groupId.
+  const viaGroup = await listAssignmentsInGroups(await listManageableGroupIds(identity));
 
   // Merge by classroomId (owned wins). Archived classes are excluded unless
   // the caller opts in with ?includeArchived=1 (the archive-list / restore UI,
