@@ -261,16 +261,19 @@ const GroupBrowser = ({onOpen, reloadKey}) => {
                 className="admin-facets"
                 data-testid="classroom-group-admin-status-filters"
             >
-                {STATUS_FILTERS.map(f => (
-                    <button
-                        className={status === f.key ? 'admin-chip-active' : 'admin-chip'}
-                        data-status={f.key}
-                        data-testid={`classroom-group-admin-status-${f.key || 'all'}`}
-                        key={f.key || 'all'}
-                        type="button"
-                        onClick={handleStatus}
-                    >{f.label}</button>
-                ))}
+                <span className="admin-facet-group">
+                    <span className="admin-meta">{'状態:'}</span>
+                    {STATUS_FILTERS.map(f => (
+                        <button
+                            className={status === f.key ? 'admin-chip-active' : 'admin-chip'}
+                            data-status={f.key}
+                            data-testid={`classroom-group-admin-status-${f.key || 'all'}`}
+                            key={f.key || 'all'}
+                            type="button"
+                            onClick={handleStatus}
+                        >{f.label}</button>
+                    ))}
+                </span>
             </div>
             {error ? <p
                 className="admin-error"
