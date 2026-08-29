@@ -9,8 +9,8 @@ import React, { useCallback, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 
 import { formatClassLabel } from '../../lib/classroom-class-label.js';
-import ErrorDisplay from './error-display.jsx';
-import TeacherBreadcrumbs from './teacher-breadcrumbs.jsx';
+import ClassroomButton from './classroom-button.jsx';
+import { TeacherScreen, TeacherSubView } from './teacher-view-layout.jsx';
 
 import styles from './classroom-modal.css';
 
@@ -242,11 +242,9 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
             <div className={styles.formFooter}>
                 {confirmingArchive ? (
                     <React.Fragment>
-                        <button
-                            className={styles.secondaryButton}
-                            data-testid="classroom-class-settings-archive-cancel"
+                        <ClassroomButton
+                            dataTestId="classroom-class-settings-archive-cancel"
                             disabled={isLoading}
-                            type="button"
                             onClick={handleCancelArchive}
                         >
                             <FormattedMessage
@@ -254,12 +252,11 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
                                 description="Button that cancels archiving the class"
                                 id="gui.classroom.classSettings.archiveConfirmNo"
                             />
-                        </button>
-                        <button
-                            className={styles.dangerButton}
-                            data-testid="classroom-class-settings-archive"
+                        </ClassroomButton>
+                        <ClassroomButton
+                            dataTestId="classroom-class-settings-archive"
                             disabled={isLoading}
-                            type="button"
+                            variant="danger"
                             onClick={handleToggleArchive}
                         >
                             <FormattedMessage
@@ -267,15 +264,13 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
                                 description="Confirm button that actually archives the class"
                                 id="gui.classroom.classSettings.archiveConfirmYes"
                             />
-                        </button>
+                        </ClassroomButton>
                     </React.Fragment>
                 ) : (
                     <React.Fragment>
-                        <button
-                            className={styles.secondaryButton}
-                            data-testid="classroom-class-settings-cancel"
+                        <ClassroomButton
+                            dataTestId="classroom-class-settings-cancel"
                             disabled={isLoading}
-                            type="button"
                             onClick={confirmingDecrease ? handleCancelDecrease : onCancel}
                         >
                             {confirmingDecrease ? (
@@ -291,13 +286,11 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
                                     id="gui.classroom.classSettings.cancel"
                                 />
                             )}
-                        </button>
+                        </ClassroomButton>
                         <div className={styles.footerRightGroup}>
-                            <button
-                                className={styles.secondaryButton}
-                                data-testid="classroom-class-settings-archive"
+                            <ClassroomButton
+                                dataTestId="classroom-class-settings-archive"
                                 disabled={isLoading}
-                                type="button"
                                 onClick={handleToggleArchive}
                             >
                                 {group.status === 'archived' ? (
@@ -313,12 +306,12 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
                                         id="gui.classroom.classSettings.archive"
                                     />
                                 )}
-                            </button>
-                            <button
-                                className={styles.primaryButton}
-                                data-testid="classroom-class-settings-save"
+                            </ClassroomButton>
+                            <ClassroomButton
+                                dataTestId="classroom-class-settings-save"
                                 disabled={!canSave || isLoading}
                                 type="submit"
+                                variant="primary"
                             >
                                 {confirmingDecrease ? (
                                     <FormattedMessage
@@ -333,7 +326,7 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
                                         id="gui.classroom.classSettings.save"
                                     />
                                 )}
-                            </button>
+                            </ClassroomButton>
                         </div>
                     </React.Fragment>
                 )}
@@ -559,29 +552,32 @@ const TeacherClassList = ({
     // クラスを作る（#1108: popover → 画面遷移。フッター キャンセル左/作成右）
     if (showCreateForm) {
         return (
-            <div className={styles.classList} data-testid="classroom-phase-teacher-class-list">
-                <TeacherBreadcrumbs
-                    items={[
-                        classListCrumb,
-                        {
-                            label: intl.formatMessage({
-                                defaultMessage: 'Create a class',
-                                description: 'Button that opens the combined class creation form',
-                                id: 'gui.classroom.classList.create',
-                            }),
-                        },
-                    ]}
-                />
-                <ErrorDisplay error={error} errorTitle={errorTitle} />
-                <div className={styles.panelInnerView}>
-                    {/* 設定画面と同じ枠付きフォーム（.class-settings-form）に揃える。 */}
-                    <div className={styles.phaseTitle}>
+            <TeacherScreen
+                breadcrumbs={[
+                    classListCrumb,
+                    {
+                        label: intl.formatMessage({
+                            defaultMessage: 'Create a class',
+                            description: 'Button that opens the combined class creation form',
+                            id: 'gui.classroom.classList.create',
+                        }),
+                    },
+                ]}
+                className={styles.classList}
+                error={error}
+                errorTitle={errorTitle}
+                testId="classroom-phase-teacher-class-list"
+            >
+                {/* 設定画面と同じ枠付きフォーム（.class-settings-form）に揃える。 */}
+                <TeacherSubView
+                    title={
                         <FormattedMessage
                             defaultMessage="Create a class"
                             description="Button that opens the combined class creation form"
                             id="gui.classroom.classList.create"
                         />
-                    </div>
+                    }
+                >
                     <form
                         className={styles.classSettingsForm}
                         data-testid="classroom-class-create-view"
@@ -659,10 +655,8 @@ const TeacherClassList = ({
                         />
                     </p>
                     <div className={styles.formFooter}>
-                        <button
-                            className={styles.secondaryButton}
-                            data-testid="classroom-class-create-cancel"
-                            type="button"
+                        <ClassroomButton
+                            dataTestId="classroom-class-create-cancel"
                             onClick={handleToggleCreateForm}
                         >
                             <FormattedMessage
@@ -670,12 +664,12 @@ const TeacherClassList = ({
                                 description="Cancel button of the class creation form"
                                 id="gui.classroom.classList.createCancel"
                             />
-                        </button>
-                        <button
-                            className={styles.primaryButton}
-                            data-testid="classroom-class-create-submit"
+                        </ClassroomButton>
+                        <ClassroomButton
+                            dataTestId="classroom-class-create-submit"
                             disabled={!canSubmit || isLoading}
                             type="submit"
+                            variant="primary"
                         >
                             {assignmentName.trim() ? (
                                 <FormattedMessage
@@ -690,72 +684,75 @@ const TeacherClassList = ({
                                     id="gui.classroom.classList.createClassOnly"
                                 />
                             )}
-                        </button>
+                        </ClassroomButton>
                     </div>
                     </form>
-                </div>
-            </div>
+                </TeacherSubView>
+            </TeacherScreen>
         );
     }
 
     // クラス設定（#1108: インラインカード → 画面遷移）
     if (settingsGroup) {
         return (
-            <div className={styles.classList} data-testid="classroom-phase-teacher-class-list">
-                <TeacherBreadcrumbs
-                    items={[
-                        classListCrumb,
-                        {
-                            label: intl.formatMessage({
-                                defaultMessage: 'Settings',
-                                description: 'Button on a class card to open its settings',
-                                id: 'gui.classroom.classList.settings',
-                            }),
-                        },
-                    ]}
-                />
-                <ErrorDisplay error={error} errorTitle={errorTitle} />
-                <div className={styles.panelInnerView}>
-                    <div className={styles.phaseTitle}>{formatClassLabel(settingsGroup)}</div>
+            <TeacherScreen
+                breadcrumbs={[
+                    classListCrumb,
+                    {
+                        label: intl.formatMessage({
+                            defaultMessage: 'Settings',
+                            description: 'Button on a class card to open its settings',
+                            id: 'gui.classroom.classList.settings',
+                        }),
+                    },
+                ]}
+                className={styles.classList}
+                error={error}
+                errorTitle={errorTitle}
+                testId="classroom-phase-teacher-class-list"
+            >
+                <TeacherSubView title={formatClassLabel(settingsGroup)}>
                     <ClassSettingsForm
                         group={settingsGroup}
                         isLoading={isLoading}
                         onCancel={handleCloseSettings}
                         onUpdateGroup={onUpdateGroup}
                     />
-                </div>
-            </div>
+                </TeacherSubView>
+            </TeacherScreen>
         );
     }
 
     return (
-        <div className={styles.classList} data-testid="classroom-phase-teacher-class-list">
-            <TeacherBreadcrumbs
-                items={[
-                    {
-                        label: intl.formatMessage({
-                            defaultMessage: 'Class list',
-                            description: 'Breadcrumb label of the class list (current view)',
-                            id: 'gui.classroom.breadcrumbs.classList',
-                        }),
-                    },
-                ]}
-            />
-            <h2 className={styles.classListTitle}>
-                <FormattedMessage
-                    defaultMessage="Your classes"
-                    description="Title of the class list (post-login landing view)"
-                    id="gui.classroom.classList.title"
-                />
-            </h2>
-            <p className={styles.classListHint}>
+        <TeacherScreen
+            breadcrumbs={[
+                {
+                    label: intl.formatMessage({
+                        defaultMessage: 'Class list',
+                        description: 'Breadcrumb label of the class list (current view)',
+                        id: 'gui.classroom.breadcrumbs.classList',
+                    }),
+                },
+            ]}
+            className={styles.classList}
+            error={error}
+            errorTitle={errorTitle}
+            hint={
                 <FormattedMessage
                     defaultMessage="A class is one homeroom (e.g. Year 2 Class 1). Open a class to manage its assignments."
                     description="Hint below the class list title"
                     id="gui.classroom.classList.hint"
                 />
-            </p>
-            <ErrorDisplay error={error} errorTitle={errorTitle} />
+            }
+            testId="classroom-phase-teacher-class-list"
+            title={
+                <FormattedMessage
+                    defaultMessage="Your classes"
+                    description="Title of the class list (post-login landing view)"
+                    id="gui.classroom.classList.title"
+                />
+            }
+        >
             <button
                 className={styles.classListCreateButton}
                 data-testid="classroom-class-create"
@@ -795,7 +792,7 @@ const TeacherClassList = ({
             ) : null}
             {ungrouped.length > 0 ? (
                 <div className={styles.ungroupedSection} data-testid="classroom-ungrouped-list">
-                    <p className={styles.classListHint}>
+                    <p className={styles.teacherViewHint}>
                         <FormattedMessage
                             defaultMessage="Assignments not in any of your classes (shared with you or not yet migrated):"
                             description="Heading of the ungrouped assignments fallback list"
@@ -872,7 +869,7 @@ const TeacherClassList = ({
                     ) : null}
                 </div>
             ) : null}
-        </div>
+        </TeacherScreen>
     );
 };
 

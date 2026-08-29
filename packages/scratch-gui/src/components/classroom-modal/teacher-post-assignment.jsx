@@ -64,7 +64,7 @@ const TeacherPostAssignment = ({
                             id="gui.classroom.postAssignment.success"
                         />
                     </div>
-                    <p className={styles.postAssignmentHint}>
+                    <p className={styles.subViewHint}>
                         <FormattedMessage
                             defaultMessage="You can edit or delete this assignment on Google Classroom."
                             description="Hint after posting assignment"
@@ -149,7 +149,7 @@ const TeacherPostAssignment = ({
                             onChange={handleDescriptionChange}
                         />
                     </div>
-                    <div className={styles.postAssignmentHint}>
+                    <div className={styles.subViewHint}>
                         <FormattedMessage
                             defaultMessage="After posting, you can edit details, set assignees, points, etc. on Google Classroom. You can also delete the assignment from Google Classroom."
                             description="Hint about Google Classroom settings"

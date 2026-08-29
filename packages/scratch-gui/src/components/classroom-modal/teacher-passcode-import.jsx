@@ -7,6 +7,8 @@ import PropTypes from 'prop-types';
 import React, { useCallback, useState } from 'react';
 import { FormattedMessage } from 'react-intl';
 
+import ClassroomButton from './classroom-button.jsx';
+import { TeacherSubView } from './teacher-view-layout.jsx';
 import styles from './classroom-modal.css';
 
 const TeacherPasscodeImport = ({ group, isLoading, lookup, error, onLookup, onImport, onCancel }) => {
@@ -23,16 +25,49 @@ const TeacherPasscodeImport = ({ group, isLoading, lookup, error, onLookup, onIm
         onImport(passcode.trim(), group.groupId);
     }, [onImport, passcode, group]);
 
-    return (
-        <div className={styles.panelInnerView} data-testid="classroom-phase-passcode-import">
-            <div className={styles.phaseTitle}>
+    const footer = (
+        <>
+            <ClassroomButton dataTestId="classroom-passcode-cancel" onClick={onCancel}>
                 <FormattedMessage
-                    defaultMessage="Import by passcode"
-                    description="Passcode import step title"
-                    id="gui.classroom.shared.passcodeImportTitle"
+                    defaultMessage="Cancel"
+                    description="Cancel passcode import"
+                    id="gui.classroom.shared.shareCancel"
                 />
-            </div>
-            <p className={styles.postAssignmentHint}>
+            </ClassroomButton>
+            {lookup ? (
+                <ClassroomButton
+                    dataTestId="classroom-passcode-import"
+                    disabled={isLoading}
+                    variant="primary"
+                    onClick={handleImport}
+                >
+                    <FormattedMessage
+                        defaultMessage="Import into this class"
+                        description="Import the looked-up assignment"
+                        id="gui.classroom.shared.passcodeImportBtn"
+                    />
+                </ClassroomButton>
+            ) : (
+                <ClassroomButton
+                    dataTestId="classroom-passcode-lookup"
+                    disabled={!passcode.trim() || isLoading}
+                    variant="primary"
+                    onClick={handleLookup}
+                >
+                    <FormattedMessage
+                        defaultMessage="Check"
+                        description="Look up the passcode"
+                        id="gui.classroom.shared.passcodeLookupBtn"
+                    />
+                </ClassroomButton>
+            )}
+        </>
+    );
+
+    return (
+        <TeacherSubView
+            footer={footer}
+            hint={
                 <FormattedMessage
                     defaultMessage={
                         'Enter the passcode a fellow teacher gave you to import the assignment into this class.'
@@ -40,7 +75,16 @@ const TeacherPasscodeImport = ({ group, isLoading, lookup, error, onLookup, onIm
                     description="Passcode import hint"
                     id="gui.classroom.shared.passcodeImportHint"
                 />
-            </p>
+            }
+            testId="classroom-phase-passcode-import"
+            title={
+                <FormattedMessage
+                    defaultMessage="Import by passcode"
+                    description="Passcode import step title"
+                    id="gui.classroom.shared.passcodeImportTitle"
+                />
+            }
+        >
             <div className={styles.formGroup}>
                 <label className={styles.label}>
                     <FormattedMessage
@@ -75,50 +119,7 @@ const TeacherPasscodeImport = ({ group, isLoading, lookup, error, onLookup, onIm
                     />
                 </div>
             ) : null}
-            <div className={styles.formFooter}>
-                <button
-                    className={styles.secondaryButton}
-                    data-testid="classroom-passcode-cancel"
-                    type="button"
-                    onClick={onCancel}
-                >
-                    <FormattedMessage
-                        defaultMessage="Cancel"
-                        description="Cancel passcode import"
-                        id="gui.classroom.shared.shareCancel"
-                    />
-                </button>
-                {lookup ? (
-                    <button
-                        className={styles.primaryButton}
-                        data-testid="classroom-passcode-import"
-                        disabled={isLoading}
-                        type="button"
-                        onClick={handleImport}
-                    >
-                        <FormattedMessage
-                            defaultMessage="Import into this class"
-                            description="Import the looked-up assignment"
-                            id="gui.classroom.shared.passcodeImportBtn"
-                        />
-                    </button>
-                ) : (
-                    <button
-                        className={styles.primaryButton}
-                        data-testid="classroom-passcode-lookup"
-                        disabled={!passcode.trim() || isLoading}
-                        type="button"
-                        onClick={handleLookup}
-                    >
-                        <FormattedMessage
-                            defaultMessage="Check"
-                            description="Look up the passcode"
-                            id="gui.classroom.shared.passcodeLookupBtn"
-                        />
-                    </button>
-                )}
-            </div>
-        </div>
+        </TeacherSubView>
     );
 };
 
