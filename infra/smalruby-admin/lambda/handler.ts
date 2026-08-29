@@ -913,6 +913,11 @@ function assignmentsByGroup(
 /** 一覧の行に載せる課題名の上限（同名クラスの区別に足りる件数）。 */
 const GROUP_ASSIGNMENT_NAME_PREVIEW = 5;
 
+// 1 レスポンスで返す最大件数。`total` も一緒に返し、SPA 側で「打ち切られた」
+// ことを必ず見せる — 既定の並びは作成日時の新しい順なので、黙って切ると
+// 運用者が探している **古いアーカイブ済みクラス** から先に消える。
+const GROUP_LIST_LIMIT = 200;
+
 async function handleListClassroomGroups(
   identity: AdminIdentity, query: Record<string, string | undefined>,
 ): Promise<APIGatewayProxyStructuredResultV2> {
@@ -947,7 +952,10 @@ async function handleListClassroomGroups(
     .map(({ allAssignmentNames, ...item }) => item)
     .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
 
-  return { statusCode: 200, body: JSON.stringify({ items: items.slice(0, 200), total: items.length }) };
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ items: items.slice(0, GROUP_LIST_LIMIT), total: items.length }),
+  };
 }
 
 async function handleGetClassroomGroup(
@@ -1004,14 +1012,27 @@ async function handleSetClassroomGroupStatus(
     values[`:val${i}`] = value;
     parts.push(`#attr${i} = :val${i}`);
   });
-  const result = await docClient.send(new UpdateCommand({
-    TableName: GROUPS_TABLE,
-    Key: { groupId },
-    UpdateExpression: `SET ${parts.join(', ')}`,
-    ExpressionAttributeNames: names,
-    ExpressionAttributeValues: values,
-    ReturnValues: 'ALL_NEW',
-  }));
+  let result;
+  try {
+    result = await docClient.send(new UpdateCommand({
+      TableName: GROUPS_TABLE,
+      Key: { groupId },
+      UpdateExpression: `SET ${parts.join(', ')}`,
+      // UpdateItem は upsert なので、Get と Update の間に TTL でスイープされると
+      // `teacherSub` も `name` も無い抜け殻の行を 400 日の TTL 付きで作ってしまう
+      // （先生の teacherSub-index には出ず、Admin 一覧にだけ残る幽霊）。運用者に
+      // 戻せたと誤報しないよう、行が消えていたら 404 にする。
+      ConditionExpression: 'attribute_exists(groupId)',
+      ExpressionAttributeNames: names,
+      ExpressionAttributeValues: values,
+      ReturnValues: 'ALL_NEW',
+    }));
+  } catch (err) {
+    if ((err as { name?: string }).name === 'ConditionalCheckFailedException') {
+      throw new NotFoundError('Class not found');
+    }
+    throw err;
+  }
   audit('classroomGroup.setStatus', identity, { groupId, status: body.status });
 
   return {

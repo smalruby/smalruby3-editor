@@ -257,6 +257,34 @@ describe('クラス（学級）の検索・詳細・アーカイブ解除 (#1133
       expect(updates).toHaveLength(0);
     });
 
+    test('Get と Update の間に TTL で消えた行は復活させず 404', async () => {
+      // UpdateItem は upsert。条件を外すと teacherSub も name も無い抜け殻の行を
+      // 400 日の TTL 付きで作ってしまい、先生には見えないまま Admin 一覧に残る。
+      const { updates } = wireMocks({ group: groupRows()[0] });
+      const inner = mockSend.getMockImplementation() as (cmd: unknown) => Promise<unknown>;
+      mockSend.mockImplementation(async (command: { constructor: { name: string } }) => {
+        if (command.constructor.name === 'UpdateCommand') {
+          const err = new Error('The conditional request failed');
+          err.name = 'ConditionalCheckFailedException';
+          throw err;
+        }
+        return inner(command);
+      });
+      const res = await handler(makeEvent('PATCH', '/admin/classroom-groups/g-old', {
+        groupId: 'g-old', body: { status: 'active' },
+      }));
+      expect(res.statusCode).toBe(404);
+      expect(updates).toHaveLength(0);
+    });
+
+    test('書き込みは行の存在を条件にする', async () => {
+      const { updates } = wireMocks({ group: groupRows()[0] });
+      await handler(makeEvent('PATCH', '/admin/classroom-groups/g-old', {
+        groupId: 'g-old', body: { status: 'active' },
+      }));
+      expect(updates[0].ConditionExpression).toBe('attribute_exists(groupId)');
+    });
+
     test('存在しないクラスは 404（書き込まない）', async () => {
       const { updates } = wireMocks({ group: null });
       const res = await handler(makeEvent('PATCH', '/admin/classroom-groups/nope', {

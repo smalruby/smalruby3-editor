@@ -111,6 +111,20 @@ describe('ClassroomGroupsView (#1133)', () => {
             expect(mockFetchGroups).toHaveBeenLastCalledWith({q: '5年1組', status: 'archived'}));
     });
 
+    test('打ち切られた一覧は「絞り込んでください」と伝える', async () => {
+        // 既定は作成日時の新しい順なので、黙って切ると運用者が探している古い
+        // アーカイブ済みクラスから先に消える。「無い」と誤読させない。
+        mockFetchGroups.mockResolvedValue({items: groups, total: 240});
+        render(<ClassroomGroupsView />);
+        expect(await screen.findByTestId('classroom-group-admin-count'))
+            .toHaveTextContent('該当 240 件のうち 2 件を表示（絞り込んでください）');
+    });
+
+    test('全件表示なら件数だけ出す', async () => {
+        render(<ClassroomGroupsView />);
+        expect(await screen.findByTestId('classroom-group-admin-count')).toHaveTextContent('該当 2 件');
+    });
+
     test('見つからないときは空メッセージ', async () => {
         mockFetchGroups.mockResolvedValue({items: [], total: 0});
         render(<ClassroomGroupsView />);

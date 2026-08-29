@@ -102,6 +102,8 @@ teacher / student UI（`packages/scratch-gui/src/components/classroom-modal/**`�
 - **アーカイブ解除は TTL を実行時点から数え直す**（`restoredAt` も刻む）。過去の TTL のまま戻すと即座に再スイープされる（`docs/classroom/operations.md` の既存規約・`restore-plan.ts` と同じ形）
 - **中の課題の `status` は変えない**。クラスを戻しても、アーカイブ済みの課題は勝手に復活させない（無関係な課題を先生の画面に戻さないため）。個別に戻すのは「課題検索」タブ
 - 先生用 UI の `PATCH /classroom-groups/{groupId}` と**同じ更新形**（`status` + `updatedAt`）で書く。書き手が 2 つになるので、スタンプ規約を揃えて片方だけの独自形式を作らない
+- **書き込みは `attribute_exists(groupId)` を条件にする**。`UpdateItem` は upsert なので、条件なしだと確認から書き込みまでの間に TTL でスイープされた行を「`teacherSub` も名前も無い抜け殻」として復活させてしまう（先生には見えず Admin 一覧にだけ残る）。条件が落ちたら 404 を返し、戻せたと誤報しない
+- **一覧は 1 レスポンス 200 件で打ち切り、`total` と併せて必ず件数を表示する**。既定の並びは作成日時の新しい順なので、黙って切ると運用者が探している**古いアーカイブ済みクラス**から先に消え、「無い」と誤って結論される
 
 ## 認証・認可モデル（要点）
 

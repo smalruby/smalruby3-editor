@@ -14,7 +14,7 @@
  * 「どちらを戻すのか」を運用者が判断できない。
  */
 import PropTypes from 'prop-types';
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import {
     fetchClassroomGroup,
     fetchClassroomGroups,
@@ -54,6 +54,17 @@ const assignmentLine = item => {
     const shown = names.join('、') || '(名称なし)';
     const rest = item.assignmentCount - names.length;
     return `課題(${item.assignmentCount}件): ${shown}${rest > 0 ? ` ほか ${rest} 件` : ''}`;
+};
+
+// サーバーは 1 レスポンス 200 件で打ち切る。既定の並びは作成日時の新しい順
+// なので、黙って切ると運用者が探している **古いアーカイブ済みクラス** から先に
+// 消える — 「無い」と誤って結論させないよう、必ず打ち切りを見せる。
+const countLine = data => {
+    const shown = data.items.length;
+    const total = typeof data.total === 'number' ? data.total : shown;
+    return total > shown ?
+        `該当 ${total} 件のうち ${shown} 件を表示（絞り込んでください）` :
+        `該当 ${total} 件`;
 };
 
 const GroupDetail = ({groupId, onBack, onChanged}) => {
@@ -284,27 +295,33 @@ const GroupBrowser = ({onOpen, reloadKey}) => {
             ) : data.items.length === 0 ? (
                 <p data-testid="classroom-group-admin-empty">{'該当するクラス（学級）はありません。'}</p>
             ) : (
-                <ul
-                    className="admin-list"
-                    data-testid="classroom-group-admin-list"
-                >
-                    {data.items.map(item => (
-                        <li key={item.groupId}>
-                            <button
-                                data-group-id={item.groupId}
-                                data-testid={`classroom-group-admin-item-${item.groupId}`}
-                                type="button"
-                                onClick={onOpen}
-                            >
-                                <strong>{`クラス（学級）: ${item.name || '(名称なし)'}`}</strong>
-                                <GroupStatusBadge status={item.status} />
-                                {/* 同名クラスの区別材料（DoD）。名前だけでは選べない。 */}
-                                <span className="admin-meta">{identityLine(item)}</span>
-                                <span className="admin-meta">{assignmentLine(item)}</span>
-                            </button>
-                        </li>
-                    ))}
-                </ul>
+                <Fragment>
+                    <p
+                        className="admin-meta"
+                        data-testid="classroom-group-admin-count"
+                    >{countLine(data)}</p>
+                    <ul
+                        className="admin-list"
+                        data-testid="classroom-group-admin-list"
+                    >
+                        {data.items.map(item => (
+                            <li key={item.groupId}>
+                                <button
+                                    data-group-id={item.groupId}
+                                    data-testid={`classroom-group-admin-item-${item.groupId}`}
+                                    type="button"
+                                    onClick={onOpen}
+                                >
+                                    <strong>{`クラス（学級）: ${item.name || '(名称なし)'}`}</strong>
+                                    <GroupStatusBadge status={item.status} />
+                                    {/* 同名クラスの区別材料（DoD）。名前だけでは選べない。 */}
+                                    <span className="admin-meta">{identityLine(item)}</span>
+                                    <span className="admin-meta">{assignmentLine(item)}</span>
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
+                </Fragment>
             )}
         </div>
     );
