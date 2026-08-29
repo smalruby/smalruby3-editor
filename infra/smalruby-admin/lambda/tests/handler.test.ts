@@ -479,6 +479,37 @@ describe('クラス管理 + 期限切れ復元 (issue #1084)', () => {
       // status 未設定の古い行は active 扱い（先生に見えている側へ倒す）。
       expect(attachGroupInfo({ classroomId: 'c1', groupId: 'g1' }, { name: '5年1組' }).groupStatus)
         .toBe('active');
+      // 引けなかった（undefined）を 'missing' と断定しない（レビュー指摘）。
+      expect(attachGroupInfo({ classroomId: 'c1', groupId: 'g1' }, undefined).groupStatus)
+        .toBe('unknown');
+    });
+
+    test('BatchGet で取り切れなかった親クラスは unknown（missing と区別する）', async () => {
+      let batchCalls = 0;
+      mockSend.mockImplementation(async (command: { constructor: { name: string } }) => {
+        const name = command.constructor.name;
+        if (name === 'GetCommand') return adminRow;
+        if (name === 'ScanCommand') {
+          return { Items: [classroomItem, { ...classroomItem, classroomId: 'c2', groupId: 'g2' }] };
+        }
+        if (name === 'BatchGetCommand') {
+          batchCalls += 1;
+          // g1 だけ返り、g2 はスロットリングで毎回未処理のまま残る。
+          return {
+            Responses: { ClassroomGroups: [{ groupId: 'g1', name: '5年1組', status: 'active' }] },
+            UnprocessedKeys: { ClassroomGroups: { Keys: [{ groupId: 'g2' }] } },
+          };
+        }
+        return {};
+      });
+
+      const res = await handler(makeAuthedEvent('GET', '/admin/classrooms'));
+      const { items } = JSON.parse(res.body as string);
+      const byId = Object.fromEntries(items.map((i: { classroomId: string }) => [i.classroomId, i]));
+      expect(byId.c1).toMatchObject({ groupName: '5年1組', groupStatus: 'active' });
+      expect(byId.c2).toMatchObject({ groupStatus: 'unknown' });
+      // 未処理キーの再試行は数回で打ち切る（無限ループにしない）。
+      expect(batchCalls).toBe(3);
     });
 
     test('GET /admin/classrooms はバッチ 1 回で全課題の親クラスを引く', async () => {

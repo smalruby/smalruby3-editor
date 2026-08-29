@@ -320,19 +320,57 @@ describe('ClassroomsView (issue #1084 + 俯瞰 #1106)', () => {
             expect(screen.queryByTestId('classroom-admin-group-hidden-note')).toBeNull();
         });
 
-        test('親クラスの行ごと消えている課題も「先生には表示されません」', async () => {
+        // 親クラスの行が無い課題は「見えない」ではない: 先生のクラス一覧の
+        // 「どのクラスにも入っていない課題」フォールバックに出る（レビュー指摘）。
+        test('親クラスの行ごと消えている課題は「表示されません」と断定しない', async () => {
             const orphan = {...liveItem, groupId: 'g1', groupName: null, groupStatus: 'missing'};
             mockFetchClassrooms.mockResolvedValue({items: [orphan]});
             mockFetchClassroom.mockResolvedValue({...detail, ...orphan});
             render(<ClassroomsView />);
             fireEvent.click(screen.getByTestId('classroom-admin-tab-live'));
             await waitFor(() => screen.getByTestId('classroom-admin-item-c1'));
+            expect(screen.queryByTestId('classroom-admin-group-hidden-badge')).toBeNull();
+            expect(screen.getByTestId('classroom-admin-group-missing-badge').textContent)
+                .toBe('クラス（学級）が見つかりません');
+
             fireEvent.click(screen.getByTestId('classroom-admin-item-c1'));
             await waitFor(() => screen.getByTestId('classroom-admin-detail'));
-            const note = screen.getByTestId('classroom-admin-group-hidden-note').textContent;
+            expect(screen.queryByTestId('classroom-admin-group-hidden-note')).toBeNull();
+            const note = screen.getByTestId('classroom-admin-group-missing-note').textContent;
             expect(note).toContain('親クラス（学級）が見つかりません');
+            expect(note).toContain('どのクラスにも入っていない課題');
             // 行が無いクラスは「アーカイブ済みのクラス」から戻せないので案内しない。
             expect(note).not.toContain('アーカイブ済みのクラス');
+        });
+
+        test('親クラスがアーカイブ中なら「利用中に戻す」確認でも警告する', async () => {
+            const hidden = {
+                ...liveItem, status: 'archived', groupId: 'g1', groupName: '5年1組', groupStatus: 'archived'
+            };
+            mockFetchClassrooms.mockResolvedValue({items: [hidden]});
+            mockFetchClassroom.mockResolvedValue({...detail, ...hidden});
+            render(<ClassroomsView />);
+            fireEvent.click(screen.getByTestId('classroom-admin-tab-live'));
+            await waitFor(() => screen.getByTestId('classroom-admin-item-c1'));
+            fireEvent.click(screen.getByTestId('classroom-admin-item-c1'));
+            await waitFor(() => screen.getByTestId('classroom-admin-detail'));
+            fireEvent.click(screen.getByTestId('classroom-admin-flip'));
+            expect(screen.getByTestId('classroom-admin-confirm').textContent)
+                .toContain('戻しても先生の画面には表示されません');
+        });
+
+        // 一覧のバッチ取得が取り切れなかったケース（'unknown'）。行が消えたと
+        // 断定せず、状態が不明であることだけを出す（レビュー指摘）。
+        test('親クラスを引けなかった課題は状態不明として出す', async () => {
+            const unknown = {...liveItem, groupId: 'g1', groupName: null, groupStatus: 'unknown'};
+            mockFetchClassrooms.mockResolvedValue({items: [unknown]});
+            render(<ClassroomsView />);
+            fireEvent.click(screen.getByTestId('classroom-admin-tab-live'));
+            await waitFor(() => screen.getByTestId('classroom-admin-item-c1'));
+            expect(screen.getByTestId('classroom-admin-group-unknown-badge').textContent)
+                .toBe('クラス（学級）の状態は不明');
+            expect(screen.queryByTestId('classroom-admin-group-hidden-badge')).toBeNull();
+            expect(screen.queryByTestId('classroom-admin-group-missing-badge')).toBeNull();
         });
 
         test('復元パネルの alive 文言が課題生存／親クラスアーカイブ中で切り替わる', async () => {
@@ -363,6 +401,35 @@ describe('ClassroomsView (issue #1084 + 俯瞰 #1106)', () => {
             expect(screen.getByTestId('restore-admin-alive-classroom').textContent)
                 .toContain('先生自身のクラス管理画面の課題一覧から戻せます');
             expect(screen.queryByTestId('restore-admin-alive-group-hidden')).toBeNull();
+        });
+
+        test('親クラスの行が無い利用中の課題はフォールバック一覧に出ると案内する', async () => {
+            mockFetchPlan.mockResolvedValue({
+                alive: true, status: 'active', groupId: 'g1', groupName: null, groupStatus: 'missing'
+            });
+            render(<ClassroomsView />);
+            fireEvent.click(screen.getByTestId('classroom-admin-tab-restore'));
+            await waitFor(() => screen.getByTestId('classroom-admin-item-c1'));
+            fireEvent.click(screen.getByTestId('classroom-admin-item-c1'));
+            await waitFor(() => screen.getByTestId('restore-admin-alive'));
+            const text = screen.getByTestId('restore-admin-alive-classroom').textContent;
+            expect(text).toContain('どのクラスにも入っていない課題');
+            expect(screen.queryByTestId('restore-admin-alive-group-hidden')).toBeNull();
+        });
+
+        test('親クラスの行が無いアーカイブ済み課題は Admin で戻すよう案内する', async () => {
+            mockFetchPlan.mockResolvedValue({
+                alive: true, status: 'archived', groupId: 'g1', groupName: null, groupStatus: 'missing'
+            });
+            render(<ClassroomsView />);
+            fireEvent.click(screen.getByTestId('classroom-admin-tab-restore'));
+            await waitFor(() => screen.getByTestId('classroom-admin-item-c1'));
+            fireEvent.click(screen.getByTestId('classroom-admin-item-c1'));
+            await waitFor(() => screen.getByTestId('restore-admin-alive'));
+            const text = screen.getByTestId('restore-admin-alive-classroom').textContent;
+            // 先生の課題一覧には出ないので「先生自身が戻せます」とは案内しない。
+            expect(text).not.toContain('先生自身のクラス管理画面の課題一覧から戻せます');
+            expect(text).toContain('利用中に戻す');
         });
     });
 

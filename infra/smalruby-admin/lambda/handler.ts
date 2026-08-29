@@ -519,16 +519,22 @@ function mapClassroomForAdmin(item: Record<string, unknown>) {
  * その課題は**先生の画面に出ない**。運用者が「課題が生きている＝先生に見えている」と
  * 誤読したのが EPIC #1129 の発端なので、実効的な可視性を判断できる材料を必ず返す。
  * @param mapped - `mapClassroomForAdmin` の結果
- * @param group - 引いた親クラスの行。引いた上で存在しなければ `null`
+ * @param group - 引いた親クラスの行。引いた上で存在しなければ `null`、
+ *   そもそも引けなかった（スロットリング等）なら `undefined`
  * @returns `groupName` / `groupStatus` を足したレスポンス。`groupStatus` は
- *   親クラス無し = `null` / 行が消えている = `'missing'` / それ以外は行の status
+ *   親クラス無し = `null` / 行が消えている = `'missing'` / 引けなかった =
+ *   `'unknown'` / それ以外は行の status
  */
 export function attachGroupInfo<T extends { groupId?: unknown }>(
-  mapped: T, group: Record<string, unknown> | null,
+  mapped: T, group: Record<string, unknown> | null | undefined,
 ): T & { groupName: string | null; groupStatus: string | null } {
   const groupId = typeof mapped.groupId === 'string' ? mapped.groupId : '';
   if (!groupId) {
     return { ...mapped, groupName: null, groupStatus: null };
+  }
+  if (group === undefined) {
+    // 引けていないものを「行が消えている」と断定しない（運用者の誤読を招く）。
+    return { ...mapped, groupName: null, groupStatus: 'unknown' };
   }
   if (!group) {
     return { ...mapped, groupName: null, groupStatus: 'missing' };
@@ -544,23 +550,31 @@ export function attachGroupInfo<T extends { groupId?: unknown }>(
  * 親クラスをまとめて引く (#1132)。一覧は最大 100 件返すので、1 件ずつ
  * GetCommand を撃つ N+1 を避けて BatchGet でまとめる。
  * @param groupIds - 課題が指す groupId（重複・空文字を含んでよい）
- * @returns groupId → 行（見つからなければ null）の Map
+ * @returns groupId → 行（引いた上で存在しなければ null）の Map。**引き切れなかった
+ *   groupId はキーごと入らない**（`Map.get` が `undefined` = 未取得 → `'unknown'`）。
+ *   取り切れなかったキーを null にすると `'missing'`（行が消えている）と区別できず、
+ *   運用者に「先生の操作では戻せない」と誤った案内を出してしまう。
  */
 async function fetchGroups(groupIds: string[]): Promise<Map<string, Record<string, unknown> | null>> {
   const unique = [...new Set(groupIds.filter(id => typeof id === 'string' && id))];
-  const found = new Map<string, Record<string, unknown> | null>(unique.map(id => [id, null]));
+  const found = new Map<string, Record<string, unknown> | null>();
   for (let i = 0; i < unique.length; i += 100) {
-    // BatchGet は 1 回あたり 100 キーが上限。未処理キーは数回だけ再試行する
-    // （取り切れなくても null = 'missing' 扱いにはせず、後段で unknown に倒す）。
+    // BatchGet は 1 回あたり 100 キーが上限。未処理キーは数回だけ再試行する。
     let keys: Record<string, unknown>[] = unique.slice(i, i + 100).map(groupId => ({ groupId }));
     for (let attempt = 0; keys.length > 0 && attempt < 3; attempt++) {
+      const requested = keys.map(key => String(key.groupId));
       const result = await docClient.send(new BatchGetCommand({
         RequestItems: { [GROUPS_TABLE]: { Keys: keys } },
       }));
+      keys = (result.UnprocessedKeys?.[GROUPS_TABLE]?.Keys || []) as Record<string, unknown>[];
+      // 処理されたキーだけ「引けた」と確定する（応答に無い = 行が無い）。
+      const unprocessed = new Set(keys.map(key => String(key.groupId)));
+      for (const groupId of requested) {
+        if (!unprocessed.has(groupId)) found.set(groupId, null);
+      }
       for (const row of (result.Responses?.[GROUPS_TABLE] || []) as Record<string, unknown>[]) {
         if (typeof row.groupId === 'string') found.set(row.groupId, row);
       }
-      keys = (result.UnprocessedKeys?.[GROUPS_TABLE]?.Keys || []) as Record<string, unknown>[];
     }
   }
   return found;
@@ -700,7 +714,9 @@ async function handleListClassrooms(
   return {
     statusCode: 200,
     body: JSON.stringify({
-      items: page.map(item => attachGroupInfo(item, groups.get(String(item.groupId || '')) || null)),
+      // `groups.get` の undefined（引き切れなかった）は 'unknown' に落とす。
+      // `|| null` で潰すと「行が消えている」と誤って断定してしまう。
+      items: page.map(item => attachGroupInfo(item, groups.get(String(item.groupId || '')))),
     }),
   };
 }

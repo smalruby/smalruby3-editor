@@ -44,28 +44,82 @@ ClassroomStatusBadge.propTypes = {status: PropTypes.string};
 
 const formatDate = iso => (iso ? iso.replace('T', ' ').slice(0, 16) : '-');
 
-// 親クラス（学級）が生きていない課題は、課題自身が `active` でも先生の画面には
-// 出ない (#1132)。「課題が利用中＝先生に見えている」と誤読した事故（EPIC #1129）を
-// 防ぐため、一覧・詳細・復元パネルで同じ判定を共有する。
-// groupStatus: null = 親クラス無し（v1 の名残） / 'missing' = 親クラスの行が消えている。
-const isHiddenByGroup = groupStatus => groupStatus === 'archived' || groupStatus === 'missing';
+// 親クラス（学級）がアーカイブ中の課題は、課題自身が `active` でも先生のクラス
+// 一覧から消える (#1132)。「課題が利用中＝先生に見えている」と誤読した事故
+// （EPIC #1129）を防ぐため、一覧・詳細・復元パネルで同じ判定を共有する。
+// groupStatus: null = 親クラス無し（v1 の名残） / 'missing' = 親クラスの行が消えている /
+// 'unknown' = 親クラスを引けなかった（スロットリング等）。
+// **`missing` は「見えない」ではない**: 先生のクラス一覧には「どのクラスにも入って
+// いない課題」フォールバック（`teacher-class-list.jsx` の ungrouped セクション）が
+// あり、親クラスの行が無い利用中の課題はそこに出る。隠れるのは `archived` だけ。
+const isHiddenByGroup = groupStatus => groupStatus === 'archived';
 
-const hiddenByGroupReason = (groupStatus, groupName) =>
-    (groupStatus === 'archived' ?
-        `親クラス（学級）「${groupName || '(名称なし)'}」がアーカイブ中です` :
-        '親クラス（学級）が見つかりません（削除された可能性があります）');
+const archivedGroupReason = groupName =>
+    `親クラス（学級）「${groupName || '(名称なし)'}」がアーカイブ中です`;
 
 // アーカイブ中の親クラスを戻せるのは先生自身（Admin にクラス（学級）の
 // アーカイブ解除は無い）。案内すべき操作を正確に書く。
 const GROUP_RESTORE_STEPS =
     '先生には「クラス管理 → クラス一覧 → アーカイブ済みのクラス → 元に戻す」を案内してください。';
 
-const ParentGroupBadge = ({groupStatus}) => (isHiddenByGroup(groupStatus) ? (
-    <span
-        className="admin-badge admin-badge-warn"
-        data-testid="classroom-admin-group-hidden-badge"
-    >{'先生には表示されません'}</span>
-) : null);
+// 親クラスの行が無い課題の実際の見え方。先生の画面から消えるわけではない。
+const GROUP_MISSING_NOTE =
+    '親クラス（学級）が見つかりません（削除された可能性があります）。' +
+    '利用中の課題は、先生のクラス一覧の「どのクラスにも入っていない課題」に表示されます。';
+
+/**
+ * 復元パネルで「課題は生きている」ときの案内 (#1132・親クラスがアーカイブ中の
+ * ケースは呼び出し側で別文言）。親クラスの行が無い課題は先生の課題一覧
+ * （クラスごとのボード）には出ないが、利用中なら ungrouped フォールバックに出る。
+ * アーカイブ済み＋親クラス無しだけが先生の動線から外れるので、Admin 側の操作
+ * （課題を利用中に戻す）を案内する。
+ * @param {string} status - 課題の状態（'active' / 'archived'）
+ * @param {string|null} groupStatus - 親クラスの状態（'missing' で行が無い）
+ * @returns {string} 案内文
+ */
+const aliveGuidance = (status, groupStatus) => {
+    if (groupStatus === 'missing') {
+        return status === 'archived' ?
+            'アーカイブ済みで親クラス（学級）も見つからないため、先生の画面には出てきません。' +
+                '課題検索タブの課題詳細で「利用中に戻す」と、先生のクラス一覧の' +
+                '「どのクラスにも入っていない課題」に表示されます。' :
+            '利用中で、先生のクラス一覧の「どのクラスにも入っていない課題」に表示されます' +
+                '（親クラス（学級）が見つからないため）。';
+    }
+    return status === 'archived' ?
+        'アーカイブ済みなので、先生自身のクラス管理画面の課題一覧から戻せます。' :
+        '利用中なので、先生の画面にも表示されています。';
+};
+
+const GROUP_BADGES = {
+    archived: {
+        className: 'admin-badge-warn',
+        testId: 'classroom-admin-group-hidden-badge',
+        text: '先生には表示されません'
+    },
+    missing: {
+        className: 'admin-badge-muted',
+        testId: 'classroom-admin-group-missing-badge',
+        text: 'クラス（学級）が見つかりません'
+    },
+    // 一覧は親クラスをバッチ取得するので、取り切れないことがありうる (#1132)。
+    // 「行が消えている」と断定せず、不明であることをそのまま出す。
+    unknown: {
+        className: 'admin-badge-muted',
+        testId: 'classroom-admin-group-unknown-badge',
+        text: 'クラス（学級）の状態は不明'
+    }
+};
+
+const ParentGroupBadge = ({groupStatus}) => {
+    const badge = GROUP_BADGES[groupStatus];
+    return badge ? (
+        <span
+            className={`admin-badge ${badge.className}`}
+            data-testid={badge.testId}
+        >{badge.text}</span>
+    ) : null;
+};
 
 ParentGroupBadge.propTypes = {groupStatus: PropTypes.string};
 
@@ -282,9 +336,15 @@ const ClassroomDetail = ({classroomId, onBack, onChanged}) => {
                     className="admin-error"
                     data-testid="classroom-admin-group-hidden-note"
                 >
-                    {`この課題は先生の画面に表示されていません — ${hiddenByGroupReason(detail.groupStatus, detail.groupName)}。`}
-                    {detail.groupStatus === 'archived' ? GROUP_RESTORE_STEPS : ''}
+                    {`この課題は先生の画面に表示されていません — ${archivedGroupReason(detail.groupName)}。`}
+                    {GROUP_RESTORE_STEPS}
                 </p>
+            ) : null}
+            {detail.groupStatus === 'missing' ? (
+                <p
+                    className="admin-meta"
+                    data-testid="classroom-admin-group-missing-note"
+                >{GROUP_MISSING_NOTE}</p>
             ) : null}
             <p
                 className="admin-meta"
@@ -301,6 +361,11 @@ const ClassroomDetail = ({classroomId, onBack, onChanged}) => {
                         {detail.status === 'active' ?
                             'この課題をアーカイブしますか？（先生の課題一覧から非表示になります）' :
                             'この課題を利用中に戻しますか？'}
+                        {/* 親クラスがアーカイブ中なら、利用中に戻しても先生の
+                            画面には出てこない (#1132)。実行前に必ず伝える。 */}
+                        {detail.status !== 'active' && isHiddenByGroup(detail.groupStatus) ?
+                            '（親クラス（学級）がアーカイブ中のため、戻しても先生の画面には表示されません）' :
+                            ''}
                         <button
                             data-testid="classroom-admin-confirm-yes"
                             disabled={busy}
@@ -429,20 +494,18 @@ const RestorePanel = ({classroomId, onBack}) => {
         return (
             <div data-testid="restore-admin-alive">
                 {isHiddenByGroup(plan.groupStatus) ? (
-                    // 課題自体は生きているが親クラスが落ちているケース (#1132)。
+                    // 課題自体は生きているが親クラスがアーカイブ中のケース (#1132)。
                     // 「先生自身のクラス管理画面から戻せます」だけだと、先生は
                     // 課題一覧をいくら探しても対象を見つけられない（誤誘導）。
                     <p data-testid="restore-admin-alive-group-hidden">
-                        {`この課題のデータは残っていますが、${hiddenByGroupReason(plan.groupStatus, plan.groupName)}。`}
+                        {`この課題のデータは残っていますが、${archivedGroupReason(plan.groupName)}。`}
                         {'そのため先生の画面には表示されていません。'}
-                        {plan.groupStatus === 'archived' ? GROUP_RESTORE_STEPS : ''}
+                        {GROUP_RESTORE_STEPS}
                     </p>
                 ) : (
                     <p data-testid="restore-admin-alive-classroom">
                         {'この課題はまだ存在しています（削除されていません）。'}
-                        {plan.status === 'archived' ?
-                            'アーカイブ済みなので、先生自身のクラス管理画面の課題一覧から戻せます。' :
-                            '利用中なので、先生の画面にも表示されています。'}
+                        {aliveGuidance(plan.status, plan.groupStatus)}
                     </p>
                 )}
                 <button
