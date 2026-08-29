@@ -48,7 +48,7 @@ eval "$(aws configure export-credentials --profile smalruby --format env)"
 # 参加コードで検索（先生に聞くのが最速。大文字小文字は不問）
 npx ts-node bin/restore-classroom.ts --join-code abc234
 
-# クラス名（部分一致）で検索。複数一致時は候補一覧が出るので --classroom-id で特定
+# クラス（学級）名（`Classrooms.className`・部分一致）で検索。複数一致時は候補一覧が出るので --classroom-id で特定
 npx ts-node bin/restore-classroom.ts --class-name "2年1組"
 
 # classroomId 直接指定
@@ -60,7 +60,7 @@ npx ts-node bin/restore-classroom.ts --classroom-id <uuid> --apply
 
 | フラグ | 意味 | 既定 |
 |--------|------|------|
-| `--classroom-id` / `--join-code` / `--class-name` | 復元対象の指定（いずれか必須） | — |
+| `--classroom-id` / `--join-code` / `--class-name` | 復元対象の課題の指定（いずれか必須） | — |
 | `--apply` | 実際に書き込む | dry-run |
 | `--ttl-days` | 復元データの新しい保存期限 | 90 |
 | `--group-ttl-days` | 復元するクラス（学級）の保存期限 | 400 |
@@ -90,4 +90,4 @@ npx ts-node bin/restore-classroom.ts --classroom-id <uuid> --apply
 
 **復元できない場合（保持期間超過）:**
 
-> ご連絡ありがとうございます。恐れ入りますが、ご指定のクラスはデータの保持期間（削除から 1 年）を過ぎており、復元することができませんでした。今後は、課題ボードの保存期限表示をご確認のうえ、「全課題の提出物をダウンロード」機能でお手元に保存いただけますようお願いいたします。
+> ご連絡ありがとうございます。恐れ入りますが、ご指定の課題はデータの保持期間（削除から 1 年）を過ぎており、復元することができませんでした。今後は、課題ボードの保存期限表示をご確認のうえ、「全課題の提出物をダウンロード」機能でお手元に保存いただけますようお願いいたします。
