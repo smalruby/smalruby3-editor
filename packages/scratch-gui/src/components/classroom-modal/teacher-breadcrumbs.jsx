@@ -13,7 +13,10 @@ const TeacherBreadcrumbs = ({ items }) => (
         {items.map((item, index) => {
             const handleItemClick = item.onClick;
             return (
-                <React.Fragment key={item.label}>
+                // label は node (FormattedMessage) のこともあり key にすると
+                // "[object Object]" で衝突するため、位置を key にする
+                // (パンくずは 1 レンダリング内で並べ替わらない)。
+                <React.Fragment key={index}>
                     {index > 0 ? <span className={styles.breadcrumbSeparator}>{'>'}</span> : null}
                     {handleItemClick ? (
                         <button

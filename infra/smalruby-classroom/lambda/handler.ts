@@ -597,16 +597,22 @@ async function handleCreateClassroom(identity: TeacherIdentity, body: Record<str
   }
   const sortDate = body.sortDate !== undefined ? validateSortDate(body.sortDate) : undefined;
 
-  // Auto-number duplicate assignment names within the same class. Paginated:
-  // a truncated read would miss an existing name and hand out a duplicate.
-  const existingClassrooms = await queryAll({
-    TableName: CLASSROOMS_TABLE,
-    IndexName: 'teacherSub-index',
-    KeyConditionExpression: 'teacherSub = :ts',
-    ExpressionAttributeValues: { ':ts': identity.sub },
-  });
+  // Auto-number duplicate assignment names within the same class. Inside a
+  // class (組) the siblings are enumerated by groupId so a co-teacher's
+  // assignments count too (#1138 / #1145); ungrouped (pre-v2) assignments have
+  // no class row to key off, so they still match on className within the
+  // creator's own assignments.
+  // ページング必須: 1MB で打ち切られると既存の課題名を見落として重複を配ってしまう。
+  const existingClassrooms = groupId
+    ? await listAssignmentsInGroups([groupId])
+    : await queryAll({
+      TableName: CLASSROOMS_TABLE,
+      IndexName: 'teacherSub-index',
+      KeyConditionExpression: 'teacherSub = :ts',
+      ExpressionAttributeValues: { ':ts': identity.sub },
+    });
   const sameClassAssignments = existingClassrooms
-    .filter(item => item.className === className && item.status === 'active')
+    .filter(item => (groupId ? true : item.className === className) && item.status === 'active')
     .map(item => item.assignmentName as string);
   if (sameClassAssignments.includes(assignmentName)) {
     let suffix = 2;
@@ -1173,15 +1179,13 @@ async function handleJoinClassroom(sourceIp: string, body: Record<string, unknow
   // Personalized recap: when the lesson belongs to a group (組), surface the
   // returned teacher comment this seat received in the most recent prior
   // lesson of the same group. Best-effort — joining must never fail on this.
+  // Enumerated by groupId, not by the class owner's teacherSub: a prior lesson
+  // in the same class may have been created by a class co-teacher (#1138), and
+  // that row carries their own teacherSub (#1145).
   let previousComment: Record<string, unknown> | null = null;
   if (classroom.groupId) {
     try {
-      const siblings = await queryAll({
-        TableName: CLASSROOMS_TABLE,
-        IndexName: 'teacherSub-index',
-        KeyConditionExpression: 'teacherSub = :ts',
-        ExpressionAttributeValues: { ':ts': classroom.teacherSub },
-      });
+      const siblings = await listAssignmentsInGroups([classroom.groupId as string]);
       const prior = selectPriorClassrooms(
         siblings,
         classroom.groupId as string,
@@ -2681,11 +2685,7 @@ async function handleUpdateGroup(identity: TeacherIdentity, groupId: string, bod
   // adds seats (safe); decreasing drops seats — the teacher UI warns first
   // that submissions on the removed seats stop showing.
   if (updates.studentCount !== undefined) {
-    await propagateStudentCountToClassrooms(
-      String((result.Attributes as Record<string, unknown>)?.teacherSub ?? identity.sub),
-      groupId,
-      updates.studentCount as number,
-    );
+    await propagateStudentCountToClassrooms(groupId, updates.studentCount as number);
   }
 
   return { statusCode: 200, body: JSON.stringify(mapGroupSummary(result.Attributes || {})) };
@@ -2693,27 +2693,20 @@ async function handleUpdateGroup(identity: TeacherIdentity, groupId: string, bod
 
 /**
  * Set every active classroom (assignment) in a class to the class's new seat
- * count. Enumerates via teacherSub-index + a groupId filter (no groupId GSI on
- * the classrooms table), the same pattern topic cascades use.
- * @param teacherSub - owning teacher (partition key of teacherSub-index)
+ * count. Enumerated by groupId, not by the class owner's teacherSub: a class
+ * co-teacher can file assignments in this class too (#1138) and those rows
+ * carry their own teacherSub, so keying off the owner would leave their
+ * assignments showing a stale student count (#1145).
  * @param groupId - the class whose assignments to update
  * @param studentCount - the new seat count to write
  */
 async function propagateStudentCountToClassrooms(
-  teacherSub: string, groupId: string, studentCount: number,
+  groupId: string, studentCount: number,
 ): Promise<void> {
   const now = new Date().toISOString();
-  // Paginated: the 1MB cap applies before the groupId filter, so a truncated
-  // read would leave some assignments in the class on the old seat count.
-  const result = await queryAll({
-    TableName: CLASSROOMS_TABLE,
-    IndexName: 'teacherSub-index',
-    KeyConditionExpression: 'teacherSub = :ts',
-    FilterExpression: 'groupId = :gid AND #status = :active',
-    ExpressionAttributeNames: { '#status': 'status' },
-    ExpressionAttributeValues: { ':ts': teacherSub, ':gid': groupId, ':active': 'active' },
-  });
-  for (const item of result) {
+  const assignments = (await listAssignmentsInGroups([groupId]))
+    .filter(item => item.status === 'active');
+  for (const item of assignments) {
     await docClient.send(new UpdateCommand({
       TableName: CLASSROOMS_TABLE,
       Key: { classroomId: item.classroomId },
@@ -2729,6 +2722,10 @@ async function propagateStudentCountToClassrooms(
  * it: create classes, adopt ungrouped assignments, lift class-level fields.
  * Safe to call on every class-list view — a fully migrated account produces
  * an empty plan.
+ *
+ * Deliberately keyed off the caller's own teacherSub (not groupId): this
+ * migrates the caller's *ungrouped* (pre-v2) rows, which have no class to
+ * enumerate from, and each teacher migrates their own account (#1145).
  */
 async function handleMigrateGroups(identity: TeacherIdentity): Promise<APIGatewayProxyStructuredResultV2> {
   // Paginated: the plan drives writes (create classes, adopt assignments), so

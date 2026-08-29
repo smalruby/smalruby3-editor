@@ -105,6 +105,7 @@ Google または Microsoft アカウントでサインインする画面。先�
 | 説明文 | 「アカウントでログインして、クラスを管理します。」 | — | — |
 | ヒント | 「学校の Google Workspace for Education のアカウントで…」 | — | — |
 | Google ログインボタン | 「Googleでログイン」 | `classroom-google-login` | Google 認証画面を開く |
+| Google サインインスロット | ログイン開始後に GIS の「Sign in with Google」ボタンが入る（未開始時は空で非表示） | `google-signin-slot` | GIS ボタンのホスト。内側の生成ノードは `google-signin-button` |
 | Microsoft ログインボタン | 「Microsoftでログイン」 | `classroom-microsoft-login` | Microsoft 認証ポップアップを開く |
 | カルーセル | 右ペインに機能紹介画像（4枚、5秒ごと自動切替） | — | ドットクリックで手動切替 |
 

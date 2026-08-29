@@ -1,3 +1,6 @@
+// このファイルをモジュールにするための宣言。import/export を持たない .ts は TypeScript の
+// グローバルスクリプト扱いになり、トップレベルの const がテストファイル間で衝突する（#1144）。
+export {};
 
 /**
  * 先生側 API と Admin 推薦 (#1110) の境界のテスト。
@@ -7,6 +10,7 @@
  * - 限定公開 → 全体公開の PATCH で明示的な null（クリア）が既存値に
  *   巻き戻らない（レビュー指摘の回帰テスト）
  */
+
 
 const mockSend = jest.fn();
 jest.mock('@aws-sdk/lib-dynamodb', () => {
@@ -169,8 +173,3 @@ describe('先生側 API と Admin 推薦の境界 (#1110)', () => {
   });
 });
 
-// import / export を持たないテストファイルは TS の「スクリプト」扱いになり、
-// ts-jest が 1 プロセスで複数のテストを型付けすると `const mockSend` などが
-// グローバルスコープで衝突して "Cannot redeclare block-scoped variable" になる。
-// 空 export でモジュール化してファイルごとのスコープに閉じる。
-export {};

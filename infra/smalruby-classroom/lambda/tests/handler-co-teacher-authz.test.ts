@@ -1,3 +1,6 @@
+// このファイルをモジュールにするための宣言。import/export を持たない .ts は TypeScript の
+// グローバルスクリプト扱いになり、トップレベルの const がテストファイル間で衝突する（#1144）。
+export {};
 
 /**
  * Handler-level authorization tests for the co-teacher endpoints.
@@ -13,6 +16,7 @@
  * ({sub: 'dev-test-teacher', email: 'dev-test-teacher@example.com'}), which is
  * a legitimately authenticated teacher but a stranger to the mocked classroom.
  */
+
 
 // Replace only the DynamoDB document client's send(); keep the real command
 // classes so the handler can still build Get/Update/Query/Scan commands.
@@ -130,8 +134,3 @@ describe('co-teacher endpoints — cross-tenant authorization', () => {
     });
 });
 
-// import / export を持たないテストファイルは TS の「スクリプト」扱いになり、
-// ts-jest が 1 プロセスで複数のテストを型付けすると `const mockSend` などが
-// グローバルスコープで衝突して "Cannot redeclare block-scoped variable" になる。
-// 空 export でモジュール化してファイルごとのスコープに閉じる。
-export {};
