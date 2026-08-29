@@ -109,6 +109,22 @@ sequenceDiagram
 | 再認証失敗時 | Alert バナー「セッションが無効になりました。」+ 「参加しなおす」ボタン |
 | 自動リフレッシュ | 30秒ごとにメンバー情報を更新（`refreshMembersOnly`、詳細パネルの状態は保持） |
 
+### Google サインイン UI の置き場所
+
+One Tap が表示できない環境（Windows や Playwright では毎回）では、GIS が描画する
+「Google でログイン」ボタンを使う。このボタンは **モーダル内のスロット**
+（`components/google-sign-in-slot/`、教師ログイン画面と不具合報告モーダルに配置）へ
+描画する。React の外（`document.body` 直下の固定オーバーレイ）に描画すると、
+ログインを中断してもカードが画面中央に残り、ログインを開始するたびに増えていく。
+
+- 進行中のログインは常に 1 つだけ（`loginWithGoogle` は開始時に前回を中止する）。
+- スロットのアンマウント（モーダルを閉じる / フェーズ移動）、Microsoft ログインへの
+  切り替え、ログイン完了・失敗のいずれでも `cancelGoogleLogin()` が走り、ボタン削除・
+  One Tap の `cancel()`・Promise の settle をまとめて行う。
+- 表示判定に FedCM 必須化で機能しなくなる `isNotDisplayed()` / `isSkippedMoment()` /
+  `isDisplayMoment()` を使わない（`use_fedcm_for_prompt: true`。サイレント再認証は
+  dismiss とタイムアウトのみで失敗を判定する）。
+
 ### 生徒セッション管理
 
 | 項目 | 内容 |

@@ -51,6 +51,17 @@
     gap: 0.75rem;
 }
 
+/* Host for the GIS-rendered sign-in button (#1149). Collapses while empty so
+   the login phase keeps its spacing when One Tap handles the login. */
+.google-sign-in-slot {
+    display: flex;
+    justify-content: center;
+}
+
+.google-sign-in-slot:empty {
+    display: none;
+}
+
 .field-label {
     font-weight: bold;
     font-size: 0.9rem;
