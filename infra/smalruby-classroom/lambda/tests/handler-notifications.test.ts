@@ -1,3 +1,7 @@
+// このファイルをモジュールにするための宣言。import/export を持たない .ts は TypeScript の
+// グローバルスクリプト扱いになり、トップレベルの const がテストファイル間で衝突する（#1144）。
+export {};
+
 /**
  * お知らせ (notification center) tests — EPIC #1111.
  *

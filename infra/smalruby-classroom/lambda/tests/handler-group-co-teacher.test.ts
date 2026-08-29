@@ -1,3 +1,7 @@
+// このファイルをモジュールにするための宣言。import/export を持たない .ts は TypeScript の
+// グローバルスクリプト扱いになり、トップレベルの const がテストファイル間で衝突する（#1144）。
+export {};
+
 /**
  * Class-level (group) co-teacher authorization tests (issue #1138).
  *
