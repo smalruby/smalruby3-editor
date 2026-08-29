@@ -65,6 +65,20 @@ async function readToken() {
     return readTokenCache.token;
 }
 
+/**
+ * 俯瞰ボード再取得（listItems キャッシュミス時 / enrichment / head-PR 補完）に使うトークン。
+ * これらは *読み取り専用で可視な成果物を生まない* ため、read（個人）トークンの GraphQL 予算に
+ * 一点集中させず、遊んでいる Bot の GraphQL 予算へ **既定で** 振り分けて実効予算を分散する
+ * （dispatch 判断の tick 系 read は従来どおり readToken のまま）。名義が見える書き込みは
+ * 引き続き botToken なので、名義規約（書き込み=Bot / 読み取り=read）の趣旨は損なわない。
+ * `AUTOPILOT_BOARD_READS=read` で従来（read トークン）へ戻せる。
+ * @returns {Promise<string>}
+ */
+async function boardToken() {
+    if (process.env.AUTOPILOT_BOARD_READS === 'read') return readToken();
+    return botToken();
+}
+
 async function gh(args, { token } = {}) {
     const env = { ...process.env, GH_TOKEN: token || await botToken() };
     const { stdout } = await execFileP('gh', args, { encoding: 'utf8', env, maxBuffer: 64 * 1024 * 1024 });
@@ -757,7 +771,7 @@ async function applyIntents(ctx, itemId, intents, token) {
 }
 
 module.exports = {
-    botToken, readToken, gh, getProject, getFields, listItems, normalizeProjectItem, findItemId, addIssue, setField, applyIntents,
+    botToken, readToken, boardToken, gh, getProject, getFields, listItems, normalizeProjectItem, findItemId, addIssue, setField, applyIntents,
     botLogin, findPrForIssue, selectClosingPr, selectHeadPr, hasMergedHeadPr,
     getPrReviewState, getGateContext, getIssueActivity, hasMergedPullRequest, REPO_ROOT,
     getPrInfo, getIssueLabels, getIssueBody, editLabels, setPrDraft, upsertStickyComment, upsertMarkedComment,

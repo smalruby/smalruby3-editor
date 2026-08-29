@@ -41,6 +41,10 @@ const {
     itemOwner,
     orderItemsLikeBoard,
     selectBoardItems,
+    shouldReuseItemsCache,
+    shouldRefreshBoardPeriodic,
+    BOARD_WATCH_TTL_MS,
+    BOARD_UPKEEP_MS,
     selectClosedCheckIssues,
     rateLimitPlan,
     PR_SYNC_STATUSES,
@@ -1416,6 +1420,9 @@ async function tick(cfg, state, log) {
     let items;
     try {
         items = await project.listItems(cfg.owner, cfg.project, await project.readToken());
+        // 直後に走る refreshBoard が同じ listItems（~100 GraphQL pt）を撃ち直さず再利用できるよう
+        // スナップショットを保存する（#read-GraphQL 予算節約 / shouldReuseItemsCache）。
+        state.itemsCache = { items, at: cfg.now() };
     } catch (e) {
         log(`poll error: ${e.message}`);
         return { paused: false, picked: [] };
@@ -1629,12 +1636,22 @@ async function refreshBoard(cfg, state, log, deps = {}) {
     if (state.ratePlan && state.ratePlan.skipLowPriority) return;
     state.boardRefreshing = true;
     try {
-        // ボードは読み取り専用 → 個人トークン側の予算
-        const token = deps.token || await project.readToken();
+        // ボードは読み取り専用。read（個人）トークンの GraphQL 予算に一点集中させないため、
+        // 既定で Bot の GraphQL 予算へ振り分ける（project.boardToken / C）。
+        const token = deps.token || await project.boardToken();
         const listItems = deps.listItems || project.listItems;
         const getBoardEnrichment = deps.getBoardEnrichment || project.getBoardEnrichment;
         const listHeadPrs = deps.listHeadPrs || project.listHeadPrs;
-        const items = await listItems(cfg.owner, cfg.project, token);
+        // tick が直前に取得した item スナップショットが十分新しければ listItems を撃たず再利用する
+        // （B・~100 GraphQL pt/サイクルの重複排除）。POST /refresh は forceFetch で最新を取り直す。
+        const maxAgeMs = cfg.itemsCacheMs || Math.floor((cfg.intervalMs || 300_000) / 2);
+        let items;
+        if (shouldReuseItemsCache({ now: cfg.now(), cache: state.itemsCache, maxAgeMs, forceFetch: deps.forceFetch })) {
+            items = state.itemsCache.items;
+        } else {
+            items = await listItems(cfg.owner, cfg.project, token);
+            state.itemsCache = { items, at: cfg.now() };
+        }
         // 先に表示対象へ絞る: selectBoardItems（= isAssignee）はディレクティブ非依存なので、
         // owner 解決の**前**に非終端 &「自分が Assignees のいずれか」だけへ限定できる。これで
         // 終端 Status や他人の multi-assignee item の本文 fetch を避ける（#938・
@@ -1728,6 +1745,24 @@ async function refreshBoardAndProjectTrackers(cfg, state, log, deps = {}) {
     await refreshBoard(cfg, state, log, deps);
     if (state.ratePlan && state.ratePlan.skipLowPriority) return;
     await applyTrackerStickies(state.board ? state.board.items : [], cfg, log, deps);
+}
+
+/**
+ * 定期（main loop）専用の board 追従（D）。誰もモニタを見ていない間は board の read
+ * （listItems/enrichment）を撃たず、トラッカー sticky が古くなり過ぎないアップキープ間隔
+ * （{@link BOARD_UPKEEP_MS}）を超えたときだけ 1 度走らせる。判定は純粋関数
+ * {@link shouldRefreshBoardPeriodic} に委ね、ここは fire-and-forget の I/O のみ。
+ * POST /refresh・POST /tick 直後・起動時はこの関数を通さず常に実行する。
+ */
+function maybeRefreshBoardPeriodic(cfg, state, log, deps = {}) {
+    const run = shouldRefreshBoardPeriodic({
+        now: cfg.now(),
+        watchedAt: state.boardWatchedAt != null ? state.boardWatchedAt : null,
+        lastBoardAt: state.board ? state.board.updatedAt : null,
+        watchTtlMs: cfg.boardWatchTtlMs || BOARD_WATCH_TTL_MS,
+        upkeepMs: cfg.boardUpkeepMs || BOARD_UPKEEP_MS,
+    });
+    if (run) refreshBoardAndProjectTrackers(cfg, state, log, deps);
 }
 
 /**
@@ -1834,6 +1869,9 @@ function startHttp(cfg, state, log) {
             // usage をライブ読取（ローカルファイル・API 予算ゼロ）してから返す。monitor の
             // 5 秒 poll でほぼライブ追従させる（worker 完了を待たない）（#1027）。
             updateClaudeUsage(state, cfg, log);
+            // 観測時刻を記録する（D）: 誰も見ていない間は定期 refreshBoard を抑制して
+            // board の read（listItems/enrichment）を撃たないため（shouldRefreshBoardPeriodic）。
+            state.boardWatchedAt = cfg.now();
             return send(200, boardResponse(cfg, state));
         }
         if (req.method === 'GET' && url.pathname === '/status') {
@@ -1878,7 +1916,10 @@ function startHttp(cfg, state, log) {
                 // レート残量が僅少なら refreshBoard は内部で no-op になる。正直にスキップを返す。
                 return send(200, { refreshed: false, skipped: 'rate-limited', minRemaining: state.ratePlan.minRemaining });
             }
-            refreshBoardAndProjectTrackers(cfg, state, log)
+            // 「🔄 更新」は明示的な最新要求なので forceFetch=true で listItems を取り直す（B の
+            // キャッシュ再利用をバイパス）。観測扱いにして直後の定期サイクルも追従させる（D）。
+            state.boardWatchedAt = cfg.now();
+            refreshBoardAndProjectTrackers(cfg, state, log, { forceFetch: true })
                 .then(() => send(200, { refreshed: true, updatedAt: state.board ? state.board.updatedAt : null }))
                 .catch((e) => { log(`refresh error: ${e.message}`); send(500, { error: e.message }); });
             return;
@@ -2005,14 +2046,15 @@ async function main(opts = {}) {
         await checkAuthHealth(cfg, state, log);
         // runTickOnce 経由にして、定期 tick と手動 POST /tick が重ならないようにする（再入防止）
         await runTickOnce(cfg, state, log);
-        // tick で Project が動いた直後はボードも追従させる（fire-and-forget）
-        refreshBoardAndProjectTrackers(cfg, state, log);
+        // tick で Project が動いた直後はボードも追従させる（fire-and-forget）。ただし誰も
+        // モニタを見ていない間は board の read を撃たない（D・トラッカー維持のアップキープ間隔は除く）。
+        maybeRefreshBoardPeriodic(cfg, state, log);
         await sleep(cfg.intervalMs);
     }
     if (opts.once) {
         await checkAuthHealth(cfg, state, log);
         await runTickOnce(cfg, state, log);
-        refreshBoardAndProjectTrackers(cfg, state, log);
+        maybeRefreshBoardPeriodic(cfg, state, log);
     }
 }
 
@@ -2026,7 +2068,7 @@ module.exports = {
     recordAuthFailure, handleProcessError, installProcessSafetyNet,
     parseSsoDeviceOutput, startReauth,
     refreshBoard, recordHistory, refreshRateLimits, patchBoardCache,
-    applyTrackerStickies, refreshBoardAndProjectTrackers,
+    applyTrackerStickies, refreshBoardAndProjectTrackers, maybeRefreshBoardPeriodic,
     updateClaudeUsage, boardResponse, statusResponse, startHttp,
     checkForUpdate, startUpdateChecks,
     ensureCheckpointCommit, readContinuationFromWorktree, applyCheckpointHandling,
