@@ -242,11 +242,9 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
             <div className={styles.formFooter}>
                 {confirmingArchive ? (
                     <React.Fragment>
-                        <button
-                            className={styles.secondaryButton}
-                            data-testid="classroom-class-settings-archive-cancel"
+                        <ClassroomButton
+                            dataTestId="classroom-class-settings-archive-cancel"
                             disabled={isLoading}
-                            type="button"
                             onClick={handleCancelArchive}
                         >
                             <FormattedMessage
@@ -254,12 +252,11 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
                                 description="Button that cancels archiving the class"
                                 id="gui.classroom.classSettings.archiveConfirmNo"
                             />
-                        </button>
-                        <button
-                            className={styles.dangerButton}
-                            data-testid="classroom-class-settings-archive"
+                        </ClassroomButton>
+                        <ClassroomButton
+                            dataTestId="classroom-class-settings-archive"
                             disabled={isLoading}
-                            type="button"
+                            variant="danger"
                             onClick={handleToggleArchive}
                         >
                             <FormattedMessage
@@ -267,15 +264,13 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
                                 description="Confirm button that actually archives the class"
                                 id="gui.classroom.classSettings.archiveConfirmYes"
                             />
-                        </button>
+                        </ClassroomButton>
                     </React.Fragment>
                 ) : (
                     <React.Fragment>
-                        <button
-                            className={styles.secondaryButton}
-                            data-testid="classroom-class-settings-cancel"
+                        <ClassroomButton
+                            dataTestId="classroom-class-settings-cancel"
                             disabled={isLoading}
-                            type="button"
                             onClick={confirmingDecrease ? handleCancelDecrease : onCancel}
                         >
                             {confirmingDecrease ? (
@@ -291,13 +286,11 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
                                     id="gui.classroom.classSettings.cancel"
                                 />
                             )}
-                        </button>
+                        </ClassroomButton>
                         <div className={styles.footerRightGroup}>
-                            <button
-                                className={styles.secondaryButton}
-                                data-testid="classroom-class-settings-archive"
+                            <ClassroomButton
+                                dataTestId="classroom-class-settings-archive"
                                 disabled={isLoading}
-                                type="button"
                                 onClick={handleToggleArchive}
                             >
                                 {group.status === 'archived' ? (
@@ -313,12 +306,12 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
                                         id="gui.classroom.classSettings.archive"
                                     />
                                 )}
-                            </button>
-                            <button
-                                className={styles.primaryButton}
-                                data-testid="classroom-class-settings-save"
+                            </ClassroomButton>
+                            <ClassroomButton
+                                dataTestId="classroom-class-settings-save"
                                 disabled={!canSave || isLoading}
                                 type="submit"
+                                variant="primary"
                             >
                                 {confirmingDecrease ? (
                                     <FormattedMessage
@@ -333,7 +326,7 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
                                         id="gui.classroom.classSettings.save"
                                     />
                                 )}
-                            </button>
+                            </ClassroomButton>
                         </div>
                     </React.Fragment>
                 )}

@@ -87,7 +87,9 @@ export const TeacherSubView = ({
     return (
         <Container className={className || styles.panelInnerView} data-testid={testId} {...submitProps}>
             {title ? <div className={styles.phaseTitle}>{title}</div> : null}
-            {hint ? <p className={styles.teacherViewHint}>{hint}</p> : null}
+            {/* サブ画面の説明文は .sub-view-hint (旧 .post-assignment-hint)。
+                トップレベル画面の .teacher-view-hint とは色・サイズが違う。 */}
+            {hint ? <p className={styles.subViewHint}>{hint}</p> : null}
             <ErrorDisplay error={error} errorTitle={errorTitle} />
             {children}
             {footer ? <div className={styles.formFooter}>{footer}</div> : null}
