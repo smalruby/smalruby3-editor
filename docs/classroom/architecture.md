@@ -140,7 +140,7 @@ One Tap が表示できない環境（Windows や Playwright では毎回）で�
 | **API Gateway** | `ClassroomApi-{stage}` | HTTP API エンドポイント |
 | **Lambda** | `ClassroomHandler-{stage}` | ビジネスロジック (Node.js 22, 256MB, 30秒) |
 | **Lambda** | `ClassroomArchiver-{stage}` | DynamoDB Streams の REMOVE を S3 へスナップショット（下記「削除スナップショットと長期保持」） |
-| **DynamoDB** | `Classrooms-{stage}` | クラス情報（Streams: OLD_IMAGE） |
+| **DynamoDB** | `Classrooms-{stage}` | 課題（1 授業）情報（Streams: OLD_IMAGE） |
 | **DynamoDB** | `ClassroomMemberships-{stage}` | メンバー (生徒) 情報（Streams: OLD_IMAGE） |
 | **DynamoDB** | `ClassroomSubmissions-{stage}` | 提出情報（Streams: OLD_IMAGE） |
 | **DynamoDB** | `ClassroomGroups-{stage}` | クラス（学級）情報（Streams: OLD_IMAGE） |
@@ -181,11 +181,11 @@ One Tap が表示できない環境（Windows や Playwright では毎回）で�
 
 | Method | Path | 説明 |
 |--------|------|------|
-| `POST` | `/classrooms` | クラス作成 |
-| `GET` | `/classrooms` | クラス一覧（既定は active のみ。`?includeArchived=1` でアーカイブ済みも返す。各要素に `status` を含む） |
-| `GET` | `/classrooms/{id}` | クラス詳細 |
-| `PATCH` | `/classrooms/{id}` | クラス更新。`{status: 'active'}` でアーカイブ済み課題の復元も行う |
-| `DELETE` | `/classrooms/{id}` | クラス削除 (アーカイブ)。soft-delete でメンバー・提出メタ・S3 は保持され、PATCH で復元可能。生徒の遮断は status ガード（join / lookup / verify-session / 提出がすべて非 active を拒否） |
+| `POST` | `/classrooms` | 課題作成 |
+| `GET` | `/classrooms` | 課題一覧（既定は active のみ。`?includeArchived=1` でアーカイブ済みも返す。各要素に `status` を含む） |
+| `GET` | `/classrooms/{id}` | 課題詳細 |
+| `PATCH` | `/classrooms/{id}` | 課題更新。`{status: 'active'}` でアーカイブ済み課題の復元も行う |
+| `DELETE` | `/classrooms/{id}` | 課題削除 (アーカイブ)。soft-delete でメンバー・提出メタ・S3 は保持され、PATCH で復元可能。生徒の遮断は status ガード（join / lookup / verify-session / 提出がすべて非 active を拒否） |
 | `GET` | `/classrooms/{id}/co-teachers` | 共同管理者一覧 (`{ownerSub, coTeacherEmails}`) |
 | `POST` | `/classrooms/{id}/co-teachers` | 共同管理者を email で招待 (`{email}`)。冪等・最大10・email 形式検証 |
 | `DELETE` | `/classrooms/{id}/co-teachers/{email}` | 共同管理者を解除 |
@@ -202,7 +202,7 @@ One Tap が表示できない環境（Windows や Playwright では毎回）で�
 | `PATCH` | `/classroom-groups/{groupId}` | クラスのリネーム・年度変更・人数・GC 紐づけ・共同管理者・アーカイブ/復帰 |
 | `POST` | `/classroom-groups/migrate` | v1→v2 冪等 bulk migration（未所属課題のクラス自動作成・割当 + フィールド引き上げ） |
 | `PATCH` | `/classroom-groups/{groupId}/topics` | トピックの add / remove / rename（rename・remove は課題へ一括追従） |
-| `POST` | `/classrooms/{id}/duplicate` | クラス（授業）の複製。課題コンテンツの S3 オブジェクトもコピー。`groupId` / `className` / `assignmentName` を上書き可。メンバー・提出は複製しない |
+| `POST` | `/classrooms/{id}/duplicate` | 課題（1 授業）の複製。課題コンテンツの S3 オブジェクトもコピー。`groupId` / `className` / `assignmentName` を上書き可。メンバー・提出は複製しない |
 | `POST` | `/classrooms/{id}/evaluate` | AI 評価支援。静的解析結果（シグナル + 擬似コード）を Anthropic API にリレーし、`mode: grade` は S/A/B/C 案 + 根拠 + needsReview、`mode: comment` は生徒向けポジティブコメント下書きを返す。1リクエスト最大10提出（API GW の30秒制限対策、クライアントがチャンク分割）。先生ごとにレート制限（既定 60回/時） |
 | `GET` | `/notifications` | お知らせ一覧（EPIC #1111）。自分宛て（teacherSub）の直近 50 件 + `unreadCount` を返す。書き込みは admin スタックのみ（単一ライター） |
 | `POST` | `/notifications/mark-read` | お知らせ既読化。`{notificationIds?}` — 省略時は一覧窓（直近 50 件）の未読を全既読化（パネルを開いたらバッジが消える UX） |
@@ -226,18 +226,18 @@ One Tap が表示できない環境（Windows や Playwright では毎回）で�
 - **公開範囲（#1109）**: 項目は `visibility`（`public`/`limited`）を持つ。#1109 以前の項目は属性を持たず `public` とみなす（後方互換）。`limited` は `passcode`（合言葉）を持ち、公開カタログには出ない。「限定公開（合言葉・内輪）→ Admin が把握 → 推薦 → 全体公開」パイプラインの土台
 - **Admin 推薦（#1110）**: 項目は `recommendedAt` / `recommendedBy`（admin email）を持ちうる。書き込みは admin API（`POST/DELETE /admin/shared-assignments/{id}/recommend`）のみ。先生側 API には boolean の `recommended` だけを投影（`recommendedBy` は内部情報）。推薦時は著者へお知らせ（#1111・type `shared_recommended`・`link.kind='shared-mine'`）が飛ぶ
 - データ: `SharedAssignments{suffix}`（**TTL なし・prod は RETAIN + PITR**。GSI: `status-createdAt-index` / `authorSub-createdAt-index` / `passcode-index`（合言葉ルックアップ・#1109））、`SharedAssignmentReports{suffix}`（TTL 90日）
-- ファイル: 専用バケット `smalruby-shared-assignments{suffix}`（**lifecycle なし = 永続**、`shared/{sharedId}/` プレフィックス）。クラス側の保存期限と完全に分離
+- ファイル: 専用バケット `smalruby-shared-assignments{suffix}`（**lifecycle なし = 永続**、`shared/{sharedId}/` プレフィックス）。課題側の保存期限と完全に分離
 - 共有/取り込みの実体は既存 duplicate と同じ S3 サーバー側コピー（クロスバケット）
 
 ### 生徒用 (認証不要 / Session Token)
 
 | Method | Path | 認証 | 説明 |
 |--------|------|------|------|
-| `POST` | `/classrooms/lookup` | 不要 | 参加コードでクラス検索 |
+| `POST` | `/classrooms/lookup` | 不要 | 参加コードで課題を検索 |
 | `POST` | `/classrooms/lookup/kick-request` | 不要 | 「使用中の席」を空けてもらう依頼を先生に送信 (Issue #692) |
-| `POST` | `/classrooms/join` | 不要 | クラスに参加 (→ sessionToken 取得) |
-| `POST` | `/classrooms/verify-session` | Session Token | セッション検証 + 提出状況取得。kick された生徒には 410 + `{reason: 'kicked', joinCode, className, seatNumber}` を返す。クラスが非 active（アーカイブ/期限切れ）なら 401 |
-| `POST` | `/classrooms/{id}/submissions` | Session Token | 提出 (Presigned URL 取得)。クラスが非 active なら 404 |
+| `POST` | `/classrooms/join` | 不要 | 課題に参加 (→ sessionToken 取得) |
+| `POST` | `/classrooms/verify-session` | Session Token | セッション検証 + 提出状況取得。kick された生徒には 410 + `{reason: 'kicked', joinCode, className, seatNumber}` を返す。課題が非 active（アーカイブ/期限切れ）なら 401 |
+| `POST` | `/classrooms/{id}/submissions` | Session Token | 提出 (Presigned URL 取得)。課題が非 active なら 404 |
 | `DELETE` | `/classrooms/{id}/members/me` | Session Token | 自主退出 |
 | `GET` | `/classrooms/{id}/assignment` | Session Token または 先生 ID Token | 課題コンテンツ取得（ページ + 画像/スターターのダウンロード URL）。lookup / join / verify-session は `hasAssignment` フラグを返す |
 
@@ -246,7 +246,7 @@ One Tap が表示できない環境（Windows や Playwright では毎回）で�
 | Method | Path | 説明 |
 |--------|------|------|
 | `GET` | `/classrooms/google-courses` | Google Classroom のコース一覧 |
-| `POST` | `/classrooms/google-import` | コースをインポートしてクラス作成 |
+| `POST` | `/classrooms/google-import` | コースをインポートして課題を作成（`Classrooms` に書き込む） |
 | `POST` | `/classrooms/{id}/google-assignment` | Google Classroom に課題を投稿 |
 
 ## データモデル
@@ -276,17 +276,17 @@ erDiagram
 
 **GSI:**
 - `joinCode-index` — 参加コードでの検索
-- `teacherSub-index` — 先生のクラス一覧（owner 分）
+- `teacherSub-index` — 先生の課題一覧（owner 分）
 
 ### 共同管理（co-teacher）
 
-1 つのクラスを作成者（`teacherSub`）に加えて複数の先生で共同管理できる。
+1 つの課題を作成者（`teacherSub`）に加えて複数の先生で共同管理できる（クラス（学級）単位の共同管理は後述の `ClassroomGroups` 側で行う）。
 
 - 招待は **email** で行い `coTeacherEmails: string[]`（正規化: 小文字）に保持する。ログイン前の相手も指定でき、Google / Microsoft の混在も可。
 - 先生トークン検証 (`verifyTeacherIdToken`) は `{sub, email}` を返す。Google は `email_verified` のときのみ email を採用、Microsoft は `email` / `preferred_username`。
-- 所有権判定は `canManageClassroom(classroom, identity)` = 「`teacherSub === sub` または `coTeacherEmails` に自分の email が含まれる」。全ての先生向け操作で使用。co-teacher は owner と**完全同等**（クラス削除・共同管理者の追加/解除も可）。
+- 所有権判定は `canManageClassroom(classroom, identity)` = 「`teacherSub === sub` または `coTeacherEmails` に自分の email が含まれる」。全ての先生向け操作で使用。co-teacher は owner と**完全同等**（課題削除・共同管理者の追加/解除も可）。
 - 作成者は `teacherSub` で管理され `coTeacherEmails` には含めないため、co-teacher API から作成者を外すことはできない（管理者ゼロを防止）。
-- `GET /classrooms` は次の 3 つの和集合: owner 分（`teacherSub-index`）、課題単位の co-taught 分（課題の `coTeacherEmails` への Scan + `contains` フィルタ）、**管理できるクラス（所有 + 共同管理）に属する課題**（クラスを列挙し、その `groupId` で Classrooms を Scan）。3 つ目は作成者を問わず拾うので、共同管理者にはオーナーが作った課題が、オーナーには共同管理者が作った課題が見える。DynamoDB はリスト属性を GSI 化できないため Scan を使用。Classrooms テーブルは小規模（単一組織・90日 TTL）のため許容。各クラスは `role`（owner / co-teacher）を返し、フロントの「共同管理」バッジに使う。
+- `GET /classrooms` は次の 3 つの和集合: owner 分（`teacherSub-index`）、課題単位の co-taught 分（課題の `coTeacherEmails` への Scan + `contains` フィルタ）、**管理できるクラス（所有 + 共同管理）に属する課題**（クラスを列挙し、その `groupId` で Classrooms を Scan）。3 つ目は作成者を問わず拾うので、共同管理者にはオーナーが作った課題が、オーナーには共同管理者が作った課題が見える。DynamoDB はリスト属性を GSI 化できないため Scan を使用。Classrooms テーブルは小規模（単一組織・90日 TTL）のため許容。各課題は `role`（owner / co-teacher）を返し、フロントの「共同管理」バッジに使う。
 - **クラス（組）単位の共同管理**の判定は `canManageGroup(group, identity)` = 「`teacherSub === sub` または クラスの `coTeacherEmails` に自分の email が含まれる」。クラス単位の共同管理者は、そのクラスの中では owner と同等に振る舞える（課題の一覧・作成・更新・複製・トピック管理・クラス設定の編集）。**例外はクラスの共同管理者リストそのもの**（`PATCH /classroom-groups/{groupId}` の `coTeacherEmails`）で、これは owner のみ変更できる（共同管理者が勝手に招待・自己解除できないようにするため）。
 - 共同管理者の email は**書き込み時**に正規化（`validateCoTeacherEmail` = trim + 小文字）して保存する。認可判定（`canManageClassroom` / `canManageGroup`）は両辺を正規化して比較するので大文字小文字に左右されない。ただし一覧の絞り込みに使う DynamoDB の `contains` は完全一致（大文字小文字を区別）なので、**一覧に出るかどうかは保存側が正規化されている前提**に依存する（手で書き換えた項目に注意）。
 - 所有者でも共同管理者でもない先生には、クラスの存在を秘匿して **404 `Group not found`** を返す。
@@ -386,7 +386,7 @@ erDiagram
 **GSI:**
 - `classroomId-memberId-index` — 生徒ごとの提出検索
 
-### ClassroomGroups テーブル（クラス = 学級。旧称: 組）
+### ClassroomGroups テーブル（クラス（学級）。旧称: 組）
 
 ```mermaid
 erDiagram
@@ -409,7 +409,7 @@ erDiagram
 
 **GSI:** `teacherSub-index` — 先生のクラス一覧
 
-クラス（Group）は**先生側の管理概念**で、1つの学級が年間の複数の課題（Classrooms レコード = 1授業）を束ねる。生徒には見えない（生徒のモデル = 課題ごとの参加コード + 匿名席番号は不変）。
+クラス（学級・Group）は**先生側の管理概念**で、1 つのクラスが年間の複数の課題（Classrooms レコード = 1 授業）を束ねる。生徒には見えない（生徒のモデル = 課題ごとの参加コード + 匿名席番号は不変）。
 
 - クラスは生徒の作品を持たないため、90日ではなく**長期 TTL（既定400日 ≈ 年度 + バッファ、`GROUP_TTL_DAYS`）**
 - クラスのアーカイブは表示上の整理。課題データ自体は 90 日 TTL で自然消滅する
@@ -424,7 +424,7 @@ erDiagram
 - **座席数はクラスの `studentCount` が真実**: 生徒の lookup / join はクラスの人数と課題側スナップショットの **max** を使う（人数を減らしても既存の着席と衝突しない増加方向のみの反映）。クラスの人数を変更するとクラス内のアクティブな課題へ波及するが、この列挙も `groupId` 起点なので共同管理者が作った課題の表示人数が古いまま残らない
 - **クラス単位の列挙は必ず `groupId` 起点**（トピック追従・人数の波及・前回コメント再掲・同名課題のオートナンバリング）。クラスのオーナーの `teacherSub` で引くと、共同管理者が作った課題を取りこぼす。例外は **クラスに属さない（v1 の）課題**を扱う `POST /classroom-groups/migrate` で、そこは引く手がかりが呼び出し元の `teacherSub` しか無い
 - **トピック**（`PATCH /classroom-groups/{groupId}/topics`、body `{action: add|remove|rename, name, to?}`）: クラスの `topics` 配列を管理。**rename / remove はクラス内の課題の `topic` へ一括追従**（rename は付け替え、remove は解除）。追従は `groupId` で課題を引くので、共同管理者が作った課題（`teacherSub` がクラスのオーナーと異なる）も取り残さない。課題の作成・更新で新しいトピック名を使うとクラスの一覧へ自動追加される
-- **AI 評価の日次上限**: 先生ごとに `EVAL_DAILY_LIMIT`（既定 50 呼び出し/日 ≈ フルクラスの採点+コメントで約 5 回分）を DynamoDB のアトミックカウンタ（`Classrooms` テーブルの予約キー `eval-quota#<teacherSub>#<日付>`、TTL 2 日）で永続的に強制。インスタンス内メモリの時間窓（`EVAL_RATE_LIMIT_*`）は高速な一次ゲートとして併用
+- **AI 評価の日次上限**: 先生ごとに `EVAL_DAILY_LIMIT`（既定 50 呼び出し/日 ≈ 1 課題分の全生徒の採点+コメントで約 5 回分）を DynamoDB のアトミックカウンタ（`Classrooms` テーブルの予約キー `eval-quota#<teacherSub>#<日付>`、TTL 2 日）で永続的に強制。インスタンス内メモリの時間窓（`EVAL_RATE_LIMIT_*`）は高速な一次ゲートとして併用
 - **課題の `topic` / `sortDate`**: `topic` はクラスのトピックへの文字列参照。`sortDate` は並び順キー（既定=作成日・意味なし・生徒非表示・自由変更可）で、課題管理画面はトピックごと・sortDate 降順に表示する
 
 ### AI 評価支援（evaluate）
@@ -432,13 +432,13 @@ erDiagram
 先生の評価作業を支援する。**AI は判定者ではなく提案者**: 全結果に機械シグナルを引用した根拠と needsReview フラグが付き、先生が UI で確認・修正・承認してはじめて記録される。
 
 - 入力: 課題名/課題文 + 評価軸（1〜6、grade モードのみ必須）+ 厳しさ（lenient/standard/strict）+ 較正サンプル（先生が採点した実例、最大5件）+ 提出（席番号・シグナル・擬似コード最大4000字）
-- モデル: `CLAUDE_MODEL`（既定 claude-haiku-4-5）。システムプロンプトに prompt caching（ephemeral）を適用し、同一クラスのチャンク分割呼び出しでキャッシュを共有
+- モデル: `CLAUDE_MODEL`（既定 claude-haiku-4-5）。システムプロンプトに prompt caching（ephemeral）を適用し、同一課題のチャンク分割呼び出しでキャッシュを共有
 - `ANTHROPIC_API_KEY` 未設定のステージではエンドポイントは 503（機能無効）
 - CloudWatch に `classroom_evaluate` イベント（トークン数・キャッシュヒット）を構造化ログ出力
 
 ### 課題コンテンツ（assignment）
 
-クラス（= 授業）には任意で**課題コンテンツ**を持たせられる。先生が編集し、参加済みの生徒が読む。プログラム配付を自動化するための仕組み（生徒は参加するだけで課題とスターターが手に入る）。
+課題（1 授業）には任意で**課題コンテンツ**を持たせられる。先生が編集し、参加済みの生徒が読む。プログラム配付を自動化するための仕組み（生徒は参加するだけで課題とスターターが手に入る）。
 
 - `pages`: （数行テキスト + 画像1枚）× 最大10ページ。テキストは1ページ500文字まで
 - `starterKey`: スタータープロジェクト（.sb3）の S3 キー。1課題に1つ
@@ -466,9 +466,9 @@ smalruby-classroom-submissions-{stage}/
 
 | 項目 | 有効期間 (prod) | 有効期間 (stg) |
 |------|----------------|---------------|
-| クラス | 90日 | 1日 |
-| メンバー | クラスと同じ | クラスと同じ |
-| 提出 | クラスと同じ | クラスと同じ |
+| 課題（`Classrooms`） | 90日 | 1日 |
+| メンバー | 課題と同じ | 課題と同じ |
+| 提出 | 課題と同じ | 課題と同じ |
 | S3 ファイル | `ARCHIVE_RETENTION_DAYS`（365日。ライフサイクルルール） | 同（stg は 30日） |
 
 ユーザーがアクセスできるのは **メタデータ（DynamoDB）が生きている TTL 期間内のみ**（presigned URL はメタデータからのみ発行される）。TTL 後〜`ARCHIVE_RETENTION_DAYS` の間は運用者のみが復元に使える（下記）。
