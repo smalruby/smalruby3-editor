@@ -10,6 +10,10 @@ export {};
  * warns before shrinking). Regression for "既存の課題の人数が増えない".
  */
 
+// モジュール化。トップレベル宣言をファイルスコープに閉じる（他のテストファイルと
+// 同名の mockSend / DEV_TOKEN / makeEvent があり、スクリプト扱いだと TS2451 で衝突する）。
+export {};
+
 const mockSend = jest.fn();
 jest.mock('@aws-sdk/lib-dynamodb', () => {
   const actual = jest.requireActual('@aws-sdk/lib-dynamodb');
@@ -61,9 +65,11 @@ describe('class seat-count propagation (PATCH /classroom-groups/{id})', () => {
       if (name === 'UpdateCommand' && table.includes('Group')) {
         return { Attributes: { groupId: 'g1', teacherSub: 'dev-test-teacher', name: '2年1組', year: 2026, studentCount: newCount, schemaVersion: 2 } };
       }
-      if (name === 'QueryCommand') {
-        // propagation enumerates the class's active classrooms
-        return { Items: classroomIds.map(classroomId => ({ classroomId })) };
+      if (name === 'ScanCommand') {
+        // propagation enumerates the class's assignments by groupId (#1145)
+        return {
+          Items: classroomIds.map(classroomId => ({ classroomId, groupId: 'g1', status: 'active' })),
+        };
       }
       if (name === 'UpdateCommand') {
         const values = command.input?.ExpressionAttributeValues as Record<string, unknown>;
@@ -95,8 +101,16 @@ describe('class seat-count propagation (PATCH /classroom-groups/{id})', () => {
     expect(classroomUpdates).toEqual([{ classroomId: 'c1', studentCount: 20 }]);
   });
 
-  test('the propagation query filters to the class + active status', async () => {
-    let queryInput: Record<string, unknown> | undefined;
+  test('only the class\'s active assignments are propagated to', async () => {
+    // The table holds an assignment in another class and an archived one; both
+    // must be left alone. Mocking the table contents (not the query shape)
+    // keeps this test independent of how the enumeration is implemented.
+    const rows = [
+      { classroomId: 'c1', groupId: 'g1', status: 'active' },
+      { classroomId: 'c-other-class', groupId: 'g2', status: 'active' },
+      { classroomId: 'c-archived', groupId: 'g1', status: 'archived' },
+    ];
+    const touched: string[] = [];
     mockSend.mockImplementation(async (command: {
       constructor: { name: string }; input?: Record<string, unknown>;
     }) => {
@@ -107,18 +121,21 @@ describe('class seat-count propagation (PATCH /classroom-groups/{id})', () => {
       if (name === 'UpdateCommand' && String(command.input?.TableName).includes('Group')) {
         return { Attributes: { groupId: 'g1', teacherSub: 'dev-test-teacher', studentCount: 40 } };
       }
-      if (name === 'QueryCommand') {
-        queryInput = command.input;
-        return { Items: [] };
+      if (name === 'ScanCommand') {
+        const values = (command.input?.ExpressionAttributeValues || {}) as Record<string, unknown>;
+        const wanted = Object.entries(values)
+          .filter(([key]) => key.startsWith(':g'))
+          .map(([, value]) => value);
+        return { Items: rows.filter(row => wanted.includes(row.groupId)) };
+      }
+      if (name === 'UpdateCommand') {
+        touched.push(String((command.input?.Key as Record<string, unknown>).classroomId));
+        return {};
       }
       return {};
     });
 
     await handler(makeEvent('PATCH', '/classroom-groups/g1', { groupId: 'g1' }, { studentCount: 40 }));
-    expect(queryInput?.IndexName).toBe('teacherSub-index');
-    expect(queryInput?.FilterExpression).toContain('groupId = :gid');
-    const values = queryInput?.ExpressionAttributeValues as Record<string, unknown>;
-    expect(values[':gid']).toBe('g1');
-    expect(values[':active']).toBe('active');
+    expect(touched).toEqual(['c1']);
   });
 });

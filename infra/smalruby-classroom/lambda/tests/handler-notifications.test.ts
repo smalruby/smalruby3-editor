@@ -10,6 +10,10 @@ export {};
  * written by the admin stack, so there is no create path here.
  */
 
+// モジュール化。トップレベル宣言をファイルスコープに閉じる（他のテストファイルと
+// 同名の mockSend / DEV_TOKEN / makeEvent があり、スクリプト扱いだと TS2451 で衝突する）。
+export {};
+
 const mockSend = jest.fn();
 jest.mock('@aws-sdk/lib-dynamodb', () => {
   const actual = jest.requireActual('@aws-sdk/lib-dynamodb');
