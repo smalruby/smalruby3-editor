@@ -1,4 +1,9 @@
-import { cancelGoogleLogin, loginWithGoogle, silentReauthGoogle } from '../../../src/lib/teacher-auth.js';
+import {
+    cancelGoogleLogin,
+    loginWithGoogle,
+    revealGoogleSignInButton,
+    silentReauthGoogle,
+} from '../../../src/lib/teacher-auth.js';
 
 /**
  * Regression tests for the Google sign-in fallback UI lifecycle (#1149).
@@ -60,6 +65,8 @@ describe('teacher-auth Google sign-in fallback UI (#1149)', () => {
 
     beforeEach(() => {
         setupGoogleStub();
+        // Default to a browser that shows the Google prompt itself.
+        global.window.IdentityCredential = function IdentityCredential() {};
         document.body.innerHTML = '';
         container = document.createElement('div');
         // The real container lives inside the modal, not directly under body.
@@ -71,6 +78,7 @@ describe('teacher-auth Google sign-in fallback UI (#1149)', () => {
     afterEach(() => {
         cancelGoogleLogin();
         delete global.google;
+        delete global.window.IdentityCredential;
     });
 
     test('renders the fallback button into the given container, not into body', async () => {
@@ -170,15 +178,14 @@ describe('teacher-auth Google sign-in fallback UI (#1149)', () => {
 });
 
 /**
- * The in-modal button is a fallback: while the browser's own Google prompt is
- * up, a second "Sign in as ..." button beside our own login button only
- * confuses people. It stays hidden until that prompt is known not to help.
+ * There is only ever one Google entry point on screen: our own login button,
+ * or Google's rendered button in its place — never both. These pin when the
+ * handover happens (#1149).
  */
-describe('teacher-auth Google fallback button reveal (#1149)', () => {
+describe('teacher-auth Google button handover (#1149)', () => {
     let container;
 
     beforeEach(() => {
-        jest.useFakeTimers();
         setupGoogleStub();
         document.body.innerHTML = '';
         container = document.createElement('div');
@@ -187,9 +194,18 @@ describe('teacher-auth Google fallback button reveal (#1149)', () => {
 
     afterEach(() => {
         cancelGoogleLogin();
-        jest.useRealTimers();
         delete global.google;
+        delete global.window.IdentityCredential;
     });
+
+    /** Pretend the browser does (not) mediate the Google prompt itself. */
+    const setBrowserPrompt = (supported) => {
+        if (supported) {
+            global.window.IdentityCredential = function IdentityCredential() {};
+        } else {
+            delete global.window.IdentityCredential;
+        }
+    };
 
     /**
      * Start a login and let the awaited script loader settle. The pending
@@ -204,27 +220,17 @@ describe('teacher-auth Google fallback button reveal (#1149)', () => {
         return { pending };
     };
 
-    const button = () => container.querySelector('[data-testid="google-signin-button"]');
-
-    test('is hidden while the browser prompt has a chance to sign the user in', async () => {
+    test('waits for the browser prompt when the browser has one', async () => {
+        setBrowserPrompt(true);
         const onFallbackVisible = jest.fn();
         await start(onFallbackVisible);
 
-        expect(button().hidden).toBe(true);
         expect(onFallbackVisible).not.toHaveBeenCalled();
+        expect(gis.promptCallback).toBeInstanceOf(Function);
     });
 
-    test('is revealed once the prompt produced nothing in time', async () => {
-        const onFallbackVisible = jest.fn();
-        await start(onFallbackVisible);
-
-        jest.advanceTimersByTime(4000);
-
-        expect(button().hidden).toBe(false);
-        expect(onFallbackVisible).toHaveBeenCalledTimes(1);
-    });
-
-    test('is revealed as soon as the user dismisses the prompt', async () => {
+    test('hands over as soon as the user dismisses the prompt', async () => {
+        setBrowserPrompt(true);
         const onFallbackVisible = jest.fn();
         await start(onFallbackVisible);
 
@@ -233,11 +239,11 @@ describe('teacher-auth Google fallback button reveal (#1149)', () => {
             getDismissedReason: () => 'cancel_called',
         });
 
-        expect(button().hidden).toBe(false);
-        expect(onFallbackVisible).toHaveBeenCalledTimes(1);
+        expect(onFallbackVisible).toHaveBeenCalledWith('dismissed');
     });
 
-    test('stays hidden when the prompt closed because it returned a credential', async () => {
+    test('does not hand over when the prompt closed because it signed the user in', async () => {
+        setBrowserPrompt(true);
         const onFallbackVisible = jest.fn();
         await start(onFallbackVisible);
 
@@ -246,66 +252,43 @@ describe('teacher-auth Google fallback button reveal (#1149)', () => {
             getDismissedReason: () => 'credential_returned',
         });
 
-        expect(button().hidden).toBe(true);
         expect(onFallbackVisible).not.toHaveBeenCalled();
     });
 
-    test('does not reveal after the login was cancelled', async () => {
+    test('hands over immediately, without prompting, when the browser has no prompt', async () => {
+        setBrowserPrompt(false);
         const onFallbackVisible = jest.fn();
         await start(onFallbackVisible);
 
-        cancelGoogleLogin();
-        jest.advanceTimersByTime(10000);
-
-        expect(onFallbackVisible).not.toHaveBeenCalled();
-    });
-});
-
-describe('silentReauthGoogle FedCM compatibility (#1149)', () => {
-    beforeEach(() => {
-        setupGoogleStub();
+        expect(onFallbackVisible).toHaveBeenCalledWith('unsupported');
+        // Asking would only have produced a prompt nobody can see.
+        expect(gis.promptCallback).toBeNull();
     });
 
-    afterEach(() => {
-        delete global.google;
+    // GIS does not always report that the prompt closed, so the user pressing
+    // our button again has to be enough to get Google's button on screen.
+    test('hands over when the login is asked for a second time', async () => {
+        setBrowserPrompt(true);
+        const onFallbackVisible = jest.fn();
+        await start(onFallbackVisible);
+
+        revealGoogleSignInButton();
+
+        expect(onFallbackVisible).toHaveBeenCalledWith('retry');
     });
 
-    test('resolves with the credential without using deprecated moment methods', async () => {
-        const deprecated = {
-            isNotDisplayed: jest.fn(() => true),
-            isSkippedMoment: jest.fn(() => true),
-            isDisplayMoment: jest.fn(() => true),
-        };
-        const pending = silentReauthGoogle();
-        await Promise.resolve();
-        await Promise.resolve();
+    test('hands over at most once', async () => {
+        setBrowserPrompt(true);
+        const onFallbackVisible = jest.fn();
+        await start(onFallbackVisible);
 
-        if (gis.promptCallback) {
-            gis.promptCallback({
-                ...deprecated,
-                isDismissedMoment: () => false,
-                getMomentType: () => 'display',
-            });
-        }
-        gis.initializeConfig.callback({ credential: 'fresh-token' });
-
-        await expect(pending).resolves.toBe('fresh-token');
-        expect(deprecated.isNotDisplayed).not.toHaveBeenCalled();
-        expect(deprecated.isSkippedMoment).not.toHaveBeenCalled();
-        expect(deprecated.isDisplayMoment).not.toHaveBeenCalled();
-    });
-
-    test('returns null when the prompt is dismissed without a credential', async () => {
-        const pending = silentReauthGoogle();
-        await Promise.resolve();
-        await Promise.resolve();
-
-        gis.promptCallback({
+        const dismissal = {
             isDismissedMoment: () => true,
             getDismissedReason: () => 'cancel_called',
-            getMomentType: () => 'dismissed',
-        });
+        };
+        gis.promptCallback(dismissal);
+        gis.promptCallback(dismissal);
 
-        await expect(pending).resolves.toBeNull();
+        expect(onFallbackVisible).toHaveBeenCalledTimes(1);
     });
 });

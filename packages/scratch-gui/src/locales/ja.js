@@ -476,7 +476,7 @@ export default {
     'gui.classroom.management.loginDescription': '学校のアカウントでログインして、クラスを作成・管理します。',
     'gui.classroom.management.loginButton': 'Googleでログイン',
     'gui.classroom.management.googleSignInHint':
-        '自動でログインできませんでした。下のボタンからログインしてください。',
+        '自動でログインできませんでした。こちらのボタンからログインしてください。',
     'gui.classroom.management.microsoftLoginButton': 'Microsoftでログイン',
     'gui.classroom.management.sidebarTitle': 'あなたのクラス・課題',
     'gui.classroom.management.loading': '読み込み中...',

@@ -8,3 +8,9 @@
     font-size: 0.9rem;
     text-align: center;
 }
+
+/* Google's button is rendered up front but must not reserve any space until
+   it becomes the entry point. */
+.inactive {
+    display: none;
+}

@@ -8,6 +8,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
     cancelGoogleLogin,
+    isGoogleLoginInFlight,
+    revealGoogleSignInButton,
     loginWithGoogle,
     requestMicrosoftIdToken,
     isMicrosoftAuthAvailable as checkMicrosoftAuth,
@@ -66,17 +68,25 @@ const useTeacherAuth = ({ mode, clearError, setPhase, showSessionExpiredError })
     // must tear the GIS UI down and settle the pending promise.
     useEffect(() => () => cancelGoogleLogin(), []);
 
-    // True once the in-modal Google button is revealed, so the UI can explain
-    // why a second sign-in button appeared (#1149).
-    const [googleFallbackVisible, setGoogleFallbackVisible] = useState(false);
+    // Why Google's own button took over from our login button, or null while
+    // our button is still the entry point (#1149). 'dismissed' means the
+    // browser prompt was closed without signing in — worth explaining;
+    // 'unsupported' means this browser never had a prompt to show.
+    const [googleFallbackReason, setGoogleFallbackReason] = useState(null);
 
     const handleGoogleLogin = useCallback(async () => {
+        // A second press while a login is already running means the browser
+        // prompt did not help, whether or not GIS reported it dismissed (#1149).
+        if (isGoogleLoginInFlight()) {
+            revealGoogleSignInButton();
+            return;
+        }
         clearError();
-        setGoogleFallbackVisible(false);
+        setGoogleFallbackReason(null);
         try {
             const token = await loginWithGoogle({
                 container: googleSignInRef.current,
-                onFallbackVisible: () => setGoogleFallbackVisible(true),
+                onFallbackVisible: (reason) => setGoogleFallbackReason(reason),
             });
             setIdToken(token);
             setAuthProvider('google');
@@ -84,7 +94,7 @@ const useTeacherAuth = ({ mode, clearError, setPhase, showSessionExpiredError })
         } catch {
             clearError();
         } finally {
-            setGoogleFallbackVisible(false);
+            setGoogleFallbackReason(null);
         }
     }, [clearError, setPhase]);
 
@@ -92,7 +102,7 @@ const useTeacherAuth = ({ mode, clearError, setPhase, showSessionExpiredError })
         clearError();
         // Switching providers abandons the Google attempt (#1149).
         cancelGoogleLogin();
-        setGoogleFallbackVisible(false);
+        setGoogleFallbackReason(null);
         try {
             const token = await requestMicrosoftIdToken();
             setIdToken(token);
@@ -169,7 +179,7 @@ const useTeacherAuth = ({ mode, clearError, setPhase, showSessionExpiredError })
         setAuthProvider,
         isMicrosoftAuthAvailable: checkMicrosoftAuth(),
         googleSignInRef,
-        googleFallbackVisible,
+        googleFallbackReason,
         handleGoogleLogin,
         handleMicrosoftLogin,
         logoutAuth,

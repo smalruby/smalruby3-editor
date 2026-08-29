@@ -18,11 +18,17 @@ import {
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const REAUTH_TIMEOUT_MS = 5000;
 
-// How long to wait for the browser's own Google prompt (One Tap / FedCM) to
-// produce a credential before offering the in-modal button instead. Long
-// enough that the button does not flash in front of a prompt the user is
-// already reading, short enough that a silent failure is not a dead end.
-const FALLBACK_REVEAL_MS = 4000;
+/**
+ * Whether this browser can show Google's own sign-in prompt (FedCM).
+ *
+ * Without it — Safari, older Firefox, embedded webviews, anything with
+ * third-party sign-in blocked — `prompt()` has nothing to show and the user
+ * would sit in front of a button that never reacts. There we skip the prompt
+ * and offer Google's rendered button straight away instead of waiting on a
+ * timer, which raced with the prompt the user was still reading.
+ * @returns {boolean} true when the browser mediates the Google prompt itself
+ */
+export const isGoogleBrowserPromptSupported = () => typeof window !== 'undefined' && 'IdentityCredential' in window;
 
 // The login attempt currently owning the GIS sign-in UI, or null.
 // Only one may exist at a time so the rendered button can never accumulate
@@ -43,25 +49,49 @@ export const cancelGoogleLogin = () => {
 };
 
 /**
+ * Whether a Google login is waiting for the user right now.
+ * @returns {boolean} true while an attempt owns the sign-in UI
+ */
+export const isGoogleLoginInFlight = () => activeGoogleLogin !== null;
+
+/**
+ * Put Google's own button in front of the user for the login already running.
+ *
+ * The dismissal signal is not guaranteed to arrive — a browser prompt can also
+ * be closed in ways GIS never reports — so pressing our login button again
+ * ("nothing happened, let me try that once more") is treated as the request
+ * for the button. Safe to call when no login is in flight.
+ */
+export const revealGoogleSignInButton = () => {
+    if (activeGoogleLogin) {
+        activeGoogleLogin.handOver('retry');
+    }
+};
+
+/**
  * Perform Google interactive login via One Tap plus an in-place button.
  *
  * The button is rendered into `container` (a node owned by the calling modal)
  * rather than into a fixed overlay under `document.body`, so unmounting the
  * modal takes the button with it.
  *
- * It starts hidden: when the browser shows its own Google prompt, a second
- * "Sign in as ..." button next to our own login button is just confusing. The
- * button is revealed only once that prompt is known to be no help — it was
- * dismissed without returning a credential, or nothing happened within
- * `FALLBACK_REVEAL_MS`. The reveal is driven by a timer and `isDismissedMoment()`
- * rather than by `isNotDisplayed()` / `isSkippedMoment()`, which stop working
- * once FedCM becomes mandatory.
+ * There is only ever one Google entry point on screen. The caller shows its own
+ * login button; this function asks for the button to take its place — never to
+ * sit next to it — through `onFallbackVisible`:
+ *
+ * - browser prompt available: try the prompt, and swap in the rendered button
+ *   only once the prompt is dismissed without a credential (`'dismissed'`);
+ * - browser prompt unavailable: swap it in immediately (`'unsupported'`),
+ *   since nothing is going to appear on its own.
+ *
+ * Dismissal is the one prompt moment that survives the FedCM migration, so it
+ * is the only one consulted — `isNotDisplayed()` / `isSkippedMoment()` are not.
  * @see https://developers.google.com/identity/gsi/web/guides/fedcm-migration
  * @param {object} [options] - login options
  * @param {HTMLElement} [options.container] - node to render the sign-in button
  *   into. Without it only the browser prompt is offered.
- * @param {Function} [options.onFallbackVisible] - called once when the button
- *   is revealed, so the caller can explain what it is for.
+ * @param {Function} [options.onFallbackVisible] - called once with the reason
+ *   the button took over: `'dismissed'` or `'unsupported'`.
  * @returns {Promise<string>} Google ID token
  */
 export const loginWithGoogle = async ({ container, onFallbackVisible } = {}) => {
@@ -72,15 +102,10 @@ export const loginWithGoogle = async ({ container, onFallbackVisible } = {}) => 
 
     return new Promise((resolve, reject) => {
         let mount = null;
-        let revealTimer = null;
 
         const cleanup = () => {
             if (activeGoogleLogin === session) {
                 activeGoogleLogin = null;
-            }
-            if (revealTimer !== null) {
-                clearTimeout(revealTimer);
-                revealTimer = null;
             }
             if (mount && mount.parentNode) {
                 mount.parentNode.removeChild(mount);
@@ -93,11 +118,23 @@ export const loginWithGoogle = async ({ container, onFallbackVisible } = {}) => 
             }
         };
 
+        let handedOver = false;
+        const handOverToButton = (why) => {
+            if (handedOver || !mount) {
+                return;
+            }
+            handedOver = true;
+            if (onFallbackVisible) {
+                onFallbackVisible(why);
+            }
+        };
+
         const session = {
             abort: () => {
                 cleanup();
                 reject(new Error('Google Sign-In cancelled'));
             },
+            handOver: handOverToButton,
         };
         activeGoogleLogin = session;
 
@@ -115,32 +152,20 @@ export const loginWithGoogle = async ({ container, onFallbackVisible } = {}) => 
             },
         });
 
-        const revealFallback = () => {
-            if (revealTimer !== null) {
-                clearTimeout(revealTimer);
-                revealTimer = null;
-            }
-            if (!mount || !mount.hidden) {
-                return;
-            }
-            mount.hidden = false;
-            if (onFallbackVisible) {
-                onFallbackVisible();
-            }
-        };
-
         if (container) {
             mount = document.createElement('div');
             mount.setAttribute('data-testid', 'google-signin-button');
-            // Rendered up front (GIS needs a node in the document) but hidden
-            // until the browser prompt turns out not to help.
-            mount.hidden = true;
             container.appendChild(mount);
             google.accounts.id.renderButton(mount, {
                 theme: 'outline',
                 size: 'large',
             });
-            revealTimer = setTimeout(revealFallback, FALLBACK_REVEAL_MS);
+        }
+
+        if (mount && !isGoogleBrowserPromptSupported()) {
+            // Nothing would come up, so do not ask and do not make the user wait.
+            handOverToButton('unsupported');
+            return;
         }
 
         google.accounts.id.prompt((notification) => {
@@ -157,7 +182,7 @@ export const loginWithGoogle = async ({ container, onFallbackVisible } = {}) => 
             const reason =
                 typeof notification.getDismissedReason === 'function' ? notification.getDismissedReason() : null;
             if (reason !== 'credential_returned') {
-                revealFallback();
+                handOverToButton('dismissed');
             }
         });
     });

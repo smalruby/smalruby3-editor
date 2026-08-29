@@ -2,9 +2,10 @@
  * Teacher login phase with feature carousel.
  */
 import PropTypes from 'prop-types';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 
+import { isGoogleBrowserPromptSupported } from '../../lib/teacher-auth.js';
 import ErrorDisplay from '../classroom-modal/error-display.jsx';
 import GoogleSignInSlot from '../google-sign-in-slot/google-sign-in-slot.jsx';
 
@@ -105,12 +106,31 @@ const LoginCarousel = () => {
 const TeacherLoginPhase = ({
     error,
     errorTitle,
-    googleFallbackVisible,
+    googleFallbackReason,
     googleSignInRef,
     isMicrosoftAuthAvailable,
     onGoogleLogin,
     onMicrosoftLogin,
-}) => (
+}) => {
+    // Browsers without a Google prompt of their own have nothing to show when
+    // our button is pressed, so ask for Google's button up front and let it be
+    // the entry point. Elsewhere our own button starts the flow (#1149).
+    // Runs once: the browser's capability does not change mid-session, and
+    // re-running would restart the login every time the handler identity moves.
+    const startedForUnsupportedRef = useRef(false);
+    useEffect(() => {
+        if (startedForUnsupportedRef.current || isGoogleBrowserPromptSupported()) {
+            return;
+        }
+        startedForUnsupportedRef.current = true;
+        onGoogleLogin();
+    }, [onGoogleLogin]);
+
+    // Google's button replaces ours rather than joining it — two Google
+    // buttons side by side leave people guessing which one to press.
+    const googleButtonTookOver = googleFallbackReason !== null;
+
+    return (
     <div
         className={styles.loginArea}
         data-testid="classroom-phase-teacher-login"
@@ -130,24 +150,26 @@ const TeacherLoginPhase = ({
                     id="gui.classroom.management.loginDescription"
                 />
             </p>
-            <button
-                className={styles.loginButton}
-                data-testid="classroom-google-login"
-                onClick={onGoogleLogin}
-            >
-                <FormattedMessage
-                    defaultMessage="Sign in with Google"
-                    description="Google sign in button"
-                    id="gui.classroom.management.loginButton"
-                />
-            </button>
-            {/* GIS renders its own sign-in button here when One Tap cannot be
-                shown; keeping it in the modal stops it from floating over the
-                screen and outliving the login (#1149). */}
+            {!googleButtonTookOver && (
+                <button
+                    className={styles.loginButton}
+                    data-testid="classroom-google-login"
+                    onClick={onGoogleLogin}
+                >
+                    <FormattedMessage
+                        defaultMessage="Sign in with Google"
+                        description="Google sign in button"
+                        id="gui.classroom.management.loginButton"
+                    />
+                </button>
+            )}
+            {/* Google's own button lives here, inside the modal, so it cannot
+                float over the screen or outlive the login (#1149). */}
             <GoogleSignInSlot
+                active={googleButtonTookOver}
                 className={styles.googleSignInSlot}
                 ref={googleSignInRef}
-                showHint={googleFallbackVisible}
+                showHint={googleButtonTookOver && googleFallbackReason !== 'unsupported'}
             />
             {isMicrosoftAuthAvailable && (
                 <button
@@ -168,12 +190,13 @@ const TeacherLoginPhase = ({
             <LoginCarousel />
         </div>
     </div>
-);
+    );
+};
 
 TeacherLoginPhase.propTypes = {
     error: PropTypes.string,
     errorTitle: PropTypes.string,
-    googleFallbackVisible: PropTypes.bool,
+    googleFallbackReason: PropTypes.oneOf(['dismissed', 'retry', 'unsupported']),
     googleSignInRef: PropTypes.shape({ current: PropTypes.any }),
     isMicrosoftAuthAvailable: PropTypes.bool,
     onGoogleLogin: PropTypes.func.isRequired,

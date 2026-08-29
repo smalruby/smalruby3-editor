@@ -14,6 +14,8 @@ import BugReportModalComponent from '../components/bug-report-modal/bug-report-m
 import bugReportAPI, { isBugReportConfigured } from '../lib/bug-report-api.js';
 import {
     cancelGoogleLogin,
+    isGoogleLoginInFlight,
+    revealGoogleSignInButton,
     loginWithGoogle,
     requestMicrosoftIdToken,
     isMicrosoftAuthAvailable,
@@ -182,26 +184,34 @@ const BugReportModal = () => {
     // The GIS sign-in button is rendered into this in-modal node so it cannot
     // outlive the login phase as a body-level overlay (#1149).
     const googleSignInRef = useRef(null);
-    // True once the in-modal Google button is revealed (#1149).
-    const [googleFallbackVisible, setGoogleFallbackVisible] = useState(false);
+    // Why Google's own button replaced ours, or null while ours is the entry
+    // point: 'dismissed' (prompt closed without signing in) or 'unsupported'
+    // (this browser has no prompt of its own) — see #1149.
+    const [googleFallbackReason, setGoogleFallbackReason] = useState(null);
 
     const handleLoginGoogle = useCallback(async () => {
-        setGoogleFallbackVisible(false);
+        // Pressing again while the login runs means the browser prompt did not
+        // help, whether or not GIS reported a dismissal (#1149).
+        if (isGoogleLoginInFlight()) {
+            revealGoogleSignInButton();
+            return;
+        }
+        setGoogleFallbackReason(null);
         try {
             await handleLogin(() =>
                 loginWithGoogle({
                     container: googleSignInRef.current,
-                    onFallbackVisible: () => setGoogleFallbackVisible(true),
+                    onFallbackVisible: (reason) => setGoogleFallbackReason(reason),
                 }),
             );
         } finally {
-            setGoogleFallbackVisible(false);
+            setGoogleFallbackReason(null);
         }
     }, [handleLogin]);
     const handleLoginMicrosoft = useCallback(() => {
         // Switching providers abandons the Google attempt (#1149).
         cancelGoogleLogin();
-        setGoogleFallbackVisible(false);
+        setGoogleFallbackReason(null);
         return handleLogin(requestMicrosoftIdToken);
     }, [handleLogin]);
 
@@ -331,7 +341,7 @@ const BugReportModal = () => {
             reportsLoading={reportsLoading}
             submitProgressLabel={submitProgressLabel}
             onRequestClose={handleClose}
-            googleFallbackVisible={googleFallbackVisible}
+            googleFallbackReason={googleFallbackReason}
             googleSignInRef={googleSignInRef}
             onLoginGoogle={handleLoginGoogle}
             onLoginMicrosoft={handleLoginMicrosoft}

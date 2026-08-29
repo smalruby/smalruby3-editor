@@ -36,16 +36,24 @@ describe('GoogleSignInSlot', () => {
 
     // The fallback button shows up only after the browser prompt failed, so
     // without a line explaining that, a second Google button is puzzling.
-    test('says nothing while the fallback button is hidden', () => {
+    test('says nothing while our own login button is still the entry point', () => {
         const { queryByTestId } = renderSlot();
 
         expect(queryByTestId('google-signin-hint')).not.toBeInTheDocument();
     });
 
-    test('explains the fallback button once it is shown', () => {
-        const { getByTestId } = renderSlot({ showHint: true });
+    test('explains itself when it replaced our button after a failed prompt', () => {
+        const { getByTestId } = renderSlot({ active: true, showHint: true });
 
         expect(getByTestId('google-signin-hint')).toBeInTheDocument();
+    });
+
+    // A browser that never had a prompt has nothing to apologise for, so the
+    // button simply appears as the way to sign in.
+    test('says nothing when it is the entry point from the start', () => {
+        const { queryByTestId } = renderSlot({ active: true });
+
+        expect(queryByTestId('google-signin-hint')).not.toBeInTheDocument();
     });
 
     test('cancels the pending Google login when unmounted', () => {

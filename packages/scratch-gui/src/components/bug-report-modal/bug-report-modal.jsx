@@ -221,7 +221,7 @@ const BugReportModal = (props) => {
         reports,
         reportsLoading,
         submitProgressLabel,
-        googleFallbackVisible,
+        googleFallbackReason,
         googleSignInRef,
         onRequestClose,
         onLoginGoogle,
@@ -265,20 +265,23 @@ const BugReportModal = (props) => {
                         <p>
                             <FormattedMessage {...messages.loginIntro} />
                         </p>
-                        <button
-                            className={styles.loginButton}
-                            disabled={isBusy}
-                            onClick={onLoginGoogle}
-                            data-testid="bug-report-login-google"
-                        >
-                            <FormattedMessage {...messages.loginGoogle} />
-                        </button>
-                        {/* GIS renders its own sign-in button here when One Tap
-                            cannot be shown (#1149). */}
+                        {googleFallbackReason === null && (
+                            <button
+                                className={styles.loginButton}
+                                disabled={isBusy}
+                                onClick={onLoginGoogle}
+                                data-testid="bug-report-login-google"
+                            >
+                                <FormattedMessage {...messages.loginGoogle} />
+                            </button>
+                        )}
+                        {/* Google's own button takes this button's place when
+                            the browser prompt cannot sign the user in (#1149). */}
                         <GoogleSignInSlot
+                            active={googleFallbackReason !== null}
                             className={styles.googleSignInSlot}
                             ref={googleSignInRef}
-                            showHint={googleFallbackVisible}
+                            showHint={googleFallbackReason !== null && googleFallbackReason !== 'unsupported'}
                         />
                         {microsoftAvailable ? (
                             <button
@@ -449,7 +452,7 @@ BugReportModal.propTypes = {
     reportsLoading: PropTypes.bool,
     submitProgressLabel: PropTypes.string,
     onRequestClose: PropTypes.func.isRequired,
-    googleFallbackVisible: PropTypes.bool,
+    googleFallbackReason: PropTypes.oneOf(['dismissed', 'retry', 'unsupported']),
     googleSignInRef: PropTypes.shape({ current: PropTypes.any }),
     onLoginGoogle: PropTypes.func.isRequired,
     onLoginMicrosoft: PropTypes.func.isRequired,
