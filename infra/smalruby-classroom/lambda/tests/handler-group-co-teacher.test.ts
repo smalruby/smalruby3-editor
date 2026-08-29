@@ -7,9 +7,12 @@
  * co-teacher saw an empty assignment list and got `Group not found` on create.
  *
  * The requester is the dev-bypass identity
- * ({sub: 'dev-test-teacher', email: 'dev-test-teacher@example.com'}); the class
- * stores the same address in a different case, which also pins the email
- * normalization requirement.
+ * ({sub: 'dev-test-teacher', email: 'dev-test-teacher@example.com'}). Stored
+ * co-teacher addresses are normalized on write (validateCoTeacherEmail), and
+ * the mocked Scan below matches `contains()` case-sensitively like DynamoDB
+ * does, so the handler tests exercise the real discovery path; the
+ * case-insensitivity of the authorization comparison is pinned separately on
+ * canManageGroup / canManageClassroom.
  */
 
 const mockSend = jest.fn();
@@ -24,8 +27,7 @@ jest.mock('@aws-sdk/lib-dynamodb', () => {
 const DEV_TOKEN = 'test-dev-bypass';
 const OWNER_SUB = 'owner-A';
 
-// The class the dev-test-teacher co-manages. The stored address differs in case
-// from the identity's email on purpose.
+// The class the dev-test-teacher co-manages.
 const coManagedGroup = {
     groupId: 'g1',
     teacherSub: OWNER_SUB,
@@ -34,7 +36,7 @@ const coManagedGroup = {
     status: 'active',
     studentCount: 10,
     topics: [],
-    coTeacherEmails: ['Dev-Test-Teacher@Example.com'],
+    coTeacherEmails: ['dev-test-teacher@example.com'],
 };
 
 // A class the dev-test-teacher has nothing to do with.
@@ -152,7 +154,9 @@ describe('class-level co-teacher authorization (issue #1138)', () => {
             const values = input.ExpressionAttributeValues || {};
             if (name === 'GetCommand') {
                 if (input.TableName === 'ClassroomGroups') {
-                    return Promise.resolve({ Item: groups[input.Key.groupId] });
+                    return Promise.resolve({
+                        Item: allGroups.find((g: any) => g.groupId === input.Key.groupId),
+                    });
                 }
                 return Promise.resolve({});
             }
@@ -163,12 +167,11 @@ describe('class-level co-teacher authorization (issue #1138)', () => {
             if (name === 'ScanCommand') {
                 const filter: string = input.FilterExpression || '';
                 if (filter.startsWith('contains(coTeacherEmails')) {
+                    // DynamoDB's contains() is an exact, case-sensitive element
+                    // match — do not soften it here, or the mock would certify
+                    // a case-insensitivity the real table does not have.
                     return Promise.resolve({
-                        Items: rows.filter((r: any) =>
-                            (r.coTeacherEmails || []).some(
-                                (e: string) => e.toLowerCase() === String(values[':email']).toLowerCase(),
-                            ),
-                        ),
+                        Items: rows.filter((r: any) => (r.coTeacherEmails || []).includes(values[':email'])),
                     });
                 }
                 if (filter.startsWith('groupId IN')) {
@@ -249,6 +252,34 @@ describe('class-level co-teacher authorization (issue #1138)', () => {
             }),
         );
         expect(res.statusCode).toBe(200);
+    });
+
+    test('renaming a topic also follows assignments a co-teacher created', async () => {
+        // The cascade has to enumerate by groupId: this assignment sits in the
+        // class but carries the co-teacher's own teacherSub, so an owner-keyed
+        // query would leave it pointing at a topic the class no longer has.
+        const groupWithTopic = { ...coManagedGroup, topics: ['むかしのなまえ'] };
+        const byCoTeacher = {
+            ...assignmentInGroup,
+            classroomId: 'c3',
+            teacherSub: 'dev-test-teacher',
+            topic: 'むかしのなまえ',
+        };
+        useTables([groupWithTopic], [byCoTeacher]);
+
+        const res = await handler(
+            makeEvent('PATCH', '/classroom-groups/g1/topics', { groupId: 'g1' }, {
+                action: 'rename',
+                name: 'むかしのなまえ',
+                to: 'あたらしいなまえ',
+            }),
+        );
+        expect(res.statusCode).toBe(200);
+        const cascade = commands().find(
+            (c) => c?.constructor?.name === 'UpdateCommand' && c?.input?.TableName === 'Classrooms',
+        );
+        expect(cascade?.input?.Key?.classroomId).toBe('c3');
+        expect(cascade?.input?.ExpressionAttributeValues?.[':to']).toBe('あたらしいなまえ');
     });
 });
 

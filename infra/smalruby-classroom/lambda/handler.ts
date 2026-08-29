@@ -2757,15 +2757,14 @@ async function handleUpdateGroupTopics(
   const action = body.action;
   const now = new Date().toISOString();
 
+  // Enumerated by groupId, not by the class owner's teacherSub: a class
+  // co-teacher can file assignments in this class too (#1138) and those rows
+  // carry their own teacherSub, so keying off the owner would leave them
+  // pointing at a topic the class no longer has.
   const cascadeAssignments = async (fromTopic: string, toTopic: string | null): Promise<void> => {
-    const result = await docClient.send(new QueryCommand({
-      TableName: CLASSROOMS_TABLE,
-      IndexName: 'teacherSub-index',
-      KeyConditionExpression: 'teacherSub = :ts',
-      FilterExpression: 'groupId = :gid AND topic = :from',
-      ExpressionAttributeValues: { ':ts': String(group.teacherSub), ':gid': groupId, ':from': fromTopic },
-    }));
-    for (const item of result.Items || []) {
+    const targets = (await listAssignmentsInGroups([groupId]))
+      .filter(assignment => assignment.topic === fromTopic);
+    for (const item of targets) {
       await docClient.send(new UpdateCommand({
         TableName: CLASSROOMS_TABLE,
         Key: { classroomId: item.classroomId },
