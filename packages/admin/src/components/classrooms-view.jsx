@@ -44,6 +44,31 @@ ClassroomStatusBadge.propTypes = {status: PropTypes.string};
 
 const formatDate = iso => (iso ? iso.replace('T', ' ').slice(0, 16) : '-');
 
+// 親クラス（学級）が生きていない課題は、課題自身が `active` でも先生の画面には
+// 出ない (#1132)。「課題が利用中＝先生に見えている」と誤読した事故（EPIC #1129）を
+// 防ぐため、一覧・詳細・復元パネルで同じ判定を共有する。
+// groupStatus: null = 親クラス無し（v1 の名残） / 'missing' = 親クラスの行が消えている。
+const isHiddenByGroup = groupStatus => groupStatus === 'archived' || groupStatus === 'missing';
+
+const hiddenByGroupReason = (groupStatus, groupName) =>
+    (groupStatus === 'archived' ?
+        `親クラス（学級）「${groupName || '(名称なし)'}」がアーカイブ中です` :
+        '親クラス（学級）が見つかりません（削除された可能性があります）');
+
+// アーカイブ中の親クラスを戻せるのは先生自身（Admin にクラス（学級）の
+// アーカイブ解除は無い）。案内すべき操作を正確に書く。
+const GROUP_RESTORE_STEPS =
+    '先生には「クラス管理 → クラス一覧 → アーカイブ済みのクラス → 元に戻す」を案内してください。';
+
+const ParentGroupBadge = ({groupStatus}) => (isHiddenByGroup(groupStatus) ? (
+    <span
+        className="admin-badge admin-badge-warn"
+        data-testid="classroom-admin-group-hidden-badge"
+    >{'先生には表示されません'}</span>
+) : null);
+
+ParentGroupBadge.propTypes = {groupStatus: PropTypes.string};
+
 // One-line summary shared by the live and restore item rows.
 const itemLine = (item, tail) =>
     `課題: ${item.assignmentName || '-'} ・ コード: ${item.joinCode} ・ ${tail}`;
@@ -240,6 +265,8 @@ const ClassroomDetail = ({classroomId, onBack, onChanged}) => {
                 {' '}
                 <ClassroomStatusBadge status={detail.status} />
                 {' '}
+                <ParentGroupBadge groupStatus={detail.groupStatus} />
+                {' '}
                 {detail.recommendedForSharing ? (
                     <span
                         className="admin-badge admin-badge-ok"
@@ -250,6 +277,15 @@ const ClassroomDetail = ({classroomId, onBack, onChanged}) => {
             <p className="admin-meta">
                 {`課題: ${detail.assignmentName || '-'} ・ 参加コード: ${detail.joinCode}`}
             </p>
+            {isHiddenByGroup(detail.groupStatus) ? (
+                <p
+                    className="admin-error"
+                    data-testid="classroom-admin-group-hidden-note"
+                >
+                    {`この課題は先生の画面に表示されていません — ${hiddenByGroupReason(detail.groupStatus, detail.groupName)}。`}
+                    {detail.groupStatus === 'archived' ? GROUP_RESTORE_STEPS : ''}
+                </p>
+            ) : null}
             <p
                 className="admin-meta"
                 data-testid="classroom-admin-counts"
@@ -392,10 +428,23 @@ const RestorePanel = ({classroomId, onBack}) => {
     if (plan.alive) {
         return (
             <div data-testid="restore-admin-alive">
-                <p>
-                    {'この課題はまだ存在しています（削除されていません）。'}
-                    {'アーカイブ済みなら、先生自身のクラス管理画面から戻せます。'}
-                </p>
+                {isHiddenByGroup(plan.groupStatus) ? (
+                    // 課題自体は生きているが親クラスが落ちているケース (#1132)。
+                    // 「先生自身のクラス管理画面から戻せます」だけだと、先生は
+                    // 課題一覧をいくら探しても対象を見つけられない（誤誘導）。
+                    <p data-testid="restore-admin-alive-group-hidden">
+                        {`この課題のデータは残っていますが、${hiddenByGroupReason(plan.groupStatus, plan.groupName)}。`}
+                        {'そのため先生の画面には表示されていません。'}
+                        {plan.groupStatus === 'archived' ? GROUP_RESTORE_STEPS : ''}
+                    </p>
+                ) : (
+                    <p data-testid="restore-admin-alive-classroom">
+                        {'この課題はまだ存在しています（削除されていません）。'}
+                        {plan.status === 'archived' ?
+                            'アーカイブ済みなので、先生自身のクラス管理画面の課題一覧から戻せます。' :
+                            '利用中なので、先生の画面にも表示されています。'}
+                    </p>
+                )}
                 <button
                     className="admin-back-button"
                     data-testid="restore-admin-back"
@@ -676,6 +725,7 @@ const LiveBrowser = ({onOpen, reloadKey}) => {
                             >
                                 <strong>{classTitle(item.className)}</strong>
                                 <ClassroomStatusBadge status={item.status} />
+                                <ParentGroupBadge groupStatus={item.groupStatus} />
                                 <span className="admin-meta">
                                     {itemLine(item, `期限 ${formatDate(item.expiresAt)}`)}
                                 </span>
