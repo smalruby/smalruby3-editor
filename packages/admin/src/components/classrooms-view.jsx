@@ -1,9 +1,11 @@
 /**
  * クラス・課題管理 view (EPIC #1073 S4 #1084 + 俯瞰ダッシュボード 2026-07-19).
  *
- * Three tabs:
+ * Four tabs:
  * - 俯瞰: dashboard (creation trend / content richness / theme / candidates).
  * - 課題検索: live assignment search (archive⇄active flip).
+ * - クラス（学級）検索: class search + archive release (#1133 — the only face
+ *   that writes ClassroomGroups; lives in classroom-groups-view.jsx).
  * - 期限切れ復元: ddb-archive snapshot restore, narrowed by facets
  *   (削除時期 / 先生) so a large deleted set is browsable みんなの課題-style.
  * Every mutation goes through an explicit two-step confirmation.
@@ -32,6 +34,7 @@ import {
     setClassroomStatus,
     setSharingRecommendation
 } from '../lib/admin-api.js';
+import ClassroomGroupsView from './classroom-groups-view.jsx';
 import ClassroomOverviewView from './classroom-overview-view.jsx';
 
 const ClassroomStatusBadge = ({status}) => (
@@ -57,10 +60,11 @@ const isHiddenByGroup = groupStatus => groupStatus === 'archived';
 const archivedGroupReason = groupName =>
     `親クラス（学級）「${groupName || '(名称なし)'}」がアーカイブ中です`;
 
-// アーカイブ中の親クラスを戻せるのは先生自身（Admin にクラス（学級）の
-// アーカイブ解除は無い）。案内すべき操作を正確に書く。
+// アーカイブ中の親クラスの戻し方。先生自身の操作が基本だが、先生がその画面に
+// 到達できない問い合わせのために Admin 側の動線も併記する (#1133)。
 const GROUP_RESTORE_STEPS =
-    '先生には「クラス管理 → クラス一覧 → アーカイブ済みのクラス → 元に戻す」を案内してください。';
+    '先生には「クラス管理 → クラス一覧 → アーカイブ済みのクラス → 元に戻す」を案内してください。' +
+    '先生が操作できない場合は「クラス（学級）検索」タブから運用者が解除できます。';
 
 // 親クラスの行が無い課題の実際の見え方。先生の画面から消えるわけではない。
 const GROUP_MISSING_NOTE =
@@ -717,7 +721,7 @@ RestoreBrowser.propTypes = {
 };
 
 // 課題検索タブ: 生きている課題の一覧・検索 + アーカイブ切替（クラス（学級）は
-// 対象外 — 検索・アーカイブ解除は EPIC #1129 の C で扱う）。
+// 対象外 — その検索・アーカイブ解除は「クラス（学級）検索」タブ #1133）。
 const LiveBrowser = ({onOpen, reloadKey}) => {
     const [query, setQuery] = useState('');
     const [items, setItems] = useState(null);
@@ -821,6 +825,10 @@ const ClassroomsView = () => {
         setTab('live');
         setSelected(null);
     }, []);
+    const handleTabGroups = useCallback(() => {
+        setTab('groups');
+        setSelected(null);
+    }, []);
     const handleTabRestore = useCallback(() => {
         setTab('restore');
         setSelected(null);
@@ -870,6 +878,12 @@ const ClassroomsView = () => {
                     onClick={handleTabLive}
                 >{'課題検索'}</button>
                 <button
+                    className={tab === 'groups' ? 'admin-tab-active' : 'admin-tab'}
+                    data-testid="classroom-admin-tab-groups"
+                    type="button"
+                    onClick={handleTabGroups}
+                >{'クラス（学級）検索'}</button>
+                <button
                     className={tab === 'restore' ? 'admin-tab-active' : 'admin-tab'}
                     data-testid="classroom-admin-tab-restore"
                     type="button"
@@ -881,6 +895,7 @@ const ClassroomsView = () => {
                 reloadKey={reloadKey}
                 onOpen={openLive}
             />}
+            {tab === 'groups' && <ClassroomGroupsView />}
             {tab === 'restore' && <RestoreBrowser onOpen={openRestore} />}
         </div>
     );

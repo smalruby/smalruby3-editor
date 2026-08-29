@@ -290,6 +290,12 @@ export class SmalrubyAdminStack extends cdk.Stack {
     addRoute('/admin/classrooms/{classroomId}/recommend-sharing',
       [apigatewayv2.HttpMethod.POST, apigatewayv2.HttpMethod.DELETE]);
 
+    // クラス（学級）検索・アーカイブ解除 (EPIC #1129 C #1133). 対象は
+    // ClassroomGroups で、上の /admin/classrooms（課題）とは別物。
+    addRoute('/admin/classroom-groups', [apigatewayv2.HttpMethod.GET]);
+    addRoute('/admin/classroom-groups/{groupId}',
+      [apigatewayv2.HttpMethod.GET, apigatewayv2.HttpMethod.PATCH]);
+
     // お知らせ送信 (notification center #1111)
     addRoute('/admin/notifications', [apigatewayv2.HttpMethod.POST]);
 
