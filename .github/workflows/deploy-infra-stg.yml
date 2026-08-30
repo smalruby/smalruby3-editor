@@ -1,0 +1,173 @@
+name: Deploy Infra (stg)
+
+# stg への唯一のデプロイ経路 (#1162)。
+#
+# ローカルから `cdk deploy --context stage=stg` を撃たないための受け皿。共有資源の stg を
+# 人間と複数の autopilot worker が奪い合うと、片方のデプロイ途中にもう片方が入って
+# CloudFormation が中断する。ここに集約して concurrency でキュー化する。
+#
+# prod はこの workflow では扱わない（人間が手元から明示的にデプロイする）。
+
+on:
+  pull_request:
+    types: [labeled, synchronize]
+    paths:
+      - 'infra/**'
+  push:
+    branches: [develop]
+    paths:
+      - 'infra/**'
+  workflow_dispatch:
+    inputs:
+      projects:
+        description: 'デプロイする infra プロジェクト（カンマ区切り。空なら変更から自動検出）'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+env:
+  AWS_REGION: ap-northeast-1
+
+jobs:
+  select:
+    name: 対象プロジェクトの選定
+    # PR 経由は `deploy-stg` ラベルが付いているときだけ。ラベル付けには write 権限が要るので、
+    # 「誰でも PR を出せば stg へデプロイできる」状態にはならない。
+    if: >-
+      github.event_name != 'pull_request' ||
+      contains(github.event.pull_request.labels.*.name, 'deploy-stg')
+    runs-on: ubuntu-latest
+    outputs:
+      projects: ${{ steps.detect.outputs.projects }}
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        with:
+          fetch-depth: 0
+      - id: detect
+        name: 変更された infra プロジェクトを洗い出す
+        env:
+          MANUAL_PROJECTS: ${{ github.event.inputs.projects }}
+          BASE_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          HEAD_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          if [ -n "${MANUAL_PROJECTS}" ]; then
+            # 手動起動: 指定されたものだけ。存在しない名前は落とす。
+            mapfile -t names < <(echo "${MANUAL_PROJECTS}" | tr ',' '\n' | sed 's/[[:space:]]//g' | grep -v '^$')
+          else
+            # 差分に infra/<project>/ が現れたものだけを対象にする。
+            # BASE_REF が空 / 到達不能（初回 push など）のときは何もしない（暴発防止）。
+            if [ -z "${BASE_REF}" ] || ! git cat-file -e "${BASE_REF}^{commit}" 2>/dev/null; then
+              echo "projects=[]" >> "$GITHUB_OUTPUT"
+              echo "base ref を解決できないため対象なしとする: '${BASE_REF}'"
+              exit 0
+            fi
+            mapfile -t names < <(git diff --name-only "${BASE_REF}" "${HEAD_REF}" -- 'infra/*' \
+              | cut -d/ -f2 | sort -u | grep -v '^$')
+          fi
+          selected=()
+          for name in "${names[@]}"; do
+            # cdk.json を持つものだけが「デプロイできる CDK プロジェクト」。
+            if [ -f "infra/${name}/cdk.json" ]; then
+              selected+=("${name}")
+            else
+              echo "skip: infra/${name} は CDK プロジェクトではない"
+            fi
+          done
+          if [ ${#selected[@]} -eq 0 ]; then
+            echo "projects=[]" >> "$GITHUB_OUTPUT"
+          else
+            printf -v json '"%s",' "${selected[@]}"
+            echo "projects=[${json%,}]" >> "$GITHUB_OUTPUT"
+          fi
+          echo "対象: ${selected[*]:-(なし)}"
+
+  deploy:
+    name: "[${{ matrix.project }}] deploy stg"
+    needs: select
+    if: needs.select.outputs.projects != '[]'
+    runs-on: ubuntu-latest
+    environment: stg
+    strategy:
+      fail-fast: false
+      matrix:
+        project: ${{ fromJson(needs.select.outputs.projects) }}
+    # スタック単位でキューする。実行中の run は打ち切らない（CloudFormation の更新を
+    # 途中で止めるとロールバック待ちになり、次の run も失敗するため）。
+    concurrency:
+      group: infra-deploy-stg-${{ matrix.project }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+
+      - name: 前提の確認
+        env:
+          ROLE_ARN: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          STG_DOTENV: ${{ secrets[format('INFRA_STG_DOTENV_{0}', matrix.project)] }}
+        run: |
+          set -euo pipefail
+          missing=0
+          if [ -z "${ROLE_ARN}" ]; then
+            echo "::error::repo Variables に AWS_DEPLOY_ROLE_ARN が未設定です。GitHub OIDC で AssumeRole する IAM ロールの ARN を登録してください（docs/infra-deploy/README.md）。"
+            missing=1
+          fi
+          if [ -z "${STG_DOTENV}" ]; then
+            echo "::error::repo Secrets に INFRA_STG_DOTENV_${{ matrix.project }} が未設定です。infra/${{ matrix.project }}/.env.stg の内容をそのまま登録してください（gitignored なので CI からは見えません）。"
+            missing=1
+          fi
+          [ "${missing}" -eq 0 ] || exit 1
+
+      - name: stg の .env を用意する
+        env:
+          STG_DOTENV: ${{ secrets[format('INFRA_STG_DOTENV_{0}', matrix.project)] }}
+        run: |
+          set -euo pipefail
+          # ステージ切り替えは symlink 運用（.claude/rules/infra/development.md）。
+          # CI では実体を .env.stg に置き、そこへ symlink を張って手元と同じ形にする。
+          printf '%s\n' "${STG_DOTENV}" > "infra/${{ matrix.project }}/.env.stg"
+          ln -sf .env.stg "infra/${{ matrix.project }}/.env"
+
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
+        with:
+          node-version-file: infra/${{ matrix.project }}/.node-version
+          cache: npm
+          cache-dependency-path: infra/${{ matrix.project }}/package-lock.json
+
+      - uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df # v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install dependencies
+        working-directory: infra/${{ matrix.project }}
+        run: npm ci
+
+      - name: cdk deploy (stg)
+        working-directory: infra/${{ matrix.project }}
+        run: npx cdk deploy --context stage=stg --require-approval never
+
+      - name: デプロイ内容を PR に残す
+        # 「いまの stg が誰の SHA か」を追えるようにする。共有資源なので、DoD をする側は
+        # 自分の SHA が載っていることを確認してから検証する。
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh pr comment "${{ github.event.pull_request.number }}" --body "$(cat <<EOF
+          🚀 stg にデプロイしました: \`${{ matrix.project }}\`
+
+          | 項目 | 値 |
+          |---|---|
+          | commit | \`${{ github.event.pull_request.head.sha }}\` |
+          | branch | \`${{ github.head_ref }}\` |
+          | run | ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} |
+
+          stg は共有環境です。**この SHA が載っている前提で** 動作確認してください。別の PR が
+          あとからデプロイすると上書きされます（その場合はこのラベルを付け直して再デプロイ）。
+          EOF
+          )"
