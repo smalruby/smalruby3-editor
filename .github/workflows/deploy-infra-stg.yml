@@ -81,7 +81,13 @@ jobs:
           if [ ${#selected[@]} -eq 0 ]; then
             echo "projects=[]" >> "$GITHUB_OUTPUT"
           else
-            printf -v json '"%s",' "${selected[@]}"
+            # secret 名にはハイフンを使えない（英数字と _ のみ）ので、ここで変換して
+            # matrix に載せる。Actions の式には文字列置換が無く、format() では作れない。
+            json=""
+            for name in "${selected[@]}"; do
+              secret="INFRA_STG_DOTENV_$(echo "${name}" | tr 'a-z-' 'A-Z_')"
+              json="${json}{\"project\":\"${name}\",\"secret\":\"${secret}\"},"
+            done
             echo "projects=[${json%,}]" >> "$GITHUB_OUTPUT"
           fi
           echo "対象: ${selected[*]:-(なし)}"
@@ -95,7 +101,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        project: ${{ fromJson(needs.select.outputs.projects) }}
+        include: ${{ fromJson(needs.select.outputs.projects) }}
     # スタック単位でキューする。実行中の run は打ち切らない（CloudFormation の更新を
     # 途中で止めるとロールバック待ちになり、次の run も失敗するため）。
     concurrency:
@@ -107,7 +113,7 @@ jobs:
       - name: 前提の確認
         env:
           ROLE_ARN: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
-          STG_DOTENV: ${{ secrets[format('INFRA_STG_DOTENV_{0}', matrix.project)] }}
+          STG_DOTENV: ${{ secrets[matrix.secret] }}
         run: |
           set -euo pipefail
           missing=0
@@ -116,14 +122,14 @@ jobs:
             missing=1
           fi
           if [ -z "${STG_DOTENV}" ]; then
-            echo "::error::repo Secrets に INFRA_STG_DOTENV_${{ matrix.project }} が未設定です。infra/${{ matrix.project }}/.env.stg の内容をそのまま登録してください（gitignored なので CI からは見えません）。"
+            echo "::error::repo Secrets に ${{ matrix.secret }} が未設定です。infra/${{ matrix.project }}/.env.stg の内容をそのまま登録してください（gitignored なので CI からは見えません）。"
             missing=1
           fi
           [ "${missing}" -eq 0 ] || exit 1
 
       - name: stg の .env を用意する
         env:
-          STG_DOTENV: ${{ secrets[format('INFRA_STG_DOTENV_{0}', matrix.project)] }}
+          STG_DOTENV: ${{ secrets[matrix.secret] }}
         run: |
           set -euo pipefail
           # ステージ切り替えは symlink 運用（.claude/rules/infra/development.md）。
