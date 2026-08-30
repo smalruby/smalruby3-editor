@@ -92,8 +92,18 @@ AssumeRole できるデプロイ用ロールを作る。信頼ポリシーは**�
 
 ### 3. GitHub Environment `stg`
 
-workflow は `environment: stg` を使う。Environment を作っておくと、デプロイ履歴が
-GitHub 上に残り、必要なら保護ルール（対象ブランチの制限など）も足せる。
+**Settings → Environments → New environment** で `stg` を作る（**ブラウザで行う**）。
+
+workflow は `environment: stg` を使い、**AWS 側の信頼条件も
+`sub = repo:smalruby/smalruby3-editor:environment:stg` に依存している**（この Environment を
+通るジョブ以外は AssumeRole できない）。Environment があるとデプロイ履歴が GitHub 上に残り、
+必要なら保護ルール（対象ブランチの制限・レビュー必須）も足せる。
+
+> **API では作らない。** `PUT /repos/{owner}/{repo}/environments/{name}` は
+> **`administration=write`** を要求する（`X-Accepted-Github-Permissions` で確認済み）。
+> これはブランチ保護やリポジトリ設定の変更まで含む強い権限なので、この一度きりの操作のために
+> トークンへ付与しない。`bin/gh-admin` 用の PAT には **Secrets / Variables の書き込みだけ**を
+> 持たせる（`.claude/rules/github-app-bot.md`）。
 
 ## 関連
 
