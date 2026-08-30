@@ -16,8 +16,13 @@
 #
 # 推奨する PAT（fine-grained）:
 #   対象リポジトリ: smalruby/smalruby3-editor のみ
-#   権限: Secrets = Read and write / Variables = Read and write /
-#         Environments = Read and write / Metadata = Read
+#   権限: Secrets = Read and write / Variables = Read and write / Metadata = Read
+#   （Environments は任意。既存 Environment の設定を触るときだけ必要）
+#
+# ⚠️ Environment の作成 (PUT .../environments/<name>) は **administration=write** を要求する
+#    （GitHub の X-Accepted-Github-Permissions で確認済み。Environments 権限では 403）。
+#    administration=write はブランチ保護・リポジトリ設定まで及ぶ強い権限なので、
+#    **この PAT には付けない**。Environment の作成はブラウザで一度だけ行う。
 #
 # 使い方:
 #   bin/gh-admin variable set AWS_DEPLOY_ROLE_ARN --body "arn:..."
@@ -43,7 +48,7 @@ read_token() {
         return
     fi
     [[ -f "${TOKEN_FILE}" ]] || die "admin トークンがありません: ${TOKEN_FILE}
-  fine-grained PAT（対象: ${REPO_DEFAULT} / Secrets・Variables・Environments = Read and write）
+  fine-grained PAT（対象: ${REPO_DEFAULT} / Secrets・Variables = Read and write）
   を作り、上記パスに置いてください（chmod 600）。devcontainer ではホストの同じパスを
   読み取り専用でマウントします（.devcontainer/README.md）。"
     # 末尾の改行を落とす（ファイルに改行付きで保存されているのが普通なので）。
@@ -132,19 +137,21 @@ case "$1" in
         echo "default repo: ${REPO_DEFAULT}"
         # 権限は「何が通るか」で示す（PAT の権限一覧は API から引けないため）。
         if GH_TOKEN="${TOKEN}" gh api "repos/${REPO_DEFAULT}/actions/variables" --silent 2>/dev/null; then
-            echo "variables   : ok"
+            echo "variables    : ok"
         else
-            echo "variables   : NG（Variables の権限がありません）"
+            echo "variables    : NG（Variables の権限がありません）"
         fi
         if GH_TOKEN="${TOKEN}" gh api "repos/${REPO_DEFAULT}/actions/secrets" --silent 2>/dev/null; then
-            echo "secrets     : ok"
+            echo "secrets      : ok"
         else
-            echo "secrets     : NG（Secrets の権限がありません）"
+            echo "secrets      : NG（Secrets の権限がありません）"
         fi
+        # Environment の「作成」は administration=write が要るのでここでは判定しない
+        # （読み取りが通っても作成は 403 になる。作成はブラウザで行う）。
         if GH_TOKEN="${TOKEN}" gh api "repos/${REPO_DEFAULT}/environments" --silent 2>/dev/null; then
-            echo "environments: ok"
+            echo "environments : 読み取り ok（作成はブラウザで行う。API は administration=write 必須）"
         else
-            echo "environments: NG（Environments の権限がありません）"
+            echo "environments : 読み取り NG"
         fi
         exit 0
         ;;

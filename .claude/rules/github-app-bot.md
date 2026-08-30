@@ -63,6 +63,11 @@ bin/gh-admin api --method PUT repos/{owner}/{repo}/environments/stg
 - **`export GH_TOKEN=<admin>` は禁止**。`gh auth login` で admin を既定にするのも禁止。
 - **secret 名にハイフンは使えない** (英数字と `_` のみ)。`smalruby-admin` のような
   プロジェクト名から作るときは `INFRA_STG_DOTENV_SMALRUBY_ADMIN` のように変換する。
+- **Environment の作成は API でやらない**。`PUT .../environments/<name>` は
+  **`administration=write`** を要求する (`X-Accepted-Github-Permissions` で確認。Environments
+  権限では 403)。これはブランチ保護・リポジトリ設定まで及ぶ強い権限なので admin PAT には
+  付けず、**ブラウザで一度だけ作る**。困ったら `X-Accepted-Github-Permissions` ヘッダを見ると
+  「どの権限があれば通るか」が分かる (`gh api -i <path>`)。
 
 ## やってはいけないこと
 

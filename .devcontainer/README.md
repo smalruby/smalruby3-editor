@@ -379,8 +379,14 @@ Environments を触るときだけ、個人の fine-grained PAT を使う。こ�
 host の同じパスから **read-only** で bind マウントする (上記「個人マウント」)。
 
 1. **PAT を作る** (fine-grained・対象は `smalruby/smalruby3-editor` のみ):
-   Secrets = Read and write / Variables = Read and write /
-   Environments = Read and write / Metadata = Read。有効期限は短めにする。
+   Secrets = Read and write / Variables = Read and write / Metadata = Read。
+   有効期限は短めにする。Environments は任意 (既存 Environment の設定を触るときだけ)。
+
+   > **Environment の作成 (`stg` など) はブラウザで行う。** API の
+   > `PUT /repos/{owner}/{repo}/environments/{name}` は **`administration=write`** を要求し
+   > (`X-Accepted-Github-Permissions` で確認済み)、Environments 権限では 403 になる。
+   > `administration=write` はブランチ保護・リポジトリ設定まで及ぶので、この一度きりの操作の
+   > ために PAT へ付与しない。
 2. **host に置く**: `~/.config/smalruby-gh/admin-token` に保存し `chmod 600`。
 3. **ro マウントをアンコメント**: `devcontainer.json` の `~/.config/smalruby-gh` 行を
    有効化して rebuild する。
