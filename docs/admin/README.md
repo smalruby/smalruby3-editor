@@ -165,6 +165,10 @@ cd tools/playwright-verify && node verify-admin.mjs
 ```
 
 - `http://localhost:8602/admin/?devlogin=<DEV_BYPASS_TOKEN>` で stg ログインをバイパス（バイパス identity `dev-admin@example.com` の allowlist 登録が前提）
+- **ポートは 8601〜8610 のどれでもよい**（`PORT=8603 npm start` など）。非 prod の API は
+  この範囲の `http://localhost:<port>` を CORS で許可する（#1160）。devpod で worktree を
+  並行起動すると 8601 から順に別ポートが割り当たるため、範囲で許可している。
+  **prod はこの範囲を含まない**（含む設定で deploy しようとすると stack が throw する）
 - ユニットテスト: `cd packages/admin && npm test`（eslint + jest）/ `cd infra/smalruby-admin && npm test`
 
 ## スクリーンショット

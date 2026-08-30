@@ -13,6 +13,8 @@ import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import * as path from 'path';
 import { Construct } from 'constructs';
 
+import { resolveCorsOrigins } from './cors-origins';
+
 /**
  * Smalruby Admin service (EPIC #1073): the operator-only management API.
  *
@@ -34,11 +36,12 @@ export class SmalrubyAdminStack extends cdk.Stack {
     const stage = this.node.tryGetContext('stage') || process.env.STAGE || 'stg';
     const stageSuffix = stage === 'prod' ? '' : `-${stage}`;
 
-    const corsOriginsEnv = process.env.CORS_ALLOWED_ORIGINS ||
-      (stage === 'prod'
-        ? 'https://smalruby.app'
-        : 'https://smalruby.app,http://localhost:8602');
-    const corsAllowOrigins = corsOriginsEnv.split(',').map(o => o.trim());
+    const corsAllowOrigins = resolveCorsOrigins(
+      stage,
+      ['https://smalruby.app'],
+      process.env.CORS_ALLOWED_ORIGINS,
+    );
+    const corsOriginsEnv = corsAllowOrigins.join(',');
 
     // Admin-dedicated Google OAuth client (decision B). An empty client ID
     // would disable the audience check, so prod refuses to deploy without it
