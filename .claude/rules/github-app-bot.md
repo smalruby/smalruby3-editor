@@ -36,6 +36,34 @@ devpod コンテナ内で作業しているので、コマンドは `docker comp
    > 読み取り専用の確認（`gh pr view` 等）も Bot トークンで行ってよい。
 3. **確認**: コミット後に `git log -1 --format='%an <%ae>'` が `smalruby3-editor-bot[bot]` か見る。
 
+## トークンは 3 経路。用途で使い分ける (#1164)
+
+| 用途 | トークン | 使い方 |
+|---|---|---|
+| **名義が見える書き込み** (commit / PR / コメント / ラベル / Projects) | Bot (GitHub App) | `bin/bot-git` / `GH_TOKEN="$(bin/bot-token)" gh ...` |
+| **読み取り** (一覧・PR/Issue 情報。レート予算の分散) | 個人 (read) | autopilot が `AUTOPILOT_READ_TOKEN` → `GH_TOKEN` → `gh auth token` の順で解決 |
+| **repo 設定の変更** (Actions の Variables / Secrets / Environments) | 個人 (admin) | **`bin/gh-admin` 経由のみ** |
+
+**なぜ admin を分けるか**: bot トークンでは repo 設定を変更できない
+(`Resource not accessible by integration`)。かといって個人 PAT を `GH_TOKEN` に置くと、
+`gh` が無条件に拾い、autopilot の読み取り解決も `GH_TOKEN` を経由するため
+**daemon の全読み取りが admin 権限で走る**。名義も権限も混ざり、事故時の被害が最大になる。
+
+```bash
+bin/gh-admin --whoami                    # 持ち主と権限 (variables / secrets / environments)
+bin/gh-admin variable set KEY --body V   # --repo は既定で smalruby/smalruby3-editor
+bin/gh-admin secret set NAME < infra/<project>/.env.stg
+bin/gh-admin api --method PUT repos/{owner}/{repo}/environments/stg
+```
+
+- トークンは `~/.config/smalruby-gh/admin-token` (repo 外・0600)。devcontainer では
+  host の同じパスを **read-only** マウントする (`.devcontainer/README.md`)。
+- ラッパは **repo 設定の API 以外を実行前に拒否**する。merge / branch protection などは
+  通らない (通す必要があるものは bot トークンで実行する)。
+- **`export GH_TOKEN=<admin>` は禁止**。`gh auth login` で admin を既定にするのも禁止。
+- **secret 名にハイフンは使えない** (英数字と `_` のみ)。`smalruby-admin` のような
+  プロジェクト名から作るときは `INFRA_STG_DOTENV_SMALRUBY_ADMIN` のように変換する。
+
 ## やってはいけないこと
 
 - **共有 `.git/config` を Bot に書き換えない**（`git config user.email '...bot...'` 等）。人間の

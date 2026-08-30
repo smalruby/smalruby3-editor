@@ -302,6 +302,7 @@ tmux source-file ~/.tmux.conf   # または prefix r
 |---|---|---|
 | `~/ghq` | `/ghq` | 関連 OSS の参照・push |
 | `~/.config/smalruby-bot` | 同上 (ro) | GitHub App bot 設定 (非秘密)。rebuild/delete を跨いで永続させる。詳細は下記 |
+| `~/.config/smalruby-gh` | 同上 (ro) | repo 設定 (Actions の Variables / Secrets / Environments) 変更用の個人 PAT。`bin/gh-admin` **専用**。詳細は下記 |
 | `~/.claude/settings.json` | 同上 (ro) | Claude Code グローバル設定 (host で編集、container は読むだけ) |
 | `~/.claude/skills` | 同上 (ro) | 自作 skills |
 | `~/.claude/plugins` | 同上 (ro) | プラグイン |
@@ -368,6 +369,28 @@ devcontainer rebuild / `devpod delete` で消える (毎回作り直しになる
 これは rebuild を跨いで残る)。ro にすることで、コンテナ側の誤動作で host の設定を
 消す事故を防ぐ (上記「rw でマウントしない」原則の適用)。生の `.pem` は host にも
 マウントにも載せないので、共有されるのは非秘密の識別子だけになる。
+
+### repo 設定用の admin トークンを rebuild を跨いで永続させる
+
+GitHub App の bot トークンでは **repo 設定を変更できない**
+(`Resource not accessible by integration`)。Actions の Variables / Secrets /
+Environments を触るときだけ、個人の fine-grained PAT を使う。これも
+`~/.config/smalruby-gh/` に置くとコンテナ fs 上になり rebuild で消えるので、
+host の同じパスから **read-only** で bind マウントする (上記「個人マウント」)。
+
+1. **PAT を作る** (fine-grained・対象は `smalruby/smalruby3-editor` のみ):
+   Secrets = Read and write / Variables = Read and write /
+   Environments = Read and write / Metadata = Read。有効期限は短めにする。
+2. **host に置く**: `~/.config/smalruby-gh/admin-token` に保存し `chmod 600`。
+3. **ro マウントをアンコメント**: `devcontainer.json` の `~/.config/smalruby-gh` 行を
+   有効化して rebuild する。
+4. **確認**: コンテナ内で `bin/gh-admin --whoami` → 持ち主と variables / secrets /
+   environments の可否が出る。
+
+**`GH_TOKEN` に export しないこと。** `gh` は `GH_TOKEN` を無条件に拾い、autopilot の
+読み取りトークン解決も `AUTOPILOT_READ_TOKEN` → `GH_TOKEN` → … の順なので、export すると
+**daemon の全読み取りが admin 権限で走る**。使うのは `bin/gh-admin` 経由だけにする
+(このラッパは repo 設定の API 以外を実行前に拒否する)。
 
 ### Claude Code memory の共有メカニズム
 

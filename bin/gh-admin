@@ -1,0 +1,157 @@
+#!/usr/bin/env bash
+# bin/gh-admin — repo 設定（Actions の Variables / Secrets / Environments）だけを
+# 個人の admin トークンで操作するためのラッパ (#1164)。
+#
+# なぜラッパを噛ませるか:
+#   GitHub App の bot トークンでは repo 設定を変更できない（Resource not accessible by
+#   integration）。そこで個人 PAT を使うが、これを `export GH_TOKEN=...` すると `gh` が
+#   無条件に拾い、autopilot の readToken()（AUTOPILOT_READ_TOKEN → GH_TOKEN → gh auth token
+#   → bot の順）まで admin 権限で走る。名義も権限も混ざり、事故ったときの被害が最大になる。
+#   このスクリプトは **その場限りで子プロセスにだけ** トークンを渡し、さらに
+#   「repo 設定の操作」以外を実行前に拒否する。
+#
+# トークンの置き場所（repo の外。bin/bot-token と同じ思想）:
+#   ~/.config/smalruby-gh/admin-token   （0600 推奨。SMALRUBY_GH_DIR で変更可）
+#   env GH_ADMIN_TOKEN が設定されていればそちらを優先する（CI 等）。
+#
+# 推奨する PAT（fine-grained）:
+#   対象リポジトリ: smalruby/smalruby3-editor のみ
+#   権限: Secrets = Read and write / Variables = Read and write /
+#         Environments = Read and write / Metadata = Read
+#
+# 使い方:
+#   bin/gh-admin variable set AWS_DEPLOY_ROLE_ARN --body "arn:..."
+#   bin/gh-admin secret set INFRA_STG_DOTENV_SMALRUBY_ADMIN < infra/smalruby-admin/.env.stg
+#   bin/gh-admin api --method PUT repos/{owner}/{repo}/environments/stg
+#   bin/gh-admin --whoami        トークンの持ち主と対象リポジトリを表示する
+#
+# `--repo` は省略できる（既定で smalruby/smalruby3-editor を補う）。
+set -euo pipefail
+
+REPO_DEFAULT="smalruby/smalruby3-editor"
+CONFIG_DIR="${SMALRUBY_GH_DIR:-$HOME/.config/smalruby-gh}"
+TOKEN_FILE="${CONFIG_DIR}/admin-token"
+
+die() {
+    echo "gh-admin: $*" >&2
+    exit 1
+}
+
+read_token() {
+    if [[ -n "${GH_ADMIN_TOKEN:-}" ]]; then
+        printf '%s' "${GH_ADMIN_TOKEN}"
+        return
+    fi
+    [[ -f "${TOKEN_FILE}" ]] || die "admin トークンがありません: ${TOKEN_FILE}
+  fine-grained PAT（対象: ${REPO_DEFAULT} / Secrets・Variables・Environments = Read and write）
+  を作り、上記パスに置いてください（chmod 600）。devcontainer ではホストの同じパスを
+  読み取り専用でマウントします（.devcontainer/README.md）。"
+    # 末尾の改行を落とす（ファイルに改行付きで保存されているのが普通なので）。
+    tr -d '\r\n' < "${TOKEN_FILE}"
+}
+
+# このラッパで許可する操作。ここに無いものは通さない。
+# 目的は「admin トークンを持っている = 何でもできる」状態を作らないこと。
+#   variable / secret : Actions の Variables / Secrets（一覧・設定・削除）
+#   api               : repo 設定のパスに限定（下の allow_api_path で判定）
+usage() {
+    cat >&2 <<'EOS'
+gh-admin: repo 設定だけを admin トークンで操作するラッパ
+
+  bin/gh-admin variable <list|get|set|delete> [args...]
+  bin/gh-admin secret   <list|set|delete> [args...]
+  bin/gh-admin api      <repo 設定の API パス> [args...]
+  bin/gh-admin --whoami
+
+許可されるのは Actions の Variables / Secrets と Environments の操作だけです。
+それ以外（merge / branch protection / リポジトリ削除など）は通しません。
+通常の操作は bot トークンを使ってください: GH_TOKEN="$(bin/bot-token)" gh ...
+EOS
+    exit 2
+}
+
+# api サブコマンドで許可する path かどうか。{owner}/{repo} 形式と実名の両方を許す。
+allow_api_path() {
+    local path="$1"
+    # 先頭のスラッシュと API ホストを剥がす
+    path="${path#https://api.github.com}"
+    path="${path#/}"
+    case "${path}" in
+        repos/*/actions/variables*|repos/*/actions/secrets*|repos/*/environments*)
+            return 0
+            ;;
+        user|user/*)
+            # --whoami 用の読み取り
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+[[ $# -gt 0 ]] || usage
+
+TOKEN="$(read_token)"
+
+case "$1" in
+    --whoami)
+        login="$(GH_TOKEN="${TOKEN}" gh api user --jq '.login')"
+        echo "token owner : ${login}"
+        echo "token source: ${GH_ADMIN_TOKEN:+env GH_ADMIN_TOKEN}${GH_ADMIN_TOKEN:-${TOKEN_FILE}}"
+        echo "default repo: ${REPO_DEFAULT}"
+        # 権限は「何が通るか」で示す（PAT の権限一覧は API から引けないため）。
+        if GH_TOKEN="${TOKEN}" gh api "repos/${REPO_DEFAULT}/actions/variables" --silent 2>/dev/null; then
+            echo "variables   : ok"
+        else
+            echo "variables   : NG（Variables の権限がありません）"
+        fi
+        if GH_TOKEN="${TOKEN}" gh api "repos/${REPO_DEFAULT}/actions/secrets" --silent 2>/dev/null; then
+            echo "secrets     : ok"
+        else
+            echo "secrets     : NG（Secrets の権限がありません）"
+        fi
+        if GH_TOKEN="${TOKEN}" gh api "repos/${REPO_DEFAULT}/environments" --silent 2>/dev/null; then
+            echo "environments: ok"
+        else
+            echo "environments: NG（Environments の権限がありません）"
+        fi
+        exit 0
+        ;;
+    variable|secret)
+        kind="$1"
+        shift
+        sub="${1:-}"
+        case "${sub}" in
+            list|get|set|delete) ;;
+            *) die "使えるのは list / get / set / delete です: gh-admin ${kind} <sub> ..." ;;
+        esac
+        shift
+        args=("${kind}" "${sub}" "$@")
+        # --repo が無ければ既定を補う（打ち間違いで別リポジトリを触らないため）
+        if [[ " $* " != *" --repo "* ]]; then
+            args+=(--repo "${REPO_DEFAULT}")
+        fi
+        exec env GH_TOKEN="${TOKEN}" gh "${args[@]}"
+        ;;
+    api)
+        shift
+        # --method などのフラグを飛ばして最初の非フラグ引数を path とみなす
+        path=""
+        for arg in "$@"; do
+            case "${arg}" in
+                -*) continue ;;
+                GET|POST|PUT|PATCH|DELETE) continue ;;
+                *) path="${arg}"; break ;;
+            esac
+        done
+        [[ -n "${path}" ]] || die "API パスを指定してください"
+        allow_api_path "${path}" || die "このパスは gh-admin では実行できません: ${path}
+  許可: repos/<owner>/<repo>/actions/{variables,secrets}...、repos/<owner>/<repo>/environments...
+  それ以外は bot トークンで実行してください: GH_TOKEN=\"\$(bin/bot-token)\" gh api ..."
+        exec env GH_TOKEN="${TOKEN}" gh api "$@"
+        ;;
+    *)
+        usage
+        ;;
+esac
