@@ -272,3 +272,127 @@ jobs:
       - name: Run npm audit
         run: npm audit --audit-level=moderate
         continue-on-error: true
+
+  # ---------------------------------------------------------------------------
+  # smalruby-classroom
+  # ---------------------------------------------------------------------------
+  smalruby-classroom-unit-tests:
+    name: "[classroom] Unit Tests"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/smalruby-classroom
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
+        with:
+          node-version-file: infra/smalruby-classroom/.node-version
+          cache: npm
+          cache-dependency-path: infra/smalruby-classroom/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Run unit tests
+        run: npm test
+
+  smalruby-classroom-cdk-build:
+    name: "[classroom] CDK Build & Synth"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/smalruby-classroom
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
+        with:
+          node-version-file: infra/smalruby-classroom/.node-version
+          cache: npm
+          cache-dependency-path: infra/smalruby-classroom/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Build TypeScript
+        run: npm run build
+      - name: Synthesize CDK stack
+        env:
+          CLASSROOM_CUSTOM_DOMAIN: 'false'
+        run: npx cdk synth --context stage=stg
+
+  smalruby-classroom-security:
+    name: "[classroom] Security Audit"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/smalruby-classroom
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
+        with:
+          node-version-file: infra/smalruby-classroom/.node-version
+          cache: npm
+          cache-dependency-path: infra/smalruby-classroom/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Run npm audit
+        run: npm audit --audit-level=moderate
+        continue-on-error: true
+
+  # ---------------------------------------------------------------------------
+  # smalruby-admin
+  # ---------------------------------------------------------------------------
+  smalruby-admin-unit-tests:
+    name: "[admin] Unit Tests"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/smalruby-admin
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
+        with:
+          node-version-file: infra/smalruby-admin/.node-version
+          cache: npm
+          cache-dependency-path: infra/smalruby-admin/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Run unit tests
+        run: npm test
+
+  smalruby-admin-cdk-build:
+    name: "[admin] CDK Build & Synth"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/smalruby-admin
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
+        with:
+          node-version-file: infra/smalruby-admin/.node-version
+          cache: npm
+          cache-dependency-path: infra/smalruby-admin/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Build TypeScript
+        run: npm run build
+      - name: Synthesize CDK stack
+        env:
+          ADMIN_CUSTOM_DOMAIN: 'false'
+        run: npx cdk synth --context stage=stg
+
+  smalruby-admin-security:
+    name: "[admin] Security Audit"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/smalruby-admin
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
+        with:
+          node-version-file: infra/smalruby-admin/.node-version
+          cache: npm
+          cache-dependency-path: infra/smalruby-admin/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Run npm audit
+        run: npm audit --audit-level=moderate
+        continue-on-error: true
