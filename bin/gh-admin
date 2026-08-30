@@ -71,18 +71,48 @@ EOS
 }
 
 # api サブコマンドで許可する path かどうか。{owner}/{repo} 形式と実名の両方を許す。
+#
+# ⚠️ ワイルドカード（case の `repos/*/actions/variables*`）だけで判定してはいけない。
+# bash の `*` は `/` にもマッチするので `repos/o/r/actions/variables/../../pulls/1/merge`
+# が「許可」と判定され、gh（Go の HTTP クライアント）が `..` を正規化した結果
+# **別のエンドポイントに届く**。実測で PR の情報が取れてしまった。
+# そのため **セグメントに分解して 1 つずつ検証**し、`.` / `..` / 空を弾く。
 allow_api_path() {
     local path="$1"
-    # 先頭のスラッシュと API ホストを剥がす
+    # API ホスト・先頭スラッシュ・クエリ文字列を剥がす
     path="${path#https://api.github.com}"
     path="${path#/}"
-    case "${path}" in
-        repos/*/actions/variables*|repos/*/actions/secrets*|repos/*/environments*)
+    path="${path%%\?*}"
+
+    local IFS='/'
+    read -r -a seg <<< "${path}"
+
+    # 相対参照・空セグメントを含むものは一切通さない（正規化で別の場所へ行くため）
+    local s
+    for s in "${seg[@]}"; do
+        case "${s}" in
+            ''|.|..) return 1 ;;
+        esac
+    done
+
+    # --whoami 用の読み取り
+    if [[ ${#seg[@]} -eq 1 && "${seg[0]}" == "user" ]]; then
+        return 0
+    fi
+
+    # repos/<owner>/<repo>/... の形だけを見る（owner / repo に / は入らない = 分解済み）
+    [[ ${#seg[@]} -ge 4 && "${seg[0]}" == "repos" ]] || return 1
+
+    case "${seg[3]}" in
+        environments)
             return 0
             ;;
-        user|user/*)
-            # --whoami 用の読み取り
-            return 0
+        actions)
+            [[ ${#seg[@]} -ge 5 ]] || return 1
+            case "${seg[4]}" in
+                variables|secrets) return 0 ;;
+                *) return 1 ;;
+            esac
             ;;
         *)
             return 1
