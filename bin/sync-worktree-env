@@ -8,10 +8,15 @@
 # in one step.
 #
 # What is copied:
-#   - <repo-root>/.env.<stage>      (root webpack env)
-#   - infra/<project>/.env.<stage>  (CDK per-stage env)
-# where <stage> ∈ {stg, stg2, production}. Symlinks (.env) and tracked files
-# (.env.example) are NOT copied — set up the .env symlink yourself.
+#   - <repo-root>/.env, <repo-root>/.env.<stage>  (root webpack env)
+#   - infra/<project>/.env.<stage>                (CDK per-stage env, all projects)
+# The infra list is *scanned* (infra/*/.env.<stage>) instead of hardcoded, so a
+# new CDK project is picked up automatically (Issue #1158: smalruby-api /
+# smalruby-bug-report / smalruby-admin were missing from the old hardcoded list,
+# and stage names differ per project — .env.production vs .env.prod).
+# NOT copied: the `.env` symlink (stage choice is local — see
+# .claude/rules/env-file.md), the tracked `.env.example`, and dated / suffixed
+# backups such as `.env.prod.20260719` or `.env.stg.bak-bootstrap`.
 #
 # Usage (from inside the worktree):
 #   bin/sync-worktree-env
@@ -50,19 +55,21 @@ declare -a FILES=(
     ".env.stg"
     ".env.stg2"
     ".env.production"
-    "infra/smalruby-mesh-v2/.env.stg"
-    "infra/smalruby-mesh-v2/.env.stg2"
-    "infra/smalruby-mesh-v2/.env.production"
-    "infra/smalruby-rubytee-relay/.env.stg"
-    "infra/smalruby-rubytee-relay/.env.stg2"
-    "infra/smalruby-rubytee-relay/.env.production"
-    "infra/smalruby-classroom/.env.stg"
-    "infra/smalruby-classroom/.env.stg2"
-    "infra/smalruby-classroom/.env.production"
-    "infra/smalruby-api/.env.stg"
-    "infra/smalruby-api/.env.stg2"
-    "infra/smalruby-api/.env.prod"
 )
+
+# infra/<project>/.env.<stage> は列挙せず走査する。プロジェクトが増えても
+# 追随でき、ステージ名の揺れ (.env.production / .env.prod / .env.stg2) も拾える。
+shopt -s nullglob
+for src in "${MAIN_CHECKOUT}"/infra/*/.env.*; do
+    stage=$(basename "${src}")
+    stage=${stage#.env.}
+    # .env.example は tracked なのでコピー不要
+    [[ "${stage}" == "example" ]] && continue
+    # .env.prod.20260719 / .env.stg.bak-bootstrap のようなバックアップは持ち込まない
+    [[ "${stage}" == *.* ]] && continue
+    FILES+=("${src#"${MAIN_CHECKOUT}/"}")
+done
+shopt -u nullglob
 
 copied=0
 skipped_existing=0

@@ -6,6 +6,7 @@ import Box from '../box/box.jsx';
 import Modal from '../../containers/modal.jsx';
 import intlShape from '../../lib/intlShape.js';
 import closeIcon from '../close-button/icon--close.svg';
+import GoogleSignInSlot from '../google-sign-in-slot/google-sign-in-slot.jsx';
 
 import styles from './bug-report-modal.css';
 
@@ -220,6 +221,8 @@ const BugReportModal = (props) => {
         reports,
         reportsLoading,
         submitProgressLabel,
+        googleFallbackReason,
+        googleSignInRef,
         onRequestClose,
         onLoginGoogle,
         onLoginMicrosoft,
@@ -262,14 +265,24 @@ const BugReportModal = (props) => {
                         <p>
                             <FormattedMessage {...messages.loginIntro} />
                         </p>
-                        <button
-                            className={styles.loginButton}
-                            disabled={isBusy}
-                            onClick={onLoginGoogle}
-                            data-testid="bug-report-login-google"
-                        >
-                            <FormattedMessage {...messages.loginGoogle} />
-                        </button>
+                        {googleFallbackReason === null && (
+                            <button
+                                className={styles.loginButton}
+                                disabled={isBusy}
+                                onClick={onLoginGoogle}
+                                data-testid="bug-report-login-google"
+                            >
+                                <FormattedMessage {...messages.loginGoogle} />
+                            </button>
+                        )}
+                        {/* Google's own button takes this button's place when
+                            the browser prompt cannot sign the user in (#1149). */}
+                        <GoogleSignInSlot
+                            active={googleFallbackReason !== null}
+                            className={styles.googleSignInSlot}
+                            ref={googleSignInRef}
+                            showHint={googleFallbackReason !== null && googleFallbackReason !== 'unsupported'}
+                        />
                         {microsoftAvailable ? (
                             <button
                                 className={styles.loginButton}
@@ -439,6 +452,8 @@ BugReportModal.propTypes = {
     reportsLoading: PropTypes.bool,
     submitProgressLabel: PropTypes.string,
     onRequestClose: PropTypes.func.isRequired,
+    googleFallbackReason: PropTypes.oneOf(['dismissed', 'retry', 'unsupported']),
+    googleSignInRef: PropTypes.shape({ current: PropTypes.any }),
     onLoginGoogle: PropTypes.func.isRequired,
     onLoginMicrosoft: PropTypes.func.isRequired,
     onDescriptionChange: PropTypes.func.isRequired,

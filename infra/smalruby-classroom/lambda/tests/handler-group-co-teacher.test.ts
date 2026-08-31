@@ -1,3 +1,7 @@
+// このファイルをモジュールにするための宣言。import/export を持たない .ts は TypeScript の
+// グローバルスクリプト扱いになり、トップレベルの const がテストファイル間で衝突する（#1144）。
+export {};
+
 /**
  * Class-level (group) co-teacher authorization tests (issue #1138).
  *
@@ -14,6 +18,10 @@
  * case-insensitivity of the authorization comparison is pinned separately on
  * canManageGroup / canManageClassroom.
  */
+
+// モジュール化。トップレベル宣言をファイルスコープに閉じる（他のテストファイルと
+// 同名の mockSend / DEV_TOKEN / makeEvent があり、スクリプト扱いだと TS2451 で衝突する）。
+export {};
 
 const mockSend = jest.fn();
 jest.mock('@aws-sdk/lib-dynamodb', () => {

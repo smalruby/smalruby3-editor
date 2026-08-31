@@ -1,9 +1,11 @@
 /**
  * クラス・課題管理 view (EPIC #1073 S4 #1084 + 俯瞰ダッシュボード 2026-07-19).
  *
- * Three tabs:
+ * Four tabs:
  * - 俯瞰: dashboard (creation trend / content richness / theme / candidates).
  * - 課題検索: live assignment search (archive⇄active flip).
+ * - クラス（学級）検索: class search + archive release (#1133 — the only face
+ *   that writes ClassroomGroups; lives in classroom-groups-view.jsx).
  * - 期限切れ復元: ddb-archive snapshot restore, narrowed by facets
  *   (削除時期 / 先生) so a large deleted set is browsable みんなの課題-style.
  * Every mutation goes through an explicit two-step confirmation.
@@ -32,6 +34,7 @@ import {
     setClassroomStatus,
     setSharingRecommendation
 } from '../lib/admin-api.js';
+import ClassroomGroupsView from './classroom-groups-view.jsx';
 import ClassroomOverviewView from './classroom-overview-view.jsx';
 
 const ClassroomStatusBadge = ({status}) => (
@@ -43,6 +46,86 @@ const ClassroomStatusBadge = ({status}) => (
 ClassroomStatusBadge.propTypes = {status: PropTypes.string};
 
 const formatDate = iso => (iso ? iso.replace('T', ' ').slice(0, 16) : '-');
+
+// 親クラス（学級）がアーカイブ中の課題は、課題自身が `active` でも先生のクラス
+// 一覧から消える (#1132)。「課題が利用中＝先生に見えている」と誤読した事故
+// （EPIC #1129）を防ぐため、一覧・詳細・復元パネルで同じ判定を共有する。
+// groupStatus: null = 親クラス無し（v1 の名残） / 'missing' = 親クラスの行が消えている /
+// 'unknown' = 親クラスを引けなかった（スロットリング等）。
+// **`missing` は「見えない」ではない**: 先生のクラス一覧には「どのクラスにも入って
+// いない課題」フォールバック（`teacher-class-list.jsx` の ungrouped セクション）が
+// あり、親クラスの行が無い利用中の課題はそこに出る。隠れるのは `archived` だけ。
+const isHiddenByGroup = groupStatus => groupStatus === 'archived';
+
+const archivedGroupReason = groupName =>
+    `親クラス（学級）「${groupName || '(名称なし)'}」がアーカイブ中です`;
+
+// アーカイブ中の親クラスの戻し方。先生自身の操作が基本だが、先生がその画面に
+// 到達できない問い合わせのために Admin 側の動線も併記する (#1133)。
+const GROUP_RESTORE_STEPS =
+    '先生には「クラス管理 → クラス一覧 → アーカイブ済みのクラス → 元に戻す」を案内してください。' +
+    '先生が操作できない場合は「クラス（学級）検索」タブから運用者が解除できます。';
+
+// 親クラスの行が無い課題の実際の見え方。先生の画面から消えるわけではない。
+const GROUP_MISSING_NOTE =
+    '親クラス（学級）が見つかりません（削除された可能性があります）。' +
+    '利用中の課題は、先生のクラス一覧の「どのクラスにも入っていない課題」に表示されます。';
+
+/**
+ * 復元パネルで「課題は生きている」ときの案内 (#1132・親クラスがアーカイブ中の
+ * ケースは呼び出し側で別文言）。親クラスの行が無い課題は先生の課題一覧
+ * （クラスごとのボード）には出ないが、利用中なら ungrouped フォールバックに出る。
+ * アーカイブ済み＋親クラス無しだけが先生の動線から外れるので、Admin 側の操作
+ * （課題を利用中に戻す）を案内する。
+ * @param {string} status - 課題の状態（'active' / 'archived'）
+ * @param {string|null} groupStatus - 親クラスの状態（'missing' で行が無い）
+ * @returns {string} 案内文
+ */
+const aliveGuidance = (status, groupStatus) => {
+    if (groupStatus === 'missing') {
+        return status === 'archived' ?
+            'アーカイブ済みで親クラス（学級）も見つからないため、先生の画面には出てきません。' +
+                '課題検索タブの課題詳細で「利用中に戻す」と、先生のクラス一覧の' +
+                '「どのクラスにも入っていない課題」に表示されます。' :
+            '利用中で、先生のクラス一覧の「どのクラスにも入っていない課題」に表示されます' +
+                '（親クラス（学級）が見つからないため）。';
+    }
+    return status === 'archived' ?
+        'アーカイブ済みなので、先生自身のクラス管理画面の課題一覧から戻せます。' :
+        '利用中なので、先生の画面にも表示されています。';
+};
+
+const GROUP_BADGES = {
+    archived: {
+        className: 'admin-badge-warn',
+        testId: 'classroom-admin-group-hidden-badge',
+        text: '先生には表示されません'
+    },
+    missing: {
+        className: 'admin-badge-muted',
+        testId: 'classroom-admin-group-missing-badge',
+        text: 'クラス（学級）が見つかりません'
+    },
+    // 一覧は親クラスをバッチ取得するので、取り切れないことがありうる (#1132)。
+    // 「行が消えている」と断定せず、不明であることをそのまま出す。
+    unknown: {
+        className: 'admin-badge-muted',
+        testId: 'classroom-admin-group-unknown-badge',
+        text: 'クラス（学級）の状態は不明'
+    }
+};
+
+const ParentGroupBadge = ({groupStatus}) => {
+    const badge = GROUP_BADGES[groupStatus];
+    return badge ? (
+        <span
+            className={`admin-badge ${badge.className}`}
+            data-testid={badge.testId}
+        >{badge.text}</span>
+    ) : null;
+};
+
+ParentGroupBadge.propTypes = {groupStatus: PropTypes.string};
 
 // One-line summary shared by the live and restore item rows.
 const itemLine = (item, tail) =>
@@ -240,6 +323,8 @@ const ClassroomDetail = ({classroomId, onBack, onChanged}) => {
                 {' '}
                 <ClassroomStatusBadge status={detail.status} />
                 {' '}
+                <ParentGroupBadge groupStatus={detail.groupStatus} />
+                {' '}
                 {detail.recommendedForSharing ? (
                     <span
                         className="admin-badge admin-badge-ok"
@@ -250,6 +335,21 @@ const ClassroomDetail = ({classroomId, onBack, onChanged}) => {
             <p className="admin-meta">
                 {`課題: ${detail.assignmentName || '-'} ・ 参加コード: ${detail.joinCode}`}
             </p>
+            {isHiddenByGroup(detail.groupStatus) ? (
+                <p
+                    className="admin-error"
+                    data-testid="classroom-admin-group-hidden-note"
+                >
+                    {`この課題は先生の画面に表示されていません — ${archivedGroupReason(detail.groupName)}。`}
+                    {GROUP_RESTORE_STEPS}
+                </p>
+            ) : null}
+            {detail.groupStatus === 'missing' ? (
+                <p
+                    className="admin-meta"
+                    data-testid="classroom-admin-group-missing-note"
+                >{GROUP_MISSING_NOTE}</p>
+            ) : null}
             <p
                 className="admin-meta"
                 data-testid="classroom-admin-counts"
@@ -265,6 +365,11 @@ const ClassroomDetail = ({classroomId, onBack, onChanged}) => {
                         {detail.status === 'active' ?
                             'この課題をアーカイブしますか？（先生の課題一覧から非表示になります）' :
                             'この課題を利用中に戻しますか？'}
+                        {/* 親クラスがアーカイブ中なら、利用中に戻しても先生の
+                            画面には出てこない (#1132)。実行前に必ず伝える。 */}
+                        {detail.status !== 'active' && isHiddenByGroup(detail.groupStatus) ?
+                            '（親クラス（学級）がアーカイブ中のため、戻しても先生の画面には表示されません）' :
+                            ''}
                         <button
                             data-testid="classroom-admin-confirm-yes"
                             disabled={busy}
@@ -392,10 +497,21 @@ const RestorePanel = ({classroomId, onBack}) => {
     if (plan.alive) {
         return (
             <div data-testid="restore-admin-alive">
-                <p>
-                    {'この課題はまだ存在しています（削除されていません）。'}
-                    {'アーカイブ済みなら、先生自身のクラス管理画面から戻せます。'}
-                </p>
+                {isHiddenByGroup(plan.groupStatus) ? (
+                    // 課題自体は生きているが親クラスがアーカイブ中のケース (#1132)。
+                    // 「先生自身のクラス管理画面から戻せます」だけだと、先生は
+                    // 課題一覧をいくら探しても対象を見つけられない（誤誘導）。
+                    <p data-testid="restore-admin-alive-group-hidden">
+                        {`この課題のデータは残っていますが、${archivedGroupReason(plan.groupName)}。`}
+                        {'そのため先生の画面には表示されていません。'}
+                        {GROUP_RESTORE_STEPS}
+                    </p>
+                ) : (
+                    <p data-testid="restore-admin-alive-classroom">
+                        {'この課題はまだ存在しています（削除されていません）。'}
+                        {aliveGuidance(plan.status, plan.groupStatus)}
+                    </p>
+                )}
                 <button
                     className="admin-back-button"
                     data-testid="restore-admin-back"
@@ -605,7 +721,7 @@ RestoreBrowser.propTypes = {
 };
 
 // 課題検索タブ: 生きている課題の一覧・検索 + アーカイブ切替（クラス（学級）は
-// 対象外 — 検索・アーカイブ解除は EPIC #1129 の C で扱う）。
+// 対象外 — その検索・アーカイブ解除は「クラス（学級）検索」タブ #1133）。
 const LiveBrowser = ({onOpen, reloadKey}) => {
     const [query, setQuery] = useState('');
     const [items, setItems] = useState(null);
@@ -676,6 +792,7 @@ const LiveBrowser = ({onOpen, reloadKey}) => {
                             >
                                 <strong>{classTitle(item.className)}</strong>
                                 <ClassroomStatusBadge status={item.status} />
+                                <ParentGroupBadge groupStatus={item.groupStatus} />
                                 <span className="admin-meta">
                                     {itemLine(item, `期限 ${formatDate(item.expiresAt)}`)}
                                 </span>
@@ -706,6 +823,10 @@ const ClassroomsView = () => {
     }, []);
     const handleTabLive = useCallback(() => {
         setTab('live');
+        setSelected(null);
+    }, []);
+    const handleTabGroups = useCallback(() => {
+        setTab('groups');
         setSelected(null);
     }, []);
     const handleTabRestore = useCallback(() => {
@@ -757,6 +878,12 @@ const ClassroomsView = () => {
                     onClick={handleTabLive}
                 >{'課題検索'}</button>
                 <button
+                    className={tab === 'groups' ? 'admin-tab-active' : 'admin-tab'}
+                    data-testid="classroom-admin-tab-groups"
+                    type="button"
+                    onClick={handleTabGroups}
+                >{'クラス（学級）検索'}</button>
+                <button
                     className={tab === 'restore' ? 'admin-tab-active' : 'admin-tab'}
                     data-testid="classroom-admin-tab-restore"
                     type="button"
@@ -768,6 +895,7 @@ const ClassroomsView = () => {
                 reloadKey={reloadKey}
                 onOpen={openLive}
             />}
+            {tab === 'groups' && <ClassroomGroupsView />}
             {tab === 'restore' && <RestoreBrowser onOpen={openRestore} />}
         </div>
     );

@@ -7,8 +7,8 @@ stateDiagram-v2
     state "先生フロー" as teacher {
         state "ログイン (Google / Microsoft)" as teacher_login
         state "ダッシュボード" as teacher_dashboard
-        state "クラス作成" as teacher_create
-        state "クラス詳細" as teacher_detail
+        state "課題作成" as teacher_create
+        state "課題詳細" as teacher_detail
         state "Google Classroom コース一覧" as teacher_gc
         state "課題配信" as teacher_post
     }
@@ -24,8 +24,8 @@ stateDiagram-v2
     [*] --> teacher_login: 先生モーダルを開く（設定→クラス管理）
 
     teacher_login --> teacher_dashboard: ログイン成功
-    teacher_dashboard --> teacher_create: 「クラスをつくる」
-    teacher_dashboard --> teacher_detail: クラスを選択
+    teacher_dashboard --> teacher_create: 課題を作る
+    teacher_dashboard --> teacher_detail: 課題を選択
     teacher_dashboard --> teacher_gc: 「GC からインポート」
     teacher_dashboard --> teacher_login: ログアウト
     teacher_create --> teacher_dashboard: 作成完了 / 戻る
@@ -62,14 +62,14 @@ stateDiagram-v2
 | クラスボタン | 「クラス」（未参加時） | `classroom-menu-button` |
 | ラベル | — | `classroom-menu-label` |
 
-生徒がクラスに参加中の場合、ボタンのテキストは固定の「クラス:出席番号NN」表記に変わります (NN は 0 埋め 2 桁):
+生徒が課題に参加中の場合、ボタンのテキストは固定の「クラス:出席番号NN」表記に変わります (NN は 0 埋め 2 桁):
 
 | 要素 | テキスト/内容 | data-testid |
 |------|-------------|-------------|
 | ラベル全体 | 例: 「クラス:出席番号03」 | `classroom-menu-label` |
 | 出席番号 (内側 span) | 例: 「03」 | `classroom-menu-seat-number` |
 
-未参加時はラベルが「クラス」のみになる。 課題名 / クラス名はメニューに表示せず、モーダル内でのみ確認する設計。
+未参加時はラベルが「クラス」のみになる。 課題名 / クラス（学級）名はメニューに表示せず、モーダル内でのみ確認する設計。なお、生徒が参加するのは課題（1 授業）だが、メニューバーのラベル自体は「クラス」のまま（UI 文言の整理は #1135）。
 
 ---
 
@@ -105,6 +105,7 @@ Google または Microsoft アカウントでサインインする画面。先�
 | 説明文 | 「アカウントでログインして、クラスを管理します。」 | — | — |
 | ヒント | 「学校の Google Workspace for Education のアカウントで…」 | — | — |
 | Google ログインボタン | 「Googleでログイン」 | `classroom-google-login` | Google 認証画面を開く |
+| Google サインインスロット | ログイン開始後に GIS の「Sign in with Google」ボタンが入る（未開始時は空で非表示） | `google-signin-slot` | GIS ボタンのホスト。内側の生成ノードは `google-signin-button` |
 | Microsoft ログインボタン | 「Microsoftでログイン」 | `classroom-microsoft-login` | Microsoft 認証ポップアップを開く |
 | カルーセル | 右ペインに機能紹介画像（4枚、5秒ごと自動切替） | — | ドットクリックで手動切替 |
 
@@ -118,7 +119,7 @@ Google または Microsoft アカウントでサインインする画面。先�
 
 ![クラス一覧](screenshots/0210-teacher-class-list.png)
 
-ログイン直後に表示される v2 の入口。Google Classroom の「クラス」に相当する学級のカードが並ぶ。初回表示時に v1→v2 の冪等 migration（`POST /classroom-groups/migrate`）を自動実行する。
+ログイン直後に表示される v2 の入口。Google Classroom の「クラス」に相当するクラス（学級）のカードが並ぶ。初回表示時に v1→v2 の冪等 migration（`POST /classroom-groups/migrate`）を自動実行する。
 
 クラスのプロパティは GC 準拠: **クラス名（必須・例: 技術）/ 年度（必須・現在年度デフォルト）/ セクション（オプション・例: 2年1組）/ 人数**。同時作成フォームの課題名はオプション（空欄=クラスのみ作成）。カードの「設定」でインライン編集（名前・年度・セクション・人数・**クラス単位の共同管理者**・アーカイブ）。表示形式は「%クラス名% %年度%年度 / %セクション%」。**ログアウトはタイトルバー右端に常時表示**。
 
@@ -177,7 +178,7 @@ Google または Microsoft アカウントでサインインする画面。先�
 - お知らせ本文をクリックすると、`link` の種類に応じて該当画面へジャンプ（`kind: 'classroom'` → そのクラスを選択して課題詳細へ / `kind: 'shared-mine'` → みんなの課題の自分の投稿へ）。未知の kind は無視（前方互換）
 - **全件一覧ページ**は「**クラス管理 > お知らせ**」パンくず（先頭「クラス管理」でトップ=クラス一覧へ戻れる）+ **左下に「戻る」ボタン**（キャンセルが不適切な画面のポリシー）
 - **取得は 1 日 1 回**（コスト削減）: その日はじめてクラス管理を開いたときだけ `GET /notifications` を 1 回呼び、localStorage に日付つきでキャッシュ。同じ日の再オープンは API を叩かない（旧 60 秒ポーリングは廃止）。共有 PC 対策として先生メールでキャッシュを識別。取得エラーはクラス管理本体に影響させない（表示しない）。※その日の初回取得後に届いたお知らせは翌日反映（運営連絡は多くて週 1 回程度の前提）
-- 送信側は Admin SPA（クラス詳細の「先生へのお知らせ」フォーム → `POST /admin/notifications`）。`docs/admin/README.md` を参照
+- 送信側は Admin SPA（課題詳細の「先生へのお知らせ」フォーム → `POST /admin/notifications`）。`docs/admin/README.md` を参照
 
 | 要素 | data-testid | 操作 |
 |------|-------------|------|
@@ -217,17 +218,17 @@ Google または Microsoft アカウントでサインインする画面。先�
 | 共有フォームを開く | `classroom-share-suggestion-open` | ボードへ戻って共有ステップを開く |
 | ボード行のマーク | `classroom-board-share-suggested-{classroomId}` | — |
 
-## 4. 先生: クラス詳細 (`teacher-detail`)
+## 4. 先生: 課題詳細のメンバータブ (`teacher-detail`)
 
-クラスの参加状況と提出を管理する画面。モーダルが**ワイド表示 (968px)** に広がります。
+1 つの課題（1 授業）の参加状況と提出を管理する画面。画面のタイトルには、その課題が属する**クラス（学級）名**が出る。モーダルが**ワイド表示 (968px)** に広がります。
 
 ### 空席のみの状態
 
-![クラス詳細 — 空席のみ](screenshots/0204-teacher-detail.png)
+![課題詳細 — 空席のみ](screenshots/0204-teacher-detail.png)
 
 ### 提出があった状態（5番が緑 = 提出済み）
 
-![クラス詳細 — 提出あり](screenshots/0205-teacher-detail-submitted.png)
+![課題詳細 — 提出あり](screenshots/0205-teacher-detail-submitted.png)
 
 ### メンバー詳細パネル（右側）
 
@@ -239,7 +240,7 @@ Google または Microsoft アカウントでサインインする画面。先�
 |------|----------|-------------|------|
 | フェーズルート | — | `classroom-phase-teacher-detail` | — |
 | 戻るリンク | 「< 戻る」 | `classroom-back` | → teacher-dashboard |
-| クラス名 | 「第3回 チャットアプリを作ろう」 | `classroom-detail-name` | — |
+| クラス（学級）名 | 「技術 2026年度 / 2年1組」 | `classroom-detail-name` | 課題が属するクラスの表示ラベル（`formatClassLabel(group)`。v2 以前のデータでは `Classrooms.className`） |
 | 課題名入力 | 課題名（編集可） | `classroom-detail-assignment-name` | blur で保存 |
 | 課題配信ボタン | 「課題を配信」 | `classroom-post-assignment` | → teacher-post-assignment。**未配信のとき**表示 |
 | 課題確認リンク | 「課題を確認」 | `classroom-view-assignment` | 配信済みのとき表示（新しいタブ） |
@@ -307,9 +308,11 @@ Google または Microsoft アカウントでサインインする画面。先�
 | メンバータブ | 「メンバー」 | `classroom-tab-members` | 凡例 + 人数 + 更新 + 座席グリッド（表示中のみ 30 秒ポーリング）|
 | 説明タブ | 「説明」 | `classroom-tab-description` | 課題編集フォーム + 右ペインの生徒視点プレビュー（既定）|
 
-クラスを切り替えるとメンバータブに戻る。
+課題を切り替えるとメンバータブに戻る。
 
-**共同管理者セクション (co-teachers タブ内):**
+**共同管理者セクション (課題単位・現在の UI には無い):**
+
+> ⚠️ 画面上の共同管理者の追加・解除は **クラス（学級）設定**（「1.5 先生: クラス一覧」のカードの「設定」）に移動済み。以下は移動前の課題詳細タブの構成で、課題単位の共同管理は API（`/classrooms/{id}/co-teachers`）としてのみ後方互換で残っている。
 
 owner または co-teacher が、別の先生を **email で招待**して共同管理できる（→ [architecture.md の共同管理](architecture.md#共同管理co-teacher)）。
 
@@ -322,11 +325,11 @@ owner または co-teacher が、別の先生を **email で招待**して共同
 | 招待入力 | email 入力 (placeholder: teacher@example.com) | `classroom-co-teacher-invite-input` | Enter でも招待 |
 | 招待ボタン | 「招待」 | `classroom-co-teacher-invite-submit` | email 未入力時は disabled |
 
-招待された先生は次回ログイン時、ダッシュボードに該当クラスが**「共同管理」バッジ**付きで表示される（即時反映・承認不要）。
+招待された先生は次回ログイン時、**クラス一覧に該当クラス（学級）が「共同管理」バッジ**付きで表示され、その中のすべての課題を管理できる（即時反映・承認不要）。
 
 **コード表示 (全画面):**
 
-コード拡大ボタン (⛶) をクリックすると、参加コードが全画面表示されます (Portal 使用)。タイトルは「参加コード」、フッターにクラス名・人数・課題名・日付が表示されます。
+コード拡大ボタン (⛶) をクリックすると、参加コードが全画面表示されます (Portal 使用)。タイトルは「参加コード」、フッターにクラス（学級）名・人数・課題名・日付が表示されます。
 
 | 要素 | data-testid | 操作 |
 |------|-------------|------|
@@ -337,11 +340,11 @@ owner または co-teacher が、別の先生を **email で招待**して共同
 
 **削除確認ダイアログ:**
 
-「クラスを削除」ボタンを押すと確認ダイアログが表示されます。
+「課題をアーカイブ」ボタンを押すと確認ダイアログが表示されます。
 
 | 要素 | テキスト | data-testid | 操作 |
 |------|---------|-------------|------|
-| 確認ボタン | 「削除」 | `classroom-delete-confirm` | クラス削除を実行 |
+| 確認ボタン | 「アーカイブする」 | `classroom-delete-confirm` | 課題のアーカイブ（soft-delete）を実行 |
 | キャンセルボタン | 「キャンセル」 | `classroom-delete-cancel` | ダイアログを閉じる |
 
 ---
@@ -350,7 +353,7 @@ owner または co-teacher が、別の先生を **email で招待**して共同
 
 6文字の参加コードを入力する画面。生徒がモーダルを開いたときの初期画面です。
 
-生徒が既にクラスに参加している場合（localStorage にセッション情報あり）は、この画面をスキップして**ステータス**画面に直接遷移します。
+生徒が既に課題に参加している場合（localStorage にセッション情報あり）は、この画面をスキップして**ステータス**画面に直接遷移します。
 
 ![参加コード入力画面](screenshots/0301-student-join.png)
 
@@ -373,7 +376,7 @@ owner または co-teacher が、別の先生を **email で招待**して共同
 
 ## 6. 生徒: 出席番号選択 (`student-seat`)
 
-クラスの座席がグリッド表示され、空いている出席番号を選択します。
+課題の座席がグリッド表示され、空いている出席番号を選択します。
 
 ![出席番号選択画面](screenshots/0302-student-seat.png)
 
@@ -402,7 +405,7 @@ owner または co-teacher が、別の先生を **email で招待**して共同
 
 ## 7. 生徒: 参加完了 (`student-joined`)
 
-参加が成功したときの確認画面。メニューバーにもクラス情報が表示されます。
+参加が成功したときの確認画面。メニューバーにも参加中であることが表示されます。
 プロジェクト名が課題名に自動変更されます。
 
 ![参加完了画面](screenshots/0303-student-joined.png)
@@ -413,13 +416,13 @@ owner または co-teacher が、別の先生を **email で招待**して共同
 |------|----------|-------------|------|
 | フェーズルート | — | `classroom-phase-student-joined` | — |
 | 詳細 | 「テスト8年1組 / 出席番号03」 | `classroom-joined-details` | — |
-| クラス名 | 「テスト8年1組」 | `classroom-joined-class-name` | — |
+| クラス（学級）名 | 「テスト8年1組」 | `classroom-joined-class-name` | — |
 | 出席番号 | 「出席番号03」（0埋め2桁） | `classroom-joined-seat-number` | — |
 | 課題名 | 「第１回チャットアプリを作ろう」 | `classroom-joined-assignment` | 課題名がある場合のみ表示 |
 | つぎにやること（ヒント） | 「1. この画面を閉じてプロジェクトを作ろう / 2. できたら、メニューバーの課題名を押して提出しよう」 | — | 青系背景のヒントボックス |
 | はじめるボタン | 「はじめる」 | `classroom-joined-close` | モーダルを閉じる |
 
-**レイアウト:** クラス名と出席番号は中央表示。課題名はその下にやや小さいフォントで表示。「つぎにやること」ヒントボックスが課題名の下に表示され、参加後の次のアクションを案内する。「はじめる」ボタンは青色、右寄せ。
+**レイアウト:** クラス（学級）名と出席番号は中央表示。課題名はその下にやや小さいフォントで表示。「つぎにやること」ヒントボックスが課題名の下に表示され、参加後の次のアクションを案内する。「はじめる」ボタンは青色、右寄せ。
 
 ---
 
@@ -486,20 +489,20 @@ owner または co-teacher が、別の先生を **email で招待**して共同
 
 ![提出確認画面](screenshots/0306-student-submit-confirm.png)
 
-> **提出サムネイルの事前設定** (issue #631): クラスに参加中の生徒は、ステージ右上の
+> **提出サムネイルの事前設定** (issue #631): 課題に参加中の生徒は、ステージ右上の
 > 「提出サムネイルを設定」ボタン（✓ アイコン）を押すと、その瞬間のステージ画面を
 > 提出サムネイルとして事前に決めておけます。設定するとそのフレームが提出時に使われ、
 > プレビュー (`classroom-submit-preview`) にも反映されます。未設定のまま提出した場合は
-> 従来どおり提出ボタンを押した瞬間のフレームが自動キャプチャされます。ボタンはクラス
+> 従来どおり提出ボタンを押した瞬間のフレームが自動キャプチャされます。ボタンは課題
 > 未参加時は表示されません（`state.scratchGui.classroom` の生徒セッション有無で判定）。
 
 **提出サムネイルを設定ボタンの表示ゲート:**
 
-クラス未参加時はステージ右上に「提出サムネイルを設定」ボタンは表示されません。
+課題に未参加のときはステージ右上に「提出サムネイルを設定」ボタンは表示されません。
 
-![ステージ右上 — クラス未参加時はボタン非表示](screenshots/0310-submission-thumbnail-button-hidden.png)
+![ステージ右上 — 課題に未参加のときはボタン非表示](screenshots/0310-submission-thumbnail-button-hidden.png)
 
-クラスに参加中の生徒のときだけ、ステージ右上の左端に ✓ アイコンのボタンが表示されます。
+課題に参加中の生徒のときだけ、ステージ右上の左端に ✓ アイコンのボタンが表示されます。
 
 ![ステージ右上 — 参加中はボタン表示](screenshots/0311-submission-thumbnail-button.png)
 
@@ -535,7 +538,7 @@ owner または co-teacher が、別の先生を **email で招待**して共同
 
 ## 課題配信（課題エディタ + 生徒の課題パネル）
 
-クラスには任意で**課題コンテンツ**（(数行テキスト + 画像1枚) × 最大10ページ + スタータープロジェクト1つ）を持たせられます。生徒は参加コードで参加した瞬間に課題ページが表示され、スタータープロジェクトが自動で開きます（プログラム配付の手作業をなくす機能）。
+課題（1 授業）には任意で**課題コンテンツ**（(数行テキスト + 画像1枚) × 最大10ページ + スタータープロジェクト1つ）を持たせられます。生徒は参加コードで参加した瞬間に課題ページが表示され、スタータープロジェクトが自動で開きます（プログラム配付の手作業をなくす機能）。
 
 ### 課題の編集（先生: 課題詳細の「説明」タブ）
 
@@ -550,7 +553,7 @@ owner または co-teacher が、別の先生を **email で招待**して共同
 
 ### 課題パネル（生徒: student-assignment フェーズ）
 
-join 完了直後に自動で開きます（課題が設定されているクラスのみ）。ステータス画面の「課題を見る」（`classroom-view-assignment-button`）からいつでも開き直せます。
+join 完了直後に自動で開きます（課題コンテンツが設定されている課題のみ）。ステータス画面の「課題を見る」（`classroom-view-assignment-button`）からいつでも開き直せます。
 
 ![課題パネル（join 直後・参加通知つき）](screenshots/0314-student-assignment-panel.png)
 
@@ -563,7 +566,7 @@ join 完了直後に自動で開きます（課題が設定されているクラ
 
 ## 10. 先生: Google Classroom コース一覧 (`teacher-google-courses`)
 
-Google Classroom のアクティブなコース一覧を表示し、インポートするコースを選択します。クラス作成画面の「Google Classroom からクラス名と人数をインポート」リンクから遷移します。
+Google Classroom のアクティブなコース一覧を表示し、インポートするコースを選択します。課題作成画面の「Google Classroom からクラス名と人数をインポート」リンクから遷移します。
 
 **パーツ:**
 
@@ -585,7 +588,7 @@ Google Classroom のアクティブなコース一覧を表示し、インポー
 
 ## 11. 先生: 課題配信 (`teacher-post-assignment`)
 
-Google Classroom にリンクしたクラスで、課題リンクを投稿する画面。クラス詳細の「課題を配信」ボタンから遷移します。
+Google Classroom にリンクしたクラス（学級）の課題で、課題リンクを投稿する画面。課題詳細の「課題を配信」ボタンから遷移します。
 
 **パーツ:**
 
@@ -600,7 +603,7 @@ Google Classroom にリンクしたクラスで、課題リンクを投稿する
 | ヒント | 「配信後、課題の詳細の装飾、割当先、点数などの設定は Google Classroom で行えます。…」 | — | — |
 | 配信ボタン | 「Google Classroom に配信する」 | `classroom-post-assignment-submit` | — |
 
-**配信後:** 成功すると「Google Classroom で確認する」リンクが表示されます。クラス詳細画面の「課題を配信」ボタンは「課題を確認」リンク（新しいタブで Google Classroom を開く）に変わります。二重配信を防止するため、配信済み状態は DynamoDB に永続化されます。
+**配信後:** 成功すると「Google Classroom で確認する」リンクが表示されます。課題詳細画面の「課題を配信」ボタンは「課題を確認」リンク（新しいタブで Google Classroom を開く）に変わります。二重配信を防止するため、配信済み状態は DynamoDB に永続化されます。
 | 成功メッセージ | 「配信しました！」 | `classroom-post-assignment-success` | 配信成功時に表示 |
 
 ---
@@ -610,11 +613,11 @@ Google Classroom にリンクしたクラスで、課題リンクを投稿する
 | フェーズ | 幅 |
 |---------|------|
 | 通常のフェーズ | 500px |
-| クラス詳細 (teacher-detail) | 968px |
+| 課題詳細 (teacher-detail) | 968px |
 
 ## 自動更新
 
-先生のクラス詳細画面では、メンバーと提出情報が **30秒ごと** に自動更新されます（`CLASSROOM_REFRESH_INTERVAL_MS` で設定可能）。
+先生の課題詳細画面では、メンバーと提出情報が **30秒ごと** に自動更新されます（`CLASSROOM_REFRESH_INTERVAL_MS` で設定可能）。
 
 ## localStorage 永続化
 
@@ -622,7 +625,7 @@ Google Classroom にリンクしたクラスで、課題リンクを投稿する
 |------|------|
 | `smalruby:classroom` | 生徒のセッション情報 (JSON) |
 
-生徒がクラスに参加すると、以下の情報が localStorage に保存されます:
+生徒が課題に参加すると、以下の情報が localStorage に保存されます:
 - `role`, `classroomId`, `className`, `assignmentName`, `joinCode`
 - `seatNumber`, `memberId`, `sessionToken`
 - `joinedAt`, `submissionStatus`, `lastSubmittedAt`

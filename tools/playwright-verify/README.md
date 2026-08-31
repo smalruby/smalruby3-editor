@@ -62,6 +62,7 @@ env トグル: `HEADLESS=false` 表示 / `CHANNEL=chrome` 実 Chrome / `SLOWMO=<
 
 | ファイル | 検証対象 |
 |---|---|
+| `verify-issue-1149-google-signin-cleanup.mjs` | Google サインインボタンの後片付け（#1149）。GIS を route interception で**スタブ**するので Google セッション不要（dev server 8601 のみ前提）。クラス管理のログイン画面でボタンがモーダル内スロットに描画され body 直下の固定オーバーレイが生えないこと、連打しても増えないこと、モーダルを閉じる/ログイン完了で消え One Tap が cancel されることを検証 |
 | `verify-notification-center.mjs` | お知らせセンター（EPIC #1111）。classroom API を route interception で**スタブ**するので stg 不要（dev server 8601 のみ前提）。教師モーダル右上 🔔 + 未読バッジ → パネル開で mark-read が飛びバッジが消える → 未読ドット 1 個 → アイテムクリックでパネルが閉じる |
 | `verify-shared-recommendation.mjs` | Admin 推薦 → 全体公開への発展（EPIC #1110）。同じくスタブ式で stg 不要。推薦通知（`link.kind='shared-mine'`）クリック → 自分の投稿へジャンプ → 限定公開/推薦バッジ → 「みんなの課題に公開する」フォーム（初期値・CC BY 同意必須）→ PATCH `visibility='public'` の payload まで検証 |
 | `verify-share-suggestion.mjs` | 共有推奨（EPIC #1106）。同じくスタブ式で stg 不要。share_suggestion 通知クリック → 課題詳細へジャンプ → 「共有しませんか？」バナー → CTA でボードの共有ステップが開く → ボード行の「共有おすすめ」マーク |

@@ -21,9 +21,9 @@ smalruby3-editor/
 │   │   │   │   ├── class-code-display.jsx ← 参加コード表示（全画面対応）
 │   │   │   │   ├── google-course-list.jsx ← GC コースタイルグリッド
 │   │   │   │   ├── kick-request-confirm-dialog.jsx ← 退室依頼ダイアログ (#692)
-│   │   │   │   ├── teacher-class-detail.jsx ← 先生クラス詳細 (退室リクエストバッジ + 退室通知バナー)
+│   │   │   │   ├── teacher-class-detail.jsx ← 先生の課題詳細 (退室リクエストバッジ + 退室通知バナー)
 │   │   │   │   ├── teacher-member-detail.jsx ← メンバー詳細パネル (承認/却下ボタン)
-│   │   │   │   ├── teacher-create-form.jsx ← クラス作成フォーム
+│   │   │   │   ├── teacher-create-form.jsx ← 課題作成フォーム
 │   │   │   │   ├── teacher-assignment-editor.jsx ← 課題エディタ（ページ + スターター）
 │   │   │   │   ├── teacher-group-manage.jsx ← 組（グループ）管理
 │   │   │   │   ├── teacher-evaluation.jsx ← 学期末評価（席×授業マトリクス）
@@ -32,7 +32,7 @@ smalruby3-editor/
 │   │   │   │   ├── classroom-teacher-modal.jsx ← メイン（ダッシュボード/詳細/作成等）
 │   │   │   │   ├── classroom-teacher-modal.css
 │   │   │   │   ├── teacher-login-phase.jsx ← ログイン画面（カルーセル付き）
-│   │   │   │   ├── teacher-sidebar.jsx ← サイドバー（クラス一覧ナビ）
+│   │   │   │   ├── teacher-sidebar.jsx ← サイドバー（クラスごとの課題一覧ナビ）
 │   │   │   │   ├── teacher-google-courses-phase.jsx ← GC コースインポート
 │   │   │   │   └── carousel-*.png     ← カルーセル画像
 │   │   │   ├── classroom-tutorial/    ← チュートリアルオーバーレイ
@@ -42,7 +42,7 @@ smalruby3-editor/
 │   │   │   ├── use-teacher-classroom.js ← 先生用フック統合（他フックを束ねる）
 │   │   │   ├── use-teacher-notifications.js ← お知らせセンター (EPIC #1111)
 │   │   │   ├── use-teacher-auth.js    ← 認証フック（Google/Microsoft 共通）
-│   │   │   ├── use-teacher-classrooms.js ← クラス CRUD + 自動リフレッシュ
+│   │   │   ├── use-teacher-classrooms.js ← 課題 CRUD + 自動リフレッシュ
 │   │   │   ├── use-teacher-submissions.js ← 提出管理・一括ダウンロード
 │   │   │   ├── use-teacher-assignment.js ← 課題コンテンツ編集フロー
 │   │   │   ├── use-teacher-groups.js ← 組（グループ）管理・複製フロー
@@ -95,15 +95,15 @@ CDK スタック定義。以下のリソースを作成:
 | 関数名 | 説明 |
 |--------|------|
 | `handler()` | エントリーポイント (ルーティング) |
-| `handleCreateClassroom()` | クラス作成 |
-| `handleListClassrooms()` | クラス一覧 |
-| `handleGetClassroom()` | クラス詳細 |
-| `handleUpdateClassroom()` | クラス更新 |
-| `handleDeleteClassroom()` | クラス削除 (アーカイブ) |
+| `handleCreateClassroom()` | 課題作成 |
+| `handleListClassrooms()` | 課題一覧 |
+| `handleGetClassroom()` | 課題詳細 |
+| `handleUpdateClassroom()` | 課題更新 |
+| `handleDeleteClassroom()` | 課題削除 (アーカイブ) |
 | `handleListMembers()` | メンバー一覧 |
 | `handleDeleteMember()` | メンバー削除 |
-| `handleLookupClassroom()` | 参加コードでクラス検索 |
-| `handleJoinClassroom()` | クラスに参加 |
+| `handleLookupClassroom()` | 参加コードで課題を検索 |
+| `handleJoinClassroom()` | 課題に参加 |
 | `handleVerifySession()` | セッション検証 |
 | `handleCreateSubmission()` | 提出 (Presigned URL 生成) |
 | `handleListSubmissions()` | 提出一覧 |
@@ -113,7 +113,7 @@ CDK スタック定義。以下のリソースを作成:
 | `handleListNotifications()` | お知らせ一覧 + 未読数 (EPIC #1111) |
 | `handleMarkNotificationsRead()` | お知らせ既読化 (ids 省略で全既読) |
 | `handleCreateGroup()` / `handleListGroups()` / `handleUpdateGroup()` | 組（グループ）の作成・一覧・更新/アーカイブ |
-| `handleDuplicateClassroom()` | クラス複製（課題の S3 オブジェクトコピー含む） |
+| `handleDuplicateClassroom()` | 課題の複製（課題コンテンツの S3 オブジェクトコピー含む） |
 | `handleListGoogleCourses()` | Google Classroom コース一覧 |
 | `handleImportGoogleClassroom()` | Google Classroom コースインポート |
 | `handlePostAssignment()` | Google Classroom に課題投稿 |
@@ -161,7 +161,7 @@ GOOGLE_ID_TOKEN=eyJ... docker compose run --rm -w /app/infra/smalruby-classroom 
 |--------|------|
 | `use-teacher-classroom.js` | **統合フック** — 他の4フックを束ねて先生側の全状態・操作を提供 |
 | `use-teacher-auth.js` | 認証 (Google / Microsoft のログイン、サイレント再認証、ログアウト) |
-| `use-teacher-classrooms.js` | クラス CRUD、メンバー管理、30秒ごとの自動リフレッシュ |
+| `use-teacher-classrooms.js` | 課題 CRUD、メンバー管理、30秒ごとの自動リフレッシュ |
 | `use-teacher-submissions.js` | 提出一覧、返却、コメント、全作品一括ダウンロード |
 | `use-google-classroom.js` | Google Classroom コース取得・インポート |
 | `use-student-submit.js` | 生徒の提出フロー (サムネイル/スクリーンショット生成 + S3 アップロード) |
@@ -175,13 +175,27 @@ GOOGLE_ID_TOKEN=eyJ... docker compose run --rm -w /app/infra/smalruby-classroom 
 - `SeatGrid` — 座席グリッド
 - `MemberDetailPanel` — メンバー詳細パネル (右側)
 
+### クラス管理画面の共通レイアウト / 共通ボタン
+
+**新しいクラス管理画面は、必ずこの 2 つをベースに作る。** そうすればヘッダー・
+マージン・枠・ボタンのスタイルが自動でそろい、画面ごとのズレが起きない。
+
+| ファイル | 責務 |
+|---------|------|
+| `classroom-modal/teacher-view-layout.jsx` | `TeacherScreen`（パンくずを持つトップレベル画面）と `TeacherSubView`（パネル内サブ画面。`as="form"` で `<form>` になる）。パンくず → タイトル → 説明 → エラー → 本文 → フッター の順を固定する |
+| `classroom-modal/classroom-button.jsx` | `ClassroomButton`（`variant="primary" / "secondary" / "danger"`）。ボタンの見た目はここだけが持つ |
+
+画面側で `<h2 className={styles.xxxTitle}>` やボタンのクラスを書き起こさないこと
+（それが #1121 / #1122 のズレの発生源だった）。フッターは `footer` スロットに
+セカンダリ（左）→ プライマリ（右）の順で渡す。
+
 ### 先生用コンポーネント (`src/components/classroom-teacher-modal/`)
 
 | ファイル | 責務 |
 |---------|------|
-| `classroom-teacher-modal.jsx` | 先生モーダル本体（ダッシュボード、クラス詳細、作成、課題配信） |
+| `classroom-teacher-modal.jsx` | 先生モーダル本体（ダッシュボード、課題詳細、作成、課題配信） |
 | `teacher-login-phase.jsx` | ログイン画面（Google / Microsoft ボタン + カルーセル） |
-| `teacher-sidebar.jsx` | サイドバー（クラス一覧ナビゲーション） |
+| `teacher-sidebar.jsx` | サイドバー（クラスごとの課題一覧ナビゲーション） |
 | `teacher-google-courses-phase.jsx` | Google Classroom コースインポート画面 |
 | `teacher-notifications.jsx` | お知らせセンター（🔔 + 未読バッジ + 一覧パネル、EPIC #1111） |
 

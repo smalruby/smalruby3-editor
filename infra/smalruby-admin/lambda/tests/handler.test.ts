@@ -1,3 +1,7 @@
+// このファイルをモジュールにするための宣言。import/export を持たない .ts は TypeScript の
+// グローバルスクリプト扱いになり、トップレベルの const がテストファイル間で衝突する（#1144）。
+export {};
+
 /**
  * Admin API authorization tests (EPIC #1073, S1 #1081).
  *
@@ -466,6 +470,134 @@ describe('クラス管理 + 期限切れ復元 (issue #1084)', () => {
     expect(body.submissionCount).toBe(7);
   });
 
+  // 課題が active でも親クラス（学級）が archived なら先生には見えない (#1132)。
+  describe('親クラス（学級）の状態を課題に載せる (#1132)', () => {
+    test('attachGroupInfo は 親クラス無し / 行が消えた / 生きている を区別する', () => {
+      const { attachGroupInfo } = require('../handler');
+      expect(attachGroupInfo({ classroomId: 'c1', groupId: null }, null))
+        .toEqual({ classroomId: 'c1', groupId: null, groupName: null, groupStatus: null });
+      expect(attachGroupInfo({ classroomId: 'c1', groupId: 'g1' }, null))
+        .toEqual({ classroomId: 'c1', groupId: 'g1', groupName: null, groupStatus: 'missing' });
+      expect(attachGroupInfo({ classroomId: 'c1', groupId: 'g1' }, { name: '5年1組', status: 'archived' }))
+        .toEqual({ classroomId: 'c1', groupId: 'g1', groupName: '5年1組', groupStatus: 'archived' });
+      // status 未設定の古い行は active 扱い（先生に見えている側へ倒す）。
+      expect(attachGroupInfo({ classroomId: 'c1', groupId: 'g1' }, { name: '5年1組' }).groupStatus)
+        .toBe('active');
+      // 引けなかった（undefined）を 'missing' と断定しない（レビュー指摘）。
+      expect(attachGroupInfo({ classroomId: 'c1', groupId: 'g1' }, undefined).groupStatus)
+        .toBe('unknown');
+    });
+
+    test('BatchGet で取り切れなかった親クラスは unknown（missing と区別する）', async () => {
+      let batchCalls = 0;
+      mockSend.mockImplementation(async (command: { constructor: { name: string } }) => {
+        const name = command.constructor.name;
+        if (name === 'GetCommand') return adminRow;
+        if (name === 'ScanCommand') {
+          return { Items: [classroomItem, { ...classroomItem, classroomId: 'c2', groupId: 'g2' }] };
+        }
+        if (name === 'BatchGetCommand') {
+          batchCalls += 1;
+          // g1 だけ返り、g2 はスロットリングで毎回未処理のまま残る。
+          return {
+            Responses: { ClassroomGroups: [{ groupId: 'g1', name: '5年1組', status: 'active' }] },
+            UnprocessedKeys: { ClassroomGroups: { Keys: [{ groupId: 'g2' }] } },
+          };
+        }
+        return {};
+      });
+
+      const res = await handler(makeAuthedEvent('GET', '/admin/classrooms'));
+      const { items } = JSON.parse(res.body as string);
+      const byId = Object.fromEntries(items.map((i: { classroomId: string }) => [i.classroomId, i]));
+      expect(byId.c1).toMatchObject({ groupName: '5年1組', groupStatus: 'active' });
+      expect(byId.c2).toMatchObject({ groupStatus: 'unknown' });
+      // 未処理キーの再試行は数回で打ち切る（無限ループにしない）。
+      expect(batchCalls).toBe(3);
+    });
+
+    test('GET /admin/classrooms はバッチ 1 回で全課題の親クラスを引く', async () => {
+      const batchKeys: unknown[] = [];
+      mockSend.mockImplementation(async (command: {
+        constructor: { name: string }; input?: { TableName?: string; RequestItems?: Record<string, { Keys: unknown[] }> };
+      }) => {
+        const name = command.constructor.name;
+        if (name === 'GetCommand') return adminRow;
+        if (name === 'ScanCommand') {
+          return { Items: [
+            classroomItem,
+            { ...classroomItem, classroomId: 'c2', groupId: 'g2' },
+            { ...classroomItem, classroomId: 'c3', groupId: undefined },
+          ] };
+        }
+        if (name === 'BatchGetCommand') {
+          const keys = command.input?.RequestItems?.['ClassroomGroups']?.Keys || [];
+          batchKeys.push(...keys);
+          return { Responses: { ClassroomGroups: [
+            { groupId: 'g1', name: '5年1組', status: 'archived' },
+          ] } };
+        }
+        return {};
+      });
+
+      const res = await handler(makeAuthedEvent('GET', '/admin/classrooms'));
+      const { items } = JSON.parse(res.body as string);
+      const byId = Object.fromEntries(items.map((i: { classroomId: string }) => [i.classroomId, i]));
+      expect(byId.c1).toMatchObject({ groupName: '5年1組', groupStatus: 'archived' });
+      // 親クラスの行ごと消えているケースも「先生には見えない」として区別できる。
+      expect(byId.c2).toMatchObject({ groupName: null, groupStatus: 'missing' });
+      // 親クラスを持たない課題は警告対象外（v1 の名残）。
+      expect(byId.c3).toMatchObject({ groupId: null, groupStatus: null });
+      // N+1 を出さない: BatchGet は 1 回・キーは重複除去済み。
+      const sent = mockSend.mock.calls.map(c => c[0]?.constructor?.name);
+      expect(sent.filter((n: string) => n === 'BatchGetCommand')).toHaveLength(1);
+      expect(batchKeys).toEqual([{ groupId: 'g1' }, { groupId: 'g2' }]);
+    });
+
+    test('GET /admin/classrooms/{id} は親クラス名と状態を返す', async () => {
+      mockSend.mockImplementation(async (command: {
+        constructor: { name: string }; input?: { TableName?: string };
+      }) => {
+        const name = command.constructor.name;
+        if (name === 'GetCommand' && command.input?.TableName?.includes('Admins')) return adminRow;
+        if (name === 'GetCommand' && command.input?.TableName?.includes('Groups')) {
+          return { Item: { groupId: 'g1', name: '5年1組', status: 'archived' } };
+        }
+        if (name === 'GetCommand') return { Item: classroomItem };
+        if (name === 'QueryCommand') return { Count: 3 };
+        return {};
+      });
+
+      const res = await handler(makeAuthedEvent('GET', '/admin/classrooms/c1', {
+        pathParameters: { classroomId: 'c1' },
+      }));
+      expect(JSON.parse(res.body as string)).toMatchObject({
+        status: 'active', groupId: 'g1', groupName: '5年1組', groupStatus: 'archived',
+      });
+    });
+
+    test('GET restore-plan の alive 応答にも親クラスの状態が載る', async () => {
+      mockSend.mockImplementation(async (command: {
+        constructor: { name: string }; input?: { TableName?: string };
+      }) => {
+        const name = command.constructor.name;
+        if (name === 'GetCommand' && command.input?.TableName?.includes('Admins')) return adminRow;
+        if (name === 'GetCommand' && command.input?.TableName?.includes('Groups')) {
+          return { Item: { groupId: 'g1', name: '5年1組', status: 'archived' } };
+        }
+        if (name === 'GetCommand') return { Item: classroomItem };
+        return {};
+      });
+
+      const res = await handler(makeAuthedEvent('GET', '/admin/classrooms/c1/restore-plan', {
+        pathParameters: { classroomId: 'c1' },
+      }));
+      expect(JSON.parse(res.body as string)).toEqual({
+        alive: true, status: 'active', groupId: 'g1', groupName: '5年1組', groupStatus: 'archived',
+      });
+    });
+  });
+
   test('PATCH /admin/classrooms/{id} flips the status and audits it', async () => {
     const logs: string[] = [];
     const spy = jest.spyOn(console, 'log').mockImplementation((line: string) => {
@@ -569,6 +701,9 @@ describe('クラス管理 + 期限切れ復元 (issue #1084)', () => {
     }) => {
       const name = command.constructor.name;
       if (name === 'GetCommand' && command.input?.TableName?.includes('Admins')) return adminRow;
+      if (name === 'GetCommand' && command.input?.TableName?.includes('Groups')) {
+        return { Item: { groupId: 'g1', name: '5年1組', status: 'active' } };
+      }
       if (name === 'GetCommand') return { Item: { ...classroomItem, status: 'archived' } };
       return {};
     });
@@ -577,7 +712,9 @@ describe('クラス管理 + 期限切れ復元 (issue #1084)', () => {
       pathParameters: { classroomId: 'c1' },
     }));
     expect(res.statusCode).toBe(200);
-    expect(JSON.parse(res.body as string)).toEqual({ alive: true, status: 'archived' });
+    expect(JSON.parse(res.body as string)).toEqual({
+      alive: true, status: 'archived', groupId: 'g1', groupName: '5年1組', groupStatus: 'active',
+    });
     expect(mockS3Send).not.toHaveBeenCalled();
   });
 

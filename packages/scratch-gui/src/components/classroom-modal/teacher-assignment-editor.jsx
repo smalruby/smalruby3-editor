@@ -260,7 +260,7 @@ const TeacherAssignmentEditor = ({
                 {selectedClassroom ? ` — ${selectedClassroom.className}` : ''}
             </h2>
             )}
-            <p className={styles.assignmentEditorHint}>
+            <p className={styles.teacherViewHint}>
                 <FormattedMessage
                     defaultMessage="Students see these pages and the starter project opens automatically when they join with the class code."
                     description="Assignment editor explanation"
@@ -398,7 +398,7 @@ const TeacherAssignmentEditor = ({
                     )}
                 </button>
             </div>
-            <p className={styles.assignmentEditorHint}>
+            <p className={styles.teacherViewHint}>
                 <FormattedMessage
                     defaultMessage="Up to 10 pages, 500 characters and one image per page, one starter project."
                     description="Assignment editor limits note"

@@ -15,7 +15,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-phase-teacher-class-list` | 先生: クラス一覧（ログイン後の入口。v2 landing） |
 | `classroom-phase-teacher-dashboard` | 先生: 課題ダッシュボード（クラス選択後） |
 | `classroom-phase-teacher-create` | 先生: 課題作成 |
-| `classroom-phase-teacher-detail` | 先生: クラス詳細 |
+| `classroom-phase-teacher-detail` | 先生: 課題詳細 |
 | `classroom-phase-teacher-google-courses` | 先生: GC コース一覧 |
 | `classroom-phase-teacher-post-assignment` | 先生: 課題配信 |
 | `classroom-phase-student-join` | 生徒: 参加コード入力 |
@@ -32,6 +32,8 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `settings-classroom-management` | MenuItem | 設定 → クラス管理 |
 | `classroom-menu-button` | div | メニューバーのクラスボタン |
 | `classroom-google-login` | button | Google ログイン |
+| `google-signin-slot` | div | GIS が描画するサインインボタンのホスト（不具合報告モーダルにも同 testid で存在） |
+| `google-signin-button` | div | 上記スロット内に GIS 用に生成されるノード |
 | `classroom-microsoft-login` | button | Microsoft ログイン |
 | `classroom-back` | button | 戻る |
 | `classroom-refresh` | button | 更新 (↻) |
@@ -39,7 +41,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-avatar-button` | button | アカウントメニュー（タイトルバー右上・メール頭文字 + ▼） |
 | `classroom-teacher-logout` | button | ログアウト（アカウントメニュー内） |
 
-### クラス作成
+### 課題作成
 
 | data-testid | 要素 | 説明 |
 |------------|------|------|
@@ -47,18 +49,18 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 
 ### サイドバー (先生・常時表示、login 以外のフェーズで visible)
 
-サイドバーはクラス管理モーダル左側に常時表示される（teacher-login 以外）。「クラス一覧 (ダッシュボード)」ではなく **サイドバー** に登録済みクラスがリスト表示される。
+サイドバーはクラス管理モーダル左側に常時表示される（teacher-login 以外）。「クラス一覧 (ダッシュボード)」ではなく **サイドバー** に登録済みの課題がクラス（学級）ごとにリスト表示される。
 
 | data-testid | 要素 | 説明 |
 |------------|------|------|
-| `classroom-sidebar-group-{className}` | div | クラス名でグルーピングされたヘッダ（例: 「6年A組」）|
-| `classroom-sidebar-item-{classroomId}` | li | サイドバーの個別クラス項目。`data-classroom-id` 属性も持つ。クリックで `selectedClassroom` が更新され `teacher-class-detail` フェーズへ遷移。表示テキストは `assignmentName · 人数 · 参加コード(小文字)` |
+| `classroom-sidebar-group-{className}` | div | クラス（学級）名でグルーピングされたヘッダ（例: 「6年A組」）|
+| `classroom-sidebar-item-{classroomId}` | li | サイドバーの個別の課題項目。`data-classroom-id` 属性も持つ。クリックで `selectedClassroom` が更新され `teacher-class-detail` フェーズへ遷移。表示テキストは `assignmentName · 人数 · 参加コード(小文字)` |
 
-### クラス詳細 (先生)
+### 課題詳細 (先生)
 
 | data-testid | 要素 | 説明 |
 |------------|------|------|
-| `classroom-detail-name` | div | クラス名 |
+| `classroom-detail-name` | div | 課題が属するクラス（学級）名 |
 | `classroom-detail-join-code` | div | 参加コード |
 | `classroom-detail-expand-code` | button | コード拡大表示 |
 | `classroom-members-grid` | div | 座席グリッド |
@@ -115,8 +117,8 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 
 | data-testid | 要素 | 説明 |
 |------------|------|------|
-| `classroom-joined-details` | div | 参加詳細（クラス名 + 出席番号） |
-| `classroom-joined-class-name` | span | クラス名 |
+| `classroom-joined-details` | div | 参加詳細（クラス（学級）名 + 出席番号） |
+| `classroom-joined-class-name` | span | クラス（学級）名 |
 | `classroom-joined-seat-number` | span | 出席番号（0埋め2桁） |
 | `classroom-joined-assignment` | div | 課題名（課題名がある場合のみ） |
 | `classroom-joined-close` | button | はじめる |
@@ -125,7 +127,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 
 | data-testid | 要素 | 説明 |
 |------------|------|------|
-| `classroom-status-class-name` | span | クラス名 |
+| `classroom-status-class-name` | span | クラス（学級）名 |
 | `classroom-status-seat-number` | span | 出席番号（0埋め2桁） |
 | `classroom-status-assignment` | span | 課題名 |
 | `classroom-status-joined-at` | span | 参加日時（秒なし） |
@@ -349,7 +351,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `kick-request-pending-banner` | div | 「先生に依頼中です…」バナー（5 秒ごとに lookupClassroom を polling）|
 | `kick-request-rejected-banner` | div | 「依頼は受理されませんでした」バナー (却下 / TTL 期限切れ検出時に pending と差し替え) |
 | `kick-request-rejected-banner-dismiss` | button | × ボタン |
-| `classroom-seat-kick-request-{seatNumber}` | span | 先生クラス詳細の座席グリッドに表示する赤いバッジ「!」|
+| `classroom-seat-kick-request-{seatNumber}` | span | 先生の課題詳細の座席グリッドに表示する赤いバッジ「!」|
 | `classroom-member-kick-request-panel` | div | 先生メンバー詳細パネルに表示される依頼一覧 |
 | `classroom-kick-request-row-{requestId}` | div | 1 リクエストの行 |
 | `classroom-kick-request-approve-{requestId}` | button | 承認（kick + リクエスト削除）|
@@ -385,7 +387,7 @@ http://localhost:8601?no_beforeunload=1&devlogin=<DEV_BYPASS_TOKEN>
 
 クラス管理を絡めた end-to-end の動作確認は [`tools/playwright-verify/`](../../tools/playwright-verify/README.md) にあるスクリプトで自動化されています（CI には組み込まれていません。手動で `node ...` で実行）。
 
-代表例: `tools/playwright-verify/mesh-v2-classroom-binding.mjs` は教師タブで devlogin → クラス作成 → サイドバーで選択、生徒タブで `?classcode=` 経由参加 という 2 タブのフローを自動で回し、Mesh v2 ドメインがクラスの参加コードに揃うことを確認します。
+代表例: `tools/playwright-verify/mesh-v2-classroom-binding.mjs` は教師タブで devlogin → クラスと課題の同時作成 → 課題管理ボードの行をクリックして課題を選択、生徒タブで `?classcode=` 経由参加 という 2 タブのフローを自動で回し、Mesh v2 ドメインが課題の参加コードに揃うことを確認します。
 
 スクリプトを書く際の落とし穴と対処は `tools/playwright-verify/README.md` を参照してください（ログインバイパスの方法、Redux store の取り出し方、サイドバー testid、tutorial overlay の dismiss 等）。
 
