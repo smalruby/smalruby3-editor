@@ -49,6 +49,41 @@ CDK のコンテキストキャッシュファイル `cdk.context.json` は **�
 - `cdk.context.json` は `.gitignore` に追加**しない**
 - デプロイ後に生成・更新された場合はコミットする
 
+## デプロイ経路（stg と prod で分ける）
+
+**stg = GitHub Actions 経由のみ / prod = 人間の手元から手動のみ**（#1162）。
+
+| 環境 | 経路 | 誰が |
+|---|---|---|
+| stg | `.github/workflows/deploy-infra-stg.yml` | PR に **`deploy-stg` ラベル**を付ける / develop へ push / 手動起動 |
+| prod | 手元で `npx cdk deploy --context stage=prod` | **人間**（AI は人間の明示的な指示があるときだけ） |
+
+### なぜ stg をローカルから撃たないか
+
+stg は**共有資源**で、人間と複数の autopilot worker が同時に触りうる。ローカルから各自が
+`cdk deploy` すると、片方のデプロイ中にもう片方が入って CloudFormation が中断する。Actions に
+集約すると `concurrency` でキュー化でき、実行中の run を打ち切らずに直列化できる。
+
+- **worker はローカルから `cdk deploy` しない**（`.claude/rules/autopilot/prompts.md`）。
+- stg に自分の変更を載せたいときは PR に `deploy-stg` ラベルを付け、Actions の完了を待つ。
+- **stg は上書きされうる**。DoD をする前に、workflow が PR に残したコメントで
+  「いまの stg が自分の SHA か」を確認する。違えばラベルを付け直して再デプロイする。
+- develop への infra push でも stg へデプロイが走るので、**マージ後は stg が develop に収束**する。
+
+### マージ前に infra を出すのは「ジレンマ」ではなく手順（Expand-Contract）
+
+「UI の DoD には API が必要 → でも API はマージ後にしか出せない」を避けるため、**API を後方互換で
+先に出し、あとから UI をマージする**（Expand-Contract）。順番は:
+
+1. **Expand**: API 側の変更を**既存の呼び出しを壊さない形**で作る（ルート追加・任意フィールド追加など）。
+   PR に `deploy-stg` を付けて stg へ出す。
+2. UI / クライアント側を実装し、stg の API に対して DoD を行う。
+3. マージ。develop への push で stg が収束する。prod へは人間が明示的に出す。
+4. **Contract**（必要なら）: 旧経路の削除は、クライアントが全部移行したことを確認してから**別 PR**で行う。
+
+後方互換を壊す変更（フィールド削除・レスポンス形の変更など）は、この手順に乗らないので
+**先に出してはいけない**。その場合は stg で壊してよい時間帯を決めてから出す。
+
 ## AWS Credentials
 
 CDK の synth/diff/deploy には AWS クレデンシャルが必要。**devpod / devcontainer の中から
