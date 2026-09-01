@@ -5,7 +5,6 @@ import {
   PutCommand,
   GetCommand,
   QueryCommand,
-  ScanCommand,
   DeleteCommand,
   UpdateCommand,
   BatchWriteCommand,
@@ -157,10 +156,10 @@ const docClient = DynamoDBDocumentClient.from(ddbClient, {
 
 // --- Paginated reads (#1146) ---
 
-// DynamoDB は 1 回の Query/Scan で最大 1MB しか読まず、続きは
+// DynamoDB は 1 回の Query で最大 1MB しか読まず、続きは
 // LastEvaluatedKey で辿る。しかもこの 1MB 上限は **FilterExpression 適用前**
 // に効くため、辿らないとテーブルが育った時点でエラーも出さずに黙って
-// 取りこぼす。一覧系の読み取りは下の queryAll / scanAll に寄せる。
+// 取りこぼす。一覧系の読み取りは下の queryAll に寄せる。
 // 上限は暴走（壊れたページャで無限ループ）を防ぐ保険。
 // 不正値（NaN / 0 以下）はそのまま使うと 1 ページも読まずに空配列を返し、
 // このヘルパーが無くそうとしている「黙って取りこぼす」挙動そのものになる。
@@ -169,22 +168,16 @@ const parsedMaxPages = parseInt(process.env.DDB_MAX_PAGES || '25', 10);
 const MAX_PAGES = Number.isFinite(parsedMaxPages) && parsedMaxPages > 0 ? parsedMaxPages : 25;
 
 /**
- * Query / Scan を LastEvaluatedKey が無くなるまで辿って全項目を返す。
+ * Query を LastEvaluatedKey が無くなるまで辿って全項目を返す。
  * `Limit` 付き（= 上位 N 件だけ欲しい）の呼び出しには使わない。
  */
 async function paginateAll(
-  makeCommand: (startKey?: Record<string, unknown>) => QueryCommand | ScanCommand,
+  makeCommand: (startKey?: Record<string, unknown>) => QueryCommand,
 ): Promise<Record<string, unknown>[]> {
   const items: Record<string, unknown>[] = [];
   let startKey: Record<string, unknown> | undefined;
   for (let page = 0; page < MAX_PAGES; page++) {
-    // Narrow instead of casting one command type to the other: Query and Scan
-    // have the same paged shape, but pretending a ScanCommand is a
-    // QueryCommand would be a lie the compiler cannot check.
-    const command = makeCommand(startKey);
-    const result = command instanceof ScanCommand
-      ? await docClient.send(command)
-      : await docClient.send(command);
+    const result = await docClient.send(makeCommand(startKey));
     items.push(...((result.Items || []) as Record<string, unknown>[]));
     startKey = result.LastEvaluatedKey as Record<string, unknown> | undefined;
     if (!startKey) {
@@ -197,14 +190,14 @@ async function paginateAll(
   return items;
 }
 
-/** ページングする Query（GSI 一覧など）。 */
+/**
+ * ページングする Query（GSI 一覧など）。
+ * Scan 版は置かない — 一覧経路の Scan は #1146 で全廃したので、
+ * 「ページングしてくれる Scan」を用意しておくと表全体を読む経路が
+ * 再び生えやすくなる（必要になったらそのとき書く）。
+ */
 async function queryAll(input: QueryCommand['input']): Promise<Record<string, unknown>[]> {
   return paginateAll(startKey => new QueryCommand({ ...input, ExclusiveStartKey: startKey }));
-}
-
-/** ページングする Scan（リスト属性フィルタなど、GSI にできない絞り込み）。 */
-async function scanAll(input: ScanCommand['input']): Promise<Record<string, unknown>[]> {
-  return paginateAll(startKey => new ScanCommand({ ...input, ExclusiveStartKey: startKey }));
 }
 
 // BatchGetItem は 1 リクエスト 100 キーまで。
