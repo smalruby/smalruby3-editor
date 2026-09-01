@@ -85,11 +85,24 @@ npx ts-node bin/restore-classroom.ts --classroom-id <uuid> --apply
 **デプロイ順（守る）:**
 
 1. `npx cdk deploy` — 索引テーブルと `groupId-index` GSI を作る
-2. **バックフィルを `--apply` で実行**（下記）
-3. 読み取りを索引に切り替えた Lambda を反映する `npx cdk deploy`
+2. **`groupId-index` が `ACTIVE` になるまで待つ**（下記）
+3. **バックフィルを `--apply` で実行**（下記）
+4. 読み取りを索引に切り替えた Lambda を反映する `npx cdk deploy`
 
-1 と 3 が同じ deploy に乗る場合（=通常のリリース）は、**deploy 直後に速やかに 2 を実行する**。
+1 と 4 が同じ deploy に乗る場合（=通常のリリース）は、**deploy 直後に速やかに 2→3 を実行する**。
 その間だけ共同管理の資源が一覧に出ない。
+
+**GSI の待ちを飛ばさないこと。** GSI は作成直後 `CREATING`（`Backfilling: true`）で、この間は
+その索引への Query が失敗しうる。**項目が 100 件程度の stg でも ACTIVE まで約 5 分かかった**実績が
+あるので、本番ではもう少し見ておく。
+
+```bash
+# ACTIVE になるまで待つ
+until [ "$(aws dynamodb describe-table --table-name Classrooms<suffix> \
+  --query 'Table.GlobalSecondaryIndexes[?IndexName==`groupId-index`].IndexStatus' --output text)" = ACTIVE ]; do
+  sleep 20
+done
+```
 
 ```bash
 # デフォルトは dry-run（何件・どの行を作るかだけ表示）
@@ -98,6 +111,11 @@ npx ts-node bin/backfill-coteacher-index.ts
 # 確認後に実行
 npx ts-node bin/backfill-coteacher-index.ts --apply
 ```
+
+**dry-run は索引テーブルが無くても動く**（既存テーブルを読むだけ）。デプロイ前に流して
+「何行できるはずか」を先に確認しておくと、`--apply` の結果と突き合わせられるうえ、
+一覧に出ない窓を短くできる。ステージは `.env` の symlink で切り替える
+（`ln -sfn .env.prod .env`。`.claude/rules/infra/development.md`）。
 
 - **冪等**。行のキーは `(coTeacherEmail, resourceKey)` なので、何度実行しても同じ行を上書きするだけ。
   取りこぼしが疑われるときは再実行して差分を埋めてよい
