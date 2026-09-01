@@ -195,7 +195,12 @@ jobs:
     needs: [select, deploy]
     # 成功・失敗どちらでも外す。失敗時に残すと「次の push で勝手に再デプロイ」が復活して
     # しまい、直そうとして push するたびに走ることになる。直したら付け直す運用にする。
-    if: always() && github.event_name == 'pull_request'
+    #
+    # ラベルが付いている run に限定する。付いていない PR（= デプロイを要求していない）でも
+    # この workflow 自体は起動するので、条件を絞らないと毎 push で無駄なジョブが動く。
+    if: >-
+      always() && github.event_name == 'pull_request' &&
+      contains(github.event.pull_request.labels.*.name, 'deploy-stg')
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
