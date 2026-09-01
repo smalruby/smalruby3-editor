@@ -232,6 +232,10 @@ log "applied. allowlist entries: $(ipset list allowed-dst 2>/dev/null | grep -cE
 
 # --- 再解決ループを起動 -------------------------------------------------------------
 # CDN の A レコード変更に追随する（起動時 1 回の解決だけだと数十分で切れる）。
+# pidfile だけを頼りにすると、pidfile を失ったときに孤児のループが残り続けて適用のたびに
+# 増える。パターンでも掃除しておく（このプロセス自身は --refresh-loop を持たないので
+# 自分を殺すことはない）。
+for _pid in $(pgrep -f "${0##*/} --refresh-loop" 2>/dev/null); do kill "${_pid}" 2>/dev/null || true; done
 if [[ -f "${REFRESH_PIDFILE}" ]] && kill -0 "$(cat "${REFRESH_PIDFILE}" 2>/dev/null)" 2>/dev/null; then
   kill "$(cat "${REFRESH_PIDFILE}")" 2>/dev/null || true
 fi
