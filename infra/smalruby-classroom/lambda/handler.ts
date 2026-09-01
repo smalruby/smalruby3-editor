@@ -9,6 +9,7 @@ import {
   DeleteCommand,
   UpdateCommand,
   BatchWriteCommand,
+  BatchGetCommand,
 } from '@aws-sdk/lib-dynamodb';
 import {
   S3Client,
@@ -204,6 +205,40 @@ async function queryAll(input: QueryCommand['input']): Promise<Record<string, un
 /** ページングする Scan（リスト属性フィルタなど、GSI にできない絞り込み）。 */
 async function scanAll(input: ScanCommand['input']): Promise<Record<string, unknown>[]> {
   return paginateAll(startKey => new ScanCommand({ ...input, ExclusiveStartKey: startKey }));
+}
+
+// BatchGetItem は 1 リクエスト 100 キーまで。
+const BATCH_GET_LIMIT = 100;
+
+/**
+ * Fetch many items by key, in chunks of 100, retrying whatever DynamoDB hands
+ * back as `UnprocessedKeys` (it throttles by returning keys, not by erroring —
+ * dropping them would be the same silent-loss failure mode as an untraversed
+ * `LastEvaluatedKey`). Keys that no longer exist are simply absent from the
+ * result, which is what a lagging reverse-index row should look like (#1146).
+ * @param tableName - table to read from
+ * @param keys - primary keys to fetch (duplicates are fine)
+ * @returns the items that still exist, in no particular order
+ */
+async function batchGetAll(
+  tableName: string,
+  keys: Record<string, unknown>[],
+): Promise<Record<string, unknown>[]> {
+  const items: Record<string, unknown>[] = [];
+  for (let i = 0; i < keys.length; i += BATCH_GET_LIMIT) {
+    let pending = keys.slice(i, i + BATCH_GET_LIMIT);
+    for (let attempt = 0; pending.length > 0 && attempt < MAX_PAGES; attempt++) {
+      const result = await docClient.send(new BatchGetCommand({
+        RequestItems: { [tableName]: { Keys: pending } },
+      }));
+      items.push(...((result.Responses?.[tableName] || []) as Record<string, unknown>[]));
+      pending = (result.UnprocessedKeys?.[tableName]?.Keys || []) as Record<string, unknown>[];
+    }
+    if (pending.length > 0) {
+      console.warn('[ddb] batchGet gave up on unprocessed keys', { tableName, pending: pending.length });
+    }
+  }
+  return items;
 }
 
 // --- S3 Client ---
@@ -751,20 +786,51 @@ function readCoTeacherEmails(item: Record<string, unknown>): string[] {
 }
 
 /**
- * Classes (組) shared with this teacher as a class-level co-teacher. DynamoDB
- * cannot index a list attribute, so this is a Scan + filter — the groups table
- * is small (one row per class) and this runs on list-style requests only.
+ * Ids of the resources of one kind shared with this email, read off the
+ * reverse index instead of scanning the resource table (#1146). The sort key
+ * is `<type>#<id>`, so one `begins_with` picks either kind.
+ * @param email - the co-teacher's verified email (already normalized)
+ * @param type - assignment (課題) or group (組)
+ * @returns the resource ids, deduplicated
+ */
+async function listCoTeacherResourceIds(
+  email: string,
+  type: CoTeacherResourceType,
+): Promise<string[]> {
+  const rows = await queryAll({
+    TableName: CO_TEACHER_INDEX_TABLE,
+    KeyConditionExpression: 'coTeacherEmail = :email AND begins_with(resourceKey, :prefix)',
+    ExpressionAttributeValues: { ':email': email, ':prefix': `${type}#` },
+  });
+  const ids = new Set<string>();
+  for (const row of rows) {
+    if (typeof row.resourceId === 'string' && row.resourceId) {
+      ids.add(row.resourceId);
+    }
+  }
+  return [...ids];
+}
+
+/**
+ * Classes (組) shared with this teacher as a class-level co-teacher. Read via
+ * the co-teacher reverse index + BatchGet, so the cost scales with how many
+ * classes this teacher co-manages rather than with the size of the groups
+ * table — which matters because `ClassroomGroups` has a 400-day TTL and so
+ * accumulates (#1146).
  */
 async function listCoManagedGroups(identity: TeacherIdentity): Promise<Record<string, unknown>[]> {
   if (!identity.email) {
     return [];
   }
-  const scanned = await scanAll({
-    TableName: GROUPS_TABLE,
-    FilterExpression: 'contains(coTeacherEmails, :email)',
-    ExpressionAttributeValues: { ':email': normalizeEmail(identity.email) },
-  });
-  return scanned.filter(item => item.teacherSub !== identity.sub);
+  const ids = await listCoTeacherResourceIds(normalizeEmail(identity.email), 'group');
+  if (ids.length === 0) {
+    return [];
+  }
+  const groups = await batchGetAll(GROUPS_TABLE, ids.map(groupId => ({ groupId })));
+  // The index is eventually consistent with the item, and authorization still
+  // reads the item's own list, so re-check it here rather than trusting the row.
+  return groups.filter(item => item.teacherSub !== identity.sub
+    && emailInCoTeacherList(item.coTeacherEmails, identity.email));
 }
 
 /**
@@ -787,62 +853,47 @@ async function listManageableGroupIds(identity: TeacherIdentity): Promise<string
   return [...ids];
 }
 
-// DynamoDB は IN のオペランドを 100 個までしか受け付けない。
-const IN_OPERAND_LIMIT = 100;
-
 /**
- * Assignments the teacher may see but does not own: the ones shared with them
- * assignment-by-assignment (`coTeacherEmails`) plus the ones filed under a
- * class they manage (`groupId`). The classrooms table can index neither a list
- * attribute nor groupId, so both are Scan filters — and RCU is charged on the
- * items read *before* the filter, so the two predicates share **one** Scan
- * instead of scanning the whole table twice (#1146).
- *
- * Chunked when the teacher manages more than 100 classes, since DynamoDB caps
- * an IN list at 100 operands; the email predicate rides on the first chunk
- * only so it is never evaluated twice.
+ * Assignments (課題) shared with this teacher one by one, i.e. their email sits
+ * in the assignment's own `coTeacherEmails`. Read off the reverse index +
+ * BatchGet: a list attribute cannot be a GSI key, and the Scan this replaces
+ * was charged on every row of the classrooms table before the filter (#1146).
+ * @param email - the co-teacher's verified email (already normalized)
  */
-async function listSharedAssignments(
-  email: string | null,
-  groupIds: string[],
-): Promise<Record<string, unknown>[]> {
-  const items: Record<string, unknown>[] = [];
-  const chunks: string[][] = [];
-  for (let i = 0; i < groupIds.length; i += IN_OPERAND_LIMIT) {
-    chunks.push(groupIds.slice(i, i + IN_OPERAND_LIMIT));
+async function listAssignmentsCoTaughtBy(email: string): Promise<Record<string, unknown>[]> {
+  const ids = await listCoTeacherResourceIds(email, 'assignment');
+  if (ids.length === 0) {
+    return [];
   }
-  if (chunks.length === 0) {
-    chunks.push([]);
-  }
-  for (const [chunkIndex, chunk] of chunks.entries()) {
-    const values: Record<string, string> = {};
-    const clauses: string[] = [];
-    if (email && chunkIndex === 0) {
-      values[':email'] = email;
-      clauses.push('contains(coTeacherEmails, :email)');
-    }
-    const placeholders = chunk.map((id, index) => {
-      values[`:g${index}`] = id;
-      return `:g${index}`;
-    });
-    if (placeholders.length > 0) {
-      clauses.push(`groupId IN (${placeholders.join(', ')})`);
-    }
-    if (clauses.length === 0) {
-      continue;
-    }
-    items.push(...(await scanAll({
-      TableName: CLASSROOMS_TABLE,
-      FilterExpression: clauses.join(' OR '),
-      ExpressionAttributeValues: values,
-    })));
-  }
-  return items;
+  const items = await batchGetAll(CLASSROOMS_TABLE, ids.map(classroomId => ({ classroomId })));
+  // Re-check against the item itself: the index may lag a removal, and
+  // authorization has always been decided by the list stored on the item.
+  return items.filter(item => emailInCoTeacherList(item.coTeacherEmails, email));
 }
 
-/** Assignments filed under any of the given classes, whoever created them. */
+/**
+ * Assignments filed under any of the given classes, whoever created them.
+ * Queried through the `groupId-index` GSI, one Query per class, so the cost
+ * scales with the assignments actually in those classes instead of with the
+ * whole table (#1146). Managing a class grants access to everything inside it
+ * regardless of who created each assignment (#1138), so this covers both
+ * directions and replaces the old `groupId IN (...)` Scan — with it the
+ * 100-operand `IN` cap, and the chunking it forced, are gone.
+ */
 async function listAssignmentsInGroups(groupIds: string[]): Promise<Record<string, unknown>[]> {
-  return listSharedAssignments(null, groupIds);
+  const byId = new Map<string, Record<string, unknown>>();
+  for (const groupId of new Set(groupIds)) {
+    const items = await queryAll({
+      TableName: CLASSROOMS_TABLE,
+      IndexName: 'groupId-index',
+      KeyConditionExpression: 'groupId = :gid',
+      ExpressionAttributeValues: { ':gid': groupId },
+    });
+    for (const item of items) {
+      byId.set(item.classroomId as string, item);
+    }
+  }
+  return [...byId.values()];
 }
 
 /** Fetch the owning class (group) of an assignment, or undefined (pre-v2). */
@@ -910,20 +961,24 @@ async function handleListClassrooms(identity: TeacherIdentity, includeArchived =
     ExpressionAttributeValues: { ':ts': identity.sub },
   });
 
-  // Everything else the teacher may see, in a single Scan of the classrooms
-  // table (#1146):
-  //   - assignments co-taught one by one, matched by verified email
-  //     (DynamoDB cannot index a list attribute with a GSI);
+  // Everything else the teacher may see. Both halves are index lookups, so
+  // this request no longer Scans the classrooms or the groups table at all
+  // (#1146) — the cost now scales with what this teacher can see, not with how
+  // much data every other teacher has accumulated:
+  //   - assignments co-taught one by one, via the co-teacher reverse index
+  //     (a list attribute cannot be a GSI key, hence the separate table);
   //   - assignments living inside a class (組) the teacher may manage, whether
-  //     they own that class or co-manage it. Managing a class grants access to
-  //     everything inside it regardless of who created each assignment, so this
-  //     covers both directions (issue #1138): a co-teacher must see the owner's
-  //     assignments, and the owner must see assignments a co-teacher created.
-  //     Keying off teacherSub would miss the other party, so filter by groupId.
-  const shared = await listSharedAssignments(
-    identity.email ? normalizeEmail(identity.email) : null,
-    await listManageableGroupIds(identity),
-  );
+  //     they own that class or co-manage it, via the `groupId-index` GSI.
+  //     Managing a class grants access to everything inside it regardless of
+  //     who created each assignment, so this covers both directions (issue
+  //     #1138): a co-teacher must see the owner's assignments, and the owner
+  //     must see assignments a co-teacher created. Keying off teacherSub would
+  //     miss the other party, so key off groupId.
+  const [coTaught, inGroups] = await Promise.all([
+    identity.email ? listAssignmentsCoTaughtBy(normalizeEmail(identity.email)) : [],
+    listManageableGroupIds(identity).then(listAssignmentsInGroups),
+  ]);
+  const shared = [...coTaught, ...inGroups];
 
   // Merge by classroomId (owned wins). Archived classes are excluded unless
   // the caller opts in with ?includeArchived=1 (the archive-list / restore UI,
@@ -2887,6 +2942,20 @@ async function handleMigrateGroups(identity: TeacherIdentity): Promise<APIGatewa
       ...(Object.keys(names).length > 0 ? { ExpressionAttributeNames: names } : {}),
       ExpressionAttributeValues: values,
     }));
+    // Migration lifts each assignment's co-teachers up onto the class, so this
+    // is another writer of coTeacherEmails and must keep the reverse index in
+    // step — otherwise a migrated teacher's shared classes stay invisible to
+    // the index-based reads above (#1146).
+    if (update.set.coTeacherEmails !== undefined) {
+      const existing = groupsResult.find(g => String(g.groupId) === update.groupKey);
+      await syncCoTeacherIndex(
+        'group',
+        groupId,
+        existing ? readCoTeacherEmails(existing) : [],
+        update.set.coTeacherEmails as string[],
+        existing ? existing.ttl : undefined,
+      );
+    }
   }
 
   return {

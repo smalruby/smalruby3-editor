@@ -62,8 +62,9 @@ describe('class seat-count propagation (PATCH /classroom-groups/{id})', () => {
       if (name === 'UpdateCommand' && table.includes('Group')) {
         return { Attributes: { groupId: 'g1', teacherSub: 'dev-test-teacher', name: '2年1組', year: 2026, studentCount: newCount, schemaVersion: 2 } };
       }
-      if (name === 'ScanCommand') {
-        // propagation enumerates the class's assignments by groupId (#1145)
+      if (name === 'QueryCommand') {
+        // propagation enumerates the class's assignments through the
+        // groupId-index GSI (#1145 で groupId 起点に、#1146 で Scan から Query に)
         return {
           Items: classroomIds.map(classroomId => ({ classroomId, groupId: 'g1', status: 'active' })),
         };
@@ -118,12 +119,9 @@ describe('class seat-count propagation (PATCH /classroom-groups/{id})', () => {
       if (name === 'UpdateCommand' && String(command.input?.TableName).includes('Group')) {
         return { Attributes: { groupId: 'g1', teacherSub: 'dev-test-teacher', studentCount: 40 } };
       }
-      if (name === 'ScanCommand') {
+      if (name === 'QueryCommand') {
         const values = (command.input?.ExpressionAttributeValues || {}) as Record<string, unknown>;
-        const wanted = Object.entries(values)
-          .filter(([key]) => key.startsWith(':g'))
-          .map(([, value]) => value);
-        return { Items: rows.filter(row => wanted.includes(row.groupId)) };
+        return { Items: rows.filter(row => row.groupId === values[':gid']) };
       }
       if (name === 'UpdateCommand') {
         touched.push(String((command.input?.Key as Record<string, unknown>).classroomId));
@@ -139,8 +137,8 @@ describe('class seat-count propagation (PATCH /classroom-groups/{id})', () => {
   test('LastEvaluatedKey が返るときも全ページ分の課題を更新する (#1146)', async () => {
     // 1MB 上限は groupId フィルタの「前」に効くので、ページを辿らないと
     // クラス内の一部の課題だけ古い人数のまま残る（エラーは出ない）。
-    // 列挙は groupId 起点の Scan（#1145 で teacherSub 起点から変更）なので、
-    // ページングも Scan で確認する。
+    // 列挙は groupId 起点（#1145 で teacherSub 起点から変更）で、#1146 で
+    // groupId-index の Query になったので、ページングも Query で確認する。
     // status の絞り込みは DynamoDB のフィルタから JS 側へ移ったので、行にも持たせる。
     const rows = [
       { classroomId: 'c1', groupId: 'g1', status: 'active' },
@@ -159,7 +157,7 @@ describe('class seat-count propagation (PATCH /classroom-groups/{id})', () => {
       if (name === 'UpdateCommand' && table.includes('Group')) {
         return { Attributes: { groupId: 'g1', teacherSub: 'dev-test-teacher', studentCount: 33 } };
       }
-      if (name === 'ScanCommand') {
+      if (name === 'QueryCommand') {
         const start = (command.input?.ExclusiveStartKey as { index?: number } | undefined)?.index || 0;
         const end = Math.min(start + 1, rows.length);
         return {
