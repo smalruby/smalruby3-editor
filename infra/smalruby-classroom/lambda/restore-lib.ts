@@ -163,6 +163,7 @@ export function resourceNamesForStage(stage: string): {
   membershipsTable: string;
   submissionsTable: string;
   groupsTable: string;
+  coTeacherIndexTable: string;
   bucket: string;
 } {
   const suffix = stage === 'prod' ? '' : `-${stage}`;
@@ -171,6 +172,7 @@ export function resourceNamesForStage(stage: string): {
     membershipsTable: `ClassroomMemberships${suffix}`,
     submissionsTable: `ClassroomSubmissions${suffix}`,
     groupsTable: `ClassroomGroups${suffix}`,
+    coTeacherIndexTable: `ClassroomCoTeacherIndex${suffix}`,
     bucket: `smalruby-classroom-submissions${suffix}`,
   };
 }
