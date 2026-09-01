@@ -54,10 +54,15 @@ bin/setup-worktree   # all-in-one setup: env + node_modules + dist/
 `bin/sync-worktree-env` だけを使う場合は以下のみ実行される:
 
 - 以下の gitignored env ファイルを main checkout からコピー:
-  - `.env` (root, used by webpack at build time)
-  - `infra/smalruby-mesh-v2/.env.{stg,stg2,production}`
-  - `infra/smalruby-rubytee-relay/.env.{stg,stg2,production}`
-  - `infra/smalruby-classroom/.env.{stg,stg2,production}`
+  - `.env` / `.env.{stg,stg2,production}` (root, used by webpack at build time)
+  - `infra/*/.env.<stage>` — **infra プロジェクトを走査**して実在するものだけコピーする
+    （ハードコード一覧ではないので、CDK プロジェクトが増えても追随する。現在の対象は
+    smalruby-mesh-v2 / smalruby-rubytee-relay / smalruby-classroom / smalruby-api /
+    smalruby-bug-report / smalruby-admin。ステージ名は `.env.production` と `.env.prod` が
+    混在しているが、走査なのでどちらも拾う）
+  - コピーしないもの: `.env` の symlink（ステージ切り替えは各自で張る。
+    `.claude/rules/env-file.md`）、tracked な `.env.example`、
+    `.env.prod.20260719` / `.env.stg.bak-bootstrap` のような日付・接尾辞付きバックアップ
 - worktree の host 側 `node_modules` を main checkout のものに symlink
   （host 側 husky hook が `node_modules/.bin` を必要とするため。docker named
   volume には影響しない）

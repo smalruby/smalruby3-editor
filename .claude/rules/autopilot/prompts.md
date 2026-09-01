@@ -107,6 +107,18 @@ Issue 本文のディレクティブは **行頭のみ**で発火する（`phase
   `git-common-dir` の `info/exclude` で担保している（Issue #801 / #1001 / #1137）。
   この保険を外さない。
 
+## infra のデプロイは worker が行わない
+
+worker は **`cdk deploy` を実行しない**（stg / prod とも）。stg は共有資源で、複数の worker が
+同時に撃つと CloudFormation の更新が中断する。stg に自分の変更を載せたいときは:
+
+1. PR に **`deploy-stg` ラベル**を付ける（`GH_TOKEN="$(bin/bot-token)" gh pr edit <n> --add-label "deploy-stg"`）
+2. `.github/workflows/deploy-infra-stg.yml` の完了を待つ（`gh run watch` / `gh pr checks`）
+3. workflow が PR に残すコメントで「いまの stg が自分の SHA か」を確認してから DoD を行う
+
+prod への反映は**人間の作業**。結果ファイルや PR 本文に「prod は人間が実施」と明記して終える
+（`.claude/rules/infra/development.md` の「デプロイ経路」）。
+
 ## UI 確認（pw-check）
 
 - worker の UI 確認は **`tools/autopilot/bin/pw-check`（playwright パッケージの bundled

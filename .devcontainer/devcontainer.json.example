@@ -104,6 +104,16 @@
         // 詳細は .claude/rules/github-app-bot.md / docs/github-app-bot/README.md。
         // ,"source=${localEnv:HOME}/.config/smalruby-bot,target=/root/.config/smalruby-bot,type=bind,readonly"
 
+        // ---- repo 設定用の admin トークン (bin/gh-admin) ----
+        // GitHub App の bot トークンでは repo 設定 (Actions の Variables / Secrets /
+        // Environments) を変更できないため、**その用途だけ**に使う個人 PAT を
+        // host の同じパスから **read-only** で持ち込む。rebuild / delete を跨いで
+        // 永続させる目的で、bot 設定と同じ扱い (ro・コンテナから消せない)。
+        // 使うのは bin/gh-admin だけで、GH_TOKEN には決して export しない
+        // (export すると gh も autopilot の読み取りも admin 権限で走ってしまう)。
+        // 詳細は .claude/rules/github-app-bot.md / bin/gh-admin の冒頭コメント。
+        // ,"source=${localEnv:HOME}/.config/smalruby-gh,target=/root/.config/smalruby-gh,type=bind,readonly"
+
         // ---- Claude Code 関連 (Anthropic 公式 + 安全側を考慮した設計) ----
         //
         // - **認証 (~/.claude.json) は mount しない**。container 内で初回 `claude` 起動時に

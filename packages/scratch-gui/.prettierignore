@@ -160,6 +160,7 @@ src/lib/*
 !src/lib/block-utils.js
 !src/lib/blocks-gesture-recovery.js
 !src/lib/scratch-blocks-comment-icon-patch.js
+!src/lib/scratch-blocks-ime-patch.js
 !src/lib/blocks-screenshot.js
 !src/lib/furigana-annotator.js
 !src/lib/furigana-call-helpers.js
@@ -388,6 +389,8 @@ test/unit/lib/*
 !test/unit/lib/koshien-test-url.test.js
 !test/unit/lib/blockly-private-api.test.js
 !test/unit/lib/blocks-gesture-recovery.test.js
+!test/unit/lib/ime-composition-guard.test.jsx
+!test/unit/lib/scratch-blocks-ime-patch.test.js
 !test/unit/lib/avatar-initials.test.js
 !test/unit/lib/classroom-api.test.js
 !test/unit/lib/classroom-assignment-templates.test.js

@@ -12,6 +12,8 @@ import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import * as path from 'path';
 import { Construct } from 'constructs';
 
+import { resolveCorsOrigins } from './cors-origins';
+
 export class SmalrubyBugReportStack extends cdk.Stack {
   public readonly reportsTable: dynamodb.Table;
   public readonly adminsTable: dynamodb.Table;
@@ -24,9 +26,13 @@ export class SmalrubyBugReportStack extends cdk.Stack {
     const stage = this.node.tryGetContext('stage') || process.env.STAGE || 'stg';
     const stageSuffix = stage === 'prod' ? '' : `-${stage}`;
 
-    const corsOriginsEnv = process.env.CORS_ALLOWED_ORIGINS ||
-      'https://smalruby.app,https://smalruby.jp,http://localhost:8601';
-    const corsAllowOrigins = corsOriginsEnv.split(',').map(o => o.trim());
+    // CORS設定。非 prod ではローカル dev server の範囲（8601-8610）も許可する。
+    const corsAllowOrigins = resolveCorsOrigins(
+      stage,
+      ['https://smalruby.app', 'https://smalruby.jp'],
+      process.env.CORS_ALLOWED_ORIGINS,
+    );
+    const corsOriginsEnv = corsAllowOrigins.join(',');
 
     const googleClientId = process.env.GOOGLE_CLIENT_ID || '';
     const microsoftClientId = process.env.MICROSOFT_CLIENT_ID || '';
