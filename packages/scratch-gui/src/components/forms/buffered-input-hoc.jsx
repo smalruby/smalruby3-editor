@@ -24,7 +24,9 @@ export default function (Input) {
             // === Smalruby: Start of IME composition guard ===
             // The Enter that commits an IME conversion must not flush and blur.
             // React's SyntheticKeyboardEvent omits isComposing, so read the
-            // native event; keyCode 229 covers browsers that omit isComposing.
+            // native event. This is bound to keypress, which Chromium never fires
+            // while composing (and where React reports keyCode 0), so the guard is
+            // there for browsers that do deliver a composing keypress.
             if ((e.nativeEvent && e.nativeEvent.isComposing) || e.keyCode === 229) return;
             // === Smalruby: End of IME composition guard ===
             if (e.key === 'Enter') {

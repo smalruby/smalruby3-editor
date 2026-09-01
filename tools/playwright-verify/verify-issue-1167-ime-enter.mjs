@@ -8,13 +8,26 @@
 // 実機（Chrome + Google 日本語入力 / ことえり）での最終確認は人間が行う。
 //
 // 使い方:
+//   # コンテナ内（既定）— headless:
 //   node verify-issue-1167-ime-enter.mjs
 //   PORT=8611 node verify-issue-1167-ime-enter.mjs      # 別ポートの dev server
-//   HEADLESS=0 node verify-issue-1167-ime-enter.mjs     # 目視（ホスト側のみ）
+//
+//   # ホスト（macOS）— 実 Chrome ウィンドウで目視:
+//   HEADLESS=false CHANNEL=chrome SLOWMO=300 node verify-issue-1167-ime-enter.mjs
+//
+// Env: HEADLESS=false / CHANNEL=chrome / SLOWMO=<ms> / KEEP_OPEN=1 / PORT=<port> / BASE_URL=...
 import { chromium } from 'playwright';
+import { mkdirSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const SHOTS = resolve(__dirname, '.screenshots');
+mkdirSync(SHOTS, { recursive: true });
 
 const PORT = process.env.PORT || '8601';
-const URL = `http://localhost:${PORT}/?no_beforeunload=1`;
+const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
+const URL = `${BASE_URL}/?no_beforeunload=1`;
 const log = (...a) => console.log('[ime]', ...a);
 const fail = (m) => {
     console.error('[FAIL]', m);
@@ -25,8 +38,10 @@ const check = (n, ok, m) => {
     if (!ok) fail(m);
 };
 
-const headful = process.env.HEADLESS === '0';
-const browser = await chromium.launch({ headless: !headful, slowMo: headful ? 300 : 0 });
+const launchOpts = { headless: process.env.HEADLESS !== 'false' };
+if (process.env.CHANNEL) launchOpts.channel = process.env.CHANNEL;
+if (process.env.SLOWMO) launchOpts.slowMo = Number(process.env.SLOWMO);
+const browser = await chromium.launch(launchOpts);
 const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
 
 await page.goto(URL);
@@ -110,7 +125,7 @@ await dispatchEnter(true);
 await page.waitForTimeout(300);
 const survives = await page.locator('.blocklyHtmlInput').count();
 check('2', survives === 1, 'IME 変換中の Enter でエディタが閉じない');
-await page.screenshot({ path: '.screenshots/issue-1167-editor-open-after-composing-enter.png' });
+await page.screenshot({ path: resolve(SHOTS, 'issue-1167-editor-open-after-composing-enter.png') });
 
 // 4. IME 変換中の Escape も閉じない（変換の取り消しに使われるため）。
 await page.evaluate(() => {

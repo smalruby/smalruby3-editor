@@ -4,23 +4,32 @@ import '@testing-library/jest-dom';
 import { fireEvent, render } from '@testing-library/react';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
-
-import bufferedInputHOC from '../../../src/components/forms/buffered-input-hoc.jsx';
 import StudentJoinForm from '../../../src/components/classroom-modal/student-join-form.jsx';
+import bufferedInputHOC from '../../../src/components/forms/buffered-input-hoc.jsx';
 import URLLoaderModal from '../../../src/components/url-loader-modal/url-loader-modal.jsx';
 import ListMonitorContainer from '../../../src/containers/list-monitor.jsx';
 import Prompt from '../../../src/containers/prompt.jsx';
 import Question from '../../../src/containers/question.jsx';
 import SliderPrompt from '../../../src/containers/slider-prompt.jsx';
 
-jest.mock('../../../src/containers/modal.jsx', () => {
-    const FakeModal = ({ children }) => <div data-testid="url-loader-modal">{children}</div>;
-    return FakeModal;
-});
-
 // A React SyntheticKeyboardEvent does NOT expose `isComposing` (React 18's
 // KeyboardEventInterface omits it), so the guards must read it from
 // `nativeEvent`. These fakes mirror that shape.
+//
+// Scope caveat, measured rather than assumed (see the render-based tests at the
+// bottom for the parts that are exercised through real DOM events):
+//
+//   * `list-monitor` / `student-join-form` / `teacher-*` / `target-selector`
+//     are bound to `keydown`, where React does forward `keyCode` — both halves
+//     of the guard are live there.
+//   * `question` / `prompt` / `slider-prompt` / `buffered-input-hoc` /
+//     `url-loader-modal` are bound to `keypress`. Chromium dispatches no
+//     `keypress` at all while an IME composition is in flight (the commit key
+//     only produces `keydown` with keyCode 229 / isComposing true), and React
+//     normalises `keyCode` to 0 on `keypress`. So on Chrome those guards are
+//     unreachable; they are insurance for engines that *do* deliver a composing
+//     `keypress`. The direct prototype calls below therefore pin the handler
+//     contract, not observed Chrome behaviour.
 const composingEvent = (over = {}) => ({
     key: 'Enter',
     keyCode: 229,
@@ -104,10 +113,7 @@ describe('IME composition guard — upstream containers (#1167)', () => {
         expect(setState).not.toHaveBeenCalled();
 
         // Navigation keys still work when the IME is idle.
-        ListMonitor.prototype.handleKeyPress.call(
-            self,
-            plainEvent({ key: 'ArrowDown', preventDefault: jest.fn() }),
-        );
+        ListMonitor.prototype.handleKeyPress.call(self, plainEvent({ key: 'ArrowDown', preventDefault: jest.fn() }));
         expect(handleDeactivate).toHaveBeenCalledTimes(1);
         expect(setState).toHaveBeenCalledWith({ activeIndex: 1, activeValue: 'b' });
     });
@@ -144,5 +150,62 @@ describe('IME composition guard — Smalruby components (#1167)', () => {
 
         fireEvent.keyDown(input, { key: 'Enter', keyCode: 13 });
         expect(onJoin).toHaveBeenCalledWith('abc234');
+    });
+});
+
+describe('IME composition guard — real React event plumbing (#1167)', () => {
+    // The `keypress`-bound guards can only ever fire on `nativeEvent.isComposing`
+    // (React reports keyCode 0 for keypress), so pin exactly that path through a
+    // rendered component instead of a hand-built event object.
+    test('bufferedInputHOC: a composing keypress does not submit, a plain one does', () => {
+        const BufferedInput = bufferedInputHOC('input');
+        const onSubmit = jest.fn();
+        const { container } = render(<BufferedInput onSubmit={onSubmit} value="hi" />);
+        const input = container.querySelector('input');
+
+        // A buffered input only submits a value the user actually edited.
+        fireEvent.change(input, { target: { value: 'こんにちは' } });
+
+        fireEvent.keyPress(input, { key: 'Enter', charCode: 13, isComposing: true });
+        expect(onSubmit).not.toHaveBeenCalled();
+
+        fireEvent.keyPress(input, { key: 'Enter', charCode: 13 });
+        expect(onSubmit).toHaveBeenCalledWith('こんにちは');
+    });
+
+    test('React reports keyCode 0 on keypress, so only nativeEvent.isComposing can guard it', () => {
+        const seen = [];
+        const Probe = () => (
+            <input
+                onKeyDown={(e) =>
+                    seen.push({
+                        type: 'keydown',
+                        keyCode: e.keyCode,
+                        synthetic: e.isComposing,
+                        native: e.nativeEvent.isComposing,
+                    })
+                }
+                onKeyPress={(e) =>
+                    seen.push({
+                        type: 'keypress',
+                        keyCode: e.keyCode,
+                        synthetic: e.isComposing,
+                        native: e.nativeEvent.isComposing,
+                    })
+                }
+            />
+        );
+        const { container } = render(<Probe />);
+        const input = container.querySelector('input');
+
+        fireEvent.keyDown(input, { key: 'Enter', keyCode: 229, isComposing: true });
+        fireEvent.keyPress(input, { key: 'Enter', charCode: 13, isComposing: true });
+
+        // `synthetic` is undefined in both: React's KeyboardEventInterface has no
+        // isComposing, which is why every guard reads `nativeEvent`.
+        expect(seen).toEqual([
+            { type: 'keydown', keyCode: 229, synthetic: undefined, native: true },
+            { type: 'keypress', keyCode: 0, synthetic: undefined, native: true },
+        ]);
     });
 });
