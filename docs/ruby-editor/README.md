@@ -121,6 +121,18 @@ Monaco 本体は **CDN からではなく自前で配信する**。学校ネッ�
   `@monaco-editor/react` を使うモジュールを増やすときは、`<Editor>` のレンダー前に
   `monaco-i18n-helper.js` を import すること
 
+###### `file://` で開いたときの editor worker（統合テストの注意点）
+
+Monaco は editor worker を **blob + `importScripts(<worker の URL>)`** で生成する。blob worker は
+opaque origin (`blob:null`) なので、`file://` で開いたページでは新しめの Chrome が
+`file:` スクリプトの importScripts を拒否し、worker の読み込みだけが失敗する
+（CDN 配信時代は worker の URL が https だったため起きなかった）。
+
+- **本番配信（http/https）は同一オリジンなので影響しない**。worker は通常どおり読める
+- 影響を受けるのは **ビルド成果物を `file://` で開く統合テスト**のみ。エディタ本体は worker
+  無しでも動作するため、`test/integration/smalruby-tutorials.test.js` はこの SEVERE ログを
+  既知として除外している（`isIgnorableSevereLog`）
+
 #### ruby-toolbar
 
 | ファイル | 役割 |
