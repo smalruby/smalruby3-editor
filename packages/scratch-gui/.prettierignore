@@ -424,6 +424,7 @@ test/unit/lib/*
 !test/unit/lib/make-toolbox-xml.test.js
 !test/unit/lib/mesh-v2-classroom-binding.test.js
 !test/unit/lib/mesh-v2-sensor-collision.test.js
+!test/unit/lib/monaco-i18n-helper.test.js
 !test/unit/lib/display-mode-persistence.test.js
 !test/unit/lib/responsive-gui.test.jsx
 !test/unit/lib/use-display-mode.test.js

@@ -120,10 +120,11 @@ NaCl の隔離ガイドラインでは「非公開認証情報が到達する隔
 | AWS | `ip-ranges.json` のうち **デプロイリージョン + us-east-1 + GLOBAL**、加えて SSO 系 (`oidc/portal.sso/sso.<region>.amazonaws.com`, SSO ポータル) | `cdk deploy` / `aws sso login` |
 | DNS | `/etc/resolv.conf` のリゾルバ + docker DNS (127.0.0.11) の 53 番のみ | 名前解決 (任意 DNS への exfil を遮断) |
 
-- 製品がランタイムで取りに行く先も許可している: **`cdn.jsdelivr.net`** (Monaco Editor 本体。
-  `src/lib/monaco-i18n-helper.js` が CDN から読む)、**`accounts.google.com` /
-  `apis.google.com`** (Google ログイン)。これが無いと **コンテナ内のブラウザで GUI を開いても
-  読み込みが完了せず**、検証そのものができない。解析用の `www.googletagmanager.com` は
+- 製品がランタイムで取りに行く先も許可している: **`cdn.jsdelivr.net`** (顔認識拡張が
+  `@mediapipe/face_detection` を CDN から読む。Monaco Editor 本体は自前配信に切り替えたので
+  この許可には依存しない → `docs/ruby-editor/README.md`)、**`accounts.google.com` /
+  `apis.google.com`** (Google ログイン)。これが無いと **コンテナ内のブラウザで該当機能を
+  使えず**、検証そのものができない。解析用の `www.googletagmanager.com` は
   開発に不要なので入れていない (拒否されても即失敗するだけで先に進む)。
 - AWS のリージョンと SSO ポータルは **`infra/aws-sso.env`** から自動取得する
   (fork 時はそのファイルだけ書き換えれば firewall も追従)。
