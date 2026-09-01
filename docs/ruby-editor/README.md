@@ -96,6 +96,26 @@ ruby-toolbar 上部のセグメントで切替：
 | `packages/scratch-gui/src/containers/ruby-tab/quick-fix-provider.js` | エラー時の Quick Fix |
 | `packages/scratch-gui/src/containers/ruby-tab/execution-highlighter.js` | 実行中の行ハイライト |
 | `packages/scratch-gui/src/containers/ruby-tab/visual-report-bubble.js` | ブロックの実行結果をエディタにバブル表示 |
+| `packages/scratch-gui/src/lib/monaco-i18n-helper.js` | Monaco 本体 (`min/vs`) の読み込み先の解決と、日本語 NLS の読み込み |
+
+##### Monaco 本体の配信 (自前ホスト)
+
+Monaco 本体は **CDN からではなく自前で配信する**。学校ネットワークで汎用 CDN が塞がれている
+環境でもルビータブが動くようにするため、また PWA としてオフラインでも使えるようにするため。
+
+- `webpack.config.js` の `CopyWebpackPlugin` が `node_modules/monaco-editor/min/vs` を
+  ビルド成果物の **`static/monaco/vs`** へコピーする（`MONACO_VS_DEST`）
+- `monaco-i18n-helper.js` の `resolveMonacoVsPath()` が webpack の `publicPath` を前置して
+  AMD ローダーへ渡す。`dist` の `publicPath: 'auto'`（scratch-desktop / scratch-android の
+  相対解決）と、smalruby.app / GitHub Pages サブディレクトリ / ブランチプレビューの
+  3 通りの base パスすべてに対応するため、絶対パスを直書きしない
+- バージョンは `packages/scratch-gui/package.json` の `monaco-editor` に自動的に揃う
+  （URL へのバージョン直書きは無い）。日本語 NLS も同じ npm パッケージから読むのでズレない
+- `min/vs` は約 16MB あるため **PWA の precache からは除外**し、Workbox の
+  `runtimeCaching`（`StaleWhileRevalidate` / キャッシュ名 `smalruby-monaco-editor`）で扱う。
+  初回インストールを軽く保ちつつ、一度開けばオフラインでもルビータブが使える
+- コピー先を変えるときは `webpack.config.js` の `MONACO_VS_DEST` と
+  `monaco-i18n-helper.js` の `MONACO_VS_SUBPATH` を**対で**変更する
 
 #### ruby-toolbar
 
