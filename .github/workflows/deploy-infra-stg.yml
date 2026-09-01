@@ -178,6 +178,39 @@ jobs:
             printf '| branch | `%s` |\n' "${HEAD_REF}"
             printf '| run | %s |\n\n' "${RUN_URL}"
             printf 'stg は共有環境です。**この SHA が載っている前提で** 動作確認してください。\n'
-            printf '別の PR があとからデプロイすると上書きされます（その場合はラベルを付け直して再デプロイ）。\n'
+            printf '別の PR があとからデプロイすると上書きされます。\n\n'
+            printf '`deploy-stg` ラベルはこの run の完了時に自動で外れます。'
+            printf 'もう一度 stg に載せたいときは**ラベルを付け直して**ください。\n'
           } > "${RUNNER_TEMP}/stg-deploy-comment.md"
           gh pr comment "${PR_NUMBER}" --body-file "${RUNNER_TEMP}/stg-deploy-comment.md"
+
+  # ラベルは「1 回の操作」として扱う (#1173)。付けたら 1 回だけデプロイし、run の完了時に
+  # ワークフロー自身が外す。外し忘れると push のたびに再デプロイされてしまうため
+  # （実測で docs だけの push でも走った）、外す作業を人間から取り上げる。
+  #
+  # deploy ジョブの中で外すと、対象プロジェクトが複数あるとき二重で外して片方が 404 になる。
+  # matrix の後に 1 回だけ走らせる。
+  cleanup-label:
+    name: deploy-stg ラベルを外す
+    needs: [select, deploy]
+    # 成功・失敗どちらでも外す。失敗時に残すと「次の push で勝手に再デプロイ」が復活して
+    # しまい、直そうとして push するたびに走ることになる。直したら付け直す運用にする。
+    if: always() && github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: ラベルを外す
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          # 既に外れている場合も成功させる（人間が先に外していることがある）。
+          if gh api "repos/${REPO}/issues/${PR_NUMBER}/labels" --jq '.[].name' | grep -qx 'deploy-stg'; then
+            gh api --method DELETE "repos/${REPO}/issues/${PR_NUMBER}/labels/deploy-stg" --silent
+            echo "deploy-stg を外した"
+          else
+            echo "deploy-stg は付いていない（何もしない）"
+          fi
