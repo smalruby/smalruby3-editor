@@ -11,9 +11,6 @@ export {};
  *   巻き戻らない（レビュー指摘の回帰テスト）
  */
 
-// モジュール化。トップレベル宣言をファイルスコープに閉じる（他のテストファイルと
-// 同名の mockSend / DEV_TOKEN / makeEvent があり、スクリプト扱いだと TS2451 で衝突する）。
-export {};
 
 const mockSend = jest.fn();
 jest.mock('@aws-sdk/lib-dynamodb', () => {
@@ -175,3 +172,4 @@ describe('先生側 API と Admin 推薦の境界 (#1110)', () => {
     expect(res.body).not.toContain('recommendedBy');
   });
 });
+

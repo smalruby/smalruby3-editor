@@ -74,6 +74,57 @@ npx ts-node bin/restore-classroom.ts --classroom-id <uuid> --apply
 - 提出ファイル（S3 実体）の存在確認を行い、欠落があれば dry-run 時に警告表示
 - 課題本体の書き込みは `attribute_not_exists` 条件付き（復元の競合で生きているデータを上書きしない）
 
+## 共同管理者の逆引き索引バックフィル `bin/backfill-coteacher-index.ts`
+
+`GET /classrooms` は共同管理の課題・クラスを **逆引き索引** `ClassroomCoTeacherIndex{suffix}`
+（PK `coTeacherEmail` / SK `resourceKey`）から集める。索引は後付けなので、**それ以前に登録された
+共同管理者の行は存在しない** — 流し込まないまま読み取りを索引に切り替えると、既存の共同管理者から
+課題・クラスが**一覧に出なくなる**（権限そのものは item 上の `coTeacherEmails` で判定しているので
+落ちない。直リンクなら操作できてしまうぶん気付きにくい）。
+
+**デプロイ順（守る）:**
+
+1. `npx cdk deploy` — 索引テーブルと `groupId-index` GSI を作る
+2. **`groupId-index` が `ACTIVE` になるまで待つ**（下記）
+3. **バックフィルを `--apply` で実行**（下記）
+4. 読み取りを索引に切り替えた Lambda を反映する `npx cdk deploy`
+
+1 と 4 が同じ deploy に乗る場合（=通常のリリース）は、**deploy 直後に速やかに 2→3 を実行する**。
+その間だけ共同管理の資源が一覧に出ない。
+
+**GSI の待ちを飛ばさないこと。** GSI は作成直後 `CREATING`（`Backfilling: true`）で、この間は
+その索引への Query が失敗しうる。**項目が 100 件程度の stg でも ACTIVE まで約 5 分かかった**実績が
+あるので、本番ではもう少し見ておく。
+
+```bash
+# ACTIVE になるまで待つ
+until [ "$(aws dynamodb describe-table --table-name Classrooms<suffix> \
+  --query 'Table.GlobalSecondaryIndexes[?IndexName==`groupId-index`].IndexStatus' --output text)" = ACTIVE ]; do
+  sleep 20
+done
+```
+
+```bash
+# デフォルトは dry-run（何件・どの行を作るかだけ表示）
+npx ts-node bin/backfill-coteacher-index.ts
+
+# 確認後に実行
+npx ts-node bin/backfill-coteacher-index.ts --apply
+```
+
+**dry-run は索引テーブルが無くても動く**（既存テーブルを読むだけ）。デプロイ前に流して
+「何行できるはずか」を先に確認しておくと、`--apply` の結果と突き合わせられるうえ、
+一覧に出ない窓を短くできる。ステージは `.env` の symlink で切り替える
+（`ln -sfn .env.prod .env`。`.claude/rules/infra/development.md`）。
+
+- **冪等**。行のキーは `(coTeacherEmail, resourceKey)` なので、何度実行しても同じ行を上書きするだけ。
+  取りこぼしが疑われるときは再実行して差分を埋めてよい
+- 対象は Classrooms / ClassroomGroups の**全件**（アーカイブ済みも含む。`?includeArchived=1` の
+  一覧からも共同管理者に見えるべきで、消えるのは TTL に任せる）
+- 索引行は資源の `ttl` を写すので、資源と一緒に自然消滅する
+- email は保存時と同じ正規化（trim + 小文字）でキーにする。**手で書き換えた項目**が正規化されて
+  いないと索引に載らない（一覧に出ない）ので、その場合は項目側を直してから再実行する
+
 ## よくあるケース
 
 | 状況 | 対応 |

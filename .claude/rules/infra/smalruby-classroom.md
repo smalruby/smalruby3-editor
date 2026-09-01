@@ -27,14 +27,15 @@ CDK project for the Classroom service (API Gateway + Lambda + DynamoDB + S3).
   `X-Google-Access-Token` を含む）。stage スロットリングに加え、`/classrooms/join` と
   `/classrooms/lookup` はルート個別に厳しめのスロットリングを設定
 - **Lambda (Node.js 22)**: 単一ハンドラー (`lambda/handler.ts`) に全ビジネスロジック
-- **DynamoDB (8 テーブル)**:
-  - `Classrooms{suffix}` — GSI `joinCode-index` / `teacherSub-index`
+- **DynamoDB (9 テーブル)**:
+  - `Classrooms{suffix}` — GSI `joinCode-index` / `teacherSub-index` / `groupId-index`（クラスに属する課題。#1146 で `groupId IN (...)` の Scan を置換）
   - `ClassroomMemberships{suffix}` — GSI `sessionToken-index`
   - `ClassroomSubmissions{suffix}` — GSI `classroomId-memberId-index`
   - `ClassroomKickRequests{suffix}` — GSI `classroomId-seatNumber-index`（退室依頼 #692）
   - `ClassroomGroups{suffix}` — GSI `teacherSub-index`（クラス=学級、長期 TTL 400日）
   - `SharedAssignments{suffix}` — GSI `status-createdAt-index` / `authorSub-createdAt-index` / `passcode-index`（みんなの課題 #1066。**TTL なし・prod RETAIN + PITR**）
   - `SharedAssignmentReports{suffix}` — 通報（TTL 90日）
+  - `ClassroomCoTeacherIndex{suffix}` — 共同管理者の逆引き索引 #1146（PK `coTeacherEmail` / SK `resourceKey` = `assignment#<id>` \| `group#<id>`）。`coTeacherEmails` はリスト属性で GSI にできないため別テーブル。**認可はこの索引を見ない**（真実は item 上のリスト）。既存データは `bin/backfill-coteacher-index.ts` で流し込む
   - `ClassroomNotifications{suffix}` — お知らせ #1111（PK teacherSub / SK notificationId。**書き手は admin スタックのみ**・この Lambda は Query/UpdateItem だけ grant）
   - 上記注記のないものは TTL `ttl`・**RemovalPolicy: DESTROY**
 - **S3** `smalruby-classroom-submissions{suffix}`: 提出ファイル (project.sb3, thumbnail.png,
