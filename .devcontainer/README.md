@@ -120,8 +120,40 @@ NaCl の隔離ガイドラインでは「非公開認証情報が到達する隔
 | AWS | `ip-ranges.json` のうち **デプロイリージョン + us-east-1 + GLOBAL**、加えて SSO 系 (`oidc/portal.sso/sso.<region>.amazonaws.com`, SSO ポータル) | `cdk deploy` / `aws sso login` |
 | DNS | `/etc/resolv.conf` のリゾルバ + docker DNS (127.0.0.11) の 53 番のみ | 名前解決 (任意 DNS への exfil を遮断) |
 
+- 製品がランタイムで取りに行く先も許可している: **`cdn.jsdelivr.net`** (Monaco Editor 本体。
+  `src/lib/monaco-i18n-helper.js` が CDN から読む)、**`accounts.google.com` /
+  `apis.google.com`** (Google ログイン)。これが無いと **コンテナ内のブラウザで GUI を開いても
+  読み込みが完了せず**、検証そのものができない。解析用の `www.googletagmanager.com` は
+  開発に不要なので入れていない (拒否されても即失敗するだけで先に進む)。
 - AWS のリージョンと SSO ポータルは **`infra/aws-sso.env`** から自動取得する
   (fork 時はそのファイルだけ書き換えれば firewall も追従)。
+
+### 許可外は DROP ではなく REJECT (即座に失敗させる)
+
+許可外の宛先には **TCP RST / ICMP port-unreachable を返す**。外に出るデータは無いので遮断の
+強度は DROP と同じだが、**待たされない**のが大きく違う:
+
+| | DROP (以前) | REJECT (現在) |
+|---|---|---|
+| 許可外への接続 | タイムアウトまで無応答 (実測 8 秒以上) | **即座に失敗** (実測 0.01 秒) |
+| ブラウザで GUI を開いたとき | 外部依存を待ち続けて **ページ全体が読み込み完了しない** | その機能だけ失敗し、**エディタは使える** |
+| 何が弾かれたか | 分かりにくい | すぐ分かる |
+
+ポリシー自体は `-P OUTPUT DROP` のまま残してある (REJECT ルールの構築に失敗しても閉じる
+fail-closed の保険)。
+
+### ホスト名の allowlist は定期的に再解決される
+
+`dig` で引いた IP を入れているだけなので、**CDN のように A レコードが変わる宛先は
+起動時 1 回の解決では追随できない** (追加した直後は通るのに数十分後に切れる)。そのため:
+
+- ホスト名から入れた IP は **期限付き** (既定 1 時間) で ipset に入る。CIDR レンジ
+  (GitHub / AWS) は従来どおり無期限。
+- `init-firewall.sh` が **再解決ループを background で起動** し、既定 5 分ごとに
+  `EXTRA_HOSTS` と `firewall-allow.local` のホストを引き直して入れ直す。
+  消えた IP は期限切れで自然に落ちるので、許可が広がりっぱなしにならない。
+- 間隔と期限は env で変えられる: `FIREWALL_REFRESH_INTERVAL` (秒) / `FIREWALL_HOST_TTL` (秒)。
+- ループのログは `/tmp/init-firewall-refresh.log`、PID は `/tmp/init-firewall-refresh.pid`。
 - IPv4 allowlist のみ。**IPv6 は egress を全遮断**する (allowlist を IPv4 で組むため、
   IPv6 を開けると素通りの抜け道になる)。
 - **fail-closed**: allowlist の構築に一部失敗しても、最後の DROP は必ず適用される。
