@@ -142,6 +142,10 @@ const TeacherClassDetail = ({
     // The name field is a 2-row textarea (long names wrap), but it is still a
     // single-line value — Enter saves and leaves rather than inserting a break.
     const handleAssignmentNameKeyDown = useCallback((e) => {
+        // The Enter that commits an IME conversion must not end the edit.
+        // React's SyntheticKeyboardEvent omits isComposing, so read the native
+        // event; keyCode 229 covers browsers that do not set isComposing.
+        if ((e.nativeEvent && e.nativeEvent.isComposing) || e.keyCode === 229) return;
         if (e.key === 'Enter') {
             e.preventDefault();
             e.target.blur();

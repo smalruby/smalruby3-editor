@@ -119,11 +119,16 @@ const TargetSelector = props => {
     }, []);
 
     const handleCommandKeyDown = useCallback(e => {
+        // Enter commits and Escape cancels an IME conversion; neither should be
+        // handled here. React's SyntheticKeyboardEvent does NOT expose
+        // isComposing (it is absent from React 18's KeyboardEventInterface), so
+        // read the native event; keyCode 229 covers browsers that omit it.
+        if ((e.nativeEvent && e.nativeEvent.isComposing) || e.keyCode === 229) return;
         if (e.key === 'Escape') {
             setCommandValue('');
             setShowDropdown(false);
             e.target.blur();
-        } else if (e.key === 'Enter' && !e.isComposing && filteredTargets.length > 0) {
+        } else if (e.key === 'Enter' && filteredTargets.length > 0) {
             handleSelectTarget(filteredTargets[0].id);
         }
     }, [filteredTargets, handleSelectTarget]);

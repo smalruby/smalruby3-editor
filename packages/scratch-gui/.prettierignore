@@ -160,6 +160,7 @@ src/lib/*
 !src/lib/block-utils.js
 !src/lib/blocks-gesture-recovery.js
 !src/lib/scratch-blocks-comment-icon-patch.js
+!src/lib/scratch-blocks-ime-patch.js
 !src/lib/blocks-screenshot.js
 !src/lib/furigana-annotator.js
 !src/lib/furigana-call-helpers.js

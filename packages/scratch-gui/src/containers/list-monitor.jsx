@@ -59,6 +59,12 @@ class ListMonitor extends React.Component {
     }
 
     handleKeyPress (e) {
+        // === Smalruby: Start of IME composition guard ===
+        // Enter commits and Escape cancels an IME conversion; neither should be
+        // treated as list navigation. React's SyntheticKeyboardEvent omits
+        // isComposing, so read the native event (keyCode 229 as a fallback).
+        if ((e.nativeEvent && e.nativeEvent.isComposing) || e.keyCode === 229) return;
+        // === Smalruby: End of IME composition guard ===
         // Special case for tab, arrow keys and enter.
         // Tab / shift+tab navigate down / up the list.
         // Arrow down / arrow up navigate down / up the list.

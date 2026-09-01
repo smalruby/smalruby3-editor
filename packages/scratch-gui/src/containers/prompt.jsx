@@ -23,6 +23,12 @@ class Prompt extends React.Component {
         };
     }
     handleKeyPress (event) {
+        // === Smalruby: Start of IME composition guard ===
+        // The Enter that commits an IME conversion must not confirm the dialog.
+        // React's SyntheticKeyboardEvent omits isComposing, so read the native
+        // event; keyCode 229 covers browsers that do not set isComposing.
+        if ((event.nativeEvent && event.nativeEvent.isComposing) || event.keyCode === 229) return;
+        // === Smalruby: End of IME composition guard ===
         if (event.key === 'Enter') this.handleOk();
     }
     handleFocus (event) {

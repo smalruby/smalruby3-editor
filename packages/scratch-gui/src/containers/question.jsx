@@ -19,6 +19,12 @@ class Question extends React.Component {
         this.setState({answer: e.target.value});
     }
     handleKeyPress (event) {
+        // === Smalruby: Start of IME composition guard ===
+        // The Enter that commits an IME conversion must not submit the answer.
+        // React's SyntheticKeyboardEvent omits isComposing, so read the native
+        // event; keyCode 229 covers browsers that do not set isComposing.
+        if ((event.nativeEvent && event.nativeEvent.isComposing) || event.keyCode === 229) return;
+        // === Smalruby: End of IME composition guard ===
         if (event.key === 'Enter') this.handleSubmit();
     }
     handleSubmit () {
