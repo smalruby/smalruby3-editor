@@ -20,21 +20,15 @@ describe('monaco-i18n-helper', () => {
         });
 
         test('joins a publicPath that ends with a slash', () => {
-            expect(resolveMonacoVsPath('/smalruby3-editor/')).toBe(
-                '/smalruby3-editor/static/monaco/vs',
-            );
+            expect(resolveMonacoVsPath('/smalruby3-editor/')).toBe('/smalruby3-editor/static/monaco/vs');
         });
 
         test('joins a publicPath without a trailing slash', () => {
-            expect(resolveMonacoVsPath('/smalruby3-editor')).toBe(
-                '/smalruby3-editor/static/monaco/vs',
-            );
+            expect(resolveMonacoVsPath('/smalruby3-editor')).toBe('/smalruby3-editor/static/monaco/vs');
         });
 
         test('keeps absolute origins intact', () => {
-            expect(resolveMonacoVsPath('https://smalruby.app/')).toBe(
-                'https://smalruby.app/static/monaco/vs',
-            );
+            expect(resolveMonacoVsPath('https://smalruby.app/')).toBe('https://smalruby.app/static/monaco/vs');
         });
 
         test('treats the literal "auto" and non-strings as no publicPath', () => {

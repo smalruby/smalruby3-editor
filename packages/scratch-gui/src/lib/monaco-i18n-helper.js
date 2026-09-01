@@ -40,6 +40,11 @@ const webpackPublicPath = () =>
 // Monaco 本体は CDN ではなく自前配信物から読み込む (#1171)。
 // これにより CDN が塞がれた学校ネットワークやオフライン (PWA) でもルビータブが動き、
 // バージョンは package.json の monaco-editor に自動的に揃う。
+//
+// ⚠️ `@monaco-editor/loader` の既定 `paths.vs` は CDN (cdn.jsdelivr.net) のままで、
+// この副作用インポートより先に `loader.init()`（= `<Editor>` の初回レンダー）が走ると
+// 静かに CDN へフォールバックする。`@monaco-editor/react` を使うモジュールを新しく
+// 追加するときは、`<Editor>` をレンダーする前にこのモジュールを import すること。
 loader.config({
     paths: {
         vs: resolveMonacoVsPath(webpackPublicPath()),

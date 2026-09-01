@@ -116,6 +116,10 @@ Monaco 本体は **CDN からではなく自前で配信する**。学校ネッ�
   初回インストールを軽く保ちつつ、一度開けばオフラインでもルビータブが使える
 - コピー先を変えるときは `webpack.config.js` の `MONACO_VS_DEST` と
   `monaco-i18n-helper.js` の `MONACO_VS_SUBPATH` を**対で**変更する
+- `@monaco-editor/loader` の既定 `paths.vs` は CDN のままなので、`monaco-i18n-helper.js`
+  の副作用インポートより先に `<Editor>` がレンダーされると静かに CDN へ戻る。
+  `@monaco-editor/react` を使うモジュールを増やすときは、`<Editor>` のレンダー前に
+  `monaco-i18n-helper.js` を import すること
 
 #### ruby-toolbar
 
