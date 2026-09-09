@@ -103,6 +103,13 @@ describe('Getting Started single-feature tutorial decks', () => {
             expect(missing).toEqual([]);
         });
 
+        test('no two steps reuse the same image key (説明と絵がズレるのを防ぐ)', () => {
+            // jest は画像 import をすべて同じスタブに解決するので、解決後の値では
+            // なくキーの重複を見る（ja-steps.js のキー → ファイルは 1:1 で運用する）。
+            const keys = deck.steps.map(step => step.image);
+            expect(new Set(keys).size).toBe(keys.length);
+        });
+
         test('every step code snippet converts to blocks without errors', async () => {
             const codeSteps = deck.steps.filter(step => step.code);
             expect(codeSteps.length).toBeGreaterThan(0);

@@ -6,9 +6,12 @@ import introFirstProgram from './steps/intro-4-first-program.gif';
 
 // Getting Started 単機能チュートリアル (issue #1179)。UI 操作は既存 GIF を流用し
 // (.claude/rules/scratch-gui/tutorial.md「画像の流用ルール」)、静止画は既存 GIF の
-// フレームから生成した派生 PNG を使う。
-import gettingStartedCostumeList from './steps/getting-started-costume-2-costume-list.png';
-import gettingStartedCodeTab from './steps/getting-started-shared-code-tab.png';
+// フレームから生成した派生 PNG を使う。挿入するプログラムのステップは、実際に
+// 生成されるブロックを「命令ブロックを画像として保存」で書き出したものを使う。
+import gettingStartedCostumeList from './steps/getting-started-costume-1-costume-list.png';
+import gettingStartedCostumeProgram from './steps/getting-started-costume-3-program.png';
+import gettingStartedSpritesCatProgram from './steps/getting-started-sprites-3-cat-program.png';
+import gettingStartedSpritesPenguinProgram from './steps/getting-started-sprites-4-penguin-program.png';
 
 // Chat Tutorial 1 Basic 1: メッセージを送ってみよう
 import chat1Basic1Step1 from './steps/chat1-basic1-1-intro.gif';
@@ -129,16 +132,16 @@ const jaImages = {
     introRunRuby: introRunRuby,
     introFirstProgram: introFirstProgram,
     // Getting Started: コスチュームをかえてみよう (#1179)
-    gettingStartedCostumeStep1: chat3Mesh1Step4,
-    gettingStartedCostumeStep2: gettingStartedCostumeList,
-    gettingStartedCostumeStep3: gettingStartedCodeTab,
-    // 実行ステップはイントロ GIF を流用して完成形を見せる
-    gettingStartedCostumeStep4: chat3Mesh1Step4,
+    // step1 はできあがりのコスチューム一覧、step2 はコスチュームを追加する操作 GIF、
+    // step3 は挿入されるプログラムそのもの。各画像が step の説明と一致すること。
+    gettingStartedCostumeStep1: gettingStartedCostumeList,
+    gettingStartedCostumeStep2: chat3Mesh1Step4,
+    gettingStartedCostumeStep3: gettingStartedCostumeProgram,
     // Getting Started: スプライトを2つ使ってみよう (#1179)
-    gettingStartedSpritesStep1: chat2Sprites1Step5,
-    gettingStartedSpritesStep2: chat2Sprites1Step6,
-    gettingStartedSpritesStep3: gettingStartedCodeTab,
-    gettingStartedSpritesStep4: chat2Sprites1Step1,
+    gettingStartedSpritesStep1: chat2Sprites1Step1,
+    gettingStartedSpritesStep2: chat2Sprites1Step5,
+    gettingStartedSpritesStep3: gettingStartedSpritesCatProgram,
+    gettingStartedSpritesStep4: gettingStartedSpritesPenguinProgram,
     // Chat Tutorial 1 Basic 1
     chat1Basic1Step1: chat1Basic1Step1,
     chat1Basic1Step2: chat1Basic1Step2,

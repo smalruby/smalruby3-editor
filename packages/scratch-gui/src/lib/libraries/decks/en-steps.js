@@ -6,8 +6,10 @@ import introFirstProgram from './steps/intro-4-first-program.gif';
 
 // Getting Started 単機能チュートリアル (issue #1179)。ja と同じ素材を使う
 // (UI 操作の GIF は言語非依存)。
-import gettingStartedCostumeList from './steps/getting-started-costume-2-costume-list.png';
-import gettingStartedCodeTab from './steps/getting-started-shared-code-tab.png';
+import gettingStartedCostumeList from './steps/getting-started-costume-1-costume-list.png';
+import gettingStartedCostumeProgram from './steps/getting-started-costume-3-program.png';
+import gettingStartedSpritesCatProgram from './steps/getting-started-sprites-3-cat-program.png';
+import gettingStartedSpritesPenguinProgram from './steps/getting-started-sprites-4-penguin-program.png';
 
 // Chat Tutorial 1 Basic 1: メッセージを送ってみよう
 import chat1Basic1Step1 from './steps/chat1-basic1-1-intro.gif';
@@ -127,16 +129,14 @@ const enImages = {
     introRunRuby: introRunRuby,
     introFirstProgram: introFirstProgram,
     // Getting Started: コスチュームをかえてみよう (#1179)
-    gettingStartedCostumeStep1: chat3Mesh1Step4,
-    gettingStartedCostumeStep2: gettingStartedCostumeList,
-    gettingStartedCostumeStep3: gettingStartedCodeTab,
-    // 実行ステップはイントロ GIF を流用して完成形を見せる
-    gettingStartedCostumeStep4: chat3Mesh1Step4,
+    gettingStartedCostumeStep1: gettingStartedCostumeList,
+    gettingStartedCostumeStep2: chat3Mesh1Step4,
+    gettingStartedCostumeStep3: gettingStartedCostumeProgram,
     // Getting Started: スプライトを2つ使ってみよう (#1179)
-    gettingStartedSpritesStep1: chat2Sprites1Step5,
-    gettingStartedSpritesStep2: chat2Sprites1Step6,
-    gettingStartedSpritesStep3: gettingStartedCodeTab,
-    gettingStartedSpritesStep4: chat2Sprites1Step1,
+    gettingStartedSpritesStep1: chat2Sprites1Step1,
+    gettingStartedSpritesStep2: chat2Sprites1Step5,
+    gettingStartedSpritesStep3: gettingStartedSpritesCatProgram,
+    gettingStartedSpritesStep4: gettingStartedSpritesPenguinProgram,
     // Chat Tutorial 1 Basic 1
     chat1Basic1Step1: chat1Basic1Step1,
     chat1Basic1Step2: chat1Basic1Step2,

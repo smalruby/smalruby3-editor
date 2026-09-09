@@ -97,12 +97,10 @@ end`,
         category: CATEGORIES.gettingStarted,
         img: libraryGettingStartedCostume,
         nameMessageId: 'gui.howtos.getting-started-costume.name',
-        // deck を開いた時点でコスチュームタブを見せる（この deck の主題がそこにある）。
-        // ただし step1 の「チュートリアルをはじめる」は新規プロジェクトを作り直すので、
-        // 押した直後はコードタブに戻る。コスチュームタブへは step2 で改めて誘導する。
-        setup: {
-            tab: 'costumes',
-        },
+        // setup.tab は指定しない。step1 の「チュートリアルをはじめる」が新規プロジェクトを
+        // 作り直してコードタブに戻すため、ここで costumes を指定しても学習者が最初の
+        // ボタンを押した瞬間に打ち消され、一瞬だけタブが切り替わる不自然な動きになる
+        // （レビュー指摘 #1179）。コスチュームタブへは step2 の説明で誘導する。
         allowedBlocks: {
             motion: [],
             looks: ['looks_nextcostume', 'looks_switchcostumeto', 'looks_costume'],
@@ -139,9 +137,10 @@ end`,
             {
                 title: (
                     <FormattedMessage
-                        defaultMessage="「コード」タブにもどって、「見た目」のブロックを入れてみよう"
-                        description="Getting Started Costume Step 3: Insert the next-costume blocks"
+                        defaultMessage="「コード」タブでこのプログラムを入れて、{greenFlag}を押してみよう"
+                        description="Getting Started Costume Step 3: Insert the next-costume blocks and run"
                         id="gui.howtos.getting-started-costume.step3.title"
+                        values={{greenFlag: <GreenFlagIcon />}}
                     />
                 ),
                 image: 'gettingStartedCostumeStep3',
@@ -153,18 +152,6 @@ end`,
 end`,
                 codeType: 'blocks',
                 animationTarget: 'insertCodeButton',
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="{greenFlag}を押すと、コスチュームが順番にかわるよ"
-                        description="Getting Started Costume Step 4: Run and see the costume change"
-                        id="gui.howtos.getting-started-costume.step4.title"
-                        values={{greenFlag: <GreenFlagIcon />}}
-                    />
-                ),
-                image: 'gettingStartedCostumeStep4',
-                animationTarget: 'nextButton',
             },
         ],
         urlId: 'gettingStartedCostume',
@@ -212,8 +199,8 @@ end`,
             {
                 title: (
                     <FormattedMessage
-                        defaultMessage="スプライトをえらぶと、そのスプライトのプログラムになるよ"
-                        description="Getting Started Sprites Step 2: Selecting a sprite switches its program"
+                        defaultMessage="スプライトリストの右下のボタンから、ペンギンをふやしてみよう"
+                        description="Getting Started Sprites Step 2: Add the penguin sprite"
                         id="gui.howtos.getting-started-sprites.step2.title"
                     />
                 ),
@@ -223,7 +210,7 @@ end`,
             {
                 title: (
                     <FormattedMessage
-                        defaultMessage="ネコ（スプライト1）をえらんで、このプログラムを入れよう"
+                        defaultMessage="ネコ（スプライト1）をえらんでから、このプログラムを入れよう"
                         description="Getting Started Sprites Step 3: Insert the cat's program"
                         id="gui.howtos.getting-started-sprites.step3.title"
                     />
@@ -238,8 +225,8 @@ end`,
             {
                 title: (
                     <FormattedMessage
-                        defaultMessage="ペンギンをえらんでこのプログラムを入れて、{greenFlag}を押してみよう"
-                        description="Getting Started Sprites Step 4: Insert the penguin's program and run"
+                        defaultMessage="ペンギンをえらぶとプログラムが切りかわるよ。入れたら{greenFlag}を押してみよう"
+                        description="Getting Started Sprites Step 4: Selecting the penguin switches the program; insert it and run"
                         id="gui.howtos.getting-started-sprites.step4.title"
                         values={{greenFlag: <GreenFlagIcon />}}
                     />
