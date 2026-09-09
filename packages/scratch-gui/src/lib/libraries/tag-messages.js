@@ -141,6 +141,11 @@ export default defineMessages({
         description: 'Tag for filtering a library for Mesh networking tutorials',
         id: 'gui.libraryTags.mesh'
     },
+    dncl: {
+        defaultMessage: 'DNCL',
+        description: 'Tag for filtering a library for DNCL (Japanese pseudo-code) tutorials',
+        id: 'gui.libraryTags.dncl'
+    },
     gettingStarted: {
         defaultMessage: 'Getting Started',
         description: 'Category for getting started tutorials',

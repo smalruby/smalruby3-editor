@@ -21,10 +21,15 @@ export const CATEGORIES = {
     // Phase 1).
     meshStep1: 'meshStep1', // 通信入門 ① メッセージを送ってみよう
     meshStep2: 'meshStep2', // 通信入門 ② ふたりで会話しよう
-    meshStep3: 'meshStep3' // 通信入門 ③ みんなで会話しよう (メッシュ)
+    meshStep3: 'meshStep3', // 通信入門 ③ みんなで会話しよう (メッシュ)
+    // Phase 4: DNCL axis (高校「情報Ⅰ」/ 共通テスト対策). dnclBasics covers the
+    // basic skills (display / variables / conditionals / loops / arrays /
+    // functions); dnclAlgorithms follows in a later issue.
+    dnclBasics: 'dnclBasics' // DNCL のきほん
 };
 
 export default [
     {tag: 'ruby', intlLabel: messages.ruby},
-    {tag: 'mesh', intlLabel: messages.mesh}
+    {tag: 'mesh', intlLabel: messages.mesh},
+    {tag: 'dncl', intlLabel: messages.dncl}
 ];

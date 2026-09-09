@@ -1,8 +1,9 @@
 /**
  * Guards the decks/index.jsx + locale-file split into per-category modules
- * (issue #932): deck order/content must stay identical, and the Phase 3
- * (#680) / Phase 4 (#681) stub categories must be independent, empty, and
- * not collide with the existing categories.
+ * (issue #932): deck order/content must stay identical, and each category
+ * module must stay independent and not collide with the others. The Phase 4
+ * DNCL category is no longer a stub — #964 filled it with the first three
+ * dnclBasics decks — so it is guarded like the other populated categories.
  */
 import decks from '../../../../../src/lib/libraries/decks/index.jsx';
 import gettingStartedDecks from '../../../../../src/lib/libraries/decks/categories/getting-started.jsx';
@@ -42,7 +43,10 @@ const EXPECTED_DECK_ID_ORDER = [
     'ruby-basics-4-arrays',
     'ruby-basics-5-blocks',
     'ruby-basics-6-methods',
-    'ruby-basics-7-next'
+    'ruby-basics-7-next',
+    'dncl-basics-1-display',
+    'dncl-basics-2-variables',
+    'dncl-basics-3-conditionals'
 ];
 
 describe('Tutorial deck category split (issue #932)', () => {
@@ -60,19 +64,35 @@ describe('Tutorial deck category split (issue #932)', () => {
         expect(decks['ruby-basics-6-methods']).toBe(rubyBasicsDecks['ruby-basics-6-methods']);
     });
 
-    test('block-series and dncl are empty stub categories that add no deck ids', () => {
+    test('block-series is still an empty stub category that adds no deck ids', () => {
         expect(blockSeriesDecks).toEqual({});
-        expect(dnclDecks).toEqual({});
         EXPECTED_DECK_ID_ORDER.forEach(id => {
             expect(Object.prototype.hasOwnProperty.call(blockSeriesDecks, id)).toBe(false);
+        });
+    });
+
+    test('dncl decks are composed from their category module and own only dncl ids', () => {
+        expect(decks['dncl-basics-1-display']).toBe(dnclDecks['dncl-basics-1-display']);
+        expect(decks['dncl-basics-2-variables']).toBe(dnclDecks['dncl-basics-2-variables']);
+        expect(decks['dncl-basics-3-conditionals']).toBe(dnclDecks['dncl-basics-3-conditionals']);
+        EXPECTED_DECK_ID_ORDER.filter(id => !id.startsWith('dncl-')).forEach(id => {
             expect(Object.prototype.hasOwnProperty.call(dnclDecks, id)).toBe(false);
         });
     });
 
-    test('dncl locale stub is empty for all three locales', () => {
-        expect(dnclLocale.ja).toEqual({});
-        expect(dnclLocale.jaHira).toEqual({});
-        expect(dnclLocale.en).toEqual({});
+    test('dncl locale holds only dncl howto keys and is spread into the central files', () => {
+        [
+            [dnclLocale.ja, ja],
+            [dnclLocale.jaHira, jaHira],
+            [dnclLocale.en, en]
+        ].forEach(([table, central]) => {
+            const keys = Object.keys(table);
+            expect(keys.length).toBeGreaterThan(0);
+            keys.forEach(id => {
+                expect(id.startsWith('gui.howtos.dncl-')).toBe(true);
+                expect(central[id]).toBe(table[id]);
+            });
+        });
     });
 
     test('block-series locale holds only the shared book-promo foundation (issue #956), no deck-id howtos', () => {

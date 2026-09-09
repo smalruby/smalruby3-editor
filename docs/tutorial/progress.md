@@ -12,7 +12,7 @@
 | 基盤 — `setup` プロパティ | (Phase 2 sub-issue 内) | ✅ マージ済み (PR #684) | 1 PR | 不要 |
 | Phase 2 — Ruby 拡充 | [#679](https://github.com/smalruby/smalruby3-editor/issues/679) | 🟢 7/7 deck 実装済み (`ruby-basics-1-numbers` 〜 `-7-next`。deck 7 は TryRuby 導線) | 2〜3 PR | ~50 枚 |
 | Phase 3 — Block 4 シリーズ | [#680](https://github.com/smalruby/smalruby3-editor/issues/680) | ⚪️ 未着手 (書誌情報待ち) | 4 PR | ~76 枚 |
-| Phase 4 — DNCL | [#681](https://github.com/smalruby/smalruby3-editor/issues/681) | ⚪️ 未着手 | 3〜4 PR | ~70 枚 |
+| Phase 4 — DNCL | [#681](https://github.com/smalruby/smalruby3-editor/issues/681) | 🟡 進行中 (`dnclBasics` 前半 3 deck: display / variables / conditionals) | 3〜4 PR | ~70 枚 |
 
 凡例: ⚪️ 未着手 / 🟡 進行中 / 🟢 完了 (PR レビュー待ち含む) / ✅ マージ済み / ❌ 中断
 
