@@ -96,6 +96,42 @@ ruby-toolbar 上部のセグメントで切替：
 | `packages/scratch-gui/src/containers/ruby-tab/quick-fix-provider.js` | エラー時の Quick Fix |
 | `packages/scratch-gui/src/containers/ruby-tab/execution-highlighter.js` | 実行中の行ハイライト |
 | `packages/scratch-gui/src/containers/ruby-tab/visual-report-bubble.js` | ブロックの実行結果をエディタにバブル表示 |
+| `packages/scratch-gui/src/lib/monaco-i18n-helper.js` | Monaco 本体 (`min/vs`) の読み込み先の解決と、日本語 NLS の読み込み |
+
+##### Monaco 本体の配信 (自前ホスト)
+
+Monaco 本体は **CDN からではなく自前で配信する**。学校ネットワークで汎用 CDN が塞がれている
+環境でもルビータブが動くようにするため、また PWA としてオフラインでも使えるようにするため。
+
+- `webpack.config.js` の `CopyWebpackPlugin` が `node_modules/monaco-editor/min/vs` を
+  ビルド成果物の **`static/monaco/vs`** へコピーする（`MONACO_VS_DEST`）
+- `monaco-i18n-helper.js` の `resolveMonacoVsPath()` が webpack の `publicPath` を前置して
+  AMD ローダーへ渡す。`dist` の `publicPath: 'auto'`（scratch-desktop / scratch-android の
+  相対解決）と、smalruby.app / GitHub Pages サブディレクトリ / ブランチプレビューの
+  3 通りの base パスすべてに対応するため、絶対パスを直書きしない
+- バージョンは `packages/scratch-gui/package.json` の `monaco-editor` に自動的に揃う
+  （URL へのバージョン直書きは無い）。日本語 NLS も同じ npm パッケージから読むのでズレない
+- `min/vs` は約 16MB あるため **PWA の precache からは除外**し、Workbox の
+  `runtimeCaching`（`StaleWhileRevalidate` / キャッシュ名 `smalruby-monaco-editor`）で扱う。
+  初回インストールを軽く保ちつつ、一度開けばオフラインでもルビータブが使える
+- コピー先を変えるときは `webpack.config.js` の `MONACO_VS_DEST` と
+  `monaco-i18n-helper.js` の `MONACO_VS_SUBPATH` を**対で**変更する
+- `@monaco-editor/loader` の既定 `paths.vs` は CDN のままなので、`monaco-i18n-helper.js`
+  の副作用インポートより先に `<Editor>` がレンダーされると静かに CDN へ戻る。
+  `@monaco-editor/react` を使うモジュールを増やすときは、`<Editor>` のレンダー前に
+  `monaco-i18n-helper.js` を import すること
+
+###### `file://` で開いたときの editor worker（統合テストの注意点）
+
+Monaco は editor worker を **blob + `importScripts(<worker の URL>)`** で生成する。blob worker は
+opaque origin (`blob:null`) なので、`file://` で開いたページでは新しめの Chrome が
+`file:` スクリプトの importScripts を拒否し、worker の読み込みだけが失敗する
+（CDN 配信時代は worker の URL が https だったため起きなかった）。
+
+- **本番配信（http/https）は同一オリジンなので影響しない**。worker は通常どおり読める
+- 影響を受けるのは **ビルド成果物を `file://` で開く統合テスト**のみ。エディタ本体は worker
+  無しでも動作するため、`test/integration/smalruby-tutorials.test.js` はこの SEVERE ログを
+  既知として除外している（`isIgnorableSevereLog`）
 
 #### ruby-toolbar
 
