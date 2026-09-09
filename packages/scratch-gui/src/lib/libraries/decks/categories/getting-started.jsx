@@ -97,7 +97,9 @@ end`,
         category: CATEGORIES.gettingStarted,
         img: libraryGettingStartedCostume,
         nameMessageId: 'gui.howtos.getting-started-costume.name',
-        // コスチュームタブを開いた状態から始める（この deck の主題がそこにある）。
+        // deck を開いた時点でコスチュームタブを見せる（この deck の主題がそこにある）。
+        // ただし step1 の「チュートリアルをはじめる」は新規プロジェクトを作り直すので、
+        // 押した直後はコードタブに戻る。コスチュームタブへは step2 で改めて誘導する。
         setup: {
             tab: 'costumes',
         },
