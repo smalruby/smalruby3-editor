@@ -29,6 +29,30 @@ const commonHtmlWebpackPluginOptions = {
     gtm_env_auth: process.env.GTM_ENV_AUTH || ''
 };
 
+// === Smalruby: Start of self-hosted Monaco Editor (#1171) ===
+// Monaco 本体 (`min/vs`) を CDN ではなく自前で配信する。コピー先は
+// `src/lib/monaco-i18n-helper.js` の MONACO_VS_SUBPATH と対で維持すること。
+const MONACO_VS_DEST = 'static/monaco/vs';
+
+// `min/vs` は約 16MB あり、PWA の precache に入れると初回インストールが極端に重くなる。
+// precache からは除外し、runtime caching (StaleWhileRevalidate) でオフライン対応する。
+const monacoPrecacheExclude = /^static[\\/]monaco[\\/]/;
+const monacoRuntimeCaching = {
+    urlPattern: /\/static\/monaco\//,
+    handler: 'StaleWhileRevalidate',
+    options: {
+        cacheName: 'smalruby-monaco-editor',
+        expiration: {
+            maxEntries: 400,
+            maxAgeSeconds: 30 * 24 * 60 * 60 // 30 日
+        },
+        cacheableResponse: {
+            statuses: [0, 200]
+        }
+    }
+};
+// === Smalruby: End of self-hosted Monaco Editor (#1171) ===
+
 const cssModuleExceptions = [
     /\.raw\.css$/, // Allow for overriding CSS classes from libraries
     /[\\/]driver\.js[\\/].*\.css$/ // driver.js CSS
@@ -181,7 +205,15 @@ const baseConfig = new ScratchWebpackConfigBuilder(
             {
                 from: '../../node_modules/@mediapipe/face_detection',
                 to: 'chunks/mediapipe/face_detection'
+            },
+            // === Smalruby: Start of self-hosted Monaco Editor (#1171) ===
+            {
+                from: '../../node_modules/monaco-editor/min/vs',
+                to: MONACO_VS_DEST,
+                // 既に minify 済みなので minimizer に通さない (ビルド時間の無駄を避ける)
+                info: {minimized: true}
             }
+            // === Smalruby: End of self-hosted Monaco Editor (#1171) ===
         ]
     }));
 
@@ -332,8 +364,11 @@ const buildWithPwaConfig = buildConfig.clone()
             additionalManifestEntries: assetsManifest,
             exclude: [
                 /\.DS_Store/,
-                /version\.json$/ // === Smalruby: exclude from precache for version update notification ===
+                /version\.json$/, // === Smalruby: exclude from precache for version update notification ===
+                monacoPrecacheExclude // === Smalruby: Monaco is runtime-cached instead (#1171) ===
             ],
+            // === Smalruby: runtime caching for the self-hosted Monaco Editor (#1171) ===
+            runtimeCaching: [monacoRuntimeCaching],
             maximumFileSizeToCacheInBytes: 64 * 1024 * 1024,
             // Don't add revision to files that already have hash in filename
             dontCacheBustURLsMatching: /\.[0-9a-f]{8,}\./
@@ -400,8 +435,11 @@ const distWithHtmlConfig = buildConfig.clone()
             additionalManifestEntries: assetsManifest,
             exclude: [
                 /\.DS_Store/,
-                /version\.json$/ // === Smalruby: exclude from precache for version update notification ===
+                /version\.json$/, // === Smalruby: exclude from precache for version update notification ===
+                monacoPrecacheExclude // === Smalruby: Monaco is runtime-cached instead (#1171) ===
             ],
+            // === Smalruby: runtime caching for the self-hosted Monaco Editor (#1171) ===
+            runtimeCaching: [monacoRuntimeCaching],
             maximumFileSizeToCacheInBytes: 64 * 1024 * 1024,
             // Don't add revision to files that already have hash in filename
             dontCacheBustURLsMatching: /\.[0-9a-f]{8,}\./
