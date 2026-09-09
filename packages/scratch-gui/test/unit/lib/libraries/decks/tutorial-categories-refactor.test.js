@@ -1,8 +1,13 @@
 /**
  * Guards the decks/index.jsx + locale-file split into per-category modules
- * (issue #932): deck order/content must stay identical, and the Phase 3
- * (#680) / Phase 4 (#681) stub categories must be independent, empty, and
- * not collide with the existing categories.
+ * (issue #932): the getting-started / chat / ruby-basics deck order/content
+ * must stay identical after the split, and the Phase 3 (#680) / Phase 4
+ * (#681) categories must be independent and not collide with the existing
+ * categories.
+ *
+ * Phase 3 第1章 (issue #957) populated the block-series category with the four
+ * blockBasics decks, so it is no longer an empty stub; dncl (Phase 4, #681)
+ * remains an empty stub for now.
  */
 import decks from '../../../../../src/lib/libraries/decks/index.jsx';
 import gettingStartedDecks from '../../../../../src/lib/libraries/decks/categories/getting-started.jsx';
@@ -25,6 +30,8 @@ import ja from '../../../../../src/locales/ja';
 import jaHira from '../../../../../src/locales/ja-Hira';
 import en from '../../../../../src/locales/en';
 
+// The getting-started / chat / ruby-basics decks, in the order they appeared
+// before the #932 split. index.jsx must keep this order intact.
 const EXPECTED_DECK_ID_ORDER = [
     'intro-getting-started',
     'chat-1-basic-1',
@@ -45,9 +52,20 @@ const EXPECTED_DECK_ID_ORDER = [
     'ruby-basics-7-next'
 ];
 
+// The blockBasics decks added by Phase 3 第1章 (issue #957). They are spread
+// after ...rubyBasics (and before the still-empty ...dncl) in index.jsx.
+const BLOCK_SERIES_DECK_ID_ORDER = [
+    'block-basics-lv0',
+    'block-basics-lv2',
+    'block-basics-lv3',
+    'block-basics-advanced'
+];
+
 describe('Tutorial deck category split (issue #932)', () => {
-    test('index.jsx exposes the same deck ids in the same order as before the split', () => {
-        expect(Object.keys(decks)).toEqual(EXPECTED_DECK_ID_ORDER);
+    test('index.jsx keeps the original deck order and appends the blockBasics decks', () => {
+        // The split (#932) preserved the original order; #957 appended the
+        // blockBasics decks after ruby-basics. dncl is still empty so adds none.
+        expect(Object.keys(decks)).toEqual([...EXPECTED_DECK_ID_ORDER, ...BLOCK_SERIES_DECK_ID_ORDER]);
     });
 
     test('getting-started and ruby-basics decks are composed from their category modules', () => {
@@ -60,12 +78,17 @@ describe('Tutorial deck category split (issue #932)', () => {
         expect(decks['ruby-basics-6-methods']).toBe(rubyBasicsDecks['ruby-basics-6-methods']);
     });
 
-    test('block-series and dncl are empty stub categories that add no deck ids', () => {
-        expect(blockSeriesDecks).toEqual({});
+    test('block-series holds exactly the four blockBasics decks (issue #957); dncl is still an empty stub', () => {
+        expect(Object.keys(blockSeriesDecks)).toEqual(BLOCK_SERIES_DECK_ID_ORDER);
         expect(dnclDecks).toEqual({});
+        // Neither category may collide with the pre-existing deck ids.
         EXPECTED_DECK_ID_ORDER.forEach(id => {
             expect(Object.prototype.hasOwnProperty.call(blockSeriesDecks, id)).toBe(false);
             expect(Object.prototype.hasOwnProperty.call(dnclDecks, id)).toBe(false);
+        });
+        // block-series decks are composed from their category module.
+        BLOCK_SERIES_DECK_ID_ORDER.forEach(id => {
+            expect(decks[id]).toBe(blockSeriesDecks[id]);
         });
     });
 
@@ -75,15 +98,20 @@ describe('Tutorial deck category split (issue #932)', () => {
         expect(dnclLocale.en).toEqual({});
     });
 
-    test('block-series locale holds only the shared book-promo foundation (issue #956), no deck-id howtos', () => {
-        // #956 populates the Block-axis common book-promotion strings; the
-        // per-deck howto strings still come later (#680).
+    test('block-series locale holds the shared book-promo foundation (#956) plus the blockBasics howtos (#957)', () => {
+        // #956 populates the Block-axis common book-promotion strings; #957
+        // adds the per-deck blockBasics howto strings on top of them.
         [blockSeriesLocale.ja, blockSeriesLocale.jaHira, blockSeriesLocale.en].forEach(table => {
             const keys = Object.keys(table);
             expect(keys.length).toBeGreaterThan(0);
             keys.forEach(id => {
-                expect(id.startsWith('gui.howtos.book-promo.')).toBe(true);
+                expect(
+                    id.startsWith('gui.howtos.book-promo.') || id.startsWith('gui.howtos.block-basics-')
+                ).toBe(true);
             });
+            // Both families must actually be present.
+            expect(keys.some(id => id.startsWith('gui.howtos.book-promo.'))).toBe(true);
+            expect(keys.some(id => id.startsWith('gui.howtos.block-basics-'))).toBe(true);
         });
     });
 

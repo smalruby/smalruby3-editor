@@ -11,7 +11,7 @@
 | Phase 1 — Mesh 再分類 | [#678](https://github.com/smalruby/smalruby3-editor/issues/678) | ✅ マージ済み (PR #683) | 1 PR | 不要 |
 | 基盤 — `setup` プロパティ | (Phase 2 sub-issue 内) | ✅ マージ済み (PR #684) | 1 PR | 不要 |
 | Phase 2 — Ruby 拡充 | [#679](https://github.com/smalruby/smalruby3-editor/issues/679) | 🟢 7/7 deck 実装済み (`ruby-basics-1-numbers` 〜 `-7-next`。deck 7 は TryRuby 導線) | 2〜3 PR | ~50 枚 |
-| Phase 3 — Block 4 シリーズ | [#680](https://github.com/smalruby/smalruby3-editor/issues/680) | ⚪️ 未着手 (書誌情報待ち) | 4 PR | ~76 枚 |
+| Phase 3 — Block シリーズ (2 章) | [#680](https://github.com/smalruby/smalruby3-editor/issues/680) | 🟡 第1章 `blockBasics` 4 deck 実装済み (#957)。第4章 `blockGames` は別 PR。書誌・引用は #962 で確定 | 2 PR | ~40 枚 |
 | Phase 4 — DNCL | [#681](https://github.com/smalruby/smalruby3-editor/issues/681) | ⚪️ 未着手 | 3〜4 PR | ~70 枚 |
 
 凡例: ⚪️ 未着手 / 🟡 進行中 / 🟢 完了 (PR レビュー待ち含む) / ✅ マージ済み / ❌ 中断
@@ -60,10 +60,20 @@
 - [x] ふりがなフラグも考慮した rubyMode の動作 (`smalruby:furiganaEnabled` localStorage の同期)
 - [x] `test/unit/lib/deck-setup.test.js` で 13 ケースの単体テスト (全 pass)
 
-### Phase 3 着手前に必要 (外部要因)
+### Phase 3 着手前に必要 (外部要因) — 解決済み
 
-- [ ] 書籍「キラキラRuby」(仮称) の正式タイトル・出版社・ISBN・購入リンク確定
-- [ ] 著者 (藤村健吾氏) からの書籍引用許諾
+- [x] 書誌情報・購入リンク確定 → `book-promo.jsx` の `BOOK` 定数 (プレースホルダ) + `docs/tutorial/book-kirakira-ruby-source.md` (#962) に集約
+- [x] 書籍引用許諾 (共著者 takaokouji 本人が引用の範囲での利用に同意・#962)
+
+### Phase 3 第1章 `blockBasics` (#957)
+
+「ネコからにげるゲーム冒頭」を基本 3 deck + 発展 1 deck で実装:
+
+- [x] `block-basics-lv0` (コード挿入体験) / `block-basics-lv2` (ブロック手組み) / `block-basics-lv3` (Ruby・`setup: {tab:'ruby', rubyMode:'ruby'}`) / `block-basics-advanced` (Lv0 のみ・完成デモ)
+- [x] 各 deck 冒頭に書誌 step、末尾に「続きは書籍で」+ 購入リンク step (`book-promo.jsx` の共通ファクトリを利用)
+- [x] locale 3 ファイル (`block-series.locale.js` の `ja`/`jaHira`/`en`)
+- [x] step 画像 20 枚 (**プレースホルダ** — 本番スクリーンショットは headful キャプチャ待ち) + サムネイル 4 枚
+- [x] `npm run lint` 緑 / `build:dev` 成功 / pw-check で 4 deck 起動確認
 
 ## 削除タイミング
 
