@@ -27,6 +27,9 @@ import en from '../../../../../src/locales/en';
 
 const EXPECTED_DECK_ID_ORDER = [
     'intro-getting-started',
+    // 単機能チュートリアル (#1179) は gettingStarted カテゴリの中で intro の直後に並ぶ
+    'getting-started-costume',
+    'getting-started-sprites',
     'chat-1-basic-1',
     'chat-1-basic-2',
     'chat-1-basic-3',
@@ -52,6 +55,8 @@ describe('Tutorial deck category split (issue #932)', () => {
 
     test('getting-started and ruby-basics decks are composed from their category modules', () => {
         expect(decks['intro-getting-started']).toBe(gettingStartedDecks['intro-getting-started']);
+        expect(decks['getting-started-costume']).toBe(gettingStartedDecks['getting-started-costume']);
+        expect(decks['getting-started-sprites']).toBe(gettingStartedDecks['getting-started-sprites']);
         expect(decks['ruby-basics-1-numbers']).toBe(rubyBasicsDecks['ruby-basics-1-numbers']);
         expect(decks['ruby-basics-2-strings']).toBe(rubyBasicsDecks['ruby-basics-2-strings']);
         expect(decks['ruby-basics-3-variables']).toBe(rubyBasicsDecks['ruby-basics-3-variables']);

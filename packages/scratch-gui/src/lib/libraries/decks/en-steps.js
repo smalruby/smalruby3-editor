@@ -4,6 +4,11 @@ import introBounceCode from './steps/intro-2-bounce-code.ja.gif';
 import introRunRuby from './steps/intro-3-run-ruby.ja.gif';
 import introFirstProgram from './steps/intro-4-first-program.gif';
 
+// Getting Started 単機能チュートリアル (issue #1179)。ja と同じ素材を使う
+// (UI 操作の GIF は言語非依存)。
+import gettingStartedCostumeList from './steps/getting-started-costume-2-costume-list.png';
+import gettingStartedCodeTab from './steps/getting-started-shared-code-tab.png';
+
 // Chat Tutorial 1 Basic 1: メッセージを送ってみよう
 import chat1Basic1Step1 from './steps/chat1-basic1-1-intro.gif';
 import chat1Basic1Step2 from './steps/chat1-basic1-2-run-code.gif';
@@ -121,6 +126,17 @@ const enImages = {
     introBounceCode: introBounceCode,
     introRunRuby: introRunRuby,
     introFirstProgram: introFirstProgram,
+    // Getting Started: コスチュームをかえてみよう (#1179)
+    gettingStartedCostumeStep1: chat3Mesh1Step4,
+    gettingStartedCostumeStep2: gettingStartedCostumeList,
+    gettingStartedCostumeStep3: gettingStartedCodeTab,
+    // 実行ステップはイントロ GIF を流用して完成形を見せる
+    gettingStartedCostumeStep4: chat3Mesh1Step4,
+    // Getting Started: スプライトを2つ使ってみよう (#1179)
+    gettingStartedSpritesStep1: chat2Sprites1Step5,
+    gettingStartedSpritesStep2: chat2Sprites1Step6,
+    gettingStartedSpritesStep3: gettingStartedCodeTab,
+    gettingStartedSpritesStep4: chat2Sprites1Step1,
     // Chat Tutorial 1 Basic 1
     chat1Basic1Step1: chat1Basic1Step1,
     chat1Basic1Step2: chat1Basic1Step2,
