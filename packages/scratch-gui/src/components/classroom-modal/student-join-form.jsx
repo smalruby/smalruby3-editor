@@ -62,6 +62,10 @@ const StudentJoinForm = ({
 
     const handleKeyDown = useCallback(
         (e) => {
+            // The Enter that commits an IME conversion must not join the class.
+            // React's SyntheticKeyboardEvent omits isComposing, so read the
+            // native event; keyCode 229 covers browsers that omit isComposing.
+            if ((e.nativeEvent && e.nativeEvent.isComposing) || e.keyCode === 229) return;
             if (e.key === 'Enter' && code.trim().length === 6) {
                 onJoin(code.trim());
             }

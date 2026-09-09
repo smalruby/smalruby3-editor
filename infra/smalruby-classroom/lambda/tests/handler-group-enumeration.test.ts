@@ -121,6 +121,13 @@ const installTables = (tables: Record<string, Item[]>) => {
             const condition = String(input.KeyConditionExpression || '');
             let items = rows.filter(row => {
                 if (condition.includes('teacherSub')) return row.teacherSub === values[':ts'];
+                // groupId-index: クラスに属する課題（#1146 で Scan から置換）
+                if (condition.includes('groupId = :gid')) return row.groupId === values[':gid'];
+                // 共同管理者の逆引き索引（#1146）
+                if (condition.includes('coTeacherEmail')) {
+                    return row.coTeacherEmail === values[':email']
+                        && String(row.resourceKey || '').startsWith(String(values[':prefix']));
+                }
                 if (condition.includes('joinCode')) return row.joinCode === values[':jc'];
                 if (condition.includes('sessionToken')) return row.sessionToken === values[':st'];
                 if (condition.includes('classroomId')) {
@@ -137,6 +144,20 @@ const installTables = (tables: Record<string, Item[]>) => {
                 items = items.filter(row => row.status === values[':active']);
             }
             return { Items: items };
+        }
+        if (name === 'BatchGetCommand') {
+            const requested = Object.entries(input.RequestItems as Record<string, { Keys: Item[] }>);
+            const responses: Record<string, Item[]> = {};
+            for (const [requestedTable, spec] of requested) {
+                const target = tables[requestedTable] || [];
+                responses[requestedTable] = spec.Keys
+                    .map(key => {
+                        const [[keyName, keyValue]] = Object.entries(key);
+                        return target.find(row => row[keyName] === keyValue);
+                    })
+                    .filter((row): row is Item => !!row);
+            }
+            return { Responses: responses };
         }
         if (name === 'PutCommand') {
             puts.push(input.Item as Item);

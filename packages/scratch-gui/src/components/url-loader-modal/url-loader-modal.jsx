@@ -98,6 +98,12 @@ class URLLoaderModal extends React.Component {
     }
 
     handleKeyPress (event) {
+        // The Enter that commits an IME conversion must not open the project.
+        // React's SyntheticKeyboardEvent omits isComposing, so read the native
+        // event. This is bound to keypress, which Chromium never fires while
+        // composing (and where React reports keyCode 0), so the guard is there
+        // for browsers that do deliver a composing keypress.
+        if ((event.nativeEvent && event.nativeEvent.isComposing) || event.keyCode === 229) return;
         if (event.key === 'Enter') {
             this.handleOpenClick();
         }

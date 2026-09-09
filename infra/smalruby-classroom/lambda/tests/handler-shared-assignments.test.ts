@@ -10,9 +10,6 @@ export {};
  * Design canon: spike #1067 (D1-D12).
  */
 
-// モジュール化。トップレベル宣言をファイルスコープに閉じる（他のテストファイルと
-// 同名の mockSend / DEV_TOKEN / makeEvent があり、スクリプト扱いだと TS2451 で衝突する）。
-export {};
 
 const mockSend = jest.fn();
 jest.mock('@aws-sdk/lib-dynamodb', () => {
@@ -657,3 +654,4 @@ describe('みんなの課題 (issue #1068)', () => {
     });
   });
 });
+

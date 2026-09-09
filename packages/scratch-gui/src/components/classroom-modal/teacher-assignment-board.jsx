@@ -39,6 +39,10 @@ const TopicChip = ({ topic, isLoading, onRename, onRemove }) => {
     }, [name, topic, onRename]);
     const handleKeyDown = useCallback(
         (e) => {
+            // Enter commits and Escape cancels an IME conversion; neither must
+            // end the inline edit. React's SyntheticKeyboardEvent omits
+            // isComposing, so read the native event (keyCode 229 as fallback).
+            if ((e.nativeEvent && e.nativeEvent.isComposing) || e.keyCode === 229) return;
             if (e.key === 'Enter') handleCommit();
             if (e.key === 'Escape') setEditing(false);
         },

@@ -116,6 +116,9 @@ worker は **`cdk deploy` を実行しない**（stg / prod とも）。stg は�
 2. `.github/workflows/deploy-infra-stg.yml` の完了を待つ（`gh run watch` / `gh pr checks`）
 3. workflow が PR に残すコメントで「いまの stg が自分の SHA か」を確認してから DoD を行う
 
+ラベルは **1 回きりの操作**で、run の完了時に workflow が自動で外す。**外す処理を自分で書かない**
+（二重に外そうとして 404 になる）。再度載せたいときは付け直す。
+
 prod への反映は**人間の作業**。結果ファイルや PR 本文に「prod は人間が実施」と明記して終える
 （`.claude/rules/infra/development.md` の「デプロイ経路」）。
 

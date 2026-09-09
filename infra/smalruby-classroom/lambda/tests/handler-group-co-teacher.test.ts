@@ -19,9 +19,6 @@ export {};
  * canManageGroup / canManageClassroom.
  */
 
-// モジュール化。トップレベル宣言をファイルスコープに閉じる（他のテストファイルと
-// 同名の mockSend / DEV_TOKEN / makeEvent があり、スクリプト扱いだと TS2451 で衝突する）。
-export {};
 
 const mockSend = jest.fn();
 jest.mock('@aws-sdk/lib-dynamodb', () => {
@@ -155,10 +152,28 @@ describe('class-level co-teacher authorization (issue #1138)', () => {
      * runs in which order is an implementation detail).
      */
     const useTables = (allGroups: Record<string, unknown>[], allAssignments: Record<string, unknown>[]) => {
+        // 逆引き索引テーブル（#1146）の中身は、資源の coTeacherEmails から導出する
+        // ＝ dual-write が正しく走った状態を表す。索引を別に書かないことで、
+        // 「索引と資源が食い違ったまま通ってしまうテスト」にならないようにする。
+        const indexRows = [
+            ...allGroups.flatMap((g: any) => ((g.coTeacherEmails || []) as string[]).map(email => ({
+                coTeacherEmail: email, resourceKey: `group#${g.groupId}`,
+                resourceType: 'group', resourceId: g.groupId,
+            }))),
+            ...allAssignments.flatMap((a: any) => ((a.coTeacherEmails || []) as string[]).map(email => ({
+                coTeacherEmail: email, resourceKey: `assignment#${a.classroomId}`,
+                resourceType: 'assignment', resourceId: a.classroomId,
+            }))),
+        ];
+        const rowsOf = (table: string): Record<string, unknown>[] => {
+            if (table === 'ClassroomGroups') return allGroups;
+            if (table === 'ClassroomCoTeacherIndex') return indexRows;
+            return allAssignments;
+        };
         mockSend.mockImplementation((cmd: { constructor: { name: string }; input: Record<string, any> }) => {
             const name = cmd.constructor.name;
             const input = cmd.input;
-            const rows = input.TableName === 'ClassroomGroups' ? allGroups : allAssignments;
+            const rows = rowsOf(input.TableName);
             const values = input.ExpressionAttributeValues || {};
             if (name === 'GetCommand') {
                 if (input.TableName === 'ClassroomGroups') {
@@ -168,25 +183,39 @@ describe('class-level co-teacher authorization (issue #1138)', () => {
                 }
                 return Promise.resolve({});
             }
+            if (name === 'BatchGetCommand') {
+                const responses: Record<string, Record<string, unknown>[]> = {};
+                for (const [table, spec] of Object.entries(input.RequestItems as Record<string, { Keys: any[] }>)) {
+                    const target = rowsOf(table);
+                    responses[table] = spec.Keys
+                        .map(key => {
+                            const [[keyName, keyValue]] = Object.entries(key);
+                            return target.find((r: any) => r[keyName] === keyValue);
+                        })
+                        .filter((r): r is Record<string, unknown> => !!r);
+                }
+                return Promise.resolve({ Responses: responses });
+            }
             if (name === 'QueryCommand') {
-                // Every GSI query in the list path keys off teacherSub.
+                const condition: string = input.KeyConditionExpression || '';
+                // 逆引き索引: email → 課題 / 組（#1146）
+                if (condition.includes('coTeacherEmail')) {
+                    return Promise.resolve({
+                        Items: rows.filter((r: any) => r.coTeacherEmail === values[':email']
+                            && String(r.resourceKey).startsWith(values[':prefix'])),
+                    });
+                }
+                // groupId-index: クラスに属する課題（#1146）
+                if (condition.includes('groupId = :gid')) {
+                    return Promise.resolve({ Items: rows.filter((r: any) => r.groupId === values[':gid']) });
+                }
+                // 残りの GSI クエリは teacherSub 起点。
                 return Promise.resolve({ Items: rows.filter((r: any) => r.teacherSub === values[':ts']) });
             }
             if (name === 'ScanCommand') {
-                const filter: string = input.FilterExpression || '';
-                if (filter.startsWith('contains(coTeacherEmails')) {
-                    // DynamoDB's contains() is an exact, case-sensitive element
-                    // match — do not soften it here, or the mock would certify
-                    // a case-insensitivity the real table does not have.
-                    return Promise.resolve({
-                        Items: rows.filter((r: any) => (r.coTeacherEmails || []).includes(values[':email'])),
-                    });
-                }
-                if (filter.startsWith('groupId IN')) {
-                    const wanted = Object.values(values);
-                    return Promise.resolve({ Items: rows.filter((r: any) => wanted.includes(r.groupId)) });
-                }
-                return Promise.resolve({ Items: rows });
+                // #1146 で一覧経路の Scan は全廃した。ここに来たら退行なので落とす
+                // （黙って空を返すと「取りこぼしても green」になってしまう）。
+                throw new Error(`unexpected Scan on ${input.TableName} in the list path (#1146)`);
             }
             return Promise.resolve({});
         });
@@ -316,3 +345,4 @@ describe('canManageGroup / canManageClassroom email normalization (issue #1138)'
         expect(mod.canManageClassroom(classroom, { sub: 'x', email: 'other@example.com' })).toBe(false);
     });
 });
+

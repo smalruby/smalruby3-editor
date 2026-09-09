@@ -66,6 +66,8 @@ stg は**共有資源**で、人間と複数の autopilot worker が同時に触
 
 - **worker はローカルから `cdk deploy` しない**（`.claude/rules/autopilot/prompts.md`）。
 - stg に自分の変更を載せたいときは PR に `deploy-stg` ラベルを付け、Actions の完了を待つ。
+  ラベルは **1 回きり**で、run の完了時に workflow が自動で外す（付けっぱなしだと push の
+  たびに再デプロイされるため）。再度載せたいときは付け直す。
 - **stg は上書きされうる**。DoD をする前に、workflow が PR に残したコメントで
   「いまの stg が自分の SHA か」を確認する。違えばラベルを付け直して再デプロイする。
 - develop への infra push でも stg へデプロイが走るので、**マージ後は stg が develop に収束**する。

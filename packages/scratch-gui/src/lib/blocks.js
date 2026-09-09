@@ -4,6 +4,9 @@ import {installGestureRecovery} from './blocks-gesture-recovery.js';
 // === Smalruby: Start of comment icon patch import ===
 import {installCommentIconPatch} from './scratch-blocks-comment-icon-patch.js';
 // === Smalruby: End of comment icon patch import ===
+// === Smalruby: Start of IME composition patch import ===
+import {installImeCompositionPatch} from './scratch-blocks-ime-patch.js';
+// === Smalruby: End of IME composition patch import ===
 
 /**
  * Connect scratch blocks with the vm
@@ -352,6 +355,10 @@ export default function (vm) {
     // === Smalruby: Start of comment icon patch ===
     installCommentIconPatch(ScratchBlocks);
     // === Smalruby: End of comment icon patch ===
+
+    // === Smalruby: Start of IME composition patch ===
+    installImeCompositionPatch(ScratchBlocks);
+    // === Smalruby: End of IME composition patch ===
 
     return ScratchBlocks;
 }
