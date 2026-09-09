@@ -12,6 +12,7 @@ import {
     DEFAULT_EXPORT_SCALE,
     DOWNLOAD_EXPORT_SCALE,
     MAX_EXPORT_DIMENSION,
+    MAX_EXPORT_PIXELS,
 } from '../../../src/lib/blocks-screenshot';
 import downloadBlob from '../../../src/lib/download-blob';
 
@@ -248,10 +249,16 @@ describe('clampExportScale', () => {
     });
 
     test('clamps by total pixel count for very wide programs', () => {
-        const dims = { width: 6000, height: 4000 };
+        const dims = { width: 3000, height: 2000 };
         const clamped = clampExportScale(dims, DOWNLOAD_EXPORT_SCALE);
         expect(clamped).toBeLessThan(DOWNLOAD_EXPORT_SCALE);
-        expect(clamped).toBeGreaterThanOrEqual(1);
+        expect(clamped).toBeGreaterThan(1);
+        expect(dims.width * clamped * (dims.height * clamped)).toBeLessThanOrEqual(MAX_EXPORT_PIXELS);
+    });
+
+    test('keeps the clamped canvas within the iOS Safari canvas area limit', () => {
+        // iOS / iPadOS Safari rejects canvases larger than 16,777,216 px.
+        expect(MAX_EXPORT_PIXELS).toBeLessThanOrEqual(16 * 1024 * 1024);
     });
 });
 
@@ -398,6 +405,25 @@ describe('downloadBlocksAsImage', () => {
         expect(sizes[0]).toBe(sizes[1]);
         expect(sizes[1]).toBe(sizes[2]);
     });
+
+    test('does not download when the canvas is too large to encode (toBlob returns null)', async () => {
+        // Browsers hand back null instead of a Blob when the canvas exceeds
+        // their limits; passing that on would throw inside downloadBlob().
+        HTMLCanvasElement.prototype.toBlob = jest.fn(function (callback) {
+            callback(null);
+        });
+        const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+        const workspace = makeMockWorkspace({
+            boundingBox: { x: 0, y: 0, width: 200, height: 100 },
+            scale: 1,
+        });
+
+        await expect(downloadBlocksAsImage(workspace, 'p', 's')).resolves.toBeUndefined();
+
+        expect(downloadBlob).not.toHaveBeenCalled();
+        expect(warn).toHaveBeenCalled();
+        warn.mockRestore();
+    });
 });
 
 // ---- renderBlocksToCanvas ----
@@ -436,5 +462,15 @@ describe('renderBlocksToCanvas', () => {
         const canvas = await renderBlocksToCanvas(workspace, undefined, { exportScale: 3 });
         expect(canvas.width).toBe((200 + EXPORT_PADDING * 2) * 3);
         expect(canvas.height).toBe((100 + EXPORT_PADDING * 2) * 3);
+    });
+
+    test('composed canvas stays within the pixel limit including the sprite header', async () => {
+        // The sprite header is drawn above the blocks, so it has to be part of
+        // what the export scale is clamped against.
+        const workspace = makeMockWorkspace({ boundingBox: { x: 0, y: 0, width: 3000, height: 2000 } });
+        const canvas = await renderBlocksToCanvas(workspace, 'data:image/png;base64,AAAA', {
+            exportScale: DOWNLOAD_EXPORT_SCALE,
+        });
+        expect(canvas.width * canvas.height).toBeLessThanOrEqual(MAX_EXPORT_PIXELS);
     });
 });

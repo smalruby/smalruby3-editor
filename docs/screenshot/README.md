@@ -75,6 +75,12 @@
 `clampExportScale()` がブラウザのキャンバス上限（`MAX_EXPORT_DIMENSION` /
 `MAX_EXPORT_PIXELS`）に収まるよう倍率を自動的に下げる（下限は等倍）。
 
+上限はもっとも厳しい **iOS / iPadOS Safari のキャンバス面積上限 16,777,216 px** に
+合わせてある（授業では iPad を使うため、デスクトップ基準で緩めるとその環境だけ
+書き出しが失敗する）。クランプはスプライトヘッダーを含めた合成後のサイズに対して
+行う。それでもエンコードに失敗して `toBlob()` が `null` を返した場合は、
+ダウンロードを行わず警告を出すだけにしてエディタを壊さない。
+
 ## テスト
 
 - 単体テスト: `packages/scratch-gui/test/unit/lib/blocks-screenshot.test.js`, `ruby-screenshot.test.js`
