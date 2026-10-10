@@ -167,7 +167,19 @@ export default {
     'gui.classroom.error.googlePermissionDenied':
         'このクラスの Google Classroom にかだいをはいしんするけんげんがありません。もういちどログインしてすべてのこうもくをきょかし、そのクラスのせんせいとしてさんかしているかごかくにんください。',
     'gui.classroom.error.googleCourseNotFound':
-        'ひもづいている Google Classroom のクラスがみつかりませんでした。クラスがさくじょされたか、ログインちゅうの Google アカウントがそのクラスのせんせいではないかのうせいがあります。',
+        'ひもづいている Google Classroom のクラスがみつかりませんでした。クラスがさくじょされたか、アクセスできなくなっているかのうせいがあります。クラスかんりのがめんで Google Classroom をれんけいしなおしてください。',
+    'gui.classroom.error.googleNotCourseTeacher':
+        'ログインちゅうの Google アカウントは、ひもづいている Google Classroom のクラスのせんせいではないためきょうゆうできません。れんけいしたせんせいにきょうゆうをいらいしてください。',
+    'gui.classroom.googleShare.blockedBy':
+        'このクラスの Google Classroom は {email} せんせいがれんけいしています。きょうゆうは {email} せんせいにいらいしてください。',
+    'gui.classroom.googleShare.blocked':
+        'このクラスの Google Classroom はれんけいしたせんせいのアカウントにひもづいています。きょうゆうはれんけいしたせんせいにいらいしてください。',
+    'gui.classroom.googleShare.verifyFailedBy':
+        'ログインちゅうの Google アカウントが、この Google Classroom のクラスのせんせいであることをかくにんできませんでした。きょうゆうは {email} せんせいにいらいしてください。',
+    'gui.classroom.googleShare.verifyFailed':
+        'ログインちゅうの Google アカウントが、この Google Classroom のクラスのせんせいであることをかくにんできませんでした。きょうゆうはれんけいしたせんせいにいらいしてください。',
+    'gui.classroom.googleShare.verify': 'じぶんもこの Google Classroom のクラスのせんせいです（かくにんする）',
+    'gui.classroom.googleShare.verifying': 'かくにんちゅう…',
     'gui.classroom.error.googleApiFailedDetail': 'Google Classroom にはいしんできませんでした。（Google: {detail}）',
     'gui.classroom.error.googleApiFailed':
         'Google Classroom にはいしんできませんでした。しばらくまってからもういちどおためしください。',

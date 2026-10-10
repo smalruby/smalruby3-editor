@@ -87,6 +87,25 @@ describe('translateError Google Classroom failures', () => {
         expect(msg).not.toBe('Google Classroom permission was not granted.');
     });
 
+    test('a 404 from posting course work tells the teacher who to ask', () => {
+        const msg = translateError(
+            intlMock,
+            googleError(404, 'googleNotCourseTeacher', { googleStatus: 'NOT_FOUND' }),
+        );
+        // Must explain the real cause (not a teacher of that course) instead of
+        // suggesting the linked class disappeared or dumping a raw Google
+        // status (issue #1184).
+        expect(msg).toContain('not a teacher');
+        expect(msg).not.toContain('deleted');
+        expect(msg).not.toContain('NOT_FOUND');
+    });
+
+    test('the not-a-course-teacher message is distinct from course-not-found', () => {
+        const notTeacher = translateError(intlMock, googleError(404, 'googleNotCourseTeacher'));
+        const notFound = translateError(intlMock, googleError(404, 'googleCourseNotFound'));
+        expect(notTeacher).not.toBe(notFound);
+    });
+
     test('non-Google errors are unaffected', () => {
         const err = new Error('Invalid or expired session token');
         err.status = 401;

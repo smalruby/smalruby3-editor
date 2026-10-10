@@ -558,6 +558,25 @@ class ClassroomAPI {
     }
 
     /**
+     * Ask whether the signed-in teacher may post course work to the Google
+     * Classroom course linked to this class (issue #1184). Never prompts for
+     * consent: the caller passes a token it already holds.
+     * @param {string} idToken - Teacher ID token
+     * @param {string} googleAccessToken - Google access token with Classroom scopes
+     * @param {string} groupId - Class (group) ID
+     * @returns {Promise<object>} {courseId, status, linkedByEmail}
+     */
+    async getGoogleCourseAccess(idToken, googleAccessToken, groupId) {
+        return this._request(
+            'GET',
+            `/classroom-groups/${groupId}/google-course-access`,
+            null,
+            idToken,
+            googleAccessToken,
+        );
+    }
+
+    /**
      * Import a Google Classroom course as a Smalruby classroom.
      * @param {string} idToken - Google ID token
      * @param {string} googleAccessToken - Google access token with Classroom scopes

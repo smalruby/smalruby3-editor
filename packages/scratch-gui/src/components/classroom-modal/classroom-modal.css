@@ -357,6 +357,43 @@
     background-color: #d6e7ff;
 }
 
+/* GC コースの教師ではないため共有できないときのボタン表示 (#1184)。
+   強調色をやめ、押せないことが見て分かるようにする。 */
+.join-code-action-gc:disabled {
+    border-color: #c8cdd8;
+    background-color: #f2f3f7;
+    color: #9aa0b0;
+    cursor: not-allowed;
+}
+
+/* 共有できない理由。参加コードカードの中で 1 行占有して折り返す。 */
+.join-code-gc-blocked-note {
+    flex: 0 0 100%;
+    margin-top: 0.3rem;
+    color: #575e75;
+    font-size: 0.8rem;
+    line-height: 1.4;
+}
+
+/* 「自分も Google Classroom の先生です（確認する）」— ブロック表示の中の
+   オプトイン導線。押したときだけ同意を求める。#1184 */
+.join-code-gc-verify-button {
+    display: inline-block;
+    margin-top: 0.3rem;
+    padding: 0.2rem 0.6rem;
+    border: 1px solid #c3cad8;
+    border-radius: 0.5rem;
+    background-color: #fff;
+    color: #4c97ff;
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+
+.join-code-gc-verify-button:disabled {
+    color: #9aa0ad;
+    cursor: default;
+}
+
 /* コピー完了のリアクション: アイコンがチェックに変わり緑で強調 */
 .join-code-action-copied {
     border-color: #4caf50;
