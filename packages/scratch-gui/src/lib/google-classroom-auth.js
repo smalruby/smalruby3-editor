@@ -7,11 +7,16 @@
  */
 import { loadAllGoogleScripts } from './google-script-loader';
 
-const CLASSROOM_SCOPES = [
+export const CLASSROOM_SCOPE_LIST = [
     'https://www.googleapis.com/auth/classroom.courses.readonly',
     'https://www.googleapis.com/auth/classroom.rosters.readonly',
+    // Required to create course work (= post an assignment). Google shows one
+    // checkbox per scope, so a teacher can grant the read-only ones and leave
+    // this one off — the posting call then fails inside Google (issue #1175).
     'https://www.googleapis.com/auth/classroom.coursework.students',
-].join(' ');
+];
+
+const CLASSROOM_SCOPES = CLASSROOM_SCOPE_LIST.join(' ');
 
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 
@@ -67,6 +72,73 @@ const _initialize = () => {
 };
 
 /**
+ * Ask Google Identity Services for a token.
+ * @param {string} prompt - GIS prompt mode ('' = silent when already granted).
+ * @returns {Promise<object>} The GIS token response.
+ */
+const _requestToken = (prompt) =>
+    new Promise((resolve, reject) => {
+        const expectedState = _generateState();
+
+        _tokenClient.callback = (response) => {
+            if (response.error) {
+                reject(new Error(`Google Classroom authentication failed: ${response.error}`));
+                return;
+            }
+            if (response.state !== expectedState) {
+                const mismatch = new Error('OAuth state mismatch: potential CSRF attack detected');
+                // Flagged so callers never downgrade a possible CSRF into a
+                // routine "permission was not granted" message.
+                mismatch.isStateMismatch = true;
+                reject(mismatch);
+                return;
+            }
+            resolve(response);
+        };
+
+        _tokenClient.requestAccessToken({ prompt, state: expectedState });
+    });
+
+/**
+ * Check that the token response carries every scope we need. Older GIS builds
+ * may not expose the helper; assume granted then so we never block a teacher on
+ * a check we cannot perform.
+ * @param {object} response - GIS token response.
+ * @returns {boolean} True when all classroom scopes were granted.
+ */
+const _hasAllScopes = (response) => {
+    const oauth2 = window.google && window.google.accounts && window.google.accounts.oauth2;
+    if (!oauth2 || typeof oauth2.hasGrantedAllScopes !== 'function') return true;
+    return oauth2.hasGrantedAllScopes(response, ...CLASSROOM_SCOPE_LIST);
+};
+
+/**
+ * Store a fully-granted token for reuse.
+ * @param {object} response - GIS token response.
+ * @returns {string} The access token.
+ */
+const _cacheToken = (response) => {
+    _accessToken = response.access_token;
+    // expires_in is in seconds
+    _tokenExpiresAt = Date.now() + (response.expires_in || 3600) * 1000;
+    return _accessToken;
+};
+
+/**
+ * Build the error raised when the teacher did not grant every scope.
+ * @param {Error} [cause] - Underlying GIS failure, when there was one.
+ * @returns {Error} Error carrying the googlePermissionDenied reason.
+ */
+const _permissionDeniedError = (cause) => {
+    const err = new Error('Google Classroom permission was not granted. Please allow every requested permission.');
+    // Same key the backend uses for a Google 403 so the UI translates both the
+    // client-side (unticked scope) and server-side denial identically.
+    err.googleReason = 'googlePermissionDenied';
+    if (cause) err.cause = cause;
+    return err;
+};
+
+/**
  * Request an access token with Google Classroom scopes.
  * Returns cached token if still valid, otherwise triggers OAuth consent.
  * @returns {Promise<string>} Access token string.
@@ -78,29 +150,33 @@ export const requestClassroomAccessToken = async () => {
         return _accessToken;
     }
 
-    return new Promise((resolve, reject) => {
-        const expectedState = _generateState();
+    const response = await _requestToken('');
+    if (_hasAllScopes(response)) {
+        return _cacheToken(response);
+    }
 
-        _tokenClient.callback = (response) => {
-            if (response.error) {
-                reject(new Error(`Google Classroom authentication failed: ${response.error}`));
-                return;
-            }
-            if (response.state !== expectedState) {
-                reject(new Error('OAuth state mismatch: potential CSRF attack detected'));
-                return;
-            }
-            _accessToken = response.access_token;
-            // expires_in is in seconds
-            _tokenExpiresAt = Date.now() + (response.expires_in || 3600) * 1000;
-            resolve(response.access_token);
-        };
+    // The teacher unticked at least one scope on the consent screen. Ask again
+    // with an explicit consent prompt so they can grant the missing one; a
+    // silent re-request would just hand back the same partial grant.
+    let retry;
+    try {
+        retry = await _requestToken('consent');
+    } catch (err) {
+        // This second popup opens after the first consent round trip, so the
+        // original click no longer counts as user activation and the browser
+        // may refuse to open it; the teacher can also close or decline it.
+        // All of those are still "the permission was not granted" — report
+        // them as such instead of surfacing GIS's raw English error, which is
+        // exactly the opaque message issue #1175 is about. A state mismatch is
+        // a possible CSRF and must never be downgraded.
+        if (err && err.isStateMismatch) throw err;
+        throw _permissionDeniedError(err);
+    }
+    if (_hasAllScopes(retry)) {
+        return _cacheToken(retry);
+    }
 
-        _tokenClient.requestAccessToken({
-            prompt: '',
-            state: expectedState,
-        });
-    });
+    throw _permissionDeniedError();
 };
 
 /**

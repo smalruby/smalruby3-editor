@@ -55,8 +55,9 @@ const useGoogleClassroom = ({
             setGoogleCourses(data.courses || []);
             setSelectedGoogleCourse(null);
         } catch (err) {
-            if (err.status === 401) {
+            if (err.status === 401 || err.status === 403) {
                 clearClassroomAccessToken();
+                setGoogleAccessToken(null);
             }
             showError(translateError(intl, err));
         } finally {
@@ -118,7 +119,11 @@ const useGoogleClassroom = ({
                 }
                 return result;
             } catch (err) {
-                if (err.status === 401) {
+                // 401 = the Google token expired; 403 = Google refused (most
+                // often a scope the teacher did not grant). Either way the
+                // cached token is useless, so drop it and let the next attempt
+                // re-run consent instead of replaying the same failure (#1175).
+                if (err.status === 401 || err.status === 403) {
                     clearClassroomAccessToken();
                     setGoogleAccessToken(null);
                 }

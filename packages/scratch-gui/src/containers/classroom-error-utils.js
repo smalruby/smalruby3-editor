@@ -1,4 +1,68 @@
 /**
+ * Translate a Google Classroom proxy failure (`reason` starting with `google`)
+ * into a localized, actionable message. Returns null when the error did not
+ * come from the Google Classroom proxy so the caller can fall through to the
+ * regular classroom branches.
+ * @param {object} intl - react-intl intl object
+ * @param {Error} err - Error from a classroom API call
+ * @returns {?string} Localized message, or null when not a Google failure.
+ */
+const translateGoogleClassroomError = (intl, err) => {
+    // `body.reason` comes from the API proxy; `googleReason` is set client-side
+    // (e.g. the teacher unticked a scope on the Google consent screen).
+    const body = (err && err.body) || {};
+    const reason = body.reason || (err && err.googleReason);
+    if (typeof reason !== 'string' || !reason.startsWith('google')) return null;
+
+    if (reason === 'googleTokenExpired') {
+        return intl.formatMessage({
+            defaultMessage:
+                'Your Google authorization has expired. Please try again and allow access to Google Classroom.',
+            description: 'Error when the Google Classroom access token is no longer valid',
+            id: 'gui.classroom.error.googleTokenExpired',
+        });
+    }
+    if (reason === 'googlePermissionDenied') {
+        return intl.formatMessage({
+            defaultMessage:
+                'Smalruby is not allowed to post to this Google Classroom class. Sign in again and allow ' +
+                'every requested permission, and check that you are a teacher of the class.',
+            description: 'Error when Google Classroom denies the post (missing scope or not a teacher)',
+            id: 'gui.classroom.error.googlePermissionDenied',
+        });
+    }
+    if (reason === 'googleCourseNotFound') {
+        return intl.formatMessage({
+            defaultMessage:
+                'The linked Google Classroom class could not be found. It may have been deleted, or the ' +
+                'Google account you signed in with may not be a teacher of that class.',
+            description: 'Error when the linked Google Classroom course is missing or inaccessible',
+            id: 'gui.classroom.error.googleCourseNotFound',
+        });
+    }
+
+    // googleInvalidRequest / googleApiError: Google rejected the request for a
+    // reason we cannot map. Show its own status and message so the teacher can
+    // report something actionable.
+    const detail = [body.googleStatus, body.googleMessage].filter(Boolean).join(': ');
+    if (detail) {
+        return intl.formatMessage(
+            {
+                defaultMessage: 'Could not post to Google Classroom. (Google: {detail})',
+                description: 'Error when Google Classroom rejects the post, with the Google-provided detail',
+                id: 'gui.classroom.error.googleApiFailedDetail',
+            },
+            { detail },
+        );
+    }
+    return intl.formatMessage({
+        defaultMessage: 'Could not post to Google Classroom. Please wait a moment and try again.',
+        description: 'Error when posting to Google Classroom fails for an unknown reason',
+        id: 'gui.classroom.error.googleApiFailed',
+    });
+};
+
+/**
  * Translate known API error messages to localized user-friendly messages.
  * @param {object} intl - react-intl intl object
  * @param {Error} err - Error from API call
@@ -25,6 +89,13 @@ const translateError = (intl, err, context = 'general') => {
             { host: err.endpointHost || '' },
         );
     }
+
+    // Google Classroom proxy failures. Checked before the generic HTTP branches
+    // because their statuses overlap (a 401 here is an expired *Google* token,
+    // not an expired classroom session) and because the raw server message
+    // ("Google Classroom API error") is useless to a teacher (issue #1175).
+    const googleMessage = translateGoogleClassroomError(intl, err);
+    if (googleMessage) return googleMessage;
 
     if (context === 'join' && (status === 404 || msg.includes('Invalid join code'))) {
         return intl.formatMessage({
