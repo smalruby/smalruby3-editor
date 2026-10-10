@@ -115,6 +115,30 @@ import rubyBasics6Step5 from './steps/ruby-basics-6-5-modify.png';
 // only the final step shows the TryRuby screenshot (see tutorial.md image reuse rule).
 import rubyBasics7TryRuby from './thumbnails/ruby-basics-1-tryruby.png';
 
+// Block Basics 第1章「ネコからにげるゲーム」(issue #957). Placeholder step
+// images pending headful screenshot capture (see tutorial.md screenshot
+// workflow). Same image files as ja-steps.js.
+import blockBasicsBookOpening from './steps/block-basics-book-opening.png';
+import blockBasicsBookClosing from './steps/block-basics-book-closing.png';
+import blockBasicsBookAdvancedClosing from './steps/block-basics-book-advanced-closing.png';
+import blockBasicsLv0Intro from './steps/block-basics-lv0-1-intro.png';
+import blockBasicsLv0Insert from './steps/block-basics-lv0-2-insert.png';
+import blockBasicsLv0Run from './steps/block-basics-lv0-3-run.png';
+import blockBasicsLv0Modify from './steps/block-basics-lv0-4-modify.png';
+import blockBasicsLv2Intro from './steps/block-basics-lv2-1-intro.png';
+import blockBasicsLv2Block1 from './steps/block-basics-lv2-2-block1.png';
+import blockBasicsLv2Block2 from './steps/block-basics-lv2-3-block2.png';
+import blockBasicsLv2Block3 from './steps/block-basics-lv2-4-block3.png';
+import blockBasicsLv2Run from './steps/block-basics-lv2-5-run.png';
+import blockBasicsLv3Intro from './steps/block-basics-lv3-1-intro.png';
+import blockBasicsLv3RubyTab from './steps/block-basics-lv3-2-ruby-tab.png';
+import blockBasicsLv3Insert from './steps/block-basics-lv3-3-insert.png';
+import blockBasicsLv3Modify from './steps/block-basics-lv3-4-modify.png';
+import blockBasicsLv3Run from './steps/block-basics-lv3-5-run.png';
+import blockBasicsAdvIntro from './steps/block-basics-adv-1-intro.png';
+import blockBasicsAdvInsert from './steps/block-basics-adv-2-insert.png';
+import blockBasicsAdvRun from './steps/block-basics-adv-3-run.png';
+
 const enImages = {
     // Getting Started
     introRubyTab: introRubyTab,
@@ -214,7 +238,29 @@ const enImages = {
     rubyBasics6Step4: rubyBasics6Step4,
     rubyBasics6Step5: rubyBasics6Step5,
 
-    rubyBasics7TryRuby: rubyBasics7TryRuby
+    rubyBasics7TryRuby: rubyBasics7TryRuby,
+
+    // Block Basics 第1章: ネコからにげるゲーム (issue #957)
+    blockBasicsBookOpening: blockBasicsBookOpening,
+    blockBasicsBookClosing: blockBasicsBookClosing,
+    blockBasicsBookAdvancedClosing: blockBasicsBookAdvancedClosing,
+    blockBasicsLv0Intro: blockBasicsLv0Intro,
+    blockBasicsLv0Insert: blockBasicsLv0Insert,
+    blockBasicsLv0Run: blockBasicsLv0Run,
+    blockBasicsLv0Modify: blockBasicsLv0Modify,
+    blockBasicsLv2Intro: blockBasicsLv2Intro,
+    blockBasicsLv2Block1: blockBasicsLv2Block1,
+    blockBasicsLv2Block2: blockBasicsLv2Block2,
+    blockBasicsLv2Block3: blockBasicsLv2Block3,
+    blockBasicsLv2Run: blockBasicsLv2Run,
+    blockBasicsLv3Intro: blockBasicsLv3Intro,
+    blockBasicsLv3RubyTab: blockBasicsLv3RubyTab,
+    blockBasicsLv3Insert: blockBasicsLv3Insert,
+    blockBasicsLv3Modify: blockBasicsLv3Modify,
+    blockBasicsLv3Run: blockBasicsLv3Run,
+    blockBasicsAdvIntro: blockBasicsAdvIntro,
+    blockBasicsAdvInsert: blockBasicsAdvInsert,
+    blockBasicsAdvRun: blockBasicsAdvRun
 };
 
 export {enImages};
