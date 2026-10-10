@@ -1,8 +1,9 @@
 /**
  * Guards the decks/index.jsx + locale-file split into per-category modules
- * (issue #932): deck order/content must stay identical, and the Phase 3
- * (#680) / Phase 4 (#681) stub categories must be independent, empty, and
- * not collide with the existing categories.
+ * (issue #932): deck order/content must stay identical across the split.
+ * block-series has since been populated by Phase 4 (#681 / #958); dncl is
+ * still an empty stub for Phase 3 (#680). Each category module must remain
+ * independent and not collide with the others.
  */
 import decks from '../../../../../src/lib/libraries/decks/index.jsx';
 import gettingStartedDecks from '../../../../../src/lib/libraries/decks/categories/getting-started.jsx';
@@ -42,7 +43,19 @@ const EXPECTED_DECK_ID_ORDER = [
     'ruby-basics-4-arrays',
     'ruby-basics-5-blocks',
     'ruby-basics-6-methods',
-    'ruby-basics-7-next'
+    'ruby-basics-7-next',
+    // block-series decks (Phase 4 / #681, #958) — appended after ruby-basics
+    'block-shooting-lv0',
+    'block-shooting-lv2',
+    'block-shooting-lv3',
+    'block-shooting-advanced'
+];
+
+const BLOCK_SERIES_DECK_IDS = [
+    'block-shooting-lv0',
+    'block-shooting-lv2',
+    'block-shooting-lv3',
+    'block-shooting-advanced'
 ];
 
 describe('Tutorial deck category split (issue #932)', () => {
@@ -50,7 +63,7 @@ describe('Tutorial deck category split (issue #932)', () => {
         expect(Object.keys(decks)).toEqual(EXPECTED_DECK_ID_ORDER);
     });
 
-    test('getting-started and ruby-basics decks are composed from their category modules', () => {
+    test('getting-started, ruby-basics and block-series decks are composed from their category modules', () => {
         expect(decks['intro-getting-started']).toBe(gettingStartedDecks['intro-getting-started']);
         expect(decks['ruby-basics-1-numbers']).toBe(rubyBasicsDecks['ruby-basics-1-numbers']);
         expect(decks['ruby-basics-2-strings']).toBe(rubyBasicsDecks['ruby-basics-2-strings']);
@@ -58,13 +71,15 @@ describe('Tutorial deck category split (issue #932)', () => {
         expect(decks['ruby-basics-4-arrays']).toBe(rubyBasicsDecks['ruby-basics-4-arrays']);
         expect(decks['ruby-basics-5-blocks']).toBe(rubyBasicsDecks['ruby-basics-5-blocks']);
         expect(decks['ruby-basics-6-methods']).toBe(rubyBasicsDecks['ruby-basics-6-methods']);
+        BLOCK_SERIES_DECK_IDS.forEach(id => {
+            expect(decks[id]).toBe(blockSeriesDecks[id]);
+        });
     });
 
-    test('block-series and dncl are empty stub categories that add no deck ids', () => {
-        expect(blockSeriesDecks).toEqual({});
+    test('block-series exposes exactly its Phase 4 decks; dncl is still an empty stub', () => {
+        expect(Object.keys(blockSeriesDecks)).toEqual(BLOCK_SERIES_DECK_IDS);
         expect(dnclDecks).toEqual({});
         EXPECTED_DECK_ID_ORDER.forEach(id => {
-            expect(Object.prototype.hasOwnProperty.call(blockSeriesDecks, id)).toBe(false);
             expect(Object.prototype.hasOwnProperty.call(dnclDecks, id)).toBe(false);
         });
     });
@@ -75,15 +90,23 @@ describe('Tutorial deck category split (issue #932)', () => {
         expect(dnclLocale.en).toEqual({});
     });
 
-    test('block-series locale holds only the shared book-promo foundation (issue #956), no deck-id howtos', () => {
-        // #956 populates the Block-axis common book-promotion strings; the
-        // per-deck howto strings still come later (#680).
+    test('block-series locale holds the shared book-promo foundation (#956) plus Phase 4 deck howtos (#681)', () => {
+        // #956 added the Block-axis common book-promotion strings; #681/#958
+        // added the per-deck howto strings for the block-shooting decks.
         [blockSeriesLocale.ja, blockSeriesLocale.jaHira, blockSeriesLocale.en].forEach(table => {
             const keys = Object.keys(table);
             expect(keys.length).toBeGreaterThan(0);
+            // every key is either the shared book-promo foundation or a
+            // block-shooting deck howto — no strays from other categories.
             keys.forEach(id => {
-                expect(id.startsWith('gui.howtos.book-promo.')).toBe(true);
+                const isBookPromo = id.startsWith('gui.howtos.book-promo.');
+                const isBlockShooting = BLOCK_SERIES_DECK_IDS.some(
+                    deckId => id.startsWith(`gui.howtos.${deckId}.`)
+                );
+                expect(isBookPromo || isBlockShooting).toBe(true);
             });
+            // the shared book-promo foundation must still be present.
+            expect(keys.some(id => id.startsWith('gui.howtos.book-promo.'))).toBe(true);
         });
     });
 

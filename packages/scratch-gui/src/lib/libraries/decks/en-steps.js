@@ -115,6 +115,24 @@ import rubyBasics6Step5 from './steps/ruby-basics-6-5-modify.png';
 // only the final step shows the TryRuby screenshot (see tutorial.md image reuse rule).
 import rubyBasics7TryRuby from './thumbnails/ruby-basics-1-tryruby.png';
 
+// blockGames 第4章 シューティング (issue #958)
+import blockShootingOpening from './steps/blockShootingOpening.png';
+import blockShootingLv0Intro from './steps/blockShootingLv0Intro.png';
+import blockShootingLv0Move from './steps/blockShootingLv0Move.png';
+import blockShootingRun from './steps/blockShootingRun.png';
+import blockShootingLv0Customize from './steps/blockShootingLv0Customize.png';
+import blockShootingClosing from './steps/blockShootingClosing.png';
+import blockShootingLv2Intro from './steps/blockShootingLv2Intro.png';
+import blockShootingLv2CatBlocks from './steps/blockShootingLv2CatBlocks.png';
+import blockShootingAddArrow from './steps/blockShootingAddArrow.png';
+import blockShootingLv2BulletBlocks from './steps/blockShootingLv2BulletBlocks.png';
+import blockShootingLv3RubyTab from './steps/blockShootingLv3RubyTab.png';
+import blockShootingLv3CatCode from './steps/blockShootingLv3CatCode.png';
+import blockShootingLv3BulletCode from './steps/blockShootingLv3BulletCode.png';
+import blockShootingAdvIntro from './steps/blockShootingAdvIntro.png';
+import blockShootingAdvClone from './steps/blockShootingAdvClone.png';
+import blockShootingAdvClosing from './steps/blockShootingAdvClosing.png';
+
 const enImages = {
     // Getting Started
     introRubyTab: introRubyTab,
@@ -214,7 +232,24 @@ const enImages = {
     rubyBasics6Step4: rubyBasics6Step4,
     rubyBasics6Step5: rubyBasics6Step5,
 
-    rubyBasics7TryRuby: rubyBasics7TryRuby
+    rubyBasics7TryRuby: rubyBasics7TryRuby,
+    // blockGames 第4章 シューティング (issue #958)
+    blockShootingOpening: blockShootingOpening,
+    blockShootingLv0Intro: blockShootingLv0Intro,
+    blockShootingLv0Move: blockShootingLv0Move,
+    blockShootingRun: blockShootingRun,
+    blockShootingLv0Customize: blockShootingLv0Customize,
+    blockShootingClosing: blockShootingClosing,
+    blockShootingLv2Intro: blockShootingLv2Intro,
+    blockShootingLv2CatBlocks: blockShootingLv2CatBlocks,
+    blockShootingAddArrow: blockShootingAddArrow,
+    blockShootingLv2BulletBlocks: blockShootingLv2BulletBlocks,
+    blockShootingLv3RubyTab: blockShootingLv3RubyTab,
+    blockShootingLv3CatCode: blockShootingLv3CatCode,
+    blockShootingLv3BulletCode: blockShootingLv3BulletCode,
+    blockShootingAdvIntro: blockShootingAdvIntro,
+    blockShootingAdvClone: blockShootingAdvClone,
+    blockShootingAdvClosing: blockShootingAdvClosing
 };
 
 export {enImages};
