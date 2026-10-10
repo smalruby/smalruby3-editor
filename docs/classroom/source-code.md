@@ -116,6 +116,7 @@ CDK スタック定義。以下のリソースを作成:
 | `handleCreateGroup()` / `handleListGroups()` / `handleUpdateGroup()` | 組（グループ）の作成・一覧・更新/アーカイブ |
 | `handleDuplicateClassroom()` | 課題の複製（課題コンテンツの S3 オブジェクトコピー含む） |
 | `handleListGoogleCourses()` | Google Classroom コース一覧 |
+| `handleGetGoogleCourseAccess()` | 押した先生が紐付け先コースの GC 教師かの事前判定 |
 | `handleImportGoogleClassroom()` | Google Classroom コースインポート |
 | `handlePostAssignment()` | Google Classroom に課題投稿 |
 | `verifyTeacherToken()` | Google ID Token 検証 |

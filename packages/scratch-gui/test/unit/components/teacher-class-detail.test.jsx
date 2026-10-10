@@ -88,7 +88,7 @@ describe('TeacherClassDetail — Google Classroom share gate (issue #1184)', () 
     const linkedProps = (googleCourseAccess) => ({
         selectedClassroom: classroom({ googleClassroomCourseId: null }),
         group: { groupId: 'g1', googleClassroomCourseId: 'course-123' },
-        googleCourseAccess,
+        googleCourseAccess: googleCourseAccess && { groupId: 'g1', ...googleCourseAccess },
     });
     const postButton = () => document.querySelector('[data-testid="classroom-post-assignment"]');
     const blockedNote = () => document.querySelector('[data-testid="classroom-post-assignment-blocked"]');
@@ -132,9 +132,37 @@ describe('TeacherClassDetail — Google Classroom share gate (issue #1184)', () 
                 googleClassroomCourseId: 'course-123',
                 googleClassroomLinkedByEmail: 'linker@example.com',
             },
-            googleCourseAccess: { status: 'notTeacher', linkedByEmail: null },
+            googleCourseAccess: { groupId: 'g1', status: 'notTeacher', linkedByEmail: null },
         });
         expect(blockedNote().textContent).toContain('linker@example.com');
+    });
+
+    // The probe is async, so switching classes leaves the previous class's
+    // verdict in state until the new answer lands (and answers can arrive out
+    // of order). It must not gate a class it was never about.
+    test('ignores a verdict that was about a different class', () => {
+        renderDetail({
+            selectedClassroom: classroom({ googleClassroomCourseId: null }),
+            group: { groupId: 'gB', googleClassroomCourseId: 'course-B' },
+            googleCourseAccess: { groupId: 'gA', status: 'notTeacher', linkedByEmail: 'a@example.com' },
+        });
+        expect(postButton()).not.toBeDisabled();
+        expect(blockedNote()).not.toBeInTheDocument();
+    });
+
+    // Once the assignment is posted the share button becomes an "open it"
+    // link, so "ask someone to share it" would be telling the teacher to
+    // redo something that is already done.
+    test('does not explain how to share an assignment that is already shared', () => {
+        renderDetail({
+            selectedClassroom: classroom({
+                googleClassroomAlternateLink: 'https://classroom.google.com/c/x/a/y',
+            }),
+            group: { groupId: 'g1', googleClassroomCourseId: 'course-123' },
+            googleCourseAccess: { groupId: 'g1', status: 'notTeacher', linkedByEmail: 'owner@example.com' },
+        });
+        expect(document.querySelector('[data-testid="classroom-view-assignment"]')).toBeInTheDocument();
+        expect(blockedNote()).not.toBeInTheDocument();
     });
 });
 

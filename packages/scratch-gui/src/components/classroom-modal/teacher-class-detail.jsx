@@ -174,7 +174,17 @@ const TeacherClassDetail = ({
     // so a class co-teacher who is not a teacher of the linked course cannot
     // share it. Disable the button with the reason instead of letting Google
     // answer with an opaque error (#1184).
-    const gcShareBlocked = isGoogleShareBlocked(googleCourseAccess);
+    //
+    // Only meaningful where the share button itself is: a class linked to a GC
+    // course whose assignment has not been posted yet. Once posted the button
+    // becomes an "open it" link, and telling the teacher to ask someone to
+    // share what is already shared would just confuse them.
+    const gcShareAvailable = Boolean(
+        (selectedClassroom.googleClassroomCourseId || (group && group.googleClassroomCourseId)) &&
+            !selectedClassroom.googleClassroomAlternateLink,
+    );
+    const gcShareBlocked =
+        gcShareAvailable && isGoogleShareBlocked(googleCourseAccess, group && group.groupId);
     const gcShareBlockedText = gcShareBlocked
         ? googleShareBlockedMessage(
             intl,

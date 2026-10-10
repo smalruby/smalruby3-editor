@@ -48,10 +48,21 @@ const messages = defineMessages({
  * tell", which is the normal state before the teacher has granted Google
  * access this session — leaves the button enabled so a teacher who is in fact
  * allowed is never locked out; the failure path then explains the same thing.
+ *
+ * The verdict is about one class, so it must match the class on screen. The
+ * probe is a network round trip and the teacher can switch classes during it
+ * (and answers can arrive out of order), which would otherwise let a
+ * `notTeacher` verdict about the previous class disable a class they can
+ * perfectly well share.
  * @param {?object} access - the probe result, or null when it has not run
+ * @param {?string} groupId - the class currently on screen
  * @returns {boolean} true when sharing is known to be impossible
  */
-const isGoogleShareBlocked = (access) => Boolean(access) && access.status === GOOGLE_COURSE_ACCESS.NOT_TEACHER;
+const isGoogleShareBlocked = (access, groupId) =>
+    Boolean(access) &&
+    access.status === GOOGLE_COURSE_ACCESS.NOT_TEACHER &&
+    Boolean(groupId) &&
+    access.groupId === groupId;
 
 /**
  * The sentence shown instead of letting the teacher press the button.
