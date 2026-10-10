@@ -2,8 +2,20 @@ import React from 'react';
 import {FormattedMessage} from 'react-intl';
 
 import libraryIntro from '../thumbnails/getting-started.jpg';
+import libraryGettingStartedCostume from '../thumbnails/getting-started-costume.jpg';
+import libraryGettingStartedSprites from '../thumbnails/getting-started-sprites.jpg';
 import {CATEGORIES} from '../../tutorial-tags';
+import GreenFlagIcon from '../green-flag-icon.jsx';
 
+// 単機能チュートリアルの規約 (issue #1179 で確定。後続 leaf もこれに従う):
+//   - deck id     : `getting-started-<機能スラッグ>` — Lv 番号も通し番号も付けない。
+//                   このカテゴリの deck は 1 本完結・順番に依存しない
+//                   （「好きなものを3つ」が成立する）ため、順序を示す番号は付けない
+//   - locale キー : `gui.howtos.getting-started-<スラッグ>.{name,stepN.title}`
+//   - step 画像   : `getting-started-<スラッグ>-<N>-<説明>.<ext>`。
+//                   複数 deck で共有する素材は `getting-started-shared-<説明>.<ext>`
+//   - 画像キー    : `gettingStarted<スラッグPascal>StepN`（ja-steps.js / en-steps.js）
+//   - urlId       : `gettingStarted<スラッグPascal>`
 const decks = {
     'intro-getting-started': {
         name: (
@@ -70,6 +82,165 @@ end`,
             }
         ],
         urlId: 'getStarted'
+    },
+
+    // ─── コスチュームをかえてみよう（単機能・見た目） ───────────────────────
+    'getting-started-costume': {
+        name: (
+            <FormattedMessage
+                defaultMessage="コスチュームをかえてみよう"
+                description="Name for the single-feature 'switch costume' tutorial"
+                id="gui.howtos.getting-started-costume.name"
+            />
+        ),
+        tags: ['ブロック', 'はじめて'],
+        category: CATEGORIES.gettingStarted,
+        img: libraryGettingStartedCostume,
+        nameMessageId: 'gui.howtos.getting-started-costume.name',
+        // setup.tab は指定しない。step1 の「チュートリアルをはじめる」が新規プロジェクトを
+        // 作り直してコードタブに戻すため、ここで costumes を指定しても学習者が最初の
+        // ボタンを押した瞬間に打ち消され、一瞬だけタブが切り替わる不自然な動きになる
+        // （レビュー指摘 #1179）。コスチュームタブへは step2 の説明で誘導する。
+        allowedBlocks: {
+            motion: [],
+            looks: ['looks_nextcostume', 'looks_switchcostumeto', 'looks_costume'],
+            sound: [],
+            event: ['event_whenflagclicked'],
+            control: ['control_repeat', 'control_wait'],
+            sensing: [],
+            operators: [],
+        },
+        steps: [
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="スプライトの見た目（コスチューム）をかえてみよう！"
+                        description="Getting Started Costume Step 1: Intro"
+                        id="gui.howtos.getting-started-costume.step1.title"
+                    />
+                ),
+                image: 'gettingStartedCostumeStep1',
+                startTutorial: true,
+                animationTarget: 'startTutorialButton',
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="「コスチューム」タブで、コスチュームをふやしてみよう"
+                        description="Getting Started Costume Step 2: Add a costume in the costume tab"
+                        id="gui.howtos.getting-started-costume.step2.title"
+                    />
+                ),
+                image: 'gettingStartedCostumeStep2',
+                animationTarget: 'nextButton',
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="「コード」タブでこのプログラムを入れて、{greenFlag}を押してみよう"
+                        description="Getting Started Costume Step 3: Insert the next-costume blocks and run"
+                        id="gui.howtos.getting-started-costume.step3.title"
+                        values={{greenFlag: <GreenFlagIcon />}}
+                    />
+                ),
+                image: 'gettingStartedCostumeStep3',
+                code: `when_flag_clicked do
+  3.times do
+    next_costume
+    sleep(1)
+  end
+end`,
+                codeType: 'blocks',
+                animationTarget: 'insertCodeButton',
+            },
+        ],
+        urlId: 'gettingStartedCostume',
+    },
+
+    // ─── スプライトを2つ使ってみよう（単機能・スプライト操作） ───────────────
+    'getting-started-sprites': {
+        name: (
+            <FormattedMessage
+                defaultMessage="スプライトを2つ使ってみよう"
+                description="Name for the single-feature 'use two sprites' tutorial"
+                id="gui.howtos.getting-started-sprites.name"
+            />
+        ),
+        tags: ['ブロック', 'はじめて'],
+        category: CATEGORIES.gettingStarted,
+        img: libraryGettingStartedSprites,
+        nameMessageId: 'gui.howtos.getting-started-sprites.name',
+        // スプライトの追加・選択が主題なので、コードタブから始める。
+        setup: {
+            tab: 'code',
+        },
+        allowedBlocks: {
+            motion: [],
+            looks: ['looks_sayforsecs', 'looks_say'],
+            sound: [],
+            event: ['event_whenflagclicked'],
+            control: ['control_wait'],
+            sensing: [],
+            operators: [],
+        },
+        steps: [
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="スプライトをふやして、2つのキャラクターを動かそう！"
+                        description="Getting Started Sprites Step 1: Intro - add a second sprite"
+                        id="gui.howtos.getting-started-sprites.step1.title"
+                    />
+                ),
+                image: 'gettingStartedSpritesStep1',
+                startTutorial: true,
+                animationTarget: 'startTutorialButton',
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="スプライトリストの右下のボタンから、ペンギンをふやしてみよう"
+                        description="Getting Started Sprites Step 2: Add the penguin sprite"
+                        id="gui.howtos.getting-started-sprites.step2.title"
+                    />
+                ),
+                image: 'gettingStartedSpritesStep2',
+                animationTarget: 'nextButton',
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="ネコ（スプライト1）をえらんでから、このプログラムを入れよう"
+                        description="Getting Started Sprites Step 3: Insert the cat's program"
+                        id="gui.howtos.getting-started-sprites.step3.title"
+                    />
+                ),
+                image: 'gettingStartedSpritesStep3',
+                code: `when_flag_clicked do
+  say("こんにちは！", 2)
+end`,
+                codeType: 'blocks',
+                animationTarget: 'insertCodeButton',
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="ペンギンをえらぶとプログラムが切りかわるよ。入れたら{greenFlag}を押してみよう"
+                        description="Getting Started Sprites Step 4: Selecting the penguin switches the program; insert it and run"
+                        id="gui.howtos.getting-started-sprites.step4.title"
+                        values={{greenFlag: <GreenFlagIcon />}}
+                    />
+                ),
+                image: 'gettingStartedSpritesStep4',
+                code: `when_flag_clicked do
+  sleep(2)
+  say("やあ！", 2)
+end`,
+                codeType: 'blocks',
+                animationTarget: 'insertCodeButton',
+            },
+        ],
+        urlId: 'gettingStartedSprites',
     },
 };
 

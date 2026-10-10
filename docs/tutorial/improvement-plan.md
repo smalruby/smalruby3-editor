@@ -8,6 +8,8 @@ Welcome モーダルの `cardBlocks` / `cardRuby` / `cardMesh` が提示する 3
 
 ユーザーが Welcome → チュートリアル一覧 → カテゴリで学習軸を選ぶ → 同じ題材を Lv1 (コード挿入) → Lv2 (ブロック手組み) → Lv3 (Ruby) と難度別に進めるという既存パターンを、全軸で踏襲する。
 
+ただし **`gettingStarted` (「さあ、始めましょう」) は例外**で、Lv 分けをせず 1 本完結の単機能チュートリアルを並べる (→「方針分岐: `gettingStarted` は単機能・Lv 分けなし」)。
+
 ## 現状サマリー (2026-05 時点)
 
 ### 既存 deck 一覧 (`packages/scratch-gui/src/lib/libraries/decks/index.jsx`)
@@ -82,6 +84,22 @@ export const CATEGORIES = {
 5. `dnclBasics` → `dnclAlgorithms` (DNCL 軸 2 区分)
 
 実装時、`library.jsx` で `withCategories` 表示の順序が `CATEGORIES` オブジェクトのキー順に依存しないなら、明示的な順序配列を導入する。
+
+### 方針分岐: `gettingStarted` は単機能・Lv 分けなし
+
+上の「ゴール」で述べた **Lv1 / Lv2 / Lv3 の難度別 3 本立て**は、`meshStep1-3` や Block 軸 (Lv0/Lv2/Lv3) のように **同じ題材を段階的に深める軸**にだけ適用する。**`gettingStarted` はこの体系から明示的に外す**:
+
+| 観点 | Lv 別の軸 (mesh / block / ruby) | `gettingStarted` |
+|---|---|---|
+| 1 deck の役割 | 同じ題材を難度別に 3 本 | **1 チュートリアル = 1 機能**で完結 |
+| ステップ数 | 5〜8 | **3〜6** |
+| 順番 | Lv1 → Lv2 → Lv3 の前提あり | **順番に依存しない**（どれから始めてもよい） |
+| 最終ステップ | `deckIds` で次の Lv へ誘導 | **`deckIds` を持たない**（他 deck に依存させない） |
+| deck id | `chat-1-basic-1` のように Lv 番号入り | `getting-started-<機能スラッグ>`（**番号を付けない**） |
+
+理由は授業運用にある。中学校技術科「双方向性のあるコンテンツ」の単元では、ワークシートから **「『さあ、始めましょう』から好きなものを 3 つやってみよう」**と指示したい。Lv 分けや通し番号があると「順番にやるもの」に見えてしまい、この指示が成立しない。
+
+`gettingStarted` の単機能 deck の命名規約 (deck id / locale キー / step 画像 / 画像キー / `urlId`) は `packages/scratch-gui/src/lib/libraries/decks/categories/getting-started.jsx` の冒頭コメントに定義してあり、後続の deck 追加もそれに従う。
 
 ## Phase 1: Mesh 再カテゴリ化
 
