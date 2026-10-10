@@ -116,6 +116,24 @@ import rubyBasics6Step5 from './steps/ruby-basics-6-5-modify.png';
 // (docs/tutorial/improvement-plan.md Phase 2 / tutorial.md「画像の流用ルール」)。
 import rubyBasics7TryRuby from './thumbnails/ruby-basics-1-tryruby.png';
 
+// DNCL Basics 1-3 (issue #964). The DNCL decks are Japanese-only content, so
+// the en bundle reuses the same cards.
+import dnclBasics1Step1 from './steps/dncl-basics-1-1-intro.png';
+import dnclBasics1Step2 from './steps/dncl-basics-1-2-first-display.png';
+import dnclBasics1Step3 from './steps/dncl-basics-1-3-result.png';
+import dnclBasics1Step4 from './steps/dncl-basics-1-4-numbers.png';
+import dnclBasics1Step5 from './steps/dncl-basics-1-5-modify.png';
+import dnclBasics2Step1 from './steps/dncl-basics-2-1-intro.png';
+import dnclBasics2Step2 from './steps/dncl-basics-2-2-first-var.png';
+import dnclBasics2Step3 from './steps/dncl-basics-2-3-result.png';
+import dnclBasics2Step4 from './steps/dncl-basics-2-4-update.png';
+import dnclBasics2Step5 from './steps/dncl-basics-2-5-modify.png';
+import dnclBasics3Step1 from './steps/dncl-basics-3-1-intro.png';
+import dnclBasics3Step2 from './steps/dncl-basics-3-2-if.png';
+import dnclBasics3Step3 from './steps/dncl-basics-3-3-result.png';
+import dnclBasics3Step4 from './steps/dncl-basics-3-4-else.png';
+import dnclBasics3Step5 from './steps/dncl-basics-3-5-elsif.png';
+
 const jaImages = {
     // Getting Started
     introRubyTab: introRubyTab,
@@ -215,7 +233,26 @@ const jaImages = {
     rubyBasics6Step4: rubyBasics6Step4,
     rubyBasics6Step5: rubyBasics6Step5,
 
-    rubyBasics7TryRuby: rubyBasics7TryRuby
+    rubyBasics7TryRuby: rubyBasics7TryRuby,
+
+    // DNCL Basics 1: 文字や数字を表示しよう
+    dnclBasics1Step1: dnclBasics1Step1,
+    dnclBasics1Step2: dnclBasics1Step2,
+    dnclBasics1Step3: dnclBasics1Step3,
+    dnclBasics1Step4: dnclBasics1Step4,
+    dnclBasics1Step5: dnclBasics1Step5,
+    // DNCL Basics 2: 変数を使おう
+    dnclBasics2Step1: dnclBasics2Step1,
+    dnclBasics2Step2: dnclBasics2Step2,
+    dnclBasics2Step3: dnclBasics2Step3,
+    dnclBasics2Step4: dnclBasics2Step4,
+    dnclBasics2Step5: dnclBasics2Step5,
+    // DNCL Basics 3: もし〜ならば で分けよう
+    dnclBasics3Step1: dnclBasics3Step1,
+    dnclBasics3Step2: dnclBasics3Step2,
+    dnclBasics3Step3: dnclBasics3Step3,
+    dnclBasics3Step4: dnclBasics3Step4,
+    dnclBasics3Step5: dnclBasics3Step5,
 };
 
 export {jaImages};
