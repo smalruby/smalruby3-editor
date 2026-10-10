@@ -249,6 +249,27 @@ One Tap が表示できない環境（Windows や Playwright では毎回）で�
 | `POST` | `/classrooms/google-import` | コースをインポートして課題を作成（`Classrooms` に書き込む） |
 | `POST` | `/classrooms/{id}/google-assignment` | Google Classroom に課題を投稿 |
 
+#### Google API 失敗時のレスポンス
+
+Google Classroom API の失敗は、Google が返した `error.status` / `error.message` を
+そのまま透過し、UI が翻訳するための安定キー `reason` を付けて返す
+（詳細は CloudWatch にも `Google Classroom API error` として記録する。アクセストークンは記録しない）。
+
+| Google の HTTP | 返す HTTP | `reason` | 典型的な原因 |
+|---|---|---|---|
+| 401 | 401 | `googleTokenExpired` | Google のアクセストークンが失効 |
+| 403 | 403 | `googlePermissionDenied` | 権限（スコープ）不足 / そのコースの先生ではない |
+| 404 | 404 | `googleCourseNotFound` | ひもづけたコースが削除された / そのコースにアクセスできない |
+| 400 | 400 | `googleInvalidRequest` | Google がリクエストを拒否（`FAILED_PRECONDITION` 等を含む） |
+| その他 | 502 | `googleApiError` | レート超過・Google 側障害など |
+
+レスポンス本文: `{error, reason, googleStatus?, googleMessage?}`。
+
+先生に表示するアクセストークンは `classroom.coursework.students` を含む 3 スコープを要求するが、
+Google の同意画面はスコープごとにチェックボックスを出すため**一部だけ許可される**ことがある。
+クライアントは `hasGrantedAllScopes` で検証し、不足していれば `prompt: 'consent'` で再要求する
+（それでも不足するなら `googlePermissionDenied` として扱う）。
+
 ## データモデル
 
 ### Classrooms テーブル
