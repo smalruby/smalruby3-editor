@@ -138,6 +138,7 @@ const ClassroomTeacherModal = () => {
         codeDisplayFullscreen: teacher.codeDisplayFullscreen,
         downloadProgress: teacher.downloadProgress,
         googleCourses: teacher.googleCourses,
+        googleCourseAccess: teacher.googleCourseAccess,
         selectedGoogleCourse: teacher.selectedGoogleCourse,
         googleSignInRef: teacher.googleSignInRef,
         googleFallbackReason: teacher.googleFallbackReason,

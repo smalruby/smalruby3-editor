@@ -9,6 +9,7 @@ import TeacherAssignmentEditor from './teacher-assignment-editor.jsx';
 import TeacherMemberDetail from './teacher-member-detail.jsx';
 
 import { formatClassLabel } from '../../lib/classroom-class-label.js';
+import { isGoogleShareBlocked, googleShareBlockedMessage } from '../../lib/classroom-google-share.js';
 import { retentionLevel } from '../../lib/classroom-retention.js';
 import googleClassroomIcon from '../classroom-teacher-modal/google-classroom-icon.png';
 import styles from './classroom-modal.css';
@@ -47,6 +48,7 @@ const TeacherClassDetail = ({
     onOpenShareSuggestion,
     assignmentEditor,
     group,
+    googleCourseAccess,
 }) => {
     // Destructured with handle-prefixed names for the embedded editor
     // (react/jsx-handler-names requires handler props to look like handlers).
@@ -167,6 +169,20 @@ const TeacherClassDetail = ({
     // Retention alert level (issue #1052/#1049): drives the inline warning
     // next to the deadline and the urgent styling on the download button.
     const retention = retentionLevel(selectedClassroom && selectedClassroom.expiresAt);
+
+    // Google Classroom share is posted with this teacher's own Google account,
+    // so a class co-teacher who is not a teacher of the linked course cannot
+    // share it. Disable the button with the reason instead of letting Google
+    // answer with an opaque error (#1184).
+    const gcShareBlocked = isGoogleShareBlocked(googleCourseAccess);
+    const gcShareBlockedText = gcShareBlocked
+        ? googleShareBlockedMessage(
+            intl,
+            googleCourseAccess.linkedByEmail ||
+                  (group && group.googleClassroomLinkedByEmail) ||
+                  null,
+        )
+        : '';
 
     const handleShowCode = useCallback(() => {
         setShowCodeDisplay(true);
@@ -395,6 +411,8 @@ const TeacherClassDetail = ({
                                                 <button
                                                     className={classNames(styles.joinCodeAction, styles.joinCodeActionGc)}
                                                     data-testid="classroom-post-assignment"
+                                                    disabled={gcShareBlocked}
+                                                    title={gcShareBlockedText || null}
                                                     type="button"
                                                     onClick={onShowPostAssignment}
                                                 >
@@ -412,6 +430,16 @@ const TeacherClassDetail = ({
                                                     </span>
                                                 </button>
                                             ))}
+                                    {/* 共有できない理由（GC コースの教師ではない共同担当）
+                                        をボタンの近くに出す。#1184 */}
+                                    {gcShareBlocked && (
+                                        <div
+                                            className={styles.joinCodeGcBlockedNote}
+                                            data-testid="classroom-post-assignment-blocked"
+                                        >
+                                            {gcShareBlockedText}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             {/* 保存期限とその警告を1行に統合（issue #1052/#1049）:
@@ -885,6 +913,10 @@ TeacherClassDetail.propTypes = {
     onOpenShareSuggestion: PropTypes.func,
     assignmentEditor: PropTypes.object,
     group: PropTypes.object,
+    googleCourseAccess: PropTypes.shape({
+        status: PropTypes.string,
+        linkedByEmail: PropTypes.string,
+    }),
     selectedClassroom: PropTypes.object.isRequired,
     selectedMember: PropTypes.string,
 };

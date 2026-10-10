@@ -82,6 +82,62 @@ describe('TeacherClassDetail — Google Classroom post button', () => {
     });
 });
 
+// Sharing posts course work with the pressing teacher's own Google account, so
+// a class co-teacher who is not a teacher of the linked course cannot share.
+describe('TeacherClassDetail — Google Classroom share gate (issue #1184)', () => {
+    const linkedProps = (googleCourseAccess) => ({
+        selectedClassroom: classroom({ googleClassroomCourseId: null }),
+        group: { groupId: 'g1', googleClassroomCourseId: 'course-123' },
+        googleCourseAccess,
+    });
+    const postButton = () => document.querySelector('[data-testid="classroom-post-assignment"]');
+    const blockedNote = () => document.querySelector('[data-testid="classroom-post-assignment-blocked"]');
+
+    test('disables the share button and names who to ask when the teacher is not a course teacher', () => {
+        renderDetail(linkedProps({ status: 'notTeacher', linkedByEmail: 'owner@example.com' }));
+        expect(postButton()).toBeDisabled();
+        expect(blockedNote()).toBeInTheDocument();
+        expect(blockedNote().textContent).toContain('owner@example.com');
+    });
+
+    test('stays generic rather than guessing when the linking teacher is unknown', () => {
+        renderDetail(linkedProps({ status: 'notTeacher', linkedByEmail: null }));
+        expect(postButton()).toBeDisabled();
+        expect(blockedNote().textContent).toContain('another teacher');
+    });
+
+    test('keeps the share button usable for a teacher of the course', () => {
+        renderDetail(linkedProps({ status: 'teacher', linkedByEmail: 'owner@example.com' }));
+        expect(postButton()).not.toBeDisabled();
+        expect(blockedNote()).not.toBeInTheDocument();
+    });
+
+    test('keeps the share button usable when the check was inconclusive', () => {
+        renderDetail(linkedProps({ status: 'unknown', linkedByEmail: null }));
+        expect(postButton()).not.toBeDisabled();
+        expect(blockedNote()).not.toBeInTheDocument();
+    });
+
+    test('keeps the share button usable when the check never ran', () => {
+        renderDetail(linkedProps(null));
+        expect(postButton()).not.toBeDisabled();
+        expect(blockedNote()).not.toBeInTheDocument();
+    });
+
+    test('falls back to the class attribution when the probe carries no email', () => {
+        renderDetail({
+            selectedClassroom: classroom({ googleClassroomCourseId: null }),
+            group: {
+                groupId: 'g1',
+                googleClassroomCourseId: 'course-123',
+                googleClassroomLinkedByEmail: 'linker@example.com',
+            },
+            googleCourseAccess: { status: 'notTeacher', linkedByEmail: null },
+        });
+        expect(blockedNote().textContent).toContain('linker@example.com');
+    });
+});
+
 describe('TeacherClassDetail — retention banner (issue #1052)', () => {
     const DAY = 24 * 60 * 60 * 1000;
     const inDays = (days) => new Date(Date.now() + days * DAY).toISOString();

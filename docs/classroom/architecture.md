@@ -246,6 +246,7 @@ One Tap が表示できない環境（Windows や Playwright では毎回）で�
 | Method | Path | 説明 |
 |--------|------|------|
 | `GET` | `/classrooms/google-courses` | Google Classroom のコース一覧 |
+| `GET` | `/classroom-groups/{groupId}/google-course-access` | **押す先生自身が**紐付け先コースの GC 教師かの事前判定（`{courseId, status, linkedByEmail}`。status = `teacher` / `notTeacher` / `notLinked` / `unknown`） |
 | `POST` | `/classrooms/google-import` | コースをインポートして課題を作成（`Classrooms` に書き込む） |
 | `POST` | `/classrooms/{id}/google-assignment` | Google Classroom に課題を投稿 |
 
@@ -260,10 +261,32 @@ Google Classroom API の失敗は、Google が返した `error.status` / `error.
 | 401 | 401 | `googleTokenExpired` | Google のアクセストークンが失効 |
 | 403 | 403 | `googlePermissionDenied` | 権限（スコープ）不足 / そのコースの先生ではない |
 | 404 | 404 | `googleCourseNotFound` | ひもづけたコースが削除された / そのコースにアクセスできない |
+| 404（課題配信時） | 404 | `googleNotCourseTeacher` | 押した先生がそのコースの GC 教師ではない（Google は未参加のコースを 404 で隠すため） |
 | 400 | 400 | `googleInvalidRequest` | Google がリクエストを拒否（`FAILED_PRECONDITION` 等を含む） |
 | その他 | 502 | `googleApiError` | レート超過・Google 側障害など |
 
 レスポンス本文: `{error, reason, googleStatus?, googleMessage?}`。
+
+#### 共有できる先生の判定（GC 教師かどうか）
+
+課題配信は **押した先生自身の Google アクセストークン**で `courseWork` を作成するため、
+Google はその先生がそのコースの教師であることを要求する。Smalruby のクラス共同担当は
+Smalruby 上の権限であって GC の教師とは別物なので、両者が食い違うと Google 側で失敗する。
+
+判定は Smalruby 上の役割（owner / co-teacher）ではなく **実態**で行う:
+`GET /classroom-groups/{groupId}/google-course-access` が `courses/{courseId}/teachers/me` を
+caller のトークンで引き、200 なら `teacher`、404 なら `notTeacher` を返す。401/403/5xx などは
+`unknown`（判定不能）で、UI は**共有ボタンを無効化しない**。同じコースに GC 共同教師として
+入っている先生はこの判定を通るため、従来どおり共有できる。
+
+クライアントは**すでに取得済みの Google アクセストークンがあるときだけ**この判定を行う
+（判定のために同意ポップアップを出さない）。判定できなかった場合は従来どおり押させ、
+失敗時に `googleNotCourseTeacher` の文言で同じ趣旨を伝える。
+
+誰が紐付けたかは group の `googleClassroomLinkedBy`（`{sub, email}`）に記録し、
+`GET /classroom-groups` は表示用に `googleClassroomLinkedByEmail` を返す。この記録が無い
+既存データはクラス作成者（`teacherSub`）にフォールバックし、メールが分からないときは
+「連携した先生」と一般名詞で表示する（推測で名前を出さない）。
 
 クライアントが取得するアクセストークンは `classroom.coursework.students` を含む 3 スコープを要求するが、
 Google の同意画面はスコープごとにチェックボックスを出すため**一部だけ許可される**ことがある。
@@ -428,6 +451,7 @@ erDiagram
         number schemaVersion "データモデル版 (v2 = クラス→課題モデル)"
         string_array topics "課題のトピック一覧 (最大20件)"
         string googleClassroomCourseId "GC コース紐づけ (クラス単位, 任意)"
+        map googleClassroomLinkedBy "GC を紐付けた先生 {sub, email} (任意)"
         number studentCount "人数 (課題の座席数の真実, 任意)"
         string_array coTeacherEmails "クラス単位の共同管理者 (任意)"
         string createdAt "ISO8601"

@@ -5,7 +5,12 @@
  */
 import { useCallback, useState } from 'react';
 import classroomAPI from '../lib/classroom-api.js';
-import { requestClassroomAccessToken, clearClassroomAccessToken } from '../lib/google-classroom-auth.js';
+import { GOOGLE_COURSE_ACCESS } from '../lib/classroom-google-share.js';
+import {
+    requestClassroomAccessToken,
+    clearClassroomAccessToken,
+    getCachedClassroomAccessToken,
+} from '../lib/google-classroom-auth.js';
 import translateError from './classroom-error-utils.js';
 
 /**
@@ -37,6 +42,54 @@ const useGoogleClassroom = ({
     const [googleAccessToken, setGoogleAccessToken] = useState(null);
     const [googleCourses, setGoogleCourses] = useState([]);
     const [selectedGoogleCourse, setSelectedGoogleCourse] = useState(null);
+    // Pre-flight for the share button: {groupId, status, linkedByEmail}.
+    const [googleCourseAccess, setGoogleCourseAccess] = useState(null);
+
+    /**
+     * Find out whether this teacher can post to the class's linked Google
+     * Classroom course, so the share button can be disabled with an
+     * explanation instead of failing inside Google (issue #1184).
+     *
+     * Deliberately silent: it uses a Google token the teacher already granted
+     * and gives up (leaving the button enabled) when there is none, so the
+     * check never triggers a consent popup on its own.
+     * @param {?object} group - the class (group) whose link to check
+     * @returns {Promise<void>} resolves once the state has been updated
+     */
+    const handleCheckGoogleCourseAccess = useCallback(
+        async (group) => {
+            if (!group || !group.groupId || !group.googleClassroomCourseId) {
+                setGoogleCourseAccess(null);
+                return;
+            }
+            const accessToken = googleAccessToken || getCachedClassroomAccessToken();
+            if (!accessToken) {
+                setGoogleCourseAccess({
+                    groupId: group.groupId,
+                    status: GOOGLE_COURSE_ACCESS.UNKNOWN,
+                    linkedByEmail: group.googleClassroomLinkedByEmail || null,
+                });
+                return;
+            }
+            try {
+                const data = await classroomAPI.getGoogleCourseAccess(idToken, accessToken, group.groupId);
+                setGoogleCourseAccess({
+                    groupId: group.groupId,
+                    status: data.status || GOOGLE_COURSE_ACCESS.UNKNOWN,
+                    linkedByEmail: data.linkedByEmail || group.googleClassroomLinkedByEmail || null,
+                });
+            } catch {
+                // A failed probe must not block sharing, and must not raise an
+                // error banner either — nothing the teacher did has failed yet.
+                setGoogleCourseAccess({
+                    groupId: group.groupId,
+                    status: GOOGLE_COURSE_ACCESS.UNKNOWN,
+                    linkedByEmail: group.googleClassroomLinkedByEmail || null,
+                });
+            }
+        },
+        [idToken, googleAccessToken],
+    );
 
     const handleShowGoogleCourses = useCallback(() => {
         clearError();
@@ -162,6 +215,8 @@ const useGoogleClassroom = ({
 
     return {
         googleCourses,
+        googleCourseAccess,
+        handleCheckGoogleCourseAccess,
         selectedGoogleCourse,
         handleShowGoogleCourses,
         handleLoadGoogleCourses,

@@ -92,6 +92,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         codeDisplayFullscreen,
         downloadProgress,
         googleCourses,
+        googleCourseAccess,
         selectedGoogleCourse,
         googleSignInRef,
         googleFallbackReason,
@@ -340,6 +341,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         errorActionHandler={errorActionHandler}
                         errorActionLabel={errorActionLabel}
                         errorTitle={errorTitle}
+                        googleCourseAccess={googleCourseAccess}
                         group={selectedGroup}
                         isLoading={isLoading}
                         kickRequestsBySeat={kickRequestsBySeat}

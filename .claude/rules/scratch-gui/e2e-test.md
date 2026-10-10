@@ -131,6 +131,8 @@ expect(await isActiveByTestId(driver, 'ruby-toolbar-mode-dncl')).toBe(true);
 | `classroom-assignment-name-input` | input | 課題名入力 |
 | `classroom-create-submit` | button | クラス作成実行（クラス名・人数・課題名 3 つすべて必須） |
 | `classroom-sidebar-item-{classroomId}` | li | サイドバーのクラス項目（クリックで選択・teacher-class-detail へ） |
+| `classroom-post-assignment` | button | Google Classroom に共有（GC コースの教師でないときは disabled） |
+| `classroom-post-assignment-blocked` | div | 共有できない理由（誰に依頼すればよいか）#1184 |
 
 **先生フロー自動化のコツ**:
 - `classroom-create-submit` 後は `teacher-class-detail` には**自動遷移しない**。`teacher-dashboard` に戻ってから `classroom-sidebar-item-{id}` を明示的にクリックする必要がある

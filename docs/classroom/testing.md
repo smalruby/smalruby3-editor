@@ -151,6 +151,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | data-testid | 要素 | 説明 |
 |------------|------|------|
 | `classroom-post-assignment` | button | 課題配信ボタン (詳細画面) |
+| `classroom-post-assignment-blocked` | div | 共有できない理由 (GC コースの教師ではない共同担当) |
 | `classroom-post-assignment-title` | input | タイトル |
 | `classroom-post-assignment-description` | textarea | 説明 |
 | `classroom-post-assignment-submit` | button | 配信実行 |

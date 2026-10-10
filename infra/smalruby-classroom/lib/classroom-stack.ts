@@ -821,6 +821,16 @@ export class ClassroomStack extends cdk.Stack {
       integration,
     });
 
+    // "Can I post course work to this class's linked Google Classroom course?"
+    // — asked before enabling the share button so a co-teacher who is not a
+    // teacher of that course is told who to ask instead of hitting a Google
+    // error (#1184).
+    this.api.addRoutes({
+      path: '/classroom-groups/{groupId}/google-course-access',
+      methods: [apigatewayv2.HttpMethod.GET],
+      integration,
+    });
+
     // Topic list management (add/remove/rename with cascade to assignments).
     this.api.addRoutes({
       path: '/classroom-groups/{groupId}/topics',

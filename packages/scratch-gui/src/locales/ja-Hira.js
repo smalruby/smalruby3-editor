@@ -168,6 +168,12 @@ export default {
         'このクラスの Google Classroom にかだいをはいしんするけんげんがありません。もういちどログインしてすべてのこうもくをきょかし、そのクラスのせんせいとしてさんかしているかごかくにんください。',
     'gui.classroom.error.googleCourseNotFound':
         'ひもづいている Google Classroom のクラスがみつかりませんでした。クラスがさくじょされたか、ログインちゅうの Google アカウントがそのクラスのせんせいではないかのうせいがあります。',
+    'gui.classroom.error.googleNotCourseTeacher':
+        'ログインちゅうの Google アカウントは、ひもづいている Google Classroom のクラスのせんせいではないためきょうゆうできません。れんけいしたせんせいにきょうゆうをいらいしてください。',
+    'gui.classroom.googleShare.blockedBy':
+        'このクラスの Google Classroom は {email} せんせいがれんけいしています。きょうゆうは {email} せんせいにいらいしてください。',
+    'gui.classroom.googleShare.blocked':
+        'このクラスの Google Classroom はれんけいしたせんせいのアカウントにひもづいています。きょうゆうはれんけいしたせんせいにいらいしてください。',
     'gui.classroom.error.googleApiFailedDetail': 'Google Classroom にはいしんできませんでした。（Google: {detail}）',
     'gui.classroom.error.googleApiFailed':
         'Google Classroom にはいしんできませんでした。しばらくまってからもういちどおためしください。',

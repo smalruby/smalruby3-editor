@@ -353,12 +353,16 @@ class GoogleAPIError extends Error {
   // opaque "Google Classroom API error" the teacher used to see (issue #1175).
   googleStatus: string;
   googleMessage: string;
-  constructor(statusCode: number, message: string, googleStatus = '', googleMessage = '') {
+  // Which of our calls failed, so the same HTTP status can be mapped to
+  // different reasons (see googleApiErrorResponse).
+  operation: string;
+  constructor(statusCode: number, message: string, googleStatus = '', googleMessage = '', operation = '') {
     super(message);
     this.name = 'GoogleAPIError';
     this.statusCode = statusCode;
     this.googleStatus = googleStatus;
     this.googleMessage = googleMessage;
+    this.operation = operation;
   }
 }
 
@@ -426,16 +430,27 @@ export function parseGoogleApiErrorBody(raw: string): { googleStatus: string; go
  * from a malformed request (400). The Google-provided status and message are
  * passed through so the UI can show an actionable message, and `reason` gives
  * the UI a stable key to translate.
+ *
+ * `operation` names the call that failed. Google hides a course the caller is
+ * not in behind a 404, so a 404 from `courseWork` creation does not mean "the
+ * course is gone" — it means the teacher who pressed the button is not a
+ * teacher of that course (issue #1184). That case gets its own reason so the
+ * UI can say who to ask instead of blaming the link.
  */
 export function googleApiErrorResponse(
   statusCode: number,
   googleStatus: string,
   googleMessage: string,
+  operation = '',
 ): { statusCode: number; body: string } {
   let httpStatus: number;
   let reason: string;
   let error: string;
-  if (statusCode === 401) {
+  if (statusCode === 404 && operation === 'postCourseWork') {
+    httpStatus = 404;
+    reason = 'googleNotCourseTeacher';
+    error = 'You are not a teacher of the linked Google Classroom course.';
+  } else if (statusCode === 401) {
     httpStatus = 401;
     reason = 'googleTokenExpired';
     error = 'Google access token expired. Please re-authorize.';
@@ -472,6 +487,7 @@ async function callGoogleClassroomAPI(
   path: string,
   method: string = 'GET',
   body?: unknown,
+  operation = '',
 ): Promise<unknown> {
   const url = `https://classroom.googleapis.com/v1/${path}`;
   const response = await fetch(url, {
@@ -499,6 +515,7 @@ async function callGoogleClassroomAPI(
       `Google Classroom API error: ${response.status}`,
       googleStatus,
       googleMessage,
+      operation,
     );
   }
   return response.json();
@@ -2200,6 +2217,107 @@ async function handleUpdateSubmission(
 
 // --- Google Classroom handlers ---
 
+/**
+ * Snapshot of the teacher who linked a Google Classroom course to a class.
+ *
+ * Before issue #1184 only the course id was stored, so when a co-teacher hit
+ * Google's "you are not a teacher of this course" wall there was no way to tell
+ * them who to ask. `email` is kept for display (it is the same address the
+ * owner already types when inviting co-teachers) and may be null when the
+ * identity provider supplies no email claim.
+ */
+export interface GoogleClassroomLinkedBy {
+  sub: string;
+  email: string | null;
+}
+
+/**
+ * Build the attribution to store when a class gets linked to a GC course.
+ * @param identity - the teacher performing the link
+ * @returns the attribution to persist on the group item
+ */
+export function buildGoogleClassroomLinkedBy(identity: TeacherIdentity): GoogleClassroomLinkedBy {
+  return {
+    sub: identity.sub,
+    email: identity.email ? normalizeEmail(identity.email) : null,
+  };
+}
+
+/**
+ * Read the attribution back off a group item.
+ *
+ * Classes linked before #1184 carry no attribution, so fall back to the class
+ * owner — they are the only teacher who could have linked it under the old
+ * flow. The email is unknown in that case; the UI then names the linker
+ * generically instead of guessing.
+ * @param item - the group item (may be undefined)
+ * @returns the attribution, or null when there is nothing to attribute to
+ */
+export function readGoogleClassroomLinkedBy(
+  item: Record<string, unknown> | undefined,
+): GoogleClassroomLinkedBy | null {
+  const stored = item?.googleClassroomLinkedBy;
+  if (stored && typeof stored === 'object') {
+    const { sub, email } = stored as { sub?: unknown; email?: unknown };
+    if (typeof sub === 'string' && sub) {
+      return { sub, email: typeof email === 'string' && email ? email : null };
+    }
+  }
+  const owner = item?.teacherSub;
+  if (typeof owner === 'string' && owner) {
+    return { sub: owner, email: null };
+  }
+  return null;
+}
+
+/**
+ * Decide what a failed "am I a teacher of this course?" probe proves.
+ *
+ * Google answers 404 for a course the caller is not a member of (it hides the
+ * existence of other people's courses), so only that status proves "not a
+ * teacher". An expired token, a missing scope or a Google outage prove nothing
+ * — those stay `unknown` so the UI leaves the share button enabled rather than
+ * blocking a teacher who is in fact allowed (issue #1184).
+ * @param statusCode - the HTTP status Google answered with
+ * @returns 'notTeacher' when proven, 'unknown' otherwise
+ */
+export function classifyCourseTeacherFailure(statusCode: number): 'notTeacher' | 'unknown' {
+  return statusCode === 404 ? 'notTeacher' : 'unknown';
+}
+
+/**
+ * Report whether the caller can post course work to the class's linked GC
+ * course, so the UI can disable the share button before the teacher hits a
+ * Google error (issue #1184).
+ *
+ * Probes `courses/{id}/teachers/me`, which is cheap and answers exactly the
+ * question Google enforces on courseWork creation: a GC co-teacher of the same
+ * course passes, a Smalruby co-teacher who is not in the course does not.
+ */
+async function handleGetGoogleCourseAccess(
+  identity: TeacherIdentity,
+  accessToken: string,
+  groupId: string,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const group = await getManageableGroup(identity, groupId);
+  const courseId = typeof group.googleClassroomCourseId === 'string' ? group.googleClassroomCourseId : '';
+  const linkedBy = readGoogleClassroomLinkedBy(group);
+  const linkedByEmail = linkedBy && linkedBy.sub !== identity.sub ? linkedBy.email : null;
+  if (!courseId) {
+    return { statusCode: 200, body: JSON.stringify({ courseId: null, status: 'notLinked', linkedByEmail: null }) };
+  }
+
+  let status: 'teacher' | 'notTeacher' | 'unknown';
+  try {
+    await callGoogleClassroomAPI(accessToken, `courses/${courseId}/teachers/me`);
+    status = 'teacher';
+  } catch (err) {
+    if (!(err instanceof GoogleAPIError)) throw err;
+    status = classifyCourseTeacherFailure(err.statusCode);
+  }
+  return { statusCode: 200, body: JSON.stringify({ courseId, status, linkedByEmail }) };
+}
+
 async function handleListGoogleCourses(accessToken: string): Promise<APIGatewayProxyStructuredResultV2> {
   const data = await callGoogleClassroomAPI(accessToken, 'courses?teacherId=me&courseStates=ACTIVE&pageSize=100') as {
     courses?: Array<{ id: string; name: string; section?: string }>;
@@ -2392,13 +2510,19 @@ async function handlePostAssignment(
   }
   const description = typeof body.description === 'string' ? body.description.trim() : '';
 
-  const courseWork = await callGoogleClassroomAPI(accessToken, `courses/${courseId}/courseWork`, 'POST', {
-    title: title.trim(),
-    description: description || undefined,
-    workType: 'ASSIGNMENT',
-    state: 'PUBLISHED',
-    materials: [{ link: { url: link, title: 'スモウルビーで開く' } }],
-  }) as { id: string; alternateLink: string };
+  const courseWork = await callGoogleClassroomAPI(
+    accessToken,
+    `courses/${courseId}/courseWork`,
+    'POST',
+    {
+      title: title.trim(),
+      description: description || undefined,
+      workType: 'ASSIGNMENT',
+      state: 'PUBLISHED',
+      materials: [{ link: { url: link, title: 'スモウルビーで開く' } }],
+    },
+    'postCourseWork',
+  ) as { id: string; alternateLink: string };
 
   // Persist courseWork info to prevent duplicate posting
   await docClient.send(new UpdateCommand({
@@ -2784,6 +2908,11 @@ function mapGroupSummary(item: Record<string, unknown>) {
     schemaVersion: typeof item.schemaVersion === 'number' ? item.schemaVersion : 1,
     topics: Array.isArray(item.topics) ? item.topics : [],
     googleClassroomCourseId: item.googleClassroomCourseId || null,
+    // Who linked the GC course (#1184). Only the email is exposed — enough for
+    // "ask ◯◯ sensei" and the same address co-teachers are invited by.
+    googleClassroomLinkedByEmail: item.googleClassroomCourseId
+      ? (readGoogleClassroomLinkedBy(item)?.email ?? null)
+      : null,
     studentCount: typeof item.studentCount === 'number' ? item.studentCount : null,
     coTeacherEmails: readCoTeacherEmails(item),
     createdAt: item.createdAt,
@@ -2820,6 +2949,10 @@ async function handleCreateGroup(identity: TeacherIdentity, body: Record<string,
   }
   if (typeof body.googleClassroomCourseId === 'string' && body.googleClassroomCourseId.trim()) {
     item.googleClassroomCourseId = body.googleClassroomCourseId.trim();
+    // Only this teacher's Google account is known to be a teacher of that
+    // course (the list it was picked from is `teacherId=me`), so record them
+    // as the linker (#1184).
+    item.googleClassroomLinkedBy = buildGoogleClassroomLinkedBy(identity);
   }
   await docClient.send(new PutCommand({ TableName: GROUPS_TABLE, Item: item }));
 
@@ -2872,8 +3005,11 @@ async function handleUpdateGroup(identity: TeacherIdentity, groupId: string, bod
   if (body.googleClassroomCourseId !== undefined) {
     if (body.googleClassroomCourseId === null || body.googleClassroomCourseId === '') {
       updates.googleClassroomCourseId = null;
+      updates.googleClassroomLinkedBy = null;
     } else if (typeof body.googleClassroomCourseId === 'string') {
       updates.googleClassroomCourseId = body.googleClassroomCourseId.trim();
+      // Re-linking moves the attribution to whoever linked it now (#1184).
+      updates.googleClassroomLinkedBy = buildGoogleClassroomLinkedBy(identity);
     } else {
       throw new ValidationError('googleClassroomCourseId must be a string or null');
     }
@@ -4974,6 +5110,13 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
       const identity = await verifyTeacherIdToken(token);
       result = await handleMigrateGroups(identity);
 
+    } else if (method === 'GET' && /^\/classroom-groups\/[^/]+\/google-course-access$/.test(path)) {
+      const token = extractBearerToken(event.headers?.authorization);
+      const identity = await verifyTeacherIdToken(token);
+      const accessToken = extractGoogleAccessToken(event.headers);
+      const groupId = event.pathParameters?.groupId || '';
+      result = await handleGetGoogleCourseAccess(identity, accessToken, groupId);
+
     } else if (method === 'PATCH' && /^\/classroom-groups\/[^/]+\/topics$/.test(path)) {
       const token = extractBearerToken(event.headers?.authorization);
       const identity = await verifyTeacherIdToken(token);
@@ -5173,7 +5316,7 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
       };
     }
     if (err instanceof GoogleAPIError) {
-      const mapped = googleApiErrorResponse(err.statusCode, err.googleStatus, err.googleMessage);
+      const mapped = googleApiErrorResponse(err.statusCode, err.googleStatus, err.googleMessage, err.operation);
       return { ...mapped, headers: corsHeaders };
     }
     if (err instanceof SyntaxError) {

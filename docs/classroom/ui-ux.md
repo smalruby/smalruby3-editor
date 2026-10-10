@@ -243,6 +243,7 @@ Google または Microsoft アカウントでサインインする画面。先�
 | クラス（学級）名 | 「技術 2026年度 / 2年1組」 | `classroom-detail-name` | 課題が属するクラスの表示ラベル（`formatClassLabel(group)`。v2 以前のデータでは `Classrooms.className`） |
 | 課題名入力 | 課題名（編集可） | `classroom-detail-assignment-name` | blur で保存 |
 | 課題配信ボタン | 「課題を配信」 | `classroom-post-assignment` | → teacher-post-assignment。**未配信のとき**表示 |
+| 共有できない理由 | 「このクラスの Google Classroom は ◯◯ 先生が連携しています。…」 | `classroom-post-assignment-blocked` | GC コースの教師ではないときだけ表示（配信ボタンは `disabled`） |
 | 課題確認リンク | 「課題を確認」 | `classroom-view-assignment` | 配信済みのとき表示（新しいタブ） |
 | 参加コード表示 | 「参加コード: 3cexm5」 | `classroom-detail-join-code` | 大きなフォントで中央表示 |
 | コード拡大ボタン | ⛶ アイコン（ツールチップ: 「全画面表示」） | `classroom-detail-expand-code` | 全画面コード表示 |
@@ -257,6 +258,13 @@ Google または Microsoft アカウントでサインインする画面。先�
 | 課題アーカイブボタン | 「課題をアーカイブ」 | `classroom-delete-classroom` | 赤枠ボタン、右寄せ。soft-delete（復元可能） |
 
 **課題配信ボタンの表示条件:** Google Classroom 連携はクラス（group）単位に移行したため、配信ボタン（`classroom-post-assignment`）は **クラスが GC 連携済み（`group.googleClassroomCourseId`）** であれば、その課題自体に courseId が無くても表示されます（課題の投稿先はクラスのコース）。課題単位の `googleClassroomCourseId`（v2 以前のフォールバック）が有る場合も表示されます。どちらの courseId も無い（非連携クラス）ときは表示されません。配信済み（課題に `googleClassroomAlternateLink` が保存済み）になると「Google Classroom で確認」リンク（`classroom-view-assignment`）に切り替わります。
+
+**課題配信ボタンを押せる条件 (#1184):** 配信は**押した先生自身の Google アカウント**で行われるため、
+紐付け先の Google Classroom コースの教師でなければ Google に拒否されます。事前判定
+（`GET /classroom-groups/{groupId}/google-course-access`）で「そのコースの教師ではない」と分かった
+ときだけボタンを `disabled` にし、`classroom-post-assignment-blocked` に誰に依頼すればよいかを
+表示します。判定できなかったとき（Google のトークンをまだ持っていない等）はボタンを無効化せず、
+失敗時のメッセージで同じ趣旨を伝えます（判定のために同意ポップアップは出しません）。
 
 **座席グリッド:**
 

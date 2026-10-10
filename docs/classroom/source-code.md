@@ -55,6 +55,7 @@ smalruby3-editor/
 │   │   │   ├── classroom-api.js       ← API クライアント (リトライ付き)
 │   │   │   ├── classroom-assignment-utils.js ← 課題エディタの純粋ヘルパー
 │   │   │   ├── classroom-group-utils.js ← サイドバー組階層の純粋ヘルパー
+│   │   │   ├── classroom-google-share.js ← GC 共有可否の判定 + 文言（純粋）#1184
 │   │   │   ├── classroom-evaluation/ ← sb3-analyzer（静的解析）+ evaluation-utils（総合評価/CSV）
 │   │   │   ├── classroom-kick-request-storage.js ← 退室依頼の localStorage 永続化 (#692)
 │   │   │   ├── google-classroom-auth.js ← Google Classroom OAuth
