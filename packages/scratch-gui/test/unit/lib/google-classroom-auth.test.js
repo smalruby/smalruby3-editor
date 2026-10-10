@@ -104,6 +104,29 @@ describe('requestClassroomAccessToken', () => {
         await expect(requestClassroomAccessToken()).rejects.toThrow();
     });
 
+    test('reports a blocked or declined consent retry as a permission problem', async () => {
+        // The retry popup opens without a fresh user gesture, so the browser
+        // can refuse it ('popup_failed_to_open') — the teacher must still get
+        // the translated permission message, not GIS's raw English error.
+        installGis([{ access_token: 'partial', expires_in: 3600 }, { error: 'popup_failed_to_open' }], () => false);
+        const { requestClassroomAccessToken } = require('../../../src/lib/google-classroom-auth');
+        await expect(requestClassroomAccessToken()).rejects.toMatchObject({
+            googleReason: 'googlePermissionDenied',
+        });
+    });
+
+    test('does not downgrade a state mismatch on the retry to a permission problem', async () => {
+        installGis(
+            [
+                { access_token: 'partial', expires_in: 3600 },
+                { access_token: 'spoofed', expires_in: 3600, state: 'not-the-expected-state' },
+            ],
+            () => false,
+        );
+        const { requestClassroomAccessToken } = require('../../../src/lib/google-classroom-auth');
+        await expect(requestClassroomAccessToken()).rejects.toThrow(/state mismatch/i);
+    });
+
     test('still resolves when the GIS build has no hasGrantedAllScopes helper', async () => {
         installGis([{ access_token: 'tok-legacy', expires_in: 3600 }], undefined);
         const { requestClassroomAccessToken } = require('../../../src/lib/google-classroom-auth');

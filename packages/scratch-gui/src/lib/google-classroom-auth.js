@@ -86,7 +86,11 @@ const _requestToken = (prompt) =>
                 return;
             }
             if (response.state !== expectedState) {
-                reject(new Error('OAuth state mismatch: potential CSRF attack detected'));
+                const mismatch = new Error('OAuth state mismatch: potential CSRF attack detected');
+                // Flagged so callers never downgrade a possible CSRF into a
+                // routine "permission was not granted" message.
+                mismatch.isStateMismatch = true;
+                reject(mismatch);
                 return;
             }
             resolve(response);
@@ -121,6 +125,20 @@ const _cacheToken = (response) => {
 };
 
 /**
+ * Build the error raised when the teacher did not grant every scope.
+ * @param {Error} [cause] - Underlying GIS failure, when there was one.
+ * @returns {Error} Error carrying the googlePermissionDenied reason.
+ */
+const _permissionDeniedError = (cause) => {
+    const err = new Error('Google Classroom permission was not granted. Please allow every requested permission.');
+    // Same key the backend uses for a Google 403 so the UI translates both the
+    // client-side (unticked scope) and server-side denial identically.
+    err.googleReason = 'googlePermissionDenied';
+    if (cause) err.cause = cause;
+    return err;
+};
+
+/**
  * Request an access token with Google Classroom scopes.
  * Returns cached token if still valid, otherwise triggers OAuth consent.
  * @returns {Promise<string>} Access token string.
@@ -140,16 +158,25 @@ export const requestClassroomAccessToken = async () => {
     // The teacher unticked at least one scope on the consent screen. Ask again
     // with an explicit consent prompt so they can grant the missing one; a
     // silent re-request would just hand back the same partial grant.
-    const retry = await _requestToken('consent');
+    let retry;
+    try {
+        retry = await _requestToken('consent');
+    } catch (err) {
+        // This second popup opens after the first consent round trip, so the
+        // original click no longer counts as user activation and the browser
+        // may refuse to open it; the teacher can also close or decline it.
+        // All of those are still "the permission was not granted" — report
+        // them as such instead of surfacing GIS's raw English error, which is
+        // exactly the opaque message issue #1175 is about. A state mismatch is
+        // a possible CSRF and must never be downgraded.
+        if (err && err.isStateMismatch) throw err;
+        throw _permissionDeniedError(err);
+    }
     if (_hasAllScopes(retry)) {
         return _cacheToken(retry);
     }
 
-    const err = new Error('Google Classroom permission was not granted. Please allow every requested permission.');
-    // Same key the backend uses for a Google 403 so the UI translates both the
-    // client-side (unticked scope) and server-side denial identically.
-    err.googleReason = 'googlePermissionDenied';
-    throw err;
+    throw _permissionDeniedError();
 };
 
 /**

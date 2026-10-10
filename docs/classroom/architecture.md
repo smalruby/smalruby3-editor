@@ -265,10 +265,13 @@ Google Classroom API の失敗は、Google が返した `error.status` / `error.
 
 レスポンス本文: `{error, reason, googleStatus?, googleMessage?}`。
 
-先生に表示するアクセストークンは `classroom.coursework.students` を含む 3 スコープを要求するが、
+クライアントが取得するアクセストークンは `classroom.coursework.students` を含む 3 スコープを要求するが、
 Google の同意画面はスコープごとにチェックボックスを出すため**一部だけ許可される**ことがある。
-クライアントは `hasGrantedAllScopes` で検証し、不足していれば `prompt: 'consent'` で再要求する
-（それでも不足するなら `googlePermissionDenied` として扱う）。
+クライアントは `hasGrantedAllScopes` で検証し、不足していれば `prompt: 'consent'` で再要求する。
+再要求してもなお不足する場合に加え、**再要求のポップアップがブラウザにブロックされた / 先生が
+閉じた・拒否した場合**も `googlePermissionDenied` として扱う（再要求は最初のクリックから時間が
+経っているため、ブラウザがポップアップを開かないことがある）。ただし OAuth の state 不一致
+（CSRF の疑い）はこの扱いに含めず、そのままエラーにする。
 
 ## データモデル
 

@@ -120,6 +120,8 @@ CDK スタック定義。以下のリソースを作成:
 | `verifyTeacherToken()` | Google ID Token 検証 |
 | `verifySessionToken()` | Session Token 検証 |
 | `callGoogleClassroomAPI()` | Google Classroom API プロキシ |
+| `parseGoogleApiErrorBody()` | Google のエラー本文から `status` / `message` を取り出す（失敗時は空文字） |
+| `googleApiErrorResponse()` | Google の HTTP ステータスを自前のレスポンス（`reason` 付き）へ写像 |
 | `getCorsHeaders()` | CORS ヘッダー生成 |
 | `checkJoinRateLimit()` | レート制限チェック |
 | `generateJoinCode()` | 参加コード生成 (6文字英数字) |
