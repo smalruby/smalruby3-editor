@@ -83,21 +83,34 @@ describe('TeacherClassDetail — Google Classroom post button', () => {
 });
 
 // Sharing posts course work with the pressing teacher's own Google account, so
-// a class co-teacher who is not a teacher of the linked course cannot share.
+// a class co-teacher who is not a teacher of the linked course cannot share —
+// and one on a personal Google account never can. Blocked by default, with a
+// check the genuine Google Classroom co-teacher can run themselves.
 describe('TeacherClassDetail — Google Classroom share gate (issue #1184)', () => {
-    const linkedProps = (googleCourseAccess) => ({
+    const linkedProps = (googleCourseAccess, groupOver = {}) => ({
         selectedClassroom: classroom({ googleClassroomCourseId: null }),
-        group: { groupId: 'g1', googleClassroomCourseId: 'course-123' },
+        group: { groupId: 'g1', googleClassroomCourseId: 'course-123', ...groupOver },
         googleCourseAccess: googleCourseAccess && { groupId: 'g1', ...googleCourseAccess },
+        onVerifyGoogleCourseAccess: jest.fn(),
     });
     const postButton = () => document.querySelector('[data-testid="classroom-post-assignment"]');
     const blockedNote = () => document.querySelector('[data-testid="classroom-post-assignment-blocked"]');
+    const verifyButton = () => document.querySelector('[data-testid="classroom-post-assignment-verify"]');
 
-    test('disables the share button and names who to ask when the teacher is not a course teacher', () => {
-        renderDetail(linkedProps({ status: 'notTeacher', linkedByEmail: 'owner@example.com' }));
+    // The teacher in the bug report had never granted Google access, so the
+    // probe could not run at all: this is the state they open the class in.
+    test('disables the share button from the start for a teacher who did not link the course', () => {
+        renderDetail(linkedProps(null, { googleClassroomLinkedByEmail: 'owner@example.com' }));
         expect(postButton()).toBeDisabled();
         expect(blockedNote()).toBeInTheDocument();
         expect(blockedNote().textContent).toContain('owner@example.com');
+        expect(verifyButton()).toBeInTheDocument();
+    });
+
+    test('keeps it disabled when the silent check could not tell', () => {
+        renderDetail(linkedProps({ status: 'unknown', linkedByEmail: 'owner@example.com' }));
+        expect(postButton()).toBeDisabled();
+        expect(verifyButton()).toBeInTheDocument();
     });
 
     test('stays generic rather than guessing when the linking teacher is unknown', () => {
@@ -106,45 +119,79 @@ describe('TeacherClassDetail — Google Classroom share gate (issue #1184)', () 
         expect(blockedNote().textContent).toContain('another teacher');
     });
 
-    test('keeps the share button usable for a teacher of the course', () => {
+    test('keeps the share button usable for the teacher who linked the course', () => {
+        renderDetail(linkedProps(null, { googleClassroomLinkedByMe: true }));
+        expect(postButton()).not.toBeDisabled();
+        expect(blockedNote()).not.toBeInTheDocument();
+    });
+
+    test('keeps the share button usable for a proven teacher of the course', () => {
         renderDetail(linkedProps({ status: 'teacher', linkedByEmail: 'owner@example.com' }));
         expect(postButton()).not.toBeDisabled();
         expect(blockedNote()).not.toBeInTheDocument();
     });
 
-    test('keeps the share button usable when the check was inconclusive', () => {
-        renderDetail(linkedProps({ status: 'unknown', linkedByEmail: null }));
-        expect(postButton()).not.toBeDisabled();
-        expect(blockedNote()).not.toBeInTheDocument();
+    test('the check asks the container to verify this class', () => {
+        const props = linkedProps(null);
+        renderDetail(props);
+        fireEvent.click(verifyButton());
+        expect(props.onVerifyGoogleCourseAccess).toHaveBeenCalledWith(props.group);
     });
 
-    test('keeps the share button usable when the check never ran', () => {
-        renderDetail(linkedProps(null));
-        expect(postButton()).not.toBeDisabled();
-        expect(blockedNote()).not.toBeInTheDocument();
+    // A check that came back negative must read as a result, and must not
+    // offer the same popup again — Google's answer will not change.
+    test('reports a failed check in place and stops offering it', () => {
+        renderDetail(linkedProps({ status: 'notTeacher', linkedByEmail: 'owner@example.com', verifyFailed: true }));
+        expect(blockedNote().textContent).toContain('could not confirm');
+        expect(blockedNote().textContent).toContain('owner@example.com');
+        expect(verifyButton()).not.toBeInTheDocument();
+    });
+
+    // Consent dismissed / Google unreachable: still blocked, still retryable,
+    // and reported here rather than in an error banner.
+    test('keeps the check available when it failed without an answer', () => {
+        renderDetail(linkedProps({ status: 'unknown', linkedByEmail: null, verifyFailed: true }));
+        expect(blockedNote().textContent).toContain('could not confirm');
+        expect(verifyButton()).toBeInTheDocument();
+    });
+
+    test('shows the check as running while it is in flight', () => {
+        renderDetail({ ...linkedProps(null), isVerifyingGoogleCourseAccess: true });
+        expect(verifyButton()).toBeDisabled();
+        expect(verifyButton().textContent).toContain('Checking');
     });
 
     test('falls back to the class attribution when the probe carries no email', () => {
-        renderDetail({
-            selectedClassroom: classroom({ googleClassroomCourseId: null }),
-            group: {
-                groupId: 'g1',
-                googleClassroomCourseId: 'course-123',
-                googleClassroomLinkedByEmail: 'linker@example.com',
-            },
-            googleCourseAccess: { groupId: 'g1', status: 'notTeacher', linkedByEmail: null },
-        });
+        renderDetail(
+            linkedProps(
+                { status: 'notTeacher', linkedByEmail: null },
+                {
+                    googleClassroomLinkedByEmail: 'linker@example.com',
+                },
+            ),
+        );
         expect(blockedNote().textContent).toContain('linker@example.com');
     });
 
     // The probe is async, so switching classes leaves the previous class's
     // verdict in state until the new answer lands (and answers can arrive out
-    // of order). It must not gate a class it was never about.
+    // of order). It must not decide anything about a class it was not about —
+    // including lifting the block.
     test('ignores a verdict that was about a different class', () => {
         renderDetail({
             selectedClassroom: classroom({ googleClassroomCourseId: null }),
             group: { groupId: 'gB', googleClassroomCourseId: 'course-B' },
-            googleCourseAccess: { groupId: 'gA', status: 'notTeacher', linkedByEmail: 'a@example.com' },
+            googleCourseAccess: { groupId: 'gA', status: 'teacher', linkedByEmail: 'a@example.com' },
+        });
+        expect(postButton()).toBeDisabled();
+    });
+
+    // Pre-v2 classes link Google Classroom on the assignment with nobody
+    // recorded as the linker, so the default block would lock out the owner.
+    test('keeps the old proof-only rule when only the assignment is linked', () => {
+        renderDetail({
+            selectedClassroom: classroom({ googleClassroomCourseId: 'course-123' }),
+            group: { groupId: 'g1', googleClassroomCourseId: null },
         });
         expect(postButton()).not.toBeDisabled();
         expect(blockedNote()).not.toBeInTheDocument();

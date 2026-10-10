@@ -346,6 +346,8 @@ const useTeacherClassroom = ({
         // Google Classroom
         googleCourses: google.googleCourses,
         googleCourseAccess: google.googleCourseAccess,
+        isVerifyingGoogleCourseAccess: google.isVerifyingGoogleCourseAccess,
+        handleVerifyGoogleCourseAccess: google.handleVerifyGoogleCourseAccess,
         selectedGoogleCourse: google.selectedGoogleCourse,
         handleShowGoogleCourses: google.handleShowGoogleCourses,
         handleLoadGoogleCourses: google.handleLoadGoogleCourses,

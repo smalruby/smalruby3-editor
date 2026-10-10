@@ -375,6 +375,25 @@
     line-height: 1.4;
 }
 
+/* 「自分も Google Classroom の先生です（確認する）」— ブロック表示の中の
+   オプトイン導線。押したときだけ同意を求める。#1184 */
+.join-code-gc-verify-button {
+    display: inline-block;
+    margin-top: 0.3rem;
+    padding: 0.2rem 0.6rem;
+    border: 1px solid #c3cad8;
+    border-radius: 0.5rem;
+    background-color: #fff;
+    color: #4c97ff;
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+
+.join-code-gc-verify-button:disabled {
+    color: #9aa0ad;
+    cursor: default;
+}
+
 /* コピー完了のリアクション: アイコンがチェックに変わり緑で強調 */
 .join-code-action-copied {
     border-color: #4caf50;

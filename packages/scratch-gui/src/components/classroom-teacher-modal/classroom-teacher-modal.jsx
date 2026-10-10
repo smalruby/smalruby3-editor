@@ -93,6 +93,8 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         downloadProgress,
         googleCourses,
         googleCourseAccess,
+        isVerifyingGoogleCourseAccess,
+        onVerifyGoogleCourseAccess,
         selectedGoogleCourse,
         googleSignInRef,
         googleFallbackReason,
@@ -344,6 +346,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         googleCourseAccess={googleCourseAccess}
                         group={selectedGroup}
                         isLoading={isLoading}
+                        isVerifyingGoogleCourseAccess={isVerifyingGoogleCourseAccess}
                         kickRequestsBySeat={kickRequestsBySeat}
                         members={members}
                         noBackButton
@@ -365,6 +368,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         shared={shared}
                         onOpenShareSuggestion={handleOpenShareSuggestion}
                         onShowPostAssignment={authProvider === 'google' ? onShowPostAssignment : null}
+                        onVerifyGoogleCourseAccess={authProvider === 'google' ? onVerifyGoogleCourseAccess : null}
                         onToggleCodeFullscreen={onToggleCodeFullscreen}
                         onUpdateAssignmentName={onUpdateAssignmentName}
                     />

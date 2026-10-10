@@ -45,10 +45,13 @@ const translateGoogleClassroomError = (intl, err) => {
         });
     }
     if (reason === 'googleCourseNotFound') {
+        // This now reaches the teacher who linked the course (the server tells
+        // the two 404s apart), and they are a teacher of it — so the way out is
+        // to link it again, not to ask themselves for help (issue #1184).
         return intl.formatMessage({
             defaultMessage:
-                'The linked Google Classroom class could not be found. It may have been deleted, or the ' +
-                'Google account you signed in with may not be a teacher of that class.',
+                'The linked Google Classroom class could not be found. It may have been deleted or is no ' +
+                'longer reachable. Please link the Google Classroom class again from class management.',
             description: 'Error when the linked Google Classroom course is missing or inaccessible',
             id: 'gui.classroom.error.googleCourseNotFound',
         });

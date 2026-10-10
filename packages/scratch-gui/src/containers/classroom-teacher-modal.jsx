@@ -139,6 +139,8 @@ const ClassroomTeacherModal = () => {
         downloadProgress: teacher.downloadProgress,
         googleCourses: teacher.googleCourses,
         googleCourseAccess: teacher.googleCourseAccess,
+        isVerifyingGoogleCourseAccess: teacher.isVerifyingGoogleCourseAccess,
+        onVerifyGoogleCourseAccess: teacher.handleVerifyGoogleCourseAccess,
         selectedGoogleCourse: teacher.selectedGoogleCourse,
         googleSignInRef: teacher.googleSignInRef,
         googleFallbackReason: teacher.googleFallbackReason,

@@ -42,17 +42,21 @@ const useGoogleClassroom = ({
     const [googleAccessToken, setGoogleAccessToken] = useState(null);
     const [googleCourses, setGoogleCourses] = useState([]);
     const [selectedGoogleCourse, setSelectedGoogleCourse] = useState(null);
-    // Pre-flight for the share button: {groupId, status, linkedByEmail}.
+    // Share-button verdict: {groupId, status, linkedByEmail, linkedByMe,
+    // verifyFailed}. Sharing is blocked unless this says otherwise (#1184).
     const [googleCourseAccess, setGoogleCourseAccess] = useState(null);
+    const [isVerifyingGoogleCourseAccess, setIsVerifyingGoogleCourseAccess] = useState(false);
 
     /**
      * Find out whether this teacher can post to the class's linked Google
-     * Classroom course, so the share button can be disabled with an
-     * explanation instead of failing inside Google (issue #1184).
+     * Classroom course, so a Google Classroom co-teacher who already granted
+     * access this session gets the share button without having to ask for a
+     * check (issue #1184).
      *
      * Deliberately silent: it uses a Google token the teacher already granted
-     * and gives up (leaving the button enabled) when there is none, so the
-     * check never triggers a consent popup on its own.
+     * and gives up when there is none, so the check never triggers a consent
+     * popup on its own. Giving up leaves the button blocked — the teacher can
+     * lift that themselves with the explicit check below.
      * @param {?object} group - the class (group) whose link to check
      * @returns {Promise<void>} resolves once the state has been updated
      */
@@ -62,30 +66,85 @@ const useGoogleClassroom = ({
                 setGoogleCourseAccess(null);
                 return;
             }
+            const unknown = {
+                groupId: group.groupId,
+                status: GOOGLE_COURSE_ACCESS.UNKNOWN,
+                linkedByEmail: group.googleClassroomLinkedByEmail || null,
+                linkedByMe: Boolean(group.googleClassroomLinkedByMe),
+                verifyFailed: false,
+            };
             const accessToken = googleAccessToken || getCachedClassroomAccessToken();
             if (!accessToken) {
-                setGoogleCourseAccess({
-                    groupId: group.groupId,
-                    status: GOOGLE_COURSE_ACCESS.UNKNOWN,
-                    linkedByEmail: group.googleClassroomLinkedByEmail || null,
-                });
+                setGoogleCourseAccess(unknown);
                 return;
             }
             try {
                 const data = await classroomAPI.getGoogleCourseAccess(idToken, accessToken, group.groupId);
                 setGoogleCourseAccess({
-                    groupId: group.groupId,
+                    ...unknown,
                     status: data.status || GOOGLE_COURSE_ACCESS.UNKNOWN,
                     linkedByEmail: data.linkedByEmail || group.googleClassroomLinkedByEmail || null,
+                    linkedByMe: Boolean(data.linkedByMe) || unknown.linkedByMe,
                 });
             } catch {
-                // A failed probe must not block sharing, and must not raise an
-                // error banner either — nothing the teacher did has failed yet.
+                // Nothing the teacher did has failed yet, so this must not
+                // raise an error banner.
+                setGoogleCourseAccess(unknown);
+            }
+        },
+        [idToken, googleAccessToken],
+    );
+
+    /**
+     * Run the same probe at the teacher's request, asking for Google access
+     * when they have none.
+     *
+     * This is the way out of the default block for a teacher who really is a
+     * Google Classroom co-teacher of the linked course: they press "check",
+     * grant access once, and sharing opens up. Dismissing consent or being
+     * refused by Google is not an error the teacher needs a banner for — it is
+     * simply the block standing, so the reason is reported in place (#1184).
+     * @param {?object} group - the class (group) whose link to check
+     * @returns {Promise<void>} resolves once the state has been updated
+     */
+    const handleVerifyGoogleCourseAccess = useCallback(
+        async (group) => {
+            if (!group || !group.groupId || !group.googleClassroomCourseId) return;
+            const base = {
+                groupId: group.groupId,
+                linkedByEmail: group.googleClassroomLinkedByEmail || null,
+                linkedByMe: Boolean(group.googleClassroomLinkedByMe),
+            };
+            setIsVerifyingGoogleCourseAccess(true);
+            try {
+                let accessToken = googleAccessToken || getCachedClassroomAccessToken();
+                if (!accessToken) {
+                    accessToken = await requestClassroomAccessToken();
+                    setGoogleAccessToken(accessToken);
+                }
+                const data = await classroomAPI.getGoogleCourseAccess(idToken, accessToken, group.groupId);
+                const status = data.status || GOOGLE_COURSE_ACCESS.UNKNOWN;
                 setGoogleCourseAccess({
-                    groupId: group.groupId,
-                    status: GOOGLE_COURSE_ACCESS.UNKNOWN,
-                    linkedByEmail: group.googleClassroomLinkedByEmail || null,
+                    ...base,
+                    status,
+                    linkedByEmail: data.linkedByEmail || base.linkedByEmail,
+                    linkedByMe: Boolean(data.linkedByMe) || base.linkedByMe,
+                    verifyFailed: status !== GOOGLE_COURSE_ACCESS.TEACHER,
                 });
+            } catch (err) {
+                // A refused or expired token is useless for the next attempt,
+                // so drop it and let a retry re-run consent (#1175).
+                if (err && (err.status === 401 || err.status === 403)) {
+                    clearClassroomAccessToken();
+                    setGoogleAccessToken(null);
+                }
+                setGoogleCourseAccess({
+                    ...base,
+                    status: GOOGLE_COURSE_ACCESS.UNKNOWN,
+                    verifyFailed: true,
+                });
+            } finally {
+                setIsVerifyingGoogleCourseAccess(false);
             }
         },
         [idToken, googleAccessToken],
@@ -216,7 +275,9 @@ const useGoogleClassroom = ({
     return {
         googleCourses,
         googleCourseAccess,
+        isVerifyingGoogleCourseAccess,
         handleCheckGoogleCourseAccess,
+        handleVerifyGoogleCourseAccess,
         selectedGoogleCourse,
         handleShowGoogleCourses,
         handleLoadGoogleCourses,

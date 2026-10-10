@@ -2,6 +2,7 @@ import {
   googleApiErrorResponse,
   buildGoogleClassroomLinkedBy,
   readGoogleClassroomLinkedBy,
+  isGoogleClassroomLinker,
   classifyCourseTeacherFailure,
 } from '../handler';
 
@@ -29,6 +30,40 @@ describe('googleApiErrorResponse with operation context', () => {
     expect(parse(googleApiErrorResponse(404, 'NOT_FOUND', '', 'listCourses')).reason).toBe(
       'googleCourseNotFound',
     );
+  });
+
+  // The teacher who linked the course *is* a teacher of it, so their 404 means
+  // the course is gone — "ask the teacher who linked it" would send them to
+  // themselves (issue #1184).
+  test('404 while the linking teacher posts means the course is gone, not a wrong teacher', () => {
+    const res = googleApiErrorResponse(404, 'NOT_FOUND', '', 'postCourseWorkAsLinker');
+    expect(parse(res).reason).toBe('googleCourseNotFound');
+  });
+});
+
+describe('isGoogleClassroomLinker', () => {
+  const identity = { sub: 'linker-sub', email: 'linker@example.com' };
+
+  test('recognizes the recorded linker', () => {
+    const item = { teacherSub: 'owner-sub', googleClassroomLinkedBy: { sub: 'linker-sub', email: null } };
+    expect(isGoogleClassroomLinker(identity, item)).toBe(true);
+  });
+
+  test('a co-teacher who did not link it is not the linker', () => {
+    const item = { teacherSub: 'owner-sub', googleClassroomLinkedBy: { sub: 'someone-else', email: null } };
+    expect(isGoogleClassroomLinker(identity, item)).toBe(false);
+  });
+
+  // Classes linked before the attribution existed fall back to the owner —
+  // the only teacher who could have linked them under the old flow.
+  test('falls back to the class owner for rows written before the field existed', () => {
+    expect(isGoogleClassroomLinker(identity, { teacherSub: 'linker-sub' })).toBe(true);
+    expect(isGoogleClassroomLinker(identity, { teacherSub: 'owner-sub' })).toBe(false);
+  });
+
+  test('nothing to attribute the link to is not a match', () => {
+    expect(isGoogleClassroomLinker(identity, {})).toBe(false);
+    expect(isGoogleClassroomLinker(identity, undefined)).toBe(false);
   });
 });
 

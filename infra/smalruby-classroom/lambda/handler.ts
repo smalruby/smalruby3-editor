@@ -435,7 +435,10 @@ export function parseGoogleApiErrorBody(raw: string): { googleStatus: string; go
  * not in behind a 404, so a 404 from `courseWork` creation does not mean "the
  * course is gone" — it means the teacher who pressed the button is not a
  * teacher of that course (issue #1184). That case gets its own reason so the
- * UI can say who to ask instead of blaming the link.
+ * UI can say who to ask instead of blaming the link. The teacher who linked
+ * the course is the exception (`postCourseWorkAsLinker`): they are a teacher of
+ * it, so their 404 really is a missing/unreachable course and falls through to
+ * `googleCourseNotFound`, which tells them to link it again.
  */
 export function googleApiErrorResponse(
   statusCode: number,
@@ -2271,6 +2274,26 @@ export function readGoogleClassroomLinkedBy(
 }
 
 /**
+ * Is this teacher the one who linked the class to its GC course?
+ *
+ * The linker is the only teacher Smalruby knows to be a teacher of the course
+ * (they picked it from their own `teacherId=me` list), so they are the one
+ * teacher allowed to share without proving anything — and the one teacher who
+ * must never be told to "ask the teacher who linked it", which would be
+ * themselves (issue #1184).
+ * @param identity - the signed-in teacher
+ * @param item - the group item (or, for pre-v2 links, the classroom item)
+ * @returns true when this teacher linked the course
+ */
+export function isGoogleClassroomLinker(
+  identity: TeacherIdentity,
+  item: Record<string, unknown> | undefined,
+): boolean {
+  const linkedBy = readGoogleClassroomLinkedBy(item);
+  return Boolean(linkedBy && linkedBy.sub === identity.sub);
+}
+
+/**
  * Decide what a failed "am I a teacher of this course?" probe proves.
  *
  * Google answers 404 for a course the caller is not a member of (it hides the
@@ -2302,9 +2325,13 @@ async function handleGetGoogleCourseAccess(
   const group = await getManageableGroup(identity, groupId);
   const courseId = typeof group.googleClassroomCourseId === 'string' ? group.googleClassroomCourseId : '';
   const linkedBy = readGoogleClassroomLinkedBy(group);
-  const linkedByEmail = linkedBy && linkedBy.sub !== identity.sub ? linkedBy.email : null;
+  const linkedByMe = isGoogleClassroomLinker(identity, group);
+  const linkedByEmail = linkedBy && !linkedByMe ? linkedBy.email : null;
   if (!courseId) {
-    return { statusCode: 200, body: JSON.stringify({ courseId: null, status: 'notLinked', linkedByEmail: null }) };
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ courseId: null, status: 'notLinked', linkedByEmail: null, linkedByMe: false }),
+    };
   }
 
   let status: 'teacher' | 'notTeacher' | 'unknown';
@@ -2315,7 +2342,7 @@ async function handleGetGoogleCourseAccess(
     if (!(err instanceof GoogleAPIError)) throw err;
     status = classifyCourseTeacherFailure(err.statusCode);
   }
-  return { statusCode: 200, body: JSON.stringify({ courseId, status, linkedByEmail }) };
+  return { statusCode: 200, body: JSON.stringify({ courseId, status, linkedByEmail, linkedByMe }) };
 }
 
 async function handleListGoogleCourses(accessToken: string): Promise<APIGatewayProxyStructuredResultV2> {
@@ -2478,13 +2505,21 @@ async function handlePostAssignment(
   // v2: the GC link lives on the class (group); the assignment's own field
   // remains as a pre-v2 fallback. Only look the group up when the assignment
   // itself carries no courseId.
+  // Attribution belongs to whichever item carries the link we are about to
+  // post to: the class (group) for v2 links, the assignment itself for pre-v2
+  // ones (`readGoogleClassroomLinkedBy` then falls back to its owner, the only
+  // teacher who could have linked it back then).
   let courseId = resolveGoogleCourseId(result.Item, undefined);
+  let linkedByItem: Record<string, unknown> = result.Item;
   if (!courseId && typeof result.Item.groupId === 'string' && result.Item.groupId) {
     const groupResult = await docClient.send(new GetCommand({
       TableName: GROUPS_TABLE,
       Key: { groupId: result.Item.groupId },
     }));
     courseId = resolveGoogleCourseId(result.Item, groupResult.Item);
+    if (courseId && groupResult.Item) {
+      linkedByItem = groupResult.Item;
+    }
   }
   if (!courseId) {
     throw new ValidationError('This classroom is not linked to Google Classroom');
@@ -2521,7 +2556,12 @@ async function handlePostAssignment(
       state: 'PUBLISHED',
       materials: [{ link: { url: link, title: 'スモウルビーで開く' } }],
     },
-    'postCourseWork',
+    // A 404 means something different depending on who pressed the button: for
+    // anyone but the linker it is "you are not a teacher of that course", but
+    // the linker *is* one, so for them it means the course is gone or no longer
+    // reachable — telling them to ask the teacher who linked it would point
+    // them at themselves (issue #1184).
+    isGoogleClassroomLinker(identity, linkedByItem) ? 'postCourseWorkAsLinker' : 'postCourseWork',
   ) as { id: string; alternateLink: string };
 
   // Persist courseWork info to prevent duplicate posting
@@ -2898,7 +2938,7 @@ async function ensureGroupTopic(
   }));
 }
 
-function mapGroupSummary(item: Record<string, unknown>) {
+function mapGroupSummary(item: Record<string, unknown>, identity?: TeacherIdentity) {
   return {
     groupId: item.groupId,
     name: item.name,
@@ -2913,6 +2953,13 @@ function mapGroupSummary(item: Record<string, unknown>) {
     googleClassroomLinkedByEmail: item.googleClassroomCourseId
       ? (readGoogleClassroomLinkedBy(item)?.email ?? null)
       : null,
+    // Whether *this* teacher linked it. The UI blocks sharing by default for
+    // everyone else (a Smalruby co-teacher is usually not in the GC course and
+    // can never become one across Workspaces), so it needs a server-decided
+    // boolean — matching email strings client-side breaks on case and aliases.
+    googleClassroomLinkedByMe: Boolean(
+      item.googleClassroomCourseId && identity && isGoogleClassroomLinker(identity, item),
+    ),
     studentCount: typeof item.studentCount === 'number' ? item.studentCount : null,
     coTeacherEmails: readCoTeacherEmails(item),
     createdAt: item.createdAt,
@@ -2956,7 +3003,7 @@ async function handleCreateGroup(identity: TeacherIdentity, body: Record<string,
   }
   await docClient.send(new PutCommand({ TableName: GROUPS_TABLE, Item: item }));
 
-  return { statusCode: 201, body: JSON.stringify(mapGroupSummary(item)) };
+  return { statusCode: 201, body: JSON.stringify(mapGroupSummary(item, identity)) };
 }
 
 async function handleListGroups(identity: TeacherIdentity): Promise<APIGatewayProxyStructuredResultV2> {
@@ -2968,7 +3015,7 @@ async function handleListGroups(identity: TeacherIdentity): Promise<APIGatewayPr
   });
   const coManaged = await listCoManagedGroups(identity);
   const groups = [...result, ...coManaged].map(item => ({
-    ...mapGroupSummary(item),
+    ...mapGroupSummary(item, identity),
     role: item.teacherSub === identity.sub ? 'owner' : 'co-teacher',
   }));
   return { statusCode: 200, body: JSON.stringify({ groups }) };
@@ -3059,7 +3106,7 @@ async function handleUpdateGroup(identity: TeacherIdentity, groupId: string, bod
     await propagateStudentCountToClassrooms(groupId, updates.studentCount as number);
   }
 
-  return { statusCode: 200, body: JSON.stringify(mapGroupSummary(result.Attributes || {})) };
+  return { statusCode: 200, body: JSON.stringify(mapGroupSummary(result.Attributes || {}, identity)) };
 }
 
 /**
@@ -3271,7 +3318,7 @@ async function handleUpdateGroupTopics(
     ExpressionAttributeValues: { ':topics': topics, ':now': now },
     ReturnValues: 'ALL_NEW',
   }));
-  return { statusCode: 200, body: JSON.stringify(mapGroupSummary(result.Attributes || {})) };
+  return { statusCode: 200, body: JSON.stringify(mapGroupSummary(result.Attributes || {}, identity)) };
 }
 
 /**
