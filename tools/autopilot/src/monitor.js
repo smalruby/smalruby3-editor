@@ -157,8 +157,9 @@ const MONITOR_HTML = `<!doctype html>
   td button.copy-btn { font-size: .72rem; padding: 0 .2rem; line-height: 1.3; border: 1px solid transparent;
                        background: transparent; border-radius: .3rem; }
   td button.copy-btn:hover { border-color: #cbd5e1; background: #fff; }
-  /* コピーできた行を一瞬光らせる。再描画で作り直されても animation-delay で経過分から続ける */
-  @keyframes copied-flash { from { background: #fde68a; } to { background: transparent; } }
+  /* コピーできた行を一瞬光らせる。再描画で作り直されても animation-delay で経過分から続ける。
+     to を書かないので、blocked-row / running-row の行は元の背景色へ戻る（透明を経由しない） */
+  @keyframes copied-flash { from { background-color: #fde68a; } }
   #board tr.copied-row > td { animation: copied-flash 1.2s ease-out; animation-delay: var(--flash-delay, 0ms); }
   .title-line .prchip { margin: 0; }
   .title-line .t { flex: 0 1 auto; min-width: 0; }
