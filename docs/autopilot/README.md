@@ -594,7 +594,7 @@ GitHub Projects で行い、モニタは俯瞰・log 閲覧・pause/resume/即�
   usage pause 中 **`USAGE ⏸`**（橙）。詳細は「Claude 使用量の auto-pause と強制再開」。
   各アラートに **`check autopilot (#N)` のコピー用ショートカット**があり、Claude に
   貼ると `.claude/skills/check-autopilot` スキルが診断・復旧支援する
-- **ボード行**: Issue（リンク + **PR チップ** + **▼** + タイトル）/ Status pill / Size / AI Status（live）/
+- **ボード行**: Issue（**📋** + リンク + **PR チップ** + **▼** + タイトル）/ Status pill / Size / AI Status（live）/
   担当 / **sub-issue 進捗**（N/M・%・バー）/ Now（実行中フェーズ + 経過分 + **log ボタン → モーダル**）
   - **PR は専用列ではなく Issue 番号のすぐ右**に置く（#1212）。レビュー待ちで見たいのは PR なので、
     Issue を経由せず 1 クリックで開けるようにする。インラインに並べるのは **open の PR だけ**
@@ -607,6 +607,15 @@ GitHub Projects で行い、モニタは俯瞰・log 閲覧・pause/resume/即�
     復元する）。open / それ以外の振り分けは `phases.js` の純粋関数 `splitPrsForTitle` を
     モニタに埋め込んで共有する
   - 狭い幅でも PR チップと ▼ は折り返さず、タイトルだけを省略表示にする
+  - **Issue 列の左端の 📋**（#1213）で、Issue を人に共有したり Claude に引き継いだりするための
+    文字列をコピーする。押したときだけコピーし（行のクリックではコピーしない）、PR チップの数や
+    タイトルの長さに関係なくどの行でも同じ位置に出る。コピーする文字列は 1 行目
+    `#1199 PR#1220 タイトル全文` と、Issue・PR の URL を 1 行ずつ。PR は画面にインラインで並ぶ
+    **open の PR だけ**（merged / closed は含めない。無ければ `#1199 タイトル` と Issue の URL だけ）。
+    組み立ては `phases.js` の純粋関数 `issueCopyText` をモニタに埋め込んで共有する。
+    コピーできたことは**行を一瞬光らせる**だけで伝える（5 秒ごとの再描画をまたいでも経過分から
+    続ける）。`localhost` 以外（IP 直打ち等）で開いて `navigator.clipboard` が使えないときは
+    `prompt` で文字列を表示し、その場合は光らせない
   - **担当列はオーナー（駆動者）を太字で明示**する（`autopilot-assignee:` ディレクティブが
     あれば反映）。**自分がオーナーでない**共同担当の行には **👁 + オーナー login** の
     「観察中」マーカーを付ける（#938）。観察対象（他人が駆動する item）はこの daemon の
