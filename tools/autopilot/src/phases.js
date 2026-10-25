@@ -2477,6 +2477,24 @@ function splitPrsForTitle(prs) {
 }
 
 /**
+ * 俯瞰ボードの 📋 でコピーする文字列を組み立てる（クライアント共有・純粋・#1213）。
+ * 1 行目は `#Issue PR#… タイトル`、続けて Issue と PR の URL を 1 行ずつ。PR は画面に
+ * インラインで並ぶ open のものだけ（`splitPrsForTitle` の `inline` と同じ集合）にして、
+ * 共有・引き継ぎ先が「いま見るべき PR」だけを受け取れるようにする。タイトルは省略しない。
+ * モニタへ `toString` で埋め込むので、`splitPrsForTitle` と一緒に置けば自己完結する。
+ * @param {{issue:number, title?:string, prs?:object[]}} item board item
+ * @param {string} repoUrl `https://github.com/<owner>/<repo>`
+ * @returns {string} 改行区切りのコピー文字列
+ */
+function issueCopyText(item, repoUrl) {
+    const inline = splitPrsForTitle(item.prs).inline;
+    const head = ['#' + item.issue].concat(inline.map((p) => 'PR#' + p.number));
+    if (item.title) head.push(item.title);
+    const urls = [repoUrl + '/issues/' + item.issue].concat(inline.map((p) => repoUrl + '/pull/' + p.number));
+    return [head.join(' ')].concat(urls).join('\n');
+}
+
+/**
  * 「あとで / 今やる」の楽観的更新・連打対策の状態遷移（クライアント共有・自己完結・純粋）。
  * 状態は `{ [issue]: { desired, confirmed, seq, inFlight, error } }`（保留中の Issue だけ持つ）。
  *
@@ -2606,6 +2624,7 @@ module.exports = {
     splitLaterBoard,
     laterPendingReducer,
     splitPrsForTitle,
+    issueCopyText,
     isTrackerItem,
     hasTrackingLabel,
     waitingLabelAction,

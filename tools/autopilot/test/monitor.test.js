@@ -382,3 +382,25 @@ test('MONITOR_HTML: PR は Issue 番号のすぐ右に open だけ並べ、merge
     assert.ok(iIssue > -1 && iIssue < iChips && iChips < iMenu && iMenu < iTitle,
         `order: issue(${iIssue}) < chips(${iChips}) < menu(${iMenu}) < title(${iTitle})`);
 });
+
+test('MONITOR_HTML: Issue 列の左端に 📋（Issue と PR をコピー）を固定位置で置く（#1213）', () => {
+    // 文字列組み立ては phases.js の純粋関数を埋め込んで共有する
+    assert.match(MONITOR_HTML, /function issueCopyText\(item, repoUrl\)/);
+    assert.match(MONITOR_HTML, /issueCopyText\(it, repoUrl\)/);
+    assert.match(MONITOR_HTML, /data-testid="board-copy-issue"/);
+    assert.match(MONITOR_HTML, /title="Issue と PR をコピー" aria-label="Issue と PR をコピー"/);
+    // 📋 は .title-line の先頭（#Issue より前）に出す（PR チップやタイトルで位置が動かない）
+    const render = MONITOR_HTML.slice(MONITOR_HTML.indexOf('function renderBoard'));
+    const iLine = render.indexOf('<span class="title-line">');
+    const iCopy = render.indexOf('copyBtn(it)', iLine);
+    const iIssue = render.indexOf("'\">#' + it.issue", iLine);
+    assert.ok(iLine > 0 && iCopy > iLine && iIssue > iCopy, 'title-line → 📋 → #Issue');
+    // copyText は成功可否を返し、fallback（prompt）のときは行を光らせない
+    assert.match(MONITOR_HTML, /async function copyText\(t\) \{ try \{ await navigator\.clipboard\.writeText\(t\); return true; \}/);
+    assert.match(MONITOR_HTML, /if \(!await copyText\(issueCopyText\(it, repoUrl\)\)\) return;/);
+    // 光らせる演出は 5 秒ごとの再描画をまたいで経過時間から続ける（最初からやり直さない）
+    assert.match(MONITOR_HTML, /@keyframes copied-flash/);
+    assert.match(MONITOR_HTML, /--flash-delay:-' \+ elapsed \+ 'ms/);
+    assert.match(MONITOR_HTML, /animation-delay: var\(--flash-delay, 0ms\)/);
+    assert.match(MONITOR_HTML, /data-issue="' \+ it\.issue \+ '"/);
+});

@@ -17,14 +17,18 @@
  *   `fn.toString()` で埋め込んで共有する（二重定義しない）
  * - PR は専用列ではなく Issue 番号のすぐ右に open のものだけ並べ、merged / closed があれば
  *   ▼ メニューに全 PR をまとめる（#1212。振り分けは phases.js の `splitPrsForTitle`）
+ * - Issue 列の左端（固定位置）の 📋 で「#Issue PR#… タイトル」+ URL をコピーし、行を一瞬光らせる
+ *   （#1213。文字列は phases.js の `issueCopyText`）
  */
 
 const {
-    canToggleLater, effectiveLater, splitLaterBoard, laterPendingReducer, splitPrsForTitle,
+    canToggleLater, effectiveLater, splitLaterBoard, laterPendingReducer, splitPrsForTitle, issueCopyText,
 } = require('./phases');
 
 // ブラウザへ埋め込むクライアント共有の純粋関数（自己完結。later.test.js で単独評価を担保）
-const SHARED_CLIENT_FNS = [canToggleLater, effectiveLater, splitLaterBoard, laterPendingReducer, splitPrsForTitle]
+const SHARED_CLIENT_FNS = [
+    canToggleLater, effectiveLater, splitLaterBoard, laterPendingReducer, splitPrsForTitle, issueCopyText,
+]
     .map(String).join('\n');
 
 const MONITOR_HTML = `<!doctype html>
@@ -148,7 +152,14 @@ const MONITOR_HTML = `<!doctype html>
   td.title-cell { max-width: 34rem; }
   /* #Issue → PR チップ → ▼ → タイトル を 1 行に並べる。チップ/▼ は縮めず、タイトルだけ省略表示（#1212） */
   .title-line { display: flex; align-items: center; gap: .25rem; white-space: nowrap; min-width: 0; }
-  .title-line > a, .title-line .prchip, .title-line .prmenu-btn { flex: none; }
+  .title-line > a, .title-line .prchip, .title-line .prmenu-btn, .title-line .copy-btn { flex: none; }
+  /* 📋（Issue と PR をコピー）#1213。行の先頭に置くのでどの行でも同じ位置に出る */
+  td button.copy-btn { font-size: .72rem; padding: 0 .2rem; line-height: 1.3; border: 1px solid transparent;
+                       background: transparent; border-radius: .3rem; }
+  td button.copy-btn:hover { border-color: #cbd5e1; background: #fff; }
+  /* コピーできた行を一瞬光らせる。再描画で作り直されても animation-delay で経過分から続ける */
+  @keyframes copied-flash { from { background: #fde68a; } to { background: transparent; } }
+  #board tr.copied-row > td { animation: copied-flash 1.2s ease-out; animation-delay: var(--flash-delay, 0ms); }
   .title-line .prchip { margin: 0; }
   .title-line .t { flex: 0 1 auto; min-width: 0; }
   td button.prmenu-btn { font-size: .62rem; padding: 0 .3rem; line-height: 1.3; border: 1px solid #cbd5e1;
@@ -310,6 +321,33 @@ const prChip = (p) => {
   return '<a class="prchip ' + cls + '" target="_blank" rel="noopener" href="' + repoUrl + '/pull/' + p.number + '">'
     + icon + ' PR#' + p.number + '</a>';
 };
+// ---- 📋 Issue と PR をコピー（#1213） ----
+// 光らせる演出は 5 秒ごとの innerHTML 再描画で行ごと作り直されるため、対象の Issue と開始時刻を
+// 覚えておき、描画のたびに負の animation-delay で経過分から続ける（最初からやり直さない）。
+const COPY_FLASH_MS = 1200;
+let copyFlash = null;    // { issue, at }
+const copyBtn = (it) => '<button type="button" class="copy-btn" data-testid="board-copy-issue" data-issue="' + it.issue + '"'
+  + ' title="Issue と PR をコピー" aria-label="Issue と PR をコピー" onclick="copyIssue(' + it.issue + ')">📋</button>';
+// 光っている途中の行だけ class と経過時間を返す（tr に付ける属性の断片）
+const copyFlashAttrs = (it) => {
+  if (!copyFlash || copyFlash.issue !== it.issue) return '';
+  const elapsed = Date.now() - copyFlash.at;
+  if (elapsed >= COPY_FLASH_MS) return '';
+  return ' copied-row" style="--flash-delay:-' + elapsed + 'ms';
+};
+async function copyIssue(issue) {
+  const it = ((lastBoard && lastBoard.items) || []).find((x) => x.issue === issue);
+  if (!it) return;
+  // fallback（prompt で表示）のときはコピーできたか分からないので光らせない
+  if (!await copyText(issueCopyText(it, repoUrl))) return;
+  copyFlash = { issue, at: Date.now() };
+  for (const tr of document.querySelectorAll('#rows tr[data-issue="' + issue + '"]')) {
+    tr.style.setProperty('--flash-delay', '0ms');
+    tr.classList.remove('copied-row');
+    void tr.offsetWidth; // 連打でもアニメーションを最初から再生する
+    tr.classList.add('copied-row');
+  }
+}
 const PR_KIND_ICON = { open: '✅', draft: '📝', merged: '🟣', closed: '❌' };
 
 // ---- ▼ PR メニュー（#1212） ----
@@ -745,8 +783,8 @@ function renderBoard(d) {
       : '';
     const kindMark = it.tracker ? ' <span class="subtext" title="tracker (分解済み親)">🧭</span>' : '';
     const waitMark = it.waiting ? ' <span class="subtext" title="先行 Issue (autopilot-after) の完了待ち">⏳</span>' : '';
-    return '<tr class="' + cls + '">'
-      + '<td class="title-cell"><span class="title-line"><a target="_blank" rel="noopener" href="' + esc(it.url) + '">#' + it.issue + '</a>'
+    return '<tr class="' + cls + copyFlashAttrs(it) + '" data-issue="' + it.issue + '">'
+      + '<td class="title-cell"><span class="title-line">' + copyBtn(it) + '<a target="_blank" rel="noopener" href="' + esc(it.url) + '">#' + it.issue + '</a>'
       + prInline + prMenu
       + '<span class="t" title="' + esc(it.title) + '">' + esc(it.title) + '</span>' + kindMark + waitMark + '</span></td>'
       + '<td>' + statusPill(it.status) + '</td>'
@@ -802,7 +840,8 @@ async function refresh() {
   }
 }
 
-async function copyText(t) { try { await navigator.clipboard.writeText(t); } catch (e) { prompt('コピーしてください:', t); } }
+// クリップボードに書けたら true。localhost 以外（IP 直打ち等）では navigator.clipboard が無いので prompt で見せる
+async function copyText(t) { try { await navigator.clipboard.writeText(t); return true; } catch (e) { prompt('コピーしてください:', t); return false; } }
 async function reauth() {
   const btn = document.getElementById('reauthbtn');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ SSO 起動中…'; }
