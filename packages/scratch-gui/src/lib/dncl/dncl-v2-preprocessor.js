@@ -21,13 +21,19 @@
 import { skipString } from './paren-utils'
 
 /**
+ * Matches a DNCLv2 line-number prefix: `(N)` or the hyphenated form
+ * `(00-1)` used by 共通テスト for lines inserted before `(01)`.
+ */
+const LINE_NUMBER_RE = /^\(\d+(?:-\d+)*\)/
+
+/**
  * Strip the leading `(N) ` (and any trailing whitespace after it) from a
  * line. The line number is purely a presentation aid in DNCLv2 examples
  * — it has no semantic meaning, so we simply discard it.
  * @param {string} line - The source line.
  * @returns {string} The line with any `(N)` prefix removed.
  */
-const stripLineNumber = (line) => line.replace(/^\(\d+\)\s*/, '')
+const stripLineNumber = (line) => line.replace(/^\(\d+(?:-\d+)*\)\s*/, '')
 
 /**
  * Walk `line` and return the offsets of every character that is OUTSIDE
@@ -62,8 +68,9 @@ const outsideStringIndices = (line) => {
 const stripTrailingColon = (line) => {
   // Trim trailing whitespace, check for `:`, and only strip if the colon
   // sits outside any string literal.
+  // 共通テスト samples use both the ASCII `:` and the full-width `：`.
   const trimmed = line.replace(/\s+$/, '')
-  if (!trimmed.endsWith(':')) return line
+  if (!trimmed.endsWith(':') && !trimmed.endsWith('：')) return line
   const colonIdx = trimmed.length - 1
   const outside = outsideStringIndices(trimmed)
   if (!outside.has(colonIdx)) return line
@@ -107,6 +114,137 @@ const normalizeKurikaesuSuffix = (line) => line.replace(
     /(の間|ずつ増やしながら|ずつ減らしながら)繰り返す(\s*)$/,
     '$1$2',
   )
+
+/**
+ * Insert the spaces the line converter needs around a parenthesized
+ * condition written flush against its keyword, as in the 共通テスト
+ * samples:
+ *   `もし( a ) かつ ( b )ならば` → `もし ( a ) かつ ( b ) ならば`
+ *   `そうでなくもし(a)ならば`     → `そうでなくもし (a) ならば`
+ *   `(a < 3)の間`                → `(a < 3) の間`
+ * @param {string} line - The line (colon / 繰り返す suffix already stripped).
+ * @returns {string} The line with the keyword spacing normalized.
+ */
+const normalizeConditionSpacing = (line) => {
+  // Indent markers have not been expanded yet, so allow them before the keyword.
+  let out = line.replace(/^([\s｜|⎿]*(?:もし|そうでなくもし))\(/, '$1 (')
+  if (/^[\s｜|⎿]*(?:もし|そうでなくもし)\s/.test(out)) {
+    out = out.replace(/\)(なら|ならば)(\s*)$/, ') $1$2')
+  }
+  return out.replace(/\)(の間)(\s*)$/, ') $1$2')
+}
+
+/**
+ * Convert the 共通テスト array declaration `配列変数 X を初期化する` into
+ * an empty-array assignment `X = []`, which the array-name detection and
+ * line converter already understand.
+ * @param {string} line - The source line.
+ * @returns {string} The converted line.
+ */
+const normalizeArrayInit = (line) => line.replace(
+    /^([\s｜|⎿]*)配列変数\s+([^\s]+)\s+を初期化する(\s*(?:#.*)?)$/,
+    '$1$2 = []$3',
+  )
+
+/**
+ * Whether the `//` at `idx` starts a comment rather than being the
+ * Smalruby DNCL integer-division operator (`a // b`). 共通テスト samples
+ * write comments like `n = 1 // 生徒番号`, so `//` counts as a comment
+ * only when followed by Japanese text or nothing; ASCII operands such as
+ * `10 // 3` keep their division meaning.
+ * @param {string} line - The source line.
+ * @param {number} idx - Index of the first `/`.
+ * @returns {boolean} True when `//` begins a comment.
+ */
+const isSlashComment = (line, idx) => {
+  if (line[idx] !== '/' || line[idx + 1] !== '/') return false
+  const rest = line.substring(idx + 2).trimStart()
+  return rest === '' || /^[\u0080-\uffff]/.test(rest)
+}
+
+/**
+ * Convert a `//` line comment (outside string literals) into the `#`
+ * comment the rest of the pipeline understands (see `isSlashComment`).
+ * @param {string} line - The source line.
+ * @returns {string} The line with `//` replaced by `#`.
+ */
+const normalizeSlashComment = (line) => {
+  let i = 0
+  while (i < line.length) {
+    const ch = line[i]
+    if (ch === '"' || ch === "'") {
+      i = skipString(line, i, ch)
+      continue
+    }
+    if (ch === '#') return line
+    if (isSlashComment(line, i)) {
+      return `${line.substring(0, i)}#${line.substring(i + 2)}`
+    }
+    i++
+  }
+  return line
+}
+
+/**
+ * Net bracket depth of a line, ignoring string literals and comments.
+ * A positive value means the statement continues on the next line.
+ * @param {string} line - The source line.
+ * @returns {number} Opening brackets minus closing brackets.
+ */
+const bracketDepth = (line) => {
+  let depth = 0
+  let i = 0
+  while (i < line.length) {
+    const ch = line[i]
+    if (ch === '"' || ch === "'") {
+      i = skipString(line, i, ch)
+      continue
+    }
+    if (ch === '#' || isSlashComment(line, i)) break
+    if (ch === '(' || ch === '[' || ch === '{') depth++
+    if (ch === ')' || ch === ']' || ch === '}') depth--
+    i++
+  }
+  return depth
+}
+
+/**
+ * Join statements that 共通テスト samples wrap onto unnumbered
+ * continuation lines, e.g.
+ *   `(10)  ｜ 表示する(i, "人目の待ち時間：",`
+ *   `      ⎿          Kaishi[i] - Touchaku[i], "分間")`
+ * A line is a continuation while the previous one still has an open
+ * bracket and the line has no line number of its own. The indent markers
+ * of a continuation line are dropped, but its `⎿` count is kept so the
+ * caller can still close the blocks it ends.
+ * @param {string} source - The raw DNCLv2 source.
+ * @returns {Array<{line: string, extraCloseCount: number}>} Logical lines.
+ */
+const joinContinuationLines = (source) => {
+  const rawLines = source.split('\n')
+  const result = []
+  let i = 0
+  while (i < rawLines.length) {
+    let line = rawLines[i]
+    let extraCloseCount = 0
+    let depth = bracketDepth(line)
+    while (
+      depth > 0 &&
+      i + 1 < rawLines.length &&
+      !LINE_NUMBER_RE.test(rawLines[i + 1].trimStart())
+    ) {
+      i++
+      const m = rawLines[i].match(/^([\s｜|⎿]*)(.*)$/)
+      extraCloseCount += (m[1].match(/⎿/g) || []).length
+      const rest = m[2].trim()
+      line = `${line.replace(/\s+$/, '')} ${rest}`
+      depth += bracketDepth(rest)
+    }
+    result.push({ line, extraCloseCount })
+    i++
+  }
+  return result
+}
 
 /**
  * Split a comma-separated multi-assignment line into multiple lines.
@@ -349,8 +487,11 @@ const normalizeFunctionDefOpener = (line) =>
  */
 const preprocessLine = (line) => {
   let out = stripLineNumber(line)
+  out = normalizeSlashComment(out)
+  out = normalizeArrayInit(out)
   out = stripTrailingColon(out)
   out = normalizeKurikaesuSuffix(out)
+  out = normalizeConditionSpacing(out)
   out = normalizeFunctionDefOpener(out)
   out = normalizeAndOr(out)
   out = splitMultiAssignment(out)
@@ -372,11 +513,20 @@ const preprocessLine = (line) => {
 const dnclV2Preprocess = (source) => {
   const stack = []
   const out = []
-  for (const rawLine of source.split('\n')) {
+  for (const { line: rawLine, extraCloseCount } of joinContinuationLines(
+    source,
+  )) {
     // Phase 3 per-line transformations (may produce `\n` from multi-assignment).
     const phase3 = preprocessLine(rawLine)
-    for (const line of phase3.split('\n')) {
-      const { line: marked, closeCount } = processIndentMarkers(line)
+    const pieces = phase3.split('\n')
+    for (const [pieceIdx, line] of pieces.entries()) {
+      const { line: marked, closeCount: markerCloseCount } =
+        processIndentMarkers(line)
+      // `⎿` markers on joined continuation lines close blocks after the
+      // whole logical line, i.e. after its last piece.
+      const closeCount =
+        markerCloseCount +
+        (pieceIdx === pieces.length - 1 ? extraCloseCount : 0)
       out.push(marked)
       // Detect block opener AFTER marker stripping so the indent reflects
       // the expanded form.

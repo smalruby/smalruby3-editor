@@ -184,15 +184,17 @@ const convertLine = (line) => {
   // Handle ← assignment → =
   converted = converted.replace(/\s*←\s*/g, ' = ')
 
-  // Handle 【外部からの入力】
+  // Handle 【外部からの入力】 and the 共通テスト forms 【整数を入力】 /
+  // 【文字列を入力】 (Issue #1186). The integer form converts the answer.
   const inputMatch = converted.match(
-    /^(\s*)(.+?)\s*=\s*【外部からの入力】\s*$/,
+    /^(\s*)(.+?)\s*=\s*【(外部からの入力|整数を入力|文字列を入力)】\s*$/,
   )
   if (inputMatch) {
     const inputIndent = inputMatch[1]
     const varPart = inputMatch[2].trim()
     const processedVar = processSegments(varPart)
-    return `${inputIndent}ask("")\n${inputIndent}${processedVar} = answer`
+    const answer = inputMatch[3] === '整数を入力' ? 'answer.to_i' : 'answer'
+    return `${inputIndent}ask("")\n${inputIndent}${processedVar} = ${answer}`
   }
 
   // Process segments (strings vs code)

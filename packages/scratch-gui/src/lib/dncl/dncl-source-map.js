@@ -32,7 +32,9 @@ class DnclSourceMap {
       this._dnclToRuby.push(rubyLine)
 
       // Detect input expansion: check if this DNCL line contains 【外部からの入力】
-      const isInput = /【外部からの入力】/.test(dnclLines[dnclIdx])
+      const isInput = /【(?:外部からの入力|整数を入力|文字列を入力)】/.test(
+        dnclLines[dnclIdx],
+      )
 
       if (isInput) {
         // This DNCL line maps to 2 Ruby lines
