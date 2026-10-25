@@ -52,6 +52,9 @@ const {
     hasUnhandledChangesRequest,
     toMs,
     WAITING_LABEL,
+    hasLaterLabel,
+    laterLabelDiff,
+    withLaterLabel,
     waitingLabelAction,
     isTrackerItem,
     needsPrLinkSticky,
@@ -1628,6 +1631,77 @@ function patchBoardCache(state, issue, intents) {
 }
 
 /**
+ * 💤 later の付け外し結果を board / items キャッシュの labels に反映する（#1190）。
+ * ボード再取得（GraphQL）は撃たず in-memory のみ。items キャッシュも書き換えるのは、直後の
+ * refreshBoard が古いスナップショットを再利用（shouldReuseItemsCache）して行を戻さないため。
+ * @param {object} state
+ * @param {number} issue
+ * @param {boolean} later
+ */
+function patchLaterCache(state, issue, later) {
+    const patch = (arr, withFlag) => {
+        if (!Array.isArray(arr)) return;
+        const idx = arr.findIndex((it) => it && it.issue === issue);
+        if (idx < 0) return;
+        const labels = withLaterLabel(arr[idx].labels, later);
+        arr[idx] = withFlag ? { ...arr[idx], labels, later } : { ...arr[idx], labels };
+    };
+    if (state.board) patch(state.board.items, true);
+    if (state.itemsCache) patch(state.itemsCache.items, false);
+}
+
+/**
+ * `POST /later` の本体: Issue の 💤 later を目的の状態へ揃える（#1190）。
+ * - **Issue 単位で直列化**: 同一 Issue の処理が走っている間に来たリクエストは並走させず、
+ *   目標状態だけを上書きして（畳み込み）同じ Promise を待たせる。走行中の処理は終わった時点で
+ *   目標が変わっていればもう一周する → 連打しても**最後に押した向き**へ収束する。
+ * - **差分時のみ書き込み**: 現在のラベルを REST で読み（read トークン）、laterLabelDiff が
+ *   空なら書かない。書き込みは Bot トークン（名義が見える操作）。
+ * dispatch・ゲート等の autopilot 処理には一切影響しない（一覧分離のためだけのラベル）。
+ * @param {object} cfg
+ * @param {object} state daemon の可変状態（`laterOps` を持つ）
+ * @param {function} log
+ * @param {number} issue
+ * @param {boolean} later
+ * @param {object} [deps] { getIssueLabels, editLabels, token, readToken }（テスト用）
+ * @returns {Promise<{issue: number, later: boolean, changed: boolean}>}
+ */
+function setLaterLabel(cfg, state, log, issue, later, deps = {}) {
+    if (!state.laterOps) state.laterOps = new Map();
+    const running = state.laterOps.get(issue);
+    if (running) {
+        running.target = Boolean(later);
+        return running.promise;
+    }
+    const op = { target: Boolean(later) };
+    state.laterOps.set(issue, op);
+    op.promise = (async () => {
+        const getLabels = deps.getIssueLabels || project.getIssueLabels;
+        const edit = deps.editLabels || project.editLabels;
+        let applied = null;
+        let changed = false;
+        try {
+            while (applied !== op.target) {
+                const target = op.target;
+                const labels = await getLabels(cfg.repo, issue, deps.readToken || deps.token || await project.readToken());
+                const diff = laterLabelDiff(labels, target);
+                if (diff.add.length || diff.remove.length) {
+                    await edit(cfg.repo, issue, 'issue', diff, deps.token || await project.botToken());
+                    changed = true;
+                    log(`#${issue}: ${target ? 'added' : 'removed'} later label`);
+                }
+                applied = target;
+                patchLaterCache(state, issue, applied);
+            }
+            return { issue, later: applied, changed };
+        } finally {
+            state.laterOps.delete(issue);
+        }
+    })();
+    return op.promise;
+}
+
+/**
  * Awaiting Continuation item の continuation ファイル（worktree 内・{@link continuationFilePath}）
  * から残タスク数を読む（#913）。GitHub API は使わずローカルファイルシステムのみを読むので
  * GraphQL / gh のレート消費は無い（{@link collectContinuationContexts} と同じ理由）。
@@ -1727,6 +1801,10 @@ async function refreshBoard(cfg, state, log, deps = {}) {
                 tracker: isTrackerItem(it),
                 // autopilot-after ゲート待ち（daemon が毎 tick 維持する ⏳ ラベルをそのまま反映）。
                 waiting: Array.isArray(it.labels) && it.labels.includes(WAITING_LABEL),
+                // 💤 later（#1190）: モニタの [通常] / [あとでやる] タブ振り分け用。labels も渡し、
+                // POST /later の成功時はキャッシュ上の labels を書き換えて追従させる。
+                labels: Array.isArray(it.labels) ? it.labels : [],
+                later: hasLaterLabel(it),
                 owner: itemOwner(it),
                 subIssues: extra.subIssues,
                 prs: extra.prs,
@@ -1959,6 +2037,28 @@ function startHttp(cfg, state, log) {
                 .catch((e) => { log(`refresh error: ${e.message}`); send(500, { error: e.message }); });
             return;
         }
+        if (req.method === 'POST' && url.pathname === '/later') {
+            // 「💤 あとで / ↩ 今やる」（#1190）。body: { issue, later: boolean }。
+            // Issue 単位で直列化・畳み込み、差分時のみ書き込み（setLaterLabel）。
+            let raw = '';
+            req.on('data', (c) => { raw += c; if (raw.length > 10_000) req.destroy(); });
+            req.on('end', () => {
+                let body;
+                try { body = JSON.parse(raw || '{}'); } catch (e) { return send(400, { error: 'invalid json' }); }
+                const issue = Number(body.issue);
+                if (!Number.isInteger(issue) || issue <= 0 || typeof body.later !== 'boolean') {
+                    return send(400, { error: 'issue (number) and later (boolean) required' });
+                }
+                setLaterLabel(cfg, state, log, issue, body.later)
+                    .then((r) => send(200, r))
+                    .catch((e) => {
+                        const msg = sanitizeForSurface(e.message);
+                        log(`#${issue}: later error: ${msg}`);
+                        send(500, { error: msg });
+                    });
+            });
+            return;
+        }
         if (req.method === 'POST' && url.pathname === '/stop') {
             const issue = Number(url.searchParams.get('issue'));
             const r = state.running.get(issue);
@@ -2102,7 +2202,7 @@ module.exports = {
     isGateItem, collectGateContexts, checkAuthHealth, REAUTH_HINT,
     recordAuthFailure, handleProcessError, installProcessSafetyNet,
     parseSsoDeviceOutput, startReauth,
-    refreshBoard, recordHistory, refreshRateLimits, patchBoardCache,
+    refreshBoard, recordHistory, refreshRateLimits, patchBoardCache, patchLaterCache, setLaterLabel,
     applyTrackerStickies, refreshBoardAndProjectTrackers, maybeRefreshBoardPeriodic,
     updateClaudeUsage, boardResponse, statusResponse, startHttp,
     checkForUpdate, startUpdateChecks,
