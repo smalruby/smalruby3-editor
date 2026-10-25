@@ -378,6 +378,8 @@ erDiagram
 **GSI:**
 - `sessionToken-index` — セッショントークンでの認証
 
+**着席判定（`lastActiveAt`）:** `lastActiveAt` を更新するのは参加と verify-session（生徒がクラスのモーダルを開いたとき）だけで、定期的なハートビートは**送らない**（通信量を増やさないため）。先生の画面は `lastActiveAt` が **1 時間以内**なら「着席中」と表示する目安で、正確さは求めない。席を空ける依頼（kick request）は、先生が教室で本人に確かめてから承認する前提。しきい値は `packages/scratch-gui/src/lib/classroom-presence.js` の 1 か所にまとめてある。verify-session の更新は「行がまだそのセッションのもので kick されていない」ことを条件にしており、退出・kick の直後に届いても行を作り直したり tombstone の TTL を延ばしたりしない（条件を満たさなければ 401）。
+
 ### ClassroomKickRequests テーブル (Issue #692)
 
 ```mermaid
