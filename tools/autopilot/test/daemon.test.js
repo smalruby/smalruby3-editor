@@ -2343,3 +2343,115 @@ test('startHttp: usage pause 中の /resume は 409 で /force-resume へ誘導�
         server.close();
     }
 });
+
+// ---- ゲート watermark の永続化（#1219） ----
+{
+    const { loadGateState, saveGateState } = require('../src/daemon');
+
+    const gateItems = [{ issue: 957, status: 'Review', kind: 'Issue', hitlLabel: true }];
+    const reviewCtx = (changesRequestedAt, lastHumanAt = 100) => ({
+        hitlSignals: { issueLabel: true, prLabel: true },
+        review: { approved: false, changesRequested: true, changesRequestedAt },
+        pr: 970,
+        activity: { lastHumanAt, lastBotAt: 50 },
+    });
+
+    /** 1 回目の起動で watermark を進めて保存 → 2 回目の起動で復元した state を返す */
+    function restartWith(stateBefore) {
+        const files = {};
+        const io = {
+            file: '/fake/autopilot-state.json',
+            writeFile: (f, body) => { files[f] = body; },
+            readFile: (f) => {
+                if (!(f in files)) { const e = new Error('nope'); e.code = 'ENOENT'; throw e; }
+                return files[f];
+            },
+        };
+        saveGateState(gateItems, stateBefore, () => {}, io);
+        const restarted = { running: new Map() };
+        loadGateState(restarted, () => {}, io);
+        return restarted;
+    }
+
+    test('再起動後も処理済み CHANGES_REQUESTED では解除しない、より新しいものでは解除 (#1219/#894)', async () => {
+        const at = Date.parse('2026-07-12T05:10:57Z');
+        const state = restartWith({ gateHandled: new Map([[957, at + 1000]]), gateReviewHandled: new Map([[957, at]]) });
+        assert.equal(state.gateReviewHandled.get(957), at);
+        const deps = { token: 't', getGateContext: () => reviewCtx('2026-07-12T05:10:57Z', at) };
+        const c1 = await collectGateContexts(makeCfg(), gateItems, new Set(), state, () => {}, deps);
+        assert.equal(c1[957].unhandledChangesRequested, false, '処理済みレビューで再発火しない');
+        assert.equal(c1[957].humanSpokeLast, false, '処理済み発言で再発火しない');
+        // watermark より新しい Request changes は解除される（#894 の回帰防止）
+        deps.getGateContext = () => reviewCtx(at + 5000, at);
+        const c2 = await collectGateContexts(makeCfg(), gateItems, new Set(), state, () => {}, deps);
+        assert.equal(c2[957].unhandledChangesRequested, true);
+    });
+
+    test('再起動後も gateHandled より古い発言では再発火せず、新しい発言では解除 (#1219)', async () => {
+        const state = restartWith({ gateHandled: new Map([[957, 250]]) });
+        const ctx = (lastHumanAt) => ({
+            hitlSignals: { issueLabel: true, prLabel: true }, review: {}, pr: 970,
+            activity: { lastHumanAt, lastBotAt: 100 },
+        });
+        const deps = { token: 't', getGateContext: () => ctx(200) };
+        const c1 = await collectGateContexts(makeCfg(), gateItems, new Set(), state, () => {}, deps);
+        assert.equal(c1[957].humanSpokeLast, false);
+        deps.getGateContext = () => ctx(300);
+        const c2 = await collectGateContexts(makeCfg(), gateItems, new Set(), state, () => {}, deps);
+        assert.equal(c2[957].humanSpokeLast, true);
+    });
+
+    test('loadGateState: ファイルが無い・壊れている・読めないときは空 Map で例外を投げない (#1219)', () => {
+        const cases = [
+            () => { const e = new Error('missing'); e.code = 'ENOENT'; throw e; },
+            () => '{not json',
+            () => { const e = new Error('EACCES'); e.code = 'EACCES'; throw e; },
+        ];
+        for (const readFile of cases) {
+            const logs = [];
+            const state = {};
+            loadGateState(state, (m) => logs.push(m), { file: '/fake', readFile });
+            assert.ok(state.gateHandled instanceof Map && state.gateHandled.size === 0);
+            assert.ok(state.gateReviewHandled instanceof Map && state.gateReviewHandled.size === 0);
+        }
+        // ENOENT は通常（初回起動）なので warn しない、壊れたファイルは warn する
+        const logs = [];
+        loadGateState({}, (m) => logs.push(m), { file: '/fake', readFile: cases[0] });
+        assert.equal(logs.length, 0);
+        loadGateState({}, (m) => logs.push(m), { file: '/fake', readFile: cases[1] });
+        assert.ok(logs.some((m) => m.includes('gate state warn')));
+    });
+
+    test('saveGateState: 差分があるときだけ書き、終端 Issue を落とす (#1219)', () => {
+        const writes = [];
+        const io = { file: '/fake', writeFile: (f, body) => writes.push(body) };
+        const state = { gateHandled: new Map([[1, 10], [2, 20]]), gateReviewHandled: new Map() };
+        const items = [{ issue: 1, status: 'Review' }, { issue: 2, status: 'Close' }];
+        assert.equal(saveGateState(items, state, () => {}, io), true);
+        assert.equal(saveGateState(items, state, () => {}, io), false, '同じ内容は書かない');
+        assert.equal(writes.length, 1);
+        assert.deepStrictEqual(JSON.parse(writes[0]).gateHandled, [[1, 10]]);
+        assert.equal(state.gateHandled.has(2), false);
+        state.gateHandled.set(1, 30);
+        assert.equal(saveGateState(items, state, () => {}, io), true);
+        assert.equal(writes.length, 2);
+        // 書き込み失敗は warn のみ（例外を投げず、次回再試行できるよう saved を進めない）
+        state.gateHandled.set(1, 40);
+        const logs = [];
+        const ok = saveGateState(items, state, (m) => logs.push(m), {
+            file: '/fake', writeFile: () => { throw new Error('ENOSPC'); },
+        });
+        assert.equal(ok, false);
+        assert.ok(logs.some((m) => m.includes('gate state warn')));
+        assert.equal(saveGateState(items, state, () => {}, io), true);
+    });
+
+    test('loadGateState → saveGateState: 復元直後は書き直さない (#1219)', () => {
+        const body = JSON.stringify({ version: 1, gateHandled: [[5, 50]], gateReviewHandled: [] });
+        const state = {};
+        loadGateState(state, () => {}, { file: '/fake', readFile: () => body });
+        const writes = [];
+        assert.equal(saveGateState([], state, () => {}, { file: '/fake', writeFile: (f, b) => writes.push(b) }), false);
+        assert.equal(writes.length, 0);
+    });
+}
