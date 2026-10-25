@@ -22,9 +22,10 @@ import { skipString } from './paren-utils'
 
 /**
  * Matches a DNCLv2 line-number prefix: `(N)` or the hyphenated form
- * `(00-1)` used by 共通テスト for lines inserted before `(01)`.
+ * `(00-1)` used by 共通テスト for lines inserted before `(01)`, plus the
+ * whitespace after it (so `stripLineNumber` can reuse the same pattern).
  */
-const LINE_NUMBER_RE = /^\(\d+(?:-\d+)*\)/
+const LINE_NUMBER_RE = /^\(\d+(?:-\d+)*\)\s*/
 
 /**
  * Strip the leading `(N) ` (and any trailing whitespace after it) from a
@@ -33,7 +34,7 @@ const LINE_NUMBER_RE = /^\(\d+(?:-\d+)*\)/
  * @param {string} line - The source line.
  * @returns {string} The line with any `(N)` prefix removed.
  */
-const stripLineNumber = (line) => line.replace(/^\(\d+(?:-\d+)*\)\s*/, '')
+const stripLineNumber = (line) => line.replace(LINE_NUMBER_RE, '')
 
 /**
  * Walk `line` and return the offsets of every character that is OUTSIDE

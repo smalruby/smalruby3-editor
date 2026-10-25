@@ -1,4 +1,4 @@
-// === Smalruby: DNCLv2 forms used by the ICTL 共通テスト samples (Issue #1186) ===
+// DNCLv2 forms used by the ICTL 共通テスト samples (Issue #1186)
 //
 // The sample programs on https://nodai2hitc.github.io/ictl_example/ use a
 // few DNCLv2 notations the pre-processor did not handle, so the generated
