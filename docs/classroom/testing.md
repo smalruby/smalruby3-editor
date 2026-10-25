@@ -344,6 +344,19 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-menu-seat-number` | span | 出席番号（0埋め2桁、参加中のみレンダリングされる） |
 | `classroom-menu-submission-status` | span | 自分の提出状態アイコン（未提出 / 提出済み / 返却済み。参加中のみ） |
 
+#### 先生メニュー（先生ログイン中のみ）
+
+| data-testid | 要素 | 説明 |
+|------------|------|------|
+| `classroom-teacher-menu-button` | div | 「クラス管理」メニューボタン（先生ログイン中のみ。生徒としても参加中なら `classroom-menu-button` と併存） |
+| `classroom-teacher-menu-label` | span | ボタンのラベル（「クラス管理」） |
+| `classroom-teacher-menu-badge` | span | 未読お知らせがあるときの「!」バッジ |
+| `classroom-teacher-menu-current-assignment` | span | 「いまの課題を開く」（最後に開いた課題があるときのみ） |
+| `classroom-teacher-menu-class-list` | span | 「クラス一覧を開く」 |
+| `classroom-teacher-menu-notifications` | span | 「お知らせ」 |
+| `classroom-teacher-menu-notifications-badge` | span | 「お知らせ」項目の未読バッジ |
+| `classroom-teacher-menu-logout` | span | 「ログアウト」 |
+
 ### 強制退室通知 / 退室リクエスト (Issue #692)
 
 | data-testid | 要素 | 説明 |
