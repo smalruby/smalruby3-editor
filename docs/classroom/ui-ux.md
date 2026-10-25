@@ -86,6 +86,7 @@ stateDiagram-v2
 | 未読バッジ「!」 | 未読のお知らせ、または未処理の退室依頼あり | — | `classroom-teacher-menu-badge` |
 | 退室依頼（N件） | 未処理の退室依頼がある（先頭に表示・バッジ付き） | 画面下部に依頼の一覧を開く（モーダルは開かない） | `classroom-teacher-menu-kick-requests` |
 | いまの課題を開く | 最後に開いた課題がある | クラス管理モーダルでその課題の詳細を開く | `classroom-teacher-menu-current-assignment` |
+| いまの課題の状況 | 常に | 着席・提出状況のフローティングパネルを開く（モーダルは開かない） | `classroom-teacher-menu-status-panel` |
 | クラス一覧を開く | 常に | クラス一覧（ダッシュボード）を開く | `classroom-teacher-menu-class-list` |
 | お知らせ | 常に（未読時はバッジ `classroom-teacher-menu-notifications-badge`） | お知らせセンターを開く | `classroom-teacher-menu-notifications` |
 | ログアウト | 常に | 先生をログアウトし、保存したログイン記録も消す | `classroom-teacher-menu-logout` |
@@ -106,6 +107,27 @@ stateDiagram-v2
 
 - 席を空けるかは先生が教室で本人に確かめてから決める前提です。「着席中」表示（1 時間の目安）は承認してよい根拠ではないため、トーストには出しません。
 - 授業用 PC（1300×600）でも邪魔にならないよう、幅は約 26rem に収めています。
+
+### いまの課題の状況（先生のフローティングパネル）
+
+クラス管理はフルスクリーンなので、開いている間はスモウルビーを操作できません。先生メニューの「いまの課題の状況」は、**着席・提出状況を出したまま操作を続けられる**ドラッグ可能なパネルです。オーバーレイはクリックを素通しするので、パネルの外ではステージ・ブロック・メニューバーをそのまま使えます。
+
+| 部品 | 内容 | data-testid |
+|------|------|-------------|
+| ヘッダー | ドラッグで移動。位置は localStorage `smalruby:classroomTeacherPanelPosition` に記憶し、画面外にはみ出す位置は画面内に戻す | `classroom-teacher-panel-header` |
+| 更新 / 最小化 / 閉じる | 手動更新（メンバー・提出と課題の一覧を取り直す）。最小化するとヘッダーだけになり、`着席/定員 · 提出/参加` と退室依頼の有無をヘッダーに出す | `classroom-teacher-panel-refresh` / `classroom-teacher-panel-minimize` / `classroom-teacher-panel-close` |
+| 課題 | 最近の課題（アーカイブを除く・新しい順に 8 件）から切り替える。選んだ課題は「いまの課題を開く」と同じ「いまの課題」になる | `classroom-teacher-panel-assignment` |
+| 着席（目安） / 提出 | 「着席（目安） N / 定員」「提出 N / 参加数」。着席は `isMemberSeated()`（直近 1 時間にクラスの画面を開いた）の目安で、tooltip でそう説明する | `classroom-teacher-panel-seated` / `classroom-teacher-panel-submitted` |
+| 座席ミニグリッド | 8 列。#1196 の状態アイコン（着席・提出・退室依頼）。セルを押すと、クラス管理でその課題のメンバー詳細を開く（パネルは最小化） | `classroom-teacher-panel-seat-<N>` |
+| 退室依頼 | この課題の未処理の依頼。席番号・いまの席の人のニックネーム・ひと言・「承認する前に、教室で本人たちに確かめてください。」と承認 / 却下 | `classroom-teacher-panel-kick-request` / `-kick-approve` / `-kick-reject` |
+
+- **取得はパネルを開いている間だけ・30 秒ごと**（メンバータブ表示中だけ取得する既存の費用方針と同じ）。最小化中も続け、閉じる・タブ非表示で止め、開いた / 課題を切り替えた / タブに戻ったときはすぐ 1 回取得する。取得するのはメンバーと提出だけ。
+- **退室依頼はパネルでは問い合わせない**。先生ログイン中に 10 秒ごとに動いている退室依頼の見張り（上記トースト）の結果を共有する。
+- 授業用 PC（1300×600）で 40 席・退室依頼が複数ある状態でも画面内に収まる大きさ（幅 17.5rem）。初期位置は画面右下（ステージの上半分と旗・停止ボタンを隠さない位置）。
+
+![いまの課題の状況（1300×600・40 席・退室依頼 3 件）](screenshots/0220-teacher-status-panel.png)
+
+![最小化した状態](screenshots/0221-teacher-status-panel-minimized.png)
 
 **表示ルール:**
 

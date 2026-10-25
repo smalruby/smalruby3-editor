@@ -18,6 +18,8 @@ import reducer, {
     removeTeacherKickRequest,
     openTeacherKickList,
     closeTeacherKickList,
+    openTeacherPanel,
+    closeTeacherPanel,
 } from '../../../src/reducers/classroom';
 
 const STORAGE_KEY = 'smalruby:classroom';
@@ -405,6 +407,29 @@ describe('classroom reducer', () => {
             );
             state = reducer(state, removeTeacherKickRequest('a', { classroomId: 'c1', seatNumber: 3 }));
             expect(state.teacherKickRequests.map((r) => r.requestId)).toEqual(['c', 'd']);
+        });
+    });
+
+    describe('teacher status panel (#1203)', () => {
+        test('opens, closes and resets on logout', () => {
+            let state = reducer(classroomInitialState, setTeacherLoggedIn(true));
+            expect(state.teacherPanelOpen).toBe(false);
+            state = reducer(state, openTeacherPanel());
+            expect(state.teacherPanelOpen).toBe(true);
+            state = reducer(state, closeTeacherPanel());
+            expect(state.teacherPanelOpen).toBe(false);
+            state = reducer(reducer(state, openTeacherPanel()), setTeacherLoggedIn(false));
+            expect(state.teacherPanelOpen).toBe(false);
+        });
+
+        test('a navigation request can carry the member to show', () => {
+            let state = reducer(classroomInitialState, requestTeacherNavigation('current-assignment', 'seat-03'));
+            expect(state.teacherNavTarget).toBe('current-assignment');
+            expect(state.teacherNavMemberId).toBe('seat-03');
+            state = reducer(state, clearTeacherNavigation());
+            expect(state.teacherNavMemberId).toBeNull();
+            state = reducer(state, requestTeacherNavigation('class-list'));
+            expect(state.teacherNavMemberId).toBeNull();
         });
     });
 

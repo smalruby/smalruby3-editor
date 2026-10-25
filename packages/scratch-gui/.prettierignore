@@ -38,6 +38,7 @@ src/components/*
 !src/components/classroom-teacher-modal/
 !src/components/classroom-teacher-menu/
 !src/components/classroom-teacher-kick-toast/
+!src/components/classroom-teacher-panel/
 !src/components/classroom-tutorial/
 !src/components/smalrubot-firmware-modal/
 !src/components/blocks-screenshot-button/
@@ -110,7 +111,9 @@ src/containers/*
 !src/containers/classroom-teacher-modal.jsx
 !src/containers/classroom-teacher-menu.jsx
 !src/containers/classroom-teacher-kick-alerts.jsx
+!src/containers/classroom-teacher-panel.jsx
 !src/containers/use-teacher-kick-request-polling.js
+!src/containers/use-teacher-panel-polling.js
 !src/containers/use-google-classroom.js
 !src/containers/use-student-assignment.js
 !src/containers/use-student-submit.js
@@ -169,6 +172,7 @@ src/lib/*
 !src/lib/classroom-kick-request-storage.js
 !src/lib/classroom-seat-selection.js
 !src/lib/classroom-teacher-kick-alerts.js
+!src/lib/classroom-teacher-panel.js
 !src/lib/google-classroom-auth.js
 !src/lib/block-utils.js
 !src/lib/blocks-gesture-recovery.js
@@ -380,6 +384,7 @@ test/unit/containers/*
 !test/unit/containers/classroom-kick-request-watcher.test.jsx
 !test/unit/containers/classroom-teacher-kick-alerts.test.jsx
 !test/unit/containers/use-teacher-kick-request-polling.test.js
+!test/unit/containers/use-teacher-panel-polling.test.js
 !test/unit/containers/use-kick-request-polling.test.js
 !test/unit/containers/connection-modal-connected-message.test.jsx
 !test/unit/containers/connection-modal-smalrubot-s1.test.jsx
@@ -422,6 +427,7 @@ test/unit/lib/*
 !test/unit/lib/classroom-api.test.js
 !test/unit/lib/classroom-teacher-session.test.js
 !test/unit/lib/classroom-teacher-kick-alerts.test.js
+!test/unit/lib/classroom-teacher-panel.test.js
 !test/unit/lib/classroom-assignment-templates.test.js
 !test/unit/lib/classroom-assignment-utils.test.js
 !test/unit/lib/classroom-download-utils.test.js
