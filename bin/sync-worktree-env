@@ -71,6 +71,24 @@ for src in "${MAIN_CHECKOUT}"/infra/*/.env.*; do
 done
 shopt -u nullglob
 
+# devpod の /app はホストからの bind mount で、誰も書き換えていないファイルでも GNU cp が
+#   cp: skipping file '...', as it was replaced while being copied
+# と inode の揺らぎで一時的に失敗することがある（Issue #1226）。短い間隔で数回リトライし、
+# それでも失敗したらファイル名を出して失敗を返す。
+CP_RETRY_DELAY="${SYNC_ENV_CP_RETRY_DELAY:-0.3}"
+copy_with_retry() {
+    local src="$1" dst="$2" attempt
+    for attempt in 1 2 3 4 5; do
+        if cp -p "${src}" "${dst}"; then
+            return 0
+        fi
+        echo "info: cp failed for ${src}, retry ${attempt}/5" >&2
+        sleep "${CP_RETRY_DELAY}"
+    done
+    echo "error: failed to copy ${src} -> ${dst}" >&2
+    return 1
+}
+
 copied=0
 skipped_existing=0
 skipped_missing=0
@@ -91,7 +109,7 @@ for rel in "${FILES[@]}"; do
         continue
     fi
     mkdir -p "$(dirname "${dst}")"
-    cp -p "${src}" "${dst}"
+    copy_with_retry "${src}" "${dst}"
     echo "copied: ${rel}"
     copied=$((copied + 1))
 done
