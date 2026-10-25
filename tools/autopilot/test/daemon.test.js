@@ -2235,3 +2235,111 @@ test('startHttp POST /later: 入力検証（issue / later 必須）', async () =
         await new Promise((r) => server.close(r));
     }
 });
+
+// ---- Claude 使用量による自動 pause / 強制再開（#1193） ----------------------
+
+const USAGE_NOW = Date.parse('2026-10-25T10:00:00Z');
+function usageState(session, weekly, extra = {}) {
+    return {
+        paused: false, pausedBy: null, running: new Map(), usageOverrides: {},
+        claudeUsage: {
+            session: { percent: session, resetsAt: USAGE_NOW + 3600_000 },
+            weekly: { percent: weekly, resetsAt: USAGE_NOW + 72 * 3600_000 },
+            updatedAt: USAGE_NOW,
+        },
+        ...extra,
+    };
+}
+
+test('applyUsagePause: セッション 90% で pausedBy=usage、閾値割れで自動再開', () => {
+    const { applyUsagePause } = require('../src/daemon');
+    const cfg = { now: () => USAGE_NOW };
+    const state = usageState(92, 10);
+    applyUsagePause(state, cfg, () => {});
+    assert.strictEqual(state.paused, true);
+    assert.strictEqual(state.pausedBy, 'usage');
+    assert.strictEqual(state.usagePause.window, 'session');
+    // 枠リセット後（resetsAt 経過）は usage ファイルが据え置きでも自動再開
+    applyUsagePause(state, { now: () => USAGE_NOW + 3600_000 }, () => {});
+    assert.strictEqual(state.paused, false);
+    assert.strictEqual(state.pausedBy, null);
+});
+
+test('applyUsagePause: 人間の pause は上書きせず、自動で外さない', () => {
+    const { applyUsagePause } = require('../src/daemon');
+    const state = usageState(99, 99, { paused: true, pausedBy: 'human' });
+    applyUsagePause(state, { now: () => USAGE_NOW }, () => {});
+    assert.strictEqual(state.pausedBy, 'human');
+    state.claudeUsage.session.percent = 1;
+    state.claudeUsage.weekly.percent = 1;
+    applyUsagePause(state, { now: () => USAGE_NOW }, () => {});
+    assert.deepStrictEqual([state.paused, state.pausedBy], [true, 'human']);
+});
+
+test('applyUsagePause: settings の閾値を使う', () => {
+    const { applyUsagePause } = require('../src/daemon');
+    const state = usageState(80, 10);
+    applyUsagePause(state, { now: () => USAGE_NOW, settings: { usagePause: { sessionPercent: 75 } } }, () => {});
+    assert.strictEqual(state.pausedBy, 'usage');
+});
+
+test('forceResumeUsage: 超過枠を次のリセットまで強制し、期限で外れて再び pause', () => {
+    const { applyUsagePause, forceResumeUsage } = require('../src/daemon');
+    const state = usageState(92, 10);
+    applyUsagePause(state, { now: () => USAGE_NOW }, () => {});
+    const r = forceResumeUsage(state, { now: () => USAGE_NOW }, () => {});
+    assert.strictEqual(r.paused, false);
+    assert.deepStrictEqual(Object.keys(state.usageOverrides), ['session']);
+    assert.strictEqual(state.usagePause.forced[0].resetsAt, USAGE_NOW + 3600_000);
+    // 強制中に週間が超えたら週間側で pause
+    state.claudeUsage.weekly.percent = 96;
+    applyUsagePause(state, { now: () => USAGE_NOW + 60_000 }, () => {});
+    assert.deepStrictEqual([state.pausedBy, state.usagePause.window], ['usage', 'weekly']);
+    // 週間も強制 → 次のセッション枠（新しい resetsAt）で再び 91% なら、期限切れ後に再 pause
+    forceResumeUsage(state, { now: () => USAGE_NOW + 60_000 }, () => {});
+    assert.strictEqual(state.paused, false);
+    state.claudeUsage.session = { percent: 91, resetsAt: USAGE_NOW + 6 * 3600_000 };
+    applyUsagePause(state, { now: () => USAGE_NOW + 2 * 3600_000 }, () => {});
+    assert.deepStrictEqual([state.pausedBy, state.usagePause.window], ['usage', 'session']);
+    assert.deepStrictEqual(Object.keys(state.usageOverrides), ['weekly']);
+});
+
+test('tick: usage 超過なら dispatch せず pause で早期 return（#1193）', async () => {
+    const { tick } = require('../src/daemon');
+    const fs = require('node:fs');
+    const os = require('node:os');
+    const path = require('node:path');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'daemon-tick-usage-pause-'));
+    const usageFile = path.join(dir, 'claude-usage.json');
+    fs.writeFileSync(usageFile, JSON.stringify({
+        rate_limits: { five_hour: { used_percentage: 95 }, seven_day: { used_percentage: 10 } },
+    }) + '\n');
+    const state = { paused: false, pausedBy: null, running: new Map(), claudeUsage: null };
+    // resetsAt なし → updatedAt（mtime）から 5 時間以内は有効
+    const res = await tick({ usageFile, now: () => 1000, statSync: () => ({ mtimeMs: 900 }) }, state, () => {});
+    assert.deepStrictEqual(res, { paused: true, picked: [] });
+    assert.strictEqual(state.pausedBy, 'usage');
+});
+
+test('startHttp: usage pause 中の /resume は 409 で /force-resume へ誘導し、/force-resume で再開', async () => {
+    const cfg = { ...makeCfg(), port: 0, assignee: null, concurrency: 1, now: () => USAGE_NOW, usageFile: '/no/such/usage.json' };
+    const state = usageState(92, 10);
+    const { server, port } = await startTestHttp(cfg, state);
+    try {
+        const b = await httpRequestJson(port, 'GET', '/board');
+        assert.strictEqual(b.body.pausedBy, 'usage');
+        assert.strictEqual(b.body.usagePause.window, 'session');
+        const r = await httpRequestJson(port, 'POST', '/resume');
+        assert.strictEqual(r.status, 409);
+        assert.strictEqual(r.body.forceResumeRequired, true);
+        assert.strictEqual(state.pausedBy, 'usage');
+        const f = await httpRequestJson(port, 'POST', '/force-resume');
+        assert.strictEqual(f.status, 200);
+        assert.strictEqual(f.body.paused, false);
+        const s = await httpRequestJson(port, 'GET', '/status');
+        assert.strictEqual(s.body.usagePause.forced[0].window, 'session');
+        assert.ok(s.body.usageOverrides.session);
+    } finally {
+        server.close();
+    }
+});

@@ -1437,6 +1437,8 @@ export default {
         'メッシュの「センサーのあたい」は、おなじなまえのグローバルへんすうがあると、じぶんのあたいもよむようになりました。',
     'gui.meshSelfSensorNotice.learnMore': 'くわしくはこちら',
     'gui.meshSelfSensorNotice.dismiss': 'とじる',
+    'gui.rubyTab.dnclDoubleSlashHint':
+        'スモウルビーでは // はコメントではありません（せいすうのわりざんです）。コメントには # をつかってください。',
     'gui.rubyTab.dnclValidationError':
         'にほんごモードではたいおうしていないきじゅつです。\nたいおうしているめいれいのみにしてから、モードきりかえをおこなってください。',
     'gui.mobile.drawer.title': 'メニュー',

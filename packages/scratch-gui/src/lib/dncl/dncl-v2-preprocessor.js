@@ -148,45 +148,6 @@ const normalizeArrayInit = (line) => line.replace(
   )
 
 /**
- * Whether the `//` at `idx` starts a comment rather than being the
- * Smalruby DNCL integer-division operator (`a // b`). 共通テスト samples
- * write comments like `n = 1 // 生徒番号`, so `//` counts as a comment
- * only when followed by Japanese text or nothing; ASCII operands such as
- * `10 // 3` keep their division meaning.
- * @param {string} line - The source line.
- * @param {number} idx - Index of the first `/`.
- * @returns {boolean} True when `//` begins a comment.
- */
-const isSlashComment = (line, idx) => {
-  if (line[idx] !== '/' || line[idx + 1] !== '/') return false
-  const rest = line.substring(idx + 2).trimStart()
-  return rest === '' || /^[\u0080-\uffff]/.test(rest)
-}
-
-/**
- * Convert a `//` line comment (outside string literals) into the `#`
- * comment the rest of the pipeline understands (see `isSlashComment`).
- * @param {string} line - The source line.
- * @returns {string} The line with `//` replaced by `#`.
- */
-const normalizeSlashComment = (line) => {
-  let i = 0
-  while (i < line.length) {
-    const ch = line[i]
-    if (ch === '"' || ch === "'") {
-      i = skipString(line, i, ch)
-      continue
-    }
-    if (ch === '#') return line
-    if (isSlashComment(line, i)) {
-      return `${line.substring(0, i)}#${line.substring(i + 2)}`
-    }
-    i++
-  }
-  return line
-}
-
-/**
  * Net bracket depth of a line, ignoring string literals and comments.
  * A positive value means the statement continues on the next line.
  * @param {string} line - The source line.
@@ -201,7 +162,7 @@ const bracketDepth = (line) => {
       i = skipString(line, i, ch)
       continue
     }
-    if (ch === '#' || isSlashComment(line, i)) break
+    if (ch === '#') break
     if (ch === '(' || ch === '[' || ch === '{') depth++
     if (ch === ')' || ch === ']' || ch === '}') depth--
     i++
@@ -219,13 +180,16 @@ const bracketDepth = (line) => {
  * of a continuation line are dropped, but its `⎿` count is kept so the
  * caller can still close the blocks it ends.
  * @param {string} source - The raw DNCLv2 source.
- * @returns {Array<{line: string, extraCloseCount: number}>} Logical lines.
+ * @returns {Array<{line: string, extraCloseCount: number, lineNumber: number}>}
+ *   Logical lines. `lineNumber` is the 1-based source line the logical line
+ *   starts on (a joined line maps to its first line).
  */
 const joinContinuationLines = (source) => {
   const rawLines = source.split('\n')
   const result = []
   let i = 0
   while (i < rawLines.length) {
+    const lineNumber = i + 1
     let line = rawLines[i]
     let extraCloseCount = 0
     // Only numbered DNCLv2 lines wrap; in un-numbered code an unclosed
@@ -243,7 +207,7 @@ const joinContinuationLines = (source) => {
       line = `${line.replace(/\s+$/, '')} ${rest}`
       depth += bracketDepth(rest)
     }
-    result.push({ line, extraCloseCount })
+    result.push({ line, extraCloseCount, lineNumber })
     i++
   }
   return result
@@ -519,11 +483,9 @@ const normalizeFunctionDefOpener = (line) =>
  *   comma-separated multi-assignment was split).
  */
 const preprocessLine = (line) => {
-  // `//` comments are a 共通テスト notation, so only numbered DNCLv2 lines
-  // get them; un-numbered Smalruby DNCL keeps `合計 // 個数` as division.
-  const numbered = LINE_NUMBER_RE.test(line)
+  // `//` is always integer division here; 共通テスト `//` comments are
+  // turned into `#` when pasted (dncl-paste-tidy.js, Issue #1192).
   let out = stripLineNumber(line)
-  if (numbered) out = normalizeSlashComment(out)
   out = normalizeArrayInit(out)
   out = stripTrailingColon(out)
   out = normalizeKurikaesuSuffix(out)
@@ -543,14 +505,32 @@ const preprocessLine = (line) => {
  * (`を実行する` / `を繰り返す` / `と定義する`) at the popped block's
  * indent. Lines without `⎿` are passed through; explicit Smalruby
  * closers (`を実行する` etc.) still work.
+ *
+ * Because joining continuation lines, splitting multi-assignments and
+ * adding closers change the line count, the result also carries a line
+ * map so errors can be reported at the line the user wrote:
+ *   - a joined line maps to its first source line
+ *   - each piece of a split multi-assignment maps to its source line
+ *   - a closer added for `⎿` maps to the line holding the `⎿`
+ *   - a closer added for an indentation-style block maps to the last code
+ *     line of the block it closes
  * @param {string} source - The DNCLv2 source.
- * @returns {string} The pre-processed source.
+ * @returns {{source: string, lineMap: Array<number>}} The pre-processed
+ *   source, and `lineMap[i]` = the 1-based source line of output line i+1.
  */
-const dnclV2Preprocess = (source) => {
+const dnclV2PreprocessWithLineMap = (source) => {
   const stack = []
   const out = []
-  const emitCloser = (block) =>
-    out.push(`${block.indent}${closerForBlockType(block.type)}`)
+  const lineMap = []
+  // Source line of the last code (non-blank, non-comment) line emitted,
+  // i.e. where an indentation-style block ends.
+  let lastCodeLine = 1
+  const emit = (text, lineNumber) => {
+    out.push(text)
+    lineMap.push(lineNumber)
+  }
+  const emitCloser = (block, lineNumber) =>
+    emit(`${block.indent}${closerForBlockType(block.type)}`, lineNumber)
   // Close indentation-style blocks (opener ends with `:`, body indented, no
   // `⎿` and no closer line, as in 共通テスト code typed without the `｜` /
   // `⎿` markers) once a line at the opener's indent or shallower appears.
@@ -578,12 +558,14 @@ const dnclV2Preprocess = (source) => {
       if (width === top.width && top.type === 'if' && isIfContinuation(body)) {
         return
       }
-      emitCloser(stack.pop())
+      emitCloser(stack.pop(), lastCodeLine)
     }
   }
-  for (const { line: rawLine, extraCloseCount } of joinContinuationLines(
-    source,
-  )) {
+  for (const {
+    line: rawLine,
+    extraCloseCount,
+    lineNumber,
+  } of joinContinuationLines(source)) {
     // Phase 3 per-line transformations (may produce `\n` from multi-assignment).
     const phase3 = preprocessLine(rawLine)
     const colonOpener = /[:：]\s*$/.test(rawLine) && !/[:：]\s*$/.test(phase3)
@@ -602,8 +584,10 @@ const dnclV2Preprocess = (source) => {
       const indent = indentMatch ? indentMatch[1] : ''
       const body = marked.substring(indent.length).replace(/\s+$/, '')
       const width = indentWidth(indent)
-      if (body !== '' && !body.startsWith('#')) closeByIndent(width, body)
-      out.push(marked)
+      const isCode = body !== '' && !body.startsWith('#')
+      if (isCode) closeByIndent(width, body)
+      emit(marked, lineNumber)
+      if (isCode) lastCodeLine = lineNumber
       const type = detectBlockType(body)
       if (type) {
         stack.push({ type, indent, width, colon: colonOpener, hasBody: false })
@@ -612,7 +596,7 @@ const dnclV2Preprocess = (source) => {
       for (let i = 0; i < closeCount; i++) {
         const popped = stack.pop()
         if (!popped) break
-        emitCloser(popped)
+        emitCloser(popped, lineNumber)
       }
     }
   }
@@ -620,9 +604,17 @@ const dnclV2Preprocess = (source) => {
   while (stack.length > 0) {
     const top = stack[stack.length - 1]
     if (!top.colon || !top.hasBody) break
-    emitCloser(stack.pop())
+    emitCloser(stack.pop(), lastCodeLine)
   }
-  return out.join('\n')
+  return { source: out.join('\n'), lineMap }
 }
 
-export { dnclV2Preprocess }
+/**
+ * Pre-process a DNCLv2 source string into Smalruby DNCL form, without the
+ * line map (see `dnclV2PreprocessWithLineMap`).
+ * @param {string} source - The DNCLv2 source.
+ * @returns {string} The pre-processed source.
+ */
+const dnclV2Preprocess = (source) => dnclV2PreprocessWithLineMap(source).source
+
+export { dnclV2Preprocess, dnclV2PreprocessWithLineMap }

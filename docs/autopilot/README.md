@@ -497,6 +497,34 @@ worker は**非対話**で動くので、許可プロンプトで止まると運
 
 ---
 
+## Claude 使用量の auto-pause と強制再開
+
+Claude の使用量（セッション枠）が 100% に達すると worker はプロンプトを受け付けなくなり、
+watchdog の再起動も効かずに `stalled; restart limit reached` で Blocked になる。そこで
+手前で **auto-pause**（`pausedBy: "usage"`）して新しいタスクを入れないようにする。
+
+- **閾値**: セッション（直近 5 時間）**90%** 以上、または週間（7 日）**95%** 以上。
+  settings の `usagePause` で変更できる（部分指定は既定とマージ。100 より大きくするとその枠では止めない）:
+  ```json
+  { "usagePause": { "sessionPercent": 85, "weeklyPercent": 98 } }
+  ```
+- **止めるのは新規ディスパッチだけ**。実行中の worker はそのまま続ける（既存の pause と同じ）。
+- **判定しないケース**: usage が読めない（ファイル無し・非サブスク）とき、その枠の `resetsAt` を
+  過ぎているとき（枠はリセット済み）、`resetsAt` が無く usage ファイルが枠の長さ以上古いとき。
+  usage は worker 稼働時にしか更新されないが、`resetsAt` を過ぎれば据え置きのままでも**自動で再開**する。
+- **人間 / 認証の pause は上書きしない**。自動再開するのは `pausedBy: "usage"` のときだけ。
+- **強制再開**（`POST /force-resume`・モニタの `⚡ 強制再開…` → `再開する` の 2 段階）: いま閾値を
+  超えている枠に「その枠の次のリセットまで」の override を付けて再開する。override は**枠ごと**で、
+  セッションで強制したあとに週間が閾値を超えたら、週間側で改めて auto-pause する。リセット時刻を
+  過ぎると override は自動で外れて通常の判定に戻る（daemon 再起動でも外れる＝in-memory）。
+- **usage pause 中の `POST /resume` は `409 {forceResumeRequired:true}`** を返し解除しない（次の再評価で
+  即また pause される上、上限に近いことを見落とさせないため）。モニタの ▶ は強制再開の確認段を開く。
+- 判定は `phases.js` の純粋関数（`usagePausePlan` / `usageForceOverrides` / `usagePauseAction`）。
+  daemon は usage を読み直すたび（毎 tick・`GET /board`・worker 完了時）に再評価する。usage は
+  ローカルファイル読みなので GitHub API を消費しない。
+
+---
+
 ## Bot 権限外パス（workflows 等）は個人トークンで push / PR
 
 GitHub App bot は `workflows` 権限を持たないため、`.github/workflows/**` /
@@ -559,12 +587,35 @@ GitHub Projects で行い、モニタは俯瞰・log 閲覧・pause/resume/即�
   **used ≥ 80% は警告色**。Pro/Max サブスク以外や初回 API 応答前は `rate_limits` が無いため
   **「—」表示**にしてレイアウトを崩さない。
 - **アラート帯**: 認証失効（auto-pause 中・再認証手順つき + **「🔐 再接続（SSO ログイン）」
-  ボタン**で device code の URL 自動オープン & コードのコピー）/ Blocked 一覧。
+  ボタン**で device code の URL 自動オープン & コードのコピー）/ Blocked 一覧 /
+  **Claude 使用量の auto-pause**（理由・使用率・閾値・リセット時刻 + `⚡ 強制再開…` → その場で
+  「本当に再開？ [再開する] [やめる]」に置き換わる 2 段階。ブラウザの confirm は使わない）/
+  **強制実行中**（「⚡ 強制実行中（セッション 92% · 〜19:40 まで）」）。状態ピルは
+  usage pause 中 **`USAGE ⏸`**（橙）。詳細は「Claude 使用量の auto-pause と強制再開」。
   各アラートに **`check autopilot (#N)` のコピー用ショートカット**があり、Claude に
   貼ると `.claude/skills/check-autopilot` スキルが診断・復旧支援する
-- **ボード行**: Issue（リンク + タイトル）/ Status pill / AI Status（live）/ 担当 /
-  **複数 PR チップ**（📝 draft / ✅ ready / 🟣 merged / ❌ closed の色・絵文字）/
-  **sub-issue 進捗**（N/M・%・バー）/ Now（実行中フェーズ + 経過分 + **log ボタン → モーダル**）
+- **ボード行**: Issue（**📋** + リンク + **PR チップ** + **▼** + タイトル）/ Status pill / Size / AI Status（live）/
+  担当 / **sub-issue 進捗**（N/M・%・バー）/ Now（実行中フェーズ + 経過分 + **log ボタン → モーダル**）
+  - **PR は専用列ではなく Issue 番号のすぐ右**に置く（#1212）。レビュー待ちで見たいのは PR なので、
+    Issue を経由せず 1 クリックで開けるようにする。インラインに並べるのは **open の PR だけ**
+    （📝 draft / ✅ ready。`PR#N` 表記で Issue 番号と区別）。並びは `#Issue` → PR チップ → ▼ →
+    タイトル → 🧭 / ⏳。
+  - **merged / closed（未 merge）の PR が 1 つでもあれば ▼** を出す。押すとその Issue の
+    **全 PR**（open 含む・`✅ PR#N open` / `📝 draft` / `🟣 merged` / `❌ closed`）のメニューを開き、
+    項目は別タブで PR を開く。外側クリック・Esc・項目の選択で閉じ、同時に開くのは 1 つだけ。
+    5 秒ごとの一覧の再描画をまたいでも開いたまま保つ（開いている Issue 番号を覚えて描画のたびに
+    復元する）。open / それ以外の振り分けは `phases.js` の純粋関数 `splitPrsForTitle` を
+    モニタに埋め込んで共有する
+  - 狭い幅でも PR チップと ▼ は折り返さず、タイトルだけを省略表示にする
+  - **Issue 列の左端の 📋**（#1213）で、Issue を人に共有したり Claude に引き継いだりするための
+    文字列をコピーする。押したときだけコピーし（行のクリックではコピーしない）、PR チップの数や
+    タイトルの長さに関係なくどの行でも同じ位置に出る。コピーする文字列は 1 行目
+    `#1199 PR#1220 タイトル全文` と、Issue・PR の URL を 1 行ずつ。PR は画面にインラインで並ぶ
+    **open の PR だけ**（merged / closed は含めない。無ければ `#1199 タイトル` と Issue の URL だけ）。
+    組み立ては `phases.js` の純粋関数 `issueCopyText` をモニタに埋め込んで共有する。
+    コピーできたことは**行を一瞬光らせる**だけで伝える（5 秒ごとの再描画をまたいでも経過分から
+    続ける）。`localhost` 以外（IP 直打ち等）で開いて `navigator.clipboard` が使えないときは
+    `prompt` で文字列を表示し、その場合は光らせない
   - **担当列はオーナー（駆動者）を太字で明示**する（`autopilot-assignee:` ディレクティブが
     あれば反映）。**自分がオーナーでない**共同担当の行には **👁 + オーナー login** の
     「観察中」マーカーを付ける（#938）。観察対象（他人が駆動する item）はこの daemon の
@@ -785,12 +836,13 @@ HTTP API（curl からも操作可能）:
 | メソッド・パス | 用途 |
 |---|---|
 | `GET /` | Web モニタ（俯瞰ボード HTML） |
-| `GET /board` | 俯瞰ボードデータ（items + running + history + auth 状態 + `claudeUsage` + `version` + `autopilotUpdate`）を JSON で返す |
-| `GET /status` | `{paused, pausedBy, authError, reauthHint, reauth, assignee, concurrency, claudeUsage, version, autopilotUpdate, running:[{issue,phase}]}` |
+| `GET /board` | 俯瞰ボードデータ（items + running + history + auth 状態 + `claudeUsage` + `usagePause` / `usageOverrides` + `version` + `autopilotUpdate`）を JSON で返す |
+| `GET /status` | `{paused, pausedBy, authError, reauthHint, reauth, assignee, concurrency, claudeUsage, usagePause, usageOverrides, version, autopilotUpdate, running:[{issue,phase}]}`。`pausedBy` は `human` / `auth` / `usage`。`usagePause` は判定結果（`pause, window, percent, threshold, resetsAt, thresholds, forced[]`） |
 | `GET /log?issue=<n>` | 実行中 item の tmux pane キャプチャ（人間観測用） |
 | `POST /tick` | interval を待たず 1 サイクル即実行。`{ran, paused, picked:[...], running:[...]}` を返す。実行中は `409 {busy:true}`、pause 中は `{ran:true, paused:true, picked:[]}` の no-op |
 | `POST /pause` | 新規ディスパッチを止める（実行中はそのまま） |
-| `POST /resume` | ポーリング再開 |
+| `POST /resume` | ポーリング再開（usage の auto-pause 中は `409 {forceResumeRequired:true}`） |
+| `POST /force-resume` | Claude 使用量の auto-pause を強制再開。超過中の枠はその枠の次のリセットまで auto-pause しない。`{paused, pausedBy, overrides}` |
 | `POST /reauth` | SSO 再認証（device code）を daemon 側で起動し、認証 URL と user code を抽出して返す（`{status, url, code, completeUrl}`）。成功で auto-resume |
 | `POST /refresh` | 俯瞰ボードを即時再取得（`listItems`）。モニタの「🔄 更新」ボタン。レート僅少時は `{refreshed:false, skipped:'rate-limited'}` で no-op |
 | `POST /later` | body `{issue, later: boolean}`。`💤 later` を付与 / 除去する（モニタの「💤 あとで」/「↩ 今やる」）。Issue 単位で直列化し連続リクエストは最後の目標へ畳み込む。既に目的の状態なら書き込まない。`{issue, later, changed}` を返す |
