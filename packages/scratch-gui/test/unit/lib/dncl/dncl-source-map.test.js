@@ -69,11 +69,22 @@ describe('DnclSourceMap', () => {
       expect(map.dnclLineToRubyLine(3)).toBe(3)
     })
 
-    test('out-of-range lines are returned unchanged', () => {
+    test('out-of-range Ruby lines are clamped to the first / last DNCL line', () => {
+      const map = new DnclSourceMap([2, 2, 3], 3)
+
+      expect(map.rubyLineToDnclLine(0)).toBe(2)
+      expect(map.rubyLineToDnclLine(10)).toBe(3)
+    })
+
+    test('an empty map returns Ruby lines unchanged', () => {
+      const map = new DnclSourceMap([], 0)
+
+      expect(map.rubyLineToDnclLine(3)).toBe(3)
+    })
+
+    test('out-of-range DNCL lines are returned unchanged', () => {
       const map = new DnclSourceMap([1, 1, 2], 2)
 
-      expect(map.rubyLineToDnclLine(0)).toBe(0)
-      expect(map.rubyLineToDnclLine(10)).toBe(10)
       expect(map.dnclLineToRubyLine(0)).toBe(0)
       expect(map.dnclLineToRubyLine(10)).toBe(10)
     })
@@ -200,6 +211,31 @@ describe('DnclSourceMap', () => {
 
       expect(errors).toHaveLength(1)
       expect(errors[0].line).toBe(4)
+    })
+  })
+
+  describe('editor error remapping', () => {
+    test('moves errors to their DNCL line and marks the whole line', () => {
+      const dncl = 'a = 【外部からの入力】\nb = 2\nc = error'
+      const map = dnclToRuby(dncl).sourceMap
+      const errors = [
+        { row: 1, column: 4, source: 'answer', text: 'e1' },
+        { row: 3, column: 4, source: 'error', text: 'e2' },
+      ]
+
+      expect(map.rubyErrorsToDncl(errors)).toEqual([
+        { row: 0, column: 0, source: null, text: 'e1' },
+        { row: 2, column: 0, source: null, text: 'e2' },
+      ])
+      // The input errors are not modified.
+      expect(errors[0]).toEqual({ row: 1, column: 4, source: 'answer', text: 'e1' })
+    })
+
+    test('an error after the last Ruby line lands on the last DNCL line', () => {
+      const dncl = 'a = 【外部からの入力】\nb = 2'
+      const map = dnclToRuby(dncl).sourceMap
+
+      expect(map.rubyErrorsToDncl([{ row: 99, column: 0, text: 'eof' }])[0].row).toBe(1)
     })
   })
 

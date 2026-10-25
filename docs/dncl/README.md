@@ -85,7 +85,7 @@ Ruby タブを次に開いたとき、`exitDnclModeExternallyRequested` フラ�
 
 #### エラー行の対応（ソースマップ）
 
-DNCL モードでは、DNCL を Ruby に変換してからブロックに変換するため、変換エラーは **Ruby の行番号**で返ってくる。DNCL と Ruby の行は 1:1 に対応しないので、`DnclSourceMap` で DNCL の行に戻してからエディタにエラーマーカーを表示する（`ruby-tab.jsx` の `showErrors`）。Ruby の桁は DNCL の桁と対応しないため、マーカーは **DNCL の行全体**に付ける。
+DNCL モードでは、DNCL を Ruby に変換してからブロックに変換するため、変換エラーは **Ruby の行番号**で返ってくる。DNCL と Ruby の行は 1:1 に対応しないので、`DnclSourceMap` で DNCL の行に戻してからエディタにエラーマーカーを表示する（`ruby-tab.jsx` の `showErrors`）。Ruby の桁は DNCL の桁と対応しないため、マーカーは **DNCL の行全体**に付ける（付け替えは `DnclSourceMap#rubyErrorsToDncl`）。Ruby の最終行より後ろ（または 1 行目より前）を指すエラーは、Ruby の最終行（1 行目）に対応する DNCL の行に寄せる。Ruby の方が行数が多いのが普通なので、行番号をそのまま使うと無関係な DNCL の行や存在しない行を指してしまうため。
 
 行数が変わる変換と、対応させる DNCL の行:
 

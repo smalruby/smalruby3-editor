@@ -61,15 +61,37 @@ class DnclSourceMap {
 
   /**
    * Map a Ruby line number to a DNCL line number.
+   *
+   * Out-of-range Ruby lines are clamped to the first / last Ruby line. The
+   * Ruby code is usually longer than the DNCL source, so returning the Ruby
+   * line number unchanged would point at an unrelated or missing DNCL line.
    * @param {number} rubyLine - 1-based Ruby line number.
    * @returns {number} 1-based DNCL line number.
    */
   rubyLineToDnclLine(rubyLine) {
-    const idx = rubyLine - 1
-    if (idx < 0 || idx >= this._rubyToDncl.length) {
+    const lastIdx = this._rubyToDncl.length - 1
+    if (lastIdx < 0) {
       return rubyLine
     }
+    const idx = Math.min(Math.max(rubyLine - 1, 0), lastIdx)
     return this._rubyToDncl[idx]
+  }
+
+  /**
+   * Move conversion errors from their Ruby lines to the matching DNCL lines.
+   *
+   * Ruby columns have no DNCL counterpart, so each error is set to cover the
+   * whole DNCL line (`column: 0`, `source: null`).
+   * @param {Array<object>} errors - Errors with a 0-based Ruby `row`.
+   * @returns {Array<object>} Copies of the errors with a 0-based DNCL `row`.
+   */
+  rubyErrorsToDncl(errors) {
+    return errors.map((err) => ({
+      ...err,
+      row: this.rubyLineToDnclLine(err.row + 1) - 1,
+      column: 0,
+      source: null,
+    }))
   }
 
   /**

@@ -244,14 +244,7 @@ const RubyTab = (props) => {
             // each error to its DNCL line. Ruby columns have no DNCL
             // counterpart, so the whole DNCL line is marked.
             const sourceMap = dnclModeRef.current ? dnclSourceMapRef.current : null;
-            const errors = sourceMap
-                ? rawErrors.map((err) => ({
-                      ...err,
-                      row: sourceMap.rubyLineToDnclLine(err.row + 1) - 1,
-                      column: 0,
-                      source: null,
-                  }))
-                : rawErrors;
+            const errors = sourceMap ? sourceMap.rubyErrorsToDncl(rawErrors) : rawErrors;
             const markers = errors.map((err) => ({
                 startLineNumber: err.row + 1,
                 startColumn: err.column + 1,
