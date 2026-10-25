@@ -370,6 +370,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-teacher-menu-logout` | span | 「ログアウト」 |
 | `classroom-teacher-menu-kick-requests` | span | 「退室依頼（N件）」（未処理の退室依頼があるときのみ。#1200） |
 | `classroom-teacher-menu-kick-requests-badge` | span | 「退室依頼」項目のバッジ |
+| `classroom-teacher-menu-status-panel` | span | 「いまの課題の状況」（フローティングパネルを開く。#1203） |
 
 #### 退室依頼のトースト（先生ログイン中・#1200）
 
@@ -384,6 +385,30 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-teacher-kick-toast-show-all` | button | 「ほかN件」（全件の一覧に切り替え） |
 | `classroom-teacher-kick-toast-later` | button | あとで（閉じる） |
 | `classroom-teacher-kick-toast-error` | div | 承認・却下の失敗表示 |
+
+#### いまの課題の状況パネル（先生ログイン中・#1203）
+
+| data-testid | 要素 | 説明 |
+|------------|------|------|
+| `classroom-teacher-panel` | div | パネル全体（ドラッグ可能） |
+| `classroom-teacher-panel-header` | div | ヘッダー（ドラッグハンドル） |
+| `classroom-teacher-panel-header-counts` | span | 最小化中の `着席/定員 · 提出/参加` |
+| `classroom-teacher-panel-refresh` | button | 手動更新 |
+| `classroom-teacher-panel-minimize` | button | 最小化 / 元に戻す |
+| `classroom-teacher-panel-close` | button | 閉じる |
+| `classroom-teacher-panel-body` | div | 本文（最小化中は無い） |
+| `classroom-teacher-panel-assignment` | select | 課題の切り替え |
+| `classroom-teacher-panel-seated` | span | 着席（目安） N / 定員 |
+| `classroom-teacher-panel-submitted` | span | 提出 N / 参加数 |
+| `classroom-teacher-panel-grid` | div | 座席ミニグリッド |
+| `classroom-teacher-panel-seat-<N>` | button | 座席 N（`data-member-id`。押すとメンバー詳細へ） |
+| `classroom-teacher-panel-kick-list` | div | この課題の未処理の退室依頼 |
+| `classroom-teacher-panel-kick-request` | div | 依頼 1 件（`data-request-id`） |
+| `classroom-teacher-panel-kick-approve` / `-kick-reject` | button | 承認 / 却下 |
+| `classroom-teacher-panel-empty` | div | 課題が未選択 |
+| `classroom-teacher-panel-error` | div | 取得・承認の失敗表示 |
+
+自動確認: `tools/playwright-verify/verify-teacher-status-panel.mjs`（classroom API をスタブ。1300×600 で 40 席・退室依頼 3 件が画面内に収まる / パネル表示中にブロックをドラッグできる / 位置の記憶 / 最小化 / 承認）。
 
 ### 強制退室通知 / 退室リクエスト (Issue #692)
 

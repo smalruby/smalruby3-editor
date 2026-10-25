@@ -94,6 +94,7 @@ describe('teacherMenuItems', () => {
 
     test('omits "current assignment" when nothing was opened yet', () => {
         expect(ids(teacherMenuItems({ lastClassroomId: null, unreadCount: 0 }))).toEqual([
+            'status-panel',
             'class-list',
             'notifications',
             'logout',
@@ -103,6 +104,7 @@ describe('teacherMenuItems', () => {
     test('lists "current assignment" first when one was opened', () => {
         expect(ids(teacherMenuItems({ lastClassroomId: 'c1', unreadCount: 0 }))).toEqual([
             'current-assignment',
+            'status-panel',
             'class-list',
             'notifications',
             'logout',

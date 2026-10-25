@@ -21,6 +21,8 @@ const SET_TEACHER_KICK_REQUESTS = 'scratch-gui/classroom/SET_TEACHER_KICK_REQUES
 const REMOVE_TEACHER_KICK_REQUEST = 'scratch-gui/classroom/REMOVE_TEACHER_KICK_REQUEST';
 const OPEN_TEACHER_KICK_LIST = 'scratch-gui/classroom/OPEN_TEACHER_KICK_LIST';
 const CLOSE_TEACHER_KICK_LIST = 'scratch-gui/classroom/CLOSE_TEACHER_KICK_LIST';
+const OPEN_TEACHER_PANEL = 'scratch-gui/classroom/OPEN_TEACHER_PANEL';
+const CLOSE_TEACHER_PANEL = 'scratch-gui/classroom/CLOSE_TEACHER_PANEL';
 
 const STORAGE_KEY = 'smalruby:classroom';
 
@@ -157,10 +159,14 @@ const initialState = {
             : null,
     // Pending jump requested from the teacher menu, consumed by the teacher modal.
     teacherNavTarget: null,
+    // Member to show once the jump above lands on the assignment (#1203).
+    teacherNavMemberId: null,
     // Pending kick requests across the teacher's assignments, polled while
     // logged in (#1200), and whether the list opened from the menu is shown.
     teacherKickRequests: [],
     teacherKickListOpen: false,
+    // Floating "いまの課題の状況" panel (#1203).
+    teacherPanelOpen: false,
 };
 
 const reducer = (state, action) => {
@@ -247,17 +253,24 @@ const reducer = (state, action) => {
                 teacherUnreadCount: 0,
                 teacherLastSelection: null,
                 teacherNavTarget: null,
+                teacherNavMemberId: null,
                 teacherKickRequests: [],
                 teacherKickListOpen: false,
+                teacherPanelOpen: false,
             };
         case SET_TEACHER_UNREAD_COUNT:
             return { ...state, teacherUnreadCount: action.unreadCount || 0 };
         case SET_TEACHER_LAST_SELECTION:
             return { ...state, teacherLastSelection: action.selection };
         case REQUEST_TEACHER_NAVIGATION:
-            return { ...state, teacherModalVisible: true, teacherNavTarget: action.target };
+            return {
+                ...state,
+                teacherModalVisible: true,
+                teacherNavTarget: action.target,
+                teacherNavMemberId: action.memberId || null,
+            };
         case CLEAR_TEACHER_NAVIGATION:
-            return { ...state, teacherNavTarget: null };
+            return { ...state, teacherNavTarget: null, teacherNavMemberId: null };
         case SET_TEACHER_KICK_REQUESTS:
             return { ...state, teacherKickRequests: action.requests || [] };
         case REMOVE_TEACHER_KICK_REQUEST: {
@@ -276,6 +289,10 @@ const reducer = (state, action) => {
             return { ...state, teacherKickListOpen: true };
         case CLOSE_TEACHER_KICK_LIST:
             return { ...state, teacherKickListOpen: false };
+        case OPEN_TEACHER_PANEL:
+            return { ...state, teacherPanelOpen: true };
+        case CLOSE_TEACHER_PANEL:
+            return { ...state, teacherPanelOpen: false };
         default:
             return state;
     }
@@ -340,7 +357,17 @@ const clearTeacherSelection = () => ({ type: CLEAR_TEACHER_SELECTION });
 const setTeacherLoggedIn = (loggedIn) => ({ type: SET_TEACHER_LOGGED_IN, loggedIn: !!loggedIn });
 const setTeacherUnreadCount = (unreadCount) => ({ type: SET_TEACHER_UNREAD_COUNT, unreadCount });
 const setTeacherLastSelection = (selection) => ({ type: SET_TEACHER_LAST_SELECTION, selection });
-const requestTeacherNavigation = (target) => ({ type: REQUEST_TEACHER_NAVIGATION, target });
+/**
+ * Ask the teacher modal to open at `target` (#1199).
+ * @param {string} target - 'current-assignment' | 'class-list' | 'notifications'
+ * @param {?string} [memberId] - with 'current-assignment', the member to show (#1203)
+ * @returns {object} action
+ */
+const requestTeacherNavigation = (target, memberId = null) => ({
+    type: REQUEST_TEACHER_NAVIGATION,
+    target,
+    memberId,
+});
 const clearTeacherNavigation = () => ({ type: CLEAR_TEACHER_NAVIGATION });
 const setTeacherKickRequests = (requests) => ({ type: SET_TEACHER_KICK_REQUESTS, requests });
 /**
@@ -353,6 +380,8 @@ const setTeacherKickRequests = (requests) => ({ type: SET_TEACHER_KICK_REQUESTS,
 const removeTeacherKickRequest = (requestId, seat = null) => ({ type: REMOVE_TEACHER_KICK_REQUEST, requestId, seat });
 const openTeacherKickList = () => ({ type: OPEN_TEACHER_KICK_LIST });
 const closeTeacherKickList = () => ({ type: CLOSE_TEACHER_KICK_LIST });
+const openTeacherPanel = () => ({ type: OPEN_TEACHER_PANEL });
+const closeTeacherPanel = () => ({ type: CLOSE_TEACHER_PANEL });
 
 export default reducer;
 export {
@@ -378,4 +407,6 @@ export {
     removeTeacherKickRequest,
     openTeacherKickList,
     closeTeacherKickList,
+    openTeacherPanel,
+    closeTeacherPanel,
 };

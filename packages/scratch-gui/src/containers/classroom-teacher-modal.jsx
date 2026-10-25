@@ -183,6 +183,7 @@ const ClassroomTeacherModal = () => {
     // breadcrumbs / notification links, so the phase always follows the
     // selection (handleSelectGroup resets it to the board first).
     const navTarget = classroomState.teacherNavTarget;
+    const navMemberId = classroomState.teacherNavMemberId;
     const lastSelection = classroomState.teacherLastSelection;
     useEffect(() => {
         if (!navTarget) return;
@@ -203,13 +204,26 @@ const ClassroomTeacherModal = () => {
             teacher.notificationsCenter.handleShowAll();
         } else if (nav.action === 'assignment') {
             if (nav.group) teacher.handleSelectGroup(nav.group);
-            // Back to the lesson in progress: always the members tab.
-            teacher.handleSelectClassroom(nav.classroomId, { tab: 'members' });
+            // Back to the lesson in progress: always the members tab, and the
+            // seat picked in the floating status panel when there is one (#1203).
+            const memberId = navMemberId;
+            Promise.resolve(teacher.handleSelectClassroom(nav.classroomId, { tab: 'members' })).then(() => {
+                if (memberId) teacher.handleSelectMember(memberId);
+            });
         } else {
             teacher.handleShowClassList();
         }
         // teacher is a fresh object every render; re-run only when the inputs change.
-    }, [dispatch, navTarget, lastSelection, teacherIdToken, teacherLoggedIn, teacher.groups, teacher.groupsLoaded]);
+    }, [
+        dispatch,
+        navTarget,
+        navMemberId,
+        lastSelection,
+        teacherIdToken,
+        teacherLoggedIn,
+        teacher.groups,
+        teacher.groupsLoaded,
+    ]);
 
     // Handle relogin request from Alert "参加しなおす" button
     useEffect(() => {

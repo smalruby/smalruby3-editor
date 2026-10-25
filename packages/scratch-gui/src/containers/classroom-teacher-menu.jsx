@@ -8,6 +8,7 @@ import {
     clearTeacherSelection,
     closeTeacherModal,
     openTeacherKickList,
+    openTeacherPanel,
     requestTeacherNavigation,
     setTeacherLastSelection,
     setTeacherLoggedIn,
@@ -90,6 +91,11 @@ const ClassroomTeacherMenu = ({ className, activeClassName, menuClassName, place
                 // Pending kick requests open as a list at the bottom (#1200),
                 // without opening the class management modal.
                 dispatch(openTeacherKickList());
+                return;
+            }
+            if (id === 'status-panel') {
+                // A floating panel over the editor, not the full-screen modal (#1203).
+                dispatch(openTeacherPanel());
                 return;
             }
             if (id === 'logout') {
