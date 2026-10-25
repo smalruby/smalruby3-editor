@@ -428,6 +428,97 @@ function hasUnhandledChangesRequest(review, handledReviewAt) {
 }
 
 /**
+ * ゲート watermark の状態ファイル形式のバージョン（#1219）。互換の無い変更をしたら上げる
+ * （違う版のファイルは読まずに空で起動する = 1 回だけ再発火し得るが固着はしない）。
+ */
+const GATE_STATE_VERSION = 1;
+
+/** watermark Map → issue 番号昇順の [issue, ms] 配列（直列化を決定的にして差分判定に使う） */
+function watermarkEntries(map) {
+    const out = [];
+    for (const [issue, at] of (map instanceof Map ? map : new Map())) {
+        const n = Number(issue);
+        const ms = toMs(at);
+        if (Number.isInteger(n) && n > 0 && ms > 0) out.push([n, ms]);
+    }
+    return out.sort((a, b) => a[0] - b[0]);
+}
+
+/**
+ * ゲート watermark（`state.gateHandled` / `state.gateReviewHandled`）を状態ファイル用の
+ * JSON 文字列へ直列化する（純粋関数・#1219）。
+ *
+ * watermark がメモリにしか無いと daemon 再起動で消え、処理済みの CHANGES_REQUESTED や発言で
+ * 起動のたびにゲートが再解除される（不変条件 I5 違反）。出力は決定的（issue 昇順・キー固定）
+ * なので、前回書いた文字列と比べて**差分があるときだけ書く**判定にそのまま使える。
+ * @param {{gateHandled?: Map, gateReviewHandled?: Map}} state
+ * @returns {string}
+ */
+function serializeGateWatermarks(state = {}) {
+    return JSON.stringify({
+        version: GATE_STATE_VERSION,
+        gateHandled: watermarkEntries(state.gateHandled),
+        gateReviewHandled: watermarkEntries(state.gateReviewHandled),
+    });
+}
+
+/**
+ * 状態ファイルの文字列から watermark を復元する（純粋関数・#1219）。**例外を投げない**:
+ * 欠損・壊れた JSON・版違い・不正なエントリは空 Map（または該当エントリのスキップ）にし、
+ * 理由を `error` で返す（無人運用優先。ロード失敗で daemon を落とさない）。
+ * @param {string|null|undefined} text 状態ファイルの内容（無ければ null）
+ * @returns {{gateHandled: Map<number, number>, gateReviewHandled: Map<number, number>, error: string|null}}
+ */
+function parseGateWatermarks(text) {
+    const empty = (error) => ({ gateHandled: new Map(), gateReviewHandled: new Map(), error });
+    if (text === null || text === undefined || text === '') return empty(null);
+    let data;
+    try {
+        data = JSON.parse(text);
+    } catch (e) {
+        return empty(`invalid JSON: ${e.message}`);
+    }
+    if (!data || typeof data !== 'object' || Array.isArray(data)) return empty('not an object');
+    if (data.version !== GATE_STATE_VERSION) return empty(`unsupported version: ${data.version}`);
+    const toMap = (entries) => {
+        const map = new Map();
+        if (!Array.isArray(entries)) return map;
+        for (const e of entries) {
+            if (!Array.isArray(e) || e.length !== 2) continue;
+            const n = Number(e[0]);
+            const ms = toMs(e[1]);
+            if (Number.isInteger(n) && n > 0 && ms > 0) map.set(n, ms);
+        }
+        return map;
+    };
+    return {
+        gateHandled: toMap(data.gateHandled),
+        gateReviewHandled: toMap(data.gateReviewHandled),
+        error: null,
+    };
+}
+
+/**
+ * 終端 Status（Close / Done）になった Issue の watermark を落とす（純粋関数・#1219）。
+ * 終端 item はゲートに戻らないので watermark は不要（状態ファイルの肥大を防ぐ）。
+ * items に現れない Issue は**残す**（一覧の取りこぼしで消すと再起動後に再発火し得るため、
+ * 保守的に保持する）。入力の Map は変更せず新しい Map を返す。
+ * @param {{gateHandled?: Map, gateReviewHandled?: Map}} state
+ * @param {Array<{issue: number, status: string}>} items
+ * @returns {{gateHandled: Map, gateReviewHandled: Map}}
+ */
+function pruneGateWatermarks(state = {}, items = []) {
+    const terminal = new Set();
+    for (const it of items || []) {
+        if (it && TERMINAL_STATUSES.has(it.status)) terminal.add(Number(it.issue));
+    }
+    const prune = (map) => new Map(
+        [...(map instanceof Map ? map : new Map())].filter(([issue]) => !terminal.has(Number(issue))),
+    );
+    return { gateHandled: prune(state.gateHandled), gateReviewHandled: prune(state.gateReviewHandled) };
+}
+
+/**
  * 人間ゲートの解除判定（純粋関数・3 系統の OR）。
  * 1. ラベル解除: Issue/PR の 🙋 ラベルのいずれかが除去された（{@link isHitlReleased}）
  * 2. 発言解除: ゲート開放中に人間が最後に発言した（{@link humanSpokeLast} を daemon が
@@ -2107,6 +2198,148 @@ function rateLimitPlan(limitsByToken, thresholds = {}) {
 }
 
 /**
+ * Claude 使用量による自動 pause の既定閾値（%・#1193）。セッション（five_hour）が 90% /
+ * 週間（seven_day）が 95% 以上で新規ディスパッチを止める。100% に達すると worker が
+ * プロンプトを受け付けず `stalled; restart limit reached` で Blocked になる（#1192）ため、
+ * 手前で止める。settings の `usagePause` で上書きできる（settings.js の resolveUsagePauseThresholds）。
+ */
+const DEFAULT_USAGE_PAUSE_THRESHOLDS = { session: 90, weekly: 95 };
+
+/** 使用量枠の評価順（両方超えたときの reason は先に来た方） */
+const USAGE_WINDOWS = ['session', 'weekly'];
+
+/**
+ * 枠ごとの「resetsAt が取れないときの読み値の寿命」（ms）。resetsAt があればそれを過ぎた
+ * 読み値は「枠がリセット済み」として判定に使わない。無いときは枠の長さで古さを打ち切る
+ * （セッション 5 時間 / 週間 7 日）。強制再開の期限のフォールバックにも使う。
+ */
+const USAGE_WINDOW_FALLBACK_MS = { session: 5 * 3600_000, weekly: 7 * 86400_000 };
+
+/**
+ * usage の resetsAt（秒 or ms epoch）を ms に正規化する。無効値は null。
+ * @param {*} resetsAt
+ * @returns {number|null}
+ */
+function usageResetMs(resetsAt) {
+    if (typeof resetsAt !== 'number' || !Number.isFinite(resetsAt) || resetsAt <= 0) return null;
+    return resetsAt < 1e12 ? resetsAt * 1000 : resetsAt;
+}
+
+/**
+ * 1 枠の読み値を判定に使えるかを見て、使えるなら {percent, resetMs} を返す。
+ * - 値が無い → null（判定しない＝止めない）
+ * - resetsAt を過ぎている → null（枠はリセット済み。worker 非稼働で usage ファイルが
+ *   据え置きでも、リセット後は自動再開できる）
+ * - resetsAt が無く、updatedAt から枠の長さ以上経っている → null（古い）
+ * @returns {{percent:number, resetMs:(number|null)}|null}
+ */
+function usageWindowReading(usage, window, nowMs) {
+    const w = usage && usage[window];
+    if (!w || typeof w.percent !== 'number' || Number.isNaN(w.percent)) return null;
+    const resetMs = usageResetMs(w.resetsAt);
+    if (resetMs != null) {
+        if (nowMs >= resetMs) return null;
+    } else {
+        const updated = toMs(usage.updatedAt);
+        if (!updated || nowMs - updated >= USAGE_WINDOW_FALLBACK_MS[window]) return null;
+    }
+    return { percent: w.percent, resetMs };
+}
+
+/**
+ * Claude 使用量から自動 pause の要否を決める（純粋関数・#1193）。
+ *
+ * - 枠ごとに `percent >= threshold` なら超過。値が無い / 枠がリセット済み / 古い枠は判定しない
+ * - 超過枠に**有効な強制再開（override）**があれば pause しない（`forced` に載せて UI が期限を出す）
+ * - override は枠ごと（セッションで強制しても週間の超過では改めて pause する）
+ * - override の期限（その枠の次のリセット時刻）を過ぎたら自動で外れる（返り値の `overrides` は
+ *   期限切れを除いたもの。daemon はこれで state を置き換える）
+ *
+ * pausedBy の扱い（human を上書きしない等）は {@link usagePauseAction} が決める。
+ * @param {{session:object|null, weekly:object|null, updatedAt:number}|null} usage state.claudeUsage
+ * @param {{session:number, weekly:number}} [thresholds] 閾値（%）
+ * @param {object} [overrides] 枠 → { resetsAt(ms), percent, forcedAt }
+ * @param {number|string} nowMs 現在時刻
+ * @returns {{pause:boolean, window:(string|null), percent:(number|null), threshold:(number|null),
+ *   resetsAt:(number|null), thresholds:object, forced:object[], overrides:object}}
+ */
+function usagePausePlan(usage, thresholds, overrides, nowMs) {
+    const now = toMs(nowMs);
+    const t = { ...DEFAULT_USAGE_PAUSE_THRESHOLDS, ...(thresholds || {}) };
+    const liveOverrides = {};
+    for (const [window, ov] of Object.entries(overrides || {})) {
+        if (ov && toMs(ov.resetsAt) > now) liveOverrides[window] = ov;
+    }
+    const forced = [];
+    let trigger = null;
+    for (const window of USAGE_WINDOWS) {
+        const r = usageWindowReading(usage, window, now);
+        if (!r || typeof t[window] !== 'number' || r.percent < t[window]) continue;
+        const ov = liveOverrides[window];
+        if (ov) {
+            forced.push({ window, percent: r.percent, threshold: t[window], resetsAt: toMs(ov.resetsAt) });
+        } else if (!trigger) {
+            trigger = { window, percent: r.percent, threshold: t[window], resetsAt: r.resetMs };
+        }
+    }
+    return {
+        pause: !!trigger,
+        window: trigger ? trigger.window : null,
+        percent: trigger ? trigger.percent : null,
+        threshold: trigger ? trigger.threshold : null,
+        resetsAt: trigger ? trigger.resetsAt : null,
+        thresholds: t,
+        forced,
+        overrides: liveOverrides,
+    };
+}
+
+/**
+ * 強制再開で付ける override を計算する（純粋関数・#1193）。いま閾値を超えている枠すべてに
+ * 「その枠の次のリセット時刻まで」の override を付ける（超えていない枠には付けない。
+ * あとから週間が超えたら週間側で改めて pause させるため）。resetsAt が取れない枠は
+ * 枠の長さ（{@link USAGE_WINDOW_FALLBACK_MS}）を期限にする。
+ * @param {object|null} usage
+ * @param {object} [thresholds]
+ * @param {object} [overrides] 既存の override（期限内のものは引き継ぐ）
+ * @param {number|string} nowMs
+ * @returns {object} 新しい overrides（枠 → { resetsAt(ms), percent, forcedAt }）
+ */
+function usageForceOverrides(usage, thresholds, overrides, nowMs) {
+    const now = toMs(nowMs);
+    const t = { ...DEFAULT_USAGE_PAUSE_THRESHOLDS, ...(thresholds || {}) };
+    const out = { ...usagePausePlan(usage, t, overrides, now).overrides };
+    for (const window of USAGE_WINDOWS) {
+        const r = usageWindowReading(usage, window, now);
+        if (!r || typeof t[window] !== 'number' || r.percent < t[window]) continue;
+        if (out[window]) continue;
+        out[window] = {
+            resetsAt: r.resetMs != null ? r.resetMs : now + USAGE_WINDOW_FALLBACK_MS[window],
+            percent: r.percent,
+            forcedAt: now,
+        };
+    }
+    return out;
+}
+
+/**
+ * usage pause 計画を現在の pause 状態に当てはめ、取るべき操作を返す（純粋関数・#1193）。
+ * - 未 pause で計画が pause → `'pause'`（pausedBy='usage'）
+ * - pausedBy='usage' で計画が pause でない → `'resume'`（枠リセット・強制再開・閾値変更）
+ * - **人間 / 認証の pause は上書きしない**（auth の auto-pause と同じ規約）。usage の自動再開も
+ *   pausedBy='usage' のときだけ
+ * @param {{paused:boolean, pausedBy:(string|null)}} current
+ * @param {{pause:boolean}} plan
+ * @returns {'pause'|'resume'|null}
+ */
+function usagePauseAction(current, plan) {
+    const paused = !!(current && current.paused);
+    const by = current && current.pausedBy;
+    if (plan && plan.pause) return paused ? null : 'pause';
+    return paused && by === 'usage' ? 'resume' : null;
+}
+
+/**
  * closed 状態の一括確認の対象 issue 番号を選ぶ（純粋関数・問い合わせ対象の限定）。
  * - **ステータス限定**: 終端（Close/Done）は除外（既に整合済み。定常問い合わせしない）
  * - **ラベル限定**: `🤖 autopilot` ラベル付き = autopilot 管理対象だけを見る
@@ -2313,6 +2546,46 @@ function splitLaterBoard(items, pending, runningIssues) {
 }
 
 /**
+ * 俯瞰ボードのタイトル行に出す PR を振り分ける（クライアント共有・自己完結・純粋・#1212）。
+ * レビュー待ちで見たいのは open の PR なので、それだけを Issue 番号の右にインラインで並べ、
+ * merged / closed（未 merge）が 1 つでもあれば ▼ メニューに**全 PR**（open 含む）をまとめる。
+ * draft は open として扱う（作業中でも見に行く対象）。順序は入力（`prs`）のまま。
+ * @param {Array<{number:number, state:string, isDraft:boolean}>} [prs] board item の prs
+ * @returns {{inline: object[], menu: object[], hasMenu: boolean}} menu の各要素は
+ *   PR に `kind`（'open' | 'draft' | 'merged' | 'closed'）を足したコピー
+ */
+function splitPrsForTitle(prs) {
+    const kindOf = (p) => {
+        if (p.state === 'MERGED') return 'merged';
+        if (p.state === 'CLOSED') return 'closed';
+        return p.isDraft ? 'draft' : 'open';
+    };
+    const list = (prs || []).filter(Boolean);
+    const inline = list.filter((p) => p.state !== 'MERGED' && p.state !== 'CLOSED');
+    const hasMenu = inline.length < list.length;
+    const menu = hasMenu ? list.map((p) => Object.assign({}, p, { kind: kindOf(p) })) : [];
+    return { inline, menu, hasMenu };
+}
+
+/**
+ * 俯瞰ボードの 📋 でコピーする文字列を組み立てる（クライアント共有・純粋・#1213）。
+ * 1 行目は `#Issue PR#… タイトル`、続けて Issue と PR の URL を 1 行ずつ。PR は画面に
+ * インラインで並ぶ open のものだけ（`splitPrsForTitle` の `inline` と同じ集合）にして、
+ * 共有・引き継ぎ先が「いま見るべき PR」だけを受け取れるようにする。タイトルは省略しない。
+ * モニタへ `toString` で埋め込むので、`splitPrsForTitle` と一緒に置けば自己完結する。
+ * @param {{issue:number, title?:string, prs?:object[]}} item board item
+ * @param {string} repoUrl `https://github.com/<owner>/<repo>`
+ * @returns {string} 改行区切りのコピー文字列
+ */
+function issueCopyText(item, repoUrl) {
+    const inline = splitPrsForTitle(item.prs).inline;
+    const head = ['#' + item.issue].concat(inline.map((p) => 'PR#' + p.number));
+    if (item.title) head.push(item.title);
+    const urls = [repoUrl + '/issues/' + item.issue].concat(inline.map((p) => repoUrl + '/pull/' + p.number));
+    return [head.join(' ')].concat(urls).join('\n');
+}
+
+/**
  * 「あとで / 今やる」の楽観的更新・連打対策の状態遷移（クライアント共有・自己完結・純粋）。
  * 状態は `{ [issue]: { desired, confirmed, seq, inFlight, error } }`（保留中の Issue だけ持つ）。
  *
@@ -2400,6 +2673,10 @@ module.exports = {
     isHitlReleased,
     isGateReleased,
     hasUnhandledChangesRequest,
+    GATE_STATE_VERSION,
+    serializeGateWatermarks,
+    parseGateWatermarks,
+    pruneGateWatermarks,
     humanSpokeLast,
     mergeActivity,
     toMs,
@@ -2441,6 +2718,8 @@ module.exports = {
     effectiveLater,
     splitLaterBoard,
     laterPendingReducer,
+    splitPrsForTitle,
+    issueCopyText,
     isTrackerItem,
     hasTrackingLabel,
     waitingLabelAction,
@@ -2453,6 +2732,12 @@ module.exports = {
     selectMarkedComments,
     stickyUpsertPlan,
     rateLimitPlan,
+    DEFAULT_USAGE_PAUSE_THRESHOLDS,
+    USAGE_WINDOW_FALLBACK_MS,
+    usageResetMs,
+    usagePausePlan,
+    usageForceOverrides,
+    usagePauseAction,
     selectClosedCheckIssues,
     PR_LINK_MARKER,
     needsPrLinkSticky,

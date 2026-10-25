@@ -1,0 +1,20 @@
+version: 2
+updates:
+  # GitHub Actions は SHA で固定しているので、更新は Dependabot に任せる
+  # （SHA と `# vX.Y.Z` コメントを両方書き換える）。npm は 3 日ルールと
+  # `--before` 運用があるため対象にしない。
+  - package-ecosystem: github-actions
+    directories:
+      - /
+      - /.github/actions/*
+    schedule:
+      interval: weekly
+    # サプライチェーン対策の 3 日ルール（.claude/rules/supply-chain-security.md）
+    cooldown:
+      default-days: 3
+    groups:
+      github-actions:
+        patterns:
+          - '*'
+    commit-message:
+      prefix: ci

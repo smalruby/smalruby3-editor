@@ -44,7 +44,7 @@ jobs:
     outputs:
       projects: ${{ steps.detect.outputs.projects }}
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - id: detect
@@ -108,12 +108,15 @@ jobs:
       group: infra-deploy-stg-${{ matrix.project }}
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: 前提の確認
         env:
           ROLE_ARN: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
           STG_DOTENV: ${{ secrets[matrix.secret] }}
+          # プロジェクト名は PR 側のディレクトリ名から来るので、run に直接展開しない
+          PROJECT: ${{ matrix.project }}
+          SECRET_NAME: ${{ matrix.secret }}
         run: |
           set -euo pipefail
           missing=0
@@ -122,7 +125,7 @@ jobs:
             missing=1
           fi
           if [ -z "${STG_DOTENV}" ]; then
-            echo "::error::repo Secrets に ${{ matrix.secret }} が未設定です。infra/${{ matrix.project }}/.env.stg の内容をそのまま登録してください（gitignored なので CI からは見えません）。"
+            echo "::error::repo Secrets に ${SECRET_NAME} が未設定です。infra/${PROJECT}/.env.stg の内容をそのまま登録してください（gitignored なので CI からは見えません）。"
             missing=1
           fi
           [ "${missing}" -eq 0 ] || exit 1
@@ -130,20 +133,21 @@ jobs:
       - name: stg の .env を用意する
         env:
           STG_DOTENV: ${{ secrets[matrix.secret] }}
+          PROJECT: ${{ matrix.project }}
         run: |
           set -euo pipefail
           # ステージ切り替えは symlink 運用（.claude/rules/infra/development.md）。
           # CI では実体を .env.stg に置き、そこへ symlink を張って手元と同じ形にする。
-          printf '%s\n' "${STG_DOTENV}" > "infra/${{ matrix.project }}/.env.stg"
-          ln -sf .env.stg "infra/${{ matrix.project }}/.env"
+          printf '%s\n' "${STG_DOTENV}" > "infra/${PROJECT}/.env.stg"
+          ln -sf .env.stg "infra/${PROJECT}/.env"
 
-      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: infra/${{ matrix.project }}/.node-version
           cache: npm
           cache-dependency-path: infra/${{ matrix.project }}/package-lock.json
 
-      - uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df # v4
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}

@@ -58,21 +58,25 @@ describe('DNCLv2 pre-processor: ICTL sample notations (Issue #1186)', () => {
         );
     });
 
-    test('`//` comments become `#` comments (but not inside strings)', () => {
+    // `//` is always integer division; 共通テスト `//` comments are turned
+    // into `#` when pasted (see dncl-paste-tidy.test.js, Issue #1192).
+    test('`//` stays integer division, even on a numbered line', () => {
         expect(dnclV2Preprocess('(00) n = 1 // 生徒番号')).toBe(
+            'n = 1 // 生徒番号',
+        );
+        expect(dnclV2Preprocess('(1) a = 10 // 3')).toBe('a = 10 // 3');
+        expect(dnclV2Preprocess('a = 合計 // 個数')).toBe('a = 合計 // 個数');
+        expect(dnclToRuby('a = 合計 // 個数').ruby).toBe(
+            '@a = (@合計 / @個数).to_i',
+        );
+    });
+
+    test('`#` comments (the pasted form of `//` comments) are kept', () => {
+        expect(dnclV2Preprocess('(00) n = 1 # 生徒番号')).toBe(
             'n = 1 # 生徒番号',
         );
         expect(dnclV2Preprocess('表示する("http://x")')).toBe(
             '表示する("http://x")',
-        );
-        // `//` between ASCII operands stays the integer-division operator.
-        expect(dnclV2Preprocess('(1) a = 10 // 3')).toBe('a = 10 // 3');
-    });
-
-    test('un-numbered lines keep `//` as integer division', () => {
-        expect(dnclV2Preprocess('a = 合計 // 個数')).toBe('a = 合計 // 個数');
-        expect(dnclToRuby('a = 合計 // 個数').ruby).toBe(
-            '@a = (@合計 / @個数).to_i',
         );
     });
 
@@ -204,7 +208,7 @@ describe('ICTL sample programs convert to valid Ruby (Issue #1186)', () => {
     test('R7 追・再試験: ごみ拾いの結果を入力するプログラム改', () => {
         expectValidRuby(
             [
-                '(00) n = 1 // 生徒番号',
+                '(00) n = 1 # 生徒番号',
                 '(01) Namae = ["可燃ごみ", "不燃ごみ", "ペットボトル"]',
                 '(02) shuruisu = 3',
                 '(03) 表示する("ごみの種類の名称は？")',

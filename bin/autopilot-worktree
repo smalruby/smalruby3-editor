@@ -65,14 +65,36 @@ wt_branch() { echo "${BRANCH_PREFIX}$1"; }
 # daemon が複数 Issue を同時ディスパッチすると複数の `autopilot-worktree create` が並行し、
 # `could not lock config file .git/config: File exists` で worktree 作成が失敗する（#681/#958）。
 # ロック競合はジッタ付きで数回リトライして吸収する（それ以外のエラーはそのまま返す）。
+#
+# 注意（#1226）: `-b` 付きの add は **ブランチの ref を作ってから** config をロックするため、
+# ロック失敗後もブランチだけが残る。同じ `-b` 引数で再実行すると
+# `a branch named ... already exists`（ロック以外のエラー）で失敗し Blocked になっていた。
+# そこでリトライ時に残ったブランチが「今回の失敗で作られたもの（起点と同じコミット）」
+# なら `-b` を外して `worktree add <wt> <branch>` で作り直し、書けなかった upstream を
+# 後から設定する。起点と違うコミットのブランチは無関係とみなし、使わずに失敗を返す。
 git_wt_add_retry() {
     local attempt out rc
+    local new_branch="" wt="" start="" adopted=false
+    local -a args=("$@")
+    if [[ "${1:-}" == "-b" ]]; then
+        new_branch="$2"; wt="$3"; start="$4"
+    fi
     for attempt in 1 2 3 4 5 6; do
-        if out=$(git -C "${MAIN_CHECKOUT}" worktree add "$@" 2>&1); then
+        if [[ -n "${new_branch}" && "${adopted}" == "false" && "${attempt}" -gt 1 ]] \
+            && git -C "${MAIN_CHECKOUT}" show-ref --verify --quiet "refs/heads/${new_branch}"; then
+            adopt_leftover_branch "${new_branch}" "${wt}" "${start}" || return 1
+            adopted=true
+            args=("${wt}" "${new_branch}")
+        fi
+        # `if out=$(...); then ... fi` の後の `$?` は 0 になるので、終了コードはここで取る
+        out=$(git -C "${MAIN_CHECKOUT}" worktree add "${args[@]}" 2>&1) && rc=0 || rc=$?
+        if [[ "${rc}" -eq 0 ]]; then
             [[ -n "${out}" ]] && printf '%s\n' "${out}"
+            if [[ "${adopted}" == "true" ]]; then
+                set_upstream_retry "${new_branch}" "${start}"
+            fi
             return 0
         fi
-        rc=$?
         if printf '%s' "${out}" | grep -q "could not lock config file"; then
             echo "info: .git/config ロック競合で worktree add 失敗、リトライ ${attempt}/6" >&2
             sleep "0.$((RANDOM % 7 + 3))"   # 0.3〜0.9s のジッタで再衝突を避ける
@@ -84,6 +106,53 @@ git_wt_add_retry() {
     echo "error: worktree add が .git/config ロック競合で 6 回失敗しました（並行作成の輻輳）" >&2
     printf '%s\n' "${out}" >&2
     return 1
+}
+
+# ロック失敗で残ったブランチを引き取る前の確認と片付け（#1226）。
+# - ブランチが起点と同じコミットでなければ、今回の失敗で作られたものではない
+#   （無関係な既存ブランチ）ので使わない。人間が確認できるようブランチには触らない。
+# - 実体の無い worktree 登録は prune で片付ける。`-b` の add はブランチ作成（ロック失敗点）を
+#   作業場所の作成より先に行い、失敗した add の残骸は git 自身が消すため、ここで登録や
+#   中身のあるディレクトリが見つかるのは別プロセス由来。未コミットの作業を消さないよう、
+#   空ディレクトリ以外は削除せずに失敗を返す。
+adopt_leftover_branch() {
+    local branch="$1" wt="$2" start="$3"
+    local branch_sha start_sha
+    branch_sha=$(git -C "${MAIN_CHECKOUT}" rev-parse --verify --quiet "refs/heads/${branch}^{commit}") || branch_sha=""
+    start_sha=$(git -C "${MAIN_CHECKOUT}" rev-parse --verify --quiet "${start}^{commit}") || start_sha=""
+    if [[ -z "${branch_sha}" || -z "${start_sha}" || "${branch_sha}" != "${start_sha}" ]]; then
+        echo "error: branch ${branch} exists but was not created from ${start} (${branch_sha:-?} != ${start_sha:-?}); refusing to reuse it" >&2
+        return 1
+    fi
+    echo "info: ロック競合で残ったブランチ ${branch} を引き取って worktree を作り直します" >&2
+    git -C "${MAIN_CHECKOUT}" worktree prune >/dev/null 2>&1 || true
+    if git -C "${MAIN_CHECKOUT}" worktree list --porcelain | grep -qx "worktree ${wt}"; then
+        echo "error: ${wt} is already registered as a worktree; refusing to replace it" >&2
+        return 1
+    fi
+    if [[ -d "${wt}" ]]; then
+        if [[ -z "$(ls -A "${wt}" 2>/dev/null)" ]]; then
+            rmdir "${wt}"
+        else
+            echo "error: ${wt} exists and is not empty; refusing to overwrite it" >&2
+            return 1
+        fi
+    fi
+}
+
+# `-b` が書けなかった upstream を設定する（これも .git/config をロックするのでリトライ）。
+# 失敗しても worktree は使えるので warn に留める（push は明示 remote/branch で行う）。
+set_upstream_retry() {
+    local branch="$1" start="$2" attempt
+    # 起点がリモート追跡ブランチのときだけ（`-b` の既定動作 autoSetupMerge と同じ）
+    git -C "${MAIN_CHECKOUT}" show-ref --verify --quiet "refs/remotes/${start}" || return 0
+    for attempt in 1 2 3 4 5 6; do
+        if git -C "${MAIN_CHECKOUT}" branch --set-upstream-to="${start}" "${branch}" >/dev/null 2>&1; then
+            return 0
+        fi
+        sleep "0.$((RANDOM % 7 + 3))"
+    done
+    echo "warn: ${branch} の upstream (${start}) を設定できませんでした（worktree は作成済み）" >&2
 }
 
 # worktree の git exclude に node_modules を追記（冪等・コミット不要）。

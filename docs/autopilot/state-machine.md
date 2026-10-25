@@ -109,6 +109,9 @@ Review / DoD / Blocked / Discussing の「人間の番」は、次の **いず�
 - **I5（再発火防止）**: 発言解除は「bot の最終発言・処理済み watermark より後の人間の発言」に
   のみ反応する。bot が応答しない分類（LGTM 等）でも watermark（dispatch 時に更新）により
   同じ発言で毎 tick 再 dispatch されない。
+  watermark（`state.gateHandled` / `state.gateReviewHandled`）は **daemon の再起動をまたいで保持**する
+  （状態ファイルに保存し起動時に復元・#1219）。メモリだけだと再起動直後に Map が空になり、処理済みの
+  発言・CHANGES_REQUESTED で起動のたびに 1 回ずつ再解除されてしまうため。
 - **I6（approve 後の Request changes・#894）**: approve 済みでも新しい `CHANGES_REQUESTED` レビューが
   来たら、bot sticky が `lastBotAt` を更新して発言解除を潰しても **address-review が dispatch される**
   （構造化シグナル `hasUnhandledChangesRequest`）。専用 watermark（`state.gateReviewHandled`）で同じ

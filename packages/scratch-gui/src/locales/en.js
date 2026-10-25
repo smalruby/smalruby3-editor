@@ -1053,6 +1053,8 @@ export default {
         'Extensions are not available in Japanese mode.\nReturn to Ruby furigana mode to enable extensions.\nSwitch now?',
     'gui.dnclModeNotice.message': 'Japanese mode: blocks are restricted.',
     'gui.dnclModeNotice.exitButton': 'Return to Ruby furigana mode',
+    'gui.rubyTab.dnclDoubleSlashHint':
+        'In Smalruby, // is not a comment (it is integer division). Use # for comments.',
     'gui.rubyTab.dnclValidationError':
         'This code contains constructs not supported in Japanese mode.\nPlease use only supported instructions before switching modes.',
     'gui.mobile.drawer.title': 'Menu',
