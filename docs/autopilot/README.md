@@ -594,9 +594,19 @@ GitHub Projects で行い、モニタは俯瞰・log 閲覧・pause/resume/即�
   usage pause 中 **`USAGE ⏸`**（橙）。詳細は「Claude 使用量の auto-pause と強制再開」。
   各アラートに **`check autopilot (#N)` のコピー用ショートカット**があり、Claude に
   貼ると `.claude/skills/check-autopilot` スキルが診断・復旧支援する
-- **ボード行**: Issue（リンク + タイトル）/ Status pill / AI Status（live）/ 担当 /
-  **複数 PR チップ**（📝 draft / ✅ ready / 🟣 merged / ❌ closed の色・絵文字）/
-  **sub-issue 進捗**（N/M・%・バー）/ Now（実行中フェーズ + 経過分 + **log ボタン → モーダル**）
+- **ボード行**: Issue（リンク + **PR チップ** + **▼** + タイトル）/ Status pill / Size / AI Status（live）/
+  担当 / **sub-issue 進捗**（N/M・%・バー）/ Now（実行中フェーズ + 経過分 + **log ボタン → モーダル**）
+  - **PR は専用列ではなく Issue 番号のすぐ右**に置く（#1212）。レビュー待ちで見たいのは PR なので、
+    Issue を経由せず 1 クリックで開けるようにする。インラインに並べるのは **open の PR だけ**
+    （📝 draft / ✅ ready。`PR#N` 表記で Issue 番号と区別）。並びは `#Issue` → PR チップ → ▼ →
+    タイトル → 🧭 / ⏳。
+  - **merged / closed（未 merge）の PR が 1 つでもあれば ▼** を出す。押すとその Issue の
+    **全 PR**（open 含む・`✅ PR#N open` / `📝 draft` / `🟣 merged` / `❌ closed`）のメニューを開き、
+    項目は別タブで PR を開く。外側クリック・Esc・項目の選択で閉じ、同時に開くのは 1 つだけ。
+    5 秒ごとの一覧の再描画をまたいでも開いたまま保つ（開いている Issue 番号を覚えて描画のたびに
+    復元する）。open / それ以外の振り分けは `phases.js` の純粋関数 `splitPrsForTitle` を
+    モニタに埋め込んで共有する
+  - 狭い幅でも PR チップと ▼ は折り返さず、タイトルだけを省略表示にする
   - **担当列はオーナー（駆動者）を太字で明示**する（`autopilot-assignee:` ディレクティブが
     あれば反映）。**自分がオーナーでない**共同担当の行には **👁 + オーナー login** の
     「観察中」マーカーを付ける（#938）。観察対象（他人が駆動する item）はこの daemon の

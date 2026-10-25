@@ -2455,6 +2455,28 @@ function splitLaterBoard(items, pending, runningIssues) {
 }
 
 /**
+ * 俯瞰ボードのタイトル行に出す PR を振り分ける（クライアント共有・自己完結・純粋・#1212）。
+ * レビュー待ちで見たいのは open の PR なので、それだけを Issue 番号の右にインラインで並べ、
+ * merged / closed（未 merge）が 1 つでもあれば ▼ メニューに**全 PR**（open 含む）をまとめる。
+ * draft は open として扱う（作業中でも見に行く対象）。順序は入力（`prs`）のまま。
+ * @param {Array<{number:number, state:string, isDraft:boolean}>} [prs] board item の prs
+ * @returns {{inline: object[], menu: object[], hasMenu: boolean}} menu の各要素は
+ *   PR に `kind`（'open' | 'draft' | 'merged' | 'closed'）を足したコピー
+ */
+function splitPrsForTitle(prs) {
+    const kindOf = (p) => {
+        if (p.state === 'MERGED') return 'merged';
+        if (p.state === 'CLOSED') return 'closed';
+        return p.isDraft ? 'draft' : 'open';
+    };
+    const list = (prs || []).filter(Boolean);
+    const inline = list.filter((p) => p.state !== 'MERGED' && p.state !== 'CLOSED');
+    const hasMenu = inline.length < list.length;
+    const menu = hasMenu ? list.map((p) => Object.assign({}, p, { kind: kindOf(p) })) : [];
+    return { inline, menu, hasMenu };
+}
+
+/**
  * 「あとで / 今やる」の楽観的更新・連打対策の状態遷移（クライアント共有・自己完結・純粋）。
  * 状態は `{ [issue]: { desired, confirmed, seq, inFlight, error } }`（保留中の Issue だけ持つ）。
  *
@@ -2583,6 +2605,7 @@ module.exports = {
     effectiveLater,
     splitLaterBoard,
     laterPendingReducer,
+    splitPrsForTitle,
     isTrackerItem,
     hasTrackingLabel,
     waitingLabelAction,

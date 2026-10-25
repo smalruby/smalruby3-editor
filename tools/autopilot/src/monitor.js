@@ -15,14 +15,16 @@
  * - [通常] / [あとでやる] タブで `💤 later` 付き Issue を分離する（#1190）。唯一の書き込み操作
  *   「💤 あとで / ↩ 今やる」は `POST /later`。判断ロジックは phases.js の純粋関数を
  *   `fn.toString()` で埋め込んで共有する（二重定義しない）
+ * - PR は専用列ではなく Issue 番号のすぐ右に open のものだけ並べ、merged / closed があれば
+ *   ▼ メニューに全 PR をまとめる（#1212。振り分けは phases.js の `splitPrsForTitle`）
  */
 
 const {
-    canToggleLater, effectiveLater, splitLaterBoard, laterPendingReducer,
+    canToggleLater, effectiveLater, splitLaterBoard, laterPendingReducer, splitPrsForTitle,
 } = require('./phases');
 
 // ブラウザへ埋め込むクライアント共有の純粋関数（自己完結。later.test.js で単独評価を担保）
-const SHARED_CLIENT_FNS = [canToggleLater, effectiveLater, splitLaterBoard, laterPendingReducer]
+const SHARED_CLIENT_FNS = [canToggleLater, effectiveLater, splitLaterBoard, laterPendingReducer, splitPrsForTitle]
     .map(String).join('\n');
 
 const MONITOR_HTML = `<!doctype html>
@@ -144,16 +146,31 @@ const MONITOR_HTML = `<!doctype html>
   tr.blocked-row td { background: #fef2f2; }
   tr.running-row td { background: #fffbeb; }
   td.title-cell { max-width: 34rem; }
+  /* #Issue → PR チップ → ▼ → タイトル を 1 行に並べる。チップ/▼ は縮めず、タイトルだけ省略表示（#1212） */
+  .title-line { display: flex; align-items: center; gap: .25rem; white-space: nowrap; min-width: 0; }
+  .title-line > a, .title-line .prchip, .title-line .prmenu-btn { flex: none; }
+  .title-line .prchip { margin: 0; }
+  .title-line .t { flex: 0 1 auto; min-width: 0; }
+  td button.prmenu-btn { font-size: .62rem; padding: 0 .3rem; line-height: 1.3; border: 1px solid #cbd5e1;
+                         background: #fff; color: #475569; border-radius: .3rem; }
+  td button.prmenu-btn[aria-expanded="true"] { background: #1e293b; color: #fff; border-color: #1e293b; }
+  /* ▼ のメニュー。.board-wrap の overflow で切れないよう fixed でボタン直下に出す（1 つだけ） */
+  #prmenu { position: fixed; z-index: 40; display: none; min-width: 11rem; background: #fff; border: 1px solid #cbd5e1;
+            border-radius: .35rem; box-shadow: 0 6px 18px rgba(15,23,42,.18); padding: .25rem 0; font-size: .8rem; }
+  #prmenu.open { display: block; }
+  #prmenu a { display: flex; gap: .4rem; align-items: baseline; padding: .25rem .7rem; color: #1e293b; white-space: nowrap; }
+  #prmenu a:hover { background: #f1f5f9; text-decoration: none; }
+  #prmenu .pm-state { margin-left: auto; font-size: .72rem; color: var(--muted); }
   .t { display: inline-block; max-width: 30rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
   /* ---- 狭幅（〜820px 目安）で情報量を落として崩れを防ぐ #936 ----
      モバイル対応は不要（横 640px 程度が最小想定）。nth-child は表示/非表示で
      位置番号がズレないので、Size(3) を隠しても 担当(5) の index は変わらない。
-     colspan="8" のフォールバック行は td が1つなので誤って隠れない。 */
+     colspan="7" のフォールバック行は td が1つなので誤って隠れない。 */
   @media (max-width: 820px) {
     #board th:nth-child(3), #board td:nth-child(3) { display: none; } /* Size */
     #board th:nth-child(5), #board td:nth-child(5) { display: none; } /* 担当 */
-    #board td:nth-child(7) .bar, #board td:nth-child(7) .sub-pct { display: none; } /* Sub-issues: バー/％を隠し件数のみ */
-    #board td:nth-child(8) .subtext { display: none; } /* Now: 「人間の番」「N分」等の subtext を隠しアイコン/phase-pill/log を残す */
+    #board td:nth-child(6) .bar, #board td:nth-child(6) .sub-pct { display: none; } /* Sub-issues: バー/％を隠し件数のみ */
+    #board td:nth-child(7) .subtext { display: none; } /* Now: 「人間の番」「N分」等の subtext を隠しアイコン/phase-pill/log を残す */
     .t { max-width: 15rem; }
     th, td { padding: .3rem .35rem; }
   }
@@ -223,8 +240,8 @@ const MONITOR_HTML = `<!doctype html>
   <div id="tabs" class="tabs" role="tablist"></div>
   <div class="board-wrap">
   <table id="board"><thead><tr>
-    <th>Issue</th><th>Status</th><th>Size</th><th>AI</th><th>担当</th><th>PR</th><th>Sub-issues</th><th>Now</th>
-  </tr></thead><tbody id="rows"><tr><td colspan="8" class="muted">読み込み中…</td></tr></tbody></table>
+    <th>Issue</th><th>Status</th><th>Size</th><th>AI</th><th>担当</th><th>Sub-issues</th><th>Now</th>
+  </tr></thead><tbody id="rows"><tr><td colspan="7" class="muted">読み込み中…</td></tr></tbody></table>
   </div>
   <h2>実行履歴（最新 100 件・ログ用途のみ）</h2>
   <table id="histt"><thead><tr>
@@ -243,6 +260,7 @@ const MONITOR_HTML = `<!doctype html>
   <div class="body" id="updbody"></div>
 </div></div>
 <div id="usagepop" role="dialog" aria-label="Claude 使用量の詳細" class="usagepop"><div id="usagepopbody"></div></div>
+<div id="prmenu" role="menu"></div>
 <div id="modal"><div class="box">
   <header><h1 id="mtitle">log</h1>
     <button id="mreload">↻ 更新</button>
@@ -290,8 +308,63 @@ const prChip = (p) => {
   else if (p.state === 'CLOSED') { cls = 'pr-closed'; icon = '❌'; }
   else if (p.isDraft) { cls = 'pr-draft'; icon = '📝'; }
   return '<a class="prchip ' + cls + '" target="_blank" rel="noopener" href="' + repoUrl + '/pull/' + p.number + '">'
-    + icon + ' #' + p.number + '</a>';
+    + icon + ' PR#' + p.number + '</a>';
 };
+const PR_KIND_ICON = { open: '✅', draft: '📝', merged: '🟣', closed: '❌' };
+
+// ---- ▼ PR メニュー（#1212） ----
+// 一覧は 5 秒ごとに innerHTML で作り直すので、開いている Issue 番号を状態に持ち、
+// 描画のたびに新しい ▼ ボタンへ付け直す（restorePrMenu）。メニュー要素は 1 つだけ。
+let prMenuIssue = null;
+let prMenuItems = {};    // 直近の描画での issue → splitPrsForTitle(...).menu
+const prMenuBtn = (it, menu) => {
+  prMenuItems[it.issue] = menu;
+  return '<button type="button" class="prmenu-btn" data-issue="' + it.issue + '" aria-haspopup="menu"'
+    + ' aria-expanded="' + (prMenuIssue === it.issue) + '" title="この Issue のすべての PR（merged / closed を含む）"'
+    + ' onclick="togglePrMenu(' + it.issue + ', event)">▼</button>';
+};
+function placePrMenu() {
+  const el = document.getElementById('prmenu');
+  const btn = document.querySelector('.prmenu-btn[data-issue="' + prMenuIssue + '"]');
+  if (!btn) { closePrMenu(); return; }
+  const rect = btn.getBoundingClientRect();
+  el.style.top = Math.round(rect.bottom + 2) + 'px';
+  el.style.left = Math.round(Math.max(4, Math.min(rect.left, window.innerWidth - el.offsetWidth - 4))) + 'px';
+}
+function openPrMenu(issue) {
+  const menu = prMenuItems[issue];
+  if (!menu || !menu.length) { closePrMenu(); return; }
+  prMenuIssue = issue;
+  const el = document.getElementById('prmenu');
+  el.innerHTML = menu.map((p) => '<a role="menuitem" target="_blank" rel="noopener" href="' + repoUrl + '/pull/' + p.number
+    + '" onclick="setTimeout(closePrMenu, 0)">' + PR_KIND_ICON[p.kind] + ' PR#' + p.number
+    + '<span class="pm-state">' + p.kind + '</span></a>').join('');
+  el.classList.add('open');
+  document.querySelectorAll('.prmenu-btn').forEach((b) =>
+    b.setAttribute('aria-expanded', String(Number(b.dataset.issue) === issue)));
+  placePrMenu();
+}
+function closePrMenu() {
+  prMenuIssue = null;
+  const el = document.getElementById('prmenu');
+  if (el) { el.classList.remove('open'); el.innerHTML = ''; }
+  document.querySelectorAll('.prmenu-btn[aria-expanded="true"]').forEach((b) => b.setAttribute('aria-expanded', 'false'));
+}
+function togglePrMenu(issue, ev) {
+  if (ev) ev.stopPropagation();
+  if (prMenuIssue === issue) closePrMenu(); else openPrMenu(issue);
+}
+// 再描画後に開いていたメニューを復元する（行が消えた / ▼ が不要になったら閉じる）
+function restorePrMenu() {
+  if (prMenuIssue != null) openPrMenu(prMenuIssue);
+}
+document.addEventListener('click', (e) => {
+  if (prMenuIssue == null) return;
+  if (e.target.closest && (e.target.closest('#prmenu') || e.target.closest('.prmenu-btn'))) return;
+  closePrMenu();
+});
+window.addEventListener('resize', () => { if (prMenuIssue != null) placePrMenu(); });
+window.addEventListener('scroll', () => { if (prMenuIssue != null) placePrMenu(); }, true);
 const mins = (ms) => Math.max(0, Math.round(ms / 60000));
 let logIssue = null;
 let logTimer = null;
@@ -638,10 +711,13 @@ function renderBoard(d) {
   const split = splitLaterBoard(d.items, laterPending, (d.running || []).map((r) => r.issue));
   renderTabs(split);
   const shown = boardTab === 'later' ? split.later : split.normal;
+  prMenuItems = {};
   const rows = shown.map((it) => {
     const r = runningBy[it.issue];
     const cls = it.status === 'Blocked' ? 'blocked-row' : (r ? 'running-row' : '');
-    const prs = (it.prs || []).map(prChip).join('') || '<span class="muted">—</span>';
+    const prSplit = splitPrsForTitle(it.prs);
+    const prInline = prSplit.inline.map(prChip).join('');
+    const prMenu = prSplit.hasMenu ? prMenuBtn(it, prSplit.menu) : '';
     const s = it.subIssues || {};
     // 件数（.sub-count）と %（.sub-pct）を別 span に分割し、狭幅 CSS で % だけ隠せるようにする（#936）
     const sub = s.total
@@ -666,20 +742,21 @@ function renderBoard(d) {
     const kindMark = it.tracker ? ' <span class="subtext" title="tracker (分解済み親)">🧭</span>' : '';
     const waitMark = it.waiting ? ' <span class="subtext" title="先行 Issue (autopilot-after) の完了待ち">⏳</span>' : '';
     return '<tr class="' + cls + '">'
-      + '<td class="title-cell"><a target="_blank" rel="noopener" href="' + esc(it.url) + '">#' + it.issue + '</a> '
-      + '<span class="t" title="' + esc(it.title) + '">' + esc(it.title) + '</span>' + kindMark + waitMark + '</td>'
+      + '<td class="title-cell"><span class="title-line"><a target="_blank" rel="noopener" href="' + esc(it.url) + '">#' + it.issue + '</a>'
+      + prInline + prMenu
+      + '<span class="t" title="' + esc(it.title) + '">' + esc(it.title) + '</span>' + kindMark + waitMark + '</span></td>'
       + '<td>' + statusPill(it.status) + '</td>'
       + '<td>' + sizeBadge(it.size) + '</td>'
       + '<td>' + aiStatusCell(it) + '</td>'
       + '<td>' + who + observing + '</td>'
-      + '<td>' + prs + '</td>'
       + '<td>' + sub + '</td>'
       + '<td>' + now + laterButton(it) + '</td></tr>';
   });
   document.getElementById('rows').innerHTML = rows.join('')
-    || '<tr><td colspan="8" class="muted">' + (boardTab === 'later'
+    || '<tr><td colspan="7" class="muted">' + (boardTab === 'later'
       ? '（あとでやる の Issue はありません。通常タブの「💤 あとで」で移せます）'
       : '（表示対象の Issue はありません）') + '</td></tr>';
+  restorePrMenu();
 }
 
 function renderHistory(d) {
@@ -797,7 +874,7 @@ window.addEventListener('resize', () => {
   if (!usagePopOpen) return;
   if (window.innerWidth <= 960) closeUsagePop(); else positionUsagePop();
 });
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeModal(); closeUpdateModal(); closeUsagePop(); } });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeModal(); closeUpdateModal(); closeUsagePop(); closePrMenu(); } });
 document.getElementById('pause').onclick = () => fetch('/pause', { method: 'POST' }).then(refresh);
 // usage の auto-pause 中は /resume が 409 を返す → アラート帯の強制再開（確認段）を開く（#1193）
 document.getElementById('resume').onclick = async () => {
