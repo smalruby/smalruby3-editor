@@ -178,6 +178,18 @@ describe('生徒フロー — バリデーションエラー', () => {
 // セッション検証
 // ---------------------------------------------------------------------------
 describe('セッション検証', () => {
+    test('POST /classrooms/heartbeat — Authorization なしで 401', async () => {
+        const { status } = await request('POST', '/classrooms/heartbeat');
+        expect(status).toBe(401);
+    });
+
+    test('POST /classrooms/heartbeat — 無効なトークンで 401', async () => {
+        const { status } = await request('POST', '/classrooms/heartbeat', null, {
+            Authorization: 'Bearer invalid-session-token',
+        });
+        expect(status).toBe(401);
+    });
+
     test('POST /classrooms/verify-session — Authorization なしで 401', async () => {
         const { status } = await request('POST', '/classrooms/verify-session');
         expect(status).toBe(401);
@@ -889,6 +901,26 @@ describeIfToken('教師フロー — クラス CRUD', () => {
         );
         expect(status).toBe(200);
         expect(data.valid).toBe(true);
+    });
+
+    test('POST /classrooms/heartbeat — lastActiveAt が更新される (#1197)', async () => {
+        const lastActiveAtOf = async () => {
+            const { data } = await request('GET', `/classrooms/${classroomId}/members`, null, teacherHeaders);
+            const members = data.members as Array<{ memberId: string; lastActiveAt: string | null }>;
+            return members.find(m => m.memberId === 'seat-01')?.lastActiveAt ?? null;
+        };
+        const before = await lastActiveAtOf();
+        expect(before).not.toBeNull();
+        // ISO 文字列はミリ秒精度。確実に差が出るよう少し待つ
+        await new Promise(r => setTimeout(r, 50));
+
+        const { status } = await request('POST', '/classrooms/heartbeat', null, {
+            Authorization: `Bearer ${sessionToken}`,
+        });
+        expect(status).toBe(204);
+
+        const after = await lastActiveAtOf();
+        expect(new Date(after as string).getTime()).toBeGreaterThan(new Date(before as string).getTime());
     });
 
     test('POST /classrooms/{id}/submissions — 提出（presigned URL 取得）', async () => {

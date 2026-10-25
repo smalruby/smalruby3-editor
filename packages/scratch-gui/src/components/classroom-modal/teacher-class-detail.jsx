@@ -9,6 +9,7 @@ import TeacherAssignmentEditor from './teacher-assignment-editor.jsx';
 import TeacherMemberDetail from './teacher-member-detail.jsx';
 
 import { formatClassLabel } from '../../lib/classroom-class-label.js';
+import { isMemberSeated } from '../../lib/classroom-presence.js';
 import {
     canVerifyGoogleShare,
     googleShareBlockedMessage,
@@ -230,11 +231,7 @@ const TeacherClassDetail = ({
         onCloseCodeDisplay();
     }, [onCloseCodeDisplay]);
 
-    const isSeated = useCallback((member) => {
-        if (!member || !member.lastActiveAt) return false;
-        const elapsed = Date.now() - new Date(member.lastActiveAt).getTime();
-        return elapsed < 60 * 60 * 1000; // 1 hour
-    }, []);
+    const isSeated = useCallback((member) => isMemberSeated(member), []);
 
     const joinedCount = members.filter((m) => !m.left).length;
     const totalCount = selectedClassroom.studentCount;

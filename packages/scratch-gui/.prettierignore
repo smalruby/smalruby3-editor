@@ -114,6 +114,8 @@ src/containers/*
 !src/containers/use-teacher-evaluation.js
 !src/containers/use-teacher-groups.js
 !src/containers/use-teacher-notifications.js
+!src/containers/use-classroom-heartbeat.js
+!src/containers/classroom-heartbeat.jsx
 !src/containers/use-teacher-submissions.js
 !src/containers/extension-library.css
 !src/containers/google-drive-loader-hoc.jsx
@@ -154,6 +156,7 @@ src/lib/*
 !src/lib/classroom-google-share.js
 !src/lib/classroom-group-utils.js
 !src/lib/classroom-retention.js
+!src/lib/classroom-presence.js
 !src/lib/shared-assignment-taxonomy.js
 !src/lib/shared-author-profile.js
 !src/lib/classroom-kick-request-storage.js
@@ -362,6 +365,7 @@ test/unit/containers/*
 !test/unit/containers/connection-modal.test.jsx
 !test/unit/containers/use-teacher-groups-topics.test.js
 !test/unit/containers/use-teacher-notifications.test.js
+!test/unit/containers/use-classroom-heartbeat.test.js
 !test/unit/containers/google-drive-saver-hoc.test.jsx
 !test/unit/containers/google-drive-state-management.test.jsx
 !test/unit/containers/ruby-downloader.test.jsx
@@ -401,6 +405,7 @@ test/unit/lib/*
 !test/unit/lib/google-classroom-auth.test.js
 !test/unit/lib/classroom-google-share.test.js
 !test/unit/lib/classroom-retention.test.js
+!test/unit/lib/classroom-presence.test.js
 !test/unit/lib/shared-assignment-taxonomy.test.js
 !test/unit/lib/shared-author-profile.test.js
 !test/unit/lib/teacher-auth-google-signin.test.js

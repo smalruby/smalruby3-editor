@@ -2,6 +2,7 @@ import { FormattedMessage } from 'react-intl';
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { isMemberSeated } from '../../lib/classroom-presence.js';
 import styles from './classroom-modal.css';
 
 const TeacherMemberDetail = ({
@@ -92,12 +93,7 @@ const TeacherMemberDetail = ({
         });
     }, [memberMap, selectedMember]);
 
-    const isSeated = useCallback((member) => {
-        if (!member || !member.lastActiveAt) return false;
-        const elapsed =
-            Date.now() - new Date(member.lastActiveAt).getTime();
-        return elapsed < 60 * 60 * 1000; // 1 hour
-    }, []);
+    const isSeated = useCallback((member) => isMemberSeated(member), []);
 
     // Clamp image index if images changed (e.g. re-submission with fewer screenshots)
     useEffect(() => {

@@ -686,6 +686,13 @@ export class ClassroomStack extends cdk.Stack {
       integration,
     });
 
+    // Student presence ping (issue #1197) — keeps lastActiveAt fresh.
+    this.api.addRoutes({
+      path: '/classrooms/heartbeat',
+      methods: [apigatewayv2.HttpMethod.POST],
+      integration,
+    });
+
     // Co-teacher management — owner or existing co-teacher may invite/remove
     // additional teachers by email.
     this.api.addRoutes({

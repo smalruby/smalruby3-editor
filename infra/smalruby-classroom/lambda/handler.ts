@@ -2655,6 +2655,41 @@ async function handleVerifySession(sessionToken: string): Promise<APIGatewayProx
   };
 }
 
+/**
+ * Lightweight presence ping (issue #1197). The student GUI calls this every
+ * few minutes while it holds a session so `lastActiveAt` tracks who is
+ * actually at their seat — verify-session only runs when the classroom modal
+ * opens. It keeps verify-session's guards (unknown token → 401, kicked → 410,
+ * archived classroom → 401) but skips the submissions query and reads only the
+ * classroom status, so each ping is 1 GSI query + 1 projected get + 1 update.
+ */
+async function handleHeartbeat(sessionToken: string): Promise<APIGatewayProxyStructuredResultV2> {
+  const session = await verifySessionToken(sessionToken);
+
+  const classroomResult = await docClient.send(new GetCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId: session.classroomId },
+    ProjectionExpression: '#status',
+    ExpressionAttributeNames: { '#status': 'status' },
+  }));
+  if (!classroomResult.Item || classroomResult.Item.status !== 'active') {
+    throw new AuthError('This classroom is no longer active');
+  }
+
+  await docClient.send(new UpdateCommand({
+    TableName: MEMBERSHIPS_TABLE,
+    Key: { classroomId: session.classroomId, memberId: session.memberId },
+    UpdateExpression: 'SET lastActiveAt = :now, #ttl = :ttl',
+    ExpressionAttributeNames: { '#ttl': 'ttl' },
+    ExpressionAttributeValues: {
+      ':now': new Date().toISOString(),
+      ':ttl': Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS,
+    },
+  }));
+
+  return { statusCode: 204, body: '' };
+}
+
 // --- Group (組) handlers ---
 // A group is the teacher-side organizing concept: one school class (組) that
 // owns many lesson classrooms over the year. Students never see groups —
@@ -5078,6 +5113,10 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
     } else if (method === 'POST' && path === '/classrooms/verify-session') {
       const token = extractBearerToken(event.headers?.authorization);
       result = await handleVerifySession(token);
+
+    } else if (method === 'POST' && path === '/classrooms/heartbeat') {
+      const token = extractBearerToken(event.headers?.authorization);
+      result = await handleHeartbeat(token);
 
     // --- お知らせ (notification center #1111) routes (own root path) ---
     } else if (method === 'GET' && path === '/notifications') {

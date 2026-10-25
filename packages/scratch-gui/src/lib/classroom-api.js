@@ -156,6 +156,16 @@ class ClassroomAPI {
     }
 
     /**
+     * Presence ping: refresh the student's `lastActiveAt` (issue #1197).
+     * Lighter than verifySession — no submission lookup, empty 204 response.
+     * @param {string} sessionToken - Student session token
+     * @returns {Promise<null>} Resolves on success
+     */
+    async heartbeat(sessionToken) {
+        return this._request('POST', '/classrooms/heartbeat', null, sessionToken);
+    }
+
+    /**
      * Ask the teacher to free up a specific seat (kick request). Anonymous —
      * the request only carries joinCode + seatNumber + optional reason. Used
      * by students who want a seat that is currently occupied by someone who

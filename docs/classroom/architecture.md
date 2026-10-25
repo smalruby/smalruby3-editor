@@ -237,6 +237,7 @@ One Tap が表示できない環境（Windows や Playwright では毎回）で�
 | `POST` | `/classrooms/lookup/kick-request` | 不要 | 「使用中の席」を空けてもらう依頼を先生に送信 (Issue #692) |
 | `POST` | `/classrooms/join` | 不要 | 課題に参加 (→ sessionToken 取得) |
 | `POST` | `/classrooms/verify-session` | Session Token | セッション検証 + 提出状況取得。kick された生徒には 410 + `{reason: 'kicked', joinCode, className, seatNumber}` を返す。課題が非 active（アーカイブ/期限切れ）なら 401 |
+| `POST` | `/classrooms/heartbeat` | Session Token | 着席判定用の生存通知。`lastActiveAt` と TTL を更新して 204 を返す。verify-session と同じく kick 済みは 410、課題が非 active なら 401（提出状況は返さない軽量版） |
 | `POST` | `/classrooms/{id}/submissions` | Session Token | 提出 (Presigned URL 取得)。課題が非 active なら 404 |
 | `DELETE` | `/classrooms/{id}/members/me` | Session Token | 自主退出 |
 | `GET` | `/classrooms/{id}/assignment` | Session Token または 先生 ID Token | 課題コンテンツ取得（ページ + 画像/スターターのダウンロード URL）。lookup / join / verify-session は `hasAssignment` フラグを返す |
@@ -377,6 +378,8 @@ erDiagram
 
 **GSI:**
 - `sessionToken-index` — セッショントークンでの認証
+
+**着席判定（`lastActiveAt`）:** 参加・verify-session・heartbeat が `lastActiveAt` を更新する。生徒の GUI は参加中ずっと（クラスのモーダルを閉じていても）2 分ごとに heartbeat を送り、タブが非表示の間は止め、410 / 401 を受けたら止める。先生の画面は `lastActiveAt` が **間隔 × 2.5（既定 5 分）以内**なら「着席中」と表示する。間隔としきい値は `packages/scratch-gui/src/lib/classroom-presence.js` の 1 か所にまとめてあり、間隔はビルド時の `CLASSROOM_HEARTBEAT_INTERVAL_MS`（既定 120000）で変えられる。
 
 ### ClassroomKickRequests テーブル (Issue #692)
 
