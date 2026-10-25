@@ -158,6 +158,15 @@ export default {
     'gui.classroom.error.classroomInactive': 'このクラスは現在利用できません。',
     'gui.classroom.error.networkUnreachable':
         'サーバーに接続できませんでした。ネットワークやファイアウォールの設定で {host}（HTTPS / 443）への通信が許可されているかご確認ください。',
+    'gui.classroom.error.googleTokenExpired':
+        'Google の認証の有効期限が切れました。もう一度お試しいただき、Google Classroom へのアクセスを許可してください。',
+    'gui.classroom.error.googlePermissionDenied':
+        'このクラスの Google Classroom に課題を配信する権限がありません。もう一度ログインしてすべての項目を許可し、そのクラスの先生として参加しているかご確認ください。',
+    'gui.classroom.error.googleCourseNotFound':
+        'ひもづいている Google Classroom のクラスが見つかりませんでした。クラスが削除されたか、ログイン中の Google アカウントがそのクラスの先生ではない可能性があります。',
+    'gui.classroom.error.googleApiFailedDetail': 'Google Classroom に配信できませんでした。（Google: {detail}）',
+    'gui.classroom.error.googleApiFailed':
+        'Google Classroom に配信できませんでした。しばらく待ってからもう一度お試しください。',
     'gui.classroom.error.generic': '予期しないエラーが発生しました。もう一度お試しください。',
     'gui.classroom.error.goToLogin': 'ログイン画面を表示',
     'gui.classroom.error.goToJoin': '参加画面を表示',
