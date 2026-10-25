@@ -14,6 +14,9 @@ concurrency:
   group: "${{ github.workflow }} @ ${{ github.head_ref || github.ref }}"
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   lint:
     name: "[smalruby3] StandardRB Lint"
@@ -22,12 +25,12 @@ jobs:
       run:
         working-directory: ruby/smalruby3
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install SDL2 development libraries
         run: |
           sudo apt-get update
           sudo apt-get install -y libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev
-      - uses: ruby/setup-ruby@v1
+      - uses: ruby/setup-ruby@b1da4809b005e0178fe08a1d57317bffc00b7b4c # v1.332.0
         with:
           ruby-version-file: ruby/smalruby3/.ruby-version
           bundler-cache: true
@@ -46,14 +49,17 @@ jobs:
       run:
         working-directory: ruby/smalruby3
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install SDL2 development libraries
         run: |
           sudo apt-get update
           sudo apt-get install -y libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-      - uses: ruby/setup-ruby@v1
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        # SHA 固定するとツールチェーン名を ref から読めないため明示する
+        with:
+          toolchain: stable
+      - uses: ruby/setup-ruby@b1da4809b005e0178fe08a1d57317bffc00b7b4c # v1.332.0
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
