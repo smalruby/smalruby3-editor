@@ -428,6 +428,97 @@ function hasUnhandledChangesRequest(review, handledReviewAt) {
 }
 
 /**
+ * ゲート watermark の状態ファイル形式のバージョン（#1219）。互換の無い変更をしたら上げる
+ * （違う版のファイルは読まずに空で起動する = 1 回だけ再発火し得るが固着はしない）。
+ */
+const GATE_STATE_VERSION = 1;
+
+/** watermark Map → issue 番号昇順の [issue, ms] 配列（直列化を決定的にして差分判定に使う） */
+function watermarkEntries(map) {
+    const out = [];
+    for (const [issue, at] of (map instanceof Map ? map : new Map())) {
+        const n = Number(issue);
+        const ms = toMs(at);
+        if (Number.isInteger(n) && n > 0 && ms > 0) out.push([n, ms]);
+    }
+    return out.sort((a, b) => a[0] - b[0]);
+}
+
+/**
+ * ゲート watermark（`state.gateHandled` / `state.gateReviewHandled`）を状態ファイル用の
+ * JSON 文字列へ直列化する（純粋関数・#1219）。
+ *
+ * watermark がメモリにしか無いと daemon 再起動で消え、処理済みの CHANGES_REQUESTED や発言で
+ * 起動のたびにゲートが再解除される（不変条件 I5 違反）。出力は決定的（issue 昇順・キー固定）
+ * なので、前回書いた文字列と比べて**差分があるときだけ書く**判定にそのまま使える。
+ * @param {{gateHandled?: Map, gateReviewHandled?: Map}} state
+ * @returns {string}
+ */
+function serializeGateWatermarks(state = {}) {
+    return JSON.stringify({
+        version: GATE_STATE_VERSION,
+        gateHandled: watermarkEntries(state.gateHandled),
+        gateReviewHandled: watermarkEntries(state.gateReviewHandled),
+    });
+}
+
+/**
+ * 状態ファイルの文字列から watermark を復元する（純粋関数・#1219）。**例外を投げない**:
+ * 欠損・壊れた JSON・版違い・不正なエントリは空 Map（または該当エントリのスキップ）にし、
+ * 理由を `error` で返す（無人運用優先。ロード失敗で daemon を落とさない）。
+ * @param {string|null|undefined} text 状態ファイルの内容（無ければ null）
+ * @returns {{gateHandled: Map<number, number>, gateReviewHandled: Map<number, number>, error: string|null}}
+ */
+function parseGateWatermarks(text) {
+    const empty = (error) => ({ gateHandled: new Map(), gateReviewHandled: new Map(), error });
+    if (text === null || text === undefined || text === '') return empty(null);
+    let data;
+    try {
+        data = JSON.parse(text);
+    } catch (e) {
+        return empty(`invalid JSON: ${e.message}`);
+    }
+    if (!data || typeof data !== 'object' || Array.isArray(data)) return empty('not an object');
+    if (data.version !== GATE_STATE_VERSION) return empty(`unsupported version: ${data.version}`);
+    const toMap = (entries) => {
+        const map = new Map();
+        if (!Array.isArray(entries)) return map;
+        for (const e of entries) {
+            if (!Array.isArray(e) || e.length !== 2) continue;
+            const n = Number(e[0]);
+            const ms = toMs(e[1]);
+            if (Number.isInteger(n) && n > 0 && ms > 0) map.set(n, ms);
+        }
+        return map;
+    };
+    return {
+        gateHandled: toMap(data.gateHandled),
+        gateReviewHandled: toMap(data.gateReviewHandled),
+        error: null,
+    };
+}
+
+/**
+ * 終端 Status（Close / Done）になった Issue の watermark を落とす（純粋関数・#1219）。
+ * 終端 item はゲートに戻らないので watermark は不要（状態ファイルの肥大を防ぐ）。
+ * items に現れない Issue は**残す**（一覧の取りこぼしで消すと再起動後に再発火し得るため、
+ * 保守的に保持する）。入力の Map は変更せず新しい Map を返す。
+ * @param {{gateHandled?: Map, gateReviewHandled?: Map}} state
+ * @param {Array<{issue: number, status: string}>} items
+ * @returns {{gateHandled: Map, gateReviewHandled: Map}}
+ */
+function pruneGateWatermarks(state = {}, items = []) {
+    const terminal = new Set();
+    for (const it of items || []) {
+        if (it && TERMINAL_STATUSES.has(it.status)) terminal.add(Number(it.issue));
+    }
+    const prune = (map) => new Map(
+        [...(map instanceof Map ? map : new Map())].filter(([issue]) => !terminal.has(Number(issue))),
+    );
+    return { gateHandled: prune(state.gateHandled), gateReviewHandled: prune(state.gateReviewHandled) };
+}
+
+/**
  * 人間ゲートの解除判定（純粋関数・3 系統の OR）。
  * 1. ラベル解除: Issue/PR の 🙋 ラベルのいずれかが除去された（{@link isHitlReleased}）
  * 2. 発言解除: ゲート開放中に人間が最後に発言した（{@link humanSpokeLast} を daemon が
@@ -2582,6 +2673,10 @@ module.exports = {
     isHitlReleased,
     isGateReleased,
     hasUnhandledChangesRequest,
+    GATE_STATE_VERSION,
+    serializeGateWatermarks,
+    parseGateWatermarks,
+    pruneGateWatermarks,
     humanSpokeLast,
     mergeActivity,
     toMs,

@@ -870,6 +870,19 @@ kill "$(cat /tmp/autopilot-daemon.pid)"
 
 SIGTERM / SIGINT でも終了し、PID ファイルは終了時に削除される。
 
+#### 状態ファイル（ゲート watermark・#1219）
+
+daemon は人間ゲートの「処理済み」watermark（発言解除用 `gateHandled` / changesRequested 解除用
+`gateReviewHandled`）を **`$TMPDIR/autopilot-state.json`（通常 `/tmp/autopilot-state.json`）** に
+保存し、起動時に復元する（env `AUTOPILOT_STATE_FILE` で場所を変更可）。これが無いと、再起動の
+たびに処理済みの Request changes や発言でゲートが再解除され、新しい指摘が無いのに
+address-review 等が空振りで投入される。
+
+- 書き込みは内容に差分があるときだけ（tmp ファイル + rename で置き換え）。終端 Status
+  （Close / Done）になった Issue のエントリは自動で掃除される。
+- **消してもよい**。消した直後の起動では、処理済みの指摘・発言が item ごとに 1 回だけ再発火し得る
+  （固着はしない）。壊れた・版違いのファイルは warn して無視し、空で起動する。
+
 ### CLI（単発フェーズ実行・動作確認）
 
 ```bash
