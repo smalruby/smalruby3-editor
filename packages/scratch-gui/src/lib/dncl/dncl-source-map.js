@@ -93,19 +93,6 @@ class DnclSourceMap {
       source: null,
     }))
   }
-
-  /**
-   * Map a Ruby position (line, column) to a DNCL position.
-   * @param {number} rubyLine - 1-based Ruby line number.
-   * @param {number} rubyColumn - 1-based Ruby column number.
-   * @returns {object} Object with `line` and `column` (1-based).
-   */
-  rubyPositionToDncl(rubyLine, rubyColumn) {
-    return {
-      line: this.rubyLineToDnclLine(rubyLine),
-      column: rubyColumn,
-    }
-  }
 }
 
 export { DnclSourceMap }

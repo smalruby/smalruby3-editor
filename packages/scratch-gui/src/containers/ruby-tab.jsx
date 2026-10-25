@@ -587,6 +587,8 @@ const RubyTab = (props) => {
 
         // Validate before switching TO DNCL mode:
         // Dry-run Ruby → DNCL → Ruby → Blocks to check for unsupported code.
+        // The conversions are kept so the switch below can reuse them.
+        let dryRun = null;
         if (enabling && editorRef.current && monacoRef.current) {
             setDnclValidating(true);
             try {
@@ -618,6 +620,7 @@ const RubyTab = (props) => {
                     showErrors(errors);
                     return;
                 }
+                dryRun = { ruby: currentRuby, dncl: dnclResult.dncl, sourceMap: rubyResult.sourceMap };
             } finally {
                 setDnclValidating(false);
             }
@@ -640,11 +643,19 @@ const RubyTab = (props) => {
             if (enabling) {
                 // Switching to DNCL: convert Ruby → DNCL
                 const currentRuby = model.getValue();
-                const result = rubyToDncl(currentRuby);
-                dnclSourceMapRef.current = dnclToRuby(result.dncl).sourceMap;
+                // Reuse the dry-run conversions unless the code was edited
+                // while the blocks conversion was being checked.
+                let dncl;
+                if (dryRun && dryRun.ruby === currentRuby) {
+                    dncl = dryRun.dncl;
+                    dnclSourceMapRef.current = dryRun.sourceMap;
+                } else {
+                    dncl = rubyToDncl(currentRuby).dncl;
+                    dnclSourceMapRef.current = dnclToRuby(dncl).sourceMap;
+                }
                 monacoRef.current.editor.setModelLanguage(model, 'dncl');
-                model.setValue(result.dncl);
-                setDnclDisplayCode(result.dncl);
+                model.setValue(dncl);
+                setDnclDisplayCode(dncl);
             } else {
                 // Switching to Ruby: convert DNCL → Ruby
                 const currentDncl = model.getValue();

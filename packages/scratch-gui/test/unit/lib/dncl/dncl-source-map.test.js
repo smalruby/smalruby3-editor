@@ -238,15 +238,4 @@ describe('DnclSourceMap', () => {
       expect(map.rubyErrorsToDncl([{ row: 99, column: 0, text: 'eof' }])[0].row).toBe(1)
     })
   })
-
-  describe('error position mapping', () => {
-    test('maps Ruby error position to DNCL position', () => {
-      const dncl = 'a = 【外部からの入力】\nb = 2\nc = error'
-      const map = dnclToRuby(dncl).sourceMap
-
-      // Error on Ruby line 4 (c = error) → DNCL line 3
-      const dnclPos = map.rubyPositionToDncl(4, 1)
-      expect(dnclPos.line).toBe(3)
-    })
-  })
 })
