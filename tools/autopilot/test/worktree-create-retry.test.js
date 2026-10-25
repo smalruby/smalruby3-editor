@@ -161,6 +161,22 @@ test('a leftover branch at a different commit is NOT adopted (#1226)', (t) => {
     );
 });
 
+test('adoption never deletes a non-empty directory at the worktree path (#1226)', (t) => {
+    const { base, main, shim, env } = setup(t);
+    const withShim = { ...env, PATH: `${shim}:${env.PATH}` };
+    // A stale, unregistered worktree directory that may still hold uncommitted work.
+    const wt = path.join(base, 'worktrees', 'issue-4');
+    fs.mkdirSync(wt, { recursive: true });
+    fs.writeFileSync(path.join(wt, '.git'), 'gitdir: /nonexistent\n');
+    fs.writeFileSync(path.join(wt, 'work.txt'), 'uncommitted\n');
+
+    assert.throws(
+        () => runCreate(main, withShim, ['4']),
+        (err) => /not empty/.test(String(err.stderr)),
+    );
+    assert.strictEqual(fs.readFileSync(path.join(wt, 'work.txt'), 'utf8'), 'uncommitted\n');
+});
+
 test('parallel creates all succeed', async (t) => {
     const { base, main, env } = setup(t);
     const issues = ['11', '12', '13'];

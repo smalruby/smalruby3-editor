@@ -111,7 +111,10 @@ git_wt_add_retry() {
 # ロック失敗で残ったブランチを引き取る前の確認と片付け（#1226）。
 # - ブランチが起点と同じコミットでなければ、今回の失敗で作られたものではない
 #   （無関係な既存ブランチ）ので使わない。人間が確認できるようブランチには触らない。
-# - 中途半端な worktree の登録・ディレクトリが残っていれば片付ける。
+# - 実体の無い worktree 登録は prune で片付ける。`-b` の add はブランチ作成（ロック失敗点）を
+#   作業場所の作成より先に行い、失敗した add の残骸は git 自身が消すため、ここで登録や
+#   中身のあるディレクトリが見つかるのは別プロセス由来。未コミットの作業を消さないよう、
+#   空ディレクトリ以外は削除せずに失敗を返す。
 adopt_leftover_branch() {
     local branch="$1" wt="$2" start="$3"
     local branch_sha start_sha
@@ -124,14 +127,14 @@ adopt_leftover_branch() {
     echo "info: ロック競合で残ったブランチ ${branch} を引き取って worktree を作り直します" >&2
     git -C "${MAIN_CHECKOUT}" worktree prune >/dev/null 2>&1 || true
     if git -C "${MAIN_CHECKOUT}" worktree list --porcelain | grep -qx "worktree ${wt}"; then
-        git -C "${MAIN_CHECKOUT}" worktree remove --force "${wt}" >/dev/null 2>&1 || true
+        echo "error: ${wt} is already registered as a worktree; refusing to replace it" >&2
+        return 1
     fi
-    # 登録の無いディレクトリは、空か add の残骸（.git ファイルあり）のときだけ消す
     if [[ -d "${wt}" ]]; then
-        if [[ -z "$(ls -A "${wt}" 2>/dev/null)" || -f "${wt}/.git" ]]; then
-            rm -rf "${wt}"
+        if [[ -z "$(ls -A "${wt}" 2>/dev/null)" ]]; then
+            rmdir "${wt}"
         else
-            echo "error: ${wt} exists and is not a worktree; refusing to overwrite it" >&2
+            echo "error: ${wt} exists and is not empty; refusing to overwrite it" >&2
             return 1
         fi
     fi
