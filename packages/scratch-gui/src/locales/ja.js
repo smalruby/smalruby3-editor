@@ -1394,6 +1394,8 @@ export default {
         'メッシュの「センサーの値」は、同じ名前のグローバル変数があると、自分の値も読むようになりました。',
     'gui.meshSelfSensorNotice.learnMore': 'くわしくはこちら',
     'gui.meshSelfSensorNotice.dismiss': '閉じる',
+    'gui.rubyTab.dnclDoubleSlashHint':
+        'スモウルビーでは // はコメントではありません（整数の割り算です）。コメントには # をつかってください。',
     'gui.rubyTab.dnclValidationError':
         '日本語モードでは対応していない記述です。\n対応している命令のみにしてから、モード切り替えを行ってください。',
     'gui.mobile.drawer.title': 'メニュー',

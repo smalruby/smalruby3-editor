@@ -148,45 +148,6 @@ const normalizeArrayInit = (line) => line.replace(
   )
 
 /**
- * Whether the `//` at `idx` starts a comment rather than being the
- * Smalruby DNCL integer-division operator (`a // b`). 共通テスト samples
- * write comments like `n = 1 // 生徒番号`, so `//` counts as a comment
- * only when followed by Japanese text or nothing; ASCII operands such as
- * `10 // 3` keep their division meaning.
- * @param {string} line - The source line.
- * @param {number} idx - Index of the first `/`.
- * @returns {boolean} True when `//` begins a comment.
- */
-const isSlashComment = (line, idx) => {
-  if (line[idx] !== '/' || line[idx + 1] !== '/') return false
-  const rest = line.substring(idx + 2).trimStart()
-  return rest === '' || /^[\u0080-\uffff]/.test(rest)
-}
-
-/**
- * Convert a `//` line comment (outside string literals) into the `#`
- * comment the rest of the pipeline understands (see `isSlashComment`).
- * @param {string} line - The source line.
- * @returns {string} The line with `//` replaced by `#`.
- */
-const normalizeSlashComment = (line) => {
-  let i = 0
-  while (i < line.length) {
-    const ch = line[i]
-    if (ch === '"' || ch === "'") {
-      i = skipString(line, i, ch)
-      continue
-    }
-    if (ch === '#') return line
-    if (isSlashComment(line, i)) {
-      return `${line.substring(0, i)}#${line.substring(i + 2)}`
-    }
-    i++
-  }
-  return line
-}
-
-/**
  * Net bracket depth of a line, ignoring string literals and comments.
  * A positive value means the statement continues on the next line.
  * @param {string} line - The source line.
@@ -201,7 +162,7 @@ const bracketDepth = (line) => {
       i = skipString(line, i, ch)
       continue
     }
-    if (ch === '#' || isSlashComment(line, i)) break
+    if (ch === '#') break
     if (ch === '(' || ch === '[' || ch === '{') depth++
     if (ch === ')' || ch === ']' || ch === '}') depth--
     i++
@@ -522,11 +483,9 @@ const normalizeFunctionDefOpener = (line) =>
  *   comma-separated multi-assignment was split).
  */
 const preprocessLine = (line) => {
-  // `//` comments are a 共通テスト notation, so only numbered DNCLv2 lines
-  // get them; un-numbered Smalruby DNCL keeps `合計 // 個数` as division.
-  const numbered = LINE_NUMBER_RE.test(line)
+  // `//` is always integer division here; 共通テスト `//` comments are
+  // turned into `#` when pasted (dncl-paste-tidy.js, Issue #1192).
   let out = stripLineNumber(line)
-  if (numbered) out = normalizeSlashComment(out)
   out = normalizeArrayInit(out)
   out = stripTrailingColon(out)
   out = normalizeKurikaesuSuffix(out)

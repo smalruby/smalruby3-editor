@@ -11,8 +11,10 @@ import {smalrubyLanguage, smalrubyLanguageConfiguration} from './smalruby-mode';
  * Monaco Editor v0.55.1 standalone has a broken built-in paste action.
  * @param {object} editor - Monaco editor instance.
  * @param {string} pasteLabel - Localized label for the paste action.
+ * @param {function(string): string} [transformText] - Rewrites the pasted
+ *   text before it is inserted (e.g. tidying DNCL code, Issue #1192).
  */
-const registerCustomPasteAction = (editor, pasteLabel) => {
+const registerCustomPasteAction = (editor, pasteLabel, transformText = text => text) => {
     editor.addAction({
         id: 'smalruby.paste',
         label: pasteLabel,
@@ -23,7 +25,7 @@ const registerCustomPasteAction = (editor, pasteLabel) => {
             try {
                 const text = await navigator.clipboard.readText();
                 if (text) {
-                    ed.trigger('keyboard', 'type', {text});
+                    ed.trigger('keyboard', 'type', {text: transformText(text)});
                 }
             } catch (err) {
                 // eslint-disable-next-line no-console
@@ -31,6 +33,35 @@ const registerCustomPasteAction = (editor, pasteLabel) => {
             }
         }
     });
+};
+
+/**
+ * Rewrite text pasted with the keyboard (Ctrl+V / ⌘V) before Monaco inserts
+ * it. The DOM `paste` event is caught in the capture phase, ahead of
+ * Monaco's own handler on its hidden textarea; when the text changes, the
+ * rewritten text is inserted through Monaco's `paste` command instead, so
+ * it is still a single undo step.
+ * @param {object} editor - Monaco editor instance.
+ * @param {function(string): string} transformText - Rewrites the pasted text.
+ * @returns {function(): void} Removes the listener.
+ */
+const setupPasteTransform = (editor, transformText) => {
+    const domNode = editor.getDomNode();
+    if (!domNode) return () => {};
+    const handlePaste = event => {
+        // The find/replace widget lives inside the editor DOM too; only
+        // rewrite pastes into the editor text itself.
+        if (!event.clipboardData || !editor.hasTextFocus() || editor.getRawOptions().readOnly) return;
+        const text = event.clipboardData.getData('text/plain');
+        if (!text) return;
+        const transformed = transformText(text);
+        if (transformed === text) return;
+        event.preventDefault();
+        event.stopPropagation();
+        editor.trigger('keyboard', 'paste', {text: transformed, pasteOnNewLine: false, multicursorText: null});
+    };
+    domNode.addEventListener('paste', handlePaste, true);
+    return () => domNode.removeEventListener('paste', handlePaste, true);
 };
 
 /**
@@ -146,6 +177,7 @@ const registerLanguageAndProviders = (monaco, editor, vm, quickFixProvider, exis
 
 export {
     registerCustomPasteAction,
+    setupPasteTransform,
     setupPasteDuplicateHider,
     registerLanguageAndProviders
 };
