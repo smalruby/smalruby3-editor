@@ -460,6 +460,36 @@ const closerForBlockType = (type) => {
 }
 
 /**
+ * Explicit Smalruby DNCL block closers (a line consisting of just one of these).
+ */
+const EXPLICIT_CLOSERS = new Set(['を実行する', 'を繰り返す', 'と定義する'])
+
+/**
+ * Whether the line continues an `if` block (`そうでなくもし` / `そうでなければ`)
+ * instead of starting a new statement.
+ * @param {string} body - The line content with indent stripped.
+ * @returns {boolean} True for an else / else-if line.
+ */
+const isIfContinuation = (body) =>
+  body === 'そうでなければ' || /^そうでなくもし\s/.test(body)
+
+/**
+ * Visual width of a leading indent. A tab counts as 4 columns and the
+ * full-width space (U+3000) as 2, so mixed indentation still compares sensibly.
+ * @param {string} indent - Leading whitespace.
+ * @returns {number} The indent width in columns.
+ */
+const indentWidth = (indent) => {
+  let width = 0
+  for (const ch of indent) {
+    if (ch === '\t') width += 4
+    else if (ch === '\u3000') width += 2
+    else width += 1
+  }
+  return width
+}
+
+/**
  * Convert a DNCLv2 function-definition opener to the Smalruby form:
  *   `NAME(ARGS) を定義する` → `関数 NAME(ARGS)`
  *
@@ -518,11 +548,44 @@ const preprocessLine = (line) => {
 const dnclV2Preprocess = (source) => {
   const stack = []
   const out = []
+  const emitCloser = (block) =>
+    out.push(`${block.indent}${closerForBlockType(block.type)}`)
+  // Close indentation-style blocks (opener ends with `:`, body indented, no
+  // `⎿` and no closer line, as in 共通テスト code typed without the `｜` /
+  // `⎿` markers) once a line at the opener's indent or shallower appears.
+  const closeByIndent = (width, body) => {
+    const explicit = EXPLICIT_CLOSERS.has(body)
+    while (stack.length > 0) {
+      const top = stack[stack.length - 1]
+      if (top.colon && !top.hasBody) {
+        if (width > top.width) {
+          top.hasBody = true
+          return
+        }
+        // No indented body: the block is closed some other way.
+        top.colon = false
+      }
+      if (!top.colon) {
+        if (explicit) stack.pop()
+        return
+      }
+      if (width > top.width) return
+      if (width === top.width && explicit) {
+        stack.pop()
+        return
+      }
+      if (width === top.width && top.type === 'if' && isIfContinuation(body)) {
+        return
+      }
+      emitCloser(stack.pop())
+    }
+  }
   for (const { line: rawLine, extraCloseCount } of joinContinuationLines(
     source,
   )) {
     // Phase 3 per-line transformations (may produce `\n` from multi-assignment).
     const phase3 = preprocessLine(rawLine)
+    const colonOpener = /[:：]\s*$/.test(rawLine) && !/[:：]\s*$/.test(phase3)
     const pieces = phase3.split('\n')
     for (const [pieceIdx, line] of pieces.entries()) {
       const { line: marked, closeCount: markerCloseCount } =
@@ -532,21 +595,31 @@ const dnclV2Preprocess = (source) => {
       const closeCount =
         markerCloseCount +
         (pieceIdx === pieces.length - 1 ? extraCloseCount : 0)
-      out.push(marked)
       // Detect block opener AFTER marker stripping so the indent reflects
       // the expanded form.
       const indentMatch = marked.match(/^(\s*)/)
       const indent = indentMatch ? indentMatch[1] : ''
-      const body = marked.substring(indent.length)
+      const body = marked.substring(indent.length).replace(/\s+$/, '')
+      const width = indentWidth(indent)
+      if (body !== '' && !body.startsWith('#')) closeByIndent(width, body)
+      out.push(marked)
       const type = detectBlockType(body)
-      if (type) stack.push({ type, indent })
+      if (type) {
+        stack.push({ type, indent, width, colon: colonOpener, hasBody: false })
+      }
       // Emit closers for each `⎿` on this line.
       for (let i = 0; i < closeCount; i++) {
         const popped = stack.pop()
         if (!popped) break
-        out.push(`${popped.indent}${closerForBlockType(popped.type)}`)
+        emitCloser(popped)
       }
     }
+  }
+  // Indentation-style blocks still open at the end of the program.
+  while (stack.length > 0) {
+    const top = stack[stack.length - 1]
+    if (!top.colon || !top.hasBody) break
+    emitCloser(stack.pop())
   }
   return out.join('\n')
 }

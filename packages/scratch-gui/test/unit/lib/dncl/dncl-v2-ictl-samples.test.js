@@ -251,3 +251,103 @@ describe('ICTL sample programs convert to valid Ruby (Issue #1186)', () => {
         );
     });
 });
+
+describe('DNCLv2 blocks written with indentation only (Issue #1186)', () => {
+    let prism;
+    beforeAll(async () => {
+        prism = await loadPrism();
+    });
+
+    test('the reported 一つのクイズ集 program (no line numbers / ｜ / ⎿) gets its ends', () => {
+        const result = dnclToRuby(
+            [
+                'Bunya = [2, 0, 2, 2, 1, 2, 0, 1]',
+                'saidai = 5',
+                'Saiyou = [0, 0, 0, 0, 0, 0, 0, 0]',
+                'Mondaisu = [0, 0, 0, 0, 0, 0]',
+                'i を 0 から 要素数(Bunya) - 1 まで 1 ずつ増やしながら繰り返す:',
+                '    b = Bunya[i]',
+                '    もし Mondaisu[b] < saidai ならば:',
+                '        Saiyou[i] = 1',
+                '        Mondaisu[b] = Mondaisu[b] + 1',
+            ].join('\n'),
+        );
+        expect(result.errors).toEqual([]);
+        expect(prism.parse(result.ruby).errors).toEqual([]);
+        expect(result.ruby.match(/^\s*end$/gm)).toHaveLength(2);
+    });
+
+    test('a dedent closes the block; else / else-if stay in the if', () => {
+        expect(
+            dnclV2Preprocess(
+                [
+                    'もし a > 0 ならば:',
+                    '    a = 1',
+                    'そうでなくもし a < 0 ならば:',
+                    '    a = -1',
+                    'そうでなければ:',
+                    '    a = 0',
+                    'a の間繰り返す:',
+                    '    a = a - 1',
+                    '表示する(a)',
+                ].join('\n'),
+            ).split('\n'),
+        ).toEqual([
+            'もし a > 0 ならば',
+            '    a = 1',
+            'そうでなくもし a < 0 ならば',
+            '    a = -1',
+            'そうでなければ',
+            '    a = 0',
+            'を実行する',
+            'a の間',
+            '    a = a - 1',
+            'を繰り返す',
+            '表示する(a)',
+        ]);
+    });
+
+    test('nested blocks close innermost first, and blank / comment lines do not close', () => {
+        expect(
+            dnclV2Preprocess(
+                [
+                    'a の間繰り返す:',
+                    '  もし b ならば:',
+                    '    b = 0',
+                    '',
+                    '# comment',
+                    '    c = 1',
+                    'd = 2',
+                ].join('\n'),
+            ).split('\n'),
+        ).toEqual([
+            'a の間',
+            '  もし b ならば',
+            '    b = 0',
+            '',
+            '# comment',
+            '    c = 1',
+            '  を実行する',
+            'を繰り返す',
+            'd = 2',
+        ]);
+    });
+
+    test('explicit closer lines and `⎿` markers are not closed twice', () => {
+        expect(
+            dnclV2Preprocess(
+                ['もし a ならば:', '    a = 1', 'を実行する', 'b = 2'].join('\n'),
+            ).split('\n'),
+        ).toEqual(['もし a ならば', '    a = 1', 'を実行する', 'b = 2']);
+        expect(
+            dnclV2Preprocess(
+                ['(1) もし a ならば:', '(2)  ⎿ a = 1', '(3) b = 2'].join('\n'),
+            ).split('\n'),
+        ).toEqual(['もし a ならば', '  a = 1', 'を実行する', 'b = 2']);
+    });
+
+    test('Smalruby DNCL without colons keeps its explicit closers only', () => {
+        const src = ['もし a ならば', '  a = 1', 'を実行する', 'b = 2'].join('\n');
+        expect(dnclV2Preprocess(src)).toBe(src);
+    });
+});
