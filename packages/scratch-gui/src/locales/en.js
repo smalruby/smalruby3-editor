@@ -88,16 +88,29 @@ export default {
         'Teachers can find the join code in {settingsIcon} Settings → Class Management.',
     'gui.classroom.studentSeat.prompt': 'Select your seat number',
     'gui.classroom.studentSeat.join': 'Join',
+    'gui.classroom.studentSeat.numberInputLabel': 'Seat number',
+    'gui.classroom.studentSeat.numberInputPlaceholder': '1-{seatCount}',
+    'gui.classroom.studentSeat.numberSubmit': 'Use this number',
+    'gui.classroom.studentSeat.numberError': 'Type a number from 1 to {seatCount}.',
+    'gui.classroom.studentSeat.alreadyRequested':
+        'Seat {seatNumber} is in use. You are already waiting for the teacher, so please wait a little.',
+    'gui.classroom.studentSeat.guide':
+        'If your number is already in use, press that number. You can ask the teacher to free the seat, and the teacher will come to check with you.',
+    'gui.classroom.studentSeat.confirmTitle': 'You will join as number {seatNumber}',
+    'gui.classroom.studentSeat.confirmNote':
+        "Is this your own number? If you take someone else's seat, that person cannot join. Check it, then press Join.",
     'gui.classroom.kicked.banner.title': 'You were removed from this class by your teacher.',
     'gui.classroom.kicked.banner.subtitle': 'Pick your seat again to rejoin {className}.',
     'gui.classroom.kickRequest.title': 'Ask the teacher to free seat {seatNumber}?',
     'gui.classroom.kickRequest.body':
-        'Use this when you think seat {seatNumber} is your seat but someone else picked it by mistake. Your teacher will see the request and decide.',
+        'Use this when you think seat {seatNumber} is your seat but someone else picked it by mistake. Your teacher will check with you before freeing the seat.',
     'gui.classroom.kickRequest.reasonPlaceholder':
         'Optional: tell the teacher why you need this seat (max 200 chars).',
     'gui.classroom.kickRequest.cancel': 'Cancel',
     'gui.classroom.kickRequest.submit': 'Send request',
     'gui.classroom.kickRequest.pendingBanner': 'Waiting for the teacher to free seat {seatNumber}...',
+    'gui.classroom.kickRequest.pendingNote':
+        'Your request has reached the teacher, who will come to check with you. While you wait, you can keep using Smalruby. When the seat is free, you will join it automatically.',
     'gui.classroom.kickRequest.rejectedBanner':
         'The teacher did not free seat {seatNumber} this time. Try a different seat, or send a new request.',
     'gui.classroom.kickRequest.teacherTitle':
