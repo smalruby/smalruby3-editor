@@ -54,6 +54,7 @@ smalruby3-editor/
 │   │   │   └── alert.jsx             ← Alert コンテナ（参加しなおす対応）
 │   │   ├── lib/
 │   │   │   ├── classroom-api.js       ← API クライアント (リトライ付き)
+│   │   │   ├── classroom-presence.js  ← 着席判定のしきい値（唯一の定義）
 │   │   │   ├── classroom-assignment-utils.js ← 課題エディタの純粋ヘルパー
 │   │   │   ├── classroom-group-utils.js ← サイドバー組階層の純粋ヘルパー
 │   │   │   ├── classroom-google-share.js ← GC 共有の既定ブロック判定 + 解除導線の文言（純粋）#1184
