@@ -155,7 +155,7 @@ const getSubmissionStatus = (source) => {
     return source.hasSubmission ? 'submitted' : 'notSubmitted';
 };
 
-const ClassroomStatusIcon = ({ status, size, badge, className }) => {
+const ClassroomStatusIcon = ({ status, size = 14, badge, className }) => {
     const intl = useIntl();
     const icon = status && ICONS[status];
     if (!icon) return null;
@@ -185,10 +185,6 @@ ClassroomStatusIcon.propTypes = {
     status: PropTypes.oneOf(STATUS_KINDS),
 };
 
-ClassroomStatusIcon.defaultProps = {
-    size: 14,
-};
-
 /**
  * Presence + submission (+ optional leave request) side by side, so one
  * grid cell can show both axes at once.
@@ -200,7 +196,7 @@ ClassroomStatusIcon.defaultProps = {
  * @param {string} props.className - extra class for the wrapper.
  * @returns {React.ReactElement} the icon group.
  */
-const ClassroomStatusIcons = ({ presence, submission, kickRequested, size, className }) => (
+const ClassroomStatusIcons = ({ presence, submission, kickRequested, size = 14, className }) => (
     <span
         className={className ? `${styles.statusIcons} ${className}` : styles.statusIcons}
         data-testid="classroom-status-icons"
@@ -217,10 +213,6 @@ ClassroomStatusIcons.propTypes = {
     presence: PropTypes.oneOf(['seated', 'notSeated', 'notJoined']),
     size: PropTypes.number,
     submission: PropTypes.oneOf(['submitted', 'notSubmitted', 'returned']),
-};
-
-ClassroomStatusIcons.defaultProps = {
-    size: 14,
 };
 
 /**
