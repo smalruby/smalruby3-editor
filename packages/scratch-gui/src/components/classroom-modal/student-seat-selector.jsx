@@ -140,202 +140,211 @@ const StudentSeatSelector = ({
     }
 
     return (
-        <div data-testid="classroom-phase-student-seat">
-            {kickedNotice && (
-                <div className={styles.kickedBanner} data-testid="classroom-kicked-banner">
-                    <div className={styles.kickedBannerText}>
-                        <strong>
+        <div
+            className={styles.studentSeatLayout}
+            data-testid="classroom-phase-student-seat"
+        >
+            <div className={styles.studentMain}>
+                <div className={styles.phaseTitle}>
+                    <FormattedMessage
+                        defaultMessage="Select your seat number"
+                        description="Seat selection prompt"
+                        id="gui.classroom.studentSeat.prompt"
+                    />
+                </div>
+                <form
+                    className={styles.seatNumberForm}
+                    data-testid="classroom-seat-number-form"
+                    onSubmit={handleSeatInputSubmit}
+                >
+                    <input
+                        aria-label={intl.formatMessage(messages.numberInputLabel)}
+                        className={styles.seatNumberInput}
+                        data-testid="classroom-seat-number-input"
+                        inputMode="numeric"
+                        onChange={handleSeatInputChange}
+                        placeholder={intl.formatMessage(messages.numberInputPlaceholder, { seatCount })}
+                        type="text"
+                        value={seatInput}
+                    />
+                    <button className={styles.secondaryButton} data-testid="classroom-seat-number-submit" type="submit">
+                        <FormattedMessage
+                            defaultMessage="Use this number"
+                            description="Button next to the seat number input"
+                            id="gui.classroom.studentSeat.numberSubmit"
+                        />
+                    </button>
+                </form>
+                {seatInputError && (
+                    <div className={styles.errorText} data-testid="classroom-seat-number-error">
+                        {seatInputError}
+                    </div>
+                )}
+                <div
+                    className={`${styles.seatGuide} ${idle ? styles.seatGuideIdle : ''}`}
+                    data-idle={idle ? '1' : '0'}
+                    data-testid="classroom-seat-guide"
+                >
+                    <FormattedMessage
+                        defaultMessage="If your number is already in use, press that number. You can ask the teacher to free the seat, and the teacher will come to check with you."
+                        description="Always-visible guide on the seat selection screen explaining how to get an occupied seat back"
+                        id="gui.classroom.studentSeat.guide"
+                    />
+                </div>
+                <div className={styles.seatGrid} data-testid="classroom-seat-grid">
+                    {Array.from({ length: seatCount }, (_, i) => i + 1).map(n => {
+                        const isTaken = takenSeats.includes(n);
+                        const isSelected = selectedSeat === n;
+                        const isTyped = typedSeat === n && !isSelected;
+                        // Taken seats become tappable when an onRequestKick handler is
+                        // provided AND we're not already waiting on a different one.
+                        // We still let the student tap their own pending seat (it just
+                        // does nothing — we suppress in container) to avoid confusion.
+                        const canRequestKick = isTaken && onRequestKick && !kickRequestPending;
+                        return (
+                            <button
+                                className={`${styles.seatButton} ${isTaken ? styles.seatTaken : ''} ${isSelected ? styles.seatSelected : ''} ${isTyped ? styles.seatTyped : ''}`}
+                                data-seat={n}
+                                data-taken={canRequestKick ? '1' : '0'}
+                                data-typed={isTyped ? '1' : '0'}
+                                data-testid={`classroom-seat-${n}`}
+                                disabled={isTaken && !canRequestKick}
+                                key={n}
+                                onClick={handleSeatClick}
+                            >
+                                <span className={styles.seatButtonNumber}>{n}</span>
+                                {isTaken && (
+                                    <ClassroomStatusIcon
+                                        size={12}
+                                        status="occupied"
+                                    />
+                                )}
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+            <div className={styles.studentNotices}>
+                {kickedNotice && (
+                    <div className={styles.kickedBanner} data-testid="classroom-kicked-banner">
+                        <div className={styles.kickedBannerText}>
+                            <strong>
+                                <FormattedMessage
+                                    defaultMessage="You were removed from this class by your teacher."
+                                    description="Banner shown when the teacher kicked the student"
+                                    id="gui.classroom.kicked.banner.title"
+                                />
+                            </strong>
+                            <div>
+                                <FormattedMessage
+                                    defaultMessage="Pick your seat again to rejoin {className}."
+                                    description="Banner subtitle prompting the student to re-pick a seat after a kick"
+                                    id="gui.classroom.kicked.banner.subtitle"
+                                    values={{ className: kickedNotice.className || '' }}
+                                />
+                            </div>
+                        </div>
+                        {onDismissKickedNotice && (
+                            <button
+                                aria-label="dismiss"
+                                className={styles.kickedBannerDismiss}
+                                data-testid="classroom-kicked-banner-dismiss"
+                                onClick={onDismissKickedNotice}
+                                type="button"
+                            >
+                                ×
+                            </button>
+                        )}
+                    </div>
+                )}
+                {kickRequestPending && (
+                    <div
+                        className={styles.kickRequestPendingBanner}
+                        data-testid="kick-request-pending-banner"
+                    >
+                        <FormattedMessage
+                            defaultMessage="Waiting for the teacher to free seat {seatNumber}..."
+                            description="Banner shown while a pending kick request is outstanding"
+                            id="gui.classroom.kickRequest.pendingBanner"
+                            values={{ seatNumber: String(kickRequestPending.seatNumber).padStart(2, '0') }}
+                        />
+                        <div className={styles.kickRequestPendingNote} data-testid="kick-request-pending-note">
                             <FormattedMessage
-                                defaultMessage="You were removed from this class by your teacher."
-                                description="Banner shown when the teacher kicked the student"
-                                id="gui.classroom.kicked.banner.title"
-                            />
-                        </strong>
-                        <div>
-                            <FormattedMessage
-                                defaultMessage="Pick your seat again to rejoin {className}."
-                                description="Banner subtitle prompting the student to re-pick a seat after a kick"
-                                id="gui.classroom.kicked.banner.subtitle"
-                                values={{ className: kickedNotice.className || '' }}
+                                defaultMessage="Your request has reached the teacher, who will come to check with you. While you wait, you can keep using Smalruby. When the seat is free, you will join it automatically."
+                                description="Note under the pending kick-request banner telling the student they may keep working"
+                                id="gui.classroom.kickRequest.pendingNote"
                             />
                         </div>
                     </div>
-                    {onDismissKickedNotice && (
-                        <button
-                            aria-label="dismiss"
-                            className={styles.kickedBannerDismiss}
-                            data-testid="classroom-kicked-banner-dismiss"
-                            onClick={onDismissKickedNotice}
-                            type="button"
-                        >
-                            ×
-                        </button>
-                    )}
-                </div>
-            )}
-            {kickRequestPending && (
-                <div
-                    className={styles.kickRequestPendingBanner}
-                    data-testid="kick-request-pending-banner"
-                >
-                    <FormattedMessage
-                        defaultMessage="Waiting for the teacher to free seat {seatNumber}..."
-                        description="Banner shown while a pending kick request is outstanding"
-                        id="gui.classroom.kickRequest.pendingBanner"
-                        values={{ seatNumber: String(kickRequestPending.seatNumber).padStart(2, '0') }}
-                    />
-                    <div className={styles.kickRequestPendingNote} data-testid="kick-request-pending-note">
-                        <FormattedMessage
-                            defaultMessage="Your request has reached the teacher, who will come to check with you. While you wait, you can keep using Smalruby. When the seat is free, you will join it automatically."
-                            description="Note under the pending kick-request banner telling the student they may keep working"
-                            id="gui.classroom.kickRequest.pendingNote"
-                        />
+                )}
+                {!kickRequestPending && kickRequestRejectedNotice && (
+                    <div
+                        className={styles.kickRequestRejectedBanner}
+                        data-testid="kick-request-rejected-banner"
+                    >
+                        <div className={styles.kickRequestRejectedText}>
+                            <FormattedMessage
+                                defaultMessage="The teacher did not free seat {seatNumber} this time. Try a different seat, or send a new request."
+                                description="Banner shown after the teacher rejected (or the TTL expired) the kick request"
+                                id="gui.classroom.kickRequest.rejectedBanner"
+                                values={{
+                                    seatNumber: String(kickRequestRejectedNotice.seatNumber).padStart(2, '0'),
+                                }}
+                            />
+                        </div>
+                        {onDismissKickRequestRejectedNotice && (
+                            <button
+                                aria-label="dismiss"
+                                className={styles.kickedBannerDismiss}
+                                data-testid="kick-request-rejected-banner-dismiss"
+                                onClick={onDismissKickRequestRejectedNotice}
+                                type="button"
+                            >
+                                ×
+                            </button>
+                        )}
                     </div>
+                )}
+            </div>
+            <div className={styles.studentActions}>
+                <div data-testid="classroom-selected-seat" style={{ display: 'none' }}>
+                    {selectedSeat}
                 </div>
-            )}
-            {!kickRequestPending && kickRequestRejectedNotice && (
-                <div
-                    className={styles.kickRequestRejectedBanner}
-                    data-testid="kick-request-rejected-banner"
-                >
-                    <div className={styles.kickRequestRejectedText}>
-                        <FormattedMessage
-                            defaultMessage="The teacher did not free seat {seatNumber} this time. Try a different seat, or send a new request."
-                            description="Banner shown after the teacher rejected (or the TTL expired) the kick request"
-                            id="gui.classroom.kickRequest.rejectedBanner"
-                            values={{
-                                seatNumber: String(kickRequestRejectedNotice.seatNumber).padStart(2, '0'),
-                            }}
-                        />
+                {selectedSeat && (
+                    <div className={styles.seatConfirm} data-testid="classroom-seat-confirm-message">
+                        <div className={styles.seatConfirmTitle}>
+                            <FormattedMessage
+                                defaultMessage="You will join as number {seatNumber}"
+                                description="Large confirmation shown before joining with the selected seat"
+                                id="gui.classroom.studentSeat.confirmTitle"
+                                values={{ seatNumber: padSeat(selectedSeat) }}
+                            />
+                        </div>
+                        <div className={styles.seatConfirmNote}>
+                            <FormattedMessage
+                                defaultMessage="Is this your own number? If you take someone else's seat, that person cannot join. Check it, then press Join."
+                                description="Note under the seat confirmation asking the student to double-check the number"
+                                id="gui.classroom.studentSeat.confirmNote"
+                            />
+                        </div>
                     </div>
-                    {onDismissKickRequestRejectedNotice && (
-                        <button
-                            aria-label="dismiss"
-                            className={styles.kickedBannerDismiss}
-                            data-testid="kick-request-rejected-banner-dismiss"
-                            onClick={onDismissKickRequestRejectedNotice}
-                            type="button"
-                        >
-                            ×
-                        </button>
-                    )}
-                </div>
-            )}
-            <div className={styles.phaseTitle}>
-                <FormattedMessage
-                    defaultMessage="Select your seat number"
-                    description="Seat selection prompt"
-                    id="gui.classroom.studentSeat.prompt"
-                />
-            </div>
-            <form
-                className={styles.seatNumberForm}
-                data-testid="classroom-seat-number-form"
-                onSubmit={handleSeatInputSubmit}
-            >
-                <input
-                    aria-label={intl.formatMessage(messages.numberInputLabel)}
-                    className={styles.seatNumberInput}
-                    data-testid="classroom-seat-number-input"
-                    inputMode="numeric"
-                    onChange={handleSeatInputChange}
-                    placeholder={intl.formatMessage(messages.numberInputPlaceholder, { seatCount })}
-                    type="text"
-                    value={seatInput}
-                />
-                <button className={styles.secondaryButton} data-testid="classroom-seat-number-submit" type="submit">
-                    <FormattedMessage
-                        defaultMessage="Use this number"
-                        description="Button next to the seat number input"
-                        id="gui.classroom.studentSeat.numberSubmit"
-                    />
-                </button>
-            </form>
-            {seatInputError && (
-                <div className={styles.errorText} data-testid="classroom-seat-number-error">
-                    {seatInputError}
-                </div>
-            )}
-            <div
-                className={`${styles.seatGuide} ${idle ? styles.seatGuideIdle : ''}`}
-                data-idle={idle ? '1' : '0'}
-                data-testid="classroom-seat-guide"
-            >
-                <FormattedMessage
-                    defaultMessage="If your number is already in use, press that number. You can ask the teacher to free the seat, and the teacher will come to check with you."
-                    description="Always-visible guide on the seat selection screen explaining how to get an occupied seat back"
-                    id="gui.classroom.studentSeat.guide"
-                />
-            </div>
-            <div className={styles.seatGrid} data-testid="classroom-seat-grid">
-                {Array.from({ length: seatCount }, (_, i) => i + 1).map(n => {
-                    const isTaken = takenSeats.includes(n);
-                    const isSelected = selectedSeat === n;
-                    const isTyped = typedSeat === n && !isSelected;
-                    // Taken seats become tappable when an onRequestKick handler is
-                    // provided AND we're not already waiting on a different one.
-                    // We still let the student tap their own pending seat (it just
-                    // does nothing — we suppress in container) to avoid confusion.
-                    const canRequestKick = isTaken && onRequestKick && !kickRequestPending;
-                    return (
-                        <button
-                            className={`${styles.seatButton} ${isTaken ? styles.seatTaken : ''} ${isSelected ? styles.seatSelected : ''} ${isTyped ? styles.seatTyped : ''}`}
-                            data-seat={n}
-                            data-taken={canRequestKick ? '1' : '0'}
-                            data-typed={isTyped ? '1' : '0'}
-                            data-testid={`classroom-seat-${n}`}
-                            disabled={isTaken && !canRequestKick}
-                            key={n}
-                            onClick={handleSeatClick}
-                        >
-                            <span className={styles.seatButtonNumber}>{n}</span>
-                            {isTaken && (
-                                <ClassroomStatusIcon
-                                    size={12}
-                                    status="occupied"
-                                />
-                            )}
-                        </button>
-                    );
-                })}
-            </div>
-            <div data-testid="classroom-selected-seat" style={{ display: 'none' }}>
-                {selectedSeat}
-            </div>
-            {selectedSeat && (
-                <div className={styles.seatConfirm} data-testid="classroom-seat-confirm-message">
-                    <div className={styles.seatConfirmTitle}>
+                )}
+                <div className={styles.buttonRow}>
+                    <button
+                        className={styles.primaryButton}
+                        data-testid="classroom-confirm-seat"
+                        disabled={!selectedSeat || isLoading}
+                        onClick={onConfirmJoin}
+                    >
                         <FormattedMessage
-                            defaultMessage="You will join as number {seatNumber}"
-                            description="Large confirmation shown before joining with the selected seat"
-                            id="gui.classroom.studentSeat.confirmTitle"
-                            values={{ seatNumber: padSeat(selectedSeat) }}
+                            defaultMessage="Join"
+                            description="Confirm join button"
+                            id="gui.classroom.studentSeat.join"
                         />
-                    </div>
-                    <div className={styles.seatConfirmNote}>
-                        <FormattedMessage
-                            defaultMessage="Is this your own number? If you take someone else's seat, that person cannot join. Check it, then press Join."
-                            description="Note under the seat confirmation asking the student to double-check the number"
-                            id="gui.classroom.studentSeat.confirmNote"
-                        />
-                    </div>
+                    </button>
                 </div>
-            )}
-            <div className={styles.buttonRow}>
-                <button
-                    className={styles.primaryButton}
-                    data-testid="classroom-confirm-seat"
-                    disabled={!selectedSeat || isLoading}
-                    onClick={onConfirmJoin}
-                >
-                    <FormattedMessage
-                        defaultMessage="Join"
-                        description="Confirm join button"
-                        id="gui.classroom.studentSeat.join"
-                    />
-                </button>
+                <ErrorDisplay error={error} errorTitle={errorTitle} />
             </div>
-            <ErrorDisplay error={error} errorTitle={errorTitle} />
         </div>
     );
 };
