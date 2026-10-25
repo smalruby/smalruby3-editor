@@ -107,8 +107,10 @@ describe('useTeacherNotifications (EPIC #1111 / 日次取得)', () => {
         );
         mockListNotifications.mockResolvedValue({ notifications: [notice('n1')], unreadCount: 1 });
         const { result } = renderHook(() => useTeacherNotifications({ idToken: TOKEN, handleTeacher401 }));
-        await waitFor(() => expect(mockListNotifications).toHaveBeenCalledTimes(1));
-        expect(result.current.unreadCount).toBe(1);
+        // API 呼び出しは state 反映より先に観測できるので、呼び出し回数ではなく
+        // 反映後の state を待つ（呼び出しで待つと CI で state 反映前に進んで落ちる）。
+        await waitFor(() => expect(result.current.unreadCount).toBe(1));
+        expect(mockListNotifications).toHaveBeenCalledTimes(1);
         // 空キーではキャッシュを書かない（他の空キー先生と共有されないように）。
         const cache = JSON.parse(window.localStorage.getItem(STORAGE_KEY));
         expect(cache.notifications[0].notificationId).toBe('x');
