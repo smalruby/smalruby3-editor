@@ -174,7 +174,7 @@ const ClassroomTeacherModal = () => {
             target: navTarget,
             lastSelection,
             groups: teacher.groups,
-            groupsLoaded: (teacher.groups || []).length > 0,
+            groupsLoaded: teacher.groupsLoaded,
         });
         if (nav.action === 'wait' || nav.action === 'none') return;
         dispatch(clearTeacherNavigation());
@@ -187,7 +187,7 @@ const ClassroomTeacherModal = () => {
             teacher.handleShowClassList();
         }
         // teacher is a fresh object every render; re-run only when the inputs change.
-    }, [dispatch, navTarget, lastSelection, teacherIdToken, teacherLoggedIn, teacher.groups]);
+    }, [dispatch, navTarget, lastSelection, teacherIdToken, teacherLoggedIn, teacher.groups, teacher.groupsLoaded]);
 
     // Handle relogin request from Alert "参加しなおす" button
     useEffect(() => {

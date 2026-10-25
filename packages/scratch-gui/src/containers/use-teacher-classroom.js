@@ -335,6 +335,7 @@ const useTeacherClassroom = ({
 
         // Groups (組)
         groups: groups.groups,
+        groupsLoaded: groups.groupsLoaded,
         selectedGroup: groups.selectedGroup,
         handleSelectGroup: groups.handleSelectGroup,
         handleShowClassList: groups.handleShowClassList,

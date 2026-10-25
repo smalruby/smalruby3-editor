@@ -183,6 +183,18 @@ describe('resolveTeacherNavigation', () => {
         ).toEqual({ action: 'assignment', group: groups[0], classroomId: 'c1' });
     });
 
+    test('does not wait forever once the class list has loaded empty', () => {
+        // The last class was deleted (or listGroups failed): go on without it.
+        expect(
+            resolveTeacherNavigation({
+                target: 'current-assignment',
+                lastSelection: { classroomId: 'c1', groupId: 'g1' },
+                groups: [],
+                groupsLoaded: true,
+            }),
+        ).toEqual({ action: 'assignment', group: null, classroomId: 'c1' });
+    });
+
     test('opens an assignment without a class directly', () => {
         expect(
             resolveTeacherNavigation({
