@@ -61,6 +61,17 @@ describe('StudentSeatSelector number input (#1198)', () => {
         expect(onRequestKick).not.toHaveBeenCalled();
         expect(screen.getByTestId('classroom-seat-number-error')).toBeInTheDocument();
     });
+
+    test('an occupied seat without a kick request handler does not claim a pending request', () => {
+        renderSelector({ onRequestKick: undefined });
+        typeSeat('3');
+        expect(screen.queryByTestId('classroom-seat-number-error')).not.toBeInTheDocument();
+    });
+
+    test('the placeholder shows the seat range through i18n', () => {
+        renderSelector();
+        expect(screen.getByTestId('classroom-seat-number-input')).toHaveAttribute('placeholder', '1-10');
+    });
 });
 
 describe('StudentSeatSelector guide and confirmation (#1198)', () => {

@@ -89,6 +89,7 @@ export default {
     'gui.classroom.studentSeat.prompt': 'Select your seat number',
     'gui.classroom.studentSeat.join': 'Join',
     'gui.classroom.studentSeat.numberInputLabel': 'Seat number',
+    'gui.classroom.studentSeat.numberInputPlaceholder': '1-{seatCount}',
     'gui.classroom.studentSeat.numberSubmit': 'Use this number',
     'gui.classroom.studentSeat.numberError': 'Type a number from 1 to {seatCount}.',
     'gui.classroom.studentSeat.alreadyRequested':

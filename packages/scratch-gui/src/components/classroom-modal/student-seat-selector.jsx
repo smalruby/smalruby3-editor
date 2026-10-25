@@ -16,6 +16,11 @@ const messages = defineMessages({
         description: 'Accessible label of the seat number input on the seat selection screen',
         id: 'gui.classroom.studentSeat.numberInputLabel',
     },
+    numberInputPlaceholder: {
+        defaultMessage: '1-{seatCount}',
+        description: 'Placeholder of the seat number input showing the range of seat numbers',
+        id: 'gui.classroom.studentSeat.numberInputPlaceholder',
+    },
     numberError: {
         defaultMessage: 'Type a number from 1 to {seatCount}.',
         description: 'Error shown when the typed seat number is empty, not a number or out of range',
@@ -94,9 +99,9 @@ const StudentSeatSelector = ({
             const action = decideSeatAction(seat, takenSeats, kickRequestPending);
             if (action === 'select') {
                 onSelectSeat(seat);
-            } else if (action === 'requestKick' && onRequestKick) {
-                onRequestKick(seat);
-            } else {
+            } else if (action === 'requestKick') {
+                if (onRequestKick) onRequestKick(seat);
+            } else if (action === 'alreadyRequested') {
                 setSeatInputError(intl.formatMessage(messages.alreadyRequested, { seatNumber: padSeat(seat) }));
             }
         },
@@ -234,7 +239,7 @@ const StudentSeatSelector = ({
                     data-testid="classroom-seat-number-input"
                     inputMode="numeric"
                     onChange={handleSeatInputChange}
-                    placeholder={`1〜${seatCount}`}
+                    placeholder={intl.formatMessage(messages.numberInputPlaceholder, { seatCount })}
                     type="text"
                     value={seatInput}
                 />

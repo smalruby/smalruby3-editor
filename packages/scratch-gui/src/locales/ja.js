@@ -100,6 +100,7 @@ export default {
     'gui.classroom.studentSeat.prompt': '出席番号を選んでください',
     'gui.classroom.studentSeat.join': '参加する',
     'gui.classroom.studentSeat.numberInputLabel': '出席番号',
+    'gui.classroom.studentSeat.numberInputPlaceholder': '1〜{seatCount}',
     'gui.classroom.studentSeat.numberSubmit': 'この番号にする',
     'gui.classroom.studentSeat.numberError': '1から{seatCount}までの数字を入れてください。',
     'gui.classroom.studentSeat.alreadyRequested':

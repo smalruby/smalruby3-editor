@@ -101,6 +101,7 @@ export default {
     'gui.classroom.studentSeat.prompt': 'しゅっせきばんごうをえらんでください',
     'gui.classroom.studentSeat.join': 'さんかする',
     'gui.classroom.studentSeat.numberInputLabel': 'しゅっせきばんごう',
+    'gui.classroom.studentSeat.numberInputPlaceholder': '1〜{seatCount}',
     'gui.classroom.studentSeat.numberSubmit': 'このばんごうにする',
     'gui.classroom.studentSeat.numberError': '1から{seatCount}までのすうじをいれてください。',
     'gui.classroom.studentSeat.alreadyRequested':
