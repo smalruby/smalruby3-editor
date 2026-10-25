@@ -3,58 +3,46 @@
 /**
  * Source map for DNCL ↔ Ruby line position mapping.
  *
- * Most DNCL lines map 1:1 to Ruby lines. The main exception is
- * `【外部からの入力】` which expands to 2 Ruby lines (ask_and_wait + assignment).
- * This class tracks line offsets caused by such expansions.
+ * DNCL and Ruby lines do not correspond 1:1: the DNCLv2 pre-processor joins
+ * continuation lines, splits multi-assignments and adds block closers, and
+ * the line converter expands input lines and counting loops into 2 Ruby
+ * lines. The map is therefore built from the per-line correspondence that
+ * `dnclToRuby` records while converting (use `dnclToRuby(dncl).sourceMap`).
  */
 class DnclSourceMap {
   /**
-   * Build a source map from DNCL and Ruby sources.
-   * @param {string} dnclSource - The original DNCL source code.
-   * @param {string} rubySource - The transpiled Ruby source code.
+   * Build a source map from the Ruby → DNCL line correspondence.
+   * @param {Array<number>} rubyToDncl - `rubyToDncl[i]` is the 1-based DNCL
+   *   line of Ruby line i+1.
+   * @param {number} dnclLineCount - Number of lines in the DNCL source.
    */
-  constructor(dnclSource, rubySource) {
-    const dnclLines = dnclSource.split('\n')
-    const rubyLines = rubySource.split('\n')
-
-    // dnclToRuby[i] = the Ruby line number (1-based) corresponding to
-    // DNCL line i+1 (1-based)
-    this._dnclToRuby = []
-
+  constructor(rubyToDncl, dnclLineCount) {
     // rubyToDncl[i] = the DNCL line number (1-based) corresponding to
     // Ruby line i+1 (1-based)
-    this._rubyToDncl = []
+    this._rubyToDncl = rubyToDncl.slice()
 
-    // Build mapping by comparing line counts
-    let rubyLine = 1
-    for (let dnclIdx = 0; dnclIdx < dnclLines.length; dnclIdx++) {
-      const dnclLineNum = dnclIdx + 1
-      this._dnclToRuby.push(rubyLine)
-
-      // Detect input expansion: check if this DNCL line contains 【外部からの入力】
-      const isInput = /【(?:外部からの入力|整数を入力|文字列を入力)】/.test(
-        dnclLines[dnclIdx],
-      )
-
-      if (isInput) {
-        // This DNCL line maps to 2 Ruby lines
-        this._rubyToDncl.push(dnclLineNum) // ask_and_wait
-        rubyLine++
-        this._rubyToDncl.push(dnclLineNum) // @var = answer
-        rubyLine++
-      } else {
-        this._rubyToDncl.push(dnclLineNum)
-        rubyLine++
+    // dnclToRuby[i] = the first Ruby line number (1-based) corresponding to
+    // DNCL line i+1 (1-based)
+    this._dnclToRuby = new Array(dnclLineCount).fill(null)
+    this._rubyToDncl.forEach((dnclLine, idx) => {
+      const dnclIdx = dnclLine - 1
+      if (
+        dnclIdx >= 0 &&
+        dnclIdx < dnclLineCount &&
+        this._dnclToRuby[dnclIdx] === null
+      ) {
+        this._dnclToRuby[dnclIdx] = idx + 1
       }
-    }
-
-    // Fill remaining Ruby lines if any (shouldn't happen normally)
-    while (this._rubyToDncl.length < rubyLines.length) {
-      this._rubyToDncl.push(
-        this._rubyToDncl.length > 0
-          ? this._rubyToDncl[this._rubyToDncl.length - 1]
-          : 1,
-      )
+    })
+    // DNCL lines without their own Ruby line (continuation lines joined into
+    // the line above) point at the Ruby line of the nearest line above.
+    let previous = 1
+    for (let i = 0; i < this._dnclToRuby.length; i++) {
+      if (this._dnclToRuby[i] === null) {
+        this._dnclToRuby[i] = previous
+      } else {
+        previous = this._dnclToRuby[i]
+      }
     }
   }
 
@@ -73,28 +61,37 @@ class DnclSourceMap {
 
   /**
    * Map a Ruby line number to a DNCL line number.
+   *
+   * Out-of-range Ruby lines are clamped to the first / last Ruby line. The
+   * Ruby code is usually longer than the DNCL source, so returning the Ruby
+   * line number unchanged would point at an unrelated or missing DNCL line.
    * @param {number} rubyLine - 1-based Ruby line number.
    * @returns {number} 1-based DNCL line number.
    */
   rubyLineToDnclLine(rubyLine) {
-    const idx = rubyLine - 1
-    if (idx < 0 || idx >= this._rubyToDncl.length) {
+    const lastIdx = this._rubyToDncl.length - 1
+    if (lastIdx < 0) {
       return rubyLine
     }
+    const idx = Math.min(Math.max(rubyLine - 1, 0), lastIdx)
     return this._rubyToDncl[idx]
   }
 
   /**
-   * Map a Ruby position (line, column) to a DNCL position.
-   * @param {number} rubyLine - 1-based Ruby line number.
-   * @param {number} rubyColumn - 1-based Ruby column number.
-   * @returns {object} Object with `line` and `column` (1-based).
+   * Move conversion errors from their Ruby lines to the matching DNCL lines.
+   *
+   * Ruby columns have no DNCL counterpart, so each error is set to cover the
+   * whole DNCL line (`column: 0`, `source: null`).
+   * @param {Array<object>} errors - Errors with a 0-based Ruby `row`.
+   * @returns {Array<object>} Copies of the errors with a 0-based DNCL `row`.
    */
-  rubyPositionToDncl(rubyLine, rubyColumn) {
-    return {
-      line: this.rubyLineToDnclLine(rubyLine),
-      column: rubyColumn,
-    }
+  rubyErrorsToDncl(errors) {
+    return errors.map((err) => ({
+      ...err,
+      row: this.rubyLineToDnclLine(err.row + 1) - 1,
+      column: 0,
+      source: null,
+    }))
   }
 }
 

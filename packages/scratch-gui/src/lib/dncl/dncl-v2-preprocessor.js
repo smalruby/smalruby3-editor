@@ -219,13 +219,16 @@ const bracketDepth = (line) => {
  * of a continuation line are dropped, but its `⎿` count is kept so the
  * caller can still close the blocks it ends.
  * @param {string} source - The raw DNCLv2 source.
- * @returns {Array<{line: string, extraCloseCount: number}>} Logical lines.
+ * @returns {Array<{line: string, extraCloseCount: number, lineNumber: number}>}
+ *   Logical lines. `lineNumber` is the 1-based source line the logical line
+ *   starts on (a joined line maps to its first line).
  */
 const joinContinuationLines = (source) => {
   const rawLines = source.split('\n')
   const result = []
   let i = 0
   while (i < rawLines.length) {
+    const lineNumber = i + 1
     let line = rawLines[i]
     let extraCloseCount = 0
     // Only numbered DNCLv2 lines wrap; in un-numbered code an unclosed
@@ -243,7 +246,7 @@ const joinContinuationLines = (source) => {
       line = `${line.replace(/\s+$/, '')} ${rest}`
       depth += bracketDepth(rest)
     }
-    result.push({ line, extraCloseCount })
+    result.push({ line, extraCloseCount, lineNumber })
     i++
   }
   return result
@@ -543,14 +546,32 @@ const preprocessLine = (line) => {
  * (`を実行する` / `を繰り返す` / `と定義する`) at the popped block's
  * indent. Lines without `⎿` are passed through; explicit Smalruby
  * closers (`を実行する` etc.) still work.
+ *
+ * Because joining continuation lines, splitting multi-assignments and
+ * adding closers change the line count, the result also carries a line
+ * map so errors can be reported at the line the user wrote:
+ *   - a joined line maps to its first source line
+ *   - each piece of a split multi-assignment maps to its source line
+ *   - a closer added for `⎿` maps to the line holding the `⎿`
+ *   - a closer added for an indentation-style block maps to the last code
+ *     line of the block it closes
  * @param {string} source - The DNCLv2 source.
- * @returns {string} The pre-processed source.
+ * @returns {{source: string, lineMap: Array<number>}} The pre-processed
+ *   source, and `lineMap[i]` = the 1-based source line of output line i+1.
  */
-const dnclV2Preprocess = (source) => {
+const dnclV2PreprocessWithLineMap = (source) => {
   const stack = []
   const out = []
-  const emitCloser = (block) =>
-    out.push(`${block.indent}${closerForBlockType(block.type)}`)
+  const lineMap = []
+  // Source line of the last code (non-blank, non-comment) line emitted,
+  // i.e. where an indentation-style block ends.
+  let lastCodeLine = 1
+  const emit = (text, lineNumber) => {
+    out.push(text)
+    lineMap.push(lineNumber)
+  }
+  const emitCloser = (block, lineNumber) =>
+    emit(`${block.indent}${closerForBlockType(block.type)}`, lineNumber)
   // Close indentation-style blocks (opener ends with `:`, body indented, no
   // `⎿` and no closer line, as in 共通テスト code typed without the `｜` /
   // `⎿` markers) once a line at the opener's indent or shallower appears.
@@ -578,12 +599,14 @@ const dnclV2Preprocess = (source) => {
       if (width === top.width && top.type === 'if' && isIfContinuation(body)) {
         return
       }
-      emitCloser(stack.pop())
+      emitCloser(stack.pop(), lastCodeLine)
     }
   }
-  for (const { line: rawLine, extraCloseCount } of joinContinuationLines(
-    source,
-  )) {
+  for (const {
+    line: rawLine,
+    extraCloseCount,
+    lineNumber,
+  } of joinContinuationLines(source)) {
     // Phase 3 per-line transformations (may produce `\n` from multi-assignment).
     const phase3 = preprocessLine(rawLine)
     const colonOpener = /[:：]\s*$/.test(rawLine) && !/[:：]\s*$/.test(phase3)
@@ -602,8 +625,10 @@ const dnclV2Preprocess = (source) => {
       const indent = indentMatch ? indentMatch[1] : ''
       const body = marked.substring(indent.length).replace(/\s+$/, '')
       const width = indentWidth(indent)
-      if (body !== '' && !body.startsWith('#')) closeByIndent(width, body)
-      out.push(marked)
+      const isCode = body !== '' && !body.startsWith('#')
+      if (isCode) closeByIndent(width, body)
+      emit(marked, lineNumber)
+      if (isCode) lastCodeLine = lineNumber
       const type = detectBlockType(body)
       if (type) {
         stack.push({ type, indent, width, colon: colonOpener, hasBody: false })
@@ -612,7 +637,7 @@ const dnclV2Preprocess = (source) => {
       for (let i = 0; i < closeCount; i++) {
         const popped = stack.pop()
         if (!popped) break
-        emitCloser(popped)
+        emitCloser(popped, lineNumber)
       }
     }
   }
@@ -620,9 +645,17 @@ const dnclV2Preprocess = (source) => {
   while (stack.length > 0) {
     const top = stack[stack.length - 1]
     if (!top.colon || !top.hasBody) break
-    emitCloser(stack.pop())
+    emitCloser(stack.pop(), lastCodeLine)
   }
-  return out.join('\n')
+  return { source: out.join('\n'), lineMap }
 }
 
-export { dnclV2Preprocess }
+/**
+ * Pre-process a DNCLv2 source string into Smalruby DNCL form, without the
+ * line map (see `dnclV2PreprocessWithLineMap`).
+ * @param {string} source - The DNCLv2 source.
+ * @returns {string} The pre-processed source.
+ */
+const dnclV2Preprocess = (source) => dnclV2PreprocessWithLineMap(source).source
+
+export { dnclV2Preprocess, dnclV2PreprocessWithLineMap }

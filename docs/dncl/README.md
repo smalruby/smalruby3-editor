@@ -75,13 +75,30 @@ Ruby タブを次に開いたとき、`exitDnclModeExternallyRequested` フラ�
 | `dncl-keywords.js` | DNCL キーワード定義（`もし`, `ならば`, `を繰り返す` など）|
 | `dncl-validator.js` | DNCL コードの構文検証 |
 | `dncl-state.js` | パーサー状態管理 |
-| `dncl-source-map.js` | DNCL 行 ↔ Ruby 行のマッピング（エラー位置表示用）|
+| `dncl-source-map.js` | DNCL 行 ↔ Ruby 行のマッピング（エラー位置表示用。詳細は下の「エラー行の対応（ソースマップ）」）|
 | `dncl-block-filter.js` | DNCL モードで使えるブロックのフィルタ |
 | `paren-utils.js` | 括弧解析ユーティリティ |
 | `ruby-to-dncl.js` | Ruby → DNCL 逆変換のエントリポイント |
 | `ruby-to-dncl-line-converter.js` | 行単位の Ruby → DNCL 変換 |
 | `ruby-to-dncl-identifier.js` | 識別子の逆変換 |
 | `ruby-to-dncl-builtins.js` | 組み込み関数の逆変換。`puts(... + ...)` の左寄せ `+` チェーンを `表示する(...)` 多引数にフラット化（display fragment 限定） |
+
+#### エラー行の対応（ソースマップ）
+
+DNCL モードでは、DNCL を Ruby に変換してからブロックに変換するため、変換エラーは **Ruby の行番号**で返ってくる。DNCL と Ruby の行は 1:1 に対応しないので、`DnclSourceMap` で DNCL の行に戻してからエディタにエラーマーカーを表示する（`ruby-tab.jsx` の `showErrors`）。Ruby の桁は DNCL の桁と対応しないため、マーカーは **DNCL の行全体**に付ける（付け替えは `DnclSourceMap#rubyErrorsToDncl`）。Ruby の最終行より後ろ（または 1 行目より前）を指すエラーは、Ruby の最終行（1 行目）に対応する DNCL の行に寄せる。Ruby の方が行数が多いのが普通なので、行番号をそのまま使うと無関係な DNCL の行や存在しない行を指してしまうため。
+
+行数が変わる変換と、対応させる DNCL の行:
+
+| 変換 | 行数の変化 | 対応させる DNCL の行 |
+|---|---|---|
+| 行番号付きの行の継続行を連結（括弧が閉じるまで） | 複数行 → 1 行 | 連結した**先頭の行**（継続行から Ruby の行を引くと、連結後の行） |
+| `a = 0 , b = 1` の複数代入を分割 | 1 行 → 複数行 | 元の行 |
+| `⎿` からブロックの終了行（`を実行する` など）を追加 | +1 行 | `⎿` のある行 |
+| インデントだけで書いたブロックに終了行を自動で追加 | +1 行 | 閉じるブロックの**最後のコード行**（空行・コメントは除く） |
+| `【外部からの入力】` / `【整数を入力】` / `【文字列を入力】` を `ask` + 代入に展開 | 1 行 → 2 行 | 入力の行 |
+| `増やしながら` / `減らしながら` を初期化 + `while`、終了行を加算 + `end` に展開 | 1 行 → 2 行 | それぞれ元の行 |
+
+対応表は**変換しながら記録する**（行数の比較から推定しない）。`dnclV2PreprocessWithLineMap` が前処理後の各行の元の行番号（`lineMap`）を返し、`dnclToRuby` が行変換で出力した Ruby の各行にそれを引き継いで `sourceMap` として返す。`validateDncl` の検証エラーの行も `lineMap` で DNCL の行に戻す。
 
 #### Monaco Editor 言語定義
 
