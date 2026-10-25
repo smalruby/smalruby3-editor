@@ -2,6 +2,7 @@
 import '@testing-library/jest-dom';
 import { act, fireEvent, screen } from '@testing-library/react';
 import React from 'react';
+import { IntlProvider } from 'react-intl';
 import ImageViewer from '../../../src/components/image-viewer/image-viewer.jsx';
 import { renderWithIntl } from '../../helpers/intl-helpers.jsx';
 
@@ -199,6 +200,48 @@ describe('ImageViewer', () => {
         pointer('pointerdown', { pointerId: 2, pointerType: 'touch', clientX: 252, clientY: 251 });
         pointer('pointerup', { pointerId: 2, pointerType: 'touch', clientX: 252, clientY: 251 });
         expect(zoomLevel()).toBe('100%');
+    });
+
+    test('measures the viewport when images arrive after an empty first render', () => {
+        const { rerender } = renderWithIntl(<ImageViewer images={[]} />);
+        expect(screen.queryByTestId('image-viewer')).toBeNull();
+        rerender(
+            <IntlProvider locale="en">
+                <ImageViewer images={IMAGES} />
+            </IntlProvider>,
+        );
+        loadImage();
+        expect(zoomLevel()).toBe('25%');
+        const event = new WheelEvent('wheel', { deltaY: -500, clientX: 0, clientY: 250, cancelable: true });
+        act(() => {
+            screen.getByTestId('image-viewer-viewport').dispatchEvent(event);
+        });
+        expect(event.defaultPrevented).toBe(true);
+    });
+
+    test('reloads the image when the next entry has the same src', () => {
+        const same = 'data:image/png;base64,empty';
+        renderWithIntl(
+            <ImageViewer
+                images={[
+                    { src: same, name: 'スプライト1' },
+                    { src: same, name: 'スプライト2' },
+                ]}
+            />,
+        );
+        const first = loadImage();
+        fireEvent.click(screen.getByTestId('image-viewer-next'));
+        // 同じ src でも要素を作り直さないと load が再発火せず、読み込み中のまま固まる
+        expect(screen.getByTestId('image-viewer-image')).not.toBe(first);
+    });
+
+    test('leaves browser shortcuts with modifier keys alone', () => {
+        renderWithIntl(<ImageViewer images={IMAGES} />);
+        loadImage();
+        const viewport = screen.getByTestId('image-viewer-viewport');
+        expect(fireEvent.keyDown(viewport, { key: '+', ctrlKey: true })).toBe(true);
+        expect(fireEvent.keyDown(viewport, { key: '0', metaKey: true })).toBe(true);
+        expect(zoomLevel()).toBe('25%');
     });
 
     test('has accessible labels and is keyboard focusable', () => {

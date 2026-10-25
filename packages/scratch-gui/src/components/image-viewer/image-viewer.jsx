@@ -112,6 +112,8 @@ const ImageViewer = ({ images, initialIndex = 0, onIndexChange, className }) => 
 
     const currentIndex = clampIndex(index, images.length);
     const current = images[currentIndex];
+    // 画像が無い間はビューポートを描かないので、届いた時点で計測とリスナー登録をやり直す
+    const hasViewport = Boolean(current);
 
     // 計算の結果で view と fitMode を同時に更新する
     const applyView = useCallback(next => {
@@ -143,7 +145,7 @@ const ImageViewer = ({ images, initialIndex = 0, onIndexChange, className }) => 
         }
         window.addEventListener('resize', measure);
         return () => window.removeEventListener('resize', measure);
-    }, []);
+    }, [hasViewport]);
 
     // 画像の読み込み / ビューポートのリサイズ: 全体表示中なら全体表示を保ち、それ以外は範囲に収め直す
     useEffect(() => {
@@ -212,7 +214,7 @@ const ImageViewer = ({ images, initialIndex = 0, onIndexChange, className }) => 
         };
         el.addEventListener('wheel', handleWheel, { passive: false });
         return () => el.removeEventListener('wheel', handleWheel);
-    }, [updateView]);
+    }, [hasViewport, updateView]);
 
     const handlePointerDown = useCallback(
         e => {
@@ -273,6 +275,8 @@ const ImageViewer = ({ images, initialIndex = 0, onIndexChange, className }) => 
 
     const handleKeyDown = useCallback(
         e => {
+            // Ctrl/Cmd + +/-/0 などブラウザのズーム操作は奪わない
+            if (e.ctrlKey || e.metaKey || e.altKey) return;
             const pan = delta => updateView((v, image, viewport) => panBy(v, delta, image, viewport));
             switch (e.key) {
                 case '+':
@@ -424,7 +428,8 @@ const ImageViewer = ({ images, initialIndex = 0, onIndexChange, className }) => 
                 data-testid="image-viewer-viewport"
             >
                 <img
-                    key={current.src}
+                    // 同じ src が続いても作り直して load を発火させる (imageSize を null に戻しているため)
+                    key={`${currentIndex}:${current.src}`}
                     className={classNames(styles.image, { [styles.loading]: !imageSize })}
                     src={current.src}
                     alt={current.name}
