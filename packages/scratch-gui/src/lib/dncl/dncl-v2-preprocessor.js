@@ -213,8 +213,8 @@ const bracketDepth = (line) => {
  * continuation lines, e.g.
  *   `(10)  ｜ 表示する(i, "人目の待ち時間：",`
  *   `      ⎿          Kaishi[i] - Touchaku[i], "分間")`
- * A line is a continuation while the previous one still has an open
- * bracket and the line has no line number of its own. The indent markers
+ * A line is a continuation while the numbered line it belongs to still
+ * has an open bracket and the line has no line number of its own. The indent markers
  * of a continuation line are dropped, but its `⎿` count is kept so the
  * caller can still close the blocks it ends.
  * @param {string} source - The raw DNCLv2 source.
@@ -227,7 +227,9 @@ const joinContinuationLines = (source) => {
   while (i < rawLines.length) {
     let line = rawLines[i]
     let extraCloseCount = 0
-    let depth = bracketDepth(line)
+    // Only numbered DNCLv2 lines wrap; in un-numbered code an unclosed
+    // bracket is a typo and must not swallow the rest of the program.
+    let depth = LINE_NUMBER_RE.test(line) ? bracketDepth(line) : 0
     while (
       depth > 0 &&
       i + 1 < rawLines.length &&
@@ -486,8 +488,11 @@ const normalizeFunctionDefOpener = (line) =>
  *   comma-separated multi-assignment was split).
  */
 const preprocessLine = (line) => {
+  // `//` comments are a 共通テスト notation, so only numbered DNCLv2 lines
+  // get them; un-numbered Smalruby DNCL keeps `合計 // 個数` as division.
+  const numbered = LINE_NUMBER_RE.test(line)
   let out = stripLineNumber(line)
-  out = normalizeSlashComment(out)
+  if (numbered) out = normalizeSlashComment(out)
   out = normalizeArrayInit(out)
   out = stripTrailingColon(out)
   out = normalizeKurikaesuSuffix(out)

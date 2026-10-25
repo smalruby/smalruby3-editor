@@ -66,7 +66,20 @@ describe('DNCLv2 pre-processor: ICTL sample notations (Issue #1186)', () => {
             '表示する("http://x")',
         );
         // `//` between ASCII operands stays the integer-division operator.
-        expect(dnclV2Preprocess('a = 10 // 3')).toBe('a = 10 // 3');
+        expect(dnclV2Preprocess('(1) a = 10 // 3')).toBe('a = 10 // 3');
+    });
+
+    test('un-numbered lines keep `//` as integer division', () => {
+        expect(dnclV2Preprocess('a = 合計 // 個数')).toBe('a = 合計 // 個数');
+        expect(dnclToRuby('a = 合計 // 個数').ruby).toBe(
+            '@a = (@合計 / @個数).to_i',
+        );
+    });
+
+    test('an unclosed bracket in un-numbered code does not swallow later lines', () => {
+        expect(
+            dnclV2Preprocess('表示する("a"\nx = 1\ny = 2').split('\n'),
+        ).toEqual(['表示する("a"', 'x = 1', 'y = 2']);
     });
 
     test('a statement continued on an unnumbered line is joined', () => {
