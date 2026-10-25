@@ -54,7 +54,8 @@ EXTRA_HOSTS=(
   deb.debian.org
   security.debian.org
   # 製品がランタイムで取りに行く先。落とすとコンテナ内でのブラウザ検証が成立しない (#1169)
-  #   cdn.jsdelivr.net  … Monaco Editor 本体 (src/lib/monaco-i18n-helper.js)
+  #   cdn.jsdelivr.net  … 顔認識拡張 (scratch3_face_sensing) が @mediapipe/face_detection を
+  #                       CDN から読む。Monaco Editor は自前配信に切り替えたので不要 (#1171)
   #   accounts/apis.google.com … Google ログイン (クラス管理 / Drive)
   # www.googletagmanager.com は解析用で開発に不要なので入れない (REJECT で即失敗する)。
   cdn.jsdelivr.net

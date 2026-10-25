@@ -4,6 +4,8 @@
  * to reduce cold-start overhead.
  */
 import path from 'path';
+// === Smalruby: 既知の無視できる SEVERE ログの判定は helper に切り出してある（unit test 付き） ===
+import { unexpectedSevereLogs } from '../helpers/ignorable-severe-logs';
 import SeleniumHelper from '../helpers/selenium-helper';
 
 const { clickText, clickXpath, findByXpath, getDriver, getLogs, loadUri, scope, textExists, waitForLoadingFinished } =
@@ -41,14 +43,8 @@ describe('Smalruby Tutorials', () => {
         await clickText('Code');
 
         const logs = await getLogs({ includeAllLevels: true });
-        // === Smalruby: ignore the upstream `ConfirmationPrompt` React key
-        // warning. It is logged at SEVERE level by Chrome but is a known
-        // upstream issue (StageHeaderComponent → ConfirmationPrompt) and
-        // does not affect functionality. ===
-        const severeLogs = logs
-            .filter((l) => l.level.name === 'SEVERE')
-            .filter((l) => !/Each child in a list should have a unique .{1,3}key.{1,3} prop/.test(l.message));
-        expect(severeLogs).toEqual([]);
+        // === Smalruby: 既知の無視できる SEVERE ログを除外する (isIgnorableSevereLog 参照) ===
+        expect(unexpectedSevereLogs(logs)).toEqual([]);
     });
 
     test('can open tutorials by url id', async () => {
@@ -56,14 +52,8 @@ describe('Smalruby Tutorials', () => {
         await findByXpath('//div[contains(@class, "card_card_")]');
 
         const logs = await getLogs({ includeAllLevels: true });
-        // === Smalruby: ignore the upstream `ConfirmationPrompt` React key
-        // warning. It is logged at SEVERE level by Chrome but is a known
-        // upstream issue (StageHeaderComponent → ConfirmationPrompt) and
-        // does not affect functionality. ===
-        const severeLogs = logs
-            .filter((l) => l.level.name === 'SEVERE')
-            .filter((l) => !/Each child in a list should have a unique .{1,3}key.{1,3} prop/.test(l.message));
-        expect(severeLogs).toEqual([]);
+        // === Smalruby: 既知の無視できる SEVERE ログを除外する (isIgnorableSevereLog 参照) ===
+        expect(unexpectedSevereLogs(logs)).toEqual([]);
     });
 
     test('can close tutorial card', async () => {

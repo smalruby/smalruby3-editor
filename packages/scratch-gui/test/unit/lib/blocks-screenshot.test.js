@@ -2,11 +2,17 @@ import {
     getBlocksBoundingBox,
     mergeWithBubbleBBox,
     calculateCanvasDimensions,
+    clampExportScale,
     buildFilename,
     buildExportSVG,
+    renderBlocksToCanvas,
     downloadBlocksAsImage,
     stripExternalCssUrls,
     EXPORT_PADDING,
+    DEFAULT_EXPORT_SCALE,
+    DOWNLOAD_EXPORT_SCALE,
+    MAX_EXPORT_DIMENSION,
+    MAX_EXPORT_PIXELS,
 } from '../../../src/lib/blocks-screenshot';
 import downloadBlob from '../../../src/lib/download-blob';
 
@@ -58,6 +64,28 @@ const makeMockWorkspace = ({
         getBubbleCanvas: jest.fn(() => bubbleGroup),
     };
 };
+
+// Helper: capture every <canvas> created while the export runs. The final
+// composed canvas is the last one created (the blocks canvas comes first).
+const nativeCreateElement = document.createElement.bind(document);
+const captureCanvases = () => {
+    const canvases = [];
+    jest.spyOn(document, 'createElement').mockImplementation((tag) => {
+        const el = nativeCreateElement(tag);
+        if (tag === 'canvas') canvases.push(el);
+        return el;
+    });
+    return {
+        last: () => canvases[canvases.length - 1],
+        restore: () => {
+            if (document.createElement.mockRestore) document.createElement.mockRestore();
+        },
+    };
+};
+
+afterEach(() => {
+    if (document.createElement.mockRestore) document.createElement.mockRestore();
+});
 
 // ---- stripExternalCssUrls ----
 
@@ -184,6 +212,14 @@ describe('calculateCanvasDimensions', () => {
         expect(height).toBe(100 + EXPORT_PADDING * 2);
     });
 
+    test('scales the padding too when an explicit padding is given', () => {
+        const bbox = { x: 0, y: 0, width: 200, height: 100 };
+        const exportScale = 4;
+        const { width, height } = calculateCanvasDimensions(bbox, exportScale, EXPORT_PADDING * exportScale);
+        expect(width).toBe((200 + EXPORT_PADDING * 2) * exportScale);
+        expect(height).toBe((100 + EXPORT_PADDING * 2) * exportScale);
+    });
+
     test('single block is small with minimal extra padding', () => {
         // A single block might be ~150x50 workspace units
         const bbox = { x: 100, y: 100, width: 150, height: 50 };
@@ -192,6 +228,37 @@ describe('calculateCanvasDimensions', () => {
         expect(height).toBe(50 + EXPORT_PADDING * 2); // 50 + 32 = 82
         // Verify padding is small (less than 50px total)
         expect(EXPORT_PADDING * 2).toBeLessThan(50);
+    });
+});
+
+// ---- clampExportScale ----
+
+describe('clampExportScale', () => {
+    test('keeps the requested scale for a normal sized program', () => {
+        expect(clampExportScale({ width: 400, height: 300 }, DOWNLOAD_EXPORT_SCALE)).toBe(DOWNLOAD_EXPORT_SCALE);
+    });
+
+    test('clamps so the longest side stays within the canvas dimension limit', () => {
+        const dims = { width: MAX_EXPORT_DIMENSION / 2, height: 100 };
+        expect(clampExportScale(dims, 8)).toBe(2);
+    });
+
+    test('never clamps below 1 (natural size) even for a huge program', () => {
+        const dims = { width: MAX_EXPORT_DIMENSION * 4, height: MAX_EXPORT_DIMENSION * 4 };
+        expect(clampExportScale(dims, DOWNLOAD_EXPORT_SCALE)).toBe(1);
+    });
+
+    test('clamps by total pixel count for very wide programs', () => {
+        const dims = { width: 3000, height: 2000 };
+        const clamped = clampExportScale(dims, DOWNLOAD_EXPORT_SCALE);
+        expect(clamped).toBeLessThan(DOWNLOAD_EXPORT_SCALE);
+        expect(clamped).toBeGreaterThan(1);
+        expect(dims.width * clamped * (dims.height * clamped)).toBeLessThanOrEqual(MAX_EXPORT_PIXELS);
+    });
+
+    test('keeps the clamped canvas within the iOS Safari canvas area limit', () => {
+        // iOS / iPadOS Safari rejects canvases larger than 16,777,216 px.
+        expect(MAX_EXPORT_PIXELS).toBeLessThanOrEqual(16 * 1024 * 1024);
     });
 });
 
@@ -310,44 +377,100 @@ describe('downloadBlocksAsImage', () => {
         expect(downloadBlob).toHaveBeenCalledWith('myProject_Sprite1.png', expect.any(Blob));
     });
 
-    test('canvas dimensions include padding', async () => {
+    test('canvas dimensions include padding and the download export scale', async () => {
         const bbox = { x: 0, y: 0, width: 200, height: 100 };
         const workspace = makeMockWorkspace({ boundingBox: bbox, scale: 1 });
 
-        let capturedCanvas;
-        const realCreateElement = document.createElement.bind(document);
-        jest.spyOn(document, 'createElement').mockImplementation((tag) => {
-            const el = realCreateElement(tag);
-            if (tag === 'canvas') capturedCanvas = el;
-            return el;
-        });
-
+        const capture = captureCanvases();
         await downloadBlocksAsImage(workspace, 'p', 's');
 
-        expect(capturedCanvas.width).toBe(200 + EXPORT_PADDING * 2);
-        expect(capturedCanvas.height).toBe(100 + EXPORT_PADDING * 2);
+        const canvas = capture.last();
+        expect(canvas.width).toBe((200 + EXPORT_PADDING * 2) * DOWNLOAD_EXPORT_SCALE);
+        expect(canvas.height).toBe((100 + EXPORT_PADDING * 2) * DOWNLOAD_EXPORT_SCALE);
 
-        document.createElement.mockRestore();
+        capture.restore();
     });
 
-    test('canvas dimensions respect scale', async () => {
+    test('canvas dimensions do not depend on the workspace zoom scale', async () => {
         const bbox = { x: 0, y: 0, width: 200, height: 100 };
-        const scale = 2;
-        const workspace = makeMockWorkspace({ boundingBox: bbox, scale });
+        const sizes = [];
+        for (const scale of [0.675, 1, 2]) {
+            const workspace = makeMockWorkspace({ boundingBox: bbox, scale });
+            const capture = captureCanvases();
+            await downloadBlocksAsImage(workspace, 'p', 's');
+            const canvas = capture.last();
+            sizes.push(`${canvas.width}x${canvas.height}`);
+            capture.restore();
+        }
+        expect(sizes[0]).toBe(sizes[1]);
+        expect(sizes[1]).toBe(sizes[2]);
+    });
 
-        let capturedCanvas;
-        const realCreateElement = document.createElement.bind(document);
-        jest.spyOn(document, 'createElement').mockImplementation((tag) => {
-            const el = realCreateElement(tag);
-            if (tag === 'canvas') capturedCanvas = el;
-            return el;
+    test('does not download when the canvas is too large to encode (toBlob returns null)', async () => {
+        // Browsers hand back null instead of a Blob when the canvas exceeds
+        // their limits; passing that on would throw inside downloadBlob().
+        HTMLCanvasElement.prototype.toBlob = jest.fn(function (callback) {
+            callback(null);
+        });
+        const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+        const workspace = makeMockWorkspace({
+            boundingBox: { x: 0, y: 0, width: 200, height: 100 },
+            scale: 1,
         });
 
-        await downloadBlocksAsImage(workspace, 'p', 's');
+        await expect(downloadBlocksAsImage(workspace, 'p', 's')).resolves.toBeUndefined();
 
-        expect(capturedCanvas.width).toBe(200 * scale + EXPORT_PADDING * 2);
-        expect(capturedCanvas.height).toBe(100 * scale + EXPORT_PADDING * 2);
+        expect(downloadBlob).not.toHaveBeenCalled();
+        expect(warn).toHaveBeenCalled();
+        warn.mockRestore();
+    });
+});
 
-        document.createElement.mockRestore();
+// ---- renderBlocksToCanvas ----
+
+describe('renderBlocksToCanvas', () => {
+    beforeEach(() => {
+        global.URL.createObjectURL = jest.fn(() => 'blob:mock-url');
+        global.URL.revokeObjectURL = jest.fn();
+        HTMLCanvasElement.prototype.getContext = jest.fn(() => ({
+            fillStyle: '',
+            fillRect: jest.fn(),
+            drawImage: jest.fn(),
+        }));
+        global.Image = class {
+            set src(_url) {
+                // eslint-disable-line accessor-pairs
+                setTimeout(() => this.onload && this.onload(), 0);
+            }
+        };
+    });
+
+    test('returns null for an empty workspace', async () => {
+        const workspace = makeMockWorkspace({ boundingBox: { x: 0, y: 0, width: 0, height: 0 } });
+        expect(await renderBlocksToCanvas(workspace)).toBeNull();
+    });
+
+    test('uses the default export scale when none is given (submit / bug report path)', async () => {
+        const workspace = makeMockWorkspace({ boundingBox: { x: 0, y: 0, width: 200, height: 100 }, scale: 0.675 });
+        const canvas = await renderBlocksToCanvas(workspace);
+        expect(canvas.width).toBe((200 + EXPORT_PADDING * 2) * DEFAULT_EXPORT_SCALE);
+        expect(canvas.height).toBe((100 + EXPORT_PADDING * 2) * DEFAULT_EXPORT_SCALE);
+    });
+
+    test('honours an explicit export scale', async () => {
+        const workspace = makeMockWorkspace({ boundingBox: { x: 0, y: 0, width: 200, height: 100 }, scale: 0.675 });
+        const canvas = await renderBlocksToCanvas(workspace, undefined, { exportScale: 3 });
+        expect(canvas.width).toBe((200 + EXPORT_PADDING * 2) * 3);
+        expect(canvas.height).toBe((100 + EXPORT_PADDING * 2) * 3);
+    });
+
+    test('composed canvas stays within the pixel limit including the sprite header', async () => {
+        // The sprite header is drawn above the blocks, so it has to be part of
+        // what the export scale is clamped against.
+        const workspace = makeMockWorkspace({ boundingBox: { x: 0, y: 0, width: 3000, height: 2000 } });
+        const canvas = await renderBlocksToCanvas(workspace, 'data:image/png;base64,AAAA', {
+            exportScale: DOWNLOAD_EXPORT_SCALE,
+        });
+        expect(canvas.width * canvas.height).toBeLessThanOrEqual(MAX_EXPORT_PIXELS);
     });
 });

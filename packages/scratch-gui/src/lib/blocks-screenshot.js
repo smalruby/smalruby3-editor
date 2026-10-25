@@ -1,9 +1,67 @@
 import downloadBlob from './download-blob';
 
 /**
- * Padding around blocks in the exported image (in pixels, ~1rem).
+ * Padding around blocks in the exported image (in logical pixels, ~1rem).
+ * The padding is multiplied by the export scale together with the blocks.
  */
 const EXPORT_PADDING = 16;
+
+/**
+ * Scale used to lay out the blocks in the export. Deliberately fixed at 1
+ * (natural block size) instead of `workspace.scale` so the exported image is
+ * reproducible: the same program produces the same image no matter how far
+ * the user happened to be zoomed in or out (the workspace default is 0.675).
+ */
+const LOGICAL_SCALE = 1;
+
+/**
+ * Export scale used when a caller does not ask for one. Blocks are SVG, so
+ * raising the scale re-rasterises them as vectors — the result is sharper,
+ * not blurrier. 2 matches `ruby-screenshot.js` (`PIXEL_RATIO = 2`) and keeps
+ * the upload size of the classroom submit / bug report paths moderate.
+ */
+const DEFAULT_EXPORT_SCALE = 2;
+
+/**
+ * Export scale for the "download blocks as image" button. Higher than the
+ * default because these images end up in worksheets and printed handouts,
+ * where 2x is still too coarse to read.
+ */
+const DOWNLOAD_EXPORT_SCALE = 4;
+
+/**
+ * Safety limits for the exported canvas. Browsers reject canvases past a
+ * per-side limit (and past a total area limit), and `toBlob()` then returns
+ * null, so a very large program must fall back to a smaller export scale
+ * rather than produce nothing at all.
+ *
+ * The area limit is set by iOS / iPadOS Safari, which caps a canvas at
+ * 16,777,216 px (far below desktop Chrome / Firefox). iPad is a supported
+ * platform for classroom use, so the limit has to hold there too — a limit
+ * tuned for desktop would let the iPad export fail silently.
+ */
+const MAX_EXPORT_DIMENSION = 8192;
+const MAX_EXPORT_PIXELS = 16 * 1024 * 1024;
+
+/**
+ * Reduces the requested export scale so the resulting canvas stays within the
+ * browser's canvas limits. Never returns less than 1 (natural block size):
+ * below that the export is unreadable, and such huge programs would fail to
+ * rasterise at any scale anyway.
+ *
+ * `dims` must describe the *whole* composed image at export scale 1 (blocks
+ * plus the sprite header), not just the blocks: clamping against the blocks
+ * alone lets the final canvas exceed the limit by the header's height.
+ * @param {{width: number, height: number}} dims - Logical canvas dimensions (export scale 1)
+ * @param {number} desiredScale - Requested export scale
+ * @returns {number} Scale to actually use
+ */
+const clampExportScale = function (dims, desiredScale) {
+    const byWidth = MAX_EXPORT_DIMENSION / dims.width;
+    const byHeight = MAX_EXPORT_DIMENSION / dims.height;
+    const byArea = Math.sqrt(MAX_EXPORT_PIXELS / (dims.width * dims.height));
+    return Math.max(1, Math.min(desiredScale, byWidth, byHeight, byArea));
+};
 
 /**
  * Returns the blocks bounding box for the given workspace, or null if the
@@ -316,28 +374,45 @@ const loadImage = function (dataUri) {
  * image drawn above the blocks at the top-left.
  * @param {object} workspace - Scratch Blocks workspace
  * @param {string} [costumeDataUri] - Sprite costume data URI (omit to skip)
+ * @param {object} [options] - Export options
+ * @param {number} [options.exportScale] - Pixel scale of the export (default: DEFAULT_EXPORT_SCALE)
  * @returns {Promise<HTMLCanvasElement|null>} Canvas or null if workspace is empty
  */
-const renderBlocksToCanvas = async function (workspace, costumeDataUri) {
+const renderBlocksToCanvas = async function (workspace, costumeDataUri, options = {}) {
     const blockBbox = getBlocksBoundingBox(workspace);
     if (!blockBbox) return null;
 
     const bbox = mergeWithBubbleBBox(workspace, blockBbox);
-    const scale = workspace.scale;
-    const { width: blocksWidth, height: blocksHeight } = calculateCanvasDimensions(bbox, scale);
+    // The export layout is intentionally independent of `workspace.scale`
+    // (the user's current zoom); only the pixel density changes with scale.
+    const logicalDims = calculateCanvasDimensions(bbox, LOGICAL_SCALE);
+    // Clamp against the composed image, i.e. including the sprite header that
+    // is drawn above the blocks — otherwise the final canvas overshoots the
+    // limit by the header height.
+    // The +1 on each axis absorbs the sub-pixel `Math.ceil()` rounding that
+    // the real canvas dimensions get, so the clamp result really does fit.
+    const logicalHeaderHeight = costumeDataUri ? SPRITE_IMAGE_SIZE + SPRITE_IMAGE_GAP : 0;
+    const exportScale = clampExportScale(
+        { width: logicalDims.width + 1, height: logicalDims.height + logicalHeaderHeight + 1 },
+        options.exportScale ?? DEFAULT_EXPORT_SCALE,
+    );
+    const scale = LOGICAL_SCALE * exportScale;
+    const padding = EXPORT_PADDING * exportScale;
+    const { width: blocksWidth, height: blocksHeight } = calculateCanvasDimensions(bbox, scale, padding);
 
     // Calculate sprite header height
     let spriteHeaderHeight = 0;
     let spriteImg = null;
+    const spriteImageSize = SPRITE_IMAGE_SIZE * exportScale;
     if (costumeDataUri) {
         spriteImg = await loadImage(costumeDataUri);
-        spriteHeaderHeight = SPRITE_IMAGE_SIZE + SPRITE_IMAGE_GAP;
+        spriteHeaderHeight = spriteImageSize + SPRITE_IMAGE_GAP * exportScale;
     }
 
     const totalWidth = blocksWidth;
     const totalHeight = blocksHeight + spriteHeaderHeight;
 
-    const svgStr = await buildExportSVG(workspace, bbox, scale, blocksWidth, blocksHeight);
+    const svgStr = await buildExportSVG(workspace, bbox, scale, blocksWidth, blocksHeight, padding);
 
     // Render blocks SVG to a temporary canvas
     const blocksCanvas = await renderSVGToCanvas(svgStr, blocksWidth, blocksHeight);
@@ -353,15 +428,15 @@ const renderBlocksToCanvas = async function (workspace, costumeDataUri) {
     if (spriteImg) {
         // Draw sprite at top-left, preserving aspect ratio within SPRITE_IMAGE_SIZE box
         const aspectRatio = spriteImg.width / spriteImg.height;
-        let drawW = SPRITE_IMAGE_SIZE;
-        let drawH = SPRITE_IMAGE_SIZE;
+        let drawW = spriteImageSize;
+        let drawH = spriteImageSize;
         if (aspectRatio > 1) {
-            drawH = SPRITE_IMAGE_SIZE / aspectRatio;
+            drawH = spriteImageSize / aspectRatio;
         } else {
-            drawW = SPRITE_IMAGE_SIZE * aspectRatio;
+            drawW = spriteImageSize * aspectRatio;
         }
-        const drawX = EXPORT_PADDING;
-        const drawY = (SPRITE_IMAGE_SIZE - drawH) / 2;
+        const drawX = padding;
+        const drawY = (spriteImageSize - drawH) / 2;
         ctx.drawImage(spriteImg, drawX, drawY, drawW, drawH);
     }
 
@@ -379,14 +454,29 @@ const renderBlocksToCanvas = async function (workspace, costumeDataUri) {
  * @param {string} projectTitle - Project name (used in filename)
  * @param {string} spriteName - Sprite / stage name (used in filename)
  * @param {string} [costumeDataUri] - Sprite costume data URI
+ * @param {object} [options] - Export options
+ * @param {number} [options.exportScale] - Pixel scale of the export (default: DOWNLOAD_EXPORT_SCALE)
  * @returns {Promise<void>}
  */
-const downloadBlocksAsImage = async function (workspace, projectTitle, spriteName, costumeDataUri) {
-    const canvas = await renderBlocksToCanvas(workspace, costumeDataUri);
+const downloadBlocksAsImage = async function (workspace, projectTitle, spriteName, costumeDataUri, options = {}) {
+    const canvas = await renderBlocksToCanvas(workspace, costumeDataUri, {
+        exportScale: options.exportScale ?? DOWNLOAD_EXPORT_SCALE,
+    });
     if (!canvas) return;
 
     return new Promise((resolve) => {
         canvas.toBlob((blob) => {
+            // `toBlob()` hands back null when the browser could not rasterise
+            // the canvas (too large / out of memory). `downloadBlob()` would
+            // then throw while reading `blob.type`, so bail out with a warning
+            // instead of breaking the editor. The submit / bug-report paths
+            // already guard the same way.
+            if (!blob) {
+                // eslint-disable-next-line no-console
+                console.warn('Blocks screenshot could not be encoded (canvas too large).');
+                resolve();
+                return;
+            }
             downloadBlob(buildFilename(projectTitle, spriteName), blob);
             resolve();
         }, 'image/png');
@@ -397,6 +487,7 @@ export {
     getBlocksBoundingBox,
     mergeWithBubbleBBox,
     calculateCanvasDimensions,
+    clampExportScale,
     buildFilename,
     buildExportSVG,
     renderSVGToCanvas,
@@ -405,4 +496,9 @@ export {
     stripExternalCssUrls,
     downloadBlocksAsImage,
     EXPORT_PADDING,
+    LOGICAL_SCALE,
+    DEFAULT_EXPORT_SCALE,
+    DOWNLOAD_EXPORT_SCALE,
+    MAX_EXPORT_DIMENSION,
+    MAX_EXPORT_PIXELS,
 };

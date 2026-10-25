@@ -397,6 +397,7 @@ test/unit/lib/*
 !test/unit/lib/classroom-assignment-utils.test.js
 !test/unit/lib/classroom-download-utils.test.js
 !test/unit/lib/classroom-group-utils.test.js
+!test/unit/lib/google-classroom-auth.test.js
 !test/unit/lib/classroom-retention.test.js
 !test/unit/lib/shared-assignment-taxonomy.test.js
 !test/unit/lib/shared-author-profile.test.js
@@ -424,6 +425,7 @@ test/unit/lib/*
 !test/unit/lib/make-toolbox-xml.test.js
 !test/unit/lib/mesh-v2-classroom-binding.test.js
 !test/unit/lib/mesh-v2-sensor-collision.test.js
+!test/unit/lib/monaco-i18n-helper.test.js
 !test/unit/lib/display-mode-persistence.test.js
 !test/unit/lib/responsive-gui.test.jsx
 !test/unit/lib/use-display-mode.test.js

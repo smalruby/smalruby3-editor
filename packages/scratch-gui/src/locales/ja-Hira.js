@@ -162,6 +162,15 @@ export default {
     'gui.classroom.error.classroomInactive': 'このクラスはげんざいりようできません。',
     'gui.classroom.error.networkUnreachable':
         'サーバーにせつぞくできませんでした。ネットワークやファイアウォールのせっていで {host}（HTTPS / 443）へのつうしんがきょかされているかごかくにんください。',
+    'gui.classroom.error.googleTokenExpired':
+        'Google のにんしょうのゆうこうきげんがきれました。もういちどおためしいただき、Google Classroom へのアクセスをきょかしてください。',
+    'gui.classroom.error.googlePermissionDenied':
+        'このクラスの Google Classroom にかだいをはいしんするけんげんがありません。もういちどログインしてすべてのこうもくをきょかし、そのクラスのせんせいとしてさんかしているかごかくにんください。',
+    'gui.classroom.error.googleCourseNotFound':
+        'ひもづいている Google Classroom のクラスがみつかりませんでした。クラスがさくじょされたか、ログインちゅうの Google アカウントがそのクラスのせんせいではないかのうせいがあります。',
+    'gui.classroom.error.googleApiFailedDetail': 'Google Classroom にはいしんできませんでした。（Google: {detail}）',
+    'gui.classroom.error.googleApiFailed':
+        'Google Classroom にはいしんできませんでした。しばらくまってからもういちどおためしください。',
     'gui.classroom.error.generic': 'よきしないエラーがはっせいしました。もういちどおためしください。',
     'gui.classroom.error.goToLogin': 'ログインがめんをひょうじ',
     'gui.classroom.error.goToJoin': 'さんかがめんをひょうじ',

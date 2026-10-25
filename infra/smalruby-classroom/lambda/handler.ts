@@ -348,10 +348,17 @@ class ConflictError extends Error {
 
 class GoogleAPIError extends Error {
   statusCode: number;
-  constructor(statusCode: number, message: string) {
+  // Google's own error envelope (`error.status` / `error.message`), kept so the
+  // response and the CloudWatch log can name the actual cause instead of the
+  // opaque "Google Classroom API error" the teacher used to see (issue #1175).
+  googleStatus: string;
+  googleMessage: string;
+  constructor(statusCode: number, message: string, googleStatus = '', googleMessage = '') {
     super(message);
     this.name = 'GoogleAPIError';
     this.statusCode = statusCode;
+    this.googleStatus = googleStatus;
+    this.googleMessage = googleMessage;
   }
 }
 
@@ -380,6 +387,86 @@ const KICK_TOMBSTONE_TTL_SECONDS = parseInt(process.env.KICK_TOMBSTONE_TTL_SECON
 
 // --- Google Classroom API proxy ---
 
+/** Max length of a Google error message we keep (logs + API response). */
+const GOOGLE_ERROR_MESSAGE_MAX = 300;
+
+/**
+ * Pull `status` / `message` out of a Google API error envelope:
+ * `{"error":{"code":404,"message":"...","status":"NOT_FOUND"}}`.
+ *
+ * Google also answers with HTML (front-end proxies, 5xx) and with bodies that
+ * carry no envelope, so every failure mode degrades to empty strings instead of
+ * throwing — this runs inside an error path and must never mask the original
+ * failure.
+ */
+export function parseGoogleApiErrorBody(raw: string): { googleStatus: string; googleMessage: string } {
+  const empty = { googleStatus: '', googleMessage: '' };
+  if (!raw) return empty;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return empty;
+  }
+  const error = (parsed as { error?: unknown } | null)?.error;
+  if (!error || typeof error !== 'object') return empty;
+  const { status, message } = error as { status?: unknown; message?: unknown };
+  return {
+    googleStatus: typeof status === 'string' ? status : '',
+    googleMessage: typeof message === 'string' ? message.slice(0, GOOGLE_ERROR_MESSAGE_MAX) : '',
+  };
+}
+
+/**
+ * Map a Google Classroom failure onto our API response.
+ *
+ * Before issue #1175 everything that was not 401/403 collapsed into a bare 502
+ * "Google Classroom API error", which told the teacher nothing and left no way
+ * to tell "the linked course is gone / you are not a teacher of it" (404) apart
+ * from a malformed request (400). The Google-provided status and message are
+ * passed through so the UI can show an actionable message, and `reason` gives
+ * the UI a stable key to translate.
+ */
+export function googleApiErrorResponse(
+  statusCode: number,
+  googleStatus: string,
+  googleMessage: string,
+): { statusCode: number; body: string } {
+  let httpStatus: number;
+  let reason: string;
+  let error: string;
+  if (statusCode === 401) {
+    httpStatus = 401;
+    reason = 'googleTokenExpired';
+    error = 'Google access token expired. Please re-authorize.';
+  } else if (statusCode === 403) {
+    httpStatus = 403;
+    reason = 'googlePermissionDenied';
+    error = 'Insufficient Google Classroom permissions.';
+  } else if (statusCode === 404) {
+    httpStatus = 404;
+    reason = 'googleCourseNotFound';
+    error = 'Google Classroom course not found, or you are not a teacher of it.';
+  } else if (statusCode === 400) {
+    httpStatus = 400;
+    reason = 'googleInvalidRequest';
+    error = 'Google Classroom rejected the request.';
+  } else {
+    httpStatus = 502;
+    reason = 'googleApiError';
+    error = 'Google Classroom API error';
+  }
+  return {
+    statusCode: httpStatus,
+    body: JSON.stringify({
+      error,
+      reason,
+      ...(googleStatus ? { googleStatus } : {}),
+      ...(googleMessage ? { googleMessage } : {}),
+    }),
+  };
+}
+
 async function callGoogleClassroomAPI(
   accessToken: string,
   path: string,
@@ -396,7 +483,23 @@ async function callGoogleClassroomAPI(
     body: body ? JSON.stringify(body) : undefined,
   });
   if (!response.ok) {
-    throw new GoogleAPIError(response.status, `Google Classroom API error: ${response.status}`);
+    const raw = await response.text().catch(() => '');
+    const { googleStatus, googleMessage } = parseGoogleApiErrorBody(raw);
+    // Logged (never the access token) so a teacher report like issue #1175 can
+    // be diagnosed from CloudWatch without reproducing it.
+    console.error('Google Classroom API error', {
+      method,
+      path,
+      httpStatus: response.status,
+      googleStatus,
+      googleMessage,
+    });
+    throw new GoogleAPIError(
+      response.status,
+      `Google Classroom API error: ${response.status}`,
+      googleStatus,
+      googleMessage,
+    );
   }
   return response.json();
 }
@@ -5070,13 +5173,8 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
       };
     }
     if (err instanceof GoogleAPIError) {
-      if (err.statusCode === 401) {
-        return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ error: 'Google access token expired. Please re-authorize.' }) };
-      }
-      if (err.statusCode === 403) {
-        return { statusCode: 403, headers: corsHeaders, body: JSON.stringify({ error: 'Insufficient Google Classroom permissions.' }) };
-      }
-      return { statusCode: 502, headers: corsHeaders, body: JSON.stringify({ error: 'Google Classroom API error' }) };
+      const mapped = googleApiErrorResponse(err.statusCode, err.googleStatus, err.googleMessage);
+      return { ...mapped, headers: corsHeaders };
     }
     if (err instanceof SyntaxError) {
       return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'Invalid JSON body' }) };
