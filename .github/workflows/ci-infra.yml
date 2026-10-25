@@ -14,6 +14,9 @@ concurrency:
   group: "${{ github.workflow }} @ ${{ github.head_ref || github.ref }}"
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   # ---------------------------------------------------------------------------
   # smalruby-mesh-v2
@@ -25,8 +28,8 @@ jobs:
       run:
         working-directory: infra/smalruby-mesh-v2
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
-      - uses: ruby/setup-ruby@v1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ruby/setup-ruby@b1da4809b005e0178fe08a1d57317bffc00b7b4c # v1.332.0
         with:
           ruby-version-file: infra/smalruby-mesh-v2/.ruby-version
           bundler-cache: true
@@ -43,8 +46,8 @@ jobs:
       run:
         working-directory: infra/smalruby-mesh-v2
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
-      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: infra/smalruby-mesh-v2/.node-version
           cache: npm
@@ -65,13 +68,13 @@ jobs:
       run:
         working-directory: infra/smalruby-mesh-v2
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
-      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: infra/smalruby-mesh-v2/.node-version
           cache: npm
           cache-dependency-path: infra/smalruby-mesh-v2/package-lock.json
-      - uses: ruby/setup-ruby@v1
+      - uses: ruby/setup-ruby@b1da4809b005e0178fe08a1d57317bffc00b7b4c # v1.332.0
         with:
           ruby-version-file: infra/smalruby-mesh-v2/.ruby-version
           bundler-cache: true
@@ -95,8 +98,8 @@ jobs:
       run:
         working-directory: infra/smalruby-rubytee-relay
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
-      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: infra/smalruby-rubytee-relay/.node-version
           cache: npm
@@ -113,8 +116,8 @@ jobs:
       run:
         working-directory: infra/smalruby-rubytee-relay
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
-      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: infra/smalruby-rubytee-relay/.node-version
           cache: npm
@@ -136,8 +139,8 @@ jobs:
       run:
         working-directory: infra/smalruby-rubytee-relay
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
-      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: infra/smalruby-rubytee-relay/.node-version
           cache: npm
@@ -158,8 +161,8 @@ jobs:
       run:
         working-directory: infra/smalruby-api
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
-      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: infra/smalruby-api/.node-version
           cache: npm
@@ -176,8 +179,8 @@ jobs:
       run:
         working-directory: infra/smalruby-api
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
-      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: infra/smalruby-api/.node-version
           cache: npm
@@ -199,8 +202,8 @@ jobs:
       run:
         working-directory: infra/smalruby-api
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
-      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: infra/smalruby-api/.node-version
           cache: npm
@@ -221,8 +224,8 @@ jobs:
       run:
         working-directory: infra/smalruby-bug-report
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
-      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: infra/smalruby-bug-report/.node-version
           cache: npm
@@ -239,8 +242,8 @@ jobs:
       run:
         working-directory: infra/smalruby-bug-report
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
-      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: infra/smalruby-bug-report/.node-version
           cache: npm
@@ -261,8 +264,8 @@ jobs:
       run:
         working-directory: infra/smalruby-bug-report
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
-      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: infra/smalruby-bug-report/.node-version
           cache: npm
@@ -283,8 +286,8 @@ jobs:
       run:
         working-directory: infra/smalruby-classroom
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
-      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: infra/smalruby-classroom/.node-version
           cache: npm
@@ -301,8 +304,8 @@ jobs:
       run:
         working-directory: infra/smalruby-classroom
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
-      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: infra/smalruby-classroom/.node-version
           cache: npm
@@ -323,8 +326,8 @@ jobs:
       run:
         working-directory: infra/smalruby-classroom
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
-      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: infra/smalruby-classroom/.node-version
           cache: npm
@@ -345,8 +348,8 @@ jobs:
       run:
         working-directory: infra/smalruby-admin
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
-      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: infra/smalruby-admin/.node-version
           cache: npm
@@ -363,8 +366,8 @@ jobs:
       run:
         working-directory: infra/smalruby-admin
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
-      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: infra/smalruby-admin/.node-version
           cache: npm
@@ -385,8 +388,8 @@ jobs:
       run:
         working-directory: infra/smalruby-admin
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
-      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: infra/smalruby-admin/.node-version
           cache: npm

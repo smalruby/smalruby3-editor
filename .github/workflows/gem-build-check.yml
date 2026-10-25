@@ -17,6 +17,9 @@ concurrency:
   group: "${{ github.workflow }} @ ${{ github.head_ref || github.ref }}"
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   build-linux:
     name: "Build gem (Linux / Ruby ${{ inputs.ruby-version || '3.4' }})"
@@ -25,7 +28,7 @@ jobs:
       run:
         working-directory: ruby/smalruby3
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install SDL2 development libraries
         run: |
@@ -33,7 +36,7 @@ jobs:
           sudo apt-get install -y libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev
 
       - name: Setup Ruby and Rust
-        uses: oxidize-rb/actions/setup-ruby-and-rust@v1
+        uses: oxidize-rb/actions/setup-ruby-and-rust@ec90b4aa48795518d79be3f5cc478d1d7ccd02a8 # v1.5.0
         with:
           ruby-version: ${{ inputs.ruby-version || '3.4' }}
           rustup-toolchain: stable
@@ -42,7 +45,7 @@ jobs:
           working-directory: ruby/smalruby3
 
       - name: Cache native extension build
-        uses: actions/cache@v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ruby/smalruby3/ext/smalruby3_imageutil/target
           key: native-ext-linux-${{ inputs.ruby-version || '3.4' }}-${{ hashFiles('ruby/smalruby3/ext/smalruby3_imageutil/Cargo.toml', 'ruby/smalruby3/ext/smalruby3_imageutil/src/**') }}
@@ -64,7 +67,7 @@ jobs:
         run: bundle exec ruby -e 'require "smalruby3"; puts "smalruby3 v#{Smalruby3::VERSION} loaded OK"'
 
       - name: Upload gem artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: smalruby3-gem-linux
           path: ruby/smalruby3/smalruby3-*.gem
@@ -76,10 +79,10 @@ jobs:
       run:
         working-directory: ruby/smalruby3
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install SDL2 via MSYS2
-        uses: msys2/setup-msys2@v2
+        uses: msys2/setup-msys2@ec48f7c5447b3140e2b088413ae3a55687bccb6e # v2.33.0
         with:
           msystem: UCRT64
           install: >-
@@ -89,7 +92,7 @@ jobs:
             mingw-w64-ucrt-x86_64-SDL2_ttf
 
       - name: Setup Ruby and Rust
-        uses: oxidize-rb/actions/setup-ruby-and-rust@v1
+        uses: oxidize-rb/actions/setup-ruby-and-rust@ec90b4aa48795518d79be3f5cc478d1d7ccd02a8 # v1.5.0
         with:
           ruby-version: ${{ inputs.ruby-version || '3.4' }}
           rustup-toolchain: stable
@@ -106,7 +109,7 @@ jobs:
           echo "PKG_CONFIG_PATH=C:\msys64\ucrt64\lib\pkgconfig" >> $env:GITHUB_ENV
 
       - name: Cache native extension build
-        uses: actions/cache@v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ruby/smalruby3/ext/smalruby3_imageutil/target
           key: native-ext-windows-${{ inputs.ruby-version || '3.4' }}-${{ hashFiles('ruby/smalruby3/ext/smalruby3_imageutil/Cargo.toml', 'ruby/smalruby3/ext/smalruby3_imageutil/src/**') }}
@@ -129,7 +132,7 @@ jobs:
         run: bundle exec ruby -e 'require "smalruby3"; puts "smalruby3 v#{Smalruby3::VERSION} loaded OK"'
 
       - name: Upload gem artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: smalruby3-gem-windows
           path: ruby/smalruby3/smalruby3-*.gem
