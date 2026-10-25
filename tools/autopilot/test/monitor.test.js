@@ -120,9 +120,9 @@ test('MONITOR_HTML: ボードに Size（S/M/L・色付き）列を表示（#884�
     assert.match(MONITOR_HTML, /sizeBadge\(it\.size\)/);
     // size 未設定は「—」（muted）で崩れない
     assert.match(MONITOR_HTML, /class="muted"/);
-    // 列追加に合わせて空行の colspan を更新（7 → 8）
-    assert.match(MONITOR_HTML, /colspan="8"/);
-    assert.doesNotMatch(MONITOR_HTML, /colspan="7"/);
+    // 空行の colspan は列数に合わせる（PR 列の削除で 8 → 7・#1212）
+    assert.match(MONITOR_HTML, /colspan="7"/);
+    assert.doesNotMatch(MONITOR_HTML, /colspan="8"/);
 });
 
 test('MONITOR_HTML: Awaiting Continuation は専用バッジ + 残タスク数を表示（#913）', () => {
@@ -205,11 +205,11 @@ test('MONITOR_HTML: 俯瞰ボードは狭幅で列を間引く（#936）', () =>
     const body = media[1];
     assert.match(body, /#board th:nth-child\(3\),\s*#board td:nth-child\(3\)\s*\{[^}]*display:\s*none/);
     assert.match(body, /#board th:nth-child\(5\),\s*#board td:nth-child\(5\)\s*\{[^}]*display:\s*none/);
-    // Sub-issues 列（7）はバーと % を隠す（件数のみ残す）
-    assert.match(body, /#board td:nth-child\(7\)\s+\.bar[^{]*\{[^}]*display:\s*none/);
+    // Sub-issues 列（6。PR 列の削除で 7 → 6・#1212）はバーと % を隠す（件数のみ残す）
+    assert.match(body, /#board td:nth-child\(6\)\s+\.bar[^{]*\{[^}]*display:\s*none/);
     assert.match(body, /\.sub-pct\s*\{[^}]*display:\s*none/);
-    // Now 列（8）は subtext（「人間の番」や経過分）を隠す（アイコン/phase-pill/log は残す）
-    assert.match(body, /#board td:nth-child\(8\)\s+\.subtext\s*\{[^}]*display:\s*none/);
+    // Now 列（7）は subtext（「人間の番」や経過分）を隠す（アイコン/phase-pill/log は残す）
+    assert.match(body, /#board td:nth-child\(7\)\s+\.subtext\s*\{[^}]*display:\s*none/);
 });
 
 test('MONITOR_HTML: Sub-issues セルは件数 (.sub-count) と %（.sub-pct）を別 span に分割する（#936）', () => {
@@ -349,4 +349,36 @@ test('MONITOR_HTML: Claude 使用量の自動 pause — USAGE ⏸ ピルと 2 �
     assert.ok(MONITOR_HTML.includes('強制実行中'));
     // ブラウザの confirm ダイアログは使わない（その場でボタンを置き換える）
     assert.doesNotMatch(MONITOR_HTML, /\bconfirm\(/);
+});
+
+test('MONITOR_HTML: PR は Issue 番号のすぐ右に open だけ並べ、merged/closed は ▼ メニュー（#1212）', () => {
+    // PR 列は削除（見出しにもセルにも無い）
+    assert.doesNotMatch(MONITOR_HTML, /<th>PR<\/th>/);
+    assert.match(MONITOR_HTML,
+        /<th>Issue<\/th><th>Status<\/th><th>Size<\/th><th>AI<\/th><th>担当<\/th><th>Sub-issues<\/th><th>Now<\/th>/);
+    // 振り分けは phases.js の純粋関数を埋め込んで共有する（二重定義しない）
+    assert.match(MONITOR_HTML, /function splitPrsForTitle\(prs\)/);
+    assert.match(MONITOR_HTML, /splitPrsForTitle\(it\.prs\)/);
+    // チップの文字は PR#N（Issue 番号と区別する）
+    assert.match(MONITOR_HTML, /' PR#' \+ p\.number/);
+    // ▼ ボタンと 1 つだけの共有メニュー（別タブで開く）
+    assert.match(MONITOR_HTML, /class="prmenu-btn"/);
+    assert.match(MONITOR_HTML, /id="prmenu"/);
+    assert.match(MONITOR_HTML, /function openPrMenu\(/);
+    assert.match(MONITOR_HTML, /function closePrMenu\(/);
+    // 5 秒ごとの再描画をまたいでも開いたまま（renderBoard の末尾で復元する）
+    assert.match(MONITOR_HTML, /let prMenuIssue = null/);
+    assert.match(MONITOR_HTML, /restorePrMenu\(\)/);
+    // 復元で中身が同じならメニューを作り直さない（押下中の項目のクリックを消さない）
+    assert.match(MONITOR_HTML, /if \(html !== prMenuHtml\)/);
+    // Esc で閉じる
+    assert.match(MONITOR_HTML, /closePrMenu\(\); \}/);
+    // 順序: #Issue → PR チップ → ▼ → タイトル
+    const render = MONITOR_HTML.slice(MONITOR_HTML.indexOf('function renderBoard'));
+    const iIssue = render.indexOf("'\">#' + it.issue");
+    const iChips = render.indexOf('prInline', iIssue);
+    const iMenu = render.indexOf('prMenu', iChips);
+    const iTitle = render.indexOf('class="t"', iIssue);
+    assert.ok(iIssue > -1 && iIssue < iChips && iChips < iMenu && iMenu < iTitle,
+        `order: issue(${iIssue}) < chips(${iChips}) < menu(${iMenu}) < title(${iTitle})`);
 });
