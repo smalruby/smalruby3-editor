@@ -113,11 +113,15 @@ const rubyToDncl = (source) => {
     if (result === null) {
       if (i + 1 < lines.length) {
         const nextLine = lines[i + 1]
-        const answerMatch = nextLine.match(/^(\s*)(.+?)\s*=\s*answer\s*$/)
+        const answerMatch = nextLine.match(
+          /^(\s*)(.+?)\s*=\s*answer(\.to_i)?\s*$/,
+        )
         if (answerMatch) {
           const answerIndent = answerMatch[1]
           const varPart = processSegments(answerMatch[2])
-          dnclLines.push(`${answerIndent}${varPart} = 【外部からの入力】`)
+          // `answer.to_i` is what 【整数を入力】 generates (Issue #1186).
+          const input = answerMatch[3] ? '整数を入力' : '外部からの入力'
+          dnclLines.push(`${answerIndent}${varPart} = 【${input}】`)
           skipNext = true
           continue
         }
