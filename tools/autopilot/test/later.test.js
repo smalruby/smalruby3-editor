@@ -118,6 +118,17 @@ test('laterPendingReducer: 失敗時は最後に確定した状態へ巻き戻�
     assert.strictEqual(s[7], undefined);
 });
 
+test('laterPendingReducer: 失敗後のボード更新はボードを真実とする（実ラベルが変わっていても保留が残らない）', () => {
+    // 応答だけ落ちて書き込みは成功していた等: 巻き戻した desired=false とボード later=true が食い違う
+    let s = reduce([
+        { type: 'request', issue: 7, later: true, current: false, seq: 1 },
+        { type: 'failure', issue: 7, seq: 1, error: 'timeout' },
+    ]);
+    s = laterPendingReducer(s, { type: 'board', items: [{ issue: 7, later: true }] });
+    assert.strictEqual(s[7], undefined);
+    assert.strictEqual(effectiveLater({ issue: 7, later: true }, s), true);
+});
+
 test('laterPendingReducer: 連続トグルは最後の意図が勝つ（古い応答で巻き戻らない）', () => {
     // あとで(seq1) → 今やる(seq2) を連続送信。seq1 の応答が後から返っても desired は false のまま
     let s = reduce([

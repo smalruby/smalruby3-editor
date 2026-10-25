@@ -2265,7 +2265,7 @@ function withLaterLabel(labels, later) {
 /**
  * 💤 あとで / ↩ 今やる ボタンを出してよい行か（クライアント共有・自己完結）。
  * 終端 Status（Close / Done）には出さない。TERMINAL_STATUSES と同じ集合を内側に持つ
- * （埋め込みのため外側参照不可。一致は phases.test.js で担保）。
+ * （埋め込みのため外側参照不可。一致は later.test.js で担保）。
  * @param {object} item { status }
  * @returns {boolean}
  */
@@ -2325,7 +2325,10 @@ function splitLaterBoard(items, pending, runningIssues) {
  *   古い seq の失敗は無視（後続リクエストの結果まで巻き戻さない）。
  * - `board` {items}: ボード再取得。送信中でなく、ボードが desired に追いついた Issue の
  *   保留を解除する（それまでは pending を優先表示し、古いキャッシュで行が戻らない）。
- *   ボードから消えた Issue（終端化等）の非送信中保留も捨てる。
+ *   ボードから消えた Issue（終端化等）の非送信中保留も捨てる。**失敗で巻き戻した保留も捨てる**:
+ *   失敗時の実ラベルは不確定（応答だけ落ちて書き込みは成功した・別タブの畳み込みで途中まで
+ *   適用された等）なので、以後は daemon のキャッシュ＝ボードを真実とする（巻き戻した desired と
+ *   実ラベルが食い違ったまま保留が残り続けるのを防ぐ）。
  * @param {object} pending 現在の状態（破壊しない）
  * @param {object} action
  * @returns {object} 新しい状態
@@ -2364,7 +2367,7 @@ function laterPendingReducer(pending, action) {
             const p = cur[key];
             if (p.inFlight) continue;
             const it = byIssue[key];
-            if (!it || Boolean(it.later) === Boolean(p.desired)) delete next[key];
+            if (!it || p.error || Boolean(it.later) === Boolean(p.desired)) delete next[key];
         }
         return next;
     }
