@@ -1,6 +1,11 @@
-.modal-content {
-    width: 500px;
-    max-width: 90vw;
+/* The student modal targets the 1300x600 classroom PC (#1221): it is wide so
+   guidance and actions sit side by side, and it sits near the top so the body
+   gets most of the 600px height without scrolling. */
+.modal-content.modal-content {
+    width: 960px;
+    max-width: 95vw;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
 }
 
 .modal-content-wide {
@@ -15,6 +20,56 @@
     overflow-y: auto;
     background-color: white;
     border-radius: 0 0 8px 8px;
+}
+
+/* Student body: 1rem margins x2 + 3.125rem header + 8px modal border. */
+.student-body {
+    padding: 1rem 1.5rem;
+    max-height: calc(100vh - 5.125rem - 8px);
+}
+
+/* Seat screen: the grid on the left, notices and the join action on the
+   right. When stacked, notices move above the grid so a student reads why
+   they are back here before picking a seat. */
+.student-seat-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+        'main notices'
+        'main actions';
+    column-gap: 1.5rem;
+}
+
+.student-main {
+    grid-area: main;
+    min-width: 0;
+}
+
+.student-notices {
+    grid-area: notices;
+    min-width: 0;
+}
+
+.student-actions {
+    grid-area: actions;
+    min-width: 0;
+}
+
+.student-notices > :first-child {
+    margin-top: 0;
+}
+
+/* Below the 960px modal (iPad portrait, phones) the columns stack. */
+@media (max-width: 1023px) {
+    .student-seat-layout {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto;
+        grid-template-areas:
+            'notices'
+            'main'
+            'actions';
+    }
 }
 
 .phase-title {
@@ -758,6 +813,19 @@
     gap: 0.4rem;
     margin: 1rem 0;
 }
+
+/* Ten seats per row: 40 seats fit in 4 rows on the 1300x600 PC (#1221). */
+.student-main .seat-grid {
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+    margin: 0.6rem 0 0;
+}
+
+@media (max-width: 1023px) {
+    .student-main .seat-grid {
+        grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
+    }
+}
+
 
 .seat-button {
     background-color: #4c97ff;
