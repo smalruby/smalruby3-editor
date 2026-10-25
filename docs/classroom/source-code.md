@@ -48,11 +48,14 @@ smalruby3-editor/
 │   │   │   ├── use-teacher-groups.js ← 組（グループ）管理・複製フロー
 │   │   │   ├── use-teacher-evaluation.js ← 学期末評価フロー（読み込み/AI評価/CSV/返却）
 │   │   │   ├── use-student-submit.js  ← 生徒提出フロー
+│   │   │   ├── use-classroom-heartbeat.js ← 生徒のハートビート（着席判定）
+│   │   │   ├── classroom-heartbeat.jsx ← ハートビートの常時マウント host（gui.jsx に配置）
 │   │   │   ├── use-google-classroom.js ← Google Classroom API 連携
 │   │   │   ├── classroom-error-utils.js ← エラーメッセージ変換
 │   │   │   └── alert.jsx             ← Alert コンテナ（参加しなおす対応）
 │   │   ├── lib/
 │   │   │   ├── classroom-api.js       ← API クライアント (リトライ付き)
+│   │   │   ├── classroom-presence.js  ← ハートビート間隔と着席しきい値（唯一の定義）
 │   │   │   ├── classroom-assignment-utils.js ← 課題エディタの純粋ヘルパー
 │   │   │   ├── classroom-group-utils.js ← サイドバー組階層の純粋ヘルパー
 │   │   │   ├── classroom-google-share.js ← GC 共有の既定ブロック判定 + 解除導線の文言（純粋）#1184
@@ -106,6 +109,7 @@ CDK スタック定義。以下のリソースを作成:
 | `handleLookupClassroom()` | 参加コードで課題を検索 |
 | `handleJoinClassroom()` | 課題に参加 |
 | `handleVerifySession()` | セッション検証 |
+| `handleHeartbeat()` | 着席判定用の生存通知（`lastActiveAt` 更新・204） |
 | `handleCreateSubmission()` | 提出 (Presigned URL 生成) |
 | `handleListSubmissions()` | 提出一覧 |
 | `handleUpdateSubmission()` | 提出更新 (返却・コメント) |

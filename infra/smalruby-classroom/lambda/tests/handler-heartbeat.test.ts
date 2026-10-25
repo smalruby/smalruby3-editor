@@ -132,6 +132,30 @@ describe('POST /classrooms/heartbeat (issue #1197)', () => {
         expect(commandNames()).not.toContain('UpdateCommand');
     });
 
+    test('the update is conditional on the row still belonging to this session and not kicked', async () => {
+        mockSend.mockImplementation(sendFor(activeClassroom));
+        await handler(makeEvent('session-token-1'));
+        const update = commands().find((c) => c.constructor.name === 'UpdateCommand');
+        const input = update!.input as { ConditionExpression?: string; ExpressionAttributeValues: Record<string, unknown> };
+        expect(input.ConditionExpression).toContain('sessionToken = :st');
+        expect(input.ConditionExpression).toContain('kicked');
+        expect(input.ExpressionAttributeValues[':st']).toBe('session-token-1');
+    });
+
+    test('row deleted / kicked after the GSI read (condition fails) → 401, no ghost row', async () => {
+        const base = sendFor(activeClassroom);
+        mockSend.mockImplementation(async (command: Command) => {
+            if (command.constructor.name === 'UpdateCommand') {
+                const err = new Error('The conditional request failed');
+                err.name = 'ConditionalCheckFailedException';
+                throw err;
+            }
+            return base(command);
+        });
+        const res = await handler(makeEvent('session-token-1'));
+        expect(res.statusCode).toBe(401);
+    });
+
     test('deleted classroom → 401 without refreshing the membership', async () => {
         mockSend.mockImplementation(sendFor(undefined));
         const res = await handler(makeEvent('session-token-1'));

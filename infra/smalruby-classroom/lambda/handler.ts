@@ -1920,6 +1920,40 @@ export async function verifySessionToken(sessionToken: string): Promise<{ classr
   return { classroomId: item.classroomId as string, memberId: item.memberId as string };
 }
 
+/**
+ * Refresh a seated student's `lastActiveAt` and session TTL (verify-session /
+ * heartbeat). The update is conditional on the row still belonging to this
+ * session and not being kicked: verifySessionToken reads an eventually
+ * consistent GSI, so a student who just left (row deleted) or was kicked could
+ * otherwise get a bare row recreated — blocking the seat for the full session
+ * TTL — or have the short kick-tombstone TTL extended (issue #1197).
+ */
+async function touchMembershipActivity(
+  session: { classroomId: string; memberId: string },
+  sessionToken: string,
+): Promise<void> {
+  try {
+    await docClient.send(new UpdateCommand({
+      TableName: MEMBERSHIPS_TABLE,
+      Key: { classroomId: session.classroomId, memberId: session.memberId },
+      UpdateExpression: 'SET lastActiveAt = :now, #ttl = :ttl',
+      ConditionExpression: 'sessionToken = :st AND (attribute_not_exists(kicked) OR kicked <> :true)',
+      ExpressionAttributeNames: { '#ttl': 'ttl' },
+      ExpressionAttributeValues: {
+        ':now': new Date().toISOString(),
+        ':ttl': Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS,
+        ':st': sessionToken,
+        ':true': true,
+      },
+    }));
+  } catch (err: unknown) {
+    if ((err as { name?: string })?.name === 'ConditionalCheckFailedException') {
+      throw new AuthError('Invalid or expired session token');
+    }
+    throw err;
+  }
+}
+
 // --- Submission handlers ---
 
 export function validateProjectName(name: unknown): string {
@@ -2624,17 +2658,7 @@ async function handleVerifySession(sessionToken: string): Promise<APIGatewayProx
   }
 
   // Update lastActiveAt and extend TTL on each verify call
-  const now = new Date().toISOString();
-  await docClient.send(new UpdateCommand({
-    TableName: MEMBERSHIPS_TABLE,
-    Key: { classroomId: session.classroomId, memberId: session.memberId },
-    UpdateExpression: 'SET lastActiveAt = :now, #ttl = :ttl',
-    ExpressionAttributeNames: { '#ttl': 'ttl' },
-    ExpressionAttributeValues: {
-      ':now': now,
-      ':ttl': Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS,
-    },
-  }));
+  await touchMembershipActivity(session, sessionToken);
 
   if (subResult.Items && subResult.Items.length > 0) {
     const item = subResult.Items[0];
@@ -2676,16 +2700,7 @@ async function handleHeartbeat(sessionToken: string): Promise<APIGatewayProxyStr
     throw new AuthError('This classroom is no longer active');
   }
 
-  await docClient.send(new UpdateCommand({
-    TableName: MEMBERSHIPS_TABLE,
-    Key: { classroomId: session.classroomId, memberId: session.memberId },
-    UpdateExpression: 'SET lastActiveAt = :now, #ttl = :ttl',
-    ExpressionAttributeNames: { '#ttl': 'ttl' },
-    ExpressionAttributeValues: {
-      ':now': new Date().toISOString(),
-      ':ttl': Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS,
-    },
-  }));
+  await touchMembershipActivity(session, sessionToken);
 
   return { statusCode: 204, body: '' };
 }
