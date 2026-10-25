@@ -152,6 +152,14 @@ daemon が **`⏳ waiting` ラベル**を付ける。GitHub Projects の view �
 EPIC の leaf は **全部 Sprint Backlog に入れておけば**、依存順に自動で 1 つずつ流れる（並列
 衝突はゲーティングが防ぐ）。
 
+### 💤 later ラベル（「あとでやる」一覧の分離）
+
+難しく使用頻度も低いので後回しにしたい Issue（例: tutorial 改修）に **人間が付ける**ラベル。
+目的は **Web モニタ上の一覧の分離だけ**で、付いていても autopilot の処理（dispatch・ゲート・
+merge 検知）は**一切変わらない**。label healing は外さない・付け直さない（人間の操作だけで
+付け外しする）。モニタの「💤 あとで」/「↩ 今やる」ボタン（`POST /later`）か、GitHub 上で
+直接付け外しする。
+
 ---
 
 ## 実装前ディスカッション（discuss フェーズ）
@@ -514,6 +522,17 @@ GitHub Projects で行い、モニタは俯瞰・log 閲覧・pause/resume/即�
   `API残`/`実行中` の増減で内容幅が変わってもヘッダーのどの要素も水平位置が動かない。中央 usage も
   内部の可変要素を `min-width` で予約して幅を一定に保つ。狭い幅（≤ 960px）では中央 usage を隠して
   右メタと重ならないようにする
+- **[通常] / [💤 あとでやる] タブ**（#1190）: ボード上部のタブで `💤 later` 付き Issue を
+  通常一覧から分離する。タブには件数バッジ、あとでやる タブには **⚠ 実行中 N・人間の番 M**
+  バッジが付き、通常タブを見ていても あとでやる 側の動きに気付ける。選択タブは localStorage
+  （`autopilot:boardTab`）に記憶する。Now 列の末尾（log の隣）に **「💤 あとで」/「↩ 今やる」**
+  ボタンがあり（Close / Done の行には出さない）、押すと**楽観的更新**で即座に行が移動し、裏で
+  `POST /later` がラベルを付け替える。ボード再取得（GraphQL）は撃たず daemon がキャッシュ上の
+  labels を書き換える。失敗したら最後に確定した状態へ戻してアラート帯にエラーを出す。
+  連打対策: 送信中の Issue はボタンを disabled（⏳ 処理中）にし、daemon 側も Issue 単位で直列化して
+  連続リクエストを**最後の目標状態へ畳み込む**（差分時のみ書き込み）。保留中の Issue はボードの定期
+  更新・🔄 更新で古い labels が返っても pending の状態を優先表示する。Blocked・認証アラートは
+  あとでやる 内の Issue でも上部に通常どおり出し、あとでやる 内の人間の番もアラート帯に出す
 - **スティッキーフッター**: **稼働バージョン（`branch @ shortCommit`）** + **⬆️ 更新ありバッジ**。
   常時見えるフッターに置き、押すと更新手順モーダルを表示する（#885）
 - **Claude 使用量（ヘッダー中央）**: Claude アイコン + **セッション使用率**（rolling 5 時間制限）と
@@ -774,6 +793,7 @@ HTTP API（curl からも操作可能）:
 | `POST /resume` | ポーリング再開 |
 | `POST /reauth` | SSO 再認証（device code）を daemon 側で起動し、認証 URL と user code を抽出して返す（`{status, url, code, completeUrl}`）。成功で auto-resume |
 | `POST /refresh` | 俯瞰ボードを即時再取得（`listItems`）。モニタの「🔄 更新」ボタン。レート僅少時は `{refreshed:false, skipped:'rate-limited'}` で no-op |
+| `POST /later` | body `{issue, later: boolean}`。`💤 later` を付与 / 除去する（モニタの「💤 あとで」/「↩ 今やる」）。Issue 単位で直列化し連続リクエストは最後の目標へ畳み込む。既に目的の状態なら書き込まない。`{issue, later, changed}` を返す |
 | `POST /stop?issue=<n>` | その item の tmux セッションを kill して force-stop |
 | `POST /inject?issue=<n>&phase=<p>` | 並行上限を超えて 1 フェーズを割り込み投入 |
 | `POST /shutdown` | daemon プロセスを安全停止 |
