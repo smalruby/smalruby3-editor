@@ -1,26 +1,15 @@
 /**
  * Student presence ("seated") for the classroom feature (issue #1197).
  *
- * The student GUI pings `POST /classrooms/heartbeat` every
- * HEARTBEAT_INTERVAL_MS while it holds a session, and the teacher views treat
- * a member as seated while their `lastActiveAt` is within SEATED_THRESHOLD_MS.
- * Both live here so the two sides cannot drift apart.
+ * `lastActiveAt` is refreshed only by join and verify-session (when the student
+ * opens the classroom modal) — there is deliberately no periodic heartbeat, to
+ * keep API traffic down. "Seated" is therefore a rough hint: before approving a
+ * seat-release (kick) request the teacher confirms in the classroom anyway.
+ * The threshold lives here so every teacher view uses the same rule.
  */
 
-const DEFAULT_HEARTBEAT_INTERVAL_MS = 2 * 60 * 1000;
-
-const parsedInterval = parseInt(process.env.CLASSROOM_HEARTBEAT_INTERVAL_MS || '', 10);
-
-/** How often a joined student refreshes `lastActiveAt`. */
-const HEARTBEAT_INTERVAL_MS = parsedInterval > 0 ? parsedInterval : DEFAULT_HEARTBEAT_INTERVAL_MS;
-
-/**
- * How long after the last ping a member still counts as seated. 2.5 intervals
- * tolerates one late or dropped ping (slow network, a tab hidden for a moment)
- * so the indicator does not flicker, while a student who left drops out within
- * a few minutes instead of the old one hour.
- */
-const SEATED_THRESHOLD_MS = HEARTBEAT_INTERVAL_MS * 2.5;
+/** How long after the last activity a member still counts as seated. */
+const SEATED_THRESHOLD_MS = 60 * 60 * 1000;
 
 /**
  * Whether a classroom member is currently at their seat.
@@ -35,4 +24,4 @@ const isMemberSeated = (member, now = Date.now()) => {
     return now - last < SEATED_THRESHOLD_MS;
 };
 
-export { HEARTBEAT_INTERVAL_MS, SEATED_THRESHOLD_MS, isMemberSeated };
+export { SEATED_THRESHOLD_MS, isMemberSeated };

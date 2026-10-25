@@ -42,10 +42,6 @@ import SmalrubotFirmwareModal from '../../containers/smalrubot-firmware-modal.js
 import ClassroomModal from '../../containers/classroom-modal.jsx';
 import ClassroomTeacherModal from '../../containers/classroom-teacher-modal.jsx';
 // === Smalruby: End of classroom modal ===
-// === Smalruby: Start of classroom heartbeat ===
-import ClassroomHeartbeat from '../../containers/classroom-heartbeat.jsx';
-import {isClassroomConfigured} from '../../lib/classroom-api.js';
-// === Smalruby: End of classroom heartbeat ===
 // === Smalruby: Start of bug report modal ===
 import BugReportModal from '../../containers/bug-report-modal.jsx';
 import {isBugReportConfigured} from '../../lib/bug-report-api.js';
@@ -493,9 +489,6 @@ const GUIComponent = props => {
                     {classroomModalVisible ? <ClassroomModal /> : null}
                     {teacherModalVisible ? <ClassroomTeacherModal /> : null}
                     {/* === Smalruby: End of classroom modal === */}
-                    {/* === Smalruby: Start of classroom heartbeat === */}
-                    {isClassroomConfigured() ? <ClassroomHeartbeat /> : null}
-                    {/* === Smalruby: End of classroom heartbeat === */}
                     {/* === Smalruby: Start of bug report modal === */}
                     {isBugReportConfigured() ? <BugReportModal /> : null}
                     {/* === Smalruby: End of bug report modal === */}
