@@ -12,7 +12,18 @@
  * - log は実行中の行の「log」クリックでモーダル表示（first view はボードに割く）
  * - 実行履歴はログとしての意味しかないので最下部
  * - Close / Done / Icebox はボードに出さない（溜まると重くなる。操作は GitHub Projects で）
+ * - [通常] / [あとでやる] タブで `💤 later` 付き Issue を分離する（#1190）。唯一の書き込み操作
+ *   「💤 あとで / ↩ 今やる」は `POST /later`。判断ロジックは phases.js の純粋関数を
+ *   `fn.toString()` で埋め込んで共有する（二重定義しない）
  */
+
+const {
+    canToggleLater, effectiveLater, splitLaterBoard, laterPendingReducer,
+} = require('./phases');
+
+// ブラウザへ埋め込むクライアント共有の純粋関数（自己完結。later.test.js で単独評価を担保）
+const SHARED_CLIENT_FNS = [canToggleLater, effectiveLater, splitLaterBoard, laterPendingReducer]
+    .map(String).join('\n');
 
 const MONITOR_HTML = `<!doctype html>
 <html lang="ja"><head><meta charset="utf-8">
@@ -164,6 +175,17 @@ const MONITOR_HTML = `<!doctype html>
   .subtext { font-size: .72rem; color: var(--muted); margin-left: .3rem; white-space: nowrap; }
   .phase-pill { background: #fde68a; color: #713f12; padding: .05rem .45rem; border-radius: .3rem; font-size: .75rem; font-weight: 600; white-space: nowrap; }
   td button { font-size: .72rem; padding: .05rem .45rem; cursor: pointer; }
+  /* ---- [通常] / [あとでやる] タブ（#1190） ---- */
+  .tabs { display: flex; gap: .3rem; margin: 0 0 .4rem; }
+  .tabs button { font-size: .8rem; padding: .2rem .7rem; cursor: pointer; border: 1px solid var(--border);
+                 background: #fff; color: #475569; border-radius: .3rem .3rem 0 0; }
+  .tabs button.active { background: #1e293b; color: #fff; border-color: #1e293b; font-weight: 600; }
+  .tabs .tab-count { display: inline-block; min-width: 1.2rem; margin-left: .25rem; padding: 0 .3rem; border-radius: .6rem;
+                     background: rgba(100,116,139,.18); font-size: .72rem; text-align: center; }
+  .tabs .tab-warn { margin-left: .3rem; padding: 0 .35rem; border-radius: .3rem; background: #fef3c7; color: #92400e;
+                    font-size: .72rem; font-weight: 600; }
+  td button.later-btn { white-space: nowrap; }
+  td button.later-btn[disabled] { cursor: progress; opacity: .6; }
   h2 { font-size: .85rem; color: var(--muted); margin: 1.2rem 0 .4rem; }
   /* ---- log モーダル ---- */
   #modal { position: fixed; inset: 0; background: rgba(15,23,42,.55); display: none; align-items: center; justify-content: center; z-index: 50; }
@@ -195,6 +217,7 @@ const MONITOR_HTML = `<!doctype html>
 </header>
 <div id="alerts"></div>
 <main>
+  <div id="tabs" class="tabs" role="tablist"></div>
   <div class="board-wrap">
   <table id="board"><thead><tr>
     <th>Issue</th><th>Status</th><th>Size</th><th>AI</th><th>担当</th><th>PR</th><th>Sub-issues</th><th>Now</th>
@@ -269,6 +292,19 @@ const prChip = (p) => {
 const mins = (ms) => Math.max(0, Math.round(ms / 60000));
 let logIssue = null;
 let logTimer = null;
+
+// ---- 💤 あとでやる（#1190） ----
+// 判断ロジック（タブ振り分け・⚠ 集計・ボタン出し分け・楽観的更新/連打対策の状態遷移）は
+// phases.js の純粋関数をそのまま埋め込む（canToggleLater / effectiveLater / splitLaterBoard /
+// laterPendingReducer）。
+${SHARED_CLIENT_FNS}
+const BOARD_TAB_KEY = 'autopilot:boardTab';
+let boardTab = 'normal';
+try { if (localStorage.getItem(BOARD_TAB_KEY) === 'later') boardTab = 'later'; } catch (e) { /* storage 不可でも動く */ }
+let lastBoard = null;    // 直近の /board 応答（クリック時の再描画用）
+let laterPending = {};   // laterPendingReducer の状態（保留中の Issue だけ）
+let laterSeq = 0;
+let laterError = null;   // 直近の失敗（アラート帯に出す）
 
 // Claude アイコン（インライン SVG・自己完結。外部リソース禁止）。
 // クリック/キーボードで使用量詳細ポップオーバーを開くトリガーを兼ねる（#996）。
@@ -474,7 +510,77 @@ function renderAlerts(d) {
       + ' <button onclick="copyText(&quot;check autopilot #' + it.issue + '&quot;)">📋 check autopilot #' + it.issue + '</button>').join(' ');
     parts.push('<div class="alert block-a">🚨 <b>Blocked ' + blocked.length + ' 件</b> — コピーして claude に貼ると診断します: ' + chips + '</div>');
   }
+  // あとでやる 内の人間の番も見落とさないよう上部に出す（Blocked は上の共通アラートで出る）#1190
+  const laterHitl = splitLaterBoard(d.items, laterPending, (d.running || []).map((r) => r.issue)).later
+    .filter((it) => it.hitl && it.status !== 'Blocked');
+  if (laterHitl.length) {
+    const links = laterHitl.map((it) => '<a target="_blank" rel="noopener" href="' + esc(it.url) + '">#' + it.issue + '</a>').join(' ');
+    parts.push('<div class="alert auth-a">💤🙋 <b>あとでやる に人間の番 ' + laterHitl.length + ' 件</b> ' + links + '</div>');
+  }
+  if (laterError) {
+    parts.push('<div class="alert block-a">⚠️ <b>あとでやる の切り替えに失敗</b>（元に戻しました） ' + esc(laterError)
+      + ' <button onclick="laterError = null; rerender()">✕</button></div>');
+  }
   document.getElementById('alerts').innerHTML = parts.join('');
+}
+
+// [通常 N] [あとでやる M ⚠…] タブ（件数バッジ付き）。⚠ は あとでやる 内の実行中・人間の番。
+function renderTabs(split) {
+  const warnParts = [];
+  if (split.laterRunning) warnParts.push('実行中 ' + split.laterRunning);
+  if (split.laterHitl) warnParts.push('人間の番 ' + split.laterHitl);
+  const warn = warnParts.length
+    ? '<span class="tab-warn" title="あとでやる 内の動き">⚠ ' + warnParts.join('・') + '</span>'
+    : '';
+  const tab = (key, label, n, extra) => '<button role="tab" data-tab="' + key + '" aria-selected="' + (boardTab === key)
+    + '" class="' + (boardTab === key ? 'active' : '') + '" onclick="setBoardTab(&quot;' + key + '&quot;)">'
+    + label + '<span class="tab-count">' + n + '</span>' + extra + '</button>';
+  document.getElementById('tabs').innerHTML = tab('normal', '通常', split.normal.length, '')
+    + tab('later', '💤 あとでやる', split.later.length, warn);
+}
+function setBoardTab(t) {
+  boardTab = t === 'later' ? 'later' : 'normal';
+  try { localStorage.setItem(BOARD_TAB_KEY, boardTab); } catch (e) { /* storage 不可でも動く */ }
+  rerender();
+}
+function rerender() {
+  if (!lastBoard) return;
+  renderAlerts(lastBoard);
+  renderBoard(lastBoard);
+}
+// Now 列末尾の [💤 あとで] / [↩ 今やる]。終端 Status には出さない。送信中は disabled（二重送信防止）。
+function laterButton(it) {
+  if (!canToggleLater(it)) return '';
+  const p = laterPending[it.issue];
+  if (p && p.inFlight) return ' <button class="later-btn" data-later-issue="' + it.issue + '" disabled>⏳ 処理中</button>';
+  const isLater = effectiveLater(it, laterPending);
+  return isLater
+    ? ' <button class="later-btn" data-later-issue="' + it.issue + '" title="あとでやる から通常に戻す（💤 later を外す）" onclick="toggleLater(' + it.issue + ', false)">↩ 今やる</button>'
+    : ' <button class="later-btn" data-later-issue="' + it.issue + '" title="あとでやる に移す（💤 later を付ける・autopilot の処理は変わらない）" onclick="toggleLater(' + it.issue + ', true)">💤 あとで</button>';
+}
+// 楽観的更新: 先に画面上で移動 → 裏で POST /later → 失敗時は最後に確定した状態へ戻す。
+// ボード再取得は撃たない（daemon がキャッシュ上の labels を書き換える）。
+async function toggleLater(issue, later) {
+  const cur = laterPending[issue];
+  if (cur && cur.inFlight) return;
+  const it = ((lastBoard && lastBoard.items) || []).find((x) => x.issue === issue);
+  const seq = ++laterSeq;
+  laterPending = laterPendingReducer(laterPending,
+    { type: 'request', issue, later, current: effectiveLater(it, laterPending), seq });
+  laterError = null;
+  rerender();
+  try {
+    const r = await fetch('/later', { method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ issue, later }) });
+    let j = {};
+    try { j = await r.json(); } catch (e) { /* 本文なし */ }
+    if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
+    laterPending = laterPendingReducer(laterPending, { type: 'success', issue, seq, later: Boolean(j.later) });
+  } catch (e) {
+    laterPending = laterPendingReducer(laterPending, { type: 'failure', issue, seq, error: e.message });
+    laterError = '#' + issue + ': ' + e.message;
+  }
+  rerender();
 }
 
 function renderBoard(d) {
@@ -482,7 +588,10 @@ function renderBoard(d) {
   for (const r of d.running || []) runningBy[r.issue] = r;
   // 自分の login（--assignee）。共同担当で自分がオーナーでない行に「観察中」マーカーを出す（#938）。
   const myAssignee = d.assignee || null;
-  const rows = (d.items || []).map((it) => {
+  const split = splitLaterBoard(d.items, laterPending, (d.running || []).map((r) => r.issue));
+  renderTabs(split);
+  const shown = boardTab === 'later' ? split.later : split.normal;
+  const rows = shown.map((it) => {
     const r = runningBy[it.issue];
     const cls = it.status === 'Blocked' ? 'blocked-row' : (r ? 'running-row' : '');
     const prs = (it.prs || []).map(prChip).join('') || '<span class="muted">—</span>';
@@ -518,10 +627,12 @@ function renderBoard(d) {
       + '<td>' + who + observing + '</td>'
       + '<td>' + prs + '</td>'
       + '<td>' + sub + '</td>'
-      + '<td>' + now + '</td></tr>';
+      + '<td>' + now + laterButton(it) + '</td></tr>';
   });
   document.getElementById('rows').innerHTML = rows.join('')
-    || '<tr><td colspan="8" class="muted">（表示対象の Issue はありません）</td></tr>';
+    || '<tr><td colspan="8" class="muted">' + (boardTab === 'later'
+      ? '（あとでやる の Issue はありません。通常タブの「💤 あとで」で移せます）'
+      : '（表示対象の Issue はありません）') + '</td></tr>';
 }
 
 function renderHistory(d) {
@@ -539,6 +650,9 @@ function renderHistory(d) {
 async function refresh() {
   try {
     const d = await fetch('/board').then((r) => r.json());
+    lastBoard = d;
+    // ボードが目標状態に追いついた保留だけ解除（古いキャッシュで楽観的に動かした行を戻さない）
+    laterPending = laterPendingReducer(laterPending, { type: 'board', items: d.items || [] });
     const st = document.getElementById('state');
     if (d.authError) { st.className = 'pill auth'; st.textContent = 'AUTH ⚠'; }
     else if (d.paused) { st.className = 'pill paused'; st.textContent = 'PAUSED'; }
