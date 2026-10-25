@@ -16,6 +16,11 @@ import GreenFlagIcon from '../green-flag-icon.jsx';
 //                   複数 deck で共有する素材は `getting-started-shared-<説明>.<ext>`
 //   - 画像キー    : `gettingStarted<スラッグPascal>StepN`（ja-steps.js / en-steps.js）
 //   - urlId       : `gettingStarted<スラッグPascal>`
+//   - 最終ステップ: `{deckIds: [...]}` で同カテゴリの**他の単機能 deck** を
+//                   「他にもやってみよう！」（upstream の PreviewsStep）として紹介する。
+//                   自分自身は含めない。表示は先頭 2 件まで。これは「次にやるもの」の
+//                   推薦であって前提ではない（どの deck も単独で完結する）。
+//                   deck を追加したら既存 deck の deckIds にも足して相互参照を保つ
 const decks = {
     'intro-getting-started': {
         name: (
@@ -153,6 +158,9 @@ end`,
                 codeType: 'blocks',
                 animationTarget: 'insertCodeButton',
             },
+            {
+                deckIds: ['getting-started-sprites'],
+            },
         ],
         urlId: 'gettingStartedCostume',
     },
@@ -238,6 +246,9 @@ end`,
 end`,
                 codeType: 'blocks',
                 animationTarget: 'insertCodeButton',
+            },
+            {
+                deckIds: ['getting-started-costume'],
             },
         ],
         urlId: 'gettingStartedSprites',

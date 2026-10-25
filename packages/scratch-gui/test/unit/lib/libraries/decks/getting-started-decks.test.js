@@ -3,9 +3,11 @@
  * "さあ、始めましょう" (gettingStarted) tutorial decks.
  *
  * These decks are content, so the meaningful regressions are:
- *   1. deck wiring — category / urlId / step count / no cross-deck dependency
- *      (the category promises "好きなものを3つ", so a deck must not require
- *      another deck to be finished first)
+ *   1. deck wiring — category / urlId / step count, and the final
+ *      "他にもやってみよう！" step (upstream PreviewsStep) that cross-links the
+ *      other single-feature decks. It is a recommendation, not a prerequisite:
+ *      the category promises "好きなものを3つ", so only the last step may carry
+ *      `deckIds` and it must never point back at the deck itself.
  *   2. locale completeness — every FormattedMessage id resolves in ja / ja-Hira / en
  *   3. asset wiring — every step image key resolves in both ja and en image maps
  *   4. runnability — every step's `code` snippet actually converts to blocks
@@ -27,6 +29,10 @@ const LOCALES = {ja, 'ja-Hira': jaHira, en};
 // pre-existing deck and is guarded separately (it is a Ruby intro, not a
 // single-feature block deck).
 const SINGLE_FEATURE_DECK_IDS = ['getting-started-costume', 'getting-started-sprites'];
+
+// The final `{deckIds}` step renders upstream's PreviewsStep and has no
+// title / image / code of its own, so content checks look only at the rest.
+const contentSteps = deck => deck.steps.filter(step => !step.deckIds);
 
 const collectMessageIds = deck => {
     const ids = [];
@@ -68,10 +74,19 @@ describe('Getting Started single-feature tutorial decks', () => {
             expect(deck.steps.length).toBeLessThanOrEqual(6);
         });
 
-        test('does not chain to another deck (order-independent)', () => {
-            deck.steps.forEach(step => {
-                expect(step.deckIds).toBeUndefined();
+        test('ends with a "他にもやってみよう！" step that links the other single-feature decks', () => {
+            const last = deck.steps[deck.steps.length - 1];
+            // 他の単機能 deck をすべて相互に紹介する（自分自身は含めない）。
+            // PreviewsStep は先頭 2 件しか表示しないが、並びの網羅はここで担保する。
+            expect([...last.deckIds].sort()).toEqual(
+                SINGLE_FEATURE_DECK_IDS.filter(id => id !== deckId).sort(),
+            );
+            last.deckIds.forEach(id => {
+                expect(decks[id]).toBeDefined();
+                expect(decks[id].category).toBe(CATEGORIES.gettingStarted);
             });
+            // 推薦は最終ステップだけ（途中で別 deck へ飛ばさない = 順番に依存しない）。
+            expect(contentSteps(deck)).toHaveLength(deck.steps.length - 1);
         });
 
         test('every message id resolves in ja / ja-Hira / en', () => {
@@ -91,7 +106,7 @@ describe('Getting Started single-feature tutorial decks', () => {
         test('has a thumbnail and every step image key resolves in ja / en image maps', () => {
             expect(deck.img).toBeTruthy();
             const missing = [];
-            deck.steps.forEach(step => {
+            contentSteps(deck).forEach(step => {
                 expect(typeof step.image).toBe('string');
                 if (!Object.prototype.hasOwnProperty.call(jaImages, step.image)) {
                     missing.push(`${step.image} missing in jaImages`);
@@ -106,7 +121,7 @@ describe('Getting Started single-feature tutorial decks', () => {
         test('no two steps reuse the same image key (説明と絵がズレるのを防ぐ)', () => {
             // jest は画像 import をすべて同じスタブに解決するので、解決後の値では
             // なくキーの重複を見る（ja-steps.js のキー → ファイルは 1:1 で運用する）。
-            const keys = deck.steps.map(step => step.image);
+            const keys = contentSteps(deck).map(step => step.image);
             expect(new Set(keys).size).toBe(keys.length);
         });
 
