@@ -190,7 +190,8 @@ export default {
     'gui.classroom.teacherDetail.returnSubmission': 'へんきゃくする',
     'gui.classroom.teacherDetail.returned': 'へんきゃくずみ',
     'gui.classroom.teacherDetail.seated': 'ちゃくせきちゅう',
-    'gui.classroom.teacherDetail.notSeated': 'りせき',
+    'gui.classroom.teacherDetail.notSeated': 'みちゃくせき',
+    'gui.classroom.teacherDetail.notSubmitted': 'みていしゅつ',
     'gui.classroom.teacherDetail.downloadAll': 'ぜんさくひんダウンロード',
     'gui.classroom.coTeachers.title': 'きょうどうかんりしゃ',
     'gui.classroom.coTeachers.hint':
@@ -534,9 +535,14 @@ export default {
         'Google Classroomとれんけいするには、2つのチェックボックスのりょうほうにチェックをいれてください。',
     'gui.classroom.tutorial.classCreation':
         'まずは「クラス」をつくりましょう！\nクラス（れい: ぎじゅつ 2026ねんど）をつくって、そのなかに「だい3かい チャットアプリをつくろう」のようなかだいをついかします。\n「クラスをつくる」ボタンをおしてください。',
-    'gui.classroom.teacherDetail.legend.seated': 'ちゃくせき',
-    'gui.classroom.teacherDetail.legend.submitted': 'ていしゅつずみ',
-    'gui.classroom.teacherDetail.legend.returned': 'へんきゃくずみ',
+    'gui.classroom.statusIcon.seated': 'ちゃくせきちゅう',
+    'gui.classroom.statusIcon.notSeated': 'みちゃくせき',
+    'gui.classroom.statusIcon.notJoined': 'みさんか',
+    'gui.classroom.statusIcon.submitted': 'ていしゅつずみ',
+    'gui.classroom.statusIcon.notSubmitted': 'みていしゅつ',
+    'gui.classroom.statusIcon.returned': 'へんきゃくずみ',
+    'gui.classroom.statusIcon.kickRequested': 'たいしついらいあり',
+    'gui.classroom.statusIcon.occupied': 'しようちゅう',
     'gui.classroom.teacherDetail.assignmentNameLabel': 'かだいめい',
     'gui.classroom.teacherDetail.seatNumber': 'しゅっせきばんごう{number}',
     'gui.classroom.teacherDashboard.expiresAt': 'ゆうこうきげん: {date}',
@@ -1477,4 +1483,13 @@ export default {
     'gui.mobile.orientation.iosNote':
         'iPhone のばあいは、コントロールセンターから「がめんのむきロック」を かいじょしてから よこにしてください。',
     'gui.mobile.orientation.dismiss': 'このまま つかう',
+    'gui.imageViewer.label': 'がぞうビューア',
+    'gui.imageViewer.viewport':
+        '{name}。+ と - でおおきく・ちいさく、やじるしキーでいどう、0 でぜんたいをひょうじします。',
+    'gui.imageViewer.zoomIn': 'おおきくする',
+    'gui.imageViewer.zoomOut': 'ちいさくする',
+    'gui.imageViewer.fit': 'ぜんたいをひょうじ',
+    'gui.imageViewer.actualSize': '100%',
+    'gui.imageViewer.previous': 'まえのがぞう',
+    'gui.imageViewer.next': 'つぎのがぞう',
 };

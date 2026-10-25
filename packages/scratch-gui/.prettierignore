@@ -41,6 +41,7 @@ src/components/*
 !src/components/blocks-screenshot-button/
 !src/components/google-drive-save-dialog/
 !src/components/google-sign-in-slot/
+!src/components/image-viewer/
 !src/components/dncl-mode-notice/
 !src/components/koshien-test-modal/
 !src/components/koshien-settings-modal/
@@ -169,6 +170,7 @@ src/lib/*
 !src/lib/furigana-extension-handlers.js
 !src/lib/furigana-label-map.js
 !src/lib/furigana-node-handlers.js
+!src/lib/image-viewer-math.js
 !src/lib/generator.js
 !src/lib/google-drive-api.js
 !src/lib/google-script-loader.js
@@ -319,6 +321,7 @@ test/unit/*
 # Level 3: test/unit/components/*
 test/unit/components/*
 !test/unit/components/action-menu.test.jsx
+!test/unit/components/image-viewer.test.jsx
 !test/unit/components/bug-report-consent.test.jsx
 !test/unit/components/koshien-mock-panel.test.jsx
 !test/unit/components/koshien-settings-modal.test.jsx
@@ -330,6 +333,7 @@ test/unit/components/*
 !test/unit/components/mesh-self-sensor-notice.test.jsx
 !test/unit/components/student-assignment-panel.test.jsx
 !test/unit/components/teacher-class-detail.test.jsx
+!test/unit/components/classroom-status-icon.test.jsx
 !test/unit/components/teacher-notifications.test.jsx
 !test/unit/components/teacher-avatar-menu.test.jsx
 !test/unit/components/google-sign-in-slot.test.jsx
@@ -382,6 +386,7 @@ test/unit/lib/*
 !test/unit/lib/ruby-to-blocks-converter/
 # Individual Smalruby files
 !test/unit/lib/analytics.test.js
+!test/unit/lib/image-viewer-math.test.js
 !test/unit/lib/auto-correct.test.js
 !test/unit/lib/backpack-api.test.js
 !test/unit/lib/backpack-mesh-v1-migration.test.js

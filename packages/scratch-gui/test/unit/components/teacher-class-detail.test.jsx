@@ -268,3 +268,37 @@ describe('TeacherClassDetail — retention banner (issue #1052)', () => {
         expect(byTestId('classroom-share-suggestion-banner')).not.toBeInTheDocument();
     });
 });
+
+describe('TeacherClassDetail — member grid status icons (#1196)', () => {
+    const recent = () => new Date(Date.now() - 60 * 1000).toISOString();
+    const old = () => new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+
+    const cellStatuses = (seat) =>
+        Array.from(document.querySelectorAll(`[data-testid="classroom-member-seat-0${seat}"] [role="img"]`)).map(
+            (el) => el.dataset.status,
+        );
+
+    test('shows presence + submission icons per seat and a leave-request icon', () => {
+        renderDetail({
+            selectedClassroom: classroom({ studentCount: 3 }),
+            members: [
+                { memberId: 'seat-01', lastActiveAt: recent(), hasSubmission: true, submissionStatus: 'submitted' },
+                { memberId: 'seat-02', lastActiveAt: old(), hasSubmission: true, submissionStatus: 'returned' },
+            ],
+            kickRequestsBySeat: { 2: [{ requestId: 'r1' }] },
+        });
+        fireEvent.click(document.querySelector('[data-testid="classroom-tab-members"]'));
+        expect(cellStatuses(1)).toEqual(['seated', 'submitted']);
+        expect(cellStatuses(2)).toEqual(['notSeated', 'returned', 'kickRequested']);
+        expect(cellStatuses(3)).toEqual(['notJoined']);
+        expect(document.querySelector('[data-testid="classroom-seat-kick-request-2"]')).toBeInTheDocument();
+    });
+
+    test('renders the icon legend', () => {
+        renderDetail({ members: [] });
+        fireEvent.click(document.querySelector('[data-testid="classroom-tab-members"]'));
+        const legend = document.querySelector('[data-testid="classroom-status-legend"]');
+        expect(legend).toBeInTheDocument();
+        expect(legend.querySelectorAll('[role="img"]')).toHaveLength(7);
+    });
+});
