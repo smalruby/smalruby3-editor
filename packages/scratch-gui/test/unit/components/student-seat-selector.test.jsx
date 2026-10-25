@@ -145,4 +145,10 @@ describe('StudentSeatSelector two-column layout (#1221)', () => {
         expect(within('classroom-seat-actions', 'classroom-seat-confirm-message')).toBe(true);
         expect(within('classroom-seat-actions', 'classroom-confirm-seat')).toBe(true);
     });
+
+    test('the join error sits in the main column, below the grid', () => {
+        renderSelector({ selectedSeat: 5, error: 'Could not connect to the server.' });
+        expect(within('classroom-seat-main', 'classroom-error')).toBe(true);
+        expect(within('classroom-seat-actions', 'classroom-error')).toBe(false);
+    });
 });

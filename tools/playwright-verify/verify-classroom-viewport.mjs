@@ -210,7 +210,8 @@ const kickedRoutes = (activeIds) => async (p) => {
         }),
     );
     await p.route('**/classrooms/lookup', (r) => r.fulfill({ json: lookup(activeIds) }));
-    await p.route('**/classrooms/join', (r) => r.fulfill({ status: 500, json: { error: 'Internal error' } }));
+    // 参加の失敗は一番長いエラー文 (ネットワーク到達不可・API のホスト名入り) で測る。
+    await p.route('**/classrooms/join', (r) => r.abort('failed'));
 };
 {
     const { ctx, page } = await studentPage({
@@ -272,13 +273,11 @@ const kickedRoutes = (activeIds) => async (p) => {
     await page.locator('[data-testid="classroom-join-code-input"]').fill('abc234');
     await page.locator('[data-testid="classroom-join-submit"]').click();
     await page.locator('[data-testid="classroom-seat-1"]').click();
-    await page.waitForTimeout(400);
-    await page.locator('[data-testid="kick-request-reason-input"]').fill('きのうと同じ席にすわっています。番号をまちがえたかもしれません。').catch(() => {});
-    const confirm = page.locator('[data-testid="kick-request-submit"]');
-    if (await confirm.count()) {
-        await confirm.click();
-        await page.waitForTimeout(600);
-    }
+    // ダイアログが出なければ座席画面を測って誤って PASS しないよう、ここで失敗させる。
+    await page.locator('[data-testid="kick-request-confirm-dialog"]').waitFor({ state: 'visible', timeout: 10000 });
+    await page.locator('[data-testid="kick-request-reason-input"]').fill('きのうと同じ席にすわっています。番号をまちがえたかもしれません。');
+    await page.locator('[data-testid="kick-request-submit"]').click();
+    await page.waitForTimeout(600);
     await judge(page, { who: 'student', name: 'kick-request dialog (+ error)', shot: 'student-kick-dialog' });
     await ctx.close();
 }

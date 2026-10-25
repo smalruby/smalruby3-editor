@@ -223,6 +223,11 @@ const StudentSeatSelector = ({
                         );
                     })}
                 </div>
+                {/* The main column has room below the 4-row grid; the right column
+                    is already full with banners + confirmation, and a long error
+                    (e.g. network unreachable with the API host) would overflow
+                    600px there (#1221). */}
+                <ErrorDisplay error={error} errorTitle={errorTitle} />
             </div>
             <div className={styles.studentNotices} data-testid="classroom-seat-notices">
                 {kickedNotice && (
@@ -343,7 +348,6 @@ const StudentSeatSelector = ({
                         />
                     </button>
                 </div>
-                <ErrorDisplay error={error} errorTitle={errorTitle} />
             </div>
         </div>
     );
