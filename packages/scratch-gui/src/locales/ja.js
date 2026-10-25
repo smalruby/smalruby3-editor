@@ -375,6 +375,13 @@ export default {
     'gui.classroom.studentAssignment.overwriteConfirm':
         '課題のスタータープロジェクトを開きますか？ 今つくっているプロジェクトは置きかわります。',
     'gui.classroom.studentAssignment.starterLoadFailed': 'スタータープロジェクトを開けませんでした',
+    'gui.classroom.continueChoice.title': 'どこから始めますか？',
+    'gui.classroom.continueChoice.loadTitle': '提出した作品を読み込む',
+    'gui.classroom.continueChoice.starter': 'スターターから始める',
+    'gui.classroom.continueChoice.previous': '前回の提出物から続ける',
+    'gui.classroom.continueChoice.current': 'この課題で提出した作品を読み込む',
+    'gui.classroom.continueChoice.loadFailed': '提出した作品を開けませんでした',
+    'gui.classroom.continueChoice.gone': 'その提出物はもう読み込めません（期限切れか削除されました）',
     'gui.classroom.assignmentEditor.openButton': '課題を編集',
     'gui.classroom.assignmentEditor.title': '課題を編集',
     'gui.classroom.assignmentEditor.hint':

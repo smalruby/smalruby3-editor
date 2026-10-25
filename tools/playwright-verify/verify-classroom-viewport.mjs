@@ -37,6 +37,7 @@ const DOC_SHOT_NAMES = {
     'student-seat-pending': ['0308-student-kick-request-pending.png', '0315-student-seat-confirm.png'],
     'student-seat-rejected': ['0307-student-kicked-banner.png', '0309-student-kick-request-rejected.png'],
     'student-joined': ['0303-student-joined.png'],
+    'student-assignment': ['0314-student-assignment-panel.png'],
     'student-status': ['0304-student-status.png'],
     'student-submit-confirm': ['0306-student-submit-confirm.png'],
 };
@@ -46,6 +47,24 @@ const LONG_ASSIGNMENT = 'ねこが迷路を抜けてゴールまで進むゲー�
 const LONG_COMMENT =
     'よくできています。条件分岐の使い方がとても上手です。次は、ゴールに着いたときに音を鳴らしたり、' +
     'タイムを表示したりして、遊ぶ人がもっと楽しくなる工夫を考えてみましょう。変数の名前もわかりやすくしましょう。';
+// 続きに使える提出物 (#1201)。課題名を長くして選択肢の行を一番長い状態にする。
+const CONTINUABLE = {
+    previous: {
+        classroomId: 'c0',
+        assignmentName: LONG_ASSIGNMENT,
+        projectName: '先週の作品',
+        submittedAt: '2026-10-18T10:00:00.000Z',
+        projectUrl: 'https://example.invalid/prev.sb3',
+    },
+    current: {
+        classroomId: 'c1',
+        assignmentName: LONG_ASSIGNMENT,
+        projectName: '今週の作品',
+        submittedAt: '2026-10-25T10:00:00.000Z',
+        projectUrl: 'https://example.invalid/now.sb3',
+    },
+};
+const routeContinuable = (p) => p.route('**/continuable-submissions', (r) => r.fulfill({ json: CONTINUABLE }));
 const SEATS = 40;
 const TAKEN = [1, 2, 4, 5, 8, 9, 12, 15, 16, 20, 21, 23, 27, 30, 33, 38];
 
@@ -282,11 +301,16 @@ const kickedRoutes = (activeIds) => async (p) => {
     await ctx.close();
 }
 
-// ---------- student-joined (長い名前 + 前回のコメント) ----------
+// ---------- student-joined (長い名前 + 前回のコメント + 続きの選択肢 3 つ) ----------
 {
     const { ctx, page } = await studentPage({
-        routes: (p) =>
-            p.route('**/classrooms/join', (r) =>
+        routes: async (p) => {
+            await routeContinuable(p);
+            // ページなし・スターターだけの課題 → 参加完了画面に 3 つの選択肢が並ぶ。
+            await p.route('**/classrooms/c1/assignment', (r) =>
+                r.fulfill({ json: { assignment: { pages: [], starterUrl: 'https://example.invalid/starter.sb3' } } }),
+            );
+            await p.route('**/classrooms/join', (r) =>
                 r.fulfill({
                     json: {
                         classroomId: 'c1',
@@ -296,11 +320,12 @@ const kickedRoutes = (activeIds) => async (p) => {
                         seatNumber: 3,
                         memberId: 'seat-03',
                         sessionToken: 'stub',
-                        hasAssignment: false,
-                        previousComment: { teacherComment: LONG_COMMENT, status: 'returned' },
+                        hasAssignment: true,
+                        previousComment: { assignmentName: LONG_ASSIGNMENT, teacherComment: LONG_COMMENT, status: 'returned' },
                     },
                 }),
-            ),
+            );
+        },
     });
     await openModal(page);
     await page.locator('[data-testid="classroom-join-code-input"]').fill('abc234');
@@ -309,7 +334,66 @@ const kickedRoutes = (activeIds) => async (p) => {
     await page.locator('[data-testid="classroom-confirm-seat"]').click();
     await page.locator('[data-testid="classroom-phase-student-joined"]').waitFor({ timeout: 10000 });
     await page.waitForTimeout(500);
-    await judge(page, { who: 'student', name: 'student-joined (long names + previous comment)', shot: 'student-joined' });
+    await page.locator('[data-testid="classroom-continue-choice"]').waitFor({ timeout: 10000 });
+    await judge(page, {
+        who: 'student',
+        name: 'student-joined (long names + previous comment + continue choice)',
+        shot: 'student-joined',
+    });
+    await ctx.close();
+}
+
+// ---------- student-assignment (長いページ + 画像 + 前回のコメント + 続きの選択肢 3 つ) ----------
+{
+    const LONG_PAGE = `${'ねこを矢印キーで動かして、迷路の壁に当たったらはじめの場所にもどるようにしよう。'.repeat(6)}`;
+    const IMAGE = `data:image/svg+xml,${encodeURIComponent(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"><rect width="800" height="600" fill="#cde"/></svg>',
+    )}`;
+    const { ctx, page } = await studentPage({
+        routes: async (p) => {
+            await routeContinuable(p);
+            await p.route('**/classrooms/c1/assignment', (r) =>
+                r.fulfill({
+                    json: {
+                        assignment: {
+                            pages: [
+                                { text: LONG_PAGE, imageUrl: IMAGE },
+                                { text: '2', imageUrl: null },
+                            ],
+                            starterUrl: 'https://example.invalid/starter.sb3',
+                        },
+                    },
+                }),
+            );
+            await p.route('**/classrooms/join', (r) =>
+                r.fulfill({
+                    json: {
+                        classroomId: 'c1',
+                        className: LONG_CLASS,
+                        classYear: 2026,
+                        assignmentName: LONG_ASSIGNMENT,
+                        seatNumber: 3,
+                        memberId: 'seat-03',
+                        sessionToken: 'stub',
+                        hasAssignment: true,
+                        previousComment: { assignmentName: LONG_ASSIGNMENT, teacherComment: LONG_COMMENT, status: 'returned' },
+                    },
+                }),
+            );
+        },
+    });
+    await openModal(page);
+    await page.locator('[data-testid="classroom-join-code-input"]').fill('abc234');
+    await page.locator('[data-testid="classroom-join-submit"]').click();
+    await page.locator('[data-testid="classroom-seat-3"]').click();
+    await page.locator('[data-testid="classroom-confirm-seat"]').click();
+    await page.locator('[data-testid="classroom-continue-choice"]').waitFor({ timeout: 10000 });
+    await page.waitForTimeout(500);
+    await judge(page, {
+        who: 'student',
+        name: 'student-assignment (long page + image + previous comment + continue choice)',
+        shot: 'student-assignment',
+    });
     await ctx.close();
 }
 
@@ -317,8 +401,9 @@ const kickedRoutes = (activeIds) => async (p) => {
 {
     const { ctx, page } = await studentPage({
         storage: { 'smalruby:classroom': session({ submissionStatus: 'returned' }) },
-        routes: (p) =>
-            p.route('**/classrooms/verify-session', (r) =>
+        routes: async (p) => {
+            await routeContinuable(p);
+            await p.route('**/classrooms/verify-session', (r) =>
                 r.fulfill({
                     json: {
                         valid: true,
@@ -326,12 +411,18 @@ const kickedRoutes = (activeIds) => async (p) => {
                         submission: { status: 'returned', submittedAt: new Date().toISOString(), teacherComment: LONG_COMMENT },
                     },
                 }),
-            ),
+            );
+        },
     });
     await openModal(page);
     await page.locator('[data-testid="classroom-phase-student-status"]').waitFor({ timeout: 10000 });
+    await page.locator('[data-testid="classroom-continue-choice"]').waitFor({ timeout: 10000 });
     await page.waitForTimeout(800);
-    await judge(page, { who: 'student', name: 'student-status (returned + long comment)', shot: 'student-status' });
+    await judge(page, {
+        who: 'student',
+        name: 'student-status (returned + long comment + continue choice)',
+        shot: 'student-status',
+    });
     await page.locator('[data-testid="classroom-submit-button"]').click();
     await page.locator('[data-testid="classroom-phase-submit-confirm"]').waitFor({ timeout: 10000 });
     await page.waitForTimeout(1500);

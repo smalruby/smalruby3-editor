@@ -60,7 +60,10 @@ const ClassroomModal = ({
     classroomState,
     assignment,
     assignmentPageIndex,
+    continueOptions,
     hasAssignment,
+    loadedChoice,
+    onLoadSubmission,
     onOpenAssignment,
     onAssignmentPrevPage,
     onAssignmentNextPage,
@@ -121,8 +124,16 @@ const ClassroomModal = ({
                 {/* Phase: student-joined */}
                 {phase === 'student-joined' && joinedInfo && (
                     <StudentJoinedConfirmation
+                        continueOptions={continueOptions}
+                        error={error}
+                        errorTitle={errorTitle}
+                        isLoading={isLoading}
                         joinedInfo={joinedInfo}
+                        loadedChoice={loadedChoice}
+                        starterAvailable={!!assignment?.starterUrl}
                         onClose={onClose}
+                        onLoadStarter={onReloadStarter}
+                        onLoadSubmission={onLoadSubmission}
                     />
                 )}
 
@@ -130,12 +141,15 @@ const ClassroomModal = ({
                 {phase === 'student-assignment' && (
                     <StudentAssignmentPanel
                         assignment={assignment}
+                        continueOptions={continueOptions}
                         error={error}
                         errorTitle={errorTitle}
                         isLoading={isLoading}
                         joinedInfo={joinedInfo}
+                        loadedChoice={loadedChoice}
                         pageIndex={assignmentPageIndex}
                         onClose={onClose}
+                        onLoadSubmission={onLoadSubmission}
                         onNextPage={onAssignmentNextPage}
                         onPrevPage={onAssignmentPrevPage}
                         onReloadStarter={onReloadStarter}
@@ -146,14 +160,17 @@ const ClassroomModal = ({
                 {phase === 'student-status' && classroomState && (
                     <StudentStatusView
                         classroomState={classroomState}
+                        continueOptions={continueOptions}
                         error={error}
                         errorActionHandler={errorActionHandler}
                         errorActionLabel={errorActionLabel}
                         errorTitle={errorTitle}
                         hasAssignment={hasAssignment}
                         isLoading={isLoading}
+                        loadedChoice={loadedChoice}
                         teacherComment={teacherComment}
                         onLeaveClassroom={onLeaveClassroom}
+                        onLoadSubmission={onLoadSubmission}
                         onOpenAssignment={onOpenAssignment}
                         onRefreshStudentStatus={onRefreshStudentStatus}
                         onStartSubmit={onStartSubmit}
@@ -180,6 +197,9 @@ const ClassroomModal = ({
 ClassroomModal.propTypes = {
     assignment: PropTypes.object,
     assignmentPageIndex: PropTypes.number,
+    continueOptions: PropTypes.object,
+    loadedChoice: PropTypes.string,
+    onLoadSubmission: PropTypes.func,
     classroomState: PropTypes.object,
     hasAssignment: PropTypes.bool,
     onAssignmentNextPage: PropTypes.func,

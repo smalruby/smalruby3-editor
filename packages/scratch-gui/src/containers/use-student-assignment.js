@@ -2,13 +2,17 @@
  * Student assignment hook.
  *
  * Fetches the assignment content of the joined classroom and loads the
- * starter project into the VM. The starter never clobbers work silently:
- * when the open project has unsaved changes the student is asked first.
+ * starter project into the VM. When the seat has submissions to continue
+ * from (#1201) — this assignment's or the previous assignment's of the same
+ * class — the student chooses where to start instead of the starter opening
+ * automatically. Nothing clobbers work silently: when the open project has
+ * unsaved changes the student is asked first.
  */
 import { useCallback, useState } from 'react';
 import { defineMessages } from 'react-intl';
 import { useSelector } from 'react-redux';
 import classroomAPI from '../lib/classroom-api.js';
+import { normalizeContinueOptions } from '../lib/classroom-continue-options.js';
 import { loadProjectWithChecks } from '../lib/project-loader-utils.js';
 import translateError from './classroom-error-utils.js';
 
@@ -22,6 +26,16 @@ const messages = defineMessages({
         defaultMessage: 'Failed to open the starter project',
         description: 'Error when downloading/loading the starter project fails',
         id: 'gui.classroom.studentAssignment.starterLoadFailed',
+    },
+    submissionLoadFailed: {
+        defaultMessage: 'Failed to open the submitted project',
+        description: 'Error when downloading/loading a submitted project to continue from fails',
+        id: 'gui.classroom.continueChoice.loadFailed',
+    },
+    submissionGone: {
+        defaultMessage: 'That submitted project is no longer available',
+        description: 'Error when the chosen submitted project has expired or was removed',
+        id: 'gui.classroom.continueChoice.gone',
     },
 });
 
@@ -46,24 +60,29 @@ const useStudentAssignment = ({ classroomState, vm, intl, clearError, showError,
     // "View Assignment" button without an extra request.
     const [hasAssignment, setHasAssignment] = useState(false);
 
+    // Submissions to continue from ({current, previous}) or null when there
+    // are none, and which choice was last loaded ('starter' | 'previous' |
+    // 'current') so the choice row can mark it.
+    const [continueOptions, setContinueOptions] = useState(null);
+    const [loadedChoice, setLoadedChoice] = useState(null);
+
     /**
-     * Download the starter sb3 and load it into the VM. Asks for confirmation
-     * when the open project has unsaved changes (never clobbers silently).
-     * @param {object} assignmentData - assignment content with starterUrl
-     * @returns {Promise<boolean>} true when the starter was loaded
+     * Download an sb3 and load it into the VM. Asks for confirmation when the
+     * open project has unsaved changes (never clobbers silently).
+     * @param {string} url - presigned download URL
+     * @returns {Promise<boolean>} true when the project was loaded
      */
-    const loadStarter = useCallback(
-        async (assignmentData) => {
-            if (!assignmentData?.starterUrl) return false;
+    const loadProjectFromUrl = useCallback(
+        async (url) => {
             if (projectChanged) {
                 // eslint-disable-next-line no-alert
                 if (!window.confirm(intl.formatMessage(messages.overwriteConfirm))) {
                     return false;
                 }
             }
-            const response = await fetch(assignmentData.starterUrl);
+            const response = await fetch(url);
             if (!response.ok) {
-                throw new Error(`Starter download failed: ${response.status}`);
+                throw new Error(`Project download failed: ${response.status}`);
             }
             const projectData = await response.arrayBuffer();
             await loadProjectWithChecks(vm, intl, projectData);
@@ -73,38 +92,127 @@ const useStudentAssignment = ({ classroomState, vm, intl, clearError, showError,
     );
 
     /**
-     * Called right after a successful join when the classroom carries
-     * assignment content: fetch it, auto-load the starter, and return the
-     * phase the container should switch to ('student-assignment' when there
-     * are pages to read, null to fall back to the joined confirmation).
-     * Failures fall back gracefully — joining must never be blocked by
-     * assignment delivery problems.
+     * Load the assignment's starter project.
+     * @param {object} assignmentData - assignment content with starterUrl
+     * @returns {Promise<boolean>} true when the starter was loaded
+     */
+    const loadStarter = useCallback(
+        async (assignmentData) => {
+            if (!assignmentData?.starterUrl) return false;
+            const loaded = await loadProjectFromUrl(assignmentData.starterUrl);
+            if (loaded) setLoadedChoice('starter');
+            return loaded;
+        },
+        [loadProjectFromUrl],
+    );
+
+    /**
+     * Fetch the submissions to continue from. Best-effort: a failure means
+     * "nothing to offer" so the join / status view keeps working.
+     * @param {string} sessionToken - student session token
+     * @param {string} classroomId - joined classroom ID
+     * @returns {Promise<?object>} normalized options or null
+     */
+    const fetchContinueOptions = useCallback(async (sessionToken, classroomId) => {
+        try {
+            const options = normalizeContinueOptions(
+                await classroomAPI.getContinuableSubmissions(sessionToken, classroomId),
+            );
+            setContinueOptions(options);
+            return options;
+        } catch {
+            return null;
+        }
+    }, []);
+
+    /**
+     * Called right after a successful join: fetch the assignment content (when
+     * the classroom has one) and the submissions to continue from, then
+     * return the phase the container should switch to ('student-assignment'
+     * when there are pages to read, null to fall back to the joined
+     * confirmation). The starter opens automatically only when there is
+     * nothing to continue from; otherwise the student chooses. Failures fall
+     * back gracefully — joining must never be blocked by assignment delivery
+     * problems.
      * @param {string} sessionToken - fresh session token from the join
      * @param {string} classroomId - joined classroom ID
+     * @param {boolean} withAssignment - whether the classroom carries assignment content
      * @returns {Promise<?string>} next phase or null
      */
-    const handleJoinedWithAssignment = useCallback(
-        async (sessionToken, classroomId) => {
-            try {
-                const data = await classroomAPI.getAssignment(sessionToken, classroomId);
-                if (!data.assignment) return null;
-                setAssignment(data.assignment);
-                setAssignmentPageIndex(0);
-                setHasAssignment(true);
+    const handleJoined = useCallback(
+        async (sessionToken, classroomId, withAssignment) => {
+            setLoadedChoice(null);
+            setContinueOptions(null);
+            setHasAssignment(false);
+            const [assignmentData, options] = await Promise.all([
+                withAssignment ? classroomAPI.getAssignment(sessionToken, classroomId).catch(() => null) : null,
+                fetchContinueOptions(sessionToken, classroomId),
+            ]);
+            const joinedAssignment = assignmentData?.assignment || null;
+            setAssignment(joinedAssignment);
+            setAssignmentPageIndex(0);
+            if (!joinedAssignment) return null;
+            setHasAssignment(true);
+            if (!options) {
                 try {
-                    await loadStarter(data.assignment);
+                    await loadStarter(joinedAssignment);
                 } catch {
                     showError(intl.formatMessage(messages.starterLoadFailed));
                 }
-                return (data.assignment.pages || []).length > 0 ? 'student-assignment' : null;
+            }
+            return (joinedAssignment.pages || []).length > 0 ? 'student-assignment' : null;
+        },
+        [fetchContinueOptions, loadStarter, showError, intl],
+    );
+
+    /** Re-fetch the submissions to continue from (status view). */
+    const refreshContinueOptions = useCallback(async () => {
+        if (!classroomState.sessionToken || !classroomState.classroomId) return;
+        await fetchContinueOptions(classroomState.sessionToken, classroomState.classroomId);
+    }, [classroomState.sessionToken, classroomState.classroomId, fetchContinueOptions]);
+
+    /**
+     * Load a submission to continue from. The download URL is fetched again
+     * right before loading — the one shown in the choice may have expired
+     * while the student read the assignment.
+     * @param {string} kind - 'previous' or 'current'
+     */
+    const handleLoadSubmission = useCallback(
+        async (kind) => {
+            if (!classroomState.sessionToken || !classroomState.classroomId) return;
+            clearError();
+            setIsLoading(true);
+            try {
+                const options = normalizeContinueOptions(
+                    await classroomAPI.getContinuableSubmissions(
+                        classroomState.sessionToken,
+                        classroomState.classroomId,
+                    ),
+                );
+                setContinueOptions(options);
+                const target = options?.[kind];
+                if (!target) {
+                    showError(intl.formatMessage(messages.submissionGone));
+                    return;
+                }
+                if (await loadProjectFromUrl(target.projectUrl)) {
+                    setLoadedChoice(kind);
+                }
             } catch {
-                // Assignment fetch failed — the join itself succeeded, so show
-                // the normal joined confirmation and let the student retry
-                // from the status view.
-                return null;
+                showError(intl.formatMessage(messages.submissionLoadFailed));
+            } finally {
+                setIsLoading(false);
             }
         },
-        [loadStarter, showError, intl],
+        [
+            classroomState.sessionToken,
+            classroomState.classroomId,
+            loadProjectFromUrl,
+            clearError,
+            showError,
+            intl,
+            setIsLoading,
+        ],
     );
 
     /** Open the assignment panel from the status view (re-fetches URLs). */
@@ -161,11 +269,15 @@ const useStudentAssignment = ({ classroomState, vm, intl, clearError, showError,
     return {
         assignment,
         assignmentPageIndex,
+        continueOptions,
         hasAssignment,
+        loadedChoice,
         setHasAssignment,
-        handleJoinedWithAssignment,
+        handleJoined,
+        handleLoadSubmission,
         handleOpenAssignment,
         handleReloadStarter,
+        refreshContinueOptions,
         handleAssignmentPrevPage,
         handleAssignmentNextPage,
     };

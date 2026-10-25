@@ -331,6 +331,13 @@ export default {
     'gui.classroom.studentAssignment.overwriteConfirm':
         'Open the assignment starter project? Your current project will be replaced.',
     'gui.classroom.studentAssignment.starterLoadFailed': 'Failed to open the starter project',
+    'gui.classroom.continueChoice.title': 'Where do you want to start?',
+    'gui.classroom.continueChoice.loadTitle': 'Open a submitted project',
+    'gui.classroom.continueChoice.starter': 'Start from the starter',
+    'gui.classroom.continueChoice.previous': "Continue from last time's submission",
+    'gui.classroom.continueChoice.current': 'Open what you submitted for this assignment',
+    'gui.classroom.continueChoice.loadFailed': 'Failed to open the submitted project',
+    'gui.classroom.continueChoice.gone': 'That submitted project is no longer available',
     'gui.classroom.assignmentEditor.openButton': 'Edit Assignment',
     'gui.classroom.assignmentEditor.title': 'Edit Assignment',
     'gui.classroom.assignmentEditor.hint':

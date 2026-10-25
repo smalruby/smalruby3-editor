@@ -209,6 +209,19 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-assignment-close` | button | はじめる！（モーダルを閉じる） |
 | `classroom-view-assignment-button` | button | ステータス画面の「課題を見る」（hasAssignment 時のみ） |
 
+### どこから始めるかの選択（生徒・Issue #1201）
+
+参加完了（`student-joined`）・課題パネル（`student-assignment`）・ステータス（`student-status`）に、続きに使える提出物があるときだけ表示。
+
+| data-testid | 要素 | 説明 |
+|------------|------|------|
+| `classroom-continue-choice` | div | 選択肢のまとまり（続きに使える提出物が無いときは描画しない） |
+| `classroom-continue-starter` | button | スターターから始める（スターターがあるとき。ステータス画面には出さない） |
+| `classroom-continue-previous` | button | 前回の提出物から続ける（同じクラスの前の課題・同じ席の提出物があるとき） |
+| `classroom-continue-current` | button | この課題で提出した作品を読み込む（この課題で提出済みのとき） |
+
+開いたボタンは `aria-pressed="true"`。1300×600 の収まりは `tools/playwright-verify/verify-classroom-viewport.mjs` が「参加完了 / 課題パネル / ステータス」の選択肢つきの状態で測る。
+
 ### 組（グループ）管理
 
 | data-testid | 要素 | 説明 |

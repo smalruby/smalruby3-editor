@@ -2099,32 +2099,52 @@
 
 /* --- Assignment panel (student) --- */
 
+/* Title, joined badge and pager share one row: the classroom PC is 1300x600,
+   so the panel spends its height on the page itself (#1201 / #1221). */
+.assignment-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.6rem;
+}
+
+.assignment-header-title {
+    margin: 0;
+    font-size: 1.2rem;
+    color: #575e75;
+}
+
 .assignment-joined-notice {
     background-color: #e6f4ea;
     border: 1px solid #b7dfc2;
     border-radius: 0.4rem;
     color: #2d7a43;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     font-weight: bold;
-    padding: 0.5rem 0.75rem;
-    margin-bottom: 0.75rem;
+    padding: 0.25rem 0.6rem;
 }
 
+/* Image beside the text (not above it) and a bounded height: a long page
+   scrolls inside this box instead of pushing the modal past 600px. */
 .assignment-view-page {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
     border: 1px solid #c9cdd3;
     border-radius: 0.5rem;
-    padding: 1rem;
-    margin-bottom: 0.75rem;
+    padding: 0.75rem 1rem;
     background-color: #fafbfc;
-    min-height: 8rem;
+    min-height: 6rem;
+    max-height: 13rem;
+    overflow-y: auto;
 }
 
 .assignment-view-image {
     display: block;
-    max-width: 100%;
-    max-height: 240px;
+    flex: 0 0 auto;
+    max-width: 40%;
+    max-height: 11.5rem;
     object-fit: contain;
-    margin: 0 auto 0.75rem;
     border-radius: 0.3rem;
     background-color: white;
 }
@@ -2137,12 +2157,30 @@
     word-break: break-word;
 }
 
+.assignment-footer {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+}
+
+.assignment-footer .continue-choice {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin-top: 0;
+}
+
+.assignment-footer .button-row {
+    margin-top: 0;
+    margin-left: auto;
+    white-space: nowrap;
+}
+
 .assignment-pager {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-    margin-bottom: 0.75rem;
+    gap: 0.5rem;
+    margin-left: auto;
 }
 
 .assignment-pager-label {
@@ -2256,6 +2294,79 @@
     line-height: 1.5;
     white-space: pre-wrap;
     word-break: break-word;
+}
+
+/* --- Where to start: starter / last time's / this assignment's submission (#1201) ---
+   One horizontal row: the classroom PC is 1300x600, so the choices go side by
+   side instead of stacking (#1221). */
+
+.continue-choice {
+    background-color: #f0f4ff;
+    border: 1px solid #c8d6f0;
+    border-radius: 0.4rem;
+    padding: 0.5rem 0.75rem;
+    margin-top: 0.75rem;
+}
+
+.continue-choice-title {
+    color: #575e75;
+    font-size: 0.8rem;
+    font-weight: bold;
+    margin-bottom: 0.4rem;
+}
+
+.continue-choice-row {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.continue-choice-button {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    background-color: #fff;
+    color: #575e75;
+    border: 1px solid #b8b8b8;
+    border-radius: 0.5rem;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.85rem;
+    text-align: left;
+    cursor: pointer;
+}
+
+.continue-choice-button:hover {
+    background-color: #f0f0f0;
+}
+
+.continue-choice-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.continue-choice-button[aria-pressed='true'] {
+    border-color: #0b8e69;
+    background-color: #e6f4ea;
+}
+
+.continue-choice-check {
+    color: #0b8e69;
+    font-weight: bold;
+}
+
+.continue-choice-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.continue-choice-detail {
+    color: #8a8fa3;
+    font-size: 0.75rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* --- Term-end evaluation (teacher) --- */
