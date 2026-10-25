@@ -83,6 +83,11 @@ describe('認証エラー', () => {
         expect(data.error).toBeDefined();
     });
 
+    test('GET /kick-requests/pending — Authorization ヘッダーなしで 401 (#1200)', async () => {
+        const { status } = await request('GET', '/kick-requests/pending');
+        expect(status).toBe(401);
+    });
+
     test('POST /classrooms — 無効なトークンで 401', async () => {
         const { status } = await request(
             'POST',
@@ -1186,6 +1191,22 @@ describeIfToken('教師フロー — 退室リクエスト (kick request)', () =
         expect(requests[0].requestId).toBe(requestId);
         expect(requests[0].seatNumber).toBe(1);
         expect(requests[0].reason).toBe('これは私の席です');
+    });
+
+    test('GET /kick-requests/pending — 先生の課題をまたいで未処理の依頼が返る (#1200)', async () => {
+        const { status, data } = await request('GET', '/kick-requests/pending', null, teacherHeaders);
+        expect(status).toBe(200);
+        const requests = data.requests as Array<{
+            requestId: string;
+            classroomId: string;
+            seatNumber: number;
+            reason: string | null;
+        }>;
+        const mine = requests.find(r => r.requestId === requestId);
+        expect(mine).toBeDefined();
+        expect(mine?.classroomId).toBe(classroomId);
+        expect(mine?.seatNumber).toBe(1);
+        expect(mine?.reason).toBe('これは私の席です');
     });
 
     test('POST /classrooms/lookup/kick-request — 同じ席に対する 2 回目のリクエストは別レコードとして許可される (abuse 規制なし、複数件許可仕様)', async () => {

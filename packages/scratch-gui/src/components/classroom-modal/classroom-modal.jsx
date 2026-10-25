@@ -75,7 +75,10 @@ const ClassroomModal = ({
             id="classroomModal"
             onRequestClose={onClose}
         >
-            <Box className={styles.body} data-testid="classroom-modal">
+            <Box
+                className={`${styles.body} ${styles.studentBody}`}
+                data-testid="classroom-modal"
+            >
                 {/* Phase: student-join */}
                 {phase === 'student-join' && (
                     <StudentJoinForm

@@ -1,4 +1,4 @@
-import { splitClassroomsByStatus } from '../../../src/containers/use-teacher-classrooms.js';
+import { pickDetailEntryTab, splitClassroomsByStatus } from '../../../src/containers/use-teacher-classrooms.js';
 
 describe('splitClassroomsByStatus', () => {
     test('partitions active and archived classrooms', () => {
@@ -21,5 +21,21 @@ describe('splitClassroomsByStatus', () => {
         expect(splitClassroomsByStatus([])).toEqual({ active: [], archived: [] });
         expect(splitClassroomsByStatus(undefined)).toEqual({ active: [], archived: [] });
         expect(splitClassroomsByStatus(null)).toEqual({ active: [], archived: [] });
+    });
+});
+
+describe('pickDetailEntryTab (teacher review on #1199)', () => {
+    test('opens on the members tab by default', () => {
+        expect(pickDetailEntryTab({ classroomId: 'a', freshlyCreatedIds: new Set() })).toBe('members');
+    });
+
+    test('opens a just-created assignment on the description tab', () => {
+        expect(pickDetailEntryTab({ classroomId: 'a', freshlyCreatedIds: new Set(['a']) })).toBe('description');
+    });
+
+    test('a requested tab wins (「いまの課題を開く」 always asks for members)', () => {
+        expect(
+            pickDetailEntryTab({ classroomId: 'a', requestedTab: 'members', freshlyCreatedIds: new Set(['a']) }),
+        ).toBe('members');
     });
 });

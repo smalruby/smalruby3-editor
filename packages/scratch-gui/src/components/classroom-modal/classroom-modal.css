@@ -1,6 +1,11 @@
-.modal-content {
-    width: 500px;
-    max-width: 90vw;
+/* The student modal targets the 1300x600 classroom PC (#1221): it is wide so
+   guidance and actions sit side by side, and it sits near the top so the body
+   gets most of the 600px height without scrolling. */
+.modal-content.modal-content {
+    width: 960px;
+    max-width: 95vw;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
 }
 
 .modal-content-wide {
@@ -15,6 +20,56 @@
     overflow-y: auto;
     background-color: white;
     border-radius: 0 0 8px 8px;
+}
+
+/* Student body: 1rem margins x2 + 3.125rem header + 8px modal border. */
+.student-body {
+    padding: 1rem 1.5rem;
+    max-height: calc(100vh - 5.125rem - 8px);
+}
+
+/* Seat screen: the grid on the left, notices and the join action on the
+   right. When stacked, notices move above the grid so a student reads why
+   they are back here before picking a seat. */
+.student-seat-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+        'main notices'
+        'main actions';
+    column-gap: 1.5rem;
+}
+
+.student-main {
+    grid-area: main;
+    min-width: 0;
+}
+
+.student-notices {
+    grid-area: notices;
+    min-width: 0;
+}
+
+.student-actions {
+    grid-area: actions;
+    min-width: 0;
+}
+
+.student-notices > :first-child {
+    margin-top: 0;
+}
+
+/* Below the 960px modal (iPad portrait, phones) the columns stack. */
+@media (max-width: 1023px) {
+    .student-seat-layout {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto;
+        grid-template-areas:
+            'notices'
+            'main'
+            'actions';
+    }
 }
 
 .phase-title {
@@ -759,6 +814,19 @@
     margin: 1rem 0;
 }
 
+/* Ten seats per row: 40 seats fit in 4 rows on the 1300x600 PC (#1221). */
+.student-main .seat-grid {
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+    margin: 0.6rem 0 0;
+}
+
+@media (max-width: 1023px) {
+    .student-main .seat-grid {
+        grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
+    }
+}
+
+
 .seat-button {
     background-color: #4c97ff;
     color: white;
@@ -769,6 +837,10 @@
     cursor: pointer;
     font-weight: bold;
     text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
 }
 
 .seat-button:hover {
@@ -869,13 +941,11 @@
     position: absolute;
     top: -4px;
     right: -4px;
-    background-color: #d32f2f;
-    color: #fff;
-    font-size: 0.7rem;
-    font-weight: bold;
+    background-color: #fff;
     border-radius: 50%;
-    width: 14px;
-    height: 14px;
+    width: clamp(18px, 26cqi, 40px);
+    height: clamp(18px, 26cqi, 40px);
+    box-shadow: 0 0 0 1px #d32f2f;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -915,6 +985,7 @@
 
 .kick-request-pending-banner {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 0.5rem;
     background-color: #e3f2fd;
@@ -1077,19 +1148,6 @@
     font-size: 0.75rem;
 }
 
-.legend-item {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.15rem 0.5rem;
-    border-radius: 3px;
-    color: white;
-    font-weight: bold;
-}
-
-.legend-seated {
-    text-decoration: underline;
-}
-
 .members-grid {
     display: grid;
     grid-template-columns: repeat(10, 1fr);
@@ -1099,10 +1157,13 @@
 
 .member-cell {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     width: 100%;
     aspect-ratio: 1;
+    /* Size the number / status icons relative to the (square) cell (#1196) */
+    container-type: inline-size;
     border-radius: 4px;
     font-size: 0.8rem;
     font-weight: bold;
@@ -3444,4 +3505,169 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
 
 .ungrouped-section {
     margin-top: 1rem;
+}
+
+/* Shared status icons (#1196) */
+.status-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    line-height: 0;
+}
+
+.status-icon-badge {
+    background-color: #fff;
+    border-radius: 50%;
+    padding: 2px;
+}
+
+.status-icons {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    line-height: 0;
+}
+
+.status-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem 0.7rem;
+    align-items: center;
+    color: #575e75;
+}
+
+.status-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    white-space: nowrap;
+}
+
+/* Grid cell: seat number on top, status icons underneath (#1196) */
+.member-cell-number {
+    line-height: 1;
+    font-size: clamp(0.8rem, 16cqi, 1.6rem);
+}
+
+/* The icons follow the cell size (cqi = 1% of the cell width), so they stay
+   legible on wide screens; clamp keeps them readable on narrow ones too. */
+.member-cell-icons {
+    margin-top: clamp(2px, 4cqi, 8px);
+    padding: clamp(1px, 2cqi, 4px) clamp(2px, 3cqi, 6px);
+    gap: clamp(2px, 3cqi, 6px);
+    border-radius: clamp(3px, 4cqi, 8px);
+    background-color: rgba(255, 255, 255, 0.85);
+}
+
+.member-cell-icons svg {
+    width: clamp(12px, 26cqi, 44px);
+    height: clamp(12px, 26cqi, 44px);
+}
+
+.seat-kick-request-badge svg {
+    width: clamp(14px, 18cqi, 30px);
+    height: clamp(14px, 18cqi, 30px);
+}
+
+.not-submitted-badge {
+    color: #8c8c8c;
+    font-size: 0.75rem;
+    margin-left: 0.5rem;
+}
+
+.submission-badge,
+.returned-badge,
+.seated-badge,
+.not-seated-badge,
+.not-submitted-badge {
+    display: inline-flex;
+    align-items: center;
+}
+
+.seat-button-number {
+    line-height: 1;
+}
+
+/* --- Seat selection: number input, guide and confirmation (#1198) --- */
+
+.seat-number-form {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin: 0.5rem 0;
+}
+
+.seat-number-input {
+    width: 6rem;
+    padding: 0.5rem;
+    font-size: 1.2rem;
+    text-align: center;
+    border: 2px solid #4c97ff;
+    border-radius: 6px;
+}
+
+.seat-guide {
+    margin: 0.5rem 0;
+    padding: 0.6rem 0.8rem;
+    border-radius: 8px;
+    background-color: #fff8e1;
+    border: 1px solid #ffcc80;
+    color: #575e75;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.seat-guide-idle {
+    background-color: #ffe0b2;
+    border: 2px solid #ff9800;
+    font-weight: bold;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .seat-guide-idle {
+        animation: seat-guide-bounce 1.2s ease-in-out infinite;
+    }
+}
+
+@keyframes seat-guide-bounce {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-4px);
+    }
+}
+
+.seat-typed {
+    outline: 3px solid #ff9800;
+    outline-offset: 1px;
+}
+
+.seat-confirm {
+    margin: 0.5rem 0;
+    padding: 0.8rem 1rem;
+    border-radius: 8px;
+    background-color: #e8f8f2;
+    border: 2px solid #0fbd8c;
+    text-align: center;
+}
+
+.seat-confirm-title {
+    font-size: 1.6rem;
+    font-weight: bold;
+    color: #0b8e69;
+}
+
+.seat-confirm-note {
+    margin-top: 0.3rem;
+    font-size: 0.85rem;
+    color: #575e75;
+}
+
+.kick-request-pending-note {
+    flex-basis: 100%;
+    margin-top: 0.3rem;
+    font-size: 0.85rem;
 }

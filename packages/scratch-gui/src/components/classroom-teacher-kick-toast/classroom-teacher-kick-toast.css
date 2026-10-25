@@ -1,0 +1,110 @@
+@import '../../css/colors.css';
+@import '../../css/units.css';
+
+/* Bottom of the screen, above the editor. Kept compact for 1300x600 class PCs. */
+.toast {
+    position: fixed;
+    bottom: 1rem;
+    left: 50%;
+    z-index: 600;
+    display: flex;
+    flex-direction: column;
+    width: min(26rem, calc(100vw - 2rem));
+    max-height: calc(100vh - 6rem);
+    transform: translateX(-50%);
+    border: 2px solid $error-primary;
+    border-radius: 0.5rem;
+    background-color: $ui-white;
+    box-shadow: 0 0.25rem 1rem rgba(0, 0, 0, 0.3);
+    color: $text-primary;
+    font-size: 0.8125rem;
+}
+
+.header {
+    padding: 0.4rem 0.75rem;
+    background-color: $error-primary;
+    color: $ui-white;
+    font-weight: bold;
+}
+
+.body {
+    overflow-y: auto;
+}
+
+.row {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid $ui-black-transparent;
+}
+
+.title {
+    font-weight: bold;
+}
+
+.meta {
+    color: $text-primary-transparent;
+    font-size: 0.75rem;
+}
+
+.reason {
+    margin: 0.2rem 0;
+    word-break: break-word;
+}
+
+.note {
+    color: $error-primary;
+    font-size: 0.75rem;
+}
+
+.actions,
+.footer {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.35rem;
+}
+
+.footer {
+    justify-content: flex-end;
+    margin: 0;
+    padding: 0.4rem 0.75rem;
+}
+
+.button,
+.approve {
+    padding: 0.25rem 0.75rem;
+    border: 1px solid $ui-black-transparent;
+    border-radius: 0.25rem;
+    background-color: $ui-white;
+    color: $text-primary;
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+
+.approve {
+    border-color: $error-primary;
+    background-color: $error-primary;
+    color: $ui-white;
+}
+
+.button:disabled,
+.approve:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.link {
+    margin-right: auto;
+    padding: 0;
+    border: none;
+    background: none;
+    color: $motion-primary;
+    font-size: 0.75rem;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.error {
+    padding: 0.25rem 0.75rem;
+    color: $error-primary;
+    font-size: 0.75rem;
+}

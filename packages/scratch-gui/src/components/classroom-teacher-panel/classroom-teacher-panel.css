@@ -1,0 +1,228 @@
+@import '../../css/colors.css';
+@import '../../css/units.css';
+
+/*
+ * Non-modal: the overlay covers the window only to give react-draggable its
+ * bounds, and lets every pointer event through to the editor. Below the menu
+ * bar (491) so its dropdowns stay on top, below the class management modal.
+ */
+.overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 485;
+    pointer-events: none;
+}
+
+/* Sized for the 1300x600 class PC: 40 seats fit without scrolling. */
+.panel {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    width: 17.5rem;
+    max-height: calc(100vh - 3.5rem);
+    overflow: hidden;
+    border: 1px solid $ui-black-transparent;
+    border-radius: 0.5rem;
+    background-color: $ui-white;
+    box-shadow: 0 0.25rem 1rem rgba(0, 0, 0, 0.25);
+    color: $text-primary;
+    font-size: 0.75rem;
+    pointer-events: auto;
+}
+
+.minimized {
+    width: auto;
+    min-width: 14rem;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.3rem 0.4rem 0.3rem 0.6rem;
+    background-color: $looks-secondary;
+    color: $ui-white;
+    cursor: move;
+    user-select: none;
+}
+
+.header-title {
+    flex: 1;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.header-counts {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-right: 0.25rem;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.header-button {
+    width: 1.5rem;
+    height: 1.5rem;
+    padding: 0;
+    border: none;
+    border-radius: 0.25rem;
+    background: transparent;
+    color: $ui-white;
+    font-size: 0.875rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.header-button:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.header-button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding: 0.5rem 0.6rem;
+    overflow-y: auto;
+    background-color: $ui-white;
+}
+
+.switcher {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.switcher-label {
+    color: $text-primary-transparent;
+    white-space: nowrap;
+}
+
+.select {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.75rem;
+}
+
+.summary {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-weight: bold;
+}
+
+.summary-item[title] {
+    cursor: help;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 0.2rem;
+}
+
+.seat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    height: 1.9rem;
+    padding: 0;
+    border: 1px solid $ui-black-transparent;
+    border-radius: 0.25rem;
+    background-color: $ui-white;
+    color: $text-primary;
+    font-size: 0.625rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.seat:hover {
+    border-color: $looks-secondary;
+}
+
+.seat-empty {
+    background-color: $ui-tertiary;
+}
+
+.seat-kick {
+    border: 2px solid $error-primary;
+}
+
+.seat-number {
+    font-weight: bold;
+}
+
+.kick-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    max-height: 9rem;
+    overflow-y: auto;
+    padding-top: 0.3rem;
+    border-top: 1px solid $ui-black-transparent;
+}
+
+.kick-note {
+    color: $error-primary;
+}
+
+.kick-row {
+    padding: 0.3rem 0.4rem;
+    border: 1px solid $ui-black-transparent;
+    border-radius: 0.25rem;
+}
+
+.kick-title {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-weight: bold;
+}
+
+.kick-reason {
+    word-break: break-word;
+}
+
+.kick-actions {
+    display: flex;
+    gap: 0.4rem;
+    margin-top: 0.25rem;
+}
+
+.button,
+.approve {
+    padding: 0.15rem 0.6rem;
+    border: 1px solid $ui-black-transparent;
+    border-radius: 0.25rem;
+    background-color: $ui-white;
+    color: $text-primary;
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+
+.approve {
+    border-color: $error-primary;
+    background-color: $error-primary;
+    color: $ui-white;
+}
+
+.button:disabled,
+.approve:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.empty {
+    color: $text-primary-transparent;
+}
+
+.error {
+    color: $error-primary;
+}

@@ -9,6 +9,7 @@ import {
     savePendingKickRequest,
     clearPendingKickRequest,
 } from '../lib/classroom-kick-request-storage.js';
+import { evaluateKickRequestPoll } from '../lib/classroom-seat-selection.js';
 import { loadHistory, addToHistory } from '../lib/join-code-history.js';
 import { getUrlParams, clearClasscode } from '../lib/url-params.js';
 import { showAlertWithTimeout } from '../reducers/alerts.js';
@@ -20,8 +21,9 @@ import {
     setSubmissionStatus,
 } from '../reducers/classroom.js';
 import { setProjectTitle } from '../reducers/project-title.js';
-import { decideClasscodeAction } from './classroom-classcode-utils.js';
+import { decideClasscodeAction, resolveAutoJoinCode } from './classroom-classcode-utils.js';
 import translateError, { extractKickReason } from './classroom-error-utils.js';
+import useKickRequestPolling from './use-kick-request-polling.js';
 import useStudentAssignment from './use-student-assignment.js';
 import useStudentSubmit from './use-student-submit.js';
 
@@ -158,6 +160,28 @@ const ClassroomModal = () => {
     // pending banner forever.
     const [kickRequestRejectedNotice, setKickRequestRejectedNotice] = useState(null);
     const handleDismissKickRequestRejectedNotice = useCallback(() => setKickRequestRejectedNotice(null), []);
+    // Seat freed by the teacher's approval: join it without making the
+    // student pick it again (#1198). Consumed by an effect below.
+    const [autoJoinSeat, setAutoJoinSeat] = useState(null);
+
+    // Apply the teacher's answer to a pending kick request (from polling or
+    // from the lookup done when the modal is reopened).
+    const applyKickRequestOutcome = useCallback((outcome, data, pending) => {
+        if (data) setTakenSeats(data.takenSeats || []);
+        if (!outcome || outcome === 'waiting') return;
+        clearPendingKickRequest();
+        setKickRequestPending(null);
+        if (outcome === 'approved') {
+            setKickRequestRejectedNotice(null);
+            setSelectedSeat(pending.seatNumber);
+            setAutoJoinSeat(pending.seatNumber);
+        } else if (outcome === 'rejected') {
+            // The teacher rejected, or the 1h TTL ran out. Either way the
+            // student should pick another seat (or send a new request)
+            // rather than stare at the pending banner.
+            setKickRequestRejectedNotice({ seatNumber: pending.seatNumber });
+        }
+    }, []);
 
     // --- Join with code ---
 
@@ -177,6 +201,12 @@ const ClassroomModal = () => {
                 setTakenSeats(data.takenSeats || []);
                 setSelectedSeat(null);
                 setPhase('student-seat');
+                // Reopened while a request for this class is pending: the
+                // answer may already be in this lookup.
+                const pending = loadPendingKickRequest();
+                if (pending && pending.joinCode === joinCode) {
+                    applyKickRequestOutcome(evaluateKickRequestPoll(pending, data), data, pending);
+                }
             } catch (err) {
                 const title = intl.formatMessage({
                     defaultMessage: 'An error occurred',
@@ -188,7 +218,7 @@ const ClassroomModal = () => {
                 setIsLoading(false);
             }
         },
-        [clearError, showError, intl],
+        [clearError, showError, intl, applyKickRequestOutcome],
     );
 
     const handleSelectSeat = useCallback((seatNumber) => {
@@ -239,136 +269,105 @@ const ClassroomModal = () => {
         [pendingJoinCode, kickRequestDialogSeat, intl],
     );
 
-    // Polling: while in student-seat with a pending kick request, re-fetch
-    // the lookup every 5s. When the seat is no longer in `takenSeats`, the
-    // teacher approved the request (or it was rejected then the seat freed
-    // up some other way) and we clear the pending state so the student can
-    // re-pick the seat.
-    useEffect(() => {
-        if (phase !== 'student-seat' || !kickRequestPending || !pendingJoinCode) {
-            return () => {
-                // No polling needed; cleanup is a no-op.
-            };
-        }
-        let cancelled = false;
-        const tick = async () => {
-            try {
-                const data = await classroomAPI.lookupClassroom(pendingJoinCode);
-                if (cancelled) return;
-                setTakenSeats(data.takenSeats || []);
-                const seatStillTaken = (data.takenSeats || []).includes(kickRequestPending.seatNumber);
-                const requestStillActive = (data.activeKickRequestIds || []).includes(kickRequestPending.requestId);
-                if (!seatStillTaken) {
-                    // Seat freed → teacher approved (or any equivalent outcome).
-                    clearPendingKickRequest();
-                    setKickRequestPending(null);
-                    setKickRequestRejectedNotice(null);
-                } else if (!requestStillActive) {
-                    // Request is gone but seat is still taken → the teacher
-                    // explicitly rejected, or the 1h TTL expired. Either way
-                    // the student should re-pick a different seat (or send a
-                    // new request) rather than stare at the pending banner.
-                    clearPendingKickRequest();
-                    setKickRequestRejectedNotice({
-                        seatNumber: kickRequestPending.seatNumber,
-                    });
-                    setKickRequestPending(null);
-                }
-            } catch {
-                // Network blip — try again on next tick.
-            }
-        };
-        const id = setInterval(tick, 5000);
-        return () => {
-            cancelled = true;
-            clearInterval(id);
-        };
-    }, [phase, kickRequestPending, pendingJoinCode]);
+    // Polling: while in student-seat with a pending kick request for this
+    // class, watch for the teacher's answer (only while the tab is visible).
+    const handlePollResult = useCallback(
+        (outcome, data) => applyKickRequestOutcome(outcome, data, kickRequestPending),
+        [applyKickRequestOutcome, kickRequestPending],
+    );
+    useKickRequestPolling({
+        pending: kickRequestPending,
+        enabled: phase === 'student-seat' && !!kickRequestPending && kickRequestPending.joinCode === pendingJoinCode,
+        hasSession: !!classroomState.sessionToken,
+        onResult: handlePollResult,
+    });
 
     // --- Confirm join ---
 
-    const handleConfirmJoin = useCallback(async () => {
-        if (!pendingJoinCode || !selectedSeat) return;
-        clearError();
-        setIsLoading(true);
-        try {
-            const data = await classroomAPI.joinClassroom(pendingJoinCode, selectedSeat);
-            dispatch(
-                setClassroomSession({
-                    role: 'student',
-                    classroomId: data.classroomId,
+    const joinSeat = useCallback(
+        async (seatNumber) => {
+            if (!pendingJoinCode || !seatNumber) return;
+            clearError();
+            setIsLoading(true);
+            try {
+                const data = await classroomAPI.joinClassroom(pendingJoinCode, seatNumber);
+                dispatch(
+                    setClassroomSession({
+                        role: 'student',
+                        classroomId: data.classroomId,
+                        className: data.className,
+                        classYear: typeof data.classYear === 'number' ? data.classYear : null,
+                        assignmentName: data.assignmentName || null,
+                        joinCode: pendingJoinCode,
+                        seatNumber: data.seatNumber,
+                        memberId: data.memberId,
+                        sessionToken: data.sessionToken,
+                        joinedAt: new Date().toISOString(),
+                    }),
+                );
+                try {
+                    analytics.event({
+                        category: 'classroom',
+                        action: 'join',
+                        label: data.assignmentName ? 'with_assignment' : 'no_assignment',
+                    });
+                } catch (_e) {
+                    // Swallow analytics failures so the editor never breaks.
+                }
+                if (data.assignmentName) {
+                    dispatch(setProjectTitle(data.assignmentName));
+                }
+                addToHistory({
+                    joinCode: pendingJoinCode,
+                    className: data.className,
+                    assignmentName: data.assignmentName || '',
+                    expiresAt: pendingClassroomInfo?.expiresAt || null,
+                });
+                setJoinCodeHistory(loadHistory());
+                setJoinedInfo({
                     className: data.className,
                     classYear: typeof data.classYear === 'number' ? data.classYear : null,
                     assignmentName: data.assignmentName || null,
-                    joinCode: pendingJoinCode,
                     seatNumber: data.seatNumber,
-                    memberId: data.memberId,
-                    sessionToken: data.sessionToken,
-                    joinedAt: new Date().toISOString(),
-                }),
-            );
-            try {
-                analytics.event({
-                    category: 'classroom',
-                    action: 'join',
-                    label: data.assignmentName ? 'with_assignment' : 'no_assignment',
+                    previousComment: data.previousComment || null,
                 });
-            } catch (_e) {
-                // Swallow analytics failures so the editor never breaks.
+                setKickedNotice(null);
+                clearPendingKickRequest();
+                setKickRequestPending(null);
+                setKickRequestRejectedNotice(null);
+                if (data.hasAssignment) {
+                    // Assignment delivery: fetch the assignment, auto-load the
+                    // starter (never clobbering an edited project silently), and
+                    // jump straight to the assignment pages when there are any.
+                    const nextPhase = await studentAssignment.handleJoinedWithAssignment(
+                        data.sessionToken,
+                        data.classroomId,
+                    );
+                    setPhase(nextPhase || 'student-joined');
+                } else {
+                    studentAssignment.setHasAssignment(false);
+                    setPhase('student-joined');
+                }
+            } catch (err) {
+                if (err.status === 409) {
+                    setTakenSeats((prev) => [...prev, seatNumber]);
+                    setSelectedSeat(null);
+                }
+                showError(translateError(intl, err, 'seat'));
+            } finally {
+                setIsLoading(false);
             }
-            if (data.assignmentName) {
-                dispatch(setProjectTitle(data.assignmentName));
-            }
-            addToHistory({
-                joinCode: pendingJoinCode,
-                className: data.className,
-                assignmentName: data.assignmentName || '',
-                expiresAt: pendingClassroomInfo?.expiresAt || null,
-            });
-            setJoinCodeHistory(loadHistory());
-            setJoinedInfo({
-                className: data.className,
-                classYear: typeof data.classYear === 'number' ? data.classYear : null,
-                assignmentName: data.assignmentName || null,
-                seatNumber: data.seatNumber,
-                previousComment: data.previousComment || null,
-            });
-            setKickedNotice(null);
-            clearPendingKickRequest();
-            setKickRequestPending(null);
-            setKickRequestRejectedNotice(null);
-            if (data.hasAssignment) {
-                // Assignment delivery: fetch the assignment, auto-load the
-                // starter (never clobbering an edited project silently), and
-                // jump straight to the assignment pages when there are any.
-                const nextPhase = await studentAssignment.handleJoinedWithAssignment(
-                    data.sessionToken,
-                    data.classroomId,
-                );
-                setPhase(nextPhase || 'student-joined');
-            } else {
-                studentAssignment.setHasAssignment(false);
-                setPhase('student-joined');
-            }
-        } catch (err) {
-            if (err.status === 409) {
-                setTakenSeats((prev) => [...prev, selectedSeat]);
-                setSelectedSeat(null);
-            }
-            showError(translateError(intl, err, 'seat'));
-        } finally {
-            setIsLoading(false);
-        }
-    }, [
-        dispatch,
-        pendingJoinCode,
-        selectedSeat,
-        pendingClassroomInfo,
-        clearError,
-        showError,
-        intl,
-        studentAssignment,
-    ]);
+        },
+        [dispatch, pendingJoinCode, pendingClassroomInfo, clearError, showError, intl, studentAssignment],
+    );
+
+    const handleConfirmJoin = useCallback(() => joinSeat(selectedSeat), [joinSeat, selectedSeat]);
+
+    useEffect(() => {
+        if (!autoJoinSeat) return;
+        setAutoJoinSeat(null);
+        joinSeat(autoJoinSeat);
+    }, [autoJoinSeat, joinSeat]);
 
     // --- Verify session + fetch submission status ---
 
@@ -424,12 +423,32 @@ const ClassroomModal = () => {
         setPhase('student-join');
     }, [classroomState.sessionToken, classroomState.classroomId, dispatch]);
 
-    // --- Classcode URL parameter auto-join ---
+    // --- Auto-join: classcode URL parameter / teacher's selected assignment ---
     useEffect(() => {
         const classcodeParams = getUrlParams();
-        if (!classcodeParams.classcode) return;
+        const autoJoin = resolveAutoJoinCode({
+            urlClasscode: classcodeParams.classcode,
+            teacherJoinCode: classroomState.teacherSelection && classroomState.teacherSelection.joinCode,
+            session: classroomState,
+        });
+        if (!autoJoin) {
+            // A kick request is still pending (the student closed the modal
+            // while waiting): go straight back to that class's seat screen.
+            const pending = loadPendingKickRequest();
+            if (pending && !classroomState.sessionToken) {
+                handleJoinWithCode(pending.joinCode);
+            }
+            return;
+        }
 
-        const code = classcodeParams.classcode;
+        const code = autoJoin.code;
+        if (autoJoin.source === 'teacher') {
+            // The teacher selected this assignment in class management: open
+            // on its seat selection (#1199). Leaving another class already
+            // happened when the teacher selected it.
+            handleJoinWithCode(code);
+            return;
+        }
 
         const url = new URL(window.location.href);
         url.searchParams.delete('classcode');

@@ -123,6 +123,8 @@ import {isFirmwareFlashSupported} from '../../lib/smalrubot-firmware-flasher';
 // === Smalruby: Start of classroom button ===
 import {openClassroomModal} from '../../reducers/classroom';
 import {isClassroomConfigured} from '../../lib/classroom-api';
+import ClassroomStatusIcon, {getSubmissionStatus} from '../classroom-modal/classroom-status-icon.jsx';
+import ClassroomTeacherMenu from '../../containers/classroom-teacher-menu.jsx';
 // === Smalruby: End of classroom button ===
 import collectMetadata from '../../lib/collect-metadata';
 import {PLATFORM} from '../../lib/platform';
@@ -1259,6 +1261,12 @@ class MenuBar extends React.Component {
                         {/* === Smalruby: Start of classroom button === */}
                         {isClassroomConfigured() && (
                             <React.Fragment>
+                                <ClassroomTeacherMenu
+                                    activeClassName={styles.active}
+                                    className={classNames(styles.menuBarItem, styles.hoverable)}
+                                    menuClassName={classNames(styles.menuBarMenu)}
+                                    place={this.props.isRtl ? 'left' : 'right'}
+                                />
                                 <div
                                     className={classNames(styles.menuBarItem, styles.hoverable)}
                                     data-testid="classroom-menu-button"
@@ -1286,6 +1294,20 @@ class MenuBar extends React.Component {
                                             />
                                         )}
                                     </span>
+                                    {this.props.classroomClassName && this.props.classroomSeatNumber ? (
+                                        <span
+                                            data-testid="classroom-menu-submission-status"
+                                            style={{display: 'inline-flex', marginLeft: '0.3rem'}}
+                                        >
+                                            <ClassroomStatusIcon
+                                                badge
+                                                status={
+                                                    getSubmissionStatus(this.props.classroomSubmissionStatus) ||
+                                                    'notSubmitted'
+                                                }
+                                            />
+                                        </span>
+                                    ) : null}
                                 </div>
                             </React.Fragment>
                         )}
@@ -1709,6 +1731,7 @@ MenuBar.propTypes = {
     classroomAssignmentName: PropTypes.string, // === Smalruby: classroom button ===
     classroomClassName: PropTypes.string, // === Smalruby: classroom button ===
     classroomSeatNumber: PropTypes.number, // === Smalruby: classroom button ===
+    classroomSubmissionStatus: PropTypes.string, // === Smalruby: classroom button ===
     googleDriveSaveDialogVisible: PropTypes.bool,
     googleDriveSaveDirectStatus: PropTypes.string,
     googleDriveSaveStatus: PropTypes.string,
@@ -1845,6 +1868,7 @@ const mapStateToProps = (state, ownProps) => {
         classroomAssignmentName: state.scratchGui.classroom ? state.scratchGui.classroom.assignmentName : null,
         classroomClassName: state.scratchGui.classroom ? state.scratchGui.classroom.className : null,
         classroomSeatNumber: state.scratchGui.classroom ? state.scratchGui.classroom.seatNumber : null,
+        classroomSubmissionStatus: state.scratchGui.classroom ? state.scratchGui.classroom.submissionStatus : null,
         // === Smalruby: End of classroom button ===
         extensionLoadCounter: state.scratchGui.koshienFile.extensionLoadCounter,
         aiSaveStatus: state.scratchGui.koshienFile.aiSaveStatus,

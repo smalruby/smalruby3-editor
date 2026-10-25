@@ -182,6 +182,17 @@ class ClassroomAPI {
     }
 
     /**
+     * Pending kick requests across every assignment the teacher may manage
+     * (#1200). Polled every ~10s while a teacher is logged in.
+     * @param {string} idToken - Teacher ID token
+     * @returns {Promise<object>} {requests: [{requestId, classroomId, className, assignmentName,
+     *   groupId, seatNumber, reason, occupantName, createdAt}], activeAssignmentCount}
+     */
+    async listPendingKickRequests(idToken) {
+        return this._request('GET', '/kick-requests/pending', null, idToken);
+    }
+
+    /**
      * Approve a kick request: removes the seat occupant and clears all
      * sibling requests for that seat (teacher only).
      * @param {string} idToken - Teacher ID token

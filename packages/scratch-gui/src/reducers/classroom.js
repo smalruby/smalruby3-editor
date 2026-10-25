@@ -1,3 +1,5 @@
+import { loadTeacherSession } from '../lib/classroom-teacher-session.js';
+
 const OPEN_MODAL = 'scratch-gui/classroom/OPEN_MODAL';
 const CLOSE_MODAL = 'scratch-gui/classroom/CLOSE_MODAL';
 const OPEN_TEACHER_MODAL = 'scratch-gui/classroom/OPEN_TEACHER_MODAL';
@@ -10,6 +12,17 @@ const CLEAR_SUBMISSION_THUMBNAIL = 'scratch-gui/classroom/CLEAR_SUBMISSION_THUMB
 const REQUEST_RELOGIN = 'scratch-gui/classroom/REQUEST_RELOGIN';
 const SET_TEACHER_SELECTION = 'scratch-gui/classroom/SET_TEACHER_SELECTION';
 const CLEAR_TEACHER_SELECTION = 'scratch-gui/classroom/CLEAR_TEACHER_SELECTION';
+const SET_TEACHER_LOGGED_IN = 'scratch-gui/classroom/SET_TEACHER_LOGGED_IN';
+const SET_TEACHER_UNREAD_COUNT = 'scratch-gui/classroom/SET_TEACHER_UNREAD_COUNT';
+const SET_TEACHER_LAST_SELECTION = 'scratch-gui/classroom/SET_TEACHER_LAST_SELECTION';
+const REQUEST_TEACHER_NAVIGATION = 'scratch-gui/classroom/REQUEST_TEACHER_NAVIGATION';
+const CLEAR_TEACHER_NAVIGATION = 'scratch-gui/classroom/CLEAR_TEACHER_NAVIGATION';
+const SET_TEACHER_KICK_REQUESTS = 'scratch-gui/classroom/SET_TEACHER_KICK_REQUESTS';
+const REMOVE_TEACHER_KICK_REQUEST = 'scratch-gui/classroom/REMOVE_TEACHER_KICK_REQUEST';
+const OPEN_TEACHER_KICK_LIST = 'scratch-gui/classroom/OPEN_TEACHER_KICK_LIST';
+const CLOSE_TEACHER_KICK_LIST = 'scratch-gui/classroom/CLOSE_TEACHER_KICK_LIST';
+const OPEN_TEACHER_PANEL = 'scratch-gui/classroom/OPEN_TEACHER_PANEL';
+const CLOSE_TEACHER_PANEL = 'scratch-gui/classroom/CLOSE_TEACHER_PANEL';
 
 const STORAGE_KEY = 'smalruby:classroom';
 
@@ -110,6 +123,11 @@ const clearStoredSession = () => {
 // the Mesh domain bound to a class the teacher is no longer logged in for.
 const storedSession = loadSession();
 
+// The teacher login itself (#1199) is restored by silent re-authentication
+// (classroom-teacher-menu.jsx); only the last opened assignment is read here
+// so the menu can offer "いまの課題を開く" once the login comes back.
+const storedTeacherSession = loadTeacherSession();
+
 const initialState = {
     modalVisible: false,
     teacherModalVisible: false,
@@ -130,6 +148,25 @@ const initialState = {
     submissionThumbnail: null,
     reloginRequested: false,
     teacherSelection: null,
+    // Teacher menu in the menu bar (#1199). teacherLoggedIn mirrors whether an
+    // ID token is held in memory (use-teacher-auth.js) — the token itself is
+    // never put in Redux.
+    teacherLoggedIn: false,
+    teacherUnreadCount: 0,
+    teacherLastSelection:
+        storedTeacherSession && storedTeacherSession.classroomId
+            ? { classroomId: storedTeacherSession.classroomId, groupId: storedTeacherSession.groupId }
+            : null,
+    // Pending jump requested from the teacher menu, consumed by the teacher modal.
+    teacherNavTarget: null,
+    // Member to show once the jump above lands on the assignment (#1203).
+    teacherNavMemberId: null,
+    // Pending kick requests across the teacher's assignments, polled while
+    // logged in (#1200), and whether the list opened from the menu is shown.
+    teacherKickRequests: [],
+    teacherKickListOpen: false,
+    // Floating "いまの課題の状況" panel (#1203).
+    teacherPanelOpen: false,
 };
 
 const reducer = (state, action) => {
@@ -208,6 +245,54 @@ const reducer = (state, action) => {
         }
         case CLEAR_TEACHER_SELECTION:
             return { ...state, teacherSelection: null };
+        case SET_TEACHER_LOGGED_IN:
+            if (action.loggedIn) return { ...state, teacherLoggedIn: true };
+            return {
+                ...state,
+                teacherLoggedIn: false,
+                teacherUnreadCount: 0,
+                teacherLastSelection: null,
+                teacherNavTarget: null,
+                teacherNavMemberId: null,
+                teacherKickRequests: [],
+                teacherKickListOpen: false,
+                teacherPanelOpen: false,
+            };
+        case SET_TEACHER_UNREAD_COUNT:
+            return { ...state, teacherUnreadCount: action.unreadCount || 0 };
+        case SET_TEACHER_LAST_SELECTION:
+            return { ...state, teacherLastSelection: action.selection };
+        case REQUEST_TEACHER_NAVIGATION:
+            return {
+                ...state,
+                teacherModalVisible: true,
+                teacherNavTarget: action.target,
+                teacherNavMemberId: action.memberId || null,
+            };
+        case CLEAR_TEACHER_NAVIGATION:
+            return { ...state, teacherNavTarget: null, teacherNavMemberId: null };
+        case SET_TEACHER_KICK_REQUESTS:
+            return { ...state, teacherKickRequests: action.requests || [] };
+        case REMOVE_TEACHER_KICK_REQUEST: {
+            // Approving frees the seat and the backend deletes every request
+            // for it, so the seat's other requests go too (not just this one).
+            const { seat } = action;
+            const sameSeat = (r) => !!seat && r.classroomId === seat.classroomId && r.seatNumber === seat.seatNumber;
+            return {
+                ...state,
+                teacherKickRequests: state.teacherKickRequests.filter(
+                    (r) => r.requestId !== action.requestId && !sameSeat(r),
+                ),
+            };
+        }
+        case OPEN_TEACHER_KICK_LIST:
+            return { ...state, teacherKickListOpen: true };
+        case CLOSE_TEACHER_KICK_LIST:
+            return { ...state, teacherKickListOpen: false };
+        case OPEN_TEACHER_PANEL:
+            return { ...state, teacherPanelOpen: true };
+        case CLOSE_TEACHER_PANEL:
+            return { ...state, teacherPanelOpen: false };
         default:
             return state;
     }
@@ -269,6 +354,35 @@ const setTeacherSelection = ({ classroomId, joinCode, className, assignmentName 
 
 const clearTeacherSelection = () => ({ type: CLEAR_TEACHER_SELECTION });
 
+const setTeacherLoggedIn = (loggedIn) => ({ type: SET_TEACHER_LOGGED_IN, loggedIn: !!loggedIn });
+const setTeacherUnreadCount = (unreadCount) => ({ type: SET_TEACHER_UNREAD_COUNT, unreadCount });
+const setTeacherLastSelection = (selection) => ({ type: SET_TEACHER_LAST_SELECTION, selection });
+/**
+ * Ask the teacher modal to open at `target` (#1199).
+ * @param {string} target - 'current-assignment' | 'class-list' | 'notifications'
+ * @param {?string} [memberId] - with 'current-assignment', the member to show (#1203)
+ * @returns {object} action
+ */
+const requestTeacherNavigation = (target, memberId = null) => ({
+    type: REQUEST_TEACHER_NAVIGATION,
+    target,
+    memberId,
+});
+const clearTeacherNavigation = () => ({ type: CLEAR_TEACHER_NAVIGATION });
+const setTeacherKickRequests = (requests) => ({ type: SET_TEACHER_KICK_REQUESTS, requests });
+/**
+ * Drop a handled kick request from the teacher's pending list (#1200).
+ * @param {string} requestId - the handled request
+ * @param {{classroomId: string, seatNumber: number}} [seat] - when approved, the
+ *   freed seat: its other requests are removed too
+ * @returns {object} action
+ */
+const removeTeacherKickRequest = (requestId, seat = null) => ({ type: REMOVE_TEACHER_KICK_REQUEST, requestId, seat });
+const openTeacherKickList = () => ({ type: OPEN_TEACHER_KICK_LIST });
+const closeTeacherKickList = () => ({ type: CLOSE_TEACHER_KICK_LIST });
+const openTeacherPanel = () => ({ type: OPEN_TEACHER_PANEL });
+const closeTeacherPanel = () => ({ type: CLOSE_TEACHER_PANEL });
+
 export default reducer;
 export {
     initialState as classroomInitialState,
@@ -284,4 +398,15 @@ export {
     clearSubmissionThumbnail,
     setTeacherSelection,
     clearTeacherSelection,
+    setTeacherLoggedIn,
+    setTeacherUnreadCount,
+    setTeacherLastSelection,
+    requestTeacherNavigation,
+    clearTeacherNavigation,
+    setTeacherKickRequests,
+    removeTeacherKickRequest,
+    openTeacherKickList,
+    closeTeacherKickList,
+    openTeacherPanel,
+    closeTeacherPanel,
 };

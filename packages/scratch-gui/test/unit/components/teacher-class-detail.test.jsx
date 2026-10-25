@@ -268,3 +268,70 @@ describe('TeacherClassDetail — retention banner (issue #1052)', () => {
         expect(byTestId('classroom-share-suggestion-banner')).not.toBeInTheDocument();
     });
 });
+
+describe('TeacherClassDetail — member grid status icons (#1196)', () => {
+    const recent = () => new Date(Date.now() - 60 * 1000).toISOString();
+    const old = () => new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+
+    const cellStatuses = (seat) =>
+        Array.from(document.querySelectorAll(`[data-testid="classroom-member-seat-0${seat}"] [role="img"]`)).map(
+            (el) => el.dataset.status,
+        );
+
+    test('shows presence + submission icons per seat and a leave-request icon', () => {
+        renderDetail({
+            selectedClassroom: classroom({ studentCount: 3 }),
+            members: [
+                { memberId: 'seat-01', lastActiveAt: recent(), hasSubmission: true, submissionStatus: 'submitted' },
+                { memberId: 'seat-02', lastActiveAt: old(), hasSubmission: true, submissionStatus: 'returned' },
+            ],
+            kickRequestsBySeat: { 2: [{ requestId: 'r1' }] },
+        });
+        fireEvent.click(document.querySelector('[data-testid="classroom-tab-members"]'));
+        expect(cellStatuses(1)).toEqual(['seated', 'submitted']);
+        expect(cellStatuses(2)).toEqual(['notSeated', 'returned', 'kickRequested']);
+        expect(cellStatuses(3)).toEqual(['notJoined']);
+        expect(document.querySelector('[data-testid="classroom-seat-kick-request-2"]')).toBeInTheDocument();
+    });
+
+    test('renders the icon legend', () => {
+        renderDetail({ members: [] });
+        fireEvent.click(document.querySelector('[data-testid="classroom-tab-members"]'));
+        const legend = document.querySelector('[data-testid="classroom-status-legend"]');
+        expect(legend).toBeInTheDocument();
+        expect(legend.querySelectorAll('[role="img"]')).toHaveLength(7);
+    });
+});
+
+describe('TeacherClassDetail — entry tab (teacher review on #1199)', () => {
+    // CSS modules are mocked out, so the visible tab is observed through the
+    // tab reported to the container (it drives the members polling).
+    test('opens on the members tab by default', () => {
+        const onDetailTabChange = jest.fn();
+        renderDetail({ onDetailTabChange });
+        expect(onDetailTabChange).toHaveBeenLastCalledWith('members');
+    });
+
+    test('opens on the description tab when asked (just-created assignment)', () => {
+        const onDetailTabChange = jest.fn();
+        renderDetail({ onDetailTabChange, detailEntry: { tab: 'description', seq: 1 } });
+        expect(onDetailTabChange).toHaveBeenLastCalledWith('description');
+    });
+
+    test('reopening the assignment on screen resets the tab', () => {
+        const onDetailTabChange = jest.fn();
+        const props = { ...defaultProps(), onDetailTabChange, detailEntry: { tab: 'description', seq: 1 } };
+        const { rerender } = render(
+            <IntlProvider locale="en">
+                <TeacherClassDetail {...props} />
+            </IntlProvider>,
+        );
+        expect(onDetailTabChange).toHaveBeenLastCalledWith('description');
+        rerender(
+            <IntlProvider locale="en">
+                <TeacherClassDetail {...props} detailEntry={{ tab: 'members', seq: 2 }} />
+            </IntlProvider>,
+        );
+        expect(onDetailTabChange).toHaveBeenLastCalledWith('members');
+    });
+});

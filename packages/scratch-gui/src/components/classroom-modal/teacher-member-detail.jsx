@@ -2,6 +2,9 @@ import { FormattedMessage } from 'react-intl';
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { isMemberSeated } from '../../lib/classroom-presence.js';
+import ClassroomStatusIcon from './classroom-status-icon.jsx';
+
 import styles from './classroom-modal.css';
 
 const TeacherMemberDetail = ({
@@ -92,12 +95,7 @@ const TeacherMemberDetail = ({
         });
     }, [memberMap, selectedMember]);
 
-    const isSeated = useCallback((member) => {
-        if (!member || !member.lastActiveAt) return false;
-        const elapsed =
-            Date.now() - new Date(member.lastActiveAt).getTime();
-        return elapsed < 60 * 60 * 1000; // 1 hour
-    }, []);
+    const isSeated = useCallback((member) => isMemberSeated(member), []);
 
     // Clamp image index if images changed (e.g. re-submission with fewer screenshots)
     useEffect(() => {
@@ -159,12 +157,29 @@ const TeacherMemberDetail = ({
                             }
                             data-testid="classroom-member-detail-submitted"
                         >
-                            {selectedMemberData.isReturned
-                                ? '↩ '
-                                : '✓ '}
+                            <ClassroomStatusIcon
+                                status={
+                                    selectedMemberData.isReturned
+                                        ? 'returned'
+                                        : 'submitted'
+                                }
+                            />{' '}
                             {new Date(
                                 selectedMemberData.submittedAt,
                             ).toLocaleTimeString()}
+                        </span>
+                    )}
+                    {!selectedMemberData.hasSubmission && (
+                        <span
+                            className={styles.notSubmittedBadge}
+                            data-testid="classroom-member-detail-not-submitted"
+                        >
+                            <ClassroomStatusIcon status="notSubmitted" />{' '}
+                            <FormattedMessage
+                                defaultMessage="Not submitted"
+                                description="Student has not submitted yet (member detail)"
+                                id="gui.classroom.teacherDetail.notSubmitted"
+                            />
                         </span>
                     )}
                     <span
@@ -175,6 +190,13 @@ const TeacherMemberDetail = ({
                         }
                         data-testid="classroom-member-detail-seated"
                     >
+                        <ClassroomStatusIcon
+                            status={
+                                selectedMemberData.isSeated
+                                    ? 'seated'
+                                    : 'notSeated'
+                            }
+                        />{' '}
                         {selectedMemberData.isSeated ? (
                             <FormattedMessage
                                 defaultMessage="Seated"
@@ -208,6 +230,7 @@ const TeacherMemberDetail = ({
                         data-testid="classroom-member-kick-request-panel"
                     >
                         <div className={styles.kickRequestPanelTitle}>
+                            <ClassroomStatusIcon status="kickRequested" />{' '}
                             <FormattedMessage
                                 defaultMessage="{count, plural, one {# kick request from a student} other {# kick requests from students}}"
                                 description="Header in the member-detail panel listing pending kick requests"

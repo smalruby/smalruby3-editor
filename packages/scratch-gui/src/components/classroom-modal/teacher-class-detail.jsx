@@ -4,11 +4,18 @@ import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 import ClassCodeDisplay from './class-code-display.jsx';
+import ClassroomStatusIcon, {
+    ClassroomStatusIcons,
+    ClassroomStatusLegend,
+    getPresenceStatus,
+    getSubmissionStatus,
+} from './classroom-status-icon.jsx';
 import ErrorDisplay from './error-display.jsx';
 import TeacherAssignmentEditor from './teacher-assignment-editor.jsx';
 import TeacherMemberDetail from './teacher-member-detail.jsx';
 
 import { formatClassLabel } from '../../lib/classroom-class-label.js';
+import { isMemberSeated } from '../../lib/classroom-presence.js';
 import {
     canVerifyGoogleShare,
     googleShareBlockedMessage,
@@ -18,6 +25,16 @@ import {
 import { retentionLevel } from '../../lib/classroom-retention.js';
 import googleClassroomIcon from '../classroom-teacher-modal/google-classroom-icon.png';
 import styles from './classroom-modal.css';
+
+const MEMBER_LEGEND_STATUSES = [
+    'seated',
+    'notSeated',
+    'notJoined',
+    'submitted',
+    'notSubmitted',
+    'returned',
+    'kickRequested',
+];
 
 const TeacherClassDetail = ({
     selectedClassroom,
@@ -50,6 +67,7 @@ const TeacherClassDetail = ({
     onApproveKickRequest,
     onRejectKickRequest,
     onDetailTabChange,
+    detailEntry,
     onOpenShareSuggestion,
     assignmentEditor,
     group,
@@ -74,9 +92,10 @@ const TeacherClassDetail = ({
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const deleteConfirmRef = useRef(null);
     const [showCodeDisplay, setShowCodeDisplay] = useState(false);
-    // The description tab is the entry view (teacher review): editing the
-    // student-facing pages is the primary task when opening an assignment.
-    const [activeTab, setActiveTab] = useState('description');
+    // The members tab is the entry view; the description tab only on the
+    // first open of a just-created assignment (pickDetailEntryTab, #1199).
+    const entryTab = (detailEntry && detailEntry.tab) || 'members';
+    const [activeTab, setActiveTab] = useState(entryTab);
     const [previewPage, setPreviewPage] = useState(0);
     const [editAssignmentName, setEditAssignmentName] = useState(
         selectedClassroom.assignmentName || '',
@@ -87,10 +106,10 @@ const TeacherClassDetail = ({
         setEditAssignmentName(selectedClassroom.assignmentName || '');
         setShowDeleteConfirm(false);
         setShowCodeDisplay(false);
-        setActiveTab('description');
+        setActiveTab(entryTab);
         setPreviewPage(0);
-        if (onDetailTabChange) onDetailTabChange('description');
-    }, [selectedClassroom.classroomId]);
+        if (onDetailTabChange) onDetailTabChange(entryTab);
+    }, [selectedClassroom.classroomId, detailEntry && detailEntry.seq]);
 
     const handleTabClick = useCallback(
         (e) => {
@@ -230,11 +249,7 @@ const TeacherClassDetail = ({
         onCloseCodeDisplay();
     }, [onCloseCodeDisplay]);
 
-    const isSeated = useCallback((member) => {
-        if (!member || !member.lastActiveAt) return false;
-        const elapsed = Date.now() - new Date(member.lastActiveAt).getTime();
-        return elapsed < 60 * 60 * 1000; // 1 hour
-    }, []);
+    const isSeated = useCallback((member) => isMemberSeated(member), []);
 
     const joinedCount = members.filter((m) => !m.left).length;
     const totalCount = selectedClassroom.studentCount;
@@ -664,19 +679,10 @@ const TeacherClassDetail = ({
                             {activeTab === 'members' && (
                                 <React.Fragment>
                             <div className={styles.membersHeader}>
-                                <div className={styles.membersLegend}>
-                                    <span className={`${styles.legendItem} ${styles.memberCellJoined}`}>
-                                        <span className={styles.legendSeated}>
-                                            <FormattedMessage defaultMessage="Seated" description="Legend: seated" id="gui.classroom.teacherDetail.legend.seated" />
-                                        </span>
-                                    </span>
-                                    <span className={`${styles.legendItem} ${styles.memberCellSubmitted}`}>
-                                        <FormattedMessage defaultMessage="Submitted" description="Legend: submitted" id="gui.classroom.teacherDetail.legend.submitted" />
-                                    </span>
-                                    <span className={`${styles.legendItem} ${styles.memberCellReturned}`}>
-                                        <FormattedMessage defaultMessage="Returned" description="Legend: returned" id="gui.classroom.teacherDetail.legend.returned" />
-                                    </span>
-                                </div>
+                                <ClassroomStatusLegend
+                                    className={styles.membersLegend}
+                                    statuses={MEMBER_LEGEND_STATUSES}
+                                />
                                 <div className={styles.membersHeaderRight}>
                                     <span
                                         className={styles.membersCount}
@@ -749,14 +755,24 @@ const TeacherClassDetail = ({
                                                 key={memberId}
                                                 onClick={handleCellClick}
                                             >
-                                                {seatNum}
+                                                <span className={styles.memberCellNumber}>
+                                                    {seatNum}
+                                                </span>
+                                                <ClassroomStatusIcons
+                                                    className={styles.memberCellIcons}
+                                                    presence={getPresenceStatus(member, seated)}
+                                                    size={10}
+                                                    submission={getSubmissionStatus(member)}
+                                                />
                                                 {seatKickRequests.length > 0 && (
                                                     <span
                                                         className={styles.seatKickRequestBadge}
                                                         data-testid={`classroom-seat-kick-request-${seatNum}`}
-                                                        title="退室リクエストあり"
                                                     >
-                                                        !
+                                                        <ClassroomStatusIcon
+                                                            size={14}
+                                                            status="kickRequested"
+                                                        />
                                                     </span>
                                                 )}
                                             </button>
@@ -963,6 +979,10 @@ TeacherClassDetail.propTypes = {
     onApproveKickRequest: PropTypes.func,
     onRejectKickRequest: PropTypes.func,
     onDetailTabChange: PropTypes.func,
+    detailEntry: PropTypes.shape({
+        tab: PropTypes.oneOf(['members', 'description']),
+        seq: PropTypes.number,
+    }),
     onOpenShareSuggestion: PropTypes.func,
     assignmentEditor: PropTypes.object,
     group: PropTypes.object,

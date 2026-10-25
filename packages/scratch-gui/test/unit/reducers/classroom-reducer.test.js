@@ -9,6 +9,17 @@ import reducer, {
     clearSubmissionThumbnail,
     setTeacherSelection,
     clearTeacherSelection,
+    setTeacherLoggedIn,
+    setTeacherUnreadCount,
+    setTeacherLastSelection,
+    requestTeacherNavigation,
+    clearTeacherNavigation,
+    setTeacherKickRequests,
+    removeTeacherKickRequest,
+    openTeacherKickList,
+    closeTeacherKickList,
+    openTeacherPanel,
+    closeTeacherPanel,
 } from '../../../src/reducers/classroom';
 
 const STORAGE_KEY = 'smalruby:classroom';
@@ -366,6 +377,111 @@ describe('classroom reducer', () => {
             // Malformed legacy data should still be cleared so it stops surfacing.
             expect(window.sessionStorage.getItem(STORAGE_KEY)).toBeNull();
             expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull();
+        });
+    });
+
+    describe('teacher kick requests (#1200)', () => {
+        test('stores, removes and resets pending kick requests', () => {
+            let state = reducer(classroomInitialState, setTeacherLoggedIn(true));
+            state = reducer(state, setTeacherKickRequests([{ requestId: 'a' }, { requestId: 'b' }]));
+            state = reducer(state, removeTeacherKickRequest('a'));
+            expect(state.teacherKickRequests).toEqual([{ requestId: 'b' }]);
+            state = reducer(state, openTeacherKickList());
+            expect(state.teacherKickListOpen).toBe(true);
+            state = reducer(state, closeTeacherKickList());
+            expect(state.teacherKickListOpen).toBe(false);
+            state = reducer(reducer(state, openTeacherKickList()), setTeacherLoggedIn(false));
+            expect(state.teacherKickRequests).toEqual([]);
+            expect(state.teacherKickListOpen).toBe(false);
+        });
+
+        test('approving a request also drops the other requests for the same seat', () => {
+            let state = reducer(
+                classroomInitialState,
+                setTeacherKickRequests([
+                    { requestId: 'a', classroomId: 'c1', seatNumber: 3 },
+                    { requestId: 'b', classroomId: 'c1', seatNumber: 3 },
+                    { requestId: 'c', classroomId: 'c1', seatNumber: 4 },
+                    { requestId: 'd', classroomId: 'c2', seatNumber: 3 },
+                ]),
+            );
+            state = reducer(state, removeTeacherKickRequest('a', { classroomId: 'c1', seatNumber: 3 }));
+            expect(state.teacherKickRequests.map((r) => r.requestId)).toEqual(['c', 'd']);
+        });
+    });
+
+    describe('teacher status panel (#1203)', () => {
+        test('opens, closes and resets on logout', () => {
+            let state = reducer(classroomInitialState, setTeacherLoggedIn(true));
+            expect(state.teacherPanelOpen).toBe(false);
+            state = reducer(state, openTeacherPanel());
+            expect(state.teacherPanelOpen).toBe(true);
+            state = reducer(state, closeTeacherPanel());
+            expect(state.teacherPanelOpen).toBe(false);
+            state = reducer(reducer(state, openTeacherPanel()), setTeacherLoggedIn(false));
+            expect(state.teacherPanelOpen).toBe(false);
+        });
+
+        test('a navigation request can carry the member to show', () => {
+            let state = reducer(classroomInitialState, requestTeacherNavigation('current-assignment', 'seat-03'));
+            expect(state.teacherNavTarget).toBe('current-assignment');
+            expect(state.teacherNavMemberId).toBe('seat-03');
+            state = reducer(state, clearTeacherNavigation());
+            expect(state.teacherNavMemberId).toBeNull();
+            state = reducer(state, requestTeacherNavigation('class-list'));
+            expect(state.teacherNavMemberId).toBeNull();
+        });
+    });
+
+    describe('teacher login state (#1199)', () => {
+        test('starts logged out', () => {
+            expect(classroomInitialState.teacherLoggedIn).toBe(false);
+            expect(classroomInitialState.teacherUnreadCount).toBe(0);
+            expect(classroomInitialState.teacherNavTarget).toBeNull();
+        });
+
+        test('records login, unread count and last selection', () => {
+            let state = reducer(classroomInitialState, setTeacherLoggedIn(true));
+            state = reducer(state, setTeacherUnreadCount(2));
+            state = reducer(state, setTeacherLastSelection({ classroomId: 'c1', groupId: 'g1' }));
+            expect(state.teacherLoggedIn).toBe(true);
+            expect(state.teacherUnreadCount).toBe(2);
+            expect(state.teacherLastSelection).toEqual({ classroomId: 'c1', groupId: 'g1' });
+        });
+
+        test('logging out resets the teacher-only state', () => {
+            const loggedIn = {
+                ...classroomInitialState,
+                teacherLoggedIn: true,
+                teacherUnreadCount: 3,
+                teacherLastSelection: { classroomId: 'c1', groupId: 'g1' },
+                teacherNavTarget: 'class-list',
+            };
+            const state = reducer(loggedIn, setTeacherLoggedIn(false));
+            expect(state.teacherLoggedIn).toBe(false);
+            expect(state.teacherUnreadCount).toBe(0);
+            expect(state.teacherLastSelection).toBeNull();
+            expect(state.teacherNavTarget).toBeNull();
+        });
+
+        test('a navigation request opens the teacher modal until handled', () => {
+            let state = reducer(classroomInitialState, requestTeacherNavigation('current-assignment'));
+            expect(state.teacherModalVisible).toBe(true);
+            expect(state.teacherNavTarget).toBe('current-assignment');
+            state = reducer(state, clearTeacherNavigation());
+            expect(state.teacherNavTarget).toBeNull();
+            expect(state.teacherModalVisible).toBe(true);
+        });
+
+        test('loads the last selection from the persisted teacher login', () => {
+            jest.resetModules();
+            window.localStorage.setItem(
+                'smalruby:classroomTeacher',
+                JSON.stringify({ provider: 'google', classroomId: 'c9', groupId: 'g9' }),
+            );
+            const { classroomInitialState: fresh } = require('../../../src/reducers/classroom');
+            expect(fresh.teacherLastSelection).toEqual({ classroomId: 'c9', groupId: 'g9' });
+            expect(fresh.teacherLoggedIn).toBe(false);
         });
     });
 });

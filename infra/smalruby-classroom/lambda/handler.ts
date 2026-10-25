@@ -1068,7 +1068,18 @@ function mapClassroomSummary(item: Record<string, unknown>, identity: TeacherIde
   };
 }
 
-async function handleListClassrooms(identity: TeacherIdentity, includeArchived = false): Promise<APIGatewayProxyStructuredResultV2> {
+/**
+ * Every assignment the teacher may see (owned, co-taught, or inside a class
+ * they manage), merged by classroomId with owned rows winning. Shared by the
+ * assignment list and the pending kick-request poll (#1200) so both agree on
+ * what "this teacher's assignments" means.
+ * @param identity - verified teacher
+ * @param includeArchived - also return archived assignments
+ */
+async function listVisibleAssignments(
+  identity: TeacherIdentity,
+  includeArchived = false,
+): Promise<Record<string, unknown>[]> {
   // Assignments the teacher owns — fast GSI query on teacherSub.
   const owned = await queryAll({
     TableName: CLASSROOMS_TABLE,
@@ -1108,8 +1119,12 @@ async function handleListClassrooms(identity: TeacherIdentity, includeArchived =
       byId.set(id, item);
     }
   }
+  return Array.from(byId.values());
+}
 
-  const classrooms = Array.from(byId.values()).map(item => mapClassroomSummary(item, identity));
+async function handleListClassrooms(identity: TeacherIdentity, includeArchived = false): Promise<APIGatewayProxyStructuredResultV2> {
+  const items = await listVisibleAssignments(identity, includeArchived);
+  const classrooms = items.map(item => mapClassroomSummary(item, identity));
   return { statusCode: 200, body: JSON.stringify({ classrooms }) };
 }
 
@@ -1816,6 +1831,84 @@ async function handleListKickRequests(
   };
 }
 
+// Upper bound on how many assignments one pending-kick poll looks at. A kick
+// request lives 1h and only comes from a class in progress, so the most
+// recently touched active assignments are the ones that matter; the cap keeps
+// the 10-second teacher poll (#1200) cheap even for a teacher with many.
+const PENDING_KICK_MAX_ASSIGNMENTS = 50;
+
+/** Most recent of an assignment's timestamps, for picking the "recent" ones. */
+function assignmentRecency(item: Record<string, unknown>): string {
+  return [item.updatedAt, item.sortDate, item.createdAt]
+    .filter((v): v is string => typeof v === 'string')
+    .reduce((a, b) => (a > b ? a : b), '');
+}
+
+/**
+ * Pending kick requests across the teacher's recent active assignments (#1200).
+ * Polled every ~10s by the GUI while a teacher is logged in, so the teacher
+ * notices requests without keeping the members tab open. Each assignment is a
+ * key Query on the kick-request table — nothing is scanned. Visibility follows
+ * the assignment list exactly, so another teacher's requests never appear.
+ * @param identity - verified teacher
+ * @param since - optional ISO timestamp; only requests created after it
+ */
+async function handleListPendingKickRequests(
+  identity: TeacherIdentity,
+  since: string | undefined,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  if (since !== undefined && isNaN(Date.parse(since))) {
+    throw new ValidationError('since must be an ISO timestamp');
+  }
+  // createdAt is stored as toISOString() (UTC, ms); compare in that same form
+  // so `+09:00` offsets or date-only values do not break the string compare.
+  const sinceIso = since === undefined ? undefined : new Date(since).toISOString();
+  const assignments = (await listVisibleAssignments(identity))
+    .sort((a, b) => (assignmentRecency(a) < assignmentRecency(b) ? 1 : -1))
+    .slice(0, PENDING_KICK_MAX_ASSIGNMENTS);
+
+  const perAssignment = await Promise.all(assignments.map(async (classroom) => {
+    const classroomId = classroom.classroomId as string;
+    const result = await docClient.send(new QueryCommand({
+      TableName: KICK_REQUESTS_TABLE,
+      KeyConditionExpression: 'classroomId = :cid',
+      ExpressionAttributeValues: { ':cid': classroomId },
+    }));
+    const nowSec = Math.floor(Date.now() / 1000);
+    const items = (result.Items || []).filter(item =>
+      // DynamoDB TTL deletes lazily; an expired row must not ring the teacher.
+      !(typeof item.ttl === 'number' && item.ttl < nowSec) &&
+      (sinceIso === undefined || (item.createdAt as string) > sinceIso));
+    return Promise.all(items.map(async (item) => {
+      const seatNumber = item.seatNumber as number;
+      const member = await docClient.send(new GetCommand({
+        TableName: MEMBERSHIPS_TABLE,
+        Key: { classroomId, memberId: `seat-${String(seatNumber).padStart(2, '0')}` },
+        ProjectionExpression: 'displayName, kicked',
+      }));
+      const occupant = member.Item && member.Item.kicked !== true ? member.Item : undefined;
+      return {
+        requestId: item.requestId,
+        classroomId,
+        className: classroom.className || null,
+        assignmentName: classroom.assignmentName || null,
+        groupId: classroom.groupId || null,
+        seatNumber,
+        reason: item.reason || null,
+        occupantName: occupant ? (occupant.displayName as string) || null : null,
+        createdAt: item.createdAt,
+      };
+    }));
+  }));
+
+  const requests = perAssignment.flat()
+    .sort((a, b) => ((a.createdAt as string) < (b.createdAt as string) ? -1 : 1));
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ requests, activeAssignmentCount: assignments.length }),
+  };
+}
+
 async function handleApproveKickRequest(
   identity: TeacherIdentity,
   classroomId: string,
@@ -1918,6 +2011,40 @@ export async function verifySessionToken(sessionToken: string): Promise<{ classr
     );
   }
   return { classroomId: item.classroomId as string, memberId: item.memberId as string };
+}
+
+/**
+ * Refresh a seated student's `lastActiveAt` and session TTL on verify-session.
+ * The update is conditional on the row still belonging to this
+ * session and not being kicked: verifySessionToken reads an eventually
+ * consistent GSI, so a student who just left (row deleted) or was kicked could
+ * otherwise get a bare row recreated — blocking the seat for the full session
+ * TTL — or have the short kick-tombstone TTL extended (issue #1197).
+ */
+async function touchMembershipActivity(
+  session: { classroomId: string; memberId: string },
+  sessionToken: string,
+): Promise<void> {
+  try {
+    await docClient.send(new UpdateCommand({
+      TableName: MEMBERSHIPS_TABLE,
+      Key: { classroomId: session.classroomId, memberId: session.memberId },
+      UpdateExpression: 'SET lastActiveAt = :now, #ttl = :ttl',
+      ConditionExpression: 'sessionToken = :st AND (attribute_not_exists(kicked) OR kicked <> :true)',
+      ExpressionAttributeNames: { '#ttl': 'ttl' },
+      ExpressionAttributeValues: {
+        ':now': new Date().toISOString(),
+        ':ttl': Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS,
+        ':st': sessionToken,
+        ':true': true,
+      },
+    }));
+  } catch (err: unknown) {
+    if ((err as { name?: string })?.name === 'ConditionalCheckFailedException') {
+      throw new AuthError('Invalid or expired session token');
+    }
+    throw err;
+  }
 }
 
 // --- Submission handlers ---
@@ -2624,17 +2751,7 @@ async function handleVerifySession(sessionToken: string): Promise<APIGatewayProx
   }
 
   // Update lastActiveAt and extend TTL on each verify call
-  const now = new Date().toISOString();
-  await docClient.send(new UpdateCommand({
-    TableName: MEMBERSHIPS_TABLE,
-    Key: { classroomId: session.classroomId, memberId: session.memberId },
-    UpdateExpression: 'SET lastActiveAt = :now, #ttl = :ttl',
-    ExpressionAttributeNames: { '#ttl': 'ttl' },
-    ExpressionAttributeValues: {
-      ':now': now,
-      ':ttl': Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS,
-    },
-  }));
+  await touchMembershipActivity(session, sessionToken);
 
   if (subResult.Items && subResult.Items.length > 0) {
     const item = subResult.Items[0];
@@ -5084,6 +5201,12 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
       const token = extractBearerToken(event.headers?.authorization);
       const identity = await verifyTeacherIdToken(token);
       result = await handleListNotifications(identity);
+
+    // --- Pending kick requests across the teacher's assignments (#1200) ---
+    } else if (method === 'GET' && path === '/kick-requests/pending') {
+      const token = extractBearerToken(event.headers?.authorization);
+      const identity = await verifyTeacherIdToken(token);
+      result = await handleListPendingKickRequests(identity, event.queryStringParameters?.since || undefined);
 
     } else if (method === 'POST' && path === '/notifications/mark-read') {
       const token = extractBearerToken(event.headers?.authorization);

@@ -39,6 +39,8 @@ export const appendReusedTopic = (group, topic) => {
  * @param {object} params.intl - react-intl intl object
  * @param {Function} params.setIsLoading - loading state setter
  * @param {Function} params.setPhase - phase setter
+ * @param {Function} [params.markClassroomCreated] - remember a new assignment
+ *   so its first open shows the description tab
  * @returns {object} groups state and handlers
  */
 const useTeacherGroups = ({
@@ -52,12 +54,17 @@ const useTeacherGroups = ({
     intl,
     setIsLoading,
     setPhase,
+    markClassroomCreated = () => {},
 }) => {
     const [groups, setGroups] = useState([]);
     // The class the teacher opened from the class list. Scopes the sidebar
     // (and the assignment views) to a single class, Google Classroom style.
     const [selectedGroup, setSelectedGroup] = useState(null);
     const migratedForToken = useRef(null);
+    // The token whose class list request has settled (success or failure).
+    // An empty `groups` is ambiguous — "not loaded yet" vs "no classes" — and
+    // the menu bar's「いまの課題を開く」waits on the former only (#1199).
+    const [groupsLoadedFor, setGroupsLoadedFor] = useState(null);
 
     const loadGroups = useCallback(async () => {
         if (!idToken) return [];
@@ -74,6 +81,8 @@ const useTeacherGroups = ({
             // dashboard, so log and keep the previous list.
             log.error('Failed to load groups:', err);
             return [];
+        } finally {
+            setGroupsLoadedFor(idToken);
         }
     }, [idToken, handleTeacher401]);
 
@@ -195,6 +204,7 @@ const useTeacherGroups = ({
                     null,
                     group.groupId,
                 );
+                markClassroomCreated(created && created.classroomId);
                 setClassrooms((prev) => [...prev, { ...created, role: 'owner', coTeacherEmails: [] }]);
             } catch (err) {
                 if (err.status === 401) {
@@ -206,7 +216,7 @@ const useTeacherGroups = ({
                 setIsLoading(false);
             }
         },
-        [idToken, setClassrooms, clearError, showError, intl, setIsLoading, handleTeacher401],
+        [idToken, setClassrooms, clearError, showError, intl, setIsLoading, handleTeacher401, markClassroomCreated],
     );
 
     /**
@@ -335,6 +345,7 @@ const useTeacherGroups = ({
                         null,
                         group.groupId,
                     );
+                    markClassroomCreated(created && created.classroomId);
                     setClassrooms((prev) => [...prev, { ...created, role: 'owner', coTeacherEmails: [] }]);
                 }
                 await loadGroups();
@@ -362,11 +373,13 @@ const useTeacherGroups = ({
             intl,
             setIsLoading,
             handleTeacher401,
+            markClassroomCreated,
         ],
     );
 
     return {
         groups,
+        groupsLoaded: !!idToken && groupsLoadedFor === idToken,
         loadGroups,
         selectedGroup,
         handleSelectGroup,

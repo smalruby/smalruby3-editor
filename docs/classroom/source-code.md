@@ -21,13 +21,18 @@ smalruby3-editor/
 │   │   │   │   ├── class-code-display.jsx ← 参加コード表示（全画面対応）
 │   │   │   │   ├── google-course-list.jsx ← GC コースタイルグリッド
 │   │   │   │   ├── kick-request-confirm-dialog.jsx ← 退室依頼ダイアログ (#692)
+│   │   │   │   ├── student-seat-selector.jsx ← 生徒の席選択（番号入力・案内・参加確認・依頼中表示）
 │   │   │   │   ├── teacher-class-detail.jsx ← 先生の課題詳細 (退室リクエストバッジ + 退室通知バナー)
 │   │   │   │   ├── teacher-member-detail.jsx ← メンバー詳細パネル (承認/却下ボタン)
+│   │   │   │   ├── classroom-status-icon.jsx ← 着席・提出などの状態アイコン共通部品 (+ 凡例)
 │   │   │   │   ├── teacher-create-form.jsx ← 課題作成フォーム
 │   │   │   │   ├── teacher-assignment-editor.jsx ← 課題エディタ（ページ + スターター）
 │   │   │   │   ├── teacher-group-manage.jsx ← 組（グループ）管理
 │   │   │   │   ├── teacher-evaluation.jsx ← 学期末評価（席×授業マトリクス）
 │   │   │   │   └── teacher-post-assignment.jsx ← 課題配信
+│   │   │   ├── classroom-teacher-menu/ ← メニューバーの先生メニュー「クラス管理」(表示) #1199
+│   │   │   ├── classroom-teacher-kick-toast/ ← 先生向けの退室依頼トースト / 一覧 (表示) #1200
+│   │   │   ├── classroom-teacher-panel/ ← 先生の「いまの課題の状況」フローティングパネル (表示) #1203
 │   │   │   ├── classroom-teacher-modal/ ← 先生用フルスクリーンモーダル
 │   │   │   │   ├── classroom-teacher-modal.jsx ← メイン（ダッシュボード/詳細/作成等）
 │   │   │   │   ├── classroom-teacher-modal.css
@@ -41,6 +46,7 @@ smalruby3-editor/
 │   │   │   ├── classroom-modal.jsx    ← コンテナ（生徒/先生モードの振り分け）
 │   │   │   ├── use-teacher-classroom.js ← 先生用フック統合（他フックを束ねる）
 │   │   │   ├── use-teacher-notifications.js ← お知らせセンター (EPIC #1111)
+│   │   │   ├── classroom-teacher-menu.jsx ← 先生メニューのコンテナ（リロード時のログイン復元・ナビ要求）#1199
 │   │   │   ├── use-teacher-auth.js    ← 認証フック（Google/Microsoft 共通）
 │   │   │   ├── use-teacher-classrooms.js ← 課題 CRUD + 自動リフレッシュ
 │   │   │   ├── use-teacher-submissions.js ← 提出管理・一括ダウンロード
@@ -48,16 +54,26 @@ smalruby3-editor/
 │   │   │   ├── use-teacher-groups.js ← 組（グループ）管理・複製フロー
 │   │   │   ├── use-teacher-evaluation.js ← 学期末評価フロー（読み込み/AI評価/CSV/返却）
 │   │   │   ├── use-student-submit.js  ← 生徒提出フロー
+│   │   │   ├── use-kick-request-polling.js ← 退室依頼の承認待ちポーリング（依頼中・タブ表示中・未参加のみ）
+│   │   │   ├── classroom-kick-request-watcher.jsx ← モーダルを閉じている間の承認待ち見張り
+│   │   │   ├── classroom-teacher-kick-alerts.jsx ← 先生の未処理退室依頼の見張り + トースト（GUI 全体で 1 つ）#1200
+│   │   │   ├── use-teacher-kick-request-polling.js ← 先生の退室依頼ポーリング（10 秒・タブ表示中・バックオフ）
+│   │   │   ├── classroom-teacher-panel.jsx ← 「いまの課題の状況」パネルのコンテナ（GUI 全体で 1 つ）#1203
+│   │   │   ├── use-teacher-panel-polling.js ← パネルのメンバー・提出ポーリング（開いている間・30 秒・タブ表示中）
 │   │   │   ├── use-google-classroom.js ← Google Classroom API 連携
 │   │   │   ├── classroom-error-utils.js ← エラーメッセージ変換
 │   │   │   └── alert.jsx             ← Alert コンテナ（参加しなおす対応）
 │   │   ├── lib/
 │   │   │   ├── classroom-api.js       ← API クライアント (リトライ付き)
+│   │   │   ├── classroom-presence.js  ← 着席判定のしきい値（唯一の定義）
+│   │   │   ├── classroom-teacher-session.js ← 先生ログインの永続化（provider + 最後の課題のみ、トークン非保存）・メニュー出し分け（純粋）#1199
 │   │   │   ├── classroom-assignment-utils.js ← 課題エディタの純粋ヘルパー
 │   │   │   ├── classroom-group-utils.js ← サイドバー組階層の純粋ヘルパー
 │   │   │   ├── classroom-google-share.js ← GC 共有の既定ブロック判定 + 解除導線の文言（純粋）#1184
 │   │   │   ├── classroom-evaluation/ ← sb3-analyzer（静的解析）+ evaluation-utils（総合評価/CSV）
 │   │   │   ├── classroom-kick-request-storage.js ← 退室依頼の localStorage 永続化 (#692)
+│   │   │   ├── classroom-seat-selection.js ← 席選択の純粋ロジック（番号入力の検証・ポーリング判定・定数）
+│   │   │   ├── classroom-teacher-kick-alerts.js ← 先生の退室依頼通知の純粋ロジック（間隔・バックオフ・要約）
 │   │   │   ├── google-classroom-auth.js ← Google Classroom OAuth
 │   │   │   └── alerts/index.jsx       ← Alert 定義（classroomSessionExpired 追加）
 │   │   ├── reducers/
@@ -164,7 +180,7 @@ GOOGLE_ID_TOKEN=eyJ... docker compose run --rm -w /app/infra/smalruby-classroom 
 | フック | 責務 |
 |--------|------|
 | `use-teacher-classroom.js` | **統合フック** — 他の4フックを束ねて先生側の全状態・操作を提供 |
-| `use-teacher-auth.js` | 認証 (Google / Microsoft のログイン、サイレント再認証、ログアウト) |
+| `use-teacher-auth.js` | 認証 (Google / Microsoft のログイン、サイレント再認証、ログアウト、リロード時の復元 `restoreTeacherLogin`) |
 | `use-teacher-classrooms.js` | 課題 CRUD、メンバー管理、30秒ごとの自動リフレッシュ |
 | `use-teacher-submissions.js` | 提出一覧、返却、コメント、全作品一括ダウンロード |
 | `use-google-classroom.js` | Google Classroom コース取得・インポート |
