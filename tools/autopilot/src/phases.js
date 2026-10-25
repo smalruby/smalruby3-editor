@@ -2213,6 +2213,167 @@ const DEFAULT_WATCHDOG = {
     maxSendAttempts: 4,
 };
 
+// ---- 💤 later（「あとでやる」一覧の分離・#1190） ----
+//
+// 主目的はモニタ上の**一覧の分離だけ**。`💤 later` が付いていても dispatch・ゲート・merge 検知は
+// 変えない（phaseForItem / isActionable はこのラベルを見ない）。人間が付与するラベルで、
+// label healing（labelActions）は扱わない＝外さない・付け直さない。
+//
+// 下の「クライアント共有」関数はモニタ HTML（monitor.js）へ `fn.toString()` で埋め込み、
+// ブラウザでも同じ実装を使う（判断ロジックの二重定義を避ける）。そのため**自己完結**
+// （外側の定数・関数を参照しない）に保つこと。monitor.test.js が単独評価できることを検証する。
+
+/** 「あとでやる」一覧へ分離する印のラベル（人間が付与・autopilot の処理は変えない） */
+const LATER_LABEL = '💤 later';
+
+/**
+ * item に 💤 later が付いているか（純粋関数）。
+ * @param {object} item { labels }
+ * @returns {boolean}
+ */
+function hasLaterLabel(item) {
+    return Boolean(item) && Array.isArray(item.labels) && item.labels.includes(LATER_LABEL);
+}
+
+/**
+ * 💤 later を目的の状態にするためのラベル差分（純粋関数）。既に目的の状態なら空差分 =
+ * **書き込まない**（`POST /later` の冪等性。github-api.md §4「書き込みは差分時のみ」）。
+ * @param {string[]} currentLabels 現在のラベル名
+ * @param {boolean} later 目的の状態（true=付与 / false=除去）
+ * @returns {{add: string[], remove: string[]}}
+ */
+function laterLabelDiff(currentLabels, later) {
+    const has = (currentLabels || []).includes(LATER_LABEL);
+    if (later && !has) return { add: [LATER_LABEL], remove: [] };
+    if (!later && has) return { add: [], remove: [LATER_LABEL] };
+    return { add: [], remove: [] };
+}
+
+/**
+ * ラベル配列の 💤 later を目的の状態に置き換えたコピーを返す（純粋関数）。
+ * `POST /later` 成功後に board / items キャッシュの labels を書き換えるのに使う
+ * （ボード再取得＝GraphQL は撃たない）。
+ * @param {string[]} labels
+ * @param {boolean} later
+ * @returns {string[]}
+ */
+function withLaterLabel(labels, later) {
+    const rest = (labels || []).filter((l) => l !== LATER_LABEL);
+    return later ? [...rest, LATER_LABEL] : rest;
+}
+
+/**
+ * 💤 あとで / ↩ 今やる ボタンを出してよい行か（クライアント共有・自己完結）。
+ * 終端 Status（Close / Done）には出さない。TERMINAL_STATUSES と同じ集合を内側に持つ
+ * （埋め込みのため外側参照不可。一致は later.test.js で担保）。
+ * @param {object} item { status }
+ * @returns {boolean}
+ */
+function canToggleLater(item) {
+    return Boolean(item) && !['Close', 'Done'].includes(item.status);
+}
+
+/**
+ * 画面上の「あとでやる」状態（クライアント共有・自己完結）。保留中（楽観的更新中・
+ * 確定待ち）の変更がある Issue は pending の目標状態を優先し、ボード再取得の古い labels で
+ * 行が一瞬元に戻らないようにする。
+ * @param {object} item board item（`later` boolean を持つ）
+ * @param {object} [pending] laterPendingReducer の状態 { [issue]: {desired, ...} }
+ * @returns {boolean}
+ */
+function effectiveLater(item, pending) {
+    const p = pending && item ? pending[item.issue] : null;
+    if (p) return Boolean(p.desired);
+    return Boolean(item && item.later);
+}
+
+/**
+ * ボード item を [通常] / [あとでやる] に振り分け、タブの件数・⚠ バッジ（あとでやる内の
+ * 実行中 / 人間の番）を集計する（クライアント共有・自己完結）。
+ * @param {object[]} items board item
+ * @param {object} [pending] laterPendingReducer の状態
+ * @param {number[]} [runningIssues] 実行中 issue 番号
+ * @returns {{normal: object[], later: object[], laterRunning: number, laterHitl: number}}
+ */
+function splitLaterBoard(items, pending, runningIssues) {
+    const running = new Set(runningIssues || []);
+    const normal = [];
+    const later = [];
+    let laterRunning = 0;
+    let laterHitl = 0;
+    for (const it of items || []) {
+        const p = pending && it ? pending[it.issue] : null;
+        const isLater = p ? Boolean(p.desired) : Boolean(it && it.later);
+        if (!isLater) { normal.push(it); continue; }
+        later.push(it);
+        if (running.has(it.issue)) laterRunning += 1;
+        else if (it.hitl) laterHitl += 1;
+    }
+    return { normal, later, laterRunning, laterHitl };
+}
+
+/**
+ * 「あとで / 今やる」の楽観的更新・連打対策の状態遷移（クライアント共有・自己完結・純粋）。
+ * 状態は `{ [issue]: { desired, confirmed, seq, inFlight, error } }`（保留中の Issue だけ持つ）。
+ *
+ * - `request` {issue, later, current, seq}: クリック。desired を即時に目標へ（楽観的更新）。
+ *   `confirmed` は最初の request 時点の画面状態（= 最後に確定した状態）を引き継ぐ。
+ * - `success` {issue, seq, later}: サーバー応答。`later` はサーバーが最終的に収束させた状態
+ *   （畳み込み後）。confirmed を更新。**最新 seq の応答だけ**が desired を確定させる
+ *   （古い応答で後続の意図を巻き戻さない＝最後の意図が勝つ）。
+ * - `failure` {issue, seq, error}: 最新 seq の失敗だけ「最後に確定した状態」へ巻き戻す。
+ *   古い seq の失敗は無視（後続リクエストの結果まで巻き戻さない）。
+ * - `board` {items}: ボード再取得。送信中でなく、ボードが desired に追いついた Issue の
+ *   保留を解除する（それまでは pending を優先表示し、古いキャッシュで行が戻らない）。
+ *   ボードから消えた Issue（終端化等）の非送信中保留も捨てる。**失敗で巻き戻した保留も捨てる**:
+ *   失敗時の実ラベルは不確定（応答だけ落ちて書き込みは成功した・別タブの畳み込みで途中まで
+ *   適用された等）なので、以後は daemon のキャッシュ＝ボードを真実とする（巻き戻した desired と
+ *   実ラベルが食い違ったまま保留が残り続けるのを防ぐ）。
+ * @param {object} pending 現在の状態（破壊しない）
+ * @param {object} action
+ * @returns {object} 新しい状態
+ */
+function laterPendingReducer(pending, action) {
+    const cur = pending || {};
+    const next = { ...cur };
+    const a = action || {};
+    const e = cur[a.issue];
+    if (a.type === 'request') {
+        next[a.issue] = {
+            desired: Boolean(a.later),
+            confirmed: e ? e.confirmed : Boolean(a.current),
+            seq: a.seq,
+            inFlight: true,
+            error: null,
+        };
+        return next;
+    }
+    if (a.type === 'success') {
+        if (!e) return cur;
+        const confirmed = Boolean(a.later);
+        if (a.seq !== e.seq) { next[a.issue] = { ...e, confirmed }; return next; }
+        next[a.issue] = { ...e, desired: confirmed, confirmed, inFlight: false, error: null };
+        return next;
+    }
+    if (a.type === 'failure') {
+        if (!e || a.seq !== e.seq) return cur;
+        next[a.issue] = { ...e, desired: e.confirmed, inFlight: false, error: a.error || 'failed' };
+        return next;
+    }
+    if (a.type === 'board') {
+        const byIssue = {};
+        for (const it of a.items || []) if (it) byIssue[it.issue] = it;
+        for (const key of Object.keys(cur)) {
+            const p = cur[key];
+            if (p.inFlight) continue;
+            const it = byIssue[key];
+            if (!it || p.error || Boolean(it.later) === Boolean(p.desired)) delete next[key];
+        }
+        return next;
+    }
+    return cur;
+}
+
 module.exports = {
     PHASE_BY_COMMAND,
     PHASE_BY_AI_STATUS,
@@ -2272,6 +2433,14 @@ module.exports = {
     touchedRuleAreas,
     TRACKING_LABEL,
     WAITING_LABEL,
+    LATER_LABEL,
+    hasLaterLabel,
+    laterLabelDiff,
+    withLaterLabel,
+    canToggleLater,
+    effectiveLater,
+    splitLaterBoard,
+    laterPendingReducer,
     isTrackerItem,
     hasTrackingLabel,
     waitingLabelAction,
