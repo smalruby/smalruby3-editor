@@ -115,6 +115,12 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-seat-grid` | div | 席番号グリッド |
 | `classroom-seat-{n}` | button | 席番号 n のボタン（使用中は `classroom-status-icon-occupied` を含む） |
 | `classroom-selected-seat` | div (hidden) | 選択中の席番号 |
+| `classroom-seat-number-form` | form | 出席番号の数値入力フォーム（グリッドの上） |
+| `classroom-seat-number-input` | input | 出席番号の入力欄（1〜定員。全角数字も可）。入力した番号のセルは `data-typed` で強調 |
+| `classroom-seat-number-submit` | button | 「この番号にする」。空席なら選択→確認、使用中なら退室依頼ダイアログ |
+| `classroom-seat-number-error` | div | 範囲外・数字以外の入力エラー |
+| `classroom-seat-guide` | div | 常時の案内文。表示から 30 秒席が選ばれないと `data-idle="1"` で強調（`prefers-reduced-motion` ではアニメなし） |
+| `classroom-seat-confirm-message` | div | 参加確定前の大きな確認「出席番号 NN で参加します」 |
 | `classroom-confirm-seat` | button | 席番号確定・参加 |
 
 ### 生徒: 参加完了
@@ -355,7 +361,8 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `kick-request-submit` | button | 依頼を送信 |
 | `kick-request-cancel` | button | ダイアログを閉じる |
 | `kick-request-error` | div | 依頼送信エラー表示 |
-| `kick-request-pending-banner` | div | 「先生に依頼中です…」バナー（5 秒ごとに lookupClassroom を polling）|
+| `kick-request-pending-banner` | div | 「先生に依頼中です…」バナー（依頼が生きている間・タブ表示中だけ 5 秒ごとに lookupClassroom を polling。承認で席が空いたらその席で自動参加）|
+| `kick-request-pending-note` | p | 依頼中バナー内の補足「先生に届いています。先生が確認しに来ます。待つ間スモウルビーを使っていてもかまいません…」 |
 | `kick-request-rejected-banner` | div | 「依頼は受理されませんでした」バナー (却下 / TTL 期限切れ検出時に pending と差し替え) |
 | `kick-request-rejected-banner-dismiss` | button | × ボタン |
 | `classroom-seat-kick-request-{seatNumber}` | span | 先生の課題詳細の座席グリッドに表示する退室依頼アイコン（`classroom-status-icon-kickRequested`）のバッジ |
