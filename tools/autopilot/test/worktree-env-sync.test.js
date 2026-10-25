@@ -61,9 +61,10 @@ const MAIN_NOISE = [
  * @param {object} options オプション。
  * @param {string[]} options.args スクリプトに渡す引数（`--force` など）。
  * @param {Function} options.before 実行前に worktree を触るフック。引数は worktree の絶対パス。
+ * @param {object} options.env スクリプト実行時の env（`cp` シムを PATH に入れる用途）。
  * @returns {{main: string, worktree: string, stdout: string}} 生成パスと標準出力。
  */
-function runSync(t, { args = [], before } = {}) {
+function runSync(t, { args = [], before, env } = {}) {
     const base = fs.mkdtempSync(path.join(os.tmpdir(), 'sync-env-'));
     t.after(() => fs.rmSync(base, { recursive: true, force: true }));
     const main = path.join(base, 'main');
@@ -92,7 +93,12 @@ function runSync(t, { args = [], before } = {}) {
         before(worktree);
     }
 
-    const stdout = execFileSync(SCRIPT, args, { cwd: worktree, encoding: 'utf8' });
+    const stdout = execFileSync(SCRIPT, args, {
+        cwd: worktree,
+        encoding: 'utf8',
+        env,
+        stdio: ['ignore', 'pipe', 'pipe'],
+    });
     return { main, worktree, stdout };
 }
 
@@ -142,4 +148,55 @@ test('is idempotent: a second run keeps existing files unless --force', (t) => {
 
     execFileSync(SCRIPT, ['--force'], { cwd: worktree, encoding: 'utf8' });
     assert.strictEqual(fs.readFileSync(path.join(worktree, rel), 'utf8'), `${rel}\n`);
+});
+
+// Issue #1226: on the devpod bind mount, GNU cp occasionally reports
+//   cp: skipping file '...', as it was replaced while being copied
+// for a file nobody touched. A `cp` shim on PATH fails the first copy of one
+// file (or every copy) to pin the retry behaviour.
+const FLAKY_REL = 'infra/smalruby-bug-report/.env.stg';
+
+/**
+ * 指定ファイルのコピーだけを失敗させる `cp` シムを作る。
+ * @param {object} t node:test のテストコンテキスト（後片付けの登録に使う）。
+ * @param {number} failures 失敗させる回数（Infinity で常に失敗）。
+ * @returns {object} シムを PATH の先頭に入れた env。
+ */
+function flakyCpEnv(t, failures) {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sync-env-cp-'));
+    t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+    const realCp = execFileSync('sh', ['-c', 'command -v cp'], { encoding: 'utf8' }).trim();
+    const counter = path.join(dir, 'count');
+    const limit = Number.isFinite(failures) ? failures : 1e9;
+    fs.writeFileSync(
+        path.join(dir, 'cp'),
+        `#!/usr/bin/env bash
+if [[ "$*" == *"${FLAKY_REL}"* ]]; then
+    n=$(cat "${counter}" 2>/dev/null || echo 0)
+    if (( n < ${limit} )); then
+        echo $((n + 1)) > "${counter}"
+        echo "cp: skipping file '\${@: -2:1}', as it was replaced while being copied" >&2
+        exit 1
+    fi
+fi
+exec "${realCp}" "$@"
+`,
+        { mode: 0o755 },
+    );
+    return { ...process.env, PATH: `${dir}:${process.env.PATH}`, SYNC_ENV_CP_RETRY_DELAY: '0' };
+}
+
+test('retries a transient cp failure and copies the file', (t) => {
+    const env = flakyCpEnv(t, 1);
+    const { worktree } = runSync(t, { env });
+
+    assert.strictEqual(fs.readFileSync(path.join(worktree, FLAKY_REL), 'utf8'), `${FLAKY_REL}\n`);
+});
+
+test('fails naming the file when cp keeps failing', (t) => {
+    const env = flakyCpEnv(t, Infinity);
+    assert.throws(
+        () => runSync(t, { env }),
+        (err) => err.status !== 0 && String(err.stderr).includes(FLAKY_REL),
+    );
 });
