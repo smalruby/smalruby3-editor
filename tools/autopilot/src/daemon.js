@@ -86,11 +86,16 @@ const {
     checkpointIterationDecision,
     CHECKPOINT_CONTINUATION_COMMENT_MARKER,
     continuationCommentBody,
+    usagePausePlan,
+    usageForceOverrides,
+    usagePauseAction,
 } = require('./phases');
 const { readResultFile } = require('./contract');
 const { runPhase, killSession, capture, listSessions } = require('./runner');
 const { MONITOR_HTML } = require('./monitor');
-const { loadSettings, buildClaudeCommand, snapshotRunAssets } = require('./settings');
+const {
+    loadSettings, buildClaudeCommand, snapshotRunAssets, resolveUsagePauseThresholds,
+} = require('./settings');
 const { readClaudeUsage } = require('./usage');
 const { readVersion, checkAutopilotUpdate } = require('./version');
 const project = require('./project');
@@ -666,6 +671,65 @@ function updateClaudeUsage(state, cfg, log) {
     } catch (e) {
         log(`claude usage read failed: ${e.message}`);
     }
+    // 読み直すたびに usage pause を再評価する（#1193）。tick だけでなく GET /board の 5 秒 poll や
+    // worker 完了時にも走るので、閾値超えで即座に新規ディスパッチを止められる。
+    applyUsagePause(state, cfg, log);
+}
+
+/** cfg.now が無い呼び出し（テスト・単発ユーティリティ）でも時刻を得る */
+function nowOf(cfg) {
+    return cfg && typeof cfg.now === 'function' ? cfg.now() : Date.now();
+}
+
+/**
+ * Claude 使用量による自動 pause / 自動再開を適用する（#1193）。判定は phases.js の
+ * usagePausePlan / usagePauseAction（純粋関数）。ここは state の付け外しとログだけ。
+ *
+ * - 閾値超え → pausedBy='usage' で pause（**新規ディスパッチだけ止める**。実行中 worker は継続）
+ * - pausedBy='usage' で閾値を下回った（枠リセット・強制再開）→ 自動 resume
+ * - human / auth の pause は上書きしない
+ * - 期限切れの強制再開（override）は state.usageOverrides から外す
+ * 結果の計画は state.usagePause に置き、/board・/status でモニタへ surface する。
+ * @param {object} state daemon の可変状態
+ * @param {object} cfg
+ * @param {function} log
+ */
+function applyUsagePause(state, cfg, log) {
+    const thresholds = resolveUsagePauseThresholds(cfg && cfg.settings);
+    const plan = usagePausePlan(state.claudeUsage || null, thresholds, state.usageOverrides || {}, nowOf(cfg));
+    const expired = Object.keys(state.usageOverrides || {}).filter((w) => !plan.overrides[w]);
+    if (expired.length) log(`usage force-resume expired: ${expired.join(', ')}`);
+    state.usageOverrides = plan.overrides;
+    state.usagePause = plan;
+    const action = usagePauseAction(state, plan);
+    if (action === 'pause') {
+        state.paused = true;
+        state.pausedBy = 'usage';
+        log(`claude usage ${plan.window} ${Math.round(plan.percent)}% >= ${plan.threshold}% — auto-pause`);
+    } else if (action === 'resume') {
+        state.paused = false;
+        state.pausedBy = null;
+        log('claude usage below threshold — auto-resume');
+    }
+}
+
+/**
+ * 強制再開（POST /force-resume・#1193）。いま閾値を超えている枠に「その枠の次のリセットまで」
+ * の override を付け、usage pause 中なら再開する。human / auth の pause は解除しない
+ * （それぞれ /resume・再認証で解除する）。
+ * @param {object} state
+ * @param {object} cfg
+ * @param {function} log
+ * @returns {{paused:boolean, pausedBy:(string|null), overrides:object}}
+ */
+function forceResumeUsage(state, cfg, log) {
+    const thresholds = resolveUsagePauseThresholds(cfg && cfg.settings);
+    state.usageOverrides = usageForceOverrides(
+        state.claudeUsage || null, thresholds, state.usageOverrides || {}, nowOf(cfg),
+    );
+    log(`usage force-resume: ${Object.keys(state.usageOverrides).join(', ') || '(no window over threshold)'}`);
+    applyUsagePause(state, cfg, log);
+    return { paused: !!state.paused, pausedBy: state.pausedBy || null, overrides: state.usageOverrides };
 }
 
 /**
@@ -1929,6 +1993,8 @@ function boardResponse(cfg, state) {
         running: [...state.running.entries()].map(([issue, v]) => ({ issue, phase: v.phase, since: v.since })),
         rate: state.ratePlan || null,
         claudeUsage: state.claudeUsage || null,
+        usagePause: state.usagePause || null,
+        usageOverrides: state.usageOverrides || {},
         version: state.version || null,
         autopilotUpdate: state.autopilotUpdate || null,
         items: state.board ? state.board.items : [],
@@ -1954,6 +2020,8 @@ function statusResponse(cfg, state) {
         rate: state.ratePlan || null,
         rateLimits: state.rateLimits || null,
         claudeUsage: state.claudeUsage || null,
+        usagePause: state.usagePause || null,
+        usageOverrides: state.usageOverrides || {},
         version: state.version || null,
         autopilotUpdate: state.autopilotUpdate || null,
         running: [...state.running.entries()].map(([issue, v]) => ({ issue, phase: v.phase })),
@@ -2007,8 +2075,19 @@ function startHttp(cfg, state, log) {
             return send(200, { paused: true, pausedBy: 'human' });
         }
         if (req.method === 'POST' && url.pathname === '/resume') {
+            // usage の auto-pause 中は /resume で解除しない（次の再評価で即また pause される上、
+            // 使用量が上限に近いことを見落とさせない）。強制再開（2 段階確認）へ誘導する（#1193）。
+            if (state.pausedBy === 'usage') {
+                return send(409, { paused: true, pausedBy: 'usage', forceResumeRequired: true,
+                    error: 'usage auto-pause: use POST /force-resume' });
+            }
             state.paused = false; state.pausedBy = null; state.authError = null; log('resumed');
             return send(200, { paused: false });
+        }
+        if (req.method === 'POST' && url.pathname === '/force-resume') {
+            // 使用量が上限に近いことを承知で続ける（#1193）。超過中の枠は次のリセットまで自動 pause しない。
+            updateClaudeUsage(state, cfg, log);
+            return send(200, forceResumeUsage(state, cfg, log));
         }
         if (req.method === 'POST' && url.pathname === '/reauth') {
             // SSO 再認証を daemon 側で起動し、device code の URL/コードをモニタへ surface する。
@@ -2145,6 +2224,7 @@ async function main(opts = {}) {
     const state = {
         paused: false, pausedBy: null, authError: null, reauth: null,
         running: new Map(), ticking: false, claudeUsage: null,
+        usagePause: null, usageOverrides: {},
         version: null, autopilotUpdate: null,
     };
     // プロセスレベルの安全網（#949/#953）: fire-and-forget な非同期経路のエラーを捕捉し、
@@ -2204,7 +2284,7 @@ module.exports = {
     parseSsoDeviceOutput, startReauth,
     refreshBoard, recordHistory, refreshRateLimits, patchBoardCache, patchLaterCache, setLaterLabel,
     applyTrackerStickies, refreshBoardAndProjectTrackers, maybeRefreshBoardPeriodic,
-    updateClaudeUsage, boardResponse, statusResponse, startHttp,
+    updateClaudeUsage, applyUsagePause, forceResumeUsage, boardResponse, statusResponse, startHttp,
     checkForUpdate, startUpdateChecks,
     ensureCheckpointCommit, readContinuationFromWorktree, applyCheckpointHandling,
     collectContinuationContexts, checkpointEscalationBody,

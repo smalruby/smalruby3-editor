@@ -121,11 +121,14 @@ const MONITOR_HTML = `<!doctype html>
   .pill { display: inline-block; padding: .05rem .5rem; border-radius: 1rem; font-size: .75rem; font-weight: 600; }
   .ok { background: #bbf7d0; color: #14532d; } .paused { background: #fecaca; color: #7f1d1d; }
   .auth { background: #fde047; color: #713f12; }
+  .usagep { background: #fb923c; color: #431407; }
   /* ---- アラート帯 ---- */
   .alert { display: flex; align-items: baseline; gap: .6rem; padding: .45rem .8rem; font-size: .85rem;
            border-bottom: 1px solid var(--border); flex-wrap: wrap; }
   .alert.auth-a { background: #fef9c3; color: #713f12; }
   .alert.block-a { background: #fee2e2; color: #7f1d1d; }
+  .alert.usage-a { background: #ffedd5; color: #7c2d12; }
+  .alert.usage-a .uforce { margin-left: auto; display: inline-flex; gap: .4rem; align-items: baseline; }
   .alert code { background: rgba(0,0,0,.07); padding: 0 .3rem; border-radius: .2rem; }
   .alert button { font-size: .72rem; padding: .05rem .4rem; cursor: pointer; }
   .reauth-info { flex-basis: 100%; margin-top: .35rem; display: flex; gap: .5rem; align-items: center; flex-wrap: wrap;
@@ -305,6 +308,7 @@ let lastBoard = null;    // 直近の /board 応答（クリック時の再描�
 let laterPending = {};   // laterPendingReducer の状態（保留中の Issue だけ）
 let laterSeq = 0;
 let laterError = null;   // 直近の失敗（アラート帯に出す）
+let usageForceConfirm = false; // 強制再開の 2 段階目（確認）を表示中か（#1193。confirm ダイアログは使わない）
 
 // Claude アイコン（インライン SVG・自己完結。外部リソース禁止）。
 // クリック/キーボードで使用量詳細ポップオーバーを開くトリガーを兼ねる（#996）。
@@ -479,8 +483,51 @@ function openUpdateModal() {
 }
 function closeUpdateModal() { document.getElementById('updmodal').classList.remove('open'); }
 
+// 使用量枠の表示名（#1193）
+function usageWindowLabel(w) { return w === 'weekly' ? '週間' : 'セッション'; }
+// リセット時刻を短く（JST の HH:MM。今日でなければ M/D HH:MM）。無効値は空文字。
+function resetClock(resetsAt) {
+  if (typeof resetsAt !== 'number' || !Number.isFinite(resetsAt) || resetsAt <= 0) return '';
+  const ms = resetsAt < 1e12 ? resetsAt * 1000 : resetsAt;
+  const day = (t) => new Date(t).toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo' });
+  const hm = new Date(ms).toLocaleTimeString('ja-JP', { timeZone: 'Asia/Tokyo', hour: '2-digit', minute: '2-digit', hour12: false });
+  if (day(ms) === day(Date.now())) return hm;
+  return new Date(ms).toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo', month: 'numeric', day: 'numeric' }) + ' ' + hm;
+}
+// Claude 使用量の自動 pause（2 段階の強制再開つき）と強制実行中の表示（#1193）
+function usageAlerts(d) {
+  const out = [];
+  const P = d.usagePause;
+  if (d.pausedBy === 'usage' && P && P.pause) {
+    const pct = Math.round(P.percent);
+    const reset = resetClock(P.resetsAt);
+    const ctl = usageForceConfirm
+      ? '本当に再開？ 使用量 ' + pct + '% <button data-testid="usage-force-confirm" onclick="forceResume()">再開する</button>'
+        + '<button data-testid="usage-force-cancel" onclick="usageForceConfirm = false; rerender()">やめる</button>'
+      : '<button data-testid="usage-force-resume" onclick="usageForceConfirm = true; rerender()">⚡ 強制再開…</button>';
+    out.push('<div class="alert usage-a" data-testid="usage-pause-alert">⚠ <b>Claude 使用量が上限に近いため自動 pause 中</b>'
+      + '<span>' + usageWindowLabel(P.window) + ' ' + pct + '%（上限 ' + P.threshold + '%）' + (reset ? ' · リセット ' + esc(reset) : '') + '</span>'
+      + '<span class="subtext">新しいタスクは入りません。実行中の worker は継続</span>'
+      + '<span class="uforce">' + ctl + '</span></div>');
+  } else {
+    usageForceConfirm = false;
+  }
+  for (const f of (P && P.forced) || []) {
+    const reset = resetClock(f.resetsAt);
+    out.push('<div class="alert usage-a" data-testid="usage-forced-alert">⚡ <b>強制実行中</b>（'
+      + usageWindowLabel(f.window) + ' ' + Math.round(f.percent) + '%' + (reset ? ' · 〜' + esc(reset) + ' まで' : '') + '）'
+      + '<span class="subtext">枠のリセットで自動的に通常の判定へ戻ります</span></div>');
+  }
+  return out;
+}
+async function forceResume() {
+  usageForceConfirm = false;
+  try { await fetch('/force-resume', { method: 'POST' }); } catch (e) { /* refresh 側で表示 */ }
+  refresh();
+}
+
 function renderAlerts(d) {
-  const parts = [];
+  const parts = usageAlerts(d);
   if (d.authError) {
     const R = d.reauth;
     let ra = '';
@@ -655,6 +702,7 @@ async function refresh() {
     laterPending = laterPendingReducer(laterPending, { type: 'board', items: d.items || [] });
     const st = document.getElementById('state');
     if (d.authError) { st.className = 'pill auth'; st.textContent = 'AUTH ⚠'; }
+    else if (d.paused && d.pausedBy === 'usage') { st.className = 'pill usagep'; st.textContent = 'USAGE ⏸'; }
     else if (d.paused) { st.className = 'pill paused'; st.textContent = 'PAUSED'; }
     else { st.className = 'pill ok'; st.textContent = 'RUNNING'; }
     document.getElementById('meta').textContent =
@@ -751,7 +799,14 @@ window.addEventListener('resize', () => {
 });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeModal(); closeUpdateModal(); closeUsagePop(); } });
 document.getElementById('pause').onclick = () => fetch('/pause', { method: 'POST' }).then(refresh);
-document.getElementById('resume').onclick = () => fetch('/resume', { method: 'POST' }).then(refresh);
+// usage の auto-pause 中は /resume が 409 を返す → アラート帯の強制再開（確認段）を開く（#1193）
+document.getElementById('resume').onclick = async () => {
+  try {
+    const r = await fetch('/resume', { method: 'POST' });
+    if (r.status === 409) usageForceConfirm = true;
+  } catch (e) { /* refresh 側で表示 */ }
+  refresh();
+};
 document.getElementById('ticknow').onclick = async () => {
   const btn = document.getElementById('ticknow');
   btn.disabled = true; btn.textContent = '⏳';

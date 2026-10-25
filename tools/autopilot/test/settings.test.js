@@ -178,3 +178,16 @@ test('snapshotRunAssets: プロンプト一式と解決済み settings をコピ
     assert.ok(!fs.lstatSync(snap.promptDir).isSymbolicLink());
     fs.rmSync(tmp, { recursive: true, force: true });
 });
+
+test('usagePause: 既定はセッション 90 / 週間 95、部分上書きは既定とマージ（#1193）', () => {
+    const { DEFAULT_SETTINGS, mergeSettings, resolveUsagePauseThresholds } = require('../src/settings');
+    assert.deepStrictEqual(resolveUsagePauseThresholds(DEFAULT_SETTINGS), { session: 90, weekly: 95 });
+    const merged = mergeSettings(DEFAULT_SETTINGS, { usagePause: { sessionPercent: 80 } });
+    assert.deepStrictEqual(merged.usagePause, { sessionPercent: 80, weeklyPercent: 95 });
+    assert.deepStrictEqual(resolveUsagePauseThresholds(merged), { session: 80, weekly: 95 });
+    // base を破壊しない
+    assert.strictEqual(DEFAULT_SETTINGS.usagePause.sessionPercent, 90);
+    // 数値でない値・未設定は既定へ
+    assert.deepStrictEqual(resolveUsagePauseThresholds({ usagePause: { sessionPercent: '70' } }), { session: 90, weekly: 95 });
+    assert.deepStrictEqual(resolveUsagePauseThresholds(undefined), { session: 90, weekly: 95 });
+});

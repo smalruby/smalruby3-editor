@@ -338,3 +338,15 @@ test('MONITOR_HTML: インライン script が構文として妥当（埋め込�
     // 構文チェックのみ（実行はしない）
     assert.doesNotThrow(() => new Function(m[1]));
 });
+
+test('MONITOR_HTML: Claude 使用量の自動 pause — USAGE ⏸ ピルと 2 段階の強制再開（#1193）', () => {
+    assert.ok(MONITOR_HTML.includes("pausedBy === 'usage'"));
+    assert.ok(MONITOR_HTML.includes('USAGE ⏸'));
+    assert.ok(MONITOR_HTML.includes('/force-resume'));
+    for (const id of ['usage-pause-alert', 'usage-force-resume', 'usage-force-confirm', 'usage-force-cancel', 'usage-forced-alert']) {
+        assert.ok(MONITOR_HTML.includes(`data-testid="${id}"`), id);
+    }
+    assert.ok(MONITOR_HTML.includes('強制実行中'));
+    // ブラウザの confirm ダイアログは使わない（その場でボタンを置き換える）
+    assert.doesNotMatch(MONITOR_HTML, /\bconfirm\(/);
+});

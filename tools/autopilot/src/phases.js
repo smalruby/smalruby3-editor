@@ -2107,6 +2107,148 @@ function rateLimitPlan(limitsByToken, thresholds = {}) {
 }
 
 /**
+ * Claude 使用量による自動 pause の既定閾値（%・#1193）。セッション（five_hour）が 90% /
+ * 週間（seven_day）が 95% 以上で新規ディスパッチを止める。100% に達すると worker が
+ * プロンプトを受け付けず `stalled; restart limit reached` で Blocked になる（#1192）ため、
+ * 手前で止める。settings の `usagePause` で上書きできる（settings.js の resolveUsagePauseThresholds）。
+ */
+const DEFAULT_USAGE_PAUSE_THRESHOLDS = { session: 90, weekly: 95 };
+
+/** 使用量枠の評価順（両方超えたときの reason は先に来た方） */
+const USAGE_WINDOWS = ['session', 'weekly'];
+
+/**
+ * 枠ごとの「resetsAt が取れないときの読み値の寿命」（ms）。resetsAt があればそれを過ぎた
+ * 読み値は「枠がリセット済み」として判定に使わない。無いときは枠の長さで古さを打ち切る
+ * （セッション 5 時間 / 週間 7 日）。強制再開の期限のフォールバックにも使う。
+ */
+const USAGE_WINDOW_FALLBACK_MS = { session: 5 * 3600_000, weekly: 7 * 86400_000 };
+
+/**
+ * usage の resetsAt（秒 or ms epoch）を ms に正規化する。無効値は null。
+ * @param {*} resetsAt
+ * @returns {number|null}
+ */
+function usageResetMs(resetsAt) {
+    if (typeof resetsAt !== 'number' || !Number.isFinite(resetsAt) || resetsAt <= 0) return null;
+    return resetsAt < 1e12 ? resetsAt * 1000 : resetsAt;
+}
+
+/**
+ * 1 枠の読み値を判定に使えるかを見て、使えるなら {percent, resetMs} を返す。
+ * - 値が無い → null（判定しない＝止めない）
+ * - resetsAt を過ぎている → null（枠はリセット済み。worker 非稼働で usage ファイルが
+ *   据え置きでも、リセット後は自動再開できる）
+ * - resetsAt が無く、updatedAt から枠の長さ以上経っている → null（古い）
+ * @returns {{percent:number, resetMs:(number|null)}|null}
+ */
+function usageWindowReading(usage, window, nowMs) {
+    const w = usage && usage[window];
+    if (!w || typeof w.percent !== 'number' || Number.isNaN(w.percent)) return null;
+    const resetMs = usageResetMs(w.resetsAt);
+    if (resetMs != null) {
+        if (nowMs >= resetMs) return null;
+    } else {
+        const updated = toMs(usage.updatedAt);
+        if (!updated || nowMs - updated >= USAGE_WINDOW_FALLBACK_MS[window]) return null;
+    }
+    return { percent: w.percent, resetMs };
+}
+
+/**
+ * Claude 使用量から自動 pause の要否を決める（純粋関数・#1193）。
+ *
+ * - 枠ごとに `percent >= threshold` なら超過。値が無い / 枠がリセット済み / 古い枠は判定しない
+ * - 超過枠に**有効な強制再開（override）**があれば pause しない（`forced` に載せて UI が期限を出す）
+ * - override は枠ごと（セッションで強制しても週間の超過では改めて pause する）
+ * - override の期限（その枠の次のリセット時刻）を過ぎたら自動で外れる（返り値の `overrides` は
+ *   期限切れを除いたもの。daemon はこれで state を置き換える）
+ *
+ * pausedBy の扱い（human を上書きしない等）は {@link usagePauseAction} が決める。
+ * @param {{session:object|null, weekly:object|null, updatedAt:number}|null} usage state.claudeUsage
+ * @param {{session:number, weekly:number}} [thresholds] 閾値（%）
+ * @param {object} [overrides] 枠 → { resetsAt(ms), percent, forcedAt }
+ * @param {number|string} nowMs 現在時刻
+ * @returns {{pause:boolean, window:(string|null), percent:(number|null), threshold:(number|null),
+ *   resetsAt:(number|null), thresholds:object, forced:object[], overrides:object}}
+ */
+function usagePausePlan(usage, thresholds, overrides, nowMs) {
+    const now = toMs(nowMs);
+    const t = { ...DEFAULT_USAGE_PAUSE_THRESHOLDS, ...(thresholds || {}) };
+    const liveOverrides = {};
+    for (const [window, ov] of Object.entries(overrides || {})) {
+        if (ov && toMs(ov.resetsAt) > now) liveOverrides[window] = ov;
+    }
+    const forced = [];
+    let trigger = null;
+    for (const window of USAGE_WINDOWS) {
+        const r = usageWindowReading(usage, window, now);
+        if (!r || typeof t[window] !== 'number' || r.percent < t[window]) continue;
+        const ov = liveOverrides[window];
+        if (ov) {
+            forced.push({ window, percent: r.percent, threshold: t[window], resetsAt: toMs(ov.resetsAt) });
+        } else if (!trigger) {
+            trigger = { window, percent: r.percent, threshold: t[window], resetsAt: r.resetMs };
+        }
+    }
+    return {
+        pause: !!trigger,
+        window: trigger ? trigger.window : null,
+        percent: trigger ? trigger.percent : null,
+        threshold: trigger ? trigger.threshold : null,
+        resetsAt: trigger ? trigger.resetsAt : null,
+        thresholds: t,
+        forced,
+        overrides: liveOverrides,
+    };
+}
+
+/**
+ * 強制再開で付ける override を計算する（純粋関数・#1193）。いま閾値を超えている枠すべてに
+ * 「その枠の次のリセット時刻まで」の override を付ける（超えていない枠には付けない。
+ * あとから週間が超えたら週間側で改めて pause させるため）。resetsAt が取れない枠は
+ * 枠の長さ（{@link USAGE_WINDOW_FALLBACK_MS}）を期限にする。
+ * @param {object|null} usage
+ * @param {object} [thresholds]
+ * @param {object} [overrides] 既存の override（期限内のものは引き継ぐ）
+ * @param {number|string} nowMs
+ * @returns {object} 新しい overrides（枠 → { resetsAt(ms), percent, forcedAt }）
+ */
+function usageForceOverrides(usage, thresholds, overrides, nowMs) {
+    const now = toMs(nowMs);
+    const t = { ...DEFAULT_USAGE_PAUSE_THRESHOLDS, ...(thresholds || {}) };
+    const out = { ...usagePausePlan(usage, t, overrides, now).overrides };
+    for (const window of USAGE_WINDOWS) {
+        const r = usageWindowReading(usage, window, now);
+        if (!r || typeof t[window] !== 'number' || r.percent < t[window]) continue;
+        if (out[window]) continue;
+        out[window] = {
+            resetsAt: r.resetMs != null ? r.resetMs : now + USAGE_WINDOW_FALLBACK_MS[window],
+            percent: r.percent,
+            forcedAt: now,
+        };
+    }
+    return out;
+}
+
+/**
+ * usage pause 計画を現在の pause 状態に当てはめ、取るべき操作を返す（純粋関数・#1193）。
+ * - 未 pause で計画が pause → `'pause'`（pausedBy='usage'）
+ * - pausedBy='usage' で計画が pause でない → `'resume'`（枠リセット・強制再開・閾値変更）
+ * - **人間 / 認証の pause は上書きしない**（auth の auto-pause と同じ規約）。usage の自動再開も
+ *   pausedBy='usage' のときだけ
+ * @param {{paused:boolean, pausedBy:(string|null)}} current
+ * @param {{pause:boolean}} plan
+ * @returns {'pause'|'resume'|null}
+ */
+function usagePauseAction(current, plan) {
+    const paused = !!(current && current.paused);
+    const by = current && current.pausedBy;
+    if (plan && plan.pause) return paused ? null : 'pause';
+    return paused && by === 'usage' ? 'resume' : null;
+}
+
+/**
  * closed 状態の一括確認の対象 issue 番号を選ぶ（純粋関数・問い合わせ対象の限定）。
  * - **ステータス限定**: 終端（Close/Done）は除外（既に整合済み。定常問い合わせしない）
  * - **ラベル限定**: `🤖 autopilot` ラベル付き = autopilot 管理対象だけを見る
@@ -2453,6 +2595,12 @@ module.exports = {
     selectMarkedComments,
     stickyUpsertPlan,
     rateLimitPlan,
+    DEFAULT_USAGE_PAUSE_THRESHOLDS,
+    USAGE_WINDOW_FALLBACK_MS,
+    usageResetMs,
+    usagePausePlan,
+    usageForceOverrides,
+    usagePauseAction,
     selectClosedCheckIssues,
     PR_LINK_MARKER,
     needsPrLinkSticky,
