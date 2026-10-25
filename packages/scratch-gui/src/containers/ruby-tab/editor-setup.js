@@ -49,7 +49,9 @@ const setupPasteTransform = (editor, transformText) => {
     const domNode = editor.getDomNode();
     if (!domNode) return () => {};
     const handlePaste = event => {
-        if (!event.clipboardData || editor.getRawOptions().readOnly) return;
+        // The find/replace widget lives inside the editor DOM too; only
+        // rewrite pastes into the editor text itself.
+        if (!event.clipboardData || !editor.hasTextFocus() || editor.getRawOptions().readOnly) return;
         const text = event.clipboardData.getData('text/plain');
         if (!text) return;
         const transformed = transformText(text);

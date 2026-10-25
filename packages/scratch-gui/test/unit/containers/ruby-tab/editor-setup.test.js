@@ -1,10 +1,11 @@
 import {registerCustomPasteAction, setupPasteTransform} from '../../../../src/containers/ruby-tab/editor-setup';
 
-const makeEditor = ({readOnly = false} = {}) => {
+const makeEditor = ({readOnly = false, textFocus = true} = {}) => {
     const domNode = document.createElement('div');
     return {
         domNode,
         getDomNode: () => domNode,
+        hasTextFocus: () => textFocus,
         getRawOptions: () => ({readOnly}),
         trigger: jest.fn(),
         addAction: jest.fn(),
@@ -43,6 +44,13 @@ describe('setupPasteTransform (Issue #1192)', () => {
         const editor = makeEditor({readOnly: true});
         setupPasteTransform(editor, text => text.toUpperCase());
         expect(firePaste(editor.domNode, 'abc').defaultPrevented).toBe(false);
+    });
+
+    test('leaves pastes into the find widget alone', () => {
+        const editor = makeEditor({textFocus: false});
+        setupPasteTransform(editor, text => text.toUpperCase());
+        expect(firePaste(editor.domNode, 'abc').defaultPrevented).toBe(false);
+        expect(editor.trigger).not.toHaveBeenCalled();
     });
 
     test('the returned function removes the listener', () => {
