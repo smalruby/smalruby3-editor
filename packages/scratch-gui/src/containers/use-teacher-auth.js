@@ -6,7 +6,12 @@
  * Delegates to {@link ../lib/teacher-auth.js} for provider-specific logic.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { clearTeacherSession, loadTeacherSession } from '../lib/classroom-teacher-session.js';
+import {
+    clearTeacherSession,
+    loadTeacherSession,
+    loadTeacherToken,
+    saveTeacherToken,
+} from '../lib/classroom-teacher-session.js';
 import {
     cancelGoogleLogin,
     isGoogleLoginInFlight,
@@ -52,20 +57,25 @@ export const setCachedTeacherIdToken = (token) => {
 };
 
 /**
- * Bring back the teacher login after a page reload (#1199) through the
- * provider's silent re-authentication. Never shows an error: on failure the
- * persisted record is dropped and the teacher simply stays logged out.
+ * Bring back the teacher login after a page reload (#1199): the ID token kept
+ * in this tab while it is still valid, otherwise the provider's silent
+ * re-authentication. Never shows an error: on failure the persisted record is
+ * dropped and the teacher simply stays logged out.
  * @param {string} provider - 'google' | 'microsoft'
  * @param {Function} [reauth] - silent re-auth implementation (injectable for tests)
+ * @param {number} [now] - current time in ms epoch (injectable for tests)
  * @returns {Promise<string|null>} the teacher's ID token after the attempt (a
  *   login made while waiting wins), or null when no teacher is logged in
  */
-export const restoreTeacherLogin = async (provider, reauth = attemptSilentReauth) => {
-    let token = null;
-    try {
-        token = await reauth(provider);
-    } catch {
-        token = null;
+export const restoreTeacherLogin = async (provider, reauth = attemptSilentReauth, now = Date.now()) => {
+    let token = loadTeacherToken(provider, now);
+    if (!token) {
+        try {
+            token = await reauth(provider);
+        } catch {
+            token = null;
+        }
+        if (token) saveTeacherToken(provider, token);
     }
     if (!token) {
         // A manual login made while the silent attempt was pending (e.g. the
@@ -111,6 +121,11 @@ const useTeacherAuth = ({ mode, clearError, setPhase, showSessionExpiredError })
     useEffect(() => {
         _cachedAuthProvider = authProvider;
     }, [authProvider]);
+    // Keep the current token (also one renewed after a 401) for the next
+    // reload of this tab (#1199).
+    useEffect(() => {
+        if (idToken) saveTeacherToken(authProvider, idToken);
+    }, [idToken, authProvider]);
 
     // Host node for the GIS sign-in button. Keeping it inside the modal means
     // the button disappears with the modal instead of sticking to the screen

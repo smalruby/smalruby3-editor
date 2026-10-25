@@ -16,6 +16,7 @@ jest.mock('../../../src/lib/teacher-auth.js', () => ({
 }));
 
 const TEACHER_KEY = 'smalruby:classroomTeacher';
+const TOKEN_KEY = 'smalruby:classroomTeacherToken';
 
 const loadModules = () => ({
     auth: require('../../../src/containers/use-teacher-auth.js'),
@@ -26,6 +27,7 @@ describe('use-teacher-auth restore (#1199)', () => {
     beforeEach(() => {
         jest.resetModules();
         window.localStorage.clear();
+        window.sessionStorage.clear();
     });
 
     test('keeps the MSAL cache on reload when a Microsoft login is persisted', () => {
@@ -80,5 +82,27 @@ describe('use-teacher-auth restore (#1199)', () => {
         expect(teacherAuth.clearAuthSession).toHaveBeenCalledWith('microsoft');
         expect(auth.getCachedTeacherIdToken()).toBeNull();
         expect(window.localStorage.getItem(TEACHER_KEY)).toBeNull();
+    });
+
+    test('a reload reuses the token kept in this tab without asking the provider (teacher review)', async () => {
+        const token = `h.${btoa(JSON.stringify({ exp: Date.now() / 1000 + 3600 }))}.s`;
+        window.localStorage.setItem(TEACHER_KEY, JSON.stringify({ provider: 'google' }));
+        window.sessionStorage.setItem(TOKEN_KEY, JSON.stringify({ provider: 'google', idToken: token }));
+        const { auth } = loadModules();
+        const reauth = jest.fn(() => Promise.resolve(null));
+        expect(await auth.restoreTeacherLogin('google', reauth)).toBe(token);
+        expect(reauth).not.toHaveBeenCalled();
+        expect(auth.getCachedTeacherAuthProvider()).toBe('google');
+    });
+
+    test('an expired kept token falls back to the silent re-auth and keeps the new one', async () => {
+        const now = Date.now();
+        const expired = `h.${btoa(JSON.stringify({ exp: now / 1000 - 10 }))}.s`;
+        const fresh = `h.${btoa(JSON.stringify({ exp: now / 1000 + 3600 }))}.s`;
+        window.localStorage.setItem(TEACHER_KEY, JSON.stringify({ provider: 'google' }));
+        window.sessionStorage.setItem(TOKEN_KEY, JSON.stringify({ provider: 'google', idToken: expired }));
+        const { auth } = loadModules();
+        expect(await auth.restoreTeacherLogin('google', () => Promise.resolve(fresh), now)).toBe(fresh);
+        expect(JSON.parse(window.sessionStorage.getItem(TOKEN_KEY)).idToken).toBe(fresh);
     });
 });

@@ -1,16 +1,30 @@
 /**
  * Teacher login persistence across page reloads (#1199).
  *
- * The teacher's ID token itself lives only in memory (use-teacher-auth.js):
- * a token in localStorage would be readable by any XSS and outlive the
- * provider's own session. What survives a reload is just the fact that a
- * teacher *was* logged in, with which provider, and which class / assignment
- * they last had open. On load we use that to try the provider's existing
- * silent re-authentication path; if it fails the record is dropped and the
- * teacher is simply logged out.
+ * Two records survive a reload:
+ *
+ * - localStorage `smalruby:classroomTeacher`: the fact that a teacher *was*
+ *   logged in, with which provider, and which class / assignment they last had
+ *   open. No token. Used to try the provider's silent re-authentication.
+ * - sessionStorage `smalruby:classroomTeacherToken`: the ID token itself,
+ *   restored only while it has not expired. Silent re-authentication alone
+ *   proved unreliable on reload (Google's FedCM auto re-authentication is
+ *   rate-limited and needs a single returning account), so the teacher was
+ *   logged out after a plain reload. sessionStorage is per tab and is gone when
+ *   the tab closes, which keeps the token off a shared PC once the teacher
+ *   leaves; the token's own `exp` (about an hour) bounds it otherwise. An XSS
+ *   could read it, but the same XSS could already use the in-memory token.
+ *
+ * When neither works the records are dropped and the teacher is simply logged
+ * out.
  */
 
 const STORAGE_KEY = 'smalruby:classroomTeacher';
+const TOKEN_STORAGE_KEY = 'smalruby:classroomTeacherToken';
+
+// A token this close to its expiry is not worth restoring: the first API call
+// would 401 and fall back to the silent re-authentication anyway.
+const TOKEN_EXPIRY_MARGIN_MS = 60 * 1000;
 
 // Providers that have a silent re-authentication path. The dev bypass token
 // (?devlogin=) restores itself from the URL and is never persisted.
@@ -87,10 +101,81 @@ const saveTeacherLastSelection = ({ classroomId, groupId }) => {
     writeTeacherSession({ ...current, classroomId: classroomId || null, groupId: groupId || null });
 };
 
-const clearTeacherSession = () => {
-    if (!hasLocalStorage()) return;
+const hasSessionStorage = () => typeof window !== 'undefined' && !!window.sessionStorage;
+
+/**
+ * Expiry of an OIDC ID token (Google / Microsoft JWT).
+ * @param {string} idToken - raw ID token
+ * @returns {number|null} expiry in ms epoch, or null for opaque / malformed tokens
+ */
+const idTokenExpiresAt = (idToken) => {
+    if (typeof idToken !== 'string') return null;
+    const parts = idToken.split('.');
+    if (parts.length !== 3) return null;
     try {
-        window.localStorage.removeItem(STORAGE_KEY);
+        const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+        return typeof payload.exp === 'number' ? payload.exp * 1000 : null;
+    } catch {
+        return null;
+    }
+};
+
+/**
+ * The stored token, if it belongs to `provider` and is still usable at `now`.
+ * @param {object} params - inputs
+ * @param {string|null} params.raw - JSON from sessionStorage
+ * @param {string} params.provider - provider of the persisted login
+ * @param {number} params.now - current time in ms epoch
+ * @returns {string|null} the ID token, or null when it cannot be restored
+ */
+const usableTeacherToken = ({ raw, provider, now }) => {
+    if (!raw) return null;
+    let data;
+    try {
+        data = JSON.parse(raw);
+    } catch {
+        return null;
+    }
+    if (!data || data.provider !== provider || !RESTORABLE_PROVIDERS.includes(provider)) return null;
+    const expiresAt = idTokenExpiresAt(data.idToken);
+    if (!expiresAt || expiresAt - TOKEN_EXPIRY_MARGIN_MS <= now) return null;
+    return data.idToken;
+};
+
+/**
+ * Keep the teacher's ID token for the next reload of this tab. Opaque tokens
+ * (the `?devlogin=` bypass) have no expiry and are never stored.
+ * @param {string|null} provider - 'google' | 'microsoft' (others are ignored)
+ * @param {string|null} idToken - raw ID token
+ */
+const saveTeacherToken = (provider, idToken) => {
+    if (!RESTORABLE_PROVIDERS.includes(provider) || !idTokenExpiresAt(idToken)) return;
+    if (!hasSessionStorage()) return;
+    try {
+        window.sessionStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify({ provider, idToken }));
+    } catch {
+        // quota / private mode — the silent re-authentication remains.
+    }
+};
+
+/**
+ * @param {string} provider - provider of the persisted login
+ * @param {number} now - current time in ms epoch
+ * @returns {string|null} the stored ID token while it is still valid
+ */
+const loadTeacherToken = (provider, now) => {
+    if (!hasSessionStorage()) return null;
+    try {
+        return usableTeacherToken({ raw: window.sessionStorage.getItem(TOKEN_STORAGE_KEY), provider, now });
+    } catch {
+        return null;
+    }
+};
+
+const clearTeacherSession = () => {
+    try {
+        if (hasLocalStorage()) window.localStorage.removeItem(STORAGE_KEY);
+        if (hasSessionStorage()) window.sessionStorage.removeItem(TOKEN_STORAGE_KEY);
     } catch {
         // ignore
     }
@@ -167,10 +252,15 @@ const resolveTeacherNavigation = ({ target, lastSelection, groups, groupsLoaded 
 
 export {
     STORAGE_KEY,
+    TOKEN_STORAGE_KEY,
     parseTeacherSession,
     loadTeacherSession,
     saveTeacherLogin,
     saveTeacherLastSelection,
+    idTokenExpiresAt,
+    usableTeacherToken,
+    saveTeacherToken,
+    loadTeacherToken,
     clearTeacherSession,
     decideTeacherRestore,
     classroomMenuVisibility,

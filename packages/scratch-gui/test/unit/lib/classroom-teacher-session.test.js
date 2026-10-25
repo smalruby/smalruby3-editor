@@ -1,5 +1,10 @@
 import {
     STORAGE_KEY,
+    TOKEN_STORAGE_KEY,
+    idTokenExpiresAt,
+    usableTeacherToken,
+    saveTeacherToken,
+    loadTeacherToken,
     loadTeacherSession,
     saveTeacherLogin,
     saveTeacherLastSelection,
@@ -215,5 +220,59 @@ describe('resolveTeacherNavigation', () => {
                 groupsLoaded: true,
             }),
         ).toEqual({ action: 'class-list' });
+    });
+});
+
+const jwt = (payload) => `h.${btoa(JSON.stringify(payload)).replace(/=+$/, '')}.s`;
+const NOW = 1_700_000_000_000;
+
+describe('classroom-teacher-session token kept for the reload (teacher review)', () => {
+    beforeEach(() => {
+        window.localStorage.clear();
+        window.sessionStorage.clear();
+    });
+
+    test('reads the expiry of an ID token, null for opaque tokens', () => {
+        expect(idTokenExpiresAt(jwt({ exp: 1_700_003_600 }))).toBe(1_700_003_600_000);
+        expect(idTokenExpiresAt('dev-bypass-token')).toBeNull();
+        expect(idTokenExpiresAt(jwt({ email: 'a@example.com' }))).toBeNull();
+        expect(idTokenExpiresAt(null)).toBeNull();
+    });
+
+    test('restores a stored token of the same provider before it expires', () => {
+        const token = jwt({ exp: NOW / 1000 + 3600 });
+        const raw = JSON.stringify({ provider: 'google', idToken: token });
+        expect(usableTeacherToken({ raw, provider: 'google', now: NOW })).toBe(token);
+        expect(usableTeacherToken({ raw, provider: 'microsoft', now: NOW })).toBeNull();
+    });
+
+    test('does not restore an expired or nearly expired token', () => {
+        const nearlyExpired = JSON.stringify({ provider: 'google', idToken: jwt({ exp: NOW / 1000 + 30 }) });
+        const expired = JSON.stringify({ provider: 'google', idToken: jwt({ exp: NOW / 1000 - 1 }) });
+        expect(usableTeacherToken({ raw: nearlyExpired, provider: 'google', now: NOW })).toBeNull();
+        expect(usableTeacherToken({ raw: expired, provider: 'google', now: NOW })).toBeNull();
+        expect(usableTeacherToken({ raw: '{broken', provider: 'google', now: NOW })).toBeNull();
+    });
+
+    test('keeps the token in sessionStorage only, never in localStorage', () => {
+        const token = jwt({ exp: NOW / 1000 + 3600 });
+        saveTeacherLogin('google');
+        saveTeacherToken('google', token);
+        expect(JSON.parse(window.sessionStorage.getItem(TOKEN_STORAGE_KEY)).idToken).toBe(token);
+        expect(window.localStorage.getItem(STORAGE_KEY)).not.toContain(token);
+        expect(loadTeacherToken('google', NOW)).toBe(token);
+    });
+
+    test('never stores the dev bypass token', () => {
+        saveTeacherToken('google', 'dev-bypass-token');
+        expect(window.sessionStorage.getItem(TOKEN_STORAGE_KEY)).toBeNull();
+    });
+
+    test('clearTeacherSession also forgets the token', () => {
+        saveTeacherLogin('google');
+        saveTeacherToken('google', jwt({ exp: NOW / 1000 + 3600 }));
+        clearTeacherSession();
+        expect(window.sessionStorage.getItem(TOKEN_STORAGE_KEY)).toBeNull();
+        expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull();
     });
 });

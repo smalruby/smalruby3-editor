@@ -299,7 +299,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-board-reuse-view` | div | 再利用ビュー（全課題を日付降順） |
 | `classroom-board-reuse-filter` | select | 再利用ビューのクラスフィルタ |
 | `classroom-board-reuse-copy-{classroomId}` | button | このクラスに複製 |
-| `classroom-tab-description` | button | 課題詳細の「説明」タブ（デフォルトアクティブ） |
+| `classroom-tab-description` | button | 課題詳細の「説明」タブ（新しく作った課題の初回のみアクティブ。それ以外は `classroom-tab-members` が既定） |
 | `classroom-description-editor` | div | 説明タブの課題編集フォーム（埋め込み） |
 | `classroom-description-preview` | div | 右ペインの生徒視点プレビュー |
 | `classroom-description-preview-body` | div | プレビュー本文（テキスト+画像） |

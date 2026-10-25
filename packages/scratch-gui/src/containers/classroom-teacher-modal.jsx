@@ -182,7 +182,8 @@ const ClassroomTeacherModal = () => {
             teacher.notificationsCenter.handleShowAll();
         } else if (nav.action === 'assignment') {
             if (nav.group) teacher.handleSelectGroup(nav.group);
-            teacher.handleSelectClassroom(nav.classroomId);
+            // Back to the lesson in progress: always the members tab.
+            teacher.handleSelectClassroom(nav.classroomId, { tab: 'members' });
         } else {
             teacher.handleShowClassList();
         }
@@ -292,6 +293,7 @@ const ClassroomTeacherModal = () => {
         onUpdateAssignmentMeta: teacher.handleUpdateAssignmentMeta,
         onCreateAssignmentInClass: teacher.handleCreateAssignmentInClass,
         onDetailTabChange: teacher.setDetailTab,
+        detailEntry: teacher.detailEntry,
         onReuseAssignment: teacher.handleReuseAssignment,
         onUpdateGroup: teacher.handleUpdateGroup,
         evaluation: teacher.evaluation,

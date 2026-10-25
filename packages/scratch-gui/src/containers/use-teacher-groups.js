@@ -39,6 +39,8 @@ export const appendReusedTopic = (group, topic) => {
  * @param {object} params.intl - react-intl intl object
  * @param {Function} params.setIsLoading - loading state setter
  * @param {Function} params.setPhase - phase setter
+ * @param {Function} [params.markClassroomCreated] - remember a new assignment
+ *   so its first open shows the description tab
  * @returns {object} groups state and handlers
  */
 const useTeacherGroups = ({
@@ -52,6 +54,7 @@ const useTeacherGroups = ({
     intl,
     setIsLoading,
     setPhase,
+    markClassroomCreated = () => {},
 }) => {
     const [groups, setGroups] = useState([]);
     // The class the teacher opened from the class list. Scopes the sidebar
@@ -201,6 +204,7 @@ const useTeacherGroups = ({
                     null,
                     group.groupId,
                 );
+                markClassroomCreated(created && created.classroomId);
                 setClassrooms((prev) => [...prev, { ...created, role: 'owner', coTeacherEmails: [] }]);
             } catch (err) {
                 if (err.status === 401) {
@@ -212,7 +216,7 @@ const useTeacherGroups = ({
                 setIsLoading(false);
             }
         },
-        [idToken, setClassrooms, clearError, showError, intl, setIsLoading, handleTeacher401],
+        [idToken, setClassrooms, clearError, showError, intl, setIsLoading, handleTeacher401, markClassroomCreated],
     );
 
     /**
@@ -341,6 +345,7 @@ const useTeacherGroups = ({
                         null,
                         group.groupId,
                     );
+                    markClassroomCreated(created && created.classroomId);
                     setClassrooms((prev) => [...prev, { ...created, role: 'owner', coTeacherEmails: [] }]);
                 }
                 await loadGroups();
@@ -368,6 +373,7 @@ const useTeacherGroups = ({
             intl,
             setIsLoading,
             handleTeacher401,
+            markClassroomCreated,
         ],
     );
 

@@ -122,6 +122,7 @@ const useTeacherClassroom = ({
         intl,
         setIsLoading,
         setPhase,
+        markClassroomCreated: classrooms.markClassroomCreated,
     });
 
     importCourseRef.current = groups.handleCreateClassFromCourse;
@@ -278,6 +279,7 @@ const useTeacherClassroom = ({
         handleUpdateAssignmentName: classrooms.handleUpdateAssignmentName,
         handleUpdateAssignmentMeta: classrooms.handleUpdateAssignmentMeta,
         setDetailTab: classrooms.setDetailTab,
+        detailEntry: classrooms.detailEntry,
 
         // Kick requests (Phase 4-6)
         kickRequestsBySeat: classrooms.kickRequestsBySeat,
