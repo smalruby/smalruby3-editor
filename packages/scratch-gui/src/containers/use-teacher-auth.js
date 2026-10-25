@@ -7,6 +7,12 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+    clearTeacherSession,
+    loadTeacherSession,
+    loadTeacherToken,
+    saveTeacherToken,
+} from '../lib/classroom-teacher-session.js';
+import {
     cancelGoogleLogin,
     isGoogleLoginInFlight,
     revealGoogleSignInButton,
@@ -22,8 +28,13 @@ import {
 let _cachedTeacherIdToken = null;
 let _cachedAuthProvider = null;
 
-// Clear stale MSAL sessions on page reload
-cleanupOnReload();
+// Clear stale MSAL sessions on page reload — unless the teacher was logged in
+// with Microsoft before the reload: the MSAL cache (sessionStorage) is exactly
+// what the silent re-authentication that restores the login needs (#1199).
+const _persistedTeacherSession = loadTeacherSession();
+if (!_persistedTeacherSession || _persistedTeacherSession.provider !== 'microsoft') {
+    cleanupOnReload();
+}
 
 /**
  * Return the cached teacher ID token (for initial phase calculation).
@@ -32,11 +43,63 @@ cleanupOnReload();
 export const getCachedTeacherIdToken = () => _cachedTeacherIdToken;
 
 /**
+ * Return the provider of the cached teacher login.
+ * @returns {string|null} 'google' | 'microsoft' | null
+ */
+export const getCachedTeacherAuthProvider = () => _cachedAuthProvider;
+
+/**
  * Set the cached teacher ID token from outside (e.g. dev auto-login).
  * @param {string|null} token - the token to cache
  */
 export const setCachedTeacherIdToken = (token) => {
     _cachedTeacherIdToken = token;
+};
+
+/**
+ * Bring back the teacher login after a page reload (#1199): the ID token kept
+ * in this tab while it is still valid, otherwise the provider's silent
+ * re-authentication. Never shows an error: on failure the persisted record is
+ * dropped and the teacher simply stays logged out.
+ * @param {string} provider - 'google' | 'microsoft'
+ * @param {Function} [reauth] - silent re-auth implementation (injectable for tests)
+ * @param {number} [now] - current time in ms epoch (injectable for tests)
+ * @returns {Promise<string|null>} the teacher's ID token after the attempt (a
+ *   login made while waiting wins), or null when no teacher is logged in
+ */
+export const restoreTeacherLogin = async (provider, reauth = attemptSilentReauth, now = Date.now()) => {
+    let token = loadTeacherToken(provider, now);
+    if (!token) {
+        try {
+            token = await reauth(provider);
+        } catch {
+            token = null;
+        }
+        if (token) saveTeacherToken(provider, token);
+    }
+    if (!token) {
+        // A manual login made while the silent attempt was pending (e.g. the
+        // Google prompt timing out) keeps its own persisted record.
+        if (!_cachedTeacherIdToken) clearTeacherSession();
+        return _cachedTeacherIdToken;
+    }
+    // A login made while we were waiting wins over the restored one.
+    if (!_cachedTeacherIdToken) {
+        _cachedTeacherIdToken = token;
+        _cachedAuthProvider = provider;
+    }
+    return _cachedTeacherIdToken;
+};
+
+/**
+ * Log the teacher out from outside the teacher modal (menu bar, #1199):
+ * forget the in-memory token, the provider session and the persisted login.
+ */
+export const logoutCachedTeacher = () => {
+    clearAuthSession(_cachedAuthProvider);
+    _cachedTeacherIdToken = null;
+    _cachedAuthProvider = null;
+    clearTeacherSession();
 };
 
 /**
@@ -58,6 +121,11 @@ const useTeacherAuth = ({ mode, clearError, setPhase, showSessionExpiredError })
     useEffect(() => {
         _cachedAuthProvider = authProvider;
     }, [authProvider]);
+    // Keep the current token (also one renewed after a 401) for the next
+    // reload of this tab (#1199).
+    useEffect(() => {
+        if (idToken) saveTeacherToken(authProvider, idToken);
+    }, [idToken, authProvider]);
 
     // Host node for the GIS sign-in button. Keeping it inside the modal means
     // the button disappears with the modal instead of sticking to the screen

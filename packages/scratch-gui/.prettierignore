@@ -36,6 +36,7 @@ src/components/*
 !src/components/bug-report-modal/
 !src/components/classroom-modal/
 !src/components/classroom-teacher-modal/
+!src/components/classroom-teacher-menu/
 !src/components/classroom-tutorial/
 !src/components/smalrubot-firmware-modal/
 !src/components/blocks-screenshot-button/
@@ -106,6 +107,7 @@ src/containers/*
 !src/containers/classroom-kick-request-watcher.jsx
 !src/containers/use-kick-request-polling.js
 !src/containers/classroom-teacher-modal.jsx
+!src/containers/classroom-teacher-menu.jsx
 !src/containers/use-google-classroom.js
 !src/containers/use-student-assignment.js
 !src/containers/use-student-submit.js
@@ -157,6 +159,7 @@ src/lib/*
 !src/lib/classroom-google-share.js
 !src/lib/classroom-group-utils.js
 !src/lib/classroom-retention.js
+!src/lib/classroom-teacher-session.js
 !src/lib/classroom-presence.js
 !src/lib/shared-assignment-taxonomy.js
 !src/lib/shared-author-profile.js
@@ -343,6 +346,8 @@ test/unit/components/*
 !test/unit/components/teacher-notifications-list.test.jsx
 !test/unit/components/classroom-teacher-modal-share-suggestion.test.js
 !test/unit/components/classroom-teacher-view-layout.test.jsx
+!test/unit/components/classroom-teacher-menu.test.jsx
+!test/unit/components/menu-bar-classroom.test.jsx
 !test/unit/components/student-seat-selector.test.jsx
 !test/unit/components/mobile-bottom-tabs.test.jsx
 !test/unit/components/mobile-drawer.test.jsx
@@ -366,11 +371,14 @@ test/unit/containers/*
 !test/unit/containers/cards.test.jsx
 !test/unit/containers/classroom-classcode-utils.test.js
 !test/unit/containers/classroom-error-utils.test.js
+!test/unit/containers/classroom-teacher-menu.test.jsx
+!test/unit/containers/use-teacher-auth-restore.test.js
 !test/unit/containers/classroom-kick-request-watcher.test.jsx
 !test/unit/containers/use-kick-request-polling.test.js
 !test/unit/containers/connection-modal-connected-message.test.jsx
 !test/unit/containers/connection-modal-smalrubot-s1.test.jsx
 !test/unit/containers/connection-modal.test.jsx
+!test/unit/containers/use-teacher-groups-loaded.test.js
 !test/unit/containers/use-teacher-groups-topics.test.js
 !test/unit/containers/use-teacher-notifications.test.js
 !test/unit/containers/google-drive-saver-hoc.test.jsx
@@ -406,6 +414,7 @@ test/unit/lib/*
 !test/unit/lib/scratch-blocks-ime-patch.test.js
 !test/unit/lib/avatar-initials.test.js
 !test/unit/lib/classroom-api.test.js
+!test/unit/lib/classroom-teacher-session.test.js
 !test/unit/lib/classroom-assignment-templates.test.js
 !test/unit/lib/classroom-assignment-utils.test.js
 !test/unit/lib/classroom-download-utils.test.js

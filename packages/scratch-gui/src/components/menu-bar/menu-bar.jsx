@@ -124,6 +124,7 @@ import {isFirmwareFlashSupported} from '../../lib/smalrubot-firmware-flasher';
 import {openClassroomModal} from '../../reducers/classroom';
 import {isClassroomConfigured} from '../../lib/classroom-api';
 import ClassroomStatusIcon, {getSubmissionStatus} from '../classroom-modal/classroom-status-icon.jsx';
+import ClassroomTeacherMenu from '../../containers/classroom-teacher-menu.jsx';
 // === Smalruby: End of classroom button ===
 import collectMetadata from '../../lib/collect-metadata';
 import {PLATFORM} from '../../lib/platform';
@@ -1260,6 +1261,12 @@ class MenuBar extends React.Component {
                         {/* === Smalruby: Start of classroom button === */}
                         {isClassroomConfigured() && (
                             <React.Fragment>
+                                <ClassroomTeacherMenu
+                                    activeClassName={styles.active}
+                                    className={classNames(styles.menuBarItem, styles.hoverable)}
+                                    menuClassName={classNames(styles.menuBarMenu)}
+                                    place={this.props.isRtl ? 'left' : 'right'}
+                                />
                                 <div
                                     className={classNames(styles.menuBarItem, styles.hoverable)}
                                     data-testid="classroom-menu-button"

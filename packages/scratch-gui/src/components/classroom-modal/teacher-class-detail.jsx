@@ -67,6 +67,7 @@ const TeacherClassDetail = ({
     onApproveKickRequest,
     onRejectKickRequest,
     onDetailTabChange,
+    detailEntry,
     onOpenShareSuggestion,
     assignmentEditor,
     group,
@@ -91,9 +92,10 @@ const TeacherClassDetail = ({
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const deleteConfirmRef = useRef(null);
     const [showCodeDisplay, setShowCodeDisplay] = useState(false);
-    // The description tab is the entry view (teacher review): editing the
-    // student-facing pages is the primary task when opening an assignment.
-    const [activeTab, setActiveTab] = useState('description');
+    // The members tab is the entry view; the description tab only on the
+    // first open of a just-created assignment (pickDetailEntryTab, #1199).
+    const entryTab = (detailEntry && detailEntry.tab) || 'members';
+    const [activeTab, setActiveTab] = useState(entryTab);
     const [previewPage, setPreviewPage] = useState(0);
     const [editAssignmentName, setEditAssignmentName] = useState(
         selectedClassroom.assignmentName || '',
@@ -104,10 +106,10 @@ const TeacherClassDetail = ({
         setEditAssignmentName(selectedClassroom.assignmentName || '');
         setShowDeleteConfirm(false);
         setShowCodeDisplay(false);
-        setActiveTab('description');
+        setActiveTab(entryTab);
         setPreviewPage(0);
-        if (onDetailTabChange) onDetailTabChange('description');
-    }, [selectedClassroom.classroomId]);
+        if (onDetailTabChange) onDetailTabChange(entryTab);
+    }, [selectedClassroom.classroomId, detailEntry && detailEntry.seq]);
 
     const handleTabClick = useCallback(
         (e) => {
@@ -977,6 +979,10 @@ TeacherClassDetail.propTypes = {
     onApproveKickRequest: PropTypes.func,
     onRejectKickRequest: PropTypes.func,
     onDetailTabChange: PropTypes.func,
+    detailEntry: PropTypes.shape({
+        tab: PropTypes.oneOf(['members', 'description']),
+        seq: PropTypes.number,
+    }),
     onOpenShareSuggestion: PropTypes.func,
     assignmentEditor: PropTypes.object,
     group: PropTypes.object,

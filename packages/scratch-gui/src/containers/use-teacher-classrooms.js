@@ -80,6 +80,23 @@ export const enrichMembers = (membersData, submissionsData) => {
 };
 
 /**
+ * Which tab an assignment's detail opens on (teacher review on #1199). The
+ * members tab is where the teacher follows the lesson. The description tab is
+ * only the entry view the first time an assignment created in this session is
+ * opened: that is when its pages get written, and an assignment left without
+ * a description then most likely does not need one.
+ * @param {object} params - inputs
+ * @param {string} params.classroomId - assignment being opened
+ * @param {string} [params.requestedTab] - tab the caller asks for, if any
+ * @param {Set<string>} params.freshlyCreatedIds - created in this session, not opened yet
+ * @returns {'members'|'description'} tab to open on
+ */
+export const pickDetailEntryTab = ({ classroomId, requestedTab, freshlyCreatedIds }) => {
+    if (requestedTab) return requestedTab;
+    return freshlyCreatedIds.has(classroomId) ? 'description' : 'members';
+};
+
+/**
  * @param {object} params - hook dependencies
  * @param {string} params.idToken - teacher ID token
  * @param {Function} params.handleTeacher401 - 401 handler from auth hook
@@ -119,7 +136,16 @@ const useTeacherClassrooms = ({
     const refreshTimerRef = useRef(null);
     // Which detail tab is visible. Polling of attendance/submissions runs
     // only on the members tab (cost control — teacher review round 2).
-    const [detailTab, setDetailTab] = useState('description');
+    const [detailTab, setDetailTab] = useState('members');
+    // The tab the detail opens on; `seq` changes on every open so reopening
+    // the assignment already on screen still resets the tab.
+    const [detailEntry, setDetailEntry] = useState({ tab: 'members', seq: 0 });
+    // Assignments created in this session and not opened yet: they open on
+    // the description tab, once.
+    const freshlyCreatedIdsRef = useRef(new Set());
+    const markClassroomCreated = useCallback((classroomId) => {
+        if (classroomId) freshlyCreatedIdsRef.current.add(classroomId);
+    }, []);
 
     // --- Load classrooms (assignments) ---
 
@@ -220,13 +246,14 @@ const useTeacherClassrooms = ({
             clearError();
             setIsLoading(true);
             try {
-                await classroomAPI.createClassroom(
+                const created = await classroomAPI.createClassroom(
                     idToken,
                     formData.className,
                     formData.assignmentName,
                     formData.studentCount,
                     googleCourseId,
                 );
+                markClassroomCreated(created && created.classroomId);
                 setPhase('teacher-dashboard');
             } catch (err) {
                 if (err.status === 401) {
@@ -238,7 +265,7 @@ const useTeacherClassrooms = ({
                 setIsLoading(false);
             }
         },
-        [idToken, clearError, showError, handleTeacher401, intl, setIsLoading, setPhase],
+        [idToken, clearError, showError, handleTeacher401, intl, setIsLoading, setPhase, markClassroomCreated],
     );
 
     const handleDeleteClassroom = useCallback(
@@ -263,12 +290,26 @@ const useTeacherClassrooms = ({
         [idToken, clearError, showError, handleTeacher401, intl, setIsLoading, setPhase],
     );
 
+    /**
+     * Open an assignment's detail.
+     * @param {string} classroomId - assignment to open
+     * @param {object} [options] - open options
+     * @param {string} [options.tab] - force the tab it opens on ('members' | 'description')
+     */
     const handleSelectClassroom = useCallback(
-        async (classroomId) => {
+        async (classroomId, options = {}) => {
             clearError();
             setIsLoading(true);
             const success = await loadClassroomDetail(classroomId);
             if (success) {
+                const tab = pickDetailEntryTab({
+                    classroomId,
+                    requestedTab: options.tab,
+                    freshlyCreatedIds: freshlyCreatedIdsRef.current,
+                });
+                freshlyCreatedIdsRef.current.delete(classroomId);
+                setDetailEntry((prev) => ({ tab, seq: prev.seq + 1 }));
+                setDetailTab(tab);
                 setPhase('teacher-class-detail');
             }
             setIsLoading(false);
@@ -565,6 +606,8 @@ const useTeacherClassrooms = ({
         loadClassrooms,
         detailTab,
         setDetailTab,
+        detailEntry,
+        markClassroomCreated,
         handleUpdateAssignmentMeta,
         handleUpdateAssignmentName,
         handleUpdateStudentCount,

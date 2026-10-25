@@ -302,3 +302,36 @@ describe('TeacherClassDetail — member grid status icons (#1196)', () => {
         expect(legend.querySelectorAll('[role="img"]')).toHaveLength(7);
     });
 });
+
+describe('TeacherClassDetail — entry tab (teacher review on #1199)', () => {
+    // CSS modules are mocked out, so the visible tab is observed through the
+    // tab reported to the container (it drives the members polling).
+    test('opens on the members tab by default', () => {
+        const onDetailTabChange = jest.fn();
+        renderDetail({ onDetailTabChange });
+        expect(onDetailTabChange).toHaveBeenLastCalledWith('members');
+    });
+
+    test('opens on the description tab when asked (just-created assignment)', () => {
+        const onDetailTabChange = jest.fn();
+        renderDetail({ onDetailTabChange, detailEntry: { tab: 'description', seq: 1 } });
+        expect(onDetailTabChange).toHaveBeenLastCalledWith('description');
+    });
+
+    test('reopening the assignment on screen resets the tab', () => {
+        const onDetailTabChange = jest.fn();
+        const props = { ...defaultProps(), onDetailTabChange, detailEntry: { tab: 'description', seq: 1 } };
+        const { rerender } = render(
+            <IntlProvider locale="en">
+                <TeacherClassDetail {...props} />
+            </IntlProvider>,
+        );
+        expect(onDetailTabChange).toHaveBeenLastCalledWith('description');
+        rerender(
+            <IntlProvider locale="en">
+                <TeacherClassDetail {...props} detailEntry={{ tab: 'members', seq: 2 }} />
+            </IntlProvider>,
+        );
+        expect(onDetailTabChange).toHaveBeenLastCalledWith('members');
+    });
+});

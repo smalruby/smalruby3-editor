@@ -9,6 +9,11 @@ import reducer, {
     clearSubmissionThumbnail,
     setTeacherSelection,
     clearTeacherSelection,
+    setTeacherLoggedIn,
+    setTeacherUnreadCount,
+    setTeacherLastSelection,
+    requestTeacherNavigation,
+    clearTeacherNavigation,
 } from '../../../src/reducers/classroom';
 
 const STORAGE_KEY = 'smalruby:classroom';
@@ -366,6 +371,58 @@ describe('classroom reducer', () => {
             // Malformed legacy data should still be cleared so it stops surfacing.
             expect(window.sessionStorage.getItem(STORAGE_KEY)).toBeNull();
             expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull();
+        });
+    });
+
+    describe('teacher login state (#1199)', () => {
+        test('starts logged out', () => {
+            expect(classroomInitialState.teacherLoggedIn).toBe(false);
+            expect(classroomInitialState.teacherUnreadCount).toBe(0);
+            expect(classroomInitialState.teacherNavTarget).toBeNull();
+        });
+
+        test('records login, unread count and last selection', () => {
+            let state = reducer(classroomInitialState, setTeacherLoggedIn(true));
+            state = reducer(state, setTeacherUnreadCount(2));
+            state = reducer(state, setTeacherLastSelection({ classroomId: 'c1', groupId: 'g1' }));
+            expect(state.teacherLoggedIn).toBe(true);
+            expect(state.teacherUnreadCount).toBe(2);
+            expect(state.teacherLastSelection).toEqual({ classroomId: 'c1', groupId: 'g1' });
+        });
+
+        test('logging out resets the teacher-only state', () => {
+            const loggedIn = {
+                ...classroomInitialState,
+                teacherLoggedIn: true,
+                teacherUnreadCount: 3,
+                teacherLastSelection: { classroomId: 'c1', groupId: 'g1' },
+                teacherNavTarget: 'class-list',
+            };
+            const state = reducer(loggedIn, setTeacherLoggedIn(false));
+            expect(state.teacherLoggedIn).toBe(false);
+            expect(state.teacherUnreadCount).toBe(0);
+            expect(state.teacherLastSelection).toBeNull();
+            expect(state.teacherNavTarget).toBeNull();
+        });
+
+        test('a navigation request opens the teacher modal until handled', () => {
+            let state = reducer(classroomInitialState, requestTeacherNavigation('current-assignment'));
+            expect(state.teacherModalVisible).toBe(true);
+            expect(state.teacherNavTarget).toBe('current-assignment');
+            state = reducer(state, clearTeacherNavigation());
+            expect(state.teacherNavTarget).toBeNull();
+            expect(state.teacherModalVisible).toBe(true);
+        });
+
+        test('loads the last selection from the persisted teacher login', () => {
+            jest.resetModules();
+            window.localStorage.setItem(
+                'smalruby:classroomTeacher',
+                JSON.stringify({ provider: 'google', classroomId: 'c9', groupId: 'g9' }),
+            );
+            const { classroomInitialState: fresh } = require('../../../src/reducers/classroom');
+            expect(fresh.teacherLastSelection).toEqual({ classroomId: 'c9', groupId: 'g9' });
+            expect(fresh.teacherLoggedIn).toBe(false);
         });
     });
 });

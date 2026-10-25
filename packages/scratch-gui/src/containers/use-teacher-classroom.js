@@ -122,6 +122,7 @@ const useTeacherClassroom = ({
         intl,
         setIsLoading,
         setPhase,
+        markClassroomCreated: classrooms.markClassroomCreated,
     });
 
     importCourseRef.current = groups.handleCreateClassFromCourse;
@@ -255,6 +256,7 @@ const useTeacherClassroom = ({
 
         // Setters (needed by container for go-to-login reset)
         setIdToken: auth.setIdToken,
+        setAuthProvider: auth.setAuthProvider,
         setClassrooms: classrooms.setClassrooms,
         setSelectedClassroom: classrooms.setSelectedClassroom,
         setMembers: classrooms.setMembers,
@@ -277,6 +279,7 @@ const useTeacherClassroom = ({
         handleUpdateAssignmentName: classrooms.handleUpdateAssignmentName,
         handleUpdateAssignmentMeta: classrooms.handleUpdateAssignmentMeta,
         setDetailTab: classrooms.setDetailTab,
+        detailEntry: classrooms.detailEntry,
 
         // Kick requests (Phase 4-6)
         kickRequestsBySeat: classrooms.kickRequestsBySeat,
@@ -334,6 +337,7 @@ const useTeacherClassroom = ({
 
         // Groups (組)
         groups: groups.groups,
+        groupsLoaded: groups.groupsLoaded,
         selectedGroup: groups.selectedGroup,
         handleSelectGroup: groups.handleSelectGroup,
         handleShowClassList: groups.handleShowClassList,

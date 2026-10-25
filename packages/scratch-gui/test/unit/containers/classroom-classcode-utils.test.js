@@ -1,4 +1,8 @@
-import { decideClasscodeAction } from '../../../src/containers/classroom-classcode-utils.js';
+import {
+    decideClasscodeAction,
+    decideTeacherSelectionSync,
+    resolveAutoJoinCode,
+} from '../../../src/containers/classroom-classcode-utils.js';
 
 describe('decideClasscodeAction', () => {
     test('returns fresh_join when there is no existing session', () => {
@@ -52,5 +56,61 @@ describe('decideClasscodeAction', () => {
         expect(
             decideClasscodeAction({ sessionToken: 'tok', joinCode: 'oldcde', classroomId: null }, 'newcde'),
         ).toEqual({ type: 'fresh_join', code: 'newcde' });
+    });
+});
+
+describe('decideTeacherSelectionSync (#1199)', () => {
+    const joined = { sessionToken: 'tok-a', joinCode: 'aaaaaa', classroomId: 'cid-a' };
+
+    test('does nothing without a selected join code', () => {
+        expect(decideTeacherSelectionSync(joined, null)).toEqual({ type: 'none' });
+    });
+
+    test('does nothing when not joined as a student', () => {
+        expect(decideTeacherSelectionSync({ sessionToken: null }, 'bbbbbb')).toEqual({ type: 'none' });
+        expect(decideTeacherSelectionSync(null, 'bbbbbb')).toEqual({ type: 'none' });
+    });
+
+    test('stays in the class when the teacher selects the same assignment (case-insensitive)', () => {
+        expect(decideTeacherSelectionSync(joined, 'AAAAAA')).toEqual({ type: 'none' });
+    });
+
+    test('leaves the joined class when the teacher selects another assignment', () => {
+        expect(decideTeacherSelectionSync(joined, 'bbbbbb')).toEqual({
+            type: 'leave',
+            leaveSessionToken: 'tok-a',
+            leaveClassroomId: 'cid-a',
+        });
+    });
+
+    test('only clears a local session that cannot be released on the server', () => {
+        expect(decideTeacherSelectionSync({ sessionToken: 'tok-a', joinCode: 'aaaaaa' }, 'bbbbbb')).toEqual({
+            type: 'clear',
+        });
+    });
+});
+
+describe('resolveAutoJoinCode (#1199)', () => {
+    test('returns null for the normal flow', () => {
+        expect(resolveAutoJoinCode({})).toBeNull();
+        expect(resolveAutoJoinCode()).toBeNull();
+    });
+
+    test('prefers the ?classcode= URL over the teacher selection', () => {
+        expect(resolveAutoJoinCode({ urlClasscode: 'urlcde', teacherJoinCode: 'tchcde' })).toEqual({
+            code: 'urlcde',
+            source: 'url',
+        });
+    });
+
+    test("uses the teacher's selected assignment when not joined", () => {
+        expect(resolveAutoJoinCode({ teacherJoinCode: 'tchcde', session: { sessionToken: null } })).toEqual({
+            code: 'tchcde',
+            source: 'teacher',
+        });
+    });
+
+    test('keeps a joined class instead of following the teacher selection', () => {
+        expect(resolveAutoJoinCode({ teacherJoinCode: 'tchcde', session: { sessionToken: 'tok' } })).toBeNull();
     });
 });
