@@ -309,3 +309,32 @@ test('renderUsagePop: セッション/週間の % とリセット日時を出し
     assert.doesNotThrow(() => renderUsagePop(undefined));
     assert.doesNotThrow(() => renderUsagePop({}));
 });
+
+test('MONITOR_HTML: [通常] / [あとでやる] タブと 💤 あとで / ↩ 今やる ボタン（#1190）', () => {
+    // タブはボードの上にある
+    assert.match(MONITOR_HTML, /id="tabs"/);
+    assert.ok(MONITOR_HTML.indexOf('id="tabs"') < MONITOR_HTML.indexOf('id="board"'));
+    // 選択タブは autopilot: 系キーで localStorage に記憶（storage 不可でも try/catch で動く）
+    assert.match(MONITOR_HTML, /'autopilot:boardTab'/);
+    assert.match(MONITOR_HTML, /try \{ localStorage\.setItem\(BOARD_TAB_KEY/);
+    // POST /later を叩く（JSON body）
+    assert.match(MONITOR_HTML, /fetch\('\/later', \{ method: 'POST'/);
+    assert.ok(MONITOR_HTML.includes('💤 あとで'));
+    assert.ok(MONITOR_HTML.includes('↩ 今やる'));
+    // 送信中は disabled（二重送信防止）
+    assert.match(MONITOR_HTML, /⏳ 処理中<\/button>/);
+});
+
+test('MONITOR_HTML: 判断ロジックは phases.js の純粋関数を埋め込んで共有する（二重定義しない）', () => {
+    const phases = require('../src/phases');
+    for (const name of ['canToggleLater', 'effectiveLater', 'splitLaterBoard', 'laterPendingReducer']) {
+        assert.ok(MONITOR_HTML.includes(String(phases[name])), `${name} should be embedded verbatim`);
+    }
+});
+
+test('MONITOR_HTML: インライン script が構文として妥当（埋め込み後も壊れない）', () => {
+    const m = MONITOR_HTML.match(/<script>([\s\S]*)<\/script>/);
+    assert.ok(m);
+    // 構文チェックのみ（実行はしない）
+    assert.doesNotThrow(() => new Function(m[1]));
+});

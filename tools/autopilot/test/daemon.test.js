@@ -9,14 +9,14 @@ const {
     parseSsoDeviceOutput, startReauth,
     updateClaudeUsage, boardResponse, statusResponse,
     checkForUpdate, startUpdateChecks,
-    patchBoardCache,
+    patchBoardCache, patchLaterCache, setLaterLabel,
     ensureCheckpointCommit, readContinuationFromWorktree, applyCheckpointHandling,
     collectContinuationContexts, checkpointEscalationBody,
     applyTrackerStickies, refreshBoardAndProjectTrackers,
     followBaseBranch,
 } = require('../src/daemon');
 const { EventEmitter } = require('node:events');
-const { HITL_LABEL, AUTOPILOT_LABEL, continuationMarker, TRACKER_STICKY_MARKER } = require('../src/phases');
+const { HITL_LABEL, AUTOPILOT_LABEL, LATER_LABEL, continuationMarker, TRACKER_STICKY_MARKER } = require('../src/phases');
 
 /** Build an injectable double for markBlocked/detectStuck that records side effects. */
 function makeBlockDeps() {
@@ -1916,7 +1916,7 @@ test('tick: 毎 tick で Claude 使用量を読み直す（pause 中でも・#10
 // ---- HTTP: usage をライブ読取（GET /board・POST /refresh・#1027） ----------
 
 /** テスト用: 起動済み server に対して method/path でリクエストし JSON を返す小ヘルパー */
-function httpRequestJson(port, method, pathname) {
+function httpRequestJson(port, method, pathname, payload) {
     const http = require('node:http');
     return new Promise((resolve, reject) => {
         const req = http.request({ host: '127.0.0.1', port, method, path: pathname }, (res) => {
@@ -1927,7 +1927,7 @@ function httpRequestJson(port, method, pathname) {
             });
         });
         req.on('error', reject);
-        req.end();
+        req.end(payload);
     });
 }
 
@@ -2126,4 +2126,112 @@ test('patchBoardCache: does not mutate the original cached item object (replaces
     assert.strictEqual(original.aiStatus, 'Implementing');
     assert.notStrictEqual(state.board.items[0], original);
     assert.strictEqual(state.board.items[0].aiStatus, 'Self-Reviewing');
+});
+
+// ---- 💤 later（「あとでやる」一覧・#1190） --------------------------------
+
+function makeLaterDeps(initial = []) {
+    const calls = { get: 0, edit: [] };
+    let labels = [...initial];
+    return {
+        calls,
+        get labels() { return labels; },
+        deps: {
+            token: 'bot', readToken: 'read',
+            getIssueLabels: async () => { calls.get += 1; return [...labels]; },
+            editLabels: async (repo, n, type, diff) => {
+                calls.edit.push({ n, type, diff });
+                // 書き込み中に後続リクエストが割り込めるよう 1 tick 譲る
+                await new Promise((r) => setImmediate(r));
+                labels = labels.filter((l) => !(diff.remove || []).includes(l)).concat(diff.add || []);
+            },
+        },
+    };
+}
+
+test('setLaterLabel: ラベルを付与し、board / items キャッシュの labels を書き換える（再取得しない）', async () => {
+    const d = makeLaterDeps([AUTOPILOT_LABEL]);
+    const state = {
+        board: { items: [{ issue: 5, labels: [AUTOPILOT_LABEL], later: false }] },
+        itemsCache: { at: 1, items: [{ issue: 5, labels: [AUTOPILOT_LABEL] }] },
+    };
+    const r = await setLaterLabel(makeCfg(), state, () => {}, 5, true, d.deps);
+    assert.deepStrictEqual(r, { issue: 5, later: true, changed: true });
+    assert.deepStrictEqual(d.calls.edit, [{ n: 5, type: 'issue', diff: { add: [LATER_LABEL], remove: [] } }]);
+    assert.strictEqual(state.board.items[0].later, true);
+    assert.deepStrictEqual(state.board.items[0].labels, [AUTOPILOT_LABEL, LATER_LABEL]);
+    assert.deepStrictEqual(state.itemsCache.items[0].labels, [AUTOPILOT_LABEL, LATER_LABEL]);
+    assert.strictEqual(state.laterOps.size, 0);
+});
+
+test('setLaterLabel: 既に目的の状態なら書き込まない（冪等）', async () => {
+    const d = makeLaterDeps([LATER_LABEL]);
+    const r = await setLaterLabel(makeCfg(), {}, () => {}, 5, true, d.deps);
+    assert.deepStrictEqual(r, { issue: 5, later: true, changed: false });
+    assert.strictEqual(d.calls.edit.length, 0);
+});
+
+test('setLaterLabel: 同一 Issue の同時リクエストは並走させず、最後の意図へ畳み込む', async () => {
+    const d = makeLaterDeps([]);
+    const state = {};
+    const log = () => {};
+    // あとで → 今やる → あとで → 今やる を連打（1 本目の処理中に残りが来る）
+    const ps = [true, false, true, false].map((v) => setLaterLabel(makeCfg(), state, log, 5, v, d.deps));
+    const rs = await Promise.all(ps);
+    // 全員が同じ最終状態（最後に押した向き）を受け取る
+    for (const r of rs) assert.strictEqual(r.later, false);
+    assert.deepStrictEqual(d.labels, []);
+    // 1 周目（付与）+ 畳み込み後の 2 周目（除去）だけ。途中の true/false は書き込まない
+    assert.strictEqual(d.calls.edit.length, 2);
+    assert.strictEqual(d.calls.get, 2);
+    assert.strictEqual(state.laterOps.size, 0);
+});
+
+test('setLaterLabel: 別 Issue は独立に処理する', async () => {
+    const d = makeLaterDeps([]);
+    const state = {};
+    const [a, b] = await Promise.all([
+        setLaterLabel(makeCfg(), state, () => {}, 5, true, d.deps),
+        setLaterLabel(makeCfg(), state, () => {}, 6, true, d.deps),
+    ]);
+    assert.strictEqual(a.issue, 5);
+    assert.strictEqual(b.issue, 6);
+    assert.deepStrictEqual(d.calls.edit.map((c) => c.n).sort(), [5, 6]);
+});
+
+test('setLaterLabel: 失敗は reject し、次のリクエストを妨げない', async () => {
+    const state = {};
+    const failing = {
+        token: 'bot', readToken: 'read',
+        getIssueLabels: async () => [],
+        editLabels: async () => { throw new Error('boom'); },
+    };
+    await assert.rejects(setLaterLabel(makeCfg(), state, () => {}, 5, true, failing), /boom/);
+    assert.strictEqual(state.laterOps.size, 0);
+    const d = makeLaterDeps([]);
+    const r = await setLaterLabel(makeCfg(), state, () => {}, 5, true, d.deps);
+    assert.strictEqual(r.changed, true);
+});
+
+test('patchLaterCache: キャッシュが無い / 対象が無い場合は何もしない', () => {
+    const state = { board: { items: [{ issue: 1, labels: [] }] } };
+    patchLaterCache({}, 1, true);
+    patchLaterCache(state, 2, true);
+    assert.deepStrictEqual(state.board.items, [{ issue: 1, labels: [] }]);
+});
+
+test('startHttp POST /later: 入力検証（issue / later 必須）', async () => {
+    const cfg = { ...makeCfg(), port: 0, assignee: null, concurrency: 1 };
+    const state = { paused: false, running: new Map(), board: null };
+    const { server, port } = await startTestHttp(cfg, state);
+    try {
+        let r = await httpRequestJson(port, 'POST', '/later', JSON.stringify({ issue: 5 }));
+        assert.strictEqual(r.status, 400);
+        r = await httpRequestJson(port, 'POST', '/later', JSON.stringify({ issue: 'x', later: true }));
+        assert.strictEqual(r.status, 400);
+        r = await httpRequestJson(port, 'POST', '/later', '{not json');
+        assert.strictEqual(r.status, 400);
+    } finally {
+        await new Promise((r) => server.close(r));
+    }
 });
