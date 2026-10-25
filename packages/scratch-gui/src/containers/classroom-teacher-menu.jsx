@@ -8,6 +8,7 @@ import {
     clearTeacherSelection,
     closeTeacherModal,
     requestTeacherNavigation,
+    setTeacherLastSelection,
     setTeacherLoggedIn,
     setTeacherUnreadCount,
 } from '../reducers/classroom.js';
@@ -56,7 +57,14 @@ const ClassroomTeacherMenu = ({ className, activeClassName, menuClassName, place
             } else {
                 token = await restoreTeacherLogin(loadTeacherSession().provider);
             }
-            if (cancelled || !token) return;
+            if (cancelled) return;
+            if (!token) {
+                // The persisted record is gone; drop the last assignment read
+                // from it at startup so the next teacher to log in on this
+                // browser is not offered someone else's "いまの課題を開く".
+                dispatch(setTeacherLastSelection(null));
+                return;
+            }
             dispatch(setTeacherLoggedIn(true));
             try {
                 const { unreadCount: unread } = await loadDailyNotifications(token);

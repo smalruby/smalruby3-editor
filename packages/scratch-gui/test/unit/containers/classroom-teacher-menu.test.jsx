@@ -6,7 +6,11 @@ import { IntlProvider } from 'react-intl';
 import { Provider } from 'react-redux';
 import { combineReducers, createStore } from 'redux';
 import ClassroomTeacherMenu from '../../../src/containers/classroom-teacher-menu.jsx';
-import classroomReducer, { openTeacherModal, setTeacherLoggedIn } from '../../../src/reducers/classroom.js';
+import classroomReducer, {
+    openTeacherModal,
+    setTeacherLastSelection,
+    setTeacherLoggedIn,
+} from '../../../src/reducers/classroom.js';
 
 let mockCachedToken = null;
 const mockRestore = jest.fn();
@@ -79,6 +83,17 @@ describe('ClassroomTeacherMenu container (#1199)', () => {
         await act(async () => {});
         expect(store.getState().scratchGui.classroom.teacherLoggedIn).toBe(false);
         expect(screen.queryByTestId('classroom-teacher-menu-button')).not.toBeInTheDocument();
+    });
+
+    test('failed restore drops the stale last assignment read at startup', async () => {
+        window.localStorage.setItem(TEACHER_KEY, JSON.stringify({ provider: 'google' }));
+        mockRestore.mockResolvedValue(null);
+        const store = renderMenu();
+        act(() => {
+            store.dispatch(setTeacherLastSelection({ classroomId: 'c-old', groupId: 'g-old' }));
+        });
+        await act(async () => {});
+        expect(store.getState().scratchGui.classroom.teacherLastSelection).toBeNull();
     });
 
     test('logs in from ?devlogin= without silent re-auth', async () => {

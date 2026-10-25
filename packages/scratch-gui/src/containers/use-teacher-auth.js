@@ -57,7 +57,8 @@ export const setCachedTeacherIdToken = (token) => {
  * persisted record is dropped and the teacher simply stays logged out.
  * @param {string} provider - 'google' | 'microsoft'
  * @param {Function} [reauth] - silent re-auth implementation (injectable for tests)
- * @returns {Promise<string|null>} the restored ID token, or null
+ * @returns {Promise<string|null>} the teacher's ID token after the attempt (a
+ *   login made while waiting wins), or null when no teacher is logged in
  */
 export const restoreTeacherLogin = async (provider, reauth = attemptSilentReauth) => {
     let token = null;
@@ -67,8 +68,10 @@ export const restoreTeacherLogin = async (provider, reauth = attemptSilentReauth
         token = null;
     }
     if (!token) {
-        clearTeacherSession();
-        return null;
+        // A manual login made while the silent attempt was pending (e.g. the
+        // Google prompt timing out) keeps its own persisted record.
+        if (!_cachedTeacherIdToken) clearTeacherSession();
+        return _cachedTeacherIdToken;
     }
     // A login made while we were waiting wins over the restored one.
     if (!_cachedTeacherIdToken) {

@@ -59,6 +59,19 @@ describe('use-teacher-auth restore (#1199)', () => {
         expect(window.localStorage.getItem(TEACHER_KEY)).toBeNull();
     });
 
+    test('failed silent re-auth keeps a login made while it was pending', async () => {
+        window.localStorage.setItem(TEACHER_KEY, JSON.stringify({ provider: 'google' }));
+        const { auth } = loadModules();
+        const token = await auth.restoreTeacherLogin('google', () => {
+            // The teacher logged in from the modal before the silent attempt timed out.
+            auth.setCachedTeacherIdToken('manual-token');
+            return Promise.reject(new Error('Silent reauth timeout'));
+        });
+        expect(token).toBe('manual-token');
+        expect(auth.getCachedTeacherIdToken()).toBe('manual-token');
+        expect(JSON.parse(window.localStorage.getItem(TEACHER_KEY)).provider).toBe('google');
+    });
+
     test('logoutCachedTeacher forgets token, provider session and persisted login', async () => {
         window.localStorage.setItem(TEACHER_KEY, JSON.stringify({ provider: 'microsoft' }));
         const { auth, teacherAuth } = loadModules();
