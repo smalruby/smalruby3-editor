@@ -4,6 +4,8 @@
 
 Playwright MCP および Selenium integration tests で使用する `data-testid` 属性の完全な一覧です。
 
+> **クラス管理の data-testid はこの一覧だけに書く。** 画面ごとの見た目・文言・操作は [ui-ux.md](ui-ux.md) にあり、そちらには testid を書かない（`.claude/rules/scratch-gui/e2e-test.md` もここを参照する）。testid を追加・変更したら、この一覧だけを更新する。
+
 ### フェーズ検出
 
 各フェーズのルート要素に付与されます。現在表示中のフェーズを判定するのに使います。
@@ -38,6 +40,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-back` | button | 戻る |
 | `classroom-refresh` | button | 更新 (↻) |
 | `classroom-google-import` | button | Google Classroom からインポート |
+| `classroom-google-import-confirm` | button | GC コース一覧の「インポート」（未選択時は disabled） |
 | `classroom-avatar-button` | button | アカウントメニュー（タイトルバー右上・メール頭文字 + ▼） |
 | `classroom-teacher-logout` | button | ログアウト（アカウントメニュー内） |
 
@@ -61,6 +64,9 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | data-testid | 要素 | 説明 |
 |------------|------|------|
 | `classroom-detail-name` | div | 課題が属するクラス（学級）名 |
+| `classroom-detail-assignment-name` | input | 課題名（blur で保存） |
+| `classroom-tab-members` | button | 「メンバー」タブ（凡例 + 人数 + 更新 + 座席グリッド） |
+| `classroom-view-assignment` | a | 「課題を確認」（配信済みのとき・新しいタブ。生徒のステータス画面にもある） |
 | `classroom-detail-join-code` | div | 参加コード |
 | `classroom-detail-expand-code` | button | コード拡大表示 |
 | `classroom-members-grid` | div | 座席グリッド |
@@ -115,6 +121,12 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-seat-grid` | div | 席番号グリッド |
 | `classroom-seat-{n}` | button | 席番号 n のボタン（使用中は `classroom-status-icon-occupied` を含む） |
 | `classroom-selected-seat` | div (hidden) | 選択中の席番号 |
+| `classroom-seat-number-form` | form | 出席番号の数値入力フォーム（グリッドの上） |
+| `classroom-seat-number-input` | input | 出席番号の入力欄（1〜定員。全角数字も可）。入力した番号のセルは `data-typed` で強調 |
+| `classroom-seat-number-submit` | button | 「この番号にする」。空席なら選択→確認、使用中なら退室依頼ダイアログ |
+| `classroom-seat-number-error` | div | 範囲外・数字以外の入力エラー |
+| `classroom-seat-guide` | div | 常時の案内文。表示から 30 秒席が選ばれないと `data-idle="1"` で強調（`prefers-reduced-motion` ではアニメなし） |
+| `classroom-seat-confirm-message` | div | 参加確定前の大きな確認「出席番号 NN で参加します」 |
 | `classroom-confirm-seat` | button | 席番号確定・参加 |
 
 ### 生徒: 参加完了
@@ -368,7 +380,8 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `kick-request-submit` | button | 依頼を送信 |
 | `kick-request-cancel` | button | ダイアログを閉じる |
 | `kick-request-error` | div | 依頼送信エラー表示 |
-| `kick-request-pending-banner` | div | 「先生に依頼中です…」バナー（5 秒ごとに lookupClassroom を polling）|
+| `kick-request-pending-banner` | div | 「先生に依頼中です…」バナー（依頼が生きている間・タブ表示中だけ 5 秒ごとに lookupClassroom を polling。承認で席が空いたらその席で自動参加）|
+| `kick-request-pending-note` | div | 依頼中バナー内の補足「先生に届いています。先生が確認しに来ます。待つ間スモウルビーを使っていてもかまいません…」 |
 | `kick-request-rejected-banner` | div | 「依頼は受理されませんでした」バナー (却下 / TTL 期限切れ検出時に pending と差し替え) |
 | `kick-request-rejected-banner-dismiss` | button | × ボタン |
 | `classroom-seat-kick-request-{seatNumber}` | span | 先生の課題詳細の座席グリッドに表示する退室依頼アイコン（`classroom-status-icon-kickRequested`）のバッジ |
@@ -376,6 +389,26 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-kick-request-row-{requestId}` | div | 1 リクエストの行 |
 | `classroom-kick-request-approve-{requestId}` | button | 承認（kick + リクエスト削除）|
 | `classroom-kick-request-reject-{requestId}` | button | 却下（リクエストのみ削除）|
+
+### お知らせセンター (先生)
+
+| data-testid | 要素 | 説明 |
+|------------|------|------|
+| `classroom-notifications-button` | button | ベル（クリックでパネル開閉） |
+| `classroom-notifications-badge` | span | 未読数（10 以上は「9+」。未読 0 で非表示） |
+| `classroom-notifications-panel` | div | 一覧パネル（先頭 5 件プレビュー） |
+| `classroom-notifications-menu-button` | button | パネルヘッダー右の ⋯ |
+| `classroom-notifications-menu` | div | ⋯ メニュー |
+| `classroom-notifications-mark-all-read` | button | すべて既読にする（未読 0 で無効） |
+| `classroom-notifications-open-all` | button | お知らせを開く（全件一覧ページへ） |
+| `classroom-notification-item-{notificationId}` | button | パネル内のお知らせ 1 件（クリックでリンク先へ + パネルを閉じる） |
+| `classroom-notification-unread-dot` | span | 未読ドット（未読アイテムのみ） |
+| `classroom-notifications-empty` | div | お知らせ 0 件のとき |
+| `classroom-notifications-page` | div | 全件一覧ページ（`teacher-notifications` フェーズ） |
+| `classroom-breadcrumb-top` | button | パンくず先頭「クラス管理」（トップ = クラス一覧へ） |
+| `classroom-notifications-back` | button | 左下の「戻る」（クラス一覧へ） |
+| `classroom-notification-page-item-{notificationId}` | button | 一覧ページ内のお知らせ 1 件 |
+| `classroom-notifications-pager` / `-prev` / `-next` | div / button | ページャ（10 件/ページ） |
 
 ### 汎用
 

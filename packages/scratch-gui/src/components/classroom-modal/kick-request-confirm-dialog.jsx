@@ -40,7 +40,7 @@ const KickRequestConfirmDialog = ({ seatNumber, isLoading, error, onCancel, onCo
             </h3>
             <p className={styles.kickRequestDialogBody}>
                 <FormattedMessage
-                    defaultMessage="Use this when you think seat {seatNumber} is your seat but someone else picked it by mistake. Your teacher will see the request and decide."
+                    defaultMessage="Use this when you think seat {seatNumber} is your seat but someone else picked it by mistake. Your teacher will check with you before freeing the seat."
                     description="Explanatory body text in the kick-request dialog"
                     id="gui.classroom.kickRequest.body"
                     values={{ seatNumber: String(seatNumber).padStart(2, '0') }}

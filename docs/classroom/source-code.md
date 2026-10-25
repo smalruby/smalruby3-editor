@@ -21,6 +21,7 @@ smalruby3-editor/
 │   │   │   │   ├── class-code-display.jsx ← 参加コード表示（全画面対応）
 │   │   │   │   ├── google-course-list.jsx ← GC コースタイルグリッド
 │   │   │   │   ├── kick-request-confirm-dialog.jsx ← 退室依頼ダイアログ (#692)
+│   │   │   │   ├── student-seat-selector.jsx ← 生徒の席選択（番号入力・案内・参加確認・依頼中表示）
 │   │   │   │   ├── teacher-class-detail.jsx ← 先生の課題詳細 (退室リクエストバッジ + 退室通知バナー)
 │   │   │   │   ├── teacher-member-detail.jsx ← メンバー詳細パネル (承認/却下ボタン)
 │   │   │   │   ├── classroom-status-icon.jsx ← 着席・提出などの状態アイコン共通部品 (+ 凡例)
@@ -51,6 +52,8 @@ smalruby3-editor/
 │   │   │   ├── use-teacher-groups.js ← 組（グループ）管理・複製フロー
 │   │   │   ├── use-teacher-evaluation.js ← 学期末評価フロー（読み込み/AI評価/CSV/返却）
 │   │   │   ├── use-student-submit.js  ← 生徒提出フロー
+│   │   │   ├── use-kick-request-polling.js ← 退室依頼の承認待ちポーリング（依頼中・タブ表示中・未参加のみ）
+│   │   │   ├── classroom-kick-request-watcher.jsx ← モーダルを閉じている間の承認待ち見張り
 │   │   │   ├── use-google-classroom.js ← Google Classroom API 連携
 │   │   │   ├── classroom-error-utils.js ← エラーメッセージ変換
 │   │   │   └── alert.jsx             ← Alert コンテナ（参加しなおす対応）
@@ -63,6 +66,7 @@ smalruby3-editor/
 │   │   │   ├── classroom-google-share.js ← GC 共有の既定ブロック判定 + 解除導線の文言（純粋）#1184
 │   │   │   ├── classroom-evaluation/ ← sb3-analyzer（静的解析）+ evaluation-utils（総合評価/CSV）
 │   │   │   ├── classroom-kick-request-storage.js ← 退室依頼の localStorage 永続化 (#692)
+│   │   │   ├── classroom-seat-selection.js ← 席選択の純粋ロジック（番号入力の検証・ポーリング判定・定数）
 │   │   │   ├── google-classroom-auth.js ← Google Classroom OAuth
 │   │   │   └── alerts/index.jsx       ← Alert 定義（classroomSessionExpired 追加）
 │   │   ├── reducers/

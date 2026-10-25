@@ -105,17 +105,30 @@ export default {
     'gui.classroom.studentJoin.teacherLink': 'せんせいのかたはこちら（クラスかんり）',
     'gui.classroom.studentSeat.prompt': 'しゅっせきばんごうをえらんでください',
     'gui.classroom.studentSeat.join': 'さんかする',
+    'gui.classroom.studentSeat.numberInputLabel': 'しゅっせきばんごう',
+    'gui.classroom.studentSeat.numberInputPlaceholder': '1〜{seatCount}',
+    'gui.classroom.studentSeat.numberSubmit': 'このばんごうにする',
+    'gui.classroom.studentSeat.numberError': '1から{seatCount}までのすうじをいれてください。',
+    'gui.classroom.studentSeat.alreadyRequested':
+        'しゅっせきばんごう{seatNumber}はつかわれています。いませんせいにおねがいしているところなので、すこしまっていてください。',
+    'gui.classroom.studentSeat.guide':
+        'じぶんのばんごうが「しようちゅう」のときは、そのばんごうをおしてください。せんせいにせきをあけてもらうようおねがいできます。せんせいがかくにんしにきます。',
+    'gui.classroom.studentSeat.confirmTitle': 'しゅっせきばんごう {seatNumber} でさんかします',
+    'gui.classroom.studentSeat.confirmNote':
+        'じぶんのばんごうであっていますか？ ほかのひとのばんごうでさんかすると、そのひとがさんかできなくなります。たしかめてから「さんかする」をおしてください。',
     'gui.classroom.kicked.banner.title': 'せんせいによってクラスからたいしつさせられました。',
     'gui.classroom.kicked.banner.subtitle':
         '「{className}」にもういちどさんかするには、しゅっせきばんごうをえらびなおしてください。',
     'gui.classroom.kickRequest.title': 'しゅっせきばんごう{seatNumber}のひとにたいしつをいらいしますか？',
     'gui.classroom.kickRequest.body':
-        'しゅっせきばんごう{seatNumber}がじぶんのせきで、ほかのひとがまちがってえらんでしまったときにつかってください。せんせいにいらいがおくられ、しょうにんするかどうかをきめてもらいます。',
+        'しゅっせきばんごう{seatNumber}がじぶんのせきで、ほかのひとがまちがってえらんでしまったときにつかってください。せんせいにいらいがおくられ、せんせいがあなたにかくにんしてからせきをあけます。',
     'gui.classroom.kickRequest.reasonPlaceholder': 'にんい：せんせいへひとこと（200もじまで）',
     'gui.classroom.kickRequest.cancel': 'キャンセル',
     'gui.classroom.kickRequest.submit': 'いらいをおくる',
     'gui.classroom.kickRequest.pendingBanner':
         'しゅっせきばんごう{seatNumber}のたいしつをせんせいにいらいちゅうです…',
+    'gui.classroom.kickRequest.pendingNote':
+        'せんせいにとどいています。せんせいがかくにんしにきます。まつあいだスモウルビーをつかっていてもかまいません。せきがあいたら、じどうでそのせきでさんかします。',
     'gui.classroom.kickRequest.rejectedBanner':
         'しゅっせきばんごう{seatNumber}のたいしつはじゅりされませんでした。べつのせきをえらぶか、もういちどいらいをだしてください。',
     'gui.classroom.kickRequest.teacherTitle':

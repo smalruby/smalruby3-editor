@@ -917,6 +917,7 @@
 
 .kick-request-pending-banner {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 0.5rem;
     background-color: #e3f2fd;
@@ -3518,4 +3519,87 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
 
 .seat-button-number {
     line-height: 1;
+}
+
+/* --- Seat selection: number input, guide and confirmation (#1198) --- */
+
+.seat-number-form {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin: 0.5rem 0;
+}
+
+.seat-number-input {
+    width: 6rem;
+    padding: 0.5rem;
+    font-size: 1.2rem;
+    text-align: center;
+    border: 2px solid #4c97ff;
+    border-radius: 6px;
+}
+
+.seat-guide {
+    margin: 0.5rem 0;
+    padding: 0.6rem 0.8rem;
+    border-radius: 8px;
+    background-color: #fff8e1;
+    border: 1px solid #ffcc80;
+    color: #575e75;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.seat-guide-idle {
+    background-color: #ffe0b2;
+    border: 2px solid #ff9800;
+    font-weight: bold;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .seat-guide-idle {
+        animation: seat-guide-bounce 1.2s ease-in-out infinite;
+    }
+}
+
+@keyframes seat-guide-bounce {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-4px);
+    }
+}
+
+.seat-typed {
+    outline: 3px solid #ff9800;
+    outline-offset: 1px;
+}
+
+.seat-confirm {
+    margin: 0.5rem 0;
+    padding: 0.8rem 1rem;
+    border-radius: 8px;
+    background-color: #e8f8f2;
+    border: 2px solid #0fbd8c;
+    text-align: center;
+}
+
+.seat-confirm-title {
+    font-size: 1.6rem;
+    font-weight: bold;
+    color: #0b8e69;
+}
+
+.seat-confirm-note {
+    margin-top: 0.3rem;
+    font-size: 0.85rem;
+    color: #575e75;
+}
+
+.kick-request-pending-note {
+    flex-basis: 100%;
+    margin-top: 0.3rem;
+    font-size: 0.85rem;
 }

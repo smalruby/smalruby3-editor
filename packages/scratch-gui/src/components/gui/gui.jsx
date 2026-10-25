@@ -40,6 +40,7 @@ import SmalrubotFirmwareModal from '../../containers/smalrubot-firmware-modal.js
 // === Smalruby: End of smalrubot firmware modal ===
 // === Smalruby: Start of classroom modal ===
 import ClassroomModal from '../../containers/classroom-modal.jsx';
+import ClassroomKickRequestWatcher from '../../containers/classroom-kick-request-watcher.jsx';
 import ClassroomTeacherModal from '../../containers/classroom-teacher-modal.jsx';
 // === Smalruby: End of classroom modal ===
 // === Smalruby: Start of bug report modal ===
@@ -486,7 +487,7 @@ const GUIComponent = props => {
                         <SmalrubotFirmwareModal />
                     ) : null}
                     {/* === Smalruby: Start of classroom modal === */}
-                    {classroomModalVisible ? <ClassroomModal /> : null}
+                    {classroomModalVisible ? <ClassroomModal /> : <ClassroomKickRequestWatcher />}
                     {teacherModalVisible ? <ClassroomTeacherModal /> : null}
                     {/* === Smalruby: End of classroom modal === */}
                     {/* === Smalruby: Start of bug report modal === */}

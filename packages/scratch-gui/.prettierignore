@@ -104,6 +104,8 @@ src/containers/*
 !src/containers/classroom-classcode-utils.js
 !src/containers/classroom-error-utils.js
 !src/containers/classroom-modal.jsx
+!src/containers/classroom-kick-request-watcher.jsx
+!src/containers/use-kick-request-polling.js
 !src/containers/classroom-teacher-modal.jsx
 !src/containers/classroom-teacher-menu.jsx
 !src/containers/use-google-classroom.js
@@ -162,6 +164,7 @@ src/lib/*
 !src/lib/shared-assignment-taxonomy.js
 !src/lib/shared-author-profile.js
 !src/lib/classroom-kick-request-storage.js
+!src/lib/classroom-seat-selection.js
 !src/lib/google-classroom-auth.js
 !src/lib/block-utils.js
 !src/lib/blocks-gesture-recovery.js
@@ -344,6 +347,7 @@ test/unit/components/*
 !test/unit/components/classroom-teacher-modal-share-suggestion.test.js
 !test/unit/components/classroom-teacher-view-layout.test.jsx
 !test/unit/components/classroom-teacher-menu.test.jsx
+!test/unit/components/student-seat-selector.test.jsx
 !test/unit/components/mobile-bottom-tabs.test.jsx
 !test/unit/components/mobile-drawer.test.jsx
 !test/unit/components/mobile-mode-notice.test.jsx
@@ -368,6 +372,8 @@ test/unit/containers/*
 !test/unit/containers/classroom-error-utils.test.js
 !test/unit/containers/classroom-teacher-menu.test.jsx
 !test/unit/containers/use-teacher-auth-restore.test.js
+!test/unit/containers/classroom-kick-request-watcher.test.jsx
+!test/unit/containers/use-kick-request-polling.test.js
 !test/unit/containers/connection-modal-connected-message.test.jsx
 !test/unit/containers/connection-modal-smalrubot-s1.test.jsx
 !test/unit/containers/connection-modal.test.jsx
@@ -422,6 +428,7 @@ test/unit/lib/*
 !test/unit/lib/evaluation-utils.test.js
 !test/unit/lib/sb3-analyzer.test.js
 !test/unit/lib/classroom-kick-request-storage.test.js
+!test/unit/lib/classroom-seat-selection.test.js
 !test/unit/lib/deck-setup.test.js
 !test/unit/lib/blocks-screenshot.test.js
 !test/unit/lib/download-blob.test.js

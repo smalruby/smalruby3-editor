@@ -1,5 +1,7 @@
 # UI/UX
 
+> 各画面の data-testid はここには書かず、[testing.md の data-testid 一覧](testing.md#data-testid-一覧)に一元化しています。
+
 ## 画面遷移図
 
 ```mermaid
@@ -55,20 +57,20 @@ stateDiagram-v2
 
 **パーツ:**
 
-| 要素 | テキスト/内容 | data-testid |
-|------|-------------|-------------|
-| 設定メニュー | ⚙ アイコン | `settings-menu` |
-| クラス管理メニュー | 「クラス管理...」（設定メニュー内） | `settings-classroom-management` |
-| クラスボタン | 「クラス」（未参加時） | `classroom-menu-button` |
-| ラベル | — | `classroom-menu-label` |
+| 要素 | テキスト/内容 |
+|------|-------------|
+| 設定メニュー | ⚙ アイコン |
+| クラス管理メニュー | 「クラス管理...」（設定メニュー内） |
+| クラスボタン | 「クラス」（未参加時） |
+| ラベル | — |
 
 生徒が課題に参加中の場合、ボタンのテキストは固定の「クラス:出席番号NN」表記に変わります (NN は 0 埋め 2 桁):
 
-| 要素 | テキスト/内容 | data-testid |
-|------|-------------|-------------|
-| ラベル全体 | 例: 「クラス:出席番号03」 | `classroom-menu-label` |
-| 出席番号 (内側 span) | 例: 「03」 | `classroom-menu-seat-number` |
-| 提出状態アイコン | 未提出 / 提出済み / 返却済み のアイコン（[状態アイコン](#状態アイコン)） | `classroom-menu-submission-status` |
+| 要素 | テキスト/内容 |
+|------|-------------|
+| ラベル全体 | 例: 「クラス:出席番号03」 |
+| 出席番号 (内側 span) | 例: 「03」 |
+| 提出状態アイコン | 未提出 / 提出済み / 返却済み のアイコン（[状態アイコン](#状態アイコン)） |
 
 ![メニューバー（参加中・提出済み）](screenshots/0103-menu-bar-joined.png)
 
@@ -107,15 +109,15 @@ stateDiagram-v2
 
 すべてのフェーズは `classroom-modal` モーダル内に表示されます。
 
-| 要素 | data-testid | 備考 |
-|------|-------------|------|
-| モーダル全体 | `classroom-modal` | |
-| ヘッダー | — | 紫色、「クラス」タイトル |
-| 閉じるボタン (×) | — | ヘッダー右端 |
-| ローディング表示 | `classroom-loading` | API 通信中に表示 |
-| エラー表示 | `classroom-error` | エラーメッセージ |
-| エラーアクションリンク | `classroom-error-action` | セッション切れ時に「参加画面を表示」等 |
-| セッション切れ Alert | — | Alert バナー（オレンジ帯）がモーダルの上に表示。「参加しなおす」ボタン付き |
+| 要素 | 備考 |
+|------|------|
+| モーダル全体 |  |
+| ヘッダー | 紫色、「クラス」タイトル |
+| 閉じるボタン (×) | ヘッダー右端 |
+| ローディング表示 | API 通信中に表示 |
+| エラー表示 | エラーメッセージ |
+| エラーアクションリンク | セッション切れ時に「参加画面を表示」等 |
+| セッション切れ Alert | Alert バナー（オレンジ帯）がモーダルの上に表示。「参加しなおす」ボタン付き |
 
 ---
 
@@ -127,17 +129,16 @@ Google または Microsoft アカウントでサインインする画面。先�
 
 **パーツ:**
 
-| 要素 | テキスト/内容 | data-testid | 操作 |
-|------|-------------|-------------|------|
-| フェーズルート | — | `classroom-phase-teacher-login` | — |
-| 戻るリンク | 「< 戻る」 | `classroom-back` | → teacher-dashboard |
-| 見出し | 「ログイン」 | — | — |
-| 説明文 | 「アカウントでログインして、クラスを管理します。」 | — | — |
-| ヒント | 「学校の Google Workspace for Education のアカウントで…」 | — | — |
-| Google ログインボタン | 「Googleでログイン」 | `classroom-google-login` | Google 認証画面を開く |
-| Google サインインスロット | ログイン開始後に GIS の「Sign in with Google」ボタンが入る（未開始時は空で非表示） | `google-signin-slot` | GIS ボタンのホスト。内側の生成ノードは `google-signin-button` |
-| Microsoft ログインボタン | 「Microsoftでログイン」 | `classroom-microsoft-login` | Microsoft 認証ポップアップを開く |
-| カルーセル | 右ペインに機能紹介画像（4枚、5秒ごと自動切替） | — | ドットクリックで手動切替 |
+| 要素 | テキスト/内容 | 操作 |
+|------|-------------|------|
+| 戻るリンク | 「< 戻る」 | → teacher-dashboard |
+| 見出し | 「ログイン」 | — |
+| 説明文 | 「アカウントでログインして、クラスを管理します。」 | — |
+| ヒント | 「学校の Google Workspace for Education のアカウントで…」 | — |
+| Google ログインボタン | 「Googleでログイン」 | Google 認証画面を開く |
+| Google サインインスロット | ログイン開始後に GIS の「Sign in with Google」ボタンが入る（未開始時は空で非表示） | GIS ボタンのホスト。内側の生成ノードは `google-signin-button` |
+| Microsoft ログインボタン | 「Microsoftでログイン」 | Microsoft 認証ポップアップを開く |
+| カルーセル | 右ペインに機能紹介画像（4枚、5秒ごと自動切替） | ドットクリックで手動切替 |
 
 **レイアウト:** 左右分割レイアウト。左ペイン: ログインフォーム（Google / Microsoft の2つのログインボタン）、右ペイン: 画像カルーセル（薄いグレー背景）。1024x600 の画面でもスクロールなしで表示。
 
@@ -162,7 +163,6 @@ Google または Microsoft アカウントでサインインする画面。先�
 ![クラス設定のアーカイブ確認](screenshots/0215-class-archive-confirm.png)
 
 ![アーカイブ済みクラスの一覧と復元](screenshots/0216-class-list-archived.png)
-- 主な data-testid: `classroom-phase-teacher-class-list` / `classroom-class-create[-name|-year|-count|-assignment|-submit]` / `classroom-class-card-{groupId}` / `classroom-class-open-{groupId}` / `classroom-class-evaluate-{groupId}` / `classroom-class-import-gc` / `classroom-teacher-logout` / `classroom-show-archived` / `classroom-archived-class-list` / `classroom-class-restore-{groupId}`
 
 ## 1.6 先生: 課題管理ボード（クラス内の `teacher-dashboard`）
 
@@ -183,7 +183,6 @@ Google または Microsoft アカウントでサインインする画面。先�
 - **みんなの課題からさがす**（`classroom-board-shared-catalog`、EPIC #1066）: 全国の先生が共有した課題のカタログをボード内に展開。学校種・教科・学年・タグで絞り込み → 詳細プレビュー（説明ページ・「© 表示名 / CC BY 4.0」クレジット・補足資料リンクは外部ドメイン名付き確認を挟んで新規タブ）→「このクラスに取り込む」でスターターごと課題として複製（新しい参加コードが発行される）。「自分の投稿」タブから取り下げ / 再公開。他人の投稿には通報（理由必須）
 
 ![残り日数バッジと全課題ダウンロード](screenshots/0213-board-expiry-badge-download.png)
-- 主な data-testid: `classroom-board` / `classroom-board-create[-name|-submit]` / `classroom-board-reuse[-view|-filter|-copy-{id}]` / `classroom-board-section-{topic|none}` / `classroom-board-row|open|topic|date-{classroomId}` / `classroom-topic-add[-input]` / `classroom-topic-chip|rename|remove-{topic}` / `classroom-breadcrumbs` / `classroom-board-archived-[section|toggle|list]` / `classroom-board-archived-row-{classroomId}` / `classroom-board-restore-{classroomId}`
 
 ## 1.7 先生: 課題詳細の「説明」タブ
 
@@ -194,7 +193,6 @@ Google または Microsoft アカウントでサインインする画面。先�
 - 出席・提出のポーリング（30秒）は**メンバータブ表示中のみ**（費用抑制）
 - **この課題を共有**（`classroom-share-assignment`）: 課題（説明ページ + スターター）を「みんなの課題」（全国の先生の共有ライブラリ、EPIC #1066）に公開するフォームを開く。属性（学校種・学年・教科・タグ・コマ数）、補足資料 URL（https のみ + 期待内容のガイダンス表示）、表示名・所属（localStorage 記憶）、**CC BY 4.0 同意チェック必須**。公開後は「© 表示名 / CC BY 4.0」付きの完了メッセージを表示
 - 課題の所属クラス変更・人数編集・課題単位の共同管理者・複製は**できない**（クラス設定 / 課題一覧の再利用へ集約）。フッターのボタンは「**課題をアーカイブ**」（soft-delete。ボードの「アーカイブ済みの課題」からいつでも復元可能。testid は歴史的経緯で `classroom-delete-classroom` のまま）
-- 主な data-testid: `classroom-tab-description` / `classroom-description-editor` / `classroom-description-preview[-body|-prev|-next]` / `classroom-tab-members`
 
 ## 1.8 先生: お知らせセンター（タイトルバー・EPIC #1111）
 
@@ -210,27 +208,27 @@ Google または Microsoft アカウントでサインインする画面。先�
 - **取得は 1 日 1 回**（コスト削減）: その日はじめてクラス管理を開いたときだけ `GET /notifications` を 1 回呼び、localStorage に日付つきでキャッシュ。同じ日の再オープンは API を叩かない（旧 60 秒ポーリングは廃止）。共有 PC 対策として先生メールでキャッシュを識別。取得エラーはクラス管理本体に影響させない（表示しない）。※その日の初回取得後に届いたお知らせは翌日反映（運営連絡は多くて週 1 回程度の前提）
 - 送信側は Admin SPA（課題詳細の「先生へのお知らせ」フォーム → `POST /admin/notifications`）。`docs/admin/README.md` を参照
 
-| 要素 | data-testid | 操作 |
-|------|-------------|------|
-| アバターボタン | `classroom-avatar-button` | クリックでアカウントメニュー開閉 |
-| イニシャル丸 | `classroom-avatar-initials` | メール頭文字（1〜2 文字） |
-| メニューのメール | `classroom-avatar-email` | ポップアップ内のメール表示 |
-| ログアウト | `classroom-teacher-logout` | アカウントメニュー内 |
-| ベルボタン | `classroom-notifications-button` | クリックでパネル開閉 |
-| 未読バッジ | `classroom-notifications-badge` | 未読数（10 以上は「9+」）。未読 0 で非表示 |
-| 一覧パネル | `classroom-notifications-panel` | 先頭 5 件プレビュー |
-| ⋯ メニューボタン | `classroom-notifications-menu-button` | パネルヘッダー右の三点 |
-| ⋯ メニュー | `classroom-notifications-menu` | — |
-| すべて既読にする | `classroom-notifications-mark-all-read` | 全件既読（未読 0 で無効） |
-| お知らせを開く | `classroom-notifications-open-all` | 全件一覧ページへ（件数不問） |
-| お知らせ 1 件（パネル） | `classroom-notification-item-{notificationId}` | クリックでリンク先へジャンプ + パネルを閉じる |
-| 未読ドット | `classroom-notification-unread-dot` | 未読アイテムのみ |
-| 空メッセージ | `classroom-notifications-empty` | お知らせ 0 件のとき |
-| 全件一覧ページ | `classroom-notifications-page` | `teacher-notifications` フェーズ |
-| パンくず先頭 | `classroom-breadcrumb-top` | 「クラス管理」→ トップ（クラス一覧）へ |
-| 左下戻る | `classroom-notifications-back` | トップ（クラス一覧）へ戻る |
-| ページ内 1 件 | `classroom-notification-page-item-{notificationId}` | クリックでリンク先へジャンプ |
-| ページャ | `classroom-notifications-pager` / `-prev` / `-next` | 10 件/ページ |
+| 要素 | 操作 |
+|------|------|
+| アバターボタン | クリックでアカウントメニュー開閉 |
+| イニシャル丸 | メール頭文字（1〜2 文字） |
+| メニューのメール | ポップアップ内のメール表示 |
+| ログアウト | アカウントメニュー内 |
+| ベルボタン | クリックでパネル開閉 |
+| 未読バッジ | 未読数（10 以上は「9+」）。未読 0 で非表示 |
+| 一覧パネル | 先頭 5 件プレビュー |
+| ⋯ メニューボタン | パネルヘッダー右の三点 |
+| ⋯ メニュー | — |
+| すべて既読にする | 全件既読（未読 0 で無効） |
+| お知らせを開く | 全件一覧ページへ（件数不問） |
+| お知らせ 1 件（パネル） | クリックでリンク先へジャンプ + パネルを閉じる |
+| 未読ドット | 未読アイテムのみ |
+| 空メッセージ | お知らせ 0 件のとき |
+| 全件一覧ページ | `teacher-notifications` フェーズ |
+| パンくず先頭 | 「クラス管理」→ トップ（クラス一覧）へ |
+| 左下戻る | トップ（クラス一覧）へ戻る |
+| ページ内 1 件 | クリックでリンク先へジャンプ |
+| ページャ | 10 件/ページ |
 
 ## 1.9 先生: 共有推奨バナー（#1106）
 
@@ -242,11 +240,11 @@ Google または Microsoft アカウントでサインインする画面。先�
 - 課題一覧（ボード）の該当行には「**共有おすすめ**」マークが付く
 - フラグは admin が取り消すまで表示される（先生側から消す操作は無い）
 
-| 要素 | data-testid | 操作 |
-|------|-------------|------|
-| バナー | `classroom-share-suggestion-banner` | — |
-| 共有フォームを開く | `classroom-share-suggestion-open` | ボードへ戻って共有ステップを開く |
-| ボード行のマーク | `classroom-board-share-suggested-{classroomId}` | — |
+| 要素 | 操作 |
+|------|------|
+| バナー | — |
+| 共有フォームを開く | ボードへ戻って共有ステップを開く |
+| ボード行のマーク | — |
 
 ## 4. 先生: 課題詳細のメンバータブ (`teacher-detail`)
 
@@ -266,19 +264,18 @@ Google または Microsoft アカウントでサインインする画面。先�
 
 **左カラム パーツ:**
 
-| 要素 | テキスト例 | data-testid | 操作 |
-|------|----------|-------------|------|
-| フェーズルート | — | `classroom-phase-teacher-detail` | — |
-| 戻るリンク | 「< 戻る」 | `classroom-back` | → teacher-dashboard |
-| クラス（学級）名 | 「技術 2026年度 / 2年1組」 | `classroom-detail-name` | 課題が属するクラスの表示ラベル（`formatClassLabel(group)`。v2 以前のデータでは `Classrooms.className`） |
-| 課題名入力 | 課題名（編集可） | `classroom-detail-assignment-name` | blur で保存 |
-| 課題配信ボタン | 「課題を配信」 | `classroom-post-assignment` | → teacher-post-assignment。**未配信のとき**表示 |
-| 共有できない理由 | 「このクラスの Google Classroom は ◯◯ 先生が連携しています。…」 | `classroom-post-assignment-blocked` | 連携した先生以外に表示（配信ボタンは `disabled`） |
-| GC 教師の確認ボタン | 「自分もこの Google Classroom のクラスの先生です（確認する）」 | `classroom-post-assignment-verify` | 上の理由表示の中。押すと同意を求めて判定し、GC 教師なら共有が解禁される |
-| 課題確認リンク | 「課題を確認」 | `classroom-view-assignment` | 配信済みのとき表示（新しいタブ） |
-| 参加コード表示 | 「参加コード: 3cexm5」 | `classroom-detail-join-code` | 大きなフォントで中央表示 |
-| コード拡大ボタン | ⛶ アイコン（ツールチップ: 「全画面表示」） | `classroom-detail-expand-code` | 全画面コード表示 |
-| 保存期限 | 「保存期限: 2026/4/6」 | — | 自動削除の期日（TTL）。30 日以下になると下に警告バナー（`classroom-retention-banner`）が出て「全作品ダウンロード」を促す（下図） |
+| 要素 | テキスト例 | 操作 |
+|------|----------|------|
+| 戻るリンク | 「< 戻る」 | → teacher-dashboard |
+| クラス（学級）名 | 「技術 2026年度 / 2年1組」 | 課題が属するクラスの表示ラベル（`formatClassLabel(group)`。v2 以前のデータでは `Classrooms.className`） |
+| 課題名入力 | 課題名（編集可） | blur で保存 |
+| 課題配信ボタン | 「課題を配信」 | → teacher-post-assignment。**未配信のとき**表示 |
+| 共有できない理由 | 「このクラスの Google Classroom は ◯◯ 先生が連携しています。…」 | 連携した先生以外に表示（配信ボタンは `disabled`） |
+| GC 教師の確認ボタン | 「自分もこの Google Classroom のクラスの先生です（確認する）」 | 上の理由表示の中。押すと同意を求めて判定し、GC 教師なら共有が解禁される |
+| 課題確認リンク | 「課題を確認」 | 配信済みのとき表示（新しいタブ） |
+| 参加コード表示 | 「参加コード: 3cexm5」 | 大きなフォントで中央表示 |
+| コード拡大ボタン | ⛶ アイコン（ツールチップ: 「全画面表示」） | 全画面コード表示 |
+| 保存期限 | 「保存期限: 2026/4/6」 | 自動削除の期日（TTL）。30 日以下になると下に警告バナー（`classroom-retention-banner`）が出て「全作品ダウンロード」を促す（下図） |
 
 ![課題詳細の保存期限バナー](screenshots/0214-detail-retention-banner.png)
 | メンバー見出し | 「メンバー」 | — | — |
@@ -331,37 +328,37 @@ Google の同意を求め、`teacher` と確認できればボタンが有効に
 
 メンバー未選択時は「出席番号をクリックして生徒の詳細を見る」と表示。
 
-| 要素 | テキスト例 | data-testid | 操作 |
-|------|----------|-------------|------|
-| パネル全体 | — | `classroom-member-detail` | — |
-| 席番号ヘッダー | 「出席番号05」 | `classroom-member-detail-seat` | — |
-| ニックネーム | 「- 」(未設定時) | `classroom-member-detail-name` | — |
-| 提出時刻 | 提出済み / 返却済みアイコン + 「19:11:54」 | `classroom-member-detail-submitted` | 緑（返却済みはオレンジ）テキスト |
-| 未提出 | 未提出アイコン + 「未提出」 | `classroom-member-detail-not-submitted` | 提出が無いときのみ |
-| 着席状態 | 着席中 / 未着席アイコン + 「着席中」/「未着席」 | `classroom-member-detail-seated` | — |
-| 削除リンク | 「削除」 | `classroom-member-remove` | 赤色テキスト |
-| サムネイル画像 | — | `classroom-member-detail-thumbnail` | プロジェクトのサムネイル |
-| プロジェクト名 | 「第１回チャットアプリを作ろう」 | — | サムネイル下 |
-| 「スモウルビーで開く」 | — | `classroom-member-detail-open` | 青色ボタン、全幅 |
-| コメント入力 | textarea (placeholder: 「...」) | `classroom-member-detail-comment` | — |
-| 返却ボタン | 「返却する」 | `classroom-member-detail-return` | オレンジ色ボタン、全幅 |
+| 要素 | テキスト例 | 操作 |
+|------|----------|------|
+| パネル全体 | — | — |
+| 席番号ヘッダー | 「出席番号05」 | — |
+| ニックネーム | 「- 」(未設定時) | — |
+| 提出時刻 | 提出済み / 返却済みアイコン + 「19:11:54」 | 緑（返却済みはオレンジ）テキスト |
+| 未提出 | 未提出アイコン + 「未提出」 | 提出が無いときのみ |
+| 着席状態 | 着席中 / 未着席アイコン + 「着席中」/「未着席」 | — |
+| 削除リンク | 「削除」 | 赤色テキスト |
+| サムネイル画像 | — | プロジェクトのサムネイル |
+| プロジェクト名 | 「第１回チャットアプリを作ろう」 | サムネイル下 |
+| 「スモウルビーで開く」 | — | 青色ボタン、全幅 |
+| コメント入力 | textarea (placeholder: 「...」) | — |
+| 返却ボタン | 「返却する」 | オレンジ色ボタン、全幅 |
 
 スクリーンショットが複数枚ある場合:
 
-| 要素 | data-testid | 操作 |
-|------|-------------|------|
-| 画像インデックス | `classroom-member-detail-image-index` | 「1/3」等 |
-| 前の画像ボタン | `classroom-member-detail-prev` | — |
-| 次の画像ボタン | `classroom-member-detail-next` | — |
+| 要素 | 操作 |
+|------|------|
+| 画像インデックス | 「1/3」等 |
+| 前の画像ボタン | — |
+| 次の画像ボタン | — |
 
 **説明 / メンバータブ:**
 
 課題詳細はタブ切替（「メンバー」がデフォルト = 出席・提出の座席グリッド、「説明」= 課題編集フォーム + 生徒視点プレビュー。新しく作った課題をはじめてひらいたときだけ「説明」が先）。共同管理者は**クラス設定（クラス一覧）**に移動した。タブ行の右端に「全作品ダウンロード」。
 
-| 要素 | テキスト | data-testid | 操作 |
-|------|---------|-------------|------|
-| メンバータブ | 「メンバー」 | `classroom-tab-members` | 凡例 + 人数 + 更新 + 座席グリッド（表示中のみ 30 秒ポーリング・既定）|
-| 説明タブ | 「説明」 | `classroom-tab-description` | 課題編集フォーム + 右ペインの生徒視点プレビュー（作成直後の初回のみ既定）|
+| 要素 | テキスト | 操作 |
+|------|---------|------|
+| メンバータブ | 「メンバー」 | 凡例 + 人数 + 更新 + 座席グリッド（表示中のみ 30 秒ポーリング・既定） |
+| 説明タブ | 「説明」 | 課題編集フォーム + 右ペインの生徒視点プレビュー（作成直後の初回のみ既定） |
 
 課題を切り替えるとメンバータブに戻る。
 
@@ -371,14 +368,14 @@ Google の同意を求め、`teacher` と確認できればボタンが有効に
 
 owner または co-teacher が、別の先生を **email で招待**して共同管理できる（→ [architecture.md の共同管理](architecture.md#共同管理co-teacher)）。
 
-| 要素 | テキスト例 | data-testid | 操作 |
-|------|----------|-------------|------|
-| セクション全体 | — | `classroom-co-teachers` | co-teachers タブ選択時のみ描画 |
-| 未登録表示 | 「まだ共同管理者がいません。」 | `classroom-co-teachers-empty` | co-teacher が0件時 |
-| 一覧の各項目 | 「co@example.com」 | `classroom-co-teacher-item-{email}` | — |
-| 解除ボタン | 「解除」 | `classroom-co-teacher-remove-{email}` | 共同管理者を解除 |
-| 招待入力 | email 入力 (placeholder: teacher@example.com) | `classroom-co-teacher-invite-input` | Enter でも招待 |
-| 招待ボタン | 「招待」 | `classroom-co-teacher-invite-submit` | email 未入力時は disabled |
+| 要素 | テキスト例 | 操作 |
+|------|----------|------|
+| セクション全体 | — | co-teachers タブ選択時のみ描画 |
+| 未登録表示 | 「まだ共同管理者がいません。」 | co-teacher が0件時 |
+| 一覧の各項目 | 「co@example.com」 | — |
+| 解除ボタン | 「解除」 | 共同管理者を解除 |
+| 招待入力 | email 入力 (placeholder: teacher@example.com) | Enter でも招待 |
+| 招待ボタン | 「招待」 | email 未入力時は disabled |
 
 招待された先生は次回ログイン時、**クラス一覧に該当クラス（学級）が「共同管理」バッジ**付きで表示され、その中のすべての課題を管理できる（即時反映・承認不要）。
 
@@ -386,21 +383,21 @@ owner または co-teacher が、別の先生を **email で招待**して共同
 
 コード拡大ボタン (⛶) をクリックすると、参加コードが全画面表示されます (Portal 使用)。タイトルは「参加コード」、フッターにクラス（学級）名・人数・課題名・日付が表示されます。
 
-| 要素 | data-testid | 操作 |
-|------|-------------|------|
-| 招待リンクコピー | `classroom-code-display-copy-link` | クリップボードにコピー |
-| 全画面表示 | `classroom-code-display-expand` | — |
-| 全画面解除 | `classroom-code-display-shrink` | — |
-| 閉じる | `classroom-code-display-close` | — |
+| 要素 | 操作 |
+|------|------|
+| 招待リンクコピー | クリップボードにコピー |
+| 全画面表示 | — |
+| 全画面解除 | — |
+| 閉じる | — |
 
 **削除確認ダイアログ:**
 
 「課題をアーカイブ」ボタンを押すと確認ダイアログが表示されます。
 
-| 要素 | テキスト | data-testid | 操作 |
-|------|---------|-------------|------|
-| 確認ボタン | 「アーカイブする」 | `classroom-delete-confirm` | 課題のアーカイブ（soft-delete）を実行 |
-| キャンセルボタン | 「キャンセル」 | `classroom-delete-cancel` | ダイアログを閉じる |
+| 要素 | テキスト | 操作 |
+|------|---------|------|
+| 確認ボタン | 「アーカイブする」 | 課題のアーカイブ（soft-delete）を実行 |
+| キャンセルボタン | 「キャンセル」 | ダイアログを閉じる |
 
 ---
 
@@ -414,16 +411,15 @@ owner または co-teacher が、別の先生を **email で招待**して共同
 
 **パーツ:**
 
-| 要素 | テキスト/内容 | data-testid | 操作 |
-|------|-------------|-------------|------|
-| フェーズルート | — | `classroom-phase-student-join` | — |
-| 見出し | 「参加コードを入力」 | — | — |
-| コード入力 | 6文字入力欄 (placeholder: ○○○○○○) | `classroom-join-code-input` | 自動大文字変換 |
-| 次へボタン | 「次へ」 | `classroom-join-submit` | コード未入力/不正時は disabled |
-| ヒントボックス | — | — | 青系背景のボックス |
-| ヒントタイトル | 「ヒント」 | — | 青色太字 |
-| ヒント1行目 | 「先生から参加コードを聞いてください。」 | — | — |
-| ヒント2行目 | 「先生は「⚙ 設定 → クラス管理」から参加コードを確認できます。」 | — | — |
+| 要素 | テキスト/内容 | 操作 |
+|------|-------------|------|
+| 見出し | 「参加コードを入力」 | — |
+| コード入力 | 6文字入力欄 (placeholder: ○○○○○○) | 自動大文字変換 |
+| 次へボタン | 「次へ」 | コード未入力/不正時は disabled |
+| ヒントボックス | — | 青系背景のボックス |
+| ヒントタイトル | 「ヒント」 | 青色太字 |
+| ヒント1行目 | 「先生から参加コードを聞いてください。」 | — |
+| ヒント2行目 | 「先生は「⚙ 設定 → クラス管理」から参加コードを確認できます。」 | — |
 
 **レイアウト:** 入力欄は中央寄せ、幅広のテキスト入力。「次へ」ボタンは右寄せ。ヒントボックスはフォーム下部に表示。
 
@@ -431,20 +427,24 @@ owner または co-teacher が、別の先生を **email で招待**して共同
 
 ## 6. 生徒: 出席番号選択 (`student-seat`)
 
-課題の座席がグリッド表示され、空いている出席番号を選択します。
+課題の座席がグリッド表示され、空いている出席番号を選択します。番号を入力して選ぶこともできます。
 
 ![出席番号選択画面](screenshots/0302-student-seat.png)
 
 **パーツ:**
 
-| 要素 | テキスト/内容 | data-testid | 操作 |
-|------|-------------|-------------|------|
-| フェーズルート | — | `classroom-phase-student-seat` | — |
-| 見出し | 「出席番号を選んでください」 | — | — |
-| 座席グリッド | — | `classroom-seat-grid` | — |
-| 各席番号ボタン | 「1」〜「35」等。使用中の席は「使用中」アイコン付き | `classroom-seat-{n}` | クリックで選択状態に |
-| 選択中の席番号 | — | `classroom-selected-seat` | hidden要素、値取得用 |
-| 参加ボタン | 「参加する」 | `classroom-confirm-seat` | 席未選択時は disabled |
+| 要素 | テキスト/内容 | 操作 |
+|------|-------------|------|
+| 見出し | 「出席番号を選んでください」 | — |
+| 番号入力欄 | プレースホルダ「1〜定員」 | 全角数字も可。入力中の番号のセルを強調 |
+| 番号決定ボタン | 「この番号にする」 | 空席 → その席を選んで確認へ / 使用中 → 退室依頼ダイアログ |
+| 入力エラー | 「1から N までの数字を入れてください」 | — |
+| 案内文 | 「自分の番号が『使用中』のときは、その番号を押してください。先生に席を空けてもらうようお願いできます。先生が確認しに来ます。」 | 最初から表示。30 秒席が選ばれないと強調（`data-idle="1"`） |
+| 座席グリッド | — | — |
+| 各席番号ボタン | 「1」〜「35」等。使用中の席は「使用中」アイコン付き | 空席 → 選択状態に / 使用中 → 退室依頼ダイアログ |
+| 選択中の席番号 | — | hidden要素、値取得用 |
+| 参加確認 | 大きな文字で「出席番号 NN で参加します」 | 席を選んだときだけ表示（他の生徒の席を誤って取らないため） |
+| 参加ボタン | 「参加する」 | 席未選択時は disabled |
 
 **座席グリッドの色:**
 
@@ -453,8 +453,34 @@ owner または co-teacher が、別の先生を **email で招待**して共同
 | 青 (`#4285f4`) | 空席（選択可能） |
 | グレー + 使用中アイコン | 使用中（タップで退室依頼） |
 | 濃い青 (selected) | 選択中 |
+| オレンジの枠 | 番号入力欄に入れた番号 |
 
-**レイアウト:** ボタンは1行8列のグリッド。「参加する」ボタンは右下、灰色 (disabled) or 青色。
+**レイアウト:** 番号入力 → 案内文 → 座席グリッド → 参加確認 → 「参加する」の順に縦に並ぶ。
+
+### 番号入力で選んだとき
+
+空いている番号なら、その席を選んだ状態で大きな参加確認が出ます。
+
+![番号入力で空席を選んだ](screenshots/0315-student-seat-confirm.png)
+
+使用中の番号なら、そのまま退室依頼ダイアログが開きます。
+
+![番号入力で使用中の席を選んだ](screenshots/0316-student-seat-number-taken.png)
+
+### 30 秒たっても席が選ばれないとき
+
+画面を開いてから 30 秒（`SEAT_IDLE_HINT_MS`）席が選ばれなければ、案内文を太字・オレンジ枠にし、軽く揺らして目立たせます。`prefers-reduced-motion` のときは揺らさず色だけ変えます。
+
+![案内文の強調](screenshots/0317-student-seat-guide-idle.png)
+
+### 退室依頼の承認を待っている間
+
+依頼中バナーに「先生に届いています。先生が確認しに来ます。待つ間スモウルビーを使っていてもかまいません。席が空いたら、自動でその席で参加します。」を表示します。先生が教室で本人に確かめてから承認し、席が空いたことをポーリングで検知すると、**その席で自動的に参加**します（選び直しは不要）。
+
+![依頼中の案内](screenshots/0308-student-kick-request-pending.png)
+
+- モーダルを閉じても、依頼が生きていれば（localStorage `smalruby:classroom:kickRequest`）裏で見張りを続け、承認・却下を検知するとモーダルを開き直します。モーダルを開き直したときも席画面の依頼中表示に戻ります。
+- 承認待ちのポーリング（5 秒間隔・`KICK_REQUEST_POLL_INTERVAL_MS`）は**依頼が生きている間（最長 1 時間の TTL）・タブが表示されている間・未参加の間だけ**動きます。タブが非表示の間は止め、表示に戻ったときに 1 回だけすぐ確認します。依頼していない生徒の通信は増えません。
 
 ---
 
@@ -467,15 +493,14 @@ owner または co-teacher が、別の先生を **email で招待**して共同
 
 **パーツ:**
 
-| 要素 | テキスト例 | data-testid | 操作 |
-|------|----------|-------------|------|
-| フェーズルート | — | `classroom-phase-student-joined` | — |
-| 詳細 | 「テスト8年1組 / 出席番号03」 | `classroom-joined-details` | — |
-| クラス（学級）名 | 「テスト8年1組」 | `classroom-joined-class-name` | — |
-| 出席番号 | 「出席番号03」（0埋め2桁） | `classroom-joined-seat-number` | — |
-| 課題名 | 「第１回チャットアプリを作ろう」 | `classroom-joined-assignment` | 課題名がある場合のみ表示 |
-| つぎにやること（ヒント） | 「1. この画面を閉じてプロジェクトを作ろう / 2. できたら、メニューバーの課題名を押して提出しよう」 | — | 青系背景のヒントボックス |
-| はじめるボタン | 「はじめる」 | `classroom-joined-close` | モーダルを閉じる |
+| 要素 | テキスト例 | 操作 |
+|------|----------|------|
+| 詳細 | 「テスト8年1組 / 出席番号03」 | — |
+| クラス（学級）名 | 「テスト8年1組」 | — |
+| 出席番号 | 「出席番号03」（0埋め2桁） | — |
+| 課題名 | 「第１回チャットアプリを作ろう」 | 課題名がある場合のみ表示 |
+| つぎにやること（ヒント） | 「1. この画面を閉じてプロジェクトを作ろう / 2. できたら、メニューバーの課題名を押して提出しよう」 | 青系背景のヒントボックス |
+| はじめるボタン | 「はじめる」 | モーダルを閉じる |
 
 **レイアウト:** クラス（学級）名と出席番号は中央表示。課題名はその下にやや小さいフォントで表示。「つぎにやること」ヒントボックスが課題名の下に表示され、参加後の次のアクションを案内する。「はじめる」ボタンは青色、右寄せ。
 
@@ -495,25 +520,25 @@ owner または co-teacher が、別の先生を **email で招待**して共同
 
 **情報テーブル:**
 
-| 行ラベル | 値の例 | data-testid (値部分) |
-|---------|-------|---------------------|
-| 「クラス」 | 「テスト8年1組」 | `classroom-status-class-name` |
-| 「出席番号」 | 「03」（0埋め2桁） | `classroom-status-seat-number` |
-| 「課題」 | 「第１回チャットアプリを作ろう」 | `classroom-status-assignment` |
-| 「参加日時」 | 「2026/4/8 00:07」（秒なし） | `classroom-status-joined-at` |
-| 「提出状況」 | 「未提出」or「✓ 提出済み (00:08)」 | `classroom-submit-status` |
+| 行ラベル | 値の例 |
+|---------|-------|
+| 「クラス」 | 「テスト8年1組」 |
+| 「出席番号」 | 「03」（0埋め2桁） |
+| 「課題」 | 「第１回チャットアプリを作ろう」 |
+| 「参加日時」 | 「2026/4/8 00:07」（秒なし） |
+| 「提出状況」 | 「未提出」or「✓ 提出済み (00:08)」 |
 
 提出状況行の右端に更新ボタンがあります:
 
-| 要素 | data-testid | 操作 |
-|------|-------------|------|
-| 更新ボタン (↻) | `classroom-student-refresh` | 最新の提出状況を取得 |
+| 要素 | 操作 |
+|------|------|
+| 更新ボタン (↻) | 最新の提出状況を取得 |
 
 返却済みの場合、先生からのコメントが表示されます:
 
-| 要素 | data-testid |
-|------|-------------|
-| 先生からのコメント | `classroom-status-teacher-comment` |
+| 要素 |
+|------|
+| 先生からのコメント |
 
 **未提出時ヒント:**
 
@@ -525,10 +550,10 @@ owner または co-teacher が、別の先生を **email で招待**して共同
 
 **フッターボタン (左右に配置):**
 
-| 要素 | テキスト (未提出時) | テキスト (提出済み) | data-testid | 操作 |
-|------|-------------------|-------------------|-------------|------|
-| 退出ボタン | 「退出する」 | 「退出する」 | `classroom-leave` | → student-join |
-| 提出ボタン | 「課題を提出する」 | 「課題を再提出する」 | `classroom-submit-button` | → submit-confirm |
+| 要素 | テキスト (未提出時) | テキスト (提出済み) | 操作 |
+|------|-------------------|-------------------|------|
+| 退出ボタン | 「退出する」 | 「退出する」 | → student-join |
+| 提出ボタン | 「課題を提出する」 | 「課題を再提出する」 | → submit-confirm |
 
 **レイアウト:** 情報テーブルは白背景のカード内。フッターは `[退出する]` が左、`[課題を提出する]` が右。
 
@@ -571,14 +596,13 @@ owner または co-teacher が、別の先生を **email で招待**して共同
 
 **パーツ:**
 
-| 要素 | テキスト/内容 | data-testid | 操作 |
-|------|-------------|-------------|------|
-| フェーズルート | — | `classroom-phase-submit-confirm` | — |
-| 見出し | 「作品を提出します」 | — | — |
-| サムネイルプレビュー | ステージのスクリーンショット画像 | `classroom-submit-preview` | — |
-| 確認メッセージ | 「現在のプロジェクトを提出してよろしいですか？」 | — | — |
-| キャンセルボタン | 「キャンセル」 | `classroom-submit-cancel` | → student-status |
-| 提出ボタン | 「提出する」 | `classroom-submit-confirm` | 送信中は「提出中...」に変化 |
+| 要素 | テキスト/内容 | 操作 |
+|------|-------------|------|
+| 見出し | 「作品を提出します」 | — |
+| サムネイルプレビュー | ステージのスクリーンショット画像 | — |
+| 確認メッセージ | 「現在のプロジェクトを提出してよろしいですか？」 | — |
+| キャンセルボタン | 「キャンセル」 | → student-status |
+| 提出ボタン | 「提出する」 | 送信中は「提出中...」に変化 |
 
 **レイアウト:** サムネイルは中央の白枠内に表示。ボタンは横2列、右に「提出する」(青色)、左に「キャンセル」(白色ボーダー)。
 
@@ -625,15 +649,14 @@ Google Classroom のアクティブなコース一覧を表示し、インポー
 
 **パーツ:**
 
-| 要素 | テキスト/内容 | data-testid | 操作 |
-|------|-------------|-------------|------|
-| フェーズルート | — | `classroom-phase-teacher-google-courses` | — |
-| 戻るリンク | 「< 戻る」 | `classroom-back` | → teacher-create |
-| 見出し | 「Google Classroom のクラス一覧」 | — | — |
-| 説明文 | 「インポートするクラスを選択して「インポート」ボタンを押してください。」 | — | — |
-| コースなし表示 | 「クラスが見つかりません」 | — | コースが0件時 |
-| ローディング | スピナー | — | 読み込み中に表示 |
-| インポートボタン | 「インポート」 | `classroom-google-import-confirm` | 未選択時は disabled。→ teacher-create（コース情報付き） |
+| 要素 | テキスト/内容 | 操作 |
+|------|-------------|------|
+| 戻るリンク | 「< 戻る」 | → teacher-create |
+| 見出し | 「Google Classroom のクラス一覧」 | — |
+| 説明文 | 「インポートするクラスを選択して「インポート」ボタンを押してください。」 | — |
+| コースなし表示 | 「クラスが見つかりません」 | コースが0件時 |
+| ローディング | スピナー | 読み込み中に表示 |
+| インポートボタン | 「インポート」 | 未選択時は disabled。→ teacher-create（コース情報付き） |
 
 **レイアウト:** 各コースは **タイルグリッド** (300×84px) で表示されます。クラス名とセクション名が表示されます。画面幅に応じてタイルの列数が変わります（レスポンシブ）。
 
@@ -647,16 +670,15 @@ Google Classroom にリンクしたクラス（学級）の課題で、課題リ
 
 **パーツ:**
 
-| 要素 | テキスト/内容 | data-testid | 操作 |
-|------|-------------|-------------|------|
-| フェーズルート | — | `classroom-phase-teacher-post-assignment` | — |
-| 戻るリンク | 「< 戻る」 | `classroom-back` | → teacher-detail |
-| ページタイトル | 「Google Classroom に課題を配信します」 | — | — |
-| 対象 | 「対象: {クラス名}」 | — | — |
-| タイトル入力 | テキスト入力（デフォルト: 課題名） | `classroom-post-assignment-title` | — |
-| 説明入力 | テキストエリア | `classroom-post-assignment-description` | 任意 |
-| ヒント | 「配信後、課題の詳細の装飾、割当先、点数などの設定は Google Classroom で行えます。…」 | — | — |
-| 配信ボタン | 「Google Classroom に配信する」 | `classroom-post-assignment-submit` | — |
+| 要素 | テキスト/内容 | 操作 |
+|------|-------------|------|
+| 戻るリンク | 「< 戻る」 | → teacher-detail |
+| ページタイトル | 「Google Classroom に課題を配信します」 | — |
+| 対象 | 「対象: {クラス名}」 | — |
+| タイトル入力 | テキスト入力（デフォルト: 課題名） | — |
+| 説明入力 | テキストエリア | 任意 |
+| ヒント | 「配信後、課題の詳細の装飾、割当先、点数などの設定は Google Classroom で行えます。…」 | — |
+| 配信ボタン | 「Google Classroom に配信する」 | — |
 
 **配信後:** 成功すると「Google Classroom で確認する」リンクが表示されます。課題詳細画面の「課題を配信」ボタンは「課題を確認」リンク（新しいタブで Google Classroom を開く）に変わります。二重配信を防止するため、配信済み状態は DynamoDB に永続化されます。
 | 成功メッセージ | 「配信しました！」 | `classroom-post-assignment-success` | 配信成功時に表示 |
@@ -704,16 +726,16 @@ Google Classroom にリンクしたクラス（学級）の課題で、課題リ
 着席・提出などの状態は共通部品 `classroom-status-icon.jsx` のアイコンで表す（先生のメンバーグリッド・凡例・メンバー詳細、生徒の座席選択、メニューバーで共通）。
 各アイコンは**状態ごとに形が違う** inline SVG で、`role="img"` と `title` / `aria-label`（下表のラベル）を持つ。
 
-| 状態 (`data-status`) | 形 | ラベル | data-testid |
-|------|----|--------|-------------|
-| `seated` | 塗りつぶしの円（緑） | 着席中 | `classroom-status-icon-seated` |
-| `notSeated` | 中抜きの円（紫） | 未着席 | `classroom-status-icon-notSeated` |
-| `notJoined` | 点線の円 + 横線（灰） | 未参加 | `classroom-status-icon-notJoined` |
-| `submitted` | チェック入りの四角（緑） | 提出済み | `classroom-status-icon-submitted` |
-| `notSubmitted` | 空の四角（灰） | 未提出 | `classroom-status-icon-notSubmitted` |
-| `returned` | 戻り矢印（オレンジ） | 返却済み | `classroom-status-icon-returned` |
-| `kickRequested` | 三角 + 「!」（赤） | 退室依頼あり | `classroom-status-icon-kickRequested` |
-| `occupied` | 人のシルエット | 使用中 | `classroom-status-icon-occupied` |
+| 状態 (`data-status`) | 形 | ラベル |
+|------|----|--------|
+| `seated` | 塗りつぶしの円（緑） | 着席中 |
+| `notSeated` | 中抜きの円（紫） | 未着席 |
+| `notJoined` | 点線の円 + 横線（灰） | 未参加 |
+| `submitted` | チェック入りの四角（緑） | 提出済み |
+| `notSubmitted` | 空の四角（灰） | 未提出 |
+| `returned` | 戻り矢印（オレンジ） | 返却済み |
+| `kickRequested` | 三角 + 「!」（赤） | 退室依頼あり |
+| `occupied` | 人のシルエット | 使用中 |
 
 着席系と提出系を 1 セルに並べるときは `ClassroomStatusIcons`（`classroom-status-icons`）、凡例は `ClassroomStatusLegend`（`classroom-status-legend` / 各項目 `classroom-status-legend-{status}`）を使う。
 
