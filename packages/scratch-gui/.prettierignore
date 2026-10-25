@@ -347,6 +347,7 @@ test/unit/components/*
 !test/unit/components/classroom-teacher-modal-share-suggestion.test.js
 !test/unit/components/classroom-teacher-view-layout.test.jsx
 !test/unit/components/classroom-teacher-menu.test.jsx
+!test/unit/components/menu-bar-classroom.test.jsx
 !test/unit/components/student-seat-selector.test.jsx
 !test/unit/components/mobile-bottom-tabs.test.jsx
 !test/unit/components/mobile-drawer.test.jsx

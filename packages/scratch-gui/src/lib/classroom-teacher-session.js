@@ -197,23 +197,6 @@ const decideTeacherRestore = ({ session, cachedToken, devlogin }) => {
 };
 
 /**
- * Which classroom entries the menu bar shows.
- *
- * A logged-in teacher gets the teacher menu in place of the student button.
- * When the same browser is also joined to a class as a student (a teacher
- * trying the student flow on their own PC) both are shown, so the student
- * session stays reachable.
- * @param {object} params - inputs
- * @param {boolean} params.teacherLoggedIn - teacher is logged in
- * @param {boolean} params.studentJoined - a student session exists
- * @returns {{showStudent: boolean, showTeacher: boolean}} visibility
- */
-const classroomMenuVisibility = ({ teacherLoggedIn, studentJoined }) => ({
-    showTeacher: !!teacherLoggedIn,
-    showStudent: !teacherLoggedIn || !!studentJoined,
-});
-
-/**
  * Items of the teacher menu, in display order.
  * @param {object} params - inputs
  * @param {string|null} params.lastClassroomId - last opened assignment
@@ -263,7 +246,6 @@ export {
     loadTeacherToken,
     clearTeacherSession,
     decideTeacherRestore,
-    classroomMenuVisibility,
     teacherMenuItems,
     resolveTeacherNavigation,
 };

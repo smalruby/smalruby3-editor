@@ -10,7 +10,6 @@ import {
     saveTeacherLastSelection,
     clearTeacherSession,
     decideTeacherRestore,
-    classroomMenuVisibility,
     teacherMenuItems,
     resolveTeacherNavigation,
 } from '../../../src/lib/classroom-teacher-session';
@@ -87,33 +86,6 @@ describe('decideTeacherRestore', () => {
 
     test('does nothing without a persisted login', () => {
         expect(decideTeacherRestore({ session: null, cachedToken: null, devlogin: null })).toBe('none');
-    });
-});
-
-describe('classroomMenuVisibility', () => {
-    test('student button only when no teacher is logged in', () => {
-        expect(classroomMenuVisibility({ teacherLoggedIn: false, studentJoined: false })).toEqual({
-            showStudent: true,
-            showTeacher: false,
-        });
-        expect(classroomMenuVisibility({ teacherLoggedIn: false, studentJoined: true })).toEqual({
-            showStudent: true,
-            showTeacher: false,
-        });
-    });
-
-    test('teacher menu replaces the student button', () => {
-        expect(classroomMenuVisibility({ teacherLoggedIn: true, studentJoined: false })).toEqual({
-            showStudent: false,
-            showTeacher: true,
-        });
-    });
-
-    test('both are shown when a student session also exists', () => {
-        expect(classroomMenuVisibility({ teacherLoggedIn: true, studentJoined: true })).toEqual({
-            showStudent: true,
-            showTeacher: true,
-        });
     });
 });
 
