@@ -362,7 +362,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `kick-request-cancel` | button | ダイアログを閉じる |
 | `kick-request-error` | div | 依頼送信エラー表示 |
 | `kick-request-pending-banner` | div | 「先生に依頼中です…」バナー（依頼が生きている間・タブ表示中だけ 5 秒ごとに lookupClassroom を polling。承認で席が空いたらその席で自動参加）|
-| `kick-request-pending-note` | p | 依頼中バナー内の補足「先生に届いています。先生が確認しに来ます。待つ間スモウルビーを使っていてもかまいません…」 |
+| `kick-request-pending-note` | div | 依頼中バナー内の補足「先生に届いています。先生が確認しに来ます。待つ間スモウルビーを使っていてもかまいません…」 |
 | `kick-request-rejected-banner` | div | 「依頼は受理されませんでした」バナー (却下 / TTL 期限切れ検出時に pending と差し替え) |
 | `kick-request-rejected-banner-dismiss` | button | × ボタン |
 | `classroom-seat-kick-request-{seatNumber}` | span | 先生の課題詳細の座席グリッドに表示する退室依頼アイコン（`classroom-status-icon-kickRequested`）のバッジ |

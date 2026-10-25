@@ -14,7 +14,9 @@ import useKickRequestPolling from './use-kick-request-polling.js';
  */
 const ClassroomKickRequestWatcher = () => {
     const dispatch = useDispatch();
-    const hasSession = useSelector((state) => !!state.scratchGui.classroom.sessionToken);
+    // Always mounted (unlike the modal), so it must survive embeds that omit
+    // the classroom reducer.
+    const hasSession = useSelector((state) => !!state.scratchGui.classroom?.sessionToken);
     const [pending, setPending] = useState(() => loadPendingKickRequest());
 
     const handleResult = useCallback(
