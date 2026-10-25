@@ -139,6 +139,17 @@ describe('GET /kick-requests/pending (issue #1200)', () => {
     expect(requests[0].occupantName).toBeNull();
   });
 
+  test('since はタイムゾーン付きでも UTC に揃えて比べる', async () => {
+    useTables([own], [
+      request('c-own', 'before', { createdAt: '2026-10-25T00:59:00.000Z' }),
+      request('c-own', 'after', { createdAt: '2026-10-25T01:01:00.000Z' }),
+    ], []);
+    // 10:00+09:00 = 01:00Z。文字列のまま比べると両方とも "2026-10-25T10" より前になってしまう。
+    const res = await handler(makeEvent({ since: '2026-10-25T10:00:00+09:00' }));
+    const requests = JSON.parse(res.body || '{}').requests;
+    expect(requests.map((r: Row) => r.requestId)).toEqual(['after']);
+  });
+
   test('since が日時でなければ 400', async () => {
     useTables([own], [], []);
     const res = await handler(makeEvent({ since: 'not-a-date' }));

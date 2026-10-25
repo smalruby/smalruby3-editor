@@ -260,11 +260,18 @@ const reducer = (state, action) => {
             return { ...state, teacherNavTarget: null };
         case SET_TEACHER_KICK_REQUESTS:
             return { ...state, teacherKickRequests: action.requests || [] };
-        case REMOVE_TEACHER_KICK_REQUEST:
+        case REMOVE_TEACHER_KICK_REQUEST: {
+            // Approving frees the seat and the backend deletes every request
+            // for it, so the seat's other requests go too (not just this one).
+            const { seat } = action;
+            const sameSeat = (r) => !!seat && r.classroomId === seat.classroomId && r.seatNumber === seat.seatNumber;
             return {
                 ...state,
-                teacherKickRequests: state.teacherKickRequests.filter((r) => r.requestId !== action.requestId),
+                teacherKickRequests: state.teacherKickRequests.filter(
+                    (r) => r.requestId !== action.requestId && !sameSeat(r),
+                ),
             };
+        }
         case OPEN_TEACHER_KICK_LIST:
             return { ...state, teacherKickListOpen: true };
         case CLOSE_TEACHER_KICK_LIST:
@@ -336,7 +343,14 @@ const setTeacherLastSelection = (selection) => ({ type: SET_TEACHER_LAST_SELECTI
 const requestTeacherNavigation = (target) => ({ type: REQUEST_TEACHER_NAVIGATION, target });
 const clearTeacherNavigation = () => ({ type: CLEAR_TEACHER_NAVIGATION });
 const setTeacherKickRequests = (requests) => ({ type: SET_TEACHER_KICK_REQUESTS, requests });
-const removeTeacherKickRequest = (requestId) => ({ type: REMOVE_TEACHER_KICK_REQUEST, requestId });
+/**
+ * Drop a handled kick request from the teacher's pending list (#1200).
+ * @param {string} requestId - the handled request
+ * @param {{classroomId: string, seatNumber: number}} [seat] - when approved, the
+ *   freed seat: its other requests are removed too
+ * @returns {object} action
+ */
+const removeTeacherKickRequest = (requestId, seat = null) => ({ type: REMOVE_TEACHER_KICK_REQUEST, requestId, seat });
 const openTeacherKickList = () => ({ type: OPEN_TEACHER_KICK_LIST });
 const closeTeacherKickList = () => ({ type: CLOSE_TEACHER_KICK_LIST });
 

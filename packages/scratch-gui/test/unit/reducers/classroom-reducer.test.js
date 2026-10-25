@@ -392,6 +392,20 @@ describe('classroom reducer', () => {
             expect(state.teacherKickRequests).toEqual([]);
             expect(state.teacherKickListOpen).toBe(false);
         });
+
+        test('approving a request also drops the other requests for the same seat', () => {
+            let state = reducer(
+                classroomInitialState,
+                setTeacherKickRequests([
+                    { requestId: 'a', classroomId: 'c1', seatNumber: 3 },
+                    { requestId: 'b', classroomId: 'c1', seatNumber: 3 },
+                    { requestId: 'c', classroomId: 'c1', seatNumber: 4 },
+                    { requestId: 'd', classroomId: 'c2', seatNumber: 3 },
+                ]),
+            );
+            state = reducer(state, removeTeacherKickRequest('a', { classroomId: 'c1', seatNumber: 3 }));
+            expect(state.teacherKickRequests.map((r) => r.requestId)).toEqual(['c', 'd']);
+        });
     });
 
     describe('teacher login state (#1199)', () => {

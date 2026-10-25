@@ -1860,6 +1860,9 @@ async function handleListPendingKickRequests(
   if (since !== undefined && isNaN(Date.parse(since))) {
     throw new ValidationError('since must be an ISO timestamp');
   }
+  // createdAt is stored as toISOString() (UTC, ms); compare in that same form
+  // so `+09:00` offsets or date-only values do not break the string compare.
+  const sinceIso = since === undefined ? undefined : new Date(since).toISOString();
   const assignments = (await listVisibleAssignments(identity))
     .sort((a, b) => (assignmentRecency(a) < assignmentRecency(b) ? 1 : -1))
     .slice(0, PENDING_KICK_MAX_ASSIGNMENTS);
@@ -1875,7 +1878,7 @@ async function handleListPendingKickRequests(
     const items = (result.Items || []).filter(item =>
       // DynamoDB TTL deletes lazily; an expired row must not ring the teacher.
       !(typeof item.ttl === 'number' && item.ttl < nowSec) &&
-      (since === undefined || (item.createdAt as string) > since));
+      (sinceIso === undefined || (item.createdAt as string) > sinceIso));
     return Promise.all(items.map(async (item) => {
       const seatNumber = item.seatNumber as number;
       const member = await docClient.send(new GetCommand({

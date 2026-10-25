@@ -77,14 +77,19 @@ const ClassroomTeacherKickAlerts = () => {
     useTeacherKickRequestPolling({ loggedIn, onRequests: handleRequests });
 
     const runAction = useCallback(
-        async (request, call) => {
+        async (request, call, { freesSeat = false } = {}) => {
             const token = getCachedTeacherIdToken();
             if (!token) return;
             setBusyIds((ids) => [...ids, request.requestId]);
             setError(null);
             try {
                 await call(token, request.classroomId, request.requestId);
-                dispatch(removeTeacherKickRequest(request.requestId));
+                dispatch(
+                    removeTeacherKickRequest(
+                        request.requestId,
+                        freesSeat ? { classroomId: request.classroomId, seatNumber: request.seatNumber } : null,
+                    ),
+                );
             } catch {
                 setError(intl.formatMessage(messages.actionFailed));
             } finally {
@@ -95,7 +100,7 @@ const ClassroomTeacherKickAlerts = () => {
     );
 
     const handleApprove = useCallback(
-        (request) => runAction(request, (...args) => classroomAPI.approveKickRequest(...args)),
+        (request) => runAction(request, (...args) => classroomAPI.approveKickRequest(...args), { freesSeat: true }),
         [runAction],
     );
     const handleReject = useCallback(
