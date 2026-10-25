@@ -201,10 +201,14 @@ const decideTeacherRestore = ({ session, cachedToken, devlogin }) => {
  * @param {object} params - inputs
  * @param {string|null} params.lastClassroomId - last opened assignment
  * @param {number} params.unreadCount - unread お知らせ
- * @returns {Array<{id: string, badge: boolean}>} menu items
+ * @param {number} [params.kickRequestCount] - pending kick requests (#1200)
+ * @returns {Array<{id: string, badge: boolean, count?: number}>} menu items
  */
-const teacherMenuItems = ({ lastClassroomId, unreadCount }) => {
+const teacherMenuItems = ({ lastClassroomId, unreadCount, kickRequestCount = 0 }) => {
     const items = [];
+    // Kick requests stop the class until handled, so they come first and only
+    // while there is something to handle.
+    if (kickRequestCount > 0) items.push({ id: 'kick-requests', badge: true, count: kickRequestCount });
     if (lastClassroomId) items.push({ id: 'current-assignment', badge: false });
     items.push({ id: 'class-list', badge: false });
     items.push({ id: 'notifications', badge: unreadCount > 0 });

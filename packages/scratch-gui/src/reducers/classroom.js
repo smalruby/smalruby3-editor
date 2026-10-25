@@ -17,6 +17,10 @@ const SET_TEACHER_UNREAD_COUNT = 'scratch-gui/classroom/SET_TEACHER_UNREAD_COUNT
 const SET_TEACHER_LAST_SELECTION = 'scratch-gui/classroom/SET_TEACHER_LAST_SELECTION';
 const REQUEST_TEACHER_NAVIGATION = 'scratch-gui/classroom/REQUEST_TEACHER_NAVIGATION';
 const CLEAR_TEACHER_NAVIGATION = 'scratch-gui/classroom/CLEAR_TEACHER_NAVIGATION';
+const SET_TEACHER_KICK_REQUESTS = 'scratch-gui/classroom/SET_TEACHER_KICK_REQUESTS';
+const REMOVE_TEACHER_KICK_REQUEST = 'scratch-gui/classroom/REMOVE_TEACHER_KICK_REQUEST';
+const OPEN_TEACHER_KICK_LIST = 'scratch-gui/classroom/OPEN_TEACHER_KICK_LIST';
+const CLOSE_TEACHER_KICK_LIST = 'scratch-gui/classroom/CLOSE_TEACHER_KICK_LIST';
 
 const STORAGE_KEY = 'smalruby:classroom';
 
@@ -153,6 +157,10 @@ const initialState = {
             : null,
     // Pending jump requested from the teacher menu, consumed by the teacher modal.
     teacherNavTarget: null,
+    // Pending kick requests across the teacher's assignments, polled while
+    // logged in (#1200), and whether the list opened from the menu is shown.
+    teacherKickRequests: [],
+    teacherKickListOpen: false,
 };
 
 const reducer = (state, action) => {
@@ -239,6 +247,8 @@ const reducer = (state, action) => {
                 teacherUnreadCount: 0,
                 teacherLastSelection: null,
                 teacherNavTarget: null,
+                teacherKickRequests: [],
+                teacherKickListOpen: false,
             };
         case SET_TEACHER_UNREAD_COUNT:
             return { ...state, teacherUnreadCount: action.unreadCount || 0 };
@@ -248,6 +258,17 @@ const reducer = (state, action) => {
             return { ...state, teacherModalVisible: true, teacherNavTarget: action.target };
         case CLEAR_TEACHER_NAVIGATION:
             return { ...state, teacherNavTarget: null };
+        case SET_TEACHER_KICK_REQUESTS:
+            return { ...state, teacherKickRequests: action.requests || [] };
+        case REMOVE_TEACHER_KICK_REQUEST:
+            return {
+                ...state,
+                teacherKickRequests: state.teacherKickRequests.filter((r) => r.requestId !== action.requestId),
+            };
+        case OPEN_TEACHER_KICK_LIST:
+            return { ...state, teacherKickListOpen: true };
+        case CLOSE_TEACHER_KICK_LIST:
+            return { ...state, teacherKickListOpen: false };
         default:
             return state;
     }
@@ -314,6 +335,10 @@ const setTeacherUnreadCount = (unreadCount) => ({ type: SET_TEACHER_UNREAD_COUNT
 const setTeacherLastSelection = (selection) => ({ type: SET_TEACHER_LAST_SELECTION, selection });
 const requestTeacherNavigation = (target) => ({ type: REQUEST_TEACHER_NAVIGATION, target });
 const clearTeacherNavigation = () => ({ type: CLEAR_TEACHER_NAVIGATION });
+const setTeacherKickRequests = (requests) => ({ type: SET_TEACHER_KICK_REQUESTS, requests });
+const removeTeacherKickRequest = (requestId) => ({ type: REMOVE_TEACHER_KICK_REQUEST, requestId });
+const openTeacherKickList = () => ({ type: OPEN_TEACHER_KICK_LIST });
+const closeTeacherKickList = () => ({ type: CLOSE_TEACHER_KICK_LIST });
 
 export default reducer;
 export {
@@ -335,4 +360,8 @@ export {
     setTeacherLastSelection,
     requestTeacherNavigation,
     clearTeacherNavigation,
+    setTeacherKickRequests,
+    removeTeacherKickRequest,
+    openTeacherKickList,
+    closeTeacherKickList,
 };

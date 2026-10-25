@@ -83,11 +83,29 @@ stateDiagram-v2
 | 項目 | 表示条件 | 動作 | data-testid |
 |------|---------|------|-------------|
 | メニューボタン「クラス管理」 | 先生ログイン中 | ドロップダウンを開く | `classroom-teacher-menu-button` / `classroom-teacher-menu-label` |
-| 未読バッジ「!」 | 未読のお知らせあり | — | `classroom-teacher-menu-badge` |
+| 未読バッジ「!」 | 未読のお知らせ、または未処理の退室依頼あり | — | `classroom-teacher-menu-badge` |
+| 退室依頼（N件） | 未処理の退室依頼がある（先頭に表示・バッジ付き） | 画面下部に依頼の一覧を開く（モーダルは開かない） | `classroom-teacher-menu-kick-requests` |
 | いまの課題を開く | 最後に開いた課題がある | クラス管理モーダルでその課題の詳細を開く | `classroom-teacher-menu-current-assignment` |
 | クラス一覧を開く | 常に | クラス一覧（ダッシュボード）を開く | `classroom-teacher-menu-class-list` |
 | お知らせ | 常に（未読時はバッジ `classroom-teacher-menu-notifications-badge`） | お知らせセンターを開く | `classroom-teacher-menu-notifications` |
 | ログアウト | 常に | 先生をログアウトし、保存したログイン記録も消す | `classroom-teacher-menu-logout` |
+
+### 退室依頼のトースト（先生）
+
+先生がログインしている間は、クラス管理モーダルを閉じていても 10 秒ごとに未処理の退室依頼を確かめ、新しい依頼が来ると**画面下部にトースト**を 30 秒表示します（タブが非表示の間は止め、戻ったらすぐ確かめます）。
+
+| 部品 | 内容 | data-testid |
+|------|------|-------------|
+| 見出し | 「退室依頼（N件）」 | `classroom-teacher-kick-toast` |
+| 依頼 | 「出席番号Nの席を空けてほしいという依頼」・組 / 課題名・**いまの席の人のニックネーム**・依頼のひと言 | `classroom-teacher-kick-toast-request` / `classroom-teacher-kick-toast-reason` |
+| 注意書き | 「承認する前に、教室で本人たちに確かめてください。」 | — |
+| 承認 / 却下 | 既存の承認・却下 API をそのまま使う | `classroom-teacher-kick-toast-approve` / `classroom-teacher-kick-toast-reject` |
+| 課題を開く | 「いまの課題を開く」と同じ導線でその課題を開く | `classroom-teacher-kick-toast-open` |
+| ほかN件 | 複数あるときは重ねず 1 件だけ出し、ここから全件の一覧に切り替える | `classroom-teacher-kick-toast-show-all` |
+| あとで | トーストを閉じる。件数はメニューに残る | `classroom-teacher-kick-toast-later` |
+
+- 席を空けるかは先生が教室で本人に確かめてから決める前提です。「着席中」表示（1 時間の目安）は承認してよい根拠ではないため、トーストには出しません。
+- 授業用 PC（1300×600）でも邪魔にならないよう、幅は約 26rem に収めています。
 
 **表示ルール:**
 

@@ -194,6 +194,7 @@ One Tap が表示できない環境（Windows や Playwright では毎回）で�
 | `GET` | `/classrooms/{id}/kick-requests` | 退室リクエスト一覧 (Issue #692) |
 | `POST` | `/classrooms/{id}/kick-requests/{requestId}/approve` | 承認 = `handleDeleteMember` (= kick) + 同席への全リクエスト削除 |
 | `DELETE` | `/classrooms/{id}/kick-requests/{requestId}` | 却下 = リクエストのみ削除、メンバーは残る |
+| `GET` | `/kick-requests/pending` | 先生に見える課題（`GET /classrooms` と同じ範囲）をまたいだ未処理の退室依頼。`?since=<ISO>` でそれ以降に作られた依頼だけ。各要素は `requestId, classroomId, className, assignmentName, groupId, seatNumber, reason, occupantName, createdAt`、ほかに `activeAssignmentCount`。下の「退室依頼の先生への通知」参照 |
 | `GET` | `/classrooms/{id}/submissions` | 提出一覧 (ダウンロード URL 付き) |
 | `PATCH` | `/classrooms/{id}/submissions/{subId}` | 提出の返却・コメント |
 | `PUT` | `/classrooms/{id}/assignment` | 課題コンテンツの設定・更新（ページ + スターター。画像/スターターの Presigned upload URL を返す。空 body で削除） |
@@ -432,6 +433,17 @@ erDiagram
 - 宛先の `teacherSub` は admin SPA に出さず、admin API が classroomId から解決する
 - `link.kind` は whitelist（現在 `classroom` のみ）。エディタは未知の kind を無視する（前方互換）
 - GUI は先生モーダルのタイトルバー 🔔 から一覧を開く。パネルを開いた時点で mark-read（全件）が走りバッジが消える。60 秒間隔でポーリング
+
+### 退室依頼の先生への通知（ポーリング方針）
+
+先生がクラス管理モーダルを閉じて授業をしていても退室依頼に気付けるよう、GUI は先生のログイン中ずっと `GET /kick-requests/pending` を問い合わせ、新しい依頼を画面下部のトーストで知らせる（`classroom-teacher-kick-alerts.jsx`）。
+
+- **間隔は 10 秒**（`CLASSROOM_TEACHER_KICK_POLL_INTERVAL_MS`、既定 10000）。席が空かないと生徒が参加できず授業が止まるため、先生には短い間隔のポーリングを許す。**生徒側には新しい定期通信を足さない**（生徒は依頼中だけ 5 秒ごとに lookup する既存の仕組みのまま）。
+- **WebSocket は使わない**。classroom にはリアルタイム基盤が無く、10 秒ポーリングで授業に支障が無いため。
+- GUI 全体で 1 つだけ動かす（モーダルの外）。タブが非表示の間は止め、表示に戻ったとき・ログインしたときはすぐに 1 回問い合わせる。
+- エラーが続くと間隔を倍々に伸ばす（上限 5 分）。有効な課題が 1 件も無い（`activeAssignmentCount: 0`）間は 6 倍（60 秒）に落とす。
+- サーバーは先生に見える課題のうち、有効（active）で**直近に触れた 50 件まで**を対象に、課題ごとに `ClassroomKickRequests` をキー Query する（Scan しない・インデックス追加なし）。期限（TTL）切れの行は除外する。
+- お知らせ（🔔、1 日 1 回取得・admin が書く）とは**別の流れ**。退室依頼は数秒で処理されるべきものなので日次キャッシュに載せない。
 
 ### ClassroomSubmissions テーブル
 

@@ -31,6 +31,7 @@ smalruby3-editor/
 │   │   │   │   ├── teacher-evaluation.jsx ← 学期末評価（席×授業マトリクス）
 │   │   │   │   └── teacher-post-assignment.jsx ← 課題配信
 │   │   │   ├── classroom-teacher-menu/ ← メニューバーの先生メニュー「クラス管理」(表示) #1199
+│   │   │   ├── classroom-teacher-kick-toast/ ← 先生向けの退室依頼トースト / 一覧 (表示) #1200
 │   │   │   ├── classroom-teacher-modal/ ← 先生用フルスクリーンモーダル
 │   │   │   │   ├── classroom-teacher-modal.jsx ← メイン（ダッシュボード/詳細/作成等）
 │   │   │   │   ├── classroom-teacher-modal.css
@@ -54,6 +55,8 @@ smalruby3-editor/
 │   │   │   ├── use-student-submit.js  ← 生徒提出フロー
 │   │   │   ├── use-kick-request-polling.js ← 退室依頼の承認待ちポーリング（依頼中・タブ表示中・未参加のみ）
 │   │   │   ├── classroom-kick-request-watcher.jsx ← モーダルを閉じている間の承認待ち見張り
+│   │   │   ├── classroom-teacher-kick-alerts.jsx ← 先生の未処理退室依頼の見張り + トースト（GUI 全体で 1 つ）#1200
+│   │   │   ├── use-teacher-kick-request-polling.js ← 先生の退室依頼ポーリング（10 秒・タブ表示中・バックオフ）
 │   │   │   ├── use-google-classroom.js ← Google Classroom API 連携
 │   │   │   ├── classroom-error-utils.js ← エラーメッセージ変換
 │   │   │   └── alert.jsx             ← Alert コンテナ（参加しなおす対応）
@@ -67,6 +70,7 @@ smalruby3-editor/
 │   │   │   ├── classroom-evaluation/ ← sb3-analyzer（静的解析）+ evaluation-utils（総合評価/CSV）
 │   │   │   ├── classroom-kick-request-storage.js ← 退室依頼の localStorage 永続化 (#692)
 │   │   │   ├── classroom-seat-selection.js ← 席選択の純粋ロジック（番号入力の検証・ポーリング判定・定数）
+│   │   │   ├── classroom-teacher-kick-alerts.js ← 先生の退室依頼通知の純粋ロジック（間隔・バックオフ・要約）
 │   │   │   ├── google-classroom-auth.js ← Google Classroom OAuth
 │   │   │   └── alerts/index.jsx       ← Alert 定義（classroomSessionExpired 追加）
 │   │   ├── reducers/
