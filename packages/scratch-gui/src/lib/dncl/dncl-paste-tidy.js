@@ -2,23 +2,34 @@
 //
 // 共通テスト 例題 (https://nodai2hitc.github.io/ictl_example/) are written
 // with line numbers (`(00)`, `(00-1)`) and `//` comments (`n = 1 // 生徒番号`).
-// In Smalruby DNCL `//` is the integer-division operator, so the language
-// itself never treats `//` as a comment. Instead, code pasted into the
-// Japanese (DNCL) mode editor is tidied once, at paste time:
+// In Smalruby DNCL `//` is always the integer-division operator; the
+// language never treats it as a comment. Only text that is obviously copied
+// from such a sample (it has line numbers) is tidied, once, at paste time:
 //   - line numbers are removed (wrapped statements are joined first, since
 //     only numbered lines may continue onto the next line)
-//   - a `//` whose right-hand side is not a variable name becomes `#`
+//   - a `//` followed by neither a variable nor any operator becomes `#`
+// Anything else is left as typed; a `//` comment then fails to convert and
+// the error marker tells the user to use `#` (see `hasDoubleSlash`).
 //
 // See Issue #1192.
 
 import {skipString} from './paren-utils';
 
 /**
- * The DNCLv2 line-number prefix (`(00)` / `(00-1)`) and the whitespace
- * after it, as the pre-processor strips it. Leading whitespace is allowed
- * because a pasted selection often starts mid-indent.
+ * A line-number prefix and the whitespace after it: the DNCLv2 form
+ * (`(00)` / `(00-1)`, as the pre-processor strips it) or `1:`, as listings
+ * that number their lines are copied. Leading whitespace is allowed because
+ * a pasted selection often starts mid-indent. `1:` needs a space (or the end
+ * of the line) after it so that `10:30` is not taken for a line number.
  */
-const LINE_NUMBER_RE = /^\s*\(\d+(?:-\d+)*\)\s*/;
+const LINE_NUMBER_RE = /^\s*(?:\(\d+(?:-\d+)*\)\s*|\d+:(?:\s+|$))/;
+
+/**
+ * Operators that make the text after a `//` look like code: ASCII
+ * operators, the DNCL symbols and the `かつ` / `または` keywords (which the
+ * converter only accepts between spaces).
+ */
+const OPERATOR_RE = /[+\-*/%=<>!&|÷×≦≧≠]|(?:^|\s)(?:かつ|または)(?=\s|$)/;
 
 /** An identifier as the DNCL converter accepts it (ASCII + kana + kanji). */
 const NAME_RE = /[a-zA-Z_぀-ゟ゠-ヿ一-鿿][a-zA-Z0-9_぀-ゟ゠-ヿ一-鿿]*/g;
@@ -108,40 +119,6 @@ const collectNames = source => {
 };
 
 /**
- * Whether the text after a `//` is the right operand of an integer division.
- * ASCII operands (`10 // 3`, `a // b`, `x // (n + 1)`) always are. A
- * Japanese word is a division only when the program uses it as a name
- * elsewhere (`a = 合計 // 個数` with `個数 = 3` above); otherwise it is the
- * description of a 共通テスト comment (`n = 1 // 生徒番号`). Nothing after
- * the `//` is a comment too.
- * @param {string} rest - The text after `//`.
- * @param {Set<string>} names - Names the program uses (see `collectNames`).
- * @returns {boolean} True when the `//` is the integer-division operator.
- */
-const isDivisionOperand = (rest, names) => {
-    const trimmed = rest.trimStart();
-    if (trimmed === '') return false;
-    if (/^[\x21-\x7e]/.test(trimmed)) return true;
-    const m = trimmed.match(/^[a-zA-Z_぀-ゟ゠-ヿ一-鿿][a-zA-Z0-9_぀-ゟ゠-ヿ一-鿿]*/);
-    return m !== null && names.has(m[0]);
-};
-
-/**
- * Turn the first comment-like `//` of a line into `#`.
- * @param {string} line - The source line.
- * @param {Set<string>} names - Names the program uses.
- * @returns {string} The line with the `//` comment converted.
- */
-const convertSlashComment = (line, names) => {
-    for (const i of slashIndices(line)) {
-        if (!isDivisionOperand(line.substring(i + 2), names)) {
-            return `${line.substring(0, i)}#${line.substring(i + 2)}`;
-        }
-    }
-    return line;
-};
-
-/**
  * Net bracket depth of a line, ignoring string literals and `#` comments.
  * @param {string} line - The source line.
  * @returns {number} Opening brackets minus closing brackets.
@@ -154,6 +131,48 @@ const bracketDepth = line => {
         if (ch === ')' || ch === ']' || ch === '}') depth--;
     }
     return depth;
+};
+
+/**
+ * Whether the `//` at index `i` of `line` looks like code (the
+ * integer-division operator) rather than a 共通テスト comment. It is a
+ * comment only when what follows is neither a variable nor contains any
+ * operator (`n = 1 // 生徒番号`). Code-like are:
+ *   - a number or an ASCII name (`10 // 3`, `x // y`)
+ *   - a Japanese word the program uses as a variable (`合計 // 個数` with
+ *     `個数 = 3` in the pasted text or the editor)
+ *   - any operator after the `//` (`合計 // 個数 + 1`)
+ *   - a `//` inside brackets, where a comment cannot be (`(合計 // 個数)`)
+ * `a = 合計 // 個数` alone cannot be told apart from `n = 1 // 生徒番号`, so
+ * it becomes a comment; that is a known limitation.
+ * @param {string} line - The source line.
+ * @param {number} i - Index of the first `/` of the `//`.
+ * @param {Set<string>} names - Names the program uses (see `collectNames`).
+ * @returns {boolean} True when the `//` is the integer-division operator.
+ */
+const isDivisionSlash = (line, i, names) => {
+    const rest = line.substring(i + 2, commentStart(line)).trim();
+    if (rest === '') return false;
+    if (/^[\x21-\x7e]/.test(rest)) return true;
+    const m = rest.match(/^[a-zA-Z_぀-ゟ゠-ヿ一-鿿][a-zA-Z0-9_぀-ゟ゠-ヿ一-鿿]*/);
+    if (m !== null && names.has(m[0])) return true;
+    if (OPERATOR_RE.test(withoutStrings(rest))) return true;
+    return bracketDepth(line.substring(0, i)) > 0;
+};
+
+/**
+ * Turn the first comment-like `//` of a line into `#`.
+ * @param {string} line - The source line.
+ * @param {Set<string>} names - Names the program uses.
+ * @returns {string} The line with the `//` comment converted.
+ */
+const convertSlashComment = (line, names) => {
+    for (const i of slashIndices(line)) {
+        if (!isDivisionSlash(line, i, names)) {
+            return `${line.substring(0, i)}#${line.substring(i + 2)}`;
+        }
+    }
+    return line;
 };
 
 /**
@@ -183,15 +202,16 @@ const joinContinuationLines = lines => {
             depth += bracketDepth(rest);
         }
         if (closeCount > 0) {
-            const m = line.match(/^(\s*\(\d+(?:-\d+)*\)\s*)([\s｜|⎿]*)(.*)$/);
-            const markers = m[2].split('');
+            const prefix = line.match(LINE_NUMBER_RE)[0];
+            const m = line.substring(prefix.length).match(/^([\s｜|⎿]*)(.*)$/);
+            const markers = m[1].split('');
             for (let k = markers.length - 1; k >= 0 && closeCount > 0; k--) {
                 if (markers[k] === '｜' || markers[k] === '|') {
                     markers[k] = '⎿';
                     closeCount--;
                 }
             }
-            line = `${m[1]}${markers.join('')}${'⎿'.repeat(closeCount)}${closeCount > 0 ? ' ' : ''}${m[3]}`;
+            line = `${prefix}${markers.join('')}${'⎿'.repeat(closeCount)}${closeCount > 0 ? ' ' : ''}${m[2]}`;
         }
         result.push(line);
         i++;
@@ -200,9 +220,10 @@ const joinContinuationLines = lines => {
 };
 
 /**
- * Tidy DNCL code pasted into the Japanese (DNCL) mode editor: remove the
- * 共通テスト line numbers and turn `//` comments into `#` comments. Text
- * with neither (ordinary Smalruby code) comes back unchanged.
+ * Tidy DNCL code pasted into the Japanese (DNCL) mode editor. Only text
+ * with line numbers (copied from a 共通テスト sample) is changed: the line
+ * numbers are removed and `//` comments become `#` comments. Text without
+ * line numbers comes back unchanged, `//` included.
  * @param {string} text - The pasted text.
  * @param {string} [context] - The rest of the program (the editor content),
  *   used to tell variable names after `//` from comment text.
@@ -211,14 +232,34 @@ const joinContinuationLines = lines => {
 const tidyPastedDncl = (text, context = '') => {
     const eol = text.includes('\r\n') ? '\r\n' : '\n';
     const lines = text.split(/\r?\n/);
-    const hasLineNumbers = lines.some(line => LINE_NUMBER_RE.test(line));
-    if (!hasLineNumbers && !lines.some(line => slashIndices(line).length > 0)) {
-        return text;
-    }
-    const joined = hasLineNumbers ? joinContinuationLines(lines) : lines;
-    const stripped = hasLineNumbers ? joined.map(line => line.replace(LINE_NUMBER_RE, '')) : joined;
+    if (!lines.some(line => LINE_NUMBER_RE.test(line))) return text;
+    const stripped = joinContinuationLines(lines).map(line => line.replace(LINE_NUMBER_RE, ''));
     const names = collectNames(`${stripped.join('\n')}\n${context}`);
     return stripped.map(line => convertSlashComment(line, names)).join(eol);
 };
 
-export {tidyPastedDncl};
+/**
+ * Whether a line has a `//` outside string literals and `#` comments. Used
+ * to explain a conversion error on such a line: `//` is integer division in
+ * Smalruby, so a `//` comment typed or pasted without line numbers fails.
+ * @param {string} line - The source line.
+ * @returns {boolean} True when the line has a `//`.
+ */
+const hasDoubleSlash = line => slashIndices(line).length > 0;
+
+/**
+ * Prefix `hint` to the message of each conversion error whose DNCL line has
+ * a `//` (see `hasDoubleSlash`).
+ * @param {Array<object>} errors - Errors with a 0-based DNCL `row` and `text`.
+ * @param {Array<string>} lines - The DNCL source lines.
+ * @param {string} hint - The message telling the user to use `#`.
+ * @returns {Array<object>} The errors, with the hint added where it applies.
+ */
+const withDoubleSlashHint = (errors, lines, hint) =>
+    errors.map(err =>
+        err.row >= 0 && err.row < lines.length && hasDoubleSlash(lines[err.row])
+            ? {...err, text: `${hint}\n${err.text}`}
+            : err,
+    );
+
+export {hasDoubleSlash, tidyPastedDncl, withDoubleSlashHint};
