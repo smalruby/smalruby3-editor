@@ -99,15 +99,27 @@ export default {
     'gui.classroom.studentJoin.teacherLink': '先生の方はこちら（クラス管理）',
     'gui.classroom.studentSeat.prompt': '出席番号を選んでください',
     'gui.classroom.studentSeat.join': '参加する',
+    'gui.classroom.studentSeat.numberInputLabel': '出席番号',
+    'gui.classroom.studentSeat.numberSubmit': 'この番号にする',
+    'gui.classroom.studentSeat.numberError': '1から{seatCount}までの数字を入れてください。',
+    'gui.classroom.studentSeat.alreadyRequested':
+        '出席番号{seatNumber}は使われています。いま先生にお願いしているところなので、少し待っていてください。',
+    'gui.classroom.studentSeat.guide':
+        '自分の番号が「使用中」のときは、その番号を押してください。先生に席を空けてもらうようお願いできます。先生が確認しに来ます。',
+    'gui.classroom.studentSeat.confirmTitle': '出席番号 {seatNumber} で参加します',
+    'gui.classroom.studentSeat.confirmNote':
+        '自分の番号で合っていますか？ ほかの人の番号で参加すると、その人が参加できなくなります。確かめてから「参加する」を押してください。',
     'gui.classroom.kicked.banner.title': '先生によってクラスから退室させられました。',
     'gui.classroom.kicked.banner.subtitle': '「{className}」に再度参加するには出席番号を選びなおしてください。',
     'gui.classroom.kickRequest.title': '出席番号{seatNumber}の人に退室を依頼しますか？',
     'gui.classroom.kickRequest.body':
-        '出席番号{seatNumber}が自分の席で、他の人が間違って選んでしまったときに使ってください。先生に依頼が送られ、承認するかどうかを決めてもらいます。',
+        '出席番号{seatNumber}が自分の席で、他の人が間違って選んでしまったときに使ってください。先生に依頼が送られ、先生があなたに確認してから席を空けます。',
     'gui.classroom.kickRequest.reasonPlaceholder': '任意：先生へひと言（200文字まで）',
     'gui.classroom.kickRequest.cancel': 'キャンセル',
     'gui.classroom.kickRequest.submit': '依頼を送る',
     'gui.classroom.kickRequest.pendingBanner': '出席番号{seatNumber}の退室を先生に依頼中です…',
+    'gui.classroom.kickRequest.pendingNote':
+        '先生に届いています。先生が確認しに来ます。待つ間スモウルビーを使っていてもかまいません。席が空いたら、自動でその席で参加します。',
     'gui.classroom.kickRequest.rejectedBanner':
         '出席番号{seatNumber}の退室は受理されませんでした。別の席を選ぶか、もう一度依頼を出してください。',
     'gui.classroom.kickRequest.teacherTitle':

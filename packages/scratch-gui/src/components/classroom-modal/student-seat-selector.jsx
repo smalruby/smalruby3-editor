@@ -1,12 +1,53 @@
-import { FormattedMessage } from 'react-intl';
+import { FormattedMessage, defineMessages, useIntl } from 'react-intl';
 import PropTypes from 'prop-types';
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+
+import { SEAT_IDLE_HINT_MS, decideSeatAction, parseSeatNumberInput } from '../../lib/classroom-seat-selection.js';
 
 import ClassroomStatusIcon from './classroom-status-icon.jsx';
 import ErrorDisplay from './error-display.jsx';
 import KickRequestConfirmDialog from './kick-request-confirm-dialog.jsx';
 
 import styles from './classroom-modal.css';
+
+const messages = defineMessages({
+    numberInputLabel: {
+        defaultMessage: 'Seat number',
+        description: 'Accessible label of the seat number input on the seat selection screen',
+        id: 'gui.classroom.studentSeat.numberInputLabel',
+    },
+    numberError: {
+        defaultMessage: 'Type a number from 1 to {seatCount}.',
+        description: 'Error shown when the typed seat number is empty, not a number or out of range',
+        id: 'gui.classroom.studentSeat.numberError',
+    },
+    alreadyRequested: {
+        defaultMessage: 'Seat {seatNumber} is in use. You are already waiting for the teacher, so please wait a little.',
+        description: 'Error shown when the typed seat is taken and a kick request is already pending',
+        id: 'gui.classroom.studentSeat.alreadyRequested',
+    },
+});
+
+const padSeat = (n) => String(n).padStart(2, '0');
+
+/**
+ * Becomes true after the student has not picked a seat for
+ * SEAT_IDLE_HINT_MS, so the guide can start moving (#1198).
+ * @param {boolean} waiting - no seat picked and nothing else to wait for.
+ * @returns {boolean} true once the student has been idle long enough.
+ */
+const useSeatIdleHint = (waiting) => {
+    const [idle, setIdle] = useState(false);
+    useEffect(() => {
+        if (!waiting) {
+            setIdle(false);
+            return () => {};
+        }
+        const timer = setTimeout(() => setIdle(true), SEAT_IDLE_HINT_MS);
+        return () => clearTimeout(timer);
+    }, [waiting]);
+    return idle;
+};
 
 const StudentSeatSelector = ({
     seatCount,
@@ -28,6 +69,40 @@ const StudentSeatSelector = ({
     onConfirmKickRequest,
     onCancelKickRequest,
 }) => {
+    const intl = useIntl();
+    const [seatInput, setSeatInput] = useState('');
+    const [seatInputError, setSeatInputError] = useState(null);
+    // Seat the student typed; highlighted in the grid even when it is taken.
+    const [typedSeat, setTypedSeat] = useState(null);
+    const idle = useSeatIdleHint(!selectedSeat && !kickRequestPending && !kickRequestDialogSeat);
+
+    const handleSeatInputChange = useCallback((e) => {
+        setSeatInput(e.target.value);
+        setSeatInputError(null);
+    }, []);
+
+    const handleSeatInputSubmit = useCallback(
+        (e) => {
+            e.preventDefault();
+            const { seat } = parseSeatNumberInput(seatInput, seatCount);
+            if (!seat) {
+                setTypedSeat(null);
+                setSeatInputError(intl.formatMessage(messages.numberError, { seatCount }));
+                return;
+            }
+            setTypedSeat(seat);
+            const action = decideSeatAction(seat, takenSeats, kickRequestPending);
+            if (action === 'select') {
+                onSelectSeat(seat);
+            } else if (action === 'requestKick' && onRequestKick) {
+                onRequestKick(seat);
+            } else {
+                setSeatInputError(intl.formatMessage(messages.alreadyRequested, { seatNumber: padSeat(seat) }));
+            }
+        },
+        [intl, seatInput, seatCount, takenSeats, kickRequestPending, onSelectSeat, onRequestKick],
+    );
+
     const handleSeatClick = useCallback(
         (e) => {
             const n = parseInt(e.currentTarget.dataset.seat, 10);
@@ -37,6 +112,7 @@ const StudentSeatSelector = ({
                 if (onRequestKick) onRequestKick(n);
                 return;
             }
+            setTypedSeat(null);
             onSelectSeat(n);
         },
         [onSelectSeat, onRequestKick],
@@ -103,6 +179,13 @@ const StudentSeatSelector = ({
                         id="gui.classroom.kickRequest.pendingBanner"
                         values={{ seatNumber: String(kickRequestPending.seatNumber).padStart(2, '0') }}
                     />
+                    <div className={styles.kickRequestPendingNote} data-testid="kick-request-pending-note">
+                        <FormattedMessage
+                            defaultMessage="Your request has reached the teacher, who will come to check with you. While you wait, you can keep using Smalruby. When the seat is free, you will join it automatically."
+                            description="Note under the pending kick-request banner telling the student they may keep working"
+                            id="gui.classroom.kickRequest.pendingNote"
+                        />
+                    </div>
                 </div>
             )}
             {!kickRequestPending && kickRequestRejectedNotice && (
@@ -140,10 +223,50 @@ const StudentSeatSelector = ({
                     id="gui.classroom.studentSeat.prompt"
                 />
             </div>
+            <form
+                className={styles.seatNumberForm}
+                data-testid="classroom-seat-number-form"
+                onSubmit={handleSeatInputSubmit}
+            >
+                <input
+                    aria-label={intl.formatMessage(messages.numberInputLabel)}
+                    className={styles.seatNumberInput}
+                    data-testid="classroom-seat-number-input"
+                    inputMode="numeric"
+                    onChange={handleSeatInputChange}
+                    placeholder={`1〜${seatCount}`}
+                    type="text"
+                    value={seatInput}
+                />
+                <button className={styles.secondaryButton} data-testid="classroom-seat-number-submit" type="submit">
+                    <FormattedMessage
+                        defaultMessage="Use this number"
+                        description="Button next to the seat number input"
+                        id="gui.classroom.studentSeat.numberSubmit"
+                    />
+                </button>
+            </form>
+            {seatInputError && (
+                <div className={styles.errorText} data-testid="classroom-seat-number-error">
+                    {seatInputError}
+                </div>
+            )}
+            <div
+                className={`${styles.seatGuide} ${idle ? styles.seatGuideIdle : ''}`}
+                data-idle={idle ? '1' : '0'}
+                data-testid="classroom-seat-guide"
+            >
+                <FormattedMessage
+                    defaultMessage="If your number is already in use, press that number. You can ask the teacher to free the seat, and the teacher will come to check with you."
+                    description="Always-visible guide on the seat selection screen explaining how to get an occupied seat back"
+                    id="gui.classroom.studentSeat.guide"
+                />
+            </div>
             <div className={styles.seatGrid} data-testid="classroom-seat-grid">
                 {Array.from({ length: seatCount }, (_, i) => i + 1).map(n => {
                     const isTaken = takenSeats.includes(n);
                     const isSelected = selectedSeat === n;
+                    const isTyped = typedSeat === n && !isSelected;
                     // Taken seats become tappable when an onRequestKick handler is
                     // provided AND we're not already waiting on a different one.
                     // We still let the student tap their own pending seat (it just
@@ -151,9 +274,10 @@ const StudentSeatSelector = ({
                     const canRequestKick = isTaken && onRequestKick && !kickRequestPending;
                     return (
                         <button
-                            className={`${styles.seatButton} ${isTaken ? styles.seatTaken : ''} ${isSelected ? styles.seatSelected : ''}`}
+                            className={`${styles.seatButton} ${isTaken ? styles.seatTaken : ''} ${isSelected ? styles.seatSelected : ''} ${isTyped ? styles.seatTyped : ''}`}
                             data-seat={n}
                             data-taken={canRequestKick ? '1' : '0'}
+                            data-typed={isTyped ? '1' : '0'}
                             data-testid={`classroom-seat-${n}`}
                             disabled={isTaken && !canRequestKick}
                             key={n}
@@ -173,6 +297,25 @@ const StudentSeatSelector = ({
             <div data-testid="classroom-selected-seat" style={{ display: 'none' }}>
                 {selectedSeat}
             </div>
+            {selectedSeat && (
+                <div className={styles.seatConfirm} data-testid="classroom-seat-confirm-message">
+                    <div className={styles.seatConfirmTitle}>
+                        <FormattedMessage
+                            defaultMessage="You will join as number {seatNumber}"
+                            description="Large confirmation shown before joining with the selected seat"
+                            id="gui.classroom.studentSeat.confirmTitle"
+                            values={{ seatNumber: padSeat(selectedSeat) }}
+                        />
+                    </div>
+                    <div className={styles.seatConfirmNote}>
+                        <FormattedMessage
+                            defaultMessage="Is this your own number? If you take someone else's seat, that person cannot join. Check it, then press Join."
+                            description="Note under the seat confirmation asking the student to double-check the number"
+                            id="gui.classroom.studentSeat.confirmNote"
+                        />
+                    </div>
+                </div>
+            )}
             <div className={styles.buttonRow}>
                 <button
                     className={styles.primaryButton}

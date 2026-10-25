@@ -103,6 +103,8 @@ src/containers/*
 !src/containers/classroom-classcode-utils.js
 !src/containers/classroom-error-utils.js
 !src/containers/classroom-modal.jsx
+!src/containers/classroom-kick-request-watcher.jsx
+!src/containers/use-kick-request-polling.js
 !src/containers/classroom-teacher-modal.jsx
 !src/containers/use-google-classroom.js
 !src/containers/use-student-assignment.js
@@ -158,6 +160,7 @@ src/lib/*
 !src/lib/shared-assignment-taxonomy.js
 !src/lib/shared-author-profile.js
 !src/lib/classroom-kick-request-storage.js
+!src/lib/classroom-seat-selection.js
 !src/lib/google-classroom-auth.js
 !src/lib/block-utils.js
 !src/lib/blocks-gesture-recovery.js
