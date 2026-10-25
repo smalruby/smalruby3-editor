@@ -32,6 +32,11 @@ describe('tidyPastedDncl', () => {
         expect(tidyPastedDncl('a = 合計 // 個数', '合計 = 10\n個数 = 3')).toBe('a = 合計 // 個数');
     });
 
+    test('a Japanese name used nowhere else is comment text (cannot be told apart from `n = 1 // 生徒番号`)', () => {
+        expect(tidyPastedDncl('a = 合計 // 個数')).toBe('a = 合計 # 個数');
+        expect(tidyPastedDncl('合計 = 10\na = 合計 // 個数')).toBe('合計 = 10\na = 合計 # 個数');
+    });
+
     test('a name only used inside a string or comment is not a variable', () => {
         expect(tidyPastedDncl('表示する("生徒番号") # 生徒番号\nn = 1 // 生徒番号')).toBe(
             '表示する("生徒番号") # 生徒番号\nn = 1 # 生徒番号',
