@@ -2,6 +2,7 @@ import { FormattedMessage } from 'react-intl';
 import PropTypes from 'prop-types';
 import React, { useCallback } from 'react';
 
+import ClassroomStatusIcon from './classroom-status-icon.jsx';
 import ErrorDisplay from './error-display.jsx';
 import KickRequestConfirmDialog from './kick-request-confirm-dialog.jsx';
 
@@ -158,7 +159,13 @@ const StudentSeatSelector = ({
                             key={n}
                             onClick={handleSeatClick}
                         >
-                            {n}
+                            <span className={styles.seatButtonNumber}>{n}</span>
+                            {isTaken && (
+                                <ClassroomStatusIcon
+                                    size={12}
+                                    status="occupied"
+                                />
+                            )}
                         </button>
                     );
                 })}

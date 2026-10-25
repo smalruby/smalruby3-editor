@@ -23,6 +23,7 @@ smalruby3-editor/
 │   │   │   │   ├── kick-request-confirm-dialog.jsx ← 退室依頼ダイアログ (#692)
 │   │   │   │   ├── teacher-class-detail.jsx ← 先生の課題詳細 (退室リクエストバッジ + 退室通知バナー)
 │   │   │   │   ├── teacher-member-detail.jsx ← メンバー詳細パネル (承認/却下ボタン)
+│   │   │   │   ├── classroom-status-icon.jsx ← 着席・提出などの状態アイコン共通部品 (+ 凡例)
 │   │   │   │   ├── teacher-create-form.jsx ← 課題作成フォーム
 │   │   │   │   ├── teacher-assignment-editor.jsx ← 課題エディタ（ページ + スターター）
 │   │   │   │   ├── teacher-group-manage.jsx ← 組（グループ）管理

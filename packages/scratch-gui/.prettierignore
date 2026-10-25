@@ -329,6 +329,7 @@ test/unit/components/*
 !test/unit/components/mesh-self-sensor-notice.test.jsx
 !test/unit/components/student-assignment-panel.test.jsx
 !test/unit/components/teacher-class-detail.test.jsx
+!test/unit/components/classroom-status-icon.test.jsx
 !test/unit/components/teacher-notifications.test.jsx
 !test/unit/components/teacher-avatar-menu.test.jsx
 !test/unit/components/google-sign-in-slot.test.jsx

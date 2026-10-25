@@ -68,6 +68,9 @@ stateDiagram-v2
 |------|-------------|-------------|
 | ラベル全体 | 例: 「クラス:出席番号03」 | `classroom-menu-label` |
 | 出席番号 (内側 span) | 例: 「03」 | `classroom-menu-seat-number` |
+| 提出状態アイコン | 未提出 / 提出済み / 返却済み のアイコン（[状態アイコン](#状態アイコン)） | `classroom-menu-submission-status` |
+
+![メニューバー（参加中・提出済み）](screenshots/0103-menu-bar-joined.png)
 
 未参加時はラベルが「クラス」のみになる。 課題名 / クラス（学級）名はメニューに表示せず、モーダル内でのみ確認する設計。なお、生徒が参加するのは課題（1 授業）だが、メニューバーのラベル自体は「クラス」のまま（UI 文言の整理は #1135）。
 
@@ -226,7 +229,7 @@ Google または Microsoft アカウントでサインインする画面。先�
 
 ![課題詳細 — 空席のみ](screenshots/0204-teacher-detail.png)
 
-### 提出があった状態（5番が緑 = 提出済み）
+### 提出・着席・退室依頼がある状態
 
 ![課題詳細 — 提出あり](screenshots/0205-teacher-detail-submitted.png)
 
@@ -254,6 +257,7 @@ Google または Microsoft アカウントでサインインする画面。先�
 | メンバー見出し | 「メンバー」 | — | — |
 | メンバー数 | 「1 / 35」 | `classroom-members-count` | 参加人数 / 最大人数 |
 | 更新ボタン | ↻ アイコン | `classroom-refresh` | メンバー・提出を再取得 |
+| 凡例 | 状態アイコン + ラベル | `classroom-status-legend` | — |
 | 座席グリッド | — | `classroom-members-grid` | — |
 | 全作品ダウンロード | 「全作品ダウンロード」 | `classroom-download-all` | 左寄せ |
 | 課題アーカイブボタン | 「課題をアーカイブ」 | `classroom-delete-classroom` | 赤枠ボタン、右寄せ。soft-delete（復元可能） |
@@ -277,16 +281,22 @@ Google の同意を求め、`teacher` と確認できればボタンが有効に
 
 **座席グリッド:**
 
-座席番号が格子状に並び（1行 10列）、各セルの背景色で状態を表します。
+座席番号が格子状に並び（1行 10列）、各セルは**出席番号 + 状態アイコン**（[状態アイコン](#状態アイコン)）と背景色で状態を表します。色だけに頼らず、アイコンの形と `title` / `aria-label` でも区別できます。
 
-| セルの色 | 状態 | テキスト |
-|---------|------|---------|
-| 青 (`#4c97ff`) | 空席 | 出席番号のみ (例: 「5」) |
-| グレー (`#d9d9d9`) | 着席（未提出） | 出席番号（下線付き） |
-| 緑 (`#0fbd8c`) | 提出済み | 「✓」+ 出席番号 (例: 「✓5」) |
-| オレンジ (`#ff8c1a`) | 返却済み | 出席番号 |
+| セル内のアイコン | 状態 |
+|---------|------|
+| 着席系（左） | 着席中 / 未着席 / 未参加 のいずれか |
+| 提出系（右） | 提出済み / 未提出 / 返却済み のいずれか（未参加の席には出さない） |
+| 右上バッジ（`classroom-seat-kick-request-{n}`） | 退室依頼あり |
 
-色は生徒側の出席番号選択画面と統一されている: 青 = 「空き / 選択可能 (生徒視点では選べる席、先生視点では未参加)」、灰色 = 「使用中」。
+| セルの色 | 状態 |
+|---------|------|
+| 青 (`#4c97ff`) | 未参加（空席） |
+| グレー (`#d9d9d9`) | 参加中（未提出） |
+| 緑 (`#0fbd8c`) | 提出済み |
+| オレンジ (`#ff8c1a`) | 返却済み |
+
+色は生徒側の出席番号選択画面と統一されている: 青 = 「空き / 選択可能 (生徒視点では選べる席、先生視点では未参加)」、灰色 = 「使用中」。着席判定は `lastActiveAt` が 1 時間以内かどうか。
 
 セルをクリックすると右カラムに詳細パネルが表示されます。
 
@@ -299,8 +309,9 @@ Google の同意を求め、`teacher` と確認できればボタンが有効に
 | パネル全体 | — | `classroom-member-detail` | — |
 | 席番号ヘッダー | 「出席番号05」 | `classroom-member-detail-seat` | — |
 | ニックネーム | 「- 」(未設定時) | `classroom-member-detail-name` | — |
-| 提出時刻 | 「✓ 19:11:54」 | `classroom-member-detail-submitted` | 緑色テキスト |
-| 着席状態 | 「着席中」 | `classroom-member-detail-seated` | 青色テキスト |
+| 提出時刻 | 提出済み / 返却済みアイコン + 「19:11:54」 | `classroom-member-detail-submitted` | 緑（返却済みはオレンジ）テキスト |
+| 未提出 | 未提出アイコン + 「未提出」 | `classroom-member-detail-not-submitted` | 提出が無いときのみ |
+| 着席状態 | 着席中 / 未着席アイコン + 「着席中」/「未着席」 | `classroom-member-detail-seated` | — |
 | 削除リンク | 「削除」 | `classroom-member-remove` | 赤色テキスト |
 | サムネイル画像 | — | `classroom-member-detail-thumbnail` | プロジェクトのサムネイル |
 | プロジェクト名 | 「第１回チャットアプリを作ろう」 | — | サムネイル下 |
@@ -404,7 +415,7 @@ owner または co-teacher が、別の先生を **email で招待**して共同
 | フェーズルート | — | `classroom-phase-student-seat` | — |
 | 見出し | 「出席番号を選んでください」 | — | — |
 | 座席グリッド | — | `classroom-seat-grid` | — |
-| 各席番号ボタン | 「1」〜「35」等 | `classroom-seat-{n}` | クリックで選択状態に |
+| 各席番号ボタン | 「1」〜「35」等。使用中の席は「使用中」アイコン付き | `classroom-seat-{n}` | クリックで選択状態に |
 | 選択中の席番号 | — | `classroom-selected-seat` | hidden要素、値取得用 |
 | 参加ボタン | 「参加する」 | `classroom-confirm-seat` | 席未選択時は disabled |
 
@@ -413,7 +424,7 @@ owner または co-teacher が、別の先生を **email で招待**して共同
 | ボタンの色 | 状態 |
 |----------|------|
 | 青 (`#4285f4`) | 空席（選択可能） |
-| グレー (disabled) | 使用中（選択不可） |
+| グレー + 使用中アイコン | 使用中（タップで退室依頼） |
 | 濃い青 (selected) | 選択中 |
 
 **レイアウト:** ボタンは1行8列のグリッド。「参加する」ボタンは右下、灰色 (disabled) or 青色。
@@ -656,3 +667,24 @@ Google Classroom にリンクしたクラス（学級）の課題で、課題リ
 ## レスポンシブ対応
 
 現在の実装はデスクトップ向けです。タブレット (iPad) での利用も想定していますが、スマートフォンでの利用は想定外です。
+
+---
+
+## 状態アイコン
+
+着席・提出などの状態は共通部品 `classroom-status-icon.jsx` のアイコンで表す（先生のメンバーグリッド・凡例・メンバー詳細、生徒の座席選択、メニューバーで共通）。
+各アイコンは**状態ごとに形が違う** inline SVG で、`role="img"` と `title` / `aria-label`（下表のラベル）を持つ。
+
+| 状態 (`data-status`) | 形 | ラベル | data-testid |
+|------|----|--------|-------------|
+| `seated` | 塗りつぶしの円（緑） | 着席中 | `classroom-status-icon-seated` |
+| `notSeated` | 中抜きの円（紫） | 未着席 | `classroom-status-icon-notSeated` |
+| `notJoined` | 点線の円 + 横線（灰） | 未参加 | `classroom-status-icon-notJoined` |
+| `submitted` | チェック入りの四角（緑） | 提出済み | `classroom-status-icon-submitted` |
+| `notSubmitted` | 空の四角（灰） | 未提出 | `classroom-status-icon-notSubmitted` |
+| `returned` | 戻り矢印（オレンジ） | 返却済み | `classroom-status-icon-returned` |
+| `kickRequested` | 三角 + 「!」（赤） | 退室依頼あり | `classroom-status-icon-kickRequested` |
+| `occupied` | 人のシルエット | 使用中 | `classroom-status-icon-occupied` |
+
+着席系と提出系を 1 セルに並べるときは `ClassroomStatusIcons`（`classroom-status-icons`）、凡例は `ClassroomStatusLegend`（`classroom-status-legend` / 各項目 `classroom-status-legend-{status}`）を使う。
+

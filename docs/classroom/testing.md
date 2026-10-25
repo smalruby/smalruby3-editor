@@ -64,6 +64,9 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-detail-join-code` | div | 参加コード |
 | `classroom-detail-expand-code` | button | コード拡大表示 |
 | `classroom-members-grid` | div | 座席グリッド |
+| `classroom-status-legend` | div | 状態アイコンの凡例（各項目 `classroom-status-legend-{status}`） |
+| `classroom-status-icons` | span | 1 セル内の着席系 + 提出系アイコンのまとまり |
+| `classroom-status-icon-{status}` | span[role=img] | 状態アイコン（`data-status` と `aria-label` を持つ。status は `seated` / `notSeated` / `notJoined` / `submitted` / `notSubmitted` / `returned` / `kickRequested` / `occupied`） |
 | `classroom-members-count` | span | メンバー数 |
 | `classroom-delete-classroom` | button | 課題をアーカイブ（歴史的経緯で testid は delete のまま。soft-delete・復元可能） |
 | `classroom-delete-confirm` | button | アーカイブ確認 |
@@ -77,7 +80,8 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-member-detail` | div | 詳細パネル |
 | `classroom-member-detail-name` | span | ニックネーム |
 | `classroom-member-detail-seat` | span | 出席番号 |
-| `classroom-member-detail-seated` | span | 着席状態 |
+| `classroom-member-detail-seated` | span | 着席状態（着席中 / 未着席アイコン付き） |
+| `classroom-member-detail-not-submitted` | span | 未提出表示（提出が無いときのみ） |
 | `classroom-member-detail-submitted` | span | 提出状態 |
 | `classroom-member-detail-thumbnail` | img | サムネイル |
 | `classroom-member-detail-image-index` | span | 画像インデックス |
@@ -109,7 +113,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | data-testid | 要素 | 説明 |
 |------------|------|------|
 | `classroom-seat-grid` | div | 席番号グリッド |
-| `classroom-seat-{n}` | button | 席番号 n のボタン |
+| `classroom-seat-{n}` | button | 席番号 n のボタン（使用中は `classroom-status-icon-occupied` を含む） |
 | `classroom-selected-seat` | div (hidden) | 選択中の席番号 |
 | `classroom-confirm-seat` | button | 席番号確定・参加 |
 
@@ -338,6 +342,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-menu-button` | div | クラスボタン（コンテナ） |
 | `classroom-menu-label` | span | メニューバーのクラス表示テキスト全体（参加中は「クラス:出席番号NN」、未参加時は「クラス」）|
 | `classroom-menu-seat-number` | span | 出席番号（0埋め2桁、参加中のみレンダリングされる） |
+| `classroom-menu-submission-status` | span | 自分の提出状態アイコン（未提出 / 提出済み / 返却済み。参加中のみ） |
 
 ### 強制退室通知 / 退室リクエスト (Issue #692)
 
@@ -353,7 +358,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `kick-request-pending-banner` | div | 「先生に依頼中です…」バナー（5 秒ごとに lookupClassroom を polling）|
 | `kick-request-rejected-banner` | div | 「依頼は受理されませんでした」バナー (却下 / TTL 期限切れ検出時に pending と差し替え) |
 | `kick-request-rejected-banner-dismiss` | button | × ボタン |
-| `classroom-seat-kick-request-{seatNumber}` | span | 先生の課題詳細の座席グリッドに表示する赤いバッジ「!」|
+| `classroom-seat-kick-request-{seatNumber}` | span | 先生の課題詳細の座席グリッドに表示する退室依頼アイコン（`classroom-status-icon-kickRequested`）のバッジ |
 | `classroom-member-kick-request-panel` | div | 先生メンバー詳細パネルに表示される依頼一覧 |
 | `classroom-kick-request-row-{requestId}` | div | 1 リクエストの行 |
 | `classroom-kick-request-approve-{requestId}` | button | 承認（kick + リクエスト削除）|

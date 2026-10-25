@@ -769,6 +769,10 @@
     cursor: pointer;
     font-weight: bold;
     text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
 }
 
 .seat-button:hover {
@@ -869,13 +873,11 @@
     position: absolute;
     top: -4px;
     right: -4px;
-    background-color: #d32f2f;
-    color: #fff;
-    font-size: 0.7rem;
-    font-weight: bold;
+    background-color: #fff;
     border-radius: 50%;
-    width: 14px;
-    height: 14px;
+    width: 18px;
+    height: 18px;
+    box-shadow: 0 0 0 1px #d32f2f;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1077,19 +1079,6 @@
     font-size: 0.75rem;
 }
 
-.legend-item {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.15rem 0.5rem;
-    border-radius: 3px;
-    color: white;
-    font-weight: bold;
-}
-
-.legend-seated {
-    text-decoration: underline;
-}
-
 .members-grid {
     display: grid;
     grid-template-columns: repeat(10, 1fr);
@@ -1099,6 +1088,7 @@
 
 .member-cell {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     width: 100%;
@@ -3444,4 +3434,72 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
 
 .ungrouped-section {
     margin-top: 1rem;
+}
+
+/* Shared status icons (#1196) */
+.status-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    line-height: 0;
+}
+
+.status-icon-badge {
+    background-color: #fff;
+    border-radius: 50%;
+    padding: 2px;
+}
+
+.status-icons {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    line-height: 0;
+}
+
+.status-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem 0.7rem;
+    align-items: center;
+    color: #575e75;
+}
+
+.status-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    white-space: nowrap;
+}
+
+/* Grid cell: seat number on top, status icons underneath (#1196) */
+.member-cell-number {
+    line-height: 1;
+}
+
+.member-cell-icons {
+    margin-top: 2px;
+    padding: 1px 2px;
+    border-radius: 3px;
+    background-color: rgba(255, 255, 255, 0.85);
+}
+
+.not-submitted-badge {
+    color: #8c8c8c;
+    font-size: 0.75rem;
+    margin-left: 0.5rem;
+}
+
+.submission-badge,
+.returned-badge,
+.seated-badge,
+.not-seated-badge,
+.not-submitted-badge {
+    display: inline-flex;
+    align-items: center;
+}
+
+.seat-button-number {
+    line-height: 1;
 }
