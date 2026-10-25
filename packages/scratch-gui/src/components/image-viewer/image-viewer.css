@@ -1,0 +1,117 @@
+@import "../../css/colors.css";
+@import "../../css/units.css";
+
+/* 置き場所 (モーダル本文など) いっぱいに広がる。高さは親が決める。 */
+.viewer {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    background-color: $ui-white;
+    color: $text-primary;
+}
+
+.toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    border-bottom: 1px solid $ui-black-transparent;
+}
+
+.nav {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: bold;
+}
+
+.counter {
+    flex: 0 0 auto;
+    color: $text-primary-transparent;
+    font-size: 0.75rem;
+}
+
+.zoom {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+/* Chromebook のタッチ操作でも押しやすい大きさにする。 */
+.button {
+    min-width: 2.25rem;
+    height: 2.25rem;
+    padding: 0 0.5rem;
+    border: 1px solid $ui-black-transparent;
+    border-radius: 0.25rem;
+    background-color: $ui-white;
+    color: $text-primary;
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+.button:hover:not(:disabled) {
+    background-color: $ui-secondary;
+}
+
+.button:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.zoom-level {
+    min-width: 3.25rem;
+    text-align: center;
+    font-size: 0.875rem;
+}
+
+/*
+ * ジェスチャー領域。touch-action: none でピンチ / スワイプをページのスクロールや
+ * ブラウザのズームに奪われないようにする (Pointer Events で自前処理する)。
+ */
+.viewport {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    touch-action: none;
+    overscroll-behavior: contain;
+    user-select: none;
+    cursor: grab;
+    background-color: $ui-tertiary;
+}
+
+.viewport:focus-visible {
+    outline: 2px solid $motion-primary;
+    outline-offset: -2px;
+}
+
+.dragging {
+    cursor: grabbing;
+}
+
+/* 位置と倍率は transform で与える (左上原点)。 */
+.image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    max-width: none;
+    transform-origin: 0 0;
+    pointer-events: none;
+    -webkit-user-drag: none;
+}
+
+.loading {
+    visibility: hidden;
+}
