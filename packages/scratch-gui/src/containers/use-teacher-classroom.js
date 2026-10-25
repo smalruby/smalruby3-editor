@@ -255,6 +255,7 @@ const useTeacherClassroom = ({
 
         // Setters (needed by container for go-to-login reset)
         setIdToken: auth.setIdToken,
+        setAuthProvider: auth.setAuthProvider,
         setClassrooms: classrooms.setClassrooms,
         setSelectedClassroom: classrooms.setSelectedClassroom,
         setMembers: classrooms.setMembers,

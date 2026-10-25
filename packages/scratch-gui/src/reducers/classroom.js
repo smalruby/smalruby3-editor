@@ -1,3 +1,5 @@
+import { loadTeacherSession } from '../lib/classroom-teacher-session.js';
+
 const OPEN_MODAL = 'scratch-gui/classroom/OPEN_MODAL';
 const CLOSE_MODAL = 'scratch-gui/classroom/CLOSE_MODAL';
 const OPEN_TEACHER_MODAL = 'scratch-gui/classroom/OPEN_TEACHER_MODAL';
@@ -10,6 +12,11 @@ const CLEAR_SUBMISSION_THUMBNAIL = 'scratch-gui/classroom/CLEAR_SUBMISSION_THUMB
 const REQUEST_RELOGIN = 'scratch-gui/classroom/REQUEST_RELOGIN';
 const SET_TEACHER_SELECTION = 'scratch-gui/classroom/SET_TEACHER_SELECTION';
 const CLEAR_TEACHER_SELECTION = 'scratch-gui/classroom/CLEAR_TEACHER_SELECTION';
+const SET_TEACHER_LOGGED_IN = 'scratch-gui/classroom/SET_TEACHER_LOGGED_IN';
+const SET_TEACHER_UNREAD_COUNT = 'scratch-gui/classroom/SET_TEACHER_UNREAD_COUNT';
+const SET_TEACHER_LAST_SELECTION = 'scratch-gui/classroom/SET_TEACHER_LAST_SELECTION';
+const REQUEST_TEACHER_NAVIGATION = 'scratch-gui/classroom/REQUEST_TEACHER_NAVIGATION';
+const CLEAR_TEACHER_NAVIGATION = 'scratch-gui/classroom/CLEAR_TEACHER_NAVIGATION';
 
 const STORAGE_KEY = 'smalruby:classroom';
 
@@ -110,6 +117,11 @@ const clearStoredSession = () => {
 // the Mesh domain bound to a class the teacher is no longer logged in for.
 const storedSession = loadSession();
 
+// The teacher login itself (#1199) is restored by silent re-authentication
+// (classroom-teacher-menu.jsx); only the last opened assignment is read here
+// so the menu can offer "いまの課題を開く" once the login comes back.
+const storedTeacherSession = loadTeacherSession();
+
 const initialState = {
     modalVisible: false,
     teacherModalVisible: false,
@@ -130,6 +142,17 @@ const initialState = {
     submissionThumbnail: null,
     reloginRequested: false,
     teacherSelection: null,
+    // Teacher menu in the menu bar (#1199). teacherLoggedIn mirrors whether an
+    // ID token is held in memory (use-teacher-auth.js) — the token itself is
+    // never put in Redux.
+    teacherLoggedIn: false,
+    teacherUnreadCount: 0,
+    teacherLastSelection:
+        storedTeacherSession && storedTeacherSession.classroomId
+            ? { classroomId: storedTeacherSession.classroomId, groupId: storedTeacherSession.groupId }
+            : null,
+    // Pending jump requested from the teacher menu, consumed by the teacher modal.
+    teacherNavTarget: null,
 };
 
 const reducer = (state, action) => {
@@ -208,6 +231,23 @@ const reducer = (state, action) => {
         }
         case CLEAR_TEACHER_SELECTION:
             return { ...state, teacherSelection: null };
+        case SET_TEACHER_LOGGED_IN:
+            if (action.loggedIn) return { ...state, teacherLoggedIn: true };
+            return {
+                ...state,
+                teacherLoggedIn: false,
+                teacherUnreadCount: 0,
+                teacherLastSelection: null,
+                teacherNavTarget: null,
+            };
+        case SET_TEACHER_UNREAD_COUNT:
+            return { ...state, teacherUnreadCount: action.unreadCount || 0 };
+        case SET_TEACHER_LAST_SELECTION:
+            return { ...state, teacherLastSelection: action.selection };
+        case REQUEST_TEACHER_NAVIGATION:
+            return { ...state, teacherModalVisible: true, teacherNavTarget: action.target };
+        case CLEAR_TEACHER_NAVIGATION:
+            return { ...state, teacherNavTarget: null };
         default:
             return state;
     }
@@ -269,6 +309,12 @@ const setTeacherSelection = ({ classroomId, joinCode, className, assignmentName 
 
 const clearTeacherSelection = () => ({ type: CLEAR_TEACHER_SELECTION });
 
+const setTeacherLoggedIn = (loggedIn) => ({ type: SET_TEACHER_LOGGED_IN, loggedIn: !!loggedIn });
+const setTeacherUnreadCount = (unreadCount) => ({ type: SET_TEACHER_UNREAD_COUNT, unreadCount });
+const setTeacherLastSelection = (selection) => ({ type: SET_TEACHER_LAST_SELECTION, selection });
+const requestTeacherNavigation = (target) => ({ type: REQUEST_TEACHER_NAVIGATION, target });
+const clearTeacherNavigation = () => ({ type: CLEAR_TEACHER_NAVIGATION });
+
 export default reducer;
 export {
     initialState as classroomInitialState,
@@ -284,4 +330,9 @@ export {
     clearSubmissionThumbnail,
     setTeacherSelection,
     clearTeacherSelection,
+    setTeacherLoggedIn,
+    setTeacherUnreadCount,
+    setTeacherLastSelection,
+    requestTeacherNavigation,
+    clearTeacherNavigation,
 };

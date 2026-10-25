@@ -3,6 +3,12 @@ import { useIntl } from 'react-intl';
 import { useDispatch, useSelector } from 'react-redux';
 import ClassroomTeacherModalComponent from '../components/classroom-teacher-modal/classroom-teacher-modal.jsx';
 import { teacherEmailFromToken } from '../lib/classroom-class-label.js';
+import {
+    clearTeacherSession,
+    resolveTeacherNavigation,
+    saveTeacherLastSelection,
+    saveTeacherLogin,
+} from '../lib/classroom-teacher-session.js';
 import { getUrlParams } from '../lib/url-params.js';
 import { showAlertWithTimeout } from '../reducers/alerts.js';
 import {
@@ -10,7 +16,12 @@ import {
     clearClassroomSession,
     setTeacherSelection,
     clearTeacherSelection,
+    setTeacherLoggedIn,
+    setTeacherUnreadCount,
+    setTeacherLastSelection,
+    clearTeacherNavigation,
 } from '../reducers/classroom.js';
+import { getCachedTeacherAuthProvider } from './use-teacher-auth.js';
 import useTeacherClassroom, { getCachedTeacherIdToken, setCachedTeacherIdToken } from './use-teacher-classroom.js';
 
 const TEACHER_MODE = 'teacher';
@@ -96,6 +107,87 @@ const ClassroomTeacherModal = () => {
             );
         }
     }, [dispatch, teacher.selectedClassroom]);
+
+    // --- Teacher menu in the menu bar (#1199) ---
+
+    // Mirror the login into Redux (menu visibility) and remember the provider
+    // so the next page load can restore it silently. Only a token → none
+    // transition counts as a logout: the modal may mount logged out while the
+    // menu is still restoring the login in the background.
+    const { idToken: teacherIdToken, authProvider: teacherAuthProvider, setIdToken: setTeacherIdToken } = teacher;
+    const prevTeacherIdTokenRef = useRef(teacherIdToken);
+    useEffect(() => {
+        if (teacherIdToken) {
+            dispatch(setTeacherLoggedIn(true));
+            saveTeacherLogin(teacherAuthProvider);
+        } else if (prevTeacherIdTokenRef.current) {
+            dispatch(setTeacherLoggedIn(false));
+            clearTeacherSession();
+        }
+        prevTeacherIdTokenRef.current = teacherIdToken;
+    }, [dispatch, teacherIdToken, teacherAuthProvider]);
+
+    // The background restore finished after this modal mounted on the login
+    // screen: adopt the restored login instead of asking to log in again.
+    const teacherLoggedIn = classroomState.teacherLoggedIn;
+    useEffect(() => {
+        const cached = getCachedTeacherIdToken();
+        if (teacherLoggedIn && !teacherIdToken && cached) {
+            teacher.setAuthProvider(getCachedTeacherAuthProvider());
+            setTeacherIdToken(cached);
+            setPhase('teacher-class-list');
+        }
+        // teacher is a fresh object every render; the setters are stable.
+    }, [teacherLoggedIn, teacherIdToken, setTeacherIdToken]);
+
+    const unreadCount = teacher.notificationsCenter.unreadCount;
+    useEffect(() => {
+        if (teacherIdToken) dispatch(setTeacherUnreadCount(unreadCount));
+    }, [dispatch, teacherIdToken, unreadCount]);
+
+    // Remember the assignment being worked on for "いまの課題を開く".
+    const selectedClassroomId = teacher.selectedClassroom && teacher.selectedClassroom.classroomId;
+    const selectedClassroomGroupId =
+        (teacher.selectedClassroom && teacher.selectedClassroom.groupId) ||
+        (teacher.selectedGroup && teacher.selectedGroup.groupId) ||
+        null;
+    useEffect(() => {
+        if (!selectedClassroomId) return;
+        const selection = { classroomId: selectedClassroomId, groupId: selectedClassroomGroupId };
+        dispatch(setTeacherLastSelection(selection));
+        saveTeacherLastSelection(selection);
+    }, [dispatch, selectedClassroomId, selectedClassroomGroupId]);
+
+    // Jump requested from the menu bar. Uses the same handlers as the
+    // breadcrumbs / notification links, so the phase always follows the
+    // selection (handleSelectGroup resets it to the board first).
+    const navTarget = classroomState.teacherNavTarget;
+    const lastSelection = classroomState.teacherLastSelection;
+    useEffect(() => {
+        if (!navTarget) return;
+        if (!teacherIdToken) {
+            // Not logged in after all: the modal shows the login screen.
+            if (!teacherLoggedIn) dispatch(clearTeacherNavigation());
+            return;
+        }
+        const nav = resolveTeacherNavigation({
+            target: navTarget,
+            lastSelection,
+            groups: teacher.groups,
+            groupsLoaded: (teacher.groups || []).length > 0,
+        });
+        if (nav.action === 'wait' || nav.action === 'none') return;
+        dispatch(clearTeacherNavigation());
+        if (nav.action === 'notifications') {
+            teacher.notificationsCenter.handleShowAll();
+        } else if (nav.action === 'assignment') {
+            if (nav.group) teacher.handleSelectGroup(nav.group);
+            teacher.handleSelectClassroom(nav.classroomId);
+        } else {
+            teacher.handleShowClassList();
+        }
+        // teacher is a fresh object every render; re-run only when the inputs change.
+    }, [dispatch, navTarget, lastSelection, teacherIdToken, teacherLoggedIn, teacher.groups]);
 
     // Handle relogin request from Alert "参加しなおす" button
     useEffect(() => {
