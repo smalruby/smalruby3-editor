@@ -712,6 +712,14 @@ export class ClassroomStack extends cdk.Stack {
       integration,
     });
 
+    // Pending kick requests across the teacher's assignments — polled by the
+    // GUI while a teacher is logged in (#1200).
+    this.api.addRoutes({
+      path: '/kick-requests/pending',
+      methods: [apigatewayv2.HttpMethod.GET],
+      integration,
+    });
+
     // Kick requests — students ask the teacher to free a specific seat.
     this.api.addRoutes({
       path: '/classrooms/lookup/kick-request',

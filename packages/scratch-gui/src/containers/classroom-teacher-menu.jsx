@@ -7,6 +7,7 @@ import { getUrlParams } from '../lib/url-params.js';
 import {
     clearTeacherSelection,
     closeTeacherModal,
+    openTeacherKickList,
     requestTeacherNavigation,
     setTeacherLastSelection,
     setTeacherLoggedIn,
@@ -39,6 +40,7 @@ const ClassroomTeacherMenu = ({ className, activeClassName, menuClassName, place
     const loggedIn = useSelector((state) => state.scratchGui.classroom.teacherLoggedIn);
     const unreadCount = useSelector((state) => state.scratchGui.classroom.teacherUnreadCount);
     const lastSelection = useSelector((state) => state.scratchGui.classroom.teacherLastSelection);
+    const kickRequestCount = useSelector((state) => (state.scratchGui.classroom.teacherKickRequests || []).length);
     const [open, setOpen] = useState(false);
 
     useEffect(() => {
@@ -84,6 +86,12 @@ const ClassroomTeacherMenu = ({ className, activeClassName, menuClassName, place
     const handleSelect = useCallback(
         (id) => {
             setOpen(false);
+            if (id === 'kick-requests') {
+                // Pending kick requests open as a list at the bottom (#1200),
+                // without opening the class management modal.
+                dispatch(openTeacherKickList());
+                return;
+            }
             if (id === 'logout') {
                 logoutCachedTeacher();
                 dispatch(closeTeacherModal());
@@ -105,6 +113,7 @@ const ClassroomTeacherMenu = ({ className, activeClassName, menuClassName, place
             items={teacherMenuItems({
                 lastClassroomId: lastSelection && lastSelection.classroomId,
                 unreadCount,
+                kickRequestCount,
             })}
             menuClassName={menuClassName}
             open={open}

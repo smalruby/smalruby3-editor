@@ -117,6 +117,18 @@ describe('teacherMenuItems', () => {
     });
 });
 
+describe('teacherMenuItems — kick requests (#1200)', () => {
+    test('lists pending kick requests first with a badge and count', () => {
+        const items = teacherMenuItems({ lastClassroomId: 'c1', unreadCount: 0, kickRequestCount: 2 });
+        expect(items[0]).toEqual({ id: 'kick-requests', badge: true, count: 2 });
+    });
+
+    test('omits the item when nothing is pending', () => {
+        const items = teacherMenuItems({ lastClassroomId: null, unreadCount: 0, kickRequestCount: 0 });
+        expect(items.map((i) => i.id)).not.toContain('kick-requests');
+    });
+});
+
 describe('resolveTeacherNavigation', () => {
     const groups = [{ groupId: 'g1', name: '1-1' }];
 

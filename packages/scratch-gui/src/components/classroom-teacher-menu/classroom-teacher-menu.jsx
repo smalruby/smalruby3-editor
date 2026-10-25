@@ -7,6 +7,14 @@ import { MenuItem, MenuSection } from '../menu/menu.jsx';
 import styles from './classroom-teacher-menu.css';
 
 const ITEM_LABELS = {
+    'kick-requests': (count) => (
+        <FormattedMessage
+            defaultMessage="Kick requests ({count})"
+            description="Teacher menu item: open the pending kick requests (#1200)"
+            id="gui.classroomTeacherMenu.kickRequests"
+            values={{ count }}
+        />
+    ),
     'current-assignment': (
         <FormattedMessage
             defaultMessage="Open current assignment"
@@ -42,10 +50,12 @@ const ITEM_LABELS = {
  * @param {object} props - component props
  * @param {string} props.id - item id (teacherMenuItems)
  * @param {boolean} props.badge - show the "!" badge
+ * @param {number} [props.count] - number shown in the label (kick requests)
  * @param {Function} props.onSelect - called with the item id
  * @returns {React.ReactElement} the menu item
  */
-const TeacherMenuItem = ({ id, badge, onSelect }) => {
+const TeacherMenuItem = ({ id, badge, count, onSelect }) => {
+    const label = ITEM_LABELS[id];
     const handleClick = useCallback(() => onSelect(id), [id, onSelect]);
     return (
         <MenuItem onClick={handleClick}>
@@ -53,7 +63,7 @@ const TeacherMenuItem = ({ id, badge, onSelect }) => {
                 className={styles.item}
                 data-testid={`classroom-teacher-menu-${id}`}
             >
-                {ITEM_LABELS[id]}
+                {typeof label === 'function' ? label(count || 0) : label}
                 {badge ? (
                     <span
                         className={styles.badge}
@@ -69,6 +79,7 @@ const TeacherMenuItem = ({ id, badge, onSelect }) => {
 
 TeacherMenuItem.propTypes = {
     badge: PropTypes.bool,
+    count: PropTypes.number,
     id: PropTypes.string.isRequired,
     onSelect: PropTypes.func.isRequired,
 };
@@ -125,6 +136,7 @@ const ClassroomTeacherMenu = ({
                     {items.map((item) => (
                         <TeacherMenuItem
                             badge={item.badge}
+                            count={item.count}
                             id={item.id}
                             key={item.id}
                             onSelect={onSelect}
@@ -144,6 +156,7 @@ ClassroomTeacherMenu.propTypes = {
         PropTypes.shape({
             id: PropTypes.string.isRequired,
             badge: PropTypes.bool,
+            count: PropTypes.number,
         }),
     ).isRequired,
     open: PropTypes.bool,

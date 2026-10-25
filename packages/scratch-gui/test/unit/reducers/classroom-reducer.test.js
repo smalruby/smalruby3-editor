@@ -14,6 +14,10 @@ import reducer, {
     setTeacherLastSelection,
     requestTeacherNavigation,
     clearTeacherNavigation,
+    setTeacherKickRequests,
+    removeTeacherKickRequest,
+    openTeacherKickList,
+    closeTeacherKickList,
 } from '../../../src/reducers/classroom';
 
 const STORAGE_KEY = 'smalruby:classroom';
@@ -371,6 +375,36 @@ describe('classroom reducer', () => {
             // Malformed legacy data should still be cleared so it stops surfacing.
             expect(window.sessionStorage.getItem(STORAGE_KEY)).toBeNull();
             expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull();
+        });
+    });
+
+    describe('teacher kick requests (#1200)', () => {
+        test('stores, removes and resets pending kick requests', () => {
+            let state = reducer(classroomInitialState, setTeacherLoggedIn(true));
+            state = reducer(state, setTeacherKickRequests([{ requestId: 'a' }, { requestId: 'b' }]));
+            state = reducer(state, removeTeacherKickRequest('a'));
+            expect(state.teacherKickRequests).toEqual([{ requestId: 'b' }]);
+            state = reducer(state, openTeacherKickList());
+            expect(state.teacherKickListOpen).toBe(true);
+            state = reducer(state, closeTeacherKickList());
+            expect(state.teacherKickListOpen).toBe(false);
+            state = reducer(reducer(state, openTeacherKickList()), setTeacherLoggedIn(false));
+            expect(state.teacherKickRequests).toEqual([]);
+            expect(state.teacherKickListOpen).toBe(false);
+        });
+
+        test('approving a request also drops the other requests for the same seat', () => {
+            let state = reducer(
+                classroomInitialState,
+                setTeacherKickRequests([
+                    { requestId: 'a', classroomId: 'c1', seatNumber: 3 },
+                    { requestId: 'b', classroomId: 'c1', seatNumber: 3 },
+                    { requestId: 'c', classroomId: 'c1', seatNumber: 4 },
+                    { requestId: 'd', classroomId: 'c2', seatNumber: 3 },
+                ]),
+            );
+            state = reducer(state, removeTeacherKickRequest('a', { classroomId: 'c1', seatNumber: 3 }));
+            expect(state.teacherKickRequests.map((r) => r.requestId)).toEqual(['c', 'd']);
         });
     });
 

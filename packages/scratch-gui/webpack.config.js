@@ -143,6 +143,7 @@ const baseConfig = new ScratchWebpackConfigBuilder(
         // === Smalruby: Start of classroom API ===
         'process.env.CLASSROOM_API_ENDPOINT': `"${process.env.CLASSROOM_API_ENDPOINT || ''}"`,
         'process.env.CLASSROOM_REFRESH_INTERVAL_MS': `"${process.env.CLASSROOM_REFRESH_INTERVAL_MS || '30000'}"`,
+        'process.env.CLASSROOM_TEACHER_KICK_POLL_INTERVAL_MS': `"${process.env.CLASSROOM_TEACHER_KICK_POLL_INTERVAL_MS || '10000'}"`,
         'process.env.MICROSOFT_CLIENT_ID': `"${process.env.MICROSOFT_CLIENT_ID || ''}"`,
         // === Smalruby: End of classroom API ===
         // === Smalruby: Start of bug report API ===
