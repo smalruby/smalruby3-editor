@@ -1435,4 +1435,12 @@ export default {
     'gui.mobile.orientation.iosNote':
         'iPhone の場合は、コントロールセンターから「画面の向きロック」を解除してから横にしてください。',
     'gui.mobile.orientation.dismiss': 'このまま使う',
+    'gui.imageViewer.label': '画像ビューア',
+    'gui.imageViewer.viewport': '{name}。+ と - で拡大・縮小、矢印キーで移動、0 で全体を表示します。',
+    'gui.imageViewer.zoomIn': '拡大',
+    'gui.imageViewer.zoomOut': '縮小',
+    'gui.imageViewer.fit': '全体を表示',
+    'gui.imageViewer.actualSize': '100%',
+    'gui.imageViewer.previous': '前の画像',
+    'gui.imageViewer.next': '次の画像',
 };

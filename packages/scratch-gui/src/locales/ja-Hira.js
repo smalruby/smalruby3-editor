@@ -1477,4 +1477,13 @@ export default {
     'gui.mobile.orientation.iosNote':
         'iPhone のばあいは、コントロールセンターから「がめんのむきロック」を かいじょしてから よこにしてください。',
     'gui.mobile.orientation.dismiss': 'このまま つかう',
+    'gui.imageViewer.label': 'がぞうビューア',
+    'gui.imageViewer.viewport':
+        '{name}。+ と - でおおきく・ちいさく、やじるしキーでいどう、0 でぜんたいをひょうじします。',
+    'gui.imageViewer.zoomIn': 'おおきくする',
+    'gui.imageViewer.zoomOut': 'ちいさくする',
+    'gui.imageViewer.fit': 'ぜんたいをひょうじ',
+    'gui.imageViewer.actualSize': '100%',
+    'gui.imageViewer.previous': 'まえのがぞう',
+    'gui.imageViewer.next': 'つぎのがぞう',
 };
