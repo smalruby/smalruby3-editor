@@ -21,7 +21,7 @@ import {
     setSubmissionStatus,
 } from '../reducers/classroom.js';
 import { setProjectTitle } from '../reducers/project-title.js';
-import { decideClasscodeAction } from './classroom-classcode-utils.js';
+import { decideClasscodeAction, resolveAutoJoinCode } from './classroom-classcode-utils.js';
 import translateError, { extractKickReason } from './classroom-error-utils.js';
 import useKickRequestPolling from './use-kick-request-polling.js';
 import useStudentAssignment from './use-student-assignment.js';
@@ -423,10 +423,15 @@ const ClassroomModal = () => {
         setPhase('student-join');
     }, [classroomState.sessionToken, classroomState.classroomId, dispatch]);
 
-    // --- Classcode URL parameter auto-join ---
+    // --- Auto-join: classcode URL parameter / teacher's selected assignment ---
     useEffect(() => {
         const classcodeParams = getUrlParams();
-        if (!classcodeParams.classcode) {
+        const autoJoin = resolveAutoJoinCode({
+            urlClasscode: classcodeParams.classcode,
+            teacherJoinCode: classroomState.teacherSelection && classroomState.teacherSelection.joinCode,
+            session: classroomState,
+        });
+        if (!autoJoin) {
             // A kick request is still pending (the student closed the modal
             // while waiting): go straight back to that class's seat screen.
             const pending = loadPendingKickRequest();
@@ -436,7 +441,14 @@ const ClassroomModal = () => {
             return;
         }
 
-        const code = classcodeParams.classcode;
+        const code = autoJoin.code;
+        if (autoJoin.source === 'teacher') {
+            // The teacher selected this assignment in class management: open
+            // on its seat selection (#1199). Leaving another class already
+            // happened when the teacher selected it.
+            handleJoinWithCode(code);
+            return;
+        }
 
         const url = new URL(window.location.href);
         url.searchParams.delete('classcode');

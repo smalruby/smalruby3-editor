@@ -2,6 +2,7 @@ import React, { useCallback, useRef, useState, useEffect } from 'react';
 import { useIntl } from 'react-intl';
 import { useDispatch, useSelector } from 'react-redux';
 import ClassroomTeacherModalComponent from '../components/classroom-teacher-modal/classroom-teacher-modal.jsx';
+import classroomAPI from '../lib/classroom-api.js';
 import { teacherEmailFromToken } from '../lib/classroom-class-label.js';
 import {
     clearTeacherSession,
@@ -21,6 +22,7 @@ import {
     setTeacherLastSelection,
     clearTeacherNavigation,
 } from '../reducers/classroom.js';
+import { decideTeacherSelectionSync } from './classroom-classcode-utils.js';
 import { getCachedTeacherAuthProvider } from './use-teacher-auth.js';
 import useTeacherClassroom, { getCachedTeacherIdToken, setCachedTeacherIdToken } from './use-teacher-classroom.js';
 
@@ -107,6 +109,25 @@ const ClassroomTeacherModal = () => {
             );
         }
     }, [dispatch, teacher.selectedClassroom]);
+
+    // The student "クラス" menu follows the selected assignment (#1199): when
+    // the teacher joined another class as a student, leave it so the next
+    // open of the student modal starts this assignment's seat selection.
+    // Keyed on the join code only — refreshing the same assignment must not
+    // re-run this. The session is read from a ref for the same reason.
+    const studentSessionRef = useRef(classroomState);
+    studentSessionRef.current = classroomState;
+    const selectedJoinCode = (teacher.selectedClassroom && teacher.selectedClassroom.joinCode) || null;
+    useEffect(() => {
+        const sync = decideTeacherSelectionSync(studentSessionRef.current, selectedJoinCode);
+        if (sync.type === 'none') return;
+        if (sync.type === 'leave') {
+            // Best effort, like the ?classcode= switch: a failed leave only
+            // keeps the old seat until its TTL.
+            classroomAPI.leaveClassroom(sync.leaveSessionToken, sync.leaveClassroomId).catch(() => {});
+        }
+        dispatch(clearClassroomSession());
+    }, [dispatch, selectedJoinCode]);
 
     // --- Teacher menu in the menu bar (#1199) ---
 
