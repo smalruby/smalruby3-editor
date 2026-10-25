@@ -12,6 +12,7 @@ import RubyToolbar from '../components/ruby-toolbar/ruby-toolbar.jsx';
 import analytics from '../lib/analytics';
 import { autoCorrect, defaultSettings as defaultAutoCorrectSettings } from '../lib/auto-correct';
 import collectMetadata from '../lib/collect-metadata.js';
+import { tidyPastedDncl } from '../lib/dncl/dncl-paste-tidy';
 import { dnclToRuby } from '../lib/dncl/dncl-to-ruby';
 import { rubyToDncl } from '../lib/dncl/ruby-to-dncl';
 import FuriganaAnnotator from '../lib/furigana-annotator';
@@ -55,6 +56,7 @@ import {
 import updateDebugGlobals from './ruby-tab/debug-globals';
 import {
     registerCustomPasteAction,
+    setupPasteTransform,
     setupPasteDuplicateHider,
     registerLanguageAndProviders,
 } from './ruby-tab/editor-setup';
@@ -184,6 +186,7 @@ const RubyTab = (props) => {
     const contentChangeListenerRef = useRef(null);
     const configChangeListenerRef = useRef(null);
     const pasteMutationObserverRef = useRef(null);
+    const removePasteTransformRef = useRef(null);
     const bodyMutationObserverRef = useRef(null);
     const bubbleElRef = useRef(null);
     const quickFixProviderRef = useRef(null);
@@ -424,7 +427,11 @@ const RubyTab = (props) => {
             id: 'gui.rubyTab.paste',
             defaultMessage: 'Paste',
         });
-        registerCustomPasteAction(editor, pasteLabel);
+        // Japanese (DNCL) mode tidies pasted 共通テスト code: line numbers
+        // and `//` comments (Issue #1192).
+        const transformPastedText = (text) => (dnclModeRef.current ? tidyPastedDncl(text, editor.getValue()) : text);
+        registerCustomPasteAction(editor, pasteLabel, transformPastedText);
+        removePasteTransformRef.current = setupPasteTransform(editor, transformPastedText);
         const observers = setupPasteDuplicateHider();
         pasteMutationObserverRef.current = observers.pasteMutationObserver;
         bodyMutationObserverRef.current = observers.bodyMutationObserver;
@@ -980,6 +987,10 @@ const RubyTab = (props) => {
             if (configChangeListenerRef.current) {
                 configChangeListenerRef.current.dispose();
                 configChangeListenerRef.current = null;
+            }
+            if (removePasteTransformRef.current) {
+                removePasteTransformRef.current();
+                removePasteTransformRef.current = null;
             }
             if (pasteMutationObserverRef.current) {
                 pasteMutationObserverRef.current.disconnect();
