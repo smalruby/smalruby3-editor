@@ -210,6 +210,9 @@ const teacherMenuItems = ({ lastClassroomId, unreadCount, kickRequestCount = 0 }
     // while there is something to handle.
     if (kickRequestCount > 0) items.push({ id: 'kick-requests', badge: true, count: kickRequestCount });
     if (lastClassroomId) items.push({ id: 'current-assignment', badge: false });
+    // Floating status panel (#1203); it lets the teacher pick an assignment
+    // itself, so it is offered even before one was opened.
+    items.push({ id: 'status-panel', badge: false });
     items.push({ id: 'class-list', badge: false });
     items.push({ id: 'notifications', badge: unreadCount > 0 });
     items.push({ id: 'logout', badge: false });

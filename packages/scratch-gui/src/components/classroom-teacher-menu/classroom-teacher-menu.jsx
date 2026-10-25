@@ -22,6 +22,13 @@ const ITEM_LABELS = {
             id="gui.classroomTeacherMenu.currentAssignment"
         />
     ),
+    'status-panel': (
+        <FormattedMessage
+            defaultMessage="Current assignment status"
+            description="Teacher menu item: open the floating seat / submission status panel (#1203)"
+            id="gui.classroomTeacherMenu.statusPanel"
+        />
+    ),
     'class-list': (
         <FormattedMessage
             defaultMessage="Open class list"
