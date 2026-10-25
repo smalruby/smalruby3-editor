@@ -31,11 +31,27 @@ const translateGoogleClassroomError = (intl, err) => {
             id: 'gui.classroom.error.googlePermissionDenied',
         });
     }
-    if (reason === 'googleCourseNotFound') {
+    if (reason === 'googleNotCourseTeacher') {
+        // Google answers 404 for a course the caller is not in, so this is the
+        // co-teacher case from issue #1184 — not a missing class. Name the
+        // cause and the way out (ask the teacher who linked it); the linking
+        // teacher's address is not in the error, so stay generic here.
         return intl.formatMessage({
             defaultMessage:
-                'The linked Google Classroom class could not be found. It may have been deleted, or the ' +
-                'Google account you signed in with may not be a teacher of that class.',
+                'You are not a teacher of the linked Google Classroom class, so it cannot be shared ' +
+                'from your account. Please ask the teacher who linked it to share it.',
+            description: 'Error when the signed-in teacher is not a teacher of the linked Google Classroom course',
+            id: 'gui.classroom.error.googleNotCourseTeacher',
+        });
+    }
+    if (reason === 'googleCourseNotFound') {
+        // This now reaches the teacher who linked the course (the server tells
+        // the two 404s apart), and they are a teacher of it — so the way out is
+        // to link it again, not to ask themselves for help (issue #1184).
+        return intl.formatMessage({
+            defaultMessage:
+                'The linked Google Classroom class could not be found. It may have been deleted or is no ' +
+                'longer reachable. Please link the Google Classroom class again from class management.',
             description: 'Error when the linked Google Classroom course is missing or inaccessible',
             id: 'gui.classroom.error.googleCourseNotFound',
         });

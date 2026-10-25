@@ -180,6 +180,15 @@ export const requestClassroomAccessToken = async () => {
 };
 
 /**
+ * Return the cached access token, or null when there is none that is still
+ * valid. Never contacts Google and never opens a consent popup — used by
+ * checks that must stay invisible, such as the pre-flight that decides whether
+ * the Google Classroom share button can work (issue #1184).
+ * @returns {?string} Cached access token, or null.
+ */
+export const getCachedClassroomAccessToken = () => (_isTokenValid() ? _accessToken : null);
+
+/**
  * Clear the cached access token (e.g., on 401 from backend).
  */
 export const clearClassroomAccessToken = () => {

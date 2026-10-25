@@ -55,6 +55,7 @@ smalruby3-editor/
 │   │   │   ├── classroom-api.js       ← API クライアント (リトライ付き)
 │   │   │   ├── classroom-assignment-utils.js ← 課題エディタの純粋ヘルパー
 │   │   │   ├── classroom-group-utils.js ← サイドバー組階層の純粋ヘルパー
+│   │   │   ├── classroom-google-share.js ← GC 共有の既定ブロック判定 + 解除導線の文言（純粋）#1184
 │   │   │   ├── classroom-evaluation/ ← sb3-analyzer（静的解析）+ evaluation-utils（総合評価/CSV）
 │   │   │   ├── classroom-kick-request-storage.js ← 退室依頼の localStorage 永続化 (#692)
 │   │   │   ├── google-classroom-auth.js ← Google Classroom OAuth
@@ -115,6 +116,7 @@ CDK スタック定義。以下のリソースを作成:
 | `handleCreateGroup()` / `handleListGroups()` / `handleUpdateGroup()` | 組（グループ）の作成・一覧・更新/アーカイブ |
 | `handleDuplicateClassroom()` | 課題の複製（課題コンテンツの S3 オブジェクトコピー含む） |
 | `handleListGoogleCourses()` | Google Classroom コース一覧 |
+| `handleGetGoogleCourseAccess()` | 押した先生が紐付け先コースの GC 教師か・連携者本人か（`linkedByMe`）の判定 |
 | `handleImportGoogleClassroom()` | Google Classroom コースインポート |
 | `handlePostAssignment()` | Google Classroom に課題投稿 |
 | `verifyTeacherToken()` | Google ID Token 検証 |

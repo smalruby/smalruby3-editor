@@ -163,7 +163,19 @@ export default {
     'gui.classroom.error.googlePermissionDenied':
         'このクラスの Google Classroom に課題を配信する権限がありません。もう一度ログインしてすべての項目を許可し、そのクラスの先生として参加しているかご確認ください。',
     'gui.classroom.error.googleCourseNotFound':
-        'ひもづいている Google Classroom のクラスが見つかりませんでした。クラスが削除されたか、ログイン中の Google アカウントがそのクラスの先生ではない可能性があります。',
+        'ひもづいている Google Classroom のクラスが見つかりませんでした。クラスが削除されたか、アクセスできなくなっている可能性があります。クラス管理の画面で Google Classroom を連携し直してください。',
+    'gui.classroom.error.googleNotCourseTeacher':
+        'ログイン中の Google アカウントは、ひもづいている Google Classroom のクラスの先生ではないため共有できません。連携した先生に共有を依頼してください。',
+    'gui.classroom.googleShare.blockedBy':
+        'このクラスの Google Classroom は {email} 先生が連携しています。共有は {email} 先生に依頼してください。',
+    'gui.classroom.googleShare.blocked':
+        'このクラスの Google Classroom は連携した先生のアカウントにひもづいています。共有は連携した先生に依頼してください。',
+    'gui.classroom.googleShare.verifyFailedBy':
+        'ログイン中の Google アカウントが、この Google Classroom のクラスの先生であることを確認できませんでした。共有は {email} 先生に依頼してください。',
+    'gui.classroom.googleShare.verifyFailed':
+        'ログイン中の Google アカウントが、この Google Classroom のクラスの先生であることを確認できませんでした。共有は連携した先生に依頼してください。',
+    'gui.classroom.googleShare.verify': '自分もこの Google Classroom のクラスの先生です（確認する）',
+    'gui.classroom.googleShare.verifying': '確認中…',
     'gui.classroom.error.googleApiFailedDetail': 'Google Classroom に配信できませんでした。（Google: {detail}）',
     'gui.classroom.error.googleApiFailed':
         'Google Classroom に配信できませんでした。しばらく待ってからもう一度お試しください。',
