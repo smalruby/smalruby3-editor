@@ -91,24 +91,22 @@ const ClassroomTeacherPanel = () => {
 
     const classroomId = (lastSelection && lastSelection.classroomId) || null;
 
-    // The assignment list (switcher + seat count) is read once per opening.
-    useEffect(() => {
-        if (!shown) return () => {};
-        let cancelled = false;
+    // The assignment list (switcher + seat count) is read when the panel opens
+    // and again on the manual refresh, so a failed read or a new assignment
+    // does not need closing and reopening the panel.
+    const loadClassrooms = useCallback(async () => {
         const token = getCachedTeacherIdToken();
-        if (!token) return () => {};
-        classroomAPI
-            .listClassrooms(token)
-            .then((data) => {
-                if (!cancelled) setClassrooms(data.classrooms || []);
-            })
-            .catch(() => {
-                if (!cancelled) setError(intl.formatMessage(messages.loadFailed));
-            });
-        return () => {
-            cancelled = true;
-        };
-    }, [shown, intl]);
+        if (!token) return;
+        try {
+            const data = await classroomAPI.listClassrooms(token);
+            setClassrooms(data.classrooms || []);
+        } catch {
+            setError(intl.formatMessage(messages.loadFailed));
+        }
+    }, [intl]);
+    useEffect(() => {
+        if (shown) loadClassrooms();
+    }, [shown, loadClassrooms]);
 
     const handleMembers = useCallback((id, members) => {
         setError(null);
@@ -151,9 +149,9 @@ const ClassroomTeacherPanel = () => {
 
     const handleRefresh = useCallback(async () => {
         setLoading(true);
-        await refresh();
+        await Promise.all([refresh(), loadClassrooms()]);
         setLoading(false);
-    }, [refresh]);
+    }, [refresh, loadClassrooms]);
 
     const handleSelectAssignment = useCallback(
         (id) => {

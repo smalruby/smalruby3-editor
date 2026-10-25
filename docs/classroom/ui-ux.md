@@ -115,7 +115,7 @@ stateDiagram-v2
 | 部品 | 内容 | data-testid |
 |------|------|-------------|
 | ヘッダー | ドラッグで移動。位置は localStorage `smalruby:classroomTeacherPanelPosition` に記憶し、画面外にはみ出す位置は画面内に戻す | `classroom-teacher-panel-header` |
-| 更新 / 最小化 / 閉じる | 手動更新。最小化するとヘッダーだけになり、`着席/定員 · 提出/参加` と退室依頼の有無をヘッダーに出す | `classroom-teacher-panel-refresh` / `classroom-teacher-panel-minimize` / `classroom-teacher-panel-close` |
+| 更新 / 最小化 / 閉じる | 手動更新（メンバー・提出と課題の一覧を取り直す）。最小化するとヘッダーだけになり、`着席/定員 · 提出/参加` と退室依頼の有無をヘッダーに出す | `classroom-teacher-panel-refresh` / `classroom-teacher-panel-minimize` / `classroom-teacher-panel-close` |
 | 課題 | 最近の課題（アーカイブを除く・新しい順に 8 件）から切り替える。選んだ課題は「いまの課題を開く」と同じ「いまの課題」になる | `classroom-teacher-panel-assignment` |
 | 着席（目安） / 提出 | 「着席（目安） N / 定員」「提出 N / 参加数」。着席は `isMemberSeated()`（直近 1 時間にクラスの画面を開いた）の目安で、tooltip でそう説明する | `classroom-teacher-panel-seated` / `classroom-teacher-panel-submitted` |
 | 座席ミニグリッド | 8 列。#1196 の状態アイコン（着席・提出・退室依頼）。セルを押すと、クラス管理でその課題のメンバー詳細を開く（パネルは最小化） | `classroom-teacher-panel-seat-<N>` |

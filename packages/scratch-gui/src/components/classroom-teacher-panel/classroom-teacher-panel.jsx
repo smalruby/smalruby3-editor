@@ -219,7 +219,7 @@ const ClassroomTeacherPanel = ({
                             aria-label={intl.formatMessage(messages.refresh)}
                             className={styles.headerButton}
                             data-testid="classroom-teacher-panel-refresh"
-                            disabled={loading || !classroom}
+                            disabled={loading}
                             title={intl.formatMessage(messages.refresh)}
                             onClick={onRefresh}
                         >
