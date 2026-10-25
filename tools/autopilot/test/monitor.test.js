@@ -369,6 +369,8 @@ test('MONITOR_HTML: PR は Issue 番号のすぐ右に open だけ並べ、merge
     // 5 秒ごとの再描画をまたいでも開いたまま（renderBoard の末尾で復元する）
     assert.match(MONITOR_HTML, /let prMenuIssue = null/);
     assert.match(MONITOR_HTML, /restorePrMenu\(\)/);
+    // 復元で中身が同じならメニューを作り直さない（押下中の項目のクリックを消さない）
+    assert.match(MONITOR_HTML, /if \(html !== prMenuHtml\)/);
     // Esc で閉じる
     assert.match(MONITOR_HTML, /closePrMenu\(\); \}/);
     // 順序: #Issue → PR チップ → ▼ → タイトル

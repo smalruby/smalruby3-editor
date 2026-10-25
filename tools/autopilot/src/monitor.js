@@ -317,6 +317,7 @@ const PR_KIND_ICON = { open: '✅', draft: '📝', merged: '🟣', closed: '❌'
 // 描画のたびに新しい ▼ ボタンへ付け直す（restorePrMenu）。メニュー要素は 1 つだけ。
 let prMenuIssue = null;
 let prMenuItems = {};    // 直近の描画での issue → splitPrsForTitle(...).menu
+let prMenuHtml = '';     // #prmenu に今入っている HTML（同一内容の再描画を避ける）
 const prMenuBtn = (it, menu) => {
   prMenuItems[it.issue] = menu;
   return '<button type="button" class="prmenu-btn" data-issue="' + it.issue + '" aria-haspopup="menu"'
@@ -336,9 +337,11 @@ function openPrMenu(issue) {
   if (!menu || !menu.length) { closePrMenu(); return; }
   prMenuIssue = issue;
   const el = document.getElementById('prmenu');
-  el.innerHTML = menu.map((p) => '<a role="menuitem" target="_blank" rel="noopener" href="' + repoUrl + '/pull/' + p.number
+  const html = menu.map((p) => '<a role="menuitem" target="_blank" rel="noopener" href="' + repoUrl + '/pull/' + p.number
     + '" onclick="setTimeout(closePrMenu, 0)">' + PR_KIND_ICON[p.kind] + ' PR#' + p.number
     + '<span class="pm-state">' + p.kind + '</span></a>').join('');
+  // 5 秒ごとの復元で中身が同じなら作り直さない（押下中の項目が差し替わってクリックが消えるのを防ぐ）
+  if (html !== prMenuHtml) { el.innerHTML = html; prMenuHtml = html; }
   el.classList.add('open');
   document.querySelectorAll('.prmenu-btn').forEach((b) =>
     b.setAttribute('aria-expanded', String(Number(b.dataset.issue) === issue)));
@@ -347,6 +350,7 @@ function openPrMenu(issue) {
 function closePrMenu() {
   prMenuIssue = null;
   const el = document.getElementById('prmenu');
+  prMenuHtml = '';
   if (el) { el.classList.remove('open'); el.innerHTML = ''; }
   document.querySelectorAll('.prmenu-btn[aria-expanded="true"]').forEach((b) => b.setAttribute('aria-expanded', 'false'));
 }
