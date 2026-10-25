@@ -45,6 +45,7 @@ describe('DNCL round-trip (DNCL → Ruby → DNCL)', () => {
 
     test('入力 round-trips', () => {
       expect(roundtrip('a = 【外部からの入力】')).toBe('a = 【外部からの入力】')
+      expect(roundtrip('n = 【整数を入力】')).toBe('n = 【整数を入力】')
     })
   })
 

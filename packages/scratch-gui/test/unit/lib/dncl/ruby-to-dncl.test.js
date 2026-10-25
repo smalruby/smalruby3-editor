@@ -60,6 +60,10 @@ describe('rubyToDncl', () => {
       )
     })
 
+    test('ask + answer.to_i → 整数を入力 (Issue #1186)', () => {
+      expect(convert('ask("")\n@n = answer.to_i')).toBe('n = 【整数を入力】')
+    })
+
     test('ask_and_wait + answer → 入力 (legacy)', () => {
       expect(convert('ask_and_wait("")\n@a = answer')).toBe(
         'a = 【外部からの入力】',
