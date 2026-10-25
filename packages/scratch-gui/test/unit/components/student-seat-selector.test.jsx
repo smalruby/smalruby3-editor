@@ -115,3 +115,34 @@ describe('StudentSeatSelector guide and confirmation (#1198)', () => {
         expect(screen.getByTestId('kick-request-pending-note')).toHaveTextContent('keep using Smalruby');
     });
 });
+
+describe('StudentSeatSelector two-column layout (#1221)', () => {
+    const within = (columnId, testId) => screen.getByTestId(columnId).contains(screen.getByTestId(testId));
+
+    test('the number input, guide and grid sit in the main column', () => {
+        renderSelector();
+        expect(within('classroom-seat-main', 'classroom-seat-number-form')).toBe(true);
+        expect(within('classroom-seat-main', 'classroom-seat-guide')).toBe(true);
+        expect(within('classroom-seat-main', 'classroom-seat-grid')).toBe(true);
+    });
+
+    test('the kicked and pending banners sit in the notices column', () => {
+        renderSelector({
+            kickedNotice: { className: '1年1組' },
+            kickRequestPending: { requestId: 'r1', joinCode: 'ABC', seatNumber: 3 },
+        });
+        expect(within('classroom-seat-notices', 'classroom-kicked-banner')).toBe(true);
+        expect(within('classroom-seat-notices', 'kick-request-pending-banner')).toBe(true);
+    });
+
+    test('the rejected banner sits in the notices column', () => {
+        renderSelector({ kickRequestRejectedNotice: { seatNumber: 3 } });
+        expect(within('classroom-seat-notices', 'kick-request-rejected-banner')).toBe(true);
+    });
+
+    test('the confirmation and the join button sit in the actions column', () => {
+        renderSelector({ selectedSeat: 5 });
+        expect(within('classroom-seat-actions', 'classroom-seat-confirm-message')).toBe(true);
+        expect(within('classroom-seat-actions', 'classroom-confirm-seat')).toBe(true);
+    });
+});

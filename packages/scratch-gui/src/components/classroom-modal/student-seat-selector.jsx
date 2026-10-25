@@ -144,7 +144,7 @@ const StudentSeatSelector = ({
             className={styles.studentSeatLayout}
             data-testid="classroom-phase-student-seat"
         >
-            <div className={styles.studentMain}>
+            <div className={styles.studentMain} data-testid="classroom-seat-main">
                 <div className={styles.phaseTitle}>
                     <FormattedMessage
                         defaultMessage="Select your seat number"
@@ -224,7 +224,7 @@ const StudentSeatSelector = ({
                     })}
                 </div>
             </div>
-            <div className={styles.studentNotices}>
+            <div className={styles.studentNotices} data-testid="classroom-seat-notices">
                 {kickedNotice && (
                     <div className={styles.kickedBanner} data-testid="classroom-kicked-banner">
                         <div className={styles.kickedBannerText}>
@@ -306,7 +306,7 @@ const StudentSeatSelector = ({
                     </div>
                 )}
             </div>
-            <div className={styles.studentActions}>
+            <div className={styles.studentActions} data-testid="classroom-seat-actions">
                 <div data-testid="classroom-selected-seat" style={{ display: 'none' }}>
                     {selectedSeat}
                 </div>
