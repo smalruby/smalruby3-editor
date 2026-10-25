@@ -2010,3 +2010,74 @@ test('shouldPushAfterFollow: PR フェーズで followed のときだけ push �
     assert.equal(shouldPushAfterFollow(null, 'followed'), false);
     assert.equal(shouldPushAfterFollow(0, 'followed'), false);
 });
+
+// ---- ゲート watermark の永続化（#1219） ----
+{
+    const {
+        serializeGateWatermarks, parseGateWatermarks, pruneGateWatermarks, GATE_STATE_VERSION,
+    } = require('../src/phases');
+
+    test('serializeGateWatermarks → parseGateWatermarks で往復できる (#1219)', () => {
+        const state = {
+            gateHandled: new Map([[957, 2000], [12, 1000]]),
+            gateReviewHandled: new Map([[957, '2026-07-12T05:10:57Z']]),
+        };
+        const text = serializeGateWatermarks(state);
+        const back = parseGateWatermarks(text);
+        assert.equal(back.error, null);
+        assert.deepStrictEqual([...back.gateHandled], [[12, 1000], [957, 2000]]);
+        assert.deepStrictEqual([...back.gateReviewHandled], [[957, Date.parse('2026-07-12T05:10:57Z')]]);
+    });
+
+    test('serializeGateWatermarks は決定的（挿入順に依存しない）で差分判定に使える (#1219)', () => {
+        const a = serializeGateWatermarks({ gateHandled: new Map([[1, 10], [2, 20]]) });
+        const b = serializeGateWatermarks({ gateHandled: new Map([[2, 20], [1, 10]]) });
+        assert.equal(a, b);
+        assert.equal(JSON.parse(a).version, GATE_STATE_VERSION);
+        // Map が無くても例外を投げない
+        assert.deepStrictEqual(JSON.parse(serializeGateWatermarks({})).gateReviewHandled, []);
+    });
+
+    test('parseGateWatermarks: 無い・壊れた・版違いは空 Map で例外を投げない (#1219)', () => {
+        for (const text of [null, undefined, '']) {
+            const r = parseGateWatermarks(text);
+            assert.equal(r.error, null);
+            assert.equal(r.gateHandled.size, 0);
+            assert.equal(r.gateReviewHandled.size, 0);
+        }
+        for (const text of ['{broken', '[]', '"x"', 'null', JSON.stringify({ version: 999, gateHandled: [[1, 2]] })]) {
+            const r = parseGateWatermarks(text);
+            assert.ok(r.error, `error が返る: ${text}`);
+            assert.equal(r.gateHandled.size, 0);
+            assert.equal(r.gateReviewHandled.size, 0);
+        }
+    });
+
+    test('parseGateWatermarks: 不正なエントリだけ捨てる (#1219)', () => {
+        const r = parseGateWatermarks(JSON.stringify({
+            version: GATE_STATE_VERSION,
+            gateHandled: [[1, 100], ['x', 5], [2], [3, 'bad'], [-1, 5], [4, 0]],
+            gateReviewHandled: 'not-array',
+        }));
+        assert.equal(r.error, null);
+        assert.deepStrictEqual([...r.gateHandled], [[1, 100]]);
+        assert.equal(r.gateReviewHandled.size, 0);
+    });
+
+    test('pruneGateWatermarks: 終端 Status の Issue だけ落とし、一覧に無い Issue は残す (#1219)', () => {
+        const state = {
+            gateHandled: new Map([[1, 10], [2, 20], [3, 30], [4, 40]]),
+            gateReviewHandled: new Map([[1, 11], [2, 21]]),
+        };
+        const items = [
+            { issue: 1, status: 'Close' },
+            { issue: 2, status: 'Review' },
+            { issue: 3, status: 'Done' },
+        ];
+        const out = pruneGateWatermarks(state, items);
+        assert.deepStrictEqual([...out.gateHandled], [[2, 20], [4, 40]]);
+        assert.deepStrictEqual([...out.gateReviewHandled], [[2, 21]]);
+        // 入力は変更しない
+        assert.equal(state.gateHandled.size, 4);
+    });
+}

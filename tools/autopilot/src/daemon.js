@@ -50,6 +50,9 @@ const {
     PR_SYNC_STATUSES,
     humanSpokeLast,
     hasUnhandledChangesRequest,
+    serializeGateWatermarks,
+    parseGateWatermarks,
+    pruneGateWatermarks,
     toMs,
     WAITING_LABEL,
     hasLaterLabel,
@@ -1623,6 +1626,8 @@ async function tick(cfg, state, log) {
         // fire-and-forget（running で重複防止）
         dispatch(item, cfg, state, log);
     }
+    // watermark を再起動をまたいで保持する（#1219・I5）。差分があるときだけ書く。
+    saveGateState(items, state, log);
     // 人間が手動 merge した leaf を Close へ前進（自動 merge はしない）+ GitHub issue も close（#843 Fix A）
     await applyMergeProgression(items, cfg, state, log);
     // GitHub で closed な issue（EPIC・人手 close 含む）の Project Status を Close へ整合（#843 Fix B）
@@ -2174,6 +2179,74 @@ function pidFilePath() {
 }
 
 /**
+ * ゲート watermark の状態ファイル（#1219）。PID ファイルと同じ置き場。env
+ * AUTOPILOT_STATE_FILE で場所を変えられる。消してもよい（次の起動で処理済みの指摘・発言が
+ * 1 回ずつ再発火し得るだけで、固着はしない）。
+ * @returns {string} 絶対パス
+ */
+function gateStateFilePath() {
+    return process.env.AUTOPILOT_STATE_FILE || path.join(os.tmpdir(), 'autopilot-state.json');
+}
+
+/**
+ * 起動時に状態ファイルからゲート watermark を復元する（#1219）。ファイルが無い・壊れている
+ * ときは warn して空の Map で起動する（例外を投げない）。読めた内容は `state.gateStateSaved`
+ * に控え、直後の保存で同じ内容を書き直さないようにする。
+ * @param {object} state daemon state（gateHandled / gateReviewHandled を設定する）
+ * @param {Function} log
+ * @param {object} [deps] { file, readFile }（テスト用）
+ */
+function loadGateState(state, log, deps = {}) {
+    const file = deps.file || gateStateFilePath();
+    const readFile = deps.readFile || ((f) => fs.readFileSync(f, 'utf8'));
+    let text = null;
+    try {
+        text = readFile(file);
+    } catch (e) {
+        if (e.code !== 'ENOENT') log(`gate state warn: ${file} を読めません (${e.message}) — 空で起動`);
+    }
+    const parsed = parseGateWatermarks(text);
+    if (parsed.error) log(`gate state warn: ${file} を無視して空で起動 (${parsed.error})`);
+    state.gateHandled = parsed.gateHandled;
+    state.gateReviewHandled = parsed.gateReviewHandled;
+    state.gateStateSaved = parsed.error ? null : serializeGateWatermarks(state);
+    const n = state.gateHandled.size + state.gateReviewHandled.size;
+    if (n) log(`gate state restored: ${n} watermark(s) from ${file}`);
+}
+
+/**
+ * ゲート watermark を状態ファイルへ保存する（#1219）。終端 Status の Issue を落としてから
+ * 直列化し、**前回書いた内容と差分があるときだけ**書く（tmp + rename で原子的に置き換え）。
+ * 書き込み失敗は warn のみ（次 tick で再試行される）。
+ * @param {Array} items 今 tick の Project item（終端判定に使う）
+ * @param {object} state
+ * @param {Function} log
+ * @param {object} [deps] { file, writeFile }（テスト用）
+ * @returns {boolean} 書き込んだら true
+ */
+function saveGateState(items, state, log, deps = {}) {
+    const file = deps.file || gateStateFilePath();
+    const writeFile = deps.writeFile || ((f, body) => {
+        const tmp = `${f}.${process.pid}.tmp`;
+        fs.writeFileSync(tmp, body);
+        fs.renameSync(tmp, f);
+    });
+    const pruned = pruneGateWatermarks(state, items);
+    state.gateHandled = pruned.gateHandled;
+    state.gateReviewHandled = pruned.gateReviewHandled;
+    const body = serializeGateWatermarks(state);
+    if (body === state.gateStateSaved) return false;
+    try {
+        writeFile(file, body);
+        state.gateStateSaved = body;
+        return true;
+    } catch (e) {
+        log(`gate state warn: ${file} へ保存できません (${e.message})`);
+        return false;
+    }
+}
+
+/**
  * Claude 使用率の受け渡しファイル（Issue #879）。worker の status line
  * （usage-statusline.sh）が rate_limits を書き出し、daemon がここから読む。
  * アカウント横断の値なので単一ファイル（どの worker が書いても最新が入ればよい）。
@@ -2230,6 +2303,9 @@ async function main(opts = {}) {
     // プロセスレベルの安全網（#949/#953）: fire-and-forget な非同期経路のエラーを捕捉し、
     // 認証系は auto-pause で耐え、未知の非認証エラーは Node 準拠で exit（supervisor が再起動）。
     installProcessSafetyNet(state, log);
+    // ゲート watermark を復元する（#1219）。最初の tick より前に行わないと、処理済みの
+    // CHANGES_REQUESTED・発言で起動直後にゲートが再解除される。
+    loadGateState(state, log);
     // 稼働バージョンを起動時に確定させる（= 動いているコード）。以降 working tree が進んでも
     // この値は動かさない（だからこそ表示 + 更新検知が有用）。#885
     state.version = await readVersion(cfg.repoRoot);
@@ -2289,4 +2365,5 @@ module.exports = {
     ensureCheckpointCommit, readContinuationFromWorktree, applyCheckpointHandling,
     collectContinuationContexts, checkpointEscalationBody,
     followBaseBranch,
+    gateStateFilePath, loadGateState, saveGateState,
 };
