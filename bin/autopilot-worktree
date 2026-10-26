@@ -61,6 +61,17 @@ BRANCH_PREFIX="${AUTOPILOT_BRANCH_PREFIX:-topic/autopilot-}"
 wt_path() { echo "${WT_ROOT}/issue-$1"; }
 wt_branch() { echo "${BRANCH_PREFIX}$1"; }
 
+# 登録済みの worktree か。一覧を変数に受けてから照合する。
+# `git worktree list --porcelain | grep -q` は pipefail 下で一致しても失敗しうる
+# （grep が先に終わり、まだ書いている git が SIGPIPE で落ちてパイプ全体が 141 になる）。
+# worktree が増えて一覧が長いと毎回起き、登録済みを未登録と誤判定して
+# `fatal: '<wt>' already exists` で create が失敗していた（#1202 が Blocked になった原因）。
+is_registered_worktree() {
+    local list
+    list=$(git -C "${MAIN_CHECKOUT}" worktree list --porcelain)
+    grep -qxF "worktree $1" <<<"${list}"
+}
+
 # `git worktree add -b` は新ブランチの upstream 設定で共有 .git/config をロックする。
 # daemon が複数 Issue を同時ディスパッチすると複数の `autopilot-worktree create` が並行し、
 # `could not lock config file .git/config: File exists` で worktree 作成が失敗する（#681/#958）。
@@ -95,7 +106,7 @@ git_wt_add_retry() {
             fi
             return 0
         fi
-        if printf '%s' "${out}" | grep -q "could not lock config file"; then
+        if grep -q "could not lock config file" <<<"${out}"; then
             echo "info: .git/config ロック競合で worktree add 失敗、リトライ ${attempt}/6" >&2
             sleep "0.$((RANDOM % 7 + 3))"   # 0.3〜0.9s のジッタで再衝突を避ける
             continue
@@ -126,7 +137,7 @@ adopt_leftover_branch() {
     fi
     echo "info: ロック競合で残ったブランチ ${branch} を引き取って worktree を作り直します" >&2
     git -C "${MAIN_CHECKOUT}" worktree prune >/dev/null 2>&1 || true
-    if git -C "${MAIN_CHECKOUT}" worktree list --porcelain | grep -qx "worktree ${wt}"; then
+    if is_registered_worktree "${wt}"; then
         echo "error: ${wt} is already registered as a worktree; refusing to replace it" >&2
         return 1
     fi
@@ -327,7 +338,7 @@ cmd_create() {
         base="origin/${base_branch}"
     fi
 
-    if git -C "${MAIN_CHECKOUT}" worktree list --porcelain | grep -qx "worktree ${wt}"; then
+    if is_registered_worktree "${wt}"; then
         echo "info: worktree already exists: ${wt} (re-preparing)"
     elif git -C "${MAIN_CHECKOUT}" show-ref --verify --quiet "refs/heads/${branch}"; then
         git_wt_add_retry "${wt}" "${branch}"
