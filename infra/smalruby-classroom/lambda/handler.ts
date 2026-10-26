@@ -75,6 +75,8 @@ const PRESIGNED_URL_UPLOAD_EXPIRY = parseInt(process.env.PRESIGNED_URL_UPLOAD_EX
 const PRESIGNED_URL_DOWNLOAD_EXPIRY = parseInt(process.env.PRESIGNED_URL_DOWNLOAD_EXPIRY || '3600', 10); // default 1 hour
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 const MAX_SCREENSHOT_COUNT = 20;
+// Sprite names are short; this only stops an oversized payload (#1239).
+const MAX_SCREENSHOT_LABEL_LENGTH = 100;
 const MAX_TEACHER_COMMENT_LENGTH = 500;
 // Kick request TTL: short-lived (1h) since the student is actively waiting
 // for the teacher to act. Expired requests are removed by DynamoDB TTL.
@@ -363,6 +365,20 @@ class GoogleAPIError extends Error {
     this.googleStatus = googleStatus;
     this.googleMessage = googleMessage;
     this.operation = operation;
+  }
+}
+
+// A student may not see classmates' submissions (#1239). `reason` tells the
+// GUI which message to show: the assignment has peer view off, or it opens
+// only after the student's own submission.
+class PeerViewForbiddenError extends Error {
+  reason: 'peer-view-off' | 'not-submitted';
+  constructor(reason: 'peer-view-off' | 'not-submitted') {
+    super(reason === 'peer-view-off'
+      ? 'Peer view is off for this assignment'
+      : 'Submit your own work to see classmates\' submissions');
+    this.name = 'PeerViewForbiddenError';
+    this.reason = reason;
   }
 }
 
@@ -2069,6 +2085,31 @@ export function validateScreenshotCount(count: unknown): number {
   return n;
 }
 
+/**
+ * Validate the optional `screenshotLabels` (#1239): the sprite name of each
+ * block screenshot, in screenshot order. undefined means an older client that
+ * sends no names; the GUI then falls back to "スプライト 1, 2…".
+ */
+export function validateScreenshotLabels(labels: unknown, screenshotCount: number): string[] | undefined {
+  if (labels === undefined || labels === null) return undefined;
+  if (!Array.isArray(labels)) {
+    throw new ValidationError('screenshotLabels must be an array');
+  }
+  if (labels.length > screenshotCount) {
+    throw new ValidationError('screenshotLabels must not outnumber the screenshots');
+  }
+  return labels.map((label, i) => {
+    if (typeof label !== 'string') {
+      throw new ValidationError(`screenshotLabels[${i}] must be a string`);
+    }
+    const trimmed = label.trim();
+    if (trimmed.length > MAX_SCREENSHOT_LABEL_LENGTH) {
+      throw new ValidationError(`screenshotLabels[${i}] must be ${MAX_SCREENSHOT_LABEL_LENGTH} characters or less`);
+    }
+    return trimmed;
+  });
+}
+
 export function validateTeacherComment(comment: unknown): string {
   if (comment === undefined || comment === null) return '';
   if (typeof comment !== 'string') {
@@ -2086,6 +2127,7 @@ async function handleCreateSubmission(
 ): Promise<APIGatewayProxyStructuredResultV2> {
   const projectName = validateProjectName(body.projectName);
   const screenshotCount = validateScreenshotCount(body.screenshotCount);
+  const screenshotLabels = validateScreenshotLabels(body.screenshotLabels, screenshotCount);
 
   // Reject submissions to archived / expired classrooms. Memberships survive
   // an archive (issue #1050, D1), so the session token may still resolve —
@@ -2179,6 +2221,7 @@ async function handleCreateSubmission(
       s3Key: s3KeyProject,
       thumbnailS3Key: s3KeyThumbnail,
       screenshotCount,
+      ...(screenshotLabels ? { screenshotLabels } : {}),
       status: 'submitted',
       submittedAt: now,
       updatedAt: now,
@@ -2288,6 +2331,91 @@ async function handleListContinuableSubmissions(
   };
 }
 
+/** Presigned GET URLs of a submission's block screenshots, in order. */
+async function screenshotUrlsOf(item: Record<string, unknown>): Promise<string[]> {
+  const ssCount = typeof item.screenshotCount === 'number' ? item.screenshotCount : 0;
+  const screenshotUrls: string[] = [];
+  for (let i = 0; i < ssCount; i++) {
+    screenshotUrls.push(await getSignedUrl(
+      s3Client,
+      new GetObjectCommand({
+        Bucket: SUBMISSIONS_BUCKET,
+        Key: `${item.classroomId}/${item.submissionId}/screenshot-${i}.png`,
+      }),
+      { expiresIn: PRESIGNED_URL_DOWNLOAD_EXPIRY },
+    ));
+  }
+  return screenshotUrls;
+}
+
+/** Sprite names of the screenshots (#1239); null for submissions made before names were sent. */
+function screenshotLabelsOf(item: Record<string, unknown>): string[] | null {
+  return Array.isArray(item.screenshotLabels) ? item.screenshotLabels as string[] : null;
+}
+
+/** Seat number from the seat-based memberId (`seat-03` → 3). */
+function seatNumberOfMemberId(memberId: unknown): number {
+  const match = /^seat-(\d+)$/.exec(String(memberId));
+  return match ? parseInt(match[1], 10) : 0;
+}
+
+/**
+ * Classmates' submissions in the same assignment for peer view (#1239).
+ * Only what a classmate may see is returned — seat number, submitted time,
+ * and presigned image URLs with sprite names. The .sb3, the nickname and the
+ * teacher's comment never leave this function, so a student cannot copy the
+ * work or learn who made it beyond the seat. The caller has already matched
+ * the session to `classroomId`, so other assignments' submissions are never
+ * queried.
+ */
+async function handleListPeerSubmissions(
+  classroomId: string, memberId: string,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const nowSec = Math.floor(Date.now() / 1000);
+  const classroomResult = await docClient.send(new GetCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId },
+  }));
+  const classroom = classroomResult.Item;
+  if (!classroom || classroom.status !== 'active' || isTtlExpired(classroom, nowSec)) {
+    throw new NotFoundError('This classroom is no longer active');
+  }
+
+  const peerView = peerViewOf(classroom);
+  if (peerView === 'none') {
+    throw new PeerViewForbiddenError('peer-view-off');
+  }
+
+  const items = await queryAll({
+    TableName: SUBMISSIONS_TABLE,
+    KeyConditionExpression: 'classroomId = :cid',
+    ExpressionAttributeValues: { ':cid': classroomId },
+  });
+  const live = items.filter(item => !isTtlExpired(item, nowSec));
+  if (peerView === 'afterSubmit' && !live.some(item => item.memberId === memberId)) {
+    throw new PeerViewForbiddenError('not-submitted');
+  }
+
+  const visible = live
+    .filter(item => item.memberId !== memberId && item.hiddenFromPeers !== true)
+    .sort((a, b) => seatNumberOfMemberId(a.memberId) - seatNumberOfMemberId(b.memberId));
+  const submissions = await Promise.all(visible.map(async item => ({
+    seatNumber: seatNumberOfMemberId(item.memberId),
+    submittedAt: item.submittedAt || null,
+    thumbnailUrl: item.thumbnailS3Key
+      ? await getSignedUrl(
+        s3Client,
+        new GetObjectCommand({ Bucket: SUBMISSIONS_BUCKET, Key: item.thumbnailS3Key as string }),
+        { expiresIn: PRESIGNED_URL_DOWNLOAD_EXPIRY },
+      )
+      : null,
+    screenshotUrls: await screenshotUrlsOf(item),
+    screenshotLabels: screenshotLabelsOf(item),
+  })));
+
+  return { statusCode: 200, body: JSON.stringify({ peerView, submissions }) };
+}
+
 async function handleListSubmissions(
   identity: TeacherIdentity, classroomId: string
 ): Promise<APIGatewayProxyStructuredResultV2> {
@@ -2330,20 +2458,7 @@ async function handleListSubmissions(
           { expiresIn: PRESIGNED_URL_DOWNLOAD_EXPIRY },
         );
       }
-      // Generate presigned URLs for screenshots
-      const ssCount = typeof item.screenshotCount === 'number' ? item.screenshotCount : 0;
-      const screenshotUrls: string[] = [];
-      for (let i = 0; i < ssCount; i++) {
-        const ssUrl = await getSignedUrl(
-          s3Client,
-          new GetObjectCommand({
-            Bucket: SUBMISSIONS_BUCKET,
-            Key: `${item.classroomId}/${item.submissionId}/screenshot-${i}.png`,
-          }),
-          { expiresIn: PRESIGNED_URL_DOWNLOAD_EXPIRY },
-        );
-        screenshotUrls.push(ssUrl);
-      }
+      const screenshotUrls = await screenshotUrlsOf(item);
 
       return {
         submissionId: item.submissionId,
@@ -2355,6 +2470,8 @@ async function handleListSubmissions(
         thumbnailUrl,
         projectUrl,
         screenshotUrls,
+        screenshotLabels: screenshotLabelsOf(item),
+        hiddenFromPeers: item.hiddenFromPeers === true,
       };
     })
   );
@@ -2397,6 +2514,17 @@ async function handleUpdateSubmission(
     exprParts.push('#tc = :tc');
     exprNames['#tc'] = 'teacherComment';
     exprValues[':tc'] = comment;
+  }
+
+  if (body.hiddenFromPeers !== undefined) {
+    // Teacher hides this submission from classmates' peer view (#1239).
+    if (typeof body.hiddenFromPeers !== 'boolean') {
+      throw new ValidationError('hiddenFromPeers must be a boolean');
+    }
+    updates.hiddenFromPeers = body.hiddenFromPeers;
+    exprParts.push('#hfp = :hfp');
+    exprNames['#hfp'] = 'hiddenFromPeers';
+    exprValues[':hfp'] = body.hiddenFromPeers;
   }
 
   if (body.status !== undefined) {
@@ -3623,6 +3751,8 @@ async function handleDuplicateClassroom(
       assignment,
       // Reusing a lesson keeps how students start it (#1202).
       ...(startFromPreviousOf(source) ? { startFromPrevious: true } : {}),
+      // ...and who may see classmates' work (#1239). 'none' is the default, left unset.
+      ...(peerViewOf(source) !== 'none' ? { peerView: peerViewOf(source) } : {}),
       status: 'active',
       createdAt: now,
       updatedAt: now,
@@ -3738,6 +3868,29 @@ export function startFromPreviousOf(item: Record<string, unknown> | undefined): 
   return item?.startFromPrevious === true;
 }
 
+/** Who may see classmates' submissions of an assignment (#1239). */
+export const PEER_VIEW_VALUES = ['none', 'always', 'afterSubmit'] as const;
+export type PeerView = typeof PEER_VIEW_VALUES[number];
+
+/**
+ * Validate the optional `peerView` setting (#1239) of a set-assignment
+ * request. undefined means "not sent" (an older client) and keeps the stored
+ * value, the same as `startFromPrevious`.
+ */
+export function validatePeerView(value: unknown): PeerView | undefined {
+  if (value === undefined) return undefined;
+  if (!PEER_VIEW_VALUES.includes(value as PeerView)) {
+    throw new ValidationError(`peerView must be one of: ${PEER_VIEW_VALUES.join(', ')}`);
+  }
+  return value as PeerView;
+}
+
+/** The peer view setting of an assignment item; items saved before #1239 are 'none'. */
+export function peerViewOf(item: Record<string, unknown> | undefined): PeerView {
+  const value = item?.peerView;
+  return PEER_VIEW_VALUES.includes(value as PeerView) ? value as PeerView : 'none';
+}
+
 /** Whether a classroom item carries assignment content (pages or a starter). */
 export function hasAssignmentContent(item: Record<string, unknown> | undefined): boolean {
   if (!item) return false;
@@ -3762,6 +3915,7 @@ async function handleSetAssignment(
 
   const pagesInput = validateAssignmentPages(body.pages, classroomId);
   const startFromPreviousInput = validateStartFromPrevious(body.startFromPrevious);
+  const peerViewInput = validatePeerView(body.peerView);
   const keepStarter = body.keepStarter === true;
   const newStarter = body.newStarter === true;
   if (keepStarter && newStarter) {
@@ -3832,25 +3986,29 @@ async function handleSetAssignment(
   const setStartFromPrevious = startFromPreviousInput === undefined ? '' : ', startFromPrevious = :sfp';
   const startFromPreviousValues = startFromPreviousInput === undefined ? {} : { ':sfp': startFromPreviousInput };
   const startFromPrevious = startFromPreviousInput ?? startFromPreviousOf(classroomResult.Item);
+  const setPeerView = peerViewInput === undefined ? '' : ', peerView = :pv';
+  const peerViewValues = peerViewInput === undefined ? {} : { ':pv': peerViewInput };
+  const peerView = peerViewInput ?? peerViewOf(classroomResult.Item);
   if (pages.length === 0 && !starterKey) {
-    // An empty request clears the assignment content (the setting stays).
+    // An empty request clears the assignment content (the settings stay).
     await docClient.send(new UpdateCommand({
       TableName: CLASSROOMS_TABLE,
       Key: { classroomId },
-      UpdateExpression: `REMOVE assignment SET updatedAt = :now${setStartFromPrevious}`,
-      ExpressionAttributeValues: { ':now': now, ...startFromPreviousValues },
+      UpdateExpression: `REMOVE assignment SET updatedAt = :now${setStartFromPrevious}${setPeerView}`,
+      ExpressionAttributeValues: { ':now': now, ...startFromPreviousValues, ...peerViewValues },
     }));
-    return { statusCode: 200, body: JSON.stringify({ assignment: null, startFromPrevious }) };
+    return { statusCode: 200, body: JSON.stringify({ assignment: null, startFromPrevious, peerView }) };
   }
 
   await docClient.send(new UpdateCommand({
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId },
-    UpdateExpression: `SET assignment = :assignment, updatedAt = :now${setStartFromPrevious}`,
+    UpdateExpression: `SET assignment = :assignment, updatedAt = :now${setStartFromPrevious}${setPeerView}`,
     ExpressionAttributeValues: {
       ':assignment': { pages, starterKey, updatedAt: now },
       ':now': now,
       ...startFromPreviousValues,
+      ...peerViewValues,
     },
   }));
 
@@ -3859,6 +4017,7 @@ async function handleSetAssignment(
     body: JSON.stringify({
       assignment: { pages, starterKey: starterKey || null, updatedAt: now },
       startFromPrevious,
+      peerView,
       imageUploadUrls,
       starterUploadUrl,
     }),
@@ -3896,8 +4055,9 @@ async function handleGetAssignment(rawToken: string, classroomId: string): Promi
 
   const assignment = classroomResult.Item.assignment as AssignmentContent | undefined;
   const startFromPrevious = startFromPreviousOf(classroomResult.Item);
+  const peerView = peerViewOf(classroomResult.Item);
   if (!hasAssignmentContent(classroomResult.Item)) {
-    return { statusCode: 200, body: JSON.stringify({ assignment: null, startFromPrevious }) };
+    return { statusCode: 200, body: JSON.stringify({ assignment: null, startFromPrevious, peerView }) };
   }
 
   // imageKey is echoed back so the teacher editor can round-trip unchanged
@@ -3933,6 +4093,7 @@ async function handleGetAssignment(rawToken: string, classroomId: string): Promi
         updatedAt: assignment?.updatedAt || null,
       },
       startFromPrevious,
+      peerView,
     }),
   };
 }
@@ -5553,6 +5714,16 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
       }
       result = await handleCreateSubmission(classroomId, session.memberId, body);
 
+    } else if (method === 'GET' && /^\/classrooms\/[^/]+\/peer-submissions$/.test(path)) {
+      // Student-only (session token): classmates' submissions for peer view (#1239).
+      const token = extractBearerToken(event.headers?.authorization);
+      const session = await verifySessionToken(token);
+      const classroomId = event.pathParameters?.classroomId || '';
+      if (session.classroomId !== classroomId) {
+        throw new AuthError('Session does not match this classroom');
+      }
+      result = await handleListPeerSubmissions(classroomId, session.memberId);
+
     } else if (method === 'GET' && /^\/classrooms\/[^/]+\/continuable-submissions$/.test(path)) {
       // Student-only (session token): own submissions to continue from (#1201).
       const token = extractBearerToken(event.headers?.authorization);
@@ -5603,6 +5774,9 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
     }
     if (err instanceof ConflictError) {
       return { statusCode: 409, headers: corsHeaders, body: JSON.stringify({ error: err.message }) };
+    }
+    if (err instanceof PeerViewForbiddenError) {
+      return { statusCode: 403, headers: corsHeaders, body: JSON.stringify({ error: err.message, reason: err.reason }) };
     }
     if (err instanceof KickedError) {
       return {

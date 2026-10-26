@@ -1571,3 +1571,99 @@ describeIfToken('教師フロー — 退室リクエスト (kick request)', () =
         expect(archive.status).toBe(200);
     });
 });
+
+// ---------------------------------------------------------------------------
+// 他者参照（#1239）— 課題設定・クラスメイトの提出一覧・非表示フラグ
+// ---------------------------------------------------------------------------
+(DEV_BYPASS_TOKEN ? describe : describe.skip)('他者参照 — フルフロー (#1239)', () => {
+    const teacherAuth = { Authorization: `Bearer ${DEV_BYPASS_TOKEN}` };
+    let classroomId = '';
+    let joinCode = '';
+
+    beforeAll(async () => {
+        const { status, data } = await request(
+            'POST',
+            '/classrooms',
+            { className: '結合テスト(他者参照)', assignmentName: '第1回', studentCount: 3 },
+            teacherAuth,
+        );
+        expect(status).toBe(201);
+        classroomId = data.classroomId as string;
+        joinCode = data.joinCode as string;
+    });
+
+    afterAll(async () => {
+        if (classroomId) await request('DELETE', `/classrooms/${classroomId}`, null, teacherAuth);
+    });
+
+    const join = async (seatNumber: number) => {
+        const { status, data } = await request('POST', '/classrooms/join', {
+            joinCode,
+            seatNumber,
+            nickname: `ニックネーム${seatNumber}`,
+        });
+        expect(status).toBe(200);
+        return { Authorization: `Bearer ${data.sessionToken as string}` };
+    };
+
+    test('設定ごとの 403・提出済みの席だけ・.sb3 とニックネームを返さない・非表示', async () => {
+        const seat1 = await join(1);
+        const seat2 = await join(2);
+
+        // 値が無い課題は none → 403 peer-view-off
+        const before = await request('GET', `/classrooms/${classroomId}/assignment`, null, teacherAuth);
+        expect(before.data.peerView).toBe('none');
+        const off = await request('GET', `/classrooms/${classroomId}/peer-submissions`, null, seat1);
+        expect(off.status).toBe(403);
+        expect(off.data.reason).toBe('peer-view-off');
+
+        // 自分が提出したら: 未提出の席1は 403 not-submitted
+        const put = await request('PUT', `/classrooms/${classroomId}/assignment`, { pages: [], peerView: 'afterSubmit' }, teacherAuth);
+        expect(put.status).toBe(200);
+        expect(put.data.peerView).toBe('afterSubmit');
+        const notYet = await request('GET', `/classrooms/${classroomId}/peer-submissions`, null, seat1);
+        expect(notYet.status).toBe(403);
+        expect(notYet.data.reason).toBe('not-submitted');
+
+        // 席2 がスプライト名つきで提出、席1 も提出すると席2 だけが見える
+        const sub2 = await request(
+            'POST',
+            `/classrooms/${classroomId}/submissions`,
+            { projectName: '席2の作品', screenshotCount: 1, screenshotLabels: ['ねこ'] },
+            seat2,
+        );
+        expect(sub2.status).toBe(201);
+        const sub1 = await request('POST', `/classrooms/${classroomId}/submissions`, { projectName: '席1の作品' }, seat1);
+        expect(sub1.status).toBe(201);
+        const seen = await request('GET', `/classrooms/${classroomId}/peer-submissions`, null, seat1);
+        expect(seen.status).toBe(200);
+        const peers = seen.data.submissions as Record<string, unknown>[];
+        expect(peers.map((p) => p.seatNumber)).toEqual([2]);
+        expect(peers[0].screenshotLabels).toEqual(['ねこ']);
+        expect(typeof peers[0].thumbnailUrl).toBe('string');
+        const raw = JSON.stringify(seen.data);
+        expect(raw).not.toContain('project.sb3');
+        expect(raw).not.toContain('ニックネーム');
+        expect(raw).not.toContain('席2の作品');
+
+        // 先生が席2 を「他の生徒に見せない」にすると一覧から消え、先生の一覧にはフラグが載る
+        const hide = await request(
+            'PATCH',
+            `/classrooms/${classroomId}/submissions/${sub2.data.submissionId as string}`,
+            { hiddenFromPeers: true },
+            teacherAuth,
+        );
+        expect(hide.status).toBe(200);
+        const hidden = await request('GET', `/classrooms/${classroomId}/peer-submissions`, null, seat1);
+        expect(hidden.data.submissions).toEqual([]);
+        const list = await request('GET', `/classrooms/${classroomId}/submissions`, null, teacherAuth);
+        const teacherView = (list.data.submissions as Record<string, unknown>[])
+            .find((s) => s.submissionId === sub2.data.submissionId);
+        expect(teacherView?.hiddenFromPeers).toBe(true);
+        expect(teacherView?.screenshotLabels).toEqual(['ねこ']);
+
+        // トークンなしは 401
+        const noAuth = await request('GET', `/classrooms/${classroomId}/peer-submissions`);
+        expect(noAuth.status).toBe(401);
+    });
+});

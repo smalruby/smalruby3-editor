@@ -875,6 +875,14 @@ export class ClassroomStack extends cdk.Stack {
       integration,
     });
 
+    // Student (session token): classmates' submission images in the same
+    // assignment, when the assignment's peerView allows it (#1239).
+    this.api.addRoutes({
+      path: '/classrooms/{classroomId}/peer-submissions',
+      methods: [apigatewayv2.HttpMethod.GET],
+      integration,
+    });
+
     this.api.addRoutes({
       path: '/classrooms/{classroomId}/submissions/{submissionId}',
       methods: [apigatewayv2.HttpMethod.PATCH],

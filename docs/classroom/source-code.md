@@ -132,6 +132,9 @@ CDK スタック定義。以下のリソースを作成:
 | `handleGetAssignment()` | 課題コンテンツ取得 (生徒 Session Token / 先生 ID Token 両対応) |
 | `handleListContinuableSubmissions()` | 生徒の続きに使える提出物（この課題の自分の席 + 同じクラスの前の課題の同じ席。Presigned GET URL 付き）と課題設定 `startFromPrevious` #1201 #1202 |
 | `validateStartFromPrevious()` / `startFromPreviousOf()` | 課題設定「前回の提出物から始めさせる」の検証（boolean・未送信は undefined）と読み出し #1202 |
+| `handleListPeerSubmissions()` | 他者参照: 同じ課題の提出済みクラスメイトの席番号・提出日時・画像 URL・スプライト名だけを返す（`.sb3`・ニックネーム・コメントは返さない。`peerView` で 403 `peer-view-off` / `not-submitted`）#1239 |
+| `validatePeerView()` / `peerViewOf()` | 課題設定「他者参照」（`none` / `always` / `afterSubmit`）の検証（未送信は undefined）と読み出し（未設定は `none`）#1239 |
+| `validateScreenshotLabels()` | 提出の任意項目 `screenshotLabels`（スプライト名の配列）の検証 #1239 |
 | `handleListNotifications()` | お知らせ一覧 + 未読数 (EPIC #1111) |
 | `handleMarkNotificationsRead()` | お知らせ既読化 (ids 省略で全既読) |
 | `handleCreateGroup()` / `handleListGroups()` / `handleUpdateGroup()` | 組（グループ）の作成・一覧・更新/アーカイブ |
