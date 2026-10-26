@@ -370,15 +370,19 @@ describe('TeacherClassDetail — 前回の提出物から始めさせる (#1202)
         expect(onChangeStartFromPrevious).toHaveBeenCalledWith(true);
     });
 
-    test('ON のときはチェックされ、生徒視点プレビューに「前回の提出物が開く」と出す', () => {
+    test('ON のときはチェックされ、生徒視点プレビューに「前回の提出物から続けるのがおすすめ」と出す', () => {
         renderDescription({ startFromPrevious: true });
         expect(byTestId('classroom-assignment-start-from-previous')).toBeChecked();
-        expect(byTestId('classroom-description-preview-start')).toHaveTextContent('submitted last time opens');
+        expect(byTestId('classroom-description-preview-start')).toHaveTextContent(
+            "continuing from last time's submission is recommended",
+        );
     });
 
     test('OFF のときプレビューはスターター (無ければいまの作品) で始まると出す', () => {
         renderDescription();
-        expect(byTestId('classroom-description-preview-start')).toHaveTextContent('the starter opens');
+        expect(byTestId('classroom-description-preview-start')).toHaveTextContent(
+            'start from the starter with a button',
+        );
         document.body.innerHTML = '';
         renderDescription({ starterMode: 'none' });
         expect(byTestId('classroom-description-preview-start')).toHaveTextContent('start with the open project');

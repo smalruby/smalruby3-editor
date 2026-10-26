@@ -2403,6 +2403,31 @@
     background-color: #e6f4ea;
 }
 
+/* The choice the teacher's setting recommends (#1202): filled so it stands
+   out from the others without loading anything by itself. */
+.continue-choice-recommended {
+    background-color: #4c97ff;
+    color: #fff;
+}
+
+.continue-choice-recommended:hover {
+    background-color: #3d86ed;
+}
+
+.continue-choice-recommended .continue-choice-detail {
+    color: #e9f1fc;
+}
+
+.continue-choice-badge {
+    flex: none;
+    margin-left: auto;
+    padding: 0.1rem 0.4rem;
+    border-radius: 0.75rem;
+    background-color: #fff;
+    color: #3373cc;
+    font-size: 0.7rem;
+}
+
 .continue-choice-plain {
     color: #575e75;
     border-color: #b8b8b8;

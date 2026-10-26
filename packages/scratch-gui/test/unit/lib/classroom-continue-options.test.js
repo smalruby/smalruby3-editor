@@ -18,7 +18,7 @@ const item = (over = {}) => ({
 });
 
 describe('normalizeContinueOptions', () => {
-    test('どちらも無ければ null (= 選択肢を出さず従来どおりスターターを自動で開く)', () => {
+    test('どちらも無ければ null (= 提出物の選択肢は出さない)', () => {
         expect(normalizeContinueOptions(null)).toBeNull();
         expect(normalizeContinueOptions({})).toBeNull();
         expect(normalizeContinueOptions({ current: null, previous: null })).toBeNull();
@@ -42,24 +42,43 @@ describe('decideJoinStart (#1202 前回の提出物から始めさせる)', () =
     const previousOnly = { current: null, previous: item() };
     const withCurrent = { current: item(), previous: item() };
 
-    test('設定 OFF: 提出物があれば選ばせ、無ければスターター', () => {
-        expect(decideJoinStart(previousOnly, false)).toEqual({ action: 'choose', notice: null });
-        expect(decideJoinStart(null, false)).toEqual({ action: 'starter', notice: null });
+    // 参加しただけでは何も読み込まない。生徒がボタンを押したときだけ読み込む
+    // （自動で読み込むと、同じものを押したときに上書き確認が出て 2 重に読み込む）。
+    test('設定 OFF: スターターがあれば選択肢に出す。おすすめ・案内は無い', () => {
+        expect(decideJoinStart(previousOnly, false, true)).toEqual({
+            showStarter: true,
+            recommend: null,
+            notice: null,
+        });
+        expect(decideJoinStart(null, false, false)).toEqual({ showStarter: false, recommend: null, notice: null });
     });
 
-    test('設定 ON: 前回の提出物を開く', () => {
-        expect(decideJoinStart(previousOnly, true)).toEqual({ action: 'previous', notice: 'openedPrevious' });
+    test('設定 ON で前回の提出物があれば、それをおすすめにしてスターターは出さない（選び間違えない）', () => {
+        expect(decideJoinStart(previousOnly, true, true)).toEqual({
+            showStarter: false,
+            recommend: 'previous',
+            notice: 'recommendPrevious',
+        });
     });
 
-    test('設定 ON で前回の提出物が無ければスターターにフォールバックし、そのことを知らせる', () => {
-        expect(decideJoinStart(null, true)).toEqual({ action: 'starter', notice: 'noPrevious' });
-        expect(decideJoinStart({ current: null, previous: null }, true)).toEqual({
-            action: 'starter',
+    test('設定 ON で前回の提出物が無ければ、スターターをおすすめにしてそのことを知らせる', () => {
+        expect(decideJoinStart(null, true, true)).toEqual({
+            showStarter: true,
+            recommend: 'starter',
+            notice: 'noPrevious',
+        });
+        expect(decideJoinStart({ current: null, previous: null }, true, false)).toEqual({
+            showStarter: false,
+            recommend: null,
             notice: 'noPrevious',
         });
     });
 
-    test('設定 ON でもこの課題で提出済みなら勝手に開かず選ばせる (今回の作業を前回で上書きしない)', () => {
-        expect(decideJoinStart(withCurrent, true)).toEqual({ action: 'choose', notice: null });
+    test('設定 ON でもこの課題で提出済みなら、おすすめせず選ばせる (今回の作業を前回で上書きしない)', () => {
+        expect(decideJoinStart(withCurrent, true, true)).toEqual({
+            showStarter: true,
+            recommend: null,
+            notice: null,
+        });
     });
 });

@@ -2,7 +2,10 @@
 //   teacher: create class -> open assignment editor -> write 2 pages ->
 //            set the open project as starter -> save
 //   student: join with the class code -> assignment panel auto-opens ->
-//            starter auto-loads -> pager works -> "Start Working!" closes
+//            nothing is loaded by joining -> pager works -> the starter is a
+//            start choice: pressing it loads the starter once (no overwrite
+//            confirm) and closes the panel -> reopening from the status view
+//            offers reopening the starter
 //   teacher: verify submission-free detail still works -> delete class
 //
 // Requires: dev server (BASE_URL, default http://localhost:8601) built from
@@ -148,10 +151,21 @@ try {
     const indicator = await studentPage.textContent('[data-testid="classroom-assignment-page-indicator"]');
     assert(indicator.replace(/\s/g, '') === '2/2', 'page indicator 2/2');
 
-    log('student: starter reload button present + close panel...');
-    assert(await studentPage.$('[data-testid="classroom-assignment-reload-starter"]'), 'starter button present');
-    await studentPage.click('[data-testid="classroom-assignment-close"]');
-    await studentPage.waitForSelector('[data-testid="classroom-modal"]', { state: 'detached', timeout: 10000 });
+    log('student: the starter is a start choice (nothing loaded by joining)...');
+    assert(await studentPage.$('[data-testid="classroom-continue-starter"]'), 'starter choice present');
+    assert(
+        !(await studentPage.$('[data-testid="classroom-assignment-reload-starter"]')) &&
+            !(await studentPage.$('[data-testid="classroom-assignment-close"]')),
+        'no separate open-starter / start buttons right after joining',
+    );
+    const dialogs = [];
+    studentPage.on('dialog', (d) => {
+        dialogs.push(d.message());
+        d.accept();
+    });
+    await studentPage.click('[data-testid="classroom-continue-starter"]');
+    await studentPage.waitForSelector('[data-testid="classroom-modal"]', { state: 'detached', timeout: 20000 });
+    assert(dialogs.length === 0, 'starter loaded without an overwrite confirm');
     assert(true, 'panel closed (student lands in editor)');
 
     log('student: reopening the modal shows status with View Assignment...');
@@ -161,6 +175,10 @@ try {
     await studentPage.click('[data-testid="classroom-view-assignment-button"]');
     await studentPage.waitForSelector('[data-testid="classroom-phase-student-assignment"]', { timeout: 20000 });
     assert(true, 'assignment reopened from status view');
+    assert(
+        await studentPage.$('[data-testid="classroom-assignment-reload-starter"]'),
+        'reopened panel offers reopening the starter',
+    );
     await studentPage.screenshot({ path: resolve(SHOTS, 'lesson-support-4-student-reopen.png') });
 
     ok = true;

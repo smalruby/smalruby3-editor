@@ -1,4 +1,5 @@
 import {
+    initialStudentPhase,
     decideClasscodeAction,
     decideTeacherSelectionSync,
     resolveAutoJoinCode,
@@ -112,5 +113,28 @@ describe('resolveAutoJoinCode (#1199)', () => {
 
     test('keeps a joined class instead of following the teacher selection', () => {
         expect(resolveAutoJoinCode({ teacherJoinCode: 'tchcde', session: { sessionToken: 'tok' } })).toBeNull();
+    });
+});
+
+describe('initialStudentPhase', () => {
+    const session = { role: 'student', sessionToken: 'tok', joinCode: 'abcdef', classroomId: 'c1' };
+
+    test('セッションが無ければ参加画面', () => {
+        expect(initialStudentPhase({}, null)).toBe('student-join');
+        expect(initialStudentPhase({}, 'abcdef')).toBe('student-join');
+    });
+
+    test('セッションがあり URL の参加コードが無ければ、状況画面（セッションを確かめる）', () => {
+        expect(initialStudentPhase(session, null)).toBe('student-status');
+    });
+
+    test('URL の参加コードが同じクラスなら状況画面', () => {
+        expect(initialStudentPhase(session, 'ABCDEF')).toBe('student-status');
+    });
+
+    // 別のクラスへ移るときに古いセッションを確かめると、移る処理が古い席を
+    // 空けた直後に 401 が返り「セッションが無効になりました」が出てしまう。
+    test('URL の参加コードが別のクラスなら、古いセッションを確かめずに参加画面から始める', () => {
+        expect(initialStudentPhase(session, 'zzzzzz')).toBe('student-join');
     });
 });

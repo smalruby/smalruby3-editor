@@ -206,23 +206,24 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-assignment-view-image` | img | ページ画像 |
 | `classroom-assignment-prev-page` / `classroom-assignment-next-page` | button | ページ送り |
 | `classroom-assignment-page-indicator` | span | ページ位置（`1 / 3`） |
-| `classroom-assignment-reload-starter` | button | スタータープロジェクトを開く（編集中は confirm） |
+| `classroom-assignment-reload-starter` | button | スタータープロジェクトを開く（編集中は confirm）。「課題を見る」から開き直したときだけ（参加直後はスターターも選択肢の 1 つ） |
 | `classroom-assignment-close` | button | はじめる！（モーダルを閉じる。選択肢を出しているときは描画しない） |
 | `classroom-view-assignment-button` | button | ステータス画面の「課題を見る」（hasAssignment 時のみ） |
 
 ### どこから始めるかの選択（生徒・Issue #1201）
 
-参加完了（`student-joined`）・課題パネル（`student-assignment`）・ステータス（`student-status`）に、続きに使える提出物があるときだけ表示。
+参加完了（`student-joined`）・課題パネル（`student-assignment`）は、スターターか続きに使える提出物があるときに表示（参加しただけでは何も読み込まない）。ステータス（`student-status`）は続きに使える提出物があるときだけ。
 
 | data-testid | 要素 | 説明 |
 |------------|------|------|
-| `classroom-continue-choice` | div | 選択肢のまとまり（続きに使える提出物が無いときは描画しない） |
-| `classroom-continue-starter` | button | スターターから始める（スターターがあるとき。ステータス画面には出さない） |
+| `classroom-continue-choice` | div | 選択肢のまとまり（スターターも続きに使える提出物も無いときは描画しない） |
+| `classroom-continue-starter` | button | スターターから始める（スターターがあるとき。設定「前回の提出物から始めさせる」で前回の提出物があるときは出さない。ステータス画面には出さない） |
+| `classroom-continue-starter-recommended` / `classroom-continue-previous-recommended` | span | 先生の設定でおすすめにした選択肢の「おすすめ」バッジ（Issue #1202） |
 | `classroom-continue-previous` | button | 前回の提出物から続ける（同じクラスの前の課題・同じ席の提出物があるとき） |
 | `classroom-continue-current` | button | この課題で提出した作品を読み込む（この課題で提出済みのとき） |
 | `classroom-continue-keep` | button | いまの作品のまま始める（何も読み込まずにモーダルを閉じる。参加完了画面・課題パネルのみ。ステータス画面には出さない） |
 
-| `classroom-continue-notice` | span | 先生の設定「前回の提出物から始めさせる」で参加直後に開いたもののお知らせ（Issue #1202。前回の提出物を開いた / 無かったのでスターター / 無かった）。選択肢が無いときも単独で出す |
+| `classroom-continue-notice` | span | 先生の設定「前回の提出物から始めさせる」のお知らせ（Issue #1202。前回の提出物がおすすめ / 無かったのでスターターから / 無かった）。選択肢が無いときも単独で出す |
 
 開いたボタンは `aria-pressed="true"`。1300×600 の収まりは `tools/playwright-verify/verify-classroom-viewport.mjs` が「参加完了 / 課題パネル / ステータス」の選択肢つきの状態で測る。
 

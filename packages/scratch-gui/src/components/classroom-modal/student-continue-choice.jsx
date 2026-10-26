@@ -9,9 +9,10 @@
  * "start" action. Laid out as one horizontal row so the student screens stay
  * within the 1300x600 classroom PC viewport (#1221).
  *
- * When the teacher's "start from the previous submission" setting opened
- * something right after joining (#1202), a one-line notice says what is
- * open — next to the title, so it costs no extra height at 1300x600.
+ * Nothing is loaded before the student presses a choice. With the teacher's
+ * "start from the previous submission" setting (#1202) one choice is marked
+ * as recommended and a one-line notice next to the title says why — next to
+ * the title, so it costs no extra height at 1300x600.
  */
 import PropTypes from 'prop-types';
 import React, { useCallback } from 'react';
@@ -61,12 +62,19 @@ ChoiceIcon.propTypes = {
     kind: PropTypes.oneOf(Object.keys(ICON_PATHS)).isRequired,
 };
 
-const ChoiceButton = ({ kind, label, detail, plain, loadedChoice, isLoading, onSelect }) => {
+const ChoiceButton = ({ kind, label, detail, plain, recommended, loadedChoice, isLoading, onSelect }) => {
     const handleClick = useCallback(() => onSelect(kind), [onSelect, kind]);
+    const className = [
+        styles.continueChoiceButton,
+        plain ? styles.continueChoicePlain : null,
+        recommended ? styles.continueChoiceRecommended : null,
+    ]
+        .filter(Boolean)
+        .join(' ');
     return (
         <button
             aria-pressed={loadedChoice === kind}
-            className={plain ? `${styles.continueChoiceButton} ${styles.continueChoicePlain}` : styles.continueChoiceButton}
+            className={className}
             data-testid={`classroom-continue-${kind}`}
             disabled={isLoading}
             onClick={handleClick}
@@ -76,6 +84,15 @@ const ChoiceButton = ({ kind, label, detail, plain, loadedChoice, isLoading, onS
                 <span className={styles.continueChoiceLabel}>{label}</span>
                 {detail && <span className={styles.continueChoiceDetail}>{detail}</span>}
             </span>
+            {recommended && (
+                <span className={styles.continueChoiceBadge} data-testid={`classroom-continue-${kind}-recommended`}>
+                    <FormattedMessage
+                        defaultMessage="Recommended"
+                        description="Badge on the start choice recommended by the teacher's setting"
+                        id="gui.classroom.continueChoice.recommended"
+                    />
+                </span>
+            )}
             {loadedChoice === kind && <span className={styles.continueChoiceCheck}>{'✓'}</span>}
         </button>
     );
@@ -88,6 +105,7 @@ ChoiceButton.propTypes = {
     label: PropTypes.node.isRequired,
     loadedChoice: PropTypes.string,
     plain: PropTypes.bool,
+    recommended: PropTypes.bool,
     onSelect: PropTypes.func.isRequired,
 };
 
@@ -97,22 +115,22 @@ const submissionShape = PropTypes.shape({
     submittedAt: PropTypes.string,
 });
 
-const StartNotice = ({ notice, loadedChoice }) => {
-    if (notice === 'openedPrevious') {
+const StartNotice = ({ notice, showStarter }) => {
+    if (notice === 'recommendPrevious') {
         return (
             <FormattedMessage
-                defaultMessage="Your teacher set this lesson to continue: last time's submission is open."
-                description="Notice: the previous submission opened by the teacher's setting"
-                id="gui.classroom.continueChoice.noticeOpenedPrevious"
+                defaultMessage="Your teacher recommends continuing from last time's submission."
+                description="Notice: the teacher's setting recommends the previous submission"
+                id="gui.classroom.continueChoice.noticeRecommendPrevious"
             />
         );
     }
-    if (loadedChoice === 'starter') {
+    if (showStarter) {
         return (
             <FormattedMessage
-                defaultMessage="There was no submission from last time, so you start from the starter."
-                description="Notice: the teacher's setting wanted the previous submission but there was none; the starter opened"
-                id="gui.classroom.continueChoice.noticeNoPreviousStarter"
+                defaultMessage="There was no submission from last time. Start from the starter."
+                description="Notice: the teacher's setting wanted the previous submission but there was none; the starter is recommended"
+                id="gui.classroom.continueChoice.noticeNoPreviousUseStarter"
             />
         );
     }
@@ -126,14 +144,15 @@ const StartNotice = ({ notice, loadedChoice }) => {
 };
 
 StartNotice.propTypes = {
-    loadedChoice: PropTypes.string,
-    notice: PropTypes.oneOf(['openedPrevious', 'noPrevious']).isRequired,
+    notice: PropTypes.oneOf(['recommendPrevious', 'noPrevious']).isRequired,
+    showStarter: PropTypes.bool,
 };
 
 const StudentContinueChoice = ({
     continueOptions,
     isLoading,
     loadedChoice,
+    recommend,
     showStarter,
     startNotice,
     titleKind,
@@ -143,13 +162,13 @@ const StudentContinueChoice = ({
 }) => {
     const notice = startNotice ? (
         <span className={styles.continueChoiceNotice} data-testid="classroom-continue-notice">
-            <StartNotice loadedChoice={loadedChoice} notice={startNotice} />
+            <StartNotice notice={startNotice} showStarter={showStarter} />
         </span>
     ) : null;
-    if (!continueOptions) {
+    if (!continueOptions && !showStarter) {
         return notice ? <div className={styles.continueChoice}>{notice}</div> : null;
     }
-    const { previous, current } = continueOptions;
+    const { previous, current } = continueOptions || {};
     return (
         <div className={styles.continueChoice} data-testid="classroom-continue-choice">
             <div className={styles.continueChoiceTitle}>
@@ -180,6 +199,7 @@ const StudentContinueChoice = ({
                         }
                         isLoading={isLoading}
                         kind="starter"
+                        recommended={recommend === 'starter'}
                         label={
                             <FormattedMessage
                                 defaultMessage="Start from the starter"
@@ -198,6 +218,7 @@ const StudentContinueChoice = ({
                             .join(' · ')}
                         isLoading={isLoading}
                         kind="previous"
+                        recommended={recommend === 'previous'}
                         label={
                             <FormattedMessage
                                 defaultMessage="Continue from last time's submission"
@@ -263,9 +284,11 @@ StudentContinueChoice.propTypes = {
     }),
     isLoading: PropTypes.bool,
     loadedChoice: PropTypes.string,
+    // the choice the teacher's setting recommends (#1202)
+    recommend: PropTypes.oneOf(['starter', 'previous']),
     showStarter: PropTypes.bool,
-    // what the teacher's setting opened on join (#1202)
-    startNotice: PropTypes.oneOf(['openedPrevious', 'noPrevious']),
+    // why a choice is recommended, or that there was no previous submission (#1202)
+    startNotice: PropTypes.oneOf(['recommendPrevious', 'noPrevious']),
     // 'start' right after joining, 'load' on the status view (no starter there)
     titleKind: PropTypes.oneOf(['start', 'load']),
     // start without loading anything (offered right after joining, not on the status view)

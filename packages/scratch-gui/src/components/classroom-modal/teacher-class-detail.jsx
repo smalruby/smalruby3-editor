@@ -928,7 +928,7 @@ const TeacherClassDetail = ({
                                                         if (descEditor.startFromPrevious) {
                                                             return (
                                                                 <FormattedMessage
-                                                                    defaultMessage="On join: the project the student submitted last time opens (the starter if there is none)"
+                                                                    defaultMessage="On join: continuing from last time's submission is recommended (the starter if there is none)"
                                                                     description="Student-view preview: start-from-previous setting is on"
                                                                     id="gui.classroom.teacherDetail.previewStartPrevious"
                                                                 />
@@ -937,7 +937,7 @@ const TeacherClassDetail = ({
                                                         if (descEditor.starterMode && descEditor.starterMode !== 'none') {
                                                             return (
                                                                 <FormattedMessage
-                                                                    defaultMessage="On join: the starter opens (students with an earlier submission choose where to start)"
+                                                                    defaultMessage="On join: students start from the starter with a button (students with an earlier submission choose where to start)"
                                                                     description="Student-view preview: setting off, assignment has a starter"
                                                                     id="gui.classroom.teacherDetail.previewStartStarter"
                                                                 />

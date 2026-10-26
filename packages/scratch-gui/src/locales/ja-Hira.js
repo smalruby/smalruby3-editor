@@ -388,18 +388,19 @@ export default {
     'gui.classroom.continueChoice.current': 'このかだいでていしゅつしたさくひんをよみこむ',
     'gui.classroom.continueChoice.loadFailed': 'ていしゅつしたさくひんをひらけませんでした',
     'gui.classroom.continueChoice.gone': 'そのていしゅつぶつはもうよみこめません（きげんぎれか、けされました）',
-    'gui.classroom.continueChoice.noticeOpenedPrevious':
-        'せんせいのせっていで、ぜんかいのていしゅつぶつをひらきました',
-    'gui.classroom.continueChoice.noticeNoPreviousStarter':
-        'ぜんかいのていしゅつぶつがみつからなかったので、スターターからはじめます',
+    'gui.classroom.continueChoice.noticeRecommendPrevious':
+        'せんせいのおすすめ: ぜんかいのていしゅつぶつからつづけよう',
+    'gui.classroom.continueChoice.noticeNoPreviousUseStarter':
+        'ぜんかいのていしゅつぶつがみつからなかったので、スターターからはじめよう',
+    'gui.classroom.continueChoice.recommended': 'おすすめ',
     'gui.classroom.continueChoice.noticeNoPrevious': 'ぜんかいのていしゅつぶつがみつかりませんでした',
     'gui.classroom.assignmentEditor.startFromPrevious': 'ぜんかいのていしゅつぶつからはじめさせる',
     'gui.classroom.assignmentEditor.startFromPreviousHint':
-        'つづきのじゅぎょうむけ: せいとがさんかすると、このクラスのまえのかだいでていしゅつしたさくひんがひらきます。ぜんかいのていしゅつぶつがないせいとはスターターではじまります。',
+        'つづきのじゅぎょうむけ: せいとがさんかすると、このクラスのまえのかだいでていしゅつしたさくひんからつづけるボタンを「おすすめ」としてだします（スターターはだしません）。ぜんかいのていしゅつぶつがないせいとにはスターターからはじめるようあんないします。',
     'gui.classroom.teacherDetail.previewStartPrevious':
-        'さんかしたとき: ぜんかいのていしゅつぶつがひらきます（ないせいとはスターター）',
+        'さんかしたとき: ぜんかいのていしゅつぶつからつづけるのがおすすめ（ないせいとはスターター）',
     'gui.classroom.teacherDetail.previewStartStarter':
-        'さんかしたとき: スターターがひらきます（ぜんかいのていしゅつぶつがあるせいとは、どこからはじめるかえらびます）',
+        'さんかしたとき: ボタンでスターターからはじめます（ぜんかいのていしゅつぶつがあるせいとは、どこからはじめるかえらびます）',
     'gui.classroom.teacherDetail.previewStartNone':
         'さんかしたとき: いまのさくひんのままはじめます（ぜんかいのていしゅつぶつがあるせいとは、どこからはじめるかえらびます）',
     'gui.classroom.continueChoice.starterDetail': 'せんせいがよういしたさくひんからつくる',
@@ -412,7 +413,7 @@ export default {
     'gui.classroom.assignmentEditor.openButton': 'かだいをへんしゅう',
     'gui.classroom.assignmentEditor.title': 'かだいをへんしゅう',
     'gui.classroom.assignmentEditor.hint':
-        'せいとがさんかコードでさんかすると、このページがひょうじされ、スタータープロジェクトがじどうでひらきます。',
+        'せいとがさんかコードでさんかすると、このページがひょうじされ、ボタンでスタータープロジェクトからはじめます。',
     'gui.classroom.assignmentEditor.pageNumber': 'ページ {number}',
     'gui.classroom.assignmentEditor.pageTextPlaceholder': 'このページのせつめいをかきます（すうぎょうていど）',
     'gui.classroom.assignmentEditor.moveUp': 'うえへいどう',

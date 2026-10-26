@@ -16,8 +16,7 @@ const StudentJoinedConfirmation = ({
     isLoading,
     joinedInfo,
     loadedChoice,
-    starterAvailable,
-    startNotice,
+    startChoice,
     onClose,
     onLoadStarter,
     onLoadSubmission,
@@ -53,13 +52,15 @@ const StudentJoinedConfirmation = ({
             )}
         </div>
         <StudentPreviousComment previousComment={joinedInfo.previousComment} />
-        {/* Earlier submissions to continue from (#1201). */}
+        {/* Where to start: the starter and earlier submissions (#1201). Nothing
+            is loaded until the student presses one. */}
         <StudentContinueChoice
             continueOptions={continueOptions}
             isLoading={isLoading}
             loadedChoice={loadedChoice}
-            showStarter={starterAvailable}
-            startNotice={startNotice}
+            recommend={startChoice?.recommend}
+            showStarter={!!startChoice?.showStarter}
+            startNotice={startChoice?.notice}
             onKeepCurrent={onClose}
             onLoadStarter={onLoadStarter}
             onLoadSubmission={onLoadSubmission}
@@ -86,7 +87,7 @@ const StudentJoinedConfirmation = ({
             </div>
         </div>
         {/* With choices, each choice starts (incl. "as it is"), so no separate Start button. */}
-        {!continueOptions && (
+        {!continueOptions && !startChoice?.showStarter && (
             <div className={styles.buttonRow}>
                 <button
                     className={styles.primaryButton}
@@ -117,8 +118,11 @@ StudentJoinedConfirmation.propTypes = {
         previousComment: PropTypes.object,
     }).isRequired,
     loadedChoice: PropTypes.string,
-    starterAvailable: PropTypes.bool,
-    startNotice: PropTypes.string,
+    startChoice: PropTypes.shape({
+        showStarter: PropTypes.bool,
+        recommend: PropTypes.string,
+        notice: PropTypes.string,
+    }),
     onClose: PropTypes.func.isRequired,
     onLoadStarter: PropTypes.func,
     onLoadSubmission: PropTypes.func,
