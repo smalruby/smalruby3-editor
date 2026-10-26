@@ -653,9 +653,17 @@ export class ClassroomStack extends cdk.Stack {
     // One invoke permission for the whole API instead of one per route: the
     // per-route statements pushed the Lambda resource policy past its 20 KB
     // limit when the peer-submissions route was added (#1239).
+    // The API invokes an alias, not the function: the alias has its own
+    // (empty) resource policy, so the new statement fits even though
+    // CloudFormation creates it before deleting the per-route statements on
+    // the function, whose policy was already full.
+    const handlerAlias = new lambda.Alias(this, 'ClassroomHandlerLive', {
+      aliasName: 'live',
+      version: handlerFn.currentVersion,
+    });
     const integration = new apigatewayv2Integrations.HttpLambdaIntegration(
       'ClassroomIntegration',
-      handlerFn,
+      handlerAlias,
       { scopePermissionToRoute: false },
     );
 
