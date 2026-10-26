@@ -298,6 +298,7 @@ const useTeacherClassroom = ({
         handleToggleCodeFullscreen: submissions.handleToggleCodeFullscreen,
         handleCopyInviteLink: submissions.handleCopyInviteLink,
         handleReturnSubmission: submissions.handleReturnSubmission,
+        handleSetHiddenFromPeers: submissions.handleSetHiddenFromPeers,
         handleDownloadAll: submissions.handleDownloadAll,
         handleDownloadClassAll: submissions.handleDownloadClassAll,
 
@@ -308,6 +309,7 @@ const useTeacherClassroom = ({
         assignmentHasExistingStarter: assignment.hasExistingStarter,
         assignmentIsSaving: assignment.isSaving,
         assignmentStartFromPrevious: assignment.startFromPrevious,
+        assignmentPeerView: assignment.peerView,
         handleAssignmentAddPage: assignment.handleAddPage,
         handleAssignmentRemovePage: assignment.handleRemovePage,
         handleAssignmentMovePage: assignment.handleMovePage,
@@ -318,6 +320,7 @@ const useTeacherClassroom = ({
         handleAssignmentUseFile: assignment.handleUseFileAsStarter,
         handleAssignmentRemoveStarter: assignment.handleRemoveStarter,
         handleAssignmentChangeStartFromPrevious: assignment.handleChangeStartFromPrevious,
+        handleAssignmentChangePeerView: assignment.handleChangePeerView,
         handleAssignmentSave: assignment.handleSaveAssignment,
         handleAssignmentCancel: assignment.handleCancelAssignmentEdit,
         handleAssignmentApplyTemplate: assignment.handleApplyTemplate,

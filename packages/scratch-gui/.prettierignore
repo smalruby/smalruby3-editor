@@ -336,6 +336,7 @@ test/unit/*
 # Level 3: test/unit/components/*
 test/unit/components/*
 !test/unit/components/action-menu.test.jsx
+!test/unit/components/teacher-member-detail.test.jsx
 !test/unit/components/image-viewer.test.jsx
 !test/unit/components/bug-report-consent.test.jsx
 !test/unit/components/koshien-mock-panel.test.jsx
@@ -390,6 +391,7 @@ test/unit/containers/*
 !test/unit/containers/use-kick-request-polling.test.js
 !test/unit/containers/use-student-assignment.test.js
 !test/unit/containers/use-teacher-assignment.test.js
+!test/unit/containers/use-student-submit.test.js
 !test/unit/containers/connection-modal-connected-message.test.jsx
 !test/unit/containers/connection-modal-smalrubot-s1.test.jsx
 !test/unit/containers/connection-modal.test.jsx

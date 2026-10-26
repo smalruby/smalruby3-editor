@@ -139,6 +139,40 @@ const useTeacherSubmissions = ({
         ],
     );
 
+    // --- Peer view (#1208): hide a submission from classmates ---
+
+    const handleSetHiddenFromPeers = useCallback(
+        async (submissionId, hiddenFromPeers) => {
+            if (!idToken || !selectedClassroom || !submissionId) return;
+            clearError();
+            setIsLoading(true);
+            try {
+                await classroomAPI.updateSubmission(idToken, selectedClassroom.classroomId, submissionId, {
+                    hiddenFromPeers: !!hiddenFromPeers,
+                });
+                await loadClassroomDetail(selectedClassroom.classroomId);
+            } catch (err) {
+                if (err.status === 401) {
+                    await handleTeacher401();
+                } else {
+                    showError(translateError(intl, err));
+                }
+            } finally {
+                setIsLoading(false);
+            }
+        },
+        [
+            idToken,
+            selectedClassroom,
+            clearError,
+            showError,
+            handleTeacher401,
+            intl,
+            loadClassroomDetail,
+            setIsLoading,
+        ],
+    );
+
     // --- Download all submissions as ZIP ---
 
     const handleDownloadAll = useCallback(async () => {
@@ -336,6 +370,7 @@ const useTeacherSubmissions = ({
         handleToggleCodeFullscreen,
         handleCopyInviteLink,
         handleReturnSubmission,
+        handleSetHiddenFromPeers,
         handleDownloadAll,
         handleDownloadClassAll,
         resetSubmissionDisplay,

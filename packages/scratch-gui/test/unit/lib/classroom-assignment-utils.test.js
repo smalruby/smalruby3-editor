@@ -1,7 +1,9 @@
 import {
     MAX_ASSIGNMENT_PAGES,
     MAX_ASSIGNMENT_PAGE_TEXT_LENGTH,
+    PEER_VIEW_VALUES,
     buildAssignmentPayload,
+    normalizePeerView,
     isEmptyAssignment,
     moveItem,
     validateEditorPages,
@@ -16,6 +18,15 @@ describe('buildAssignmentPayload', () => {
         });
         expect(buildAssignmentPayload([{ text: 'p' }], 'none', false).startFromPrevious).toBe(false);
         expect(buildAssignmentPayload([{ text: 'p' }], 'none')).not.toHaveProperty('startFromPrevious');
+    });
+
+    test('includes peerView only when given (#1208)', () => {
+        expect(buildAssignmentPayload([{ text: 'p' }], 'none', false, 'afterSubmit')).toEqual({
+            pages: [{ text: 'p' }],
+            startFromPrevious: false,
+            peerView: 'afterSubmit',
+        });
+        expect(buildAssignmentPayload([{ text: 'p' }], 'none', false)).not.toHaveProperty('peerView');
     });
 
     test('maps text-only pages', () => {
@@ -130,5 +141,15 @@ describe('moveItem', () => {
         const items = ['a', 'b', 'c'];
         moveItem(items, 0, 2);
         expect(items).toEqual(['a', 'b', 'c']);
+    });
+});
+
+describe('normalizePeerView (#1208)', () => {
+    test('keeps the three known values and falls back to none', () => {
+        expect(PEER_VIEW_VALUES).toEqual(['none', 'always', 'afterSubmit']);
+        expect(normalizePeerView('always')).toBe('always');
+        expect(normalizePeerView('afterSubmit')).toBe('afterSubmit');
+        expect(normalizePeerView(undefined)).toBe('none');
+        expect(normalizePeerView('bogus')).toBe('none');
     });
 });

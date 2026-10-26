@@ -388,3 +388,50 @@ describe('TeacherClassDetail — 前回の提出物から始めさせる (#1202)
         expect(byTestId('classroom-description-preview-start')).toHaveTextContent('start with the open project');
     });
 });
+
+describe('TeacherClassDetail — 他者参照 (#1208)', () => {
+    const editor = (over = {}) => ({
+        editorPages: [{ text: 'みんなの作品を見よう' }],
+        starterMode: 'none',
+        starterSource: null,
+        hasExistingStarter: false,
+        isSaving: false,
+        startFromPrevious: false,
+        peerView: 'none',
+        onAddPage: jest.fn(),
+        onAttachPageImage: jest.fn(),
+        onChangePageText: jest.fn(),
+        onChangeStartFromPrevious: jest.fn(),
+        onChangePeerView: jest.fn(),
+        onMovePage: jest.fn(),
+        onRemovePage: jest.fn(),
+        onRemovePageImage: jest.fn(),
+        onRemoveStarter: jest.fn(),
+        onSave: jest.fn(),
+        onUseCurrentProject: jest.fn(),
+        onUseFile: jest.fn(),
+        ...over,
+    });
+    const byTestId = (id) => document.querySelector(`[data-testid="${id}"]`);
+
+    test('説明タブに 3 択の設定 (既定「しない」) を出し、変更を伝える', () => {
+        const onChangePeerView = jest.fn();
+        renderDetail({
+            assignmentEditor: editor({ onChangePeerView }),
+            detailEntry: { tab: 'description', seq: 1 },
+        });
+        const select = byTestId('classroom-assignment-peer-view');
+        expect(select).toHaveValue('none');
+        expect(Array.from(select.options).map((o) => o.value)).toEqual(['none', 'always', 'afterSubmit']);
+        fireEvent.change(select, { target: { value: 'afterSubmit' } });
+        expect(onChangePeerView).toHaveBeenCalledWith('afterSubmit');
+    });
+
+    test('保存済みの値を選択状態にする', () => {
+        renderDetail({
+            assignmentEditor: editor({ peerView: 'always' }),
+            detailEntry: { tab: 'description', seq: 1 },
+        });
+        expect(byTestId('classroom-assignment-peer-view')).toHaveValue('always');
+    });
+});

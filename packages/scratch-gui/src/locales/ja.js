@@ -229,6 +229,7 @@ export default {
     'gui.classroom.error.goToJoin': '参加画面を表示',
     'gui.classroom.teacherDetail.openSubmission': 'スモウルビーで開く',
     'gui.classroom.teacherDetail.returnSubmission': '返却する',
+    'gui.classroom.teacherDetail.hideFromPeers': '他の生徒に見せない',
     'gui.classroom.teacherDetail.returned': '返却済み',
     'gui.classroom.teacherDetail.seated': '着席中',
     'gui.classroom.teacherDetail.notSeated': '未着席',
@@ -390,6 +391,12 @@ export default {
     'gui.classroom.assignmentEditor.startFromPrevious': '前回の提出物から始めさせる',
     'gui.classroom.assignmentEditor.startFromPreviousHint':
         '続きの授業向け: 生徒が参加すると、このクラスの前の課題で提出した作品から続けるボタンを「おすすめ」として出します（スターターは出しません）。前回の提出物が無い生徒にはスターターから始めるよう案内します。',
+    'gui.classroom.assignmentEditor.peerView': '他者参照',
+    'gui.classroom.assignmentEditor.peerViewNone': 'しない',
+    'gui.classroom.assignmentEditor.peerViewAlways': 'いつでも見られる',
+    'gui.classroom.assignmentEditor.peerViewAfterSubmit': '自分が提出したら見られる',
+    'gui.classroom.assignmentEditor.peerViewHint':
+        '生徒は、提出したクラスメイトのステージの画像とブロックの画像だけを見られます（作品ファイル・名前・先生のコメントは見えません）。「自分が提出したら」にすると、まず自分で取り組んでから参照させられます。',
     'gui.classroom.teacherDetail.previewStartPrevious':
         '参加したとき: 前回の提出物から続けるのがおすすめ（無い生徒はスターター）',
     'gui.classroom.teacherDetail.previewStartStarter':
