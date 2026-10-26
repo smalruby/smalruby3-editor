@@ -650,9 +650,13 @@ export class ClassroomStack extends cdk.Stack {
       } : undefined,
     });
 
+    // One invoke permission for the whole API instead of one per route: the
+    // per-route statements pushed the Lambda resource policy past its 20 KB
+    // limit when the peer-submissions route was added (#1239).
     const integration = new apigatewayv2Integrations.HttpLambdaIntegration(
       'ClassroomIntegration',
-      handlerFn
+      handlerFn,
+      { scopePermissionToRoute: false },
     );
 
     // Routes
