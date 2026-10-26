@@ -640,7 +640,7 @@ describe('課題コンテンツエンドポイント — 認証エラー', () =>
         const create2 = await request(
             'POST',
             '/classrooms',
-            { className: '結合テスト2年1組', assignmentName: '第2回', studentCount: 3, groupId },
+            { className: '結合テスト2年1組', assignmentName: '第2回', studentCount: 4, groupId },
             teacherAuth,
         );
         expect(create2.status).toBe(201);
@@ -698,11 +698,12 @@ describe('課題コンテンツエンドポイント — 認証エラー', () =>
 
         // 第1回で何も出していない席4は、前回も今回も null
         const seat4 = await request('POST', '/classrooms/join', { joinCode: secondJoinCode, seatNumber: 4 });
+        expect(seat4.status).toBe(200);
         const none = await request('GET', `/classrooms/${secondClassroomId}/continuable-submissions`, null, {
             Authorization: `Bearer ${seat4.data.sessionToken as string}`,
         });
         expect(none.status).toBe(200);
-        expect(none.data).toEqual({ current: null, previous: null });
+        expect(none.data).toEqual({ current: null, previous: null, startFromPrevious: false });
 
         // 別の課題のパス・トークンなしは 401
         const wrong = await request('GET', `/classrooms/${firstClassroomId}/continuable-submissions`, null, otherAuth);
