@@ -154,6 +154,40 @@ describe('useStudentAssignment — 続きから始める (#1201)', () => {
         expect(hook.result.current.continueOptions).toBeNull();
     });
 
+    test('「スターターから始める」も URL を取り直してから読み込む', async () => {
+        mockGetAssignment.mockResolvedValueOnce({ assignment: ASSIGNMENT });
+        mockGetContinuable.mockResolvedValue({ current: null, previous: PREVIOUS });
+        const { hook } = setup();
+        await act(async () => {
+            await hook.result.current.handleJoined('st', 'c-now', true);
+        });
+        mockGetAssignment.mockResolvedValueOnce({
+            assignment: { ...ASSIGNMENT, starterUrl: 'https://signed.example/fresh-starter.sb3' },
+        });
+        await act(async () => {
+            await hook.result.current.handleReloadStarter();
+        });
+        expect(mockGetAssignment).toHaveBeenLastCalledWith('st', 'c-now');
+        expect(global.fetch).toHaveBeenCalledWith('https://signed.example/fresh-starter.sb3');
+        expect(global.fetch).not.toHaveBeenCalledWith(ASSIGNMENT.starterUrl);
+        expect(hook.result.current.loadedChoice).toBe('starter');
+    });
+
+    test('取り直したらスターターが無くなっていたときはエラーを出す', async () => {
+        mockGetAssignment.mockResolvedValueOnce({ assignment: ASSIGNMENT });
+        mockGetContinuable.mockResolvedValue({ current: null, previous: PREVIOUS });
+        const { hook, deps } = setup();
+        await act(async () => {
+            await hook.result.current.handleJoined('st', 'c-now', true);
+        });
+        mockGetAssignment.mockResolvedValueOnce({ assignment: null });
+        await act(async () => {
+            await hook.result.current.handleReloadStarter();
+        });
+        expect(mockLoadProject).not.toHaveBeenCalled();
+        expect(deps.showError).toHaveBeenCalled();
+    });
+
     test('ステータス画面用に選択肢を取り直せる', async () => {
         mockGetContinuable.mockResolvedValue({ current: PREVIOUS, previous: null });
         const { hook } = setup();

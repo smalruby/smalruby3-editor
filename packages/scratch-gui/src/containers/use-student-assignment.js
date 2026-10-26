@@ -244,19 +244,46 @@ const useStudentAssignment = ({ classroomState, vm, intl, clearError, showError,
         setPhase,
     ]);
 
-    /** Explicitly (re)open the starter from the assignment panel. */
+    /**
+     * Explicitly (re)open the starter from the assignment panel / choice row.
+     * The starter URL is fetched again right before loading, like the
+     * submissions: with a choice to make the starter no longer opens on join,
+     * so the URL from the join may have expired while the student read the
+     * assignment.
+     */
     const handleReloadStarter = useCallback(async () => {
         if (!assignment) return;
         clearError();
         setIsLoading(true);
         try {
-            await loadStarter(assignment);
+            let starterAssignment = assignment;
+            if (classroomState.sessionToken && classroomState.classroomId) {
+                const data = await classroomAPI.getAssignment(
+                    classroomState.sessionToken,
+                    classroomState.classroomId,
+                );
+                starterAssignment = data.assignment;
+            }
+            if (!starterAssignment?.starterUrl) {
+                showError(intl.formatMessage(messages.starterLoadFailed));
+                return;
+            }
+            await loadStarter(starterAssignment);
         } catch {
             showError(intl.formatMessage(messages.starterLoadFailed));
         } finally {
             setIsLoading(false);
         }
-    }, [assignment, loadStarter, clearError, showError, intl, setIsLoading]);
+    }, [
+        assignment,
+        classroomState.sessionToken,
+        classroomState.classroomId,
+        loadStarter,
+        clearError,
+        showError,
+        intl,
+        setIsLoading,
+    ]);
 
     const handleAssignmentPrevPage = useCallback(() => {
         setAssignmentPageIndex((i) => Math.max(0, i - 1));
