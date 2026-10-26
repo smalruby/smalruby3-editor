@@ -98,6 +98,30 @@ test('applyMergeProgression: also closes the GitHub issue (Fix A, #843)', async 
     assert.deepEqual(closed, [1]);
 });
 
+test('applyMergeProgression: 🧱 infra Issue は merge では閉じない（prod デプロイ後に workflow が閉じる）', async () => {
+    const items = [
+        { issue: 1, itemId: 'i1', status: 'Review', kind: 'Issue', labels: ['🧱 infra'] },
+        { issue: 2, itemId: 'i2', status: 'Review', kind: 'Issue', labels: [] },
+    ];
+    const closed = [];
+    const applied = [];
+    const state = { running: new Map() };
+    await applyMergeProgression(items, makeCfg(), state, () => {}, {
+        token: 't',
+        hasMergedPullRequest: () => true,
+        applyIntents: (ctx, itemId, intents) => {
+            applied.push(itemId);
+            return intents.map((i) => `${i.field}=${i.value}`);
+        },
+        findItemId: () => 'x',
+        closeIssue: (repo, issue) => closed.push(issue),
+        syncFaces: () => {},
+    });
+    // Project はどちらも Close へ進めるが、GitHub の Issue を閉じるのは infra 以外だけ
+    assert.deepEqual(applied, ['i1', 'i2']);
+    assert.deepEqual(closed, [2]);
+});
+
 test('applyMergeProgression: a failing gh close does not abort the loop (#843)', async () => {
     const items = [
         { issue: 1, itemId: 'i1', status: 'Review', kind: 'Issue' },

@@ -133,7 +133,7 @@ Issue 本文の**行頭**に書くディレクティブで挙動を制御でき�
 | ディレクティブ | 意味 |
 |---|---|
 | `autopilot-base: <branch>` | PR 先・worktree 分岐元のベースブランチ（EPIC サブ Issue を親 epic ブランチに積む等） |
-| `autopilot-after: #N [#M ...]` | 依存宣言。N（と M …）が完了（GitHub closed / Project Close・Done）するまで着手しない。ブロック中は次点候補が繰り上がる。**待ち Issue は Sprint Backlog に置く**（Backlog はそもそも着手候補にならないので先行 Close で自動着手しない）。ゲート中は daemon が `⏳ waiting` ラベルを付け、先行 Close で自動除去 → 次 tick で着手 |
+| `autopilot-after: #N [#M ...]` | 依存宣言。N（と M …）が完了（GitHub closed / Project Close・Done。**N が `🧱 infra` なら GitHub closed のみ**＝prod デプロイ後）するまで着手しない。ブロック中は次点候補が繰り上がる。**待ち Issue は Sprint Backlog に置く**（Backlog はそもそも着手候補にならないので先行 Close で自動着手しない）。ゲート中は daemon が `⏳ waiting` ラベルを付け、先行 Close で自動除去 → 次 tick で着手 |
 | `autopilot-assignee: <login>`（`@login` も可） | 複数 assignee の Issue でオーナー（駆動する担当）を明示指定する（#938）。指定 login が Assignees に含まれていなければ無視して従来どおり辞書順先頭。指定した担当の daemon（`--assignee <login>`）だけが駆動し、他の担当の daemon は駆動しない。共同担当（非オーナー）は自分の monitor で Issue を観察できる（下記「俯瞰ボード」参照） |
 
 ### 🧭 tracking ラベル（分解済み親のトラッカー化）
@@ -151,6 +151,24 @@ daemon が **`⏳ waiting` ラベル**を付ける。GitHub Projects の view �
 なく）、先行 Issue が Close された瞬間に自動で外す → 次 tick で着手する。順序付きで分解した
 EPIC の leaf は **全部 Sprint Backlog に入れておけば**、依存順に自動で 1 つずつ流れる（並列
 衝突はゲーティングが防ぐ）。
+
+### 🧱 infra ラベル（infra を先に出す・infra-first）
+
+ブランチプレビューは prod の API を見るので、infra と GUI を同じ PR に入れると新しい API を
+使う GUI をプレビューで確認できない。そこで **infra（`infra/**`）の変更は GUI と別の sub-issue に
+分け、`🧱 infra` ラベルを付けて先に develop へ出す**（手順の正準は
+`.claude/rules/infra/development.md` の「infra は別 Issue に分けて先に出す」）。
+
+1. triage は infra とそれ以外の両方に変更が要る Issue を EPIC にし、decompose が infra の leaf
+   （`🧱 infra`・`autopilot-base:` なし＝develop 宛て）と残りの leaf（`autopilot-after: #<infra>`）に分ける。
+2. infra の PR は**後方互換な変更だけ**・本文は `Refs #N`。人間が develop へマージする。
+3. daemon は merge を検知すると Project を Close に進めるが、**GitHub の Issue は閉じない**。
+4. `Deploy Infra` workflow が stg → prod へ出し、**prod に出せたら infra の Issue を閉じる**
+   （削除・置き換えを含む差分は自動では出さず、PR に知らせる）。
+5. `autopilot-after` の相手が 🧱 infra のときは **GitHub で closed になるまで未完了**とみなすので、
+   GUI の leaf はここで初めて `⏳ waiting` が外れて動き出し、プレビューで確認できる。
+
+ラベルは Issue を作る側（decompose / 人間）が付ける。daemon は付け外ししない。
 
 ### 💤 later ラベル（「あとでやる」一覧の分離）
 

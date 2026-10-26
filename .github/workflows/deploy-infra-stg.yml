@@ -1,12 +1,17 @@
-name: Deploy Infra (stg)
+name: Deploy Infra
 
-# stg への唯一のデプロイ経路 (#1162)。
+# infra（CDK）を stg と prod へ出す唯一の経路。
 #
-# ローカルから `cdk deploy --context stage=stg` を撃たないための受け皿。共有資源の stg を
-# 人間と複数の autopilot worker が奪い合うと、片方のデプロイ途中にもう片方が入って
+# stg (#1162): ローカルから `cdk deploy --context stage=stg` を撃たないための受け皿。共有資源の
+# stg を人間と複数の autopilot worker が奪い合うと、片方のデプロイ途中にもう片方が入って
 # CloudFormation が中断する。ここに集約して concurrency でキュー化する。
 #
-# prod はこの workflow では扱わない（人間が手元から明示的にデプロイする）。
+# prod: develop へのマージ（push）で、stg が成功したプロジェクトを prod へ出す。infra は
+# 「後方互換な変更だけを GUI より先に develop へ入れる」運用なので（.claude/rules/infra/development.md）、
+# マージしたらすぐ prod に出してよい。安全装置として、prod の `cdk diff` に**リソースの削除・
+# 置き換え**が含まれるときは自動では出さずに止める（非互換になりうる変更は人間が判断する）。
+# 差分が無いプロジェクトはデプロイしない。prod に出せたら、マージした PR が参照する
+# 🧱 infra の Issue を閉じる（後続の GUI Issue が autopilot-after で動き出す合図）。
 
 on:
   pull_request:
@@ -43,6 +48,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       projects: ${{ steps.detect.outputs.projects }}
+      prod_projects: ${{ steps.detect.outputs.prod_projects }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -80,15 +86,19 @@ jobs:
           done
           if [ ${#selected[@]} -eq 0 ]; then
             echo "projects=[]" >> "$GITHUB_OUTPUT"
+            echo "prod_projects=[]" >> "$GITHUB_OUTPUT"
           else
             # secret 名にはハイフンを使えない（英数字と _ のみ）ので、ここで変換して
             # matrix に載せる。Actions の式には文字列置換が無く、format() では作れない。
             json=""
+            prod_json=""
             for name in "${selected[@]}"; do
-              secret="INFRA_STG_DOTENV_$(echo "${name}" | tr 'a-z-' 'A-Z_')"
-              json="${json}{\"project\":\"${name}\",\"secret\":\"${secret}\"},"
+              suffix="$(echo "${name}" | tr 'a-z-' 'A-Z_')"
+              json="${json}{\"project\":\"${name}\",\"secret\":\"INFRA_STG_DOTENV_${suffix}\"},"
+              prod_json="${prod_json}{\"project\":\"${name}\",\"secret\":\"INFRA_PROD_DOTENV_${suffix}\"},"
             done
             echo "projects=[${json%,}]" >> "$GITHUB_OUTPUT"
+            echo "prod_projects=[${prod_json%,}]" >> "$GITHUB_OUTPUT"
           fi
           echo "対象: ${selected[*]:-(なし)}"
 
@@ -223,3 +233,165 @@ jobs:
           else
             echo "deploy-stg は付いていない（何もしない）"
           fi
+
+  # ---- prod ----
+  # develop へのマージ（push）だけで動く。PR・手動起動では prod に出さない。stg が
+  # **すべて**成功したときだけ進む（stg を prod の前段の確認として使う）。
+  deploy-prod:
+    name: "[${{ matrix.project }}] deploy prod"
+    needs: [select, deploy]
+    if: >-
+      github.event_name == 'push' && github.ref == 'refs/heads/develop' &&
+      needs.select.outputs.prod_projects != '[]' && needs.deploy.result == 'success'
+    runs-on: ubuntu-latest
+    # Environment `prod` を通るジョブだけが prod 用ロールを AssumeRole できる（AWS 側の信頼条件
+    # sub = repo:smalruby/smalruby3-editor:environment:prod）。ロール ARN と .env は
+    # Environment の Variables / Secrets に置く（docs/infra-deploy/README.md）。
+    environment: prod
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(needs.select.outputs.prod_projects) }}
+    concurrency:
+      group: infra-deploy-prod-${{ matrix.project }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: 前提の確認
+        env:
+          ROLE_ARN: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          PROD_DOTENV: ${{ secrets[matrix.secret] }}
+          PROJECT: ${{ matrix.project }}
+          SECRET_NAME: ${{ matrix.secret }}
+        run: |
+          set -euo pipefail
+          missing=0
+          if [ -z "${ROLE_ARN}" ]; then
+            echo "::error::Environment prod の Variables に AWS_DEPLOY_ROLE_ARN が未設定です（docs/infra-deploy/README.md）。"
+            missing=1
+          fi
+          if [ -z "${PROD_DOTENV}" ]; then
+            echo "::error::Environment prod の Secrets に ${SECRET_NAME} が未設定です。infra/${PROJECT} の prod 用 .env（.env.prod / .env.production）の内容を登録してください。"
+            missing=1
+          fi
+          [ "${missing}" -eq 0 ] || exit 1
+
+      - name: prod の .env を用意する
+        env:
+          PROD_DOTENV: ${{ secrets[matrix.secret] }}
+          PROJECT: ${{ matrix.project }}
+        run: |
+          set -euo pipefail
+          printf '%s\n' "${PROD_DOTENV}" > "infra/${PROJECT}/.env.prod"
+          ln -sf .env.prod "infra/${PROJECT}/.env"
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: infra/${{ matrix.project }}/.node-version
+          cache: npm
+          cache-dependency-path: infra/${{ matrix.project }}/package-lock.json
+
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install dependencies
+        working-directory: infra/${{ matrix.project }}
+        run: npm ci
+
+      - id: diff
+        name: cdk diff (prod) — 差分と危険な変更の確認
+        working-directory: infra/${{ matrix.project }}
+        env:
+          PROJECT: ${{ matrix.project }}
+        run: |
+          set -euo pipefail
+          npx cdk diff --context stage=prod --no-color 2>&1 | tee "${RUNNER_TEMP}/cdk-diff.txt"
+          {
+            printf '### `%s` の prod 差分\n\n```\n' "${PROJECT}"
+            grep -vE '^\s*$' "${RUNNER_TEMP}/cdk-diff.txt" | tail -n 200
+            printf '```\n'
+          } >> "$GITHUB_STEP_SUMMARY"
+          if grep -qE 'There were no differences|Number of stacks with differences: 0' "${RUNNER_TEMP}/cdk-diff.txt"; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "prod との差分なし。デプロイしない。"
+            exit 0
+          fi
+          # 削除（[-] AWS::...）と置き換え（replace）は、いま動いている prod の画面やデータを
+          # 壊しうる。後方互換な変更（追加・設定変更）だけを自動で出す。
+          if grep -nE '^\[-\] AWS::|requires replacement|may be replaced|[[:space:]]replace$' "${RUNNER_TEMP}/cdk-diff.txt"; then
+            echo "::error::prod の差分にリソースの削除・置き換えが含まれるため、自動デプロイを止めました。非互換になりうる変更なので、人間が内容を確認して手元から \`npx cdk deploy --context stage=prod\` を実行してください（docs/infra-deploy/README.md）。"
+            exit 1
+          fi
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: cdk deploy (prod)
+        if: steps.diff.outputs.changed == 'true'
+        working-directory: infra/${{ matrix.project }}
+        run: npx cdk deploy --context stage=prod --require-approval never
+
+  # prod に出せたら、マージした PR が参照する 🧱 infra の Issue を閉じる。後続の GUI Issue は
+  # `autopilot-after: #<infra>` でこれを待っているので、閉じた時点で動き出し、prod の API を
+  # 見るブランチプレビューで確認できる。差分が無く deploy をスキップした場合も「prod は最新」
+  # なので閉じてよい。
+  close-infra-issues:
+    name: prod に出した infra Issue を閉じる
+    needs: [select, deploy-prod]
+    if: needs.deploy-prod.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
+    steps:
+      - name: 🧱 infra の Issue を閉じる
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          for pr in $(gh api "repos/${REPO}/commits/${SHA}/pulls" --jq '.[].number'); do
+            # PR 本文の Refs / Closes / Fixes / Resolves #N を拾う（infra の PR は `Refs #N` で書く）
+            nums=$(gh api "repos/${REPO}/pulls/${pr}" --jq '.body // ""' \
+              | grep -oiE '(refs|closes|fixes|resolves)[[:space:]]+#[0-9]+' | grep -oE '[0-9]+' | sort -u || true)
+            for n in ${nums}; do
+              target=$(gh api "repos/${REPO}/issues/${n}" \
+                --jq 'select(.pull_request == null and .state == "open" and (([.labels[].name] | index("🧱 infra")) != null)) | .number')
+              [ -n "${target}" ] || continue
+              printf '🚀 PR #%s の infra を prod にデプロイしました（%s）。この Issue を閉じます。\n\n後続の Issue（`autopilot-after: #%s`）は、prod の API を使えるので**ブランチプレビューで確認**できます。\n' \
+                "${pr}" "${RUN_URL}" "${n}" > "${RUNNER_TEMP}/close-${n}.md"
+              gh issue comment "${n}" --repo "${REPO}" --body-file "${RUNNER_TEMP}/close-${n}.md"
+              gh issue close "${n}" --repo "${REPO}"
+              echo "closed #${n} (PR #${pr})"
+            done
+          done
+
+  # prod へ出せなかったとき（危険な差分で止めた・失敗した）は、マージした PR に知らせる。
+  # infra の Issue は開いたままなので、後続の GUI Issue も待ったままになる（壊れた API の上で
+  # 進めない）。
+  notify-prod-failure:
+    name: prod デプロイの失敗を知らせる
+    needs: [select, deploy-prod]
+    if: always() && needs.deploy-prod.result == 'failure'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: PR にコメントする
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          printf '⚠️ この PR の infra を prod に出せませんでした: %s\n\nジョブの要約（cdk diff）を確認してください。削除・置き換えを含む差分は自動では出しません。人間が内容を確認して手元からデプロイするか、直してから run を再実行してください。prod に出るまで、この PR が参照する 🧱 infra の Issue は開いたままです。\n' \
+            "${RUN_URL}" > "${RUNNER_TEMP}/prod-failure.md"
+          for pr in $(gh api "repos/${REPO}/commits/${SHA}/pulls" --jq '.[].number'); do
+            gh pr comment "${pr}" --repo "${REPO}" --body-file "${RUNNER_TEMP}/prod-failure.md"
+          done

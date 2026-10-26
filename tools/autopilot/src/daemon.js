@@ -25,6 +25,8 @@ const {
     shouldPushAfterFollow,
     parseAfterIssues,
     unresolvedAfterIssues,
+    infraIssueSet,
+    shouldCloseIssueOnMerge,
     parseAssigneeDirective,
     selectActionable,
     isStuckCandidate,
@@ -1168,8 +1170,14 @@ async function applyMergeProgression(items, cfg, state, log, deps = {}) {
             log(`#${item.issue}: PR merged → ${applied.join(', ')}`);
             // Fix A（#843）: 非デフォルト base 宛て PR（EPIC サブ）では GitHub の `Closes #N` 自動
             // close が効かないため、Project を Close へ進めたら GitHub issue も明示的に閉じる（冪等）。
-            try { await closeIssue(cfg.repo, item.issue, token); }
-            catch (e) { log(`#${item.issue}: gh issue close failed: ${e.message}`); }
+            // 🧱 infra は閉じない: prod デプロイの成功で `Deploy Infra` workflow が閉じ、それを合図に
+            // 後続の GUI Issue（autopilot-after）が動き出す。
+            if (shouldCloseIssueOnMerge(item)) {
+                try { await closeIssue(cfg.repo, item.issue, token); }
+                catch (e) { log(`#${item.issue}: gh issue close failed: ${e.message}`); }
+            } else {
+                log(`#${item.issue}: infra Issue は prod デプロイ後に workflow が閉じる（ここでは閉じない）`);
+            }
             // 反映済みを in-memory item にも映す → 同 tick の closed-reconcile が二重処理しない（冪等）
             item.status = 'Close';
             // merge は前進シグナル → 人間の番は解除。🙋 ラベルを両面から落とす（force 同期・#813）。
@@ -1572,6 +1580,10 @@ async function tick(cfg, state, log) {
         log(`closed state check failed: ${e.message}`);
     }
     const statusByIssue = Object.fromEntries(items.map((it) => [it.issue, it.status]));
+    // 🧱 infra の依存は GitHub で closed のときだけ完了（prod デプロイ成功で workflow が閉じる）。
+    // merge で Project は Close（終端）になるので selectClosedCheckIssues の定常確認からは外れる →
+    // 下の on-demand 確認に含める。
+    const closedOnly = infraIssueSet(items);
     const capacity = Math.max(0, cfg.concurrency - state.running.size);
     const picked = [];
     // autopilot-after ゲートで待たされている candidate を記録し、後で ⏳ waiting ラベルを
@@ -1586,9 +1598,12 @@ async function tick(cfg, state, log) {
         // TTL キャッシュがあるので 2 tick 目以降はさらに安い。
         if (!capacityLeft && !hasWaitLabel) continue;
         const after = (await getDirectives(cfg, state, item.issue, log)).after;
-        // Project 外の after 依存（closedSet にも statusByIssue にも無い番号）だけ
+        // Project 外の after 依存（closedSet にも statusByIssue にも無い番号）と、Close 済みでも
+        // まだ GitHub で開いている可能性がある 🧱 infra の依存だけ
         // オンデマンドで state を確認して closedSet にマージする（少数・稀）
-        const unknown = (after || []).filter((n) => !closedSet.has(n) && !(n in statusByIssue));
+        const unknown = (after || []).filter(
+            (n) => !closedSet.has(n) && (!(n in statusByIssue) || closedOnly.has(n)),
+        );
         if (unknown.length) {
             try {
                 mergeStates(await project.getIssueStates(cfg.repo, unknown, await project.readToken()));
@@ -1596,7 +1611,7 @@ async function tick(cfg, state, log) {
                 log(`#${item.issue}: after 依存の state 確認失敗: ${e.message}`);
             }
         }
-        const unresolved = unresolvedAfterIssues(after, { closedSet, statusByIssue });
+        const unresolved = unresolvedAfterIssues(after, { closedSet, statusByIssue, closedOnly });
         waitingByIssue.set(item.issue, unresolved.length > 0);
         if (unresolved.length) {
             log(`#${item.issue}: autopilot-after 待ち (未完了: ${unresolved.map((n) => `#${n}`).join(', ')})`);

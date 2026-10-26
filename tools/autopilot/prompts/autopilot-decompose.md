@@ -44,6 +44,18 @@ leaf に分割する前に、**3 案を明示的に比較**して選ぶ（素直
 2. 共有ファイルの衝突を避けたい（並列着手での衝突防止）
 3. 1 実装バジェットに収まらない（重い実装・Playwright スクショ多数等）
 4. レビュースコープを分けたい（観点が違う・見る人を分けたい等）
+5. **infra（`infra/**`）とそれ以外の両方に変更が要る**（必須。下の「infra-first」）
+
+**infra-first（必須の分割）**: ブランチプレビューは prod の API を見るので、infra と GUI を
+同じ PR に入れると、新しい API を使う GUI をプレビューで確認できない。infra の変更は
+**infra だけの leaf を 1 つ**にまとめ、先に develop へ出す（正準は
+`.claude/rules/infra/development.md` の「infra は別 Issue に分けて先に出す」）:
+
+- infra の leaf は**後方互換な変更だけ**（追加・既存挙動を変えない修正）。削除・改名・
+  必須化・レスポンス形の変更が要るなら、GUI が移行したあとの**別の infra leaf**（Contract）にし、
+  分解案でその旨を人間に示す（prod の自動デプロイは削除・置き換えで止まる）。
+- infra 以外の leaf は、infra の leaf に `autopilot-after` で依存させる（prod に API が載って
+  infra の Issue が閉じてから動き出す）。
 
 上記に当たらない関連コンポーネントは、**別ファイルで衝突しないなら特に** 1 leaf に
 束ねてよい（無理に分けない）。直列依存（基盤→応用、共有ファイル編集）が残る場合は、
@@ -135,6 +147,16 @@ Sprint Backlog にそのまま入れると autopilot が**並列着手**し、**
    GH_TOKEN="$(bin/bot-token)" gh issue edit "$num" --repo "$AUTOPILOT_REPO" --add-label "🤖 autopilot"
    ```
 
+   - **EPIC の `autopilot-base:`**（統合ブランチ）は、infra 以外の leaf の本文の行頭に**同じ値で
+     書き写す**（sub-issue は親の base を継がない。書かないと develop 宛てになる）。
+   - **infra の leaf**（infra-first）は次のとおりにする:
+     - `--label "🧱 infra"` を付ける（`phases.js` の `INFRA_LABEL`。daemon はこれを見て、
+       merge 後も GitHub の Issue を閉じず、後続の依存を「GitHub で closed」まで待たせる）。
+     - **`autopilot-base:` を書かない**（EPIC が統合ブランチを使っていても、infra は develop へ出す）。
+     - 本文に次の 2 行を入れる: 「変更は `infra/**`（と関連 docs）だけ・**後方互換な変更だけ**」
+       「PR は develop 宛て・本文は **`Refs #<この Issue>`**（`Closes` にしない。prod デプロイの
+       成功で `Deploy Infra` workflow が閉じる）」。
+     - infra 以外の leaf の本文に `autopilot-after: #<infra の leaf>` を入れる。
    - **冪等**: 既に同名 sub-issue が存在する場合は作り直さない（`gh issue list` で確認）。
      既存 sub-issue の assignee が空なら `gh issue edit <num> --add-assignee "$assignee"` で補う。
    - 作成した leaf の **番号と、分解案で決めた size（small/middle/large）を控えておく**
