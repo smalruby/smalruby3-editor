@@ -119,8 +119,33 @@ worker は **`cdk deploy` を実行しない**（stg / prod とも）。stg は�
 ラベルは **1 回きりの操作**で、run の完了時に workflow が自動で外す。**外す処理を自分で書かない**
 （二重に外そうとして 404 になる）。再度載せたいときは付け直す。
 
-prod への反映は**人間の作業**。結果ファイルや PR 本文に「prod は人間が実施」と明記して終える
-（`.claude/rules/infra/development.md` の「デプロイ経路」）。
+prod へは **develop へのマージで workflow が自動で出す**（削除・置き換えを含む差分は止まり、
+人間が出す）。worker は prod について何もしない（`.claude/rules/infra/development.md`）。
+
+## infra と GUI を分ける（infra-first）
+
+ブランチプレビューは prod の API を見るので、infra と GUI を同じ PR に入れると新しい API を
+使う GUI をプレビューで確認できない。手順の正準は `.claude/rules/infra/development.md` の
+「infra は別 Issue に分けて先に出す」。プロンプト側の規約は次のとおり（定数は `phases.js` の
+`INFRA_LABEL` = `🧱 infra`）:
+
+- **triage / understand**: `infra/**` とそれ以外の両方に変更が要る Issue は、1 PR の大きさでも
+  **Kind=EPIC** にして decompose へ回す（分割理由の 1 つ）。
+- **decompose**: infra の sub-issue を 1 つ作り、`🧱 infra` ラベルを付け、**`autopilot-base:` を
+  書かない**（develop 宛て）。GUI など残りの sub-issue には `autopilot-after: #<infra>` を付ける。
+  infra の sub-issue の本文に「後方互換な変更だけ」「PR は `Refs #N`」を明記する。
+- **implement（🧱 infra の Issue）**: 変更は `infra/**`（と関連 docs）だけ。**後方互換な変更だけ**
+  （追加・既存挙動を変えない修正）。PR は develop 宛て、本文は **`Refs #N`**（`Closes` /
+  `Fixes` を書かない。マージ時点ではまだ prod に無いので、prod デプロイの成功で workflow が閉じる）。
+- **implement（🧱 infra でない Issue）**: `infra/**` を変えない。infra の変更が要ると分かったら
+  実装せず、何が要るかをコメントして HITL で人間に返す（infra の sub-issue を作るかは人間が決める）。
+- **review**: 上の 2 つに反する PR は **[Must]**（infra の PR に `Closes #N`・非互換な変更、
+  非 infra の PR に `infra/**` の変更）。
+- **verify**: 🧱 infra を待っていた GUI の Issue は、**ブランチプレビュー**（prod API）で確認する。
+
+daemon 側: 🧱 infra の Issue は、PR の merge で Project は Close に進めるが **GitHub の Issue は
+閉じない**（`shouldCloseIssueOnMerge`）。`autopilot-after` の相手が 🧱 infra のときは、
+**GitHub で closed になるまで未完了**とみなす（`unresolvedAfterIssues` の `closedOnly`）。
 
 ## UI 確認（pw-check）
 

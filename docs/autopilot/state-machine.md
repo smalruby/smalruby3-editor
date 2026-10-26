@@ -83,7 +83,7 @@ Review / DoD / Blocked / Discussing の「人間の番」は、次の **いず�
 | 14 | Blocked / 任意 / **あり** | run 失敗・stall の人間対処待ち | H: 解除 or **コメント** → **A: address-review（PR あり）/ triage（PR なし）** / H: Status 移動 | 再開・再ルート |
 | 15 | Blocked / 任意 / なし | ラベルだけ外された Blocked | **A: address-review / triage**（#14 と同じ） | 再開・再ルート |
 | 16 | In Progress / EPIC Decomposed / —（トラッカー） | 子の実装を追跡 | H: 子完了後に close（統合 PR の `Closes #epic` 等）→ **D: closed-reconcile** / H: Done へ移動（HITL 運用） | Close / Done |
-| 17 | 任意の非終端（leaf, PR あり） | — | H: PR merge → **D: merge-progression** | Close（GitHub issue も close） |
+| 17 | 任意の非終端（leaf, PR あり） | — | H: PR merge → **D: merge-progression** | Close（GitHub issue も close。**`🧱 infra` の Issue は閉じない**: prod デプロイ成功で `Deploy Infra` workflow が閉じる・`shouldCloseIssueOnMerge`） |
 | 18 | 任意の非終端 | — | H: Issue close → **D: closed-reconcile** | Close |
 | 19 | In Progress / —（AI Status 空） / 任意 | 人間が手動で置いた作業中 | H: Status 移動（autopilot は所有しない） | 人間の決定 |
 | 20 | Icebox / Close / Done | 終端・保留 | H: Status 移動（再開は人間のみ） | — |
