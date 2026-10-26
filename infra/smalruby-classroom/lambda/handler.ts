@@ -2199,6 +2199,95 @@ async function handleCreateSubmission(
   };
 }
 
+/** True when a TTL'd row is past its expiry (DynamoDB deletes expired rows lazily). */
+function isTtlExpired(item: Record<string, unknown>, nowSec: number): boolean {
+  return typeof item.ttl === 'number' && item.ttl < nowSec;
+}
+
+/**
+ * The seat's single submission in one assignment, when it can still be
+ * downloaded (has a project.sb3 and is not past its TTL).
+ */
+async function findContinuableSubmission(
+  classroomId: string, memberId: string, nowSec: number,
+): Promise<Record<string, unknown> | null> {
+  const result = await docClient.send(new QueryCommand({
+    TableName: SUBMISSIONS_TABLE,
+    IndexName: 'classroomId-memberId-index',
+    KeyConditionExpression: 'classroomId = :cid AND memberId = :mid',
+    ExpressionAttributeValues: { ':cid': classroomId, ':mid': memberId },
+    Limit: 1,
+  }));
+  const sub = result.Items?.[0];
+  if (!sub || !sub.s3Key || isTtlExpired(sub, nowSec)) return null;
+  return sub;
+}
+
+async function toContinuableSubmission(
+  classroom: Record<string, unknown>, sub: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  const projectUrl = await getSignedUrl(
+    s3Client,
+    new GetObjectCommand({ Bucket: SUBMISSIONS_BUCKET, Key: sub.s3Key as string }),
+    { expiresIn: PRESIGNED_URL_DOWNLOAD_EXPIRY },
+  );
+  return {
+    classroomId: classroom.classroomId,
+    assignmentName: classroom.assignmentName || null,
+    projectName: sub.projectName || null,
+    submittedAt: sub.submittedAt || null,
+    projectUrl,
+  };
+}
+
+/**
+ * Submissions a student can continue from (#1201): their own submission in
+ * this assignment (`current`) and the same seat's submission in the most
+ * recent earlier assignment of the same class (`previous`) — the same
+ * seat-number correspondence `previousComment` uses at join. Seats are
+ * anonymous, so whoever sits in that seat can load it (documented in
+ * docs/classroom/architecture.md). The caller has already matched the
+ * session to `classroomId`.
+ */
+async function handleListContinuableSubmissions(
+  classroomId: string, memberId: string,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const nowSec = Math.floor(Date.now() / 1000);
+  const classroomResult = await docClient.send(new GetCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId },
+  }));
+  const classroom = classroomResult.Item;
+  if (!classroom || classroom.status !== 'active' || isTtlExpired(classroom, nowSec)) {
+    throw new NotFoundError('This classroom is no longer active');
+  }
+
+  const currentSub = await findContinuableSubmission(classroomId, memberId, nowSec);
+  const current = currentSub ? await toContinuableSubmission(classroom, currentSub) : null;
+
+  let previous: Record<string, unknown> | null = null;
+  if (classroom.groupId) {
+    const createdAt = String(classroom.createdAt || '');
+    const siblings = await listAssignmentsInGroups([classroom.groupId as string]);
+    // Only assignments created before this one count as "last time"; a
+    // later assignment (e.g. re-opening an old one) must not be offered.
+    const earlier = siblings.filter(item =>
+      String(item.createdAt || '') < createdAt && !isTtlExpired(item, nowSec));
+    for (const prior of selectPriorClassrooms(earlier, classroom.groupId as string, classroomId)) {
+      const sub = await findContinuableSubmission(prior.classroomId as string, memberId, nowSec);
+      if (sub) {
+        previous = await toContinuableSubmission(prior, sub);
+        break;
+      }
+    }
+  }
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ current, previous, startFromPrevious: startFromPreviousOf(classroom) }),
+  };
+}
+
 async function handleListSubmissions(
   identity: TeacherIdentity, classroomId: string
 ): Promise<APIGatewayProxyStructuredResultV2> {
@@ -3532,6 +3621,8 @@ async function handleDuplicateClassroom(
       topic,
       sortDate: now,
       assignment,
+      // Reusing a lesson keeps how students start it (#1202).
+      ...(startFromPreviousOf(source) ? { startFromPrevious: true } : {}),
       status: 'active',
       createdAt: now,
       updatedAt: now,
@@ -3625,6 +3716,28 @@ export function validateAssignmentPages(
   });
 }
 
+/**
+ * Validate the optional `startFromPrevious` setting (#1202) of a
+ * set-assignment request. undefined means "not sent" (an older client) and
+ * keeps the stored value.
+ */
+export function validateStartFromPrevious(value: unknown): boolean | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== 'boolean') {
+    throw new ValidationError('startFromPrevious must be a boolean');
+  }
+  return value;
+}
+
+/**
+ * The "start from the previous submission" setting of an assignment item
+ * (#1202). Stored on the item, not inside `assignment`, so it survives an
+ * assignment without pages or starter (a follow-up lesson often has neither).
+ */
+export function startFromPreviousOf(item: Record<string, unknown> | undefined): boolean {
+  return item?.startFromPrevious === true;
+}
+
 /** Whether a classroom item carries assignment content (pages or a starter). */
 export function hasAssignmentContent(item: Record<string, unknown> | undefined): boolean {
   if (!item) return false;
@@ -3648,6 +3761,7 @@ async function handleSetAssignment(
   }
 
   const pagesInput = validateAssignmentPages(body.pages, classroomId);
+  const startFromPreviousInput = validateStartFromPrevious(body.startFromPrevious);
   const keepStarter = body.keepStarter === true;
   const newStarter = body.newStarter === true;
   if (keepStarter && newStarter) {
@@ -3714,24 +3828,29 @@ async function handleSetAssignment(
   }
 
   const now = new Date().toISOString();
+  // Only written when the client sent it, so an older client keeps the value.
+  const setStartFromPrevious = startFromPreviousInput === undefined ? '' : ', startFromPrevious = :sfp';
+  const startFromPreviousValues = startFromPreviousInput === undefined ? {} : { ':sfp': startFromPreviousInput };
+  const startFromPrevious = startFromPreviousInput ?? startFromPreviousOf(classroomResult.Item);
   if (pages.length === 0 && !starterKey) {
-    // An empty request clears the assignment entirely.
+    // An empty request clears the assignment content (the setting stays).
     await docClient.send(new UpdateCommand({
       TableName: CLASSROOMS_TABLE,
       Key: { classroomId },
-      UpdateExpression: 'REMOVE assignment SET updatedAt = :now',
-      ExpressionAttributeValues: { ':now': now },
+      UpdateExpression: `REMOVE assignment SET updatedAt = :now${setStartFromPrevious}`,
+      ExpressionAttributeValues: { ':now': now, ...startFromPreviousValues },
     }));
-    return { statusCode: 200, body: JSON.stringify({ assignment: null }) };
+    return { statusCode: 200, body: JSON.stringify({ assignment: null, startFromPrevious }) };
   }
 
   await docClient.send(new UpdateCommand({
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId },
-    UpdateExpression: 'SET assignment = :assignment, updatedAt = :now',
+    UpdateExpression: `SET assignment = :assignment, updatedAt = :now${setStartFromPrevious}`,
     ExpressionAttributeValues: {
       ':assignment': { pages, starterKey, updatedAt: now },
       ':now': now,
+      ...startFromPreviousValues,
     },
   }));
 
@@ -3739,6 +3858,7 @@ async function handleSetAssignment(
     statusCode: 200,
     body: JSON.stringify({
       assignment: { pages, starterKey: starterKey || null, updatedAt: now },
+      startFromPrevious,
       imageUploadUrls,
       starterUploadUrl,
     }),
@@ -3775,8 +3895,9 @@ async function handleGetAssignment(rawToken: string, classroomId: string): Promi
   }
 
   const assignment = classroomResult.Item.assignment as AssignmentContent | undefined;
+  const startFromPrevious = startFromPreviousOf(classroomResult.Item);
   if (!hasAssignmentContent(classroomResult.Item)) {
-    return { statusCode: 200, body: JSON.stringify({ assignment: null }) };
+    return { statusCode: 200, body: JSON.stringify({ assignment: null, startFromPrevious }) };
   }
 
   // imageKey is echoed back so the teacher editor can round-trip unchanged
@@ -3811,6 +3932,7 @@ async function handleGetAssignment(rawToken: string, classroomId: string): Promi
         starterUrl,
         updatedAt: assignment?.updatedAt || null,
       },
+      startFromPrevious,
     }),
   };
 }
@@ -5430,6 +5552,16 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
         throw new AuthError('Session does not match this classroom');
       }
       result = await handleCreateSubmission(classroomId, session.memberId, body);
+
+    } else if (method === 'GET' && /^\/classrooms\/[^/]+\/continuable-submissions$/.test(path)) {
+      // Student-only (session token): own submissions to continue from (#1201).
+      const token = extractBearerToken(event.headers?.authorization);
+      const session = await verifySessionToken(token);
+      const classroomId = event.pathParameters?.classroomId || '';
+      if (session.classroomId !== classroomId) {
+        throw new AuthError('Session does not match this classroom');
+      }
+      result = await handleListContinuableSubmissions(classroomId, session.memberId);
 
     } else if (method === 'GET' && /^\/classrooms\/[^/]+\/submissions$/.test(path)) {
       const token = extractBearerToken(event.headers?.authorization);
