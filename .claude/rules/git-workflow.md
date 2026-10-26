@@ -263,6 +263,15 @@ gh issue create \
 rm /tmp/issue-body.md
 ```
 
+### infra とそれ以外は別 Issue にする（infra-first）
+
+`infra/**`（CDK・Lambda）とそれ以外（GUI など）の両方に変更が要る作業は、**必ず別の Issue に分ける**
+（infra を親 Issue の sub-issue にする）。infra は**後方互換な変更だけ**にして先に develop へ
+マージし、`Deploy Infra` workflow が prod に出したら、GUI の PR をブランチプレビュー（prod の API を
+見る）で確認する。infra の Issue には `🧱 infra` ラベルを付け、PR 本文は `Refs #N`（prod デプロイの
+成功で workflow が閉じる）。GUI の Issue には `autopilot-after: #<infra>` を書く。手順の正準は
+`.claude/rules/infra/development.md` の「infra は別 Issue に分けて先に出す」。
+
 ### Avoiding Shell Escaping Issues
 
 **ALWAYS use temporary files with `-F` or `--body-file`** for complex messages containing:

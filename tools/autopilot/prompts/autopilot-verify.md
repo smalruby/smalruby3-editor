@@ -61,6 +61,8 @@ node tools/autopilot/bin/pw-check --serve-html tmp/monitor-preview.html --wait '
 `localhost:8601` の dev server が要る。**起動は重い（webpack）ので、PR コメントの
 プレビュー URL（`https://smalruby.jp/smalruby3-editor/<branch>/`）があればそれを優先**し、
 無ければ dev server を起動して待機してから確認する。
+プレビューは **prod の API** を見る。先行の 🧱 infra Issue（`autopilot-after`）を待っていた
+GUI の Issue なら、その API はもう prod にあるので、プレビューでそのまま確認できる。
 
 ```bash
 # プレビュー URL があれば直接確認（dev server 起動不要）

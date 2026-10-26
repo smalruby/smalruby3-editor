@@ -49,14 +49,22 @@ CDK のコンテキストキャッシュファイル `cdk.context.json` は **�
 - `cdk.context.json` は `.gitignore` に追加**しない**
 - デプロイ後に生成・更新された場合はコミットする
 
-## デプロイ経路（stg と prod で分ける）
+## デプロイ経路（どちらも GitHub Actions）
 
-**stg = GitHub Actions 経由のみ / prod = 人間の手元から手動のみ**（#1162）。
+**stg も prod も `.github/workflows/deploy-infra-stg.yml`（workflow 名 `Deploy Infra`）だけから出す。**
+ローカルからの `cdk deploy` は、自動デプロイが安全装置で止まったときの人間の手作業に限る。
 
-| 環境 | 経路 | 誰が |
+| 環境 | いつ出るか | 誰が |
 |---|---|---|
-| stg | `.github/workflows/deploy-infra-stg.yml` | PR に **`deploy-stg` ラベル**を付ける / develop へ push / 手動起動 |
-| prod | 手元で `npx cdk deploy --context stage=prod` | **人間**（AI は人間の明示的な指示があるときだけ） |
+| stg | PR に **`deploy-stg` ラベル**を付けたとき / develop への push / 手動起動 | 自動（ラベルは人間か worker が付ける） |
+| prod | **develop へのマージ（push）で、stg が成功したあと**。prod との差分があるプロジェクトだけ | 自動 |
+| prod（例外） | 自動デプロイが「削除・置き換え」を検知して止めたとき | **人間**が内容を確かめて手元から `npx cdk deploy --context stage=prod` |
+
+- prod のジョブは `cdk diff` を取り、**リソースの削除（`[-] AWS::...`）や置き換え（replacement）が
+  含まれていたら出さずに失敗する**。後方互換な変更（追加・設定変更・Lambda のコード更新）だけが
+  自動で出る。差分が無ければ何もしない。
+- prod に出せたら、マージした PR が `Refs #N` で参照している **🧱 infra の Issue を workflow が閉じる**。
+- AI は手元から prod へ出さない（人間の明示的な指示があるときだけ）。
 
 ### なぜ stg をローカルから撃たないか
 
@@ -72,19 +80,32 @@ stg は**共有資源**で、人間と複数の autopilot worker が同時に触
   「いまの stg が自分の SHA か」を確認する。違えばラベルを付け直して再デプロイする。
 - develop への infra push でも stg へデプロイが走るので、**マージ後は stg が develop に収束**する。
 
-### マージ前に infra を出すのは「ジレンマ」ではなく手順（Expand-Contract）
+## infra は別 Issue に分けて先に出す（infra-first）
 
-「UI の DoD には API が必要 → でも API はマージ後にしか出せない」を避けるため、**API を後方互換で
-先に出し、あとから UI をマージする**（Expand-Contract）。順番は:
+ブランチプレビュー（`https://smalruby.jp/smalruby3-editor/<branch>/`）は **prod の API** を見る。
+GUI と infra を 1 つの PR に入れると、新しい API が prod に無いのでプレビューで確認できない。
+そこで **infra の変更は必ず GUI と別の Issue（親 Issue の sub-issue）にし、先に develop へ
+マージして prod に出す**。GUI の Issue はそのあとに動き、プレビューで確認する。
 
-1. **Expand**: API 側の変更を**既存の呼び出しを壊さない形**で作る（ルート追加・任意フィールド追加など）。
-   PR に `deploy-stg` を付けて stg へ出す。
-2. UI / クライアント側を実装し、stg の API に対して DoD を行う。
-3. マージ。develop への push で stg が収束する。prod へは人間が明示的に出す。
-4. **Contract**（必要なら）: 旧経路の削除は、クライアントが全部移行したことを確認してから**別 PR**で行う。
+1. **Issue を分ける**: infra（`infra/**` だけ）を 1 つ、それ以外（GUI など）を 1 つ以上。
+   - infra の Issue には **`🧱 infra` ラベル**を付け、**`autopilot-base:` は書かない**
+     （親が topic ブランチでも、infra は develop へ出す）。
+   - GUI の Issue には `autopilot-after: #<infra の Issue>` を書く（親と同じ `autopilot-base:` でよい）。
+2. **infra は後方互換な変更だけ**（Expand）: ルート・任意フィールド・テーブル・GSI・権限の**追加**、
+   既存の挙動を変えない範囲の修正だけ。**削除・改名・必須化・レスポンス形の変更・既存リソースの
+   置き換えはしない**（いま動いている prod の画面と、まだ古い画面を開いている生徒を壊すため）。
+   GUI がまだ使っていない API が先に prod にあっても害が無い形にする。
+3. infra の PR は **develop 宛て**で、本文は **`Refs #<infra の Issue>`**（`Closes` にしない。
+   マージ時点ではまだ prod に出ていないため）。確認は Lambda の unit test と、必要なら
+   `deploy-stg` ラベルで stg に出して integration test。
+4. **マージ → stg → prod が自動で走り、prod に出たら workflow が infra の Issue を閉じる** →
+   GUI の Issue が動き出す（autopilot は 🧱 infra の依存を「GitHub で closed」になるまで待つ）。
+5. GUI は**ブランチプレビューで確認**する（prod の API がもうある）。
+6. **Contract**（旧経路の削除など）は、GUI が全部移行して prod に出たあと、**別の infra Issue** で
+   行う。これは削除を含むので prod の自動デプロイが止まる → 人間が確認して手元から出す。
 
-後方互換を壊す変更（フィールド削除・レスポンス形の変更など）は、この手順に乗らないので
-**先に出してはいけない**。その場合は stg で壊してよい時間帯を決めてから出す。
+infra と GUI が同じ Issue に混ざっていたら、作業を始める前に分ける（autopilot は triage /
+decompose で分ける。人間が Issue を作るときも同じ）。
 
 ## AWS Credentials
 

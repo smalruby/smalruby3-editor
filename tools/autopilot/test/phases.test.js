@@ -2081,3 +2081,28 @@ test('shouldPushAfterFollow: PR フェーズで followed のときだけ push �
         assert.equal(state.gateHandled.size, 4);
     });
 }
+
+test('unresolvedAfterIssues: 🧱 infra（closedOnly）は Project が Close でも GitHub で閉じるまで未完了', () => {
+    const { unresolvedAfterIssues } = require('../src/phases.js');
+    const statusByIssue = { 10: 'Close', 11: 'Close' };
+    // 11 は infra: merge で Project は Close だが prod デプロイ前（GitHub は open）
+    assert.deepEqual(unresolvedAfterIssues([10, 11], { statusByIssue, closedOnly: new Set([11]) }), [11]);
+    // workflow が prod デプロイ後に閉じたら完了
+    assert.deepEqual(
+        unresolvedAfterIssues([10, 11], { statusByIssue, closedOnly: [11], closedSet: [11] }),
+        [],
+    );
+});
+
+test('infraIssueSet / shouldCloseIssueOnMerge: 🧱 infra ラベルで判定する', () => {
+    const { infraIssueSet, shouldCloseIssueOnMerge, INFRA_LABEL } = require('../src/phases.js');
+    const items = [
+        { issue: 1, labels: [INFRA_LABEL, '🤖 autopilot'] },
+        { issue: 2, labels: ['🤖 autopilot'] },
+        { issue: 3 },
+    ];
+    assert.deepEqual([...infraIssueSet(items)], [1]);
+    assert.equal(shouldCloseIssueOnMerge(items[0]), false);
+    assert.equal(shouldCloseIssueOnMerge(items[1]), true);
+    assert.equal(shouldCloseIssueOnMerge(items[2]), true);
+});

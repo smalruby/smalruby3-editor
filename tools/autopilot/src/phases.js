@@ -152,17 +152,52 @@ function parseAfterIssues(body) {
  * 完了 = GitHub で closed（closedSet に含まれる）または Project Status が終端
  * （{@link TERMINAL_STATUSES}）。Project にも closedSet にも見つからない依存は
  * 「まだ完了していない」と保守的に扱う（依存の消し忘れ・番号ミスを人間が気付ける）。
+ * `closedOnly` に含まれる依存（🧱 infra の Issue）は **GitHub で closed のときだけ**完了とする。
+ * infra は PR の merge で Project が Close になっても、prod へ出るのはその後の workflow なので、
+ * 「prod デプロイ成功で workflow が閉じた」ことを完了の合図にする。
  * @param {number[]} after 依存 Issue 番号
- * @param {object} ctx { closedSet: Set<number>|number[], statusByIssue: {[issue]: string} }
+ * @param {object} ctx { closedSet: Set<number>|number[], statusByIssue: {[issue]: string},
+ *   closedOnly?: Set<number>|number[] }
  * @returns {number[]} 未完了の依存 Issue 番号
  */
 function unresolvedAfterIssues(after, ctx = {}) {
     const closed = ctx.closedSet instanceof Set ? ctx.closedSet : new Set(ctx.closedSet || []);
+    const closedOnly = ctx.closedOnly instanceof Set ? ctx.closedOnly : new Set(ctx.closedOnly || []);
     const statusByIssue = ctx.statusByIssue || {};
     return (after || []).filter((n) => {
         if (closed.has(n)) return false;
+        if (closedOnly.has(n)) return true;
         return !TERMINAL_STATUSES.has(statusByIssue[n]);
     });
+}
+
+/**
+ * item が 🧱 infra の Issue か（純粋関数）。ラベルは Project の item-list が返す値を使う。
+ * @param {object} item { labels?: string[] }
+ * @returns {boolean}
+ */
+function isInfraItem(item) {
+    return Boolean(item && (item.labels || []).includes(INFRA_LABEL));
+}
+
+/**
+ * 🧱 infra の Issue 番号の集合（純粋関数）。`autopilot-after` 判定の closedOnly に渡す。
+ * @param {object[]} items Project items
+ * @returns {Set<number>}
+ */
+function infraIssueSet(items) {
+    return new Set((items || []).filter(isInfraItem).map((it) => it.issue));
+}
+
+/**
+ * 連携 PR の merge を検知したとき、GitHub の Issue も閉じるか（純粋関数）。
+ * 🧱 infra の Issue は閉じない: merge の時点ではまだ prod に出ておらず、閉じると後続の GUI
+ * Issue が動き出してしまう。prod デプロイが成功したら `Deploy Infra` workflow が閉じる。
+ * @param {object} item { labels?: string[] }
+ * @returns {boolean}
+ */
+function shouldCloseIssueOnMerge(item) {
+    return !isInfraItem(item);
 }
 
 /**
@@ -965,6 +1000,17 @@ const HUMAN_REVIEW_LABEL = '👥 human-review-required';
  * 依存が解決したときに自動で外す必要があるため。
  */
 const WAITING_LABEL = '⏳ waiting';
+/**
+ * infra（`infra/**` の CDK プロジェクト）だけを変える Issue に付けるラベル。
+ * infra は GUI と別の sub-issue に分け、**後方互換な変更だけ**を develop へ先行マージする。
+ * develop へのマージで `Deploy Infra` workflow が stg → prod へ出し、**prod デプロイの成功で
+ * workflow がこの Issue を閉じる**。後続の GUI Issue（`autopilot-after: #<infra>`）は prod に
+ * API が載ってから動き出すので、ブランチプレビュー（prod API を見る）で確認できる。
+ * そのため、このラベルの Issue は Project の終端（merge で Close）では「完了」とみなさず、
+ * GitHub で closed になったときだけ完了とする（{@link unresolvedAfterIssues} の closedOnly）。
+ * 付けるのは Issue を作る側（decompose / 人間）。daemon は読むだけで付け外ししない。
+ */
+const INFRA_LABEL = '🧱 infra';
 
 /** Bot（GitHub App）に書き込み権限が無いパスのパターン（bin/autopilot-push と対） */
 const PROTECTED_PATH_PATTERNS = [/^\.github\/workflows\//, /^\.github\/actions\//];
@@ -2660,6 +2706,9 @@ module.exports = {
     parseBaseBranch,
     parseAfterIssues,
     unresolvedAfterIssues,
+    isInfraItem,
+    infraIssueSet,
+    shouldCloseIssueOnMerge,
     parseAssigneeDirective,
     resolveOwner,
     AUTOPILOT_BRANCH_PREFIX,
@@ -2710,6 +2759,7 @@ module.exports = {
     touchedRuleAreas,
     TRACKING_LABEL,
     WAITING_LABEL,
+    INFRA_LABEL,
     LATER_LABEL,
     hasLaterLabel,
     laterLabelDiff,

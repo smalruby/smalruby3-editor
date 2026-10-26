@@ -226,6 +226,36 @@ test('existing-branch path and remove keep working', (t) => {
     assert.throws(() => git(main, 'rev-parse', '--verify', '--quiet', 'refs/heads/topic/autopilot-21'));
 });
 
+// git shim: `worktree list --porcelain` prints the real list followed by many fake
+// entries, like a main checkout with dozens of autopilot worktrees. With
+// `set -o pipefail`, `git worktree list --porcelain | grep -q` then fails even on a
+// match: grep exits early, git dies of SIGPIPE, and the pipeline reports 141. The
+// registered worktree looked unregistered and create died on
+// `fatal: '<wt>' already exists`, blocking every PR phase of that Issue.
+const LONG_LIST_SHIM = `#!/usr/bin/env bash
+if [[ " $* " == *" worktree list --porcelain "* ]]; then
+    "\${REAL_GIT}" "$@" || exit $?
+    for i in $(seq 1 5000); do
+        printf 'worktree /nonexistent/filler-%s\\nHEAD 0000000000000000000000000000000000000000\\nbranch refs/heads/filler-%s\\n\\n' "$i" "$i"
+    done
+    exit 0
+fi
+exec "\${REAL_GIT}" "$@"
+`;
+
+test('re-create of a registered worktree survives a long worktree list', (t) => {
+    const { base, main, shim, env } = setup(t);
+    runCreate(main, env, ['41', '--branch', 'feature/existing']);
+    fs.writeFileSync(path.join(shim, 'git'), LONG_LIST_SHIM, { mode: 0o755 });
+    const withShim = { ...env, PATH: `${shim}:${env.PATH}` };
+
+    const out = runCreate(main, withShim, ['41', '--branch', 'feature/existing']);
+
+    assert.match(out, /already exists: .*issue-41 \(re-preparing\)/);
+    const wt = path.join(base, 'worktrees', 'issue-41');
+    assert.strictEqual(git(wt, 'rev-parse', '--abbrev-ref', 'HEAD'), 'feature/existing');
+});
+
 test('a non-lock worktree add error makes create fail right away', (t) => {
     const { base, main, env } = setup(t);
 
