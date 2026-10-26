@@ -24,6 +24,8 @@ const messages = defineMessages({
 const MENU_BAR_OFFSET = 56;
 const EDGE_GAP = 8;
 const FALLBACK_SIZE = { width: 280, height: 360 };
+// Default viewer width (26rem in classroom-peer-panel.css).
+const VIEWER_WIDTH = 416;
 
 const viewportSize = () => ({ width: window.innerWidth, height: window.innerHeight });
 
@@ -33,14 +35,14 @@ const keepOnScreen = (position, size) => {
     return { x: clamped.x, y: Math.max(Math.min(MENU_BAR_OFFSET, viewport.height - size.height), clamped.y) };
 };
 
-// The panel starts at the right edge and the viewer to its left, so the
-// stage (right) is covered by the panel only and the blocks stay visible.
+// The panel starts at the right edge and the viewer just to its left, so the
+// block palette and the left part of the script area stay usable.
 const defaultPanelPosition = () => ({
     x: viewportSize().width - FALLBACK_SIZE.width - EDGE_GAP,
     y: MENU_BAR_OFFSET,
 });
 const defaultViewerPosition = () => ({
-    x: Math.max(EDGE_GAP, viewportSize().width - FALLBACK_SIZE.width - EDGE_GAP * 2 - 640),
+    x: Math.max(EDGE_GAP, viewportSize().width - FALLBACK_SIZE.width - EDGE_GAP * 2 - VIEWER_WIDTH),
     y: MENU_BAR_OFFSET,
 });
 
