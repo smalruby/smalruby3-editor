@@ -382,6 +382,19 @@ export default {
     'gui.classroom.continueChoice.current': 'この課題で提出した作品を読み込む',
     'gui.classroom.continueChoice.loadFailed': '提出した作品を開けませんでした',
     'gui.classroom.continueChoice.gone': 'その提出物はもう読み込めません（期限切れか削除されました）',
+    'gui.classroom.continueChoice.noticeOpenedPrevious': '先生の設定で、前回の提出物を開きました',
+    'gui.classroom.continueChoice.noticeNoPreviousStarter':
+        '前回の提出物が見つからなかったので、スターターから始めます',
+    'gui.classroom.continueChoice.noticeNoPrevious': '前回の提出物が見つかりませんでした',
+    'gui.classroom.assignmentEditor.startFromPrevious': '前回の提出物から始めさせる',
+    'gui.classroom.assignmentEditor.startFromPreviousHint':
+        '続きの授業向け: 生徒が参加すると、このクラスの前の課題で提出した作品が開きます。前回の提出物が無い生徒はスターターで始まります。',
+    'gui.classroom.teacherDetail.previewStartPrevious':
+        '参加したとき: 前回の提出物が開きます（無い生徒はスターター）',
+    'gui.classroom.teacherDetail.previewStartStarter':
+        '参加したとき: スターターが開きます（前回の提出物がある生徒は、どこから始めるか選びます）',
+    'gui.classroom.teacherDetail.previewStartNone':
+        '参加したとき: いまの作品のまま始めます（前回の提出物がある生徒は、どこから始めるか選びます）',
     'gui.classroom.continueChoice.starterDetail': '先生が用意した作品から作る',
     'gui.classroom.continueChoice.keep': 'いまの作品のまま始める',
     'gui.classroom.continueChoice.keepDetail': '何も読み込まずに作る',

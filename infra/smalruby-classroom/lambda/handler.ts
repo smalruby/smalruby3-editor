@@ -2284,7 +2284,7 @@ async function handleListContinuableSubmissions(
 
   return {
     statusCode: 200,
-    body: JSON.stringify({ current, previous }),
+    body: JSON.stringify({ current, previous, startFromPrevious: startFromPreviousOf(classroom) }),
   };
 }
 
@@ -3621,6 +3621,8 @@ async function handleDuplicateClassroom(
       topic,
       sortDate: now,
       assignment,
+      // Reusing a lesson keeps how students start it (#1202).
+      ...(startFromPreviousOf(source) ? { startFromPrevious: true } : {}),
       status: 'active',
       createdAt: now,
       updatedAt: now,
@@ -3714,6 +3716,28 @@ export function validateAssignmentPages(
   });
 }
 
+/**
+ * Validate the optional `startFromPrevious` setting (#1202) of a
+ * set-assignment request. undefined means "not sent" (an older client) and
+ * keeps the stored value.
+ */
+export function validateStartFromPrevious(value: unknown): boolean | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== 'boolean') {
+    throw new ValidationError('startFromPrevious must be a boolean');
+  }
+  return value;
+}
+
+/**
+ * The "start from the previous submission" setting of an assignment item
+ * (#1202). Stored on the item, not inside `assignment`, so it survives an
+ * assignment without pages or starter (a follow-up lesson often has neither).
+ */
+export function startFromPreviousOf(item: Record<string, unknown> | undefined): boolean {
+  return item?.startFromPrevious === true;
+}
+
 /** Whether a classroom item carries assignment content (pages or a starter). */
 export function hasAssignmentContent(item: Record<string, unknown> | undefined): boolean {
   if (!item) return false;
@@ -3737,6 +3761,7 @@ async function handleSetAssignment(
   }
 
   const pagesInput = validateAssignmentPages(body.pages, classroomId);
+  const startFromPreviousInput = validateStartFromPrevious(body.startFromPrevious);
   const keepStarter = body.keepStarter === true;
   const newStarter = body.newStarter === true;
   if (keepStarter && newStarter) {
@@ -3803,24 +3828,29 @@ async function handleSetAssignment(
   }
 
   const now = new Date().toISOString();
+  // Only written when the client sent it, so an older client keeps the value.
+  const setStartFromPrevious = startFromPreviousInput === undefined ? '' : ', startFromPrevious = :sfp';
+  const startFromPreviousValues = startFromPreviousInput === undefined ? {} : { ':sfp': startFromPreviousInput };
+  const startFromPrevious = startFromPreviousInput ?? startFromPreviousOf(classroomResult.Item);
   if (pages.length === 0 && !starterKey) {
-    // An empty request clears the assignment entirely.
+    // An empty request clears the assignment content (the setting stays).
     await docClient.send(new UpdateCommand({
       TableName: CLASSROOMS_TABLE,
       Key: { classroomId },
-      UpdateExpression: 'REMOVE assignment SET updatedAt = :now',
-      ExpressionAttributeValues: { ':now': now },
+      UpdateExpression: `REMOVE assignment SET updatedAt = :now${setStartFromPrevious}`,
+      ExpressionAttributeValues: { ':now': now, ...startFromPreviousValues },
     }));
-    return { statusCode: 200, body: JSON.stringify({ assignment: null }) };
+    return { statusCode: 200, body: JSON.stringify({ assignment: null, startFromPrevious }) };
   }
 
   await docClient.send(new UpdateCommand({
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId },
-    UpdateExpression: 'SET assignment = :assignment, updatedAt = :now',
+    UpdateExpression: `SET assignment = :assignment, updatedAt = :now${setStartFromPrevious}`,
     ExpressionAttributeValues: {
       ':assignment': { pages, starterKey, updatedAt: now },
       ':now': now,
+      ...startFromPreviousValues,
     },
   }));
 
@@ -3828,6 +3858,7 @@ async function handleSetAssignment(
     statusCode: 200,
     body: JSON.stringify({
       assignment: { pages, starterKey: starterKey || null, updatedAt: now },
+      startFromPrevious,
       imageUploadUrls,
       starterUploadUrl,
     }),
@@ -3864,8 +3895,9 @@ async function handleGetAssignment(rawToken: string, classroomId: string): Promi
   }
 
   const assignment = classroomResult.Item.assignment as AssignmentContent | undefined;
+  const startFromPrevious = startFromPreviousOf(classroomResult.Item);
   if (!hasAssignmentContent(classroomResult.Item)) {
-    return { statusCode: 200, body: JSON.stringify({ assignment: null }) };
+    return { statusCode: 200, body: JSON.stringify({ assignment: null, startFromPrevious }) };
   }
 
   // imageKey is echoed back so the teacher editor can round-trip unchanged
@@ -3900,6 +3932,7 @@ async function handleGetAssignment(rawToken: string, classroomId: string): Promi
         starterUrl,
         updatedAt: assignment?.updatedAt || null,
       },
+      startFromPrevious,
     }),
   };
 }

@@ -2,7 +2,8 @@
  * Teacher assignment editor.
  *
  * Edits the assignment content of a classroom: pages of (short text +
- * optional image) plus one optional starter project. Kept deliberately
+ * optional image) plus one optional starter project, and how students start
+ * (#1202: "start from the previous submission"). Kept deliberately
  * simple — a constrained format the teacher can fill in minutes.
  */
 import PropTypes from 'prop-types';
@@ -182,11 +183,13 @@ const TeacherAssignmentEditor = ({
     selectedClassroom,
     starterMode,
     starterSource,
+    startFromPrevious,
     onAddPage,
     onAttachPageImage,
     embedded,
     onCancel,
     onChangePageText,
+    onChangeStartFromPrevious,
     onMovePage,
     onRemovePage,
     onRemovePageImage,
@@ -197,6 +200,11 @@ const TeacherAssignmentEditor = ({
 }) => {
     const intl = useIntl();
     const starterFileInputRef = useRef(null);
+
+    const handleStartFromPreviousChange = useCallback(
+        (e) => onChangeStartFromPrevious && onChangeStartFromPrevious(e.target.checked),
+        [onChangeStartFromPrevious],
+    );
 
     const handleStarterFileClick = useCallback(() => starterFileInputRef.current?.click(), []);
     const handleStarterFileChange = useCallback(
@@ -364,6 +372,35 @@ const TeacherAssignmentEditor = ({
                         />
                     </p>
                 )}
+                {/* Follow-up lessons (#1202): students open last time's work by
+                    default instead of choosing (and mistaking) the starter. */}
+                {onChangeStartFromPrevious && (
+                    <label className={styles.assignmentStartFromPrevious}>
+                        <input
+                            checked={startFromPrevious}
+                            data-testid="classroom-assignment-start-from-previous"
+                            disabled={isSaving}
+                            type="checkbox"
+                            onChange={handleStartFromPreviousChange}
+                        />
+                        <span>
+                            <span className={styles.assignmentStartFromPreviousLabel}>
+                                <FormattedMessage
+                                    defaultMessage="Start from the previous submission"
+                                    description="Assignment editor: setting that opens the previous submission when students join"
+                                    id="gui.classroom.assignmentEditor.startFromPrevious"
+                                />
+                            </span>
+                            <span className={styles.assignmentStartFromPreviousHint}>
+                                <FormattedMessage
+                                    defaultMessage="For follow-up lessons: when students join, the project they submitted last time in this class opens. Students without one get the starter."
+                                    description="Assignment editor: explanation of the start-from-previous setting"
+                                    id="gui.classroom.assignmentEditor.startFromPreviousHint"
+                                />
+                            </span>
+                        </span>
+                    </label>
+                )}
             </div>
 
             <div className={styles.buttonRow}>
@@ -418,11 +455,13 @@ TeacherAssignmentEditor.propTypes = {
     selectedClassroom: PropTypes.object,
     starterMode: PropTypes.oneOf(['none', 'keep', 'new']).isRequired,
     starterSource: PropTypes.object,
+    startFromPrevious: PropTypes.bool,
     onAddPage: PropTypes.func.isRequired,
     onAttachPageImage: PropTypes.func.isRequired,
     embedded: PropTypes.bool,
     onCancel: PropTypes.func,
     onChangePageText: PropTypes.func.isRequired,
+    onChangeStartFromPrevious: PropTypes.func,
     onMovePage: PropTypes.func.isRequired,
     onRemovePage: PropTypes.func.isRequired,
     onRemovePageImage: PropTypes.func.isRequired,

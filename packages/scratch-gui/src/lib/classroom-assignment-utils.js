@@ -16,9 +16,10 @@ const ASSIGNMENT_IMAGE_CONTENT_TYPES = ['image/png', 'image/jpeg'];
  * Build the PUT /classrooms/{id}/assignment payload from editor state.
  * @param {Array<object>} editorPages - Editor page objects
  * @param {string} starterMode - 'none' | 'keep' | 'new'
- * @returns {object} Request payload {pages, newStarter?, keepStarter?}
+ * @param {boolean} [startFromPrevious] - "start from the previous submission" setting
+ * @returns {object} Request payload {pages, newStarter?, keepStarter?, startFromPrevious?}
  */
-const buildAssignmentPayload = (editorPages, starterMode) => {
+const buildAssignmentPayload = (editorPages, starterMode, startFromPrevious) => {
     const pages = (editorPages || []).map((page) => {
         if (page.newImageType) {
             return { text: page.text, newImage: page.newImageType };
@@ -33,6 +34,10 @@ const buildAssignmentPayload = (editorPages, starterMode) => {
         payload.newStarter = true;
     } else if (starterMode === 'keep') {
         payload.keepStarter = true;
+    }
+    // Omitted unless given so the server keeps the stored value (#1202).
+    if (typeof startFromPrevious === 'boolean') {
+        payload.startFromPrevious = startFromPrevious;
     }
     return payload;
 };

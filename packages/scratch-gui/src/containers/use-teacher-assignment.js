@@ -82,6 +82,9 @@ const useTeacherAssignment = ({
     // {source: 'current-project'} | {source: 'file', blob, name}
     const [starterSource, setStarterSource] = useState(null);
     const [hasExistingStarter, setHasExistingStarter] = useState(false);
+    // "Start from the previous submission" (#1202): students open the same
+    // seat's submission from the previous assignment right after joining.
+    const [startFromPrevious, setStartFromPrevious] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
     /** Release blob preview URLs to avoid leaking object URLs. */
@@ -109,6 +112,7 @@ const useTeacherAssignment = ({
             setHasExistingStarter(hasStarter);
             setStarterMode(hasStarter ? 'keep' : 'none');
             setStarterSource(null);
+            setStartFromPrevious(data.startFromPrevious === true);
         } catch (err) {
             if (err.status === 401) {
                 handleTeacher401();
@@ -223,6 +227,10 @@ const useTeacherAssignment = ({
         [clearError],
     );
 
+    const handleChangeStartFromPrevious = useCallback((value) => {
+        setStartFromPrevious(!!value);
+    }, []);
+
     const handleRemoveStarter = useCallback(() => {
         setStarterMode('none');
         setStarterSource(null);
@@ -258,7 +266,7 @@ const useTeacherAssignment = ({
                 }
             }
 
-            const payload = buildAssignmentPayload(editorPages, starterMode);
+            const payload = buildAssignmentPayload(editorPages, starterMode, startFromPrevious);
             const result = await classroomAPI.setAssignment(idToken, selectedClassroom.classroomId, payload);
 
             // Upload newly attached images / starter to the presigned URLs.
@@ -305,6 +313,7 @@ const useTeacherAssignment = ({
         editorPages,
         starterMode,
         starterSource,
+        startFromPrevious,
         vm,
         clearError,
         showError,
@@ -328,6 +337,7 @@ const useTeacherAssignment = ({
         starterSource,
         hasExistingStarter,
         isSaving,
+        startFromPrevious,
         loadAssignmentEditor,
         handleAddPage,
         handleRemovePage,
@@ -338,6 +348,7 @@ const useTeacherAssignment = ({
         handleUseCurrentProjectAsStarter,
         handleUseFileAsStarter,
         handleRemoveStarter,
+        handleChangeStartFromPrevious,
         handleSaveAssignment,
         handleCancelAssignmentEdit,
         handleApplyTemplate,

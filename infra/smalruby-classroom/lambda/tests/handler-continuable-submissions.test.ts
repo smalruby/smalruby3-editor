@@ -142,7 +142,7 @@ describe('GET /classrooms/{id}/continuable-submissions (issue #1201)', () => {
       submissions: [submission('c-now', 'seat-04'), submission('c-prev', 'seat-04')],
     });
     const { body } = await call();
-    expect(body).toEqual({ current: null, previous: null });
+    expect(body).toEqual({ current: null, previous: null, startFromPrevious: false });
   });
 
   test('別のクラス (組) の課題の提出物は返さない', async () => {
@@ -205,7 +205,7 @@ describe('GET /classrooms/{id}/continuable-submissions (issue #1201)', () => {
       ],
     });
     const { body } = await call();
-    expect(body).toEqual({ current: null, previous: null });
+    expect(body).toEqual({ current: null, previous: null, startFromPrevious: false });
   });
 
   test('project.sb3 の無い提出記録は返さない', async () => {

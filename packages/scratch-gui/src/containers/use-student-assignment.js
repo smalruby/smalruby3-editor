@@ -5,14 +5,16 @@
  * starter project into the VM. When the seat has submissions to continue
  * from (#1201) — this assignment's or the previous assignment's of the same
  * class — the student chooses where to start instead of the starter opening
- * automatically. Nothing clobbers work silently: when the open project has
+ * automatically. When the teacher turned on "start from the previous
+ * submission" (#1202) the previous submission opens by itself instead.
+ * Nothing clobbers work silently: when the open project has
  * unsaved changes the student is asked first.
  */
 import { useCallback, useState } from 'react';
 import { defineMessages } from 'react-intl';
 import { useSelector } from 'react-redux';
 import classroomAPI from '../lib/classroom-api.js';
-import { normalizeContinueOptions } from '../lib/classroom-continue-options.js';
+import { decideJoinStart, normalizeContinueOptions } from '../lib/classroom-continue-options.js';
 import { loadProjectWithChecks } from '../lib/project-loader-utils.js';
 import translateError from './classroom-error-utils.js';
 
@@ -86,6 +88,9 @@ const useStudentAssignment = ({
     // 'current') so the choice row can mark it.
     const [continueOptions, setContinueOptions] = useState(null);
     const [loadedChoice, setLoadedChoice] = useState(null);
+    // What the join opened by the teacher's setting (#1202), shown to the
+    // student: 'openedPrevious' | 'noPrevious' | null.
+    const [startNotice, setStartNotice] = useState(null);
 
     /**
      * Download an sb3 and load it into the VM. Asks for confirmation when the
@@ -133,17 +138,17 @@ const useStudentAssignment = ({
      * "nothing to offer" so the join / status view keeps working.
      * @param {string} sessionToken - student session token
      * @param {string} classroomId - joined classroom ID
-     * @returns {Promise<?object>} normalized options or null
+     * @returns {Promise<{options: ?object, startFromPrevious: boolean}>}
+     *   normalized options (null when none) and the assignment setting
      */
     const fetchContinueOptions = useCallback(async (sessionToken, classroomId) => {
         try {
-            const options = normalizeContinueOptions(
-                await classroomAPI.getContinuableSubmissions(sessionToken, classroomId),
-            );
+            const data = await classroomAPI.getContinuableSubmissions(sessionToken, classroomId);
+            const options = normalizeContinueOptions(data);
             setContinueOptions(options);
-            return options;
+            return { options, startFromPrevious: data?.startFromPrevious === true };
         } catch {
-            return null;
+            return { options: null, startFromPrevious: false };
         }
     }, []);
 
@@ -153,7 +158,8 @@ const useStudentAssignment = ({
      * return the phase the container should switch to ('student-assignment'
      * when there are pages to read, null to fall back to the joined
      * confirmation). The starter opens automatically only when there is
-     * nothing to continue from; otherwise the student chooses. Failures fall
+     * nothing to continue from; otherwise the student chooses — unless the
+     * teacher's setting opens the previous submission (decideJoinStart). Failures fall
      * back gracefully — joining must never be blocked by assignment delivery
      * problems.
      * @param {string} sessionToken - fresh session token from the join
@@ -164,27 +170,45 @@ const useStudentAssignment = ({
     const handleJoined = useCallback(
         async (sessionToken, classroomId, withAssignment) => {
             setLoadedChoice(null);
+            setStartNotice(null);
             setContinueOptions(null);
             setHasAssignment(false);
-            const [assignmentData, options] = await Promise.all([
+            const [assignmentData, { options, startFromPrevious }] = await Promise.all([
                 withAssignment ? classroomAPI.getAssignment(sessionToken, classroomId).catch(() => null) : null,
                 fetchContinueOptions(sessionToken, classroomId),
             ]);
             const joinedAssignment = assignmentData?.assignment || null;
             setAssignment(joinedAssignment);
             setAssignmentPageIndex(0);
-            if (!joinedAssignment) return null;
+            const start = decideJoinStart(options, startFromPrevious);
+            if (start.action === 'previous') {
+                // Opens even without assignment content: a follow-up lesson
+                // often has no pages or starter of its own.
+                try {
+                    if (await loadProjectFromUrl(options.previous.projectUrl, messages.overwriteConfirmPrevious)) {
+                        setLoadedChoice('previous');
+                        setStartNotice(start.notice);
+                    }
+                } catch {
+                    showError(intl.formatMessage(messages.submissionLoadFailed));
+                }
+            }
+            if (!joinedAssignment) {
+                if (start.notice === 'noPrevious') setStartNotice(start.notice);
+                return null;
+            }
             setHasAssignment(true);
-            if (!options) {
+            if (start.action === 'starter') {
                 try {
                     await loadStarter(joinedAssignment);
                 } catch {
                     showError(intl.formatMessage(messages.starterLoadFailed));
                 }
+                setStartNotice(start.notice);
             }
             return (joinedAssignment.pages || []).length > 0 ? 'student-assignment' : null;
         },
-        [fetchContinueOptions, loadStarter, showError, intl],
+        [fetchContinueOptions, loadProjectFromUrl, loadStarter, showError, intl],
     );
 
     /** Re-fetch the submissions to continue from (status view). */
@@ -339,6 +363,7 @@ const useStudentAssignment = ({
         continueOptions,
         hasAssignment,
         loadedChoice,
+        startNotice,
         setHasAssignment,
         handleJoined,
         handleLoadSubmission,

@@ -24,6 +24,7 @@ const StudentAssignmentPanel = ({
     joinedInfo,
     loadedChoice,
     pageIndex,
+    startNotice,
     onChooseStarter,
     onClose,
     onLoadSubmission,
@@ -119,6 +120,7 @@ const StudentAssignmentPanel = ({
                     isLoading={isLoading}
                     loadedChoice={loadedChoice}
                     showStarter={!!assignment?.starterUrl}
+                    startNotice={startNotice}
                     onKeepCurrent={onClose}
                     onLoadStarter={onChooseStarter}
                     onLoadSubmission={onLoadSubmission}
@@ -178,6 +180,7 @@ StudentAssignmentPanel.propTypes = {
     }),
     loadedChoice: PropTypes.string,
     pageIndex: PropTypes.number.isRequired,
+    startNotice: PropTypes.string,
     onChooseStarter: PropTypes.func,
     onClose: PropTypes.func.isRequired,
     onLoadSubmission: PropTypes.func,
