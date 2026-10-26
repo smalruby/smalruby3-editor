@@ -114,6 +114,7 @@ const seatTitle = (intl, seat) => {
  * @param {Array<object>} props.seats - cells of buildPeerSeats
  * @param {?number} props.selectedSeat - seat shown in the viewer
  * @param {{x: number, y: number}} props.viewerPosition - viewer window position
+ * @param {object} props.viewerRef - ref to the viewer window (to measure it)
  * @param {Function} props.onClose - close the panel
  * @param {Function} props.onCloseViewer - close the viewer window
  * @param {Function} props.onDrag - panel dragged
@@ -134,6 +135,7 @@ const ClassroomPeerPanel = ({
     seats,
     selectedSeat,
     viewerPosition,
+    viewerRef,
     onClose,
     onCloseViewer,
     onDrag,
@@ -290,6 +292,7 @@ const ClassroomPeerPanel = ({
                     <div
                         className={styles.viewerWindow}
                         data-testid="classroom-peer-viewer"
+                        ref={viewerRef}
                         role="dialog"
                     >
                         <div className={classNames(frameStyles.header, styles.viewerHeader)}>
@@ -348,6 +351,7 @@ ClassroomPeerPanel.propTypes = {
     ).isRequired,
     selectedSeat: PropTypes.number,
     viewerPosition: positionShape.isRequired,
+    viewerRef: PropTypes.oneOfType([PropTypes.func, PropTypes.object]),
 };
 
 export default ClassroomPeerPanel;

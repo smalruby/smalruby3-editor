@@ -354,7 +354,6 @@ test/unit/components/*
 !test/unit/components/student-continue-choice.test.jsx
 !test/unit/components/teacher-class-detail.test.jsx
 !test/unit/components/student-peer-view-button.test.jsx
-!test/unit/containers/classroom-peer-panel.test.jsx
 !test/unit/components/classroom-status-icon.test.jsx
 !test/unit/components/teacher-notifications.test.jsx
 !test/unit/components/teacher-avatar-menu.test.jsx
@@ -393,6 +392,7 @@ test/unit/containers/*
 !test/unit/containers/classroom-teacher-kick-alerts.test.jsx
 !test/unit/containers/use-teacher-kick-request-polling.test.js
 !test/unit/containers/use-teacher-panel-polling.test.js
+!test/unit/containers/classroom-peer-panel.test.jsx
 !test/unit/containers/use-kick-request-polling.test.js
 !test/unit/containers/use-student-assignment.test.js
 !test/unit/containers/use-teacher-assignment.test.js

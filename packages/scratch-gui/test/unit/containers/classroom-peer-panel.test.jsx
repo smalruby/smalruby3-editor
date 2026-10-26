@@ -87,6 +87,27 @@ describe('ClassroomPeerPanel (#1210)', () => {
         expect(screen.queryByTestId('classroom-peer-viewer')).toBeNull();
     });
 
+    test('should keep the viewer inside a window narrowed after the GUI mounted', async () => {
+        const width = window.innerWidth;
+        try {
+            // The default viewer position comes from the window at mount time.
+            window.innerWidth = 2000;
+            mockListPeers.mockResolvedValue({ peerView: 'always', submissions: SUBMISSIONS });
+            const store = renderPanel();
+            window.innerWidth = 1000;
+            act(() => store.dispatch(openStudentPeerPanel()));
+            await waitFor(() => expect(screen.getByTestId('classroom-peer-panel-seat-2')).toBeEnabled());
+            await act(async () => {
+                fireEvent.click(screen.getByTestId('classroom-peer-panel-seat-2'));
+            });
+            const transform = screen.getByTestId('classroom-peer-viewer').style.transform;
+            const x = Number(/translate\((-?[\d.]+)px/.exec(transform)[1]);
+            expect(x).toBeLessThanOrEqual(1000);
+        } finally {
+            window.innerWidth = width;
+        }
+    });
+
     test('should read the list again from the refresh button', async () => {
         mockListPeers.mockResolvedValue({ peerView: 'always', submissions: [] });
         const store = renderPanel();

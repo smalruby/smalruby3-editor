@@ -72,6 +72,7 @@ const ClassroomPeerPanel = () => {
     const [position, setPosition] = useState(defaultPanelPosition);
     const [viewerPosition, setViewerPosition] = useState(defaultViewerPosition);
     const panelRef = useRef(null);
+    const viewerRef = useRef(null);
 
     const load = useCallback(async () => {
         if (!sessionToken || !classroomId) return null;
@@ -122,6 +123,26 @@ const ClassroomPeerPanel = () => {
         return () => window.removeEventListener('resize', fit);
     }, [shown, minimized, submissions, error]);
 
+    // The viewer's default position is computed when the GUI mounts, so a
+    // window narrowed since then (or a viewer resized by the student) could
+    // leave it off screen; keep it inside the window like the panel.
+    const viewerShown = shown && !!selectedSeat;
+    useLayoutEffect(() => {
+        if (!viewerShown) return () => {};
+        const fit = () => {
+            const el = viewerRef.current;
+            if (!el) return;
+            const size = { width: el.offsetWidth, height: el.offsetHeight };
+            setViewerPosition((p) => {
+                const next = keepOnScreen(p, size);
+                return next.x === p.x && next.y === p.y ? p : next;
+            });
+        };
+        fit();
+        window.addEventListener('resize', fit);
+        return () => window.removeEventListener('resize', fit);
+    }, [viewerShown, selectedSeat, submissions]);
+
     const handleOpenSeat = useCallback(
         async (seatNumber) => {
             setSelectedSeat(seatNumber);
@@ -158,6 +179,7 @@ const ClassroomPeerPanel = () => {
             seats={seats}
             selectedSeat={selectedSeat}
             viewerPosition={viewerPosition}
+            viewerRef={viewerRef}
             onClose={handleClose}
             onCloseViewer={handleCloseViewer}
             onDrag={handleDrag}
