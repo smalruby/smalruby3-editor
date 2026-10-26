@@ -4,6 +4,9 @@
  * Shows the assignment pages (short text + optional image) with a pager.
  * Opens automatically right after joining a classroom that carries an
  * assignment, and any time from the status view via "View Assignment".
+ * Right after joining, the footer offers where to start (nothing is loaded
+ * until the student presses a choice); reopened later, it offers reopening
+ * the starter and going back to work.
  */
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -24,7 +27,7 @@ const StudentAssignmentPanel = ({
     joinedInfo,
     loadedChoice,
     pageIndex,
-    startNotice,
+    startChoice,
     onChooseStarter,
     onClose,
     onLoadSubmission,
@@ -34,6 +37,9 @@ const StudentAssignmentPanel = ({
 }) => {
     const pages = assignment?.pages || [];
     const page = pages[pageIndex] || null;
+    // Just joined: the start choices. Reopened from the status view: no choices.
+    const showStarterChoice = !!joinedInfo && !!startChoice?.showStarter;
+    const hasChoices = !!joinedInfo && (showStarterChoice || !!continueOptions);
 
     return (
         <div data-testid="classroom-phase-student-assignment">
@@ -113,22 +119,26 @@ const StudentAssignmentPanel = ({
 
             {/* Choice and the close button side by side (one row at 1300x600). */}
             <div className={styles.assignmentFooter}>
-                {/* Earlier submissions to continue from (#1201): the starter becomes one of the
-                    choices and each choice starts, so the separate close button goes away. */}
-                <StudentContinueChoice
-                    continueOptions={continueOptions}
-                    isLoading={isLoading}
-                    loadedChoice={loadedChoice}
-                    showStarter={!!assignment?.starterUrl}
-                    startNotice={startNotice}
-                    onKeepCurrent={onClose}
-                    onLoadStarter={onChooseStarter}
-                    onLoadSubmission={onLoadSubmission}
-                />
+                {/* Right after joining, each choice starts (the starter, earlier
+                    submissions #1201, or as it is), so there is no separate Start
+                    button and nothing to reload. */}
+                {joinedInfo && (
+                    <StudentContinueChoice
+                        continueOptions={continueOptions}
+                        isLoading={isLoading}
+                        loadedChoice={loadedChoice}
+                        recommend={startChoice?.recommend}
+                        showStarter={showStarterChoice}
+                        startNotice={startChoice?.notice}
+                        onKeepCurrent={onClose}
+                        onLoadStarter={onChooseStarter}
+                        onLoadSubmission={onLoadSubmission}
+                    />
+                )}
 
-                {!continueOptions && (
+                {!hasChoices && (
                     <div className={styles.buttonRow}>
-                        {assignment?.starterUrl && (
+                        {!joinedInfo && assignment?.starterUrl && (
                             <button
                                 className={styles.secondaryButton}
                                 data-testid="classroom-assignment-reload-starter"
@@ -180,7 +190,11 @@ StudentAssignmentPanel.propTypes = {
     }),
     loadedChoice: PropTypes.string,
     pageIndex: PropTypes.number.isRequired,
-    startNotice: PropTypes.string,
+    startChoice: PropTypes.shape({
+        showStarter: PropTypes.bool,
+        recommend: PropTypes.string,
+        notice: PropTypes.string,
+    }),
     onChooseStarter: PropTypes.func,
     onClose: PropTypes.func.isRequired,
     onLoadSubmission: PropTypes.func,

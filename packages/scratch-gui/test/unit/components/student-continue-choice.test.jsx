@@ -51,8 +51,16 @@ describe('StudentContinueChoice', () => {
     });
 
     test('選択肢が無ければ何も描かない', () => {
-        const { queryByTestId } = renderChoice({ continueOptions: null });
+        const { queryByTestId } = renderChoice({ continueOptions: null, showStarter: false });
         expect(queryByTestId('classroom-continue-choice')).not.toBeInTheDocument();
+    });
+
+    test('提出物が無くてもスターターがあれば、スターターと「いまの作品のまま」を選ばせる', () => {
+        const onKeepCurrent = jest.fn();
+        const { getByTestId, queryByTestId } = renderChoice({ continueOptions: null, onKeepCurrent });
+        expect(getByTestId('classroom-continue-starter')).toBeInTheDocument();
+        expect(getByTestId('classroom-continue-keep')).toBeInTheDocument();
+        expect(queryByTestId('classroom-continue-previous')).not.toBeInTheDocument();
     });
 
     test('押すと種類を渡して読み込む', () => {
@@ -93,31 +101,41 @@ describe('StudentContinueChoice', () => {
     });
 });
 
-describe('StudentContinueChoice — 先生の設定で開いたもののお知らせ (#1202)', () => {
-    test('前回の提出物を開いたことを知らせ、開いたものに印を付ける', () => {
-        const { getByTestId } = renderChoice({
+describe('StudentContinueChoice — 先生の設定のおすすめ (#1202)', () => {
+    test('前回の提出物を「おすすめ」にし、理由を知らせる (自動では開かないので印は付けない)', () => {
+        const { getByTestId, queryByTestId } = renderChoice({
             continueOptions: { previous, current: null },
-            loadedChoice: 'previous',
-            startNotice: 'openedPrevious',
+            showStarter: false,
+            recommend: 'previous',
+            startNotice: 'recommendPrevious',
         });
-        expect(getByTestId('classroom-continue-notice')).toHaveTextContent("last time's submission is open");
-        expect(getByTestId('classroom-continue-previous')).toHaveAttribute('aria-pressed', 'true');
+        expect(getByTestId('classroom-continue-notice')).toHaveTextContent(
+            "Your teacher recommends continuing from last time's submission.",
+        );
+        expect(getByTestId('classroom-continue-previous-recommended')).toHaveTextContent('Recommended');
+        expect(getByTestId('classroom-continue-previous')).toHaveAttribute('aria-pressed', 'false');
+        expect(queryByTestId('classroom-continue-starter')).not.toBeInTheDocument();
     });
 
-    test('前回の提出物が無くスターターを開いたときは、選択肢が無くてもそのことを知らせる', () => {
-        const { getByTestId, queryByTestId } = renderChoice({
+    test('前回の提出物が無ければ、スターターを「おすすめ」にしてそのことを知らせる', () => {
+        const { getByTestId } = renderChoice({
             continueOptions: null,
-            loadedChoice: 'starter',
+            recommend: 'starter',
             startNotice: 'noPrevious',
         });
-        expect(queryByTestId('classroom-continue-choice')).not.toBeInTheDocument();
         expect(getByTestId('classroom-continue-notice')).toHaveTextContent(
-            'There was no submission from last time, so you start from the starter.',
+            'There was no submission from last time. Start from the starter.',
         );
+        expect(getByTestId('classroom-continue-starter-recommended')).toBeInTheDocument();
     });
 
     test('スターターも無いときは、前回の提出物が無かったことだけを知らせる', () => {
-        const { getByTestId } = renderChoice({ continueOptions: null, startNotice: 'noPrevious' });
+        const { getByTestId, queryByTestId } = renderChoice({
+            continueOptions: null,
+            showStarter: false,
+            startNotice: 'noPrevious',
+        });
+        expect(queryByTestId('classroom-continue-choice')).not.toBeInTheDocument();
         expect(getByTestId('classroom-continue-notice')).toHaveTextContent('There was no submission from last time.');
     });
 });

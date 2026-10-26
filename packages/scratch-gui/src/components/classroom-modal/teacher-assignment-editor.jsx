@@ -270,7 +270,7 @@ const TeacherAssignmentEditor = ({
             )}
             <p className={styles.teacherViewHint}>
                 <FormattedMessage
-                    defaultMessage="Students see these pages and the starter project opens automatically when they join with the class code."
+                    defaultMessage="Students see these pages when they join with the class code, and start from the starter project with a button."
                     description="Assignment editor explanation"
                     id="gui.classroom.assignmentEditor.hint"
                 />
@@ -393,7 +393,7 @@ const TeacherAssignmentEditor = ({
                             </span>
                             <span className={styles.assignmentStartFromPreviousHint}>
                                 <FormattedMessage
-                                    defaultMessage="For follow-up lessons: when students join, the project they submitted last time in this class opens. Students without one get the starter."
+                                    defaultMessage="For follow-up lessons: when students join, continuing from the project they submitted last time in this class is recommended (the starter is not offered). Students without one are told to start from the starter."
                                     description="Assignment editor: explanation of the start-from-previous setting"
                                     id="gui.classroom.assignmentEditor.startFromPreviousHint"
                                 />

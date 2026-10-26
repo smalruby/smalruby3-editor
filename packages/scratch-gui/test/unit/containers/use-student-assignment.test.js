@@ -2,8 +2,9 @@
 /**
  * 参加直後に「どこから始めるか」を選べるようにする (#1201)。
  *
- * - 続きに使える提出物が無ければ、従来どおりスターターを自動で開く。
- * - あれば勝手に開かず、生徒に選ばせる (スターター / 前回 / この課題)。
+ * - 参加しただけでは何も読み込まない。生徒が選んだときだけ読み込む
+ *   (自動で開いたうえで同じ選択肢を出すと、迷ううえに押すと 2 重に読み込む)。
+ * - 選択肢はスターター / 前回 / この課題 / いまの作品のまま。
  * - 未保存の変更があれば上書き前に確認する。
  */
 import { act, renderHook } from '@testing-library/react';
@@ -63,7 +64,7 @@ describe('useStudentAssignment — 続きから始める (#1201)', () => {
         window.confirm = jest.fn(() => true);
     });
 
-    test('続きに使える提出物が無ければ、スターターを自動で開く (従来どおり)', async () => {
+    test('続きに使える提出物が無くても、スターターは自動で開かず選択肢に出す', async () => {
         mockGetAssignment.mockResolvedValue({ assignment: ASSIGNMENT });
         mockGetContinuable.mockResolvedValue({ current: null, previous: null });
         const { hook } = setup();
@@ -72,10 +73,22 @@ describe('useStudentAssignment — 続きから始める (#1201)', () => {
             next = await hook.result.current.handleJoined('st', 'c-now', true);
         });
         expect(next).toBe('student-assignment');
-        expect(global.fetch).toHaveBeenCalledWith(ASSIGNMENT.starterUrl);
-        expect(mockLoadProject).toHaveBeenCalledTimes(1);
+        expect(global.fetch).not.toHaveBeenCalled();
+        expect(mockLoadProject).not.toHaveBeenCalled();
         expect(hook.result.current.continueOptions).toBeNull();
-        expect(hook.result.current.loadedChoice).toBe('starter');
+        expect(hook.result.current.loadedChoice).toBeNull();
+        expect(hook.result.current.startChoice).toEqual({ showStarter: true, recommend: null, notice: null });
+    });
+
+    test('スターターも提出物も無ければ、選択肢は無い (「はじめる」だけ)', async () => {
+        mockGetAssignment.mockResolvedValue({ assignment: { pages: [{ text: 'p1' }], starterUrl: null } });
+        mockGetContinuable.mockResolvedValue({ current: null, previous: null });
+        const { hook } = setup();
+        await act(async () => {
+            await hook.result.current.handleJoined('st', 'c-now', true);
+        });
+        expect(hook.result.current.startChoice.showStarter).toBe(false);
+        expect(hook.result.current.continueOptions).toBeNull();
     });
 
     test('前回の提出物があれば、勝手に開かず選択肢を出す', async () => {
@@ -105,15 +118,16 @@ describe('useStudentAssignment — 続きから始める (#1201)', () => {
         expect(hook.result.current.continueOptions.previous).toEqual(PREVIOUS);
     });
 
-    test('提出物の取得に失敗しても参加は止めず、従来どおりスターターを開く', async () => {
+    test('提出物の取得に失敗しても参加は止めず、スターターを選択肢に出す', async () => {
         mockGetAssignment.mockResolvedValue({ assignment: ASSIGNMENT });
         mockGetContinuable.mockRejectedValue(new Error('network'));
         const { hook } = setup();
         await act(async () => {
             await hook.result.current.handleJoined('st', 'c-now', true);
         });
-        expect(mockLoadProject).toHaveBeenCalledTimes(1);
+        expect(mockLoadProject).not.toHaveBeenCalled();
         expect(hook.result.current.continueOptions).toBeNull();
+        expect(hook.result.current.startChoice.showStarter).toBe(true);
     });
 
     test('「前回の提出物から続ける」は URL を取り直してから読み込む', async () => {
@@ -257,60 +271,56 @@ describe('useStudentAssignment — 前回の提出物から始めさせる (#120
         });
     };
 
-    test('設定 ON なら参加直後に前回の提出物を開き、選択肢も残す', async () => {
+    test('設定 ON: 前回の提出物は自動で開かず「おすすめ」にし、スターターは出さない', async () => {
         mockGetAssignment.mockResolvedValue({ assignment: ASSIGNMENT, startFromPrevious: true });
         mockGetContinuable.mockResolvedValue({ current: null, previous: PREVIOUS, startFromPrevious: true });
         const { hook, deps } = setup();
         await join(hook);
-        expect(global.fetch).toHaveBeenCalledWith(PREVIOUS.projectUrl);
-        expect(global.fetch).not.toHaveBeenCalledWith(ASSIGNMENT.starterUrl);
-        expect(hook.result.current.loadedChoice).toBe('previous');
-        expect(hook.result.current.startNotice).toBe('openedPrevious');
+        expect(global.fetch).not.toHaveBeenCalled();
+        expect(mockLoadProject).not.toHaveBeenCalled();
+        expect(hook.result.current.loadedChoice).toBeNull();
+        expect(hook.result.current.startChoice).toEqual({
+            showStarter: false,
+            recommend: 'previous',
+            notice: 'recommendPrevious',
+        });
         expect(hook.result.current.continueOptions.previous).toEqual(PREVIOUS);
-        // 参加完了画面を見せる (モーダルは閉じない)
         expect(deps.onStarted).not.toHaveBeenCalled();
     });
 
-    test('設定 ON で前回の提出物が無ければスターターを開き、そのことを知らせる', async () => {
+    test('設定 ON: おすすめの前回の提出物を押したときだけ 1 回読み込み、始める', async () => {
+        mockGetAssignment.mockResolvedValue({ assignment: ASSIGNMENT, startFromPrevious: true });
+        mockGetContinuable.mockResolvedValue({ current: null, previous: PREVIOUS, startFromPrevious: true });
+        const { hook, deps } = setup();
+        await join(hook);
+        await act(async () => {
+            await hook.result.current.handleLoadSubmission('previous');
+        });
+        expect(mockLoadProject).toHaveBeenCalledTimes(1);
+        expect(window.confirm).not.toHaveBeenCalled();
+        expect(hook.result.current.loadedChoice).toBe('previous');
+        expect(deps.onStarted).toHaveBeenCalledTimes(1);
+    });
+
+    test('設定 ON で前回の提出物が無ければ、スターターを「おすすめ」にしてそのことを知らせる', async () => {
         mockGetAssignment.mockResolvedValue({ assignment: ASSIGNMENT, startFromPrevious: true });
         mockGetContinuable.mockResolvedValue({ current: null, previous: null, startFromPrevious: true });
         const { hook } = setup();
         await join(hook);
-        expect(global.fetch).toHaveBeenCalledWith(ASSIGNMENT.starterUrl);
-        expect(hook.result.current.loadedChoice).toBe('starter');
-        expect(hook.result.current.startNotice).toBe('noPrevious');
+        expect(mockLoadProject).not.toHaveBeenCalled();
+        expect(hook.result.current.startChoice).toEqual({
+            showStarter: true,
+            recommend: 'starter',
+            notice: 'noPrevious',
+        });
     });
 
-    test('設定 OFF なら従来どおり選ばせ、お知らせは出さない', async () => {
+    test('設定 OFF なら選ばせるだけで、おすすめ・お知らせは出さない', async () => {
         mockGetAssignment.mockResolvedValue({ assignment: ASSIGNMENT, startFromPrevious: false });
         mockGetContinuable.mockResolvedValue({ current: null, previous: PREVIOUS, startFromPrevious: false });
         const { hook } = setup();
         await join(hook);
         expect(mockLoadProject).not.toHaveBeenCalled();
-        expect(hook.result.current.startNotice).toBeNull();
-    });
-
-    test('前回の提出物を開くとき、未保存の変更があれば確認し、断ったら開かない', async () => {
-        mockProjectChanged = true;
-        window.confirm = jest.fn(() => false);
-        mockGetAssignment.mockResolvedValue({ assignment: ASSIGNMENT, startFromPrevious: true });
-        mockGetContinuable.mockResolvedValue({ current: null, previous: PREVIOUS, startFromPrevious: true });
-        const { hook } = setup();
-        await join(hook);
-        expect(window.confirm).toHaveBeenCalledWith(
-            "Open last time's submitted project? Your current project will be replaced.",
-        );
-        expect(mockLoadProject).not.toHaveBeenCalled();
-        expect(hook.result.current.loadedChoice).toBeNull();
-        expect(hook.result.current.startNotice).toBeNull();
-    });
-
-    test('前回の提出物を開けなかったらエラーを出す', async () => {
-        global.fetch = jest.fn(async () => ({ ok: false, status: 403 }));
-        mockGetAssignment.mockResolvedValue({ assignment: ASSIGNMENT, startFromPrevious: true });
-        mockGetContinuable.mockResolvedValue({ current: null, previous: PREVIOUS, startFromPrevious: true });
-        const { hook, deps } = setup();
-        await join(hook);
-        expect(deps.showError).toHaveBeenCalledWith('Failed to open the submitted project');
+        expect(hook.result.current.startChoice).toEqual({ showStarter: true, recommend: null, notice: null });
     });
 });

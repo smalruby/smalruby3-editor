@@ -338,18 +338,19 @@ export default {
     'gui.classroom.continueChoice.current': 'Open what you submitted for this assignment',
     'gui.classroom.continueChoice.loadFailed': 'Failed to open the submitted project',
     'gui.classroom.continueChoice.gone': 'That submitted project is no longer available',
-    'gui.classroom.continueChoice.noticeOpenedPrevious':
-        "Your teacher set this lesson to continue: last time's submission is open.",
-    'gui.classroom.continueChoice.noticeNoPreviousStarter':
-        'There was no submission from last time, so you start from the starter.',
+    'gui.classroom.continueChoice.noticeRecommendPrevious':
+        "Your teacher recommends continuing from last time's submission.",
+    'gui.classroom.continueChoice.noticeNoPreviousUseStarter':
+        'There was no submission from last time. Start from the starter.',
+    'gui.classroom.continueChoice.recommended': 'Recommended',
     'gui.classroom.continueChoice.noticeNoPrevious': 'There was no submission from last time.',
     'gui.classroom.assignmentEditor.startFromPrevious': 'Start from the previous submission',
     'gui.classroom.assignmentEditor.startFromPreviousHint':
-        'For follow-up lessons: when students join, the project they submitted last time in this class opens. Students without one get the starter.',
+        'For follow-up lessons: when students join, continuing from the project they submitted last time in this class is recommended (the starter is not offered). Students without one are told to start from the starter.',
     'gui.classroom.teacherDetail.previewStartPrevious':
-        'On join: the project the student submitted last time opens (the starter if there is none)',
+        "On join: continuing from last time's submission is recommended (the starter if there is none)",
     'gui.classroom.teacherDetail.previewStartStarter':
-        'On join: the starter opens (students with an earlier submission choose where to start)',
+        'On join: students start from the starter with a button (students with an earlier submission choose where to start)',
     'gui.classroom.teacherDetail.previewStartNone':
         'On join: students start with the open project (students with an earlier submission choose where to start)',
     'gui.classroom.continueChoice.starterDetail': 'Make it from the project your teacher prepared',
@@ -362,7 +363,7 @@ export default {
     'gui.classroom.assignmentEditor.openButton': 'Edit Assignment',
     'gui.classroom.assignmentEditor.title': 'Edit Assignment',
     'gui.classroom.assignmentEditor.hint':
-        'Students see these pages and the starter project opens automatically when they join with the class code.',
+        'Students see these pages when they join with the class code, and start from the starter project with a button.',
     'gui.classroom.assignmentEditor.pageNumber': 'Page {number}',
     'gui.classroom.assignmentEditor.pageTextPlaceholder': 'Write instructions for this page (a few lines)',
     'gui.classroom.assignmentEditor.moveUp': 'Move up',

@@ -1,14 +1,15 @@
 /**
  * Student assignment hook.
  *
- * Fetches the assignment content of the joined classroom and loads the
- * starter project into the VM. When the seat has submissions to continue
+ * Fetches the assignment content of the joined classroom and offers where
+ * to start: the starter project, and the seat's submissions to continue
  * from (#1201) — this assignment's or the previous assignment's of the same
- * class — the student chooses where to start instead of the starter opening
- * automatically. When the teacher turned on "start from the previous
- * submission" (#1202) the previous submission opens by itself instead.
- * Nothing clobbers work silently: when the open project has
- * unsaved changes the student is asked first.
+ * class. Joining never loads a project by itself; the student's choice does
+ * (an automatic load plus the same choice on screen made students unsure
+ * what to press and loaded the project twice). With the teacher's "start
+ * from the previous submission" setting (#1202) the previous submission is
+ * the recommended choice. Nothing clobbers work silently: when the open
+ * project has unsaved changes the student is asked first.
  */
 import { useCallback, useState } from 'react';
 import { defineMessages } from 'react-intl';
@@ -17,6 +18,8 @@ import classroomAPI from '../lib/classroom-api.js';
 import { decideJoinStart, normalizeContinueOptions } from '../lib/classroom-continue-options.js';
 import { loadProjectWithChecks } from '../lib/project-loader-utils.js';
 import translateError from './classroom-error-utils.js';
+
+const NO_START_CHOICE = { showStarter: false, recommend: null, notice: null };
 
 const messages = defineMessages({
     overwriteConfirm: {
@@ -88,9 +91,10 @@ const useStudentAssignment = ({
     // 'current') so the choice row can mark it.
     const [continueOptions, setContinueOptions] = useState(null);
     const [loadedChoice, setLoadedChoice] = useState(null);
-    // What the join opened by the teacher's setting (#1202), shown to the
-    // student: 'openedPrevious' | 'noPrevious' | null.
-    const [startNotice, setStartNotice] = useState(null);
+    // Start choices right after joining (decideJoinStart): whether the starter
+    // is offered, which choice is recommended by the teacher's setting
+    // (#1202) and the notice explaining it.
+    const [startChoice, setStartChoice] = useState(NO_START_CHOICE);
 
     /**
      * Download an sb3 and load it into the VM. Asks for confirmation when the
@@ -154,14 +158,12 @@ const useStudentAssignment = ({
 
     /**
      * Called right after a successful join: fetch the assignment content (when
-     * the classroom has one) and the submissions to continue from, then
-     * return the phase the container should switch to ('student-assignment'
-     * when there are pages to read, null to fall back to the joined
-     * confirmation). The starter opens automatically only when there is
-     * nothing to continue from; otherwise the student chooses — unless the
-     * teacher's setting opens the previous submission (decideJoinStart). Failures fall
-     * back gracefully — joining must never be blocked by assignment delivery
-     * problems.
+     * the classroom has one) and the submissions to continue from, decide the
+     * start choices (decideJoinStart) and return the phase the container
+     * should switch to ('student-assignment' when there are pages to read,
+     * null to fall back to the joined confirmation). Nothing is loaded here.
+     * Failures fall back gracefully — joining must never be blocked by
+     * assignment delivery problems.
      * @param {string} sessionToken - fresh session token from the join
      * @param {string} classroomId - joined classroom ID
      * @param {boolean} withAssignment - whether the classroom carries assignment content
@@ -170,7 +172,7 @@ const useStudentAssignment = ({
     const handleJoined = useCallback(
         async (sessionToken, classroomId, withAssignment) => {
             setLoadedChoice(null);
-            setStartNotice(null);
+            setStartChoice(NO_START_CHOICE);
             setContinueOptions(null);
             setHasAssignment(false);
             const [assignmentData, { options, startFromPrevious }] = await Promise.all([
@@ -180,35 +182,12 @@ const useStudentAssignment = ({
             const joinedAssignment = assignmentData?.assignment || null;
             setAssignment(joinedAssignment);
             setAssignmentPageIndex(0);
-            const start = decideJoinStart(options, startFromPrevious);
-            if (start.action === 'previous') {
-                // Opens even without assignment content: a follow-up lesson
-                // often has no pages or starter of its own.
-                try {
-                    if (await loadProjectFromUrl(options.previous.projectUrl, messages.overwriteConfirmPrevious)) {
-                        setLoadedChoice('previous');
-                        setStartNotice(start.notice);
-                    }
-                } catch {
-                    showError(intl.formatMessage(messages.submissionLoadFailed));
-                }
-            }
-            if (!joinedAssignment) {
-                if (start.notice === 'noPrevious') setStartNotice(start.notice);
-                return null;
-            }
+            setStartChoice(decideJoinStart(options, startFromPrevious, !!joinedAssignment?.starterUrl));
+            if (!joinedAssignment) return null;
             setHasAssignment(true);
-            if (start.action === 'starter') {
-                try {
-                    await loadStarter(joinedAssignment);
-                } catch {
-                    showError(intl.formatMessage(messages.starterLoadFailed));
-                }
-                setStartNotice(start.notice);
-            }
             return (joinedAssignment.pages || []).length > 0 ? 'student-assignment' : null;
         },
-        [fetchContinueOptions, loadProjectFromUrl, loadStarter, showError, intl],
+        [fetchContinueOptions],
     );
 
     /** Re-fetch the submissions to continue from (status view). */
@@ -295,11 +274,9 @@ const useStudentAssignment = ({
     ]);
 
     /**
-     * Explicitly (re)open the starter from the assignment panel / choice row.
-     * The starter URL is fetched again right before loading, like the
-     * submissions: with a choice to make the starter no longer opens on join,
-     * so the URL from the join may have expired while the student read the
-     * assignment.
+     * Open the starter from the assignment panel / choice row. The starter URL
+     * is fetched again right before loading, like the submissions: the URL
+     * from the join may have expired while the student read the assignment.
      * @param {boolean} start - true from the choice row: the work starts
      *     (onStarted) once the starter has loaded
      */
@@ -363,7 +340,7 @@ const useStudentAssignment = ({
         continueOptions,
         hasAssignment,
         loadedChoice,
-        startNotice,
+        startChoice,
         setHasAssignment,
         handleJoined,
         handleLoadSubmission,

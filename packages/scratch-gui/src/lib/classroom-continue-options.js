@@ -16,7 +16,7 @@ const usable = (item) => (item && typeof item.projectUrl === 'string' && item.pr
  * Normalize the API response into the choices to offer.
  * @param {?object} data - API response ({current, previous})
  * @returns {?{current: ?object, previous: ?object}} null when there is
- *   nothing to continue from (the starter then opens automatically as before)
+ *   nothing to continue from
  */
 export const normalizeContinueOptions = (data) => {
     const current = usable(data?.current);
@@ -26,25 +26,33 @@ export const normalizeContinueOptions = (data) => {
 };
 
 /**
- * Decide how a student starts right after joining (#1202).
+ * Decide which start choices a student gets right after joining (#1202).
+ *
+ * Joining never loads a project by itself: the student loads one by pressing
+ * a choice. Opening it automatically and still offering the same choice made
+ * students unsure which button to press, and pressing it loaded the project a
+ * second time behind an overwrite confirm.
  *
  * With the teacher's "start from the previous submission" setting on, the
- * previous submission opens by itself so a follow-up lesson never starts
- * from the starter by mistake; without one the starter opens instead and the
+ * previous submission is the recommended choice and the starter is not
+ * offered, so a follow-up lesson is not started from the starter by mistake.
+ * Without a previous submission the starter is recommended instead and the
  * student is told why. A seat that already submitted for this assignment
- * still chooses — opening last time's work would hide this lesson's.
+ * still chooses freely — recommending last time's work would hide this
+ * lesson's.
  * @param {?{current: ?object, previous: ?object}} options - normalized options
  * @param {boolean} startFromPrevious - the assignment setting
- * @returns {{action: string, notice: ?string}} action is 'previous' (open
- *   the previous submission), 'starter' (open the starter, when there is one)
- *   or 'choose' (offer the choice row); notice is 'openedPrevious',
- *   'noPrevious' or null
+ * @param {boolean} hasStarter - whether the assignment has a starter project
+ * @returns {{showStarter: boolean, recommend: ?string, notice: ?string}}
+ *   recommend is 'previous', 'starter' or null; notice is
+ *   'recommendPrevious', 'noPrevious' or null
  */
-export const decideJoinStart = (options, startFromPrevious) => {
+export const decideJoinStart = (options, startFromPrevious, hasStarter) => {
     if (startFromPrevious && !options?.current) {
-        return options?.previous
-            ? { action: 'previous', notice: 'openedPrevious' }
-            : { action: 'starter', notice: 'noPrevious' };
+        if (options?.previous) {
+            return { showStarter: false, recommend: 'previous', notice: 'recommendPrevious' };
+        }
+        return { showStarter: !!hasStarter, recommend: hasStarter ? 'starter' : null, notice: 'noPrevious' };
     }
-    return { action: options ? 'choose' : 'starter', notice: null };
+    return { showStarter: !!hasStarter, recommend: null, notice: null };
 };

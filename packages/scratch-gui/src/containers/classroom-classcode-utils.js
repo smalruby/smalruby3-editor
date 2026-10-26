@@ -94,5 +94,23 @@ const resolveAutoJoinCode = ({ urlClasscode, teacherJoinCode, session } = {}) =>
     return null;
 };
 
-export { decideClasscodeAction, decideTeacherSelectionSync, resolveAutoJoinCode };
+/**
+ * The phase the student modal opens on. A held session opens the status view,
+ * which verifies the session — except when a `?classcode=` URL switches to
+ * another class: the switch releases the old seat right away, so verifying
+ * the old session would race it, come back 401 and show a "session expired"
+ * alert although the URL's class joins fine.
+ * @param {object} session - Redux classroom state ({role, sessionToken, joinCode, classroomId})
+ * @param {?string} urlClasscode - `?classcode=` value, if any
+ * @returns {string} 'student-status' or 'student-join'
+ */
+const initialStudentPhase = (session, urlClasscode) => {
+    if (!(session && session.role === 'student' && session.sessionToken)) return 'student-join';
+    if (urlClasscode && decideClasscodeAction(session, urlClasscode).type !== 'same_class') {
+        return 'student-join';
+    }
+    return 'student-status';
+};
+
+export { decideClasscodeAction, decideTeacherSelectionSync, initialStudentPhase, resolveAutoJoinCode };
 export default decideClasscodeAction;
