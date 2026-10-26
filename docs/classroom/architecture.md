@@ -241,6 +241,7 @@ One Tap が表示できない環境（Windows や Playwright では毎回）で�
 | `POST` | `/classrooms/{id}/submissions` | Session Token | 提出 (Presigned URL 取得)。課題が非 active なら 404 |
 | `DELETE` | `/classrooms/{id}/members/me` | Session Token | 自主退出 |
 | `GET` | `/classrooms/{id}/assignment` | Session Token または 先生 ID Token | 課題コンテンツ取得（ページ + 画像/スターターのダウンロード URL）。lookup / join / verify-session は `hasAssignment` フラグを返す |
+| `GET` | `/classrooms/{id}/continuable-submissions` | Session Token | 続きに使える提出物（Issue #1201）。`{current, previous}` を返す。`current` = この課題での自分の席の提出物、`previous` = 同じクラスのこの課題より前に作られた課題（最大3回分遡る）での同じ席番号の提出物。各要素は `{classroomId, assignmentName, projectName, submittedAt, projectUrl}`（`projectUrl` は project.sb3 の Presigned GET URL）か `null`。TTL 切れの提出物・課題、project.sb3 の無い記録は返さない。パスの課題とセッションの課題が違えば 401、課題が非 active なら 404 |
 
 ### Google Classroom 連携 (ID Token + Access Token)
 
@@ -497,6 +498,8 @@ erDiagram
 - クラスは生徒の作品を持たないため、90日ではなく**長期 TTL（既定400日 ≈ 年度 + バッファ、`GROUP_TTL_DAYS`）**
 - クラスのアーカイブは表示上の整理。課題データ自体は 90 日 TTL で自然消滅する
 - **前回コメント再掲**: クラスに属する課題に生徒が join すると、同じクラスの直近の授業（最大3回分遡る）で同じ席に返却されたコメントが `previousComment` として join レスポンスに載る（連休明けの個別リキャップ用）。前回授業の列挙は `groupId` 起点なので、前回を共同管理者が作っていても拾える
+- **前回の提出物から続ける**（Issue #1201）: 同じ席番号の対応を使い、`GET /classrooms/{id}/continuable-submissions` が前回の課題での同じ席の提出物（と、この課題で自分が出した提出物）のダウンロード URL を返す。生徒が自分の提出物を取れる経路はこれだけ（先生の `GET /submissions` とは別）
+- **⚠️ プライバシーの前提（席番号は匿名）**: 生徒は課題ごとに匿名の席番号で参加するだけで、本人を識別する情報は持たない。そのため「前回その席に座っていた生徒」と「今回その席に座った生徒」が同じ人だとはシステムは確かめられない。**同じクラスの次の課題で同じ席番号を選んだ別の生徒も、前回の提出物を読み込める**。これは前回コメント再掲（`previousComment`）と同じ範囲のリスクで、席番号を毎回同じにする運用（出席番号を使う）を前提にしている。別のクラスの課題・別の席の提出物は取れない
 
 #### データモデル v2（クラス→課題モデル）
 

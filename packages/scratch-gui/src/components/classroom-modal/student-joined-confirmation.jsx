@@ -2,12 +2,25 @@ import { FormattedMessage } from 'react-intl';
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import ErrorDisplay from './error-display.jsx';
+import StudentContinueChoice from './student-continue-choice.jsx';
 import StudentPreviousComment from './student-previous-comment.jsx';
 
 import { formatStudentClassName } from '../../lib/classroom-class-label.js';
 import styles from './classroom-modal.css';
 
-const StudentJoinedConfirmation = ({ joinedInfo, onClose }) => (
+const StudentJoinedConfirmation = ({
+    continueOptions,
+    error,
+    errorTitle,
+    isLoading,
+    joinedInfo,
+    loadedChoice,
+    starterAvailable,
+    onClose,
+    onLoadStarter,
+    onLoadSubmission,
+}) => (
     <div data-testid="classroom-phase-student-joined">
         <div className={styles.successArea}>
             <div
@@ -39,6 +52,20 @@ const StudentJoinedConfirmation = ({ joinedInfo, onClose }) => (
             )}
         </div>
         <StudentPreviousComment previousComment={joinedInfo.previousComment} />
+        {/* Earlier submissions to continue from (#1201). */}
+        <StudentContinueChoice
+            continueOptions={continueOptions}
+            isLoading={isLoading}
+            loadedChoice={loadedChoice}
+            showStarter={starterAvailable}
+            onKeepCurrent={onClose}
+            onLoadStarter={onLoadStarter}
+            onLoadSubmission={onLoadSubmission}
+        />
+        <ErrorDisplay
+            error={error}
+            errorTitle={errorTitle}
+        />
         <div className={styles.joinHintBox}>
             <div className={styles.joinHintTitle}>
                 <FormattedMessage
@@ -56,23 +83,30 @@ const StudentJoinedConfirmation = ({ joinedInfo, onClose }) => (
                 />
             </div>
         </div>
-        <div className={styles.buttonRow}>
-            <button
-                className={styles.primaryButton}
-                data-testid="classroom-joined-close"
-                onClick={onClose}
-            >
-                <FormattedMessage
-                    defaultMessage="Start"
-                    description="Close button after joining"
-                    id="gui.classroom.studentJoined.start"
-                />
-            </button>
-        </div>
+        {/* With choices, each choice starts (incl. "as it is"), so no separate Start button. */}
+        {!continueOptions && (
+            <div className={styles.buttonRow}>
+                <button
+                    className={styles.primaryButton}
+                    data-testid="classroom-joined-close"
+                    onClick={onClose}
+                >
+                    <FormattedMessage
+                        defaultMessage="Start"
+                        description="Close button after joining"
+                        id="gui.classroom.studentJoined.start"
+                    />
+                </button>
+            </div>
+        )}
     </div>
 );
 
 StudentJoinedConfirmation.propTypes = {
+    continueOptions: PropTypes.object,
+    error: PropTypes.string,
+    errorTitle: PropTypes.string,
+    isLoading: PropTypes.bool,
     joinedInfo: PropTypes.shape({
         assignmentName: PropTypes.string,
         className: PropTypes.string,
@@ -80,7 +114,11 @@ StudentJoinedConfirmation.propTypes = {
         seatNumber: PropTypes.number,
         previousComment: PropTypes.object,
     }).isRequired,
+    loadedChoice: PropTypes.string,
+    starterAvailable: PropTypes.bool,
     onClose: PropTypes.func.isRequired,
+    onLoadStarter: PropTypes.func,
+    onLoadSubmission: PropTypes.func,
 };
 
 export default StudentJoinedConfirmation;

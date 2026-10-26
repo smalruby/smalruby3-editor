@@ -660,6 +660,57 @@ describe('課題コンテンツエンドポイント — 認証エラー', () =>
         expect(join3.data.previousComment).toBeNull();
     });
 
+    test('続きに使える提出物: 同じ席だけが前回・今回の提出物を取れる (#1201)', async () => {
+        // 第1回に席1で参加して提出
+        const first = await request('POST', '/classrooms/join', { joinCode: firstJoinCode, seatNumber: 1 });
+        expect(first.status).toBe(200);
+        const sub1 = await request(
+            'POST',
+            `/classrooms/${firstClassroomId}/submissions`,
+            { projectName: '先週の作品' },
+            { Authorization: `Bearer ${first.data.sessionToken as string}` },
+        );
+        expect(sub1.status).toBe(201);
+
+        // 第2回に同じ席1で参加すると、第1回の提出物が previous として取れる
+        const other = await request('POST', '/classrooms/join', { joinCode: secondJoinCode, seatNumber: 1 });
+        expect(other.status).toBe(200);
+        const otherAuth = { Authorization: `Bearer ${other.data.sessionToken as string}` };
+        const prev = await request('GET', `/classrooms/${secondClassroomId}/continuable-submissions`, null, otherAuth);
+        expect(prev.status).toBe(200);
+        const previous = prev.data.previous as Record<string, unknown>;
+        expect(previous.classroomId).toBe(firstClassroomId);
+        expect(previous.assignmentName).toBe('第1回');
+        expect(previous.projectName).toBe('先週の作品');
+        expect(typeof previous.projectUrl).toBe('string');
+        expect(prev.data.current).toBeNull();
+
+        // 今回の課題で提出すると current にも出る
+        const sub2 = await request(
+            'POST',
+            `/classrooms/${secondClassroomId}/submissions`,
+            { projectName: '今週の作品' },
+            otherAuth,
+        );
+        expect(sub2.status).toBe(201);
+        const both = await request('GET', `/classrooms/${secondClassroomId}/continuable-submissions`, null, otherAuth);
+        expect((both.data.current as Record<string, unknown>).projectName).toBe('今週の作品');
+
+        // 第1回で何も出していない席4は、前回も今回も null
+        const seat4 = await request('POST', '/classrooms/join', { joinCode: secondJoinCode, seatNumber: 4 });
+        const none = await request('GET', `/classrooms/${secondClassroomId}/continuable-submissions`, null, {
+            Authorization: `Bearer ${seat4.data.sessionToken as string}`,
+        });
+        expect(none.status).toBe(200);
+        expect(none.data).toEqual({ current: null, previous: null });
+
+        // 別の課題のパス・トークンなしは 401
+        const wrong = await request('GET', `/classrooms/${firstClassroomId}/continuable-submissions`, null, otherAuth);
+        expect(wrong.status).toBe(401);
+        const noAuth = await request('GET', `/classrooms/${secondClassroomId}/continuable-submissions`);
+        expect(noAuth.status).toBe(401);
+    });
+
     test('POST /classrooms/{id}/duplicate — 課題ごと複製できる', async () => {
         // 第1回に課題を付けてから複製
         const setAssign = await request(

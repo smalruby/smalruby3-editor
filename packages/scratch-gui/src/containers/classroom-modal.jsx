@@ -84,6 +84,10 @@ const ClassroomModal = () => {
         setPhase,
     });
 
+    const handleClose = useCallback(() => {
+        dispatch(closeClassroomModal());
+    }, [dispatch]);
+
     // Student assignment hook (assignment pages + starter auto-load)
     const studentAssignment = useStudentAssignment({
         classroomState,
@@ -93,6 +97,8 @@ const ClassroomModal = () => {
         showError,
         setIsLoading,
         setPhase,
+        // a chosen project starts the work right away (#1201)
+        onStarted: handleClose,
     });
 
     // Go back to join screen (used as error action for session expiry)
@@ -114,10 +120,6 @@ const ClassroomModal = () => {
         showAlertWithTimeout(dispatch, 'classroomSessionExpired');
     }, [dispatch]);
     showSessionExpiredErrorRef.current = showSessionExpiredError;
-
-    const handleClose = useCallback(() => {
-        dispatch(closeClassroomModal());
-    }, [dispatch]);
 
     // --- Open teacher management modal ---
 
@@ -335,19 +337,17 @@ const ClassroomModal = () => {
                 clearPendingKickRequest();
                 setKickRequestPending(null);
                 setKickRequestRejectedNotice(null);
-                if (data.hasAssignment) {
-                    // Assignment delivery: fetch the assignment, auto-load the
-                    // starter (never clobbering an edited project silently), and
-                    // jump straight to the assignment pages when there are any.
-                    const nextPhase = await studentAssignment.handleJoinedWithAssignment(
-                        data.sessionToken,
-                        data.classroomId,
-                    );
-                    setPhase(nextPhase || 'student-joined');
-                } else {
-                    studentAssignment.setHasAssignment(false);
-                    setPhase('student-joined');
-                }
+                // Assignment delivery: fetch the assignment and the submissions
+                // to continue from (#1201). The starter auto-loads only when
+                // there is nothing to continue from (never clobbering an edited
+                // project silently); we jump straight to the assignment pages
+                // when there are any.
+                const nextPhase = await studentAssignment.handleJoined(
+                    data.sessionToken,
+                    data.classroomId,
+                    !!data.hasAssignment,
+                );
+                setPhase(nextPhase || 'student-joined');
             } catch (err) {
                 if (err.status === 409) {
                     setTakenSeats((prev) => [...prev, seatNumber]);
@@ -383,6 +383,7 @@ const ClassroomModal = () => {
                 setStudentTeacherComment(result.submission.teacherComment || null);
             }
             studentAssignment.setHasAssignment(!!result.hasAssignment);
+            studentAssignment.refreshContinueOptions();
         } catch (err) {
             const kick = extractKickReason(err);
             if (kick) {
@@ -482,12 +483,16 @@ const ClassroomModal = () => {
             assignment={studentAssignment.assignment}
             assignmentPageIndex={studentAssignment.assignmentPageIndex}
             classroomState={classroomState}
+            continueOptions={studentAssignment.continueOptions}
             error={error}
             hasAssignment={studentAssignment.hasAssignment}
+            loadedChoice={studentAssignment.loadedChoice}
+            onLoadSubmission={studentAssignment.handleLoadSubmission}
             onAssignmentNextPage={studentAssignment.handleAssignmentNextPage}
             onAssignmentPrevPage={studentAssignment.handleAssignmentPrevPage}
             onOpenAssignment={studentAssignment.handleOpenAssignment}
             onReloadStarter={studentAssignment.handleReloadStarter}
+            onChooseStarter={studentAssignment.handleChooseStarter}
             errorActionHandler={errorActionHandler}
             errorActionLabel={errorActionLabel}
             errorTitle={errorTitle}

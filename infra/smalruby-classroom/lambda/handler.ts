@@ -2199,6 +2199,95 @@ async function handleCreateSubmission(
   };
 }
 
+/** True when a TTL'd row is past its expiry (DynamoDB deletes expired rows lazily). */
+function isTtlExpired(item: Record<string, unknown>, nowSec: number): boolean {
+  return typeof item.ttl === 'number' && item.ttl < nowSec;
+}
+
+/**
+ * The seat's single submission in one assignment, when it can still be
+ * downloaded (has a project.sb3 and is not past its TTL).
+ */
+async function findContinuableSubmission(
+  classroomId: string, memberId: string, nowSec: number,
+): Promise<Record<string, unknown> | null> {
+  const result = await docClient.send(new QueryCommand({
+    TableName: SUBMISSIONS_TABLE,
+    IndexName: 'classroomId-memberId-index',
+    KeyConditionExpression: 'classroomId = :cid AND memberId = :mid',
+    ExpressionAttributeValues: { ':cid': classroomId, ':mid': memberId },
+    Limit: 1,
+  }));
+  const sub = result.Items?.[0];
+  if (!sub || !sub.s3Key || isTtlExpired(sub, nowSec)) return null;
+  return sub;
+}
+
+async function toContinuableSubmission(
+  classroom: Record<string, unknown>, sub: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  const projectUrl = await getSignedUrl(
+    s3Client,
+    new GetObjectCommand({ Bucket: SUBMISSIONS_BUCKET, Key: sub.s3Key as string }),
+    { expiresIn: PRESIGNED_URL_DOWNLOAD_EXPIRY },
+  );
+  return {
+    classroomId: classroom.classroomId,
+    assignmentName: classroom.assignmentName || null,
+    projectName: sub.projectName || null,
+    submittedAt: sub.submittedAt || null,
+    projectUrl,
+  };
+}
+
+/**
+ * Submissions a student can continue from (#1201): their own submission in
+ * this assignment (`current`) and the same seat's submission in the most
+ * recent earlier assignment of the same class (`previous`) — the same
+ * seat-number correspondence `previousComment` uses at join. Seats are
+ * anonymous, so whoever sits in that seat can load it (documented in
+ * docs/classroom/architecture.md). The caller has already matched the
+ * session to `classroomId`.
+ */
+async function handleListContinuableSubmissions(
+  classroomId: string, memberId: string,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const nowSec = Math.floor(Date.now() / 1000);
+  const classroomResult = await docClient.send(new GetCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId },
+  }));
+  const classroom = classroomResult.Item;
+  if (!classroom || classroom.status !== 'active' || isTtlExpired(classroom, nowSec)) {
+    throw new NotFoundError('This classroom is no longer active');
+  }
+
+  const currentSub = await findContinuableSubmission(classroomId, memberId, nowSec);
+  const current = currentSub ? await toContinuableSubmission(classroom, currentSub) : null;
+
+  let previous: Record<string, unknown> | null = null;
+  if (classroom.groupId) {
+    const createdAt = String(classroom.createdAt || '');
+    const siblings = await listAssignmentsInGroups([classroom.groupId as string]);
+    // Only assignments created before this one count as "last time"; a
+    // later assignment (e.g. re-opening an old one) must not be offered.
+    const earlier = siblings.filter(item =>
+      String(item.createdAt || '') < createdAt && !isTtlExpired(item, nowSec));
+    for (const prior of selectPriorClassrooms(earlier, classroom.groupId as string, classroomId)) {
+      const sub = await findContinuableSubmission(prior.classroomId as string, memberId, nowSec);
+      if (sub) {
+        previous = await toContinuableSubmission(prior, sub);
+        break;
+      }
+    }
+  }
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ current, previous }),
+  };
+}
+
 async function handleListSubmissions(
   identity: TeacherIdentity, classroomId: string
 ): Promise<APIGatewayProxyStructuredResultV2> {
@@ -5430,6 +5519,16 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
         throw new AuthError('Session does not match this classroom');
       }
       result = await handleCreateSubmission(classroomId, session.memberId, body);
+
+    } else if (method === 'GET' && /^\/classrooms\/[^/]+\/continuable-submissions$/.test(path)) {
+      // Student-only (session token): own submissions to continue from (#1201).
+      const token = extractBearerToken(event.headers?.authorization);
+      const session = await verifySessionToken(token);
+      const classroomId = event.pathParameters?.classroomId || '';
+      if (session.classroomId !== classroomId) {
+        throw new AuthError('Session does not match this classroom');
+      }
+      result = await handleListContinuableSubmissions(classroomId, session.memberId);
 
     } else if (method === 'GET' && /^\/classrooms\/[^/]+\/submissions$/.test(path)) {
       const token = extractBearerToken(event.headers?.authorization);
