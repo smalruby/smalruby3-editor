@@ -2148,9 +2148,13 @@ async function handleCreateSubmission(
     ExpressionAttributeValues: { ':cid': classroomId, ':mid': memberId },
     Limit: 1,
   }));
+  // A teacher's "hide from classmates" survives a resubmission (#1239): the
+  // student must not be able to lift it by submitting again.
+  let hiddenFromPeers = false;
   if (prevResult.Items && prevResult.Items.length > 0) {
     const prev = prevResult.Items[0];
     const prevId = prev.submissionId as string;
+    hiddenFromPeers = prev.hiddenFromPeers === true;
     const prevScreenshots = (prev.screenshotCount as number) || 0;
     // Delete old S3 objects (best-effort)
     const deleteKeys = [
@@ -2222,6 +2226,7 @@ async function handleCreateSubmission(
       thumbnailS3Key: s3KeyThumbnail,
       screenshotCount,
       ...(screenshotLabels ? { screenshotLabels } : {}),
+      ...(hiddenFromPeers ? { hiddenFromPeers } : {}),
       status: 'submitted',
       submittedAt: now,
       updatedAt: now,

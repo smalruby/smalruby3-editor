@@ -297,6 +297,23 @@ describe('hiddenFromPeers per submission (issue #1239)', () => {
     expect((await patch({ hiddenFromPeers: 'yes' })).status).toBe(400);
   });
 
+  test('再提出しても非表示は引き継ぐ（生徒が出し直して外せない）', async () => {
+    useData(classroom(), [submission(ME, { hiddenFromPeers: true })]);
+    const { status } = await call('POST', '/classrooms/c1/submissions', SESSION, { projectName: 'p', screenshotCount: 1 });
+    expect(status).toBe(201);
+    expect(commands('PutCommand', 'ClassroomSubmissions')[0].input.Item.hiddenFromPeers).toBe(true);
+  });
+
+  test('非表示でない提出の再提出・初めての提出はフラグを書かない', async () => {
+    useData(classroom(), [submission(ME)]);
+    await call('POST', '/classrooms/c1/submissions', SESSION, { projectName: 'p', screenshotCount: 1 });
+    useData(classroom());
+    await call('POST', '/classrooms/c1/submissions', SESSION, { projectName: 'p', screenshotCount: 1 });
+    for (const put of commands('PutCommand', 'ClassroomSubmissions')) {
+      expect(put.input.Item).not.toHaveProperty('hiddenFromPeers');
+    }
+  });
+
   test('先生の提出一覧にフラグと名前を含める（無い古い提出は false / null）', async () => {
     useData(classroom(), [submission('seat-01', { hiddenFromPeers: true, screenshotLabels: ['ねこ'] }), submission('seat-02')]);
     const { status, body } = await call('GET', '/classrooms/c1/submissions', DEV_TOKEN);
