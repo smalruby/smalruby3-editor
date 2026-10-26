@@ -84,6 +84,10 @@ const ClassroomModal = () => {
         setPhase,
     });
 
+    const handleClose = useCallback(() => {
+        dispatch(closeClassroomModal());
+    }, [dispatch]);
+
     // Student assignment hook (assignment pages + starter auto-load)
     const studentAssignment = useStudentAssignment({
         classroomState,
@@ -93,6 +97,8 @@ const ClassroomModal = () => {
         showError,
         setIsLoading,
         setPhase,
+        // a chosen project starts the work right away (#1201)
+        onStarted: handleClose,
     });
 
     // Go back to join screen (used as error action for session expiry)
@@ -114,10 +120,6 @@ const ClassroomModal = () => {
         showAlertWithTimeout(dispatch, 'classroomSessionExpired');
     }, [dispatch]);
     showSessionExpiredErrorRef.current = showSessionExpiredError;
-
-    const handleClose = useCallback(() => {
-        dispatch(closeClassroomModal());
-    }, [dispatch]);
 
     // --- Open teacher management modal ---
 
@@ -490,6 +492,7 @@ const ClassroomModal = () => {
             onAssignmentPrevPage={studentAssignment.handleAssignmentPrevPage}
             onOpenAssignment={studentAssignment.handleOpenAssignment}
             onReloadStarter={studentAssignment.handleReloadStarter}
+            onChooseStarter={studentAssignment.handleChooseStarter}
             errorActionHandler={errorActionHandler}
             errorActionLabel={errorActionLabel}
             errorTitle={errorTitle}

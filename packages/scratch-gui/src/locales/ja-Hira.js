@@ -388,6 +388,13 @@ export default {
     'gui.classroom.continueChoice.current': 'このかだいでていしゅつしたさくひんをよみこむ',
     'gui.classroom.continueChoice.loadFailed': 'ていしゅつしたさくひんをひらけませんでした',
     'gui.classroom.continueChoice.gone': 'そのていしゅつぶつはもうよみこめません（きげんぎれか、けされました）',
+    'gui.classroom.continueChoice.starterDetail': 'せんせいがよういしたさくひんからつくる',
+    'gui.classroom.continueChoice.keep': 'いまのさくひんのままはじめる',
+    'gui.classroom.continueChoice.keepDetail': 'なにもよみこまずにつくる',
+    'gui.classroom.continueChoice.confirmPrevious':
+        'ぜんかいのていしゅつぶつをひらきますか？ いまつくっているプロジェクトはおきかわります。',
+    'gui.classroom.continueChoice.confirmCurrent':
+        'このかだいでていしゅつしたさくひんをひらきますか？ いまつくっているプロジェクトはおきかわります。',
     'gui.classroom.assignmentEditor.openButton': 'かだいをへんしゅう',
     'gui.classroom.assignmentEditor.title': 'かだいをへんしゅう',
     'gui.classroom.assignmentEditor.hint':

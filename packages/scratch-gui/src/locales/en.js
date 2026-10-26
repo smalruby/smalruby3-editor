@@ -338,6 +338,13 @@ export default {
     'gui.classroom.continueChoice.current': 'Open what you submitted for this assignment',
     'gui.classroom.continueChoice.loadFailed': 'Failed to open the submitted project',
     'gui.classroom.continueChoice.gone': 'That submitted project is no longer available',
+    'gui.classroom.continueChoice.starterDetail': 'Make it from the project your teacher prepared',
+    'gui.classroom.continueChoice.keep': 'Start with the project as it is',
+    'gui.classroom.continueChoice.keepDetail': 'Make it without opening anything',
+    'gui.classroom.continueChoice.confirmPrevious':
+        "Open last time's submitted project? Your current project will be replaced.",
+    'gui.classroom.continueChoice.confirmCurrent':
+        'Open the project you submitted for this assignment? Your current project will be replaced.',
     'gui.classroom.assignmentEditor.openButton': 'Edit Assignment',
     'gui.classroom.assignmentEditor.title': 'Edit Assignment',
     'gui.classroom.assignmentEditor.hint':

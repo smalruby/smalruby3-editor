@@ -22,6 +22,16 @@ const messages = defineMessages({
         description: 'Confirm dialog before the starter project replaces an edited project',
         id: 'gui.classroom.studentAssignment.overwriteConfirm',
     },
+    overwriteConfirmPrevious: {
+        defaultMessage: "Open last time's submitted project? Your current project will be replaced.",
+        description: 'Confirm dialog before the previous assignment submission replaces an edited project',
+        id: 'gui.classroom.continueChoice.confirmPrevious',
+    },
+    overwriteConfirmCurrent: {
+        defaultMessage: 'Open the project you submitted for this assignment? Your current project will be replaced.',
+        description: "Confirm dialog before this assignment's own submission replaces an edited project",
+        id: 'gui.classroom.continueChoice.confirmCurrent',
+    },
     starterLoadFailed: {
         defaultMessage: 'Failed to open the starter project',
         description: 'Error when downloading/loading the starter project fails',
@@ -48,9 +58,20 @@ const messages = defineMessages({
  * @param {Function} params.showError - error display helper
  * @param {Function} params.setIsLoading - loading state setter
  * @param {Function} params.setPhase - phase setter
+ * @param {Function} [params.onStarted] - called once a project chosen in the
+ *     choice row has loaded: the choice starts the work (closes the modal)
  * @returns {object} student assignment state and handlers
  */
-const useStudentAssignment = ({ classroomState, vm, intl, clearError, showError, setIsLoading, setPhase }) => {
+const useStudentAssignment = ({
+    classroomState,
+    vm,
+    intl,
+    clearError,
+    showError,
+    setIsLoading,
+    setPhase,
+    onStarted,
+}) => {
     const projectChanged = useSelector((state) => state.scratchGui.projectChanged);
 
     const [assignment, setAssignment] = useState(null);
@@ -70,13 +91,14 @@ const useStudentAssignment = ({ classroomState, vm, intl, clearError, showError,
      * Download an sb3 and load it into the VM. Asks for confirmation when the
      * open project has unsaved changes (never clobbers silently).
      * @param {string} url - presigned download URL
+     * @param {object} [confirmMessage] - confirm text naming what replaces the project
      * @returns {Promise<boolean>} true when the project was loaded
      */
     const loadProjectFromUrl = useCallback(
-        async (url) => {
+        async (url, confirmMessage = messages.overwriteConfirm) => {
             if (projectChanged) {
                 // eslint-disable-next-line no-alert
-                if (!window.confirm(intl.formatMessage(messages.overwriteConfirm))) {
+                if (!window.confirm(intl.formatMessage(confirmMessage))) {
                     return false;
                 }
             }
@@ -195,8 +217,11 @@ const useStudentAssignment = ({ classroomState, vm, intl, clearError, showError,
                     showError(intl.formatMessage(messages.submissionGone));
                     return;
                 }
-                if (await loadProjectFromUrl(target.projectUrl)) {
+                const confirmMessage =
+                    kind === 'previous' ? messages.overwriteConfirmPrevious : messages.overwriteConfirmCurrent;
+                if (await loadProjectFromUrl(target.projectUrl, confirmMessage)) {
                     setLoadedChoice(kind);
+                    if (onStarted) onStarted();
                 }
             } catch {
                 showError(intl.formatMessage(messages.submissionLoadFailed));
@@ -208,6 +233,7 @@ const useStudentAssignment = ({ classroomState, vm, intl, clearError, showError,
             classroomState.sessionToken,
             classroomState.classroomId,
             loadProjectFromUrl,
+            onStarted,
             clearError,
             showError,
             intl,
@@ -250,40 +276,54 @@ const useStudentAssignment = ({ classroomState, vm, intl, clearError, showError,
      * submissions: with a choice to make the starter no longer opens on join,
      * so the URL from the join may have expired while the student read the
      * assignment.
+     * @param {boolean} start - true from the choice row: the work starts
+     *     (onStarted) once the starter has loaded
      */
-    const handleReloadStarter = useCallback(async () => {
-        if (!assignment) return;
-        clearError();
-        setIsLoading(true);
-        try {
-            let starterAssignment = assignment;
-            if (classroomState.sessionToken && classroomState.classroomId) {
-                const data = await classroomAPI.getAssignment(
-                    classroomState.sessionToken,
-                    classroomState.classroomId,
-                );
-                starterAssignment = data.assignment;
-            }
-            if (!starterAssignment?.starterUrl) {
+    const openStarter = useCallback(
+        async (start) => {
+            if (!assignment) return;
+            clearError();
+            setIsLoading(true);
+            try {
+                let starterAssignment = assignment;
+                if (classroomState.sessionToken && classroomState.classroomId) {
+                    const data = await classroomAPI.getAssignment(
+                        classroomState.sessionToken,
+                        classroomState.classroomId,
+                    );
+                    starterAssignment = data.assignment;
+                }
+                if (!starterAssignment?.starterUrl) {
+                    showError(intl.formatMessage(messages.starterLoadFailed));
+                    return;
+                }
+                if ((await loadStarter(starterAssignment)) && start && onStarted) {
+                    onStarted();
+                }
+            } catch {
                 showError(intl.formatMessage(messages.starterLoadFailed));
-                return;
+            } finally {
+                setIsLoading(false);
             }
-            await loadStarter(starterAssignment);
-        } catch {
-            showError(intl.formatMessage(messages.starterLoadFailed));
-        } finally {
-            setIsLoading(false);
-        }
-    }, [
-        assignment,
-        classroomState.sessionToken,
-        classroomState.classroomId,
-        loadStarter,
-        clearError,
-        showError,
-        intl,
-        setIsLoading,
-    ]);
+        },
+        [
+            assignment,
+            classroomState.sessionToken,
+            classroomState.classroomId,
+            loadStarter,
+            onStarted,
+            clearError,
+            showError,
+            intl,
+            setIsLoading,
+        ],
+    );
+
+    /** "Open the Starter Project" button (no choices): reload and stay on the panel. */
+    const handleReloadStarter = useCallback(() => openStarter(false), [openStarter]);
+
+    /** "Start from the starter" choice: load the starter and start working. */
+    const handleChooseStarter = useCallback(() => openStarter(true), [openStarter]);
 
     const handleAssignmentPrevPage = useCallback(() => {
         setAssignmentPageIndex((i) => Math.max(0, i - 1));
@@ -304,6 +344,7 @@ const useStudentAssignment = ({ classroomState, vm, intl, clearError, showError,
         handleLoadSubmission,
         handleOpenAssignment,
         handleReloadStarter,
+        handleChooseStarter,
         refreshContinueOptions,
         handleAssignmentPrevPage,
         handleAssignmentNextPage,

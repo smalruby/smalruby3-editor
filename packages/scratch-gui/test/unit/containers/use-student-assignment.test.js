@@ -47,6 +47,7 @@ const setup = () => {
         showError: jest.fn(),
         setIsLoading: jest.fn(),
         setPhase: jest.fn(),
+        onStarted: jest.fn(),
     };
     const hook = renderHook(() => useStudentAssignment(deps));
     return { deps, hook };
@@ -130,17 +131,42 @@ describe('useStudentAssignment — 続きから始める (#1201)', () => {
         expect(hook.result.current.loadedChoice).toBe('previous');
     });
 
+    test('選んだ提出物を読み込めたら、そのまま始める (モーダルを閉じる)', async () => {
+        mockGetContinuable.mockResolvedValue({ current: null, previous: PREVIOUS });
+        const { hook, deps } = setup();
+        await act(async () => {
+            await hook.result.current.handleLoadSubmission('previous');
+        });
+        expect(deps.onStarted).toHaveBeenCalledTimes(1);
+    });
+
+    test('確認の文言は開くもの (前回 / この課題) に合わせる', async () => {
+        mockProjectChanged = true;
+        mockGetContinuable.mockResolvedValue({ current: PREVIOUS, previous: PREVIOUS });
+        const { hook } = setup();
+        await act(async () => {
+            await hook.result.current.handleLoadSubmission('previous');
+        });
+        await act(async () => {
+            await hook.result.current.handleLoadSubmission('current');
+        });
+        expect(window.confirm.mock.calls[0][0]).toMatch(/last time's submitted project/);
+        expect(window.confirm.mock.calls[1][0]).toMatch(/you submitted for this assignment/);
+        expect(window.confirm.mock.calls[0][0]).not.toMatch(/starter/);
+    });
+
     test('未保存の変更があり確認で断ったら読み込まない', async () => {
         mockProjectChanged = true;
         window.confirm = jest.fn(() => false);
         mockGetContinuable.mockResolvedValue({ current: PREVIOUS, previous: null });
-        const { hook } = setup();
+        const { hook, deps } = setup();
         await act(async () => {
             await hook.result.current.handleLoadSubmission('current');
         });
         expect(window.confirm).toHaveBeenCalled();
         expect(mockLoadProject).not.toHaveBeenCalled();
         expect(hook.result.current.loadedChoice).toBeNull();
+        expect(deps.onStarted).not.toHaveBeenCalled();
     });
 
     test('取り直したら無くなっていた (期限切れ) ときはエラーを出す', async () => {
@@ -171,6 +197,23 @@ describe('useStudentAssignment — 続きから始める (#1201)', () => {
         expect(global.fetch).toHaveBeenCalledWith('https://signed.example/fresh-starter.sb3');
         expect(global.fetch).not.toHaveBeenCalledWith(ASSIGNMENT.starterUrl);
         expect(hook.result.current.loadedChoice).toBe('starter');
+    });
+
+    test('選択肢の「スターターから始める」は読み込んだら始め、パネルの「開く」ボタンは開いたまま', async () => {
+        mockGetAssignment.mockResolvedValue({ assignment: ASSIGNMENT });
+        mockGetContinuable.mockResolvedValue({ current: null, previous: PREVIOUS });
+        const { hook, deps } = setup();
+        await act(async () => {
+            await hook.result.current.handleJoined('st', 'c-now', true);
+        });
+        await act(async () => {
+            await hook.result.current.handleReloadStarter();
+        });
+        expect(deps.onStarted).not.toHaveBeenCalled();
+        await act(async () => {
+            await hook.result.current.handleChooseStarter();
+        });
+        expect(deps.onStarted).toHaveBeenCalledTimes(1);
     });
 
     test('取り直したらスターターが無くなっていたときはエラーを出す', async () => {

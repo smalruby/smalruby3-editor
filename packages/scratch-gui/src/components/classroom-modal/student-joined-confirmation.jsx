@@ -58,6 +58,7 @@ const StudentJoinedConfirmation = ({
             isLoading={isLoading}
             loadedChoice={loadedChoice}
             showStarter={starterAvailable}
+            onKeepCurrent={onClose}
             onLoadStarter={onLoadStarter}
             onLoadSubmission={onLoadSubmission}
         />
@@ -82,19 +83,22 @@ const StudentJoinedConfirmation = ({
                 />
             </div>
         </div>
-        <div className={styles.buttonRow}>
-            <button
-                className={styles.primaryButton}
-                data-testid="classroom-joined-close"
-                onClick={onClose}
-            >
-                <FormattedMessage
-                    defaultMessage="Start"
-                    description="Close button after joining"
-                    id="gui.classroom.studentJoined.start"
-                />
-            </button>
-        </div>
+        {/* With choices, each choice starts (incl. "as it is"), so no separate Start button. */}
+        {!continueOptions && (
+            <div className={styles.buttonRow}>
+                <button
+                    className={styles.primaryButton}
+                    data-testid="classroom-joined-close"
+                    onClick={onClose}
+                >
+                    <FormattedMessage
+                        defaultMessage="Start"
+                        description="Close button after joining"
+                        id="gui.classroom.studentJoined.start"
+                    />
+                </button>
+            </div>
+        )}
     </div>
 );
 

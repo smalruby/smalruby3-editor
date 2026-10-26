@@ -382,6 +382,13 @@ export default {
     'gui.classroom.continueChoice.current': 'この課題で提出した作品を読み込む',
     'gui.classroom.continueChoice.loadFailed': '提出した作品を開けませんでした',
     'gui.classroom.continueChoice.gone': 'その提出物はもう読み込めません（期限切れか削除されました）',
+    'gui.classroom.continueChoice.starterDetail': '先生が用意した作品から作る',
+    'gui.classroom.continueChoice.keep': 'いまの作品のまま始める',
+    'gui.classroom.continueChoice.keepDetail': '何も読み込まずに作る',
+    'gui.classroom.continueChoice.confirmPrevious':
+        '前回の提出物を開きますか？ 今つくっているプロジェクトは置きかわります。',
+    'gui.classroom.continueChoice.confirmCurrent':
+        'この課題で提出した作品を開きますか？ 今つくっているプロジェクトは置きかわります。',
     'gui.classroom.assignmentEditor.openButton': '課題を編集',
     'gui.classroom.assignmentEditor.title': '課題を編集',
     'gui.classroom.assignmentEditor.hint':

@@ -2300,11 +2300,10 @@
    One horizontal row: the classroom PC is 1300x600, so the choices go side by
    side instead of stacking (#1221). */
 
+/* "Where to start" choices (#1201). Each choice is a start action, styled as a
+   button (blue outline + bottom shadow) so it does not read as a text field or
+   an info box. "As it is" (load nothing) is the plain gray variant. */
 .continue-choice {
-    background-color: #f0f4ff;
-    border: 1px solid #c8d6f0;
-    border-radius: 0.4rem;
-    padding: 0.5rem 0.75rem;
     margin-top: 0.75rem;
 }
 
@@ -2325,19 +2324,26 @@
     min-width: 0;
     display: flex;
     align-items: center;
-    gap: 0.4rem;
+    gap: 0.5rem;
     background-color: #fff;
-    color: #575e75;
-    border: 1px solid #b8b8b8;
+    color: #4c97ff;
+    border: 2px solid #4c97ff;
     border-radius: 0.5rem;
-    padding: 0.4rem 0.6rem;
-    font-size: 0.85rem;
+    box-shadow: 0 2px 0 #3373cc;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
+    font-weight: bold;
     text-align: left;
     cursor: pointer;
 }
 
 .continue-choice-button:hover {
-    background-color: #f0f0f0;
+    background-color: #e9f1fc;
+}
+
+.continue-choice-button:active {
+    box-shadow: none;
+    transform: translateY(2px);
 }
 
 .continue-choice-button:disabled {
@@ -2347,10 +2353,29 @@
 
 .continue-choice-button[aria-pressed='true'] {
     border-color: #0b8e69;
+    box-shadow: 0 2px 0 #0b8e69;
     background-color: #e6f4ea;
 }
 
+.continue-choice-plain {
+    color: #575e75;
+    border-color: #b8b8b8;
+    box-shadow: 0 2px 0 #8a8fa3;
+}
+
+.continue-choice-plain:hover {
+    background-color: #f0f0f0;
+}
+
+.continue-choice-icon {
+    flex: none;
+    width: 1.5rem;
+    height: 1.5rem;
+}
+
 .continue-choice-check {
+    flex: none;
+    margin-left: auto;
     color: #0b8e69;
     font-weight: bold;
 }
@@ -2361,12 +2386,22 @@
     min-width: 0;
 }
 
+/* the label wraps instead of being cut: with four choices it must stay readable */
+.continue-choice-label {
+    line-height: 1.25;
+}
+
 .continue-choice-detail {
-    color: #8a8fa3;
+    color: #5a8fd8;
     font-size: 0.75rem;
+    font-weight: normal;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.continue-choice-plain .continue-choice-detail {
+    color: #8a8fa3;
 }
 
 /* --- Term-end evaluation (teacher) --- */

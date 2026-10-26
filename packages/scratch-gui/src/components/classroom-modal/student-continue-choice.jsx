@@ -2,8 +2,11 @@
  * "Where to start" choice for students (#1201).
  *
  * Offers the assignment starter, the seat's submission from the previous
- * assignment of the same class, and the seat's own submission in this
- * assignment. Laid out as one horizontal row so the student screens stay
+ * assignment of the same class, the seat's own submission in this
+ * assignment and — right after joining — starting with the open project as
+ * it is. Each choice is a button that starts right away (the container loads
+ * the project and closes the modal), so the screen has a single kind of
+ * "start" action. Laid out as one horizontal row so the student screens stay
  * within the 1300x600 classroom PC viewport (#1221).
  */
 import PropTypes from 'prop-types';
@@ -22,27 +25,65 @@ const formatSubmittedAt = (iso) =>
           })
         : '';
 
-const ChoiceButton = ({ kind, loadedChoice, isLoading, onSelect, children }) => {
+// Inline icons (stroke = currentColor) so each choice is recognizable at a
+// glance and looks the same on every OS, unlike emoji.
+const ICON_PATHS = {
+    // a sheet of paper: the teacher's starter project
+    starter: 'M5 2.5h6.5L15 6v11.5H5z M11.5 2.5V6H15 M7.5 10h5 M7.5 13h5',
+    // an open folder: last time's work
+    previous: 'M2.5 5.5h5l1.5 2h8.5v9h-15z M2.5 9.5h15',
+    // a tray with a check: what was submitted for this assignment
+    current: 'M3 11.5h4l1 2h4l1-2h4v5H3z M6.5 6.5l2.5 2.5 4.5-5',
+    // a pencil: keep working on the open project
+    keep: 'M12.5 3.5l4 4-9 9h-4v-4z M10.5 5.5l4 4',
+};
+
+const ChoiceIcon = ({ kind }) => (
+    <svg
+        aria-hidden="true"
+        className={styles.continueChoiceIcon}
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.6"
+        viewBox="0 0 20 20"
+    >
+        <path d={ICON_PATHS[kind]} />
+    </svg>
+);
+
+ChoiceIcon.propTypes = {
+    kind: PropTypes.oneOf(Object.keys(ICON_PATHS)).isRequired,
+};
+
+const ChoiceButton = ({ kind, label, detail, plain, loadedChoice, isLoading, onSelect }) => {
     const handleClick = useCallback(() => onSelect(kind), [onSelect, kind]);
     return (
         <button
             aria-pressed={loadedChoice === kind}
-            className={styles.continueChoiceButton}
+            className={plain ? `${styles.continueChoiceButton} ${styles.continueChoicePlain}` : styles.continueChoiceButton}
             data-testid={`classroom-continue-${kind}`}
             disabled={isLoading}
             onClick={handleClick}
         >
+            <ChoiceIcon kind={kind} />
+            <span className={styles.continueChoiceText}>
+                <span className={styles.continueChoiceLabel}>{label}</span>
+                {detail && <span className={styles.continueChoiceDetail}>{detail}</span>}
+            </span>
             {loadedChoice === kind && <span className={styles.continueChoiceCheck}>{'✓'}</span>}
-            <span className={styles.continueChoiceText}>{children}</span>
         </button>
     );
 };
 
 ChoiceButton.propTypes = {
-    children: PropTypes.node,
+    detail: PropTypes.node,
     isLoading: PropTypes.bool,
     kind: PropTypes.string.isRequired,
+    label: PropTypes.node.isRequired,
     loadedChoice: PropTypes.string,
+    plain: PropTypes.bool,
     onSelect: PropTypes.func.isRequired,
 };
 
@@ -58,6 +99,7 @@ const StudentContinueChoice = ({
     loadedChoice,
     showStarter,
     titleKind,
+    onKeepCurrent,
     onLoadStarter,
     onLoadSubmission,
 }) => {
@@ -83,51 +125,81 @@ const StudentContinueChoice = ({
             <div className={styles.continueChoiceRow}>
                 {showStarter && (
                     <ChoiceButton
+                        detail={
+                            <FormattedMessage
+                                defaultMessage="Make it from the project your teacher prepared"
+                                description="Choice detail: what the starter project is"
+                                id="gui.classroom.continueChoice.starterDetail"
+                            />
+                        }
                         isLoading={isLoading}
                         kind="starter"
+                        label={
+                            <FormattedMessage
+                                defaultMessage="Start from the starter"
+                                description="Choice: open the assignment starter project"
+                                id="gui.classroom.continueChoice.starter"
+                            />
+                        }
                         loadedChoice={loadedChoice}
                         onSelect={onLoadStarter}
-                    >
-                        <FormattedMessage
-                            defaultMessage="Start from the starter"
-                            description="Choice: open the assignment starter project"
-                            id="gui.classroom.continueChoice.starter"
-                        />
-                    </ChoiceButton>
+                    />
                 )}
                 {previous && (
                     <ChoiceButton
+                        detail={[previous.assignmentName, formatSubmittedAt(previous.submittedAt)]
+                            .filter(Boolean)
+                            .join(' · ')}
                         isLoading={isLoading}
                         kind="previous"
+                        label={
+                            <FormattedMessage
+                                defaultMessage="Continue from last time's submission"
+                                description="Choice: open the project submitted in the previous assignment of the same class"
+                                id="gui.classroom.continueChoice.previous"
+                            />
+                        }
                         loadedChoice={loadedChoice}
                         onSelect={onLoadSubmission}
-                    >
-                        <FormattedMessage
-                            defaultMessage="Continue from last time's submission"
-                            description="Choice: open the project submitted in the previous assignment of the same class"
-                            id="gui.classroom.continueChoice.previous"
-                        />
-                        <span className={styles.continueChoiceDetail}>
-                            {[previous.assignmentName, formatSubmittedAt(previous.submittedAt)]
-                                .filter(Boolean)
-                                .join(' · ')}
-                        </span>
-                    </ChoiceButton>
+                    />
                 )}
                 {current && (
                     <ChoiceButton
+                        detail={formatSubmittedAt(current.submittedAt)}
                         isLoading={isLoading}
                         kind="current"
+                        label={
+                            <FormattedMessage
+                                defaultMessage="Open what you submitted for this assignment"
+                                description="Choice: open the project already submitted in this assignment"
+                                id="gui.classroom.continueChoice.current"
+                            />
+                        }
                         loadedChoice={loadedChoice}
                         onSelect={onLoadSubmission}
-                    >
-                        <FormattedMessage
-                            defaultMessage="Open what you submitted for this assignment"
-                            description="Choice: open the project already submitted in this assignment"
-                            id="gui.classroom.continueChoice.current"
-                        />
-                        <span className={styles.continueChoiceDetail}>{formatSubmittedAt(current.submittedAt)}</span>
-                    </ChoiceButton>
+                    />
+                )}
+                {onKeepCurrent && (
+                    <ChoiceButton
+                        plain
+                        detail={
+                            <FormattedMessage
+                                defaultMessage="Make it without opening anything"
+                                description="Choice detail: start without loading any project"
+                                id="gui.classroom.continueChoice.keepDetail"
+                            />
+                        }
+                        isLoading={isLoading}
+                        kind="keep"
+                        label={
+                            <FormattedMessage
+                                defaultMessage="Start with the project as it is"
+                                description="Choice: start working without loading any project"
+                                id="gui.classroom.continueChoice.keep"
+                            />
+                        }
+                        onSelect={onKeepCurrent}
+                    />
                 )}
             </div>
         </div>
@@ -148,6 +220,8 @@ StudentContinueChoice.propTypes = {
     showStarter: PropTypes.bool,
     // 'start' right after joining, 'load' on the status view (no starter there)
     titleKind: PropTypes.oneOf(['start', 'load']),
+    // start without loading anything (offered right after joining, not on the status view)
+    onKeepCurrent: PropTypes.func,
     onLoadStarter: PropTypes.func,
     onLoadSubmission: PropTypes.func.isRequired,
 };

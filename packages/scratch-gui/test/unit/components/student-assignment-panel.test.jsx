@@ -109,7 +109,9 @@ describe('StudentAssignmentPanel', () => {
 
     test('続きに使える提出物があれば、スターターは選択肢の 1 つになる (#1201)', () => {
         const onReloadStarter = jest.fn();
+        const onChooseStarter = jest.fn();
         const onLoadSubmission = jest.fn();
+        const onClose = jest.fn();
         const previous = {
             assignmentName: '第1回',
             submittedAt: '2026-10-01T10:00:00.000Z',
@@ -118,12 +120,28 @@ describe('StudentAssignmentPanel', () => {
         const { getByTestId, queryByTestId } = renderPanel({
             continueOptions: { previous, current: null },
             onReloadStarter,
+            onChooseStarter,
             onLoadSubmission,
+            onClose,
         });
         expect(queryByTestId('classroom-assignment-reload-starter')).not.toBeInTheDocument();
         fireEvent.click(getByTestId('classroom-continue-starter'));
         fireEvent.click(getByTestId('classroom-continue-previous'));
-        expect(onReloadStarter).toHaveBeenCalledTimes(1);
+        expect(onChooseStarter).toHaveBeenCalledTimes(1);
+        expect(onReloadStarter).not.toHaveBeenCalled();
         expect(onLoadSubmission).toHaveBeenCalledWith('previous');
+    });
+
+    test('選択肢があるときは「はじめる！」の代わりに「いまの作品のまま始める」を出す (#1201)', () => {
+        const onClose = jest.fn();
+        const previous = { assignmentName: '第1回', submittedAt: '2026-10-01T10:00:00.000Z' };
+        const { getByTestId, queryByTestId } = renderPanel({
+            continueOptions: { previous, current: null },
+            onClose,
+            onLoadSubmission: jest.fn(),
+        });
+        expect(queryByTestId('classroom-assignment-close')).not.toBeInTheDocument();
+        fireEvent.click(getByTestId('classroom-continue-keep'));
+        expect(onClose).toHaveBeenCalledTimes(1);
     });
 });

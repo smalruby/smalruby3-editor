@@ -72,4 +72,23 @@ describe('StudentContinueChoice', () => {
         expect(getByTestId('classroom-continue-current')).toHaveAttribute('aria-pressed', 'false');
         expect(getByTestId('classroom-continue-current')).toBeDisabled();
     });
+
+    test('「いまの作品のまま始める」は onKeepCurrent があるときだけ出し、押すと何も読み込まずに始める', () => {
+        const onKeepCurrent = jest.fn();
+        const onLoadSubmission = jest.fn();
+        const { getByTestId } = renderChoice({ onKeepCurrent, onLoadSubmission });
+        fireEvent.click(getByTestId('classroom-continue-keep'));
+        expect(onKeepCurrent).toHaveBeenCalledTimes(1);
+        expect(onLoadSubmission).not.toHaveBeenCalled();
+    });
+
+    test('ステータス画面 (onKeepCurrent なし) には「いまの作品のまま」を出さない', () => {
+        const { queryByTestId } = renderChoice({ showStarter: false });
+        expect(queryByTestId('classroom-continue-keep')).not.toBeInTheDocument();
+    });
+
+    test('スターターには何が開くかの説明を添える', () => {
+        const { getByTestId } = renderChoice();
+        expect(getByTestId('classroom-continue-starter')).toHaveTextContent('your teacher prepared');
+    });
 });

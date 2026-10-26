@@ -24,6 +24,7 @@ const StudentAssignmentPanel = ({
     joinedInfo,
     loadedChoice,
     pageIndex,
+    onChooseStarter,
     onClose,
     onLoadSubmission,
     onNextPage,
@@ -111,43 +112,47 @@ const StudentAssignmentPanel = ({
 
             {/* Choice and the close button side by side (one row at 1300x600). */}
             <div className={styles.assignmentFooter}>
-                {/* Earlier submissions to continue from (#1201): the starter becomes one of the choices. */}
+                {/* Earlier submissions to continue from (#1201): the starter becomes one of the
+                    choices and each choice starts, so the separate close button goes away. */}
                 <StudentContinueChoice
                     continueOptions={continueOptions}
                     isLoading={isLoading}
                     loadedChoice={loadedChoice}
                     showStarter={!!assignment?.starterUrl}
-                    onLoadStarter={onReloadStarter}
+                    onKeepCurrent={onClose}
+                    onLoadStarter={onChooseStarter}
                     onLoadSubmission={onLoadSubmission}
                 />
 
-                <div className={styles.buttonRow}>
-                    {assignment?.starterUrl && !continueOptions && (
+                {!continueOptions && (
+                    <div className={styles.buttonRow}>
+                        {assignment?.starterUrl && (
+                            <button
+                                className={styles.secondaryButton}
+                                data-testid="classroom-assignment-reload-starter"
+                                disabled={isLoading}
+                                onClick={onReloadStarter}
+                            >
+                                <FormattedMessage
+                                    defaultMessage="Open the Starter Project"
+                                    description="Assignment panel: (re)open the starter project"
+                                    id="gui.classroom.studentAssignment.reloadStarter"
+                                />
+                            </button>
+                        )}
                         <button
-                            className={styles.secondaryButton}
-                            data-testid="classroom-assignment-reload-starter"
-                            disabled={isLoading}
-                            onClick={onReloadStarter}
+                            className={styles.primaryButton}
+                            data-testid="classroom-assignment-close"
+                            onClick={onClose}
                         >
                             <FormattedMessage
-                                defaultMessage="Open the Starter Project"
-                                description="Assignment panel: (re)open the starter project"
-                                id="gui.classroom.studentAssignment.reloadStarter"
+                                defaultMessage="Start Working!"
+                                description="Assignment panel: close and start working"
+                                id="gui.classroom.studentAssignment.close"
                             />
                         </button>
-                    )}
-                    <button
-                        className={styles.primaryButton}
-                        data-testid="classroom-assignment-close"
-                        onClick={onClose}
-                    >
-                        <FormattedMessage
-                            defaultMessage="Start Working!"
-                            description="Assignment panel: close and start working"
-                            id="gui.classroom.studentAssignment.close"
-                        />
-                    </button>
-                </div>
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -173,6 +178,7 @@ StudentAssignmentPanel.propTypes = {
     }),
     loadedChoice: PropTypes.string,
     pageIndex: PropTypes.number.isRequired,
+    onChooseStarter: PropTypes.func,
     onClose: PropTypes.func.isRequired,
     onLoadSubmission: PropTypes.func,
     onNextPage: PropTypes.func.isRequired,

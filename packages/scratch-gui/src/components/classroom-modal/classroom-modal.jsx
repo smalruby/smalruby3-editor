@@ -68,6 +68,7 @@ const ClassroomModal = ({
     onAssignmentPrevPage,
     onAssignmentNextPage,
     onReloadStarter,
+    onChooseStarter,
 }) => {
     const intl = useIntl();
 
@@ -132,7 +133,7 @@ const ClassroomModal = ({
                         loadedChoice={loadedChoice}
                         starterAvailable={!!assignment?.starterUrl}
                         onClose={onClose}
-                        onLoadStarter={onReloadStarter}
+                        onLoadStarter={onChooseStarter}
                         onLoadSubmission={onLoadSubmission}
                     />
                 )}
@@ -148,6 +149,7 @@ const ClassroomModal = ({
                         joinedInfo={joinedInfo}
                         loadedChoice={loadedChoice}
                         pageIndex={assignmentPageIndex}
+                        onChooseStarter={onChooseStarter}
                         onClose={onClose}
                         onLoadSubmission={onLoadSubmission}
                         onNextPage={onAssignmentNextPage}
@@ -206,6 +208,8 @@ ClassroomModal.propTypes = {
     onAssignmentPrevPage: PropTypes.func,
     onOpenAssignment: PropTypes.func,
     onReloadStarter: PropTypes.func,
+    // choice row: open the starter and start (closes the modal)
+    onChooseStarter: PropTypes.func,
     error: PropTypes.string,
     errorActionHandler: PropTypes.func,
     errorActionLabel: PropTypes.string,
