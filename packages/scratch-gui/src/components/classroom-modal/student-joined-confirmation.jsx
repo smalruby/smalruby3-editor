@@ -17,6 +17,7 @@ const StudentJoinedConfirmation = ({
     joinedInfo,
     loadedChoice,
     starterAvailable,
+    startNotice,
     onClose,
     onLoadStarter,
     onLoadSubmission,
@@ -58,6 +59,7 @@ const StudentJoinedConfirmation = ({
             isLoading={isLoading}
             loadedChoice={loadedChoice}
             showStarter={starterAvailable}
+            startNotice={startNotice}
             onKeepCurrent={onClose}
             onLoadStarter={onLoadStarter}
             onLoadSubmission={onLoadSubmission}
@@ -116,6 +118,7 @@ StudentJoinedConfirmation.propTypes = {
     }).isRequired,
     loadedChoice: PropTypes.string,
     starterAvailable: PropTypes.bool,
+    startNotice: PropTypes.string,
     onClose: PropTypes.func.isRequired,
     onLoadStarter: PropTypes.func,
     onLoadSubmission: PropTypes.func,

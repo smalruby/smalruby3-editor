@@ -2,7 +2,11 @@
 /**
  * 「続きに使える提出物」(#1201) の正規化。
  */
-import { CONTINUE_KINDS, normalizeContinueOptions } from '../../../src/lib/classroom-continue-options.js';
+import {
+    CONTINUE_KINDS,
+    decideJoinStart,
+    normalizeContinueOptions,
+} from '../../../src/lib/classroom-continue-options.js';
 
 const item = (over = {}) => ({
     classroomId: 'c1',
@@ -31,5 +35,31 @@ describe('normalizeContinueOptions', () => {
 
     test('種類は previous / current の 2 つ', () => {
         expect(CONTINUE_KINDS).toEqual(['previous', 'current']);
+    });
+});
+
+describe('decideJoinStart (#1202 前回の提出物から始めさせる)', () => {
+    const previousOnly = { current: null, previous: item() };
+    const withCurrent = { current: item(), previous: item() };
+
+    test('設定 OFF: 提出物があれば選ばせ、無ければスターター', () => {
+        expect(decideJoinStart(previousOnly, false)).toEqual({ action: 'choose', notice: null });
+        expect(decideJoinStart(null, false)).toEqual({ action: 'starter', notice: null });
+    });
+
+    test('設定 ON: 前回の提出物を開く', () => {
+        expect(decideJoinStart(previousOnly, true)).toEqual({ action: 'previous', notice: 'openedPrevious' });
+    });
+
+    test('設定 ON で前回の提出物が無ければスターターにフォールバックし、そのことを知らせる', () => {
+        expect(decideJoinStart(null, true)).toEqual({ action: 'starter', notice: 'noPrevious' });
+        expect(decideJoinStart({ current: null, previous: null }, true)).toEqual({
+            action: 'starter',
+            notice: 'noPrevious',
+        });
+    });
+
+    test('設定 ON でもこの課題で提出済みなら勝手に開かず選ばせる (今回の作業を前回で上書きしない)', () => {
+        expect(decideJoinStart(withCurrent, true)).toEqual({ action: 'choose', notice: null });
     });
 });

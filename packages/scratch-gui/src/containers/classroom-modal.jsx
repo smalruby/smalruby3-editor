@@ -487,6 +487,7 @@ const ClassroomModal = () => {
             error={error}
             hasAssignment={studentAssignment.hasAssignment}
             loadedChoice={studentAssignment.loadedChoice}
+            startNotice={studentAssignment.startNotice}
             onLoadSubmission={studentAssignment.handleLoadSubmission}
             onAssignmentNextPage={studentAssignment.handleAssignmentNextPage}
             onAssignmentPrevPage={studentAssignment.handleAssignmentPrevPage}

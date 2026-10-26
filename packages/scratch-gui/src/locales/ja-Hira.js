@@ -388,6 +388,20 @@ export default {
     'gui.classroom.continueChoice.current': 'このかだいでていしゅつしたさくひんをよみこむ',
     'gui.classroom.continueChoice.loadFailed': 'ていしゅつしたさくひんをひらけませんでした',
     'gui.classroom.continueChoice.gone': 'そのていしゅつぶつはもうよみこめません（きげんぎれか、けされました）',
+    'gui.classroom.continueChoice.noticeOpenedPrevious':
+        'せんせいのせっていで、ぜんかいのていしゅつぶつをひらきました',
+    'gui.classroom.continueChoice.noticeNoPreviousStarter':
+        'ぜんかいのていしゅつぶつがみつからなかったので、スターターからはじめます',
+    'gui.classroom.continueChoice.noticeNoPrevious': 'ぜんかいのていしゅつぶつがみつかりませんでした',
+    'gui.classroom.assignmentEditor.startFromPrevious': 'ぜんかいのていしゅつぶつからはじめさせる',
+    'gui.classroom.assignmentEditor.startFromPreviousHint':
+        'つづきのじゅぎょうむけ: せいとがさんかすると、このクラスのまえのかだいでていしゅつしたさくひんがひらきます。ぜんかいのていしゅつぶつがないせいとはスターターではじまります。',
+    'gui.classroom.teacherDetail.previewStartPrevious':
+        'さんかしたとき: ぜんかいのていしゅつぶつがひらきます（ないせいとはスターター）',
+    'gui.classroom.teacherDetail.previewStartStarter':
+        'さんかしたとき: スターターがひらきます（ぜんかいのていしゅつぶつがあるせいとは、どこからはじめるかえらびます）',
+    'gui.classroom.teacherDetail.previewStartNone':
+        'さんかしたとき: いまのさくひんのままはじめます（ぜんかいのていしゅつぶつがあるせいとは、どこからはじめるかえらびます）',
     'gui.classroom.continueChoice.starterDetail': 'せんせいがよういしたさくひんからつくる',
     'gui.classroom.continueChoice.keep': 'いまのさくひんのままはじめる',
     'gui.classroom.continueChoice.keepDetail': 'なにもよみこまずにつくる',

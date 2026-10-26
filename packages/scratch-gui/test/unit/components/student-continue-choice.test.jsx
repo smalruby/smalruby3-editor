@@ -92,3 +92,32 @@ describe('StudentContinueChoice', () => {
         expect(getByTestId('classroom-continue-starter')).toHaveTextContent('your teacher prepared');
     });
 });
+
+describe('StudentContinueChoice — 先生の設定で開いたもののお知らせ (#1202)', () => {
+    test('前回の提出物を開いたことを知らせ、開いたものに印を付ける', () => {
+        const { getByTestId } = renderChoice({
+            continueOptions: { previous, current: null },
+            loadedChoice: 'previous',
+            startNotice: 'openedPrevious',
+        });
+        expect(getByTestId('classroom-continue-notice')).toHaveTextContent("last time's submission is open");
+        expect(getByTestId('classroom-continue-previous')).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    test('前回の提出物が無くスターターを開いたときは、選択肢が無くてもそのことを知らせる', () => {
+        const { getByTestId, queryByTestId } = renderChoice({
+            continueOptions: null,
+            loadedChoice: 'starter',
+            startNotice: 'noPrevious',
+        });
+        expect(queryByTestId('classroom-continue-choice')).not.toBeInTheDocument();
+        expect(getByTestId('classroom-continue-notice')).toHaveTextContent(
+            'There was no submission from last time, so you start from the starter.',
+        );
+    });
+
+    test('スターターも無いときは、前回の提出物が無かったことだけを知らせる', () => {
+        const { getByTestId } = renderChoice({ continueOptions: null, startNotice: 'noPrevious' });
+        expect(getByTestId('classroom-continue-notice')).toHaveTextContent('There was no submission from last time.');
+    });
+});

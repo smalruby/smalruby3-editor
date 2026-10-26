@@ -8,6 +8,10 @@
  * the project and closes the modal), so the screen has a single kind of
  * "start" action. Laid out as one horizontal row so the student screens stay
  * within the 1300x600 classroom PC viewport (#1221).
+ *
+ * When the teacher's "start from the previous submission" setting opened
+ * something right after joining (#1202), a one-line notice says what is
+ * open — next to the title, so it costs no extra height at 1300x600.
  */
 import PropTypes from 'prop-types';
 import React, { useCallback } from 'react';
@@ -93,17 +97,58 @@ const submissionShape = PropTypes.shape({
     submittedAt: PropTypes.string,
 });
 
+const StartNotice = ({ notice, loadedChoice }) => {
+    if (notice === 'openedPrevious') {
+        return (
+            <FormattedMessage
+                defaultMessage="Your teacher set this lesson to continue: last time's submission is open."
+                description="Notice: the previous submission opened by the teacher's setting"
+                id="gui.classroom.continueChoice.noticeOpenedPrevious"
+            />
+        );
+    }
+    if (loadedChoice === 'starter') {
+        return (
+            <FormattedMessage
+                defaultMessage="There was no submission from last time, so you start from the starter."
+                description="Notice: the teacher's setting wanted the previous submission but there was none; the starter opened"
+                id="gui.classroom.continueChoice.noticeNoPreviousStarter"
+            />
+        );
+    }
+    return (
+        <FormattedMessage
+            defaultMessage="There was no submission from last time."
+            description="Notice: the teacher's setting wanted the previous submission but there was none (no starter either)"
+            id="gui.classroom.continueChoice.noticeNoPrevious"
+        />
+    );
+};
+
+StartNotice.propTypes = {
+    loadedChoice: PropTypes.string,
+    notice: PropTypes.oneOf(['openedPrevious', 'noPrevious']).isRequired,
+};
+
 const StudentContinueChoice = ({
     continueOptions,
     isLoading,
     loadedChoice,
     showStarter,
+    startNotice,
     titleKind,
     onKeepCurrent,
     onLoadStarter,
     onLoadSubmission,
 }) => {
-    if (!continueOptions) return null;
+    const notice = startNotice ? (
+        <span className={styles.continueChoiceNotice} data-testid="classroom-continue-notice">
+            <StartNotice loadedChoice={loadedChoice} notice={startNotice} />
+        </span>
+    ) : null;
+    if (!continueOptions) {
+        return notice ? <div className={styles.continueChoice}>{notice}</div> : null;
+    }
     const { previous, current } = continueOptions;
     return (
         <div className={styles.continueChoice} data-testid="classroom-continue-choice">
@@ -121,6 +166,7 @@ const StudentContinueChoice = ({
                         id="gui.classroom.continueChoice.title"
                     />
                 )}
+                {notice}
             </div>
             <div className={styles.continueChoiceRow}>
                 {showStarter && (
@@ -218,6 +264,8 @@ StudentContinueChoice.propTypes = {
     isLoading: PropTypes.bool,
     loadedChoice: PropTypes.string,
     showStarter: PropTypes.bool,
+    // what the teacher's setting opened on join (#1202)
+    startNotice: PropTypes.oneOf(['openedPrevious', 'noPrevious']),
     // 'start' right after joining, 'load' on the status view (no starter there)
     titleKind: PropTypes.oneOf(['start', 'load']),
     // start without loading anything (offered right after joining, not on the status view)

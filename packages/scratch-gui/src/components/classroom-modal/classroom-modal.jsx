@@ -63,6 +63,7 @@ const ClassroomModal = ({
     continueOptions,
     hasAssignment,
     loadedChoice,
+    startNotice,
     onLoadSubmission,
     onOpenAssignment,
     onAssignmentPrevPage,
@@ -132,6 +133,7 @@ const ClassroomModal = ({
                         joinedInfo={joinedInfo}
                         loadedChoice={loadedChoice}
                         starterAvailable={!!assignment?.starterUrl}
+                        startNotice={startNotice}
                         onClose={onClose}
                         onLoadStarter={onChooseStarter}
                         onLoadSubmission={onLoadSubmission}
@@ -149,6 +151,7 @@ const ClassroomModal = ({
                         joinedInfo={joinedInfo}
                         loadedChoice={loadedChoice}
                         pageIndex={assignmentPageIndex}
+                        startNotice={startNotice}
                         onChooseStarter={onChooseStarter}
                         onClose={onClose}
                         onLoadSubmission={onLoadSubmission}
@@ -201,6 +204,7 @@ ClassroomModal.propTypes = {
     assignmentPageIndex: PropTypes.number,
     continueOptions: PropTypes.object,
     loadedChoice: PropTypes.string,
+    startNotice: PropTypes.string,
     onLoadSubmission: PropTypes.func,
     classroomState: PropTypes.object,
     hasAssignment: PropTypes.bool,

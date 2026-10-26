@@ -197,7 +197,7 @@ One Tap が表示できない環境（Windows や Playwright では毎回）で�
 | `GET` | `/kick-requests/pending` | 先生に見える課題（`GET /classrooms` と同じ範囲）をまたいだ未処理の退室依頼。`?since=<ISO>` でそれ以降に作られた依頼だけ。各要素は `requestId, classroomId, className, assignmentName, groupId, seatNumber, reason, occupantName, createdAt`、ほかに `activeAssignmentCount`。下の「退室依頼の先生への通知」参照 |
 | `GET` | `/classrooms/{id}/submissions` | 提出一覧 (ダウンロード URL 付き) |
 | `PATCH` | `/classrooms/{id}/submissions/{subId}` | 提出の返却・コメント |
-| `PUT` | `/classrooms/{id}/assignment` | 課題コンテンツの設定・更新（ページ + スターター。画像/スターターの Presigned upload URL を返す。空 body で削除） |
+| `PUT` | `/classrooms/{id}/assignment` | 課題コンテンツの設定・更新（ページ + スターター。画像/スターターの Presigned upload URL を返す。空 body で削除）。任意の `startFromPrevious`（boolean・Issue #1202）で「前回の提出物から始めさせる」を設定する（送らなければ保存済みの値を変えない。課題コンテンツを空にしても設定は残る）。レスポンスに `startFromPrevious` を含む |
 | `POST` | `/classroom-groups` | クラス（学級）の作成（name, year, 任意で studentCount / googleClassroomCourseId） |
 | `GET` | `/classroom-groups` | 自分のクラス一覧（active + archived、共同管理分は role=co-teacher で合流） |
 | `PATCH` | `/classroom-groups/{groupId}` | クラスのリネーム・年度変更・人数・GC 紐づけ・共同管理者・アーカイブ/復帰 |
@@ -240,8 +240,8 @@ One Tap が表示できない環境（Windows や Playwright では毎回）で�
 | `POST` | `/classrooms/verify-session` | Session Token | セッション検証 + 提出状況取得。kick された生徒には 410 + `{reason: 'kicked', joinCode, className, seatNumber}` を返す。課題が非 active（アーカイブ/期限切れ）なら 401 |
 | `POST` | `/classrooms/{id}/submissions` | Session Token | 提出 (Presigned URL 取得)。課題が非 active なら 404 |
 | `DELETE` | `/classrooms/{id}/members/me` | Session Token | 自主退出 |
-| `GET` | `/classrooms/{id}/assignment` | Session Token または 先生 ID Token | 課題コンテンツ取得（ページ + 画像/スターターのダウンロード URL）。lookup / join / verify-session は `hasAssignment` フラグを返す |
-| `GET` | `/classrooms/{id}/continuable-submissions` | Session Token | 続きに使える提出物（Issue #1201）。`{current, previous}` を返す。`current` = この課題での自分の席の提出物、`previous` = 同じクラスのこの課題より前に作られた課題（最大3回分遡る）での同じ席番号の提出物。各要素は `{classroomId, assignmentName, projectName, submittedAt, projectUrl}`（`projectUrl` は project.sb3 の Presigned GET URL）か `null`。TTL 切れの提出物・課題、project.sb3 の無い記録は返さない。パスの課題とセッションの課題が違えば 401、課題が非 active なら 404 |
+| `GET` | `/classrooms/{id}/assignment` | Session Token または 先生 ID Token | 課題コンテンツ取得（ページ + 画像/スターターのダウンロード URL）。`startFromPrevious`（未設定は false）も返す（`assignment: null` のときも）。lookup / join / verify-session は `hasAssignment` フラグを返す |
+| `GET` | `/classrooms/{id}/continuable-submissions` | Session Token | 続きに使える提出物（Issue #1201）。`{current, previous, startFromPrevious}` を返す（`startFromPrevious` は課題の設定・Issue #1202）。`current` = この課題での自分の席の提出物、`previous` = 同じクラスのこの課題より前に作られた課題（最大3回分遡る）での同じ席番号の提出物。各要素は `{classroomId, assignmentName, projectName, submittedAt, projectUrl}`（`projectUrl` は project.sb3 の Presigned GET URL）か `null`。TTL 切れの提出物・課題、project.sb3 の無い記録は返さない。パスの課題とセッションの課題が違えば 401、課題が非 active なら 404 |
 
 ### Google Classroom 連携 (ID Token + Access Token)
 
@@ -329,6 +329,7 @@ erDiagram
         string googleClassroomCourseId "任意"
         list coTeacherEmails "共同管理者の email 配列 (任意, 最大10)"
         map assignment "課題コンテンツ (任意): {pages: [{text, imageKey?}], starterKey?, updatedAt}"
+        boolean startFromPrevious "前回の提出物から始めさせる (#1202, 任意・既定 false)。assignment の外に置くので課題コンテンツが空でも残る。再利用 (duplicate) で引き継ぐ"
         string recommendedForSharingAt "共有推奨 (#1106, 任意)。書き込みは admin API のみ。先生側 API には boolean recommendedForSharing を投影"
         string recommendedForSharingBy "推奨した admin の email (内部用・先生側 API では返さない)"
         string groupId "所属する組 (任意)"

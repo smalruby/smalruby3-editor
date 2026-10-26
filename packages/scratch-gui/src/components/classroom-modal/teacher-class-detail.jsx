@@ -86,6 +86,7 @@ const TeacherClassDetail = ({
     const handleDescRemovePage = descEditor.onRemovePage;
     const handleDescRemovePageImage = descEditor.onRemovePageImage;
     const handleDescRemoveStarter = descEditor.onRemoveStarter;
+    const handleDescChangeStartFromPrevious = descEditor.onChangeStartFromPrevious;
     const handleDescSave = descEditor.onSave;
     const handleDescUseCurrentProject = descEditor.onUseCurrentProject;
     const handleDescUseFile = descEditor.onUseFile;
@@ -661,6 +662,7 @@ const TeacherClassDetail = ({
                                     selectedClassroom={selectedClassroom}
                                     starterMode={descEditor.starterMode}
                                     starterSource={descEditor.starterSource}
+                                    startFromPrevious={!!descEditor.startFromPrevious}
                                     onAddPage={handleDescAddPage}
                                     onAttachPageImage={handleDescAttachPageImage}
                                     onCancel={handleDescCancel}
@@ -668,6 +670,7 @@ const TeacherClassDetail = ({
                                     onMovePage={handleDescMovePage}
                                     onRemovePage={handleDescRemovePage}
                                     onRemovePageImage={handleDescRemovePageImage}
+                                    onChangeStartFromPrevious={handleDescChangeStartFromPrevious}
                                     onRemoveStarter={handleDescRemoveStarter}
                                     onSave={handleDescSave}
                                     onUseCurrentProject={handleDescUseCurrentProject}
@@ -915,6 +918,39 @@ const TeacherClassDetail = ({
                                                     <p className={styles.assignmentPreviewText}>
                                                         {page ? page.text : ''}
                                                     </p>
+                                                </div>
+                                                {/* How the student starts on join (#1202). */}
+                                                <div
+                                                    className={styles.assignmentPreviewStart}
+                                                    data-testid="classroom-description-preview-start"
+                                                >
+                                                    {(() => {
+                                                        if (descEditor.startFromPrevious) {
+                                                            return (
+                                                                <FormattedMessage
+                                                                    defaultMessage="On join: the project the student submitted last time opens (the starter if there is none)"
+                                                                    description="Student-view preview: start-from-previous setting is on"
+                                                                    id="gui.classroom.teacherDetail.previewStartPrevious"
+                                                                />
+                                                            );
+                                                        }
+                                                        if (descEditor.starterMode && descEditor.starterMode !== 'none') {
+                                                            return (
+                                                                <FormattedMessage
+                                                                    defaultMessage="On join: the starter opens (students with an earlier submission choose where to start)"
+                                                                    description="Student-view preview: setting off, assignment has a starter"
+                                                                    id="gui.classroom.teacherDetail.previewStartStarter"
+                                                                />
+                                                            );
+                                                        }
+                                                        return (
+                                                            <FormattedMessage
+                                                                defaultMessage="On join: students start with the open project (students with an earlier submission choose where to start)"
+                                                                description="Student-view preview: setting off, no starter"
+                                                                id="gui.classroom.teacherDetail.previewStartNone"
+                                                            />
+                                                        );
+                                                    })()}
                                                 </div>
                                             </React.Fragment>
                                         );

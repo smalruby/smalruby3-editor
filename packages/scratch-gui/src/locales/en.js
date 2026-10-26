@@ -338,6 +338,20 @@ export default {
     'gui.classroom.continueChoice.current': 'Open what you submitted for this assignment',
     'gui.classroom.continueChoice.loadFailed': 'Failed to open the submitted project',
     'gui.classroom.continueChoice.gone': 'That submitted project is no longer available',
+    'gui.classroom.continueChoice.noticeOpenedPrevious':
+        "Your teacher set this lesson to continue: last time's submission is open.",
+    'gui.classroom.continueChoice.noticeNoPreviousStarter':
+        'There was no submission from last time, so you start from the starter.',
+    'gui.classroom.continueChoice.noticeNoPrevious': 'There was no submission from last time.',
+    'gui.classroom.assignmentEditor.startFromPrevious': 'Start from the previous submission',
+    'gui.classroom.assignmentEditor.startFromPreviousHint':
+        'For follow-up lessons: when students join, the project they submitted last time in this class opens. Students without one get the starter.',
+    'gui.classroom.teacherDetail.previewStartPrevious':
+        'On join: the project the student submitted last time opens (the starter if there is none)',
+    'gui.classroom.teacherDetail.previewStartStarter':
+        'On join: the starter opens (students with an earlier submission choose where to start)',
+    'gui.classroom.teacherDetail.previewStartNone':
+        'On join: students start with the open project (students with an earlier submission choose where to start)',
     'gui.classroom.continueChoice.starterDetail': 'Make it from the project your teacher prepared',
     'gui.classroom.continueChoice.keep': 'Start with the project as it is',
     'gui.classroom.continueChoice.keepDetail': 'Make it without opening anything',

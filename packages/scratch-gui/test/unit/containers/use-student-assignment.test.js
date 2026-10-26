@@ -240,3 +240,77 @@ describe('useStudentAssignment — 続きから始める (#1201)', () => {
         expect(hook.result.current.continueOptions).toEqual({ current: PREVIOUS, previous: null });
     });
 });
+
+describe('useStudentAssignment — 前回の提出物から始めさせる (#1202)', () => {
+    beforeEach(() => {
+        mockGetAssignment.mockReset();
+        mockGetContinuable.mockReset();
+        mockLoadProject.mockReset();
+        mockProjectChanged = false;
+        global.fetch = jest.fn(async (url) => ({ ok: true, arrayBuffer: async () => `data:${url}` }));
+        window.confirm = jest.fn(() => true);
+    });
+
+    const join = async (hook) => {
+        await act(async () => {
+            await hook.result.current.handleJoined('st', 'c-now', true);
+        });
+    };
+
+    test('設定 ON なら参加直後に前回の提出物を開き、選択肢も残す', async () => {
+        mockGetAssignment.mockResolvedValue({ assignment: ASSIGNMENT, startFromPrevious: true });
+        mockGetContinuable.mockResolvedValue({ current: null, previous: PREVIOUS, startFromPrevious: true });
+        const { hook, deps } = setup();
+        await join(hook);
+        expect(global.fetch).toHaveBeenCalledWith(PREVIOUS.projectUrl);
+        expect(global.fetch).not.toHaveBeenCalledWith(ASSIGNMENT.starterUrl);
+        expect(hook.result.current.loadedChoice).toBe('previous');
+        expect(hook.result.current.startNotice).toBe('openedPrevious');
+        expect(hook.result.current.continueOptions.previous).toEqual(PREVIOUS);
+        // 参加完了画面を見せる (モーダルは閉じない)
+        expect(deps.onStarted).not.toHaveBeenCalled();
+    });
+
+    test('設定 ON で前回の提出物が無ければスターターを開き、そのことを知らせる', async () => {
+        mockGetAssignment.mockResolvedValue({ assignment: ASSIGNMENT, startFromPrevious: true });
+        mockGetContinuable.mockResolvedValue({ current: null, previous: null, startFromPrevious: true });
+        const { hook } = setup();
+        await join(hook);
+        expect(global.fetch).toHaveBeenCalledWith(ASSIGNMENT.starterUrl);
+        expect(hook.result.current.loadedChoice).toBe('starter');
+        expect(hook.result.current.startNotice).toBe('noPrevious');
+    });
+
+    test('設定 OFF なら従来どおり選ばせ、お知らせは出さない', async () => {
+        mockGetAssignment.mockResolvedValue({ assignment: ASSIGNMENT, startFromPrevious: false });
+        mockGetContinuable.mockResolvedValue({ current: null, previous: PREVIOUS, startFromPrevious: false });
+        const { hook } = setup();
+        await join(hook);
+        expect(mockLoadProject).not.toHaveBeenCalled();
+        expect(hook.result.current.startNotice).toBeNull();
+    });
+
+    test('前回の提出物を開くとき、未保存の変更があれば確認し、断ったら開かない', async () => {
+        mockProjectChanged = true;
+        window.confirm = jest.fn(() => false);
+        mockGetAssignment.mockResolvedValue({ assignment: ASSIGNMENT, startFromPrevious: true });
+        mockGetContinuable.mockResolvedValue({ current: null, previous: PREVIOUS, startFromPrevious: true });
+        const { hook } = setup();
+        await join(hook);
+        expect(window.confirm).toHaveBeenCalledWith(
+            "Open last time's submitted project? Your current project will be replaced.",
+        );
+        expect(mockLoadProject).not.toHaveBeenCalled();
+        expect(hook.result.current.loadedChoice).toBeNull();
+        expect(hook.result.current.startNotice).toBeNull();
+    });
+
+    test('前回の提出物を開けなかったらエラーを出す', async () => {
+        global.fetch = jest.fn(async () => ({ ok: false, status: 403 }));
+        mockGetAssignment.mockResolvedValue({ assignment: ASSIGNMENT, startFromPrevious: true });
+        mockGetContinuable.mockResolvedValue({ current: null, previous: PREVIOUS, startFromPrevious: true });
+        const { hook, deps } = setup();
+        await join(hook);
+        expect(deps.showError).toHaveBeenCalledWith('Failed to open the submitted project');
+    });
+});
