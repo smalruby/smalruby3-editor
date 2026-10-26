@@ -55,6 +55,8 @@ export const enrichMembers = (membersData, submissionsData) => {
                   projectUrl: sub.projectUrl || null,
                   projectName: sub.projectName || null,
                   screenshotUrls: sub.screenshotUrls || [],
+                  screenshotLabels: sub.screenshotLabels || null,
+                  hiddenFromPeers: sub.hiddenFromPeers === true,
                   teacherComment: sub.teacherComment || '',
               }
             : m;
@@ -71,6 +73,8 @@ export const enrichMembers = (membersData, submissionsData) => {
                 projectUrl: sub.projectUrl || null,
                 projectName: sub.projectName || null,
                 screenshotUrls: sub.screenshotUrls || [],
+                screenshotLabels: sub.screenshotLabels || null,
+                hiddenFromPeers: sub.hiddenFromPeers === true,
                 teacherComment: sub.teacherComment || '',
                 left: true,
             });

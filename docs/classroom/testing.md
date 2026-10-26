@@ -96,6 +96,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-member-detail-open` | button | Smalruby で開く |
 | `classroom-member-detail-return` | button | 返却 |
 | `classroom-member-detail-comment` | textarea | コメント入力 |
+| `classroom-member-detail-hide-from-peers` | input (checkbox) | 他の生徒に見せない（提出があるときだけ・切り替えで即保存・Issue #1208） |
 | `classroom-member-remove` | button | メンバー削除 |
 
 ### コード表示
@@ -192,6 +193,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-assignment-starter-file` | button | .sb3 ファイルをスターターに設定 |
 | `classroom-assignment-starter-remove` | button | スターターを削除 |
 | `classroom-assignment-start-from-previous` | input (checkbox) | 「前回の提出物から始めさせる」（既定 OFF・保存で反映・Issue #1202） |
+| `classroom-assignment-peer-view` | select | 「他者参照」（`none` = しない（既定） / `always` = いつでも見られる / `afterSubmit` = 自分が提出したら見られる・保存で反映・Issue #1208） |
 | `classroom-assignment-save` | button | 課題を保存 |
 | `classroom-assignment-cancel` | button | キャンセル（詳細画面へ戻る） |
 

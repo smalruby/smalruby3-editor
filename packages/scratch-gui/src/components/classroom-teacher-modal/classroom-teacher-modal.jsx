@@ -111,6 +111,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         onSelectMember,
         onOpenSubmission,
         onReturnSubmission,
+        onSetHiddenFromPeers,
         onDownloadAll,
         onDownloadClassAll,
         onShowCodeDisplay,
@@ -134,6 +135,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         assignmentHasExistingStarter,
         assignmentIsSaving,
         assignmentStartFromPrevious,
+        assignmentPeerView,
         onAssignmentAddPage,
         onAssignmentRemovePage,
         onAssignmentMovePage,
@@ -144,6 +146,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         onAssignmentUseFile,
         onAssignmentRemoveStarter,
         onAssignmentChangeStartFromPrevious,
+        onAssignmentChangePeerView,
         onAssignmentSave,
         onAssignmentCancel,
         groups,
@@ -328,6 +331,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                             hasExistingStarter: assignmentHasExistingStarter,
                             isSaving: assignmentIsSaving,
                             startFromPrevious: assignmentStartFromPrevious,
+                            peerView: assignmentPeerView,
                             onAddPage: onAssignmentAddPage,
                             onAttachPageImage: onAssignmentAttachPageImage,
                             onCancel: onAssignmentCancel,
@@ -337,6 +341,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                             onRemovePageImage: onAssignmentRemovePageImage,
                             onRemoveStarter: onAssignmentRemoveStarter,
                             onChangeStartFromPrevious: onAssignmentChangeStartFromPrevious,
+                            onChangePeerView: onAssignmentChangePeerView,
                             onSave: onAssignmentSave,
                             onUseCurrentProject: onAssignmentUseCurrentProject,
                             onUseFile: onAssignmentUseFile,
@@ -369,6 +374,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         onRefresh={onRefreshDetail}
                         onRejectKickRequest={onRejectKickRequest}
                         onReturnSubmission={onReturnSubmission}
+                        onSetHiddenFromPeers={onSetHiddenFromPeers}
                         onSelectMember={onSelectMember}
                         onShowCodeDisplay={onShowCodeDisplay}
                         shared={shared}

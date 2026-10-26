@@ -15,6 +15,7 @@ const TeacherMemberDetail = ({
     onDeleteMember,
     onOpenSubmission,
     onReturnSubmission,
+    onSetHiddenFromPeers,
     kickRequestsForSelectedSeat,
     onApproveKickRequest,
     onRejectKickRequest,
@@ -58,6 +59,16 @@ const TeacherMemberDetail = ({
             commentText,
         );
     }, [selectedMember, memberMap, commentText, onReturnSubmission]);
+
+    const handleHideFromPeersChange = useCallback(
+        (e) => {
+            const submissionId = memberMap[selectedMember]?.submissionId;
+            if (submissionId && onSetHiddenFromPeers) {
+                onSetHiddenFromPeers(submissionId, e.target.checked);
+            }
+        },
+        [selectedMember, memberMap, onSetHiddenFromPeers],
+    );
 
     const handleCommentChange = useCallback((e) => {
         setCommentText(e.target.value);
@@ -384,6 +395,24 @@ const TeacherMemberDetail = ({
                                 />
                             </button>
                         )}
+                        {/* Peer view (#1208): keep an inappropriate submission
+                            out of what classmates can see. */}
+                        {onSetHiddenFromPeers && selectedMemberData.submissionId && (
+                            <label className={styles.hideFromPeers}>
+                                <input
+                                    checked={!!selectedMemberData.hiddenFromPeers}
+                                    data-testid="classroom-member-detail-hide-from-peers"
+                                    disabled={isLoading}
+                                    type="checkbox"
+                                    onChange={handleHideFromPeersChange}
+                                />
+                                <FormattedMessage
+                                    defaultMessage="Don't show to other students"
+                                    description="Member detail: exclude this submission from peer view"
+                                    id="gui.classroom.teacherDetail.hideFromPeers"
+                                />
+                            </label>
+                        )}
                         {/* Comment + Return */}
                         <div className={styles.commentSection}>
                             <textarea
@@ -495,6 +524,7 @@ TeacherMemberDetail.propTypes = {
     onOpenSubmission: PropTypes.func.isRequired,
     onRejectKickRequest: PropTypes.func,
     onReturnSubmission: PropTypes.func.isRequired,
+    onSetHiddenFromPeers: PropTypes.func,
     selectedMember: PropTypes.string,
 };
 

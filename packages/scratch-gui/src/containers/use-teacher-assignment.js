@@ -17,6 +17,7 @@ import {
     MAX_ASSIGNMENT_PAGES,
     buildAssignmentPayload,
     moveItem,
+    normalizePeerView,
     validateEditorPages,
 } from '../lib/classroom-assignment-utils.js';
 import translateError from './classroom-error-utils.js';
@@ -85,6 +86,8 @@ const useTeacherAssignment = ({
     // "Start from the previous submission" (#1202): students open the same
     // seat's submission from the previous assignment right after joining.
     const [startFromPrevious, setStartFromPrevious] = useState(false);
+    // "Peer view" (#1208): 'none' | 'always' | 'afterSubmit'.
+    const [peerView, setPeerView] = useState('none');
     const [isSaving, setIsSaving] = useState(false);
 
     /** Release blob preview URLs to avoid leaking object URLs. */
@@ -113,6 +116,7 @@ const useTeacherAssignment = ({
             setStarterMode(hasStarter ? 'keep' : 'none');
             setStarterSource(null);
             setStartFromPrevious(data.startFromPrevious === true);
+            setPeerView(normalizePeerView(data.peerView));
         } catch (err) {
             if (err.status === 401) {
                 handleTeacher401();
@@ -231,6 +235,10 @@ const useTeacherAssignment = ({
         setStartFromPrevious(!!value);
     }, []);
 
+    const handleChangePeerView = useCallback((value) => {
+        setPeerView(normalizePeerView(value));
+    }, []);
+
     const handleRemoveStarter = useCallback(() => {
         setStarterMode('none');
         setStarterSource(null);
@@ -266,7 +274,7 @@ const useTeacherAssignment = ({
                 }
             }
 
-            const payload = buildAssignmentPayload(editorPages, starterMode, startFromPrevious);
+            const payload = buildAssignmentPayload(editorPages, starterMode, startFromPrevious, peerView);
             const result = await classroomAPI.setAssignment(idToken, selectedClassroom.classroomId, payload);
 
             // Upload newly attached images / starter to the presigned URLs.
@@ -314,6 +322,7 @@ const useTeacherAssignment = ({
         starterMode,
         starterSource,
         startFromPrevious,
+        peerView,
         vm,
         clearError,
         showError,
@@ -338,6 +347,7 @@ const useTeacherAssignment = ({
         hasExistingStarter,
         isSaving,
         startFromPrevious,
+        peerView,
         loadAssignmentEditor,
         handleAddPage,
         handleRemovePage,
@@ -349,6 +359,7 @@ const useTeacherAssignment = ({
         handleUseFileAsStarter,
         handleRemoveStarter,
         handleChangeStartFromPrevious,
+        handleChangePeerView,
         handleSaveAssignment,
         handleCancelAssignmentEdit,
         handleApplyTemplate,
