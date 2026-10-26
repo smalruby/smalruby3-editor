@@ -34,6 +34,7 @@ smalruby3-editor/
 │   │   │   ├── classroom-teacher-menu/ ← メニューバーの先生メニュー「クラス管理」(表示) #1199
 │   │   │   ├── classroom-teacher-kick-toast/ ← 先生向けの退室依頼トースト / 一覧 (表示) #1200
 │   │   │   ├── classroom-teacher-panel/ ← 先生の「いまの課題の状況」フローティングパネル (表示) #1203
+│   │   │   ├── classroom-peer-panel/ ← 生徒の「みんなの作品」パネル + 画像ビューアのウィンドウ (表示・枠は teacher-panel の CSS を共用) #1210
 │   │   │   ├── classroom-teacher-modal/ ← 先生用フルスクリーンモーダル
 │   │   │   │   ├── classroom-teacher-modal.jsx ← メイン（ダッシュボード/詳細/作成等）
 │   │   │   │   ├── classroom-teacher-modal.css
@@ -61,6 +62,7 @@ smalruby3-editor/
 │   │   │   ├── classroom-teacher-kick-alerts.jsx ← 先生の未処理退室依頼の見張り + トースト（GUI 全体で 1 つ）#1200
 │   │   │   ├── use-teacher-kick-request-polling.js ← 先生の退室依頼ポーリング（10 秒・タブ表示中・バックオフ）
 │   │   │   ├── classroom-teacher-panel.jsx ← 「いまの課題の状況」パネルのコンテナ（GUI 全体で 1 つ）#1203
+│   │   │   ├── classroom-peer-panel.jsx ← 「みんなの作品」パネルのコンテナ（開いたとき・更新だけ取得）#1210
 │   │   │   ├── use-teacher-panel-polling.js ← パネルのメンバー・提出ポーリング（開いている間・30 秒・タブ表示中）
 │   │   │   ├── use-google-classroom.js ← Google Classroom API 連携
 │   │   │   ├── classroom-error-utils.js ← エラーメッセージ変換
