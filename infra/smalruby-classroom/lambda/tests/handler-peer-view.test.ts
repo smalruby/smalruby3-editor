@@ -239,6 +239,16 @@ describe('GET /classrooms/{id}/peer-submissions (issue #1239)', () => {
     const res = await handler(makeEvent('GET', '/classrooms/c2/peer-submissions', { classroomId: 'c2' }, SESSION));
     expect(res.statusCode).toBe(401);
   });
+
+  test('アーカイブ・期限切れの課題は 404（提出を読まない）', async () => {
+    for (const over of [{ status: 'archived' }, { ttl: Math.floor(Date.now() / 1000) - 10 }]) {
+      mockSend.mockClear();
+      useData(classroom({ peerView: 'always', ...over }), peers());
+      const { status } = await call('GET', '/classrooms/c1/peer-submissions', SESSION);
+      expect(status).toBe(404);
+      expect(commands('QueryCommand', 'ClassroomSubmissions')).toHaveLength(0);
+    }
+  });
 });
 
 describe('screenshotLabels on submit (issue #1239)', () => {
