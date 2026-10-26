@@ -1,0 +1,65 @@
+@import '../../css/colors.css';
+@import '../../css/units.css';
+
+/* The frame (overlay, panel, header, seat grid) comes from classroom-teacher-panel.css. */
+
+.hint {
+    margin: 0;
+    padding: 0.3rem 0.4rem;
+    border-radius: 0.25rem;
+    background-color: $ui-secondary;
+    color: $text-primary;
+    line-height: 1.3;
+}
+
+.summary {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-weight: bold;
+}
+
+.seat-own {
+    border-style: dashed;
+    color: $text-primary-transparent;
+}
+
+.seat-selected {
+    outline: 2px solid $looks-secondary;
+}
+
+/*
+ * Image viewer window: non-modal like the panel, so the blocks stay editable
+ * behind it. Fits the 1300x600 class PC without page scrolling; the student
+ * can resize it (Chromebook) — zoom and pan stay inside the viewer.
+ */
+.viewer-window {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    width: 40rem;
+    height: calc(100vh - 5rem);
+    max-height: 32rem;
+    min-width: 18rem;
+    min-height: 14rem;
+    max-width: calc(100vw - 1rem);
+    overflow: hidden;
+    resize: both;
+    border: 1px solid $ui-black-transparent;
+    border-radius: 0.5rem;
+    background-color: $ui-white;
+    box-shadow: 0 0.25rem 1rem rgba(0, 0, 0, 0.25);
+    color: $text-primary;
+    font-size: 0.75rem;
+    pointer-events: auto;
+}
+
+.viewer-header {
+    flex: none;
+}
+
+.viewer-body {
+    flex: 1;
+    min-height: 0;
+    background-color: $ui-white;
+}

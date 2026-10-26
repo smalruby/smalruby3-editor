@@ -550,6 +550,20 @@ class ClassroomAPI {
     }
 
     /**
+     * Classmates' submissions of the joined assignment for peer view (#1210):
+     * seat number, submitted time and presigned image URLs with sprite names
+     * only (no .sb3, no nickname). 403 with body.reason 'peer-view-off' /
+     * 'not-submitted' when the assignment does not allow it (yet).
+     * @param {string} sessionToken - Student session token
+     * @param {string} classroomId - Joined classroom ID
+     * @returns {Promise<object>} {peerView, submissions: [{seatNumber, submittedAt,
+     *   thumbnailUrl, screenshotUrls, screenshotLabels}]}
+     */
+    async listPeerSubmissions(sessionToken, classroomId) {
+        return this._request('GET', `/classrooms/${classroomId}/peer-submissions`, null, sessionToken);
+    }
+
+    /**
      * Upload data to a presigned URL.
      * @param {string} url - Presigned URL
      * @param {ArrayBuffer|Blob|string} data - Data to upload

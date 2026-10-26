@@ -1135,6 +1135,14 @@
     margin-top: 1rem;
 }
 
+/* "提出すると見られます" in place of the peer view button (#1210). */
+.peer-view-locked {
+    display: inline-flex;
+    align-items: center;
+    color: #575e75;
+    font-size: 0.75rem;
+}
+
 .loading {
     text-align: center;
     padding: 2rem;

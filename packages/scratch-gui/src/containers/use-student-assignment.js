@@ -13,10 +13,11 @@
  */
 import { useCallback, useState } from 'react';
 import { defineMessages } from 'react-intl';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import classroomAPI from '../lib/classroom-api.js';
 import { decideJoinStart, normalizeContinueOptions } from '../lib/classroom-continue-options.js';
 import { loadProjectWithChecks } from '../lib/project-loader-utils.js';
+import { setStudentPeerView } from '../reducers/classroom.js';
 import translateError from './classroom-error-utils.js';
 
 const NO_START_CHOICE = { showStarter: false, recommend: null, notice: null };
@@ -78,6 +79,15 @@ const useStudentAssignment = ({
     onStarted,
 }) => {
     const projectChanged = useSelector((state) => state.scratchGui.projectChanged);
+    const dispatch = useDispatch();
+    // The assignment response carries the peer view setting (#1210); keep it
+    // so the status view can hide / lock "みんなの作品を見る" without a request.
+    const rememberPeerView = useCallback(
+        (data) => {
+            if (data && typeof data.peerView === 'string') dispatch(setStudentPeerView(data.peerView));
+        },
+        [dispatch],
+    );
 
     const [assignment, setAssignment] = useState(null);
     const [assignmentPageIndex, setAssignmentPageIndex] = useState(0);
@@ -179,6 +189,7 @@ const useStudentAssignment = ({
                 withAssignment ? classroomAPI.getAssignment(sessionToken, classroomId).catch(() => null) : null,
                 fetchContinueOptions(sessionToken, classroomId),
             ]);
+            rememberPeerView(assignmentData);
             const joinedAssignment = assignmentData?.assignment || null;
             setAssignment(joinedAssignment);
             setAssignmentPageIndex(0);
@@ -187,7 +198,7 @@ const useStudentAssignment = ({
             setHasAssignment(true);
             return (joinedAssignment.pages || []).length > 0 ? 'student-assignment' : null;
         },
-        [fetchContinueOptions],
+        [fetchContinueOptions, rememberPeerView],
     );
 
     /** Re-fetch the submissions to continue from (status view). */
@@ -251,6 +262,7 @@ const useStudentAssignment = ({
         setIsLoading(true);
         try {
             const data = await classroomAPI.getAssignment(classroomState.sessionToken, classroomState.classroomId);
+            rememberPeerView(data);
             if (!data.assignment) {
                 setHasAssignment(false);
                 return;
@@ -271,6 +283,7 @@ const useStudentAssignment = ({
         intl,
         setIsLoading,
         setPhase,
+        rememberPeerView,
     ]);
 
     /**

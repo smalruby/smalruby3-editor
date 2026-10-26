@@ -20,6 +20,9 @@ import reducer, {
     closeTeacherKickList,
     openTeacherPanel,
     closeTeacherPanel,
+    setStudentPeerView,
+    openStudentPeerPanel,
+    closeStudentPeerPanel,
 } from '../../../src/reducers/classroom';
 
 const STORAGE_KEY = 'smalruby:classroom';
@@ -407,6 +410,50 @@ describe('classroom reducer', () => {
             );
             state = reducer(state, removeTeacherKickRequest('a', { classroomId: 'c1', seatNumber: 3 }));
             expect(state.teacherKickRequests.map((r) => r.requestId)).toEqual(['c', 'd']);
+        });
+    });
+
+    describe('student peer view (#1210)', () => {
+        const session = (classroomId) =>
+            setClassroomSession({
+                role: 'student',
+                classroomId,
+                className: 'A',
+                assignmentName: 'X',
+                joinCode: 'ABC123',
+                seatNumber: 3,
+                memberId: 'seat-03',
+                sessionToken: 'st',
+            });
+
+        test('remembers the setting and opens / closes the panel', () => {
+            let state = reducer(classroomInitialState, session('c1'));
+            expect(state.studentPeerView).toBeNull();
+            state = reducer(state, setStudentPeerView('afterSubmit'));
+            expect(state.studentPeerView).toBe('afterSubmit');
+            state = reducer(state, openStudentPeerPanel());
+            expect(state.studentPeerPanelOpen).toBe(true);
+            state = reducer(state, closeStudentPeerPanel());
+            expect(state.studentPeerPanelOpen).toBe(false);
+        });
+
+        test('forgets the setting and closes the panel on leaving or joining another class', () => {
+            let state = reducer(classroomInitialState, session('c1'));
+            state = reducer(reducer(state, setStudentPeerView('always')), openStudentPeerPanel());
+            const moved = reducer(state, session('c2'));
+            expect(moved.studentPeerView).toBeNull();
+            expect(moved.studentPeerPanelOpen).toBe(false);
+            const same = reducer(state, session('c1'));
+            expect(same.studentPeerView).toBe('always');
+            const left = reducer(state, clearClassroomSession());
+            expect(left.studentPeerView).toBeNull();
+            expect(left.studentPeerPanelOpen).toBe(false);
+        });
+
+        test('does not persist the setting', () => {
+            const state = reducer(reducer(classroomInitialState, session('c1')), setStudentPeerView('always'));
+            expect(state.studentPeerView).toBe('always');
+            expect(window.localStorage.getItem(STORAGE_KEY)).not.toContain('peerView');
         });
     });
 
