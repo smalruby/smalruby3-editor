@@ -171,6 +171,7 @@ src/lib/*
 !src/lib/shared-author-profile.js
 !src/lib/classroom-kick-request-storage.js
 !src/lib/classroom-seat-selection.js
+!src/lib/classroom-continue-options.js
 !src/lib/classroom-teacher-kick-alerts.js
 !src/lib/classroom-teacher-panel.js
 !src/lib/google-classroom-auth.js
@@ -346,6 +347,7 @@ test/unit/components/*
 !test/unit/components/connected-step.test.jsx
 !test/unit/components/mesh-self-sensor-notice.test.jsx
 !test/unit/components/student-assignment-panel.test.jsx
+!test/unit/components/student-continue-choice.test.jsx
 !test/unit/components/teacher-class-detail.test.jsx
 !test/unit/components/classroom-status-icon.test.jsx
 !test/unit/components/teacher-notifications.test.jsx
@@ -386,6 +388,8 @@ test/unit/containers/*
 !test/unit/containers/use-teacher-kick-request-polling.test.js
 !test/unit/containers/use-teacher-panel-polling.test.js
 !test/unit/containers/use-kick-request-polling.test.js
+!test/unit/containers/use-student-assignment.test.js
+!test/unit/containers/use-teacher-assignment.test.js
 !test/unit/containers/connection-modal-connected-message.test.jsx
 !test/unit/containers/connection-modal-smalrubot-s1.test.jsx
 !test/unit/containers/connection-modal.test.jsx
@@ -443,6 +447,7 @@ test/unit/lib/*
 !test/unit/lib/sb3-analyzer.test.js
 !test/unit/lib/classroom-kick-request-storage.test.js
 !test/unit/lib/classroom-seat-selection.test.js
+!test/unit/lib/classroom-continue-options.test.js
 !test/unit/lib/deck-setup.test.js
 !test/unit/lib/blocks-screenshot.test.js
 !test/unit/lib/download-blob.test.js

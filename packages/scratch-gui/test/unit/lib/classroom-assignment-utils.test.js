@@ -8,6 +8,16 @@ import {
 } from '../../../src/lib/classroom-assignment-utils';
 
 describe('buildAssignmentPayload', () => {
+    test('includes startFromPrevious only when given (#1202)', () => {
+        expect(buildAssignmentPayload([{ text: 'p' }], 'keep', true)).toEqual({
+            pages: [{ text: 'p' }],
+            keepStarter: true,
+            startFromPrevious: true,
+        });
+        expect(buildAssignmentPayload([{ text: 'p' }], 'none', false).startFromPrevious).toBe(false);
+        expect(buildAssignmentPayload([{ text: 'p' }], 'none')).not.toHaveProperty('startFromPrevious');
+    });
+
     test('maps text-only pages', () => {
         const payload = buildAssignmentPayload([{ text: 'ねこを動かそう' }, { text: '' }], 'none');
         expect(payload).toEqual({ pages: [{ text: 'ねこを動かそう' }, { text: '' }] });

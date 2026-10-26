@@ -375,10 +375,38 @@ export default {
     'gui.classroom.studentAssignment.overwriteConfirm':
         '課題のスタータープロジェクトを開きますか？ 今つくっているプロジェクトは置きかわります。',
     'gui.classroom.studentAssignment.starterLoadFailed': 'スタータープロジェクトを開けませんでした',
+    'gui.classroom.continueChoice.title': 'どこから始めますか？',
+    'gui.classroom.continueChoice.loadTitle': '提出した作品を読み込む',
+    'gui.classroom.continueChoice.starter': 'スターターから始める',
+    'gui.classroom.continueChoice.previous': '前回の提出物から続ける',
+    'gui.classroom.continueChoice.current': 'この課題で提出した作品を読み込む',
+    'gui.classroom.continueChoice.loadFailed': '提出した作品を開けませんでした',
+    'gui.classroom.continueChoice.gone': 'その提出物はもう読み込めません（期限切れか削除されました）',
+    'gui.classroom.continueChoice.noticeRecommendPrevious': '先生のおすすめ: 前回の提出物から続けよう',
+    'gui.classroom.continueChoice.noticeNoPreviousUseStarter':
+        '前回の提出物が見つからなかったので、スターターから始めよう',
+    'gui.classroom.continueChoice.recommended': 'おすすめ',
+    'gui.classroom.continueChoice.noticeNoPrevious': '前回の提出物が見つかりませんでした',
+    'gui.classroom.assignmentEditor.startFromPrevious': '前回の提出物から始めさせる',
+    'gui.classroom.assignmentEditor.startFromPreviousHint':
+        '続きの授業向け: 生徒が参加すると、このクラスの前の課題で提出した作品から続けるボタンを「おすすめ」として出します（スターターは出しません）。前回の提出物が無い生徒にはスターターから始めるよう案内します。',
+    'gui.classroom.teacherDetail.previewStartPrevious':
+        '参加したとき: 前回の提出物から続けるのがおすすめ（無い生徒はスターター）',
+    'gui.classroom.teacherDetail.previewStartStarter':
+        '参加したとき: ボタンでスターターから始めます（前回の提出物がある生徒は、どこから始めるか選びます）',
+    'gui.classroom.teacherDetail.previewStartNone':
+        '参加したとき: いまの作品のまま始めます（前回の提出物がある生徒は、どこから始めるか選びます）',
+    'gui.classroom.continueChoice.starterDetail': '先生が用意した作品から作る',
+    'gui.classroom.continueChoice.keep': 'いまの作品のまま始める',
+    'gui.classroom.continueChoice.keepDetail': '何も読み込まずに作る',
+    'gui.classroom.continueChoice.confirmPrevious':
+        '前回の提出物を開きますか？ 今つくっているプロジェクトは置きかわります。',
+    'gui.classroom.continueChoice.confirmCurrent':
+        'この課題で提出した作品を開きますか？ 今つくっているプロジェクトは置きかわります。',
     'gui.classroom.assignmentEditor.openButton': '課題を編集',
     'gui.classroom.assignmentEditor.title': '課題を編集',
     'gui.classroom.assignmentEditor.hint':
-        '生徒が参加コードで参加すると、このページが表示され、スタータープロジェクトが自動で開きます。',
+        '生徒が参加コードで参加すると、このページが表示され、ボタンでスタータープロジェクトから始めます。',
     'gui.classroom.assignmentEditor.pageNumber': 'ページ {number}',
     'gui.classroom.assignmentEditor.pageTextPlaceholder': 'このページの説明を書きます（数行程度）',
     'gui.classroom.assignmentEditor.moveUp': '上へ移動',

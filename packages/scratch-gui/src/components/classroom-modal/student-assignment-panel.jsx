@@ -4,53 +4,100 @@
  * Shows the assignment pages (short text + optional image) with a pager.
  * Opens automatically right after joining a classroom that carries an
  * assignment, and any time from the status view via "View Assignment".
+ * Right after joining, the footer offers where to start (nothing is loaded
+ * until the student presses a choice); reopened later, it offers reopening
+ * the starter and going back to work.
  */
 import PropTypes from 'prop-types';
 import React from 'react';
 import { FormattedMessage } from 'react-intl';
 
 import ErrorDisplay from './error-display.jsx';
+import StudentContinueChoice from './student-continue-choice.jsx';
 import StudentPreviousComment from './student-previous-comment.jsx';
 
 import styles from './classroom-modal.css';
 
 const StudentAssignmentPanel = ({
     assignment,
+    continueOptions,
     error,
     errorTitle,
     isLoading,
     joinedInfo,
+    loadedChoice,
     pageIndex,
+    startChoice,
+    onChooseStarter,
     onClose,
+    onLoadSubmission,
     onNextPage,
     onPrevPage,
     onReloadStarter,
 }) => {
     const pages = assignment?.pages || [];
     const page = pages[pageIndex] || null;
+    // Just joined: the start choices. Reopened from the status view: no choices.
+    const showStarterChoice = !!joinedInfo && !!startChoice?.showStarter;
+    const hasChoices = !!joinedInfo && (showStarterChoice || !!continueOptions);
 
     return (
         <div data-testid="classroom-phase-student-assignment">
-            {joinedInfo && (
-                <div className={styles.assignmentJoinedNotice} data-testid="classroom-assignment-joined-notice">
+            {/* One header row (title + joined badge + pager) so the panel fits the
+                1300x600 classroom PC without scrolling (#1201 / #1221). */}
+            <div className={styles.assignmentHeader}>
+                <h2 className={styles.assignmentHeaderTitle}>
                     <FormattedMessage
-                        defaultMessage="Joined! Seat {seatNumber}"
-                        description="Small joined confirmation shown on top of the assignment panel"
-                        id="gui.classroom.studentAssignment.joinedNotice"
-                        values={{
-                            seatNumber: String(joinedInfo.seatNumber).padStart(2, '0'),
-                        }}
+                        defaultMessage="Assignment"
+                        description="Student assignment panel title"
+                        id="gui.classroom.studentAssignment.title"
                     />
-                </div>
-            )}
+                </h2>
+                {joinedInfo && (
+                    <div className={styles.assignmentJoinedNotice} data-testid="classroom-assignment-joined-notice">
+                        <FormattedMessage
+                            defaultMessage="Joined! Seat {seatNumber}"
+                            description="Small joined confirmation shown on top of the assignment panel"
+                            id="gui.classroom.studentAssignment.joinedNotice"
+                            values={{
+                                seatNumber: String(joinedInfo.seatNumber).padStart(2, '0'),
+                            }}
+                        />
+                    </div>
+                )}
+                {pages.length > 1 && (
+                    <div className={styles.assignmentPager}>
+                        <button
+                            className={styles.secondaryButton}
+                            data-testid="classroom-assignment-prev-page"
+                            disabled={pageIndex === 0}
+                            onClick={onPrevPage}
+                        >
+                            <FormattedMessage
+                                defaultMessage="← Previous"
+                                description="Assignment panel: previous page"
+                                id="gui.classroom.studentAssignment.prevPage"
+                            />
+                        </button>
+                        <span className={styles.assignmentPagerLabel} data-testid="classroom-assignment-page-indicator">
+                            {`${pageIndex + 1} / ${pages.length}`}
+                        </span>
+                        <button
+                            className={styles.secondaryButton}
+                            data-testid="classroom-assignment-next-page"
+                            disabled={pageIndex >= pages.length - 1}
+                            onClick={onNextPage}
+                        >
+                            <FormattedMessage
+                                defaultMessage="Next →"
+                                description="Assignment panel: next page"
+                                id="gui.classroom.studentAssignment.nextPage"
+                            />
+                        </button>
+                    </div>
+                )}
+            </div>
             {joinedInfo && <StudentPreviousComment previousComment={joinedInfo.previousComment} />}
-            <h2 className={styles.phaseTitle}>
-                <FormattedMessage
-                    defaultMessage="Assignment"
-                    description="Student assignment panel title"
-                    id="gui.classroom.studentAssignment.title"
-                />
-            </h2>
 
             <ErrorDisplay error={error} errorTitle={errorTitle} />
 
@@ -70,64 +117,54 @@ const StudentAssignmentPanel = ({
                 </div>
             )}
 
-            {pages.length > 1 && (
-                <div className={styles.assignmentPager}>
-                    <button
-                        className={styles.secondaryButton}
-                        data-testid="classroom-assignment-prev-page"
-                        disabled={pageIndex === 0}
-                        onClick={onPrevPage}
-                    >
-                        <FormattedMessage
-                            defaultMessage="← Previous"
-                            description="Assignment panel: previous page"
-                            id="gui.classroom.studentAssignment.prevPage"
-                        />
-                    </button>
-                    <span className={styles.assignmentPagerLabel} data-testid="classroom-assignment-page-indicator">
-                        {`${pageIndex + 1} / ${pages.length}`}
-                    </span>
-                    <button
-                        className={styles.secondaryButton}
-                        data-testid="classroom-assignment-next-page"
-                        disabled={pageIndex >= pages.length - 1}
-                        onClick={onNextPage}
-                    >
-                        <FormattedMessage
-                            defaultMessage="Next →"
-                            description="Assignment panel: next page"
-                            id="gui.classroom.studentAssignment.nextPage"
-                        />
-                    </button>
-                </div>
-            )}
-
-            <div className={styles.buttonRow}>
-                {assignment?.starterUrl && (
-                    <button
-                        className={styles.secondaryButton}
-                        data-testid="classroom-assignment-reload-starter"
-                        disabled={isLoading}
-                        onClick={onReloadStarter}
-                    >
-                        <FormattedMessage
-                            defaultMessage="Open the Starter Project"
-                            description="Assignment panel: (re)open the starter project"
-                            id="gui.classroom.studentAssignment.reloadStarter"
-                        />
-                    </button>
-                )}
-                <button
-                    className={styles.primaryButton}
-                    data-testid="classroom-assignment-close"
-                    onClick={onClose}
-                >
-                    <FormattedMessage
-                        defaultMessage="Start Working!"
-                        description="Assignment panel: close and start working"
-                        id="gui.classroom.studentAssignment.close"
+            {/* Choice and the close button side by side (one row at 1300x600). */}
+            <div className={styles.assignmentFooter}>
+                {/* Right after joining, each choice starts (the starter, earlier
+                    submissions #1201, or as it is), so there is no separate Start
+                    button and nothing to reload. */}
+                {joinedInfo && (
+                    <StudentContinueChoice
+                        continueOptions={continueOptions}
+                        isLoading={isLoading}
+                        loadedChoice={loadedChoice}
+                        recommend={startChoice?.recommend}
+                        showStarter={showStarterChoice}
+                        startNotice={startChoice?.notice}
+                        onKeepCurrent={onClose}
+                        onLoadStarter={onChooseStarter}
+                        onLoadSubmission={onLoadSubmission}
                     />
-                </button>
+                )}
+
+                {!hasChoices && (
+                    <div className={styles.buttonRow}>
+                        {!joinedInfo && assignment?.starterUrl && (
+                            <button
+                                className={styles.secondaryButton}
+                                data-testid="classroom-assignment-reload-starter"
+                                disabled={isLoading}
+                                onClick={onReloadStarter}
+                            >
+                                <FormattedMessage
+                                    defaultMessage="Open the Starter Project"
+                                    description="Assignment panel: (re)open the starter project"
+                                    id="gui.classroom.studentAssignment.reloadStarter"
+                                />
+                            </button>
+                        )}
+                        <button
+                            className={styles.primaryButton}
+                            data-testid="classroom-assignment-close"
+                            onClick={onClose}
+                        >
+                            <FormattedMessage
+                                defaultMessage="Start Working!"
+                                description="Assignment panel: close and start working"
+                                id="gui.classroom.studentAssignment.close"
+                            />
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -143,6 +180,7 @@ StudentAssignmentPanel.propTypes = {
         ),
         starterUrl: PropTypes.string,
     }),
+    continueOptions: PropTypes.object,
     error: PropTypes.string,
     errorTitle: PropTypes.string,
     isLoading: PropTypes.bool,
@@ -150,8 +188,16 @@ StudentAssignmentPanel.propTypes = {
         seatNumber: PropTypes.number,
         previousComment: PropTypes.object,
     }),
+    loadedChoice: PropTypes.string,
     pageIndex: PropTypes.number.isRequired,
+    startChoice: PropTypes.shape({
+        showStarter: PropTypes.bool,
+        recommend: PropTypes.string,
+        notice: PropTypes.string,
+    }),
+    onChooseStarter: PropTypes.func,
     onClose: PropTypes.func.isRequired,
+    onLoadSubmission: PropTypes.func,
     onNextPage: PropTypes.func.isRequired,
     onPrevPage: PropTypes.func.isRequired,
     onReloadStarter: PropTypes.func.isRequired,

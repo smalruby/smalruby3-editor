@@ -539,6 +539,19 @@ class ClassroomAPI {
     }
 
     /**
+     * Get the student's submissions they can continue from (#1201): their own
+     * submission in this assignment and the same seat's submission in the
+     * previous assignment of the same class, each with a download URL.
+     * @param {string} sessionToken - Student session token
+     * @param {string} classroomId - Joined classroom ID
+     * @returns {Promise<object>} {current, previous} — each null or
+     *   {classroomId, assignmentName, projectName, submittedAt, projectUrl}
+     */
+    async getContinuableSubmissions(sessionToken, classroomId) {
+        return this._request('GET', `/classrooms/${classroomId}/continuable-submissions`, null, sessionToken);
+    }
+
+    /**
      * Upload data to a presigned URL.
      * @param {string} url - Presigned URL
      * @param {ArrayBuffer|Blob|string} data - Data to upload

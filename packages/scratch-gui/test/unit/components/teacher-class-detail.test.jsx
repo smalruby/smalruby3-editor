@@ -335,3 +335,56 @@ describe('TeacherClassDetail — entry tab (teacher review on #1199)', () => {
         expect(onDetailTabChange).toHaveBeenLastCalledWith('members');
     });
 });
+
+describe('TeacherClassDetail — 前回の提出物から始めさせる (#1202)', () => {
+    const editor = (over = {}) => ({
+        editorPages: [{ text: '続きを作ろう' }],
+        starterMode: 'keep',
+        starterSource: null,
+        hasExistingStarter: true,
+        isSaving: false,
+        startFromPrevious: false,
+        onAddPage: jest.fn(),
+        onAttachPageImage: jest.fn(),
+        onChangePageText: jest.fn(),
+        onChangeStartFromPrevious: jest.fn(),
+        onMovePage: jest.fn(),
+        onRemovePage: jest.fn(),
+        onRemovePageImage: jest.fn(),
+        onRemoveStarter: jest.fn(),
+        onSave: jest.fn(),
+        onUseCurrentProject: jest.fn(),
+        onUseFile: jest.fn(),
+        ...over,
+    });
+    const renderDescription = (over) =>
+        renderDetail({ assignmentEditor: editor(over), detailEntry: { tab: 'description', seq: 1 } });
+    const byTestId = (id) => document.querySelector(`[data-testid="${id}"]`);
+
+    test('説明タブに設定のチェックボックス (既定 OFF) を出し、切り替えを伝える', () => {
+        const onChangeStartFromPrevious = jest.fn();
+        renderDescription({ onChangeStartFromPrevious });
+        const checkbox = byTestId('classroom-assignment-start-from-previous');
+        expect(checkbox).not.toBeChecked();
+        fireEvent.click(checkbox);
+        expect(onChangeStartFromPrevious).toHaveBeenCalledWith(true);
+    });
+
+    test('ON のときはチェックされ、生徒視点プレビューに「前回の提出物から続けるのがおすすめ」と出す', () => {
+        renderDescription({ startFromPrevious: true });
+        expect(byTestId('classroom-assignment-start-from-previous')).toBeChecked();
+        expect(byTestId('classroom-description-preview-start')).toHaveTextContent(
+            "continuing from last time's submission is recommended",
+        );
+    });
+
+    test('OFF のときプレビューはスターター (無ければいまの作品) で始まると出す', () => {
+        renderDescription();
+        expect(byTestId('classroom-description-preview-start')).toHaveTextContent(
+            'start from the starter with a button',
+        );
+        document.body.innerHTML = '';
+        renderDescription({ starterMode: 'none' });
+        expect(byTestId('classroom-description-preview-start')).toHaveTextContent('start with the open project');
+    });
+});

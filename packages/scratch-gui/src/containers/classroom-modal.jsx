@@ -21,7 +21,7 @@ import {
     setSubmissionStatus,
 } from '../reducers/classroom.js';
 import { setProjectTitle } from '../reducers/project-title.js';
-import { decideClasscodeAction, resolveAutoJoinCode } from './classroom-classcode-utils.js';
+import { decideClasscodeAction, initialStudentPhase, resolveAutoJoinCode } from './classroom-classcode-utils.js';
 import translateError, { extractKickReason } from './classroom-error-utils.js';
 import useKickRequestPolling from './use-kick-request-polling.js';
 import useStudentAssignment from './use-student-assignment.js';
@@ -35,13 +35,9 @@ const ClassroomModal = () => {
     const projectTitle = useSelector((state) => state.scratchGui.projectTitle);
     const scratchBlocks = useSelector((state) => state.scratchGui.blockDisplay?.scratchBlocks);
 
-    // Determine initial phase from persisted session
-    const getInitialPhase = () => {
-        if (classroomState.role === 'student' && classroomState.sessionToken) {
-            return 'student-status';
-        }
-        return 'student-join';
-    };
+    // Determine initial phase from persisted session (a `?classcode=` URL for
+    // another class skips verifying the old session; see initialStudentPhase)
+    const getInitialPhase = () => initialStudentPhase(classroomState, getUrlParams().classcode);
 
     // UI state
     const [phase, setPhase] = useState(getInitialPhase);
@@ -84,7 +80,11 @@ const ClassroomModal = () => {
         setPhase,
     });
 
-    // Student assignment hook (assignment pages + starter auto-load)
+    const handleClose = useCallback(() => {
+        dispatch(closeClassroomModal());
+    }, [dispatch]);
+
+    // Student assignment hook (assignment pages + start choices)
     const studentAssignment = useStudentAssignment({
         classroomState,
         vm,
@@ -93,6 +93,8 @@ const ClassroomModal = () => {
         showError,
         setIsLoading,
         setPhase,
+        // a chosen project starts the work right away (#1201)
+        onStarted: handleClose,
     });
 
     // Go back to join screen (used as error action for session expiry)
@@ -114,10 +116,6 @@ const ClassroomModal = () => {
         showAlertWithTimeout(dispatch, 'classroomSessionExpired');
     }, [dispatch]);
     showSessionExpiredErrorRef.current = showSessionExpiredError;
-
-    const handleClose = useCallback(() => {
-        dispatch(closeClassroomModal());
-    }, [dispatch]);
 
     // --- Open teacher management modal ---
 
@@ -335,19 +333,16 @@ const ClassroomModal = () => {
                 clearPendingKickRequest();
                 setKickRequestPending(null);
                 setKickRequestRejectedNotice(null);
-                if (data.hasAssignment) {
-                    // Assignment delivery: fetch the assignment, auto-load the
-                    // starter (never clobbering an edited project silently), and
-                    // jump straight to the assignment pages when there are any.
-                    const nextPhase = await studentAssignment.handleJoinedWithAssignment(
-                        data.sessionToken,
-                        data.classroomId,
-                    );
-                    setPhase(nextPhase || 'student-joined');
-                } else {
-                    studentAssignment.setHasAssignment(false);
-                    setPhase('student-joined');
-                }
+                // Assignment delivery: fetch the assignment and the submissions
+                // to continue from (#1201) and decide the start choices. Nothing
+                // is loaded until the student presses a choice; we jump straight
+                // to the assignment pages when there are any.
+                const nextPhase = await studentAssignment.handleJoined(
+                    data.sessionToken,
+                    data.classroomId,
+                    !!data.hasAssignment,
+                );
+                setPhase(nextPhase || 'student-joined');
             } catch (err) {
                 if (err.status === 409) {
                     setTakenSeats((prev) => [...prev, seatNumber]);
@@ -373,18 +368,35 @@ const ClassroomModal = () => {
 
     const [studentTeacherComment, setStudentTeacherComment] = useState(null);
 
+    // The session token as of now. A verify answer for a token that is no
+    // longer current (the student left, switched class or re-joined meanwhile)
+    // must neither clear the new session nor alert about the old one.
+    const sessionTokenRef = useRef(classroomState.sessionToken);
+    sessionTokenRef.current = classroomState.sessionToken;
+    // Set when a `?classcode=` URL brought the student back to the class they
+    // hold a session for: if that session turns out dead, join the URL's
+    // class again quietly instead of alerting (the URL says where to go).
+    const urlRejoinCodeRef = useRef(null);
+
     const refreshStudentStatus = useCallback(async () => {
-        if (!classroomState.sessionToken) return;
+        const token = classroomState.sessionToken;
+        if (!token) return;
         setIsLoading(true);
         try {
-            const result = await classroomAPI.verifySession(classroomState.sessionToken);
+            const result = await classroomAPI.verifySession(token);
+            if (token !== sessionTokenRef.current) return;
+            urlRejoinCodeRef.current = null;
             if (result.submission) {
                 dispatch(setSubmissionStatus(result.submission.status, result.submission.submittedAt));
                 setStudentTeacherComment(result.submission.teacherComment || null);
             }
             studentAssignment.setHasAssignment(!!result.hasAssignment);
+            studentAssignment.refreshContinueOptions();
         } catch (err) {
+            if (token !== sessionTokenRef.current) return;
             const kick = extractKickReason(err);
+            const rejoinCode = urlRejoinCodeRef.current;
+            urlRejoinCodeRef.current = null;
             if (kick) {
                 // Teacher removed the student. Clear the dead session, jump
                 // straight to seat selection for the same classroom, and let
@@ -394,6 +406,9 @@ const ClassroomModal = () => {
                 dispatch(clearClassroomSession());
                 setKickedNotice(kick);
                 handleJoinWithCode(kick.joinCode);
+            } else if (rejoinCode) {
+                dispatch(clearClassroomSession());
+                handleJoinWithCode(rejoinCode);
             } else {
                 dispatch(clearClassroomSession());
                 showSessionExpiredError(translateError(intl, { status: 401 }, 'session'));
@@ -457,6 +472,7 @@ const ClassroomModal = () => {
 
         const action = decideClasscodeAction(classroomState, code);
         if (action.type === 'same_class') {
+            urlRejoinCodeRef.current = code;
             setPhase('student-status');
             return;
         }
@@ -482,12 +498,17 @@ const ClassroomModal = () => {
             assignment={studentAssignment.assignment}
             assignmentPageIndex={studentAssignment.assignmentPageIndex}
             classroomState={classroomState}
+            continueOptions={studentAssignment.continueOptions}
             error={error}
             hasAssignment={studentAssignment.hasAssignment}
+            loadedChoice={studentAssignment.loadedChoice}
+            startChoice={studentAssignment.startChoice}
+            onLoadSubmission={studentAssignment.handleLoadSubmission}
             onAssignmentNextPage={studentAssignment.handleAssignmentNextPage}
             onAssignmentPrevPage={studentAssignment.handleAssignmentPrevPage}
             onOpenAssignment={studentAssignment.handleOpenAssignment}
             onReloadStarter={studentAssignment.handleReloadStarter}
+            onChooseStarter={studentAssignment.handleChooseStarter}
             errorActionHandler={errorActionHandler}
             errorActionLabel={errorActionLabel}
             errorTitle={errorTitle}

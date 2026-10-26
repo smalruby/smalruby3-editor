@@ -137,7 +137,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-joined-class-name` | span | クラス（学級）名 |
 | `classroom-joined-seat-number` | span | 出席番号（0埋め2桁） |
 | `classroom-joined-assignment` | div | 課題名（課題名がある場合のみ） |
-| `classroom-joined-close` | button | はじめる |
+| `classroom-joined-close` | button | はじめる（「どこから始めますか？」の選択肢を出しているときは描画しない） |
 
 ### 生徒: ステータス
 
@@ -191,6 +191,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-assignment-starter-current` | button | 今開いているプロジェクトをスターターに設定 |
 | `classroom-assignment-starter-file` | button | .sb3 ファイルをスターターに設定 |
 | `classroom-assignment-starter-remove` | button | スターターを削除 |
+| `classroom-assignment-start-from-previous` | input (checkbox) | 「前回の提出物から始めさせる」（既定 OFF・保存で反映・Issue #1202） |
 | `classroom-assignment-save` | button | 課題を保存 |
 | `classroom-assignment-cancel` | button | キャンセル（詳細画面へ戻る） |
 
@@ -205,9 +206,26 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-assignment-view-image` | img | ページ画像 |
 | `classroom-assignment-prev-page` / `classroom-assignment-next-page` | button | ページ送り |
 | `classroom-assignment-page-indicator` | span | ページ位置（`1 / 3`） |
-| `classroom-assignment-reload-starter` | button | スタータープロジェクトを開く（編集中は confirm） |
-| `classroom-assignment-close` | button | はじめる！（モーダルを閉じる） |
+| `classroom-assignment-reload-starter` | button | スタータープロジェクトを開く（編集中は confirm）。「課題を見る」から開き直したときだけ（参加直後はスターターも選択肢の 1 つ） |
+| `classroom-assignment-close` | button | はじめる！（モーダルを閉じる。選択肢を出しているときは描画しない） |
 | `classroom-view-assignment-button` | button | ステータス画面の「課題を見る」（hasAssignment 時のみ） |
+
+### どこから始めるかの選択（生徒・Issue #1201）
+
+参加完了（`student-joined`）・課題パネル（`student-assignment`）は、スターターか続きに使える提出物があるときに表示（参加しただけでは何も読み込まない）。ステータス（`student-status`）は続きに使える提出物があるときだけ。
+
+| data-testid | 要素 | 説明 |
+|------------|------|------|
+| `classroom-continue-choice` | div | 選択肢のまとまり（スターターも続きに使える提出物も無いときは描画しない） |
+| `classroom-continue-starter` | button | スターターから始める（スターターがあるとき。設定「前回の提出物から始めさせる」で前回の提出物があるときは出さない。ステータス画面には出さない） |
+| `classroom-continue-starter-recommended` / `classroom-continue-previous-recommended` | span | 先生の設定でおすすめにした選択肢の「おすすめ」バッジ（Issue #1202） |
+| `classroom-continue-previous` | button | 前回の提出物から続ける（同じクラスの前の課題・同じ席の提出物があるとき） |
+| `classroom-continue-current` | button | この課題で提出した作品を読み込む（この課題で提出済みのとき） |
+| `classroom-continue-keep` | button | いまの作品のまま始める（何も読み込まずにモーダルを閉じる。参加完了画面・課題パネルのみ。ステータス画面には出さない） |
+
+| `classroom-continue-notice` | span | 先生の設定「前回の提出物から始めさせる」のお知らせ（Issue #1202。前回の提出物がおすすめ / 無かったのでスターターから / 無かった）。選択肢が無いときも単独で出す |
+
+開いたボタンは `aria-pressed="true"`。1300×600 の収まりは `tools/playwright-verify/verify-classroom-viewport.mjs` が「参加完了 / 課題パネル / ステータス」の選択肢つきの状態で測る。
 
 ### 組（グループ）管理
 
@@ -316,6 +334,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-description-preview` | div | 右ペインの生徒視点プレビュー |
 | `classroom-description-preview-body` | div | プレビュー本文（テキスト+画像） |
 | `classroom-description-preview-prev` / `-next` | button | プレビューのページ送り |
+| `classroom-description-preview-start` | div | プレビュー下の「参加したとき: …」（設定「前回の提出物から始めさせる」とスターターの有無で文言が変わる・Issue #1202） |
 | `classroom-avatar-email` | span | アカウントメニュー内のユーザーメール（OIDC トークンに email がある場合のみ。旧 `classroom-teacher-email` は廃止） |
 | `classroom-board-create-cancel` / `classroom-board-reuse-cancel` | button | インラインフォームのキャンセル |
 | `classroom-google-course-imported-{courseId}` | span | GC コースの「インポート済み」バッジ |
