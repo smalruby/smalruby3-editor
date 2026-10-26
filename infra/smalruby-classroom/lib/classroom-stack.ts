@@ -867,6 +867,14 @@ export class ClassroomStack extends cdk.Stack {
       integration,
     });
 
+    // Student (session token): own submissions to continue from — this
+    // assignment's and the same seat's in the previous assignment (#1201).
+    this.api.addRoutes({
+      path: '/classrooms/{classroomId}/continuable-submissions',
+      methods: [apigatewayv2.HttpMethod.GET],
+      integration,
+    });
+
     this.api.addRoutes({
       path: '/classrooms/{classroomId}/submissions/{submissionId}',
       methods: [apigatewayv2.HttpMethod.PATCH],
