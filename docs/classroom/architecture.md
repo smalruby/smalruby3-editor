@@ -195,9 +195,9 @@ One Tap が表示できない環境（Windows や Playwright では毎回）で�
 | `POST` | `/classrooms/{id}/kick-requests/{requestId}/approve` | 承認 = `handleDeleteMember` (= kick) + 同席への全リクエスト削除 |
 | `DELETE` | `/classrooms/{id}/kick-requests/{requestId}` | 却下 = リクエストのみ削除、メンバーは残る |
 | `GET` | `/kick-requests/pending` | 先生に見える課題（`GET /classrooms` と同じ範囲）をまたいだ未処理の退室依頼。`?since=<ISO>` でそれ以降に作られた依頼だけ。各要素は `requestId, classroomId, className, assignmentName, groupId, seatNumber, reason, occupantName, createdAt`、ほかに `activeAssignmentCount`。下の「退室依頼の先生への通知」参照 |
-| `GET` | `/classrooms/{id}/submissions` | 提出一覧 (ダウンロード URL 付き) |
-| `PATCH` | `/classrooms/{id}/submissions/{subId}` | 提出の返却・コメント |
-| `PUT` | `/classrooms/{id}/assignment` | 課題コンテンツの設定・更新（ページ + スターター。画像/スターターの Presigned upload URL を返す。空 body で削除）。任意の `startFromPrevious`（boolean・Issue #1202）で「前回の提出物から始めさせる」を設定する（送らなければ保存済みの値を変えない。課題コンテンツを空にしても設定は残る）。レスポンスに `startFromPrevious` を含む |
+| `GET` | `/classrooms/{id}/submissions` | 提出一覧 (ダウンロード URL 付き)。各提出に `screenshotLabels`（スプライト名の配列。無い古い提出は `null`）と `hiddenFromPeers`（既定 false・Issue #1239）を含む |
+| `PATCH` | `/classrooms/{id}/submissions/{subId}` | 提出の返却・コメント。任意の `hiddenFromPeers`（boolean・Issue #1239）で、その提出を他者参照で「他の生徒に見せない」に切り替える |
+| `PUT` | `/classrooms/{id}/assignment` | 課題コンテンツの設定・更新（ページ + スターター。画像/スターターの Presigned upload URL を返す。空 body で削除）。任意の `startFromPrevious`（boolean・Issue #1202）で「前回の提出物から始めさせる」を設定する（送らなければ保存済みの値を変えない。課題コンテンツを空にしても設定は残る）。任意の `peerView`（`none` / `always` / `afterSubmit`・Issue #1239）で他者参照を設定する（扱いは `startFromPrevious` と同じ）。レスポンスに `startFromPrevious` と `peerView` を含む |
 | `POST` | `/classroom-groups` | クラス（学級）の作成（name, year, 任意で studentCount / googleClassroomCourseId） |
 | `GET` | `/classroom-groups` | 自分のクラス一覧（active + archived、共同管理分は role=co-teacher で合流） |
 | `PATCH` | `/classroom-groups/{groupId}` | クラスのリネーム・年度変更・人数・GC 紐づけ・共同管理者・アーカイブ/復帰 |
@@ -238,10 +238,11 @@ One Tap が表示できない環境（Windows や Playwright では毎回）で�
 | `POST` | `/classrooms/lookup/kick-request` | 不要 | 「使用中の席」を空けてもらう依頼を先生に送信 (Issue #692) |
 | `POST` | `/classrooms/join` | 不要 | 課題に参加 (→ sessionToken 取得) |
 | `POST` | `/classrooms/verify-session` | Session Token | セッション検証 + 提出状況取得。kick された生徒には 410 + `{reason: 'kicked', joinCode, className, seatNumber}` を返す。課題が非 active（アーカイブ/期限切れ）なら 401 |
-| `POST` | `/classrooms/{id}/submissions` | Session Token | 提出 (Presigned URL 取得)。課題が非 active なら 404 |
+| `POST` | `/classrooms/{id}/submissions` | Session Token | 提出 (Presigned URL 取得)。課題が非 active なら 404。任意の `screenshotLabels`（各ブロック画像のスプライト名の配列・`screenshotCount` 以下・各100文字以内・Issue #1239）を保存する |
 | `DELETE` | `/classrooms/{id}/members/me` | Session Token | 自主退出 |
-| `GET` | `/classrooms/{id}/assignment` | Session Token または 先生 ID Token | 課題コンテンツ取得（ページ + 画像/スターターのダウンロード URL）。`startFromPrevious`（未設定は false）も返す（`assignment: null` のときも）。lookup / join / verify-session は `hasAssignment` フラグを返す |
+| `GET` | `/classrooms/{id}/assignment` | Session Token または 先生 ID Token | 課題コンテンツ取得（ページ + 画像/スターターのダウンロード URL）。`startFromPrevious`（未設定は false）と `peerView`（未設定は `none`）も返す（`assignment: null` のときも）。lookup / join / verify-session は `hasAssignment` フラグを返す |
 | `GET` | `/classrooms/{id}/continuable-submissions` | Session Token | 続きに使える提出物（Issue #1201）。`{current, previous, startFromPrevious}` を返す（`startFromPrevious` は課題の設定・Issue #1202）。`current` = この課題での自分の席の提出物、`previous` = 同じクラスのこの課題より前に作られた課題（最大3回分遡る）での同じ席番号の提出物。各要素は `{classroomId, assignmentName, projectName, submittedAt, projectUrl}`（`projectUrl` は project.sb3 の Presigned GET URL）か `null`。TTL 切れの提出物・課題、project.sb3 の無い記録は返さない。パスの課題とセッションの課題が違えば 401、課題が非 active なら 404 |
+| `GET` | `/classrooms/{id}/peer-submissions` | Session Token | 他者参照（Issue #1239）。同じ課題の提出済みクラスメイトを `{peerView, submissions: [{seatNumber, submittedAt, thumbnailUrl, screenshotUrls, screenshotLabels}]}` で席番号順に返す（URL は Presigned GET・`screenshotLabels` は無ければ `null`）。**`.sb3` の URL・ニックネーム・作品名・先生のコメントは返さない**。自分・先生が `hiddenFromPeers` にした提出・TTL 切れは除く。`peerView` が `none` なら 403 `{reason:'peer-view-off'}`、`afterSubmit` で自分が未提出なら 403 `{reason:'not-submitted'}`。パスの課題とセッションの課題が違えば 401、課題が非 active なら 404 |
 
 ### Google Classroom 連携 (ID Token + Access Token)
 
@@ -330,6 +331,7 @@ erDiagram
         list coTeacherEmails "共同管理者の email 配列 (任意, 最大10)"
         map assignment "課題コンテンツ (任意): {pages: [{text, imageKey?}], starterKey?, updatedAt}"
         boolean startFromPrevious "前回の提出物から始めさせる (#1202, 任意・既定 false)。assignment の外に置くので課題コンテンツが空でも残る。再利用 (duplicate) で引き継ぐ"
+        string peerView "他者参照 (#1239, 任意): none / always / afterSubmit。未設定は none。duplicate で引き継ぐ"
         string recommendedForSharingAt "共有推奨 (#1106, 任意)。書き込みは admin API のみ。先生側 API には boolean recommendedForSharing を投影"
         string recommendedForSharingBy "推奨した admin の email (内部用・先生側 API では返さない)"
         string groupId "所属する組 (任意)"
@@ -459,6 +461,8 @@ erDiagram
         string s3Key "S3 オブジェクトキー"
         string thumbnailS3Key "サムネイル S3 キー"
         number screenshotCount "0-20"
+        list screenshotLabels "各ブロック画像のスプライト名 (#1239, 任意)"
+        boolean hiddenFromPeers "先生が他者参照から外した (#1239, 任意・既定 false)"
         string status "submitted / returned"
         string submittedAt "ISO8601"
         string updatedAt "ISO8601"
@@ -501,6 +505,7 @@ erDiagram
 - **前回コメント再掲**: クラスに属する課題に生徒が join すると、同じクラスの直近の授業（最大3回分遡る）で同じ席に返却されたコメントが `previousComment` として join レスポンスに載る（連休明けの個別リキャップ用）。前回授業の列挙は `groupId` 起点なので、前回を共同管理者が作っていても拾える
 - **前回の提出物から続ける**（Issue #1201）: 同じ席番号の対応を使い、`GET /classrooms/{id}/continuable-submissions` が前回の課題での同じ席の提出物（と、この課題で自分が出した提出物）のダウンロード URL を返す。生徒が自分の提出物を取れる経路はこれだけ（先生の `GET /submissions` とは別）
 - **⚠️ プライバシーの前提（席番号は匿名）**: 生徒は課題ごとに匿名の席番号で参加するだけで、本人を識別する情報は持たない。そのため「前回その席に座っていた生徒」と「今回その席に座った生徒」が同じ人だとはシステムは確かめられない。**同じクラスの次の課題で同じ席番号を選んだ別の生徒も、前回の提出物を読み込める**。これは前回コメント再掲（`previousComment`）と同じ範囲のリスクで、席番号を毎回同じにする運用（出席番号を使う）を前提にしている。別のクラスの課題・別の席の提出物は取れない
+- **他者参照のプライバシー**（Issue #1239）: `GET /classrooms/{id}/peer-submissions` は課題の `peerView` が許すときだけ、同じ課題の提出済みクラスメイトの**画像（サムネイル・ブロック画像）とスプライト名・席番号・提出日時だけ**を返す。作品をそのまま写せないよう `.sb3` は渡さず、誰の作品か分からないようニックネーム・作品名・先生のコメントも返さない。先生は提出ごとに `hiddenFromPeers` で見せないようにできる（生徒が再提出しても引き継ぐので、出し直しで外せない）。別の課題の提出は（同じクラスでも）返さない
 
 #### データモデル v2（クラス→課題モデル）
 
