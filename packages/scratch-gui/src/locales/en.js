@@ -73,6 +73,10 @@ export default {
     'gui.classroomTeacherKick.later': 'Later',
     'gui.classroomTeacherKick.actionFailed': 'Could not process the request. Please try again.',
     'gui.classroomTeacherMenu.statusPanel': 'Current assignment status',
+    'gui.classroomPeerPanel.title': "Classmates' work",
+    'gui.classroomPeerPanel.hint': "Don't copy — find good ideas and use them in your own work.",
+    'gui.classroom.studentStatus.peerView': "See classmates' work",
+    'gui.classroom.studentStatus.peerViewLocked': "Submit to see classmates' work",
     'gui.classroomTeacherPanel.title': 'Current assignment status',
     'gui.classroomTeacherPanel.seatedHint':
         'Students who opened the class screen within the last hour (a rough guide, not live)',

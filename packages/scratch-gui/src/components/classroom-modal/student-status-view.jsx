@@ -4,6 +4,7 @@ import React from 'react';
 
 import ErrorDisplay from './error-display.jsx';
 import StudentContinueChoice from './student-continue-choice.jsx';
+import StudentPeerViewButton from './student-peer-view-button.jsx';
 
 import { formatStudentClassName } from '../../lib/classroom-class-label.js';
 import styles from './classroom-modal.css';
@@ -222,6 +223,7 @@ const StudentStatusView = ({
                     />
                 </button>
             )}
+            <StudentPeerViewButton disabled={isLoading} />
             <button
                 className={styles.primaryButton}
                 data-testid="classroom-submit-button"

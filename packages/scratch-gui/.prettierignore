@@ -39,6 +39,7 @@ src/components/*
 !src/components/classroom-teacher-menu/
 !src/components/classroom-teacher-kick-toast/
 !src/components/classroom-teacher-panel/
+!src/components/classroom-peer-panel/
 !src/components/classroom-tutorial/
 !src/components/smalrubot-firmware-modal/
 !src/components/blocks-screenshot-button/
@@ -112,6 +113,7 @@ src/containers/*
 !src/containers/classroom-teacher-menu.jsx
 !src/containers/classroom-teacher-kick-alerts.jsx
 !src/containers/classroom-teacher-panel.jsx
+!src/containers/classroom-peer-panel.jsx
 !src/containers/use-teacher-kick-request-polling.js
 !src/containers/use-teacher-panel-polling.js
 !src/containers/use-google-classroom.js
@@ -174,6 +176,7 @@ src/lib/*
 !src/lib/classroom-continue-options.js
 !src/lib/classroom-teacher-kick-alerts.js
 !src/lib/classroom-teacher-panel.js
+!src/lib/classroom-peer-view.js
 !src/lib/google-classroom-auth.js
 !src/lib/block-utils.js
 !src/lib/blocks-gesture-recovery.js
@@ -350,6 +353,7 @@ test/unit/components/*
 !test/unit/components/student-assignment-panel.test.jsx
 !test/unit/components/student-continue-choice.test.jsx
 !test/unit/components/teacher-class-detail.test.jsx
+!test/unit/components/student-peer-view-button.test.jsx
 !test/unit/components/classroom-status-icon.test.jsx
 !test/unit/components/teacher-notifications.test.jsx
 !test/unit/components/teacher-avatar-menu.test.jsx
@@ -388,6 +392,7 @@ test/unit/containers/*
 !test/unit/containers/classroom-teacher-kick-alerts.test.jsx
 !test/unit/containers/use-teacher-kick-request-polling.test.js
 !test/unit/containers/use-teacher-panel-polling.test.js
+!test/unit/containers/classroom-peer-panel.test.jsx
 !test/unit/containers/use-kick-request-polling.test.js
 !test/unit/containers/use-student-assignment.test.js
 !test/unit/containers/use-teacher-assignment.test.js
@@ -434,6 +439,7 @@ test/unit/lib/*
 !test/unit/lib/classroom-teacher-session.test.js
 !test/unit/lib/classroom-teacher-kick-alerts.test.js
 !test/unit/lib/classroom-teacher-panel.test.js
+!test/unit/lib/classroom-peer-view.test.js
 !test/unit/lib/classroom-assignment-templates.test.js
 !test/unit/lib/classroom-assignment-utils.test.js
 !test/unit/lib/classroom-download-utils.test.js

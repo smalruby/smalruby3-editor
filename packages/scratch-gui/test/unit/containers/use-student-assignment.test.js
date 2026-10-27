@@ -26,8 +26,10 @@ jest.mock('../../../src/lib/project-loader-utils.js', () => ({
 }));
 
 let mockProjectChanged = false;
+const mockDispatch = jest.fn();
 jest.mock('react-redux', () => ({
     useSelector: (fn) => fn({ scratchGui: { projectChanged: mockProjectChanged } }),
+    useDispatch: () => mockDispatch,
 }));
 
 const ASSIGNMENT = { pages: [{ text: 'p1' }], starterUrl: 'https://signed.example/starter.sb3' };
@@ -322,5 +324,42 @@ describe('useStudentAssignment — 前回の提出物から始めさせる (#120
         await join(hook);
         expect(mockLoadProject).not.toHaveBeenCalled();
         expect(hook.result.current.startChoice).toEqual({ showStarter: true, recommend: null, notice: null });
+    });
+});
+
+describe('useStudentAssignment — 他者参照の設定を覚える (#1210)', () => {
+    beforeEach(() => {
+        mockGetAssignment.mockReset();
+        mockGetContinuable.mockReset();
+        mockDispatch.mockReset();
+    });
+
+    test('参加時の課題の応答にある他者参照の設定を Redux に入れる', async () => {
+        mockGetAssignment.mockResolvedValue({ assignment: ASSIGNMENT, peerView: 'afterSubmit' });
+        mockGetContinuable.mockResolvedValue({ current: null, previous: null });
+        const { hook } = setup();
+        await act(async () => {
+            await hook.result.current.handleJoined('st', 'c-now', true);
+        });
+        expect(mockDispatch).toHaveBeenCalledWith(expect.objectContaining({ peerView: 'afterSubmit' }));
+    });
+
+    test('「課題を見る」で取り直したときも設定を入れ直す', async () => {
+        mockGetAssignment.mockResolvedValue({ assignment: ASSIGNMENT, peerView: 'none' });
+        const { hook } = setup();
+        await act(async () => {
+            await hook.result.current.handleOpenAssignment();
+        });
+        expect(mockDispatch).toHaveBeenCalledWith(expect.objectContaining({ peerView: 'none' }));
+    });
+
+    test('設定の無い古い応答では何もしない', async () => {
+        mockGetAssignment.mockResolvedValue({ assignment: ASSIGNMENT });
+        mockGetContinuable.mockResolvedValue({ current: null, previous: null });
+        const { hook } = setup();
+        await act(async () => {
+            await hook.result.current.handleJoined('st', 'c-now', true);
+        });
+        expect(mockDispatch).not.toHaveBeenCalled();
     });
 });

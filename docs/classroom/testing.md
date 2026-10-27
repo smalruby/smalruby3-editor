@@ -153,6 +153,8 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-student-refresh` | button | 更新 (↻) |
 | `classroom-submit-button` | button | 課題を提出する / 課題を再提出する |
 | `classroom-leave` | button | 退出する |
+| `classroom-peer-view-button` | button | みんなの作品を見る（他者参照が有効なとき。押すとモーダルを閉じてパネルを開く・#1210） |
+| `classroom-peer-view-locked` | span | 「提出すると見られます」（`自分が提出したら` で未提出のとき。ボタンの代わり） |
 | `classroom-error-action` | button | セッション切れ時のアクションリンク |
 
 ### 生徒: 提出確認
@@ -430,6 +432,26 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-teacher-panel-error` | div | 取得・承認の失敗表示 |
 
 自動確認: `tools/playwright-verify/verify-teacher-status-panel.mjs`（classroom API をスタブ。1300×600 で 40 席・退室依頼 3 件が画面内に収まる / パネル表示中にブロックをドラッグできる / 位置の記憶 / 最小化 / 承認）。
+
+#### みんなの作品パネル（生徒・他者参照・#1210）
+
+| data-testid | 要素 | 説明 |
+|------------|------|------|
+| `classroom-peer-panel` | div | パネル全体（ドラッグ可能・非モーダル） |
+| `classroom-peer-panel-refresh` | button | 手動更新（一覧と画像 URL を取り直す） |
+| `classroom-peer-panel-minimize` | button | 最小化 / 元に戻す |
+| `classroom-peer-panel-close` | button | 閉じる |
+| `classroom-peer-panel-body` | div | 本文（最小化中は無い） |
+| `classroom-peer-panel-hint` | p | 「まねするのではなく、よいところを見つけて…」 |
+| `classroom-peer-panel-count` | div | 提出: N 人（自分を除く） |
+| `classroom-peer-panel-grid` | div | 座席ミニグリッド |
+| `classroom-peer-panel-seat-<N>` | button | 座席 N。提出済みのクラスメイトだけ押せる（未提出・自分の席は disabled） |
+| `classroom-peer-panel-empty` | div | まだだれも提出していない |
+| `classroom-peer-panel-error` | div | 見られない理由（`data-error` = `off` / `notSubmitted` / `ended` / `failed`） |
+| `classroom-peer-viewer` | div | 画像ビューアのウィンドウ（ドラッグ・リサイズ可能・非モーダル） |
+| `classroom-peer-viewer-close` | button | ビューアを閉じる |
+
+ビューアの中は共通の画像ビューア（#1209）の data-testid を使う。
 
 ### 強制退室通知 / 退室リクエスト (Issue #692)
 
