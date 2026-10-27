@@ -73,6 +73,10 @@ export default {
     'gui.classroomTeacherKick.later': 'Later',
     'gui.classroomTeacherKick.actionFailed': 'Could not process the request. Please try again.',
     'gui.classroomTeacherMenu.statusPanel': 'Current assignment status',
+    'gui.classroomPeerPanel.title': "Classmates' work",
+    'gui.classroomPeerPanel.hint': "Don't copy — find good ideas and use them in your own work.",
+    'gui.classroom.studentStatus.peerView': "See classmates' work",
+    'gui.classroom.studentStatus.peerViewLocked': "Submit to see classmates' work",
     'gui.classroomTeacherPanel.title': 'Current assignment status',
     'gui.classroomTeacherPanel.seatedHint':
         'Students who opened the class screen within the last hour (a rough guide, not live)',
@@ -199,6 +203,7 @@ export default {
     'gui.classroom.error.goToJoin': 'Go to join screen',
     'gui.classroom.teacherDetail.openSubmission': 'Open in Smalruby',
     'gui.classroom.teacherDetail.returnSubmission': 'Return',
+    'gui.classroom.teacherDetail.hideFromPeers': "Don't show to other students",
     'gui.classroom.teacherDetail.returned': 'Returned',
     'gui.classroom.teacherDetail.seated': 'Seated',
     'gui.classroom.teacherDetail.notSeated': 'Not seated',
@@ -347,6 +352,12 @@ export default {
     'gui.classroom.assignmentEditor.startFromPrevious': 'Start from the previous submission',
     'gui.classroom.assignmentEditor.startFromPreviousHint':
         'For follow-up lessons: when students join, continuing from the project they submitted last time in this class is recommended (the starter is not offered). Students without one are told to start from the starter.',
+    'gui.classroom.assignmentEditor.peerView': "Let students see classmates' work",
+    'gui.classroom.assignmentEditor.peerViewNone': "Don't show",
+    'gui.classroom.assignmentEditor.peerViewAlways': 'Anytime',
+    'gui.classroom.assignmentEditor.peerViewAfterSubmit': 'After submitting their own',
+    'gui.classroom.assignmentEditor.peerViewHint':
+        "Students see only the stage image and block images of classmates' submissions (not the project file, names or your comments). Choose after submitting to have them try on their own first.",
     'gui.classroom.teacherDetail.previewStartPrevious':
         "On join: continuing from last time's submission is recommended (the starter if there is none)",
     'gui.classroom.teacherDetail.previewStartStarter':

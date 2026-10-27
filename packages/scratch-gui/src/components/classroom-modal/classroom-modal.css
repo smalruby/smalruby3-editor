@@ -1135,6 +1135,14 @@
     margin-top: 1rem;
 }
 
+/* "提出すると見られます" in place of the peer view button (#1210). */
+.peer-view-locked {
+    display: inline-flex;
+    align-items: center;
+    color: #575e75;
+    font-size: 0.75rem;
+}
+
 .loading {
     text-align: center;
     padding: 2rem;
@@ -2124,6 +2132,34 @@
     display: block;
     color: #575e75;
     font-size: 0.8rem;
+}
+
+.assignment-peer-view {
+    margin-top: 0.75rem;
+}
+
+.assignment-peer-view-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.assignment-peer-view-select {
+    padding: 0.2rem 0.4rem;
+    border: 1px solid #ccc;
+    border-radius: 0.25rem;
+    background-color: white;
+    color: #575e75;
+    font-size: 0.85rem;
+}
+
+.hide-from-peers {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: #575e75;
+    font-size: 0.85rem;
+    cursor: pointer;
 }
 
 .button-spinner {

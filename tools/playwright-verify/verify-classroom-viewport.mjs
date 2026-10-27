@@ -40,6 +40,7 @@ const DOC_SHOT_NAMES = {
     'student-assignment': ['0314-student-assignment-panel.png'],
     'student-status': ['0304-student-status.png'],
     'student-submit-confirm': ['0306-student-submit-confirm.png'],
+    // みんなの作品パネル + ビューア (#1210) は peer viewer のブロックで撮る: 0318-student-peer-viewer.png
 };
 
 const LONG_CLASS = '3年2組 技術・家庭科（情報の技術）プログラミング応用クラス';
@@ -427,6 +428,95 @@ const kickedRoutes = (activeIds) => async (p) => {
     await page.locator('[data-testid="classroom-phase-submit-confirm"]').waitFor({ timeout: 10000 });
     await page.waitForTimeout(1500);
     await judge(page, { who: 'student', name: 'submit-confirm', shot: 'student-submit-confirm' });
+    await ctx.close();
+}
+
+// ---------- みんなの作品パネル + 画像ビューア (他者参照・#1210) ----------
+// 一番長い状態: 自分以外の 39 席がすべて提出済み、スプライトの画像が 8 枚。
+// パネル・ビューアがビューポートに収まり、ページが縦にスクロールしないこと、
+// ビューアを開いたままブロックのエリアを押せる (非モーダル) ことを見る。
+{
+    const PNG_1PX =
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+    const ownSeat = 3;
+    const peers = Array.from({ length: SEATS }, (_, i) => i + 1)
+        .filter((n) => n !== ownSeat)
+        .map((n) => ({
+            seatNumber: n,
+            submittedAt: '2026-10-25T10:00:00.000Z',
+            thumbnailUrl: `https://example.invalid/peer/${n}/thumb.png`,
+            screenshotUrls: Array.from({ length: 8 }, (_, k) => `https://example.invalid/peer/${n}/s${k}.png`),
+            screenshotLabels: Array.from({ length: 8 }, (_, k) => `とても長いスプライトの名前その${k + 1}`),
+        }));
+    const { ctx, page } = await studentPage({
+        storage: { 'smalruby:classroom': session({ seatNumber: ownSeat, submissionStatus: 'submitted' }) },
+        routes: async (p) => {
+            await p.route('**/classrooms/verify-session', (r) => r.fulfill({ json: { valid: true } }));
+            await routeContinuable(p);
+            await p.route('**/classrooms/c1/peer-submissions', (r) =>
+                r.fulfill({ json: { peerView: 'always', submissions: peers } }),
+            );
+            await p.route('https://example.invalid/peer/**', (r) =>
+                r.fulfill({ contentType: 'image/png', body: Buffer.from(PNG_1PX, 'base64') }),
+            );
+        },
+    });
+    await openModal(page);
+    await page.locator('[data-testid="classroom-peer-view-button"]').click();
+    await page.locator('[data-testid="classroom-peer-panel-seat-2"]:enabled').waitFor({ timeout: 10000 });
+    const fits = (selector) =>
+        page.evaluate((sel) => {
+            const el = document.querySelector(sel);
+            const r = el.getBoundingClientRect();
+            const se = document.scrollingElement;
+            const body = el.querySelector('[data-testid="classroom-peer-panel-body"]') || el;
+            return {
+                ok:
+                    r.top >= 0 &&
+                    r.bottom <= window.innerHeight &&
+                    r.right <= window.innerWidth &&
+                    body.scrollHeight <= body.clientHeight &&
+                    se.scrollHeight <= se.clientHeight,
+                bottom: Math.round(r.bottom),
+                body: `${body.scrollHeight}/${body.clientHeight}`,
+                page: `${se.scrollHeight}/${se.clientHeight}`,
+            };
+        }, selector);
+    const panel = await fits('[data-testid="classroom-peer-panel"]');
+    record({
+        who: 'student',
+        name: 'peer panel (39 submitted)',
+        ok: panel.ok,
+        modal: `bottom ${panel.bottom}`,
+        body: panel.body,
+        page: panel.page,
+    });
+    await page.screenshot({ path: resolve(SHOT_DIR, 'classroom-viewport-peer-panel.png') });
+
+    await page.locator('[data-testid="classroom-peer-panel-seat-2"]').click();
+    await page.locator('[data-testid="classroom-peer-viewer"]').waitFor({ timeout: 10000 });
+    await page.waitForTimeout(600);
+    const viewer = await fits('[data-testid="classroom-peer-viewer"]');
+    // 非モーダル: ビューアとパネルの外 (スクリプトエリアの左寄り) は、その場所の要素が押せる。
+    const editable = await page.evaluate(() => {
+        const ws = document.querySelector('.injectionDiv') || document.querySelector('.blocklySvg');
+        if (!ws) return false;
+        const r = ws.getBoundingClientRect();
+        const hit = document.elementFromPoint(r.left + r.width * 0.45, r.bottom - 40);
+        return !!hit && !hit.closest('[data-testid="classroom-peer-viewer"], [data-testid="classroom-peer-panel"]');
+    });
+    record({
+        who: 'student',
+        name: 'peer viewer (8 sprites)',
+        ok: viewer.ok && editable,
+        modal: `bottom ${viewer.bottom}`,
+        body: viewer.body,
+        page: `${viewer.page}${editable ? '' : ' (blocks not reachable)'}`,
+    });
+    await page.screenshot({ path: resolve(SHOT_DIR, 'classroom-viewport-peer-viewer.png') });
+    if (DOCS_SHOTS) {
+        await page.screenshot({ path: resolve(REPO_ROOT, 'docs/classroom/screenshots/0318-student-peer-viewer.png') });
+    }
     await ctx.close();
 }
 

@@ -12,6 +12,9 @@ import { getProjectThumbnail } from '../lib/store-project-thumbnail.js';
 import { clearClassroomSession, clearSubmissionThumbnail, setSubmissionStatus } from '../reducers/classroom.js';
 import translateError from './classroom-error-utils.js';
 
+// Server-side limit of each screenshotLabels entry (#1239).
+const MAX_SCREENSHOT_LABEL_LENGTH = 100;
+
 /**
  * @param {object} params - hook dependencies
  * @param {object} params.classroomState - Redux classroom state
@@ -61,9 +64,12 @@ const useStudentSubmit = ({
     }, [vm, clearError, setPhase, classroomState.submissionThumbnail]);
 
     const captureBlockScreenshots = useCallback(async () => {
-        if (!vm || !scratchBlocks) return [];
+        // Sprite names travel with the images (#1208) so the peer viewer can
+        // tell which sprite each block image belongs to.
+        const empty = { blobs: [], labels: [] };
+        if (!vm || !scratchBlocks) return empty;
         const workspace = scratchBlocks.getMainWorkspace();
-        if (!workspace) return [];
+        if (!workspace) return empty;
 
         const originalTargetId = vm.editingTarget?.id;
         const allTargets = vm.runtime.targets.filter((t) => !t.isOriginal === false || t.isOriginal);
@@ -73,6 +79,7 @@ const useStudentSubmit = ({
         });
 
         const blobs = [];
+        const labels = [];
         for (let i = 0; i < targetsWithBlocks.length; i++) {
             const target = targetsWithBlocks[i];
             setSubmitProgress({
@@ -94,7 +101,10 @@ const useStudentSubmit = ({
                 const blob = await new Promise((resolve) => {
                     canvas.toBlob(resolve, 'image/png');
                 });
-                if (blob) blobs.push(blob);
+                if (blob) {
+                    blobs.push(blob);
+                    labels.push(String(target.sprite.name || '').slice(0, MAX_SCREENSHOT_LABEL_LENGTH));
+                }
             } catch {
                 // Skip sprites that fail to capture
             }
@@ -104,7 +114,7 @@ const useStudentSubmit = ({
             vm.setEditingTarget(originalTargetId);
         }
         setSubmitProgress(null);
-        return blobs;
+        return { blobs, labels };
     }, [vm, scratchBlocks]);
 
     const handleConfirmSubmit = useCallback(async () => {
@@ -113,13 +123,14 @@ const useStudentSubmit = ({
         setIsLoading(true);
         try {
             const submitProjectTitle = projectTitle || 'Untitled';
-            const screenshotBlobs = await captureBlockScreenshots();
+            const { blobs: screenshotBlobs, labels: screenshotLabels } = await captureBlockScreenshots();
 
             const submissionData = await classroomAPI.createSubmission(
                 classroomState.sessionToken,
                 classroomState.classroomId,
                 submitProjectTitle,
                 screenshotBlobs.length,
+                screenshotLabels,
             );
 
             setSubmitProgress({ current: 0, total: 1, label: 'project' });

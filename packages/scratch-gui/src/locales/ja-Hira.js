@@ -64,6 +64,27 @@ export default {
     'gui.classroomTeacherKick.later': 'あとで',
     'gui.classroomTeacherKick.actionFailed': 'しょりできませんでした。もういちどためしてください。',
     'gui.classroomTeacherMenu.statusPanel': 'いまのかだいのじょうきょう',
+    'gui.classroomPeerPanel.title': 'みんなのさくひん',
+    'gui.classroomPeerPanel.minimize': 'ちいさくする',
+    'gui.classroomPeerPanel.restore': 'もとのおおきさにもどす',
+    'gui.classroomPeerPanel.close': 'とじる',
+    'gui.classroomPeerPanel.refresh': 'こうしん',
+    'gui.classroomPeerPanel.openSeat': '{seatNumber}ばんのさくひんをみる',
+    'gui.classroomPeerPanel.notSubmittedSeat': '{seatNumber}ばん: まだていしゅつしていません',
+    'gui.classroomPeerPanel.ownSeat': '{seatNumber}ばん: あなた',
+    'gui.classroomPeerPanel.errorOff': 'このかだいでは、ほかのひとのさくひんはみられません。',
+    'gui.classroomPeerPanel.errorNotSubmitted': 'ていしゅつすると、みんなのさくひんがみられます。',
+    'gui.classroomPeerPanel.errorEnded': 'クラスがおわったか、クラスからぬけています。',
+    'gui.classroomPeerPanel.errorFailed':
+        'さくひんをよみこめませんでした。こうしんボタンでもういちどためしてください。',
+    'gui.classroomPeerPanel.hint': 'まねするのではなく、よいところをみつけてじぶんのさくひんにいかそう。',
+    'gui.classroomPeerPanel.count': 'ていしゅつ: {count}にん',
+    'gui.classroomPeerPanel.empty': 'まだだれもていしゅつしていません。',
+    'gui.classroomPeerPanel.viewerTitle': '{seatNumber}ばんのさくひん',
+    'gui.classroomPeerPanel.stageImage': 'ステージ',
+    'gui.classroomPeerPanel.spriteImage': 'スプライト {number}',
+    'gui.classroom.studentStatus.peerView': 'みんなのさくひんをみる',
+    'gui.classroom.studentStatus.peerViewLocked': 'ていしゅつするとみられます',
     'gui.classroomTeacherPanel.title': 'いまのかだいのじょうきょう',
     'gui.classroomTeacherPanel.seatedHint':
         'さいきん1じかんいないにクラスのがめんをひらいたせいとのかずです（めやす。リアルタイムのざいせきではありません）',
@@ -233,6 +254,7 @@ export default {
     'gui.classroom.error.goToJoin': 'さんかがめんをひょうじ',
     'gui.classroom.teacherDetail.openSubmission': 'スモウルビーでひらく',
     'gui.classroom.teacherDetail.returnSubmission': 'へんきゃくする',
+    'gui.classroom.teacherDetail.hideFromPeers': 'ほかのせいとにみせない',
     'gui.classroom.teacherDetail.returned': 'へんきゃくずみ',
     'gui.classroom.teacherDetail.seated': 'ちゃくせきちゅう',
     'gui.classroom.teacherDetail.notSeated': 'みちゃくせき',
@@ -397,6 +419,12 @@ export default {
     'gui.classroom.assignmentEditor.startFromPrevious': 'ぜんかいのていしゅつぶつからはじめさせる',
     'gui.classroom.assignmentEditor.startFromPreviousHint':
         'つづきのじゅぎょうむけ: せいとがさんかすると、このクラスのまえのかだいでていしゅつしたさくひんからつづけるボタンを「おすすめ」としてだします（スターターはだしません）。ぜんかいのていしゅつぶつがないせいとにはスターターからはじめるようあんないします。',
+    'gui.classroom.assignmentEditor.peerView': 'たしゃさんしょう',
+    'gui.classroom.assignmentEditor.peerViewNone': 'しない',
+    'gui.classroom.assignmentEditor.peerViewAlways': 'いつでもみられる',
+    'gui.classroom.assignmentEditor.peerViewAfterSubmit': 'じぶんがていしゅつしたらみられる',
+    'gui.classroom.assignmentEditor.peerViewHint':
+        'せいとは、ていしゅつしたクラスメイトのステージのがぞうとブロックのがぞうだけをみられます（さくひんファイル・なまえ・せんせいのコメントはみえません）。「じぶんがていしゅつしたら」にすると、まずじぶんでとりくんでからさんしょうさせられます。',
     'gui.classroom.teacherDetail.previewStartPrevious':
         'さんかしたとき: ぜんかいのていしゅつぶつからつづけるのがおすすめ（ないせいとはスターター）',
     'gui.classroom.teacherDetail.previewStartStarter':

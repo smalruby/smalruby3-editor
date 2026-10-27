@@ -11,15 +11,26 @@
 const MAX_ASSIGNMENT_PAGES = 10;
 const MAX_ASSIGNMENT_PAGE_TEXT_LENGTH = 500;
 const ASSIGNMENT_IMAGE_CONTENT_TYPES = ['image/png', 'image/jpeg'];
+// "Peer view" (#1208): whether students may see classmates' submission images.
+// Mirrors PEER_VIEW_VALUES in the Lambda (#1239).
+const PEER_VIEW_VALUES = ['none', 'always', 'afterSubmit'];
+
+/**
+ * Normalize a peerView value from the server (old assignments have none).
+ * @param {*} value - Raw value
+ * @returns {string} One of PEER_VIEW_VALUES ('none' when unknown)
+ */
+const normalizePeerView = (value) => (PEER_VIEW_VALUES.includes(value) ? value : 'none');
 
 /**
  * Build the PUT /classrooms/{id}/assignment payload from editor state.
  * @param {Array<object>} editorPages - Editor page objects
  * @param {string} starterMode - 'none' | 'keep' | 'new'
  * @param {boolean} [startFromPrevious] - "start from the previous submission" setting
- * @returns {object} Request payload {pages, newStarter?, keepStarter?, startFromPrevious?}
+ * @param {string} [peerView] - "peer view" setting (one of PEER_VIEW_VALUES)
+ * @returns {object} Request payload {pages, newStarter?, keepStarter?, startFromPrevious?, peerView?}
  */
-const buildAssignmentPayload = (editorPages, starterMode, startFromPrevious) => {
+const buildAssignmentPayload = (editorPages, starterMode, startFromPrevious, peerView) => {
     const pages = (editorPages || []).map((page) => {
         if (page.newImageType) {
             return { text: page.text, newImage: page.newImageType };
@@ -38,6 +49,9 @@ const buildAssignmentPayload = (editorPages, starterMode, startFromPrevious) => 
     // Omitted unless given so the server keeps the stored value (#1202).
     if (typeof startFromPrevious === 'boolean') {
         payload.startFromPrevious = startFromPrevious;
+    }
+    if (PEER_VIEW_VALUES.includes(peerView)) {
+        payload.peerView = peerView;
     }
     return payload;
 };
@@ -91,7 +105,9 @@ export {
     MAX_ASSIGNMENT_PAGES,
     MAX_ASSIGNMENT_PAGE_TEXT_LENGTH,
     ASSIGNMENT_IMAGE_CONTENT_TYPES,
+    PEER_VIEW_VALUES,
     buildAssignmentPayload,
+    normalizePeerView,
     validateEditorPages,
     isEmptyAssignment,
     moveItem,

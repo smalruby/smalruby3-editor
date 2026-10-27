@@ -23,6 +23,9 @@ const OPEN_TEACHER_KICK_LIST = 'scratch-gui/classroom/OPEN_TEACHER_KICK_LIST';
 const CLOSE_TEACHER_KICK_LIST = 'scratch-gui/classroom/CLOSE_TEACHER_KICK_LIST';
 const OPEN_TEACHER_PANEL = 'scratch-gui/classroom/OPEN_TEACHER_PANEL';
 const CLOSE_TEACHER_PANEL = 'scratch-gui/classroom/CLOSE_TEACHER_PANEL';
+const SET_STUDENT_PEER_VIEW = 'scratch-gui/classroom/SET_STUDENT_PEER_VIEW';
+const OPEN_STUDENT_PEER_PANEL = 'scratch-gui/classroom/OPEN_STUDENT_PEER_PANEL';
+const CLOSE_STUDENT_PEER_PANEL = 'scratch-gui/classroom/CLOSE_STUDENT_PEER_PANEL';
 
 const STORAGE_KEY = 'smalruby:classroom';
 
@@ -167,6 +170,11 @@ const initialState = {
     teacherKickListOpen: false,
     // Floating "いまの課題の状況" panel (#1203).
     teacherPanelOpen: false,
+    // Student's "みんなの作品を見る" (#1210): the assignment's peer view setting
+    // as last read from the server (null = not known yet; not persisted, so a
+    // changed setting is picked up again) and whether the floating panel is shown.
+    studentPeerView: null,
+    studentPeerPanelOpen: false,
 };
 
 const reducer = (state, action) => {
@@ -196,6 +204,9 @@ const reducer = (state, action) => {
             if (action.role === 'student' && action.sessionToken) {
                 saveSession(session);
             }
+            if (action.classroomId !== state.classroomId) {
+                return { ...state, ...session, studentPeerView: null, studentPeerPanelOpen: false };
+            }
             return { ...state, ...session };
         }
         case CLEAR_SESSION:
@@ -216,6 +227,8 @@ const reducer = (state, action) => {
                 lastSubmittedAt: null,
                 submissionThumbnail: null,
                 reloginRequested: false,
+                studentPeerView: null,
+                studentPeerPanelOpen: false,
             };
         case SET_SUBMISSION_THUMBNAIL:
             return { ...state, submissionThumbnail: action.submissionThumbnail };
@@ -293,6 +306,12 @@ const reducer = (state, action) => {
             return { ...state, teacherPanelOpen: true };
         case CLOSE_TEACHER_PANEL:
             return { ...state, teacherPanelOpen: false };
+        case SET_STUDENT_PEER_VIEW:
+            return { ...state, studentPeerView: action.peerView || null };
+        case OPEN_STUDENT_PEER_PANEL:
+            return { ...state, studentPeerPanelOpen: true };
+        case CLOSE_STUDENT_PEER_PANEL:
+            return { ...state, studentPeerPanelOpen: false };
         default:
             return state;
     }
@@ -382,6 +401,13 @@ const openTeacherKickList = () => ({ type: OPEN_TEACHER_KICK_LIST });
 const closeTeacherKickList = () => ({ type: CLOSE_TEACHER_KICK_LIST });
 const openTeacherPanel = () => ({ type: OPEN_TEACHER_PANEL });
 const closeTeacherPanel = () => ({ type: CLOSE_TEACHER_PANEL });
+/**
+ * @param {?string} peerView - the assignment's peer view setting read from the server
+ * @returns {object} action
+ */
+const setStudentPeerView = (peerView) => ({ type: SET_STUDENT_PEER_VIEW, peerView });
+const openStudentPeerPanel = () => ({ type: OPEN_STUDENT_PEER_PANEL });
+const closeStudentPeerPanel = () => ({ type: CLOSE_STUDENT_PEER_PANEL });
 
 export default reducer;
 export {
@@ -409,4 +435,7 @@ export {
     closeTeacherKickList,
     openTeacherPanel,
     closeTeacherPanel,
+    setStudentPeerView,
+    openStudentPeerPanel,
+    closeStudentPeerPanel,
 };

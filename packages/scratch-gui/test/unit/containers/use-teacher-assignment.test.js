@@ -66,3 +66,38 @@ describe('useTeacherAssignment — startFromPrevious (#1202)', () => {
         );
     });
 });
+
+describe('useTeacherAssignment — peerView (#1208)', () => {
+    beforeEach(() => {
+        mockGetAssignment.mockReset();
+        mockSetAssignment.mockReset();
+        mockSetAssignment.mockResolvedValue({ imageUploadUrls: [], starterUploadUrl: null });
+    });
+
+    test('既定は「しない」、保存済みの値を読み込む', async () => {
+        mockGetAssignment.mockResolvedValue({ assignment: null, peerView: 'always' });
+        const hook = setup();
+        await act(async () => {});
+        expect(hook.result.current.peerView).toBe('always');
+
+        mockGetAssignment.mockResolvedValue({ assignment: null });
+        const off = setup();
+        await act(async () => {});
+        expect(off.result.current.peerView).toBe('none');
+    });
+
+    test('変更した値を保存の PUT に載せる', async () => {
+        mockGetAssignment.mockResolvedValue({ assignment: { pages: [{ text: 'p' }] }, peerView: 'none' });
+        const hook = setup();
+        await act(async () => {});
+        act(() => hook.result.current.handleChangePeerView('afterSubmit'));
+        await act(async () => {
+            await hook.result.current.handleSaveAssignment();
+        });
+        expect(mockSetAssignment).toHaveBeenCalledWith(
+            'id-token',
+            'c1',
+            expect.objectContaining({ peerView: 'afterSubmit' }),
+        );
+    });
+});

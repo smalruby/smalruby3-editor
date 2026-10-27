@@ -53,6 +53,7 @@ const TeacherClassDetail = ({
     onOpenSubmission,
     onRefresh,
     onReturnSubmission,
+    onSetHiddenFromPeers,
     onDownloadAll,
     downloadProgress,
     onShowCodeDisplay,
@@ -87,6 +88,7 @@ const TeacherClassDetail = ({
     const handleDescRemovePageImage = descEditor.onRemovePageImage;
     const handleDescRemoveStarter = descEditor.onRemoveStarter;
     const handleDescChangeStartFromPrevious = descEditor.onChangeStartFromPrevious;
+    const handleDescChangePeerView = descEditor.onChangePeerView;
     const handleDescSave = descEditor.onSave;
     const handleDescUseCurrentProject = descEditor.onUseCurrentProject;
     const handleDescUseFile = descEditor.onUseFile;
@@ -663,6 +665,7 @@ const TeacherClassDetail = ({
                                     starterMode={descEditor.starterMode}
                                     starterSource={descEditor.starterSource}
                                     startFromPrevious={!!descEditor.startFromPrevious}
+                                    peerView={descEditor.peerView || 'none'}
                                     onAddPage={handleDescAddPage}
                                     onAttachPageImage={handleDescAttachPageImage}
                                     onCancel={handleDescCancel}
@@ -671,6 +674,7 @@ const TeacherClassDetail = ({
                                     onRemovePage={handleDescRemovePage}
                                     onRemovePageImage={handleDescRemovePageImage}
                                     onChangeStartFromPrevious={handleDescChangeStartFromPrevious}
+                                    onChangePeerView={handleDescChangePeerView}
                                     onRemoveStarter={handleDescRemoveStarter}
                                     onSave={handleDescSave}
                                     onUseCurrentProject={handleDescUseCurrentProject}
@@ -973,6 +977,7 @@ const TeacherClassDetail = ({
                                 onOpenSubmission={onOpenSubmission}
                                 onRejectKickRequest={onRejectKickRequest}
                                 onReturnSubmission={onReturnSubmission}
+                                onSetHiddenFromPeers={onSetHiddenFromPeers}
                             />
                             )}
                         </div>
@@ -1006,6 +1011,7 @@ TeacherClassDetail.propTypes = {
     onOpenSubmission: PropTypes.func.isRequired,
     onRefresh: PropTypes.func.isRequired,
     onReturnSubmission: PropTypes.func.isRequired,
+    onSetHiddenFromPeers: PropTypes.func,
     onSelectMember: PropTypes.func.isRequired,
     onShowCodeDisplay: PropTypes.func.isRequired,
     onShowPostAssignment: PropTypes.func,

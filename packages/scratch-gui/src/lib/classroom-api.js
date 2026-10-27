@@ -268,15 +268,13 @@ class ClassroomAPI {
      * @param {string} classroomId - Classroom ID
      * @param {string} projectName - Project name
      * @param {number} [screenshotCount] - Number of block screenshots
+     * @param {Array<string>} [screenshotLabels] - Sprite name of each screenshot (#1208)
      * @returns {Promise<object>} Submission data with upload URLs
      */
-    async createSubmission(sessionToken, classroomId, projectName, screenshotCount = 0) {
-        return this._request(
-            'POST',
-            `/classrooms/${classroomId}/submissions`,
-            { projectName, screenshotCount },
-            sessionToken,
-        );
+    async createSubmission(sessionToken, classroomId, projectName, screenshotCount = 0, screenshotLabels) {
+        const body = { projectName, screenshotCount };
+        if (Array.isArray(screenshotLabels)) body.screenshotLabels = screenshotLabels;
+        return this._request('POST', `/classrooms/${classroomId}/submissions`, body, sessionToken);
     }
 
     /**
@@ -294,7 +292,7 @@ class ClassroomAPI {
      * @param {string} idToken - Google ID token
      * @param {string} classroomId - Classroom ID
      * @param {string} submissionId - Submission ID
-     * @param {object} updates - Fields to update (teacherComment, status)
+     * @param {object} updates - Fields to update (teacherComment, status, hiddenFromPeers)
      * @returns {Promise<object>} Updated submission data
      */
     async updateSubmission(idToken, classroomId, submissionId, updates) {
@@ -549,6 +547,20 @@ class ClassroomAPI {
      */
     async getContinuableSubmissions(sessionToken, classroomId) {
         return this._request('GET', `/classrooms/${classroomId}/continuable-submissions`, null, sessionToken);
+    }
+
+    /**
+     * Classmates' submissions of the joined assignment for peer view (#1210):
+     * seat number, submitted time and presigned image URLs with sprite names
+     * only (no .sb3, no nickname). 403 with body.reason 'peer-view-off' /
+     * 'not-submitted' when the assignment does not allow it (yet).
+     * @param {string} sessionToken - Student session token
+     * @param {string} classroomId - Joined classroom ID
+     * @returns {Promise<object>} {peerView, submissions: [{seatNumber, submittedAt,
+     *   thumbnailUrl, screenshotUrls, screenshotLabels}]}
+     */
+    async listPeerSubmissions(sessionToken, classroomId) {
+        return this._request('GET', `/classrooms/${classroomId}/peer-submissions`, null, sessionToken);
     }
 
     /**
