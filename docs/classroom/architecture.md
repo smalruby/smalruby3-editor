@@ -181,10 +181,10 @@ One Tap が表示できない環境（Windows や Playwright では毎回）で�
 
 | Method | Path | 説明 |
 |--------|------|------|
-| `POST` | `/classrooms` | 課題作成 |
-| `GET` | `/classrooms` | 課題一覧（既定は active のみ。`?includeArchived=1` でアーカイブ済みも返す。各要素に `status` を含む） |
-| `GET` | `/classrooms/{id}` | 課題詳細 |
-| `PATCH` | `/classrooms/{id}` | 課題更新。`{status: 'active'}` でアーカイブ済み課題の復元も行う |
+| `POST` | `/classrooms` | 課題作成。任意の `meshGroupLimit`（`6` / `0`・Issue #1255）でメッシュのグループの人数の上限を設定する（`0` = 制限なし。送らなければ `6`。それ以外の値は 400）。レスポンスに `meshGroupLimit` を含む |
+| `GET` | `/classrooms` | 課題一覧（既定は active のみ。`?includeArchived=1` でアーカイブ済みも返す。各要素に `status` と `meshGroupLimit`（未設定は `6`）を含む） |
+| `GET` | `/classrooms/{id}` | 課題詳細（`meshGroupLimit` を含む。未設定は `6`） |
+| `PATCH` | `/classrooms/{id}` | 課題更新。`{status: 'active'}` でアーカイブ済み課題の復元も行う。任意の `meshGroupLimit`（`6` / `0`）を受け付ける（送らなければ保存済みの値を変えない。それ以外の値は 400）。レスポンスに `meshGroupLimit` を含む |
 | `DELETE` | `/classrooms/{id}` | 課題削除 (アーカイブ)。soft-delete でメンバー・提出メタ・S3 は保持され、PATCH で復元可能。生徒の遮断は status ガード（join / lookup / verify-session / 提出がすべて非 active を拒否） |
 | `GET` | `/classrooms/{id}/co-teachers` | 共同管理者一覧 (`{ownerSub, coTeacherEmails}`) |
 | `POST` | `/classrooms/{id}/co-teachers` | 共同管理者を email で招待 (`{email}`)。冪等・最大10・email 形式検証 |
@@ -234,9 +234,9 @@ One Tap が表示できない環境（Windows や Playwright では毎回）で�
 
 | Method | Path | 認証 | 説明 |
 |--------|------|------|------|
-| `POST` | `/classrooms/lookup` | 不要 | 参加コードで課題を検索 |
+| `POST` | `/classrooms/lookup` | 不要 | 参加コードで課題を検索。`meshGroupLimit`（未設定は `6`、`0` = 制限なし・Issue #1255）を含む |
 | `POST` | `/classrooms/lookup/kick-request` | 不要 | 「使用中の席」を空けてもらう依頼を先生に送信 (Issue #692) |
-| `POST` | `/classrooms/join` | 不要 | 課題に参加 (→ sessionToken 取得) |
+| `POST` | `/classrooms/join` | 不要 | 課題に参加 (→ sessionToken 取得)。`meshGroupLimit`（lookup と同じ）を含む |
 | `POST` | `/classrooms/verify-session` | Session Token | セッション検証 + 提出状況取得。kick された生徒には 410 + `{reason: 'kicked', joinCode, className, seatNumber}` を返す。課題が非 active（アーカイブ/期限切れ）なら 401 |
 | `POST` | `/classrooms/{id}/submissions` | Session Token | 提出 (Presigned URL 取得)。課題が非 active なら 404。任意の `screenshotLabels`（各ブロック画像のスプライト名の配列・`screenshotCount` 以下・各100文字以内・Issue #1239）を保存する |
 | `DELETE` | `/classrooms/{id}/members/me` | Session Token | 自主退出 |
@@ -332,6 +332,7 @@ erDiagram
         map assignment "課題コンテンツ (任意): {pages: [{text, imageKey?}], starterKey?, updatedAt}"
         boolean startFromPrevious "前回の提出物から始めさせる (#1202, 任意・既定 false)。assignment の外に置くので課題コンテンツが空でも残る。再利用 (duplicate) で引き継ぐ"
         string peerView "他者参照 (#1239, 任意): none / always / afterSubmit。未設定は none。duplicate で引き継ぐ"
+        number meshGroupLimit "出席番号で作るメッシュのグループの人数の上限 (#1255, 任意): 6 / 0 (= 制限なし)。未設定は 6。作成時は常に保存。duplicate で引き継ぐ (6 は書かない)"
         string recommendedForSharingAt "共有推奨 (#1106, 任意)。書き込みは admin API のみ。先生側 API には boolean recommendedForSharing を投影"
         string recommendedForSharingBy "推奨した admin の email (内部用・先生側 API では返さない)"
         string groupId "所属する組 (任意)"

@@ -771,6 +771,7 @@ async function handleCreateClassroom(identity: TeacherIdentity, body: Record<str
     await ensureGroupTopic(groupId, group, topic);
   }
   const sortDate = body.sortDate !== undefined ? validateSortDate(body.sortDate) : undefined;
+  const meshGroupLimit = validateMeshGroupLimit(body.meshGroupLimit) ?? DEFAULT_MESH_GROUP_LIMIT;
 
   // Auto-number duplicate assignment names within the same class. Inside a
   // class (組) the siblings are enumerated by groupId so a co-teacher's
@@ -835,6 +836,7 @@ async function handleCreateClassroom(identity: TeacherIdentity, body: Record<str
       groupId,
       topic,
       sortDate: sortDate || now,
+      meshGroupLimit,
       status: 'active',
       createdAt: now,
       updatedAt: now,
@@ -844,7 +846,7 @@ async function handleCreateClassroom(identity: TeacherIdentity, body: Record<str
 
   return {
     statusCode: 201,
-    body: JSON.stringify({ classroomId, className, assignmentName, joinCode, studentCount, googleClassroomCourseId: googleClassroomCourseId || null, groupId: groupId || null, topic: topic || null, sortDate: sortDate || now, status: 'active', createdAt: now, expiresAt }),
+    body: JSON.stringify({ classroomId, className, assignmentName, joinCode, studentCount, googleClassroomCourseId: googleClassroomCourseId || null, groupId: groupId || null, topic: topic || null, sortDate: sortDate || now, meshGroupLimit, status: 'active', createdAt: now, expiresAt }),
   };
 }
 
@@ -1076,6 +1078,7 @@ function mapClassroomSummary(item: Record<string, unknown>, identity: TeacherIde
     topic: item.topic || null,
     sortDate: item.sortDate || item.createdAt || null,
     hasAssignment: hasAssignmentContent(item),
+    meshGroupLimit: meshGroupLimitOf(item),
     // 共有推奨 (#1106): 書き込みは admin スタックのみ。boolean へ投影する
     // （recommendedForSharingBy = admin email は内部情報）。
     recommendedForSharing: !!item.recommendedForSharingAt,
@@ -1175,6 +1178,7 @@ async function handleGetClassroom(identity: TeacherIdentity, classroomId: string
       topic: result.Item.topic || null,
       sortDate: result.Item.sortDate || result.Item.createdAt || null,
       hasAssignment: hasAssignmentContent(result.Item),
+      meshGroupLimit: meshGroupLimitOf(result.Item),
       recommendedForSharing: !!result.Item.recommendedForSharingAt,
       role: result.Item.teacherSub === identity.sub ? 'owner' : 'co-teacher',
     }),
@@ -1332,6 +1336,10 @@ async function handleUpdateClassroom(identity: TeacherIdentity, classroomId: str
   if (body.sortDate !== undefined) {
     updates.sortDate = validateSortDate(body.sortDate);
   }
+  const meshGroupLimit = validateMeshGroupLimit(body.meshGroupLimit);
+  if (meshGroupLimit !== undefined) {
+    updates.meshGroupLimit = meshGroupLimit;
+  }
 
   const expressionParts: string[] = [];
   const expressionValues: Record<string, unknown> = {};
@@ -1364,6 +1372,7 @@ async function handleUpdateClassroom(identity: TeacherIdentity, classroomId: str
       assignmentName: result.Attributes?.assignmentName,
       joinCode: result.Attributes?.joinCode,
       studentCount: result.Attributes?.studentCount,
+      meshGroupLimit: meshGroupLimitOf(result.Attributes),
       status: result.Attributes?.status,
     }),
   };
@@ -1507,6 +1516,7 @@ async function handleJoinClassroom(sourceIp: string, body: Record<string, unknow
       seatNumber,
       memberId,
       hasAssignment: hasAssignmentContent(classroom),
+      meshGroupLimit: meshGroupLimitOf(classroom),
       previousComment,
     }),
   };
@@ -1663,6 +1673,7 @@ async function handleLookupClassroom(sourceIp: string, body: Record<string, unkn
       activeKickRequestIds,
       expiresAt: classroom.ttl ? new Date((classroom.ttl as number) * 1000).toISOString() : null,
       hasAssignment: hasAssignmentContent(classroom),
+      meshGroupLimit: meshGroupLimitOf(classroom),
     }),
   };
 }
@@ -3758,6 +3769,8 @@ async function handleDuplicateClassroom(
       ...(startFromPreviousOf(source) ? { startFromPrevious: true } : {}),
       // ...and who may see classmates' work (#1239). 'none' is the default, left unset.
       ...(peerViewOf(source) !== 'none' ? { peerView: peerViewOf(source) } : {}),
+      // ...and how big its mesh groups may be (#1255). The default 6 is left unset.
+      ...(meshGroupLimitOf(source) !== DEFAULT_MESH_GROUP_LIMIT ? { meshGroupLimit: meshGroupLimitOf(source) } : {}),
       status: 'active',
       createdAt: now,
       updatedAt: now,
@@ -3894,6 +3907,35 @@ export function validatePeerView(value: unknown): PeerView | undefined {
 export function peerViewOf(item: Record<string, unknown> | undefined): PeerView {
   const value = item?.peerView;
   return PEER_VIEW_VALUES.includes(value as PeerView) ? value as PeerView : 'none';
+}
+
+/**
+ * Size cap of a mesh group made by seat number (#1255): 6 is the default and
+ * 0 means "no limit". Only these two values are accepted for now; widening
+ * the set later stays backward compatible, narrowing it would not.
+ */
+export const DEFAULT_MESH_GROUP_LIMIT = 6;
+export const MESH_GROUP_LIMIT_VALUES = [DEFAULT_MESH_GROUP_LIMIT, 0] as const;
+
+/**
+ * Validate the optional `meshGroupLimit` (#1255) of a create/update request.
+ * undefined means "not sent" (an older client): create stores the default,
+ * update keeps the stored value.
+ */
+export function validateMeshGroupLimit(value: unknown): number | undefined {
+  if (value === undefined) return undefined;
+  if (!MESH_GROUP_LIMIT_VALUES.includes(value as typeof MESH_GROUP_LIMIT_VALUES[number])) {
+    throw new ValidationError(`meshGroupLimit must be one of: ${MESH_GROUP_LIMIT_VALUES.join(', ')} (0 = no limit)`);
+  }
+  return value as number;
+}
+
+/** The mesh group limit of an assignment item; items saved before #1255 are 6. */
+export function meshGroupLimitOf(item: Record<string, unknown> | undefined): number {
+  const value = item?.meshGroupLimit;
+  return MESH_GROUP_LIMIT_VALUES.includes(value as typeof MESH_GROUP_LIMIT_VALUES[number])
+    ? value as number
+    : DEFAULT_MESH_GROUP_LIMIT;
 }
 
 /** Whether a classroom item carries assignment content (pages or a starter). */
