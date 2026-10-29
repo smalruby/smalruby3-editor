@@ -74,7 +74,10 @@ console.log(JSON.stringify(planAddressReview(comments, replies), null, 2));
 ' tmp/pr-comments-$AUTOPILOT_ISSUE.json tmp/human-replies-$AUTOPILOT_ISSUE.json
 ```
 
-各指摘の `action` に従う（`source:"human"` は人間の指示、`"policy"` は既定方針）:
+各指摘の `action` に従う（`source:"human"` は人間の指示、`"policy"` は既定方針）。
+`planAddressReview` は**対応済みかどうかを見ない**ので、`source:"policy"` の `fix` /
+`fix-or-hitl` のうち、まとめコメントの対応欄が `修正済み（<sha>）` のもの（review フェーズで直した Must 等）や
+以前の address-review で対応済みのものは**対応済みとして扱い、再修正しない**:
 
 | action | 意味 | 対応 |
 |---|---|---|
