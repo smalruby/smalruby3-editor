@@ -2266,8 +2266,19 @@ function nextReviewFindingNumbers(comments) {
 }
 
 /**
+ * 分類名を大小文字を問わず正準形（`Must` / `Question` / `FYI`）にする（純粋関数・内部用）。
+ * worker が手書きするメモの `"must"` を未知分類として黙って捨てないため。
+ * @param {string} category
+ * @returns {string|null}
+ */
+function normalizeReviewFindingCategory(category) {
+    const lower = String(category || '').toLowerCase();
+    return REVIEW_FINDING_CATEGORIES.find(c => c.toLowerCase() === lower) || null;
+}
+
+/**
  * 指摘を分類順（Must → Question → FYI）に並べ、開始番号から ID を振る（純粋関数）。
- * 分類内の順序は入力順を保つ。未知分類は捨てる。
+ * 分類内の順序は入力順を保つ。分類名の大小文字は正規化し、未知分類は捨てる。
  * @param {Array<{category: string}>} findings
  * @param {{Must?: number, Question?: number, FYI?: number}} [start]
  * @returns {Array<object>} 各要素に `id` を足したもの
@@ -2277,8 +2288,8 @@ function assignReviewFindingIds(findings, start = {}) {
     for (const category of REVIEW_FINDING_CATEGORIES) {
         let n = start[category] || 1;
         for (const f of findings || []) {
-            if (f && f.category === category) {
-                out.push({ ...f, id: `${REVIEW_FINDING_ID_PREFIX[category]}${n}` });
+            if (f && normalizeReviewFindingCategory(f.category) === category) {
+                out.push({ ...f, category, id: `${REVIEW_FINDING_ID_PREFIX[category]}${n}` });
                 n += 1;
             }
         }
@@ -2337,8 +2348,18 @@ function classifyFindingInstruction(clause) {
 }
 
 /**
+ * 節の区切り。`.` は後ろが空白/末尾のときだけ区切る（`b.js:3` のようなファイル名で節を割らない）。
+ */
+const REF_CLAUSE_SPLIT_RE = /[,、。\n;!?]|\.(?=\s|$)/;
+/** 引用行（GitHub の Quote reply）。bot の指摘本文の「修正」等を人間の指示と取り違えないため除く */
+const REF_QUOTE_LINE_RE = /^\s*>/;
+/** ID を除くと何も残らない節（「Q1, Q2は直して」の `Q1`）。指示は次の節から引き継ぐ */
+const REF_ID_ONLY_RE = /^[\s・/&+]*$/;
+
+/**
  * 人間の短い返信（例: 「Q1はOK, FYI1は修正して」）から、ID ごとの指示を抜き出す（純粋関数・#1248）。
- * 句読点・カンマ・改行で節に分け、節内の ID すべてにその節の指示を当てる。
+ * 句読点・カンマ・改行で節に分け、節内の ID すべてにその節の指示を当てる。ID だけの節
+ * （「Q1, Q2は直して」の `Q1`）は次に指示のある節の指示を引き継ぐ。引用行（`>`）は無視する。
  * 同じ ID が複数回出たら後勝ち（言い直しを尊重）。順序は初出順。
  * - 'ok': OK / そのままで / 修正しなくていい → その指摘は変更しない
  * - 'fix': 修正して / 直して → 修正する（FYI でも人間の明示指示を優先）
@@ -2349,16 +2370,33 @@ function classifyFindingInstruction(clause) {
 function parseFindingReferences(text) {
     if (!text) return [];
     const byId = new Map();
-    for (const clause of String(text).normalize('NFKC').split(/[,、。.\n;!?]/)) {
+    const apply = (ids, instruction) => {
+        for (const f of ids) byId.set(f.id, { id: f.id, category: f.category, instruction });
+    };
+    const unquoted = String(text)
+        .normalize('NFKC')
+        .split('\n')
+        .filter(line => !REF_QUOTE_LINE_RE.test(line))
+        .join('\n');
+    let pending = [];
+    for (const clause of unquoted.split(REF_CLAUSE_SPLIT_RE)) {
+        if (!clause.trim()) continue;
         const ids = [];
         for (const m of clause.matchAll(REVIEW_FINDING_REF_RE)) {
             const f = parseReviewFindingId(`${m[1]}${m[2]}`);
             if (f) ids.push(f);
         }
-        if (ids.length === 0) continue;
-        const instruction = classifyFindingInstruction(clause.replace(REVIEW_FINDING_REF_RE, ' '));
-        for (const f of ids) byId.set(f.id, { id: f.id, category: f.category, instruction });
+        if (ids.length === 0 && pending.length === 0) continue;
+        const rest = clause.replace(REVIEW_FINDING_REF_RE, ' ');
+        if (ids.length > 0 && REF_ID_ONLY_RE.test(rest)) {
+            pending.push(...ids);
+            continue;
+        }
+        apply([...pending, ...ids], classifyFindingInstruction(rest));
+        pending = [];
     }
+    // 指示の節が続かなかった ID だけの言及は 'other'（既に指示があればそれを残す）
+    apply(pending.filter(f => !byId.has(f.id)), 'other');
     return [...byId.values()];
 }
 

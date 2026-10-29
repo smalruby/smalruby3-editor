@@ -173,6 +173,36 @@ test('parseFindingReferences: 表記ゆれ・区切り・複数 ID・その他�
     assert.deepEqual(parseFindingReferences(null), []);
 });
 
+test('parseFindingReferences: ID だけの節は次の節の指示を引き継ぐ（「Q1, Q2は直して」）', () => {
+    assert.deepEqual(
+        parseFindingReferences('Q1, Q2は直して').map(r => [r.id, r.instruction]),
+        [['Q1', 'fix'], ['Q2', 'fix']],
+    );
+    assert.deepEqual(
+        parseFindingReferences('Q1、FYI1 は OK').map(r => [r.id, r.instruction]),
+        [['Q1', 'ok'], ['FYI1', 'ok']],
+    );
+    // ID の後に ID なしの節で指示
+    assert.equal(parseFindingReferences('Q1, 直してください')[0].instruction, 'fix');
+    // 指示が続かなければ other。既にある指示は上書きしない
+    assert.equal(parseFindingReferences('Q1')[0].instruction, 'other');
+    assert.equal(parseFindingReferences('Q1はOK。Q1')[0].instruction, 'ok');
+});
+
+test('parseFindingReferences: 引用行（Quote reply）の bot 本文を人間の指示と取り違えない', () => {
+    const reply = ['> - **[FYI1]** `c.js:1` x の修正の余地', '', 'FYI2はそのままで'].join('\n');
+    assert.deepEqual(parseFindingReferences(reply), [{ id: 'FYI2', category: 'FYI', instruction: 'ok' }]);
+});
+
+test('parseFindingReferences: ファイル名の `.` で節を割らない', () => {
+    assert.equal(parseFindingReferences('Q1 の b.js は直して')[0].instruction, 'fix');
+});
+
+test('assignReviewFindingIds: 分類名の大小文字ゆれ（"must"）を黙って捨てない', () => {
+    const out = assignReviewFindingIds([{ category: 'must', text: 'm' }, { category: 'fyi', text: 'f' }]);
+    assert.deepEqual(out.map(f => [f.id, f.category]), [['M1', 'Must'], ['FYI1', 'FYI']]);
+});
+
 test('resolveFindingAction: 人間の指示が既定方針より優先、指示なしは既定方針', () => {
     assert.equal(resolveFindingAction('FYI', 'fix'), 'fix');
     assert.equal(resolveFindingAction('Must', 'ok'), 'no-change');
