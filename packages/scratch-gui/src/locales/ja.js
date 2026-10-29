@@ -859,9 +859,9 @@ export default {
     'gui.smalruby3.rubyToBlocksConverter.stageMethodInSpriteClass':
         '「{ METHOD }」はスプライトのclassでは使えません。\nこのメソッドはclass Stage専用です。',
     'gui.smalruby3.rubyToBlocksConverter.koshien.invalidPosition':
-        '「{ POSITION }」は座標がまちがっています。\n座標は "x:y" の形で、x と y は 0 から 16 の数にしてください。',
+        '「{ POSITION }」は座標がまちがっています。\n座標は "x:y" の形で、x と y は 0 から 16 の整数にしてください。',
     'gui.smalruby3.rubyToBlocksConverter.koshien.invalidCoordinate':
-        '「{ COORDINATE }」は座標がまちがっています。\n0 から 16 の数にしてください。',
+        '「{ COORDINATE }」は座標がまちがっています。\n0 から 16 の整数にしてください。',
     'gui.smalruby3.rubyToBlocksConverter.arraySyntaxNotAvailableInV1':
         '配列の書き方はルビーバージョン2でのみ使えます。\n設定メニューからルビーバージョン2に切り替えるか、\nlist()の書き方を使ってください。',
     'gui.smalruby3.rubyToBlocksConverter.listSyntaxNotAvailableInV2':

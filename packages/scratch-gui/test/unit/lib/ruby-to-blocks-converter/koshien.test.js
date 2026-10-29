@@ -125,6 +125,34 @@ describe('RubyToBlocksConverter/Koshien', () => {
                     await convertAndExpectErrorText('koshien.position(17, 0)', /is an invalid coordinate\..*0 to 16/s);
                     await convertAndExpectErrorText('koshien.position(0, -1)', /is an invalid coordinate\..*0 to 16/s);
                 });
+
+                test('rejects coordinates that are not whole numbers', async () => {
+                    for (const position of [':5', '5:', '1.5:2', ' 3: 4', '3 :4', '+3:4', '1e1:0', '0x1:0', '1:2:3']) {
+                        for (const method of ['get_map_area', 'position_of_x', 'position_of_y']) {
+                            await convertAndExpectErrorText(
+                                `koshien.${method}("${position}")`,
+                                /is an invalid coordinate\..*whole numbers from 0 to 16/s,
+                            );
+                        }
+                    }
+                    await convertAndExpectErrorText(
+                        'koshien.position(1.5, 2)',
+                        /is an invalid coordinate\..*whole number from 0 to 16/s,
+                    );
+                    await convertAndExpectErrorText(
+                        'koshien.position(2, 0.5)',
+                        /is an invalid coordinate\..*whole number from 0 to 16/s,
+                    );
+                });
+
+                test('checks the range in position_of_y too', async () => {
+                    await converter.targetCodeToBlocks(target, 'koshien.position_of_y("16:16")');
+                    expect(converter.errors).toHaveLength(0);
+                    await convertAndExpectErrorText(
+                        'koshien.position_of_y("17:0")',
+                        /is an invalid coordinate\..*0 to 16/s,
+                    );
+                });
             });
         }
     });
