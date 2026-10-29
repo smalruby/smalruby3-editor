@@ -108,6 +108,7 @@ src/containers/*
 !src/containers/classroom-error-utils.js
 !src/containers/classroom-modal.jsx
 !src/containers/classroom-kick-request-watcher.jsx
+!src/containers/classroom-mesh-connect-prompt.jsx
 !src/containers/use-kick-request-polling.js
 !src/containers/classroom-teacher-modal.jsx
 !src/containers/classroom-teacher-menu.jsx
@@ -174,6 +175,7 @@ src/lib/*
 !src/lib/classroom-kick-request-storage.js
 !src/lib/classroom-seat-selection.js
 !src/lib/classroom-continue-options.js
+!src/lib/classroom-mesh-connect.js
 !src/lib/classroom-teacher-kick-alerts.js
 !src/lib/classroom-teacher-panel.js
 !src/lib/classroom-peer-view.js
@@ -394,6 +396,7 @@ test/unit/containers/*
 !test/unit/containers/use-teacher-panel-polling.test.js
 !test/unit/containers/classroom-peer-panel.test.jsx
 !test/unit/containers/use-kick-request-polling.test.js
+!test/unit/containers/classroom-mesh-connect-prompt.test.jsx
 !test/unit/containers/use-student-assignment.test.js
 !test/unit/containers/use-teacher-assignment.test.js
 !test/unit/containers/use-student-submit.test.js
@@ -456,6 +459,7 @@ test/unit/lib/*
 !test/unit/lib/classroom-kick-request-storage.test.js
 !test/unit/lib/classroom-seat-selection.test.js
 !test/unit/lib/classroom-continue-options.test.js
+!test/unit/lib/classroom-mesh-connect.test.js
 !test/unit/lib/deck-setup.test.js
 !test/unit/lib/blocks-screenshot.test.js
 !test/unit/lib/download-blob.test.js

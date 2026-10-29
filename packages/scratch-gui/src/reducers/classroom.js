@@ -26,6 +26,8 @@ const CLOSE_TEACHER_PANEL = 'scratch-gui/classroom/CLOSE_TEACHER_PANEL';
 const SET_STUDENT_PEER_VIEW = 'scratch-gui/classroom/SET_STUDENT_PEER_VIEW';
 const OPEN_STUDENT_PEER_PANEL = 'scratch-gui/classroom/OPEN_STUDENT_PEER_PANEL';
 const CLOSE_STUDENT_PEER_PANEL = 'scratch-gui/classroom/CLOSE_STUDENT_PEER_PANEL';
+const REQUEST_MESH_CONNECT = 'scratch-gui/classroom/REQUEST_MESH_CONNECT';
+const CLEAR_MESH_CONNECT_REQUEST = 'scratch-gui/classroom/CLEAR_MESH_CONNECT_REQUEST';
 
 const STORAGE_KEY = 'smalruby:classroom';
 
@@ -175,6 +177,10 @@ const initialState = {
     // changed setting is picked up again) and whether the floating panel is shown.
     studentPeerView: null,
     studentPeerPanelOpen: false,
+    // A class load of a mesh project asked for the mesh connection modal
+    // (#1251); opened by ClassroomMeshConnectPrompt once no classroom modal
+    // is in the way, then cleared so it is shown only once per load.
+    meshConnectPending: false,
 };
 
 const reducer = (state, action) => {
@@ -229,6 +235,7 @@ const reducer = (state, action) => {
                 reloginRequested: false,
                 studentPeerView: null,
                 studentPeerPanelOpen: false,
+                meshConnectPending: false,
             };
         case SET_SUBMISSION_THUMBNAIL:
             return { ...state, submissionThumbnail: action.submissionThumbnail };
@@ -312,6 +319,10 @@ const reducer = (state, action) => {
             return { ...state, studentPeerPanelOpen: true };
         case CLOSE_STUDENT_PEER_PANEL:
             return { ...state, studentPeerPanelOpen: false };
+        case REQUEST_MESH_CONNECT:
+            return { ...state, meshConnectPending: true };
+        case CLEAR_MESH_CONNECT_REQUEST:
+            return { ...state, meshConnectPending: false };
         default:
             return state;
     }
@@ -408,6 +419,8 @@ const closeTeacherPanel = () => ({ type: CLOSE_TEACHER_PANEL });
 const setStudentPeerView = (peerView) => ({ type: SET_STUDENT_PEER_VIEW, peerView });
 const openStudentPeerPanel = () => ({ type: OPEN_STUDENT_PEER_PANEL });
 const closeStudentPeerPanel = () => ({ type: CLOSE_STUDENT_PEER_PANEL });
+const requestMeshConnect = () => ({ type: REQUEST_MESH_CONNECT });
+const clearMeshConnectRequest = () => ({ type: CLEAR_MESH_CONNECT_REQUEST });
 
 export default reducer;
 export {
@@ -438,4 +451,6 @@ export {
     setStudentPeerView,
     openStudentPeerPanel,
     closeStudentPeerPanel,
+    requestMeshConnect,
+    clearMeshConnectRequest,
 };

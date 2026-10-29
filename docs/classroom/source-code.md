@@ -59,6 +59,7 @@ smalruby3-editor/
 │   │   │   ├── use-student-assignment.js ← 課題パネル・スターター・続きに使える提出物の読み込み (#1201)
 │   │   │   ├── use-kick-request-polling.js ← 退室依頼の承認待ちポーリング（依頼中・タブ表示中・未参加のみ）
 │   │   │   ├── classroom-kick-request-watcher.jsx ← モーダルを閉じている間の承認待ち見張り
+│   │   │   ├── classroom-mesh-connect-prompt.jsx ← メッシュ作品の読み込み後、クラスのモーダルが閉じたら接続モーダルを開く #1251
 │   │   │   ├── classroom-teacher-kick-alerts.jsx ← 先生の未処理退室依頼の見張り + トースト（GUI 全体で 1 つ）#1200
 │   │   │   ├── use-teacher-kick-request-polling.js ← 先生の退室依頼ポーリング（10 秒・タブ表示中・バックオフ）
 │   │   │   ├── classroom-teacher-panel.jsx ← 「いまの課題の状況」パネルのコンテナ（GUI 全体で 1 つ）#1203
@@ -78,6 +79,7 @@ smalruby3-editor/
 │   │   │   ├── classroom-kick-request-storage.js ← 退室依頼の localStorage 永続化 (#692)
 │   │   │   ├── classroom-seat-selection.js ← 席選択の純粋ロジック（番号入力の検証・ポーリング判定・定数）
 │   │   │   ├── classroom-continue-options.js ← 続きに使える提出物の正規化・参加直後にどこから始めるかの判定 decideJoinStart（純粋）#1201 #1202
+│   │   │   ├── classroom-mesh-connect.js ← メッシュの接続モーダルを出すか / いま出せるかの判定（純粋）#1251
 │   │   │   ├── classroom-teacher-kick-alerts.js ← 先生の退室依頼通知の純粋ロジック（間隔・バックオフ・要約）
 │   │   │   ├── google-classroom-auth.js ← Google Classroom OAuth
 │   │   │   └── alerts/index.jsx       ← Alert 定義（classroomSessionExpired 追加）

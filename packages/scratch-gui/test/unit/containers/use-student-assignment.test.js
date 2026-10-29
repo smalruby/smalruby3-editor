@@ -41,10 +41,10 @@ const PREVIOUS = {
     projectUrl: 'https://signed.example/prev.sb3',
 };
 
-const setup = () => {
+const setup = (vm = {}) => {
     const deps = {
         classroomState: { sessionToken: 'st', classroomId: 'c-now' },
-        vm: {},
+        vm,
         intl: { formatMessage: (m) => m.defaultMessage },
         clearError: jest.fn(),
         showError: jest.fn(),
@@ -361,5 +361,89 @@ describe('useStudentAssignment — 他者参照の設定を覚える (#1210)', (
             await hook.result.current.handleJoined('st', 'c-now', true);
         });
         expect(mockDispatch).not.toHaveBeenCalled();
+    });
+});
+
+describe('useStudentAssignment — メッシュの接続モーダルを出す (#1251)', () => {
+    const REQUEST = { type: 'scratch-gui/classroom/REQUEST_MESH_CONNECT' };
+    const CLEAR = { type: 'scratch-gui/classroom/CLEAR_MESH_CONNECT_REQUEST' };
+    const meshVm = ({ loaded = true, connected = false } = {}) => ({
+        extensionManager: { isExtensionLoaded: (id) => loaded && id === 'meshV2' },
+        getPeripheralIsConnected: () => connected,
+    });
+    const joinWithPrevious = async (hook) => {
+        await act(async () => {
+            await hook.result.current.handleJoined('st', 'c-now', true);
+        });
+        mockDispatch.mockReset();
+    };
+
+    beforeEach(() => {
+        mockGetAssignment.mockReset();
+        mockGetContinuable.mockReset();
+        mockLoadProject.mockReset();
+        mockDispatch.mockReset();
+        mockProjectChanged = false;
+        global.fetch = jest.fn(async (url) => ({ ok: true, arrayBuffer: async () => `data:${url}` }));
+        window.confirm = jest.fn(() => true);
+        mockGetAssignment.mockResolvedValue({ assignment: ASSIGNMENT });
+        mockGetContinuable.mockResolvedValue({ current: PREVIOUS, previous: PREVIOUS });
+    });
+
+    test.each([
+        ['スターターから始める', 'handleChooseStarter', []],
+        ['パネルの「スタータープロジェクトを開く」', 'handleReloadStarter', []],
+        ['前回の提出物から続ける', 'handleLoadSubmission', ['previous']],
+        ['この課題の提出物から続ける', 'handleLoadSubmission', ['current']],
+    ])('%s でメッシュの作品を読み込んだら 1 回だけ依頼する', async (_label, handler, args) => {
+        const { hook } = setup(meshVm());
+        await joinWithPrevious(hook);
+        await act(async () => {
+            await hook.result.current[handler](...args);
+        });
+        expect(mockDispatch).toHaveBeenCalledWith(REQUEST);
+        expect(mockDispatch.mock.calls.filter(([a]) => a.type === REQUEST.type)).toHaveLength(1);
+    });
+
+    test('メッシュを使わない作品では依頼せず、前の依頼も取り消す', async () => {
+        const { hook } = setup(meshVm({ loaded: false }));
+        await joinWithPrevious(hook);
+        await act(async () => {
+            await hook.result.current.handleChooseStarter();
+        });
+        expect(mockDispatch).not.toHaveBeenCalledWith(REQUEST);
+        expect(mockDispatch).toHaveBeenCalledWith(CLEAR);
+    });
+
+    test('接続済みなら依頼しない', async () => {
+        const { hook } = setup(meshVm({ connected: true }));
+        await joinWithPrevious(hook);
+        await act(async () => {
+            await hook.result.current.handleLoadSubmission('previous');
+        });
+        expect(mockDispatch).not.toHaveBeenCalledWith(REQUEST);
+    });
+
+    test('上書き確認をキャンセルしたら依頼しない', async () => {
+        mockProjectChanged = true;
+        window.confirm = jest.fn(() => false);
+        const { hook } = setup(meshVm());
+        await joinWithPrevious(hook);
+        await act(async () => {
+            await hook.result.current.handleChooseStarter();
+        });
+        expect(mockLoadProject).not.toHaveBeenCalled();
+        expect(mockDispatch).not.toHaveBeenCalled();
+    });
+
+    test('読み込みに失敗したら依頼しない', async () => {
+        mockLoadProject.mockRejectedValue(new Error('broken'));
+        const { hook, deps } = setup(meshVm());
+        await joinWithPrevious(hook);
+        await act(async () => {
+            await hook.result.current.handleLoadSubmission('previous');
+        });
+        expect(deps.showError).toHaveBeenCalled();
+        expect(mockDispatch).not.toHaveBeenCalledWith(REQUEST);
     });
 });

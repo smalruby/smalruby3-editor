@@ -9,15 +9,17 @@
  * what to press and loaded the project twice). With the teacher's "start
  * from the previous submission" setting (#1202) the previous submission is
  * the recommended choice. Nothing clobbers work silently: when the open
- * project has unsaved changes the student is asked first.
+ * project has unsaved changes the student is asked first. A loaded project
+ * that uses mesh asks for the mesh connection modal (#1251).
  */
 import { useCallback, useState } from 'react';
 import { defineMessages } from 'react-intl';
 import { useDispatch, useSelector } from 'react-redux';
 import classroomAPI from '../lib/classroom-api.js';
 import { decideJoinStart, normalizeContinueOptions } from '../lib/classroom-continue-options.js';
+import { readMeshState, shouldPromptMeshConnect } from '../lib/classroom-mesh-connect.js';
 import { loadProjectWithChecks } from '../lib/project-loader-utils.js';
-import { setStudentPeerView } from '../reducers/classroom.js';
+import { clearMeshConnectRequest, requestMeshConnect, setStudentPeerView } from '../reducers/classroom.js';
 import translateError from './classroom-error-utils.js';
 
 const NO_START_CHOICE = { showStarter: false, recommend: null, notice: null };
@@ -108,13 +110,16 @@ const useStudentAssignment = ({
 
     /**
      * Download an sb3 and load it into the VM. Asks for confirmation when the
-     * open project has unsaved changes (never clobbers silently).
+     * open project has unsaved changes (never clobbers silently). Once loaded,
+     * asks for the mesh connection modal when the project uses mesh (#1251);
+     * a load without mesh drops an earlier request that is still waiting.
      * @param {string} url - presigned download URL
-     * @param {object} [confirmMessage] - confirm text naming what replaces the project
+     * @param {object} confirmMessage - confirm text naming what replaces the project
+     * @param {string} source - which choice is loaded ('starter' | 'previous' | 'current')
      * @returns {Promise<boolean>} true when the project was loaded
      */
     const loadProjectFromUrl = useCallback(
-        async (url, confirmMessage = messages.overwriteConfirm) => {
+        async (url, confirmMessage, source) => {
             if (projectChanged) {
                 // eslint-disable-next-line no-alert
                 if (!window.confirm(intl.formatMessage(confirmMessage))) {
@@ -127,9 +132,11 @@ const useStudentAssignment = ({
             }
             const projectData = await response.arrayBuffer();
             await loadProjectWithChecks(vm, intl, projectData);
+            const prompt = shouldPromptMeshConnect({ source, ...readMeshState(vm) });
+            dispatch(prompt ? requestMeshConnect() : clearMeshConnectRequest());
             return true;
         },
-        [projectChanged, vm, intl],
+        [projectChanged, vm, intl, dispatch],
     );
 
     /**
@@ -140,7 +147,7 @@ const useStudentAssignment = ({
     const loadStarter = useCallback(
         async (assignmentData) => {
             if (!assignmentData?.starterUrl) return false;
-            const loaded = await loadProjectFromUrl(assignmentData.starterUrl);
+            const loaded = await loadProjectFromUrl(assignmentData.starterUrl, messages.overwriteConfirm, 'starter');
             if (loaded) setLoadedChoice('starter');
             return loaded;
         },
@@ -233,7 +240,7 @@ const useStudentAssignment = ({
                 }
                 const confirmMessage =
                     kind === 'previous' ? messages.overwriteConfirmPrevious : messages.overwriteConfirmCurrent;
-                if (await loadProjectFromUrl(target.projectUrl, confirmMessage)) {
+                if (await loadProjectFromUrl(target.projectUrl, confirmMessage, kind)) {
                     setLoadedChoice(kind);
                     if (onStarted) onStarted();
                 }
