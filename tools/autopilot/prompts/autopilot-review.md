@@ -64,6 +64,9 @@ touch した領域に関わらず**常に**前提として踏まえる。触っ�
 - **再利用/簡潔性/効率** — 重複・不要な複雑さ・明らかな非効率
 - テスト不足（直接の関連テストがあるか）、ドキュメント/DoD の整合、prettier 対象一覧の更新漏れ
 - 「動くが脆い/将来壊れる」設計の指摘
+- **翻訳カタログの揃い**: diff で追加された翻訳キー（`packages/scratch-gui/src/locales/`）が
+  `en.js` / `ja.js` / `ja-Hira.js` の **3 ファイルすべて**にあるか。1 つでも欠けていれば **[Must]**
+  （特に `en.js` は「`defaultMessage` があるから不要」と漏れやすい）。
 - **infra-first**（`.claude/rules/infra/development.md`）。次はどれも **[Must]**:
   - Issue が `🧱 infra` なのに、`infra/**`（と関連 docs）以外を変えている／PR 本文に
     `Closes #` / `Fixes #` がある（`Refs #` にする）／**非互換な変更**（ルート・フィールド・

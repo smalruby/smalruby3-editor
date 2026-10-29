@@ -24,6 +24,33 @@ const CONNECT_GAME_MESSAGES = {
     },
 };
 
+// 甲子園のマップは 17x17 なので座標は 0〜16。
+const MAP_MAX_COORDINATE = 16;
+
+// 範囲外の座標リテラルは汎用の「命令がまちがっています」ではなく、引数の誤りとして説明する。
+const POSITION_MESSAGES = {
+    invalidPosition: {
+        id: 'gui.smalruby3.rubyToBlocksConverter.koshien.invalidPosition',
+        defaultMessage:
+            '"{ POSITION }" is an invalid coordinate.\n' +
+            'Write it as "x:y" where x and y are whole numbers from 0 to 16.',
+        description: 'Error when a koshien coordinate string is malformed or out of the 17x17 map',
+    },
+    invalidCoordinate: {
+        id: 'gui.smalruby3.rubyToBlocksConverter.koshien.invalidCoordinate',
+        defaultMessage: '"{ COORDINATE }" is an invalid coordinate.\nUse a whole number from 0 to 16.',
+        description: 'Error when a koshien x/y coordinate number is out of the 17x17 map',
+    },
+};
+
+// 小数・空白・空文字（`Number('')` は 0）を通さないよう、整数かつ範囲内だけを座標として認める。
+const isMapCoordinate = value => Number.isInteger(value) && value >= 0 && value <= MAP_MAX_COORDINATE;
+
+// "x:y" の各部分は符号・小数点・空白・指数表記を含まない 10 進の数字だけにする。
+const COORDINATE_STRING_PATTERN = /^\d+$/;
+const isMapCoordinateString = value =>
+    COORDINATE_STRING_PATTERN.test(value) && isMapCoordinate(Number(value));
+
 const KoshienConverter = {
     register: function (converter) {
         // リスト引数の解決:
@@ -90,9 +117,11 @@ const KoshienConverter = {
             if (converter.isBlock(block)) return true;
             if (!converter.isString(block)) return false;
             const position = block.value.split(':');
-            const x = Number(position[0]);
-            const y = Number(position[1]);
-            return x >= 0 && x <= 14 && y >= 0 && y <= 14;
+            if (position.length === 2 && position.every(isMapCoordinateString)) return true;
+            throw new RubyToBlocksConverterError(
+                converter._context.currentNode,
+                converter._translator(POSITION_MESSAGES.invalidPosition, {POSITION: block.value}),
+            );
         };
 
         converter.registerOnSend(Koshien, 'get_map_area', 1, params => {
@@ -328,7 +357,11 @@ const KoshienConverter = {
         const checkX = block => {
             if (converter.isBlock(block)) return true;
             if (!converter.isNumber(block)) return false;
-            return block.value >= 0 && block.value <= 14;
+            if (isMapCoordinate(block.value)) return true;
+            throw new RubyToBlocksConverterError(
+                converter._context.currentNode,
+                converter._translator(POSITION_MESSAGES.invalidCoordinate, {COORDINATE: block.value}),
+            );
         };
         const checkY = checkX;
         converter.registerOnSend(Koshien, 'position', 2, params => {
@@ -357,7 +390,7 @@ const KoshienConverter = {
         converter.registerOnSend(Koshien, 'position_of_y', 1, params => {
             const {receiver, args} = params;
 
-            if (!converter.isStringOrBlock(args[0])) return null;
+            if (!checkPosition(args[0])) return null;
 
             const block = converter.changeRubyExpressionBlock(receiver, 'koshien_positionOf', 'value');
             converter.addTextInput(block, 'POSITION', args[0], '0:0');

@@ -18,6 +18,10 @@ GH_TOKEN="$(bin/bot-token)" gh issue view "$AUTOPILOT_ISSUE" --repo "${AUTOPILOT
 
 - プロジェクト規約（`CLAUDE.md` / `.claude/rules`）に従う。**[RED] テストを先に書き失敗を確認 → [GREEN] 実装 → [PASS]**。
 - 関連する直接のテスト + lint をローカルで実行（フル CI は push 時）。
+- **翻訳キーを足したら `en.js` / `ja.js` / `ja-Hira.js` の 3 ファイルすべてに入れる**
+  （`packages/scratch-gui/src/locales/`。`en.js` も省略しない・`.claude/rules/scratch-gui/development.md`
+  の i18n 節）。コミット前に `git diff -U0 -- packages/scratch-gui/src/locales/` で同じキーが
+  3 ファイルに揃っているか確かめる。
 - 仕様が割れる/設計判断が要るなら **実装に踏み込まず**、bug コメント + `AUTOPILOT_HITL` で確認（understand と同様）。
 - **infra と GUI を同じ PR に入れない**（infra-first・`.claude/rules/infra/development.md`）。Issue の
   ラベルに `🧱 infra` があるかで分ける:
