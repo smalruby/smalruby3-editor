@@ -9,7 +9,8 @@
 ゴール: **実装フェーズが作った PR を「別の批判的レビュアー」として、プロジェクト規約
 （`.claude/rules`）に沿って敵対的にレビューする。** 指摘は **Must / Question / FYI** の
 3 分類で PR にコメントし、分類ごとの対応方針（下記）に従って自分で直すものと人間に委ねるものを
-分ける（#921。#893 で失われた「敵対的レビューの深さの可視性」の回復が目的）。
+分ける（#921。#893 で失われた「敵対的レビューの深さの可視性」の回復が目的）。指摘は
+**1 回のレビューにつき 1 コメント**にまとめ、`M1` / `Q1` / `FYI1` の連番で人間が返信しやすくする（#1248）。
 
 ## 手順
 
@@ -82,42 +83,71 @@ touch した領域に関わらず**常に**前提として踏まえる。触っ�
 | **Question** | 直した方がいいが動作はする。人間との対話が必要な場合がある。稀なコーナーケースで不都合の可能性があるが稀 | 命名・設計の妥当性、稀な競合状態、将来の拡張性への懸念 |
 | **FYI** | 気になるが直すほどではないと判断したもの | より簡潔に書ける、将来的な整理の余地 |
 
-PR への各指摘コメントは、**本文の先頭に分類マーカーを付ける**（ステップ 6 の件数サマリで
-数える形式。`phases.js` の `countReviewFindings` が `**[Must]**` 等の完全一致を検出する仕様で、
-テストで担保されている）:
+指摘は **1 件ずつ別コメントにしない**。ステップ 6 で **1 回のレビューの全指摘を 1 コメントに
+まとめて**投稿する（#1248。人間が `Q1はOK, FYI1は修正して` のように ID で短く返信できるようにする）。
+ここでは各指摘を次の形のメモとして手元に集める（ID はステップ 6 で機械的に振るので自分で付けない）:
 
+```json
+{"category":"Must","location":"src/a.js:10","text":"<何が問題か>","handling":"<どう扱ったか>"}
 ```
-**[Must]** <指摘内容>
-**[Question]** <指摘内容>
-**[FYI]** <指摘内容>
-```
+
+- `category`: `Must` / `Question` / `FYI`
+- `location`: `file:line`（特定できなければ省略可）
+- `handling`: Must は `修正済み（<sha>）`、Question は `修正済み（<sha>）` か `人間の判断に委ねる`、
+  FYI は省略可（ステップ 5 の結果を書く）
 
 ### 5. 分類ごとの対応方針で処理する
 
 | 分類 | 対応 |
 |---|---|
-| **Must** | **自分で修正する**。修正後に PR コメントを投稿（分類マーカー付き、対応済みである旨を明記） |
+| **Must** | **自分で修正する**。まとめコメントの `handling` に `修正済み（<sha>）` を書く |
 | **Question** | **すぐ対応できるもの**（小さな修正）は自分で直す。**改修コスト > 効果**と判断したものは、
-コメントを残すだけにして人間の判断に委ねる（後続の人間レビューで拾われる。Review フェーズは
+まとめコメントに残すだけにして人間の判断に委ねる（後続の人間レビューで拾われる。Review フェーズは
 どのみち `🙋 HITL` で人間に渡るため、追加の HITL 分岐は不要） |
-| **FYI** | **対応しない**。コメントのみ残す（コードは変えない） |
+| **FYI** | **対応しない**。まとめコメントに載せるだけ（コードは変えない） |
 
 - 修正は worktree 内で行い `bin/bot-git` でコミット・push（commitlint: 小文字 subject / 各行 ≤100 字）。
 - 修正 → 関連テスト/lint をローカル再実行 → push。
 - 判断に迷う **Must 級の重大指摘**で、修正方針そのものに人間の意見が要る場合（設計判断が割れる等）は、
   自分で直さずコメント + `AUTOPILOT_HITL` で確認する（後述）。
 
-### 6. 分類サマリを PR に残す
+### 6. 全指摘を 1 コメントにまとめて PR に残す
 
-すべての指摘を出し終えたら、件数のサマリを 1 件のコメントとして残す（`renderReviewFindingsSummary`
-の形式に合わせる。`指摘 <N> 件（Must <a> / Question <b> / FYI <c>）`）:
+修正を push し終えてから、全指摘（0 件でも）を **1 件のまとめコメント**として投稿する。本文は
+`phases.js` の `renderReviewFindingsComment`（純粋関数・テスト済み）で組み立てる。これが
+
+- 先頭に冪等マーカー `<!-- autopilot-review-findings round=N -->`
+- 次の行に件数サマリ（`指摘 <N> 件（Must <a> / Question <b> / FYI <c>）`。**別のサマリコメントは出さない**）
+- Must → Question → FYI の見出しごとに `- **[M1]** \`file:line\` 内容 — 対応`
+
+を作る。ID は分類ごとの連番（`M1` / `Q1` / `FYI1` …）で、**同じ PR の再レビュー（round 2 以降）は
+前回の続きから採番する**（`nextReviewFindingNumbers`。round 1 が Q2 までなら round 2 は Q3 から）。
 
 ```bash
-GH_TOKEN="$(bin/bot-token)" gh pr comment "$PR" --repo "${AUTOPILOT_REPO:-smalruby/smalruby3-editor}" \
-  --body "🤖 敵対的レビュー完了。指摘 <N> 件（Must <a> / Question <b> / FYI <c>）。Must は修正済み。"
+REPO="${AUTOPILOT_REPO:-smalruby/smalruby3-editor}"
+GH_TOKEN="$(bin/bot-token)" gh api "repos/$REPO/issues/$PR/comments" --paginate \
+  | jq -s 'add' > tmp/review-comments-$AUTOPILOT_ISSUE.json
+# tmp/review-findings-$AUTOPILOT_ISSUE.json に手順 4 のメモの配列（JSON）を書いてから:
+node -e '
+const fs = require("fs");
+const p = require("./tools/autopilot/src/phases.js");
+const comments = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+const findings = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+// 通常は新しい round。中断後の再実行は REVIEW_ROUND で既存 round を指定して編集する
+const round = Number(process.env.REVIEW_ROUND) || p.nextReviewFindingsRound(comments);
+const existing = p.findReviewFindingsComment(comments, round);
+const others = comments.filter(c => c !== existing);
+const body = p.renderReviewFindingsComment({ round, findings, start: p.nextReviewFindingNumbers(others) });
+fs.writeFileSync("tmp/review-findings-body.md", body);
+console.log(existing ? `PATCH ${existing.id}` : "POST");
+' tmp/review-comments-$AUTOPILOT_ISSUE.json tmp/review-findings-$AUTOPILOT_ISSUE.json
 ```
 
-指摘が 0 件なら「指摘なし。」と明記する（レビューを実行したことの証跡を残す）。
+- 出力が `POST` → `GH_TOKEN="$(bin/bot-token)" gh pr comment "$PR" --repo "$REPO" --body-file tmp/review-findings-body.md`
+- 出力が `PATCH <id>` → `GH_TOKEN="$(bin/bot-token)" gh api -X PATCH "repos/$REPO/issues/comments/<id>" -F body=@tmp/review-findings-body.md`
+- **冪等**: このレビューのまとめコメントを既に投稿済みで（途中で中断した再実行など）、その後に
+  人間のコメントが無いなら、新しい round を作らず **その round を `REVIEW_ROUND=<N>` で指定して編集**する
+  （二重投稿しない）。
 
 ### 7. 結果を返す（人間レビューへ）
 
