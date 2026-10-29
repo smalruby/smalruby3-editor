@@ -155,12 +155,20 @@ const ClassroomTeacherPanel = () => {
         if (reauthing) return;
         setReauthing(true);
         const provider = getCachedTeacherAuthProvider();
+        const tokenBefore = getCachedTeacherIdToken();
         const token = await reauthenticateTeacher({
             provider,
             reauth: attemptSilentReauth,
             devlogin: getUrlParams().devlogin || null,
         });
         setReauthing(false);
+        // A logout or a login in class management made while the prompt was
+        // open wins (same rule as restoreTeacherLogin): do not overwrite it.
+        if (getCachedTeacherIdToken() !== tokenBefore) {
+            setSessionExpired(false);
+            loadClassrooms();
+            return;
+        }
         if (!token) {
             dispatch(openTeacherModal());
             return;

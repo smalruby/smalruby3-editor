@@ -172,6 +172,27 @@ describe('ClassroomTeacherPanel session expiry (#1250)', () => {
         await flush();
     });
 
+    test('a logout during the re-auth prompt is not overwritten by the late token', async () => {
+        mockListMembers.mockRejectedValueOnce(unauthorized());
+        let resolve;
+        mockReauth.mockReturnValue(
+            new Promise((r) => {
+                resolve = r;
+            }),
+        );
+        const store = renderPanel();
+        await flush();
+        fireEvent.click(screen.getByTestId('classroom-teacher-panel-reauth'));
+        await flush();
+        // The teacher logs out from the menu bar while the prompt is open.
+        mockToken = null;
+        await act(async () => resolve('late-token'));
+        await flush();
+        expect(mockSetCachedToken).not.toHaveBeenCalled();
+        expect(mockSaveTeacherToken).not.toHaveBeenCalled();
+        expect(store.getState().scratchGui.classroom.teacherModalVisible).toBe(false);
+    });
+
     test('closing class management after a failed re-auth tries the panel again', async () => {
         mockListMembers.mockRejectedValueOnce(unauthorized());
         mockReauth.mockResolvedValue(null);
