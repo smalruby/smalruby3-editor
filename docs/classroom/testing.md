@@ -429,7 +429,8 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-teacher-panel-kick-request` | div | 依頼 1 件（`data-request-id`） |
 | `classroom-teacher-panel-kick-approve` / `-kick-reject` | button | 承認 / 却下 |
 | `classroom-teacher-panel-empty` | div | 課題が未選択 |
-| `classroom-teacher-panel-error` | div | 取得・承認の失敗表示 |
+| `classroom-teacher-panel-error` | div | 取得・承認の失敗表示（ログインの有効期限切れの文言もここ） |
+| `classroom-teacher-panel-reauth` | button | 有効期限切れのときの「再認証する」リンク（再認証中は disabled。#1250） |
 
 自動確認: `tools/playwright-verify/verify-teacher-status-panel.mjs`（classroom API をスタブ。1300×600 で 40 席・退室依頼 3 件が画面内に収まる / パネル表示中にブロックをドラッグできる / 位置の記憶 / 最小化 / 承認）。
 

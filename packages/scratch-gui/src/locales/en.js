@@ -91,6 +91,8 @@ export default {
     'gui.classroomTeacherPanel.submitted': 'Submitted {submitted} / {joined}',
     'gui.classroomTeacherPanel.empty': 'Choose an assignment.',
     'gui.classroomTeacherPanel.loadFailed': 'Could not load the status. It will be retried.',
+    'gui.classroomTeacherPanel.sessionExpired': 'Your login has expired.',
+    'gui.classroomTeacherPanel.reauth': 'Re-authenticate',
     'gui.menuBar.classroomJoined': 'Class: Seat {seatNumber}',
     'gui.menuBar.classroomManagement': 'Class Management...',
     'gui.menuBar.aboutSmalruby': 'About Smalruby',

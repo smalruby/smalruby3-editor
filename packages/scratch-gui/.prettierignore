@@ -176,6 +176,7 @@ src/lib/*
 !src/lib/classroom-continue-options.js
 !src/lib/classroom-teacher-kick-alerts.js
 !src/lib/classroom-teacher-panel.js
+!src/lib/classroom-teacher-reauth.js
 !src/lib/classroom-peer-view.js
 !src/lib/google-classroom-auth.js
 !src/lib/block-utils.js
@@ -390,6 +391,7 @@ test/unit/containers/*
 !test/unit/containers/use-teacher-auth-restore.test.js
 !test/unit/containers/classroom-kick-request-watcher.test.jsx
 !test/unit/containers/classroom-teacher-kick-alerts.test.jsx
+!test/unit/containers/classroom-teacher-panel.test.jsx
 !test/unit/containers/use-teacher-kick-request-polling.test.js
 !test/unit/containers/use-teacher-panel-polling.test.js
 !test/unit/containers/classroom-peer-panel.test.jsx
@@ -439,6 +441,7 @@ test/unit/lib/*
 !test/unit/lib/classroom-teacher-session.test.js
 !test/unit/lib/classroom-teacher-kick-alerts.test.js
 !test/unit/lib/classroom-teacher-panel.test.js
+!test/unit/lib/classroom-teacher-reauth.test.js
 !test/unit/lib/classroom-peer-view.test.js
 !test/unit/lib/classroom-assignment-templates.test.js
 !test/unit/lib/classroom-assignment-utils.test.js

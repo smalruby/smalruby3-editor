@@ -12,14 +12,22 @@ import {
     savePanelPosition,
     summarizePanelStatus,
 } from '../lib/classroom-teacher-panel.js';
-import { saveTeacherLastSelection } from '../lib/classroom-teacher-session.js';
+import { isTeacherAuthExpired, reauthenticateTeacher } from '../lib/classroom-teacher-reauth.js';
+import { saveTeacherLastSelection, saveTeacherToken } from '../lib/classroom-teacher-session.js';
+import { attemptSilentReauth } from '../lib/teacher-auth.js';
+import { getUrlParams } from '../lib/url-params.js';
 import {
     closeTeacherPanel,
+    openTeacherModal,
     removeTeacherKickRequest,
     requestTeacherNavigation,
     setTeacherLastSelection,
 } from '../reducers/classroom.js';
-import { getCachedTeacherIdToken } from './use-teacher-auth.js';
+import {
+    getCachedTeacherAuthProvider,
+    getCachedTeacherIdToken,
+    setCachedTeacherIdToken,
+} from './use-teacher-auth.js';
 import useTeacherPanelPolling from './use-teacher-panel-polling.js';
 
 const messages = defineMessages({
@@ -77,6 +85,7 @@ const ClassroomTeacherPanel = () => {
     const loggedIn = useSelector((state) => !!state.scratchGui.classroom?.teacherLoggedIn);
     const open = useSelector((state) => !!state.scratchGui.classroom?.teacherPanelOpen);
     const lastSelection = useSelector((state) => state.scratchGui.classroom?.teacherLastSelection || null);
+    const teacherModalVisible = useSelector((state) => !!state.scratchGui.classroom?.teacherModalVisible);
     const allKickRequests = useSelector((state) => state.scratchGui.classroom?.teacherKickRequests || []);
     const shown = loggedIn && open;
 
@@ -86,6 +95,9 @@ const ClassroomTeacherPanel = () => {
     const [loading, setLoading] = useState(false);
     const [busyIds, setBusyIds] = useState([]);
     const [error, setError] = useState(null);
+    // The teacher's ID token expired (#1250): polling stops until a re-auth.
+    const [sessionExpired, setSessionExpired] = useState(false);
+    const [reauthing, setReauthing] = useState(false);
     const [position, setPosition] = useState(() => loadPanelPosition() || defaultPosition(FALLBACK_SIZE));
     const panelRef = useRef(null);
 
@@ -94,33 +106,94 @@ const ClassroomTeacherPanel = () => {
     // The assignment list (switcher + seat count) is read when the panel opens
     // and again on the manual refresh, so a failed read or a new assignment
     // does not need closing and reopening the panel.
+    const handleLoadError = useCallback(
+        (err) => {
+            if (isTeacherAuthExpired(err)) {
+                setSessionExpired(true);
+                setError(null);
+            } else {
+                setError(intl.formatMessage(messages.loadFailed));
+            }
+        },
+        [intl],
+    );
     const loadClassrooms = useCallback(async () => {
         const token = getCachedTeacherIdToken();
         if (!token) return;
         try {
             const data = await classroomAPI.listClassrooms(token);
             setClassrooms(data.classrooms || []);
-        } catch {
-            setError(intl.formatMessage(messages.loadFailed));
+        } catch (err) {
+            handleLoadError(err);
         }
-    }, [intl]);
+    }, [handleLoadError]);
     useEffect(() => {
         if (shown) loadClassrooms();
     }, [shown, loadClassrooms]);
 
     const handleMembers = useCallback((id, members) => {
         setError(null);
+        setSessionExpired(false);
         setMembersById((prev) => ({ ...prev, [id]: members }));
     }, []);
-    const handlePollError = useCallback(() => setError(intl.formatMessage(messages.loadFailed)), [intl]);
 
     const { refresh } = useTeacherPanelPolling({
-        open: shown,
+        // Every call would be another 401 until the teacher re-authenticates.
+        open: shown && !sessionExpired,
         loggedIn,
         classroomId,
         onMembers: handleMembers,
-        onError: handlePollError,
+        onError: handleLoadError,
     });
+
+    // Started by the click on "再認証する": the provider prompt needs a user
+    // gesture. The token goes to the module cache, which the class management
+    // modal reads when it mounts, so the modal does not start from the old
+    // one. On failure the class management modal takes over (its own 401
+    // handling re-authenticates or asks to log in again).
+    const handleReauth = useCallback(async () => {
+        if (reauthing) return;
+        setReauthing(true);
+        const provider = getCachedTeacherAuthProvider();
+        const token = await reauthenticateTeacher({
+            provider,
+            reauth: attemptSilentReauth,
+            devlogin: getUrlParams().devlogin || null,
+        });
+        setReauthing(false);
+        if (!token) {
+            dispatch(openTeacherModal());
+            return;
+        }
+        setCachedTeacherIdToken(token);
+        saveTeacherToken(provider, token);
+        setError(null);
+        // Polling resumes and fetches at once (it was stopped while expired).
+        setSessionExpired(false);
+        loadClassrooms();
+    }, [reauthing, dispatch, loadClassrooms]);
+
+    // After the fallback to class management, the teacher has logged in again
+    // there (or not): try once more when the modal closes.
+    const prevModalVisibleRef = useRef(teacherModalVisible);
+    useEffect(() => {
+        if (prevModalVisibleRef.current && !teacherModalVisible && sessionExpired) {
+            setSessionExpired(false);
+            loadClassrooms();
+        }
+        prevModalVisibleRef.current = teacherModalVisible;
+    }, [teacherModalVisible, sessionExpired, loadClassrooms]);
+
+    // Debug: make the panel's next call use an expired token (#1250).
+    // `forceTeacher401` only exists while the class management modal is open.
+    useEffect(() => {
+        if (!shown) return () => {};
+        window.smalruby = window.smalruby || {};
+        window.smalruby.forceTeacherPanel401 = () => setCachedTeacherIdToken('expired.token.stub');
+        return () => {
+            if (window.smalruby) delete window.smalruby.forceTeacherPanel401;
+        };
+    }, [shown]);
 
     // Keep the panel on screen once its real size is known and on resize.
     useLayoutEffect(() => {
@@ -137,7 +210,7 @@ const ClassroomTeacherPanel = () => {
         fit();
         window.addEventListener('resize', fit);
         return () => window.removeEventListener('resize', fit);
-    }, [shown, minimized, classroomId, membersById]);
+    }, [shown, minimized, classroomId, membersById, sessionExpired]);
 
     const handleDrag = useCallback((e, data) => setPosition({ x: data.x, y: data.y }), []);
     const handleDragStop = useCallback((e, data) => {
@@ -240,6 +313,9 @@ const ClassroomTeacherPanel = () => {
             onDrag={handleDrag}
             onDragStop={handleDragStop}
             onOpenSeat={handleOpenSeat}
+            reauthing={reauthing}
+            sessionExpired={sessionExpired}
+            onReauth={handleReauth}
             onRefresh={handleRefresh}
             onReject={handleReject}
             onSelectAssignment={handleSelectAssignment}
