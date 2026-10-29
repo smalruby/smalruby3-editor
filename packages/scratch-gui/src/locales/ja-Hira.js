@@ -881,6 +881,10 @@ export default {
         '「{ METHOD }」はclass Stageではつかえません。\nこのメソッドはスプライトせんようです。',
     'gui.smalruby3.rubyToBlocksConverter.stageMethodInSpriteClass':
         '「{ METHOD }」はスプライトのclassではつかえません。\nこのメソッドはclass Stageせんようです。',
+    'gui.smalruby3.rubyToBlocksConverter.koshien.invalidPosition':
+        '「{ POSITION }」はざひょうがまちがっています。\nざひょうは "x:y" のかたちで、x と y は 0 から 16 のかずにしてください。',
+    'gui.smalruby3.rubyToBlocksConverter.koshien.invalidCoordinate':
+        '「{ COORDINATE }」はざひょうがまちがっています。\n0 から 16 のかずにしてください。',
     'gui.smalruby3.rubyToBlocksConverter.arraySyntaxNotAvailableInV1':
         'はいれつのかきかたはルビーバージョン2でのみつかえます。\nせっていメニューからルビーバージョン2にきりかえるか、\nlist()のかきかたをつかってください。',
     'gui.smalruby3.rubyToBlocksConverter.listSyntaxNotAvailableInV2':
