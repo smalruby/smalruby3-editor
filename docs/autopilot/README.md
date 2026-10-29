@@ -272,8 +272,7 @@ close した leaf、(B) 統合 PR の `Closes #<epic>` で閉じた EPIC、(C) �
 1. 差分の変更ファイルから `touchedRuleAreas`（`phases.js` の純粋関数）で touch する
    `.claude/rules/<area>/` を機械的に導き、それを読んでからレビューする（プロジェクト固有の
    実装規約・マーカー・不変条件の逸脱を見落とさない）。
-2. 各指摘を **Must / Question / FYI** に分類し、PR コメント本文の先頭に `**[Must]**` 等の
-   マーカーを付ける（`REVIEW_FINDING_MARKER_RE` が検出する形式）:
+2. 各指摘を **Must / Question / FYI** に分類する:
 
    | 分類 | 定義 | autopilot の対応 |
    |---|---|---|
@@ -281,12 +280,35 @@ close した leaf、(B) 統合 PR の `Closes #<epic>` で閉じた EPIC、(C) �
    | **Question** | 直した方がいいが動作する。稀なコーナーケース | 対応コストが小さければ修正、大きければ人間へ（`🙋 HITL` は Review 遷移で既に立つので追加分岐は無い） |
    | **FYI** | 気になるが直すほどではない | 対応しない（コメントのみ） |
 
-3. 件数サマリ（`countReviewFindings` / `renderReviewFindingsSummary`）を PR コメントに残す
-   （「指摘 N 件（Must a / Question b / FYI c）」形式）。#893 で失われた「敵対的レビューの
-   深さの可視性」をこのサマリで回復する。
+3. **1 回のレビューの全指摘を 1 コメントにまとめて**投稿する（`renderReviewFindingsComment`）。
+   先頭に冪等マーカー `<!-- autopilot-review-findings round=N -->`、次の行に件数サマリ
+   （「指摘 N 件（Must a / Question b / FYI c）」形式。別のサマリコメントは出さない）、以降に
+   Must → Question → FYI の見出しごとに `- **[M1]** \`file:line\` 内容 — 対応` を並べる。
+   ID は分類ごとの連番（`M1` / `Q1` / `FYI1` …）で、**同じ PR の再レビュー（round 2 以降）は
+   前回の続きから採番する**（`nextReviewFindingNumbers`）ので、人間の「Q1」が曖昧にならない。
 
-分類・件数集計・対応方針テーブルは `phases.js` の純粋関数（`parseReviewFindingCategory` /
-`countReviewFindings` / `renderReviewFindingsSummary` / `addressReviewPolicyFor`）でテスト済み。
+#### ID での返信（address-review）
+
+人間は `Q1はOK, FYI1は修正して` のように ID で短く返信できる。address-review は
+`planAddressReview`（`parseFindingReferences` + `resolveFindingAction`）で各指摘の対応を決める:
+
+| 人間の返信 | 対応 |
+|---|---|
+| 「OK」「そのままで」「直さなくていい」 | 変更しない（`no-change`） |
+| 「修正して」「直して」 | 修正する（`fix`。**FYI でも人間の明示指示が既定方針より優先**） |
+| それ以外（質問・代案） | 返信し、必要なら修正（`reply`） |
+| 言及なし | 既定方針（Must=修正 / Question=対応可なら修正・困難なら人間へ / FYI=何もしない） |
+
+ID の表記ゆれ（`Q1` / `q1` / `Question1`、`M1` / `Must1`、`FYI1` / `F1`、全角数字）を受け付ける。
+address-review のまとめコメントも ID で書く（例: 「Q1: 変更なし（人間 OK） / FYI1: 修正済み（`<sha>`）」）。
+
+旧形式（1 コメント 1 指摘で `**[Must]**` 等のマーカーだけ持つコメント）が残る既存 PR も
+`countReviewFindings` が合算し、address-review も従来の既定方針で扱う（後方互換）。
+
+分類・件数集計・対応方針テーブル・採番・ID 参照の解釈は `phases.js` の純粋関数
+（`parseReviewFindingCategory` / `parseReviewFindings` / `countReviewFindings` /
+`renderReviewFindingsSummary` / `renderReviewFindingsComment` / `nextReviewFindingNumbers` /
+`parseFindingReferences` / `planAddressReview` / `addressReviewPolicyFor`）でテスト済み。
 分類の実行（何が Must/Question/FYI か）自体は LLM の判断で、機械的に検証できるのは
 マーカー形式・集計・対応表の整合性のみ。
 

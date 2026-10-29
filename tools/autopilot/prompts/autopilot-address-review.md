@@ -52,9 +52,44 @@ done
 
 分類すべき対象は 2 系統ある。**両方**を確認する。
 
-**(A) bot 自身が review フェーズで残した分類コメント**（`**[Must]**` / `**[Question]**` /
-`**[FYI]**` マーカー付き。`.claude/rules/autopilot/` の規約と同じ形式）のうち、**まだ修正されて
-いないもの**を洗い出し、次の方針で対応する（review フェーズと同じ対応表・#921）:
+**(A) bot 自身が review フェーズで残した指摘**。現行形式は **1 レビュー 1 コメントのまとめコメント**
+（先頭に `<!-- autopilot-review-findings round=N -->`、各指摘に `**[M1]**` / `**[Q1]**` / `**[FYI1]**`
+の ID・#1248）。旧形式（1 コメント 1 指摘の `**[Must]**` / `**[Question]**` / `**[FYI]**`・#921）が
+残る PR もあるので両方読む。
+
+人間は ID で短く返信してくる（例: **`Q1はOK, FYI1は修正して`**）。ID 付き指摘の対応は
+`phases.js` の `planAddressReview`（純粋関数・テスト済み）で**機械的に**決める。人間の返信本文
+（bot 以外のコメント・レビュー本文・行コメントを古い順に）を渡す:
+
+```bash
+GH_TOKEN="$(bin/bot-token)" gh api "repos/$AUTOPILOT_REPO/issues/$PR/comments" --paginate \
+  | jq -s 'add' > tmp/pr-comments-$AUTOPILOT_ISSUE.json
+# tmp/human-replies-$AUTOPILOT_ISSUE.json に人間の返信本文の配列（古い順）を書いてから:
+node -e '
+const fs = require("fs");
+const { planAddressReview } = require("./tools/autopilot/src/phases.js");
+const comments = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+const replies = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+console.log(JSON.stringify(planAddressReview(comments, replies), null, 2));
+' tmp/pr-comments-$AUTOPILOT_ISSUE.json tmp/human-replies-$AUTOPILOT_ISSUE.json
+```
+
+各指摘の `action` に従う（`source:"human"` は人間の指示、`"policy"` は既定方針）:
+
+| action | 意味 | 対応 |
+|---|---|---|
+| `no-change` | 人間が「OK / そのままで / 直さなくていい」 | **何もしない**（Must でも人間の判断を尊重） |
+| `fix` | 人間が「修正して / 直して」、または言及なしの Must | **修正する**（**FYI でも人間が明示したら直す**） |
+| `reply` | 人間が質問・代案を書いた | **返信**し、必要なら修正 |
+| `fix-or-hitl` | 言及なしの Question | すぐ対応できるなら直す。**改修コスト > 効果**なら人間に質問（後述 HITL） |
+| `ignore` | 言及なしの FYI | **対応しない** |
+
+ID の表記ゆれ（`Q1` / `q1` / `Question1`、`M1` / `Must1`、`FYI1` / `F1`、全角数字）は
+`parseFindingReferences` が吸収する。存在しない ID への言及は計画に載らないので、文脈から意図を
+読んで (B) として扱う（判断がつかなければ HITL）。
+
+旧形式（ID なし）の分類コメントは従来どおり、**まだ修正されていないもの**を次の既定方針で扱う
+（`addressReviewPolicyFor`・#921）:
 
 | 分類 | 対応 |
 |---|---|
@@ -77,11 +112,12 @@ bot 自身の対応済みコメント・解決済みスレッドは文脈とし�
 
 ### 3. 対応する
 
-- **Must / 改善依頼**: worktree 内で修正 → 関連テスト/lint → `bin/bot-git` でコミット・push。
-- **Question（対応可）/ 質問**: PR に bot で返信。コード変更を伴うならあわせて push。
-- **FYI**: 何もしない（既存のコメントを消さない）。
+- **Must / 改善依頼 / `action:"fix"`**: worktree 内で修正 → 関連テスト/lint → `bin/bot-git` でコミット・push。
+- **Question（対応可）/ 質問 / `action:"reply"`**: PR に bot で返信。コード変更を伴うならあわせて push。
+- **FYI（`ignore`）/ `action:"no-change"`**: 何もしない（既存のコメントを消さない）。
 - 対応の有無が辿れるよう、**まとめコメントを 1 件**残す（「指摘 N 件: 対応 a 件 / 返信 b 件 / 対応不要 c 件」。
-  bot 分類コメントの残タスクがあればそれも件数に含める）。
+  bot 分類コメントの残タスクがあればそれも件数に含める）。ID 付き指摘は **ID で 1 行ずつ**書く
+  （例: `Q1: 変更なし（人間 OK） / FYI1: 修正済み（<sha>） / M2: 修正済み（<sha>）`）。
 - LGTM など対応不要のみで、コードに触る必要が無ければコミットしない（冪等・無駄 push をしない）。
 
 ### 3.5 時間契約（実行上限 約30分・soft-limit 22分）

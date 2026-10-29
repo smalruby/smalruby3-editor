@@ -2066,15 +2066,23 @@ function parseReviewFindingCategory(body) {
 
 /**
  * 複数コメントから分類ごとの件数を集計する（純粋関数）。マーカーの無いコメントは無視。
+ * まとめコメント（#1248）は 1 コメント内の複数指摘を ID で重複除去して数え、旧形式
+ * （1 コメント 1 マーカー）は 1 コメント 1 件として合算する（既存 PR の後方互換）。
  * `#893` で失われた「敵対的レビューの深さの視認性」をサマリとして復元するために使う。
  * @param {Array<{body: string}>} comments
  * @returns {{Must: number, Question: number, FYI: number}}
  */
 function countReviewFindings(comments) {
     const counts = { Must: 0, Question: 0, FYI: 0 };
+    const seen = new Set();
     for (const c of comments || []) {
-        const category = parseReviewFindingCategory(c && c.body);
-        if (category) counts[category] += 1;
+        for (const f of parseReviewFindings(c && c.body)) {
+            if (f.id) {
+                if (seen.has(f.id)) continue;
+                seen.add(f.id);
+            }
+            counts[f.category] += 1;
+        }
     }
     return counts;
 }
@@ -2112,6 +2120,283 @@ const REVIEW_FINDING_POLICY = {
  */
 function addressReviewPolicyFor(category) {
     return REVIEW_FINDING_POLICY[category] || 'ignore';
+}
+
+/**
+ * レビュー指摘のまとめコメント（#1248）。1 回のレビューの全指摘を 1 コメントに集約し、
+ * 冒頭のマーカーで round（同じ PR の何回目のレビューか）を識別する。冪等判定
+ * （{@link findReviewFindingsComment}）と連番の継続（{@link nextReviewFindingNumbers}）に使う。
+ */
+const REVIEW_FINDINGS_MARKER_PREFIX = '<!-- autopilot-review-findings';
+const REVIEW_FINDINGS_ROUND_RE = /<!--\s*autopilot-review-findings\s+round=(\d+)\s*-->/;
+
+/** 分類 ↔ ID 接頭辞（`M1` / `Q1` / `FYI1`）。並び順はまとめコメントの見出し順を兼ねる */
+const REVIEW_FINDING_ID_PREFIX = { Must: 'M', Question: 'Q', FYI: 'FYI' };
+
+/** まとめコメント内の ID 付き指摘（例: `**[Q1]**`）を検出する正規表現 */
+const REVIEW_FINDING_ID_MARKER_RE = /\*\*\[(M|Q|FYI)(\d+)\]\*\*/g;
+
+/**
+ * 人間の返信中の ID 参照。表記ゆれ（`Question1` / `Must1` / `F1`）を受け、前後が英数字の
+ * ものは ID とみなさない（`HTTP2` / `AM1` / `MQ1x` に誤マッチしない）。全角は NFKC 済み前提。
+ */
+const REVIEW_FINDING_REF_RE = /(?<![A-Za-z0-9])(must|question|fyi|m|q|f)(\d+)(?![A-Za-z0-9])/gi;
+
+const REF_ALIAS_TO_CATEGORY = {
+    must: 'Must', m: 'Must', question: 'Question', q: 'Question', fyi: 'FYI', f: 'FYI',
+};
+
+/**
+ * round からまとめコメントのマーカーを作る（純粋関数）。
+ * @param {number} round
+ * @returns {string}
+ */
+function reviewFindingsMarker(round) {
+    return `${REVIEW_FINDINGS_MARKER_PREFIX} round=${round} -->`;
+}
+
+/**
+ * コメント本文からまとめコメントの round を読む（純粋関数）。まとめコメントでなければ null。
+ * @param {string} body
+ * @returns {number|null}
+ */
+function parseReviewFindingsRound(body) {
+    if (!body) return null;
+    const m = body.match(REVIEW_FINDINGS_ROUND_RE);
+    return m ? Number(m[1]) : null;
+}
+
+/**
+ * 次のレビューの round（既存まとめコメントの最大 round + 1。無ければ 1）を返す（純粋関数）。
+ * @param {Array<{body: string}>} comments
+ * @returns {number}
+ */
+function nextReviewFindingsRound(comments) {
+    let max = 0;
+    for (const c of comments || []) {
+        const round = parseReviewFindingsRound(c && c.body);
+        if (round && round > max) max = round;
+    }
+    return max + 1;
+}
+
+/**
+ * 指定 round のまとめコメントを返す（純粋関数）。再実行時に二重投稿せず編集するための判定。
+ * @param {Array<{body: string}>} comments
+ * @param {number} round
+ * @returns {object|null}
+ */
+function findReviewFindingsComment(comments, round) {
+    return (comments || []).find(c => parseReviewFindingsRound(c && c.body) === round) || null;
+}
+
+/**
+ * ID 文字列（`Q1` / `q1` / `Question1` / `Must2` / `F3` / 全角数字）を正規化する（純粋関数）。
+ * @param {string} token
+ * @returns {{id: string, category: string, number: number}|null}
+ */
+function parseReviewFindingId(token) {
+    if (!token) return null;
+    const m = String(token).normalize('NFKC').trim()
+        .match(/^(must|question|fyi|m|q|f)(\d+)$/i);
+    if (!m) return null;
+    const category = REF_ALIAS_TO_CATEGORY[m[1].toLowerCase()];
+    const number = Number(m[2]);
+    if (!number) return null;
+    return { id: `${REVIEW_FINDING_ID_PREFIX[category]}${number}`, category, number };
+}
+
+/**
+ * 1 コメントに含まれる指摘を抜き出す（純粋関数）。
+ * - まとめコメント（マーカーあり）: ID 付き指摘をすべて（コメント内で重複除去）
+ * - 旧形式（1 コメント 1 マーカー・#921）: ID なしの 1 件（後方互換）
+ * - それ以外（人間のコメント等）: 空。人間が `**[Q1]**` を引用しても指摘としては数えない
+ * @param {string} body
+ * @returns {Array<{id: string|null, category: string, number: number|null}>}
+ */
+function parseReviewFindings(body) {
+    if (!body) return [];
+    if (parseReviewFindingsRound(body) === null) {
+        const category = parseReviewFindingCategory(body);
+        return category ? [{ id: null, category, number: null }] : [];
+    }
+    const out = [];
+    const seen = new Set();
+    for (const m of body.matchAll(REVIEW_FINDING_ID_MARKER_RE)) {
+        const f = parseReviewFindingId(`${m[1]}${m[2]}`);
+        if (f && !seen.has(f.id)) {
+            seen.add(f.id);
+            out.push(f);
+        }
+    }
+    return out;
+}
+
+/**
+ * まとめコメント群から ID 付き指摘を出現順・重複除去で集める（純粋関数・内部用）。
+ * @param {Array<{body: string}>} comments
+ * @returns {Array<{id: string, category: string, number: number}>}
+ */
+function collectIdentifiedFindings(comments) {
+    const out = [];
+    const seen = new Set();
+    for (const c of comments || []) {
+        for (const f of parseReviewFindings(c && c.body)) {
+            if (f.id && !seen.has(f.id)) {
+                seen.add(f.id);
+                out.push(f);
+            }
+        }
+    }
+    return out;
+}
+
+/**
+ * 再レビューで使う分類ごとの開始番号（既存の最大番号 + 1）を返す（純粋関数）。
+ * round をまたいで連番を継続し、人間の「Q1」が曖昧にならないようにする。
+ * @param {Array<{body: string}>} comments
+ * @returns {{Must: number, Question: number, FYI: number}}
+ */
+function nextReviewFindingNumbers(comments) {
+    const next = { Must: 1, Question: 1, FYI: 1 };
+    for (const f of collectIdentifiedFindings(comments)) {
+        if (f.number + 1 > next[f.category]) next[f.category] = f.number + 1;
+    }
+    return next;
+}
+
+/**
+ * 指摘を分類順（Must → Question → FYI）に並べ、開始番号から ID を振る（純粋関数）。
+ * 分類内の順序は入力順を保つ。未知分類は捨てる。
+ * @param {Array<{category: string}>} findings
+ * @param {{Must?: number, Question?: number, FYI?: number}} [start]
+ * @returns {Array<object>} 各要素に `id` を足したもの
+ */
+function assignReviewFindingIds(findings, start = {}) {
+    const out = [];
+    for (const category of REVIEW_FINDING_CATEGORIES) {
+        let n = start[category] || 1;
+        for (const f of findings || []) {
+            if (f && f.category === category) {
+                out.push({ ...f, id: `${REVIEW_FINDING_ID_PREFIX[category]}${n}` });
+                n += 1;
+            }
+        }
+    }
+    return out;
+}
+
+/**
+ * 1 回のレビューの全指摘を 1 コメントにまとめた本文を作る（純粋関数・#1248）。
+ * 先頭にマーカー、次の行に件数サマリ、以降に分類見出しごとの `- **[ID]** \`場所\` 内容 — 対応`。
+ * @param {object} p
+ * @param {number} p.round - {@link nextReviewFindingsRound} の値
+ * @param {Array<{category: string, location?: string, text: string, handling?: string}>} p.findings
+ * @param {{Must?: number, Question?: number, FYI?: number}} [p.start] - {@link nextReviewFindingNumbers} の値
+ * @returns {string}
+ */
+function renderReviewFindingsComment({ round, findings, start }) {
+    const assigned = assignReviewFindingIds(findings, start);
+    const counts = { Must: 0, Question: 0, FYI: 0 };
+    for (const f of assigned) counts[f.category] += 1;
+    const lines = [
+        reviewFindingsMarker(round),
+        `🤖 敵対的レビュー（round ${round}）: ${renderReviewFindingsSummary(counts)}`,
+    ];
+    for (const category of REVIEW_FINDING_CATEGORIES) {
+        const group = assigned.filter(f => f.category === category);
+        if (group.length === 0) continue;
+        lines.push('', `### ${category}`);
+        for (const f of group) {
+            const loc = f.location ? `\`${f.location}\` ` : '';
+            const handling = f.handling ? ` — ${f.handling}` : '';
+            lines.push(`- **[${f.id}]** ${loc}${f.text}${handling}`);
+        }
+    }
+    if (assigned.length > 0) {
+        lines.push('', '返信は ID で指定できます（例: `Q1はOK, FYI1は修正して`）。');
+    }
+    return lines.join('\n');
+}
+
+/** 「直さなくてよい」系の否定。fix より先に判定する（「修正しなくていい」を fix にしない） */
+const REF_NO_FIX_RE = /(修正|変更|対応)(しなくて|せず|は?不要)|直さ(なくて|ず)|しないで/;
+const REF_FIX_RE = /修正|直して|直す|なおして|(?<![a-z])fix(?![a-z])/i;
+const REF_OK_RE = /(?<![a-z])(ok|lgtm)(?![a-z])|そのまま|問題な|了解|大丈夫|不要|スルー/i;
+
+/**
+ * 節（ID を除いた残りの文）から指示を分類する（純粋関数・内部用）。
+ * @param {string} clause
+ * @returns {'ok'|'fix'|'other'}
+ */
+function classifyFindingInstruction(clause) {
+    if (REF_NO_FIX_RE.test(clause)) return 'ok';
+    if (REF_FIX_RE.test(clause)) return 'fix';
+    if (REF_OK_RE.test(clause)) return 'ok';
+    return 'other';
+}
+
+/**
+ * 人間の短い返信（例: 「Q1はOK, FYI1は修正して」）から、ID ごとの指示を抜き出す（純粋関数・#1248）。
+ * 句読点・カンマ・改行で節に分け、節内の ID すべてにその節の指示を当てる。
+ * 同じ ID が複数回出たら後勝ち（言い直しを尊重）。順序は初出順。
+ * - 'ok': OK / そのままで / 修正しなくていい → その指摘は変更しない
+ * - 'fix': 修正して / 直して → 修正する（FYI でも人間の明示指示を優先）
+ * - 'other': 質問・代案など → 返信し、必要なら修正
+ * @param {string} text
+ * @returns {Array<{id: string, category: string, instruction: 'ok'|'fix'|'other'}>}
+ */
+function parseFindingReferences(text) {
+    if (!text) return [];
+    const byId = new Map();
+    for (const clause of String(text).normalize('NFKC').split(/[,、。.\n;!?]/)) {
+        const ids = [];
+        for (const m of clause.matchAll(REVIEW_FINDING_REF_RE)) {
+            const f = parseReviewFindingId(`${m[1]}${m[2]}`);
+            if (f) ids.push(f);
+        }
+        if (ids.length === 0) continue;
+        const instruction = classifyFindingInstruction(clause.replace(REVIEW_FINDING_REF_RE, ' '));
+        for (const f of ids) byId.set(f.id, { id: f.id, category: f.category, instruction });
+    }
+    return [...byId.values()];
+}
+
+/**
+ * 指摘の対応を決める（純粋関数）。人間の指示があれば既定方針（{@link addressReviewPolicyFor}）より優先。
+ * @param {string} category
+ * @param {'ok'|'fix'|'other'|null|undefined} instruction
+ * @returns {'no-change'|'fix'|'reply'|'fix-or-hitl'|'ignore'}
+ */
+function resolveFindingAction(category, instruction) {
+    if (instruction === 'ok') return 'no-change';
+    if (instruction === 'fix') return 'fix';
+    if (instruction === 'other') return 'reply';
+    return addressReviewPolicyFor(category);
+}
+
+/**
+ * address-review の対応計画（純粋関数・#1248）。まとめコメントの全 ID 付き指摘について、
+ * 人間の返信（時系列順の本文配列。後勝ち）の指示を当て、言及の無いものは既定方針にする。
+ * 存在しない ID への言及は無視。旧形式（ID なし）コメントは計画に載らない（プロンプトが従来どおり扱う）。
+ * @param {Array<{body: string}>} comments - PR のコメント（まとめコメントを含む）
+ * @param {string[]} humanTexts - 人間の返信本文（古い順）
+ * @returns {Array<{id: string, category: string, action: string, source: 'human'|'policy'}>}
+ */
+function planAddressReview(comments, humanTexts) {
+    const refs = new Map();
+    for (const text of humanTexts || []) {
+        for (const r of parseFindingReferences(text)) refs.set(r.id, r);
+    }
+    return collectIdentifiedFindings(comments).map(f => {
+        const ref = refs.get(f.id);
+        return {
+            id: f.id,
+            category: f.category,
+            action: resolveFindingAction(f.category, ref ? ref.instruction : null),
+            source: ref ? 'human' : 'policy',
+        };
+    });
 }
 
 /**
@@ -2843,4 +3128,18 @@ module.exports = {
     renderReviewFindingsSummary,
     REVIEW_FINDING_POLICY,
     addressReviewPolicyFor,
+    REVIEW_FINDINGS_MARKER_PREFIX,
+    REVIEW_FINDING_ID_PREFIX,
+    reviewFindingsMarker,
+    parseReviewFindingsRound,
+    nextReviewFindingsRound,
+    findReviewFindingsComment,
+    parseReviewFindingId,
+    parseReviewFindings,
+    nextReviewFindingNumbers,
+    assignReviewFindingIds,
+    renderReviewFindingsComment,
+    parseFindingReferences,
+    resolveFindingAction,
+    planAddressReview,
 };

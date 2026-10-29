@@ -37,11 +37,15 @@ review / verify などのプロンプトから **`/code-review` / `/security-rev
 
 `.claude/rules` 準拠は「読んだつもり」にならないよう、変更ファイルから `phases.js` の
 `touchedRuleAreas`（純粋関数）で touch する `.claude/rules/<area>/` を機械的に導いてから読む
-（#921）。指摘は本文先頭に `**[Must]**` / `**[Question]**` / `**[FYI]**` マーカーを付けて
-3 分類し、`countReviewFindings` / `renderReviewFindingsSummary` で件数サマリを PR に残す
-（対応方針は Must=修正 / Question=対応可なら修正・困難なら人間へ / FYI=無視。
-`addressReviewPolicyFor` が唯一の真実）。`autopilot-address-review.md` も同じ分類・対応表を
-未対応の bot コメントに適用する。
+（#921）。指摘は Must / Question / FYI に 3 分類し、**1 回のレビューの全指摘を 1 コメントに
+まとめる**（`renderReviewFindingsComment`。先頭マーカー `<!-- autopilot-review-findings round=N -->`・
+2 行目に件数サマリ・各指摘に `**[M1]**` / `**[Q1]**` / `**[FYI1]**` の連番 ID。再レビューは
+`nextReviewFindingNumbers` で連番を継続・#1248）。指摘ごとの別コメントや別のサマリコメントを
+出すのは逸脱。対応方針は Must=修正 / Question=対応可なら修正・困難なら人間へ / FYI=無視
+（`addressReviewPolicyFor` が既定方針の唯一の真実）。`autopilot-address-review.md` は人間の ID 返信
+（「Q1はOK, FYI1は修正して」）を `planAddressReview` で解釈し、**人間の明示指示を既定方針より優先**
+する（FYI でも「直して」なら直す）。旧形式（1 コメント 1 マーカーの `**[Must]**` 等）も
+`countReviewFindings` が合算する（後方互換）。
 
 ## コミット・push の規約
 
