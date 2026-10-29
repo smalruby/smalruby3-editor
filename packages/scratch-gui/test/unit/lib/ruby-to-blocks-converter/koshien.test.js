@@ -94,6 +94,9 @@ describe('RubyToBlocksConverter/Koshien', () => {
                         'koshien.set_bomb("16:16")',
                         'koshien.map("16:16")',
                         'koshien.position_of_x("16:16")',
+                        'koshien.map_from("16:16", nil)',
+                        'koshien.calc_route(src: "16:16", dst: "0:16", except_cells: nil, result: nil)',
+                        'koshien.locate_objects(sq_size: 5, cent: "16:16", objects: "A", result: nil)',
                         'koshien.position(16, 16)'
                     ]) {
                         await converter.targetCodeToBlocks(target, code);
@@ -111,7 +114,11 @@ describe('RubyToBlocksConverter/Koshien', () => {
                         'koshien.set_dynamite("17:0")',
                         'koshien.set_bomb("17:0")',
                         'koshien.map("17:0")',
-                        'koshien.position_of_x("17:0")'
+                        'koshien.position_of_x("17:0")',
+                        'koshien.map_from("17:0", nil)',
+                        'koshien.calc_route(src: "17:16", dst: "0:16", except_cells: nil, result: nil)',
+                        'koshien.calc_route(src: "0:0", dst: "0:17", except_cells: nil, result: nil)',
+                        'koshien.locate_objects(sq_size: 5, cent: "17:16", objects: "A", result: nil)'
                     ]) {
                         await convertAndExpectErrorText(code, /is an invalid coordinate\..*0 to 16/s);
                     }
