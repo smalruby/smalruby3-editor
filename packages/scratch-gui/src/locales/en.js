@@ -570,6 +570,10 @@ export default {
         '"{ METHOD }" cannot be used in class Stage. This method is only available for sprites.',
     'gui.smalruby3.rubyToBlocksConverter.stageMethodInSpriteClass':
         '"{ METHOD }" cannot be used in a sprite class. This method is only available for class Stage.',
+    'gui.smalruby3.rubyToBlocksConverter.koshien.invalidPosition':
+        '"{ POSITION }" is an invalid coordinate.\nWrite it as "x:y" where x and y are numbers from 0 to 16.',
+    'gui.smalruby3.rubyToBlocksConverter.koshien.invalidCoordinate':
+        '"{ COORDINATE }" is an invalid coordinate.\nUse a number from 0 to 16.',
     'gui.smalruby3.rubyToBlocksConverter.classNotSupportedInV1':
         'class definitions are not supported in Ruby version 1. Please switch to Ruby version 2 from the settings menu.',
     'gui.smalruby3.telemetryOptIn.buttonTextYes': "Yes, I'd like to help improve Smalruby",

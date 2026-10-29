@@ -159,8 +159,13 @@ Rubytee（ルビティー）は Anthropic Claude API を利用した AI コー�
 
 - `src/locales/index.js` が scratch-l10n の editor-msgs に `en` / `ja` / `ja-Hira` を
   `Object.assign` で上書き合成する。追加はフラットな `{'gui.x.y': '訳'}` を各言語ファイルへ。
-- **`ja.js` と `ja-Hira.js` は必ず対で追加する**（現状 Smalruby キーは両者で同数 = 対で
-  メンテされている不変条件）。`en.js` は任意（`defineMessages` の `defaultMessage` が代替）。
+- **新しいキーは `en.js` / `ja.js` / `ja-Hira.js` の 3 ファイルすべてに追加する**（1 つでも
+  欠けたら未完成）。`en.js` は `defaultMessage` と同じ文言でよいが省略しない — 「`defaultMessage`
+  があるから en は不要」と判断して漏らす事故が繰り返し起きたため必須にした。
+  - 実装時: キーを足したら `git diff -U0 -- src/locales/` で 3 ファイルに同じキーが入ったか確かめる。
+  - レビュー時: diff で追加された翻訳キーが 3 ファイルに揃っていなければ **[Must]**。
+  - 既存キーには `en.js` に無いものが残っている（過去に任意扱いだった分）。既存分の穴埋めは
+    この規約の対象外で、新しく足すキーだけ 3 ファイル揃える。
 - `defineMessages` の id 名前空間は **`gui.<featureCamel>.<key>`**（`gui.rubyToolbar.*` /
   `gui.classroom.*` 等）。id は ja.js / ja-Hira.js のキーと一致させる。
 
