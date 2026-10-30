@@ -895,6 +895,11 @@ export default {
 
     // Network Filter Error messages
     'gui.connection.scanning.backButton': 'Back',
+    'gui.connection.meshV2Scanning.seatsGroup': 'Group for seats {seats} ({label})',
+    'gui.connection.meshV2Scanning.hostSeatGroup': 'Group hosted by seat {host} ({label})',
+    'gui.connection.meshV2Scanning.teacherGroup': "Teacher's group ({label})",
+    'gui.connection.meshV2Scanning.notChosenConfirm':
+        'This group is for seats {seats}. You (seat {mySeat}) are not one of them. Do you still want to join?',
     'gui.connection.networkFiltered.message':
         'The new mesh feature is unavailable.{br}Please ask your network administrator to remove the restriction.',
     'gui.connection.networkFiltered.copied': 'Copied!',

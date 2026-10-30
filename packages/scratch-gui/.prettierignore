@@ -196,6 +196,7 @@ src/lib/*
 !src/lib/join-code-history.js
 !src/lib/log-suppression.js
 !src/lib/mesh-v2-classroom-binding.jsx
+!src/lib/mesh-v2-seat-label.js
 !src/lib/mesh-v2-sensor-collision.js
 !src/lib/microsoft-auth.js
 !src/lib/microbit-more-update.js
@@ -475,6 +476,8 @@ test/unit/lib/*
 !test/unit/lib/legacy-storage.test.js
 !test/unit/lib/make-toolbox-xml.test.js
 !test/unit/lib/mesh-v2-classroom-binding.test.js
+!test/unit/lib/mesh-v2-seat-label.test.js
+!test/unit/components/mesh-v2-scanning-step-seats.test.jsx
 !test/unit/lib/mesh-v2-sensor-collision.test.js
 !test/unit/lib/monaco-i18n-helper.test.js
 !test/unit/lib/display-mode-persistence.test.js

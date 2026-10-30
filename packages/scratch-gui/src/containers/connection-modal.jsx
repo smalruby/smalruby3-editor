@@ -16,6 +16,7 @@ import {
 } from '../lib/microbit-more-update';
 // === Smalruby: Start of meshV2 initial step feature ===
 import {setDomain as setMeshV2Domain} from '../reducers/mesh-v2';
+import {applySeatToExtension, computeBoundSeat} from '../lib/mesh-v2-classroom-binding.jsx';
 // === Smalruby: End of meshV2 initial step feature ===
 // === Smalruby: Start of smalrubot firmware flash ===
 import {isFirmwareFlashSupported, isWebSerialSupported} from '../lib/smalrubot-firmware-flasher';
@@ -305,6 +306,8 @@ class ConnectionModal extends React.Component {
         // If domain input is empty, clear any cached domain from localStorage
         // so that createDomain() will be called to auto-detect from source IP
         this.clearMeshV2DomainIfEmpty();
+        // The extension may have loaded after the classroom binding ran.
+        applySeatToExtension(this.props.vm, this.props.meshV2Seat);
         // Connect as host using special host ID
         this.handleConnecting('meshV2_host');
         analytics.event({
@@ -317,6 +320,7 @@ class ConnectionModal extends React.Component {
         // If domain input is empty, clear any cached domain from localStorage
         // so that createDomain() will be called to auto-detect from source IP
         this.clearMeshV2DomainIfEmpty();
+        applySeatToExtension(this.props.vm, this.props.meshV2Seat);
         // Switch to scanning phase to show group list
         this.handleScanning();
         analytics.event({
@@ -445,6 +449,7 @@ class ConnectionModal extends React.Component {
                 // === Smalruby: Start of meshV2 initial step feature ===
                 domain={this.props.meshV2Domain}
                 domainReadOnly={this.props.meshV2DomainReadOnly}
+                meshV2Seat={this.props.meshV2Seat}
                 // === Smalruby: End of meshV2 initial step feature ===
                 extensionId={this.props.extensionId}
                 name={this.state.extension && this.state.extension.name}
@@ -492,6 +497,10 @@ ConnectionModal.propTypes = {
     // === Smalruby: Start of meshV2 initial step feature ===
     meshV2Domain: PropTypes.string,
     meshV2DomainReadOnly: PropTypes.bool,
+    meshV2Seat: PropTypes.shape({
+        seat: PropTypes.number,
+        teacher: PropTypes.bool
+    }),
     onDomainChange: PropTypes.func.isRequired,
     // === Smalruby: End of meshV2 initial step feature ===
     onCancel: PropTypes.func.isRequired,
@@ -515,7 +524,8 @@ const mapStateToProps = state => {
         extensionId: state.scratchGui.connectionModal.extensionId,
         // === Smalruby: Start of meshV2 initial step feature ===
         meshV2Domain: state.scratchGui.meshV2.domain,
-        meshV2DomainReadOnly
+        meshV2DomainReadOnly,
+        meshV2Seat: computeBoundSeat(classroom)
         // === Smalruby: End of meshV2 initial step feature ===
     };
 };

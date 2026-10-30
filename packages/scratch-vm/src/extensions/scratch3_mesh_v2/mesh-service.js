@@ -6,7 +6,8 @@ const {getClient} = require('./mesh-client');
 const RateLimiter = require('./rate-limiter');
 const {
     LIST_GROUPS_BY_DOMAIN,
-    SEARCH_GROUPS_BY_NAME_PREFIX
+    SEARCH_GROUPS_BY_NAME_PREFIX,
+    LIST_NODES_IN_GROUP
 } = require('./gql-operations');
 
 const {getForcePollingFromUrl} = require('./utils');
@@ -226,6 +227,30 @@ class MeshV2Service {
             return result.data.searchGroupsByNamePrefix;
         } catch (error) {
             log.error(`Mesh V2: Failed to search groups by name: ${error}`);
+            throw error;
+        }
+    }
+
+    /**
+     * List the nodes in a group.
+     * @param {string} [groupId] - group id (default: the joined group).
+     * @param {string} [domain] - domain (default: the current domain).
+     * @returns {Promise<Array<object>>} nodes (`id` carries the seat suffix in a class).
+     */
+    async listNodesInGroup (groupId = this.groupId, domain = this.domain) {
+        if (!this.client) throw new Error('Client not initialized');
+        if (!groupId || !domain) return [];
+
+        try {
+            this.costTracking.queryCount++;
+            const result = await this.client.query({
+                query: LIST_NODES_IN_GROUP,
+                variables: {groupId, domain},
+                fetchPolicy: 'network-only'
+            });
+            return result.data.listNodesInGroup || [];
+        } catch (error) {
+            log.error(`Mesh V2: Failed to list nodes in group: ${error}`);
             throw error;
         }
     }

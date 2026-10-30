@@ -1307,6 +1307,11 @@ export default {
     'gui.connection.meshV2Scanning.noHostsFound': 'ホストがみつかりませんでした',
     'gui.connection.meshV2Scanning.instructions': 'うえのリストからホストをえらんでください。',
     'gui.connection.meshV2Scanning.nameSearchLabel': 'なまえでさがす',
+    'gui.connection.meshV2Scanning.seatsGroup': '{seats}ばんのグループ（{label}）',
+    'gui.connection.meshV2Scanning.hostSeatGroup': '{host}ばんがホストのグループ（{label}）',
+    'gui.connection.meshV2Scanning.teacherGroup': 'せんせいのグループ（{label}）',
+    'gui.connection.meshV2Scanning.notChosenConfirm':
+        'このグループは {seats}ばんようです。あなた（{mySeat}ばん）はえらばれていません。それでもさんかしますか？',
     'gui.connection.scanning.nameSearching': 'けんさくちゅう...',
     'gui.connection.scanning.nameSearchNoResults': 'グループがみつかりませんでした',
 

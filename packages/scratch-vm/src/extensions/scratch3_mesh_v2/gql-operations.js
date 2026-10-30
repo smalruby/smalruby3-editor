@@ -273,8 +273,22 @@ const SEARCH_GROUPS_BY_NAME_PREFIX = gql`
   }
 `;
 
+// Nodes in a group. In a classroom node ids end with the seat (`…s07`), so
+// this tells which seats have joined (see seat-naming.js).
+const LIST_NODES_IN_GROUP = gql`
+  query ListNodesInGroup($groupId: ID!, $domain: String!) {
+    listNodesInGroup(groupId: $groupId, domain: $domain) {
+      id
+      name
+      groupId
+      domain
+    }
+  }
+`;
+
 module.exports = {
     LIST_GROUPS_BY_DOMAIN,
+    LIST_NODES_IN_GROUP,
     SEARCH_GROUPS_BY_NAME_PREFIX,
     CREATE_DOMAIN,
     CREATE_GROUP,

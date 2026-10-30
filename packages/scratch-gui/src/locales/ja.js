@@ -1268,6 +1268,11 @@ export default {
     'gui.connection.meshV2Scanning.noHostsFound': 'ホストが見つかりませんでした',
     'gui.connection.meshV2Scanning.instructions': '上のリストからホストを選んでください。',
     'gui.connection.meshV2Scanning.nameSearchLabel': '名前で探す',
+    'gui.connection.meshV2Scanning.seatsGroup': '{seats}番のグループ（{label}）',
+    'gui.connection.meshV2Scanning.hostSeatGroup': '{host}番がホストのグループ（{label}）',
+    'gui.connection.meshV2Scanning.teacherGroup': '先生のグループ（{label}）',
+    'gui.connection.meshV2Scanning.notChosenConfirm':
+        'このグループは {seats}番用です。あなた（{mySeat}番）は選ばれていません。それでも参加しますか？',
     'gui.connection.scanning.nameSearching': 'けんさくちゅう...',
     'gui.connection.scanning.nameSearchNoResults': 'グループが見つかりませんでした',
 
