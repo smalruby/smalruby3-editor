@@ -20,7 +20,7 @@ permissions:
 jobs:
   lint:
     name: "[smalruby3] StandardRB Lint"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # ubuntu-latest is 26.04: keep the gem builds on 24.04
     defaults:
       run:
         working-directory: ruby/smalruby3
@@ -40,7 +40,7 @@ jobs:
 
   unit-test:
     name: "[smalruby3] Unit Tests (Ruby ${{ matrix.ruby }})"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # ubuntu-latest is 26.04: keep the gem builds on 24.04
     strategy:
       fail-fast: false
       matrix:

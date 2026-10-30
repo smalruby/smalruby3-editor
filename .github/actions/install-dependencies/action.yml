@@ -38,13 +38,7 @@ runs:
     - if: steps.restore-node-modules-cache.outputs.cache-hit != 'true'
       name: Install NPM dependencies
       shell: bash
-      run: |
-        # TEMP(diagnostics): surface the npm ci error as annotations; remove before merge.
-        set -o pipefail
-        if ! NODE_ENV=development npm ci 2>&1 | tee /tmp/npm-ci.log; then
-          grep -iE "npm (error|ERR)|gyp|error:" /tmp/npm-ci.log | tail -40 | while IFS= read -r l; do echo "::error::${l}"; done
-          exit 1
-        fi
+      run: NODE_ENV=development npm ci
     - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       if: steps.restore-node-modules-cache.outputs.cache-hit != 'true'
       with:
