@@ -192,7 +192,7 @@ account ID は CDK の `cdk.context.json` コミット方針で既にリポジ�
 | リージョン | 既定 `ap-northeast-1` |
 | CDK バージョン | `aws-cdk-lib` は全プロジェクトで**同一バージョンにピン留め**（現在 `2.232.1`）。1 つだけ上げない |
 | タグ | スタック全体に `Project` / `Stage` / `Service` / `ManagedBy=CDK` |
-| Node Lambda ランタイム | **`NODEJS_22_X` に統一**（例外: mesh-v2 の Ruby Lambda は `RUBY_3_4`）。新しい Lambda も 22 に合わせる |
+| Node Lambda ランタイム | **`NODEJS_22_X` に統一**（例外: mesh-v2 の Ruby Lambda は Ruby 4.0 = `ruby4.0`）。新しい Lambda も 22 に合わせる |
 | Lambda bundling | esbuild: `minify: true`, `sourceMap: stage !== 'prod'`, `externalModules: []`（全同梱） |
 | CloudWatch LogGroup | 明示生成し retention = prod `ONE_MONTH` / 他 `ONE_WEEK`、`removalPolicy: DESTROY` |
 | HTTP API スロットリング | stage-level のスロットリングを必ず設定（値はプロジェクトごと。WAF は使わない） |

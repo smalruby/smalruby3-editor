@@ -51,8 +51,8 @@ RUN \
   && git clone --depth=1 https://github.com/rbenv/ruby-build.git ${RBENV_ROOT}/plugins/ruby-build
 ENV PATH="${RBENV_ROOT}/bin:${RBENV_ROOT}/shims:${PATH}"
 
-# Install Ruby 3.4.12
-ARG RUBY_VERSION=3.4.12
+# Install Ruby 4.0.9 (same as the mesh-v2 Lambda runtime)
+ARG RUBY_VERSION=4.0.9
 RUN rbenv install ${RUBY_VERSION} && rbenv global ${RUBY_VERSION}
 RUN gem install bundler --no-document
 

@@ -11,7 +11,7 @@ Mesh v2 は Smalruby 3.0 の Mesh 拡張のバックエンドインフラスト�
 - **Infrastructure**: AWS CDK (TypeScript)
 - **API**: AWS AppSync (GraphQL)
 - **Database**: DynamoDB (Single Table Design)
-- **Compute**: AWS Lambda (Ruby 3.4) + AppSync JavaScript Resolvers (APPSYNC_JS 1.0.0)
+- **Compute**: AWS Lambda (Ruby 4.0) + AppSync JavaScript Resolvers (APPSYNC_JS 1.0.0)
 - **Testing**: RSpec (Ruby), Jest (TypeScript)
 - **Architecture**: Hexagonal Architecture (Ports & Adapters)
 
