@@ -108,7 +108,9 @@ end-to-end 動作確認: [`tools/playwright-verify/mesh-v2-classroom-binding.mjs
 
    ![そろい具合](screenshots/0107-seat-connected-progress-1300x600.png)
 
-- **［先生のグループに入る］**: 課題が制限なしで、先生が「ホストになる」で作ったグループ（`host=teacher`）があれば、最初の画面の先頭に出る（クラス全員を先生とつなぐ使い方）。
+- **［先生のグループに入る］**: 課題が制限なしで、先生が「ホストになる」で作ったグループ（`host=teacher`）があれば、最初の画面の先頭に「出席番号でつながる」と横並びで出る（クラス全員を先生とつなぐ使い方）。
+
+  ![先生のグループに入る](screenshots/0109-seat-entry-teacher-group-1300x600.png)
 - **従来の方法と混ぜてよい**: 番号で作ったグループは従来の「メッシュに参加する」の一覧にも「1・2・3番のグループ（…）」として出る（選ばれていない番号なら確認してから入る）。
 
   ![従来の一覧に出る番号のグループ](screenshots/0108-seat-group-in-classic-list-1300x600.png)

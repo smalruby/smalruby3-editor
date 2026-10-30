@@ -44,26 +44,33 @@ const MeshV2SeatEntry = ({ classroomName, joinCode, seat, vm, onJoinGroup, onSea
     }, [teacherGroup, onJoinGroup]);
     return (
         <div className={styles.entryArea}>
-            {teacherGroup && (
-                <button className={styles.entry} data-testid="meshV2-seat-join-teacher" onClick={handleJoinTeacher}>
-                    <span className={styles.entryIcon}>★</span>
+            {/* Side by side when both are shown, so the first screen still fits in 600px. */}
+            <div className={styles.entryRow}>
+                {teacherGroup && (
+                    <button
+                        className={styles.entry}
+                        data-testid="meshV2-seat-join-teacher"
+                        onClick={handleJoinTeacher}
+                    >
+                        <span className={styles.entryIcon}>★</span>
+                        <span className={styles.entryTitle}>
+                            <FormattedMessage {...messages.teacherTitle} />
+                        </span>
+                        <span className={styles.entryDescription}>
+                            <FormattedMessage {...messages.teacherDescription} />
+                        </span>
+                    </button>
+                )}
+                <button className={styles.entry} data-testid="meshV2-seat-connect-entry" onClick={onSeatConnect}>
+                    <span className={styles.entryIcon}>#</span>
                     <span className={styles.entryTitle}>
-                        <FormattedMessage {...messages.teacherTitle} />
+                        <FormattedMessage {...messages.title} />
                     </span>
                     <span className={styles.entryDescription}>
-                        <FormattedMessage {...messages.teacherDescription} />
+                        <FormattedMessage {...messages.description} />
                     </span>
                 </button>
-            )}
-            <button className={styles.entry} data-testid="meshV2-seat-connect-entry" onClick={onSeatConnect}>
-                <span className={styles.entryIcon}>#</span>
-                <span className={styles.entryTitle}>
-                    <FormattedMessage {...messages.title} />
-                </span>
-                <span className={styles.entryDescription}>
-                    <FormattedMessage {...messages.description} />
-                </span>
-            </button>
+            </div>
             <div className={styles.classNote} data-testid="meshV2-seat-class-note">
                 <FormattedMessage {...messages.classNote} values={{ className: classroomName || '', seat }} />
             </div>

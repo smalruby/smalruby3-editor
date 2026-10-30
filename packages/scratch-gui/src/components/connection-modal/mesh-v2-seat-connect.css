@@ -202,6 +202,27 @@
     cursor: pointer;
 }
 
+.entry-row {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.entry-row .entry {
+    flex: 1;
+    min-width: 0;
+    column-gap: 0.5rem;
+    padding: 0.625rem 0.75rem;
+}
+
+.entry-row .entry:not(:only-child) .entry-title {
+    white-space: nowrap;
+    font-size: 0.875rem;
+}
+
+.entry-row .entry:not(:only-child) .entry-description {
+    font-size: 0.6875rem;
+}
+
 .entry-icon {
     grid-row: span 2;
     display: flex;
