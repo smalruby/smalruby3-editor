@@ -915,6 +915,13 @@ export default {
     'gui.connection.meshV2Initial.domainInvalidError': 'Domain name contains invalid characters.',
     'gui.connection.meshV2Initial.domainTooLongError': 'Domain name is too long (max 256 characters).',
 
+    // MeshV2 Scanning Step messages
+    'gui.connection.meshV2Scanning.seatsGroup': 'Group for seats {seats} ({label})',
+    'gui.connection.meshV2Scanning.hostSeatGroup': 'Group hosted by seat {host} ({label})',
+    'gui.connection.meshV2Scanning.teacherGroup': "Teacher's group ({label})",
+    'gui.connection.meshV2Scanning.notChosenConfirm':
+        'This group is for seats {seats}. You (seat {mySeat}) are not one of them. Do you still want to join?',
+
     // SmalrubotS1 dedicated flow messages
     'gui.connection.smalrubotS1Initial.intro':
         'How do you want to use Smalrubot S1? If this is your first time, please write the firmware first.',

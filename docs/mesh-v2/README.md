@@ -61,6 +61,27 @@ URL パラメータ `?force_polling=1` でクライアント側から強制 poll
 
 実装: `packages/scratch-gui/src/lib/mesh-v2-classroom-binding.jsx`
 
+#### 出席番号（グループ名・ノード ID）
+
+クラス参加中は、出席番号をグループ名とノード ID に入れる。**メッシュのサーバーは変えない**（名前はただの文字列として保存され、ノード ID は `GROUP#<groupId>#NODE#<nodeId>` のキーの一部になるだけ）。
+
+- **ノード ID**: 生徒は末尾に `s<2 桁以上の番号>` が付く（例 `…s07`）。先生とクラス外では付かない。元の ID は uuid の hex なので `s` で区別できる。グループ内のノード一覧 `listNodesInGroup`（`MeshV2Service#listNodesInGroup`）を読めば、何番が参加したかが分かる。ノード ID はグループに入っている間は変えない（接続中に `setClassroomSeat` で番号が変わったら覚えておき、次の接続の開始時（`connect`）に反映する。どの経路から接続しても最新の番号になる）。
+- **グループ名**: 先頭はホストのノード ID のまま、うしろに `|` 区切りで番号の情報を足す。
+
+  | 場面 | グループ名 |
+  |---|---|
+  | クラス外 | `<hostNodeId>`（従来どおり） |
+  | 生徒が「ホストになる」 | `<hostNodeId>\|host=7` |
+  | 先生が「ホストになる」 | `<hostNodeId>\|host=teacher` |
+  | 番号を選んだグループ | `<hostNodeId>\|seats=3,7,12\|host=3` |
+
+  先頭 6 文字から作る合言葉（`makeMeshIdLabel`）と、名前の前方一致で探す `searchGroupsByNamePrefix` は変わらないので、古いクライアントには従来どおりの名前に見える。壊れた名前や古い名前は「番号の情報なし」として扱う。
+- **名前を信じすぎない**: グループ名とノード ID はほかのクライアントが自由に決められ、サーバーは長さも文字も検査しない。そのため読み取り（`parseGroupName`）は厳しくし、次のどれかに当たる名前は「番号の情報なし」（従来の「【…】」表示）にする: 名前が 512 文字を超える / 先頭がノード ID の形（16 進 + 任意の `s<番号>`）でない / 番号が 1〜999 の範囲外・重複・100 個超 / `host=<番号>` が先頭のノード ID の番号と一致しない / `host=teacher` なのに先頭に番号が付いている / 先頭がサーバーに記録されたホスト（`hostId`）と一致しない。それでも番号の情報は**ホストの自己申告**であり、本人確認ではない（「先生のグループ」と名乗ることは、合言葉＝ドメインを知っていれば誰でもできる）。一覧の表示と参加前の確認にだけ使い、権限の判断には使わない。
+- **一覧の表示**（クラス参加中のみ）: 「3・7・12番のグループ（ほしくま）」「7番がホストのグループ（…）」「先生のグループ（…）」。番号の情報が無いグループとクラス外では従来の「【…】」のまま。
+- **選ばれていない番号での参加**: `seats=` のグループに含まれない番号の生徒が入ろうとすると、確認（「このグループは 3・7・12番用です。あなた（20番）は選ばれていません。それでも参加しますか？」）を出す。
+
+実装: `packages/scratch-vm/src/extensions/scratch3_mesh_v2/seat-naming.js`（名前の組み立て・読み取りの純粋関数）、`packages/scratch-gui/src/lib/mesh-v2-seat-label.js`（一覧の表示と確認の判定）
+
 end-to-end 動作確認: [`tools/playwright-verify/mesh-v2-classroom-binding.mjs`](../../tools/playwright-verify/README.md) — 2 タブ (教師 + 生徒) を自動で操作してドメイン連動を検証する手動 E2E スクリプト。
 
 ### クラスで読み込んだ作品の接続モーダル自動表示
@@ -115,6 +136,7 @@ end-to-end 動作確認: [`tools/playwright-verify/verify-classroom-mesh-connect
 | `group-lifecycle.js` | createDomain / createGroup / joinGroup / leaveGroup |
 | `rate-limiter.js` | `sendData` の rate limit + マージ |
 | `utils.js`, `name-search-utils.js` | URL パラメータ、グループ名検索 |
+| `seat-naming.js` | 出席番号入りのグループ名・ノード ID の組み立てと読み取り |
 
 ### infra/smalruby-mesh-v2 (CDK + AppSync + DynamoDB)
 

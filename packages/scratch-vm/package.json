@@ -22,6 +22,7 @@
     },
     "./src/extension-support/block-type": "./src/extension-support/block-type",
     "./src/extensions/koshien/mock-maps": "./src/extensions/koshien/mock-maps.js",
+    "./src/extensions/scratch3_mesh_v2/seat-naming": "./src/extensions/scratch3_mesh_v2/seat-naming.js",
     "./src/import/load-costume": "./src/import/load-costume.js",
     "./src/import/load-sound": "./src/import/load-sound.js"
   },

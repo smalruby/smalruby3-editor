@@ -142,6 +142,7 @@ class ScanningStep extends React.Component {
                     onConnecting={this.props.onConnecting}
                     onRefresh={this.handleRefresh}
                     hiraganaInput={this.state.hiraganaInput}
+                    mySeat={this.props.meshV2Seat}
                     onHiraganaInput={this.handleHiraganaInput}
                     onHiraganaClear={this.handleHiraganaClear}
                 />
@@ -165,6 +166,12 @@ class ScanningStep extends React.Component {
 ScanningStep.propTypes = {
     connectionSmallIconURL: PropTypes.string,
     extensionId: PropTypes.string.isRequired,
+    // === Smalruby: Start of meshV2 seat numbers ===
+    meshV2Seat: PropTypes.shape({
+        seat: PropTypes.number,
+        teacher: PropTypes.bool
+    }),
+    // === Smalruby: End of meshV2 seat numbers ===
     onBack: PropTypes.func,
     onConnected: PropTypes.func.isRequired,
     onConnecting: PropTypes.func.isRequired,
