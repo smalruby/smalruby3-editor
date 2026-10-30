@@ -17,7 +17,7 @@ graph TB
 
         subgraph "Compute Layer"
             JSResolver[AppSync JS Resolvers<br/>APPSYNC_JS 1.0.0]
-            Lambda[Lambda Functions<br/>Ruby 3.4]
+            Lambda[Lambda Functions<br/>Ruby 4.0]
         end
 
         subgraph "Monitoring"
@@ -55,8 +55,8 @@ graph TB
   - `Mutation.joinGroup`
   - Pipeline Functions (checkGroupExists, updateNodeTTL)
 
-#### Lambda Functions (Ruby 3.4)
-- **言語**: Ruby 3.4
+#### Lambda Functions (Ruby 4.0)
+- **言語**: Ruby 4.0
 - **アーキテクチャ**: Hexagonal Architecture（Ports & Adapters）
 - **役割**: 複雑なビジネスロジック
 - **例**:

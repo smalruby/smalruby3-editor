@@ -185,7 +185,9 @@ export class MeshV2Stack extends cdk.Stack {
     // Lambda function for complex operations (Dissolve, Leave, RecordEvents, etc.)
     const meshV2Lambda = new lambda.Function(this, 'MeshV2LambdaFunction', {
       functionName: `MeshV2-GraphQL${stageSuffix}`,
-      runtime: lambda.Runtime.RUBY_3_4,
+      // aws-cdk-lib 2.232.1 has no RUBY_4_0 constant yet (it arrives with the CDK
+      // update tracked in #1264); spell out the ruby4.0 managed runtime until then.
+      runtime: new lambda.Runtime('ruby4.0', lambda.RuntimeFamily.RUBY),
       handler: 'handlers/appsync_handler.lambda_handler',
       code: lambda.Code.fromAsset(path.join(__dirname, '../lambda')),
       environment: {
