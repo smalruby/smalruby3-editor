@@ -66,6 +66,8 @@ class Scratch3MeshV2Blocks {
         this.nodeId = uuidv4().replaceAll('-', '');
         // Seat in the current classroom ({seat, teacher}), or null outside a class.
         this.classroomSeat = null;
+        // Seats chosen in "出席番号でつながる"; put into the next host group name.
+        this.seatGroupSeats = null;
         this.connectionState = 'disconnected';
         this.isExplicitDisconnect = false;
 
@@ -140,6 +142,15 @@ class Scratch3MeshV2Blocks {
     }
 
     /**
+     * Set the seats chosen in "出席番号でつながる" for the next group this
+     * node creates as a host (`seats=` in the group name).
+     * @param {?Array<number>} seats - chosen seats, or null for a host-only name.
+     */
+    setSeatGroupSeats (seats) {
+        this.seatGroupSeats = Array.isArray(seats) && seats.length > 0 ? seats.slice() : null;
+    }
+
+    /**
      * Put the remembered classroom seat into the node id used in the mesh.
      */
     applyClassroomSeatToMeshId () {
@@ -162,7 +173,8 @@ class Scratch3MeshV2Blocks {
         const hostNodeId = this.getMeshNodeId();
         const info = this.classroomSeat;
         if (!info) return hostNodeId;
-        return buildGroupName(hostNodeId, {host: info.teacher ? TEACHER_HOST : info.seat});
+        if (info.teacher) return buildGroupName(hostNodeId, {host: TEACHER_HOST});
+        return buildGroupName(hostNodeId, {seats: this.seatGroupSeats || [], host: info.seat});
     }
 
     /**

@@ -86,6 +86,32 @@ test('a teacher gets host=teacher without a node id suffix', (t) => {
     t.end();
 });
 
+test('chosen seats go into the host group name (connect by seat number)', (t) => {
+    const blocks = setup();
+    blocks.setClassroomSeat({ seat: 3, teacher: false });
+    blocks.setSeatGroupSeats([12, 3, 7, 7]);
+    t.equal(blocks.makeHostGroupName(), `${blocks.nodeId}s03|seats=3,7,12|host=3`);
+    t.end();
+});
+
+test('clearing the chosen seats returns to a host-only name', (t) => {
+    const blocks = setup();
+    blocks.setClassroomSeat({ seat: 3, teacher: false });
+    blocks.setSeatGroupSeats([3, 7]);
+    blocks.setSeatGroupSeats(null);
+    t.equal(blocks.makeHostGroupName(), `${blocks.nodeId}s03|host=3`);
+    t.end();
+});
+
+test('chosen seats are ignored outside a classroom and for the teacher', (t) => {
+    const blocks = setup();
+    blocks.setSeatGroupSeats([3, 7]);
+    t.equal(blocks.makeHostGroupName(), blocks.nodeId);
+    blocks.setClassroomSeat({ seat: null, teacher: true });
+    t.equal(blocks.makeHostGroupName(), `${blocks.nodeId}|host=teacher`);
+    t.end();
+});
+
 test('leaving the classroom restores the plain node id', (t) => {
     const blocks = setup();
     blocks.setClassroomSeat({ seat: 3 });
