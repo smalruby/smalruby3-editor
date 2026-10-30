@@ -11,7 +11,7 @@ const {getDomain, saveDomainToLocalStorage} = require('./utils');
 const {hiraganaToHex} = require('./name-search-utils');
 const {createClient} = require('./mesh-client');
 const MeshV2Service = require('./mesh-service');
-const {TEACHER_HOST, buildGroupName, parseGroupName, withSeatSuffix} = require('./seat-naming');
+const {TEACHER_HOST, buildGroupName, parseGroupName, parseNodeSeat, withSeatSuffix} = require('./seat-naming');
 
 /**
  * Icon svg to be displayed at the left edge of each extension block, encoded as a data URI.
@@ -196,6 +196,51 @@ class Scratch3MeshV2Blocks {
             rssi: this.calculateRssi(group),
             domain: group.domain
         };
+    }
+
+    /**
+     * List the live groups of the domain for "出席番号でつながる", each with the
+     * seats already connected to it (from the node ids). Only groups with seat
+     * info are asked for their nodes; the host seat counts as a member even if
+     * the node list cannot be read. The groups are remembered so connect() can
+     * join one of them.
+     * @returns {Promise<Array<{id: string, seatInfo: ?object, memberSeats: Array<number>}>>} groups.
+     */
+    async listSeatGroups () {
+        if (!this.meshService) return [];
+        const groups = await this.meshService.listGroups();
+        this.discoveredGroups = groups;
+        const now = Date.now();
+        const live = groups.filter(group => !group.expiresAt || new Date(group.expiresAt).getTime() > now);
+        return Promise.all(live.map(async group => {
+            const peripheral = this.groupToPeripheral(group);
+            const seatInfo = peripheral.seatInfo;
+            const seats = new Set();
+            if (seatInfo) {
+                if (Number.isInteger(seatInfo.host)) seats.add(seatInfo.host);
+                try {
+                    const nodes = await this.meshService.listNodesInGroup(group.id, group.domain);
+                    nodes.forEach(node => {
+                        const seat = parseNodeSeat(node && node.id);
+                        if (seat !== null) seats.add(seat);
+                    });
+                } catch (_e) {
+                    // Keep what the name says; the next poll tries again.
+                }
+            }
+            return {
+                ...peripheral,
+                id: group.id,
+                memberSeats: [...seats].sort((a, b) => a - b)
+            };
+        }));
+    }
+
+    /**
+     * @returns {?string} id of the joined group, or null.
+     */
+    getConnectedGroupId () {
+        return (this.meshService && this.meshService.groupId) || null;
     }
 
     makeMeshIdLabel (meshId) {
