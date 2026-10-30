@@ -88,7 +88,7 @@ AppSync JavaScript resolvers (`js/resolvers/`, `js/functions/`) handle most oper
   スタック削除・差し替えでデータが消える前提。
 - **認証は API_KEY のみ**（キー有効期限 365 日。期限切れは redeploy でローテート）。
   ID Token / IAM 認証は使っていない。
-- **Ruby Lambda** `MeshV2-GraphQL{suffix}` は `RUBY_3_4`。マルチバイト対策で
+- **Ruby Lambda** `MeshV2-GraphQL{suffix}` は Ruby 4.0（`ruby4.0`）。マルチバイト対策で
   `LANG` / `LC_ALL=en_US.UTF-8` を注入している（外さない）。担当フィールドは
   `createDomain` / `createGroup` / `dissolveGroup` / `leaveGroup` / `recordEventsByNode`
   （handler の fieldName case 分岐。エラーは rescue せず AppSync に伝播させる方針）。
