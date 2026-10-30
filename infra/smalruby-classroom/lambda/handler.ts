@@ -3001,6 +3001,8 @@ async function handleVerifySession(sessionToken: string): Promise<APIGatewayProx
       valid: true,
       submission,
       hasAssignment: hasAssignmentContent(classroomResult.Item),
+      // The teacher may change the limit after the student joined (#1255).
+      meshGroupLimit: meshGroupLimitOf(classroomResult.Item),
     }),
   };
 }
@@ -3790,6 +3792,7 @@ async function handleDuplicateClassroom(
       topic: topic || null,
       sortDate: now,
       hasAssignment: !!assignment,
+      meshGroupLimit: meshGroupLimitOf(source),
       status: 'active',
       createdAt: now,
       expiresAt: new Date(ttl * 1000).toISOString(),

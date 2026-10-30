@@ -203,7 +203,7 @@ One Tap が表示できない環境（Windows や Playwright では毎回）で�
 | `PATCH` | `/classroom-groups/{groupId}` | クラスのリネーム・年度変更・人数・GC 紐づけ・共同管理者・アーカイブ/復帰 |
 | `POST` | `/classroom-groups/migrate` | v1→v2 冪等 bulk migration（未所属課題のクラス自動作成・割当 + フィールド引き上げ） |
 | `PATCH` | `/classroom-groups/{groupId}/topics` | トピックの add / remove / rename（rename・remove は課題へ一括追従） |
-| `POST` | `/classrooms/{id}/duplicate` | 課題（1 授業）の複製。課題コンテンツの S3 オブジェクトもコピー。`groupId` / `className` / `assignmentName` を上書き可。メンバー・提出は複製しない |
+| `POST` | `/classrooms/{id}/duplicate` | 課題（1 授業）の複製。課題コンテンツの S3 オブジェクトもコピー。`groupId` / `className` / `assignmentName` を上書き可。メンバー・提出は複製しない。`meshGroupLimit` を引き継ぎ、レスポンスにも含む |
 | `POST` | `/classrooms/{id}/evaluate` | AI 評価支援。静的解析結果（シグナル + 擬似コード）を Anthropic API にリレーし、`mode: grade` は S/A/B/C 案 + 根拠 + needsReview、`mode: comment` は生徒向けポジティブコメント下書きを返す。1リクエスト最大10提出（API GW の30秒制限対策、クライアントがチャンク分割）。先生ごとにレート制限（既定 60回/時） |
 | `GET` | `/notifications` | お知らせ一覧（EPIC #1111）。自分宛て（teacherSub）の直近 50 件 + `unreadCount` を返す。書き込みは admin スタックのみ（単一ライター） |
 | `POST` | `/notifications/mark-read` | お知らせ既読化。`{notificationIds?}` — 省略時は一覧窓（直近 50 件）の未読を全既読化（パネルを開いたらバッジが消える UX） |
@@ -237,7 +237,7 @@ One Tap が表示できない環境（Windows や Playwright では毎回）で�
 | `POST` | `/classrooms/lookup` | 不要 | 参加コードで課題を検索。`meshGroupLimit`（未設定は `6`、`0` = 制限なし・Issue #1255）を含む |
 | `POST` | `/classrooms/lookup/kick-request` | 不要 | 「使用中の席」を空けてもらう依頼を先生に送信 (Issue #692) |
 | `POST` | `/classrooms/join` | 不要 | 課題に参加 (→ sessionToken 取得)。`meshGroupLimit`（lookup と同じ）を含む |
-| `POST` | `/classrooms/verify-session` | Session Token | セッション検証 + 提出状況取得。kick された生徒には 410 + `{reason: 'kicked', joinCode, className, seatNumber}` を返す。課題が非 active（アーカイブ/期限切れ）なら 401 |
+| `POST` | `/classrooms/verify-session` | Session Token | セッション検証 + 提出状況取得。kick された生徒には 410 + `{reason: 'kicked', joinCode, className, seatNumber}` を返す。課題が非 active（アーカイブ/期限切れ）なら 401。`meshGroupLimit`（lookup と同じ。参加後に先生が変えた値もここで届く）を含む |
 | `POST` | `/classrooms/{id}/submissions` | Session Token | 提出 (Presigned URL 取得)。課題が非 active なら 404。任意の `screenshotLabels`（各ブロック画像のスプライト名の配列・`screenshotCount` 以下・各100文字以内・Issue #1239）を保存する |
 | `DELETE` | `/classrooms/{id}/members/me` | Session Token | 自主退出 |
 | `GET` | `/classrooms/{id}/assignment` | Session Token または 先生 ID Token | 課題コンテンツ取得（ページ + 画像/スターターのダウンロード URL）。`startFromPrevious`（未設定は false）と `peerView`（未設定は `none`）も返す（`assignment: null` のときも）。lookup / join / verify-session は `hasAssignment` フラグを返す |

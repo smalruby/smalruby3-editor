@@ -9,9 +9,9 @@ export {};
  * 1. 値は `6`（既定）か `0`（制限なし）だけ。それ以外は 400（ValidationError）。
  * 2. 作成（POST /classrooms）と更新（PATCH /classrooms/{id}）で受け取って保存する。
  *    送らない作成は既定の 6、送らない更新は保存済みの値を変えない。
- * 3. 先生向けの一覧・詳細、生徒向けの lookup / join の応答に含める。
+ * 3. 先生向けの一覧・詳細、生徒向けの lookup / join / verify-session の応答に含める。
  *    項目が無い既存の課題は 6 として返す。
- * 4. 複製で引き継ぐ（既定の 6 は書かない = 古い課題と同じ形）。
+ * 4. 複製で引き継ぐ（既定の 6 は書かない = 古い課題と同じ形）。複製の応答にも含める。
  */
 
 const mockSend = jest.fn();
@@ -192,7 +192,7 @@ describe('先生向けの一覧・詳細 (issue #1255)', () => {
   });
 });
 
-describe('生徒向けの lookup / join (issue #1255)', () => {
+describe('生徒向けの lookup / join / verify-session (issue #1255)', () => {
   test('lookup は値を返し、項目の無い既存の課題は 6', async () => {
     useData(classroom({ meshGroupLimit: 0 }));
     const res = await call('POST', '/classrooms/lookup', { joinCode: 'abc234' });
@@ -212,6 +212,27 @@ describe('生徒向けの lookup / join (issue #1255)', () => {
     useData(classroom());
     expect((await call('POST', '/classrooms/join', { joinCode: 'abc234', seatNumber: 3 })).body.meshGroupLimit).toBe(6);
   });
+
+  test('verify-session は値を返し（参加後の先生の変更が届く）、項目の無い既存の課題は 6', async () => {
+    const verify = async (item: Row) => {
+      mockSend.mockReset();
+      useData(item);
+      const base = mockSend.getMockImplementation()!;
+      mockSend.mockImplementation((cmd: { constructor: { name: string }; input: Record<string, any> }) =>
+        (cmd.constructor.name === 'QueryCommand' && cmd.input.IndexName === 'sessionToken-index'
+          ? Promise.resolve({ Items: [{ classroomId: item.classroomId, memberId: 'm1', sessionToken: 'st-1' }] })
+          : base(cmd)));
+      const res = await handler({
+        ...makeEvent('POST', '/classrooms/verify-session'),
+        headers: { authorization: 'Bearer st-1', origin: 'http://localhost:8601' },
+      });
+      return { status: res.statusCode, body: JSON.parse(res.body || '{}') };
+    };
+    const res = await verify(classroom({ meshGroupLimit: 0 }));
+    expect(res.status).toBe(200);
+    expect(res.body.meshGroupLimit).toBe(0);
+    expect((await verify(classroom())).body.meshGroupLimit).toBe(6);
+  });
 });
 
 describe('複製 (issue #1255)', () => {
@@ -220,11 +241,14 @@ describe('複製 (issue #1255)', () => {
     const res = await call('POST', '/classrooms/c1/duplicate', {}, { classroomId: 'c1' });
     expect(res.status).toBe(201);
     expect(commands('PutCommand', 'Classrooms')[0].input.Item.meshGroupLimit).toBe(0);
+    // 先生の画面は複製の応答をそのまま一覧に足すので、応答にも含める。
+    expect(res.body.meshGroupLimit).toBe(0);
   });
 
   test('既定の 6 は書かない（古い課題と同じ形）', async () => {
     useData(classroom());
-    await call('POST', '/classrooms/c1/duplicate', {}, { classroomId: 'c1' });
+    const res = await call('POST', '/classrooms/c1/duplicate', {}, { classroomId: 'c1' });
     expect(commands('PutCommand', 'Classrooms')[0].input.Item).not.toHaveProperty('meshGroupLimit');
+    expect(res.body.meshGroupLimit).toBe(6);
   });
 });
