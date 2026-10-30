@@ -240,3 +240,27 @@ describe('TeacherAssignmentBoard — reuse excludes archived (review feedback)',
         expect(byTestId('classroom-board-share-suggested-c2')).not.toBeInTheDocument();
     });
 });
+
+describe('TeacherAssignmentBoard — mesh group size on the create screen (#1257)', () => {
+    test('defaults to "Up to 6" and sends the choice with the new assignment', () => {
+        const props = defaultProps();
+        renderBoard(props);
+        fireEvent.click(byTestId('classroom-board-create'));
+        const select = byTestId('classroom-board-create-mesh-group-limit');
+        expect(select.value).toBe('6');
+
+        fireEvent.change(byTestId('classroom-board-create-name'), { target: { value: '課題2' } });
+        fireEvent.click(byTestId('classroom-board-create-submit'));
+        expect(props.onCreateAssignmentInClass).toHaveBeenCalledWith(props.group, '課題2', { meshGroupLimit: 6 });
+    });
+
+    test('"No limit" is sent as 0', () => {
+        const props = defaultProps();
+        renderBoard(props);
+        fireEvent.click(byTestId('classroom-board-create'));
+        fireEvent.change(byTestId('classroom-board-create-mesh-group-limit'), { target: { value: '0' } });
+        fireEvent.change(byTestId('classroom-board-create-name'), { target: { value: '課題2' } });
+        fireEvent.click(byTestId('classroom-board-create-submit'));
+        expect(props.onCreateAssignmentInClass).toHaveBeenCalledWith(props.group, '課題2', { meshGroupLimit: 0 });
+    });
+});

@@ -419,6 +419,11 @@ export default {
     'gui.classroom.assignmentEditor.peerViewAfterSubmit': '自分が提出したら見られる',
     'gui.classroom.assignmentEditor.peerViewHint':
         '生徒は、提出したクラスメイトのステージの画像とブロックの画像だけを見られます（作品ファイル・名前・先生のコメントは見えません）。「自分が提出したら」にすると、まず自分で取り組んでから参照させられます。',
+    'gui.classroom.assignmentEditor.meshGroupLimit': 'メッシュのグループの人数',
+    'gui.classroom.assignmentEditor.meshGroupLimitSix': '6人まで',
+    'gui.classroom.assignmentEditor.meshGroupLimitNone': '制限なし',
+    'gui.classroom.assignmentEditor.meshGroupLimitHint':
+        '「制限なし」にすると、クラス全員を 1 つのグループにできます。先生が「ホストになる」と「先生のグループ」になり、生徒はそこへ 1 タップで入れます。',
     'gui.classroom.teacherDetail.previewStartPrevious':
         '参加したとき: 前回の提出物から続けるのがおすすめ（無い生徒はスターター）',
     'gui.classroom.teacherDetail.previewStartStarter':

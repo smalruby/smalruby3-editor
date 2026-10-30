@@ -9,10 +9,12 @@ import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 
+import { DEFAULT_MESH_GROUP_LIMIT } from '../../lib/classroom-assignment-utils.js';
 import { buildAssignmentSections } from '../../lib/classroom-group-utils.js';
 import { formatClassLabel } from '../../lib/classroom-class-label.js';
 import { retentionLevel } from '../../lib/classroom-retention.js';
 import ErrorDisplay from './error-display.jsx';
+import MeshGroupLimitField from './mesh-group-limit-field.jsx';
 import SharedAssignmentCatalog from './shared-assignment-catalog.jsx';
 import TeacherShareStep from './teacher-share-step.jsx';
 import TeacherPasscodeImport from './teacher-passcode-import.jsx';
@@ -308,6 +310,7 @@ const TeacherAssignmentBoard = ({
     const [newTopic, setNewTopic] = useState('');
     const [showInlineCreate, setShowInlineCreate] = useState(false);
     const [newAssignmentName, setNewAssignmentName] = useState('');
+    const [newMeshGroupLimit, setNewMeshGroupLimit] = useState(DEFAULT_MESH_GROUP_LIMIT);
     const [showReuse, setShowReuse] = useState(false);
     const [reuseFilterGroupId, setReuseFilterGroupId] = useState('');
     const [showArchived, setShowArchived] = useState(false);
@@ -357,11 +360,12 @@ const TeacherAssignmentBoard = ({
             e.preventDefault();
             const trimmed = newAssignmentName.trim();
             if (!trimmed || isLoading) return;
-            onCreateAssignmentInClass(group, trimmed);
+            onCreateAssignmentInClass(group, trimmed, { meshGroupLimit: newMeshGroupLimit });
             setNewAssignmentName('');
+            setNewMeshGroupLimit(DEFAULT_MESH_GROUP_LIMIT);
             setShowInlineCreate(false);
         },
-        [newAssignmentName, isLoading, onCreateAssignmentInClass, group],
+        [newAssignmentName, newMeshGroupLimit, isLoading, onCreateAssignmentInClass, group],
     );
     const handleToggleReuse = useCallback(() => {
         setShowInlineCreate(false);
@@ -688,6 +692,12 @@ const TeacherAssignmentBoard = ({
                             onChange={handleNewAssignmentNameChange}
                         />
                     </div>
+                    <MeshGroupLimitField
+                        disabled={isLoading}
+                        testId="classroom-board-create-mesh-group-limit"
+                        value={newMeshGroupLimit}
+                        onChange={setNewMeshGroupLimit}
+                    />
                 </TeacherSubView>
             ) : showReuse ? (
                 // 課題を再利用（#1108: popover → 画面遷移。コピーは候補ごと、キャンセル左）

@@ -427,6 +427,11 @@ export default {
     'gui.classroom.assignmentEditor.peerViewAfterSubmit': 'じぶんがていしゅつしたらみられる',
     'gui.classroom.assignmentEditor.peerViewHint':
         'せいとは、ていしゅつしたクラスメイトのステージのがぞうとブロックのがぞうだけをみられます（さくひんファイル・なまえ・せんせいのコメントはみえません）。「じぶんがていしゅつしたら」にすると、まずじぶんでとりくんでからさんしょうさせられます。',
+    'gui.classroom.assignmentEditor.meshGroupLimit': 'メッシュのグループのにんずう',
+    'gui.classroom.assignmentEditor.meshGroupLimitSix': '6にんまで',
+    'gui.classroom.assignmentEditor.meshGroupLimitNone': 'せいげんなし',
+    'gui.classroom.assignmentEditor.meshGroupLimitHint':
+        '「せいげんなし」にすると、クラスぜんいんを 1 つのグループにできます。せんせいが「ホストになる」と「せんせいのグループ」になり、せいとはそこへ 1 タップではいれます。',
     'gui.classroom.teacherDetail.previewStartPrevious':
         'さんかしたとき: ぜんかいのていしゅつぶつからつづけるのがおすすめ（ないせいとはスターター）',
     'gui.classroom.teacherDetail.previewStartStarter':
