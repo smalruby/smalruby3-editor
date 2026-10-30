@@ -58,7 +58,7 @@ gem push smalruby3-YY.MR.DDR.gem
 
 ## Tech Stack
 
-- **Ruby**: 3.3+ (`rbenv local 3.3.9` が設定済み)
+- **Ruby**: 3.3+（`.ruby-version` は 4.0.9。3.3.13 / 3.4.12 / 4.0.9 未満は Regexp の CVE が未修正）
 - **SDL2**: ruby-sdl2 gem (0.3.6) + smalruby3 launcher (macOS)
 - **並行実行**: Thread + Mutex + Fiber
   - メインスレッド: SDL2 イベントループ + 描画

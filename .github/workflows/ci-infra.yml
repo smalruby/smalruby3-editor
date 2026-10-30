@@ -23,14 +23,14 @@ jobs:
   # ---------------------------------------------------------------------------
   ruby-unit-tests:
     name: "[mesh-v2] Ruby Unit Tests & Lint"
-    # ubuntu-latest moved to 26.04, where setup-ruby has no Ruby 3.4.1 yet.
+    # ubuntu-latest moved to 26.04; keep the mesh-v2 ruby jobs on 24.04.
     runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: infra/smalruby-mesh-v2
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: ruby/setup-ruby@b1da4809b005e0178fe08a1d57317bffc00b7b4c # v1.332.0
+      - uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
         with:
           ruby-version-file: infra/smalruby-mesh-v2/.ruby-version
           bundler-cache: true
@@ -64,7 +64,7 @@ jobs:
 
   security:
     name: "[mesh-v2] Security Audits"
-    # ubuntu-latest moved to 26.04, where setup-ruby has no Ruby 3.4.1 yet.
+    # ubuntu-latest moved to 26.04; keep the mesh-v2 ruby jobs on 24.04.
     runs-on: ubuntu-24.04
     defaults:
       run:
@@ -76,7 +76,7 @@ jobs:
           node-version-file: infra/smalruby-mesh-v2/.node-version
           cache: npm
           cache-dependency-path: infra/smalruby-mesh-v2/package-lock.json
-      - uses: ruby/setup-ruby@b1da4809b005e0178fe08a1d57317bffc00b7b4c # v1.332.0
+      - uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
         with:
           ruby-version-file: infra/smalruby-mesh-v2/.ruby-version
           bundler-cache: true
