@@ -136,6 +136,9 @@ PanelKickRequest.propTypes = {
  * @param {Array<string>} props.busyIds - request ids with an action in flight
  * @param {boolean} props.loading - a manual refresh is running
  * @param {?string} props.error - last error, if any
+ * @param {boolean} props.sessionExpired - the teacher's login expired (#1250)
+ * @param {boolean} props.reauthing - a re-authentication is running
+ * @param {Function} props.onReauth - re-authenticate (the "再認証する" link)
  * @param {Function} props.onDrag - react-draggable onDrag
  * @param {Function} props.onDragStop - react-draggable onStop
  * @param {Function} props.onToggleMinimize - minimize / restore
@@ -159,6 +162,9 @@ const ClassroomTeacherPanel = ({
     busyIds,
     loading,
     error,
+    sessionExpired,
+    reauthing,
+    onReauth,
     onDrag,
     onDragStop,
     onToggleMinimize,
@@ -379,7 +385,31 @@ const ClassroomTeacherPanel = ({
                                     />
                                 </div>
                             )}
-                            {error ? (
+                            {sessionExpired ? (
+                                <div
+                                    className={styles.error}
+                                    data-testid="classroom-teacher-panel-error"
+                                >
+                                    <FormattedMessage
+                                        defaultMessage="Your login has expired."
+                                        description="Teacher status panel: the teacher's login expired (#1250)"
+                                        id="gui.classroomTeacherPanel.sessionExpired"
+                                    />{' '}
+                                    <button
+                                        className={styles.reauthLink}
+                                        data-testid="classroom-teacher-panel-reauth"
+                                        disabled={reauthing}
+                                        type="button"
+                                        onClick={onReauth}
+                                    >
+                                        <FormattedMessage
+                                            defaultMessage="Re-authenticate"
+                                            description="Teacher status panel: link to log in again after expiry (#1250)"
+                                            id="gui.classroomTeacherPanel.reauth"
+                                        />
+                                    </button>
+                                </div>
+                            ) : error ? (
                                 <div
                                     className={styles.error}
                                     data-testid="classroom-teacher-panel-error"
@@ -400,6 +430,9 @@ ClassroomTeacherPanel.propTypes = {
     busyIds: PropTypes.arrayOf(PropTypes.string).isRequired,
     classroom: PropTypes.object,
     error: PropTypes.string,
+    sessionExpired: PropTypes.bool,
+    reauthing: PropTypes.bool,
+    onReauth: PropTypes.func,
     kickRequests: PropTypes.arrayOf(PropTypes.object).isRequired,
     loading: PropTypes.bool,
     minimized: PropTypes.bool,
