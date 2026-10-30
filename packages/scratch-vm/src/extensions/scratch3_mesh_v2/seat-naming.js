@@ -15,16 +15,40 @@
  *
  * A node id gets a `s<NN>` suffix (e.g. `…s07`). Node ids are uuid hex
  * (no `s`), so the suffix can be told apart and stripped again.
+ *
+ * Group names come from other clients and the server stores them as they are
+ * (it checks neither the length nor the characters), so parseGroupName is
+ * strict: anything outside the format, too long, or inconsistent is treated
+ * as "no seat info". The seat info is still only what the host claims about
+ * itself; it is a hint for the list, never a proof of who the host is.
  */
 
 const TEACHER_HOST = 'teacher';
 const SEPARATOR = '|';
-const SEAT_RE = /^[1-9]\d*$/;
+const SEAT_RE = /^[1-9]\d{0,2}$/;
 const NODE_SEAT_RE = /s(\d+)$/;
+// The head of a seat-carrying name is a node id: uuid hex plus an optional seat suffix.
+const NODE_ID_RE = /^[0-9a-f]{1,64}(?:s\d{2,3})?$/;
+// Upper bounds for names from other clients (a class has at most a few dozen seats).
+const MAX_SEAT = 999;
+const MAX_SEATS = 100;
+const MAX_GROUP_NAME_LENGTH = 512;
 
-const isSeat = value => Number.isInteger(value) && value > 0;
+const isSeat = value => Number.isInteger(value) && value > 0 && value <= MAX_SEAT;
 
 const parseSeat = text => (SEAT_RE.test(text) ? Number(text) : null);
+
+/**
+ * @param {string} nodeId - node id.
+ * @returns {?number} the seat number in the node id, or null.
+ */
+const parseNodeSeat = nodeId => {
+    if (typeof nodeId !== 'string') return null;
+    const match = NODE_SEAT_RE.exec(nodeId);
+    if (!match) return null;
+    const seat = Number(match[1]);
+    return isSeat(seat) ? seat : null;
+};
 
 /**
  * Build a group name with seat information.
@@ -47,14 +71,16 @@ const buildGroupName = (hostNodeId, info) => {
 
 /**
  * Read seat information from a group name.
+ * `host=<seat>` must match the seat suffix of the head (the host's node id),
+ * and `host=teacher` needs a head without a suffix.
  * @param {string} name - group name.
  * @returns {?{baseName: string, seats: Array<number>, host: (number|string|null)}}
  *   seat information, or null for a legacy name or a malformed one.
  */
 const parseGroupName = name => {
-    if (typeof name !== 'string') return null;
+    if (typeof name !== 'string' || name.length > MAX_GROUP_NAME_LENGTH) return null;
     const [baseName, ...segments] = name.split(SEPARATOR);
-    if (!baseName || segments.length === 0) return null;
+    if (!NODE_ID_RE.test(baseName) || segments.length === 0) return null;
     const result = {baseName, seats: [], host: null};
     const seen = new Set();
     for (const segment of segments) {
@@ -66,7 +92,8 @@ const parseGroupName = name => {
         seen.add(key);
         if (key === 'seats') {
             const seats = value.split(',').map(parseSeat);
-            if (seats.some(seat => seat === null)) return null;
+            if (seats.length > MAX_SEATS || seats.some(seat => seat === null)) return null;
+            if (new Set(seats).size !== seats.length) return null;
             result.seats = seats;
         } else if (key === 'host') {
             const host = value === TEACHER_HOST ? TEACHER_HOST : parseSeat(value);
@@ -75,6 +102,10 @@ const parseGroupName = name => {
         } else {
             return null;
         }
+    }
+    if (result.host !== null) {
+        const headSeat = parseNodeSeat(baseName);
+        if (result.host === TEACHER_HOST ? headSeat !== null : headSeat !== result.host) return null;
     }
     return result;
 };
@@ -97,16 +128,6 @@ const stripSeatSuffix = nodeId => String(nodeId).replace(NODE_SEAT_RE, '');
  * @returns {string} the node id carrying `seat` (an old suffix is replaced).
  */
 const withSeatSuffix = (nodeId, seat) => stripSeatSuffix(nodeId) + seatNodeIdSuffix(seat);
-
-/**
- * @param {string} nodeId - node id.
- * @returns {?number} the seat number in the node id, or null.
- */
-const parseNodeSeat = nodeId => {
-    if (typeof nodeId !== 'string') return null;
-    const match = NODE_SEAT_RE.exec(nodeId);
-    return match ? parseSeat(String(Number(match[1]))) : null;
-};
 
 module.exports = {
     TEACHER_HOST,

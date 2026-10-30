@@ -104,17 +104,72 @@ test('the seat is not changed while connected', (t) => {
     t.end();
 });
 
+test('a seat set while connected is applied at the next connect', (t) => {
+    const blocks = setup();
+    blocks.connectionState = 'connected';
+    blocks.setClassroomSeat({ seat: 3 });
+    t.equal(blocks.meshService.meshId, blocks.nodeId, 'kept while connected');
+
+    blocks.connectionState = 'disconnected';
+    const created = [];
+    blocks.meshService.createGroup = (name) => {
+        created.push({ name, meshId: blocks.meshService.meshId });
+        return new Promise(() => {});
+    };
+    blocks.connect('meshV2_host');
+    t.same(created, [{ name: `${blocks.nodeId}s03|host=3`, meshId: `${blocks.nodeId}s03` }]);
+    t.end();
+});
+
+test('leaving the class while connected restores the plain node id at the next join', (t) => {
+    const blocks = setup();
+    blocks.setClassroomSeat({ seat: 5 });
+    blocks.connectionState = 'connected';
+    blocks.setClassroomSeat(null);
+    t.equal(blocks.meshService.meshId, `${blocks.nodeId}s05`, 'kept while connected');
+
+    blocks.connectionState = 'disconnected';
+    let joinedAs = null;
+    blocks.meshService.joinGroup = () => {
+        joinedAs = blocks.meshService.meshId;
+        return new Promise(() => {});
+    };
+    blocks.connect('group-1');
+    t.equal(joinedAs, blocks.nodeId);
+    t.end();
+});
+
 test('groupToPeripheral carries seat info and keeps the legacy name', (t) => {
     const blocks = setup();
     const base = '0123456789abcdef0123456789abcdef';
-    const seated = blocks.groupToPeripheral({ id: 'g1', name: `${base}|seats=3,7,12|host=3`, domain: 'd' });
+    const host = `${base}s03`;
+    const seated = blocks.groupToPeripheral({
+        id: 'g1',
+        name: `${host}|seats=3,7,12|host=3`,
+        hostId: host,
+        domain: 'd',
+    });
     t.equal(seated.peripheralId, 'g1');
     t.equal(seated.name, `【${blocks.makeMeshIdLabel(base)}】`);
     t.equal(seated.meshIdLabel, blocks.makeMeshIdLabel(base));
-    t.same(seated.seatInfo, { baseName: base, seats: [3, 7, 12], host: 3 });
+    t.same(seated.seatInfo, { baseName: host, seats: [3, 7, 12], host: 3 });
     t.equal(seated.domain, 'd');
     const legacy = blocks.groupToPeripheral({ id: 'g2', name: base, domain: 'd' });
     t.equal(legacy.seatInfo, null);
     t.equal(legacy.name, `【${blocks.makeMeshIdLabel(base)}】`);
+    t.end();
+});
+
+test('groupToPeripheral drops seat info whose head is not the recorded host', (t) => {
+    const blocks = setup();
+    const base = '0123456789abcdef0123456789abcdef';
+    const spoofed = blocks.groupToPeripheral({
+        id: 'g3',
+        name: `${base}|host=teacher`,
+        hostId: 'fedcba9876543210fedcba9876543210s04',
+        domain: 'd',
+    });
+    t.equal(spoofed.seatInfo, null);
+    t.equal(spoofed.name, `【${blocks.makeMeshIdLabel(base)}】`, 'still listed with the plain label');
     t.end();
 });

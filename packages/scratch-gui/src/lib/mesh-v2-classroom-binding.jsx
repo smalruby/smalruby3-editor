@@ -51,8 +51,8 @@ const computeBoundSeat = (classroom) => {
 
 /**
  * Hand the classroom seat to the meshV2 extension (no-op if it is not loaded).
- * The extension ignores it while connected, since a node id must not change
- * inside a group.
+ * While connected the extension keeps its node id (it must not change inside a
+ * group) and applies the seat at the next connect.
  * @param {object} vm - the VM
  * @param {?{seat: ?number, teacher: boolean}} seat - see computeBoundSeat
  */

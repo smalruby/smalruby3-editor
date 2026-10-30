@@ -30,9 +30,32 @@ test('buildGroupName', (t) => {
 });
 
 test('parseGroupName round trip', (t) => {
-    t.same(parseGroupName(`${HOST}|seats=3,7,12|host=3`), { baseName: HOST, seats: [3, 7, 12], host: 3 });
-    t.same(parseGroupName(`${HOST}|host=7`), { baseName: HOST, seats: [], host: 7 });
+    t.same(parseGroupName(`${HOST}s03|seats=3,7,12|host=3`), {
+        baseName: `${HOST}s03`,
+        seats: [3, 7, 12],
+        host: 3,
+    });
+    t.same(parseGroupName(`${HOST}s07|host=7`), { baseName: `${HOST}s07`, seats: [], host: 7 });
     t.same(parseGroupName(`${HOST}|host=teacher`), { baseName: HOST, seats: [], host: TEACHER_HOST });
+    t.same(parseGroupName(`${HOST}|seats=3,7`), { baseName: HOST, seats: [3, 7], host: null });
+    const built = buildGroupName(withSeatSuffix(HOST, 12), { seats: [12, 20], host: 12 });
+    t.same(parseGroupName(built), { baseName: `${HOST}s12`, seats: [12, 20], host: 12 });
+    t.end();
+});
+
+test('parseGroupName does not trust names from other clients', (t) => {
+    t.equal(parseGroupName(`${HOST}|host=7`), null, 'host seat without the matching node id suffix');
+    t.equal(parseGroupName(`${HOST}s03|host=7`), null, 'host seat differs from the node id suffix');
+    t.equal(parseGroupName(`${HOST}s03|host=teacher`), null, 'teacher host with a student node id');
+    t.equal(parseGroupName('<img src=x>|host=teacher'), null, 'head is not a node id');
+    t.equal(parseGroupName('先生|host=teacher'), null, 'head is not a node id');
+    t.equal(parseGroupName(`${'a'.repeat(65)}|host=teacher`), null, 'head too long');
+    t.equal(parseGroupName(`${HOST}|seats=3,3`), null, 'duplicate seats');
+    t.equal(parseGroupName(`${HOST}|seats=1000`), null, 'seat out of range');
+    t.equal(parseGroupName(`${HOST}|seats=007`), null, 'leading zeros');
+    const many = Array.from({ length: 101 }, (_, i) => i + 1).join(',');
+    t.equal(parseGroupName(`${HOST}|seats=${many}`), null, 'too many seats');
+    t.equal(parseGroupName(`${HOST}|seats=3|${'x'.repeat(600)}=1`), null, 'name too long');
     t.end();
 });
 
@@ -68,6 +91,8 @@ test('seat suffix of node id', (t) => {
     t.equal(parseNodeSeat(HOST), null, 'legacy node id');
     t.equal(parseNodeSeat(''), null);
     t.equal(parseNodeSeat(undefined), null);
+    t.equal(parseNodeSeat(`${HOST}s1000`), null, 'seat out of range');
+    t.equal(seatNodeIdSuffix(1000), '', 'seat out of range');
     t.end();
 });
 

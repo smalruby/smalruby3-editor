@@ -124,20 +124,28 @@ class Scratch3MeshV2Blocks {
 
     /**
      * Set the classroom seat used for the node id and the group name.
-     * Ignored while connected: the node id must not change inside a group.
+     * The seat is always remembered, but while connected the node id is kept
+     * (it must not change inside a group); connect() applies the latest seat.
      * @param {?{seat: ?number, teacher: boolean}} info - seat of the student, or
      *   `teacher: true` for the teacher. null outside a classroom.
-     * @returns {boolean} true if applied.
+     * @returns {boolean} true if the node id was updated now, false if deferred.
      */
     setClassroomSeat (info) {
-        if (this.connectionState === 'connected' || this.connectionState === 'connecting') return false;
         const seat = info && Number.isInteger(info.seat) && info.seat > 0 ? info.seat : null;
         const teacher = !!(info && info.teacher);
         this.classroomSeat = seat || teacher ? {seat, teacher} : null;
-        if (this.meshService) {
-            this.meshService.meshId = withSeatSuffix(this.nodeId, seat);
-        }
+        if (this.connectionState === 'connected' || this.connectionState === 'connecting') return false;
+        this.applyClassroomSeatToMeshId();
         return true;
+    }
+
+    /**
+     * Put the remembered classroom seat into the node id used in the mesh.
+     */
+    applyClassroomSeatToMeshId () {
+        if (!this.meshService) return;
+        const seat = this.classroomSeat ? this.classroomSeat.seat : null;
+        this.meshService.meshId = withSeatSuffix(this.nodeId, seat);
     }
 
     /**
@@ -160,16 +168,19 @@ class Scratch3MeshV2Blocks {
     /**
      * Convert a group to a peripheral for the connection modal.
      * `seatInfo` lets the GUI show seat numbers; old GUIs just use `name`.
+     * It is null unless the name parses and its head matches `hostId`.
      * @param {object} group - group from the server.
      * @returns {object} peripheral.
      */
     groupToPeripheral (group) {
         const label = this.makeMeshIdLabel(group.name);
+        const seatInfo = parseGroupName(group.name);
         return {
             peripheralId: group.id,
             name: `【${label}】`,
             meshIdLabel: label,
-            seatInfo: parseGroupName(group.name),
+            // The head of the name must be the host the server recorded for the group.
+            seatInfo: seatInfo && (!group.hostId || group.hostId === seatInfo.baseName) ? seatInfo : null,
             rssi: this.calculateRssi(group),
             domain: group.domain
         };
@@ -346,6 +357,9 @@ class Scratch3MeshV2Blocks {
 
         if (!this.meshService) return;
 
+        // Whatever path started this connection, use the latest seat (a seat
+        // set while connected was deferred until now).
+        this.applyClassroomSeatToMeshId();
         this.setConnectionState('connecting');
 
         if (id === MESH_V2_HOST_ID) {

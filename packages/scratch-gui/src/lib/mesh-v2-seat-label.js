@@ -1,7 +1,8 @@
 // Seat numbers (出席番号) in mesh group names, as parsed by the VM
 // (`seatInfo` on a meshV2 peripheral, see scratch3_mesh_v2/seat-naming.js).
+// The name format lives only in the VM; this file just decides how to show it.
+import { TEACHER_HOST } from '@smalruby/scratch-vm/src/extensions/scratch3_mesh_v2/seat-naming';
 
-const TEACHER_HOST = 'teacher';
 const SEAT_SEPARATOR = '・';
 
 /**
