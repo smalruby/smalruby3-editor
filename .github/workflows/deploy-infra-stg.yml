@@ -321,7 +321,12 @@ jobs:
           fi
           # 削除（[-] AWS::...）と置き換え（replace）は、いま動いている prod の画面やデータを
           # 壊しうる。後方互換な変更（追加・設定変更）だけを自動で出す。
-          if grep -nE '^\[-\] AWS::|requires replacement|may be replaced|[[:space:]]replace$' "${RUNNER_TEMP}/cdk-diff.txt"; then
+          # ただし AWS::Lambda::Version の削除は除く。currentVersion + エイリアスの Lambda は
+          # コードを変えるたびに新しいバージョンを作って古いものを消すので、通常のコード更新で出る。
+          RISKY=$(grep -nE '^\[-\] AWS::|requires replacement|may be replaced|[[:space:]]replace$' "${RUNNER_TEMP}/cdk-diff.txt" \
+            | grep -vE '^[0-9]+:\[-\] AWS::Lambda::Version ' || true)
+          if [ -n "${RISKY}" ]; then
+            echo "${RISKY}"
             echo "::error::prod の差分にリソースの削除・置き換えが含まれるため、自動デプロイを止めました。非互換になりうる変更なので、人間が内容を確認して手元から \`npx cdk deploy --context stage=prod\` を実行してください（docs/infra-deploy/README.md）。"
             exit 1
           fi
