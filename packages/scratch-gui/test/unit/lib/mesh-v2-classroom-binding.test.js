@@ -74,4 +74,11 @@ describe('computeBoundSeat', () => {
             }),
         ).toEqual({ seat: 3, teacher: false });
     });
+
+    test('returns the same object while the seat is unchanged', () => {
+        const a = computeBoundSeat({ role: 'student', joinCode: 'XUZK93', seatNumber: 7 });
+        const b = computeBoundSeat({ role: 'student', joinCode: 'XUZK93', seatNumber: 7 });
+        expect(b).toBe(a);
+        expect(computeBoundSeat({ role: 'student', joinCode: 'XUZK93', seatNumber: 8 })).not.toBe(a);
+    });
 });

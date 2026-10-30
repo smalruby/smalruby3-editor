@@ -19,6 +19,17 @@ const computeBoundDomain = (classroom) => {
     return null;
 };
 
+// computeBoundSeat runs in mapStateToProps, so it returns the same object while
+// the seat is unchanged; a new object each time would re-render the connection
+// modal on every store update (e.g. monitor updates of a running project).
+let lastBoundSeat = null;
+const boundSeatOf = (seat, teacher) => {
+    if (!lastBoundSeat || lastBoundSeat.seat !== seat || lastBoundSeat.teacher !== teacher) {
+        lastBoundSeat = { seat, teacher };
+    }
+    return lastBoundSeat;
+};
+
 /**
  * Derive the classroom seat that goes into the mesh node id and group name.
  * @param {object} classroom - state.scratchGui.classroom
@@ -29,11 +40,11 @@ const computeBoundSeat = (classroom) => {
     if (!classroom) return null;
     if (classroom.role === 'student' && classroom.joinCode) {
         return Number.isInteger(classroom.seatNumber) && classroom.seatNumber > 0
-            ? { seat: classroom.seatNumber, teacher: false }
+            ? boundSeatOf(classroom.seatNumber, false)
             : null;
     }
     if (classroom.teacherSelection && classroom.teacherSelection.joinCode) {
-        return { seat: null, teacher: true };
+        return boundSeatOf(null, true);
     }
     return null;
 };
