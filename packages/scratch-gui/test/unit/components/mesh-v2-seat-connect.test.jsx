@@ -59,6 +59,11 @@ describe('MeshV2SeatPickStep', () => {
         expect(screen.getByText('あなたは 3番です。自分の番号は外せません。')).toBeInTheDocument();
     });
 
+    test('the summary separates the chosen seats with ・ like the other screens', () => {
+        renderJa(<MeshV2SeatPickStep {...pickProps({ chosenSeats: [3, 7, 12] })} />);
+        expect(screen.getByTestId('meshV2-seat-summary')).toHaveTextContent('選んだ人: 3・7・12 ／ ホスト: 3番');
+    });
+
     test('pressing a free seat toggles it', () => {
         const props = pickProps();
         renderJa(<MeshV2SeatPickStep {...props} />);

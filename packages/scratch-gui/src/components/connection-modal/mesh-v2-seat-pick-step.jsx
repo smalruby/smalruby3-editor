@@ -4,6 +4,7 @@ import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React from 'react';
 import { defineMessages, FormattedMessage } from 'react-intl';
+import { SEAT_SEPARATOR } from '../../lib/mesh-v2-seat-label.js';
 import Box from '../box/box.jsx';
 import styles from './mesh-v2-seat-connect.css';
 
@@ -156,7 +157,7 @@ const MeshV2SeatPickStep = ({
                 <div className={styles.summary} data-testid="meshV2-seat-summary">
                     <FormattedMessage
                         {...messages.summary}
-                        values={{ seats: chosenSeats.join(', '), host: hostSeat }}
+                        values={{ seats: chosenSeats.join(SEAT_SEPARATOR), host: hostSeat }}
                     />
                     {picker.limitReached && (
                         <span className={styles.limit}>
