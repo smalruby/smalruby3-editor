@@ -25,11 +25,15 @@ RUN \
 
 # Refuse to build on a stale base image. The eMudhra intermediate CA keys leaked
 # (2026-10); Debian 12 drops the affected roots in ca-certificates 20250419~deb12u2.
-RUN dpkg --compare-versions "$(dpkg-query -W -f='${Version}' ca-certificates)" ge 20250419~deb12u2 \
-  || { echo "ca-certificates $(dpkg-query -W -f='${Version}' ca-certificates) predates the eMudhra fix" >&2; exit 1; }
-# Node.js 24.22.1 is the first 24.x with the eMudhra roots removed from its bundled store.
+# The check is tied to Debian 12, so a base image on another release fails here
+# until this line is updated for it.
+RUN grep -q '^12\.' /etc/debian_version \
+  && dpkg --compare-versions "$(dpkg-query -W -f='${Version}' ca-certificates)" ge 20250419~deb12u2 \
+  || { echo "Debian $(cat /etc/debian_version) / ca-certificates $(dpkg-query -W -f='${Version}' ca-certificates): rebuild with --pull, or update this check for the new base" >&2; exit 1; }
+# Node.js 24.22.1 is the security release that updates the bundled root store for the
+# eMudhra compromise. Any other major fails so the check is revisited when the base moves.
 RUN node -e "const [a, b, c] = process.versions.node.split('.').map(Number); \
-  if (a === 24 && (b < 22 || (b === 22 && c < 1))) { console.error('Node.js ' + process.version + ' predates 24.22.1'); process.exit(1); }"
+  if (a !== 24 || b < 22 || (b === 22 && c < 1)) { console.error('Node.js ' + process.version + ' is not 24.22.1+ (rebuild with --pull)'); process.exit(1); }"
 
 # Install AWS CLI v2
 RUN \
