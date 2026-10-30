@@ -240,3 +240,71 @@ describe('TeacherAssignmentBoard — reuse excludes archived (review feedback)',
         expect(byTestId('classroom-board-share-suggested-c2')).not.toBeInTheDocument();
     });
 });
+
+describe('TeacherAssignmentBoard — mesh group size on the create screen (#1257)', () => {
+    test('defaults to "Up to 6" and sends the choice with the new assignment', () => {
+        const props = defaultProps();
+        renderBoard(props);
+        fireEvent.click(byTestId('classroom-board-create'));
+        const select = byTestId('classroom-board-create-mesh-group-limit');
+        expect(select.value).toBe('6');
+
+        fireEvent.change(byTestId('classroom-board-create-name'), { target: { value: '課題2' } });
+        fireEvent.click(byTestId('classroom-board-create-submit'));
+        expect(props.onCreateAssignmentInClass).toHaveBeenCalledWith(props.group, '課題2', { meshGroupLimit: 6 });
+    });
+
+    test('"No limit" is sent as 0', () => {
+        const props = defaultProps();
+        renderBoard(props);
+        fireEvent.click(byTestId('classroom-board-create'));
+        fireEvent.change(byTestId('classroom-board-create-mesh-group-limit'), { target: { value: '0' } });
+        fireEvent.change(byTestId('classroom-board-create-name'), { target: { value: '課題2' } });
+        fireEvent.click(byTestId('classroom-board-create-submit'));
+        expect(props.onCreateAssignmentInClass).toHaveBeenCalledWith(props.group, '課題2', { meshGroupLimit: 0 });
+    });
+    test.each([
+        ['cancel', () => fireEvent.click(byTestId('classroom-board-create-cancel'))],
+        ['the assignments breadcrumb', () => fireEvent.click(byTestId('classroom-breadcrumb-assignments'))],
+    ])('leaving by %s resets the form, so reopening shows the defaults (review FYI4)', (_label, leave) => {
+        const props = defaultProps();
+        renderBoard(props);
+        fireEvent.click(byTestId('classroom-board-create'));
+        fireEvent.change(byTestId('classroom-board-create-name'), { target: { value: '書きかけ' } });
+        fireEvent.change(byTestId('classroom-board-create-mesh-group-limit'), { target: { value: '0' } });
+        leave();
+
+        fireEvent.click(byTestId('classroom-board-create'));
+        expect(byTestId('classroom-board-create-name').value).toBe('');
+        expect(byTestId('classroom-board-create-mesh-group-limit').value).toBe('6');
+    });
+
+    test('after creating, reopening shows the defaults', () => {
+        const props = defaultProps();
+        renderBoard(props);
+        fireEvent.click(byTestId('classroom-board-create'));
+        fireEvent.change(byTestId('classroom-board-create-name'), { target: { value: '課題2' } });
+        fireEvent.change(byTestId('classroom-board-create-mesh-group-limit'), { target: { value: '0' } });
+        fireEvent.click(byTestId('classroom-board-create-submit'));
+
+        fireEvent.click(byTestId('classroom-board-create'));
+        expect(byTestId('classroom-board-create-name').value).toBe('');
+        expect(byTestId('classroom-board-create-mesh-group-limit').value).toBe('6');
+    });
+
+    test('the reuse class filter is reset when the reuse screen is closed', () => {
+        renderBoard({
+            allGroups: [
+                { groupId: 'g1', name: 'A', year: 2026, status: 'active', topics: [] },
+                { groupId: 'g2', name: 'B', year: 2026, status: 'active', topics: [] },
+            ],
+        });
+        fireEvent.click(byTestId('classroom-board-reuse'));
+        fireEvent.change(byTestId('classroom-board-reuse-filter'), { target: { value: 'g2' } });
+        expect(byTestId('classroom-board-reuse-filter').value).toBe('g2');
+        fireEvent.click(byTestId('classroom-board-reuse-cancel'));
+
+        fireEvent.click(byTestId('classroom-board-reuse'));
+        expect(byTestId('classroom-board-reuse-filter').value).toBe('');
+    });
+});

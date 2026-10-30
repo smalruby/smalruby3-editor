@@ -4,7 +4,8 @@
  * Edits the assignment content of a classroom: pages of (short text +
  * optional image) plus one optional starter project, and how students start
  * (#1202: "start from the previous submission") and whether students may
- * see classmates' submission images (#1208: "peer view"). Kept deliberately
+ * see classmates' submission images (#1208: "peer view"), and the mesh
+ * group size limit (#1257). Kept deliberately
  * simple — a constrained format the teacher can fill in minutes.
  */
 import PropTypes from 'prop-types';
@@ -13,6 +14,7 @@ import { FormattedMessage, defineMessages, useIntl } from 'react-intl';
 
 import Spinner from '../spinner/spinner.jsx';
 import ErrorDisplay from './error-display.jsx';
+import MeshGroupLimitField from './mesh-group-limit-field.jsx';
 
 import { MAX_ASSIGNMENT_PAGES, MAX_ASSIGNMENT_PAGE_TEXT_LENGTH } from '../../lib/classroom-assignment-utils.js';
 
@@ -204,11 +206,13 @@ const TeacherAssignmentEditor = ({
     starterSource,
     startFromPrevious,
     peerView,
+    meshGroupLimit,
     onAddPage,
     onAttachPageImage,
     embedded,
     onCancel,
     onChangePageText,
+    onChangeMeshGroupLimit,
     onChangePeerView,
     onChangeStartFromPrevious,
     onMovePage,
@@ -466,6 +470,14 @@ const TeacherAssignmentEditor = ({
                         </span>
                     </div>
                 )}
+                {onChangeMeshGroupLimit && (
+                    <MeshGroupLimitField
+                        disabled={isSaving}
+                        testId="classroom-assignment-mesh-group-limit"
+                        value={meshGroupLimit}
+                        onChange={onChangeMeshGroupLimit}
+                    />
+                )}
             </div>
 
             <div className={styles.buttonRow}>
@@ -522,11 +534,13 @@ TeacherAssignmentEditor.propTypes = {
     starterSource: PropTypes.object,
     startFromPrevious: PropTypes.bool,
     peerView: PropTypes.oneOf(['none', 'always', 'afterSubmit']),
+    meshGroupLimit: PropTypes.number,
     onAddPage: PropTypes.func.isRequired,
     onAttachPageImage: PropTypes.func.isRequired,
     embedded: PropTypes.bool,
     onCancel: PropTypes.func,
     onChangePageText: PropTypes.func.isRequired,
+    onChangeMeshGroupLimit: PropTypes.func,
     onChangePeerView: PropTypes.func,
     onChangeStartFromPrevious: PropTypes.func,
     onMovePage: PropTypes.func.isRequired,

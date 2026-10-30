@@ -279,3 +279,34 @@ describe('ClassroomAPI.getContinuableSubmissions (#1201)', () => {
         expect(data).toEqual({ current: null, previous: null });
     });
 });
+
+describe('ClassroomAPI.createClassroom — meshGroupLimit (#1257)', () => {
+    let classroomAPI;
+
+    beforeEach(() => {
+        jest.resetModules();
+        global.fetch = jest.fn().mockResolvedValue({
+            ok: true,
+            status: 201,
+            json: jest.fn().mockResolvedValue({ classroomId: 'c1' }),
+        });
+        classroomAPI = require('../../../src/lib/classroom-api.js').default;
+    });
+
+    test('sends meshGroupLimit when given (0 = no limit)', async () => {
+        await classroomAPI.createClassroom('tok', '技術', '課題', null, null, 'g1', { meshGroupLimit: 0 });
+        const [, opts] = global.fetch.mock.calls[0];
+        expect(JSON.parse(opts.body)).toEqual({
+            className: '技術',
+            assignmentName: '課題',
+            groupId: 'g1',
+            meshGroupLimit: 0,
+        });
+    });
+
+    test('omits meshGroupLimit otherwise (the server stores 6)', async () => {
+        await classroomAPI.createClassroom('tok', '技術', '課題', null, null, 'g1');
+        const [, opts] = global.fetch.mock.calls[0];
+        expect(JSON.parse(opts.body)).not.toHaveProperty('meshGroupLimit');
+    });
+});

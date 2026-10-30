@@ -409,6 +409,7 @@ test/unit/containers/*
 !test/unit/containers/connection-modal.test.jsx
 !test/unit/containers/use-teacher-groups-loaded.test.js
 !test/unit/containers/use-teacher-groups-topics.test.js
+!test/unit/containers/use-teacher-groups-create.test.js
 !test/unit/containers/use-teacher-notifications.test.js
 !test/unit/containers/google-drive-saver-hoc.test.jsx
 !test/unit/containers/google-drive-state-management.test.jsx

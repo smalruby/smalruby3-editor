@@ -109,6 +109,8 @@ const useTeacherClassroom = ({
         setIsLoading,
         setPhase,
         vm,
+        setSelectedClassroom: classrooms.setSelectedClassroom,
+        setClassrooms: classrooms.setClassrooms,
     });
 
     const groups = useTeacherGroups({
@@ -310,6 +312,7 @@ const useTeacherClassroom = ({
         assignmentIsSaving: assignment.isSaving,
         assignmentStartFromPrevious: assignment.startFromPrevious,
         assignmentPeerView: assignment.peerView,
+        assignmentMeshGroupLimit: assignment.meshGroupLimit,
         handleAssignmentAddPage: assignment.handleAddPage,
         handleAssignmentRemovePage: assignment.handleRemovePage,
         handleAssignmentMovePage: assignment.handleMovePage,
@@ -321,6 +324,7 @@ const useTeacherClassroom = ({
         handleAssignmentRemoveStarter: assignment.handleRemoveStarter,
         handleAssignmentChangeStartFromPrevious: assignment.handleChangeStartFromPrevious,
         handleAssignmentChangePeerView: assignment.handleChangePeerView,
+        handleAssignmentChangeMeshGroupLimit: assignment.handleChangeMeshGroupLimit,
         handleAssignmentSave: assignment.handleSaveAssignment,
         handleAssignmentCancel: assignment.handleCancelAssignmentEdit,
         handleAssignmentApplyTemplate: assignment.handleApplyTemplate,

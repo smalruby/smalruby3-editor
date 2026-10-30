@@ -39,9 +39,20 @@ class ClassroomAPI {
      * @param {number} studentCount - Number of students
      * @param {string} [googleClassroomCourseId] - Google Classroom course ID (for imported classes)
      * @param {string} [groupId] - Owning class (group) — inherits studentCount when omitted
+     * @param {object} [options] - optional settings
+     * @param {number} [options.meshGroupLimit] - mesh group size limit (6 / 0 = no limit).
+     *     The server stores 6 when omitted.
      * @returns {Promise<object>} Created classroom data
      */
-    async createClassroom(idToken, className, assignmentName, studentCount, googleClassroomCourseId, groupId) {
+    async createClassroom(
+        idToken,
+        className,
+        assignmentName,
+        studentCount,
+        googleClassroomCourseId,
+        groupId,
+        { meshGroupLimit } = {},
+    ) {
         const body = { className, assignmentName };
         // v2: omit studentCount to inherit it from the owning class (group)
         if (typeof studentCount === 'number') {
@@ -52,6 +63,9 @@ class ClassroomAPI {
         }
         if (groupId) {
             body.groupId = groupId;
+        }
+        if (typeof meshGroupLimit === 'number') {
+            body.meshGroupLimit = meshGroupLimit;
         }
         return this._request('POST', '/classrooms', body, idToken);
     }

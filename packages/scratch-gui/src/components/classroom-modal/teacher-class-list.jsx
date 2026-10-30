@@ -490,7 +490,16 @@ const TeacherClassList = ({
     const [studentCount, setStudentCount] = useState('');
     const [assignmentName, setAssignmentName] = useState('');
 
-    const handleToggleCreateForm = useCallback(() => setShowCreateForm((v) => !v), []);
+    // 開くとき・閉じるとき（キャンセル・パンくず）のどちらでも入力を既定値に戻す。
+    // 次に開いたときに前回の値が残らないように。
+    const handleToggleCreateForm = useCallback(() => {
+        setName('');
+        setYear(String(currentSchoolYear()));
+        setSection('');
+        setStudentCount('');
+        setAssignmentName('');
+        setShowCreateForm((v) => !v);
+    }, []);
     const handleNameChange = useCallback((e) => setName(e.target.value), []);
     const handleYearChange = useCallback((e) => setYear(e.target.value), []);
     const handleSectionChange = useCallback((e) => setSection(e.target.value), []);

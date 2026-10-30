@@ -28,6 +28,7 @@ smalruby3-editor/
 │   │   │   │   ├── classroom-status-icon.jsx ← 着席・提出などの状態アイコン共通部品 (+ 凡例)
 │   │   │   │   ├── teacher-create-form.jsx ← 課題作成フォーム
 │   │   │   │   ├── teacher-assignment-editor.jsx ← 課題エディタ（ページ + スターター）
+│   │   │   │   ├── mesh-group-limit-field.jsx ← 「メッシュのグループの人数」の選択（作成画面と課題エディタで共用・#1257）
 │   │   │   │   ├── teacher-group-manage.jsx ← 組（グループ）管理
 │   │   │   │   ├── teacher-evaluation.jsx ← 学期末評価（席×授業マトリクス）
 │   │   │   │   └── teacher-post-assignment.jsx ← 課題配信

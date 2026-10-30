@@ -192,7 +192,7 @@ const useTeacherGroups = ({
      * name is asked — className and studentCount come from the class.
      */
     const handleCreateAssignmentInClass = useCallback(
-        async (group, assignmentName) => {
+        async (group, assignmentName, options = {}) => {
             clearError();
             setIsLoading(true);
             try {
@@ -203,6 +203,9 @@ const useTeacherGroups = ({
                     null, // inherit studentCount from the class
                     null,
                     group.groupId,
+                    // The server stores 6 when omitted (#1255); the create
+                    // screen sends the teacher's choice (#1257).
+                    { meshGroupLimit: options.meshGroupLimit },
                 );
                 markClassroomCreated(created && created.classroomId);
                 setClassrooms((prev) => [...prev, { ...created, role: 'owner', coTeacherEmails: [] }]);
