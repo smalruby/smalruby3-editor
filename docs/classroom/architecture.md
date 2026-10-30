@@ -181,9 +181,9 @@ One Tap が表示できない環境（Windows や Playwright では毎回）で�
 
 | Method | Path | 説明 |
 |--------|------|------|
-| `POST` | `/classrooms` | 課題作成。任意の `meshGroupLimit`（`6` / `0`・Issue #1255）でメッシュのグループの人数の上限を設定する（`0` = 制限なし。送らなければ `6`。それ以外の値は 400）。レスポンスに `meshGroupLimit` を含む |
-| `GET` | `/classrooms` | 課題一覧（既定は active のみ。`?includeArchived=1` でアーカイブ済みも返す。各要素に `status` と `meshGroupLimit`（未設定は `6`）を含む） |
-| `GET` | `/classrooms/{id}` | 課題詳細（`meshGroupLimit` を含む。未設定は `6`） |
+| `POST` | `/classrooms` | 課題作成。任意の `meshGroupLimit`（`6` / `0`・Issue #1255）でメッシュのグループの人数の上限を設定する（`0` = 制限なし。送らなくても `6` を必ず保存する。それ以外の値は 400）。レスポンスに `meshGroupLimit` を含む |
+| `GET` | `/classrooms` | 課題一覧（既定は active のみ。`?includeArchived=1` でアーカイブ済みも返す。各要素に `status` と `meshGroupLimit`（未設定は `0` = 制限なし）を含む） |
+| `GET` | `/classrooms/{id}` | 課題詳細（`meshGroupLimit` を含む。未設定は `0` = 制限なし） |
 | `PATCH` | `/classrooms/{id}` | 課題更新。`{status: 'active'}` でアーカイブ済み課題の復元も行う。任意の `meshGroupLimit`（`6` / `0`）を受け付ける（送らなければ保存済みの値を変えない。それ以外の値は 400）。レスポンスに `meshGroupLimit` を含む |
 | `DELETE` | `/classrooms/{id}` | 課題削除 (アーカイブ)。soft-delete でメンバー・提出メタ・S3 は保持され、PATCH で復元可能。生徒の遮断は status ガード（join / lookup / verify-session / 提出がすべて非 active を拒否） |
 | `GET` | `/classrooms/{id}/co-teachers` | 共同管理者一覧 (`{ownerSub, coTeacherEmails}`) |
@@ -203,7 +203,7 @@ One Tap が表示できない環境（Windows や Playwright では毎回）で�
 | `PATCH` | `/classroom-groups/{groupId}` | クラスのリネーム・年度変更・人数・GC 紐づけ・共同管理者・アーカイブ/復帰 |
 | `POST` | `/classroom-groups/migrate` | v1→v2 冪等 bulk migration（未所属課題のクラス自動作成・割当 + フィールド引き上げ） |
 | `PATCH` | `/classroom-groups/{groupId}/topics` | トピックの add / remove / rename（rename・remove は課題へ一括追従） |
-| `POST` | `/classrooms/{id}/duplicate` | 課題（1 授業）の複製。課題コンテンツの S3 オブジェクトもコピー。`groupId` / `className` / `assignmentName` を上書き可。メンバー・提出は複製しない。`meshGroupLimit` を引き継ぎ、レスポンスにも含む |
+| `POST` | `/classrooms/{id}/duplicate` | 課題（1 授業）の複製。課題コンテンツの S3 オブジェクトもコピー。`groupId` / `className` / `assignmentName` を上書き可。メンバー・提出は複製しない。`meshGroupLimit` は元の保存値をそのまま写し（未設定なら未設定のまま）、レスポンスにも含む |
 | `POST` | `/classrooms/{id}/evaluate` | AI 評価支援。静的解析結果（シグナル + 擬似コード）を Anthropic API にリレーし、`mode: grade` は S/A/B/C 案 + 根拠 + needsReview、`mode: comment` は生徒向けポジティブコメント下書きを返す。1リクエスト最大10提出（API GW の30秒制限対策、クライアントがチャンク分割）。先生ごとにレート制限（既定 60回/時） |
 | `GET` | `/notifications` | お知らせ一覧（EPIC #1111）。自分宛て（teacherSub）の直近 50 件 + `unreadCount` を返す。書き込みは admin スタックのみ（単一ライター） |
 | `POST` | `/notifications/mark-read` | お知らせ既読化。`{notificationIds?}` — 省略時は一覧窓（直近 50 件）の未読を全既読化（パネルを開いたらバッジが消える UX） |
@@ -234,7 +234,7 @@ One Tap が表示できない環境（Windows や Playwright では毎回）で�
 
 | Method | Path | 認証 | 説明 |
 |--------|------|------|------|
-| `POST` | `/classrooms/lookup` | 不要 | 参加コードで課題を検索。`meshGroupLimit`（未設定は `6`、`0` = 制限なし・Issue #1255）を含む |
+| `POST` | `/classrooms/lookup` | 不要 | 参加コードで課題を検索。`meshGroupLimit`（`6` / `0` = 制限なし。未設定の課題は `0`・Issue #1255）を含む |
 | `POST` | `/classrooms/lookup/kick-request` | 不要 | 「使用中の席」を空けてもらう依頼を先生に送信 (Issue #692) |
 | `POST` | `/classrooms/join` | 不要 | 課題に参加 (→ sessionToken 取得)。`meshGroupLimit`（lookup と同じ）を含む |
 | `POST` | `/classrooms/verify-session` | Session Token | セッション検証 + 提出状況取得。kick された生徒には 410 + `{reason: 'kicked', joinCode, className, seatNumber}` を返す。課題が非 active（アーカイブ/期限切れ）なら 401。`meshGroupLimit`（lookup と同じ。参加後に先生が変えた値もここで届く）を含む |
@@ -332,7 +332,7 @@ erDiagram
         map assignment "課題コンテンツ (任意): {pages: [{text, imageKey?}], starterKey?, updatedAt}"
         boolean startFromPrevious "前回の提出物から始めさせる (#1202, 任意・既定 false)。assignment の外に置くので課題コンテンツが空でも残る。再利用 (duplicate) で引き継ぐ"
         string peerView "他者参照 (#1239, 任意): none / always / afterSubmit。未設定は none。duplicate で引き継ぐ"
-        number meshGroupLimit "出席番号で作るメッシュのグループの人数の上限 (#1255, 任意): 6 / 0 (= 制限なし)。未設定は 6。作成時は常に保存。duplicate で引き継ぐ (6 は書かない)"
+        number meshGroupLimit "出席番号で作るメッシュのグループの人数の上限 (#1255, 任意): 6 / 0 (= 制限なし)。未設定 (#1255 より前の課題) は制限なしとして 0 を返す。新しく作る課題 (作成・Google Classroom 取り込み・みんなの課題の取り込み) は常に 6 を保存。duplicate は元の保存値をそのまま写す"
         string recommendedForSharingAt "共有推奨 (#1106, 任意)。書き込みは admin API のみ。先生側 API には boolean recommendedForSharing を投影"
         string recommendedForSharingBy "推奨した admin の email (内部用・先生側 API では返さない)"
         string groupId "所属する組 (任意)"

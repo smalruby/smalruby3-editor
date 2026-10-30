@@ -6,12 +6,13 @@ export {};
  *
  * 守る性質:
  *
- * 1. 値は `6`（既定）か `0`（制限なし）だけ。それ以外は 400（ValidationError）。
+ * 1. 値は `6`（6 人まで）か `0`（制限なし）だけ。それ以外は 400（ValidationError）。
  * 2. 作成（POST /classrooms）と更新（PATCH /classrooms/{id}）で受け取って保存する。
- *    送らない作成は既定の 6、送らない更新は保存済みの値を変えない。
+ *    送らない作成も 6 を必ず書き込む。送らない更新は保存済みの値を変えない。
  * 3. 先生向けの一覧・詳細、生徒向けの lookup / join / verify-session の応答に含める。
- *    項目が無い既存の課題は 6 として返す。
- * 4. 複製で引き継ぐ（既定の 6 は書かない = 古い課題と同じ形）。複製の応答にも含める。
+ *    項目が無い既存の課題は制限なしとして 0 を返す（応答は常に 6 か 0）。
+ * 4. 複製は元の保存値をそのまま写す（未設定なら未設定のまま = 制限なし）。
+ * 5. 新しい課題を作るほかの経路（みんなの課題の取り込み）も 6 を書き込む。
  */
 
 const mockSend = jest.fn();
@@ -106,11 +107,11 @@ describe('validateMeshGroupLimit / meshGroupLimitOf (issue #1255)', () => {
     }
   });
 
-  test('項目が無い・不正な値の課題は 6', () => {
+  test('項目が無い・不正な値の課題は 0（制限なし）', () => {
     const { meshGroupLimitOf } = require('../handler');
-    expect(meshGroupLimitOf({})).toBe(6);
-    expect(meshGroupLimitOf(undefined)).toBe(6);
-    expect(meshGroupLimitOf({ meshGroupLimit: 'x' })).toBe(6);
+    expect(meshGroupLimitOf({})).toBe(0);
+    expect(meshGroupLimitOf(undefined)).toBe(0);
+    expect(meshGroupLimitOf({ meshGroupLimit: 'x' })).toBe(0);
     expect(meshGroupLimitOf({ meshGroupLimit: 0 })).toBe(0);
     expect(meshGroupLimitOf({ meshGroupLimit: 6 })).toBe(6);
   });
@@ -119,7 +120,7 @@ describe('validateMeshGroupLimit / meshGroupLimitOf (issue #1255)', () => {
 describe('POST /classrooms (issue #1255)', () => {
   const base = { className: '2年1組', assignmentName: '第4回', studentCount: 30 };
 
-  test('送らなければ既定の 6 を保存して返す', async () => {
+  test('送らなくても 6 を必ず保存して返す', async () => {
     useData(classroom());
     const { status, body } = await call('POST', '/classrooms', base);
     expect(status).toBe(201);
@@ -154,16 +155,16 @@ describe('PATCH /classrooms/{id} (issue #1255)', () => {
     expect(Object.values(update.input.ExpressionAttributeNames)).toContain('meshGroupLimit');
   });
 
-  test('送らない更新は値を変えず、保存済みの値を返す（無ければ 6）', async () => {
-    useData(classroom({ meshGroupLimit: 0 }));
+  test('送らない更新は値を変えず、保存済みの値を返す（無ければ 0）', async () => {
+    useData(classroom({ meshGroupLimit: 6 }));
     const res = await call('PATCH', '/classrooms/c1', { className: '2年2組' }, { classroomId: 'c1' });
-    expect(res.body.meshGroupLimit).toBe(0);
+    expect(res.body.meshGroupLimit).toBe(6);
     expect(Object.values(commands('UpdateCommand', 'Classrooms')[0].input.ExpressionAttributeNames))
       .not.toContain('meshGroupLimit');
 
     mockSend.mockReset();
     useData(classroom());
-    expect((await call('PATCH', '/classrooms/c1', { className: '2年2組' }, { classroomId: 'c1' })).body.meshGroupLimit).toBe(6);
+    expect((await call('PATCH', '/classrooms/c1', { className: '2年2組' }, { classroomId: 'c1' })).body.meshGroupLimit).toBe(0);
   });
 
   test('不正な値は 400 で更新しない', async () => {
@@ -175,45 +176,45 @@ describe('PATCH /classrooms/{id} (issue #1255)', () => {
 });
 
 describe('先生向けの一覧・詳細 (issue #1255)', () => {
-  test('GET /classrooms は値を返し、項目の無い既存の課題は 6', async () => {
-    useData(classroom({ meshGroupLimit: 0 }));
-    expect((await call('GET', '/classrooms')).body.classrooms[0].meshGroupLimit).toBe(0);
+  test('GET /classrooms は値を返し、項目の無い既存の課題は 0（制限なし）', async () => {
+    useData(classroom({ meshGroupLimit: 6 }));
+    expect((await call('GET', '/classrooms')).body.classrooms[0].meshGroupLimit).toBe(6);
     mockSend.mockReset();
     useData(classroom());
-    expect((await call('GET', '/classrooms')).body.classrooms[0].meshGroupLimit).toBe(6);
+    expect((await call('GET', '/classrooms')).body.classrooms[0].meshGroupLimit).toBe(0);
   });
 
-  test('GET /classrooms/{id} は値を返し、項目の無い既存の課題は 6', async () => {
-    useData(classroom({ meshGroupLimit: 0 }));
-    expect((await call('GET', '/classrooms/c1', undefined, { classroomId: 'c1' })).body.meshGroupLimit).toBe(0);
+  test('GET /classrooms/{id} は値を返し、項目の無い既存の課題は 0（制限なし）', async () => {
+    useData(classroom({ meshGroupLimit: 6 }));
+    expect((await call('GET', '/classrooms/c1', undefined, { classroomId: 'c1' })).body.meshGroupLimit).toBe(6);
     mockSend.mockReset();
     useData(classroom());
-    expect((await call('GET', '/classrooms/c1', undefined, { classroomId: 'c1' })).body.meshGroupLimit).toBe(6);
+    expect((await call('GET', '/classrooms/c1', undefined, { classroomId: 'c1' })).body.meshGroupLimit).toBe(0);
   });
 });
 
 describe('生徒向けの lookup / join / verify-session (issue #1255)', () => {
-  test('lookup は値を返し、項目の無い既存の課題は 6', async () => {
-    useData(classroom({ meshGroupLimit: 0 }));
+  test('lookup は値を返し、項目の無い既存の課題は 0（制限なし）', async () => {
+    useData(classroom({ meshGroupLimit: 6 }));
     const res = await call('POST', '/classrooms/lookup', { joinCode: 'abc234' });
     expect(res.status).toBe(200);
-    expect(res.body.meshGroupLimit).toBe(0);
+    expect(res.body.meshGroupLimit).toBe(6);
     mockSend.mockReset();
     useData(classroom());
-    expect((await call('POST', '/classrooms/lookup', { joinCode: 'abc234' })).body.meshGroupLimit).toBe(6);
+    expect((await call('POST', '/classrooms/lookup', { joinCode: 'abc234' })).body.meshGroupLimit).toBe(0);
   });
 
-  test('join は値を返し、項目の無い既存の課題は 6', async () => {
-    useData(classroom({ meshGroupLimit: 0 }));
+  test('join は値を返し、項目の無い既存の課題は 0（制限なし）', async () => {
+    useData(classroom({ meshGroupLimit: 6 }));
     const res = await call('POST', '/classrooms/join', { joinCode: 'abc234', seatNumber: 3 });
     expect(res.status).toBe(200);
-    expect(res.body.meshGroupLimit).toBe(0);
+    expect(res.body.meshGroupLimit).toBe(6);
     mockSend.mockReset();
     useData(classroom());
-    expect((await call('POST', '/classrooms/join', { joinCode: 'abc234', seatNumber: 3 })).body.meshGroupLimit).toBe(6);
+    expect((await call('POST', '/classrooms/join', { joinCode: 'abc234', seatNumber: 3 })).body.meshGroupLimit).toBe(0);
   });
 
-  test('verify-session は値を返し（参加後の先生の変更が届く）、項目の無い既存の課題は 6', async () => {
+  test('verify-session は値を返し（参加後の先生の変更が届く）、項目の無い既存の課題は 0（制限なし）', async () => {
     const verify = async (item: Row) => {
       mockSend.mockReset();
       useData(item);
@@ -228,27 +229,30 @@ describe('生徒向けの lookup / join / verify-session (issue #1255)', () => {
       });
       return { status: res.statusCode, body: JSON.parse(res.body || '{}') };
     };
-    const res = await verify(classroom({ meshGroupLimit: 0 }));
+    const res = await verify(classroom({ meshGroupLimit: 6 }));
     expect(res.status).toBe(200);
-    expect(res.body.meshGroupLimit).toBe(0);
-    expect((await verify(classroom())).body.meshGroupLimit).toBe(6);
+    expect(res.body.meshGroupLimit).toBe(6);
+    expect((await verify(classroom())).body.meshGroupLimit).toBe(0);
   });
 });
 
 describe('複製 (issue #1255)', () => {
-  test('0 は引き継ぐ', async () => {
-    useData(classroom({ meshGroupLimit: 0 }));
-    const res = await call('POST', '/classrooms/c1/duplicate', {}, { classroomId: 'c1' });
-    expect(res.status).toBe(201);
-    expect(commands('PutCommand', 'Classrooms')[0].input.Item.meshGroupLimit).toBe(0);
-    // 先生の画面は複製の応答をそのまま一覧に足すので、応答にも含める。
-    expect(res.body.meshGroupLimit).toBe(0);
+  test('保存値をそのまま写す（0 も 6 も）', async () => {
+    for (const value of [0, 6]) {
+      mockSend.mockReset();
+      useData(classroom({ meshGroupLimit: value }));
+      const res = await call('POST', '/classrooms/c1/duplicate', {}, { classroomId: 'c1' });
+      expect(res.status).toBe(201);
+      expect(commands('PutCommand', 'Classrooms')[0].input.Item.meshGroupLimit).toBe(value);
+      // 先生の画面は複製の応答をそのまま一覧に足すので、応答にも含める。
+      expect(res.body.meshGroupLimit).toBe(value);
+    }
   });
 
-  test('既定の 6 は書かない（古い課題と同じ形）', async () => {
+  test('未設定の課題（制限なし）は未設定のまま写し、応答は 0', async () => {
     useData(classroom());
     const res = await call('POST', '/classrooms/c1/duplicate', {}, { classroomId: 'c1' });
     expect(commands('PutCommand', 'Classrooms')[0].input.Item).not.toHaveProperty('meshGroupLimit');
-    expect(res.body.meshGroupLimit).toBe(6);
+    expect(res.body.meshGroupLimit).toBe(0);
   });
 });

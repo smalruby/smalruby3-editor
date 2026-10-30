@@ -2807,6 +2807,8 @@ async function handleImportGoogleClassroom(
       joinCode,
       studentCount,
       googleClassroomCourseId: courseId,
+      // A new assignment always stores its mesh group limit (#1255).
+      meshGroupLimit: DEFAULT_MESH_GROUP_LIMIT,
       status: 'active',
       createdAt: now,
       updatedAt: now,
@@ -2822,6 +2824,7 @@ async function handleImportGoogleClassroom(
       joinCode,
       studentCount,
       googleClassroomCourseId: courseId,
+      meshGroupLimit: DEFAULT_MESH_GROUP_LIMIT,
       status: 'active',
       createdAt: now,
       expiresAt,
@@ -3771,8 +3774,9 @@ async function handleDuplicateClassroom(
       ...(startFromPreviousOf(source) ? { startFromPrevious: true } : {}),
       // ...and who may see classmates' work (#1239). 'none' is the default, left unset.
       ...(peerViewOf(source) !== 'none' ? { peerView: peerViewOf(source) } : {}),
-      // ...and how big its mesh groups may be (#1255). The default 6 is left unset.
-      ...(meshGroupLimitOf(source) !== DEFAULT_MESH_GROUP_LIMIT ? { meshGroupLimit: meshGroupLimitOf(source) } : {}),
+      // ...and how big its mesh groups may be (#1255), copied as stored: an
+      // unset (pre-#1255, no limit) source stays unset.
+      ...(hasStoredMeshGroupLimit(source) ? { meshGroupLimit: source.meshGroupLimit } : {}),
       status: 'active',
       createdAt: now,
       updatedAt: now,
@@ -3913,12 +3917,17 @@ export function peerViewOf(item: Record<string, unknown> | undefined): PeerView 
 }
 
 /**
- * Size cap of a mesh group made by seat number (#1255): 6 is the default and
- * 0 means "no limit". Only these two values are accepted for now; widening
- * the set later stays backward compatible, narrowing it would not.
+ * Size cap of a mesh group made by seat number (#1255): 6 caps a group at six
+ * students and 0 means "no limit". Only these two values are accepted for now;
+ * widening the set later stays backward compatible, narrowing it would not.
+ *
+ * Every newly created assignment stores 6 explicitly. An item without the
+ * field (saved before #1255) has no limit, so existing lessons keep working
+ * the way mesh worked before the cap existed.
  */
 export const DEFAULT_MESH_GROUP_LIMIT = 6;
-export const MESH_GROUP_LIMIT_VALUES = [DEFAULT_MESH_GROUP_LIMIT, 0] as const;
+export const MESH_GROUP_NO_LIMIT = 0;
+export const MESH_GROUP_LIMIT_VALUES = [DEFAULT_MESH_GROUP_LIMIT, MESH_GROUP_NO_LIMIT] as const;
 
 /**
  * Validate the optional `meshGroupLimit` (#1255) of a create/update request.
@@ -3933,12 +3942,18 @@ export function validateMeshGroupLimit(value: unknown): number | undefined {
   return value as number;
 }
 
-/** The mesh group limit of an assignment item; items saved before #1255 are 6. */
+/** Whether an item stores a valid mesh group limit (items saved before #1255 do not). */
+function hasStoredMeshGroupLimit(item: Record<string, unknown> | undefined): boolean {
+  return MESH_GROUP_LIMIT_VALUES.includes(item?.meshGroupLimit as typeof MESH_GROUP_LIMIT_VALUES[number]);
+}
+
+/**
+ * The mesh group limit of an assignment item as the API returns it: the stored
+ * value, or 0 ("no limit") for items saved before #1255. Responses therefore
+ * always carry 6 or 0 and clients never interpret a missing field.
+ */
 export function meshGroupLimitOf(item: Record<string, unknown> | undefined): number {
-  const value = item?.meshGroupLimit;
-  return MESH_GROUP_LIMIT_VALUES.includes(value as typeof MESH_GROUP_LIMIT_VALUES[number])
-    ? value as number
-    : DEFAULT_MESH_GROUP_LIMIT;
+  return hasStoredMeshGroupLimit(item) ? item!.meshGroupLimit as number : MESH_GROUP_NO_LIMIT;
 }
 
 /** Whether a classroom item carries assignment content (pages or a starter). */
@@ -5092,6 +5107,8 @@ async function importSharedItem(
       groupId,
       sortDate: now,
       assignment,
+      // A new assignment always stores its mesh group limit (#1255).
+      meshGroupLimit: DEFAULT_MESH_GROUP_LIMIT,
       status: 'active',
       createdAt: now,
       updatedAt: now,
@@ -5122,6 +5139,7 @@ async function importSharedItem(
       groupId,
       sortDate: now,
       hasAssignment: !!assignment,
+      meshGroupLimit: DEFAULT_MESH_GROUP_LIMIT,
       status: 'active',
       createdAt: now,
       expiresAt: new Date(ttl * 1000).toISOString(),

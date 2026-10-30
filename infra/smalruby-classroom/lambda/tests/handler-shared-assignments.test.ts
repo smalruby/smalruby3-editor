@@ -414,6 +414,11 @@ describe('みんなの課題 (issue #1068)', () => {
       expect(created.assignmentName).toBe('ねこあつめ入門');
       expect(created.studentCount).toBe(32);
       expect(created.hasAssignment).toBe(true);
+      // A new assignment always stores its mesh group limit (#1255).
+      expect(created.meshGroupLimit).toBe(6);
+      const put = mockSend.mock.calls.map((c) => c[0])
+        .find((cmd) => cmd.constructor.name === 'PutCommand' && String(cmd.input?.TableName).includes('Classrooms'));
+      expect(put.input.Item.meshGroupLimit).toBe(6);
 
       // Copies flow from the shared bucket into the classroom bucket.
       const copyCalls = mockS3Send.mock.calls.filter((c) => c[0]?.constructor?.name === 'CopyObjectCommand');
