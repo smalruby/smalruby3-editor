@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { EventEmitter } from 'events';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
+import MeshV2InitialStep from '../../../src/components/connection-modal/mesh-v2-initial-step.jsx';
 import MeshV2SeatPickStep from '../../../src/components/connection-modal/mesh-v2-seat-pick-step.jsx';
 import MeshV2SeatWaitStep from '../../../src/components/connection-modal/mesh-v2-seat-wait-step.jsx';
 import { MeshV2SeatConnect } from '../../../src/containers/mesh-v2-seat-connect.jsx';
@@ -263,5 +264,50 @@ describe('MeshV2SeatConnect', () => {
         } finally {
             jest.useRealTimers();
         }
+    });
+});
+
+describe('MeshV2InitialStep classic methods', () => {
+    const initialProps = (extra) => ({
+        domain: 'abc123',
+        domainReadOnly: true,
+        onCreateGroup: jest.fn(),
+        onDomainChange: jest.fn(),
+        onJoinGroup: jest.fn(),
+        ...extra,
+    });
+
+    test('outside a class the classic buttons are shown as before', () => {
+        renderJa(<MeshV2InitialStep {...initialProps()} />);
+        expect(screen.getByTestId('meshV2-create-group')).toBeInTheDocument();
+        expect(screen.getByTestId('meshV2-join-group')).toBeInTheDocument();
+        expect(screen.queryByTestId('meshV2-classic-toggle')).toBeNull();
+    });
+
+    test('in a class they are folded away, open on press and start folded again', () => {
+        classroomAPI.lookupClassroom.mockResolvedValue({ studentCount: 5, takenSeats: [3], meshGroupLimit: 6 });
+        const vm = { runtime: { peripheralExtensions: {} } };
+        const props = initialProps({
+            classroomJoinCode: 'abc123',
+            classroomName: '3年2組',
+            meshV2Seat: { seat: 3, teacher: false },
+            vm,
+            onJoinSeatGroup: jest.fn(),
+            onSeatConnect: jest.fn(),
+        });
+        const { unmount } = renderJa(<MeshV2InitialStep {...props} />);
+        expect(screen.getByTestId('meshV2-seat-connect-entry')).toBeInTheDocument();
+        expect(screen.queryByTestId('meshV2-create-group')).toBeNull();
+        const toggle = screen.getByTestId('meshV2-classic-toggle');
+        expect(toggle).toHaveAttribute('aria-expanded', 'false');
+        fireEvent.click(toggle);
+        expect(toggle).toHaveAttribute('aria-expanded', 'true');
+        expect(screen.getByText('クラスの外や、先生に言われたときだけ使います。')).toBeInTheDocument();
+        fireEvent.click(screen.getByTestId('meshV2-join-group'));
+        expect(props.onJoinGroup).toHaveBeenCalled();
+        unmount();
+        renderJa(<MeshV2InitialStep {...props} />);
+        expect(screen.getByTestId('meshV2-classic-toggle')).toHaveAttribute('aria-expanded', 'false');
+        expect(screen.queryByTestId('meshV2-create-group')).toBeNull();
     });
 });

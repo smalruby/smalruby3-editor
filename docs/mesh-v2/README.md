@@ -86,7 +86,9 @@ end-to-end 動作確認: [`tools/playwright-verify/mesh-v2-classroom-binding.mjs
 
 #### 出席番号でつながる
 
-クラスに参加中の生徒は、接続モーダルの最初の画面の先頭（横幅いっぱい）に「出席番号でつながる」が出る。ホストを決めて合言葉を伝え合う手間（授業で約 10 分かかっていた）を、番号を選ぶだけにするため。従来の「メッシュのホストになる」「メッシュに参加する」は同じ位置・同じ文言で下に残る（画像だけ小さくして 1300×600 の授業 PC に収める）。先生とクラス外では出ない。
+クラスに参加中の生徒は、接続モーダルの最初の画面の先頭（横幅いっぱい）に「出席番号でつながる」が出る。ホストを決めて合言葉を伝え合う手間（授業で約 10 分かかっていた）を、番号を選ぶだけにするため。従来の「メッシュのホストになる」「メッシュに参加する」は、その下の「従来の方法でつなぐ（ホストになる / グループに参加）▾ ひらく」の中にたたむ（`mesh-v2-classic-methods.jsx`）。授業では使わない方法だと伝え、生徒が迷わず「出席番号でつながる」を押すようにするため。開くと「クラスの外や、先生に言われたときだけ使います。」と 2 つのボタンが出る。開いた状態は覚えず、モーダルを開くたびにたたんだ状態から始まる。出席番号・従来の方法・ドメイン欄は左右の端をそろえる。先生とクラス外ではたたまず、従来どおりの画面のまま。
+
+![従来の方法を開いたところ](screenshots/0110-seat-classic-open-1300x600.png)
 
 ![最初の画面（出席番号でつながる）](screenshots/0103-seat-entry-1300x600.png)
 
@@ -111,7 +113,7 @@ end-to-end 動作確認: [`tools/playwright-verify/mesh-v2-classroom-binding.mjs
 - **［先生のグループに入る］**: 課題が制限なしで、先生が「ホストになる」で作ったグループ（`host=teacher`）があれば、最初の画面の先頭に「出席番号でつながる」と横並びで出る（クラス全員を先生とつなぐ使い方）。
 
   ![先生のグループに入る](screenshots/0109-seat-entry-teacher-group-1300x600.png)
-- **従来の方法と混ぜてよい**: 番号で作ったグループは従来の「メッシュに参加する」の一覧にも「1・2・3番のグループ（…）」として出る（選ばれていない番号なら確認してから入る）。
+- **従来の方法と混ぜてよい**: 番号で作ったグループは従来の「メッシュに参加する」（「従来の方法でつなぐ」を開いた中）の一覧にも「1・2・3番のグループ（…）」として出る（選ばれていない番号なら確認してから入る）。
 
   ![従来の一覧に出る番号のグループ](screenshots/0108-seat-group-in-classic-list-1300x600.png)
 
@@ -126,7 +128,7 @@ end-to-end 動作確認: [`tools/playwright-verify/mesh-v2-classroom-binding.mjs
 
 グループ名の `seats=` は、ホストが作る直前に `setSeatGroupSeats(seats)` で VM に渡す。グループ一覧と各グループの参加番号は VM の `listSeatGroups()`（`seats=` / `host=` のあるグループだけ `listNodesInGroup` で番号を集める）。番号の情報は自己申告なので、待ち合わせの目印にだけ使う。
 
-実装: 画面 = `src/containers/mesh-v2-seat-connect.jsx`（番号を選ぶ・待ち合わせ）、`src/components/connection-modal/mesh-v2-seat-{entry,pick-step,wait-step,status-line}.jsx`、データ = `src/lib/mesh-v2-seat-snapshot.js`、決まり = `src/lib/mesh-v2-seat-connect.js`。
+実装: 画面 = `src/containers/mesh-v2-seat-connect.jsx`（番号を選ぶ・待ち合わせ）、`src/components/connection-modal/mesh-v2-seat-{entry,pick-step,wait-step,status-line}.jsx`、`mesh-v2-classic-methods.jsx`（たたんだ従来の方法）、データ = `src/lib/mesh-v2-seat-snapshot.js`、決まり = `src/lib/mesh-v2-seat-connect.js`。
 
 end-to-end 動作確認: [`tools/playwright-verify/verify-mesh-v2-seat-connect.mjs`](../../tools/playwright-verify/README.md)（生徒 3 タブ・選んだ 1 人が欠席・従来の参加と混在）。
 
@@ -156,6 +158,7 @@ end-to-end 動作確認: [`tools/playwright-verify/verify-classroom-mesh-connect
   - `packages/scratch-gui/src/components/connection-modal/mesh-v2-initial-step.jsx`
   - `packages/scratch-gui/src/components/connection-modal/mesh-v2-network-filtered-step.jsx`
   - `packages/scratch-gui/src/components/connection-modal/mesh-v2-scanning-step.jsx`
+  - `packages/scratch-gui/src/components/connection-modal/mesh-v2-classic-methods.jsx` — クラス参加中の生徒の画面で従来の 2 つをたたむ
   - `packages/scratch-gui/src/components/connection-modal/mesh-v2-seat-entry.jsx` / `mesh-v2-seat-pick-step.jsx` / `mesh-v2-seat-wait-step.jsx` / `mesh-v2-seat-status-line.jsx` + `mesh-v2-seat-connect.css` — 出席番号でつながる（画面 1・2・3・5）
   - `packages/scratch-gui/src/containers/mesh-v2-seat-connect.jsx` — 番号を選ぶ・待ち合わせのコンテナ
 - **出席番号でつながるの決まりとデータ**: `packages/scratch-gui/src/lib/mesh-v2-seat-connect.js`（純粋関数）、`packages/scratch-gui/src/lib/mesh-v2-seat-snapshot.js`（照会と一覧の読み直し）

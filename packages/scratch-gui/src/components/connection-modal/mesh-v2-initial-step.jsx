@@ -7,6 +7,7 @@ import React from 'react';
 import { defineMessages, FormattedMessage, useIntl } from 'react-intl';
 import Box from '../box/box.jsx';
 import styles from './connection-modal.css';
+import MeshV2ClassicMethods from './mesh-v2-classic-methods.jsx';
 import initialStepStyles from './mesh-v2-initial-step.css';
 import MeshV2SeatEntry from './mesh-v2-seat-entry.jsx';
 import createGroupImage from './mesh_v2_create_group.png';
@@ -71,11 +72,13 @@ const MeshV2InitialStep = (props) => {
     );
 
     const seat = props.meshV2Seat && !props.meshV2Seat.teacher ? props.meshV2Seat.seat : null;
+    // A student in a class connects by seat number; the classic buttons are folded away.
+    const seatMode = !!(seat && props.onSeatConnect);
 
     return (
         <Box className={styles.body}>
             <Box className={styles.bottomArea}>
-                {seat && props.onSeatConnect && (
+                {seatMode && (
                     <MeshV2SeatEntry
                         classroomName={props.classroomName}
                         joinCode={props.classroomJoinCode}
@@ -85,60 +88,65 @@ const MeshV2InitialStep = (props) => {
                         onSeatConnect={props.onSeatConnect}
                     />
                 )}
+                {seatMode && (
+                    <MeshV2ClassicMethods onCreateGroup={props.onCreateGroup} onJoinGroup={props.onJoinGroup} />
+                )}
+                {!seatMode && (
+                    <Box className={classNames(styles.bottomAreaItem, initialStepStyles.buttonContainer)}>
+                        <button
+                            className={initialStepStyles.actionButton}
+                            data-testid="meshV2-create-group"
+                            onClick={props.onCreateGroup}
+                        >
+                            <img className={initialStepStyles.buttonImage} src={createGroupImage} alt="" />
+                            <div className={initialStepStyles.buttonTextContainer}>
+                                <div className={initialStepStyles.buttonTitle}>
+                                    <FormattedMessage
+                                        defaultMessage="Become Mesh Host"
+                                        description="Button to create a mesh group"
+                                        id="gui.connection.meshV2Initial.createGroup"
+                                    />
+                                </div>
+                                <div className={initialStepStyles.buttonDescription}>
+                                    <FormattedMessage
+                                        defaultMessage="Create Group"
+                                        description="Description for creating a mesh group"
+                                        id="gui.connection.meshV2Initial.createGroupDescription"
+                                    />
+                                </div>
+                            </div>
+                        </button>
+                        <button
+                            className={initialStepStyles.actionButton}
+                            data-testid="meshV2-join-group"
+                            onClick={props.onJoinGroup}
+                        >
+                            <img className={initialStepStyles.buttonImage} src={joinGroupImage} alt="" />
+                            <div className={initialStepStyles.buttonTextContainer}>
+                                <div className={initialStepStyles.buttonTitle}>
+                                    <FormattedMessage
+                                        defaultMessage="Join Mesh"
+                                        description="Button to join an existing mesh group"
+                                        id="gui.connection.meshV2Initial.joinGroup"
+                                    />
+                                </div>
+                                <div className={initialStepStyles.buttonDescription}>
+                                    <FormattedMessage
+                                        defaultMessage="Join Group"
+                                        description="Description for joining a mesh group"
+                                        id="gui.connection.meshV2Initial.joinGroupDescription"
+                                    />
+                                </div>
+                            </div>
+                        </button>
+                    </Box>
+                )}
+
                 <Box
-                    className={classNames(styles.bottomAreaItem, initialStepStyles.buttonContainer, {
-                        [initialStepStyles.compact]: seat && props.onSeatConnect,
+                    className={classNames(styles.bottomAreaItem, initialStepStyles.domainSection, {
+                        [initialStepStyles.fullWidth]: seatMode,
                     })}
                 >
-                    <button
-                        className={initialStepStyles.actionButton}
-                        data-testid="meshV2-create-group"
-                        onClick={props.onCreateGroup}
-                    >
-                        <img className={initialStepStyles.buttonImage} src={createGroupImage} alt="" />
-                        <div className={initialStepStyles.buttonTextContainer}>
-                            <div className={initialStepStyles.buttonTitle}>
-                                <FormattedMessage
-                                    defaultMessage="Become Mesh Host"
-                                    description="Button to create a mesh group"
-                                    id="gui.connection.meshV2Initial.createGroup"
-                                />
-                            </div>
-                            <div className={initialStepStyles.buttonDescription}>
-                                <FormattedMessage
-                                    defaultMessage="Create Group"
-                                    description="Description for creating a mesh group"
-                                    id="gui.connection.meshV2Initial.createGroupDescription"
-                                />
-                            </div>
-                        </div>
-                    </button>
-                    <button
-                        className={initialStepStyles.actionButton}
-                        data-testid="meshV2-join-group"
-                        onClick={props.onJoinGroup}
-                    >
-                        <img className={initialStepStyles.buttonImage} src={joinGroupImage} alt="" />
-                        <div className={initialStepStyles.buttonTextContainer}>
-                            <div className={initialStepStyles.buttonTitle}>
-                                <FormattedMessage
-                                    defaultMessage="Join Mesh"
-                                    description="Button to join an existing mesh group"
-                                    id="gui.connection.meshV2Initial.joinGroup"
-                                />
-                            </div>
-                            <div className={initialStepStyles.buttonDescription}>
-                                <FormattedMessage
-                                    defaultMessage="Join Group"
-                                    description="Description for joining a mesh group"
-                                    id="gui.connection.meshV2Initial.joinGroupDescription"
-                                />
-                            </div>
-                        </div>
-                    </button>
-                </Box>
-
-                <Box className={classNames(styles.bottomAreaItem, initialStepStyles.domainSection)}>
                     <input
                         className={classNames(initialStepStyles.domainInput, {
                             [initialStepStyles.inputError]: error,

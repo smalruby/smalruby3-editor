@@ -8,7 +8,7 @@
 //   席2: 1・2・3番を選ぶ →「ホストの 1番さんを待っています」（1番はクラスにいるので待つ）
 //   席1: 2・3番を選ぶ → ホストとして「1・2・3番のグループ」を作る → 席2 が自動で入る
 //        → 3番は「欠席のため待ちません」→ 両方「そろいました」で自動で閉じる
-//   席4: 従来の「メッシュに参加する」→ 一覧に「1・2・3番のグループ」→ 選ばれていない確認 → 入る
+//   席4: 「従来の方法でつなぐ」を開いて「メッシュに参加する」→ 一覧に「1・2・3番のグループ」→ 選ばれていない確認 → 入る
 //   席1: 接続モーダルを開き直す → 接続済み画面に「そろい具合」の 1 行
 //
 // 画面は授業 PC の 1300×600。スクショは tmp/verify-mesh-v2-seat-connect/。
@@ -239,7 +239,12 @@ try {
     // ---- 席4: 従来の「メッシュに参加する」と混ぜる ----
     log('seat 4: join the seat group from the classic list');
     await openMeshModal(s4);
-    await s4.waitForSelector('[data-testid="meshV2-join-group"]', { timeout: 20000 });
+    // クラス参加中は従来の 2 つがたたまれている（毎回閉じた状態で始まる）
+    await s4.waitForSelector('[data-testid="meshV2-classic-toggle"]', { timeout: 20000 });
+    assert(!(await s4.$('[data-testid="meshV2-join-group"]')), 'classic buttons are folded away in a class');
+    await s4.click('[data-testid="meshV2-classic-toggle"]');
+    await shot(s4, 'seat4-classic-open', '0110-seat-classic-open-1300x600.png');
+    assert(await modalFits(s4), 'first screen with the classic methods open fits in 600px');
     await s4.click('[data-testid="meshV2-join-group"]');
     const tile = s4.locator('[class*="peripheral-tile"]', { hasText: '1・2・3番のグループ' });
     await tile.first().waitFor({ timeout: 30000 });

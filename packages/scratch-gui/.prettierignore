@@ -77,6 +77,7 @@ src/components/connection-modal/*
 !src/components/connection-modal/mesh-v2-initial-step.css
 !src/components/connection-modal/mesh-v2-initial-step.jsx
 !src/components/connection-modal/mesh-v2-network-filtered-step.jsx
+!src/components/connection-modal/mesh-v2-classic-methods.jsx
 !src/components/connection-modal/mesh-v2-seat-connect.css
 !src/components/connection-modal/mesh-v2-seat-entry.jsx
 !src/components/connection-modal/mesh-v2-seat-pick-step.jsx
