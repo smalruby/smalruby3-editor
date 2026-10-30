@@ -1,4 +1,5 @@
 require "time"
+require_relative "../domain/mesh_input"
 
 # LeaveGroup Use Case
 # ビジネスロジック - ピアがグループから退出する処理フローを管理
@@ -8,6 +9,8 @@ class LeaveGroupUseCase
   end
 
   def execute(group_id:, domain:, peer_id:)
+    MeshInput.validate_id!(peer_id, "nodeId")
+
     # ビジネスロジック: ピアをグループから削除
     peer_removed = @repository.remove_node_from_group(group_id, domain, peer_id)
 

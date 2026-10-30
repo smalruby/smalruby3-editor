@@ -107,5 +107,26 @@ RSpec.describe LeaveGroupUseCase do
         end
       end
     end
+
+    # issue #1267: 入力上限
+    context "入力の検査" do
+      it "出席番号付きのノード ID（…s07）は通す" do
+        pid = "0123456789abcdef0123456789abcdefs07"
+        allow(repository).to receive(:remove_node_from_group).and_return(true)
+        allow(repository).to receive(:delete_peer_data).and_return(true)
+        result = use_case.execute(group_id: group_id, domain: domain, peer_id: pid)
+        expect(result[:success]).to be true
+      end
+
+      it "長すぎる・使えない文字の nodeId は ValidationError（DB に触らない）" do
+        expect(repository).not_to receive(:remove_node_from_group)
+        expect {
+          use_case.execute(group_id: group_id, domain: domain, peer_id: "a" * 129)
+        }.to raise_error(MeshInput::ValidationError, /nodeId/)
+        expect {
+          use_case.execute(group_id: group_id, domain: domain, peer_id: "node#1")
+        }.to raise_error(MeshInput::ValidationError, /nodeId/)
+      end
+    end
   end
 end

@@ -1,4 +1,5 @@
 require_relative "../domain/group"
+require_relative "../domain/mesh_input"
 require "securerandom"
 require "time"
 
@@ -10,6 +11,9 @@ class CreateGroupUseCase
   end
 
   def execute(name:, host_id:, domain:, use_websocket: true)
+    MeshInput.validate_group_name!(name)
+    MeshInput.validate_id!(host_id, "hostId")
+
     # ビジネスロジック: 既存グループチェック（冪等性の実装）
     existing_group = @repository.find_group_by_host_and_domain(host_id, domain)
     return existing_group if existing_group

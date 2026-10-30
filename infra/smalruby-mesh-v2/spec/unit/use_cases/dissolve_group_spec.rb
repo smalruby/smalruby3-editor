@@ -84,5 +84,21 @@ RSpec.describe DissolveGroupUseCase do
         }.to raise_error(StandardError, /Group not found/)
       end
     end
+
+    # issue #1267: 入力上限
+    context "入力の検査" do
+      it "長すぎる hostId は ValidationError（DB に触らない）" do
+        expect(repository).not_to receive(:find_group)
+        expect {
+          use_case.execute(group_id: group_id, domain: domain, host_id: "a" * 129)
+        }.to raise_error(MeshInput::ValidationError, /hostId/)
+      end
+
+      it "使えない文字の hostId は ValidationError" do
+        expect {
+          use_case.execute(group_id: group_id, domain: domain, host_id: "host 001")
+        }.to raise_error(MeshInput::ValidationError, /hostId/)
+      end
+    end
   end
 end

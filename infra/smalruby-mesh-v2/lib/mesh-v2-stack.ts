@@ -8,6 +8,7 @@ import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import * as targets from 'aws-cdk-lib/aws-route53-targets';
 import * as path from 'path';
 import { Construct } from 'constructs';
+import { withMeshInputValidation } from './appsync-code';
 
 export class MeshV2Stack extends cdk.Stack {
   public readonly table: dynamodb.Table;
@@ -221,7 +222,8 @@ export class MeshV2Stack extends cdk.Stack {
       api: this.api,
       dataSource: dynamoDbDataSource,
       runtime: appsync.FunctionRuntime.JS_1_0_0,
-      code: appsync.Code.fromAsset(path.join(__dirname, '../js/functions/checkGroupExists.js'))
+      // 入力検査（hostId / nodeId の長さと文字・issue #1267）を連結する
+      code: withMeshInputValidation(path.join(__dirname, '../js/functions/checkGroupExists.js'))
     });
 
     // Grant additional permissions for TransactWriteItems
@@ -301,7 +303,8 @@ export class MeshV2Stack extends cdk.Stack {
       api: this.api,
       dataSource: dynamoDbDataSource,
       runtime: appsync.FunctionRuntime.JS_1_0_0,
-      code: appsync.Code.fromAsset(path.join(__dirname, '../js/functions/checkExistingGroup.js'))
+      // 入力検査（name / hostId の長さと文字・issue #1267）を連結する
+      code: withMeshInputValidation(path.join(__dirname, '../js/functions/checkExistingGroup.js'))
     });
 
     // Function 2: Create group if not exists, or return existing group

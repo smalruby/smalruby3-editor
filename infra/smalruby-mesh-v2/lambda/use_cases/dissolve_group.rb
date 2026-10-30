@@ -1,4 +1,5 @@
 require "time"
+require_relative "../domain/mesh_input"
 
 # DissolveGroup Use Case
 # アプリケーション層 - グループ解散のビジネスロジック
@@ -37,5 +38,6 @@ class DissolveGroupUseCase
     raise ArgumentError, "groupId is required" if group_id.nil? || group_id.to_s.empty?
     raise ArgumentError, "domain is required" if domain.nil? || domain.to_s.empty?
     raise ArgumentError, "hostId is required" if host_id.nil? || host_id.to_s.empty?
+    MeshInput.validate_id!(host_id, "hostId")
   end
 end
