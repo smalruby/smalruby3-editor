@@ -51,6 +51,8 @@ develop へのマージで、stg のあとに `[<project>] deploy prod` が走�
 2. **差分が無ければ**何もしない。
 3. **削除（`[-] AWS::...`）や置き換え（`requires replacement` / `may be replaced`）を含む**なら、
    出さずに失敗する（下の「prod の安全装置」）。
+   ただし `AWS::Lambda::Version` の削除は除く。エイリアス経由で呼ぶ Lambda（`currentVersion`）は
+   コードを変えるたびに新しいバージョンを作って古いものを消すので、通常のコード更新で必ず出る。
 4. それ以外は `cdk deploy --context stage=prod` する。
 5. 全プロジェクトが成功したら、マージした PR が `Refs #N` で参照している **🧱 infra の Issue を閉じる**。
    後続の GUI Issue（`autopilot-after: #N`）はこれを待っているので、ここで動き出す。

@@ -1,7 +1,7 @@
 # StandardRB configuration for Mesh v2
 # See: https://github.com/standardrb/standard
 
-ruby_version: 3.4
+ruby_version: 4.0
 
 ignore:
   - 'node_modules/**/*'

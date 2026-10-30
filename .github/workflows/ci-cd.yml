@@ -60,7 +60,7 @@ permissions:
 
 jobs:
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # ubuntu-latest is 26.04: no Playwright chromium build yet
     if: |
       (!(
         github.ref == 'refs/heads/develop' ||
@@ -81,7 +81,7 @@ jobs:
         run: npm run lint
 
   unit-test-vm:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # ubuntu-latest is 26.04: no Playwright chromium build yet
     if: |
       (!(
         github.ref == 'refs/heads/develop' ||
@@ -104,7 +104,7 @@ jobs:
         run: npm run test:unit --workspace=packages/scratch-vm
 
   unit-test-gui:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # ubuntu-latest is 26.04: no Playwright chromium build yet
     if: |
       (!(
         github.ref == 'refs/heads/develop' ||
@@ -127,7 +127,7 @@ jobs:
         run: npm run test:unit --workspace=packages/scratch-gui
 
   integration-test-vm:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # ubuntu-latest is 26.04: no Playwright chromium build yet
     if: |
       (!(
         github.ref == 'refs/heads/develop' ||
@@ -190,7 +190,7 @@ jobs:
           path: packages/scratch-vm/test-results/*
 
   integration-test-gui:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # ubuntu-latest is 26.04: no Playwright chromium build yet
     if: |
       (!(
         github.ref == 'refs/heads/develop' ||
@@ -241,7 +241,7 @@ jobs:
           path: packages/scratch-gui/test-results/*
 
   build-and-deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # ubuntu-latest is 26.04: no Playwright chromium build yet
     env:
       NODE_OPTIONS: --max-old-space-size=4000
     steps:
