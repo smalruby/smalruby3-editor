@@ -70,7 +70,9 @@ Google の `sub`（数値文字列）と Microsoft の `oid`（UUID）は自然�
 
 ## デバッグ
 
-`window.smalruby.forceTeacher401()` — キャッシュされたトークンを壊して次の API コールで 401 を発生させる。モーダルを閉じて再度開くと silent reauth がトリガーされる。Google / Microsoft 共通。
+`window.smalruby.forceTeacher401()` — キャッシュされたトークンを壊して次の API コールで 401 を発生させる。モーダルを閉じて再度開くと silent reauth がトリガーされる。Google / Microsoft 共通。モーダルを開いている間だけ使える。
+
+`window.smalruby.forceTeacherPanel401()` — 「いまの課題の状況」パネルを開いている間に使える。キャッシュのトークンを壊し、パネルの次の取得（30 秒ごと・↻）を 401 にして、有効期限切れの文言と「再認証する」リンクを出す。
 
 ## ファイル構成
 

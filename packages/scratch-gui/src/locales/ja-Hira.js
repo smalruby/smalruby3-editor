@@ -99,6 +99,8 @@ export default {
     'gui.classroomTeacherPanel.submitted': 'ていしゅつ {submitted} / {joined}',
     'gui.classroomTeacherPanel.empty': 'かだいをえらんでください。',
     'gui.classroomTeacherPanel.loadFailed': 'じょうきょうをしゅとくできませんでした。じどうでさいしこうします。',
+    'gui.classroomTeacherPanel.sessionExpired': 'ログインのゆうこうきげんがきれました。',
+    'gui.classroomTeacherPanel.reauth': 'さいにんしょうする',
     'gui.menuBar.classroomJoined': 'クラス:しゅっせきばんごう{seatNumber}',
     'gui.menuBar.classroomManagement': 'クラスかんり...',
     'gui.menuBar.aboutSmalruby': 'スモウルビーについて',

@@ -23,7 +23,8 @@ jobs:
   # ---------------------------------------------------------------------------
   ruby-unit-tests:
     name: "[mesh-v2] Ruby Unit Tests & Lint"
-    runs-on: ubuntu-latest
+    # ubuntu-latest moved to 26.04, where setup-ruby has no Ruby 3.4.1 yet.
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: infra/smalruby-mesh-v2
@@ -63,7 +64,8 @@ jobs:
 
   security:
     name: "[mesh-v2] Security Audits"
-    runs-on: ubuntu-latest
+    # ubuntu-latest moved to 26.04, where setup-ruby has no Ruby 3.4.1 yet.
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: infra/smalruby-mesh-v2

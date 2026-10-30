@@ -59,6 +59,7 @@ smalruby3-editor/
 │   │   │   ├── use-student-assignment.js ← 課題パネル・スターター・続きに使える提出物の読み込み (#1201)
 │   │   │   ├── use-kick-request-polling.js ← 退室依頼の承認待ちポーリング（依頼中・タブ表示中・未参加のみ）
 │   │   │   ├── classroom-kick-request-watcher.jsx ← モーダルを閉じている間の承認待ち見張り
+│   │   │   ├── classroom-mesh-connect-prompt.jsx ← メッシュ作品の読み込み後、クラスのモーダルが閉じたら接続モーダルを開く #1251
 │   │   │   ├── classroom-teacher-kick-alerts.jsx ← 先生の未処理退室依頼の見張り + トースト（GUI 全体で 1 つ）#1200
 │   │   │   ├── use-teacher-kick-request-polling.js ← 先生の退室依頼ポーリング（10 秒・タブ表示中・バックオフ）
 │   │   │   ├── classroom-teacher-panel.jsx ← 「いまの課題の状況」パネルのコンテナ（GUI 全体で 1 つ）#1203
@@ -71,6 +72,7 @@ smalruby3-editor/
 │   │   │   ├── classroom-api.js       ← API クライアント (リトライ付き)
 │   │   │   ├── classroom-presence.js  ← 着席判定のしきい値（唯一の定義）
 │   │   │   ├── classroom-teacher-session.js ← 先生ログインの永続化（provider + 最後の課題のみ、トークン非保存）・メニュー出し分け（純粋）#1199
+│   │   │   ├── classroom-teacher-reauth.js ← 先生ログインの有効期限切れ（401 判定・クリックからの再認証、純粋）#1250
 │   │   │   ├── classroom-assignment-utils.js ← 課題エディタの純粋ヘルパー
 │   │   │   ├── classroom-group-utils.js ← サイドバー組階層の純粋ヘルパー
 │   │   │   ├── classroom-google-share.js ← GC 共有の既定ブロック判定 + 解除導線の文言（純粋）#1184
@@ -78,6 +80,7 @@ smalruby3-editor/
 │   │   │   ├── classroom-kick-request-storage.js ← 退室依頼の localStorage 永続化 (#692)
 │   │   │   ├── classroom-seat-selection.js ← 席選択の純粋ロジック（番号入力の検証・ポーリング判定・定数）
 │   │   │   ├── classroom-continue-options.js ← 続きに使える提出物の正規化・参加直後にどこから始めるかの判定 decideJoinStart（純粋）#1201 #1202
+│   │   │   ├── classroom-mesh-connect.js ← メッシュの接続モーダルを出すか / いま出せるかの判定（純粋）#1251
 │   │   │   ├── classroom-teacher-kick-alerts.js ← 先生の退室依頼通知の純粋ロジック（間隔・バックオフ・要約）
 │   │   │   ├── google-classroom-auth.js ← Google Classroom OAuth
 │   │   │   └── alerts/index.jsx       ← Alert 定義（classroomSessionExpired 追加）
@@ -136,6 +139,7 @@ CDK スタック定義。以下のリソースを作成:
 | `validateStartFromPrevious()` / `startFromPreviousOf()` | 課題設定「前回の提出物から始めさせる」の検証（boolean・未送信は undefined）と読み出し #1202 |
 | `handleListPeerSubmissions()` | 他者参照: 同じ課題の提出済みクラスメイトの席番号・提出日時・画像 URL・スプライト名だけを返す（`.sb3`・ニックネーム・コメントは返さない。`peerView` で 403 `peer-view-off` / `not-submitted`）#1239 |
 | `validatePeerView()` / `peerViewOf()` | 課題設定「他者参照」（`none` / `always` / `afterSubmit`）の検証（未送信は undefined）と読み出し（未設定は `none`）#1239 |
+| `validateMeshGroupLimit()` / `meshGroupLimitOf()` | 課題のメッシュのグループの人数の上限（`6` / `0` = 制限なし）の検証（未送信は undefined・不正値は `ValidationError`）と読み出し（未設定は `0` = 制限なし。応答は常に `6` か `0`）#1255 |
 | `validateScreenshotLabels()` | 提出の任意項目 `screenshotLabels`（スプライト名の配列）の検証 #1239 |
 | `handleListNotifications()` | お知らせ一覧 + 未読数 (EPIC #1111) |
 | `handleMarkNotificationsRead()` | お知らせ既読化 (ids 省略で全既読) |

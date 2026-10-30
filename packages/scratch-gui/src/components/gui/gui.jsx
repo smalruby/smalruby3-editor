@@ -52,6 +52,7 @@ import {isBugReportConfigured} from '../../lib/bug-report-api.js';
 // === Smalruby: End of bug report modal ===
 // === Smalruby: Start of meshV2 classroom binding ===
 import MeshV2ClassroomBinding from '../../lib/mesh-v2-classroom-binding.jsx';
+import ClassroomMeshConnectPrompt from '../../containers/classroom-mesh-connect-prompt.jsx';
 // === Smalruby: End of meshV2 classroom binding ===
 
 // === Smalruby: Start of meshV2 self-sensor notice ===
@@ -501,6 +502,7 @@ const GUIComponent = props => {
                     {/* === Smalruby: End of bug report modal === */}
                     {/* === Smalruby: Start of meshV2 classroom binding === */}
                     <MeshV2ClassroomBinding />
+                    <ClassroomMeshConnectPrompt />
                     {/* === Smalruby: End of meshV2 classroom binding === */}
                     {/* === Smalruby: Start of meshV2 self-sensor notice === */}
                     <MeshSelfSensorNotice />

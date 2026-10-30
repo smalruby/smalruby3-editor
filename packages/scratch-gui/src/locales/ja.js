@@ -97,6 +97,8 @@ export default {
     'gui.classroomTeacherPanel.submitted': '提出 {submitted} / {joined}',
     'gui.classroomTeacherPanel.empty': '課題を選んでください。',
     'gui.classroomTeacherPanel.loadFailed': '状況を取得できませんでした。自動で再試行します。',
+    'gui.classroomTeacherPanel.sessionExpired': 'ログインの有効期限が切れました。',
+    'gui.classroomTeacherPanel.reauth': '再認証する',
     'gui.menuBar.classroomJoined': 'クラス:出席番号{seatNumber}',
     'gui.menuBar.classroomManagement': 'クラス管理...',
     'gui.menuBar.aboutSmalruby': 'スモウルビーについて',
