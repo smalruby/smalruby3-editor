@@ -159,4 +159,28 @@ describe('useTeacherAssignment — meshGroupLimit (#1257)', () => {
         expect(mockSetAssignment).toHaveBeenCalled();
         expect(mockUpdateClassroom).not.toHaveBeenCalled();
     });
+    test('保存せずに課題を開き直すと、保存値に戻る（前回の選択が残らない）', async () => {
+        const deps = {
+            idToken: 'id-token',
+            selectedClassroom: { classroomId: 'c1', meshGroupLimit: 6 },
+            handleTeacher401: jest.fn(),
+            clearError: jest.fn(),
+            showError: jest.fn(),
+            intl: { formatMessage: (m) => m.defaultMessage },
+            setIsLoading: jest.fn(),
+            phase: 'teacher-class-detail',
+            setPhase: jest.fn(),
+            vm: {},
+        };
+        const hook = renderHook((props) => useTeacherAssignment(props), { initialProps: deps });
+        await act(async () => {});
+        act(() => hook.result.current.handleChangeMeshGroupLimit('0'));
+        expect(hook.result.current.meshGroupLimit).toBe(0);
+
+        // 課題一覧へ戻って同じ課題を開き直す
+        hook.rerender({ ...deps, phase: 'teacher-dashboard' });
+        hook.rerender({ ...deps, phase: 'teacher-class-detail' });
+        await act(async () => {});
+        expect(hook.result.current.meshGroupLimit).toBe(6);
+    });
 });

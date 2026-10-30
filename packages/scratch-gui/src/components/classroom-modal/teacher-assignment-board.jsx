@@ -350,10 +350,18 @@ const TeacherAssignmentBoard = ({
         [onDownloadClassAll, group],
     );
 
+    // 作成・再利用の画面は、開くとき・閉じるとき（キャンセル・作成・コピー・パンくず・
+    // 画面の切り替え）のどちらでも入力を既定値に戻す。次に開いたときに前回の値が残らないように。
+    const resetSubViewForms = useCallback(() => {
+        setNewAssignmentName('');
+        setNewMeshGroupLimit(DEFAULT_MESH_GROUP_LIMIT);
+        setReuseFilterGroupId('');
+    }, []);
     const handleToggleInlineCreate = useCallback(() => {
+        resetSubViewForms();
         setShowReuse(false);
         setShowInlineCreate((v) => !v);
-    }, []);
+    }, [resetSubViewForms]);
     const handleNewAssignmentNameChange = useCallback((e) => setNewAssignmentName(e.target.value), []);
     const handleSubmitInlineCreate = useCallback(
         (e) => {
@@ -361,16 +369,16 @@ const TeacherAssignmentBoard = ({
             const trimmed = newAssignmentName.trim();
             if (!trimmed || isLoading) return;
             onCreateAssignmentInClass(group, trimmed, { meshGroupLimit: newMeshGroupLimit });
-            setNewAssignmentName('');
-            setNewMeshGroupLimit(DEFAULT_MESH_GROUP_LIMIT);
+            resetSubViewForms();
             setShowInlineCreate(false);
         },
-        [newAssignmentName, newMeshGroupLimit, isLoading, onCreateAssignmentInClass, group],
+        [newAssignmentName, newMeshGroupLimit, isLoading, onCreateAssignmentInClass, group, resetSubViewForms],
     );
     const handleToggleReuse = useCallback(() => {
+        resetSubViewForms();
         setShowInlineCreate(false);
         setShowReuse((v) => !v);
-    }, []);
+    }, [resetSubViewForms]);
     const handleReuseFilterChange = useCallback((e) => setReuseFilterGroupId(e.target.value), []);
     const handleReuseCopy = useCallback(
         (e) => {
@@ -378,10 +386,11 @@ const TeacherAssignmentBoard = ({
             const source = (allClassrooms || []).find((c) => c.classroomId === sourceId);
             if (source) {
                 onReuseAssignment(source, group);
+                resetSubViewForms();
                 setShowReuse(false);
             }
         },
-        [allClassrooms, onReuseAssignment, group],
+        [allClassrooms, onReuseAssignment, group, resetSubViewForms],
     );
 
     // 再利用の対象はアクティブなクラス・課題のみ（レビュー指摘）。アーカイブ済みの
@@ -461,6 +470,7 @@ const TeacherAssignmentBoard = ({
         },
     };
     const handleBoardHome = useCallback(() => {
+        resetSubViewForms();
         setShowInlineCreate(false);
         setShowReuse(false);
         if (shared) {
@@ -468,7 +478,7 @@ const TeacherAssignmentBoard = ({
             if (shared.showPasscodeImport) shared.handleClosePasscodeImport();
             if (shared.showCatalog) shared.handleCloseCatalog();
         }
-    }, [shared]);
+    }, [shared, resetSubViewForms]);
 
     return (
         <TeacherScreen

@@ -104,6 +104,29 @@ describe('TeacherClassList', () => {
         );
     });
 
+    test.each([
+        ['cancel', 'classroom-class-create-cancel'],
+        ['the class list breadcrumb', 'classroom-breadcrumb-class-list'],
+    ])('should reset the create form when it is left by %s (review FYI4)', (_label, leaveTestId) => {
+        renderList();
+        const byTestId = (id) => document.querySelector(`[data-testid="${id}"]`);
+        fireEvent.click(byTestId('classroom-class-create'));
+        const defaultYear = byTestId('classroom-class-create-year').value;
+        fireEvent.change(byTestId('classroom-class-create-name'), { target: { value: '技術' } });
+        fireEvent.change(byTestId('classroom-class-create-year'), { target: { value: '2030' } });
+        fireEvent.change(byTestId('classroom-class-create-section'), { target: { value: '2年1組' } });
+        fireEvent.change(byTestId('classroom-class-create-count'), { target: { value: '30' } });
+        fireEvent.change(byTestId('classroom-class-create-assignment'), { target: { value: '課題1' } });
+        fireEvent.click(byTestId(leaveTestId));
+
+        fireEvent.click(byTestId('classroom-class-create'));
+        expect(byTestId('classroom-class-create-name').value).toBe('');
+        expect(byTestId('classroom-class-create-year').value).toBe(defaultYear);
+        expect(byTestId('classroom-class-create-section').value).toBe('');
+        expect(byTestId('classroom-class-create-count').value).toBe('');
+        expect(byTestId('classroom-class-create-assignment').value).toBe('');
+    });
+
     test('should show the class label with year and section', () => {
         renderList({ groups: [group({ name: '技術', section: '2年1組' })] });
         expect(document.querySelector('[data-testid="classroom-class-open-g1"]')).toHaveTextContent(

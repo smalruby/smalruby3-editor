@@ -151,11 +151,13 @@ const useTeacherAssignment = ({
 
     // Follow the opened classroom's stored value (also after a save updates
     // it). Not part of loadAssignmentEditor: its post-save reload closes over
-    // the pre-save classroom and would put the old value back.
+    // the pre-save classroom and would put the old value back. Re-entering the
+    // detail view also resets it, so an unsaved choice does not come back when
+    // the same assignment is opened again.
     const storedMeshGroupLimit = normalizeMeshGroupLimit(selectedClassroom && selectedClassroom.meshGroupLimit);
     useEffect(() => {
         setMeshGroupLimit(storedMeshGroupLimit);
-    }, [selectedClassroom && selectedClassroom.classroomId, storedMeshGroupLimit]);
+    }, [phase === 'teacher-class-detail', selectedClassroom && selectedClassroom.classroomId, storedMeshGroupLimit]);
 
     const handleAddPage = useCallback(() => {
         setEditorPages((pages) => (pages.length >= MAX_ASSIGNMENT_PAGES ? pages : [...pages, { text: '' }]));
