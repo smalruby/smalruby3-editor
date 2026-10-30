@@ -38,7 +38,7 @@ upstream: https://github.com/ohai/ruby-sdl2.git        (オリジナル)
 
 ```bash
 cd ruby/ruby-sdl2
-rbenv local 3.3.9   # or 3.4.9, 4.0.2
+rbenv local 3.3.13   # or 3.4.12, 4.0.9 (Regexp CVE fixes, 2026-10)
 m4 video.c.m4 > video.c   # m4 プリプロセス（.c.m4 ファイル変更時）
 ruby extconf.rb && make
 ```

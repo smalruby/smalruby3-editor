@@ -19,6 +19,14 @@ RUN \
     libosmesa6 \
     fonts-ipafont-gothic fonts-wqy-zenhei fonts-thai-tlwg fonts-kacst fonts-freefont-ttf libxss1
 
+# Refuse to build on a stale base image. The eMudhra intermediate CA keys leaked
+# (2026-10); Debian 12 drops the affected roots in ca-certificates 20250419~deb12u2.
+RUN dpkg --compare-versions "$(dpkg-query -W -f='${Version}' ca-certificates)" ge 20250419~deb12u2 \
+  || { echo "ca-certificates $(dpkg-query -W -f='${Version}' ca-certificates) predates the eMudhra fix" >&2; exit 1; }
+# Node.js 24.22.1 is the first 24.x with the eMudhra roots removed from its bundled store.
+RUN node -e "const [a, b, c] = process.versions.node.split('.').map(Number); \
+  if (a === 24 && (b < 22 || (b === 22 && c < 1))) { console.error('Node.js ' + process.version + ' predates 24.22.1'); process.exit(1); }"
+
 # Development convenience tools (separate layer to avoid busting app build cache)
 #
 # iptables / ipset / dnsutils (dig) are required by .devcontainer/init-firewall.sh,
