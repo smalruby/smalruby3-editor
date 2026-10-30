@@ -63,6 +63,23 @@ URL パラメータ `?force_polling=1` でクライアント側から強制 poll
 
 end-to-end 動作確認: [`tools/playwright-verify/mesh-v2-classroom-binding.mjs`](../../tools/playwright-verify/README.md) — 2 タブ (教師 + 生徒) を自動で操作してドメイン連動を検証する手動 E2E スクリプト。
 
+### クラスで読み込んだ作品の接続モーダル自動表示
+
+生徒がクラスの流れで作品を読み込んだとき、次の 3 つがすべて当てはまれば、拡張の接続ボタンと同じ接続モーダル（`meshV2`）を**自動で開く**。授業で生徒が接続ボタンを探して止まらないようにするため。
+
+1. 読み込み元がクラスの流れ: スターター（選択肢の「スターターから始める」・課題パネルの「スタータープロジェクトを開く」）、または提出物から続ける（前回 / 今回）
+2. 読み込んだ作品がメッシュ拡張を使っている（mesh v1 から v2 へ移行された作品も含む）
+3. まだメッシュに接続していない
+
+- **クラスのモーダルと重ねない**: 接続モーダルはクラスのモーダル（生徒・先生とも）が閉じてから開く。選択肢から始めた場合は読み込み直後にクラスのモーダルが閉じるのでそのまま開き、課題パネルの「スタータープロジェクトを開く」でパネルが開いたままの場合は、**パネルを閉じたときに開く**（その場で前面に出すと課題パネルと接続モーダルが重なり、どちらを操作すればよいか分かりにくいため）。
+- **出さない**: 上書き確認をキャンセルしたとき、読み込みに失敗したとき、メッシュを使わない作品を読み込んだとき（それ以前の未表示の依頼も取り消す）、表示までの間に接続済みになったとき。
+- **1 回だけ**: 依頼は開いた時点で消える。生徒が接続モーダルを閉じても、次にクラスの流れで読み込むまでは再表示しない。
+- 対象外: 先生が提出物を開く経路、クラス外でのファイル / URL 読み込み。
+
+実装: 判定 = `packages/scratch-gui/src/lib/classroom-mesh-connect.js`（純粋関数）、依頼 = `src/containers/use-student-assignment.js` → Redux `classroom.meshConnectPending`、表示 = `src/containers/classroom-mesh-connect-prompt.jsx`。
+
+end-to-end 動作確認: [`tools/playwright-verify/verify-classroom-mesh-connect.mjs`](../../tools/playwright-verify/README.md)。
+
 ## 主要ファイル
 
 ### scratch-gui

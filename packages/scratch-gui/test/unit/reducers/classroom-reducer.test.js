@@ -23,6 +23,8 @@ import reducer, {
     setStudentPeerView,
     openStudentPeerPanel,
     closeStudentPeerPanel,
+    requestMeshConnect,
+    clearMeshConnectRequest,
 } from '../../../src/reducers/classroom';
 
 const STORAGE_KEY = 'smalruby:classroom';
@@ -529,6 +531,23 @@ describe('classroom reducer', () => {
             const { classroomInitialState: fresh } = require('../../../src/reducers/classroom');
             expect(fresh.teacherLastSelection).toEqual({ classroomId: 'c9', groupId: 'g9' });
             expect(fresh.teacherLoggedIn).toBe(false);
+        });
+    });
+
+    describe('mesh connect request (#1251)', () => {
+        test('initial state has no pending request', () => {
+            expect(classroomInitialState.meshConnectPending).toBe(false);
+        });
+
+        test('should request and clear the mesh connection modal', () => {
+            const requested = reducer(classroomInitialState, requestMeshConnect());
+            expect(requested.meshConnectPending).toBe(true);
+            expect(reducer(requested, clearMeshConnectRequest()).meshConnectPending).toBe(false);
+        });
+
+        test('should drop the request when leaving the class', () => {
+            const requested = reducer(classroomInitialState, requestMeshConnect());
+            expect(reducer(requested, clearClassroomSession()).meshConnectPending).toBe(false);
         });
     });
 });
