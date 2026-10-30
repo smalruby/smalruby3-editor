@@ -427,7 +427,10 @@ class Scratch3MeshV2Blocks {
         this.setConnectionState('connecting');
 
         if (id === MESH_V2_HOST_ID) {
-            this.meshService.createGroup(this.makeHostGroupName()).then(() => {
+            const groupName = this.makeHostGroupName();
+            // The chosen seats are for this one group; a later "ホストになる" must not reuse them.
+            this.setSeatGroupSeats(null);
+            this.meshService.createGroup(groupName).then(() => {
                 this.setConnectionState('connected');
             })
                 /* istanbul ignore next */

@@ -114,3 +114,19 @@
         max-width: none;
     }
 }
+
+/* With "出席番号でつながる" on top, keep the classic buttons (same place and words)
+   but with smaller images so the modal fits the 600px-high classroom PC screen. */
+.compact .actionButton {
+    padding: 0.5rem;
+}
+
+.compact .buttonImage {
+    max-width: 96px;
+    margin-bottom: 0.25rem;
+}
+
+.compact .buttonTitle {
+    font-size: 0.875rem;
+    white-space: nowrap;
+}

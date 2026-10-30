@@ -85,7 +85,11 @@ const MeshV2InitialStep = (props) => {
                         onSeatConnect={props.onSeatConnect}
                     />
                 )}
-                <Box className={classNames(styles.bottomAreaItem, initialStepStyles.buttonContainer)}>
+                <Box
+                    className={classNames(styles.bottomAreaItem, initialStepStyles.buttonContainer, {
+                        [initialStepStyles.compact]: seat && props.onSeatConnect,
+                    })}
+                >
                     <button
                         className={initialStepStyles.actionButton}
                         data-testid="meshV2-create-group"
