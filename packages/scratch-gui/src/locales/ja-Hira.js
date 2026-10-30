@@ -1312,8 +1312,7 @@ export default {
     'gui.connection.meshV2Seat.classicToggle': 'じゅうらいの ほうほうで つなぐ（ホストになる / グループに さんか）',
     'gui.connection.meshV2Seat.classicOpen': '▾ ひらく',
     'gui.connection.meshV2Seat.classicClose': '▴ とじる',
-    'gui.connection.meshV2Seat.classicNote':
-        'クラスの そとや、せんせいに いわれた ときだけ つかいます。',
+    'gui.connection.meshV2Seat.classicNote': 'クラスの そとや、せんせいに いわれた ときだけ つかいます。',
     'gui.connection.meshV2Initial.domainPlaceholder': 'ドメインめいをにゅうりょく...',
     'gui.connection.meshV2Initial.createGroup': 'メッシュのホストになる',
     'gui.connection.meshV2Initial.createGroupDescription': 'グループのさくせい',

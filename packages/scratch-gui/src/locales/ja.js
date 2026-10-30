@@ -1272,8 +1272,7 @@ export default {
     'gui.connection.meshV2Seat.classicToggle': '従来の方法でつなぐ（ホストになる / グループに参加）',
     'gui.connection.meshV2Seat.classicOpen': '▾ ひらく',
     'gui.connection.meshV2Seat.classicClose': '▴ とじる',
-    'gui.connection.meshV2Seat.classicNote':
-        'クラスの外や、先生に言われたときだけ使います。',
+    'gui.connection.meshV2Seat.classicNote': 'クラスの外や、先生に言われたときだけ使います。',
     'gui.connection.meshV2Initial.domainPlaceholder': 'ドメイン名を入力...',
     'gui.connection.meshV2Initial.createGroup': 'メッシュのホストになる',
     'gui.connection.meshV2Initial.createGroupDescription': 'グループの作成',
