@@ -13,7 +13,7 @@ const { setTimeout: sleep } = require('timers/promises');
 const fs = require('fs');
 const {
     evaluate, shouldResend, DEFAULT_WATCHDOG, DEFAULT_CLAUDE_COMMAND, phasePromptCommand,
-    shouldSignalCheckpoint, CHECKPOINT_SIGNAL_MESSAGE,
+    shouldSignalCheckpoint, checkpointSignalMessage,
 } = require('./phases');
 
 // claude TUI が「実行中」のときに pane に出る指標（spinner のトークンカウンタ "· ↓"、
@@ -176,7 +176,7 @@ async function runPhase(opts) {
             // の責務、実際の送信とフラグの立ち上げは呼び出し側（ここ）の責務。
             if (shouldSignalCheckpoint({ elapsedMs, ready, dead, resultPresent, softSignalSent }, cfg)) {
                 log(`soft-limit exceeded (${elapsedMs}ms) -> send checkpoint signal (#${opts.issue})`);
-                sendLine(opts.session, CHECKPOINT_SIGNAL_MESSAGE);
+                sendLine(opts.session, checkpointSignalMessage(cfg));
                 softSignalSent = true;
             }
 

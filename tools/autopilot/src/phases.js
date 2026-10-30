@@ -1959,8 +1959,50 @@ function checkpointIterationDecision(iteration, maxIterations = DEFAULT_MAX_CHEC
     return { action: 'continue', reason: `checkpoint iteration ${n} within limit ${maxIterations}` };
 }
 
-/** soft-limit（worker に「まとめに入れ」信号を送るまでの時間）の既定値: 22 分（EPIC #906 で確定）。 */
-const DEFAULT_CHECKPOINT_SOFT_LIMIT_MS = 22 * 60 * 1000;
+/**
+ * 1 回の run の絶対上限（watchdog `tMaxMs`）の既定値: 60 分。
+ * 当初の 30 分では大きな実装が 1 回に収まらず、checkpoint を繰り返して上限（3 回）で
+ * Blocked に近づいた（#1258）。settings.json の `watchdog.maxMinutes` で変えられる。
+ */
+const DEFAULT_RUN_MAX_MS = 60 * 60 * 1000;
+/** soft-limit から絶対上限までの、worker がまとめに使う時間（EPIC #906 の「残り約8分」を維持）。 */
+const CHECKPOINT_WRAP_UP_MS = 8 * 60 * 1000;
+/** soft-limit（worker に「まとめに入れ」信号を送るまでの時間）の既定値: 52 分（= 60 分 − 8 分）。 */
+const DEFAULT_CHECKPOINT_SOFT_LIMIT_MS = DEFAULT_RUN_MAX_MS - CHECKPOINT_WRAP_UP_MS;
+/**
+ * run が無くなってから Blocked にするまでの猶予（stuck 検知）は、絶対上限にこれを足した値。
+ * 生きている run を誤って止めないよう、常に上限より長くする（#816）。
+ */
+const STUCK_MARGIN_MS = 5 * 60 * 1000;
+
+/**
+ * settings の `watchdog`（分単位）から runner の時間設定を作る（純粋関数）。
+ * - `maxMinutes`: 1 回の run の絶対上限（超えたら kill）
+ * - `softMinutes`: checkpoint 信号を送る時刻。省略時は `maxMinutes` − 8 分
+ * 不正な値（数でない・0 以下・soft が max 以上）は既定に戻す（無人運用で daemon を落とさない）。
+ * @param {object} [watchdog] settings.watchdog
+ * @returns {{tMaxMs: number, tSoftMs: number, stuckMs: number}}
+ */
+function watchdogFromSettings(watchdog) {
+    const toMs = (min) => (typeof min === 'number' && Number.isFinite(min) && min > 0 ? Math.round(min * 60 * 1000) : null);
+    const w = watchdog || {};
+    const tMaxMs = toMs(w.maxMinutes) || DEFAULT_RUN_MAX_MS;
+    let tSoftMs = toMs(w.softMinutes);
+    if (tSoftMs === null || tSoftMs >= tMaxMs) tSoftMs = Math.max(tMaxMs - CHECKPOINT_WRAP_UP_MS, Math.round(tMaxMs / 2));
+    return { tMaxMs, tSoftMs, stuckMs: tMaxMs + STUCK_MARGIN_MS };
+}
+
+/**
+ * worker へ送る checkpoint 信号の文言（純粋関数）。残り時間は設定から計算する。
+ * @param {object} [cfg] { tMaxMs, tSoftMs }
+ * @returns {string}
+ */
+function checkpointSignalMessage(cfg = {}) {
+    const tMaxMs = cfg.tMaxMs ?? DEFAULT_RUN_MAX_MS;
+    const tSoftMs = cfg.tSoftMs ?? DEFAULT_CHECKPOINT_SOFT_LIMIT_MS;
+    const minutes = Math.max(1, Math.round((tMaxMs - tSoftMs) / 60000));
+    return `⏰ 残り約${minutes}分。新しい大きな作業を始めず、安全な区切りで停止して checkpoint 手順を実行して`;
+}
 
 /**
  * soft-limit を超えたら worker に checkpoint 信号（「まとめに入れ」の tmux send-keys）を送る
@@ -1983,14 +2025,12 @@ function shouldSignalCheckpoint(state, cfg = {}) {
 }
 
 /**
- * {@link shouldSignalCheckpoint} が true を返したときに runner が tmux send-keys で
- * worker へ送るメッセージ（実装コンポーネント A・#911）。文言は
- * `DEFAULT_CHECKPOINT_SOFT_LIMIT_MS`（22分）と `DEFAULT_WATCHDOG.tMaxMs`（30分）の差分
- * 「残り約8分」を前提にした固定文（EPIC #906 で確定）。worker は
+ * 既定の設定（{@link DEFAULT_RUN_MAX_MS} / {@link DEFAULT_CHECKPOINT_SOFT_LIMIT_MS}）での
+ * checkpoint 信号の文言（実装コンポーネント A・#911）。設定を変えたときは runner が
+ * {@link checkpointSignalMessage} で残り時間を計算し直す。worker は
  * `docs/autopilot/autonomous-contract.md` の協調的チェックポイント手順に従う。
  */
-const CHECKPOINT_SIGNAL_MESSAGE =
-    '⏰ 残り約8分。新しい大きな作業を始めず、安全な区切りで停止して checkpoint 手順を実行して';
+const CHECKPOINT_SIGNAL_MESSAGE = checkpointSignalMessage();
 
 /**
  * checkpoint 継続コメント（daemon が Issue へ upsert する・実装コンポーネント D・#912）の
@@ -2800,9 +2840,10 @@ const DEFAULT_WATCHDOG = {
     // claude の思考/実行は数分に及ぶ。busy 検知（runner の BUSY_RE）が主防御で、
     // これは pane が完全停止した場合の保険なので長め（10 分）にする。
     tIdleMs: 600_000,
-    tMaxMs: 1_800_000,
+    tMaxMs: DEFAULT_RUN_MAX_MS,
     // soft-limit（協調的チェックポイント・EPIC #906・#911）: tMaxMs より前に worker へ
-    // checkpoint 信号を送る。既定は DEFAULT_CHECKPOINT_SOFT_LIMIT_MS と同値（22分）。
+    // checkpoint 信号を送る。既定は DEFAULT_CHECKPOINT_SOFT_LIMIT_MS と同値（52分）。
+    // どちらも settings.json の `watchdog` で変えられる（watchdogFromSettings）。
     tSoftMs: DEFAULT_CHECKPOINT_SOFT_LIMIT_MS,
     // 対話プロンプト（許可/確認/選択ダイアログ）が pane に出て人間入力待ちになったら、
     // これだけ経過した時点で待たずに HITL へ落とす（auto mode でも soft_deny 等で稀に
@@ -3157,6 +3198,9 @@ module.exports = {
     DEFAULT_CHECKPOINT_SOFT_LIMIT_MS,
     shouldSignalCheckpoint,
     CHECKPOINT_SIGNAL_MESSAGE,
+    checkpointSignalMessage,
+    watchdogFromSettings,
+    DEFAULT_RUN_MAX_MS,
     CHECKPOINT_CONTINUATION_COMMENT_MARKER,
     continuationCommentBody,
     REVIEW_FINDING_CATEGORIES,
