@@ -18,6 +18,9 @@ import MeshV2NetworkFilteredStep from './mesh-v2-network-filtered-step.jsx';
 // === Smalruby: Start of meshV2 initial step feature ===
 import MeshV2InitialStep from './mesh-v2-initial-step.jsx';
 // === Smalruby: End of meshV2 initial step feature ===
+// === Smalruby: Start of meshV2 seat connect feature ===
+import MeshV2SeatConnect from '../../containers/mesh-v2-seat-connect.jsx';
+// === Smalruby: End of meshV2 seat connect feature ===
 // === Smalruby: Start of smalrubotS1 dedicated flow ===
 import SmalrubotS1InitialStep from './smalrubot-s1-initial-step.jsx';
 import SmalrubotS1UnsupportedStep from './smalrubot-s1-unsupported-step.jsx';
@@ -40,6 +43,9 @@ const PHASES = keyMirror({
     // === Smalruby: Start of meshV2 initial step feature ===
     meshV2Initial: null,
     // === Smalruby: End of meshV2 initial step feature ===
+    // === Smalruby: Start of meshV2 seat connect feature ===
+    meshV2Seat: null,
+    // === Smalruby: End of meshV2 seat connect feature ===
     // === Smalruby: Start of smalrubotS1 dedicated flow ===
     smalrubotS1Initial: null,
     smalrubotS1Unsupported: null,
@@ -88,6 +94,16 @@ const ConnectionModalComponent = props => {
             {/* === Smalruby: Start of meshV2 initial step feature === */}
             {props.phase === PHASES.meshV2Initial && <MeshV2InitialStep {...props} />}
             {/* === Smalruby: End of meshV2 initial step feature === */}
+            {/* === Smalruby: Start of meshV2 seat connect feature === */}
+            {props.phase === PHASES.meshV2Seat && props.meshV2Seat && (
+                <MeshV2SeatConnect
+                    mySeat={props.meshV2Seat.seat}
+                    vm={props.vm}
+                    onBack={props.onBack}
+                    onClose={props.onCancel}
+                />
+            )}
+            {/* === Smalruby: End of meshV2 seat connect feature === */}
             {/* === Smalruby: Start of smalrubotS1 dedicated flow === */}
             {props.phase === PHASES.smalrubotS1Initial && <SmalrubotS1InitialStep {...props} />}
             {props.phase === PHASES.smalrubotS1Unsupported && <SmalrubotS1UnsupportedStep {...props} />}
@@ -106,6 +122,14 @@ ConnectionModalComponent.propTypes = {
     connectionSmallIconURL: PropTypes.string,
     connectionTipIconURL: PropTypes.string,
     name: PropTypes.node,
+    // === Smalruby: Start of meshV2 seat connect feature ===
+    meshV2Seat: PropTypes.shape({
+        seat: PropTypes.number,
+        teacher: PropTypes.bool
+    }),
+    onBack: PropTypes.func,
+    vm: PropTypes.object,
+    // === Smalruby: End of meshV2 seat connect feature ===
     onCancel: PropTypes.func.isRequired,
     onFlashFirmware: PropTypes.func, // === Smalruby: smalrubot firmware flash ===
     onHelp: PropTypes.func.isRequired,

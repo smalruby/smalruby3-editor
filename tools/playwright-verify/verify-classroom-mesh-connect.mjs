@@ -95,7 +95,11 @@ const modalState = (page) =>
         };
     });
 const waitConnectionModal = (page) =>
-    page.waitForSelector('[data-testid="meshV2-create-group"]', { state: 'visible', timeout: 20000 });
+    // クラス参加中の生徒は「出席番号でつながる」が出て、従来の 2 つはたたまれている
+    page.waitForSelector('[data-testid="meshV2-seat-connect-entry"], [data-testid="meshV2-create-group"]', {
+        state: 'visible',
+        timeout: 20000,
+    });
 const closeConnectionModal = (page) =>
     page.evaluate(() =>
         window.__store.dispatch({ type: 'scratch-gui/modals/CLOSE_MODAL', modal: 'connectionModal' }),
