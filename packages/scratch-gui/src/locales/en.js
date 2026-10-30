@@ -910,6 +910,17 @@ export default {
     'gui.connection.networkFiltered.useLegacyMeshButton': 'Use legacy mesh',
 
     // MeshV2 Initial Step messages
+    'gui.connection.meshV2Seat.pickTitle': 'Choose the numbers to connect with',
+    'gui.connection.meshV2Seat.absent': 'Absent',
+    'gui.connection.meshV2Seat.busy': 'In use',
+    'gui.connection.meshV2Seat.me': 'You',
+    'gui.connection.meshV2Seat.limit': 'Up to {limit}',
+    'gui.connection.meshV2Seat.selectAll': 'Select everyone',
+    'gui.connection.meshV2Seat.summary': 'Chosen: {seats} / Host: No. {host}',
+    'gui.connection.meshV2Seat.connect': 'Connect',
+    'gui.connection.meshV2Seat.joinBusyConfirm': 'No. {seat} is already in a group. Join that group?',
+    'gui.connection.meshV2Seat.join': 'Join',
+    'gui.connection.meshV2Seat.cancel': 'Cancel',
     'gui.connection.meshV2Initial.domainPlaceholder': 'Enter domain name...',
     'gui.connection.meshV2Initial.createGroup': 'Become Mesh Host',
     'gui.connection.meshV2Initial.createGroupDescription': 'Create Group',

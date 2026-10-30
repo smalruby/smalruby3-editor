@@ -1,0 +1,119 @@
+@import '../../css/colors.css';
+
+/* The shared modal body has no background (.claude/rules/scratch-gui/modals.md). */
+.body {
+    background-color: $ui-white;
+    padding: 0.75rem 1rem;
+    max-height: 510px;
+    overflow-y: auto;
+    color: $text-primary;
+}
+
+.title {
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 0.375rem;
+}
+
+.seat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.25rem 0;
+    min-height: 2.75rem;
+    background: $ui-white;
+    border: 2px solid $ui-black-transparent;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    color: $text-primary;
+}
+
+.seat:disabled {
+    cursor: default;
+    opacity: 0.5;
+}
+
+.seat-number {
+    font-size: 1rem;
+    font-weight: bold;
+}
+
+.seat-label {
+    font-size: 0.625rem;
+    min-height: 0.75rem;
+}
+
+.seat-chosen {
+    border-color: $motion-primary;
+    background: hsla(215, 100%, 65%, 0.15);
+}
+
+.seat-me,
+.seat-me:disabled {
+    opacity: 1;
+    border-color: $motion-primary;
+    background: $motion-primary;
+    color: $ui-white;
+}
+
+.seat-absent {
+    border-style: dashed;
+}
+
+.seat-busy {
+    color: $text-primary-transparent;
+}
+
+.confirm,
+.warning {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    background: $ui-secondary;
+}
+
+.footer {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-top: 0.75rem;
+}
+
+.summary {
+    flex: 1;
+    font-size: 0.875rem;
+}
+
+.limit {
+    margin-left: 0.5rem;
+    color: $error-primary;
+}
+
+.primary,
+.secondary {
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.primary {
+    border: none;
+    background: $motion-primary;
+    color: $ui-white;
+}
+
+.secondary {
+    border: 1px solid $ui-black-transparent;
+    background: $ui-white;
+    color: $text-primary;
+}

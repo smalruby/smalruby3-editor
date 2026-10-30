@@ -1268,6 +1268,18 @@ export default {
     'gui.connection.networkFiltered.useLegacyMeshButton': 'じゅうらいのメッシュをつかう',
 
     // MeshV2 Initial Step messages
+    'gui.connection.meshV2Seat.pickTitle': 'つながる しゅっせきばんごうを えらぶ',
+    'gui.connection.meshV2Seat.absent': 'けっせき',
+    'gui.connection.meshV2Seat.busy': 'しようちゅう',
+    'gui.connection.meshV2Seat.me': 'じぶん',
+    'gui.connection.meshV2Seat.limit': '{limit}にんまで',
+    'gui.connection.meshV2Seat.selectAll': 'ぜんいんを えらぶ',
+    'gui.connection.meshV2Seat.summary': 'えらんだひと: {seats} ／ ホスト: {host}ばん',
+    'gui.connection.meshV2Seat.connect': 'つなぐ',
+    'gui.connection.meshV2Seat.joinBusyConfirm':
+        '{seat}ばんさんは べつの グループに さんかちゅう です。その グループに はいりますか？',
+    'gui.connection.meshV2Seat.join': 'はいる',
+    'gui.connection.meshV2Seat.cancel': 'やめる',
     'gui.connection.meshV2Initial.domainPlaceholder': 'ドメインめいをにゅうりょく...',
     'gui.connection.meshV2Initial.createGroup': 'メッシュのホストになる',
     'gui.connection.meshV2Initial.createGroupDescription': 'グループのさくせい',

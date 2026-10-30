@@ -1229,6 +1229,17 @@ export default {
     'gui.connection.networkFiltered.useLegacyMeshButton': '従来のメッシュを使う',
 
     // MeshV2 Initial Step messages
+    'gui.connection.meshV2Seat.pickTitle': 'つながる出席番号を選ぶ',
+    'gui.connection.meshV2Seat.absent': '欠席',
+    'gui.connection.meshV2Seat.busy': '使用中',
+    'gui.connection.meshV2Seat.me': '自分',
+    'gui.connection.meshV2Seat.limit': '{limit}人まで',
+    'gui.connection.meshV2Seat.selectAll': '全員を選ぶ',
+    'gui.connection.meshV2Seat.summary': '選んだ人: {seats} ／ ホスト: {host}番',
+    'gui.connection.meshV2Seat.connect': 'つなぐ',
+    'gui.connection.meshV2Seat.joinBusyConfirm': '{seat}番さんは別のグループに参加中です。そのグループに入りますか？',
+    'gui.connection.meshV2Seat.join': '入る',
+    'gui.connection.meshV2Seat.cancel': 'やめる',
     'gui.connection.meshV2Initial.domainPlaceholder': 'ドメイン名を入力...',
     'gui.connection.meshV2Initial.createGroup': 'メッシュのホストになる',
     'gui.connection.meshV2Initial.createGroupDescription': 'グループの作成',
