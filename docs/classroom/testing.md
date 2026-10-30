@@ -196,6 +196,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-assignment-starter-remove` | button | スターターを削除 |
 | `classroom-assignment-start-from-previous` | input (checkbox) | 「前回の提出物から始めさせる」（既定 OFF・保存で反映・Issue #1202） |
 | `classroom-assignment-peer-view` | select | 「他者参照」（`none` = しない（既定） / `always` = いつでも見られる / `afterSubmit` = 自分が提出したら見られる・保存で反映・Issue #1208） |
+| `classroom-assignment-mesh-group-limit` | select | 「メッシュのグループの人数」（`6` = 6人まで / `0` = 制限なし（この設定より前の課題の表示）・保存で反映・Issue #1257） |
 | `classroom-assignment-save` | button | 課題を保存 |
 | `classroom-assignment-cancel` | button | キャンセル（詳細画面へ戻る） |
 
@@ -328,7 +329,8 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-board-share-suggested-{classroomId}` | span | ボード行の「共有おすすめ」マーク（#1106） |
 | `classroom-breadcrumbs` | nav | パンくず（クラス一覧 > 課題一覧 > 課題詳細） |
 | `classroom-breadcrumb-class-list` / `classroom-breadcrumb-assignments` | button | パンくずリンク |
-| `classroom-board-create-name` / `classroom-board-create-submit` | input / button | インライン課題作成（課題名のみ） |
+| `classroom-board-create-name` / `classroom-board-create-submit` | input / button | インライン課題作成（課題名） |
+| `classroom-board-create-mesh-group-limit` | select | インライン課題作成の「メッシュのグループの人数」（既定 `6` = 6人まで / `0` = 制限なし・Issue #1257） |
 | `classroom-board-reuse` | button | 「課題を再利用」（作る の右隣） |
 | `classroom-board-reuse-view` | div | 再利用ビュー（全課題を日付降順） |
 | `classroom-board-reuse-filter` | select | 再利用ビューのクラスフィルタ |

@@ -435,3 +435,52 @@ describe('TeacherClassDetail — 他者参照 (#1208)', () => {
         expect(byTestId('classroom-assignment-peer-view')).toHaveValue('always');
     });
 });
+
+describe('TeacherClassDetail — メッシュのグループの人数 (#1257)', () => {
+    const editor = (over = {}) => ({
+        editorPages: [{ text: 'みんなの作品を見よう' }],
+        starterMode: 'none',
+        starterSource: null,
+        hasExistingStarter: false,
+        isSaving: false,
+        startFromPrevious: false,
+        peerView: 'none',
+        meshGroupLimit: 0,
+        onChangeMeshGroupLimit: jest.fn(),
+        onAddPage: jest.fn(),
+        onAttachPageImage: jest.fn(),
+        onChangePageText: jest.fn(),
+        onChangeStartFromPrevious: jest.fn(),
+        onChangePeerView: jest.fn(),
+        onMovePage: jest.fn(),
+        onRemovePage: jest.fn(),
+        onRemovePageImage: jest.fn(),
+        onRemoveStarter: jest.fn(),
+        onSave: jest.fn(),
+        onUseCurrentProject: jest.fn(),
+        onUseFile: jest.fn(),
+        ...over,
+    });
+    const byTestId = (id) => document.querySelector(`[data-testid="${id}"]`);
+
+    test('この機能より前の課題 (0) は「制限なし」と表示し、変更を数値で伝える', () => {
+        const onChangeMeshGroupLimit = jest.fn();
+        renderDetail({
+            assignmentEditor: editor({ onChangeMeshGroupLimit }),
+            detailEntry: { tab: 'description', seq: 1 },
+        });
+        const select = byTestId('classroom-assignment-mesh-group-limit');
+        expect(select).toHaveValue('0');
+        expect(Array.from(select.options).map((o) => o.value)).toEqual(['6', '0']);
+        fireEvent.change(select, { target: { value: '6' } });
+        expect(onChangeMeshGroupLimit).toHaveBeenCalledWith(6);
+    });
+
+    test('保存済みの「6人まで」を選択状態にする', () => {
+        renderDetail({
+            assignmentEditor: editor({ meshGroupLimit: 6 }),
+            detailEntry: { tab: 'description', seq: 1 },
+        });
+        expect(byTestId('classroom-assignment-mesh-group-limit')).toHaveValue('6');
+    });
+});

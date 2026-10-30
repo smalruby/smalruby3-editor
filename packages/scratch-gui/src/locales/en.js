@@ -360,6 +360,11 @@ export default {
     'gui.classroom.assignmentEditor.peerViewAfterSubmit': 'After submitting their own',
     'gui.classroom.assignmentEditor.peerViewHint':
         "Students see only the stage image and block images of classmates' submissions (not the project file, names or your comments). Choose after submitting to have them try on their own first.",
+    'gui.classroom.assignmentEditor.meshGroupLimit': 'Mesh group size',
+    'gui.classroom.assignmentEditor.meshGroupLimitSix': 'Up to 6',
+    'gui.classroom.assignmentEditor.meshGroupLimitNone': 'No limit',
+    'gui.classroom.assignmentEditor.meshGroupLimitHint':
+        'With "No limit" the whole class can be one group: when you press "Become host", it becomes the teacher\'s group, and students join it with one tap.',
     'gui.classroom.teacherDetail.previewStartPrevious':
         "On join: continuing from last time's submission is recommended (the starter if there is none)",
     'gui.classroom.teacherDetail.previewStartStarter':

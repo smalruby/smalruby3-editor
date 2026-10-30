@@ -1,8 +1,11 @@
 import {
+    DEFAULT_MESH_GROUP_LIMIT,
     MAX_ASSIGNMENT_PAGES,
+    MESH_GROUP_LIMIT_VALUES,
     MAX_ASSIGNMENT_PAGE_TEXT_LENGTH,
     PEER_VIEW_VALUES,
     buildAssignmentPayload,
+    normalizeMeshGroupLimit,
     normalizePeerView,
     isEmptyAssignment,
     moveItem,
@@ -151,5 +154,21 @@ describe('normalizePeerView (#1208)', () => {
         expect(normalizePeerView('afterSubmit')).toBe('afterSubmit');
         expect(normalizePeerView(undefined)).toBe('none');
         expect(normalizePeerView('bogus')).toBe('none');
+    });
+});
+
+describe('normalizeMeshGroupLimit (#1257)', () => {
+    test('新規作成の既定は 6（6人まで）', () => {
+        expect(DEFAULT_MESH_GROUP_LIMIT).toBe(6);
+        expect(MESH_GROUP_LIMIT_VALUES).toEqual([6, 0]);
+    });
+
+    test('6 / 0 はそのまま、値が無い（この機能より前の課題）・不正値は 0（制限なし）', () => {
+        expect(normalizeMeshGroupLimit(6)).toBe(6);
+        expect(normalizeMeshGroupLimit(0)).toBe(0);
+        expect(normalizeMeshGroupLimit('6')).toBe(6);
+        expect(normalizeMeshGroupLimit(undefined)).toBe(0);
+        expect(normalizeMeshGroupLimit(null)).toBe(0);
+        expect(normalizeMeshGroupLimit(3)).toBe(0);
     });
 });
