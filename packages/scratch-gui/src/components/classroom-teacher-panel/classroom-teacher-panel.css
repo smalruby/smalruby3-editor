@@ -226,3 +226,19 @@
 .error {
     color: $error-primary;
 }
+
+/* A button that reads as a link inside the error line (#1250). */
+.reauth-link {
+    padding: 0;
+    border: none;
+    background: none;
+    color: $looks-secondary;
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.reauth-link:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
