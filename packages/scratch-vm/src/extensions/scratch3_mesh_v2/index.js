@@ -243,6 +243,13 @@ class Scratch3MeshV2Blocks {
         return (this.meshService && this.meshService.groupId) || null;
     }
 
+    /**
+     * @returns {boolean} true while connected as the host of a group.
+     */
+    isConnectedAsHost () {
+        return !!(this.meshService && this.meshService.groupId && this.meshService.isHost);
+    }
+
     makeMeshIdLabel (meshId) {
         if (!meshId) return '';
         const label = meshId.slice(0, 6);

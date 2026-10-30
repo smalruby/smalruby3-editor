@@ -13,6 +13,16 @@ const messages = defineMessages({
         description: 'Title of the seat number picker in the mesh connection modal',
         id: 'gui.connection.meshV2Seat.pickTitle',
     },
+    pickNote: {
+        defaultMessage: 'You are No. {seat}. You cannot remove your own number.',
+        description: 'Note under the seat picker title',
+        id: 'gui.connection.meshV2Seat.pickNote',
+    },
+    back: {
+        defaultMessage: 'Back',
+        description: 'Button to go back to the first mesh screen',
+        id: 'gui.connection.meshV2Seat.back',
+    },
     absent: {
         defaultMessage: 'Absent',
         description: 'Label of a seat whose student is not in the class',
@@ -65,7 +75,17 @@ const messages = defineMessages({
     },
 });
 
-const MeshV2SeatPickStep = ({ picker, hostSeat, chosenSeats, onToggle, onSelectAll, onJoinGroup, onNext }) => {
+const MeshV2SeatPickStep = ({
+    picker,
+    hostSeat,
+    mySeat,
+    chosenSeats,
+    onBack,
+    onToggle,
+    onSelectAll,
+    onJoinGroup,
+    onNext,
+}) => {
     const [busySeat, setBusySeat] = React.useState(null);
     const handleClick = React.useCallback(
         (event) => {
@@ -91,6 +111,9 @@ const MeshV2SeatPickStep = ({ picker, hostSeat, chosenSeats, onToggle, onSelectA
         <Box className={styles.body} data-testid="meshV2-seat-pick">
             <div className={styles.title}>
                 <FormattedMessage {...messages.title} />
+            </div>
+            <div className={styles.sub}>
+                <FormattedMessage {...messages.pickNote} values={{ seat: mySeat }} />
             </div>
             <div className={styles.grid}>
                 {picker.seats.map((entry) => (
@@ -141,6 +164,9 @@ const MeshV2SeatPickStep = ({ picker, hostSeat, chosenSeats, onToggle, onSelectA
                         </span>
                     )}
                 </div>
+                <button className={styles.secondary} data-testid="meshV2-seat-back" onClick={onBack}>
+                    <FormattedMessage {...messages.back} />
+                </button>
                 {picker.canSelectAll && (
                     <button className={styles.secondary} data-testid="meshV2-seat-select-all" onClick={onSelectAll}>
                         <FormattedMessage {...messages.selectAll} />
@@ -157,6 +183,8 @@ const MeshV2SeatPickStep = ({ picker, hostSeat, chosenSeats, onToggle, onSelectA
 MeshV2SeatPickStep.propTypes = {
     chosenSeats: PropTypes.arrayOf(PropTypes.number).isRequired,
     hostSeat: PropTypes.number,
+    mySeat: PropTypes.number.isRequired,
+    onBack: PropTypes.func.isRequired,
     onJoinGroup: PropTypes.func.isRequired,
     onNext: PropTypes.func.isRequired,
     onSelectAll: PropTypes.func.isRequired,

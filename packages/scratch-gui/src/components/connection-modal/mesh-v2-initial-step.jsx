@@ -8,6 +8,7 @@ import { defineMessages, FormattedMessage, useIntl } from 'react-intl';
 import Box from '../box/box.jsx';
 import styles from './connection-modal.css';
 import initialStepStyles from './mesh-v2-initial-step.css';
+import MeshV2SeatEntry from './mesh-v2-seat-entry.jsx';
 import createGroupImage from './mesh_v2_create_group.png';
 import joinGroupImage from './mesh_v2_join_group.png';
 
@@ -69,9 +70,21 @@ const MeshV2InitialStep = (props) => {
         [validate, props],
     );
 
+    const seat = props.meshV2Seat && !props.meshV2Seat.teacher ? props.meshV2Seat.seat : null;
+
     return (
         <Box className={styles.body}>
             <Box className={styles.bottomArea}>
+                {seat && props.onSeatConnect && (
+                    <MeshV2SeatEntry
+                        classroomName={props.classroomName}
+                        joinCode={props.classroomJoinCode}
+                        seat={seat}
+                        vm={props.vm}
+                        onJoinGroup={props.onJoinSeatGroup}
+                        onSeatConnect={props.onSeatConnect}
+                    />
+                )}
                 <Box className={classNames(styles.bottomAreaItem, initialStepStyles.buttonContainer)}>
                     <button
                         className={initialStepStyles.actionButton}
@@ -176,11 +189,20 @@ const MeshV2InitialStep = (props) => {
 };
 
 MeshV2InitialStep.propTypes = {
+    classroomJoinCode: PropTypes.string,
+    classroomName: PropTypes.string,
     domain: PropTypes.string,
     domainReadOnly: PropTypes.bool,
+    meshV2Seat: PropTypes.shape({
+        seat: PropTypes.number,
+        teacher: PropTypes.bool,
+    }),
     onCreateGroup: PropTypes.func.isRequired,
     onDomainChange: PropTypes.func.isRequired,
     onJoinGroup: PropTypes.func.isRequired,
+    onJoinSeatGroup: PropTypes.func,
+    onSeatConnect: PropTypes.func,
+    vm: PropTypes.object,
 };
 
 export default MeshV2InitialStep;

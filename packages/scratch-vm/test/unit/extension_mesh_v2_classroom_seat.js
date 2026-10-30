@@ -254,3 +254,14 @@ test('getConnectedGroupId returns the joined group', (t) => {
     t.equal(blocks.getConnectedGroupId(), 'g9');
     t.end();
 });
+
+test('isConnectedAsHost is true only while hosting a group', (t) => {
+    const blocks = setup();
+    t.equal(blocks.isConnectedAsHost(), false);
+    blocks.meshService.groupId = 'g9';
+    blocks.meshService.isHost = false;
+    t.equal(blocks.isConnectedAsHost(), false);
+    blocks.meshService.isHost = true;
+    t.equal(blocks.isConnectedAsHost(), true);
+    t.end();
+});
