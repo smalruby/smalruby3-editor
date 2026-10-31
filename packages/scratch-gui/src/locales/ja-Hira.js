@@ -1315,7 +1315,7 @@ export default {
     'gui.connection.meshV2Seat.classicNote': 'クラスの そとや、せんせいに いわれた ときだけ つかいます。',
     'gui.connection.meshV2Seat.inviteTitle': '{host}ばんさんの グループに よばれています',
     'gui.connection.meshV2Seat.inviteDescription':
-        'あなた（{seat}ばん）が くるのを まっていました。はいると、すぐに いっしょに うごかせます。',
+        'あなた（{seat}ばん）を まっていました。はいると、すぐに いっしょに うごかせます。',
     'gui.connection.meshV2Seat.inviteGroup': '「{seats}ばんの グループ」',
     'gui.connection.meshV2Seat.inviteStatusHost': 'ホスト・さんかちゅう',
     'gui.connection.meshV2Seat.inviteStatusMe': 'あなた（まだ はいっていません）',

@@ -1275,7 +1275,7 @@ export default {
     'gui.connection.meshV2Seat.classicNote': 'クラスの外や、先生に言われたときだけ使います。',
     'gui.connection.meshV2Seat.inviteTitle': '{host}番さんのグループに呼ばれています',
     'gui.connection.meshV2Seat.inviteDescription':
-        'あなた（{seat}番）が来るのを待っていました。入ると、すぐにいっしょに動かせます。',
+        'あなた（{seat}番）を待っていました。入ると、すぐにいっしょに動かせます。',
     'gui.connection.meshV2Seat.inviteGroup': '「{seats}番のグループ」',
     'gui.connection.meshV2Seat.inviteStatusHost': 'ホスト・参加中',
     'gui.connection.meshV2Seat.inviteStatusMe': 'あなた（まだ入っていません）',
