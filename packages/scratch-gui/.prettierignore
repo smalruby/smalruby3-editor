@@ -175,6 +175,7 @@ src/lib/*
 !src/lib/classroom-download-utils.js
 !src/lib/classroom-google-share.js
 !src/lib/classroom-group-utils.js
+!src/lib/classroom-genai-settings.js
 !src/lib/classroom-retention.js
 !src/lib/classroom-teacher-session.js
 !src/lib/classroom-presence.js
@@ -358,6 +359,7 @@ test/unit/*
 test/unit/components/*
 !test/unit/components/action-menu.test.jsx
 !test/unit/components/teacher-member-detail.test.jsx
+!test/unit/components/class-ai-settings.test.jsx
 !test/unit/components/image-viewer.test.jsx
 !test/unit/components/bug-report-consent.test.jsx
 !test/unit/components/koshien-mock-panel.test.jsx
