@@ -259,3 +259,89 @@
     padding: 0 3px;
     border-radius: 3px;
 }
+
+.header {
+    cursor: move;
+    user-select: none;
+    touch-action: none;
+}
+
+.checking {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background-color: $ui-secondary;
+}
+
+.spinner {
+    width: 16px;
+    height: 16px;
+    border: 3px solid $looks-light-transparent;
+    border-top-color: $looks-secondary;
+    border-radius: 50%;
+    animation: genai-spin 0.8s linear infinite;
+}
+
+@keyframes genai-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.verdict {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1rem;
+    font-weight: bold;
+}
+
+.markOk,
+.markNg {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    color: $ui-white;
+    font-size: 1rem;
+}
+
+.markOk {
+    background-color: #2e9e5b;
+}
+
+.markNg {
+    background-color: #d93b3b;
+}
+
+.switch {
+    display: flex;
+    border: 2px solid $looks-secondary;
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 4px 0 8px;
+}
+
+.switch button {
+    flex: 1;
+    padding: 8px 0;
+    border: none;
+    background-color: $ui-white;
+    color: $looks-secondary;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.switch .switchOn {
+    background-color: $looks-secondary;
+    color: $ui-white;
+}
+
+.switch button:disabled {
+    cursor: progress;
+}

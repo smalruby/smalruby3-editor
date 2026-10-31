@@ -80,7 +80,13 @@ const GenaiConcierge = ({ vm, rubyVersion, assignmentName }) => {
     const [failures, setFailures] = useState(0);
     const [showRuby, setShowRuby] = useState(false);
     const [reflection, setReflection] = useState('');
-    const [undoCode, setUndoCode] = useState(null); // [{target, code}] before applying
+    // [{target, name, before, after}]: the student switches between the two as often as they like.
+    const [snapshots, setSnapshots] = useState(null);
+    const [applied, setApplied] = useState(false);
+    const [busy, setBusy] = useState(false);
+    const [checking, setChecking] = useState(false);
+    const [offset, setOffset] = useState({ x: 0, y: 0 });
+    const drag = useRef(null);
     const [notice, setNotice] = useState('');
     const aiWindow = useRef(null);
     const rootRef = useRef(null);
@@ -146,6 +152,8 @@ const GenaiConcierge = ({ vm, rubyVersion, assignmentName }) => {
         setFailures(0);
         setReflection('');
         setNotice('');
+        setSnapshots(null);
+        setApplied(false);
     }, []);
 
     const handleKind = useCallback(
@@ -219,8 +227,7 @@ const GenaiConcierge = ({ vm, rubyVersion, assignmentName }) => {
         return map;
     }, [vm]);
 
-    const handleConvert = useCallback(async () => {
-        setNotice('');
+    const convertAnswer = useCallback(async () => {
         const code = extractRuby(answer);
         if (!code) {
             setConverted({ ok: false, code: '', problems: ['貼りつけた文にプログラムが見つかりませんでした'] });
@@ -274,28 +281,84 @@ const GenaiConcierge = ({ vm, rubyVersion, assignmentName }) => {
         }
     }, [answer, vm, intl, rubyVersion, targetsByName]);
 
+    const handleConvert = useCallback(async () => {
+        setNotice('');
+        setConverted(null);
+        setChecking(true);
+        // Let the spinner paint before the (synchronous-heavy) conversion starts.
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        try {
+            await convertAnswer();
+        } finally {
+            setChecking(false);
+        }
+    }, [convertAnswer]);
+
+    const loadCode = useCallback(
+        async (target, code) => {
+            const converter = await targetCodeToBlocks(vm, target, code || '', intl, { version: rubyVersion });
+            if (converter.result) await converter.apply();
+        },
+        [vm, intl, rubyVersion],
+    );
+
     const handleApply = useCallback(async () => {
-        const before = converted.parts.map((part) => ({
+        setBusy(true);
+        const taken = converted.parts.map((part) => ({
             target: part.target,
-            code: RubyGenerator.targetToCode(part.target, { version: rubyVersion }),
+            name: part.name,
+            before: RubyGenerator.targetToCode(part.target, { version: rubyVersion }),
+            after: part.code,
         }));
         for (const part of converted.parts) {
             await part.converter.apply();
         }
-        setUndoCode(before);
+        setSnapshots(taken);
+        setApplied(true);
+        setBusy(false);
         setStep('done');
     }, [rubyVersion, converted]);
 
-    const handleUndo = useCallback(async () => {
-        for (const entry of undoCode) {
-            const converter = await targetCodeToBlocks(vm, entry.target, entry.code || '', intl, {
-                version: rubyVersion,
+    // Switch between the original and the AI's version. The side being left keeps whatever
+    // the student changed meanwhile, so trying things out never throws their edits away.
+    const handleSwitch = useCallback(
+        async (e) => {
+            const toAfter = e.currentTarget.dataset.side === 'after';
+            if (toAfter === applied || busy) return;
+            setBusy(true);
+            const next = snapshots.map((snap) => {
+                const current = RubyGenerator.targetToCode(snap.target, { version: rubyVersion });
+                return toAfter ? { ...snap, before: current } : { ...snap, after: current };
             });
-            if (converter.result) await converter.apply();
-        }
-        setUndoCode(null);
-        setNotice('元のブロックにもどしました。');
-    }, [vm, undoCode, intl, rubyVersion]);
+            for (const snap of next) {
+                await loadCode(snap.target, toAfter ? snap.after : snap.before);
+            }
+            setSnapshots(next);
+            setApplied(toAfter);
+            setBusy(false);
+        },
+        [applied, busy, snapshots, rubyVersion, loadCode],
+    );
+
+    const handleDragStart = useCallback(
+        (e) => {
+            if (e.target.closest('button')) return;
+            drag.current = { x: e.clientX - offset.x, y: e.clientY - offset.y };
+            const move = (ev) => {
+                if (!drag.current) return;
+                setOffset({ x: ev.clientX - drag.current.x, y: ev.clientY - drag.current.y });
+            };
+            const up = () => {
+                drag.current = null;
+                window.removeEventListener('pointermove', move);
+                window.removeEventListener('pointerup', up);
+            };
+            window.addEventListener('pointermove', move);
+            window.addEventListener('pointerup', up);
+            e.preventDefault();
+        },
+        [offset],
+    );
 
     const handleNudgeLater = useCallback(() => setNudge(false), []);
     const handleNudgeOff = useCallback(() => {
@@ -369,8 +432,12 @@ const GenaiConcierge = ({ vm, rubyVersion, assignmentName }) => {
                 </div>
             )}
             {open && (
-                <div className={styles.panel} data-testid="genai-panel">
-                    <div className={styles.header}>
+                <div
+                    className={styles.panel}
+                    data-testid="genai-panel"
+                    style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}
+                >
+                    <div className={styles.header} data-testid="genai-drag-handle" onPointerDown={handleDragStart}>
                         <span>生成AI に相談（プロトタイプ）</span>
                         <button
                             className={styles.close}
@@ -544,15 +611,24 @@ const GenaiConcierge = ({ vm, rubyVersion, assignmentName }) => {
                                     <button
                                         className={styles.primary}
                                         data-testid="genai-convert"
-                                        disabled={!answer.trim()}
+                                        disabled={!answer.trim() || checking}
                                         onClick={handleConvert}
                                     >
                                         ブロックにできるか調べる
                                     </button>
                                 </div>
+                                {checking && (
+                                    <div className={styles.checking} data-testid="genai-checking">
+                                        <span className={styles.spinner} />
+                                        ブロックにできるか調べています…
+                                    </div>
+                                )}
                                 {converted && converted.ok && (
                                     <div className={styles.ok} data-testid="genai-convert-ok">
-                                        <p>ブロックにできました。</p>
+                                        <p className={styles.verdict}>
+                                            <span className={styles.markOk}>✔</span>
+                                            ブロックにできます
+                                        </p>
                                         {converted.fixes && converted.fixes.length > 0 && (
                                             <div className={styles.fixes} data-testid="genai-fixes">
                                                 <p className={styles.small}>スモウルビーが直したところ:</p>
@@ -591,7 +667,7 @@ const GenaiConcierge = ({ vm, rubyVersion, assignmentName }) => {
                                             <button
                                                 className={styles.primary}
                                                 data-testid="genai-apply"
-                                                disabled={reflection.trim().length < 5}
+                                                disabled={reflection.trim().length < 5 || busy}
                                                 onClick={handleApply}
                                             >
                                                 このブロックを入れる
@@ -608,7 +684,10 @@ const GenaiConcierge = ({ vm, rubyVersion, assignmentName }) => {
                                 )}
                                 {converted && !converted.ok && (
                                     <div className={styles.ng} data-testid="genai-convert-ng">
-                                        <p>ブロックにできないところがありました。</p>
+                                        <p className={styles.verdict}>
+                                            <span className={styles.markNg}>✗</span>
+                                            このままではブロックにできません
+                                        </p>
                                         {converted.fixes && converted.fixes.length > 0 && (
                                             <div className={styles.fixes} data-testid="genai-fixes">
                                                 <p className={styles.small}>スモウルビーが直したところ:</p>
@@ -648,23 +727,48 @@ const GenaiConcierge = ({ vm, rubyVersion, assignmentName }) => {
                                 )}
                             </>
                         )}
-                        {step === 'done' && (
+                        {step === 'done' && snapshots && (
                             <>
-                                <p>ブロックを入れました。旗をおして動かしてみよう。</p>
-                                <p className={styles.small}>あなたのメモ: {reflection}</p>
+                                <p className={styles.label}>切りかえて、なにが変わるか比べてみよう</p>
+                                <div className={styles.switch} role="group">
+                                    <button
+                                        className={applied ? '' : styles.switchOn}
+                                        data-side="before"
+                                        data-testid="genai-switch-before"
+                                        disabled={busy}
+                                        onClick={handleSwitch}
+                                    >
+                                        元のプログラム
+                                    </button>
+                                    <button
+                                        className={applied ? styles.switchOn : ''}
+                                        data-side="after"
+                                        data-testid="genai-switch-after"
+                                        disabled={busy}
+                                        onClick={handleSwitch}
+                                    >
+                                        生成AI の案
+                                    </button>
+                                </div>
+                                <p data-testid="genai-switch-state">
+                                    いまは<strong>{applied ? '生成AI の案' : '元のプログラム'}</strong>
+                                    が入っています（{snapshots.map((snap) => `「${snap.name}」`).join('')}
+                                    ）。旗をおして動かしてみよう。
+                                </p>
+                                <p className={styles.small}>
+                                    切りかえても、それぞれで自分が変えたところは残ります。 あなたのメモ: {reflection}
+                                </p>
                                 {notice && <p className={styles.notice}>{notice}</p>}
                                 <div className={styles.row}>
-                                    {undoCode && (
-                                        <button data-testid="genai-undo" onClick={handleUndo}>
-                                            元にもどす
-                                        </button>
-                                    )}
                                     <button
                                         className={styles.primary}
                                         data-testid="genai-again"
                                         onClick={handleReset}
                                     >
                                         もう一度相談する
+                                    </button>
+                                    <button data-testid="genai-finish" onClick={handleClose}>
+                                        これで閉じる
                                     </button>
                                 </div>
                             </>
