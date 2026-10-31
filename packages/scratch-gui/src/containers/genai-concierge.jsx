@@ -13,6 +13,7 @@ import {
     extractRuby,
     splitPrompt,
 } from '../lib/genai-prompt.js';
+import { repairRuby, splitBySprite } from '../lib/genai-repair.js';
 import RubyGenerator from '../lib/ruby-generator';
 import { targetCodeToBlocks } from '../lib/ruby-to-blocks-converter';
 import { getUrlParams } from '../lib/url-params.js';
@@ -79,7 +80,7 @@ const GenaiConcierge = ({ vm, rubyVersion, assignmentName }) => {
     const [failures, setFailures] = useState(0);
     const [showRuby, setShowRuby] = useState(false);
     const [reflection, setReflection] = useState('');
-    const [undoCode, setUndoCode] = useState(null);
+    const [undoCode, setUndoCode] = useState(null); // [{target, code}] before applying
     const [notice, setNotice] = useState('');
     const aiWindow = useRef(null);
     const rootRef = useRef(null);
@@ -207,6 +208,17 @@ const GenaiConcierge = ({ vm, rubyVersion, assignmentName }) => {
         writeStorage(SERVICE_KEY, id);
     };
 
+    // Sprite name → target; the stage is called 「ステージ」 in the prompt.
+    const targetsByName = useCallback(() => {
+        const map = {};
+        vm.runtime.targets
+            .filter((t) => t.isOriginal)
+            .forEach((t) => {
+                map[t.isStage ? 'ステージ' : t.getName()] = t;
+            });
+        return map;
+    }, [vm]);
+
     const handleConvert = useCallback(async () => {
         setNotice('');
         const code = extractRuby(answer);
@@ -215,36 +227,72 @@ const GenaiConcierge = ({ vm, rubyVersion, assignmentName }) => {
             setFailures((f) => f + 1);
             return;
         }
-        try {
-            const converter = await targetCodeToBlocks(vm, vm.editingTarget, code, intl, { version: rubyVersion });
-            if (converter.result) {
-                // Lines the converter could not map stay as "Ruby のまま" blocks; tell the student.
-                const rawCount = Object.values(converter.blocks || {}).filter(
-                    (b) => b.opcode === 'ruby_statement' || b.opcode === 'ruby_expression',
-                ).length;
-                setConverted({ ok: true, code, converter, rawCount });
-            } else {
-                setConverted({ ok: false, code, problems: converter.errors.map(errorText) });
-                setFailures((f) => f + 1);
+        const targets = targetsByName();
+        const editing = vm.editingTarget;
+        const editingName = editing.isStage ? 'ステージ' : editing.getName();
+        const sections = splitBySprite(code, Object.keys(targets)) || [{ name: editingName, code }];
+        const results = [];
+        const problems = [];
+        let rawCount = 0;
+        for (const section of sections) {
+            const target = targets[section.name];
+            const repaired = repairRuby(section.code, {
+                sounds: target.getSounds().map((sound) => sound.name),
+                costumes: target.getCostumes().map((costume) => costume.name),
+            });
+            const prefix = sections.length > 1 ? `「${section.name}」の ` : '';
+            try {
+                const converter = await targetCodeToBlocks(vm, target, repaired.code, intl, {
+                    version: rubyVersion,
+                });
+                if (converter.result) {
+                    // Lines the converter could not map stay as "Ruby のまま" blocks; tell the student.
+                    rawCount += Object.values(converter.blocks || {}).filter(
+                        (b) => b.opcode === 'ruby_statement' || b.opcode === 'ruby_expression',
+                    ).length;
+                } else {
+                    converter.errors.forEach((error) => problems.push(`${prefix}${errorText(error)}`));
+                }
+                results.push({ name: section.name, target, code: repaired.code, fixes: repaired.fixes, converter });
+            } catch (e) {
+                problems.push(`${prefix}${e.message || String(e)}`);
+                results.push({ name: section.name, target, code: repaired.code, fixes: repaired.fixes });
             }
-        } catch (e) {
-            setConverted({ ok: false, code, problems: [e.message || String(e)] });
+        }
+        const repairedCode =
+            sections.length > 1
+                ? results.map((part) => `# 「${part.name}」\n${part.code}`).join('\n')
+                : results[0].code;
+        const fixes = results.flatMap((part) =>
+            part.fixes.map((fix) => ({ ...fix, name: sections.length > 1 ? part.name : null })),
+        );
+        if (problems.length === 0) {
+            setConverted({ ok: true, code: repairedCode, parts: results, rawCount, fixes });
+        } else {
+            setConverted({ ok: false, code: repairedCode, problems, fixes });
             setFailures((f) => f + 1);
         }
-    }, [answer, vm, intl, rubyVersion]);
+    }, [answer, vm, intl, rubyVersion, targetsByName]);
 
     const handleApply = useCallback(async () => {
-        const before = RubyGenerator.targetToCode(vm.editingTarget, { version: rubyVersion });
-        await converted.converter.apply();
+        const before = converted.parts.map((part) => ({
+            target: part.target,
+            code: RubyGenerator.targetToCode(part.target, { version: rubyVersion }),
+        }));
+        for (const part of converted.parts) {
+            await part.converter.apply();
+        }
         setUndoCode(before);
         setStep('done');
-    }, [vm, rubyVersion, converted]);
+    }, [rubyVersion, converted]);
 
     const handleUndo = useCallback(async () => {
-        const converter = await targetCodeToBlocks(vm, vm.editingTarget, undoCode || '', intl, {
-            version: rubyVersion,
-        });
-        if (converter.result) await converter.apply();
+        for (const entry of undoCode) {
+            const converter = await targetCodeToBlocks(vm, entry.target, entry.code || '', intl, {
+                version: rubyVersion,
+            });
+            if (converter.result) await converter.apply();
+        }
         setUndoCode(null);
         setNotice('元のブロックにもどしました。');
     }, [vm, undoCode, intl, rubyVersion]);
@@ -505,6 +553,21 @@ const GenaiConcierge = ({ vm, rubyVersion, assignmentName }) => {
                                 {converted && converted.ok && (
                                     <div className={styles.ok} data-testid="genai-convert-ok">
                                         <p>ブロックにできました。</p>
+                                        {converted.fixes && converted.fixes.length > 0 && (
+                                            <div className={styles.fixes} data-testid="genai-fixes">
+                                                <p className={styles.small}>スモウルビーが直したところ:</p>
+                                                <ul>
+                                                    {converted.fixes.map((fix, i) => (
+                                                        <li key={i}>
+                                                            {fix.name ? `「${fix.name}」` : ''}
+                                                            {fix.line} 行目 <code>{fix.from}</code> →{' '}
+                                                            <code>{fix.to}</code>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        )}
+
                                         {converted.rawCount > 0 && (
                                             <p className={styles.small} data-testid="genai-raw-count">
                                                 ※ {converted.rawCount} か所は、ふつうのブロックにならず「Ruby
@@ -538,13 +601,29 @@ const GenaiConcierge = ({ vm, rubyVersion, assignmentName }) => {
                                             </button>
                                         </div>
                                         <p className={styles.small}>
-                                            入れると、いま選んでいるスプライトのブロックが置きかわります。
+                                            入れると、{converted.parts.map((part) => `「${part.name}」`).join('')}
+                                            のブロックが置きかわります。
                                         </p>
                                     </div>
                                 )}
                                 {converted && !converted.ok && (
                                     <div className={styles.ng} data-testid="genai-convert-ng">
                                         <p>ブロックにできないところがありました。</p>
+                                        {converted.fixes && converted.fixes.length > 0 && (
+                                            <div className={styles.fixes} data-testid="genai-fixes">
+                                                <p className={styles.small}>スモウルビーが直したところ:</p>
+                                                <ul>
+                                                    {converted.fixes.map((fix, i) => (
+                                                        <li key={i}>
+                                                            {fix.name ? `「${fix.name}」` : ''}
+                                                            {fix.line} 行目 <code>{fix.from}</code> →{' '}
+                                                            <code>{fix.to}</code>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        )}
+
                                         <ul>
                                             {converted.problems.slice(0, 5).map((p, i) => (
                                                 <li key={i}>{p}</li>
@@ -575,7 +654,7 @@ const GenaiConcierge = ({ vm, rubyVersion, assignmentName }) => {
                                 <p className={styles.small}>あなたのメモ: {reflection}</p>
                                 {notice && <p className={styles.notice}>{notice}</p>}
                                 <div className={styles.row}>
-                                    {undoCode !== null && (
+                                    {undoCode && (
                                         <button data-testid="genai-undo" onClick={handleUndo}>
                                             元にもどす
                                         </button>

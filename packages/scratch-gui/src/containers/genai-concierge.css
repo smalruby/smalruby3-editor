@@ -247,3 +247,15 @@
 .service {
     padding: 6px 0;
 }
+
+.fixes ul {
+    margin: 0 0 6px;
+    padding-left: 18px;
+    font-size: 0.75rem;
+}
+
+.fixes code {
+    background-color: $ui-white;
+    padding: 0 3px;
+    border-radius: 3px;
+}
