@@ -229,6 +229,7 @@ worker（対話 Claude）の**実行上限は既定で約 60 分**（runner の 
 | `AUTOPILOT_PROJECT` | Project 番号（参照のみ。書き込みは daemon） |
 | `AUTOPILOT_REPO` | `smalruby/smalruby3-editor` |
 | `AUTOPILOT_BASE_BRANCH` | PR 先・worktree 分岐元のベースブランチ（既定 `develop`）。Issue 本文の `autopilot-base:` ディレクティブや「ベースブランチ」宣言があれば daemon が渡す（EPIC サブ Issue を親 epic ブランチに積む用）。implement は `gh pr create --base` にこれを使う |
+| `AUTOPILOT_STATUS` | dispatch 時点の Project Status（例 `Review` / `DoD` / `Blocked`）。address-review が「Request changes 対応」か「Blocked からの再開」かを分けるのに使う |
 
 ---
 
