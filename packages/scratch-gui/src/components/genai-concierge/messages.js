@@ -1,7 +1,7 @@
 /**
  * Words of "生成AI に相談" (issue #1279), shared by the step components.
- * Steps 4 and later (paste back) are reworked in the next sub-issue and keep
- * the prototype's Japanese until then.
+ * The details of steps 3 and later (the check result and switching) still keep
+ * the prototype's Japanese.
  */
 import { defineMessages } from 'react-intl';
 
@@ -17,17 +17,17 @@ const messages = defineMessages({
         id: 'gui.genaiConcierge.close',
     },
     stepTrouble: {
-        defaultMessage: '1 Trouble',
+        defaultMessage: 'Trouble',
         description: 'Step 1 of asking a generative AI: say what the trouble is',
         id: 'gui.genaiConcierge.stepTrouble',
     },
     stepCopy: {
-        defaultMessage: '2 Copy and ask',
+        defaultMessage: 'Copy and ask',
         description: 'Step 2 of asking a generative AI: copy the question and send it',
         id: 'gui.genaiConcierge.stepCopy',
     },
     stepPaste: {
-        defaultMessage: '3 Paste back',
+        defaultMessage: 'Paste back',
         description: "Step 3 of asking a generative AI: paste the AI's answer back",
         id: 'gui.genaiConcierge.stepPaste',
     },
@@ -55,11 +55,6 @@ const messages = defineMessages({
         defaultMessage: 'What is the trouble?',
         description: 'Question above the kinds of trouble',
         id: 'gui.genaiConcierge.troubleQuestion',
-    },
-    troubleOwnWords: {
-        defaultMessage: 'Write it in your own words (required)',
-        description: 'Label of the box where the student describes the trouble',
-        id: 'gui.genaiConcierge.troubleOwnWords',
     },
     makePrompt: {
         defaultMessage: 'Make the question',
@@ -131,24 +126,14 @@ const messages = defineMessages({
         description: 'Development only: button choosing the entered URL',
         id: 'gui.genaiConcierge.serviceUse',
     },
-    serviceCurrent: {
-        defaultMessage: 'Ask: {name}',
-        description: 'Which generative AI the question goes to',
-        id: 'gui.genaiConcierge.serviceCurrent',
-    },
     serviceChange: {
-        defaultMessage: 'Change',
+        defaultMessage: 'Change the generative AI',
         description: 'Development only: link to choose another generative AI',
         id: 'gui.genaiConcierge.serviceChange',
     },
-    promptLabel: {
-        defaultMessage: 'The question to send to the generative AI (you can edit it)',
-        description: 'Label of the question the student copies',
-        id: 'gui.genaiConcierge.promptLabel',
-    },
     copyOpen: {
-        defaultMessage: 'Copy and open the generative AI',
-        description: 'Button copying the question and opening the generative AI',
+        defaultMessage: 'Copy and open {name}',
+        description: 'Button copying the question and opening the generative AI ({name}: its name, e.g. Gemini)',
         id: 'gui.genaiConcierge.copyOpen',
     },
     partsLabel: {
@@ -167,7 +152,7 @@ const messages = defineMessages({
         id: 'gui.genaiConcierge.charCount',
     },
     split: {
-        defaultMessage: "Couldn't paste it, or the AI said it is too long",
+        defaultMessage: 'The AI said it is too long, or it could not be pasted',
         description: 'Link splitting the question into smaller parts',
         id: 'gui.genaiConcierge.split',
     },
@@ -187,7 +172,7 @@ const messages = defineMessages({
         id: 'gui.genaiConcierge.copyOnly',
     },
     reopen: {
-        defaultMessage: 'Open the generative AI again (if you closed its tab)',
+        defaultMessage: 'Open {name} again (if you closed its tab)',
         description: 'Link opening the generative AI once more, for a student who closed its tab',
         id: 'gui.genaiConcierge.reopen',
     },
@@ -202,9 +187,69 @@ const messages = defineMessages({
         id: 'gui.genaiConcierge.back',
     },
     toPaste: {
-        defaultMessage: 'Got an answer? Next',
+        defaultMessage: 'Got the answer? Next',
         description: 'Button going on once the generative AI has answered',
         id: 'gui.genaiConcierge.toPaste',
+    },
+    copyReady: {
+        defaultMessage: 'The question is ready. Copy it and send it to {name}.',
+        description: 'The one line of step 2 telling what to do ({name}: the generative AI, e.g. Gemini)',
+        id: 'gui.genaiConcierge.copyReady',
+    },
+    checkCopy: {
+        defaultMessage: 'Copy and open {name}',
+        description: 'Checklist of step 2, item 1: copy the question and open the generative AI',
+        id: 'gui.genaiConcierge.checkCopy',
+    },
+    checkPaste: {
+        defaultMessage: 'Paste it into {name} (Ctrl+V) and send it',
+        description: 'Checklist of step 2, item 2: paste the question into the generative AI and send it',
+        id: 'gui.genaiConcierge.checkPaste',
+    },
+    checkNext: {
+        defaultMessage: 'When the answer comes, press "Next"',
+        description: 'Checklist of step 2, item 3: go on once the generative AI has answered',
+        id: 'gui.genaiConcierge.checkNext',
+    },
+    promptCount: {
+        defaultMessage: 'Question: {count} characters',
+        description: 'Length of the whole question (shown instead of its text)',
+        id: 'gui.genaiConcierge.promptCount',
+    },
+    promptShow: {
+        defaultMessage: 'See or edit it',
+        description: 'Link opening the text of the question, which the student may edit',
+        id: 'gui.genaiConcierge.promptShow',
+    },
+    promptHide: {
+        defaultMessage: 'Hide it',
+        description: 'Link closing the text of the question',
+        id: 'gui.genaiConcierge.promptHide',
+    },
+    pasteQuestion: {
+        defaultMessage: "Paste {name}'s whole answer",
+        description: 'The one line of step 3 ({name}: the generative AI, e.g. Gemini)',
+        id: 'gui.genaiConcierge.pasteQuestion',
+    },
+    convert: {
+        defaultMessage: 'Check if it can become blocks',
+        description: 'Button checking whether the pasted answer turns into blocks',
+        id: 'gui.genaiConcierge.convert',
+    },
+    answerShow: {
+        defaultMessage: 'See the answer',
+        description: 'Link opening the pasted answer again after it was checked',
+        id: 'gui.genaiConcierge.answerShow',
+    },
+    answerHide: {
+        defaultMessage: 'Hide the answer',
+        description: 'Link closing the pasted answer',
+        id: 'gui.genaiConcierge.answerHide',
+    },
+    backTo: {
+        defaultMessage: 'Go back to "{step}"',
+        description: 'Label of a finished step in the progress display, which goes back to it',
+        id: 'gui.genaiConcierge.backTo',
     },
 });
 

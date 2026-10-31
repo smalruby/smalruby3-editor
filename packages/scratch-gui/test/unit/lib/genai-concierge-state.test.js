@@ -1,13 +1,17 @@
 import messages, { KIND_MESSAGES } from '../../../src/components/genai-concierge/messages.js';
 import {
     NUDGE_GAP_MS,
+    copyChecklist,
     genaiServiceLabel,
     isGenaiAvailable,
     isNudgeOffToday,
     localDateKey,
     normalizeStudentGenai,
+    panelPlacement,
     resolveGenaiTarget,
+    scrollToShowBlocks,
     shouldNudge,
+    stepperItems,
 } from '../../../src/lib/genai-concierge-state.js';
 import { PROBLEM_KINDS } from '../../../src/lib/genai-prompt.js';
 import en from '../../../src/locales/en.js';
@@ -150,6 +154,17 @@ describe('genai concierge words', () => {
         });
     });
 
+    test('should keep no unused genaiConcierge words in en, ja and ja-Hira', () => {
+        const ids = new Set([
+            ...Object.values(messages).map((m) => m.id),
+            ...Object.values(KIND_MESSAGES).flatMap((k) => [k.label.id, k.starter.id]),
+        ]);
+        [en, ja, jaHira].forEach((locale) => {
+            const unused = Object.keys(locale).filter((id) => id.startsWith('gui.genaiConcierge.') && !ids.has(id));
+            expect(unused).toEqual([]);
+        });
+    });
+
     test('should have every message in en, ja and ja-Hira', () => {
         const ids = [
             ...Object.values(messages).map((m) => m.id),
@@ -158,5 +173,70 @@ describe('genai concierge words', () => {
         [en, ja, jaHira].forEach((locale) => {
             ids.forEach((id) => expect(locale[id]).toEqual(expect.any(String)));
         });
+    });
+});
+
+describe('stepperItems', () => {
+    const statuses = (step) => stepperItems(step).map((item) => item.status);
+
+    test('should mark the current step and leave the later ones to do', () => {
+        expect(statuses('trouble')).toEqual(['current', 'todo', 'todo']);
+        expect(statuses('copy')).toEqual(['done', 'current', 'todo']);
+        expect(statuses('paste')).toEqual(['done', 'done', 'current']);
+    });
+
+    test('should mark every step done once the blocks are in', () => {
+        expect(statuses('done')).toEqual(['done', 'done', 'done']);
+    });
+
+    test('should let the student go back only to a finished step before putting the blocks in', () => {
+        expect(stepperItems('paste').map((item) => item.canReturn)).toEqual([true, true, false]);
+        expect(stepperItems('copy').map((item) => item.canReturn)).toEqual([true, false, false]);
+        expect(stepperItems('done').map((item) => item.canReturn)).toEqual([false, false, false]);
+    });
+
+    test('should name the steps in order', () => {
+        expect(stepperItems('trouble').map((item) => item.id)).toEqual(['trouble', 'copy', 'paste']);
+    });
+});
+
+describe('copyChecklist', () => {
+    test('should point at copying first', () => {
+        expect(copyChecklist({ copied: false })).toEqual(['next', 'wait', 'wait']);
+    });
+
+    test('should move on to pasting once copied', () => {
+        expect(copyChecklist({ copied: true })).toEqual(['done', 'next', 'wait']);
+    });
+});
+
+describe('panelPlacement', () => {
+    test('should put the panel at the right edge of the script area', () => {
+        // Script area 920 px wide, the face root at 324, a 340 px panel: right edge at 860,
+        // clear of the zoom buttons along the right edge.
+        expect(panelPlacement({ areaWidth: 920, rootLeft: 324, panelWidth: 340, faceWidth: 52 })).toEqual({
+            left: 920 - 60 - 340 - 324,
+            bottom: 0,
+        });
+    });
+
+    test('should sit above the face when the area is too narrow to keep them side by side', () => {
+        expect(panelPlacement({ areaWidth: 640, rootLeft: 324, panelWidth: 340, faceWidth: 52 })).toEqual({
+            left: 0,
+            bottom: 60,
+        });
+    });
+});
+
+describe('scrollToShowBlocks', () => {
+    test('should bring the top left of the blocks near the top left of the script area', () => {
+        expect(scrollToShowBlocks({ bbox: { left: 300, top: 200 }, scale: 0.675 })).toEqual({
+            x: 24 - 300 * 0.675,
+            y: 24 - 200 * 0.675,
+        });
+    });
+
+    test('should do nothing without blocks', () => {
+        expect(scrollToShowBlocks({ bbox: null, scale: 1 })).toBeNull();
     });
 });

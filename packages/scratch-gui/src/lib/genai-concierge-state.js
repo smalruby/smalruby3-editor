@@ -139,3 +139,73 @@ export const isGenaiAvailable = ({ role, sessionToken, classGenai, devFlag }) =>
     if (role === 'student' && sessionToken && classGenai && classGenai.enabled) return true;
     return Boolean(devFlag);
 };
+
+/** The steps of the panel, in order (the progress display under the header, #1293 G9). */
+const STEP_IDS = ['trouble', 'copy', 'paste'];
+
+/**
+ * The progress display of the panel (#1293 G9): finished steps are filled in
+ * with ✓, the current one is outlined. Once the blocks are in ('done') every
+ * step is finished and none can be gone back to (the answer is already used).
+ * @param {string} step - 'trouble' / 'copy' / 'paste' / 'done'
+ * @returns {Array<{id: string, status: string, canReturn: boolean}>} status is 'done' / 'current' / 'todo'
+ */
+export const stepperItems = (step) => {
+    const at = step === 'done' ? STEP_IDS.length : STEP_IDS.indexOf(step);
+    return STEP_IDS.map((id, i) => {
+        let status = 'todo';
+        if (i < at) status = 'done';
+        else if (i === at) status = 'current';
+        return { id, status, canReturn: status === 'done' && step !== 'done' };
+    });
+};
+
+/**
+ * What the student does in step 2 (#1293), as a checklist: copy (and open
+ * the AI) → paste it there and send → go on when the answer has come.
+ * Smalruby cannot see the AI's tab, so only the copy is ever ticked.
+ * @param {object} params - parameters
+ * @param {boolean} params.copied - the question (or a part of it) was copied
+ * @returns {Array<string>} 'done' / 'next' / 'wait' for each of the three items
+ */
+export const copyChecklist = ({ copied }) => (copied ? ['done', 'next', 'wait'] : ['next', 'wait', 'wait']);
+
+/**
+ * Space between the panel and the right edge of the script area (px): clears the
+ * workspace's scrollbar and the buttons along its right edge (zoom, block screenshot).
+ */
+const PANEL_RIGHT_MARGIN = 60;
+const FACE_GAP = 8;
+
+/**
+ * Where the panel goes, relative to the face (#1293 G8): at the right edge of
+ * the script area, so the blocks it puts in (top left) are not under it. When
+ * the area is too narrow to keep the panel beside the face, it sits above it.
+ * @param {object} params - parameters
+ * @param {number} params.areaWidth - width of the script area (the face's offset parent)
+ * @param {number} params.rootLeft - left of the face in the script area
+ * @param {number} params.panelWidth - width of the panel
+ * @param {number} params.faceWidth - width of the face
+ * @returns {{left: number, bottom: number}} css left / bottom of the panel inside the face's box
+ */
+export const panelPlacement = ({ areaWidth, rootLeft, panelWidth, faceWidth }) => {
+    const left = areaWidth - PANEL_RIGHT_MARGIN - panelWidth - rootLeft;
+    if (left >= faceWidth + FACE_GAP) return { left, bottom: 0 };
+    return { left: Math.max(0, left), bottom: faceWidth + FACE_GAP };
+};
+
+/** Space left above and to the left of the blocks when scrolling to them (px). */
+const BLOCKS_MARGIN = 24;
+
+/**
+ * The workspace scroll that brings the blocks the panel put in to the top
+ * left of the script area (#1293 G8), away from the panel at the right.
+ * @param {object} params - parameters
+ * @param {?{left: number, top: number}} params.bbox - workspace bounding box of the blocks
+ * @param {number} params.scale - workspace scale
+ * @returns {?{x: number, y: number}} arguments of workspace.scroll, null when there are no blocks
+ */
+export const scrollToShowBlocks = ({ bbox, scale }) => {
+    if (!bbox) return null;
+    return { x: BLOCKS_MARGIN - bbox.left * scale, y: BLOCKS_MARGIN - bbox.top * scale };
+};
