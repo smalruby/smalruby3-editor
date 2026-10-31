@@ -261,6 +261,20 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-class-settings-archive-confirm-message` | p | アーカイブ確認メッセージ |
 | `classroom-class-settings-archive-cancel` | button | アーカイブ確認のキャンセル |
 | `classroom-class-settings-save` / `classroom-class-settings-cancel` | button | 保存 / キャンセル |
+| `classroom-class-ai-settings` | div | クラス設定の「生成AI・ルビティー」欄（既定は 1 行の要約だけ） |
+| `classroom-class-ai-summary` | span | 要約（「生成AI: 使わない / ルビティー: 使わない」など） |
+| `classroom-class-ai-edit` | button | 「変更する / 閉じる」（3 ステップを開閉） |
+| `classroom-class-ai-incomplete` | p | たたんだ状態で設定が途中（保存できない）ときの注意 |
+| `classroom-class-ai-step-tab-use/service/confirm` | button | ステップ見出し「1 使う？ / 2 どれ？ / 3 確認」（進めないステップは disabled） |
+| `classroom-class-ai-step-use` / `-step-service` / `-step-confirm` | div | 各ステップの本文 |
+| `classroom-class-ai-use-no` / `classroom-class-ai-use-yes` | button | ステップ 1「使わない / 使う」 |
+| `classroom-class-ai-service-gemini/chatgpt/other/claude` | button | ステップ 2 の生成AI（`claude` は 18 歳以上限定のため常に disabled） |
+| `classroom-class-ai-confirm` | checkbox | ステップ 3「条件を満たしています（必須）」。未チェックだと保存できない |
+| `classroom-class-ai-not-confirmed` | p | 未チェック時の注意 |
+| `classroom-class-ai-url` | input | 生徒が開くページの URL（Gemini / ChatGPT は既定値入り） |
+| `classroom-class-ai-url-error` | p | URL の誤り（空・https 以外・18 歳以上限定サービス） |
+| `classroom-class-ai-try` | a | 「試す（別タブ）」（URL が正しいときだけ表示） |
+| `classroom-class-ai-rubytee` | checkbox | 「ルビティー（スモウルビーの生成AI）も使う」（既定オフ） |
 | `classroom-show-archived` | button | 「アーカイブ済みのクラス（{count}）」トグル（アーカイブ済みが 1 件以上のとき表示） |
 | `classroom-archived-class-list` | ul | アーカイブ済みクラスのカード一覧 |
 | `classroom-class-restore-{groupId}` | button | アーカイブ済みクラスカードの「元に戻す」 |

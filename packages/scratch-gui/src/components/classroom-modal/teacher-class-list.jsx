@@ -2,13 +2,21 @@
  * Class list — the teacher's post-login landing view (Google Classroom
  * style): one card per class (学級). Hosts the combined "class + optional
  * first assignment" creation form and per-card inline settings (name /
- * year / section / student count / class-level co-teachers / archive).
+ * year / section / student count / class-level co-teachers / generative AI
+ * and Rubytee / archive).
  */
 import PropTypes from 'prop-types';
 import React, { useCallback, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 
 import { formatClassLabel } from '../../lib/classroom-class-label.js';
+import {
+    buildAiSettingsUpdate,
+    draftFromGroup,
+    isAiDraftChanged,
+    isDraftSavable,
+} from '../../lib/classroom-genai-settings.js';
+import ClassAiSettings from './class-ai-settings.jsx';
 import ClassroomButton from './classroom-button.jsx';
 import { TeacherScreen, TeacherSubView } from './teacher-view-layout.jsx';
 
@@ -31,6 +39,7 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
     );
     const [coTeachers, setCoTeachers] = useState(group.coTeacherEmails || []);
     const [newCoTeacher, setNewCoTeacher] = useState('');
+    const [aiDraft, setAiDraft] = useState(() => draftFromGroup(group));
     // Archiving asks for confirmation (issue #1051: an accidental one-click
     // archive was the original support inquiry). Unarchiving stays immediate.
     const [confirmingArchive, setConfirmingArchive] = useState(false);
@@ -66,7 +75,7 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
     }, [group, confirmingArchive, onUpdateGroup, onCancel]);
     const handleCancelArchive = useCallback(() => setConfirmingArchive(false), []);
 
-    const canSave = name.trim().length > 0 && parseInt(year, 10) >= 2000;
+    const canSave = name.trim().length > 0 && parseInt(year, 10) >= 2000 && isDraftSavable(aiDraft);
     const newCount = parseInt(studentCount, 10);
     const isDecrease = newCount > 0 && originalCount > 0 && newCount < originalCount;
 
@@ -76,6 +85,7 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
             year: parseInt(year, 10),
             section: section.trim() || null,
             coTeacherEmails: coTeachers,
+            ...buildAiSettingsUpdate(group, aiDraft),
         };
         const count = parseInt(studentCount, 10);
         if (count > 0) {
@@ -83,7 +93,7 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
         }
         onUpdateGroup(group.groupId, updates);
         onCancel();
-    }, [name, year, section, studentCount, coTeachers, onUpdateGroup, group.groupId, onCancel]);
+    }, [name, year, section, studentCount, coTeachers, aiDraft, onUpdateGroup, group, onCancel]);
 
     const handleSave = useCallback(
         (e) => {
@@ -207,6 +217,13 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
                     />
                 </button>
             </div>
+            <ClassAiSettings
+                changed={isAiDraftChanged(group, aiDraft)}
+                draft={aiDraft}
+                isLoading={isLoading}
+                saved={draftFromGroup(group)}
+                onChange={setAiDraft}
+            />
             {confirmingArchive ? (
                 <p
                     className={styles.classSettingsArchiveConfirm}

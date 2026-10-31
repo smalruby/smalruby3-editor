@@ -1,0 +1,197 @@
+/* Class settings: generative AI and Rubytee (issue #1277). */
+
+.section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid hsla(260, 60%, 60%, 0.3);
+    border-radius: 0.5rem;
+    background: white;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.summary {
+    font-size: 0.85rem;
+    color: hsla(225, 15%, 30%, 1);
+}
+
+.link-button {
+    border: 1px solid #855cd6;
+    background: white;
+    color: #855cd6;
+    border-radius: 1rem;
+    padding: 0.2rem 0.75rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.steps {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.step,
+.step-active {
+    flex: 1;
+    border: 1px solid hsla(0, 0%, 0%, 0.15);
+    border-radius: 0.25rem;
+    background: hsla(0, 0%, 96%, 1);
+    color: hsla(225, 15%, 40%, 1);
+    padding: 0.25rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.step-active {
+    border-color: #855cd6;
+    background: #855cd6;
+    color: white;
+    font-weight: bold;
+}
+
+.step:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.question {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: bold;
+}
+
+.choices {
+    display: flex;
+    gap: 0.5rem;
+    margin: 0.4rem 0;
+}
+
+.choice,
+.choice-selected,
+.service,
+.service-selected {
+    border: 1px solid hsla(0, 0%, 0%, 0.2);
+    border-radius: 0.5rem;
+    background: white;
+    color: hsla(225, 15%, 20%, 1);
+    padding: 0.4rem 1rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+    text-align: left;
+}
+
+.choice-selected,
+.service-selected {
+    border: 2px solid #855cd6;
+    background: hsla(260, 60%, 60%, 0.08);
+}
+
+.services {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem;
+}
+
+.service,
+.service-selected {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 0.4rem 0.6rem;
+}
+
+.service:disabled {
+    background: hsla(0, 0%, 95%, 1);
+    color: hsla(0, 0%, 45%, 1);
+    cursor: not-allowed;
+}
+
+.service-name {
+    font-weight: bold;
+}
+
+.note {
+    display: block;
+    font-size: 0.75rem;
+    color: hsla(225, 15%, 40%, 1);
+}
+
+.condition {
+    margin: 0.2rem 0;
+    font-size: 0.85rem;
+}
+
+.confirm,
+.rubytee {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+}
+
+.rubytee {
+    margin-top: 0.4rem;
+}
+
+/* The settings form styles every input with padding; checkboxes stay compact. */
+.checkbox.checkbox {
+    padding: 0;
+    margin: 0.15rem 0 0;
+}
+
+.warning {
+    margin: 0;
+    font-size: 0.8rem;
+    color: hsla(30, 60%, 30%, 1);
+}
+
+.url-label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    margin-top: 0.3rem;
+    font-size: 0.85rem;
+}
+
+.url-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.url-input.url-input {
+    flex: 1;
+    min-width: 0;
+}
+
+.try-link {
+    white-space: nowrap;
+    font-size: 0.8rem;
+    color: #855cd6;
+}
+
+.unsaved {
+    margin-left: 0.5rem;
+    color: hsla(0, 70%, 45%, 1);
+    font-weight: bold;
+}
+
+.save-hint {
+    margin: 0.5rem 0 0;
+    font-size: 0.75rem;
+    font-weight: bold;
+    color: hsla(225, 15%, 40%, 1);
+}
