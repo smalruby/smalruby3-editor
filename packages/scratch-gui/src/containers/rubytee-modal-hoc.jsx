@@ -14,6 +14,14 @@ import { selectRubyteeAvailable, selectRubyteeUsage } from '../reducers/classroo
 const RUBYTEE_CONSENT_KEY = 'smalruby:rubyteeConsent';
 
 /**
+ * Whether two Rubytee usages (see selectRubyteeUsage) are the same student's.
+ * @param {?{classroom: string, seat: string}} a - usage
+ * @param {?{classroom: string, seat: string}} b - usage
+ * @returns {boolean} true when both are null or name the same class and seat
+ */
+const sameUsage = (a, b) => (a && b ? a.classroom === b.classroom && a.seat === b.seat : a === b);
+
+/**
  * Replace invalid resource references in Rubytee-generated Ruby code with valid ones.
  * - Sounds: replace with first valid sound; comment out if no sounds exist
  * - Costumes: replace with first valid costume; skip if no costumes exist
@@ -250,6 +258,13 @@ const RubyteeModalHOC = function (WrappedComponent) {
                 this._clearTimers();
                 this.rubyteeAPI.cancelRequest();
                 this.setState({ isModalOpen: false, isConsentOpen: false, isLoading: false });
+            }
+            // School PCs are shared: the next student who joins in the same tab must
+            // not see the previous student's chat, nor send it to the relay under
+            // their own seat. Forget it whenever the class or seat changes.
+            if (!sameUsage(prevProps.rubyteeUsage, this.props.rubyteeUsage)) {
+                this.rubyteeAPI.clearHistory();
+                this.setState({ chatHistory: [], latestCodes: [], error: null, inputValue: '' });
             }
         }
 

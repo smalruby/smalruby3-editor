@@ -1,5 +1,5 @@
 import VM from '@smalruby/scratch-vm';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import PropTypes from 'prop-types';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
@@ -23,16 +23,15 @@ Tab.propTypes = { onOpenRubyteeModal: PropTypes.func };
 const Wrapped = RubyteeModalHOC(Tab);
 const mockStore = configureStore();
 
-const renderWith = (classroom) => {
-    const store = mockStore({ scratchGui: { classroom: { ...classroomInitialState, ...classroom } } });
-    return render(
-        <Provider store={store}>
-            <IntlProvider locale="en" messages={{}}>
-                <Wrapped vm={new VM()} />
-            </IntlProvider>
-        </Provider>,
-    );
-};
+const tree = (classroom, vm) => (
+    <Provider store={mockStore({ scratchGui: { classroom: { ...classroomInitialState, ...classroom } } })}>
+        <IntlProvider locale="en" messages={{}}>
+            <Wrapped vm={vm} />
+        </IntlProvider>
+    </Provider>
+);
+
+const renderWith = (classroom) => render(tree(classroom, new VM()));
 
 const student = { role: 'student', classroomId: 'class-123', seatNumber: 5, sessionToken: 'token-abc' };
 
@@ -62,5 +61,32 @@ describe('RubyteeModalHOC availability (#1278)', () => {
         fireEvent.click(button);
         // No consent yet, so the consent dialog comes first.
         expect(screen.getByText(/Before using Rubytee/)).toBeTruthy();
+    });
+
+    test("forgets the previous student's chat when another student joins in the same tab", async () => {
+        window.localStorage.setItem('smalruby:rubyteeConsent', 'true');
+        global.fetch = jest.fn().mockResolvedValue({
+            ok: true,
+            status: 200,
+            json: () => Promise.resolve({ text: 'move(10)', outputTokens: 1 }),
+        });
+        const vm = new VM();
+        const { rerender } = render(tree({ ...student, rubyteeEnabled: true }, vm));
+        fireEvent.click(screen.getByTestId('ruby-toolbar-rubytee'));
+        fireEvent.change(screen.getByTestId('rubytee-modal-input'), { target: { value: 'make the cat move' } });
+        fireEvent.click(screen.getByTestId('rubytee-modal-send'));
+        await waitFor(() => expect(screen.getAllByTestId('rubytee-modal-message-model')).toHaveLength(1));
+
+        await act(async () => {
+            rerender(tree({ ...student, seatNumber: 6, sessionToken: 'token-def', rubyteeEnabled: true }, vm));
+        });
+        expect(screen.queryAllByTestId('rubytee-modal-message-user')).toHaveLength(0);
+
+        fireEvent.change(screen.getByTestId('rubytee-modal-input'), { target: { value: 'make the cat jump' } });
+        fireEvent.click(screen.getByTestId('rubytee-modal-send'));
+        await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2));
+        const body = JSON.parse(global.fetch.mock.calls[1][1].body);
+        expect(body.history).toEqual([]);
+        expect(body.seat).toBe('6');
     });
 });

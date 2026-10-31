@@ -625,5 +625,15 @@ describe('classroom reducer', () => {
             expect(selectRubyteeUsage(asRoot(on))).toEqual({ classroom: 'class-123', seat: '5' });
             expect(selectRubyteeUsage(asRoot(classroomInitialState))).toBeNull();
         });
+
+        test('gives back the same usage object while the class and seat stay the same', () => {
+            const on = reducer(classroomInitialState, join({ rubyteeEnabled: true }));
+            const first = selectRubyteeUsage(asRoot(on));
+            expect(selectRubyteeUsage(asRoot({ ...on, studentPeerView: null }))).toBe(first);
+            expect(selectRubyteeUsage(asRoot({ ...on, seatNumber: 6 }))).toEqual({
+                classroom: 'class-123',
+                seat: '6',
+            });
+        });
     });
 });
