@@ -1,0 +1,380 @@
+@import '../../css/colors.css';
+
+/* The shared modal body has no background (.claude/rules/scratch-gui/modals.md). */
+.body {
+    background-color: $ui-white;
+    padding: 0.75rem 1rem;
+    max-height: 510px;
+    overflow-y: auto;
+    color: $text-primary;
+}
+
+.title {
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 0.375rem;
+}
+
+.seat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.25rem 0;
+    min-height: 2.75rem;
+    background: $ui-white;
+    border: 2px solid $ui-black-transparent;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    color: $text-primary;
+}
+
+.seat:disabled {
+    cursor: default;
+    opacity: 0.5;
+}
+
+.seat-number {
+    font-size: 1rem;
+    font-weight: bold;
+}
+
+.seat-label {
+    font-size: 0.625rem;
+    min-height: 0.75rem;
+}
+
+.seat-chosen {
+    border-color: $motion-primary;
+    background: hsla(215, 100%, 65%, 0.15);
+}
+
+.seat-me,
+.seat-me:disabled {
+    opacity: 1;
+    border-color: $motion-primary;
+    background: $motion-primary;
+    color: $ui-white;
+}
+
+.seat-absent {
+    border-style: dashed;
+}
+
+.seat-busy {
+    color: $text-primary-transparent;
+}
+
+.confirm,
+.warning {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    background: $ui-secondary;
+}
+
+.footer {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-top: 0.75rem;
+}
+
+.summary {
+    flex: 1;
+    font-size: 0.875rem;
+}
+
+.limit {
+    margin-left: 0.5rem;
+    color: $error-primary;
+}
+
+.primary,
+.secondary {
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.primary {
+    border: none;
+    background: $motion-primary;
+    color: $ui-white;
+}
+
+.secondary {
+    border: 1px solid $ui-black-transparent;
+    background: $ui-white;
+    color: $text-primary;
+}
+
+.sub {
+    font-size: 0.75rem;
+    margin-bottom: 0.5rem;
+    opacity: 0.85;
+}
+
+.member-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+}
+
+.member {
+    display: grid;
+    grid-template-columns: 1.5rem 3rem 1fr;
+    align-items: center;
+    padding: 0.4rem 0.6rem;
+    border-radius: 0.5rem;
+    background: $ui-secondary;
+    font-size: 0.8125rem;
+}
+
+.member-mark {
+    font-weight: bold;
+}
+
+.member-seat {
+    font-weight: bold;
+}
+
+.member-joined .member-mark,
+.member-me .member-mark {
+    color: $motion-primary;
+}
+
+.member-absent {
+    background: transparent;
+    border: 1px dashed $ui-black-transparent;
+    opacity: 0.75;
+}
+
+.member-elsewhere {
+    color: $error-primary;
+}
+
+.warning-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+}
+
+.arrived {
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    background: hsla(163, 85%, 40%, 0.15);
+    font-weight: bold;
+    text-align: center;
+}
+
+.footer-split {
+    justify-content: space-between;
+}
+
+.primary:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.entry {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    column-gap: 0.75rem;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 2px solid $motion-primary;
+    border-radius: 0.75rem;
+    background: hsla(215, 100%, 65%, 0.1);
+    color: $text-primary;
+    text-align: left;
+    cursor: pointer;
+}
+
+.entry-row {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.entry-row .entry {
+    flex: 1;
+    min-width: 0;
+    column-gap: 0.5rem;
+    padding: 0.625rem 0.75rem;
+}
+
+.entry-row .entry:not(:only-child) .entry-title {
+    white-space: nowrap;
+    font-size: 0.875rem;
+}
+
+.entry-row .entry:not(:only-child) .entry-description {
+    font-size: 0.6875rem;
+}
+
+.entry-icon {
+    grid-row: span 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 0.625rem;
+    background: $motion-primary;
+    color: $ui-white;
+    font-size: 1.375rem;
+    font-weight: bold;
+}
+
+.entry-title {
+    font-weight: bold;
+}
+
+.entry-description {
+    font-size: 0.75rem;
+    opacity: 0.85;
+}
+
+.entry-area {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    box-sizing: border-box;
+    width: 100%;
+    margin-bottom: 0.625rem;
+}
+
+.class-note {
+    font-size: 0.75rem;
+    opacity: 0.85;
+    text-align: center;
+}
+
+.progress {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+}
+
+.tag {
+    padding: 0.125rem 0.625rem;
+    border-radius: 999px;
+    background: $ui-secondary;
+    font-weight: bold;
+}
+
+.tag-joined,
+.tag-me {
+    background: hsla(163, 85%, 40%, 0.15);
+}
+
+.tag-absent {
+    background: transparent;
+    border: 1px dashed $ui-black-transparent;
+}
+
+/* The classic buttons for a student in a class: folded away, plainer than the entry above. */
+.classic-area {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    box-sizing: border-box;
+    width: 100%;
+    margin-bottom: 0.75rem;
+}
+
+.classic-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid $ui-black-transparent;
+    border-radius: 0.625rem;
+    background: $ui-secondary;
+    color: $text-primary-transparent;
+    font-size: 0.8125rem;
+    text-align: left;
+    cursor: pointer;
+}
+
+.classic-toggle-state {
+    flex: none;
+    font-size: 0.75rem;
+}
+
+.classic-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.625rem;
+    border-radius: 0.625rem;
+    background: $ui-secondary;
+}
+
+.classic-note {
+    font-size: 0.6875rem;
+    color: $text-primary-transparent;
+    text-align: left;
+}
+
+.classic-buttons {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.625rem;
+}
+
+.classic-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+    padding: 0.375rem 0.5rem;
+    border: 1px solid $ui-black-transparent;
+    border-radius: 0.625rem;
+    background: $ui-white;
+    color: $text-primary;
+    text-align: left;
+    cursor: pointer;
+}
+
+.classic-image {
+    flex: none;
+    width: 2.25rem;
+    height: 2.25rem;
+    object-fit: cover;
+    border-radius: 0.5rem;
+}
+
+.classic-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.0625rem;
+    min-width: 0;
+}
+
+.classic-title {
+    font-weight: bold;
+    font-size: 0.8125rem;
+    white-space: nowrap;
+}
+
+.classic-description {
+    font-size: 0.6875rem;
+    color: $text-primary-transparent;
+}

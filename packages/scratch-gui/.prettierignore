@@ -77,6 +77,12 @@ src/components/connection-modal/*
 !src/components/connection-modal/mesh-v2-initial-step.css
 !src/components/connection-modal/mesh-v2-initial-step.jsx
 !src/components/connection-modal/mesh-v2-network-filtered-step.jsx
+!src/components/connection-modal/mesh-v2-classic-methods.jsx
+!src/components/connection-modal/mesh-v2-seat-connect.css
+!src/components/connection-modal/mesh-v2-seat-entry.jsx
+!src/components/connection-modal/mesh-v2-seat-pick-step.jsx
+!src/components/connection-modal/mesh-v2-seat-status-line.jsx
+!src/components/connection-modal/mesh-v2-seat-wait-step.jsx
 !src/components/connection-modal/mesh-v2-scanning-step.jsx
 !src/components/connection-modal/smalrubot-s1-connected-step.css
 !src/components/connection-modal/smalrubot-s1-connected-step.jsx
@@ -133,6 +139,7 @@ src/containers/*
 !src/containers/google-drive-loader-hoc.jsx
 !src/containers/koshien-mock-panel.jsx
 !src/containers/mesh-self-sensor-notice.jsx
+!src/containers/mesh-v2-seat-connect.jsx
 !src/containers/google-drive-saver-hoc.jsx
 !src/containers/ruby-downloader.jsx
 !src/containers/ruby-tab.jsx
@@ -199,7 +206,9 @@ src/lib/*
 !src/lib/join-code-history.js
 !src/lib/log-suppression.js
 !src/lib/mesh-v2-classroom-binding.jsx
+!src/lib/mesh-v2-seat-connect.js
 !src/lib/mesh-v2-seat-label.js
+!src/lib/mesh-v2-seat-snapshot.js
 !src/lib/mesh-v2-sensor-collision.js
 !src/lib/microsoft-auth.js
 !src/lib/microbit-more-update.js
@@ -355,6 +364,7 @@ test/unit/components/*
 !test/unit/components/connected-step.test.jsx
 !test/unit/components/mesh-self-sensor-notice.test.jsx
 !test/unit/components/mesh-v2-scanning-step-seats.test.jsx
+!test/unit/components/mesh-v2-seat-connect.test.jsx
 !test/unit/components/student-assignment-panel.test.jsx
 !test/unit/components/student-continue-choice.test.jsx
 !test/unit/components/teacher-class-detail.test.jsx
@@ -485,6 +495,7 @@ test/unit/lib/*
 !test/unit/lib/legacy-storage.test.js
 !test/unit/lib/make-toolbox-xml.test.js
 !test/unit/lib/mesh-v2-classroom-binding.test.js
+!test/unit/lib/mesh-v2-seat-connect.test.js
 !test/unit/lib/mesh-v2-seat-label.test.js
 !test/unit/lib/mesh-v2-sensor-collision.test.js
 !test/unit/lib/monaco-i18n-helper.test.js

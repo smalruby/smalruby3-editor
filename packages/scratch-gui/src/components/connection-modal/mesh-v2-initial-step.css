@@ -114,3 +114,9 @@
         max-width: none;
     }
 }
+
+/* A student in a class: the domain lines up with the seat entry above (same left and right edges). */
+.fullWidth {
+    width: 100%;
+    max-width: none;
+}

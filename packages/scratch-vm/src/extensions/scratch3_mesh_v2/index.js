@@ -11,7 +11,7 @@ const {getDomain, saveDomainToLocalStorage} = require('./utils');
 const {hiraganaToHex} = require('./name-search-utils');
 const {createClient} = require('./mesh-client');
 const MeshV2Service = require('./mesh-service');
-const {TEACHER_HOST, buildGroupName, parseGroupName, withSeatSuffix} = require('./seat-naming');
+const {TEACHER_HOST, buildGroupName, parseGroupName, parseNodeSeat, withSeatSuffix} = require('./seat-naming');
 
 /**
  * Icon svg to be displayed at the left edge of each extension block, encoded as a data URI.
@@ -66,6 +66,8 @@ class Scratch3MeshV2Blocks {
         this.nodeId = uuidv4().replaceAll('-', '');
         // Seat in the current classroom ({seat, teacher}), or null outside a class.
         this.classroomSeat = null;
+        // Seats chosen in "出席番号でつながる"; put into the next host group name.
+        this.seatGroupSeats = null;
         this.connectionState = 'disconnected';
         this.isExplicitDisconnect = false;
 
@@ -140,6 +142,15 @@ class Scratch3MeshV2Blocks {
     }
 
     /**
+     * Set the seats chosen in "出席番号でつながる" for the next group this
+     * node creates as a host (`seats=` in the group name).
+     * @param {?Array<number>} seats - chosen seats, or null for a host-only name.
+     */
+    setSeatGroupSeats (seats) {
+        this.seatGroupSeats = Array.isArray(seats) && seats.length > 0 ? seats.slice() : null;
+    }
+
+    /**
      * Put the remembered classroom seat into the node id used in the mesh.
      */
     applyClassroomSeatToMeshId () {
@@ -162,7 +173,8 @@ class Scratch3MeshV2Blocks {
         const hostNodeId = this.getMeshNodeId();
         const info = this.classroomSeat;
         if (!info) return hostNodeId;
-        return buildGroupName(hostNodeId, {host: info.teacher ? TEACHER_HOST : info.seat});
+        if (info.teacher) return buildGroupName(hostNodeId, {host: TEACHER_HOST});
+        return buildGroupName(hostNodeId, {seats: this.seatGroupSeats || [], host: info.seat});
     }
 
     /**
@@ -184,6 +196,58 @@ class Scratch3MeshV2Blocks {
             rssi: this.calculateRssi(group),
             domain: group.domain
         };
+    }
+
+    /**
+     * List the live groups of the domain for "出席番号でつながる", each with the
+     * seats already connected to it (from the node ids). Only groups with seat
+     * info are asked for their nodes; the host seat counts as a member even if
+     * the node list cannot be read. The groups are remembered so connect() can
+     * join one of them.
+     * @returns {Promise<Array<{id: string, seatInfo: ?object, memberSeats: Array<number>}>>} groups.
+     */
+    async listSeatGroups () {
+        if (!this.meshService) return [];
+        const groups = await this.meshService.listGroups();
+        this.discoveredGroups = groups;
+        const now = Date.now();
+        const live = groups.filter(group => !group.expiresAt || new Date(group.expiresAt).getTime() > now);
+        return Promise.all(live.map(async group => {
+            const peripheral = this.groupToPeripheral(group);
+            const seatInfo = peripheral.seatInfo;
+            const seats = new Set();
+            if (seatInfo) {
+                if (Number.isInteger(seatInfo.host)) seats.add(seatInfo.host);
+                try {
+                    const nodes = await this.meshService.listNodesInGroup(group.id, group.domain);
+                    nodes.forEach(node => {
+                        const seat = parseNodeSeat(node && node.id);
+                        if (seat !== null) seats.add(seat);
+                    });
+                } catch (_e) {
+                    // Keep what the name says; the next poll tries again.
+                }
+            }
+            return {
+                ...peripheral,
+                id: group.id,
+                memberSeats: [...seats].sort((a, b) => a - b)
+            };
+        }));
+    }
+
+    /**
+     * @returns {?string} id of the joined group, or null.
+     */
+    getConnectedGroupId () {
+        return (this.meshService && this.meshService.groupId) || null;
+    }
+
+    /**
+     * @returns {boolean} true while connected as the host of a group.
+     */
+    isConnectedAsHost () {
+        return !!(this.meshService && this.meshService.groupId && this.meshService.isHost);
     }
 
     makeMeshIdLabel (meshId) {
@@ -363,7 +427,10 @@ class Scratch3MeshV2Blocks {
         this.setConnectionState('connecting');
 
         if (id === MESH_V2_HOST_ID) {
-            this.meshService.createGroup(this.makeHostGroupName()).then(() => {
+            const groupName = this.makeHostGroupName();
+            // The chosen seats are for this one group; a later "ホストになる" must not reuse them.
+            this.setSeatGroupSeats(null);
+            this.meshService.createGroup(groupName).then(() => {
                 this.setConnectionState('connected');
             })
                 /* istanbul ignore next */

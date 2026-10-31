@@ -52,6 +52,10 @@ class ConnectionModal extends React.Component {
             'handleMeshV2DomainChange',
             'handleBackToInitial',
             // === Smalruby: End of meshV2 initial step feature ===
+            // === Smalruby: Start of meshV2 seat connect feature ===
+            'handleMeshV2SeatConnect',
+            'handleMeshV2JoinSeatGroup',
+            // === Smalruby: End of meshV2 seat connect feature ===
             // === Smalruby: Start of smalrubotS1 dedicated flow ===
             'handleSmalrubotS1ChooseConnect',
             'handleSmalrubotS1ChooseFlashFirmware',
@@ -147,6 +151,11 @@ class ConnectionModal extends React.Component {
         }
     }
     handleError (event) {
+        // === Smalruby: Start of meshV2 seat connect feature ===
+        // The seat connect screen shows its own errors and keeps retrying.
+        if (this.state.phase === PHASES.meshV2Seat &&
+            !(event && event.errorType === 'networkFilter')) return;
+        // === Smalruby: End of meshV2 seat connect feature ===
         // Check if this is a network filter error (HTTP 503 from proxy like i-Filter)
         if (event && event.errorType === 'networkFilter' &&
             this.props.extensionId === 'meshV2') {
@@ -192,11 +201,17 @@ class ConnectionModal extends React.Component {
         }
     }
     handleConnected () {
+        // === Smalruby: Start of meshV2 seat connect feature ===
+        // While waiting for the chosen seats the seat screen stays; it closes the modal itself.
+        const keepSeatPhase = this.state.phase === PHASES.meshV2Seat;
+        // === Smalruby: End of meshV2 seat connect feature ===
         this.setState({
             // === Smalruby: Start of smalrubotS1 dedicated flow ===
             phase: this.props.extensionId === 'smalrubotS1' ?
                 PHASES.smalrubotS1Connected :
-                PHASES.connected,
+                // === Smalruby: Start of meshV2 seat connect feature ===
+                (keepSeatPhase ? PHASES.meshV2Seat : PHASES.connected),
+                // === Smalruby: End of meshV2 seat connect feature ===
             // === Smalruby: End of smalrubotS1 dedicated flow ===
             // === Smalruby: Start of meshV2 connected message feature ===
             connectedMessage: this.props.vm.getPeripheralConnectedMessage(this.props.extensionId)
@@ -359,6 +374,21 @@ class ConnectionModal extends React.Component {
             label: this.props.extensionId
         });
     }
+    // === Smalruby: Start of meshV2 seat connect feature ===
+    handleMeshV2SeatConnect () {
+        applySeatToExtension(this.props.vm, this.props.meshV2Seat);
+        this.setState({phase: PHASES.meshV2Seat});
+        analytics.event({
+            category: 'extensions',
+            action: 'meshV2 seat connect',
+            label: this.props.extensionId
+        });
+    }
+    handleMeshV2JoinSeatGroup (groupId) {
+        applySeatToExtension(this.props.vm, this.props.meshV2Seat);
+        this.handleConnecting(groupId);
+    }
+    // === Smalruby: End of meshV2 seat connect feature ===
     // === Smalruby: Start of meshV2 back button feature ===
     handleBackToInitial () {
         // For meshV2, go back to initial step (mesh-v2-initial-step)
@@ -451,6 +481,12 @@ class ConnectionModal extends React.Component {
                 domainReadOnly={this.props.meshV2DomainReadOnly}
                 meshV2Seat={this.props.meshV2Seat}
                 // === Smalruby: End of meshV2 initial step feature ===
+                // === Smalruby: Start of meshV2 seat connect feature ===
+                classroomJoinCode={this.props.classroomJoinCode}
+                classroomName={this.props.classroomName}
+                onJoinSeatGroup={this.handleMeshV2JoinSeatGroup}
+                onSeatConnect={this.handleMeshV2SeatConnect}
+                // === Smalruby: End of meshV2 seat connect feature ===
                 extensionId={this.props.extensionId}
                 name={this.state.extension && this.state.extension.name}
                 phase={this.state.phase}
@@ -495,6 +531,10 @@ class ConnectionModal extends React.Component {
 ConnectionModal.propTypes = {
     extensionId: PropTypes.string.isRequired,
     // === Smalruby: Start of meshV2 initial step feature ===
+    // === Smalruby: Start of meshV2 seat connect feature ===
+    classroomJoinCode: PropTypes.string,
+    classroomName: PropTypes.string,
+    // === Smalruby: End of meshV2 seat connect feature ===
     meshV2Domain: PropTypes.string,
     meshV2DomainReadOnly: PropTypes.bool,
     meshV2Seat: PropTypes.shape({
@@ -525,8 +565,12 @@ const mapStateToProps = state => {
         // === Smalruby: Start of meshV2 initial step feature ===
         meshV2Domain: state.scratchGui.meshV2.domain,
         meshV2DomainReadOnly,
-        meshV2Seat: computeBoundSeat(classroom)
+        meshV2Seat: computeBoundSeat(classroom),
         // === Smalruby: End of meshV2 initial step feature ===
+        // === Smalruby: Start of meshV2 seat connect feature ===
+        classroomJoinCode: classroom && classroom.role === 'student' ? classroom.joinCode : null,
+        classroomName: classroom && classroom.role === 'student' ? classroom.className : null
+        // === Smalruby: End of meshV2 seat connect feature ===
     };
 };
 

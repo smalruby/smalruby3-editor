@@ -7,6 +7,9 @@ import Dots from './dots.jsx';
 import bluetoothIcon from './icons/bluetooth-white.svg';
 import styles from './connection-modal.css';
 import classNames from 'classnames';
+// === Smalruby: Start of meshV2 seat connect feature ===
+import MeshV2SeatStatusLine from './mesh-v2-seat-status-line.jsx';
+// === Smalruby: End of meshV2 seat connect feature ===
 
 const ConnectedStep = props => (
     <Box className={styles.body}>
@@ -36,6 +39,15 @@ const ConnectedStep = props => (
                 )}
                 {/* === Smalruby: End of meshV2 connected message feature === */}
             </Box>
+            {/* === Smalruby: Start of meshV2 seat connect feature === */}
+            {props.extensionId === 'meshV2' && props.meshV2Seat && props.meshV2Seat.seat && (
+                <MeshV2SeatStatusLine
+                    joinCode={props.classroomJoinCode}
+                    mySeat={props.meshV2Seat.seat}
+                    vm={props.vm}
+                />
+            )}
+            {/* === Smalruby: End of meshV2 seat connect feature === */}
             <Dots
                 success
                 className={styles.bottomAreaItem}
@@ -72,6 +84,15 @@ ConnectedStep.propTypes = {
     connectedMessage: PropTypes.string,
     // === Smalruby: End of meshV2 connected message feature ===
     connectionIconURL: PropTypes.string.isRequired,
+    // === Smalruby: Start of meshV2 seat connect feature ===
+    classroomJoinCode: PropTypes.string,
+    extensionId: PropTypes.string,
+    meshV2Seat: PropTypes.shape({
+        seat: PropTypes.number,
+        teacher: PropTypes.bool
+    }),
+    vm: PropTypes.object,
+    // === Smalruby: End of meshV2 seat connect feature ===
     onCancel: PropTypes.func,
     onDisconnect: PropTypes.func
 };

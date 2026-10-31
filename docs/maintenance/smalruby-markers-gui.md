@@ -34,6 +34,9 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/components/connection-modal/connection-modal.jsx` | meshV2 initial step feature | Mesh v2 初期ステップ UI |
 | `src/components/connection-modal/connection-modal.jsx` | smalrubotS1 dedicated flow | SmalrubotS1 専用フロー (PHASES、ステップ振り分け、propTypes) |
 | `src/containers/connection-modal.jsx` | smalrubotS1 dedicated flow | SmalrubotS1 専用フロー (initial phase 判定、ハンドラー、props) |
+| `src/containers/connection-modal.jsx` | meshV2 seat connect feature | 出席番号でつながる（phase 切り替え・ハンドラー・待ち合わせ中は接続済み画面へ移らない・エラーは番号画面が表示・props） |
+| `src/components/connection-modal/connection-modal.jsx` | meshV2 seat connect feature | 出席番号でつながる（PHASES、番号画面の表示、propTypes） |
+| `src/components/connection-modal/connected-step.jsx` | meshV2 seat connect feature | 接続済み画面の「そろい具合」の 1 行 |
 | `src/components/connection-modal/connected-step.jsx` | meshV2 connected message feature | Mesh v2 接続済みステップ UI |
 | `src/components/menu-bar/menu-bar.jsx` | smalrubot firmware menu | SmalrubotS1 メニューの import、ハンドラー、レンダリング、Redux 接続 |
 | `src/components/gui/gui.jsx` | smalrubot firmware modal | SmalrubotS1 ファームウェアモーダルの import と配置 |
