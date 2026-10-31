@@ -14,7 +14,6 @@ import GenaiNudge from '../components/genai-concierge/genai-nudge.jsx';
 import GenaiTroubleStep from '../components/genai-concierge/genai-trouble-step.jsx';
 import messages from '../components/genai-concierge/messages.js';
 import rubyteeIcon from '../components/ruby-toolbar/icon--rubytee.svg';
-import { AlertLevels } from '../lib/alerts/index.jsx';
 import {
     NUDGE_GAP_MS,
     NUDGE_IDLE_SECONDS,
@@ -27,6 +26,7 @@ import {
 import { PROBLEM_KINDS, buildGenaiPrompt } from '../lib/genai-prompt.js';
 import RubyGenerator from '../lib/ruby-generator';
 import { getUrlParams } from '../lib/url-params.js';
+import useStudentClassSettingsRefresh from './use-student-class-settings-refresh.js';
 
 // The date the student chose 「今日は出さない」 (YYYY-MM-DD).
 const NUDGE_OFF_KEY = 'smalruby:genaiNudgeOff';
@@ -58,8 +58,20 @@ const measureLeft = (root) => {
     return Math.max(12, Math.round(right + 12));
 };
 
-const GenaiConcierge = ({ vm, rubyVersion, assignmentName, available, classGenai, quiet }) => {
+const GenaiConcierge = ({
+    vm,
+    rubyVersion,
+    assignmentName,
+    available,
+    classGenai,
+    running,
+    role,
+    sessionToken,
+    dispatch,
+}) => {
     const intl = useIntl();
+    // The teacher may have turned the generative AI off since the page was last open.
+    useStudentClassSettingsRefresh({ role, sessionToken, dispatch });
     const [left, setLeft] = useState(12);
     const [nudge, setNudge] = useState(false);
     const [open, setOpen] = useState(false);
@@ -83,8 +95,8 @@ const GenaiConcierge = ({ vm, rubyVersion, assignmentName, available, classGenai
     const rootRef = useRef(null);
     const lastActivity = useRef(Date.now());
     const lastNudge = useRef(0);
-    const quietRef = useRef(quiet);
-    quietRef.current = quiet;
+    const runningRef = useRef(running);
+    runningRef.current = running;
 
     const target = resolveGenaiTarget({ classGenai, devChoice });
 
@@ -115,7 +127,7 @@ const GenaiConcierge = ({ vm, rubyVersion, assignmentName, available, classGenai
         const events = ['pointerdown', 'keydown', 'wheel'];
         events.forEach((name) => window.addEventListener(name, touch, true));
         vm.on('PROJECT_CHANGED', touch);
-        // Watching the program run or reading an error is not being stuck: start counting afresh.
+        // Watching the program run is not being stuck: start counting afresh.
         vm.on('PROJECT_RUN_START', touch);
         vm.on('PROJECT_RUN_STOP', touch);
         const idleSeconds = getUrlParams().genaiIdle || NUDGE_IDLE_SECONDS;
@@ -123,14 +135,14 @@ const GenaiConcierge = ({ vm, rubyVersion, assignmentName, available, classGenai
         const gapMs = Math.min(NUDGE_GAP_MS, idleMs * 4);
         const timer = setInterval(() => {
             const now = Date.now();
-            if (quietRef.current) lastActivity.current = now;
+            if (runningRef.current) lastActivity.current = now;
             const show = shouldNudge({
                 now,
                 lastActivity: lastActivity.current,
                 lastNudge: lastNudge.current,
                 idleMs,
                 gapMs,
-                busy: open || nudge || quietRef.current || document.hidden,
+                busy: open || nudge || runningRef.current || document.hidden,
                 offToday: isNudgeOffToday(readStorage(NUDGE_OFF_KEY), now),
             });
             if (!show) return;
@@ -372,15 +384,20 @@ GenaiConcierge.propTypes = {
         service: PropTypes.string,
         url: PropTypes.string,
     }),
-    // An error alert is shown or the program is running: don't offer help now.
-    quiet: PropTypes.bool,
+    // The program is running: don't offer help now. Alerts (e.g. a lost mesh
+    // connection) don't count: the code tab has no errors to read.
+    running: PropTypes.bool,
+    role: PropTypes.string,
+    sessionToken: PropTypes.string,
+    dispatch: PropTypes.func.isRequired,
 };
 
 const mapStateToProps = (state) => {
     const { classroom } = state.scratchGui;
-    const alerts = (state.scratchGui.alerts && state.scratchGui.alerts.alertsList) || [];
     return {
         rubyVersion: state.scratchGui.settings.rubyVersion,
+        role: classroom.role,
+        sessionToken: classroom.sessionToken,
         assignmentName: classroom.assignmentName,
         classGenai: classroom.studentGenai,
         available: isGenaiAvailable({
@@ -389,9 +406,7 @@ const mapStateToProps = (state) => {
             classGenai: classroom.studentGenai,
             devFlag: getUrlParams().features.includes('genai'),
         }),
-        quiet:
-            Boolean(state.scratchGui.vmStatus && state.scratchGui.vmStatus.running) ||
-            alerts.some((alert) => alert.level === AlertLevels.WARN),
+        running: Boolean(state.scratchGui.vmStatus && state.scratchGui.vmStatus.running),
     };
 };
 

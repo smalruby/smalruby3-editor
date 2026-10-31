@@ -2,7 +2,7 @@
  * Student presence ("seated") for the classroom feature (issue #1197).
  *
  * `lastActiveAt` is refreshed only by join and verify-session (when the student
- * opens the classroom modal) — there is deliberately no periodic heartbeat, to
+ * opens the page or the classroom modal) — there is deliberately no periodic heartbeat, to
  * keep API traffic down. "Seated" is therefore a rough hint: before approving a
  * seat-release (kick) request the teacher confirms in the classroom anyway.
  * The threshold lives here so every teacher view uses the same rule.

@@ -125,6 +125,7 @@ src/containers/*
 !src/containers/use-teacher-kick-request-polling.js
 !src/containers/use-teacher-panel-polling.js
 !src/containers/use-google-classroom.js
+!src/containers/use-student-class-settings-refresh.js
 !src/containers/use-student-assignment.js
 !src/containers/use-student-submit.js
 !src/containers/use-teacher-assignment.js
@@ -424,6 +425,7 @@ test/unit/containers/*
 !test/unit/containers/classroom-peer-panel.test.jsx
 !test/unit/containers/use-kick-request-polling.test.js
 !test/unit/containers/classroom-mesh-connect-prompt.test.jsx
+!test/unit/containers/use-student-class-settings-refresh.test.js
 !test/unit/containers/use-student-assignment.test.js
 !test/unit/containers/use-teacher-assignment.test.js
 !test/unit/containers/use-student-submit.test.js

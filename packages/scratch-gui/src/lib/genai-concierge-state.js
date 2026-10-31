@@ -87,14 +87,14 @@ export const isNudgeOffToday = (stored, now) => stored === localDateKey(now);
 
 /**
  * Whether the face should offer help now. It stays quiet while the student
- * is looking at something else: an error alert, the running program, a
- * hidden tab, or the panel itself.
+ * is looking at something else: the running program, a hidden tab, or the
+ * panel itself. Alerts don't count (the code tab has no errors to read).
  * @param {object} params - parameters
  * @param {number} params.now - ms epoch
  * @param {number} params.lastActivity - ms epoch of the last input or project change
  * @param {number} params.lastNudge - ms epoch of the last offer (0 = never)
  * @param {number} params.idleMs - inactivity needed before offering
- * @param {boolean} params.busy - panel or bubble open, alert shown, program running, or tab hidden
+ * @param {boolean} params.busy - panel or bubble open, program running, or tab hidden
  * @param {boolean} params.offToday - the student chose 「今日は出さない」
  * @param {number} [params.gapMs] - wait after an offer (shorter only for testing with ?genai_idle=)
  * @returns {boolean} true to show the bubble
