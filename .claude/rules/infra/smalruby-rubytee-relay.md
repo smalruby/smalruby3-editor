@@ -68,6 +68,7 @@ docker compose run --rm -w /app/infra/smalruby-rubytee-relay infra npx cdk deplo
 | `STAGE` | Deployment stage (`stg`, `stg2`, or `prod`) |
 | `ANTHROPIC_API_KEY` | Anthropic API key |
 | `CLAUDE_MODEL` | Claude model ID (default: `claude-haiku-4-5-20251001`) |
+| `CLAUDE_TAKEOVER_MODEL` | `purpose: "genai-takeover"`（生成AI の答えをルビティーにまかせる）で使うモデル（default: `claude-sonnet-5-5`）。`purpose` 未指定の呼び出しは `CLAUDE_MODEL` のまま |
 | `RATE_LIMIT_WINDOW_MINUTES` | Rate limit window in minutes (default: 35) |
 | `RATE_LIMIT_MAX_REQUESTS` | Max requests per window (default: 40) |
 | `MAX_USER_MESSAGE_LENGTH` | Max user message length (default: 250) |
@@ -122,6 +123,8 @@ Anthropic Claude のプロンプトキャッシュを利用してコストを削
 | Claude Haiku 4.5 | **4,096** |
 | Claude Sonnet 4.5 | 1,024 |
 | Claude Opus 4.5 | 4,096 |
+
+`claude-sonnet-5-5`（`genai-takeover`）でも stg で `cacheCreationTokens` が出ており、今のシステムプロンプトでキャッシュが効くことを確認済み。
 
 **CRITICAL**: システムプロンプトが最小トークン数を下回るとキャッシュが効かない。プロンプトを変更する際はトークン数に注意し、CloudWatch ログの `cacheCreationTokens` / `cacheReadTokens` で動作を確認すること。
 

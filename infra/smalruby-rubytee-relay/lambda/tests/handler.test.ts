@@ -1,4 +1,4 @@
-import { validateInput, validateStateContext, validateHistory, getCurrentWindowStart, checkAndIncrementRateLimit, buildSystemInstruction } from '../handler';
+import { validateInput, validateStateContext, validateHistory, getCurrentWindowStart, checkAndIncrementRateLimit, buildSystemInstruction, resolveModel, extractUsageContext, buildResponseLog } from '../handler';
 
 // ---------------------------------------------------------------------------
 // validateInput
@@ -380,5 +380,99 @@ describe('buildSystemInstruction', () => {
     const instruction = buildSystemInstruction(stateContext);
     expect(instruction).toContain('when_flag_clicked do');
     expect(instruction).toContain('move(10)');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// resolveModel (purpose によるモデルの使い分け)
+// ---------------------------------------------------------------------------
+describe('resolveModel', () => {
+  test('purpose 未指定は従来のモデル（CLAUDE_MODEL）', () => {
+    expect(resolveModel(undefined)).toBe('claude-haiku-4-5-20251001');
+  });
+
+  test('genai-takeover は Sonnet（CLAUDE_TAKEOVER_MODEL）', () => {
+    expect(resolveModel('genai-takeover')).toBe('claude-sonnet-5-5');
+  });
+
+  test('未知の purpose は従来のモデル', () => {
+    expect(resolveModel('something-else')).toBe('claude-haiku-4-5-20251001');
+    expect(resolveModel(123)).toBe('claude-haiku-4-5-20251001');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// extractUsageContext (ログに残すクラス・出席番号)
+// ---------------------------------------------------------------------------
+describe('extractUsageContext', () => {
+  test('何も無ければ空', () => {
+    expect(extractUsageContext({})).toEqual({});
+  });
+
+  test('purpose / classroom / seat を取り出す', () => {
+    expect(extractUsageContext({ purpose: 'genai-takeover', classroom: 'cls_abc-123', seat: 12 }))
+      .toEqual({ purpose: 'genai-takeover', classroom: 'cls_abc-123', seat: '12' });
+  });
+
+  test('seat は文字列でもよい', () => {
+    expect(extractUsageContext({ seat: '7' })).toEqual({ seat: '7' });
+  });
+
+  test('メールアドレスのような値の classroom は記録しない', () => {
+    expect(extractUsageContext({ classroom: 'taro@example.com' })).toEqual({});
+  });
+
+  test('改行・空白・長すぎる値は記録しない', () => {
+    expect(extractUsageContext({ classroom: 'a\nb', seat: '1 2' })).toEqual({});
+    expect(extractUsageContext({ classroom: 'a'.repeat(101) })).toEqual({});
+    expect(extractUsageContext({ seat: '1'.repeat(11) })).toEqual({});
+  });
+
+  test('オブジェクトや配列は記録しない', () => {
+    expect(extractUsageContext({ classroom: { id: 'x' }, seat: [1] })).toEqual({});
+  });
+
+  test('purpose は既知の値だけ記録する', () => {
+    expect(extractUsageContext({ purpose: 'free text\nwith newline' })).toEqual({});
+  });
+});
+
+// ---------------------------------------------------------------------------
+// buildResponseLog (1 リクエスト 1 行の構造化ログ)
+// ---------------------------------------------------------------------------
+describe('buildResponseLog', () => {
+  const usage = { outputTokens: 1, inputTokens: 2, cacheCreationTokens: 3, cacheReadTokens: 4 };
+
+  test('classroom / seat を含み、メールアドレス・名前は含まない', () => {
+    const line = buildResponseLog({
+      model: 'claude-sonnet-5-5',
+      usage,
+      userMessageLength: 20,
+      usageContext: extractUsageContext({ purpose: 'genai-takeover', classroom: 'c1', seat: 3 }),
+      sourceIp: '1.2.3.4',
+      stage: 'prod',
+    });
+    expect(line).not.toContain('\n');
+    const data = JSON.parse(line);
+    expect(data).toEqual({
+      event: 'rubytee_response',
+      model: 'claude-sonnet-5-5',
+      outputTokens: 1,
+      inputTokens: 2,
+      cacheCreationTokens: 3,
+      cacheReadTokens: 4,
+      userMessageLength: 20,
+      purpose: 'genai-takeover',
+      classroom: 'c1',
+      seat: '3',
+    });
+  });
+
+  test('stg では sourceIp も残す（従来どおり）', () => {
+    const data = JSON.parse(buildResponseLog({
+      model: 'm', usage, userMessageLength: 10, usageContext: {}, sourceIp: '1.2.3.4', stage: 'stg',
+    }));
+    expect(data.sourceIp).toBe('1.2.3.4');
+    expect(data.classroom).toBeUndefined();
   });
 });

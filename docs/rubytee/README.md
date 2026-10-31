@@ -114,7 +114,8 @@ AWS Lambda リレーサービス（API Gateway HTTP API + Lambda + DynamoDB）�
 | 環境変数 | デフォルト | 用途 |
 |---|---|---|
 | `ANTHROPIC_API_KEY` | - | Anthropic API キー |
-| `CLAUDE_MODEL` | `claude-haiku-4-5-20251001` | 使用モデル |
+| `CLAUDE_MODEL` | `claude-haiku-4-5-20251001` | 使用モデル（Ruby タブのルビティー。`purpose` 未指定のとき） |
+| `CLAUDE_TAKEOVER_MODEL` | `claude-sonnet-5-5` | 「ルビティーにまかせる」用モデル（`purpose: "genai-takeover"` のとき） |
 | `RATE_LIMIT_WINDOW_MINUTES` | `35` | レート制限ウィンドウ |
 | `RATE_LIMIT_MAX_REQUESTS` | `40` | ウィンドウ内最大リクエスト |
 | `MAX_USER_MESSAGE_LENGTH` | `250` | ユーザーメッセージ最大文字数 |
@@ -135,6 +136,60 @@ AWS Lambda リレーサービス（API Gateway HTTP API + Lambda + DynamoDB）�
 ## モニタリング
 
 CloudWatch ログで利用状況を監視。Rubytee 利用パターンとコスト異常検出は `rubytee-monitor` skill を使用（`.claude/skills/rubytee-monitor/`）。
+
+### リクエストの任意フィールドと構造化ログ
+
+`POST /generate` のリクエストには、従来の `userMessage` / `history` / `stateContext` に加えて
+次の**任意**フィールドを付けられる（付けない従来のクライアントはそのまま動く）。
+
+| フィールド | 例 | 用途 |
+|---|---|---|
+| `purpose` | `"genai-takeover"` | 用途。`genai-takeover` のときだけ `CLAUDE_TAKEOVER_MODEL`（Sonnet）を使う。未指定・未知の値は従来のモデル |
+| `classroom` | `"cls_abc123"` | クラスの識別子。ログに記録するだけ |
+| `seat` | `12` / `"12"` | 出席番号。ログに記録するだけ |
+
+`classroom` / `seat` は**識別子らしい値だけ**（英数字と `_ . : -`、`classroom` は 100 文字・`seat` は
+10 文字まで）を記録し、それ以外（`@` を含む値・空白・改行・オブジェクト等）はエラーにせず
+**記録しないで捨てる**。メールアドレスや名前は記録しない。回数の上限は設けていない
+（既存の IP レート制限・API Gateway スロットリングはそのまま効く）。
+
+1 リクエストにつき 1 行の JSON ログ（`event: "rubytee_response"`）が出る:
+
+```json
+{"event":"rubytee_response","model":"claude-sonnet-5-5","outputTokens":350,"inputTokens":17,"cacheCreationTokens":0,"cacheReadTokens":4964,"userMessageLength":42,"purpose":"genai-takeover","classroom":"cls_abc123","seat":"12"}
+```
+
+### CloudWatch Logs Insights の集計クエリ例
+
+ロググループ `/aws/lambda/RubyteeRelayHandler`（prod）/ `/aws/lambda/RubyteeRelayHandler-stg`（stg）で実行する。
+
+とても多く使っている利用者（クラス・出席番号ごとの回数とトークン）:
+
+```
+fields @timestamp, classroom, seat
+| filter event = "rubytee_response" and ispresent(classroom)
+| stats count(*) as requests, sum(outputTokens) as output, sum(inputTokens + cacheCreationTokens + cacheReadTokens) as input by classroom, seat
+| sort requests desc
+| limit 50
+```
+
+用途・モデルごとの回数（Sonnet の利用量の把握）:
+
+```
+fields @timestamp
+| filter event = "rubytee_response"
+| stats count(*) as requests, sum(outputTokens) as output by purpose, model
+| sort requests desc
+```
+
+クラスごとの日別の回数:
+
+```
+fields @timestamp
+| filter event = "rubytee_response" and ispresent(classroom)
+| stats count(*) as requests by classroom, bin(1d)
+| sort requests desc
+```
 
 ## デプロイ
 

@@ -9,6 +9,8 @@ import { DynamoDBDocumentClient, UpdateCommand, GetCommand } from '@aws-sdk/lib-
 const RATE_LIMIT_TABLE_NAME = process.env.RATE_LIMIT_TABLE_NAME || '';
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
 const CLAUDE_MODEL = process.env.CLAUDE_MODEL || 'claude-haiku-4-5-20251001';
+// 「ルビティーにまかせる」(purpose = genai-takeover) 用のモデル
+const CLAUDE_TAKEOVER_MODEL = process.env.CLAUDE_TAKEOVER_MODEL || 'claude-sonnet-5-5';
 const RATE_LIMIT_WINDOW_MINUTES = parseInt(process.env.RATE_LIMIT_WINDOW_MINUTES || '35', 10);
 const RATE_LIMIT_MAX_REQUESTS = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '40', 10);
 const MAX_USER_MESSAGE_LENGTH = parseInt(process.env.MAX_USER_MESSAGE_LENGTH || '250', 10);
@@ -18,6 +20,12 @@ const MAX_FIELD_NAME_LENGTH = 100;       // sprite/costume/sound names
 const MAX_CURRENT_CODE_LENGTH = 1000;    // currentCode in stateContext
 const MAX_HISTORY_TURNS = 20;            // conversation turns
 const MAX_HISTORY_TURN_TEXT_LENGTH = 1000; // chars per history turn
+const MAX_CLASSROOM_ID_LENGTH = 100;     // classroom identifier (logged)
+const MAX_SEAT_LENGTH = 10;              // seat (出席番号, logged)
+
+// Request purposes. Unknown / missing purposes fall back to the default model.
+const PURPOSE_GENAI_TAKEOVER = 'genai-takeover';
+const KNOWN_PURPOSES = [PURPOSE_GENAI_TAKEOVER];
 
 // Anthropic API
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
@@ -73,6 +81,16 @@ interface RelayRequest {
   userMessage: string;
   history?: HistoryTurn[];
   stateContext?: StateContext;
+  // Optional (all backward compatible): what the request is for, and who in a class sent it.
+  purpose?: unknown;
+  classroom?: unknown;
+  seat?: unknown;
+}
+
+interface UsageContext {
+  purpose?: string;
+  classroom?: string;
+  seat?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -690,6 +708,64 @@ function getCorsHeaders(origin: string | undefined): Record<string, string> {
 }
 
 // ---------------------------------------------------------------------------
+// Model selection / usage logging
+// ---------------------------------------------------------------------------
+export function resolveModel(purpose: unknown): string {
+  return purpose === PURPOSE_GENAI_TAKEOVER ? CLAUDE_TAKEOVER_MODEL : CLAUDE_MODEL;
+}
+
+// Identifier-like values only: no whitespace, no '@' (never log e-mail addresses or names).
+const SAFE_ID_PATTERN = /^[A-Za-z0-9_.:-]+$/;
+
+function toSafeId(value: unknown, maxLength: number): string | undefined {
+  if (typeof value !== 'string' && typeof value !== 'number') return undefined;
+  const str = String(value);
+  if (str.length === 0 || str.length > maxLength) return undefined;
+  return SAFE_ID_PATTERN.test(str) ? str : undefined;
+}
+
+/**
+ * Pick the optional purpose / classroom / seat to record in CloudWatch.
+ * Invalid values are dropped (not rejected) so that existing clients keep working.
+ */
+export function extractUsageContext(body: { purpose?: unknown; classroom?: unknown; seat?: unknown }): UsageContext {
+  const ctx: UsageContext = {};
+  if (typeof body.purpose === 'string' && KNOWN_PURPOSES.includes(body.purpose)) {
+    ctx.purpose = body.purpose;
+  }
+  const classroom = toSafeId(body.classroom, MAX_CLASSROOM_ID_LENGTH);
+  if (classroom) ctx.classroom = classroom;
+  const seat = toSafeId(body.seat, MAX_SEAT_LENGTH);
+  if (seat) ctx.seat = seat;
+  return ctx;
+}
+
+/**
+ * One structured log line per request (aggregated with CloudWatch Logs Insights).
+ * sourceIp is omitted in prod for cost/privacy.
+ */
+export function buildResponseLog(params: {
+  model: string;
+  usage: { outputTokens: number; inputTokens: number; cacheCreationTokens: number; cacheReadTokens: number };
+  userMessageLength: number;
+  usageContext: UsageContext;
+  sourceIp: string;
+  stage: string | undefined;
+}): string {
+  const logData: Record<string, unknown> = {
+    event: 'rubytee_response',
+    model: params.model,
+    ...params.usage,
+    userMessageLength: params.userMessageLength,
+    ...params.usageContext,
+  };
+  if (params.stage !== 'prod') {
+    logData.sourceIp = params.sourceIp;
+  }
+  return JSON.stringify(logData);
+}
+
+// ---------------------------------------------------------------------------
 // Lambda handler
 // ---------------------------------------------------------------------------
 export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> => {
@@ -770,8 +846,9 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
   }));
   claudeMessages.push({ role: 'user' as const, content: body.userMessage });
 
+  const model = resolveModel(body.purpose);
   const claudeRequestBody = {
-    model: CLAUDE_MODEL,
+    model,
     max_tokens: 1024,
     system: [
       {
@@ -833,20 +910,14 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
     const cacheCreationTokens = claudeData.usage?.cache_creation_input_tokens || 0;
     const cacheReadTokens = claudeData.usage?.cache_read_input_tokens || 0;
 
-    // Log token usage to CloudWatch (omit sourceIp in prod for cost/privacy)
-    const logData: Record<string, unknown> = {
-      event: 'rubytee_response',
-      model: CLAUDE_MODEL,
-      outputTokens,
-      inputTokens,
-      cacheCreationTokens,
-      cacheReadTokens,
+    console.log(buildResponseLog({
+      model,
+      usage: { outputTokens, inputTokens, cacheCreationTokens, cacheReadTokens },
       userMessageLength: body.userMessage.length,
-    };
-    if (process.env.STAGE !== 'prod') {
-      logData.sourceIp = sourceIp;
-    }
-    console.log(JSON.stringify(logData));
+      usageContext: extractUsageContext(body),
+      sourceIp,
+      stage: process.env.STAGE,
+    }));
 
     return {
       statusCode: 200,
