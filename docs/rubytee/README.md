@@ -32,6 +32,33 @@ API キーをクライアントに直接持たせず、AWS Lambda の専用リ�
 
 > **背景**: Gemini/Vertex AI ToS は 18 歳未満ユーザー向けアプリでの利用を禁止していたため、Anthropic へ移行した。Anthropic は安全措置を取れば未成年向け製品での利用を明示的に許可している。
 
+## 使える条件（クラスの設定で有効にしたときだけ）
+
+ルビティーは、**参加しているクラスで先生がルビティーを有効にしたときだけ** 使える。先生はクラス設定の「生成AI・ルビティー」欄で「ルビティー（スモウルビーの生成AI）も使う」をオンにする（[`docs/classroom/ui-ux.md`](../classroom/ui-ux.md)）。
+
+| 状態 | Ruby タブの AI ボタン (`ruby-toolbar-rubytee`) |
+|---|---|
+| クラスに参加していない | **出さない** |
+| 参加しているクラスでルビティーが無効 | **出さない** |
+| 参加しているクラスでルビティーが有効 | 出す（従来どおり。DNCL モードでは押せない） |
+| 先生（クラスを開いている先生・ログイン中の先生） | **出さない** |
+
+- **出さない（押せない理由を出さない）理由**: 生徒の画面にはクラス外・無効のときに使えない機能を見せる必要がなく、押しても使えないボタンは「壊れている」と誤解されやすい。ツールバーの幅（SP / iPad を含む）も空く。使う・使わないは先生がクラスで決めるもので、生徒が自分で有効にする手段も無い。
+- **先生に出さない理由**: ルビティーのリクエストは出席番号ごとに記録する（下記）が、先生には出席番号が無い。生徒に見える画面を確かめたいときは、先生も参加コードで生徒として参加する。
+- 判定は redux の `scratchGui.classroom`（`role === 'student'` + セッションあり + `rubyteeEnabled`）。`rubyteeEnabled` は参加（`/classrooms/join`）とセッション検証（`/classrooms/verify-session`）の応答の `rubytee.enabled` から取り込み、生徒のセッションと一緒に localStorage（`smalruby:classroom`）に保存する。そのため再読み込みしても次のセッション検証まではボタンが残り、先生が設定を変えると、生徒がクラスの画面を開いたとき（セッション検証）に追従する。
+- 判定は GUI 側だけ。relay 側でクラス外の利用を止めることは別途判断する。
+- クラスを抜けたとき・設定が無効に変わったときは、開いていたチャット・同意ダイアログも閉じ、送信中のリクエストは取り消す。
+- 参加しているクラスか出席番号が変わったとき（クラスを抜けたときも含む）は、チャットの履歴と入力中の文を消す。学校の PC は共用なので、同じタブで次の生徒が参加したときに前の生徒の会話が見えたり、次の生徒の出席番号で relay に送られたりしないようにするため。
+
+### リクエストに付けるクラス・出席番号
+
+クラスで使うとき、relay への `POST /generate` に次の 2 つを付ける（relay の CloudWatch ログでの利用集計用。**メールアドレス・名前は送らない**）。
+
+| フィールド | 値 |
+|---|---|
+| `classroom` | 参加している課題（クラスルーム）の ID（`classroomId`） |
+| `seat` | 出席番号（文字列） |
+
 ## UI / 操作フロー
 
 1. Ruby タブの **ruby-toolbar** で「ルビティー」ボタン (`ruby-toolbar-rubytee`) をクリック
@@ -68,12 +95,13 @@ API キーをクライアントに直接持たせず、AWS Lambda の専用リ�
 | `packages/scratch-gui/src/containers/rubytee-modal-hoc.jsx` | モーダル HOC、同意フロー、チャット履歴、API 呼び出し |
 | `packages/scratch-gui/src/lib/rubytee-api.js` | Relay API クライアント (`RubyteeAPI` クラス、`RateLimitError`)|
 | `packages/scratch-gui/src/lib/rubytee-context.js` | スプライト/ステージの状態コンテキスト構築 |
+| `packages/scratch-gui/src/reducers/classroom.js` | `rubyteeEnabled`・`selectRubyteeAvailable`（使えるか）・`selectRubyteeUsage`（送るクラス・出席番号） |
 
 #### Props 配線
 
 `RubyteeModalHOC` → `RubyTab` → `RubyToolbar` の props 伝播：
 
-- `onOpenRubyteeModal` — ルビティーボタンのクリックハンドラ
+- `onOpenRubyteeModal` — ルビティーボタンのクリックハンドラ。**使えないとき（上の「使える条件」）は渡さない**ので、ツールバーはボタンを出さない
 - `onRegisterRubyteeApply` — AI 生成コードをエディタに挿入するコールバック登録
 
 ### infra/smalruby-rubytee-relay
@@ -131,6 +159,7 @@ AWS Lambda リレーサービス（API Gateway HTTP API + Lambda + DynamoDB）�
 ### localStorage
 
 - `smalruby:rubyteeConsent` — 同意状態（`'true'` のみ ON）
+- `smalruby:classroom` の `rubyteeEnabled` — 参加しているクラスでルビティーが有効か（生徒のセッションと一緒に保存）
 
 ## モニタリング
 
@@ -151,7 +180,7 @@ docker compose run --rm -w /app/infra/smalruby-rubytee-relay infra npx cdk deplo
 
 ## テスト
 
-- 単体テスト（クライアント）: `packages/scratch-gui/test/unit/lib/rubytee-api.test.js`, `rubytee-context.test.js`, `containers/rubytee-modal-hoc-sanitize.test.js`
+- 単体テスト（クライアント）: `packages/scratch-gui/test/unit/lib/rubytee-api.test.js`, `rubytee-context.test.js`, `containers/rubytee-modal-hoc-sanitize.test.js`, `containers/rubytee-modal-hoc-availability.test.jsx`（ボタンの出し分け）, `reducers/classroom-reducer.test.js`
 - 結合テスト（クライアント）: `packages/scratch-gui/test/integration/rubytee-consent.test.js`
 - 単体テスト（Lambda）: `infra/smalruby-rubytee-relay/lambda/tests/`
 

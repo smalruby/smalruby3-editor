@@ -57,7 +57,7 @@ ruby-toolbar 上部のセグメントで切替：
 | 検索 | Monaco の find |
 | キーボード (`ruby-toolbar-keyboard`) | ソフトウェアキーボードの表示/非表示（タッチデバイスのみ表示）。Monaco 組み込みの iPad キーボードウィジェットは zoom ボタンと重なるため CSS で非表示にしており、その代替 |
 | 自動置換 (`ruby-toolbar-auto-correct`) | 自動置換のオン/オフ |
-| ルビティー (`ruby-toolbar-rubytee`) | AI アシスタントを開く（[`docs/rubytee/`](../rubytee/) 参照）|
+| ルビティー (`ruby-toolbar-rubytee`) | AI アシスタントを開く。参加しているクラスでルビティーが有効なときだけ出る（[`docs/rubytee/`](../rubytee/) 参照）|
 | その他メニュー (`ruby-toolbar-more-menu`) | Ruby スクリプト保存、クラス挿入、プレビュー、自動置換設定 |
 | スプライト切替 | エディタ対象スプライトの prev/next |
 

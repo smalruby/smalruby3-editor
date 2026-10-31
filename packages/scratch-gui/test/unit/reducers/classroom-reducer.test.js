@@ -26,6 +26,9 @@ import reducer, {
     requestMeshConnect,
     clearMeshConnectRequest,
     setStudentGenai,
+    setRubyteeEnabled,
+    selectRubyteeAvailable,
+    selectRubyteeUsage,
 } from '../../../src/reducers/classroom';
 
 const STORAGE_KEY = 'smalruby:classroom';
@@ -599,6 +602,89 @@ describe('classroom reducer', () => {
             const other = reducer(enabled, setClassroomSession({ ...session, classroomId: 'class-999' }));
             expect(other.studentGenai.enabled).toBe(false);
             expect(reducer(enabled, clearClassroomSession()).studentGenai.enabled).toBe(false);
+        });
+    });
+
+    describe('rubytee per class (#1278)', () => {
+        const join = (extra = {}) =>
+            setClassroomSession({
+                role: 'student',
+                classroomId: 'class-123',
+                className: '2年A組',
+                seatNumber: 5,
+                memberId: 'seat-05',
+                sessionToken: 'token-abc',
+                ...extra,
+            });
+        const asRoot = (classroom) => ({ scratchGui: { classroom } });
+
+        test('initial state has rubytee off', () => {
+            expect(classroomInitialState.rubyteeEnabled).toBe(false);
+        });
+
+        test('takes the setting from the join and persists it', () => {
+            const state = reducer(classroomInitialState, join({ rubyteeEnabled: true }));
+            expect(state.rubyteeEnabled).toBe(true);
+            expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY)).rubyteeEnabled).toBe(true);
+        });
+
+        test('treats a join without the setting as off', () => {
+            const state = reducer({ ...classroomInitialState, rubyteeEnabled: true }, join());
+            expect(state.rubyteeEnabled).toBe(false);
+        });
+
+        test('follows a changed setting from verify-session and persists it', () => {
+            const joined = reducer(classroomInitialState, join({ rubyteeEnabled: true }));
+            const state = reducer(joined, setRubyteeEnabled(false));
+            expect(state.rubyteeEnabled).toBe(false);
+            expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY)).rubyteeEnabled).toBe(false);
+        });
+
+        test('restores the setting from a stored session', () => {
+            jest.resetModules();
+            window.localStorage.setItem(
+                STORAGE_KEY,
+                JSON.stringify({ sessionToken: 't', classroomId: 'c1', seatNumber: 3, rubyteeEnabled: true }),
+            );
+            const { classroomInitialState: fresh } = require('../../../src/reducers/classroom');
+            expect(fresh.rubyteeEnabled).toBe(true);
+        });
+
+        test('turns off when leaving the class', () => {
+            const joined = reducer(classroomInitialState, join({ rubyteeEnabled: true }));
+            expect(reducer(joined, clearClassroomSession()).rubyteeEnabled).toBe(false);
+        });
+
+        test('is available only to a joined student of an enabled class', () => {
+            expect(selectRubyteeAvailable(asRoot(classroomInitialState))).toBe(false);
+            const off = reducer(classroomInitialState, join({ rubyteeEnabled: false }));
+            expect(selectRubyteeAvailable(asRoot(off))).toBe(false);
+            const on = reducer(classroomInitialState, join({ rubyteeEnabled: true }));
+            expect(selectRubyteeAvailable(asRoot(on))).toBe(true);
+        });
+
+        test('is not available to a teacher who has a class open', () => {
+            const teacher = reducer(
+                classroomInitialState,
+                setTeacherSelection({ classroomId: 'class-123', joinCode: 'ABC234' }),
+            );
+            expect(selectRubyteeAvailable(asRoot({ ...teacher, rubyteeEnabled: true }))).toBe(false);
+        });
+
+        test('gives the class and seat to record with each request', () => {
+            const on = reducer(classroomInitialState, join({ rubyteeEnabled: true }));
+            expect(selectRubyteeUsage(asRoot(on))).toEqual({ classroom: 'class-123', seat: '5' });
+            expect(selectRubyteeUsage(asRoot(classroomInitialState))).toBeNull();
+        });
+
+        test('gives back the same usage object while the class and seat stay the same', () => {
+            const on = reducer(classroomInitialState, join({ rubyteeEnabled: true }));
+            const first = selectRubyteeUsage(asRoot(on));
+            expect(selectRubyteeUsage(asRoot({ ...on, studentPeerView: null }))).toBe(first);
+            expect(selectRubyteeUsage(asRoot({ ...on, seatNumber: 6 }))).toEqual({
+                classroom: 'class-123',
+                seat: '6',
+            });
         });
     });
 });

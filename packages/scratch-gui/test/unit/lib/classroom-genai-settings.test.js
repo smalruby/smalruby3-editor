@@ -1,7 +1,10 @@
 import {
     GENAI_DEFAULT_URLS,
     buildAiSettingsUpdate,
+    changedAiSettings,
+    displayGenaiUrl,
     draftFromGroup,
+    draftWithService,
     isAiDraftChanged,
     isDraftSavable,
     validateGenaiUrl,
@@ -127,6 +130,61 @@ describe('classroom-genai-settings', () => {
         test('trims the URL', () => {
             const draft = { use: true, service: 'other', url: ' https://ai.example.ed.jp/ ', confirmed: true, rubytee: false };
             expect(buildAiSettingsUpdate({}, draft).genai.url).toBe('https://ai.example.ed.jp/');
+        });
+    });
+
+    describe('draftWithService', () => {
+        const gemini = { use: true, service: 'gemini', url: 'https://gemini.example.ed.jp/', confirmed: true, rubytee: true };
+
+        test('choosing another service resets its URL and confirmation', () => {
+            expect(draftWithService(gemini, 'chatgpt')).toEqual({
+                use: true,
+                service: 'chatgpt',
+                url: GENAI_DEFAULT_URLS.chatgpt,
+                confirmed: false,
+                rubytee: true,
+            });
+        });
+
+        test('choosing the same service keeps what the teacher entered', () => {
+            expect(draftWithService(gemini, 'gemini')).toBe(gemini);
+        });
+
+        test('not using it clears the service, URL and confirmation', () => {
+            expect(draftWithService(gemini, null)).toEqual({
+                use: false,
+                service: null,
+                url: '',
+                confirmed: false,
+                rubytee: true,
+            });
+        });
+
+        test('Claude is never offered', () => {
+            expect(draftWithService(gemini, 'claude')).toBe(gemini);
+        });
+    });
+
+    describe('changedAiSettings', () => {
+        const group = { genai: { enabled: true, service: 'gemini', url: GENAI_DEFAULT_URLS.gemini, confirmed: true } };
+
+        test('marks each setting on its own', () => {
+            expect(changedAiSettings(group, draftFromGroup(group))).toEqual({ genai: false, rubytee: false });
+            expect(changedAiSettings(group, { ...draftFromGroup(group), rubytee: true })).toEqual({
+                genai: false,
+                rubytee: true,
+            });
+            expect(changedAiSettings(group, draftWithService(draftFromGroup(group), null))).toEqual({
+                genai: true,
+                rubytee: false,
+            });
+        });
+    });
+
+    describe('displayGenaiUrl', () => {
+        test('drops the scheme and a trailing slash', () => {
+            expect(displayGenaiUrl(GENAI_DEFAULT_URLS.gemini)).toBe('gemini.google.com/app');
+            expect(displayGenaiUrl(' https://chatgpt.com/ ')).toBe('chatgpt.com');
         });
     });
 });

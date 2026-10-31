@@ -73,6 +73,22 @@ describe('RubyteeAPI', () => {
             expect(body.stateContext).toEqual(stateContext);
         });
 
+        test('should send the class and seat when given (#1278)', async () => {
+            await rubyteeApi.sendMessage('make sprite move', {}, { classroom: 'class-123', seat: '5' });
+
+            const body = JSON.parse(global.fetch.mock.calls[0][1].body);
+            expect(body.classroom).toBe('class-123');
+            expect(body.seat).toBe('5');
+        });
+
+        test('should not send the class and seat outside a class (#1278)', async () => {
+            await rubyteeApi.sendMessage('make sprite move', {});
+
+            const body = JSON.parse(global.fetch.mock.calls[0][1].body);
+            expect(body).not.toHaveProperty('classroom');
+            expect(body).not.toHaveProperty('seat');
+        });
+
         test('should return response text from relay', async () => {
             const result = await rubyteeApi.sendMessage('make sprite move', {});
             expect(result).toBe(mockRelayResponse.text);

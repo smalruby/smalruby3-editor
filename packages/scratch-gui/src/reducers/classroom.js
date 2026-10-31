@@ -30,6 +30,7 @@ const CLOSE_STUDENT_PEER_PANEL = 'scratch-gui/classroom/CLOSE_STUDENT_PEER_PANEL
 const REQUEST_MESH_CONNECT = 'scratch-gui/classroom/REQUEST_MESH_CONNECT';
 const CLEAR_MESH_CONNECT_REQUEST = 'scratch-gui/classroom/CLEAR_MESH_CONNECT_REQUEST';
 const SET_STUDENT_GENAI = 'scratch-gui/classroom/SET_STUDENT_GENAI';
+const SET_RUBYTEE_ENABLED = 'scratch-gui/classroom/SET_RUBYTEE_ENABLED';
 
 const STORAGE_KEY = 'smalruby:classroom';
 
@@ -150,6 +151,10 @@ const initialState = {
     joinedAt: storedSession?.joinedAt || null,
     submissionStatus: storedSession?.submissionStatus || null,
     lastSubmittedAt: storedSession?.lastSubmittedAt || null,
+    // Whether the student's class lets them use Rubytee (#1278), from the
+    // join / verify-session response (`rubytee.enabled`). Persisted with the
+    // session so a reload keeps the Ruby tab's AI button until the next verify.
+    rubyteeEnabled: storedSession?.rubyteeEnabled === true,
     // Data URI of the stage frame the student manually picked as their submission
     // thumbnail. Transient (not persisted); null falls back to auto-capture at submit.
     submissionThumbnail: null,
@@ -214,6 +219,7 @@ const reducer = (state, action) => {
                 // Another class has its own setting; join / verify-session tells it.
                 studentGenai:
                     action.classroomId === state.classroomId ? state.studentGenai : normalizeStudentGenai(null),
+                rubyteeEnabled: action.rubyteeEnabled === true,
             };
             if (action.role === 'student' && action.sessionToken) {
                 saveSession(session);
@@ -239,6 +245,7 @@ const reducer = (state, action) => {
                 joinedAt: null,
                 submissionStatus: null,
                 lastSubmittedAt: null,
+                rubyteeEnabled: false,
                 submissionThumbnail: null,
                 reloginRequested: false,
                 studentPeerView: null,
@@ -256,6 +263,13 @@ const reducer = (state, action) => {
                 lastSubmittedAt: action.lastSubmittedAt || state.lastSubmittedAt,
             };
             // Persist to localStorage
+            if (state.role === 'student' && state.sessionToken) {
+                saveSession({ ...state, ...updates });
+            }
+            return { ...state, ...updates };
+        }
+        case SET_RUBYTEE_ENABLED: {
+            const updates = { rubyteeEnabled: action.enabled === true };
             if (state.role === 'student' && state.sessionToken) {
                 saveSession({ ...state, ...updates });
             }
@@ -360,6 +374,7 @@ const setClassroomSession = ({
     memberId,
     sessionToken,
     joinedAt,
+    rubyteeEnabled,
 }) => ({
     type: SET_SESSION,
     role,
@@ -372,6 +387,7 @@ const setClassroomSession = ({
     memberId,
     sessionToken,
     joinedAt,
+    rubyteeEnabled,
 });
 
 const clearClassroomSession = () => ({ type: CLEAR_SESSION });
@@ -443,6 +459,47 @@ const clearMeshConnectRequest = () => ({ type: CLEAR_MESH_CONNECT_REQUEST });
  */
 const setStudentGenai = (genai) => ({ type: SET_STUDENT_GENAI, genai });
 
+/**
+ * Follow the class's Rubytee setting read again from verify-session (#1278).
+ * @param {boolean} enabled - `rubytee.enabled` of the student's class
+ * @returns {object} action
+ */
+const setRubyteeEnabled = (enabled) => ({ type: SET_RUBYTEE_ENABLED, enabled: enabled === true });
+
+/**
+ * Rubytee is offered only to a student who has joined a class whose teacher
+ * turned it on (#1278). A teacher who has a class open is not offered it:
+ * requests are recorded per seat and a teacher has none — to see what the
+ * students get, the teacher joins the class as a student.
+ * @param {object} state - root redux state
+ * @returns {boolean} whether the Ruby tab shows the Rubytee button
+ */
+const selectRubyteeAvailable = (state) => {
+    const classroom = state.scratchGui.classroom;
+    return classroom.role === 'student' && !!classroom.sessionToken && classroom.rubyteeEnabled === true;
+};
+
+/**
+ * What a Rubytee request carries for the relay's usage log (#1278 / #1276):
+ * the class (assignment) id and the seat number only — never an e-mail or a name.
+ * @param {object} state - root redux state
+ * @returns {?{classroom: string, seat: string}} null outside a class
+ */
+let lastRubyteeUsage = null;
+const selectRubyteeUsage = (state) => {
+    if (!selectRubyteeAvailable(state)) return null;
+    const { classroomId, seatNumber } = state.scratchGui.classroom;
+    if (!classroomId) return null;
+    const classroom = String(classroomId);
+    const seat = seatNumber === null || typeof seatNumber === 'undefined' ? '' : String(seatNumber);
+    // Hand back the same object while the class and seat stay the same, so that
+    // connect() does not re-render the Ruby tab's HOC on every store update.
+    if (!lastRubyteeUsage || lastRubyteeUsage.classroom !== classroom || lastRubyteeUsage.seat !== seat) {
+        lastRubyteeUsage = { classroom, seat };
+    }
+    return lastRubyteeUsage;
+};
+
 export default reducer;
 export {
     initialState as classroomInitialState,
@@ -475,4 +532,7 @@ export {
     requestMeshConnect,
     clearMeshConnectRequest,
     setStudentGenai,
+    setRubyteeEnabled,
+    selectRubyteeAvailable,
+    selectRubyteeUsage,
 };

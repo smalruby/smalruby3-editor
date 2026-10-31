@@ -12,11 +12,12 @@ import { FormattedMessage, useIntl } from 'react-intl';
 import { formatClassLabel } from '../../lib/classroom-class-label.js';
 import {
     buildAiSettingsUpdate,
+    changedAiSettings,
     draftFromGroup,
-    isAiDraftChanged,
     isDraftSavable,
 } from '../../lib/classroom-genai-settings.js';
 import ClassAiSettings from './class-ai-settings.jsx';
+import ClassAiStudentPreview from './class-ai-student-preview.jsx';
 import ClassroomButton from './classroom-button.jsx';
 import { TeacherScreen, TeacherSubView } from './teacher-view-layout.jsx';
 
@@ -111,244 +112,247 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
     const handleCancelDecrease = useCallback(() => setConfirmingDecrease(false), []);
 
     return (
-        <form
-            className={styles.classSettingsForm}
-            data-testid={`classroom-class-settings-${group.groupId}`}
-            onSubmit={handleSave}
-        >
-            <input
-                data-testid="classroom-class-settings-name"
-                disabled={isLoading}
-                maxLength={50}
-                placeholder={intl.formatMessage({
-                    defaultMessage: 'Class name (required, e.g. Technology)',
-                    description: 'Placeholder for the class name in settings',
-                    id: 'gui.classroom.classSettings.namePlaceholder',
-                })}
-                type="text"
-                value={name}
-                onChange={handleNameChange}
-            />
-            <div className={styles.classSettingsRow}>
+        <div className={styles.classSettingsLayout}>
+            <form
+                className={styles.classSettingsForm}
+                data-testid={`classroom-class-settings-${group.groupId}`}
+                onSubmit={handleSave}
+            >
                 <input
-                    data-testid="classroom-class-settings-year"
-                    disabled={isLoading}
-                    max={2100}
-                    min={2000}
-                    type="number"
-                    value={year}
-                    onChange={handleYearChange}
-                />
-                <input
-                    data-testid="classroom-class-settings-section"
+                    data-testid="classroom-class-settings-name"
                     disabled={isLoading}
                     maxLength={50}
                     placeholder={intl.formatMessage({
-                        defaultMessage: 'Section (optional, e.g. Year 2 Class 1)',
-                        description: 'Placeholder for the class section input',
-                        id: 'gui.classroom.classSettings.sectionPlaceholder',
+                        defaultMessage: 'Class name (required, e.g. Technology)',
+                        description: 'Placeholder for the class name in settings',
+                        id: 'gui.classroom.classSettings.namePlaceholder',
                     })}
                     type="text"
-                    value={section}
-                    onChange={handleSectionChange}
+                    value={name}
+                    onChange={handleNameChange}
                 />
-                <input
-                    data-testid="classroom-class-settings-count"
-                    disabled={isLoading}
-                    max={50}
-                    min={1}
-                    placeholder={intl.formatMessage({
-                        defaultMessage: 'Students',
-                        description: 'Placeholder for the student count in settings',
-                        id: 'gui.classroom.classSettings.countPlaceholder',
-                    })}
-                    type="number"
-                    value={studentCount}
-                    onChange={handleCountChange}
-                />
-            </div>
-            <div className={styles.classSettingsCoTeachers}>
-                <span className={styles.classSettingsLabel}>
-                    <FormattedMessage
-                        defaultMessage="Co-teachers (class-wide)"
-                        description="Label of the class-level co-teacher list"
-                        id="gui.classroom.classSettings.coTeachersLabel"
+                <div className={styles.classSettingsRow}>
+                    <input
+                        data-testid="classroom-class-settings-year"
+                        disabled={isLoading}
+                        max={2100}
+                        min={2000}
+                        type="number"
+                        value={year}
+                        onChange={handleYearChange}
                     />
-                </span>
-                {coTeachers.map((email) => (
-                    <span key={email} className={styles.topicChip}>
-                        <span className={styles.coTeacherChipEmail}>{email}</span>
-                        <button
-                            aria-label="remove"
-                            className={styles.topicChipRemove}
-                            data-email={email}
-                            data-testid={`classroom-class-settings-remove-co-teacher-${email}`}
-                            disabled={isLoading}
-                            type="button"
-                            onClick={handleRemoveCoTeacher}
-                        >
-                            {'×'}
-                        </button>
+                    <input
+                        data-testid="classroom-class-settings-section"
+                        disabled={isLoading}
+                        maxLength={50}
+                        placeholder={intl.formatMessage({
+                            defaultMessage: 'Section (optional, e.g. Year 2 Class 1)',
+                            description: 'Placeholder for the class section input',
+                            id: 'gui.classroom.classSettings.sectionPlaceholder',
+                        })}
+                        type="text"
+                        value={section}
+                        onChange={handleSectionChange}
+                    />
+                    <input
+                        data-testid="classroom-class-settings-count"
+                        disabled={isLoading}
+                        max={50}
+                        min={1}
+                        placeholder={intl.formatMessage({
+                            defaultMessage: 'Students',
+                            description: 'Placeholder for the student count in settings',
+                            id: 'gui.classroom.classSettings.countPlaceholder',
+                        })}
+                        type="number"
+                        value={studentCount}
+                        onChange={handleCountChange}
+                    />
+                </div>
+                <div className={styles.classSettingsCoTeachers}>
+                    <span className={styles.classSettingsLabel}>
+                        <FormattedMessage
+                            defaultMessage="Co-teachers (class-wide)"
+                            description="Label of the class-level co-teacher list"
+                            id="gui.classroom.classSettings.coTeachersLabel"
+                        />
                     </span>
-                ))}
-                <input
-                    data-testid="classroom-class-settings-co-teacher-input"
-                    disabled={isLoading}
-                    placeholder={intl.formatMessage({
-                        defaultMessage: 'Co-teacher email',
-                        description: 'Placeholder for the co-teacher email input',
-                        id: 'gui.classroom.classSettings.coTeacherPlaceholder',
-                    })}
-                    type="email"
-                    value={newCoTeacher}
-                    onChange={handleNewCoTeacherChange}
+                    {coTeachers.map((email) => (
+                        <span key={email} className={styles.topicChip}>
+                            <span className={styles.coTeacherChipEmail}>{email}</span>
+                            <button
+                                aria-label="remove"
+                                className={styles.topicChipRemove}
+                                data-email={email}
+                                data-testid={`classroom-class-settings-remove-co-teacher-${email}`}
+                                disabled={isLoading}
+                                type="button"
+                                onClick={handleRemoveCoTeacher}
+                            >
+                                {'×'}
+                            </button>
+                        </span>
+                    ))}
+                    <input
+                        data-testid="classroom-class-settings-co-teacher-input"
+                        disabled={isLoading}
+                        placeholder={intl.formatMessage({
+                            defaultMessage: 'Co-teacher email',
+                            description: 'Placeholder for the co-teacher email input',
+                            id: 'gui.classroom.classSettings.coTeacherPlaceholder',
+                        })}
+                        type="email"
+                        value={newCoTeacher}
+                        onChange={handleNewCoTeacherChange}
+                    />
+                    <button
+                        className={styles.topicAddButton}
+                        data-testid="classroom-class-settings-add-co-teacher"
+                        disabled={isLoading || newCoTeacher.trim().length === 0}
+                        type="button"
+                        onClick={handleAddCoTeacher}
+                    >
+                        <FormattedMessage
+                            defaultMessage="Add"
+                            description="Button to add a co-teacher email"
+                            id="gui.classroom.classSettings.addCoTeacher"
+                        />
+                    </button>
+                </div>
+                <ClassAiSettings
+                    changed={changedAiSettings(group, aiDraft)}
+                    draft={aiDraft}
+                    isLoading={isLoading}
+                    onChange={setAiDraft}
                 />
-                <button
-                    className={styles.topicAddButton}
-                    data-testid="classroom-class-settings-add-co-teacher"
-                    disabled={isLoading || newCoTeacher.trim().length === 0}
-                    type="button"
-                    onClick={handleAddCoTeacher}
-                >
-                    <FormattedMessage
-                        defaultMessage="Add"
-                        description="Button to add a co-teacher email"
-                        id="gui.classroom.classSettings.addCoTeacher"
-                    />
-                </button>
-            </div>
-            <ClassAiSettings
-                changed={isAiDraftChanged(group, aiDraft)}
-                draft={aiDraft}
-                isLoading={isLoading}
-                saved={draftFromGroup(group)}
-                onChange={setAiDraft}
-            />
-            {confirmingArchive ? (
-                <p
-                    className={styles.classSettingsArchiveConfirm}
-                    data-testid="classroom-class-settings-archive-confirm-message"
-                >
-                    <FormattedMessage
-                        defaultMessage="Archive this class? It will be hidden from the class list, but you can restore it anytime from the archived section."
-                        description="Confirmation message before archiving a class"
-                        id="gui.classroom.classSettings.archiveConfirmMessage"
-                    />
-                </p>
-            ) : null}
-            {confirmingDecrease ? (
-                <p
-                    className={styles.classSettingsArchiveConfirm}
-                    data-testid="classroom-class-settings-decrease-confirm-message"
-                >
-                    <FormattedMessage
-                        defaultMessage="Reduce the class to {count} students? Seats {from}–{to} are removed from every assignment in this class, and any work submitted on those seats will no longer be shown."
-                        description="Warning before decreasing a class's student count"
-                        id="gui.classroom.classSettings.decreaseConfirmMessage"
-                        values={{
-                            count: newCount,
-                            from: newCount + 1,
-                            to: originalCount,
-                        }}
-                    />
-                </p>
-            ) : null}
-            {/* フッター（レビュー指摘）: 通常は キャンセル左 / アーカイブ・保存 右
-                （アーカイブは保存の左）。アーカイブ押下中は キャンセル・保存を隠し
-                「アーカイブしない / アーカイブする」のみ表示。 */}
-            <div className={styles.formFooter}>
                 {confirmingArchive ? (
-                    <React.Fragment>
-                        <ClassroomButton
-                            dataTestId="classroom-class-settings-archive-cancel"
-                            disabled={isLoading}
-                            onClick={handleCancelArchive}
-                        >
-                            <FormattedMessage
-                                defaultMessage="Keep the class"
-                                description="Button that cancels archiving the class"
-                                id="gui.classroom.classSettings.archiveConfirmNo"
-                            />
-                        </ClassroomButton>
-                        <ClassroomButton
-                            dataTestId="classroom-class-settings-archive"
-                            disabled={isLoading}
-                            variant="danger"
-                            onClick={handleToggleArchive}
-                        >
-                            <FormattedMessage
-                                defaultMessage="Yes, archive"
-                                description="Confirm button that actually archives the class"
-                                id="gui.classroom.classSettings.archiveConfirmYes"
-                            />
-                        </ClassroomButton>
-                    </React.Fragment>
-                ) : (
-                    <React.Fragment>
-                        <ClassroomButton
-                            dataTestId="classroom-class-settings-cancel"
-                            disabled={isLoading}
-                            onClick={confirmingDecrease ? handleCancelDecrease : onCancel}
-                        >
-                            {confirmingDecrease ? (
+                    <p
+                        className={styles.classSettingsArchiveConfirm}
+                        data-testid="classroom-class-settings-archive-confirm-message"
+                    >
+                        <FormattedMessage
+                            defaultMessage="Archive this class? It will be hidden from the class list, but you can restore it anytime from the archived section."
+                            description="Confirmation message before archiving a class"
+                            id="gui.classroom.classSettings.archiveConfirmMessage"
+                        />
+                    </p>
+                ) : null}
+                {confirmingDecrease ? (
+                    <p
+                        className={styles.classSettingsArchiveConfirm}
+                        data-testid="classroom-class-settings-decrease-confirm-message"
+                    >
+                        <FormattedMessage
+                            defaultMessage="Reduce the class to {count} students? Seats {from}–{to} are removed from every assignment in this class, and any work submitted on those seats will no longer be shown."
+                            description="Warning before decreasing a class's student count"
+                            id="gui.classroom.classSettings.decreaseConfirmMessage"
+                            values={{
+                                count: newCount,
+                                from: newCount + 1,
+                                to: originalCount,
+                            }}
+                        />
+                    </p>
+                ) : null}
+                {/* フッター（レビュー指摘）: 通常は キャンセル左 / アーカイブ・保存 右
+                    （アーカイブは保存の左）。アーカイブ押下中は キャンセル・保存を隠し
+                    「アーカイブしない / アーカイブする」のみ表示。 */}
+                <div className={styles.formFooter}>
+                    {confirmingArchive ? (
+                        <React.Fragment>
+                            <ClassroomButton
+                                dataTestId="classroom-class-settings-archive-cancel"
+                                disabled={isLoading}
+                                onClick={handleCancelArchive}
+                            >
                                 <FormattedMessage
-                                    defaultMessage="Keep the count"
-                                    description="Button that cancels decreasing the student count"
-                                    id="gui.classroom.classSettings.decreaseConfirmNo"
+                                    defaultMessage="Keep the class"
+                                    description="Button that cancels archiving the class"
+                                    id="gui.classroom.classSettings.archiveConfirmNo"
                                 />
-                            ) : (
-                                <FormattedMessage
-                                    defaultMessage="Cancel"
-                                    description="Cancel button of the class settings form"
-                                    id="gui.classroom.classSettings.cancel"
-                                />
-                            )}
-                        </ClassroomButton>
-                        <div className={styles.footerRightGroup}>
+                            </ClassroomButton>
                             <ClassroomButton
                                 dataTestId="classroom-class-settings-archive"
                                 disabled={isLoading}
+                                variant="danger"
                                 onClick={handleToggleArchive}
                             >
-                                {group.status === 'archived' ? (
-                                    <FormattedMessage
-                                        defaultMessage="Unarchive"
-                                        description="Button to unarchive a class"
-                                        id="gui.classroom.classSettings.unarchive"
-                                    />
-                                ) : (
-                                    <FormattedMessage
-                                        defaultMessage="Archive"
-                                        description="Button to archive a class"
-                                        id="gui.classroom.classSettings.archive"
-                                    />
-                                )}
+                                <FormattedMessage
+                                    defaultMessage="Yes, archive"
+                                    description="Confirm button that actually archives the class"
+                                    id="gui.classroom.classSettings.archiveConfirmYes"
+                                />
                             </ClassroomButton>
+                        </React.Fragment>
+                    ) : (
+                        <React.Fragment>
                             <ClassroomButton
-                                dataTestId="classroom-class-settings-save"
-                                disabled={!canSave || isLoading}
-                                type="submit"
-                                variant="primary"
+                                dataTestId="classroom-class-settings-cancel"
+                                disabled={isLoading}
+                                onClick={confirmingDecrease ? handleCancelDecrease : onCancel}
                             >
                                 {confirmingDecrease ? (
                                     <FormattedMessage
-                                        defaultMessage="Reduce and save"
-                                        description="Confirm button that decreases the student count and saves"
-                                        id="gui.classroom.classSettings.decreaseConfirmYes"
+                                        defaultMessage="Keep the count"
+                                        description="Button that cancels decreasing the student count"
+                                        id="gui.classroom.classSettings.decreaseConfirmNo"
                                     />
                                 ) : (
                                     <FormattedMessage
-                                        defaultMessage="Save"
-                                        description="Save button of the class settings form"
-                                        id="gui.classroom.classSettings.save"
+                                        defaultMessage="Cancel"
+                                        description="Cancel button of the class settings form"
+                                        id="gui.classroom.classSettings.cancel"
                                     />
                                 )}
                             </ClassroomButton>
-                        </div>
-                    </React.Fragment>
-                )}
-            </div>
-        </form>
+                            <div className={styles.footerRightGroup}>
+                                <ClassroomButton
+                                    dataTestId="classroom-class-settings-archive"
+                                    disabled={isLoading}
+                                    onClick={handleToggleArchive}
+                                >
+                                    {group.status === 'archived' ? (
+                                        <FormattedMessage
+                                            defaultMessage="Unarchive"
+                                            description="Button to unarchive a class"
+                                            id="gui.classroom.classSettings.unarchive"
+                                        />
+                                    ) : (
+                                        <FormattedMessage
+                                            defaultMessage="Archive"
+                                            description="Button to archive a class"
+                                            id="gui.classroom.classSettings.archive"
+                                        />
+                                    )}
+                                </ClassroomButton>
+                                <ClassroomButton
+                                    dataTestId="classroom-class-settings-save"
+                                    disabled={!canSave || isLoading}
+                                    type="submit"
+                                    variant="primary"
+                                >
+                                    {confirmingDecrease ? (
+                                        <FormattedMessage
+                                            defaultMessage="Reduce and save"
+                                            description="Confirm button that decreases the student count and saves"
+                                            id="gui.classroom.classSettings.decreaseConfirmYes"
+                                        />
+                                    ) : (
+                                        <FormattedMessage
+                                            defaultMessage="Save"
+                                            description="Save button of the class settings form"
+                                            id="gui.classroom.classSettings.save"
+                                        />
+                                    )}
+                                </ClassroomButton>
+                            </div>
+                        </React.Fragment>
+                    )}
+                </div>
+            </form>
+            {/* The students' screen preview uses the room right of the form (#1290). */}
+            <ClassAiStudentPreview genai={aiDraft.use} rubytee={aiDraft.rubytee} />
+        </div>
     );
 };
 
@@ -732,7 +736,7 @@ const TeacherClassList = ({
                         }),
                     },
                 ]}
-                className={styles.classList}
+                className={`${styles.classList} ${styles.classSettingsScreen}`}
                 error={error}
                 errorTitle={errorTitle}
                 testId="classroom-phase-teacher-class-list"

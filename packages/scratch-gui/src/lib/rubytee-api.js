@@ -39,9 +39,11 @@ class RubyteeAPI {
      * @param {object} stateContext.sprite - Current sprite state
      * @param {object} stateContext.stage - Stage state
      * @param {object} stateContext.vm - VM state (extensions)
+     * @param {?{classroom: string, seat: string}} [usage] - the class and seat to
+     *   record in the relay's usage log (#1278); omitted outside a class
      * @returns {Promise<string>} The response text from the AI
      */
-    async sendMessage(userMessage, stateContext) {
+    async sendMessage(userMessage, stateContext, usage = null) {
         // Abort any in-flight request before starting a new one
         this.cancelRequest();
         this._abortController = new AbortController();
@@ -57,6 +59,10 @@ class RubyteeAPI {
             history: this.history,
             stateContext: stateContext || {},
         };
+        if (usage && usage.classroom) {
+            requestBody.classroom = usage.classroom;
+            if (usage.seat) requestBody.seat = usage.seat;
+        }
 
         const url = `${RUBYTEE_RELAY_ENDPOINT}/generate`;
         const startTime = Date.now();
