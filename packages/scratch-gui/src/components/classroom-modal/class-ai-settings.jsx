@@ -8,7 +8,7 @@ import PropTypes from 'prop-types';
 import React, { useCallback, useState } from 'react';
 import { defineMessages, FormattedMessage, useIntl } from 'react-intl';
 
-import { GENAI_DEFAULT_URLS, validateGenaiUrl } from '../../lib/classroom-genai-settings.js';
+import { GENAI_DEFAULT_URLS, isDraftSavable, validateGenaiUrl } from '../../lib/classroom-genai-settings.js';
 
 import styles from './class-ai-settings.css';
 
@@ -259,6 +259,16 @@ const ClassAiSettings = ({ draft, isLoading, onChange }) => {
                     )}
                 </button>
             </div>
+            {open || isDraftSavable(draft) ? null : (
+                // Collapsed mid-way, the summary alone doesn't say why the form can't be saved.
+                <p className={styles.warning} data-testid="classroom-class-ai-incomplete">
+                    <FormattedMessage
+                        defaultMessage="The generative AI settings aren't finished. Continue with Change."
+                        description="Shown on the collapsed generative AI settings when they can't be saved yet"
+                        id="gui.classroom.classAi.incomplete"
+                    />
+                </p>
+            )}
             {open ? (
                 <div className={styles.body}>
                     <div className={styles.steps}>

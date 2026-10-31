@@ -105,4 +105,19 @@ describe('ClassAiSettings', () => {
         expect(lastDraft().use).toBe(false);
         expect(byTestId('classroom-class-ai-rubytee')).toBeInTheDocument();
     });
+
+    test('warns on the collapsed summary when the settings are left unfinished', () => {
+        renderSettings();
+        expect(byTestId('classroom-class-ai-incomplete')).toBeNull();
+        fireEvent.click(byTestId('classroom-class-ai-edit'));
+        fireEvent.click(byTestId('classroom-class-ai-use-yes'));
+        fireEvent.click(byTestId('classroom-class-ai-service-gemini'));
+        expect(byTestId('classroom-class-ai-incomplete')).toBeNull();
+        fireEvent.click(byTestId('classroom-class-ai-edit'));
+        expect(byTestId('classroom-class-ai-incomplete')).toBeInTheDocument();
+        fireEvent.click(byTestId('classroom-class-ai-edit'));
+        fireEvent.click(byTestId('classroom-class-ai-confirm'));
+        fireEvent.click(byTestId('classroom-class-ai-edit'));
+        expect(byTestId('classroom-class-ai-incomplete')).toBeNull();
+    });
 });

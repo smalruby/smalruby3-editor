@@ -264,6 +264,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-class-ai-settings` | div | クラス設定の「生成AI・ルビティー」欄（既定は 1 行の要約だけ） |
 | `classroom-class-ai-summary` | span | 要約（「生成AI: 使わない / ルビティー: 使わない」など） |
 | `classroom-class-ai-edit` | button | 「変更する / 閉じる」（3 ステップを開閉） |
+| `classroom-class-ai-incomplete` | p | たたんだ状態で設定が途中（保存できない）ときの注意 |
 | `classroom-class-ai-step-tab-use/service/confirm` | button | ステップ見出し「1 使う？ / 2 どれ？ / 3 確認」（進めないステップは disabled） |
 | `classroom-class-ai-step-use` / `-step-service` / `-step-confirm` | div | 各ステップの本文 |
 | `classroom-class-ai-use-no` / `classroom-class-ai-use-yes` | button | ステップ 1「使わない / 使う」 |
