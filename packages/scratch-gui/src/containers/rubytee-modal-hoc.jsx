@@ -3,13 +3,23 @@ import VM from '@smalruby/scratch-vm';
 import PropTypes from 'prop-types';
 import React from 'react';
 import { defineMessages, injectIntl } from 'react-intl';
+import { connect } from 'react-redux';
 import RubyteeConsent from '../components/rubytee-consent/rubytee-consent.jsx';
 import RubyteeModal from '../components/rubytee-modal/rubytee-modal.jsx';
 import analytics from '../lib/analytics';
 import intlShape from '../lib/intlShape.js';
 import RubyteeAPI, { RateLimitError } from '../lib/rubytee-api';
+import { selectRubyteeAvailable, selectRubyteeUsage } from '../reducers/classroom.js';
 
 const RUBYTEE_CONSENT_KEY = 'smalruby:rubyteeConsent';
+
+/**
+ * Whether two Rubytee usages (see selectRubyteeUsage) are the same student's.
+ * @param {?{classroom: string, seat: string}} a - usage
+ * @param {?{classroom: string, seat: string}} b - usage
+ * @returns {boolean} true when both are null or name the same class and seat
+ */
+const sameUsage = (a, b) => (a && b ? a.classroom === b.classroom && a.seat === b.seat : a === b);
 
 /**
  * Replace invalid resource references in Rubytee-generated Ruby code with valid ones.
@@ -241,6 +251,23 @@ const RubyteeModalHOC = function (WrappedComponent) {
             this._applyRubyteeCode = null;
         }
 
+        componentDidUpdate(prevProps) {
+            // Leaving the class (or the teacher turning Rubytee off) takes the
+            // button away, so close whatever was open behind it (#1278).
+            if (prevProps.rubyteeAvailable && !this.props.rubyteeAvailable) {
+                this._clearTimers();
+                this.rubyteeAPI.cancelRequest();
+                this.setState({ isModalOpen: false, isConsentOpen: false, isLoading: false });
+            }
+            // School PCs are shared: the next student who joins in the same tab must
+            // not see the previous student's chat, nor send it to the relay under
+            // their own seat. Forget it whenever the class or seat changes.
+            if (!sameUsage(prevProps.rubyteeUsage, this.props.rubyteeUsage)) {
+                this.rubyteeAPI.clearHistory();
+                this.setState({ chatHistory: [], latestCodes: [], error: null, inputValue: '' });
+            }
+        }
+
         componentWillUnmount() {
             this._clearTimers();
             this.rubyteeAPI.cancelRequest();
@@ -280,6 +307,7 @@ const RubyteeModalHOC = function (WrappedComponent) {
          * If consent not yet given, show consent dialog first.
          */
         handleOpenModal() {
+            if (!this.props.rubyteeAvailable) return;
             const hasConsent =
                 typeof window !== 'undefined' &&
                 window.localStorage &&
@@ -349,7 +377,11 @@ const RubyteeModalHOC = function (WrappedComponent) {
                 const stateContext = collectStateContext(this.props.vm, this.props.vm && this.props.vm.editingTarget);
 
                 // Call Rubytee API
-                const responseText = await this.rubyteeAPI.sendMessage(inputValue.trim(), stateContext);
+                const responseText = await this.rubyteeAPI.sendMessage(
+                    inputValue.trim(),
+                    stateContext,
+                    this.props.rubyteeUsage,
+                );
 
                 const modelMessage = { role: 'model', text: responseText };
                 const latestCodes = RubyteeAPI.extractAllCodeBlocks(responseText);
@@ -463,21 +495,28 @@ const RubyteeModalHOC = function (WrappedComponent) {
         render() {
             const {
                 intl, // consumed in error message handling (this.props.intl)
+                rubyteeAvailable,
+                rubyteeUsage, // sent with each request (this.props.rubyteeUsage)
+                dispatch, // injected by connect(); not for the wrapped component
                 ...passThroughProps
             } = this.props;
             void intl;
+            void rubyteeUsage;
+            void dispatch;
 
             return (
                 <React.Fragment>
+                    {/* Rubytee is only for a class that turned it on (#1278): without
+                        onOpenRubyteeModal the Ruby toolbar does not show the button. */}
                     <WrappedComponent
-                        onOpenRubyteeModal={this.handleOpenModal}
+                        onOpenRubyteeModal={rubyteeAvailable ? this.handleOpenModal : null}
                         onRegisterRubyteeApply={this.handleRegisterApplyCallback}
                         {...passThroughProps}
                     />
-                    {this.state.isConsentOpen && (
+                    {rubyteeAvailable && this.state.isConsentOpen && (
                         <RubyteeConsent onAccept={this.handleConsentAccept} onCancel={this.handleConsentCancel} />
                     )}
-                    {this.state.isModalOpen && (
+                    {rubyteeAvailable && this.state.isModalOpen && (
                         <RubyteeModal
                             isVisible={this.state.isModalOpen}
                             history={this.state.chatHistory}
@@ -502,11 +541,22 @@ const RubyteeModalHOC = function (WrappedComponent) {
     }
 
     RubyteeModalComponent.propTypes = {
+        dispatch: PropTypes.func,
         intl: intlShape.isRequired,
+        rubyteeAvailable: PropTypes.bool,
+        rubyteeUsage: PropTypes.shape({
+            classroom: PropTypes.string,
+            seat: PropTypes.string,
+        }),
         vm: PropTypes.instanceOf(VM).isRequired,
     };
 
-    return injectIntl(RubyteeModalComponent);
+    const mapStateToProps = (state) => ({
+        rubyteeAvailable: selectRubyteeAvailable(state),
+        rubyteeUsage: selectRubyteeUsage(state),
+    });
+
+    return connect(mapStateToProps)(injectIntl(RubyteeModalComponent));
 };
 
 export default RubyteeModalHOC;
