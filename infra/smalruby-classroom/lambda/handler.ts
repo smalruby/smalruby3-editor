@@ -3347,7 +3347,9 @@ function validateGenaiUrl(value: unknown): string {
   if (parsed.protocol !== 'https:' || trimmed.length > MAX_GENAI_URL_LENGTH) {
     throw new ValidationError('genai.url must be an https URL');
   }
-  const host = parsed.hostname.toLowerCase();
+  // A trailing dot names the same host ("claude.ai." is claude.ai), so drop it
+  // before comparing or the block list is trivially bypassed.
+  const host = parsed.hostname.toLowerCase().replace(/\.+$/, '');
   if (GENAI_ADULT_ONLY_HOSTS.some(blocked => host === blocked || host.endsWith(`.${blocked}`))) {
     throw new ValidationError('genai.url points to a service that is not available to students');
   }

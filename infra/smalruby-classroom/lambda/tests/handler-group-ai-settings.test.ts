@@ -155,7 +155,8 @@ describe('validateGenaiSetting (issue #1275)', () => {
 
   test('http・不正な url、18 歳以上限定サービスの url は拒否する', () => {
     for (const url of ['http://example.com/', 'not a url', 'javascript:alert(1)', 1,
-      'https://claude.ai/new', 'https://www.claude.ai/', 'https://claude.com/']) {
+      'https://claude.ai/new', 'https://www.claude.ai/', 'https://claude.com/',
+      'https://claude.ai./', 'https://www.anthropic.com../']) {
       expect(() => validate({ service: 'other', url })).toThrow('url');
     }
   });
