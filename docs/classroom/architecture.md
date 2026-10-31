@@ -199,8 +199,8 @@ One Tap が表示できない環境（Windows や Playwright では毎回）で�
 | `PATCH` | `/classrooms/{id}/submissions/{subId}` | 提出の返却・コメント。任意の `hiddenFromPeers`（boolean・Issue #1239）で、その提出を他者参照で「他の生徒に見せない」に切り替える |
 | `PUT` | `/classrooms/{id}/assignment` | 課題コンテンツの設定・更新（ページ + スターター。画像/スターターの Presigned upload URL を返す。空 body で削除）。任意の `startFromPrevious`（boolean・Issue #1202）で「前回の提出物から始めさせる」を設定する（送らなければ保存済みの値を変えない。課題コンテンツを空にしても設定は残る）。任意の `peerView`（`none` / `always` / `afterSubmit`・Issue #1239）で他者参照を設定する（扱いは `startFromPrevious` と同じ）。レスポンスに `startFromPrevious` と `peerView` を含む |
 | `POST` | `/classroom-groups` | クラス（学級）の作成（name, year, 任意で studentCount / googleClassroomCourseId） |
-| `GET` | `/classroom-groups` | 自分のクラス一覧（active + archived、共同管理分は role=co-teacher で合流） |
-| `PATCH` | `/classroom-groups/{groupId}` | クラスのリネーム・年度変更・人数・GC 紐づけ・共同管理者・アーカイブ/復帰 |
+| `GET` | `/classroom-groups` | 自分のクラス一覧（active + archived、共同管理分は role=co-teacher で合流）。各要素に生成AI・ルビティーの設定 `genai` / `rubytee`（下記「クラス単位の AI 設定」。未設定は両方無効）を含む |
+| `PATCH` | `/classroom-groups/{groupId}` | クラスのリネーム・年度変更・人数・GC 紐づけ・共同管理者・アーカイブ/復帰・生成AI / ルビティーの設定（`genai` / `rubytee`。送った項目だけ保存済みの値に重ねる部分更新。条件を満たさない値は 400） |
 | `POST` | `/classroom-groups/migrate` | v1→v2 冪等 bulk migration（未所属課題のクラス自動作成・割当 + フィールド引き上げ） |
 | `PATCH` | `/classroom-groups/{groupId}/topics` | トピックの add / remove / rename（rename・remove は課題へ一括追従） |
 | `POST` | `/classrooms/{id}/duplicate` | 課題（1 授業）の複製。課題コンテンツの S3 オブジェクトもコピー。`groupId` / `className` / `assignmentName` を上書き可。メンバー・提出は複製しない。`meshGroupLimit` は元の保存値をそのまま写し（未設定なら未設定のまま）、レスポンスにも含む |
@@ -234,10 +234,10 @@ One Tap が表示できない環境（Windows や Playwright では毎回）で�
 
 | Method | Path | 認証 | 説明 |
 |--------|------|------|------|
-| `POST` | `/classrooms/lookup` | 不要 | 参加コードで課題を検索。`meshGroupLimit`（`6` / `0` = 制限なし。未設定の課題は `0`・Issue #1255）を含む |
+| `POST` | `/classrooms/lookup` | 不要 | 参加コードで課題を検索。`meshGroupLimit`（`6` / `0` = 制限なし。未設定の課題は `0`・Issue #1255）と、課題が属するクラスの `genai: {enabled, service, url}` / `rubytee: {enabled}`（`confirmed` は含めない。設定の無いクラス・クラスに属さない課題は両方無効）を含む |
 | `POST` | `/classrooms/lookup/kick-request` | 不要 | 「使用中の席」を空けてもらう依頼を先生に送信 (Issue #692) |
-| `POST` | `/classrooms/join` | 不要 | 課題に参加 (→ sessionToken 取得)。`meshGroupLimit`（lookup と同じ）を含む |
-| `POST` | `/classrooms/verify-session` | Session Token | セッション検証 + 提出状況取得。kick された生徒には 410 + `{reason: 'kicked', joinCode, className, seatNumber}` を返す。課題が非 active（アーカイブ/期限切れ）なら 401。`meshGroupLimit`（lookup と同じ。参加後に先生が変えた値もここで届く）を含む |
+| `POST` | `/classrooms/join` | 不要 | 課題に参加 (→ sessionToken 取得)。`meshGroupLimit` / `genai` / `rubytee`（lookup と同じ）を含む |
+| `POST` | `/classrooms/verify-session` | Session Token | セッション検証 + 提出状況取得。kick された生徒には 410 + `{reason: 'kicked', joinCode, className, seatNumber}` を返す。課題が非 active（アーカイブ/期限切れ）なら 401。`meshGroupLimit` / `genai` / `rubytee`（lookup と同じ。参加後に先生が変えた値もここで届く）を含む |
 | `POST` | `/classrooms/{id}/submissions` | Session Token | 提出 (Presigned URL 取得)。課題が非 active なら 404。任意の `screenshotLabels`（各ブロック画像のスプライト名の配列・`screenshotCount` 以下・各100文字以内・Issue #1239）を保存する |
 | `DELETE` | `/classrooms/{id}/members/me` | Session Token | 自主退出 |
 | `GET` | `/classrooms/{id}/assignment` | Session Token または 先生 ID Token | 課題コンテンツ取得（ページ + 画像/スターターのダウンロード URL）。`startFromPrevious`（未設定は false）と `peerView`（未設定は `none`）も返す（`assignment: null` のときも）。lookup / join / verify-session は `hasAssignment` フラグを返す |
@@ -491,6 +491,8 @@ erDiagram
         map googleClassroomLinkedBy "GC を紐付けた先生 {sub, email} (任意)"
         number studentCount "人数 (課題の座席数の真実, 任意)"
         string_array coTeacherEmails "クラス単位の共同管理者 (任意)"
+        map genai "生成AI {enabled, service, url, confirmed} (#1275, 任意。未設定は無効)"
+        map rubytee "ルビティー {enabled} (#1275, 任意。未設定は無効)"
         string createdAt "ISO8601"
         string updatedAt "ISO8601"
         number ttl "Unix timestamp (既定400日)"
@@ -498,6 +500,21 @@ erDiagram
 ```
 
 **GSI:** `teacherSub-index` — 先生のクラス一覧
+
+#### クラス単位の AI 設定（`genai` / `rubytee`）
+
+先生がクラスごとに「生徒に生成AIのリンクを見せるか」「ルビティーを使わせるか」を決める。
+
+| 項目 | 値 | 検証 |
+|---|---|---|
+| `genai.enabled` | boolean（既定 false） | true にするには `service` と `confirmed: true` と `url` が要る |
+| `genai.service` | `gemini` / `chatgpt` / `other` | それ以外（`claude` など 18 歳以上限定のサービスを含む）は 400 |
+| `genai.url` | https の URL（最大 2048 文字） | http・不正な URL・18 歳以上限定サービスのホスト（`claude.ai` / `claude.com` / `anthropic.com`）は 400。省略すると `gemini` = `https://gemini.google.com/app`、`chatgpt` = `https://chatgpt.com/`（`service` を変えて `url` を省くと新しい既定に切り替わる） |
+| `genai.confirmed` | boolean（既定 false） | 先生が利用規約（年齢制限など）を確認した印。先生向けの応答にだけ含める |
+| `rubytee.enabled` | boolean（既定 false） | — |
+
+- 項目の無い既存のクラスは両方無効として返す（先生向け: `genai = {enabled:false, service:null, url:null, confirmed:false}`、`rubytee = {enabled:false}`）。
+- 生徒向け（lookup / join / verify-session）は課題が属するクラスの設定から `confirmed` を除いて返す。
 
 クラス（学級・Group）は**先生側の管理概念**で、1 つのクラスが年間の複数の課題（Classrooms レコード = 1 授業）を束ねる。生徒には見えない（生徒のモデル = 課題ごとの参加コード + 匿名席番号は不変）。
 
