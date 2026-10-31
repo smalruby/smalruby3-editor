@@ -10,7 +10,12 @@ import React, { useCallback, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 
 import { formatClassLabel } from '../../lib/classroom-class-label.js';
-import { buildAiSettingsUpdate, draftFromGroup, isDraftSavable } from '../../lib/classroom-genai-settings.js';
+import {
+    buildAiSettingsUpdate,
+    draftFromGroup,
+    isAiDraftChanged,
+    isDraftSavable,
+} from '../../lib/classroom-genai-settings.js';
 import ClassAiSettings from './class-ai-settings.jsx';
 import ClassroomButton from './classroom-button.jsx';
 import { TeacherScreen, TeacherSubView } from './teacher-view-layout.jsx';
@@ -213,8 +218,10 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
                 </button>
             </div>
             <ClassAiSettings
+                changed={isAiDraftChanged(group, aiDraft)}
                 draft={aiDraft}
                 isLoading={isLoading}
+                saved={draftFromGroup(group)}
                 onChange={setAiDraft}
             />
             {confirmingArchive ? (

@@ -8,7 +8,12 @@ import PropTypes from 'prop-types';
 import React, { useCallback, useState } from 'react';
 import { defineMessages, FormattedMessage, useIntl } from 'react-intl';
 
-import { GENAI_DEFAULT_URLS, isDraftSavable, validateGenaiUrl } from '../../lib/classroom-genai-settings.js';
+import {
+    FRESH_GENAI,
+    GENAI_DEFAULT_URLS,
+    isDraftSavable,
+    validateGenaiUrl,
+} from '../../lib/classroom-genai-settings.js';
 
 import styles from './class-ai-settings.css';
 
@@ -125,7 +130,7 @@ RubyteeOption.propTypes = {
     onToggle: PropTypes.func.isRequired,
 };
 
-const ClassAiSettings = ({ draft, isLoading, onChange }) => {
+const ClassAiSettings = ({ changed, draft, isLoading, onChange, saved }) => {
     const intl = useIntl();
     const [open, setOpen] = useState(false);
     const [step, setStep] = useState(draft.use && draft.service ? STEP_CONFIRM : STEP_USE);
@@ -136,9 +141,14 @@ const ClassAiSettings = ({ draft, isLoading, onChange }) => {
     const handleStepTab = useCallback((e) => setStep(Number(e.currentTarget.dataset.step)), []);
     const handleUseNo = useCallback(() => update({ use: false }), [update]);
     const handleUseYes = useCallback(() => {
-        update({ use: true });
-        setStep(draft.service ? STEP_CONFIRM : STEP_SERVICE);
-    }, [update, draft.service]);
+        if (draft.use) {
+            setStep(draft.service ? STEP_CONFIRM : STEP_SERVICE);
+            return;
+        }
+        // Switching back to "use" starts over: nothing chosen and nothing confirmed.
+        update({ use: true, ...FRESH_GENAI });
+        setStep(STEP_SERVICE);
+    }, [update, draft.use, draft.service]);
     const handleService = useCallback(
         (e) => {
             const service = e.currentTarget.dataset.service;
@@ -157,6 +167,8 @@ const ClassAiSettings = ({ draft, isLoading, onChange }) => {
     const handleRubytee = useCallback((e) => update({ rubytee: e.target.checked }), [update]);
 
     const selected = draft.use ? serviceOf(draft.service) : null;
+    // The summary tells what is saved, so a teacher never mistakes an unsaved choice for a setting.
+    const savedService = saved.use ? serviceOf(saved.service) : null;
     const urlError = validateGenaiUrl(draft.url);
     const canReach = {
         [STEP_USE]: true,
@@ -166,12 +178,12 @@ const ClassAiSettings = ({ draft, isLoading, onChange }) => {
 
     const summary = (
         <span className={styles.summary} data-testid="classroom-class-ai-summary">
-            {selected ? (
+            {savedService ? (
                 <FormattedMessage
                     defaultMessage="Generative AI: {service}"
                     description="Class settings summary when a generative AI is used"
                     id="gui.classroom.classAi.summaryUsed"
-                    values={{ service: intl.formatMessage(selected.name) }}
+                    values={{ service: intl.formatMessage(savedService.name) }}
                 />
             ) : (
                 <FormattedMessage
@@ -181,7 +193,7 @@ const ClassAiSettings = ({ draft, isLoading, onChange }) => {
                 />
             )}
             {' / '}
-            {draft.rubytee ? (
+            {saved.rubytee ? (
                 <FormattedMessage
                     defaultMessage="Rubytee: On"
                     description="Class settings summary when Rubytee is on"
@@ -194,6 +206,15 @@ const ClassAiSettings = ({ draft, isLoading, onChange }) => {
                     id="gui.classroom.classAi.summaryRubyteeOff"
                 />
             )}
+            {changed ? (
+                <span className={styles.unsaved} data-testid="classroom-class-ai-unsaved">
+                    <FormattedMessage
+                        defaultMessage="(not saved yet)"
+                        description="Shown next to the class AI settings summary while there are unsaved changes"
+                        id="gui.classroom.classAi.unsaved"
+                    />
+                </span>
+            ) : null}
         </span>
     );
 
@@ -443,13 +464,29 @@ const ClassAiSettings = ({ draft, isLoading, onChange }) => {
                             <RubyteeOption checked={draft.rubytee} isLoading={isLoading} onToggle={handleRubytee} />
                         </div>
                     ) : null}
+                    <p className={styles.saveHint} data-testid="classroom-class-ai-save-hint">
+                        <FormattedMessage
+                            defaultMessage="Press Save below to apply."
+                            description="Reminds the teacher that the class AI settings take effect only after saving the form"
+                            id="gui.classroom.classAi.saveHint"
+                        />
+                    </p>
                 </div>
             ) : null}
         </div>
     );
 };
 
+const draftShape = PropTypes.shape({
+    use: PropTypes.bool.isRequired,
+    service: PropTypes.string,
+    url: PropTypes.string.isRequired,
+    confirmed: PropTypes.bool.isRequired,
+    rubytee: PropTypes.bool.isRequired,
+});
+
 ClassAiSettings.propTypes = {
+    changed: PropTypes.bool,
     draft: PropTypes.shape({
         use: PropTypes.bool.isRequired,
         service: PropTypes.string,
@@ -459,6 +496,7 @@ ClassAiSettings.propTypes = {
     }).isRequired,
     isLoading: PropTypes.bool,
     onChange: PropTypes.func.isRequired,
+    saved: draftShape.isRequired,
 };
 
 export default ClassAiSettings;

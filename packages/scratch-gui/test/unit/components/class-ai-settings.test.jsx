@@ -7,7 +7,7 @@ import { fireEvent, render } from '@testing-library/react';
 import React, { useState } from 'react';
 import { IntlProvider } from 'react-intl';
 import ClassAiSettings from '../../../src/components/classroom-modal/class-ai-settings.jsx';
-import { draftFromGroup, GENAI_DEFAULT_URLS } from '../../../src/lib/classroom-genai-settings.js';
+import { draftFromGroup, GENAI_DEFAULT_URLS, isAiDraftChanged } from '../../../src/lib/classroom-genai-settings.js';
 
 const byTestId = (id) => document.querySelector(`[data-testid="${id}"]`);
 
@@ -18,7 +18,14 @@ const Harness = ({ group, onDraft }) => {
         setDraft(next);
         onDraft(next);
     };
-    return <ClassAiSettings draft={draft} onChange={handleChange} />;
+    return (
+        <ClassAiSettings
+            changed={isAiDraftChanged(group, draft)}
+            draft={draft}
+            saved={draftFromGroup(group)}
+            onChange={handleChange}
+        />
+    );
 };
 
 const renderSettings = (group = {}) => {
@@ -119,5 +126,30 @@ describe('ClassAiSettings', () => {
         fireEvent.click(byTestId('classroom-class-ai-confirm'));
         fireEvent.click(byTestId('classroom-class-ai-edit'));
         expect(byTestId('classroom-class-ai-incomplete')).toBeNull();
+    });
+
+    test('the summary shows what is saved and marks unsaved changes', () => {
+        renderSettings();
+        fireEvent.click(byTestId('classroom-class-ai-edit'));
+        expect(byTestId('classroom-class-ai-save-hint')).toHaveTextContent('Press Save below');
+        expect(byTestId('classroom-class-ai-unsaved')).toBeNull();
+        fireEvent.click(byTestId('classroom-class-ai-use-yes'));
+        fireEvent.click(byTestId('classroom-class-ai-service-gemini'));
+        fireEvent.click(byTestId('classroom-class-ai-confirm'));
+        // Still the saved state: nothing is on until the form is saved.
+        expect(byTestId('classroom-class-ai-summary')).toHaveTextContent('Generative AI: Not used');
+        expect(byTestId('classroom-class-ai-unsaved')).toBeInTheDocument();
+    });
+
+    test('turning it off and on again starts over instead of reviving the old choice', () => {
+        const { lastDraft } = renderSettings({
+            genai: { enabled: true, service: 'gemini', url: GENAI_DEFAULT_URLS.gemini, confirmed: true },
+        });
+        fireEvent.click(byTestId('classroom-class-ai-edit'));
+        fireEvent.click(byTestId('classroom-class-ai-step-tab-use'));
+        fireEvent.click(byTestId('classroom-class-ai-use-no'));
+        fireEvent.click(byTestId('classroom-class-ai-use-yes'));
+        expect(lastDraft()).toMatchObject({ use: true, service: null, url: '', confirmed: false });
+        expect(byTestId('classroom-class-ai-step-service')).toBeInTheDocument();
     });
 });

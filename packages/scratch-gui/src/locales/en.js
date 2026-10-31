@@ -325,6 +325,8 @@ export default {
     'gui.classroom.classAi.urlLabel': 'Page students open',
     'gui.classroom.classAi.urlDefaultNote': '(you can leave it as is)',
     'gui.classroom.classAi.try': 'Try (new tab)',
+    'gui.classroom.classAi.unsaved': '(not saved yet)',
+    'gui.classroom.classAi.saveHint': 'Press Save below to apply.',
     'gui.classroom.classAi.incomplete': "The generative AI settings aren't finished. Continue with Change.",
     'gui.classroom.management.titleBarLogout': 'Logout',
     'gui.classroom.classList.title': 'Your classes',

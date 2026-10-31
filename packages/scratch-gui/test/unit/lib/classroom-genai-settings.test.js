@@ -2,6 +2,7 @@ import {
     GENAI_DEFAULT_URLS,
     buildAiSettingsUpdate,
     draftFromGroup,
+    isAiDraftChanged,
     isDraftSavable,
     validateGenaiUrl,
 } from '../../../src/lib/classroom-genai-settings.js';
@@ -28,6 +29,20 @@ describe('classroom-genai-settings', () => {
                 service: 'gemini',
                 url: GENAI_DEFAULT_URLS.gemini,
                 confirmed: true,
+                rubytee: true,
+            });
+        });
+
+        test('a class that does not use it starts from scratch, even with a stored service', () => {
+            const group = {
+                genai: { enabled: false, service: 'gemini', url: GENAI_DEFAULT_URLS.gemini, confirmed: true },
+                rubytee: { enabled: true },
+            };
+            expect(draftFromGroup(group)).toEqual({
+                use: false,
+                service: null,
+                url: '',
+                confirmed: false,
                 rubytee: true,
             });
         });
@@ -89,12 +104,19 @@ describe('classroom-genai-settings', () => {
             });
         });
 
-        test('disabling only turns it off and keeps the stored service', () => {
+        test('disabling turns it off and drops the confirmation', () => {
             const group = {
                 genai: { enabled: true, service: 'chatgpt', url: GENAI_DEFAULT_URLS.chatgpt, confirmed: true },
             };
             const draft = { ...draftFromGroup(group), use: false };
-            expect(buildAiSettingsUpdate(group, draft)).toEqual({ genai: { enabled: false } });
+            expect(buildAiSettingsUpdate(group, draft)).toEqual({ genai: { enabled: false, confirmed: false } });
+        });
+
+        test('isAiDraftChanged tells unsaved edits apart', () => {
+            const group = { genai: { enabled: true, service: 'gemini', url: GENAI_DEFAULT_URLS.gemini, confirmed: true } };
+            expect(isAiDraftChanged(group, draftFromGroup(group))).toBe(false);
+            expect(isAiDraftChanged(group, { ...draftFromGroup(group), rubytee: true })).toBe(true);
+            expect(isAiDraftChanged({}, { ...draftFromGroup({}), use: true, service: 'gemini' })).toBe(true);
         });
 
         test('sends rubytee only when it changed', () => {

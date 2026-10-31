@@ -374,6 +374,8 @@ export default {
     'gui.classroom.classAi.urlLabel': '生徒が開くページ',
     'gui.classroom.classAi.urlDefaultNote': '（変えなくてかまいません）',
     'gui.classroom.classAi.try': '試す（別タブ）',
+    'gui.classroom.classAi.unsaved': '（まだ保存していません）',
+    'gui.classroom.classAi.saveHint': '下の［保存］で確定します。',
     'gui.classroom.classAi.incomplete': '生成AIの設定が終わっていません。「変更する」から続けてください。',
     'gui.classroom.management.titleBarLogout': 'ログアウト',
     'gui.classroom.notifications.buttonLabel': 'お知らせ',

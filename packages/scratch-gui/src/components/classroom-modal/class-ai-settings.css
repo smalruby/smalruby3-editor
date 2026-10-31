@@ -182,3 +182,16 @@
     font-size: 0.8rem;
     color: #855cd6;
 }
+
+.unsaved {
+    margin-left: 0.5rem;
+    color: hsla(0, 70%, 45%, 1);
+    font-weight: bold;
+}
+
+.save-hint {
+    margin: 0.5rem 0 0;
+    font-size: 0.75rem;
+    font-weight: bold;
+    color: hsla(225, 15%, 40%, 1);
+}

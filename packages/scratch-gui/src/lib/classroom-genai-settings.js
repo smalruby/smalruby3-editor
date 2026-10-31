@@ -19,6 +19,9 @@ const ADULT_ONLY_HOSTS = ['claude.ai', 'claude.com', 'anthropic.com'];
 
 const isService = (value) => GENAI_SERVICES.includes(value);
 
+/** What "use it" starts from: nothing chosen and nothing confirmed. */
+export const FRESH_GENAI = { service: null, url: '', confirmed: false };
+
 /**
  * Editable copy of a class's AI settings. Classes without settings read as
  * "both disabled".
@@ -28,12 +31,17 @@ const isService = (value) => GENAI_SERVICES.includes(value);
 export const draftFromGroup = (group) => {
     const genai = (group && group.genai) || {};
     const service = isService(genai.service) ? genai.service : null;
+    const use = genai.enabled === true && service !== null;
+    const rubytee = Boolean(group && group.rubytee && group.rubytee.enabled === true);
+    // A class that doesn't use generative AI starts the 3 steps from scratch,
+    // instead of reviving the service and confirmation chosen before it was turned off.
+    if (!use) return { use: false, ...FRESH_GENAI, rubytee };
     return {
-        use: genai.enabled === true && service !== null,
+        use,
         service,
         url: typeof genai.url === 'string' ? genai.url : '',
         confirmed: genai.confirmed === true,
-        rubytee: Boolean(group && group.rubytee && group.rubytee.enabled === true),
+        rubytee,
     };
 };
 
@@ -91,11 +99,19 @@ export const buildAiSettingsUpdate = (group, draft) => {
             updates.genai = { enabled: true, service: draft.service, url, confirmed: draft.confirmed };
         }
     } else if (stored.use) {
-        // Keep the stored service/URL so turning it back on starts from them.
-        updates.genai = { enabled: false };
+        // The confirmation belonged to that period of use; turning it back on asks again.
+        updates.genai = { enabled: false, confirmed: false };
     }
     if (stored.rubytee !== draft.rubytee) {
         updates.rubytee = { enabled: draft.rubytee };
     }
     return updates;
 };
+
+/**
+ * Whether the teacher has changed the AI settings and not saved them yet.
+ * @param {object} group - the stored class
+ * @param {object} draft - the edited settings (see draftFromGroup)
+ * @returns {boolean} true when saving would send something
+ */
+export const isAiDraftChanged = (group, draft) => Object.keys(buildAiSettingsUpdate(group, draft)).length > 0;

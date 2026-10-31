@@ -382,6 +382,8 @@ export default {
     'gui.classroom.classAi.urlLabel': 'せいとがひらくページ',
     'gui.classroom.classAi.urlDefaultNote': '（かえなくてかまいません）',
     'gui.classroom.classAi.try': 'ためす（べつタブ）',
+    'gui.classroom.classAi.unsaved': '（まだほぞんしていません）',
+    'gui.classroom.classAi.saveHint': 'したの［ほぞん］でかくていします。',
     'gui.classroom.classAi.incomplete':
         'せいせいAIのせっていがおわっていません。「へんこうする」からつづけてください。',
     'gui.classroom.management.titleBarLogout': 'ログアウト',
