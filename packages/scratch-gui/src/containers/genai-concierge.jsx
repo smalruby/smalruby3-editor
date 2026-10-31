@@ -315,6 +315,7 @@ const GenaiConcierge = ({
     const handleToTrouble = useCallback(() => goTo('trouble'), [goTo]);
     const handleToPaste = useCallback(() => goTo('paste'), [goTo]);
     const handleTogglePrompt = useCallback(() => setPromptOpen((v) => !v), []);
+    const handleClearNotice = useCallback(() => setNotice(''), []);
 
     // Bring the blocks just put in into view, away from the panel at the right (#1293 G8).
     const handleApplied = useCallback(() => {
@@ -402,6 +403,7 @@ const GenaiConcierge = ({
                             onStep={goTo}
                             onCopy={copyAndOpen}
                             onApplied={handleApplied}
+                            onClearNotice={handleClearNotice}
                             onClose={handleClose}
                             onReset={handleReset}
                         />

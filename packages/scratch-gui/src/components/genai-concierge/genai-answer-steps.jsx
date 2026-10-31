@@ -47,6 +47,7 @@ const GenaiAnswerSteps = ({
     onStep,
     onCopy,
     onApplied,
+    onClearNotice,
     onClose,
     onReset,
 }) => {
@@ -132,6 +133,8 @@ const GenaiAnswerSteps = ({
     const handleConvert = useCallback(async () => {
         setConverted(null);
         setAnswerOpen(false);
+        // The notice of the last check (e.g. the rewrite request copied) is not about this one (#1293 P6).
+        onClearNotice();
         setChecking(true);
         // Let the spinner paint before the (synchronous-heavy) conversion starts.
         await new Promise((resolve) => setTimeout(resolve, 50));
@@ -140,7 +143,7 @@ const GenaiAnswerSteps = ({
         } finally {
             setChecking(false);
         }
-    }, [convertAnswer]);
+    }, [convertAnswer, onClearNotice]);
 
     const loadCode = useCallback(
         async (target, code) => {
@@ -209,14 +212,17 @@ const GenaiAnswerSteps = ({
     );
 
     if (step === 'paste') {
-        const answerShown = !converted || answerOpen;
+        // No program was found in what was pasted: the only thing to do is to paste again,
+        // so the answer stays open (folding it would leave no button to go on with).
+        const canFold = Boolean(converted && converted.code);
+        const answerShown = !canFold || answerOpen;
         return (
             <>
                 <div className={styles.stepBody}>
                     <p className={styles.question}>
                         <FormattedMessage {...messages.pasteQuestion} values={{ name: serviceName || '' }} />
                     </p>
-                    {converted && (
+                    {canFold && (
                         <p className={styles.small}>
                             <a href="#" data-testid="genai-answer-toggle" onClick={handleToggleAnswer}>
                                 <FormattedMessage {...(answerOpen ? messages.answerHide : messages.answerShow)} />
@@ -395,6 +401,7 @@ GenaiAnswerSteps.propTypes = {
     onStep: PropTypes.func.isRequired,
     onCopy: PropTypes.func.isRequired,
     onApplied: PropTypes.func.isRequired,
+    onClearNotice: PropTypes.func.isRequired,
     onClose: PropTypes.func.isRequired,
     onReset: PropTypes.func.isRequired,
 };
