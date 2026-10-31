@@ -12,11 +12,30 @@
 // 今のクライアントの ID は 32 桁の 16 進（+ 任意で `s<2〜3 桁>`）。余裕を持たせ、
 // 旧形式・テストのハイフン入り ID も通す。`#` / `|` などキー区切りに使う文字は通さない。
 const MESH_ID_MAX_LENGTH = 128;
-const MESH_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
 
 // クライアントは 512 文字以内で作る。余裕を持って 2 倍。
 const MESH_GROUP_NAME_MAX_LENGTH = 1024;
-const MESH_CONTROL_CHAR_PATTERN = /[\u0000-\u001f\u007f]/;
+
+// APPSYNC_JS は正規表現リテラルを受け付けない（デプロイ時に "The code contains one or more
+// errors" で失敗する）。文字の判定は for...of と文字列の比較で書く。
+
+// A-Z a-z 0-9 _ - だけか
+function meshIdHasOnlyAllowedChars(text) {
+  for (const ch of text) {
+    const allowed =
+      (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch === '_' || ch === '-';
+    if (!allowed) return false;
+  }
+  return true;
+}
+
+// 制御文字（U+0000〜U+001F, U+007F）を含むか
+function meshHasControlChar(text) {
+  for (const ch of text) {
+    if (ch < ' ' || ch === '\u007f') return true;
+  }
+  return false;
+}
 
 function meshIdError(field, value) {
   if (value === undefined || value === null || `${value}` === '') {
@@ -26,7 +45,7 @@ function meshIdError(field, value) {
   if (text.length > MESH_ID_MAX_LENGTH) {
     return `${field} must be ${MESH_ID_MAX_LENGTH} characters or less`;
   }
-  if (!MESH_ID_PATTERN.test(text)) {
+  if (!meshIdHasOnlyAllowedChars(text)) {
     return `${field} contains invalid characters (allowed: A-Z a-z 0-9 _ -)`;
   }
   return null;
@@ -40,7 +59,7 @@ function meshGroupNameError(field, value) {
   if (text.length > MESH_GROUP_NAME_MAX_LENGTH) {
     return `${field} must be ${MESH_GROUP_NAME_MAX_LENGTH} characters or less`;
   }
-  if (MESH_CONTROL_CHAR_PATTERN.test(text)) {
+  if (meshHasControlChar(text)) {
     return `${field} contains control characters`;
   }
   return null;
