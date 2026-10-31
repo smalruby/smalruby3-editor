@@ -23,6 +23,7 @@ const RUBY_ALIASES = ['ruby'];
  * - rubyMode=dncl      — activate DNCL mode (aliases: dnclv2, case-insensitive)
  * - rubyMode=rubi      — activate furigana mode (aliases: furigana, case-insensitive)
  * - welcome=1          — auto-open the welcome modal on load
+ * - genai_idle=10      — idle seconds before the genai prototype nudges (?features=genai)
  * @returns {object} parsed parameters
  */
 const parseUrlParams = () => {
@@ -36,6 +37,7 @@ const parseUrlParams = () => {
             classcode: null,
             devlogin: false,
             showWelcome: false,
+            genaiIdle: null,
         };
     }
 
@@ -52,6 +54,7 @@ const parseUrlParams = () => {
             classcode: null,
             devlogin: false,
             showWelcome: false,
+            genaiIdle: null,
         };
     }
 
@@ -100,6 +103,10 @@ const parseUrlParams = () => {
     const showWelcome = welcomeParam === '1' || welcomeParam === 'true';
     // === Smalruby: End of welcome URL param ===
 
+    // genai_idle: seconds of inactivity before the genai prototype offers help (testing)
+    const genaiIdleParam = Number(params.get('genai_idle'));
+    const genaiIdle = genaiIdleParam > 0 ? genaiIdleParam : null;
+
     return {
         noBeforeUnload,
         initialTab,
@@ -109,6 +116,7 @@ const parseUrlParams = () => {
         classcode,
         devlogin,
         showWelcome,
+        genaiIdle,
     };
 };
 
