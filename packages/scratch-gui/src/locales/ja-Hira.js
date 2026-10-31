@@ -1736,7 +1736,8 @@ export default {
     'gui.genaiConcierge.charCount': '{count} もじ',
     'gui.genaiConcierge.split': 'せいせいAI にはれなかった・ながすぎるといわれた',
     'gui.genaiConcierge.copied': 'コピーしました。せいせいAI のにゅうりょくらんにはりつけて（Ctrl+V）おくってね。',
-    'gui.genaiConcierge.copiedGoBack': 'コピーしました。せいせいAI のタブにもどって、にゅうりょくらんにはりつけて（Ctrl+V）おくってね。',
+    'gui.genaiConcierge.copiedGoBack':
+        'コピーしました。せいせいAI のタブにもどって、にゅうりょくらんにはりつけて（Ctrl+V）おくってね。',
     'gui.genaiConcierge.copyOnly': 'コピーする',
     'gui.genaiConcierge.reopen': 'せいせいAI をもういちどひらく（タブをとじてしまったとき）',
     'gui.genaiConcierge.copyFailed': 'コピーできませんでした。したのぶんをぜんぶえらんで、Ctrl+C でコピーしてね。',
