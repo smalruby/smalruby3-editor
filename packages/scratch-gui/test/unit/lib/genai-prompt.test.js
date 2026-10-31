@@ -8,8 +8,13 @@ import {
 } from '../../../src/lib/genai-prompt.js';
 
 const programs = [
-    { name: 'ねこ', code: 'when_flag_clicked do\n  move(10)\nend\n' },
-    { name: 'ボール', code: 'when_flag_clicked do\n  move(5)\nend\n' },
+    {
+        name: 'ねこ',
+        code: 'when_flag_clicked do\n  move(10)\nend\n',
+        sounds: ['ニャー'],
+        costumes: ['ねこ1', 'ねこ2'],
+    },
+    { name: 'ボール', code: 'when_flag_clicked do\n  move(5)\nend\n', sounds: [], costumes: ['ボール'] },
 ];
 
 describe('buildGenaiPrompt', () => {
@@ -22,12 +27,18 @@ describe('buildGenaiPrompt', () => {
             assignmentName: 'ボールをよけるゲーム',
         });
         expect(prompt).toContain('【守ってほしいこと】');
+        expect(prompt).toContain('質問を返さず、すぐに直したプログラムを出してください');
+        expect(prompt).toContain('直すのは「ねこ」のプログラムだけ');
+        expect(prompt).toContain('play("音の名前")');
         expect(prompt).toContain(COPY_START);
         expect(prompt).toContain('思ったとおりに動かない：\nかべで止まってほしい');
         expect(prompt).toContain('【課題】\nボールをよけるゲーム');
         expect(prompt).toContain('生徒がいま作っているのは「ねこ」です。');
-        expect(prompt).toContain('「ボール」:\n```ruby\nwhen_flag_clicked do\n  move(5)\nend\n```');
-        expect(prompt.endsWith('まず、ヒントを 1 つだけください。')).toBe(true);
+        expect(prompt).toContain('「ねこ」（音: "ニャー"／コスチューム: "ねこ1"、"ねこ2"）:');
+        expect(prompt).toContain(
+            '「ボール」（音: なし／コスチューム: "ボール"）:\n```ruby\nwhen_flag_clicked do\n  move(5)\nend\n```',
+        );
+        expect(prompt.endsWith('「ねこ」の直したプログラムをください。')).toBe(true);
     });
 
     test('leaves out the assignment when there is none', () => {

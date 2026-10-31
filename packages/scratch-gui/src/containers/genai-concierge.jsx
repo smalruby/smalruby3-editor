@@ -162,8 +162,10 @@ const GenaiConcierge = ({ vm, rubyVersion, assignmentName }) => {
             .map((t) => ({
                 name: t.isStage ? 'ステージ' : t.getName(),
                 code: RubyGenerator.targetToCode(t, { version: rubyVersion }),
+                sounds: t.getSounds().map((sound) => sound.name),
+                costumes: t.getCostumes().map((costume) => costume.name),
             }))
-            .filter((p) => p.code && p.code.trim());
+            .filter((p) => (p.code && p.code.trim()) || p.name === (editing && editing.getName()));
         setPrompt(
             buildGenaiPrompt({
                 kindLabel: kind.label,
@@ -479,7 +481,7 @@ const GenaiConcierge = ({ vm, rubyVersion, assignmentName }) => {
                         {step === 'paste' && (
                             <>
                                 <p className={styles.label}>
-                                    ヒントだけなら、ここは使わずに自分でブロックを組もう。
+                                    生成AI の答えの中の、説明を読んでから使おう。
                                     <br />
                                     プログラムをもらったら、「▼▼」から「▲▲」までをコピーして貼りつけてね。
                                 </p>

@@ -13,25 +13,46 @@ const PROBLEM_KINDS = [
 const COPY_START = '▼▼ ここから下をコピーして、スモウルビーにもどろう ▼▼';
 const COPY_END = '▲▲ ここまで ▲▲';
 
-const RULES = [
-    '答えのコードをいきなり全部書かないでください。まずヒントを 1 つだけ出し、生徒に考えを書いてもらってください。',
-    '生徒が考えを書いたら、それを認めてから次のヒントを出してください。',
-    '生徒が「答えを見せて」と書いたとき、またはヒントを 3 回出したあとは、直したコードを書いてかまいません。',
-    '説明では Ruby の書き方の細かいことは言わず、「〜を止める命令」「〜と言う命令」のように、何をする命令かを言葉で説明してください。生徒はスモウルビーでブロックとして見ます。',
-    'コードを書くときは、変えるスプライトのプログラムを全部、下の「今のプログラム」と同じ書き方で書いてください。今のプログラムにある命令と、スモウルビーの命令だけを使ってください。',
-    `コードの前に「${COPY_START}」、コードの後に「${COPY_END}」という行を書き、コードは \`\`\`ruby と \`\`\` で囲んでください。`,
-    '中学生にわかる言葉で、短く答えてください。',
-    '生徒の名前や学校名をたずねないでください。',
+// Students cannot describe their program in chat, so a question back (「どのブロックの中かな？」)
+// stalls them. The AI answers with the whole changed program right away; the
+// student learns by reading the "what changed" lines and trying it.
+const rules = (editingName) => {
+    const target = editingName ? `「${editingName}」` : '直すスプライト';
+    return [
+        '生徒は自分のプログラムを言葉で説明するのが苦手です。「どこに入れればいいかな？」のような質問を返さず、すぐに直したプログラムを出してください。',
+        `直すのは${target}のプログラムだけにしてください。スモウルビーはそのスプライトのブロックを丸ごと入れかえるので、変えないところも含めて、そのスプライトのプログラムを全部書いてください。`,
+        'コードの前に、何を変えたかを「〜を受け取ったときのブロックの中に、〜を鳴らす命令を足しました」のように、ブロックのことばで 1〜3 行で説明してください。Ruby の書き方の細かいことは言わないでください。',
+        '今のプログラムにある書き方と命令、下の「使える命令の例」だけを使ってください。音やコスチュームの名前は、下の一覧にあるものから選んでください。',
+        `コードの前に「${COPY_START}」、コードの後に「${COPY_END}」という行を書き、コードは \`\`\`ruby と \`\`\` で囲んでください。`,
+        'コードの後に、動かして確かめることを 1 つだけ書いてください。',
+        '中学生にわかる言葉で、短く答えてください。生徒の名前や学校名をたずねないでください。',
+    ];
+};
+
+// Commands checked against the Ruby generator, so the AI does not invent names.
+const COMMAND_EXAMPLES = [
+    'move(10) … 10 歩動かす',
+    'turn_right(15) … 右に 15 度回す',
+    'go_to([0, 0]) … x座標を 0、y座標を 0 にする',
+    'bounce_if_on_edge … もし端に着いたら、跳ね返る',
+    'sleep(1) … 1 秒待つ',
+    'say("こんにちは") … こんにちはと言う',
+    'switch_costume("コスチューム名") … コスチュームを〜にする',
+    'play("音の名前") … 〜の音を鳴らす',
+    'play_until_done("音の名前") … 終わるまで〜の音を鳴らす',
 ];
 
 const fence = (code) => `\`\`\`ruby\n${(code || '').replace(/\s+$/, '')}\n\`\`\``;
+
+const quoteList = (names) => (names && names.length > 0 ? names.map((n) => `"${n}"`).join('、') : 'なし');
 
 /**
  * The first prompt: rules, the trouble, and the whole project as Ruby.
  * @param {object} params - parameters.
  * @param {string} params.kindLabel - the chosen kind of trouble.
  * @param {string} params.text - the trouble in the student's own words.
- * @param {Array<{name: string, code: string}>} params.programs - Ruby per sprite (and stage).
+ * @param {Array<{name: string, code: string, sounds: ?Array<string>, costumes: ?Array<string>}>} params.programs -
+ *     Ruby per sprite (and stage), with the names of its sounds and costumes.
  * @param {?string} params.editingName - the sprite the student is working on.
  * @param {?string} params.assignmentName - the classroom assignment, if any.
  * @returns {string} the prompt.
@@ -43,20 +64,25 @@ const buildGenaiPrompt = ({ kindLabel, text, programs, editingName, assignmentNa
         '生徒は Ruby ではなく、命令ブロックを組み合わせてプログラムを作っています。下の「今のプログラム」は、生徒のブロックをスモウルビーが Ruby に直したものです。',
         '',
         '【守ってほしいこと】',
-        ...RULES.map((rule) => `・${rule}`),
+        ...rules(editingName).map((rule) => `・${rule}`),
         '',
         '【困っていること】',
         `${kindLabel}：`,
         text.trim(),
     ];
     if (assignmentName) lines.push('', '【課題】', assignmentName);
+    lines.push('', '【使える命令の例】', ...COMMAND_EXAMPLES);
     lines.push('', '【今のプログラム（作品全体のブロックを Ruby に直したもの）】');
     if (editingName) lines.push(`生徒がいま作っているのは「${editingName}」です。`);
     if (programs.length === 0) lines.push('（まだブロックはありません）');
     for (const program of programs) {
-        lines.push(`「${program.name}」:`, fence(program.code));
+        lines.push(
+            `「${program.name}」（音: ${quoteList(program.sounds)}／コスチューム: ${quoteList(program.costumes)}）:`,
+        );
+        lines.push(fence(program.code));
     }
-    lines.push('', 'まず、ヒントを 1 つだけください。');
+    const target = editingName ? `「${editingName}」の` : '';
+    lines.push('', `${target}直したプログラムをください。`);
     return lines.join('\n');
 };
 
