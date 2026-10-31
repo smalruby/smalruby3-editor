@@ -9,7 +9,9 @@
 //   席1: 2・3番を選ぶ → ホストとして「1・2・3番のグループ」を作る → 席2 が自動で入る
 //        → 3番は「欠席のため待ちません」→ 両方「そろいました」で自動で閉じる
 //   席4: 「従来の方法でつなぐ」を開いて「メッシュに参加する」→ 一覧に「1・2・3番のグループ」→ 選ばれていない確認 → 入る
+//        （選ばれていないので「呼ばれています」は出ない）
 //   席1: 接続モーダルを開き直す → 接続済み画面に「そろい具合」の 1 行
+//   席3: 遅れてクラスに参加 → 接続モーダルを開くと「1番さんのグループに呼ばれています」→［グループに入る］で入る
 //
 // 画面は授業 PC の 1300×600。スクショは tmp/verify-mesh-v2-seat-connect/。
 import { chromium } from 'playwright';
@@ -128,7 +130,11 @@ const openStudent = async (joinCode, seat) => {
     const ctx = await browser.newContext({ viewport: VIEWPORT, locale: 'ja-JP' });
     const page = await ctx.newPage();
     page.on('pageerror', (e) => log(`[seat${seat} pageerror]`, e.message));
-    page.on('dialog', (d) => d.accept());
+    page.__dialogs = [];
+    page.on('dialog', (d) => {
+        page.__dialogs.push(d.message());
+        d.accept();
+    });
     pages.push(page);
     await page.goto(`${BASE_URL}/?no_beforeunload=1&classcode=${joinCode}`, { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('[data-testid="classroom-phase-student-seat"]', { timeout: 90000 });
@@ -245,6 +251,7 @@ try {
     await s4.click('[data-testid="meshV2-classic-toggle"]');
     await shot(s4, 'seat4-classic-open', '0110-seat-classic-open-1300x600.png');
     assert(await modalFits(s4), 'first screen with the classic methods open fits in 600px');
+    assert(!(await s4.$('[data-testid="meshV2-seat-invite"]')), 'seat 4 (not chosen) is not invited');
     await s4.click('[data-testid="meshV2-join-group"]');
     const tile = s4.locator('[class*="peripheral-tile"]', { hasText: '1・2・3番のグループ' });
     await tile.first().waitFor({ timeout: 30000 });
@@ -256,6 +263,10 @@ try {
         { timeout: 30000 },
     );
     assert((await groupIdOf(s4)) === g1, 'seat 4 joined the same group from the classic list');
+    assert(
+        s4.__dialogs.some((m) => m.includes('1・2・3番用')),
+        `seat 4 (not chosen) was asked before joining: ${JSON.stringify(s4.__dialogs)}`,
+    );
 
     // ---- 席1: 接続済み画面のそろい具合 ----
     log('seat 1: reopen the modal and see who is here');
@@ -264,6 +275,25 @@ try {
     const progress = await s1.textContent('[data-testid="meshV2-seat-progress"]');
     assert(progress.includes('3 欠席'), `progress line shows seat 3 absent: ${progress}`);
     await shot(s1, 'seat1-connected-progress', '0107-seat-connected-progress-1300x600.png');
+
+    // ---- 席3: 欠席のまま始めたグループに、遅れて来た 3番が呼ばれる ----
+    log('seat 3: joins late and is invited to the group that chose them');
+    const s3 = await openStudent(code, 3);
+    await openMeshModal(s3);
+    await s3.waitForSelector('[data-testid="meshV2-seat-invite"]', { timeout: 20000 });
+    const invite = await s3.textContent('[data-testid="meshV2-seat-invite"]');
+    assert(invite.includes('1番さんのグループに呼ばれています'), `seat 3 is invited: ${invite}`);
+    const me3 = await s3.getAttribute('[data-testid="meshV2-seat-invite-status-3"]', 'data-status');
+    assert(me3 === 'me', 'seat 3 is shown as not joined yet');
+    await shot(s3, 'seat3-invited', '0111-seat-invited-1300x600.png');
+    assert(await modalFits(s3), 'invitation screen fits in 600px');
+    await s3.click('[data-testid="meshV2-seat-invite-join"]');
+    await s3.waitForFunction(
+        () => !!window.__store.getState().scratchGui.vm.runtime.peripheralExtensions.meshV2.getConnectedGroupId(),
+        null,
+        { timeout: 30000 },
+    );
+    assert((await groupIdOf(s3)) === g1, 'seat 3 joined the group that waited for them');
 
     ok = true;
 } catch (e) {
