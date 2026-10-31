@@ -11,6 +11,7 @@ import GenaiAnswerSteps from '../components/genai-concierge/genai-answer-steps.j
 import styles from '../components/genai-concierge/genai-concierge.css';
 import GenaiCopyStep from '../components/genai-concierge/genai-copy-step.jsx';
 import GenaiNudge from '../components/genai-concierge/genai-nudge.jsx';
+import GenaiStepper from '../components/genai-concierge/genai-stepper.jsx';
 import GenaiTroubleStep from '../components/genai-concierge/genai-trouble-step.jsx';
 import messages from '../components/genai-concierge/messages.js';
 import rubyteeIcon from '../components/ruby-toolbar/icon--rubytee.svg';
@@ -20,7 +21,9 @@ import {
     isGenaiAvailable,
     isNudgeOffToday,
     localDateKey,
+    panelPlacement,
     resolveGenaiTarget,
+    scrollToShowBlocks,
     shouldNudge,
 } from '../lib/genai-concierge-state.js';
 import { PROBLEM_KINDS, buildGenaiPrompt } from '../lib/genai-prompt.js';
@@ -49,13 +52,26 @@ const writeStorage = (key, value) => {
     }
 };
 
-// The left edge of the script area right of the block palette, so the face does not cover blocks.
-const measureLeft = (root) => {
+// Width of the panel (also in genai-concierge.css) and of the face, for placing the panel.
+const PANEL_WIDTH = 340;
+const FACE_WIDTH = 52;
+// Margin kept above the panel inside the script area.
+const PANEL_TOP_MARGIN = 12;
+// Wait for the workspace to show the blocks just put in before scrolling to them.
+const SCROLL_DELAY_MS = 200;
+
+// Where the face goes (the left edge of the script area right of the block palette, so
+// it does not cover blocks) and the size of the script area the panel has to fit in.
+const measureArea = (root) => {
     const flyout = document.querySelector('.blocklyFlyout');
     const parent = root && root.offsetParent;
-    if (!flyout || !parent) return 12;
-    const right = flyout.getBoundingClientRect().right - parent.getBoundingClientRect().left;
-    return Math.max(12, Math.round(right + 12));
+    if (!parent) return { left: 12, width: 0, height: 0 };
+    const left = flyout ? flyout.getBoundingClientRect().right - parent.getBoundingClientRect().left : 0;
+    return {
+        left: Math.max(12, Math.round(left + 12)),
+        width: parent.clientWidth,
+        height: parent.clientHeight,
+    };
 };
 
 const GenaiConcierge = ({
@@ -67,12 +83,13 @@ const GenaiConcierge = ({
     running,
     role,
     sessionToken,
+    scratchBlocks,
     dispatch,
 }) => {
     const intl = useIntl();
     // The teacher may have turned the generative AI off since the page was last open.
     useStudentClassSettingsRefresh({ role, sessionToken, dispatch });
-    const [left, setLeft] = useState(12);
+    const [area, setArea] = useState({ left: 12, width: 0, height: 0 });
     const [nudge, setNudge] = useState(false);
     const [open, setOpen] = useState(false);
     const [step, setStep] = useState('trouble');
@@ -83,6 +100,8 @@ const GenaiConcierge = ({
     const [copied, setCopied] = useState({});
     const [devChoice, setDevChoice] = useState(() => readStorage(DEV_SERVICE_KEY));
     const [notice, setNotice] = useState('');
+    // The text of the question is folded away until the student opens it (#1293 G2).
+    const [promptOpen, setPromptOpen] = useState(false);
     // Bumped by 「もう一度相談する」 so the answer steps start empty.
     const [answerKey, setAnswerKey] = useState(0);
     const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -102,7 +121,12 @@ const GenaiConcierge = ({
 
     useEffect(() => {
         if (!available) return;
-        const update = () => setLeft(measureLeft(rootRef.current));
+        const update = () => {
+            const next = measureArea(rootRef.current);
+            setArea((prev) =>
+                prev.left === next.left && prev.width === next.width && prev.height === next.height ? prev : next,
+            );
+        };
         update();
         const timer = setInterval(update, 1000);
         window.addEventListener('resize', update);
@@ -168,8 +192,15 @@ const GenaiConcierge = ({
         lastActivity.current = Date.now();
     }, []);
 
+    // Each step change leaves the notice of the last one behind (#1293 G4).
+    const goTo = useCallback((next) => {
+        setNotice('');
+        setStep(next);
+    }, []);
+
     const handleReset = useCallback(() => {
         setStep('trouble');
+        setPromptOpen(false);
         setKindId(null);
         setText('');
         setPrompt('');
@@ -208,9 +239,9 @@ const GenaiConcierge = ({
         );
         setParts(1);
         setCopied({});
-        setNotice('');
-        setStep('copy');
-    }, [vm, rubyVersion, kindId, text, assignmentName]);
+        setPromptOpen(false);
+        goTo('copy');
+    }, [vm, rubyVersion, kindId, text, assignmentName, goTo]);
 
     // noopener: the opened page gets no reference back to Smalruby (it could otherwise
     // move this tab elsewhere), and the reference could not be used anyway (see aiOpened).
@@ -226,9 +257,14 @@ const GenaiConcierge = ({
             try {
                 await navigator.clipboard.writeText(content);
                 setCopied((c) => ({ ...c, [key]: true }));
-                setNotice(intl.formatMessage(aiOpened ? messages.copiedGoBack : messages.copied));
+                // Step 2's checklist already says what to do after the first copy (#1293 P1).
+                // Later copies go to the AI's tab opened before; a rewrite request has no checklist.
+                if (aiOpened) setNotice(intl.formatMessage(messages.copiedGoBack));
+                else setNotice(key === 'rewrite' ? intl.formatMessage(messages.copied) : '');
             } catch {
                 setNotice(intl.formatMessage(messages.copyFailed));
+                // The student copies it by hand from the text.
+                setPromptOpen(true);
             }
             if (!aiOpened) openAi();
         },
@@ -273,25 +309,47 @@ const GenaiConcierge = ({
     const handleSplit = useCallback(() => {
         setParts((p) => Math.min(p + 1, 4));
         setCopied({});
-    }, []);
-    const handleToTrouble = useCallback(() => setStep('trouble'), []);
-    const handleToPaste = useCallback(() => {
+        // 「コピーしました」 was about the whole question, not the parts (#1293 G4).
         setNotice('');
-        setStep('paste');
     }, []);
+    const handleToTrouble = useCallback(() => goTo('trouble'), [goTo]);
+    const handleToPaste = useCallback(() => goTo('paste'), [goTo]);
+    const handleTogglePrompt = useCallback(() => setPromptOpen((v) => !v), []);
+    const handleClearNotice = useCallback(() => setNotice(''), []);
+
+    // Bring the blocks just put in into view, away from the panel at the right (#1293 G8).
+    const handleApplied = useCallback(() => {
+        setTimeout(() => {
+            const workspace = scratchBlocks && scratchBlocks.getMainWorkspace();
+            if (!workspace) return;
+            const box = workspace.getBlocksBoundingBox();
+            const empty = !box || (box.right === box.left && box.bottom === box.top);
+            const to = scrollToShowBlocks({ bbox: empty ? null : box, scale: workspace.scale });
+            if (to) workspace.scroll(to.x, to.y);
+        }, SCROLL_DELAY_MS);
+    }, [scratchBlocks]);
 
     if (!available) return null;
 
     const title = intl.formatMessage(messages.title);
+    const place = panelPlacement({
+        areaWidth: area.width,
+        rootLeft: area.left,
+        panelWidth: PANEL_WIDTH,
+        faceWidth: FACE_WIDTH,
+    });
+    const panelStyle = {
+        left: place.left,
+        bottom: place.bottom,
+        transform: `translate(${offset.x}px, ${offset.y}px)`,
+    };
+    // The panel never scrolls the page: it fits in the script area above its bottom edge (#1293 P5).
+    if (area.height) panelStyle.maxHeight = area.height - 12 - place.bottom - PANEL_TOP_MARGIN;
     return (
-        <div className={styles.root} ref={rootRef} style={{ left }}>
+        <div className={styles.root} ref={rootRef} style={{ left: area.left }}>
             {nudge && !open && <GenaiNudge onOpen={handleOpen} onLater={handleNudgeLater} onOff={handleNudgeOff} />}
             {open && (
-                <div
-                    className={styles.panel}
-                    data-testid="genai-panel"
-                    style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}
-                >
+                <div className={styles.panel} data-testid="genai-panel" style={panelStyle}>
                     <div className={styles.header} data-testid="genai-drag-handle" onPointerDown={handleDragStart}>
                         <span>{title}</span>
                         <button
@@ -303,17 +361,7 @@ const GenaiConcierge = ({
                             ×
                         </button>
                     </div>
-                    <ol className={styles.steps}>
-                        <li className={step === 'trouble' ? styles.current : ''}>
-                            {intl.formatMessage(messages.stepTrouble)}
-                        </li>
-                        <li className={step === 'copy' ? styles.current : ''}>
-                            {intl.formatMessage(messages.stepCopy)}
-                        </li>
-                        <li className={step === 'paste' || step === 'done' ? styles.current : ''}>
-                            {intl.formatMessage(messages.stepPaste)}
-                        </li>
-                    </ol>
+                    <GenaiStepper step={step} onStep={goTo} />
                     <div className={styles.body}>
                         {step === 'trouble' && (
                             <GenaiTroubleStep
@@ -332,6 +380,8 @@ const GenaiConcierge = ({
                                 parts={parts}
                                 copied={copied}
                                 notice={notice}
+                                promptOpen={promptOpen}
+                                onTogglePrompt={handleTogglePrompt}
                                 onChooseService={handleChooseService}
                                 onChangeService={handleChangeService}
                                 onPromptChange={setPrompt}
@@ -347,10 +397,13 @@ const GenaiConcierge = ({
                             key={answerKey}
                             vm={vm}
                             rubyVersion={rubyVersion}
+                            serviceName={target ? target.name : null}
                             step={step}
                             notice={notice}
-                            onStep={setStep}
+                            onStep={goTo}
                             onCopy={copyAndOpen}
+                            onApplied={handleApplied}
+                            onClearNotice={handleClearNotice}
                             onClose={handleClose}
                             onReset={handleReset}
                         />
@@ -389,6 +442,7 @@ GenaiConcierge.propTypes = {
     running: PropTypes.bool,
     role: PropTypes.string,
     sessionToken: PropTypes.string,
+    scratchBlocks: PropTypes.shape({ getMainWorkspace: PropTypes.func }),
     dispatch: PropTypes.func.isRequired,
 };
 
@@ -398,6 +452,7 @@ const mapStateToProps = (state) => {
         rubyVersion: state.scratchGui.settings.rubyVersion,
         role: classroom.role,
         sessionToken: classroom.sessionToken,
+        scratchBlocks: state.scratchGui.blockDisplay && state.scratchGui.blockDisplay.scratchBlocks,
         assignmentName: classroom.assignmentName,
         classGenai: classroom.studentGenai,
         available: isGenaiAvailable({

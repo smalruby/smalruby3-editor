@@ -54,9 +54,12 @@
 }
 
 .panel {
-    width: 420px;
+    /* At the right edge of the script area (left / bottom / max-height from the container, #1293 G8). */
+    position: absolute;
+    width: 340px;
     max-width: calc(100vw - 32px);
-    max-height: calc(100vh - 200px);
+    max-height: calc(100vh - 160px);
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -80,34 +83,190 @@
     cursor: pointer;
 }
 
-.steps {
+/* Progress display (#1293 G9): square nodes joined by a line under the step names. */
+.stepper {
+    position: relative;
     display: flex;
-    gap: 4px;
+    justify-content: space-between;
     margin: 0;
-    padding: 6px 12px;
+    padding: 6px 12px 8px;
     list-style: none;
     background-color: $ui-secondary;
     font-size: 0.75rem;
+}
+
+/* The line runs between the centers of the first and the last node; the filled part ends at the current step. */
+.stepper::before,
+.stepper::after {
+    content: '';
+    position: absolute;
+    left: calc(12px + 48px);
+    bottom: 15px;
+    height: 3px;
+}
+
+.stepper::before {
+    right: calc(12px + 48px);
+    background-color: $ui-black-transparent;
+}
+
+.stepper::after {
+    width: 0;
+    background-color: $looks-secondary;
+}
+
+.stepper[data-at='1']::after {
+    width: calc((100% - 120px) / 2);
+}
+
+.stepper[data-at='2']::after {
+    width: calc(100% - 120px);
+}
+
+.stepItem {
+    position: relative;
+    z-index: 1;
+    width: 96px;
+}
+
+.stepItem,
+.stepReturn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
     color: $text-primary-transparent;
+    white-space: nowrap;
 }
 
-.steps li {
-    flex: 1;
-    text-align: center;
-    padding: 2px 0;
-    border-radius: 4px;
+.stepReturn {
+    width: 100%;
+    padding: 0;
+    border: none;
+    background: none;
+    font: inherit;
+    cursor: pointer;
 }
 
-.current {
-    background-color: $looks-light-transparent;
+.stepReturn .stepName {
+    text-decoration: underline;
+}
+
+.stepNode {
+    width: 17px;
+    height: 17px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid $ui-black-transparent;
+    background-color: $ui-white;
+    color: $ui-white;
+    font-size: 0.65rem;
+    line-height: 1;
+}
+
+.step-done .stepName {
     color: $text-primary;
+}
+
+.step-done .stepNode {
+    border-color: $looks-secondary;
+    background-color: $looks-secondary;
+}
+
+.step-current .stepName {
+    color: $looks-secondary;
     font-weight: bold;
 }
 
+.step-current .stepNode {
+    border-color: $looks-secondary;
+}
+
 .body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    background-color: $ui-white;
+}
+
+/* Only the content scrolls; the buttons stay at the bottom of the panel (#1293 G3). */
+.stepBody {
+    flex: 1;
+    min-height: 0;
     padding: 10px 12px;
     overflow-y: auto;
+}
+
+.footer {
+    flex: none;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 6px;
+    padding: 8px 12px;
+    border-top: 1px solid $ui-black-transparent;
     background-color: $ui-white;
+}
+
+.footer button:first-child {
+    margin-right: auto;
+}
+
+.question {
+    margin: 2px 0 8px;
+    font-weight: bold;
+    font-size: 0.95rem;
+}
+
+.checklist {
+    margin: 0 0 8px;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.checklist li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.checkMark {
+    flex: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    color: $ui-white;
+    background-color: $ui-black-transparent;
+}
+
+.check-done .checkMark {
+    background-color: #2e9e5b;
+}
+
+.check-next {
+    font-weight: bold;
+}
+
+.check-next .checkMark {
+    background-color: $looks-secondary;
+}
+
+.check-wait {
+    color: $text-primary-transparent;
+}
+
+.parts {
+    margin-bottom: 4px;
 }
 
 .label {
@@ -124,6 +283,7 @@
 .notice {
     margin: 6px 0;
     padding: 6px 8px;
+    font-size: 0.75rem;
     background-color: $ui-secondary;
     border-radius: 6px;
 }
@@ -144,6 +304,7 @@
 
 .row button,
 .partRow button,
+.footer button,
 .ok button,
 .ng button,
 .chip,
@@ -159,6 +320,7 @@
 
 .row button:disabled,
 .partRow button:disabled,
+.footer button:disabled,
 .ok button:disabled {
     opacity: 0.45;
     cursor: default;
@@ -166,6 +328,7 @@
 
 .row .primary,
 .partRow .primary,
+.footer .primary,
 .ok .primary,
 .ng .primary,
 .bubble .primary {
@@ -206,7 +369,7 @@
 }
 
 .prompt {
-    height: 160px;
+    height: 120px;
     font-family: monospace;
     font-size: 0.72rem;
 }
@@ -229,6 +392,15 @@
 .ok p,
 .ng p {
     margin: 0 0 6px;
+}
+
+.ok .label {
+    font-size: 0.8rem;
+}
+
+.switchState {
+    margin: 0 0 6px;
+    font-size: 0.8rem;
 }
 
 .ng ul {

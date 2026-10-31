@@ -8,20 +8,44 @@
 スクリプトエリアの左下（ブロックパレットの右）に **ルビティーの顔** が出る。生徒は顔を押して
 （または手が止まったときの声かけから）次の順に進む。
 
-1. **困りごと** — 5 種類から選び、自分のことばで書く（必須。書き出しの例のままでは進めない）
-2. **コピーして相談** — 作品全体のブロックを Ruby にした質問文ができる（見せて書き足せる）。
-   ［コピーして生成AI を開く］でクリップボードにコピーし、クラスで決めた生成AI を別タブで開く。
-   生成AI を開くのは最初の 1 回だけで、2 回目からはコピーだけして「生成AI のタブにもどって貼りつけてね」と出す
-   （タブを閉じてしまったときのために［生成AI をもう一度開く］も出す）。Gemini や ChatGPT は
-   Cross-Origin-Opener-Policy でスモウルビーのタブから切り離されるので、開いたタブを名前で探したり
-   前に出したりできないため。タブは `noopener` で開き、開いた先からスモウルビーのタブを操作させない。
-   長すぎて貼れないときは 2〜4 つに分けてコピーできる。
-3. **貼りもどす** — 生成AI の答えを貼りもどしてブロックにする（段階 4 以降。まだプロトタイプのまま
-   日本語のみ。次の sub-issue で本実装にする）
+1. **困りごと** — 「どんなことで困っている？」の 1 行と 5 種類のボタン。種類を選ぶと、書き出しの例が
+   入った入力欄が開く。自分のことばで書く（必須。書き出しの例のままでは進めない）
+2. **コピーして相談** — 作品全体のブロックを Ruby にした相談文ができる。やることは
+   「コピーして Gemini を開く → Gemini の入力らんに貼りつけて送る → 答えが来たら次へ」のチェックリストで
+   見せる（スモウルビーには生成AI のタブが見えないので、チェックが付くのはコピーだけ）。
+   相談文の本文はふだんは畳んで文字数だけを出し、［中身を見る・直す］で開いて書き足せる
+   （コピーできなかったときは、手でコピーできるように開く）。
+   ［コピーして Gemini を開く］（ボタンの名前に相談先が入る）でクリップボードにコピーし、クラスで決めた
+   生成AI を別タブで開く。生成AI を開くのは最初の 1 回だけで、2 回目からはコピーだけして
+   「生成AI のタブにもどって貼りつけてね」と出す（タブを閉じてしまったときのために
+   ［Gemini をもう一度開く］も出す）。Gemini や ChatGPT は Cross-Origin-Opener-Policy でスモウルビーの
+   タブから切り離されるので、開いたタブを名前で探したり前に出したりできないため。タブは `noopener` で
+   開き、開いた先からスモウルビーのタブを操作させない。長すぎて貼れないときは 2〜4 つに分けてコピーできる。
+3. **貼りもどす** — 「Gemini の答えを、まるごと貼りつけよう」（「▼▼」〜「▲▲」はスモウルビーが探すので
+   全部貼ってよい）。［ブロックにできるか調べる］を押すと貼りつけ欄を畳み（［答えを見る］で開ける。
+   プログラムが見つからなかったときは貼りなおせるように開いたまま）、
+   ✔／✗ の結果と次のボタンをその場所に出す。入れたあとは元のプログラムと生成AI の案を切りかえて比べる
+   （結果の細かい文言と切りかえは、まだプロトタイプの日本語のみ）
+
+### パネルの形（どの段階も共通）
+
+- **1 画面に、次にやることは 1 つ**。主ボタン（紫）は 1 つだけで、問いかけは 1 行。
+- ボタンの帯（［もどる］と主ボタン）は **パネルの下端に固定** し、中身だけがスクロールする。
+  1300×600 で、どの段階もパネルの中をスクロールせずに主ボタンまで見える。
+- 段階を移ったとき・分けたときは、前のお知らせ（「コピーしました」など）を消す。
+- ヘッダーの下は **進み具合の表示**（タブではない）。ラベルの下に四角い点を並べて線でつなぎ、
+  終わった段階は点を塗りつぶして ✓（線もそこまで塗る）、いまの段階は太い枠と太字、まだの段階は灰色。
+  ブロックを入れる前なら、終わった段階のラベルを押してもどれる。
+- パネルは **スクリプトエリアの右端** に出す（顔は左下のまま）。スクリプトエリアが狭くて顔と並ばない
+  ときは顔の上に出す。高さはスクリプトエリアに収まるように決める。ブロックを入れたあとは、
+  入れたブロックがスクリプトエリアの左上に来るように画面を動かす（パネルに重ならない）。
 
 ![声かけ](screenshots/0101-nudge.png)
-![困りごと](screenshots/0102-trouble.png)
-![分けてコピー（1300×600）](screenshots/0103-copy-split.png)
+![困りごと（1300×600）](screenshots/0102-trouble.png)
+![コピーして相談（コピーしたあと）](screenshots/0104-copy.png)
+![分けてコピー](screenshots/0103-copy-split.png)
+![貼りもどす（調べた結果）](screenshots/0105-paste-result.png)
+![入れたあと（ブロックはパネルの左に見える）](screenshots/0106-done.png)
 
 スモウルビーは生成AI と直接は通信しない。生徒が自分でコピー・貼りつけをする（学校が契約・許可して
 いる生成AI を、学校のアカウントのまま使うため）。
@@ -88,11 +112,12 @@
 | `packages/scratch-gui/src/containers/genai-concierge.jsx` | 顔・パネル・声かけ・コピーと生成AI のタブ（表示条件は Redux から） |
 | `packages/scratch-gui/src/containers/use-student-class-settings-refresh.js` | ページを開いたときにクラスの AI 設定（生成AI・ルビティー）を verify-session で読み直す |
 | `packages/scratch-gui/src/components/genai-concierge/genai-nudge.jsx` | 声かけの吹き出し |
+| `packages/scratch-gui/src/components/genai-concierge/genai-stepper.jsx` | 進み具合の表示 |
 | `packages/scratch-gui/src/components/genai-concierge/genai-trouble-step.jsx` | 段階 1: 困りごと |
 | `packages/scratch-gui/src/components/genai-concierge/genai-copy-step.jsx` | 段階 2: 質問文のコピー・分割（開発用の生成AI 選択を含む） |
-| `packages/scratch-gui/src/components/genai-concierge/genai-answer-steps.jsx` | 段階 3 以降: 貼りもどし・切りかえ（プロトタイプ） |
+| `packages/scratch-gui/src/components/genai-concierge/genai-answer-steps.jsx` | 段階 3: 貼りもどし・切りかえ |
 | `packages/scratch-gui/src/components/genai-concierge/messages.js` | 文言（`gui.genaiConcierge.*`） |
-| `packages/scratch-gui/src/lib/genai-concierge-state.js` | 表示条件・相談先・声かけの判定（純粋関数） |
+| `packages/scratch-gui/src/lib/genai-concierge-state.js` | 表示条件・相談先・声かけ・進み具合・パネルの位置の判定（純粋関数） |
 | `packages/scratch-gui/src/lib/genai-prompt.js` | 質問文の組み立て・分割・答えからの Ruby 取り出し（純粋関数） |
 | `packages/scratch-gui/src/lib/genai-repair.js` | 生成AI の Ruby の自動修正・スプライトごとの分割 |
 | `packages/scratch-gui/src/reducers/classroom.js` | `studentGenai` と `setStudentGenai` |
@@ -106,24 +131,28 @@
 | `genai-nudge-open` / `genai-nudge-later` / `genai-nudge-off` | button | 相談する / あとで / 今日は出さない |
 | `genai-panel` | div | パネル全体 |
 | `genai-drag-handle` | div | パネルのヘッダー（ドラッグで動かせる） |
+| `genai-stepper` | ol | 進み具合の表示 |
+| `genai-step-<id>` | li | 各段階（`trouble` / `copy` / `paste`）。`data-status` は `done` / `current` / `todo`。終わった段階は中のボタンでもどれる |
 | `genai-close` | button | 閉じる（×） |
 | `genai-kind-<id>` | button | 困りごとの種類（`not-working` / `error` / `next` / `how` / `more-fun`） |
-| `genai-trouble-text` | textarea | 困りごとを自分のことばで書く欄 |
+| `genai-trouble-text` | textarea | 困りごとを自分のことばで書く欄（種類を選ぶと出る） |
 | `genai-make-prompt` | button | 相談文をつくる |
-| `genai-service-name` | p | 相談先の名前 |
 | `genai-service-gemini` / `genai-service-chatgpt` / `genai-service-url` / `genai-service-change` | button / input / a | 開発用（`?features=genai` でクラス外）の生成AI 選択 |
-| `genai-prompt` | textarea | 質問文（書き足せる） |
-| `genai-copy-open` | button | コピーして生成AI を開く（開いたあとは「コピーする」） |
-| `genai-reopen` | a | 生成AI をもう一度開く（開いたあとだけ） |
-| `genai-split` | a | 「生成AI に貼れなかった・長すぎると言われた」（分けてコピーする） |
+| `genai-checklist` | ol | 段階 2 のやること（各 `li` の `data-status` は `done` / `next` / `wait`） |
+| `genai-prompt-toggle` | a | 相談文の中身を見る・直す / 閉じる |
+| `genai-prompt` | textarea | 相談文（開いたときだけ。書き足せる） |
+| `genai-copy-open` | button | コピーして（相談先）を開く（開いたあとは「コピーする」） |
+| `genai-reopen` | a | （相談先）をもう一度開く（開いたあとだけ） |
+| `genai-split` | a | 「長すぎると言われた・貼れなかった」（分けてコピーする） |
 | `genai-copy-part-<n>` | button | 分けた n つ目をコピー |
 | `genai-notice` | p | コピーした / できなかったのお知らせ |
-| `genai-to-paste` | button | 答えをもらったら次へ |
-| `genai-answer` / `genai-convert` / `genai-checking` / `genai-convert-ok` / `genai-convert-ng` / `genai-fixes` / `genai-raw-count` / `genai-reflection` / `genai-apply` / `genai-self` / `genai-copy-rewrite` | — | 段階 3 以降（貼りもどし。プロトタイプ） |
-| `genai-switch-before` / `genai-switch-after` / `genai-switch-state` / `genai-again` / `genai-finish` | — | 入れたあとの切りかえ（プロトタイプ） |
+| `genai-to-paste` | button | 答えが来たら次へ |
+| `genai-answer-toggle` | a | 調べたあとに畳んだ答えを見る / 閉じる |
+| `genai-answer` / `genai-convert` / `genai-checking` / `genai-convert-ok` / `genai-convert-ng` / `genai-fixes` / `genai-raw-count` / `genai-reflection` / `genai-apply` / `genai-self` / `genai-copy-rewrite` | — | 段階 3（貼りもどし） |
+| `genai-switch-before` / `genai-switch-after` / `genai-switch-state` / `genai-again` / `genai-finish` | — | 入れたあとの切りかえ |
 
 ## 画面の大きさ
 
-授業 PC の 1300×600 で、顔とパネルはスクリプトエリアの中（ブロックパレットの右・左下）に収まり、
+授業 PC の 1300×600 で、顔（ブロックパレットの右・左下）とパネル（右端）はスクリプトエリアの中に収まり、
 スクリプトエリアの下のバックパックの帯とは重ならない。パネルが邪魔なときはヘッダーをドラッグして
 動かせる。
