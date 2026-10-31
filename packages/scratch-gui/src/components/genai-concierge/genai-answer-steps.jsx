@@ -1,41 +1,110 @@
-// Step 3 of "生成AI に相談": paste the AI's answer back, check that it turns
+// Step 3 of "生成AI に相談" (#1280): paste the AI's answer back, check that it turns
 // into blocks, put it in and switch between the two versions. Once checked, the
-// answer folds away and the result takes its place (#1293 G7). The details of
-// the result and the switch still keep the prototype's Japanese.
-// Always mounted while the panel is open so going back a step keeps the answer.
+// answer folds away and the result takes its place (#1293 G7).
+// Always mounted while the panel has been opened (also while it is closed) so going
+// back a step or closing the panel keeps the answer and the two versions.
 import PropTypes from 'prop-types';
 import React, { useCallback, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
-import { buildRewritePrompt, extractRuby } from '../../lib/genai-prompt.js';
-import { repairRuby, splitBySprite } from '../../lib/genai-repair.js';
+import { checkAnswer, liveSnapshots, problemToJapanese, switchSnapshots } from '../../lib/genai-answer.js';
+import { canOfferTakeover } from '../../lib/genai-concierge-state.js';
+import { buildRewritePrompt } from '../../lib/genai-prompt.js';
 import RubyGenerator from '../../lib/ruby-generator';
 import { targetCodeToBlocks } from '../../lib/ruby-to-blocks-converter';
 import styles from './genai-concierge.css';
 import messages from './messages.js';
 
-const errorText = (error) => {
-    if (typeof error === 'string') return error;
-    const where = error.row || error.row === 0 ? `${error.row + 1} 行目: ` : '';
-    const text = error.text || error.message || JSON.stringify(error);
-    return `${where}${text}`;
+// The stage is called 「ステージ」 in the question to the AI.
+const nameOf = (target) => (target.isStage ? 'ステージ' : target.getName());
+
+const quoteNames = (names) => names.map((name) => `「${name}」`).join('');
+
+// Where a fix or a problem is: the sprite (when the answer has several) and the line.
+const placeOf = (intl, sprite, line) => {
+    if (line) {
+        return sprite
+            ? intl.formatMessage(messages.spriteLineOf, { sprite, line })
+            : intl.formatMessage(messages.lineOf, { line });
+    }
+    return sprite ? intl.formatMessage(messages.spriteOf, { sprite }) : null;
 };
 
-const FixList = ({ fixes }) => (
-    <div className={styles.fixes} data-testid="genai-fixes">
-        <p className={styles.small}>スモウルビーが直したところ:</p>
-        <ul>
-            {fixes.map((fix, i) => (
-                <li key={i}>
-                    {fix.name ? `「${fix.name}」` : ''}
-                    {fix.line} 行目 <code>{fix.from}</code> → <code>{fix.to}</code>
-                </li>
-            ))}
-        </ul>
-    </div>
-);
+// A problem from checkAnswer in the student's language.
+const describeProblem = (intl, problem) => {
+    switch (problem.type) {
+        case 'noProgram':
+            return { place: null, text: intl.formatMessage(messages.problemNoProgram) };
+        case 'missing': {
+            const sound = problem.kind === 'sound';
+            const none = problem.names.length === 0;
+            const message = sound
+                ? none
+                    ? messages.problemMissingSoundNone
+                    : messages.problemMissingSound
+                : none
+                  ? messages.problemMissingCostumeNone
+                  : messages.problemMissingCostume;
+            return {
+                place: placeOf(intl, problem.sprite, problem.line),
+                text: intl.formatMessage(message, { name: problem.name, names: quoteNames(problem.names) }),
+            };
+        }
+        case 'classDef':
+            return {
+                place: placeOf(intl, problem.sprite, problem.line),
+                text: intl.formatMessage(messages.problemClassDef, { source: problem.source }),
+            };
+        case 'raw':
+            return {
+                place: placeOf(intl, problem.sprite, null),
+                text: intl.formatMessage(messages.problemRaw, { count: problem.count }),
+            };
+        case 'error':
+            return {
+                place: placeOf(intl, problem.sprite, problem.row === null ? null : problem.row + 1),
+                text: problem.text,
+            };
+        default:
+            return { place: placeOf(intl, problem.sprite, null), text: problem.text };
+    }
+};
+
+const FixList = ({ fixes }) => {
+    const intl = useIntl();
+    return (
+        <div className={styles.fixes} data-testid="genai-fixes">
+            <p className={styles.small}>
+                <FormattedMessage {...messages.fixesTitle} />
+            </p>
+            <ul>
+                {fixes.map((fix, i) => (
+                    <li key={i}>
+                        {placeOf(intl, fix.name, fix.line)} <code>{fix.from}</code> → <code>{fix.to}</code>
+                    </li>
+                ))}
+            </ul>
+        </div>
+    );
+};
 
 FixList.propTypes = {
     fixes: PropTypes.arrayOf(PropTypes.object).isRequired,
+};
+
+const ProblemList = ({ problems }) => {
+    const intl = useIntl();
+    return (
+        <ul data-testid="genai-problems">
+            {problems.slice(0, 5).map((problem, i) => {
+                const { place, text } = describeProblem(intl, problem);
+                return <li key={i}>{place ? `${place}: ${text}` : text}</li>;
+            })}
+        </ul>
+    );
+};
+
+ProblemList.propTypes = {
+    problems: PropTypes.arrayOf(PropTypes.object).isRequired,
 };
 
 const GenaiAnswerSteps = ({
@@ -44,12 +113,15 @@ const GenaiAnswerSteps = ({
     serviceName,
     step,
     notice,
+    rubyteeAvailable,
     onStep,
     onCopy,
     onApplied,
     onClearNotice,
     onClose,
+    onFinish,
     onReset,
+    onTakeover,
 }) => {
     const intl = useIntl();
     const [answer, setAnswer] = useState('');
@@ -65,70 +137,29 @@ const GenaiAnswerSteps = ({
     // The pasted answer opened again after it was checked.
     const [answerOpen, setAnswerOpen] = useState(false);
 
-    // Sprite name → target; the stage is called 「ステージ」 in the prompt.
-    const targetsByName = useCallback(() => {
-        const map = {};
+    const convertAnswer = useCallback(async () => {
+        const targets = {};
         vm.runtime.targets
             .filter((t) => t.isOriginal)
             .forEach((t) => {
-                map[t.isStage ? 'ステージ' : t.getName()] = t;
+                targets[nameOf(t)] = t;
             });
-        return map;
-    }, [vm]);
-
-    const convertAnswer = useCallback(async () => {
-        const code = extractRuby(answer);
-        if (!code) {
-            setConverted({ ok: false, code: '', problems: ['貼りつけた文にプログラムが見つかりませんでした'] });
-            setFailures((f) => f + 1);
-            return;
-        }
-        const targets = targetsByName();
-        const editing = vm.editingTarget;
-        const editingName = editing.isStage ? 'ステージ' : editing.getName();
-        const sections = splitBySprite(code, Object.keys(targets)) || [{ name: editingName, code }];
-        const results = [];
-        const problems = [];
-        let rawCount = 0;
-        for (const section of sections) {
-            const target = targets[section.name];
-            const repaired = repairRuby(section.code, {
-                sounds: target.getSounds().map((sound) => sound.name),
-                costumes: target.getCostumes().map((costume) => costume.name),
-            });
-            const prefix = sections.length > 1 ? `「${section.name}」の ` : '';
-            try {
-                const converter = await targetCodeToBlocks(vm, target, repaired.code, intl, {
-                    version: rubyVersion,
-                });
-                if (converter.result) {
-                    // Lines the converter could not map stay as "Ruby のまま" blocks; tell the student.
-                    rawCount += Object.values(converter.blocks || {}).filter(
-                        (b) => b.opcode === 'ruby_statement' || b.opcode === 'ruby_expression',
-                    ).length;
-                } else {
-                    converter.errors.forEach((error) => problems.push(`${prefix}${errorText(error)}`));
-                }
-                results.push({ name: section.name, target, code: repaired.code, fixes: repaired.fixes, converter });
-            } catch (e) {
-                problems.push(`${prefix}${e.message || String(e)}`);
-                results.push({ name: section.name, target, code: repaired.code, fixes: repaired.fixes });
-            }
-        }
-        const repairedCode =
-            sections.length > 1
-                ? results.map((part) => `# 「${part.name}」\n${part.code}`).join('\n')
-                : results[0].code;
-        const fixes = results.flatMap((part) =>
-            part.fixes.map((fix) => ({ ...fix, name: sections.length > 1 ? part.name : null })),
-        );
-        if (problems.length === 0) {
-            setConverted({ ok: true, code: repairedCode, parts: results, rawCount, fixes });
-        } else {
-            setConverted({ ok: false, code: repairedCode, problems, fixes });
-            setFailures((f) => f + 1);
-        }
-    }, [answer, vm, intl, rubyVersion, targetsByName]);
+        const result = await checkAnswer({
+            answer,
+            sprites: Object.keys(targets).map((name) => ({
+                name,
+                sounds: targets[name].getSounds().map((sound) => sound.name),
+                costumes: targets[name].getCostumes().map((costume) => costume.name),
+            })),
+            editingName: nameOf(vm.editingTarget),
+            convert: (name, code) => targetCodeToBlocks(vm, targets[name], code, intl, { version: rubyVersion }),
+        });
+        result.parts.forEach((part) => {
+            part.target = targets[part.name];
+        });
+        setConverted(result);
+        if (!result.ok) setFailures((f) => f + 1);
+    }, [answer, vm, intl, rubyVersion]);
 
     const handleConvert = useCallback(async () => {
         setConverted(null);
@@ -171,17 +202,19 @@ const GenaiAnswerSteps = ({
         onApplied();
     }, [rubyVersion, converted, onStep, onApplied]);
 
-    // Switch between the original and the AI's version. The side being left keeps whatever
-    // the student changed meanwhile, so trying things out never throws their edits away.
+    // Switch between the original and the AI's version (switchSnapshots keeps the
+    // student's changes on the side being left). A sprite deleted meanwhile drops out.
     const handleSwitch = useCallback(
         async (e) => {
             const toAfter = e.currentTarget.dataset.side === 'after';
             if (toAfter === applied || busy) return;
             setBusy(true);
-            const next = snapshots.map((snap) => {
-                const current = RubyGenerator.targetToCode(snap.target, { version: rubyVersion });
-                return toAfter ? { ...snap, before: current } : { ...snap, after: current };
-            });
+            const live = liveSnapshots(snapshots, vm.runtime.targets);
+            const next = switchSnapshots(
+                live,
+                toAfter,
+                live.map((snap) => RubyGenerator.targetToCode(snap.target, { version: rubyVersion })),
+            );
             for (const snap of next) {
                 await loadCode(snap.target, toAfter ? snap.after : snap.before);
             }
@@ -189,7 +222,7 @@ const GenaiAnswerSteps = ({
             setApplied(toAfter);
             setBusy(false);
         },
-        [applied, busy, snapshots, rubyVersion, loadCode],
+        [applied, busy, snapshots, vm, rubyVersion, loadCode],
     );
 
     const handleReflectionChange = useCallback((e) => setReflection(e.target.value), []);
@@ -206,8 +239,13 @@ const GenaiAnswerSteps = ({
         e.preventDefault();
         setShowRuby((v) => !v);
     }, []);
+    // The request goes to the AI, so it stays in Japanese whatever the editor language.
     const handleCopyRewrite = useCallback(
-        () => onCopy(buildRewritePrompt({ code: converted.code, problems: converted.problems }), 'rewrite'),
+        () =>
+            onCopy(
+                buildRewritePrompt({ code: converted.code, problems: converted.problems.map(problemToJapanese) }),
+                'rewrite',
+            ),
         [onCopy, converted],
     );
 
@@ -240,27 +278,23 @@ const GenaiAnswerSteps = ({
                     {checking && (
                         <div className={styles.checking} data-testid="genai-checking">
                             <span className={styles.spinner} />
-                            ブロックにできるか調べています…
+                            <FormattedMessage {...messages.checking} />
                         </div>
                     )}
                     {converted && converted.ok && (
                         <div className={styles.ok} data-testid="genai-convert-ok">
                             <p className={styles.verdict}>
                                 <span className={styles.markOk}>✔</span>
-                                ブロックにできます
+                                <FormattedMessage {...messages.convertOk} />
                             </p>
-                            {converted.fixes && converted.fixes.length > 0 && <FixList fixes={converted.fixes} />}
-                            {converted.rawCount > 0 && (
-                                <p className={styles.small} data-testid="genai-raw-count">
-                                    ※ {converted.rawCount} か所は、ふつうのブロックにならず「Ruby
-                                    のまま」のブロックになります。
-                                </p>
-                            )}
-                            <a href="#" onClick={handleToggleRuby}>
-                                {showRuby ? 'Ruby をかくす' : 'Ruby を見る'}
+                            {converted.fixes.length > 0 && <FixList fixes={converted.fixes} />}
+                            <a href="#" data-testid="genai-ruby-toggle" onClick={handleToggleRuby}>
+                                <FormattedMessage {...(showRuby ? messages.rubyHide : messages.rubyShow)} />
                             </a>
                             {showRuby && <pre className={styles.code}>{converted.code}</pre>}
-                            <p className={styles.label}>どこが変わるのか、自分のことばで 1 行書こう（必須）</p>
+                            <p className={styles.label}>
+                                <FormattedMessage {...messages.reflectionLabel} />
+                            </p>
                             <input
                                 className={styles.url}
                                 data-testid="genai-reflection"
@@ -268,8 +302,10 @@ const GenaiAnswerSteps = ({
                                 onChange={handleReflectionChange}
                             />
                             <p className={styles.small}>
-                                入れると、{converted.parts.map((part) => `「${part.name}」`).join('')}
-                                のブロックが置きかわります。
+                                <FormattedMessage
+                                    {...messages.applyReplaces}
+                                    values={{ names: quoteNames(converted.parts.map((part) => part.name)) }}
+                                />
                             </p>
                         </div>
                     )}
@@ -277,19 +313,10 @@ const GenaiAnswerSteps = ({
                         <div className={styles.ng} data-testid="genai-convert-ng">
                             <p className={styles.verdict}>
                                 <span className={styles.markNg}>✗</span>
-                                このままではブロックにできません
+                                <FormattedMessage {...messages.convertNg} />
                             </p>
-                            {converted.fixes && converted.fixes.length > 0 && <FixList fixes={converted.fixes} />}
-                            <ul>
-                                {converted.problems.slice(0, 5).map((p, i) => (
-                                    <li key={i}>{p}</li>
-                                ))}
-                            </ul>
-                            {failures >= 2 && (
-                                <p className={styles.small}>
-                                    （本番では、ここで「ルビティーにまかせる」が出る予定です）
-                                </p>
-                            )}
+                            {converted.fixes.length > 0 && <FixList fixes={converted.fixes} />}
+                            <ProblemList problems={converted.problems} />
                             {notice && (
                                 <p className={styles.notice} data-testid="genai-notice">
                                     {notice}
@@ -315,7 +342,7 @@ const GenaiAnswerSteps = ({
                     {converted && converted.ok && (
                         <>
                             <button data-testid="genai-self" onClick={onClose}>
-                                自分で組む
+                                <FormattedMessage {...messages.self} />
                             </button>
                             <button
                                 className={styles.primary}
@@ -323,9 +350,14 @@ const GenaiAnswerSteps = ({
                                 disabled={reflection.trim().length < 5 || busy}
                                 onClick={handleApply}
                             >
-                                このブロックを入れる
+                                <FormattedMessage {...messages.apply} />
                             </button>
                         </>
+                    )}
+                    {converted && !converted.ok && canOfferTakeover({ failures, rubyteeAvailable }) && (
+                        <button data-testid="genai-takeover" onClick={onTakeover}>
+                            <FormattedMessage {...messages.takeover} />
+                        </button>
                     )}
                     {converted && !converted.ok && converted.code && (
                         <button
@@ -333,7 +365,7 @@ const GenaiAnswerSteps = ({
                             data-testid="genai-copy-rewrite"
                             onClick={handleCopyRewrite}
                         >
-                            書き直しのお願いをコピー
+                            <FormattedMessage {...messages.copyRewrite} />
                         </button>
                     )}
                 </div>
@@ -342,6 +374,7 @@ const GenaiAnswerSteps = ({
     }
 
     if (step === 'done' && snapshots) {
+        const side = intl.formatMessage(applied ? messages.switchAfter : messages.switchBefore);
         return (
             <>
                 <div className={styles.stepBody}>
@@ -353,7 +386,7 @@ const GenaiAnswerSteps = ({
                             disabled={busy}
                             onClick={handleSwitch}
                         >
-                            元のプログラム
+                            <FormattedMessage {...messages.switchBefore} />
                         </button>
                         <button
                             className={applied ? styles.switchOn : ''}
@@ -362,24 +395,29 @@ const GenaiAnswerSteps = ({
                             disabled={busy}
                             onClick={handleSwitch}
                         >
-                            生成AI の案
+                            <FormattedMessage {...messages.switchAfter} />
                         </button>
                     </div>
                     <p className={styles.switchState} data-testid="genai-switch-state">
-                        いまは<strong>{applied ? '生成AI の案' : '元のプログラム'}</strong>
-                        が入っています（{snapshots.map((snap) => `「${snap.name}」`).join('')}
-                        ）。旗をおして、動きを比べてみよう。
+                        <FormattedMessage
+                            {...messages.switchState}
+                            values={{
+                                side: <strong>{side}</strong>,
+                                names: quoteNames(snapshots.map((snap) => snap.name)),
+                            }}
+                        />
                     </p>
                     <p className={styles.small}>
-                        切りかえても、それぞれで自分が変えたところは残ります。 あなたのメモ: {reflection}
+                        <FormattedMessage {...messages.switchKeep} />{' '}
+                        <FormattedMessage {...messages.memo} values={{ text: reflection }} />
                     </p>
                 </div>
                 <div className={styles.footer}>
                     <button data-testid="genai-again" onClick={onReset}>
-                        もう一度相談する
+                        <FormattedMessage {...messages.again} />
                     </button>
-                    <button data-testid="genai-finish" onClick={onClose}>
-                        これで閉じる
+                    <button data-testid="genai-finish" onClick={onFinish}>
+                        <FormattedMessage {...messages.finish} />
                     </button>
                 </div>
             </>
@@ -398,12 +436,17 @@ GenaiAnswerSteps.propTypes = {
     serviceName: PropTypes.string,
     step: PropTypes.string.isRequired,
     notice: PropTypes.string,
+    // The student's class uses Rubytee: 「ルビティーにまかせる」 can be offered.
+    rubyteeAvailable: PropTypes.bool,
     onStep: PropTypes.func.isRequired,
     onCopy: PropTypes.func.isRequired,
     onApplied: PropTypes.func.isRequired,
     onClearNotice: PropTypes.func.isRequired,
     onClose: PropTypes.func.isRequired,
+    // 「これで閉じる」: keep the version shown now and start afresh next time.
+    onFinish: PropTypes.func.isRequired,
     onReset: PropTypes.func.isRequired,
+    onTakeover: PropTypes.func.isRequired,
 };
 
 export default GenaiAnswerSteps;

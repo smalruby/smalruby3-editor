@@ -29,6 +29,7 @@ import {
 import { PROBLEM_KINDS, buildGenaiPrompt } from '../lib/genai-prompt.js';
 import RubyGenerator from '../lib/ruby-generator';
 import { getUrlParams } from '../lib/url-params.js';
+import { selectRubyteeAvailable } from '../reducers/classroom.js';
 import useStudentClassSettingsRefresh from './use-student-class-settings-refresh.js';
 
 // The date the student chose 「今日は出さない」 (YYYY-MM-DD).
@@ -81,6 +82,7 @@ const GenaiConcierge = ({
     available,
     classGenai,
     running,
+    rubyteeAvailable,
     role,
     sessionToken,
     scratchBlocks,
@@ -92,6 +94,9 @@ const GenaiConcierge = ({
     const [area, setArea] = useState({ left: 12, width: 0, height: 0 });
     const [nudge, setNudge] = useState(false);
     const [open, setOpen] = useState(false);
+    // Once opened, the panel stays mounted (hidden while closed): closing it or moving to
+    // another tab in the middle of comparing the two versions keeps both of them (#1280).
+    const [opened, setOpened] = useState(false);
     const [step, setStep] = useState('trouble');
     const [kindId, setKindId] = useState(null);
     const [text, setText] = useState('');
@@ -185,6 +190,7 @@ const GenaiConcierge = ({
     const handleOpen = useCallback(() => {
         setNudge(false);
         setOpen(true);
+        setOpened(true);
     }, []);
 
     const handleClose = useCallback(() => {
@@ -209,6 +215,15 @@ const GenaiConcierge = ({
         setNotice('');
         setAnswerKey((k) => k + 1);
     }, []);
+
+    // 「これで閉じる」 settles on the version shown now: the next consultation starts afresh.
+    const handleFinish = useCallback(() => {
+        handleReset();
+        handleClose();
+    }, [handleReset, handleClose]);
+
+    // The takeover by Rubytee itself is another sub-issue of #1274; this is only its entrance.
+    const handleTakeover = useCallback(() => setNotice(intl.formatMessage(messages.takeoverSoon)), [intl]);
 
     const handleKindChange = useCallback((id, starter) => {
         setKindId(id);
@@ -345,11 +360,12 @@ const GenaiConcierge = ({
     };
     // The panel never scrolls the page: it fits in the script area above its bottom edge (#1293 P5).
     if (area.height) panelStyle.maxHeight = area.height - 12 - place.bottom - PANEL_TOP_MARGIN;
+    if (!open) panelStyle.display = 'none';
     return (
         <div className={styles.root} ref={rootRef} style={{ left: area.left }}>
             {nudge && !open && <GenaiNudge onOpen={handleOpen} onLater={handleNudgeLater} onOff={handleNudgeOff} />}
-            {open && (
-                <div className={styles.panel} data-testid="genai-panel" style={panelStyle}>
+            {opened && (
+                <div className={styles.panel} data-testid="genai-panel" style={panelStyle} aria-hidden={!open}>
                     <div className={styles.header} data-testid="genai-drag-handle" onPointerDown={handleDragStart}>
                         <span>{title}</span>
                         <button
@@ -400,12 +416,15 @@ const GenaiConcierge = ({
                             serviceName={target ? target.name : null}
                             step={step}
                             notice={notice}
+                            rubyteeAvailable={rubyteeAvailable}
                             onStep={goTo}
                             onCopy={copyAndOpen}
                             onApplied={handleApplied}
                             onClearNotice={handleClearNotice}
                             onClose={handleClose}
+                            onFinish={handleFinish}
                             onReset={handleReset}
+                            onTakeover={handleTakeover}
                         />
                     </div>
                 </div>
@@ -440,6 +459,8 @@ GenaiConcierge.propTypes = {
     // The program is running: don't offer help now. Alerts (e.g. a lost mesh
     // connection) don't count: the code tab has no errors to read.
     running: PropTypes.bool,
+    // The class uses Rubytee: offer 「ルビティーにまかせる」 when the answer keeps failing.
+    rubyteeAvailable: PropTypes.bool,
     role: PropTypes.string,
     sessionToken: PropTypes.string,
     scratchBlocks: PropTypes.shape({ getMainWorkspace: PropTypes.func }),
@@ -461,6 +482,7 @@ const mapStateToProps = (state) => {
             classGenai: classroom.studentGenai,
             devFlag: getUrlParams().features.includes('genai'),
         }),
+        rubyteeAvailable: selectRubyteeAvailable(state),
         running: Boolean(state.scratchGui.vmStatus && state.scratchGui.vmStatus.running),
     };
 };

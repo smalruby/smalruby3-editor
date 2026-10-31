@@ -1,7 +1,7 @@
 /**
- * Words of "生成AI に相談" (issue #1279), shared by the step components.
- * The details of steps 3 and later (the check result and switching) still keep
- * the prototype's Japanese.
+ * Words of "生成AI に相談" (issue #1279 / #1280), shared by the step components.
+ * The question and the rewrite request sent to the AI stay in Japanese
+ * (genai-prompt.js / genai-answer.js); these are only what the student sees.
  */
 import { defineMessages } from 'react-intl';
 
@@ -250,6 +250,156 @@ const messages = defineMessages({
         defaultMessage: 'Go back to "{step}"',
         description: 'Label of a finished step in the progress display, which goes back to it',
         id: 'gui.genaiConcierge.backTo',
+    },
+    checking: {
+        defaultMessage: 'Checking whether it can become blocks…',
+        description: 'Shown with a spinner while the pasted answer is being checked',
+        id: 'gui.genaiConcierge.checking',
+    },
+    convertOk: {
+        defaultMessage: 'It can become blocks',
+        description: 'Result of the check: the answer turns into blocks',
+        id: 'gui.genaiConcierge.convertOk',
+    },
+    convertNg: {
+        defaultMessage: 'It cannot become blocks as it is',
+        description: 'Result of the check: the answer does not turn into blocks',
+        id: 'gui.genaiConcierge.convertNg',
+    },
+    fixesTitle: {
+        defaultMessage: 'What Smalruby fixed:',
+        description: 'Heading of the list of what Smalruby repaired in the answer',
+        id: 'gui.genaiConcierge.fixesTitle',
+    },
+    lineOf: {
+        defaultMessage: 'Line {line}',
+        description: 'Where a fix or problem is ({line}: line number)',
+        id: 'gui.genaiConcierge.lineOf',
+    },
+    spriteLineOf: {
+        defaultMessage: '"{sprite}" line {line}',
+        description: 'Where a fix or problem is in an answer for several sprites',
+        id: 'gui.genaiConcierge.spriteLineOf',
+    },
+    spriteOf: {
+        defaultMessage: '"{sprite}"',
+        description: 'Which sprite a problem is about',
+        id: 'gui.genaiConcierge.spriteOf',
+    },
+    problemNoProgram: {
+        defaultMessage: 'No program was found in what you pasted',
+        description: 'Problem: the pasted answer has no program',
+        id: 'gui.genaiConcierge.problemNoProgram',
+    },
+    problemMissingSound: {
+        defaultMessage: 'There is no sound "{name}" (sounds you can use: {names})',
+        description: 'Problem: the answer plays a sound the sprite does not have',
+        id: 'gui.genaiConcierge.problemMissingSound',
+    },
+    problemMissingSoundNone: {
+        defaultMessage: 'There is no sound "{name}" (this sprite has no sounds)',
+        description: 'Problem: the answer plays a sound, and the sprite has none',
+        id: 'gui.genaiConcierge.problemMissingSoundNone',
+    },
+    problemMissingCostume: {
+        defaultMessage: 'There is no costume "{name}" (costumes you can use: {names})',
+        description: 'Problem: the answer uses a costume the sprite does not have',
+        id: 'gui.genaiConcierge.problemMissingCostume',
+    },
+    problemMissingCostumeNone: {
+        defaultMessage: 'There is no costume "{name}"',
+        description: 'Problem: the answer uses a costume, and the sprite has none',
+        id: 'gui.genaiConcierge.problemMissingCostumeNone',
+    },
+    problemClassDef: {
+        defaultMessage: 'A class definition ({source}) cannot become blocks',
+        description: 'Problem: the answer is written as a Ruby class',
+        id: 'gui.genaiConcierge.problemClassDef',
+    },
+    problemRaw: {
+        defaultMessage: '{count} places do not become ordinary blocks',
+        description: 'Problem: some lines would stay as "Ruby" blocks',
+        id: 'gui.genaiConcierge.problemRaw',
+    },
+    rubyShow: {
+        defaultMessage: 'See the Ruby',
+        description: 'Link showing the repaired Ruby',
+        id: 'gui.genaiConcierge.rubyShow',
+    },
+    rubyHide: {
+        defaultMessage: 'Hide the Ruby',
+        description: 'Link hiding the repaired Ruby',
+        id: 'gui.genaiConcierge.rubyHide',
+    },
+    reflectionLabel: {
+        defaultMessage: 'In one line of your own words, write what will change (required)',
+        description: 'Label of the one-line reflection before putting the blocks in',
+        id: 'gui.genaiConcierge.reflectionLabel',
+    },
+    applyReplaces: {
+        defaultMessage: 'Putting them in replaces the blocks of {names}.',
+        description: 'Which sprites the blocks are replaced in ({names}: sprite names)',
+        id: 'gui.genaiConcierge.applyReplaces',
+    },
+    apply: {
+        defaultMessage: 'Put these blocks in',
+        description: 'Button putting the AI blocks in',
+        id: 'gui.genaiConcierge.apply',
+    },
+    self: {
+        defaultMessage: 'Build it myself',
+        description: 'Button closing the panel to build the program without the AI blocks',
+        id: 'gui.genaiConcierge.self',
+    },
+    copyRewrite: {
+        defaultMessage: 'Copy a request to rewrite it',
+        description: 'Button copying a request asking the AI to rewrite the program',
+        id: 'gui.genaiConcierge.copyRewrite',
+    },
+    takeover: {
+        defaultMessage: 'Leave it to Rubytee',
+        description: 'Button offered after two failed checks, in a class using Rubytee',
+        id: 'gui.genaiConcierge.takeover',
+    },
+    takeoverSoon: {
+        defaultMessage: 'Leaving it to Rubytee will be available soon.',
+        description: 'Notice while the Rubytee takeover is not yet available',
+        id: 'gui.genaiConcierge.takeoverSoon',
+    },
+    switchBefore: {
+        defaultMessage: 'Original program',
+        description: 'Switch button: the program before the AI blocks were put in',
+        id: 'gui.genaiConcierge.switchBefore',
+    },
+    switchAfter: {
+        defaultMessage: 'The AI\'s version',
+        description: 'Switch button: the program the AI suggested',
+        id: 'gui.genaiConcierge.switchAfter',
+    },
+    switchState: {
+        defaultMessage: 'Now {side} is in ({names}). Click the flag and compare how they move.',
+        description: 'Which version is in the sprites now',
+        id: 'gui.genaiConcierge.switchState',
+    },
+    switchKeep: {
+        defaultMessage: 'Switching keeps what you changed on each side.',
+        description: 'Note that the student own changes survive switching',
+        id: 'gui.genaiConcierge.switchKeep',
+    },
+    memo: {
+        defaultMessage: 'Your note: {text}',
+        description: 'The reflection the student wrote, shown after putting the blocks in',
+        id: 'gui.genaiConcierge.memo',
+    },
+    again: {
+        defaultMessage: 'Ask again',
+        description: 'Button starting a new consultation',
+        id: 'gui.genaiConcierge.again',
+    },
+    finish: {
+        defaultMessage: 'Close with this',
+        description: 'Button closing the panel after putting the blocks in',
+        id: 'gui.genaiConcierge.finish',
     },
 });
 
