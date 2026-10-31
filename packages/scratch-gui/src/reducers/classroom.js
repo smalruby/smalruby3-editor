@@ -1,4 +1,5 @@
 import { loadTeacherSession } from '../lib/classroom-teacher-session.js';
+import { normalizeStudentGenai } from '../lib/genai-concierge-state.js';
 
 const OPEN_MODAL = 'scratch-gui/classroom/OPEN_MODAL';
 const CLOSE_MODAL = 'scratch-gui/classroom/CLOSE_MODAL';
@@ -28,6 +29,7 @@ const OPEN_STUDENT_PEER_PANEL = 'scratch-gui/classroom/OPEN_STUDENT_PEER_PANEL';
 const CLOSE_STUDENT_PEER_PANEL = 'scratch-gui/classroom/CLOSE_STUDENT_PEER_PANEL';
 const REQUEST_MESH_CONNECT = 'scratch-gui/classroom/REQUEST_MESH_CONNECT';
 const CLEAR_MESH_CONNECT_REQUEST = 'scratch-gui/classroom/CLEAR_MESH_CONNECT_REQUEST';
+const SET_STUDENT_GENAI = 'scratch-gui/classroom/SET_STUDENT_GENAI';
 const SET_RUBYTEE_ENABLED = 'scratch-gui/classroom/SET_RUBYTEE_ENABLED';
 
 const STORAGE_KEY = 'smalruby:classroom';
@@ -186,6 +188,9 @@ const initialState = {
     // (#1251); opened by ClassroomMeshConnectPrompt once no classroom modal
     // is in the way, then cleared so it is shown only once per load.
     meshConnectPending: false,
+    // The class's generative AI as last told by join / verify-session (#1279).
+    // Persisted with the session so the face is there again after a reload.
+    studentGenai: normalizeStudentGenai(storedSession?.studentGenai),
 };
 
 const reducer = (state, action) => {
@@ -211,6 +216,9 @@ const reducer = (state, action) => {
                 memberId: action.memberId,
                 sessionToken: action.sessionToken,
                 joinedAt: action.joinedAt || new Date().toISOString(),
+                // Another class has its own setting; join / verify-session tells it.
+                studentGenai:
+                    action.classroomId === state.classroomId ? state.studentGenai : normalizeStudentGenai(null),
                 rubyteeEnabled: action.rubyteeEnabled === true,
             };
             if (action.role === 'student' && action.sessionToken) {
@@ -243,6 +251,7 @@ const reducer = (state, action) => {
                 studentPeerView: null,
                 studentPeerPanelOpen: false,
                 meshConnectPending: false,
+                studentGenai: normalizeStudentGenai(null),
             };
         case SET_SUBMISSION_THUMBNAIL:
             return { ...state, submissionThumbnail: action.submissionThumbnail };
@@ -337,6 +346,13 @@ const reducer = (state, action) => {
             return { ...state, meshConnectPending: true };
         case CLEAR_MESH_CONNECT_REQUEST:
             return { ...state, meshConnectPending: false };
+        case SET_STUDENT_GENAI: {
+            const studentGenai = normalizeStudentGenai(action.genai);
+            if (state.role === 'student' && state.sessionToken) {
+                saveSession({ ...state, studentGenai });
+            }
+            return { ...state, studentGenai };
+        }
         default:
             return state;
     }
@@ -438,6 +454,12 @@ const closeStudentPeerPanel = () => ({ type: CLOSE_STUDENT_PEER_PANEL });
 const requestMeshConnect = () => ({ type: REQUEST_MESH_CONNECT });
 const clearMeshConnectRequest = () => ({ type: CLEAR_MESH_CONNECT_REQUEST });
 /**
+ * @param {?object} genai - `genai` of the join / verify-session response (#1275)
+ * @returns {object} action
+ */
+const setStudentGenai = (genai) => ({ type: SET_STUDENT_GENAI, genai });
+
+/**
  * Follow the class's Rubytee setting read again from verify-session (#1278).
  * @param {boolean} enabled - `rubytee.enabled` of the student's class
  * @returns {object} action
@@ -509,6 +531,7 @@ export {
     closeStudentPeerPanel,
     requestMeshConnect,
     clearMeshConnectRequest,
+    setStudentGenai,
     setRubyteeEnabled,
     selectRubyteeAvailable,
     selectRubyteeUsage,

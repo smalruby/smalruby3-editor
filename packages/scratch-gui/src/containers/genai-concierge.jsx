@@ -1,32 +1,37 @@
-// Prototype of "生成AI に相談" for block programming (?features=genai): the
-// student copies a prompt into the school's generative AI chat, then pastes
-// the answer back and turns the Ruby in it into blocks. Japanese only for now.
+// "生成AI に相談" (issue #1279): the face at the bottom left of the script area.
+// Shown to students of a class that uses a generative AI (and with
+// ?features=genai for development). The student describes the trouble, copies
+// a question with the whole project as Ruby into the class's generative AI, and
+// pastes the answer back to turn it into blocks.
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useIntl } from 'react-intl';
 import { connect } from 'react-redux';
+import GenaiAnswerSteps from '../components/genai-concierge/genai-answer-steps.jsx';
+import styles from '../components/genai-concierge/genai-concierge.css';
+import GenaiCopyStep from '../components/genai-concierge/genai-copy-step.jsx';
+import GenaiNudge from '../components/genai-concierge/genai-nudge.jsx';
+import GenaiTroubleStep from '../components/genai-concierge/genai-trouble-step.jsx';
+import messages from '../components/genai-concierge/messages.js';
 import rubyteeIcon from '../components/ruby-toolbar/icon--rubytee.svg';
 import {
-    PROBLEM_KINDS,
-    buildGenaiPrompt,
-    buildRewritePrompt,
-    extractRuby,
-    splitPrompt,
-} from '../lib/genai-prompt.js';
-import { repairRuby, splitBySprite } from '../lib/genai-repair.js';
+    NUDGE_GAP_MS,
+    NUDGE_IDLE_SECONDS,
+    isGenaiAvailable,
+    isNudgeOffToday,
+    localDateKey,
+    resolveGenaiTarget,
+    shouldNudge,
+} from '../lib/genai-concierge-state.js';
+import { PROBLEM_KINDS, buildGenaiPrompt } from '../lib/genai-prompt.js';
 import RubyGenerator from '../lib/ruby-generator';
-import { targetCodeToBlocks } from '../lib/ruby-to-blocks-converter';
 import { getUrlParams } from '../lib/url-params.js';
-import styles from './genai-concierge.css';
+import useStudentClassSettingsRefresh from './use-student-class-settings-refresh.js';
 
+// The date the student chose 「今日は出さない」 (YYYY-MM-DD).
 const NUDGE_OFF_KEY = 'smalruby:genaiNudgeOff';
-const SERVICE_KEY = 'smalruby:genaiService';
-const NUDGE_GAP_MS = 10 * 60 * 1000;
-
-const SERVICES = [
-    { id: 'gemini', label: 'Gemini', url: 'https://gemini.google.com/app' },
-    { id: 'chatgpt', label: 'ChatGPT', url: 'https://chatgpt.com/' },
-];
+// Development only: the generative AI chosen outside a class.
+const DEV_SERVICE_KEY = 'smalruby:genaiService';
 
 const readStorage = (key) => {
     try {
@@ -40,11 +45,9 @@ const writeStorage = (key, value) => {
     try {
         if (typeof window !== 'undefined' && window.localStorage) window.localStorage.setItem(key, value);
     } catch {
-        // private mode etc.: the prototype works without remembering
+        // private mode etc.: works without remembering
     }
 };
-
-const idleSeconds = () => getUrlParams().genaiIdle || 150;
 
 // The left edge of the script area right of the block palette, so the face does not cover blocks.
 const measureLeft = (root) => {
@@ -55,15 +58,20 @@ const measureLeft = (root) => {
     return Math.max(12, Math.round(right + 12));
 };
 
-const errorText = (error) => {
-    if (typeof error === 'string') return error;
-    const where = error.row || error.row === 0 ? `${error.row + 1} 行目: ` : '';
-    const text = error.text || error.message || JSON.stringify(error);
-    return `${where}${text}`;
-};
-
-const GenaiConcierge = ({ vm, rubyVersion, assignmentName }) => {
+const GenaiConcierge = ({
+    vm,
+    rubyVersion,
+    assignmentName,
+    available,
+    classGenai,
+    running,
+    role,
+    sessionToken,
+    dispatch,
+}) => {
     const intl = useIntl();
+    // The teacher may have turned the generative AI off since the page was last open.
+    useStudentClassSettingsRefresh({ role, sessionToken, dispatch });
     const [left, setLeft] = useState(12);
     const [nudge, setNudge] = useState(false);
     const [open, setOpen] = useState(false);
@@ -73,27 +81,27 @@ const GenaiConcierge = ({ vm, rubyVersion, assignmentName }) => {
     const [prompt, setPrompt] = useState('');
     const [parts, setParts] = useState(1);
     const [copied, setCopied] = useState({});
-    const [service, setService] = useState(() => readStorage(SERVICE_KEY));
-    const [customUrl, setCustomUrl] = useState('');
-    const [answer, setAnswer] = useState('');
-    const [converted, setConverted] = useState(null);
-    const [failures, setFailures] = useState(0);
-    const [showRuby, setShowRuby] = useState(false);
-    const [reflection, setReflection] = useState('');
-    // [{target, name, before, after}]: the student switches between the two as often as they like.
-    const [snapshots, setSnapshots] = useState(null);
-    const [applied, setApplied] = useState(false);
-    const [busy, setBusy] = useState(false);
-    const [checking, setChecking] = useState(false);
+    const [devChoice, setDevChoice] = useState(() => readStorage(DEV_SERVICE_KEY));
+    const [notice, setNotice] = useState('');
+    // Bumped by 「もう一度相談する」 so the answer steps start empty.
+    const [answerKey, setAnswerKey] = useState(0);
     const [offset, setOffset] = useState({ x: 0, y: 0 });
     const drag = useRef(null);
-    const [notice, setNotice] = useState('');
-    const aiWindow = useRef(null);
+    // Whether this panel already opened the generative AI. Gemini and ChatGPT send
+    // Cross-Origin-Opener-Policy, which cuts the opened tab off from Smalruby: it can't be
+    // found by name, focused or reused. So the AI is opened once, and later copies only
+    // ask the student to go back to its tab (with a link to open it again if it was closed).
+    const [aiOpened, setAiOpened] = useState(false);
     const rootRef = useRef(null);
     const lastActivity = useRef(Date.now());
     const lastNudge = useRef(0);
+    const runningRef = useRef(running);
+    runningRef.current = running;
+
+    const target = resolveGenaiTarget({ classGenai, devChoice });
 
     useEffect(() => {
+        if (!available) return;
         const update = () => setLeft(measureLeft(rootRef.current));
         update();
         const timer = setInterval(update, 1000);
@@ -102,33 +110,53 @@ const GenaiConcierge = ({ vm, rubyVersion, assignmentName }) => {
             clearInterval(timer);
             window.removeEventListener('resize', update);
         };
-    }, []);
+    }, [available]);
+
+    // Count from when the face appears (e.g. on joining a class), not from the page load:
+    // input before that is not watched, so an old start would offer help right away.
+    useEffect(() => {
+        if (available) lastActivity.current = Date.now();
+    }, [available]);
 
     // Offer help after the student has done nothing for a while.
     useEffect(() => {
+        if (!available) return;
         const touch = () => {
             lastActivity.current = Date.now();
         };
         const events = ['pointerdown', 'keydown', 'wheel'];
         events.forEach((name) => window.addEventListener(name, touch, true));
         vm.on('PROJECT_CHANGED', touch);
-        const idleMs = idleSeconds() * 1000;
+        // Watching the program run is not being stuck: start counting afresh.
+        vm.on('PROJECT_RUN_START', touch);
+        vm.on('PROJECT_RUN_STOP', touch);
+        const idleSeconds = getUrlParams().genaiIdle || NUDGE_IDLE_SECONDS;
+        const idleMs = idleSeconds * 1000;
+        const gapMs = Math.min(NUDGE_GAP_MS, idleMs * 4);
         const timer = setInterval(() => {
-            if (open || nudge || readStorage(NUDGE_OFF_KEY) === 'true') return;
             const now = Date.now();
-            if (now - lastActivity.current < idleMs) return;
-            if (lastNudge.current && now - lastNudge.current < Math.min(NUDGE_GAP_MS, idleMs * 4)) return;
+            if (runningRef.current) lastActivity.current = now;
+            const show = shouldNudge({
+                now,
+                lastActivity: lastActivity.current,
+                lastNudge: lastNudge.current,
+                idleMs,
+                gapMs,
+                busy: open || nudge || runningRef.current || document.hidden,
+                offToday: isNudgeOffToday(readStorage(NUDGE_OFF_KEY), now),
+            });
+            if (!show) return;
             lastNudge.current = now;
             setNudge(true);
         }, 1000);
         return () => {
             events.forEach((name) => window.removeEventListener(name, touch, true));
             vm.removeListener('PROJECT_CHANGED', touch);
+            vm.removeListener('PROJECT_RUN_START', touch);
+            vm.removeListener('PROJECT_RUN_STOP', touch);
             clearInterval(timer);
         };
-    }, [vm, open, nudge]);
-
-    const kind = PROBLEM_KINDS.find((k) => k.id === kindId);
+    }, [vm, available, open, nudge]);
 
     const handleOpen = useCallback(() => {
         setNudge(false);
@@ -147,25 +175,18 @@ const GenaiConcierge = ({ vm, rubyVersion, assignmentName }) => {
         setPrompt('');
         setParts(1);
         setCopied({});
-        setAnswer('');
-        setConverted(null);
-        setFailures(0);
-        setReflection('');
         setNotice('');
-        setSnapshots(null);
-        setApplied(false);
+        setAnswerKey((k) => k + 1);
     }, []);
 
-    const handleKind = useCallback(
-        (k) => {
-            setKindId(k.id);
-            if (!text.trim()) setText(k.starter);
-        },
-        [text],
-    );
+    const handleKindChange = useCallback((id, starter) => {
+        setKindId(id);
+        if (starter !== null) setText(starter);
+    }, []);
 
     const handleMakePrompt = useCallback(() => {
         const editing = vm.editingTarget;
+        const kind = PROBLEM_KINDS.find((k) => k.id === kindId);
         const programs = vm.runtime.targets
             .filter((t) => t.isOriginal)
             .map((t) => ({
@@ -177,6 +198,7 @@ const GenaiConcierge = ({ vm, rubyVersion, assignmentName }) => {
             .filter((p) => (p.code && p.code.trim()) || p.name === (editing && editing.getName()));
         setPrompt(
             buildGenaiPrompt({
+                // The question to the AI stays in Japanese whatever the editor language (#1279).
                 kindLabel: kind.label,
                 text,
                 programs,
@@ -186,159 +208,42 @@ const GenaiConcierge = ({ vm, rubyVersion, assignmentName }) => {
         );
         setParts(1);
         setCopied({});
+        setNotice('');
         setStep('copy');
-    }, [vm, rubyVersion, kind, text, assignmentName]);
+    }, [vm, rubyVersion, kindId, text, assignmentName]);
 
-    // Copy first (the click is the user gesture the clipboard needs), then reuse one AI tab.
+    // noopener: the opened page gets no reference back to Smalruby (it could otherwise
+    // move this tab elsewhere), and the reference could not be used anyway (see aiOpened).
+    const openAi = useCallback(() => {
+        if (!target) return;
+        window.open(target.url, '_blank', 'noopener,noreferrer');
+        setAiOpened(true);
+    }, [target]);
+
+    // Copy first (the click is the user gesture the clipboard needs), then open the AI once.
     const copyAndOpen = useCallback(
         async (content, key) => {
             try {
                 await navigator.clipboard.writeText(content);
                 setCopied((c) => ({ ...c, [key]: true }));
-                setNotice('コピーしました。生成AI の入力らんに貼りつけて（Ctrl+V）送ってね。');
+                setNotice(intl.formatMessage(aiOpened ? messages.copiedGoBack : messages.copied));
             } catch {
-                setNotice('コピーできませんでした。下の文を全部えらんで、Ctrl+C でコピーしてね。');
+                setNotice(intl.formatMessage(messages.copyFailed));
             }
-            const known = SERVICES.find((s) => s.id === service);
-            const url = known ? known.url : service && service.startsWith('https://') ? service : null;
-            if (!url) return;
-            if (aiWindow.current && !aiWindow.current.closed) {
-                aiWindow.current.focus();
-            } else {
-                aiWindow.current = window.open(url, 'smalruby-genai');
-            }
+            if (!aiOpened) openAi();
         },
-        [service],
+        [intl, aiOpened, openAi],
     );
 
-    const chooseService = (id) => {
-        setService(id);
-        writeStorage(SERVICE_KEY, id);
-    };
+    // Another AI (the development picker) is a new tab to open.
+    const targetUrl = target ? target.url : null;
+    useEffect(() => setAiOpened(false), [targetUrl]);
 
-    // Sprite name → target; the stage is called 「ステージ」 in the prompt.
-    const targetsByName = useCallback(() => {
-        const map = {};
-        vm.runtime.targets
-            .filter((t) => t.isOriginal)
-            .forEach((t) => {
-                map[t.isStage ? 'ステージ' : t.getName()] = t;
-            });
-        return map;
-    }, [vm]);
-
-    const convertAnswer = useCallback(async () => {
-        const code = extractRuby(answer);
-        if (!code) {
-            setConverted({ ok: false, code: '', problems: ['貼りつけた文にプログラムが見つかりませんでした'] });
-            setFailures((f) => f + 1);
-            return;
-        }
-        const targets = targetsByName();
-        const editing = vm.editingTarget;
-        const editingName = editing.isStage ? 'ステージ' : editing.getName();
-        const sections = splitBySprite(code, Object.keys(targets)) || [{ name: editingName, code }];
-        const results = [];
-        const problems = [];
-        let rawCount = 0;
-        for (const section of sections) {
-            const target = targets[section.name];
-            const repaired = repairRuby(section.code, {
-                sounds: target.getSounds().map((sound) => sound.name),
-                costumes: target.getCostumes().map((costume) => costume.name),
-            });
-            const prefix = sections.length > 1 ? `「${section.name}」の ` : '';
-            try {
-                const converter = await targetCodeToBlocks(vm, target, repaired.code, intl, {
-                    version: rubyVersion,
-                });
-                if (converter.result) {
-                    // Lines the converter could not map stay as "Ruby のまま" blocks; tell the student.
-                    rawCount += Object.values(converter.blocks || {}).filter(
-                        (b) => b.opcode === 'ruby_statement' || b.opcode === 'ruby_expression',
-                    ).length;
-                } else {
-                    converter.errors.forEach((error) => problems.push(`${prefix}${errorText(error)}`));
-                }
-                results.push({ name: section.name, target, code: repaired.code, fixes: repaired.fixes, converter });
-            } catch (e) {
-                problems.push(`${prefix}${e.message || String(e)}`);
-                results.push({ name: section.name, target, code: repaired.code, fixes: repaired.fixes });
-            }
-        }
-        const repairedCode =
-            sections.length > 1
-                ? results.map((part) => `# 「${part.name}」\n${part.code}`).join('\n')
-                : results[0].code;
-        const fixes = results.flatMap((part) =>
-            part.fixes.map((fix) => ({ ...fix, name: sections.length > 1 ? part.name : null })),
-        );
-        if (problems.length === 0) {
-            setConverted({ ok: true, code: repairedCode, parts: results, rawCount, fixes });
-        } else {
-            setConverted({ ok: false, code: repairedCode, problems, fixes });
-            setFailures((f) => f + 1);
-        }
-    }, [answer, vm, intl, rubyVersion, targetsByName]);
-
-    const handleConvert = useCallback(async () => {
-        setNotice('');
-        setConverted(null);
-        setChecking(true);
-        // Let the spinner paint before the (synchronous-heavy) conversion starts.
-        await new Promise((resolve) => setTimeout(resolve, 50));
-        try {
-            await convertAnswer();
-        } finally {
-            setChecking(false);
-        }
-    }, [convertAnswer]);
-
-    const loadCode = useCallback(
-        async (target, code) => {
-            const converter = await targetCodeToBlocks(vm, target, code || '', intl, { version: rubyVersion });
-            if (converter.result) await converter.apply();
-        },
-        [vm, intl, rubyVersion],
-    );
-
-    const handleApply = useCallback(async () => {
-        setBusy(true);
-        const taken = converted.parts.map((part) => ({
-            target: part.target,
-            name: part.name,
-            before: RubyGenerator.targetToCode(part.target, { version: rubyVersion }),
-            after: part.code,
-        }));
-        for (const part of converted.parts) {
-            await part.converter.apply();
-        }
-        setSnapshots(taken);
-        setApplied(true);
-        setBusy(false);
-        setStep('done');
-    }, [rubyVersion, converted]);
-
-    // Switch between the original and the AI's version. The side being left keeps whatever
-    // the student changed meanwhile, so trying things out never throws their edits away.
-    const handleSwitch = useCallback(
-        async (e) => {
-            const toAfter = e.currentTarget.dataset.side === 'after';
-            if (toAfter === applied || busy) return;
-            setBusy(true);
-            const next = snapshots.map((snap) => {
-                const current = RubyGenerator.targetToCode(snap.target, { version: rubyVersion });
-                return toAfter ? { ...snap, before: current } : { ...snap, after: current };
-            });
-            for (const snap of next) {
-                await loadCode(snap.target, toAfter ? snap.after : snap.before);
-            }
-            setSnapshots(next);
-            setApplied(toAfter);
-            setBusy(false);
-        },
-        [applied, busy, snapshots, rubyVersion, loadCode],
-    );
+    const handleChooseService = useCallback((choice) => {
+        setDevChoice(choice);
+        writeStorage(DEV_SERVICE_KEY, choice);
+    }, []);
+    const handleChangeService = useCallback(() => setDevChoice(null), []);
 
     const handleDragStart = useCallback(
         (e) => {
@@ -362,75 +267,25 @@ const GenaiConcierge = ({ vm, rubyVersion, assignmentName }) => {
 
     const handleNudgeLater = useCallback(() => setNudge(false), []);
     const handleNudgeOff = useCallback(() => {
-        writeStorage(NUDGE_OFF_KEY, 'true');
+        writeStorage(NUDGE_OFF_KEY, localDateKey(Date.now()));
         setNudge(false);
     }, []);
-    const handleKindClick = useCallback(
-        (e) => handleKind(PROBLEM_KINDS.find((k) => k.id === e.currentTarget.dataset.kind)),
-        [handleKind],
-    );
-    const handleTextChange = useCallback((e) => setText(e.target.value), []);
-    const handlePromptChange = useCallback((e) => setPrompt(e.target.value), []);
-    const handleCustomUrlChange = useCallback((e) => setCustomUrl(e.target.value), []);
-    const handleReflectionChange = useCallback((e) => setReflection(e.target.value), []);
-    const handleAnswerChange = useCallback((e) => {
-        setAnswer(e.target.value);
-        setConverted(null);
-    }, []);
-    const handleServiceClick = useCallback((e) => chooseService(e.currentTarget.dataset.service), []);
-    const handleCustomService = useCallback(() => chooseService(customUrl), [customUrl]);
-    const handleChangeService = useCallback((e) => {
-        e.preventDefault();
-        setService(null);
-    }, []);
-    const handleSplit = useCallback((e) => {
-        e.preventDefault();
+    const handleSplit = useCallback(() => {
         setParts((p) => Math.min(p + 1, 4));
         setCopied({});
     }, []);
     const handleToTrouble = useCallback(() => setStep('trouble'), []);
-    const handleToCopy = useCallback(() => setStep('copy'), []);
     const handleToPaste = useCallback(() => {
         setNotice('');
         setStep('paste');
     }, []);
-    const handleToggleRuby = useCallback((e) => {
-        e.preventDefault();
-        setShowRuby((v) => !v);
-    }, []);
 
-    const partList = splitPrompt(prompt, parts);
-    const handleCopyPrompt = useCallback(() => copyAndOpen(prompt, 0), [copyAndOpen, prompt]);
-    const handleCopyPart = useCallback(
-        (e) => {
-            const index = Number(e.currentTarget.dataset.index);
-            copyAndOpen(splitPrompt(prompt, parts)[index], index);
-        },
-        [copyAndOpen, prompt, parts],
-    );
-    const handleCopyRewrite = useCallback(
-        () => copyAndOpen(buildRewritePrompt({ code: converted.code, problems: converted.problems }), 'rewrite'),
-        [copyAndOpen, converted],
-    );
+    if (!available) return null;
 
+    const title = intl.formatMessage(messages.title);
     return (
         <div className={styles.root} ref={rootRef} style={{ left }}>
-            {nudge && !open && (
-                <div className={styles.bubble} data-testid="genai-nudge">
-                    <p>手が止まっているみたい。生成AI に相談してみる？</p>
-                    <div className={styles.row}>
-                        <button className={styles.primary} data-testid="genai-nudge-open" onClick={handleOpen}>
-                            相談する
-                        </button>
-                        <button data-testid="genai-nudge-later" onClick={handleNudgeLater}>
-                            あとで
-                        </button>
-                        <button data-testid="genai-nudge-off" onClick={handleNudgeOff}>
-                            今日は出さない
-                        </button>
-                    </div>
-                </div>
-            )}
+            {nudge && !open && <GenaiNudge onOpen={handleOpen} onLater={handleNudgeLater} onOff={handleNudgeOff} />}
             {open && (
                 <div
                     className={styles.panel}
@@ -438,341 +293,67 @@ const GenaiConcierge = ({ vm, rubyVersion, assignmentName }) => {
                     style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}
                 >
                     <div className={styles.header} data-testid="genai-drag-handle" onPointerDown={handleDragStart}>
-                        <span>生成AI に相談（プロトタイプ）</span>
+                        <span>{title}</span>
                         <button
                             className={styles.close}
                             data-testid="genai-close"
                             onClick={handleClose}
-                            aria-label="閉じる"
+                            aria-label={intl.formatMessage(messages.close)}
                         >
                             ×
                         </button>
                     </div>
                     <ol className={styles.steps}>
-                        <li className={step === 'trouble' ? styles.current : ''}>1 困りごと</li>
-                        <li className={step === 'copy' ? styles.current : ''}>2 コピーして相談</li>
-                        <li className={step === 'paste' || step === 'done' ? styles.current : ''}>3 貼りもどす</li>
+                        <li className={step === 'trouble' ? styles.current : ''}>
+                            {intl.formatMessage(messages.stepTrouble)}
+                        </li>
+                        <li className={step === 'copy' ? styles.current : ''}>
+                            {intl.formatMessage(messages.stepCopy)}
+                        </li>
+                        <li className={step === 'paste' || step === 'done' ? styles.current : ''}>
+                            {intl.formatMessage(messages.stepPaste)}
+                        </li>
                     </ol>
                     <div className={styles.body}>
                         {step === 'trouble' && (
-                            <>
-                                <p className={styles.label}>どんなことで困っている？</p>
-                                <div className={styles.chips}>
-                                    {PROBLEM_KINDS.map((k) => (
-                                        <button
-                                            key={k.id}
-                                            className={k.id === kindId ? styles.chipOn : styles.chip}
-                                            data-testid={`genai-kind-${k.id}`}
-                                            data-kind={k.id}
-                                            onClick={handleKindClick}
-                                        >
-                                            {k.label}
-                                        </button>
-                                    ))}
-                                </div>
-                                <p className={styles.label}>自分のことばで書こう（必須）</p>
-                                <textarea
-                                    className={styles.text}
-                                    data-testid="genai-trouble-text"
-                                    rows={3}
-                                    value={text}
-                                    onChange={handleTextChange}
-                                />
-                                <div className={styles.row}>
-                                    <button
-                                        className={styles.primary}
-                                        data-testid="genai-make-prompt"
-                                        disabled={!kind || !text.trim() || (kind && text.trim() === kind.starter)}
-                                        onClick={handleMakePrompt}
-                                    >
-                                        相談文をつくる
-                                    </button>
-                                </div>
-                            </>
+                            <GenaiTroubleStep
+                                kindId={kindId}
+                                text={text}
+                                onKindChange={handleKindChange}
+                                onTextChange={setText}
+                                onMakePrompt={handleMakePrompt}
+                            />
                         )}
                         {step === 'copy' && (
-                            <>
-                                {!service && (
-                                    <div className={styles.service}>
-                                        <p className={styles.label}>学校で使っている生成AI はどれ？</p>
-                                        <div className={styles.row}>
-                                            {SERVICES.map((s) => (
-                                                <button
-                                                    key={s.id}
-                                                    data-testid={`genai-service-${s.id}`}
-                                                    data-service={s.id}
-                                                    onClick={handleServiceClick}
-                                                >
-                                                    {s.label}
-                                                </button>
-                                            ))}
-                                        </div>
-                                        <div className={styles.row}>
-                                            <input
-                                                className={styles.url}
-                                                data-testid="genai-service-url"
-                                                placeholder="ほかの生成AI の URL（https://…）"
-                                                value={customUrl}
-                                                onChange={handleCustomUrlChange}
-                                            />
-                                            <button
-                                                disabled={!customUrl.startsWith('https://')}
-                                                onClick={handleCustomService}
-                                            >
-                                                これにする
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-                                {service && (
-                                    <p className={styles.small}>
-                                        相談先: {(SERVICES.find((s) => s.id === service) || {}).label || service}{' '}
-                                        <a href="#" data-testid="genai-service-change" onClick={handleChangeService}>
-                                            かえる
-                                        </a>
-                                    </p>
-                                )}
-                                {parts === 1 ? (
-                                    <>
-                                        <p className={styles.label}>生成AI に送る相談文（直してもいいよ）</p>
-                                        <textarea
-                                            className={styles.prompt}
-                                            data-testid="genai-prompt"
-                                            value={prompt}
-                                            onChange={handlePromptChange}
-                                        />
-                                        <div className={styles.row}>
-                                            <button
-                                                className={styles.primary}
-                                                data-testid="genai-copy-open"
-                                                disabled={!service}
-                                                onClick={handleCopyPrompt}
-                                            >
-                                                コピーして生成AI を開く
-                                            </button>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <>
-                                        <p className={styles.label}>
-                                            {parts} つに分けたよ。1 つずつ順番に貼りつけて送ってね。
-                                        </p>
-                                        {partList.map((part, i) => (
-                                            <div key={i} className={styles.partRow}>
-                                                <button
-                                                    className={copied[i] ? '' : styles.primary}
-                                                    data-testid={`genai-copy-part-${i + 1}`}
-                                                    disabled={!service}
-                                                    data-index={i}
-                                                    onClick={handleCopyPart}
-                                                >
-                                                    {copied[i] ? '✓ ' : ''}
-                                                    {i + 1} つ目をコピー
-                                                </button>
-                                                <span className={styles.small}>{part.length} 文字</span>
-                                            </div>
-                                        ))}
-                                    </>
-                                )}
-                                <p className={styles.small}>
-                                    {prompt.length} 文字{' '}
-                                    <a href="#" data-testid="genai-split" onClick={handleSplit}>
-                                        生成AI に貼れなかった・長すぎると言われた
-                                    </a>
-                                </p>
-                                {notice && <p className={styles.notice}>{notice}</p>}
-                                <div className={styles.row}>
-                                    <button onClick={handleToTrouble}>もどる</button>
-                                    <button
-                                        className={styles.primary}
-                                        data-testid="genai-to-paste"
-                                        onClick={handleToPaste}
-                                    >
-                                        答えをもらったら次へ
-                                    </button>
-                                </div>
-                            </>
+                            <GenaiCopyStep
+                                serviceName={target ? target.name : null}
+                                canChangeService={Boolean(target) && !target.fromClass}
+                                prompt={prompt}
+                                parts={parts}
+                                copied={copied}
+                                notice={notice}
+                                onChooseService={handleChooseService}
+                                onChangeService={handleChangeService}
+                                onPromptChange={setPrompt}
+                                aiOpened={aiOpened}
+                                onCopy={copyAndOpen}
+                                onReopen={openAi}
+                                onSplit={handleSplit}
+                                onBack={handleToTrouble}
+                                onNext={handleToPaste}
+                            />
                         )}
-                        {step === 'paste' && (
-                            <>
-                                <p className={styles.label}>
-                                    生成AI の答えの中の、説明を読んでから使おう。
-                                    <br />
-                                    プログラムをもらったら、「▼▼」から「▲▲」までをコピーして貼りつけてね。
-                                </p>
-                                <textarea
-                                    className={styles.prompt}
-                                    data-testid="genai-answer"
-                                    value={answer}
-                                    onChange={handleAnswerChange}
-                                />
-                                <div className={styles.row}>
-                                    <button onClick={handleToCopy}>もどる</button>
-                                    <button
-                                        className={styles.primary}
-                                        data-testid="genai-convert"
-                                        disabled={!answer.trim() || checking}
-                                        onClick={handleConvert}
-                                    >
-                                        ブロックにできるか調べる
-                                    </button>
-                                </div>
-                                {checking && (
-                                    <div className={styles.checking} data-testid="genai-checking">
-                                        <span className={styles.spinner} />
-                                        ブロックにできるか調べています…
-                                    </div>
-                                )}
-                                {converted && converted.ok && (
-                                    <div className={styles.ok} data-testid="genai-convert-ok">
-                                        <p className={styles.verdict}>
-                                            <span className={styles.markOk}>✔</span>
-                                            ブロックにできます
-                                        </p>
-                                        {converted.fixes && converted.fixes.length > 0 && (
-                                            <div className={styles.fixes} data-testid="genai-fixes">
-                                                <p className={styles.small}>スモウルビーが直したところ:</p>
-                                                <ul>
-                                                    {converted.fixes.map((fix, i) => (
-                                                        <li key={i}>
-                                                            {fix.name ? `「${fix.name}」` : ''}
-                                                            {fix.line} 行目 <code>{fix.from}</code> →{' '}
-                                                            <code>{fix.to}</code>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                        )}
-
-                                        {converted.rawCount > 0 && (
-                                            <p className={styles.small} data-testid="genai-raw-count">
-                                                ※ {converted.rawCount} か所は、ふつうのブロックにならず「Ruby
-                                                のまま」のブロックになります。
-                                            </p>
-                                        )}
-                                        <a href="#" onClick={handleToggleRuby}>
-                                            {showRuby ? 'Ruby をかくす' : 'Ruby を見る'}
-                                        </a>
-                                        {showRuby && <pre className={styles.code}>{converted.code}</pre>}
-                                        <p className={styles.label}>
-                                            どこが変わるのか、自分のことばで 1 行書こう（必須）
-                                        </p>
-                                        <input
-                                            className={styles.url}
-                                            data-testid="genai-reflection"
-                                            value={reflection}
-                                            onChange={handleReflectionChange}
-                                        />
-                                        <div className={styles.row}>
-                                            <button
-                                                className={styles.primary}
-                                                data-testid="genai-apply"
-                                                disabled={reflection.trim().length < 5 || busy}
-                                                onClick={handleApply}
-                                            >
-                                                このブロックを入れる
-                                            </button>
-                                            <button data-testid="genai-self" onClick={handleClose}>
-                                                自分で組む
-                                            </button>
-                                        </div>
-                                        <p className={styles.small}>
-                                            入れると、{converted.parts.map((part) => `「${part.name}」`).join('')}
-                                            のブロックが置きかわります。
-                                        </p>
-                                    </div>
-                                )}
-                                {converted && !converted.ok && (
-                                    <div className={styles.ng} data-testid="genai-convert-ng">
-                                        <p className={styles.verdict}>
-                                            <span className={styles.markNg}>✗</span>
-                                            このままではブロックにできません
-                                        </p>
-                                        {converted.fixes && converted.fixes.length > 0 && (
-                                            <div className={styles.fixes} data-testid="genai-fixes">
-                                                <p className={styles.small}>スモウルビーが直したところ:</p>
-                                                <ul>
-                                                    {converted.fixes.map((fix, i) => (
-                                                        <li key={i}>
-                                                            {fix.name ? `「${fix.name}」` : ''}
-                                                            {fix.line} 行目 <code>{fix.from}</code> →{' '}
-                                                            <code>{fix.to}</code>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                        )}
-
-                                        <ul>
-                                            {converted.problems.slice(0, 5).map((p, i) => (
-                                                <li key={i}>{p}</li>
-                                            ))}
-                                        </ul>
-                                        {converted.code && (
-                                            <button
-                                                className={styles.primary}
-                                                data-testid="genai-copy-rewrite"
-                                                onClick={handleCopyRewrite}
-                                            >
-                                                書き直しのお願いをコピー
-                                            </button>
-                                        )}
-                                        {failures >= 2 && (
-                                            <p className={styles.small}>
-                                                （本番では、ここで「ルビティーにまかせる」が出る予定です）
-                                            </p>
-                                        )}
-                                        {notice && <p className={styles.notice}>{notice}</p>}
-                                    </div>
-                                )}
-                            </>
-                        )}
-                        {step === 'done' && snapshots && (
-                            <>
-                                <p className={styles.label}>切りかえて、なにが変わるか比べてみよう</p>
-                                <div className={styles.switch} role="group">
-                                    <button
-                                        className={applied ? '' : styles.switchOn}
-                                        data-side="before"
-                                        data-testid="genai-switch-before"
-                                        disabled={busy}
-                                        onClick={handleSwitch}
-                                    >
-                                        元のプログラム
-                                    </button>
-                                    <button
-                                        className={applied ? styles.switchOn : ''}
-                                        data-side="after"
-                                        data-testid="genai-switch-after"
-                                        disabled={busy}
-                                        onClick={handleSwitch}
-                                    >
-                                        生成AI の案
-                                    </button>
-                                </div>
-                                <p data-testid="genai-switch-state">
-                                    いまは<strong>{applied ? '生成AI の案' : '元のプログラム'}</strong>
-                                    が入っています（{snapshots.map((snap) => `「${snap.name}」`).join('')}
-                                    ）。旗をおして動かしてみよう。
-                                </p>
-                                <p className={styles.small}>
-                                    切りかえても、それぞれで自分が変えたところは残ります。 あなたのメモ: {reflection}
-                                </p>
-                                {notice && <p className={styles.notice}>{notice}</p>}
-                                <div className={styles.row}>
-                                    <button
-                                        className={styles.primary}
-                                        data-testid="genai-again"
-                                        onClick={handleReset}
-                                    >
-                                        もう一度相談する
-                                    </button>
-                                    <button data-testid="genai-finish" onClick={handleClose}>
-                                        これで閉じる
-                                    </button>
-                                </div>
-                            </>
-                        )}
+                        <GenaiAnswerSteps
+                            key={answerKey}
+                            vm={vm}
+                            rubyVersion={rubyVersion}
+                            step={step}
+                            notice={notice}
+                            onStep={setStep}
+                            onCopy={copyAndOpen}
+                            onClose={handleClose}
+                            onReset={handleReset}
+                        />
                     </div>
                 </div>
             )}
@@ -780,9 +361,9 @@ const GenaiConcierge = ({ vm, rubyVersion, assignmentName }) => {
                 className={styles.face}
                 data-testid="genai-face"
                 onClick={open ? handleClose : handleOpen}
-                title="生成AI に相談"
+                title={title}
             >
-                <img src={rubyteeIcon} alt="生成AI に相談" />
+                <img src={rubyteeIcon} alt={title} />
             </button>
         </div>
     );
@@ -797,11 +378,36 @@ GenaiConcierge.propTypes = {
     }).isRequired,
     rubyVersion: PropTypes.string,
     assignmentName: PropTypes.string,
+    available: PropTypes.bool.isRequired,
+    classGenai: PropTypes.shape({
+        enabled: PropTypes.bool,
+        service: PropTypes.string,
+        url: PropTypes.string,
+    }),
+    // The program is running: don't offer help now. Alerts (e.g. a lost mesh
+    // connection) don't count: the code tab has no errors to read.
+    running: PropTypes.bool,
+    role: PropTypes.string,
+    sessionToken: PropTypes.string,
+    dispatch: PropTypes.func.isRequired,
 };
 
-const mapStateToProps = (state) => ({
-    rubyVersion: state.scratchGui.settings.rubyVersion,
-    assignmentName: state.scratchGui.classroom.assignmentName,
-});
+const mapStateToProps = (state) => {
+    const { classroom } = state.scratchGui;
+    return {
+        rubyVersion: state.scratchGui.settings.rubyVersion,
+        role: classroom.role,
+        sessionToken: classroom.sessionToken,
+        assignmentName: classroom.assignmentName,
+        classGenai: classroom.studentGenai,
+        available: isGenaiAvailable({
+            role: classroom.role,
+            sessionToken: classroom.sessionToken,
+            classGenai: classroom.studentGenai,
+            devFlag: getUrlParams().features.includes('genai'),
+        }),
+        running: Boolean(state.scratchGui.vmStatus && state.scratchGui.vmStatus.running),
+    };
+};
 
 export default connect(mapStateToProps)(GenaiConcierge);

@@ -26,11 +26,10 @@ import Backpack from '../../containers/backpack.jsx';
 import ExtensionsButton from '../extension-button/extension-button.jsx';
 // === Smalruby: Start of DNCL mode notice ===
 import DnclModeNotice from '../dncl-mode-notice/dncl-mode-notice.jsx';
-// === Smalruby: Start of genai concierge prototype ===
-import GenaiConcierge from '../../containers/genai-concierge.jsx';
-import {getUrlParams} from '../../lib/url-params.js';
-// === Smalruby: End of genai concierge prototype ===
 // === Smalruby: End of DNCL mode notice ===
+// === Smalruby: Start of genai concierge ===
+import GenaiConcierge from '../../containers/genai-concierge.jsx';
+// === Smalruby: End of genai concierge ===
 import WebGlModal from '../../containers/webgl-modal.jsx';
 import TipsLibrary from '../../containers/tips-library.jsx';
 import Cards from '../../containers/cards.jsx';
@@ -756,11 +755,9 @@ const GUIComponent = props => {
                                             onExitDnclMode={onRequestExitDnclMode}
                                         />
                                         {/* === Smalruby: End of DNCL mode notice === */}
-                                        {/* === Smalruby: Start of genai concierge prototype === */}
-                                        {getUrlParams().features.includes('genai') && (
-                                            <GenaiConcierge vm={vm} />
-                                        )}
-                                        {/* === Smalruby: End of genai concierge prototype === */}
+                                        {/* === Smalruby: Start of genai concierge === */}
+                                        <GenaiConcierge vm={vm} />
+                                        {/* === Smalruby: End of genai concierge === */}
                                     </Box>
                                     {/* === Smalruby: Start of DNCL extension button === */}
                                     <ExtensionsButton

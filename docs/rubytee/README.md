@@ -45,7 +45,7 @@ API キーをクライアントに直接持たせず、AWS Lambda の専用リ�
 
 - **出さない（押せない理由を出さない）理由**: 生徒の画面にはクラス外・無効のときに使えない機能を見せる必要がなく、押しても使えないボタンは「壊れている」と誤解されやすい。ツールバーの幅（SP / iPad を含む）も空く。使う・使わないは先生がクラスで決めるもので、生徒が自分で有効にする手段も無い。
 - **先生に出さない理由**: ルビティーのリクエストは出席番号ごとに記録する（下記）が、先生には出席番号が無い。生徒に見える画面を確かめたいときは、先生も参加コードで生徒として参加する。
-- 判定は redux の `scratchGui.classroom`（`role === 'student'` + セッションあり + `rubyteeEnabled`）。`rubyteeEnabled` は参加（`/classrooms/join`）とセッション検証（`/classrooms/verify-session`）の応答の `rubytee.enabled` から取り込み、生徒のセッションと一緒に localStorage（`smalruby:classroom`）に保存する。そのため再読み込みしても次のセッション検証まではボタンが残り、先生が設定を変えると、生徒がクラスの画面を開いたとき（セッション検証）に追従する。
+- 判定は redux の `scratchGui.classroom`（`role === 'student'` + セッションあり + `rubyteeEnabled`）。`rubyteeEnabled` は参加（`/classrooms/join`）とセッション検証（`/classrooms/verify-session`）の応答の `rubytee.enabled` から取り込み、生徒のセッションと一緒に localStorage（`smalruby:classroom`）に保存する。セッション検証はページを開いたとき（`src/containers/use-student-class-settings-refresh.js`）とクラスの画面を開いたときに行うので、先生が設定を変えると、生徒がページを再読み込みするかクラスの画面を開いたときに追従する。
 - 判定は GUI 側だけ。relay 側でクラス外の利用を止めることは別途判断する。
 - クラスを抜けたとき・設定が無効に変わったときは、開いていたチャット・同意ダイアログも閉じ、送信中のリクエストは取り消す。
 - 参加しているクラスか出席番号が変わったとき（クラスを抜けたときも含む）は、チャットの履歴と入力中の文を消す。学校の PC は共用なので、同じタブで次の生徒が参加したときに前の生徒の会話が見えたり、次の生徒の出席番号で relay に送られたりしないようにするため。
