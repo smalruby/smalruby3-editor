@@ -311,3 +311,73 @@ describe('MeshV2InitialStep classic methods', () => {
         expect(screen.queryByTestId('meshV2-create-group')).toBeNull();
     });
 });
+
+describe('MeshV2InitialStep invitation from a seat group', () => {
+    const makeVm = (groups) => ({
+        runtime: { peripheralExtensions: { meshV2: { listSeatGroups: jest.fn(() => Promise.resolve(groups)) } } },
+    });
+    const inviteProps = (groups, extra) => ({
+        classroomJoinCode: 'abc123',
+        classroomName: '3年2組',
+        domain: 'abc123',
+        domainReadOnly: true,
+        meshV2Seat: { seat: 7, teacher: false },
+        vm: makeVm(groups),
+        onCreateGroup: jest.fn(),
+        onDomainChange: jest.fn(),
+        onJoinGroup: jest.fn(),
+        onJoinSeatGroup: jest.fn(),
+        onSeatConnect: jest.fn(),
+        ...extra,
+    });
+
+    beforeEach(() => {
+        classroomAPI.lookupClassroom.mockResolvedValue({
+            studentCount: 12,
+            takenSeats: [3, 7, 12],
+            meshGroupLimit: 6,
+        });
+    });
+
+    test('a late student sees the group that waits for them and can join it', async () => {
+        const props = inviteProps([seatGroup('g3', [3, 7, 12], 3, [3, 12])]);
+        renderJa(<MeshV2InitialStep {...props} />);
+        expect(await screen.findByTestId('meshV2-seat-invite')).toHaveTextContent(
+            '3番さんのグループに呼ばれています',
+        );
+        expect(screen.getByTestId('meshV2-seat-invite-status-3')).toHaveTextContent('ホスト・参加中');
+        expect(screen.getByTestId('meshV2-seat-invite-status-12')).toHaveTextContent('参加中');
+        expect(screen.getByTestId('meshV2-seat-invite-status-7')).toHaveTextContent('あなた（まだ入っていません）');
+        expect(screen.queryByTestId('meshV2-seat-connect-entry')).toBeNull();
+        fireEvent.click(screen.getByTestId('meshV2-seat-invite-join'));
+        expect(props.onJoinSeatGroup).toHaveBeenCalledWith('g3');
+    });
+
+    test('skipping shows the usual first screen', async () => {
+        renderJa(<MeshV2InitialStep {...inviteProps([seatGroup('g3', [3, 7], 3, [3])])} />);
+        fireEvent.click(await screen.findByTestId('meshV2-seat-invite-skip'));
+        expect(screen.queryByTestId('meshV2-seat-invite')).toBeNull();
+        expect(screen.getByTestId('meshV2-seat-connect-entry')).toBeInTheDocument();
+    });
+
+    test('a student who was not chosen sees the usual first screen', async () => {
+        const props = inviteProps([seatGroup('g3', [3, 12], 3, [3])]);
+        renderJa(<MeshV2InitialStep {...props} />);
+        await waitFor(() => expect(props.vm.runtime.peripheralExtensions.meshV2.listSeatGroups).toHaveBeenCalled());
+        await act(async () => {
+            await Promise.resolve();
+        });
+        expect(screen.queryByTestId('meshV2-seat-invite')).toBeNull();
+        expect(screen.getByTestId('meshV2-seat-connect-entry')).toBeInTheDocument();
+    });
+
+    test('the teacher is not invited', async () => {
+        const props = inviteProps([seatGroup('g3', [3, 7], 3, [3])], { meshV2Seat: { seat: 7, teacher: true } });
+        renderJa(<MeshV2InitialStep {...props} />);
+        await act(async () => {
+            await Promise.resolve();
+        });
+        expect(screen.queryByTestId('meshV2-seat-invite')).toBeNull();
+        expect(props.vm.runtime.peripheralExtensions.meshV2.listSeatGroups).not.toHaveBeenCalled();
+    });
+});

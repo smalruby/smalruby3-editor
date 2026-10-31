@@ -80,6 +80,7 @@ src/components/connection-modal/*
 !src/components/connection-modal/mesh-v2-classic-methods.jsx
 !src/components/connection-modal/mesh-v2-seat-connect.css
 !src/components/connection-modal/mesh-v2-seat-entry.jsx
+!src/components/connection-modal/mesh-v2-seat-invite-step.jsx
 !src/components/connection-modal/mesh-v2-seat-pick-step.jsx
 !src/components/connection-modal/mesh-v2-seat-status-line.jsx
 !src/components/connection-modal/mesh-v2-seat-wait-step.jsx

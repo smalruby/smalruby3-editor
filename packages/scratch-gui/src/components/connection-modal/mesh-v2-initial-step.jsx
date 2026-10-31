@@ -5,11 +5,19 @@ import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React from 'react';
 import { defineMessages, FormattedMessage, useIntl } from 'react-intl';
+import {
+    describeSeatStatuses,
+    findInvitingGroup,
+    groupHostSeat,
+    groupSeats,
+} from '../../lib/mesh-v2-seat-connect.js';
+import { useSeatSnapshot } from '../../lib/mesh-v2-seat-snapshot.js';
 import Box from '../box/box.jsx';
 import styles from './connection-modal.css';
 import MeshV2ClassicMethods from './mesh-v2-classic-methods.jsx';
 import initialStepStyles from './mesh-v2-initial-step.css';
 import MeshV2SeatEntry from './mesh-v2-seat-entry.jsx';
+import MeshV2SeatInviteStep from './mesh-v2-seat-invite-step.jsx';
 import createGroupImage from './mesh_v2_create_group.png';
 import joinGroupImage from './mesh_v2_join_group.png';
 
@@ -74,16 +82,45 @@ const MeshV2InitialStep = (props) => {
     const seat = props.meshV2Seat && !props.meshV2Seat.teacher ? props.meshV2Seat.seat : null;
     // A student in a class connects by seat number; the classic buttons are folded away.
     const seatMode = !!(seat && props.onSeatConnect);
+    const { classSeats, groups } = useSeatSnapshot({
+        vm: props.vm,
+        joinCode: seatMode ? props.classroomJoinCode : null,
+    });
+    // A group that chose this seat and waits for it is shown first (it can be skipped).
+    const [inviteSkipped, setInviteSkipped] = React.useState(false);
+    const invitingGroup = seatMode && groups && !inviteSkipped ? findInvitingGroup({ groups, mySeat: seat }) : null;
+    const handleJoinInvite = React.useCallback(() => {
+        if (invitingGroup) props.onJoinSeatGroup(invitingGroup.id);
+    }, [invitingGroup, props.onJoinSeatGroup]);
+    const handleSkipInvite = React.useCallback(() => setInviteSkipped(true), []);
+
+    if (invitingGroup) {
+        return (
+            <MeshV2SeatInviteStep
+                hostSeat={groupHostSeat(invitingGroup)}
+                mySeat={seat}
+                statuses={describeSeatStatuses({
+                    groups,
+                    groupId: invitingGroup.id,
+                    chosenSeats: groupSeats(invitingGroup),
+                    presentSeats: classSeats ? classSeats.presentSeats : [],
+                    mySeat: seat,
+                })}
+                onJoin={handleJoinInvite}
+                onSkip={handleSkipInvite}
+            />
+        );
+    }
 
     return (
         <Box className={styles.body}>
             <Box className={styles.bottomArea}>
                 {seatMode && (
                     <MeshV2SeatEntry
+                        classSeats={classSeats}
                         classroomName={props.classroomName}
-                        joinCode={props.classroomJoinCode}
+                        groups={groups}
                         seat={seat}
-                        vm={props.vm}
                         onJoinGroup={props.onJoinSeatGroup}
                         onSeatConnect={props.onSeatConnect}
                     />

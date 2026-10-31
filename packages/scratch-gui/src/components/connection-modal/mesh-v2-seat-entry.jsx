@@ -1,11 +1,11 @@
 // "出席番号でつながる" screen 1: the entry at the top of the first mesh screen,
 // shown only to a student in a class. Offers the teacher's group first when the
-// assignment has no group limit and the teacher hosts one.
+// assignment has no group limit and the teacher hosts one. The class and its
+// groups are read by the first screen (MeshV2InitialStep).
 import PropTypes from 'prop-types';
 import React from 'react';
 import { defineMessages, FormattedMessage } from 'react-intl';
 import { findTeacherGroup } from '../../lib/mesh-v2-seat-connect.js';
-import { useSeatSnapshot } from '../../lib/mesh-v2-seat-snapshot.js';
 import styles from './mesh-v2-seat-connect.css';
 
 const messages = defineMessages({
@@ -36,8 +36,7 @@ const messages = defineMessages({
     },
 });
 
-const MeshV2SeatEntry = ({ classroomName, joinCode, seat, vm, onJoinGroup, onSeatConnect }) => {
-    const { classSeats, groups } = useSeatSnapshot({ vm, joinCode });
+const MeshV2SeatEntry = ({ classSeats, classroomName, groups, seat, onJoinGroup, onSeatConnect }) => {
     const teacherGroup = classSeats && groups ? findTeacherGroup(groups, classSeats.groupLimit) : null;
     const handleJoinTeacher = React.useCallback(() => {
         if (teacherGroup) onJoinGroup(teacherGroup.id);
@@ -79,12 +78,14 @@ const MeshV2SeatEntry = ({ classroomName, joinCode, seat, vm, onJoinGroup, onSea
 };
 
 MeshV2SeatEntry.propTypes = {
+    classSeats: PropTypes.shape({
+        groupLimit: PropTypes.number,
+    }),
     classroomName: PropTypes.string,
-    joinCode: PropTypes.string,
+    groups: PropTypes.arrayOf(PropTypes.object),
     onJoinGroup: PropTypes.func.isRequired,
     onSeatConnect: PropTypes.func.isRequired,
     seat: PropTypes.number.isRequired,
-    vm: PropTypes.object.isRequired,
 };
 
 export default MeshV2SeatEntry;

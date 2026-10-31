@@ -278,6 +278,25 @@ const toggleSeat = (chosenSeats, seat, mySeat, groupLimit) => {
 };
 
 /**
+ * The group waiting for a late student: a student-hosted group that chose the
+ * seat but does not have it yet (e.g. started without waiting while the seat
+ * was absent). None while the seat is already in some group.
+ * @param {object} params - parameters.
+ * @param {Array<object>} params.groups - groups in the class domain.
+ * @param {number} params.mySeat - own seat.
+ * @returns {?object} the inviting group (smallest host seat), or null.
+ */
+const findInvitingGroup = ({ groups, mySeat }) => {
+    const all = groups || [];
+    if (!isSeat(mySeat) || all.some((group) => groupMemberSeats(group).includes(mySeat))) return null;
+    const inviting = all.filter((group) => {
+        const host = groupHostSeat(group);
+        return host !== null && host !== mySeat && groupSeats(group).includes(mySeat);
+    });
+    return pickSurvivingGroup(inviting);
+};
+
+/**
  * The teacher's group to offer on the first screen: only for an assignment
  * without a limit (Q8).
  * @param {Array<object>} groups - groups in the class domain.
@@ -298,6 +317,7 @@ export {
     decideSeatAction,
     describeSeatStatuses,
     findGroupToMergeInto,
+    findInvitingGroup,
     findTeacherGroup,
     groupHostSeat,
     groupSeats,

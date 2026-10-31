@@ -5,6 +5,7 @@ import {
     decideSeatAction,
     describeSeatStatuses,
     findGroupToMergeInto,
+    findInvitingGroup,
     findTeacherGroup,
     isEveryoneHere,
     needsAloneConfirm,
@@ -325,6 +326,47 @@ describe('mesh-v2 seat connect', () => {
 
         test('not offered with a limit', () => {
             expect(findTeacherGroup([teacher], 6)).toBeNull();
+        });
+    });
+    describe('findInvitingGroup', () => {
+        const teacher = { id: 't', seatInfo: { baseName: 'abc', seats: [7], host: 'teacher' }, memberSeats: [] };
+
+        test('a group that chose the seat but does not have it yet invites it', () => {
+            const group = seatGroup('g3', 3, [3, 7, 12], [3]);
+            expect(findInvitingGroup({ groups: [group], mySeat: 7 })).toBe(group);
+        });
+
+        test('no invitation once the seat is in the group', () => {
+            expect(findInvitingGroup({ groups: [seatGroup('g3', 3, [3, 7, 12], [3, 7])], mySeat: 7 })).toBeNull();
+        });
+
+        test('no invitation while the seat is in another group', () => {
+            const groups = [seatGroup('g3', 3, [3, 7, 12], [3]), seatGroup('g5', 5, [5, 7], [5, 7])];
+            expect(findInvitingGroup({ groups, mySeat: 7 })).toBeNull();
+        });
+
+        test('a seat that was not chosen is not invited', () => {
+            expect(findInvitingGroup({ groups: [seatGroup('g3', 3, [3, 7, 12], [3])], mySeat: 5 })).toBeNull();
+        });
+
+        test('of several groups the one with the smallest host seat invites', () => {
+            const g5 = seatGroup('g5', 5, [5, 7], [5]);
+            const g3 = seatGroup('g3', 3, [3, 7], [3]);
+            expect(findInvitingGroup({ groups: [g5, g3], mySeat: 7 })).toBe(g3);
+        });
+
+        test("the teacher's group and groups without seat info do not invite", () => {
+            const groups = [teacher, legacyGroup('old', [3]), hostOnlyGroup('h3', 3)];
+            expect(findInvitingGroup({ groups, mySeat: 7 })).toBeNull();
+        });
+
+        test('the own seat as host is not an invitation', () => {
+            expect(findInvitingGroup({ groups: [seatGroup('g7', 7, [3, 7], [3])], mySeat: 7 })).toBeNull();
+        });
+
+        test('nothing without groups or a seat', () => {
+            expect(findInvitingGroup({ groups: null, mySeat: 7 })).toBeNull();
+            expect(findInvitingGroup({ groups: [seatGroup('g3', 3, [3, 7], [3])], mySeat: null })).toBeNull();
         });
     });
 });
