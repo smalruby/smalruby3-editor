@@ -745,6 +745,18 @@ watchdog が次を処理する:
 再起動回数を数え、上限超で `Blocked` + HITL に escalate。判断ロジックは
 `tools/autopilot/src/phases.js` の `evaluate`（純粋関数・テスト済み）。
 
+**1 回の run の時間**は settings の `watchdog`（分単位）で決める。既定は 60 分で、52 分の時点で
+worker に「まとめに入れ」（協調的チェックポイント）の信号を送る。大きな実装が 1 回に収まらず
+checkpoint を繰り返して上限（3 回）に近づくなら、ここを延ばす:
+
+```json
+{ "watchdog": { "maxMinutes": 60, "softMinutes": 52 } }
+```
+
+- `softMinutes` を省くと `maxMinutes` − 8 分。不正な値（0 以下・`softMinutes` ≥ `maxMinutes`）は既定に戻る。
+- run が無いまま作業中の表示が残った item を Blocked にする猶予（stuck 検知）は `maxMinutes` + 5 分。
+- 解釈は `phases.js` の `watchdogFromSettings`。変えたら daemon の再起動で反映される。
+
 ---
 
 ## 自律コントラクト

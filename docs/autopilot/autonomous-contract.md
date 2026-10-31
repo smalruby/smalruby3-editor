@@ -117,9 +117,10 @@ AUTOPILOT_DONE
 
 ### 2.5 実行時間の契約と協調的チェックポイント（EPIC #906）
 
-worker（対話 Claude）の**実行上限は約 30 分**（runner の `tMaxMs`）。上限に達すると runner は
-容赦なく kill する（フォールバック、現状維持）。そうなる前に、runner は **soft-limit（既定 22 分、
-`tSoftMs`）を超えた時点で 1 回だけ**、tmux send-keys で次のメッセージを worker に送る:
+worker（対話 Claude）の**実行上限は既定で約 60 分**（runner の `tMaxMs`）。上限に達すると runner は
+容赦なく kill する（フォールバック、現状維持）。そうなる前に、runner は **soft-limit（既定 52 分、
+`tSoftMs`）を超えた時点で 1 回だけ**、tmux send-keys で次のメッセージを worker に送る
+（残り時間は `tMaxMs − tSoftMs` から計算する。既定では 8 分）:
 
 ```
 ⏰ 残り約8分。新しい大きな作業を始めず、安全な区切りで停止して checkpoint 手順を実行して

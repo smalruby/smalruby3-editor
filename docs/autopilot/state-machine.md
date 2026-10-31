@@ -77,7 +77,7 @@ Review / DoD / Blocked / Discussing の「人間の番」は、次の **いず�
 | 8 | Sprint Backlog / — / **あり** | 人間が明示的に一時停止 | H: ラベル解除 | #7 |
 | 9 | In Progress / Self-Reviewing / なし | implement 完了直後 | **A: review**（自動） | Review + HITL（#12） |
 | 10 | In Progress / Implementing 等 / 任意（run あり） | worker 実行中 | run 完了（結果ファイル） | 結果の nextStatus へ |
-| 11 | In Progress / 実作業系 AI Status / **任意**（run なし） | worker 消失（異常終了・daemon 再起動・Blocked マーキング失敗の残渣 #972） | **D: stalled 復帰**（毎 tick・worker 不在なら対応フェーズへ再 dispatch。🙋 HITL 残渣も含む・#995）。非 HITL でなお動かない深いケースは **D: stuck 検知**（35 分）| 対応フェーズへ再開（Implementing/Creating PR→implement, Self-Reviewing→review, Addressing Comments→address-review, Running DoD→verify, Understanding→understand）/ deeper fallback は Blocked + HITL（#14） |
+| 11 | In Progress / 実作業系 AI Status / **任意**（run なし） | worker 消失（異常終了・daemon 再起動・Blocked マーキング失敗の残渣 #972） | **D: stalled 復帰**（毎 tick・worker 不在なら対応フェーズへ再 dispatch。🙋 HITL 残渣も含む・#995）。非 HITL でなお動かない深いケースは **D: stuck 検知**（run の上限 + 5 分。既定 65 分）| 対応フェーズへ再開（Implementing/Creating PR→implement, Self-Reviewing→review, Addressing Comments→address-review, Running DoD→verify, Understanding→understand）/ deeper fallback は Blocked + HITL（#14） |
 | 12 | Review・DoD / 任意 / **あり** | 人間レビュー / headful 検証待ち | H: merge → **D: merge-progression** / H: 解除 or **コメント・レビュー送信** → **A: address-review** | Close / #13 |
 | 13 | Review・DoD / 任意 / なし(解除済み) | 差し戻し済み | **A: address-review** | 対応後 Review + HITL（#12）/ LGTM は変更なし（watermark で空回りしない） |
 | 14 | Blocked / 任意 / **あり** | run 失敗・stall の人間対処待ち | H: 解除 or **コメント** → **A: address-review（PR あり）/ triage（PR なし）** / H: Status 移動 | 再開・再ルート |

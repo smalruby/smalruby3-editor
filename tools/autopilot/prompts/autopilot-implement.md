@@ -35,14 +35,15 @@ GH_TOKEN="$(bin/bot-token)" gh issue view "$AUTOPILOT_ISSUE" --repo "${AUTOPILOT
 - **`tmp/autopilot-continuation-$AUTOPILOT_ISSUE.md` があれば checkpoint からの再開**。存在すれば
   まず読み、「完了済み / 残タスク / 次の一手」を踏まえて続きから実装する（詳細は 1.5）。
 
-### 1.5 時間契約（実行上限 約30分・soft-limit 22分）
+### 1.5 時間契約（実行上限 約60分・soft-limit 52分）
 
-このフェーズの**実行上限は約30分**。soft-limit（22分）を超えると runner が tmux 経由で
+このフェーズの**実行上限は約60分**。soft-limit（52分）を超えると runner が tmux 経由で
 「⏰ 残り約8分。新しい大きな作業を始めず、安全な区切りで停止して checkpoint 手順を実行して」
 という信号を **1 回だけ**送る。この信号を受け取ったら（または自分で残り時間が僅かと判断
 したら）、新しい大きな作業を始めず、安全な区切りで停止すること。まだ完了できる見込みが
 あれば通常どおり最後まで実装してよい（checkpoint は強制ではない。完了できた場合は 4 の
 通常完了を返す）。
+（どちらも `tools/autopilot/settings.json` の `watchdog` で変えられる。値を変えたときは信号の「残り約N分」も変わる。）
 
 停止する場合の手順（詳細・JSON スキーマは `docs/autopilot/autonomous-contract.md` §2.5）:
 

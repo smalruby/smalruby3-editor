@@ -1,4 +1,5 @@
 {
+  "watchdog": { "maxMinutes": 60, "softMinutes": 52 },
   "phases": {
     "default": { "model": "opus", "effort": "medium" },
     "triage": { "model": "opus", "effort": "medium" },
