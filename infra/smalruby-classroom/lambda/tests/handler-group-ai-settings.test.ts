@@ -176,7 +176,18 @@ describe('validateGenaiSetting (issue #1275)', () => {
     const existing = { genai: { enabled: true, service: 'gemini', url: 'https://gemini.google.com/app', confirmed: true } };
     expect(validate({ enabled: false }, existing)).toEqual({ ...existing.genai, enabled: false });
     // service を変えて url を省いたら、新しい service の既定 URL に切り替える。
-    expect(validate({ service: 'chatgpt' }, existing).url).toBe('https://chatgpt.com/');
+    expect(validate({ service: 'chatgpt', enabled: false }, existing).url).toBe('https://chatgpt.com/');
+  });
+
+  test('service や url を変えたら、確認を送らない限り確認をやり直させる', () => {
+    const existing = { genai: { enabled: true, service: 'gemini', url: 'https://gemini.google.com/app', confirmed: true } };
+    // 有効のまま別の生成AI に切り替えるには、その生成AI の確認が要る。
+    expect(() => validate({ service: 'chatgpt' }, existing)).toThrow(/confirmed/);
+    expect(validate({ service: 'chatgpt', enabled: false }, existing).confirmed).toBe(false);
+    expect(validate({ service: 'chatgpt', confirmed: true }, existing)).toMatchObject({ enabled: true, confirmed: true });
+    expect(() => validate({ url: 'https://gemini.google.com/u/1/app' }, existing)).toThrow(/confirmed/);
+    // 同じ値を送り直しただけなら確認は残る。
+    expect(validate({ service: 'gemini', url: 'https://gemini.google.com/app' }, existing).confirmed).toBe(true);
   });
 });
 

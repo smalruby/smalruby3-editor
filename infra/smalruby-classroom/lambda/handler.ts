@@ -3392,6 +3392,7 @@ export function validateGenaiSetting(value: unknown, group?: Record<string, unkn
   }
   const input = value as Record<string, unknown>;
   const next = genaiSettingOf(group);
+  const previous = { service: next.service, url: next.url };
 
   if (input.service !== undefined) {
     if (!isGenaiService(input.service)) {
@@ -3409,6 +3410,11 @@ export function validateGenaiSetting(value: unknown, group?: Record<string, unkn
   }
   if (next.service && next.url === null) {
     next.url = GENAI_DEFAULT_URLS[next.service];
+  }
+  // The teacher's confirmation is about one service's terms (age, consent), so a
+  // change of service or URL needs a fresh confirmation unless it comes with one.
+  if ((next.service !== previous.service || next.url !== previous.url) && input.confirmed === undefined) {
+    next.confirmed = false;
   }
   for (const key of ['enabled', 'confirmed'] as const) {
     if (input[key] !== undefined) {
