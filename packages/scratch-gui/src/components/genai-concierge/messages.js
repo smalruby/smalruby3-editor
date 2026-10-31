@@ -176,6 +176,21 @@ const messages = defineMessages({
         description: 'Shown after the question was copied',
         id: 'gui.genaiConcierge.copied',
     },
+    copiedGoBack: {
+        defaultMessage: 'Copied. Go back to the generative AI tab, paste it (Ctrl+V) and send it.',
+        description: 'Shown after copying again, once the generative AI tab has been opened',
+        id: 'gui.genaiConcierge.copiedGoBack',
+    },
+    copyOnly: {
+        defaultMessage: 'Copy',
+        description: 'Button copying the question once the generative AI tab has been opened',
+        id: 'gui.genaiConcierge.copyOnly',
+    },
+    reopen: {
+        defaultMessage: 'Open the generative AI again (if you closed its tab)',
+        description: 'Link opening the generative AI once more, for a student who closed its tab',
+        id: 'gui.genaiConcierge.reopen',
+    },
     copyFailed: {
         defaultMessage: "Couldn't copy. Select all of the text below and copy it with Ctrl+C.",
         description: 'Shown when copying to the clipboard failed',

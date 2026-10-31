@@ -32,8 +32,6 @@ import { getUrlParams } from '../lib/url-params.js';
 const NUDGE_OFF_KEY = 'smalruby:genaiNudgeOff';
 // Development only: the generative AI chosen outside a class.
 const DEV_SERVICE_KEY = 'smalruby:genaiService';
-// One tab for the generative AI, reused by every copy.
-const AI_WINDOW_NAME = 'smalruby-genai';
 
 const readStorage = (key) => {
     try {
@@ -77,7 +75,11 @@ const GenaiConcierge = ({ vm, rubyVersion, assignmentName, available, classGenai
     const [answerKey, setAnswerKey] = useState(0);
     const [offset, setOffset] = useState({ x: 0, y: 0 });
     const drag = useRef(null);
-    const aiWindow = useRef(null);
+    // Whether this panel already opened the generative AI. Gemini and ChatGPT send
+    // Cross-Origin-Opener-Policy, which cuts the opened tab off from Smalruby: it can't be
+    // found by name, focused or reused. So the AI is opened once, and later copies only
+    // ask the student to go back to its tab (with a link to open it again if it was closed).
+    const [aiOpened, setAiOpened] = useState(false);
     const rootRef = useRef(null);
     const lastActivity = useRef(Date.now());
     const lastNudge = useRef(0);
@@ -198,25 +200,32 @@ const GenaiConcierge = ({ vm, rubyVersion, assignmentName, available, classGenai
         setStep('copy');
     }, [vm, rubyVersion, kindId, text, assignmentName]);
 
-    // Copy first (the click is the user gesture the clipboard needs), then reuse one AI tab.
+    // noopener: the opened page gets no reference back to Smalruby (it could otherwise
+    // move this tab elsewhere), and the reference could not be used anyway (see aiOpened).
+    const openAi = useCallback(() => {
+        if (!target) return;
+        window.open(target.url, '_blank', 'noopener,noreferrer');
+        setAiOpened(true);
+    }, [target]);
+
+    // Copy first (the click is the user gesture the clipboard needs), then open the AI once.
     const copyAndOpen = useCallback(
         async (content, key) => {
             try {
                 await navigator.clipboard.writeText(content);
                 setCopied((c) => ({ ...c, [key]: true }));
-                setNotice(intl.formatMessage(messages.copied));
+                setNotice(intl.formatMessage(aiOpened ? messages.copiedGoBack : messages.copied));
             } catch {
                 setNotice(intl.formatMessage(messages.copyFailed));
             }
-            if (!target) return;
-            if (aiWindow.current && !aiWindow.current.closed) {
-                aiWindow.current.focus();
-            } else {
-                aiWindow.current = window.open(target.url, AI_WINDOW_NAME);
-            }
+            if (!aiOpened) openAi();
         },
-        [intl, target],
+        [intl, aiOpened, openAi],
     );
+
+    // Another AI (the development picker) is a new tab to open.
+    const targetUrl = target ? target.url : null;
+    useEffect(() => setAiOpened(false), [targetUrl]);
 
     const handleChooseService = useCallback((choice) => {
         setDevChoice(choice);
@@ -314,7 +323,9 @@ const GenaiConcierge = ({ vm, rubyVersion, assignmentName, available, classGenai
                                 onChooseService={handleChooseService}
                                 onChangeService={handleChangeService}
                                 onPromptChange={setPrompt}
+                                aiOpened={aiOpened}
                                 onCopy={copyAndOpen}
+                                onReopen={openAi}
                                 onSplit={handleSplit}
                                 onBack={handleToTrouble}
                                 onNext={handleToPaste}

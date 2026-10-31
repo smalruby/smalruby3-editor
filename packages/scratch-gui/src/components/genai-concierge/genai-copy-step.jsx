@@ -61,10 +61,12 @@ const GenaiCopyStep = ({
     parts,
     copied,
     notice,
+    aiOpened,
     onChooseService,
     onChangeService,
     onPromptChange,
     onCopy,
+    onReopen,
     onSplit,
     onBack,
     onNext,
@@ -94,6 +96,13 @@ const GenaiCopyStep = ({
             onSplit();
         },
         [onSplit],
+    );
+    const handleReopen = useCallback(
+        (e) => {
+            e.preventDefault();
+            onReopen();
+        },
+        [onReopen],
     );
 
     return (
@@ -127,7 +136,7 @@ const GenaiCopyStep = ({
                             disabled={!ready}
                             onClick={handleCopyPrompt}
                         >
-                            <FormattedMessage {...messages.copyOpen} />
+                            <FormattedMessage {...(aiOpened ? messages.copyOnly : messages.copyOpen)} />
                         </button>
                     </div>
                 </>
@@ -166,6 +175,13 @@ const GenaiCopyStep = ({
                     {notice}
                 </p>
             )}
+            {aiOpened && (
+                <p className={styles.small}>
+                    <a href="#" data-testid="genai-reopen" onClick={handleReopen}>
+                        <FormattedMessage {...messages.reopen} />
+                    </a>
+                </p>
+            )}
             <div className={styles.row}>
                 <button onClick={onBack}>
                     <FormattedMessage {...messages.back} />
@@ -185,10 +201,12 @@ GenaiCopyStep.propTypes = {
     parts: PropTypes.number.isRequired,
     copied: PropTypes.objectOf(PropTypes.bool).isRequired,
     notice: PropTypes.string,
+    aiOpened: PropTypes.bool,
     onChooseService: PropTypes.func.isRequired,
     onChangeService: PropTypes.func.isRequired,
     onPromptChange: PropTypes.func.isRequired,
     onCopy: PropTypes.func.isRequired,
+    onReopen: PropTypes.func.isRequired,
     onSplit: PropTypes.func.isRequired,
     onBack: PropTypes.func.isRequired,
     onNext: PropTypes.func.isRequired,
