@@ -1,11 +1,18 @@
 // checkGroupExists Pipeline Before Function
 // グループの存在確認を行う共通Function
-// reportDataByNode, fireEventsByNode の前処理として使用
+// joinGroup, renewHeartbeat, sendMemberHeartbeat, reportDataByNode, fireEventsByNode の前処理として使用
+// meshInputError は CDK が末尾に連結する js/shared/meshInputValidation.js で定義される (issue #1267)
 
 import { util } from '@aws-appsync/utils';
 
 export function request(ctx) {
   const { groupId, domain } = ctx.args;
+
+  // hostId / nodeId の長さと文字を DB に触る前に検査する
+  const inputError = meshInputError(ctx.args);
+  if (inputError) {
+    util.error(inputError, 'ValidationError');
+  }
 
   return {
     operation: 'GetItem',

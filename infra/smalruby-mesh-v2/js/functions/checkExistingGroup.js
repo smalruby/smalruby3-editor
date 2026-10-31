@@ -1,10 +1,17 @@
 // checkExistingGroup Pipeline Function
 // hostId + domain の組み合わせで既存のグループをチェック
+// meshInputError は CDK が末尾に連結する js/shared/meshInputValidation.js で定義される (issue #1267)
 
 import { util } from '@aws-appsync/utils';
 
 export function request(ctx) {
   const { hostId, domain } = ctx.args;
+
+  // name / hostId の長さと文字を DB に触る前に検査する（createGroup の入口）
+  const inputError = meshInputError(ctx.args);
+  if (inputError) {
+    util.error(inputError, 'ValidationError');
+  }
   const nowEpoch = Math.floor(util.time.nowEpochMilliSeconds() / 1000);
   const ttlSeconds = +(ctx.env.MESH_HOST_HEARTBEAT_TTL_SECONDS || '150');
   const threshold = nowEpoch - ttlSeconds;

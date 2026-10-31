@@ -142,5 +142,39 @@ RSpec.describe CreateGroupUseCase do
         expect(result3.id).to eq("stable-id")
       end
     end
+
+    # issue #1267: 入力上限
+    context "入力の検査" do
+      before { allow(repository).to receive(:find_group_by_host_and_domain).and_return(nil) }
+
+      it "今のクライアントの形式（32 桁 16 進 + 出席番号つきの名前）は通す" do
+        allow(repository).to receive(:save_group)
+        host_id = "0123456789abcdef0123456789abcdefs07"
+        group = use_case.execute(name: "#{host_id}|seats=3,7,12|host=3", host_id: host_id, domain: "example.com")
+        expect(group.host_id).to eq(host_id)
+      end
+
+      it "長すぎる hostId は ValidationError（DB に触らない）" do
+        expect(repository).not_to receive(:find_group_by_host_and_domain)
+        expect {
+          use_case.execute(name: "Test", host_id: "a" * 129, domain: "example.com")
+        }.to raise_error(MeshInput::ValidationError, /hostId/)
+      end
+
+      it "使えない文字の hostId は ValidationError" do
+        expect {
+          use_case.execute(name: "Test", host_id: "host#NODE#x", domain: "example.com")
+        }.to raise_error(MeshInput::ValidationError, /hostId/)
+      end
+
+      it "長すぎる名前・制御文字入りの名前は ValidationError" do
+        expect {
+          use_case.execute(name: "a" * 1025, host_id: "host-001", domain: "example.com")
+        }.to raise_error(MeshInput::ValidationError, /name/)
+        expect {
+          use_case.execute(name: "bad\nname", host_id: "host-001", domain: "example.com")
+        }.to raise_error(MeshInput::ValidationError, /name/)
+      end
+    end
   end
 end

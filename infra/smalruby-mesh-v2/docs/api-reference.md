@@ -376,6 +376,28 @@ query PollGroupData($groupId: ID!, $domain: String!, $since: String!) {
 旧クライアントは引き続きそれらを使用可能。新クライアント (this PR 以降) は
 `pollGroupData` を使用する。
 
+## 入力の上限
+
+サーバーはクライアントから受け取る ID・グループ名について、**長さと使える文字の上限だけ**を検査する。
+外れた値は DB に触る前に `ValidationError` になる。グループ名の中身（`<hostId>|host=7` や
+`<hostId>|seats=3,7,12|host=3` などの書式）はクライアント間の約束なので、サーバーでは検査しない。
+
+| 引数 | 長さ | 使える文字 | 対象 mutation |
+| :--- | :--- | :--- | :--- |
+| `hostId` / `nodeId` | 1〜128 文字 | `A-Z` `a-z` `0-9` `_` `-` のみ | `createGroup` / `joinGroup` / `leaveGroup` / `dissolveGroup` / `renewHeartbeat` / `sendMemberHeartbeat` / `reportDataByNode` / `fireEventsByNode` / `recordEventsByNode` |
+| `name`（グループ名） | 1〜1024 文字 | 制御文字（U+0000〜U+001F, U+007F）以外 | `createGroup` |
+| `domain` | 最大 256 文字 | （検査なし） | `createGroup` |
+
+- 今のクライアントの ID は 32 桁の 16 進（`uuidv4` からハイフンを除いたもの）+ 任意で出席番号の
+  末尾 `s<2〜3 桁>`（例 `…s07`）。グループ名はクライアントが 512 文字以内で作る。上限はそれぞれに
+  余裕を持たせている（ハイフン入りの旧形式・テスト用 ID も通る）。
+- DynamoDB のキー区切りに使う `#` や、グループ名の区切り `|` は ID に使えない。
+- 上限は 2 か所に同じ値で持つ。変えるときは対で更新する:
+  - AppSync JS リゾルバ: `js/shared/meshInputValidation.js`（CDK が `checkExistingGroup` /
+    `checkGroupExists` の末尾に連結する。APPSYNC_JS は Function 間で import できないため）
+  - Ruby Lambda: `lambda/domain/mesh_input.rb`（`MeshInput::ValidationError`。Lambda の
+    `errorType` には例外クラス名が入るので、`ValidationError` を**含む**かで判定する）
+
 ## Mutations
 
 ### createDomain
@@ -429,6 +451,7 @@ mutation CreateGroup(
 **パラメータ**:
 - `useWebSocket: Boolean!` - WebSocket 使用フラグ。`false` の場合、ポーリングプロトコルを使用
 - `maxConnectionTimeSeconds: Int` - グループの最大接続時間（オプション、1以上、環境変数の値以下）
+- `name` / `hostId` の長さと文字は[入力の上限](#入力の上限)を参照
 
 **冪等性**: 同じ `hostId` + `domain` で呼び出すと、既存のグループを返します。
 
@@ -874,7 +897,7 @@ Mesh V2 バックエンドは以下の GraphQL エラー型を返します。
 | `GroupNotFound` | グループが存在しない、期限切れ、またはホストのハートビートがタイムアウトした | **即座に切断** | `js/functions/checkGroupExists.js` |
 | `Unauthorized` | 認可されていないノードが操作を試みた（例：非ホストがグループのハートビートを更新しようとした） | **即座に切断** | `js/functions/renewHeartbeatFunction.js` |
 | `NodeNotFound` | 指定されたノード（クライアント）がグループに存在しない | **即座に切断** | `js/functions/updateNodeTTL.js` |
-| `ValidationError` | 提供されたパラメータが検証に失敗した（例：ドメイン文字列が長すぎる） | エラーをログに記録して続行（切断**しない**） | 各種リゾルバー |
+| `ValidationError` | 提供されたパラメータが検証に失敗した（例：ドメイン文字列が長すぎる、ID・グループ名が[入力の上限](#入力の上限)を外れた） | エラーをログに記録して続行（切断**しない**） | 各種リゾルバー / `js/shared/meshInputValidation.js` / `lambda/domain/mesh_input.rb` |
 
 ### クライアント実装の詳細
 

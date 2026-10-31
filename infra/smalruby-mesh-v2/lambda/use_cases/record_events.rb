@@ -1,5 +1,6 @@
 require "time"
 require "securerandom"
+require_relative "../domain/mesh_input"
 
 class RecordEventsUseCase
   def initialize(repository)
@@ -7,6 +8,8 @@ class RecordEventsUseCase
   end
 
   def execute(group_id:, domain:, node_id:, events:, ttl_seconds: 10)
+    MeshInput.validate_id!(node_id, "nodeId")
+
     # 1. グループの存在確認
     group = @repository.find_group(group_id, domain)
     return {success: false, error: "Group not found"} unless group
