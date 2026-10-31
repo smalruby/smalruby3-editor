@@ -79,6 +79,11 @@ stg は**共有資源**で、人間と複数の autopilot worker が同時に触
 - **stg は上書きされうる**。DoD をする前に、workflow が PR に残したコメントで
   「いまの stg が自分の SHA か」を確認する。違えばラベルを付け直して再デプロイする。
 - develop への infra push でも stg へデプロイが走るので、**マージ後は stg が develop に収束**する。
+- **同じ infra プロジェクトを変える PR が同時に 2 つあるときは、後の PR を先の PR のブランチから
+  作る**（または 1 つにまとめる）。stg のデプロイはプロジェクト単位でキュー化されるだけなので、
+  別々のブランチから出すと後のデプロイが先の変更を消し、DoD が違うコードに対して通ってしまう。
+  別プロジェクト同士（例: classroom と rubytee-relay）なら互いに上書きしないので、分けたまま
+  並行してよい（`concurrency` の group が `infra-deploy-stg-<project>`）。
 
 ## infra は別 Issue に分けて先に出す（infra-first）
 
