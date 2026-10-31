@@ -1517,6 +1517,7 @@ async function handleJoinClassroom(sourceIp: string, body: Record<string, unknow
       memberId,
       hasAssignment: hasAssignmentContent(classroom),
       meshGroupLimit: meshGroupLimitOf(classroom),
+      ...studentAiSettingsOf(owningGroup),
       previousComment,
     }),
   };
@@ -1674,6 +1675,7 @@ async function handleLookupClassroom(sourceIp: string, body: Record<string, unkn
       expiresAt: classroom.ttl ? new Date((classroom.ttl as number) * 1000).toISOString() : null,
       hasAssignment: hasAssignmentContent(classroom),
       meshGroupLimit: meshGroupLimitOf(classroom),
+      ...studentAiSettingsOf(lookupGroup),
     }),
   };
 }
@@ -2986,8 +2988,13 @@ async function handleVerifySession(sessionToken: string): Promise<APIGatewayProx
     throw new AuthError('This classroom is no longer active');
   }
 
-  // Update lastActiveAt and extend TTL on each verify call
-  await touchMembershipActivity(session, sessionToken);
+  // Update lastActiveAt and extend TTL on each verify call. The owning class
+  // is read alongside so the teacher's AI settings (#1275) reach students who
+  // joined before the change.
+  const [, owningGroup] = await Promise.all([
+    touchMembershipActivity(session, sessionToken),
+    getOwningGroup(classroomResult.Item),
+  ]);
 
   if (subResult.Items && subResult.Items.length > 0) {
     const item = subResult.Items[0];
@@ -3006,6 +3013,7 @@ async function handleVerifySession(sessionToken: string): Promise<APIGatewayProx
       hasAssignment: hasAssignmentContent(classroomResult.Item),
       // The teacher may change the limit after the student joined (#1255).
       meshGroupLimit: meshGroupLimitOf(classroomResult.Item),
+      ...studentAiSettingsOf(owningGroup),
     }),
   };
 }
@@ -3293,6 +3301,162 @@ async function ensureGroupTopic(
   }));
 }
 
+// --- Class-level AI settings (issue #1275) ---
+// The teacher decides per class whether students see a generative-AI link and
+// Rubytee. Classes written before this feature have neither attribute, which
+// reads as "both disabled".
+
+export type GenaiService = 'gemini' | 'chatgpt' | 'other';
+
+export interface GenaiSetting {
+  enabled: boolean;
+  service: GenaiService | null;
+  url: string | null;
+  /** The teacher confirmed the service's terms (age limits etc.) for this class. */
+  confirmed: boolean;
+}
+
+const GENAI_DEFAULT_URLS: Record<GenaiService, string | null> = {
+  gemini: 'https://gemini.google.com/app',
+  chatgpt: 'https://chatgpt.com/',
+  other: null,
+};
+
+// Services whose terms require users to be 18+ cannot be offered to school
+// students, even through the free-form "other" URL.
+const GENAI_ADULT_ONLY_HOSTS = ['claude.ai', 'claude.com', 'anthropic.com'];
+
+const MAX_GENAI_URL_LENGTH = 2048;
+
+// Own-property check: `in` would also accept inherited names like 'toString'.
+function isGenaiService(value: unknown): value is GenaiService {
+  return typeof value === 'string' && Object.prototype.hasOwnProperty.call(GENAI_DEFAULT_URLS, value);
+}
+
+function validateGenaiUrl(value: unknown): string {
+  if (typeof value !== 'string') {
+    throw new ValidationError('genai.url must be an https URL');
+  }
+  const trimmed = value.trim();
+  let parsed: URL;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    throw new ValidationError('genai.url must be an https URL');
+  }
+  if (parsed.protocol !== 'https:' || trimmed.length > MAX_GENAI_URL_LENGTH) {
+    throw new ValidationError('genai.url must be an https URL');
+  }
+  // A trailing dot names the same host ("claude.ai." is claude.ai), so drop it
+  // before comparing or the block list is trivially bypassed.
+  const host = parsed.hostname.toLowerCase().replace(/\.+$/, '');
+  if (GENAI_ADULT_ONLY_HOSTS.some(blocked => host === blocked || host.endsWith(`.${blocked}`))) {
+    throw new ValidationError('genai.url points to a service that is not available to students');
+  }
+  return trimmed;
+}
+
+/** The stored genai setting of a class, defaulting to disabled. */
+export function genaiSettingOf(group: Record<string, unknown> | undefined): GenaiSetting {
+  const raw = group?.genai;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return { enabled: false, service: null, url: null, confirmed: false };
+  }
+  const value = raw as Record<string, unknown>;
+  const service = isGenaiService(value.service) ? value.service : null;
+  return {
+    enabled: value.enabled === true && service !== null,
+    service,
+    url: typeof value.url === 'string' ? value.url : null,
+    confirmed: value.confirmed === true,
+  };
+}
+
+/** The stored rubytee setting of a class, defaulting to disabled. */
+export function rubyteeSettingOf(group: Record<string, unknown> | undefined): { enabled: boolean } {
+  const raw = group?.rubytee as Record<string, unknown> | undefined;
+  return { enabled: Boolean(raw && typeof raw === 'object' && raw.enabled === true) };
+}
+
+/**
+ * Validate a (partial) genai update and merge it onto the stored setting.
+ * Changing the service without a url switches to that service's default URL.
+ * Enabling needs a service, the teacher's confirmation and a URL.
+ * @param value - the `genai` object of the request body
+ * @param group - the stored class, whose setting the update is merged onto
+ * @returns the full setting to store
+ */
+export function validateGenaiSetting(value: unknown, group?: Record<string, unknown>): GenaiSetting {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new ValidationError('genai must be an object');
+  }
+  const input = value as Record<string, unknown>;
+  const next = genaiSettingOf(group);
+  const previous = { service: next.service, url: next.url };
+
+  if (input.service !== undefined) {
+    if (!isGenaiService(input.service)) {
+      throw new ValidationError(`genai.service must be one of: ${Object.keys(GENAI_DEFAULT_URLS).join(', ')}`);
+    }
+    if (input.service !== next.service && input.url === undefined) {
+      next.url = GENAI_DEFAULT_URLS[input.service];
+    }
+    next.service = input.service;
+  }
+  if (input.url !== undefined) {
+    next.url = input.url === null || input.url === ''
+      ? (next.service ? GENAI_DEFAULT_URLS[next.service] : null)
+      : validateGenaiUrl(input.url);
+  }
+  if (next.service && next.url === null) {
+    next.url = GENAI_DEFAULT_URLS[next.service];
+  }
+  // The teacher's confirmation is about one service's terms (age, consent), so a
+  // change of service or URL needs a fresh confirmation unless it comes with one.
+  if ((next.service !== previous.service || next.url !== previous.url) && input.confirmed === undefined) {
+    next.confirmed = false;
+  }
+  for (const key of ['enabled', 'confirmed'] as const) {
+    if (input[key] !== undefined) {
+      if (typeof input[key] !== 'boolean') {
+        throw new ValidationError(`genai.${key} must be a boolean`);
+      }
+      next[key] = input[key] as boolean;
+    }
+  }
+
+  if (next.enabled) {
+    if (!next.service) {
+      throw new ValidationError('genai.service is required to enable generative AI');
+    }
+    if (!next.confirmed) {
+      throw new ValidationError('genai.confirmed must be true to enable generative AI');
+    }
+    if (!next.url) {
+      throw new ValidationError('genai.url is required to enable generative AI');
+    }
+  }
+  return next;
+}
+
+export function validateRubyteeSetting(value: unknown): { enabled: boolean } {
+  if (!value || typeof value !== 'object' || Array.isArray(value)
+    || typeof (value as Record<string, unknown>).enabled !== 'boolean') {
+    throw new ValidationError('rubytee.enabled must be a boolean');
+  }
+  return { enabled: (value as Record<string, unknown>).enabled as boolean };
+}
+
+/**
+ * The AI settings a student sees for the class owning their assignment.
+ * `confirmed` is the teacher's own checkbox, so it is not sent. Assignments
+ * outside a class (pre-v2) have no settings and read as disabled.
+ */
+export function studentAiSettingsOf(group: Record<string, unknown> | undefined) {
+  const { enabled, service, url } = genaiSettingOf(group);
+  return { genai: { enabled, service, url }, rubytee: rubyteeSettingOf(group) };
+}
+
 function mapGroupSummary(item: Record<string, unknown>, identity?: TeacherIdentity) {
   return {
     groupId: item.groupId,
@@ -3317,6 +3481,8 @@ function mapGroupSummary(item: Record<string, unknown>, identity?: TeacherIdenti
     ),
     studentCount: typeof item.studentCount === 'number' ? item.studentCount : null,
     coTeacherEmails: readCoTeacherEmails(item),
+    genai: genaiSettingOf(item),
+    rubytee: rubyteeSettingOf(item),
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
   };
@@ -3421,6 +3587,12 @@ async function handleUpdateGroup(identity: TeacherIdentity, groupId: string, bod
       throw new ValidationError('coTeacherEmails must be an array');
     }
     updates.coTeacherEmails = [...new Set(body.coTeacherEmails.map(validateCoTeacherEmail))];
+  }
+  if (body.genai !== undefined) {
+    updates.genai = validateGenaiSetting(body.genai, group);
+  }
+  if (body.rubytee !== undefined) {
+    updates.rubytee = validateRubyteeSetting(body.rubytee);
   }
 
   const expressionParts: string[] = [];
