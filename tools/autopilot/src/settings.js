@@ -64,6 +64,12 @@ const DEFAULT_SETTINGS = {
         verify: { model: 'sonnet' },
     },
     /**
+     * 1 回の run の時間（分）。`maxMinutes` を超えると runner が worker を止め、`softMinutes` で
+     * 「まとめに入れ」（checkpoint）信号を送る。softMinutes を省くと maxMinutes − 8 分。
+     * 解釈と不正値の扱いは phases.js の watchdogFromSettings。部分指定は既定とマージされる。
+     */
+    watchdog: { maxMinutes: 60, softMinutes: 52 },
+    /**
      * Claude 使用量による自動 pause の閾値（%・#1193）。セッション（直近 5 時間）/ 週間（7 日）
      * のどちらかが閾値以上になったら新規ディスパッチを止める（pausedBy='usage'）。
      * 100 より大きい値にするとその枠では止めない。部分指定は既定とマージされる。
@@ -108,6 +114,9 @@ function mergeSettings(base, override) {
     out.phases = { ...(base.phases || {}) };
     for (const [phase, cfg] of Object.entries((override && override.phases) || {})) {
         out.phases[phase] = { ...(out.phases[phase] || {}), ...(cfg || {}) };
+    }
+    if (base.watchdog || (override && override.watchdog)) {
+        out.watchdog = { ...(base.watchdog || {}), ...((override && override.watchdog) || {}) };
     }
     if (base.usagePause || (override && override.usagePause)) {
         out.usagePause = { ...(base.usagePause || {}), ...((override && override.usagePause) || {}) };

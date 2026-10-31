@@ -94,6 +94,7 @@ const {
     usagePausePlan,
     usageForceOverrides,
     usagePauseAction,
+    watchdogFromSettings,
 } = require('./phases');
 const { readResultFile } = require('./contract');
 const { runPhase, killSession, capture, listSessions } = require('./runner');
@@ -179,9 +180,11 @@ async function followBaseBranch(cwd, baseBranch, log, deps = {}) {
 }
 
 // In Progress + AI 作業中のまま run が無くなってから Blocked にするまでの猶予（#816）。
-// 1 回の run の最大時間（watchdog tMaxMs=30分）より長くして、生きている run を誤って
-// 止めない。daemon 再起動後はこの daemon が初めて観測した時刻から測り直す（保守的）。
-const DEFAULT_STUCK_MS = 35 * 60 * 1000;
+// 1 回の run の最大時間（watchdog tMaxMs）より長くして、生きている run を誤って止めない。
+// 起動時は settings の watchdog から cfg.stuckMs を決める（watchdogFromSettings）ので、
+// これはそれが無いときの保険（既定の上限 60 分 + 5 分）。daemon 再起動後はこの daemon が
+// 初めて観測した時刻から測り直す（保守的）。
+const DEFAULT_STUCK_MS = watchdogFromSettings().stuckMs;
 
 // 終了コード規約（#953）。外部 supervisor（tools/autopilot/bin/autopilot-supervise）は
 // この規約で「再起動するか停止のままにするか」を決める:
@@ -1031,6 +1034,7 @@ async function dispatch(item, cfg, state, log) {
         log(`#${item.issue}: run ${phase} (${meta.skill})`);
         const res = await runPhase({
             session, cwd, env, command, promptDir, skill: meta.skill, issue: item.issue, resultFile, log,
+            watchdog: cfg.watchdog,
         });
         // worker のセッションが終わったこのタイミングで Claude 使用率を更新する（#879）。
         updateClaudeUsage(state, cfg, log);
@@ -2299,6 +2303,11 @@ async function main(opts = {}) {
     // worker 設定（フェーズ別 model/effort・追加許可ディレクトリ）を読み込み、
     // プロンプト一式 + 解決済み設定を tmpdir へスナップショット（ブランチ切り替え非依存・C13）
     cfg.settings = loadSettings({ log });
+    // 1 回の run の上限と checkpoint 信号の時刻（settings.json の watchdog・分単位）
+    const runLimits = watchdogFromSettings(cfg.settings.watchdog);
+    cfg.watchdog = { tMaxMs: runLimits.tMaxMs, tSoftMs: runLimits.tSoftMs };
+    if (!cfg.stuckMs) cfg.stuckMs = runLimits.stuckMs;
+    log(`run limits: max ${runLimits.tMaxMs / 60000} min, checkpoint at ${runLimits.tSoftMs / 60000} min`);
     try {
         const snap = snapshotRunAssets({ settings: cfg.settings });
         cfg.snapshotDir = snap.dir;

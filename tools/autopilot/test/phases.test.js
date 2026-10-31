@@ -95,6 +95,9 @@ const {
     DEFAULT_CHECKPOINT_SOFT_LIMIT_MS,
     shouldSignalCheckpoint,
     CHECKPOINT_SIGNAL_MESSAGE,
+    checkpointSignalMessage,
+    watchdogFromSettings,
+    DEFAULT_RUN_MAX_MS,
     CHECKPOINT_CONTINUATION_COMMENT_MARKER,
     continuationCommentBody,
     isSteadyStateHitlGate,
@@ -1818,6 +1821,35 @@ test('continuationCommentBody: safeToContinue=false は「いいえ」+ reason �
 
 test('DEFAULT_WATCHDOG.tSoftMs: 既定は DEFAULT_CHECKPOINT_SOFT_LIMIT_MS と同値（#911）', () => {
     assert.equal(DEFAULT_WATCHDOG.tSoftMs, DEFAULT_CHECKPOINT_SOFT_LIMIT_MS);
+});
+
+test('DEFAULT_WATCHDOG: 1 回の run は既定 60 分、checkpoint 信号は 52 分', () => {
+    assert.equal(DEFAULT_WATCHDOG.tMaxMs, 60 * 60 * 1000);
+    assert.equal(DEFAULT_RUN_MAX_MS, 60 * 60 * 1000);
+    assert.equal(DEFAULT_CHECKPOINT_SOFT_LIMIT_MS, 52 * 60 * 1000);
+});
+
+test('watchdogFromSettings: 分単位の settings を runner の ms に変える', () => {
+    const min = 60 * 1000;
+    assert.deepEqual(watchdogFromSettings(), { tMaxMs: 60 * min, tSoftMs: 52 * min, stuckMs: 65 * min });
+    assert.deepEqual(watchdogFromSettings({ maxMinutes: 90, softMinutes: 80 }), {
+        tMaxMs: 90 * min,
+        tSoftMs: 80 * min,
+        stuckMs: 95 * min,
+    });
+    // softMinutes を省くと max − 8 分
+    assert.equal(watchdogFromSettings({ maxMinutes: 45 }).tSoftMs, 37 * min);
+    // 不正な値は既定に戻す（soft が max 以上・0 以下・数でない）
+    assert.equal(watchdogFromSettings({ maxMinutes: 60, softMinutes: 60 }).tSoftMs, 52 * min);
+    assert.equal(watchdogFromSettings({ maxMinutes: 0 }).tMaxMs, 60 * min);
+    assert.equal(watchdogFromSettings({ maxMinutes: '60' }).tMaxMs, 60 * min);
+    // 短い上限でも soft は max の半分以上（信号の直後に kill しない）
+    assert.equal(watchdogFromSettings({ maxMinutes: 10 }).tSoftMs, 5 * min);
+});
+
+test('checkpointSignalMessage: 残り時間を設定から計算する', () => {
+    assert.equal(checkpointSignalMessage(), CHECKPOINT_SIGNAL_MESSAGE);
+    assert.match(checkpointSignalMessage({ tMaxMs: 90 * 60000, tSoftMs: 75 * 60000 }), /^⏰ 残り約15分。/);
 });
 
 test('phaseForItem: Awaiting Continuation は解除前 null、解除後は元フェーズへ戻る', () => {

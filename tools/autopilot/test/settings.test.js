@@ -191,3 +191,9 @@ test('usagePause: 既定はセッション 90 / 週間 95、部分上書きは�
     assert.deepStrictEqual(resolveUsagePauseThresholds({ usagePause: { sessionPercent: '70' } }), { session: 90, weekly: 95 });
     assert.deepStrictEqual(resolveUsagePauseThresholds(undefined), { session: 90, weekly: 95 });
 });
+
+test('mergeSettings: watchdog は部分指定を既定とマージする', () => {
+    const merged = mergeSettings(DEFAULT_SETTINGS, { watchdog: { maxMinutes: 90 } });
+    assert.deepEqual(merged.watchdog, { maxMinutes: 90, softMinutes: 52 });
+    assert.deepEqual(DEFAULT_SETTINGS.watchdog, { maxMinutes: 60, softMinutes: 52 });
+});
