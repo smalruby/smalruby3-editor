@@ -50,12 +50,6 @@ const {
     selectClosedCheckIssues,
     rateLimitPlan,
     PR_SYNC_STATUSES,
-    humanSpokeLast,
-    hasUnhandledChangesRequest,
-    serializeGateWatermarks,
-    parseGateWatermarks,
-    pruneGateWatermarks,
-    toMs,
     WAITING_LABEL,
     hasLaterLabel,
     laterLabelDiff,
@@ -482,7 +476,7 @@ function failureBlockBody(skill, issue, reason) {
         `🤖 autopilot: \`${skill}\` フェーズの run が完了できなかったため **Blocked** にしました。\n\n` +
         `**理由**: ${reason}\n\n` +
         `**人間の対応**: ログ（\`/log?issue=${issue}\`）と worktree を確認し、原因を取り除いた上で ` +
-        '`🙋 HITL` を外す（またはこの Issue/PR にコメントする）と autopilot が再開します' +
+        '`🙋 HITL` を外すと autopilot が再開します' +
         '（PR があれば指摘対応、無ければ再トリアージ）。手動で Status を動かして再ルートしても、' +
         '不要なら Icebox / Close にしても構いません。'
     );
@@ -498,7 +492,7 @@ function errorBlockBody(skill, reason) {
         `**理由（サニタイズ済み要約）**: ${reason || '（ローカルログ参照）'}\n\n` +
         '詳細な生ログは機密情報を含む可能性があるため GitHub には載せていません。' +
         'ローカルの daemon ログと worktree を確認してください。\n\n' +
-        '**人間の対応**: 原因を取り除いた上で `🙋 HITL` を外す（またはコメントする）と ' +
+        '**人間の対応**: 原因を取り除いた上で `🙋 HITL` を外すと ' +
         'autopilot が再開します（PR があれば指摘対応、無ければ再トリアージ）。'
     );
 }
@@ -510,7 +504,7 @@ function stuckBlockBody(item, stuckMinutes) {
         `${stuckMinutes} 分進行が止まっていました（run が見当たりません。daemon 再起動や run の異常終了が原因）。` +
         '安全のため **Blocked** にしました。\n\n' +
         `**人間の対応**: ログ（\`/log?issue=${item.issue}\`）と worktree を確認してください。` +
-        '`🙋 HITL` を外す（またはコメントする）と autopilot が再開します（PR があれば指摘対応、' +
+        '`🙋 HITL` を外すと autopilot が再開します（PR があれば指摘対応、' +
         '無ければ再トリアージ）。再実装なら Sprint Backlog へ、続きから再開なら Review へ ' +
         'Status を動かしても構いません。'
     );
@@ -529,7 +523,7 @@ function checkpointEscalationBody(item, iteration, maxIterations) {
         `**人間の対応**: このスレッドの \`autopilot-continuation\` コメント（残タスク・次の一手）を` +
         '確認し、実装方針の見直しや粒度の分割を検討してください。' +
         `ログ（\`/log?issue=${item.issue}\`）と worktree も参考にできます。` +
-        '`🙋 HITL` を外す（またはコメントする）と autopilot が再開します' +
+        '`🙋 HITL` を外すと autopilot が再開します' +
         '（PR があれば指摘対応、無ければ再トリアージ）。'
     );
 }
@@ -1014,6 +1008,8 @@ async function dispatch(item, cfg, state, log) {
             AUTOPILOT_PROJECT: String(cfg.project),
             AUTOPILOT_REPO: cfg.repo,
             AUTOPILOT_BASE_BRANCH: baseBranch,
+            // address-review はゲート（Review / DoD か Blocked か）で扱う範囲が違う
+            AUTOPILOT_STATUS: item.status || '',
         };
         // worker 起動コマンド: env AUTOPILOT_CLAUDE_CMD が最優先（従来互換・その場合は worktree 内の
         // プロンプトを使う）。無ければ settings からフェーズ別に組み立て、スナップショットの
@@ -1098,21 +1094,17 @@ async function dispatch(item, cfg, state, log) {
 }
 
 /**
- * 人間ゲート状態（Review / DoD / Blocked / Discussing）かつ未実行の item について、
- * HITL 解除シグナル + PR レビュー状態 + 発言アクティビティを集める。phaseForItem の ctx として
- * 渡すと、(1) ラベル解除、(2) **人間がコメントだけ出してラベルを触らない**操作、のどちらでも
- * ゲートが解除され、状態が固着しない（状態遷移ドキュメント参照）。
- * humanSpokeLast は「bot の最終発言・処理済み watermark（state.gateHandled）より後に人間が
- * 発言したか」で導く。I/O はここに閉じ込め、判定は phases.js の純粋関数。
- * @returns {object} issue 番号 → { review, hitlSignals, pr, activity, humanSpokeLast } の map
+ * 人間ゲート状態（Review / DoD / Blocked / Discussing など）かつ未実行の item について、
+ * HITL 解除シグナル（Issue / PR の 🙋 ラベル）と PR 番号を集める。phaseForItem の ctx として
+ * 渡す。ゲートはラベルでしか開かない（コメントでは開かない）。I/O はここに閉じ込め、判定は
+ * phases.js の純粋関数。
+ * @returns {object} issue 番号 → { hitlSignals, pr } の map
  */
 async function collectGateContexts(cfg, items, running, state, log, deps = {}) {
     const contexts = {};
     // 読み取り専用の収集なので個人トークン側の予算を使う
     const token = deps.token || await project.readToken();
     const getGateContext = deps.getGateContext || project.getGateContext;
-    const handled = state.gateHandled || (state.gateHandled = new Map());
-    const reviewHandled = state.gateReviewHandled || (state.gateReviewHandled = new Map());
     for (const item of items) {
         if (!isGateItem(item)) continue;
         if (running.has(item.issue)) continue;
@@ -1120,17 +1112,7 @@ async function collectGateContexts(cfg, items, running, state, log, deps = {}) {
         if (!ownsItem(item, cfg.assignee)) continue;
         try {
             const ctx = await getGateContext(cfg.repo, item.issue, token);
-            if (!ctx) continue;
-            contexts[item.issue] = {
-                ...ctx,
-                humanSpokeLast: humanSpokeLast({ ...ctx.activity, handledAt: handled.get(item.issue) }),
-                // 構造化シグナル（#894）: approve 後の Request changes を、コメント時刻ベースの
-                // humanSpokeLast が bot sticky（lastBotAt）や handledAt に leapfrog されても
-                // 確実に拾う。処理済みレビュー watermark より新しい changesRequested だけ解除。
-                unhandledChangesRequested: hasUnhandledChangesRequest(
-                    ctx.review, reviewHandled.get(item.issue),
-                ),
-            };
+            if (ctx) contexts[item.issue] = ctx;
         } catch (e) {
             log(`#${item.issue}: gate context error ${e.message}`);
         }
@@ -1628,25 +1610,9 @@ async function tick(cfg, state, log) {
     // 含まれないので二重には触らない）。
     await applyAfterWaitLabels(candidates, waitingByIssue, cfg, log);
     for (const item of picked) {
-        // ゲート item を dispatch したら「人間の発言をここまで処理した」watermark を進める。
-        // 発言解除（humanSpokeLast）が同じ発言で毎 tick 再発火してループするのを防ぐ
-        // （bot がコメントを返さない LGTM 分類などでも固着・空回りしない）。
-        if (contexts[item.issue]) {
-            if (!state.gateHandled) state.gateHandled = new Map();
-            state.gateHandled.set(item.issue, cfg.now());
-            // #894: 処理した changesRequested レビューの submittedAt を watermark に記録し、
-            // 同じレビューで毎 tick 再発火しないようにする（新しい changesRequested で再度発火）。
-            const review = contexts[item.issue].review;
-            if (review && review.changesRequestedAt) {
-                if (!state.gateReviewHandled) state.gateReviewHandled = new Map();
-                state.gateReviewHandled.set(item.issue, toMs(review.changesRequestedAt));
-            }
-        }
         // fire-and-forget（running で重複防止）
         dispatch(item, cfg, state, log);
     }
-    // watermark を再起動をまたいで保持する（#1219・I5）。差分があるときだけ書く。
-    saveGateState(items, state, log);
     // 人間が手動 merge した leaf を Close へ前進（自動 merge はしない）+ GitHub issue も close（#843 Fix A）
     await applyMergeProgression(items, cfg, state, log);
     // GitHub で closed な issue（EPIC・人手 close 含む）の Project Status を Close へ整合（#843 Fix B）
@@ -2198,74 +2164,6 @@ function pidFilePath() {
 }
 
 /**
- * ゲート watermark の状態ファイル（#1219）。PID ファイルと同じ置き場。env
- * AUTOPILOT_STATE_FILE で場所を変えられる。消してもよい（次の起動で処理済みの指摘・発言が
- * 1 回ずつ再発火し得るだけで、固着はしない）。
- * @returns {string} 絶対パス
- */
-function gateStateFilePath() {
-    return process.env.AUTOPILOT_STATE_FILE || path.join(os.tmpdir(), 'autopilot-state.json');
-}
-
-/**
- * 起動時に状態ファイルからゲート watermark を復元する（#1219）。ファイルが無い・壊れている
- * ときは warn して空の Map で起動する（例外を投げない）。読めた内容は `state.gateStateSaved`
- * に控え、直後の保存で同じ内容を書き直さないようにする。
- * @param {object} state daemon state（gateHandled / gateReviewHandled を設定する）
- * @param {Function} log
- * @param {object} [deps] { file, readFile }（テスト用）
- */
-function loadGateState(state, log, deps = {}) {
-    const file = deps.file || gateStateFilePath();
-    const readFile = deps.readFile || ((f) => fs.readFileSync(f, 'utf8'));
-    let text = null;
-    try {
-        text = readFile(file);
-    } catch (e) {
-        if (e.code !== 'ENOENT') log(`gate state warn: ${file} を読めません (${e.message}) — 空で起動`);
-    }
-    const parsed = parseGateWatermarks(text);
-    if (parsed.error) log(`gate state warn: ${file} を無視して空で起動 (${parsed.error})`);
-    state.gateHandled = parsed.gateHandled;
-    state.gateReviewHandled = parsed.gateReviewHandled;
-    state.gateStateSaved = parsed.error ? null : serializeGateWatermarks(state);
-    const n = state.gateHandled.size + state.gateReviewHandled.size;
-    if (n) log(`gate state restored: ${n} watermark(s) from ${file}`);
-}
-
-/**
- * ゲート watermark を状態ファイルへ保存する（#1219）。終端 Status の Issue を落としてから
- * 直列化し、**前回書いた内容と差分があるときだけ**書く（tmp + rename で原子的に置き換え）。
- * 書き込み失敗は warn のみ（次 tick で再試行される）。
- * @param {Array} items 今 tick の Project item（終端判定に使う）
- * @param {object} state
- * @param {Function} log
- * @param {object} [deps] { file, writeFile }（テスト用）
- * @returns {boolean} 書き込んだら true
- */
-function saveGateState(items, state, log, deps = {}) {
-    const file = deps.file || gateStateFilePath();
-    const writeFile = deps.writeFile || ((f, body) => {
-        const tmp = `${f}.${process.pid}.tmp`;
-        fs.writeFileSync(tmp, body);
-        fs.renameSync(tmp, f);
-    });
-    const pruned = pruneGateWatermarks(state, items);
-    state.gateHandled = pruned.gateHandled;
-    state.gateReviewHandled = pruned.gateReviewHandled;
-    const body = serializeGateWatermarks(state);
-    if (body === state.gateStateSaved) return false;
-    try {
-        writeFile(file, body);
-        state.gateStateSaved = body;
-        return true;
-    } catch (e) {
-        log(`gate state warn: ${file} へ保存できません (${e.message})`);
-        return false;
-    }
-}
-
-/**
  * Claude 使用率の受け渡しファイル（Issue #879）。worker の status line
  * （usage-statusline.sh）が rate_limits を書き出し、daemon がここから読む。
  * アカウント横断の値なので単一ファイル（どの worker が書いても最新が入ればよい）。
@@ -2329,7 +2227,6 @@ async function main(opts = {}) {
     installProcessSafetyNet(state, log);
     // ゲート watermark を復元する（#1219）。最初の tick より前に行わないと、処理済みの
     // CHANGES_REQUESTED・発言で起動直後にゲートが再解除される。
-    loadGateState(state, log);
     // 稼働バージョンを起動時に確定させる（= 動いているコード）。以降 working tree が進んでも
     // この値は動かさない（だからこそ表示 + 更新検知が有用）。#885
     state.version = await readVersion(cfg.repoRoot);
@@ -2389,5 +2286,4 @@ module.exports = {
     ensureCheckpointCommit, readContinuationFromWorktree, applyCheckpointHandling,
     collectContinuationContexts, checkpointEscalationBody,
     followBaseBranch,
-    gateStateFilePath, loadGateState, saveGateState,
 };

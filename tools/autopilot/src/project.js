@@ -15,7 +15,7 @@ const { promisify } = require('util');
 const path = require('path');
 const {
     HITL_LABEL, AUTOPILOT_LABEL, selectMarkedComments, stickyUpsertPlan, STICKY_MARKERS,
-    computeReviewApproval, autopilotHeadBranch, mergeActivity, normalizeBoardEnrichment,
+    autopilotHeadBranch, normalizeBoardEnrichment,
 } = require('./phases');
 
 const execFileP = promisify(execFile);
@@ -297,133 +297,29 @@ async function findPrForIssue(repo, issueNumber, token, deps = {}) {
 }
 
 /**
- * PR のレビュー状態を正規化して返す。
- * - approved / changesRequested: {@link computeReviewApproval} で導く。reviewDecision は
- *   ブランチ保護でレビュー必須でないと空になり approve を検知できないため、空のときは
- *   個々の review の著者ごと最新 state から判定する（#815）。
- * - changesRequestedAt: 最新の CHANGES_REQUESTED レビューの submittedAt（ms、無ければ null・#894）
- * - unresolvedHumanComments: 人間が立てた未解決レビュースレッド数（bot は除外）
- * @returns {{approved:boolean, changesRequested:boolean, changesRequestedAt:number|null,
- *   unresolvedHumanComments:number}}
- */
-async function getPrReviewState(repo, prNumber, token) {
-    const [owner, name] = repo.split('/');
-    const query = `query($owner:String!,$name:String!,$pr:Int!){
-      repository(owner:$owner,name:$name){
-        pullRequest(number:$pr){
-          reviewDecision
-          comments(last:50){nodes{author{login} createdAt}}
-          reviews(last:100){nodes{author{login} state submittedAt}}
-          reviewThreads(first:100){nodes{isResolved comments(first:10){nodes{author{login} createdAt}}}}
-        }
-      }
-    }`;
-    const out = await gh(
-        ['api', 'graphql', '-f', `query=${query}`,
-            '-F', `owner=${owner}`, '-F', `name=${name}`, '-F', `pr=${prNumber}`],
-        { token },
-    );
-    const pr = JSON.parse(out).data.repository.pullRequest;
-    const bot = await botLogin();
-    const isHuman = (login) => Boolean(login) && login !== bot && !login.endsWith('[bot]');
-    const threads = (pr.reviewThreads && pr.reviewThreads.nodes) || [];
-    const unresolvedHumanComments = threads.filter(
-        (t) => !t.isResolved && (t.comments.nodes || []).some((c) => isHuman(c.author && c.author.login)),
-    ).length;
-    const reviews = (pr.reviews && pr.reviews.nodes) || [];
-    const { approved, changesRequested } = computeReviewApproval(reviews, pr.reviewDecision, isHuman);
-    // 最新の人間 CHANGES_REQUESTED レビューの submittedAt（#894 の構造化解除シグナル用）。
-    // approve 後に Request changes しても、その submittedAt が処理済み watermark より新しければ
-    // ゲートを解除して address-review へ倒す（hasUnhandledChangesRequest）。
-    let changesRequestedAt = null;
-    for (const r of reviews) {
-        const login = r && r.author && r.author.login;
-        if (!isHuman(login) || r.state !== 'CHANGES_REQUESTED') continue;
-        const ms = r.submittedAt ? Date.parse(r.submittedAt) : NaN;
-        if (Number.isNaN(ms)) continue;
-        if (changesRequestedAt == null || ms > changesRequestedAt) changesRequestedAt = ms;
-    }
-    // 発言アクティビティ（ゲート解除の「人間が最後に発言したか」判定用）: PR コメント +
-    // レビュー送信 + レビュースレッドコメントの、人間/bot 別の最新時刻を集める。
-    const activity = { lastHumanAt: 0, lastBotAt: 0 };
-    const record = (login, at) => {
-        const ms = at ? Date.parse(at) : NaN;
-        if (Number.isNaN(ms)) return;
-        if (isHuman(login)) activity.lastHumanAt = Math.max(activity.lastHumanAt, ms);
-        else activity.lastBotAt = Math.max(activity.lastBotAt, ms);
-    };
-    for (const c of (pr.comments && pr.comments.nodes) || []) record(c.author && c.author.login, c.createdAt);
-    for (const r of reviews) record(r.author && r.author.login, r.submittedAt);
-    for (const t of threads) {
-        for (const c of t.comments.nodes || []) record(c.author && c.author.login, c.createdAt);
-    }
-    return { approved, changesRequested, changesRequestedAt, unresolvedHumanComments, activity };
-}
-
-/**
- * Issue 側の発言アクティビティ（人間/bot 別の最新コメント時刻）を返す。
- * Discussing ゲートや PR の無い Blocked の「人間が最後に発言したか」判定に使う。
- * @param {string} repo `owner/name`
- * @param {number} issueNumber
- * @param {string} token
- * @returns {{lastHumanAt: number, lastBotAt: number}} ms epoch（無ければ 0）
- */
-async function getIssueActivity(repo, issueNumber, token) {
-    const out = (await gh(
-        ['api', '--paginate', `repos/${repo}/issues/${issueNumber}/comments`,
-            '--jq', '.[] | "\\(.created_at) \\(.user.login)"'],
-        { token },
-    )).trim();
-    const bot = await botLogin();
-    const activity = { lastHumanAt: 0, lastBotAt: 0 };
-    if (!out) return activity;
-    for (const line of out.split('\n')) {
-        const [at, login] = line.split(' ');
-        const ms = Date.parse(at);
-        if (Number.isNaN(ms) || !login) continue;
-        const isHuman = login !== bot && !login.endsWith('[bot]');
-        if (isHuman) activity.lastHumanAt = Math.max(activity.lastHumanAt, ms);
-        else activity.lastBotAt = Math.max(activity.lastBotAt, ms);
-    }
-    return activity;
-}
-
-/**
- * 人間ゲート item の付帯情報（HITL 解除シグナル + PR レビュー状態 + 発言アクティビティ +
- * PR 番号）を集める。phaseForItem の ctx として渡す。Review/DoD だけでなく Blocked や
- * Discussing（PR が無い場合あり）にも使う。
+ * 人間ゲート item の付帯情報（HITL 解除シグナル + PR 番号）を集める。phaseForItem の ctx として
+ * 渡す。Review/DoD だけでなく Blocked や Discussing（PR が無い場合あり）にも使う。
  *
  * 解除シグナルは OR セマンティクス（contract §7・#813 でラベル一本化）: Issue の `🙋 HITL`
- * ラベル / PR の `🙋 HITL` ラベルのいずれか1つでも除去なら解除。加えて発言アクティビティ
- * （Issue コメント + PR コメント/レビュー）から「人間が最後に発言したか」を daemon が導く
- * （ラベルを触らずコメントだけ出す操作でも固着しないため）。HITL フィールドは見ない。
+ * ラベル / PR の `🙋 HITL` ラベルのいずれか1つでも除去なら解除。コメントやレビューは
+ * 解除シグナルにしない（人間が気軽にコメントできるように）ので、発言やレビュー状態は取らない。
  * @param {string} repo
  * @param {number} issueNumber
  * @param {string} token
- * @returns {{hitlSignals:object, review:object|null, pr:number|null,
- *   activity:{lastHumanAt:number, lastBotAt:number}}}
+ * @returns {{hitlSignals:object, pr:number|null}}
  */
 async function getGateContext(repo, issueNumber, token) {
     const pr = await findPrForIssue(repo, issueNumber, token);
     const issueLabels = await getIssueLabels(repo, issueNumber, token);
-    const issueActivity = await getIssueActivity(repo, issueNumber, token);
     if (!pr) {
-        return {
-            hitlSignals: { issueLabel: issueLabels.includes(HITL_LABEL) },
-            review: null,
-            pr: null,
-            activity: issueActivity,
-        };
+        return { hitlSignals: { issueLabel: issueLabels.includes(HITL_LABEL) }, pr: null };
     }
-    const review = await getPrReviewState(repo, pr.number, token);
     return {
         hitlSignals: {
             issueLabel: issueLabels.includes(HITL_LABEL),
             prLabel: (pr.labels || []).includes(HITL_LABEL),
         },
-        review,
         pr: pr.number,
-        activity: mergeActivity(issueActivity, review.activity),
     };
 }
 
@@ -773,7 +669,7 @@ async function applyIntents(ctx, itemId, intents, token) {
 module.exports = {
     botToken, readToken, boardToken, gh, getProject, getFields, listItems, normalizeProjectItem, findItemId, addIssue, setField, applyIntents,
     botLogin, findPrForIssue, selectClosingPr, selectHeadPr, hasMergedHeadPr,
-    getPrReviewState, getGateContext, getIssueActivity, hasMergedPullRequest, REPO_ROOT,
+    getGateContext, hasMergedPullRequest, REPO_ROOT,
     getPrInfo, getIssueLabels, getIssueBody, editLabels, setPrDraft, upsertStickyComment, upsertMarkedComment,
     listIssueComments,
     postIssueComment, listClosedIssueNumbers, getIssueStates, getIssueMeta, closeIssue,

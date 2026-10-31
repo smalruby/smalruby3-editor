@@ -201,12 +201,22 @@ HITL は「人間の番」を表す。状態は **`🙋 HITL` ラベル**が唯�
 非対称のルールを持つ。
 
 - **set（人間に渡す）**: daemon が **Issue/PR の両面に一括で `🙋 HITL` ラベルを付与**して整合を保つ。
-- **release（AI に戻す）**: 次の **どちらでも**解除される（固着防止・詳細は
-  [`state-machine.md`](./state-machine.md)）:
-  1. **ラベル解除**: Issue / PR いずれかの `🙋 HITL` ラベルを外す（OR 解除・`isHitlReleased`）
-  2. **発言解除**: ゲート開放中に**人間が最後に発言**した（Issue コメント / PR コメント /
-     レビュー送信。`humanSpokeLast`）。ラベルを触らずレビューコメントだけ出しても止まらない。
-     bot の応答・daemon の処理済み watermark より後の発言にのみ反応するので空回りしない
+- **release（AI に戻す）**: Issue / PR いずれかの `🙋 HITL` ラベルを**外したときだけ**解除される
+  （OR 解除・`isHitlReleased`）。**コメントや Request changes だけでは解除されない**ので、人間は
+  気軽にコメントできる。詳細は [`state-machine.md`](./state-machine.md)。
+
+### 人間レビューの流れ（Request changes で指定して 🙋 を外す）
+
+1. PR が出ると、autopilot が review フェーズで指摘を 1 コメントにまとめる（`[M1]` / `[Q1]` / `[FYI1]` …）。
+2. 人間は自由にコメントしてよい（何も動かない）。
+3. 直してほしいことを **Request changes** で出す。本文に「FYI1 を直して」のように ID を書くか、
+   対象のコメントの URL を貼る（行コメントで指示してもよい）。
+4. PR（か Issue）の `🙋 HITL` を外す → address-review が、**まだ対応していない Request changes で
+   指定されたことだけ**に対応し、再び Review + 🙋 に戻す。言及の無い指摘や、Request changes
+   以外のコメントには対応しない。未対応の Request changes が無ければ何もしない（マージ待ち）。
+
+対応したレビューの ID は、address-review のまとめコメントの先頭のマーカー
+`<!-- autopilot-address-review handled-reviews=<id,id> -->` に残り、同じレビューに二重に対応しない。
 
 人間が判断/レビューに使う HITL ゲート: 実装前ディスカッション・EPIC 理解・分解承認・
 人間レビュー（approve）・DoD・Blocked の対処・merge。
@@ -923,19 +933,6 @@ kill "$(cat /tmp/autopilot-daemon.pid)"
 ```
 
 SIGTERM / SIGINT でも終了し、PID ファイルは終了時に削除される。
-
-#### 状態ファイル（ゲート watermark・#1219）
-
-daemon は人間ゲートの「処理済み」watermark（発言解除用 `gateHandled` / changesRequested 解除用
-`gateReviewHandled`）を **`$TMPDIR/autopilot-state.json`（通常 `/tmp/autopilot-state.json`）** に
-保存し、起動時に復元する（env `AUTOPILOT_STATE_FILE` で場所を変更可）。これが無いと、再起動の
-たびに処理済みの Request changes や発言でゲートが再解除され、新しい指摘が無いのに
-address-review 等が空振りで投入される。
-
-- 書き込みは内容に差分があるときだけ（tmp ファイル + rename で置き換え）。終端 Status
-  （Close / Done）になった Issue のエントリは自動で掃除される。
-- **消してもよい**。消した直後の起動では、処理済みの指摘・発言が item ごとに 1 回だけ再発火し得る
-  （固着はしない）。壊れた・版違いのファイルは warn して無視し、空で起動する。
 
 ### CLI（単発フェーズ実行・動作確認）
 

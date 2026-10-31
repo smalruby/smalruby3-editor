@@ -65,7 +65,7 @@ function baseFollowConflictBody(skill, issue, baseRef, detail) {
         '元に戻し **Blocked** にしました（古い起点のまま進めると PR が大量コンフリクトになるため）。\n\n' +
         `**詳細（サニタイズ済み）**: ${detail || '（ローカルログ参照）'}\n\n` +
         '**人間の対応**: worktree で base を手動 merge / rebase してコンフリクトを解決し、' +
-        '`🙋 HITL` を外す（またはコメントする）と autopilot が再開します。'
+        '`🙋 HITL` を外すと autopilot が再開します。'
     );
 }
 
@@ -410,166 +410,112 @@ function toMs(t) {
 }
 
 /**
- * 「ゲート開放中に人間が最後に発言したか」（純粋関数・状態固着の防止）。
+ * address-review が対応した Request changes レビューを記録するマーカー。対応のまとめコメントの
+ * 先頭に `<!-- autopilot-address-review handled-reviews=<id,id> -->` として埋める。
  *
- * 人間ゲート（Review / DoD / Blocked / Discussing）の解除はラベル操作（{@link isHitlReleased}）
- * だけだと、**人間がコメント（レビュー送信・返信）だけしてラベルを触らない**ケースで
- * ステートが固着する。そこで「bot の最後の発言・処理済み watermark より **後に** 人間が
- * 発言した」場合も解除シグナルとみなす。bot が応答（コメント）すると lastBotAt が進み、
- * daemon が dispatch すると handledAt（watermark）が進むので、同じ発言で再発火しない。
- * @param {object} activity { lastHumanAt, lastBotAt, handledAt }（ms epoch または ISO 文字列）
- * @returns {boolean}
+ * 人間ゲートはラベル（🙋）でしか開かないので、開いたときに「どのレビューをまだ対応して
+ * いないか」を address-review 自身が判定する。時刻の watermark ではなくレビュー ID を残す
+ * ので、daemon の再起動やコメントの前後関係に左右されず、同じレビューに二重対応しない。
  */
-function humanSpokeLast(activity = {}) {
-    const human = toMs(activity.lastHumanAt);
-    if (!human) return false;
-    return human > Math.max(toMs(activity.lastBotAt), toMs(activity.handledAt));
-}
+const ADDRESS_REVIEW_MARKER_RE = /<!--\s*autopilot-address-review\s+handled-reviews=([\d,\s]*)-->/g;
 
 /**
- * 2 つの活動記録（Issue 側と PR 側など）をマージして新しい方を採る（純粋関数）。
- * @param {object} a { lastHumanAt, lastBotAt }
- * @param {object} b { lastHumanAt, lastBotAt }
- * @returns {{lastHumanAt: number, lastBotAt: number}} ms epoch（欠損は 0）
- */
-function mergeActivity(a = {}, b = {}) {
-    return {
-        lastHumanAt: Math.max(toMs(a.lastHumanAt), toMs(b.lastHumanAt)),
-        lastBotAt: Math.max(toMs(a.lastBotAt), toMs(b.lastBotAt)),
-    };
-}
-
-/**
- * 「未処理の新しい CHANGES_REQUESTED レビューがあるか」（純粋関数・#894）。
- *
- * approve 後に Request changes しても、コメント時刻ベースの {@link humanSpokeLast} は
- * bot の sticky 更新（lastBotAt）や approve 時の watermark（handledAt）に leapfrog されて
- * 拾えず、🙋 ラベルを付けるだけで何も進まない行き止まりになっていた。これを塞ぐための
- * **構造化された解除シグナル**。approve の有無に関わらず changesRequested を優先して拾う。
- *
- * review.changesRequested かつ、その最新 CHANGES_REQUESTED の submittedAt
- * （review.changesRequestedAt）が処理済み watermark（handledReviewAt）より新しいときだけ true。
- * 一度処理して watermark を進めれば同じレビューでは false（毎 tick 再発火しない）。次に
- * より新しい changesRequested が来たら再び true になる。時刻が不明なら false（誤発火を避ける）。
- * @param {object} review { changesRequested, changesRequestedAt }（PR のレビュー状態）
- * @param {number|string|null|undefined} handledReviewAt 最後に処理した changesRequested の submittedAt
- * @returns {boolean}
- */
-function hasUnhandledChangesRequest(review, handledReviewAt) {
-    if (!review || !review.changesRequested) return false;
-    const at = toMs(review.changesRequestedAt);
-    if (!at) return false;
-    return at > toMs(handledReviewAt);
-}
-
-/**
- * ゲート watermark の状態ファイル形式のバージョン（#1219）。互換の無い変更をしたら上げる
- * （違う版のファイルは読まずに空で起動する = 1 回だけ再発火し得るが固着はしない）。
- */
-const GATE_STATE_VERSION = 1;
-
-/** watermark Map → issue 番号昇順の [issue, ms] 配列（直列化を決定的にして差分判定に使う） */
-function watermarkEntries(map) {
-    const out = [];
-    for (const [issue, at] of (map instanceof Map ? map : new Map())) {
-        const n = Number(issue);
-        const ms = toMs(at);
-        if (Number.isInteger(n) && n > 0 && ms > 0) out.push([n, ms]);
-    }
-    return out.sort((a, b) => a[0] - b[0]);
-}
-
-/**
- * ゲート watermark（`state.gateHandled` / `state.gateReviewHandled`）を状態ファイル用の
- * JSON 文字列へ直列化する（純粋関数・#1219）。
- *
- * watermark がメモリにしか無いと daemon 再起動で消え、処理済みの CHANGES_REQUESTED や発言で
- * 起動のたびにゲートが再解除される（不変条件 I5 違反）。出力は決定的（issue 昇順・キー固定）
- * なので、前回書いた文字列と比べて**差分があるときだけ書く**判定にそのまま使える。
- * @param {{gateHandled?: Map, gateReviewHandled?: Map}} state
+ * 対応した Request changes レビューの ID からマーカーを作る（純粋関数）。
+ * @param {Array<number|string>} reviewIds
  * @returns {string}
  */
-function serializeGateWatermarks(state = {}) {
-    return JSON.stringify({
-        version: GATE_STATE_VERSION,
-        gateHandled: watermarkEntries(state.gateHandled),
-        gateReviewHandled: watermarkEntries(state.gateReviewHandled),
-    });
+function addressReviewMarker(reviewIds) {
+    const ids = [...new Set((reviewIds || []).map(Number).filter((n) => Number.isInteger(n) && n > 0))];
+    return `<!-- autopilot-address-review handled-reviews=${ids.join(',')} -->`;
 }
 
 /**
- * 状態ファイルの文字列から watermark を復元する（純粋関数・#1219）。**例外を投げない**:
- * 欠損・壊れた JSON・版違い・不正なエントリは空 Map（または該当エントリのスキップ）にし、
- * 理由を `error` で返す（無人運用優先。ロード失敗で daemon を落とさない）。
- * @param {string|null|undefined} text 状態ファイルの内容（無ければ null）
- * @returns {{gateHandled: Map<number, number>, gateReviewHandled: Map<number, number>, error: string|null}}
+ * PR のコメント群から、対応済みの Request changes レビュー ID を集める（純粋関数）。
+ * @param {Array<{body?: string}>} comments PR の会話コメント（REST の issue comments）
+ * @returns {Set<number>}
  */
-function parseGateWatermarks(text) {
-    const empty = (error) => ({ gateHandled: new Map(), gateReviewHandled: new Map(), error });
-    if (text === null || text === undefined || text === '') return empty(null);
-    let data;
-    try {
-        data = JSON.parse(text);
-    } catch (e) {
-        return empty(`invalid JSON: ${e.message}`);
-    }
-    if (!data || typeof data !== 'object' || Array.isArray(data)) return empty('not an object');
-    if (data.version !== GATE_STATE_VERSION) return empty(`unsupported version: ${data.version}`);
-    const toMap = (entries) => {
-        const map = new Map();
-        if (!Array.isArray(entries)) return map;
-        for (const e of entries) {
-            if (!Array.isArray(e) || e.length !== 2) continue;
-            const n = Number(e[0]);
-            const ms = toMs(e[1]);
-            if (Number.isInteger(n) && n > 0 && ms > 0) map.set(n, ms);
+function handledReviewIds(comments) {
+    const out = new Set();
+    for (const c of comments || []) {
+        const body = (c && c.body) || '';
+        for (const m of body.matchAll(ADDRESS_REVIEW_MARKER_RE)) {
+            for (const id of m[1].split(',')) {
+                const n = Number(id.trim());
+                if (Number.isInteger(n) && n > 0) out.add(n);
+            }
         }
-        return map;
-    };
-    return {
-        gateHandled: toMap(data.gateHandled),
-        gateReviewHandled: toMap(data.gateReviewHandled),
-        error: null,
-    };
-}
-
-/**
- * 終端 Status（Close / Done）になった Issue の watermark を落とす（純粋関数・#1219）。
- * 終端 item はゲートに戻らないので watermark は不要（状態ファイルの肥大を防ぐ）。
- * items に現れない Issue は**残す**（一覧の取りこぼしで消すと再起動後に再発火し得るため、
- * 保守的に保持する）。入力の Map は変更せず新しい Map を返す。
- * @param {{gateHandled?: Map, gateReviewHandled?: Map}} state
- * @param {Array<{issue: number, status: string}>} items
- * @returns {{gateHandled: Map, gateReviewHandled: Map}}
- */
-function pruneGateWatermarks(state = {}, items = []) {
-    const terminal = new Set();
-    for (const it of items || []) {
-        if (it && TERMINAL_STATUSES.has(it.status)) terminal.add(Number(it.issue));
     }
-    const prune = (map) => new Map(
-        [...(map instanceof Map ? map : new Map())].filter(([issue]) => !terminal.has(Number(issue))),
-    );
-    return { gateHandled: prune(state.gateHandled), gateReviewHandled: prune(state.gateReviewHandled) };
+    return out;
+}
+
+/** REST のユーザーが bot か（GitHub App / `[bot]` 接尾辞） */
+function isBotUser(user) {
+    if (!user) return true;
+    return user.type === 'Bot' || String(user.login || '').endsWith('[bot]');
 }
 
 /**
- * 人間ゲートの解除判定（純粋関数・3 系統の OR）。
- * 1. ラベル解除: Issue/PR の 🙋 ラベルのいずれかが除去された（{@link isHitlReleased}）
- * 2. 発言解除: ゲート開放中に人間が最後に発言した（{@link humanSpokeLast} を daemon が
- *    計算して ctx.humanSpokeLast として渡す）
- * 3. changesRequested 解除（#894）: 未処理の新しい CHANGES_REQUESTED レビューがある
- *    （{@link hasUnhandledChangesRequest} を daemon が計算して ctx.unhandledChangesRequested
- *    として渡す）。approve 後の Request changes を、コメント時刻/watermark の leapfrog に
- *    負けず確実に拾うための構造化シグナル。
- * どれか1つでも「人間の番が終わった」とみなし autopilot が処理を進める。
+ * address-review が対応する Request changes レビューを選ぶ（純粋関数）。
+ *
+ * 人間ゲート（Review / DoD）を開いたときに address-review が扱うのは、**人間が Request changes で
+ * 出したレビューのうち、まだ対応していないものだけ**。コメントや approve、Comment だけの
+ * レビューは対応の依頼とみなさない（人間が気軽にコメントできるように）。
+ * @param {Array<{id:number, state:string, user?:{login?:string,type?:string}, submitted_at?:string}>} reviews
+ *   PR のレビュー（REST `pulls/<n>/reviews`）
+ * @param {Array<{body?: string}>} comments PR の会話コメント（対応済みマーカーを探す）
+ * @returns {Array<object>} submitted_at の古い順
+ */
+function selectRequestedReviews(reviews, comments) {
+    const handled = handledReviewIds(comments);
+    return (reviews || [])
+        .filter((r) => r && r.state === 'CHANGES_REQUESTED' && !isBotUser(r.user) && !handled.has(Number(r.id)))
+        .sort((a, b) => toMs(a.submitted_at) - toMs(b.submitted_at));
+}
+
+/**
+ * レビュー本文から、指定された GitHub コメントの URL を拾う（純粋関数）。
+ * 人間は「このコメントの FYI1 を直して」のように、対応してほしいコメントの URL を
+ * Request changes の本文に貼る。
+ * - `#issuecomment-<id>` → 会話コメント（`issues/comments/<id>`）
+ * - `#discussion_r<id>` / `/files#r<id>` → 行コメント（`pulls/comments/<id>`）
+ * - `#pullrequestreview-<id>` → レビュー（`pulls/<n>/reviews/<id>`）
+ * @param {string} text
+ * @returns {Array<{kind:'issue-comment'|'review-comment'|'review', id:number}>} 出現順・重複なし
+ */
+function extractCommentRefs(text) {
+    const re = /#(issuecomment-|discussion_r|r|pullrequestreview-)(\d+)\b/g;
+    const kinds = {
+        'issuecomment-': 'issue-comment',
+        discussion_r: 'review-comment',
+        r: 'review-comment',
+        'pullrequestreview-': 'review',
+    };
+    const out = [];
+    const seen = new Set();
+    for (const m of String(text || '').matchAll(re)) {
+        // `#r<id>` は PR の files ビューの行コメントだけ（Issue 番号の `#123` と混同しない）
+        if (m[1] === 'r' && !/\/files#r\d+$/.test(text.slice(0, m.index + m[0].length))) continue;
+        const ref = { kind: kinds[m[1]], id: Number(m[2]) };
+        const key = `${ref.kind}:${ref.id}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push(ref);
+    }
+    return out;
+}
+
+/**
+ * 人間ゲートの解除判定（純粋関数）。Issue / PR の 🙋 ラベルのどちらかが外れたら解除
+ * （{@link isHitlReleased}）。**ラベルだけ**で開く: 人間のコメントや Request changes では開かない。
+ * コメントで worker が動き出すと、人間が気軽にコメントできないため。対応してほしいことは
+ * Request changes にまとめ、🙋 を外して渡す（address-review が対応するのはその Request changes
+ * だけ・{@link selectRequestedReviews}）。
  * @param {object} item { hitlLabel }
- * @param {object} ctx { hitlSignals, humanSpokeLast, unhandledChangesRequested }
+ * @param {object} ctx { hitlSignals }
  * @returns {boolean}
  */
 function isGateReleased(item, ctx = {}) {
-    const labelReleased = ctx.hitlSignals ? isHitlReleased(ctx.hitlSignals) : !(item && item.hitlLabel);
-    return labelReleased || ctx.humanSpokeLast === true || ctx.unhandledChangesRequested === true;
+    return ctx.hitlSignals ? isHitlReleased(ctx.hitlSignals) : !(item && item.hitlLabel);
 }
 
 /**
@@ -652,42 +598,6 @@ function selectClosedToReconcile(items, closedSet) {
 }
 
 /**
- * PR の承認状態を導く（純粋関数・#815）。
- *
- * GitHub の集約判定 `reviewDecision` は **ブランチ保護でレビューが必須でないと空**になり、
- * 人間が approve しても APPROVED にならない（approved 検知漏れ → approved な PR が前進しない
- * バグの原因だった）。そこで reviewDecision が決め手にならないときは、**個々のレビューの
- * 著者ごとの最新 state** から導く。
- *
- * - reviewDecision が APPROVED / CHANGES_REQUESTED ならそれを尊重（ブランチ保護で必須の場合）。
- * - それ以外（空・REVIEW_REQUIRED 等）は人間レビューの著者ごと最新 state で判定:
- *   - 誰か1人でも最新が CHANGES_REQUESTED → changesRequested（approve より優先）。
- *   - 変更要求が無く、誰か1人でも最新が APPROVED → approved。
- * - COMMENTED / PENDING は承認判断に効かない（コメントは approve を取り消さない）。
- *   DISMISSED は approve でも変更要求でもない中立に戻す。
- * @param {Array<{author?:{login?:string}, state?:string}>} reviews PR の review ノード（古い→新しい順）
- * @param {string} reviewDecision GitHub 集約判定（APPROVED/CHANGES_REQUESTED/REVIEW_REQUIRED/空）
- * @param {(login:string)=>boolean} [isHuman] 人間判定（bot/[bot] を除外）。既定は全員 true
- * @returns {{approved:boolean, changesRequested:boolean}}
- */
-function computeReviewApproval(reviews, reviewDecision, isHuman = () => true) {
-    if (reviewDecision === 'APPROVED') return { approved: true, changesRequested: false };
-    if (reviewDecision === 'CHANGES_REQUESTED') return { approved: false, changesRequested: true };
-    const latestByAuthor = new Map();
-    for (const r of reviews || []) {
-        const login = r && r.author && r.author.login;
-        if (!login || !isHuman(login)) continue;
-        const state = r.state;
-        if (state === 'APPROVED' || state === 'CHANGES_REQUESTED' || state === 'DISMISSED') {
-            latestByAuthor.set(login, state); // 古い→新しい順なので最後の代入が最新
-        }
-    }
-    const states = [...latestByAuthor.values()];
-    const changesRequested = states.includes('CHANGES_REQUESTED');
-    return { approved: !changesRequested && states.includes('APPROVED'), changesRequested };
-}
-
-/**
  * 人間がレビュー/検証して 🙋 を外すと autopilot が再開する「人間ゲート」状態。
  * Review（コードレビュー）と DoD（headful 検証）が該当し、いずれも 🙋 解除 = NG 差し戻しで
  * address-review へ渡す（OR セマンティクスも同じ・#821）。OK のときは人間が merge して
@@ -724,15 +634,10 @@ function phaseForItem(item, ctx = {}) {
     if (hasTrackingLabel(item)) return null;
     const status = item.status || 'New Item';
     if (HUMAN_GATE_STATUSES.has(status)) {
-        // 解除は 2 系統の OR（ラベル解除 / 人間の発言・isGateReleased）。ラベルを触らず
-        // レビューコメントだけ出す人間の操作でも固着しない（状態遷移ドキュメント参照）。
-        // 人間がゲートを解除したら、構造化シグナル（approve/changes-requested 等）で機械的に
-        // 分岐せず、必ず address-review へ渡す（#815/#821）。address-review スキルが PR の diff と
-        // **全コメント（Issue/レビュー本文/インライン）**を読んで意図を分類する:
-        //   - 質問・改善依頼 / DoD NG → 対応（コード修正 or 返信）
-        //   - LGTM など対応不要 → 何もせず人間の merge を待つ
-        //   - 判断がつかない → 人間に質問（HITL）
-        // 自由文の分類は純粋関数では不可能なため、判断はスキル側に置く（daemon は dispatch のみ）。
+        // 解除は 🙋 ラベルだけ（isGateReleased）。コメントや Request changes では開かない。
+        // 開いたら必ず address-review へ渡す（#815/#821）。address-review は、まだ対応していない
+        // Request changes のレビュー（selectRequestedReviews）で指定されたことだけに対応する。
+        // 無ければ何もせず人間の merge を待つ。指定の意図の解釈はスキル側に置く（daemon は dispatch のみ）。
         return isGateReleased(item, ctx) ? 'address-review' : null;
     }
     // Blocked も人間ゲート: run 失敗・stall 時に autopilot が入れる状態で、Blocked コメントは
@@ -753,7 +658,7 @@ function phaseForItem(item, ctx = {}) {
         return (ctx.continuation && ctx.continuation.phase) || 'implement';
     }
     // 実装前ディスカッション（discuss）: triage が方針提案を出し AI Status=Discussing で
-    // 人間に渡した item は、人間が返信する（🙋 を外す or コメントする）たびにここへ戻ってくる。
+    // 人間に渡した item は、人間が返信して 🙋 を外すたびにここへ戻ってくる。
     // 議論の往復中も Status は動かさない（Backlog / New Item に固定）ので、triage との
     // 再提案ループでステータスが固着・振動しない。承認されたら discuss が
     // Sprint Backlog を返し、implement へ直接ハンドオフされる。
@@ -1784,8 +1689,8 @@ function dodHandoffBody({ issue, pr, repo, branch, previewUrl, dodChecklist }) {
         '',
         `- **すべて OK**: この PR ${prRef} に「DoD 検証 OK」+ スクショ要約をコメント。スクショ commit を push。`,
         '  → 人間が merge して Close（既存 merge-progression が leaf を Close）。',
-        '- **NG / 要修正**: NG 項目を PR にコメントし、`🙋 HITL` ラベルを外す → autopilot が **DoD を解除して',
-        '  address-review** を起動し、差分と全コメントを読んで対応します（Review と対称）。',
+        '- **NG / 要修正**: NG 項目を **Request changes** で PR に出し、`🙋 HITL` ラベルを外す → autopilot が',
+        '  **DoD を解除して address-review** を起動し、その Request changes で指定した分に対応します（Review と対称）。',
         '- **判断に迷う**: 論点を PR にコメントして人間に確認。',
         '',
         '検証は **本番 Chrome** で行うこと（Playwright の Chromium はポリシーが緩く誤検知することがある）。',
@@ -2365,7 +2270,11 @@ function renderReviewFindingsComment({ round, findings, start }) {
         }
     }
     if (assigned.length > 0) {
-        lines.push('', '返信は ID で指定できます（例: `Q1はOK, FYI1は修正して`）。');
+        lines.push(
+            '',
+            '直してほしい指摘は **Request changes** で ID を指定してから `🙋 HITL` を外してください'
+                + '（例: `Q1はOK, FYI1は修正して`）。コメントだけでは autopilot は動きません。',
+        );
     }
     return lines.join('\n');
 }
@@ -3085,13 +2994,10 @@ module.exports = {
     hitlDesireFromResult,
     isHitlReleased,
     isGateReleased,
-    hasUnhandledChangesRequest,
-    GATE_STATE_VERSION,
-    serializeGateWatermarks,
-    parseGateWatermarks,
-    pruneGateWatermarks,
-    humanSpokeLast,
-    mergeActivity,
+    addressReviewMarker,
+    handledReviewIds,
+    selectRequestedReviews,
+    extractCommentRefs,
     toMs,
     progressOnMerge,
     MERGE_CHECK_STATUSES,
@@ -3099,7 +3005,6 @@ module.exports = {
     mergeProgressionIntents,
     TERMINAL_STATUSES,
     selectClosedToReconcile,
-    computeReviewApproval,
     phaseForItem,
     isActionable,
     isStuckCandidate,

@@ -4,11 +4,20 @@
 **Follow the autopilot autonomous contract: `docs/autopilot/autonomous-contract.md`.**
 対話的に質問しない。終了時に `AUTOPILOT_RESULT_FILE` へ JSON を書き、pane に signal トークンを出す。
 
-対象 Issue は 環境変数 `AUTOPILOT_ISSUE`。人間が **`🙋 HITL` を外した（差し戻した）** PR を扱う。
+対象 Issue は 環境変数 `AUTOPILOT_ISSUE`。人間が **`🙋 HITL` を外した** PR を扱う。
+ゲートは 🙋 を外したときだけ開く（コメントや Request changes だけでは起動しない）。
 
-このフェーズは Review 解除時の**唯一の入口**（#815）。daemon は approve / changes-requested などの
-構造化シグナルで分岐せず、解除されたら必ずこのスキルを起動する。**何をすべきかはここで判断する**:
-PR の diff と全コメントを読んで意図を分類し、対応する／何もしない／人間に聞く、を決める。
+このフェーズは人間ゲート解除時の**唯一の入口**（#815）。どのゲートから来たかは
+環境変数 `AUTOPILOT_STATUS` で分かり、扱う範囲が違う:
+
+| `AUTOPILOT_STATUS` | モード | 対応する範囲 |
+|---|---|---|
+| `Review` / `DoD`（`In Progress` など中断からの再開も） | **Request changes 対応** | **まだ対応していない Request changes のレビューで指定されたことだけ**（手順 2） |
+| `Blocked` | **再開** | Blocked の理由と PR のスレッドを読み、止まった作業を続ける（手順 2B） |
+
+Request changes 対応モードでは、人間のコメント・approve・Comment だけのレビュー・bot の
+指摘のうち言及の無いものには**対応しない**（人間が気軽にコメントできるように、対応してほしいことは
+Request changes にまとめてもらう運用）。
 
 ## 前提: 既存 PR ブランチで作業する
 
@@ -21,9 +30,10 @@ bin/autopilot-worktree create "$AUTOPILOT_ISSUE" --pr "$PR"
 
 ## 手順
 
-### 1. PR 全体を理解する（diff + 全コメント）
+### 1. PR の文脈を読む（diff + 会話）
 
-レビューを「未対応スレッドだけ」ではなく **PR 全体の文脈**で理解する:
+指示を正しく解釈するために、PR の diff と会話を**文脈として**読む（ここで読んだコメントに対応するわけではない。
+対応する範囲は手順 2 で決める）:
 
 ```bash
 # diff（何が変わったか）
@@ -48,80 +58,98 @@ console.log(touchedRuleAreas(files).join("\n"));
 done
 ```
 
-### 2. フィードバックを分類する
+### 2. 対応する Request changes を決める（`AUTOPILOT_STATUS` が Blocked 以外）
 
-分類すべき対象は 2 系統ある。**両方**を確認する。
-
-**(A) bot 自身が review フェーズで残した指摘**。現行形式は **1 レビュー 1 コメントのまとめコメント**
-（先頭に `<!-- autopilot-review-findings round=N -->`、各指摘に `**[M1]**` / `**[Q1]**` / `**[FYI1]**`
-の ID・#1248）。旧形式（1 コメント 1 指摘の `**[Must]**` / `**[Question]**` / `**[FYI]**`・#921）が
-残る PR もあるので両方読む。
-
-人間は ID で短く返信してくる（例: **`Q1はOK, FYI1は修正して`**）。ID 付き指摘の対応は
-`phases.js` の `planAddressReview`（純粋関数・テスト済み）で**機械的に**決める。人間の返信本文
-（bot 以外のコメント・レビュー本文・行コメントを古い順に）を渡す:
+まだ対応していない Request changes のレビューを `selectRequestedReviews`（純粋関数・テスト済み）で選ぶ。
+対応済みかどうかは、以前の address-review がまとめコメントの先頭に残したマーカー
+`<!-- autopilot-address-review handled-reviews=<id,id> -->` で判定する（`addressReviewMarker`）:
 
 ```bash
+GH_TOKEN="$(bin/bot-token)" gh api "repos/$AUTOPILOT_REPO/pulls/$PR/reviews" --paginate \
+  | jq -s 'add' > tmp/pr-reviews-$AUTOPILOT_ISSUE.json
 GH_TOKEN="$(bin/bot-token)" gh api "repos/$AUTOPILOT_REPO/issues/$PR/comments" --paginate \
   | jq -s 'add' > tmp/pr-comments-$AUTOPILOT_ISSUE.json
-# tmp/human-replies-$AUTOPILOT_ISSUE.json に人間の返信本文の配列（古い順）を書いてから:
+node -e '
+const fs = require("fs");
+const { selectRequestedReviews } = require("./tools/autopilot/src/phases.js");
+const reviews = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+const comments = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+console.log(JSON.stringify(selectRequestedReviews(reviews, comments).map((r) => ({ id: r.id, body: r.body })), null, 2));
+' tmp/pr-reviews-$AUTOPILOT_ISSUE.json tmp/pr-comments-$AUTOPILOT_ISSUE.json
+```
+
+**1 件も無ければ何もしない**: 「🙋 が外れましたが、まだ対応していない Request changes が無いので何もしていません。
+直してほしいことは Request changes で指定してから 🙋 を外してください」と PR に 1 行コメントして、
+出口 (b) で終える（マーカーは付けない・コードに触らない）。
+
+選んだレビューごとに、**指示**と**指示の対象**を集める:
+
+- **指示** = レビュー本文 + そのレビューの行コメント
+  （`gh api repos/$AUTOPILOT_REPO/pulls/$PR/reviews/<id>/comments`）。
+- **指示の対象** = 指示の中に貼られたコメント URL。`extractCommentRefs` で拾い、それぞれ取得する:
+  `issue-comment` → `repos/$AUTOPILOT_REPO/issues/comments/<id>`、
+  `review-comment` → `repos/$AUTOPILOT_REPO/pulls/comments/<id>`、
+  `review` → `repos/$AUTOPILOT_REPO/pulls/$PR/reviews/<id>`。
+  URL の無い行コメントは、そのコメントが付いた行が対象。
+
+```bash
+node -e '
+const { extractCommentRefs } = require("./tools/autopilot/src/phases.js");
+console.log(JSON.stringify(extractCommentRefs(require("fs").readFileSync(0, "utf8"))));
+' <<< "<指示の本文>"
+```
+
+**bot の review 指摘（`<!-- autopilot-review-findings round=N -->` のまとめコメント・`**[M1]**` / `**[Q1]**` /
+`**[FYI1]**` の ID 付き）を ID で指定された場合**は、`planAddressReview`（純粋関数・テスト済み）に
+**指示の本文だけ**を `replies` として渡し、**`source:"human"` の項目だけ**に対応する
+（`source:"policy"` の既定方針は使わない — 言及の無い Must / Question / FYI には対応しない）:
+
+```bash
+# tmp/human-replies-$AUTOPILOT_ISSUE.json に「指示」の本文の配列（古い順）を書いてから:
 node -e '
 const fs = require("fs");
 const { planAddressReview } = require("./tools/autopilot/src/phases.js");
 const comments = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
 const replies = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
-console.log(JSON.stringify(planAddressReview(comments, replies), null, 2));
+console.log(JSON.stringify(planAddressReview(comments, replies).filter((x) => x.source === "human"), null, 2));
 ' tmp/pr-comments-$AUTOPILOT_ISSUE.json tmp/human-replies-$AUTOPILOT_ISSUE.json
 ```
 
-各指摘の `action` に従う（`source:"human"` は人間の指示、`"policy"` は既定方針）。
-`planAddressReview` は**対応済みかどうかを見ない**ので、`source:"policy"` の `fix` /
-`fix-or-hitl` のうち、まとめコメントの対応欄が `修正済み（<sha>）` のもの（review フェーズで直した Must 等）や
-以前の address-review で対応済みのものは**対応済みとして扱い、再修正しない**:
-
 | action | 意味 | 対応 |
 |---|---|---|
-| `no-change` | 人間が「OK / そのままで / 直さなくていい」 | **何もしない**（Must でも人間の判断を尊重） |
-| `fix` | 人間が「修正して / 直して」、または言及なしの Must | **修正する**（**FYI でも人間が明示したら直す**） |
-| `reply` | 人間が質問・代案を書いた | **返信**し、必要なら修正 |
-| `fix-or-hitl` | 言及なしの Question | すぐ対応できるなら直す。**改修コスト > 効果**なら人間に質問（後述 HITL） |
-| `ignore` | 言及なしの FYI | **対応しない** |
+| `no-change` | 「OK / そのままで / 直さなくていい」 | **何もしない** |
+| `fix` | 「修正して / 直して」 | **修正する**（**FYI でも指定されたら直す**） |
+| `reply` | 質問・代案 | **返信**し、必要なら修正 |
 
 ID の表記ゆれ（`Q1` / `q1` / `Question1`、`M1` / `Must1`、`FYI1` / `F1`、全角数字）は
-`parseFindingReferences` が吸収する。存在しない ID への言及は計画に載らないので、文脈から意図を
-読んで (B) として扱う（判断がつかなければ HITL）。
+`parseFindingReferences` が吸収する。
 
-旧形式（ID なし）の分類コメントは従来どおり、**まだ修正されていないもの**を次の既定方針で扱う
-（`addressReviewPolicyFor`・#921）:
+**ID の無い指示**（「ここを Z に直して」「テストを足して」など）は、自由文の意図で分類する:
 
-| 分類 | 対応 |
+| 種別 | 対応 |
 |---|---|
-| **Must** | **必ず修正する**（review フェーズで対応漏れ・checkpoint 中断等で残ったもの） |
-| **Question** | **すぐ対応できるもの**は自分で直す。**改修コスト > 効果**なら**人間に質問**（後述 HITL） |
-| **FYI** | **対応しない**（コメントのみ残す） |
+| **改善依頼 / 変更要求** | worktree で**修正**する |
+| **質問** | bot で**返信**する。コードを変える必要があれば変える |
+| **判断がつかない**（意図が曖昧・複数解釈・URL がまとめコメント全体を指していて、どの指摘か分からない） | **人間に質問**（後述 HITL） |
 
-**(B) 人間（bot 以外）の各コメント・レビュー**を、**自由文の意図**で次のいずれかに分類する。
-構造化シグナル（approve/changes-requested）だけに頼らない — approve でも本文に改善依頼が
-書かれていれば対応する。逆に "changes requested" でも実質 LGTM なら対応不要なことがある。
+### 2B. 止まった作業を再開する（`AUTOPILOT_STATUS` が Blocked）
 
-| 種別 | 例 | 対応 |
-|---|---|---|
-| **LGTM / 称賛 / 単なる感想** | 「いいですね」「approve します」「OK」 | **何もしない**（コードも返信も不要） |
-| **質問** | 「ここはなぜ X にした？」「Y は考慮した？」 | bot で**返信**する。コードを変える必要があれば変える |
-| **改善依頼 / 変更要求** | 「Z に直して」「テストを追加して」「命名を変えて」 | worktree で**修正**する |
-| **判断がつかない** | 意図が曖昧・複数解釈・前提が不明 | **人間に質問**（後述 HITL） |
-
-bot 自身の対応済みコメント・解決済みスレッドは文脈として読むだけ（対応対象からは外す）。
+Issue と PR の Blocked コメント（理由）と、その後の人間のコメントを読み、原因が取り除かれていれば
+止まった作業を続ける。Request changes が出ていればそれも手順 2 と同じ方法で対応する。原因が残っていれば
+何が要るかをコメントして出口 (c) で人間に返す。
 
 ### 3. 対応する
 
 - **Must / 改善依頼 / `action:"fix"`**: worktree 内で修正 → 関連テスト/lint → `bin/bot-git` でコミット・push。
 - **Question（対応可）/ 質問 / `action:"reply"`**: PR に bot で返信。コード変更を伴うならあわせて push。
 - **FYI（`ignore`）/ `action:"no-change"`**: 何もしない（既存のコメントを消さない）。
-- 対応の有無が辿れるよう、**まとめコメントを 1 件**残す（「指摘 N 件: 対応 a 件 / 返信 b 件 / 対応不要 c 件」。
-  bot 分類コメントの残タスクがあればそれも件数に含める）。ID 付き指摘は **ID で 1 行ずつ**書く
+- 対応の有無が辿れるよう、**まとめコメントを 1 件**残す（「指摘 N 件: 対応 a 件 / 返信 b 件 / 対応不要 c 件」）。
+  **先頭に、手順 2 で選んだレビューの ID を `addressReviewMarker` で埋める**
+  （例 `<!-- autopilot-address-review handled-reviews=3409123456 -->`）。次に 🙋 が外れたとき、
+  このレビューには二重に対応しない。出口 (a)(c) のどちらでも付ける（checkpoint で中断したときは付けない —
+  再開時にもう一度同じレビューを選ぶため）。ID 付き指摘は **ID で 1 行ずつ**書く
   （例: `Q1: 変更なし（人間 OK） / FYI1: 修正済み（<sha>） / M2: 修正済み（<sha>）`）。
-- LGTM など対応不要のみで、コードに触る必要が無ければコミットしない（冪等・無駄 push をしない）。
+- 指定がすべて「そのままで」など、コードに触る必要が無ければコミットしない（冪等・無駄 push をしない）。
 
 ### 3.5 時間契約（実行上限 約60分・soft-limit 52分）
 
@@ -153,11 +181,12 @@ EOF
 echo AUTOPILOT_DONE
 ```
 
-**(b) LGTM のみ・対応不要 → 人間のマージ待ち**（こちらからは何もしない。Review のまま人間に戻す）:
+**(b) 対応することが無い → 人間のマージ待ち**（未対応の Request changes が無い・指定がすべて「そのままで」など。
+こちらからは何もしない。Review のまま人間に戻す）:
 
 ```bash
 cat > "$AUTOPILOT_RESULT_FILE" <<EOF
-{"issue":$AUTOPILOT_ISSUE,"phase":"address-review","signal":"done","summary":"対応不要（LGTM）。人間のマージ待ち。",
+{"issue":$AUTOPILOT_ISSUE,"phase":"address-review","signal":"done","summary":"対応することなし（未対応の Request changes なし）。人間のマージ待ち。",
 "nextStatus":"Review","nextAiStatus":null,"hitl":true,"size":null,"kind":null,"createdSubIssues":[],"prUrl":"<PR URL>"}
 EOF
 echo AUTOPILOT_DONE
@@ -175,7 +204,7 @@ echo AUTOPILOT_HITL
 ```
 
 > (a)(b) はどちらも `hitl:true` で人間の番に戻す。違いは「コードを変えたか」だけ。
-> 人間は再び 🙋 を外せば、また本スキルが起動して続きを判断する。
+> 人間は新しい Request changes を出して再び 🙋 を外せば、また本スキルが起動してその分に対応する。
 
 ## 注意
 

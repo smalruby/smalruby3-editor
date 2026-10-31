@@ -21,14 +21,14 @@ Status / AI Status / ラベルの集合を変更したら、**必ず次の 3 つ
 - **I1 出口保証**: すべての非終端状態に A（フェーズ）/ D（daemon tick）/ H（人間）いずれかの
   出口トリガーを定義する。
 - **I2〜I3 ゲート解除**: 人間ゲート（Review / DoD / Blocked / Discussing / Awaiting
-  Continuation）の解除は **3 系統の OR**（ラベル解除 / 発言解除 `humanSpokeLast` /
-  changesRequested 解除 `hasUnhandledChangesRequest`）。新しいゲートを作るときも
-  「ラベルを触らずコメントだけ返す人間」で固着しないこと。解除後の `phaseForItem` は
-  必ず非 null。
+  Continuation など）は **Issue / PR いずれかの 🙋 を外したときだけ**解除する（`isGateReleased`）。
+  人間のコメントや Request changes をゲート解除のシグナルにしない（コメントで worker が動き出すと
+  人間が気軽にコメントできない）。新しいゲートを作るときも同じ。解除後の `phaseForItem` は必ず非 null。
 - **I4 提案で退避系へ動かさない**: `signal=hitl` の `nextStatus` に **Icebox / Close / Done を
   提案しない**（プロンプト側の規約。出口の無い状態に落ちる）。Icebox への遷移は人間のみ。
-- **I5 再発火防止**: 解除シグナルには watermark（`state.gateHandled` /
-  `state.gateReviewHandled`）を対で用意し、同じ発言・同じレビューで毎 tick 再発火させない。
+- **I5 二重対応の防止**: address-review が対応した Request changes のレビュー ID は、まとめコメントの
+  マーカー（`addressReviewMarker`）に残し、`selectRequestedReviews` で未対応のものだけを選ぶ。
+  時刻の watermark や daemon の状態ファイルで管理しない（再起動やコメントの前後関係に左右されない）。
 
 ## 単一ライター原則（書き込み責務の分離）
 
