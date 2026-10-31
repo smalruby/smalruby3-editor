@@ -98,6 +98,12 @@ const GenaiConcierge = ({ vm, rubyVersion, assignmentName, available, classGenai
         };
     }, [available]);
 
+    // Count from when the face appears (e.g. on joining a class), not from the page load:
+    // input before that is not watched, so an old start would offer help right away.
+    useEffect(() => {
+        if (available) lastActivity.current = Date.now();
+    }, [available]);
+
     // Offer help after the student has done nothing for a while.
     useEffect(() => {
         if (!available) return;
