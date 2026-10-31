@@ -1,25 +1,26 @@
 /**
- * Class settings: generative AI and Rubytee (issue #1277). The teacher picks a
- * generative AI in 3 steps — 1 use it? → 2 which? → 3 check the conditions —
- * and the parent settings form saves it together with the other fields.
- * Collapsed by default so the settings form still fits the 1300×600 class PC.
+ * Class settings: the AI used in the class (issue #1277, redesigned in #1290).
+ * Two independent settings — the school's generative AI and Rubytee — each
+ * saying what it changes on the students' screen (the settings form shows a
+ * preview of that screen beside it). The parent form saves it together with
+ * the other fields.
  */
 import PropTypes from 'prop-types';
 import React, { useCallback, useState } from 'react';
 import { defineMessages, FormattedMessage, useIntl } from 'react-intl';
 
-import {
-    FRESH_GENAI,
-    GENAI_DEFAULT_URLS,
-    isDraftSavable,
-    validateGenaiUrl,
-} from '../../lib/classroom-genai-settings.js';
+import { displayGenaiUrl, draftWithService, validateGenaiUrl } from '../../lib/classroom-genai-settings.js';
 
 import styles from './class-ai-settings.css';
 
 // The condition lines follow each service's terms (checked for #1277; sources
-// are listed in the PR). Claude is shown only to explain why it can't be chosen.
+// are listed in the PR). Claude is not offered: its terms are 18+.
 const messages = defineMessages({
+    none: {
+        defaultMessage: "Don't use",
+        description: 'Choice to not use a generative AI in the class',
+        id: 'gui.classroom.classAi.service.none',
+    },
     gemini: {
         defaultMessage: 'Gemini (Google)',
         description: 'Name of the Gemini generative AI in the class settings',
@@ -42,24 +43,14 @@ const messages = defineMessages({
         id: 'gui.classroom.classAi.service.chatgptCondition',
     },
     other: {
-        defaultMessage: 'Another generative AI chosen by the school',
-        description: 'Name of the free-URL generative AI option in the class settings',
+        defaultMessage: 'Other',
+        description: 'Name of the free-URL generative AI option (one the school chooses) in the class settings',
         id: 'gui.classroom.classAi.service.other',
     },
     otherCondition: {
         defaultMessage: 'Enter its URL. Check its terms of use at your school.',
         description: 'Conditions for using another generative AI in a class',
         id: 'gui.classroom.classAi.service.otherCondition',
-    },
-    claude: {
-        defaultMessage: 'Claude (Anthropic)',
-        description: 'Name of the Claude generative AI, which cannot be chosen',
-        id: 'gui.classroom.classAi.service.claude',
-    },
-    claudeCondition: {
-        defaultMessage: "Can't be chosen: it is only for ages 18 and up.",
-        description: 'Why Claude cannot be chosen for a class',
-        id: 'gui.classroom.classAi.service.claudeCondition',
     },
     urlRequired: {
         defaultMessage: 'Enter the URL.',
@@ -79,13 +70,11 @@ const messages = defineMessages({
 });
 
 const SERVICES = [
-    { key: 'gemini', name: messages.gemini, condition: messages.geminiCondition },
-    { key: 'chatgpt', name: messages.chatgpt, condition: messages.chatgptCondition },
-    { key: 'other', name: messages.other, condition: messages.otherCondition },
-    { key: 'claude', name: messages.claude, condition: messages.claudeCondition, disabled: true },
+    { key: 'none', service: null, name: messages.none },
+    { key: 'gemini', service: 'gemini', name: messages.gemini, condition: messages.geminiCondition },
+    { key: 'chatgpt', service: 'chatgpt', name: messages.chatgpt, condition: messages.chatgptCondition },
+    { key: 'other', service: 'other', name: messages.other, condition: messages.otherCondition },
 ];
-
-const serviceOf = (key) => SERVICES.find((s) => s.key === key);
 
 const URL_ERRORS = {
     required: messages.urlRequired,
@@ -93,299 +82,119 @@ const URL_ERRORS = {
     adultOnly: messages.urlAdultOnly,
 };
 
-const STEP_USE = 1;
-const STEP_SERVICE = 2;
-const STEP_CONFIRM = 3;
-
-const RubyteeOption = ({ checked, isLoading, onToggle }) => (
-    <label className={styles.rubytee}>
-        <input
-            checked={checked}
-            className={styles.checkbox}
-            data-testid="classroom-class-ai-rubytee"
-            disabled={isLoading}
-            type="checkbox"
-            onChange={onToggle}
+const UnsavedMark = ({ testId }) => (
+    <span className={styles.unsaved} data-testid={testId}>
+        <FormattedMessage
+            defaultMessage="Not saved"
+            description="Small mark on a class AI setting that was changed and not saved yet"
+            id="gui.classroom.classAi.unsaved"
         />
-        <span>
-            <FormattedMessage
-                defaultMessage="Also use Rubytee (Smalruby's generative AI)"
-                description="Checkbox that enables Rubytee for a class"
-                id="gui.classroom.classAi.rubytee"
-            />
-            <span className={styles.note}>
-                <FormattedMessage
-                    defaultMessage="When off, students can't use the AI button in the Ruby tab either."
-                    description="Explains what turning Rubytee off means for students"
-                    id="gui.classroom.classAi.rubyteeNote"
-                />
-            </span>
-        </span>
-    </label>
+    </span>
 );
 
-RubyteeOption.propTypes = {
-    checked: PropTypes.bool.isRequired,
-    isLoading: PropTypes.bool,
-    onToggle: PropTypes.func.isRequired,
+UnsavedMark.propTypes = {
+    testId: PropTypes.string.isRequired,
 };
 
-const ClassAiSettings = ({ changed, draft, isLoading, onChange, saved }) => {
+const ClassAiSettings = ({ changed, draft, isLoading, onChange }) => {
     const intl = useIntl();
-    const [open, setOpen] = useState(false);
-    const [step, setStep] = useState(draft.use && draft.service ? STEP_CONFIRM : STEP_USE);
+    // The URL rarely needs changing, so its input stays folded until asked for.
+    const [urlOpen, setUrlOpen] = useState(false);
 
     const update = useCallback((changes) => onChange({ ...draft, ...changes }), [draft, onChange]);
 
-    const handleToggleOpen = useCallback(() => setOpen((prev) => !prev), []);
-    const handleStepTab = useCallback((e) => setStep(Number(e.currentTarget.dataset.step)), []);
-    const handleUseNo = useCallback(() => update({ use: false }), [update]);
-    const handleUseYes = useCallback(() => {
-        if (draft.use) {
-            setStep(draft.service ? STEP_CONFIRM : STEP_SERVICE);
-            return;
-        }
-        // Switching back to "use" starts over: nothing chosen and nothing confirmed.
-        update({ use: true, ...FRESH_GENAI });
-        setStep(STEP_SERVICE);
-    }, [update, draft.use, draft.service]);
     const handleService = useCallback(
         (e) => {
-            const service = e.currentTarget.dataset.service;
-            if (service === draft.service) {
-                update({ use: true });
-            } else {
-                // The confirmation was about the previous service's terms.
-                update({ use: true, service, url: GENAI_DEFAULT_URLS[service], confirmed: false });
-            }
-            setStep(STEP_CONFIRM);
+            const key = e.currentTarget.dataset.service;
+            const next = draftWithService(draft, key === 'none' ? null : key);
+            if (next === draft) return;
+            // A different service has its own URL: fold the input again.
+            setUrlOpen(false);
+            onChange(next);
         },
-        [update, draft.service],
+        [draft, onChange],
     );
     const handleConfirm = useCallback((e) => update({ confirmed: e.target.checked }), [update]);
     const handleUrl = useCallback((e) => update({ url: e.target.value }), [update]);
+    const handleOpenUrl = useCallback(() => setUrlOpen(true), []);
     const handleRubytee = useCallback((e) => update({ rubytee: e.target.checked }), [update]);
 
-    const selected = draft.use ? serviceOf(draft.service) : null;
-    // The summary tells what is saved, so a teacher never mistakes an unsaved choice for a setting.
-    const savedService = saved.use ? serviceOf(saved.service) : null;
-    const urlError = validateGenaiUrl(draft.url);
-    const canReach = {
-        [STEP_USE]: true,
-        [STEP_SERVICE]: draft.use,
-        [STEP_CONFIRM]: draft.use && Boolean(draft.service),
-    };
-
-    const summary = (
-        <span className={styles.summary} data-testid="classroom-class-ai-summary">
-            {savedService ? (
-                <FormattedMessage
-                    defaultMessage="Generative AI: {service}"
-                    description="Class settings summary when a generative AI is used"
-                    id="gui.classroom.classAi.summaryUsed"
-                    values={{ service: intl.formatMessage(savedService.name) }}
-                />
-            ) : (
-                <FormattedMessage
-                    defaultMessage="Generative AI: Not used"
-                    description="Class settings summary when no generative AI is used"
-                    id="gui.classroom.classAi.summaryNotUsed"
-                />
-            )}
-            {' / '}
-            {saved.rubytee ? (
-                <FormattedMessage
-                    defaultMessage="Rubytee: On"
-                    description="Class settings summary when Rubytee is on"
-                    id="gui.classroom.classAi.summaryRubyteeOn"
-                />
-            ) : (
-                <FormattedMessage
-                    defaultMessage="Rubytee: Off"
-                    description="Class settings summary when Rubytee is off"
-                    id="gui.classroom.classAi.summaryRubyteeOff"
-                />
-            )}
-            {changed ? (
-                <span className={styles.unsaved} data-testid="classroom-class-ai-unsaved">
-                    <FormattedMessage
-                        defaultMessage="(not saved yet)"
-                        description="Shown next to the class AI settings summary while there are unsaved changes"
-                        id="gui.classroom.classAi.unsaved"
-                    />
-                </span>
-            ) : null}
+    const selected = draft.use ? SERVICES.find((s) => s.service === draft.service) : null;
+    const urlError = selected ? validateGenaiUrl(draft.url) : null;
+    // "Other" has no default URL; a broken URL must stay visible to be fixed.
+    const showUrlInput = Boolean(selected) && (draft.service === 'other' || urlOpen || urlError !== null);
+    // Next to the URL: what is wrong with it, or a link to try it. Never both, so they share the spot.
+    const urlAside = urlError ? (
+        <span className={styles.urlError} data-testid="classroom-class-ai-url-error">
+            {intl.formatMessage(URL_ERRORS[urlError])}
         </span>
+    ) : (
+        <a
+            className={styles.tryLink}
+            data-testid="classroom-class-ai-try"
+            href={draft.url.trim()}
+            rel="noopener noreferrer"
+            target="_blank"
+        >
+            <FormattedMessage
+                defaultMessage="Try (new tab)"
+                description="Link that opens the generative AI page in a new tab"
+                id="gui.classroom.classAi.try"
+            />
+        </a>
     );
-
-    const stepTabs = [
-        {
-            step: STEP_USE,
-            key: 'use',
-            label: (
-                <FormattedMessage
-                    defaultMessage="1 Use it?"
-                    description="Step 1 of the generative AI settings"
-                    id="gui.classroom.classAi.stepUse"
-                />
-            ),
-        },
-        {
-            step: STEP_SERVICE,
-            key: 'service',
-            label: (
-                <FormattedMessage
-                    defaultMessage="2 Which?"
-                    description="Step 2 of the generative AI settings"
-                    id="gui.classroom.classAi.stepService"
-                />
-            ),
-        },
-        {
-            step: STEP_CONFIRM,
-            key: 'confirm',
-            label: (
-                <FormattedMessage
-                    defaultMessage="3 Check"
-                    description="Step 3 of the generative AI settings"
-                    id="gui.classroom.classAi.stepConfirm"
-                />
-            ),
-        },
-    ];
 
     return (
         <div className={styles.section} data-testid="classroom-class-ai-settings">
-            <div className={styles.header}>
-                {summary}
-                <button
-                    className={styles.linkButton}
-                    data-testid="classroom-class-ai-edit"
-                    disabled={isLoading}
-                    type="button"
-                    onClick={handleToggleOpen}
-                >
-                    {open ? (
-                        <FormattedMessage
-                            defaultMessage="Close"
-                            description="Button that collapses the generative AI settings"
-                            id="gui.classroom.classAi.close"
-                        />
-                    ) : (
-                        <FormattedMessage
-                            defaultMessage="Change"
-                            description="Button that opens the generative AI settings"
-                            id="gui.classroom.classAi.edit"
-                        />
-                    )}
-                </button>
-            </div>
-            {open || isDraftSavable(draft) ? null : (
-                // Collapsed mid-way, the summary alone doesn't say why the form can't be saved.
-                <p className={styles.warning} data-testid="classroom-class-ai-incomplete">
+            <div className={styles.settings}>
+                <p className={styles.heading}>
                     <FormattedMessage
-                        defaultMessage="The generative AI settings aren't finished. Continue with Change."
-                        description="Shown on the collapsed generative AI settings when they can't be saved yet"
-                        id="gui.classroom.classAi.incomplete"
+                        defaultMessage="AI used in this class"
+                        description="Heading of the class AI settings (generative AI and Rubytee)"
+                        id="gui.classroom.classAi.heading"
                     />
                 </p>
-            )}
-            {open ? (
-                <div className={styles.body}>
-                    <div className={styles.steps}>
-                        {stepTabs.map((tab) => (
-                            <button
-                                key={tab.key}
-                                className={tab.step === step ? styles.stepActive : styles.step}
-                                data-step={tab.step}
-                                data-testid={`classroom-class-ai-step-tab-${tab.key}`}
-                                disabled={isLoading || !canReach[tab.step]}
-                                type="button"
-                                onClick={handleStepTab}
-                            >
-                                {tab.label}
-                            </button>
-                        ))}
+
+                <div className={styles.row} data-testid="classroom-class-ai-genai">
+                    <div className={styles.rowHead}>
+                        <span className={styles.rowLabel}>
+                            <FormattedMessage
+                                defaultMessage="Consult the school's generative AI"
+                                description="Label of the class setting that lets students consult the school's generative AI"
+                                id="gui.classroom.classAi.genaiLabel"
+                            />
+                        </span>
+                        {changed.genai ? <UnsavedMark testId="classroom-class-ai-genai-unsaved" /> : null}
                     </div>
-
-                    {step === STEP_USE ? (
-                        <div data-testid="classroom-class-ai-step-use">
-                            <p className={styles.question}>
-                                <FormattedMessage
-                                    defaultMessage="Let students consult a generative AI in this class?"
-                                    description="Question of step 1 of the generative AI settings"
-                                    id="gui.classroom.classAi.useQuestion"
-                                />
-                            </p>
-                            <div className={styles.choices}>
+                    <div className={styles.services} role="group">
+                        {SERVICES.map((s) => {
+                            const isSelected = selected ? selected.key === s.key : s.key === 'none';
+                            return (
                                 <button
-                                    className={draft.use ? styles.choice : styles.choiceSelected}
-                                    data-testid="classroom-class-ai-use-no"
+                                    key={s.key}
+                                    aria-pressed={isSelected}
+                                    className={isSelected ? styles.serviceSelected : styles.service}
+                                    data-service={s.key}
+                                    data-testid={`classroom-class-ai-service-${s.key}`}
                                     disabled={isLoading}
-                                    type="button"
-                                    onClick={handleUseNo}
-                                >
-                                    <FormattedMessage
-                                        defaultMessage="Don't use"
-                                        description="Choice to not use a generative AI in the class"
-                                        id="gui.classroom.classAi.useNo"
-                                    />
-                                </button>
-                                <button
-                                    className={draft.use ? styles.choiceSelected : styles.choice}
-                                    data-testid="classroom-class-ai-use-yes"
-                                    disabled={isLoading}
-                                    type="button"
-                                    onClick={handleUseYes}
-                                >
-                                    <FormattedMessage
-                                        defaultMessage="Use"
-                                        description="Choice to use a generative AI in the class"
-                                        id="gui.classroom.classAi.useYes"
-                                    />
-                                </button>
-                            </div>
-                            {draft.use ? null : (
-                                <RubyteeOption
-                                    checked={draft.rubytee}
-                                    isLoading={isLoading}
-                                    onToggle={handleRubytee}
-                                />
-                            )}
-                        </div>
-                    ) : null}
-
-                    {step === STEP_SERVICE ? (
-                        <div className={styles.services} data-testid="classroom-class-ai-step-service">
-                            {SERVICES.map((service) => (
-                                <button
-                                    key={service.key}
-                                    className={
-                                        draft.service === service.key ? styles.serviceSelected : styles.service
-                                    }
-                                    data-service={service.key}
-                                    data-testid={`classroom-class-ai-service-${service.key}`}
-                                    disabled={isLoading || service.disabled}
                                     type="button"
                                     onClick={handleService}
                                 >
-                                    <span className={styles.serviceName}>{intl.formatMessage(service.name)}</span>
-                                    <span className={styles.note}>{intl.formatMessage(service.condition)}</span>
+                                    {intl.formatMessage(s.name)}
                                 </button>
-                            ))}
-                        </div>
-                    ) : null}
+                            );
+                        })}
+                    </div>
+                    <p className={styles.note}>
+                        <FormattedMessage
+                            defaultMessage="A “Consult AI” button appears on the Code screen. Students paste their work into the AI themselves, so Smalruby sends nothing."
+                            description="What turning on the school's generative AI does on the students' screen"
+                            id="gui.classroom.classAi.genaiNote"
+                        />
+                    </p>
 
-                    {step === STEP_CONFIRM && selected ? (
-                        <div data-testid="classroom-class-ai-step-confirm">
-                            <p className={styles.question}>
-                                <FormattedMessage
-                                    defaultMessage="Conditions for {service}"
-                                    description="Heading of step 3 of the generative AI settings"
-                                    id="gui.classroom.classAi.confirmHeading"
-                                    values={{ service: intl.formatMessage(selected.name) }}
-                                />
-                            </p>
+                    {selected ? (
+                        <div className={styles.confirmPanel} data-testid="classroom-class-ai-confirm-panel">
                             <p className={styles.condition}>{intl.formatMessage(selected.condition)}</p>
                             <label className={styles.confirm}>
                                 <input
@@ -396,97 +205,108 @@ const ClassAiSettings = ({ changed, draft, isLoading, onChange, saved }) => {
                                     type="checkbox"
                                     onChange={handleConfirm}
                                 />
-                                <FormattedMessage
-                                    defaultMessage="This class meets the conditions above (required)"
-                                    description="Required checkbox confirming the class meets the AI's terms"
-                                    id="gui.classroom.classAi.confirm"
-                                />
-                            </label>
-                            {draft.confirmed ? null : (
-                                <p className={styles.warning} data-testid="classroom-class-ai-not-confirmed">
-                                    <FormattedMessage
-                                        defaultMessage="Check the box to turn on generative AI."
-                                        description="Hint that the conditions checkbox is required"
-                                        id="gui.classroom.classAi.notConfirmed"
-                                    />
-                                </p>
-                            )}
-                            <label className={styles.urlLabel}>
                                 <span>
+                                    <span className={styles.confirmLabel}>
+                                        <FormattedMessage
+                                            defaultMessage="This class meets the conditions (required)"
+                                            description="Required checkbox confirming the class meets the AI's terms"
+                                            id="gui.classroom.classAi.confirm"
+                                        />
+                                    </span>
+                                    <span className={styles.note} data-testid="classroom-class-ai-confirm-reason">
+                                        <FormattedMessage
+                                            defaultMessage="Smalruby can't check your school's permission, so we ask the teacher to. Check it to be able to save."
+                                            description="Why the teacher must confirm the generative AI's conditions"
+                                            id="gui.classroom.classAi.confirmReason"
+                                        />
+                                    </span>
+                                </span>
+                            </label>
+                            {showUrlInput ? (
+                                <label className={styles.urlLabel}>
                                     <FormattedMessage
                                         defaultMessage="Page students open"
                                         description="Label of the generative AI URL input"
                                         id="gui.classroom.classAi.urlLabel"
                                     />
-                                    {draft.service === 'other' ? null : (
-                                        <span className={styles.note}>
-                                            <FormattedMessage
-                                                defaultMessage="(you can leave it as is)"
-                                                description="Hint that the default generative AI URL is fine"
-                                                id="gui.classroom.classAi.urlDefaultNote"
-                                            />
-                                        </span>
-                                    )}
-                                </span>
+                                    <span className={styles.urlRow}>
+                                        <input
+                                            className={styles.urlInput}
+                                            data-testid="classroom-class-ai-url"
+                                            disabled={isLoading}
+                                            maxLength={2048}
+                                            placeholder="https://"
+                                            type="url"
+                                            value={draft.url}
+                                            onChange={handleUrl}
+                                        />
+                                        {urlAside}
+                                    </span>
+                                </label>
+                            ) : (
                                 <span className={styles.urlRow}>
-                                    <input
-                                        className={styles.urlInput}
-                                        data-testid="classroom-class-ai-url"
+                                    <button
+                                        className={styles.linkButton}
+                                        data-testid="classroom-class-ai-url-change"
                                         disabled={isLoading}
-                                        maxLength={2048}
-                                        placeholder="https://"
-                                        type="url"
-                                        value={draft.url}
-                                        onChange={handleUrl}
-                                    />
-                                    {urlError ? null : (
-                                        <a
-                                            className={styles.tryLink}
-                                            data-testid="classroom-class-ai-try"
-                                            href={draft.url.trim()}
-                                            rel="noopener noreferrer"
-                                            target="_blank"
-                                        >
-                                            <FormattedMessage
-                                                defaultMessage="Try (new tab)"
-                                                description="Link that opens the generative AI page in a new tab"
-                                                id="gui.classroom.classAi.try"
-                                            />
-                                        </a>
-                                    )}
+                                        type="button"
+                                        onClick={handleOpenUrl}
+                                    >
+                                        <FormattedMessage
+                                            defaultMessage="Change the page students open (now {url})"
+                                            description="Opens the input for the page students open in the generative AI"
+                                            id="gui.classroom.classAi.urlChange"
+                                            values={{ url: displayGenaiUrl(draft.url) }}
+                                        />
+                                    </button>
+                                    {urlAside}
                                 </span>
-                            </label>
-                            {urlError ? (
-                                <p className={styles.warning} data-testid="classroom-class-ai-url-error">
-                                    {intl.formatMessage(URL_ERRORS[urlError])}
-                                </p>
-                            ) : null}
-                            <RubyteeOption checked={draft.rubytee} isLoading={isLoading} onToggle={handleRubytee} />
+                            )}
                         </div>
                     ) : null}
-                    <p className={styles.saveHint} data-testid="classroom-class-ai-save-hint">
-                        <FormattedMessage
-                            defaultMessage="Press Save below to apply."
-                            description="Reminds the teacher that the class AI settings take effect only after saving the form"
-                            id="gui.classroom.classAi.saveHint"
-                        />
-                    </p>
                 </div>
-            ) : null}
+
+                <div className={styles.row} data-testid="classroom-class-ai-rubytee-row">
+                    <div className={styles.rowHead}>
+                        <label className={styles.toggle}>
+                            <input
+                                checked={draft.rubytee}
+                                className={styles.toggleInput}
+                                data-testid="classroom-class-ai-rubytee"
+                                disabled={isLoading}
+                                role="switch"
+                                type="checkbox"
+                                onChange={handleRubytee}
+                            />
+                            <span aria-hidden className={styles.toggleTrack} />
+                            <span className={styles.rowLabel}>
+                                <FormattedMessage
+                                    defaultMessage="Rubytee"
+                                    description="Label of the toggle that turns on Rubytee (Smalruby's AI) for a class"
+                                    id="gui.classroom.classAi.rubytee"
+                                />
+                            </span>
+                        </label>
+                        {changed.rubytee ? <UnsavedMark testId="classroom-class-ai-rubytee-unsaved" /> : null}
+                        <span className={styles.inlineNote}>
+                            <FormattedMessage
+                                defaultMessage="Students can ask Smalruby's AI with the AI button in the Ruby tab. No sign-up needed."
+                                description="What turning on Rubytee does on the students' screen"
+                                id="gui.classroom.classAi.rubyteeNote"
+                            />
+                        </span>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };
 
-const draftShape = PropTypes.shape({
-    use: PropTypes.bool.isRequired,
-    service: PropTypes.string,
-    url: PropTypes.string.isRequired,
-    confirmed: PropTypes.bool.isRequired,
-    rubytee: PropTypes.bool.isRequired,
-});
-
 ClassAiSettings.propTypes = {
-    changed: PropTypes.bool,
+    changed: PropTypes.shape({
+        genai: PropTypes.bool.isRequired,
+        rubytee: PropTypes.bool.isRequired,
+    }).isRequired,
     draft: PropTypes.shape({
         use: PropTypes.bool.isRequired,
         service: PropTypes.string,
@@ -496,7 +316,6 @@ ClassAiSettings.propTypes = {
     }).isRequired,
     isLoading: PropTypes.bool,
     onChange: PropTypes.func.isRequired,
-    saved: draftShape.isRequired,
 };
 
 export default ClassAiSettings;
