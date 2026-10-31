@@ -1,0 +1,347 @@
+@import '../css/colors.css';
+
+.root {
+    position: absolute;
+    bottom: 12px;
+    z-index: 40;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    pointer-events: none;
+}
+
+.root > * {
+    pointer-events: auto;
+}
+
+.face {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    border: 2px solid $looks-secondary;
+    background-color: $ui-white;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.face img {
+    width: 30px;
+    height: 30px;
+}
+
+.bubble,
+.panel {
+    background-color: $ui-white;
+    border: 1px solid $ui-black-transparent;
+    border-radius: 10px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+    color: $text-primary;
+    font-size: 0.85rem;
+}
+
+.bubble {
+    padding: 10px 12px;
+    max-width: 320px;
+}
+
+.bubble p {
+    margin: 0 0 8px;
+}
+
+.panel {
+    width: 420px;
+    max-width: calc(100vw - 32px);
+    max-height: calc(100vh - 200px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background-color: $looks-secondary;
+    color: $ui-white;
+    font-weight: bold;
+}
+
+.close {
+    background: none;
+    border: none;
+    color: $ui-white;
+    font-size: 1.2rem;
+    cursor: pointer;
+}
+
+.steps {
+    display: flex;
+    gap: 4px;
+    margin: 0;
+    padding: 6px 12px;
+    list-style: none;
+    background-color: $ui-secondary;
+    font-size: 0.75rem;
+    color: $text-primary-transparent;
+}
+
+.steps li {
+    flex: 1;
+    text-align: center;
+    padding: 2px 0;
+    border-radius: 4px;
+}
+
+.current {
+    background-color: $looks-light-transparent;
+    color: $text-primary;
+    font-weight: bold;
+}
+
+.body {
+    padding: 10px 12px;
+    overflow-y: auto;
+    background-color: $ui-white;
+}
+
+.label {
+    margin: 6px 0 4px;
+    font-weight: bold;
+}
+
+.small {
+    margin: 4px 0;
+    font-size: 0.75rem;
+    color: $text-primary-transparent;
+}
+
+.notice {
+    margin: 6px 0;
+    padding: 6px 8px;
+    background-color: $ui-secondary;
+    border-radius: 6px;
+}
+
+.row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.partRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.row button,
+.partRow button,
+.ok button,
+.ng button,
+.chip,
+.chipOn {
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid $ui-black-transparent;
+    background-color: $ui-white;
+    color: $text-primary;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+
+.row button:disabled,
+.partRow button:disabled,
+.ok button:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+.row .primary,
+.partRow .primary,
+.ok .primary,
+.ng .primary,
+.bubble .primary {
+    background-color: $looks-secondary;
+    border-color: $looks-secondary;
+    color: $ui-white;
+    font-weight: bold;
+}
+
+.chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.chipOn {
+    background-color: $looks-secondary;
+    border-color: $looks-secondary;
+    color: $ui-white;
+}
+
+.text,
+.prompt,
+.url {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid $ui-black-transparent;
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-size: 0.8rem;
+    font-family: inherit;
+}
+
+.url {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+}
+
+.prompt {
+    height: 160px;
+    font-family: monospace;
+    font-size: 0.72rem;
+}
+
+.ok,
+.ng {
+    margin-top: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+}
+
+.ok {
+    background-color: #e8f7ee;
+}
+
+.ng {
+    background-color: #fdecec;
+}
+
+.ok p,
+.ng p {
+    margin: 0 0 6px;
+}
+
+.ng ul {
+    margin: 0 0 8px;
+    padding-left: 18px;
+}
+
+.code {
+    max-height: 140px;
+    overflow: auto;
+    background-color: $ui-white;
+    padding: 6px;
+    font-size: 0.72rem;
+}
+
+.service {
+    padding: 6px 0;
+}
+
+.fixes ul {
+    margin: 0 0 6px;
+    padding-left: 18px;
+    font-size: 0.75rem;
+}
+
+.fixes code {
+    background-color: $ui-white;
+    padding: 0 3px;
+    border-radius: 3px;
+}
+
+.header {
+    cursor: move;
+    user-select: none;
+    touch-action: none;
+}
+
+.checking {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background-color: $ui-secondary;
+}
+
+.spinner {
+    width: 16px;
+    height: 16px;
+    border: 3px solid $looks-light-transparent;
+    border-top-color: $looks-secondary;
+    border-radius: 50%;
+    animation: genai-spin 0.8s linear infinite;
+}
+
+@keyframes genai-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.verdict {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1rem;
+    font-weight: bold;
+}
+
+.markOk,
+.markNg {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    color: $ui-white;
+    font-size: 1rem;
+}
+
+.markOk {
+    background-color: #2e9e5b;
+}
+
+.markNg {
+    background-color: #d93b3b;
+}
+
+.switch {
+    display: flex;
+    border: 2px solid $looks-secondary;
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 4px 0 8px;
+}
+
+.switch button {
+    flex: 1;
+    padding: 8px 0;
+    border: none;
+    background-color: $ui-white;
+    color: $looks-secondary;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.switch .switchOn {
+    background-color: $looks-secondary;
+    color: $ui-white;
+}
+
+.switch button:disabled {
+    cursor: progress;
+}
