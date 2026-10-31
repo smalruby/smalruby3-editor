@@ -1,7 +1,7 @@
 /**
  * Class-level generative AI / Rubytee settings edited by the teacher
- * (issue #1277). The server (#1275) is the authority; these helpers mirror its
- * rules so the 3-step form can explain a problem before the teacher saves.
+ * (issue #1277, redesigned in #1290). The server (#1275) is the authority; these
+ * helpers mirror its rules so the form can explain a problem before the teacher saves.
  */
 
 /** Services a class can offer. Claude is not here: its terms are 18+. */
@@ -33,7 +33,7 @@ export const draftFromGroup = (group) => {
     const service = isService(genai.service) ? genai.service : null;
     const use = genai.enabled === true && service !== null;
     const rubytee = Boolean(group && group.rubytee && group.rubytee.enabled === true);
-    // A class that doesn't use generative AI starts the 3 steps from scratch,
+    // A class that doesn't use generative AI starts from scratch,
     // instead of reviving the service and confirmation chosen before it was turned off.
     if (!use) return { use: false, ...FRESH_GENAI, rubytee };
     return {
@@ -44,6 +44,33 @@ export const draftFromGroup = (group) => {
         rubytee,
     };
 };
+
+/**
+ * Pick a generative AI (or none with `null`). Anything that depends on the
+ * choice starts over: the confirmation was about the previous service's terms,
+ * and its URL belonged to that service.
+ * @param {object} draft - see draftFromGroup
+ * @param {?string} service - one of GENAI_SERVICES, or null for "don't use"
+ * @returns {object} the next draft (the same object when nothing changes)
+ */
+export const draftWithService = (draft, service) => {
+    if (service === null) {
+        return draft.use || draft.service ? { ...draft, use: false, ...FRESH_GENAI } : draft;
+    }
+    if (!isService(service) || (draft.use && draft.service === service)) return draft;
+    return { ...draft, use: true, service, url: GENAI_DEFAULT_URLS[service], confirmed: false };
+};
+
+/**
+ * Short form of a URL for "the page students open (now ...)".
+ * @param {string} url - the URL
+ * @returns {string} the URL without `https://` and a trailing slash
+ */
+export const displayGenaiUrl = (url) =>
+    (url || '')
+        .trim()
+        .replace(/^https:\/\//i, '')
+        .replace(/\/$/, '');
 
 /**
  * Check the URL the students will open.
@@ -115,3 +142,14 @@ export const buildAiSettingsUpdate = (group, draft) => {
  * @returns {boolean} true when saving would send something
  */
 export const isAiDraftChanged = (group, draft) => Object.keys(buildAiSettingsUpdate(group, draft)).length > 0;
+
+/**
+ * Which of the two settings has unsaved changes, so each row can be marked on its own.
+ * @param {object} group - the stored class
+ * @param {object} draft - the edited settings (see draftFromGroup)
+ * @returns {{genai: boolean, rubytee: boolean}} true for a setting that saving would send
+ */
+export const changedAiSettings = (group, draft) => {
+    const updates = buildAiSettingsUpdate(group, draft);
+    return { genai: 'genai' in updates, rubytee: 'rubytee' in updates };
+};

@@ -3530,6 +3530,19 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    min-width: 0;
+    max-width: 56rem;
+}
+
+/* The form keeps its width; the students' screen preview takes the room on its right. */
+.class-settings-screen {
+    max-width: 78rem;
+}
+
+.class-settings-layout {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.25rem;
 }
 
 .class-settings-form input {
