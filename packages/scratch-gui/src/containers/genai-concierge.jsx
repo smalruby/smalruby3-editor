@@ -216,6 +216,13 @@ const GenaiConcierge = ({
         setAnswerKey((k) => k + 1);
     }, []);
 
+    // The panel stays mounted while closed, so another project loaded meanwhile would leave
+    // the answer and the two versions of the old one behind (with targets no longer in it).
+    useEffect(() => {
+        vm.runtime.on('PROJECT_LOADED', handleReset);
+        return () => vm.runtime.removeListener('PROJECT_LOADED', handleReset);
+    }, [vm, handleReset]);
+
     // 「これで閉じる」 settles on the version shown now: the next consultation starts afresh.
     const handleFinish = useCallback(() => {
         handleReset();
