@@ -10,7 +10,9 @@ const normalize = (name) =>
 
 /**
  * Pick the asset the AI meant: exact name, then case/space-insensitive, then one
- * containing the other, then the only asset there is.
+ * containing the other. A name that fits none is not replaced by the only asset
+ * there is (#1280): a different sound playing silently is worse than asking the
+ * student to choose, so the caller reports it instead.
  * @param {string} wanted - the name the AI wrote.
  * @param {Array<string>} names - the names that exist.
  * @returns {?string} the existing name, or null when none fits.
@@ -22,8 +24,7 @@ const resolveName = (wanted, names) => {
     const same = names.find((n) => normalize(n) === key);
     if (same) return same;
     const partial = names.find((n) => key && (normalize(n).includes(key) || key.includes(normalize(n))));
-    if (partial) return partial;
-    return names.length === 1 ? names[0] : null;
+    return partial || null;
 };
 
 // play / play_until_done in any spelling the AI tends to use, with an optional `name:` / `sound:` keyword.
@@ -38,27 +39,36 @@ const WAIT_CALL = /\bwait\s*\(\s*(\d+(?:\.\d+)?)\s*\)|\bwait\s+(\d+(?:\.\d+)?)\b
  * @param {object} assets - what the sprite has.
  * @param {Array<string>} assets.sounds - sound names.
  * @param {Array<string>} assets.costumes - costume names.
- * @returns {{code: string, fixes: Array<{line: number, from: string, to: string}>}} the repaired
- *     code and what changed (1-based line numbers).
+ * @returns {{code: string, fixes: Array<{line: number, from: string, to: string}>,
+ *     missing: Array<{line: number, kind: string, name: string, names: Array<string>}>}} the
+ *     repaired code, what changed and the sound/costume names the sprite does not have
+ *     (1-based line numbers).
  */
 const repairRuby = (code, { sounds = [], costumes = [] } = {}) => {
     const fixes = [];
+    const missing = [];
+    const resolve = (name, names, kind, line) => {
+        const resolved = resolveName(name, names);
+        if (resolved) return resolved;
+        missing.push({ line, kind, name, names });
+        return name;
+    };
     const lines = code.split('\n').map((line, index) => {
         const fixed = line
             .replace(SOUND_CALL, (whole, method, quote, name) => {
-                const resolved = resolveName(name, sounds) || name;
+                const resolved = resolve(name, sounds, 'sound', index + 1);
                 const command = method.endsWith('until_done') ? 'play_until_done' : 'play';
                 return `${command}("${resolved}")`;
             })
             .replace(COSTUME_CALL, (whole, method, quote, name) => {
-                const resolved = resolveName(name, costumes) || name;
+                const resolved = resolve(name, costumes, 'costume', index + 1);
                 return `switch_costume("${resolved}")`;
             })
             .replace(WAIT_CALL, (whole, inParens, bare) => `sleep(${inParens || bare})`);
         if (fixed !== line) fixes.push({ line: index + 1, from: line.trim(), to: fixed.trim() });
         return fixed;
     });
-    return { code: lines.join('\n'), fixes };
+    return { code: lines.join('\n'), fixes, missing };
 };
 
 const HEADING = /^\s*#\s*(?:[「『"]\s*)?(.+?)(?:\s*[」』"])?\s*(?:の\s*プログラム)?\s*[:：]?\s*$/;
