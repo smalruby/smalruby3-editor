@@ -231,7 +231,13 @@ src/lib/*
 !src/lib/genai-prompt.js
 !src/lib/genai-repair.js
 !src/containers/genai-concierge.jsx
-!src/containers/genai-concierge.css
+!src/components/genai-concierge/genai-concierge.css
+!src/components/genai-concierge/genai-nudge.jsx
+!src/components/genai-concierge/genai-trouble-step.jsx
+!src/components/genai-concierge/genai-copy-step.jsx
+!src/components/genai-concierge/genai-answer-steps.jsx
+!src/components/genai-concierge/messages.js
+!src/lib/genai-concierge-state.js
 !src/lib/ruby-to-blocks-converter-hoc.jsx
 !src/lib/rubytee-api.js
 !src/lib/rubytee-context.js
@@ -528,6 +534,7 @@ test/unit/lib/*
 !test/unit/lib/ruby-screenshot.test.js
 !test/unit/lib/ruby-script-preview.test.js
 !test/unit/lib/genai-prompt.test.js
+!test/unit/lib/genai-concierge-state.test.js
 !test/unit/lib/genai-repair.test.js
 !test/unit/lib/ruby-to-blocks-converter-version.test.js
 !test/unit/lib/rubytee-api.test.js

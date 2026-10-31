@@ -25,6 +25,7 @@ import reducer, {
     closeStudentPeerPanel,
     requestMeshConnect,
     clearMeshConnectRequest,
+    setStudentGenai,
 } from '../../../src/reducers/classroom';
 
 const STORAGE_KEY = 'smalruby:classroom';
@@ -548,6 +549,56 @@ describe('classroom reducer', () => {
         test('should drop the request when leaving the class', () => {
             const requested = reducer(classroomInitialState, requestMeshConnect());
             expect(reducer(requested, clearClassroomSession()).meshConnectPending).toBe(false);
+        });
+    });
+    describe('student generative AI setting (#1279)', () => {
+        const session = {
+            role: 'student',
+            classroomId: 'class-123',
+            className: '2年A組',
+            assignmentName: '宿題1',
+            joinCode: 'abc234',
+            seatNumber: 5,
+            memberId: 'seat-05',
+            sessionToken: 'token-abc',
+        };
+        const gemini = { enabled: true, service: 'gemini', url: 'https://gemini.google.com/app' };
+
+        test('initial state is disabled', () => {
+            expect(classroomInitialState.studentGenai).toEqual({ enabled: false, service: null, url: null });
+        });
+
+        test('should set the class setting and persist it with the session', () => {
+            const joined = reducer(classroomInitialState, setClassroomSession(session));
+            const state = reducer(joined, setStudentGenai(gemini));
+            expect(state.studentGenai).toEqual(gemini);
+            expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY)).studentGenai).toEqual(gemini);
+        });
+
+        test('should read a URL that is not https as disabled', () => {
+            const state = reducer(
+                classroomInitialState,
+                setStudentGenai({ enabled: true, service: 'other', url: 'http://x.example/' }),
+            );
+            expect(state.studentGenai.enabled).toBe(false);
+        });
+
+        test('should keep the setting when the session of the same class is set again', () => {
+            const joined = reducer(classroomInitialState, setClassroomSession(session));
+            const enabled = reducer(joined, setStudentGenai(gemini));
+            const again = reducer(enabled, setClassroomSession(session));
+            expect(again.studentGenai).toEqual(gemini);
+            expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY)).studentGenai).toEqual(gemini);
+        });
+
+        test('should drop the setting when moving to another class or leaving', () => {
+            const enabled = reducer(
+                reducer(classroomInitialState, setClassroomSession(session)),
+                setStudentGenai(gemini),
+            );
+            const other = reducer(enabled, setClassroomSession({ ...session, classroomId: 'class-999' }));
+            expect(other.studentGenai.enabled).toBe(false);
+            expect(reducer(enabled, clearClassroomSession()).studentGenai.enabled).toBe(false);
         });
     });
 });

@@ -17,6 +17,7 @@ import {
     closeClassroomModal,
     openTeacherModal,
     setClassroomSession,
+    setStudentGenai,
     clearClassroomSession,
     setSubmissionStatus,
 } from '../reducers/classroom.js';
@@ -303,6 +304,7 @@ const ClassroomModal = () => {
                         joinedAt: new Date().toISOString(),
                     }),
                 );
+                dispatch(setStudentGenai(data.genai));
                 try {
                     analytics.event({
                         category: 'classroom',
@@ -386,6 +388,8 @@ const ClassroomModal = () => {
             const result = await classroomAPI.verifySession(token);
             if (token !== sessionTokenRef.current) return;
             urlRejoinCodeRef.current = null;
+            // The teacher may turn the class's generative AI on or off after the student joined.
+            dispatch(setStudentGenai(result.genai));
             if (result.submission) {
                 dispatch(setSubmissionStatus(result.submission.status, result.submission.submittedAt));
                 setStudentTeacherComment(result.submission.teacherComment || null);

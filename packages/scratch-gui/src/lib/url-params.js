@@ -23,7 +23,7 @@ const RUBY_ALIASES = ['ruby'];
  * - rubyMode=dncl      — activate DNCL mode (aliases: dnclv2, case-insensitive)
  * - rubyMode=rubi      — activate furigana mode (aliases: furigana, case-insensitive)
  * - welcome=1          — auto-open the welcome modal on load
- * - genai_idle=10      — idle seconds before the genai prototype nudges (?features=genai)
+ * - genai_idle=10      — idle seconds before the genai concierge nudges (testing)
  * @returns {object} parsed parameters
  */
 const parseUrlParams = () => {
@@ -103,7 +103,7 @@ const parseUrlParams = () => {
     const showWelcome = welcomeParam === '1' || welcomeParam === 'true';
     // === Smalruby: End of welcome URL param ===
 
-    // genai_idle: seconds of inactivity before the genai prototype offers help (testing)
+    // genai_idle: seconds of inactivity before the genai concierge offers help (testing)
     const genaiIdleParam = Number(params.get('genai_idle'));
     const genaiIdle = genaiIdleParam > 0 ? genaiIdleParam : null;
 
