@@ -1,5 +1,6 @@
 import * as cdk from 'aws-cdk-lib/core';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
+import * as iam from 'aws-cdk-lib/aws-iam';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as lambdaEventSources from 'aws-cdk-lib/aws-lambda-event-sources';
 import * as lambdaNodejs from 'aws-cdk-lib/aws-lambda-nodejs';
@@ -471,6 +472,16 @@ export class ClassroomStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
+    // rubytee relay（別スタック）の表。メンバー一覧の aiUsage を読むだけ (#1311)。
+    // relay は SSM（/smalruby/rubytee-relay/<stage>/*-table-arn）にも ARN を出すが、
+    // SSM 参照にするとスタックのデプロイ順に依存する（relay が先に無いと失敗する）ため、
+    // 同じアカウント・リージョンの決まった表名から ARN を組み立てる。表がまだ無くても
+    // Lambda は aiUsage: null を返すだけ（fail-open）。
+    const rubyteeRateLimitTableName = process.env.RUBYTEE_RATE_LIMIT_TABLE_NAME
+      || `RubyteeRelayRateLimit${stageSuffix}`;
+    const rubyteeUsageTableName = process.env.RUBYTEE_USAGE_TABLE_NAME
+      || `RubyteeRelayUsage${stageSuffix}`;
+
     const handlerFn = new lambdaNodejs.NodejsFunction(this, 'ClassroomHandler', {
       functionName: `ClassroomHandler${stageSuffix}`,
       runtime: lambda.Runtime.NODEJS_22_X,
@@ -489,6 +500,8 @@ export class ClassroomStack extends cdk.Stack {
         SHARED_ASSIGNMENTS_TABLE_NAME: this.sharedAssignmentsTable.tableName,
         SHARED_REPORTS_TABLE_NAME: this.sharedReportsTable.tableName,
         NOTIFICATIONS_TABLE_NAME: this.notificationsTable.tableName,
+        RUBYTEE_RATE_LIMIT_TABLE_NAME: rubyteeRateLimitTableName,
+        RUBYTEE_USAGE_TABLE_NAME: rubyteeUsageTableName,
         SUBMISSIONS_BUCKET_NAME: this.submissionsBucket.bucketName,
         SHARED_BUCKET_NAME: this.sharedBucket.bucketName,
         SHARE_DAILY_LIMIT: process.env.SHARE_DAILY_LIMIT || '10',
@@ -537,6 +550,15 @@ export class ClassroomStack extends cdk.Stack {
     // なく必要最小限だけ grant して「エディタからお知らせを偽造できない」を
     // IAM でも担保する（レビュー指摘）。
     this.notificationsTable.grant(handlerFn, 'dynamodb:Query', 'dynamodb:UpdateItem');
+    // relay の表は読み取りだけ（書き込み権限は渡さない）
+    handlerFn.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['dynamodb:GetItem', 'dynamodb:BatchGetItem', 'dynamodb:Query'],
+      resources: [rubyteeRateLimitTableName, rubyteeUsageTableName].map(name => cdk.Stack.of(this).formatArn({
+        service: 'dynamodb',
+        resource: 'table',
+        resourceName: name,
+      })),
+    }));
     this.submissionsBucket.grantPut(handlerFn);
     this.submissionsBucket.grantRead(handlerFn);
     this.sharedBucket.grantPut(handlerFn);
