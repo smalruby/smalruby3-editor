@@ -11,6 +11,8 @@ paths:
 
 クラス機能（Classroom）は、先生がクラスを作成し、生徒が参加コードで参加して作品を提出する機能。
 
+> **先生の画面を作る・直す・レビューするときは [`classroom-ui.md`](classroom-ui.md) の UI 規約（R1〜R6・お手本は Google Classroom）に従う。**
+
 ## ドキュメント
 
 クラス機能の仕様は `docs/classroom/` 以下のドキュメントに詳しく記載されている:
