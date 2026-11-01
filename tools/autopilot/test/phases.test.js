@@ -9,6 +9,8 @@ const {
     baseFollowConflictBody,
     shouldPushAfterFollow,
     parseAfterIssues,
+    directivesOnFetchFailure,
+    directivesBlockDispatch,
     unresolvedAfterIssues,
     parseAssigneeDirective,
     resolveOwner,
@@ -1405,6 +1407,34 @@ test('parseBaseBranch: 識別子/改行跨ぎで誤マッチしない（#938/#94
     assert.equal(parseBaseBranch('baseBranch を修正する。\n`develop` で動かす。'), null);
     // ラベル行の後に内容行があれば打ち切る（後続の無関係なバッククォート語を拾わない）
     assert.equal(parseBaseBranch('## ベースブランチ\nなにか説明の行。\n`topic/should-not`'), null);
+});
+
+test('directivesOnFetchFailure: キャッシュが無ければ unavailable（fail-closed・#1309）', () => {
+    const d = directivesOnFetchFailure(undefined, 5000, 1000);
+    assert.equal(d.unavailable, true);
+    assert.deepEqual(d.after, []);
+    assert.equal(d.base, null);
+    assert.equal(d.at, 4000); // TTL 切れ → 次回すぐ取り直す
+    assert.equal(directivesBlockDispatch(d), true);
+});
+
+test('directivesOnFetchFailure: 前回のエントリがあればその内容を使う（#1309）', () => {
+    const cached = { base: 'topic/x', after: [9], assignee: 'me', at: 100 };
+    const d = directivesOnFetchFailure(cached, 5000, 1000);
+    assert.equal(d.base, 'topic/x');
+    assert.deepEqual(d.after, [9]);
+    assert.equal(d.assignee, 'me');
+    assert.equal(d.stale, true);
+    assert.equal(d.unavailable, undefined);
+    assert.equal(d.at, 4000);
+    assert.equal(directivesBlockDispatch(d), false);
+    // 前回も取得失敗（unavailable）なら引き続き unavailable
+    assert.equal(directivesOnFetchFailure({ ...d, unavailable: true }, 6000, 1000).unavailable, true);
+});
+
+test('directivesBlockDispatch: 取得できたエントリは dispatch を止めない', () => {
+    assert.equal(directivesBlockDispatch({ base: null, after: [], assignee: null, at: 0 }), false);
+    assert.equal(directivesBlockDispatch(undefined), true);
 });
 
 test('parseAfterIssues: 行頭の autopilot-after 宣言から依存 Issue を抽出', () => {

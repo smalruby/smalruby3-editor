@@ -148,6 +148,37 @@ function parseAfterIssues(body) {
 }
 
 /**
+ * Issue 本文の取得に失敗したときに使うディレクティブを決める（純粋関数・#1309）。
+ *
+ * 「本文を取れなかった」と「ディレクティブが無い」を区別する（fail-closed）。空ディレクティブ
+ * （`after: []`）へフォールバックすると、ネットが切れた tick で `autopilot-after` 待ちの Issue が
+ * actionable になり、`autopilot-base` 指定の Issue が既定 base から作業を始めてしまう。
+ * - 前回取得できたエントリがあれば、その内容を使う（`stale: true`）。
+ * - 無ければ `unavailable: true` を返す。呼び出し側はその item を dispatch しない
+ *   （{@link directivesBlockDispatch}）。
+ * どちらも `at` を TTL 切れ（`now - ttlMs`）にして、次回の参照で取り直させる。
+ * @param {object|undefined} cached 前回のエントリ（{base, after, assignee, at, unavailable?}）
+ * @param {number} now ms epoch
+ * @param {number} ttlMs キャッシュ TTL
+ * @returns {{base: string|null, after: number[], assignee: string|null, at: number,
+ *   stale?: boolean, unavailable?: boolean}}
+ */
+function directivesOnFetchFailure(cached, now, ttlMs) {
+    const at = now - ttlMs;
+    if (cached && !cached.unavailable) return { ...cached, at, stale: true };
+    return { base: null, after: [], assignee: null, at, unavailable: true };
+}
+
+/**
+ * ディレクティブが未確定（本文を一度も取れていない）ため dispatch してはいけないか（純粋関数・#1309）。
+ * @param {object|undefined} entry getDirectives の戻り値
+ * @returns {boolean}
+ */
+function directivesBlockDispatch(entry) {
+    return !entry || Boolean(entry.unavailable);
+}
+
+/**
  * `autopilot-after:` の依存のうち、まだ完了していないものを返す（純粋関数）。
  * 完了 = GitHub で closed（closedSet に含まれる）または Project Status が終端
  * （{@link TERMINAL_STATUSES}）。Project にも closedSet にも見つからない依存は
@@ -2978,6 +3009,8 @@ module.exports = {
     DEFAULT_BASE_BRANCH,
     parseBaseBranch,
     parseAfterIssues,
+    directivesOnFetchFailure,
+    directivesBlockDispatch,
     unresolvedAfterIssues,
     isInfraItem,
     infraIssueSet,

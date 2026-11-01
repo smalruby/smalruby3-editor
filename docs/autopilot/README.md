@@ -136,6 +136,12 @@ Issue 本文の**行頭**に書くディレクティブで挙動を制御でき�
 | `autopilot-after: #N [#M ...]` | 依存宣言。N（と M …）が完了（GitHub closed / Project Close・Done。**N が `🧱 infra` なら GitHub closed のみ**＝prod デプロイ後）するまで着手しない。ブロック中は次点候補が繰り上がる。**待ち Issue は Sprint Backlog に置く**（Backlog はそもそも着手候補にならないので先行 Close で自動着手しない）。ゲート中は daemon が `⏳ waiting` ラベルを付け、先行 Close で自動除去 → 次 tick で着手 |
 | `autopilot-assignee: <login>`（`@login` も可） | 複数 assignee の Issue でオーナー（駆動する担当）を明示指定する（#938）。指定 login が Assignees に含まれていなければ無視して従来どおり辞書順先頭。指定した担当の daemon（`--assignee <login>`）だけが駆動し、他の担当の daemon は駆動しない。共同担当（非オーナー）は自分の monitor で Issue を観察できる（下記「俯瞰ボード」参照） |
 
+本文は 10 分の TTL でキャッシュする。ネット断などで本文を取得できなかったときは
+「ディレクティブが無い」とはみなさない（fail-closed）: 前回取得した値があればそれを使い、
+一度も取得できていない Issue はその tick では dispatch しない（次 tick で取り直す）。
+`autopilot-after` 待ちの Issue が動き出したり、`autopilot-base` 指定の Issue が既定 base で
+作業を始めたりしないため。
+
 ### 🧭 tracking ラベル（分解済み親のトラッカー化）
 
 sub-issue に分解済みの親（Kind=EPIC）には daemon が **`🧭 tracking` ラベル**を付与する。
