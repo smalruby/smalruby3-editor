@@ -93,7 +93,7 @@ Runner はこの短語を pane で検出してから `AUTOPILOT_RESULT_FILE` を
 |---|---|---|
 | `reason` | string | 人間に何を判断してほしいか |
 | `commentUrl` | string | 投稿したコメントの URL |
-| `nextStatus` | string \| null | 提案する Status（任意。**Icebox / Close / Done は提案しない** — 提案段階で退避系へ動かすと出口の無い状態に固着する。`state-machine.md` 不変条件 I4） |
+| `nextStatus` | string \| null | 提案する Status（任意。**Icebox / Close / Done は提案しない** — 提案段階で退避系へ動かすと出口の無い状態に固着する。`state-machine.md` 不変条件 I4）。実作業系フェーズ（implement / understand / review / address-review / verify）が `nextStatus` / `nextAiStatus` とも無しで終えたときは、daemon が **Blocked** にする（In Progress のままだと stalled 復帰が人間の返事を待たず起動し直すため・#1310）。それ以外のフェーズは Status を変えない |
 | `nextAiStatus` | string \| null | 提案する AI Status（任意。例: 実装前ディスカッションの `Discussing`） |
 
 `signal=error` のとき追加で:
