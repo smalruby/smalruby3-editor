@@ -32,7 +32,8 @@ export interface PlannedItem {
  * Build the write plan for one classroom restore: fresh TTLs from "now"
  * (the archived ones are in the past), status forced back to active and a
  * restoredAt stamp, group first so the classroom never references a
- * missing group.
+ * missing group. The snapshot's archivedAt is dropped, as a
+ * PATCH {status:'active'} restore does (#1298).
  * @param input - snapshot items grouped by table
  * @param nowMs - current time in ms (injectable for tests)
  * @param ttlDays - new retention for classroom/memberships/submissions
@@ -54,9 +55,10 @@ export function buildRestorePlan(
   if (input.group) {
     plan.push({ table: 'groups', item: { ...input.group, ttl: groupTtl, status: 'active', restoredAt } });
   }
+  const { archivedAt: _archivedAt, ...classroom } = input.classroom;
   plan.push({
     table: 'classrooms',
-    item: { ...input.classroom, ttl, status: 'active', restoredAt },
+    item: { ...classroom, ttl, status: 'active', restoredAt },
   });
   for (const membership of input.memberships) {
     plan.push({ table: 'memberships', item: { ...membership, ttl } });

@@ -182,10 +182,10 @@ One Tap が表示できない環境（Windows や Playwright では毎回）で�
 | Method | Path | 説明 |
 |--------|------|------|
 | `POST` | `/classrooms` | 課題作成。任意の `meshGroupLimit`（`6` / `0`・Issue #1255）でメッシュのグループの人数の上限を設定する（`0` = 制限なし。送らなくても `6` を必ず保存する。それ以外の値は 400）。レスポンスに `meshGroupLimit` を含む |
-| `GET` | `/classrooms` | 課題一覧（既定は active のみ。`?includeArchived=1` でアーカイブ済みも返す。各要素に `status` と `meshGroupLimit`（未設定は `0` = 制限なし）を含む） |
-| `GET` | `/classrooms/{id}` | 課題詳細（`meshGroupLimit` を含む。未設定は `0` = 制限なし） |
-| `PATCH` | `/classrooms/{id}` | 課題更新。`{status: 'active'}` でアーカイブ済み課題の復元も行う。任意の `meshGroupLimit`（`6` / `0`）を受け付ける（送らなければ保存済みの値を変えない。それ以外の値は 400）。レスポンスに `meshGroupLimit` を含む |
-| `DELETE` | `/classrooms/{id}` | 課題削除 (アーカイブ)。soft-delete でメンバー・提出メタ・S3 は保持され、PATCH で復元可能。生徒の遮断は status ガード（join / lookup / verify-session / 提出がすべて非 active を拒否） |
+| `GET` | `/classrooms` | 課題一覧（既定は active のみ。`?includeArchived=1` でアーカイブ済みも返す。各要素に `status` と `meshGroupLimit`（未設定は `0` = 制限なし）、`archivedAt`（アーカイブした日時。active は `null`、日時を持たない古いアーカイブ済み課題は `updatedAt`）を含む） |
+| `GET` | `/classrooms/{id}` | 課題詳細（`archivedAt`（active なので常に `null`）と `meshGroupLimit` を含む。未設定は `0` = 制限なし） |
+| `PATCH` | `/classrooms/{id}` | 課題更新。`{status: 'active'}` でアーカイブ済み課題の復元も行う。任意の `meshGroupLimit`（`6` / `0`）を受け付ける（送らなければ保存済みの値を変えない。それ以外の値は 400）。レスポンスに `meshGroupLimit` と `archivedAt` を含む。archived にすると `archivedAt` を記録し、active に戻すと消す |
+| `DELETE` | `/classrooms/{id}` | 課題削除 (アーカイブ)。`archivedAt` を記録する。soft-delete でメンバー・提出メタ・S3 は保持され、PATCH で復元可能。生徒の遮断は status ガード（join / lookup / verify-session / 提出がすべて非 active を拒否） |
 | `GET` | `/classrooms/{id}/co-teachers` | 共同管理者一覧 (`{ownerSub, coTeacherEmails}`) |
 | `POST` | `/classrooms/{id}/co-teachers` | 共同管理者を email で招待 (`{email}`)。冪等・最大10・email 形式検証 |
 | `DELETE` | `/classrooms/{id}/co-teachers/{email}` | 共同管理者を解除 |
@@ -337,6 +337,7 @@ erDiagram
         string recommendedForSharingBy "推奨した admin の email (内部用・先生側 API では返さない)"
         string groupId "所属する組 (任意)"
         string status "active / archived"
+        string archivedAt "アーカイブした日時 ISO8601 (任意)。DELETE / PATCH {status:'archived'} で記録し、復元 (PATCH {status:'active'}) で消す。既にアーカイブ済みの課題を再度 archived にしても元の日時を保つ。この属性より前にアーカイブした課題は持たないため、API は updatedAt で代用して返す。そうした課題の updatedAt を進める書き込み（編集・再アーカイブ・トピック名の変更など）では、先にその値を archivedAt として固定する"
         string createdAt "ISO8601"
         string updatedAt "ISO8601"
         number ttl "Unix timestamp"

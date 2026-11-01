@@ -1059,6 +1059,27 @@ function seatCountFor(
 }
 
 /**
+ * When an assignment was archived, for the class stream (#1298). Only archived
+ * items have one; items archived before archivedAt existed fall back to
+ * updatedAt (no backfill — archiving was their last write in practice).
+ */
+function archivedAtOf(item: Record<string, unknown> | undefined): string | null {
+  if (!item || item.status !== 'archived') return null;
+  return (item.archivedAt || item.updatedAt || null) as string | null;
+}
+
+/**
+ * The updatedAt that stands in for archivedAt on an item archived before
+ * archivedAt existed (see archivedAtOf), or undefined. A write that bumps
+ * updatedAt on such an item must pin this as archivedAt first, or the
+ * stream's archive time would jump to the time of that unrelated edit.
+ */
+function legacyArchivedAt(item: Record<string, unknown> | undefined): string | undefined {
+  if (!item || item.status !== 'archived' || item.archivedAt || !item.updatedAt) return undefined;
+  return item.updatedAt as string;
+}
+
+/**
  * Shape a classroom item for the teacher-facing list/detail responses, adding
  * the co-teacher list and the requesting teacher's role (owner vs co-teacher).
  */
@@ -1083,6 +1104,7 @@ function mapClassroomSummary(item: Record<string, unknown>, identity: TeacherIde
     // （recommendedForSharingBy = admin email は内部情報）。
     recommendedForSharing: !!item.recommendedForSharingAt,
     status: item.status,
+    archivedAt: archivedAtOf(item),
     role: item.teacherSub === identity.sub ? 'owner' : 'co-teacher',
   };
 }
@@ -1180,6 +1202,7 @@ async function handleGetClassroom(identity: TeacherIdentity, classroomId: string
       hasAssignment: hasAssignmentContent(result.Item),
       meshGroupLimit: meshGroupLimitOf(result.Item),
       recommendedForSharing: !!result.Item.recommendedForSharingAt,
+      archivedAt: archivedAtOf(result.Item),
       role: result.Item.teacherSub === identity.sub ? 'owner' : 'co-teacher',
     }),
   };
@@ -1305,6 +1328,18 @@ async function handleUpdateClassroom(identity: TeacherIdentity, classroomId: str
     }
     updates.status = body.status;
   }
+  // Archiving stamps archivedAt (re-archiving keeps the original time);
+  // restoring drops it so a later archive is dated afresh. Any other edit of
+  // an item archived before archivedAt existed pins its stand-in (#1298).
+  const removes: string[] = [];
+  if (updates.status === 'archived' && classroom.Item.status !== 'archived') {
+    updates.archivedAt = updates.updatedAt;
+  } else if (updates.status === 'active') {
+    removes.push('archivedAt');
+  } else {
+    const legacy = legacyArchivedAt(classroom.Item);
+    if (legacy) updates.archivedAt = legacy;
+  }
   if (body.regenerateJoinCode === true) {
     updates.joinCode = generateJoinCode();
   }
@@ -1358,7 +1393,7 @@ async function handleUpdateClassroom(identity: TeacherIdentity, classroomId: str
   const result = await docClient.send(new UpdateCommand({
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId },
-    UpdateExpression: `SET ${expressionParts.join(', ')}`,
+    UpdateExpression: `SET ${expressionParts.join(', ')}${removes.length ? ` REMOVE ${removes.join(', ')}` : ''}`,
     ExpressionAttributeNames: expressionNames,
     ExpressionAttributeValues: expressionValues,
     ReturnValues: 'ALL_NEW',
@@ -1374,6 +1409,7 @@ async function handleUpdateClassroom(identity: TeacherIdentity, classroomId: str
       studentCount: result.Attributes?.studentCount,
       meshGroupLimit: meshGroupLimitOf(result.Attributes),
       status: result.Attributes?.status,
+      archivedAt: archivedAtOf(result.Attributes),
     }),
   };
 }
@@ -1603,7 +1639,7 @@ async function handleDeleteClassroom(identity: TeacherIdentity, classroomId: str
   await docClient.send(new UpdateCommand({
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId },
-    UpdateExpression: 'SET #status = :status, updatedAt = :now',
+    UpdateExpression: 'SET #status = :status, updatedAt = :now, archivedAt = :now',
     ExpressionAttributeNames: { '#status': 'status' },
     ExpressionAttributeValues: { ':status': 'archived', ':now': new Date().toISOString() },
   }));
@@ -3796,13 +3832,21 @@ async function handleUpdateGroupTopics(
     const targets = (await listAssignmentsInGroups([groupId]))
       .filter(assignment => assignment.topic === fromTopic);
     for (const item of targets) {
+      // Archived assignments follow the rename too; pin the legacy archive
+      // time before updatedAt moves (#1298).
+      const legacy = legacyArchivedAt(item);
+      const pin = legacy ? ', archivedAt = :archivedAt' : '';
       await docClient.send(new UpdateCommand({
         TableName: CLASSROOMS_TABLE,
         Key: { classroomId: item.classroomId },
         UpdateExpression: toTopic === null
-          ? 'REMOVE topic SET updatedAt = :now'
-          : 'SET topic = :to, updatedAt = :now',
-        ExpressionAttributeValues: toTopic === null ? { ':now': now } : { ':to': toTopic, ':now': now },
+          ? `REMOVE topic SET updatedAt = :now${pin}`
+          : `SET topic = :to, updatedAt = :now${pin}`,
+        ExpressionAttributeValues: {
+          ':now': now,
+          ...(toTopic === null ? {} : { ':to': toTopic }),
+          ...(legacy ? { ':archivedAt': legacy } : {}),
+        },
       }));
     }
   };
