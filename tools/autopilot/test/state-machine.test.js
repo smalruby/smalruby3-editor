@@ -14,6 +14,9 @@ const {
     isStuckCandidate,
     selectStalledInFlightItems,
     IN_FLIGHT_WORK_PHASE_BY_AI_STATUS,
+    applyResult,
+    applyIntentsToItem,
+    hitlDesireFromResult,
     selectClosedToReconcile,
     TERMINAL_STATUSES,
     TRACKING_LABEL,
@@ -222,6 +225,46 @@ test('#972 回帰: In Progress + 実作業系 AI Status + 🙋 HITL 残渣は wo
     }
     // worker が生存している間は再開しない（走行中の run を横取りしない）
     assert.deepEqual(selectStalledInFlightItems([residue], new Set([973])), []);
+});
+
+test('#1310 回帰: 実作業系フェーズが hitl で終えた item は 🙋 が外れるまで再ディスパッチされない', () => {
+    const phases = [...new Set(Object.values(IN_FLIGHT_WORK_PHASE_BY_AI_STATUS))];
+    for (const [aiStatus, phase] of Object.entries(IN_FLIGHT_WORK_PHASE_BY_AI_STATUS)) {
+        assert.ok(phases.includes(phase));
+        const before = { issue: 1282, status: 'In Progress', aiStatus, hitlLabel: false, labels: [] };
+        const result = { issue: 1282, phase, signal: 'hitl', summary: 's', reason: 'infra が必要' };
+        const after = applyIntentsToItem(
+            { ...before, hitlLabel: hitlDesireFromResult(result) }, applyResult(result),
+        );
+        // 人間の判断待ちは Blocked（人間ゲート）へ回り、stalled 復帰・stuck 検知の対象から外れる
+        assert.equal(after.status, 'Blocked', `${phase}: hitl は Blocked へ回す`);
+        assert.equal(after.hitlLabel, true);
+        assert.deepEqual(selectStalledInFlightItems([after], new Set()), [], `${phase}: 再ディスパッチしない`);
+        assert.equal(isStuckCandidate(after), false);
+        assert.equal(phaseForItem(after, {}), null, `${phase}: 🙋 がある間は動かない`);
+        // 🙋 を外せば再開できる（PR なし → triage / PR あり → address-review）
+        assert.equal(phaseForItem({ ...after, hitlLabel: false }, {}), 'triage');
+        assert.equal(phaseForItem(after, { hitlSignals: { issueLabel: true, prLabel: false }, pr: 9 }), 'address-review');
+    }
+});
+
+test('#1310: 明示の nextStatus / nextAiStatus を持つ hitl は従来どおり（Blocked で上書きしない）', () => {
+    const review = applyResult({ issue: 1, phase: 'address-review', signal: 'hitl', summary: 's', reason: 'r', nextStatus: 'Review' });
+    assert.deepEqual(review, [{ field: 'Status', value: 'Review' }]);
+    const checkpoint = applyResult({
+        issue: 1, phase: 'implement', signal: 'hitl', summary: 's', reason: 'r', nextAiStatus: 'Awaiting Continuation',
+    });
+    assert.deepEqual(checkpoint, [{ field: 'AI Status', value: 'Awaiting Continuation' }]);
+    // 判断待ちの AI Status を自前で持つフェーズ（triage / decompose）は Status を動かさない
+    for (const phase of ['triage', 'decompose', 'discuss']) {
+        assert.deepEqual(applyResult({ issue: 1, phase, signal: 'hitl', summary: 's', reason: 'r' }), []);
+    }
+});
+
+test('#1310 / #972: Status 書き込みが失敗して 🙋 だけ付いた In Progress は従来どおり自動再開する', () => {
+    // Blocked 書き込みが落ちると In Progress / 実作業系 AI Status / 🙋 のまま残る（#972 と同じ形）
+    const residue = { issue: 1282, status: 'In Progress', aiStatus: 'Implementing', hitlLabel: true, labels: [] };
+    assert.deepEqual(selectStalledInFlightItems([residue], new Set()), [{ issue: 1282, phase: 'implement' }]);
 });
 
 test('#1130 回帰: 未分解 EPIC は 🧭 tracking で締め出されず、HITL 解除で decompose へ戻る', () => {
