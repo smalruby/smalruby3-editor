@@ -240,6 +240,34 @@ describe('blockText', () => {
         expect(blockText(cond, blocks, definitions)).toBe('もし (operator_lt) なら');
     });
 
+    test('says a block made with appendDummyInput().appendField() (「すべてを止める」) in its words', async () => {
+        // Like scratch-blocks' control_stop: a dropdown whose options need no block.
+        const dropdown = {
+            getOptions: () => [
+                ['すべて', 'all'],
+                ['このスクリプト', 'this script'],
+            ],
+        };
+        const appended = {
+            control_stop: {
+                init() {
+                    this.appendDummyInput().appendField('止める').appendField(dropdown, 'STOP_OPTION');
+                    this.setStyle('control');
+                },
+            },
+            ext_say: {
+                init() {
+                    this.appendValueInput('TEXT').setCheck(null).appendField('話す');
+                    this.appendDummyInput().appendField({ getText: () => '!' });
+                },
+            },
+        };
+        const blocks = await toBlocks('when_flag_clicked do\n  stop("this script")\nend\n');
+        const stop = Object.values(blocks).find((block) => block.opcode === 'control_stop');
+        expect(blockText(stop, blocks, appended)).toBe('止める [このスクリプト]');
+        expect(blockText({ opcode: 'ext_say', inputs: {}, fields: {} }, {}, appended)).toBe('話す ( ) !');
+    });
+
     test('falls back to the words of a block of the student’s own, then to the opcode', () => {
         const call = { opcode: 'procedures_call', mutation: { proccode: 'jump %s times' }, inputs: {}, fields: {} };
         expect(blockText(call, {}, definitions)).toBe('jump ( ) times');

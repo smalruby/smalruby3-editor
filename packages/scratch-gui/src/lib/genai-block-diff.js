@@ -103,6 +103,33 @@ const diffBlocks = (before, after) => {
 };
 
 /**
+ * The JSON of the inputs a definition put on the block one by one (「すべてを止める」 and
+ * the blocks of some extensions are made with appendDummyInput().appendField(...)).
+ * @param {Array<object>} inputs - in order: `{name, value, fields: [{field, name}]}`.
+ * @returns {?object} JSON as for jsonInit, or null when nothing was put on the block.
+ */
+const inputsJson = (inputs) => {
+    if (inputs.length === 0) return null;
+    const args0 = [];
+    const arg = (json) => {
+        args0.push(json);
+        return `%${args0.length}`;
+    };
+    const fieldWords = ({ field, name }) => {
+        if (typeof field === 'string') return field;
+        if (field && typeof field.getOptions === 'function') {
+            return arg({ type: 'field_dropdown', name, options: () => field.getOptions(false) });
+        }
+        return field && typeof field.getText === 'function' ? field.getText() : '';
+    };
+    const words = inputs.flatMap((input) => [
+        ...input.fields.map(fieldWords),
+        input.value ? arg({ type: 'input_value', name: input.name }) : '',
+    ]);
+    return { message0: words.join(' '), args0 };
+};
+
+/**
  * The JSON a block definition gives to `jsonInit` (scratch-blocks defines most
  * blocks as `init () { this.jsonInit({...}) }`, with the messages of the editor
  * language already in it).
@@ -114,19 +141,35 @@ const definitionJson = (definitions, opcode) => {
     const definition = definitions && definitions[opcode];
     if (!definition || typeof definition.init !== 'function') return null;
     let json = null;
+    const inputs = [];
+    const append = (name, value) => {
+        const input = { name, value, fields: [] };
+        inputs.push(input);
+        const made = {
+            appendField: (field, fieldName) => {
+                input.fields.push({ field, name: fieldName });
+                return made;
+            },
+            setCheck: () => made,
+            setAlign: () => made,
+        };
+        return made;
+    };
     // Some definitions read the workspace first (「旗が押されたとき」 finds its flag image there).
     const probe = {
         workspace: { options: { pathToMedia: '' } },
         jsonInit: (value) => {
             json = value;
         },
+        appendDummyInput: () => append(null, false),
+        appendValueInput: (name) => append(name, true),
     };
     try {
         definition.init.call(probe);
     } catch {
         // A definition doing more than jsonInit: what it gave so far is enough.
     }
-    return json;
+    return json || inputsJson(inputs);
 };
 
 // The label of a dropdown value (「色」 for 'COLOR'), or the value itself.
