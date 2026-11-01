@@ -953,6 +953,13 @@ const HUMAN_REVIEW_LABEL = '👥 human-review-required';
  */
 const WAITING_LABEL = '⏳ waiting';
 /**
+ * 要件の相談・調査中（Spike）を示すラベル（#1315）。技術調査に加え、要件が決まっていないときに
+ * 人間と決めきる行動も Spike とみなす。GitHub のラベル絞り込みで「相談中」を探せるようにする。
+ * ⏳ waiting と同じく daemon が**状態から毎 tick 導出**して付け外しする（{@link isSpikeItem}）。
+ * 人間が手で付けたものは扱わない（導出結果が正。条件を満たさなければ外す）。
+ */
+const SPIKE_LABEL = '🔬 spike';
+/**
  * infra（`infra/**` の CDK プロジェクト）だけを変える Issue に付けるラベル。
  * infra は GUI と別の sub-issue に分け、**後方互換な変更だけ**を develop へ先行マージする。
  * develop へのマージで `Deploy Infra` workflow が stg → prod へ出し、**prod デプロイの成功で
@@ -1060,6 +1067,149 @@ function waitingLabelAction(hasLabel, waiting) {
     if (waiting && !hasLabel) return 'add';
     if (!waiting && hasLabel) return 'remove';
     return null;
+}
+
+/**
+ * 実装前に質問を出して 🙋 で止まるフェーズの AI Status（#1315）。triage の提案 HITL は
+ * In Progress/Triaging のまま、understand の質問 HITL は Blocked/Understanding になる（#1310）。
+ */
+const SPIKE_QUESTION_AI_STATUSES = new Set(['Triaging', 'Understanding']);
+
+/**
+ * item が要件の相談・調査中（Spike）か（純粋関数・#1315）。
+ * - AI Status=Discussing（triage が方針案を出して回答を待つ・人間が 🙋 を外して discuss が
+ *   走る直前も含む）
+ * - triage / understand が質問を出して 🙋 で止まっている（実装前に人間の答えを待つ）
+ * Blocked は understand の質問待ちだけ Spike（triage / discuss の Blocked は run 失敗 = 障害）。
+ * 終端（Close / Done）・Icebox では常に false（閉じたら外す）。implement 以降の AI Status は
+ * 上の集合に入らないので、実装に進めば自動で false になる。
+ * @param {object} item { status, aiStatus, hitlLabel }
+ * @returns {boolean}
+ */
+function isSpikeItem(item) {
+    if (!item) return false;
+    const status = item.status || 'New Item';
+    if (TERMINAL_STATUSES.has(status) || status === 'Icebox') return false;
+    // run 失敗（markBlocked / signal=error）は AI Status を残したまま Blocked にするので、
+    // Blocked を質問待ちとみなすのは質問の hitl で Blocked に回る understand だけ（#1310）。
+    // triage / discuss の質問・方針案は Blocked にならないため、Blocked なら障害として扱う。
+    if (status === 'Blocked' && item.aiStatus !== 'Understanding') return false;
+    if (item.aiStatus === 'Discussing') return true;
+    return Boolean(item.hitlLabel) && SPIKE_QUESTION_AI_STATUSES.has(item.aiStatus);
+}
+
+/**
+ * 🔬 spike ラベルを付けるか外すかを決める（純粋関数・#1315）。{@link waitingLabelAction} と同形。
+ * @param {object} item
+ * @param {boolean} hasLabel 現在 🔬 spike が付いているか
+ * @returns {'add'|'remove'|null}
+ */
+function spikeLabelAction(item, hasLabel) {
+    return waitingLabelAction(hasLabel, isSpikeItem(item));
+}
+
+/**
+ * 人間待ちの理由（表示順）。{@link humanWaitReason} が返す key と、モニタ・sticky の表示文言。
+ * モニタには JSON で埋め込むので、値は JSON 化できるものだけにする。
+ */
+const HUMAN_WAIT_REASONS = [
+    { key: 'spike', icon: '🔬', label: 'Spike・回答待ち', detail: '要件の相談中。あなたの回答を待っています' },
+    { key: 'review', icon: '👀', label: 'レビュー待ち', detail: 'あなたのレビューを待っています' },
+    { key: 'dod', icon: '✅', label: 'DoD の確認待ち', detail: '動作確認（DoD）を待っています' },
+    { key: 'blocked', icon: '🧱', label: 'Blocked（障害）', detail: '障害の対処を待っています' },
+    { key: 'waiting', icon: '⏳', label: '依存待ち', detail: '先行 Issue（autopilot-after）の完了を待っています' },
+    { key: 'other', icon: '🙋', label: 'そのほか', detail: 'あなたの対応を待っています' },
+];
+
+/**
+ * 人間が「何待ちで止まっているか」を 1 つに決める（純粋関数・#1315）。
+ * 🙋 の item は Spike → Review → DoD → Blocked → 依存待ち → そのほか の順で最初に当たる理由。
+ * 🙋 が無い item は依存待ち（⏳ waiting）だけを返し、ほかは null（人間待ちではない）。
+ * @param {object} item { status, aiStatus, hitlLabel, labels }
+ * @returns {string|null} {@link HUMAN_WAIT_REASONS} の key または null
+ */
+function humanWaitReason(item) {
+    if (!item) return null;
+    const status = item.status || 'New Item';
+    if (TERMINAL_STATUSES.has(status) || status === 'Icebox') return null;
+    const waiting = Array.isArray(item.labels) && item.labels.includes(WAITING_LABEL);
+    if (!item.hitlLabel) return waiting ? 'waiting' : null;
+    if (isSpikeItem(item)) return 'spike';
+    if (status === 'Review') return 'review';
+    if (status === 'DoD') return 'dod';
+    if (status === 'Blocked') return 'blocked';
+    if (waiting) return 'waiting';
+    return 'other';
+}
+
+/**
+ * 人間待ちの item で、人間に開いてほしいページの URL（純粋関数・#1315）。
+ * レビュー / DoD は open な PR（無ければ Issue）、それ以外は Issue。コメント単位のリンクは
+ * 取得済みデータに無いので作らない（毎 tick の読み取りを増やさない・github-api.md）。
+ * @param {string|null} reason {@link humanWaitReason} の戻り
+ * @param {string} issueUrl
+ * @param {Array<{number: number, state: string}>} prs board enrichment の PR
+ * @param {string} repoUrl `https://github.com/<owner>/<repo>`
+ * @returns {string|null}
+ */
+function humanWaitUrl(reason, issueUrl, prs, repoUrl) {
+    if (!reason) return null;
+    if (reason === 'review' || reason === 'dod') {
+        const open = (prs || []).find((p) => p && p.state === 'OPEN');
+        if (open) return `${repoUrl}/pull/${open.number}`;
+    }
+    return issueUrl;
+}
+
+/**
+ * board item を人間待ちの理由ごとにまとめる（純粋関数・#1315）。空の理由は出さない。
+ * モニタへ `fn.toString()` で埋め込むため、外の定数を参照しない（reasons は引数で受ける）。
+ * @param {object[]} items board item（waitReason を含む）
+ * @param {object[]} reasons HUMAN_WAIT_REASONS
+ * @returns {Array<{key: string, icon: string, label: string, detail: string, items: object[]}>}
+ */
+function humanWaitGroups(items, reasons) {
+    return (reasons || [])
+        .map((r) => Object.assign({}, r, { items: (items || []).filter((it) => it && it.waitReason === r.key) }))
+        .filter((g) => g.items.length > 0);
+}
+
+/**
+ * モニタ一覧の上に置く「人間待ち」のまとめ HTML（純粋関数・#1315）。人間待ちが無ければ空文字。
+ * モニタへ埋め込むため自己完結（{@link humanWaitGroups} だけを呼ぶ）。
+ * @param {object[]} items board item（waitReason / waitUrl / url / title を含む）
+ * @param {object[]} reasons HUMAN_WAIT_REASONS
+ * @returns {string}
+ */
+function renderHumanWaitsHtml(items, reasons) {
+    const e = (s) => String(s == null ? '' : s).replace(/[&<>"']/g,
+        (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+    const groups = humanWaitGroups(items, reasons);
+    if (!groups.length) return '';
+    const rows = groups.map((g) => '<div class="hw-group" data-wait-reason="' + e(g.key) + '">'
+        + '<b>' + e(g.icon) + ' ' + e(g.label) + '</b> <span class="hw-count">' + g.items.length + ' 件</span> '
+        + g.items.map((it) => '<a target="_blank" rel="noopener" href="' + e(it.waitUrl || it.url)
+            + '" title="' + e(it.title) + '">#' + e(it.issue) + '</a>').join(' ')
+        + '</div>');
+    return '<div class="human-waits" data-testid="human-waits"><span class="hw-title">🙋 人間待ち</span>'
+        + rows.join('') + '</div>';
+}
+
+/**
+ * モニタ一覧の Now 欄（実行中でない item）に出す、理由つきの人間待ち表示（純粋関数・#1315）。
+ * 人間待ちでなければ空文字。モニタへ埋め込むため自己完結。
+ * @param {object} item board item（waitReason / waitUrl / url）
+ * @param {object[]} reasons HUMAN_WAIT_REASONS
+ * @returns {string}
+ */
+function renderHumanWaitCell(item, reasons) {
+    const e = (s) => String(s == null ? '' : s).replace(/[&<>"']/g,
+        (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+    const r = item && (reasons || []).find((x) => x.key === item.waitReason);
+    if (!r) return '';
+    return '<a class="hw-cell" data-wait-reason="' + e(r.key) + '" target="_blank" rel="noopener" href="'
+        + e(item.waitUrl || item.url) + '" title="' + e(r.detail) + '">' + e(r.icon)
+        + ' <span class="subtext">' + e(r.label) + '</span></a>';
 }
 /**
  * sticky ステータスコメントの識別マーカー（bot が1コメントを upsert し続ける目印）。
@@ -1294,8 +1444,8 @@ function hitlLabelAction(item, present, opts = {}) {
  * autopilot ラベルは常時担保し、HITL ラベルは {@link hitlLabelAction} に従う。
  * @param {object} item
  * @param {string[]} currentLabels 現在付いているラベル名
- * @param {object} [opts] { force, skipHitl } — skipHitl=true は 🙋 を一切扱わない
- *   （label healing 用。{@link healingLabelActions}）
+ * @param {object} [opts] { force, skipHitl, skipSpike } — skipHitl=true は 🙋 を一切扱わない
+ *   （label healing 用。{@link healingLabelActions}）。skipSpike=true は 🔬 spike を扱わない（PR 面）
  * @returns {{add: string[], remove: string[]}}
  */
 function labelActions(item, currentLabels, opts = {}) {
@@ -1309,6 +1459,12 @@ function labelActions(item, currentLabels, opts = {}) {
     // 自動では外さない（人間が手動で付けたトラッカー指定を潰さない）。
     const decomposed = Boolean(item && item.subIssues && item.subIssues.total > 0);
     if (item && item.kind === 'EPIC' && decomposed && !cur.includes(TRACKING_LABEL)) add.push(TRACKING_LABEL);
+    // 🔬 spike は状態から毎回導出して付け外しする（#1315）。PR 面には付けない（skipSpike）。
+    if (!opts.skipSpike) {
+        const s = spikeLabelAction(item, cur.includes(SPIKE_LABEL));
+        if (s === 'add') add.push(SPIKE_LABEL);
+        else if (s === 'remove') remove.push(SPIKE_LABEL);
+    }
     if (opts.skipHitl) return { add, remove };
     const h = hitlLabelAction(item, cur.includes(HITL_LABEL), opts);
     if (h === 'add') add.push(HITL_LABEL);
@@ -1328,12 +1484,17 @@ function labelActions(item, currentLabels, opts = {}) {
  * @returns {{add: string[], remove: string[]}}
  */
 function healingLabelActions(item, currentLabels) {
+    // 終端の item は 🔬 spike を外すだけ（閉じたら外す・#1315）。🤖 autopilot は足し直さない。
+    if (item && TERMINAL_STATUSES.has(item.status)) {
+        return { add: [], remove: (currentLabels || []).includes(SPIKE_LABEL) ? [SPIKE_LABEL] : [] };
+    }
     return labelActions(item, currentLabels, { skipHitl: true });
 }
 
 /**
  * label healing の対象 item を選ぶ（純粋関数）。終端 Status は問い合わせ対象外（API 予算規約）、
- * 実行中の item は live phase が所有するので触らない。
+ * 実行中の item は live phase が所有するので触らない。ただし終端でも 🔬 spike が残っている item は
+ * 外すために選ぶ（item-list の labels で判定でき、追加の読み取りは要らない・#1315）。
  * @param {object[]} items
  * @param {{has: Function}} running 実行中 issue の Map/Set
  * @returns {object[]}
@@ -1341,7 +1502,8 @@ function healingLabelActions(item, currentLabels) {
 function selectLabelHealingItems(items, running) {
     const isRunning = (n) => Boolean(running && running.has(n));
     return (items || []).filter(
-        (it) => it && !TERMINAL_STATUSES.has(it.status) && !isRunning(it.issue),
+        (it) => it && !isRunning(it.issue) && (!TERMINAL_STATUSES.has(it.status)
+            || (Array.isArray(it.labels) && it.labels.includes(SPIKE_LABEL))),
     );
 }
 
@@ -1379,6 +1541,10 @@ function renderSticky(item) {
         `| HITL | ${item.hitlLabel ? 'Yes' : 'No'} |`,
         `| Size | ${v(item.size)} |`,
     ];
+    // 人間が何待ちで止まっているかを 1 行で出す（#1315）。理由が変わらなければ本文も変わらない
+    // ので、stickyUpsertPlan の冪等（同一本文は PATCH しない）はそのまま保たれる。
+    const reason = HUMAN_WAIT_REASONS.find((r) => r.key === humanWaitReason(item));
+    if (reason) lines.push('', `> いま: ${reason.icon} ${reason.label} — ${reason.detail}`);
     // DoD では daemon が headful 検証手順を別コメント（autopilot:dod-handoff マーカー）として
     // 生成する（sticky 本体は上書きしない）。sticky には 1 行ポインタだけ足す（#821）。
     if (item && item.status === 'DoD') {
@@ -3077,6 +3243,15 @@ module.exports = {
     touchedRuleAreas,
     TRACKING_LABEL,
     WAITING_LABEL,
+    SPIKE_LABEL,
+    isSpikeItem,
+    spikeLabelAction,
+    HUMAN_WAIT_REASONS,
+    humanWaitReason,
+    humanWaitUrl,
+    humanWaitGroups,
+    renderHumanWaitsHtml,
+    renderHumanWaitCell,
     INFRA_LABEL,
     LATER_LABEL,
     hasLaterLabel,

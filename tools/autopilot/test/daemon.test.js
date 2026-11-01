@@ -276,6 +276,23 @@ test('applyPrProjection: Review handoff (HITL=Yes) -> ensure HITL label + Ready 
     assert.deepEqual(deps.calls.sticky, [{ prNumber: 100, hasMarker: true }]);
 });
 
+test('applyPrProjection: 🔬 spike は Issue 面だけに付け、PR 面には付けない（#1315）', async () => {
+    const { SPIKE_LABEL } = require('../src/phases');
+    // understand の質問 HITL（Blocked/Understanding + 🙋）。address-review 後の再理解などで PR がある場合
+    const items = [{ issue: 1, itemId: 'i1', status: 'Blocked', kind: 'Issue', hitlLabel: true, aiStatus: 'Understanding' }];
+    const deps = makeProjectionDeps({
+        prByIssue: { 1: { number: 100 } },
+        prInfo: { 100: { isDraft: true, labels: [AUTOPILOT_LABEL, HITL_LABEL] } },
+        issueLabels: { 1: [AUTOPILOT_LABEL, HITL_LABEL] },
+    });
+    await applyPrProjection(items, makeCfg(), { running: new Map() }, () => {}, deps);
+    const issueEdit = deps.calls.editLabels.find((e) => e.type === 'issue');
+    assert.ok(issueEdit.add.includes(SPIKE_LABEL));
+    for (const e of deps.calls.editLabels.filter((x) => x.type === 'pr')) {
+        assert.ok(!(e.add || []).includes(SPIKE_LABEL));
+    }
+});
+
 test('applyPrProjection: per-tick on Review does NOT re-add a human-removed HITL label', async () => {
     const items = [{ issue: 1, itemId: 'i1', status: 'Review', kind: 'Issue', hitlLabel: true }];
     const deps = makeProjectionDeps({
@@ -714,6 +731,27 @@ test('applyLabelHealing: 非終端 item に 🤖 を、分解済み EPIC には 
     ]);
 });
 
+test('applyLabelHealing: 🔬 spike を状態から付け外しし、閉じた item からは外す（#1315）', async () => {
+    const { SPIKE_LABEL } = require('../src/phases');
+    const items = [
+        { issue: 1, status: 'Backlog', aiStatus: 'Discussing', hitlLabel: true, kind: 'Issue', labels: [AUTOPILOT_LABEL] },
+        { issue: 2, status: 'In Progress', aiStatus: 'Implementing', kind: 'Issue', labels: [AUTOPILOT_LABEL, SPIKE_LABEL] },
+        { issue: 3, status: 'Close', aiStatus: 'Discussing', kind: 'Issue', labels: [AUTOPILOT_LABEL, SPIKE_LABEL] },
+        { issue: 4, status: 'Close', kind: 'Issue', labels: [] }, // 終端・spike なし → 触らない
+    ];
+    const edits = [];
+    await applyLabelHealing(items, makeCfg(), { running: new Map() }, () => {}, {
+        token: 't',
+        readToken: 'r',
+        editLabels: (repo, number, type, diff) => edits.push({ number, ...diff }),
+    });
+    assert.deepEqual(edits, [
+        { number: 1, add: [SPIKE_LABEL] },
+        { number: 2, remove: [SPIKE_LABEL] },
+        { number: 3, remove: [SPIKE_LABEL] },
+    ]);
+});
+
 test('applyLabelHealing: 未分解 EPIC に 🧭 tracking を付けない（decompose デッドロック回帰・#1130）', async () => {
     const { TRACKING_LABEL, AUTOPILOT_LABEL } = require('../src/phases');
     // #1129 の状況: decompose が分解案 HITL で停止中（sub-issue はまだ 0 件）
@@ -971,6 +1009,36 @@ test('refreshBoard: 非終端 item を Board 順で enrich し state.board に�
     const r5 = state.board.items.find((i) => i.issue === 5);
     assert.equal(r5.subIssues.percent, 50);
     assert.equal(r5.tracker, true);
+});
+
+test('refreshBoard: 人間待ちの理由とリンク（waitReason / waitUrl）を board item に載せる（#1315）', async () => {
+    const { refreshBoard } = require('../src/daemon');
+    const { WAITING_LABEL } = require('../src/phases');
+    const cfg = { ...makeCfg(), now: () => 0, statusOrder: [] };
+    const state = { running: new Map() };
+    let enrichCalls = 0;
+    await refreshBoard(cfg, state, () => {}, {
+        token: 't',
+        listItems: () => [
+            { issue: 1, status: 'Backlog', aiStatus: 'Discussing', hitlLabel: true, kind: 'Issue', title: 'a', labels: [] },
+            { issue: 2, status: 'Review', hitlLabel: true, kind: 'Issue', title: 'b', labels: [] },
+            { issue: 3, status: 'Sprint Backlog', kind: 'Issue', title: 'c', labels: [WAITING_LABEL] },
+            { issue: 4, status: 'In Progress', aiStatus: 'Implementing', kind: 'Issue', title: 'd', labels: [] },
+        ],
+        getBoardEnrichment: () => {
+            enrichCalls += 1;
+            return { 2: { subIssues: { total: 0, completed: 0, percent: 0 }, prs: [{ number: 20, state: 'OPEN', isDraft: false }] } };
+        },
+        listHeadPrs: () => [],
+    });
+    const by = Object.fromEntries(state.board.items.map((i) => [i.issue, i]));
+    const base = 'https://github.com/smalruby/smalruby3-editor';
+    assert.deepEqual([by[1].waitReason, by[1].waitUrl], ['spike', `${base}/issues/1`]);
+    assert.deepEqual([by[2].waitReason, by[2].waitUrl], ['review', `${base}/pull/20`]);
+    assert.deepEqual([by[3].waitReason, by[3].waitUrl], ['waiting', `${base}/issues/3`]);
+    assert.deepEqual([by[4].waitReason, by[4].waitUrl], [null, null]);
+    // 理由のために読み取りを増やさない（enrichment は従来どおり 1 回）
+    assert.equal(enrichCalls, 1);
 });
 
 test('refreshBoard: close リンクに PR が無い post-PR item は head ブランチで補完', async () => {

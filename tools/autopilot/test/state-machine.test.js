@@ -287,3 +287,39 @@ test('#1130 回帰: 未分解 EPIC は 🧭 tracking で締め出されず、HIT
     assert.ok(!labelActions(undecomposed, [AUTOPILOT_LABEL]).add.includes(TRACKING_LABEL));
     assert.ok(!healingLabelActions(undecomposed, [AUTOPILOT_LABEL]).add.includes(TRACKING_LABEL));
 });
+
+test('#1315: 🔬 spike は実装前の相談・質問待ちだけに付き、implement 以降・終端では必ず外れる', () => {
+    const { isSpikeItem, labelActions, SPIKE_LABEL } = require('../src/phases');
+    // 実装（implement）以降の AI Status。ここに来たら Spike ではない
+    const POST_IMPLEMENT = new Set(['Implementing', 'Creating PR', 'Self-Reviewing', 'Addressing Comments',
+        'Running DoD', 'Awaiting Continuation', 'EPIC Decomposed']);
+    for (const status of STATUSES) {
+        for (const aiStatus of AI_STATUSES) {
+            for (const hitlLabel of [true, false]) {
+                const item = { status, aiStatus, hitlLabel };
+                const spike = isSpikeItem(item);
+                const where = `${status}/${aiStatus}/${hitlLabel}`;
+                if (TERMINAL_STATUSES.has(status) || status === 'Icebox' || POST_IMPLEMENT.has(aiStatus)) {
+                    assert.equal(spike, false, where);
+                }
+                // ラベルは状態の導出（付いていれば外す / 無ければ付ける、のどちらか一方だけ）
+                const withLabel = labelActions(item, [SPIKE_LABEL]);
+                const without = labelActions(item, []);
+                assert.equal(withLabel.remove.includes(SPIKE_LABEL), !spike, where);
+                assert.equal(without.add.includes(SPIKE_LABEL), spike, where);
+            }
+        }
+    }
+});
+
+test('#1315: 🙋 の非終端 item は必ず「何待ちか」の理由を 1 つ持つ', () => {
+    const { humanWaitReason, HUMAN_WAIT_REASONS } = require('../src/phases');
+    const keys = new Set(HUMAN_WAIT_REASONS.map((r) => r.key));
+    for (const status of STATUSES) {
+        if (TERMINAL_STATUSES.has(status) || status === 'Icebox') continue;
+        for (const aiStatus of AI_STATUSES) {
+            const reason = humanWaitReason({ status, aiStatus, hitlLabel: true });
+            assert.ok(keys.has(reason), `${status}/${aiStatus}: ${reason}`);
+        }
+    }
+});

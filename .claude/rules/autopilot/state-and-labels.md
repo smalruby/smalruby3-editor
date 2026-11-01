@@ -50,6 +50,7 @@ Status / AI Status / ラベルの集合を変更したら、**必ず次の 3 つ
 | `🙋 HITL` | `HITL_LABEL` | 人間の番（**HITL の唯一の真実**・#813。Project に HITL フィールドは無い） | set = daemon が Issue/PR 両面へ一括付与。release = 人間（どちらか片面の除去で OR 解除）。steady-state 同期では**人間が外したラベルを再付与しない**（`hitlLabelAction` の force 分岐） |
 | `🧭 tracking` | `TRACKING_LABEL` | 分解済み親のトラッカー（作業 item ではない） | daemon が**分解済み**（`subIssues.total > 0`）の Kind=EPIC に付与（`labelActions`）。**未分解 EPIC には付けない**（付けると `phaseForItem` が decompose 前に締め出して分解が走らないデッドロックになる・#680/#681/#1130）。**自動では外さない**（人間の手動トラッカー指定を潰さない） |
 | `⏳ waiting` | `WAITING_LABEL` | `autopilot-after` の先行 Issue 待ち | daemon が**毎 tick 状態から動的に導出**して付け外し（`waitingLabelAction`）。静的に一度付ける実装にしない |
+| `🔬 spike` | `SPIKE_LABEL` | 要件の相談・調査中（Discussing / triage・understand の質問 🙋 待ち） | daemon が**毎 tick 状態から導出**して付け外し（`isSpikeItem` → `labelActions`）。Issue 面だけ（PR は `skipSpike`）。終端に残ったものは healing が外す。人間の手動付与は扱わない（導出が正） |
 | `🧱 infra` | `INFRA_LABEL` | infra だけを変える Issue（infra-first・後方互換のみ・develop へ先行マージ） | Issue を作る側（decompose / 人間）が付ける。**daemon は読むだけ**（merge で GitHub の Issue を閉じない・`autopilot-after` の相手としては GitHub で closed まで未完了）。prod デプロイ成功で `Deploy Infra` workflow が閉じる |
 | `👥 human-review-required` | `HUMAN_REVIEW_LABEL` | Bot 権限外パスを含む PR（個人トークン経路） | プロンプトが付与。**autopilot は外さない**（外すのは人間） |
 

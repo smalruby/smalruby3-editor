@@ -17,17 +17,22 @@
  *   `fn.toString()` で埋め込んで共有する（二重定義しない）
  * - PR は専用列ではなく Issue 番号のすぐ右に open のものだけ並べ、merged / closed があれば
  *   ▼ メニューに全 PR をまとめる（#1212。振り分けは phases.js の `splitPrsForTitle`）
+ * - 一覧の上に「人間待ち」を理由ごと（🔬 Spike / 👀 レビュー / ✅ DoD / 🧱 Blocked / ⏳ 依存 / 🙋 そのほか）
+ *   にまとめ、Now 欄の 🙋 も理由つきで出す（#1315。理由は daemon が phases.js の `humanWaitReason`
+ *   で決めて /board に載せる。HTML は phases.js の `renderHumanWaitsHtml` / `renderHumanWaitCell`）
  * - Issue 列の左端（固定位置）の 📋 で「#Issue PR#… タイトル」+ URL をコピーし、行を一瞬光らせる
  *   （#1213。文字列は phases.js の `issueCopyText`）
  */
 
 const {
     canToggleLater, effectiveLater, splitLaterBoard, laterPendingReducer, splitPrsForTitle, issueCopyText,
+    HUMAN_WAIT_REASONS, humanWaitGroups, renderHumanWaitsHtml, renderHumanWaitCell,
 } = require('./phases');
 
-// ブラウザへ埋め込むクライアント共有の純粋関数（自己完結。later.test.js で単独評価を担保）
+// ブラウザへ埋め込むクライアント共有の純粋関数（自己完結。later.test.js / spike.test.js で単独評価を担保）
 const SHARED_CLIENT_FNS = [
     canToggleLater, effectiveLater, splitLaterBoard, laterPendingReducer, splitPrsForTitle, issueCopyText,
+    humanWaitGroups, renderHumanWaitsHtml, renderHumanWaitCell,
 ]
     .map(String).join('\n');
 
@@ -134,6 +139,13 @@ const MONITOR_HTML = `<!doctype html>
   .alert.auth-a { background: #fef9c3; color: #713f12; }
   .alert.block-a { background: #fee2e2; color: #7f1d1d; }
   .alert.usage-a { background: #ffedd5; color: #7c2d12; }
+  /* ---- 人間待ちのまとめ（#1315） ---- */
+  .human-waits { display: flex; flex-wrap: wrap; gap: .3rem 1rem; align-items: baseline; padding: .4rem .6rem;
+                 margin-bottom: .5rem; background: #fff; border: 1px solid var(--border); border-radius: .35rem;
+                 font-size: .82rem; }
+  .human-waits .hw-title { font-weight: 700; color: #475569; }
+  .human-waits .hw-count { color: var(--muted); font-size: .75rem; }
+  .human-waits a { margin-left: .15rem; }
   .alert.usage-a .uforce { margin-left: auto; display: inline-flex; gap: .4rem; align-items: baseline; }
   .alert code { background: rgba(0,0,0,.07); padding: 0 .3rem; border-radius: .2rem; }
   .alert button { font-size: .72rem; padding: .05rem .4rem; cursor: pointer; }
@@ -249,6 +261,7 @@ const MONITOR_HTML = `<!doctype html>
 </header>
 <div id="alerts"></div>
 <main>
+  <div id="humanwaits"></div>
   <div id="tabs" class="tabs" role="tablist"></div>
   <div class="board-wrap">
   <table id="board"><thead><tr>
@@ -417,6 +430,8 @@ let logTimer = null;
 // phases.js の純粋関数をそのまま埋め込む（canToggleLater / effectiveLater / splitLaterBoard /
 // laterPendingReducer）。
 ${SHARED_CLIENT_FNS}
+// 人間待ちの理由（表示順・文言）。phases.js の HUMAN_WAIT_REASONS をそのまま埋め込む（#1315）
+const HUMAN_WAIT_REASONS = ${JSON.stringify(HUMAN_WAIT_REASONS)};
 const BOARD_TAB_KEY = 'autopilot:boardTab';
 let boardTab = 'normal';
 try { if (localStorage.getItem(BOARD_TAB_KEY) === 'later') boardTab = 'later'; } catch (e) { /* storage 不可でも動く */ }
@@ -752,6 +767,8 @@ function renderBoard(d) {
   // 自分の login（--assignee）。共同担当で自分がオーナーでない行に「観察中」マーカーを出す（#938）。
   const myAssignee = d.assignee || null;
   const split = splitLaterBoard(d.items, laterPending, (d.running || []).map((r) => r.issue));
+  // 人間待ちのまとめはタブに関係なく全 item から作る（あとでやる 内の人間待ちも見落とさない）
+  document.getElementById('humanwaits').innerHTML = renderHumanWaitsHtml(d.items, HUMAN_WAIT_REASONS);
   renderTabs(split);
   const shown = boardTab === 'later' ? split.later : split.normal;
   prMenuItems = {};
@@ -772,7 +789,8 @@ function renderBoard(d) {
       ? '<span class="phase-pill">' + esc(r.phase) + '</span>'
         + '<span class="subtext">' + mins(Date.now() - r.since) + '分</span> '
         + '<button onclick="openLog(' + it.issue + ')">log</button>'
-      : (it.hitl ? '<span title="人間の番">🙋</span> <span class="subtext">人間の番</span>' : '<span class="muted">—</span>');
+      : (renderHumanWaitCell(it, HUMAN_WAIT_REASONS)
+        || (it.hitl ? '<span title="人間の番">🙋</span> <span class="subtext">人間の番</span>' : '<span class="muted">—</span>'));
     const assignees = it.assignees || [];
     // オーナー（駆動担当）を太字で明示。自分がオーナーでない共同担当行には 👁 + オーナー login
     // を付け、「観察中（他人が駆動）」であることを示す（#938）。
