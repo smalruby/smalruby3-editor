@@ -16,7 +16,7 @@ const {
     followBaseBranch,
 } = require('../src/daemon');
 const { EventEmitter } = require('node:events');
-const { HITL_LABEL, AUTOPILOT_LABEL, LATER_LABEL, continuationMarker, TRACKER_STICKY_MARKER } = require('../src/phases');
+const { HITL_LABEL, AUTOPILOT_LABEL, LATER_LABEL, continuationMarker, TRACKER_STICKY_MARKER, directivesBlockDispatch } = require('../src/phases');
 
 /** Build an injectable double for markBlocked/detectStuck that records side effects. */
 function makeBlockDeps() {
@@ -1343,7 +1343,7 @@ test('getDirectives: 本文から base/after を導き TTL 内はキャッシュ
     assert.equal(fetches, 2);
 });
 
-test('getDirectives: 取得失敗は空ディレクティブへフォールバックし次回再取得', async () => {
+test('getDirectives: 取得失敗でキャッシュが無ければ unavailable（dispatch 不可）にし次回再取得（#1309）', async () => {
     let calls = 0;
     const cfg = { ...makeCfg(), now: () => 0, directiveTtlMs: 1000 };
     const state = {};
@@ -1352,12 +1352,41 @@ test('getDirectives: 取得失敗は空ディレクティブへフォールバ�
         getIssueBody: () => { calls += 1; if (calls === 1) throw new Error('boom'); return 'autopilot-after: #3'; },
     };
     const d1 = await getDirectives(cfg, state, 5, () => {}, deps);
+    assert.equal(d1.unavailable, true);
+    assert.equal(directivesBlockDispatch(d1), true);
     assert.equal(d1.base, null);
     assert.deepEqual(d1.after, []);
     assert.equal(d1.assignee, null);
     // 失敗エントリは TTL 切れ扱い → 次回すぐ再取得して成功する
     const d2 = await getDirectives(cfg, state, 5, () => {}, deps);
     assert.deepEqual(d2.after, [3]);
+    assert.equal(directivesBlockDispatch(d2), false);
+});
+
+test('getDirectives: 取得失敗でも前回のキャッシュがあれば after/base を保つ（#1309）', async () => {
+    let calls = 0;
+    let now = 0;
+    const cfg = { ...makeCfg(), now: () => now, directiveTtlMs: 1000 };
+    const state = {};
+    const deps = {
+        token: 't',
+        getIssueBody: () => {
+            calls += 1;
+            if (calls >= 2) throw new Error('network down');
+            return 'autopilot-base: topic/x\nautopilot-after: #964';
+        },
+    };
+    await getDirectives(cfg, state, 965, () => {}, deps);
+    now = 5000; // TTL 超過 → 取り直すがネットが切れている
+    const d = await getDirectives(cfg, state, 965, () => {}, deps);
+    assert.deepEqual(d.after, [964]);
+    assert.equal(d.base, 'topic/x');
+    assert.equal(directivesBlockDispatch(d), false);
+    // 次の参照でもまた取りに行く（stale を TTL 内として固定しない）
+    await getDirectives(cfg, state, 965, () => {}, deps);
+    assert.equal(calls, 3);
+    // 失敗が続いても内容は保たれる
+    assert.deepEqual(state.directives.get(965).after, [964]);
 });
 
 test('getDirectives: 本文の autopilot-assignee ディレクティブも解決する（#938）', async () => {

@@ -24,6 +24,8 @@ const {
     baseFollowConflictBody,
     shouldPushAfterFollow,
     parseAfterIssues,
+    directivesOnFetchFailure,
+    directivesBlockDispatch,
     unresolvedAfterIssues,
     infraIssueSet,
     shouldCloseIssueOnMerge,
@@ -197,8 +199,10 @@ const UPDATE_CHECK_INTERVAL_MS = 15 * 60 * 1000;
 
 /**
  * Issue 本文から導いたディレクティブ（base / after / assignee）を TTL キャッシュ付きで返す。
- * 失敗時は空ディレクティブ（既定動作）にフォールバックし、次回また取りに行く。
- * @returns {{base: string|null, after: number[], assignee: string|null}}
+ * 取得に失敗したときは空ディレクティブにせず、前回のエントリがあればそれを、無ければ
+ * `unavailable: true` を返す（fail-closed・#1309。判定は {@link directivesOnFetchFailure}）。
+ * 呼び出し側は {@link directivesBlockDispatch} が真の item を dispatch しない。どちらも次回また取りに行く。
+ * @returns {{base: string|null, after: number[], assignee: string|null, unavailable?: boolean}}
  */
 async function getDirectives(cfg, state, issue, log, deps = {}) {
     const getIssueBody = deps.getIssueBody || project.getIssueBody;
@@ -206,7 +210,7 @@ async function getDirectives(cfg, state, issue, log, deps = {}) {
     const cached = state.directives.get(issue);
     const now = cfg.now();
     if (cached && now - cached.at < (cfg.directiveTtlMs || DIRECTIVE_TTL_MS)) return cached;
-    let entry = { base: null, after: [], assignee: null, at: now };
+    let entry;
     try {
         const body = await getIssueBody(cfg.repo, issue, deps.token || await project.readToken());
         entry = {
@@ -214,8 +218,8 @@ async function getDirectives(cfg, state, issue, log, deps = {}) {
             assignee: parseAssigneeDirective(body), at: now,
         };
     } catch (e) {
-        log(`#${issue}: directive fetch failed: ${e.message}`);
-        entry.at = now - (cfg.directiveTtlMs || DIRECTIVE_TTL_MS); // 失敗は次 tick で再取得
+        entry = directivesOnFetchFailure(cached, now, cfg.directiveTtlMs || DIRECTIVE_TTL_MS);
+        log(`#${issue}: directive fetch failed (${entry.unavailable ? 'dispatch を見送り' : '前回の値を使用'}): ${e.message}`);
     }
     state.directives.set(issue, entry);
     return entry;
@@ -948,6 +952,14 @@ async function dispatch(item, cfg, state, log) {
         }
     };
     try {
+        // base / after の宣言を着手前に確定させる。本文を一度も取れていない（ネット断など）なら
+        // 既定 base で作業を始めず、Status にも触らずに見送る（fail-closed・#1309）。次 tick で再試行。
+        // getDirectives は TTL キャッシュ付きなので毎 tick の本文 fetch にはならない。
+        const directives = await getDirectives(cfg, state, item.issue, log);
+        if (directivesBlockDispatch(directives)) {
+            log(`#${item.issue}: Issue 本文を取得できないため ${phase} の dispatch を見送り`);
+            return;
+        }
         // 着手を即可視化（Issue を状態の正に）: In Progress + AI Status=xxxing
         await mark('Status', 'In Progress');
         await mark('AI Status', meta.aiStatus);
@@ -964,9 +976,9 @@ async function dispatch(item, cfg, state, log) {
         }
         // base 宣言（Issue 本文の `autopilot-base:`）を implement / PR フェーズの**両方**で解決する。
         // PR は implement が同じ base で作成しているため、宣言 base は PR の base と一致する（#953）。
-        // 既定は develop。getDirectives は TTL キャッシュ付きなので毎 tick の本文 fetch にはならない。
+        // 既定は develop。
         let baseBranch = DEFAULT_BASE_BRANCH;
-        const declared = (await getDirectives(cfg, state, item.issue, log)).base;
+        const declared = directives.base;
         if (declared) { baseBranch = declared; log(`#${item.issue}: base branch = ${baseBranch} (declared)`); }
         const cwd = await ensureWorktree(item.issue, pr, baseBranch);
         // base 追従（#950/#953）: 新ブランチ作業フェーズ（implement・pr なし）も PR ブランチ作業フェーズ
@@ -1583,7 +1595,11 @@ async function tick(cfg, state, log) {
         // 埋まった後の未ラベル候補は従来どおり読まない（API 削減の趣旨を維持）。
         // TTL キャッシュがあるので 2 tick 目以降はさらに安い。
         if (!capacityLeft && !hasWaitLabel) continue;
-        const after = (await getDirectives(cfg, state, item.issue, log)).after;
+        const directives = await getDirectives(cfg, state, item.issue, log);
+        // 本文を一度も取れていない item は after を判定できない → この tick は候補から外す（#1309）。
+        // ⏳ waiting ラベルの付け外しも判定できないので触らない（waitingByIssue に入れない）。
+        if (directivesBlockDispatch(directives)) continue;
+        const after = directives.after;
         // Project 外の after 依存（closedSet にも statusByIssue にも無い番号）と、Close 済みでも
         // まだ GitHub で開いている可能性がある 🧱 infra の依存だけ
         // オンデマンドで state を確認して closedSet にマージする（少数・稀）
