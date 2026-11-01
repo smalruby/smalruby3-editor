@@ -281,6 +281,207 @@ describe('archive recoverability (issue #1050)', () => {
         });
     });
 
+    describe('archivedAt — when the assignment was archived (issue #1298)', () => {
+        type Cmd = {
+            constructor: { name: string };
+            input?: {
+                UpdateExpression?: string;
+                ExpressionAttributeNames?: Record<string, string>;
+                ExpressionAttributeValues?: Record<string, unknown>;
+            };
+        };
+        const updateInputs = () =>
+            mockSend.mock.calls
+                .map((c) => c[0] as Cmd)
+                .filter((c) => c.constructor.name === 'UpdateCommand')
+                .map((c) => c.input!);
+        // The PATCH path builds `#attrN = :valN` pairs, so resolve them back to
+        // attribute names to see what was written.
+        const setAttributes = (input: NonNullable<Cmd['input']>) => {
+            const names = input.ExpressionAttributeNames || {};
+            const values = input.ExpressionAttributeValues || {};
+            const out: Record<string, unknown> = {};
+            const setPart = (input.UpdateExpression || '').split(/\bREMOVE\b/)[0];
+            for (const m of setPart.matchAll(/(#\w+|\w+)\s*=\s*(:\w+)/g)) {
+                const name = m[1].startsWith('#') ? names[m[1]] : m[1];
+                out[name] = values[m[2]];
+            }
+            return out;
+        };
+        const removedAttributes = (input: NonNullable<Cmd['input']>) => {
+            const names = input.ExpressionAttributeNames || {};
+            const m = (input.UpdateExpression || '').match(/\bREMOVE\s+([^]*?)(?:\bSET\b|$)/);
+            if (!m) return [];
+            return m[1].split(',').map((s) => s.trim()).filter(Boolean)
+                .map((s) => (s.startsWith('#') ? names[s] : s));
+        };
+        const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+
+        test('DELETE (soft delete) records archivedAt', async () => {
+            mockSend.mockImplementation(async (command: Cmd) => {
+                if (command.constructor.name === 'GetCommand') return { Item: activeClassroom };
+                return {};
+            });
+
+            const res = await handler(
+                makeEvent('DELETE', '/classrooms/c1', { classroomId: 'c1' }, { token: DEV_TOKEN }),
+            );
+
+            expect(res.statusCode).toBe(204);
+            const [input] = updateInputs();
+            const written = setAttributes(input);
+            expect(written.status).toBe('archived');
+            expect(written.archivedAt).toMatch(ISO);
+        });
+
+        test('PATCH {status:"archived"} records archivedAt and returns it', async () => {
+            mockSend.mockImplementation(async (command: Cmd) => {
+                if (command.constructor.name === 'GetCommand') return { Item: activeClassroom };
+                if (command.constructor.name === 'UpdateCommand') {
+                    return { Attributes: { ...activeClassroom, ...setAttributes(command.input!) } };
+                }
+                return {};
+            });
+
+            const res = await handler(
+                makeEvent('PATCH', '/classrooms/c1', { classroomId: 'c1' }, {
+                    token: DEV_TOKEN,
+                    body: { status: 'archived' },
+                }),
+            );
+
+            expect(res.statusCode).toBe(200);
+            const written = setAttributes(updateInputs()[0]);
+            expect(written.status).toBe('archived');
+            expect(written.archivedAt).toMatch(ISO);
+            const body = JSON.parse(res.body as string);
+            expect(body.status).toBe('archived');
+            expect(body.archivedAt).toBe(written.archivedAt);
+        });
+
+        test('PATCH {status:"archived"} on an already archived item keeps the original archivedAt', async () => {
+            const alreadyArchived = { ...archivedClassroom, archivedAt: '2026-08-01T00:00:00.000Z' };
+            mockSend.mockImplementation(async (command: Cmd) => {
+                if (command.constructor.name === 'GetCommand') return { Item: alreadyArchived };
+                if (command.constructor.name === 'UpdateCommand') {
+                    return { Attributes: { ...alreadyArchived, ...setAttributes(command.input!) } };
+                }
+                return {};
+            });
+
+            const res = await handler(
+                makeEvent('PATCH', '/classrooms/c1', { classroomId: 'c1' }, {
+                    token: DEV_TOKEN,
+                    body: { status: 'archived' },
+                }),
+            );
+
+            expect(res.statusCode).toBe(200);
+            expect(setAttributes(updateInputs()[0]).archivedAt).toBeUndefined();
+            expect(JSON.parse(res.body as string).archivedAt).toBe('2026-08-01T00:00:00.000Z');
+        });
+
+        test('PATCH {status:"active"} (restore) removes archivedAt', async () => {
+            const archivedWithTime = { ...archivedClassroom, archivedAt: '2026-08-01T00:00:00.000Z' };
+            mockSend.mockImplementation(async (command: Cmd) => {
+                if (command.constructor.name === 'GetCommand') return { Item: archivedWithTime };
+                if (command.constructor.name === 'UpdateCommand') {
+                    return { Attributes: { ...activeClassroom } };
+                }
+                return {};
+            });
+
+            const res = await handler(
+                makeEvent('PATCH', '/classrooms/c1', { classroomId: 'c1' }, {
+                    token: DEV_TOKEN,
+                    body: { status: 'active' },
+                }),
+            );
+
+            expect(res.statusCode).toBe(200);
+            const input = updateInputs()[0];
+            expect(removedAttributes(input)).toContain('archivedAt');
+            expect(setAttributes(input).status).toBe('active');
+            expect(JSON.parse(res.body as string).archivedAt).toBeNull();
+        });
+
+        test('PATCH without status does not touch archivedAt', async () => {
+            mockSend.mockImplementation(async (command: Cmd) => {
+                if (command.constructor.name === 'GetCommand') return { Item: activeClassroom };
+                if (command.constructor.name === 'UpdateCommand') {
+                    return { Attributes: { ...activeClassroom, ...setAttributes(command.input!) } };
+                }
+                return {};
+            });
+
+            const res = await handler(
+                makeEvent('PATCH', '/classrooms/c1', { classroomId: 'c1' }, {
+                    token: DEV_TOKEN,
+                    body: { className: '2年2組' },
+                }),
+            );
+
+            expect(res.statusCode).toBe(200);
+            const input = updateInputs()[0];
+            expect(setAttributes(input).archivedAt).toBeUndefined();
+            expect(removedAttributes(input)).not.toContain('archivedAt');
+        });
+
+        test('list ?includeArchived=1 returns archivedAt, falling back to updatedAt for old data', async () => {
+            mockSend.mockImplementation(async (command: Cmd) => {
+                if (command.constructor.name === 'QueryCommand') {
+                    return {
+                        Items: [
+                            { ...activeClassroom, updatedAt: '2026-07-02T00:00:00.000Z' },
+                            {
+                                ...archivedClassroom,
+                                classroomId: 'c2',
+                                updatedAt: '2026-08-02T00:00:00.000Z',
+                                archivedAt: '2026-08-01T00:00:00.000Z',
+                            },
+                            // Archived before #1298: no archivedAt — updatedAt stands in.
+                            { ...archivedClassroom, classroomId: 'c3', updatedAt: '2026-07-15T00:00:00.000Z' },
+                        ],
+                    };
+                }
+                if (command.constructor.name === 'ScanCommand') return { Items: [] };
+                return {};
+            });
+
+            const res = await handler(
+                makeEvent('GET', '/classrooms', {}, { token: DEV_TOKEN, query: { includeArchived: '1' } }),
+            );
+
+            expect(res.statusCode).toBe(200);
+            const byId = Object.fromEntries(
+                JSON.parse(res.body as string).classrooms.map(
+                    (c: { classroomId: string; archivedAt: unknown }) => [c.classroomId, c.archivedAt],
+                ),
+            );
+            expect(byId).toEqual({
+                c1: null,
+                c2: '2026-08-01T00:00:00.000Z',
+                c3: '2026-07-15T00:00:00.000Z',
+            });
+        });
+
+        test('GET /classrooms/{id} returns archivedAt (null for an active assignment)', async () => {
+            mockSend.mockImplementation(async (command: Cmd) => {
+                if (command.constructor.name === 'GetCommand') return { Item: activeClassroom };
+                return {};
+            });
+
+            const res = await handler(
+                makeEvent('GET', '/classrooms/c1', { classroomId: 'c1' }, { token: DEV_TOKEN }),
+            );
+
+            expect(res.statusCode).toBe(200);
+            const body = JSON.parse(res.body as string);
+            expect(body).toHaveProperty('archivedAt');
+            expect(body.archivedAt).toBeNull();
+        });
+    });
+
     describe('join/lookup guards stay in place (regression pins)', () => {
         test('lookup of an archived classroom → 404 "no longer active"', async () => {
             mockSend.mockImplementation(async (command: { constructor: { name: string } }) => {
