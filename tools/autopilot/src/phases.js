@@ -1080,6 +1080,7 @@ const SPIKE_QUESTION_AI_STATUSES = new Set(['Triaging', 'Understanding']);
  * - AI Status=Discussing（triage が方針案を出して回答を待つ・人間が 🙋 を外して discuss が
  *   走る直前も含む）
  * - triage / understand が質問を出して 🙋 で止まっている（実装前に人間の答えを待つ）
+ * Blocked は understand の質問待ちだけ Spike（triage / discuss の Blocked は run 失敗 = 障害）。
  * 終端（Close / Done）・Icebox では常に false（閉じたら外す）。implement 以降の AI Status は
  * 上の集合に入らないので、実装に進めば自動で false になる。
  * @param {object} item { status, aiStatus, hitlLabel }
@@ -1089,6 +1090,10 @@ function isSpikeItem(item) {
     if (!item) return false;
     const status = item.status || 'New Item';
     if (TERMINAL_STATUSES.has(status) || status === 'Icebox') return false;
+    // run 失敗（markBlocked / signal=error）は AI Status を残したまま Blocked にするので、
+    // Blocked を質問待ちとみなすのは質問の hitl で Blocked に回る understand だけ（#1310）。
+    // triage / discuss の質問・方針案は Blocked にならないため、Blocked なら障害として扱う。
+    if (status === 'Blocked' && item.aiStatus !== 'Understanding') return false;
     if (item.aiStatus === 'Discussing') return true;
     return Boolean(item.hitlLabel) && SPIKE_QUESTION_AI_STATUSES.has(item.aiStatus);
 }

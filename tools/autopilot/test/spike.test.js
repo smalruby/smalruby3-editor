@@ -35,6 +35,15 @@ test('isSpikeItem: triage / understand が質問を出して 🙋 で止まっ�
     assert.ok(!isSpikeItem({ status: 'In Progress', aiStatus: 'Understanding', hitlLabel: false }));
 });
 
+test('isSpikeItem: triage / discuss の run 失敗（Blocked + AI Status 据え置き）は Spike ではない', () => {
+    // markBlocked / signal=error は AI Status を残して Status=Blocked にする
+    assert.ok(!isSpikeItem({ status: 'Blocked', aiStatus: 'Triaging', hitlLabel: true }));
+    assert.ok(!isSpikeItem({ status: 'Blocked', aiStatus: 'Discussing', hitlLabel: true }));
+    assert.strictEqual(humanWaitReason({ status: 'Blocked', aiStatus: 'Triaging', hitlLabel: true }), 'blocked');
+    assert.strictEqual(humanWaitReason({ status: 'Blocked', aiStatus: 'Discussing', hitlLabel: true }), 'blocked');
+    assert.strictEqual(spikeLabelAction({ status: 'Blocked', aiStatus: 'Triaging', hitlLabel: true }, true), 'remove');
+});
+
 test('isSpikeItem: implement 以降・終端・Icebox は Spike ではない', () => {
     for (const aiStatus of ['Implementing', 'Creating PR', 'Self-Reviewing', 'Addressing Comments', 'Running DoD', null]) {
         assert.ok(!isSpikeItem({ status: 'In Progress', aiStatus, hitlLabel: true }), String(aiStatus));

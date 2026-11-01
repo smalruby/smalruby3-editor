@@ -167,6 +167,8 @@ daemon が Issue に **`🔬 spike` ラベル**を付ける。GitHub のラベ�
 
 - **付ける**: AI Status が `Discussing` のとき（🙋 の有無を問わない）。または triage / understand が
   質問を出して `🙋 HITL` で止まっているとき（AI Status が `Triaging` / `Understanding` + 🙋）。
+  Status=Blocked で付けるのは understand の質問待ちだけ（triage / discuss が Blocked なのは run 失敗で、
+  障害として 🧱 Blocked に数える）。
 - **外す**: 実装（implement）以降に進んだとき、または閉じた（Close / Done）・Icebox にしたとき。
   閉じた item でもラベルが残っていれば label healing が外す（item-list の labels だけで判定でき、
   追加の読み取りは要らない）。

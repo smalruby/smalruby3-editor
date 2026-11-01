@@ -22,7 +22,7 @@ item の状態は次の 4 要素で決まる（Project が単一の真実）:
 | ラベル | 付く条件（`phases.js`） | 外れる |
 |---|---|---|
 | `⏳ waiting` | `autopilot-after` の先行 Issue が未完了（`waitingLabelAction`） | 先行 Issue の完了 |
-| `🔬 spike` | AI Status=`Discussing`、または AI Status が `Triaging` / `Understanding` で 🙋 あり（`isSpikeItem`） | implement 以降・Close / Done・Icebox |
+| `🔬 spike` | AI Status=`Discussing`、または AI Status が `Triaging` / `Understanding` で 🙋 あり（`isSpikeItem`）。Blocked は understand の質問待ちだけ（triage / discuss の Blocked は run 失敗） | implement 以降・Close / Done・Icebox |
 
 人間待ち（🙋）の item の「何待ちか」（`humanWaitReason`）も同じく表示だけに使う:
 🔬 Spike（上の `🔬 spike` と同条件）→ 👀 Review → ✅ DoD → 🧱 Blocked → ⏳ 依存待ち → 🙋 そのほか。
