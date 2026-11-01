@@ -1,5 +1,8 @@
 @import '../../css/colors.css';
 
+/* The marks on the blocks the AI's version adds or changes (#1281): unlike any block colour. */
+$genai-mark: #ff3d8b;
+
 .root {
     position: absolute;
     bottom: 12px;
@@ -516,4 +519,53 @@
 
 .switch button:disabled {
     cursor: progress;
+}
+
+/* The blocks the AI's version adds or changes (#1281): the list in the panel... */
+.changes {
+    margin: 4px 0;
+}
+
+.changesTitle {
+    margin: 0 0 2px;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.changes ul {
+    margin: 0 0 4px;
+    padding-left: 18px;
+    font-size: 0.75rem;
+}
+
+.changes li {
+    margin: 1px 0;
+}
+
+.changes a {
+    color: inherit;
+}
+
+.change-added::marker {
+    color: $genai-mark;
+}
+
+.change-changed::marker {
+    color: $genai-mark;
+}
+
+.change-removed {
+    color: $text-primary-transparent;
+}
+
+/* ...and the marks on the blocks in the editor (the class is put on the block's SVG
+   group; only its own outline, not the blocks below it inside the same group). */
+:global(.genaiMarkAdded) > :global(.blocklyPath),
+:global(.genaiMarkChanged) > :global(.blocklyPath) {
+    stroke: $genai-mark;
+    stroke-width: 4px;
+}
+
+:global(.genaiMarkChanged) > :global(.blocklyPath) {
+    stroke-dasharray: 8 4;
 }

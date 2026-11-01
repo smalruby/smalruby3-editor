@@ -339,17 +339,38 @@ const GenaiConcierge = ({
     const handleTogglePrompt = useCallback(() => setPromptOpen((v) => !v), []);
     const handleClearNotice = useCallback(() => setNotice(''), []);
 
-    // Bring the blocks just put in into view, away from the panel at the right (#1293 G8).
-    const handleApplied = useCallback(() => {
-        setTimeout(() => {
-            const workspace = scratchBlocks && scratchBlocks.getMainWorkspace();
-            if (!workspace) return;
-            const box = workspace.getBlocksBoundingBox();
-            const empty = !box || (box.right === box.left && box.bottom === box.top);
-            const to = scrollToShowBlocks({ bbox: empty ? null : box, scale: workspace.scale });
-            if (to) workspace.scroll(to.x, to.y);
-        }, SCROLL_DELAY_MS);
-    }, [scratchBlocks]);
+    // Bring blocks into view at the top left, away from the panel at the right (#1293 G8):
+    // the marked ones when there are (a wide script would hide them under the panel, #1281),
+    // else all the blocks. Another sprite's blocks are shown in the editor first.
+    const handleShowBlocks = useCallback(
+        (owner, ids) => {
+            if (owner && owner !== vm.editingTarget && vm.runtime.targets.includes(owner)) {
+                vm.setEditingTarget(owner.id);
+            }
+            setTimeout(() => {
+                const workspace = scratchBlocks && scratchBlocks.getMainWorkspace();
+                if (!workspace) return;
+                const boxes = (ids || [])
+                    .map((id) => workspace.getBlockById(id))
+                    .filter(Boolean)
+                    .map((block) => block.getBoundingRectangle());
+                let box = null;
+                if (boxes.length > 0) {
+                    box = {
+                        left: Math.min(...boxes.map((b) => b.left)),
+                        top: Math.min(...boxes.map((b) => b.top)),
+                    };
+                } else {
+                    const all = workspace.getBlocksBoundingBox();
+                    const empty = !all || (all.right === all.left && all.bottom === all.top);
+                    box = empty ? null : all;
+                }
+                const to = scrollToShowBlocks({ bbox: box, scale: workspace.scale });
+                if (to) workspace.scroll(to.x, to.y);
+            }, SCROLL_DELAY_MS);
+        },
+        [vm, scratchBlocks],
+    );
 
     if (!available) return null;
 
@@ -424,9 +445,10 @@ const GenaiConcierge = ({
                             step={step}
                             notice={notice}
                             rubyteeAvailable={rubyteeAvailable}
+                            scratchBlocks={scratchBlocks}
                             onStep={goTo}
                             onCopy={copyAndOpen}
-                            onApplied={handleApplied}
+                            onShowBlocks={handleShowBlocks}
                             onClearNotice={handleClearNotice}
                             onClose={handleClose}
                             onFinish={handleFinish}
@@ -454,6 +476,7 @@ GenaiConcierge.propTypes = {
         runtime: PropTypes.object,
         on: PropTypes.func,
         removeListener: PropTypes.func,
+        setEditingTarget: PropTypes.func,
     }).isRequired,
     rubyVersion: PropTypes.string,
     assignmentName: PropTypes.string,
@@ -470,7 +493,7 @@ GenaiConcierge.propTypes = {
     rubyteeAvailable: PropTypes.bool,
     role: PropTypes.string,
     sessionToken: PropTypes.string,
-    scratchBlocks: PropTypes.shape({ getMainWorkspace: PropTypes.func }),
+    scratchBlocks: PropTypes.shape({ Blocks: PropTypes.object, getMainWorkspace: PropTypes.func }),
     dispatch: PropTypes.func.isRequired,
 };
 

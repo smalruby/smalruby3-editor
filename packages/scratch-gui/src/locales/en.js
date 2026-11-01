@@ -1289,6 +1289,15 @@ export default {
     'gui.genaiConcierge.switchState': 'Now {side} is in ({names}). Click the flag and compare how they move.',
     'gui.genaiConcierge.switchKeep': 'Switching keeps what you changed on each side.',
     'gui.genaiConcierge.memo': 'Your note: {text}',
+    'gui.genaiConcierge.changesTitle': "Blocks the AI's version adds or changes",
+    'gui.genaiConcierge.changesNone': 'No blocks are added or changed.',
+    'gui.genaiConcierge.changesLegend':
+        'The blocks with a pink frame are added, a dashed one changed. Click a line to go to its block.',
+    'gui.genaiConcierge.changeAdded': '"{block}" is added',
+    'gui.genaiConcierge.changeAddedIn': '"{block}" is added in "{script}"',
+    'gui.genaiConcierge.changeChanged': '"{before}" becomes "{block}"',
+    'gui.genaiConcierge.changeRemoved': '"{block}" is taken away',
+    'gui.genaiConcierge.changesMore': 'and {count} more',
     'gui.genaiConcierge.again': 'Ask again',
     'gui.genaiConcierge.finish': 'Close with this',
 };

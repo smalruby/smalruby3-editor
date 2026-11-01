@@ -391,6 +391,46 @@ const messages = defineMessages({
         description: 'The reflection the student wrote, shown after putting the blocks in',
         id: 'gui.genaiConcierge.memo',
     },
+    changesTitle: {
+        defaultMessage: "Blocks the AI's version adds or changes",
+        description: 'Heading of the list of blocks the AI version adds or changes',
+        id: 'gui.genaiConcierge.changesTitle',
+    },
+    changesNone: {
+        defaultMessage: 'No blocks are added or changed.',
+        description: 'The AI version adds or changes no blocks',
+        id: 'gui.genaiConcierge.changesNone',
+    },
+    changesLegend: {
+        defaultMessage: 'The blocks with a pink frame are added, a dashed one changed. Click a line to go to its block.',
+        description: 'How the marked blocks look in the editor, and that a line of the list brings its block into view',
+        id: 'gui.genaiConcierge.changesLegend',
+    },
+    changeAdded: {
+        defaultMessage: '"{block}" is added',
+        description: 'A block added ({block}: the words of the block)',
+        id: 'gui.genaiConcierge.changeAdded',
+    },
+    changeAddedIn: {
+        defaultMessage: '"{block}" is added in "{script}"',
+        description: 'A block added in a script ({script}: its top block)',
+        id: 'gui.genaiConcierge.changeAddedIn',
+    },
+    changeChanged: {
+        defaultMessage: '"{before}" becomes "{block}"',
+        description: 'A block changed ({before}: the block now)',
+        id: 'gui.genaiConcierge.changeChanged',
+    },
+    changeRemoved: {
+        defaultMessage: '"{block}" is taken away',
+        description: 'A block the AI version does not have',
+        id: 'gui.genaiConcierge.changeRemoved',
+    },
+    changesMore: {
+        defaultMessage: 'and {count} more',
+        description: 'More changes than the list shows',
+        id: 'gui.genaiConcierge.changesMore',
+    },
     again: {
         defaultMessage: 'Ask again',
         description: 'Button starting a new consultation',
