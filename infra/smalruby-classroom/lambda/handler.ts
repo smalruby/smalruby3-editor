@@ -1069,6 +1069,17 @@ function archivedAtOf(item: Record<string, unknown> | undefined): string | null 
 }
 
 /**
+ * The updatedAt that stands in for archivedAt on an item archived before
+ * archivedAt existed (see archivedAtOf), or undefined. A write that bumps
+ * updatedAt on such an item must pin this as archivedAt first, or the
+ * stream's archive time would jump to the time of that unrelated edit.
+ */
+function legacyArchivedAt(item: Record<string, unknown> | undefined): string | undefined {
+  if (!item || item.status !== 'archived' || item.archivedAt || !item.updatedAt) return undefined;
+  return item.updatedAt as string;
+}
+
+/**
  * Shape a classroom item for the teacher-facing list/detail responses, adding
  * the co-teacher list and the requesting teacher's role (owner vs co-teacher).
  */
@@ -1318,12 +1329,16 @@ async function handleUpdateClassroom(identity: TeacherIdentity, classroomId: str
     updates.status = body.status;
   }
   // Archiving stamps archivedAt (re-archiving keeps the original time);
-  // restoring drops it so a later archive is dated afresh (#1298).
+  // restoring drops it so a later archive is dated afresh. Any other edit of
+  // an item archived before archivedAt existed pins its stand-in (#1298).
   const removes: string[] = [];
   if (updates.status === 'archived' && classroom.Item.status !== 'archived') {
     updates.archivedAt = updates.updatedAt;
   } else if (updates.status === 'active') {
     removes.push('archivedAt');
+  } else {
+    const legacy = legacyArchivedAt(classroom.Item);
+    if (legacy) updates.archivedAt = legacy;
   }
   if (body.regenerateJoinCode === true) {
     updates.joinCode = generateJoinCode();
@@ -3817,13 +3832,21 @@ async function handleUpdateGroupTopics(
     const targets = (await listAssignmentsInGroups([groupId]))
       .filter(assignment => assignment.topic === fromTopic);
     for (const item of targets) {
+      // Archived assignments follow the rename too; pin the legacy archive
+      // time before updatedAt moves (#1298).
+      const legacy = legacyArchivedAt(item);
+      const pin = legacy ? ', archivedAt = :archivedAt' : '';
       await docClient.send(new UpdateCommand({
         TableName: CLASSROOMS_TABLE,
         Key: { classroomId: item.classroomId },
         UpdateExpression: toTopic === null
-          ? 'REMOVE topic SET updatedAt = :now'
-          : 'SET topic = :to, updatedAt = :now',
-        ExpressionAttributeValues: toTopic === null ? { ':now': now } : { ':to': toTopic, ':now': now },
+          ? `REMOVE topic SET updatedAt = :now${pin}`
+          : `SET topic = :to, updatedAt = :now${pin}`,
+        ExpressionAttributeValues: {
+          ':now': now,
+          ...(toTopic === null ? {} : { ':to': toTopic }),
+          ...(legacy ? { ':archivedAt': legacy } : {}),
+        },
       }));
     }
   };

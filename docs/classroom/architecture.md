@@ -337,7 +337,7 @@ erDiagram
         string recommendedForSharingBy "推奨した admin の email (内部用・先生側 API では返さない)"
         string groupId "所属する組 (任意)"
         string status "active / archived"
-        string archivedAt "アーカイブした日時 ISO8601 (任意)。DELETE / PATCH {status:'archived'} で記録し、復元 (PATCH {status:'active'}) で消す。既にアーカイブ済みの課題を再度 archived にしても元の日時を保つ。この属性より前にアーカイブした課題は持たないため、API は updatedAt で代用して返す"
+        string archivedAt "アーカイブした日時 ISO8601 (任意)。DELETE / PATCH {status:'archived'} で記録し、復元 (PATCH {status:'active'}) で消す。既にアーカイブ済みの課題を再度 archived にしても元の日時を保つ。この属性より前にアーカイブした課題は持たないため、API は updatedAt で代用して返す。そうした課題の updatedAt を進める書き込み（編集・再アーカイブ・トピック名の変更など）では、先にその値を archivedAt として固定する"
         string createdAt "ISO8601"
         string updatedAt "ISO8601"
         number ttl "Unix timestamp"

@@ -659,6 +659,30 @@ describe('クラス管理 + 期限切れ復元 (issue #1084)', () => {
     expect(updates[2]).toMatch(/REMOVE archivedAt$/);
   });
 
+  test('re-archiving an item archived before archivedAt existed pins its updatedAt (#1298)', async () => {
+    const values: Array<Record<string, unknown>> = [];
+    mockSend.mockImplementation(async (command: {
+      constructor: { name: string };
+      input?: { TableName?: string; ExpressionAttributeValues?: Record<string, unknown> };
+    }) => {
+      const name = command.constructor.name;
+      if (name === 'GetCommand' && command.input?.TableName?.includes('Admins')) return adminRow;
+      if (name === 'GetCommand') {
+        return { Item: { ...classroomItem, status: 'archived', updatedAt: '2026-07-15T00:00:00.000Z' } };
+      }
+      if (name === 'UpdateCommand') values.push(command.input?.ExpressionAttributeValues || {});
+      return {};
+    });
+    const spy = jest.spyOn(console, 'log').mockImplementation(() => undefined);
+    await handler(makeAuthedEvent('PATCH', '/admin/classrooms/c1', {
+      pathParameters: { classroomId: 'c1' },
+      body: JSON.stringify({ status: 'archived' }),
+    }));
+    spy.mockRestore();
+
+    expect(values[0][':pinned']).toBe('2026-07-15T00:00:00.000Z');
+  });
+
   test('GET /admin/classrooms/overview aggregates the dashboard', async () => {
     mockSend.mockImplementation(async (command: {
       constructor: { name: string }; input?: { TableName?: string };

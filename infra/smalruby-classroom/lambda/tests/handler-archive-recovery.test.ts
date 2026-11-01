@@ -381,6 +381,30 @@ describe('archive recoverability (issue #1050)', () => {
             expect(JSON.parse(res.body as string).archivedAt).toBe('2026-08-01T00:00:00.000Z');
         });
 
+        test('PATCH on an item archived before archivedAt existed pins its updatedAt as archivedAt', async () => {
+            // Without archivedAt the API reports updatedAt; an edit moves updatedAt,
+            // so the old value is frozen first (both a re-archive and other fields).
+            const legacy = { ...archivedClassroom, updatedAt: '2026-07-15T00:00:00.000Z' };
+            mockSend.mockImplementation(async (command: Cmd) => {
+                if (command.constructor.name === 'GetCommand') return { Item: legacy };
+                if (command.constructor.name === 'UpdateCommand') {
+                    return { Attributes: { ...legacy, ...setAttributes(command.input!) } };
+                }
+                return {};
+            });
+
+            for (const body of [{ status: 'archived' }, { className: '2年2組' }]) {
+                mockSend.mockClear();
+                const res = await handler(
+                    makeEvent('PATCH', '/classrooms/c1', { classroomId: 'c1' }, { token: DEV_TOKEN, body }),
+                );
+
+                expect(res.statusCode).toBe(200);
+                expect(setAttributes(updateInputs()[0]).archivedAt).toBe('2026-07-15T00:00:00.000Z');
+                expect(JSON.parse(res.body as string).archivedAt).toBe('2026-07-15T00:00:00.000Z');
+            }
+        });
+
         test('PATCH {status:"active"} (restore) removes archivedAt', async () => {
             const archivedWithTime = { ...archivedClassroom, archivedAt: '2026-08-01T00:00:00.000Z' };
             mockSend.mockImplementation(async (command: Cmd) => {
