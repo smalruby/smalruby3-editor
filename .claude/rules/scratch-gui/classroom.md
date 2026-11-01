@@ -11,6 +11,8 @@ paths:
 
 クラス機能（Classroom）は、先生がクラスを作成し、生徒が参加コードで参加して作品を提出する機能。
 
+> **先生の画面を作る・直す・レビューするときは [`classroom-ui.md`](classroom-ui.md) の UI 規約（R1〜R6・お手本は Google Classroom）に従う。**
+
 ## ドキュメント
 
 クラス機能の仕様は `docs/classroom/` 以下のドキュメントに詳しく記載されている:
@@ -38,7 +40,7 @@ paths:
 
 ## 機能フラグ
 
-- URL パラメータ `?features=classroom` で有効化
+- 環境変数 `CLASSROOM_API_ENDPOINT` が設定されていれば常に有効（`ClassroomAPI.isConfigured()`。`?features=classroom` は不要）
 - `?classcode=XXXXXX` で参加コード入力をスキップして自動参加
 
 ## UI フェーズ
@@ -51,5 +53,5 @@ paths:
 
 テスト用 URL:
 ```
-http://localhost:8601?no_beforeunload=1&features=classroom
+http://localhost:8601?no_beforeunload=1
 ```
