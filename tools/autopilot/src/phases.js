@@ -310,6 +310,8 @@ const PHASE_BY_AI_STATUS = Object.fromEntries(
  * Decomposed）とはこの **AI Status 集合そのもの** で区別できる（実作業系 AI Status は dispatch の
  * みが設定し、人間はゲート/resting 系 AI Status で待つ）。だからこの集合に入る item の HITL は
  * 「人間の番」ではなく異常終了の残渣とみなして自動再開してよい（Issue #995 の設計判断）。
+ * 実作業系フェーズが意図して hitl で終えた場合は {@link applyResult} が Blocked へ回すので、
+ * この集合に残らない（#1310）。
  *
  * `Creating PR` は {@link PHASE_BY_COMMAND} に対応コマンドが無い（AI Status option のみ）ため
  * 個別に implement へ写像する。それ以外は {@link PHASE_BY_AI_STATUS} と同じ写像。
@@ -322,6 +324,9 @@ const IN_FLIGHT_WORK_PHASE_BY_AI_STATUS = {
     'Addressing Comments': 'address-review',
     'Running DoD': 'verify',
 };
+
+/** {@link IN_FLIGHT_WORK_PHASE_BY_AI_STATUS} の再開フェーズ集合（hitl 結果の Blocked 振り分け・#1310） */
+const IN_FLIGHT_WORK_PHASES = new Set(Object.values(IN_FLIGHT_WORK_PHASE_BY_AI_STATUS));
 
 /** フェーズプロンプトファイルの配置ディレクトリ（worktree/repo 内の相対パス） */
 const PROMPT_DIR = 'tools/autopilot/prompts';
@@ -350,6 +355,10 @@ function phasePromptCommand(skill, issue, promptDir = PROMPT_DIR) {
  * checkpoint（{@link isCheckpointResult}・EPIC #906）は専用の分岐を持たない。
  * `signal:'hitl'` + `nextAiStatus:'Awaiting Continuation'` として届くので、下の hitl 分岐が
  * そのまま AI Status を設定する（Status は nextStatus が無ければ変更しない = In Progress 維持）。
+ *
+ * 実作業系フェーズ（{@link IN_FLIGHT_WORK_PHASES}）が nextStatus / nextAiStatus なしの hitl で
+ * 終えたときは Status=Blocked にする（#1310）。In Progress / 実作業系 AI Status のままだと
+ * stalled 復帰の対象になり、人間の返事を待たず再ディスパッチが繰り返されるため。
  * @param {object} result 検証済み結果ペイロード
  * @returns {Array<{field: string, value: string|null}>}
  */
@@ -368,6 +377,12 @@ function applyResult(result) {
         if (result.kind != null) set('Kind', result.kind);
     } else if (result.signal === 'hitl') {
         if (result.nextStatus != null) set('Status', result.nextStatus);
+        else if (result.nextAiStatus == null && IN_FLIGHT_WORK_PHASES.has(result.phase)) {
+            // 実作業系フェーズの判断待ちを In Progress / 実作業系 AI Status のまま残すと、
+            // selectStalledInFlightItems が「止まった worker」とみなして毎 tick 起動し直す（#1310）。
+            // 人間ゲートの Blocked へ回し、🙋 を外したら triage / address-review で再開させる。
+            set('Status', 'Blocked');
+        }
         if (result.nextAiStatus != null) set('AI Status', result.nextAiStatus);
     } else if (result.signal === 'error') {
         set('Status', 'Blocked');
@@ -797,7 +812,8 @@ function liveWorkerIssuesFromSessions(sessionNames) {
  * 集合そのもので区別できる。よってこの集合に入る item の 🙋 HITL は「人間の番」ではなく
  * **異常終了の残渣**（例: Blocked マーキングの一時失敗で Status は In Progress のまま syncFaces が
  * 🙋 だけ付けた・#972）とみなし、worker 不在なら自動再開してよい。人間が意図的に付けた HITL は
- * 上記のゲート/resting 系 AI Status を使うので、この関数の対象にはならない。
+ * 上記のゲート/resting 系 AI Status を使うので、この関数の対象にはならない。実作業系フェーズの
+ * hitl 結果は {@link applyResult} が Status=Blocked にするので対象外（#1310）。
  * @param {object[]} items 各 { issue, status, aiStatus }
  * @param {Set<number>} liveIssues 生存中 worker の issue 番号集合（in-memory running ∪ tmux）
  * @returns {{issue:number, phase:string}[]} 再ディスパッチ対象（issue + phase）

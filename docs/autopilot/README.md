@@ -887,6 +887,11 @@ Addressing Comments / Running DoD）なのに worker が生存していない it
   なく異常終了の残渣とみなし再開する（#972 の固着解消）。人間の判断待ち HITL（Triaging /
   Decomposing / Discussing / Awaiting Continuation / EPIC Decomposed）はこの集合に入らないので
   誤って再開されない。
+- 実作業系フェーズ（implement 等）が **意図して** `signal=hitl` で人間に返したとき（nextStatus /
+  nextAiStatus なし）は、`applyResult` が Status を **Blocked** にする。In Progress のまま残すと
+  ここで「止まった worker」とみなされ、返事を待たず毎 tick 起動し直されるため（#1310）。🙋 を外すと
+  Blocked の出口（PR ありは address-review・無ければ triage）で再開する。Blocked の書き込みが
+  一時失敗して In Progress + 🙋 だけ残った場合は、従来どおり上の自動再開に任せる（#972）。
 - 生存中 worker を持つ item・この daemon が所有中の item は触らず完走させる。
 - 毎 tick 走るため Self-Reviewing の happy-path も対象に入るが、**空き容量（`cfg.concurrency -
   running`）の分だけ再開**し溢れは次 tick へ回すので並行上限を跨がない。recovery が tick 冒頭で
