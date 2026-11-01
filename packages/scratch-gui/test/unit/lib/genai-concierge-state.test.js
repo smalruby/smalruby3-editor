@@ -3,6 +3,8 @@ import {
     NUDGE_GAP_MS,
     copyChecklist,
     genaiServiceLabel,
+    TAKEOVER_AFTER_FAILURES,
+    canOfferTakeover,
     isGenaiAvailable,
     isNudgeOffToday,
     localDateKey,
@@ -238,5 +240,15 @@ describe('scrollToShowBlocks', () => {
 
     test('should do nothing without blocks', () => {
         expect(scrollToShowBlocks({ bbox: null, scale: 1 })).toBeNull();
+    });
+});
+
+describe('canOfferTakeover', () => {
+    test('offers Rubytee after two checks that could not become blocks, in a class using Rubytee', () => {
+        expect(TAKEOVER_AFTER_FAILURES).toBe(2);
+        expect(canOfferTakeover({ failures: 1, rubyteeAvailable: true })).toBe(false);
+        expect(canOfferTakeover({ failures: 2, rubyteeAvailable: true })).toBe(true);
+        expect(canOfferTakeover({ failures: 3, rubyteeAvailable: true })).toBe(true);
+        expect(canOfferTakeover({ failures: 2, rubyteeAvailable: false })).toBe(false);
     });
 });

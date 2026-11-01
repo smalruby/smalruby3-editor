@@ -209,3 +209,17 @@ export const scrollToShowBlocks = ({ bbox, scale }) => {
     if (!bbox) return null;
     return { x: BLOCKS_MARGIN - bbox.left * scale, y: BLOCKS_MARGIN - bbox.top * scale };
 };
+
+/** Checks that could not become blocks before Rubytee is offered (#1280). */
+export const TAKEOVER_AFTER_FAILURES = 2;
+
+/**
+ * Whether to show 「ルビティーにまかせる」: after the answer failed to become
+ * blocks twice, and only in a class whose teacher lets the students use Rubytee.
+ * @param {object} params - parameters
+ * @param {number} params.failures - checks that could not become blocks
+ * @param {boolean} params.rubyteeAvailable - the student's class uses Rubytee
+ * @returns {boolean} whether to show the entrance
+ */
+export const canOfferTakeover = ({ failures, rubyteeAvailable }) =>
+    rubyteeAvailable === true && failures >= TAKEOVER_AFTER_FAILURES;
