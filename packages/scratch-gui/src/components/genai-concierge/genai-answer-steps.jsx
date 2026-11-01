@@ -10,7 +10,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { checkAnswer, liveSnapshots, problemToJapanese, switchSnapshots } from '../../lib/genai-answer.js';
 import { describeChanges, diffBlocks } from '../../lib/genai-block-diff.js';
-import { canOfferTakeover } from '../../lib/genai-concierge-state.js';
+import { afterBlocksRender, canOfferTakeover } from '../../lib/genai-concierge-state.js';
 import { buildRewritePrompt } from '../../lib/genai-prompt.js';
 import RubyGenerator from '../../lib/ruby-generator';
 import { targetCodeToBlocks } from '../../lib/ruby-to-blocks-converter';
@@ -26,8 +26,6 @@ const quoteNames = (names) => names.map((name) => `「${name}」`).join('');
 const MARK_CLASSES = { added: 'genaiMarkAdded', changed: 'genaiMarkChanged' };
 // Lines of the list shown before 「ほかに N か所」.
 const MAX_CHANGES = 6;
-// Wait for the workspace to show another sprite's blocks before marking them.
-const MARK_DELAY_MS = 200;
 
 // A copy of a target's blocks that deleting them (on putting other blocks in) leaves
 // intact: deleteBlock changes the block objects themselves.
@@ -231,6 +229,7 @@ const GenaiAnswerSteps = ({
     notice,
     rubyteeAvailable,
     scratchBlocks,
+    open,
     onStep,
     onCopy,
     onShowBlocks,
@@ -258,30 +257,34 @@ const GenaiAnswerSteps = ({
 
     // Mark the blocks of the sprite in the editor, again each time the editor shows
     // another sprite (or the same one afresh), and take the marks away afterwards.
+    // The marks are only there while the panel is open: closing it with × takes them
+    // away and opening it again puts them back (#1281 FYI3). The new blocks of a
+    // workspace update are marked once Blockly has drawn them, not after a fixed
+    // time that a slow PC can overrun (#1281 Q1).
     useEffect(() => {
         const workspace = scratchBlocks && scratchBlocks.getMainWorkspace && scratchBlocks.getMainWorkspace();
-        if (!marks || !workspace) return;
+        if (!marks || !workspace || !open) return;
         let painted = [];
-        let timer = null;
+        let active = true;
         const paint = () => {
+            if (!active) return;
             if (painted.length > 0) paintMarks(workspace, painted, false);
             const shown = marks.find((mark) => mark.target === vm.editingTarget);
             painted = shown ? shown.changes : [];
             paintMarks(workspace, painted, true);
         };
         const later = () => {
-            clearTimeout(timer);
-            timer = setTimeout(paint, MARK_DELAY_MS);
+            afterBlocksRender(scratchBlocks).then(paint);
         };
         paint();
         later();
         vm.on('workspaceUpdate', later);
         return () => {
-            clearTimeout(timer);
+            active = false;
             vm.removeListener('workspaceUpdate', later);
             paintMarks(workspace, painted, false);
         };
-    }, [marks, vm, scratchBlocks]);
+    }, [marks, open, vm, scratchBlocks]);
 
     const convertAnswer = useCallback(async () => {
         const targets = {};
@@ -637,7 +640,13 @@ GenaiAnswerSteps.propTypes = {
     // The student's class uses Rubytee: 「ルビティーにまかせる」 can be offered.
     rubyteeAvailable: PropTypes.bool,
     // ScratchBlocks: the words of the blocks and the editor to mark them in.
-    scratchBlocks: PropTypes.shape({ Blocks: PropTypes.object, getMainWorkspace: PropTypes.func }),
+    scratchBlocks: PropTypes.shape({
+        Blocks: PropTypes.object,
+        getMainWorkspace: PropTypes.func,
+        renderManagement: PropTypes.object,
+    }),
+    // The panel is shown: the marks are only in the editor while it is (#1281).
+    open: PropTypes.bool,
     onStep: PropTypes.func.isRequired,
     onCopy: PropTypes.func.isRequired,
     // Brings blocks of a sprite into view (and that sprite into the editor): (target, ids).

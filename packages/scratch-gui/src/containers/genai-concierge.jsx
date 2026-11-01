@@ -18,6 +18,7 @@ import rubyteeIcon from '../components/ruby-toolbar/icon--rubytee.svg';
 import {
     NUDGE_GAP_MS,
     NUDGE_IDLE_SECONDS,
+    afterBlocksRender,
     isGenaiAvailable,
     isNudgeOffToday,
     localDateKey,
@@ -25,6 +26,7 @@ import {
     resolveGenaiTarget,
     scrollToShowBlocks,
     shouldNudge,
+    showInEditor,
 } from '../lib/genai-concierge-state.js';
 import { PROBLEM_KINDS, buildGenaiPrompt } from '../lib/genai-prompt.js';
 import RubyGenerator from '../lib/ruby-generator';
@@ -58,8 +60,6 @@ const PANEL_WIDTH = 340;
 const FACE_WIDTH = 52;
 // Margin kept above the panel inside the script area.
 const PANEL_TOP_MARGIN = 12;
-// Wait for the workspace to show the blocks just put in before scrolling to them.
-const SCROLL_DELAY_MS = 200;
 
 // Where the face goes (the left edge of the script area right of the block palette, so
 // it does not cover blocks) and the size of the script area the panel has to fit in.
@@ -341,33 +341,33 @@ const GenaiConcierge = ({
 
     // Bring blocks into view at the top left, away from the panel at the right (#1293 G8):
     // the marked ones when there are (a wide script would hide them under the panel, #1281),
-    // else all the blocks. Another sprite's blocks are shown in the editor first.
+    // else all the blocks. Another sprite's blocks are shown in the editor first, and the
+    // scroll waits for its workspace update and for Blockly to draw the blocks (#1281 Q1).
     const handleShowBlocks = useCallback(
         (owner, ids) => {
-            if (owner && owner !== vm.editingTarget && vm.runtime.targets.includes(owner)) {
-                vm.setEditingTarget(owner.id);
-            }
-            setTimeout(() => {
-                const workspace = scratchBlocks && scratchBlocks.getMainWorkspace();
-                if (!workspace) return;
-                const boxes = (ids || [])
-                    .map((id) => workspace.getBlockById(id))
-                    .filter(Boolean)
-                    .map((block) => block.getBoundingRectangle());
-                let box = null;
-                if (boxes.length > 0) {
-                    box = {
-                        left: Math.min(...boxes.map((b) => b.left)),
-                        top: Math.min(...boxes.map((b) => b.top)),
-                    };
-                } else {
-                    const all = workspace.getBlocksBoundingBox();
-                    const empty = !all || (all.right === all.left && all.bottom === all.top);
-                    box = empty ? null : all;
-                }
-                const to = scrollToShowBlocks({ bbox: box, scale: workspace.scale });
-                if (to) workspace.scroll(to.x, to.y);
-            }, SCROLL_DELAY_MS);
+            showInEditor(vm, owner)
+                .then(() => afterBlocksRender(scratchBlocks))
+                .then(() => {
+                    const workspace = scratchBlocks && scratchBlocks.getMainWorkspace();
+                    if (!workspace) return;
+                    const boxes = (ids || [])
+                        .map((id) => workspace.getBlockById(id))
+                        .filter(Boolean)
+                        .map((block) => block.getBoundingRectangle());
+                    let box = null;
+                    if (boxes.length > 0) {
+                        box = {
+                            left: Math.min(...boxes.map((b) => b.left)),
+                            top: Math.min(...boxes.map((b) => b.top)),
+                        };
+                    } else {
+                        const all = workspace.getBlocksBoundingBox();
+                        const empty = !all || (all.right === all.left && all.bottom === all.top);
+                        box = empty ? null : all;
+                    }
+                    const to = scrollToShowBlocks({ bbox: box, scale: workspace.scale });
+                    if (to) workspace.scroll(to.x, to.y);
+                });
         },
         [vm, scratchBlocks],
     );
@@ -450,6 +450,7 @@ const GenaiConcierge = ({
                             onCopy={copyAndOpen}
                             onShowBlocks={handleShowBlocks}
                             onClearNotice={handleClearNotice}
+                            open={open}
                             onClose={handleClose}
                             onFinish={handleFinish}
                             onReset={handleReset}
@@ -475,6 +476,7 @@ GenaiConcierge.propTypes = {
         editingTarget: PropTypes.object,
         runtime: PropTypes.object,
         on: PropTypes.func,
+        once: PropTypes.func,
         removeListener: PropTypes.func,
         setEditingTarget: PropTypes.func,
     }).isRequired,
@@ -493,7 +495,11 @@ GenaiConcierge.propTypes = {
     rubyteeAvailable: PropTypes.bool,
     role: PropTypes.string,
     sessionToken: PropTypes.string,
-    scratchBlocks: PropTypes.shape({ Blocks: PropTypes.object, getMainWorkspace: PropTypes.func }),
+    scratchBlocks: PropTypes.shape({
+        Blocks: PropTypes.object,
+        getMainWorkspace: PropTypes.func,
+        renderManagement: PropTypes.object,
+    }),
     dispatch: PropTypes.func.isRequired,
 };
 
