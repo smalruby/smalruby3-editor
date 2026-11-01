@@ -787,10 +787,18 @@ async function handleSetClassroomStatus(
   if (!result.Item) {
     throw new NotFoundError('Classroom not found');
   }
+  // 課題側の archivedAt（クラスのストリーム用 #1298）を classroom Lambda と同じ規則で
+  // 保つ: アーカイブで刻む（既に archived なら元の日時を保つ）・復元で消す。
+  let archivedAtExpression = '';
+  if (body.status === 'archived' && result.Item.status !== 'archived') {
+    archivedAtExpression = ', archivedAt = :now';
+  } else if (body.status === 'active') {
+    archivedAtExpression = ' REMOVE archivedAt';
+  }
   await docClient.send(new UpdateCommand({
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId },
-    UpdateExpression: 'SET #status = :status, updatedAt = :now',
+    UpdateExpression: `SET #status = :status, updatedAt = :now${archivedAtExpression}`,
     ExpressionAttributeNames: { '#status': 'status' },
     ExpressionAttributeValues: { ':status': body.status, ':now': new Date().toISOString() },
   }));
