@@ -2,6 +2,8 @@
 paths:
   - "packages/scratch-gui/src/components/classroom-modal/**"
   - "packages/scratch-gui/src/containers/classroom-modal.jsx"
+  - "packages/scratch-gui/src/components/classroom-teacher-*/**"
+  - "packages/scratch-gui/src/containers/classroom-teacher-*.jsx"
   - "docs/classroom/ui-ux.md"
 description: "クラス管理の先生の画面を作る・レビューするときの UI 規約 (R1〜R6)。お手本は Google Classroom。"
 ---
@@ -10,6 +12,8 @@ description: "クラス管理の先生の画面を作る・レビューすると
 
 クラス管理の**先生の画面**を新しく作る・直すときは、次の規約を指摘を待たずに守る。
 レビューでも同じ観点で見る（外れていれば **[Must]**。理由があって外すときは PR 本文に理由を書く）。
+**[Must]** にするのは、その PR が新しく書いた・直した箇所だけ。差分の外に残る既存の不一致は
+**[FYI]** に留める（直すのは画面ごとの Issue。末尾の「既存の規約との関係」を参照）。
 
 > 機能の仕様・画面ごとの文言は `docs/classroom/ui-ux.md`、data-testid は
 > `docs/classroom/testing.md`、モーダルの背景色は `modals.md` が正。本ファイルは
