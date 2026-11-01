@@ -1216,7 +1216,7 @@ export default {
     'gui.genaiConcierge.close': 'Close',
     'gui.genaiConcierge.stepTrouble': 'Trouble',
     'gui.genaiConcierge.stepCopy': 'Copy and ask',
-    'gui.genaiConcierge.stepPaste': 'Paste back',
+    'gui.genaiConcierge.stepPaste': 'Answer to blocks',
     'gui.genaiConcierge.nudgeText': 'Looks like you are stuck. Ask a generative AI?',
     'gui.genaiConcierge.nudgeOpen': 'Ask',
     'gui.genaiConcierge.nudgeLater': 'Later',

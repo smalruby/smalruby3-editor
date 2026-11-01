@@ -1658,7 +1658,7 @@ export default {
     'gui.genaiConcierge.close': '閉じる',
     'gui.genaiConcierge.stepTrouble': '困りごと',
     'gui.genaiConcierge.stepCopy': 'コピーして相談',
-    'gui.genaiConcierge.stepPaste': '貼りもどす',
+    'gui.genaiConcierge.stepPaste': '答えをブロックに',
     'gui.genaiConcierge.nudgeText': '手が止まっているみたい。生成AI に相談してみる？',
     'gui.genaiConcierge.nudgeOpen': '相談する',
     'gui.genaiConcierge.nudgeLater': 'あとで',

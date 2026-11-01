@@ -27,8 +27,8 @@ const messages = defineMessages({
         id: 'gui.genaiConcierge.stepCopy',
     },
     stepPaste: {
-        defaultMessage: 'Paste back',
-        description: "Step 3 of asking a generative AI: paste the AI's answer back",
+        defaultMessage: 'Answer to blocks',
+        description: "Step 3 of asking a generative AI: paste the AI's answer and turn it into blocks",
         id: 'gui.genaiConcierge.stepPaste',
     },
     nudgeText: {

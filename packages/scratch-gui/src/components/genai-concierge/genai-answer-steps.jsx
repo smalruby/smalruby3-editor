@@ -184,20 +184,24 @@ const GenaiAnswerSteps = ({
         [vm, intl, rubyVersion],
     );
 
+    // busy is reset in finally: an exception from apply() must not leave the buttons disabled (#1280 Q1).
     const handleApply = useCallback(async () => {
         setBusy(true);
-        const taken = converted.parts.map((part) => ({
-            target: part.target,
-            name: part.name,
-            before: RubyGenerator.targetToCode(part.target, { version: rubyVersion }),
-            after: part.code,
-        }));
-        for (const part of converted.parts) {
-            await part.converter.apply();
+        try {
+            const taken = converted.parts.map((part) => ({
+                target: part.target,
+                name: part.name,
+                before: RubyGenerator.targetToCode(part.target, { version: rubyVersion }),
+                after: part.code,
+            }));
+            for (const part of converted.parts) {
+                await part.converter.apply();
+            }
+            setSnapshots(taken);
+            setApplied(true);
+        } finally {
+            setBusy(false);
         }
-        setSnapshots(taken);
-        setApplied(true);
-        setBusy(false);
         onStep('done');
         onApplied();
     }, [rubyVersion, converted, onStep, onApplied]);
@@ -209,18 +213,21 @@ const GenaiAnswerSteps = ({
             const toAfter = e.currentTarget.dataset.side === 'after';
             if (toAfter === applied || busy) return;
             setBusy(true);
-            const live = liveSnapshots(snapshots, vm.runtime.targets);
-            const next = switchSnapshots(
-                live,
-                toAfter,
-                live.map((snap) => RubyGenerator.targetToCode(snap.target, { version: rubyVersion })),
-            );
-            for (const snap of next) {
-                await loadCode(snap.target, toAfter ? snap.after : snap.before);
+            try {
+                const live = liveSnapshots(snapshots, vm.runtime.targets);
+                const next = switchSnapshots(
+                    live,
+                    toAfter,
+                    live.map((snap) => RubyGenerator.targetToCode(snap.target, { version: rubyVersion })),
+                );
+                for (const snap of next) {
+                    await loadCode(snap.target, toAfter ? snap.after : snap.before);
+                }
+                setSnapshots(next);
+                setApplied(toAfter);
+            } finally {
+                setBusy(false);
             }
-            setSnapshots(next);
-            setApplied(toAfter);
-            setBusy(false);
         },
         [applied, busy, snapshots, vm, rubyVersion, loadCode],
     );

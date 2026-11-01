@@ -1706,7 +1706,7 @@ export default {
     'gui.genaiConcierge.close': 'とじる',
     'gui.genaiConcierge.stepTrouble': 'こまりごと',
     'gui.genaiConcierge.stepCopy': 'コピーしてそうだん',
-    'gui.genaiConcierge.stepPaste': 'はりもどす',
+    'gui.genaiConcierge.stepPaste': 'こたえをブロックに',
     'gui.genaiConcierge.nudgeText': 'てがとまっているみたい。せいせいAI にそうだんしてみる？',
     'gui.genaiConcierge.nudgeOpen': 'そうだんする',
     'gui.genaiConcierge.nudgeLater': 'あとで',

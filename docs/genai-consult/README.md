@@ -21,7 +21,7 @@
    ［Gemini をもう一度開く］も出す）。Gemini や ChatGPT は Cross-Origin-Opener-Policy でスモウルビーの
    タブから切り離されるので、開いたタブを名前で探したり前に出したりできないため。タブは `noopener` で
    開き、開いた先からスモウルビーのタブを操作させない。長すぎて貼れないときは 2〜4 つに分けてコピーできる。
-3. **貼りもどす** — 「Gemini の答えを、まるごと貼りつけよう」（「▼▼」〜「▲▲」はスモウルビーが探すので
+3. **答えを貼る** — 「Gemini の答えを、まるごと貼りつけよう」（「▼▼」〜「▲▲」はスモウルビーが探すので
    全部貼ってよい）。［ブロックにできるか調べる］を押すと貼りつけ欄を畳み（［答えを見る］で開ける。
    プログラムが見つからなかったときは貼りなおせるように開いたまま）、
    ✔／✗ の結果と次のボタンをその場所に出す（調べている間はスピナー）。
@@ -71,7 +71,10 @@
 - ボタンの帯（［もどる］と主ボタン）は **パネルの下端に固定** し、中身だけがスクロールする。
   1300×600 で、どの段階もパネルの中をスクロールせずに主ボタンまで見える。
 - 段階を移ったとき・分けたときは、前のお知らせ（「コピーしました」など）を消す。
-- ヘッダーの下は **進み具合の表示**（タブではない）。ラベルの下に四角い点を並べて線でつなぎ、
+- ヘッダーの下は **進み具合の表示**（タブではない）。ラベルは「困りごと」「コピーして相談」「答えをブロックに」の
+  3 つで、3 つ目が上の段階 3〜6（相談の答えを自分のプログラムに入れて比べる）をまとめて表す。
+  生徒が読んで何をする段階か分かるように、ラベルは「答えをどうするのか」を書く。
+  ラベルの下に四角い点を並べて線でつなぎ、
   終わった段階は点を塗りつぶして ✓（線もそこまで塗る）、いまの段階は太い枠と太字、まだの段階は灰色。
   ブロックを入れる前なら、終わった段階のラベルを押してもどれる。
 - パネルは **スクリプトエリアの右端** に出す（顔は左下のまま）。スクリプトエリアが狭くて顔と並ばない
@@ -82,7 +85,7 @@
 ![困りごと（1300×600）](screenshots/0102-trouble.png)
 ![コピーして相談（コピーしたあと）](screenshots/0104-copy.png)
 ![分けてコピー](screenshots/0103-copy-split.png)
-![貼りもどす（調べた結果）](screenshots/0105-paste-result.png)
+![答えを貼る（調べた結果）](screenshots/0105-paste-result.png)
 ![ブロックにできないとき（直すところを見せる）](screenshots/0107-paste-ng.png)
 ![入れたあと（ブロックはパネルの左に見える）](screenshots/0106-done.png)
 
@@ -154,7 +157,7 @@
 | `packages/scratch-gui/src/components/genai-concierge/genai-stepper.jsx` | 進み具合の表示 |
 | `packages/scratch-gui/src/components/genai-concierge/genai-trouble-step.jsx` | 段階 1: 困りごと |
 | `packages/scratch-gui/src/components/genai-concierge/genai-copy-step.jsx` | 段階 2: 質問文のコピー・分割（開発用の生成AI 選択を含む） |
-| `packages/scratch-gui/src/components/genai-concierge/genai-answer-steps.jsx` | 段階 3: 貼りもどし・切りかえ |
+| `packages/scratch-gui/src/components/genai-concierge/genai-answer-steps.jsx` | 段階 3〜6: 答えを貼る・ブロックにする・切りかえ |
 | `packages/scratch-gui/src/components/genai-concierge/messages.js` | 文言（`gui.genaiConcierge.*`） |
 | `packages/scratch-gui/src/lib/genai-concierge-state.js` | 表示条件・相談先・声かけ・進み具合・パネルの位置の判定（純粋関数） |
 | `packages/scratch-gui/src/lib/genai-prompt.js` | 質問文の組み立て・分割・答えからの Ruby 取り出し（純粋関数） |
@@ -188,7 +191,7 @@
 | `genai-notice` | p | コピーした / できなかったのお知らせ |
 | `genai-to-paste` | button | 答えが来たら次へ |
 | `genai-answer-toggle` | a | 調べたあとに畳んだ答えを見る / 閉じる |
-| `genai-answer` / `genai-convert` / `genai-checking` / `genai-convert-ok` / `genai-convert-ng` / `genai-fixes` / `genai-problems` / `genai-ruby-toggle` / `genai-reflection` / `genai-apply` / `genai-self` / `genai-copy-rewrite` | — | 段階 3〜4（貼りもどし・ブロックにする） |
+| `genai-answer` / `genai-convert` / `genai-checking` / `genai-convert-ok` / `genai-convert-ng` / `genai-fixes` / `genai-problems` / `genai-ruby-toggle` / `genai-reflection` / `genai-apply` / `genai-self` / `genai-copy-rewrite` | — | 段階 3〜4（答えを貼る・ブロックにする） |
 | `genai-takeover` | button | ルビティーにまかせる（✗ が 2 回・ルビティーが有効なクラスだけ） |
 | `genai-switch-before` / `genai-switch-after` / `genai-switch-state` / `genai-again` / `genai-finish` | — | 入れたあとの切りかえ |
 
