@@ -40,7 +40,7 @@ paths:
 
 ## 機能フラグ
 
-- URL パラメータ `?features=classroom` で有効化
+- 環境変数 `CLASSROOM_API_ENDPOINT` が設定されていれば常に有効（`ClassroomAPI.isConfigured()`。`?features=classroom` は不要）
 - `?classcode=XXXXXX` で参加コード入力をスキップして自動参加
 
 ## UI フェーズ
@@ -53,5 +53,5 @@ paths:
 
 テスト用 URL:
 ```
-http://localhost:8601?no_beforeunload=1&features=classroom
+http://localhost:8601?no_beforeunload=1
 ```
