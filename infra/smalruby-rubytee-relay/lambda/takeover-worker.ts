@@ -101,7 +101,15 @@ export const handler = async (payload: TakeoverWorkerPayload): Promise<void> => 
     console.error('[Takeover] invalid payload');
     return;
   }
-  const result = await callClaudeForTakeover(buildTakeoverClaudeRequest(payload, CLAUDE_TAKEOVER_MODEL));
+  // 組み立てで落ちる（壊れた history など）と結果を書かずに終わり、GUI が JOB_TIMEOUT まで待たされる。
+  // 例外にせずエラーとして書く。
+  let result: TakeoverResult;
+  try {
+    result = await callClaudeForTakeover(buildTakeoverClaudeRequest(payload, CLAUDE_TAKEOVER_MODEL));
+  } catch (err) {
+    console.error('[Takeover] failed to build request:', err);
+    result = { status: 'error', error: 'INVALID_INPUT' };
+  }
 
   // 入力は保存しない。置くのは状態・答え・エラーコードだけ。
   const names: Record<string, string> = { '#status': 'status' };
@@ -148,7 +156,7 @@ export const handler = async (payload: TakeoverWorkerPayload): Promise<void> => 
     status: result.status,
     error: result.error,
     ...(result.tokens || {}),
-    userMessageLength: payload.userMessage.length,
+    userMessageLength: (payload.userMessage || '').length,
     ...payload.usageContext,
   }));
 };

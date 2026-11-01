@@ -17,7 +17,8 @@ export const MAX_TAKEOVER_REQUEST_BYTES = 200 * 1024;
 // worker の Anthropic 呼び出しの打ち切り（worker の Lambda timeout 180 秒より短く）。
 export const TAKEOVER_ANTHROPIC_TIMEOUT_MS = 150 * 1000;
 // pending のまま、これより古いジョブは worker が落ちたとみなす。
-export const TAKEOVER_JOB_STALE_SECONDS = 180;
+// 非同期呼び出しのキュー待ち（maxEventAge 60 秒）+ worker の timeout 180 秒。
+export const TAKEOVER_JOB_STALE_SECONDS = 240;
 // jobs 表の TTL（答えを取りに来る時間の余裕）。
 export const TAKEOVER_JOB_TTL_SECONDS = 60 * 60;
 

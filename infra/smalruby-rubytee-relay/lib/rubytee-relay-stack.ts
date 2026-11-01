@@ -117,6 +117,9 @@ export class RubyteeRelayStack extends cdk.Stack {
       timeout: cdk.Duration.seconds(180),
       memorySize: 256,
       retryAttempts: 0,
+      // 同時実行数の上限に当たると非同期呼び出しは既定で最大 6 時間キューに残り、GUI が JOB_TIMEOUT で
+      // あきらめた後に Claude を呼んでしまう。最小の 60 秒で捨てる（TAKEOVER_JOB_STALE_SECONDS と対）。
+      maxEventAge: cdk.Duration.seconds(60),
       reservedConcurrentExecutions: parseInt(
         process.env.TAKEOVER_WORKER_RESERVED_CONCURRENCY || (stage === 'prod' ? '50' : '10'), 10),
       logGroup: workerLogGroup,

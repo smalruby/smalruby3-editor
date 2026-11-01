@@ -246,7 +246,7 @@ fields @timestamp
 |---|---|
 | `INVALID_JOB_ID`（400） | `GET /jobs/{jobId}` の jobId が UUID の形でない |
 | `JOB_NOT_FOUND`（404） | ジョブが無い（1 時間を過ぎて消えた・存在しない） |
-| `JOB_TIMEOUT`（`status: "error"`） | 作成から 180 秒を過ぎても `pending`（worker が落ちた） |
+| `JOB_TIMEOUT`（`status: "error"`） | 作成から 240 秒を過ぎても `pending`（worker が落ちた・混んでいて 60 秒以内に起動できなかった） |
 | `AI_TIMEOUT`（`status: "error"`） | Claude の呼び出しが 150 秒で終わらなかった |
 | `AI_OVERLOADED` / `AI_API_ERROR` / `INTERNAL_ERROR`（`status: "error"`） | 同期の経路と同じ意味 |
 
@@ -267,7 +267,7 @@ fields @timestamp
 | 部品 | 役割 | 権限 |
 |---|---|---|
 | API Lambda `RubyteeRelayHandler{suffix}` | 入力チェック → レート制限 → ジョブを `pending` で作る → worker を非同期で起動 → `202`。`GET /jobs/{jobId}` に答える | rate limit 表の読み書き、jobs 表の `PutItem` / `GetItem`、usage 表の `UpdateItem`、**worker 1 つだけ**の `lambda:InvokeFunction` |
-| worker Lambda `RubyteeRelayTakeoverWorker{suffix}` | Claude を呼び、結果を jobs 表に書く。**HTTP のルートは無い**。再試行 0 回・timeout 180 秒・同時実行数の上限あり | jobs 表と usage 表の `UpdateItem` だけ |
+| worker Lambda `RubyteeRelayTakeoverWorker{suffix}` | Claude を呼び、結果を jobs 表に書く。**HTTP のルートは無い**。再試行 0 回・timeout 180 秒・同時実行数の上限あり・起動待ちが 60 秒を超えた呼び出しは捨てる（`maxEventAge`） | jobs 表と usage 表の `UpdateItem` だけ |
 | DynamoDB `RubyteeJobs{suffix}` | `{ jobId, status, createdAt, text?, outputTokens?, error?, ttl }`。**入力は保存しない**（worker には非同期呼び出しの payload だけで渡す）。TTL 1 時間 | — |
 
 - 新しい外部サービス・仕組み（Step Functions / SQS / Function URL / Anthropic SDK）は使わない。増えた依存は
