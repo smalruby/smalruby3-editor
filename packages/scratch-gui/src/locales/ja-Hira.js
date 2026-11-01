@@ -1781,6 +1781,15 @@ export default {
         'いまは {side} がはいっています（{names}）。はたをおして、うごきをくらべてみよう。',
     'gui.genaiConcierge.switchKeep': 'きりかえても、それぞれでじぶんがかえたところはのこります。',
     'gui.genaiConcierge.memo': 'あなたのメモ: {text}',
+    'gui.genaiConcierge.changesTitle': 'せいせいAI のあんでふえる・かわるブロック',
+    'gui.genaiConcierge.changesNone': 'ふえる・かわるブロックはありません。',
+    'gui.genaiConcierge.changesLegend':
+        'ピンクのわくのブロックがふえたブロック、てんせんのわくがかわったブロックです。ぎょうをおすと、そのブロックへいどうします。',
+    'gui.genaiConcierge.changeAdded': '「{block}」がふえます',
+    'gui.genaiConcierge.changeAddedIn': '「{script}」のなかに「{block}」がふえます',
+    'gui.genaiConcierge.changeChanged': '「{before}」が「{block}」にかわります',
+    'gui.genaiConcierge.changeRemoved': '「{block}」がなくなります',
+    'gui.genaiConcierge.changesMore': 'ほかに {count} かしょ',
     'gui.genaiConcierge.again': 'もういちどそうだんする',
     'gui.genaiConcierge.finish': 'これでとじる',
 };

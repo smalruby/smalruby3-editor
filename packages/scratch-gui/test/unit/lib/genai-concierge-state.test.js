@@ -4,6 +4,7 @@ import {
     copyChecklist,
     genaiServiceLabel,
     TAKEOVER_AFTER_FAILURES,
+    afterBlocksRender,
     canOfferTakeover,
     isGenaiAvailable,
     isNudgeOffToday,
@@ -13,6 +14,7 @@ import {
     resolveGenaiTarget,
     scrollToShowBlocks,
     shouldNudge,
+    showInEditor,
     stepperItems,
 } from '../../../src/lib/genai-concierge-state.js';
 import { PROBLEM_KINDS } from '../../../src/lib/genai-prompt.js';
@@ -250,5 +252,81 @@ describe('canOfferTakeover', () => {
         expect(canOfferTakeover({ failures: 2, rubyteeAvailable: true })).toBe(true);
         expect(canOfferTakeover({ failures: 3, rubyteeAvailable: true })).toBe(true);
         expect(canOfferTakeover({ failures: 2, rubyteeAvailable: false })).toBe(false);
+    });
+});
+
+describe('afterBlocksRender', () => {
+    test('waits for the renders Blockly has queued', async () => {
+        let finished = false;
+        const scratchBlocks = {
+            renderManagement: {
+                finishQueuedRenders: () =>
+                    Promise.resolve().then(() => {
+                        finished = true;
+                    }),
+            },
+        };
+        await afterBlocksRender(scratchBlocks);
+        expect(finished).toBe(true);
+    });
+
+    test('resolves at once without a render queue', async () => {
+        await expect(afterBlocksRender(null)).resolves.toBeUndefined();
+        await expect(afterBlocksRender({})).resolves.toBeUndefined();
+    });
+});
+
+describe('showInEditor', () => {
+    const { EventEmitter } = require('events');
+    const makeVm = (targets, editing) => {
+        const vm = new EventEmitter();
+        vm.runtime = { targets };
+        vm.editingTarget = editing;
+        vm.setEditingTarget = jest.fn((id) => {
+            const target = targets.find((t) => t.id === id);
+            if (!target) return;
+            vm.editingTarget = target;
+            // The VM emits the update after a slow load as late as it likes.
+            setTimeout(() => vm.emit('workspaceUpdate', { xml: '' }), 1000);
+        });
+        return vm;
+    };
+    const cat = { id: 'cat' };
+    const dog = { id: 'dog' };
+
+    test('waits for the workspace update of another sprite, however late it comes', async () => {
+        jest.useFakeTimers();
+        try {
+            const vm = makeVm([cat, dog], cat);
+            let shown = false;
+            const done = showInEditor(vm, dog).then(() => {
+                shown = true;
+            });
+            expect(vm.setEditingTarget).toHaveBeenCalledWith('dog');
+            jest.advanceTimersByTime(999);
+            await Promise.resolve();
+            expect(shown).toBe(false);
+            jest.advanceTimersByTime(1);
+            await done;
+            expect(shown).toBe(true);
+            expect(vm.listenerCount('workspaceUpdate')).toBe(0);
+        } finally {
+            jest.useRealTimers();
+        }
+    });
+
+    test('resolves at once for the sprite in the editor, no sprite or a deleted one', async () => {
+        const vm = makeVm([cat], cat);
+        await showInEditor(vm, cat);
+        await showInEditor(vm, null);
+        await showInEditor(vm, dog);
+        expect(vm.setEditingTarget).not.toHaveBeenCalled();
+    });
+
+    test('does not wait when the editor could not switch', async () => {
+        const vm = makeVm([cat, dog], cat);
+        vm.setEditingTarget = jest.fn();
+        await showInEditor(vm, dog);
+        expect(vm.listenerCount('workspaceUpdate')).toBe(0);
     });
 });

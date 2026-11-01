@@ -1732,6 +1732,15 @@ export default {
     'gui.genaiConcierge.switchState': 'いまは{side}が入っています（{names}）。旗をおして、動きを比べてみよう。',
     'gui.genaiConcierge.switchKeep': '切りかえても、それぞれで自分が変えたところは残ります。',
     'gui.genaiConcierge.memo': 'あなたのメモ: {text}',
+    'gui.genaiConcierge.changesTitle': '生成AI の案で増える・変わるブロック',
+    'gui.genaiConcierge.changesNone': '増える・変わるブロックはありません。',
+    'gui.genaiConcierge.changesLegend':
+        'ピンクの枠のブロックが増えたブロック、点線の枠が変わったブロックです。行を押すと、そのブロックへ移動します。',
+    'gui.genaiConcierge.changeAdded': '「{block}」が増えます',
+    'gui.genaiConcierge.changeAddedIn': '「{script}」の中に「{block}」が増えます',
+    'gui.genaiConcierge.changeChanged': '「{before}」が「{block}」に変わります',
+    'gui.genaiConcierge.changeRemoved': '「{block}」がなくなります',
+    'gui.genaiConcierge.changesMore': 'ほかに {count} か所',
     'gui.genaiConcierge.again': 'もう一度相談する',
     'gui.genaiConcierge.finish': 'これで閉じる',
 };

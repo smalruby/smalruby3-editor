@@ -210,6 +210,43 @@ export const scrollToShowBlocks = ({ bbox, scale }) => {
     return { x: BLOCKS_MARGIN - bbox.left * scale, y: BLOCKS_MARGIN - bbox.top * scale };
 };
 
+/**
+ * Resolves once Blockly has drawn the blocks it was given: where a block inside
+ * a script sits is only known after it is drawn.
+ * @param {?object} scratchBlocks - ScratchBlocks (Blockly's renderManagement)
+ * @returns {Promise} resolves after the queued renders
+ */
+export const afterBlocksRender = (scratchBlocks) => {
+    const renders = scratchBlocks && scratchBlocks.renderManagement;
+    if (renders && typeof renders.finishQueuedRenders === 'function') return renders.finishQueuedRenders();
+    return Promise.resolve();
+};
+
+/**
+ * Shows `owner`'s blocks in the editor and resolves once they are in the
+ * workspace. Switching sprites reloads the workspace in the `workspaceUpdate`
+ * handler of the blocks container (registered first, so it has run when ours
+ * does): waiting for that event instead of a fixed time keeps working on a
+ * slow PC (#1281 Q1).
+ * @param {object} vm - the VM
+ * @param {?object} owner - the target to show, or null for the one in the editor
+ * @returns {Promise} resolves when the workspace shows the blocks
+ */
+export const showInEditor = (vm, owner) =>
+    new Promise((resolve) => {
+        if (!owner || owner === vm.editingTarget || !vm.runtime.targets.includes(owner)) {
+            resolve();
+            return;
+        }
+        vm.once('workspaceUpdate', resolve);
+        vm.setEditingTarget(owner.id);
+        // Not switched after all: there is no update to wait for.
+        if (vm.editingTarget !== owner) {
+            vm.removeListener('workspaceUpdate', resolve);
+            resolve();
+        }
+    });
+
 /** Checks that could not become blocks before Rubytee is offered (#1280). */
 export const TAKEOVER_AFTER_FAILURES = 2;
 
