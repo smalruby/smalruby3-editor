@@ -34,6 +34,17 @@ describe('buildRestorePlan (issue #1084)', () => {
     expect(plan[2].item.ttl).toBe(nowSeconds + 90 * DAY);
   });
 
+  test('drops the archivedAt of the archived snapshot, like the admin restore (#1298)', () => {
+    const plan = buildRestorePlan({
+      classroom: { ...classroom, archivedAt: '2026-06-01T00:00:00.000Z' },
+      memberships: [],
+      submissions: [],
+    }, NOW);
+
+    expect(plan[0].item.status).toBe('active');
+    expect(plan[0].item).not.toHaveProperty('archivedAt');
+  });
+
   test('a swept group is restored first so the classroom never dangles', () => {
     const plan = buildRestorePlan({
       classroom,
