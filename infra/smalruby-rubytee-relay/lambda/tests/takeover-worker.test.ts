@@ -1,4 +1,6 @@
 // worker の handler: 組み立てで落ちる入力でも、ジョブを pending のまま残さずエラーを書く。
+// 他のテストファイルと識別子を共有しないよう、モジュールとして扱わせる（ts-jest の TS2451 対策）。
+export {};
 const mockSend = jest.fn();
 
 jest.mock('@aws-sdk/lib-dynamodb', () => ({

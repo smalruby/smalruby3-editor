@@ -1,4 +1,6 @@
 // handler の takeover 経路（非同期ジョブ）と、purpose 未指定の経路が変わらないことの確認。
+// 他のテストファイルと識別子を共有しないよう、モジュールとして扱わせる（ts-jest の TS2451 対策）。
+export {};
 const mockSend = jest.fn();
 const mockLambdaSend = jest.fn();
 
