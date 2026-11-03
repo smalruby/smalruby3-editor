@@ -645,4 +645,7 @@ rubytee relay（`infra/smalruby-rubytee-relay`）が書く表を**読み取り�
 - 読み取りは 1 課題あたり `BatchGetItem`（100 席ごと）+ `Query` 1 回。relay の表が読めない・Lambda の環境変数
   `RUBYTEE_RATE_LIMIT_TABLE_NAME` / `RUBYTEE_USAGE_TABLE_NAME` が空のときは **`aiUsage: null`** で、メンバー一覧は
   ふつうに返す（fail-open）。
+- `BatchGetItem` が `UnprocessedKeys` を返したとき（混雑時）も**再試行せずクラス全体を `aiUsage: null`** にする。
+  一時的に全員分が見えなくなるのは許容する（授業中の応答を遅らせない。方針は `.claude/rules/infra/development.md`
+  の「混雑・障害時の劣化」）。
 - 組み立ては `lambda/ai-usage-lib.ts`（純粋関数）。キーの形は relay の `lambda/takeover.ts` と対で変える。
