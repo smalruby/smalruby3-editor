@@ -71,6 +71,33 @@ describe('buildTakeoverMessage', () => {
         expect(message).toContain('（長いので省略）');
     });
 
+    test('keeps within the relay limit when the latest exchange is cut and an older one is left out', () => {
+        const long = 'あ'.repeat(5000);
+        const message = buildTakeoverMessage({
+            ...base,
+            exchanges: [
+                { question: `古い質問${long}`, answer: `古い答え${long}`, problems: ['古い理由'] },
+                { question: `新しい質問${long}`, answer: `新しい答え${long}`, problems: ['新しい理由'] },
+            ],
+        });
+        expect(message.length).toBeLessThanOrEqual(TAKEOVER_MESSAGE_LIMIT);
+        expect(message).toContain('新しい理由');
+        expect(message).toContain('（これより前の相談は、長いので省略）');
+        expect(message).not.toContain('古い理由');
+    });
+
+    test('leaves the consultation out when only the program fits', () => {
+        // About 30 characters short of the limit: no room even for the consultation's title.
+        const code = `${'move(10)\n'.repeat(1000)}# ${'x'.repeat(658)}`;
+        const message = buildTakeoverMessage({
+            ...base,
+            programs: [{ name: 'ネコ', code, sounds: [], costumes: [] }],
+        });
+        expect(message.length).toBeLessThanOrEqual(TAKEOVER_MESSAGE_LIMIT);
+        expect(message).toContain('move(10)');
+        expect(message).not.toContain('【生成AI への相談');
+    });
+
     test('is null when the program alone does not fit', () => {
         const huge = [{ name: 'ネコ', code: 'move(10)\n'.repeat(1500), sounds: [], costumes: [] }];
         expect(buildTakeoverMessage({ ...base, programs: huge })).toBeNull();

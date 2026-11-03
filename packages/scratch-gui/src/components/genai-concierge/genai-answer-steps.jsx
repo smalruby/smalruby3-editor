@@ -50,8 +50,10 @@ const takeoverState = (vm) => {
     const stage = vm.runtime.getTargetForStage ? vm.runtime.getTargetForStage() : null;
     const state = {};
     if (editing) {
+        const name = nameOf(editing);
         state.sprite = {
-            name: nameOf(editing),
+            // The program names the sprite anyway; a name the relay refuses is left out.
+            ...(name.length <= MAX_NAME_LENGTH && !/[\r\n]/.test(name) ? { name } : {}),
             costumes: sendableNames(editing.getCostumes()),
             sounds: sendableNames(editing.getSounds()),
         };
@@ -618,6 +620,8 @@ const GenaiAnswerSteps = ({
                             className={styles.prompt}
                             data-testid="genai-answer"
                             value={answer}
+                            // Rubytee's answer takes its place when it comes.
+                            readOnly={running}
                             onChange={handleAnswerChange}
                         />
                     )}

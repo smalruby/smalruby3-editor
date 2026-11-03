@@ -20,6 +20,7 @@ const MAX_POLL_FAILURES = 3;
 const PURPOSE = 'genai-takeover';
 
 const OMITTED = '…（長いので省略）';
+const EARLIER_OMITTED = '（これより前の相談は、長いので省略）';
 const COPY_MARK = '▼▼';
 
 /**
@@ -116,12 +117,15 @@ const buildTakeoverMessage = ({ kindLabel, text, programs, editingName, exchange
     const fixed = [...head, ...tail].join('\n');
     const title = '\n\n【生成AI への相談（古い順）】\n';
     if (fixed.length > TAKEOVER_MESSAGE_LIMIT) return null;
-    let room = TAKEOVER_MESSAGE_LIMIT - fixed.length - title.length;
+    // The line saying the older exchanges are left out has its room kept from the start:
+    // the exchange before it may take all the rest.
+    let room = TAKEOVER_MESSAGE_LIMIT - fixed.length - title.length - EARLIER_OMITTED.length - 2;
+    if (room < 0) return fixed;
     const fitted = [];
     for (let i = exchanges.length - 1; i >= 0; i--) {
         const block = fitExchange(exchanges[i], i, room - 2);
         if (!block) {
-            fitted.unshift('（これより前の相談は、長いので省略）');
+            fitted.unshift(EARLIER_OMITTED);
             break;
         }
         fitted.unshift(block);
