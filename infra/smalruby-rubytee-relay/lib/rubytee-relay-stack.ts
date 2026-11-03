@@ -237,7 +237,7 @@ export class RubyteeRelayStack extends cdk.Stack {
     });
 
     // GET /jobs/{jobId} route (takeover の答えを取りに来る)
-    this.api.addRoutes({
+    const jobsRoutes = this.api.addRoutes({
       path: '/jobs/{jobId}',
       methods: [apigatewayv2.HttpMethod.GET],
       integration: relayIntegration,
@@ -258,6 +258,10 @@ export class RubyteeRelayStack extends cdk.Stack {
           ThrottlingBurstLimit: stage === 'prod' ? 80 : 20,
         },
       };
+      // routeSettings は route key でルートを参照するが、CloudFormation はそれを依存と見なさない。
+      // 依存が無いとルートより先に stage が更新され「Unable to find Route by key」で失敗し、
+      // ロールバックも同じ理由で失敗して UPDATE_ROLLBACK_FAILED に落ちる。ルートの作成を先にする。
+      jobsRoutes.forEach(route => defaultStage.node.addDependency(route));
     }
 
     cdk.Tags.of(this.api).add('ResourceType', 'APIGatewayHTTPAPI');
