@@ -4,10 +4,12 @@ import { loader } from '@monaco-editor/react';
 
 /**
  * `min/vs` の配信先。`webpack.config.js` の CopyWebpackPlugin が
- * `node_modules/monaco-editor/min/vs` をここへコピーする (#1171)。
- * 場所を変えるときは webpack 側のコピー先も対で変えること。
+ * `node_modules/monaco-editor/min/vs` を `static/monaco/<版>/vs` へコピーし (#1171)、
+ * そのパスを DefinePlugin で `process.env.MONACO_VS_SUBPATH` として注入する。
+ * 版を含めるのは、Monaco の更新直後にキャッシュに残った旧版の本体を読まないため (#1318)。
+ * webpack を通らない実行環境（jest）では未定義なので、版なしのパスにフォールバックする。
  */
-const MONACO_VS_SUBPATH = 'static/monaco/vs';
+const MONACO_VS_SUBPATH = process.env.MONACO_VS_SUBPATH || 'static/monaco/vs';
 
 /**
  * Monaco の AMD ローダーに渡す `vs` パスを publicPath から組み立てる。
@@ -17,16 +19,17 @@ const MONACO_VS_SUBPATH = 'static/monaco/vs';
  * `publicPath: 'auto'`（実行時解決）を使う。そのため絶対パスを直書きできず、
  * webpack の publicPath を前置して解決する。
  * @param {string} publicPath webpack の publicPath（空文字・末尾スラッシュ有無どちらも可）。
+ * @param {string} [subpath] publicPath からの `vs` ディレクトリの相対パス。
  * @returns {string} Monaco の `vs` ディレクトリを指すパス。
  */
-const resolveMonacoVsPath = (publicPath) => {
+const resolveMonacoVsPath = (publicPath, subpath = MONACO_VS_SUBPATH) => {
     // `'auto'` は webpack が実行時の値へ置き換える前のリテラル。素通しすると
     // `auto/static/...` という無効な URL になるので publicPath なし扱いにする。
     const base = typeof publicPath === 'string' && publicPath !== 'auto' ? publicPath : '';
     if (base === '') {
-        return MONACO_VS_SUBPATH;
+        return subpath;
     }
-    return `${base.replace(/\/+$/, '')}/${MONACO_VS_SUBPATH}`;
+    return `${base.replace(/\/+$/, '')}/${subpath}`;
 };
 
 /**
@@ -56,7 +59,9 @@ const loadMonacoLocale = async (locale) => {
         try {
             // Import the ESM NLS messages.
             // These files set globalThis._VSCODE_NLS_MESSAGES and globalThis._VSCODE_NLS_LANGUAGE
-            await import('monaco-editor/esm/nls.messages.ja.js');
+            // monaco-editor 0.56 以降は `esm/vs/nls/lang/<locale>.js` に置かれ、
+            // package.json の exports (`./*.js` → `./esm/vs/*.js`) 経由で読む。
+            await import('monaco-editor/nls/lang/ja.js');
         } catch (e) {
             console.error('Failed to load Monaco Japanese locale', e);
         }

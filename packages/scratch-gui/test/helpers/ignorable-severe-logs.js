@@ -20,10 +20,11 @@ const isIgnorableSevereLog = (message) =>
     // worker アセットの取得失敗 (blob worker の importScripts / リソース取得エラー)。
     // `loader.js` や `editor.main.js` の取得失敗は Monaco 自体が読めていない状態なので
     // ここには含めない（本当のリグレッションとして落としたい）。
-    /static[\\/]monaco[\\/]vs[\\/]assets[\\/][\w.]+\.worker-[\w-]+\.js/.test(message) ||
+    // 配信パスは `static/monaco/<版>/vs/` (#1318)。
+    /static[\\/]monaco[\\/][\w.+-]+[\\/]vs[\\/]assets[\\/][\w.]+\.worker-[\w-]+\.js/.test(message) ||
     // 上記 worker エラーが Monaco のチャンクから uncaught として再送出されたもの。
     // 中身の無い `[object ErrorEvent]` に限定する（通常の例外はメッセージを持つ）。
-    (/static[\\/]monaco[\\/]vs[\\/]/.test(message) && /\[object ErrorEvent\]/.test(message));
+    (/static[\\/]monaco[\\/][\w.+-]+[\\/]vs[\\/]/.test(message) && /\[object ErrorEvent\]/.test(message));
 
 /**
  * SEVERE ログのうち、無視できないものだけを返す。
