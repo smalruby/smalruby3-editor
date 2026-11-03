@@ -41,8 +41,10 @@ review / verify などのプロンプトから **`/code-review` / `/security-rev
 まとめる**（`renderReviewFindingsComment`。先頭マーカー `<!-- autopilot-review-findings round=N -->`・
 2 行目に件数サマリ・各指摘に `**[M1]**` / `**[Q1]**` / `**[FYI1]**` の連番 ID。再レビューは
 `nextReviewFindingNumbers` で連番を継続・#1248）。指摘ごとの別コメントや別のサマリコメントを
-出すのは逸脱。対応方針は Must=修正 / Question=対応可なら修正・困難なら人間へ / FYI=無視
-（`addressReviewPolicyFor` が既定方針の唯一の真実）。`autopilot-address-review.md` は人間の ID 返信
+出すのは逸脱。対応方針は Must=修正 / Question=基本は修正・見送るときも follow-up の sub-issue を
+作る（仕様の選択だけ人間へ）/ FYI=簡単なら修正（振る舞いが変わる・設定値が増える・infra の変更が
+要るものは見送って理由を残す）（`addressReviewPolicyFor` が既定方針の唯一の真実）。指摘を
+「載せるだけ」で終わらせ、扱い（修正済み / 見送り理由 / follow-up 番号）の無い行を残すのは逸脱。`autopilot-address-review.md` は人間の ID 返信
 （「Q1はOK, FYI1は修正して」）を `planAddressReview` で解釈し、**人間の明示指示を既定方針より優先**
 する（FYI でも「直して」なら直す）。旧形式（1 コメント 1 マーカーの `**[Must]**` 等）も
 `countReviewFindings` が合算する（後方互換）。

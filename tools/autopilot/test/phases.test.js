@@ -1899,8 +1899,8 @@ test('renderReviewFindingsSummary: 件数からサマリ行を作る', () => {
 
 test('addressReviewPolicyFor: 分類から対応方針を返す（#921 DoD の対応表）', () => {
     assert.equal(addressReviewPolicyFor('Must'), 'fix');
-    assert.equal(addressReviewPolicyFor('Question'), 'fix-or-hitl');
-    assert.equal(addressReviewPolicyFor('FYI'), 'ignore');
+    assert.equal(addressReviewPolicyFor('Question'), 'fix-or-followup');
+    assert.equal(addressReviewPolicyFor('FYI'), 'fix-if-easy');
     // 未知の分類は安全側で無視
     assert.equal(addressReviewPolicyFor('Unknown'), 'ignore');
     assert.equal(addressReviewPolicyFor(undefined), 'ignore');
