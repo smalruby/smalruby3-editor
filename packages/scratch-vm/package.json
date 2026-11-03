@@ -89,7 +89,7 @@
     "format-message": "6.2.4",
     "graphql-tag": "^2.12.6",
     "htmlparser2": "3.10.1",
-    "immutable": "3.8.3",
+    "immutable": "3.8.4",
     "jszip": "3.10.1",
     "long": "~5.2.0",
     "scratch-audio": "2.0.268",

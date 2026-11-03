@@ -52,4 +52,31 @@ describe('monaco-i18n-helper', () => {
             expect(JSON.stringify(configCalls)).not.toMatch(/jsdelivr|unpkg|cdn/i);
         });
     });
+
+    describe('loadMonacoLocale', () => {
+        const { loadMonacoLocale } = require('../../../src/lib/monaco-i18n-helper');
+
+        afterEach(() => {
+            delete globalThis._VSCODE_NLS_MESSAGES;
+            delete globalThis._VSCODE_NLS_LANGUAGE;
+        });
+
+        test('loads the Japanese NLS messages bundled with monaco-editor', async () => {
+            const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+            try {
+                await loadMonacoLocale('ja');
+                expect(errorSpy).not.toHaveBeenCalled();
+            } finally {
+                errorSpy.mockRestore();
+            }
+            expect(globalThis._VSCODE_NLS_LANGUAGE).toBe('ja');
+            expect(Array.isArray(globalThis._VSCODE_NLS_MESSAGES)).toBe(true);
+        });
+
+        test('resets to English for other locales', async () => {
+            await loadMonacoLocale('en');
+            expect(globalThis._VSCODE_NLS_MESSAGES).toBeNull();
+            expect(globalThis._VSCODE_NLS_LANGUAGE).toBe('en');
+        });
+    });
 });

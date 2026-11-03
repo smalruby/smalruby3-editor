@@ -56,7 +56,9 @@ const loadMonacoLocale = async (locale) => {
         try {
             // Import the ESM NLS messages.
             // These files set globalThis._VSCODE_NLS_MESSAGES and globalThis._VSCODE_NLS_LANGUAGE
-            await import('monaco-editor/esm/nls.messages.ja.js');
+            // monaco-editor 0.56 以降は `esm/vs/nls/lang/<locale>.js` に置かれ、
+            // package.json の exports (`./*.js` → `./esm/vs/*.js`) 経由で読む。
+            await import('monaco-editor/nls/lang/ja.js');
         } catch (e) {
             console.error('Failed to load Monaco Japanese locale', e);
         }
