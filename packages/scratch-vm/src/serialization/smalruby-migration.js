@@ -103,31 +103,6 @@ const migrateMeshV1Blocks = (projectJSON) => {
 };
 
 /**
- * Rewrite mesh v1 opcodes and the `extensions` list in place inside a sb3 sprite JSON
- * (sprite.json of a sprite3, or a sprite object passed to `vm.addSprite`).
- * @param {object} spriteJson The sprite JSON to mutate.
- * @returns {boolean} True if the sprite was modified.
- */
-const migrateMeshV1InSpriteJSON = (spriteJson) => {
-    if (!spriteJson || typeof spriteJson !== 'object') return false;
-    let changed = false;
-    if (spriteJson.blocks && migrateMeshV1InBlocksObject(spriteJson.blocks)) {
-        changed = true;
-    }
-    if (Array.isArray(spriteJson.extensions)) {
-        const replaced = spriteJson.extensions.map((ext) => (ext === 'mesh' ? 'meshV2' : ext));
-        if (replaced.some((ext, i) => ext !== spriteJson.extensions[i])) {
-            spriteJson.extensions = replaced;
-            if (spriteJson.extensions.indexOf('meshV2') === -1) {
-                spriteJson.extensions.push('meshV2');
-            }
-            changed = true;
-        }
-    }
-    return changed;
-};
-
-/**
  * Migrate a sprite3 zip buffer (used by backpack sprite payloads). The zip's
  * sprite.json `blocks` and `extensions` fields are rewritten if mesh v1 is found.
  * @param {ArrayBuffer | Uint8Array} zipInput The sprite3 zip buffer.
@@ -142,7 +117,22 @@ const migrateMeshV1InSprite3Zip = async (zipInput) => {
     const spriteJsonStr = await spriteJsonFile.async('string');
     const spriteJson = JSON.parse(spriteJsonStr);
 
-    if (!migrateMeshV1InSpriteJSON(spriteJson)) return { changed: false, buffer: zipInput };
+    let changed = false;
+    if (spriteJson.blocks && migrateMeshV1InBlocksObject(spriteJson.blocks)) {
+        changed = true;
+    }
+    if (Array.isArray(spriteJson.extensions)) {
+        const replaced = spriteJson.extensions.map((ext) => (ext === 'mesh' ? 'meshV2' : ext));
+        if (replaced.some((ext, i) => ext !== spriteJson.extensions[i])) {
+            spriteJson.extensions = replaced;
+            if (spriteJson.extensions.indexOf('meshV2') === -1) {
+                spriteJson.extensions.push('meshV2');
+            }
+            changed = true;
+        }
+    }
+
+    if (!changed) return { changed: false, buffer: zipInput };
 
     zip.file('sprite.json', JSON.stringify(spriteJson));
     const buffer = await zip.generateAsync({ type: 'arraybuffer' });
@@ -156,5 +146,4 @@ module.exports = {
     migrateMeshV1InBlockArray,
     migrateMeshV1InBlocksObject,
     migrateMeshV1InSprite3Zip,
-    migrateMeshV1InSpriteJSON,
 };

@@ -97,9 +97,12 @@ The VM uses the `tap` test framework.
   - `engine/`: Core execution engine (runtime, sequencer, thread management)
   - `blocks/`: Block implementations for all categories
   - `extensions/`: Extension implementations（**Smalruby 独自拡張の正典は
-    `packages/scratch-vm/.prettierignore` のホワイトリスト**。現在 7 ディレクトリ）
+    `packages/scratch-vm/.prettierignore` のホワイトリスト**。現在 8 ディレクトリ）
     - `koshien/`: スマルビー甲子園（練習用モックゲーム内蔵。下記「koshien の構造」）
     - `microbitMore/`: Enhanced micro:bit integration
+    - `scratch3_mesh/`: Mesh networking v1（**サービスは廃止だが登録は残る**。
+      `builtinExtensions.mesh` としてロード可能で、プロジェクトロード時に v1→v2 opcode
+      自動移行される — 下記 smalruby-migration）
     - `scratch3_mesh_v2/`: Mesh networking v2 with AWS AppSync（構成・mixin 規約は
       `.claude/rules/scratch-gui/mesh.md` が正典）
     - `scratch3_smalrubot_s1/`: スマルロボ S1
@@ -113,7 +116,7 @@ The VM uses the `tap` test framework.
   - `serialization/`: Project loading and saving
     - `smalruby-migration.js`: Smalruby 固有。mesh v1→v2 opcode 移行
       （`mesh_` → `meshV2_` prefix 書き換え）と koshien 検出（`detectKoshien`）。
-      `virtual-machine.js` のロード/スプライト追加/バックパック経路から呼ばれる（v1 拡張本体は削除済み）
+      `virtual-machine.js` のロード/バックパック経路から呼ばれる
   - `sprites/`: Sprite and target management
   - `util/`: Utility functions
 - `test/`: Test files
@@ -179,9 +182,9 @@ Smalruby 拡張の `builtinExtensions` への登録経路は **2 系統**存在�
      `require(...).blockClass`、CommonJS `module.exports = Class` は `require(...)` 直接。
    - いずれも `blockClass.formatMessage = require('format-message')` を注入してから返す。
 2. **`extension-manager.js` の `builtinExtensions` オブジェクトリテラル直書き（歴史的経緯）** —
-   `meshV2` / `smalrubotS1` の 2 つだけは upstream のオブジェクトリテラル内に
+   `mesh` / `meshV2` / `smalrubotS1` の 3 つだけは upstream のオブジェクトリテラル内に
    直接書かれている（`=== Smalruby: Start of builtin extension entries ===` マーカーで
-   囲んである。upstream マージ時にこの 2 行を消さないこと）。**この形式を真似て新規追加しない**
+   囲んである。upstream マージ時にこの 3 行を消さないこと）。**この形式を真似て新規追加しない**
    （1. の経由にする）。
 
 `defaultHidden`（拡張ライブラリでの非表示）は **scratch-gui 側の概念**

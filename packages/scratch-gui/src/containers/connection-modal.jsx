@@ -7,7 +7,8 @@ import analytics from '../lib/analytics';
 import extensionData from '../lib/libraries/extensions/index.jsx';
 import {connect} from 'react-redux';
 
-import {closeConnectionModal} from '../reducers/modals';
+import {closeConnectionModal, openConnectionModal} from '../reducers/modals';
+import {setConnectionModalExtensionId} from '../reducers/connection-modal';
 import {isMicroBitUpdateSupported, selectAndUpdateMicroBit} from '../lib/microbit-update';
 import {
     isMicroBitUpdateSupported as isMicroBitMoreUpdateSupported,
@@ -41,6 +42,7 @@ class ConnectionModal extends React.Component {
             'handleHelp',
             'handleSendUpdate',
             'handleUpdatePeripheral',
+            'handleUseLegacyMesh',
             // === Smalruby: Start of smalrubot firmware flash ===
             'handleFlashFirmware',
             // === Smalruby: End of smalrubot firmware flash ===
@@ -291,6 +293,29 @@ class ConnectionModal extends React.Component {
         this.props.onOpenFirmwareModal();
     }
     // === Smalruby: End of smalrubot firmware flash ===
+    handleUseLegacyMesh () {
+        const meshExtensionId = 'mesh';
+
+        analytics.event({
+            category: 'extensions',
+            action: 'use legacy mesh from network filter error',
+            label: this.props.extensionId
+        });
+
+        // Close current modal first
+        this.props.onCancel();
+
+        // Wait for modal to close before loading mesh extension
+        setTimeout(() => {
+            // Load legacy mesh extension if not already loaded
+            if (!this.props.vm.extensionManager.isExtensionLoaded(meshExtensionId)) {
+                this.props.vm.extensionManager.loadExtensionURL(meshExtensionId);
+            }
+
+            // Open connection modal for mesh extension
+            this.props.onUseLegacyMesh(meshExtensionId);
+        }, 300); // Wait 300ms for modal close animation to complete
+    }
     // === Smalruby: Start of meshV2 initial step feature ===
     handleMeshV2CreateGroup () {
         // If domain input is empty, clear any cached domain from localStorage
@@ -497,6 +522,7 @@ class ConnectionModal extends React.Component {
                 // === Smalruby: End of smalrubotS1 dedicated flow ===
                 onSendPeripheralUpdate={canUpdatePeripheral ? this.handleSendUpdate : null}
                 onUpdatePeripheral={canUpdatePeripheral ? this.handleUpdatePeripheral : null}
+                onUseLegacyMesh={this.handleUseLegacyMesh}
             />
         );
     }
@@ -521,6 +547,7 @@ ConnectionModal.propTypes = {
     // === Smalruby: Start of smalrubot firmware flash ===
     onOpenFirmwareModal: PropTypes.func.isRequired,
     // === Smalruby: End of smalrubot firmware flash ===
+    onUseLegacyMesh: PropTypes.func.isRequired,
     useExternalPeripheralList: PropTypes.bool,
     vm: PropTypes.instanceOf(VM).isRequired
 };
@@ -561,6 +588,10 @@ const mapDispatchToProps = dispatch => ({
         dispatch(openSmalrubotFirmwareModal());
     },
     // === Smalruby: End of smalrubot firmware flash ===
+    onUseLegacyMesh: extensionId => {
+        dispatch(setConnectionModalExtensionId(extensionId));
+        dispatch(openConnectionModal());
+    }
 });
 
 export default connect(

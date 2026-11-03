@@ -97,6 +97,13 @@ URL: https://graphql.api.smalruby.app/, wss://graphql.api.smalruby.app/`;
                             id="gui.connection.networkFiltered.tryagainbutton"
                         />
                     </button>
+                    <button className={styles.connectionButton} onClick={props.onUseLegacyMesh}>
+                        <FormattedMessage
+                            defaultMessage="Use legacy mesh"
+                            description="Button to use legacy mesh extension"
+                            id="gui.connection.networkFiltered.useLegacyMeshButton"
+                        />
+                    </button>
                 </Box>
             </Box>
         </Box>
@@ -105,6 +112,7 @@ URL: https://graphql.api.smalruby.app/, wss://graphql.api.smalruby.app/`;
 
 MeshV2NetworkFilteredStep.propTypes = {
     onScanning: PropTypes.func,
+    onUseLegacyMesh: PropTypes.func,
 };
 
 export default MeshV2NetworkFilteredStep;

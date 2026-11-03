@@ -74,7 +74,7 @@ scratch-vm は **Scratch プロジェクトを実行する仮想マシン**。�
 ### Built-in Extensions
 
 `packages/scratch-vm/src/extensions/`:
-- upstream: `scratch3_pen`, `scratch3_music`, `scratch3_video_sensing`, `scratch3_face_sensing`, `scratch3_text2speech`, `scratch3_translate`, `scratch3_makeymakey`, `scratch3_microbit`, `scratch3_gdx_for`, `scratch3_ev3`, `scratch3_boost`, `scratch3_wedo2`, `scratch3_speech2text`
+- upstream: `scratch3_pen`, `scratch3_music`, `scratch3_video_sensing`, `scratch3_face_sensing`, `scratch3_text2speech`, `scratch3_translate`, `scratch3_makeymakey`, `scratch3_microbit`, `scratch3_gdx_for`, `scratch3_ev3`, `scratch3_boost`, `scratch3_wedo2`, `scratch3_mesh` (旧 v1), `scratch3_speech2text`
 - Smalruby 独自: `scratch3_mesh_v2`, `scratch3_smalrubot_s1`, `microbitMore`, `koshien`, `scratch3_tm2scratch`, `scratch3_g2s`, `smalruby_ruby`
 
 各拡張機能の詳細は `docs/extension-<name>/` を参照。

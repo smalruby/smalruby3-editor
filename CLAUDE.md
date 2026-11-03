@@ -263,6 +263,7 @@ See `docs/google-drive/google-api-setup.md` for detailed setup instructions.
 Custom Smalruby extensions are located in `packages/scratch-vm/src/extensions/`:
 - `koshien/`: Smalruby Koshien competition support
 - `microbitMore/`: Enhanced micro:bit support
+- `scratch3_mesh/`: Mesh networking (deprecated)
 - `scratch3_mesh_v2/`: Mesh networking v2
 
 ## Package-Specific Development

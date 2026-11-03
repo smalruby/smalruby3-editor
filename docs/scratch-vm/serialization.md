@@ -207,7 +207,7 @@ SB1 (Scratch 1) は scratch-vm では非対応。
 
 ### 背景
 
-旧 Mesh (v1) は外部サービス Skyway に依存していたが、Skyway のサービス停止 (Issue #592) で動かなくなった。Smalruby は AWS AppSync ベースの **Mesh v2** に移行し、v1 拡張のランタイム（`scratch3_mesh/`）と依存の `skyway-js` は削除した。ただしユーザーが**過去に保存したプロジェクトには `mesh_*` opcode が残っている**ため、ロード時に自動で `meshV2_*` に書き換える必要がある。v1 拡張はもう登録されていないので、書き換えずに deserialize すると `mesh` を拡張の URL として読みに行って失敗する。
+旧 Mesh (v1) は外部サービス Skyway に依存していたが、Skyway のサービス停止 (Issue #592) で動かなくなった。Smalruby は AWS AppSync ベースの **Mesh v2** に移行したが、ユーザーが**過去に保存したプロジェクトには `mesh_*` opcode が残っている**ため、ロード時に自動で `meshV2_*` に書き換える必要がある。
 
 ### 実装
 
@@ -227,15 +227,13 @@ migrateMeshV1InBackpackSprite(zip)   // バックパック sprite3 zip の v1→
 
 ### 呼び出しタイミング
 
-1. **プロジェクトロード時** (`virtual-machine.js` の `loadProject`)
+1. **プロジェクトロード時** (`virtual-machine.js:370-374`)
    ```js
-   if (options.migrateMeshV1ToV2 || detectMeshV1Blocks(projectJSON)) {
+   if (options.migrateMeshV1ToV2) {
        projectJSON = migrateMeshV1Blocks(projectJSON);
    }
    ```
-   scratch-gui の `loadProjectWithChecks` は `hasMeshV1Project` で検出して通知を出し、このオプションを指定してロードする。オプションを付けないロード（既定作品の読み込み・先生の提出物の表示など）でも、v1 ブロックがあれば必ず書き換える。
-
-1. **スプライト追加時** (`virtual-machine.js` の `addSprite`) — sb3 スプライトの `blocks` / `extensions` を `migrateMeshV1InSpriteJSON` で書き換えてから deserialize する。
+   scratch-gui からこのオプションを指定してロード。
 
 2. **バックパック起動時** (scratch-gui の `backpack-mesh-v1-migration.js`)
    - `vm.migrateMeshV1InBackpackBlocks()` でコード片を変換

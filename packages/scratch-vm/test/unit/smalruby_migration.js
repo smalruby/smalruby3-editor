@@ -9,7 +9,6 @@ const {
     migrateMeshV1InBlockArray,
     migrateMeshV1InBlocksObject,
     migrateMeshV1InSprite3Zip,
-    migrateMeshV1InSpriteJSON,
 } = require('../../src/serialization/smalruby-migration');
 
 const meshV1Project = JSON.parse(
@@ -140,27 +139,4 @@ test('migrateMeshV1InSprite3Zip is no-op for v2 sprite', async (t) => {
     const { changed, buffer: newBuffer } = await migrateMeshV1InSprite3Zip(buffer);
     t.equal(changed, false, 'reports unchanged');
     t.equal(newBuffer, buffer, 'returns the same buffer reference');
-});
-
-test('migrateMeshV1InSpriteJSON rewrites blocks and extensions in place', (t) => {
-    const sprite = {
-        blocks: {
-            a: { opcode: 'mesh_getSensorValue' },
-            b: { opcode: 'motion_movesteps' },
-        },
-        extensions: ['mesh'],
-    };
-    t.equal(migrateMeshV1InSpriteJSON(sprite), true);
-    t.equal(sprite.blocks.a.opcode, 'meshV2_getSensorValue');
-    t.equal(sprite.blocks.b.opcode, 'motion_movesteps');
-    t.same(sprite.extensions, ['meshV2']);
-    t.end();
-});
-
-test('migrateMeshV1InSpriteJSON is no-op for v2 sprite', (t) => {
-    const sprite = { blocks: { a: { opcode: 'meshV2_getSensorValue' } }, extensions: ['meshV2'] };
-    t.equal(migrateMeshV1InSpriteJSON(sprite), false);
-    t.same(sprite.extensions, ['meshV2']);
-    t.equal(migrateMeshV1InSpriteJSON(null), false);
-    t.end();
 });
