@@ -1,6 +1,6 @@
-// `mesh_v1` is the legacy receiver name still emitted by `ruby-generator/mesh.js` for any
-// surviving v1 blocks. The Skyway service that backed v1 has shut down (Issue #592), so we
-// alias `mesh_v1.*` to mesh v2 blocks here — typing v1 Ruby never produces v1 blocks again.
+// `mesh_v1` is the legacy receiver name that older Smalruby versions emitted for v1 blocks.
+// The Skyway service that backed v1 has shut down and the v1 extension has been removed, so we
+// keep reading `mesh_v1.*` as an alias to mesh v2 blocks — Ruby code saved by older versions still converts.
 const LegacyMesh = 'mesh_v1';
 
 const MeshConverter = {

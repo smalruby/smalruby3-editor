@@ -25,6 +25,7 @@ const {
     migrateMeshV1Blocks,
     migrateMeshV1InBlockArray,
     migrateMeshV1InSprite3Zip,
+    migrateMeshV1InSpriteJSON,
 } = require('./serialization/smalruby-migration');
 // === Smalruby: End of mesh v1 to v2 migration ===
 
@@ -371,7 +372,10 @@ class VirtualMachine extends EventEmitter {
             .then(validatedInput => {
                 // === Smalruby: Start of mesh v1 to v2 migration ===
                 let projectJSON = validatedInput[0];
-                if (options.migrateMeshV1ToV2) {
+                // The mesh v1 extension itself has been removed, so v1 blocks must always be
+                // rewritten to v2 even when the caller did not ask (e.g. loads that skip
+                // hasMeshV1Project). Otherwise deserialize would try to load "mesh" as a URL.
+                if (options.migrateMeshV1ToV2 || detectMeshV1Blocks(projectJSON)) {
                     projectJSON = migrateMeshV1Blocks(projectJSON);
                 }
                 return this.deserializeProject(projectJSON, validatedInput[1]);
@@ -699,6 +703,11 @@ class VirtualMachine extends EventEmitter {
                     return this._addSprite2(validatedInput[0], validatedInput[1]);
                 }
                 if (projectVersion === 3) {
+                    // === Smalruby: Start of mesh v1 to v2 migration ===
+                    // Sprites saved with mesh v1 blocks (sprite library uploads etc.) would
+                    // otherwise try to load the removed "mesh" extension.
+                    migrateMeshV1InSpriteJSON(validatedInput[0]);
+                    // === Smalruby: End of mesh v1 to v2 migration ===
                     return this._addSprite3(validatedInput[0], validatedInput[1]);
                 }
                 // TODO: reject with an Error (possible breaking API change!)

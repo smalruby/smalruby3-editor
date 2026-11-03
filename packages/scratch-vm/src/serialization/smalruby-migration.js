@@ -103,20 +103,13 @@ const migrateMeshV1Blocks = (projectJSON) => {
 };
 
 /**
- * Migrate a sprite3 zip buffer (used by backpack sprite payloads). The zip's
- * sprite.json `blocks` and `extensions` fields are rewritten if mesh v1 is found.
- * @param {ArrayBuffer | Uint8Array} zipInput The sprite3 zip buffer.
- * @returns {Promise<{changed: boolean, buffer: ArrayBuffer | Uint8Array}>}
- *     Resolves with the new buffer (re-zipped only if changed). When unchanged,
- *     the original buffer reference is returned to avoid wasted work.
+ * Rewrite mesh v1 opcodes and the `extensions` list in place inside a sb3 sprite JSON
+ * (sprite.json of a sprite3, or a sprite object passed to `vm.addSprite`).
+ * @param {object} spriteJson The sprite JSON to mutate.
+ * @returns {boolean} True if the sprite was modified.
  */
-const migrateMeshV1InSprite3Zip = async (zipInput) => {
-    const zip = await JSZip.loadAsync(zipInput);
-    const spriteJsonFile = zip.file('sprite.json');
-    if (!spriteJsonFile) return { changed: false, buffer: zipInput };
-    const spriteJsonStr = await spriteJsonFile.async('string');
-    const spriteJson = JSON.parse(spriteJsonStr);
-
+const migrateMeshV1InSpriteJSON = (spriteJson) => {
+    if (!spriteJson || typeof spriteJson !== 'object') return false;
     let changed = false;
     if (spriteJson.blocks && migrateMeshV1InBlocksObject(spriteJson.blocks)) {
         changed = true;
@@ -131,8 +124,25 @@ const migrateMeshV1InSprite3Zip = async (zipInput) => {
             changed = true;
         }
     }
+    return changed;
+};
 
-    if (!changed) return { changed: false, buffer: zipInput };
+/**
+ * Migrate a sprite3 zip buffer (used by backpack sprite payloads). The zip's
+ * sprite.json `blocks` and `extensions` fields are rewritten if mesh v1 is found.
+ * @param {ArrayBuffer | Uint8Array} zipInput The sprite3 zip buffer.
+ * @returns {Promise<{changed: boolean, buffer: ArrayBuffer | Uint8Array}>}
+ *     Resolves with the new buffer (re-zipped only if changed). When unchanged,
+ *     the original buffer reference is returned to avoid wasted work.
+ */
+const migrateMeshV1InSprite3Zip = async (zipInput) => {
+    const zip = await JSZip.loadAsync(zipInput);
+    const spriteJsonFile = zip.file('sprite.json');
+    if (!spriteJsonFile) return { changed: false, buffer: zipInput };
+    const spriteJsonStr = await spriteJsonFile.async('string');
+    const spriteJson = JSON.parse(spriteJsonStr);
+
+    if (!migrateMeshV1InSpriteJSON(spriteJson)) return { changed: false, buffer: zipInput };
 
     zip.file('sprite.json', JSON.stringify(spriteJson));
     const buffer = await zip.generateAsync({ type: 'arraybuffer' });
@@ -146,4 +156,5 @@ module.exports = {
     migrateMeshV1InBlockArray,
     migrateMeshV1InBlocksObject,
     migrateMeshV1InSprite3Zip,
+    migrateMeshV1InSpriteJSON,
 };

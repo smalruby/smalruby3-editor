@@ -59,7 +59,6 @@ export default eslintConfigScratch.defineConfig(
             'src/extensions/microbitMore/ble-web.js',
             'src/extensions/microbitMore/index.js',
             'src/extensions/microbitMore/serial-web.js',
-            'src/extensions/scratch3_mesh/index.js',
             'src/extensions/scratch3_mesh_v2/rate-limiter.js',
             'src/extensions/scratch3_smalrubot_s1/index.js',
             'src/io/ble.js',
@@ -92,7 +91,6 @@ export default eslintConfigScratch.defineConfig(
             'src/extensions/microbitMore/ble-web.js',
             'src/extensions/microbitMore/index.js',
             'src/extensions/microbitMore/serial-web.js',
-            'src/extensions/scratch3_mesh/index.js',
             'src/extensions/scratch3_smalrubot_s1/index.js',
             'src/io/ble.js'
         ],

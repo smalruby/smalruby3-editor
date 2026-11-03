@@ -6,7 +6,7 @@
 
 複数の Smalruby インスタンス間で **broadcast event** と **グローバル変数** をリアルタイム共有する機能。子供たちが教室や家庭でネットワークを通じて連携した作品（複数人で協力するゲーム、リレー型のお絵描きなど）を作れるようにする。
 
-旧 Mesh (v1) は外部サービス Skyway に依存していたが、v1 のサービス停止に伴い、AWS AppSync + DynamoDB をバックエンドに自社で再構築したのが Mesh v2。
+旧 Mesh (v1) は外部サービス Skyway に依存していたが、v1 のサービス停止に伴い、AWS AppSync + DynamoDB をバックエンドに自社で再構築したのが Mesh v2。v1 拡張のランタイム（`scratch3_mesh/`）と依存の `skyway-js` は削除済みで、v1 のブロックを含む作品・スプライト・バックパックは読み込み時に v2 のブロックへ書き換える（[`docs/scratch-vm/serialization.md`](../scratch-vm/serialization.md) の「Mesh v1 → v2 マイグレーション」）。
 
 ## ユーザーストーリー
 
