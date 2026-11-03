@@ -5,6 +5,7 @@
 // pastes the answer back to turn it into blocks.
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import ReactDOM from 'react-dom';
 import { useIntl } from 'react-intl';
 import { connect } from 'react-redux';
 import GenaiAnswerSteps from '../components/genai-concierge/genai-answer-steps.jsx';
@@ -15,6 +16,7 @@ import GenaiStepper from '../components/genai-concierge/genai-stepper.jsx';
 import GenaiTroubleStep from '../components/genai-concierge/genai-trouble-step.jsx';
 import messages from '../components/genai-concierge/messages.js';
 import rubyteeIcon from '../components/ruby-toolbar/icon--rubytee.svg';
+import RubyteeConsent from '../components/rubytee-consent/rubytee-consent.jsx';
 import {
     NUDGE_GAP_MS,
     NUDGE_IDLE_SECONDS,
@@ -38,6 +40,8 @@ import useStudentClassSettingsRefresh from './use-student-class-settings-refresh
 const NUDGE_OFF_KEY = 'smalruby:genaiNudgeOff';
 // Development only: the generative AI chosen outside a class.
 const DEV_SERVICE_KEY = 'smalruby:genaiService';
+// The consent to Rubytee, shared with the Ruby tab (rubytee-modal-hoc.jsx).
+const RUBYTEE_CONSENT_KEY = 'smalruby:rubyteeConsent';
 
 const readStorage = (key) => {
     try {
@@ -229,8 +233,20 @@ const GenaiConcierge = ({
         handleClose();
     }, [handleReset, handleClose]);
 
-    // The takeover by Rubytee itself is another sub-issue of #1274; this is only its entrance.
-    const handleTakeover = useCallback(() => setNotice(intl.formatMessage(messages.takeoverSoon)), [intl]);
+    // 「ルビティーにまかせる」 asks for the consent to Rubytee first, as the Ruby tab does
+    // (that it is an AI, not a person, and may be wrong), then starts (#1282).
+    const [consentStart, setConsentStart] = useState(null);
+    const handleTakeover = useCallback((start) => {
+        if (readStorage(RUBYTEE_CONSENT_KEY) === 'true') start();
+        else setConsentStart(() => start);
+    }, []);
+    const handleConsentAccept = useCallback(() => {
+        writeStorage(RUBYTEE_CONSENT_KEY, 'true');
+        const start = consentStart;
+        setConsentStart(null);
+        if (start) start();
+    }, [consentStart]);
+    const handleConsentCancel = useCallback(() => setConsentStart(null), []);
 
     const handleKindChange = useCallback((id, starter) => {
         setKindId(id);
@@ -374,6 +390,10 @@ const GenaiConcierge = ({
 
     if (!available) return null;
 
+    // The question to Rubytee stays in Japanese whatever the editor language, as to the AI.
+    const kind = PROBLEM_KINDS.find((k) => k.id === kindId);
+    const kindLabel = kind ? kind.label : '';
+
     const title = intl.formatMessage(messages.title);
     const place = panelPlacement({
         areaWidth: area.width,
@@ -442,6 +462,10 @@ const GenaiConcierge = ({
                             vm={vm}
                             rubyVersion={rubyVersion}
                             serviceName={target ? target.name : null}
+                            prompt={prompt}
+                            troubleKind={kindLabel}
+                            troubleText={text}
+                            sessionToken={role === 'student' ? sessionToken : null}
                             step={step}
                             notice={notice}
                             rubyteeAvailable={rubyteeAvailable}
@@ -467,6 +491,11 @@ const GenaiConcierge = ({
             >
                 <img src={rubyteeIcon} alt={title} />
             </button>
+            {consentStart &&
+                ReactDOM.createPortal(
+                    <RubyteeConsent onAccept={handleConsentAccept} onCancel={handleConsentCancel} />,
+                    document.body,
+                )}
         </div>
     );
 };

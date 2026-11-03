@@ -5,13 +5,22 @@
 // back a step or closing the panel keeps the answer and the two versions.
 // The blocks the AI's version adds or changes are listed in the words of the blocks,
 // and marked in the editor while that version is in (#1281).
+// After two failed checks, 「ルビティーにまかせる」 has Rubytee rewrite the program and
+// checks its answers here in the browser (#1282).
 import PropTypes from 'prop-types';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { checkAnswer, liveSnapshots, problemToJapanese, switchSnapshots } from '../../lib/genai-answer.js';
 import { describeChanges, diffBlocks } from '../../lib/genai-block-diff.js';
 import { afterBlocksRender, canOfferTakeover } from '../../lib/genai-concierge-state.js';
 import { buildRewritePrompt } from '../../lib/genai-prompt.js';
+import {
+    MAX_TAKEOVER_TRIES,
+    buildTakeoverMessage,
+    requestTakeover,
+    runTakeover,
+    takeoverExplanation,
+} from '../../lib/genai-takeover.js';
 import RubyGenerator from '../../lib/ruby-generator';
 import { targetCodeToBlocks } from '../../lib/ruby-to-blocks-converter';
 import styles from './genai-concierge.css';
@@ -26,6 +35,49 @@ const quoteNames = (names) => names.map((name) => `「${name}」`).join('');
 const MARK_CLASSES = { added: 'genaiMarkAdded', changed: 'genaiMarkChanged' };
 // Lines of the list shown before 「ほかに N か所」.
 const MAX_CHANGES = 6;
+// The relay refuses a name longer than this or with a line break in the state.
+const MAX_NAME_LENGTH = 100;
+
+const sendableNames = (items) =>
+    items
+        .map((item) => item.name)
+        .filter((name) => name.length <= MAX_NAME_LENGTH && !/[\r\n]/.test(name))
+        .map((name) => ({ name }));
+
+// The names Rubytee may use, for the relay's stateContext (the program is in the message).
+const takeoverState = (vm) => {
+    const editing = vm.editingTarget;
+    const stage = vm.runtime.getTargetForStage ? vm.runtime.getTargetForStage() : null;
+    const state = {};
+    if (editing) {
+        state.sprite = {
+            name: nameOf(editing),
+            costumes: sendableNames(editing.getCostumes()),
+            sounds: sendableNames(editing.getSounds()),
+        };
+    }
+    if (stage) state.stage = { costumes: sendableNames(stage.getCostumes()), sounds: sendableNames(stage.getSounds()) };
+    return state;
+};
+
+// What went wrong with the takeover, in the student's language.
+const takeoverErrorMessage = (intl, takeover) => {
+    switch (takeover.code) {
+        case 'RATE_LIMIT_EXCEEDED':
+            return intl.formatMessage(messages.takeoverErrorRate, {
+                minutes: Math.max(1, Math.ceil((takeover.resetAfterSeconds || 60) / 60)),
+            });
+        case 'TOO_LONG':
+        case 'INPUT_TOO_LONG':
+        case 'HISTORY_TOO_LONG':
+            return intl.formatMessage(messages.takeoverErrorTooLong);
+        case 'INVALID_INPUT':
+        case 'INVALID_STATE_CONTEXT':
+            return intl.formatMessage(messages.takeoverErrorInput);
+        default:
+            return intl.formatMessage(messages.takeoverError);
+    }
+};
 
 // A copy of a target's blocks that deleting them (on putting other blocks in) leaves
 // intact: deleteBlock changes the block objects themselves.
@@ -225,6 +277,10 @@ const GenaiAnswerSteps = ({
     vm,
     rubyVersion,
     serviceName,
+    prompt,
+    troubleKind,
+    troubleText,
+    sessionToken,
     step,
     notice,
     rubyteeAvailable,
@@ -254,6 +310,22 @@ const GenaiAnswerSteps = ({
     const [answerOpen, setAnswerOpen] = useState(false);
     // [{target, name, changes}] while the AI's version is in: marked in the editor (#1281).
     const [marks, setMarks] = useState(null);
+    // The answers that failed, oldest first: [{answer, problems (in Japanese), rewrite}].
+    // 「ルビティーにまかせる」 sends them with the questions to the AI (#1282).
+    const [tries, setTries] = useState([]);
+    // null | {state: 'running', tries} | {state: 'failed', tries} | {state: 'error', code, resetAfterSeconds}
+    const [takeover, setTakeover] = useState(null);
+    // Rubytee's explanation when the answer checked is Rubytee's (null for the student's).
+    const [byRubytee, setByRubytee] = useState(null);
+    const abortRef = useRef(null);
+
+    // The panel steps start afresh with a new key (もう一度相談する / another project).
+    useEffect(
+        () => () => {
+            if (abortRef.current) abortRef.current.abort();
+        },
+        [],
+    );
 
     // Mark the blocks of the sprite in the editor, again each time the editor shows
     // another sprite (or the same one afresh), and take the marks away afterwards.
@@ -286,36 +358,50 @@ const GenaiAnswerSteps = ({
         };
     }, [marks, open, vm, scratchBlocks]);
 
-    const convertAnswer = useCallback(async () => {
-        const targets = {};
+    // Check a text as an answer, with the blocks it adds or changes (does not set state).
+    const checkText = useCallback(
+        async (text) => {
+            const targets = {};
         vm.runtime.targets
             .filter((t) => t.isOriginal)
             .forEach((t) => {
                 targets[nameOf(t)] = t;
             });
-        const result = await checkAnswer({
-            answer,
-            sprites: Object.keys(targets).map((name) => ({
-                name,
-                sounds: targets[name].getSounds().map((sound) => sound.name),
-                costumes: targets[name].getCostumes().map((costume) => costume.name),
-            })),
-            editingName: nameOf(vm.editingTarget),
-            convert: (name, code) => targetCodeToBlocks(vm, targets[name], code, intl, { version: rubyVersion }),
-        });
-        result.parts.forEach((part) => {
-            part.target = targets[part.name];
-            part.changes =
-                result.ok && part.converter
-                    ? changesOf(copyBlocks(part.target), part.converter.blocks, scratchBlocks)
-                    : [];
-        });
+            const result = await checkAnswer({
+                answer: text,
+                sprites: Object.keys(targets).map((name) => ({
+                    name,
+                    sounds: targets[name].getSounds().map((sound) => sound.name),
+                    costumes: targets[name].getCostumes().map((costume) => costume.name),
+                })),
+                editingName: nameOf(vm.editingTarget),
+                convert: (name, code) => targetCodeToBlocks(vm, targets[name], code, intl, { version: rubyVersion }),
+            });
+            result.parts.forEach((part) => {
+                part.target = targets[part.name];
+                part.changes =
+                    result.ok && part.converter
+                        ? changesOf(copyBlocks(part.target), part.converter.blocks, scratchBlocks)
+                        : [];
+            });
+            return result;
+        },
+        [vm, intl, rubyVersion, scratchBlocks],
+    );
+
+    const convertAnswer = useCallback(async () => {
+        const result = await checkText(answer);
         setConverted(result);
-        if (!result.ok) setFailures((f) => f + 1);
-    }, [answer, vm, intl, rubyVersion, scratchBlocks]);
+        if (!result.ok) {
+            setFailures((f) => f + 1);
+            setTries((list) => [...list, { answer, problems: result.problems.map(problemToJapanese), rewrite: null }]);
+        }
+    }, [answer, checkText]);
 
     const handleConvert = useCallback(async () => {
         setConverted(null);
+        setByRubytee(null);
+        setTakeover(null);
         setAnswerOpen(false);
         // The notice of the last check (e.g. the rewrite request copied) is not about this one (#1293 P6).
         onClearNotice();
@@ -419,6 +505,7 @@ const GenaiAnswerSteps = ({
     const handleAnswerChange = useCallback((e) => {
         setAnswer(e.target.value);
         setConverted(null);
+        setByRubytee(null);
     }, []);
     const handleToCopy = useCallback(() => onStep('copy'), [onStep]);
     const handleToggleAnswer = useCallback((e) => {
@@ -430,19 +517,88 @@ const GenaiAnswerSteps = ({
         setShowRuby((v) => !v);
     }, []);
     // The request goes to the AI, so it stays in Japanese whatever the editor language.
-    const handleCopyRewrite = useCallback(
-        () =>
-            onCopy(
-                buildRewritePrompt({ code: converted.code, problems: converted.problems.map(problemToJapanese) }),
-                'rewrite',
-            ),
-        [onCopy, converted],
-    );
+    // The request is kept for 「ルビティーにまかせる」 as the question of the next answer.
+    const handleCopyRewrite = useCallback(() => {
+        const request = buildRewritePrompt({
+            code: converted.code,
+            problems: converted.problems.map(problemToJapanese),
+        });
+        setTries((list) =>
+            list.length === 0 ? list : [...list.slice(0, -1), { ...list[list.length - 1], rewrite: request }],
+        );
+        onCopy(request, 'rewrite');
+    }, [onCopy, converted]);
+
+    // Rubytee rewrites the program from the whole consultation; each answer is checked
+    // here and, if it fails, sent back with the reasons (at most MAX_TAKEOVER_TRIES times).
+    // Only an answer that turns into blocks is shown as one to put in (#1282).
+    const startTakeover = useCallback(async () => {
+        const programs = vm.runtime.targets
+            .filter((t) => t.isOriginal)
+            .map((t) => ({
+                name: nameOf(t),
+                code: RubyGenerator.targetToCode(t, { version: rubyVersion }),
+                sounds: t.getSounds().map((sound) => sound.name),
+                costumes: t.getCostumes().map((costume) => costume.name),
+            }));
+        const first = buildTakeoverMessage({
+            kindLabel: troubleKind,
+            text: troubleText,
+            programs,
+            editingName: vm.editingTarget ? nameOf(vm.editingTarget) : null,
+            exchanges: tries.map((t, i) => ({
+                question: i === 0 ? prompt : tries[i - 1].rewrite,
+                answer: t.answer,
+                problems: t.problems,
+            })),
+        });
+        onClearNotice();
+        if (!first) {
+            setTakeover({ state: 'error', code: 'TOO_LONG' });
+            return;
+        }
+        const controller = new AbortController();
+        abortRef.current = controller;
+        const stateContext = takeoverState(vm);
+        setTakeover({ state: 'running', tries: 1 });
+        try {
+            const out = await runTakeover({
+                first,
+                send: (userMessage, history) =>
+                    requestTakeover({ userMessage, history, stateContext, sessionToken }, { signal: controller.signal }),
+                check: checkText,
+                toJapanese: problemToJapanese,
+                onTry: (n) => setTakeover({ state: 'running', tries: n }),
+                signal: controller.signal,
+            });
+            setAnswer(out.text);
+            setAnswerOpen(false);
+            setConverted(out.result);
+            setByRubytee(out.ok ? takeoverExplanation(out.text) : null);
+            setTakeover(out.ok ? null : { state: 'failed', tries: out.tries });
+        } catch (e) {
+            setTakeover(
+                e.code === 'CANCELLED'
+                    ? null
+                    : { state: 'error', code: e.code, resetAfterSeconds: e.resetAfterSeconds || null },
+            );
+        } finally {
+            if (abortRef.current === controller) abortRef.current = null;
+        }
+    }, [vm, rubyVersion, troubleKind, troubleText, prompt, tries, sessionToken, checkText, onClearNotice]);
+
+    // The consent to Rubytee (that it is an AI) comes first, as in the Ruby tab.
+    const handleTakeover = useCallback(() => onTakeover(startTakeover), [onTakeover, startTakeover]);
+    const handleCancelTakeover = useCallback(() => {
+        if (abortRef.current) abortRef.current.abort();
+        setTakeover(null);
+    }, []);
 
     if (step === 'paste') {
         // No program was found in what was pasted: the only thing to do is to paste again,
         // so the answer stays open (folding it would leave no button to go on with).
         const canFold = Boolean(converted && converted.code);
+        const running = Boolean(takeover && takeover.state === 'running');
         const answerShown = !canFold || answerOpen;
         return (
             <>
@@ -471,12 +627,29 @@ const GenaiAnswerSteps = ({
                             <FormattedMessage {...messages.checking} />
                         </div>
                     )}
-                    {converted && converted.ok && (
+                    {running && (
+                        <div className={styles.checking} data-testid="genai-takeover-running">
+                            <span className={styles.spinner} />
+                            <FormattedMessage
+                                {...messages.takeoverRunning}
+                                values={{ count: takeover.tries, max: MAX_TAKEOVER_TRIES }}
+                            />
+                        </div>
+                    )}
+                    {converted && converted.ok && !running && (
                         <div className={styles.ok} data-testid="genai-convert-ok">
                             <p className={styles.verdict}>
                                 <span className={styles.markOk}>✔</span>
                                 <FormattedMessage {...messages.convertOk} />
                             </p>
+                            {byRubytee !== null && (
+                                <div className={styles.byRubytee} data-testid="genai-takeover-by">
+                                    <p>
+                                        <FormattedMessage {...messages.takeoverBy} />
+                                    </p>
+                                    {byRubytee && <p data-testid="genai-takeover-explanation">{byRubytee}</p>}
+                                </div>
+                            )}
                             {converted.fixes.length > 0 && <FixList fixes={converted.fixes} />}
                             <ChangeList parts={converted.parts} several={converted.parts.length > 1} />
                             <a href="#" data-testid="genai-ruby-toggle" onClick={handleToggleRuby}>
@@ -500,7 +673,7 @@ const GenaiAnswerSteps = ({
                             </p>
                         </div>
                     )}
-                    {converted && !converted.ok && (
+                    {converted && !converted.ok && !running && (
                         <div className={styles.ng} data-testid="genai-convert-ng">
                             <p className={styles.verdict}>
                                 <span className={styles.markNg}>✗</span>
@@ -508,6 +681,16 @@ const GenaiAnswerSteps = ({
                             </p>
                             {converted.fixes.length > 0 && <FixList fixes={converted.fixes} />}
                             <ProblemList problems={converted.problems} />
+                            {takeover && takeover.state === 'failed' && (
+                                <p className={styles.notice} data-testid="genai-takeover-failed">
+                                    <FormattedMessage {...messages.takeoverFailed} values={{ count: takeover.tries }} />
+                                </p>
+                            )}
+                            {takeover && takeover.state === 'error' && (
+                                <p className={styles.notice} data-testid="genai-takeover-error">
+                                    {takeoverErrorMessage(intl, takeover)}
+                                </p>
+                            )}
                             {notice && (
                                 <p className={styles.notice} data-testid="genai-notice">
                                     {notice}
@@ -516,6 +699,13 @@ const GenaiAnswerSteps = ({
                         </div>
                     )}
                 </div>
+                {running ? (
+                <div className={styles.footer}>
+                    <button data-testid="genai-takeover-cancel" onClick={handleCancelTakeover}>
+                        <FormattedMessage {...messages.takeoverCancel} />
+                    </button>
+                </div>
+                ) : (
                 <div className={styles.footer}>
                     <button onClick={handleToCopy}>
                         <FormattedMessage {...messages.back} />
@@ -546,7 +736,7 @@ const GenaiAnswerSteps = ({
                         </>
                     )}
                     {converted && !converted.ok && canOfferTakeover({ failures, rubyteeAvailable }) && (
-                        <button data-testid="genai-takeover" onClick={onTakeover}>
+                        <button data-testid="genai-takeover" onClick={handleTakeover}>
                             <FormattedMessage {...messages.takeover} />
                         </button>
                     )}
@@ -560,6 +750,7 @@ const GenaiAnswerSteps = ({
                         </button>
                     )}
                 </div>
+                )}
             </>
         );
     }
@@ -635,6 +826,12 @@ GenaiAnswerSteps.propTypes = {
     }).isRequired,
     rubyVersion: PropTypes.string,
     serviceName: PropTypes.string,
+    // The question copied to the AI first, and the trouble it was about: sent to Rubytee (#1282).
+    prompt: PropTypes.string,
+    troubleKind: PropTypes.string,
+    troubleText: PropTypes.string,
+    // The student's session in the class: the relay counts the takeover by seat with it.
+    sessionToken: PropTypes.string,
     step: PropTypes.string.isRequired,
     notice: PropTypes.string,
     // The student's class uses Rubytee: 「ルビティーにまかせる」 can be offered.
@@ -656,6 +853,7 @@ GenaiAnswerSteps.propTypes = {
     // 「これで閉じる」: keep the version shown now and start afresh next time.
     onFinish: PropTypes.func.isRequired,
     onReset: PropTypes.func.isRequired,
+    // 「ルビティーにまかせる」: called with the function starting it, once the consent is given.
     onTakeover: PropTypes.func.isRequired,
 };
 

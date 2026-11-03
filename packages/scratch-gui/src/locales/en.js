@@ -1283,7 +1283,16 @@ export default {
     'gui.genaiConcierge.self': 'Build it myself',
     'gui.genaiConcierge.copyRewrite': 'Copy a request to rewrite it',
     'gui.genaiConcierge.takeover': 'Leave it to Rubytee',
-    'gui.genaiConcierge.takeoverSoon': 'Leaving it to Rubytee will be available soon.',
+    'gui.genaiConcierge.takeoverRunning':
+        'Rubytee (an AI) is rewriting the program ({count} / {max}). It may take a minute or two.',
+    'gui.genaiConcierge.takeoverCancel': 'Stop',
+    'gui.genaiConcierge.takeoverBy': 'Rubytee (an AI) made this version. Check that it does what you want.',
+    'gui.genaiConcierge.takeoverFailed':
+        'Rubytee rewrote it {count} times, but it still could not be turned into blocks. Build it yourself, or ask again.',
+    'gui.genaiConcierge.takeoverErrorRate': 'You have used Rubytee many times. Try again in about {minutes} minutes.',
+    'gui.genaiConcierge.takeoverErrorTooLong': 'The program is too long to leave to Rubytee.',
+    'gui.genaiConcierge.takeoverErrorInput': 'The program has words that cannot be sent to Rubytee.',
+    'gui.genaiConcierge.takeoverError': 'Could not reach Rubytee. Wait a little and try again.',
     'gui.genaiConcierge.switchBefore': 'Original program',
     'gui.genaiConcierge.switchAfter': "The AI's version",
     'gui.genaiConcierge.switchState': 'Now {side} is in ({names}). Click the flag and compare how they move.',
