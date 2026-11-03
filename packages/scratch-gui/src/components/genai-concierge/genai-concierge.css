@@ -283,6 +283,19 @@ $genai-mark: #ff3d8b;
     color: $text-primary-transparent;
 }
 
+/* 「ルビティー（AI）が作った案です」 and Rubytee's explanation (#1282). */
+.byRubytee {
+    margin: 6px 0;
+    padding: 4px 8px;
+    border-left: 3px solid $looks-secondary;
+    background-color: $ui-white;
+}
+
+.byRubytee p {
+    margin: 2px 0;
+    font-size: 0.75rem;
+}
+
 .notice {
     margin: 6px 0;
     padding: 6px 8px;

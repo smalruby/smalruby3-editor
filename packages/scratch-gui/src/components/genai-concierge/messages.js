@@ -361,10 +361,46 @@ const messages = defineMessages({
         description: 'Button offered after two failed checks, in a class using Rubytee',
         id: 'gui.genaiConcierge.takeover',
     },
-    takeoverSoon: {
-        defaultMessage: 'Leaving it to Rubytee will be available soon.',
-        description: 'Notice while the Rubytee takeover is not yet available',
-        id: 'gui.genaiConcierge.takeoverSoon',
+    takeoverRunning: {
+        defaultMessage: 'Rubytee (an AI) is rewriting the program ({count} / {max}). It may take a minute or two.',
+        description: 'While Rubytee rewrites the program ({count}: the try, {max}: the most tries)',
+        id: 'gui.genaiConcierge.takeoverRunning',
+    },
+    takeoverCancel: {
+        defaultMessage: 'Stop',
+        description: 'Button stopping Rubytee rewriting the program',
+        id: 'gui.genaiConcierge.takeoverCancel',
+    },
+    takeoverBy: {
+        defaultMessage: 'Rubytee (an AI) made this version. Check that it does what you want.',
+        description: 'Shown above the blocks of a version Rubytee made',
+        id: 'gui.genaiConcierge.takeoverBy',
+    },
+    takeoverFailed: {
+        defaultMessage:
+            'Rubytee rewrote it {count} times, but it still could not be turned into blocks. Build it yourself, or ask again.',
+        description: 'When none of the versions Rubytee made turned into blocks ({count}: tries)',
+        id: 'gui.genaiConcierge.takeoverFailed',
+    },
+    takeoverErrorRate: {
+        defaultMessage: 'You have used Rubytee many times. Try again in about {minutes} minutes.',
+        description: 'Rubytee refused: too many requests ({minutes}: minutes to wait)',
+        id: 'gui.genaiConcierge.takeoverErrorRate',
+    },
+    takeoverErrorTooLong: {
+        defaultMessage: 'The program is too long to leave to Rubytee.',
+        description: 'The program is too long to send to Rubytee',
+        id: 'gui.genaiConcierge.takeoverErrorTooLong',
+    },
+    takeoverErrorInput: {
+        defaultMessage: 'The program has words that cannot be sent to Rubytee.',
+        description: 'Rubytee refused the words of the program',
+        id: 'gui.genaiConcierge.takeoverErrorInput',
+    },
+    takeoverError: {
+        defaultMessage: 'Could not reach Rubytee. Wait a little and try again.',
+        description: 'Rubytee could not answer (network or AI error)',
+        id: 'gui.genaiConcierge.takeoverError',
     },
     switchBefore: {
         defaultMessage: 'Original program',

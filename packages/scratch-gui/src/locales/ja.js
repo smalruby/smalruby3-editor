@@ -1726,7 +1726,17 @@ export default {
     'gui.genaiConcierge.self': '自分で組む',
     'gui.genaiConcierge.copyRewrite': '書き直しのお願いをコピー',
     'gui.genaiConcierge.takeover': 'ルビティーにまかせる',
-    'gui.genaiConcierge.takeoverSoon': 'ルビティーにまかせる機能は、もうすぐ使えるようになります。',
+    'gui.genaiConcierge.takeoverRunning':
+        'ルビティー（AI）がプログラムを書き直しています（{count} / {max} 回目）。1〜2 分かかることがあります。',
+    'gui.genaiConcierge.takeoverCancel': 'やめる',
+    'gui.genaiConcierge.takeoverBy': 'ルビティー（AI）が作った案です。やりたいことになっているか、確かめよう。',
+    'gui.genaiConcierge.takeoverFailed':
+        'ルビティーが {count} 回書き直しても、ブロックにできませんでした。自分で組むか、もう一度相談してみよう。',
+    'gui.genaiConcierge.takeoverErrorRate':
+        'ルビティーを使える回数をこえました。{minutes} 分ほど待ってから、もう一度ためしてね。',
+    'gui.genaiConcierge.takeoverErrorTooLong': '作品が長すぎて、ルビティーにまかせられません。',
+    'gui.genaiConcierge.takeoverErrorInput': 'ルビティーに送れない言葉が、作品に入っていました。',
+    'gui.genaiConcierge.takeoverError': 'ルビティーにつながりませんでした。少し待ってから、もう一度ためしてね。',
     'gui.genaiConcierge.switchBefore': '元のプログラム',
     'gui.genaiConcierge.switchAfter': '生成AI の案',
     'gui.genaiConcierge.switchState': 'いまは{side}が入っています（{names}）。旗をおして、動きを比べてみよう。',

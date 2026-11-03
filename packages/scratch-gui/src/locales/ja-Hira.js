@@ -1774,7 +1774,17 @@ export default {
     'gui.genaiConcierge.self': 'じぶんでくむ',
     'gui.genaiConcierge.copyRewrite': 'かきなおしのおねがいをコピー',
     'gui.genaiConcierge.takeover': 'ルビティーにまかせる',
-    'gui.genaiConcierge.takeoverSoon': 'ルビティーにまかせるきのうは、もうすぐつかえるようになります。',
+    'gui.genaiConcierge.takeoverRunning':
+        'ルビティー（AI）がプログラムをかきなおしています（{count} / {max} かいめ）。1〜2 ふんかかることがあります。',
+    'gui.genaiConcierge.takeoverCancel': 'やめる',
+    'gui.genaiConcierge.takeoverBy': 'ルビティー（AI）がつくったあんです。やりたいことになっているか、たしかめよう。',
+    'gui.genaiConcierge.takeoverFailed':
+        'ルビティーが {count} かいかきなおしても、ブロックにできませんでした。じぶんでくむか、もういちどそうだんしてみよう。',
+    'gui.genaiConcierge.takeoverErrorRate':
+        'ルビティーをつかえるかいすうをこえました。{minutes} ふんほどまってから、もういちどためしてね。',
+    'gui.genaiConcierge.takeoverErrorTooLong': 'さくひんがながすぎて、ルビティーにまかせられません。',
+    'gui.genaiConcierge.takeoverErrorInput': 'ルビティーにおくれないことばが、さくひんにはいっていました。',
+    'gui.genaiConcierge.takeoverError': 'ルビティーにつながりませんでした。すこしまってから、もういちどためしてね。',
     'gui.genaiConcierge.switchBefore': 'もとのプログラム',
     'gui.genaiConcierge.switchAfter': 'せいせいAI のあん',
     'gui.genaiConcierge.switchState':

@@ -30,7 +30,7 @@
    自分のことばで 1 行書いてから（必須）［このブロックを入れる］（または［自分で組む］で閉じる）。
    ✗ なら、ブロックにできなかったところ（最大 5 つ）と［書き直しのお願いをコピー］を出す。
    ✗ が 2 回になったら、ルビティーが有効なクラス（`selectRubyteeAvailable`）では
-   ［ルビティーにまかせる］も出す（いまは入口だけで、押すと「もうすぐ使えるようになります」と出す）。
+   ［ルビティーにまかせる］も出す（下の「ルビティーにまかせる」）。
 5. **切りかえて比べる** — 入れたあとは［元のプログラム］⇔［生成AI の案］を何度でも切りかえられる。
    答えに入っていたスプライト（複数あれば全部）がいっしょに切りかわる。それぞれの側で生徒が変えた
    ところは、切りかえても残る（切りかえる直前のブロックをその側の内容として覚える）。途中で消した
@@ -91,6 +91,38 @@
   開く。一覧の行を押すと、そのブロックのスプライトを開いて、そのブロックを左上へ動かす
   （印が多くて全部は見えないとき・パネルの下に隠れたとき用）。動かすのも、スプライトの切りかえ
   （`workspaceUpdate`）と描き終わりを待ってから。
+
+### ルビティーにまかせる
+
+生成AI に書き直しをお願いしても 2 回ブロックにできなかったとき、ルビティー（Claude Sonnet）が作品を
+書き直す（`src/lib/genai-takeover.js`）。ルビティーが有効なクラス（`selectRubyteeAvailable`）の生徒だけ。
+
+1. ［ルビティーにまかせる］を押す。まだならルビティーの **同意ダイアログ**（AI であること・まちがえることが
+   ある・個人情報を書かない）を出す。Ruby タブのルビティーと同じもので、同意は共有（`smalruby:rubyteeConsent`）。
+2. ルビティーに渡すもの: 困りごと（種類と自分のことば）、作品全体の Ruby（スプライトごとに `# 「名前」` と
+   音・コスチュームの名前）、生成AI に渡した質問文（最初の相談文と、コピーした書き直しのお願い）と
+   貼りもどした答えのすべて、それぞれブロックにできなかった理由。relay の上限（1 万字）に収まらないときは
+   **古い相談から** 短くし、それでも入らないものは省く（困りごとと作品は必ず全部入れる。作品だけで
+   入らないときは「作品が長すぎて、ルビティーにまかせられません」）。
+3. ルビティーの答えを、貼りつけた答えと同じ決まり（上の「ブロックにできるか」）でブラウザが調べる。
+   ✗ なら、理由を付けて作り直してもらう。生徒の手を借りずに **最大 3 回**（1 回目 + 作り直し 2 回。
+   1 回が 1〜2 分かかることがあり、席ごとの回数の上限（40 回 / 35 分）にも数えられるため）。
+   作り直しでは、最初に送った内容とルビティーの直前の答えだけを履歴として送る（リクエストを小さく保つ）。
+4. ✔ になったものだけを「ルビティー（AI）が作った案です」とルビティーの短い説明と一緒に、増える・変わる
+   ブロック（ブロックの言葉）で見せる。以降は通常の［このブロックを入れる］/ 切りかえの流れ。
+   3 回とも ✗ なら、最後の理由を見せて「自分で組むか、もう一度相談してみよう」と出す（もう一度まかせることもできる）。
+5. 書き直している間はスピナーと「（N / 3 回目）」を出し、［やめる］で止められる。
+
+ブロックそのものは AI に作らせない（答えは Ruby で、ブロックにするのはスモウルビーの変換）。
+
+![ルビティーにまかせた答え（ブロックにできた案だけを見せる）](screenshots/0108-takeover.png)
+
+relay の呼び方: `POST /generate` に `purpose: "genai-takeover"` と、クラスに参加していれば生徒の
+`sessionToken`（relay が席を確かめる。`classroom` / `seat`・メールアドレス・名前は送らない）→
+`202 { jobId }` → `GET /jobs/{jobId}` を 3 秒から 1 秒ずつ伸ばして最大 10 秒間隔で問い合わせる。
+ブラウザは 300 秒で待つのをやめる。エラーは、回数の上限（429）なら「N 分ほど待ってから」、
+送れない言葉（`INVALID_INPUT`）・長すぎ（`INPUT_TOO_LONG` など）・それ以外（つながらない・AI のエラー）を
+分けて出す。
 
 ### パネルを閉じた・タブを移ったとき
 
@@ -198,6 +230,7 @@
 | `packages/scratch-gui/src/lib/genai-prompt.js` | 質問文の組み立て・分割・答えからの Ruby 取り出し（純粋関数） |
 | `packages/scratch-gui/src/lib/genai-repair.js` | 生成AI の Ruby の自動修正・スプライトごとの分割（純粋関数） |
 | `packages/scratch-gui/src/lib/genai-block-diff.js` | 今のプログラムと生成AI の案をブロックで比べる・ブロックの言葉にする（純粋関数。ブロックの定義は引数で受ける） |
+| `packages/scratch-gui/src/lib/genai-takeover.js` | ルビティーにまかせる: ルビティーに送る文の組み立て・作り直しのくり返し・relay の呼び出し（ジョブの問い合わせ） |
 | `packages/scratch-gui/src/lib/genai-answer.js` | 貼った答えを調べる（✔ / ✗ の判定）・書き直しのお願いの文・切りかえ（純粋関数。変換器は引数で受ける） |
 | `packages/scratch-gui/src/reducers/classroom.js` | `studentGenai` と `setStudentGenai` |
 
@@ -229,6 +262,9 @@
 | `genai-answer-toggle` | a | 調べたあとに畳んだ答えを見る / 閉じる |
 | `genai-answer` / `genai-convert` / `genai-checking` / `genai-convert-ok` / `genai-convert-ng` / `genai-fixes` / `genai-problems` / `genai-ruby-toggle` / `genai-reflection` / `genai-apply` / `genai-self` / `genai-copy-rewrite` | — | 段階 3〜4（答えを貼る・ブロックにする） |
 | `genai-takeover` | button | ルビティーにまかせる（✗ が 2 回・ルビティーが有効なクラスだけ） |
+| `genai-takeover-running` / `genai-takeover-cancel` | div / button | ルビティーが書き直している間（N / 3 回目）と［やめる］ |
+| `genai-takeover-by` / `genai-takeover-explanation` | div / p | ルビティーが作った案であることと、ルビティーの説明（✔ の中） |
+| `genai-takeover-failed` / `genai-takeover-error` | p | 3 回ともブロックにできなかった / relay のエラー |
 | `genai-switch-before` / `genai-switch-after` / `genai-switch-state` / `genai-again` / `genai-finish` | — | 入れたあとの切りかえ |
 | `genai-changes` | div | 増える・変わるブロックの一覧（入れる前の確認と、［生成AI の案］が入っている間） |
 | `genai-change` | li | 一覧の 1 行。`data-kind` は `added` / `changed` / `removed`。入れたあとは中のリンクでそのブロックへ移動 |
