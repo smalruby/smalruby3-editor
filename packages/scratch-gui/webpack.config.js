@@ -30,9 +30,20 @@ const commonHtmlWebpackPluginOptions = {
 };
 
 // === Smalruby: Start of self-hosted Monaco Editor (#1171) ===
-// Monaco 本体 (`min/vs`) を CDN ではなく自前で配信する。コピー先は
-// `src/lib/monaco-i18n-helper.js` の MONACO_VS_SUBPATH と対で維持すること。
-const MONACO_VS_DEST = 'static/monaco/vs';
+// Monaco 本体 (`min/vs`) を CDN ではなく自前で配信する。
+// 配信パスに monaco-editor の版を含める (#1318)。版を含めないと、Monaco の更新直後に
+// runtime cache (StaleWhileRevalidate) やブラウザの HTTP キャッシュに残った旧版の
+// `editor.main.js` を新しい gui.js が読み、旧版のハッシュ付きチャンクを要求して 404 になる・
+// バンドルした日本語 NLS（添字で引く配列）と本体の版がずれる、といった不整合が起きる。
+// 版ごとに URL が変われば旧版のエントリには当たらない（旧エントリは maxEntries で追い出される）。
+// monaco-editor の exports は `./*` を `esm/vs` へ写すので `require('monaco-editor/package.json')`
+// では読めない。CopyWebpackPlugin と同じ実ファイルのパスから読む。
+const MONACO_EDITOR_VERSION = JSON.parse(
+    fs.readFileSync(path.resolve(__dirname, '../../node_modules/monaco-editor/package.json'), 'utf8')
+).version;
+// クライアント (`src/lib/monaco-i18n-helper.js`) へは DefinePlugin の
+// `process.env.MONACO_VS_SUBPATH` で渡すので、パスの定義はここだけにある。
+const MONACO_VS_DEST = `static/monaco/${MONACO_EDITOR_VERSION}/vs`;
 
 // `min/vs` は約 16MB あり、PWA の precache に入れると初回インストールが極端に重くなる。
 // precache からは除外し、runtime caching (StaleWhileRevalidate) でオフライン対応する。
@@ -152,7 +163,11 @@ const baseConfig = new ScratchWebpackConfigBuilder(
         'process.env.MAX_USER_MESSAGE_LENGTH': `"${process.env.MAX_USER_MESSAGE_LENGTH || '250'}"`,
         'process.env.MIN_USER_MESSAGE_LENGTH': `"${process.env.MIN_USER_MESSAGE_LENGTH || '10'}"`,
         // === Smalruby: version update notification ===
-        'process.env.COMMIT_SHA': `"${process.env.COMMIT_SHA || ''}"`
+        'process.env.COMMIT_SHA': `"${process.env.COMMIT_SHA || ''}"`,
+        // === Smalruby: Start of self-hosted Monaco Editor (#1171) ===
+        // 環境変数ではなくビルド時に monaco-editor の版から決まる値 (#1318)。CI への設定は不要。
+        'process.env.MONACO_VS_SUBPATH': JSON.stringify(MONACO_VS_DEST)
+        // === Smalruby: End of self-hosted Monaco Editor (#1171) ===
     }))
     .addPlugin(new CopyWebpackPlugin({
         patterns: [
