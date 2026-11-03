@@ -154,6 +154,8 @@ export class ClassroomStack extends cdk.Stack {
     });
 
     // GSI: sessionToken lookup (for student submission auth)
+    // rubytee relay（別スタック）も、この表名と GSI 名を決め打ちで Query して takeover の席を
+    // 確かめる（#1317・読み取り専用）。表名や GSI 名を変えるときは relay の stack も直す。
     this.membershipsTable.addGlobalSecondaryIndex({
       indexName: 'sessionToken-index',
       partitionKey: {

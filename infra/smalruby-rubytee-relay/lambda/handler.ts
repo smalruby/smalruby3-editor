@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 import { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, UpdateCommand, GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, UpdateCommand, GetCommand, PutCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
 import { randomUUID } from 'crypto';
 import { SMALRUBY_REFERENCE } from './smalruby-reference';
@@ -22,6 +22,12 @@ import {
   isValidJobId,
   jobResponseBody,
 } from './takeover';
+import {
+  SESSION_TOKEN_INDEX_NAME,
+  SeatIdentity,
+  isSessionTokenFormat,
+  seatIdentityFromMembership,
+} from './seat-session';
 
 // ---------------------------------------------------------------------------
 // Configuration (from environment variables)
@@ -40,16 +46,16 @@ const MAX_FIELD_NAME_LENGTH = 100;       // sprite/costume/sound names
 const MAX_CURRENT_CODE_LENGTH = 1000;    // currentCode in stateContext
 const MAX_HISTORY_TURNS = 20;            // conversation turns
 const MAX_HISTORY_TURN_TEXT_LENGTH = 1000; // chars per history turn
-const MAX_CLASSROOM_ID_LENGTH = 100;     // classroom identifier (logged)
-const MAX_SEAT_LENGTH = 10;              // seat (出席番号, logged)
 // 「ルビティーにまかせる」(takeover) 用
 const JOBS_TABLE_NAME = process.env.JOBS_TABLE_NAME || '';
 const USAGE_TABLE_NAME = process.env.USAGE_TABLE_NAME || '';
 const TAKEOVER_WORKER_FUNCTION_NAME = process.env.TAKEOVER_WORKER_FUNCTION_NAME || '';
 // 1 席あたり（classroom + seat）の上限。今の IP 単位と同じ 40 回
 const TAKEOVER_SEAT_MAX_REQUESTS = parseInt(process.env.TAKEOVER_SEAT_MAX_REQUESTS || '40', 10);
-// classroom / seat は自己申告なので IP 単位の上限も重ねる（40 人 × 40 回）
+// 1 つの教室（同じ IP）から出る席ぶん（40 人 × 40 回）。確かめた席でも IP の上限を重ねる
 const TAKEOVER_IP_MAX_REQUESTS = parseInt(process.env.TAKEOVER_IP_MAX_REQUESTS || '1600', 10);
+// クラス管理の memberships 表（別スタック・読み取り専用）。sessionToken から席を確かめる (#1317)
+const CLASSROOM_MEMBERSHIPS_TABLE_NAME = process.env.CLASSROOM_MEMBERSHIPS_TABLE_NAME || '';
 
 // Request purposes. Unknown / missing purposes fall back to the default model.
 const PURPOSE_GENAI_TAKEOVER = 'genai-takeover';
@@ -112,6 +118,9 @@ interface RelayRequest {
   stateContext?: StateContext;
   // Optional (all backward compatible): what the request is for, and who in a class sent it.
   purpose?: unknown;
+  // 生徒がクラスに参加したときにもらうトークン。席はここから relay が確かめる (#1317)
+  sessionToken?: unknown;
+  // 自己申告の classroom / seat は信じない（送られてきても無視する）
   classroom?: unknown;
   seat?: unknown;
 }
@@ -445,30 +454,46 @@ export function resolveModel(purpose: unknown): string {
   return purpose === PURPOSE_GENAI_TAKEOVER ? CLAUDE_TAKEOVER_MODEL : CLAUDE_MODEL;
 }
 
-// Identifier-like values only: no whitespace, no '@' (never log e-mail addresses or names).
-const SAFE_ID_PATTERN = /^[A-Za-z0-9_.:-]+$/;
-
-function toSafeId(value: unknown, maxLength: number): string | undefined {
-  if (typeof value !== 'string' && typeof value !== 'number') return undefined;
-  const str = String(value);
-  if (str.length === 0 || str.length > maxLength) return undefined;
-  return SAFE_ID_PATTERN.test(str) ? str : undefined;
-}
-
 /**
- * Pick the optional purpose / classroom / seat to record in CloudWatch.
- * Invalid values are dropped (not rejected) so that existing clients keep working.
+ * Pick the purpose, and the classroom / seat verified from the sessionToken, to record in
+ * CloudWatch and the usage table. The request's own classroom / seat are self-declared and
+ * are never used (#1317): anyone who knows a classroomId could otherwise spend another
+ * student's seat quota or write usage rows for any classroom.
+ * Invalid purposes are dropped (not rejected) so that existing clients keep working.
  */
-export function extractUsageContext(body: { purpose?: unknown; classroom?: unknown; seat?: unknown }): UsageContext {
+export function extractUsageContext(body: { purpose?: unknown }, seat?: SeatIdentity | null): UsageContext {
   const ctx: UsageContext = {};
   if (typeof body.purpose === 'string' && KNOWN_PURPOSES.includes(body.purpose)) {
     ctx.purpose = body.purpose;
   }
-  const classroom = toSafeId(body.classroom, MAX_CLASSROOM_ID_LENGTH);
-  if (classroom) ctx.classroom = classroom;
-  const seat = toSafeId(body.seat, MAX_SEAT_LENGTH);
-  if (seat) ctx.seat = seat;
+  if (seat) {
+    ctx.classroom = seat.classroom;
+    ctx.seat = seat.seat;
+  }
   return ctx;
+}
+
+/**
+ * sessionToken をクラス管理の memberships 表（GSI sessionToken-index・読み取り専用）で引き、
+ * 席として数えてよい classroom / seat を返す。確かめられないとき（トークンなし・形が違う・
+ * 見つからない・kicked・表が読めない）は null = 席として数えず IP だけの上限にする。
+ * 不正防止の判定なので fail-open（席として信じる）にはしないが、答えは返す。
+ */
+export async function verifySeatSession(sessionToken: unknown): Promise<SeatIdentity | null> {
+  if (!CLASSROOM_MEMBERSHIPS_TABLE_NAME || !isSessionTokenFormat(sessionToken)) return null;
+  try {
+    const result = await docClient.send(new QueryCommand({
+      TableName: CLASSROOM_MEMBERSHIPS_TABLE_NAME,
+      IndexName: SESSION_TOKEN_INDEX_NAME,
+      KeyConditionExpression: 'sessionToken = :st',
+      ExpressionAttributeValues: { ':st': sessionToken },
+      Limit: 1,
+    }));
+    return seatIdentityFromMembership(result.Items?.[0]);
+  } catch (err) {
+    console.error('[Seat] failed to verify sessionToken, counting by IP only:', err);
+    return null;
+  }
 }
 
 /**
@@ -721,7 +746,7 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
   }
 
   const sourceIp = event.requestContext.http.sourceIp || 'unknown';
-  const usageContext = extractUsageContext(body);
+  const usageContext = extractUsageContext(body, await verifySeatSession(body.sessionToken));
 
   // 「ルビティーにまかせる」は非同期ジョブ（API Gateway の 30 秒の壁を避ける）
   if (isTakeover) {
