@@ -212,12 +212,16 @@ const runTakeover = async ({ first, send, check, toJapanese, onTry, maxTries = M
 
 const defaultSleep = (ms, signal) =>
     new Promise((resolve, reject) => {
-        const timer = setTimeout(resolve, ms);
-        if (signal)
-            signal.addEventListener('abort', () => {
-                clearTimeout(timer);
-                reject(new TakeoverError('CANCELLED'));
-            });
+        // Remove the abort listener once the wait ends, so polling does not pile up listeners
+        const onAbort = () => {
+            clearTimeout(timer);
+            reject(new TakeoverError('CANCELLED'));
+        };
+        const timer = setTimeout(() => {
+            if (signal) signal.removeEventListener('abort', onAbort);
+            resolve();
+        }, ms);
+        if (signal) signal.addEventListener('abort', onAbort, { once: true });
     });
 
 const readJson = async (response) => {
