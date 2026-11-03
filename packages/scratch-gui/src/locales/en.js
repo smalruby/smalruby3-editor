@@ -6,8 +6,6 @@ import { en as gettingStartedHowtos } from '../lib/libraries/decks/categories/ge
 import { en as rubyBasicsHowtos } from '../lib/libraries/decks/categories/ruby-basics.locale.js';
 
 export default {
-    'gui.sharedMessages.migrateMeshV1Warning':
-        'This project contains legacy Mesh extensions and can only be used until April 30th. Select OK to continue using the legacy Mesh extensions. Select Cancel to use the new Mesh extensions instead.',
     'gui.sharedMessages.meshV1AutoMigrated':
         'The legacy Mesh service has ended. The blocks in this project have been automatically replaced with the new Mesh blocks. Please verify that it works as expected.',
     'gui.sharedMessages.meshV1BackpackAutoMigrated':
@@ -582,12 +580,8 @@ export default {
     'gui.smalruby3.rubyToBlocksConverter.classNotSupportedInV1':
         'class definitions are not supported in Ruby version 1. Please switch to Ruby version 2 from the settings menu.',
     'gui.smalruby3.telemetryOptIn.buttonTextYes': "Yes, I'd like to help improve Smalruby",
-    'gui.smalruby3.extension.mesh.name': 'Old Mesh',
     'gui.smalruby3.extension.mesh.description': 'Allowing users to interact over a computer network.',
-    'mesh.categoryName': 'Old Mesh',
     'mesh.sensorValue': '[NAME] sensor value',
-    'mesh.hostPeripheralName': 'Become Mesh Host [{ MESH_ID }]',
-    'mesh.clientPeripheralName': 'Join Mesh [{ MESH_ID }]',
     'mesh.registeredHost': 'Registered Host Mesh [{ MESH_ID }]',
     'mesh.joinedMesh': 'Joined Mesh [{ MESH_ID }]',
     'mesh.notConnectedMenu': '! Disconnected',

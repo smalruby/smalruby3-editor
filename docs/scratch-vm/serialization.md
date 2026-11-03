@@ -235,7 +235,7 @@ migrateMeshV1InTargets(targets, extensions) // 読み込んだターゲットの
    }
    ```
    scratch-gui からこのオプションを指定してロード。
-   このオプションは作品に v1 ブロックがあるときの通知（`migrateMeshV1Warning`）のために残している。
+   このオプションは、作品を v2 に書き換えたことの通知（`meshV1AutoMigrated`。`project-loader-utils.js` が出す）と対で残している。
 
 2. **ターゲットのインストール時** (`installTargets` の先頭)
    - `migrateMeshV1InTargets()` で、読み込んだターゲットの `mesh_*` opcode と拡張 ID `mesh` を v2 に書き換える

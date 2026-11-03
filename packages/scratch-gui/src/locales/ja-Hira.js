@@ -676,8 +676,6 @@ export default {
     'gui.sharedMessages.sprite': 'スプライト{index}',
     'gui.sharedMessages.replaceProjectWarning': 'げんざいのプロジェクトのないようを おきかえますか？',
     'gui.sharedMessages.loadFromComputerTitle': 'コンピューターからよみこむ',
-    'gui.sharedMessages.migrateMeshV1Warning':
-        'このプロジェクトにはじゅうらいのメッシュかくちょうきのうがふくまれていますので4がつ30にちまでしかつかえません。このままじゅうらいのメッシュかくちょうきのうをりようするばあいはOKをせんたくします。そうではなく、あたらしいメッシュかくちょうきのうをつかうばあいはキャンセルをせんたくします。',
     'gui.sharedMessages.meshV1AutoMigrated':
         'じゅうらいのメッシュかくちょうきのうのサービスはしゅうりょうしました。プロジェクトのなかのブロックをあたらしいメッシュかくちょうきのうにじどうでおきかえました。どうさをかくにんしてください。',
     'gui.sharedMessages.meshV1BackpackAutoMigrated':
@@ -978,14 +976,10 @@ export default {
     'gui.smalruby3.prismError.unexpectedLocalVariableOrMethod':
         'コードがおわるべきばしょに、へんすうやメソッドがあります。\n`end` のふそくや、よぶんなめいれいがないかかくにんしてください。',
     'gui.smalruby3.telemetryOptIn.buttonTextYes': 'はい、スモウルビーのかいぜんにきょうりょくします。',
-    'gui.smalruby3.extension.mesh.name': 'じゅうらいのメッシュ',
     'gui.smalruby3.extension.mesh.description': 'ネットワークじょうでユーザーかんのやりとりを おこなう。',
-    'mesh.categoryName': 'じゅうらいのメッシュ',
     'mesh.sensorValue': '[NAME] センサーのあたい',
-    'mesh.hostPeripheralName': 'メッシュのホストになる 【{ MESH_ID }】',
-    'mesh.clientPeripheralName': 'メッシュにさんかする 【{ MESH_ID }】',
     'gui.smalruby3.extension.mesh.connectingMessage': 'メッシュのネットワークにせつぞくしています',
-    'meshV2.categoryName': 'じゅうらいのメッシュ',
+    'meshV2.categoryName': 'メッシュ',
     'gui.smalruby3.extension.meshV2.name': 'メッシュ',
     'mesh.notConnected': 'メッシュにせつぞくしていません',
     'mesh.registeredHost': 'ホストとしてメッシュにとうろくしました 【{ MESH_ID }】',
