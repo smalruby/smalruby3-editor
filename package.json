@@ -56,12 +56,17 @@
     "dotenv": "^17.2.3",
     "globals": "16.5.0",
     "husky": "8.0.3",
-    "npm": "10.9.8",
+    "npm": "12.2.1",
     "serialport": "^13.0.0",
     "ts-node": "10.9.2"
   },
   "dependencies": {
     "@azure/msal-browser": "^5.6.3",
     "jszip": "^3.10.1"
+  },
+  "overrides": {
+    "autoprefixer": "10.6.2",
+    "postcss-import": "17.0.1",
+    "postcss-simple-vars": "7.0.1"
   }
 }

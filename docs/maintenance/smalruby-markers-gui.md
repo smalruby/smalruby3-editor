@@ -72,6 +72,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `webpack.config.js` | classroom API | CLASSROOM_API_ENDPOINT 環境変数注入 |
 | `webpack.config.js` | scratch api proxy endpoint | SCRATCH_API_PROXY_ENDPOINT 環境変数注入 |
 | `webpack.config.js` | self-hosted Monaco Editor (#1171) | Monaco 本体 (`min/vs`) を版付きの `static/monaco/<版>/vs` へコピーする定数（版は monaco-editor の package.json から読む）・CopyWebpackPlugin パターン・`DefinePlugin` の `process.env.MONACO_VS_SUBPATH` 注入と、PWA precache 除外 + runtime caching 設定。マーカーは 2 箇所の `GenerateSW` にも単一行で入る |
+| `webpack.config.js` | copy-webpack-plugin 14 (#1320) | dist の `libraries/*.json` コピーで、copy-webpack-plugin 7 で廃止された `flatten: true` の代わりに `to: 'libraries/[name][ext]'` を使う |
 | `eslint.config.mjs` | react lifecycle typo detection | `react/no-typos` を error にして getDerivedStateFromProps/Error の static 抜け等を lint で検出 |
 | `eslint.config.mjs` | prettier integration | eslintConfigPrettier を最後に置いて prettier と競合する整形ルールを無効化 |
 | `src/lib/blocks.js` | gesture recovery import | ジェスチャー復旧モジュールの import |

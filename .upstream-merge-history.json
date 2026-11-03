@@ -58,6 +58,26 @@
           "detail": "upstream (v13.7.2) depends on hull.js 0.2.10, which has GHSA-q849-wxrc-vqrp with no patched release. 0.2.1 gives the same hull for collision checks; packages/scratch-render/test/unit/HullTests.js fails if 0.2.10 comes back."
         }
       ]
+    },
+    {
+      "date": "2026-11-03",
+      "trackingIssue": "#1320",
+      "reason": "Security: build tools are newer than upstream to clear npm advisories. Keep the newer versions when merging upstream unless upstream has moved past them.",
+      "affectedAreas": [
+        {
+          "category": "INTENTIONAL KEEP: newer build tool versions",
+          "files": [
+            "package.json",
+            "package-lock.json",
+            "packages/scratch-gui/package.json",
+            "packages/scratch-vm/package.json",
+            "packages/scratch-render/package.json",
+            "packages/scratch-svg-renderer/package.json",
+            "packages/scratch-gui/webpack.config.js"
+          ],
+          "detail": "copy-webpack-plugin 6.4.1 -> 14.0.0 (4 packages), postcss-import 12 -> 17 / autoprefixer 9 -> 10 / postcss-simple-vars 5 -> 7 (postcss 7 -> 8), root npm 10 -> 12, scratch-svg-renderer jsdom 13 -> 30. Root overrides force the postcss plugins because scratch-webpack-configuration 3.1.2 still declares the old peer ranges. The gui webpack.config.js replaces the removed flatten option (marked)."
+        }
+      ]
     }
   ],
   "previousMerges": [

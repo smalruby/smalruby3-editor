@@ -258,8 +258,10 @@ const distConfig = baseConfig.clone()
             patterns: [
                 {
                     from: 'src/lib/libraries/*.json',
-                    to: 'libraries',
-                    flatten: true
+                    // === Smalruby: Start of copy-webpack-plugin 14 (#1320) ===
+                    // `flatten` was removed in copy-webpack-plugin 7; name the output file instead.
+                    to: 'libraries/[name][ext]'
+                    // === Smalruby: End of copy-webpack-plugin 14 (#1320) ===
                 }
             ]
         })
