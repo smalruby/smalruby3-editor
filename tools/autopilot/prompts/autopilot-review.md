@@ -81,7 +81,10 @@ touch した領域に関わらず**常に**前提として踏まえる。触っ�
 |---|---|---|
 | **Must** | リリース前に必ず直す。**セキュリティ問題・考慮漏れ**（明確なバグ/退行） | null 未処理でクラッシュ、秘密情報のログ出力、規約の不変条件違反 |
 | **Question** | 直した方がいいが動作はする。人間との対話が必要な場合がある。稀なコーナーケースで不都合の可能性があるが稀 | 命名・設計の妥当性、稀な競合状態、将来の拡張性への懸念 |
-| **FYI** | 気になるが直すほどではないと判断したもの | より簡潔に書ける、将来的な整理の余地 |
+| **FYI** | 動作・安全性には影響しない改善点（重複・冗長・整理の余地・小さな不整合） | より簡潔に書ける、使われなくなったコードや文言、将来的な整理の余地 |
+
+分類は「直すかどうか」ではなく**影響の大きさ**で決める。Question / FYI も、ステップ 5 の方針で
+**できるだけこのレビューの中で直す**（載せるだけで終わらせない）。
 
 指摘は **1 件ずつ別コメントにしない**。ステップ 6 で **1 回のレビューの全指摘を 1 コメントに
 まとめて**投稿する（#1248。人間が `Q1はOK, FYI1は修正して` のように ID で短く返信できるようにする）。
@@ -93,18 +96,36 @@ touch した領域に関わらず**常に**前提として踏まえる。触っ�
 
 - `category`: `Must` / `Question` / `FYI`
 - `location`: `file:line`（特定できなければ省略可）
-- `handling`: Must は `修正済み（<sha>）`、Question は `修正済み（<sha>）` か `人間の判断に委ねる`、
-  FYI は省略可（ステップ 5 の結果を書く）
+- `handling`: ステップ 5 の結果を必ず書く。Must は `修正済み（<sha>）`。Question は `修正済み（<sha>）` /
+  `見送り: <理由>。#<follow-up Issue> で対応` / `人間の判断に委ねる: <何を選んでほしいか>` のどれか。
+  FYI は `修正済み（<sha>）` か `見送り: <理由>`（振る舞いが変わる / 設定値が増える / infra の変更が要る /
+  情報共有のみで直すものが無い）
 
 ### 5. 分類ごとの対応方針で処理する
 
 | 分類 | 対応 |
 |---|---|
 | **Must** | **自分で修正する**。まとめコメントの `handling` に `修正済み（<sha>）` を書く |
-| **Question** | **すぐ対応できるもの**（小さな修正）は自分で直す。**改修コスト > 効果**と判断したものは、
-まとめコメントに残すだけにして人間の判断に委ねる（後続の人間レビューで拾われる。Review フェーズは
-どのみち `🙋 HITL` で人間に渡るため、追加の HITL 分岐は不要） |
-| **FYI** | **対応しない**。まとめコメントに載せるだけ（コードは変えない） |
+| **Question** | **基本は自分で直す**（`phases.js` の既定方針 `fix-or-followup`）。**よほど大変・効果が小さい**と判断して見送るときも、何もしないで終わらせず **follow-up の sub-issue を作り**、`handling` に `見送り: <理由>。#<番号> で対応` と書く（作り方は下記）。**仕様・方針の選択が人間にしかできないもの**（どちらの挙動にするか、何を残すか）だけは直さず `人間の判断に委ねる: <選んでほしいこと>` と書く（Review フェーズはどのみち `🙋 HITL` で人間に渡るので、追加の HITL 分岐は不要） |
+| **FYI** | **簡単に直せるものは自分で直す**（既定方針 `fix-if-easy`）。ただし次のどれかに当たるものは直さず、`handling` に `見送り: <理由>` と書く: ① **振る舞いが変わる**（ユーザー・API 利用者から見える挙動や出力が変わる）② **設定値が増える**（env・settings・URL パラメータ・localStorage キーなど）③ **infra（`infra/**`）の変更が要る**。情報共有だけの FYI（確認したことの記録など）は直すものが無いので `見送り: 情報共有のみ` でよい |
+
+**follow-up の sub-issue の作り方**（Question を見送るとき。人間が enroll するかを決められる形にする）:
+
+```bash
+REPO="${AUTOPILOT_REPO:-smalruby/smalruby3-editor}"
+# 冪等: 同じ内容の follow-up が既にあれば作り直さない
+GH_TOKEN="$(bin/bot-token)" gh issue list --repo "$REPO" --state open --search "<要点> in:title" --json number,title
+url=$(GH_TOKEN="$(bin/bot-token)" gh issue create --repo "$REPO" --title "<conventional な title>" \
+  --body "<何が問題か・どう直すか・なぜこの PR で見送ったか>"$'\n\n'"Follow-up of #$AUTOPILOT_ISSUE (PR #$PR のレビュー指摘)")
+num=$(basename "$url")
+dbid=$(GH_TOKEN="$(bin/bot-token)" gh api "repos/$REPO/issues/$num" --jq .id)
+GH_TOKEN="$(bin/bot-token)" gh api --method POST "repos/$REPO/issues/$AUTOPILOT_ISSUE/sub_issues" -F sub_issue_id="$dbid"
+```
+
+- **assignee と `🤖 autopilot` ラベルは付けない**（autopilot に乗せるかは人間が決める）。Project にも
+  追加しない（単一ライター。結果ファイルの `createdSubIssues` にも入れない — それは decompose 専用）。
+- infra の変更が要る follow-up は `--label "🧱 infra"` を付け、本文に「`infra/**` だけ・後方互換な変更だけ」
+  「PR は `Refs #<番号>`」を書く（infra-first）。
 
 - 修正は worktree 内で行い `bin/bot-git` でコミット・push（commitlint: 小文字 subject / 各行 ≤100 字）。
 - 修正 → 関連テスト/lint をローカル再実行 → push。

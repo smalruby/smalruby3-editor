@@ -208,8 +208,8 @@ test('resolveFindingAction: 人間の指示が既定方針より優先、指示�
     assert.equal(resolveFindingAction('Must', 'ok'), 'no-change');
     assert.equal(resolveFindingAction('Question', 'other'), 'reply');
     assert.equal(resolveFindingAction('Must', null), 'fix');
-    assert.equal(resolveFindingAction('Question', undefined), 'fix-or-hitl');
-    assert.equal(resolveFindingAction('FYI', null), 'ignore');
+    assert.equal(resolveFindingAction('Question', undefined), 'fix-or-followup');
+    assert.equal(resolveFindingAction('FYI', null), 'fix-if-easy');
 });
 
 test('planAddressReview: 「Q1はOK, FYI1は修正して」→ Q1 は変更なし・FYI1 は修正、未言及は既定方針', () => {
@@ -220,9 +220,9 @@ test('planAddressReview: 「Q1はOK, FYI1は修正して」→ Q1 は変更な�
     assert.deepEqual(plan.map(p => [p.id, p.action, p.source]), [
         ['M1', 'fix', 'policy'],
         ['Q1', 'no-change', 'human'],
-        ['Q2', 'fix-or-hitl', 'policy'],
+        ['Q2', 'fix-or-followup', 'policy'],
         ['FYI1', 'fix', 'human'],
-        ['FYI2', 'ignore', 'policy'],
+        ['FYI2', 'fix-if-easy', 'policy'],
     ]);
 });
 
