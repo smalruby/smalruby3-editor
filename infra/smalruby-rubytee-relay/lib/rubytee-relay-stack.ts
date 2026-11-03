@@ -142,6 +142,13 @@ export class RubyteeRelayStack extends cdk.Stack {
       resources: [this.jobsTable.tableArn, this.usageTable.tableArn],
     }));
 
+    // クラス管理（別スタック）の memberships 表。takeover / chat の席を sessionToken で確かめるため、
+    // GSI sessionToken-index を読むだけ (#1317)。クラス管理が relay の表を読むのと同じく、SSM 参照に
+    // するとスタックのデプロイ順に依存するので、同じアカウント・リージョンの決まった表名から組み立てる。
+    // 表がまだ無くても席として数えず IP だけの上限に落ちるだけ（答えは返す）。
+    const classroomMembershipsTableName = process.env.CLASSROOM_MEMBERSHIPS_TABLE_NAME
+      || `ClassroomMemberships${stageSuffix}`;
+
     // Lambda function (esbuild bundling)
     const handlerFn = new lambdaNodejs.NodejsFunction(this, 'RubyteeRelayHandler', {
       functionName: `RubyteeRelayHandler${stageSuffix}`,
@@ -156,6 +163,7 @@ export class RubyteeRelayStack extends cdk.Stack {
         JOBS_TABLE_NAME: this.jobsTable.tableName,
         USAGE_TABLE_NAME: this.usageTable.tableName,
         TAKEOVER_WORKER_FUNCTION_NAME: workerFn.functionName,
+        CLASSROOM_MEMBERSHIPS_TABLE_NAME: classroomMembershipsTableName,
         ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || '',
         CLAUDE_MODEL: process.env.CLAUDE_MODEL || 'claude-haiku-4-5-20251001',
         CLAUDE_TAKEOVER_MODEL: process.env.CLAUDE_TAKEOVER_MODEL || 'claude-sonnet-5-5',
@@ -185,6 +193,15 @@ export class RubyteeRelayStack extends cdk.Stack {
       resources: [this.usageTable.tableArn],
     }));
     workerFn.grantInvoke(handlerFn);
+    // memberships は GSI の Query だけ（表本体の読み書き・他の GSI は渡さない）
+    handlerFn.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['dynamodb:Query'],
+      resources: [cdk.Stack.of(this).formatArn({
+        service: 'dynamodb',
+        resource: 'table',
+        resourceName: `${classroomMembershipsTableName}/index/sessionToken-index`,
+      })],
+    }));
 
     // --- Custom Domain for API Gateway HTTP API ---
     let domainName: apigatewayv2.DomainName | undefined;

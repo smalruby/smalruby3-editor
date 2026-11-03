@@ -126,7 +126,8 @@ AWS Lambda リレーサービス（API Gateway HTTP API + Lambda + DynamoDB）�
 | `CORS_ALLOWED_ORIGINS` | `https://smalruby.app` | CORS 許可オリジン |
 | `RATE_LIMIT_TABLE_NAME` | - | DynamoDB テーブル名（CDK で設定）|
 | `JOBS_TABLE_NAME` / `USAGE_TABLE_NAME` / `TAKEOVER_WORKER_FUNCTION_NAME` | - | takeover の jobs 表・集計表・worker 名（CDK で設定） |
-| `TAKEOVER_SEAT_MAX_REQUESTS` | `40` | takeover の 1 席（`classroom` + `seat`）あたりの上限 / 窓 |
+| `CLASSROOM_MEMBERSHIPS_TABLE_NAME` | - | 席を確かめるクラス管理の memberships 表名（CDK が `ClassroomMemberships{suffix}` を設定。GSI `sessionToken-index` の `Query` だけを許可） |
+| `TAKEOVER_SEAT_MAX_REQUESTS` | `40` | takeover の 1 席（`sessionToken` で確かめた classroom + 出席番号）あたりの上限 / 窓 |
 | `TAKEOVER_IP_MAX_REQUESTS` | `1600` | takeover に重ねる IP 単位の上限 / 窓（40 人 × 40 回） |
 | `TAKEOVER_WORKER_RESERVED_CONCURRENCY` | prod `50` / 他 `10` | worker の同時実行数の上限（CDK のみ。費用が青天井にならないように） |
 
@@ -153,18 +154,23 @@ CloudWatch ログで利用状況を監視。Rubytee 利用パターンとコス�
 | フィールド | 例 | 用途 |
 |---|---|---|
 | `purpose` | `"genai-takeover"` | 用途。`genai-takeover` のときだけ `CLAUDE_TAKEOVER_MODEL`（Sonnet）を使う。未指定・未知の値は従来のモデル |
-| `classroom` | `"cls_abc123"` | クラスの識別子。ログに記録するだけ |
-| `seat` | `12` / `"12"` | 出席番号。ログに記録するだけ |
+| `sessionToken` | `"3b241101-…"` | 生徒がクラスに参加したときにもらうトークン（クラス管理の `sessionToken`）。relay が席を確かめる。クラスに参加していなければ送らない |
 
-`classroom` / `seat` は**識別子らしい値だけ**（英数字と `_ . : -`、`classroom` は 100 文字・`seat` は
-10 文字まで）を記録し、それ以外（`@` を含む値・空白・改行・オブジェクト等）はエラーにせず
-**記録しないで捨てる**。メールアドレスや名前は記録しない。`purpose` 未指定の呼び出しは
-今の IP レート制限のまま（`classroom` / `seat` で上限は変わらない）。takeover は 1 席ごとに数える（下記）。
+**席は `sessionToken` からだけ決める**（`classroom` / `seat` は自己申告なので、送られてきても**無視する**）。
+relay はクラス管理の `ClassroomMemberships{suffix}` の GSI `sessionToken-index` を**読み取り専用で Query** し、
+行の `classroomId` と `memberId`（`seat-03` → 出席番号 `3`）を席にする。クラス管理の `verifySessionToken`
+と同じく **kicked の行は認めない**。確かめられないとき（トークンなし・UUID の形でない・見つからない・
+kicked・表が読めない）は**席として数えない**（ログ・集計は `classroom` / `seat` なし）。
+これは不正防止の判定なので fail-open（席として信じる）にはしないが、答えは返す。
 
-**`classroom` と `seat` の中身**: `classroom` = クラス管理の**課題の `classroomId`**（メンバータブが
-`GET .../classrooms/{classroomId}/members` で使う ID）、`seat` = **出席番号の数字**（`memberId` が
-`seat-03` なら `3`。`"03"` を送っても `3` と同じ席として数える）。クラス管理のメンバー一覧の
-`aiUsage` はこの値で relay の表を引く（`docs/classroom/architecture.md`）。
+確かめた席は CloudWatch ログ・集計表・takeover の席の上限に使う。`purpose` 未指定の呼び出しは
+今の IP レート制限のまま（席で上限は変わらない）。takeover は 1 席ごとに数える（下記）。
+クラス管理のメンバー一覧の `aiUsage` はこの classroomId / 出席番号で relay の表を引く
+（`docs/classroom/architecture.md`）。
+
+`sessionToken` で確かめる理由: 以前は `classroom` / `seat` を自己申告で受けていたので、`classroomId` を
+知っていれば誰でも、他の生徒の席の枠を使い切る・先生に見せる `aiUsage` をずらす・RETAIN の集計表に
+好きな `classroom#...` の行を作る・自己申告の席だけで IP 1600 回の枠を使う、ができた（#1317）。
 
 1 リクエストにつき 1 行の JSON ログ（`event: "rubytee_response"`）が出る:
 
@@ -212,7 +218,7 @@ fields @timestamp
 
 ### 流れ
 
-1. `POST /generate`（本文は従来と同じ形 + `purpose: "genai-takeover"`、あれば `classroom` / `seat`）
+1. `POST /generate`（本文は従来と同じ形 + `purpose: "genai-takeover"`、クラスに参加していれば `sessionToken`）
    → 入力チェックとレート制限を通ると **`202 { "jobId": "<uuid>", "status": "pending" }`**
 2. `GET /jobs/{jobId}` を問い合わせる → `200` で次のどれか:
    - `{ "jobId", "status": "pending" }` — まだ考え中。間隔を空けて再度問い合わせる
@@ -234,12 +240,12 @@ fields @timestamp
 | `history` | 20 ターン × 10000 字 | 20 ターン × 1000 字 |
 | リクエスト全体 | **200KB（UTF-8）**。上の各項目の上限を通った後に判定し、超えたら `400 HISTORY_TOO_LONG`（`userMessage` / `currentCode` だけでは届かず、超えるのは往復を重ねたとき） | 判定しない（各項目の上限だけ） |
 | `max_tokens` | 8192 | 1024 |
-| レート制限 | `classroom` と `seat` があれば IP 1600 回 / 35 分 + **1 席 40 回 / 35 分**。無ければ IP 40 回 / 35 分 | IP 40 回 / 35 分 |
+| レート制限 | `sessionToken` で席を確かめられれば IP 1600 回 / 35 分 + **1 席 40 回 / 35 分**。確かめられなければ IP 40 回 / 35 分 | IP 40 回 / 35 分 |
 
 レート制限は **IP → 席の順**に数える。IP の上限で 429 になったときは席を数えない（先生に見せる席の回数が、
 その生徒が使っていない分で増えないように）。席のキー `seat#<classroom>:<seat>` は `:` で区切るので、
-`classroom` に `:` を含むものや、`seat` が数字でないものは席として数えず、IP 40 回 / 35 分に回す
-（クラス管理の `classroomId` は UUID、`seat` は出席番号の数字なので、正しい呼び出しは影響しない）。
+確かめた行の `classroomId` に `:` を含むものや、`memberId` が `seat-<数字>` でないものは席として数えず、
+IP 40 回 / 35 分に回す（クラス管理の `classroomId` は UUID、`memberId` は `seat-03` の形なので、正しい呼び出しは影響しない）。
 
 リクエスト全体の 200KB は Lambda の非同期呼び出しの payload 上限（256KB）に収めるため。1 万字の
 作品 + 何往復かは収まるが、20 往復すべてに作品全体を入れると超えうるので、**GUI は古い往復から
@@ -283,10 +289,10 @@ fields @timestamp
 
 ### 集計表 `RubyteeRelayUsage{suffix}`（RETAIN・TTL なし）
 
-takeover と Ruby タブのルビティー（`purpose` 未指定 = `chat`）の**両方**を、`classroom` / `seat` ごと・日ごとに
+takeover と Ruby タブのルビティー（`purpose` 未指定 = `chat`）の**両方**を、`sessionToken` で確かめた席ごと・日ごとに
 足し込む（1 回ごとの行は作らない）。書き込みに失敗しても答えは返す（fail-open）。
 
-- キー: `pk = classroom#<classroomId>`（無ければ `classroom#-`）、`sk = <YYYY-MM-DD(JST)>#seat#<seat>#<purpose>`
+- キー: `pk = classroom#<classroomId>`（席を確かめられなければ `classroom#-`）、`sk = <YYYY-MM-DD(JST)>#seat#<seat>#<purpose>`
   （`seat` が無ければ `-`、`purpose` 未指定は `chat`）
 - 属性（`ADD` で足し込む数）: `requests`（受け付けた回数）/ `rateLimited`（429）/ `succeeded` / `failed` /
   `inputTokens` / `outputTokens` / `cacheReadTokens` / `cacheCreationTokens`
@@ -310,6 +316,10 @@ relay は 2 つの表の ARN を CfnOutput と SSM（`/smalruby/rubytee-relay/<s
 `.../usage-table-arn`）に出す。クラス管理のスタックは**読み取り権限（`GetItem` / `BatchGetItem` / `Query`）だけ**を
 持つ（表名は `RubyteeRelayRateLimit{suffix}` / `RubyteeRelayUsage{suffix}` から組み立てるので、スタックの
 デプロイ順に依存しない）。メンバー一覧の `aiUsage` の形は `docs/classroom/architecture.md` を参照。
+
+逆向きに、relay の API Lambda はクラス管理の `ClassroomMemberships{suffix}` の **GSI `sessionToken-index` への
+`dynamodb:Query` だけ**を持つ（表本体への権限は無い）。こちらも表名から ARN を組み立て、デプロイ順に依存しない
+（クラス管理の表がまだ無ければ、席として数えず IP だけの上限になるだけ）。
 
 キーの組み立て（`seat#...#current`・JST の日付・集計表の `sk`）は relay の `lambda/takeover.ts` と
 クラス管理の `lambda/ai-usage-lib.ts` に**別々に書いてあり、対で変える**。1 つのモジュールにまとめないのは、
