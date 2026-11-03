@@ -180,9 +180,9 @@ Smalruby 拡張の `builtinExtensions` への登録経路は **2 系統**存在�
      `require(...).blockClass`、CommonJS `module.exports = Class` は `require(...)` 直接。
    - いずれも `blockClass.formatMessage = require('format-message')` を注入してから返す。
 2. **`extension-manager.js` の `builtinExtensions` オブジェクトリテラル直書き（歴史的経緯）** —
-   `mesh` / `meshV2` / `smalrubotS1` の 3 つだけは upstream のオブジェクトリテラル内に
+   `meshV2` / `smalrubotS1` の 2 つだけは upstream のオブジェクトリテラル内に
    直接書かれている（`=== Smalruby: Start of builtin extension entries ===` マーカーで
-   囲んである。upstream マージ時にこの 3 行を消さないこと）。**この形式を真似て新規追加しない**
+   囲んである。upstream マージ時にこの 2 行を消さないこと）。**この形式を真似て新規追加しない**
    （1. の経由にする）。
 
 `defaultHidden`（拡張ライブラリでの非表示）は **scratch-gui 側の概念**
@@ -233,8 +233,9 @@ VM 拡張のブロック（opcode）を追加・変更したら、**scratch-gui 
 - `packages/scratch-gui/src/lib/ruby-generator/<extension>.js`（ブロック → Ruby）
 - `packages/scratch-gui/src/lib/ruby-to-blocks-converter/<extension>.js`（Ruby → ブロック）
 
-既存拡張はすべてこの対を持つ（koshien / mesh / mesh_v2 / microbit_more / smalrubot_s1 /
-smalruby-ruby / g2s / tm2scratch 等）。片側だけの追加は逸脱。ラウンドトリップの
+既存拡張はすべてこの対を持つ（koshien / mesh_v2 / microbit_more / smalrubot_s1 /
+smalruby-ruby / g2s / tm2scratch 等）。片側だけの追加は逸脱（例外: 削除済みの mesh v1 は
+読み込み側 `ruby-to-blocks-converter/mesh.js` の `mesh_v1.*` → v2 エイリアスだけが残る）。ラウンドトリップの
 リグレッションは gui 側の `test/unit/lib/ruby-roundtrip-*.test.js` 系が担保する。
 
 ## VM Architecture
