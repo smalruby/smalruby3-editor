@@ -9,6 +9,7 @@ jest.mock('@aws-sdk/lib-dynamodb', () => ({
   UpdateCommand: jest.fn(input => ({ kind: 'Update', input })),
   GetCommand: jest.fn(input => ({ kind: 'Get', input })),
   PutCommand: jest.fn(input => ({ kind: 'Put', input })),
+  QueryCommand: jest.fn(input => ({ kind: 'Query', input })),
 }));
 jest.mock('@aws-sdk/client-dynamodb', () => ({ DynamoDBClient: jest.fn(() => ({})) }));
 jest.mock('@aws-sdk/client-lambda', () => ({
@@ -20,6 +21,7 @@ process.env.RATE_LIMIT_TABLE_NAME = 'RateLimit';
 process.env.JOBS_TABLE_NAME = 'Jobs';
 process.env.USAGE_TABLE_NAME = 'Usage';
 process.env.TAKEOVER_WORKER_FUNCTION_NAME = 'Worker';
+process.env.CLASSROOM_MEMBERSHIPS_TABLE_NAME = 'Memberships';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { handler } = require('../handler');
@@ -35,12 +37,28 @@ const makeEvent = (body: unknown, method = 'POST', pathParameters?: Record<strin
 
 const commands = (): Cmd[] => mockSend.mock.calls.map(c => c[0] as Cmd);
 
+// クラス管理の memberships 表（GSI sessionToken-index）にある生徒の席
+const TOKEN = '3b241101-e2bb-4255-8caf-4136c566a962';
+const KICKED_TOKEN = '11111111-2222-4333-8444-555555555555';
+const memberships: Record<string, Record<string, unknown>> = {
+  [TOKEN]: { classroomId: 'cls-1', memberId: 'seat-03', sessionToken: TOKEN },
+  [KICKED_TOKEN]: { classroomId: 'cls-1', memberId: 'seat-05', sessionToken: KICKED_TOKEN, kicked: true },
+};
+
+const rateKeysSent = () => commands()
+  .filter(c => c.kind === 'Update' && c.input.TableName === 'RateLimit')
+  .map(c => c.input.Key.sourceIp);
+
 beforeEach(() => {
   mockSend.mockReset();
   mockLambdaSend.mockReset();
   // レート制限の UpdateItem は count を返す。それ以外は空
   mockSend.mockImplementation(async (cmd: Cmd) => {
     if (cmd.kind === 'Update' && cmd.input.TableName === 'RateLimit') return { Attributes: { count: 1 } };
+    if (cmd.kind === 'Query' && cmd.input.TableName === 'Memberships') {
+      const row = memberships[cmd.input.ExpressionAttributeValues[':st']];
+      return { Items: row ? [row] : [] };
+    }
     return {};
   });
   mockLambdaSend.mockResolvedValue({});
@@ -51,8 +69,7 @@ describe('handler: takeover (purpose = genai-takeover)', () => {
   const takeoverBody = {
     userMessage: `作品を直してください\n${longCode}`,
     purpose: 'genai-takeover',
-    classroom: 'cls-1',
-    seat: '03',
+    sessionToken: TOKEN,
   };
 
   test('1 万字近い入力を受け付け、202 { jobId } を返して worker を非同期で起動する', async () => {
@@ -91,6 +108,7 @@ describe('handler: takeover (purpose = genai-takeover)', () => {
   test('席の上限を超えたら 429・worker は起動しない・集計に rateLimited を足す', async () => {
     mockSend.mockImplementation(async (cmd: Cmd) => {
       if (cmd.kind === 'Update' && cmd.input.TableName === 'RateLimit') return { Attributes: { count: 41 } };
+      if (cmd.kind === 'Query') return { Items: [memberships[TOKEN]] };
       return {};
     });
     const res = await handler(makeEvent(takeoverBody));
@@ -105,6 +123,7 @@ describe('handler: takeover (purpose = genai-takeover)', () => {
   test('IP の上限で 429 のときは席を数えず、席の「今の状況」も書かない', async () => {
     mockSend.mockImplementation(async (cmd: Cmd) => {
       if (cmd.kind === 'Update' && cmd.input.TableName === 'RateLimit') return { Attributes: { count: 1601 } };
+      if (cmd.kind === 'Query') return { Items: [memberships[TOKEN]] };
       return {};
     });
     const res = await handler(makeEvent(takeoverBody));
@@ -149,12 +168,84 @@ describe('handler: takeover (purpose = genai-takeover)', () => {
     expect(JSON.parse(res.body).error).toBe('INPUT_TOO_LONG');
   });
 
-  test('classroom / seat が無ければ今の IP 単位で数える', async () => {
+  test('sessionToken が無ければ今の IP 単位で数え、表を引かない', async () => {
     await handler(makeEvent({ userMessage: takeoverBody.userMessage, purpose: 'genai-takeover' }));
-    const rateKeys = commands()
-      .filter(c => c.kind === 'Update' && c.input.TableName === 'RateLimit')
-      .map(c => c.input.Key.sourceIp);
-    expect(rateKeys).toEqual(['10.0.0.1']);
+    expect(rateKeysSent()).toEqual(['10.0.0.1']);
+    expect(commands().find(c => c.kind === 'Query')).toBeUndefined();
+  });
+});
+
+// #1317: classroom / seat は自己申告なので信じない。sessionToken を memberships の GSI で確かめる。
+describe('handler: takeover の席は sessionToken で確かめる', () => {
+  const body = { userMessage: '作品を直してください。ねこを動かしたい', purpose: 'genai-takeover' };
+  const usageWrites = () => commands().filter(c => c.kind === 'Update' && c.input.TableName === 'Usage');
+
+  test('memberships の GSI sessionToken-index を読み取り専用で 1 回だけ引く', async () => {
+    await handler(makeEvent({ ...body, sessionToken: TOKEN }));
+    const queries = commands().filter(c => c.kind === 'Query');
+    expect(queries).toHaveLength(1);
+    expect(queries[0].input).toMatchObject({
+      TableName: 'Memberships',
+      IndexName: 'sessionToken-index',
+      KeyConditionExpression: 'sessionToken = :st',
+      ExpressionAttributeValues: { ':st': TOKEN },
+      ProjectionExpression: 'classroomId, memberId, kicked',
+    });
+    expect(commands().some(c => c.input.TableName === 'Memberships' && c.kind !== 'Query')).toBe(false);
+  });
+
+  test('正しいトークン → トークンの席で数え、worker にも確かめた席だけを渡す', async () => {
+    const res = await handler(makeEvent({ ...body, sessionToken: TOKEN }));
+    expect(res.statusCode).toBe(202);
+    expect(rateKeysSent()).toEqual(['takeover-ip#10.0.0.1', 'seat#cls-1:3']);
+    const payload = JSON.parse(Buffer.from((mockLambdaSend.mock.calls[0][0] as Cmd).input.Payload).toString());
+    expect(payload.usageContext).toEqual({ purpose: 'genai-takeover', classroom: 'cls-1', seat: '3' });
+  });
+
+  test('他の席の classroom / seat を名乗っても、トークンの席で数える（名乗った席の枠・aiUsage・集計は動かない）', async () => {
+    await handler(makeEvent({ ...body, sessionToken: TOKEN, classroom: 'victim-cls', seat: '7' }));
+    expect(rateKeysSent()).toEqual(['takeover-ip#10.0.0.1', 'seat#cls-1:3']);
+    const current = commands().find(c => c.kind === 'Put' && c.input.TableName === 'RateLimit');
+    expect(current!.input.Item.sourceIp).toBe('seat#cls-1:3#current');
+    expect(usageWrites().map(c => c.input.Key.pk)).toEqual(['classroom#cls-1']);
+    expect(JSON.stringify(commands())).not.toContain('victim-cls');
+  });
+
+  test('トークンなしで classroom / seat だけを名乗っても席として数えない（IP 40 回）', async () => {
+    await handler(makeEvent({ ...body, classroom: 'victim-cls', seat: '7' }));
+    expect(rateKeysSent()).toEqual(['10.0.0.1']);
+    expect(commands().find(c => c.kind === 'Put' && c.input.TableName === 'RateLimit')).toBeUndefined();
+    expect(usageWrites()[0].input.Key).toEqual({ pk: 'classroom#-', sk: expect.stringMatching(/#seat#-#genai-takeover$/) });
+  });
+
+  test('UUID の形でないトークンは表を引かずに IP 40 回', async () => {
+    await handler(makeEvent({ ...body, sessionToken: 'not-a-token' }));
+    expect(commands().find(c => c.kind === 'Query')).toBeUndefined();
+    expect(rateKeysSent()).toEqual(['10.0.0.1']);
+  });
+
+  test('見つからないトークン → IP 40 回・集計は classroom#- / seat -', async () => {
+    await handler(makeEvent({ ...body, sessionToken: '99999999-9999-4999-8999-999999999999' }));
+    expect(rateKeysSent()).toEqual(['10.0.0.1']);
+    expect(usageWrites()[0].input.Key.pk).toBe('classroom#-');
+  });
+
+  test('kicked のトークン → IP 40 回', async () => {
+    await handler(makeEvent({ ...body, sessionToken: KICKED_TOKEN }));
+    expect(rateKeysSent()).toEqual(['10.0.0.1']);
+    expect(usageWrites()[0].input.Key.pk).toBe('classroom#-');
+  });
+
+  test('memberships の Query が失敗しても答えは返す（IP 40 回に落ちるだけ）', async () => {
+    mockSend.mockImplementation(async (cmd: Cmd) => {
+      if (cmd.kind === 'Query') throw new Error('AccessDenied');
+      if (cmd.kind === 'Update' && cmd.input.TableName === 'RateLimit') return { Attributes: { count: 1 } };
+      return {};
+    });
+    const res = await handler(makeEvent({ ...body, sessionToken: TOKEN }));
+    expect(res.statusCode).toBe(202);
+    expect(rateKeysSent()).toEqual(['10.0.0.1']);
+    expect(usageWrites()[0].input.Key.pk).toBe('classroom#-');
   });
 });
 
@@ -182,7 +273,7 @@ describe('handler: purpose 未指定は今のまま', () => {
     const origFetch = global.fetch;
     global.fetch = fetchMock as unknown as typeof fetch;
     try {
-      const res = await handler(makeEvent({ userMessage: 'ねこをうごかしたいです', classroom: 'cls-1', seat: '3' }));
+      const res = await handler(makeEvent({ userMessage: 'ねこをうごかしたいです', sessionToken: TOKEN }));
       expect(res.statusCode).toBe(200);
       const sent = JSON.parse(fetchMock.mock.calls[0][1].body);
       expect(sent.max_tokens).toBe(1024);
@@ -195,6 +286,23 @@ describe('handler: purpose 未指定は今のまま', () => {
       const usage = commands().find(c => c.kind === 'Update' && c.input.TableName === 'Usage');
       expect(usage!.input.Key.sk).toMatch(/#seat#3#chat$/);
       expect(usage!.input.UpdateExpression).toContain('#succeeded');
+    } finally {
+      global.fetch = origFetch;
+    }
+  });
+
+  test('chat の集計も、名乗った classroom / seat ではなく確かめた席で数える', async () => {
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ content: [{ type: 'text', text: 'こたえ' }], usage: { input_tokens: 1, output_tokens: 2 } }),
+    });
+    const origFetch = global.fetch;
+    global.fetch = fetchMock as unknown as typeof fetch;
+    try {
+      await handler(makeEvent({ userMessage: 'ねこをうごかしたいです', classroom: 'victim-cls', seat: '7' }));
+      const usage = commands().find(c => c.kind === 'Update' && c.input.TableName === 'Usage');
+      expect(usage!.input.Key).toEqual({ pk: 'classroom#-', sk: expect.stringMatching(/#seat#-#chat$/) });
+      expect(commands().find(c => c.kind === 'Query')).toBeUndefined();
     } finally {
       global.fetch = origFetch;
     }
