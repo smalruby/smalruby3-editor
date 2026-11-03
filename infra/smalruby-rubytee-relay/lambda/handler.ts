@@ -1,7 +1,27 @@
 /* eslint-disable no-console */
 import { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, UpdateCommand, GetCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, UpdateCommand, GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
+import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
+import { randomUUID } from 'crypto';
+import { SMALRUBY_REFERENCE } from './smalruby-reference';
+import {
+  MAX_TAKEOVER_MESSAGE_LENGTH,
+  MAX_TAKEOVER_CURRENT_CODE_LENGTH,
+  MAX_TAKEOVER_HISTORY_TURN_TEXT_LENGTH,
+  MAX_TAKEOVER_REQUEST_BYTES,
+  TAKEOVER_JOB_TTL_SECONDS,
+  TakeoverWorkerPayload,
+  JobItem,
+  takeoverRateLimitPlan,
+  seatCurrentKey,
+  usageKey,
+  usageUpdateExpression,
+  UsageOutcome,
+  UsageTokens,
+  isValidJobId,
+  jobResponseBody,
+} from './takeover';
 
 // ---------------------------------------------------------------------------
 // Configuration (from environment variables)
@@ -22,6 +42,14 @@ const MAX_HISTORY_TURNS = 20;            // conversation turns
 const MAX_HISTORY_TURN_TEXT_LENGTH = 1000; // chars per history turn
 const MAX_CLASSROOM_ID_LENGTH = 100;     // classroom identifier (logged)
 const MAX_SEAT_LENGTH = 10;              // seat (出席番号, logged)
+// 「ルビティーにまかせる」(takeover) 用
+const JOBS_TABLE_NAME = process.env.JOBS_TABLE_NAME || '';
+const USAGE_TABLE_NAME = process.env.USAGE_TABLE_NAME || '';
+const TAKEOVER_WORKER_FUNCTION_NAME = process.env.TAKEOVER_WORKER_FUNCTION_NAME || '';
+// 1 席あたり（classroom + seat）の上限。今の IP 単位と同じ 40 回
+const TAKEOVER_SEAT_MAX_REQUESTS = parseInt(process.env.TAKEOVER_SEAT_MAX_REQUESTS || '40', 10);
+// classroom / seat は自己申告なので IP 単位の上限も重ねる（40 人 × 40 回）
+const TAKEOVER_IP_MAX_REQUESTS = parseInt(process.env.TAKEOVER_IP_MAX_REQUESTS || '1600', 10);
 
 // Request purposes. Unknown / missing purposes fall back to the default model.
 const PURPOSE_GENAI_TAKEOVER = 'genai-takeover';
@@ -36,6 +64,7 @@ const ANTHROPIC_VERSION = '2023-06-01';
 // ---------------------------------------------------------------------------
 const dynamoClient = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(dynamoClient);
+const lambdaClient = new LambdaClient({});
 
 // ---------------------------------------------------------------------------
 // Types
@@ -107,7 +136,10 @@ const DANGEROUS_PATTERNS = [
   /jailbreak/i,
 ];
 
-export function validateStateContext(stateContext?: StateContext): { valid: boolean; error?: string } {
+export function validateStateContext(
+  stateContext?: StateContext,
+  maxCurrentCodeLength: number = MAX_CURRENT_CODE_LENGTH,
+): { valid: boolean; error?: string } {
   if (!stateContext) return { valid: true };
 
   const isInvalidName = (name: string) =>
@@ -129,7 +161,7 @@ export function validateStateContext(stateContext?: StateContext): { valid: bool
       }
     }
     if (s.currentCode) {
-      if (s.currentCode.length > MAX_CURRENT_CODE_LENGTH) {
+      if (s.currentCode.length > maxCurrentCodeLength) {
         return { valid: false, error: 'INVALID_STATE_CONTEXT' };
       }
       for (const pattern of DANGEROUS_PATTERNS) {
@@ -163,14 +195,17 @@ export function validateStateContext(stateContext?: StateContext): { valid: bool
   return { valid: true };
 }
 
-export function validateHistory(history?: HistoryTurn[]): { valid: boolean; error?: string } {
+export function validateHistory(
+  history?: HistoryTurn[],
+  maxTurnTextLength: number = MAX_HISTORY_TURN_TEXT_LENGTH,
+): { valid: boolean; error?: string } {
   if (!history) return { valid: true };
   if (history.length > MAX_HISTORY_TURNS) {
     return { valid: false, error: 'HISTORY_TOO_LONG' };
   }
   for (const turn of history) {
     for (const part of turn.parts) {
-      if (part.text && part.text.length > MAX_HISTORY_TURN_TEXT_LENGTH) {
+      if (part.text && part.text.length > maxTurnTextLength) {
         return { valid: false, error: 'HISTORY_TOO_LONG' };
       }
     }
@@ -178,14 +213,17 @@ export function validateHistory(history?: HistoryTurn[]): { valid: boolean; erro
   return { valid: true };
 }
 
-export function validateInput(userMessage: string): { valid: boolean; error?: string } {
+export function validateInput(
+  userMessage: string,
+  maxLength: number = MAX_USER_MESSAGE_LENGTH,
+): { valid: boolean; error?: string } {
   if (!userMessage || typeof userMessage !== 'string') {
     return { valid: false, error: 'INPUT_MISSING' };
   }
   if (userMessage.length < MIN_USER_MESSAGE_LENGTH) {
     return { valid: false, error: 'INPUT_TOO_SHORT' };
   }
-  if (userMessage.length > MAX_USER_MESSAGE_LENGTH) {
+  if (userMessage.length > maxLength) {
     return { valid: false, error: 'INPUT_TOO_LONG' };
   }
   for (const pattern of DANGEROUS_PATTERNS) {
@@ -204,9 +242,15 @@ export function getCurrentWindowStart(): number {
   return Math.floor(Date.now() / windowMs) * windowMs / 1000; // epoch seconds
 }
 
-export async function checkAndIncrementRateLimit(sourceIp: string): Promise<{
+export async function checkAndIncrementRateLimit(
+  sourceIp: string,
+  maxRequests: number = RATE_LIMIT_MAX_REQUESTS,
+): Promise<{
   allowed: boolean;
   resetAfterSeconds?: number;
+  // 数えられたとき（DynamoDB が使えたとき）だけ入る
+  count?: number;
+  resetAt?: number;
 }> {
   const windowStart = getCurrentWindowStart();
   const windowDurationSeconds = RATE_LIMIT_WINDOW_MINUTES * 60;
@@ -223,12 +267,12 @@ export async function checkAndIncrementRateLimit(sourceIp: string): Promise<{
     }));
 
     const count = result.Attributes?.count as number;
-    if (count > RATE_LIMIT_MAX_REQUESTS) {
+    if (count > maxRequests) {
       const now = Math.floor(Date.now() / 1000);
       const resetAfterSeconds = ttl - now;
-      return { allowed: false, resetAfterSeconds: Math.max(0, resetAfterSeconds) };
+      return { allowed: false, resetAfterSeconds: Math.max(0, resetAfterSeconds), count, resetAt: ttl };
     }
-    return { allowed: true };
+    return { allowed: true, count, resetAt: ttl };
   } catch (err) {
     // Fail open: if DynamoDB is unavailable, allow the request
     console.error('[RateLimit] DynamoDB error, failing open:', err);
@@ -244,320 +288,7 @@ export function buildSystemInstruction(stateContext?: StateContext): string {
 
   return `You are "Smalruby Teacher". Help elementary and middle school students create fun games and animations by generating simple, easy-to-understand Ruby code for Smalruby (smalruby) programming.
 
-## About Smalruby
-
-Smalruby is a Ruby subset with methods corresponding to MIT Scratch 3.0 visual programming blocks. Ruby code is converted to Scratch blocks for execution, so only supported methods and syntax can be used.
-
-### Key Differences from Standard Ruby
-- Class definitions are limited (only for sprite configuration)
-- **\`module\` and \`include\` ARE supported** (Version 2 only) — use to share \`def\` methods across sprites. When the user asks about module/include, ALWAYS generate a code example using them.
-- Loops use \`loop do...end\`, \`N.times do...end\`, \`while...end\`, \`until...end\` (no for/each)
-- Conditionals: \`if\`, \`unless\`, \`case/when\`, \`until\`
-- Variables: instance (\`@score\`), global (\`$score\`), local (\`score\`)
-- String interpolation (\`"#{var}"\`) is NOT supported
-- \`require\`, \`puts\`/\`print\`/\`p\`, exception handling (\`begin/rescue\`) are NOT supported
-- Compound assignment operators \`+=\`, \`-=\`, \`*=\`, \`/=\`, \`%=\` ARE supported
-- \`+=\` increments numeric variables, concatenates string variables
-- Recursion is NOT supported
-- **Literals**: integers, floats, strings (double-quote only), symbols (\`:foo\`), arrays (\`[1, 2, 3]\`), hashes (\`{key: val}\`), ranges (\`1..10\`), regexps (\`/pattern/flags\`), \`true\`/\`false\`/\`nil\`
-- **Regex match operators**: \`=~\` (match) and \`!~\` (not match) — e.g., \`"hello" =~ /^he/\`, \`@name !~ /world/\`
-- **\`super\` IS supported** (Version 2 only) — calls the overridden method in an included module. Only works inside \`def\` methods that override a same-named module method.
-
-## Available Methods
-
-### Motion
-- \`move(steps)\` — move forward: \`move(10)\`
-- \`turn_right(degrees)\` / \`turn_left(degrees)\` — rotate: \`turn_right(15)\`
-- \`go_to("_mouse_")\` / \`go_to("_random_")\` — move to mouse or random position
-- \`go_to([x, y])\` — move to coordinates: \`go_to([100, 50])\`
-- \`glide([x, y], secs: n)\` — glide to coordinates: \`glide([100, 50], secs: 1)\`
-- \`glide("_mouse_", secs: n)\` — glide to mouse
-- \`point_towards("_mouse_")\` — face the mouse
-- \`bounce_if_on_edge\` — bounce off edges
-- \`self.direction = degrees\` — set direction: \`self.direction = 90\`
-- \`self.x = value\` / \`self.y = value\` — set coordinates
-- \`self.x += value\` / \`self.y += value\` — change coordinates
-- \`self.rotation_style = "style"\` — rotation style ("all around", "left-right", "don't rotate")
-- \`x\` / \`y\` — get coordinates
-- \`direction\` — get direction
-
-### Looks
-- \`say(message)\` / \`say(message, seconds)\` — speech bubble
-- \`think(message)\` / \`think(message, seconds)\` — thought bubble
-- \`switch_costume("name")\` — change costume
-- \`next_costume\` — next costume
-- \`switch_backdrop("name")\` — change backdrop
-- \`next_backdrop\` — next backdrop
-- \`self.size = percent\` — set size: \`self.size = 200\`
-- \`self.size += amount\` — change size
-- \`set_effect("color", value)\` / \`change_effect_by("color", amount)\`
-- \`clear_graphic_effects\`
-- \`show\` / \`hide\`
-- \`go_to_layer("front")\` / \`go_to_layer("back")\`
-- \`size\` / \`costume_number\` / \`costume_name\` / \`backdrop_number\` / \`backdrop_name\`
-
-### Sound
-- \`play("sound name")\` — play sound (non-blocking). **Only use names from the current state sound list**
-- \`play_until_done("sound name")\` — play and wait. **Only use names from the current state sound list**
-- \`stop_all_sounds\`
-- \`self.volume = value\` / \`self.volume += amount\`
-- \`volume\`
-
-⚠️ **Sound name constraint (critical)**: Only use sound names listed in the "Current State" section. Using a non-existent sound name will cause an error. If the sound list is empty, do NOT use play() or play_until_done().
-
-### Events
-- \`when_flag_clicked do...end\` — when green flag clicked (program start)
-- \`when_key_pressed("key") do...end\` — when key pressed
-- \`when_clicked do...end\` — when sprite clicked
-- \`when_backdrop_switches("name") do...end\` — when backdrop switches
-- \`when_greater_than("LOUDNESS", value) do...end\`
-- \`when_receive("message") do...end\`
-- \`broadcast("message")\` / \`broadcast_and_wait("message")\`
-
-**Key names**: "space", "left arrow", "right arrow", "up arrow", "down arrow", "any", "a"–"z", "0"–"9"
-
-### Control
-- \`sleep(seconds)\` — wait: \`sleep(1)\`
-- \`loop do...end\` — repeat forever
-- \`N.times do...end\` — repeat N times: \`10.times do...end\`
-- \`until condition do...end\` — repeat until condition
-- \`while condition do...end\` — repeat while condition
-- \`stop("all")\` — stop all ("all", "this script", "other scripts in sprite")
-- \`create_clone("_myself_")\` — create clone
-- \`delete_this_clone\`
-- \`when_start_as_a_clone do...end\`
-
-⚠️ **Loop auto-wait (critical)**: \`loop do...end\`, \`N.times do...end\`, \`while...end\`, and \`until...end\` automatically wait 1 frame (~33ms, 30fps) at each iteration end. Do NOT add sleep() for animation speed control. Only use sleep() for explicit long waits (0.5s or more).
-
-### Sensing
-- \`touching?("target")\` — touching? ("_mouse_", "_edge_", sprite name)
-- \`touching_color?("#rrggbb")\`
-- \`distance("_mouse_")\`
-- \`ask("question")\` / \`answer\`
-- \`keyboard.pressed?("key")\`
-- \`mouse.down?\` / \`mouse.x\` / \`mouse.y\`
-- \`timer.value\` / \`timer.reset\`
-- \`loudness\`
-
-### Operators
-- \`rand(min..max)\` — random: \`rand(1..10)\`
-- Arithmetic: \`+\`, \`-\`, \`*\`, \`/\`, \`%\`
-- Comparison: \`==\`, \`!=\`, \`<\`, \`>\`, \`<=\`, \`>=\`
-- Logic: \`&&\`, \`||\`, \`!\`
-- Math: \`value.round\`, \`value.abs\`, \`value.floor\`, \`value.ceil\`, \`Math.sqrt(value)\`
-
-### Variables
-- Instance variables (sprite): \`@score = 0\`, \`@score += 1\`
-- Global variables (stage): \`$high_score = 100\`
-- Local variables: \`count = 0\`
-- \`show_variable("@score")\` / \`hide_variable("@score")\`
-
-### Lists (Arrays)
-- Initialize with array literal: \`@items = ["apple", "banana"]\`
-- \`@items.push("cherry")\` — add to end
-- \`@items.delete_at(0)\` — delete at index (0-indexed)
-- \`@items.delete_at(-1)\` — delete last
-- \`@items.clear\` — delete all
-- \`@items.insert(0, "grape")\` — insert at index (0-indexed)
-- \`@items[0] = "orange"\` — replace at index (0-indexed)
-- \`@items[0]\` — get at index (0-indexed)
-- \`@items.index("apple")\` — search (returns 0-based index, 0 if not found)
-- \`@items.length\` — length
-- \`@items.include?("apple")\` — contains?
-- \`@items.empty?\` — empty?
-- \`show_list("@items")\` / \`hide_list("@items")\` — show/hide list monitor
-
-### Module / Include (Version 2 only)
-- Define reusable methods in a \`module\`, then \`include\` in a class to share across sprites
-- \`module ModuleName ... end\` — define a module with \`def\` methods only
-- \`include ModuleName\` — include module methods in a class
-- Only \`def\` methods allowed inside \`module\` (no variables, no nested modules)
-- Not available on Stage or in Version 1
-\`\`\`ruby
-module Utils
-  def add(a, b)
-    a + b
-  end
-end
-
-class Sprite1
-  include Utils
-
-  when_flag_clicked do
-    say(add(1, 5))
-  end
-end
-\`\`\`
-
-### super (Version 2 only)
-- \`super\` calls the overridden method in an included module (forwards all arguments)
-- \`super(args)\` calls the overridden method with explicit arguments
-- Only works inside \`def\` methods that override a same-named module method
-- Not available on Stage or in Version 1
-\`\`\`ruby
-module Utils
-  def greet
-    say("hello")
-  end
-end
-
-class Sprite1
-  include Utils
-
-  def greet
-    super        # calls Utils' greet
-    say("goodbye")
-  end
-
-  when_flag_clicked do
-    greet
-  end
-end
-\`\`\`
-
-### Pen (extension)
-- \`Pen.clear\`
-- \`pen.down\` / \`pen.up\`
-- \`pen.stamp\`
-- \`pen.color = "#rrggbb"\`
-- \`pen.size = value\` / \`pen.size += value\`
-
-## Forbidden Methods (Common Mistakes)
-
-Do NOT use these — they do not exist:
-- ❌ \`set_x()\`, \`set_y()\`, \`change_x()\`, \`change_y()\` → ✅ \`self.x =\`, \`self.y =\`, \`self.x +=\`, \`self.y +=\`
-- ❌ \`set_direction()\` → ✅ \`self.direction =\`
-- ❌ \`set_size()\`, \`change_size()\` → ✅ \`self.size =\`, \`self.size +=\`
-- ❌ \`mouse_x\`, \`mouse_y\` → ✅ \`mouse.x\`, \`mouse.y\`
-- ❌ \`mouse_down?\` → ✅ \`mouse.down?\`
-- ❌ \`key_pressed?()\`, \`Keyboard.pressed?()\` → ✅ \`keyboard.pressed?()\`
-- ❌ \`timer\`, \`reset_timer\`, \`Timer.value\`, \`Timer.reset\` → ✅ \`timer.value\`, \`timer.reset\`
-- ❌ \`Mouse.x\`, \`Mouse.y\`, \`Mouse.down?\` → ✅ \`mouse.x\`, \`mouse.y\`, \`mouse.down?\`
-- ❌ \`list("@items")\` → ✅ \`@items\` (use array directly: \`@items.push(...)\`, \`@items[0]\`)
-- ❌ \`touching?("_mouse_pointer_")\` → ✅ \`touching?("_mouse_")\`
-- ❌ \`play_sound()\`, \`stop_sounds\` → ✅ \`play()\`, \`stop_all_sounds\`
-- ❌ \`clear_effects\` → ✅ \`clear_graphic_effects\`
-- ❌ \`glide(secs, x, y)\` → ✅ \`glide([x, y], secs: n)\`
-- ❌ \`go_to(x, y)\` → ✅ \`go_to([x, y])\`
-- ❌ \`for\`, \`each\` → ✅ \`loop do...end\`, \`N.times do...end\`, \`while...end\`, \`until...end\`
-- ❌ \`module_function\`, \`extend\` → ✅ use \`module\` + \`include\` instead
-- ❌ \`sleep(0.05)\`, \`sleep(0.1)\` for animation FPS → ✅ loops auto-wait; only use sleep() for 0.5s+ delays
-- ❌ \`puts\`, \`print\`, \`p\` → ✅ \`say()\`
-- ❌ \`when_backdrop_changes()\` → ✅ \`when_backdrop_switches()\`
-- ❌ \`super\` outside a \`def\` method → ✅ \`super\` only inside \`def\` that overrides a module method
-- ❌ \`super\` without \`include\` → ✅ first \`include ModuleName\`, then override the method with \`super\`
-
-## Sample Programs
-
-### Share methods with module/include
-\\\`\\\`\\\`ruby
-module Utils
-  def add(a, b)
-    a + b
-  end
-end
-
-class Sprite1
-  include Utils
-
-  when_flag_clicked do
-    say(add(1, 5))
-  end
-end
-\\\`\\\`\\\`
-
-### Follow the mouse
-\`\`\`ruby
-when_flag_clicked do
-  loop do
-    point_towards("_mouse_")
-    move(5)
-  end
-end
-\`\`\`
-
-### Arrow key control
-\`\`\`ruby
-when_flag_clicked do
-  loop do
-    if Keyboard.pressed?("right arrow")
-      self.x += 5
-    end
-    if Keyboard.pressed?("left arrow")
-      self.x += -5
-    end
-    if Keyboard.pressed?("up arrow")
-      self.y += 5
-    end
-    if Keyboard.pressed?("down arrow")
-      self.y += -5
-    end
-  end
-end
-\`\`\`
-
-### Bounce off walls
-\`\`\`ruby
-when_flag_clicked do
-  self.rotation_style = "left-right"
-  loop do
-    move(5)
-    bounce_if_on_edge
-  end
-end
-\`\`\`
-
-### Costume animation
-\`\`\`ruby
-when_flag_clicked do
-  loop do
-    next_costume
-  end
-end
-\`\`\`
-
-### Sprite configuration with class
-\`\`\`ruby
-class Shimaraby
-  set_name "シマラビ"
-  set_sprite "Shimaraby"
-  set_x 0
-  set_y -50
-  set_direction 90
-  set_size 80
-  set_rotation_style "left-right"
-
-  when_flag_clicked do
-    loop do
-      move(5)
-      bounce_if_on_edge
-      next_costume
-    end
-  end
-end
-\`\`\`
-
-## Available Sprites (for \`set_sprite\`)
-
-When using \`set_sprite\`, only the following sprite names are available:
-
-| \`set_sprite\` name | Japanese name | Description | Best use |
-|---|---|---|---|
-| \`"Shimaraby"\` | シマラビ | Rabbit (original character), side-facing | Walking, running, platformers |
-| \`"Shimacat"\` | シマネコ | Cat (original character), side-facing | Walking, running, platformers |
-| \`"Cat 2"\` | ネコ | Cat seen from above | Top-down games, moving in all directions |
-| \`"Ball"\` | ボール | Ball | Projectiles (set_size to make smaller), sports |
-| \`"Balloon1"\` | 風船 | Balloon | Popping, catching games |
-| \`"Button1"\` | ボタン | Button | Click interaction |
-| \`"Dragon"\` | ドラゴン | Dragon | Fantasy games, boss enemies |
-| \`"Ghost"\` | ゴースト | Ghost | Enemies, spooky games |
-| \`"Lightning"\` | カミナリ | Lightning bolt | Dodge games, obstacles |
-| \`"Bat"\` | こうもり | Bat | Enemies, flying obstacles |
-
-⚠️ **"Cat" is NOT available**. Use \`"Shimacat"\` or \`"Cat 2"\` for cat sprites.
-⚠️ When the user says "ねこ" or "ネコ", use \`set_sprite "Cat 2"\` (top-down) or \`set_sprite "Shimacat"\` (side-facing) depending on the game type.
-
-## Code Generation Guidelines
+${SMALRUBY_REFERENCE}## Code Generation Guidelines
 
 1. **Keep it simple**: Write code that elementary/middle school students can read and understand. Use a single sprite unless the user explicitly asks for multiple sprites.
 2. **Make it interactive**: Prioritize code with movement, keyboard control, and coordinate changes.
@@ -702,7 +433,7 @@ function getCorsHeaders(origin: string | undefined): Record<string, string> {
   const allowedOrigin = origin && CORS_ALLOWED_ORIGINS.includes(origin) ? origin : CORS_ALLOWED_ORIGINS[0];
   return {
     'Access-Control-Allow-Origin': allowedOrigin,
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
   };
 }
@@ -766,6 +497,153 @@ export function buildResponseLog(params: {
 }
 
 // ---------------------------------------------------------------------------
+// Usage (集計表・RETAIN) / seat status / takeover jobs
+// ---------------------------------------------------------------------------
+/** 集計表に回数（とトークン数）を足し込む。失敗しても答えは返す（fail-open）。 */
+export async function recordUsage(
+  usageContext: UsageContext,
+  outcomes: UsageOutcome[],
+  tokens?: UsageTokens,
+): Promise<void> {
+  if (!USAGE_TABLE_NAME) return;
+  try {
+    await docClient.send(new UpdateCommand({
+      TableName: USAGE_TABLE_NAME,
+      Key: usageKey({ ...usageContext, nowMs: Date.now() }),
+      ...usageUpdateExpression(outcomes, tokens),
+    }));
+  } catch (err) {
+    console.error('[Usage] DynamoDB error, ignoring:', err);
+  }
+}
+
+/**
+ * 席ごとの「今の状況」の 1 行を上書きする（クラス管理のメンバー一覧が読む）。
+ * 上限と窓も書いておき、クラス管理側に計算を持たせない。fail-open。
+ */
+export async function writeSeatCurrent(params: {
+  classroom: string;
+  seat: string;
+  count: number;
+  limit: number;
+  resetAt: number;
+}): Promise<void> {
+  try {
+    await docClient.send(new PutCommand({
+      TableName: RATE_LIMIT_TABLE_NAME,
+      Item: {
+        ...seatCurrentKey(params.classroom, params.seat),
+        count: params.count,
+        limit: params.limit,
+        windowMinutes: RATE_LIMIT_WINDOW_MINUTES,
+        resetAt: params.resetAt,
+        ttl: params.resetAt,
+      },
+    }));
+  } catch (err) {
+    console.error('[RateLimit] failed to write seat status, ignoring:', err);
+  }
+}
+
+function jsonResponse(statusCode: number, corsHeaders: Record<string, string>, payload: unknown): APIGatewayProxyResultV2 {
+  return {
+    statusCode,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  };
+}
+
+/** GET /jobs/{jobId}: takeover の答えを取りに来る。レート制限の回数には数えない。 */
+export async function handleGetJob(jobId: unknown, corsHeaders: Record<string, string>): Promise<APIGatewayProxyResultV2> {
+  if (!isValidJobId(jobId)) {
+    return jsonResponse(400, corsHeaders, { error: 'INVALID_JOB_ID' });
+  }
+  try {
+    const result = await docClient.send(new GetCommand({
+      TableName: JOBS_TABLE_NAME,
+      Key: { jobId },
+    }));
+    const job = result.Item as JobItem | undefined;
+    if (!job) {
+      return jsonResponse(404, corsHeaders, { error: 'JOB_NOT_FOUND' });
+    }
+    return jsonResponse(200, corsHeaders, jobResponseBody(job, Math.floor(Date.now() / 1000)));
+  } catch (err) {
+    console.error('[Jobs] DynamoDB error:', err);
+    return jsonResponse(500, corsHeaders, { error: 'INTERNAL_ERROR' });
+  }
+}
+
+/**
+ * takeover: レート制限（1 席 + IP、または今の IP 単位）→ ジョブを pending で作る →
+ * worker を非同期で起動 → 202 { jobId }。入力はジョブに保存せず、worker の payload だけで渡す。
+ */
+export async function handleTakeover(params: {
+  body: RelayRequest;
+  usageContext: UsageContext;
+  sourceIp: string;
+  corsHeaders: Record<string, string>;
+}): Promise<APIGatewayProxyResultV2> {
+  const { body, usageContext, sourceIp, corsHeaders } = params;
+  const plan = takeoverRateLimitPlan({
+    sourceIp,
+    classroom: usageContext.classroom,
+    seat: usageContext.seat,
+    seatLimit: TAKEOVER_SEAT_MAX_REQUESTS,
+    ipLimit: TAKEOVER_IP_MAX_REQUESTS,
+    defaultLimit: RATE_LIMIT_MAX_REQUESTS,
+  });
+  for (const entry of plan) {
+    const result = await checkAndIncrementRateLimit(entry.key, entry.limit);
+    if (entry.seat && result.count !== undefined && result.resetAt !== undefined
+      && usageContext.classroom && usageContext.seat) {
+      await writeSeatCurrent({
+        classroom: usageContext.classroom,
+        seat: usageContext.seat,
+        count: Math.min(result.count, entry.limit),
+        limit: entry.limit,
+        resetAt: result.resetAt,
+      });
+    }
+    if (!result.allowed) {
+      console.log(`[RateLimit] Takeover blocked: ${entry.seat ? 'seat' : 'ip'}, resetAfterSeconds: ${result.resetAfterSeconds}`);
+      await recordUsage(usageContext, ['requests', 'rateLimited']);
+      return jsonResponse(429, corsHeaders, {
+        error: 'RATE_LIMIT_EXCEEDED',
+        resetAfterSeconds: result.resetAfterSeconds,
+      });
+    }
+  }
+
+  const jobId = randomUUID();
+  const now = Math.floor(Date.now() / 1000);
+  const payload: TakeoverWorkerPayload = {
+    jobId,
+    userMessage: body.userMessage,
+    history: body.history,
+    stateContext: body.stateContext,
+    usageContext,
+  };
+  try {
+    await docClient.send(new PutCommand({
+      TableName: JOBS_TABLE_NAME,
+      Item: { jobId, status: 'pending', createdAt: now, ttl: now + TAKEOVER_JOB_TTL_SECONDS },
+    }));
+    await lambdaClient.send(new InvokeCommand({
+      FunctionName: TAKEOVER_WORKER_FUNCTION_NAME,
+      InvocationType: 'Event',
+      Payload: Buffer.from(JSON.stringify(payload)),
+    }));
+  } catch (err) {
+    console.error('[Takeover] failed to start job:', err);
+    await recordUsage(usageContext, ['requests', 'failed']);
+    return jsonResponse(500, corsHeaders, { error: 'INTERNAL_ERROR' });
+  }
+  await recordUsage(usageContext, ['requests']);
+  return jsonResponse(202, corsHeaders, { jobId, status: 'pending' });
+}
+
+// ---------------------------------------------------------------------------
 // Lambda handler
 // ---------------------------------------------------------------------------
 export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> => {
@@ -775,6 +653,11 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
   // Handle preflight
   if (event.requestContext.http.method === 'OPTIONS') {
     return { statusCode: 204, headers: corsHeaders, body: '' };
+  }
+
+  // GET /jobs/{jobId} (takeover の答えを取りに来る)
+  if (event.requestContext.http.method === 'GET') {
+    return handleGetJob(event.pathParameters?.jobId, corsHeaders);
   }
 
   // Parse body
@@ -789,8 +672,13 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
     };
   }
 
-  // Validate input
-  const validation = validateInput(body.userMessage);
+  const isTakeover = body.purpose === PURPOSE_GENAI_TAKEOVER;
+
+  // Validate input (takeover だけ上限を広げる)
+  const validation = validateInput(
+    body.userMessage,
+    isTakeover ? MAX_TAKEOVER_MESSAGE_LENGTH : MAX_USER_MESSAGE_LENGTH,
+  );
   if (!validation.valid) {
     return {
       statusCode: 400,
@@ -800,7 +688,10 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
   }
 
   // Validate stateContext (prompt injection prevention)
-  const stateContextValidation = validateStateContext(body.stateContext);
+  const stateContextValidation = validateStateContext(
+    body.stateContext,
+    isTakeover ? MAX_TAKEOVER_CURRENT_CODE_LENGTH : MAX_CURRENT_CODE_LENGTH,
+  );
   if (!stateContextValidation.valid) {
     return {
       statusCode: 400,
@@ -810,7 +701,10 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
   }
 
   // Validate history
-  const historyValidation = validateHistory(body.history);
+  const historyValidation = validateHistory(
+    body.history,
+    isTakeover ? MAX_TAKEOVER_HISTORY_TURN_TEXT_LENGTH : MAX_HISTORY_TURN_TEXT_LENGTH,
+  );
   if (!historyValidation.valid) {
     return {
       statusCode: 400,
@@ -819,10 +713,25 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
     };
   }
 
-  // Rate limiting by source IP
+  // takeover は Lambda の非同期呼び出しの payload 上限に収める。各項目の上限を通った後なので、
+  // ここで超えるのは往復（history）を重ねたとき（userMessage / currentCode だけでは届かない）。
+  // purpose 未指定の経路は従来どおり各項目の上限だけで判定する。
+  if (isTakeover && Buffer.byteLength(event.body || '', 'utf8') > MAX_TAKEOVER_REQUEST_BYTES) {
+    return jsonResponse(400, corsHeaders, { error: 'HISTORY_TOO_LONG' });
+  }
+
   const sourceIp = event.requestContext.http.sourceIp || 'unknown';
+  const usageContext = extractUsageContext(body);
+
+  // 「ルビティーにまかせる」は非同期ジョブ（API Gateway の 30 秒の壁を避ける）
+  if (isTakeover) {
+    return handleTakeover({ body, usageContext, sourceIp, corsHeaders });
+  }
+
+  // Rate limiting by source IP
   const rateLimitResult = await checkAndIncrementRateLimit(sourceIp);
   if (!rateLimitResult.allowed) {
+    await recordUsage(usageContext, ['requests', 'rateLimited']);
     console.log(`[RateLimit] Blocked: ${sourceIp}, resetAfterSeconds: ${rateLimitResult.resetAfterSeconds}`);
     return {
       statusCode: 429,
@@ -878,6 +787,7 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
       console.error(`[Claude] API error ${claudeResponse.status}: ${errText}`);
 
       // Map Anthropic error codes to appropriate relay responses
+      await recordUsage(usageContext, ['requests', 'failed']);
       if (claudeResponse.status === 529) {
         // Anthropic overloaded
         return {
@@ -914,10 +824,12 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
       model,
       usage: { outputTokens, inputTokens, cacheCreationTokens, cacheReadTokens },
       userMessageLength: body.userMessage.length,
-      usageContext: extractUsageContext(body),
+      usageContext,
       sourceIp,
       stage: process.env.STAGE,
     }));
+    await recordUsage(usageContext, ['requests', 'succeeded'],
+      { outputTokens, inputTokens, cacheCreationTokens, cacheReadTokens });
 
     return {
       statusCode: 200,
@@ -926,6 +838,7 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
     };
   } catch (err) {
     console.error('[Claude] Unexpected error:', err);
+    await recordUsage(usageContext, ['requests', 'failed']);
     return {
       statusCode: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

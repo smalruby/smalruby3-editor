@@ -22,6 +22,15 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { OAuth2Client } from 'google-auth-library';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import * as crypto from 'crypto';
+import {
+  AiUsage,
+  buildAiUsage,
+  jstDate,
+  seatFromMemberId,
+  seatStatusKey,
+  todayCountsBySeat,
+  usagePk,
+} from './ai-usage-lib';
 
 // --- Configuration ---
 
@@ -39,6 +48,9 @@ const SHARED_REPORTS_TABLE = process.env.SHARED_REPORTS_TABLE_NAME || 'SharedAss
 // お知らせ (notification center, EPIC #1111) — admin → teacher notices. The
 // admin stack writes items; this API lists/marks-read for the teacher.
 const NOTIFICATIONS_TABLE = process.env.NOTIFICATIONS_TABLE_NAME || 'ClassroomNotifications';
+// rubytee relay の表（読み取りだけ・#1311）。未設定ならメンバー一覧の aiUsage は null
+const RUBYTEE_RATE_LIMIT_TABLE = process.env.RUBYTEE_RATE_LIMIT_TABLE_NAME || '';
+const RUBYTEE_USAGE_TABLE = process.env.RUBYTEE_USAGE_TABLE_NAME || '';
 const SHARED_BUCKET = process.env.SHARED_BUCKET_NAME || 'smalruby-shared-assignments';
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
 const MICROSOFT_CLIENT_ID = process.env.MICROSOFT_CLIENT_ID || '';
@@ -1559,6 +1571,53 @@ async function handleJoinClassroom(sourceIp: string, body: Record<string, unknow
   };
 }
 
+/**
+ * 席ごとの aiUsage（ルビティーの上限と今日の回数）を relay の表から読む (#1311)。
+ * relay の表が読めないときは null を返し、メンバー一覧はふつうに返す（fail-open）。
+ */
+export async function loadAiUsageBySeat(
+  classroomId: string,
+  seats: string[],
+  nowMs: number,
+): Promise<Map<string, AiUsage> | null> {
+  if (!RUBYTEE_RATE_LIMIT_TABLE || !RUBYTEE_USAGE_TABLE) return null;
+  try {
+    const uniqueSeats = [...new Set(seats)];
+    const statusRows = new Map<string, Record<string, unknown>>();
+    // BatchGetItem は 1 回 100 キーまで
+    for (let i = 0; i < uniqueSeats.length; i += 100) {
+      const chunk = uniqueSeats.slice(i, i + 100);
+      const res = await docClient.send(new BatchGetCommand({
+        RequestItems: {
+          [RUBYTEE_RATE_LIMIT_TABLE]: { Keys: chunk.map(seat => seatStatusKey(classroomId, seat)) },
+        },
+      }));
+      if (Object.keys(res.UnprocessedKeys || {}).length > 0) {
+        throw new Error('BatchGet left unprocessed keys');
+      }
+      for (const row of res.Responses?.[RUBYTEE_RATE_LIMIT_TABLE] || []) {
+        const m = /^seat#.+:([^:#]+)#current$/.exec(String(row.sourceIp));
+        if (m) statusRows.set(m[1], row);
+      }
+    }
+    const usage = await docClient.send(new QueryCommand({
+      TableName: RUBYTEE_USAGE_TABLE,
+      KeyConditionExpression: 'pk = :pk AND begins_with(sk, :today)',
+      ExpressionAttributeValues: { ':pk': usagePk(classroomId), ':today': `${jstDate(nowMs)}#` },
+    }));
+    const today = todayCountsBySeat(usage.Items || []);
+    const nowSeconds = Math.floor(nowMs / 1000);
+    const result = new Map<string, AiUsage>();
+    for (const seat of uniqueSeats) {
+      result.set(seat, buildAiUsage(statusRows.get(seat), today.get(seat), nowSeconds));
+    }
+    return result;
+  } catch (err) {
+    console.error('[aiUsage] failed to read rubytee relay tables, returning null:', err);
+    return null;
+  }
+}
+
 async function handleListMembers(identity: TeacherIdentity, classroomId: string): Promise<APIGatewayProxyStructuredResultV2> {
   // Verify ownership
   const classroom = await docClient.send(new GetCommand({
@@ -1598,8 +1657,16 @@ async function handleListMembers(identity: TeacherIdentity, classroomId: string)
     }
   }
 
-  const members = (membersResult.Items || []).map(item => {
+  const memberItems = membersResult.Items || [];
+  const aiUsageBySeat = await loadAiUsageBySeat(
+    classroomId,
+    memberItems.map(item => seatFromMemberId(item.memberId)).filter((s): s is string => s !== null),
+    Date.now(),
+  );
+
+  const members = memberItems.map(item => {
     const submission = submissionMap.get(item.memberId as string);
+    const seat = seatFromMemberId(item.memberId);
     return {
       memberId: item.memberId,
       displayName: item.displayName,
@@ -1609,6 +1676,8 @@ async function handleListMembers(identity: TeacherIdentity, classroomId: string)
       hasSubmission: !!submission,
       submissionStatus: submission?.status || null,
       submittedAt: submission?.submittedAt || null,
+      // 任意フィールド (#1311)。relay の表が読めないときは null
+      aiUsage: (seat && aiUsageBySeat?.get(seat)) || null,
     };
   });
 
