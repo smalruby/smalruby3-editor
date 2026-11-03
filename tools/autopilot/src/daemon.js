@@ -22,6 +22,8 @@ const {
     parseBaseBranch,
     resolveBaseRef,
     baseFollowConflictBody,
+    resolveConflictFailureBody,
+    prConflictState,
     shouldPushAfterFollow,
     parseAfterIssues,
     directivesOnFetchFailure,
@@ -137,16 +139,18 @@ async function ensureWorktree(issue, pr, base) {
  *    merge commit は bot 名義（`bin/bot-git`）で作る（共有 config は書き換えない）。
  *  - 追従前に worktree がダーティなら触らない（`skipped-dirty`。worker 起動前提でクリーンなはず）。
  *  - base より遅れていなければ何もしない（`current`）。
- *  - コンフリクトしたら **勝手に解決せず** `git merge --abort` で元に戻し `conflict` を返す
- *    （呼び出し側が Blocked + 🙋 HITL にエスカレーションする）。
+ *  - コンフリクトしたら `conflict` とコンフリクトしたファイルを返す。既定は `git merge --abort` で
+ *    元に戻す。`deps.keepConflict` なら merge 途中のまま残し、AI（resolve-conflict）に解消させる
+ *    （#1348。解消できなければ呼び出し側が中断して Blocked + 🙋 HITL にする）。
  *
  * 判断ロジック（追従 ref 解決）は phases.js の純粋関数 {@link resolveBaseRef} に寄せ、
  * ここは git I/O のみ（`.claude/rules/autopilot/development.md` のレイヤリング）。
  * @param {string} cwd 作業 worktree
  * @param {string|null} baseBranch 宣言 base（null は既定 develop）
  * @param {Function} log ロガー
- * @param {object} [deps] { execFileP, botGitBin }（テスト用の差し替え）
- * @returns {Promise<{status: 'current'|'followed'|'conflict'|'skipped-dirty', baseRef: string, behind?: number, detail?: string}>}
+ * @param {object} [deps] { execFileP, botGitBin }（テスト用の差し替え）、keepConflict（コンフリクトを残す）
+ * @returns {Promise<{status: 'current'|'followed'|'conflict'|'skipped-dirty', baseRef: string, behind?: number,
+ *   detail?: string, files?: string[]}>}
  */
 async function followBaseBranch(cwd, baseBranch, log, deps = {}) {
     const exec = deps.execFileP || execFileP;
@@ -170,11 +174,132 @@ async function followBaseBranch(cwd, baseBranch, log, deps = {}) {
         log(`base 追従: ${baseRef} を merge（${behind} commits 先行していた base に追従）`);
         return { status: 'followed', baseRef, behind };
     } catch (e) {
-        // コンフリクト等 → 勝手に解決せず元に戻す
-        await exec('git', ['merge', '--abort'], opts).catch(() => {});
         const detail = e.stderr || e.stdout || e.message || '';
-        return { status: 'conflict', baseRef, behind, detail: String(detail) };
+        const files = await unmergedFiles(cwd, exec);
+        // keepConflict でなければ勝手に解決せず元に戻す
+        if (!deps.keepConflict || !files.length) await exec('git', ['merge', '--abort'], opts).catch(() => {});
+        return { status: 'conflict', baseRef, behind, detail: String(detail), files };
     }
+}
+
+/**
+ * merge 途中の worktree でコンフリクトしているファイル（#1348）。
+ * @param {string} cwd worktree
+ * @param {Function} exec execFileP 相当
+ * @returns {Promise<string[]>}
+ */
+async function unmergedFiles(cwd, exec) {
+    try {
+        const { stdout } = await exec('git', ['diff', '--name-only', '--diff-filter=U'], { cwd });
+        return String(stdout).split('\n').map((l) => l.trim()).filter(Boolean);
+    } catch {
+        return [];
+    }
+}
+
+/**
+ * worker の起動コマンドを組み立てる（dispatch と resolve-conflict で共有）。
+ * env AUTOPILOT_CLAUDE_CMD が最優先（従来互換・その場合は worktree 内のプロンプトを使う）。無ければ
+ * settings からフェーズ別に組み立て、スナップショットのプロンプトを --add-dir で許可して使う
+ * （checkout のブランチ切り替えに非依存）。
+ * @returns {{command: string, promptDir: string|undefined}}
+ */
+function workerCommand(cfg, phase, cwd) {
+    const envCmd = process.env.AUTOPILOT_CLAUDE_CMD;
+    const command = envCmd
+        || buildClaudeCommand(cfg.settings, phase, {
+            extraDirs: cfg.snapshotDir ? [cfg.snapshotDir] : [],
+            // Claude 使用率抽出（#879）: worker の status line にスクリプトを仕込む。
+            // script は worker の worktree 内の絶対パス（動作中ブランチのものに一致）、
+            // file は daemon が読む共有パス。パスを誤ると値が取れないので絶対パスで渡す。
+            usageStatusline: {
+                script: path.join(cwd, 'tools', 'autopilot', 'bin', 'usage-statusline.sh'),
+                file: cfg.usageFile || usageFilePath(),
+            },
+        });
+    return { command, promptDir: envCmd ? undefined : cfg.promptDir };
+}
+
+/**
+ * merge 途中（base 追従でコンフリクト）の worktree で resolve-conflict の worker を走らせ、
+ * 解消できたかを確かめる（#1348）。worker はコンフリクトを解消して merge commit を作り、PR が
+ * あれば push する。daemon は worker の申告だけを信じず、merge が完了して base を取り込み、
+ * PR があればリモートも同じ commit になっていることを git で確かめる。解消できなければ
+ * merge を中断して元に戻す（呼び出し側が人間へ渡す）。
+ * @param {object} p { issue, cwd, baseBranch, baseRef, files, pr, cfg, log, deps }
+ * @returns {Promise<{ok: boolean, summary?: string, reason?: string}>}
+ */
+async function runConflictResolver(p) {
+    const { issue, cwd, baseBranch, baseRef, files, pr, cfg, log } = p;
+    const deps = p.deps || {};
+    const exec = deps.execFileP || execFileP;
+    const run = deps.runPhase || runPhase;
+    const phase = 'resolve-conflict';
+    const meta = PHASE_BY_COMMAND[phase];
+    const opts = { cwd, maxBuffer: 16 * 1024 * 1024 };
+    const abort = async () => {
+        await exec('git', ['rev-parse', '-q', '--verify', 'MERGE_HEAD'], opts)
+            .then(() => exec('git', ['merge', '--abort'], opts))
+            .catch(() => {});
+    };
+    const resultDir = path.join(cwd, 'tmp');
+    fs.mkdirSync(resultDir, { recursive: true });
+    const resultFile = path.join(resultDir, `autopilot-result-${issue}-${phase}.json`);
+    fs.rmSync(resultFile, { force: true });
+    const env = {
+        AUTOPILOT_ISSUE: String(issue),
+        AUTOPILOT_PHASE: phase,
+        AUTOPILOT_RESULT_FILE: resultFile,
+        AUTOPILOT_PROJECT: String(cfg.project),
+        AUTOPILOT_REPO: cfg.repo,
+        AUTOPILOT_BASE_BRANCH: baseBranch,
+        AUTOPILOT_BASE_REF: baseRef,
+        AUTOPILOT_PR: pr ? String(pr) : '',
+        AUTOPILOT_CONFLICT_FILES: (files || []).join('\n'),
+    };
+    const { command, promptDir } = (deps.workerCommand || workerCommand)(cfg, phase, cwd);
+    log(`#${issue}: run ${phase} (${meta.skill}) — ${(files || []).length} files`);
+    const res = await run({
+        session: `autopilot-${phase}-${issue}`, cwd, env, command, promptDir, skill: meta.skill, issue,
+        resultFile, log, watchdog: cfg.watchdog,
+    });
+    if (!res.ok) {
+        await abort();
+        return { ok: false, reason: `worker が失敗・停止しました（${res.reason}）` };
+    }
+    const parsed = (deps.readResultFile || readResultFile)(resultFile);
+    if (!parsed.ok) {
+        await abort();
+        return { ok: false, reason: `結果ファイルが不正でした: ${parsed.errors.join('; ')}` };
+    }
+    const summary = parsed.result.summary || '';
+    if (parsed.result.signal !== 'done') {
+        await abort();
+        return { ok: false, reason: summary || parsed.result.error || `signal=${parsed.result.signal}` };
+    }
+    // worker の申告に加えて、merge が完了し base を取り込んだことを確かめる
+    const verify = async () => {
+        const merging = await exec('git', ['rev-parse', '-q', '--verify', 'MERGE_HEAD'], opts).then(() => true, () => false);
+        if (merging) return 'merge が完了していません（MERGE_HEAD が残っている）';
+        if ((await unmergedFiles(cwd, exec)).length) return '未解消のファイルが残っています';
+        const contains = await exec('git', ['merge-base', '--is-ancestor', baseRef, 'HEAD'], opts).then(() => true, () => false);
+        if (!contains) return `HEAD が ${baseRef} を取り込んでいません`;
+        if (pr) {
+            const head = String((await exec('git', ['rev-parse', 'HEAD'], opts)).stdout).trim();
+            const { stdout: br } = await exec('git', ['rev-parse', '--abbrev-ref', 'HEAD'], opts);
+            await exec('git', ['fetch', 'origin', String(br).trim()], opts).catch(() => {});
+            const remote = await exec('git', ['rev-parse', `origin/${String(br).trim()}`], opts)
+                .then((r) => String(r.stdout).trim(), () => '');
+            if (remote !== head) return 'PR ブランチへ push されていません';
+        }
+        return null;
+    };
+    const problem = await verify();
+    if (problem) {
+        await abort();
+        return { ok: false, reason: problem };
+    }
+    return { ok: true, summary };
 }
 
 // In Progress + AI 作業中のまま run が無くなってから Blocked にするまでの猶予（#816）。
@@ -924,6 +1049,8 @@ async function dispatch(item, cfg, state, log) {
     const phase = item.phase;
     const meta = PHASE_BY_COMMAND[phase];
     if (!meta) return;
+    // コンフリクト解消は Status を動かさない割り込みなので、通常の dispatch とは別の流れ（#1348）
+    if (phase === 'resolve-conflict') return dispatchResolveConflict(item, cfg, state, log);
     const session = `autopilot-${phase}-${item.issue}`;
     const startedAt = cfg.now();
     state.running.set(item.issue, { phase, session, since: startedAt });
@@ -989,18 +1116,26 @@ async function dispatch(item, cfg, state, log) {
         // 別物で、PR 化後に develop が進むと PR が CONFLICTING になり自動復旧できなくなる（#953/#954）。
         // clean に追従できた場合、PR フェーズでは worker が push しないことがあるため、この merge を
         // push してリモートの PR を mergeable に保つ（implement は後で worker が自分の commit ごと push
-        // するので push 不要）。コンフリクトは自動解決せず Blocked + 🙋 HITL にエスカレーションする（両者共通）。
+        // するので push 不要）。コンフリクトしたら、まず AI（resolve-conflict）に解消させ、解消できたら
+        // 本来のフェーズを続ける。解消できなければ Blocked + 🙋 HITL にエスカレーションする（#1348）。
         {
-            const follow = await followBaseBranch(cwd, baseBranch, (m) => log(`#${item.issue}: ${m}`));
+            const follow = await followBaseBranch(cwd, baseBranch, (m) => log(`#${item.issue}: ${m}`), { keepConflict: true });
             if (follow.status === 'conflict') {
-                log(`#${item.issue}: base 追従でコンフリクト（${follow.baseRef}）→ Blocked`);
-                record('base-follow-conflict', `${follow.baseRef}: ${follow.detail || ''}`);
-                await markBlocked(
-                    item,
-                    baseFollowConflictBody(meta.skill, item.issue, follow.baseRef, sanitizeForSurface(follow.detail || '')),
-                    cfg, log, {}, state,
-                );
-                return;
+                log(`#${item.issue}: base 追従でコンフリクト（${follow.baseRef}）→ resolve-conflict`);
+                const resolved = await resolveInline(item, {
+                    cwd, baseBranch, follow, pr, cfg, state, log, setAi: (v) => mark('AI Status', v),
+                });
+                if (!resolved.ok) {
+                    record('base-follow-conflict', `${follow.baseRef}: ${resolved.reason}`);
+                    const body = follow.files && follow.files.length
+                        ? resolveConflictFailureBody(follow.baseRef, follow.files, sanitizeForSurface(resolved.reason))
+                        : baseFollowConflictBody(meta.skill, item.issue, follow.baseRef, sanitizeForSurface(follow.detail || ''));
+                    await markBlocked(item, body, cfg, log, {}, state);
+                    return;
+                }
+                log(`#${item.issue}: コンフリクトを解消（${resolved.summary || ''}）→ ${phase} を続ける`);
+                await mark('AI Status', meta.aiStatus);
+                patchBoardCache(state, item.issue, [{ field: 'AI Status', value: meta.aiStatus }]);
             }
             if (shouldPushAfterFollow(pr, follow.status)) {
                 try {
@@ -1025,22 +1160,7 @@ async function dispatch(item, cfg, state, log) {
             // address-review はゲート（Review / DoD か Blocked か）で扱う範囲が違う
             AUTOPILOT_STATUS: item.status || '',
         };
-        // worker 起動コマンド: env AUTOPILOT_CLAUDE_CMD が最優先（従来互換・その場合は worktree 内の
-        // プロンプトを使う）。無ければ settings からフェーズ別に組み立て、スナップショットの
-        // プロンプトを --add-dir で許可して使う（checkout のブランチ切り替えに非依存）。
-        const envCmd = process.env.AUTOPILOT_CLAUDE_CMD;
-        const command = envCmd
-            || buildClaudeCommand(cfg.settings, phase, {
-                extraDirs: cfg.snapshotDir ? [cfg.snapshotDir] : [],
-                // Claude 使用率抽出（#879）: worker の status line にスクリプトを仕込む。
-                // script は worker の worktree 内の絶対パス（動作中ブランチのものに一致）、
-                // file は daemon が読む共有パス。パスを誤ると値が取れないので絶対パスで渡す。
-                usageStatusline: {
-                    script: path.join(cwd, 'tools', 'autopilot', 'bin', 'usage-statusline.sh'),
-                    file: cfg.usageFile || usageFilePath(),
-                },
-            });
-        const promptDir = envCmd ? undefined : cfg.promptDir;
+        const { command, promptDir } = workerCommand(cfg, phase, cwd);
         log(`#${item.issue}: run ${phase} (${meta.skill})`);
         const res = await runPhase({
             session, cwd, env, command, promptDir, skill: meta.skill, issue: item.issue, resultFile, log,
@@ -1103,6 +1223,125 @@ async function dispatch(item, cfg, state, log) {
         record('exception', e.message);
         await blockToHuman(`dispatch が例外で停止しました: ${e.message}`);
     } finally {
+        state.running.delete(item.issue);
+    }
+}
+
+/**
+ * 着手時の base 追従がコンフリクトしたとき、本来のフェーズの前に resolve-conflict の worker を
+ * 走らせる（#1348）。実行中の表示（モニタの phase と AI Status）を解消中に切り替える。
+ * @returns {Promise<{ok: boolean, summary?: string, reason?: string}>}
+ */
+async function resolveInline(item, p) {
+    const { cwd, baseBranch, follow, pr, cfg, state, log, setAi } = p;
+    const running = state.running.get(item.issue);
+    const prevPhase = running && running.phase;
+    if (running) running.phase = 'resolve-conflict';
+    await setAi(PHASE_BY_COMMAND['resolve-conflict'].aiStatus);
+    patchBoardCache(state, item.issue, [{ field: 'AI Status', value: PHASE_BY_COMMAND['resolve-conflict'].aiStatus }]);
+    try {
+        return await (p.runConflictResolver || runConflictResolver)({
+            issue: item.issue, cwd, baseBranch, baseRef: follow.baseRef, files: follow.files, pr, cfg, log,
+        });
+    } finally {
+        if (running && prevPhase) running.phase = prevPhase;
+    }
+}
+
+/**
+ * モニタの「解消」ボタン（POST /resolve-conflict）や /inject から、PR のコンフリクトだけを
+ * 解消する（#1348）。**Status と 🙋 HITL は動かさない**（レビュー待ちなどの人間ゲートのまま解消
+ * する）。AI Status は解消中だけ Resolving Conflicts にし、終わったら元に戻す。
+ *  - base に追従済み（current）なら何もしない
+ *  - clean に merge できた（followed）なら push するだけ（worker は起動しない）
+ *  - コンフリクトしたら resolve-conflict の worker に解消させる。解消できなければ理由をコメントし、
+ *    🙋 HITL を付けて人間に渡す（Status は変えない）
+ * @param {object} item { issue, itemId?, pr? }
+ */
+async function dispatchResolveConflict(item, cfg, state, log, deps = {}) {
+    const phase = 'resolve-conflict';
+    const startedAt = cfg.now();
+    state.running.set(item.issue, { phase, session: `autopilot-${phase}-${item.issue}`, since: startedAt });
+    const record = (outcome, note) => recordHistory(state, {
+        issue: item.issue, phase, outcome, note: note ? sanitizeForSurface(note, 200) : null, startedAt, endedAt: cfg.now(),
+    });
+    const io = {
+        findItemId: project.findItemId, findPrForIssue: project.findPrForIssue, setField: project.setField,
+        postIssueComment: project.postIssueComment, ensureWorktree, followBaseBranch, runConflictResolver,
+        execFileP, getDirectives, syncFaces: (it) => syncFacesAfterIntents(it, [], cfg, log),
+        readToken: project.readToken, botToken: project.botToken, ...deps,
+    };
+    const ctx = { projectId: cfg.projectId, fields: cfg.fields };
+    const findIn = (arr) => (Array.isArray(arr) && arr.find((it) => it && it.issue === item.issue)) || null;
+    const cached = findIn(state.board && state.board.items);
+    // tick の item スナップショット（itemId / hitlLabel / kind を持つ）を優先し、無ければ board から
+    const snapshot = findIn(state.itemsCache && state.itemsCache.items) || cached;
+    const prevAi = snapshot ? (snapshot.aiStatus || null) : null;
+    let itemId = item.itemId || (snapshot && snapshot.itemId) || null;
+    let aiChanged = false;
+    const setAi = async (value) => {
+        try {
+            if (!itemId) itemId = await io.findItemId(cfg.owner, cfg.project, item.issue, await io.readToken());
+            await io.setField(ctx, itemId, 'AI Status', value, await io.botToken());
+        } catch (e) {
+            log(`#${item.issue}: mark AI Status failed: ${e.message}`);
+        }
+        patchBoardCache(state, item.issue, [{ field: 'AI Status', value }]);
+    };
+    const patchMergeable = (value) => {
+        if (!cached || !Array.isArray(cached.prs)) return;
+        const idx = state.board.items.findIndex((it) => it && it.issue === item.issue);
+        if (idx < 0) return;
+        const cur = state.board.items[idx];
+        state.board.items[idx] = { ...cur, prs: (cur.prs || []).map((x) => (x.state === 'OPEN' ? { ...x, mergeable: value } : x)) };
+    };
+    try {
+        const pr = item.pr || (await io.findPrForIssue(cfg.repo, item.issue, await io.readToken()) || {}).number;
+        if (!pr) { record('skipped', 'PR がありません'); return; }
+        const directives = await io.getDirectives(cfg, state, item.issue, log);
+        if (directivesBlockDispatch(directives)) { record('skipped', 'Issue 本文を取得できません'); return; }
+        const baseBranch = directives.base || DEFAULT_BASE_BRANCH;
+        const cwd = await io.ensureWorktree(item.issue, pr, baseBranch);
+        const follow = await io.followBaseBranch(cwd, baseBranch, (m) => log(`#${item.issue}: ${m}`), { keepConflict: true });
+        if (follow.status === 'skipped-dirty') {
+            record('skipped', 'worktree に未コミットの変更があるため触りませんでした');
+            return;
+        }
+        if (follow.status === 'current') {
+            record('done', `${follow.baseRef} に追従済み（コンフリクトなし）`);
+            patchMergeable('MERGEABLE');
+            return;
+        }
+        if (follow.status === 'followed') {
+            await io.execFileP(BOT_GIT_BIN, ['push', 'origin', 'HEAD'], { cwd, maxBuffer: 16 * 1024 * 1024 });
+            record('done', `${follow.baseRef} を clean に merge して push`);
+            patchMergeable('MERGEABLE');
+            return;
+        }
+        aiChanged = true;
+        await setAi(PHASE_BY_COMMAND[phase].aiStatus);
+        const r = await io.runConflictResolver({
+            issue: item.issue, cwd, baseBranch, baseRef: follow.baseRef, files: follow.files, pr, cfg, log,
+        });
+        if (r.ok) {
+            record('done', r.summary || 'コンフリクトを解消して push');
+            patchMergeable('MERGEABLE');
+            return;
+        }
+        record('hitl', r.reason);
+        try {
+            await io.postIssueComment(cfg.repo, item.issue,
+                resolveConflictFailureBody(follow.baseRef, follow.files, sanitizeForSurface(r.reason || '')),
+                await io.botToken());
+        } catch (e) { log(`#${item.issue}: resolve-conflict comment failed: ${e.message}`); }
+        // Status は変えずに人間の番にする（🙋 は daemon の面同期だけが付ける）
+        if (snapshot) await io.syncFaces({ ...snapshot, aiStatus: prevAi, hitlLabel: true });
+        else log(`#${item.issue}: item のスナップショットが無いため 🙋 は次の面同期に任せる`);
+    } catch (e) {
+        log(`#${item.issue}: resolve-conflict error ${e.message}`);
+        record('exception', e.message);
+    } finally {
+        if (aiChanged) await setAi(prevAi);
         state.running.delete(item.issue);
     }
 }
@@ -2171,6 +2410,17 @@ function startHttp(cfg, state, log) {
             log(`injected #${issue} (${phase})`);
             return send(202, { injected: issue, phase });
         }
+        if (req.method === 'POST' && url.pathname === '/resolve-conflict') {
+            // モニタの「解消」ボタン（#1348）。Status と 🙋 は動かさない割り込みなので並行上限の外。
+            const issue = Number(url.searchParams.get('issue'));
+            if (!issue) return send(400, { error: 'issue required' });
+            if (state.running.has(issue)) return send(409, { error: 'already running', issue });
+            const it = state.board && Array.isArray(state.board.items) ? state.board.items.find((x) => x && x.issue === issue) : null;
+            if (it && prConflictState(it.prs) === null) return send(409, { error: 'no open PR', issue });
+            dispatch({ issue, phase: 'resolve-conflict', itemId: it && it.itemId }, cfg, state, log);
+            log(`resolve-conflict requested #${issue}`);
+            return send(202, { resolving: issue });
+        }
         if (req.method === 'POST' && url.pathname === '/shutdown') {
             // 安全停止: pkill -f は自己 kill するため使わず、この HTTP か PID ファイルで止める
             log('shutdown requested');
@@ -2313,4 +2563,7 @@ module.exports = {
     ensureCheckpointCommit, readContinuationFromWorktree, applyCheckpointHandling,
     collectContinuationContexts, checkpointEscalationBody,
     followBaseBranch,
+    runConflictResolver,
+    resolveInline,
+    dispatchResolveConflict,
 };

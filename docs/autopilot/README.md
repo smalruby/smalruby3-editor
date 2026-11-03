@@ -92,6 +92,7 @@ Issue を状態の正とすることで daemon が落ちても現在地が分か
 | Implementing / Creating PR | autopilot-implement | In Progress |
 | Self-Reviewing | autopilot-review | In Progress |
 | Addressing Comments | autopilot-address-review | Review / DoD（NG 差し戻し） |
+| Resolving Conflicts | autopilot-resolve-conflict（base とのコンフリクトを AI が解消。Status は動かさず、解消中だけこの値にして終わったら元に戻す） | 変えない（Review / DoD / Blocked / In Progress のまま） |
 | Running DoD | autopilot-verify（一般 UI は headless Playwright で自己完結・#891）／ 音・autoplay 等は daemon `applyDodHandoffs`（ホスト引き継ぎ生成） | DoD |
 | Awaiting Continuation | 元フェーズ（例 implement）を再 dispatch（協調的チェックポイント・EPIC #906。soft-limit で worker が安全に中断し、常に HITL で継続確認してから再開） | In Progress |
 
@@ -376,8 +377,9 @@ PR の **diff と全コメント（Issue/レビュー本文/インライン）**
   daemon が両面を atomic に同期する（後述「PR 側の状態可視化」）ので、人間は目の前の
   PR ラベルを外すだけでも、コメントを返すだけでも差し戻せる。
 - address-review は **既存 PR ブランチ**で作業する（daemon が worktree を `--pr` で用意）。
-- **コンフリクトは autopilot で解消しない**（rebase/merge コンフリクトは人間の役割）。プロンプトは
-  解消を試みず HITL で人間に渡す。
+- **base とのコンフリクトは AI が解消する**（#1348）。着手時の base 追従でコンフリクトしたら、
+  daemon が先に `autopilot-resolve-conflict` を走らせ、解消できたら address-review を続ける。
+  解消できなければ Blocked + 🙋 で人間に渡す（後述「base 追従」）。
 
 ---
 
@@ -636,6 +638,12 @@ GitHub Projects で行い、モニタは俯瞰・log 閲覧・pause/resume/即�
   連続リクエストを**最後の目標状態へ畳み込む**（差分時のみ書き込み）。保留中の Issue はボードの定期
   更新・🔄 更新で古い labels が返っても pending の状態を優先表示する。Blocked・認証アラートは
   あとでやる 内の Issue でも上部に通常どおり出し、あとでやる 内の人間の番もアラート帯に出す
+- **コンフリクトの表示と解消**（#1348）: PR チップは GitHub が判定した `mergeable` を見て、
+  base とコンフリクトしている OPEN の PR に赤枠と ⚠️ を付ける。値は俯瞰ボードの PR 取得
+  （`getBoardEnrichment`）に 1 項目足しただけなので、追加の API 呼び出しは無い。GitHub は非同期に
+  判定するので、初回は未確定（印なし）のことがあり、次の 🔄 更新で確定する。コンフリクトしている行の
+  Now 列に **🔀 解消** ボタンが出て、押すと `POST /resolve-conflict` で AI が解消する（後述「base 追従」）。
+  実行中は phase 表示に変わり、終わるとボードのキャッシュ上の印が消える
 - **スティッキーフッター**: **稼働バージョン（`branch @ shortCommit`）** + **⬆️ 更新ありバッジ**。
   常時見えるフッターに置き、押すと更新手順モーダルを表示する（#885）
 - **Claude 使用量（ヘッダー中央）**: Claude アイコン + **セッション使用率**（rolling 5 時間制限）と
@@ -838,9 +846,21 @@ PR ブランチ作業フェーズ（review / address-review）の**両方**で�
 merge = 既に push 済みの Draft PR ブランチでも force push 不要）。長時間・複数日にまたがる作業や、
 PR 作成後に develop が進んで PR が CONFLICTING になる問題を防ぐ。PR フェーズでは worker が必ずしも
 push しないため、clean に追従できたら daemon がその merge を **push** してリモートの PR を mergeable
-に保つ（implement は後で worker が自分の commit ごと push するので push 不要）。コンフリクトは両者とも
-**自動解決せず** `git merge --abort` で元に戻し、Blocked + `🙋 HITL` にサニタイズ理由を出して
-人間へエスカレーションする（勝手に壊さない）。
+に保つ（implement は後で worker が自分の commit ごと push するので push 不要）。
+
+**コンフリクトの解消（#1348）**: base 追従がコンフリクトしたら、daemon は merge を途中のまま残し、
+本来のフェーズの前に **`autopilot-resolve-conflict`**（AI Status `Resolving Conflicts`）を走らせる。
+worker は両側の変更を確かめて解消し（`package-lock.json` は PR 側を採って
+`npm install --package-lock-only --before <3日前>` で作り直す）、lint と関係するテストを通してから
+merge commit を作り、PR があれば push する。daemon は worker の申告だけでなく、merge が完了して base を
+取り込んだこと・PR ブランチのリモートが同じ commit であることを git で確かめる。解消できたら本来の
+フェーズを続け、できなければ merge を中断して元に戻し、コンフリクトしたファイルと理由を添えて
+Blocked + `🙋 HITL` にする。
+
+レビュー待ちなどで着手されない PR は、モニタの **🔀 解消** ボタン（`POST /resolve-conflict`）で
+同じ worker を走らせる。こちらは **Status と 🙋 を動かさない**割り込みで、AI Status だけ解消中に
+`Resolving Conflicts` にして終わったら元に戻す。clean に merge できる（コンフリクトしていない）
+なら worker を起動せず push だけする。解消できなければ理由をコメントし、🙋 を付けて人間に渡す。
 
 ### daemon（常駐・本番運用）
 
@@ -951,6 +971,7 @@ HTTP API（curl からも操作可能）:
 | `POST /later` | body `{issue, later: boolean}`。`💤 later` を付与 / 除去する（モニタの「💤 あとで」/「↩ 今やる」）。Issue 単位で直列化し連続リクエストは最後の目標へ畳み込む。既に目的の状態なら書き込まない。`{issue, later, changed}` を返す |
 | `POST /stop?issue=<n>` | その item の tmux セッションを kill して force-stop |
 | `POST /inject?issue=<n>&phase=<p>` | 並行上限を超えて 1 フェーズを割り込み投入 |
+| `POST /resolve-conflict?issue=<n>` | PR の base とのコンフリクトを AI に解消させる（モニタの 🔀 解消）。Status と 🙋 は変えない。並行上限の外。実行中なら 409、OPEN の PR が無ければ 409 |
 | `POST /shutdown` | daemon プロセスを安全停止 |
 
 ```bash

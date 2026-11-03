@@ -10,7 +10,11 @@
 item の状態は次の 4 要素で決まる（Project が単一の真実）:
 
 - **Status**（人間ボード列）: No Status(New Item) / Backlog / Sprint Backlog / In Progress / Blocked / Review / DoD / Close / Done / Icebox
-- **AI Status**（AI の細フェーズ）: Triaging / Discussing / Understanding / Decomposing / EPIC Decomposed / Implementing / Creating PR / Self-Reviewing / Addressing Comments / Running DoD / **Awaiting Continuation**（協調的チェックポイント・EPIC #906） / （空）
+- **AI Status**（AI の細フェーズ）: Triaging / Discussing / Understanding / Decomposing / EPIC Decomposed / Implementing / Creating PR / Self-Reviewing / Addressing Comments / Resolving Conflicts / Running DoD / **Awaiting Continuation**（協調的チェックポイント・EPIC #906） / （空）
+  - **Resolving Conflicts**（#1348）は Status を動かさない割り込みで、解消中だけ付き、終わると daemon が元の
+    AI Status に戻す。`phaseForItem` はこの値から何も選ばない（起動はモニタの 🔀 解消か、着手時の base 追従の
+    コンフリクトだけ）。daemon が解消中に落ちて残った場合、In Progress なら stuck 検知（→ Blocked）、
+    ゲート状態ならそのゲートの出口がそのまま効く
 - **🙋 HITL ラベル**: 人間の番か（Issue/PR の両面に投影）
 - **🧭 tracking ラベル / Kind=EPIC**: トラッカー（作業 item ではない）
 

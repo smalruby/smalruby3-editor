@@ -608,7 +608,7 @@ async function getBoardEnrichment(repo, issueNumbers, token, deps = {}) {
         const fields = chunk.map((n) =>
             `i${n}: issue(number:${n}){ number state ` +
             'subIssuesSummary{ total completed percentCompleted } ' +
-            'closedByPullRequestsReferences(first:10,includeClosedPrs:true){nodes{number state isDraft}} }',
+            'closedByPullRequestsReferences(first:10,includeClosedPrs:true){nodes{number state isDraft mergeable}} }',
         ).join(' ');
         const query = `query{repository(owner:"${owner}",name:"${name}"){ ${fields} }}`;
         const res = JSON.parse(await ghFn(
@@ -633,7 +633,7 @@ async function listHeadPrs(repo, issueNumber, token, deps = {}) {
     const ghFn = deps.gh || gh;
     const out = await ghFn(
         ['pr', 'list', '--repo', repo, '--head', headBranchFor(issueNumber), '--state', 'all',
-            '--json', 'number,state,isDraft', '--limit', '10'],
+            '--json', 'number,state,isDraft,mergeable', '--limit', '10'],
         { token },
     );
     const arr = JSON.parse(out);
@@ -641,6 +641,7 @@ async function listHeadPrs(repo, issueNumber, token, deps = {}) {
         number: p.number,
         state: p.state,
         isDraft: Boolean(p.isDraft),
+        mergeable: p.mergeable || null,
     }));
 }
 

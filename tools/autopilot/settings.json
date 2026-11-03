@@ -9,6 +9,7 @@
     "implement": { "model": "opus", "effort": "medium" },
     "review": { "model": "opus", "effort": "high" },
     "address-review": { "model": "opus", "effort": "high" },
-    "verify": { "model": "opus", "effort": "medium" }
+    "verify": { "model": "opus", "effort": "medium" },
+    "resolve-conflict": { "model": "opus", "effort": "medium" }
   }
 }

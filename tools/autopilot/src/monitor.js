@@ -26,13 +26,14 @@
 
 const {
     canToggleLater, effectiveLater, splitLaterBoard, laterPendingReducer, splitPrsForTitle, issueCopyText,
+    canResolveConflict,
     HUMAN_WAIT_REASONS, humanWaitGroups, renderHumanWaitsHtml, renderHumanWaitCell,
 } = require('./phases');
 
 // ブラウザへ埋め込むクライアント共有の純粋関数（自己完結。later.test.js / spike.test.js で単独評価を担保）
 const SHARED_CLIENT_FNS = [
     canToggleLater, effectiveLater, splitLaterBoard, laterPendingReducer, splitPrsForTitle, issueCopyText,
-    humanWaitGroups, renderHumanWaitsHtml, renderHumanWaitCell,
+    humanWaitGroups, renderHumanWaitsHtml, renderHumanWaitCell, canResolveConflict,
 ]
     .map(String).join('\n');
 
@@ -210,6 +211,9 @@ const MONITOR_HTML = `<!doctype html>
   .muted { color: var(--muted); }
   .prchip { display: inline-block; margin: 0 .15rem .1rem 0; padding: 0 .35rem; border-radius: .3rem;
             font-size: .75rem; white-space: nowrap; border: 1px solid transparent; }
+  .pr-conflict { outline: 2px solid #dc2626; outline-offset: -1px; }
+  td button.resolve-btn { white-space: nowrap; color: #b91c1c; border: 1px solid #fca5a5; background: #fef2f2; }
+  td button.resolve-btn[disabled] { cursor: progress; opacity: .6; }
   .pr-draft { background: #f1f5f9; color: #475569; border-color: #cbd5e1; }
   .pr-ready { background: #dcfce7; color: #14532d; border-color: #86efac; }
   .pr-merged { background: #f3e8ff; color: #6b21a8; border-color: #d8b4fe; }
@@ -332,8 +336,11 @@ const prChip = (p) => {
   if (p.state === 'MERGED') { cls = 'pr-merged'; icon = '🟣'; }
   else if (p.state === 'CLOSED') { cls = 'pr-closed'; icon = '❌'; }
   else if (p.isDraft) { cls = 'pr-draft'; icon = '📝'; }
-  return '<a class="prchip ' + cls + '" target="_blank" rel="noopener" href="' + repoUrl + '/pull/' + p.number + '">'
-    + icon + ' PR#' + p.number + '</a>';
+  // GitHub が判定したコンフリクト（#1348）。OPEN の PR だけ。UNKNOWN（計算中）は印を付けない
+  const conflict = p.state === 'OPEN' && p.mergeable === 'CONFLICTING';
+  return '<a class="prchip ' + cls + (conflict ? ' pr-conflict' : '') + '" target="_blank" rel="noopener" href="'
+    + repoUrl + '/pull/' + p.number + '"' + (conflict ? ' title="base とコンフリクトしています" data-testid="board-pr-conflict"' : '') + '>'
+    + icon + ' PR#' + p.number + (conflict ? ' ⚠️' : '') + '</a>';
 };
 // ---- 📋 Issue と PR をコピー（#1213） ----
 // 光らせる演出は 5 秒ごとの innerHTML 再描画で行ごと作り直されるため、対象の Issue と開始時刻を
@@ -695,6 +702,10 @@ function renderAlerts(d) {
     const links = laterHitl.map((it) => '<a target="_blank" rel="noopener" href="' + esc(it.url) + '">#' + it.issue + '</a>').join(' ');
     parts.push('<div class="alert auth-a">💤🙋 <b>あとでやる に人間の番 ' + laterHitl.length + ' 件</b> ' + links + '</div>');
   }
+  if (resolveError) {
+    parts.push('<div class="alert block-a">⚠️ <b>コンフリクト解消の依頼に失敗</b> ' + esc(resolveError)
+      + ' <button onclick="resolveError = null; rerender()">✕</button></div>');
+  }
   if (laterError) {
     parts.push('<div class="alert block-a">⚠️ <b>あとでやる の切り替えに失敗</b>（元に戻しました） ' + esc(laterError)
       + ' <button onclick="laterError = null; rerender()">✕</button></div>');
@@ -735,6 +746,32 @@ function laterButton(it) {
   return isLater
     ? ' <button class="later-btn" data-later-issue="' + it.issue + '" title="あとでやる から通常に戻す（💤 later を外す）" onclick="toggleLater(' + it.issue + ', false)">↩ 今やる</button>'
     : ' <button class="later-btn" data-later-issue="' + it.issue + '" title="あとでやる に移す（💤 later を付ける・autopilot の処理は変わらない）" onclick="toggleLater(' + it.issue + ', true)">💤 あとで</button>';
+}
+// コンフリクト解消ボタン（#1348）。押すと POST /resolve-conflict。daemon は Status と 🙋 を変えずに
+// 解消だけ行う（実行中は running に出るので、ボタンは消えて phase 表示に変わる）。
+let resolveRequested = {}; // { [issue]: true } 送信中
+let resolveError = null;
+function resolveButton(it, runningIssues) {
+  if (!canResolveConflict(it, runningIssues)) return '';
+  if (resolveRequested[it.issue]) return ' <button class="resolve-btn" disabled>⏳ 依頼中</button>';
+  return ' <button class="resolve-btn" data-testid="board-resolve-conflict" data-issue="' + it.issue + '"'
+    + ' title="base とのコンフリクトを AI が解消する（Status と 🙋 は変えない）" onclick="resolveConflict(' + it.issue + ')">🔀 解消</button>';
+}
+async function resolveConflict(issue) {
+  if (resolveRequested[issue]) return;
+  resolveRequested[issue] = true;
+  resolveError = null;
+  rerender();
+  try {
+    const r = await fetch('/resolve-conflict?issue=' + issue, { method: 'POST' });
+    let j = {};
+    try { j = await r.json(); } catch (e) { /* 本文なし */ }
+    if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
+  } catch (e) {
+    resolveError = '#' + issue + ': ' + e.message;
+  }
+  delete resolveRequested[issue];
+  await refresh();
 }
 // 楽観的更新: 先に画面上で移動 → 裏で POST /later → 失敗時は最後に確定した状態へ戻す。
 // ボード再取得は撃たない（daemon がキャッシュ上の labels を書き換える）。
@@ -811,7 +848,7 @@ function renderBoard(d) {
       + '<td>' + aiStatusCell(it) + '</td>'
       + '<td>' + who + observing + '</td>'
       + '<td>' + sub + '</td>'
-      + '<td>' + now + laterButton(it) + '</td></tr>';
+      + '<td>' + now + resolveButton(it, (d.running || []).map((x) => x.issue)) + laterButton(it) + '</td></tr>';
   });
   document.getElementById('rows').innerHTML = rows.join('')
     || '<tr><td colspan="7" class="muted">' + (boardTab === 'later'

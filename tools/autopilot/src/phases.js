@@ -70,6 +70,56 @@ function baseFollowConflictBody(skill, issue, baseRef, detail) {
 }
 
 /**
+ * base 追従のコンフリクトを AI（resolve-conflict）でも解消できなかったときの Blocked コメント本文
+ * （純粋関数・#1348）。worker が中断理由をコメント済みのことが多いので、ここは要点だけ書く。
+ * @param {string} baseRef 追従しようとした ref（例 `origin/develop`）
+ * @param {string[]} files コンフリクトしたファイル
+ * @param {string} reason サニタイズ済みの理由（worker の要約か runner の失敗理由）
+ * @returns {string} コメント本文
+ */
+function resolveConflictFailureBody(baseRef, files, reason) {
+    const list = (files || []).slice(0, 20).map((f) => `- \`${f}\``).join('\n') || '- （不明）';
+    return (
+        `🤖 autopilot: 作業ブランチを最新の base（\`${baseRef}\`）へ merge したところコンフリクトしたため、` +
+        'AI（`autopilot-resolve-conflict`）で解消を試みましたが、**解消できませんでした**。' +
+        'merge は中断して元に戻してあります。\n\n' +
+        `**コンフリクトしたファイル**:\n${list}\n\n` +
+        `**理由**: ${reason || '（ローカルログ参照）'}\n\n` +
+        '**人間の対応**: 解消方針をコメントで指示して `🙋 HITL` を外すか、手で解消して push してから ' +
+        '`🙋 HITL` を外してください。'
+    );
+}
+
+/**
+ * 連携 PR のコンフリクト状態（クライアント共有・自己完結・#1348）。OPEN の PR だけを見る。
+ * GitHub の `mergeable` は非同期に計算されるので、未確定（UNKNOWN / 未取得）は `unknown` とする。
+ * @param {Array<{state:string, mergeable?:string|null}>} prs board item の prs
+ * @returns {'conflict'|'unknown'|'clean'|null} OPEN の PR が無ければ null
+ */
+function prConflictState(prs) {
+    const open = (Array.isArray(prs) ? prs : []).filter((p) => p && p.state === 'OPEN');
+    if (!open.length) return null;
+    if (open.some((p) => p.mergeable === 'CONFLICTING')) return 'conflict';
+    if (open.some((p) => p.mergeable !== 'MERGEABLE')) return 'unknown';
+    return 'clean';
+}
+
+/**
+ * モニタの「コンフリクト解消」ボタンを出してよいか（クライアント共有・自己完結・#1348）。
+ * OPEN の PR がコンフリクトしていて、終端でなく、worker が走っていないときだけ。
+ * ブラウザに埋め込むため {@link prConflictState} を呼ばずに同じ判定を内側に持つ。
+ * @param {object} item board item（status / issue / prs）
+ * @param {number[]} [runningIssues] 実行中の Issue 番号
+ * @returns {boolean}
+ */
+function canResolveConflict(item, runningIssues) {
+    if (!item || ['Close', 'Done'].includes(item.status)) return false;
+    if ((runningIssues || []).includes(item.issue)) return false;
+    const prs = Array.isArray(item.prs) ? item.prs : [];
+    return prs.some((p) => p && p.state === 'OPEN' && p.mergeable === 'CONFLICTING');
+}
+
+/**
  * base 追従（#950）後にリモートへ push すべきか（純粋関数）。
  *
  * `followBaseBranch` は base をローカルブランチへ merge するだけで push しない。
@@ -286,6 +336,10 @@ const PHASE_BY_COMMAND = {
     review: { skill: 'autopilot-review', aiStatus: 'Self-Reviewing' },
     'address-review': { skill: 'autopilot-address-review', aiStatus: 'Addressing Comments' },
     verify: { skill: 'autopilot-verify', aiStatus: 'Running DoD' },
+    // base とのコンフリクト解消（#1348）。ほかのフェーズと違い Status を動かさない「割り込み」で、
+    // モニタのボタン（POST /resolve-conflict）か、着手時の base 追従のコンフリクトから起動する。
+    // AI Status は実行中だけこの値にし、終わったら元に戻す（daemon の dispatchResolveConflict）。
+    'resolve-conflict': { skill: 'autopilot-resolve-conflict', aiStatus: 'Resolving Conflicts' },
 };
 
 /**
@@ -1637,6 +1691,9 @@ function normalizeBoardEnrichment(node) {
             number: n.number,
             state: n.state,
             isDraft: Boolean(n.isDraft),
+            // GitHub が判定するコンフリクト有無（MERGEABLE / CONFLICTING / UNKNOWN・#1348）。
+            // 初回は非同期計算中の UNKNOWN になりうる（次の再取得で確定する）。
+            mergeable: n.mergeable || null,
         })),
     };
 }
@@ -3203,6 +3260,9 @@ module.exports = {
     autopilotHeadBranch,
     resolveBaseRef,
     baseFollowConflictBody,
+    resolveConflictFailureBody,
+    prConflictState,
+    canResolveConflict,
     shouldPushAfterFollow,
     applyResult,
     subIssueSetupIntents,
