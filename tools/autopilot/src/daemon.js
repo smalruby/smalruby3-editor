@@ -73,6 +73,8 @@ const {
     selectSubIssueCountTargets,
     draftAction,
     renderSticky,
+    humanWaitReason,
+    humanWaitUrl,
     applyIntentsToItem,
     needsDodHandoff,
     hasDodHandoffComment,
@@ -1374,15 +1376,18 @@ async function applyLabelHealing(items, cfg, state, log, deps = {}) {
     const todo = [];
     for (const item of targets) {
         const withCounts = counts.has(item.issue) ? { ...item, subIssues: counts.get(item.issue) } : item;
-        const { add } = healingLabelActions(withCounts, item.labels || []);
-        if (add.length) todo.push({ issue: item.issue, add });
+        const { add, remove } = healingLabelActions(withCounts, item.labels || []);
+        if (add.length || remove.length) todo.push({ issue: item.issue, add, remove });
     }
     if (!todo.length) return;
     const token = deps.token || await project.botToken();
-    for (const { issue, add } of todo) {
+    for (const { issue, add, remove } of todo) {
         try {
-            await editLabels(cfg.repo, issue, 'issue', { add }, token);
-            log(`#${issue}: ラベル担保 ${add.join(' ')}`);
+            const change = {};
+            if (add.length) change.add = add;
+            if (remove.length) change.remove = remove;
+            await editLabels(cfg.repo, issue, 'issue', change, token);
+            log(`#${issue}: ラベル担保 ${[...add.map((l) => `+${l}`), ...remove.map((l) => `-${l}`)].join(' ')}`);
         } catch (e) {
             log(`#${issue}: label healing failed: ${e.message}`);
         }
@@ -1453,7 +1458,8 @@ async function syncFacesForItem(item, io, cfg, log, opts = {}) {
     const pr = await io.findPrForIssue(cfg.repo, item.issue, io.readToken);
     if (!pr) return;
     const info = await io.getPrInfo(cfg.repo, pr.number, io.readToken);
-    await io.editLabels(cfg.repo, pr.number, 'pr', labelActions(item, info.labels, opts), io.token);
+    // 🔬 spike は Issue 面だけに付ける（#1315）
+    await io.editLabels(cfg.repo, pr.number, 'pr', labelActions(item, info.labels, { ...opts, skipSpike: true }), io.token);
     const da = draftAction(info.isDraft, item);
     if (da) await io.setPrDraft(cfg.repo, pr.number, da, io.token);
     await io.upsertStickyComment(cfg.repo, pr.number, renderSticky(item), io.token, { readToken: io.readToken });
@@ -1857,10 +1863,15 @@ async function refreshBoard(cfg, state, log, deps = {}) {
             if (it.aiStatus === AWAITING_CONTINUATION_STATUS) {
                 continuationRemaining = await readContinuationRemainingCount(it.issue, log, deps);
             }
+            const url = `https://github.com/${cfg.repo}/issues/${it.issue}`;
+            // 人間が何待ちか（#1315）。取得済みの Project 状態・ラベル・PR から作る（追加の read なし）
+            const waitReason = humanWaitReason(it);
             enriched.push({
                 issue: it.issue,
                 title: it.title,
-                url: `https://github.com/${cfg.repo}/issues/${it.issue}`,
+                url,
+                waitReason,
+                waitUrl: humanWaitUrl(waitReason, url, extra.prs, `https://github.com/${cfg.repo}`),
                 status: it.status || 'New Item',
                 aiStatus: it.aiStatus || null,
                 continuationRemaining,

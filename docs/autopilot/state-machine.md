@@ -14,6 +14,19 @@ item の状態は次の 4 要素で決まる（Project が単一の真実）:
 - **🙋 HITL ラベル**: 人間の番か（Issue/PR の両面に投影）
 - **🧭 tracking ラベル / Kind=EPIC**: トラッカー（作業 item ではない）
 
+### 状態から導出する表示ラベル（遷移には使わない）
+
+次の 2 つは上の 4 要素から毎 tick 導出して付け外しするだけで、`phaseForItem` の入力にはしない
+（付け外しで遷移が変わらないので、出口の議論には現れない）。
+
+| ラベル | 付く条件（`phases.js`） | 外れる |
+|---|---|---|
+| `⏳ waiting` | `autopilot-after` の先行 Issue が未完了（`waitingLabelAction`） | 先行 Issue の完了 |
+| `🔬 spike` | AI Status=`Discussing`、または AI Status が `Triaging` / `Understanding` で 🙋 あり（`isSpikeItem`）。Blocked は understand の質問待ちだけ（triage / discuss の Blocked は run 失敗） | implement 以降・Close / Done・Icebox |
+
+人間待ち（🙋）の item の「何待ちか」（`humanWaitReason`）も同じく表示だけに使う:
+🔬 Spike（上の `🔬 spike` と同条件）→ 👀 Review → ✅ DoD → 🧱 Blocked → ⏳ 依存待ち → 🙋 そのほか。
+
 ## トリガーの種類
 
 | 種類 | 実体 |

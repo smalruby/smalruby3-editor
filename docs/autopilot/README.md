@@ -158,6 +158,23 @@ daemon が **`⏳ waiting` ラベル**を付ける。GitHub Projects の view �
 EPIC の leaf は **全部 Sprint Backlog に入れておけば**、依存順に自動で 1 つずつ流れる（並列
 衝突はゲーティングが防ぐ）。
 
+### 🔬 spike ラベル（要件の相談中の可視化）
+
+技術調査に加え、要件が決まっていないときに人間と決めきる行動も **Spike** とみなし、その間は
+daemon が Issue に **`🔬 spike` ラベル**を付ける。GitHub のラベル絞り込みで「相談中」を探せる。
+⏳ waiting と同じく **状態から毎 tick 導出**する（判定は `phases.js` の `isSpikeItem` →
+`labelActions`）。
+
+- **付ける**: AI Status が `Discussing` のとき（🙋 の有無を問わない）。または triage / understand が
+  質問を出して `🙋 HITL` で止まっているとき（AI Status が `Triaging` / `Understanding` + 🙋）。
+  Status=Blocked で付けるのは understand の質問待ちだけ（triage / discuss が Blocked なのは run 失敗で、
+  障害として 🧱 Blocked に数える）。
+- **外す**: 実装（implement）以降に進んだとき、または閉じた（Close / Done）・Icebox にしたとき。
+  閉じた item でもラベルが残っていれば label healing が外す（item-list の labels だけで判定でき、
+  追加の読み取りは要らない）。
+- **導出が正**: 人間が手で付けたものも、条件を満たさなければ外す（「人間が Spike を始める」は
+  扱わない）。PR には付けない（Issue 面だけ）。
+
 ### 🧱 infra ラベル（infra を先に出す・infra-first）
 
 ブランチプレビューは prod の API を見るので、infra と GUI を同じ PR に入れると新しい API を
@@ -471,7 +488,7 @@ PR 側は読み取り投影）。実装は daemon の `applyPrProjection`（ポ�
 | `🤖 autopilot` ラベル | autopilot 管理対象（AI 処理対象） | Issue/PR に常時担保 |
 | `🙋 HITL` ラベル | 人間の対応待ち（**HITL の唯一の真実**・#813） | 人間に渡すとき Issue/PR の両面に付与 / release・merge で除去 |
 | Draft ⇄ Ready for review | Draft=AI 作業中 / Ready=人間が見る段階 | **Status 基準**（#815）: `Review`/`DoD`/`Close`/`Blocked`→Ready / それ以外（`In Progress` 等）→Draft |
-| sticky ステータスコメント | bot が1コメントを編集し続け、連携 Issue の Project 状態を投影 | Status / AI Status / HITL（ラベル由来）/ Size をマーカー付き 1 コメントに upsert |
+| sticky ステータスコメント | bot が1コメントを編集し続け、連携 Issue の Project 状態を投影 | Status / AI Status / HITL（ラベル由来）/ Size をマーカー付き 1 コメントに upsert。人間待ちなら「いま: 🔬 Spike・回答待ち — …」のように**何待ちか**を 1 行足す（`humanWaitReason`）。本文が変わったときだけ PATCH |
 
 - 対象は連携 PR を持ちうる post-PR ステータス（In Progress / Review / DoD / Blocked）の leaf。
   EPIC は実装 PR を持たないので除外（`selectPrSyncCandidates`）。
@@ -652,6 +669,17 @@ GitHub Projects で行い、モニタは俯瞰・log 閲覧・pause/resume/即�
   usage pause 中 **`USAGE ⏸`**（橙）。詳細は「Claude 使用量の auto-pause と強制再開」。
   各アラートに **`check autopilot (#N)` のコピー用ショートカット**があり、Claude に
   貼ると `.claude/skills/check-autopilot` スキルが診断・復旧支援する
+- **人間待ちのまとめ**（#1315）: 一覧の上に、人間が何待ちで止まっているかを理由ごとに件数と
+  item でまとめる。理由は `phases.js` の純粋関数 `humanWaitReason` が 1 つに決める
+  （🙋 の item は 🔬 Spike・回答待ち → 👀 レビュー待ち（Review）→ ✅ DoD の確認待ち →
+  🧱 Blocked（障害）→ ⏳ 依存待ち（`autopilot-after` の未完了）→ 🙋 そのほか の順。🙋 が無い item は
+  ⏳ 依存待ちだけを出す）。🔬 Spike の条件は「🔬 spike ラベル」と同じ。daemon が `refreshBoard` で
+  `waitReason` と、人間に開いてほしいページの `waitUrl`（レビュー / DoD は open な PR、それ以外は
+  Issue）を board item に載せる。どちらも取得済みの Project 状態・ラベル・PR から作るので、
+  **新しい読み取りは増えない**（コメント単位のリンクは取得済みデータに無いので出さない）。
+  HTML は `renderHumanWaitsHtml` / `renderHumanWaitCell` をモニタに埋め込んで共有する。
+  Now 欄の 🙋 も理由つき（例: `🔬 Spike・回答待ち`）で出し、押すと `waitUrl` を開く。
+  あとでやる タブの item もまとめに含める
 - **ボード行**: Issue（**📋** + リンク + **PR チップ** + **▼** + タイトル）/ Status pill / Size / AI Status（live）/
   担当 / **sub-issue 進捗**（N/M・%・バー）/ Now（実行中フェーズ + 経過分 + **log ボタン → モーダル**）
   - **PR は専用列ではなく Issue 番号のすぐ右**に置く（#1212）。レビュー待ちで見たいのは PR なので、
