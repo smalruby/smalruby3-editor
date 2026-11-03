@@ -232,9 +232,14 @@ fields @timestamp
 | `userMessage` | 10000 字（`DANGEROUS_PATTERNS` のチェックは残る） | 250 字 |
 | `stateContext.sprite.currentCode` | 10000 字 | 1000 字 |
 | `history` | 20 ターン × 10000 字 | 20 ターン × 1000 字 |
-| リクエスト全体 | **200KB（UTF-8）**。超えたら `400 HISTORY_TOO_LONG` | （同じ判定。従来の上限では届かない） |
+| リクエスト全体 | **200KB（UTF-8）**。上の各項目の上限を通った後に判定し、超えたら `400 HISTORY_TOO_LONG`（`userMessage` / `currentCode` だけでは届かず、超えるのは往復を重ねたとき） | 判定しない（各項目の上限だけ） |
 | `max_tokens` | 8192 | 1024 |
-| レート制限 | `classroom` と `seat` があれば **1 席 40 回 / 35 分** + IP 1600 回 / 35 分。無ければ IP 40 回 / 35 分 | IP 40 回 / 35 分 |
+| レート制限 | `classroom` と `seat` があれば IP 1600 回 / 35 分 + **1 席 40 回 / 35 分**。無ければ IP 40 回 / 35 分 | IP 40 回 / 35 分 |
+
+レート制限は **IP → 席の順**に数える。IP の上限で 429 になったときは席を数えない（先生に見せる席の回数が、
+その生徒が使っていない分で増えないように）。席のキー `seat#<classroom>:<seat>` は `:` で区切るので、
+`classroom` に `:` を含むものや、`seat` が数字でないものは席として数えず、IP 40 回 / 35 分に回す
+（クラス管理の `classroomId` は UUID、`seat` は出席番号の数字なので、正しい呼び出しは影響しない）。
 
 リクエスト全体の 200KB は Lambda の非同期呼び出しの payload 上限（256KB）に収めるため。1 万字の
 作品 + 何往復かは収まるが、20 往復すべてに作品全体を入れると超えうるので、**GUI は古い往復から
@@ -305,6 +310,13 @@ relay は 2 つの表の ARN を CfnOutput と SSM（`/smalruby/rubytee-relay/<s
 `.../usage-table-arn`）に出す。クラス管理のスタックは**読み取り権限（`GetItem` / `BatchGetItem` / `Query`）だけ**を
 持つ（表名は `RubyteeRelayRateLimit{suffix}` / `RubyteeRelayUsage{suffix}` から組み立てるので、スタックの
 デプロイ順に依存しない）。メンバー一覧の `aiUsage` の形は `docs/classroom/architecture.md` を参照。
+
+キーの組み立て（`seat#...#current`・JST の日付・集計表の `sk`）は relay の `lambda/takeover.ts` と
+クラス管理の `lambda/ai-usage-lib.ts` に**別々に書いてあり、対で変える**。1 つのモジュールにまとめないのは、
+`infra/` の CDK プロジェクトがそれぞれ独立していて（`package.json`・`tsconfig.json` の `rootDir`・
+デプロイの workflow が `infra/<project>/` ごとに差分を見る）、共有の置き場を作ると片方だけデプロイされる
+ずれが起きるため。両方のテストが同じ文字列（例: `seat#c1:3#current`、`2026-11-01#seat#3#genai-takeover`）を
+期待値に持っているので、片方だけ変えるとテストで気付ける。
 
 ## デプロイ
 

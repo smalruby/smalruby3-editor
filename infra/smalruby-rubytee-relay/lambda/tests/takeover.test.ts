@@ -105,17 +105,23 @@ describe('buildTakeoverClaudeRequest', () => {
 describe('takeoverRateLimitPlan', () => {
   const base = { sourceIp: '1.2.3.4', seatLimit: 40, ipLimit: 1600, defaultLimit: 40 };
 
-  test('classroom と seat があれば 1 席ごと + IP（クラス全員ぶん）で数える', () => {
+  test('classroom と seat があれば IP（クラス全員ぶん）→ 1 席ごとの順で数える', () => {
     expect(takeoverRateLimitPlan({ ...base, classroom: 'c1', seat: '3' })).toEqual([
-      { key: 'seat#c1:3', limit: 40, seat: true },
       { key: 'takeover-ip#1.2.3.4', limit: 1600 },
+      { key: 'seat#c1:3', limit: 40, seat: true },
     ]);
   });
 
   test('同じ IP の別の席は別のキーになる（クラス全員が同じ IP でも 429 にならない）', () => {
     const a = takeoverRateLimitPlan({ ...base, classroom: 'c1', seat: '3' });
     const b = takeoverRateLimitPlan({ ...base, classroom: 'c1', seat: '4' });
-    expect(a[0].key).not.toBe(b[0].key);
+    expect(a[1].key).not.toBe(b[1].key);
+  });
+
+  test('キーが 2 通りに読める classroom（`:` を含む）や数字でない seat は席として数えない', () => {
+    expect(takeoverRateLimitPlan({ ...base, classroom: 'a:b', seat: '3' })).toEqual([{ key: '1.2.3.4', limit: 40 }]);
+    expect(takeoverRateLimitPlan({ ...base, classroom: 'a', seat: 'b:3' })).toEqual([{ key: '1.2.3.4', limit: 40 }]);
+    expect(takeoverRateLimitPlan({ ...base, classroom: 'c1', seat: 'x' })).toEqual([{ key: '1.2.3.4', limit: 40 }]);
   });
 
   test('classroom か seat が無ければ今の IP 単位', () => {
@@ -190,7 +196,7 @@ describe('jobs', () => {
 describe('seat normalization', () => {
   test('"03" と "3" は同じ席', () => {
     const base = { sourceIp: 'ip', seatLimit: 40, ipLimit: 1600, defaultLimit: 40 };
-    expect(takeoverRateLimitPlan({ ...base, classroom: 'c', seat: '03' })[0].key).toBe('seat#c:3');
+    expect(takeoverRateLimitPlan({ ...base, classroom: 'c', seat: '03' })[1].key).toBe('seat#c:3');
     expect(usageKey({ classroom: 'c', seat: '03', nowMs: 0 }).sk).toBe('1970-01-01#seat#3#chat');
   });
 });

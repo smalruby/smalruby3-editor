@@ -9,7 +9,8 @@
  * - 集計表 RubyteeRelayUsage（pk = `classroom#<classroomId>`,
  *   sk = `<YYYY-MM-DD(JST)>#seat#<seat>#<purpose>`）。
  *
- * キーの形は relay の `lambda/takeover.ts` と対で変えること。
+ * キーの形は relay の `lambda/takeover.ts` と対で変えること（CDK プロジェクトが別でデプロイも別なので
+ * 共有モジュールにはしない。理由は docs/rubytee/README.md「席ごとの「今の状況」」）。
  * I/O（BatchGet / Query）は handler.ts の handleListMembers が行う。
  */
 

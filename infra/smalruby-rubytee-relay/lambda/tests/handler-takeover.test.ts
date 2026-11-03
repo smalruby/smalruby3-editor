@@ -76,12 +76,12 @@ describe('handler: takeover (purpose = genai-takeover)', () => {
     expect(Object.keys(put!.input.Item).sort()).toEqual(['createdAt', 'jobId', 'status', 'ttl']);
   });
 
-  test('classroom:seat 単位 + IP 単位で数え、席の「今の状況」を書く', async () => {
+  test('IP 単位 + classroom:seat 単位で数え、席の「今の状況」を書く', async () => {
     await handler(makeEvent(takeoverBody));
     const rateKeys = commands()
       .filter(c => c.kind === 'Update' && c.input.TableName === 'RateLimit')
       .map(c => c.input.Key.sourceIp);
-    expect(rateKeys).toEqual(['seat#cls-1:3', 'takeover-ip#10.0.0.1']);
+    expect(rateKeys).toEqual(['takeover-ip#10.0.0.1', 'seat#cls-1:3']);
     const current = commands().find(c => c.kind === 'Put' && c.input.TableName === 'RateLimit');
     expect(current!.input.Item).toMatchObject({
       sourceIp: 'seat#cls-1:3#current', windowStart: 0, count: 1, limit: 40, windowMinutes: 35,
@@ -102,6 +102,21 @@ describe('handler: takeover (purpose = genai-takeover)', () => {
     expect(usage!.input.UpdateExpression).toContain('#rateLimited');
   });
 
+  test('IP の上限で 429 のときは席を数えず、席の「今の状況」も書かない', async () => {
+    mockSend.mockImplementation(async (cmd: Cmd) => {
+      if (cmd.kind === 'Update' && cmd.input.TableName === 'RateLimit') return { Attributes: { count: 1601 } };
+      return {};
+    });
+    const res = await handler(makeEvent(takeoverBody));
+    expect(res.statusCode).toBe(429);
+    const rateKeys = commands()
+      .filter(c => c.kind === 'Update' && c.input.TableName === 'RateLimit')
+      .map(c => c.input.Key.sourceIp);
+    expect(rateKeys).toEqual(['takeover-ip#10.0.0.1']);
+    expect(commands().find(c => c.kind === 'Put' && c.input.TableName === 'RateLimit')).toBeUndefined();
+    expect(mockLambdaSend).not.toHaveBeenCalled();
+  });
+
   test('1 万字を超える入力は INPUT_TOO_LONG', async () => {
     const res = await handler(makeEvent({ ...takeoverBody, userMessage: 'a'.repeat(10001) }));
     expect(res.statusCode).toBe(400);
@@ -119,6 +134,19 @@ describe('handler: takeover (purpose = genai-takeover)', () => {
     const res = await handler(makeEvent({ ...takeoverBody, history: Array(8).fill(turn) }));
     expect(res.statusCode).toBe(400);
     expect(JSON.parse(res.body).error).toBe('HISTORY_TOO_LONG');
+  });
+
+  test('200KB を超えていても、先に各項目の上限で判定する（大きすぎる userMessage は INPUT_TOO_LONG）', async () => {
+    const turn = { role: 'user', parts: [{ text: 'あ'.repeat(10000) }] };
+    const res = await handler(makeEvent({ ...takeoverBody, userMessage: 'あ'.repeat(80000), history: Array(8).fill(turn) }));
+    expect(res.statusCode).toBe(400);
+    expect(JSON.parse(res.body).error).toBe('INPUT_TOO_LONG');
+  });
+
+  test('purpose 未指定の経路は 200KB の判定をせず、従来の各項目の上限で答える', async () => {
+    const res = await handler(makeEvent({ userMessage: 'あ'.repeat(80000) }));
+    expect(res.statusCode).toBe(400);
+    expect(JSON.parse(res.body).error).toBe('INPUT_TOO_LONG');
   });
 
   test('classroom / seat が無ければ今の IP 単位で数える', async () => {

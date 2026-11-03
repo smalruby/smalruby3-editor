@@ -660,12 +660,6 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
     return handleGetJob(event.pathParameters?.jobId, corsHeaders);
   }
 
-  // takeover は Lambda の非同期呼び出しの payload 上限に収める
-  // (purpose を見る前に JSON を読む必要があるので、大きさだけ先に確かめる)
-  if (Buffer.byteLength(event.body || '', 'utf8') > MAX_TAKEOVER_REQUEST_BYTES) {
-    return jsonResponse(400, corsHeaders, { error: 'HISTORY_TOO_LONG' });
-  }
-
   // Parse body
   let body: RelayRequest;
   try {
@@ -717,6 +711,13 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       body: JSON.stringify({ error: historyValidation.error }),
     };
+  }
+
+  // takeover は Lambda の非同期呼び出しの payload 上限に収める。各項目の上限を通った後なので、
+  // ここで超えるのは往復（history）を重ねたとき（userMessage / currentCode だけでは届かない）。
+  // purpose 未指定の経路は従来どおり各項目の上限だけで判定する。
+  if (isTakeover && Buffer.byteLength(event.body || '', 'utf8') > MAX_TAKEOVER_REQUEST_BYTES) {
+    return jsonResponse(400, corsHeaders, { error: 'HISTORY_TOO_LONG' });
   }
 
   const sourceIp = event.requestContext.http.sourceIp || 'unknown';

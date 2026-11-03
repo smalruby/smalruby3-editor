@@ -130,8 +130,18 @@ export interface RateLimitPlanEntry {
 }
 
 /**
- * takeover のレート制限の数え方。classroom と seat が両方あれば 1 席ごと + IP（クラス全員ぶん）、
- * 無ければ今の IP 単位（chat と同じ行）。
+ * 席として数えてよい classroom / seat か。席のキー `seat#<classroom>:<seat>` は `:` で区切るので、
+ * classroom に `:` があると `seat#a:b:3` が 2 通りに読める。クラス管理の classroomId は UUID、
+ * 席は出席番号の数字なので、それ以外は席として数えない（今の IP 単位に回す）。
+ */
+export function isSeatCountable(classroom?: string, seat?: string): boolean {
+  return !!classroom && !!seat && !classroom.includes(':') && /^\d+$/.test(seat);
+}
+
+/**
+ * takeover のレート制限の数え方。classroom と seat が席として数えられれば IP（クラス全員ぶん）+ 1 席ごと、
+ * そうでなければ今の IP 単位（chat と同じ行）。
+ * IP を先に数える: IP の上限で 429 になったときに、席の回数（先生に見せる「今の状況」）を増やさないため。
  */
 export function takeoverRateLimitPlan(params: {
   sourceIp: string;
@@ -141,10 +151,10 @@ export function takeoverRateLimitPlan(params: {
   ipLimit: number;
   defaultLimit: number;
 }): RateLimitPlanEntry[] {
-  if (params.classroom && params.seat) {
+  if (params.classroom && params.seat && isSeatCountable(params.classroom, params.seat)) {
     return [
-      { key: seatRateLimitKey(params.classroom, params.seat), limit: params.seatLimit, seat: true },
       { key: `takeover-ip#${params.sourceIp}`, limit: params.ipLimit },
+      { key: seatRateLimitKey(params.classroom, params.seat), limit: params.seatLimit, seat: true },
     ];
   }
   return [{ key: params.sourceIp, limit: params.defaultLimit }];
