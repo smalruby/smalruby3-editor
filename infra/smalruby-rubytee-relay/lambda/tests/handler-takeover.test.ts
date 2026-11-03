@@ -189,6 +189,7 @@ describe('handler: takeover の席は sessionToken で確かめる', () => {
       IndexName: 'sessionToken-index',
       KeyConditionExpression: 'sessionToken = :st',
       ExpressionAttributeValues: { ':st': TOKEN },
+      ProjectionExpression: 'classroomId, memberId, kicked',
     });
     expect(commands().some(c => c.input.TableName === 'Memberships' && c.kind !== 'Query')).toBe(false);
   });

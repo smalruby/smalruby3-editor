@@ -487,6 +487,8 @@ export async function verifySeatSession(sessionToken: unknown): Promise<SeatIden
       IndexName: SESSION_TOKEN_INDEX_NAME,
       KeyConditionExpression: 'sessionToken = :st',
       ExpressionAttributeValues: { ':st': sessionToken },
+      // 席の判定に要る属性だけを読む（行には生徒の displayName などもあるが relay には要らない）
+      ProjectionExpression: 'classroomId, memberId, kicked',
       Limit: 1,
     }));
     return seatIdentityFromMembership(result.Items?.[0]);
