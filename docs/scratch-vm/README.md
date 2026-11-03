@@ -59,7 +59,7 @@ scratch-vm は **Scratch プロジェクトを実行する仮想マシン**。�
 | ファイル | 役割 |
 |---|---|
 | `packages/scratch-vm/src/serialization/sb3.js` | `.sb3` (zip) のシリアライズ・デシリアライズ |
-| `packages/scratch-vm/src/serialization/smalruby-migration.js` | **Smalruby 独自**。Mesh v1 → v2 のオパコード書き換え、koshien 検出 |
+| `packages/scratch-vm/src/serialization/smalruby-migration.js` | **Smalruby 独自**。Mesh v1 → v2 のオパコード書き換え（v1 の拡張機能本体は削除済みのため、プロジェクト・スプライト・ブロック共有のどの読み込み経路でも v2 に書き換える）、koshien 検出 |
 
 ### IO Devices
 
@@ -74,7 +74,7 @@ scratch-vm は **Scratch プロジェクトを実行する仮想マシン**。�
 ### Built-in Extensions
 
 `packages/scratch-vm/src/extensions/`:
-- upstream: `scratch3_pen`, `scratch3_music`, `scratch3_video_sensing`, `scratch3_face_sensing`, `scratch3_text2speech`, `scratch3_translate`, `scratch3_makeymakey`, `scratch3_microbit`, `scratch3_gdx_for`, `scratch3_ev3`, `scratch3_boost`, `scratch3_wedo2`, `scratch3_mesh` (旧 v1), `scratch3_speech2text`
+- upstream: `scratch3_pen`, `scratch3_music`, `scratch3_video_sensing`, `scratch3_face_sensing`, `scratch3_text2speech`, `scratch3_translate`, `scratch3_makeymakey`, `scratch3_microbit`, `scratch3_gdx_for`, `scratch3_ev3`, `scratch3_boost`, `scratch3_wedo2`, `scratch3_speech2text`
 - Smalruby 独自: `scratch3_mesh_v2`, `scratch3_smalrubot_s1`, `microbitMore`, `koshien`, `scratch3_tm2scratch`, `scratch3_g2s`, `smalruby_ruby`
 
 各拡張機能の詳細は `docs/extension-<name>/` を参照。

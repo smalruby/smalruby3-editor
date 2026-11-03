@@ -219,6 +219,7 @@ detectMeshV1Blocks(projectJSON)      // mesh_* opcode が含まれるか
 detectKoshienBlocks(projectJSON)     // koshien 拡張を使っているか
 migrateMeshV1Blocks(projectJSON)     // mesh_* → meshV2_* 全置換 (deep copy)
 migrateMeshV1InBackpackSprite(zip)   // バックパック sprite3 zip の v1→v2
+migrateMeshV1InTargets(targets, extensions) // 読み込んだターゲットの v1→v2（installTargets 用）
 
 // 書き換え対象
 // 1. targets[].blocks.<id>.opcode: "mesh_*" → "meshV2_*"
@@ -234,8 +235,16 @@ migrateMeshV1InBackpackSprite(zip)   // バックパック sprite3 zip の v1→
    }
    ```
    scratch-gui からこのオプションを指定してロード。
+   このオプションは作品に v1 ブロックがあるときの通知（`migrateMeshV1Warning`）のために残している。
 
-2. **バックパック起動時** (scratch-gui の `backpack-mesh-v1-migration.js`)
+2. **ターゲットのインストール時** (`installTargets` の先頭)
+   - `migrateMeshV1InTargets()` で、読み込んだターゲットの `mesh_*` opcode と拡張 ID `mesh` を v2 に書き換える
+   - v1 の拡張機能本体（`scratch3_mesh/` と `skyway-js`）は削除済みで、`mesh` はもう読み込めない。
+     そのため、オプションを付けない読み込み（初期プロジェクト・スプライトの追加・提出物の表示など）でも
+     `mesh` を読みに行かないよう、ここで必ず書き換える
+   - ブロック共有（`shareBlocksToTarget`）も同様に `migrateMeshV1InBlockArray()` で書き換える
+
+3. **バックパック起動時** (scratch-gui の `backpack-mesh-v1-migration.js`)
    - `vm.migrateMeshV1InBackpackBlocks()` でコード片を変換
    - `vm.migrateMeshV1InBackpackSprite()` でスプライト zip を変換
    - 完了後 `localStorage.smalruby:meshV1BackpackMigratedAt` にフラグを保存

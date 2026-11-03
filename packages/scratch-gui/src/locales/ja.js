@@ -1203,8 +1203,6 @@ export default {
     'gui.smalruby3.blockDisplayModal.operator_round': '(　) を四捨五入',
     'gui.smalruby3.blockDisplayModal.operator_mathop': '(　) の [絶対値▼]',
     'gui.extensionLibrary.showAllExtensions': 'すべての拡張機能を表示',
-    'gui.extensionLibrary.meshDeprecationWarning':
-        '従来のメッシュ拡張機能は4月30日までしか使えません。このまま従来のメッシュ拡張機能を利用する場合はOKを選択します。そうではなく、あたらしいメッシュ拡張機能を使う場合はキャンセルを選択します。',
 
     // MicroBit More - Tilt gesture labels (override to match microbit extension)
     'mbitMore.gesturesMenu.tiltUp': '上に傾いた',
@@ -1226,7 +1224,6 @@ export default {
     'gui.connection.networkFiltered.copied': 'コピーしました！',
     'gui.connection.networkFiltered.copyButton': 'クリップボードにコピー',
     'gui.connection.networkFiltered.tryagainbutton': 'もう一度試す',
-    'gui.connection.networkFiltered.useLegacyMeshButton': '従来のメッシュを使う',
 
     // MeshV2 Initial Step messages
     'gui.connection.meshV2Seat.pickTitle': 'いっしょにつながる人の番号を選ぼう',
