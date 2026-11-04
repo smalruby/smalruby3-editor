@@ -658,8 +658,6 @@ export default {
     'gui.sharedMessages.sprite': 'スプライト{index}',
     'gui.sharedMessages.replaceProjectWarning': '現在のプロジェクトの内容を置き換えますか？',
     'gui.sharedMessages.loadFromComputerTitle': 'コンピューターから読み込む',
-    'gui.sharedMessages.migrateMeshV1Warning':
-        'このプロジェクトには従来のメッシュ拡張機能が含まれていますので4月30日までしか使えません。このまま従来のメッシュ拡張機能を利用する場合はOKを選択します。そうではなく、あたらしいメッシュ拡張機能を使う場合はキャンセルを選択します。',
     'gui.sharedMessages.meshV1AutoMigrated':
         '従来のメッシュ拡張機能のサービスは終了しました。プロジェクト内のブロックを新しいメッシュ拡張機能に自動で置き換えました。動作を確認してください。',
     'gui.sharedMessages.meshV1BackpackAutoMigrated':
@@ -949,12 +947,8 @@ export default {
     'gui.smalruby3.prismError.unexpectedLocalVariableOrMethod':
         'コードが終わるべき場所に、変数やメソッドがあります。\n`end` の不足や、余分な命令がないか確認してください。',
     'gui.smalruby3.telemetryOptIn.buttonTextYes': 'はい、スモウルビーの改善に協力します。',
-    'gui.smalruby3.extension.mesh.name': '従来のメッシュ',
     'gui.smalruby3.extension.mesh.description': 'ネットワーク上でユーザー間のやりとりを行う。',
-    'mesh.categoryName': '従来のメッシュ',
     'mesh.sensorValue': '[NAME] センサーの値',
-    'mesh.hostPeripheralName': 'メッシュのホストになる 【{ MESH_ID }】',
-    'mesh.clientPeripheralName': 'メッシュに参加する 【{ MESH_ID }】',
     'gui.smalruby3.extension.mesh.connectingMessage': 'メッシュのネットワークに接続しています',
     'meshV2.categoryName': 'メッシュ',
     'gui.smalruby3.extension.meshV2.name': 'メッシュ',
@@ -1203,8 +1197,6 @@ export default {
     'gui.smalruby3.blockDisplayModal.operator_round': '(　) を四捨五入',
     'gui.smalruby3.blockDisplayModal.operator_mathop': '(　) の [絶対値▼]',
     'gui.extensionLibrary.showAllExtensions': 'すべての拡張機能を表示',
-    'gui.extensionLibrary.meshDeprecationWarning':
-        '従来のメッシュ拡張機能は4月30日までしか使えません。このまま従来のメッシュ拡張機能を利用する場合はOKを選択します。そうではなく、あたらしいメッシュ拡張機能を使う場合はキャンセルを選択します。',
 
     // MicroBit More - Tilt gesture labels (override to match microbit extension)
     'mbitMore.gesturesMenu.tiltUp': '上に傾いた',
@@ -1226,7 +1218,6 @@ export default {
     'gui.connection.networkFiltered.copied': 'コピーしました！',
     'gui.connection.networkFiltered.copyButton': 'クリップボードにコピー',
     'gui.connection.networkFiltered.tryagainbutton': 'もう一度試す',
-    'gui.connection.networkFiltered.useLegacyMeshButton': '従来のメッシュを使う',
 
     // MeshV2 Initial Step messages
     'gui.connection.meshV2Seat.pickTitle': 'いっしょにつながる人の番号を選ぼう',

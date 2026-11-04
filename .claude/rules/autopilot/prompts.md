@@ -58,6 +58,19 @@ review / verify などのプロンプトから **`/code-review` / `/security-rev
   `bin/autopilot-push` の `PROTECTED_RE` と `phases.js` の `PROTECTED_PATH_PATTERNS`
   （現在 `^.github/workflows/` と `^.github/actions/`）。**変更時は必ず両方を更新**する。
 
+## コンフリクトの解消は resolve-conflict だけが行う（#1348）
+
+- base とのコンフリクトを解消するのは **`autopilot-resolve-conflict`** だけ。ほかのフェーズのプロンプトに
+  解消手順を書かない（着手時の base 追従でコンフリクトしたら、daemon が先に resolve-conflict を走らせて
+  から本来のフェーズを起動する）。
+- resolve-conflict は **Status を動かさない割り込み**。結果の `nextStatus` / `nextAiStatus` は null にし、
+  daemon も `applyResult` を通さない（AI Status は daemon が解消前の値に戻す）。新しい割り込み型の
+  フェーズを足すときも、`phaseForItem` に遷移を足さず、同じ形（daemon の専用 dispatch）にする。
+- 解消は **merge で行う**（rebase・force push をしない）。lock ファイルは手で編集せず、PR 側を採って
+  `npm install --package-lock-only --before <3日前>` で作り直す。
+- daemon は worker の申告を信じきらず、merge の完了・base の取り込み・PR ブランチへの push を git で
+  確かめる（`runConflictResolver`）。確かめられなければ merge を中断して人間へ渡す。
+
 ## 本文ディレクティブの記法（行頭マーカー）
 
 Issue 本文のディレクティブは **行頭のみ**で発火する（`phases.js` の `parseBaseBranch` /

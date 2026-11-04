@@ -38,7 +38,7 @@ const STATUSES = [
 /** AI Status 全値 + 空 */
 const AI_STATUSES = [
     null, 'Triaging', 'Discussing', 'Understanding', 'Decomposing', 'EPIC Decomposed',
-    'Implementing', 'Creating PR', 'Self-Reviewing', 'Addressing Comments', 'Running DoD',
+    'Implementing', 'Creating PR', 'Self-Reviewing', 'Addressing Comments', 'Resolving Conflicts', 'Running DoD',
     'Awaiting Continuation',
 ];
 

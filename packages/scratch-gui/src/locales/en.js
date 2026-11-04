@@ -6,8 +6,6 @@ import { en as gettingStartedHowtos } from '../lib/libraries/decks/categories/ge
 import { en as rubyBasicsHowtos } from '../lib/libraries/decks/categories/ruby-basics.locale.js';
 
 export default {
-    'gui.sharedMessages.migrateMeshV1Warning':
-        'This project contains legacy Mesh extensions and can only be used until April 30th. Select OK to continue using the legacy Mesh extensions. Select Cancel to use the new Mesh extensions instead.',
     'gui.sharedMessages.meshV1AutoMigrated':
         'The legacy Mesh service has ended. The blocks in this project have been automatically replaced with the new Mesh blocks. Please verify that it works as expected.',
     'gui.sharedMessages.meshV1BackpackAutoMigrated':
@@ -565,8 +563,6 @@ export default {
         'The information we collect includes language selection, blocks usage, and some events like saving, loading, and uploading a project. We DO NOT collect any personal information.',
     'gui.telemetryOptIn.buttonTextNo': 'No, thanks',
     'gui.extensionLibrary.showAllExtensions': 'Show all extensions',
-    'gui.extensionLibrary.meshDeprecationWarning':
-        'The legacy mesh extension can only be used until April 30. If you want to continue using the legacy mesh extension, select OK. Otherwise, if you want to use the new mesh extension, select Cancel.',
     'gui.smalruby3.rubyToBlocksConverter.couldNotConvertPrimitive': '"{ SOURCE }" could not be converted the block.',
     'gui.smalruby3.rubyToBlocksConverter.wrongInstruction': '"{ SOURCE }" is the wrong instruction.',
     'gui.smalruby3.rubyToBlocksConverter.wrongInstructionInClass':
@@ -584,12 +580,8 @@ export default {
     'gui.smalruby3.rubyToBlocksConverter.classNotSupportedInV1':
         'class definitions are not supported in Ruby version 1. Please switch to Ruby version 2 from the settings menu.',
     'gui.smalruby3.telemetryOptIn.buttonTextYes': "Yes, I'd like to help improve Smalruby",
-    'gui.smalruby3.extension.mesh.name': 'Old Mesh',
     'gui.smalruby3.extension.mesh.description': 'Allowing users to interact over a computer network.',
-    'mesh.categoryName': 'Old Mesh',
     'mesh.sensorValue': '[NAME] sensor value',
-    'mesh.hostPeripheralName': 'Become Mesh Host [{ MESH_ID }]',
-    'mesh.clientPeripheralName': 'Join Mesh [{ MESH_ID }]',
     'mesh.registeredHost': 'Registered Host Mesh [{ MESH_ID }]',
     'mesh.joinedMesh': 'Joined Mesh [{ MESH_ID }]',
     'mesh.notConnectedMenu': '! Disconnected',
@@ -907,7 +899,6 @@ export default {
     'gui.connection.networkFiltered.copied': 'Copied!',
     'gui.connection.networkFiltered.copyButton': 'Copy to clipboard',
     'gui.connection.networkFiltered.tryagainbutton': 'Try again',
-    'gui.connection.networkFiltered.useLegacyMeshButton': 'Use legacy mesh',
 
     // MeshV2 Initial Step messages
     'gui.connection.meshV2Seat.pickTitle': 'Choose the numbers to connect with',

@@ -31,11 +31,6 @@ const reactIntlMessages = defineMessages({
         defaultMessage: 'Load from your computer',
         description: 'Title for uploading a project from your computer'
     },
-    migrateMeshV1Warning: {
-        id: 'gui.sharedMessages.migrateMeshV1Warning',
-        defaultMessage: 'This project contains old Mesh blocks. Would you like to migrate them to Mesh V2?',
-        description: 'Confirmation that user wants to migrate old Mesh blocks to Mesh V2',
-    },
     meshV1AutoMigrated: {
         id: 'gui.sharedMessages.meshV1AutoMigrated',
         defaultMessage:

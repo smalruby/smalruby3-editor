@@ -9,6 +9,7 @@ const {
     migrateMeshV1InBlockArray,
     migrateMeshV1InBlocksObject,
     migrateMeshV1InSprite3Zip,
+    migrateMeshV1InTargets,
 } = require('../../src/serialization/smalruby-migration');
 
 const meshV1Project = JSON.parse(
@@ -139,4 +140,30 @@ test('migrateMeshV1InSprite3Zip is no-op for v2 sprite', async (t) => {
     const { changed, buffer: newBuffer } = await migrateMeshV1InSprite3Zip(buffer);
     t.equal(changed, false, 'reports unchanged');
     t.equal(newBuffer, buffer, 'returns the same buffer reference');
+});
+
+test('migrateMeshV1InTargets', (t) => {
+    let resetCount = 0;
+    const makeTarget = (blocks) => ({
+        blocks: {
+            _blocks: blocks,
+            resetCache: () => {
+                resetCount++;
+            },
+        },
+    });
+    const v1Target = makeTarget({ a: { opcode: 'mesh_getSensorValue' }, b: { opcode: 'motion_movesteps' } });
+    const v2Target = makeTarget({ c: { opcode: 'meshV2_getSensorValue' } });
+    const extensions = { extensionIDs: new Set(['mesh', 'pen']) };
+
+    t.equal(migrateMeshV1InTargets([v1Target, null, v2Target], extensions), true, 'reports a change');
+    t.equal(v1Target.blocks._blocks.a.opcode, 'meshV2_getSensorValue', 'v1 opcode is rewritten');
+    t.equal(v1Target.blocks._blocks.b.opcode, 'motion_movesteps', 'other opcodes are untouched');
+    t.equal(resetCount, 1, 'only the changed target resets its block cache');
+    t.same(Array.from(extensions.extensionIDs).sort(), ['meshV2', 'pen'], 'mesh is replaced by meshV2');
+
+    const untouched = { extensionIDs: new Set(['pen']) };
+    t.equal(migrateMeshV1InTargets([v2Target], untouched), false, 'reports no change for v2-only targets');
+    t.same(Array.from(untouched.extensionIDs), ['pen'], 'extension IDs are untouched');
+    t.end();
 });
