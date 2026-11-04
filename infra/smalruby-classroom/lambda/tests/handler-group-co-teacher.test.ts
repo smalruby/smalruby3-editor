@@ -318,6 +318,37 @@ describe('class-level co-teacher authorization (issue #1138)', () => {
         expect(cascade?.input?.Key?.classroomId).toBe('c3');
         expect(cascade?.input?.ExpressionAttributeValues?.[':to']).toBe('あたらしいなまえ');
     });
+
+    test('renaming a topic pins the stand-in archivedAt of an assignment archived before #1298', async () => {
+        // Such an assignment reports updatedAt as its archive time; the cascade
+        // bumps updatedAt, so it must freeze the old value as archivedAt first.
+        const groupWithTopic = { ...coManagedGroup, topics: ['むかしのなまえ'] };
+        const legacyArchived = {
+            ...assignmentInGroup,
+            classroomId: 'c4',
+            topic: 'むかしのなまえ',
+            status: 'archived',
+            updatedAt: '2026-07-15T00:00:00.000Z',
+        };
+        const active = { ...assignmentInGroup, classroomId: 'c5', topic: 'むかしのなまえ' };
+        useTables([groupWithTopic], [legacyArchived, active]);
+
+        const res = await handler(
+            makeEvent('PATCH', '/classroom-groups/g1/topics', { groupId: 'g1' }, {
+                action: 'rename',
+                name: 'むかしのなまえ',
+                to: 'あたらしいなまえ',
+            }),
+        );
+        expect(res.statusCode).toBe(200);
+        const cascades = commands().filter(
+            (c) => c?.constructor?.name === 'UpdateCommand' && c?.input?.TableName === 'Classrooms',
+        );
+        const byId = Object.fromEntries(cascades.map((c) => [c.input.Key.classroomId, c.input]));
+        expect(byId.c4.UpdateExpression).toContain('archivedAt = :archivedAt');
+        expect(byId.c4.ExpressionAttributeValues[':archivedAt']).toBe('2026-07-15T00:00:00.000Z');
+        expect(byId.c5.UpdateExpression).not.toContain('archivedAt');
+    });
 });
 
 describe('canManageGroup / canManageClassroom email normalization (issue #1138)', () => {

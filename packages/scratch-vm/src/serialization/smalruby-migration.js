@@ -103,6 +103,31 @@ const migrateMeshV1Blocks = (projectJSON) => {
 };
 
 /**
+ * Migrate deserialized targets (sb2/sb3 projects and sprites) right before they are installed.
+ * The legacy mesh runtime has been removed (#1329), so `mesh` must never be requested from
+ * the extension manager: rewrite v1 opcodes to v2 and swap the extension ID in place.
+ * @param {Array<object>} targets Deserialized targets (falsy entries are ignored).
+ * @param {{extensionIDs: Set<string>}} extensions Extension IDs used by these targets.
+ * @returns {boolean} True if anything was migrated.
+ */
+const migrateMeshV1InTargets = (targets, extensions) => {
+    let changed = false;
+    for (const target of targets) {
+        if (!target || !target.blocks) continue;
+        if (migrateMeshV1InBlocksObject(target.blocks._blocks)) {
+            target.blocks.resetCache();
+            changed = true;
+        }
+    }
+    if (extensions && extensions.extensionIDs && extensions.extensionIDs.has('mesh')) {
+        extensions.extensionIDs.delete('mesh');
+        extensions.extensionIDs.add('meshV2');
+        changed = true;
+    }
+    return changed;
+};
+
+/**
  * Migrate a sprite3 zip buffer (used by backpack sprite payloads). The zip's
  * sprite.json `blocks` and `extensions` fields are rewritten if mesh v1 is found.
  * @param {ArrayBuffer | Uint8Array} zipInput The sprite3 zip buffer.
@@ -146,4 +171,5 @@ module.exports = {
     migrateMeshV1InBlockArray,
     migrateMeshV1InBlocksObject,
     migrateMeshV1InSprite3Zip,
+    migrateMeshV1InTargets,
 };

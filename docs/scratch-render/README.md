@@ -1,6 +1,14 @@
 # scratch-render 内部仕様
 
-> **⬆️ upstream そのまま** — `packages/scratch-render/` は upstream Scratch Foundation の実装をそのまま利用。Smalruby 独自の改変はパッケージスコープ (`@smalruby/scratch-render`) のリブランドのみ。
+> **⬆️ upstream そのまま** — `packages/scratch-render/` は upstream Scratch Foundation の実装をそのまま利用。Smalruby 独自の改変はパッケージスコープ (`@smalruby/scratch-render`) のリブランドと、依存 `hull.js` の版の固定（下記）のみ。
+
+### `hull.js` は 0.2.1 に固定している
+
+upstream は `hull.js@0.2.10` だが、0.2.2〜1.0.9 は npm audit で critical（GHSA-q849-wxrc-vqrp: 第 3 引数の点の書式を `new Function` で評価する）。修正版 1.0.10 は npm に公開されていないため、範囲の外にある **0.2.1** を使う。
+
+- `RenderWebGL._getConvexHullPointsForDrawable` は `hull(points, Infinity)` の 2 引数でしか呼ばないので、0.2.10 でも問題のコードには届かない。固定は audit を通すため。
+- 0.2.1 は実装が古いが、`_getConvexHullPointsForDrawable` と同じ手順で作った点列では 0.2.10 と出力が一致する（当たり判定・`getBounds` は変わらない）。
+- `packages/scratch-render/test/unit/HullTests.js` が、版が脆弱な範囲に戻っていないことと、代表的な入力での凸包の出力を確かめる。upstream マージで `package.json` が 0.2.10 に戻ると、このテストが落ちる。
 
 `packages/scratch-render/` は **WebGL ベースのステージレンダラー**。スプライト・背景・ペンレイヤー・吹き出しを Canvas 上に描画する。scratch-vm から呼ばれて、毎フレーム再描画する。
 

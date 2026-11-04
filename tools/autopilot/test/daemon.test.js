@@ -16,7 +16,7 @@ const {
     followBaseBranch,
 } = require('../src/daemon');
 const { EventEmitter } = require('node:events');
-const { HITL_LABEL, AUTOPILOT_LABEL, LATER_LABEL, continuationMarker, TRACKER_STICKY_MARKER } = require('../src/phases');
+const { HITL_LABEL, AUTOPILOT_LABEL, LATER_LABEL, continuationMarker, TRACKER_STICKY_MARKER, directivesBlockDispatch } = require('../src/phases');
 
 /** Build an injectable double for markBlocked/detectStuck that records side effects. */
 function makeBlockDeps() {
@@ -274,6 +274,23 @@ test('applyPrProjection: Review handoff (HITL=Yes) -> ensure HITL label + Ready 
     assert.ok(issueEdit.add.includes(HITL_LABEL));
     // sticky upserted with marker
     assert.deepEqual(deps.calls.sticky, [{ prNumber: 100, hasMarker: true }]);
+});
+
+test('applyPrProjection: 🔬 spike は Issue 面だけに付け、PR 面には付けない（#1315）', async () => {
+    const { SPIKE_LABEL } = require('../src/phases');
+    // understand の質問 HITL（Blocked/Understanding + 🙋）。address-review 後の再理解などで PR がある場合
+    const items = [{ issue: 1, itemId: 'i1', status: 'Blocked', kind: 'Issue', hitlLabel: true, aiStatus: 'Understanding' }];
+    const deps = makeProjectionDeps({
+        prByIssue: { 1: { number: 100 } },
+        prInfo: { 100: { isDraft: true, labels: [AUTOPILOT_LABEL, HITL_LABEL] } },
+        issueLabels: { 1: [AUTOPILOT_LABEL, HITL_LABEL] },
+    });
+    await applyPrProjection(items, makeCfg(), { running: new Map() }, () => {}, deps);
+    const issueEdit = deps.calls.editLabels.find((e) => e.type === 'issue');
+    assert.ok(issueEdit.add.includes(SPIKE_LABEL));
+    for (const e of deps.calls.editLabels.filter((x) => x.type === 'pr')) {
+        assert.ok(!(e.add || []).includes(SPIKE_LABEL));
+    }
 });
 
 test('applyPrProjection: per-tick on Review does NOT re-add a human-removed HITL label', async () => {
@@ -714,6 +731,27 @@ test('applyLabelHealing: 非終端 item に 🤖 を、分解済み EPIC には 
     ]);
 });
 
+test('applyLabelHealing: 🔬 spike を状態から付け外しし、閉じた item からは外す（#1315）', async () => {
+    const { SPIKE_LABEL } = require('../src/phases');
+    const items = [
+        { issue: 1, status: 'Backlog', aiStatus: 'Discussing', hitlLabel: true, kind: 'Issue', labels: [AUTOPILOT_LABEL] },
+        { issue: 2, status: 'In Progress', aiStatus: 'Implementing', kind: 'Issue', labels: [AUTOPILOT_LABEL, SPIKE_LABEL] },
+        { issue: 3, status: 'Close', aiStatus: 'Discussing', kind: 'Issue', labels: [AUTOPILOT_LABEL, SPIKE_LABEL] },
+        { issue: 4, status: 'Close', kind: 'Issue', labels: [] }, // 終端・spike なし → 触らない
+    ];
+    const edits = [];
+    await applyLabelHealing(items, makeCfg(), { running: new Map() }, () => {}, {
+        token: 't',
+        readToken: 'r',
+        editLabels: (repo, number, type, diff) => edits.push({ number, ...diff }),
+    });
+    assert.deepEqual(edits, [
+        { number: 1, add: [SPIKE_LABEL] },
+        { number: 2, remove: [SPIKE_LABEL] },
+        { number: 3, remove: [SPIKE_LABEL] },
+    ]);
+});
+
 test('applyLabelHealing: 未分解 EPIC に 🧭 tracking を付けない（decompose デッドロック回帰・#1130）', async () => {
     const { TRACKING_LABEL, AUTOPILOT_LABEL } = require('../src/phases');
     // #1129 の状況: decompose が分解案 HITL で停止中（sub-issue はまだ 0 件）
@@ -971,6 +1009,36 @@ test('refreshBoard: 非終端 item を Board 順で enrich し state.board に�
     const r5 = state.board.items.find((i) => i.issue === 5);
     assert.equal(r5.subIssues.percent, 50);
     assert.equal(r5.tracker, true);
+});
+
+test('refreshBoard: 人間待ちの理由とリンク（waitReason / waitUrl）を board item に載せる（#1315）', async () => {
+    const { refreshBoard } = require('../src/daemon');
+    const { WAITING_LABEL } = require('../src/phases');
+    const cfg = { ...makeCfg(), now: () => 0, statusOrder: [] };
+    const state = { running: new Map() };
+    let enrichCalls = 0;
+    await refreshBoard(cfg, state, () => {}, {
+        token: 't',
+        listItems: () => [
+            { issue: 1, status: 'Backlog', aiStatus: 'Discussing', hitlLabel: true, kind: 'Issue', title: 'a', labels: [] },
+            { issue: 2, status: 'Review', hitlLabel: true, kind: 'Issue', title: 'b', labels: [] },
+            { issue: 3, status: 'Sprint Backlog', kind: 'Issue', title: 'c', labels: [WAITING_LABEL] },
+            { issue: 4, status: 'In Progress', aiStatus: 'Implementing', kind: 'Issue', title: 'd', labels: [] },
+        ],
+        getBoardEnrichment: () => {
+            enrichCalls += 1;
+            return { 2: { subIssues: { total: 0, completed: 0, percent: 0 }, prs: [{ number: 20, state: 'OPEN', isDraft: false }] } };
+        },
+        listHeadPrs: () => [],
+    });
+    const by = Object.fromEntries(state.board.items.map((i) => [i.issue, i]));
+    const base = 'https://github.com/smalruby/smalruby3-editor';
+    assert.deepEqual([by[1].waitReason, by[1].waitUrl], ['spike', `${base}/issues/1`]);
+    assert.deepEqual([by[2].waitReason, by[2].waitUrl], ['review', `${base}/pull/20`]);
+    assert.deepEqual([by[3].waitReason, by[3].waitUrl], ['waiting', `${base}/issues/3`]);
+    assert.deepEqual([by[4].waitReason, by[4].waitUrl], [null, null]);
+    // 理由のために読み取りを増やさない（enrichment は従来どおり 1 回）
+    assert.equal(enrichCalls, 1);
 });
 
 test('refreshBoard: close リンクに PR が無い post-PR item は head ブランチで補完', async () => {
@@ -1271,106 +1339,51 @@ test('checkAuthHealth: 機密はサニタイズして surface する', async () 
     assert.match(state.authError, /rejected/);
 });
 
-// === 人間ゲート: collectGateContexts（コメント解除 + watermark） ===
+// === 人間ゲート: collectGateContexts（ラベル解除のみ） ===
 
-test('collectGateContexts: 発言アクティビティから humanSpokeLast を導く（コメント解除の配線）', async () => {
+test('collectGateContexts: 自分のゲート item だけ 🙋 シグナルと PR を集める', async () => {
     const { isGateItem } = require('../src/daemon');
     const items = [
-        { issue: 1, status: 'Review', kind: 'Issue', hitlLabel: true }, // 人間が最後に発言 → 解除
-        { issue: 2, status: 'DoD', kind: 'Issue', hitlLabel: true }, // bot が最後 → 待ち
-        { issue: 3, status: 'Blocked', kind: 'Issue', hitlLabel: true }, // PR 無しゲートも収集
-        { issue: 4, status: 'Backlog', aiStatus: 'Discussing', kind: 'Issue', hitlLabel: true }, // 議論ゲート
-        { issue: 5, status: 'Sprint Backlog', kind: 'Issue' }, // ゲートではない
+        { issue: 1, status: 'Review', kind: 'Issue', hitlLabel: true },
+        { issue: 2, status: 'Blocked', kind: 'Issue', hitlLabel: true }, // PR 無しゲートも収集
+        { issue: 3, status: 'Backlog', aiStatus: 'Discussing', kind: 'Issue', hitlLabel: true }, // 議論ゲート
+        { issue: 4, status: 'Sprint Backlog', kind: 'Issue' }, // ゲートではない
+        { issue: 5, status: 'Review', kind: 'Issue', hitlLabel: true }, // 実行中
     ];
-    assert.equal(isGateItem(items[4]), false);
+    assert.equal(isGateItem(items[3]), false);
     const gateCtx = {
-        1: { hitlSignals: { issueLabel: true, prLabel: true }, review: {}, pr: 10, activity: { lastHumanAt: 200, lastBotAt: 100 } },
-        2: { hitlSignals: { issueLabel: true, prLabel: true }, review: {}, pr: 20, activity: { lastHumanAt: 100, lastBotAt: 200 } },
-        3: { hitlSignals: { issueLabel: true }, review: null, pr: null, activity: { lastHumanAt: 300, lastBotAt: 100 } },
-        4: { hitlSignals: { issueLabel: true }, review: null, pr: null, activity: { lastHumanAt: 400, lastBotAt: 100 } },
+        1: { hitlSignals: { issueLabel: true, prLabel: false }, pr: 10 },
+        2: { hitlSignals: { issueLabel: true }, pr: null },
+        3: { hitlSignals: { issueLabel: false }, pr: null },
+        5: { hitlSignals: { issueLabel: false, prLabel: false }, pr: 50 },
     };
-    const state = { running: new Map() };
-    const contexts = await collectGateContexts(makeCfg(), items, new Set(), state, () => {}, {
+    const contexts = await collectGateContexts(makeCfg(), items, new Set([5]), { running: new Map() }, () => {}, {
         token: 't',
         getGateContext: (repo, issue) => gateCtx[issue],
     });
-    assert.equal(contexts[1].humanSpokeLast, true);
-    assert.equal(contexts[2].humanSpokeLast, false);
-    assert.equal(contexts[3].humanSpokeLast, true);
-    assert.equal(contexts[4].humanSpokeLast, true);
-    assert.ok(!(5 in contexts));
+    assert.deepEqual(contexts[1], gateCtx[1]);
+    assert.deepEqual(contexts[2], gateCtx[2]);
+    assert.deepEqual(contexts[3], gateCtx[3]);
+    assert.ok(!(4 in contexts));
+    assert.ok(!(5 in contexts), '実行中の item は集めない');
 });
 
-test('collectGateContexts: watermark（gateHandled）より古い発言では再発火しない', async () => {
-    const items = [{ issue: 1, status: 'Review', kind: 'Issue', hitlLabel: true }];
-    const state = { running: new Map(), gateHandled: new Map([[1, 250]]) };
-    const deps = {
+test('collectGateContexts: 1 件の取得失敗はログして他を続ける', async () => {
+    const items = [
+        { issue: 1, status: 'Review', kind: 'Issue', hitlLabel: true },
+        { issue: 2, status: 'DoD', kind: 'Issue', hitlLabel: true },
+    ];
+    const logs = [];
+    const contexts = await collectGateContexts(makeCfg(), items, new Set(), { running: new Map() }, (m) => logs.push(m), {
         token: 't',
-        getGateContext: () => ({
-            hitlSignals: { issueLabel: true, prLabel: true }, review: {}, pr: 10,
-            activity: { lastHumanAt: 200, lastBotAt: 100 },
-        }),
-    };
-    const contexts = await collectGateContexts(makeCfg(), items, new Set(), state, () => {}, deps);
-    assert.equal(contexts[1].humanSpokeLast, false); // 200 < watermark 250
-    // watermark 後に人間がさらに発言 → 再度解除
-    deps.getGateContext = () => ({
-        hitlSignals: { issueLabel: true, prLabel: true }, review: {}, pr: 10,
-        activity: { lastHumanAt: 300, lastBotAt: 100 },
+        getGateContext: (repo, issue) => {
+            if (issue === 1) throw new Error('boom');
+            return { hitlSignals: { issueLabel: false, prLabel: true }, pr: 20 };
+        },
     });
-    const contexts2 = await collectGateContexts(makeCfg(), items, new Set(), state, () => {}, deps);
-    assert.equal(contexts2[1].humanSpokeLast, true);
-});
-
-test('collectGateContexts: 未処理 changesRequested を構造化シグナルとして導く (#894)', async () => {
-    // approve 後の Request changes: bot sticky が lastBotAt を now に更新し humanSpokeLast が
-    // false でも、changesRequested の submittedAt が review watermark より新しければ解除する。
-    const items = [{ issue: 1, status: 'Review', kind: 'Issue', hitlLabel: true }];
-    const state = { running: new Map() };
-    const deps = {
-        token: 't',
-        getGateContext: () => ({
-            hitlSignals: { issueLabel: true, prLabel: true },
-            review: { approved: false, changesRequested: true, changesRequestedAt: 300 },
-            pr: 10,
-            // bot sticky が leapfrog: lastBotAt > lastHumanAt → humanSpokeLast は false
-            activity: { lastHumanAt: 300, lastBotAt: 999 },
-        }),
-    };
-    const contexts = await collectGateContexts(makeCfg(), items, new Set(), state, () => {}, deps);
-    assert.equal(contexts[1].humanSpokeLast, false, 'sticky leapfrog で発言解除は効かない');
-    assert.equal(contexts[1].unhandledChangesRequested, true, '構造化シグナルで解除される');
-
-    // watermark を進める（dispatch 済み相当）と同じ changesRequested では再発火しない
-    state.gateReviewHandled = new Map([[1, 300]]);
-    const contexts2 = await collectGateContexts(makeCfg(), items, new Set(), state, () => {}, deps);
-    assert.equal(contexts2[1].unhandledChangesRequested, false, '同じレビューでは再発火しない');
-
-    // さらに新しい Request changes（submittedAt=400）が来たら再度解除
-    deps.getGateContext = () => ({
-        hitlSignals: { issueLabel: true, prLabel: true },
-        review: { approved: false, changesRequested: true, changesRequestedAt: 400 },
-        pr: 10,
-        activity: { lastHumanAt: 400, lastBotAt: 999 },
-    });
-    const contexts3 = await collectGateContexts(makeCfg(), items, new Set(), state, () => {}, deps);
-    assert.equal(contexts3[1].unhandledChangesRequested, true, '新しい changesRequested で再度解除');
-});
-
-test('collectGateContexts: approve 単独（changesRequested 無し）は解除しない (#894)', async () => {
-    const items = [{ issue: 1, status: 'Review', kind: 'Issue', hitlLabel: true }];
-    const state = { running: new Map() };
-    const deps = {
-        token: 't',
-        getGateContext: () => ({
-            hitlSignals: { issueLabel: true, prLabel: true },
-            review: { approved: true, changesRequested: false, changesRequestedAt: null },
-            pr: 10,
-            activity: { lastHumanAt: 100, lastBotAt: 999 },
-        }),
-    };
-    const contexts = await collectGateContexts(makeCfg(), items, new Set(), state, () => {}, deps);
-    assert.equal(contexts[1].unhandledChangesRequested, false);
+    assert.ok(!(1 in contexts));
+    assert.equal(contexts[2].pr, 20);
+    assert.match(logs.join('\n'), /#1: gate context error boom/);
 });
 
 // === directives: getDirectives（autopilot-base / autopilot-after の TTL キャッシュ） ===
@@ -1398,7 +1411,7 @@ test('getDirectives: 本文から base/after を導き TTL 内はキャッシュ
     assert.equal(fetches, 2);
 });
 
-test('getDirectives: 取得失敗は空ディレクティブへフォールバックし次回再取得', async () => {
+test('getDirectives: 取得失敗でキャッシュが無ければ unavailable（dispatch 不可）にし次回再取得（#1309）', async () => {
     let calls = 0;
     const cfg = { ...makeCfg(), now: () => 0, directiveTtlMs: 1000 };
     const state = {};
@@ -1407,12 +1420,41 @@ test('getDirectives: 取得失敗は空ディレクティブへフォールバ�
         getIssueBody: () => { calls += 1; if (calls === 1) throw new Error('boom'); return 'autopilot-after: #3'; },
     };
     const d1 = await getDirectives(cfg, state, 5, () => {}, deps);
+    assert.equal(d1.unavailable, true);
+    assert.equal(directivesBlockDispatch(d1), true);
     assert.equal(d1.base, null);
     assert.deepEqual(d1.after, []);
     assert.equal(d1.assignee, null);
     // 失敗エントリは TTL 切れ扱い → 次回すぐ再取得して成功する
     const d2 = await getDirectives(cfg, state, 5, () => {}, deps);
     assert.deepEqual(d2.after, [3]);
+    assert.equal(directivesBlockDispatch(d2), false);
+});
+
+test('getDirectives: 取得失敗でも前回のキャッシュがあれば after/base を保つ（#1309）', async () => {
+    let calls = 0;
+    let now = 0;
+    const cfg = { ...makeCfg(), now: () => now, directiveTtlMs: 1000 };
+    const state = {};
+    const deps = {
+        token: 't',
+        getIssueBody: () => {
+            calls += 1;
+            if (calls >= 2) throw new Error('network down');
+            return 'autopilot-base: topic/x\nautopilot-after: #964';
+        },
+    };
+    await getDirectives(cfg, state, 965, () => {}, deps);
+    now = 5000; // TTL 超過 → 取り直すがネットが切れている
+    const d = await getDirectives(cfg, state, 965, () => {}, deps);
+    assert.deepEqual(d.after, [964]);
+    assert.equal(d.base, 'topic/x');
+    assert.equal(directivesBlockDispatch(d), false);
+    // 次の参照でもまた取りに行く（stale を TTL 内として固定しない）
+    await getDirectives(cfg, state, 965, () => {}, deps);
+    assert.equal(calls, 3);
+    // 失敗が続いても内容は保たれる
+    assert.deepEqual(state.directives.get(965).after, [964]);
 });
 
 test('getDirectives: 本文の autopilot-assignee ディレクティブも解決する（#938）', async () => {
@@ -2367,115 +2409,3 @@ test('startHttp: usage pause 中の /resume は 409 で /force-resume へ誘導�
         server.close();
     }
 });
-
-// ---- ゲート watermark の永続化（#1219） ----
-{
-    const { loadGateState, saveGateState } = require('../src/daemon');
-
-    const gateItems = [{ issue: 957, status: 'Review', kind: 'Issue', hitlLabel: true }];
-    const reviewCtx = (changesRequestedAt, lastHumanAt = 100) => ({
-        hitlSignals: { issueLabel: true, prLabel: true },
-        review: { approved: false, changesRequested: true, changesRequestedAt },
-        pr: 970,
-        activity: { lastHumanAt, lastBotAt: 50 },
-    });
-
-    /** 1 回目の起動で watermark を進めて保存 → 2 回目の起動で復元した state を返す */
-    function restartWith(stateBefore) {
-        const files = {};
-        const io = {
-            file: '/fake/autopilot-state.json',
-            writeFile: (f, body) => { files[f] = body; },
-            readFile: (f) => {
-                if (!(f in files)) { const e = new Error('nope'); e.code = 'ENOENT'; throw e; }
-                return files[f];
-            },
-        };
-        saveGateState(gateItems, stateBefore, () => {}, io);
-        const restarted = { running: new Map() };
-        loadGateState(restarted, () => {}, io);
-        return restarted;
-    }
-
-    test('再起動後も処理済み CHANGES_REQUESTED では解除しない、より新しいものでは解除 (#1219/#894)', async () => {
-        const at = Date.parse('2026-07-12T05:10:57Z');
-        const state = restartWith({ gateHandled: new Map([[957, at + 1000]]), gateReviewHandled: new Map([[957, at]]) });
-        assert.equal(state.gateReviewHandled.get(957), at);
-        const deps = { token: 't', getGateContext: () => reviewCtx('2026-07-12T05:10:57Z', at) };
-        const c1 = await collectGateContexts(makeCfg(), gateItems, new Set(), state, () => {}, deps);
-        assert.equal(c1[957].unhandledChangesRequested, false, '処理済みレビューで再発火しない');
-        assert.equal(c1[957].humanSpokeLast, false, '処理済み発言で再発火しない');
-        // watermark より新しい Request changes は解除される（#894 の回帰防止）
-        deps.getGateContext = () => reviewCtx(at + 5000, at);
-        const c2 = await collectGateContexts(makeCfg(), gateItems, new Set(), state, () => {}, deps);
-        assert.equal(c2[957].unhandledChangesRequested, true);
-    });
-
-    test('再起動後も gateHandled より古い発言では再発火せず、新しい発言では解除 (#1219)', async () => {
-        const state = restartWith({ gateHandled: new Map([[957, 250]]) });
-        const ctx = (lastHumanAt) => ({
-            hitlSignals: { issueLabel: true, prLabel: true }, review: {}, pr: 970,
-            activity: { lastHumanAt, lastBotAt: 100 },
-        });
-        const deps = { token: 't', getGateContext: () => ctx(200) };
-        const c1 = await collectGateContexts(makeCfg(), gateItems, new Set(), state, () => {}, deps);
-        assert.equal(c1[957].humanSpokeLast, false);
-        deps.getGateContext = () => ctx(300);
-        const c2 = await collectGateContexts(makeCfg(), gateItems, new Set(), state, () => {}, deps);
-        assert.equal(c2[957].humanSpokeLast, true);
-    });
-
-    test('loadGateState: ファイルが無い・壊れている・読めないときは空 Map で例外を投げない (#1219)', () => {
-        const cases = [
-            () => { const e = new Error('missing'); e.code = 'ENOENT'; throw e; },
-            () => '{not json',
-            () => { const e = new Error('EACCES'); e.code = 'EACCES'; throw e; },
-        ];
-        for (const readFile of cases) {
-            const logs = [];
-            const state = {};
-            loadGateState(state, (m) => logs.push(m), { file: '/fake', readFile });
-            assert.ok(state.gateHandled instanceof Map && state.gateHandled.size === 0);
-            assert.ok(state.gateReviewHandled instanceof Map && state.gateReviewHandled.size === 0);
-        }
-        // ENOENT は通常（初回起動）なので warn しない、壊れたファイルは warn する
-        const logs = [];
-        loadGateState({}, (m) => logs.push(m), { file: '/fake', readFile: cases[0] });
-        assert.equal(logs.length, 0);
-        loadGateState({}, (m) => logs.push(m), { file: '/fake', readFile: cases[1] });
-        assert.ok(logs.some((m) => m.includes('gate state warn')));
-    });
-
-    test('saveGateState: 差分があるときだけ書き、終端 Issue を落とす (#1219)', () => {
-        const writes = [];
-        const io = { file: '/fake', writeFile: (f, body) => writes.push(body) };
-        const state = { gateHandled: new Map([[1, 10], [2, 20]]), gateReviewHandled: new Map() };
-        const items = [{ issue: 1, status: 'Review' }, { issue: 2, status: 'Close' }];
-        assert.equal(saveGateState(items, state, () => {}, io), true);
-        assert.equal(saveGateState(items, state, () => {}, io), false, '同じ内容は書かない');
-        assert.equal(writes.length, 1);
-        assert.deepStrictEqual(JSON.parse(writes[0]).gateHandled, [[1, 10]]);
-        assert.equal(state.gateHandled.has(2), false);
-        state.gateHandled.set(1, 30);
-        assert.equal(saveGateState(items, state, () => {}, io), true);
-        assert.equal(writes.length, 2);
-        // 書き込み失敗は warn のみ（例外を投げず、次回再試行できるよう saved を進めない）
-        state.gateHandled.set(1, 40);
-        const logs = [];
-        const ok = saveGateState(items, state, (m) => logs.push(m), {
-            file: '/fake', writeFile: () => { throw new Error('ENOSPC'); },
-        });
-        assert.equal(ok, false);
-        assert.ok(logs.some((m) => m.includes('gate state warn')));
-        assert.equal(saveGateState(items, state, () => {}, io), true);
-    });
-
-    test('loadGateState → saveGateState: 復元直後は書き直さない (#1219)', () => {
-        const body = JSON.stringify({ version: 1, gateHandled: [[5, 50]], gateReviewHandled: [] });
-        const state = {};
-        loadGateState(state, () => {}, { file: '/fake', readFile: () => body });
-        const writes = [];
-        assert.equal(saveGateState([], state, () => {}, { file: '/fake', writeFile: (f, b) => writes.push(b) }), false);
-        assert.equal(writes.length, 0);
-    });
-}

@@ -88,6 +88,22 @@ describe('buildRestorePlan', () => {
     expect(plan[1].item.ttl).toBe(Math.floor(NOW / 1000) + 90 * DAY);
   });
 
+  test('drops the archivedAt of the archived snapshot, like PATCH {status:\'active\'} (#1298)', () => {
+    const plan = buildRestorePlan(
+      {
+        classroom: { classroomId: 'c1', status: 'archived', archivedAt: '2026-06-01T00:00:00.000Z', ttl: 123 },
+        memberships: [],
+        submissions: [],
+      },
+      NOW,
+      90,
+      400,
+    );
+
+    expect(plan[0].item.status).toBe('active');
+    expect(plan[0].item).not.toHaveProperty('archivedAt');
+  });
+
   test('restores the group first with its own (longer) TTL', () => {
     const plan = buildRestorePlan(
       {

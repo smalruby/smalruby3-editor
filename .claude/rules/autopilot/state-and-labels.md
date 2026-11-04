@@ -21,14 +21,14 @@ Status / AI Status / ラベルの集合を変更したら、**必ず次の 3 つ
 - **I1 出口保証**: すべての非終端状態に A（フェーズ）/ D（daemon tick）/ H（人間）いずれかの
   出口トリガーを定義する。
 - **I2〜I3 ゲート解除**: 人間ゲート（Review / DoD / Blocked / Discussing / Awaiting
-  Continuation）の解除は **3 系統の OR**（ラベル解除 / 発言解除 `humanSpokeLast` /
-  changesRequested 解除 `hasUnhandledChangesRequest`）。新しいゲートを作るときも
-  「ラベルを触らずコメントだけ返す人間」で固着しないこと。解除後の `phaseForItem` は
-  必ず非 null。
+  Continuation など）は **Issue / PR いずれかの 🙋 を外したときだけ**解除する（`isGateReleased`）。
+  人間のコメントや Request changes をゲート解除のシグナルにしない（コメントで worker が動き出すと
+  人間が気軽にコメントできない）。新しいゲートを作るときも同じ。解除後の `phaseForItem` は必ず非 null。
 - **I4 提案で退避系へ動かさない**: `signal=hitl` の `nextStatus` に **Icebox / Close / Done を
   提案しない**（プロンプト側の規約。出口の無い状態に落ちる）。Icebox への遷移は人間のみ。
-- **I5 再発火防止**: 解除シグナルには watermark（`state.gateHandled` /
-  `state.gateReviewHandled`）を対で用意し、同じ発言・同じレビューで毎 tick 再発火させない。
+- **I5 二重対応の防止**: address-review が対応した Request changes のレビュー ID は、まとめコメントの
+  マーカー（`addressReviewMarker`）に残し、`selectRequestedReviews` で未対応のものだけを選ぶ。
+  時刻の watermark や daemon の状態ファイルで管理しない（再起動やコメントの前後関係に左右されない）。
 
 ## 単一ライター原則（書き込み責務の分離）
 
@@ -50,6 +50,7 @@ Status / AI Status / ラベルの集合を変更したら、**必ず次の 3 つ
 | `🙋 HITL` | `HITL_LABEL` | 人間の番（**HITL の唯一の真実**・#813。Project に HITL フィールドは無い） | set = daemon が Issue/PR 両面へ一括付与。release = 人間（どちらか片面の除去で OR 解除）。steady-state 同期では**人間が外したラベルを再付与しない**（`hitlLabelAction` の force 分岐） |
 | `🧭 tracking` | `TRACKING_LABEL` | 分解済み親のトラッカー（作業 item ではない） | daemon が**分解済み**（`subIssues.total > 0`）の Kind=EPIC に付与（`labelActions`）。**未分解 EPIC には付けない**（付けると `phaseForItem` が decompose 前に締め出して分解が走らないデッドロックになる・#680/#681/#1130）。**自動では外さない**（人間の手動トラッカー指定を潰さない） |
 | `⏳ waiting` | `WAITING_LABEL` | `autopilot-after` の先行 Issue 待ち | daemon が**毎 tick 状態から動的に導出**して付け外し（`waitingLabelAction`）。静的に一度付ける実装にしない |
+| `🔬 spike` | `SPIKE_LABEL` | 要件の相談・調査中（Discussing / triage・understand の質問 🙋 待ち） | daemon が**毎 tick 状態から導出**して付け外し（`isSpikeItem` → `labelActions`）。Issue 面だけ（PR は `skipSpike`）。終端に残ったものは healing が外す。人間の手動付与は扱わない（導出が正） |
 | `🧱 infra` | `INFRA_LABEL` | infra だけを変える Issue（infra-first・後方互換のみ・develop へ先行マージ） | Issue を作る側（decompose / 人間）が付ける。**daemon は読むだけ**（merge で GitHub の Issue を閉じない・`autopilot-after` の相手としては GitHub で closed まで未完了）。prod デプロイ成功で `Deploy Infra` workflow が閉じる |
 | `👥 human-review-required` | `HUMAN_REVIEW_LABEL` | Bot 権限外パスを含む PR（個人トークン経路） | プロンプトが付与。**autopilot は外さない**（外すのは人間） |
 

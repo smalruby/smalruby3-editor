@@ -22,6 +22,15 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { OAuth2Client } from 'google-auth-library';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import * as crypto from 'crypto';
+import {
+  AiUsage,
+  buildAiUsage,
+  jstDate,
+  seatFromMemberId,
+  seatStatusKey,
+  todayCountsBySeat,
+  usagePk,
+} from './ai-usage-lib';
 
 // --- Configuration ---
 
@@ -39,6 +48,9 @@ const SHARED_REPORTS_TABLE = process.env.SHARED_REPORTS_TABLE_NAME || 'SharedAss
 // お知らせ (notification center, EPIC #1111) — admin → teacher notices. The
 // admin stack writes items; this API lists/marks-read for the teacher.
 const NOTIFICATIONS_TABLE = process.env.NOTIFICATIONS_TABLE_NAME || 'ClassroomNotifications';
+// rubytee relay の表（読み取りだけ・#1311）。未設定ならメンバー一覧の aiUsage は null
+const RUBYTEE_RATE_LIMIT_TABLE = process.env.RUBYTEE_RATE_LIMIT_TABLE_NAME || '';
+const RUBYTEE_USAGE_TABLE = process.env.RUBYTEE_USAGE_TABLE_NAME || '';
 const SHARED_BUCKET = process.env.SHARED_BUCKET_NAME || 'smalruby-shared-assignments';
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
 const MICROSOFT_CLIENT_ID = process.env.MICROSOFT_CLIENT_ID || '';
@@ -1059,6 +1071,27 @@ function seatCountFor(
 }
 
 /**
+ * When an assignment was archived, for the class stream (#1298). Only archived
+ * items have one; items archived before archivedAt existed fall back to
+ * updatedAt (no backfill — archiving was their last write in practice).
+ */
+function archivedAtOf(item: Record<string, unknown> | undefined): string | null {
+  if (!item || item.status !== 'archived') return null;
+  return (item.archivedAt || item.updatedAt || null) as string | null;
+}
+
+/**
+ * The updatedAt that stands in for archivedAt on an item archived before
+ * archivedAt existed (see archivedAtOf), or undefined. A write that bumps
+ * updatedAt on such an item must pin this as archivedAt first, or the
+ * stream's archive time would jump to the time of that unrelated edit.
+ */
+function legacyArchivedAt(item: Record<string, unknown> | undefined): string | undefined {
+  if (!item || item.status !== 'archived' || item.archivedAt || !item.updatedAt) return undefined;
+  return item.updatedAt as string;
+}
+
+/**
  * Shape a classroom item for the teacher-facing list/detail responses, adding
  * the co-teacher list and the requesting teacher's role (owner vs co-teacher).
  */
@@ -1083,6 +1116,7 @@ function mapClassroomSummary(item: Record<string, unknown>, identity: TeacherIde
     // （recommendedForSharingBy = admin email は内部情報）。
     recommendedForSharing: !!item.recommendedForSharingAt,
     status: item.status,
+    archivedAt: archivedAtOf(item),
     role: item.teacherSub === identity.sub ? 'owner' : 'co-teacher',
   };
 }
@@ -1180,6 +1214,7 @@ async function handleGetClassroom(identity: TeacherIdentity, classroomId: string
       hasAssignment: hasAssignmentContent(result.Item),
       meshGroupLimit: meshGroupLimitOf(result.Item),
       recommendedForSharing: !!result.Item.recommendedForSharingAt,
+      archivedAt: archivedAtOf(result.Item),
       role: result.Item.teacherSub === identity.sub ? 'owner' : 'co-teacher',
     }),
   };
@@ -1305,6 +1340,18 @@ async function handleUpdateClassroom(identity: TeacherIdentity, classroomId: str
     }
     updates.status = body.status;
   }
+  // Archiving stamps archivedAt (re-archiving keeps the original time);
+  // restoring drops it so a later archive is dated afresh. Any other edit of
+  // an item archived before archivedAt existed pins its stand-in (#1298).
+  const removes: string[] = [];
+  if (updates.status === 'archived' && classroom.Item.status !== 'archived') {
+    updates.archivedAt = updates.updatedAt;
+  } else if (updates.status === 'active') {
+    removes.push('archivedAt');
+  } else {
+    const legacy = legacyArchivedAt(classroom.Item);
+    if (legacy) updates.archivedAt = legacy;
+  }
   if (body.regenerateJoinCode === true) {
     updates.joinCode = generateJoinCode();
   }
@@ -1358,7 +1405,7 @@ async function handleUpdateClassroom(identity: TeacherIdentity, classroomId: str
   const result = await docClient.send(new UpdateCommand({
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId },
-    UpdateExpression: `SET ${expressionParts.join(', ')}`,
+    UpdateExpression: `SET ${expressionParts.join(', ')}${removes.length ? ` REMOVE ${removes.join(', ')}` : ''}`,
     ExpressionAttributeNames: expressionNames,
     ExpressionAttributeValues: expressionValues,
     ReturnValues: 'ALL_NEW',
@@ -1374,6 +1421,7 @@ async function handleUpdateClassroom(identity: TeacherIdentity, classroomId: str
       studentCount: result.Attributes?.studentCount,
       meshGroupLimit: meshGroupLimitOf(result.Attributes),
       status: result.Attributes?.status,
+      archivedAt: archivedAtOf(result.Attributes),
     }),
   };
 }
@@ -1517,9 +1565,57 @@ async function handleJoinClassroom(sourceIp: string, body: Record<string, unknow
       memberId,
       hasAssignment: hasAssignmentContent(classroom),
       meshGroupLimit: meshGroupLimitOf(classroom),
+      ...studentAiSettingsOf(owningGroup),
       previousComment,
     }),
   };
+}
+
+/**
+ * 席ごとの aiUsage（ルビティーの上限と今日の回数）を relay の表から読む (#1311)。
+ * relay の表が読めないときは null を返し、メンバー一覧はふつうに返す（fail-open）。
+ */
+export async function loadAiUsageBySeat(
+  classroomId: string,
+  seats: string[],
+  nowMs: number,
+): Promise<Map<string, AiUsage> | null> {
+  if (!RUBYTEE_RATE_LIMIT_TABLE || !RUBYTEE_USAGE_TABLE) return null;
+  try {
+    const uniqueSeats = [...new Set(seats)];
+    const statusRows = new Map<string, Record<string, unknown>>();
+    // BatchGetItem は 1 回 100 キーまで
+    for (let i = 0; i < uniqueSeats.length; i += 100) {
+      const chunk = uniqueSeats.slice(i, i + 100);
+      const res = await docClient.send(new BatchGetCommand({
+        RequestItems: {
+          [RUBYTEE_RATE_LIMIT_TABLE]: { Keys: chunk.map(seat => seatStatusKey(classroomId, seat)) },
+        },
+      }));
+      if (Object.keys(res.UnprocessedKeys || {}).length > 0) {
+        throw new Error('BatchGet left unprocessed keys');
+      }
+      for (const row of res.Responses?.[RUBYTEE_RATE_LIMIT_TABLE] || []) {
+        const m = /^seat#.+:([^:#]+)#current$/.exec(String(row.sourceIp));
+        if (m) statusRows.set(m[1], row);
+      }
+    }
+    const usage = await docClient.send(new QueryCommand({
+      TableName: RUBYTEE_USAGE_TABLE,
+      KeyConditionExpression: 'pk = :pk AND begins_with(sk, :today)',
+      ExpressionAttributeValues: { ':pk': usagePk(classroomId), ':today': `${jstDate(nowMs)}#` },
+    }));
+    const today = todayCountsBySeat(usage.Items || []);
+    const nowSeconds = Math.floor(nowMs / 1000);
+    const result = new Map<string, AiUsage>();
+    for (const seat of uniqueSeats) {
+      result.set(seat, buildAiUsage(statusRows.get(seat), today.get(seat), nowSeconds));
+    }
+    return result;
+  } catch (err) {
+    console.error('[aiUsage] failed to read rubytee relay tables, returning null:', err);
+    return null;
+  }
 }
 
 async function handleListMembers(identity: TeacherIdentity, classroomId: string): Promise<APIGatewayProxyStructuredResultV2> {
@@ -1561,8 +1657,16 @@ async function handleListMembers(identity: TeacherIdentity, classroomId: string)
     }
   }
 
-  const members = (membersResult.Items || []).map(item => {
+  const memberItems = membersResult.Items || [];
+  const aiUsageBySeat = await loadAiUsageBySeat(
+    classroomId,
+    memberItems.map(item => seatFromMemberId(item.memberId)).filter((s): s is string => s !== null),
+    Date.now(),
+  );
+
+  const members = memberItems.map(item => {
     const submission = submissionMap.get(item.memberId as string);
+    const seat = seatFromMemberId(item.memberId);
     return {
       memberId: item.memberId,
       displayName: item.displayName,
@@ -1572,6 +1676,8 @@ async function handleListMembers(identity: TeacherIdentity, classroomId: string)
       hasSubmission: !!submission,
       submissionStatus: submission?.status || null,
       submittedAt: submission?.submittedAt || null,
+      // 任意フィールド (#1311)。relay の表が読めないときは null
+      aiUsage: (seat && aiUsageBySeat?.get(seat)) || null,
     };
   });
 
@@ -1602,7 +1708,7 @@ async function handleDeleteClassroom(identity: TeacherIdentity, classroomId: str
   await docClient.send(new UpdateCommand({
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId },
-    UpdateExpression: 'SET #status = :status, updatedAt = :now',
+    UpdateExpression: 'SET #status = :status, updatedAt = :now, archivedAt = :now',
     ExpressionAttributeNames: { '#status': 'status' },
     ExpressionAttributeValues: { ':status': 'archived', ':now': new Date().toISOString() },
   }));
@@ -1674,6 +1780,7 @@ async function handleLookupClassroom(sourceIp: string, body: Record<string, unkn
       expiresAt: classroom.ttl ? new Date((classroom.ttl as number) * 1000).toISOString() : null,
       hasAssignment: hasAssignmentContent(classroom),
       meshGroupLimit: meshGroupLimitOf(classroom),
+      ...studentAiSettingsOf(lookupGroup),
     }),
   };
 }
@@ -2986,8 +3093,13 @@ async function handleVerifySession(sessionToken: string): Promise<APIGatewayProx
     throw new AuthError('This classroom is no longer active');
   }
 
-  // Update lastActiveAt and extend TTL on each verify call
-  await touchMembershipActivity(session, sessionToken);
+  // Update lastActiveAt and extend TTL on each verify call. The owning class
+  // is read alongside so the teacher's AI settings (#1275) reach students who
+  // joined before the change.
+  const [, owningGroup] = await Promise.all([
+    touchMembershipActivity(session, sessionToken),
+    getOwningGroup(classroomResult.Item),
+  ]);
 
   if (subResult.Items && subResult.Items.length > 0) {
     const item = subResult.Items[0];
@@ -3006,6 +3118,7 @@ async function handleVerifySession(sessionToken: string): Promise<APIGatewayProx
       hasAssignment: hasAssignmentContent(classroomResult.Item),
       // The teacher may change the limit after the student joined (#1255).
       meshGroupLimit: meshGroupLimitOf(classroomResult.Item),
+      ...studentAiSettingsOf(owningGroup),
     }),
   };
 }
@@ -3293,6 +3406,162 @@ async function ensureGroupTopic(
   }));
 }
 
+// --- Class-level AI settings (issue #1275) ---
+// The teacher decides per class whether students see a generative-AI link and
+// Rubytee. Classes written before this feature have neither attribute, which
+// reads as "both disabled".
+
+export type GenaiService = 'gemini' | 'chatgpt' | 'other';
+
+export interface GenaiSetting {
+  enabled: boolean;
+  service: GenaiService | null;
+  url: string | null;
+  /** The teacher confirmed the service's terms (age limits etc.) for this class. */
+  confirmed: boolean;
+}
+
+const GENAI_DEFAULT_URLS: Record<GenaiService, string | null> = {
+  gemini: 'https://gemini.google.com/app',
+  chatgpt: 'https://chatgpt.com/',
+  other: null,
+};
+
+// Services whose terms require users to be 18+ cannot be offered to school
+// students, even through the free-form "other" URL.
+const GENAI_ADULT_ONLY_HOSTS = ['claude.ai', 'claude.com', 'anthropic.com'];
+
+const MAX_GENAI_URL_LENGTH = 2048;
+
+// Own-property check: `in` would also accept inherited names like 'toString'.
+function isGenaiService(value: unknown): value is GenaiService {
+  return typeof value === 'string' && Object.prototype.hasOwnProperty.call(GENAI_DEFAULT_URLS, value);
+}
+
+function validateGenaiUrl(value: unknown): string {
+  if (typeof value !== 'string') {
+    throw new ValidationError('genai.url must be an https URL');
+  }
+  const trimmed = value.trim();
+  let parsed: URL;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    throw new ValidationError('genai.url must be an https URL');
+  }
+  if (parsed.protocol !== 'https:' || trimmed.length > MAX_GENAI_URL_LENGTH) {
+    throw new ValidationError('genai.url must be an https URL');
+  }
+  // A trailing dot names the same host ("claude.ai." is claude.ai), so drop it
+  // before comparing or the block list is trivially bypassed.
+  const host = parsed.hostname.toLowerCase().replace(/\.+$/, '');
+  if (GENAI_ADULT_ONLY_HOSTS.some(blocked => host === blocked || host.endsWith(`.${blocked}`))) {
+    throw new ValidationError('genai.url points to a service that is not available to students');
+  }
+  return trimmed;
+}
+
+/** The stored genai setting of a class, defaulting to disabled. */
+export function genaiSettingOf(group: Record<string, unknown> | undefined): GenaiSetting {
+  const raw = group?.genai;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return { enabled: false, service: null, url: null, confirmed: false };
+  }
+  const value = raw as Record<string, unknown>;
+  const service = isGenaiService(value.service) ? value.service : null;
+  return {
+    enabled: value.enabled === true && service !== null,
+    service,
+    url: typeof value.url === 'string' ? value.url : null,
+    confirmed: value.confirmed === true,
+  };
+}
+
+/** The stored rubytee setting of a class, defaulting to disabled. */
+export function rubyteeSettingOf(group: Record<string, unknown> | undefined): { enabled: boolean } {
+  const raw = group?.rubytee as Record<string, unknown> | undefined;
+  return { enabled: Boolean(raw && typeof raw === 'object' && raw.enabled === true) };
+}
+
+/**
+ * Validate a (partial) genai update and merge it onto the stored setting.
+ * Changing the service without a url switches to that service's default URL.
+ * Enabling needs a service, the teacher's confirmation and a URL.
+ * @param value - the `genai` object of the request body
+ * @param group - the stored class, whose setting the update is merged onto
+ * @returns the full setting to store
+ */
+export function validateGenaiSetting(value: unknown, group?: Record<string, unknown>): GenaiSetting {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new ValidationError('genai must be an object');
+  }
+  const input = value as Record<string, unknown>;
+  const next = genaiSettingOf(group);
+  const previous = { service: next.service, url: next.url };
+
+  if (input.service !== undefined) {
+    if (!isGenaiService(input.service)) {
+      throw new ValidationError(`genai.service must be one of: ${Object.keys(GENAI_DEFAULT_URLS).join(', ')}`);
+    }
+    if (input.service !== next.service && input.url === undefined) {
+      next.url = GENAI_DEFAULT_URLS[input.service];
+    }
+    next.service = input.service;
+  }
+  if (input.url !== undefined) {
+    next.url = input.url === null || input.url === ''
+      ? (next.service ? GENAI_DEFAULT_URLS[next.service] : null)
+      : validateGenaiUrl(input.url);
+  }
+  if (next.service && next.url === null) {
+    next.url = GENAI_DEFAULT_URLS[next.service];
+  }
+  // The teacher's confirmation is about one service's terms (age, consent), so a
+  // change of service or URL needs a fresh confirmation unless it comes with one.
+  if ((next.service !== previous.service || next.url !== previous.url) && input.confirmed === undefined) {
+    next.confirmed = false;
+  }
+  for (const key of ['enabled', 'confirmed'] as const) {
+    if (input[key] !== undefined) {
+      if (typeof input[key] !== 'boolean') {
+        throw new ValidationError(`genai.${key} must be a boolean`);
+      }
+      next[key] = input[key] as boolean;
+    }
+  }
+
+  if (next.enabled) {
+    if (!next.service) {
+      throw new ValidationError('genai.service is required to enable generative AI');
+    }
+    if (!next.confirmed) {
+      throw new ValidationError('genai.confirmed must be true to enable generative AI');
+    }
+    if (!next.url) {
+      throw new ValidationError('genai.url is required to enable generative AI');
+    }
+  }
+  return next;
+}
+
+export function validateRubyteeSetting(value: unknown): { enabled: boolean } {
+  if (!value || typeof value !== 'object' || Array.isArray(value)
+    || typeof (value as Record<string, unknown>).enabled !== 'boolean') {
+    throw new ValidationError('rubytee.enabled must be a boolean');
+  }
+  return { enabled: (value as Record<string, unknown>).enabled as boolean };
+}
+
+/**
+ * The AI settings a student sees for the class owning their assignment.
+ * `confirmed` is the teacher's own checkbox, so it is not sent. Assignments
+ * outside a class (pre-v2) have no settings and read as disabled.
+ */
+export function studentAiSettingsOf(group: Record<string, unknown> | undefined) {
+  const { enabled, service, url } = genaiSettingOf(group);
+  return { genai: { enabled, service, url }, rubytee: rubyteeSettingOf(group) };
+}
+
 function mapGroupSummary(item: Record<string, unknown>, identity?: TeacherIdentity) {
   return {
     groupId: item.groupId,
@@ -3317,6 +3586,8 @@ function mapGroupSummary(item: Record<string, unknown>, identity?: TeacherIdenti
     ),
     studentCount: typeof item.studentCount === 'number' ? item.studentCount : null,
     coTeacherEmails: readCoTeacherEmails(item),
+    genai: genaiSettingOf(item),
+    rubytee: rubyteeSettingOf(item),
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
   };
@@ -3421,6 +3692,12 @@ async function handleUpdateGroup(identity: TeacherIdentity, groupId: string, bod
       throw new ValidationError('coTeacherEmails must be an array');
     }
     updates.coTeacherEmails = [...new Set(body.coTeacherEmails.map(validateCoTeacherEmail))];
+  }
+  if (body.genai !== undefined) {
+    updates.genai = validateGenaiSetting(body.genai, group);
+  }
+  if (body.rubytee !== undefined) {
+    updates.rubytee = validateRubyteeSetting(body.rubytee);
   }
 
   const expressionParts: string[] = [];
@@ -3624,13 +3901,21 @@ async function handleUpdateGroupTopics(
     const targets = (await listAssignmentsInGroups([groupId]))
       .filter(assignment => assignment.topic === fromTopic);
     for (const item of targets) {
+      // Archived assignments follow the rename too; pin the legacy archive
+      // time before updatedAt moves (#1298).
+      const legacy = legacyArchivedAt(item);
+      const pin = legacy ? ', archivedAt = :archivedAt' : '';
       await docClient.send(new UpdateCommand({
         TableName: CLASSROOMS_TABLE,
         Key: { classroomId: item.classroomId },
         UpdateExpression: toTopic === null
-          ? 'REMOVE topic SET updatedAt = :now'
-          : 'SET topic = :to, updatedAt = :now',
-        ExpressionAttributeValues: toTopic === null ? { ':now': now } : { ':to': toTopic, ':now': now },
+          ? `REMOVE topic SET updatedAt = :now${pin}`
+          : `SET topic = :to, updatedAt = :now${pin}`,
+        ExpressionAttributeValues: {
+          ':now': now,
+          ...(toTopic === null ? {} : { ':to': toTopic }),
+          ...(legacy ? { ':archivedAt': legacy } : {}),
+        },
       }));
     }
   };

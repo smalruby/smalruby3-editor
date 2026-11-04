@@ -34,7 +34,6 @@ src/extensions/*
 !src/extensions/koshien/
 !src/extensions/microbitMore/
 !src/extensions/scratch3_mesh_v2/
-!src/extensions/scratch3_mesh/
 !src/extensions/scratch3_smalrubot_s1/
 !src/extensions/scratch3_g2s/
 !src/extensions/scratch3_tm2scratch/
@@ -82,7 +81,6 @@ test/unit/*
 !test/unit/extension_mesh_v2_delta_repro.js
 !test/unit/extension_mesh_v2_delta.js
 !test/unit/extension_mesh_v2_domain.js
-!test/unit/extension_mesh_v2_integration.js
 !test/unit/extension_mesh_v2_issue66.js
 !test/unit/extension_mesh_v2_service.js
 !test/unit/extension_mesh_v2.js

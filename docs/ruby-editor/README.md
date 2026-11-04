@@ -104,18 +104,30 @@ Monaco 本体は **CDN からではなく自前で配信する**。学校ネッ�
 環境でもルビータブが動くようにするため、また PWA としてオフラインでも使えるようにするため。
 
 - `webpack.config.js` の `CopyWebpackPlugin` が `node_modules/monaco-editor/min/vs` を
-  ビルド成果物の **`static/monaco/vs`** へコピーする（`MONACO_VS_DEST`）
+  ビルド成果物の **`static/monaco/<版>/vs`**（例: `static/monaco/0.57.0/vs`）へコピーする
+  （`MONACO_VS_DEST`。版は `node_modules/monaco-editor/package.json` から読む）。
+  同じパスを `DefinePlugin` の `process.env.MONACO_VS_SUBPATH` でクライアントへ渡すので、
+  パスの定義は `webpack.config.js` の 1 箇所だけ（jest など webpack を通らないときは
+  版なしの `static/monaco/vs` にフォールバックする）
+- 配信パスに版を含めるのは、Monaco を更新した直後の不整合を防ぐため。版の無いパスだと、
+  runtime cache やブラウザの HTTP キャッシュに残った旧版の `editor.main.js` を新しい
+  `gui.js` が読み、旧版のハッシュ付きチャンクを要求して 404 になったり、`gui.js` に
+  バンドルした日本語 NLS（添字で引く配列）と本体の版がずれて文言が入れ違ったりする。
+  版ごとに URL が変われば旧版のエントリには当たらない。キャッシュ名は版を含めず固定にして、
+  旧版のエントリは `maxEntries` で追い出す（キャッシュ名に版を含めると、Workbox は
+  知らないキャッシュを消さないので旧版のキャッシュが残り続ける）
 - `monaco-i18n-helper.js` の `resolveMonacoVsPath()` が webpack の `publicPath` を前置して
   AMD ローダーへ渡す。`dist` の `publicPath: 'auto'`（scratch-desktop / scratch-android の
   相対解決）と、smalruby.app / GitHub Pages サブディレクトリ / ブランチプレビューの
   3 通りの base パスすべてに対応するため、絶対パスを直書きしない
 - バージョンは `packages/scratch-gui/package.json` の `monaco-editor` に自動的に揃う
-  （URL へのバージョン直書きは無い）。日本語 NLS も同じ npm パッケージから読むのでズレない
+  （URL の版はビルド時に決まり、直書きは無い）。日本語 NLS も同じ npm パッケージから読むのでズレない
 - `min/vs` は約 16MB あるため **PWA の precache からは除外**し、Workbox の
   `runtimeCaching`（`StaleWhileRevalidate` / キャッシュ名 `smalruby-monaco-editor`）で扱う。
   初回インストールを軽く保ちつつ、一度開けばオフラインでもルビータブが使える
-- コピー先を変えるときは `webpack.config.js` の `MONACO_VS_DEST` と
-  `monaco-i18n-helper.js` の `MONACO_VS_SUBPATH` を**対で**変更する
+- コピー先を変えるときは `webpack.config.js` の `MONACO_VS_DEST` だけを変える
+  （`monaco-i18n-helper.js` へは `DefinePlugin` 経由で伝わる）。統合テストのログ判定
+  （`test/helpers/ignorable-severe-logs.js`）もパスの形を見ているので合わせて直す
 - `@monaco-editor/loader` の既定 `paths.vs` は CDN のままなので、`monaco-i18n-helper.js`
   の副作用インポートより先に `<Editor>` がレンダーされると静かに CDN へ戻る。
   `@monaco-editor/react` を使うモジュールを増やすときは、`<Editor>` のレンダー前に

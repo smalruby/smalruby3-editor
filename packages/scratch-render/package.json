@@ -60,7 +60,7 @@
   "dependencies": {
     "@smalruby/scratch-svg-renderer": "13.7.2",
     "grapheme-breaker": "0.3.2",
-    "hull.js": "0.2.10",
+    "hull.js": "0.2.1",
     "ify-loader": "1.1.0",
     "linebreak": "0.3.0",
     "raw-loader": "0.5.1",
@@ -73,7 +73,7 @@
     "@babel/preset-env": "7.29.2",
     "@smalruby/scratch-vm": "13.7.2",
     "babel-loader": "9.2.1",
-    "copy-webpack-plugin": "6.4.1",
+    "copy-webpack-plugin": "14.0.0",
     "docdash": "0.4.0",
     "eslint": "9.39.4",
     "eslint-config-scratch": "14.1.12",

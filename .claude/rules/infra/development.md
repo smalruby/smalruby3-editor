@@ -79,6 +79,11 @@ stg は**共有資源**で、人間と複数の autopilot worker が同時に触
 - **stg は上書きされうる**。DoD をする前に、workflow が PR に残したコメントで
   「いまの stg が自分の SHA か」を確認する。違えばラベルを付け直して再デプロイする。
 - develop への infra push でも stg へデプロイが走るので、**マージ後は stg が develop に収束**する。
+- **同じ infra プロジェクトを変える PR が同時に 2 つあるときは、後の PR を先の PR のブランチから
+  作る**（または 1 つにまとめる）。stg のデプロイはプロジェクト単位でキュー化されるだけなので、
+  別々のブランチから出すと後のデプロイが先の変更を消し、DoD が違うコードに対して通ってしまう。
+  別プロジェクト同士（例: classroom と rubytee-relay）なら互いに上書きしないので、分けたまま
+  並行してよい（`concurrency` の group が `infra-deploy-stg-<project>`）。
 
 ## infra は別 Issue に分けて先に出す（infra-first）
 
@@ -210,11 +215,25 @@ account ID は CDK の `cdk.context.json` コミット方針で既にリポジ�
 - 管理者アクションの `audit()` 構造化ログは **bug-report のみ**が持つ（classroom には無い）。
   「管理系操作は audit ログ」と一般化しないこと。
 
+## 混雑・障害時の劣化（fail-open の方針）
+
+授業中の可用性を優先し、**付随的な機能は混雑時・障害時に一時的に不完全な状態になってよい**（fail-open）。
+本来の機能（答えを返す・課題を提出できる等）を止めないことを優先し、付随する読み書きの失敗では落とさない。
+
+- 例（実装事実）: rubytee-relay のレート制限は DynamoDB 障害時に**許可**する。利用集計の書き込みに失敗しても
+  答えは返す。classroom のメンバー一覧の `aiUsage` は `BatchGetItem` が `UnprocessedKeys` を返すと
+  **再試行せずクラス全体を `null`**（表示なし）にする — 混雑時は一時的に全員分が見えなくなるのを許容する。
+- 新しく付随的な読み書きを足すときも、まずこの方針（再試行やエラー応答で本体を遅らせない）で設計する。
+- **例外**: 認証・認可・不正防止（他人のデータ・枠を使えないこと）は fail-open にしない。
+  劣化を許すのは「表示が一時的に欠ける」「集計が一時的に漏れる」までで、悪用の余地を作る方向には倒さない。
+
 ## データ保持（RemovalPolicy）と secret の互換性
 
-- **`RemovalPolicy.RETAIN` は bug-report の `BugReportAdmins` テーブルのみ**。それ以外の運用
-  テーブル（mesh-v2 / classroom の 4 テーブル / `BugReports` / rate limit）はすべて **DESTROY**
-  — スタック削除・リソース差し替えでデータが消える前提で扱うこと。
+- **`RemovalPolicy.RETAIN` は「消えると取り戻せないデータ」の表だけ**。現在は次の 3 つ:
+  bug-report の `BugReportAdmins`、classroom の `SharedAssignments`（みんなの課題。prod のみ RETAIN）、
+  rubytee-relay の `RubyteeRelayUsage`（利用集計）。それ以外の運用テーブル（mesh-v2 / classroom の
+  クラス・課題系 / `BugReports` / rate limit / `RubyteeJobs`）は **DESTROY** — スタック削除・リソース
+  差し替えでデータが消える前提で扱うこと。RETAIN の表を増やすときはこの一覧も更新する。
 - **互換性クリティカルな secret**: `MESH_ZONE_SECRET_KEY`（smalruby-api）はローテートすると
   全ユーザーの mesh domain (CRC32) が変わる（詳細は `smalruby-api.md`）。mesh-v2 の
   `MESH_SECRET_KEY` は **未設定だと stack 既定の固定弱鍵 `'default-secret-key'` になる**

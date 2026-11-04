@@ -11,11 +11,12 @@ const assert = require('node:assert');
 const {
     phaseForItem,
     isGateReleased,
-    humanSpokeLast,
-    hasUnhandledChangesRequest,
     isStuckCandidate,
     selectStalledInFlightItems,
     IN_FLIGHT_WORK_PHASE_BY_AI_STATUS,
+    applyResult,
+    applyIntentsToItem,
+    hitlDesireFromResult,
     selectClosedToReconcile,
     TERMINAL_STATUSES,
     TRACKING_LABEL,
@@ -37,7 +38,7 @@ const STATUSES = [
 /** AI Status 全値 + 空 */
 const AI_STATUSES = [
     null, 'Triaging', 'Discussing', 'Understanding', 'Decomposing', 'EPIC Decomposed',
-    'Implementing', 'Creating PR', 'Self-Reviewing', 'Addressing Comments', 'Running DoD',
+    'Implementing', 'Creating PR', 'Self-Reviewing', 'Addressing Comments', 'Resolving Conflicts', 'Running DoD',
     'Awaiting Continuation',
 ];
 
@@ -95,10 +96,9 @@ test('I1: 全状態に出口がある（固着状態が存在しない）', () =
                         issue: 1, status, aiStatus, kind, hitlLabel: hitl, labels: [], assignees: [],
                     };
                     const exits = [];
-                    // A: autopilot フェーズ（現状のまま / ラベル解除後 / 発言解除後）
+                    // A: autopilot フェーズ（現状のまま / ラベル解除後）
                     if (phaseForItem(item, {})) exits.push('phase');
                     if (phaseForItem({ ...item, hitlLabel: false }, {})) exits.push('phase-after-label-release');
-                    if (phaseForItem(item, { humanSpokeLast: true })) exits.push('phase-after-comment');
                     // D: daemon tick ステップ
                     if (hasDaemonExit(item)) exits.push('daemon');
                     // H: 人間の Status 移動が正当な出口の状態
@@ -127,7 +127,8 @@ test('I1(tracker): 🧭 tracking 付きも merge/close 整合という出口を�
 });
 
 // ゲート = autopilot が「人間の番」として item を置く状態（+ HITL）。
-// これらは (a) ラベル解除 (b) 人間の発言 のどちらでも必ず解除され、解除後の遷移先が非 null。
+// これらは 🙋 ラベル（Issue か PR のどちらか）を外すと必ず解除され、解除後の遷移先が非 null。
+// コメント・Request changes だけでは解除されない（人間が気軽にコメントできるように）。
 const GATES = [
     { name: 'Review', item: { issue: 1, status: 'Review', hitlLabel: true, kind: 'Issue', labels: [] }, expect: 'address-review' },
     { name: 'DoD', item: { issue: 1, status: 'DoD', hitlLabel: true, kind: 'Issue', labels: [] }, expect: 'address-review' },
@@ -139,7 +140,7 @@ const GATES = [
     { name: 'Awaiting Continuation', item: { issue: 1, status: 'In Progress', aiStatus: 'Awaiting Continuation', hitlLabel: true, kind: 'Issue', labels: [] }, expect: 'implement' },
 ];
 
-test('I2/I3: 人間ゲートはラベル解除でも発言（コメント）でも必ず解除され、遷移先が定義される', () => {
+test('I2/I3: 人間ゲートは 🙋 を外すと必ず解除され、遷移先が定義される', () => {
     for (const g of GATES) {
         const ctx = g.ctx || {};
         // 待ち状態（解除前）は動かない
@@ -154,70 +155,27 @@ test('I2/I3: 人間ゲートはラベル解除でも発言（コメント）で�
             phaseForItem(g.item, { ...ctx, hitlSignals: { issueLabel: true, prLabel: false } }), g.expect,
             `${g.name}: PR ラベル解除（OR）で ${g.expect} に遷移すべき`,
         );
-        // (c) ラベルを触らず人間がコメント・レビュー送信しただけ（固着バグの再発防止）
+    }
+});
+
+test('I2/I3: コメント・Request changes だけではゲートを開かない（ラベルが残っている限り待つ）', () => {
+    for (const g of GATES) {
+        const labeled = { ...(g.ctx || {}), hitlSignals: { issueLabel: true, prLabel: true } };
         assert.equal(
-            phaseForItem(g.item, { ...ctx, humanSpokeLast: true }), g.expect,
-            `${g.name}: 人間の発言（コメントのみ・ラベル未操作）で ${g.expect} に遷移すべき`,
-        );
-        // (d) 両シグナル併存でも同じ
-        assert.equal(
-            phaseForItem(g.item, { ...ctx, hitlSignals: { issueLabel: true, prLabel: true }, humanSpokeLast: true }),
-            g.expect,
-            `${g.name}: ラベルが残っていても発言解除で遷移すべき`,
+            phaseForItem(g.item, { ...labeled, humanSpokeLast: true, unhandledChangesRequested: true }), null,
+            `${g.name}: 🙋 が残っている間は人間の発言やレビューで動いてはいけない`,
         );
     }
 });
 
-test('I5: 発言解除は bot の応答・処理済み watermark より後の発言にのみ反応（再発火しない）', () => {
-    // 人間が最後に発言 → 解除
-    assert.equal(humanSpokeLast({ lastHumanAt: 2000, lastBotAt: 1000 }), true);
-    // bot が応答した後 → 再発火しない
-    assert.equal(humanSpokeLast({ lastHumanAt: 2000, lastBotAt: 3000 }), false);
-    // daemon が dispatch 済み（watermark）→ 同じ発言では再発火しない
-    assert.equal(humanSpokeLast({ lastHumanAt: 2000, lastBotAt: 1000, handledAt: 2500 }), false);
-    // watermark 後にさらに人間が発言 → 再度解除
-    assert.equal(humanSpokeLast({ lastHumanAt: 3000, lastBotAt: 1000, handledAt: 2500 }), true);
-    // 発言が無ければ解除しない
-    assert.equal(humanSpokeLast({}), false);
-    // ISO 文字列でも動く（GraphQL の createdAt/submittedAt）
-    assert.equal(humanSpokeLast({ lastHumanAt: '2026-07-07T10:00:00Z', lastBotAt: '2026-07-07T09:00:00Z' }), true);
-});
-
-test('isGateReleased: ラベル解除 OR 発言解除 OR 未処理 changesRequested', () => {
+test('isGateReleased: Issue / PR の 🙋 ラベルのどちらかを外したときだけ', () => {
     const item = { hitlLabel: true };
     assert.equal(isGateReleased(item, {}), false);
     assert.equal(isGateReleased({ hitlLabel: false }, {}), true);
     assert.equal(isGateReleased(item, { hitlSignals: { issueLabel: true, prLabel: false } }), true);
+    assert.equal(isGateReleased(item, { hitlSignals: { issueLabel: false, prLabel: true } }), true);
     assert.equal(isGateReleased(item, { hitlSignals: { issueLabel: true, prLabel: true } }), false);
-    assert.equal(isGateReleased(item, { humanSpokeLast: true }), true);
-    // #894: 未処理の新しい changesRequested があれば、ラベル/発言解除が無くても解除
-    assert.equal(isGateReleased(item, { unhandledChangesRequested: true }), true);
-});
-
-test('I6: approve 後の Request changes は bot sticky の leapfrog に負けず address-review へ (#894)', () => {
-    // 構造化シグナルの核: changesRequested の submittedAt が review watermark より新しいかだけを見る
-    // （コメント時刻・humanSpokeLast とは独立）。
-    const review = { approved: false, changesRequested: true, changesRequestedAt: 300 };
-    // approve 直後の dispatch で通常 watermark（handledAt）は進んでいるが review watermark は未設定
-    assert.equal(hasUnhandledChangesRequest(review, undefined), true);
-    // Review item: 🙋 ラベルは projection が付け直したまま（両面あり）＋ humanSpokeLast は
-    // sticky leapfrog で false。それでも address-review へ倒れる。
-    const item = { status: 'Review', hitlLabel: true, kind: 'Issue', labels: [] };
-    const ctx = {
-        hitlSignals: { issueLabel: true, prLabel: true },
-        humanSpokeLast: false,
-        review,
-        unhandledChangesRequested: hasUnhandledChangesRequest(review, undefined),
-    };
-    assert.equal(phaseForItem(item, ctx), 'address-review');
-    // 一度処理して review watermark が追いつく → 同じレビューでは再発火しない
-    assert.equal(hasUnhandledChangesRequest(review, 300), false);
-    assert.equal(
-        phaseForItem(item, { ...ctx, unhandledChangesRequested: hasUnhandledChangesRequest(review, 300) }),
-        null,
-    );
-    // approve 単独（changesRequested 無し）は発火しない
-    assert.equal(hasUnhandledChangesRequest({ approved: true, changesRequested: false }, undefined), false);
+    assert.equal(isGateReleased(item, { humanSpokeLast: true, unhandledChangesRequested: true }), false);
 });
 
 test('I4: hitl 提案は Status を Icebox/Close へ動かさない（プロンプト規約の静的検査）', () => {
@@ -239,10 +197,10 @@ test('固着の回帰: In Progress で run が消えても stuck 検知 → Bloc
     // In Progress + AI 作業中（run 無し想定）は stuck 候補
     const inProgress = { issue: 1, status: 'In Progress', aiStatus: 'Implementing', hitlLabel: false, labels: [] };
     assert.equal(isStuckCandidate(inProgress), true);
-    // stuck 検知後は Blocked + HITL に置かれ、そこからラベル解除/コメントで必ず再開できる
+    // stuck 検知後は Blocked + HITL に置かれ、そこから 🙋 を外せば必ず再開できる
     const blocked = { issue: 1, status: 'Blocked', aiStatus: 'Implementing', hitlLabel: true, labels: [] };
     assert.equal(phaseForItem({ ...blocked, hitlLabel: false }, {}), 'triage');
-    assert.equal(phaseForItem(blocked, { humanSpokeLast: true, pr: 55 }), 'address-review');
+    assert.equal(phaseForItem(blocked, { hitlSignals: { issueLabel: false, prLabel: true }, pr: 55 }), 'address-review');
 });
 
 test('#972 回帰: In Progress + 実作業系 AI Status + 🙋 HITL 残渣は worker 不在なら再開の出口を持つ', () => {
@@ -269,6 +227,46 @@ test('#972 回帰: In Progress + 実作業系 AI Status + 🙋 HITL 残渣は wo
     assert.deepEqual(selectStalledInFlightItems([residue], new Set([973])), []);
 });
 
+test('#1310 回帰: 実作業系フェーズが hitl で終えた item は 🙋 が外れるまで再ディスパッチされない', () => {
+    const phases = [...new Set(Object.values(IN_FLIGHT_WORK_PHASE_BY_AI_STATUS))];
+    for (const [aiStatus, phase] of Object.entries(IN_FLIGHT_WORK_PHASE_BY_AI_STATUS)) {
+        assert.ok(phases.includes(phase));
+        const before = { issue: 1282, status: 'In Progress', aiStatus, hitlLabel: false, labels: [] };
+        const result = { issue: 1282, phase, signal: 'hitl', summary: 's', reason: 'infra が必要' };
+        const after = applyIntentsToItem(
+            { ...before, hitlLabel: hitlDesireFromResult(result) }, applyResult(result),
+        );
+        // 人間の判断待ちは Blocked（人間ゲート）へ回り、stalled 復帰・stuck 検知の対象から外れる
+        assert.equal(after.status, 'Blocked', `${phase}: hitl は Blocked へ回す`);
+        assert.equal(after.hitlLabel, true);
+        assert.deepEqual(selectStalledInFlightItems([after], new Set()), [], `${phase}: 再ディスパッチしない`);
+        assert.equal(isStuckCandidate(after), false);
+        assert.equal(phaseForItem(after, {}), null, `${phase}: 🙋 がある間は動かない`);
+        // 🙋 を外せば再開できる（PR なし → triage / PR あり → address-review）
+        assert.equal(phaseForItem({ ...after, hitlLabel: false }, {}), 'triage');
+        assert.equal(phaseForItem(after, { hitlSignals: { issueLabel: true, prLabel: false }, pr: 9 }), 'address-review');
+    }
+});
+
+test('#1310: 明示の nextStatus / nextAiStatus を持つ hitl は従来どおり（Blocked で上書きしない）', () => {
+    const review = applyResult({ issue: 1, phase: 'address-review', signal: 'hitl', summary: 's', reason: 'r', nextStatus: 'Review' });
+    assert.deepEqual(review, [{ field: 'Status', value: 'Review' }]);
+    const checkpoint = applyResult({
+        issue: 1, phase: 'implement', signal: 'hitl', summary: 's', reason: 'r', nextAiStatus: 'Awaiting Continuation',
+    });
+    assert.deepEqual(checkpoint, [{ field: 'AI Status', value: 'Awaiting Continuation' }]);
+    // 判断待ちの AI Status を自前で持つフェーズ（triage / decompose）は Status を動かさない
+    for (const phase of ['triage', 'decompose', 'discuss']) {
+        assert.deepEqual(applyResult({ issue: 1, phase, signal: 'hitl', summary: 's', reason: 'r' }), []);
+    }
+});
+
+test('#1310 / #972: Status 書き込みが失敗して 🙋 だけ付いた In Progress は従来どおり自動再開する', () => {
+    // Blocked 書き込みが落ちると In Progress / 実作業系 AI Status / 🙋 のまま残る（#972 と同じ形）
+    const residue = { issue: 1282, status: 'In Progress', aiStatus: 'Implementing', hitlLabel: true, labels: [] };
+    assert.deepEqual(selectStalledInFlightItems([residue], new Set()), [{ issue: 1282, phase: 'implement' }]);
+});
+
 test('#1130 回帰: 未分解 EPIC は 🧭 tracking で締め出されず、HITL 解除で decompose へ戻る', () => {
     // #1129 の状況: decompose が分解案 HITL で停止（In Progress / Decomposing / 🙋）
     const undecomposed = {
@@ -277,8 +275,8 @@ test('#1130 回帰: 未分解 EPIC は 🧭 tracking で締め出されず、HIT
     };
     // 人間が 🙋 を外す（= 分解案の承認）と decompose が再ディスパッチされる
     assert.equal(phaseForItem({ ...undecomposed, hitlLabel: false }, {}), 'decompose');
-    // 発言による解除（ラベルを触らない人間）でも同じ
-    assert.equal(phaseForItem(undecomposed, { humanSpokeLast: true }), 'decompose');
+    // コメントだけ（ラベルを触らない）では再開しない
+    assert.equal(phaseForItem(undecomposed, { humanSpokeLast: true }), null);
     // 🧭 tracking が付いていると出口が消える（= 未分解 EPIC には決して付けてはいけない）
     assert.equal(
         phaseForItem({ ...undecomposed, hitlLabel: false, labels: [TRACKING_LABEL] }, {}),
@@ -288,4 +286,40 @@ test('#1130 回帰: 未分解 EPIC は 🧭 tracking で締め出されず、HIT
     const { labelActions, healingLabelActions, AUTOPILOT_LABEL } = require('../src/phases');
     assert.ok(!labelActions(undecomposed, [AUTOPILOT_LABEL]).add.includes(TRACKING_LABEL));
     assert.ok(!healingLabelActions(undecomposed, [AUTOPILOT_LABEL]).add.includes(TRACKING_LABEL));
+});
+
+test('#1315: 🔬 spike は実装前の相談・質問待ちだけに付き、implement 以降・終端では必ず外れる', () => {
+    const { isSpikeItem, labelActions, SPIKE_LABEL } = require('../src/phases');
+    // 実装（implement）以降の AI Status。ここに来たら Spike ではない
+    const POST_IMPLEMENT = new Set(['Implementing', 'Creating PR', 'Self-Reviewing', 'Addressing Comments',
+        'Running DoD', 'Awaiting Continuation', 'EPIC Decomposed']);
+    for (const status of STATUSES) {
+        for (const aiStatus of AI_STATUSES) {
+            for (const hitlLabel of [true, false]) {
+                const item = { status, aiStatus, hitlLabel };
+                const spike = isSpikeItem(item);
+                const where = `${status}/${aiStatus}/${hitlLabel}`;
+                if (TERMINAL_STATUSES.has(status) || status === 'Icebox' || POST_IMPLEMENT.has(aiStatus)) {
+                    assert.equal(spike, false, where);
+                }
+                // ラベルは状態の導出（付いていれば外す / 無ければ付ける、のどちらか一方だけ）
+                const withLabel = labelActions(item, [SPIKE_LABEL]);
+                const without = labelActions(item, []);
+                assert.equal(withLabel.remove.includes(SPIKE_LABEL), !spike, where);
+                assert.equal(without.add.includes(SPIKE_LABEL), spike, where);
+            }
+        }
+    }
+});
+
+test('#1315: 🙋 の非終端 item は必ず「何待ちか」の理由を 1 つ持つ', () => {
+    const { humanWaitReason, HUMAN_WAIT_REASONS } = require('../src/phases');
+    const keys = new Set(HUMAN_WAIT_REASONS.map((r) => r.key));
+    for (const status of STATUSES) {
+        if (TERMINAL_STATUSES.has(status) || status === 'Icebox') continue;
+        for (const aiStatus of AI_STATUSES) {
+            const reason = humanWaitReason({ status, aiStatus, hitlLabel: true });
+            assert.ok(keys.has(reason), `${status}/${aiStatus}: ${reason}`);
+        }
+    }
 });

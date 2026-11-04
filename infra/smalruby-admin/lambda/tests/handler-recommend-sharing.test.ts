@@ -170,6 +170,19 @@ describe('POST/DELETE /admin/classrooms/{id}/recommend-sharing (EPIC #1106)', ()
     expect(puts).toHaveLength(0);
   });
 
+  test('withdrawal on an assignment archived before archivedAt existed pins its updatedAt (#1298)', async () => {
+    const { updates } = wireMocks(classroomItem({
+      status: 'archived',
+      updatedAt: '2026-07-25T00:00:00.000Z',
+      recommendedForSharingAt: '2026-07-20T00:00:00.000Z',
+    }));
+    const res = await handler(makeEvent('DELETE', '/admin/classrooms/c1/recommend-sharing', 'c1'));
+    expect(res.statusCode).toBe(200);
+    expect(updates[0].UpdateExpression).toContain('archivedAt = :pinned');
+    expect((updates[0].ExpressionAttributeValues as Record<string, unknown>)[':pinned'])
+      .toBe('2026-07-25T00:00:00.000Z');
+  });
+
   test('404 for missing / archived / quota-row classrooms', async () => {
     for (const [item, id] of [
       [null, 'missing'],

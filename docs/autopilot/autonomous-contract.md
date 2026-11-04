@@ -93,7 +93,7 @@ Runner はこの短語を pane で検出してから `AUTOPILOT_RESULT_FILE` を
 |---|---|---|
 | `reason` | string | 人間に何を判断してほしいか |
 | `commentUrl` | string | 投稿したコメントの URL |
-| `nextStatus` | string \| null | 提案する Status（任意。**Icebox / Close / Done は提案しない** — 提案段階で退避系へ動かすと出口の無い状態に固着する。`state-machine.md` 不変条件 I4） |
+| `nextStatus` | string \| null | 提案する Status（任意。**Icebox / Close / Done は提案しない** — 提案段階で退避系へ動かすと出口の無い状態に固着する。`state-machine.md` 不変条件 I4）。実作業系フェーズ（implement / understand / review / address-review / verify）が `nextStatus` / `nextAiStatus` とも無しで終えたときは、daemon が **Blocked** にする（In Progress のままだと stalled 復帰が人間の返事を待たず起動し直すため・#1310）。それ以外のフェーズは Status を変えない |
 | `nextAiStatus` | string \| null | 提案する AI Status（任意。例: 実装前ディスカッションの `Discussing`） |
 
 `signal=error` のとき追加で:
@@ -229,6 +229,7 @@ worker（対話 Claude）の**実行上限は既定で約 60 分**（runner の 
 | `AUTOPILOT_PROJECT` | Project 番号（参照のみ。書き込みは daemon） |
 | `AUTOPILOT_REPO` | `smalruby/smalruby3-editor` |
 | `AUTOPILOT_BASE_BRANCH` | PR 先・worktree 分岐元のベースブランチ（既定 `develop`）。Issue 本文の `autopilot-base:` ディレクティブや「ベースブランチ」宣言があれば daemon が渡す（EPIC サブ Issue を親 epic ブランチに積む用）。implement は `gh pr create --base` にこれを使う |
+| `AUTOPILOT_STATUS` | dispatch 時点の Project Status（例 `Review` / `DoD` / `Blocked`）。address-review が「Request changes 対応」か「Blocked からの再開」かを分けるのに使う |
 
 ---
 
@@ -243,7 +244,7 @@ PR を見ただけで連携 Issue の状態が分かるよう、**daemon が PR 
 | `🤖 autopilot` ラベル | autopilot 管理対象（AI 処理対象）の PR/Issue | 常時付与 |
 | `🙋 HITL` ラベル | 人間の対応待ち（レビュー/判断/マージ）。**HITL の唯一の真実**（#813） | 人間に渡すとき Issue/PR の両面に付与、release で除去 |
 | **Draft ⇄ Ready for review** | Draft=AI 作業中 / Ready=人間が見る段階 | **Status 基準**（#815）: `Review`/`DoD`/`Close`/`Blocked`→Ready、それ以外（`In Progress` 等）→Draft。HITL ラベルでは判定しない（解除しても Status が Review なら Ready を維持） |
-| **sticky ステータスコメント** | bot が1つのコメントを編集し続け、連携 Issue の Project 状態（Status / AI Status / HITL / Size）を投影 | フェーズ遷移ごとに更新 |
+| **sticky ステータスコメント** | bot が1つのコメントを編集し続け、連携 Issue の Project 状態（Status / AI Status / HITL / Size）を投影。人間待ちなら何待ちかを 1 行（`いま: …`）足す | フェーズ遷移ごとに更新 |
 
 - 専用の「作業中」ラベルは作らない（**Draft** が「AI 作業中・触らないで」を兼ねる）。
 - プロンプトは PR を作るとき **Draft で作成**し、HITL に渡すフェーズ末で **Ready + `🙋 HITL`** を要求する
