@@ -90,4 +90,17 @@ describe('MenuBar classroom entries (#1199)', () => {
         expect(about.querySelector('img')).toBeTruthy();
         expect(about.nextElementSibling).toBeNull();
     });
+
+    // The first-visit welcome balloon sits just left of "?", so it would cover
+    // the teacher menu there. A teacher is not a first-time user (#1299).
+    test('hides the welcome balloon while a teacher is logged in', () => {
+        const aboutItems = [{ title: 'About', onClick: jest.fn() }];
+        window.localStorage.clear();
+        const { container, unmount } = renderMenuBar({ teacherLoggedIn: false }, { onClickAbout: aboutItems });
+        expect(container.textContent).toContain('Welcome to Smalruby');
+        unmount();
+        window.localStorage.clear();
+        const teacher = renderMenuBar({ teacherLoggedIn: true }, { onClickAbout: aboutItems });
+        expect(teacher.container.textContent).not.toContain('Welcome to Smalruby');
+    });
 });
