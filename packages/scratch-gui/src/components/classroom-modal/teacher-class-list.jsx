@@ -452,7 +452,7 @@ const ClassCard = ({
                     onClick={handleEvaluate}
                 >
                     <FormattedMessage
-                        defaultMessage="Evaluate"
+                        defaultMessage="Grade"
                         description="Button on a class card to open term-end evaluation"
                         id="gui.classroom.classList.evaluate"
                     />

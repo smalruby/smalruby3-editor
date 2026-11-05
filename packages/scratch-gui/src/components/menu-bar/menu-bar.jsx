@@ -1261,12 +1261,6 @@ class MenuBar extends React.Component {
                         {/* === Smalruby: Start of classroom button === */}
                         {isClassroomConfigured() && (
                             <React.Fragment>
-                                <ClassroomTeacherMenu
-                                    activeClassName={styles.active}
-                                    className={classNames(styles.menuBarItem, styles.hoverable)}
-                                    menuClassName={classNames(styles.menuBarMenu)}
-                                    place={this.props.isRtl ? 'left' : 'right'}
-                                />
                                 <div
                                     className={classNames(styles.menuBarItem, styles.hoverable)}
                                     data-testid="classroom-menu-button"
@@ -1680,6 +1674,18 @@ class MenuBar extends React.Component {
                     )}
                 </div>
 
+                {/* === Smalruby: Start of classroom teacher menu === */}
+                {/* Kept apart from the student "クラス" menu, at the right end just
+                    left of "?" (#1299). */}
+                {isClassroomConfigured() && (
+                    <ClassroomTeacherMenu
+                        activeClassName={styles.active}
+                        className={classNames(styles.menuBarItem, styles.hoverable, styles.teacherMenu)}
+                        menuClassName={classNames(styles.menuBarMenu)}
+                        place={this.props.isRtl ? 'right' : 'left'}
+                    />
+                )}
+                {/* === Smalruby: End of classroom teacher menu === */}
                 {aboutButton}
 
                 {/* Google Drive Save Dialog */}

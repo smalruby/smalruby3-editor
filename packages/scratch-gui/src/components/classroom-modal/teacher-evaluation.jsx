@@ -228,7 +228,7 @@ const TeacherEvaluation = ({
                 {
                     label: (
                         <FormattedMessage
-                            defaultMessage="Evaluation"
+                            defaultMessage="Grading"
                             description="Breadcrumb label of the evaluation view"
                             id="gui.classroom.breadcrumbs.evaluation"
                         />

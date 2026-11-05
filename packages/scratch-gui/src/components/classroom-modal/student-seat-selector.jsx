@@ -235,7 +235,7 @@ const StudentSeatSelector = ({
                         <div className={styles.kickedBannerText}>
                             <strong>
                                 <FormattedMessage
-                                    defaultMessage="You were removed from this class by your teacher."
+                                    defaultMessage="You were removed from this assignment by your teacher."
                                     description="Banner shown when the teacher kicked the student"
                                     id="gui.classroom.kicked.banner.title"
                                 />

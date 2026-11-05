@@ -135,8 +135,7 @@ export default {
     'gui.classroom.teacherDashboard.title': 'あなたのクラス',
     'gui.classroom.teacherDashboard.empty': 'クラスがありません。つくってはじめましょう！',
     'gui.classroom.teacherDashboard.details': 'しょうさい',
-    'gui.classroom.teacherDashboard.create': 'かだいをつくる',
-    'gui.classroom.teacherCreate.title': 'かだいをつくる',
+    'gui.classroom.teacherDashboard.create': 'かだいをさくせい',
     'gui.classroom.teacherCreate.name': 'クラスめい',
     'gui.classroom.teacherCreate.count': 'にんずう',
     'gui.classroom.teacherCreate.submit': 'つくる',
@@ -166,7 +165,7 @@ export default {
     'gui.classroom.studentSeat.confirmTitle': 'しゅっせきばんごう {seatNumber} でさんかします',
     'gui.classroom.studentSeat.confirmNote':
         'じぶんのばんごうであっていますか？ ほかのひとのばんごうでさんかすると、そのひとがさんかできなくなります。たしかめてから「さんかする」をおしてください。',
-    'gui.classroom.kicked.banner.title': 'せんせいによってクラスからたいしつさせられました。',
+    'gui.classroom.kicked.banner.title': 'せんせいによってかだいからたいしつさせられました。',
     'gui.classroom.kicked.banner.subtitle':
         '「{className}」にもういちどさんかするには、しゅっせきばんごうをえらびなおしてください。',
     'gui.classroom.kickRequest.title': 'しゅっせきばんごう{seatNumber}のひとにたいしつをいらいしますか？',
@@ -194,7 +193,7 @@ export default {
         '1. このがめんをとじてプロジェクトをつくろう{br}2. できたら、メニューバーのかだいめいをおしてていしゅつしよう',
     'gui.classroom.studentStatus.submitHint':
         'プロジェクトがかんせいしたら「かだいをていしゅつする」をおしてください。',
-    'gui.classroom.studentStatus.title': 'さんかしているクラス',
+    'gui.classroom.studentStatus.title': 'さんかしているかだい',
     'gui.classroom.studentStatus.class': 'クラス',
     'gui.classroom.studentStatus.seatNumber': 'しゅっせきばんごう',
     'gui.classroom.studentStatus.joinedAt': 'さんかにちじ',
@@ -227,7 +226,7 @@ export default {
     'gui.classroom.error.sessionExpired': 'セッションがむこうになりました。もういちどさんかしてください。',
     'gui.classroom.sessionExpiredBanner': 'セッションがむこうになりました。',
     'gui.classroom.alert.rejoin': 'さんかしなおす',
-    'gui.classroom.error.classroomInactive': 'このクラスはげんざいりようできません。',
+    'gui.classroom.error.classroomInactive': 'このかだいはげんざいりようできません。',
     'gui.classroom.error.networkUnreachable':
         'サーバーにせつぞくできませんでした。ネットワークやファイアウォールのせっていで {host}（HTTPS / 443）へのつうしんがきょかされているかごかくにんください。',
     'gui.classroom.error.googleTokenExpired':
@@ -303,7 +302,7 @@ export default {
     'gui.classroom.evaluation.cancel': 'キャンセル',
     'gui.classroom.teacherDetail.descriptionTab': 'せつめい',
     'gui.classroom.teacherDetail.previewTitle': 'せいとにみえるないよう（プレビュー）',
-    'gui.classroom.breadcrumbs.evaluation': 'ひょうか',
+    'gui.classroom.breadcrumbs.evaluation': 'さいてん',
     'gui.classroom.breadcrumbs.importGc': 'Google Classroomからインポート',
     'gui.classroom.board.createCancel': 'キャンセル',
     'gui.classroom.board.reuseCancel': 'キャンセル',
@@ -320,14 +319,14 @@ export default {
     'gui.classroom.board.reuseFilterAll': 'すべてのクラス',
     'gui.classroom.board.reuseCopy': 'このクラスにふくせい',
     'gui.classroom.board.yearLabel': '{year}ねんど',
-    'gui.classroom.board.create': 'かだいをつくる',
+    'gui.classroom.board.create': 'かだいをさくせい',
     'gui.classroom.board.hint':
-        'このクラスのかだいをさくせい・かんりします。かだいをひらくとていしゅつじょうきょうのかくにんやひょうかができます。',
+        'このクラスのかだいをさくせい・かんりします。かだいをひらくとていしゅつじょうきょうのかくにんやさいてんができます。',
     'gui.classroom.board.topicLabel': 'トピック',
     'gui.classroom.board.noTopic': '（トピックなし）',
     'gui.classroom.board.newTopicPlaceholder': 'あたらしいトピック',
     'gui.classroom.board.addTopic': 'ついか',
-    'gui.classroom.board.empty': 'まだかだいがありません。「かだいをつくる」からついかしましょう。',
+    'gui.classroom.board.empty': 'まだかだいがありません。「かだいをさくせい」からついかしましょう。',
     'gui.classroom.classList.logout': 'ログアウト',
     'gui.classroom.classList.importGc': 'Google Classroom からインポート',
     'gui.classroom.classList.sectionPlaceholder': 'セクション（オプション・れい: 2ねん1くみ）',
@@ -393,7 +392,7 @@ export default {
     'gui.classroom.classList.title': 'あなたのクラス',
     'gui.classroom.classList.hint':
         'クラスは1つのがっきゅう（れい: 2ねん1くみ）です。クラスをひらくと、そのなかのかだいをかんりできます。',
-    'gui.classroom.classList.create': 'クラスをつくる',
+    'gui.classroom.classList.create': 'クラスをさくせい',
     'gui.classroom.classList.createSubmit': 'クラスとかだいをつくる',
     'gui.classroom.classList.namePlaceholder': 'クラスめい（ひっす・れい: ぎじゅつ）',
     'gui.classroom.classList.countPlaceholder': 'にんずう（ひっす）',
@@ -404,10 +403,9 @@ export default {
     'gui.classroom.classList.gcBadge': 'Google Classroom',
     'gui.classroom.classList.coTeacherBadge': 'きょうどうかんり',
     'gui.classroom.classList.archivedBadge': 'アーカイブずみ',
-    'gui.classroom.classList.evaluate': 'ひょうか',
-    'gui.classroom.classList.empty': 'まだクラスがありません。「クラスをつくる」からはじめましょう。',
+    'gui.classroom.classList.evaluate': 'さいてん',
+    'gui.classroom.classList.empty': 'まだクラスがありません。「クラスをさくせい」からはじめましょう。',
     'gui.classroom.classList.back': '‹ クラスいちらん',
-    'gui.classroom.groups.evaluate': 'ひょうか',
     'gui.classroom.previousComment.title': 'ぜんかいのせんせいからのコメント（{assignmentName}）:',
     'gui.classroom.groups.title': 'クラスのせってい',
     'gui.classroom.groups.hint':
@@ -656,7 +654,6 @@ export default {
     'gui.classroom.management.microsoftLoginButton': 'Microsoftでログイン',
     'gui.classroom.management.sidebarTitle': 'あなたのクラス・かだい',
     'gui.classroom.management.loading': 'よみこみちゅう...',
-    'gui.classroom.management.create': 'かだいをつくる',
     'gui.classroom.management.googleImport': 'GC からインポート',
     'gui.classroom.management.logout': 'ログアウト',
     'gui.classroom.management.googleCoursesTitle': 'Google Classroomからインポート',
@@ -675,7 +672,7 @@ export default {
     'gui.classroom.tutorial.checkboxes':
         'Google Classroomとれんけいするには、2つのチェックボックスのりょうほうにチェックをいれてください。',
     'gui.classroom.tutorial.classCreation':
-        'まずは「クラス」をつくりましょう！\nクラス（れい: ぎじゅつ 2026ねんど）をつくって、そのなかに「だい3かい チャットアプリをつくろう」のようなかだいをついかします。\n「クラスをつくる」ボタンをおしてください。',
+        'まずは「クラス」をつくりましょう！\nクラス（れい: ぎじゅつ 2026ねんど）をつくって、そのなかに「だい3かい チャットアプリをつくろう」のようなかだいをついかします。\n「クラスをさくせい」ボタンをおしてください。',
     'gui.classroom.statusIcon.seated': 'ちゃくせきちゅう',
     'gui.classroom.statusIcon.notSeated': 'みちゃくせき',
     'gui.classroom.statusIcon.notJoined': 'みさんか',
