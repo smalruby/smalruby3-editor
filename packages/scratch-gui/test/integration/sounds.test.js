@@ -68,7 +68,7 @@ describe('Working with sounds', () => {
         await loadUri(uri);
         await clickText('Sounds');
         const el = await findByXpath('//button[@aria-label="Choose a Sound"]');
-        await driver.actions().mouseMove(el)
+        await driver.actions().move({origin: el})
             .perform();
         await driver.sleep(500); // Wait for thermometer menu to come up
         await clickXpath('//button[@aria-label="Surprise"]');
@@ -122,7 +122,7 @@ describe('Working with sounds', () => {
         await loadUri(uri);
         await clickText('Sounds');
         const el = await findByXpath('//button[@aria-label="Choose a Sound"]');
-        await driver.actions().mouseMove(el)
+        await driver.actions().move({origin: el})
             .perform();
         await driver.sleep(500); // Wait for thermometer menu to come up
         const input = await findByXpath('//input[@type="file"]');

@@ -248,7 +248,7 @@ describe('Working with the blocks', () => {
         // Also check that adding a new costume does update the list
         await clickText('Costumes');
         const el = await findByXpath('//button[@aria-label="Choose a Costume"]');
-        await driver.actions().mouseMove(el)
+        await driver.actions().move({origin: el})
             .perform();
         await driver.sleep(500); // Wait for thermometer menu to come up
         await clickXpath('//button[@aria-label="Paint"]');

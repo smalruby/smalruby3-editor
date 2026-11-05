@@ -48,7 +48,7 @@ describe('Working with costumes', () => {
         await loadUri(uri);
         await clickText('Costumes');
         const el = await findByXpath('//button[@aria-label="Choose a Costume"]');
-        await driver.actions().mouseMove(el)
+        await driver.actions().move({origin: el})
             .perform();
         await driver.sleep(500); // Wait for thermometer menu to come up
         await clickXpath('//button[@aria-label="Surprise"]');
@@ -60,7 +60,7 @@ describe('Working with costumes', () => {
         await loadUri(uri);
         await clickText('Costumes');
         const el = await findByXpath('//button[@aria-label="Choose a Costume"]');
-        await driver.actions().mouseMove(el)
+        await driver.actions().move({origin: el})
             .perform();
         await driver.sleep(500); // Wait for thermometer menu to come up
         await clickXpath('//button[@aria-label="Paint"]');
@@ -128,7 +128,7 @@ describe('Working with costumes', () => {
         await loadUri(uri);
         await clickText('Costumes');
         const el = await findByXpath('//button[@aria-label="Choose a Costume"]');
-        await driver.actions().mouseMove(el)
+        await driver.actions().move({origin: el})
             .perform();
         await driver.sleep(500); // Wait for thermometer menu to come up
         const input = await findByXpath('//input[@type="file"]');
@@ -143,7 +143,7 @@ describe('Working with costumes', () => {
         await loadUri(uri);
         await clickText('Costumes');
         const el = await findByXpath('//button[@aria-label="Choose a Costume"]');
-        await driver.actions().mouseMove(el)
+        await driver.actions().move({origin: el})
             .perform();
         await driver.sleep(500); // Wait for thermometer menu to come up
         const input = await findByXpath('//input[@type="file"]');
@@ -157,7 +157,7 @@ describe('Working with costumes', () => {
         await loadUri(uri);
         await clickText('Costumes');
         const el = await findByXpath('//button[@aria-label="Choose a Costume"]');
-        await driver.actions().mouseMove(el)
+        await driver.actions().move({origin: el})
             .perform();
         await driver.sleep(500); // Wait for thermometer menu to come up
         const input = await findByXpath('//input[@type="file"]');
@@ -171,7 +171,7 @@ describe('Working with costumes', () => {
         await loadUri(uri);
         await clickText('Costumes');
         const el = await findByXpath('//button[@aria-label="Choose a Costume"]');
-        await driver.actions().mouseMove(el)
+        await driver.actions().move({origin: el})
             .perform();
         await driver.sleep(500); // Wait for thermometer menu to come up
         const input = await findByXpath('//input[@type="file"]');
@@ -192,7 +192,7 @@ describe('Working with costumes', () => {
         await loadUri(uri);
         await driver.manage()
             .window()
-            .setSize(1244, 768); // Letters filter not visible at 1024 width
+            .setRect({width: 1244, height: 768}); // Letters filter not visible at 1024 width
         await clickText('Costumes');
         await clickXpath('//button[@aria-label="Choose a Costume"]');
         await waitForLoadingFinished();
@@ -211,7 +211,7 @@ describe('Working with costumes', () => {
         await loadUri(uri);
         await clickText('Costumes');
         const el = await findByXpath('//button[@aria-label="Choose a Costume"]');
-        await driver.actions().mouseMove(el)
+        await driver.actions().move({origin: el})
             .perform();
         await driver.sleep(500); // Wait for thermometer menu to come up
         const input = await findByXpath('//input[@type="file"]');
@@ -228,7 +228,7 @@ describe('Working with costumes', () => {
         await loadUri(uri);
         await clickText('Costumes');
         const el = await findByXpath('//button[@aria-label="Choose a Costume"]');
-        await driver.actions().mouseMove(el)
+        await driver.actions().move({origin: el})
             .perform();
         await driver.sleep(500); // Wait for thermometer menu to come up
         const input = await findByXpath('//input[@type="file"]');
@@ -242,7 +242,7 @@ describe('Working with costumes', () => {
         await loadUri(uri);
         await clickText('Costumes');
         const el = await findByXpath('//button[@aria-label="Choose a Costume"]');
-        await driver.actions().mouseMove(el)
+        await driver.actions().move({origin: el})
             .perform();
         await driver.sleep(500); // Wait for thermometer menu to come up
         const input = await findByXpath('//input[@type="file"]');

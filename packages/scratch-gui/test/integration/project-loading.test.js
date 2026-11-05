@@ -57,11 +57,11 @@ describe('Loading scratch gui', () => {
 
             const prevSize = driver.manage()
                 .window()
-                .getSize();
+                .getRect();
             await new Promise(resolve => setTimeout(resolve, 2000));
             driver.manage()
                 .window()
-                .setSize(1920, 1080);
+                .setRect({width: 1920, height: 1080});
             const projectId = '96708228';
             await loadUri(`${uri}#${projectId}`);
             await clickXpath('//img[@title="Full Screen Control"]');
@@ -72,7 +72,7 @@ describe('Loading scratch gui', () => {
             prevSize.then(value => {
                 driver.manage()
                     .window()
-                    .setSize(value.width, value.height);
+                    .setRect({width: value.width, height: value.height});
             });
             const logs = await getLogs();
             await expect(logs).toEqual([]);
