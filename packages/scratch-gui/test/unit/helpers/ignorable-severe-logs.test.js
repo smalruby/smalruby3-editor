@@ -2,11 +2,12 @@ import { isIgnorableSevereLog, unexpectedSevereLogs } from '../../helpers/ignora
 
 const severe = (message) => ({ level: { name: 'SEVERE' }, message, timestamp: 0, type: '' });
 
-// CI (Chrome stable) が実際に出したメッセージをそのまま貼っている。自前ホストした Monaco の
+// CI (Chrome stable) が実際に出したメッセージを貼っている（パスだけ版付きの配信パス
+// `static/monaco/<版>/vs` に合わせた・#1318）。自前ホストした Monaco の
 // editor worker を `file://` から読めないときの 2 件 (#1171)。
 const MONACO_WORKER_LOGS = [
-    'file:///home/runner/work/smalruby3-editor/smalruby3-editor/packages/scratch-gui/build/static/monaco/vs/editor.api-CalNCsUg.js 0:2337 Uncaught [object ErrorEvent]',
-    "blob:null/99a1285a-897a-4d63-9599-b2f22f7ea68d 0 Uncaught NetworkError: Failed to execute 'importScripts' on 'WorkerGlobalScope': The script at 'file:///home/runner/work/smalruby3-editor/smalruby3-editor/packages/scratch-gui/build/static/monaco/vs/assets/editor.worker-Be8ye1pW.js' failed to load.",
+    'file:///home/runner/work/smalruby3-editor/smalruby3-editor/packages/scratch-gui/build/static/monaco/0.57.0/vs/editor.api-CalNCsUg.js 0:2337 Uncaught [object ErrorEvent]',
+    "blob:null/99a1285a-897a-4d63-9599-b2f22f7ea68d 0 Uncaught NetworkError: Failed to execute 'importScripts' on 'WorkerGlobalScope': The script at 'file:///home/runner/work/smalruby3-editor/smalruby3-editor/packages/scratch-gui/build/static/monaco/0.57.0/vs/assets/editor.worker-Be8ye1pW.js' failed to load.",
 ];
 
 describe('isIgnorableSevereLog', () => {
@@ -22,7 +23,7 @@ describe('isIgnorableSevereLog', () => {
 
     test('does not ignore a genuine monaco loader 404', () => {
         const message =
-            'file:///app/packages/scratch-gui/build/static/monaco/vs/loader.js - Failed to load resource: net::ERR_FILE_NOT_FOUND';
+            'file:///app/packages/scratch-gui/build/static/monaco/0.57.0/vs/loader.js - Failed to load resource: net::ERR_FILE_NOT_FOUND';
         // loader.js の取得失敗は Monaco が全く読めない状態なので見逃してはいけない。
         expect(isIgnorableSevereLog(message)).toBe(false);
     });

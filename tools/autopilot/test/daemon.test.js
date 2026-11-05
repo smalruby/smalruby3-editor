@@ -16,7 +16,7 @@ const {
     followBaseBranch,
 } = require('../src/daemon');
 const { EventEmitter } = require('node:events');
-const { HITL_LABEL, AUTOPILOT_LABEL, LATER_LABEL, continuationMarker, TRACKER_STICKY_MARKER } = require('../src/phases');
+const { HITL_LABEL, AUTOPILOT_LABEL, LATER_LABEL, continuationMarker, TRACKER_STICKY_MARKER, directivesBlockDispatch } = require('../src/phases');
 
 /** Build an injectable double for markBlocked/detectStuck that records side effects. */
 function makeBlockDeps() {
@@ -75,6 +75,33 @@ test('applyMergeProgression: closes leaf with merged PR; skips not-merged/EPIC/t
     const m = Object.fromEntries(applied[0].intents.map((i) => [i.field, i.value]));
     assert.equal(m.Status, 'Close');
     assert.equal(m['AI Status'], null);
+});
+
+test('applyMergeProgression: Blocked + 🙋 の leaf も merge で Close へ進み 🙋 を外す（#1351）', async () => {
+    // PR 本文に Closes が無い（GitHub が Issue を閉じない）ケース: merge-progression だけが出口
+    const items = [{ issue: 1, itemId: 'i1', status: 'Blocked', kind: 'Issue', hitlLabel: true, aiStatus: 'Implementing' }];
+    const applied = [];
+    const closed = [];
+    const synced = [];
+    await applyMergeProgression(items, makeCfg(), { running: new Map() }, () => {}, {
+        token: 't',
+        hasMergedPullRequest: () => true,
+        applyIntents: (ctx, itemId, intents) => {
+            applied.push({ itemId, intents });
+            return intents.map((i) => `${i.field}=${i.value}`);
+        },
+        closeIssue: (repo, issue) => closed.push(issue),
+        findItemId: () => 'x',
+        syncFaces: (item) => synced.push(item),
+    });
+    assert.equal(applied.length, 1);
+    const m = Object.fromEntries(applied[0].intents.map((i) => [i.field, i.value]));
+    assert.equal(m.Status, 'Close');
+    assert.equal(m['AI Status'], null);
+    assert.deepEqual(closed, [1]);
+    assert.equal(synced.length, 1);
+    assert.equal(synced[0].hitlLabel, false);
+    assert.equal(items[0].status, 'Close');
 });
 
 test('applyMergeProgression: also closes the GitHub issue (Fix A, #843)', async () => {
@@ -274,6 +301,23 @@ test('applyPrProjection: Review handoff (HITL=Yes) -> ensure HITL label + Ready 
     assert.ok(issueEdit.add.includes(HITL_LABEL));
     // sticky upserted with marker
     assert.deepEqual(deps.calls.sticky, [{ prNumber: 100, hasMarker: true }]);
+});
+
+test('applyPrProjection: 🔬 spike は Issue 面だけに付け、PR 面には付けない（#1315）', async () => {
+    const { SPIKE_LABEL } = require('../src/phases');
+    // understand の質問 HITL（Blocked/Understanding + 🙋）。address-review 後の再理解などで PR がある場合
+    const items = [{ issue: 1, itemId: 'i1', status: 'Blocked', kind: 'Issue', hitlLabel: true, aiStatus: 'Understanding' }];
+    const deps = makeProjectionDeps({
+        prByIssue: { 1: { number: 100 } },
+        prInfo: { 100: { isDraft: true, labels: [AUTOPILOT_LABEL, HITL_LABEL] } },
+        issueLabels: { 1: [AUTOPILOT_LABEL, HITL_LABEL] },
+    });
+    await applyPrProjection(items, makeCfg(), { running: new Map() }, () => {}, deps);
+    const issueEdit = deps.calls.editLabels.find((e) => e.type === 'issue');
+    assert.ok(issueEdit.add.includes(SPIKE_LABEL));
+    for (const e of deps.calls.editLabels.filter((x) => x.type === 'pr')) {
+        assert.ok(!(e.add || []).includes(SPIKE_LABEL));
+    }
 });
 
 test('applyPrProjection: per-tick on Review does NOT re-add a human-removed HITL label', async () => {
@@ -714,6 +758,27 @@ test('applyLabelHealing: 非終端 item に 🤖 を、分解済み EPIC には 
     ]);
 });
 
+test('applyLabelHealing: 🔬 spike を状態から付け外しし、閉じた item からは外す（#1315）', async () => {
+    const { SPIKE_LABEL } = require('../src/phases');
+    const items = [
+        { issue: 1, status: 'Backlog', aiStatus: 'Discussing', hitlLabel: true, kind: 'Issue', labels: [AUTOPILOT_LABEL] },
+        { issue: 2, status: 'In Progress', aiStatus: 'Implementing', kind: 'Issue', labels: [AUTOPILOT_LABEL, SPIKE_LABEL] },
+        { issue: 3, status: 'Close', aiStatus: 'Discussing', kind: 'Issue', labels: [AUTOPILOT_LABEL, SPIKE_LABEL] },
+        { issue: 4, status: 'Close', kind: 'Issue', labels: [] }, // 終端・spike なし → 触らない
+    ];
+    const edits = [];
+    await applyLabelHealing(items, makeCfg(), { running: new Map() }, () => {}, {
+        token: 't',
+        readToken: 'r',
+        editLabels: (repo, number, type, diff) => edits.push({ number, ...diff }),
+    });
+    assert.deepEqual(edits, [
+        { number: 1, add: [SPIKE_LABEL] },
+        { number: 2, remove: [SPIKE_LABEL] },
+        { number: 3, remove: [SPIKE_LABEL] },
+    ]);
+});
+
 test('applyLabelHealing: 未分解 EPIC に 🧭 tracking を付けない（decompose デッドロック回帰・#1130）', async () => {
     const { TRACKING_LABEL, AUTOPILOT_LABEL } = require('../src/phases');
     // #1129 の状況: decompose が分解案 HITL で停止中（sub-issue はまだ 0 件）
@@ -971,6 +1036,36 @@ test('refreshBoard: 非終端 item を Board 順で enrich し state.board に�
     const r5 = state.board.items.find((i) => i.issue === 5);
     assert.equal(r5.subIssues.percent, 50);
     assert.equal(r5.tracker, true);
+});
+
+test('refreshBoard: 人間待ちの理由とリンク（waitReason / waitUrl）を board item に載せる（#1315）', async () => {
+    const { refreshBoard } = require('../src/daemon');
+    const { WAITING_LABEL } = require('../src/phases');
+    const cfg = { ...makeCfg(), now: () => 0, statusOrder: [] };
+    const state = { running: new Map() };
+    let enrichCalls = 0;
+    await refreshBoard(cfg, state, () => {}, {
+        token: 't',
+        listItems: () => [
+            { issue: 1, status: 'Backlog', aiStatus: 'Discussing', hitlLabel: true, kind: 'Issue', title: 'a', labels: [] },
+            { issue: 2, status: 'Review', hitlLabel: true, kind: 'Issue', title: 'b', labels: [] },
+            { issue: 3, status: 'Sprint Backlog', kind: 'Issue', title: 'c', labels: [WAITING_LABEL] },
+            { issue: 4, status: 'In Progress', aiStatus: 'Implementing', kind: 'Issue', title: 'd', labels: [] },
+        ],
+        getBoardEnrichment: () => {
+            enrichCalls += 1;
+            return { 2: { subIssues: { total: 0, completed: 0, percent: 0 }, prs: [{ number: 20, state: 'OPEN', isDraft: false }] } };
+        },
+        listHeadPrs: () => [],
+    });
+    const by = Object.fromEntries(state.board.items.map((i) => [i.issue, i]));
+    const base = 'https://github.com/smalruby/smalruby3-editor';
+    assert.deepEqual([by[1].waitReason, by[1].waitUrl], ['spike', `${base}/issues/1`]);
+    assert.deepEqual([by[2].waitReason, by[2].waitUrl], ['review', `${base}/pull/20`]);
+    assert.deepEqual([by[3].waitReason, by[3].waitUrl], ['waiting', `${base}/issues/3`]);
+    assert.deepEqual([by[4].waitReason, by[4].waitUrl], [null, null]);
+    // 理由のために読み取りを増やさない（enrichment は従来どおり 1 回）
+    assert.equal(enrichCalls, 1);
 });
 
 test('refreshBoard: close リンクに PR が無い post-PR item は head ブランチで補完', async () => {
@@ -1343,7 +1438,7 @@ test('getDirectives: 本文から base/after を導き TTL 内はキャッシュ
     assert.equal(fetches, 2);
 });
 
-test('getDirectives: 取得失敗は空ディレクティブへフォールバックし次回再取得', async () => {
+test('getDirectives: 取得失敗でキャッシュが無ければ unavailable（dispatch 不可）にし次回再取得（#1309）', async () => {
     let calls = 0;
     const cfg = { ...makeCfg(), now: () => 0, directiveTtlMs: 1000 };
     const state = {};
@@ -1352,12 +1447,41 @@ test('getDirectives: 取得失敗は空ディレクティブへフォールバ�
         getIssueBody: () => { calls += 1; if (calls === 1) throw new Error('boom'); return 'autopilot-after: #3'; },
     };
     const d1 = await getDirectives(cfg, state, 5, () => {}, deps);
+    assert.equal(d1.unavailable, true);
+    assert.equal(directivesBlockDispatch(d1), true);
     assert.equal(d1.base, null);
     assert.deepEqual(d1.after, []);
     assert.equal(d1.assignee, null);
     // 失敗エントリは TTL 切れ扱い → 次回すぐ再取得して成功する
     const d2 = await getDirectives(cfg, state, 5, () => {}, deps);
     assert.deepEqual(d2.after, [3]);
+    assert.equal(directivesBlockDispatch(d2), false);
+});
+
+test('getDirectives: 取得失敗でも前回のキャッシュがあれば after/base を保つ（#1309）', async () => {
+    let calls = 0;
+    let now = 0;
+    const cfg = { ...makeCfg(), now: () => now, directiveTtlMs: 1000 };
+    const state = {};
+    const deps = {
+        token: 't',
+        getIssueBody: () => {
+            calls += 1;
+            if (calls >= 2) throw new Error('network down');
+            return 'autopilot-base: topic/x\nautopilot-after: #964';
+        },
+    };
+    await getDirectives(cfg, state, 965, () => {}, deps);
+    now = 5000; // TTL 超過 → 取り直すがネットが切れている
+    const d = await getDirectives(cfg, state, 965, () => {}, deps);
+    assert.deepEqual(d.after, [964]);
+    assert.equal(d.base, 'topic/x');
+    assert.equal(directivesBlockDispatch(d), false);
+    // 次の参照でもまた取りに行く（stale を TTL 内として固定しない）
+    await getDirectives(cfg, state, 965, () => {}, deps);
+    assert.equal(calls, 3);
+    // 失敗が続いても内容は保たれる
+    assert.deepEqual(state.directives.get(965).after, [964]);
 });
 
 test('getDirectives: 本文の autopilot-assignee ディレクティブも解決する（#938）', async () => {

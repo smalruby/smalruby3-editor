@@ -92,6 +92,7 @@ Issue を状態の正とすることで daemon が落ちても現在地が分か
 | Implementing / Creating PR | autopilot-implement | In Progress |
 | Self-Reviewing | autopilot-review | In Progress |
 | Addressing Comments | autopilot-address-review | Review / DoD（NG 差し戻し） |
+| Resolving Conflicts | autopilot-resolve-conflict（base とのコンフリクトを AI が解消。Status は動かさず、解消中だけこの値にして終わったら元に戻す） | 変えない（Review / DoD / Blocked / In Progress のまま） |
 | Running DoD | autopilot-verify（一般 UI は headless Playwright で自己完結・#891）／ 音・autoplay 等は daemon `applyDodHandoffs`（ホスト引き継ぎ生成） | DoD |
 | Awaiting Continuation | 元フェーズ（例 implement）を再 dispatch（協調的チェックポイント・EPIC #906。soft-limit で worker が安全に中断し、常に HITL で継続確認してから再開） | In Progress |
 
@@ -136,6 +137,12 @@ Issue 本文の**行頭**に書くディレクティブで挙動を制御でき�
 | `autopilot-after: #N [#M ...]` | 依存宣言。N（と M …）が完了（GitHub closed / Project Close・Done。**N が `🧱 infra` なら GitHub closed のみ**＝prod デプロイ後）するまで着手しない。ブロック中は次点候補が繰り上がる。**待ち Issue は Sprint Backlog に置く**（Backlog はそもそも着手候補にならないので先行 Close で自動着手しない）。ゲート中は daemon が `⏳ waiting` ラベルを付け、先行 Close で自動除去 → 次 tick で着手 |
 | `autopilot-assignee: <login>`（`@login` も可） | 複数 assignee の Issue でオーナー（駆動する担当）を明示指定する（#938）。指定 login が Assignees に含まれていなければ無視して従来どおり辞書順先頭。指定した担当の daemon（`--assignee <login>`）だけが駆動し、他の担当の daemon は駆動しない。共同担当（非オーナー）は自分の monitor で Issue を観察できる（下記「俯瞰ボード」参照） |
 
+本文は 10 分の TTL でキャッシュする。ネット断などで本文を取得できなかったときは
+「ディレクティブが無い」とはみなさない（fail-closed）: 前回取得した値があればそれを使い、
+一度も取得できていない Issue はその tick では dispatch しない（次 tick で取り直す）。
+`autopilot-after` 待ちの Issue が動き出したり、`autopilot-base` 指定の Issue が既定 base で
+作業を始めたりしないため。
+
 ### 🧭 tracking ラベル（分解済み親のトラッカー化）
 
 sub-issue に分解済みの親（Kind=EPIC）には daemon が **`🧭 tracking` ラベル**を付与する。
@@ -151,6 +158,23 @@ daemon が **`⏳ waiting` ラベル**を付ける。GitHub Projects の view �
 なく）、先行 Issue が Close された瞬間に自動で外す → 次 tick で着手する。順序付きで分解した
 EPIC の leaf は **全部 Sprint Backlog に入れておけば**、依存順に自動で 1 つずつ流れる（並列
 衝突はゲーティングが防ぐ）。
+
+### 🔬 spike ラベル（要件の相談中の可視化）
+
+技術調査に加え、要件が決まっていないときに人間と決めきる行動も **Spike** とみなし、その間は
+daemon が Issue に **`🔬 spike` ラベル**を付ける。GitHub のラベル絞り込みで「相談中」を探せる。
+⏳ waiting と同じく **状態から毎 tick 導出**する（判定は `phases.js` の `isSpikeItem` →
+`labelActions`）。
+
+- **付ける**: AI Status が `Discussing` のとき（🙋 の有無を問わない）。または triage / understand が
+  質問を出して `🙋 HITL` で止まっているとき（AI Status が `Triaging` / `Understanding` + 🙋）。
+  Status=Blocked で付けるのは understand の質問待ちだけ（triage / discuss が Blocked なのは run 失敗で、
+  障害として 🧱 Blocked に数える）。
+- **外す**: 実装（implement）以降に進んだとき、または閉じた（Close / Done）・Icebox にしたとき。
+  閉じた item でもラベルが残っていれば label healing が外す（item-list の labels だけで判定でき、
+  追加の読み取りは要らない）。
+- **導出が正**: 人間が手で付けたものも、条件を満たさなければ外す（「人間が Spike を始める」は
+  扱わない）。PR には付けない（Issue 面だけ）。
 
 ### 🧱 infra ラベル（infra を先に出す・infra-first）
 
@@ -236,7 +260,7 @@ PR が merge されたら、`🙋 HITL` ラベルが残っていても autopilot
 - **EPIC**: 子 PR の merge では完了しない（後述の EPIC 運用）。
 
 autopilot は **自動 merge しない**。daemon はポーリングのたびに「PR が出た後〜Close 前」の leaf
-（Status が In Progress / Review / DoD）について、`Closes #<issue>` などで紐付く PR が **人間に
+（Status が In Progress / Blocked / Review / DoD）について、`Closes #<issue>` などで紐付く PR が **人間に
 merge 済みか**を GitHub に問い合わせ（`closedByPullRequestsReferences`）、merge 済みなら Status を
 **Close**・AI Status をクリアし、両面の `🙋 HITL` ラベルを除去する。close リンクは PR が
 **非デフォルト base 宛て**（EPIC サブ Issue を親 epic ブランチに積む等）だと登録されないため、
@@ -353,8 +377,9 @@ PR の **diff と全コメント（Issue/レビュー本文/インライン）**
   daemon が両面を atomic に同期する（後述「PR 側の状態可視化」）ので、人間は目の前の
   PR ラベルを外すだけでも、コメントを返すだけでも差し戻せる。
 - address-review は **既存 PR ブランチ**で作業する（daemon が worktree を `--pr` で用意）。
-- **コンフリクトは autopilot で解消しない**（rebase/merge コンフリクトは人間の役割）。プロンプトは
-  解消を試みず HITL で人間に渡す。
+- **base とのコンフリクトは AI が解消する**（#1348）。着手時の base 追従でコンフリクトしたら、
+  daemon が先に `autopilot-resolve-conflict` を走らせ、解消できたら address-review を続ける。
+  解消できなければ Blocked + 🙋 で人間に渡す（後述「base 追従」）。
 
 ---
 
@@ -465,7 +490,7 @@ PR 側は読み取り投影）。実装は daemon の `applyPrProjection`（ポ�
 | `🤖 autopilot` ラベル | autopilot 管理対象（AI 処理対象） | Issue/PR に常時担保 |
 | `🙋 HITL` ラベル | 人間の対応待ち（**HITL の唯一の真実**・#813） | 人間に渡すとき Issue/PR の両面に付与 / release・merge で除去 |
 | Draft ⇄ Ready for review | Draft=AI 作業中 / Ready=人間が見る段階 | **Status 基準**（#815）: `Review`/`DoD`/`Close`/`Blocked`→Ready / それ以外（`In Progress` 等）→Draft |
-| sticky ステータスコメント | bot が1コメントを編集し続け、連携 Issue の Project 状態を投影 | Status / AI Status / HITL（ラベル由来）/ Size をマーカー付き 1 コメントに upsert |
+| sticky ステータスコメント | bot が1コメントを編集し続け、連携 Issue の Project 状態を投影 | Status / AI Status / HITL（ラベル由来）/ Size をマーカー付き 1 コメントに upsert。人間待ちなら「いま: 🔬 Spike・回答待ち — …」のように**何待ちか**を 1 行足す（`humanWaitReason`）。本文が変わったときだけ PATCH |
 
 - 対象は連携 PR を持ちうる post-PR ステータス（In Progress / Review / DoD / Blocked）の leaf。
   EPIC は実装 PR を持たないので除外（`selectPrSyncCandidates`）。
@@ -613,6 +638,12 @@ GitHub Projects で行い、モニタは俯瞰・log 閲覧・pause/resume/即�
   連続リクエストを**最後の目標状態へ畳み込む**（差分時のみ書き込み）。保留中の Issue はボードの定期
   更新・🔄 更新で古い labels が返っても pending の状態を優先表示する。Blocked・認証アラートは
   あとでやる 内の Issue でも上部に通常どおり出し、あとでやる 内の人間の番もアラート帯に出す
+- **コンフリクトの表示と解消**（#1348）: PR チップは GitHub が判定した `mergeable` を見て、
+  base とコンフリクトしている OPEN の PR に赤枠と ⚠️ を付ける。値は俯瞰ボードの PR 取得
+  （`getBoardEnrichment`）に 1 項目足しただけなので、追加の API 呼び出しは無い。GitHub は非同期に
+  判定するので、初回は未確定（印なし）のことがあり、次の 🔄 更新で確定する。コンフリクトしている行の
+  Now 列に **🔀 解消** ボタンが出て、押すと `POST /resolve-conflict` で AI が解消する（後述「base 追従」）。
+  実行中は phase 表示に変わり、終わるとボードのキャッシュ上の印が消える
 - **スティッキーフッター**: **稼働バージョン（`branch @ shortCommit`）** + **⬆️ 更新ありバッジ**。
   常時見えるフッターに置き、押すと更新手順モーダルを表示する（#885）
 - **Claude 使用量（ヘッダー中央）**: Claude アイコン + **セッション使用率**（rolling 5 時間制限）と
@@ -646,6 +677,17 @@ GitHub Projects で行い、モニタは俯瞰・log 閲覧・pause/resume/即�
   usage pause 中 **`USAGE ⏸`**（橙）。詳細は「Claude 使用量の auto-pause と強制再開」。
   各アラートに **`check autopilot (#N)` のコピー用ショートカット**があり、Claude に
   貼ると `.claude/skills/check-autopilot` スキルが診断・復旧支援する
+- **人間待ちのまとめ**（#1315）: 一覧の上に、人間が何待ちで止まっているかを理由ごとに件数と
+  item でまとめる。理由は `phases.js` の純粋関数 `humanWaitReason` が 1 つに決める
+  （🙋 の item は 🔬 Spike・回答待ち → 👀 レビュー待ち（Review）→ ✅ DoD の確認待ち →
+  🧱 Blocked（障害）→ ⏳ 依存待ち（`autopilot-after` の未完了）→ 🙋 そのほか の順。🙋 が無い item は
+  ⏳ 依存待ちだけを出す）。🔬 Spike の条件は「🔬 spike ラベル」と同じ。daemon が `refreshBoard` で
+  `waitReason` と、人間に開いてほしいページの `waitUrl`（レビュー / DoD は open な PR、それ以外は
+  Issue）を board item に載せる。どちらも取得済みの Project 状態・ラベル・PR から作るので、
+  **新しい読み取りは増えない**（コメント単位のリンクは取得済みデータに無いので出さない）。
+  HTML は `renderHumanWaitsHtml` / `renderHumanWaitCell` をモニタに埋め込んで共有する。
+  Now 欄の 🙋 も理由つき（例: `🔬 Spike・回答待ち`）で出し、押すと `waitUrl` を開く。
+  あとでやる タブの item もまとめに含める
 - **ボード行**: Issue（**📋** + リンク + **PR チップ** + **▼** + タイトル）/ Status pill / Size / AI Status（live）/
   担当 / **sub-issue 進捗**（N/M・%・バー）/ Now（実行中フェーズ + 経過分 + **log ボタン → モーダル**）
   - **PR は専用列ではなく Issue 番号のすぐ右**に置く（#1212）。レビュー待ちで見たいのは PR なので、
@@ -804,9 +846,21 @@ PR ブランチ作業フェーズ（review / address-review）の**両方**で�
 merge = 既に push 済みの Draft PR ブランチでも force push 不要）。長時間・複数日にまたがる作業や、
 PR 作成後に develop が進んで PR が CONFLICTING になる問題を防ぐ。PR フェーズでは worker が必ずしも
 push しないため、clean に追従できたら daemon がその merge を **push** してリモートの PR を mergeable
-に保つ（implement は後で worker が自分の commit ごと push するので push 不要）。コンフリクトは両者とも
-**自動解決せず** `git merge --abort` で元に戻し、Blocked + `🙋 HITL` にサニタイズ理由を出して
-人間へエスカレーションする（勝手に壊さない）。
+に保つ（implement は後で worker が自分の commit ごと push するので push 不要）。
+
+**コンフリクトの解消（#1348）**: base 追従がコンフリクトしたら、daemon は merge を途中のまま残し、
+本来のフェーズの前に **`autopilot-resolve-conflict`**（AI Status `Resolving Conflicts`）を走らせる。
+worker は両側の変更を確かめて解消し（`package-lock.json` は PR 側を採って
+`npm install --package-lock-only --before <3日前>` で作り直す）、lint と関係するテストを通してから
+merge commit を作り、PR があれば push する。daemon は worker の申告だけでなく、merge が完了して base を
+取り込んだこと・PR ブランチのリモートが同じ commit であることを git で確かめる。解消できたら本来の
+フェーズを続け、できなければ merge を中断して元に戻し、コンフリクトしたファイルと理由を添えて
+Blocked + `🙋 HITL` にする。
+
+レビュー待ちなどで着手されない PR は、モニタの **🔀 解消** ボタン（`POST /resolve-conflict`）で
+同じ worker を走らせる。こちらは **Status と 🙋 を動かさない**割り込みで、AI Status だけ解消中に
+`Resolving Conflicts` にして終わったら元に戻す。clean に merge できる（コンフリクトしていない）
+なら worker を起動せず push だけする。解消できなければ理由をコメントし、🙋 を付けて人間に渡す。
 
 ### daemon（常駐・本番運用）
 
@@ -881,6 +935,11 @@ Addressing Comments / Running DoD）なのに worker が生存していない it
   なく異常終了の残渣とみなし再開する（#972 の固着解消）。人間の判断待ち HITL（Triaging /
   Decomposing / Discussing / Awaiting Continuation / EPIC Decomposed）はこの集合に入らないので
   誤って再開されない。
+- 実作業系フェーズ（implement 等）が **意図して** `signal=hitl` で人間に返したとき（nextStatus /
+  nextAiStatus なし）は、`applyResult` が Status を **Blocked** にする。In Progress のまま残すと
+  ここで「止まった worker」とみなされ、返事を待たず毎 tick 起動し直されるため（#1310）。🙋 を外すと
+  Blocked の出口（PR ありは address-review・無ければ triage）で再開する。Blocked の書き込みが
+  一時失敗して In Progress + 🙋 だけ残った場合は、従来どおり上の自動再開に任せる（#972）。
 - 生存中 worker を持つ item・この daemon が所有中の item は触らず完走させる。
 - 毎 tick 走るため Self-Reviewing の happy-path も対象に入るが、**空き容量（`cfg.concurrency -
   running`）の分だけ再開**し溢れは次 tick へ回すので並行上限を跨がない。recovery が tick 冒頭で
@@ -912,6 +971,7 @@ HTTP API（curl からも操作可能）:
 | `POST /later` | body `{issue, later: boolean}`。`💤 later` を付与 / 除去する（モニタの「💤 あとで」/「↩ 今やる」）。Issue 単位で直列化し連続リクエストは最後の目標へ畳み込む。既に目的の状態なら書き込まない。`{issue, later, changed}` を返す |
 | `POST /stop?issue=<n>` | その item の tmux セッションを kill して force-stop |
 | `POST /inject?issue=<n>&phase=<p>` | 並行上限を超えて 1 フェーズを割り込み投入 |
+| `POST /resolve-conflict?issue=<n>` | PR の base とのコンフリクトを AI に解消させる（モニタの 🔀 解消）。Status と 🙋 は変えない。並行上限の外。実行中なら 409、OPEN の PR が無ければ 409 |
 | `POST /shutdown` | daemon プロセスを安全停止 |
 
 ```bash

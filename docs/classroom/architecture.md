@@ -182,14 +182,14 @@ One Tap が表示できない環境（Windows や Playwright では毎回）で�
 | Method | Path | 説明 |
 |--------|------|------|
 | `POST` | `/classrooms` | 課題作成。任意の `meshGroupLimit`（`6` / `0`・Issue #1255）でメッシュのグループの人数の上限を設定する（`0` = 制限なし。送らなくても `6` を必ず保存する。それ以外の値は 400）。レスポンスに `meshGroupLimit` を含む |
-| `GET` | `/classrooms` | 課題一覧（既定は active のみ。`?includeArchived=1` でアーカイブ済みも返す。各要素に `status` と `meshGroupLimit`（未設定は `0` = 制限なし）を含む） |
-| `GET` | `/classrooms/{id}` | 課題詳細（`meshGroupLimit` を含む。未設定は `0` = 制限なし） |
-| `PATCH` | `/classrooms/{id}` | 課題更新。`{status: 'active'}` でアーカイブ済み課題の復元も行う。任意の `meshGroupLimit`（`6` / `0`）を受け付ける（送らなければ保存済みの値を変えない。それ以外の値は 400）。レスポンスに `meshGroupLimit` を含む |
-| `DELETE` | `/classrooms/{id}` | 課題削除 (アーカイブ)。soft-delete でメンバー・提出メタ・S3 は保持され、PATCH で復元可能。生徒の遮断は status ガード（join / lookup / verify-session / 提出がすべて非 active を拒否） |
+| `GET` | `/classrooms` | 課題一覧（既定は active のみ。`?includeArchived=1` でアーカイブ済みも返す。各要素に `status` と `meshGroupLimit`（未設定は `0` = 制限なし）、`archivedAt`（アーカイブした日時。active は `null`、日時を持たない古いアーカイブ済み課題は `updatedAt`）を含む） |
+| `GET` | `/classrooms/{id}` | 課題詳細（`archivedAt`（active なので常に `null`）と `meshGroupLimit` を含む。未設定は `0` = 制限なし） |
+| `PATCH` | `/classrooms/{id}` | 課題更新。`{status: 'active'}` でアーカイブ済み課題の復元も行う。任意の `meshGroupLimit`（`6` / `0`）を受け付ける（送らなければ保存済みの値を変えない。それ以外の値は 400）。レスポンスに `meshGroupLimit` と `archivedAt` を含む。archived にすると `archivedAt` を記録し、active に戻すと消す |
+| `DELETE` | `/classrooms/{id}` | 課題削除 (アーカイブ)。`archivedAt` を記録する。soft-delete でメンバー・提出メタ・S3 は保持され、PATCH で復元可能。生徒の遮断は status ガード（join / lookup / verify-session / 提出がすべて非 active を拒否） |
 | `GET` | `/classrooms/{id}/co-teachers` | 共同管理者一覧 (`{ownerSub, coTeacherEmails}`) |
 | `POST` | `/classrooms/{id}/co-teachers` | 共同管理者を email で招待 (`{email}`)。冪等・最大10・email 形式検証 |
 | `DELETE` | `/classrooms/{id}/co-teachers/{email}` | 共同管理者を解除 |
-| `GET` | `/classrooms/{id}/members` | メンバー一覧 (kicked 行は除外) |
+| `GET` | `/classrooms/{id}/members` | メンバー一覧 (kicked 行は除外)。各メンバーに任意の `aiUsage`（ルビティーの上限と今日の回数。下記） |
 | `DELETE` | `/classrooms/{id}/members/{memberId}` | メンバー削除 = ソフト kick (1h tombstone を残し、`kicked: true` をマーク)。verify-session が 410 reason='kicked' を返せるようにするための仕様。lookup の takenSeats も即座に空く |
 | `GET` | `/classrooms/{id}/kick-requests` | 退室リクエスト一覧 (Issue #692) |
 | `POST` | `/classrooms/{id}/kick-requests/{requestId}/approve` | 承認 = `handleDeleteMember` (= kick) + 同席への全リクエスト削除 |
@@ -337,6 +337,7 @@ erDiagram
         string recommendedForSharingBy "推奨した admin の email (内部用・先生側 API では返さない)"
         string groupId "所属する組 (任意)"
         string status "active / archived"
+        string archivedAt "アーカイブした日時 ISO8601 (任意)。DELETE / PATCH {status:'archived'} で記録し、復元 (PATCH {status:'active'}) で消す。既にアーカイブ済みの課題を再度 archived にしても元の日時を保つ。この属性より前にアーカイブした課題は持たないため、API は updatedAt で代用して返す。そうした課題の updatedAt を進める書き込み（編集・再アーカイブ・トピック名の変更など）では、先にその値を archivedAt として固定する"
         string createdAt "ISO8601"
         string updatedAt "ISO8601"
         number ttl "Unix timestamp"
@@ -384,7 +385,7 @@ erDiagram
 **GSI:**
 - `sessionToken-index` — セッショントークンでの認証
 
-**着席判定（`lastActiveAt`）:** `lastActiveAt` を更新するのは参加と verify-session（生徒がクラスのモーダルを開いたとき）だけで、定期的なハートビートは**送らない**（通信量を増やさないため）。先生の画面は `lastActiveAt` が **1 時間以内**なら「着席中」と表示する目安で、正確さは求めない。席を空ける依頼（kick request）は、先生が教室で本人に確かめてから承認する前提。しきい値は `packages/scratch-gui/src/lib/classroom-presence.js` の 1 か所にまとめてある。verify-session の更新は「行がまだそのセッションのもので kick されていない」ことを条件にしており、退出・kick の直後に届いても行を作り直したり tombstone の TTL を延ばしたりしない（条件を満たさなければ 401）。
+**着席判定（`lastActiveAt`）:** `lastActiveAt` を更新するのは参加と verify-session（生徒がページを開いたとき・クラスのモーダルを開いたとき）だけで、定期的なハートビートは**送らない**（通信量を増やさないため）。先生の画面は `lastActiveAt` が **1 時間以内**なら「着席中」と表示する目安で、正確さは求めない。席を空ける依頼（kick request）は、先生が教室で本人に確かめてから承認する前提。しきい値は `packages/scratch-gui/src/lib/classroom-presence.js` の 1 か所にまとめてある。verify-session の更新は「行がまだそのセッションのもので kick されていない」ことを条件にしており、退出・kick の直後に届いても行を作り直したり tombstone の TTL を延ばしたりしない（条件を満たさなければ 401）。
 
 ### ClassroomKickRequests テーブル (Issue #692)
 
@@ -616,3 +617,35 @@ smalruby-classroom-submissions-{stage}/
 | ウィンドウ | 60秒 | 30秒 |
 | 最大リクエスト数 | 50回 | 100回 |
 | 実装方式 | Lambda インメモリ Map | 同左 |
+
+## メンバー一覧の `aiUsage`（ルビティーの上限）
+
+`GET /classrooms/{id}/members` の `members[]` には任意のフィールド `aiUsage` が付く（既存のフィールドは同じ）。
+rubytee relay（`infra/smalruby-rubytee-relay`）が書く表を**読み取り権限だけ**で読む（詳細は `docs/rubytee/README.md`
+の「利用の集計・席ごとの状況」）。relay の `classroom` = この課題の `classroomId`、`seat` = 出席番号の数字。
+
+```jsonc
+"aiUsage": {
+  "takeover": {              // 「ルビティーにまかせる」の上限（1 席ごと）
+    "used": 12,              // 今の窓で使った回数（窓が終わっていれば 0）
+    "limit": 40,             // 上限（relay が書いた値）
+    "windowMinutes": 35,
+    "resetAt": "2026-11-01T10:15:00+09:00",   // 窓が終わる時刻。使っていなければ null
+    "limited": false         // used >= limit
+  },
+  "today": {                 // 今日（日本時間）の回数
+    "takeover": { "requests": 15, "rateLimited": 0, "succeeded": 14, "failed": 1 },
+    "chat":     { "requests": 3,  "rateLimited": 0, "succeeded": 3,  "failed": 0 }
+  }
+}
+```
+
+- 席に記録が無ければ `used: 0` / `resetAt: null`、`today` の各値は 0。
+- Ruby タブのルビティー（`chat`）は IP 単位の上限なので、1 席ごとの残りは出さず `today` の回数だけ。
+- 読み取りは 1 課題あたり `BatchGetItem`（100 席ごと）+ `Query` 1 回。relay の表が読めない・Lambda の環境変数
+  `RUBYTEE_RATE_LIMIT_TABLE_NAME` / `RUBYTEE_USAGE_TABLE_NAME` が空のときは **`aiUsage: null`** で、メンバー一覧は
+  ふつうに返す（fail-open）。
+- `BatchGetItem` が `UnprocessedKeys` を返したとき（混雑時）も**再試行せずクラス全体を `aiUsage: null`** にする。
+  一時的に全員分が見えなくなるのは許容する（授業中の応答を遅らせない。方針は `.claude/rules/infra/development.md`
+  の「混雑・障害時の劣化」）。
+- 組み立ては `lambda/ai-usage-lib.ts`（純粋関数）。キーの形は relay の `lambda/takeover.ts` と対で変える。

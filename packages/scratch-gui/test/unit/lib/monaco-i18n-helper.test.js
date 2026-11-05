@@ -36,6 +36,13 @@ describe('monaco-i18n-helper', () => {
             expect(resolveMonacoVsPath(undefined)).toBe('static/monaco/vs');
             expect(resolveMonacoVsPath(null)).toBe('static/monaco/vs');
         });
+
+        test('joins a versioned subpath', () => {
+            expect(resolveMonacoVsPath('/smalruby3-editor/', 'static/monaco/0.57.0/vs')).toBe(
+                '/smalruby3-editor/static/monaco/0.57.0/vs',
+            );
+            expect(resolveMonacoVsPath('auto', 'static/monaco/0.57.0/vs')).toBe('static/monaco/0.57.0/vs');
+        });
     });
 
     describe('loader configuration', () => {
@@ -50,6 +57,55 @@ describe('monaco-i18n-helper', () => {
             require('../../../src/lib/monaco-i18n-helper');
 
             expect(JSON.stringify(configCalls)).not.toMatch(/jsdelivr|unpkg|cdn/i);
+        });
+    });
+
+    describe('loadMonacoLocale', () => {
+        const { loadMonacoLocale } = require('../../../src/lib/monaco-i18n-helper');
+
+        afterEach(() => {
+            delete globalThis._VSCODE_NLS_MESSAGES;
+            delete globalThis._VSCODE_NLS_LANGUAGE;
+        });
+
+        test('loads the Japanese NLS messages bundled with monaco-editor', async () => {
+            const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+            try {
+                await loadMonacoLocale('ja');
+                expect(errorSpy).not.toHaveBeenCalled();
+            } finally {
+                errorSpy.mockRestore();
+            }
+            expect(globalThis._VSCODE_NLS_LANGUAGE).toBe('ja');
+            expect(Array.isArray(globalThis._VSCODE_NLS_MESSAGES)).toBe(true);
+        });
+
+        test('resets to English for other locales', async () => {
+            await loadMonacoLocale('en');
+            expect(globalThis._VSCODE_NLS_MESSAGES).toBeNull();
+            expect(globalThis._VSCODE_NLS_LANGUAGE).toBe('en');
+        });
+    });
+
+    describe('versioned vs path injected by webpack (#1318)', () => {
+        const original = process.env.MONACO_VS_SUBPATH;
+
+        afterEach(() => {
+            if (typeof original === 'undefined') {
+                delete process.env.MONACO_VS_SUBPATH;
+            } else {
+                process.env.MONACO_VS_SUBPATH = original;
+            }
+        });
+
+        // 他の describe が数える configCalls を増やすので、ファイルの最後に置く。
+        test('configures the AMD loader with the injected versioned path', () => {
+            process.env.MONACO_VS_SUBPATH = 'static/monaco/0.57.0/vs';
+            jest.isolateModules(() => {
+                const { resolveMonacoVsPath } = require('../../../src/lib/monaco-i18n-helper');
+                expect(resolveMonacoVsPath('/smalruby3-editor/')).toBe('/smalruby3-editor/static/monaco/0.57.0/vs');
+            });
+            expect(configCalls[configCalls.length - 1].paths.vs).toBe('static/monaco/0.57.0/vs');
         });
     });
 });

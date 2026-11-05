@@ -161,6 +161,31 @@ describe('TeacherClassList', () => {
         expect(document.querySelector('[data-testid="classroom-class-settings-g1"]')).not.toBeInTheDocument();
     });
 
+    test('saves the class AI settings once the conditions are confirmed, with the preview beside the form', () => {
+        const onUpdateGroup = jest.fn();
+        renderList({ onUpdateGroup });
+        const byTestId = (id) => document.querySelector(`[data-testid="${id}"]`);
+        fireEvent.click(byTestId('classroom-class-settings-open-g1'));
+        expect(byTestId('classroom-class-ai-preview')).toBeInTheDocument();
+        expect(byTestId('classroom-class-ai-preview-consult')).toBeNull();
+
+        fireEvent.click(byTestId('classroom-class-ai-service-gemini'));
+        expect(byTestId('classroom-class-ai-preview-consult')).toBeInTheDocument();
+        // The teacher has to confirm the conditions before saving.
+        expect(byTestId('classroom-class-settings-save')).toBeDisabled();
+        fireEvent.click(byTestId('classroom-class-ai-confirm'));
+        fireEvent.click(byTestId('classroom-class-ai-rubytee'));
+        fireEvent.click(byTestId('classroom-class-settings-save'));
+
+        expect(onUpdateGroup).toHaveBeenCalledWith(
+            'g1',
+            expect.objectContaining({
+                genai: { enabled: true, service: 'gemini', url: 'https://gemini.google.com/app', confirmed: true },
+                rubytee: { enabled: true },
+            }),
+        );
+    });
+
     test('increasing the student count saves immediately without a warning', () => {
         const onUpdateGroup = jest.fn();
         renderList({ groups: [group({ studentCount: 30 })], onUpdateGroup });

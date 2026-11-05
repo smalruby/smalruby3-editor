@@ -264,6 +264,25 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-class-settings-archive-confirm-message` | p | アーカイブ確認メッセージ |
 | `classroom-class-settings-archive-cancel` | button | アーカイブ確認のキャンセル |
 | `classroom-class-settings-save` / `classroom-class-settings-cancel` | button | 保存 / キャンセル |
+| `classroom-class-ai-settings` | div | クラス設定の「このクラスで使う AI」欄（生成AI とルビティーの 2 行を常に表示） |
+| `classroom-class-ai-genai` | div | 「学校の生成AI に相談」の行 |
+| `classroom-class-ai-genai-unsaved` | span | 生成AI の行の「未保存」の印（保存済みの値から変わったときだけ） |
+| `classroom-class-ai-service-none/gemini/chatgpt/other` | button | 「使わない / Gemini / ChatGPT / その他」（選んでいるものは `aria-pressed="true"`。Claude は出さない） |
+| `classroom-class-ai-confirm-panel` | div | 生成AI を選んだときだけ行の下に開く確認（条件・確認チェック・URL） |
+| `classroom-class-ai-confirm` | checkbox | 「このクラスは条件を満たしています（必須）」。未チェックだと保存できない。サービスを変えると外れる |
+| `classroom-class-ai-confirm-reason` | span | 確認が要る理由（スモウルビーでは学校の許可を確かめられない・チェックすると保存できる） |
+| `classroom-class-ai-url-change` | button | 「生徒が開くページを変える（いまは …）」。押すと URL の入力欄を出す（「その他」では出ず、最初から入力欄） |
+| `classroom-class-ai-url` | input | 生徒が開くページの URL（Gemini / ChatGPT は既定値入り） |
+| `classroom-class-ai-url-error` | span | URL の誤り（空・https 以外・18 歳以上限定サービス）。「試す」と同じ場所に出る |
+| `classroom-class-ai-try` | a | 「試す（別タブ）」（URL が正しいときだけ表示） |
+| `classroom-class-ai-rubytee-row` | div | ルビティーの行 |
+| `classroom-class-ai-rubytee` | checkbox (`role="switch"`) | ルビティーのオン/オフ（既定オフ） |
+| `classroom-class-ai-rubytee-unsaved` | span | ルビティーの行の「未保存」の印 |
+| `classroom-class-ai-preview` | aside | 「生徒の画面はこうなります」の見本（幅 1100px 未満では `display: none`） |
+| `classroom-class-ai-preview-consult` | span | 見本のコード画面の「AI に相談」ボタン（生成AI を使うときだけ） |
+| `classroom-class-ai-preview-consult-off` | p | 生成AI を使わないときの説明 |
+| `classroom-class-ai-preview-rubytee` | span | 見本の Ruby タブの AI ボタン（`data-on="true/false"`。オフは薄く表示） |
+| `classroom-class-ai-preview-rubytee-off` | p | 「ルビティーがオフなので、Ruby タブの AI ボタンは出ません。」 |
 | `classroom-show-archived` | button | 「アーカイブ済みのクラス（{count}）」トグル（アーカイブ済みが 1 件以上のとき表示） |
 | `classroom-archived-class-list` | ul | アーカイブ済みクラスのカード一覧 |
 | `classroom-class-restore-{groupId}` | button | アーカイブ済みクラスカードの「元に戻す」 |

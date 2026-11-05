@@ -209,8 +209,11 @@ echo AUTOPILOT_HITL
 ## 注意
 
 - **既存 PR ブランチで作業**（新ブランチを切らない）。1 Issue = 1 PR。
-- **コンフリクトは autopilot で解消しない。** rebase/merge コンフリクトに遭遇したら解消を試みず、
-  論点を整理した**コメント + `AUTOPILOT_HITL`** で人間に渡す（コンフリクト解消は人間の役割）。
+- **base とのコンフリクトはこのフェーズでは扱わない。** 着手時の base 追従でコンフリクトしたら、daemon が
+  先に `autopilot-resolve-conflict` で解消してからこのフェーズを起動する（#1348）。Request changes が
+  「resolve conflict」だけなら、起動した時点で解消は済んでいるので、PR が mergeable になっていることを
+  確かめて「対応することなし」（手順 (b)）で終える。作業中に別のコンフリクトに遭遇したら解消を試みず、
+  論点を整理した**コメント + `AUTOPILOT_HITL`** で人間に渡す。
 - 冪等: 同じ指摘に二重対応・二重コメントしない。既存の bot まとめコメントがあれば編集して使う。
 - `AskUserQuestion` を使わない。Project/PR の状態反映は daemon（単一ライター）。
 - bot 認証（`bin/bot-git` / `bin/bot-token`）。

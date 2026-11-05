@@ -10,9 +10,26 @@
 item の状態は次の 4 要素で決まる（Project が単一の真実）:
 
 - **Status**（人間ボード列）: No Status(New Item) / Backlog / Sprint Backlog / In Progress / Blocked / Review / DoD / Close / Done / Icebox
-- **AI Status**（AI の細フェーズ）: Triaging / Discussing / Understanding / Decomposing / EPIC Decomposed / Implementing / Creating PR / Self-Reviewing / Addressing Comments / Running DoD / **Awaiting Continuation**（協調的チェックポイント・EPIC #906） / （空）
+- **AI Status**（AI の細フェーズ）: Triaging / Discussing / Understanding / Decomposing / EPIC Decomposed / Implementing / Creating PR / Self-Reviewing / Addressing Comments / Resolving Conflicts / Running DoD / **Awaiting Continuation**（協調的チェックポイント・EPIC #906） / （空）
+  - **Resolving Conflicts**（#1348）は Status を動かさない割り込みで、解消中だけ付き、終わると daemon が元の
+    AI Status に戻す。`phaseForItem` はこの値から何も選ばない（起動はモニタの 🔀 解消か、着手時の base 追従の
+    コンフリクトだけ）。daemon が解消中に落ちて残った場合、In Progress なら stuck 検知（→ Blocked）、
+    ゲート状態ならそのゲートの出口がそのまま効く
 - **🙋 HITL ラベル**: 人間の番か（Issue/PR の両面に投影）
 - **🧭 tracking ラベル / Kind=EPIC**: トラッカー（作業 item ではない）
+
+### 状態から導出する表示ラベル（遷移には使わない）
+
+次の 2 つは上の 4 要素から毎 tick 導出して付け外しするだけで、`phaseForItem` の入力にはしない
+（付け外しで遷移が変わらないので、出口の議論には現れない）。
+
+| ラベル | 付く条件（`phases.js`） | 外れる |
+|---|---|---|
+| `⏳ waiting` | `autopilot-after` の先行 Issue が未完了（`waitingLabelAction`） | 先行 Issue の完了 |
+| `🔬 spike` | AI Status=`Discussing`、または AI Status が `Triaging` / `Understanding` で 🙋 あり（`isSpikeItem`）。Blocked は understand の質問待ちだけ（triage / discuss の Blocked は run 失敗） | implement 以降・Close / Done・Icebox |
+
+人間待ち（🙋）の item の「何待ちか」（`humanWaitReason`）も同じく表示だけに使う:
+🔬 Spike（上の `🔬 spike` と同条件）→ 👀 Review → ✅ DoD → 🧱 Blocked → ⏳ 依存待ち → 🙋 そのほか。
 
 ## トリガーの種類
 
@@ -21,6 +38,15 @@ item の状態は次の 4 要素で決まる（Project が単一の真実）:
 | **A: autopilot フェーズ** | daemon が `phaseForItem` で決めて worker を dispatch（triage / discuss / decompose / implement / review / address-review） |
 | **D: daemon tick ステップ** | merge-progression / closed-reconcile / **stalled 復帰（worker 不在の in-flight 再開・#995）** / stuck 検知 / DoD 引き継ぎ / EPIC tracking / PR 投影 |
 | **H: 人間の操作** | Status 移動 / `🙋 HITL` ラベル解除 / **コメント・レビュー送信** / PR merge / Issue close |
+
+> **merge-progression は PR 後の非終端 leaf を見る**（`MERGE_CHECK_STATUSES` = In Progress / Blocked /
+> Review / DoD・`selectMergeCandidates`）。merge は HITL と独立した前進シグナルなので、🙋 付きの
+> 人間ゲート（Review / DoD / Blocked）でも連携 PR が merge 済みなら Close に進める（Project 意図は
+> Status=Close + AI Status クリアだけで、🙋 は face sync が外す）。PR 本文に `Closes` が無いと GitHub が
+> Issue を閉じず closed-reconcile も効かないため、Blocked をここで拾わないと Blocked のまま残る。
+> PR 前の Status（New Item / Backlog / Sprint Backlog。Discussing はこの Status 上の AI Status）・
+> 終端（Close / Done）・保留（Icebox）は問い合わせない（API 予算）。EPIC・🧭 tracking は子 PR の merge で
+> 閉じないので対象外（#16 / #18 の closed-reconcile が出口）。
 
 > **stuck 検知は 🙋 HITL 付きの item を対象外にする（#915）**。decompose/triage の提案系フェーズ
 > （#2/#6b）は Status/AI Status を動かさず HITL で承認待ちにする設計のため、run が無いのは正常
@@ -79,14 +105,14 @@ Review / DoD / Blocked / Discussing などの「人間の番」は、**Issue / P
 | 7 | Sprint Backlog / — / なし（leaf） | 実装キュー | **A: implement**（`autopilot-after:` 未完了依存があれば待ち） | In Progress + Self-Reviewing → #9 |
 | 8 | Sprint Backlog / — / **あり** | 人間が明示的に一時停止 | H: ラベル解除 | #7 |
 | 9 | In Progress / Self-Reviewing / なし | implement 完了直後 | **A: review**（自動） | Review + HITL（#12） |
-| 10 | In Progress / Implementing 等 / 任意（run あり） | worker 実行中 | run 完了（結果ファイル） | 結果の nextStatus へ |
+| 10 | In Progress / Implementing 等 / 任意（run あり） | worker 実行中 | run 完了（結果ファイル） | 結果の nextStatus へ（実作業系フェーズが nextStatus / nextAiStatus なしの hitl で終えたら **Blocked + HITL**（#14）。In Progress のままだと #11 の stalled 復帰が人間の返事を待たず起動し直すため・#1310） |
 | 11 | In Progress / 実作業系 AI Status / **任意**（run なし） | worker 消失（異常終了・daemon 再起動・Blocked マーキング失敗の残渣 #972） | **D: stalled 復帰**（毎 tick・worker 不在なら対応フェーズへ再 dispatch。🙋 HITL 残渣も含む・#995）。非 HITL でなお動かない深いケースは **D: stuck 検知**（run の上限 + 5 分。既定 65 分）| 対応フェーズへ再開（Implementing/Creating PR→implement, Self-Reviewing→review, Addressing Comments→address-review, Running DoD→verify, Understanding→understand）/ deeper fallback は Blocked + HITL（#14） |
 | 12 | Review・DoD / 任意 / **あり** | 人間レビュー / headful 検証待ち | H: merge → **D: merge-progression** / H: 解除 → **A: address-review**（コメント・レビュー送信だけでは動かない） | Close / #13 |
 | 13 | Review・DoD / 任意 / なし(解除済み) | 差し戻し済み | **A: address-review** | 未対応の Request changes で指定された分に対応後 Review + HITL（#12）/ 未対応の Request changes が無ければ何もせず #12 |
-| 14 | Blocked / 任意 / **あり** | run 失敗・stall の人間対処待ち | H: 解除 → **A: address-review（PR あり）/ triage（PR なし）** / H: Status 移動 | 再開・再ルート |
+| 14 | Blocked / 任意 / **あり** | run 失敗・stall・実作業系フェーズの判断待ち（hitl）の人間対処待ち | H: 解除 → **A: address-review（PR あり）/ triage（PR なし）** / H: Status 移動 / H: merge → **D: merge-progression**（#17） | 再開・再ルート / Close |
 | 15 | Blocked / 任意 / なし | ラベルだけ外された Blocked | **A: address-review / triage**（#14 と同じ） | 再開・再ルート |
 | 16 | In Progress / EPIC Decomposed / —（トラッカー） | 子の実装を追跡 | H: 子完了後に close（統合 PR の `Closes #epic` 等）→ **D: closed-reconcile** / H: Done へ移動（HITL 運用） | Close / Done |
-| 17 | 任意の非終端（leaf, PR あり） | — | H: PR merge → **D: merge-progression** | Close（GitHub issue も close。**`🧱 infra` の Issue は閉じない**: prod デプロイ成功で `Deploy Infra` workflow が閉じる・`shouldCloseIssueOnMerge`） |
+| 17 | PR 後の非終端（leaf・Status が In Progress / Blocked / Review / DoD）/ 任意 / 任意 | — | H: PR merge → **D: merge-progression**（🙋 の有無を問わない。🙋 は face sync が両面から外す） | Close（GitHub issue も close。**`🧱 infra` の Issue は閉じない**: prod デプロイ成功で `Deploy Infra` workflow が閉じる・`shouldCloseIssueOnMerge`） |
 | 18 | 任意の非終端 | — | H: Issue close → **D: closed-reconcile** | Close |
 | 19 | In Progress / —（AI Status 空） / 任意 | 人間が手動で置いた作業中 | H: Status 移動（autopilot は所有しない） | 人間の決定 |
 | 20 | Icebox / Close / Done | 終端・保留 | H: Status 移動（再開は人間のみ） | — |

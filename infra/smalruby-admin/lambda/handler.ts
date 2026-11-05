@@ -464,6 +464,7 @@ async function handleSetSharedRecommendation(
   }
 
   if (!recommended && alreadyRecommended) {
+    const pinned = legacyArchivedAt(item);
     await docClient.send(new UpdateCommand({
       TableName: SHARED_ASSIGNMENTS_TABLE,
       Key: { sharedId },
@@ -491,6 +492,18 @@ async function handleSetSharedRecommendation(
 // rehydrated from here, all audited.
 
 const ARCHIVE_PREFIX = 'ddb-archive';
+
+/**
+ * archivedAt より前にアーカイブされた課題で archivedAt の代わりになる updatedAt
+ * （classroom Lambda の archivedAtOf と同じ規則 #1298）。該当しなければ undefined。
+ * こうした課題の updatedAt を進める書き込みは、先にこの値を archivedAt に固定する。
+ * @param item - `Classrooms` の行
+ * @returns 固定すべき日時
+ */
+function legacyArchivedAt(item: Record<string, unknown>): string | undefined {
+  if (item.status !== 'archived' || item.archivedAt || !item.updatedAt) return undefined;
+  return item.updatedAt as string;
+}
 
 function mapClassroomForAdmin(item: Record<string, unknown>) {
   return {
@@ -671,11 +684,14 @@ async function handleSetSharingRecommendation(
   }
 
   if (!recommended && alreadyRecommended) {
+    const pinned = legacyArchivedAt(item);
     await docClient.send(new UpdateCommand({
       TableName: CLASSROOMS_TABLE,
       Key: { classroomId },
-      UpdateExpression: 'REMOVE recommendedForSharingAt, recommendedForSharingBy SET updatedAt = :now',
-      ExpressionAttributeValues: { ':now': new Date().toISOString() },
+      // アーカイブ済みの課題の推奨も取り消せるので、archivedAt の代わりの updatedAt を固定する（#1298）。
+      UpdateExpression: 'REMOVE recommendedForSharingAt, recommendedForSharingBy SET updatedAt = :now' +
+        (pinned ? ', archivedAt = :pinned' : ''),
+      ExpressionAttributeValues: { ':now': new Date().toISOString(), ...(pinned ? { ':pinned': pinned } : {}) },
     }));
     // 取り消しは通知しない（先生を騒がせない）。audit で追跡できる。
     audit('classroom.unrecommendSharing', identity, { classroomId });
@@ -787,12 +803,27 @@ async function handleSetClassroomStatus(
   if (!result.Item) {
     throw new NotFoundError('Classroom not found');
   }
+  // 課題側の archivedAt（クラスのストリーム用 #1298）を classroom Lambda と同じ規則で
+  // 保つ: アーカイブで刻む（既に archived なら元の日時を保つ）・復元で消す。
+  // archivedAt より前にアーカイブされた課題は updatedAt が代わりなので、再アーカイブで
+  // updatedAt を進める前にその値を archivedAt として固定する。
+  const values: Record<string, unknown> = { ':status': body.status, ':now': new Date().toISOString() };
+  let archivedAtExpression = '';
+  const pinned = legacyArchivedAt(result.Item);
+  if (body.status === 'archived' && result.Item.status !== 'archived') {
+    archivedAtExpression = ', archivedAt = :now';
+  } else if (body.status === 'active') {
+    archivedAtExpression = ' REMOVE archivedAt';
+  } else if (pinned) {
+    archivedAtExpression = ', archivedAt = :pinned';
+    values[':pinned'] = pinned;
+  }
   await docClient.send(new UpdateCommand({
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId },
-    UpdateExpression: 'SET #status = :status, updatedAt = :now',
+    UpdateExpression: `SET #status = :status, updatedAt = :now${archivedAtExpression}`,
     ExpressionAttributeNames: { '#status': 'status' },
-    ExpressionAttributeValues: { ':status': body.status, ':now': new Date().toISOString() },
+    ExpressionAttributeValues: values,
   }));
   audit('classroom.setStatus', identity, { classroomId, status: body.status });
   return {

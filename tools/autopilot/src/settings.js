@@ -62,6 +62,7 @@ const DEFAULT_SETTINGS = {
         review: { model: 'opus' },
         'address-review': { model: 'opus' },
         verify: { model: 'sonnet' },
+        'resolve-conflict': { model: 'opus' },
     },
     /**
      * 1 回の run の時間（分）。`maxMinutes` を超えると runner が worker を止め、`softMinutes` で

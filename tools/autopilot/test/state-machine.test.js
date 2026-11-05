@@ -14,7 +14,12 @@ const {
     isStuckCandidate,
     selectStalledInFlightItems,
     IN_FLIGHT_WORK_PHASE_BY_AI_STATUS,
+    applyResult,
+    applyIntentsToItem,
+    hitlDesireFromResult,
     selectClosedToReconcile,
+    selectMergeCandidates,
+    mergeProgressionIntents,
     TERMINAL_STATUSES,
     TRACKING_LABEL,
 } = require('../src/phases');
@@ -35,7 +40,7 @@ const STATUSES = [
 /** AI Status 全値 + 空 */
 const AI_STATUSES = [
     null, 'Triaging', 'Discussing', 'Understanding', 'Decomposing', 'EPIC Decomposed',
-    'Implementing', 'Creating PR', 'Self-Reviewing', 'Addressing Comments', 'Running DoD',
+    'Implementing', 'Creating PR', 'Self-Reviewing', 'Addressing Comments', 'Resolving Conflicts', 'Running DoD',
     'Awaiting Continuation',
 ];
 
@@ -120,6 +125,43 @@ test('I1(tracker): 🧭 tracking 付きも merge/close 整合という出口を�
             selectClosedToReconcile([item], new Set([1])).length > 0,
             `tracker の ${status} に closed-reconcile の出口が無い`,
         );
+    }
+});
+
+/**
+ * 遷移表 #17（PR merge → D: merge-progression → Close）の対象 Status。PR が出た後の非終端
+ * （In Progress / Blocked / Review / DoD）。PR 前（New Item / Backlog / Sprint Backlog）・
+ * 終端（Close / Done）・保留（Icebox）は対象外。state-machine.md の #17 と対で維持する。
+ */
+const MERGE_PROGRESSION_STATUSES = new Set(['In Progress', 'Blocked', 'Review', 'DoD']);
+
+test('#17: PR 後の非終端 leaf は 🙋・AI Status を問わず merge で Close に進む（#1351）', () => {
+    for (const status of STATUSES) {
+        for (const aiStatus of AI_STATUSES) {
+            for (const kind of KINDS) {
+                for (const hitl of [false, true]) {
+                    const item = { issue: 1, status, aiStatus, kind, hitlLabel: hitl, labels: [] };
+                    const candidate = selectMergeCandidates([item]).length > 0;
+                    const expected = kind === 'Issue' && MERGE_PROGRESSION_STATUSES.has(status);
+                    const label = `status=${status} aiStatus=${aiStatus} kind=${kind} hitl=${hitl}`;
+                    assert.equal(candidate, expected, label);
+                    if (!expected) continue;
+                    const m = Object.fromEntries(mergeProgressionIntents(item, true).map((i) => [i.field, i.value]));
+                    assert.equal(m.Status, 'Close', label);
+                    // 🙋 は Project 意図に含めない（face sync が外す・#813）
+                    assert.ok(!('HITL' in m), label);
+                }
+            }
+        }
+    }
+});
+
+test('#17: 🧭 tracking はどの Status でも merge-progression の対象外', () => {
+    for (const status of STATUSES) {
+        for (const kind of KINDS) {
+            const item = { issue: 1, status, kind, hitlLabel: true, labels: [TRACKING_LABEL] };
+            assert.deepEqual(selectMergeCandidates([item]), [], `status=${status} kind=${kind}`);
+        }
     }
 });
 
@@ -224,6 +266,46 @@ test('#972 回帰: In Progress + 実作業系 AI Status + 🙋 HITL 残渣は wo
     assert.deepEqual(selectStalledInFlightItems([residue], new Set([973])), []);
 });
 
+test('#1310 回帰: 実作業系フェーズが hitl で終えた item は 🙋 が外れるまで再ディスパッチされない', () => {
+    const phases = [...new Set(Object.values(IN_FLIGHT_WORK_PHASE_BY_AI_STATUS))];
+    for (const [aiStatus, phase] of Object.entries(IN_FLIGHT_WORK_PHASE_BY_AI_STATUS)) {
+        assert.ok(phases.includes(phase));
+        const before = { issue: 1282, status: 'In Progress', aiStatus, hitlLabel: false, labels: [] };
+        const result = { issue: 1282, phase, signal: 'hitl', summary: 's', reason: 'infra が必要' };
+        const after = applyIntentsToItem(
+            { ...before, hitlLabel: hitlDesireFromResult(result) }, applyResult(result),
+        );
+        // 人間の判断待ちは Blocked（人間ゲート）へ回り、stalled 復帰・stuck 検知の対象から外れる
+        assert.equal(after.status, 'Blocked', `${phase}: hitl は Blocked へ回す`);
+        assert.equal(after.hitlLabel, true);
+        assert.deepEqual(selectStalledInFlightItems([after], new Set()), [], `${phase}: 再ディスパッチしない`);
+        assert.equal(isStuckCandidate(after), false);
+        assert.equal(phaseForItem(after, {}), null, `${phase}: 🙋 がある間は動かない`);
+        // 🙋 を外せば再開できる（PR なし → triage / PR あり → address-review）
+        assert.equal(phaseForItem({ ...after, hitlLabel: false }, {}), 'triage');
+        assert.equal(phaseForItem(after, { hitlSignals: { issueLabel: true, prLabel: false }, pr: 9 }), 'address-review');
+    }
+});
+
+test('#1310: 明示の nextStatus / nextAiStatus を持つ hitl は従来どおり（Blocked で上書きしない）', () => {
+    const review = applyResult({ issue: 1, phase: 'address-review', signal: 'hitl', summary: 's', reason: 'r', nextStatus: 'Review' });
+    assert.deepEqual(review, [{ field: 'Status', value: 'Review' }]);
+    const checkpoint = applyResult({
+        issue: 1, phase: 'implement', signal: 'hitl', summary: 's', reason: 'r', nextAiStatus: 'Awaiting Continuation',
+    });
+    assert.deepEqual(checkpoint, [{ field: 'AI Status', value: 'Awaiting Continuation' }]);
+    // 判断待ちの AI Status を自前で持つフェーズ（triage / decompose）は Status を動かさない
+    for (const phase of ['triage', 'decompose', 'discuss']) {
+        assert.deepEqual(applyResult({ issue: 1, phase, signal: 'hitl', summary: 's', reason: 'r' }), []);
+    }
+});
+
+test('#1310 / #972: Status 書き込みが失敗して 🙋 だけ付いた In Progress は従来どおり自動再開する', () => {
+    // Blocked 書き込みが落ちると In Progress / 実作業系 AI Status / 🙋 のまま残る（#972 と同じ形）
+    const residue = { issue: 1282, status: 'In Progress', aiStatus: 'Implementing', hitlLabel: true, labels: [] };
+    assert.deepEqual(selectStalledInFlightItems([residue], new Set()), [{ issue: 1282, phase: 'implement' }]);
+});
+
 test('#1130 回帰: 未分解 EPIC は 🧭 tracking で締め出されず、HITL 解除で decompose へ戻る', () => {
     // #1129 の状況: decompose が分解案 HITL で停止（In Progress / Decomposing / 🙋）
     const undecomposed = {
@@ -243,4 +325,40 @@ test('#1130 回帰: 未分解 EPIC は 🧭 tracking で締め出されず、HIT
     const { labelActions, healingLabelActions, AUTOPILOT_LABEL } = require('../src/phases');
     assert.ok(!labelActions(undecomposed, [AUTOPILOT_LABEL]).add.includes(TRACKING_LABEL));
     assert.ok(!healingLabelActions(undecomposed, [AUTOPILOT_LABEL]).add.includes(TRACKING_LABEL));
+});
+
+test('#1315: 🔬 spike は実装前の相談・質問待ちだけに付き、implement 以降・終端では必ず外れる', () => {
+    const { isSpikeItem, labelActions, SPIKE_LABEL } = require('../src/phases');
+    // 実装（implement）以降の AI Status。ここに来たら Spike ではない
+    const POST_IMPLEMENT = new Set(['Implementing', 'Creating PR', 'Self-Reviewing', 'Addressing Comments',
+        'Running DoD', 'Awaiting Continuation', 'EPIC Decomposed']);
+    for (const status of STATUSES) {
+        for (const aiStatus of AI_STATUSES) {
+            for (const hitlLabel of [true, false]) {
+                const item = { status, aiStatus, hitlLabel };
+                const spike = isSpikeItem(item);
+                const where = `${status}/${aiStatus}/${hitlLabel}`;
+                if (TERMINAL_STATUSES.has(status) || status === 'Icebox' || POST_IMPLEMENT.has(aiStatus)) {
+                    assert.equal(spike, false, where);
+                }
+                // ラベルは状態の導出（付いていれば外す / 無ければ付ける、のどちらか一方だけ）
+                const withLabel = labelActions(item, [SPIKE_LABEL]);
+                const without = labelActions(item, []);
+                assert.equal(withLabel.remove.includes(SPIKE_LABEL), !spike, where);
+                assert.equal(without.add.includes(SPIKE_LABEL), spike, where);
+            }
+        }
+    }
+});
+
+test('#1315: 🙋 の非終端 item は必ず「何待ちか」の理由を 1 つ持つ', () => {
+    const { humanWaitReason, HUMAN_WAIT_REASONS } = require('../src/phases');
+    const keys = new Set(HUMAN_WAIT_REASONS.map((r) => r.key));
+    for (const status of STATUSES) {
+        if (TERMINAL_STATUSES.has(status) || status === 'Icebox') continue;
+        for (const aiStatus of AI_STATUSES) {
+            const reason = humanWaitReason({ status, aiStatus, hitlLabel: true });
+            assert.ok(keys.has(reason), `${status}/${aiStatus}: ${reason}`);
+        }
+    }
 });

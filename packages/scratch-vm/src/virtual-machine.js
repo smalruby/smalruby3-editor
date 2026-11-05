@@ -25,6 +25,7 @@ const {
     migrateMeshV1Blocks,
     migrateMeshV1InBlockArray,
     migrateMeshV1InSprite3Zip,
+    migrateMeshV1InTargets,
 } = require('./serialization/smalruby-migration');
 // === Smalruby: End of mesh v1 to v2 migration ===
 
@@ -619,6 +620,10 @@ class VirtualMachine extends EventEmitter {
      */
     installTargets (targets, extensions, wholeProject) {
         const extensionPromises = [];
+
+        // === Smalruby: Start of mesh v1 to v2 migration on install ===
+        migrateMeshV1InTargets(targets, extensions);
+        // === Smalruby: End of mesh v1 to v2 migration on install ===
 
         extensions.extensionIDs.forEach(extensionID => {
             if (!this.extensionManager.isExtensionLoaded(extensionID)) {

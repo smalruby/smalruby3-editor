@@ -409,27 +409,17 @@ describe('extractUsageContext', () => {
     expect(extractUsageContext({})).toEqual({});
   });
 
-  test('purpose / classroom / seat を取り出す', () => {
-    expect(extractUsageContext({ purpose: 'genai-takeover', classroom: 'cls_abc-123', seat: 12 }))
-      .toEqual({ purpose: 'genai-takeover', classroom: 'cls_abc-123', seat: '12' });
+  test('purpose と、sessionToken で確かめた classroom / seat を取り出す', () => {
+    expect(extractUsageContext({ purpose: 'genai-takeover' }, { classroom: 'cls-1', seat: '3' }))
+      .toEqual({ purpose: 'genai-takeover', classroom: 'cls-1', seat: '3' });
   });
 
-  test('seat は文字列でもよい', () => {
-    expect(extractUsageContext({ seat: '7' })).toEqual({ seat: '7' });
-  });
-
-  test('メールアドレスのような値の classroom は記録しない', () => {
-    expect(extractUsageContext({ classroom: 'taro@example.com' })).toEqual({});
-  });
-
-  test('改行・空白・長すぎる値は記録しない', () => {
-    expect(extractUsageContext({ classroom: 'a\nb', seat: '1 2' })).toEqual({});
-    expect(extractUsageContext({ classroom: 'a'.repeat(101) })).toEqual({});
-    expect(extractUsageContext({ seat: '1'.repeat(11) })).toEqual({});
-  });
-
-  test('オブジェクトや配列は記録しない', () => {
-    expect(extractUsageContext({ classroom: { id: 'x' }, seat: [1] })).toEqual({});
+  test('リクエストの classroom / seat は自己申告なので使わない (#1317)', () => {
+    const body = { purpose: 'genai-takeover', classroom: 'victim-cls', seat: '7' };
+    expect(extractUsageContext(body)).toEqual({ purpose: 'genai-takeover' });
+    expect(extractUsageContext(body, null)).toEqual({ purpose: 'genai-takeover' });
+    expect(extractUsageContext(body, { classroom: 'cls-1', seat: '3' }))
+      .toEqual({ purpose: 'genai-takeover', classroom: 'cls-1', seat: '3' });
   });
 
   test('purpose は既知の値だけ記録する', () => {
@@ -448,7 +438,7 @@ describe('buildResponseLog', () => {
       model: 'claude-sonnet-5-5',
       usage,
       userMessageLength: 20,
-      usageContext: extractUsageContext({ purpose: 'genai-takeover', classroom: 'c1', seat: 3 }),
+      usageContext: extractUsageContext({ purpose: 'genai-takeover' }, { classroom: 'c1', seat: '3' }),
       sourceIp: '1.2.3.4',
       stage: 'prod',
     });
