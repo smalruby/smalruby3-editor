@@ -1,0 +1,145 @@
+/* Preview of the students' screen in the class AI settings (issue #1290). */
+
+.preview {
+    flex: 0 0 15rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    background: hsla(215, 50%, 95%, 1);
+}
+
+/* Narrow screens have no room beside the form; the notes in the form say the same. */
+@media (max-width: 1099px) {
+    .preview {
+        display: none;
+    }
+}
+
+.title {
+    margin: 0;
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: hsla(225, 15%, 30%, 1);
+}
+
+.screen {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid hsla(0, 0%, 0%, 0.15);
+    border-radius: 0.35rem;
+    background: white;
+    overflow: hidden;
+}
+
+.tab {
+    align-self: flex-start;
+    padding: 0.05rem 0.5rem;
+    border-bottom-right-radius: 0.35rem;
+    background: #855cd6;
+    color: white;
+    font-size: 0.7rem;
+    font-weight: bold;
+}
+
+.canvas {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    height: 4.6rem;
+    padding: 0.35rem 0.5rem;
+}
+
+.hat,
+.motion,
+.looks {
+    display: block;
+    height: 0.6rem;
+    border-radius: 0.15rem;
+}
+
+.hat {
+    width: 4.5rem;
+    border-top-left-radius: 0.5rem;
+    border-top-right-radius: 0.5rem;
+    background: #ffbf00;
+}
+
+.motion {
+    width: 5.5rem;
+    background: #4c97ff;
+}
+
+.looks {
+    width: 4rem;
+    background: #9966ff;
+}
+
+/* Same place as the real one: the bottom left of the Code screen. */
+.consult {
+    position: absolute;
+    left: 0.4rem;
+    bottom: 0.3rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.65rem;
+    font-weight: bold;
+    color: #855cd6;
+}
+
+.face {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.3rem;
+    height: 1.3rem;
+    border: 2px solid #855cd6;
+    border-radius: 50%;
+    background: white;
+    font-size: 0.55rem;
+}
+
+.editor {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    height: 3.6rem;
+    padding: 0.4rem 0.5rem;
+    background: hsla(0, 0%, 98%, 1);
+}
+
+.line {
+    display: block;
+    height: 0.3rem;
+    border-radius: 0.15rem;
+    background: hsla(0, 0%, 0%, 0.15);
+}
+
+.ai-button,
+.ai-button-off {
+    position: absolute;
+    top: 0.3rem;
+    right: 0.4rem;
+    padding: 0.05rem 0.35rem;
+    border-radius: 0.75rem;
+    background: #855cd6;
+    color: white;
+    font-size: 0.6rem;
+    font-weight: bold;
+}
+
+.ai-button-off {
+    background: hsla(0, 0%, 80%, 1);
+    color: white;
+    opacity: 0.5;
+}
+
+.off {
+    margin: 0;
+    font-size: 0.7rem;
+    color: hsla(225, 15%, 40%, 1);
+}

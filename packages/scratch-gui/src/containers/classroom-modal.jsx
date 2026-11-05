@@ -17,8 +17,10 @@ import {
     closeClassroomModal,
     openTeacherModal,
     setClassroomSession,
+    setStudentGenai,
     clearClassroomSession,
     setSubmissionStatus,
+    setRubyteeEnabled,
 } from '../reducers/classroom.js';
 import { setProjectTitle } from '../reducers/project-title.js';
 import { decideClasscodeAction, initialStudentPhase, resolveAutoJoinCode } from './classroom-classcode-utils.js';
@@ -301,8 +303,10 @@ const ClassroomModal = () => {
                         memberId: data.memberId,
                         sessionToken: data.sessionToken,
                         joinedAt: new Date().toISOString(),
+                        rubyteeEnabled: !!(data.rubytee && data.rubytee.enabled === true),
                     }),
                 );
+                dispatch(setStudentGenai(data.genai));
                 try {
                     analytics.event({
                         category: 'classroom',
@@ -386,6 +390,10 @@ const ClassroomModal = () => {
             const result = await classroomAPI.verifySession(token);
             if (token !== sessionTokenRef.current) return;
             urlRejoinCodeRef.current = null;
+            // The teacher may turn the class's generative AI on or off after the student joined.
+            dispatch(setStudentGenai(result.genai));
+            // The teacher may turn Rubytee on or off after the student joined (#1278).
+            dispatch(setRubyteeEnabled(!!(result.rubytee && result.rubytee.enabled === true)));
             if (result.submission) {
                 dispatch(setSubmissionStatus(result.submission.status, result.submission.submittedAt));
                 setStudentTeacherComment(result.submission.teacherComment || null);
