@@ -735,8 +735,25 @@ test('selectMergeCandidates: leaf items in post-PR statuses; excludes EPIC and t
         { issue: 5, status: 'Close', kind: 'Issue' }, // no (terminal)
         { issue: 6, status: 'Sprint Backlog', kind: 'Issue' }, // no (まだ PR 無し)
         { issue: 7, status: 'New Item', kind: 'Issue' }, // no
+        { issue: 8, status: 'Blocked', kind: 'Issue', hitlLabel: true }, // yes (#1351: 人間が Blocked のまま merge しうる)
+        { issue: 9, status: 'Blocked', kind: 'EPIC' }, // no (EPIC)
+        { issue: 10, status: 'Icebox', kind: 'Issue' }, // no (保留)
+        { issue: 11, status: 'Done', kind: 'Issue' }, // no (terminal)
     ];
-    assert.deepEqual(selectMergeCandidates(items).map((i) => i.issue), [1, 2, 3]);
+    assert.deepEqual(selectMergeCandidates(items).map((i) => i.issue), [1, 2, 3, 8]);
+});
+
+test('selectMergeCandidates: 🧭 tracking は Blocked でも対象外（#1351）', () => {
+    const items = [{ issue: 1, status: 'Blocked', kind: 'Issue', labels: [TRACKING_LABEL] }];
+    assert.deepEqual(selectMergeCandidates(items), []);
+});
+
+test('mergeProgressionIntents: Blocked + 🙋 の leaf も merge で Close（HITL は Project 意図に含めない・#1351）', () => {
+    const intents = mergeProgressionIntents({ issue: 1, status: 'Blocked', kind: 'Issue', hitlLabel: true }, true);
+    assert.deepEqual(intents, [
+        { field: 'Status', value: 'Close' },
+        { field: 'AI Status', value: null },
+    ]);
 });
 
 test('mergeProgressionIntents: merged leaf -> Close, clear AI Status (no HITL field)', () => {

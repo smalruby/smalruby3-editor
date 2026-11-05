@@ -77,6 +77,33 @@ test('applyMergeProgression: closes leaf with merged PR; skips not-merged/EPIC/t
     assert.equal(m['AI Status'], null);
 });
 
+test('applyMergeProgression: Blocked + 🙋 の leaf も merge で Close へ進み 🙋 を外す（#1351）', async () => {
+    // PR 本文に Closes が無い（GitHub が Issue を閉じない）ケース: merge-progression だけが出口
+    const items = [{ issue: 1, itemId: 'i1', status: 'Blocked', kind: 'Issue', hitlLabel: true, aiStatus: 'Implementing' }];
+    const applied = [];
+    const closed = [];
+    const synced = [];
+    await applyMergeProgression(items, makeCfg(), { running: new Map() }, () => {}, {
+        token: 't',
+        hasMergedPullRequest: () => true,
+        applyIntents: (ctx, itemId, intents) => {
+            applied.push({ itemId, intents });
+            return intents.map((i) => `${i.field}=${i.value}`);
+        },
+        closeIssue: (repo, issue) => closed.push(issue),
+        findItemId: () => 'x',
+        syncFaces: (item) => synced.push(item),
+    });
+    assert.equal(applied.length, 1);
+    const m = Object.fromEntries(applied[0].intents.map((i) => [i.field, i.value]));
+    assert.equal(m.Status, 'Close');
+    assert.equal(m['AI Status'], null);
+    assert.deepEqual(closed, [1]);
+    assert.equal(synced.length, 1);
+    assert.equal(synced[0].hitlLabel, false);
+    assert.equal(items[0].status, 'Close');
+});
+
 test('applyMergeProgression: also closes the GitHub issue (Fix A, #843)', async () => {
     // 非デフォルト base 宛て PR では GitHub の `Closes #N` 自動 close が効かないので、
     // leaf を Close へ前進させたら GitHub issue も明示 close する（冪等）。

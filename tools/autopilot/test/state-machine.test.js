@@ -18,6 +18,8 @@ const {
     applyIntentsToItem,
     hitlDesireFromResult,
     selectClosedToReconcile,
+    selectMergeCandidates,
+    mergeProgressionIntents,
     TERMINAL_STATUSES,
     TRACKING_LABEL,
 } = require('../src/phases');
@@ -123,6 +125,43 @@ test('I1(tracker): 🧭 tracking 付きも merge/close 整合という出口を�
             selectClosedToReconcile([item], new Set([1])).length > 0,
             `tracker の ${status} に closed-reconcile の出口が無い`,
         );
+    }
+});
+
+/**
+ * 遷移表 #17（PR merge → D: merge-progression → Close）の対象 Status。PR が出た後の非終端
+ * （In Progress / Blocked / Review / DoD）。PR 前（New Item / Backlog / Sprint Backlog）・
+ * 終端（Close / Done）・保留（Icebox）は対象外。state-machine.md の #17 と対で維持する。
+ */
+const MERGE_PROGRESSION_STATUSES = new Set(['In Progress', 'Blocked', 'Review', 'DoD']);
+
+test('#17: PR 後の非終端 leaf は 🙋・AI Status を問わず merge で Close に進む（#1351）', () => {
+    for (const status of STATUSES) {
+        for (const aiStatus of AI_STATUSES) {
+            for (const kind of KINDS) {
+                for (const hitl of [false, true]) {
+                    const item = { issue: 1, status, aiStatus, kind, hitlLabel: hitl, labels: [] };
+                    const candidate = selectMergeCandidates([item]).length > 0;
+                    const expected = kind === 'Issue' && MERGE_PROGRESSION_STATUSES.has(status);
+                    const label = `status=${status} aiStatus=${aiStatus} kind=${kind} hitl=${hitl}`;
+                    assert.equal(candidate, expected, label);
+                    if (!expected) continue;
+                    const m = Object.fromEntries(mergeProgressionIntents(item, true).map((i) => [i.field, i.value]));
+                    assert.equal(m.Status, 'Close', label);
+                    // 🙋 は Project 意図に含めない（face sync が外す・#813）
+                    assert.ok(!('HITL' in m), label);
+                }
+            }
+        }
+    }
+});
+
+test('#17: 🧭 tracking はどの Status でも merge-progression の対象外', () => {
+    for (const status of STATUSES) {
+        for (const kind of KINDS) {
+            const item = { issue: 1, status, kind, hitlLabel: true, labels: [TRACKING_LABEL] };
+            assert.deepEqual(selectMergeCandidates([item]), [], `status=${status} kind=${kind}`);
+        }
     }
 });
 
