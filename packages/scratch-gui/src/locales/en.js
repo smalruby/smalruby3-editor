@@ -342,7 +342,6 @@ export default {
     'gui.classroom.groups.hint':
         'A group is one school class (e.g. Year 2 Class 1). Assign each lesson to a group to organize the year and enable the previous-comment recap for students.',
     'gui.classroom.groups.manageButton': 'Manage Groups',
-    'gui.classroom.groups.create': 'Create Group',
     'gui.classroom.groups.namePlaceholder': 'Group name (e.g. Year 2 Class 1)',
     'gui.classroom.groups.yearLabel': '{year} school year',
     'gui.classroom.groups.sidebarHeader': '{name} ({year})',

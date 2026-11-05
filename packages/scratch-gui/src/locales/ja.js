@@ -402,7 +402,6 @@ export default {
     'gui.classroom.groups.hint':
         'クラスは1つの学級（例: 2年1組）です。授業（課題）をクラスに割り当てると年間の整理ができ、生徒には前回の返却コメントが再表示されます。',
     'gui.classroom.groups.manageButton': 'クラスの設定',
-    'gui.classroom.groups.create': 'クラスをつくる',
     'gui.classroom.groups.namePlaceholder': 'クラスの名前（例: 2年1組）',
     'gui.classroom.groups.yearLabel': '{year}年度',
     'gui.classroom.groups.sidebarHeader': '{name}（{year}年度）',

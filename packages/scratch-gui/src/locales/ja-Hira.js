@@ -411,7 +411,6 @@ export default {
     'gui.classroom.groups.hint':
         'クラスは1つのがっきゅう（れい: 2ねん1くみ）です。じゅぎょう（かだい）をクラスにわりあてるとねんかんのせいりができ、せいとにはぜんかいのへんきゃくコメントがさいひょうじされます。',
     'gui.classroom.groups.manageButton': 'クラスのせってい',
-    'gui.classroom.groups.create': 'クラスをつくる',
     'gui.classroom.groups.namePlaceholder': 'クラスのなまえ（れい: 2ねん1くみ）',
     'gui.classroom.groups.yearLabel': '{year}ねんど',
     'gui.classroom.groups.sidebarHeader': '{name}（{year}ねんど）',
