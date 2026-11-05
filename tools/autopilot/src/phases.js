@@ -633,10 +633,14 @@ function progressOnMerge(kind) {
 /**
  * merge 後の前進をチェックすべき Status の集合。
  * PR が出た後〜Close 前の leaf だけを対象にする（New Item/Backlog/Sprint Backlog はまだ PR が
- * 無いので除外、Close/Done は終端なので除外）。人間は Review でも DoD でも手動 merge しうるため
- * In Progress / Review / DoD の 3 つを見る。
+ * 無いので除外、Close/Done は終端・Icebox は保留なので除外）。人間は Review でも DoD でも手動
+ * merge しうるため In Progress / Review / DoD を見る。Blocked も人間ゲートで、人間の判断で PR が
+ * merge されうる（merge は HITL と独立した前進シグナル）。PR 本文に `Closes` が無いと GitHub が
+ * Issue を閉じず closed-reconcile も効かないので、ここで拾わないと Blocked のまま残る（#1351）。
+ * Discussing / Awaiting Continuation は AI Status で、Status は New Item・Backlog（PR 前）/
+ * In Progress なので Status の集合として別に足すものは無い。
  */
-const MERGE_CHECK_STATUSES = new Set(['In Progress', 'Review', 'DoD']);
+const MERGE_CHECK_STATUSES = new Set(['In Progress', 'Review', 'DoD', 'Blocked']);
 
 /**
  * Project item から「merge 検知の対象（連携 PR が merge 済みか問い合わせる価値がある）」を選ぶ。
