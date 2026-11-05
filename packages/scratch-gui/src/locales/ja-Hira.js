@@ -158,6 +158,8 @@ export default {
     'gui.classroom.studentSeat.numberInputLabel': 'しゅっせきばんごう',
     'gui.classroom.studentSeat.numberInputPlaceholder': '1〜{seatCount}',
     'gui.classroom.studentSeat.numberSubmit': 'このばんごうにする',
+    'gui.classroom.studentSeat.numberToggle': 'ばんごうがみつからないとき',
+    'gui.classroom.studentSeat.reselect': 'えらびなおす',
     'gui.classroom.studentSeat.numberError': '1から{seatCount}までのすうじをいれてください。',
     'gui.classroom.studentSeat.alreadyRequested':
         'しゅっせきばんごう{seatNumber}はつかわれています。いませんせいにおねがいしているところなので、すこしまっていてください。',

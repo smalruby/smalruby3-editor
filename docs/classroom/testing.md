@@ -122,13 +122,16 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-seat-grid` | div | 席番号グリッド |
 | `classroom-seat-{n}` | button | 席番号 n のボタン（使用中は `classroom-status-icon-occupied` を含む） |
 | `classroom-selected-seat` | div (hidden) | 選択中の席番号 |
-| `classroom-seat-number-form` | form | 出席番号の数値入力フォーム（グリッドの上） |
+| `classroom-seat-number-toggle` | button | 「番号が見つからないとき」（グリッドの下）。押すと番号入力フォームが開く（開いたあとは消える） |
+| `classroom-seat-number-form` | form | 出席番号の数値入力フォーム（`classroom-seat-number-toggle` を押したときだけ、グリッドの下） |
 | `classroom-seat-number-input` | input | 出席番号の入力欄（1〜定員。全角数字も可）。入力した番号のセルは `data-typed` で強調 |
 | `classroom-seat-number-submit` | button | 「この番号にする」。空席なら選択→確認、使用中なら退室依頼ダイアログ |
 | `classroom-seat-number-error` | div | 範囲外・数字以外の入力エラー |
 | `classroom-seat-guide` | div | 常時の案内文。表示から 30 秒席が選ばれないと `data-idle="1"` で強調（`prefers-reduced-motion` ではアニメなし） |
+| `classroom-seat-confirm` | div | 席を選んだあとの確認ステップ（座席グリッドの代わりに表示。確認文・［選び直す］・［参加する］を含む） |
 | `classroom-seat-confirm-message` | div | 参加確定前の大きな確認「出席番号 NN で参加します」 |
-| `classroom-confirm-seat` | button | 席番号確定・参加 |
+| `classroom-seat-reselect` | button | 「選び直す」。座席グリッドに戻る |
+| `classroom-confirm-seat` | button | 席番号確定・参加（席を選んだあとの確認ステップにだけ表示） |
 
 ### 生徒: 参加完了
 

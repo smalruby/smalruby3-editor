@@ -129,6 +129,8 @@ export default {
     'gui.classroom.studentSeat.numberInputLabel': 'Seat number',
     'gui.classroom.studentSeat.numberInputPlaceholder': '1-{seatCount}',
     'gui.classroom.studentSeat.numberSubmit': 'Use this number',
+    'gui.classroom.studentSeat.numberToggle': "Can't find your number?",
+    'gui.classroom.studentSeat.reselect': 'Choose again',
     'gui.classroom.studentSeat.numberError': 'Type a number from 1 to {seatCount}.',
     'gui.classroom.studentSeat.alreadyRequested':
         'Seat {seatNumber} is in use. You are already waiting for the teacher, so please wait a little.',
