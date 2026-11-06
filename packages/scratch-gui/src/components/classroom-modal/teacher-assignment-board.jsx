@@ -921,6 +921,7 @@ const TeacherAssignmentBoard = ({
                           },
                 ...(subView ? [{ label: intl.formatMessage(subViewMessages[subView]) }] : []),
             ]}
+            className={styles.boardScreen}
             testId="classroom-board"
         >
             {!subView && (
@@ -1278,7 +1279,9 @@ const TeacherAssignmentBoard = ({
                     </ul>
                 </TeacherSubView>
             ) : tab === 'stream' ? null : (
-                <React.Fragment>
+                // R6: only this list frame scrolls (its length follows the number of
+                // assignments); the tabs and［＋ 作成 ▾］stay visible above it.
+                <div className={styles.boardList} data-testid="classroom-board-list">
             {sections.length === 0 ? (
                 <p className={styles.boardEmpty} data-testid="classroom-board-empty">
                     <FormattedMessage
@@ -1389,7 +1392,7 @@ const TeacherAssignmentBoard = ({
                     ) : null}
                 </div>
             ) : null}
-                </React.Fragment>
+                </div>
             )}
         </TeacherScreen>
     );
