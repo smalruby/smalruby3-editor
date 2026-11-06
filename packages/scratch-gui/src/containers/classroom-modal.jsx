@@ -221,9 +221,16 @@ const ClassroomModal = () => {
         [clearError, showError, intl, applyKickRequestOutcome],
     );
 
-    const handleSelectSeat = useCallback((seatNumber) => {
-        setSelectedSeat(seatNumber);
-    }, []);
+    // The only error on the seat screen is the last failed join. Once the
+    // student picks (or re-picks) a seat it no longer applies, and left as is
+    // it would sit right under the new confirmation (#1305).
+    const handleSelectSeat = useCallback(
+        (seatNumber) => {
+            clearError();
+            setSelectedSeat(seatNumber);
+        },
+        [clearError],
+    );
 
     // --- Kick-request handlers ---
 

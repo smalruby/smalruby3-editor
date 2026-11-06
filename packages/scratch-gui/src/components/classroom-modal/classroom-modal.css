@@ -28,16 +28,13 @@
     max-height: calc(100vh - 5.125rem - 8px);
 }
 
-/* Seat screen: the grid on the left, notices and the join action on the
-   right. When stacked, notices move above the grid so a student reads why
-   they are back here before picking a seat. */
+/* Seat screen: the grid (or, once a seat is picked, the confirmation with
+   Join) on the left, notices on the right. When stacked, notices move above
+   the grid so a student reads why they are back here before picking a seat. */
 .student-seat-layout {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 360px;
-    grid-template-rows: auto 1fr;
-    grid-template-areas:
-        'main notices'
-        'main actions';
+    grid-template-areas: 'main notices';
     column-gap: 1.5rem;
 }
 
@@ -51,11 +48,6 @@
     min-width: 0;
 }
 
-.student-actions {
-    grid-area: actions;
-    min-width: 0;
-}
-
 .student-notices > :first-child {
     margin-top: 0;
 }
@@ -64,11 +56,9 @@
 @media (max-width: 1023px) {
     .student-seat-layout {
         grid-template-columns: minmax(0, 1fr);
-        grid-template-rows: auto;
         grid-template-areas:
             'notices'
-            'main'
-            'actions';
+            'main';
     }
 }
 
@@ -851,10 +841,6 @@
     background-color: #d9d9d9;
     color: #999;
     cursor: not-allowed;
-}
-
-.seat-selected {
-    background-color: #0fbd8c;
 }
 
 .error-text {
@@ -3930,6 +3916,29 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
     margin-top: 0.3rem;
     font-size: 0.85rem;
     color: #575e75;
+}
+
+/* --- Seat selection: one way to pick (#1305 S1) --- */
+
+.seat-number-toggle {
+    margin-top: 0.4rem;
+    font-size: 0.9rem;
+}
+
+.seat-confirm-step {
+    max-width: 36rem;
+}
+
+.seat-confirm-step .seat-confirm {
+    margin-top: 0;
+    padding: 1.5rem 1rem;
+}
+
+.seat-confirm-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 1rem;
 }
 
 .kick-request-pending-note {

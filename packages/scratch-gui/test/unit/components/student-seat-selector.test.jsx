@@ -19,7 +19,10 @@ const renderSelector = (props = {}) => {
     return { ...utils, ...handlers };
 };
 
+const openNumberForm = () => fireEvent.click(screen.getByTestId('classroom-seat-number-toggle'));
+
 const typeSeat = (value) => {
+    openNumberForm();
     fireEvent.change(screen.getByTestId('classroom-seat-number-input'), { target: { value } });
     fireEvent.click(screen.getByTestId('classroom-seat-number-submit'));
 };
@@ -70,7 +73,58 @@ describe('StudentSeatSelector number input (#1198)', () => {
 
     test('the placeholder shows the seat range through i18n', () => {
         renderSelector();
+        openNumberForm();
         expect(screen.getByTestId('classroom-seat-number-input')).toHaveAttribute('placeholder', '1-10');
+    });
+});
+
+describe('StudentSeatSelector one way to pick a seat (#1305 S1)', () => {
+    test('the number input is closed until the student cannot find the number', () => {
+        renderSelector();
+        expect(screen.queryByTestId('classroom-seat-number-form')).not.toBeInTheDocument();
+        expect(screen.getByTestId('classroom-seat-grid')).toBeInTheDocument();
+        openNumberForm();
+        expect(screen.getByTestId('classroom-seat-number-form')).toBeInTheDocument();
+        expect(screen.queryByTestId('classroom-seat-number-toggle')).not.toBeInTheDocument();
+    });
+
+    test('no join button before a seat is picked', () => {
+        renderSelector();
+        expect(screen.queryByTestId('classroom-confirm-seat')).not.toBeInTheDocument();
+    });
+
+    test('tapping a free seat goes straight to the confirmation', () => {
+        const { onSelectSeat } = renderSelector();
+        fireEvent.click(screen.getByTestId('classroom-seat-5'));
+        expect(onSelectSeat).toHaveBeenCalledWith(5);
+    });
+
+    test('the confirmation replaces the grid and puts Join right under the number', () => {
+        renderSelector({ selectedSeat: 5 });
+        expect(screen.queryByTestId('classroom-seat-grid')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('classroom-seat-number-toggle')).not.toBeInTheDocument();
+        const confirm = screen.getByTestId('classroom-seat-confirm');
+        expect(confirm).toContainElement(screen.getByTestId('classroom-seat-confirm-message'));
+        expect(confirm).toContainElement(screen.getByTestId('classroom-confirm-seat'));
+        expect(confirm).toContainElement(screen.getByTestId('classroom-seat-reselect'));
+    });
+
+    test('Join confirms the picked seat', () => {
+        const { onConfirmJoin } = renderSelector({ selectedSeat: 5 });
+        fireEvent.click(screen.getByTestId('classroom-confirm-seat'));
+        expect(onConfirmJoin).toHaveBeenCalled();
+    });
+
+    test('Choose again goes back to the seat buttons', () => {
+        const { onSelectSeat } = renderSelector({ selectedSeat: 5 });
+        fireEvent.click(screen.getByTestId('classroom-seat-reselect'));
+        expect(onSelectSeat).toHaveBeenCalledWith(null);
+    });
+
+    test('Join and Choose again are disabled while joining', () => {
+        renderSelector({ selectedSeat: 5, isLoading: true });
+        expect(screen.getByTestId('classroom-confirm-seat')).toBeDisabled();
+        expect(screen.getByTestId('classroom-seat-reselect')).toBeDisabled();
     });
 });
 
@@ -93,10 +147,20 @@ describe('StudentSeatSelector guide and confirmation (#1198)', () => {
     });
 
     test('no emphasis once a seat is selected', () => {
-        renderSelector({ selectedSeat: 5 });
+        const { rerender } = renderSelector({ selectedSeat: 5 });
         act(() => {
             jest.advanceTimersByTime(60000);
         });
+        rerender(
+            <IntlProvider locale="en">
+                <StudentSeatSelector
+                    seatCount={10}
+                    takenSeats={[3]}
+                    onConfirmJoin={jest.fn()}
+                    onSelectSeat={jest.fn()}
+                />
+            </IntlProvider>,
+        );
         expect(screen.getByTestId('classroom-seat-guide')).toHaveAttribute('data-idle', '0');
     });
 
@@ -121,6 +185,7 @@ describe('StudentSeatSelector two-column layout (#1221)', () => {
 
     test('the number input, guide and grid sit in the main column', () => {
         renderSelector();
+        openNumberForm();
         expect(within('classroom-seat-main', 'classroom-seat-number-form')).toBe(true);
         expect(within('classroom-seat-main', 'classroom-seat-guide')).toBe(true);
         expect(within('classroom-seat-main', 'classroom-seat-grid')).toBe(true);
@@ -140,15 +205,16 @@ describe('StudentSeatSelector two-column layout (#1221)', () => {
         expect(within('classroom-seat-notices', 'kick-request-rejected-banner')).toBe(true);
     });
 
-    test('the confirmation and the join button sit in the actions column', () => {
+    test('the confirmation and the join button sit in the main column (#1305)', () => {
         renderSelector({ selectedSeat: 5 });
-        expect(within('classroom-seat-actions', 'classroom-seat-confirm-message')).toBe(true);
-        expect(within('classroom-seat-actions', 'classroom-confirm-seat')).toBe(true);
+        expect(within('classroom-seat-main', 'classroom-seat-confirm-message')).toBe(true);
+        expect(within('classroom-seat-main', 'classroom-confirm-seat')).toBe(true);
+        expect(screen.queryByTestId('classroom-seat-actions')).not.toBeInTheDocument();
     });
 
-    test('the join error sits in the main column, below the grid', () => {
+    test('the join error sits in the main column, below the confirmation', () => {
         renderSelector({ selectedSeat: 5, error: 'Could not connect to the server.' });
         expect(within('classroom-seat-main', 'classroom-error')).toBe(true);
-        expect(within('classroom-seat-actions', 'classroom-error')).toBe(false);
+        expect(within('classroom-seat-notices', 'classroom-error')).toBe(false);
     });
 });

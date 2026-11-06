@@ -155,6 +155,8 @@ export default {
     'gui.classroom.studentSeat.numberInputLabel': '出席番号',
     'gui.classroom.studentSeat.numberInputPlaceholder': '1〜{seatCount}',
     'gui.classroom.studentSeat.numberSubmit': 'この番号にする',
+    'gui.classroom.studentSeat.numberToggle': '番号が見つからないとき',
+    'gui.classroom.studentSeat.reselect': '選び直す',
     'gui.classroom.studentSeat.numberError': '1から{seatCount}までの数字を入れてください。',
     'gui.classroom.studentSeat.alreadyRequested':
         '出席番号{seatNumber}は使われています。いま先生にお願いしているところなので、少し待っていてください。',
