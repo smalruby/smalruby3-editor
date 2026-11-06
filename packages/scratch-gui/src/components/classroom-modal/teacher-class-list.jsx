@@ -6,6 +6,7 @@
  * (name / year / section / student count / class-level co-teachers /
  * generative AI and Rubytee / archive).
  */
+import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { defineMessages, FormattedMessage, useIntl } from 'react-intl';
@@ -80,8 +81,8 @@ const fieldMessages = defineMessages({
  * @param {Function} props.onYearChange - change handler of the year input
  * @param {Function} props.onCountChange - change handler of the student count input
  * @param {boolean} props.disabled - whether the inputs are disabled
- * @param {boolean} props.compact - put section, year and count in one row (the settings screen,
- *     which must not grow taller); the small create dialog gives the section its own row
+ * @param {boolean} props.compact - put all four fields in one row (the settings screen, which
+ *     must not grow taller); the small create dialog gives the name and section their own rows
  * @param {boolean} props.countRequired - whether the student count is required
  * @param {object} props.nameRef - optional ref to the name input (for focus)
  * @returns {React.ReactElement} the labelled fields
@@ -99,6 +100,22 @@ const ClassFields = ({
     onYearChange,
 }) => {
     const intl = useIntl();
+    const nameField = (
+        <label className={classNames(styles.classField, compact && styles.classFieldWide)}>
+            <span className={styles.classFieldLabel}>{intl.formatMessage(fieldMessages.nameLabel)}</span>
+            <input
+                ref={nameRef}
+                data-testid={`${testIdPrefix}-name`}
+                disabled={disabled}
+                maxLength={50}
+                placeholder={intl.formatMessage(fieldMessages.namePlaceholder)}
+                required
+                type="text"
+                value={values.name}
+                onChange={onNameChange}
+            />
+        </label>
+    );
     const sectionField = (
         <label className={styles.classField}>
             <span className={styles.classFieldLabel}>{intl.formatMessage(fieldMessages.sectionLabel)}</span>
@@ -115,22 +132,10 @@ const ClassFields = ({
     );
     return (
         <React.Fragment>
-            <label className={styles.classField}>
-                <span className={styles.classFieldLabel}>{intl.formatMessage(fieldMessages.nameLabel)}</span>
-                <input
-                    ref={nameRef}
-                    data-testid={`${testIdPrefix}-name`}
-                    disabled={disabled}
-                    maxLength={50}
-                    placeholder={intl.formatMessage(fieldMessages.namePlaceholder)}
-                    required
-                    type="text"
-                    value={values.name}
-                    onChange={onNameChange}
-                />
-            </label>
+            {compact ? null : nameField}
             {compact ? null : sectionField}
             <div className={styles.classSettingsRow}>
+                {compact ? nameField : null}
                 {compact ? sectionField : null}
                 <label className={styles.classField}>
                     <span className={styles.classFieldLabel}>{intl.formatMessage(fieldMessages.yearLabel)}</span>

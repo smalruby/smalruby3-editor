@@ -3625,6 +3625,11 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
     min-width: 0;
 }
 
+/* 設定画面で 4 つを 1 行に並べるとき、クラス名だけ広くする。 */
+.class-settings-row > .class-field-wide {
+    flex: 2;
+}
+
 .class-field-label {
     font-size: 0.8rem;
     color: hsla(225, 15%, 40%, 1);
