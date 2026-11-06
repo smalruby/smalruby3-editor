@@ -222,6 +222,15 @@ if (BEFORE) {
     await page.waitForSelector('[data-testid="classroom-eval-matrix"]', { timeout: 30000 });
     await page.waitForTimeout(500);
     await shoot(page, 'step2-grade');
+    const before = await page.evaluate((root) => {
+        const el = document.querySelector(root);
+        const grade = document.querySelector('[data-testid="classroom-eval-run-grade"]');
+        return {
+            runGradeBottom: Math.round(grade.getBoundingClientRect().bottom),
+            screen: `${el.scrollHeight}/${el.clientHeight}`,
+        };
+    }, ROOT);
+    console.log(`BEFORE (40 seats loaded): ${JSON.stringify(before)}`);
     await browser.close();
     process.exit(0);
 }
