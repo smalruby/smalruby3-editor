@@ -2578,14 +2578,16 @@
 
 /* 1300×600 で縦スクロール無し（R6）。画面は縦の flex にして、席 × 課題の表の
    枠（.eval-matrix-wrapper）の中だけをスクロールさせ、手順のボタン行は常に下に見せる。
-   .teacher-view（overflow-y: auto）より後ろでも勝つよう 2 クラスで指定する。 */
+   .teacher-view より後ろでも勝つよう 2 クラスで指定する。overflow-y は .teacher-view の
+   auto のまま: ふだんは表の枠が縮むので本文はスクロールしないが、課題がとても多い・
+   設定と「詳しく」を同時に開いた等で収まらないときに、手順のボタンが切れて押せなく
+   ならないようにする（hidden にしない）。 */
 .teacher-view.evaluation-screen {
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
     height: 100%;
     max-width: 100%;
-    overflow: hidden;
 }
 
 .teacher-view.evaluation-screen > * {

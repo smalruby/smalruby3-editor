@@ -280,7 +280,12 @@ const TeacherEvaluation = ({
             return !!(cell && cell.submitted && cell.grade);
         }),
     );
-    const hasComments = Object.values(comments).some((comment) => (comment || '').trim() !== '');
+    // 表に出ている席 × 選んだ課題だけを数える (読み込み直しても前回の下書きは state に残るため)。
+    const hasComments = seats.some((seatNumber) =>
+        selectedLessons.some(
+            (lesson) => (comments[`${seatNumber}:${lesson.classroomId}`] || '').trim() !== '',
+        ),
+    );
     const step = currentEvalStep({ loaded, hasGrades, hasComments });
     const [hintOpen, setHintOpen] = useState(false);
     const handleHintToggle = useCallback(() => setHintOpen((prev) => !prev), []);

@@ -122,6 +122,15 @@ describe('TeacherEvaluation steps (V1)', () => {
         expect(currentStepIds(getByTestId)).toEqual(['classroom-eval-run-comment']);
     });
 
+    test('drafts left over from a previous load (other seats / unselected lessons) do not count', () => {
+        const { getByTestId } = renderEvaluation({
+            seats: [1],
+            getCell: () => ({ submitted: true, grade: 'A' }),
+            comments: { '2:c1': 'よくできました', '1:c9': 'よくできました' },
+        });
+        expect(currentStepIds(getByTestId)).toEqual(['classroom-eval-run-comment']);
+    });
+
     test('the load step needs at least one selected assignment', () => {
         const { getByTestId } = renderEvaluation({ selectedLessonIds: [] });
         expect(getByTestId('classroom-eval-load')).toBeDisabled();
