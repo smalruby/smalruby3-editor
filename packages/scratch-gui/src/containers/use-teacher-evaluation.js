@@ -292,7 +292,10 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
     const selectedLessons = evalLessons.filter((l) => selectedLessonIds.includes(l.classroomId));
 
     const handleExportEvaluationCsv = useCallback(() => {
-        downloadText(`${evalGroup?.name || 'class'}_評価.csv`, buildEvaluationCsv(selectedLessons, seats, getCell));
+        downloadText(
+            `${evalGroup?.name || 'class'}_採点結果.csv`,
+            buildEvaluationCsv(selectedLessons, seats, getCell),
+        );
     }, [evalGroup, selectedLessons, seats, getCell]);
 
     const handleExportAuditCsv = useCallback(() => {

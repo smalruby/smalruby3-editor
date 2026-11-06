@@ -1,14 +1,19 @@
 /**
- * Term-end evaluation screen (teacher side).
+ * Term-end grading screen (teacher side, 「採点」).
  *
  * seat × lesson matrix with AI-proposed grades. The AI never decides:
  * every proposal is editable, needsReview cells are highlighted, and the
  * exported CSVs (record + engineer audit) are the teacher's artifacts.
+ *
+ * The footer is a numbered flow (1 load → 2 AI grading → 3 comment drafts →
+ * 4 return, #1304 V1). Only the step the teacher is on is the primary button;
+ * the others stay usable (re-run, skip) but look secondary. The two CSVs are
+ * rare, so they sit in an 「書き出し ▾」 menu instead of the button row (R2).
  */
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
-import React, { useCallback } from 'react';
-import { FormattedMessage, useIntl } from 'react-intl';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { FormattedMessage, defineMessages, useIntl } from 'react-intl';
 
 import { GRADE_ORDER, combineOverall } from '../../lib/classroom-evaluation/evaluation-utils.js';
 
@@ -18,6 +23,150 @@ import { TeacherScreen } from './teacher-view-layout.jsx';
 import styles from './classroom-modal.css';
 
 const GRADES = [...GRADE_ORDER].reverse(); // S, A, B, C
+
+/* 厳しさの選択肢。閉じた設定の 1 行でも、いまの値として同じ言葉を出す。 */
+const STRICTNESS_MESSAGES = defineMessages({
+    lenient: {
+        defaultMessage: 'Lenient',
+        description: 'Strictness option',
+        id: 'gui.classroom.evaluation.strictnessLenient',
+    },
+    standard: {
+        defaultMessage: 'Standard',
+        description: 'Strictness option',
+        id: 'gui.classroom.evaluation.strictnessStandard',
+    },
+    strict: {
+        defaultMessage: 'Strict',
+        description: 'Strictness option',
+        id: 'gui.classroom.evaluation.strictnessStrict',
+    },
+});
+
+
+/**
+ * Which step of the grading flow the teacher is on (#1304 V1).
+ * Comment drafts move on to "return" even without grades: drafting
+ * comments without grading is a valid shortcut.
+ * @param {object} state - what has been done so far
+ * @param {boolean} state.loaded - submissions are loaded
+ * @param {boolean} state.hasGrades - at least one submitted cell has a grade
+ * @param {boolean} state.hasComments - at least one non-blank comment draft
+ * @returns {'load'|'grade'|'comment'|'return'} the current step
+ */
+export const currentEvalStep = ({ loaded, hasGrades, hasComments }) => {
+    if (!loaded) return 'load';
+    if (hasComments) return 'return';
+    if (hasGrades) return 'comment';
+    return 'grade';
+};
+
+/* One numbered step of the footer flow. */
+const StepButton = ({ children, current, dataTestId, disabled, number, onClick }) => (
+    <ClassroomButton
+        ariaCurrent={current ? 'step' : null}
+        dataTestId={dataTestId}
+        disabled={disabled}
+        variant={current ? 'primary' : 'secondary'}
+        onClick={onClick}
+    >
+        <span className={styles.evalStepNumber}>{number}</span>
+        {children}
+    </ClassroomButton>
+);
+
+StepButton.propTypes = {
+    children: PropTypes.node.isRequired,
+    current: PropTypes.bool.isRequired,
+    dataTestId: PropTypes.string.isRequired,
+    disabled: PropTypes.bool,
+    number: PropTypes.number.isRequired,
+    onClick: PropTypes.func.isRequired,
+};
+
+/* 「書き出し ▾」: the two CSV exports. Opens upward (it lives in the footer). */
+const ExportMenu = ({ disabled, onExportAuditCsv, onExportEvaluationCsv }) => {
+    const [open, setOpen] = useState(false);
+    const rootRef = useRef(null);
+
+    useEffect(() => {
+        if (!open) return;
+        const handleOutside = (e) => {
+            if (rootRef.current && !rootRef.current.contains(e.target)) setOpen(false);
+        };
+        document.addEventListener('mousedown', handleOutside);
+        return () => document.removeEventListener('mousedown', handleOutside);
+    }, [open]);
+    // A busy run disables the toggle; don't leave the list floating over it.
+    useEffect(() => {
+        if (disabled) setOpen(false);
+    }, [disabled]);
+
+    const handleToggle = useCallback(() => setOpen((prev) => !prev), []);
+    const handleEvaluation = useCallback(() => {
+        setOpen(false);
+        onExportEvaluationCsv();
+    }, [onExportEvaluationCsv]);
+    const handleAudit = useCallback(() => {
+        setOpen(false);
+        onExportAuditCsv();
+    }, [onExportAuditCsv]);
+
+    return (
+        <div className={styles.evalExportMenu} ref={rootRef}>
+            <ClassroomButton
+                ariaExpanded={open}
+                ariaHasPopup="menu"
+                dataTestId="classroom-eval-export-menu"
+                disabled={disabled}
+                onClick={handleToggle}
+            >
+                <FormattedMessage
+                    defaultMessage="Export"
+                    description="Menu button that holds the CSV exports of the grading screen"
+                    id="gui.classroom.evaluation.export"
+                />
+                {' ▾'}
+            </ClassroomButton>
+            {open && (
+                <div className={styles.evalExportList} role="menu">
+                    <button
+                        className={styles.evalExportItem}
+                        data-testid="classroom-eval-export"
+                        role="menuitem"
+                        type="button"
+                        onClick={handleEvaluation}
+                    >
+                        <FormattedMessage
+                            defaultMessage="Grades (CSV)"
+                            description="Export the grades CSV (record for the teacher)"
+                            id="gui.classroom.evaluation.exportCsv"
+                        />
+                    </button>
+                    <button
+                        className={styles.evalExportItem}
+                        data-testid="classroom-eval-export-audit"
+                        role="menuitem"
+                        type="button"
+                        onClick={handleAudit}
+                    >
+                        <FormattedMessage
+                            defaultMessage="Audit data (CSV)"
+                            description="Export the engineer-audit CSV (signals and AI reasons)"
+                            id="gui.classroom.evaluation.exportAuditCsv"
+                        />
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+};
+
+ExportMenu.propTypes = {
+    disabled: PropTypes.bool,
+    onExportAuditCsv: PropTypes.func.isRequired,
+    onExportEvaluationCsv: PropTypes.func.isRequired,
+};
 
 const GradeCell = ({ cell, classroomId, comment, seatNumber, onSetCellGrade, onSetCellReason, onSetComment }) => {
     const handleGradeChange = useCallback(
@@ -125,6 +274,18 @@ const TeacherEvaluation = ({
     const busy = !!evalProgress;
     const selectedLessons = evalLessons.filter((l) => selectedLessonIds.includes(l.classroomId));
     const loaded = seats.length > 0;
+    const hasGrades = seats.some((seatNumber) =>
+        selectedLessons.some((lesson) => {
+            const cell = getCell(seatNumber, lesson.classroomId);
+            return !!(cell && cell.submitted && cell.grade);
+        }),
+    );
+    const hasComments = Object.values(comments).some((comment) => (comment || '').trim() !== '');
+    const step = currentEvalStep({ loaded, hasGrades, hasComments });
+    const [hintOpen, setHintOpen] = useState(false);
+    const handleHintToggle = useCallback(() => setHintOpen((prev) => !prev), []);
+    const [settingsOpen, setSettingsOpen] = useState(false);
+    const handleSettingsToggle = useCallback(() => setSettingsOpen((prev) => !prev), []);
 
     const handleLessonToggle = useCallback(
         (e) => onToggleLesson(e.currentTarget.dataset.classroomId),
@@ -138,7 +299,7 @@ const TeacherEvaluation = ({
     const handleRunGrade = useCallback(() => onRunAi('grade'), [onRunAi]);
     const handleRunComment = useCallback(() => onRunAi('comment'), [onRunAi]);
 
-    /* Actions（左端にキャンセル、他ボタンは右寄せ。レビュー指摘で同一行に揃える） */
+    /* キャンセルは左端。右に「書き出し ▾」と 1〜4 の手順（いまの手順だけ主ボタン）。 */
     const footer = (
         <>
             <ClassroomButton
@@ -152,62 +313,74 @@ const TeacherEvaluation = ({
                     id="gui.classroom.evaluation.cancel"
                 />
             </ClassroomButton>
-            <ClassroomButton
-                dataTestId="classroom-eval-run-grade"
+            <ExportMenu
                 disabled={busy || !loaded}
-                variant="primary"
-                onClick={handleRunGrade}
-            >
-                <FormattedMessage
-                    defaultMessage="Run AI Grading"
-                    description="Run AI grade proposals"
-                    id="gui.classroom.evaluation.runGrade"
-                />
-            </ClassroomButton>
-            <ClassroomButton
-                dataTestId="classroom-eval-run-comment"
-                disabled={busy || !loaded}
-                onClick={handleRunComment}
-            >
-                <FormattedMessage
-                    defaultMessage="Draft Student Comments"
-                    description="Run AI comment drafts"
-                    id="gui.classroom.evaluation.runComment"
-                />
-            </ClassroomButton>
-            <ClassroomButton
-                dataTestId="classroom-eval-export"
-                disabled={busy || !loaded}
-                onClick={onExportEvaluationCsv}
-            >
-                <FormattedMessage
-                    defaultMessage="Evaluation CSV"
-                    description="Export evaluation CSV"
-                    id="gui.classroom.evaluation.exportCsv"
-                />
-            </ClassroomButton>
-            <ClassroomButton
-                dataTestId="classroom-eval-export-audit"
-                disabled={busy || !loaded}
-                onClick={onExportAuditCsv}
-            >
-                <FormattedMessage
-                    defaultMessage="Audit CSV"
-                    description="Export engineer-audit CSV"
-                    id="gui.classroom.evaluation.exportAuditCsv"
-                />
-            </ClassroomButton>
-            <ClassroomButton
-                dataTestId="classroom-eval-return-comments"
-                disabled={busy || !loaded}
-                onClick={onReturnComments}
-            >
-                <FormattedMessage
-                    defaultMessage="Return Comments"
-                    description="Return comment drafts to students"
-                    id="gui.classroom.evaluation.returnComments"
-                />
-            </ClassroomButton>
+                onExportAuditCsv={onExportAuditCsv}
+                onExportEvaluationCsv={onExportEvaluationCsv}
+            />
+            <div className={styles.evalSteps} data-testid="classroom-eval-steps">
+                <StepButton
+                    current={step === 'load'}
+                    dataTestId="classroom-eval-load"
+                    disabled={busy || selectedLessons.length === 0}
+                    number={1}
+                    onClick={onLoadSubmissions}
+                >
+                    <FormattedMessage
+                        defaultMessage="Load Submissions"
+                        description="Step 1 of grading: load & analyze submissions"
+                        id="gui.classroom.evaluation.load"
+                    />
+                </StepButton>
+                <span aria-hidden="true" className={styles.evalStepArrow}>
+                    {'→'}
+                </span>
+                <StepButton
+                    current={step === 'grade'}
+                    dataTestId="classroom-eval-run-grade"
+                    disabled={busy || !loaded}
+                    number={2}
+                    onClick={handleRunGrade}
+                >
+                    <FormattedMessage
+                        defaultMessage="Grade with AI"
+                        description="Step 2 of grading: run AI grade proposals"
+                        id="gui.classroom.evaluation.runGrade"
+                    />
+                </StepButton>
+                <span aria-hidden="true" className={styles.evalStepArrow}>
+                    {'→'}
+                </span>
+                <StepButton
+                    current={step === 'comment'}
+                    dataTestId="classroom-eval-run-comment"
+                    disabled={busy || !loaded}
+                    number={3}
+                    onClick={handleRunComment}
+                >
+                    <FormattedMessage
+                        defaultMessage="Draft Comments"
+                        description="Step 3 of grading: run AI comment drafts"
+                        id="gui.classroom.evaluation.runComment"
+                    />
+                </StepButton>
+                <span aria-hidden="true" className={styles.evalStepArrow}>
+                    {'→'}
+                </span>
+                <StepButton
+                    current={step === 'return'}
+                    dataTestId="classroom-eval-return-comments"
+                    disabled={busy || !loaded}
+                    number={4}
+                    onClick={onReturnComments}
+                >
+                    <FormattedMessage
+                        defaultMessage="Return Comments"
+                        description="Step 4 of grading: return comment drafts to students"
+                        id="gui.classroom.evaluation.returnComments"
+                    />
+                </StepButton>
+            </div>
         </>
     );
 
@@ -240,11 +413,43 @@ const TeacherEvaluation = ({
             errorTitle={errorTitle}
             footer={footer}
             hint={
-                <FormattedMessage
-                    defaultMessage="AI proposals are drafts — you decide. Grading a few students by hand first calibrates the AI to your standard. Term grades are never shown to students; only the positive comments are returned."
-                    description="Evaluation screen explanation"
-                    id="gui.classroom.evaluation.hint"
-                />
+                <>
+                    <FormattedMessage
+                        defaultMessage="AI grades are drafts. You make the final call."
+                        description="One-line explanation of the grading screen"
+                        id="gui.classroom.evaluation.hint"
+                    />{' '}
+                    <button
+                        aria-expanded={hintOpen}
+                        className={styles.evalHintToggle}
+                        data-testid="classroom-eval-hint-toggle"
+                        type="button"
+                        onClick={handleHintToggle}
+                    >
+                        {hintOpen ? (
+                            <FormattedMessage
+                                defaultMessage="Less"
+                                description="Hide the details of the grading screen explanation"
+                                id="gui.classroom.evaluation.hintLess"
+                            />
+                        ) : (
+                            <FormattedMessage
+                                defaultMessage="More"
+                                description="Show the details of the grading screen explanation"
+                                id="gui.classroom.evaluation.hintMore"
+                            />
+                        )}
+                    </button>
+                    {hintOpen && (
+                        <span className={styles.evalHintDetail} data-testid="classroom-eval-hint-detail">
+                            <FormattedMessage
+                                defaultMessage="Grading a few students by hand first calibrates the AI to your standard. Term grades are never shown to students; only the positive comments are returned."
+                                description="Details of the grading screen explanation (opened with More)"
+                                id="gui.classroom.evaluation.hintDetail"
+                            />
+                        </span>
+                    )}
+                </>
             }
             testId="classroom-phase-teacher-evaluation"
             title={evalGroup ? formatClassLabel(evalGroup) : ''}
@@ -272,89 +477,120 @@ const TeacherEvaluation = ({
                         {lesson.assignmentName}
                     </label>
                 ))}
-                <button
-                    className={styles.primaryButton}
-                    data-testid="classroom-eval-load"
-                    disabled={busy || selectedLessons.length === 0}
-                    onClick={onLoadSubmissions}
-                >
-                    <FormattedMessage
-                        defaultMessage="Load Submissions"
-                        description="Load & analyze submissions button"
-                        id="gui.classroom.evaluation.load"
-                    />
-                </button>
             </div>
 
-            {/* Rubric */}
-            <div className={styles.evalSection}>
+            {/* 採点の設定（観点・厳しさ）。あまり変えないので、いまの値の 1 行に畳む（R3 / R6）。 */}
+            <div className={styles.evalSection} data-testid="classroom-eval-settings-summary">
                 <span className={styles.assignmentNameLabel}>
                     <FormattedMessage
-                        defaultMessage="Rubric:"
-                        description="Rubric section label"
+                        defaultMessage="Grading criteria:"
+                        description="Label of the rubric axes (what the AI grades on)"
                         id="gui.classroom.evaluation.rubric"
                     />
                 </span>
-                {rubricAxes.map((axis, i) => (
-                    <div className={styles.evalRubricRow} key={i}>
-                        <input
-                            className={styles.evalRubricName}
-                            data-field="name"
-                            data-index={i}
-                            data-testid={`classroom-eval-axis-name-${i}`}
-                            maxLength={50}
-                            type="text"
-                            value={axis.name}
-                            onChange={handleAxisChange}
-                        />
-                        <input
-                            className={styles.evalRubricDescription}
-                            data-field="description"
-                            data-index={i}
-                            data-testid={`classroom-eval-axis-desc-${i}`}
-                            maxLength={300}
-                            type="text"
-                            value={axis.description}
-                            onChange={handleAxisChange}
-                        />
-                    </div>
-                ))}
-                <label className={styles.evalStrictnessRow}>
+                <span className={styles.evalSettingsValue}>
+                    {rubricAxes
+                        .map((axis) => axis.name)
+                        .filter((name) => name)
+                        .join('・')}
+                </span>
+                <span className={styles.assignmentNameLabel}>
                     <FormattedMessage
                         defaultMessage="Strictness:"
                         description="Strictness selector label"
                         id="gui.classroom.evaluation.strictness"
                     />
-                    <select
-                        className={styles.groupSelect}
-                        data-testid="classroom-eval-strictness"
-                        value={strictness}
-                        onChange={handleStrictnessChange}
-                    >
-                        <option value="lenient">
-                            {intl.formatMessage({
-                                defaultMessage: 'Lenient',
-                                description: 'Strictness option',
-                                id: 'gui.classroom.evaluation.strictnessLenient',
-                            })}
-                        </option>
-                        <option value="standard">
-                            {intl.formatMessage({
-                                defaultMessage: 'Standard',
-                                description: 'Strictness option',
-                                id: 'gui.classroom.evaluation.strictnessStandard',
-                            })}
-                        </option>
-                        <option value="strict">
-                            {intl.formatMessage({
-                                defaultMessage: 'Strict',
-                                description: 'Strictness option',
-                                id: 'gui.classroom.evaluation.strictnessStrict',
-                            })}
-                        </option>
-                    </select>
-                </label>
+                </span>
+                <span className={styles.evalSettingsValue}>
+                    {STRICTNESS_MESSAGES[strictness] ? intl.formatMessage(STRICTNESS_MESSAGES[strictness]) : strictness}
+                </span>
+                <button
+                    aria-expanded={settingsOpen}
+                    className={styles.evalHintToggle}
+                    data-testid="classroom-eval-settings-toggle"
+                    disabled={busy}
+                    type="button"
+                    onClick={handleSettingsToggle}
+                >
+                    {settingsOpen ? (
+                        <FormattedMessage
+                            defaultMessage="Done"
+                            description="Close the grading settings (criteria and strictness)"
+                            id="gui.classroom.evaluation.settingsDone"
+                        />
+                    ) : (
+                        <FormattedMessage
+                            defaultMessage="Change"
+                            description="Open the grading settings (criteria and strictness)"
+                            id="gui.classroom.evaluation.settingsChange"
+                        />
+                    )}
+                </button>
             </div>
+            {settingsOpen && (
+                <div className={styles.evalSection} data-testid="classroom-eval-settings">
+                    {/* R1: 名前と説明の欄が何かを、いつも見える見出しで示す。 */}
+                    <div className={classNames(styles.evalRubricRow, styles.evalRubricHeader)}>
+                        <span className={styles.evalRubricName}>
+                            <FormattedMessage
+                                defaultMessage="Criterion"
+                                description="Column header of the grading criterion name fields"
+                                id="gui.classroom.evaluation.axisNameHeader"
+                            />
+                        </span>
+                        <span className={styles.evalRubricDescription}>
+                            <FormattedMessage
+                                defaultMessage="What it looks for"
+                                description="Column header of the grading criterion description fields"
+                                id="gui.classroom.evaluation.axisDescriptionHeader"
+                            />
+                        </span>
+                    </div>
+                    {rubricAxes.map((axis, i) => (
+                        <div className={styles.evalRubricRow} key={i}>
+                            <input
+                                className={styles.evalRubricName}
+                                data-field="name"
+                                data-index={i}
+                                data-testid={`classroom-eval-axis-name-${i}`}
+                                maxLength={50}
+                                type="text"
+                                value={axis.name}
+                                onChange={handleAxisChange}
+                            />
+                            <input
+                                className={styles.evalRubricDescription}
+                                data-field="description"
+                                data-index={i}
+                                data-testid={`classroom-eval-axis-desc-${i}`}
+                                maxLength={300}
+                                type="text"
+                                value={axis.description}
+                                onChange={handleAxisChange}
+                            />
+                        </div>
+                    ))}
+                    <label className={styles.evalStrictnessRow}>
+                        <FormattedMessage
+                            defaultMessage="Strictness:"
+                            description="Strictness selector label"
+                            id="gui.classroom.evaluation.strictness"
+                        />
+                        <select
+                            className={styles.groupSelect}
+                            data-testid="classroom-eval-strictness"
+                            value={strictness}
+                            onChange={handleStrictnessChange}
+                        >
+                            {Object.keys(STRICTNESS_MESSAGES).map((value) => (
+                                <option key={value} value={value}>
+                                    {intl.formatMessage(STRICTNESS_MESSAGES[value])}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+                </div>
+            )}
 
             {/* Progress */}
             {evalProgress && (
