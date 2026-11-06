@@ -56,7 +56,7 @@ describe('Working with backdrops', () => {
         const paintXpath = `${buttonXpath}/following-sibling::div//button[@aria-label="Paint"]`;
 
         const el = await findByXpath(buttonXpath);
-        await driver.actions().mouseMove(el)
+        await driver.actions().move({origin: el})
             .perform();
         await driver.sleep(500); // Wait for thermometer menu to come up
         await clickXpath(paintXpath);
@@ -78,7 +78,7 @@ describe('Working with backdrops', () => {
         const surpriseXpath = `${buttonXpath}/following-sibling::div//button[@aria-label="Surprise"]`;
 
         const el = await findByXpath(buttonXpath);
-        await driver.actions().mouseMove(el)
+        await driver.actions().move({origin: el})
             .perform();
         await driver.sleep(500); // Wait for thermometer menu to come up
         await clickXpath(surpriseXpath);
@@ -101,7 +101,7 @@ describe('Working with backdrops', () => {
         const fileXpath = `${buttonXpath}/following-sibling::div//input[@type="file"]`;
 
         const el = await findByXpath(buttonXpath);
-        await driver.actions().mouseMove(el)
+        await driver.actions().move({origin: el})
             .perform();
         await driver.sleep(500); // Wait for thermometer menu to come up
         const input = await findByXpath(fileXpath);

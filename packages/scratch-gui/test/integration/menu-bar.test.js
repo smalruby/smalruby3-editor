@@ -150,7 +150,7 @@ describe('Menu bar settings', () => {
         await loadUri(uri);
         await driver.manage()
             .window()
-            .setSize(1024, 768);
+            .setRect({width: 1024, height: 768});
 
         const collapsibleMenus = ['Settings', 'File', 'Edit', 'Tutorials'];
         for (const menu of collapsibleMenus) {
@@ -163,7 +163,7 @@ describe('Menu bar settings', () => {
         await loadUri(uri);
         await driver.manage()
             .window()
-            .setSize(1200, 768);
+            .setRect({width: 1200, height: 768});
 
         const collapsibleMenus = ['Settings', 'File', 'Edit', 'Tutorials'];
         for (const menu of collapsibleMenus) {
