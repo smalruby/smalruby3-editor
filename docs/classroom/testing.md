@@ -236,7 +236,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 
 | data-testid | 要素 | 説明 |
 |------------|------|------|
-| `classroom-class-create` | button | クラス一覧の「クラスを作る」（同時作成フォームを開く） |
+| `classroom-class-create` | button | クラス一覧の「クラスを作成」（同時作成フォームを開く） |
 | `classroom-class-create-name` | input | 同時作成: クラス名 |
 | `classroom-class-create-year` | input | 同時作成: 年度 |
 | `classroom-class-create-count` | input | 同時作成: 人数 |
@@ -246,7 +246,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-class-list-empty` | p | クラス一覧の空メッセージ |
 | `classroom-class-card-{groupId}` | li | クラスカード |
 | `classroom-class-open-{groupId}` | button | クラスカード本体（クリックでクラスをひらく） |
-| `classroom-class-evaluate-{groupId}` | button | クラスカードの「評価」 |
+| `classroom-class-evaluate-{groupId}` | button | クラスカードの「採点」 |
 | `classroom-class-import-gc` | button | クラス一覧の「Google Classroom からインポート」（Google ログイン時のみ） |
 | `classroom-avatar-button` / `classroom-avatar-initials` / `classroom-avatar-email` | button/span | アカウントメニュー（右上・メール頭文字 + ▼。クリックでメール表示 + ログアウト） |
 | `classroom-teacher-logout` | button | ログアウト（アカウントメニュー内。#1111 レビューでタイトルバー常時表示から移動） |
@@ -284,7 +284,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-archived-class-list` | ul | アーカイブ済みクラスのカード一覧 |
 | `classroom-class-restore-{groupId}` | button | アーカイブ済みクラスカードの「元に戻す」 |
 | `classroom-board` | div | 課題管理ボード（クラス内のメイン領域） |
-| `classroom-board-create` | button | ボードの「課題を作る」 |
+| `classroom-board-create` | button | ボードの「課題を作成」 |
 | `classroom-board-empty` | p | ボードの空メッセージ |
 | `classroom-board-section-{topic}` | div | トピックセクション（未設定は `-none`） |
 | `classroom-board-row-{classroomId}` | li | 課題行 |
@@ -404,7 +404,10 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 
 | data-testid | 要素 | 説明 |
 |------------|------|------|
-| `classroom-teacher-menu-button` | div | 「クラス管理」メニューボタン（先生ログイン中のみ。生徒としても参加中なら `classroom-menu-button` と併存） |
+| `classroom-teacher-menu-button` | div | 「クラス管理」メニューボタン（先生ログイン中のみ。メニューバー右端の「?」の左。生徒用の `classroom-menu-button` は元の場所に残る） |
+| `classroom-teacher-menu-frame` | span | ボタンの白い枠（アイコン・ラベル・バッジ・▾ を囲む） |
+| `classroom-teacher-menu-icon` | img | ボタンのアイコン（🎓） |
+| `classroom-teacher-menu-caret` | img | ボタンの ▾ |
 | `classroom-teacher-menu-label` | span | ボタンのラベル（「クラス管理」） |
 | `classroom-teacher-menu-badge` | span | 未読お知らせがあるときの「!」バッジ |
 | `classroom-teacher-menu-current-assignment` | span | 「いまの課題を開く」（最後に開いた課題があるときのみ） |

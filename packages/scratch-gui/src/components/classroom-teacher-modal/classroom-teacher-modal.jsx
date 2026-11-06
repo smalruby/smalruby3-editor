@@ -493,7 +493,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                 <ClassroomTutorial name="classCreation">
                     <FormattedMessage
                         defaultMessage={
-                            'Let\'s start by creating a "Class"!\nCreate one class per lesson, e.g. "Lesson 3: Make a Chat App".\nClick the "Create Classroom" button in the sidebar on the left.'
+                            'Let\'s start by creating a "Class"!\nCreate one class per lesson, e.g. "Lesson 3: Make a Chat App".\nClick the "Create a class" button.'
                         }
                         description="Tutorial: class creation onboarding after first login"
                         id="gui.classroom.tutorial.classCreation"

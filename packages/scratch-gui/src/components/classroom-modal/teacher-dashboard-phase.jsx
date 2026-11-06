@@ -181,7 +181,7 @@ const TeacherDashboardPhase = ({
                         onClick={onShowCreateForm}
                     >
                         <FormattedMessage
-                            defaultMessage="Create Classroom"
+                            defaultMessage="Create an assignment"
                             description="Create new classroom button"
                             id="gui.classroom.teacherDashboard.create"
                         />

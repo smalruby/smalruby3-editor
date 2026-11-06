@@ -2,9 +2,11 @@ import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React, { useCallback } from 'react';
 import { FormattedMessage } from 'react-intl';
+import dropdownCaret from '../menu-bar/dropdown-caret.svg';
 import MenuBarMenu from '../menu-bar/menu-bar-menu.jsx';
 import { MenuItem, MenuSection } from '../menu/menu.jsx';
 import styles from './classroom-teacher-menu.css';
+import teacherIcon from './icon--teacher.svg';
 
 const ITEM_LABELS = {
     'kick-requests': (count) => (
@@ -93,7 +95,8 @@ TeacherMenuItem.propTypes = {
 
 /**
  * Teacher "クラス管理" menu in the menu bar (#1199). Shown while a teacher is
- * logged in; a "!" badge flags unread お知らせ.
+ * logged in; a "!" badge flags unread お知らせ. It sits at the right end of the
+ * menu bar, away from the student "クラス" menu (#1299).
  * @param {object} props - component props
  * @param {string} props.className - class of the menu bar button
  * @param {string} props.activeClassName - class added while the menu is open
@@ -118,21 +121,42 @@ const ClassroomTeacherMenu = ({
             data-testid="classroom-teacher-menu-button"
             onClick={onOpen}
         >
-            <span data-testid="classroom-teacher-menu-label">
-                <FormattedMessage
-                    defaultMessage="Class Management"
-                    description="Menu bar button shown while a teacher is logged in (#1199)"
-                    id="gui.classroomTeacherMenu.label"
+            {/* A white frame with an icon sets the teacher entry apart from
+                the student "クラス" menu (M2 in #1299). */}
+            <span
+                className={styles.frame}
+                data-testid="classroom-teacher-menu-frame"
+            >
+                <img
+                    alt=""
+                    className={styles.icon}
+                    data-testid="classroom-teacher-menu-icon"
+                    draggable={false}
+                    src={teacherIcon}
+                />
+                <span data-testid="classroom-teacher-menu-label">
+                    <FormattedMessage
+                        defaultMessage="Class Management"
+                        description="Menu bar button shown while a teacher is logged in (#1199)"
+                        id="gui.classroomTeacherMenu.label"
+                    />
+                </span>
+                {hasBadge ? (
+                    <span
+                        className={styles.badge}
+                        data-testid="classroom-teacher-menu-badge"
+                    >
+                        {'!'}
+                    </span>
+                ) : null}
+                <img
+                    alt=""
+                    className={styles.caret}
+                    data-testid="classroom-teacher-menu-caret"
+                    draggable={false}
+                    src={dropdownCaret}
                 />
             </span>
-            {hasBadge ? (
-                <span
-                    className={styles.badge}
-                    data-testid="classroom-teacher-menu-badge"
-                >
-                    {'!'}
-                </span>
-            ) : null}
             <MenuBarMenu
                 className={menuClassName}
                 open={open}

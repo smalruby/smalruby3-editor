@@ -54,10 +54,10 @@ const buildStore = (classroom) =>
         },
     });
 
-const renderMenuBar = (classroom) =>
+const renderMenuBar = (classroom, props = {}) =>
     renderWithIntl(
         <Provider store={buildStore(classroom)}>
-            <MenuBar />
+            <MenuBar {...props} />
         </Provider>,
     );
 
@@ -74,5 +74,33 @@ describe('MenuBar classroom entries (#1199)', () => {
         const { container } = renderMenuBar({ teacherLoggedIn: true });
         expect(container.querySelector('[data-testid="classroom-teacher-menu-button"]')).toBeTruthy();
         expect(container.querySelector('[data-testid="classroom-menu-button"]')).toBeTruthy();
+    });
+
+    // M2 (#1299): the student "クラス" menu keeps its place so a class can be
+    // told the same thing, and the teacher entry moves to the right end, just
+    // left of the "?" button.
+    test('puts the teacher menu at the right end, just left of the "?" button', () => {
+        const { container } = renderMenuBar({ teacherLoggedIn: true }, { onClickAbout: jest.fn() });
+        const teacher = container.querySelector('[data-testid="classroom-teacher-menu-button"]');
+        const student = container.querySelector('[data-testid="classroom-menu-button"]');
+        expect(teacher.parentElement).not.toBe(student.parentElement);
+        expect(student.compareDocumentPosition(teacher) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        const about = teacher.nextElementSibling;
+        expect(about).toBeTruthy();
+        expect(about.querySelector('img')).toBeTruthy();
+        expect(about.nextElementSibling).toBeNull();
+    });
+
+    // The first-visit welcome balloon sits just left of "?", so it would cover
+    // the teacher menu there. A teacher is not a first-time user (#1299).
+    test('hides the welcome balloon while a teacher is logged in', () => {
+        const aboutItems = [{ title: 'About', onClick: jest.fn() }];
+        window.localStorage.clear();
+        const { container, unmount } = renderMenuBar({ teacherLoggedIn: false }, { onClickAbout: aboutItems });
+        expect(container.textContent).toContain('Welcome to Smalruby');
+        unmount();
+        window.localStorage.clear();
+        const teacher = renderMenuBar({ teacherLoggedIn: true }, { onClickAbout: aboutItems });
+        expect(teacher.container.textContent).not.toContain('Welcome to Smalruby');
     });
 });
