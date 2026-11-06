@@ -280,6 +280,7 @@ const useTeacherClassroom = ({
         handleSelectMember: classrooms.handleSelectMember,
         handleUpdateAssignmentName: classrooms.handleUpdateAssignmentName,
         handleUpdateAssignmentMeta: classrooms.handleUpdateAssignmentMeta,
+        loadAssignmentSummary: classrooms.loadAssignmentSummary,
         setDetailTab: classrooms.setDetailTab,
         detailEntry: classrooms.detailEntry,
 

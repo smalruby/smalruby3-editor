@@ -333,6 +333,7 @@ const ClassroomTeacherModal = () => {
         onCreateClassWithAssignment: teacher.handleCreateClassWithAssignment,
         onUpdateGroupTopics: teacher.handleUpdateGroupTopics,
         onUpdateAssignmentMeta: teacher.handleUpdateAssignmentMeta,
+        onLoadAssignmentSummary: teacher.loadAssignmentSummary,
         onCreateAssignmentInClass: teacher.handleCreateAssignmentInClass,
         onDetailTabChange: teacher.setDetailTab,
         detailEntry: teacher.detailEntry,

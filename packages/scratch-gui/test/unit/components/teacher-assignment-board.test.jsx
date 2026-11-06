@@ -1,6 +1,6 @@
 /* eslint-env jest */
 import '@testing-library/jest-dom';
-import { fireEvent, render } from '@testing-library/react';
+import { fireEvent, render, waitFor } from '@testing-library/react';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
 import TeacherAssignmentBoard from '../../../src/components/classroom-modal/teacher-assignment-board.jsx';
@@ -40,6 +40,16 @@ const renderBoard = (props) =>
     );
 
 const byTestId = (id) => document.querySelector(`[data-testid="${id}"]`);
+
+// The create ways live in the［＋ 作成 ▾］menu, rare actions in「…」, and the
+// per-row topic / date / share in the row's ⋮ menu (#1301).
+const openCreateMenu = () => fireEvent.click(byTestId('classroom-board-create-menu'));
+const clickCreateItem = (id) => {
+    openCreateMenu();
+    fireEvent.click(byTestId(id));
+};
+const openMoreMenu = () => fireEvent.click(byTestId('classroom-board-more-menu'));
+const openRow = (id) => fireEvent.click(byTestId(`classroom-board-row-toggle-${id}`));
 
 describe('TeacherAssignmentBoard — archived assignments section (issue #1051)', () => {
     test('shows no archived section when nothing is archived', () => {
@@ -103,6 +113,7 @@ describe('TeacherAssignmentBoard — class-wide bulk download (issue #1055)', ()
         props.onDownloadClassAll = jest.fn();
         renderBoard(props);
 
+        openMoreMenu();
         fireEvent.click(byTestId('classroom-board-download-class'));
 
         expect(props.onDownloadClassAll).toHaveBeenCalledWith(
@@ -116,6 +127,7 @@ describe('TeacherAssignmentBoard — class-wide bulk download (issue #1055)', ()
 
     test('shows progress and disables the button while downloading', () => {
         renderBoard({ downloadProgress: { current: 2, total: 5 } });
+        openMoreMenu();
         const button = byTestId('classroom-board-download-class');
         expect(button).toBeDisabled();
         expect(button.textContent).toContain('2/5');
@@ -138,6 +150,7 @@ describe('TeacherAssignmentBoard — share entry (#1109)', () => {
     test('a 共有 button appears only for assignments with content, and opens the share step', () => {
         const shared = sharedStub();
         renderBoard({ shared, classrooms: [classroom({ hasAssignment: true })] });
+        fireEvent.click(byTestId('classroom-board-row-menu-c1'));
         const btn = byTestId('classroom-board-share-c1');
         expect(btn).toBeInTheDocument();
         fireEvent.click(btn);
@@ -147,6 +160,7 @@ describe('TeacherAssignmentBoard — share entry (#1109)', () => {
     test('no 共有 button when the assignment has no content (説明/スターターなし)', () => {
         const shared = sharedStub();
         renderBoard({ shared, classrooms: [classroom({ hasAssignment: false })] });
+        fireEvent.click(byTestId('classroom-board-row-menu-c1'));
         expect(byTestId('classroom-board-share-c1')).not.toBeInTheDocument();
     });
 
@@ -155,38 +169,44 @@ describe('TeacherAssignmentBoard — share entry (#1109)', () => {
         renderBoard({ shared });
         expect(byTestId('classroom-phase-share-step')).toBeInTheDocument();
         // The create action bar is hidden while sharing.
-        expect(byTestId('classroom-board-create')).not.toBeInTheDocument();
+        expect(byTestId('classroom-board-create-menu')).not.toBeInTheDocument();
     });
 
     test('no 共有 button when the shared hook is absent', () => {
         renderBoard();
+        fireEvent.click(byTestId('classroom-board-row-menu-c1'));
         expect(byTestId('classroom-board-share-c1')).not.toBeInTheDocument();
     });
 });
 
-describe('TeacherAssignmentBoard — retention notice (issue #1052)', () => {
+describe('TeacherAssignmentBoard — retention (B4: red only within 7 days)', () => {
     const DAY = 24 * 60 * 60 * 1000;
     const inDays = (days) => new Date(Date.now() + days * DAY).toISOString();
 
-    test('shows no retention notice while the deadline is far away', () => {
-        renderBoard({ classrooms: [classroom({ expiresAt: inDays(60) })] });
-        expect(byTestId('classroom-board-expiry-c1')).not.toBeInTheDocument();
-    });
-
-    test('shows the auto-delete notice with a download button within 30 days', () => {
+    test('20 days left is not red: no mark on the row, a grey deadline inside', () => {
         renderBoard({ classrooms: [classroom({ expiresAt: inDays(20) })] });
-        const notice = byTestId('classroom-board-expiry-c1');
-        expect(notice).toBeInTheDocument();
-        expect(notice.textContent).toContain('deleted automatically');
-        expect(byTestId('classroom-board-download-c1')).toBeInTheDocument();
+        expect(byTestId('classroom-board-expiry-mark-c1')).not.toBeInTheDocument();
+        openRow('c1');
+        expect(byTestId('classroom-board-expiry-c1')).not.toBeInTheDocument();
+        expect(byTestId('classroom-board-retention-c1').textContent).toContain('Kept until');
     });
 
-    test('the row download button downloads that one assignment', () => {
+    test('within 7 days: a small red mark on the closed row and the warning inside', () => {
+        renderBoard({ classrooms: [classroom({ expiresAt: inDays(5) })] });
+        expect(byTestId('classroom-board-expiry-mark-c1')).toBeInTheDocument();
+        openRow('c1');
+        const notice = byTestId('classroom-board-expiry-c1');
+        expect(notice.textContent).toContain('deleted automatically');
+        expect(byTestId('classroom-board-retention-c1')).not.toBeInTheDocument();
+    });
+
+    test('the warning download button downloads that one assignment', () => {
         const onDownloadClassAll = jest.fn();
         renderBoard({
             classrooms: [classroom({ expiresAt: inDays(5) })],
             onDownloadClassAll,
         });
+        openRow('c1');
         fireEvent.click(byTestId('classroom-board-download-c1'));
         expect(onDownloadClassAll).toHaveBeenCalledWith(
             expect.objectContaining({ groupId: 'g1' }),
@@ -194,9 +214,11 @@ describe('TeacherAssignmentBoard — retention notice (issue #1052)', () => {
         );
     });
 
-    test('never shows the notice for assignments without a deadline', () => {
+    test('never shows a deadline for assignments without one', () => {
         renderBoard({ classrooms: [classroom({ expiresAt: null })] });
+        openRow('c1');
         expect(byTestId('classroom-board-expiry-c1')).not.toBeInTheDocument();
+        expect(byTestId('classroom-board-retention-c1')).not.toBeInTheDocument();
     });
 });
 
@@ -216,7 +238,7 @@ describe('TeacherAssignmentBoard — reuse excludes archived (review feedback)',
             allGroups,
             allClassrooms,
         });
-        fireEvent.click(byTestId('classroom-board-reuse'));
+        clickCreateItem('classroom-board-reuse');
 
         // Only the active assignment of an active class is a candidate.
         expect(byTestId('classroom-board-reuse-copy-active1')).toBeInTheDocument();
@@ -245,7 +267,7 @@ describe('TeacherAssignmentBoard — mesh group size on the create screen (#1257
     test('defaults to "Up to 6" and sends the choice with the new assignment', () => {
         const props = defaultProps();
         renderBoard(props);
-        fireEvent.click(byTestId('classroom-board-create'));
+        clickCreateItem('classroom-board-create');
         const select = byTestId('classroom-board-create-mesh-group-limit');
         expect(select.value).toBe('6');
 
@@ -257,7 +279,7 @@ describe('TeacherAssignmentBoard — mesh group size on the create screen (#1257
     test('"No limit" is sent as 0', () => {
         const props = defaultProps();
         renderBoard(props);
-        fireEvent.click(byTestId('classroom-board-create'));
+        clickCreateItem('classroom-board-create');
         fireEvent.change(byTestId('classroom-board-create-mesh-group-limit'), { target: { value: '0' } });
         fireEvent.change(byTestId('classroom-board-create-name'), { target: { value: '課題2' } });
         fireEvent.click(byTestId('classroom-board-create-submit'));
@@ -269,12 +291,12 @@ describe('TeacherAssignmentBoard — mesh group size on the create screen (#1257
     ])('leaving by %s resets the form, so reopening shows the defaults (review FYI4)', (_label, leave) => {
         const props = defaultProps();
         renderBoard(props);
-        fireEvent.click(byTestId('classroom-board-create'));
+        clickCreateItem('classroom-board-create');
         fireEvent.change(byTestId('classroom-board-create-name'), { target: { value: '書きかけ' } });
         fireEvent.change(byTestId('classroom-board-create-mesh-group-limit'), { target: { value: '0' } });
         leave();
 
-        fireEvent.click(byTestId('classroom-board-create'));
+        clickCreateItem('classroom-board-create');
         expect(byTestId('classroom-board-create-name').value).toBe('');
         expect(byTestId('classroom-board-create-mesh-group-limit').value).toBe('6');
     });
@@ -282,12 +304,12 @@ describe('TeacherAssignmentBoard — mesh group size on the create screen (#1257
     test('after creating, reopening shows the defaults', () => {
         const props = defaultProps();
         renderBoard(props);
-        fireEvent.click(byTestId('classroom-board-create'));
+        clickCreateItem('classroom-board-create');
         fireEvent.change(byTestId('classroom-board-create-name'), { target: { value: '課題2' } });
         fireEvent.change(byTestId('classroom-board-create-mesh-group-limit'), { target: { value: '0' } });
         fireEvent.click(byTestId('classroom-board-create-submit'));
 
-        fireEvent.click(byTestId('classroom-board-create'));
+        clickCreateItem('classroom-board-create');
         expect(byTestId('classroom-board-create-name').value).toBe('');
         expect(byTestId('classroom-board-create-mesh-group-limit').value).toBe('6');
     });
@@ -299,12 +321,184 @@ describe('TeacherAssignmentBoard — mesh group size on the create screen (#1257
                 { groupId: 'g2', name: 'B', year: 2026, status: 'active', topics: [] },
             ],
         });
-        fireEvent.click(byTestId('classroom-board-reuse'));
+        clickCreateItem('classroom-board-reuse');
         fireEvent.change(byTestId('classroom-board-reuse-filter'), { target: { value: 'g2' } });
         expect(byTestId('classroom-board-reuse-filter').value).toBe('g2');
         fireEvent.click(byTestId('classroom-board-reuse-cancel'));
 
-        fireEvent.click(byTestId('classroom-board-reuse'));
+        clickCreateItem('classroom-board-reuse');
         expect(byTestId('classroom-board-reuse-filter').value).toBe('');
+    });
+});
+
+describe('TeacherAssignmentBoard — Stream / Classwork tabs (#1301)', () => {
+    test('opens on Classwork; Stream shows a "coming soon" placeholder', () => {
+        renderBoard();
+        expect(byTestId('classroom-board-tab-classwork')).toHaveAttribute('aria-selected', 'true');
+        expect(byTestId('classroom-board-row-c1')).toBeInTheDocument();
+
+        fireEvent.click(byTestId('classroom-board-tab-stream'));
+        expect(byTestId('classroom-board-tab-stream')).toHaveAttribute('aria-selected', 'true');
+        expect(byTestId('classroom-board-stream')).toBeInTheDocument();
+        expect(byTestId('classroom-board-row-c1')).not.toBeInTheDocument();
+        expect(byTestId('classroom-board-create-menu')).not.toBeInTheDocument();
+    });
+});
+
+describe('TeacherAssignmentBoard — one［＋ 作成 ▾］menu (B6)', () => {
+    const sharedStub = () => ({
+        handleOpenCatalog: jest.fn(),
+        handleOpenPasscodeImport: jest.fn(),
+        handleOpenShareFor: jest.fn(),
+    });
+
+    test('the create ways are menu items, not buttons on the board', () => {
+        renderBoard({ shared: sharedStub() });
+        expect(byTestId('classroom-board-create')).not.toBeInTheDocument();
+        expect(byTestId('classroom-board-reuse')).not.toBeInTheDocument();
+        expect(byTestId('classroom-topic-add-input')).not.toBeInTheDocument();
+
+        openCreateMenu();
+        const items = Array.from(
+            byTestId('classroom-board-create-menu-list').querySelectorAll('[role="menuitem"]'),
+        ).map((el) => el.getAttribute('data-testid'));
+        expect(items).toEqual([
+            'classroom-board-create',
+            'classroom-board-reuse',
+            'classroom-board-shared-catalog',
+            'classroom-board-passcode-import',
+            'classroom-board-create-topic',
+        ]);
+    });
+
+    test('catalog and passcode items open those steps', () => {
+        const shared = sharedStub();
+        renderBoard({ shared });
+        clickCreateItem('classroom-board-shared-catalog');
+        expect(shared.handleOpenCatalog).toHaveBeenCalled();
+        clickCreateItem('classroom-board-passcode-import');
+        expect(shared.handleOpenPasscodeImport).toHaveBeenCalled();
+    });
+
+    test('「トピック」 opens the add-topic dialog, which adds the trimmed name', () => {
+        const props = defaultProps();
+        renderBoard(props);
+        clickCreateItem('classroom-board-create-topic');
+        expect(byTestId('classroom-topic-add-dialog')).toBeInTheDocument();
+        expect(byTestId('classroom-topic-add')).toBeDisabled();
+
+        fireEvent.change(byTestId('classroom-topic-add-input'), { target: { value: ' 第1回 ' } });
+        fireEvent.click(byTestId('classroom-topic-add'));
+        expect(props.onUpdateGroupTopics).toHaveBeenCalledWith('g1', { action: 'add', name: '第1回' });
+        expect(byTestId('classroom-topic-add-dialog')).not.toBeInTheDocument();
+    });
+
+    test('cancelling the add-topic dialog adds nothing and clears the input', () => {
+        const props = defaultProps();
+        renderBoard(props);
+        clickCreateItem('classroom-board-create-topic');
+        fireEvent.change(byTestId('classroom-topic-add-input'), { target: { value: '書きかけ' } });
+        fireEvent.click(byTestId('classroom-topic-add-cancel'));
+        expect(props.onUpdateGroupTopics).not.toHaveBeenCalled();
+
+        clickCreateItem('classroom-board-create-topic');
+        expect(byTestId('classroom-topic-add-input').value).toBe('');
+    });
+});
+
+describe('TeacherAssignmentBoard — topic sections (B6)', () => {
+    test('every section has a heading, including "no topic", and empty topics are listed', () => {
+        renderBoard({
+            group: { groupId: 'g1', name: '技術', year: 2026, topics: ['第1回', '第2回'] },
+            classrooms: [classroom(), classroom({ classroomId: 'c2', topic: '第1回' })],
+        });
+        expect(byTestId('classroom-board-section-title-none').textContent).toBe('No topic');
+        expect(byTestId('classroom-board-section-title-第1回').textContent).toBe('第1回');
+        expect(byTestId('classroom-board-section-第2回')).toBeInTheDocument();
+    });
+
+    test('a topic is renamed and removed from its heading menu', () => {
+        const props = defaultProps();
+        props.group = { groupId: 'g1', name: '技術', year: 2026, topics: ['第1回'] };
+        renderBoard(props);
+
+        fireEvent.click(byTestId('classroom-topic-menu-第1回'));
+        fireEvent.click(byTestId('classroom-topic-rename-第1回'));
+        const input = byTestId('classroom-topic-rename-input-第1回');
+        fireEvent.change(input, { target: { value: '第一回' } });
+        fireEvent.keyDown(input, { key: 'Enter' });
+        expect(props.onUpdateGroupTopics).toHaveBeenCalledWith('g1', {
+            action: 'rename',
+            name: '第1回',
+            to: '第一回',
+        });
+
+        fireEvent.click(byTestId('classroom-topic-menu-第1回'));
+        fireEvent.click(byTestId('classroom-topic-remove-第1回'));
+        expect(props.onUpdateGroupTopics).toHaveBeenCalledWith('g1', { action: 'remove', name: '第1回' });
+    });
+});
+
+describe('TeacherAssignmentBoard — rows open in place (B3・B7)', () => {
+    const summary = { submitted: 3, joined: 5, capacity: 30, descriptionLine: 'ねこを10歩動かそう' };
+
+    test('the closed row shows the name and a labelled lesson date only', () => {
+        renderBoard({ classrooms: [classroom({ sortDate: '2026-07-03T00:00:00.000Z' })] });
+        const row = byTestId('classroom-board-row-c1');
+        expect(row.textContent).toContain('課題1');
+        expect(byTestId('classroom-board-row-date-c1').textContent).toContain('Lesson date');
+        expect(row.textContent).not.toContain('abc234');
+        expect(byTestId('classroom-board-row-detail-c1')).not.toBeInTheDocument();
+    });
+
+    test('opening a row shows the labelled join code, the summary, and［課題を開く］', async () => {
+        const props = defaultProps();
+        props.onLoadAssignmentSummary = jest.fn().mockResolvedValue(summary);
+        renderBoard(props);
+        openRow('c1');
+
+        expect(props.onLoadAssignmentSummary).toHaveBeenCalledWith(expect.objectContaining({ classroomId: 'c1' }));
+        const code = byTestId('classroom-board-row-code-c1');
+        expect(code.textContent).toContain('Join code');
+        expect(code.textContent).toContain('abc234');
+
+        await waitFor(() => expect(byTestId('classroom-board-row-counts-c1').textContent).toContain('3'));
+        expect(byTestId('classroom-board-row-counts-c1').textContent).toContain('5');
+        expect(byTestId('classroom-board-row-counts-c1').textContent).toContain('30');
+        expect(byTestId('classroom-board-row-description-c1').textContent).toBe('ねこを10歩動かそう');
+
+        fireEvent.click(byTestId('classroom-board-open-c1'));
+        expect(props.onSelectClassroom).toHaveBeenCalledWith('c1');
+    });
+
+    test('only one row is open at a time, and the summary is loaded once per row', async () => {
+        const props = defaultProps();
+        props.classrooms = [classroom(), classroom({ classroomId: 'c2', assignmentName: '課題2' })];
+        props.onLoadAssignmentSummary = jest.fn().mockResolvedValue(summary);
+        renderBoard(props);
+
+        openRow('c1');
+        await waitFor(() => expect(byTestId('classroom-board-row-counts-c1').textContent).toContain('3'));
+        openRow('c2');
+        expect(byTestId('classroom-board-row-detail-c1')).not.toBeInTheDocument();
+        expect(byTestId('classroom-board-row-detail-c2')).toBeInTheDocument();
+        openRow('c1');
+        expect(props.onLoadAssignmentSummary).toHaveBeenCalledTimes(2);
+
+        openRow('c1');
+        expect(byTestId('classroom-board-row-detail-c1')).not.toBeInTheDocument();
+    });
+
+    test('the row menu edits the topic and the lesson date', () => {
+        const props = defaultProps();
+        props.group = { groupId: 'g1', name: '技術', year: 2026, topics: ['第1回'] };
+        renderBoard(props);
+        fireEvent.click(byTestId('classroom-board-row-menu-c1'));
+        fireEvent.change(byTestId('classroom-board-topic-c1'), { target: { value: '第1回' } });
+        expect(props.onUpdateAssignmentMeta).toHaveBeenCalledWith('c1', { topic: '第1回' });
+        fireEvent.change(byTestId('classroom-board-date-c1'), { target: { value: '2026-07-10' } });
+        expect(props.onUpdateAssignmentMeta).toHaveBeenCalledWith('c1', {
+            sortDate: new Date('2026-07-10T00:00:00').toISOString(),
+        });
     });
 });
