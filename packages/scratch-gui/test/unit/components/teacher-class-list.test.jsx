@@ -144,6 +144,20 @@ describe('TeacherClassList', () => {
         expect(byTestId('classroom-class-create-count').value).toBe('');
     });
 
+    test('shows a failed create in the dialog, not behind it', () => {
+        const { rerender } = renderList();
+        const byTestId = (id) => document.querySelector(`[data-testid="${id}"]`);
+        fireEvent.click(byTestId('classroom-class-create'));
+        rerender(
+            <IntlProvider locale="en">
+                <TeacherClassList {...defaultProps()} error="Network error" />
+            </IntlProvider>,
+        );
+        const errors = document.querySelectorAll('[data-testid="classroom-error"]');
+        expect(errors).toHaveLength(1);
+        expect(byTestId('classroom-class-create-dialog')).toContainElement(errors[0]);
+    });
+
     test('shows "Loading…" next to the create button while loading', () => {
         renderList({ isLoading: true });
         expect(document.querySelector('[data-testid="classroom-class-list-loading"]')).toHaveTextContent('Loading');

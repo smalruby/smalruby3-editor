@@ -21,6 +21,7 @@ import {
 import ClassAiSettings from './class-ai-settings.jsx';
 import ClassAiStudentPreview from './class-ai-student-preview.jsx';
 import ClassroomButton from './classroom-button.jsx';
+import ErrorDisplay from './error-display.jsx';
 import { TeacherScreen, TeacherSubView } from './teacher-view-layout.jsx';
 
 import styles from './classroom-modal.css';
@@ -658,12 +659,14 @@ ClassCard.propTypes = {
  * Google Classroom's: the class fields only, with fixed Cancel / Create
  * buttons. Assignments are created inside the class (［＋ 作成 ▾］).
  * @param {object} props - component props
+ * @param {string} props.error - error of the last request (shown in the dialog, not behind it)
+ * @param {string} props.errorTitle - title of that error
  * @param {boolean} props.isLoading - whether a request is in flight
  * @param {Function} props.onCancel - closes the dialog
  * @param {Function} props.onCreate - called with {name, year, section, studentCount}
  * @returns {React.ReactElement} the dialog
  */
-const CreateClassDialog = ({ isLoading, onCancel, onCreate }) => {
+const CreateClassDialog = ({ error, errorTitle, isLoading, onCancel, onCreate }) => {
     const [name, setName] = useState('');
     const [year, setYear] = useState(String(currentSchoolYear()));
     const [section, setSection] = useState('');
@@ -731,6 +734,7 @@ const CreateClassDialog = ({ isLoading, onCancel, onCreate }) => {
                     onSectionChange={handleSectionChange}
                     onYearChange={handleYearChange}
                 />
+                <ErrorDisplay error={error} errorTitle={errorTitle} />
                 <div className={styles.createClassButtons}>
                     <ClassroomButton dataTestId="classroom-class-create-cancel" onClick={onCancel}>
                         <FormattedMessage
@@ -758,6 +762,8 @@ const CreateClassDialog = ({ isLoading, onCancel, onCreate }) => {
 };
 
 CreateClassDialog.propTypes = {
+    error: PropTypes.string,
+    errorTitle: PropTypes.string,
     isLoading: PropTypes.bool,
     onCancel: PropTypes.func.isRequired,
     onCreate: PropTypes.func.isRequired,
@@ -862,7 +868,8 @@ const TeacherClassList = ({
                 },
             ]}
             className={`${styles.classList} ${styles.classListLanding}`}
-            error={error}
+            // A failed "Create" must be readable in the dialog, not dimmed behind it.
+            error={showCreateForm ? null : error}
             errorTitle={errorTitle}
             hint={
                 <FormattedMessage
@@ -1014,6 +1021,8 @@ const TeacherClassList = ({
             </div>
             {showCreateForm ? (
                 <CreateClassDialog
+                    error={error}
+                    errorTitle={errorTitle}
                     isLoading={isLoading}
                     onCancel={handleCloseCreate}
                     onCreate={onCreateClassWithAssignment}
