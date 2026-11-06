@@ -239,12 +239,15 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 
 | data-testid | 要素 | 説明 |
 |------------|------|------|
-| `classroom-class-create` | button | クラス一覧の「クラスを作成」（同時作成フォームを開く） |
-| `classroom-class-create-name` | input | 同時作成: クラス名 |
-| `classroom-class-create-year` | input | 同時作成: 年度 |
-| `classroom-class-create-count` | input | 同時作成: 人数 |
-| `classroom-class-create-assignment` | input | 同時作成: 最初の課題名 |
-| `classroom-class-create-submit` | button | 同時作成: クラスと課題を作成 |
+| `classroom-class-create` | button | クラス一覧の主ボタン「＋ クラスを作成」（作成ダイアログを開く） |
+| `classroom-class-list-loading` | span | 「クラスを作成」の横の「読み込み中…」（処理中のみ） |
+| `classroom-class-create-dialog` | form (`role="dialog"`) | 「クラスを作成」の小さな画面（クラス一覧の上に開く。Esc で閉じる） |
+| `classroom-class-create-name` | input | 作成: クラス名（必須） |
+| `classroom-class-create-year` | input | 作成: 年度 |
+| `classroom-class-create-count` | input | 作成: 人数（出席番号の数・必須） |
+| `classroom-class-create-cancel` | button | 作成: キャンセル |
+| `classroom-class-create-submit` | button | 作成: 作成（文言は固定） |
+| `classroom-class-summary-{groupId}` | span | クラスカードの要約（課題数・生徒数・生成AI） |
 | `classroom-class-list` | ul | クラス一覧（カード） |
 | `classroom-class-list-empty` | p | クラス一覧の空メッセージ |
 | `classroom-class-card-{groupId}` | li | クラスカード |
@@ -253,10 +256,10 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-class-import-gc` | button | クラス一覧の「Google Classroom からインポート」（Google ログイン時のみ） |
 | `classroom-avatar-button` / `classroom-avatar-initials` / `classroom-avatar-email` | button/span | アカウントメニュー（右上・メール頭文字 + ▼。クリックでメール表示 + ログアウト） |
 | `classroom-teacher-logout` | button | ログアウト（アカウントメニュー内。#1111 レビューでタイトルバー常時表示から移動） |
-| `classroom-class-create-section` | input | 同時作成: セクション（オプション） |
+| `classroom-class-create-section` | input | 作成: セクション（オプション） |
 | `classroom-class-settings-open-{groupId}` | button | クラスカードの「設定」（インライン編集を開く） |
 | `classroom-class-settings-{groupId}` | form | クラス設定のインライン編集フォーム |
-| `classroom-class-settings-name/year/section/count` | input | クラス設定の各フィールド |
+| `classroom-class-settings-name/year/section/count` | input | クラス設定の各フィールド（それぞれ見えるラベル付き） |
 | `classroom-class-settings-co-teacher-input` | input | 共同管理者メール入力（クラス単位） |
 | `classroom-class-settings-add-co-teacher` | button | 共同管理者を追加 |
 | `classroom-class-settings-remove-co-teacher-{email}` | button | 共同管理者を削除 |
@@ -552,7 +555,7 @@ http://localhost:8601?no_beforeunload=1&devlogin=<DEV_BYPASS_TOKEN>
 
 クラス管理を絡めた end-to-end の動作確認は [`tools/playwright-verify/`](../../tools/playwright-verify/README.md) にあるスクリプトで自動化されています（CI には組み込まれていません。手動で `node ...` で実行）。
 
-代表例: `tools/playwright-verify/mesh-v2-classroom-binding.mjs` は教師タブで devlogin → クラスと課題の同時作成 → 課題管理ボードの行をクリックして課題を選択、生徒タブで `?classcode=` 経由参加 という 2 タブのフローを自動で回し、Mesh v2 ドメインが課題の参加コードに揃うことを確認します。
+代表例: `tools/playwright-verify/mesh-v2-classroom-binding.mjs` は教師タブで devlogin → クラスを作成 → 課題ボードで課題を作成 → 課題管理ボードの行をクリックして課題を選択、生徒タブで `?classcode=` 経由参加 という 2 タブのフローを自動で回し、Mesh v2 ドメインが課題の参加コードに揃うことを確認します。
 
 スクリプトを書く際の落とし穴と対処は `tools/playwright-verify/README.md` を参照してください（ログインバイパスの方法、Redux store の取り出し方、サイドバー testid、tutorial overlay の dismiss 等）。
 

@@ -86,9 +86,13 @@ const assignmentName = `退室依頼検証-${stamp}`;
 await teacher.click('[data-testid="classroom-class-create"]');
 await teacher.fill('[data-testid="classroom-class-create-name"]', `自動検証-${stamp}`);
 await teacher.fill('[data-testid="classroom-class-create-count"]', '5');
-await teacher.fill('[data-testid="classroom-class-create-assignment"]', assignmentName);
 await teacher.click('[data-testid="classroom-class-create-submit"]');
 await teacher.waitForSelector('[data-testid="classroom-board"]', { timeout: 30000 });
+// The create-class dialog makes only the class; the assignment is made inside it.
+await teacher.click('[data-testid="classroom-board-create"]');
+await teacher.fill('[data-testid="classroom-board-create-name"]', assignmentName);
+await teacher.click('[data-testid="classroom-board-create-submit"]');
+await teacher.waitForSelector('[data-testid^="classroom-board-open-"]', { timeout: 30000 });
 await teacher.waitForFunction(
     (label) => [...document.querySelectorAll('[data-testid^="classroom-board-open-"]')].some((el) => el.textContent.includes(label)),
     assignmentName,
