@@ -1,9 +1,10 @@
 /**
  * Assignment board — the main view inside a class (Google Classroom style):
- * assignments without a topic listed first, then one section per topic,
- * newest (sortDate) first. Rows edit their topic / sort date in place, and
- * the chip bar manages the class's topic list (rename/remove cascade to the
- * assignments on the server).
+ * the［ストリーム］［授業］tabs, the［＋ 作成 ▾］menu, and the assignments under
+ * topic headings ("no topic" first, then the class's topics), newest
+ * (sortDate) first. Rows open in place (one at a time); their ⋮ edits the
+ * topic / sort date, and a topic heading's ⋮ renames or removes the topic
+ * (cascading to the assignments on the server).
  */
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -171,13 +172,21 @@ const TopicHeading = ({ topic, isLoading, onRename, onRemove }) => {
     const key = topic || 'none';
 
     if (editing) {
+        // R1: the field keeps a visible label while the name is being edited.
         return (
             <div className={styles.boardSectionHeading}>
+                <label className={styles.boardRowMetaLabel} htmlFor={`classroom-topic-rename-input-${topic}`}>
+                    <FormattedMessage
+                        defaultMessage="Topic"
+                        description="Label of the topic selector on an assignment row"
+                        id="gui.classroom.board.topicLabel"
+                    />
+                </label>
                 <input
                     autoFocus
-                    aria-label={topic}
                     className={styles.topicRenameInput}
                     data-testid={`classroom-topic-rename-input-${topic}`}
+                    id={`classroom-topic-rename-input-${topic}`}
                     maxLength={50}
                     type="text"
                     value={name}
@@ -420,34 +429,37 @@ const AssignmentRow = ({
                             />
                         </span>
                     ) : null}
-                    {urgent ? (
-                        <span
-                            className={styles.boardRowExpiryMark}
-                            data-testid={`classroom-board-expiry-mark-${id}`}
-                            title={intl.formatMessage(
-                                {
-                                    defaultMessage: 'Kept until {date}',
-                                    description: 'Retention deadline shown on an archived assignment row',
-                                    id: 'gui.classroom.board.archivedExpires',
-                                },
-                                { date: formatShortDate(intl, classroom.expiresAt) },
-                            )}
-                        >
-                            {'⚠'}
-                        </span>
-                    ) : null}
-                    {dateValue ? (
-                        <span className={styles.boardRowMeta} data-testid={`classroom-board-row-date-${id}`}>
-                            <span className={styles.boardRowMetaLabel}>
+                    {/* Trailing items stay at the right end whether or not the red
+                        mark is shown, so the lesson date does not jump between rows. */}
+                    <span className={styles.boardRowTrailing}>
+                        {urgent ? (
+                            // R5: the mark carries a visible label, not only a tooltip.
+                            <span
+                                className={styles.boardRowExpiryMark}
+                                data-testid={`classroom-board-expiry-mark-${id}`}
+                            >
+                                {'⚠ '}
                                 <FormattedMessage
-                                    defaultMessage="Lesson date"
-                                    description="Label of the lesson date on an assignment row"
-                                    id="gui.classroom.board.lessonDateLabel"
+                                    defaultMessage="Kept until {date}"
+                                    description="Retention deadline shown on an archived assignment row"
+                                    id="gui.classroom.board.archivedExpires"
+                                    values={{ date: formatShortDate(intl, classroom.expiresAt) }}
                                 />
                             </span>
-                            {formatShortDate(intl, dateIso)}
-                        </span>
-                    ) : null}
+                        ) : null}
+                        {dateValue ? (
+                            <span className={styles.boardRowMeta} data-testid={`classroom-board-row-date-${id}`}>
+                                <span className={styles.boardRowMetaLabel}>
+                                    <FormattedMessage
+                                        defaultMessage="Lesson date"
+                                        description="Label of the lesson date on an assignment row"
+                                        id="gui.classroom.board.lessonDateLabel"
+                                    />
+                                </span>
+                                {formatShortDate(intl, dateIso)}
+                            </span>
+                        ) : null}
+                    </span>
                 </button>
                 <BoardMenu
                     alignRight
@@ -817,7 +829,9 @@ const TeacherAssignmentBoard = ({
         (classroom) => {
             const id = classroom.classroomId;
             setOpenId((current) => (current === id ? null : id));
-            if (!onLoadAssignmentSummary || summariesRef.current[id]) return;
+            // Load once per row, but retry a row whose last load failed ("-").
+            const known = summariesRef.current[id];
+            if (!onLoadAssignmentSummary || (known && !known.failed)) return;
             setSummaries((prev) => ({ ...prev, [id]: { loading: true } }));
             Promise.resolve(onLoadAssignmentSummary(classroom))
                 .then((data) =>

@@ -306,7 +306,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-board-row-{classroomId}` | li | 課題行 |
 | `classroom-board-row-toggle-{classroomId}` | button | 課題行本体（押すとその場で開く・`aria-expanded`。開く行は 1 つだけ） |
 | `classroom-board-row-date-{classroomId}` | span | 閉じた行の「授業日」（ラベル付き） |
-| `classroom-board-expiry-mark-{classroomId}` | span | 閉じた行の小さな赤い印（保存期限 7 日以内のときだけ） |
+| `classroom-board-expiry-mark-{classroomId}` | span | 閉じた行の小さな赤い印（⚠ +「保存期限: 日付」。保存期限 7 日以内のときだけ） |
 | `classroom-board-row-menu-{classroomId}` | button | 課題行の ⋮（中にトピック・授業日・共有） |
 | `classroom-board-topic-{classroomId}` | select | ⋮ の「トピック」 |
 | `classroom-board-date-{classroomId}` | input | ⋮ の「授業日」（並び順キー） |

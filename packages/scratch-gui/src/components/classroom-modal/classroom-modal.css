@@ -3561,10 +3561,19 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
 }
 
 /* 閉じた行の小さな赤い印（残り 7 日以内だけ・R4）。 */
-.board-row-expiry-mark {
+.board-row-trailing {
     margin-left: auto;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    flex: none;
+}
+
+.board-row-expiry-mark {
     color: hsla(10, 80%, 42%, 1);
+    font-size: 0.8rem;
     font-weight: bold;
+    white-space: nowrap;
 }
 
 /* 表示だけの値にも小さなラベルを付ける（R1・B3）。 */

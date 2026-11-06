@@ -193,7 +193,8 @@ describe('TeacherAssignmentBoard — retention (B4: red only within 7 days)', ()
 
     test('within 7 days: a small red mark on the closed row and the warning inside', () => {
         renderBoard({ classrooms: [classroom({ expiresAt: inDays(5) })] });
-        expect(byTestId('classroom-board-expiry-mark-c1')).toBeInTheDocument();
+        // R5: the meaning of the mark is visible on the row, not only in a tooltip.
+        expect(byTestId('classroom-board-expiry-mark-c1').textContent).toContain('Kept until');
         openRow('c1');
         const notice = byTestId('classroom-board-expiry-c1');
         expect(notice.textContent).toContain('deleted automatically');
@@ -425,6 +426,8 @@ describe('TeacherAssignmentBoard — topic sections (B6)', () => {
         fireEvent.click(byTestId('classroom-topic-menu-第1回'));
         fireEvent.click(byTestId('classroom-topic-rename-第1回'));
         const input = byTestId('classroom-topic-rename-input-第1回');
+        // R1: a visible label, not only an aria-label.
+        expect(document.querySelector('label[for="classroom-topic-rename-input-第1回"]').textContent).toBe('Topic');
         fireEvent.change(input, { target: { value: '第一回' } });
         fireEvent.keyDown(input, { key: 'Enter' });
         expect(props.onUpdateGroupTopics).toHaveBeenCalledWith('g1', {
@@ -487,6 +490,19 @@ describe('TeacherAssignmentBoard — rows open in place (B3・B7)', () => {
 
         openRow('c1');
         expect(byTestId('classroom-board-row-detail-c1')).not.toBeInTheDocument();
+    });
+
+    test('a row whose summary failed shows "-" and loads again when reopened', async () => {
+        const props = defaultProps();
+        props.onLoadAssignmentSummary = jest.fn().mockResolvedValueOnce(null).mockResolvedValueOnce(summary);
+        renderBoard(props);
+
+        openRow('c1');
+        await waitFor(() => expect(byTestId('classroom-board-row-counts-c1').textContent).toBe('-'));
+        openRow('c1');
+        openRow('c1');
+        await waitFor(() => expect(byTestId('classroom-board-row-counts-c1').textContent).toContain('30'));
+        expect(props.onLoadAssignmentSummary).toHaveBeenCalledTimes(2);
     });
 
     test('the row menu edits the topic and the lesson date', () => {
