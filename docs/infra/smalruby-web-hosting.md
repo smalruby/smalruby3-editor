@@ -42,6 +42,31 @@ aws cloudformation describe-stacks --stack-name SmalrubyWebHostingStack-stg \
   --query "Stacks[0].Outputs" --output table
 ```
 
+### ゾーンを作り直すとき（RETAIN の後始末）
+
+ゾーンは `RETAIN` なので、スタックを消しても、論理 ID やスタック名が変わって CloudFormation が
+「削除 + 新規作成」と判断しても、**古いゾーンは AWS に残る**。Route 53 は同じ名前のゾーンを
+いくつでも作れるため、そのまま出し直すと **NS の違う 2 つ目の `preview.smalruby.app` が黙ってできる**。
+お名前.com の委任は古いゾーンの NS を向いたままなので、新しいゾーンに足したレコード（証明書の
+検証レコードや CloudFront の別名）は外から見えない。
+
+そもそも作り直さないのが基本（論理 ID・スタック名・ゾーン名を変えない）。やむを得ないときは、
+まず同名のゾーンがいくつあるかを確かめる:
+
+```bash
+aws route53 list-hosted-zones-by-name --dns-name preview.smalruby.app \
+  --query "HostedZones[?Name=='preview.smalruby.app.'].[Id,Config.Comment]" --output table
+```
+
+そのうえで次のどちらかを選ぶ（どちらも人間が手元で行う）。
+
+- **残ったゾーンを取り込む（NS が変わらない。こちらを優先）**: スタックが無い状態で
+  `npx cdk import --context stage=stg` を実行し、`PreviewHostedZone` に残ったゾーンの ID を渡す。
+  お名前.com の NS はそのままでよい。取り込んだあとは通常どおり `Deploy Infra` で出す。
+- **残ったゾーンを消して作り直す（NS が変わる）**: 残ったゾーンの NS / SOA 以外のレコードを消してから
+  ゾーンを消し、`Deploy Infra` で出し直す。新しい NS 4 本（Output `PreviewHostedZoneNameServers`）を
+  お名前.com の委任に登録し直す。登録し直すまで `preview.smalruby.app` は引けない。
+
 ### 証明書をこのスタックでまだ作らない理由
 
 ACM の DNS 検証は、公開 DNS から検証レコード（CNAME）が引けるまで証明書を発行しない。
@@ -66,6 +91,18 @@ bin/gh-admin secret set INFRA_PROD_DOTENV_SMALRUBY_WEB_HOSTING --env prod < infr
 
 `.env` の中身は `STAGE` だけでよい（`infra/smalruby-web-hosting/.env.example`）。
 
+Secrets が無いままマージすると、`Deploy Infra` のこのプロジェクトのジョブだけが「何を登録すべきか」を
+示して失敗する（ほかのプロジェクトは進む）。
+
+### prod の初回デプロイ
+
+prod のテンプレートは `AWS::CDK::Metadata` だけの空のスタック。prod にはまだスタックが無いので、初回の
+`cdk diff` は `BootstrapVersion` パラメータの追加を差分として出す（`AWS::CDK::Metadata` は diff から
+除かれるが、パラメータは除かれない）。そのため初回の自動デプロイは**空のスタック
+`SmalrubyWebHostingStack` を作り**、2 回目からは「差分なし」で何もしない。どちらの場合も削除・置き換えは
+含まないので、prod の自動デプロイは止まらず、prod にプレビュー用のリソースはできない。
+
+
 ## テスト
 
 ```bash
@@ -78,6 +115,9 @@ npx cdk synth --context stage=prod
 
 テストは「stg にゾーンがあり `RETAIN`」「NS と ID を Output」「証明書を作らない」
 「prod / stg2 にはゾーンを作らない」を確かめる。
+
+CI（`.github/workflows/ci-infra.yml` の `[web-hosting] Unit Tests` / `CDK Build & Synth` /
+`Security Audit`）が、`infra/**` を変える PR と push で同じテストと、stg / prod 両方の `cdk synth` を行う。
 
 ## 主要ファイル
 
