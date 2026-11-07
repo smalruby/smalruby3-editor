@@ -334,6 +334,11 @@ git log --oneline
 git log --oneline --graph
 ```
 
+## GitHub Actions の runner
+
+`.github/workflows/` にジョブを足す・`runs-on` を変えるときは **`docs/maintenance/ci-runners.md`** に従う
+（版を固定する。`ubuntu-latest` / `windows-latest` を書かない。古い版に残すときは理由のコメントと追跡 Issue）。
+
 ## Package Lock File
 
 - `package-lock.json` is maintained at the **monorepo root level**
