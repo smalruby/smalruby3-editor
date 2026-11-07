@@ -2802,24 +2802,35 @@
     overflow-y: auto;
 }
 
-/* プライマリ = 青塗り（評価画面に統一・#1122）。 */
-.class-list-create-button {
-    background: #4c97ff;
-    color: white;
-    border: none;
-    border-radius: 0.5rem;
-    padding: 0.5rem 1.25rem;
-    font-size: 0.9rem;
-    cursor: pointer;
+/* クラス一覧（入口）: 本文はスクロールさせず、カードの一覧の枠だけをスクロールする（R6・#1300）。 */
+.class-list-landing {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
-.class-list-create-button:hover {
-    background: #3d89f0;
+.class-list-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    /* カードのホバー枠が切れないように少し余白を持たせる。 */
+    padding: 0 0.25rem 0.5rem 0;
 }
 
-.class-list-create-button:disabled {
-    opacity: 0.5;
-    cursor: default;
+/* 主ボタン（クラスを作成）と読み込み中の表示・インポートを 1 行に並べる（#1300 L1）。
+   主ボタンは共通の .primary-button（ClassroomButton）を使い、薄い色にしない。 */
+.class-list-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.class-list-loading {
+    font-size: 0.85rem;
+    color: hsla(225, 15%, 40%, 1);
 }
 
 .class-list-empty {
@@ -2852,8 +2863,15 @@
     border: 1px solid hsla(0, 0%, 0%, 0.15);
     border-radius: 0.5rem;
     background: white;
+    /* ボタンの既定色（無効時は灰色）に任せると名前が薄く見えるので明示する（#1300 L1）。 */
+    color: hsla(225, 15%, 20%, 1);
+    font-family: inherit;
     cursor: pointer;
     text-align: left;
+}
+
+.class-card-main:disabled {
+    cursor: progress;
 }
 
 .class-card-main:hover:not(:disabled) {
@@ -2868,6 +2886,55 @@
 .class-card-meta {
     font-size: 0.8rem;
     color: hsla(225, 15%, 40%, 1);
+}
+
+/* 要約の項目は「・」で区切る（#1300 L2）。 */
+.class-card-meta > span + span::before {
+    content: "・";
+}
+
+/* --- Create a class: small dialog over the class list (#1300 K5) --- */
+
+.create-class-backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: hsla(215, 30%, 20%, 0.35);
+}
+
+.create-class-dialog {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    width: 28rem;
+    max-width: calc(100% - 2rem);
+    padding: 1.25rem 1.5rem;
+    border-radius: 0.5rem;
+    background-color: white;
+    box-shadow: 0 0.5rem 1.5rem hsla(0, 0%, 0%, 0.2);
+}
+
+.create-class-title {
+    margin: 0 0 0.25rem;
+    font-size: 1.1rem;
+    color: hsla(225, 15%, 20%, 1);
+}
+
+.create-class-dialog input {
+    padding: 0.45rem;
+    border: 1px solid hsla(0, 0%, 0%, 0.15);
+    border-radius: 0.25rem;
+    font-size: 0.9rem;
+}
+
+.create-class-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
 }
 
 .class-card-badges {
@@ -2932,9 +2999,8 @@
 
 /* --- Retention (auto-delete) alerts (issue #1052) --- */
 
-/* 期限が近い課題の行に出す自動削除メッセージ + 全作品ダウンロード。
-   バッジ（あと N 日）は廃止し、詳細と同じ文面 + DL 動線を一覧にも置く。 */
-.board-row-retention,
+/* 残り 7 日以内（R4）の課題を開いた中に出す自動削除メッセージ + 全作品ダウンロード。
+   閉じた行には小さな赤い印（.board-row-expiry-mark）だけを出す（#1301）。 */
 .board-row-retention-warning {
     display: flex;
     flex-wrap: wrap;
@@ -2943,10 +3009,6 @@
     padding: 0.1rem 0.3rem 0.2rem;
     font-size: 0.8rem;
     font-weight: bold;
-}
-
-.board-row-retention {
-    color: hsla(30, 70%, 35%, 1);
 }
 
 .board-row-retention-warning {
@@ -3382,6 +3444,27 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
 
 /* クラス名を独立行にしたので、ヘッダーはアクションボタンの折り返し行にする
    （左寄せ・省略しない。レビュー指摘 #1108）。 */
+/* クラスの画面は高さいっぱいの縦並び。件数で長さが変わる課題の一覧だけが
+   枠の中でスクロールし、タブと［＋ 作成 ▾］は常に見える（R6 の例外・#1301）。
+   作成・再利用などのサブ画面が長いときは画面ごとスクロールする。 */
+.board-screen {
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    height: 100%;
+    padding: 1.25rem 2rem;
+    max-width: 60rem;
+    overflow-y: auto;
+}
+
+.board-list {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    /* 開いた行の枠線・⋮ のメニューが切れないように少し余白を取る。 */
+    padding: 0 0.25rem 0.5rem 0;
+}
+
 .board-header {
     display: flex;
     flex-wrap: wrap;
@@ -3395,14 +3478,6 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
     font-size: 1.3rem;
     font-weight: bold;
     color: #575e75;
-}
-
-/* 課題一覧（ボード）の簡単な説明。 */
-.board-hint {
-    font-size: 0.85rem;
-    color: #888;
-    line-height: 1.5;
-    margin: 0 0 0.75rem;
 }
 
 .board-year {
@@ -3432,12 +3507,145 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
     cursor: default;
 }
 
-.board-topics {
+/* ［ストリーム］［授業］のタブ（Google Classroom と同じ並び）。 */
+.board-tabs {
     display: flex;
-    flex-wrap: wrap;
+    gap: 0.25rem;
+    border-bottom: 1px solid hsla(0, 0%, 0%, 0.12);
+    margin-bottom: 0.75rem;
+}
+
+.board-tab,
+.board-tab-active {
+    border: none;
+    border-bottom: 3px solid transparent;
+    background: transparent;
+    padding: 0.4rem 1rem;
+    font-size: 0.95rem;
+    color: #575e75;
+    cursor: pointer;
+}
+
+.board-tab-active {
+    border-bottom-color: #4c97ff;
+    color: #3373cc;
+    font-weight: bold;
+}
+
+.board-header-end {
+    margin-left: auto;
+}
+
+/* ［＋ 作成 ▾］・「…」・⋮ のドロップダウン。 */
+.board-menu {
+    position: relative;
+    display: inline-block;
+}
+
+.board-menu-list,
+.board-menu-list-right {
+    position: absolute;
+    top: calc(100% + 0.25rem);
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    min-width: 13rem;
+    padding: 0.25rem 0;
+    border: 1px solid hsla(0, 0%, 0%, 0.15);
+    border-radius: 0.4rem;
+    background: white;
+    box-shadow: 0 4px 12px hsla(0, 0%, 0%, 0.15);
+}
+
+.board-menu-list {
+    left: 0;
+}
+
+.board-menu-list-right {
+    right: 0;
+}
+
+.board-menu-item {
+    border: none;
+    background: transparent;
+    padding: 0.5rem 1rem;
+    text-align: left;
+    font-size: 0.9rem;
+    color: #575e75;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.board-menu-item:hover:not(:disabled) {
+    background: #f2f2f2;
+}
+
+.board-menu-item:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.board-menu-separator {
+    margin: 0.25rem 0;
+    border: none;
+    border-top: 1px solid hsla(0, 0%, 0%, 0.12);
+}
+
+/* ⋮ / … のアイコンボタン。 */
+.board-kebab {
+    width: 2rem;
+    height: 2rem;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: #575e75;
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.board-kebab:hover:not(:disabled) {
+    background: hsla(0, 0%, 0%, 0.06);
+}
+
+.board-kebab:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+/* 「トピックを追加」の小さな画面。 */
+.board-dialog-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    display: flex;
     align-items: center;
-    gap: 0.4rem;
-    margin: 1rem 0;
+    justify-content: center;
+    background: hsla(215, 100%, 65%, 0.4);
+}
+
+.board-dialog {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 24rem;
+    max-width: calc(100% - 2rem);
+    padding: 1.25rem;
+    border-radius: 0.5rem;
+    background: white;
+    box-shadow: 0 6px 24px hsla(0, 0%, 0%, 0.2);
+}
+
+.board-dialog-title {
+    margin: 0 0 0.25rem;
+    font-size: 1.1rem;
+    color: #575e75;
+}
+
+.board-dialog-footer {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.5rem;
 }
 
 .topic-chip {
@@ -3449,15 +3657,6 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
     overflow: hidden;
 }
 
-.topic-chip-name {
-    border: none;
-    background: transparent;
-    color: #855cd6;
-    padding: 0.2rem 0.2rem 0.2rem 0.7rem;
-    font-size: 0.8rem;
-    cursor: pointer;
-}
-
 .topic-chip-remove {
     border: none;
     background: transparent;
@@ -3466,14 +3665,6 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
     cursor: pointer;
 }
 
-.topic-chip-input,
-.topic-add-input {
-    padding: 0.25rem 0.5rem;
-    border: 1px solid hsla(0, 0%, 0%, 0.2);
-    border-radius: 1rem;
-    font-size: 0.8rem;
-    width: 10rem;
-}
 
 .topic-add-button {
     border: 1px solid #855cd6;
@@ -3499,12 +3690,28 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
     margin-bottom: 1rem;
 }
 
-.board-section-title {
+.board-section-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
     margin: 0.75rem 0 0.4rem;
-    font-size: 0.95rem;
-    color: #855cd6;
     border-bottom: 1px solid hsla(260, 60%, 60%, 0.25);
     padding-bottom: 0.2rem;
+}
+
+.board-section-title {
+    margin: 0;
+    font-size: 0.95rem;
+    color: #855cd6;
+}
+
+.topic-rename-input {
+    padding: 0.25rem 0.5rem;
+    border: 1px solid hsla(0, 0%, 0%, 0.2);
+    border-radius: 0.3rem;
+    font-size: 0.9rem;
+    width: 16rem;
 }
 
 .board-rows {
@@ -3524,11 +3731,107 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
 
 /* 期限メッセージを行の下に積むため、アクティブ課題の行は縦積みにする
    （アーカイブ行は従来どおり .board-row の横並びのまま）。 */
-.board-row-item {
+.board-row-item,
+.board-row-item-open {
     display: flex;
     flex-direction: column;
     align-items: stretch;
     gap: 0.25rem;
+}
+
+/* 開いた行（アコーディオン・1 つだけ）。枠で中身と行をひとまとまりに見せる。 */
+.board-row-item-open {
+    border: 1px solid #855cd6;
+    border-radius: 0.4rem;
+    background: white;
+}
+
+.board-row-item-open .board-row-main {
+    border-color: transparent;
+}
+
+/* 閉じた行の小さな赤い印（残り 7 日以内だけ・R4）。 */
+.board-row-trailing {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    flex: none;
+}
+
+.board-row-expiry-mark {
+    color: hsla(10, 80%, 42%, 1);
+    font-size: 0.8rem;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+/* 表示だけの値にも小さなラベルを付ける（R1・B3）。 */
+.board-row-meta {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    font-size: 0.8rem;
+    color: #575e75;
+    white-space: nowrap;
+}
+
+.board-row-meta-label {
+    font-size: 0.72rem;
+    color: hsla(225, 15%, 40%, 1);
+}
+
+.board-row-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding: 0 0.9rem 0.7rem;
+}
+
+.board-row-detail-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.4rem 1.25rem;
+}
+
+/* 7 日より先の保存期限は灰色の小さな表示（R4）。 */
+.board-row-retention-grey {
+    font-size: 0.75rem;
+    color: hsla(225, 15%, 50%, 1);
+}
+
+.board-row-description {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #575e75;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.board-row-detail-footer {
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* 行の ⋮ に入れたトピック・授業日の変更と共有。 */
+.board-row-menu-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    min-width: 14rem;
+}
+
+.board-row-menu-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.board-row-menu-body .board-menu-item {
+    padding-left: 0;
 }
 
 .board-row-controls {
@@ -3539,9 +3842,10 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
 
 .board-row-main {
     flex: 1;
+    min-width: 0;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;
     gap: 0.75rem;
     padding: 0.6rem 0.9rem;
     border: 1px solid hsla(0, 0%, 0%, 0.12);
@@ -3557,6 +3861,9 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
 
 .board-row-name {
     font-size: 0.95rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .board-row-code {
@@ -3574,32 +3881,8 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
     background: white;
 }
 
-/* 各行の「共有」ボタン（#1109。共有導線をボードに一本化）。 */
-.board-row-share {
-    flex: 0 0 auto;
-    padding: 0.35rem 0.7rem;
-    border: 1px solid #4c97ff;
-    border-radius: 0.3rem;
-    background: white;
-    color: #3373cc;
-    font-size: 0.8rem;
-    font-weight: bold;
-    cursor: pointer;
-    white-space: nowrap;
-}
-
-.board-row-share:hover:not(:disabled) {
-    background: #e9f0ff;
-}
-
-.board-row-share:disabled {
-    opacity: 0.5;
-    cursor: default;
-}
-
 /* セカンダリ = 白地 + 中立の枠線（評価画面に統一・#1122）。 */
 .class-list-import-button {
-    margin-left: 0.5rem;
     border: 1px solid #d9d9d9;
     background: white;
     color: #575e75;
@@ -3666,9 +3949,30 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
     gap: 0.5rem;
 }
 
-.class-settings-row input {
+.class-settings-row > .class-field {
     flex: 1;
     min-width: 0;
+}
+
+/* ラベル付きの入力欄（R1）: ラベルを欄の上に常に出す。作成ダイアログと設定画面で共有。 */
+.class-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.class-field input {
+    min-width: 0;
+}
+
+/* 設定画面で 4 つを 1 行に並べるとき、クラス名だけ広くする。 */
+.class-settings-row > .class-field-wide {
+    flex: 2;
+}
+
+.class-field-label {
+    font-size: 0.8rem;
+    color: hsla(225, 15%, 40%, 1);
 }
 
 .class-settings-co-teachers {
@@ -3722,25 +4026,6 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
 }
 
 /* セカンダリ = 白地 + 中立の枠線（評価画面に統一・#1122）。 */
-.board-reuse-button {
-    border: 1px solid #d9d9d9;
-    background: white;
-    color: #575e75;
-    border-radius: 0.5rem;
-    padding: 0.5rem 1rem;
-    cursor: pointer;
-    white-space: nowrap;
-}
-
-.board-reuse-button:hover {
-    background: #f2f2f2;
-}
-
-.board-reuse-button:disabled {
-    opacity: 0.5;
-    cursor: default;
-}
-
 .reuse-filter {
     display: flex;
     align-items: center;

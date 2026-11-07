@@ -1,13 +1,15 @@
 /**
  * Class list — the teacher's post-login landing view (Google Classroom
- * style): one card per class (学級). Hosts the combined "class + optional
- * first assignment" creation form and per-card inline settings (name /
- * year / section / student count / class-level co-teachers / generative AI
- * and Rubytee / archive).
+ * style): one card per class (学級) with a short summary. Hosts the small
+ * "Create a class" dialog (same shape as Google Classroom's: the class fields
+ * only — assignments are made inside the class) and the class settings screen
+ * (name / year / section / student count / class-level co-teachers /
+ * generative AI and Rubytee / archive).
  */
+import classNames from 'classnames';
 import PropTypes from 'prop-types';
-import React, { useCallback, useState } from 'react';
-import { FormattedMessage, useIntl } from 'react-intl';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { defineMessages, FormattedMessage, useIntl } from 'react-intl';
 
 import { formatClassLabel } from '../../lib/classroom-class-label.js';
 import {
@@ -19,6 +21,7 @@ import {
 import ClassAiSettings from './class-ai-settings.jsx';
 import ClassAiStudentPreview from './class-ai-student-preview.jsx';
 import ClassroomButton from './classroom-button.jsx';
+import ErrorDisplay from './error-display.jsx';
 import { TeacherScreen, TeacherSubView } from './teacher-view-layout.jsx';
 
 import styles from './classroom-modal.css';
@@ -27,6 +30,161 @@ import styles from './classroom-modal.css';
 const currentSchoolYear = () => {
     const now = new Date();
     return now.getMonth() + 1 >= 4 ? now.getFullYear() : now.getFullYear() - 1;
+};
+
+// Shared by the create dialog and the class settings: every field has a
+// visible label, and the placeholder only shows an example (R1).
+const fieldMessages = defineMessages({
+    nameLabel: {
+        defaultMessage: 'Class name (required)',
+        description: 'Label of the class name field (create dialog and class settings)',
+        id: 'gui.classroom.classForm.nameLabel',
+    },
+    namePlaceholder: {
+        defaultMessage: 'e.g. Technology',
+        description: 'Example shown in the empty class name field',
+        id: 'gui.classroom.classForm.namePlaceholder',
+    },
+    sectionLabel: {
+        defaultMessage: 'Section',
+        description: 'Label of the class section field (same word as Google Classroom)',
+        id: 'gui.classroom.classForm.sectionLabel',
+    },
+    sectionPlaceholder: {
+        defaultMessage: 'e.g. Class 1, Course A (optional)',
+        description: 'Example shown in the empty class section field',
+        id: 'gui.classroom.classForm.sectionPlaceholder',
+    },
+    yearLabel: {
+        defaultMessage: 'School year',
+        description: 'Label of the class school year field',
+        id: 'gui.classroom.classForm.yearLabel',
+    },
+    countLabel: {
+        defaultMessage: 'Number of students (seat numbers)',
+        description: 'Label of the class student count field (how many seat numbers the class has)',
+        id: 'gui.classroom.classForm.countLabel',
+    },
+    countPlaceholder: {
+        defaultMessage: 'e.g. 40',
+        description: 'Example shown in the empty class student count field',
+        id: 'gui.classroom.classForm.countPlaceholder',
+    },
+});
+
+/**
+ * The class's basic fields: name, section, school year and student count.
+ * @param {object} props - component props
+ * @param {string} props.testIdPrefix - data-testid prefix (`<prefix>-name` etc.)
+ * @param {object} props.values - {name, section, year, studentCount} as strings
+ * @param {Function} props.onNameChange - change handler of the name input
+ * @param {Function} props.onSectionChange - change handler of the section input
+ * @param {Function} props.onYearChange - change handler of the year input
+ * @param {Function} props.onCountChange - change handler of the student count input
+ * @param {boolean} props.disabled - whether the inputs are disabled
+ * @param {boolean} props.compact - put all four fields in one row (the settings screen, which
+ *     must not grow taller); the small create dialog gives the name and section their own rows
+ * @param {boolean} props.countRequired - whether the student count is required
+ * @param {object} props.nameRef - optional ref to the name input (for focus)
+ * @returns {React.ReactElement} the labelled fields
+ */
+const ClassFields = ({
+    compact,
+    countRequired,
+    disabled,
+    nameRef,
+    testIdPrefix,
+    values,
+    onCountChange,
+    onNameChange,
+    onSectionChange,
+    onYearChange,
+}) => {
+    const intl = useIntl();
+    const nameField = (
+        <label className={classNames(styles.classField, compact && styles.classFieldWide)}>
+            <span className={styles.classFieldLabel}>{intl.formatMessage(fieldMessages.nameLabel)}</span>
+            <input
+                ref={nameRef}
+                data-testid={`${testIdPrefix}-name`}
+                disabled={disabled}
+                maxLength={50}
+                placeholder={intl.formatMessage(fieldMessages.namePlaceholder)}
+                required
+                type="text"
+                value={values.name}
+                onChange={onNameChange}
+            />
+        </label>
+    );
+    const sectionField = (
+        <label className={styles.classField}>
+            <span className={styles.classFieldLabel}>{intl.formatMessage(fieldMessages.sectionLabel)}</span>
+            <input
+                data-testid={`${testIdPrefix}-section`}
+                disabled={disabled}
+                maxLength={50}
+                placeholder={intl.formatMessage(fieldMessages.sectionPlaceholder)}
+                type="text"
+                value={values.section}
+                onChange={onSectionChange}
+            />
+        </label>
+    );
+    return (
+        <React.Fragment>
+            {compact ? null : nameField}
+            {compact ? null : sectionField}
+            <div className={styles.classSettingsRow}>
+                {compact ? nameField : null}
+                {compact ? sectionField : null}
+                <label className={styles.classField}>
+                    <span className={styles.classFieldLabel}>{intl.formatMessage(fieldMessages.yearLabel)}</span>
+                    <input
+                        data-testid={`${testIdPrefix}-year`}
+                        disabled={disabled}
+                        max={2100}
+                        min={2000}
+                        type="number"
+                        value={values.year}
+                        onChange={onYearChange}
+                    />
+                </label>
+                <label className={styles.classField}>
+                    <span className={styles.classFieldLabel}>{intl.formatMessage(fieldMessages.countLabel)}</span>
+                    <input
+                        data-testid={`${testIdPrefix}-count`}
+                        disabled={disabled}
+                        max={50}
+                        min={1}
+                        placeholder={intl.formatMessage(fieldMessages.countPlaceholder)}
+                        required={countRequired}
+                        type="number"
+                        value={values.studentCount}
+                        onChange={onCountChange}
+                    />
+                </label>
+            </div>
+        </React.Fragment>
+    );
+};
+
+ClassFields.propTypes = {
+    compact: PropTypes.bool,
+    countRequired: PropTypes.bool,
+    disabled: PropTypes.bool,
+    nameRef: PropTypes.object,
+    testIdPrefix: PropTypes.string.isRequired,
+    values: PropTypes.shape({
+        name: PropTypes.string,
+        section: PropTypes.string,
+        studentCount: PropTypes.string,
+        year: PropTypes.string,
+    }).isRequired,
+    onCountChange: PropTypes.func.isRequired,
+    onNameChange: PropTypes.func.isRequired,
+    onSectionChange: PropTypes.func.isRequired,
+    onYearChange: PropTypes.func.isRequired,
 };
 
 // Inline settings editor shown in place of a card (recommended UX: no nested modal).
@@ -118,57 +276,16 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
                 data-testid={`classroom-class-settings-${group.groupId}`}
                 onSubmit={handleSave}
             >
-                <input
-                    data-testid="classroom-class-settings-name"
+                <ClassFields
+                    compact
                     disabled={isLoading}
-                    maxLength={50}
-                    placeholder={intl.formatMessage({
-                        defaultMessage: 'Class name (required, e.g. Technology)',
-                        description: 'Placeholder for the class name in settings',
-                        id: 'gui.classroom.classSettings.namePlaceholder',
-                    })}
-                    type="text"
-                    value={name}
-                    onChange={handleNameChange}
+                    testIdPrefix="classroom-class-settings"
+                    values={{ name, section, year, studentCount }}
+                    onCountChange={handleCountChange}
+                    onNameChange={handleNameChange}
+                    onSectionChange={handleSectionChange}
+                    onYearChange={handleYearChange}
                 />
-                <div className={styles.classSettingsRow}>
-                    <input
-                        data-testid="classroom-class-settings-year"
-                        disabled={isLoading}
-                        max={2100}
-                        min={2000}
-                        type="number"
-                        value={year}
-                        onChange={handleYearChange}
-                    />
-                    <input
-                        data-testid="classroom-class-settings-section"
-                        disabled={isLoading}
-                        maxLength={50}
-                        placeholder={intl.formatMessage({
-                            defaultMessage: 'Section (optional, e.g. Year 2 Class 1)',
-                            description: 'Placeholder for the class section input',
-                            id: 'gui.classroom.classSettings.sectionPlaceholder',
-                        })}
-                        type="text"
-                        value={section}
-                        onChange={handleSectionChange}
-                    />
-                    <input
-                        data-testid="classroom-class-settings-count"
-                        disabled={isLoading}
-                        max={50}
-                        min={1}
-                        placeholder={intl.formatMessage({
-                            defaultMessage: 'Students',
-                            description: 'Placeholder for the student count in settings',
-                            id: 'gui.classroom.classSettings.countPlaceholder',
-                        })}
-                        type="number"
-                        value={studentCount}
-                        onChange={handleCountChange}
-                    />
-                </div>
                 <div className={styles.classSettingsCoTeachers}>
                     <span className={styles.classSettingsLabel}>
                         <FormattedMessage
@@ -363,6 +480,27 @@ ClassSettingsForm.propTypes = {
     onUpdateGroup: PropTypes.func.isRequired,
 };
 
+// Brand names stay as they are in every language; only "other" is translated.
+const GENAI_SERVICE_NAMES = { chatgpt: 'ChatGPT', gemini: 'Gemini' };
+
+/**
+ * Short name of the generative AI a class uses, for the card summary.
+ * @param {object} intl - react-intl object
+ * @param {?object} genai - the class's stored genai settings
+ * @returns {?string} the name, or null when the class does not use one
+ */
+const genaiServiceName = (intl, genai) => {
+    if (!genai || genai.enabled !== true || !genai.service) return null;
+    return (
+        GENAI_SERVICE_NAMES[genai.service] ||
+        intl.formatMessage({
+            defaultMessage: 'Other',
+            description: 'Generative AI name on a class card when the school chose its own service',
+            id: 'gui.classroom.classList.genaiOther',
+        })
+    );
+};
+
 const ClassCard = ({
     group,
     assignmentCount,
@@ -378,6 +516,7 @@ const ClassCard = ({
     const handleSettings = useCallback(() => onShowSettings(group.groupId), [onShowSettings, group.groupId]);
     const handleRestore = useCallback(() => onRestoreGroup(group.groupId), [onRestoreGroup, group.groupId]);
     const isArchived = group.status === 'archived';
+    const genaiName = genaiServiceName(intl, group.genai);
 
     return (
         <li className={styles.classCard} data-testid={`classroom-class-card-${group.groupId}`}>
@@ -389,15 +528,42 @@ const ClassCard = ({
                 onClick={handleOpen}
             >
                 <span className={styles.classCardName}>{formatClassLabel(group)}</span>
-                <span className={styles.classCardMeta}>
-                    {intl.formatMessage(
-                        {
-                            defaultMessage: '{count} assignments',
-                            description: 'Assignment count on a class card',
-                            id: 'gui.classroom.classList.assignmentCount',
-                        },
-                        { count: assignmentCount },
-                    )}
+                {/* 小さな要約（L2）: 課題の数・生徒の人数・使う生成 AI。 */}
+                <span className={styles.classCardMeta} data-testid={`classroom-class-summary-${group.groupId}`}>
+                    <span>
+                        {intl.formatMessage(
+                            {
+                                defaultMessage: '{count} assignments',
+                                description: 'Assignment count on a class card',
+                                id: 'gui.classroom.classList.assignmentCount',
+                            },
+                            { count: assignmentCount },
+                        )}
+                    </span>
+                    {typeof group.studentCount === 'number' ? (
+                        <span>
+                            {intl.formatMessage(
+                                {
+                                    defaultMessage: '{count} students',
+                                    description: 'Student count (seat numbers) on a class card',
+                                    id: 'gui.classroom.classList.studentCount',
+                                },
+                                { count: group.studentCount },
+                            )}
+                        </span>
+                    ) : null}
+                    {genaiName ? (
+                        <span>
+                            {intl.formatMessage(
+                                {
+                                    defaultMessage: 'Generative AI: {service}',
+                                    description: 'Generative AI used in the class, on a class card',
+                                    id: 'gui.classroom.classList.genaiSummary',
+                                },
+                                { service: genaiName },
+                            )}
+                        </span>
+                    ) : null}
                 </span>
                 <span className={styles.classCardBadges}>
                     {group.googleClassroomCourseId ? (
@@ -488,6 +654,121 @@ ClassCard.propTypes = {
     onShowSettings: PropTypes.func.isRequired,
 };
 
+/**
+ * "Create a class" — a small dialog over the class list, the same shape as
+ * Google Classroom's: the class fields only, with fixed Cancel / Create
+ * buttons. Assignments are created inside the class (［＋ 作成 ▾］).
+ * @param {object} props - component props
+ * @param {string} props.error - error of the last request (shown in the dialog, not behind it)
+ * @param {string} props.errorTitle - title of that error
+ * @param {boolean} props.isLoading - whether a request is in flight
+ * @param {Function} props.onCancel - closes the dialog
+ * @param {Function} props.onCreate - called with {name, year, section, studentCount}
+ * @returns {React.ReactElement} the dialog
+ */
+const CreateClassDialog = ({ error, errorTitle, isLoading, onCancel, onCreate }) => {
+    const [name, setName] = useState('');
+    const [year, setYear] = useState(String(currentSchoolYear()));
+    const [section, setSection] = useState('');
+    const [studentCount, setStudentCount] = useState('');
+    const nameRef = useRef(null);
+    useEffect(() => {
+        if (nameRef.current) nameRef.current.focus();
+    }, []);
+
+    const handleNameChange = useCallback((e) => setName(e.target.value), []);
+    const handleYearChange = useCallback((e) => setYear(e.target.value), []);
+    const handleSectionChange = useCallback((e) => setSection(e.target.value), []);
+    const handleStudentCountChange = useCallback((e) => setStudentCount(e.target.value), []);
+    const handleKeyDown = useCallback(
+        (e) => {
+            if (e.key === 'Escape') {
+                e.stopPropagation();
+                onCancel();
+            }
+        },
+        [onCancel],
+    );
+
+    const canSubmit = name.trim().length > 0 && parseInt(studentCount, 10) > 0 && parseInt(year, 10) >= 2000;
+    const handleSubmit = useCallback(
+        (e) => {
+            e.preventDefault();
+            if (!canSubmit || isLoading) return;
+            onCreate({
+                name: name.trim(),
+                year: parseInt(year, 10),
+                section: section.trim() || null,
+                studentCount: parseInt(studentCount, 10),
+            });
+        },
+        [canSubmit, isLoading, onCreate, name, year, section, studentCount],
+    );
+
+    return (
+        <div className={styles.createClassBackdrop}>
+            <form
+                aria-labelledby="classroom-class-create-title"
+                aria-modal="true"
+                className={styles.createClassDialog}
+                data-testid="classroom-class-create-dialog"
+                role="dialog"
+                onKeyDown={handleKeyDown}
+                onSubmit={handleSubmit}
+            >
+                <h3 className={styles.createClassTitle} id="classroom-class-create-title">
+                    <FormattedMessage
+                        defaultMessage="Create a class"
+                        description="Button that opens the class creation dialog"
+                        id="gui.classroom.classList.create"
+                    />
+                </h3>
+                <ClassFields
+                    countRequired
+                    disabled={isLoading}
+                    nameRef={nameRef}
+                    testIdPrefix="classroom-class-create"
+                    values={{ name, section, year, studentCount }}
+                    onCountChange={handleStudentCountChange}
+                    onNameChange={handleNameChange}
+                    onSectionChange={handleSectionChange}
+                    onYearChange={handleYearChange}
+                />
+                <ErrorDisplay error={error} errorTitle={errorTitle} />
+                <div className={styles.createClassButtons}>
+                    <ClassroomButton dataTestId="classroom-class-create-cancel" onClick={onCancel}>
+                        <FormattedMessage
+                            defaultMessage="Cancel"
+                            description="Cancel button of the class creation form"
+                            id="gui.classroom.classList.createCancel"
+                        />
+                    </ClassroomButton>
+                    <ClassroomButton
+                        dataTestId="classroom-class-create-submit"
+                        disabled={!canSubmit || isLoading}
+                        type="submit"
+                        variant="primary"
+                    >
+                        <FormattedMessage
+                            defaultMessage="Create"
+                            description="Submit button of the class creation dialog"
+                            id="gui.classroom.classList.createDialogSubmit"
+                        />
+                    </ClassroomButton>
+                </div>
+            </form>
+        </div>
+    );
+};
+
+CreateClassDialog.propTypes = {
+    error: PropTypes.string,
+    errorTitle: PropTypes.string,
+    isLoading: PropTypes.bool,
+    onCancel: PropTypes.func.isRequired,
+    onCreate: PropTypes.func.isRequired,
+};
+
 const TeacherClassList = ({
     classrooms,
     error,
@@ -505,27 +786,10 @@ const TeacherClassList = ({
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [settingsGroupId, setSettingsGroupId] = useState(null);
     const [showArchived, setShowArchived] = useState(false);
-    const [name, setName] = useState('');
-    const [year, setYear] = useState(String(currentSchoolYear()));
-    const [section, setSection] = useState('');
-    const [studentCount, setStudentCount] = useState('');
-    const [assignmentName, setAssignmentName] = useState('');
 
-    // 開くとき・閉じるとき（キャンセル・パンくず）のどちらでも入力を既定値に戻す。
-    // 次に開いたときに前回の値が残らないように。
-    const handleToggleCreateForm = useCallback(() => {
-        setName('');
-        setYear(String(currentSchoolYear()));
-        setSection('');
-        setStudentCount('');
-        setAssignmentName('');
-        setShowCreateForm((v) => !v);
-    }, []);
-    const handleNameChange = useCallback((e) => setName(e.target.value), []);
-    const handleYearChange = useCallback((e) => setYear(e.target.value), []);
-    const handleSectionChange = useCallback((e) => setSection(e.target.value), []);
-    const handleStudentCountChange = useCallback((e) => setStudentCount(e.target.value), []);
-    const handleAssignmentNameChange = useCallback((e) => setAssignmentName(e.target.value), []);
+    // The dialog unmounts when closed, so it opens with the defaults again.
+    const handleOpenCreate = useCallback(() => setShowCreateForm(true), []);
+    const handleCloseCreate = useCallback(() => setShowCreateForm(false), []);
     const handleShowSettings = useCallback((groupId) => setSettingsGroupId(groupId), []);
     const handleOpenUngrouped = useCallback(
         (e) => onOpenUngrouped(e.currentTarget.dataset.classroomId),
@@ -536,24 +800,6 @@ const TeacherClassList = ({
     const handleRestoreGroup = useCallback(
         (groupId) => onUpdateGroup(groupId, { status: 'active' }),
         [onUpdateGroup],
-    );
-
-    // The first assignment is optional: a class can be created on its own.
-    const canSubmit = name.trim().length > 0 && parseInt(studentCount, 10) > 0 && parseInt(year, 10) >= 2000;
-
-    const handleSubmit = useCallback(
-        (e) => {
-            e.preventDefault();
-            if (!canSubmit || isLoading) return;
-            onCreateClassWithAssignment({
-                name: name.trim(),
-                year: parseInt(year, 10),
-                section: section.trim() || null,
-                studentCount: parseInt(studentCount, 10),
-                assignmentName: assignmentName.trim() || null,
-            });
-        },
-        [canSubmit, isLoading, onCreateClassWithAssignment, name, year, section, studentCount, assignmentName],
     );
 
     const activeGroups = groups.filter((g) => g.status !== 'archived');
@@ -575,152 +821,9 @@ const TeacherClassList = ({
             description: 'Breadcrumb link back to the class list',
             id: 'gui.classroom.breadcrumbs.classList',
         }),
-        onClick: showCreateForm ? handleToggleCreateForm : handleCloseSettings,
+        onClick: handleCloseSettings,
         testId: 'classroom-breadcrumb-class-list',
     };
-
-    // クラスを作る（#1108: popover → 画面遷移。フッター キャンセル左/作成右）
-    if (showCreateForm) {
-        return (
-            <TeacherScreen
-                breadcrumbs={[
-                    classListCrumb,
-                    {
-                        label: intl.formatMessage({
-                            defaultMessage: 'Create a class',
-                            description: 'Button that opens the combined class creation form',
-                            id: 'gui.classroom.classList.create',
-                        }),
-                    },
-                ]}
-                className={styles.classList}
-                error={error}
-                errorTitle={errorTitle}
-                testId="classroom-phase-teacher-class-list"
-            >
-                {/* 設定画面と同じ枠付きフォーム（.class-settings-form）に揃える。 */}
-                <TeacherSubView
-                    title={
-                        <FormattedMessage
-                            defaultMessage="Create a class"
-                            description="Button that opens the combined class creation form"
-                            id="gui.classroom.classList.create"
-                        />
-                    }
-                >
-                    <form
-                        className={styles.classSettingsForm}
-                        data-testid="classroom-class-create-view"
-                        onSubmit={handleSubmit}
-                    >
-                    <input
-                        data-testid="classroom-class-create-name"
-                        disabled={isLoading}
-                        maxLength={50}
-                        placeholder={intl.formatMessage({
-                            defaultMessage: 'Class name (required, e.g. Technology)',
-                            description: 'Placeholder for the class name input',
-                            id: 'gui.classroom.classList.namePlaceholder',
-                        })}
-                        type="text"
-                        value={name}
-                        onChange={handleNameChange}
-                    />
-                    <div className={styles.classSettingsRow}>
-                        <input
-                            data-testid="classroom-class-create-year"
-                            disabled={isLoading}
-                            max={2100}
-                            min={2000}
-                            type="number"
-                            value={year}
-                            onChange={handleYearChange}
-                        />
-                        <input
-                            data-testid="classroom-class-create-section"
-                            disabled={isLoading}
-                            maxLength={50}
-                            placeholder={intl.formatMessage({
-                                defaultMessage: 'Section (optional, e.g. Year 2 Class 1)',
-                                description: 'Placeholder for the class section input',
-                                id: 'gui.classroom.classList.sectionPlaceholder',
-                            })}
-                            type="text"
-                            value={section}
-                            onChange={handleSectionChange}
-                        />
-                        <input
-                            data-testid="classroom-class-create-count"
-                            disabled={isLoading}
-                            max={50}
-                            min={1}
-                            placeholder={intl.formatMessage({
-                                defaultMessage: 'Number of students (required)',
-                                description: 'Placeholder for the student count input',
-                                id: 'gui.classroom.classList.countPlaceholder',
-                            })}
-                            type="number"
-                            value={studentCount}
-                            onChange={handleStudentCountChange}
-                        />
-                    </div>
-                    <input
-                        data-testid="classroom-class-create-assignment"
-                        disabled={isLoading}
-                        maxLength={50}
-                        placeholder={intl.formatMessage({
-                            defaultMessage: 'First assignment name (optional — leave empty to create just the class)',
-                            description: 'Placeholder for the optional first assignment name input',
-                            id: 'gui.classroom.classList.assignmentPlaceholder',
-                        })}
-                        type="text"
-                        value={assignmentName}
-                        onChange={handleAssignmentNameChange}
-                    />
-                    <p className={styles.formHint}>
-                        <FormattedMessage
-                            defaultMessage="You can add co-teachers (fellow teachers who help manage this class) later in Settings."
-                            description="Hint on the create form that co-teachers can be added later in settings"
-                            id="gui.classroom.classList.createCoTeacherHint"
-                        />
-                    </p>
-                    <div className={styles.formFooter}>
-                        <ClassroomButton
-                            dataTestId="classroom-class-create-cancel"
-                            onClick={handleToggleCreateForm}
-                        >
-                            <FormattedMessage
-                                defaultMessage="Cancel"
-                                description="Cancel button of the class creation form"
-                                id="gui.classroom.classList.createCancel"
-                            />
-                        </ClassroomButton>
-                        <ClassroomButton
-                            dataTestId="classroom-class-create-submit"
-                            disabled={!canSubmit || isLoading}
-                            type="submit"
-                            variant="primary"
-                        >
-                            {assignmentName.trim() ? (
-                                <FormattedMessage
-                                    defaultMessage="Create class and assignment"
-                                    description="Submit button when a first assignment is given"
-                                    id="gui.classroom.classList.createSubmit"
-                                />
-                            ) : (
-                                <FormattedMessage
-                                    defaultMessage="Create the class only"
-                                    description="Submit button when no first assignment is given"
-                                    id="gui.classroom.classList.createClassOnly"
-                                />
-                            )}
-                        </ClassroomButton>
-                    </div>
-                    </form>
-                </TeacherSubView>
-            </TeacherScreen>
-        );
-    }
 
     // クラス設定（#1108: インラインカード → 画面遷移）
     if (settingsGroup) {
@@ -764,8 +867,9 @@ const TeacherClassList = ({
                     }),
                 },
             ]}
-            className={styles.classList}
-            error={error}
+            className={`${styles.classList} ${styles.classListLanding}`}
+            // A failed "Create" must be readable in the dialog, not dimmed behind it.
+            error={showCreateForm ? null : error}
             errorTitle={errorTitle}
             hint={
                 <FormattedMessage
@@ -783,121 +887,146 @@ const TeacherClassList = ({
                 />
             }
         >
-            <button
-                className={styles.classListCreateButton}
-                data-testid="classroom-class-create"
-                disabled={isLoading}
-                type="button"
-                onClick={handleToggleCreateForm}
-            >
-                <FormattedMessage
-                    defaultMessage="Create a class"
-                    description="Button that opens the combined class creation form"
-                    id="gui.classroom.classList.create"
-                />
-            </button>
-            {onShowGoogleCourses ? (
-                <button
-                    className={styles.classListImportButton}
-                    data-testid="classroom-class-import-gc"
+            {/* 主ボタン（L1）: 通常の青。読み込み中は押せない理由を横に出す。 */}
+            <div className={styles.classListActions}>
+                <ClassroomButton
+                    dataTestId="classroom-class-create"
                     disabled={isLoading}
-                    type="button"
-                    onClick={onShowGoogleCourses}
+                    variant="primary"
+                    onClick={handleOpenCreate}
                 >
+                    <span aria-hidden="true">{'＋'}</span>
                     <FormattedMessage
-                        defaultMessage="Import from Google Classroom"
-                        description="Button on the class list to import a GC course as a class"
-                        id="gui.classroom.classList.importGc"
+                        defaultMessage="Create a class"
+                        description="Button that opens the class creation dialog"
+                        id="gui.classroom.classList.create"
                     />
-                </button>
-            ) : null}
-            {activeGroups.length === 0 ? (
-                <p className={styles.classListEmpty} data-testid="classroom-class-list-empty">
-                    <FormattedMessage
-                        defaultMessage={'No classes yet. Press "Create a class" to get started.'}
-                        description="Empty state of the class list"
-                        id="gui.classroom.classList.empty"
-                    />
-                </p>
-            ) : null}
-            {ungrouped.length > 0 ? (
-                <div className={styles.ungroupedSection} data-testid="classroom-ungrouped-list">
-                    <p className={styles.teacherViewHint}>
+                </ClassroomButton>
+                {isLoading ? (
+                    <span className={styles.classListLoading} data-testid="classroom-class-list-loading" role="status">
                         <FormattedMessage
-                            defaultMessage="Assignments not in any of your classes (shared with you or not yet migrated):"
-                            description="Heading of the ungrouped assignments fallback list"
-                            id="gui.classroom.classList.ungroupedHint"
+                            defaultMessage="Loading…"
+                            description="Shown next to the create button while the class list is busy"
+                            id="gui.classroom.classList.loading"
+                        />
+                    </span>
+                ) : null}
+                {onShowGoogleCourses ? (
+                    <button
+                        className={styles.classListImportButton}
+                        data-testid="classroom-class-import-gc"
+                        disabled={isLoading}
+                        type="button"
+                        onClick={onShowGoogleCourses}
+                    >
+                        <FormattedMessage
+                            defaultMessage="Import from Google Classroom"
+                            description="Button on the class list to import a GC course as a class"
+                            id="gui.classroom.classList.importGc"
+                        />
+                    </button>
+                ) : null}
+            </div>
+            {/* 件数で長さが変わる一覧は、この枠の中だけでスクロールする（R6）。
+                「クラスを作成」は枠の外なので常に見える。 */}
+            <div className={styles.classListScroll} data-testid="classroom-class-list-scroll">
+                {activeGroups.length === 0 ? (
+                    <p className={styles.classListEmpty} data-testid="classroom-class-list-empty">
+                        <FormattedMessage
+                            defaultMessage={'No classes yet. Press "Create a class" to get started.'}
+                            description="Empty state of the class list"
+                            id="gui.classroom.classList.empty"
                         />
                     </p>
-                    <ul className={styles.classCards}>
-                        {ungrouped.map((c) => (
-                            <li key={c.classroomId} className={styles.classCard}>
-                                <button
-                                    className={styles.classCardMain}
-                                    data-classroom-id={c.classroomId}
-                                    data-testid={`classroom-ungrouped-open-${c.classroomId}`}
-                                    disabled={isLoading}
-                                    type="button"
-                                    onClick={handleOpenUngrouped}
-                                >
-                                    <span className={styles.classCardName}>
-                                        {c.assignmentName || c.className}
-                                    </span>
-                                    <span className={styles.classCardMeta}>{c.className}</span>
-                                </button>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-            ) : null}
-            <ul className={styles.classCards} data-testid="classroom-class-list">
-                {activeGroups.map((group) => (
-                    <ClassCard
-                        key={group.groupId}
-                        assignmentCount={countFor(group.groupId)}
-                        group={group}
-                        isLoading={isLoading}
-                        onSelectGroup={onSelectGroup}
-                        onShowEvaluation={onShowEvaluation}
-                        onShowSettings={handleShowSettings}
-                    />
-                ))}
-            </ul>
-            {archivedGroups.length > 0 ? (
-                <div className={styles.archivedSection}>
-                    <button
-                        className={styles.archivedToggle}
-                        data-testid="classroom-show-archived"
-                        type="button"
-                        onClick={handleToggleArchived}
-                    >
-                        {showArchived ? '▼ ' : '▶ '}
-                        {intl.formatMessage(
-                            {
-                                defaultMessage: 'Archived classes ({count})',
-                                description: 'Toggle of the archived classes section in the class list',
-                                id: 'gui.classroom.classList.showArchived',
-                            },
-                            { count: archivedGroups.length },
-                        )}
-                    </button>
-                    {showArchived ? (
-                        <ul className={styles.classCards} data-testid="classroom-archived-class-list">
-                            {archivedGroups.map((group) => (
-                                <ClassCard
-                                    key={group.groupId}
-                                    assignmentCount={countFor(group.groupId)}
-                                    group={group}
-                                    isLoading={isLoading}
-                                    onRestoreGroup={handleRestoreGroup}
-                                    onSelectGroup={onSelectGroup}
-                                    onShowEvaluation={onShowEvaluation}
-                                    onShowSettings={handleShowSettings}
-                                />
+                ) : null}
+                {ungrouped.length > 0 ? (
+                    <div className={styles.ungroupedSection} data-testid="classroom-ungrouped-list">
+                        <p className={styles.teacherViewHint}>
+                            <FormattedMessage
+                                defaultMessage="Assignments not in any of your classes (shared with you or not yet migrated):"
+                                description="Heading of the ungrouped assignments fallback list"
+                                id="gui.classroom.classList.ungroupedHint"
+                            />
+                        </p>
+                        <ul className={styles.classCards}>
+                            {ungrouped.map((c) => (
+                                <li key={c.classroomId} className={styles.classCard}>
+                                    <button
+                                        className={styles.classCardMain}
+                                        data-classroom-id={c.classroomId}
+                                        data-testid={`classroom-ungrouped-open-${c.classroomId}`}
+                                        disabled={isLoading}
+                                        type="button"
+                                        onClick={handleOpenUngrouped}
+                                    >
+                                        <span className={styles.classCardName}>
+                                            {c.assignmentName || c.className}
+                                        </span>
+                                        <span className={styles.classCardMeta}>{c.className}</span>
+                                    </button>
+                                </li>
                             ))}
                         </ul>
-                    ) : null}
-                </div>
+                    </div>
+                ) : null}
+                <ul className={styles.classCards} data-testid="classroom-class-list">
+                    {activeGroups.map((group) => (
+                        <ClassCard
+                            key={group.groupId}
+                            assignmentCount={countFor(group.groupId)}
+                            group={group}
+                            isLoading={isLoading}
+                            onSelectGroup={onSelectGroup}
+                            onShowEvaluation={onShowEvaluation}
+                            onShowSettings={handleShowSettings}
+                        />
+                    ))}
+                </ul>
+                {archivedGroups.length > 0 ? (
+                    <div className={styles.archivedSection}>
+                        <button
+                            className={styles.archivedToggle}
+                            data-testid="classroom-show-archived"
+                            type="button"
+                            onClick={handleToggleArchived}
+                        >
+                            {showArchived ? '▼ ' : '▶ '}
+                            {intl.formatMessage(
+                                {
+                                    defaultMessage: 'Archived classes ({count})',
+                                    description: 'Toggle of the archived classes section in the class list',
+                                    id: 'gui.classroom.classList.showArchived',
+                                },
+                                { count: archivedGroups.length },
+                            )}
+                        </button>
+                        {showArchived ? (
+                            <ul className={styles.classCards} data-testid="classroom-archived-class-list">
+                                {archivedGroups.map((group) => (
+                                    <ClassCard
+                                        key={group.groupId}
+                                        assignmentCount={countFor(group.groupId)}
+                                        group={group}
+                                        isLoading={isLoading}
+                                        onRestoreGroup={handleRestoreGroup}
+                                        onSelectGroup={onSelectGroup}
+                                        onShowEvaluation={onShowEvaluation}
+                                        onShowSettings={handleShowSettings}
+                                    />
+                                ))}
+                            </ul>
+                        ) : null}
+                    </div>
+                ) : null}
+            </div>
+            {showCreateForm ? (
+                <CreateClassDialog
+                    error={error}
+                    errorTitle={errorTitle}
+                    isLoading={isLoading}
+                    onCancel={handleCloseCreate}
+                    onCreate={onCreateClassWithAssignment}
+                />
             ) : null}
         </TeacherScreen>
     );

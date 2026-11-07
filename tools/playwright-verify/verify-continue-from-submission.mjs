@@ -203,9 +203,13 @@ try {
     await teacher.click('[data-testid="classroom-class-create"]');
     await teacher.fill('[data-testid="classroom-class-create-name"]', CLASS_NAME);
     await teacher.fill('[data-testid="classroom-class-create-count"]', '5');
-    await teacher.fill('[data-testid="classroom-class-create-assignment"]', `第1回-${stamp}`);
     await teacher.click('[data-testid="classroom-class-create-submit"]');
     await teacher.waitForSelector('[data-testid="classroom-board"]', { timeout: 30000 });
+    // The create-class dialog makes only the class; the assignment is made inside it.
+    await teacher.click('[data-testid="classroom-board-create"]');
+    await teacher.fill('[data-testid="classroom-board-create-name"]', `第1回-${stamp}`);
+    await teacher.click('[data-testid="classroom-board-create-submit"]');
+    await teacher.waitForSelector('[data-testid^="classroom-board-open-"]', { timeout: 30000 });
     await sleep(500);
     await teacher.locator('[data-testid^="classroom-board-open-"]').first().click();
     await teacher.waitForSelector('[data-testid="classroom-phase-teacher-detail"]', { timeout: 20000 });

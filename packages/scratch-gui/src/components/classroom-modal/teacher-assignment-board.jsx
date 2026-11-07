@@ -1,12 +1,13 @@
 /**
  * Assignment board — the main view inside a class (Google Classroom style):
- * assignments without a topic listed first, then one section per topic,
- * newest (sortDate) first. Rows edit their topic / sort date in place, and
- * the chip bar manages the class's topic list (rename/remove cascade to the
- * assignments on the server).
+ * the［ストリーム］［授業］tabs, the［＋ 作成 ▾］menu, and the assignments under
+ * topic headings ("no topic" first, then the class's topics), newest
+ * (sortDate) first. Rows open in place (one at a time); their ⋮ edits the
+ * topic / sort date, and a topic heading's ⋮ renames or removes the topic
+ * (cascading to the assignments on the server).
  */
 import PropTypes from 'prop-types';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 
 import { DEFAULT_MESH_GROUP_LIMIT } from '../../lib/classroom-assignment-utils.js';
@@ -23,9 +24,126 @@ import { TeacherScreen, TeacherSubView } from './teacher-view-layout.jsx';
 
 import styles from './classroom-modal.css';
 
-const TopicChip = ({ topic, isLoading, onRename, onRemove }) => {
+/**
+ * A small dropdown: a toggle button and a list shown under it. Closes on an
+ * outside click, on Escape, and after an item runs (items call `close`).
+ * @param {object} props - component props
+ * @param {Function} props.children - (close) => menu items
+ * @param {string} props.buttonClassName - class of the toggle button
+ * @param {React.ReactNode} props.label - contents of the toggle button
+ * @param {string} props.ariaLabel - accessible name of the toggle (icon-only buttons)
+ * @param {boolean} props.alignRight - open the list toward the left edge of the button
+ * @param {boolean} props.disabled - disable the toggle
+ * @param {string} props.testId - data-testid of the toggle; the list gets `${testId}-list`
+ * @returns {React.ReactElement} the menu
+ */
+const BoardMenu = ({ alignRight, ariaLabel, buttonClassName, children, disabled, label, testId }) => {
+    const [open, setOpen] = useState(false);
+    const ref = useRef(null);
+    const close = useCallback(() => setOpen(false), []);
+    const handleToggle = useCallback(() => setOpen((v) => !v), []);
+    useEffect(() => {
+        if (!open) return () => {};
+        const handleDown = (e) => {
+            if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+        };
+        const handleKey = (e) => {
+            if (e.key === 'Escape') setOpen(false);
+        };
+        document.addEventListener('mousedown', handleDown);
+        document.addEventListener('keydown', handleKey);
+        return () => {
+            document.removeEventListener('mousedown', handleDown);
+            document.removeEventListener('keydown', handleKey);
+        };
+    }, [open]);
+    return (
+        <div className={styles.boardMenu} ref={ref}>
+            <button
+                aria-expanded={open}
+                aria-haspopup="menu"
+                aria-label={ariaLabel}
+                className={buttonClassName}
+                data-testid={testId}
+                disabled={disabled}
+                type="button"
+                onClick={handleToggle}
+            >
+                {label}
+            </button>
+            {open ? (
+                <div
+                    className={alignRight ? styles.boardMenuListRight : styles.boardMenuList}
+                    data-testid={`${testId}-list`}
+                    role="menu"
+                >
+                    {children(close)}
+                </div>
+            ) : null}
+        </div>
+    );
+};
+
+BoardMenu.propTypes = {
+    alignRight: PropTypes.bool,
+    ariaLabel: PropTypes.string,
+    buttonClassName: PropTypes.string,
+    children: PropTypes.func.isRequired,
+    disabled: PropTypes.bool,
+    label: PropTypes.node.isRequired,
+    testId: PropTypes.string.isRequired,
+};
+
+/**
+ * One item of a BoardMenu: runs the action and closes the menu.
+ * @param {object} props - component props
+ * @param {React.ReactNode} props.children - item label
+ * @param {Function} props.close - closes the menu
+ * @param {boolean} props.disabled - disable the item
+ * @param {Function} props.onSelect - action of the item
+ * @param {string} props.testId - data-testid
+ * @returns {React.ReactElement} the item
+ */
+const BoardMenuItem = ({ children, close, disabled, onSelect, testId }) => {
+    const handleClick = useCallback(() => {
+        close();
+        onSelect();
+    }, [close, onSelect]);
+    return (
+        <button
+            className={styles.boardMenuItem}
+            data-testid={testId}
+            disabled={disabled}
+            role="menuitem"
+            type="button"
+            onClick={handleClick}
+        >
+            {children}
+        </button>
+    );
+};
+
+BoardMenuItem.propTypes = {
+    children: PropTypes.node.isRequired,
+    close: PropTypes.func.isRequired,
+    disabled: PropTypes.bool,
+    onSelect: PropTypes.func.isRequired,
+    testId: PropTypes.string.isRequired,
+};
+
+/**
+ * Heading of a topic section. Named topics have a ⋮ menu to rename (inline)
+ * or remove the topic (Google Classroom keeps these on the topic heading).
+ * @param {object} props - component props
+ * @param {boolean} props.isLoading - disable while a request runs
+ * @param {Function} props.onRemove - (topic) => void
+ * @param {Function} props.onRename - (topic, newName) => void
+ * @param {?string} props.topic - topic name; null for "no topic"
+ * @returns {React.ReactElement} the heading
+ */
+const TopicHeading = ({ topic, isLoading, onRename, onRemove }) => {
     const [editing, setEditing] = useState(false);
-    const [name, setName] = useState(topic);
+    const [name, setName] = useState(topic || '');
 
     const handleStartEdit = useCallback(() => {
         setName(topic);
@@ -51,61 +169,196 @@ const TopicChip = ({ topic, isLoading, onRename, onRemove }) => {
         [handleCommit],
     );
     const handleRemove = useCallback(() => onRemove(topic), [onRemove, topic]);
+    const key = topic || 'none';
 
     if (editing) {
+        // R1: the field keeps a visible label while the name is being edited.
         return (
-            <input
-                autoFocus
-                className={styles.topicChipInput}
-                data-testid={`classroom-topic-rename-input-${topic}`}
-                maxLength={50}
-                type="text"
-                value={name}
-                onBlur={handleCommit}
-                onChange={handleChange}
-                onKeyDown={handleKeyDown}
-            />
+            <div className={styles.boardSectionHeading}>
+                <label className={styles.boardRowMetaLabel} htmlFor={`classroom-topic-rename-input-${topic}`}>
+                    <FormattedMessage
+                        defaultMessage="Topic"
+                        description="Label of the topic selector on an assignment row"
+                        id="gui.classroom.board.topicLabel"
+                    />
+                </label>
+                <input
+                    autoFocus
+                    className={styles.topicRenameInput}
+                    data-testid={`classroom-topic-rename-input-${topic}`}
+                    id={`classroom-topic-rename-input-${topic}`}
+                    maxLength={50}
+                    type="text"
+                    value={name}
+                    onBlur={handleCommit}
+                    onChange={handleChange}
+                    onKeyDown={handleKeyDown}
+                />
+            </div>
         );
     }
     return (
-        <span className={styles.topicChip} data-testid={`classroom-topic-chip-${topic}`}>
-            <button
-                className={styles.topicChipName}
-                data-testid={`classroom-topic-rename-${topic}`}
-                disabled={isLoading}
-                type="button"
-                onClick={handleStartEdit}
-            >
-                {topic}
-            </button>
-            <button
-                aria-label="remove"
-                className={styles.topicChipRemove}
-                data-testid={`classroom-topic-remove-${topic}`}
-                disabled={isLoading}
-                type="button"
-                onClick={handleRemove}
-            >
-                {'×'}
-            </button>
-        </span>
+        <div className={styles.boardSectionHeading}>
+            <h3 className={styles.boardSectionTitle} data-testid={`classroom-board-section-title-${key}`}>
+                {topic || (
+                    <FormattedMessage
+                        defaultMessage="No topic"
+                        description="Heading of the section of assignments without a topic"
+                        id="gui.classroom.board.noTopicSection"
+                    />
+                )}
+            </h3>
+            {topic ? (
+                <BoardMenu
+                    alignRight
+                    ariaLabel={topic}
+                    buttonClassName={styles.boardKebab}
+                    disabled={isLoading}
+                    label="⋮"
+                    testId={`classroom-topic-menu-${topic}`}
+                >
+                    {(close) => (
+                        <React.Fragment>
+                            <BoardMenuItem
+                                close={close}
+                                testId={`classroom-topic-rename-${topic}`}
+                                onSelect={handleStartEdit}
+                            >
+                                <FormattedMessage
+                                    defaultMessage="Rename"
+                                    description="Topic heading menu: rename the topic"
+                                    id="gui.classroom.board.topicRename"
+                                />
+                            </BoardMenuItem>
+                            <BoardMenuItem
+                                close={close}
+                                testId={`classroom-topic-remove-${topic}`}
+                                onSelect={handleRemove}
+                            >
+                                <FormattedMessage
+                                    defaultMessage="Delete"
+                                    description="Topic heading menu: delete the topic (assignments stay, without a topic)"
+                                    id="gui.classroom.board.topicRemove"
+                                />
+                            </BoardMenuItem>
+                        </React.Fragment>
+                    )}
+                </BoardMenu>
+            ) : null}
+        </div>
     );
 };
 
-TopicChip.propTypes = {
+TopicHeading.propTypes = {
     isLoading: PropTypes.bool,
     onRemove: PropTypes.func.isRequired,
     onRename: PropTypes.func.isRequired,
-    topic: PropTypes.string.isRequired,
+    topic: PropTypes.string,
 };
+
+/**
+ * "Add topic" dialog of the［＋ 作成 ▾］menu: one name, Cancel and Add.
+ * @param {object} props - component props
+ * @param {boolean} props.isLoading - disable while a request runs
+ * @param {Function} props.onAdd - (name) => void
+ * @param {Function} props.onCancel - closes the dialog
+ * @returns {React.ReactElement} the dialog
+ */
+const TopicAddDialog = ({ isLoading, onAdd, onCancel }) => {
+    const intl = useIntl();
+    const [name, setName] = useState('');
+    const handleChange = useCallback((e) => setName(e.target.value), []);
+    const handleSubmit = useCallback(
+        (e) => {
+            e.preventDefault();
+            const trimmed = name.trim();
+            if (trimmed) onAdd(trimmed);
+        },
+        [name, onAdd],
+    );
+    const title = intl.formatMessage({
+        defaultMessage: 'Add topic',
+        description: 'Title of the add-topic dialog',
+        id: 'gui.classroom.board.topicDialogTitle',
+    });
+    return (
+        <div className={styles.boardDialogOverlay}>
+            <form
+                aria-label={title}
+                aria-modal="true"
+                className={styles.boardDialog}
+                data-testid="classroom-topic-add-dialog"
+                role="dialog"
+                onSubmit={handleSubmit}
+            >
+                <h3 className={styles.boardDialogTitle}>{title}</h3>
+                <label className={styles.label} htmlFor="classroom-topic-add-input">
+                    <FormattedMessage
+                        defaultMessage="Topic"
+                        description="Label of the topic selector on an assignment row"
+                        id="gui.classroom.board.topicLabel"
+                    />
+                </label>
+                <input
+                    autoFocus
+                    className={styles.input}
+                    data-testid="classroom-topic-add-input"
+                    disabled={isLoading}
+                    id="classroom-topic-add-input"
+                    maxLength={50}
+                    placeholder={intl.formatMessage({
+                        defaultMessage: 'e.g. Unit 1: Animation',
+                        description: 'Placeholder (an example) of the topic name in the add-topic dialog',
+                        id: 'gui.classroom.board.topicNamePlaceholder',
+                    })}
+                    type="text"
+                    value={name}
+                    onChange={handleChange}
+                />
+                <div className={styles.boardDialogFooter}>
+                    <ClassroomButton dataTestId="classroom-topic-add-cancel" onClick={onCancel}>
+                        <FormattedMessage
+                            defaultMessage="Cancel"
+                            description="Cancel button of the assignment create screen"
+                            id="gui.classroom.board.createCancel"
+                        />
+                    </ClassroomButton>
+                    <ClassroomButton
+                        dataTestId="classroom-topic-add"
+                        disabled={isLoading || name.trim().length === 0}
+                        type="submit"
+                        variant="primary"
+                    >
+                        <FormattedMessage
+                            defaultMessage="Add"
+                            description="Button to add a topic to the class"
+                            id="gui.classroom.board.addTopic"
+                        />
+                    </ClassroomButton>
+                </div>
+            </form>
+        </div>
+    );
+};
+
+TopicAddDialog.propTypes = {
+    isLoading: PropTypes.bool,
+    onAdd: PropTypes.func.isRequired,
+    onCancel: PropTypes.func.isRequired,
+};
+
+const formatShortDate = (intl, iso) => intl.formatDate(new Date(iso), { month: 'numeric', day: 'numeric' });
 
 const AssignmentRow = ({
     classroom,
     topics,
     isLoading,
+    isOpen,
     downloadProgress,
     downloadingId,
+    summary,
     onSelectClassroom,
+    onToggle,
     onUpdateAssignmentMeta,
     onDownloadAssignment,
     onShare,
@@ -115,6 +368,7 @@ const AssignmentRow = ({
         () => onSelectClassroom(classroom.classroomId),
         [onSelectClassroom, classroom.classroomId],
     );
+    const handleToggle = useCallback(() => onToggle(classroom), [onToggle, classroom]);
     const handleShare = useCallback(() => onShare(classroom), [onShare, classroom]);
     const handleDownload = useCallback(
         () => onDownloadAssignment(classroom),
@@ -137,24 +391,27 @@ const AssignmentRow = ({
         [onUpdateAssignmentMeta, classroom.classroomId],
     );
 
-    const dateValue = (classroom.sortDate || classroom.createdAt || '').slice(0, 10);
-    // Retention alert (issue #1052): make the auto-delete deadline visible
-    // before it hits, so "expired" never looks like a mysterious archive.
-    const retention = retentionLevel(classroom.expiresAt);
-
-    const isDownloading = downloadingId === classroom.classroomId && !!downloadProgress;
+    const id = classroom.classroomId;
+    const dateIso = classroom.sortDate || classroom.createdAt || '';
+    const dateValue = dateIso.slice(0, 10);
+    // Red only when the teacher must act now (R4・B4): 7 days or less left.
+    // Further deadlines are a grey line inside the opened row.
+    const urgent = retentionLevel(classroom.expiresAt) === 'warning';
+    const isDownloading = downloadingId === id && !!downloadProgress;
+    const loaded = summary && summary.data;
 
     return (
         <li
-            className={styles.boardRowItem}
-            data-testid={`classroom-board-row-${classroom.classroomId}`}
+            className={isOpen ? styles.boardRowItemOpen : styles.boardRowItem}
+            data-testid={`classroom-board-row-${id}`}
         >
             <div className={styles.boardRowControls}>
                 <button
+                    aria-expanded={isOpen}
                     className={styles.boardRowMain}
-                    data-testid={`classroom-board-open-${classroom.classroomId}`}
+                    data-testid={`classroom-board-row-toggle-${id}`}
                     type="button"
-                    onClick={handleOpen}
+                    onClick={handleToggle}
                 >
                     <span className={styles.boardRowName}>
                         {classroom.assignmentName || classroom.className}
@@ -163,7 +420,7 @@ const AssignmentRow = ({
                     {classroom.recommendedForSharing ? (
                         <span
                             className={styles.boardRowShareSuggested}
-                            data-testid={`classroom-board-share-suggested-${classroom.classroomId}`}
+                            data-testid={`classroom-board-share-suggested-${id}`}
                         >
                             <FormattedMessage
                                 defaultMessage="Sharing recommended"
@@ -172,104 +429,228 @@ const AssignmentRow = ({
                             />
                         </span>
                     ) : null}
-                    <span className={styles.boardRowCode}>{classroom.joinCode}</span>
-                </button>
-                <select
-                    aria-label={intl.formatMessage({
-                        defaultMessage: 'Topic',
-                        description: 'Label of the topic selector on an assignment row',
-                        id: 'gui.classroom.board.topicLabel',
-                    })}
-                    className={styles.boardRowTopic}
-                    data-testid={`classroom-board-topic-${classroom.classroomId}`}
-                    disabled={isLoading}
-                    value={classroom.topic || ''}
-                    onChange={handleTopicChange}
-                >
-                    <option value="">
-                        {intl.formatMessage({
-                            defaultMessage: '(no topic)',
-                            description: 'Option for an assignment without a topic',
-                            id: 'gui.classroom.board.noTopic',
-                        })}
-                    </option>
-                    {topics.map((t) => (
-                        <option key={t} value={t}>
-                            {t}
-                        </option>
-                    ))}
-                </select>
-                <input
-                    className={styles.boardRowDate}
-                    data-testid={`classroom-board-date-${classroom.classroomId}`}
-                    disabled={isLoading}
-                    type="date"
-                    value={dateValue}
-                    onChange={handleDateChange}
-                />
-                {/* 共有導線はここ（ボード各行）に一本化（#1109・課題詳細からは廃止）。
-                    深さは クラス > 課題 > 共有 に収まる。中身（説明ページ or スターター
-                    プロジェクト）がある課題だけに表示する（無いと共有APIがエラーになるため）。 */}
-                {onShare && classroom.hasAssignment ? (
-                    <button
-                        className={styles.boardRowShare}
-                        data-testid={`classroom-board-share-${classroom.classroomId}`}
-                        disabled={isLoading}
-                        type="button"
-                        onClick={handleShare}
-                    >
-                        <FormattedMessage
-                            defaultMessage="Share"
-                            description="Per-row button that opens the share settings step"
-                            id="gui.classroom.shared.shareRow"
-                        />
-                    </button>
-                ) : null}
-            </div>
-            {/* 期限が近い課題は「あと N 日」バッジをやめ、課題詳細と同じ自動削除
-                メッセージ + 全作品ダウンロードを行に表示する（issue #1052/#1049）。 */}
-            {retention === 'none' ? null : (
-                <div
-                    className={
-                        retention === 'warning'
-                            ? styles.boardRowRetentionWarning
-                            : styles.boardRowRetention
-                    }
-                    data-testid={`classroom-board-expiry-${classroom.classroomId}`}
-                >
-                    <span className={styles.boardRowRetentionMark}>{'⚠'}</span>
-                    <span className={styles.boardRowRetentionText}>
-                        <FormattedMessage
-                            defaultMessage={
-                                'This assignment and its submissions will be deleted ' +
-                                'automatically on {date}. Download them to keep a copy.'
-                            }
-                            description="Inline retention warning on an assignment row"
-                            id="gui.classroom.teacherDetail.retentionBanner"
-                            values={{
-                                date: new Date(classroom.expiresAt).toLocaleDateString(),
-                            }}
-                        />
+                    {/* Trailing items stay at the right end whether or not the red
+                        mark is shown, so the lesson date does not jump between rows. */}
+                    <span className={styles.boardRowTrailing}>
+                        {urgent ? (
+                            // R5: the mark carries a visible label, not only a tooltip.
+                            <span
+                                className={styles.boardRowExpiryMark}
+                                data-testid={`classroom-board-expiry-mark-${id}`}
+                            >
+                                {'⚠ '}
+                                <FormattedMessage
+                                    defaultMessage="Kept until {date}"
+                                    description="Retention deadline shown on an archived assignment row"
+                                    id="gui.classroom.board.archivedExpires"
+                                    values={{ date: formatShortDate(intl, classroom.expiresAt) }}
+                                />
+                            </span>
+                        ) : null}
+                        {dateValue ? (
+                            <span className={styles.boardRowMeta} data-testid={`classroom-board-row-date-${id}`}>
+                                <span className={styles.boardRowMetaLabel}>
+                                    <FormattedMessage
+                                        defaultMessage="Lesson date"
+                                        description="Label of the lesson date on an assignment row"
+                                        id="gui.classroom.board.lessonDateLabel"
+                                    />
+                                </span>
+                                {formatShortDate(intl, dateIso)}
+                            </span>
+                        ) : null}
                     </span>
-                    <button
-                        className={styles.boardRowRetentionDownload}
-                        data-testid={`classroom-board-download-${classroom.classroomId}`}
-                        disabled={isLoading || !!downloadProgress}
-                        type="button"
-                        onClick={handleDownload}
-                    >
-                        {isDownloading ? (
-                            `${downloadProgress.current}/${downloadProgress.total}`
-                        ) : (
+                </button>
+                <BoardMenu
+                    alignRight
+                    ariaLabel={intl.formatMessage({
+                        defaultMessage: 'Assignment options',
+                        description: 'Accessible name of the ⋮ menu on an assignment row',
+                        id: 'gui.classroom.board.rowMenu',
+                    })}
+                    buttonClassName={styles.boardKebab}
+                    disabled={isLoading}
+                    label="⋮"
+                    testId={`classroom-board-row-menu-${id}`}
+                >
+                    {(close) => (
+                        <div className={styles.boardRowMenuBody}>
+                            <label className={styles.boardRowMenuField}>
+                                <span className={styles.boardRowMetaLabel}>
+                                    <FormattedMessage
+                                        defaultMessage="Topic"
+                                        description="Label of the topic selector on an assignment row"
+                                        id="gui.classroom.board.topicLabel"
+                                    />
+                                </span>
+                                <select
+                                    className={styles.boardRowTopic}
+                                    data-testid={`classroom-board-topic-${id}`}
+                                    disabled={isLoading}
+                                    value={classroom.topic || ''}
+                                    onChange={handleTopicChange}
+                                >
+                                    <option value="">
+                                        {intl.formatMessage({
+                                            defaultMessage: '(no topic)',
+                                            description: 'Option for an assignment without a topic',
+                                            id: 'gui.classroom.board.noTopic',
+                                        })}
+                                    </option>
+                                    {topics.map((t) => (
+                                        <option key={t} value={t}>
+                                            {t}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+                            <label className={styles.boardRowMenuField}>
+                                <span className={styles.boardRowMetaLabel}>
+                                    <FormattedMessage
+                                        defaultMessage="Lesson date"
+                                        description="Label of the lesson date on an assignment row"
+                                        id="gui.classroom.board.lessonDateLabel"
+                                    />
+                                </span>
+                                <input
+                                    className={styles.boardRowDate}
+                                    data-testid={`classroom-board-date-${id}`}
+                                    disabled={isLoading}
+                                    type="date"
+                                    value={dateValue}
+                                    onChange={handleDateChange}
+                                />
+                            </label>
+                            {/* 共有導線はボード各行（の ⋮）に一本化（#1109）。中身（説明ページ or
+                                スターター）がある課題だけ（無いと共有APIがエラーになるため）。 */}
+                            {onShare && classroom.hasAssignment ? (
+                                <BoardMenuItem
+                                    close={close}
+                                    disabled={isLoading}
+                                    testId={`classroom-board-share-${id}`}
+                                    onSelect={handleShare}
+                                >
+                                    <FormattedMessage
+                                        defaultMessage="Share"
+                                        description="Per-row button that opens the share settings step"
+                                        id="gui.classroom.shared.shareRow"
+                                    />
+                                </BoardMenuItem>
+                            ) : null}
+                        </div>
+                    )}
+                </BoardMenu>
+            </div>
+            {isOpen ? (
+                <div className={styles.boardRowDetail} data-testid={`classroom-board-row-detail-${id}`}>
+                    <div className={styles.boardRowDetailMeta}>
+                        <span className={styles.boardRowMeta} data-testid={`classroom-board-row-code-${id}`}>
+                            <span className={styles.boardRowMetaLabel}>
+                                <FormattedMessage
+                                    defaultMessage="Join code"
+                                    description="Label of the join code inside an opened assignment row"
+                                    id="gui.classroom.board.joinCodeLabel"
+                                />
+                            </span>
+                            <span className={styles.boardRowCode}>{classroom.joinCode}</span>
+                        </span>
+                        {!urgent && classroom.expiresAt ? (
+                            <span
+                                className={styles.boardRowRetentionGrey}
+                                data-testid={`classroom-board-retention-${id}`}
+                            >
+                                <FormattedMessage
+                                    defaultMessage="Kept until {date}"
+                                    description="Retention deadline shown on an archived assignment row"
+                                    id="gui.classroom.board.archivedExpires"
+                                    values={{ date: formatShortDate(intl, classroom.expiresAt) }}
+                                />
+                            </span>
+                        ) : null}
+                        <span className={styles.boardRowMeta} data-testid={`classroom-board-row-counts-${id}`}>
+                            {loaded ? (
+                                <FormattedMessage
+                                    defaultMessage="Submitted {submitted} · Joined {joined} of {capacity}"
+                                    description="Counts inside an opened assignment row"
+                                    id="gui.classroom.board.rowCounts"
+                                    values={{
+                                        submitted: summary.data.submitted,
+                                        joined: summary.data.joined,
+                                        capacity: summary.data.capacity,
+                                    }}
+                                />
+                            ) : summary && summary.failed ? (
+                                '-'
+                            ) : (
+                                <FormattedMessage
+                                    defaultMessage="Loading…"
+                                    description="Shown while the counts of an opened assignment row load"
+                                    id="gui.classroom.board.rowLoading"
+                                />
+                            )}
+                        </span>
+                    </div>
+                    {loaded && summary.data.descriptionLine ? (
+                        <p
+                            className={styles.boardRowDescription}
+                            data-testid={`classroom-board-row-description-${id}`}
+                        >
+                            {summary.data.descriptionLine}
+                        </p>
+                    ) : null}
+                    {urgent ? (
+                        <div
+                            className={styles.boardRowRetentionWarning}
+                            data-testid={`classroom-board-expiry-${id}`}
+                        >
+                            <span className={styles.boardRowRetentionMark}>{'⚠'}</span>
+                            <span className={styles.boardRowRetentionText}>
+                                <FormattedMessage
+                                    defaultMessage={
+                                        'This assignment and its submissions will be deleted ' +
+                                        'automatically on {date}. Download them to keep a copy.'
+                                    }
+                                    description="Inline retention warning on an assignment row"
+                                    id="gui.classroom.teacherDetail.retentionBanner"
+                                    values={{
+                                        date: new Date(classroom.expiresAt).toLocaleDateString(),
+                                    }}
+                                />
+                            </span>
+                            <button
+                                className={styles.boardRowRetentionDownload}
+                                data-testid={`classroom-board-download-${id}`}
+                                disabled={isLoading || !!downloadProgress}
+                                type="button"
+                                onClick={handleDownload}
+                            >
+                                {isDownloading ? (
+                                    `${downloadProgress.current}/${downloadProgress.total}`
+                                ) : (
+                                    <FormattedMessage
+                                        defaultMessage="Download All"
+                                        description="Download all submissions button"
+                                        id="gui.classroom.teacherDetail.downloadAll"
+                                    />
+                                )}
+                            </button>
+                        </div>
+                    ) : null}
+                    <div className={styles.boardRowDetailFooter}>
+                        <ClassroomButton
+                            dataTestId={`classroom-board-open-${id}`}
+                            variant="primary"
+                            onClick={handleOpen}
+                        >
                             <FormattedMessage
-                                defaultMessage="Download All"
-                                description="Download all submissions button"
-                                id="gui.classroom.teacherDetail.downloadAll"
+                                defaultMessage="Open assignment"
+                                description="Button inside an opened assignment row that goes to the assignment detail"
+                                id="gui.classroom.board.openAssignment"
                             />
-                        )}
-                    </button>
+                        </ClassroomButton>
+                    </div>
                 </div>
-            )}
+            ) : null}
         </li>
     );
 };
@@ -279,10 +660,21 @@ AssignmentRow.propTypes = {
     downloadingId: PropTypes.string,
     downloadProgress: PropTypes.shape({ current: PropTypes.number, total: PropTypes.number }),
     isLoading: PropTypes.bool,
+    isOpen: PropTypes.bool,
     onDownloadAssignment: PropTypes.func.isRequired,
     onSelectClassroom: PropTypes.func.isRequired,
     onShare: PropTypes.func,
+    onToggle: PropTypes.func.isRequired,
     onUpdateAssignmentMeta: PropTypes.func.isRequired,
+    summary: PropTypes.shape({
+        data: PropTypes.shape({
+            capacity: PropTypes.number,
+            descriptionLine: PropTypes.string,
+            joined: PropTypes.number,
+            submitted: PropTypes.number,
+        }),
+        failed: PropTypes.bool,
+    }),
     topics: PropTypes.arrayOf(PropTypes.string).isRequired,
 };
 
@@ -298,6 +690,7 @@ const TeacherAssignmentBoard = ({
     isLoading,
     onCreateAssignmentInClass,
     onDownloadClassAll,
+    onLoadAssignmentSummary,
     onRestoreClassroom,
     onReuseAssignment,
     onSelectClassroom,
@@ -307,7 +700,10 @@ const TeacherAssignmentBoard = ({
     shared,
 }) => {
     const intl = useIntl();
-    const [newTopic, setNewTopic] = useState('');
+    // ［ストリーム］［授業］(Google Classroom). Classwork first until the
+    // stream has content (its body is a separate issue).
+    const [tab, setTab] = useState('classwork');
+    const [showTopicDialog, setShowTopicDialog] = useState(false);
     const [showInlineCreate, setShowInlineCreate] = useState(false);
     const [newAssignmentName, setNewAssignmentName] = useState('');
     const [newMeshGroupLimit, setNewMeshGroupLimit] = useState(DEFAULT_MESH_GROUP_LIMIT);
@@ -411,13 +807,40 @@ const TeacherAssignmentBoard = ({
         return g ? formatClassLabel(g) : '';
     };
 
-    const handleNewTopicChange = useCallback((e) => setNewTopic(e.target.value), []);
-    const handleAddTopic = useCallback(() => {
-        const trimmed = newTopic.trim();
-        if (!trimmed) return;
-        onUpdateGroupTopics(group.groupId, { action: 'add', name: trimmed });
-        setNewTopic('');
-    }, [newTopic, onUpdateGroupTopics, group.groupId]);
+    const handleOpenTopicDialog = useCallback(() => setShowTopicDialog(true), []);
+    const handleCloseTopicDialog = useCallback(() => setShowTopicDialog(false), []);
+    const handleAddTopic = useCallback(
+        (name) => {
+            onUpdateGroupTopics(group.groupId, { action: 'add', name });
+            setShowTopicDialog(false);
+        },
+        [onUpdateGroupTopics, group.groupId],
+    );
+    const handleSelectStream = useCallback(() => setTab('stream'), []);
+    const handleSelectClasswork = useCallback(() => setTab('classwork'), []);
+
+    // Accordion (B7): one open row at a time. Its counts and description are
+    // loaded when it opens (not with the list) and kept for this board.
+    const [openId, setOpenId] = useState(null);
+    const [summaries, setSummaries] = useState({});
+    const summariesRef = useRef(summaries);
+    summariesRef.current = summaries;
+    const handleToggleRow = useCallback(
+        (classroom) => {
+            const id = classroom.classroomId;
+            setOpenId((current) => (current === id ? null : id));
+            // Load once per row, but retry a row whose last load failed ("-").
+            const known = summariesRef.current[id];
+            if (!onLoadAssignmentSummary || (known && !known.failed)) return;
+            setSummaries((prev) => ({ ...prev, [id]: { loading: true } }));
+            Promise.resolve(onLoadAssignmentSummary(classroom))
+                .then((data) =>
+                    setSummaries((prev) => ({ ...prev, [id]: data ? { data } : { failed: true } })),
+                )
+                .catch(() => setSummaries((prev) => ({ ...prev, [id]: { failed: true } })));
+        },
+        [onLoadAssignmentSummary],
+    );
     const handleRenameTopic = useCallback(
         (name, to) => onUpdateGroupTopics(group.groupId, { action: 'rename', name, to }),
         [onUpdateGroupTopics, group.groupId],
@@ -512,101 +935,178 @@ const TeacherAssignmentBoard = ({
                           },
                 ...(subView ? [{ label: intl.formatMessage(subViewMessages[subView]) }] : []),
             ]}
+            className={styles.boardScreen}
             testId="classroom-board"
         >
             {!subView && (
-            <React.Fragment>
-            {/* クラス名は独立行にして省略されないようにする（レビュー指摘）。
-                下に画面の説明、その下にアクションボタン行を置く。 */}
-            <h2 className={styles.boardTitle}>{formatClassLabel(group)}</h2>
-            <p className={styles.boardHint}>
-                <FormattedMessage
-                    defaultMessage="Create and organize this class's assignments here. Open an assignment to check submissions or grade."
-                    description="Short description of what the assignment board (課題一覧) is for"
-                    id="gui.classroom.board.hint"
-                />
-            </p>
-            <div className={styles.boardHeader}>
-                <button
-                    className={styles.boardCreateButton}
-                    data-testid="classroom-board-create"
-                    disabled={isLoading}
-                    type="button"
-                    onClick={handleToggleInlineCreate}
-                >
-                    <FormattedMessage
-                        defaultMessage="Create an assignment"
-                        description="Button on the board to create a new assignment"
-                        id="gui.classroom.board.create"
-                    />
-                </button>
-                <button
-                    className={styles.boardReuseButton}
-                    data-testid="classroom-board-reuse"
-                    disabled={isLoading}
-                    type="button"
-                    onClick={handleToggleReuse}
-                >
-                    <FormattedMessage
-                        defaultMessage="Reuse an assignment"
-                        description="Button on the board to reuse (duplicate) an existing assignment"
-                        id="gui.classroom.board.reuse"
-                    />
-                </button>
-                {/* 並び順（レビュー指摘）: 作る → 再利用 → みんなの課題からさがす →
-                    合言葉で取り込み → 全課題の提出物をダウンロード。 */}
-                {shared ? (
-                    <button
-                        className={styles.boardReuseButton}
-                        data-testid="classroom-board-shared-catalog"
-                        disabled={isLoading}
-                        type="button"
-                        onClick={shared.handleOpenCatalog}
-                    >
-                        <FormattedMessage
-                            defaultMessage="Find in みんなの課題"
-                            description="Button that opens the shared assignment catalog"
-                            id="gui.classroom.shared.openCatalog"
-                        />
-                    </button>
-                ) : null}
-                {shared ? (
-                    <button
-                        className={styles.boardReuseButton}
-                        data-testid="classroom-board-passcode-import"
-                        disabled={isLoading}
-                        type="button"
-                        onClick={shared.handleOpenPasscodeImport}
-                    >
-                        <FormattedMessage
-                            defaultMessage="Import by passcode"
-                            description="Button that opens the passcode import step"
-                            id="gui.classroom.shared.passcodeImport"
-                        />
-                    </button>
-                ) : null}
-                {onDownloadClassAll ? (
-                    <button
-                        className={styles.boardReuseButton}
-                        data-testid="classroom-board-download-class"
-                        disabled={isLoading || !!downloadProgress}
-                        type="button"
-                        onClick={handleDownloadClassAll}
-                    >
-                        {downloadProgress ? (
-                            `${downloadProgress.current}/${downloadProgress.total}`
-                        ) : (
+                <React.Fragment>
+                    {/* クラス名は独立行（省略しない）。その下に［ストリーム］［授業］のタブ。 */}
+                    <h2 className={styles.boardTitle}>{formatClassLabel(group)}</h2>
+                    <div className={styles.boardTabs} role="tablist">
+                        <button
+                            aria-selected={tab === 'stream'}
+                            className={tab === 'stream' ? styles.boardTabActive : styles.boardTab}
+                            data-testid="classroom-board-tab-stream"
+                            role="tab"
+                            type="button"
+                            onClick={handleSelectStream}
+                        >
                             <FormattedMessage
-                                defaultMessage="Download all submissions"
-                                description="Button that downloads every assignment's submissions as one zip"
-                                id="gui.classroom.board.downloadClass"
+                                defaultMessage="Stream"
+                                description="Tab of a class: the stream (announcements), like Google Classroom"
+                                id="gui.classroom.board.tabStream"
                             />
-                        )}
-                    </button>
-                ) : null}
-            </div>
-            </React.Fragment>
+                        </button>
+                        <button
+                            aria-selected={tab === 'classwork'}
+                            className={tab === 'classwork' ? styles.boardTabActive : styles.boardTab}
+                            data-testid="classroom-board-tab-classwork"
+                            role="tab"
+                            type="button"
+                            onClick={handleSelectClasswork}
+                        >
+                            <FormattedMessage
+                                defaultMessage="Classwork"
+                                description="Tab of a class: the assignment list, like Google Classroom"
+                                id="gui.classroom.board.tabClasswork"
+                            />
+                        </button>
+                    </div>
+                    {tab === 'classwork' ? (
+                        // R2: 主ボタンは［＋ 作成 ▾］1 つ。作り方は毎回選んでもらう（先生ごとに
+                        // 使う作り方が違うため決め打ちしない）。まれな一括 DL は「…」へ。
+                        <div className={styles.boardHeader}>
+                            <BoardMenu
+                                buttonClassName={styles.boardCreateButton}
+                                disabled={isLoading}
+                                label={
+                                    <FormattedMessage
+                                        defaultMessage="+ Create ▾"
+                                        description="Create menu button on the classwork tab (Google Classroom style)"
+                                        id="gui.classroom.board.createMenu"
+                                    />
+                                }
+                                testId="classroom-board-create-menu"
+                            >
+                                {(close) => (
+                                    <React.Fragment>
+                                        <BoardMenuItem
+                                            close={close}
+                                            testId="classroom-board-create"
+                                            onSelect={handleToggleInlineCreate}
+                                        >
+                                            <FormattedMessage
+                                                defaultMessage="Assignment"
+                                                description="Create menu item: a new assignment"
+                                                id="gui.classroom.board.createAssignmentItem"
+                                            />
+                                        </BoardMenuItem>
+                                        <BoardMenuItem
+                                            close={close}
+                                            testId="classroom-board-reuse"
+                                            onSelect={handleToggleReuse}
+                                        >
+                                            <FormattedMessage
+                                                defaultMessage="Reuse an assignment"
+                                                description="Button on the board to reuse (duplicate) an existing assignment"
+                                                id="gui.classroom.board.reuse"
+                                            />
+                                        </BoardMenuItem>
+                                        {shared ? (
+                                            <BoardMenuItem
+                                                close={close}
+                                                testId="classroom-board-shared-catalog"
+                                                onSelect={shared.handleOpenCatalog}
+                                            >
+                                                <FormattedMessage
+                                                    defaultMessage="Find in みんなの課題"
+                                                    description="Button that opens the shared assignment catalog"
+                                                    id="gui.classroom.shared.openCatalog"
+                                                />
+                                            </BoardMenuItem>
+                                        ) : null}
+                                        {shared ? (
+                                            <BoardMenuItem
+                                                close={close}
+                                                testId="classroom-board-passcode-import"
+                                                onSelect={shared.handleOpenPasscodeImport}
+                                            >
+                                                <FormattedMessage
+                                                    defaultMessage="Import by passcode"
+                                                    description="Button that opens the passcode import step"
+                                                    id="gui.classroom.shared.passcodeImport"
+                                                />
+                                            </BoardMenuItem>
+                                        ) : null}
+                                        <hr className={styles.boardMenuSeparator} />
+                                        <BoardMenuItem
+                                            close={close}
+                                            testId="classroom-board-create-topic"
+                                            onSelect={handleOpenTopicDialog}
+                                        >
+                                            <FormattedMessage
+                                                defaultMessage="Topic"
+                                                description="Label of the topic selector on an assignment row"
+                                                id="gui.classroom.board.topicLabel"
+                                            />
+                                        </BoardMenuItem>
+                                    </React.Fragment>
+                                )}
+                            </BoardMenu>
+                            {onDownloadClassAll ? (
+                                <div className={styles.boardHeaderEnd}>
+                                    <BoardMenu
+                                        alignRight
+                                        ariaLabel={intl.formatMessage({
+                                            defaultMessage: 'More',
+                                            description: 'Accessible name of the … menu on the classwork tab',
+                                            id: 'gui.classroom.board.moreMenu',
+                                        })}
+                                        buttonClassName={styles.boardKebab}
+                                        label="…"
+                                        testId="classroom-board-more-menu"
+                                    >
+                                        {(close) => (
+                                            <BoardMenuItem
+                                                close={close}
+                                                disabled={isLoading || !!downloadProgress}
+                                                testId="classroom-board-download-class"
+                                                onSelect={handleDownloadClassAll}
+                                            >
+                                                {downloadProgress ? (
+                                                    `${downloadProgress.current}/${downloadProgress.total}`
+                                                ) : (
+                                                    <FormattedMessage
+                                                        defaultMessage="Download all submissions"
+                                                        description="Button that downloads every assignment's submissions as one zip"
+                                                        id="gui.classroom.board.downloadClass"
+                                                    />
+                                                )}
+                                            </BoardMenuItem>
+                                        )}
+                                    </BoardMenu>
+                                </div>
+                            ) : null}
+                        </div>
+                    ) : null}
+                </React.Fragment>
             )}
+            {!subView && tab === 'stream' ? (
+                <p className={styles.boardEmpty} data-testid="classroom-board-stream">
+                    <FormattedMessage
+                        defaultMessage="The stream is coming soon. Use the Classwork tab for assignments."
+                        description="Placeholder of the stream tab until it has content"
+                        id="gui.classroom.board.streamComingSoon"
+                    />
+                </p>
+            ) : null}
+            {showTopicDialog ? (
+                <TopicAddDialog
+                    isLoading={isLoading}
+                    onAdd={handleAddTopic}
+                    onCancel={handleCloseTopicDialog}
+                />
+            ) : null}
             <ErrorDisplay error={error} errorTitle={errorTitle} />
             {shared && shared.lastImported ? (
                 <p className={styles.sharedFormSuccess} data-testid="shared-import-success">
@@ -792,50 +1292,14 @@ const TeacherAssignmentBoard = ({
                         ))}
                     </ul>
                 </TeacherSubView>
-            ) : (
-                <React.Fragment>
-            <div className={styles.boardTopics}>
-                {topics.map((topic) => (
-                    <TopicChip
-                        key={topic}
-                        isLoading={isLoading}
-                        topic={topic}
-                        onRemove={handleRemoveTopic}
-                        onRename={handleRenameTopic}
-                    />
-                ))}
-                <input
-                    className={styles.topicAddInput}
-                    data-testid="classroom-topic-add-input"
-                    disabled={isLoading}
-                    maxLength={50}
-                    placeholder={intl.formatMessage({
-                        defaultMessage: 'New topic',
-                        description: 'Placeholder of the new topic input',
-                        id: 'gui.classroom.board.newTopicPlaceholder',
-                    })}
-                    type="text"
-                    value={newTopic}
-                    onChange={handleNewTopicChange}
-                />
-                <button
-                    className={styles.topicAddButton}
-                    data-testid="classroom-topic-add"
-                    disabled={isLoading || newTopic.trim().length === 0}
-                    type="button"
-                    onClick={handleAddTopic}
-                >
-                    <FormattedMessage
-                        defaultMessage="Add topic"
-                        description="Button to add a topic to the class"
-                        id="gui.classroom.board.addTopic"
-                    />
-                </button>
-            </div>
+            ) : tab === 'stream' ? null : (
+                // R6: only this list frame scrolls (its length follows the number of
+                // assignments); the tabs and［＋ 作成 ▾］stay visible above it.
+                <div className={styles.boardList} data-testid="classroom-board-list">
             {sections.length === 0 ? (
                 <p className={styles.boardEmpty} data-testid="classroom-board-empty">
                     <FormattedMessage
-                        defaultMessage={'No assignments yet. Press "Create an assignment" to add one.'}
+                        defaultMessage={'No assignments yet. Choose "+ Create" → "Assignment" to add one.'}
                         description="Empty state of the assignment board"
                         id="gui.classroom.board.empty"
                     />
@@ -847,7 +1311,12 @@ const TeacherAssignmentBoard = ({
                     className={styles.boardSection}
                     data-testid={`classroom-board-section-${section.topic || 'none'}`}
                 >
-                    {section.topic ? <h3 className={styles.boardSectionTitle}>{section.topic}</h3> : null}
+                    <TopicHeading
+                        isLoading={isLoading}
+                        topic={section.topic}
+                        onRemove={handleRemoveTopic}
+                        onRename={handleRenameTopic}
+                    />
                     <ul className={styles.boardRows}>
                         {section.classrooms.map((classroom) => (
                             <AssignmentRow
@@ -856,10 +1325,13 @@ const TeacherAssignmentBoard = ({
                                 downloadingId={downloadingId}
                                 downloadProgress={downloadProgress}
                                 isLoading={isLoading}
+                                isOpen={openId === classroom.classroomId}
+                                summary={summaries[classroom.classroomId]}
                                 topics={topics}
                                 onDownloadAssignment={handleDownloadAssignment}
                                 onSelectClassroom={onSelectClassroom}
                                 onShare={shared ? shared.handleOpenShareFor : null}
+                                onToggle={handleToggleRow}
                                 onUpdateAssignmentMeta={onUpdateAssignmentMeta}
                             />
                         ))}
@@ -934,7 +1406,7 @@ const TeacherAssignmentBoard = ({
                     ) : null}
                 </div>
             ) : null}
-                </React.Fragment>
+                </div>
             )}
         </TeacherScreen>
     );
@@ -955,6 +1427,7 @@ TeacherAssignmentBoard.propTypes = {
     isLoading: PropTypes.bool,
     onCreateAssignmentInClass: PropTypes.func.isRequired,
     onDownloadClassAll: PropTypes.func,
+    onLoadAssignmentSummary: PropTypes.func,
     onRestoreClassroom: PropTypes.func,
     onReuseAssignment: PropTypes.func.isRequired,
     onSelectClassroom: PropTypes.func.isRequired,
