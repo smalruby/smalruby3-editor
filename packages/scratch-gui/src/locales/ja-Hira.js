@@ -326,8 +326,10 @@ export default {
     'gui.classroom.board.noTopic': '（トピックなし）',
     'gui.classroom.board.tabStream': 'ストリーム',
     'gui.classroom.board.tabClasswork': 'じゅぎょう',
-    'gui.classroom.board.streamComingSoon':
-        'ストリームはじゅんびちゅうです。かだいは［じゅぎょう］のタブからつかえます。',
+    'gui.classroom.board.streamEmpty': 'まだなにもありません。さくせいしたかだいがここにでます。',
+    'gui.classroom.board.streamCreated': 'かだい「{name}」をさくせいしました',
+    'gui.classroom.board.streamArchived': 'かだい「{name}」をアーカイブしました',
+    'gui.classroom.board.streamExpiring': 'かだい「{name}」は {date} にじどうでさくじょされます',
     'gui.classroom.board.createMenu': '＋ さくせい ▾',
     'gui.classroom.board.createAssignmentItem': 'かだい',
     'gui.classroom.board.moreMenu': 'そのほか',

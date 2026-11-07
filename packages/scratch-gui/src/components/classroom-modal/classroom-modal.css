@@ -4231,3 +4231,59 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
     margin-top: 0.3rem;
     font-size: 0.85rem;
 }
+
+/* ストリーム（B5）: 課題の作成・アーカイブ・自動削除の予定。行を押すとその課題へ。 */
+.stream-items {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.stream-item,
+.stream-item-urgent {
+    width: 100%;
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    padding: 0.6rem 0.9rem;
+    border: 1px solid hsla(0, 0%, 0%, 0.12);
+    border-radius: 0.4rem;
+    background: white;
+    color: #575e75;
+    font-size: 0.9rem;
+    text-align: left;
+    cursor: pointer;
+}
+
+.stream-item:hover,
+.stream-item-urgent:hover {
+    border-color: #855cd6;
+}
+
+/* 赤は「いま対処が必要」な自動削除の予定だけ（R4）。 */
+.stream-item-urgent {
+    border-color: hsla(10, 80%, 42%, 0.5);
+    color: hsla(10, 80%, 42%, 1);
+    font-weight: bold;
+}
+
+.stream-item-mark {
+    flex: none;
+}
+
+.stream-item-text {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.stream-item-date {
+    flex: none;
+    font-size: 0.8rem;
+    color: hsla(225, 15%, 40%, 1);
+}

@@ -290,8 +290,10 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-archived-class-list` | ul | アーカイブ済みクラスのカード一覧 |
 | `classroom-class-restore-{groupId}` | button | アーカイブ済みクラスカードの「元に戻す」 |
 | `classroom-board` | div | 課題管理ボード（クラス内のメイン領域） |
-| `classroom-board-tab-stream` / `classroom-board-tab-classwork` | button (tab) | クラスの画面の［ストリーム］［授業］タブ（`aria-selected`。最初は［授業］） |
-| `classroom-board-stream` | p | ［ストリーム］の「準備中」表示 |
+| `classroom-board-tab-stream` / `classroom-board-tab-classwork` | button (tab) | クラスの画面の［ストリーム］［授業］タブ（`aria-selected`。最初は［ストリーム］） |
+| `classroom-board-stream` | div | ［ストリーム］の枠（件数が多いときはこの中だけスクロール） |
+| `classroom-board-stream-item-{type}-{classroomId}` | button | ストリームの 1 行。`{type}` は `created`（作成）/ `archived`（アーカイブ）/ `expiring`（残り 7 日以内の自動削除の予定）。押すと［授業］でその課題へ |
+| `classroom-board-stream-empty` | p | ストリームが空のときの案内 |
 | `classroom-board-create-menu` | button | ［＋ 作成 ▾］（主ボタン）。開いた一覧は `classroom-board-create-menu-list`（`role="menu"`） |
 | `classroom-board-create` | button (menuitem) | 作成メニューの「課題」（課題の作成画面へ） |
 | `classroom-board-create-topic` | button (menuitem) | 作成メニューの「トピック」（トピックを追加の小さな画面へ） |

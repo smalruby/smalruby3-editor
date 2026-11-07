@@ -14,6 +14,7 @@ import { DEFAULT_MESH_GROUP_LIMIT } from '../../lib/classroom-assignment-utils.j
 import { buildAssignmentSections } from '../../lib/classroom-group-utils.js';
 import { formatClassLabel } from '../../lib/classroom-class-label.js';
 import { retentionLevel } from '../../lib/classroom-retention.js';
+import { buildStreamEvents } from '../../lib/classroom-stream.js';
 import ErrorDisplay from './error-display.jsx';
 import MeshGroupLimitField from './mesh-group-limit-field.jsx';
 import SharedAssignmentCatalog from './shared-assignment-catalog.jsx';
@@ -678,6 +679,76 @@ AssignmentRow.propTypes = {
     topics: PropTypes.arrayOf(PropTypes.string).isRequired,
 };
 
+/**
+ * One entry of the stream (B5). The whole entry is a button that opens the
+ * assignment: on［授業］, or in the archived section (with［復元］) when the
+ * assignment is archived.
+ * @param {object} props - component props
+ * @param {object} props.event - entry from buildStreamEvents
+ * @param {Function} props.onOpen - (event) => void
+ * @returns {React.ReactElement} the entry
+ */
+const StreamItem = ({ event, onOpen }) => {
+    const intl = useIntl();
+    const handleClick = useCallback(() => onOpen(event), [onOpen, event]);
+    const name = event.classroom.assignmentName || event.classroom.className;
+    const date = formatShortDate(intl, event.date);
+    let text;
+    if (event.type === 'expiring') {
+        text = (
+            <FormattedMessage
+                defaultMessage={'The assignment "{name}" will be deleted automatically on {date}'}
+                description="Stream entry: an assignment is auto-deleted within 7 days"
+                id="gui.classroom.board.streamExpiring"
+                values={{ name, date }}
+            />
+        );
+    } else if (event.type === 'archived') {
+        text = (
+            <FormattedMessage
+                defaultMessage={'Archived the assignment "{name}"'}
+                description="Stream entry: the teacher archived an assignment"
+                id="gui.classroom.board.streamArchived"
+                values={{ name }}
+            />
+        );
+    } else {
+        text = (
+            <FormattedMessage
+                defaultMessage={'Created the assignment "{name}"'}
+                description="Stream entry: the teacher created an assignment"
+                id="gui.classroom.board.streamCreated"
+                values={{ name }}
+            />
+        );
+    }
+    return (
+        <li>
+            <button
+                className={event.type === 'expiring' ? styles.streamItemUrgent : styles.streamItem}
+                data-testid={`classroom-board-stream-item-${event.key}`}
+                type="button"
+                onClick={handleClick}
+            >
+                {/* R4: red only for the entry the teacher has to act on now. */}
+                {event.type === 'expiring' ? <span className={styles.streamItemMark}>{'⚠'}</span> : null}
+                <span className={styles.streamItemText}>{text}</span>
+                {event.type === 'expiring' ? null : <span className={styles.streamItemDate}>{date}</span>}
+            </button>
+        </li>
+    );
+};
+
+StreamItem.propTypes = {
+    event: PropTypes.shape({
+        classroom: PropTypes.object.isRequired,
+        date: PropTypes.string.isRequired,
+        key: PropTypes.string.isRequired,
+        type: PropTypes.oneOf(['created', 'archived', 'expiring']).isRequired,
+    }).isRequired,
+    onOpen: PropTypes.func.isRequired,
+};
+
 const TeacherAssignmentBoard = ({
     allClassrooms,
     allGroups,
@@ -687,6 +758,7 @@ const TeacherAssignmentBoard = ({
     error,
     errorTitle,
     group,
+    initialTab,
     isLoading,
     onCreateAssignmentInClass,
     onDownloadClassAll,
@@ -695,14 +767,22 @@ const TeacherAssignmentBoard = ({
     onReuseAssignment,
     onSelectClassroom,
     onShowClassList,
+    onTabChange,
     onUpdateAssignmentMeta,
     onUpdateGroupTopics,
     shared,
 }) => {
     const intl = useIntl();
-    // ［ストリーム］［授業］(Google Classroom). Classwork first until the
-    // stream has content (its body is a separate issue).
-    const [tab, setTab] = useState('classwork');
+    // ［ストリーム］［授業］(Google Classroom). A class opens on the stream (B5);
+    // the parent passes initialTab to come back to［授業］after an assignment.
+    const [tab, setTabState] = useState(initialTab || 'stream');
+    const setTab = useCallback(
+        (next) => {
+            setTabState(next);
+            if (onTabChange) onTabChange(next);
+        },
+        [onTabChange],
+    );
     const [showTopicDialog, setShowTopicDialog] = useState(false);
     const [showInlineCreate, setShowInlineCreate] = useState(false);
     const [newAssignmentName, setNewAssignmentName] = useState('');
@@ -816,8 +896,8 @@ const TeacherAssignmentBoard = ({
         },
         [onUpdateGroupTopics, group.groupId],
     );
-    const handleSelectStream = useCallback(() => setTab('stream'), []);
-    const handleSelectClasswork = useCallback(() => setTab('classwork'), []);
+    const handleSelectStream = useCallback(() => setTab('stream'), [setTab]);
+    const handleSelectClasswork = useCallback(() => setTab('classwork'), [setTab]);
 
     // Accordion (B7): one open row at a time. Its counts and description are
     // loaded when it opens (not with the list) and kept for this board.
@@ -841,6 +921,30 @@ const TeacherAssignmentBoard = ({
         },
         [onLoadAssignmentSummary],
     );
+    // Stream entries open their assignment on［授業］: an active one as the open
+    // row, an archived one in the expanded archived section (its［復元］).
+    const streamEvents = tab === 'stream' ? buildStreamEvents(classrooms, archivedClassrooms) : [];
+    const [scrollTargetId, setScrollTargetId] = useState(null);
+    const handleOpenStreamEvent = useCallback(
+        (event) => {
+            const target = event.classroom;
+            setTab('classwork');
+            if (event.archived) {
+                setShowArchived(true);
+                setScrollTargetId(`classroom-board-archived-row-${target.classroomId}`);
+            } else {
+                if (openId !== target.classroomId) handleToggleRow(target);
+                setScrollTargetId(`classroom-board-row-${target.classroomId}`);
+            }
+        },
+        [setTab, openId, handleToggleRow],
+    );
+    useEffect(() => {
+        if (!scrollTargetId) return;
+        const el = document.querySelector(`[data-testid="${scrollTargetId}"]`);
+        if (el && typeof el.scrollIntoView === 'function') el.scrollIntoView({ block: 'nearest' });
+        setScrollTargetId(null);
+    }, [scrollTargetId]);
     const handleRenameTopic = useCallback(
         (name, to) => onUpdateGroupTopics(group.groupId, { action: 'rename', name, to }),
         [onUpdateGroupTopics, group.groupId],
@@ -1092,13 +1196,25 @@ const TeacherAssignmentBoard = ({
                 </React.Fragment>
             )}
             {!subView && tab === 'stream' ? (
-                <p className={styles.boardEmpty} data-testid="classroom-board-stream">
-                    <FormattedMessage
-                        defaultMessage="The stream is coming soon. Use the Classwork tab for assignments."
-                        description="Placeholder of the stream tab until it has content"
-                        id="gui.classroom.board.streamComingSoon"
-                    />
-                </p>
+                // R6 exception: no main action here, so only this frame scrolls when
+                // the class has many entries.
+                <div className={styles.boardList} data-testid="classroom-board-stream">
+                    {streamEvents.length === 0 ? (
+                        <p className={styles.boardEmpty} data-testid="classroom-board-stream-empty">
+                            <FormattedMessage
+                                defaultMessage="Nothing here yet. Assignments you create are listed here."
+                                description="Empty state of the stream tab of a class"
+                                id="gui.classroom.board.streamEmpty"
+                            />
+                        </p>
+                    ) : (
+                        <ul className={styles.streamItems}>
+                            {streamEvents.map((event) => (
+                                <StreamItem key={event.key} event={event} onOpen={handleOpenStreamEvent} />
+                            ))}
+                        </ul>
+                    )}
+                </div>
             ) : null}
             {showTopicDialog ? (
                 <TopicAddDialog
@@ -1424,6 +1540,7 @@ TeacherAssignmentBoard.propTypes = {
     error: PropTypes.string,
     errorTitle: PropTypes.string,
     group: PropTypes.object.isRequired,
+    initialTab: PropTypes.oneOf(['stream', 'classwork']),
     isLoading: PropTypes.bool,
     onCreateAssignmentInClass: PropTypes.func.isRequired,
     onDownloadClassAll: PropTypes.func,
@@ -1432,6 +1549,7 @@ TeacherAssignmentBoard.propTypes = {
     onReuseAssignment: PropTypes.func.isRequired,
     onSelectClassroom: PropTypes.func.isRequired,
     onShowClassList: PropTypes.func.isRequired,
+    onTabChange: PropTypes.func,
     onUpdateAssignmentMeta: PropTypes.func.isRequired,
     onUpdateGroupTopics: PropTypes.func.isRequired,
     shared: PropTypes.object,
