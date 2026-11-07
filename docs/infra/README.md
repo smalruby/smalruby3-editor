@@ -18,7 +18,7 @@ Smalruby のバックエンドは **AWS CDK** で管理される 4 つの独立�
 | 項目 | 値 |
 |---|---|
 | リージョン | `ap-northeast-1` (東京) |
-| CDK バージョン | 2.232.x |
+| CDK バージョン | `aws-cdk-lib` 2.275.0 / CLI `aws-cdk` 2.1147.0（全プロジェクト同一） |
 | Lambda ランタイム | Node.js 22.x（mesh-v2 のみ Ruby も使用） |
 | DynamoDB 課金 | `PAY_PER_REQUEST` (オンデマンド) |
 | TTL 属性 | 全テーブル `ttl` フィールドで自動削除 |

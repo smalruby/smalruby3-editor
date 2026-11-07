@@ -195,7 +195,7 @@ account ID は CDK の `cdk.context.json` コミット方針で既にリポジ�
 | リソース名 suffix | `stageSuffix = stage === 'prod' ? '' : '-' + stage`（**prod は無印**、他は `-stg` 等） |
 | CFN スタック名 | prod は無印、他は `-{stage}`（`MeshV2Stack` / `ClassroomStack` / `SmalrubyApiStack` / `RubyteeRelayStack` / `BugReportStack`） |
 | リージョン | 既定 `ap-northeast-1` |
-| CDK バージョン | `aws-cdk-lib` は全プロジェクトで**同一バージョンにピン留め**（現在 `2.232.1`）。1 つだけ上げない |
+| CDK バージョン | `aws-cdk-lib` は全プロジェクトで**同一バージョンにピン留め**（現在 `2.275.0`）。1 つだけ上げない。lib を上げたら CLI `aws-cdk` も lib の cloud assembly schema を読める版（現在 `2.1147.0`）へそろえる（古い CLI は synth で `Cloud assembly schema version mismatch` になる） |
 | タグ | スタック全体に `Project` / `Stage` / `Service` / `ManagedBy=CDK` |
 | Node Lambda ランタイム | **`NODEJS_22_X` に統一**（例外: mesh-v2 の Ruby Lambda は Ruby 4.0 = `ruby4.0`）。新しい Lambda も 22 に合わせる |
 | Lambda bundling | esbuild: `minify: true`, `sourceMap: stage !== 'prod'`, `externalModules: []`（全同梱） |
