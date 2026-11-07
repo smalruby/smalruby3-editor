@@ -13,7 +13,7 @@ Rubytee relay の CloudWatch ログを取得・分析し、不適切な利用パ
 `$ARGUMENTS` から以下を解析する（すべてオプション）:
 
 - **期間**: `1h`, `6h`, `24h`, `7d` など（デフォルト: `24h`）
-- **ステージ**: `prod`, `stg`, `stg2`（デフォルト: `prod`）
+- **ステージ**: `prod`, `stg`（デフォルト: `prod`）
 
 例:
 - `/rubytee-monitor` → prod の直近 24 時間
@@ -65,7 +65,6 @@ docker compose run --rm -w /app/infra/smalruby-rubytee-relay infra \
 |---------|------------|
 | prod | （なし） → `/aws/lambda/RubyteeRelayHandler` |
 | stg | `-stg` → `/aws/lambda/RubyteeRelayHandler-stg` |
-| stg2 | `-stg2` → `/aws/lambda/RubyteeRelayHandler-stg2` |
 
 **epoch_ms の計算**:
 
@@ -212,4 +211,4 @@ Claude メモリ `reference_rubytee_monitoring` から前回チェック情報�
 
 - **AWS 認証エラー**: `AWS_PROFILE` や `AWS_ACCESS_KEY_ID` が設定されているか確認を促す
 - **ログが空の場合**: 指定期間にリクエストがなかった旨を報告し、期間の拡大を提案する
-- **ロググループが見つからない場合**: ステージ名が正しいか確認を促す（prod, stg, stg2）
+- **ロググループが見つからない場合**: ステージ名が正しいか確認を促す（prod, stg）

@@ -32,7 +32,6 @@
 | smalruby-mesh-v2 | — | — | キーは同じ。ファイル名だけ `.env.production`（他は `.env.prod`） |
 | smalruby-rubytee-relay | — | — | キーは同じ |
 
-ほかに、mesh-v2 と rubytee-relay には `.env.stg2`（追加の検証用ステージ）がある。
 
 `.env.example` にあって stg / prod のどちらにも無いキー（＝コードの既定値で動いているもの）:
 
