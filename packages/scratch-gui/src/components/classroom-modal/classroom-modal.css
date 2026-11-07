@@ -310,7 +310,8 @@
     flex-wrap: wrap;
     gap: 0.5rem;
     align-items: stretch;
-    margin: 0.3rem 0;
+    /* 下は課題名の欄の下に重ねる保存のしかた（#1388）の 1 行分を空けておく。 */
+    margin: 0.3rem 0 0.7rem;
 }
 
 /* 課題名: ラベル・1 行の入力欄・保存結果を横並び（#1303 D3 / #1388）。 */
@@ -340,20 +341,23 @@
 
 /* 入力欄と、その下の保存のしかた（カーソルがある間だけ・#1388）。 */
 .assignment-name-field {
+    position: relative;
     flex: 1 1 auto;
     min-width: 0;
-    display: flex;
-    flex-direction: column;
 }
 
-/* 縦並びの中では伸ばさない（高さは 1 行のまま）。 */
 .name-col .assignment-name-field .assignment-name-input {
-    flex: 0 0 auto;
     width: 100%;
 }
 
+/* 欄の下に重ねて出す（流れに入れると、フォーカスのたびに下のタブが動く）。 */
 .assignment-name-save-hint {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
     margin-top: 0.15rem;
+    line-height: 1.2;
     font-size: 0.75rem;
     font-weight: normal;
     color: #8c8c8c;

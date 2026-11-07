@@ -676,6 +676,16 @@ const kickedRoutes = (activeIds) => async (p) => {
     await page.locator('[data-testid="classroom-tab-members"]').click();
     await page.waitForTimeout(800);
     await judge(page, { who: 'teacher', name: 'assignment detail (members 40)', body: '[data-testid="classroom-phase-teacher-detail"]', shot: 'teacher-members' });
+    // 課題名の欄にカーソル → 欄の下に保存のしかた、保存後は欄の横に「保存しました」(#1388)。
+    // どちらが出ても本文の高さが変わらず収まるか。
+    const nameInput = page.locator('[data-testid="classroom-detail-assignment-name"]');
+    await nameInput.focus();
+    await page.waitForTimeout(300);
+    await judge(page, { who: 'teacher', name: 'assignment detail (name focused)', body: '[data-testid="classroom-phase-teacher-detail"]', shot: 'teacher-name-focused' });
+    await nameInput.fill('ねこを動かそう 第2回');
+    await nameInput.press('Enter');
+    await page.waitForTimeout(500);
+    await judge(page, { who: 'teacher', name: 'assignment detail (name saved)', body: '[data-testid="classroom-phase-teacher-detail"]', shot: 'teacher-name-saved' });
     await page.locator('[data-testid="classroom-member-seat-04"]').click();
     await page.waitForTimeout(600);
     await judge(page, { who: 'teacher', name: 'member detail', body: '[data-testid="classroom-member-detail"]', shot: 'teacher-member-detail' });

@@ -452,6 +452,14 @@ Google または Microsoft アカウントでサインインする画面。先�
 
 ![課題詳細 — メンバータブ](screenshots/0204-teacher-detail.png)
 
+### 課題名の保存（カーソルがある間の案内・保存しました）
+
+課題名の欄にカーソルがある間だけ、欄の下に保存のしかたを出します（「名前を変える」のような押せそうなラベルは置きません）。保存できたら欄の横に「✓ 保存しました」を 2 秒ほど出します。
+
+![課題名の欄にカーソルがあるとき](screenshots/0240-detail-assignment-name-focused.png)
+
+![課題名を保存したとき](screenshots/0241-detail-assignment-name-saved.png)
+
 ### 提出・着席・退室依頼がある状態
 
 ![課題詳細 — 提出あり](screenshots/0205-teacher-detail-submitted.png)

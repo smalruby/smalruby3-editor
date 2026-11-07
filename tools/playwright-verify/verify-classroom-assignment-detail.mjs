@@ -1,5 +1,5 @@
 // Assignment detail (［メンバー］［説明］) and the "create an assignment"
-// screen (#1303: D1〜D3・E1〜E3・C1) at the lesson PC size (1300x600). The
+// screen (#1303: D1〜D3・E1〜E3・C1; assignment name save feedback: #1388) at the lesson PC size (1300x600). The
 // classroom API is stubbed with page.route, so no login or stg data is
 // needed — only the dev server.
 //
@@ -140,6 +140,8 @@ const openBoard = async () => {
     await page.$eval(tid('classroom-teacher-menu-class-list'), (el) => el.click());
     await page.locator(tid('classroom-class-open-g1')).click();
     await page.waitForSelector(tid('classroom-board'), { timeout: 20000 });
+    // The board opens on the stream; the create menu and rows are on「授業」.
+    await page.locator(tid('classroom-board-tab-classwork')).click();
     await page.waitForTimeout(500);
 };
 const openDetail = async (id) => {
@@ -151,6 +153,7 @@ const openDetail = async (id) => {
 const backToBoard = async () => {
     await page.locator(tid('classroom-breadcrumb-assignments')).click();
     await page.waitForSelector(tid('classroom-board'), { timeout: 20000 });
+    if (await page.$(tid('classroom-board-tab-classwork'))) await page.locator(tid('classroom-board-tab-classwork')).click();
     await page.waitForTimeout(500);
 };
 
@@ -185,6 +188,30 @@ try {
         // Escape would also close the modal, so toggle the menu shut.
         await page.locator(tid('classroom-detail-more-menu')).click();
     }
+
+    // #1388: no「名前を変える」. While the name field is focused it says how
+    // the name is saved; after saving,「✓ 保存しました」shows for a moment.
+    const nameField = page.locator(tid('classroom-detail-assignment-name'));
+    await nameField.focus();
+    await page.waitForTimeout(200);
+    const saveHint = await page.$(tid('classroom-detail-assignment-name-save-hint'));
+    const oldHint = await page.$(tid('classroom-detail-assignment-name-hint'));
+    m = await measure(tid('classroom-detail-more-menu'), BODY);
+    record('name field focused: save hint (#1388)', !!saveHint && !oldHint && m.pageOk && m.bodyOk, describe(m));
+    await shot('name-focused', '0240-detail-assignment-name-focused.png');
+    await nameField.fill('ねこを動かそう 2');
+    await nameField.press('Enter');
+    const saved = await page
+        .waitForSelector(tid('classroom-detail-assignment-name-saved'), { timeout: 5000 })
+        .catch(() => null);
+    const hintGone = !(await page.$(tid('classroom-detail-assignment-name-save-hint')));
+    m = await measure(tid('classroom-detail-more-menu'), BODY);
+    record('name saved: 保存しました (#1388)', !!saved && hintGone && m.pageOk && m.bodyOk, describe(m));
+    await shot('name-saved', '0241-detail-assignment-name-saved.png');
+    // Put the name back for the next screenshots, and let the message fade.
+    await nameField.fill('ねこを動かそう');
+    await nameField.press('Enter');
+    await page.waitForTimeout(2500);
 
     // Description tab (E1・E2): the save button is on the first screen.
     await page.locator(tid('classroom-tab-description')).click();
