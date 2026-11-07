@@ -1194,6 +1194,25 @@ export default {
         'In Smalruby, // is not a comment (it is integer division). Use # for comments.',
     'gui.rubyTab.dnclArrayIndexHint':
         '{access} reads past the end of the array. In Smalruby Japanese mode, array indices start at 0 (the first element is {array}[0] and the last is {array}[{last}]). If the problem counts from 1, shift the index by 1, like {fixed}.',
+    'gui.rubyTab.dnclIndexShiftConfirm':
+        'In Smalruby Japanese mode, array indices start at 0. Shift the array indices of the pasted program down by 1?',
+    'gui.rubyTab.dnclIndexShiftDone':
+        'Shifted {count} array indices down by 1 (marked in green).\nLoop ranges (such as "i を 1 から n まで") were not changed. Fix them yourself if they should start at 0.',
+    'gui.rubyTab.dnclIndexShiftChangedHeading': 'Changed:',
+    'gui.rubyTab.dnclIndexShiftChangedItem': 'Line {line}: {before} → {after}',
+    'gui.rubyTab.dnclIndexShiftSuspectsHeading': 'These may also need fixing (marked in yellow):',
+    'gui.rubyTab.dnclIndexShiftSuspectItem': 'Line {line}: {text} ({reason})',
+    'gui.rubyTab.dnclIndexShiftMore': '…and {count} more',
+    'gui.rubyTab.dnclIndexShiftChangedHover': 'Index shifted down by 1: {before} → {after}',
+    'gui.rubyTab.dnclIndexShiftReasonAssignOne':
+        'sets a variable to 1; if it is used as an index, it may need to be 0',
+    'gui.rubyTab.dnclIndexShiftReasonLoopFromOne': 'the loop starts at 1; it may need to start at 0',
+    'gui.rubyTab.dnclIndexShiftReasonLoopFromN':
+        'the loop skips the first elements; its start may need to be 1 smaller',
+    'gui.rubyTab.dnclIndexShiftReasonLoopToLength':
+        'the loop runs up to the number of elements; with 0-based indices it ends at 要素数(X) - 1',
+    'gui.rubyTab.dnclIndexShiftReasonLessEqual':
+        'compares an index with <=; with 0-based indices it may need to be <',
     'gui.rubyTab.dnclValidationError':
         'This code contains constructs not supported in Japanese mode.\nPlease use only supported instructions before switching modes.',
     'gui.mobile.drawer.title': 'Menu',

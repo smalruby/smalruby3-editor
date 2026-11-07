@@ -25,7 +25,13 @@ const registerCustomPasteAction = (editor, pasteLabel, transformText = text => t
             try {
                 const text = await navigator.clipboard.readText();
                 if (text) {
-                    ed.trigger('keyboard', 'type', {text: transformText(text)});
+                    // `paste` (not `type`) so that `onDidPaste` fires, as it
+                    // does for Ctrl+V (Issue #1366).
+                    ed.trigger('keyboard', 'paste', {
+                        text: transformText(text),
+                        pasteOnNewLine: false,
+                        multicursorText: null
+                    });
                 }
             } catch (err) {
                 // eslint-disable-next-line no-console

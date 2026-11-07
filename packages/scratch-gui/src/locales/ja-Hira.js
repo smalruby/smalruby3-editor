@@ -1645,6 +1645,27 @@ export default {
         'スモウルビーでは // はコメントではありません（せいすうのわりざんです）。コメントには # をつかってください。',
     'gui.rubyTab.dnclArrayIndexHint':
         '{access} ははいれつのはんいがいになります。スモウルビーのにほんごでは、はいれつのそえじは 0 からはじまります（さいしょのようそは {array}[0]、さいごのようそは {array}[{last}]）。もんだいぶんでそえじが 1 からはじまるときは、{fixed} のようにそえじを 1 ずらしてかいてください。',
+    'gui.rubyTab.dnclIndexShiftConfirm':
+        'スモウルビーのにほんごでは、はいれつのそえじは 0 からはじまります。はりつけたプログラムのはいれつのそえじを 1 ずつへらしますか？',
+    'gui.rubyTab.dnclIndexShiftDone':
+        '{count} かしょのはいれつのそえじを 1 ずつへらしました（みどりのしるし）。\nくりかえしのはんい（「i を 1 から n まで」など）はかきかえていません。0 はじまりにあわせて、ひつようならじぶんでなおしてください。',
+    'gui.rubyTab.dnclIndexShiftChangedHeading': 'かきかえたかしょ:',
+    'gui.rubyTab.dnclIndexShiftChangedItem': '{line} ぎょうめ: {before} → {after}',
+    'gui.rubyTab.dnclIndexShiftSuspectsHeading':
+        'もしかしたらここもなおすひつようがあるかもしれません（きいろのしるし）:',
+    'gui.rubyTab.dnclIndexShiftSuspectItem': '{line} ぎょうめ: {text}（{reason}）',
+    'gui.rubyTab.dnclIndexShiftMore': '…ほか {count} かしょ',
+    'gui.rubyTab.dnclIndexShiftChangedHover': 'そえじを 1 へらしました: {before} → {after}',
+    'gui.rubyTab.dnclIndexShiftReasonAssignOne':
+        'へんすうに 1 をいれています。そえじにつかうなら 0 にするひつようがあるかもしれません',
+    'gui.rubyTab.dnclIndexShiftReasonLoopFromOne':
+        '1 からはじまるくりかえしです。0 からはじめるひつようがあるかもしれません',
+    'gui.rubyTab.dnclIndexShiftReasonLoopFromN':
+        'せんとうのようそをとばすくりかえしです。はじまりを 1 ちいさくするひつようがあるかもしれません',
+    'gui.rubyTab.dnclIndexShiftReasonLoopToLength':
+        'ようそすうまでくりかえしています。0 はじまりでは 要素数(X) - 1 までです',
+    'gui.rubyTab.dnclIndexShiftReasonLessEqual':
+        'そえじにつかうへんすうを <= でくらべています。0 はじまりでは < にするひつようがあるかもしれません',
     'gui.rubyTab.dnclValidationError':
         'にほんごモードではたいおうしていないきじゅつです。\nたいおうしているめいれいのみにしてから、モードきりかえをおこなってください。',
     'gui.mobile.drawer.title': 'メニュー',
