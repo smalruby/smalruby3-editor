@@ -17,6 +17,11 @@ describe('MeshV2Stack', () => {
     template.hasResourceProperties('AWS::AppSync::GraphQLApi', {
       Name: 'MeshV2Api-stg'
     });
+
+    template.hasResourceProperties('AWS::Lambda::Function', {
+      FunctionName: 'MeshV2-GraphQL-stg',
+      Runtime: 'ruby4.0'
+    });
   });
 
   test('Polling Resolvers and Environment Variables', () => {
