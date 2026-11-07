@@ -1,9 +1,10 @@
-// Classwork tab of a class (#1301: B3・B4・B6・B7) at the lesson PC size
-// (1300x600). The classroom API is stubbed with page.route, so no login or
-// stg data is needed — only the dev server.
+// Stream and Classwork tabs of a class (#1301: B3・B4・B6・B7, #1302: B5) at
+// the lesson PC size (1300x600). The classroom API is stubbed with page.route,
+// so no login or stg data is needed — only the dev server.
 //
 // Measures (R6): the bottom of the main button ［＋ 作成 ▾］ and that the page
-// does not scroll. Takes the docs screenshots with DOCS_SHOTS=1.
+// does not scroll; on the stream (no main button) that only the stream frame
+// scrolls. Takes the docs screenshots with DOCS_SHOTS=1.
 //
 //   node verify-classroom-board-classwork.mjs                 # headless, asserts
 //   DOCS_SHOTS=1 node verify-classroom-board-classwork.mjs    # + docs/classroom/screenshots
@@ -50,6 +51,20 @@ const classrooms = [
     assignment({ classroomId: 'c3', assignmentName: 'アニメーション', joinCode: 'q8wz3e', topic: '第1回 アニメーション', sortDate: iso(now - 20 * DAY) }),
     assignment({ classroomId: 'c4', assignmentName: 'ふりかえり', joinCode: 'h2nd5r', topic: '第1回 アニメーション', sortDate: iso(now - 21 * DAY), hasAssignment: false }),
 ];
+// Archived assignment (only in the includeArchived=1 response): the stream
+// shows its archiving, and its entry opens the archived section.
+const archived = [
+    assignment({
+        classroomId: 'c9',
+        assignmentName: 'うごきのれんしゅう',
+        joinCode: 'z9y8x7',
+        status: 'archived',
+        createdAt: iso(now - 40 * DAY),
+        archivedAt: iso(now - 5 * DAY),
+        sortDate: iso(now - 40 * DAY),
+        expiresAt: iso(now + 50 * DAY),
+    }),
+];
 const members = Array.from({ length: 24 }, (_, i) => ({ memberId: `seat-${String(i + 1).padStart(2, '0')}` }));
 const submissions = members.filter((_, i) => i % 2 === 0).map((m, i) => ({ submissionId: `s${i}`, memberId: m.memberId, status: 'submitted', submittedAt: iso(now) }));
 
@@ -75,7 +90,7 @@ await page.route('**/classroom-groups', (r) =>
     }),
 );
 await page.route('**/classroom-groups/migrate', (r) => r.fulfill({ json: { migrated: 0 } }));
-await page.route('**/classrooms?**', (r) => r.fulfill({ json: { classrooms } }));
+await page.route('**/classrooms?**', (r) => r.fulfill({ json: { classrooms: [...classrooms, ...archived] } }));
 await page.route(/\/classrooms$/, (r) => r.fulfill({ json: { classrooms } }));
 await page.route(/\/classrooms\/c\d\/members$/, (r) => r.fulfill({ json: { members } }));
 await page.route(/\/classrooms\/c\d\/submissions$/, (r) => r.fulfill({ json: { submissions } }));
@@ -88,6 +103,22 @@ const shot = async (name, docsName) => {
     await page.screenshot({ path: resolve(SHOT_DIR, `issue-1301-${name}.png`) });
     if (DOCS_SHOTS && docsName) await page.screenshot({ path: resolve(DOCS_DIR, docsName) });
 };
+const measureStream = () =>
+    page.evaluate(() => {
+        const se = document.scrollingElement;
+        const body = document.querySelector('[data-testid="classroom-board"]');
+        const frame = document.querySelector('[data-testid="classroom-board-stream"]');
+        const items = Array.from(document.querySelectorAll('[data-testid^="classroom-board-stream-item-"]'));
+        return {
+            selected: document.querySelector('[data-testid="classroom-board-tab-stream"]')?.getAttribute('aria-selected'),
+            keys: items.map((e) => e.getAttribute('data-testid').replace('classroom-board-stream-item-', '')),
+            lastBottom: items.length ? Math.round(items[items.length - 1].getBoundingClientRect().bottom) : null,
+            frame: frame ? `${frame.scrollHeight}/${frame.clientHeight}` : '-',
+            bodyOk: body ? body.scrollHeight <= body.clientHeight : false,
+            body: body ? `${body.scrollHeight}/${body.clientHeight}` : '-',
+            pageOk: se.scrollHeight <= se.clientHeight,
+        };
+    });
 const measure = () =>
     page.evaluate(() => {
         const btn = document.querySelector('[data-testid="classroom-board-create-menu"]');
@@ -117,6 +148,18 @@ try {
     await page.waitForSelector(tid('classroom-board'), { timeout: 20000 });
     await page.waitForTimeout(800);
 
+    // B5: a class opens on the stream.
+    const st = await measureStream();
+    const expectedKeys = ['expiring-c2', 'archived-c9', 'created-c1', 'created-c2', 'created-c3', 'created-c4', 'created-c9'];
+    record(
+        'stream is the default tab',
+        st.selected === 'true' && st.keys.join() === expectedKeys.join() && st.pageOk && st.bodyOk,
+        `entries=${st.keys.join(',')} last-entry bottom=${st.lastBottom}/${VIEWPORT.height} page=${st.pageOk ? 'no scroll' : 'SCROLLS'} board=${st.body} stream=${st.frame}`,
+    );
+    await shot('stream', '0226-board-stream.png');
+
+    await page.locator(tid('classroom-board-tab-classwork')).click();
+    await page.waitForTimeout(300);
     let m = await measure();
     record('classwork tab (closed rows)', m.bottom !== null && m.bottom <= m.vh && m.pageOk && m.bodyOk, `create-menu bottom=${m.bottom}/${m.vh} page=${m.pageOk ? 'no scroll' : 'SCROLLS'} board=${m.body} list=${m.list}`);
     await shot('classwork', '0211-teacher-assignment-board.png');
@@ -156,10 +199,20 @@ try {
     record('opened row (far deadline is grey)', !!grey && !(await page.$(tid('classroom-board-expiry-c1'))), grey);
     await shot('row-open');
 
+    // Stream entries open their assignment on［授業］.
     await page.locator(tid('classroom-board-tab-stream')).click();
-    await page.waitForTimeout(300);
-    record('stream tab placeholder', !!(await page.$(tid('classroom-board-stream'))), '');
-    await shot('stream');
+    await page.locator(tid('classroom-board-stream-item-created-c3')).click();
+    await page.waitForSelector(tid('classroom-board-open-c3'));
+    record(
+        'stream entry opens the assignment',
+        (await page.getAttribute(tid('classroom-board-tab-classwork'), 'aria-selected')) === 'true',
+        'row c3 opened on the classwork tab',
+    );
+    await page.locator(tid('classroom-board-tab-stream')).click();
+    await page.locator(tid('classroom-board-stream-item-archived-c9')).click();
+    await page.waitForSelector(tid('classroom-board-restore-c9'));
+    record('archived entry opens the restore row', true, 'archived section expanded with［復元］');
+    await shot('stream-archived-open');
 } finally {
     await browser.close();
 }

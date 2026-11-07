@@ -32,14 +32,23 @@ const defaultProps = () => ({
     onUpdateGroupTopics: jest.fn(),
 });
 
-const renderBoard = (props) =>
+const byTestId = (id) => document.querySelector(`[data-testid="${id}"]`);
+
+// A class opens on［ストリーム］(B5). renderStream keeps it there; renderBoard
+// switches to［授業］, where most of the board's operations live.
+const renderStream = (props) =>
     render(
         <IntlProvider locale="en">
             <TeacherAssignmentBoard {...defaultProps()} {...props} />
         </IntlProvider>,
     );
-
-const byTestId = (id) => document.querySelector(`[data-testid="${id}"]`);
+const renderBoard = (props) => {
+    const result = renderStream(props);
+    // A sub view (e.g. the share step) hides the tabs.
+    const classworkTab = byTestId('classroom-board-tab-classwork');
+    if (classworkTab) fireEvent.click(classworkTab);
+    return result;
+};
 
 // The create ways live in the［＋ 作成 ▾］menu, rare actions in「…」, and the
 // per-row topic / date / share in the row's ⋮ menu (#1301).
@@ -318,17 +327,113 @@ describe('TeacherAssignmentBoard — create screen asks only the name (#1303 C1)
     });
 });
 
-describe('TeacherAssignmentBoard — Stream / Classwork tabs (#1301)', () => {
-    test('opens on Classwork; Stream shows a "coming soon" placeholder', () => {
-        renderBoard();
-        expect(byTestId('classroom-board-tab-classwork')).toHaveAttribute('aria-selected', 'true');
-        expect(byTestId('classroom-board-row-c1')).toBeInTheDocument();
-
-        fireEvent.click(byTestId('classroom-board-tab-stream'));
+describe('TeacherAssignmentBoard — Stream / Classwork tabs (#1301, B5)', () => {
+    test('opens on Stream; Classwork shows the assignment list and the create menu', () => {
+        renderStream();
         expect(byTestId('classroom-board-tab-stream')).toHaveAttribute('aria-selected', 'true');
         expect(byTestId('classroom-board-stream')).toBeInTheDocument();
         expect(byTestId('classroom-board-row-c1')).not.toBeInTheDocument();
         expect(byTestId('classroom-board-create-menu')).not.toBeInTheDocument();
+
+        fireEvent.click(byTestId('classroom-board-tab-classwork'));
+        expect(byTestId('classroom-board-tab-classwork')).toHaveAttribute('aria-selected', 'true');
+        expect(byTestId('classroom-board-row-c1')).toBeInTheDocument();
+        expect(byTestId('classroom-board-stream')).not.toBeInTheDocument();
+    });
+
+    test('the breadcrumbs say the class and the tab; a sub view links back to the class', () => {
+        const crumbs = () => byTestId('classroom-breadcrumbs').textContent;
+        renderStream();
+        expect(crumbs()).toBe('Class list>技術 2026年度>Stream');
+        expect(byTestId('classroom-breadcrumb-assignments')).not.toBeInTheDocument();
+
+        fireEvent.click(byTestId('classroom-board-tab-classwork'));
+        expect(crumbs()).toBe('Class list>技術 2026年度>Classwork');
+
+        clickCreateItem('classroom-board-create');
+        expect(crumbs()).toBe('Class list>技術 2026年度>Create an assignment');
+        fireEvent.click(byTestId('classroom-breadcrumb-assignments'));
+        expect(byTestId('classroom-board-tab-classwork')).toHaveAttribute('aria-selected', 'true');
+        expect(crumbs()).toBe('Class list>技術 2026年度>Classwork');
+    });
+
+    test('initialTab opens on Classwork and onTabChange reports the switches', () => {
+        const onTabChange = jest.fn();
+        renderStream({ initialTab: 'classwork', onTabChange });
+        expect(byTestId('classroom-board-tab-classwork')).toHaveAttribute('aria-selected', 'true');
+        fireEvent.click(byTestId('classroom-board-tab-stream'));
+        expect(onTabChange).toHaveBeenLastCalledWith('stream');
+    });
+});
+
+describe('TeacherAssignmentBoard — stream entries (B5)', () => {
+    const DAY = 24 * 60 * 60 * 1000;
+    const soon = () => new Date(Date.now() + 2 * DAY).toISOString();
+    const far = () => new Date(Date.now() + 60 * DAY).toISOString();
+    const streamKeys = () =>
+        Array.from(document.querySelectorAll('[data-testid^="classroom-board-stream-item-"]')).map((el) =>
+            el.getAttribute('data-testid').replace('classroom-board-stream-item-', ''),
+        );
+
+    test('lists created / archived / expiring entries with the assignment names', () => {
+        renderStream({
+            classrooms: [
+                classroom({ classroomId: 'a', assignmentName: '新しい課題', createdAt: '2026-10-20T00:00:00.000Z', expiresAt: far() }),
+                classroom({ classroomId: 'b', assignmentName: 'もうすぐ消える', createdAt: '2026-09-01T00:00:00.000Z', expiresAt: soon() }),
+            ],
+            archivedClassrooms: [
+                classroom({
+                    classroomId: 'x',
+                    assignmentName: '片付けた課題',
+                    status: 'archived',
+                    createdAt: '2026-08-01T00:00:00.000Z',
+                    archivedAt: '2026-10-10T00:00:00.000Z',
+                    expiresAt: far(),
+                }),
+            ],
+        });
+        expect(streamKeys()).toEqual(['expiring-b', 'created-a', 'archived-x', 'created-b', 'created-x']);
+        expect(byTestId('classroom-board-stream-item-created-a').textContent).toContain(
+            'Created the assignment "新しい課題"',
+        );
+        expect(byTestId('classroom-board-stream-item-archived-x').textContent).toContain(
+            'Archived the assignment "片付けた課題"',
+        );
+        expect(byTestId('classroom-board-stream-item-expiring-b').textContent).toContain(
+            'The assignment "もうすぐ消える" will be deleted automatically on',
+        );
+        // R1: the date on the right says which date it is; the expiring entry
+        // has its date in the text instead.
+        expect(byTestId('classroom-board-stream-date-created-a').textContent).toMatch(/^Created\s*\d/);
+        expect(byTestId('classroom-board-stream-date-archived-x').textContent).toMatch(/^Archived\s*\d/);
+        expect(byTestId('classroom-board-stream-date-expiring-b')).not.toBeInTheDocument();
+    });
+
+    test('an empty class shows the empty message', () => {
+        renderStream({ classrooms: [], archivedClassrooms: [] });
+        expect(byTestId('classroom-board-stream-empty')).toBeInTheDocument();
+    });
+
+    test('an active entry opens that assignment on Classwork', async () => {
+        const onLoadAssignmentSummary = jest.fn().mockResolvedValue({ joined: 0, capacity: 40, submitted: 0 });
+        renderStream({ onLoadAssignmentSummary });
+        fireEvent.click(byTestId('classroom-board-stream-item-created-c1'));
+        expect(byTestId('classroom-board-tab-classwork')).toHaveAttribute('aria-selected', 'true');
+        expect(byTestId('classroom-board-open-c1')).toBeInTheDocument();
+        await waitFor(() => expect(onLoadAssignmentSummary).toHaveBeenCalledTimes(1));
+    });
+
+    test('an archived entry opens the archived section with its restore button', () => {
+        renderStream({
+            classrooms: [],
+            archivedClassrooms: [
+                classroom({ classroomId: 'x', status: 'archived', archivedAt: '2026-10-10T00:00:00.000Z' }),
+            ],
+        });
+        fireEvent.click(byTestId('classroom-board-stream-item-archived-x'));
+        expect(byTestId('classroom-board-tab-classwork')).toHaveAttribute('aria-selected', 'true');
+        expect(byTestId('classroom-board-archived-list')).toBeInTheDocument();
+        expect(byTestId('classroom-board-restore-x')).toBeInTheDocument();
     });
 });
 
@@ -471,6 +576,9 @@ describe('TeacherAssignmentBoard — rows open in place (B3・B7)', () => {
         openRow('c2');
         expect(byTestId('classroom-board-row-detail-c1')).not.toBeInTheDocument();
         expect(byTestId('classroom-board-row-detail-c2')).toBeInTheDocument();
+        // Wait for c2's summary too: its setState would otherwise land after
+        // the test, outside act() (the warning this file used to print).
+        await waitFor(() => expect(byTestId('classroom-board-row-counts-c2').textContent).toContain('3'));
         openRow('c1');
         expect(props.onLoadAssignmentSummary).toHaveBeenCalledTimes(2);
 
