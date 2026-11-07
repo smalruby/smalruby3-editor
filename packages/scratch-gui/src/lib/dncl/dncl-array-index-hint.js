@@ -122,6 +122,30 @@ const evaluateBound = (expr, fixed) => {
 };
 
 /**
+ * Work out the largest value a counting loop gives its variable.
+ * @param {string} from - The start expression.
+ * @param {string} to - The end expression.
+ * @param {string} step - The step expression.
+ * @param {boolean} ascending - Whether the loop counts up.
+ * @param {{lengths: Map<string, number>, constants: Map<string, number>}} fixed
+ *   The values from `collectFixedValues`.
+ * @returns {?number} The largest value, or null when it is not known
+ *   statically or the loop never runs.
+ */
+const loopMaximum = (from, to, step, ascending, fixed) => {
+    const start = evaluateBound(from, fixed);
+    const end = evaluateBound(to, fixed);
+    const by = evaluateBound(step, fixed);
+    if (start !== null && end !== null && (ascending ? start > end : start < end)) return null;
+    if (!ascending) return start;
+    if (end === null || by === null || by <= 0) return null;
+    // A step of 1 always ends at `to`; a larger one may stop short of it.
+    if (by === 1) return end;
+    if (start === null) return null;
+    return start + Math.floor((end - start) / by) * by;
+};
+
+/**
  * Find array accesses that run past the end of the array, which is what a
  * program written with 1-based indices does. Two cases are detected:
  * `X[i]` inside a counting loop whose largest `i` is the length of `X` or
@@ -174,8 +198,8 @@ const findArrayIndexHints = (source) => {
         }
         const forMatch = line.match(FOR_RE);
         if (forMatch) {
-            const [, loopVar, from, to, , direction] = forMatch;
-            const max = evaluateBound(direction === '増やし' ? to : from, fixed);
+            const [, loopVar, from, to, step, direction] = forMatch;
+            const max = loopMaximum(from, to, step, direction === '増やし', fixed);
             blocks.push({ loopVar, max, reported: new Set() });
         } else if (OPENERS.some((re) => re.test(line))) {
             blocks.push(null);

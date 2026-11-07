@@ -146,6 +146,49 @@ describe('findArrayIndexHints', () => {
         expect(findArrayIndexHints(src)).toEqual([]);
     });
 
+    test('uses the last value a loop with a larger step reaches', () => {
+        const src = [
+            'Kouka = [1, 5, 10, 20, 30, 40, 50, 60, 70, 80]',
+            'i を 0 から 10 まで 3 ずつ増やしながら',
+            '  表示する(Kouka[i])',
+            'を繰り返す',
+        ].join('\n');
+        expect(findArrayIndexHints(src)).toEqual([]);
+    });
+
+    test('warns when a loop with a larger step reaches the length', () => {
+        const src = [
+            'Kouka = [1, 5, 10]',
+            'i を 1 から 3 まで 2 ずつ増やしながら',
+            '  表示する(Kouka[i])',
+            'を繰り返す',
+        ].join('\n');
+        expect(findArrayIndexHints(src)).toHaveLength(1);
+    });
+
+    test('ignores a loop that never runs', () => {
+        const src = [
+            'Kouka = [1, 5, 10]',
+            'i を 5 から 3 まで 1 ずつ増やしながら',
+            '  表示する(Kouka[i])',
+            'を繰り返す',
+            'j を 1 から 3 まで 1 ずつ減らしながら',
+            '  表示する(Kouka[j])',
+            'を繰り返す',
+        ].join('\n');
+        expect(findArrayIndexHints(src)).toEqual([]);
+    });
+
+    test('does not guess the last value when the step is not known', () => {
+        const src = [
+            'Kouka = [1, 5, 10]',
+            'i を 0 から 3 まで s ずつ増やしながら',
+            '  表示する(Kouka[i])',
+            'を繰り返す',
+        ].join('\n');
+        expect(findArrayIndexHints(src)).toEqual([]);
+    });
+
     test('reports source lines of DNCLv2 code with line numbers', () => {
         const src = [
             '(01) Kouka = [1, 5, 10]',
