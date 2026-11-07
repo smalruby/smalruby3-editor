@@ -23,7 +23,7 @@ permissions:
 jobs:
   build-linux:
     name: "Build gem (Linux / Ruby ${{ inputs.ruby-version || '3.4' }})"
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-24.04  # magnus does not compile on 26.04 (#1391)
     defaults:
       run:
         working-directory: ruby/smalruby3

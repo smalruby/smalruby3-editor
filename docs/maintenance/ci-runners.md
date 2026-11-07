@@ -7,6 +7,12 @@ GitHub Actions の runner（`runs-on`）は **版を固定する**。`ubuntu-lat
 | Linux | `ubuntu-26.04` |
 | Windows | `windows-2025` |
 
+### 例外（古い版に残しているジョブ）
+
+| ジョブ | 版 | 理由 | 追跡 |
+|---|---|---|---|
+| `ci-ruby.yml` の `unit-test`、`gem-build-check.yml` の `build-linux`、`release-gem.yml` の `test` / `release` | `ubuntu-24.04` | smalruby3 gem のネイティブ拡張が使う `magnus` が 26.04 ではコンパイルできない（新しい libclang と `bindgen` 0.69 の組み合わせ） | #1391 |
+
 ## なぜ固定するか
 
 `*-latest` は GitHub がイメージを次の版に切り替えた日に、こちらが何も変えていなくても指す先が変わる。
