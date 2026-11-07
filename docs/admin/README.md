@@ -173,6 +173,7 @@ cd tools/playwright-verify && node verify-admin.mjs
 ```
 
 - `http://localhost:8602/admin/?devlogin=<DEV_BYPASS_TOKEN>` で stg ログインをバイパス（バイパス identity `dev-admin@example.com` の allowlist 登録が前提）
+  - `devlogin` は読み取った直後にアドレスバーの URL から取り除く（ほかのパラメータとハッシュは残る。スクリーンショット・履歴・共有 URL に値が写らないようにするため）。値はメモリにしか残らないので、**再読み込みするとサインイン画面に戻る**。もう一度 `?devlogin=` を付けて開く
 - **ポートは 8601〜8610 のどれでもよい**（`PORT=8603 npm start` など）。非 prod の API は
   この範囲の `http://localhost:<port>` を CORS で許可する（#1160）。devpod で worktree を
   並行起動すると 8601 から順に別ポートが割り当たるため、範囲で許可している。

@@ -3,18 +3,45 @@
  * B: admin-dedicated OAuth client ID).
  *
  * Dev bypass: `?devlogin=<DEV_BYPASS_TOKEN>` skips GIS entirely (stg only —
- * the API rejects the bypass token in prod).
+ * the API rejects the bypass token in prod). The token is taken out of the
+ * address bar right after it is read (#1393), so a reload signs out.
  */
 const ADMIN_GOOGLE_CLIENT_ID = process.env.ADMIN_GOOGLE_CLIENT_ID || '';
 const GSI_SRC = 'https://accounts.google.com/gsi/client';
 
+// undefined = the URL has not been read yet. Kept in module memory because the
+// URL no longer carries the token once it has been read.
+let devLoginToken;
+
 /**
- * Read the dev bypass token from the URL (one-shot).
+ * Take the dev bypass token out of the address bar, so it does not end up in
+ * screenshots, browser history or URLs people share (#1393). The other params
+ * and the hash stay.
+ * @param {URL} url - the current URL, already parsed
+ */
+const stripDevLoginFromUrl = url => {
+    url.searchParams.delete('devlogin');
+    try {
+        window.history.replaceState(window.history.state, '', url.toString());
+    } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn('Failed to remove devlogin from the URL:', e);
+    }
+};
+
+/**
+ * Read the dev bypass token from the URL. The first call removes it from the
+ * URL; later calls return the same value from memory.
  * @returns {string|null} the token or null
  */
 const getDevLoginToken = () => {
     if (typeof window === 'undefined') return null;
-    return new URLSearchParams(window.location.search).get('devlogin');
+    if (typeof devLoginToken === 'undefined') {
+        const url = new URL(window.location.href);
+        devLoginToken = url.searchParams.get('devlogin') || null;
+        if (url.searchParams.has('devlogin')) stripDevLoginFromUrl(url);
+    }
+    return devLoginToken;
 };
 
 /**
