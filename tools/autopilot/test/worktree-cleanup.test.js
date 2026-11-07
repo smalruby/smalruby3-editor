@@ -57,6 +57,8 @@ function baseDeps(exec, extra = {}) {
         execFileP: exec,
         existsSync: () => true,
         getDirectives: async () => ({ base: null, after: [] }),
+        // 実 /proc を読んで実プロセスへ SIGTERM を送らない（#1381）
+        stopDevServers: () => [],
         ...extra,
     };
 }

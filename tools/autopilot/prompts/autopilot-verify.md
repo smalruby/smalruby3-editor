@@ -119,20 +119,32 @@ worker の tmux を閉じても、バックグラウンドで起動した dev se
      待てなければ HITL で人間に知らせる。
    - cwd が **main checkout（`/app`）やそれ以外**（人間・ほかのセッションのもの）なら**止めない**。
      そのコードは自分の PR ではないので確認には使わず、HITL で人間に知らせる。
-2. **自分の worktree で起動し、PID を記録する**:
+2. **自分の worktree で起動し、プロセスグループを記録する**。Bash の呼び出しをまたぐとシェル変数は消えるので、
+   **ブロックごとに `WT` を定義し直す**（未定義だと `/tmp/dev-server.*` をほかの worker と共有してしまう）。
+   `setsid -f` で新しいセッションに切り離し、`$!` ではなく **8601 で待ち受けている PID の cwd を確かめてから**
+   その PGID を記録する（`$!` はシェルのジョブ制御の有無で npm の PID にならないことがある）:
 
    ```bash
-   (cd packages/scratch-gui && setsid npm start > "$WT/tmp/dev-server.log" 2>&1 & echo $! > "$WT/tmp/dev-server.pid")
+   WT="$(git rev-parse --show-toplevel)"
+   rm -f "$WT/tmp/dev-server.pgid"
+   (cd "$WT/packages/scratch-gui" && setsid -f npm start > "$WT/tmp/dev-server.log" 2>&1 < /dev/null)
    until curl -sf -o /dev/null http://localhost:8601; do sleep 5; done
+   PID="$(lsof -t -iTCP:8601 -sTCP:LISTEN 2>/dev/null | head -1)"
+   case "$(readlink "/proc/$PID/cwd")" in
+     "$WT"/*) ps -o pgid= -p "$PID" | tr -d ' ' > "$WT/tmp/dev-server.pgid" ;;
+     *) echo "8601 が自分の dev server ではない（1 に戻る）" ;;
+   esac
    ```
 
 3. **pw-check で確認する**（上と同じ。URL は `http://localhost:8601/?no_beforeunload=1&...`）。
 4. **結果ファイルを書く前に止め、止まったことを確かめる**（確認が失敗したときも必ず止める）。
-   `setsid` で起動したのでプロセスグループごと止められる（webpack の子プロセスも止まる）:
+   `setsid -f` で起動したので、記録した PGID でプロセスグループごと止められる（npm・sh・webpack がまとめて止まる）:
 
    ```bash
-   PID="$(cat "$WT/tmp/dev-server.pid")"
-   kill -- "-$PID" 2>/dev/null || kill "$PID"
+   WT="$(git rev-parse --show-toplevel)"
+   PGID="$(cat "$WT/tmp/dev-server.pgid" 2>/dev/null)"
+   [ -n "$PGID" ] && kill -- "-$PGID"
+   rm -f "$WT/tmp/dev-server.pgid"
    for _ in 1 2 3 4 5 6; do curl -sf -o /dev/null http://localhost:8601 || break; sleep 5; done
    curl -sf -o /dev/null http://localhost:8601 && echo "dev server がまだ応答している" || echo "停止を確認"
    ```
