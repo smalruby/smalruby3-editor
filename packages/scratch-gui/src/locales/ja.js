@@ -1595,6 +1595,8 @@ export default {
     'gui.meshSelfSensorNotice.dismiss': '閉じる',
     'gui.rubyTab.dnclDoubleSlashHint':
         'スモウルビーでは // はコメントではありません（整数の割り算です）。コメントには # をつかってください。',
+    'gui.rubyTab.dnclArrayIndexHint':
+        '{access} は配列の範囲外になります。スモウルビーの日本語では、配列の添字は 0 から始まります（最初の要素は {array}[0]、最後の要素は {array}[{last}]）。問題文で添字が 1 から始まるときは、{fixed} のように添字を 1 ずらして書いてください。',
     'gui.rubyTab.dnclValidationError':
         '日本語モードでは対応していない記述です。\n対応している命令のみにしてから、モード切り替えを行ってください。',
     'gui.mobile.drawer.title': 'メニュー',
