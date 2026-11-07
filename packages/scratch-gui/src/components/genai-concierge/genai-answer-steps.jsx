@@ -7,12 +7,13 @@
 // and marked in the editor while that version is in (#1281).
 // After two failed checks, 「ルビティーにまかせる」 has Rubytee rewrite the program and
 // checks its answers here in the browser (#1282).
+// What depends on the tab (checking, putting in, switching, marking) is the adapter's (#1397).
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
-import { checkAnswer, liveSnapshots, problemToJapanese, switchSnapshots } from '../../lib/genai-answer.js';
-import { describeChanges, diffBlocks } from '../../lib/genai-block-diff.js';
-import { afterBlocksRender, canOfferTakeover } from '../../lib/genai-concierge-state.js';
+import { problemToJapanese } from '../../lib/genai-answer.js';
+import { marksToShow } from '../../lib/genai-code-adapter.js';
+import { canOfferTakeover } from '../../lib/genai-concierge-state.js';
 import { buildRewritePrompt } from '../../lib/genai-prompt.js';
 import {
     MAX_TAKEOVER_TRIES,
@@ -21,46 +22,13 @@ import {
     runTakeover,
     takeoverExplanation,
 } from '../../lib/genai-takeover.js';
-import RubyGenerator from '../../lib/ruby-generator';
-import { targetCodeToBlocks } from '../../lib/ruby-to-blocks-converter';
 import styles from './genai-concierge.css';
 import messages from './messages.js';
 
-// The stage is called 「ステージ」 in the question to the AI.
-const nameOf = (target) => (target.isStage ? 'ステージ' : target.getName());
-
 const quoteNames = (names) => names.map((name) => `「${name}」`).join('');
 
-// The classes the marks in the editor get (styled in genai-concierge.css).
-const MARK_CLASSES = { added: 'genaiMarkAdded', changed: 'genaiMarkChanged' };
 // Lines of the list shown before 「ほかに N か所」.
 const MAX_CHANGES = 6;
-// The relay refuses a name longer than this or with a line break in the state.
-const MAX_NAME_LENGTH = 100;
-
-const sendableNames = (items) =>
-    items
-        .map((item) => item.name)
-        .filter((name) => name.length <= MAX_NAME_LENGTH && !/[\r\n]/.test(name))
-        .map((name) => ({ name }));
-
-// The names Rubytee may use, for the relay's stateContext (the program is in the message).
-const takeoverState = (vm) => {
-    const editing = vm.editingTarget;
-    const stage = vm.runtime.getTargetForStage ? vm.runtime.getTargetForStage() : null;
-    const state = {};
-    if (editing) {
-        const name = nameOf(editing);
-        state.sprite = {
-            // The program names the sprite anyway; a name the relay refuses is left out.
-            ...(name.length <= MAX_NAME_LENGTH && !/[\r\n]/.test(name) ? { name } : {}),
-            costumes: sendableNames(editing.getCostumes()),
-            sounds: sendableNames(editing.getSounds()),
-        };
-    }
-    if (stage) state.stage = { costumes: sendableNames(stage.getCostumes()), sounds: sendableNames(stage.getSounds()) };
-    return state;
-};
 
 // What went wrong with the takeover, in the student's language.
 const takeoverErrorMessage = (intl, takeover) => {
@@ -79,30 +47,6 @@ const takeoverErrorMessage = (intl, takeover) => {
         default:
             return intl.formatMessage(messages.takeoverError);
     }
-};
-
-// A copy of a target's blocks that deleting them (on putting other blocks in) leaves
-// intact: deleteBlock changes the block objects themselves.
-const copyBlocks = (target) => {
-    const copy = {};
-    Object.keys(target.blocks._blocks).forEach((id) => {
-        copy[id] = { ...target.blocks._blocks[id] };
-    });
-    return copy;
-};
-
-const changesOf = (before, after, scratchBlocks) =>
-    describeChanges(diffBlocks(before, after), before, after, scratchBlocks ? scratchBlocks.Blocks : null);
-
-// Add or remove the marks of the sprite shown in the editor.
-const paintMarks = (workspace, changes, on) => {
-    changes.forEach((change) => {
-        const className = MARK_CLASSES[change.kind];
-        const block = className && workspace.getBlockById(change.id);
-        if (!block || typeof block.addClass !== 'function') return;
-        if (on) block.addClass(className);
-        else block.removeClass(className);
-    });
 };
 
 // Where a fix or a problem is: the sprite (when the answer has several) and the line.
@@ -277,7 +221,7 @@ ChangeList.propTypes = {
 
 const GenaiAnswerSteps = ({
     vm,
-    rubyVersion,
+    adapter,
     serviceName,
     prompt,
     troubleKind,
@@ -286,7 +230,6 @@ const GenaiAnswerSteps = ({
     step,
     notice,
     rubyteeAvailable,
-    scratchBlocks,
     open,
     onStep,
     onCopy,
@@ -329,67 +272,16 @@ const GenaiAnswerSteps = ({
         [],
     );
 
-    // Mark the blocks of the sprite in the editor, again each time the editor shows
-    // another sprite (or the same one afresh), and take the marks away afterwards.
-    // The marks are only there while the panel is open: closing it with × takes them
-    // away and opening it again puts them back (#1281 FYI3). The new blocks of a
-    // workspace update are marked once Blockly has drawn them, not after a fixed
-    // time that a slow PC can overrun (#1281 Q1).
+    // Mark what the AI's version adds or changes in the editor, and take the marks away
+    // afterwards. The marks are only there while the panel is open: closing it with ×
+    // takes them away and opening it again puts them back (#1281 FYI3).
     useEffect(() => {
-        const workspace = scratchBlocks && scratchBlocks.getMainWorkspace && scratchBlocks.getMainWorkspace();
-        if (!marks || !workspace || !open) return;
-        let painted = [];
-        let active = true;
-        const paint = () => {
-            if (!active) return;
-            if (painted.length > 0) paintMarks(workspace, painted, false);
-            const shown = marks.find((mark) => mark.target === vm.editingTarget);
-            painted = shown ? shown.changes : [];
-            paintMarks(workspace, painted, true);
-        };
-        const later = () => {
-            afterBlocksRender(scratchBlocks).then(paint);
-        };
-        paint();
-        later();
-        vm.on('workspaceUpdate', later);
-        return () => {
-            active = false;
-            vm.removeListener('workspaceUpdate', later);
-            paintMarks(workspace, painted, false);
-        };
-    }, [marks, open, vm, scratchBlocks]);
+        if (!marks || !open) return;
+        return adapter.watchMarks(marks);
+    }, [marks, open, adapter]);
 
-    // Check a text as an answer, with the blocks it adds or changes (does not set state).
-    const checkText = useCallback(
-        async (text) => {
-            const targets = {};
-        vm.runtime.targets
-            .filter((t) => t.isOriginal)
-            .forEach((t) => {
-                targets[nameOf(t)] = t;
-            });
-            const result = await checkAnswer({
-                answer: text,
-                sprites: Object.keys(targets).map((name) => ({
-                    name,
-                    sounds: targets[name].getSounds().map((sound) => sound.name),
-                    costumes: targets[name].getCostumes().map((costume) => costume.name),
-                })),
-                editingName: nameOf(vm.editingTarget),
-                convert: (name, code) => targetCodeToBlocks(vm, targets[name], code, intl, { version: rubyVersion }),
-            });
-            result.parts.forEach((part) => {
-                part.target = targets[part.name];
-                part.changes =
-                    result.ok && part.converter
-                        ? changesOf(copyBlocks(part.target), part.converter.blocks, scratchBlocks)
-                        : [];
-            });
-            return result;
-        },
-        [vm, intl, rubyVersion, scratchBlocks],
-    );
+    // Check a text as an answer, with what it adds or changes (does not set state).
+    const checkText = useCallback((text) => adapter.check(text), [adapter]);
 
     const convertAnswer = useCallback(async () => {
         const result = await checkText(answer);
@@ -417,27 +309,11 @@ const GenaiAnswerSteps = ({
         }
     }, [convertAnswer, onClearNotice]);
 
-    // Resolves to what the blocks put in add or change.
-    const loadCode = useCallback(
-        async (target, code) => {
-            const converter = await targetCodeToBlocks(vm, target, code || '', intl, { version: rubyVersion });
-            if (!converter.result) return [];
-            const before = copyBlocks(target);
-            await converter.apply();
-            return changesOf(before, target.blocks._blocks, scratchBlocks);
-        },
-        [vm, intl, rubyVersion, scratchBlocks],
-    );
-
-    // Bring the marked blocks into view: those of the sprite in the editor first.
+    // Bring the marked changes into view: those of the sprite in the editor first.
     const showMarks = useCallback(
         (next) => {
-            const marked = next.filter((mark) => mark.changes.some((change) => change.kind !== 'removed'));
-            const mark = marked.find((m) => m.target === vm.editingTarget) || marked[0];
-            onShowBlocks(
-                mark ? mark.target : null,
-                mark ? mark.changes.filter((change) => change.kind !== 'removed').map((change) => change.id) : [],
-            );
+            const { owner, ids } = marksToShow(next, vm.editingTarget);
+            onShowBlocks(owner, ids);
         },
         [vm, onShowBlocks],
     );
@@ -446,31 +322,16 @@ const GenaiAnswerSteps = ({
     const handleApply = useCallback(async () => {
         setBusy(true);
         try {
-            const taken = converted.parts.map((part) => ({
-                target: part.target,
-                name: part.name,
-                before: RubyGenerator.targetToCode(part.target, { version: rubyVersion }),
-                after: part.code,
-            }));
-            const next = [];
-            for (const part of converted.parts) {
-                const before = copyBlocks(part.target);
-                await part.converter.apply();
-                next.push({
-                    target: part.target,
-                    name: part.name,
-                    changes: changesOf(before, part.target.blocks._blocks, scratchBlocks),
-                });
-            }
-            setSnapshots(taken);
+            const next = await adapter.apply(converted.parts);
+            setSnapshots(next.snapshots);
             setApplied(true);
-            setMarks(next);
+            setMarks(next.marks);
             onStep('done');
-            showMarks(next);
+            showMarks(next.marks);
         } finally {
             setBusy(false);
         }
-    }, [rubyVersion, converted, scratchBlocks, onStep, showMarks]);
+    }, [adapter, converted, onStep, showMarks]);
 
     // Switch between the original and the AI's version (switchSnapshots keeps the
     // student's changes on the side being left). A sprite deleted meanwhile drops out.
@@ -480,27 +341,17 @@ const GenaiAnswerSteps = ({
             if (toAfter === applied || busy) return;
             setBusy(true);
             try {
-                const live = liveSnapshots(snapshots, vm.runtime.targets);
-                const next = switchSnapshots(
-                    live,
-                    toAfter,
-                    live.map((snap) => RubyGenerator.targetToCode(snap.target, { version: rubyVersion })),
-                );
-                const nextMarks = [];
-                for (const snap of next) {
-                    const changes = await loadCode(snap.target, toAfter ? snap.after : snap.before);
-                    nextMarks.push({ target: snap.target, name: snap.name, changes });
-                }
-                setSnapshots(next);
+                const next = await adapter.switchSides(snapshots, toAfter);
+                setSnapshots(next.snapshots);
                 setApplied(toAfter);
                 // The original program has no marks: what it lacks is in the AI's version.
-                setMarks(toAfter ? nextMarks : null);
-                if (toAfter) showMarks(nextMarks);
+                setMarks(toAfter ? next.marks : null);
+                if (toAfter) showMarks(next.marks);
             } finally {
                 setBusy(false);
             }
         },
-        [applied, busy, snapshots, vm, rubyVersion, loadCode, showMarks],
+        [applied, busy, snapshots, adapter, showMarks],
     );
 
     const handleReflectionChange = useCallback((e) => setReflection(e.target.value), []);
@@ -535,19 +386,11 @@ const GenaiAnswerSteps = ({
     // here and, if it fails, sent back with the reasons (at most MAX_TAKEOVER_TRIES times).
     // Only an answer that turns into blocks is shown as one to put in (#1282).
     const startTakeover = useCallback(async () => {
-        const programs = vm.runtime.targets
-            .filter((t) => t.isOriginal)
-            .map((t) => ({
-                name: nameOf(t),
-                code: RubyGenerator.targetToCode(t, { version: rubyVersion }),
-                sounds: t.getSounds().map((sound) => sound.name),
-                costumes: t.getCostumes().map((costume) => costume.name),
-            }));
         const first = buildTakeoverMessage({
             kindLabel: troubleKind,
             text: troubleText,
-            programs,
-            editingName: vm.editingTarget ? nameOf(vm.editingTarget) : null,
+            programs: adapter.programs(),
+            editingName: adapter.editingName(),
             exchanges: tries.map((t, i) => ({
                 question: i === 0 ? prompt : tries[i - 1].rewrite,
                 answer: t.answer,
@@ -561,7 +404,7 @@ const GenaiAnswerSteps = ({
         }
         const controller = new AbortController();
         abortRef.current = controller;
-        const stateContext = takeoverState(vm);
+        const stateContext = adapter.takeoverState();
         setTakeover({ state: 'running', tries: 1 });
         try {
             const out = await runTakeover({
@@ -587,7 +430,7 @@ const GenaiAnswerSteps = ({
         } finally {
             if (abortRef.current === controller) abortRef.current = null;
         }
-    }, [vm, rubyVersion, troubleKind, troubleText, prompt, tries, sessionToken, checkText, onClearNotice]);
+    }, [adapter, troubleKind, troubleText, prompt, tries, sessionToken, checkText, onClearNotice]);
 
     // The consent to Rubytee (that it is an AI) comes first, as in the Ruby tab.
     const handleTakeover = useCallback(() => onTakeover(startTakeover), [onTakeover, startTakeover]);
@@ -828,7 +671,16 @@ GenaiAnswerSteps.propTypes = {
         on: PropTypes.func,
         removeListener: PropTypes.func,
     }).isRequired,
-    rubyVersion: PropTypes.string,
+    // What depends on the tab the panel is in (src/lib/genai-code-adapter.js describes it).
+    adapter: PropTypes.shape({
+        programs: PropTypes.func.isRequired,
+        editingName: PropTypes.func.isRequired,
+        takeoverState: PropTypes.func.isRequired,
+        check: PropTypes.func.isRequired,
+        apply: PropTypes.func.isRequired,
+        switchSides: PropTypes.func.isRequired,
+        watchMarks: PropTypes.func.isRequired,
+    }).isRequired,
     serviceName: PropTypes.string,
     // The question copied to the AI first, and the trouble it was about: sent to Rubytee (#1282).
     prompt: PropTypes.string,
@@ -840,12 +692,6 @@ GenaiAnswerSteps.propTypes = {
     notice: PropTypes.string,
     // The student's class uses Rubytee: 「ルビティーにまかせる」 can be offered.
     rubyteeAvailable: PropTypes.bool,
-    // ScratchBlocks: the words of the blocks and the editor to mark them in.
-    scratchBlocks: PropTypes.shape({
-        Blocks: PropTypes.object,
-        getMainWorkspace: PropTypes.func,
-        renderManagement: PropTypes.object,
-    }),
     // The panel is shown: the marks are only in the editor while it is (#1281).
     open: PropTypes.bool,
     onStep: PropTypes.func.isRequired,
