@@ -69,7 +69,42 @@ describe('offerDnclIndexShift', () => {
         expect(shifted.options.inlineClassName).toBe('dncl-index-shifted');
         expect(suspect.range).toEqual(new Range(5, 1, 5, 11));
         expect(suspect.options.inlineClassName).toBe('dncl-index-suspect');
-        expect(suspect.options.hoverMessage).toEqual([{ value: 'gui.rubyTab.dnclIndexShiftReasonAssignOne' }]);
+        expect(suspect.options.hoverMessage).toEqual([{ value: 'gui\\.rubyTab\\.dnclIndexShiftReasonAssignOne' }]);
+    });
+
+    test('does not mark a variable set to 1 that is not used as an index', () => {
+        const { result, alert } = setup(`${PASTED}\ncount = 1\ni を 1 から 3 まで 1 ずつ増やしながら`, true);
+        expect(result.decorations).toHaveLength(2);
+        expect(alert.mock.calls[0][0]).not.toContain('count = 1');
+        expect(alert.mock.calls[0][0]).not.toContain('"line":8');
+    });
+
+    test('keeps the length hint of a loop whose variable is not used as an index', () => {
+        const { result } = setup(`${PASTED}\ni を 1 から 要素数(Akibi) まで 1 ずつ増やしながら`, true);
+        const suspect = result.decorations[result.decorations.length - 1];
+        expect(suspect.options.hoverMessage).toEqual([
+            { value: 'gui\\.rubyTab\\.dnclIndexShiftReasonLoopToLength' },
+        ]);
+    });
+
+    test('marks an index that became -1 to check', () => {
+        const { result, alert } = setup('# 添字は1から始まる\nx = A[0] + A[1]', true);
+        const [shifted, negative] = result.decorations;
+        expect(shifted.options.inlineClassName).toBe('dncl-index-shifted');
+        expect(shifted.range).toEqual(new Range(4, 13, 4, 17));
+        expect(negative.options.inlineClassName).toBe('dncl-index-suspect');
+        expect(negative.range).toEqual(new Range(4, 5, 4, 10));
+        expect(negative.options.hoverMessage).toEqual([
+            { value: 'gui\\.rubyTab\\.dnclIndexShiftReasonNegativeIndex' },
+        ]);
+        const summary = alert.mock.calls[0][0];
+        expect(summary).toContain('gui.rubyTab.dnclIndexShiftDone{"count":2}');
+        expect(summary).toContain('"line":4,"text":"A[-1]"');
+    });
+
+    test('escapes Markdown in hover messages', () => {
+        const { result } = setup('# 添字は1から始まる\nx = A[i*2]', true);
+        expect(result.decorations[0].options.hoverMessage.value).toContain('A\\[i\\*2 \\- 1\\]');
     });
 
     test('summarizes what changed, that loops were not changed, and what to check', () => {

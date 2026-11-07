@@ -1,7 +1,5 @@
 // === Smalruby: This file is Smalruby-specific (offer to shift 1-based indexes pasted into DNCL mode) ===
-
 import { defineMessages } from 'react-intl';
-
 import { findOneBasedSuspects, hasOneBasedIndexNote, shiftArrayIndexes } from '../../lib/dncl/dncl-paste-index-shift';
 
 // When a program whose comments say "the index starts at 1" is pasted into
@@ -12,6 +10,12 @@ import { findOneBasedSuspects, hasOneBasedIndexNote, shiftArrayIndexes } from '.
 
 /** How many entries of each list the summary dialog shows. */
 const MAX_LISTED = 15;
+
+/**
+ * Reasons that are about the number of elements (`要素数(X)`), so they are
+ * worth showing even when the variable is not used as an index.
+ */
+const LENGTH_REASONS = ['loopToLength', 'lessEqual'];
 
 const messages = defineMessages({
     confirm: {
@@ -68,7 +72,35 @@ const messages = defineMessages({
         id: 'gui.rubyTab.dnclIndexShiftReasonLessEqual',
         defaultMessage: 'compares an index with <=; with 0-based indices it may need to be <',
     },
+    negativeIndex: {
+        id: 'gui.rubyTab.dnclIndexShiftReasonNegativeIndex',
+        defaultMessage: 'the index became -1; this part was probably 0-based already, so check it',
+    },
 });
+
+/**
+ * Escape Markdown, since Monaco renders hover messages as Markdown
+ * (`A[i*2+j*3]` would otherwise show `*` as emphasis).
+ * @param {string} text - Plain text.
+ * @returns {string} The text with Markdown punctuation escaped.
+ */
+const escapeMarkdown = (text) => text.replace(/[\\`*_{}[\]()#+\-.!|<>~]/g, '\\$&');
+
+/**
+ * Keep only the suspicious lines that are about array indexes: a variable
+ * set to 1 or a loop from 1 is hinted only when the variable is used as an
+ * index (`count = 1` is left alone).
+ * @param {Array<object>} suspects - The result of `findOneBasedSuspects`.
+ * @returns {Array<object>} The suspects to show, with the reasons to show.
+ */
+const indexRelatedSuspects = (suspects) =>
+    suspects
+        .map((suspect) =>
+            suspect.usedAsIndex
+                ? suspect
+                : { ...suspect, reasons: suspect.reasons.filter((reason) => LENGTH_REASONS.includes(reason)) },
+        )
+        .filter((suspect) => suspect.reasons.length > 0);
 
 /**
  * List entries for the summary dialog, cut at `MAX_LISTED`.
@@ -132,19 +164,27 @@ const offerDnclIndexShift = ({
     editor.executeEdits('smalruby.dnclIndexShift', [{ range, text, forceMoveMarkers: true }]);
     editor.pushUndoStop();
 
-    const suspects = findOneBasedSuspects(text);
+    // An index that became -1 (`A[0]` → `A[-1]`) is listed to check, too.
+    const suspects = [
+        ...indexRelatedSuspects(findOneBasedSuspects(text)),
+        ...changes
+            .filter((change) => change.negative)
+            .map(({ line, start, end, after }) => ({ line, start, end, text: after, reasons: ['negativeIndex'] })),
+    ].sort((a, b) => a.line - b.line || a.start - b.start);
     const decorations = [
-        ...changes.map((change) => {
-            const start = toModelPosition(range, change.line, change.start);
-            const end = toModelPosition(range, change.line, change.end);
-            return {
-                range: new monaco.Range(start.lineNumber, start.column, end.lineNumber, end.column),
-                options: {
-                    inlineClassName: 'dncl-index-shifted',
-                    hoverMessage: { value: formatMessage(messages.changedHover, change) },
-                },
-            };
-        }),
+        ...changes
+            .filter((change) => !change.negative)
+            .map((change) => {
+                const start = toModelPosition(range, change.line, change.start);
+                const end = toModelPosition(range, change.line, change.end);
+                return {
+                    range: new monaco.Range(start.lineNumber, start.column, end.lineNumber, end.column),
+                    options: {
+                        inlineClassName: 'dncl-index-shifted',
+                        hoverMessage: { value: escapeMarkdown(formatMessage(messages.changedHover, change)) },
+                    },
+                };
+            }),
         ...suspects.map((suspect) => {
             const start = toModelPosition(range, suspect.line, suspect.start);
             const end = toModelPosition(range, suspect.line, suspect.end);
@@ -152,7 +192,9 @@ const offerDnclIndexShift = ({
                 range: new monaco.Range(start.lineNumber, start.column, end.lineNumber, end.column),
                 options: {
                     inlineClassName: 'dncl-index-suspect',
-                    hoverMessage: suspect.reasons.map((reason) => ({ value: formatMessage(messages[reason]) })),
+                    hoverMessage: suspect.reasons.map((reason) => ({
+                        value: escapeMarkdown(formatMessage(messages[reason])),
+                    })),
                 },
             };
         }),

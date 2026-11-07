@@ -1666,6 +1666,8 @@ export default {
         'ようそすうまでくりかえしています。0 はじまりでは 要素数(X) - 1 までです',
     'gui.rubyTab.dnclIndexShiftReasonLessEqual':
         'そえじにつかうへんすうを <= でくらべています。0 はじまりでは < にするひつようがあるかもしれません',
+    'gui.rubyTab.dnclIndexShiftReasonNegativeIndex':
+        'そえじが -1 になりました。ここはもともと 0 はじまりだったかもしれないので、たしかめてください',
     'gui.rubyTab.dnclValidationError':
         'にほんごモードではたいおうしていないきじゅつです。\nたいおうしているめいれいのみにしてから、モードきりかえをおこなってください。',
     'gui.mobile.drawer.title': 'メニュー',

@@ -7,7 +7,8 @@
 // rewrote, and point at the lines that probably assume 1-based indexes
 // (loop ranges, `i = 1`, ...) without rewriting them (Issue #1366).
 
-const ID = '[A-Za-z_\\u3040-\\u309F\\u30A0-\\u30FF\\u4E00-\\u9FFF][\\w\\u3040-\\u309F\\u30A0-\\u30FF\\u4E00-\\u9FFF]*';
+const ID =
+    '[A-Za-z_\\u3040-\\u309F\\u30A0-\\u30FF\\u4E00-\\u9FFF][\\w\\u3040-\\u309F\\u30A0-\\u30FF\\u4E00-\\u9FFF]*';
 const ID_CHAR_RE = /[\w぀-ゟ゠-ヿ一-鿿]/;
 const ID_RE = new RegExp(ID, 'g');
 
@@ -20,7 +21,10 @@ const NOTE_RE = /(?:添え?字|インデックス)[^0-9\n]{0,15}?1\s*から/;
 const ASSIGN_ONE_RE = new RegExp(`^(${ID})\\s*(?:=|←)\\s*1$`);
 const LOOP_RE = new RegExp(`^(${ID})\\s*を\\s*(.+?)\\s*から\\s*(.+?)\\s*まで`);
 const LENGTH_RE = new RegExp(`^要素数\\(\\s*${ID}\\s*\\)$`);
-const LESS_EQUAL_RE = new RegExp(`(?<![\\w\\u3040-\\u309F\\u30A0-\\u30FF\\u4E00-\\u9FFF])(${ID})\\s*(?:<=|≦)\\s*(要素数\\(\\s*${ID}\\s*\\)|${ID})`, 'g');
+const LESS_EQUAL_RE = new RegExp(
+    `(?<![\\w\\u3040-\\u309F\\u30A0-\\u30FF\\u4E00-\\u9FFF])(${ID})\\s*(?:<=|≦)\\s*(要素数\\(\\s*${ID}\\s*\\)|${ID})`,
+    'g',
+);
 
 /**
  * Mask string literals (`"..."`, `'...'`, `「...」`) with spaces, keeping the
@@ -131,7 +135,8 @@ const shiftIndex = (expr) => {
  * @param {string} code - The same text with strings masked (same length).
  * @param {number} base - Where `text` starts in the output line.
  * @returns {{out: string, changes: Array<object>}} The rewritten text and
- *   the accesses changed, with `start`/`end` offsets in the output line.
+ *   the accesses changed, with `start`/`end` offsets in the output line
+ *   (and `negative: true` when an index became negative).
  */
 const rewrite = (text, code, base) => {
     let out = '';
@@ -141,6 +146,7 @@ const rewrite = (text, code, base) => {
     let chainReported = false;
     let chainText = 0;
     let chainOut = 0;
+    let chainNegative = false;
     while (i < text.length) {
         const afterName = i > 0 && ID_CHAR_RE.test(code[i - 1]);
         if (code[i] === '[' && (afterName || chained)) {
@@ -154,6 +160,7 @@ const rewrite = (text, code, base) => {
                 while (i - n > 0 && ID_CHAR_RE.test(code[i - n - 1])) n++;
                 chainText = i - n;
                 chainOut = out.length - n;
+                chainNegative = false;
             }
             const innerText = text.substring(i + 1, close);
             const innerCode = code.substring(i + 1, close);
@@ -171,6 +178,8 @@ const rewrite = (text, code, base) => {
                 const sub = rewrite(body, bodyCode, innerBase + inner.length + lead.length);
                 // Leave keys that are strings (`X["a"]`) and empty brackets alone.
                 const shift = body !== '' && !/["'「]/.test(bodyCode);
+                // `A[0]` becomes `A[-1]`, which is never right in DNCL.
+                if (shift && /^0+$/.test(body)) chainNegative = true;
                 inner += lead + (shift ? shiftIndex(sub.out) : sub.out) + trail;
                 innerChanges.push(...sub.changes);
                 if (k < parts.length - 1) inner += ',';
@@ -182,7 +191,11 @@ const rewrite = (text, code, base) => {
             // Only accesses that were actually rewritten are reported
             // (`X["a"]` and `X[]` stay as they are).
             chainReported = after !== before;
-            if (chainReported) changes.push({ start: base + chainOut, end: base + out.length, before, after });
+            if (chainReported) {
+                const change = { start: base + chainOut, end: base + out.length, before, after };
+                if (chainNegative) change.negative = true;
+                changes.push(change);
+            }
             i = close + 1;
             chained = code[i] === '[';
             continue;
@@ -203,6 +216,8 @@ const rewrite = (text, code, base) => {
  *   the accesses changed, each with the 1-based `line`, the 0-based
  *   `start`/`end` columns in the rewritten line, and the `before` / `after`
  *   access text. Nested accesses are listed before the access around them.
+ *   An access whose index became negative (`A[0]` → `A[-1]`, a sign that the
+ *   code was already 0-based there) also has `negative: true`.
  */
 const shiftArrayIndexes = (text) => {
     const eol = text.includes('\r\n') ? '\r\n' : '\n';

@@ -1615,6 +1615,8 @@ export default {
     'gui.rubyTab.dnclIndexShiftReasonLoopToLength': '要素数まで繰り返しています。0 始まりでは 要素数(X) - 1 までです',
     'gui.rubyTab.dnclIndexShiftReasonLessEqual':
         '添字に使う変数を <= で比べています。0 始まりでは < にする必要があるかもしれません',
+    'gui.rubyTab.dnclIndexShiftReasonNegativeIndex':
+        '添字が -1 になりました。ここはもともと 0 始まりだったかもしれないので、確かめてください',
     'gui.rubyTab.dnclValidationError':
         '日本語モードでは対応していない記述です。\n対応している命令のみにしてから、モード切り替えを行ってください。',
     'gui.mobile.drawer.title': 'メニュー',

@@ -138,6 +138,26 @@ describe('shiftArrayIndexes', () => {
     });
 });
 
+describe('shiftArrayIndexes negative indexes', () => {
+    test('flags an index that became -1', () => {
+        const { text, changes } = shiftArrayIndexes('x = A[0] + A[1]');
+        expect(text).toBe('x = A[-1] + A[0]');
+        expect(changes.map((c) => [c.after, c.negative])).toEqual([
+            ['A[-1]', true],
+            ['A[0]', undefined],
+        ]);
+    });
+
+    test('flags a chain or a nested access once', () => {
+        const { changes } = shiftArrayIndexes('x = A[1][0] + B[C[0]]');
+        expect(changes.map((c) => [c.after, c.negative])).toEqual([
+            ['A[0][-1]', true],
+            ['C[-1]', true],
+            ['B[C[-1] - 1]', undefined],
+        ]);
+    });
+});
+
 describe('findOneBasedSuspects', () => {
     test('finds the 1-based lines of the 共通テスト sample', () => {
         const suspects = findOneBasedSuspects(shiftArrayIndexes(KOUGEIHIN).text);

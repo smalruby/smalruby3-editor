@@ -1213,6 +1213,8 @@ export default {
         'the loop runs up to the number of elements; with 0-based indices it ends at 要素数(X) - 1',
     'gui.rubyTab.dnclIndexShiftReasonLessEqual':
         'compares an index with <=; with 0-based indices it may need to be <',
+    'gui.rubyTab.dnclIndexShiftReasonNegativeIndex':
+        'the index became -1; this part was probably 0-based already, so check it',
     'gui.rubyTab.dnclValidationError':
         'This code contains constructs not supported in Japanese mode.\nPlease use only supported instructions before switching modes.',
     'gui.mobile.drawer.title': 'Menu',
