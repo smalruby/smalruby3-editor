@@ -28,6 +28,24 @@ test('values are caught', () => {
     assert.ok(leaks(`${KEY}: ${DUMMY}...`));
 });
 
+test('devlogin values in a URL are caught', () => {
+    assert.ok(leaks(`http://localhost:8601/?devlogin=${DUMMY}`));
+    assert.ok(leaks(`open https://preview.smalruby.app/x/?no_beforeunload=1&devlogin=${DUMMY}&tab=ruby`));
+    assert.ok(leaks(`const url = '/admin/?devlogin=${DUMMY}';`));
+    assert.ok(leaks(`?devlogin=${DUMMY}.`));
+});
+
+test('devlogin placeholders and short dummies pass', () => {
+    assert.ok(!leaks(`?devlogin=<${KEY}>`));
+    assert.ok(!leaks(`?devlogin=<token>`));
+    assert.ok(!leaks(`?devlogin=1`));
+    assert.ok(!leaks('`?devlogin=`'));
+    assert.ok(!leaks(`/admin/?devlogin=\${encodeURIComponent(DEV_TOKEN)}`));
+    assert.ok(!leaks(`/?devlogin=\${DUMMY_TOKEN}`));
+    assert.ok(!leaks(`devlogin=[REDACTED]`));
+    assert.ok(!leaks(`const devlogin=readTheTokenFromTheUrlOnce();`));
+});
+
 test('empty values and placeholders pass', () => {
     assert.ok(!leaks(`${KEY}=`));
     assert.ok(!leaks(`${KEY}=""`));
@@ -75,6 +93,14 @@ test('the CLI fails on a staged value and passes on a placeholder', () => {
 
         writeFileSync(join(dir, 'config.js'), `const t = process.env.${KEY} || '${DUMMY}';\n`);
         execFileSync('git', ['add', 'config.js'], { cwd: dir });
+        assert.equal(run('--staged'), 1);
+        assert.equal(run(), 1);
+
+        rmSync(join(dir, 'config.js'));
+        execFileSync('git', ['rm', '-q', '--cached', 'config.js'], { cwd: dir });
+        assert.equal(run('--staged'), 0);
+        writeFileSync(join(dir, 'verify.mjs'), `await page.goto('/?devlogin=${DUMMY}');\n`);
+        execFileSync('git', ['add', 'verify.mjs'], { cwd: dir });
         assert.equal(run('--staged'), 1);
         assert.equal(run(), 1);
     } finally {
