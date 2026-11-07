@@ -123,6 +123,19 @@ describe('shiftArrayIndexes', () => {
     test('leaves text without arrays unchanged', () => {
         expect(shiftArrayIndexes('a = 1\nb = 2')).toEqual({ text: 'a = 1\nb = 2', changes: [] });
     });
+
+    test('does not report accesses that were left unchanged', () => {
+        expect(shiftArrayIndexes('x = A["k"] + B[]')).toEqual({ text: 'x = A["k"] + B[]', changes: [] });
+    });
+
+    test('reports a chain once even when its first index is a string key', () => {
+        const { text, changes } = shiftArrayIndexes('x = A["k"][1] + B[2]["k"]');
+        expect(text).toBe('x = A["k"][0] + B[1]["k"]');
+        expect(changes.map((c) => [c.before, c.after])).toEqual([
+            ['A["k"][1]', 'A["k"][0]'],
+            ['B[2]["k"]', 'B[1]["k"]'],
+        ]);
+    });
 });
 
 describe('findOneBasedSuspects', () => {

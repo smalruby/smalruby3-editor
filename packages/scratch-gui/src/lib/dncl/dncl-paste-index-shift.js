@@ -138,6 +138,7 @@ const rewrite = (text, code, base) => {
     const changes = [];
     let i = 0;
     let chained = false;
+    let chainReported = false;
     let chainText = 0;
     let chainOut = 0;
     while (i < text.length) {
@@ -147,7 +148,7 @@ const rewrite = (text, code, base) => {
             if (close < 0) break;
             if (chained) {
                 // `A[i][j]`: the whole chain is one change.
-                changes.pop();
+                if (chainReported) changes.pop();
             } else {
                 let n = 0;
                 while (i - n > 0 && ID_CHAR_RE.test(code[i - n - 1])) n++;
@@ -175,12 +176,13 @@ const rewrite = (text, code, base) => {
                 if (k < parts.length - 1) inner += ',';
             }
             out += `[${inner}]`;
-            changes.push(...innerChanges, {
-                start: base + chainOut,
-                end: base + out.length,
-                before: text.substring(chainText, close + 1),
-                after: out.substring(chainOut),
-            });
+            changes.push(...innerChanges);
+            const before = text.substring(chainText, close + 1);
+            const after = out.substring(chainOut);
+            // Only accesses that were actually rewritten are reported
+            // (`X["a"]` and `X[]` stay as they are).
+            chainReported = after !== before;
+            if (chainReported) changes.push({ start: base + chainOut, end: base + out.length, before, after });
             i = close + 1;
             chained = code[i] === '[';
             continue;
