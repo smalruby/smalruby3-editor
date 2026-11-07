@@ -70,6 +70,7 @@ Ruby タブを次に開いたとき、`exitDnclModeExternallyRequested` フラ�
 | `dncl-to-ruby.js` | DNCL → Ruby 変換のエントリポイント（pre-processor → validator → line converter） |
 | `dncl-v2-preprocessor.js` | **DNCLv2 → Smalruby DNCL 正規化**（行番号、コロン、`｜` / `⎿`、複数代入、`and` / `or`、関数定義 opener） |
 | `dncl-paste-tidy.js` | **貼り付け時の整形**（日本語モードのエディタに貼り付けた行番号付きのテキストの行番号を消し、`//` コメントを `#` に直す。下の「貼り付け時の整形」）と、`//` のある行の変換エラーに「`//` はコメントではない」と添える `withDoubleSlashHint` |
+| `dncl-array-index-hint.js` | **範囲外の添字の警告**（`findArrayIndexHints`）。1 から始まる添字で書いたときのように配列の範囲外を読む `X[i]` / `X[3]` を見つける。`ruby-tab.jsx` が警告マーカー（`gui.rubyTab.dnclArrayIndexHint`）にして、添字が 0 から始まることと直し方を表示する。下の「配列の添字は 0 から」 |
 | `dncl-line-converter.js` | 行単位の DNCL → Ruby 変換 |
 | `dncl-identifier-converter.js` | 識別子（変数名）の変換 |
 | `dncl-builtins.js` | DNCL 組み込み関数の定義（`表示する`, `要素数` など）。`表示する` 多引数は `puts(... + ...)` に展開 |
@@ -225,6 +226,12 @@ Smalruby は **DNCLv2 形式のプログラムをそのまま実行** できる�
 
 `//` をコメントのつもりで書いた行（行番号なしで貼った例題など）は変換エラーになる。日本語モードでは、`//` のある行のエラーマーカーの先頭に「スモウルビーでは // はコメントではありません（整数の割り算です）。コメントには # をつかってください。」（`gui.rubyTab.dnclDoubleSlashHint`）を添えて、`#` を使うよう伝える（`ruby-tab.jsx` の `showErrors` が `withDoubleSlashHint` を呼ぶ）。
 
+### 配列の添字は 0 から
+
+スモウルビーとスモウルビーの日本語は、配列の添字を 0 から始める（共通テストのプログラム表記の既定と同じ）。宣言や設定で 1 から始まるように切り替える仕組みは持たない。添字の始まりは言語としてどちらを採るかの問題で、今のプログラミング言語にも宣言で切り替えるものは無いため。
+
+問題文が「添字は 1 から始まる」と指定するときは、利用者が添字を 1 ずらして書く。ずらさずに書くと配列の範囲外を読むが、Scratch VM は範囲外の要素を空の値として返すだけでエラーにならず、結果だけがずれる。そこで日本語モードのエディタは、範囲外になることが確実に分かる添字に警告マーカーを出す（`dncl-array-index-hint.js`。条件は [`docs/smalruby-dncl-spec.ja.md`](../smalruby-dncl-spec.ja.md) の「配列アクセス」）。警告は変換を止めない。マーカーの owner は `smalruby-dncl-index`（`ruby-tab/constants.js` の `DNCL_INDEX_HINT_OWNER`）で、変換エラーのマーカー（`smalruby`）を消しても残る。実行時（VM）で検知しないのは、upstream の VM の挙動を変えずに済ませるため。
+
 ### 対応しない DNCLv2 機能
 
 以下は **未対応**（必要なら別 issue で対応）:
@@ -263,6 +270,7 @@ Smalruby は **DNCLv2 形式のプログラムをそのまま実行** できる�
   - `dncl-v2-preprocessor.test.js` — DNCLv2 正規化テスト（53 cases）
   - `dncl-v2-example.test.js` — DNCLv2 例題の end-to-end 変換テスト
   - `dncl-v2-ictl-samples.test.js` — 共通テスト例題で使われる記法（`もし(`・`(00-1)`・全角コロン・継続行・`//` が常に整数除算であること・入力形式・インデントだけのブロック）と、例題プログラムが prism で構文エラーにならないことの検証
+  - `dncl-array-index-hint.test.js` — 範囲外の添字の警告（1 から数えたループ・数の添字・0 から数えたループは警告しない・二度代入した配列は推測しない）
   - `dncl-paste-tidy.test.js` — 貼り付け時の整形（行番号の削除・`//` コメント → `#`・整数除算と文字列の `//` は不変）
   - `dncl-display-multi-arg.test.js` — `表示する` 多引数 / `puts(... + ...)` round-trip
   - `dncl-to-ruby.test.js` — DNCL → Ruby 変換ユニットテスト

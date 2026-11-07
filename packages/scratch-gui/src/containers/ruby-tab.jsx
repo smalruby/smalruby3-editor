@@ -12,6 +12,7 @@ import RubyToolbar from '../components/ruby-toolbar/ruby-toolbar.jsx';
 import analytics from '../lib/analytics';
 import { autoCorrect, defaultSettings as defaultAutoCorrectSettings } from '../lib/auto-correct';
 import collectMetadata from '../lib/collect-metadata.js';
+import { findArrayIndexHints } from '../lib/dncl/dncl-array-index-hint';
 import { tidyPastedDncl, withDoubleSlashHint } from '../lib/dncl/dncl-paste-tidy';
 import { dnclToRuby } from '../lib/dncl/dncl-to-ruby';
 import { rubyToDncl } from '../lib/dncl/ruby-to-dncl';
@@ -52,6 +53,7 @@ import {
     AUTO_CORRECT_ENABLED_KEY,
     AUTO_CORRECT_SETTINGS_KEY,
     DNCL_MODE_KEY,
+    DNCL_INDEX_HINT_OWNER,
 } from './ruby-tab/constants';
 import updateDebugGlobals from './ruby-tab/debug-globals';
 import {
@@ -1075,6 +1077,38 @@ const RubyTab = (props) => {
             setDnclDisplayCode(result.dncl);
         }
     }, [rubyCodeStr, dnclMode]);
+
+    // Smalruby DNCL arrays start at index 0. A program written with 1-based
+    // indices reads past the end of an array, where the VM silently returns
+    // an empty value, so warn about such accesses in the editor. The markers
+    // use their own owner so clearing conversion errors keeps them (Issue #1357).
+    useEffect(() => {
+        if (!editorRef.current || !monacoRef.current) return;
+        const lines = dnclMode ? dnclDisplayCode.split('\n') : [];
+        const hints = dnclMode ? findArrayIndexHints(dnclDisplayCode) : [];
+        const markers = hints
+            .filter((hint) => hint.line <= lines.length)
+            .map((hint) => {
+                const text = lines[hint.line - 1];
+                const column = text.indexOf(hint.access);
+                return {
+                    startLineNumber: hint.line,
+                    startColumn: column >= 0 ? column + 1 : 1,
+                    endLineNumber: hint.line,
+                    endColumn: column >= 0 ? column + hint.access.length + 1 : text.length + 1,
+                    message: intl.formatMessage(
+                        {
+                            id: 'gui.rubyTab.dnclArrayIndexHint',
+                            defaultMessage:
+                                '{access} reads past the end of the array. In Smalruby Japanese mode, array indices start at 0 (the first element is {array}[0] and the last is {array}[{last}]). If the problem counts from 1, shift the index by 1, like {fixed}.',
+                        },
+                        hint,
+                    ),
+                    severity: monacoRef.current.MarkerSeverity.Warning,
+                };
+            });
+        monacoRef.current.editor.setModelMarkers(editorRef.current.getModel(), DNCL_INDEX_HINT_OWNER, markers);
+    }, [dnclMode, dnclDisplayCode, intl]);
 
     // componentDidUpdate equivalent
     const prevPropsRef = useRef(null);
