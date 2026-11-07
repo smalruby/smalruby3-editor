@@ -37,8 +37,9 @@ const serverURL = 'https://translate-service.scratch.mit.edu/';
 // the target server-side and returns the (text) response with permissive CORS
 // headers. See where the translate request URL is built (search for CORS_PROXY_HOST).
 // serverURL stays at the upstream value so upstream merges only touch the URL-build
-// site (guarded by test/unit/extension_translate_proxy.js). Same root cause as
-// text2speech (#857/#859), which the dedicated translate Lambda now replaces (#862).
+// site (guarded by test/unit/extension_translate_proxy.js). Same root cause and the
+// same generic proxy as text2speech (#857/#859); the dedicated translate Lambda is
+// obsolete (#862).
 // The proxy host follows the build value SCRATCH_API_PROXY_ENDPOINT (default
 // https://api.smalruby.app) so a branch preview uses the stg API (#1374).
 const CORS_PROXY_HOST = getCorsProxyHost();
