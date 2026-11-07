@@ -23,12 +23,16 @@ concurrency:
 
 jobs:
   cleanup:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # same image as ci-cd.yml (preview-deploy); ubuntu-latest is 26.04
     # Fork PRs get neither the Environment variables nor an OIDC token (and never deployed).
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     environment: stg
     steps:
+      # Always the default branch: a closed PR's merge ref is gone when it had conflicts, and the
+      # scripts that run with the deploy role should come from the reviewed branch, not the PR.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: '.nvmrc'
@@ -75,10 +79,17 @@ jobs:
           DISTRIBUTION_ID: ${{ vars.PREVIEW_DISTRIBUTION_ID }}
         run: |
           set -euo pipefail
+          # Read the branches first: a failure inside `< <(...)` would not stop the script, and an
+          # empty list would remove every preview.
+          heads="$(git ls-remote --heads origin)"
+          if ! grep -q 'refs/heads/develop$' <<< "${heads}"; then
+            echo "::error::git ls-remote --heads の結果に develop が無いため、片付けを止めます。"
+            exit 1
+          fi
           declare -A keep=([develop]=1)
           while read -r _ ref; do
             keep["$(node scripts/preview-slug.mjs "${ref#refs/heads/}")"]=1
-          done < <(git ls-remote --heads origin)
+          done <<< "${heads}"
           prefixes="$(aws s3api list-objects-v2 --bucket "${BUCKET}" --delimiter / \
             --query 'CommonPrefixes[].Prefix' --output text)"
           paths=()
