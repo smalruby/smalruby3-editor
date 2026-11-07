@@ -76,8 +76,10 @@ const stageSuffix = stage === 'prod' ? '' : `-${stage}`;
 ブランチプレビュー（`https://preview.smalruby.app`）は stg の API を見るので、非 prod ではどの API も
 このオリジンを許可する。stg の `CORS_ALLOWED_ORIGINS` は GitHub secrets（`.env.stg`）で明示されて
 いるため、**env を指定していても非 prod ではコード側で足す**（classroom / bug-report / admin は
-`lib/cors-origins.ts` の `resolveCorsOrigins`、api / rubytee-relay は `lib/preview-origins.ts` の
-`withPreviewOrigins`）。prod の許可オリジンは変えない。mesh-v2（AppSync）はオリジンを問わず
+`lib/cors-origins.ts` の `resolveCorsOrigins`、api / rubytee-relay は同じファイルの
+`withPreviewOrigins`）。`lib/cors-origins.ts` は全プロジェクトで同じ内容で、正本は
+`infra/shared/cors-origins.ts`（直すときは正本を直して `node infra/shared/sync.js`。
+`.claude/rules/infra/development.md` の「共有コード（infra/shared）」）。prod の許可オリジンは変えない。mesh-v2（AppSync）はオリジンを問わず
 プリフライトに応答し API キーで認可するため、CORS の設定を持たない。
 
 ### デプロイコマンド

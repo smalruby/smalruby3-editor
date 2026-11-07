@@ -9,7 +9,7 @@ import * as route53Targets from 'aws-cdk-lib/aws-route53-targets';
 import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import * as path from 'path';
 import { Construct } from 'constructs';
-import { withPreviewOrigins } from './preview-origins';
+import { withPreviewOrigins } from './cors-origins';
 
 export class SmalrubyApiStack extends cdk.Stack {
     public readonly api: apigatewayv2.HttpApi;

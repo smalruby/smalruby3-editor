@@ -72,9 +72,9 @@ mesh-v2/
 ├── cdk.json                    # CDK configuration (stage context)
 ├── package.json                # Node.js dependencies
 ├── .env.stg                    # Staging environment variables
-├── .env.production             # Production environment variables
+├── .env.prod             # Production environment variables
 ├── .env.example                # Environment variables template
-└── .env -> .env.production     # Symlink to active stage
+└── .env -> .env.prod     # Symlink to active stage
 ```
 
 ## 開発環境セットアップ
@@ -108,7 +108,7 @@ cd infra/smalruby-mesh-v2
 rm .env && ln -s .env.stg .env
 
 # 本番に切り替え
-rm .env && ln -s .env.production .env
+rm .env && ln -s .env.prod .env
 
 # 現在のステージを確認
 ls -la .env
@@ -123,7 +123,7 @@ Mesh v2 は環境変数を使用して設定を管理し、開発環境と本番
 ### 設定ファイル
 
 - **`.env.stg`**: ステージング環境用（高速な間隔、デバッグ向け）
-- **`.env.production`**: 本番環境用（コスト最適化）
+- **`.env.prod`**: 本番環境用（コスト最適化）
 - **`.env.example`**: テンプレートファイル（変数の説明付き）
 - **`.env`**: アクティブなステージへのシンボリックリンク
 

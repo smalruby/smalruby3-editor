@@ -132,7 +132,7 @@ docker compose run --rm infra bundle install
 
 ### Stage Switching via `.env` Symlink
 
-Per-stage `.env` files (`.env.stg`, `.env.production`) are provided. The `.env` symlink points to the active stage:
+Per-stage `.env` files (`.env.stg`, `.env.prod`) are provided. The `.env` symlink points to the active stage:
 
 ```bash
 cd infra/smalruby-mesh-v2
@@ -141,7 +141,7 @@ cd infra/smalruby-mesh-v2
 rm .env && ln -s .env.stg .env
 
 # Switch to production
-rm .env && ln -s .env.production .env
+rm .env && ln -s .env.prod .env
 
 # Verify current stage
 ls -la .env
@@ -195,9 +195,9 @@ smalruby-mesh-v2/
 ├── docs/                       # Documentation
 ├── examples/                   # JavaScript client example
 ├── .env.stg                    # Staging environment variables
-├── .env.production             # Production environment variables
+├── .env.prod             # Production environment variables
 ├── .env.example                # Environment variables template
-├── .env -> .env.production     # Symlink to active stage
+├── .env -> .env.prod     # Symlink to active stage
 ├── Gemfile                     # Ruby dependencies
 └── package.json                # Node.js dependencies
 ```

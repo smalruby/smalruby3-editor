@@ -1,9 +1,12 @@
 /**
- * CORS 許可オリジンの決定ロジック (#1160)。
+ * CORS 許可オリジンの決定ロジック (#1160 / #1342)。
  *
  * ローカルの dev server は 8601 から順に使うため非 prod では範囲で許可するが、
  * その緩和が prod に漏れないことが本質。ここが崩れると本番 API が localhost から
  * 叩けてしまうので、範囲そのものより「prod に入らない」ことを厚めに固定する。
+ *
+ * 正本は `infra/shared/tests/cors-origins.test.ts`。各プロジェクトの `lambda/tests/` にあるのは
+ * コピーなので直接編集しない（`node infra/shared/sync.js` で配る）。
  */
 import {
   LOCAL_DEV_PORT_FIRST,
@@ -12,6 +15,7 @@ import {
   isLocalOrigin,
   localDevOrigins,
   resolveCorsOrigins,
+  withPreviewOrigins,
 } from '../../lib/cors-origins';
 
 const PROD_ORIGINS = ['https://smalruby.app', 'https://smalruby.jp'];
@@ -112,5 +116,26 @@ describe('resolveCorsOrigins', () => {
       'https://b.example',
       ...PREVIEW_ORIGINS,
     ]);
+  });
+});
+
+describe('withPreviewOrigins（prod の許可オリジンは 1 文字も変えない）', () => {
+  test('非 prod では末尾にブランチプレビューを足す', () => {
+    expect(withPreviewOrigins('stg', 'https://smalruby.app,http://localhost:8601')).toBe(
+      'https://smalruby.app,http://localhost:8601,https://preview.smalruby.app',
+    );
+    expect(PREVIEW_ORIGINS).toEqual(['https://preview.smalruby.app']);
+  });
+
+  test('非 prod ですでに含まれていれば重複させない', () => {
+    expect(withPreviewOrigins('stg', 'https://smalruby.app, https://preview.smalruby.app')).toBe(
+      'https://smalruby.app, https://preview.smalruby.app',
+    );
+  });
+
+  test('prod は渡された値をそのまま返す', () => {
+    const value = 'https://smalruby.app,https://smalruby.jp,http://localhost:8601';
+
+    expect(withPreviewOrigins('prod', value)).toBe(value);
   });
 });
