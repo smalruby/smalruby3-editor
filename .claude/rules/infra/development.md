@@ -148,14 +148,17 @@ node tools/autopilot/bin/pw-check \
 - 先生ダッシュボードへは「⚙ 設定 → クラス管理」から入る。クラス管理の data-testid と先生フローの
   自動化は `docs/classroom/testing.md`。
 - スクリーンショットは `tmp/` 配下に保存する（URL にトークンが入るので、URL を含むログや
-  スクショの説明文を GitHub に貼らない）。
+  スクショの説明文を GitHub に貼らない）。**`pw-check` の出力 JSON の `url`（失敗時は `error` も）には
+  トークン入りの URL がそのまま出る**ので、出力を貼らずに確認結果だけを書く。
 - #1344 が入るまでの旧プレビュー（`smalruby.jp/smalruby3-editor/<branch>/`）は prod を見るので
   devlogin は効かない。ログインが要る確認は dev server（`localhost:8601`）で行う。
 
 ### プレビューで確かめる前に stg の状態を確認する
 
 stg は**共有資源**で、`deploy-stg` ラベルを付けた PR の変更で**一時的に develop とずれる**ことが
-ある（ずれは、その PR のブランチがマージされるか、develop への次の infra push で戻る）。プレビューは
+ある。ずれが戻るのは、develop への push がそのプロジェクトを変えたとき（その PR のマージを含む）か、
+`workflow_dispatch` で develop からそのプロジェクトを出し直したときだけ（develop への push で出るのは、
+その push で変わったプロジェクトだけ。PR を閉じただけ・別プロジェクトの push では戻らない）。プレビューは
 いまの stg を見るので、確かめる前に「stg の各プロジェクトが develop（または自分の PR）の状態か」を
 確認する。stg に出す経路は `Deploy Infra`（`.github/workflows/deploy-infra-stg.yml`）だけなので、
 その run の履歴を見ればよい:
@@ -171,7 +174,7 @@ GH_TOKEN="$(bin/bot-token)" gh run view <databaseId> --repo smalruby/smalruby3-e
 ```
 
 - 自分の確認に関わるプロジェクト（例: GUI がクラス管理を使うなら `smalruby-classroom`）について、
-  **最後に成功した stg デプロイ**が `event=push`・`headBranch=develop` なら stg = develop。
+  **最後に成功した stg デプロイ**が `event=push`（または `workflow_dispatch`）・`headBranch=develop` なら stg = develop。
 - 最後が `event=pull_request` なら、その PR の変更が載っている。自分の PR でなければ、その PR の
   「🚀 stg にデプロイしました」コメント（commit / branch）を見て、確認に影響するか判断する。
   影響するなら、その PR の作業が終わるのを待つか、人間に知らせる（**他人の PR の stg を

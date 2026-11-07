@@ -77,6 +77,8 @@ GUI の Issue なら、その API はもう stg（と prod）にあるので、�
 - **ログインが要るなら `?devlogin=<DEV_BYPASS_TOKEN>`**: stg の API が照合し、先生として
   ログインできる。値はローカル `.env` から読むだけで、**トークンを echo しない・コメント /
   結果ファイル / スクショの説明文など GitHub に出るものに書かない**。
+  `pw-check` の出力 JSON の `url`（失敗時は `error` も）にはトークン入りの URL がそのまま出るので、
+  出力を貼らずに確認結果だけを書く。
 
 ```bash
 # プレビュー URL があれば直接確認（dev server 起動不要）

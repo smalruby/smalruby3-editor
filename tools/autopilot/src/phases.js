@@ -1042,8 +1042,8 @@ const SPIKE_LABEL = '🔬 spike';
  * infra（`infra/**` の CDK プロジェクト）だけを変える Issue に付けるラベル。
  * infra は GUI と別の sub-issue に分け、**後方互換な変更だけ**を develop へ先行マージする。
  * develop へのマージで `Deploy Infra` workflow が stg → prod へ出し、**prod デプロイの成功で
- * workflow がこの Issue を閉じる**。後続の GUI Issue（`autopilot-after: #<infra>`）は prod に
- * API が載ってから動き出すので、ブランチプレビュー（prod API を見る）で確認できる。
+ * workflow がこの Issue を閉じる**。後続の GUI Issue（`autopilot-after: #<infra>`）は stg と prod に
+ * API が載ってから動き出すので、ブランチプレビュー（stg API を見る。#1344 までは prod）で確認できる。
  * そのため、このラベルの Issue は Project の終端（merge で Close）では「完了」とみなさず、
  * GitHub で closed になったときだけ完了とする（{@link unresolvedAfterIssues} の closedOnly）。
  * 付けるのは Issue を作る側（decompose / 人間）。daemon は読むだけで付け外ししない。
