@@ -18,7 +18,7 @@
   1. stg の API の CORS に `https://preview.smalruby.app` が無い。
   2. GitHub に **stg 向けの GUI ビルド値が 1 つも無い**。Environment `stg` は作られているが空で、repo Secrets / Variables はすべて prod 向けになっている。stg の値はローカルのルート `.env` にしか無い（下の「GUI のビルド値」を参照）。
   3. 翻訳・音声合成の拡張は CORS プロキシの URL を `https://api.smalruby.app/cors-proxy`（prod）に**ハードコード**している。prod の CORS は preview を許可しないので、このままではプレビューで翻訳・音声合成が動かない。
-- **値が stg と prod で同じもの**: Google / Microsoft の OAuth クライアント ID と、admin 用の Google クライアント ID。どれも stg 専用のクライアントは無く、**本番と同じクライアント**を使っている。プレビューのオリジンを登録すると、本番のクライアントの設定に 1 行増えることになる。
+- **値が stg と prod で同じもの**: Google / Microsoft の OAuth クライアント ID と、admin 用の Google クライアント ID。どれも stg 専用のクライアントは無く、**本番と同じクライアント**を使っている。これは**意図した共用**で、分けない（下の「OAuth クライアントを共用にする理由」）。プレビューのオリジンは本番のクライアントに登録する。
 - **stg の設定値のせいで、プレビューでの確認が本番どおりにならないもの**: クラスの寿命（stg は 1 日）、メッシュの最大接続時間（stg は 5 分）など。テスト用に短くしてある値なので、プレビューで長く触る確認には向かない（「stg で本番どおりに動かないもの」を参照）。
 
 ## `.env` のキーの違い
@@ -67,8 +67,7 @@
 | `GOOGLE_CLIENT_ID` / `MICROSOFT_CLIENT_ID`（classroom・bug-report） | **同じ**（stg 専用のクライアントは無い） |
 | `ADMIN_GOOGLE_CLIENT_ID`（admin・bug-report） | **同じ** |
 | `MESH_SECRET_KEY`（mesh-v2）/ `MESH_ZONE_SECRET_KEY`（api） | 別（stg は stg 専用の値） |
-| `ANTHROPIC_API_KEY`（rubytee-relay） | 別 |
-| `ANTHROPIC_API_KEY`（classroom） | **同じ**で、しかも **rubytee-relay の stg と同じ値**（下の「直すべき違い」を参照） |
+| `ANTHROPIC_API_KEY`（classroom・rubytee-relay） | 別。**機能 × stage ごとに 1 つずつ**（classroom の stg / prod、rubytee-relay の stg / prod の 4 つ）。どれも有効期限 2027-03-31 なので、それまでに発行し直すか、ID フェデレーションへ切り替える |
 
 ## コードの中の stage の分岐
 
@@ -104,7 +103,7 @@
 | `api.smalruby.app` の API Gateway カスタムドメイン・ACM 証明書・A レコード | prod だけ | 旧 SAM 時代に作ったものを import している。stg の `stg.api.smalruby.app` は CDK が作る |
 | GitHub Actions の OIDC デプロイ用 IAM ロール | stg 用（repo Variables の `AWS_DEPLOY_ROLE_ARN`）と prod 用（Environment `prod` の Variables） | `docs/infra-deploy/README.md` |
 | 管理者の登録（bug-report の `BugReportAdmins`、admin の `SmalrubyAdmins`） | 両方 | 手で登録する。stg には自動テスト用の `dev-admin@example.com` がある |
-| Google / Microsoft の OAuth クライアント | 共通（1 つずつ） | stg 専用は無い |
+| Google / Microsoft の OAuth クライアント | 共通（1 つずつ） | stg 専用は作らない（意図した共用） |
 | smalruby.app の配信（外部リポジトリ `smalruby/smalruby.app` + デプロイキー） | prod だけ | GUI の本番配信 |
 
 ## stg で本番どおりに動かないもの
@@ -140,7 +139,6 @@ GUI のビルド（webpack の `DefinePlugin`）が使う環境変数と、そ�
 補足:
 
 - `DEV_BYPASS_TOKEN` は GUI のビルドには埋め込まない。プレビューでは URL の `?devlogin=<DEV_BYPASS_TOKEN>` で渡す。
-- repo Secret の `GEMINI_RELAY_ENDPOINT` はどのビルドからも参照されていない（ルビティーを Claude に移したときの残り）。
 - **ビルド値では切り替えられない URL**: 翻訳（`scratch3_translate`）と音声合成（`scratch3_text2speech`）は `https://api.smalruby.app/cors-proxy` を直接書いている。プレビューから stg に向けるには、`SCRATCH_API_PROXY_ENDPOINT` のようなビルド値から組み立てる変更が要る。
 
 ## 直すべき違い（候補）
@@ -150,6 +148,21 @@ GUI のビルド（webpack の `DefinePlugin`）が使う環境変数と、そ�
 | stg の CORS に preview を足す | 対象は smalruby-api / bug-report / classroom / rubytee-relay。admin は今の既定値のままでよい（エディタのプレビューは admin API を呼ばない）。mesh-v2 は AppSync なので CORS の設定が無い | プレビュー移行の前提 |
 | stg 向けの GUI ビルド値を GitHub に用意する | 上の表の「ローカルのルート `.env` だけ」「どこにも無い」の値を Environment `stg` に登録する（人間の作業） | プレビュー移行の前提 |
 | CORS プロキシのハードコードをやめる | 翻訳・音声合成の拡張の `CORS_PROXY_HOST` をビルド値から組み立てる（scratch-vm の変更） | プレビュー移行の前提（無いとプレビューでこの 2 つが動かない） |
-| classroom の `ANTHROPIC_API_KEY` | prod のクラス管理が、rubytee-relay の stg と同じ API キーを使っている。キーを分けて費用や上限を区別しているなら、prod 用のキーに直す必要がある | 要確認（意図した共用なら不要） |
 | mesh-v2 の `.env.production` | 他のプロジェクトは `.env.prod`。`Deploy Infra` は CI の中で `.env.prod` を作るので動作には関係ないが、手元の手順と docs が二通りになっている | 低 |
-| OAuth クライアントを stg 専用に分けるか | 今は stg も本番のクライアントを使っている。プレビューのオリジンを本番のクライアントに登録してよいか | 要判断（分けないなら、そのことを記録しておけばよい） |
+
+## OAuth クライアントを共用にする理由
+
+Google / Microsoft の OAuth クライアントと、admin 用の Google クライアントは、stg と prod で**同じものを使い、分けない**。
+「stg と prod は設定値以外まったく同じ」の例外として、ここに理由を残す。
+
+- **分けると手間が倍になる**: stg 専用のクライアントを作ると、同意画面・承認済みのオリジン・リダイレクト URI・
+  ドメインの確認を 2 組そろえ続けることになる。片方だけ直し忘れると、stg と prod でログインの挙動がずれる。
+- **共用の危険は小さい**: 増えるのは、本番のクライアントに登録するプレビューのオリジン
+  （`https://preview.smalruby.app` と、Microsoft のリダイレクト URI `https://preview.smalruby.app/auth-redirect.html`）だけ。
+  どちらも自分たちのドメインで、ほかの人がそこにページを置くことはできない。
+- **ログインしたあとのデータは stg と prod で分かれている**: クライアントが同じでも、ID トークンを受け取って検証するのは
+  それぞれの stage の API で、データ（クラス・課題など）は stage ごとのテーブルにある。プレビューでログインしても、
+  本番のデータには触れない。
+
+分けるのは、たとえば「stg だけ同意画面のスコープを変えて試したい」ような、stage ごとにクライアントの設定を変える
+必要が出たときにする。
