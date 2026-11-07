@@ -636,6 +636,26 @@ describe('TeacherClassDetail — 1 画面に収める (#1303)', () => {
             expect(byTestId('classroom-detail-assignment-name-save-error')).not.toBeInTheDocument();
         });
 
+        test('保存中に入力し直したら、遅れて終わった保存の結果は出さない', async () => {
+            let resolveSave;
+            const onUpdateAssignmentName = jest.fn(
+                () =>
+                    new Promise((resolve) => {
+                        resolveSave = resolve;
+                    }),
+            );
+            renderDetail({ onUpdateAssignmentName });
+            const input = byTestId('classroom-detail-assignment-name');
+            fireEvent.change(input, { target: { value: '課題2' } });
+            fireEvent.blur(input);
+            fireEvent.change(input, { target: { value: '課題22' } });
+            await act(async () => {
+                resolveSave(true);
+                await Promise.resolve();
+            });
+            expect(byTestId('classroom-detail-assignment-name-saved')).not.toBeInTheDocument();
+        });
+
         test('名前が変わっていないときは何も出さない', async () => {
             const onUpdateAssignmentName = jest.fn(() => Promise.resolve(true));
             renderDetail({ onUpdateAssignmentName });

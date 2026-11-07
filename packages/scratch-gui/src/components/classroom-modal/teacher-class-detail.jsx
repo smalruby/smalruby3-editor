@@ -118,7 +118,11 @@ const TeacherClassDetail = ({
     const [nameFocused, setNameFocused] = useState(false);
     const [nameSaveStatus, setNameSaveStatus] = useState(null); // null | 'saved' | 'error'
     const nameSavedTimerRef = useRef(null);
+    // Bumped whenever the shown result becomes stale (new edit, another
+    // assignment, unmount), so a save that resolves late does not show it.
+    const nameSaveSeqRef = useRef(0);
     const clearNameSavedTimer = useCallback(() => {
+        nameSaveSeqRef.current += 1;
         if (nameSavedTimerRef.current) {
             clearTimeout(nameSavedTimerRef.current);
             nameSavedTimerRef.current = null;
@@ -225,9 +229,11 @@ const TeacherClassDetail = ({
         }
         clearNameSavedTimer();
         setNameSaveStatus(null);
+        const seq = nameSaveSeqRef.current;
         // The handler resolves false when the save failed; anything else is a save.
         Promise.resolve(onUpdateAssignmentName(trimmed)).then(
             (ok) => {
+                if (seq !== nameSaveSeqRef.current) return;
                 if (ok === false) {
                     setNameSaveStatus('error');
                     return;
@@ -238,7 +244,9 @@ const TeacherClassDetail = ({
                     setNameSaveStatus(null);
                 }, 2000);
             },
-            () => setNameSaveStatus('error'),
+            () => {
+                if (seq === nameSaveSeqRef.current) setNameSaveStatus('error');
+            },
         );
     }, [editAssignmentName, selectedClassroom, onUpdateAssignmentName, clearNameSavedTimer]);
 
