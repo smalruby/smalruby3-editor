@@ -38,6 +38,16 @@ Admin が扱うドメインは 2 階層で、**日本語の呼び方を次の表
 | クラスルーム | **使わない**。サービス名を指すときのみ「Google Classroom」と正式名で書く |
 | クラス | **クラス（学級）専用**。課題を指して「クラス」と呼ばない（Admin の面はほぼ課題を操作しているので特に注意） |
 
+### 生徒向け UI の例外
+
+エディタ（scratch-gui）の**生徒が参加する入口**だけは、課題を指していても「クラス」と呼ぶ。
+
+| 場所 | 文言 | 理由 |
+|---|---|---|
+| メニューバーの生徒用ボタン | 「クラス」「クラス:出席番号NN」 | 授業で「上の『クラス』を押して」と全員に同じ説明ができるように、生徒が毎回押す入口の名前と場所を変えない |
+
+それ以外の生徒向けの文言（参加している課題・課題が使えないとき・退室のバナー）は「課題」と呼ぶ。エディタ側の言葉の対応表は [`docs/classroom/ui-ux.md`](../classroom/ui-ux.md#言葉の対応表google-classroom-にそろえる)。
+
 `packages/admin/test/unit/terminology-audit.test.js` が `packages/admin/src/**` を走査して、この揺れの再発（課題を「クラス」と呼ぶ既知パターン）を失敗させる。
 
 ### 画面に出す識別子には必ずラベルを付ける
@@ -56,8 +66,6 @@ Admin が扱うドメインは 2 階層で、**日本語の呼び方を次の表
 | `data-testid="classroom-admin-*"` | 課題の画面要素 | `tools/playwright-verify/verify-admin.mjs` と `packages/admin/test/unit/**` が参照。文言統一と同時に壊す必要が無い |
 | SPA の `fetchClassrooms` / `setClassroomStatus` など | 課題 | 対応する API パスに合わせている。パスを変えない以上、関数名だけ変えると対応が読み取れなくなる |
 | `Classrooms.className` 属性 | 課題に保存された**クラス（学級）名の写し** | v1 の名残。v2 ではクラス側の `name` が真実で、生徒向け lookup は group の名前を優先する（`infra/smalruby-classroom/lambda/handler.ts`）。後方互換のため属性自体は残る。Admin の検索・表示はこの属性も対象にするので、入力欄の「クラス名」表記はこの属性を指す |
-
-teacher / student UI（`packages/scratch-gui/src/components/classroom-modal/**`）にも同種の揺れが数件残っており、生徒向けの分かりやすさとの兼ね合いを含めて別 Issue で整理する。
 
 ### 課題が `active` でも先生に見えているとは限らない
 

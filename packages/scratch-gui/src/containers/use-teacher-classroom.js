@@ -280,6 +280,7 @@ const useTeacherClassroom = ({
         handleSelectMember: classrooms.handleSelectMember,
         handleUpdateAssignmentName: classrooms.handleUpdateAssignmentName,
         handleUpdateAssignmentMeta: classrooms.handleUpdateAssignmentMeta,
+        loadAssignmentSummary: classrooms.loadAssignmentSummary,
         setDetailTab: classrooms.setDetailTab,
         detailEntry: classrooms.detailEntry,
 
@@ -313,6 +314,7 @@ const useTeacherClassroom = ({
         assignmentStartFromPrevious: assignment.startFromPrevious,
         assignmentPeerView: assignment.peerView,
         assignmentMeshGroupLimit: assignment.meshGroupLimit,
+        assignmentSavedSettings: assignment.savedSettings,
         handleAssignmentAddPage: assignment.handleAddPage,
         handleAssignmentRemovePage: assignment.handleRemovePage,
         handleAssignmentMovePage: assignment.handleMovePage,
@@ -326,7 +328,6 @@ const useTeacherClassroom = ({
         handleAssignmentChangePeerView: assignment.handleChangePeerView,
         handleAssignmentChangeMeshGroupLimit: assignment.handleChangeMeshGroupLimit,
         handleAssignmentSave: assignment.handleSaveAssignment,
-        handleAssignmentCancel: assignment.handleCancelAssignmentEdit,
         handleAssignmentApplyTemplate: assignment.handleApplyTemplate,
 
         // Evaluation (期末評価)

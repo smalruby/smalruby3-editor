@@ -203,9 +203,13 @@ try {
     await teacher.click('[data-testid="classroom-class-create"]');
     await teacher.fill('[data-testid="classroom-class-create-name"]', CLASS_NAME);
     await teacher.fill('[data-testid="classroom-class-create-count"]', '5');
-    await teacher.fill('[data-testid="classroom-class-create-assignment"]', `第1回-${stamp}`);
     await teacher.click('[data-testid="classroom-class-create-submit"]');
     await teacher.waitForSelector('[data-testid="classroom-board"]', { timeout: 30000 });
+    // The create-class dialog makes only the class; the assignment is made inside it.
+    await teacher.click('[data-testid="classroom-board-create"]');
+    await teacher.fill('[data-testid="classroom-board-create-name"]', `第1回-${stamp}`);
+    await teacher.click('[data-testid="classroom-board-create-submit"]');
+    await teacher.waitForSelector('[data-testid^="classroom-board-open-"]', { timeout: 30000 });
     await sleep(500);
     await teacher.locator('[data-testid^="classroom-board-open-"]').first().click();
     await teacher.waitForSelector('[data-testid="classroom-phase-teacher-detail"]', { timeout: 20000 });
@@ -304,6 +308,8 @@ try {
     log('teacher: create assignment 3 and turn on "start from previous"');
     const code3 = await createAssignmentInClass(`第3回-${stamp}`);
     await teacher.click('[data-testid="classroom-tab-description"]');
+    // The setting is folded in「詳しい設定」(#1303).
+    await teacher.click('[data-testid="classroom-assignment-advanced-toggle"]');
     await teacher.waitForSelector('[data-testid="classroom-assignment-start-from-previous"]', { timeout: 20000 });
     await teacher.check('[data-testid="classroom-assignment-start-from-previous"]');
     await shot(teacher, 'a3-teacher-setting-on');

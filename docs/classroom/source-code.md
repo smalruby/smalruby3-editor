@@ -27,10 +27,11 @@ smalruby3-editor/
 │   │   │   │   ├── teacher-member-detail.jsx ← メンバー詳細パネル (承認/却下ボタン)
 │   │   │   │   ├── classroom-status-icon.jsx ← 着席・提出などの状態アイコン共通部品 (+ 凡例)
 │   │   │   │   ├── teacher-create-form.jsx ← 課題作成フォーム
-│   │   │   │   ├── teacher-assignment-editor.jsx ← 課題エディタ（ページ + スターター）
+│   │   │   │   ├── teacher-assignment-editor.jsx ← 課題詳細の説明タブの編集フォーム（ページ + スターター + 詳しい設定）
+│   │   │   │   ├── board-menu.jsx ← 小さなドロップダウン（［＋ 作成 ▾］・⋮・課題詳細の「…」で共用）
 │   │   │   │   ├── mesh-group-limit-field.jsx ← 「メッシュのグループの人数」の選択（作成画面と課題エディタで共用・#1257）
 │   │   │   │   ├── teacher-group-manage.jsx ← 組（グループ）管理
-│   │   │   │   ├── teacher-evaluation.jsx ← 学期末評価（席×授業マトリクス）
+│   │   │   │   ├── teacher-evaluation.jsx ← 採点（席×課題の表・手順 1〜4・書き出しメニュー）
 │   │   │   │   └── teacher-post-assignment.jsx ← 課題配信
 │   │   │   ├── classroom-teacher-menu/ ← メニューバーの先生メニュー「クラス管理」(表示) #1199
 │   │   │   ├── classroom-teacher-kick-toast/ ← 先生向けの退室依頼トースト / 一覧 (表示) #1200
@@ -55,7 +56,7 @@ smalruby3-editor/
 │   │   │   ├── use-teacher-submissions.js ← 提出管理・一括ダウンロード
 │   │   │   ├── use-teacher-assignment.js ← 課題コンテンツ編集フロー
 │   │   │   ├── use-teacher-groups.js ← 組（グループ）管理・複製フロー
-│   │   │   ├── use-teacher-evaluation.js ← 学期末評価フロー（読み込み/AI評価/CSV/返却）
+│   │   │   ├── use-teacher-evaluation.js ← 採点のフロー（読み込み/AIで採点/CSV/返却）
 │   │   │   ├── use-student-submit.js  ← 生徒提出フロー
 │   │   │   ├── use-student-assignment.js ← 課題パネル・スターター・続きに使える提出物の読み込み (#1201)
 │   │   │   ├── use-kick-request-polling.js ← 退室依頼の承認待ちポーリング（依頼中・タブ表示中・未参加のみ）
@@ -76,6 +77,7 @@ smalruby3-editor/
 │   │   │   ├── classroom-teacher-reauth.js ← 先生ログインの有効期限切れ（401 判定・クリックからの再認証、純粋）#1250
 │   │   │   ├── classroom-assignment-utils.js ← 課題エディタの純粋ヘルパー
 │   │   │   ├── classroom-group-utils.js ← サイドバー組階層の純粋ヘルパー
+│   │   │   ├── classroom-stream.js ← クラスの［ストリーム］の行（作成・アーカイブ・残り 7 日以内の自動削除の予定）を組み立てる（純粋）
 │   │   │   ├── classroom-genai-settings.js ← クラスの生成AI・ルビティー設定の下書き・検証・PATCH 差分（純粋）#1277
 │   │   │   ├── classroom-google-share.js ← GC 共有の既定ブロック判定 + 解除導線の文言（純粋）#1184
 │   │   │   ├── classroom-evaluation/ ← sb3-analyzer（静的解析）+ evaluation-utils（総合評価/CSV）

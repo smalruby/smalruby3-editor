@@ -59,4 +59,14 @@ describe('ClassroomTeacherMenu (#1199)', () => {
         expect(screen.getByTestId('classroom-teacher-menu-badge')).toHaveTextContent('!');
         expect(screen.getByTestId('classroom-teacher-menu-notifications-badge')).toBeInTheDocument();
     });
+
+    // M2 (#1299): the teacher entry is a framed button with an icon and a
+    // caret so it does not look like the student "クラス" menu next to it.
+    test('renders the framed button with an icon and a caret', () => {
+        renderMenu();
+        const button = screen.getByTestId('classroom-teacher-menu-button');
+        expect(button.querySelector('[data-testid="classroom-teacher-menu-frame"]')).toBeInTheDocument();
+        expect(screen.getByTestId('classroom-teacher-menu-icon')).toBeInTheDocument();
+        expect(screen.getByTestId('classroom-teacher-menu-caret')).toBeInTheDocument();
+    });
 });

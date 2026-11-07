@@ -224,6 +224,13 @@
     padding: 0 0.75rem;
 }
 
+/* === Smalruby: Start of classroom teacher menu === */
+.teacher-menu {
+    margin: 0 .25rem;
+    padding: 0 0.5rem;
+}
+/* === Smalruby: End of classroom teacher menu === */
+
 .mystuff-icon {
     margin: 0 .25rem;
     height: 1rem;

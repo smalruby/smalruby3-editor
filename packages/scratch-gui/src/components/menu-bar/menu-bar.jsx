@@ -661,7 +661,11 @@ class MenuBar extends React.Component {
                 onClick={this.props.onRequestOpenAbout}
             >
                 {/* === Smalruby: Start of welcome tooltip === */}
-                <WelcomeTooltip onClick={this.handleClickWelcomeTooltip} />
+                {/* The balloon sits just left of "?", where the teacher menu is
+                    while a teacher is logged in (#1299). */}
+                {this.props.classroomTeacherLoggedIn ? null : (
+                    <WelcomeTooltip onClick={this.handleClickWelcomeTooltip} />
+                )}
                 {/* === Smalruby: End of welcome tooltip === */}
                 <img
                     className={styles.aboutIcon}
@@ -1261,12 +1265,6 @@ class MenuBar extends React.Component {
                         {/* === Smalruby: Start of classroom button === */}
                         {isClassroomConfigured() && (
                             <React.Fragment>
-                                <ClassroomTeacherMenu
-                                    activeClassName={styles.active}
-                                    className={classNames(styles.menuBarItem, styles.hoverable)}
-                                    menuClassName={classNames(styles.menuBarMenu)}
-                                    place={this.props.isRtl ? 'left' : 'right'}
-                                />
                                 <div
                                     className={classNames(styles.menuBarItem, styles.hoverable)}
                                     data-testid="classroom-menu-button"
@@ -1680,6 +1678,18 @@ class MenuBar extends React.Component {
                     )}
                 </div>
 
+                {/* === Smalruby: Start of classroom teacher menu === */}
+                {/* Kept apart from the student "クラス" menu, at the right end just
+                    left of "?" (#1299). */}
+                {isClassroomConfigured() && (
+                    <ClassroomTeacherMenu
+                        activeClassName={styles.active}
+                        className={classNames(styles.menuBarItem, styles.hoverable, styles.teacherMenu)}
+                        menuClassName={classNames(styles.menuBarMenu)}
+                        place={this.props.isRtl ? 'right' : 'left'}
+                    />
+                )}
+                {/* === Smalruby: End of classroom teacher menu === */}
                 {aboutButton}
 
                 {/* Google Drive Save Dialog */}
@@ -1732,6 +1742,7 @@ MenuBar.propTypes = {
     classroomClassName: PropTypes.string, // === Smalruby: classroom button ===
     classroomSeatNumber: PropTypes.number, // === Smalruby: classroom button ===
     classroomSubmissionStatus: PropTypes.string, // === Smalruby: classroom button ===
+    classroomTeacherLoggedIn: PropTypes.bool, // === Smalruby: classroom teacher menu ===
     googleDriveSaveDialogVisible: PropTypes.bool,
     googleDriveSaveDirectStatus: PropTypes.string,
     googleDriveSaveStatus: PropTypes.string,
@@ -1869,6 +1880,7 @@ const mapStateToProps = (state, ownProps) => {
         classroomClassName: state.scratchGui.classroom ? state.scratchGui.classroom.className : null,
         classroomSeatNumber: state.scratchGui.classroom ? state.scratchGui.classroom.seatNumber : null,
         classroomSubmissionStatus: state.scratchGui.classroom ? state.scratchGui.classroom.submissionStatus : null,
+        classroomTeacherLoggedIn: state.scratchGui.classroom ? !!state.scratchGui.classroom.teacherLoggedIn : false,
         // === Smalruby: End of classroom button ===
         extensionLoadCounter: state.scratchGui.koshienFile.extensionLoadCounter,
         aiSaveStatus: state.scratchGui.koshienFile.aiSaveStatus,
