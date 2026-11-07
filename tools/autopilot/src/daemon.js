@@ -31,6 +31,8 @@ const {
     unresolvedAfterIssues,
     infraIssueSet,
     shouldCloseIssueOnMerge,
+    shouldCleanupWorktree,
+    AUTOPILOT_BRANCH_PREFIX,
     parseAssigneeDirective,
     selectActionable,
     isStuckCandidate,
@@ -1373,6 +1375,89 @@ async function collectGateContexts(cfg, items, running, state, log, deps = {}) {
     return contexts;
 }
 
+/** 片付けを見送った理由のログ文言（#1362） */
+const CLEANUP_KEEP_REASONS = {
+    running: 'worker が実行中',
+    dirty: '未コミットの変更か未追跡ファイルがある',
+    detached: 'ブランチを checkout していない（detached HEAD）',
+    'not-merged': 'ブランチが base にマージされていない',
+};
+
+/**
+ * Close に進めた Issue の worktree とローカルブランチを片付ける（#1362）。
+ *
+ * 片付けないと worktree が溜まり続け、棚卸しに `git status` 1 個数秒 × 百数十個かかっていた。
+ * 作業が失われうるとき（実行中 / 未コミット / base に未マージ）は消さずにログだけ残す。判定は
+ * phases.js の {@link shouldCleanupWorktree}、ここは git I/O のみ。base は Issue の
+ * `autopilot-base:`（EPIC サブは `topic/...`）、無ければ develop で `merge-base --is-ancestor` する。
+ * リモートブランチは消さない（`gh pr merge --delete-branch` に任せる）。ローカルブランチは
+ * autopilot が作った `topic/autopilot-*` だけ消す（`--pr` で人間のブランチを checkout していたら残す）。
+ * 失敗しても例外にしない（merge 進行を止めない）。
+ * @param {object} item { issue }
+ * @param {object} cfg
+ * @param {object} state { running }
+ * @param {Function} log
+ * @param {object} [deps] { execFileP, existsSync, getDirectives }（テスト用の差し替え）
+ * @returns {Promise<{status: 'removed'|'kept'|'absent'|'error', reason?: string}>}
+ */
+async function cleanupIssueWorktree(item, cfg, state, log, deps = {}) {
+    const exec = deps.execFileP || execFileP;
+    const exists = deps.existsSync || fs.existsSync;
+    const directives = deps.getDirectives || ((issue) => getDirectives(cfg, state, issue, log));
+    const issue = item.issue;
+    try {
+        const { stdout } = await exec(WORKTREE_BIN, ['path', String(issue)], { encoding: 'utf8' });
+        const wt = String(stdout).trim();
+        if (!wt || !exists(wt)) return { status: 'absent' };
+        const facts = { running: Boolean(state.running && state.running.has(issue)) };
+        let baseRef = null;
+        if (!facts.running) {
+            const opts = { cwd: wt, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 };
+            const { stdout: status } = await exec('git', ['status', '--porcelain'], opts);
+            facts.dirty = Boolean(String(status).trim());
+            facts.branch = await exec('git', ['symbolic-ref', '--short', 'HEAD'], opts)
+                .then((r) => String(r.stdout).trim() || null, () => null);
+            if (!facts.dirty && facts.branch) {
+                const { base } = await directives(issue);
+                baseRef = resolveBaseRef(base);
+                await exec('git', ['fetch', 'origin', baseRef.replace(/^origin\//, '')], opts).catch(() => {});
+                // 終了コード 1 = 含まれない。それ以外のエラーは判定不能なので throw（消さない）
+                facts.mergedIntoBase = await exec('git', ['merge-base', '--is-ancestor', facts.branch, baseRef], opts)
+                    .then(() => true, (e) => { if (e.code === 1) return false; throw e; });
+            }
+        }
+        const decision = shouldCleanupWorktree(facts);
+        if (!decision.cleanup) {
+            const why = CLEANUP_KEEP_REASONS[decision.reason] || decision.reason;
+            log(`#${issue}: worktree を片付けない（${why}${decision.reason === 'not-merged' ? `: ${baseRef}` : ''}）: ${wt}`);
+            return { status: 'kept', reason: decision.reason };
+        }
+        const mainOpts = { cwd: project.REPO_ROOT, maxBuffer: 16 * 1024 * 1024 };
+        await exec('git', ['worktree', 'remove', '--force', wt], mainOpts);
+        let removedBranch = '';
+        if (facts.branch.startsWith(AUTOPILOT_BRANCH_PREFIX)) {
+            await exec('git', ['branch', '-D', facts.branch], mainOpts);
+            removedBranch = ` + ブランチ ${facts.branch}`;
+        }
+        log(`#${issue}: worktree を片付けた（${wt}${removedBranch}）`);
+        return { status: 'removed' };
+    } catch (e) {
+        log(`#${issue}: worktree の片付けに失敗（消さずに続行）: ${e.message}`);
+        return { status: 'error', reason: e.message };
+    }
+}
+
+/**
+ * 片付けを呼び、失敗しても merge / closed の進行を止めない（#1362）。
+ * @param {Function} cleanup {@link cleanupIssueWorktree} 相当
+ * @param {object} item
+ * @param {Function} log
+ */
+async function safeCleanup(cleanup, item, log) {
+    try { await cleanup(item); }
+    catch (e) { log(`#${item.issue}: worktree の片付けに失敗（続行）: ${e.message}`); }
+}
+
 /**
  * merge-progression: 連携 PR が人間に merge された leaf を Close へ前進させる。
  * autopilot は自動 merge しない（人間の手動 merge を検知して後処理するだけ）。
@@ -1389,6 +1474,7 @@ async function applyMergeProgression(items, cfg, state, log, deps = {}) {
     const closeIssue = deps.closeIssue || project.closeIssue;
     // merge 後の面正規化（Issue の HITL ラベルを落とす等）。テストは no-op を注入できる。
     const syncFaces = deps.syncFaces || ((item, intents) => syncFacesAfterIntents(item, intents, cfg, log));
+    const cleanup = deps.cleanupWorktree || ((item) => cleanupIssueWorktree(item, cfg, state, log));
     const ctx = { projectId: cfg.projectId, fields: cfg.fields };
     for (const item of selectMergeCandidates(items)) {
         if (state.running.has(item.issue)) continue; // live phase が所有中は触らない
@@ -1423,7 +1509,10 @@ async function applyMergeProgression(items, cfg, state, log, deps = {}) {
             await syncFaces({ ...item, hitlLabel: false }, intents);
         } catch (e) {
             log(`#${item.issue}: merge progression failed: ${e.message}`);
+            continue;
         }
+        // 終わった Issue の worktree とローカルブランチを片付ける（#1362・🧱 infra も対象）
+        await safeCleanup(cleanup, item, log);
     }
 }
 
@@ -1442,6 +1531,7 @@ async function applyClosedReconcile(items, cfg, state, log, deps = {}) {
     const applyIntents = deps.applyIntents || project.applyIntents;
     const findItemId = deps.findItemId || project.findItemId;
     const syncFaces = deps.syncFaces || ((item, intents) => syncFacesAfterIntents(item, intents, cfg, log));
+    const cleanup = deps.cleanupWorktree || ((item) => cleanupIssueWorktree(item, cfg, state, log));
     // tick が事前計算した closedSet があれば再取得しない（after 依存判定と共用・API 節約）
     let closedSet = deps.closedSet;
     if (!closedSet) {
@@ -1469,7 +1559,10 @@ async function applyClosedReconcile(items, cfg, state, log, deps = {}) {
             await syncFaces({ ...item, status: 'Close', hitlLabel: false }, intents);
         } catch (e) {
             log(`#${item.issue}: closed reconcile failed: ${e.message}`);
+            continue;
         }
+        // merge せずに閉じた Issue のブランチは base に含まれないので、判定で残る（#1362）
+        await safeCleanup(cleanup, item, log);
     }
 }
 
@@ -2549,6 +2642,7 @@ async function main(opts = {}) {
 
 module.exports = {
     main, tick, runTickOnce, dispatch, applyMergeProgression, applyClosedReconcile, applyPrProjection,
+    cleanupIssueWorktree,
     applyDodHandoffs, detectStuck, recoverOrphanedWorkers, recoverStalledInFlightWorkers,
     markBlocked, getDirectives, populateAssigneeDirectives,
     applyLabelHealing, applyAfterWaitLabels,

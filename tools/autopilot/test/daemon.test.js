@@ -62,6 +62,7 @@ test('applyMergeProgression: closes leaf with merged PR; skips not-merged/EPIC/t
     const state = { running: new Map() };
     await applyMergeProgression(items, makeCfg(), state, () => {}, {
         token: 't',
+        cleanupWorktree: async () => {},
         hasMergedPullRequest: (repo, issue) => mergedMap[issue],
         applyIntents: (ctx, itemId, intents) => {
             applied.push({ itemId, intents });
@@ -85,6 +86,7 @@ test('applyMergeProgression: Blocked + 🙋 の leaf も merge で Close へ進�
     const synced = [];
     await applyMergeProgression(items, makeCfg(), { running: new Map() }, () => {}, {
         token: 't',
+        cleanupWorktree: async () => {},
         hasMergedPullRequest: () => true,
         applyIntents: (ctx, itemId, intents) => {
             applied.push({ itemId, intents });
@@ -116,6 +118,7 @@ test('applyMergeProgression: also closes the GitHub issue (Fix A, #843)', async 
     const state = { running: new Map() };
     await applyMergeProgression(items, makeCfg(), state, () => {}, {
         token: 't',
+        cleanupWorktree: async () => {},
         hasMergedPullRequest: (repo, issue) => mergedMap[issue],
         applyIntents: (ctx, itemId, intents) => intents.map((i) => `${i.field}=${i.value}`),
         findItemId: () => 'x',
@@ -135,6 +138,7 @@ test('applyMergeProgression: 🧱 infra Issue は merge では閉じない（pro
     const state = { running: new Map() };
     await applyMergeProgression(items, makeCfg(), state, () => {}, {
         token: 't',
+        cleanupWorktree: async () => {},
         hasMergedPullRequest: () => true,
         applyIntents: (ctx, itemId, intents) => {
             applied.push(itemId);
@@ -158,6 +162,7 @@ test('applyMergeProgression: a failing gh close does not abort the loop (#843)',
     const state = { running: new Map() };
     await applyMergeProgression(items, makeCfg(), state, () => {}, {
         token: 't',
+        cleanupWorktree: async () => {},
         hasMergedPullRequest: () => true,
         applyIntents: (ctx, itemId) => { applied.push(itemId); return []; },
         findItemId: () => 'x',
@@ -179,6 +184,7 @@ test('applyClosedReconcile: closed non-terminal items -> Status=Close + clear AI
     const state = { running: new Map() };
     await applyClosedReconcile(items, makeCfg(), state, () => {}, {
         token: 't',
+        cleanupWorktree: async () => {},
         listClosedIssueNumbers: () => new Set([738, 839, 900]),
         applyIntents: (ctx, itemId, intents) => { applied.push({ itemId, intents }); return []; },
         findItemId: () => 'x',
@@ -199,6 +205,7 @@ test('applyClosedReconcile: skips running items (does not fight a live phase)', 
     const state = { running: new Map([[839, { phase: 'review' }]]) };
     await applyClosedReconcile(items, makeCfg(), state, () => {}, {
         token: 't',
+        cleanupWorktree: async () => {},
         listClosedIssueNumbers: () => new Set([839]),
         applyIntents: (ctx, itemId) => { applied.push(itemId); return []; },
         findItemId: () => 'x',
@@ -230,6 +237,7 @@ test('applyClosedReconcile: one failing item does not block others', async () =>
     const state = { running: new Map() };
     await applyClosedReconcile(items, makeCfg(), state, () => {}, {
         token: 't',
+        cleanupWorktree: async () => {},
         listClosedIssueNumbers: () => new Set([1, 2]),
         applyIntents: (ctx, itemId) => {
             if (itemId === 'i1') throw new Error('boom');
@@ -248,6 +256,7 @@ test('applyMergeProgression: skips items currently running (does not fight a liv
     const state = { running: new Map([[1, { phase: 'review' }]]) };
     await applyMergeProgression(items, makeCfg(), state, () => {}, {
         token: 't',
+        cleanupWorktree: async () => {},
         hasMergedPullRequest: () => true,
         applyIntents: (ctx, itemId, intents) => {
             applied.push(intents);
@@ -268,6 +277,7 @@ test('applyMergeProgression: a failing merge check on one item does not block ot
     const state = { running: new Map() };
     await applyMergeProgression(items, makeCfg(), state, () => {}, {
         token: 't',
+        cleanupWorktree: async () => {},
         hasMergedPullRequest: (repo, issue) => {
             if (issue === 1) throw new Error('boom');
             return true;
