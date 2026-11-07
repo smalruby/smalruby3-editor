@@ -23,7 +23,7 @@ concurrency:
 
 jobs:
   cleanup:
-    runs-on: ubuntu-24.04  # same image as ci-cd.yml (preview-deploy); ubuntu-latest is 26.04
+    runs-on: ubuntu-26.04
     # Fork PRs get neither the Environment variables nor an OIDC token (and never deployed).
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     environment: stg
