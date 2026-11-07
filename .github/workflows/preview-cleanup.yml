@@ -1,0 +1,112 @@
+name: Preview Cleanup
+
+# Removes branch previews from https://preview.smalruby.app/<slug>/ (#1344).
+# - A closed PR removes the prefix of its head branch.
+# - Once a week, prefixes whose branch no longer exists on the remote are removed (a branch
+#   pushed without a PR, or a PR closed while its deploy was still running).
+# `develop` and the shared files at the bucket root (/auth-redirect.html) are never removed.
+# ci-cd.yml (preview-deploy) is the job that uploads; docs/infra/smalruby-web-hosting.md.
+on:
+  pull_request:
+    types: [closed]
+  schedule:
+    - cron: '0 18 * * 0' # Mon 03:00 JST
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # AssumeRole the preview deploy role (GitHub OIDC)
+
+concurrency:
+  group: preview-cleanup-${{ github.event.pull_request.number || 'sweep' }}
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-24.04  # same image as ci-cd.yml (preview-deploy); ubuntu-latest is 26.04
+    # Fork PRs get neither the Environment variables nor an OIDC token (and never deployed).
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    environment: stg
+    steps:
+      # Always the default branch: a closed PR's merge ref is gone when it had conflicts, and the
+      # scripts that run with the deploy role should come from the reviewed branch, not the PR.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: '.nvmrc'
+      - name: Check the preview settings
+        id: check
+        env:
+          ROLE_ARN: ${{ vars.PREVIEW_DEPLOY_ROLE_ARN }}
+          BUCKET: ${{ vars.PREVIEW_BUCKET_NAME }}
+          DISTRIBUTION_ID: ${{ vars.PREVIEW_DISTRIBUTION_ID }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ROLE_ARN}" ] || [ -z "${BUCKET}" ] || [ -z "${DISTRIBUTION_ID}" ]; then
+            echo "::warning::Environment stg の Variables（PREVIEW_DEPLOY_ROLE_ARN / PREVIEW_BUCKET_NAME / PREVIEW_DISTRIBUTION_ID）が未設定のため、片付けをしません。"
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        if: steps.check.outputs.enabled == 'true'
+        with:
+          role-to-assume: ${{ vars.PREVIEW_DEPLOY_ROLE_ARN }}
+          aws-region: ap-northeast-1
+      - name: Remove the preview of the closed PR
+        if: steps.check.outputs.enabled == 'true' && github.event_name == 'pull_request'
+        env:
+          BUCKET: ${{ vars.PREVIEW_BUCKET_NAME }}
+          DISTRIBUTION_ID: ${{ vars.PREVIEW_DISTRIBUTION_ID }}
+          BRANCH_NAME: ${{ github.head_ref }}
+        run: |
+          set -euo pipefail
+          slug="$(node scripts/preview-slug.mjs "${BRANCH_NAME}")"
+          if [ "${slug}" = "develop" ]; then
+            echo "develop の preview は消しません。"
+            exit 0
+          fi
+          echo "Removing s3://${BUCKET}/${slug}/"
+          aws s3 rm "s3://${BUCKET}/${slug}/" --recursive --only-show-errors
+          aws cloudfront create-invalidation --distribution-id "${DISTRIBUTION_ID}" \
+            --paths "/${slug}/*" "/${slug}" --query 'Invalidation.Id' --output text
+      - name: Remove previews of branches that no longer exist
+        if: steps.check.outputs.enabled == 'true' && github.event_name != 'pull_request'
+        env:
+          BUCKET: ${{ vars.PREVIEW_BUCKET_NAME }}
+          DISTRIBUTION_ID: ${{ vars.PREVIEW_DISTRIBUTION_ID }}
+        run: |
+          set -euo pipefail
+          # Read the branches first: a failure inside `< <(...)` would not stop the script, and an
+          # empty list would remove every preview.
+          heads="$(git ls-remote --heads origin)"
+          if ! grep -q 'refs/heads/develop$' <<< "${heads}"; then
+            echo "::error::git ls-remote --heads の結果に develop が無いため、片付けを止めます。"
+            exit 1
+          fi
+          declare -A keep=([develop]=1)
+          while read -r _ ref; do
+            keep["$(node scripts/preview-slug.mjs "${ref#refs/heads/}")"]=1
+          done <<< "${heads}"
+          prefixes="$(aws s3api list-objects-v2 --bucket "${BUCKET}" --delimiter / \
+            --query 'CommonPrefixes[].Prefix' --output text)"
+          paths=()
+          for prefix in ${prefixes}; do
+            [ "${prefix}" = "None" ] && continue
+            slug="${prefix%/}"
+            if [ -n "${keep[${slug}]:-}" ]; then
+              continue
+            fi
+            echo "Removing s3://${BUCKET}/${slug}/ (no branch on the remote)"
+            aws s3 rm "s3://${BUCKET}/${slug}/" --recursive --only-show-errors
+            paths+=("/${slug}/*" "/${slug}")
+          done
+          if [ "${#paths[@]}" -eq 0 ]; then
+            echo "消すプレビューはありません。"
+            exit 0
+          fi
+          # One invalidation holds at most 3000 paths; previews are far fewer than that.
+          aws cloudfront create-invalidation --distribution-id "${DISTRIBUTION_ID}" \
+            --paths "${paths[@]}" --query 'Invalidation.Id' --output text

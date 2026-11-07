@@ -59,13 +59,12 @@ node tools/autopilot/bin/pw-check --serve-html tmp/monitor-preview.html --wait '
 #### 3-B. scratch-gui の UI（dev server が必要）
 
 `localhost:8601` の dev server が要る。**起動は重い（webpack）ので、PR コメントの
-プレビュー URL（`https://preview.smalruby.app/<slug>/`。slug はブランチ名の `/` を `-` にして小文字化）
+プレビュー URL（`https://preview.smalruby.app/<slug>/`。slug の作り方は `scripts/preview-slug.mjs`）
 があればそれを優先**し、無ければ dev server を起動して待機してから確認する。
 プレビューは **stg の API** を見る。先行の 🧱 infra Issue（`autopilot-after`）を待っていた
 GUI の Issue なら、その API はもう stg（と prod）にあるので、プレビューでそのまま確認できる。
-（プレビューのビルドが stg を向く #1344 が入るまでは、旧プレビュー
-`https://smalruby.jp/smalruby3-editor/<branch>/` が PR コメントに出て、それは prod の API を見る。
-旧プレビューでは devlogin が効かない。）
+（PR コメントには GitHub Pages の旧プレビュー `https://smalruby.jp/smalruby3-editor/<branch>/`
+も並ぶが、それは prod の API を見て devlogin も効かないので、確認には使わない。）
 
 プレビューで確かめる前に、手順の正準 `.claude/rules/infra/development.md` の
 「ブランチプレビューで確かめる（stg の API）」に従う:

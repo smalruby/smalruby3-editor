@@ -338,8 +338,8 @@ jobs:
         run: npx cdk deploy --context stage=prod --require-approval never
 
   # prod に出せたら、マージした PR が参照する 🧱 infra の Issue を閉じる。後続の GUI Issue は
-  # `autopilot-after: #<infra>` でこれを待っているので、閉じた時点で動き出し、prod の API を
-  # 見るブランチプレビューで確認できる。差分が無く deploy をスキップした場合も「prod は最新」
+  # `autopilot-after: #<infra>` でこれを待っているので、閉じた時点で動き出し、stg の API を
+  # 見るブランチプレビュー（preview.smalruby.app）で確認できる。差分が無く deploy をスキップした場合も「prod は最新」
   # なので閉じてよい。
   close-infra-issues:
     name: prod に出した infra Issue を閉じる
@@ -367,7 +367,7 @@ jobs:
               target=$(gh api "repos/${REPO}/issues/${n}" \
                 --jq 'select(.pull_request == null and .state == "open" and (([.labels[].name] | index("🧱 infra")) != null)) | .number')
               [ -n "${target}" ] || continue
-              printf '🚀 PR #%s の infra を prod にデプロイしました（%s）。この Issue を閉じます。\n\n後続の Issue（`autopilot-after: #%s`）は、prod の API を使えるので**ブランチプレビューで確認**できます。\n' \
+              printf '🚀 PR #%s の infra を prod にデプロイしました（%s）。この Issue を閉じます。\n\n後続の Issue（`autopilot-after: #%s`）は、stg と prod に API が載ったので**ブランチプレビュー（stg の API）で確認**できます。\n' \
                 "${pr}" "${RUN_URL}" "${n}" > "${RUNNER_TEMP}/close-${n}.md"
               gh issue comment "${n}" --repo "${REPO}" --body-file "${RUNNER_TEMP}/close-${n}.md"
               gh issue close "${n}" --repo "${REPO}"

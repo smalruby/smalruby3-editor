@@ -95,10 +95,9 @@ stg に無いのでプレビューで確認できず、マージしても prod �
 そこで **infra の変更は必ず GUI と別の Issue（親 Issue の sub-issue）にし、先に develop へ
 マージして stg → prod に出す**。GUI の Issue はそのあとに動き、プレビュー（stg）で確認する。
 
-> **移行中の注意**: プレビューのビルドが stg を向くのは #1344（`https://preview.smalruby.app/<slug>/`）
-> が入ってから。**#1344 が入るまでは、今のプレビュー（`https://smalruby.jp/smalruby3-editor/<branch>/`）は
-> prod の API を見る**。infra-first の手順はどちらでも同じ（infra は develop へのマージで stg と
-> prod の両方に出るので、GUI が動き出す時点で両方に API がある）。
+> **並行運用中の注意**: PR には 2 つのプレビューが出る。確認に使うのは stg の API を見る
+> `https://preview.smalruby.app/<slug>/` のほう。GitHub Pages の旧プレビュー
+> （`https://smalruby.jp/smalruby3-editor/<branch>/`）は **prod の API を見る**（#1345 で止めるまで並行して出る）。
 
 1. **Issue を分ける**: infra（`infra/**` だけ）を 1 つ、それ以外（GUI など）を 1 つ以上。
    - infra の Issue には **`🧱 infra` ラベル**を付け、**`autopilot-base:` は書かない**
@@ -124,9 +123,21 @@ decompose で分ける。人間が Issue を作るときも同じ）。
 
 ## ブランチプレビューで確かめる（stg の API）
 
-ブランチプレビュー（#1344 以降は `https://preview.smalruby.app/<slug>/`。slug はブランチ名の
-`/` を `-` にして小文字化したもの。例: `topic/autopilot-1329` → `topic-autopilot-1329`）は
-stg の API を見る。dev server を立てずに、push 済みのブランチをそのまま確かめられる。
+ブランチプレビュー（`https://preview.smalruby.app/<slug>/`）は stg の API を見る。dev server を
+立てずに、push 済みのブランチをそのまま確かめられる。PR を開くと CI（`.github/workflows/ci-cd.yml` の
+`preview-deploy`）が stg の値でビルドして出し、PR にコメントで URL を残す（`ci-cd.yml` の
+`paths-ignore` に当たるファイルだけを変える PR では CI が走らないので出ない）。develop は
+`https://preview.smalruby.app/develop/` に出る。
+
+- **slug**（`scripts/preview-slug.mjs`）: ブランチ名を小文字にし、英数字以外の並びを `-` 1 つに
+  置き換え、先頭と末尾の `-` を落とす。**この正規化で名前が変わったときは、元の名前のハッシュ 8 桁を
+  必ず足す**（例: `topic/autopilot-1329` → `topic-autopilot-1329-<8 桁>`。`fix/foo_bar` と
+  `fix/foo-bar` のように正規化すると同じになるブランチが、プレビューを上書きし合わないため）。
+  そのまま slug として使える名前（`develop` など）は変えない。63 文字（DNS ラベルの上限）を超える
+  名前は切り詰めてハッシュを足す。使える文字が残らない名前（日本語だけ等）は `b-<ハッシュ 8 桁>`。
+  slug は推測で組み立てず、PR に CI が残すコメントの URL を使うか、`node scripts/preview-slug.mjs <branch>` で求める。
+- **片付け**（`.github/workflows/preview-cleanup.yml`）: PR を閉じるとそのブランチのプレビューが消え、
+  週 1 回リモートに無いブランチのプレビューが消える（`develop` は消さない）。
 
 ### `?devlogin=<DEV_BYPASS_TOKEN>` でログインを省く
 
@@ -152,8 +163,8 @@ node tools/autopilot/bin/pw-check \
 - スクリーンショットは `tmp/` 配下に保存する（URL にトークンが入るので、URL を含むログや
   スクショの説明文を GitHub に貼らない）。**`pw-check` の出力 JSON の `url`（失敗時は `error` も）には
   トークン入りの URL がそのまま出る**ので、出力を貼らずに確認結果だけを書く。
-- #1344 が入るまでの旧プレビュー（`smalruby.jp/smalruby3-editor/<branch>/`）は prod を見るので
-  devlogin は効かない。ログインが要る確認は dev server（`localhost:8601`）で行う。
+- GitHub Pages の旧プレビュー（`smalruby.jp/smalruby3-editor/<branch>/`）は prod を見るので
+  devlogin は効かない（#1345 で止めるまで並行して出る）。ログインの確認は `preview.smalruby.app` で行う。
 
 ### プレビューで確かめる前に stg の状態を確認する
 
