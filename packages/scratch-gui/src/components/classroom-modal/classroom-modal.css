@@ -626,10 +626,87 @@
     gap: 0.5rem;
 }
 
-/* 評価画面: キャンセルをアクションボタン行の左端に置く（右寄せの他ボタンと
+/* 採点画面: キャンセルをアクションボタン行の左端に置く（右寄せの他ボタンと
    同じ行で左に離す。レビュー指摘）。 */
 .eval-cancel {
     margin-right: auto;
+}
+
+/* 採点の手順（1 読み込む → 2 AIで採点 → 3 コメント → 4 返却・#1304 V1）。
+   いまの手順だけ主ボタン。番号は丸で囲み、手順のあいだに矢印を置く。 */
+.eval-steps {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.eval-step-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.3rem;
+    height: 1.3rem;
+    margin-right: 0.4rem;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.eval-step-arrow {
+    color: #a0a4b3;
+}
+
+/* 「書き出し ▾」: フッターにあるので上に開く。 */
+.eval-export-menu {
+    position: relative;
+}
+
+.eval-export-list {
+    position: absolute;
+    bottom: calc(100% + 0.3rem);
+    left: 0;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    min-width: 12rem;
+    padding: 0.3rem;
+    border: 1px solid #d9d4ec;
+    border-radius: 0.5rem;
+    background-color: white;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+}
+
+.eval-export-item {
+    padding: 0.45rem 0.75rem;
+    border: none;
+    border-radius: 0.3rem;
+    background: none;
+    color: #575e75;
+    font-size: 0.9rem;
+    text-align: left;
+    cursor: pointer;
+}
+
+.eval-export-item:hover,
+.eval-export-item:focus-visible {
+    background-color: #f3f0fb;
+}
+
+/* 説明の「詳しく」（#1304 V2）。説明は 1 行だけ出し、残りは開いたときだけ。 */
+.eval-hint-toggle {
+    padding: 0;
+    border: none;
+    background: none;
+    color: #4c97ff;
+    font-size: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.eval-hint-detail {
+    display: block;
+    margin-top: 0.25rem;
 }
 
 /* 共有設定ステップ（#1109）: 公開範囲の選択カード + 合言葉の表示。 */
@@ -2499,8 +2576,32 @@
 
 /* --- Term-end evaluation (teacher) --- */
 
-.evaluation-screen {
+/* 1300×600 で縦スクロール無し（R6）。画面は縦の flex にして、席 × 課題の表の
+   枠（.eval-matrix-wrapper）の中だけをスクロールさせ、手順のボタン行は常に下に見せる。
+   .teacher-view より後ろでも勝つよう 2 クラスで指定する。overflow-y は .teacher-view の
+   auto のまま: ふだんは表の枠が縮むので本文はスクロールしないが、課題がとても多い・
+   設定と「詳しく」を同時に開いた等で収まらないときに、手順のボタンが切れて押せなく
+   ならないようにする（hidden にしない）。 */
+.teacher-view.evaluation-screen {
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    height: 100%;
     max-width: 100%;
+}
+
+.teacher-view.evaluation-screen > * {
+    flex-shrink: 0;
+}
+
+.teacher-view.evaluation-screen > .eval-matrix-wrapper {
+    flex: 1 1 auto;
+}
+
+.teacher-view.evaluation-screen > .button-row {
+    flex-shrink: 0;
+    margin-top: auto;
+    padding-top: 0.75rem;
 }
 
 .eval-section {
@@ -2545,6 +2646,22 @@
     font-size: 0.85rem;
 }
 
+/* 観点の欄の見出し（R1）。欄と同じ幅で、枠は付けない。 */
+.eval-rubric-header > span {
+    padding-top: 0;
+    padding-bottom: 0;
+    border-color: transparent;
+    color: #8a8fa3;
+    font-size: 0.8rem;
+}
+
+/* 閉じた設定の 1 行に出す、いまの値。 */
+.eval-settings-value {
+    color: #3d4157;
+    font-size: 0.9rem;
+    margin-right: 0.75rem;
+}
+
 .eval-strictness-row {
     display: inline-flex;
     align-items: center;
@@ -2564,7 +2681,9 @@
 }
 
 .eval-matrix-wrapper {
-    overflow-x: auto;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
     margin-bottom: 0.75rem;
     border: 1px solid #e5e8ec;
     border-radius: 0.4rem;
@@ -2576,7 +2695,11 @@
     min-width: 100%;
 }
 
+/* 表は枠の中でスクロールするので、見出しの行は上に留める。 */
 .eval-matrix th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
     background-color: #f4f6f8;
     border-bottom: 1px solid #e5e8ec;
     color: #575e75;
