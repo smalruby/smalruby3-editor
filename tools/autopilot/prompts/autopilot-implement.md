@@ -132,6 +132,7 @@ echo AUTOPILOT_ERROR
 ## 注意
 
 - **worktree の外を触らない**。1 Issue = 1 PR。
+- **トークンの値を書かない**（#1393）: `DEV_BYPASS_TOKEN` など秘密の値を、PR / Issue のコメント・PR 本文・コミット（メッセージ・コード・テスト）・スクリーンショットの説明に書かない。確認手順は `?devlogin=<DEV_BYPASS_TOKEN>` / `Authorization: Bearer <DEV_BYPASS_TOKEN>` のように**キー名で**書く。テストにはダミーの値を使う。
 - `AskUserQuestion` を使わない。判断は HITL（コメント + 番兵）。
 - Project フィールド・PR ラベル/Ready/Draft の切替は daemon が結果を見て行う（単一ライター）。
 - bot 認証（`bin/bot-git` / `bin/bot-token`）。

@@ -1,4 +1,5 @@
 // === Smalruby: This file is Smalruby-specific (URL parameters for Playwright testing) ===
+import log from './log.js';
 import { VERSION_1, VERSION_2 } from './settings/ruby-version';
 
 // Inline tab index constants to avoid circular dependency with editor-tab reducer.
@@ -92,7 +93,8 @@ const parseUrlParams = () => {
     // classcode: auto-join a classroom via invite link
     const classcode = (params.get('classcode') || '').trim().toLowerCase() || null;
 
-    // devlogin: bypass Google auth with a secret token (stg/local only)
+    // devlogin: bypass Google auth with a secret token (stg/local only).
+    // getUrlParams() removes it from the address bar after reading it.
     const devlogin = params.get('devlogin') || null;
 
     // === Smalruby: Start of welcome URL param ===
@@ -120,11 +122,46 @@ const parseUrlParams = () => {
     };
 };
 
+/**
+ * Remove one query parameter from a URL, keeping the other params and the hash.
+ * @param {string} href - the URL to edit
+ * @param {string} name - the query parameter to remove
+ * @returns {string|null} the new URL, or null when the param is not present
+ */
+const removeUrlParam = (href, name) => {
+    let url;
+    try {
+        url = new URL(href);
+    } catch {
+        return null;
+    }
+    if (!url.searchParams.has(name)) return null;
+    url.searchParams.delete(name);
+    return url.toString();
+};
+
+/**
+ * Take the dev bypass token out of the address bar once it has been read, so it
+ * does not end up in screenshots, browser history or URLs people share (#1393).
+ * The value stays available through the cached getUrlParams() result.
+ */
+const stripDevloginFromUrl = () => {
+    if (typeof window === 'undefined' || !window.history || !window.history.replaceState) return;
+    const next = removeUrlParam(window.location.href, 'devlogin');
+    if (!next) return;
+    try {
+        window.history.replaceState(window.history.state, '', next);
+    } catch (e) {
+        log.warn('Failed to remove devlogin from the URL:', e);
+    }
+};
+
 // Cache the result so it's only parsed once
 let _cached = null;
 const getUrlParams = () => {
     if (!_cached) {
         _cached = parseUrlParams();
+        if (_cached.devlogin) stripDevloginFromUrl();
     }
     return _cached;
 };
@@ -138,5 +175,5 @@ const clearClasscode = () => {
     }
 };
 
-export { getUrlParams, clearClasscode };
+export { getUrlParams, clearClasscode, removeUrlParam };
 export default getUrlParams;

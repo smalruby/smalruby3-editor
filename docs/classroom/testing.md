@@ -595,6 +595,10 @@ http://localhost:8601?no_beforeunload=1&devlogin=<DEV_BYPASS_TOKEN>
 
 `devlogin=<DEV_BYPASS_TOKEN>` を指定すると、Google ログインをバイパスして `DEV_BYPASS_TOKEN` で先生としてログインできます（stg/ローカル環境のみ）。先生ダッシュボードへは「⚙ 設定 → クラス管理」からアクセスしてください。
 
+- **URL からは消える**: エディタは `devlogin` を読み取った直後に、アドレスバーの URL からこのパラメータだけを取り除きます（`history.replaceState`。ほかのパラメータとハッシュは残る）。スクリーンショット・履歴・共有した URL に値が写らないようにするためです。値はページを開いている間だけメモリに残り、保存されないので、**再読み込みするとログインは外れます**。もう一度 `?devlogin=` を付けて開いてください。
+- **値を書かない**: トークンの値を PR / Issue のコメント・PR 本文・コミット（コード・テスト・メッセージ）・スクリーンショットの説明に書かないでください。手順は `?devlogin=<DEV_BYPASS_TOKEN>` / `Authorization: Bearer <DEV_BYPASS_TOKEN>` のように**キー名で**書き、値は `.env` から読みます。テストにはダミーの値を使います。
+- **コミット前と CI で止まる**: 追跡ファイルに `DEV_BYPASS_TOKEN` の値（16 文字以上）が入っていると、husky の pre-commit と `npm run lint`（CI）が失敗します（`scripts/check-dev-bypass-token.mjs`）。空の値（`.env.example`）や `<DEV_BYPASS_TOKEN>` のようなプレースホルダーは通ります。autopilot が GitHub に書くエラー文も `sanitizeForSurface` が `DEV_BYPASS_TOKEN=` / `devlogin=` / `Bearer` の値を伏せます。
+
 ### tools/playwright-verify/ の手動 E2E スクリプト
 
 クラス管理を絡めた end-to-end の動作確認は [`tools/playwright-verify/`](../../tools/playwright-verify/README.md) にあるスクリプトで自動化されています（CI には組み込まれていません。手動で `node ...` で実行）。

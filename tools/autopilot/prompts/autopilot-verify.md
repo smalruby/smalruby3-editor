@@ -74,8 +74,10 @@ GUI の Issue なら、その API はもう stg（と prod）にあるので、�
   プロジェクトの最後の stg デプロイが develop の push（または自分の PR）かを確かめる。他人の PR の
   変更が載っていて確認に影響するなら、勝手に上書きせず HITL で人間に知らせる。
 - **ログインが要るなら `?devlogin=<DEV_BYPASS_TOKEN>`**: stg の API が照合し、先生として
-  ログインできる。値はローカル `.env` から読むだけで、**トークンを echo しない・コメント /
-  結果ファイル / スクショの説明文など GitHub に出るものに書かない**。
+  ログインできる。値はローカル `.env` から読むだけで、**トークンを echo しない・PR / Issue の
+  コメント・コミット・結果ファイル・スクショの説明文など GitHub に出るものに書かない**。手順を
+  書くときは `?devlogin=<DEV_BYPASS_TOKEN>` のように**キー名で**書く。画面は読み込み後に URL から
+  `devlogin` を消すが、読み込み前の URL（`pw-check` の引数・出力）には値が残る。
   `pw-check` の出力 JSON の `url`（失敗時は `error` も）にはトークン入りの URL がそのまま出るので、
   出力を貼らずに確認結果だけを書く。
 
@@ -187,6 +189,7 @@ echo AUTOPILOT_HITL
 
 - **ブラウザは `playwright` パッケージの bundled chromium を headless で使う**（`pw-check` ヘルパー推奨）。**Playwright MCP は使わない**。
 - **merge はしない**（モデル: DoD 後に人間が merge）。本スキルは DoD 確認まで。
+- **トークンの値を書かない**（#1393）: `DEV_BYPASS_TOKEN` など秘密の値を、PR / Issue のコメント・PR 本文・コミット（メッセージ・コード・テスト）・スクリーンショットの説明に書かない。確認手順は `?devlogin=<DEV_BYPASS_TOKEN>` / `Authorization: Bearer <DEV_BYPASS_TOKEN>` のように**キー名で**書く。テストにはダミーの値を使う。
 - dev server 起動は重い。**プレビュー URL があれば優先**し、無闇に毎回ビルドしない。
 - 起動した dev server は**結果ファイルを書く前に必ず止める**。8601 がほかの worktree のものなら使わない（3-B「dev server の起動と停止」）。
 - 音/autoplay の最終確認は実 Chrome（ホスト）— headless で「OK」と誤判定しない（種別 3-C）。

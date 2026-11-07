@@ -2785,14 +2785,19 @@ function sanitizeForSurface(text, maxLen = 600) {
         /AIza[0-9A-Za-z_-]{30,}/g,
         // Slack トークン
         /xox[baprs]-[A-Za-z0-9-]{10,}/g,
-        // Authorization ヘッダ
-        /Bearer\s+[A-Za-z0-9._-]{16,}/gi,
         // JWT
         /eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{5,}/g,
         // PEM 秘密鍵ブロック
         /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?(?:-----END [A-Z ]*PRIVATE KEY-----|$)/g,
     ];
     for (const re of patterns) s = s.replace(re, '[REDACTED]');
+    // stg のログインを飛ばすトークン（#1393）。短い値も伏せ、キー名と他のパラメータは残す。
+    // `<DEV_BYPASS_TOKEN>` / `$DEV_BYPASS_TOKEN` のようなキー名だけのプレースホルダーは通す。
+    const secretValue = '(?![<$])("[^"]*"|\'[^\']*\'|[^\\s&#"\'<>]+)';
+    s = s.replace(new RegExp(`(DEV_BYPASS_TOKEN["']?\\s*[=:]\\s*)${secretValue}`, 'gi'), '$1[REDACTED]');
+    s = s.replace(new RegExp(`(\\bdevlogin=)${secretValue}`, 'gi'), '$1[REDACTED]');
+    // Authorization ヘッダ（長さを問わず値を伏せる）
+    s = s.replace(new RegExp(`(\\bBearer\\s+)${secretValue}`, 'gi'), '$1[REDACTED]');
     // 機密らしい変数名の KEY=value / KEY: value
     s = s.replace(
         /([A-Za-z0-9_]*(?:TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIAL|API_?KEY|PRIVATE_?KEY)[A-Za-z0-9_]*\s*[=:]\s*)("[^"]*"|'[^']*'|\S+)/gi,

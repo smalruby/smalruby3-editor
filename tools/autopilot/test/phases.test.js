@@ -462,6 +462,36 @@ test('sanitizeForSurface: トークン・鍵・機密変数・URL クエリを r
     assert.match(s, /https:\/\/s3\.amazonaws\.com\/bucket\/key\?\[REDACTED\]/);
 });
 
+test('sanitizeForSurface: DEV_BYPASS_TOKEN・devlogin・Bearer の値を伏せる（#1393）', () => {
+    // ダミー値のみ（実トークンをテストに書かない）
+    const dummy = 'dummyBypass42';
+    const raw = [
+        `DEV_BYPASS_TOKEN=${dummy} npm start`,
+        `export DEV_BYPASS_TOKEN='${dummy}'`,
+        `{"DEV_BYPASS_TOKEN": "${dummy}"}`,
+        `open localhost:8601/?no_beforeunload=1&devlogin=${dummy}&tab=ruby`,
+        `?devlogin=${dummy}`,
+        `curl -H "Authorization: Bearer ${dummy}" api`,
+        `bearer ${dummy}`,
+    ];
+    for (const line of raw) {
+        const s = sanitizeForSurface(line, 5000);
+        assert.doesNotMatch(s, new RegExp(dummy), line);
+        assert.match(s, /\[REDACTED\]/, line);
+    }
+    // URL クエリと同じく、キー名と他のパラメータは残す
+    const url = sanitizeForSurface(`localhost:8601/?no_beforeunload=1&devlogin=${dummy}&tab=ruby`);
+    assert.equal(url, 'localhost:8601/?no_beforeunload=1&devlogin=[REDACTED]&tab=ruby');
+    assert.equal(sanitizeForSurface(`Bearer ${dummy}`), 'Bearer [REDACTED]');
+});
+
+test('sanitizeForSurface: キー名だけのプレースホルダーは残す（#1393）', () => {
+    assert.equal(sanitizeForSurface('?devlogin=<DEV_BYPASS_TOKEN>'), '?devlogin=<DEV_BYPASS_TOKEN>');
+    assert.equal(sanitizeForSurface('?devlogin=${DEV_BYPASS_TOKEN}'), '?devlogin=${DEV_BYPASS_TOKEN}');
+    assert.equal(sanitizeForSurface('Bearer <DEV_BYPASS_TOKEN>'), 'Bearer <DEV_BYPASS_TOKEN>');
+    assert.equal(sanitizeForSurface('Bearer $DEV_BYPASS_TOKEN'), 'Bearer $DEV_BYPASS_TOKEN');
+});
+
 test('isAuthError: SSO 失効・bot-token 取得不能を認証系と判定する（#949）', () => {
     // bot-token が SSO 失効時に die するときの実メッセージ（message / stderr の双方を見る）
     assert.equal(isAuthError(new Error('AWS 認証が失効/未設定のため Secrets Manager から秘密鍵を取得できません')), true);
