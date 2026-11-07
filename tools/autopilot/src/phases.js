@@ -2422,21 +2422,25 @@ function renderReviewFindingsSummary(counts) {
 
 /**
  * 分類ごとの autopilot 対応方針（#921 の DoD。review/address-review 両プロンプトが従う
- * 唯一の真実）。
+ * 唯一の真実）。指摘を「載せるだけ」で終わらせず、敵対的レビューの結果を積極的に直す方針。
  * - Must: 必ず修正する（'fix'）
- * - Question: 対応コストが小さければ修正、大きければ人間へ HITL（'fix-or-hitl'）
- * - FYI: 対応しない（コメントのみ・'ignore'）
+ * - Question: 基本は修正する。よほど大変・効果が小さいときだけ見送り、その場合も follow-up の
+ *   sub-issue を作って番号をまとめコメントに残す。仕様・方針の選択が要るものだけ人間へ HITL
+ *   （'fix-or-followup'）
+ * - FYI: 簡単に直せるものは修正する。ただし振る舞いが変わる・設定値（env / settings /
+ *   URL パラメータ等）が増える・infra（`infra/**`）の変更が要るものは見送り、理由を残す
+ *   （'fix-if-easy'）
  */
 const REVIEW_FINDING_POLICY = {
     Must: 'fix',
-    Question: 'fix-or-hitl',
-    FYI: 'ignore',
+    Question: 'fix-or-followup',
+    FYI: 'fix-if-easy',
 };
 
 /**
  * 分類から対応方針を返す（純粋関数）。未知の分類（マーカー無し等）は安全側で 'ignore'。
  * @param {string} category
- * @returns {'fix'|'fix-or-hitl'|'ignore'}
+ * @returns {'fix'|'fix-or-followup'|'fix-if-easy'|'ignore'}
  */
 function addressReviewPolicyFor(category) {
     return REVIEW_FINDING_POLICY[category] || 'ignore';
@@ -2728,7 +2732,7 @@ function parseFindingReferences(text) {
  * 指摘の対応を決める（純粋関数）。人間の指示があれば既定方針（{@link addressReviewPolicyFor}）より優先。
  * @param {string} category
  * @param {'ok'|'fix'|'other'|null|undefined} instruction
- * @returns {'no-change'|'fix'|'reply'|'fix-or-hitl'|'ignore'}
+ * @returns {'no-change'|'fix'|'reply'|'fix-or-followup'|'fix-if-easy'|'ignore'}
  */
 function resolveFindingAction(category, instruction) {
     if (instruction === 'ok') return 'no-change';
@@ -2743,7 +2747,7 @@ function resolveFindingAction(category, instruction) {
  * 存在しない ID への言及は無視。旧形式（ID なし）コメントは計画に載らない（プロンプトが従来どおり扱う）。
  * @param {Array<{body: string}>} comments - PR のコメント（まとめコメントを含む）
  * @param {string[]} humanTexts - 人間の返信本文（古い順）
- * @returns {Array<{id: string, category: string, action: string, source: 'human'|'policy'}>}
+ * @returns {Array<{id: string, category: string, action: 'no-change'|'fix'|'reply'|'fix-or-followup'|'fix-if-easy'|'ignore', source: 'human'|'policy'}>}
  */
 function planAddressReview(comments, humanTexts) {
     const refs = new Map();
