@@ -46,7 +46,7 @@ leaf に分割する前に、**3 案を明示的に比較**して選ぶ（素直
 4. レビュースコープを分けたい（観点が違う・見る人を分けたい等）
 5. **infra（`infra/**`）とそれ以外の両方に変更が要る**（必須。下の「infra-first」）
 
-**infra-first（必須の分割）**: ブランチプレビューは prod の API を見るので、infra と GUI を
+**infra-first（必須の分割）**: ブランチプレビューは stg の API を見るので、infra と GUI を
 同じ PR に入れると、新しい API を使う GUI をプレビューで確認できない。infra の変更は
 **infra だけの leaf を 1 つ**にまとめ、先に develop へ出す（正準は
 `.claude/rules/infra/development.md` の「infra は別 Issue に分けて先に出す」）:
@@ -54,7 +54,7 @@ leaf に分割する前に、**3 案を明示的に比較**して選ぶ（素直
 - infra の leaf は**後方互換な変更だけ**（追加・既存挙動を変えない修正）。削除・改名・
   必須化・レスポンス形の変更が要るなら、GUI が移行したあとの**別の infra leaf**（Contract）にし、
   分解案でその旨を人間に示す（prod の自動デプロイは削除・置き換えで止まる）。
-- infra 以外の leaf は、infra の leaf に `autopilot-after` で依存させる（prod に API が載って
+- infra 以外の leaf は、infra の leaf に `autopilot-after` で依存させる（stg と prod に API が載って
   infra の Issue が閉じてから動き出す）。
 
 上記に当たらない関連コンポーネントは、**別ファイルで衝突しないなら特に** 1 leaf に

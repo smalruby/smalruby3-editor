@@ -178,8 +178,8 @@ daemon が Issue に **`🔬 spike` ラベル**を付ける。GitHub のラベ�
 
 ### 🧱 infra ラベル（infra を先に出す・infra-first）
 
-ブランチプレビューは prod の API を見るので、infra と GUI を同じ PR に入れると新しい API を
-使う GUI をプレビューで確認できない。そこで **infra（`infra/**`）の変更は GUI と別の sub-issue に
+ブランチプレビューは stg の API を見るので（プレビューのビルドが stg を向く #1344 が入るまでは
+prod）、infra と GUI を同じ PR に入れると新しい API を使う GUI をプレビューで確認できない。そこで **infra（`infra/**`）の変更は GUI と別の sub-issue に
 分け、`🧱 infra` ラベルを付けて先に develop へ出す**（手順の正準は
 `.claude/rules/infra/development.md` の「infra は別 Issue に分けて先に出す」）。
 
@@ -190,7 +190,10 @@ daemon が Issue に **`🔬 spike` ラベル**を付ける。GitHub のラベ�
 4. `Deploy Infra` workflow が stg → prod へ出し、**prod に出せたら infra の Issue を閉じる**
    （削除・置き換えを含む差分は自動では出さず、PR に知らせる）。
 5. `autopilot-after` の相手が 🧱 infra のときは **GitHub で closed になるまで未完了**とみなすので、
-   GUI の leaf はここで初めて `⏳ waiting` が外れて動き出し、プレビューで確認できる。
+   GUI の leaf はここで初めて `⏳ waiting` が外れて動き出し、プレビュー（stg の API）で確認できる。
+   確かめる前に stg が develop（または自分の PR）の状態かを確認し、ログインは
+   `?devlogin=<DEV_BYPASS_TOKEN>` で省く（手順は `.claude/rules/infra/development.md` の
+   「ブランチプレビューで確かめる（stg の API）」）。
 
 ラベルは Issue を作る側（decompose / 人間）が付ける。daemon は付け外ししない。
 
@@ -406,7 +409,8 @@ Playwright / 実 Chrome）に渡す引き継ぎを生成する**」。LLM は in
 
 1. 連携 PR と Issue 本文の **DoD チェックリスト**を取得（`extractDodChecklist`）。
 2. **プレビュー URL** を PR の CI コメントから拾う（`extractPreviewUrl`。
-   `https://smalruby.jp/smalruby3-editor/<branch>/`）。
+   `https://smalruby.jp/smalruby3-editor/<branch>/`。#1344 で `https://preview.smalruby.app/<slug>/`
+   に移り、stg の API を見る）。
 3. **テンプレートで引き継ぎ本文を生成**（`dodHandoffBody`）して `autopilot:dod-handoff` マーカー付き
    コメントを PR に投稿する。本文は「プレビュー URL ＋ Issue の DoD チェックリスト転記 ＋ 定型 headful
    手順（`?no_beforeunload=1`、スクショは `tmp/`→`docs/<feature>/screenshots/`、秘密情報は本文に
