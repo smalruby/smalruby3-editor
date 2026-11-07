@@ -1608,13 +1608,6 @@
     border-top: 1px solid #e0e0e0;
 }
 
-.detail-footer-buttons {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-    justify-content: space-between;
-}
-
 .delete-confirm-box {
     background-color: #fff0f3;
     border: 1px solid #ff6680;
@@ -3217,20 +3210,6 @@
 .board-row-retention-download:disabled {
     opacity: 0.5;
     cursor: default;
-}
-
-/* 期限が近いとき、全作品ダウンロードボタンを警告色にしてDLを促す（#1052）。
-   secondary-button / detail-tabs-download より後に定義し、element+class で
-   確実に色を上書きする。 */
-button.detail-tabs-download-urgent {
-    border-color: hsla(10, 80%, 45%, 1);
-    background: hsla(10, 85%, 55%, 1);
-    color: white;
-    font-weight: bold;
-}
-
-button.detail-tabs-download-urgent:hover:not(:disabled) {
-    background: hsla(10, 85%, 48%, 1);
 }
 
 /* --- みんなの課題: share form (EPIC #1066 S2) --- */
