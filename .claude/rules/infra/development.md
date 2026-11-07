@@ -19,7 +19,7 @@ AWS CDK infrastructure projects live in `infra/`. Each project is independent fr
 | smalruby-api | `infra/smalruby-api/` | Smalruby API endpoints (HTTP API v2 + Lambda): cors-proxy, mesh-domain, scratch-api-proxy/* |
 | smalruby-bug-report | `infra/smalruby-bug-report/` | Program bug report service (HTTP API v2 + Lambda + DynamoDB + S3): 作品添付つき不具合報告 + 管理者レジストリ |
 | smalruby-admin | `infra/smalruby-admin/` | Admin service (HTTP API v2 + Lambda + DynamoDB): 管理 SPA のバックエンド（deny-by-default 許可リスト + 監査ログ） |
-| smalruby-web-hosting | `infra/smalruby-web-hosting/` | Web 配信基盤（Route 53。今後 S3 + CloudFront）: ブランチプレビュー `preview.smalruby.app`。stg だけに作り、prod は空のスタック |
+| smalruby-web-hosting | `infra/smalruby-web-hosting/` | Web 配信基盤（Route 53 + S3 + CloudFront + ACM + GitHub OIDC ロール）: ブランチプレビュー `preview.smalruby.app/<slug>/`。stg だけに作り、prod は空のスタック |
 
 See project-specific rules for details:
 - `.claude/rules/infra/smalruby-mesh-v2.md`

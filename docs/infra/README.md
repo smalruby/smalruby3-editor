@@ -10,7 +10,7 @@ Smalruby のバックエンドは **AWS CDK** で管理される独立したプ�
 | **`infra/smalruby-rubytee-relay/`** | Rubytee (AI チャット) リレー | API Gateway HTTP API + Lambda + DynamoDB | `rubytee.api.smalruby.app` | [`docs/rubytee/`](../rubytee/) |
 | **`infra/smalruby-classroom/`** | クラスルーム機能 | API Gateway HTTP API + Lambda + DynamoDB + S3 | `classroom.api.smalruby.app` | [`docs/classroom/`](../classroom/) |
 | **`infra/smalruby-api/`** | 共通 API (CORS proxy / Mesh zone / Scratch proxy) | API Gateway HTTP API + Lambda | `api.smalruby.app` | [`smalruby-api.md`](smalruby-api.md) |
-| **`infra/smalruby-web-hosting/`** | Web 配信基盤（ブランチプレビュー）。現在は `preview.smalruby.app` ゾーンのみ（stg） | Route 53 | — (prod は空のスタック) | [`smalruby-web-hosting.md`](smalruby-web-hosting.md) |
+| **`infra/smalruby-web-hosting/`** | Web 配信基盤（ブランチプレビュー `preview.smalruby.app/<slug>/`・stg のみ） | Route 53, S3, CloudFront, ACM, IAM (OIDC) | `preview.smalruby.app`（stg。prod は空のスタック） | [`smalruby-web-hosting.md`](smalruby-web-hosting.md) |
 
 ## 共通パターン
 
