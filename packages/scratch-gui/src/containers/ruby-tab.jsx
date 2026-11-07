@@ -56,6 +56,7 @@ import {
     DNCL_INDEX_HINT_OWNER,
 } from './ruby-tab/constants';
 import updateDebugGlobals from './ruby-tab/debug-globals';
+import { offerDnclIndexShift } from './ruby-tab/dncl-index-shift';
 import {
     registerCustomPasteAction,
     setupPasteTransform,
@@ -189,6 +190,8 @@ const RubyTab = (props) => {
     const configChangeListenerRef = useRef(null);
     const pasteMutationObserverRef = useRef(null);
     const removePasteTransformRef = useRef(null);
+    const pasteListenerRef = useRef(null);
+    const indexShiftDecorationsRef = useRef(null);
     const bodyMutationObserverRef = useRef(null);
     const bubbleElRef = useRef(null);
     const quickFixProviderRef = useRef(null);
@@ -444,6 +447,24 @@ const RubyTab = (props) => {
         const transformPastedText = (text) => (dnclModeRef.current ? tidyPastedDncl(text, editor.getValue()) : text);
         registerCustomPasteAction(editor, pasteLabel, transformPastedText);
         removePasteTransformRef.current = setupPasteTransform(editor, transformPastedText);
+        // Japanese (DNCL) mode offers to shift the array indexes of pasted
+        // code whose comments say indexes start at 1 (Issue #1366). The
+        // dialog waits until Monaco has finished handling the paste.
+        pasteListenerRef.current = editor.onDidPaste((event) => {
+            if (!dnclModeRef.current) return;
+            setTimeout(() => {
+                if (!dnclModeRef.current || editorRef.current !== editor) return;
+                const decorations = offerDnclIndexShift({
+                    editor,
+                    monaco,
+                    range: event.range,
+                    formatMessage: (descriptor, values) => intlRef.current.formatMessage(descriptor, values),
+                });
+                if (!decorations) return;
+                if (indexShiftDecorationsRef.current) indexShiftDecorationsRef.current.clear();
+                indexShiftDecorationsRef.current = decorations;
+            }, 0);
+        });
         const observers = setupPasteDuplicateHider();
         pasteMutationObserverRef.current = observers.pasteMutationObserver;
         bodyMutationObserverRef.current = observers.bodyMutationObserver;
@@ -1004,6 +1025,10 @@ const RubyTab = (props) => {
                 removePasteTransformRef.current();
                 removePasteTransformRef.current = null;
             }
+            if (pasteListenerRef.current) {
+                pasteListenerRef.current.dispose();
+                pasteListenerRef.current = null;
+            }
             if (pasteMutationObserverRef.current) {
                 pasteMutationObserverRef.current.disconnect();
                 pasteMutationObserverRef.current = null;
@@ -1077,6 +1102,14 @@ const RubyTab = (props) => {
             setDnclDisplayCode(result.dncl);
         }
     }, [rubyCodeStr, dnclMode]);
+
+    // The marks left by the paste-time index shift belong to the DNCL text.
+    useEffect(() => {
+        if (!dnclMode && indexShiftDecorationsRef.current) {
+            indexShiftDecorationsRef.current.clear();
+            indexShiftDecorationsRef.current = null;
+        }
+    }, [dnclMode]);
 
     // Smalruby DNCL arrays start at index 0. A program written with 1-based
     // indices reads past the end of an array, where the VM silently returns

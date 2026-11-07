@@ -62,7 +62,7 @@ describe('setupPasteTransform (Issue #1192)', () => {
 });
 
 describe('registerCustomPasteAction', () => {
-    test('types the transformed clipboard text', async () => {
+    test('pastes the transformed clipboard text', async () => {
         const editor = makeEditor();
         Object.defineProperty(navigator, 'clipboard', {
             value: {readText: () => Promise.resolve('abc')},
@@ -71,6 +71,10 @@ describe('registerCustomPasteAction', () => {
         registerCustomPasteAction(editor, 'Paste', text => text.toUpperCase());
         const action = editor.addAction.mock.calls[0][0];
         await action.run(editor);
-        expect(editor.trigger).toHaveBeenCalledWith('keyboard', 'type', {text: 'ABC'});
+        expect(editor.trigger).toHaveBeenCalledWith('keyboard', 'paste', {
+            text: 'ABC',
+            pasteOnNewLine: false,
+            multicursorText: null,
+        });
     });
 });

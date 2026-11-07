@@ -110,6 +110,17 @@ $arrow-rounding: 0.125rem;
     background-color: rgba(133, 92, 214, 0.2) !important;
 }
 
+/* Array indexes shifted at paste time, and lines that may still assume 1-based indexes (Issue #1366) */
+.editorWrapper :global(.dncl-index-shifted) {
+    background-color: rgba(15, 189, 140, 0.3);
+    border-bottom: 2px solid #0fbd8c;
+}
+
+.editorWrapper :global(.dncl-index-suspect) {
+    background-color: rgba(255, 191, 0, 0.3);
+    border-bottom: 2px dotted #ffab19;
+}
+
 /* Value report bubble */
 .valueReportBubble {
     position: fixed;
