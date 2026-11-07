@@ -17,7 +17,7 @@
 - **プレビューを stg に向けるために足りないもの**:
   1. stg の API の CORS に `https://preview.smalruby.app` が無い。
   2. GitHub に **stg 向けの GUI ビルド値が 1 つも無い**。Environment `stg` は作られているが空で、repo Secrets / Variables はすべて prod 向けになっている。stg の値はローカルのルート `.env` にしか無い（下の「GUI のビルド値」を参照）。
-  3. 翻訳・音声合成の拡張は CORS プロキシの URL を `https://api.smalruby.app/cors-proxy`（prod）に**ハードコード**している。prod の CORS は preview を許可しないので、このままではプレビューで翻訳・音声合成が動かない。
+  3. ~~翻訳・音声合成の拡張は CORS プロキシの URL を prod にハードコードしている~~ → ビルド値 `SCRATCH_API_PROXY_ENDPOINT` から組み立てるようにした（`packages/scratch-vm/src/util/cors-proxy-url.js`）。プレビューのビルドで stg の値を渡せば stg の cors-proxy を使う。
 - **値が stg と prod で同じもの**: Google / Microsoft の OAuth クライアント ID と、admin 用の Google クライアント ID。どれも stg 専用のクライアントは無く、**本番と同じクライアント**を使っている。プレビューのオリジンを登録すると、本番のクライアントの設定に 1 行増えることになる。
 - **stg の設定値のせいで、プレビューでの確認が本番どおりにならないもの**: クラスの寿命（stg は 1 日）、メッシュの最大接続時間（stg は 5 分）など。テスト用に短くしてある値なので、プレビューで長く触る確認には向かない（「stg で本番どおりに動かないもの」を参照）。
 
@@ -141,7 +141,7 @@ GUI のビルド（webpack の `DefinePlugin`）が使う環境変数と、そ�
 
 - `DEV_BYPASS_TOKEN` は GUI のビルドには埋め込まない。プレビューでは URL の `?devlogin=<DEV_BYPASS_TOKEN>` で渡す。
 - repo Secret の `GEMINI_RELAY_ENDPOINT` はどのビルドからも参照されていない（ルビティーを Claude に移したときの残り）。
-- **ビルド値では切り替えられない URL**: 翻訳（`scratch3_translate`）と音声合成（`scratch3_text2speech`）は `https://api.smalruby.app/cors-proxy` を直接書いている。プレビューから stg に向けるには、`SCRATCH_API_PROXY_ENDPOINT` のようなビルド値から組み立てる変更が要る。
+- 翻訳（`scratch3_translate`）と音声合成（`scratch3_text2speech`）の CORS プロキシの URL は、ビルド値 `SCRATCH_API_PROXY_ENDPOINT` から `<endpoint>/cors-proxy` として組み立てる（既定 `https://api.smalruby.app`）。
 
 ## 直すべき違い（候補）
 
@@ -149,7 +149,7 @@ GUI のビルド（webpack の `DefinePlugin`）が使う環境変数と、そ�
 |---|---|---|
 | stg の CORS に preview を足す | 対象は smalruby-api / bug-report / classroom / rubytee-relay。admin は今の既定値のままでよい（エディタのプレビューは admin API を呼ばない）。mesh-v2 は AppSync なので CORS の設定が無い | プレビュー移行の前提 |
 | stg 向けの GUI ビルド値を GitHub に用意する | 上の表の「ローカルのルート `.env` だけ」「どこにも無い」の値を Environment `stg` に登録する（人間の作業） | プレビュー移行の前提 |
-| CORS プロキシのハードコードをやめる | 翻訳・音声合成の拡張の `CORS_PROXY_HOST` をビルド値から組み立てる（scratch-vm の変更） | プレビュー移行の前提（無いとプレビューでこの 2 つが動かない） |
+| ~~CORS プロキシのハードコードをやめる~~ | 対応済み。翻訳・音声合成の拡張の `CORS_PROXY_HOST` をビルド値 `SCRATCH_API_PROXY_ENDPOINT` から組み立てる | 済 |
 | classroom の `ANTHROPIC_API_KEY` | prod のクラス管理が、rubytee-relay の stg と同じ API キーを使っている。キーを分けて費用や上限を区別しているなら、prod 用のキーに直す必要がある | 要確認（意図した共用なら不要） |
 | mesh-v2 の `.env.production` | 他のプロジェクトは `.env.prod`。`Deploy Infra` は CI の中で `.env.prod` を作るので動作には関係ないが、手元の手順と docs が二通りになっている | 低 |
 | OAuth クライアントを stg 専用に分けるか | 今は stg も本番のクライアントを使っている。プレビューのオリジンを本番のクライアントに登録してよいか | 要判断（分けないなら、そのことを記録しておけばよい） |

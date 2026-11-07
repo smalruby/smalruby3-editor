@@ -3,6 +3,9 @@ const BlockType = require('../../extension-support/block-type');
 const Cast = require('../../util/cast');
 const log = require('../../util/log');
 const {fetchWithTimeout} = require('../../util/fetch-with-timeout');
+// === Smalruby: Start of CORS proxy url ===
+const {getCorsProxyHost} = require('../../util/cors-proxy-url');
+// === Smalruby: End of CORS proxy url ===
 const languageNames = require('scratch-translate-extension-languages');
 const formatMessage = require('format-message');
 
@@ -36,7 +39,9 @@ const serverURL = 'https://translate-service.scratch.mit.edu/';
 // serverURL stays at the upstream value so upstream merges only touch the URL-build
 // site (guarded by test/unit/extension_translate_proxy.js). Same root cause as
 // text2speech (#857/#859), which the dedicated translate Lambda now replaces (#862).
-const CORS_PROXY_HOST = 'https://api.smalruby.app/cors-proxy';
+// The proxy host follows the build value SCRATCH_API_PROXY_ENDPOINT (default
+// https://api.smalruby.app) so a branch preview uses the stg API (#1374).
+const CORS_PROXY_HOST = getCorsProxyHost();
 // === Smalruby: End of translate CORS proxy ===
 
 /**
