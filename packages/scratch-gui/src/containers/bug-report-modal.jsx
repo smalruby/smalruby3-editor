@@ -20,6 +20,7 @@ import {
     requestMicrosoftIdToken,
     isMicrosoftAuthAvailable,
 } from '../lib/teacher-auth.js';
+import { getUrlParams } from '../lib/url-params.js';
 import { closeBugReportModal, setBugReportView, VIEW_MY_REPORTS } from '../reducers/bug-report.js';
 import useBugReportSubmit from './use-bug-report-submit.js';
 
@@ -61,14 +62,9 @@ const hasConsent = () => {
 // registered with the provider — impractical on localhost). Mirrors the
 // classroom `?devlogin` affordance. The token only authenticates against
 // non-prod backends that accept DEV_BYPASS_TOKEN, and is never baked into the
-// bundle — it is supplied at runtime via the URL.
-const getDevLoginToken = () => {
-    try {
-        return typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('devlogin');
-    } catch {
-        return null;
-    }
-};
+// bundle — it is supplied at runtime via the URL. getUrlParams() removes it
+// from the address bar after reading it, so read it from there, not the URL.
+const getDevLoginToken = () => getUrlParams().devlogin || null;
 
 const BugReportModal = () => {
     const dispatch = useDispatch();

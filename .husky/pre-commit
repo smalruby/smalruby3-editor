@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Stop commits that contain a real DEV_BYPASS_TOKEN value (#1393)
+node scripts/check-dev-bypass-token.mjs --staged
