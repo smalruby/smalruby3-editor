@@ -2196,6 +2196,30 @@
     font-size: 0.75rem;
 }
 
+/* 保存した値から変えた設定（まだ保存していない）。［課題を保存］で元の色に戻る。
+   色だけに頼らず「保存していません」の印も出す（R5）。赤はいま対処が必要なときだけなので使わない（R4）。 */
+.assignment-advanced-changed {
+    color: #b35c00;
+    font-weight: bold;
+}
+
+.assignment-advanced-unsaved {
+    margin-left: 0.4rem;
+    padding: 0 0.35rem;
+    border-radius: 0.6rem;
+    background: #fff1dd;
+    color: #b35c00;
+    font-size: 0.7rem;
+    font-weight: bold;
+}
+
+.assignment-advanced-setting-changed {
+    margin-left: -0.5rem;
+    padding-left: 0.35rem;
+    border-left: 0.15rem solid #ff8c1a;
+    background: #fff8ee;
+}
+
 .assignment-advanced-panel {
     position: absolute;
     /* ページ欄の上（左側）に重ね、右上の［課題を保存］は隠さない。 */

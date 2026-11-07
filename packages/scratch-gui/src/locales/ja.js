@@ -490,7 +490,6 @@ export default {
     'gui.classroom.continueChoice.confirmCurrent':
         'この課題で提出した作品を開きますか？ 今つくっているプロジェクトは置きかわります。',
     'gui.classroom.assignmentEditor.openButton': '課題を編集',
-    'gui.classroom.assignmentEditor.title': '課題を編集',
     'gui.classroom.assignmentEditor.hint':
         '生徒が参加コードで参加すると、このページが表示され、ボタンでスタータープロジェクトから始めます。',
     'gui.classroom.assignmentEditor.pageNumber': 'ページ {number}',
@@ -512,7 +511,6 @@ export default {
     'gui.classroom.assignmentEditor.removeStarter': 'スターターを削除',
     'gui.classroom.assignmentEditor.starterRemoveWarning':
         '保存すると、設定済みのスタータープロジェクトは削除されます。',
-    'gui.classroom.assignmentEditor.cancel': 'キャンセル',
     'gui.classroom.assignmentEditor.save': '課題を保存',
     'gui.classroom.assignmentEditor.limitsNote':
         'ページは10ページまで、1ページ500文字と画像1枚まで、スターターは1つです。',
@@ -698,6 +696,7 @@ export default {
     'gui.classroom.teacherDetail.seatColorNotJoined': 'まだ参加していない',
     'gui.classroom.teacherDetail.previewEmpty': 'ページを書くとここに出ます',
     'gui.classroom.assignmentEditor.advanced': '詳しい設定',
+    'gui.classroom.assignmentEditor.advancedUnsaved': '保存していません',
     'gui.classroom.assignmentEditor.advancedSummary': '前回から: {previous}・他者参照: {peerView}・メッシュ: {mesh}',
     'gui.classroom.assignmentEditor.summaryOn': 'する',
     'gui.classroom.assignmentEditor.summaryOff': 'しない',

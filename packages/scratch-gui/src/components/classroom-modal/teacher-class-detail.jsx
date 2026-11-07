@@ -3,6 +3,7 @@ import { FormattedMessage, useIntl } from 'react-intl';
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
+import BoardMenu, { BoardMenuItem } from './board-menu.jsx';
 import ClassCodeDisplay from './class-code-display.jsx';
 import ClassroomStatusIcon, {
     ClassroomStatusIcons,
@@ -11,7 +12,6 @@ import ClassroomStatusIcon, {
     getSubmissionStatus,
 } from './classroom-status-icon.jsx';
 import ErrorDisplay from './error-display.jsx';
-import { BoardMenu, BoardMenuItem } from './teacher-assignment-board.jsx';
 import TeacherAssignmentEditor from './teacher-assignment-editor.jsx';
 import TeacherMemberDetail from './teacher-member-detail.jsx';
 
@@ -90,7 +90,6 @@ const TeacherClassDetail = ({
     const descEditor = assignmentEditor || {};
     const handleDescAddPage = descEditor.onAddPage;
     const handleDescAttachPageImage = descEditor.onAttachPageImage;
-    const handleDescCancel = descEditor.onCancel;
     const handleDescChangePageText = descEditor.onChangePageText;
     const handleDescMovePage = descEditor.onMovePage;
     const handleDescRemovePage = descEditor.onRemovePage;
@@ -727,12 +726,11 @@ const TeacherClassDetail = ({
                             {activeTab === 'description' && assignmentEditor && (
                                 <TeacherAssignmentEditor
                                     editorPages={descEditor.editorPages}
-                                    embedded
                                     error={null}
                                     errorTitle={null}
                                     hasExistingStarter={descEditor.hasExistingStarter}
                                     isSaving={descEditor.isSaving}
-                                    selectedClassroom={selectedClassroom}
+                                    savedSettings={descEditor.savedSettings}
                                     starterMode={descEditor.starterMode}
                                     starterSource={descEditor.starterSource}
                                     startFromPrevious={!!descEditor.startFromPrevious}
@@ -740,7 +738,6 @@ const TeacherClassDetail = ({
                                     meshGroupLimit={descEditor.meshGroupLimit}
                                     onAddPage={handleDescAddPage}
                                     onAttachPageImage={handleDescAttachPageImage}
-                                    onCancel={handleDescCancel}
                                     onChangePageText={handleDescChangePageText}
                                     onMovePage={handleDescMovePage}
                                     onRemovePage={handleDescRemovePage}

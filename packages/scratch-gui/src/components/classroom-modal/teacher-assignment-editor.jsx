@@ -8,6 +8,7 @@
  * group size limit (#1257). Kept deliberately
  * simple — a constrained format the teacher can fill in minutes.
  */
+import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FormattedMessage, defineMessages, useIntl } from 'react-intl';
@@ -226,7 +227,7 @@ const TeacherAssignmentEditor = ({
     errorTitle,
     hasExistingStarter,
     isSaving,
-    selectedClassroom,
+    savedSettings,
     starterMode,
     starterSource,
     startFromPrevious,
@@ -234,8 +235,6 @@ const TeacherAssignmentEditor = ({
     meshGroupLimit,
     onAddPage,
     onAttachPageImage,
-    embedded,
-    onCancel,
     onChangePageText,
     onChangeMeshGroupLimit,
     onChangePeerView,
@@ -255,25 +254,71 @@ const TeacherAssignmentEditor = ({
     const [showAdvanced, setShowAdvanced] = useState(false);
     const advancedRef = useRef(null);
     const handleToggleAdvanced = useCallback(() => setShowAdvanced((v) => !v), []);
-    // The open panel floats over the pages, so a click elsewhere closes it.
+    // The open panel floats over the pages, so a click elsewhere or Escape
+    // closes it. Escape is caught in the capture phase and stopped there:
+    // otherwise the same key also reaches the modal and closes it.
     useEffect(() => {
         if (!showAdvanced) return () => {};
         const handleDown = (e) => {
             if (advancedRef.current && !advancedRef.current.contains(e.target)) setShowAdvanced(false);
         };
+        const handleKey = (e) => {
+            if (e.key !== 'Escape') return;
+            e.stopPropagation();
+            setShowAdvanced(false);
+        };
         document.addEventListener('mousedown', handleDown);
-        return () => document.removeEventListener('mousedown', handleDown);
+        document.addEventListener('keydown', handleKey, true);
+        return () => {
+            document.removeEventListener('mousedown', handleDown);
+            document.removeEventListener('keydown', handleKey, true);
+        };
     }, [showAdvanced]);
     const hasAdvanced = Boolean(onChangeStartFromPrevious || onChangePeerView || onChangeMeshGroupLimit);
-    const advancedSummary = intl.formatMessage(messages.advancedSummary, {
-        previous: intl.formatMessage(startFromPrevious ? messages.summaryOn : messages.summaryOff),
-        peerView: intl.formatMessage(PEER_VIEW_MESSAGES[peerView] || messages.peerViewNone),
-        mesh: intl.formatMessage(
-            normalizeMeshGroupLimit(meshGroupLimit) === 0
-                ? meshGroupLimitMessages.noLimit
-                : meshGroupLimitMessages.upToSix,
-        ),
-    });
+    // With many settings it is easy to lose track of which values are still
+    // unsaved, so a value that differs from the saved one is coloured (in the
+    // summary and in the panel) until［課題を保存］stores it (#1303 review Q1).
+    const changed = savedSettings
+        ? {
+              previous: !!startFromPrevious !== !!savedSettings.startFromPrevious,
+              peerView: (peerView || 'none') !== (savedSettings.peerView || 'none'),
+              mesh: normalizeMeshGroupLimit(meshGroupLimit) !== normalizeMeshGroupLimit(savedSettings.meshGroupLimit),
+          }
+        : { previous: false, peerView: false, mesh: false };
+    const hasUnsaved = changed.previous || changed.peerView || changed.mesh;
+    const summaryValue = (key, text) => (
+        <span
+            className={changed[key] ? styles.assignmentAdvancedChanged : null}
+            data-changed={changed[key] ? 'true' : null}
+            data-testid={`classroom-assignment-advanced-summary-${key}`}
+        >
+            {text}
+        </span>
+    );
+    const advancedSummary = (
+        <FormattedMessage
+            {...messages.advancedSummary}
+            values={{
+                previous: summaryValue(
+                    'previous',
+                    intl.formatMessage(startFromPrevious ? messages.summaryOn : messages.summaryOff),
+                ),
+                peerView: summaryValue(
+                    'peerView',
+                    intl.formatMessage(PEER_VIEW_MESSAGES[peerView] || messages.peerViewNone),
+                ),
+                mesh: summaryValue(
+                    'mesh',
+                    intl.formatMessage(
+                        normalizeMeshGroupLimit(meshGroupLimit) === 0
+                            ? meshGroupLimitMessages.noLimit
+                            : meshGroupLimitMessages.upToSix,
+                    ),
+                ),
+            }}
+        />
+    );
+    const settingClass = (key) => (changed[key] ? styles.assignmentAdvancedSettingChanged : null);
 
     const handleStartFromPreviousChange = useCallback(
         (e) => onChangeStartFromPrevious && onChangeStartFromPrevious(e.target.checked),
@@ -333,20 +378,7 @@ const TeacherAssignmentEditor = ({
     };
 
     return (
-        <div
-            className={styles.assignmentEditor}
-            data-testid={embedded ? 'classroom-description-editor' : 'classroom-phase-teacher-assignment-edit'}
-        >
-            {!embedded && (
-                <h2 className={styles.phaseTitle}>
-                    <FormattedMessage
-                        defaultMessage="Edit Assignment"
-                        description="Assignment editor title"
-                        id="gui.classroom.assignmentEditor.title"
-                    />
-                    {selectedClassroom ? ` — ${selectedClassroom.className}` : ''}
-                </h2>
-            )}
+        <div className={styles.assignmentEditor} data-testid="classroom-description-editor">
             {/* E1 (#1303): the save button sits at the top (like Google
                 Classroom's "Assign"), so it is visible without scrolling. */}
             <div className={styles.assignmentEditorHeader}>
@@ -358,20 +390,6 @@ const TeacherAssignmentEditor = ({
                     />
                 </p>
                 <div className={styles.assignmentEditorActions}>
-                    {!embedded && (
-                        <button
-                            className={styles.secondaryButton}
-                            data-testid="classroom-assignment-cancel"
-                            disabled={isSaving}
-                            onClick={onCancel}
-                        >
-                            <FormattedMessage
-                                defaultMessage="Cancel"
-                                description="Assignment editor: cancel"
-                                id="gui.classroom.assignmentEditor.cancel"
-                            />
-                        </button>
-                    )}
                     <button
                         className={styles.primaryButton}
                         data-testid="classroom-assignment-save"
@@ -520,6 +538,18 @@ const TeacherAssignmentEditor = ({
                                         description="Assignment editor: toggle of the folded advanced settings"
                                         id="gui.classroom.assignmentEditor.advanced"
                                     />
+                                    {hasUnsaved && (
+                                        <span
+                                            className={styles.assignmentAdvancedUnsaved}
+                                            data-testid="classroom-assignment-advanced-unsaved"
+                                        >
+                                            <FormattedMessage
+                                                defaultMessage="Not saved yet"
+                                                description="Assignment editor: mark on the advanced settings when a coloured value is not saved yet"
+                                                id="gui.classroom.assignmentEditor.advancedUnsaved"
+                                            />
+                                        </span>
+                                    )}
                                 </span>
                                 <span
                                     className={styles.assignmentAdvancedSummary}
@@ -536,7 +566,12 @@ const TeacherAssignmentEditor = ({
                                     {/* Follow-up lessons (#1202): students open last time's work by
                                         default instead of choosing (and mistaking) the starter. */}
                                     {onChangeStartFromPrevious && (
-                                        <label className={styles.assignmentStartFromPrevious}>
+                                        <label
+                                            className={classNames(
+                                                styles.assignmentStartFromPrevious,
+                                                settingClass('previous'),
+                                            )}
+                                        >
                                             <input
                                                 checked={startFromPrevious}
                                                 data-testid="classroom-assignment-start-from-previous"
@@ -565,7 +600,7 @@ const TeacherAssignmentEditor = ({
                                     {/* Peer view (#1208): students see classmates' submission
                                         images (never the .sb3) to learn from each other. */}
                                     {onChangePeerView && (
-                                        <div className={styles.assignmentPeerView}>
+                                        <div className={classNames(styles.assignmentPeerView, settingClass('peerView'))}>
                                             <label className={styles.assignmentPeerViewRow}>
                                                 <span className={styles.assignmentStartFromPreviousLabel}>
                                                     <FormattedMessage
@@ -602,12 +637,14 @@ const TeacherAssignmentEditor = ({
                                         </div>
                                     )}
                                     {onChangeMeshGroupLimit && (
-                                        <MeshGroupLimitField
-                                            disabled={isSaving}
-                                            testId="classroom-assignment-mesh-group-limit"
-                                            value={meshGroupLimit}
-                                            onChange={onChangeMeshGroupLimit}
-                                        />
+                                        <div className={settingClass('mesh')}>
+                                            <MeshGroupLimitField
+                                                disabled={isSaving}
+                                                testId="classroom-assignment-mesh-group-limit"
+                                                value={meshGroupLimit}
+                                                onChange={onChangeMeshGroupLimit}
+                                            />
+                                        </div>
                                     )}
                                 </div>
                             )}
@@ -625,7 +662,13 @@ TeacherAssignmentEditor.propTypes = {
     errorTitle: PropTypes.string,
     hasExistingStarter: PropTypes.bool,
     isSaving: PropTypes.bool,
-    selectedClassroom: PropTypes.object,
+    // The stored values of the advanced settings; a different current value
+    // is shown as unsaved. Omit to show no unsaved marks.
+    savedSettings: PropTypes.shape({
+        startFromPrevious: PropTypes.bool,
+        peerView: PropTypes.oneOf(['none', 'always', 'afterSubmit']),
+        meshGroupLimit: PropTypes.number,
+    }),
     starterMode: PropTypes.oneOf(['none', 'keep', 'new']).isRequired,
     starterSource: PropTypes.object,
     startFromPrevious: PropTypes.bool,
@@ -633,8 +676,6 @@ TeacherAssignmentEditor.propTypes = {
     meshGroupLimit: PropTypes.number,
     onAddPage: PropTypes.func.isRequired,
     onAttachPageImage: PropTypes.func.isRequired,
-    embedded: PropTypes.bool,
-    onCancel: PropTypes.func,
     onChangePageText: PropTypes.func.isRequired,
     onChangeMeshGroupLimit: PropTypes.func,
     onChangePeerView: PropTypes.func,

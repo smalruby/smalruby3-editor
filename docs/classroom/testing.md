@@ -189,7 +189,6 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 
 | data-testid | 要素 | 説明 |
 |------------|------|------|
-| `classroom-phase-teacher-assignment-edit` | div | 課題エディタフェーズのルート |
 | `classroom-assignment-page-{n}` | div | ページ n（0-indexed）のカード |
 | `classroom-assignment-page-text-{n}` | textarea | ページ n の本文（最大500文字） |
 | `classroom-assignment-page-up-{n}` / `classroom-assignment-page-down-{n}` | button | ページの並べ替え |
@@ -205,12 +204,13 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-assignment-pages` | div | ページの編集欄の枠（この枠の中だけスクロールする） |
 | `classroom-assignment-advanced-toggle` | button | 「詳しい設定」の開閉（`aria-expanded`） |
 | `classroom-assignment-advanced-summary` | span | 閉じた「詳しい設定」のいまの値（「前回から: しない・他者参照: しない・メッシュ: 6人まで」） |
+| `classroom-assignment-advanced-summary-{previous\|peerView\|mesh}` | span | 要約の各値。保存した値から変えたものは `data-changed="true"`（オレンジ色） |
+| `classroom-assignment-advanced-unsaved` | span | 「保存していません」（保存した値から変えた設定があるときだけ） |
 | `classroom-assignment-advanced-panel` | div | 開いた「詳しい設定」（下の 3 つの設定はこの中・開いたときだけある） |
 | `classroom-assignment-start-from-previous` | input (checkbox) | 「前回の提出物から始めさせる」（既定 OFF・保存で反映・Issue #1202） |
 | `classroom-assignment-peer-view` | select | 「他者参照」（`none` = しない（既定） / `always` = いつでも見られる / `afterSubmit` = 自分が提出したら見られる・保存で反映・Issue #1208） |
 | `classroom-assignment-mesh-group-limit` | select | 「メッシュのグループの人数」（`6` = 6人まで / `0` = 制限なし（この設定より前の課題の表示）・保存で反映・Issue #1257） |
 | `classroom-assignment-save` | button | 課題を保存（フォームの最上段） |
-| `classroom-assignment-cancel` | button | キャンセル（詳細画面へ戻る） |
 
 ### 課題パネル（生徒）
 

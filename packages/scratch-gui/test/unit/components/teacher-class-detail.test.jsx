@@ -601,6 +601,43 @@ describe('TeacherClassDetail — 1 画面に収める (#1303)', () => {
         );
     });
 
+    test('E2: 開いた詳しい設定は Escape で閉じる', () => {
+        renderDescription();
+        openAdvanced();
+        expect(byTestId('classroom-assignment-advanced-panel')).toBeInTheDocument();
+        fireEvent.keyDown(document, { key: 'Escape' });
+        expect(byTestId('classroom-assignment-advanced-panel')).not.toBeInTheDocument();
+        expect(byTestId('classroom-assignment-advanced-toggle')).toHaveAttribute('aria-expanded', 'false');
+    });
+
+    test('E2: 保存した値と同じなら「保存していません」も色も出さない', () => {
+        renderDescription({
+            startFromPrevious: false,
+            peerView: 'none',
+            meshGroupLimit: 6,
+            savedSettings: { startFromPrevious: false, peerView: 'none', meshGroupLimit: 6 },
+        });
+        expect(byTestId('classroom-assignment-advanced-unsaved')).not.toBeInTheDocument();
+        expect(document.querySelector('[data-changed="true"]')).not.toBeInTheDocument();
+    });
+
+    test('E2: 保存した値から変えた設定だけ色を付け、「保存していません」を出す', () => {
+        renderDescription({
+            startFromPrevious: false,
+            peerView: 'always',
+            meshGroupLimit: 6,
+            savedSettings: { startFromPrevious: false, peerView: 'none', meshGroupLimit: 6 },
+        });
+        expect(byTestId('classroom-assignment-advanced-unsaved').textContent).toBe('Not saved yet');
+        expect(byTestId('classroom-assignment-advanced-summary-peerView')).toHaveAttribute('data-changed', 'true');
+        expect(byTestId('classroom-assignment-advanced-summary-previous')).not.toHaveAttribute('data-changed');
+        expect(byTestId('classroom-assignment-advanced-summary-mesh')).not.toHaveAttribute('data-changed');
+        // The summary text itself is unchanged (the mark is a separate element).
+        expect(byTestId('classroom-assignment-advanced-summary').textContent).toBe(
+            'From last time: No · Peer view: Anytime · Mesh: Up to 6',
+        );
+    });
+
     test('E3: ページが空のときプレビューは 1 行の案内だけ', () => {
         renderDescription({ editorPages: [{ text: '  ' }] });
         expect(byTestId('classroom-description-preview-empty').textContent).toBe('Write a page and it shows up here');

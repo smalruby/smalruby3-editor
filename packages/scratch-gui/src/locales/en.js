@@ -433,7 +433,6 @@ export default {
     'gui.classroom.continueChoice.confirmCurrent':
         'Open the project you submitted for this assignment? Your current project will be replaced.',
     'gui.classroom.assignmentEditor.openButton': 'Edit Assignment',
-    'gui.classroom.assignmentEditor.title': 'Edit Assignment',
     'gui.classroom.assignmentEditor.hint':
         'Students see these pages when they join with the class code, and start from the starter project with a button.',
     'gui.classroom.assignmentEditor.pageNumber': 'Page {number}',
@@ -455,7 +454,6 @@ export default {
     'gui.classroom.assignmentEditor.removeStarter': 'Remove Starter',
     'gui.classroom.assignmentEditor.starterRemoveWarning':
         'The existing starter project will be deleted when you save.',
-    'gui.classroom.assignmentEditor.cancel': 'Cancel',
     'gui.classroom.assignmentEditor.save': 'Save Assignment',
     'gui.classroom.assignmentEditor.limitsNote':
         'Up to 10 pages, 500 characters and one image per page, one starter project.',
@@ -596,6 +594,7 @@ export default {
     'gui.classroom.teacherDetail.seatColorNotJoined': 'Not joined yet',
     'gui.classroom.teacherDetail.previewEmpty': 'Write a page and it shows up here',
     'gui.classroom.assignmentEditor.advanced': 'Advanced settings',
+    'gui.classroom.assignmentEditor.advancedUnsaved': 'Not saved yet',
     'gui.classroom.assignmentEditor.advancedSummary':
         'From last time: {previous} · Peer view: {peerView} · Mesh: {mesh}',
     'gui.classroom.assignmentEditor.summaryOn': 'Yes',

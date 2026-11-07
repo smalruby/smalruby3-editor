@@ -198,6 +198,22 @@ try {
         m = await measure(tid('classroom-assignment-save'), BODY);
         record('description tab, advanced open', m.bottom !== null && m.bottom <= m.vh && m.pageOk && m.bodyOk, `save ${describe(m)}`);
         await shot('description-advanced', '0228-detail-advanced-settings.png');
+
+        // A value changed from the saved one is coloured with「保存していません」
+        // until the save (#1303 review Q1).
+        await page.selectOption(tid('classroom-assignment-peer-view'), 'always');
+        await page.waitForTimeout(200);
+        const unsaved = await page.$(tid('classroom-assignment-advanced-unsaved'));
+        const changedCount = await page.$$eval('[data-changed="true"]', (els) => els.length);
+        record('changed setting is marked unsaved', !!unsaved && changedCount === 1, `changed=${changedCount}`);
+        await shot('description-advanced-unsaved', '0239-detail-advanced-unsaved.png');
+
+        // Escape closes only the panel, not the whole modal.
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(300);
+        const panelGone = !(await page.$(tid('classroom-assignment-advanced-panel')));
+        const modalOpen = !!(await page.$(tid('classroom-teacher-modal')));
+        record('Escape closes the advanced panel only', panelGone && modalOpen, `panelGone=${panelGone} modalOpen=${modalOpen}`);
     }
 
     // Near deadline: red only within 7 days (D1 / R4).
