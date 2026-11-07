@@ -15,8 +15,9 @@ import { fileURLToPath } from 'node:url';
 // KEY=value / KEY: value / "KEY": "value" / KEY || 'value' / KEY ?? 'value'.
 // The value must be at least 16 token characters and must not continue as an identifier,
 // a member access or a call (`DEV_BYPASS_TOKEN = readTokenFromEnvironment()` is not a value).
+// A period that ends a sentence (`DEV_BYPASS_TOKEN=<value>.` in docs) is still a value.
 const LEAK_RE =
-    /DEV_BYPASS_TOKEN['"]?\s*(?:[:=]|\|\||\?\?)\s*['"`]?[A-Za-z0-9_-]{16,}(?![A-Za-z0-9_.(-])/;
+    /DEV_BYPASS_TOKEN['"]?\s*(?:[:=]|\|\||\?\?)\s*['"`]?[A-Za-z0-9_-]{16,}(?![A-Za-z0-9_(-]|\.[A-Za-z_$])/;
 
 /**
  * Lines that contain a DEV_BYPASS_TOKEN value.

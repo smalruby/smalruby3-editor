@@ -23,6 +23,9 @@ test('values are caught', () => {
     assert.ok(leaks(`    ${KEY}: '${DUMMY}',`));
     assert.ok(leaks(`process.env.${KEY} || '${DUMMY}'`));
     assert.ok(leaks(`process.env.${KEY} ?? \`${DUMMY}\``));
+    // a value at the end of a sentence in docs
+    assert.ok(leaks(`Set ${KEY}=${DUMMY}.`));
+    assert.ok(leaks(`${KEY}: ${DUMMY}...`));
 });
 
 test('empty values and placeholders pass', () => {
@@ -34,6 +37,7 @@ test('empty values and placeholders pass', () => {
     assert.ok(!leaks(`devlogin=\${${KEY}}`));
     assert.ok(!leaks(`${KEY}: process.env.${KEY}`));
     assert.ok(!leaks(`const ${KEY} = readTheTokenFromTheEnvironment();`));
+    assert.ok(!leaks(`const ${KEY} = configurationSettings.devBypassToken;`));
     assert.ok(!leaks(`${KEY}=short`));
 });
 
