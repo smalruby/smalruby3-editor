@@ -1643,6 +1643,8 @@ export default {
     'gui.meshSelfSensorNotice.dismiss': 'とじる',
     'gui.rubyTab.dnclDoubleSlashHint':
         'スモウルビーでは // はコメントではありません（せいすうのわりざんです）。コメントには # をつかってください。',
+    'gui.rubyTab.dnclArrayIndexHint':
+        '{access} ははいれつのはんいがいになります。スモウルビーのにほんごでは、はいれつのそえじは 0 からはじまります（さいしょのようそは {array}[0]、さいごのようそは {array}[{last}]）。もんだいぶんでそえじが 1 からはじまるときは、{fixed} のようにそえじを 1 ずらしてかいてください。',
     'gui.rubyTab.dnclValidationError':
         'にほんごモードではたいおうしていないきじゅつです。\nたいおうしているめいれいのみにしてから、モードきりかえをおこなってください。',
     'gui.mobile.drawer.title': 'メニュー',
