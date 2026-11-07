@@ -1,6 +1,6 @@
 # Smalruby インフラ全体
 
-Smalruby のバックエンドは **AWS CDK** で管理される 4 つの独立したプロジェクトから構成される。すべて **ap-northeast-1 (東京)** リージョンにデプロイされ、共通の `.env` symlink パターンで stage 切替を行う。
+Smalruby のバックエンドは **AWS CDK** で管理される独立したプロジェクトから構成される。すべて **ap-northeast-1 (東京)** リージョンにデプロイされ、共通の `.env` symlink パターンで stage 切替を行う。
 
 ## プロジェクト一覧
 
@@ -10,6 +10,7 @@ Smalruby のバックエンドは **AWS CDK** で管理される 4 つの独立�
 | **`infra/smalruby-rubytee-relay/`** | Rubytee (AI チャット) リレー | API Gateway HTTP API + Lambda + DynamoDB | `rubytee.api.smalruby.app` | [`docs/rubytee/`](../rubytee/) |
 | **`infra/smalruby-classroom/`** | クラスルーム機能 | API Gateway HTTP API + Lambda + DynamoDB + S3 | `classroom.api.smalruby.app` | [`docs/classroom/`](../classroom/) |
 | **`infra/smalruby-api/`** | 共通 API (CORS proxy / Mesh zone / Scratch proxy) | API Gateway HTTP API + Lambda | `api.smalruby.app` | [`smalruby-api.md`](smalruby-api.md) |
+| **`infra/smalruby-web-hosting/`** | Web 配信基盤（ブランチプレビュー）。現在は `preview.smalruby.app` ゾーンのみ（stg） | Route 53 | — (prod は空のスタック) | [`smalruby-web-hosting.md`](smalruby-web-hosting.md) |
 
 ## 共通パターン
 
@@ -160,6 +161,10 @@ Rubytee の統合ドキュメントは [`docs/rubytee/`](../rubytee/) を参照�
 ### smalruby-api
 
 → **[`smalruby-api.md`](smalruby-api.md)** を参照（本 docs/infra/ の専用ファイル）。
+
+### smalruby-web-hosting
+
+→ **[`smalruby-web-hosting.md`](smalruby-web-hosting.md)** を参照。
 
 ## 関連ドキュメント
 
