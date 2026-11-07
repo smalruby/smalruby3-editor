@@ -159,6 +159,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         onCreateClassWithAssignment,
         onUpdateGroupTopics,
         onUpdateAssignmentMeta,
+        onLoadAssignmentSummary,
         onCreateAssignmentInClass,
         onReuseAssignment,
         onDetailTabChange,
@@ -471,6 +472,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         shared={shared}
                         onCreateAssignmentInClass={onCreateAssignmentInClass}
                         onDownloadClassAll={onDownloadClassAll}
+                        onLoadAssignmentSummary={onLoadAssignmentSummary}
                         onRestoreClassroom={onRestoreClassroom}
                         onReuseAssignment={onReuseAssignment}
                         onSelectClassroom={onSelectClassroom}

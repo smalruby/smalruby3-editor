@@ -117,6 +117,31 @@ const moveItem = (items, from, to) => {
     return next;
 };
 
+/**
+ * What an opened row of the assignment board shows (#1301): the counts and the
+ * first line of the description. Built from the existing teacher APIs
+ * (listMembers + listSubmissions joined by enrichMembers, and getAssignment).
+ * @param {object} params - inputs
+ * @param {Array<object>} [params.members] - enriched members
+ * @param {number} [params.studentCount] - seats of the assignment
+ * @param {?object} [params.assignment] - `assignment` of getAssignment (pages)
+ * @returns {{submitted: number, joined: number, capacity: number, descriptionLine: string}} summary
+ */
+const summarizeAssignmentRow = ({ members, studentCount, assignment } = {}) => {
+    const joined = (members || []).filter((m) => !m.left);
+    const firstPage = assignment && Array.isArray(assignment.pages) ? assignment.pages[0] : null;
+    const lines = String((firstPage && firstPage.text) || '')
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean);
+    return {
+        submitted: joined.filter((m) => m.hasSubmission).length,
+        joined: joined.length,
+        capacity: studentCount || 0,
+        descriptionLine: lines[0] || '',
+    };
+};
+
 export {
     MAX_ASSIGNMENT_PAGES,
     MAX_ASSIGNMENT_PAGE_TEXT_LENGTH,
@@ -130,4 +155,5 @@ export {
     validateEditorPages,
     isEmptyAssignment,
     moveItem,
+    summarizeAssignmentRow,
 };

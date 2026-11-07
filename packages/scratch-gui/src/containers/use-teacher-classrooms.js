@@ -5,6 +5,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import classroomAPI from '../lib/classroom-api.js';
+import { summarizeAssignmentRow } from '../lib/classroom-assignment-utils.js';
 import translateError from './classroom-error-utils.js';
 
 const REFRESH_INTERVAL_MS = parseInt(process.env.CLASSROOM_REFRESH_INTERVAL_MS || '30000', 10);
@@ -98,6 +99,27 @@ export const enrichMembers = (membersData, submissionsData) => {
 export const pickDetailEntryTab = ({ classroomId, requestedTab, freshlyCreatedIds }) => {
     if (requestedTab) return requestedTab;
     return freshlyCreatedIds.has(classroomId) ? 'description' : 'members';
+};
+
+/**
+ * Load what an opened board row shows (#1301) with the existing teacher APIs.
+ * The description is optional: a failing getAssignment only drops that line.
+ * @param {object} api - classroom API client (classroomAPI)
+ * @param {string} token - teacher ID token
+ * @param {object} classroom - the assignment (classroomId, studentCount)
+ * @returns {Promise<object>} summarizeAssignmentRow result
+ */
+export const fetchAssignmentRowSummary = async (api, token, classroom) => {
+    const [membersData, submissionsData, assignmentData] = await Promise.all([
+        api.listMembers(token, classroom.classroomId),
+        api.listSubmissions(token, classroom.classroomId),
+        api.getAssignment(token, classroom.classroomId).catch(() => null),
+    ]);
+    return summarizeAssignmentRow({
+        members: enrichMembers(membersData, submissionsData),
+        studentCount: classroom.studentCount,
+        assignment: assignmentData && assignmentData.assignment,
+    });
 };
 
 /**
@@ -438,6 +460,23 @@ const useTeacherClassrooms = ({
      * assignment in the class — the board edits rows in place, so this
      * patches both the list and the selection instead of refetching.
      */
+    // Counts of an opened board row (#1301). Errors stay inside the row ("-")
+    // instead of the screen-wide error: it is a glance, not an action.
+    const loadAssignmentSummary = useCallback(
+        async (classroom) => {
+            try {
+                return await fetchAssignmentRowSummary(classroomAPI, idToken, classroom);
+            } catch (err) {
+                if (err.status !== 401) return null;
+                const newToken = await handleTeacher401();
+                return newToken
+                    ? fetchAssignmentRowSummary(classroomAPI, newToken, classroom).catch(() => null)
+                    : null;
+            }
+        },
+        [idToken, handleTeacher401],
+    );
+
     const handleUpdateAssignmentMeta = useCallback(
         async (classroomId, updates) => {
             if (!idToken) return;
@@ -613,6 +652,7 @@ const useTeacherClassrooms = ({
         detailEntry,
         markClassroomCreated,
         handleUpdateAssignmentMeta,
+        loadAssignmentSummary,
         handleUpdateAssignmentName,
         handleUpdateStudentCount,
         handleApproveKickRequest,

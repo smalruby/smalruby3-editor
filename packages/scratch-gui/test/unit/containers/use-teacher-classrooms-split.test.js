@@ -1,4 +1,8 @@
-import { pickDetailEntryTab, splitClassroomsByStatus } from '../../../src/containers/use-teacher-classrooms.js';
+import {
+    fetchAssignmentRowSummary,
+    pickDetailEntryTab,
+    splitClassroomsByStatus,
+} from '../../../src/containers/use-teacher-classrooms.js';
 
 describe('splitClassroomsByStatus', () => {
     test('partitions active and archived classrooms', () => {
@@ -37,5 +41,32 @@ describe('pickDetailEntryTab (teacher review on #1199)', () => {
         expect(
             pickDetailEntryTab({ classroomId: 'a', requestedTab: 'members', freshlyCreatedIds: new Set(['a']) }),
         ).toBe('members');
+    });
+});
+
+describe('fetchAssignmentRowSummary (#1301)', () => {
+    const api = (over = {}) => ({
+        listMembers: jest.fn().mockResolvedValue({
+            members: [{ memberId: 'seat-01' }, { memberId: 'seat-02' }],
+        }),
+        listSubmissions: jest.fn().mockResolvedValue({
+            submissions: [{ memberId: 'seat-01', submissionId: 's1', submittedAt: '2026-07-01' }],
+        }),
+        getAssignment: jest.fn().mockResolvedValue({ assignment: { pages: [{ text: '説明の1行目\n2行目' }] } }),
+        ...over,
+    });
+
+    test('joins members and submissions and reads the first description line', async () => {
+        const a = api();
+        const summary = await fetchAssignmentRowSummary(a, 'tok', { classroomId: 'c1', studentCount: 30 });
+        expect(a.listMembers).toHaveBeenCalledWith('tok', 'c1');
+        expect(summary).toEqual({ submitted: 1, joined: 2, capacity: 30, descriptionLine: '説明の1行目' });
+    });
+
+    test('a failing getAssignment only drops the description', async () => {
+        const a = api({ getAssignment: jest.fn().mockRejectedValue(new Error('x')) });
+        const summary = await fetchAssignmentRowSummary(a, 'tok', { classroomId: 'c1', studentCount: 30 });
+        expect(summary.descriptionLine).toBe('');
+        expect(summary.joined).toBe(2);
     });
 });
