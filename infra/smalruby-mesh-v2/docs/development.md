@@ -72,7 +72,6 @@ mesh-v2/
 ├── cdk.json                    # CDK configuration (stage context)
 ├── package.json                # Node.js dependencies
 ├── .env.stg                    # Staging environment variables
-├── .env.stg2                   # Staging 2 environment variables
 ├── .env.production             # Production environment variables
 ├── .env.example                # Environment variables template
 └── .env -> .env.production     # Symlink to active stage
@@ -124,7 +123,6 @@ Mesh v2 は環境変数を使用して設定を管理し、開発環境と本番
 ### 設定ファイル
 
 - **`.env.stg`**: ステージング環境用（高速な間隔、デバッグ向け）
-- **`.env.stg2`**: ステージング2環境用（並行テスト向け）
 - **`.env.production`**: 本番環境用（コスト最適化）
 - **`.env.example`**: テンプレートファイル（変数の説明付き）
 - **`.env`**: アクティブなステージへのシンボリックリンク

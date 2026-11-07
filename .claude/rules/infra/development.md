@@ -357,7 +357,7 @@ account ID は CDK の `cdk.context.json` コミット方針で既にリポジ�
 
 ## Stage Switching via `.env` Symlink
 
-All 5 projects use the same pattern: per-stage `.env` files (`.env.stg`, `.env.stg2`, `.env.prod`) with a `.env` symlink pointing to the active stage.
+All 5 projects use the same pattern: per-stage `.env` files (`.env.stg`, `.env.prod`) with a `.env` symlink pointing to the active stage.
 
 ```bash
 cd infra/<project-name>
@@ -391,7 +391,6 @@ aws appsync list-domain-names --query "domainNameConfigs[].domainName" --output 
 # Expected domains:
 #   graphql.api.smalruby.app        (prod)
 #   stg.graphql.api.smalruby.app    (stg)
-#   stg2.graphql.api.smalruby.app   (stg2)
 
 # Verify DNS resolution
 dig stg.graphql.api.smalruby.app A +short
