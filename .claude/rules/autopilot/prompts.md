@@ -141,8 +141,8 @@ prod へは **develop へのマージで workflow が自動で出す**（削除�
 
 ## infra と GUI を分ける（infra-first）
 
-ブランチプレビューは prod の API を見るので、infra と GUI を同じ PR に入れると新しい API を
-使う GUI をプレビューで確認できない。手順の正準は `.claude/rules/infra/development.md` の
+ブランチプレビューは stg の API を見るので（#1344 が入るまでは prod）、infra と GUI を同じ PR に
+入れると新しい API を使う GUI をプレビューで確認できない。手順の正準は `.claude/rules/infra/development.md` の
 「infra は別 Issue に分けて先に出す」。プロンプト側の規約は次のとおり（定数は `phases.js` の
 `INFRA_LABEL` = `🧱 infra`）:
 
@@ -158,7 +158,10 @@ prod へは **develop へのマージで workflow が自動で出す**（削除�
   実装せず、何が要るかをコメントして HITL で人間に返す（infra の sub-issue を作るかは人間が決める）。
 - **review**: 上の 2 つに反する PR は **[Must]**（infra の PR に `Closes #N`・非互換な変更、
   非 infra の PR に `infra/**` の変更）。
-- **verify**: 🧱 infra を待っていた GUI の Issue は、**ブランチプレビュー**（prod API）で確認する。
+- **verify**: 🧱 infra を待っていた GUI の Issue は、**ブランチプレビュー**（stg API）で確認する。
+  確かめる前に stg が develop（または自分の PR）の状態かを確認し、ログインが要るなら
+  `?devlogin=<DEV_BYPASS_TOKEN>` を使う（手順は `.claude/rules/infra/development.md` の
+  「ブランチプレビューで確かめる（stg の API）」。トークンを GitHub に書かない）。
 
 daemon 側: 🧱 infra の Issue は、PR の merge で Project は Close に進めるが **GitHub の Issue は
 閉じない**（`shouldCloseIssueOnMerge`）。`autopilot-after` の相手が 🧱 infra のときは、
