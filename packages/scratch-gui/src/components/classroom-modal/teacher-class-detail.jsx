@@ -113,10 +113,28 @@ const TeacherClassDetail = ({
     const [editAssignmentName, setEditAssignmentName] = useState(
         selectedClassroom.assignmentName || '',
     );
+    // Save feedback for the assignment name (#1388): how it is saved while the
+    // field is focused, then whether it was saved.
+    const [nameFocused, setNameFocused] = useState(false);
+    const [nameSaveStatus, setNameSaveStatus] = useState(null); // null | 'saved' | 'error'
+    const nameSavedTimerRef = useRef(null);
+    // Bumped whenever the shown result becomes stale (new edit, another
+    // assignment, unmount), so a save that resolves late does not show it.
+    const nameSaveSeqRef = useRef(0);
+    const clearNameSavedTimer = useCallback(() => {
+        nameSaveSeqRef.current += 1;
+        if (nameSavedTimerRef.current) {
+            clearTimeout(nameSavedTimerRef.current);
+            nameSavedTimerRef.current = null;
+        }
+    }, []);
+    useEffect(() => clearNameSavedTimer, [clearNameSavedTimer]);
 
     // Sync local state when a different classroom is selected
     useEffect(() => {
         setEditAssignmentName(selectedClassroom.assignmentName || '');
+        clearNameSavedTimer();
+        setNameSaveStatus(null);
         setShowDeleteConfirm(false);
         setShowCodeDisplay(false);
         setActiveTab(entryTab);
@@ -176,8 +194,18 @@ const TeacherClassDetail = ({
         setShowDeleteConfirm(false);
     }, []);
 
-    const handleAssignmentNameChange = useCallback((e) => {
-        setEditAssignmentName(e.target.value);
+    const handleAssignmentNameChange = useCallback(
+        (e) => {
+            setEditAssignmentName(e.target.value);
+            // A new edit makes the previous result stale.
+            clearNameSavedTimer();
+            setNameSaveStatus(null);
+        },
+        [clearNameSavedTimer],
+    );
+
+    const handleAssignmentNameFocus = useCallback(() => {
+        setNameFocused(true);
     }, []);
 
     // Enter saves and leaves the name field (the value is saved on blur).
@@ -193,14 +221,34 @@ const TeacherClassDetail = ({
     }, []);
 
     const handleAssignmentNameBlur = useCallback(() => {
+        setNameFocused(false);
         const trimmed = editAssignmentName.trim();
-        if (trimmed && trimmed !== (selectedClassroom.assignmentName || '') && onUpdateAssignmentName) {
-            onUpdateAssignmentName(trimmed);
+        // An unchanged name is not saved, so nothing is shown (#1388).
+        if (!trimmed || trimmed === (selectedClassroom.assignmentName || '') || !onUpdateAssignmentName) {
+            return;
         }
-    }, [editAssignmentName, selectedClassroom, onUpdateAssignmentName]);
-
-
-
+        clearNameSavedTimer();
+        setNameSaveStatus(null);
+        const seq = nameSaveSeqRef.current;
+        // The handler resolves false when the save failed; anything else is a save.
+        Promise.resolve(onUpdateAssignmentName(trimmed)).then(
+            (ok) => {
+                if (seq !== nameSaveSeqRef.current) return;
+                if (ok === false) {
+                    setNameSaveStatus('error');
+                    return;
+                }
+                setNameSaveStatus('saved');
+                nameSavedTimerRef.current = setTimeout(() => {
+                    nameSavedTimerRef.current = null;
+                    setNameSaveStatus(null);
+                }, 2000);
+            },
+            () => {
+                if (seq === nameSaveSeqRef.current) setNameSaveStatus('error');
+            },
+        );
+    }, [editAssignmentName, selectedClassroom, onUpdateAssignmentName, clearNameSavedTimer]);
 
     const intl = useIntl();
 
@@ -322,8 +370,8 @@ const TeacherClassDetail = ({
                                 分け、各カラムを 2 行に収める。参加コードカードが
                                 縦に伸びて全体が崩れるのを防ぐ。 */}
                             <div className={styles.nameCodeRow}>
-                                {/* 左: 課題名。1 行の入力欄と、編集できることを示す
-                                    「名前を変える」（どちらもラベル・#1303 D3）。 */}
+                                {/* 左: 課題名。1 行の入力欄（#1303 D3）。カーソルがある間は
+                                    欄の下に保存のしかた、保存後は欄の横に結果を出す（#1388）。 */}
                                 <div className={styles.nameCol}>
                                     <label className={styles.assignmentNameLabel} htmlFor={nameInputId}>
                                         <FormattedMessage
@@ -333,29 +381,59 @@ const TeacherClassDetail = ({
                                         />
                                         {': '}
                                     </label>
-                                    <input
-                                        className={styles.assignmentNameInput}
-                                        data-testid="classroom-detail-assignment-name"
-                                        id={nameInputId}
-                                        maxLength={50}
-                                        type="text"
-                                        value={editAssignmentName}
-                                        onBlur={handleAssignmentNameBlur}
-                                        onChange={handleAssignmentNameChange}
-                                        onKeyDown={handleAssignmentNameKeyDown}
-                                    />
-                                    <label
-                                        className={styles.assignmentNameRenameHint}
-                                        data-testid="classroom-detail-assignment-name-hint"
-                                        htmlFor={nameInputId}
-                                    >
-                                        {'✎ '}
-                                        <FormattedMessage
-                                            defaultMessage="Rename"
-                                            description="Hint next to the assignment name field that the name can be changed there"
-                                            id="gui.classroom.teacherDetail.renameHint"
+                                    <div className={styles.assignmentNameField}>
+                                        <input
+                                            className={styles.assignmentNameInput}
+                                            data-testid="classroom-detail-assignment-name"
+                                            id={nameInputId}
+                                            maxLength={50}
+                                            type="text"
+                                            value={editAssignmentName}
+                                            onBlur={handleAssignmentNameBlur}
+                                            onChange={handleAssignmentNameChange}
+                                            onFocus={handleAssignmentNameFocus}
+                                            onKeyDown={handleAssignmentNameKeyDown}
                                         />
-                                    </label>
+                                        {nameFocused && (
+                                            <div
+                                                className={styles.assignmentNameSaveHint}
+                                                data-testid="classroom-detail-assignment-name-save-hint"
+                                            >
+                                                <FormattedMessage
+                                                    defaultMessage="Press Enter or click outside the field to save"
+                                                    description="Shown under the assignment name field while it is focused: how the name is saved"
+                                                    id="gui.classroom.teacherDetail.assignmentNameSaveHint"
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                    {nameSaveStatus === 'saved' && (
+                                        <span
+                                            className={styles.assignmentNameSaved}
+                                            data-testid="classroom-detail-assignment-name-saved"
+                                            role="status"
+                                        >
+                                            {'✓ '}
+                                            <FormattedMessage
+                                                defaultMessage="Saved"
+                                                description="Shown next to the assignment name for a moment after it was saved"
+                                                id="gui.classroom.teacherDetail.assignmentNameSaved"
+                                            />
+                                        </span>
+                                    )}
+                                    {nameSaveStatus === 'error' && (
+                                        <span
+                                            className={styles.assignmentNameSaveError}
+                                            data-testid="classroom-detail-assignment-name-save-error"
+                                            role="alert"
+                                        >
+                                            <FormattedMessage
+                                                defaultMessage="Couldn't save"
+                                                description="Shown next to the assignment name when saving it failed"
+                                                id="gui.classroom.teacherDetail.assignmentNameSaveFailed"
+                                            />
+                                        </span>
+                                    )}
                                 </div>
 
                                 {/* 右: 参加コードカード。コードとボタンを 1 つの
