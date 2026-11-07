@@ -134,15 +134,19 @@ interface UsageContext {
 // ---------------------------------------------------------------------------
 // Input validation
 // ---------------------------------------------------------------------------
+// 単語の境目で照合する。境目なしだと `interact as` / `exact as` / `you are nowhere` のような
+// 普通の英文（生成AIの答えのコメントなど）にも当たり、相談が INVALID_INPUT になる (#1335)。
+// 末尾が活用・複数形になりうるもの（prompts / jailbreaking / personas / pretend your）は
+// 判定を弱めないよう末尾の境目を付けない。
 const DANGEROUS_PATTERNS = [
-  /ignore previous instructions/i,
-  /forget everything/i,
-  /you are now/i,
-  /act as/i,
-  /pretend you/i,
-  /new persona/i,
-  /system prompt/i,
-  /jailbreak/i,
+  /\bignore previous instructions\b/i,
+  /\bforget everything\b/i,
+  /\byou are now\b/i,
+  /\bact as\b/i,
+  /\bpretend you/i,
+  /\bnew persona/i,
+  /\bsystem prompt/i,
+  /\bjailbreak/i,
 ];
 
 export function validateStateContext(
