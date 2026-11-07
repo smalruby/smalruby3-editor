@@ -41,4 +41,10 @@ describe('preview viewer-request function', () => {
         });
         expect(res.headers.location.value).toBe('/my-branch/?tab=ruby&no_beforeunload=1&f=a&f=b%20c');
     });
+
+    test('never redirects to another host (no protocol-relative Location)', () => {
+        expect(request('//evil.example/x').headers.location.value).toBe('/evil.example/x/');
+        expect(request('/\\evil.example/x').headers.location.value).toBe('/evil.example/x/');
+        expect(request('///evil.example/x').headers.location.value).toBe('/evil.example/x/');
+    });
 });

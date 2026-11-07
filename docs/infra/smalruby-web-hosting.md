@@ -109,7 +109,10 @@ ACM の DNS 検証は、公開 DNS から検証レコード（CNAME）が引け�
 **CI がアップロードするときの約束**（キャッシュを効かせるため）:
 
 - `index.html` などハッシュの付かないファイル（`auth-redirect.html` / `auth-redirect.js` /
-  `sw.js` など）は `Cache-Control` を付けない（または `no-cache`）。エッジに 60 秒だけ残る。
+  `sw.js` など）は `Cache-Control: max-age=0, s-maxage=60` を付ける。エッジには 60 秒だけ残り、
+  ブラウザは毎回確かめ直す。`Cache-Control` を付けないとエッジは既定の 60 秒になるが、ブラウザが
+  `Last-Modified` から勝手に鮮度を見積もって古い `index.html` を使い続けることがある。
+  `no-cache` だけを付けるとエッジにも残らない（MinTTL が 0 のため）。
 - ファイル名にハッシュが付いたもの（`*.<hash>.js`、`static/assets/*.<hash>.*`。Workbox の
   `dontCacheBustURLsMatching` と同じ `/\.[0-9a-f]{8,}\./`）は
   `Cache-Control: public, max-age=31536000, immutable` を付ける。

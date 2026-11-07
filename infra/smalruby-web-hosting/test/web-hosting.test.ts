@@ -42,7 +42,6 @@ describe('SmalrubyWebHostingStack', () => {
         );
     });
 
-
     test('prod creates no preview resources', () => {
         const template = synth('prod');
 

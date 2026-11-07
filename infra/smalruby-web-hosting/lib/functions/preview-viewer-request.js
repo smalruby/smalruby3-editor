@@ -5,6 +5,9 @@
 // - `/<slug>` のように末尾が `/` でも拡張子付きファイルでもない → `/<slug>/` へ 301
 //   （GUI は相対パスでアセットを読むので、`/` 無しのままだと 1 階層上を見てしまう）
 // - それ以外（`/<slug>/gui.<hash>.js`、ルートの `/auth-redirect.html` など）はそのまま
+//
+// 301 の Location は先頭の `/` と `\` を 1 つの `/` にまとめる。`//evil.com/x` をそのまま
+// `//evil.com/x/` で返すと、ブラウザはプロトコル相対 URL として別ホストへ飛ぶ（オープンリダイレクト）。
 function encodeQueryString(querystring) {
     var parts = [];
     for (var key in querystring) {
@@ -32,7 +35,13 @@ function handler(event) {
             statusCode: 301,
             statusDescription: 'Moved Permanently',
             headers: {
-                location: { value: uri + '/' + encodeQueryString(request.querystring || {}) },
+                location: {
+                    value:
+                        '/' +
+                        uri.replace(/^[\/\\]+/, '') +
+                        '/' +
+                        encodeQueryString(request.querystring || {}),
+                },
             },
         };
     }
