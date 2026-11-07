@@ -102,7 +102,11 @@ console.log(JSON.stringify(extractCommentRefs(require("fs").readFileSync(0, "utf
 **bot の review 指摘（`<!-- autopilot-review-findings round=N -->` のまとめコメント・`**[M1]**` / `**[Q1]**` /
 `**[FYI1]**` の ID 付き）を ID で指定された場合**は、`planAddressReview`（純粋関数・テスト済み）に
 **指示の本文だけ**を `replies` として渡し、**`source:"human"` の項目だけ**に対応する
-（`source:"policy"` の既定方針は使わない — 言及の無い Must / Question / FYI には対応しない）:
+（`source:"policy"` の既定方針は使わない — 言及の無い Must / Question / FYI には対応しない。
+既定方針（Must=修正 / Question=基本は修正・見送るなら follow-up sub-issue / FYI=簡単なら修正）は
+review フェーズが**既に当てて**、まとめコメントの各行に結果（修正済み・見送り理由・follow-up 番号）を
+残している。ここで再び当てると、review が理由を書いて見送ったものをやり直したり、人間の返信より
+既定方針が勝ったりするため。人間が ID で触れなかった指摘は「review の扱いで OK」と読む）:
 
 ```bash
 # tmp/human-replies-$AUTOPILOT_ISSUE.json に「指示」の本文の配列（古い順）を書いてから:
@@ -141,8 +145,12 @@ Issue と PR の Blocked コメント（理由）と、その後の人間のコ�
 ### 3. 対応する
 
 - **Must / 改善依頼 / `action:"fix"`**: worktree 内で修正 → 関連テスト/lint → `bin/bot-git` でコミット・push。
-- **Question（対応可）/ 質問 / `action:"reply"`**: PR に bot で返信。コード変更を伴うならあわせて push。
-- **FYI（`ignore`）/ `action:"no-change"`**: 何もしない（既存のコメントを消さない）。
+- **質問 / `action:"reply"`**: PR に bot で返信。コード変更を伴うならあわせて push。
+- **`action:"no-change"`**: 何もしない（既存のコメントを消さない）。
+- **人間が「直して」と言った指摘を、よほど大変・効果が小さいなどの理由でこの PR では直せないとき**は、
+  黙って見送らず、review フェーズと同じ手順（`autopilot-review.md` ステップ 5 の
+  「follow-up の sub-issue の作り方」）で follow-up の sub-issue を作り、まとめコメントにその番号を書く。
+  人間の指示に反するので、出口は (c)（人間に確認）にする。
 - 対応の有無が辿れるよう、**まとめコメントを 1 件**残す（「指摘 N 件: 対応 a 件 / 返信 b 件 / 対応不要 c 件」）。
   **先頭に、手順 2 で選んだレビューの ID を `addressReviewMarker` で埋める**
   （例 `<!-- autopilot-address-review handled-reviews=3409123456 -->`）。次に 🙋 が外れたとき、
@@ -192,8 +200,9 @@ EOF
 echo AUTOPILOT_DONE
 ```
 
-**(c) 判断がつかない → 人間に質問**（論点を整理してコメント済み。**改修コスト > 効果と判断した
-Question 分類の指摘**もここに含める — コメントで論点を明示し、コードは変えない）:
+**(c) 判断がつかない → 人間に質問**（論点を整理してコメント済み。**仕様・方針の選択が人間にしか
+できない指摘**と、**「直して」と言われたが follow-up に回した指摘**もここに含める — コメントで論点と
+follow-up の番号を明示する）:
 
 ```bash
 cat > "$AUTOPILOT_RESULT_FILE" <<EOF

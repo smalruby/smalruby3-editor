@@ -55,7 +55,7 @@ rm .env && ln -s .env.prod .env   # → prod
 
 | Variable | Description |
 |----------|-------------|
-| `STAGE` | Deployment stage (`stg`, `stg2`, `prod`) |
+| `STAGE` | Deployment stage (`stg`, `prod`) |
 | `CORS_ALLOWED_ORIGINS` | Comma-separated allowed origins |
 | `ROUTE53_PARENT_ZONE_NAME` | Parent zone for custom domain (default: `api.smalruby.app`) |
 | `SMALRUBY_API_CUSTOM_DOMAIN` | Override custom domain. Set `false` to disable |

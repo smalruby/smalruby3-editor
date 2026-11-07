@@ -14,7 +14,7 @@ Smalruby の Web フロントエンドを AWS（Route 53 / 今後 S3 + CloudFron
 ## 不変条件
 
 - **プレビュー用の資源は stg ステージだけに作る**。`Deploy Infra` は develop へのマージで prod にも
-  出すので、stg 以外（prod / stg2 など）では何も作らない（`if (stage !== 'stg') return`）。
+  出すので、stg 以外（prod など）では何も作らない（`if (stage !== 'stg') return`）。
   同じ名前のゾーンが複数あると、どれが委任先か分からなくなる。この分岐を外さない。
 - **ホストゾーン `preview.smalruby.app` は `RemovalPolicy.RETAIN`**。作り直すと NS が変わり、
   お名前.com に登録した委任（NS 4 本）と食い違って `preview.smalruby.app` が引けなくなる。

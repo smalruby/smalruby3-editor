@@ -43,6 +43,77 @@ describe('repairRuby', () => {
         expect(code).toBe('play("Meow")\nplay_until_done("Meow")\nswitch_costume("B")\nsleep(0.5)\nsleep(2)');
     });
 
+    test('renames Scratch-style commands the AI makes up to Smalruby ones (#1283)', () => {
+        const { code, fixes } = repairRuby(
+            [
+                'when_green_flag_clicked do',
+                '  point_in_direction(-90)',
+                '  forever do',
+                '    if touched?("Apple") || key_pressed?("space")',
+                '      broadcast("a")',
+                '    end',
+                '  end',
+                'end',
+                'when_this_sprite_clicked do',
+                'end',
+                'when_sprite_clicked do',
+                'end',
+                'when_broadcast_received("ゴール") do',
+                'end',
+                'when_i_receive("ゴール") do',
+                'end',
+            ].join('\n'),
+        );
+        expect(code).toBe(
+            [
+                'when_flag_clicked do',
+                '  self.direction = -90',
+                '  loop do',
+                '    if touching?("Apple") || keyboard.pressed?("space")',
+                '      broadcast("a")',
+                '    end',
+                '  end',
+                'end',
+                'when_clicked do',
+                'end',
+                'when_clicked do',
+                'end',
+                'when_receive("ゴール") do',
+                'end',
+                'when_receive("ゴール") do',
+                'end',
+            ].join('\n'),
+        );
+        expect(fixes.map((fix) => fix.line)).toEqual([1, 2, 3, 4, 9, 11, 13, 15]);
+    });
+
+    test('fixes clone and stop commands the AI gets wrong (#1283)', () => {
+        const { code } = repairRuby(
+            'create_clone\nwhen_start_as_clone do\n  stop_all\nend\nstop_all()\nstop_all_sounds\ncreate_clone("_myself_")\n',
+        );
+        expect(code).toBe(
+            'create_clone("_myself_")\nwhen_start_as_a_clone do\n  stop("all")\nend\nstop("all")\nstop_all_sounds\ncreate_clone("_myself_")\n',
+        );
+    });
+
+    test('writes random numbers as a range (#1283)', () => {
+        const { code } = repairRuby(
+            'go_to([rand(-220, 220), 180])\nsleep(pick_random(1, 3))\nmove(random(1,5))\nrand(1..10)\n',
+        );
+        expect(code).toBe('go_to([rand(-220..220), 180])\nsleep(rand(1..3))\nmove(rand(1..5))\nrand(1..10)\n');
+    });
+
+    test('does not rename inside strings, comments or longer names', () => {
+        const source = [
+            '# when_this_sprite_clicked は使えない',
+            'say("forever do")',
+            'keyboard.pressed?("space")',
+            'my_touched?("a")',
+            'self.direction = 90',
+        ].join('\n');
+        expect(repairRuby(source).code).toBe(source);
+    });
+
     test('leaves correct code and wait until alone', () => {
         const source = 'play("Pop")\nwait until !($わたし == "")\n';
         expect(repairRuby(source, { sounds: ['Pop'] })).toEqual({ code: source, fixes: [], missing: [] });

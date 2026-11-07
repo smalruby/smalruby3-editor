@@ -76,7 +76,7 @@ Scratch translate サービス (`https://translate-service.scratch.mit.edu/trans
 
 | 変数 | デフォルト | 用途 |
 |---|---|---|
-| `STAGE` | - | デプロイ stage (`stg`, `stg2`, `prod`) |
+| `STAGE` | - | デプロイ stage (`stg`, `prod`) |
 | `CORS_ALLOWED_ORIGINS` | smalruby.app, smalruby.jp, localhost:8601 | CORS 許可オリジン (カンマ区切り)。非 prod では指定に関係なく `https://preview.smalruby.app` も足す |
 | `ROUTE53_PARENT_ZONE_NAME` | `api.smalruby.app` | カスタムドメイン親ゾーン |
 | `SMALRUBY_API_CUSTOM_DOMAIN` | (stage により自動) | カスタムドメインのオーバーライド (`false` で無効化) |

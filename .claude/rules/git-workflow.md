@@ -54,7 +54,7 @@ bin/setup-worktree   # all-in-one setup: env + node_modules + dist/
 `bin/sync-worktree-env` だけを使う場合は以下のみ実行される:
 
 - 以下の gitignored env ファイルを main checkout からコピー:
-  - `.env` / `.env.{stg,stg2,production}` (root, used by webpack at build time)
+  - `.env` / `.env.{stg,production}` (root, used by webpack at build time)
   - `infra/*/.env.<stage>` — **infra プロジェクトを走査**して実在するものだけコピーする
     （ハードコード一覧ではないので、CDK プロジェクトが増えても追随する。現在の対象は
     smalruby-mesh-v2 / smalruby-rubytee-relay / smalruby-classroom / smalruby-api /
@@ -333,6 +333,11 @@ git rebase develop
 git log --oneline
 git log --oneline --graph
 ```
+
+## GitHub Actions の runner
+
+`.github/workflows/` にジョブを足す・`runs-on` を変えるときは **`docs/maintenance/ci-runners.md`** に従う
+（版を固定する。`ubuntu-latest` / `windows-latest` を書かない。古い版に残すときは理由のコメントと追跡 Issue）。
 
 ## Package Lock File
 
