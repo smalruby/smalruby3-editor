@@ -178,8 +178,7 @@ daemon が Issue に **`🔬 spike` ラベル**を付ける。GitHub のラベ�
 
 ### 🧱 infra ラベル（infra を先に出す・infra-first）
 
-ブランチプレビューは stg の API を見るので（プレビューのビルドが stg を向く #1344 が入るまでは
-prod）、infra と GUI を同じ PR に入れると新しい API を使う GUI をプレビューで確認できない。そこで **infra（`infra/**`）の変更は GUI と別の sub-issue に
+ブランチプレビュー（`https://preview.smalruby.app/<slug>/`）は stg の API を見るので、infra と GUI を同じ PR に入れると新しい API を使う GUI をプレビューで確認できない。そこで **infra（`infra/**`）の変更は GUI と別の sub-issue に
 分け、`🧱 infra` ラベルを付けて先に develop へ出す**（手順の正準は
 `.claude/rules/infra/development.md` の「infra は別 Issue に分けて先に出す」）。
 
@@ -409,8 +408,8 @@ Playwright / 実 Chrome）に渡す引き継ぎを生成する**」。LLM は in
 
 1. 連携 PR と Issue 本文の **DoD チェックリスト**を取得（`extractDodChecklist`）。
 2. **プレビュー URL** を PR の CI コメントから拾う（`extractPreviewUrl`。
-   `https://smalruby.jp/smalruby3-editor/<branch>/`。#1344 で `https://preview.smalruby.app/<slug>/`
-   に移り、stg の API を見る）。
+   stg の API を見る `https://preview.smalruby.app/<slug>/` を優先し、無ければ prod の API を見る
+   旧 GitHub Pages の `https://smalruby.jp/smalruby3-editor/<branch>/`）。
 3. **テンプレートで引き継ぎ本文を生成**（`dodHandoffBody`）して `autopilot:dod-handoff` マーカー付き
    コメントを PR に投稿する。本文は「プレビュー URL ＋ Issue の DoD チェックリスト転記 ＋ 定型 headful
    手順（`?no_beforeunload=1`、スクショは `tmp/`→`docs/<feature>/screenshots/`、秘密情報は本文に

@@ -1220,6 +1220,21 @@ test('extractPreviewUrl: finds branch preview URL from CI comments', () => {
     assert.equal(extractPreviewUrl(null), null);
 });
 
+test('extractPreviewUrl: prefers the stg preview (preview.smalruby.app) over the old GitHub Pages one', () => {
+    const comments = [
+        { body: '🚀 Preview deployed: https://smalruby.jp/smalruby3-editor/topic/autopilot-1344/' },
+        {
+            body: '🚀 Preview (stg API): https://preview.smalruby.app/topic-autopilot-1344/\n' +
+                '- GitHub Pages (prod API): https://smalruby.jp/smalruby3-editor/topic/autopilot-1344/',
+        },
+    ];
+    assert.equal(extractPreviewUrl(comments), 'https://preview.smalruby.app/topic-autopilot-1344/');
+    assert.equal(
+        extractPreviewUrl([{ body: 'see https://preview.smalruby.app/develop/)' }]),
+        'https://preview.smalruby.app/develop/',
+    );
+});
+
 test('extractDodChecklist: extracts the DoD section until the next heading', () => {
     const body = [
         '## 概要', 'foo', '', '## DoD', '', '- [ ] item A', '- [ ] item B', '', '## 備考', 'bar',

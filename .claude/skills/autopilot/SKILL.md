@@ -140,7 +140,7 @@ echo "  stop:    curl -X POST localhost:<PORT>/shutdown  (supervisor も停止�
 `enroll autopilot` が**複数案件**を含むときは、1 案件 = 1 Issue に分けてから同じ手順を繰り返す。
 
 **infra（`infra/**`）とそれ以外の両方に変更が要る内容なら、必ず分ける**（infra-first・
-`.claude/rules/infra/development.md`）。ブランチプレビューは stg の API を見るので（#1344 が入るまでは prod）、まとめると
+`.claude/rules/infra/development.md`）。ブランチプレビュー（`preview.smalruby.app`）は stg の API を見るので、まとめると
 GUI をプレビューで確認できない:
 
 - 親 Issue（Kind=EPIC）の下に、**infra の sub-issue** と **それ以外の sub-issue** を作る

@@ -123,7 +123,8 @@ Playwright MCP を使うと効率的。
 
 PR にコメントされる URL、または:
 ```
-https://smalruby.jp/smalruby3-editor/<branch-name>/
+https://preview.smalruby.app/<slug>/              # stg の API（slug は scripts/preview-slug.mjs）
+https://smalruby.jp/smalruby3-editor/<branch-name>/  # prod の API（GitHub Pages・#1345 まで）
 ```
 
 ### 確認項目
