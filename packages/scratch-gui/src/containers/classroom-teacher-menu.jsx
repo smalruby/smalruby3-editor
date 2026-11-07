@@ -27,8 +27,9 @@ import { loadDailyNotifications } from './use-teacher-notifications.js';
  *
  * Mounted for the whole page lifetime (unlike the teacher modal), so it also
  * owns bringing the teacher login back after a reload: `?devlogin=` from the
- * URL, otherwise the provider's silent re-authentication when a previous
- * login was persisted. Renders nothing while no teacher is logged in.
+ * URL the page was opened with (it is removed from the address bar after
+ * reading, so a later reload needs it again), otherwise the provider's silent
+ * re-authentication when a previous login was persisted. Renders nothing while no teacher is logged in.
  * @param {object} props - component props
  * @param {string} props.className - class of the menu bar button
  * @param {string} props.activeClassName - class added while the menu is open

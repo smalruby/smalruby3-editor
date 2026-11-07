@@ -27,7 +27,8 @@ const TOKEN_STORAGE_KEY = 'smalruby:classroomTeacherToken';
 const TOKEN_EXPIRY_MARGIN_MS = 60 * 1000;
 
 // Providers that have a silent re-authentication path. The dev bypass token
-// (?devlogin=) restores itself from the URL and is never persisted.
+// (?devlogin=) is never persisted: it is read once from the URL (and then
+// removed from it), so a reload needs `?devlogin=` again.
 const RESTORABLE_PROVIDERS = ['google', 'microsoft'];
 
 const hasLocalStorage = () => typeof window !== 'undefined' && !!window.localStorage;

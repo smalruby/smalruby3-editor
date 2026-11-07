@@ -23,6 +23,7 @@ import {
     clearAuthSession,
     cleanupOnReload,
 } from '../lib/teacher-auth.js';
+import { getUrlParams } from '../lib/url-params.js';
 
 // Persists teacher login across modal close/open within same page session
 let _cachedTeacherIdToken = null;
@@ -192,8 +193,8 @@ const useTeacherAuth = ({ mode, clearError, setPhase, showSessionExpiredError })
 
     const handleSilentReauth = useCallback(async () => {
         if (mode !== 'teacher') return null;
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('devlogin')) return null;
+        // getUrlParams() keeps the value after it has been removed from the URL
+        if (getUrlParams().devlogin) return null;
         const newToken = await attemptSilentReauth(authProvider);
         if (newToken) {
             setIdToken(newToken);

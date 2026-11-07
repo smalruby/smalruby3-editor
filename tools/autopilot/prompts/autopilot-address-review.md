@@ -218,6 +218,7 @@ echo AUTOPILOT_HITL
 ## 注意
 
 - **既存 PR ブランチで作業**（新ブランチを切らない）。1 Issue = 1 PR。
+- **トークンの値を書かない**（#1393）: `DEV_BYPASS_TOKEN` など秘密の値を、PR / Issue のコメント・PR 本文・コミット（メッセージ・コード・テスト）・スクリーンショットの説明に書かない。確認手順は `?devlogin=<DEV_BYPASS_TOKEN>` / `Authorization: Bearer <DEV_BYPASS_TOKEN>` のように**キー名で**書く。テストにはダミーの値を使う。
 - **base とのコンフリクトはこのフェーズでは扱わない。** 着手時の base 追従でコンフリクトしたら、daemon が
   先に `autopilot-resolve-conflict` で解消してからこのフェーズを起動する（#1348）。Request changes が
   「resolve conflict」だけなら、起動した時点で解消は済んでいるので、PR が mergeable になっていることを
