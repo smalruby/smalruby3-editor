@@ -8,6 +8,7 @@
 import {
   LOCAL_DEV_PORT_FIRST,
   LOCAL_DEV_PORT_LAST,
+  PREVIEW_ORIGINS,
   isLocalOrigin,
   localDevOrigins,
   resolveCorsOrigins,
@@ -55,10 +56,10 @@ describe('isLocalOrigin', () => {
 });
 
 describe('resolveCorsOrigins', () => {
-  test('非 prod は本番オリジン + ローカル範囲', () => {
+  test('非 prod は本番オリジン + ローカル範囲 + ブランチプレビュー', () => {
     const origins = resolveCorsOrigins('stg', PROD_ORIGINS);
 
-    expect(origins).toEqual([...PROD_ORIGINS, ...localDevOrigins()]);
+    expect(origins).toEqual([...PROD_ORIGINS, ...localDevOrigins(), ...PREVIEW_ORIGINS]);
   });
 
   test('prod はローカルを一切含まない', () => {
@@ -68,10 +69,29 @@ describe('resolveCorsOrigins', () => {
     expect(origins.some(isLocalOrigin)).toBe(false);
   });
 
+  test('prod はブランチプレビューを含まない（プレビューは stg の API を見る）', () => {
+    expect(resolveCorsOrigins('prod', PROD_ORIGINS)).not.toContain('https://preview.smalruby.app');
+    expect(resolveCorsOrigins('prod', PROD_ORIGINS, 'https://smalruby.app')).not.toContain(
+      'https://preview.smalruby.app',
+    );
+  });
+
   test('env の指定が既定より優先される', () => {
     const origins = resolveCorsOrigins('stg', PROD_ORIGINS, 'https://example.com, http://localhost:9999');
 
-    expect(origins).toEqual(['https://example.com', 'http://localhost:9999']);
+    expect(origins).toEqual(['https://example.com', 'http://localhost:9999', ...PREVIEW_ORIGINS]);
+  });
+
+  // stg の env は GitHub secrets 由来で CORS_ALLOWED_ORIGINS を明示しているため、
+  // env を指定してもプレビューが落ちないことを固定する。
+  test('非 prod では env を指定してもブランチプレビューを足す（重複はしない）', () => {
+    expect(resolveCorsOrigins('stg', PROD_ORIGINS, 'https://smalruby.app')).toEqual([
+      'https://smalruby.app',
+      'https://preview.smalruby.app',
+    ]);
+    expect(
+      resolveCorsOrigins('stg', PROD_ORIGINS, 'https://preview.smalruby.app,https://smalruby.app'),
+    ).toEqual(['https://preview.smalruby.app', 'https://smalruby.app']);
   });
 
   test('prod に localhost を渡した env は deploy させない', () => {
@@ -90,6 +110,7 @@ describe('resolveCorsOrigins', () => {
     expect(resolveCorsOrigins('stg', PROD_ORIGINS, ' https://a.example , , https://b.example ')).toEqual([
       'https://a.example',
       'https://b.example',
+      ...PREVIEW_ORIGINS,
     ]);
   });
 });

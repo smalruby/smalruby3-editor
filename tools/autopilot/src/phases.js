@@ -282,6 +282,98 @@ function shouldCloseIssueOnMerge(item) {
 }
 
 /**
+ * merge / closed で Close に進めた Issue の worktree とローカルブランチを片付けてよいか（純粋関数・#1362）。
+ *
+ * daemon が無人で `git worktree remove --force` / `git branch -D` を撃つので、作業が失われうる
+ * ときは消さない。判定できなかった事実（undefined）は安全側＝消さない。🧱 infra も対象
+ * （GitHub の Issue を閉じないのとは別で、PR が merge されれば worktree は不要）。
+ * @param {object} facts
+ * @param {boolean} [facts.running] その Issue の worker が実行中か（`state.running`）
+ * @param {boolean} [facts.dirty] `git status --porcelain` が空でないか（gitignore 済みは含まない）
+ * @param {string|null} [facts.branch] worktree が checkout しているブランチ（detached なら null）
+ * @param {boolean} [facts.mergedIntoBase] ブランチ先端が `origin/<base>` に含まれるか
+ * @returns {{cleanup: boolean, reason: 'running'|'dirty'|'detached'|'not-merged'|null}}
+ */
+function shouldCleanupWorktree(facts = {}) {
+    if (facts.running !== false) return { cleanup: false, reason: 'running' };
+    if (facts.dirty !== false) return { cleanup: false, reason: 'dirty' };
+    if (!facts.branch) return { cleanup: false, reason: 'detached' };
+    if (facts.mergedIntoBase !== true) return { cleanup: false, reason: 'not-merged' };
+    return { cleanup: true, reason: null };
+}
+
+/**
+ * プロセスのコマンドラインが dev server（scratch-gui の `webpack serve` / `npm start`）かを判定する（純粋関数・#1381）。
+ *
+ * worker が UI 確認で起動した dev server は tmux を閉じても残り、8601 をふさいだり古いコードの UI を
+ * 返したりする。止める対象を広げすぎないよう、`webpack serve` / `webpack-dev-server` / `npm [run] start`
+ * だけを拾う（`webpack --mode production` のようなビルドや jest は含めない）。
+ * @param {string} cmd 引数を空白でつないだコマンドライン（`/proc/<pid>/cmdline` 相当）
+ * @returns {boolean}
+ */
+function isDevServerCommand(cmd) {
+    if (!cmd) return false;
+    const s = String(cmd);
+    return /\bwebpack(?:\.js)?\s+serve\b/.test(s)
+        || /\bwebpack-dev-server\b/.test(s)
+        || /(?:^|[\s/])npm(?:-cli\.js)?\s+(?:run\s+)?start\b/.test(s);
+}
+
+/**
+ * プロセスの cwd が autopilot の worktree（`<root>/issue-<N>` かその配下）なら Issue 番号を返す（純粋関数・#1381）。
+ *
+ * 止めてよいのは autopilot の worktree を cwd に持つプロセスだけ（main checkout や人間のものは止めない）。
+ * cwd の dir が削除済みのとき Linux の `/proc/<pid>/cwd` は末尾に ` (deleted)` が付くので外して判定する。
+ * @param {string} cwd プロセスの cwd
+ * @param {string} worktreeRoot autopilot worktree の置き場所（`<main checkout>/.autopilot-worktrees`）
+ * @returns {number|null}
+ */
+function worktreeIssueFromCwd(cwd, worktreeRoot) {
+    if (!cwd || !worktreeRoot) return null;
+    const root = String(worktreeRoot).replace(/\/+$/, '');
+    if (!root) return null;
+    const dir = String(cwd).replace(/ \(deleted\)$/, '');
+    if (!dir.startsWith(`${root}/`)) return null;
+    const m = dir.slice(root.length + 1).match(/^issue-(\d+)(?:\/|$)/);
+    return m ? Number(m[1]) : null;
+}
+
+/**
+ * 止める dev server を選ぶ（純粋関数・#1381）。プロセスの列挙と停止は daemon 側。
+ *
+ * - `issues` を渡したとき（run の終了・worktree の削除）: その Issue の worktree のものだけ（reason=`target`）。
+ * - `issues` が無いとき（tick の掃除）: cwd が消えた worktree のもの（`cwd-deleted`）と、終端 Issue の
+ *   worktree のもの（`terminal-issue`）。
+ * どちらの場合も、autopilot の worktree 外・dev server でないもの・実行中の Issue・自分自身は止めない。
+ * @param {Array<{pid: number, cwd: string, cwdDeleted?: boolean, cmd: string}>} procs
+ * @param {object} opts
+ * @param {string} opts.worktreeRoot
+ * @param {number[]} [opts.issues] 対象 Issue（指定時はこれだけ）
+ * @param {Iterable<number>} [opts.terminalIssues] Status が終端（Close / Done）の Issue
+ * @param {Iterable<number>} [opts.runningIssues] worker が実行中の Issue
+ * @param {number} [opts.selfPid]
+ * @returns {Array<{pid: number, issue: number, cwd: string, reason: 'target'|'cwd-deleted'|'terminal-issue'}>}
+ */
+function selectDevServersToStop(procs, opts = {}) {
+    if (!Array.isArray(procs) || !opts.worktreeRoot) return [];
+    const targets = Array.isArray(opts.issues) ? new Set(opts.issues) : null;
+    const terminal = new Set(opts.terminalIssues || []);
+    const running = new Set(opts.runningIssues || []);
+    const out = [];
+    for (const p of procs) {
+        if (!p || p.pid === opts.selfPid || !isDevServerCommand(p.cmd)) continue;
+        const issue = worktreeIssueFromCwd(p.cwd, opts.worktreeRoot);
+        if (issue == null || running.has(issue)) continue;
+        let reason = null;
+        if (targets) reason = targets.has(issue) ? 'target' : null;
+        else if (p.cwdDeleted) reason = 'cwd-deleted';
+        else if (terminal.has(issue)) reason = 'terminal-issue';
+        if (reason) out.push({ pid: p.pid, issue, cwd: p.cwd, reason });
+    }
+    return out;
+}
+
+/**
  * Issue 本文から `autopilot-assignee:` ディレクティブ（駆動担当の明示指定）を抽出する（純粋関数）。
  *
  * 複数 assignee の Issue は既定で assignee の辞書順先頭が単一オーナー（{@link itemOwner}）に
@@ -1021,8 +1113,8 @@ const SPIKE_LABEL = '🔬 spike';
  * infra（`infra/**` の CDK プロジェクト）だけを変える Issue に付けるラベル。
  * infra は GUI と別の sub-issue に分け、**後方互換な変更だけ**を develop へ先行マージする。
  * develop へのマージで `Deploy Infra` workflow が stg → prod へ出し、**prod デプロイの成功で
- * workflow がこの Issue を閉じる**。後続の GUI Issue（`autopilot-after: #<infra>`）は prod に
- * API が載ってから動き出すので、ブランチプレビュー（prod API を見る）で確認できる。
+ * workflow がこの Issue を閉じる**。後続の GUI Issue（`autopilot-after: #<infra>`）は stg と prod に
+ * API が載ってから動き出すので、ブランチプレビュー（stg API を見る。#1344 までは prod）で確認できる。
  * そのため、このラベルの Issue は Project の終端（merge で Close）では「完了」とみなさず、
  * GitHub で closed になったときだけ完了とする（{@link unresolvedAfterIssues} の closedOnly）。
  * 付けるのは Issue を作る側（decompose / 人間）。daemon は読むだけで付け外ししない。
@@ -3263,6 +3355,10 @@ module.exports = {
     AUTOPILOT_BRANCH_PREFIX,
     autopilotHeadBranch,
     resolveBaseRef,
+    shouldCleanupWorktree,
+    isDevServerCommand,
+    worktreeIssueFromCwd,
+    selectDevServersToStop,
     baseFollowConflictBody,
     resolveConflictFailureBody,
     prConflictState,

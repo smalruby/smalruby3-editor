@@ -31,6 +31,10 @@ const {
     unresolvedAfterIssues,
     infraIssueSet,
     shouldCloseIssueOnMerge,
+    shouldCleanupWorktree,
+    selectDevServersToStop,
+    TERMINAL_STATUSES,
+    AUTOPILOT_BRANCH_PREFIX,
     parseAssigneeDirective,
     selectActionable,
     isStuckCandidate,
@@ -1224,6 +1228,8 @@ async function dispatch(item, cfg, state, log) {
         await blockToHuman(`dispatch が例外で停止しました: ${e.message}`);
     } finally {
         state.running.delete(item.issue);
+        // worker が UI 確認で起動したまま残した dev server を止める（#1381）
+        stopWorktreeDevServers({ issues: [item.issue], runningIssues: [...state.running.keys()] }, log);
     }
 }
 
@@ -1269,6 +1275,7 @@ async function dispatchResolveConflict(item, cfg, state, log, deps = {}) {
         findItemId: project.findItemId, findPrForIssue: project.findPrForIssue, setField: project.setField,
         postIssueComment: project.postIssueComment, ensureWorktree, followBaseBranch, runConflictResolver,
         execFileP, getDirectives, syncFaces: (it) => syncFacesAfterIntents(it, [], cfg, log),
+        stopDevServers: stopWorktreeDevServers,
         readToken: project.readToken, botToken: project.botToken, ...deps,
     };
     const ctx = { projectId: cfg.projectId, fields: cfg.fields };
@@ -1343,6 +1350,7 @@ async function dispatchResolveConflict(item, cfg, state, log, deps = {}) {
     } finally {
         if (aiChanged) await setAi(prevAi);
         state.running.delete(item.issue);
+        io.stopDevServers({ issues: [item.issue], runningIssues: [...state.running.keys()] }, log);
     }
 }
 
@@ -1373,6 +1381,182 @@ async function collectGateContexts(cfg, items, running, state, log, deps = {}) {
     return contexts;
 }
 
+/** autopilot worktree の置き場所（`bin/autopilot-worktree` の WT_ROOT と同じ既定・#1381） */
+const WORKTREE_ROOT = process.env.AUTOPILOT_WORKTREE_ROOT || path.join(project.REPO_ROOT, '.autopilot-worktrees');
+
+/** dev server を止めた理由のログ文言（#1381） */
+const DEV_SERVER_STOP_REASONS = {
+    target: 'run の終了か worktree の削除',
+    'cwd-deleted': 'cwd の worktree が削除済み',
+    'terminal-issue': 'Issue が終端（Close / Done）',
+};
+
+/**
+ * `/proc` から動いているプロセスの pid・cwd・コマンドラインを列挙する（#1381）。
+ *
+ * 読めないプロセス（他ユーザー・列挙中に終了）は飛ばす。`/proc` が無い環境（macOS 等）は空配列。
+ * cwd が消えた dir は Linux では末尾 ` (deleted)` が付く。付かない場合に備えて存在も確かめる。
+ * @param {object} [deps] { procDir, readdirSync, readlinkSync, readFileSync, existsSync }（テスト用）
+ * @returns {Array<{pid: number, cwd: string, cwdDeleted: boolean, cmd: string}>}
+ */
+function listProcesses(deps = {}) {
+    const procDir = deps.procDir || '/proc';
+    const readdir = deps.readdirSync || fs.readdirSync;
+    const readlink = deps.readlinkSync || fs.readlinkSync;
+    const readFile = deps.readFileSync || fs.readFileSync;
+    const exists = deps.existsSync || fs.existsSync;
+    let names;
+    try { names = readdir(procDir); } catch { return []; }
+    const out = [];
+    for (const name of names) {
+        if (!/^\d+$/.test(name)) continue;
+        try {
+            const cwd = String(readlink(path.join(procDir, name, 'cwd')));
+            const cmd = String(readFile(path.join(procDir, name, 'cmdline'), 'utf8'))
+                .split('\0').filter(Boolean).join(' ');
+            const cwdDeleted = / \(deleted\)$/.test(cwd) || !exists(cwd);
+            out.push({ pid: Number(name), cwd, cwdDeleted, cmd });
+        } catch { /* 読めないプロセスは対象外 */ }
+    }
+    return out;
+}
+
+/**
+ * autopilot の worktree に残った dev server を止める（#1381）。判定は phases.js の
+ * {@link selectDevServersToStop}、ここはプロセスの列挙と SIGTERM だけ。PID と cwd で特定し、
+ * `pkill -f` のような広い一致は使わない。止めた PID と理由はログに残す。例外は投げない。
+ * @param {object} opts { issues?, terminalIssues?, runningIssues? }（selectDevServersToStop と同じ）
+ * @param {Function} log
+ * @param {object} [deps] { worktreeRoot, listProcesses, kill, selfPid }（テスト用）
+ * @returns {Array<{pid: number, issue: number, cwd: string, reason: string}>} 止めたもの
+ */
+function stopWorktreeDevServers(opts, log, deps = {}) {
+    const list = deps.listProcesses || listProcesses;
+    const kill = deps.kill || ((pid, sig) => process.kill(pid, sig));
+    let targets;
+    try {
+        targets = selectDevServersToStop(list(), {
+            ...opts,
+            worktreeRoot: deps.worktreeRoot || WORKTREE_ROOT,
+            selfPid: deps.selfPid !== undefined ? deps.selfPid : process.pid,
+        });
+    } catch (e) {
+        log(`dev server の確認に失敗（続行）: ${e.message}`);
+        return [];
+    }
+    const stopped = [];
+    for (const t of targets) {
+        const why = DEV_SERVER_STOP_REASONS[t.reason] || t.reason;
+        try {
+            kill(t.pid, 'SIGTERM');
+            stopped.push(t);
+            log(`#${t.issue}: dev server を止めた（PID ${t.pid}・${why}）: ${t.cwd}`);
+        } catch (e) {
+            log(`#${t.issue}: dev server の停止に失敗（PID ${t.pid}・続行）: ${e.message}`);
+        }
+    }
+    return stopped;
+}
+
+/**
+ * tick の掃除: cwd が消えた worktree・終端 Issue の worktree に残った dev server を止める（#1381）。
+ * @param {Array} items Project の item
+ * @param {object} state { running }
+ * @param {Function} log
+ * @param {object} [deps] stopWorktreeDevServers の deps
+ */
+function applyDevServerSweep(items, state, log, deps = {}) {
+    const terminalIssues = (items || [])
+        .filter((it) => it && TERMINAL_STATUSES.has(it.status)).map((it) => it.issue);
+    return stopWorktreeDevServers({ terminalIssues, runningIssues: [...state.running.keys()] }, log, deps);
+}
+
+/** 片付けを見送った理由のログ文言（#1362） */
+const CLEANUP_KEEP_REASONS = {
+    running: 'worker が実行中',
+    dirty: '未コミットの変更か未追跡ファイルがある',
+    detached: 'ブランチを checkout していない（detached HEAD）',
+    'not-merged': 'ブランチが base にマージされていない',
+};
+
+/**
+ * Close に進めた Issue の worktree とローカルブランチを片付ける（#1362）。
+ *
+ * 片付けないと worktree が溜まり続け、棚卸しに `git status` 1 個数秒 × 百数十個かかっていた。
+ * 作業が失われうるとき（実行中 / 未コミット / base に未マージ）は消さずにログだけ残す。判定は
+ * phases.js の {@link shouldCleanupWorktree}、ここは git I/O のみ。base は Issue の
+ * `autopilot-base:`（EPIC サブは `topic/...`）、無ければ develop で `merge-base --is-ancestor` する。
+ * リモートブランチは消さない（`gh pr merge --delete-branch` に任せる）。ローカルブランチは
+ * autopilot が作った `topic/autopilot-*` だけ消す（`--pr` で人間のブランチを checkout していたら残す）。
+ * 失敗しても例外にしない（merge 進行を止めない）。
+ * @param {object} item { issue }
+ * @param {object} cfg
+ * @param {object} state { running }
+ * @param {Function} log
+ * @param {object} [deps] { execFileP, existsSync, getDirectives, stopDevServers }（テスト用の差し替え）
+ * @returns {Promise<{status: 'removed'|'kept'|'absent'|'error', reason?: string}>}
+ */
+async function cleanupIssueWorktree(item, cfg, state, log, deps = {}) {
+    const exec = deps.execFileP || execFileP;
+    const exists = deps.existsSync || fs.existsSync;
+    const directives = deps.getDirectives || ((issue) => getDirectives(cfg, state, issue, log));
+    const stopDevServers = deps.stopDevServers || stopWorktreeDevServers;
+    const issue = item.issue;
+    try {
+        const { stdout } = await exec(WORKTREE_BIN, ['path', String(issue)], { encoding: 'utf8' });
+        const wt = String(stdout).trim();
+        if (!wt || !exists(wt)) return { status: 'absent' };
+        const facts = { running: Boolean(state.running && state.running.has(issue)) };
+        let baseRef = null;
+        if (!facts.running) {
+            const opts = { cwd: wt, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 };
+            const { stdout: status } = await exec('git', ['status', '--porcelain'], opts);
+            facts.dirty = Boolean(String(status).trim());
+            facts.branch = await exec('git', ['symbolic-ref', '--short', 'HEAD'], opts)
+                .then((r) => String(r.stdout).trim() || null, () => null);
+            if (!facts.dirty && facts.branch) {
+                const { base } = await directives(issue);
+                baseRef = resolveBaseRef(base);
+                await exec('git', ['fetch', 'origin', baseRef.replace(/^origin\//, '')], opts).catch(() => {});
+                // 終了コード 1 = 含まれない。それ以外のエラーは判定不能なので throw（消さない）
+                facts.mergedIntoBase = await exec('git', ['merge-base', '--is-ancestor', facts.branch, baseRef], opts)
+                    .then(() => true, (e) => { if (e.code === 1) return false; throw e; });
+            }
+        }
+        const decision = shouldCleanupWorktree(facts);
+        if (!decision.cleanup) {
+            const why = CLEANUP_KEEP_REASONS[decision.reason] || decision.reason;
+            log(`#${issue}: worktree を片付けない（${why}${decision.reason === 'not-merged' ? `: ${baseRef}` : ''}）: ${wt}`);
+            return { status: 'kept', reason: decision.reason };
+        }
+        // 消す worktree を cwd に持つ dev server を先に止める（cwd が消えても動き続けるため・#1381）
+        stopDevServers({ issues: [issue], runningIssues: [...state.running.keys()] }, log);
+        const mainOpts = { cwd: project.REPO_ROOT, maxBuffer: 16 * 1024 * 1024 };
+        await exec('git', ['worktree', 'remove', '--force', wt], mainOpts);
+        let removedBranch = '';
+        if (facts.branch.startsWith(AUTOPILOT_BRANCH_PREFIX)) {
+            await exec('git', ['branch', '-D', facts.branch], mainOpts);
+            removedBranch = ` + ブランチ ${facts.branch}`;
+        }
+        log(`#${issue}: worktree を片付けた（${wt}${removedBranch}）`);
+        return { status: 'removed' };
+    } catch (e) {
+        log(`#${issue}: worktree の片付けに失敗（消さずに続行）: ${e.message}`);
+        return { status: 'error', reason: e.message };
+    }
+}
+
+/**
+ * 片付けを呼び、失敗しても merge / closed の進行を止めない（#1362）。
+ * @param {Function} cleanup {@link cleanupIssueWorktree} 相当
+ * @param {object} item
+ * @param {Function} log
+ */
+async function safeCleanup(cleanup, item, log) {
+    try { await cleanup(item); }
+    catch (e) { log(`#${item.issue}: worktree の片付けに失敗（続行）: ${e.message}`); }
+}
+
 /**
  * merge-progression: 連携 PR が人間に merge された leaf を Close へ前進させる。
  * autopilot は自動 merge しない（人間の手動 merge を検知して後処理するだけ）。
@@ -1389,6 +1573,7 @@ async function applyMergeProgression(items, cfg, state, log, deps = {}) {
     const closeIssue = deps.closeIssue || project.closeIssue;
     // merge 後の面正規化（Issue の HITL ラベルを落とす等）。テストは no-op を注入できる。
     const syncFaces = deps.syncFaces || ((item, intents) => syncFacesAfterIntents(item, intents, cfg, log));
+    const cleanup = deps.cleanupWorktree || ((item) => cleanupIssueWorktree(item, cfg, state, log));
     const ctx = { projectId: cfg.projectId, fields: cfg.fields };
     for (const item of selectMergeCandidates(items)) {
         if (state.running.has(item.issue)) continue; // live phase が所有中は触らない
@@ -1423,7 +1608,10 @@ async function applyMergeProgression(items, cfg, state, log, deps = {}) {
             await syncFaces({ ...item, hitlLabel: false }, intents);
         } catch (e) {
             log(`#${item.issue}: merge progression failed: ${e.message}`);
+            continue;
         }
+        // 終わった Issue の worktree とローカルブランチを片付ける（#1362・🧱 infra も対象）
+        await safeCleanup(cleanup, item, log);
     }
 }
 
@@ -1442,6 +1630,7 @@ async function applyClosedReconcile(items, cfg, state, log, deps = {}) {
     const applyIntents = deps.applyIntents || project.applyIntents;
     const findItemId = deps.findItemId || project.findItemId;
     const syncFaces = deps.syncFaces || ((item, intents) => syncFacesAfterIntents(item, intents, cfg, log));
+    const cleanup = deps.cleanupWorktree || ((item) => cleanupIssueWorktree(item, cfg, state, log));
     // tick が事前計算した closedSet があれば再取得しない（after 依存判定と共用・API 節約）
     let closedSet = deps.closedSet;
     if (!closedSet) {
@@ -1469,7 +1658,10 @@ async function applyClosedReconcile(items, cfg, state, log, deps = {}) {
             await syncFaces({ ...item, status: 'Close', hitlLabel: false }, intents);
         } catch (e) {
             log(`#${item.issue}: closed reconcile failed: ${e.message}`);
+            continue;
         }
+        // merge せずに閉じた Issue のブランチは base に含まれないので、判定で残る（#1362）
+        await safeCleanup(cleanup, item, log);
     }
 }
 
@@ -1878,6 +2070,8 @@ async function tick(cfg, state, log) {
     await applyMergeProgression(items, cfg, state, log);
     // GitHub で closed な issue（EPIC・人手 close 含む）の Project Status を Close へ整合（#843 Fix B）
     await applyClosedReconcile(items, cfg, state, log, { closedSet });
+    // 終わった worktree（cwd が消えた・終端 Issue）に残った dev server を止める（#1381・/proc を読むだけ）
+    applyDevServerSweep(items, state, log);
     // 非終端 item に 🤖 autopilot / 🧭 tracking ラベルを担保（問い合わせのラベル限定の前提）
     await applyLabelHealing(items, cfg, state, log);
     // In Progress + AI 作業中のまま止まった item を検知して Blocked へ（#816）
@@ -2549,6 +2743,8 @@ async function main(opts = {}) {
 
 module.exports = {
     main, tick, runTickOnce, dispatch, applyMergeProgression, applyClosedReconcile, applyPrProjection,
+    cleanupIssueWorktree,
+    listProcesses, stopWorktreeDevServers, applyDevServerSweep,
     applyDodHandoffs, detectStuck, recoverOrphanedWorkers, recoverStalledInFlightWorkers,
     markBlocked, getDirectives, populateAssigneeDirectives,
     applyLabelHealing, applyAfterWaitLabels,

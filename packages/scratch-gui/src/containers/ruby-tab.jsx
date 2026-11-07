@@ -12,6 +12,7 @@ import RubyToolbar from '../components/ruby-toolbar/ruby-toolbar.jsx';
 import analytics from '../lib/analytics';
 import { autoCorrect, defaultSettings as defaultAutoCorrectSettings } from '../lib/auto-correct';
 import collectMetadata from '../lib/collect-metadata.js';
+import { findArrayIndexHints } from '../lib/dncl/dncl-array-index-hint';
 import { tidyPastedDncl, withDoubleSlashHint } from '../lib/dncl/dncl-paste-tidy';
 import { dnclToRuby } from '../lib/dncl/dncl-to-ruby';
 import { rubyToDncl } from '../lib/dncl/ruby-to-dncl';
@@ -52,8 +53,10 @@ import {
     AUTO_CORRECT_ENABLED_KEY,
     AUTO_CORRECT_SETTINGS_KEY,
     DNCL_MODE_KEY,
+    DNCL_INDEX_HINT_OWNER,
 } from './ruby-tab/constants';
 import updateDebugGlobals from './ruby-tab/debug-globals';
+import { offerDnclIndexShift } from './ruby-tab/dncl-index-shift';
 import {
     registerCustomPasteAction,
     setupPasteTransform,
@@ -187,6 +190,8 @@ const RubyTab = (props) => {
     const configChangeListenerRef = useRef(null);
     const pasteMutationObserverRef = useRef(null);
     const removePasteTransformRef = useRef(null);
+    const pasteListenerRef = useRef(null);
+    const indexShiftDecorationsRef = useRef(null);
     const bodyMutationObserverRef = useRef(null);
     const bubbleElRef = useRef(null);
     const quickFixProviderRef = useRef(null);
@@ -442,6 +447,24 @@ const RubyTab = (props) => {
         const transformPastedText = (text) => (dnclModeRef.current ? tidyPastedDncl(text, editor.getValue()) : text);
         registerCustomPasteAction(editor, pasteLabel, transformPastedText);
         removePasteTransformRef.current = setupPasteTransform(editor, transformPastedText);
+        // Japanese (DNCL) mode offers to shift the array indexes of pasted
+        // code whose comments say indexes start at 1 (Issue #1366). The
+        // dialog waits until Monaco has finished handling the paste.
+        pasteListenerRef.current = editor.onDidPaste((event) => {
+            if (!dnclModeRef.current) return;
+            setTimeout(() => {
+                if (!dnclModeRef.current || editorRef.current !== editor) return;
+                const decorations = offerDnclIndexShift({
+                    editor,
+                    monaco,
+                    range: event.range,
+                    formatMessage: (descriptor, values) => intlRef.current.formatMessage(descriptor, values),
+                });
+                if (!decorations) return;
+                if (indexShiftDecorationsRef.current) indexShiftDecorationsRef.current.clear();
+                indexShiftDecorationsRef.current = decorations;
+            }, 0);
+        });
         const observers = setupPasteDuplicateHider();
         pasteMutationObserverRef.current = observers.pasteMutationObserver;
         bodyMutationObserverRef.current = observers.bodyMutationObserver;
@@ -1002,6 +1025,10 @@ const RubyTab = (props) => {
                 removePasteTransformRef.current();
                 removePasteTransformRef.current = null;
             }
+            if (pasteListenerRef.current) {
+                pasteListenerRef.current.dispose();
+                pasteListenerRef.current = null;
+            }
             if (pasteMutationObserverRef.current) {
                 pasteMutationObserverRef.current.disconnect();
                 pasteMutationObserverRef.current = null;
@@ -1075,6 +1102,46 @@ const RubyTab = (props) => {
             setDnclDisplayCode(result.dncl);
         }
     }, [rubyCodeStr, dnclMode]);
+
+    // The marks left by the paste-time index shift belong to the DNCL text.
+    useEffect(() => {
+        if (!dnclMode && indexShiftDecorationsRef.current) {
+            indexShiftDecorationsRef.current.clear();
+            indexShiftDecorationsRef.current = null;
+        }
+    }, [dnclMode]);
+
+    // Smalruby DNCL arrays start at index 0. A program written with 1-based
+    // indices reads past the end of an array, where the VM silently returns
+    // an empty value, so warn about such accesses in the editor. The markers
+    // use their own owner so clearing conversion errors keeps them (Issue #1357).
+    useEffect(() => {
+        if (!editorRef.current || !monacoRef.current) return;
+        const lines = dnclMode ? dnclDisplayCode.split('\n') : [];
+        const hints = dnclMode ? findArrayIndexHints(dnclDisplayCode) : [];
+        const markers = hints
+            .filter((hint) => hint.line <= lines.length)
+            .map((hint) => {
+                const text = lines[hint.line - 1];
+                const column = text.indexOf(hint.access);
+                return {
+                    startLineNumber: hint.line,
+                    startColumn: column >= 0 ? column + 1 : 1,
+                    endLineNumber: hint.line,
+                    endColumn: column >= 0 ? column + hint.access.length + 1 : text.length + 1,
+                    message: intl.formatMessage(
+                        {
+                            id: 'gui.rubyTab.dnclArrayIndexHint',
+                            defaultMessage:
+                                '{access} reads past the end of the array. In Smalruby Japanese mode, array indices start at 0 (the first element is {array}[0] and the last is {array}[{last}]). If the problem counts from 1, shift the index by 1, like {fixed}.',
+                        },
+                        hint,
+                    ),
+                    severity: monacoRef.current.MarkerSeverity.Warning,
+                };
+            });
+        monacoRef.current.editor.setModelMarkers(editorRef.current.getModel(), DNCL_INDEX_HINT_OWNER, markers);
+    }, [dnclMode, dnclDisplayCode, intl]);
 
     // componentDidUpdate equivalent
     const prevPropsRef = useRef(null);

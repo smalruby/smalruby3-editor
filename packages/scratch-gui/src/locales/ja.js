@@ -1629,6 +1629,28 @@ export default {
     'gui.meshSelfSensorNotice.dismiss': '閉じる',
     'gui.rubyTab.dnclDoubleSlashHint':
         'スモウルビーでは // はコメントではありません（整数の割り算です）。コメントには # をつかってください。',
+    'gui.rubyTab.dnclArrayIndexHint':
+        '{access} は配列の範囲外になります。スモウルビーの日本語では、配列の添字は 0 から始まります（最初の要素は {array}[0]、最後の要素は {array}[{last}]）。問題文で添字が 1 から始まるときは、{fixed} のように添字を 1 ずらして書いてください。',
+    'gui.rubyTab.dnclIndexShiftConfirm':
+        'スモウルビーの日本語では、配列の添字は 0 から始まります。貼り付けたプログラムの配列の添字を 1 ずつ減らしますか？',
+    'gui.rubyTab.dnclIndexShiftDone':
+        '{count} か所の配列の添字を 1 ずつ減らしました（緑の印）。\n繰り返しの範囲（「i を 1 から n まで」など）は書き換えていません。0 始まりに合わせて、必要なら自分で直してください。',
+    'gui.rubyTab.dnclIndexShiftChangedHeading': '書き換えた箇所:',
+    'gui.rubyTab.dnclIndexShiftChangedItem': '{line} 行目: {before} → {after}',
+    'gui.rubyTab.dnclIndexShiftSuspectsHeading': 'もしかしたらここも直す必要があるかもしれません（黄色の印）:',
+    'gui.rubyTab.dnclIndexShiftSuspectItem': '{line} 行目: {text}（{reason}）',
+    'gui.rubyTab.dnclIndexShiftMore': '…ほか {count} か所',
+    'gui.rubyTab.dnclIndexShiftChangedHover': '添字を 1 減らしました: {before} → {after}',
+    'gui.rubyTab.dnclIndexShiftReasonAssignOne':
+        '変数に 1 を入れています。添字に使うなら 0 にする必要があるかもしれません',
+    'gui.rubyTab.dnclIndexShiftReasonLoopFromOne': '1 から始まる繰り返しです。0 から始める必要があるかもしれません',
+    'gui.rubyTab.dnclIndexShiftReasonLoopFromN':
+        '先頭の要素を飛ばす繰り返しです。始まりを 1 小さくする必要があるかもしれません',
+    'gui.rubyTab.dnclIndexShiftReasonLoopToLength': '要素数まで繰り返しています。0 始まりでは 要素数(X) - 1 までです',
+    'gui.rubyTab.dnclIndexShiftReasonLessEqual':
+        '添字に使う変数を <= で比べています。0 始まりでは < にする必要があるかもしれません',
+    'gui.rubyTab.dnclIndexShiftReasonNegativeIndex':
+        '添字が -1 になりました。ここはもともと 0 始まりだったかもしれないので、確かめてください',
     'gui.rubyTab.dnclValidationError':
         '日本語モードでは対応していない記述です。\n対応している命令のみにしてから、モード切り替えを行ってください。',
     'gui.mobile.drawer.title': 'メニュー',

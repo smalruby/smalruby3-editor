@@ -9,6 +9,7 @@ import * as route53Targets from 'aws-cdk-lib/aws-route53-targets';
 import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import * as path from 'path';
 import { Construct } from 'constructs';
+import { withPreviewOrigins } from './preview-origins';
 
 export class SmalrubyApiStack extends cdk.Stack {
     public readonly api: apigatewayv2.HttpApi;
@@ -19,9 +20,11 @@ export class SmalrubyApiStack extends cdk.Stack {
         const stage = this.node.tryGetContext('stage') || process.env.STAGE || 'stg';
         const stageSuffix = stage === 'prod' ? '' : `-${stage}`;
 
-        const corsOriginsEnv =
-            process.env.CORS_ALLOWED_ORIGINS ||
-            'https://smalruby.app,https://smalruby.jp,http://localhost:8601';
+        // 非 prod ではブランチプレビューも許可する。
+        const corsOriginsEnv = withPreviewOrigins(
+            stage,
+            process.env.CORS_ALLOWED_ORIGINS || 'https://smalruby.app,https://smalruby.jp,http://localhost:8601',
+        );
         const corsAllowOrigins = corsOriginsEnv.split(',').map(o => o.trim());
 
         const meshZoneSecretKey = process.env.MESH_ZONE_SECRET_KEY || '';

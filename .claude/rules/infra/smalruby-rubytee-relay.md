@@ -178,10 +178,12 @@ aws logs tail /aws/lambda/RubyteeRelayHandler-stg --since 5m --format short | gr
 
 | Stage | Allowed Origins |
 |-------|----------------|
-| stg | `https://smalruby.app`, `https://smalruby.jp`, `http://localhost:8601` |
+| stg | `https://smalruby.app`, `https://smalruby.jp`, `http://localhost:8601`, `https://preview.smalruby.app` |
 | prod | `https://smalruby.app`, `https://smalruby.jp` |
 
-**Note**: prod には `localhost` を含めない。ローカル開発テストでは stg エンドポイントを使用する。
+**Note**: prod には `localhost` もブランチプレビューも含めない。ローカル開発テストでは stg エンドポイントを使用する。
+`https://preview.smalruby.app`（ブランチプレビュー。stg の API を見る）は、`CORS_ALLOWED_ORIGINS` を
+`.env.stg` で指定していても非 prod ではコードが足す（`lib/preview-origins.ts` の `withPreviewOrigins`）。
 
 ## Anthropic Guidelines Compliance
 

@@ -46,7 +46,7 @@ describe('Working with sprites', () => {
     test('Adding a sprite by surprise button', async () => {
         await loadUri(uri);
         const el = await findByXpath('//button[@aria-label="Choose a Sprite"]');
-        await driver.actions().mouseMove(el)
+        await driver.actions().move({origin: el})
             .perform();
         await driver.sleep(500); // Wait for thermometer menu to come up
         await clickXpath('//button[@aria-label="Surprise"]');
@@ -57,7 +57,7 @@ describe('Working with sprites', () => {
     test('Adding a sprite by paint button', async () => {
         await loadUri(uri);
         const el = await findByXpath('//button[@aria-label="Choose a Sprite"]');
-        await driver.actions().mouseMove(el)
+        await driver.actions().move({origin: el})
             .perform();
         await driver.sleep(500); // Wait for thermometer menu to come up
         await clickXpath('//button[@aria-label="Paint"]');
@@ -92,7 +92,7 @@ describe('Working with sprites', () => {
     test('Adding a sprite by uploading a png', async () => {
         await loadUri(uri);
         const el = await findByXpath('//button[@aria-label="Choose a Sprite"]');
-        await driver.actions().mouseMove(el)
+        await driver.actions().move({origin: el})
             .perform();
         await driver.sleep(500); // Wait for thermometer menu to come up
         const input = await findByXpath('//input[@type="file"]');
@@ -107,7 +107,7 @@ describe('Working with sprites', () => {
     test('Adding a sprite by uploading an svg (gh-3608)', async () => {
         await loadUri(uri);
         const el = await findByXpath('//button[@aria-label="Choose a Sprite"]');
-        await driver.actions().mouseMove(el)
+        await driver.actions().move({origin: el})
             .perform();
         await driver.sleep(500); // Wait for thermometer menu to come up
         const input = await findByXpath('//input[@type="file"]');
@@ -125,7 +125,7 @@ describe('Working with sprites', () => {
     test('Adding a sprite by uploading a gif', async () => {
         await loadUri(uri);
         const el = await findByXpath('//button[@aria-label="Choose a Sprite"]');
-        await driver.actions().mouseMove(el)
+        await driver.actions().move({origin: el})
             .perform();
         await driver.sleep(500); // Wait for thermometer menu to come up
         const input = await findByXpath('//input[@type="file"]');
@@ -148,7 +148,7 @@ describe('Working with sprites', () => {
         await loadUri(uri);
         await driver.manage()
             .window()
-            .setSize(1244, 768); // Letters filter not visible at 1024 width
+            .setRect({width: 1244, height: 768}); // Letters filter not visible at 1024 width
         await clickText('Costumes');
         await clickXpath('//button[@aria-label="Choose a Sprite"]');
         await clickText('Letters');
@@ -182,7 +182,7 @@ describe('Working with sprites', () => {
         ];
         await loadUri(uri);
         const el = await findByXpath('//button[@aria-label="Choose a Sprite"]');
-        await driver.actions().mouseMove(el)
+        await driver.actions().move({origin: el})
             .perform();
         await driver.sleep(500); // Wait for thermometer menu to come up
         const input = await findByXpath('//input[@type="file"]');
@@ -198,7 +198,7 @@ describe('Working with sprites', () => {
     test('Load a sprite3 with a missing svg costume', async () => {
         await loadUri(uri);
         const el = await findByXpath('//button[@aria-label="Choose a Sprite"]');
-        await driver.actions().mouseMove(el)
+        await driver.actions().move({origin: el})
             .perform();
         await driver.sleep(500); // Wait for thermometer menu to come up
         const input = await findByXpath('//input[@type="file"]');
@@ -211,7 +211,7 @@ describe('Working with sprites', () => {
     test('Load a sprite3 with a currupt svg costume', async () => {
         await loadUri(uri);
         const el = await findByXpath('//button[@aria-label="Choose a Sprite"]');
-        await driver.actions().mouseMove(el)
+        await driver.actions().move({origin: el})
             .perform();
         await driver.sleep(500); // Wait for thermometer menu to come up
         const input = await findByXpath('//input[@type="file"]');
@@ -224,7 +224,7 @@ describe('Working with sprites', () => {
     test('Load a scratch3 corrupt svg as a sprite', async () => {
         await loadUri(uri);
         const el = await findByXpath('//button[@aria-label="Choose a Sprite"]');
-        await driver.actions().mouseMove(el)
+        await driver.actions().move({origin: el})
             .perform();
         await driver.sleep(500); // Wait for thermometer menu to come up
         const input = await findByXpath('//input[@type="file"]');
@@ -237,7 +237,7 @@ describe('Working with sprites', () => {
     test('Load a sprite2 with a missing svg costume', async () => {
         await loadUri(uri);
         const el = await findByXpath('//button[@aria-label="Choose a Sprite"]');
-        await driver.actions().mouseMove(el)
+        await driver.actions().move({origin: el})
             .perform();
         await driver.sleep(500); // Wait for thermometer menu to come up
         const input = await findByXpath('//input[@type="file"]');
@@ -250,7 +250,7 @@ describe('Working with sprites', () => {
     test('Load a sprite2 with a currupt svg costume', async () => {
         await loadUri(uri);
         const el = await findByXpath('//button[@aria-label="Choose a Sprite"]');
-        await driver.actions().mouseMove(el)
+        await driver.actions().move({origin: el})
             .perform();
         await driver.sleep(500); // Wait for thermometer menu to come up
         const input = await findByXpath('//input[@type="file"]');
@@ -263,7 +263,7 @@ describe('Working with sprites', () => {
     test('Load a corrupt scratch2 svg as a sprite', async () => {
         await loadUri(uri);
         const el = await findByXpath('//button[@aria-label="Choose a Sprite"]');
-        await driver.actions().mouseMove(el)
+        await driver.actions().move({origin: el})
             .perform();
         await driver.sleep(500); // Wait for thermometer menu to come up
         const input = await findByXpath('//input[@type="file"]');
@@ -276,7 +276,7 @@ describe('Working with sprites', () => {
     test('Load a sprite3 with a missing bmp costume', async () => {
         await loadUri(uri);
         const el = await findByXpath('//button[@aria-label="Choose a Sprite"]');
-        await driver.actions().mouseMove(el)
+        await driver.actions().move({origin: el})
             .perform();
         await driver.sleep(500); // Wait for thermometer menu to come up
         const input = await findByXpath('//input[@type="file"]');
@@ -289,7 +289,7 @@ describe('Working with sprites', () => {
     test('Load a sprite3 with a currupt bmp costume', async () => {
         await loadUri(uri);
         const el = await findByXpath('//button[@aria-label="Choose a Sprite"]');
-        await driver.actions().mouseMove(el)
+        await driver.actions().move({origin: el})
             .perform();
         await driver.sleep(500); // Wait for thermometer menu to come up
         const input = await findByXpath('//input[@type="file"]');

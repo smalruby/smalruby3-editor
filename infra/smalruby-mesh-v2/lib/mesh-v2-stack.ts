@@ -120,6 +120,9 @@ export class MeshV2Stack extends cdk.Stack {
     const defaultMaxConnTimeSeconds = stage === 'prod' ? '1500' : '300';
 
     // AppSync GraphQL API for Mesh v2
+    // CORS の許可オリジン設定は持たない（#1342）。AppSync の GraphQL エンドポイントは
+    // オリジンを問わずプリフライトに応答し、認可は API キー（x-api-key ヘッダ）で行うため、
+    // ブランチプレビュー（https://preview.smalruby.app）のために足す設定は無い。
     this.api = new appsync.GraphqlApi(this, 'MeshV2Api', {
       name: `MeshV2Api${stageSuffix}`,
       definition: appsync.Definition.fromFile(path.join(__dirname, '../graphql/schema.graphql')),
@@ -186,9 +189,7 @@ export class MeshV2Stack extends cdk.Stack {
     // Lambda function for complex operations (Dissolve, Leave, RecordEvents, etc.)
     const meshV2Lambda = new lambda.Function(this, 'MeshV2LambdaFunction', {
       functionName: `MeshV2-GraphQL${stageSuffix}`,
-      // aws-cdk-lib 2.232.1 has no RUBY_4_0 constant yet (it arrives with the CDK
-      // update tracked in #1264); spell out the ruby4.0 managed runtime until then.
-      runtime: new lambda.Runtime('ruby4.0', lambda.RuntimeFamily.RUBY),
+      runtime: lambda.Runtime.RUBY_4_0,
       handler: 'handlers/appsync_handler.lambda_handler',
       code: lambda.Code.fromAsset(path.join(__dirname, '../lambda')),
       environment: {

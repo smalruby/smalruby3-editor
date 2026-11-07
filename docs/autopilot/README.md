@@ -178,8 +178,8 @@ daemon が Issue に **`🔬 spike` ラベル**を付ける。GitHub のラベ�
 
 ### 🧱 infra ラベル（infra を先に出す・infra-first）
 
-ブランチプレビューは prod の API を見るので、infra と GUI を同じ PR に入れると新しい API を
-使う GUI をプレビューで確認できない。そこで **infra（`infra/**`）の変更は GUI と別の sub-issue に
+ブランチプレビューは stg の API を見るので（プレビューのビルドが stg を向く #1344 が入るまでは
+prod）、infra と GUI を同じ PR に入れると新しい API を使う GUI をプレビューで確認できない。そこで **infra（`infra/**`）の変更は GUI と別の sub-issue に
 分け、`🧱 infra` ラベルを付けて先に develop へ出す**（手順の正準は
 `.claude/rules/infra/development.md` の「infra は別 Issue に分けて先に出す」）。
 
@@ -190,7 +190,10 @@ daemon が Issue に **`🔬 spike` ラベル**を付ける。GitHub のラベ�
 4. `Deploy Infra` workflow が stg → prod へ出し、**prod に出せたら infra の Issue を閉じる**
    （削除・置き換えを含む差分は自動では出さず、PR に知らせる）。
 5. `autopilot-after` の相手が 🧱 infra のときは **GitHub で closed になるまで未完了**とみなすので、
-   GUI の leaf はここで初めて `⏳ waiting` が外れて動き出し、プレビューで確認できる。
+   GUI の leaf はここで初めて `⏳ waiting` が外れて動き出し、プレビュー（stg の API）で確認できる。
+   確かめる前に stg が develop（または自分の PR）の状態かを確認し、ログインは
+   `?devlogin=<DEV_BYPASS_TOKEN>` で省く（手順は `.claude/rules/infra/development.md` の
+   「ブランチプレビューで確かめる（stg の API）」）。
 
 ラベルは Issue を作る側（decompose / 人間）が付ける。daemon は付け外ししない。
 
@@ -406,7 +409,8 @@ Playwright / 実 Chrome）に渡す引き継ぎを生成する**」。LLM は in
 
 1. 連携 PR と Issue 本文の **DoD チェックリスト**を取得（`extractDodChecklist`）。
 2. **プレビュー URL** を PR の CI コメントから拾う（`extractPreviewUrl`。
-   `https://smalruby.jp/smalruby3-editor/<branch>/`）。
+   `https://smalruby.jp/smalruby3-editor/<branch>/`。#1344 で `https://preview.smalruby.app/<slug>/`
+   に移り、stg の API を見る）。
 3. **テンプレートで引き継ぎ本文を生成**（`dodHandoffBody`）して `autopilot:dod-handoff` マーカー付き
    コメントを PR に投稿する。本文は「プレビュー URL ＋ Issue の DoD チェックリスト転記 ＋ 定型 headful
    手順（`?no_beforeunload=1`、スクショは `tmp/`→`docs/<feature>/screenshots/`、秘密情報は本文に
@@ -839,6 +843,39 @@ bin/autopilot-worktree list
 軽量モードは `.env` をコピーし `node_modules`/dist を main checkout へ symlink するので、
 `npm install` / `build:dev` 無しで即作業できる（`@smalruby/*` は main の dist に解決される）。
 単一パッケージのソース編集を想定。クロスパッケージのソース編集は `--full`。
+
+**自動の片付け（#1362）**: daemon が PR の merge を検知して Project を Close に進めたとき
+（merge-progression）と、GitHub で閉じた Issue を Close に揃えたとき（closed-reconcile）に、その Issue の
+worktree とローカルブランチを片付ける（🧱 infra の Issue も対象）。リモートブランチは消さない
+（`gh pr merge --delete-branch` に任せる）。ローカルブランチは autopilot が作った `topic/autopilot-*` だけ
+消し、`--pr` で別名のブランチを checkout していた場合は worktree だけ消す。gitignore されたファイル
+（`tmp/` のスクショや結果 JSON など）は worktree ごと消える。次のどれかに当てはまるときは**消さずに**
+daemon ログに理由を残す（残った worktree は `bin/autopilot-worktree remove` で手で消す）:
+
+- その Issue の worker が実行中
+- worktree に未コミットの変更か未追跡ファイルがある（`git status --porcelain` が空でない）
+- ブランチの先端が `origin/<base>`（`autopilot-base:` の値、無ければ develop。fetch 後）に含まれない
+  （merge せずに閉じた Issue はここで残る）
+- detached HEAD でブランチが分からない、または判定中に git がエラーになった
+
+判定は `phases.js` の `shouldCleanupWorktree`（純粋関数）、git の実行は daemon の `cleanupIssueWorktree`。
+片付けに失敗しても Close への前進は止めない。
+
+**dev server の後片付け（#1381）**: worker が UI 確認で起動した dev server（`webpack serve` / `npm start`）は、
+worker の tmux を閉じても残り、8601 をふさいだり、別の worktree の古いコードを返したりする。verify の
+プロンプトは起動前に 8601 の持ち主（cwd）を確かめ、結果ファイルを書く前に自分で止める。それに加えて
+daemon が次のときに止める（SIGTERM・止めた PID と理由を daemon ログに残す）:
+
+- **run が終わったとき**: その Issue の worktree を cwd に持つ dev server
+- **worktree を片付けるとき**（上の自動の片付け）: `git worktree remove` の前に、その worktree のもの
+- **毎 tick の掃除**: cwd の worktree が削除済みのもの（`/proc/<pid>/cwd` が `(deleted)`）と、
+  Status が終端（Close / Done）の Issue の worktree のもの
+
+止めるのは **autopilot の worktree（`.autopilot-worktrees/issue-<N>`）を cwd に持つプロセスだけ**。
+main checkout（`/app`）や人間・ほかのセッションが立てた dev server、worker が実行中の Issue のものは止めない。
+`pkill -f` のような広い一致は使わず、`/proc` を読んで PID と cwd で特定する（`/proc` が無い環境では何もしない）。
+判定は `phases.js` の `selectDevServersToStop`（純粋関数）、プロセスの列挙と停止は daemon の
+`listProcesses` / `stopWorktreeDevServers`。
 
 **base 追従（stale 起点の衝突防止・#950/#953）**: 新ブランチ作業フェーズ（implement 等）**と**
 PR ブランチ作業フェーズ（review / address-review）の**両方**で、着手時に daemon が作業ブランチを

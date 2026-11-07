@@ -11,10 +11,11 @@ import path from 'path';
 
 import bindAll from 'lodash.bindall';
 import webdriver from 'selenium-webdriver';
+import chrome from 'selenium-webdriver/chrome';
 
 import packageJson from '../../package.json';
 
-const {Button, By, until} = webdriver;
+const {By, until} = webdriver;
 
 const USE_HEADLESS = process.env.USE_HEADLESS !== 'no';
 const IS_ROOT_USER = process.getuid && process.getuid() === 0;
@@ -188,13 +189,12 @@ class SeleniumHelper {
     }
 
     /**
-     * Build Chrome capabilities for the Selenium driver.
+     * Build Chrome options for the Selenium driver.
      * Honours USE_HEADLESS and adds the no-sandbox flag when running as root
      * (CI image runs Chromium as root which Chrome refuses by default).
-     * @returns {webdriver.Capabilities} The Chrome capabilities.
+     * @returns {chrome.Options} The Chrome options.
      */
-    _buildChromeCapabilities () {
-        const chromeCapabilities = webdriver.Capabilities.chrome();
+    _buildChromeOptions () {
         const args = [];
         if (USE_HEADLESS) {
             args.push('--headless=new');
@@ -215,11 +215,12 @@ class SeleniumHelper {
         // This is especially important on Windows, where Selenium directs JS console messages to stdout
         args.push('--autoplay-policy=no-user-gesture-required');
 
-        chromeCapabilities.set('chromeOptions', {args});
-        chromeCapabilities.setLoggingPrefs({
-            performance: 'ALL'
-        });
-        return chromeCapabilities;
+        const chromeOptions = new chrome.Options().addArguments(...args);
+
+        const loggingPrefs = new webdriver.logging.Preferences();
+        loggingPrefs.setLevel(webdriver.logging.Type.PERFORMANCE, webdriver.logging.Level.ALL);
+        chromeOptions.setLoggingPrefs(loggingPrefs);
+        return chromeOptions;
     }
 
     /**
@@ -228,13 +229,13 @@ class SeleniumHelper {
      * @returns {Promise<webdriver.ThenableWebDriver>} The new driver.
      */
     async getDriver (retries = 2) {
-        const chromeCapabilities = this._buildChromeCapabilities();
+        const chromeOptions = this._buildChromeOptions();
         let lastError;
         for (let attempt = 0; attempt <= retries; attempt++) {
             try {
                 this.driver = await new webdriver.Builder()
                     .forBrowser('chrome')
-                    .withCapabilities(chromeCapabilities)
+                    .setChromeOptions(chromeOptions)
                     .build();
                 return this.driver;
             } catch (err) {
@@ -347,7 +348,7 @@ class SeleniumHelper {
             await this.driver
                 .executeScript('window.onbeforeunload = undefined;');
             await this.driver.manage().window()
-                .setSize(WINDOW_WIDTH, WINDOW_HEIGHT);
+                .setRect({width: WINDOW_WIDTH, height: WINDOW_HEIGHT});
             await this.driver.wait(
                 async () => await this.driver.executeScript('return document.readyState;') === 'complete',
                 DEFAULT_TIMEOUT_MILLISECONDS
@@ -475,7 +476,7 @@ class SeleniumHelper {
             await this.setTitle(`rightClickText ${text}`);
             const el = await this.findByText(text, scope);
             return this.driver.actions()
-                .click(el, Button.RIGHT)
+                .contextClick(el)
                 .perform();
         } catch (cause) {
             throw await enhanceError(outerError, cause, this.driver);

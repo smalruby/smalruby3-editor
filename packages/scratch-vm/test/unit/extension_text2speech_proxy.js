@@ -8,10 +8,26 @@ const extPath = require.resolve('../../src/extensions/scratch3_text2speech');
 // generic CORS proxy (api.smalruby.app/cors-proxy?url=<encoded synth URL>) so
 // smalruby.app is not blocked by CORS. This test guards that the proxy wrapping is
 // not silently reverted by an upstream merge (same root cause as translate; see
-// issue #859 / #857).
-test('text2speech extension routes fetch through the generic Smalruby CORS proxy', (t) => {
+// issue #859 / #857). The proxy host follows SCRATCH_API_PROXY_ENDPOINT so a branch
+// preview uses the stg API (issue #1374).
+
+/**
+ * Speak once with SCRATCH_API_PROXY_ENDPOINT set to `endpoint` and return the URL
+ * passed to fetchWithTimeout.
+ * @param {string|undefined} endpoint - the build value (undefined = not set)
+ * @returns {Promise<string|null>} the captured request URL
+ */
+const captureSynthUrl = (endpoint) => {
+    const originalEndpoint = process.env.SCRATCH_API_PROXY_ENDPOINT;
+    if (typeof endpoint === 'undefined') {
+        delete process.env.SCRATCH_API_PROXY_ENDPOINT;
+    } else {
+        process.env.SCRATCH_API_PROXY_ENDPOINT = endpoint;
+    }
+
     // Stub fetchWithTimeout before the extension captures it via destructuring at
-    // module load time, then fresh-require the extension so it picks up the stub.
+    // module load time, then fresh-require the extension so it picks up the stub
+    // (and reads SCRATCH_API_PROXY_ENDPOINT, which is also resolved at load time).
     const fetchModule = require(fetchModulePath);
     const originalFetch = fetchModule.fetchWithTimeout;
     let capturedUrl = null;
@@ -41,12 +57,24 @@ test('text2speech extension routes fetch through the generic Smalruby CORS proxy
     };
 
     // speakAndWait always resolves (it swallows fetch errors in a .catch and logs
-    // a warning), so we assert on the captured URL after it settles.
-    return ext.speakAndWait({ WORDS: 'hello' }, { target }).then(() => {
-        // restore before assertions so a failure does not leak the stub
-        fetchModule.fetchWithTimeout = originalFetch;
-        delete require.cache[extPath];
+    // a warning), so we read the captured URL after it settles.
+    return ext
+        .speakAndWait({ WORDS: 'hello' }, { target })
+        .then(() => capturedUrl)
+        .finally(() => {
+            // restore before assertions so a failure does not leak the stub
+            fetchModule.fetchWithTimeout = originalFetch;
+            delete require.cache[extPath];
+            if (typeof originalEndpoint === 'undefined') {
+                delete process.env.SCRATCH_API_PROXY_ENDPOINT;
+            } else {
+                process.env.SCRATCH_API_PROXY_ENDPOINT = originalEndpoint;
+            }
+        });
+};
 
+test('text2speech extension routes fetch through the generic Smalruby CORS proxy', (t) =>
+    captureSynthUrl(undefined).then((capturedUrl) => {
         t.ok(capturedUrl, 'fetchWithTimeout was called');
         t.match(
             capturedUrl,
@@ -64,6 +92,13 @@ test('text2speech extension routes fetch through the generic Smalruby CORS proxy
             /^https:\/\/synthesis-service\.scratch\.mit\.edu/,
             'the browser does not call the CORS-locked Scratch service directly',
         );
-        t.end();
-    });
-});
+    }));
+
+test('text2speech extension uses the CORS proxy of SCRATCH_API_PROXY_ENDPOINT', (t) =>
+    captureSynthUrl('https://stg.api.smalruby.app').then((capturedUrl) => {
+        t.match(
+            capturedUrl,
+            /^https:\/\/stg\.api\.smalruby\.app\/cors-proxy\?url=https%3A%2F%2Fsynthesis-service/,
+            'request goes to the stg CORS proxy',
+        );
+    }));

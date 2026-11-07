@@ -23,6 +23,12 @@ export const localDevOrigins = (): string[] => {
   return origins;
 };
 
+/**
+ * ブランチプレビューのオリジン（非 prod のみで使う・#1342）。
+ * プレビューは stg の API を見るので、stg 側でだけ許可する。prod には足さない。
+ */
+export const PREVIEW_ORIGINS = ['https://preview.smalruby.app'];
+
 /** そのオリジンがローカル開発用（本番に出してはいけないもの）か。 */
 export const isLocalOrigin = (origin: string): boolean =>
   /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/i.test(origin.trim());
@@ -33,6 +39,10 @@ export const isLocalOrigin = (origin: string): boolean =>
  * env `CORS_ALLOWED_ORIGINS` が最優先。prod にローカルオリジンが混ざっていたら
  * **deploy させない**（`DEV_BYPASS_TOKEN` の prod ガードと同じ考え方。CORS は
  * 「開発中は緩めて戻し忘れる」が起きやすいので、戻し忘れを検知する側に倒す）。
+ *
+ * 非 prod ではブランチプレビューのオリジンを **env を指定していても**足す。stg の env は
+ * GitHub secrets 由来で `CORS_ALLOWED_ORIGINS` を明示しているため、既定値に足すだけでは
+ * stg に届かない。
  * @param stage - デプロイ先ステージ
  * @param productionOrigins - どのステージでも許可する本番オリジン
  * @param envValue - `CORS_ALLOWED_ORIGINS` の値（未設定なら undefined）
@@ -43,9 +53,11 @@ export const resolveCorsOrigins = (
   productionOrigins: string[],
   envValue?: string,
 ): string[] => {
-  const origins = envValue
+  const base = envValue
     ? envValue.split(',').map(o => o.trim()).filter(Boolean)
     : [...productionOrigins, ...(stage === 'prod' ? [] : localDevOrigins())];
+  const origins =
+    stage === 'prod' ? base : [...base, ...PREVIEW_ORIGINS.filter(o => !base.includes(o))];
 
   if (stage === 'prod') {
     const local = origins.filter(isLocalOrigin);
