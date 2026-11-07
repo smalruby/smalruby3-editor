@@ -189,6 +189,62 @@ describe('findArrayIndexHints', () => {
         expect(findArrayIndexHints(src)).toEqual([]);
     });
 
+    test('does not check an array that a function parameter shadows', () => {
+        const src = [
+            'X = [1, 2, 3]',
+            '関数 f(Y, X)',
+            '  表示する(X[5])',
+            'と定義する',
+            '表示する(X[5])',
+        ].join('\n');
+        expect(findArrayIndexHints(src).map((h) => h.line)).toEqual([5]);
+    });
+
+    test('does not check an array that a DNCLv2 function parameter shadows', () => {
+        const src = [
+            'X = [1, 2, 3]',
+            'f(X) を定義する',
+            '  表示する(X[5])',
+            'と定義する',
+        ].join('\n');
+        expect(findArrayIndexHints(src)).toEqual([]);
+    });
+
+    test('does not use a loop bound that a function parameter shadows', () => {
+        const src = [
+            'n = 5',
+            'X = [1, 2, 3]',
+            '関数 f(n)',
+            '  i を 0 から n まで 1 ずつ増やしながら',
+            '    表示する(X[i])',
+            '  を繰り返す',
+            'と定義する',
+            'j を 0 から n まで 1 ずつ増やしながら',
+            '  表示する(X[j])',
+            'を繰り返す',
+        ].join('\n');
+        expect(findArrayIndexHints(src).map((h) => h.line)).toEqual([9]);
+    });
+
+    test.each([
+        ['push', 'X.push(i)'],
+        ['insert', 'X.insert(0, i)'],
+        ['delete_at', 'X.delete_at(0)'],
+        ['clear', 'X.clear'],
+    ])('does not check an array whose length changes (%s)', (_, call) => {
+        const src = [
+            'X = [0]',
+            'i を 1 から 5 まで 1 ずつ増やしながら',
+            `  ${call}`,
+            'を繰り返す',
+            'i を 0 から 5 まで 1 ずつ増やしながら',
+            '  表示する(X[i])',
+            'を繰り返す',
+            '表示する(X[3])',
+        ].join('\n');
+        expect(findArrayIndexHints(src)).toEqual([]);
+    });
+
     test('reports source lines of DNCLv2 code with line numbers', () => {
         const src = [
             '(01) Kouka = [1, 5, 10]',

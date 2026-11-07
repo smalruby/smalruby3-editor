@@ -270,7 +270,7 @@ Smalruby は **DNCLv2 形式のプログラムをそのまま実行** できる�
   - `dncl-v2-preprocessor.test.js` — DNCLv2 正規化テスト（53 cases）
   - `dncl-v2-example.test.js` — DNCLv2 例題の end-to-end 変換テスト
   - `dncl-v2-ictl-samples.test.js` — 共通テスト例題で使われる記法（`もし(`・`(00-1)`・全角コロン・継続行・`//` が常に整数除算であること・入力形式・インデントだけのブロック）と、例題プログラムが prism で構文エラーにならないことの検証
-  - `dncl-array-index-hint.test.js` — 範囲外の添字の警告（1 から数えたループ・数の添字・0 から数えたループは警告しない・二度代入した配列は推測しない）
+  - `dncl-array-index-hint.test.js` — 範囲外の添字の警告（1 から数えたループ・数の添字・0 から数えたループは警告しない・二度代入した配列・要素を追加/削除する配列・関数の引数と同じ名前は推測しない）
   - `dncl-paste-tidy.test.js` — 貼り付け時の整形（行番号の削除・`//` コメント → `#`・整数除算と文字列の `//` は不変）
   - `dncl-display-multi-arg.test.js` — `表示する` 多引数 / `puts(... + ...)` round-trip
   - `dncl-to-ruby.test.js` — DNCL → Ruby 変換ユニットテスト

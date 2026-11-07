@@ -18,6 +18,9 @@ const ARRAY_LITERAL_RE = new RegExp(`^(${ID})\\s*(?:=|←)\\s*\\[(.*)\\]$`);
 const INT_ASSIGN_RE = new RegExp(`^(${ID})\\s*(?:=|←)\\s*(-?\\d+)$`);
 const ACCESS_RE = new RegExp(`(?<!${ID_CHAR})(${ID})\\[\\s*([^\\[\\]]*?)\\s*\\]`, 'g');
 const BOUND_RE = new RegExp(`^(-?\\d+|${ID}|要素数\\(\\s*(${ID})\\s*\\))(?:\\s*([+-])\\s*(\\d+))?$`);
+const FUNCTION_RE = new RegExp(`^関数\\s+${ID}\\s*\\(([^)]*)\\)$`);
+// List blocks that add or remove items appear as these Ruby calls in DNCL.
+const RESIZE_RE = new RegExp(`(?<!${ID_CHAR})(${ID})\\.(?:push|insert|delete_at|delete|clear|pop|shift|unshift|concat)(?!${ID_CHAR})`, 'g');
 
 const OPENERS = [/^もし\s+.+\s+(?:なら|ならば)$/, /^.+\s+の間$/, /^関数\s/];
 const CLOSERS = ['を繰り返す', 'を実行する', 'と定義する', 'を定義する'];
@@ -70,7 +73,8 @@ const countElements = (body) => {
 
 /**
  * Collect the arrays and integer variables whose value is fixed for the
- * whole program: assigned exactly once, by a literal.
+ * whole program: assigned exactly once, by a literal, and (for arrays) never
+ * resized by a call such as `X.push(v)`.
  * @param {Array<string>} lines - The code parts of the source lines.
  * @returns {{lengths: Map<string, number>, constants: Map<string, number>}}
  *   The array lengths and the integer constants by name.
@@ -90,6 +94,9 @@ const collectFixedValues = (lines) => {
         const intMatch = line.match(INT_ASSIGN_RE);
         if (intMatch) constants.set(assigned, Number(intMatch[2]));
     }
+    for (const line of lines) {
+        for (const [, name] of line.matchAll(RESIZE_RE)) lengths.delete(name);
+    }
     for (const map of [lengths, constants]) {
         for (const name of map.keys()) {
             if (assignCounts.get(name) !== 1) map.delete(name);
@@ -99,6 +106,21 @@ const collectFixedValues = (lines) => {
         if (length === 0) lengths.delete(name);
     }
     return { lengths, constants };
+};
+
+/**
+ * Drop the values whose names a function parameter shadows: inside the
+ * function, such a name holds whatever the caller passes.
+ * @param {{lengths: Map<string, number>, constants: Map<string, number>}} fixed
+ *   The values from `collectFixedValues`.
+ * @param {Set<string>} params - The parameter names in scope.
+ * @returns {{lengths: Map<string, number>, constants: Map<string, number>}}
+ *   The values that still hold.
+ */
+const withoutParams = (fixed, params) => {
+    if (params.size === 0) return fixed;
+    const keep = (map) => new Map([...map].filter(([name]) => !params.has(name)));
+    return { lengths: keep(fixed.lengths), constants: keep(fixed.constants) };
 };
 
 /**
@@ -150,8 +172,9 @@ const loopMaximum = (from, to, step, ascending, fixed) => {
  * program written with 1-based indices does. Two cases are detected:
  * `X[i]` inside a counting loop whose largest `i` is the length of `X` or
  * more, and `X[n]` with a constant `n` that is the length of `X` or more.
- * Only arrays assigned once by a literal (and bounds known statically) are
- * checked, so the hints never guess.
+ * Only arrays assigned once by a literal and never resized (and bounds known
+ * statically) are checked, and names that a function parameter shadows are
+ * not used, so the hints never guess.
  * @param {string} source - The DNCL source code.
  * @returns {Array<object>} The hints, each with the 1-based DNCL source
  *   `line`, the `access` text (`Nissu[kougeihin]`), the `array` name, the
@@ -162,7 +185,8 @@ const findArrayIndexHints = (source) => {
     const lines = normalized.split('\n').map(codeOf);
     const fixed = collectFixedValues(lines);
     const hints = [];
-    // Each open block; counting loops carry their variable and largest value.
+    // Each open block; counting loops carry their variable and largest value,
+    // functions their parameter names.
     const blocks = [];
 
     lines.forEach((raw, idx) => {
@@ -171,9 +195,11 @@ const findArrayIndexHints = (source) => {
             blocks.pop();
             return;
         }
+        const params = new Set(blocks.flatMap((b) => (b && b.params) || []));
+        const visible = withoutParams(fixed, params);
         for (const match of line.matchAll(ACCESS_RE)) {
             const [access, array, index] = match;
-            const length = fixed.lengths.get(array);
+            const length = visible.lengths.get(array);
             if (typeof length !== 'number') continue;
             const loop = [...blocks].reverse().find((b) => b && b.loopVar === index);
             let hint = null;
@@ -199,8 +225,14 @@ const findArrayIndexHints = (source) => {
         const forMatch = line.match(FOR_RE);
         if (forMatch) {
             const [, loopVar, from, to, step, direction] = forMatch;
-            const max = loopMaximum(from, to, step, direction === '増やし', fixed);
+            const max = loopMaximum(from, to, step, direction === '増やし', visible);
             blocks.push({ loopVar, max, reported: new Set() });
+            return;
+        }
+        const functionMatch = line.match(FUNCTION_RE);
+        if (functionMatch) {
+            const names = functionMatch[1].split(',').map((p) => p.trim());
+            blocks.push({ params: names.filter(Boolean) });
         } else if (OPENERS.some((re) => re.test(line))) {
             blocks.push(null);
         }
