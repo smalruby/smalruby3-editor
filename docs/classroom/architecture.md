@@ -603,7 +603,7 @@ smalruby-classroom-submissions-{stage}/
 
 | Stage | 許可オリジン |
 |-------|------------|
-| stg | `https://smalruby.app`, `https://smalruby.jp`, `http://localhost:8601` |
+| stg | `https://smalruby.app`, `https://smalruby.jp`, `http://localhost:8601`〜`8610`, `https://preview.smalruby.app`（ブランチプレビュー） |
 | prod | `https://smalruby.app`, `https://smalruby.jp` |
 
 許可ヘッダー: `Content-Type`, `Authorization`, `X-Google-Access-Token`

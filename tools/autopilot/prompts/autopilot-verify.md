@@ -59,15 +59,37 @@ node tools/autopilot/bin/pw-check --serve-html tmp/monitor-preview.html --wait '
 #### 3-B. scratch-gui の UI（dev server が必要）
 
 `localhost:8601` の dev server が要る。**起動は重い（webpack）ので、PR コメントの
-プレビュー URL（`https://smalruby.jp/smalruby3-editor/<branch>/`）があればそれを優先**し、
-無ければ dev server を起動して待機してから確認する。
-プレビューは **prod の API** を見る。先行の 🧱 infra Issue（`autopilot-after`）を待っていた
-GUI の Issue なら、その API はもう prod にあるので、プレビューでそのまま確認できる。
+プレビュー URL（`https://preview.smalruby.app/<slug>/`。slug はブランチ名の `/` を `-` にして小文字化）
+があればそれを優先**し、無ければ dev server を起動して待機してから確認する。
+プレビューは **stg の API** を見る。先行の 🧱 infra Issue（`autopilot-after`）を待っていた
+GUI の Issue なら、その API はもう stg（と prod）にあるので、プレビューでそのまま確認できる。
+（プレビューのビルドが stg を向く #1344 が入るまでは、旧プレビュー
+`https://smalruby.jp/smalruby3-editor/<branch>/` が PR コメントに出て、それは prod の API を見る。
+旧プレビューでは devlogin が効かない。）
+
+プレビューで確かめる前に、手順の正準 `.claude/rules/infra/development.md` の
+「ブランチプレビューで確かめる（stg の API）」に従う:
+
+- **stg の状態を確認する**: stg は `deploy-stg` ラベルを付けた PR の変更で一時的に develop と
+  ずれることがある。`gh run list --workflow deploy-infra-stg.yml` で、確認に関わる infra
+  プロジェクトの最後の stg デプロイが develop の push（または自分の PR）かを確かめる。他人の PR の
+  変更が載っていて確認に影響するなら、勝手に上書きせず HITL で人間に知らせる。
+- **ログインが要るなら `?devlogin=<DEV_BYPASS_TOKEN>`**: stg の API が照合し、先生として
+  ログインできる。値はローカル `.env` から読むだけで、**トークンを echo しない・コメント /
+  結果ファイル / スクショの説明文など GitHub に出るものに書かない**。
+  `pw-check` の出力 JSON の `url`（失敗時は `error` も）にはトークン入りの URL がそのまま出るので、
+  出力を貼らずに確認結果だけを書く。
 
 ```bash
 # プレビュー URL があれば直接確認（dev server 起動不要）
 node tools/autopilot/bin/pw-check \
-  'https://smalruby.jp/smalruby3-editor/<branch>/?no_beforeunload=1&tab=ruby' \
+  'https://preview.smalruby.app/<slug>/?no_beforeunload=1&tab=ruby' \
+  --wait '[class*="gui_editor-wrapper"]' --timeout 90000 --eval '<DoD 確認式>'
+
+# ログインが要る確認（先生として）。トークンは .env から読むだけ
+DEV_BYPASS_TOKEN="$(grep -E '^DEV_BYPASS_TOKEN=' .env | cut -d= -f2-)"
+node tools/autopilot/bin/pw-check \
+  "https://preview.smalruby.app/<slug>/?no_beforeunload=1&devlogin=${DEV_BYPASS_TOKEN}" \
   --wait '[class*="gui_editor-wrapper"]' --timeout 90000 --eval '<DoD 確認式>'
 
 # プレビュー URL が無いとき（dev server をバックグラウンド起動 → 応答を待つ → 確認）

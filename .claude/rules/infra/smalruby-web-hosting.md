@@ -25,9 +25,15 @@ Smalruby の Web フロントエンドを AWS（Route 53 / 今後 S3 + CloudFron
   **同名の 2 つ目のゾーン（別の NS）が黙ってできる**（Route 53 は同名ゾーンを許す）。
   レビューでは、ゾーンの論理 ID・スタック名・`zoneName` が変わる差分を **[Must]** で止める。
   やむを得ず作り直すときの手順は `docs/infra/smalruby-web-hosting.md` の「ゾーンを作り直すとき」。
-- **ACM 証明書はゾーンと同じデプロイで作らない**（委任前だと DNS 検証が終わらず、デプロイが
-  証明書を待ち続けて失敗する）。証明書・配信基盤は委任が効いたあとに足す。CloudFront 用の証明書は
-  us-east-1 に要る点にも注意（スタックは ap-northeast-1）。
+- **ACM 証明書はゾーンの委任が効いてから足した**（委任前だと DNS 検証が終わらず、デプロイが
+  証明書を待ち続けて失敗する）。ゾーンを作り直すと同じ問題が再発する。CloudFront 用の証明書は
+  us-east-1 に要るので、スタック（ap-northeast-1）の中で `DnsValidatedCertificate`（`region: 'us-east-1'`）
+  で作る。**スタックを分けない**（`Deploy Infra` は `cdk deploy` をスタック名なしで呼ぶので、
+  スタックが 2 つになると `--all` が要って失敗する）。
+- **ワイルドカードの DNS レコードを作らない**（`docs/security/github-pages-subdomain-takeover.md`）。
+- **CI 用ロールの信頼はこのリポジトリ、権限はこのバケットとこのディストリビューションだけ**に絞る。
+  GitHub の OIDC プロバイダはアカウントに 1 つしか作れない（`Deploy Infra` 用に作成済み）ので、
+  `fromOpenIdConnectProviderArn` で参照し、新しく作らない。
 
 ## デプロイ
 

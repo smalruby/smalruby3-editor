@@ -10,7 +10,7 @@ Smalruby のバックエンドは **AWS CDK** で管理される独立したプ�
 | **`infra/smalruby-rubytee-relay/`** | Rubytee (AI チャット) リレー | API Gateway HTTP API + Lambda + DynamoDB | `rubytee.api.smalruby.app` | [`docs/rubytee/`](../rubytee/) |
 | **`infra/smalruby-classroom/`** | クラスルーム機能 | API Gateway HTTP API + Lambda + DynamoDB + S3 | `classroom.api.smalruby.app` | [`docs/classroom/`](../classroom/) |
 | **`infra/smalruby-api/`** | 共通 API (CORS proxy / Mesh zone / Scratch proxy) | API Gateway HTTP API + Lambda | `api.smalruby.app` | [`smalruby-api.md`](smalruby-api.md) |
-| **`infra/smalruby-web-hosting/`** | Web 配信基盤（ブランチプレビュー）。現在は `preview.smalruby.app` ゾーンのみ（stg） | Route 53 | — (prod は空のスタック) | [`smalruby-web-hosting.md`](smalruby-web-hosting.md) |
+| **`infra/smalruby-web-hosting/`** | Web 配信基盤（ブランチプレビュー `preview.smalruby.app/<slug>/`・stg のみ） | Route 53, S3, CloudFront, ACM, IAM (OIDC) | `preview.smalruby.app`（stg。prod は空のスタック） | [`smalruby-web-hosting.md`](smalruby-web-hosting.md) |
 
 ## 共通パターン
 
@@ -72,10 +72,17 @@ const stageSuffix = stage === 'prod' ? '' : `-${stage}`;
 
 | Stage | 許可オリジン (デフォルト) |
 |---|---|
-| stg | `https://smalruby.app`, `https://smalruby.jp`, `http://localhost:8601` |
-| prod | `https://smalruby.app`, `https://smalruby.jp` (localhost 除外) |
+| stg | `https://smalruby.app`, `https://smalruby.jp`, `http://localhost:8601`〜`8610`（classroom / bug-report / admin。api / rubytee-relay は `8601` だけ）, `https://preview.smalruby.app` |
+| prod | `https://smalruby.app`, `https://smalruby.jp` (localhost・プレビュー除外) |
 
 → ローカル開発は **stg エンドポイント** を使う。prod は CORS で localhost を弾く。
+
+ブランチプレビュー（`https://preview.smalruby.app`）は stg の API を見るので、非 prod ではどの API も
+このオリジンを許可する。stg の `CORS_ALLOWED_ORIGINS` は GitHub secrets（`.env.stg`）で明示されて
+いるため、**env を指定していても非 prod ではコード側で足す**（classroom / bug-report / admin は
+`lib/cors-origins.ts` の `resolveCorsOrigins`、api / rubytee-relay は `lib/preview-origins.ts` の
+`withPreviewOrigins`）。prod の許可オリジンは変えない。mesh-v2（AppSync）はオリジンを問わず
+プリフライトに応答し API キーで認可するため、CORS の設定を持たない。
 
 ### デプロイコマンド
 

@@ -19,7 +19,7 @@ AWS CDK infrastructure projects live in `infra/`. Each project is independent fr
 | smalruby-api | `infra/smalruby-api/` | Smalruby API endpoints (HTTP API v2 + Lambda): cors-proxy, mesh-domain, scratch-api-proxy/* |
 | smalruby-bug-report | `infra/smalruby-bug-report/` | Program bug report service (HTTP API v2 + Lambda + DynamoDB + S3): 作品添付つき不具合報告 + 管理者レジストリ |
 | smalruby-admin | `infra/smalruby-admin/` | Admin service (HTTP API v2 + Lambda + DynamoDB): 管理 SPA のバックエンド（deny-by-default 許可リスト + 監査ログ） |
-| smalruby-web-hosting | `infra/smalruby-web-hosting/` | Web 配信基盤（Route 53。今後 S3 + CloudFront）: ブランチプレビュー `preview.smalruby.app`。stg だけに作り、prod は空のスタック |
+| smalruby-web-hosting | `infra/smalruby-web-hosting/` | Web 配信基盤（Route 53 + S3 + CloudFront + ACM + GitHub OIDC ロール）: ブランチプレビュー `preview.smalruby.app/<slug>/`。stg だけに作り、prod は空のスタック |
 
 See project-specific rules for details:
 - `.claude/rules/infra/smalruby-mesh-v2.md`
@@ -89,10 +89,16 @@ stg は**共有資源**で、人間と複数の autopilot worker が同時に触
 
 ## infra は別 Issue に分けて先に出す（infra-first）
 
-ブランチプレビュー（`https://smalruby.jp/smalruby3-editor/<branch>/`）は **prod の API** を見る。
-GUI と infra を 1 つの PR に入れると、新しい API が prod に無いのでプレビューで確認できない。
+ブランチプレビューは **stg の API** を見る（本番のデータをテストに使わないため。prod の API を
+見るのは本番デプロイ = smalruby.app だけ）。GUI と infra を 1 つの PR に入れると、新しい API が
+stg に無いのでプレビューで確認できず、マージしても prod に API が無いまま GUI が本番へ出うる。
 そこで **infra の変更は必ず GUI と別の Issue（親 Issue の sub-issue）にし、先に develop へ
-マージして prod に出す**。GUI の Issue はそのあとに動き、プレビューで確認する。
+マージして stg → prod に出す**。GUI の Issue はそのあとに動き、プレビュー（stg）で確認する。
+
+> **移行中の注意**: プレビューのビルドが stg を向くのは #1344（`https://preview.smalruby.app/<slug>/`）
+> が入ってから。**#1344 が入るまでは、今のプレビュー（`https://smalruby.jp/smalruby3-editor/<branch>/`）は
+> prod の API を見る**。infra-first の手順はどちらでも同じ（infra は develop へのマージで stg と
+> prod の両方に出るので、GUI が動き出す時点で両方に API がある）。
 
 1. **Issue を分ける**: infra（`infra/**` だけ）を 1 つ、それ以外（GUI など）を 1 つ以上。
    - infra の Issue には **`🧱 infra` ラベル**を付け、**`autopilot-base:` は書かない**
@@ -107,12 +113,76 @@ GUI と infra を 1 つの PR に入れると、新しい API が prod に無い
    `deploy-stg` ラベルで stg に出して integration test。
 4. **マージ → stg → prod が自動で走り、prod に出たら workflow が infra の Issue を閉じる** →
    GUI の Issue が動き出す（autopilot は 🧱 infra の依存を「GitHub で closed」になるまで待つ）。
-5. GUI は**ブランチプレビューで確認**する（prod の API がもうある）。
+   prod を待つのは、GUI が develop から本番（smalruby.app）へ出たときに API が無い状態を作らないため。
+5. GUI は**ブランチプレビューで確認**する（stg の API がもうある。確かめる前に下の
+   「プレビューで確かめる前に stg の状態を確認する」を行う）。
 6. **Contract**（旧経路の削除など）は、GUI が全部移行して prod に出たあと、**別の infra Issue** で
    行う。これは削除を含むので prod の自動デプロイが止まる → 人間が確認して手元から出す。
 
 infra と GUI が同じ Issue に混ざっていたら、作業を始める前に分ける（autopilot は triage /
 decompose で分ける。人間が Issue を作るときも同じ）。
+
+## ブランチプレビューで確かめる（stg の API）
+
+ブランチプレビュー（#1344 以降は `https://preview.smalruby.app/<slug>/`。slug はブランチ名の
+`/` を `-` にして小文字化したもの。例: `topic/autopilot-1329` → `topic-autopilot-1329`）は
+stg の API を見る。dev server を立てずに、push 済みのブランチをそのまま確かめられる。
+
+### `?devlogin=<DEV_BYPASS_TOKEN>` でログインを省く
+
+プレビューでは `?devlogin=<DEV_BYPASS_TOKEN>` を付けると、Google / Microsoft のログインを
+省いて先生としてログインできる。トークンは **stg の API が照合する**（prod は
+`infra/smalruby-classroom/lib/classroom-stack.ts` のガードで `DEV_BYPASS_TOKEN` を持てないので、
+本番では効かない）。値はローカルの `.env` の `DEV_BYPASS_TOKEN`
+（`.claude/rules/env-file.md`）。**トークンを Issue / PR / コメント / コミットに書かない**。
+
+AI（autopilot の verify など）が Playwright で確かめる手順（headless の `pw-check`。
+`.claude/rules/autopilot/prompts.md` の「UI 確認」）:
+
+```bash
+# .env から読むだけ。echo しない・ログや GitHub に出さない
+DEV_BYPASS_TOKEN="$(grep -E '^DEV_BYPASS_TOKEN=' .env | cut -d= -f2-)"
+node tools/autopilot/bin/pw-check \
+  "https://preview.smalruby.app/<slug>/?no_beforeunload=1&devlogin=${DEV_BYPASS_TOKEN}" \
+  --wait '[class*="gui_editor-wrapper"]' --timeout 90000 --eval '<DoD 確認式>'
+```
+
+- 先生ダッシュボードへは「⚙ 設定 → クラス管理」から入る。クラス管理の data-testid と先生フローの
+  自動化は `docs/classroom/testing.md`。
+- スクリーンショットは `tmp/` 配下に保存する（URL にトークンが入るので、URL を含むログや
+  スクショの説明文を GitHub に貼らない）。**`pw-check` の出力 JSON の `url`（失敗時は `error` も）には
+  トークン入りの URL がそのまま出る**ので、出力を貼らずに確認結果だけを書く。
+- #1344 が入るまでの旧プレビュー（`smalruby.jp/smalruby3-editor/<branch>/`）は prod を見るので
+  devlogin は効かない。ログインが要る確認は dev server（`localhost:8601`）で行う。
+
+### プレビューで確かめる前に stg の状態を確認する
+
+stg は**共有資源**で、`deploy-stg` ラベルを付けた PR の変更で**一時的に develop とずれる**ことが
+ある。ずれが戻るのは、develop への push がそのプロジェクトを変えたとき（その PR のマージを含む）か、
+`workflow_dispatch` で develop からそのプロジェクトを出し直したときだけ（develop への push で出るのは、
+その push で変わったプロジェクトだけ。PR を閉じただけ・別プロジェクトの push では戻らない）。プレビューは
+いまの stg を見るので、確かめる前に「stg の各プロジェクトが develop（または自分の PR）の状態か」を
+確認する。stg に出す経路は `Deploy Infra`（`.github/workflows/deploy-infra-stg.yml`）だけなので、
+その run の履歴を見ればよい:
+
+```bash
+# 直近の Deploy Infra の run（push = develop、pull_request = deploy-stg ラベルの PR）
+GH_TOKEN="$(bin/bot-token)" gh run list --repo smalruby/smalruby3-editor \
+  --workflow deploy-infra-stg.yml --limit 10 \
+  --json databaseId,event,headBranch,headSha,conclusion,createdAt
+# どのプロジェクトを stg に出したか（ジョブ名が "[<project>] deploy stg"）
+GH_TOKEN="$(bin/bot-token)" gh run view <databaseId> --repo smalruby/smalruby3-editor \
+  --json jobs --jq '.jobs[] | select(.name | test("deploy stg")) | [.name, .conclusion] | @tsv'
+```
+
+- 自分の確認に関わるプロジェクト（例: GUI がクラス管理を使うなら `smalruby-classroom`）について、
+  **最後に成功した stg デプロイ**が `event=push`（または `workflow_dispatch`）・`headBranch=develop` なら stg = develop。
+- 最後が `event=pull_request` なら、その PR の変更が載っている。自分の PR でなければ、その PR の
+  「🚀 stg にデプロイしました」コメント（commit / branch）を見て、確認に影響するか判断する。
+  影響するなら、その PR の作業が終わるのを待つか、人間に知らせる（**他人の PR の stg を
+  勝手に上書きしない**）。
+- 自分の PR の infra を stg で確かめたいときは `deploy-stg` ラベルを付け、PR に残るコメントで
+  自分の SHA が載ったことを確かめてから確認する（上の「なぜ stg をローカルから撃たないか」）。
 
 ## AWS Credentials
 
