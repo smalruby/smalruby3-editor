@@ -458,7 +458,8 @@ GenaiConcierge.propTypes = {
     }).isRequired,
     // Makes the adapter of the tab the panel is in: ({vm, intl, rubyVersion, scratchBlocks})
     // => adapter (the points are described in src/lib/genai-code-adapter.js). The code tab's
-    // by default.
+    // by default. Pass a function that stays the same between renders (not an inline arrow):
+    // a new one makes a new adapter, and the marks and the area are set up again each time.
     createAdapter: PropTypes.func,
     rubyVersion: PropTypes.string,
     assignmentName: PropTypes.string,

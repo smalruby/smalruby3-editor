@@ -279,7 +279,7 @@ GENAI_LAB=1 GENAI_LAB_RUN=<名前> GENAI_LAB_MODELS=sonnet,haiku GENAI_LAB_REPEA
 | `packages/scratch-gui/src/components/genai-concierge/genai-copy-step.jsx` | 段階 2: 質問文のコピー・分割（開発用の生成AI 選択を含む） |
 | `packages/scratch-gui/src/components/genai-concierge/genai-answer-steps.jsx` | 段階 3〜6: 答えを貼る・ブロックにする・切りかえ（確かめる・入れる・印はアダプタを呼ぶ） |
 | `packages/scratch-gui/src/components/genai-concierge/messages.js` | 文言（`gui.genaiConcierge.*`） |
-| `packages/scratch-gui/src/lib/genai-concierge-state.js` | 表示条件・相談先・声かけ・進み具合・パネルの位置の判定（純粋関数） |
+| `packages/scratch-gui/src/lib/genai-concierge-state.js` | 表示条件・相談先・声かけ・進み具合・パネルの位置・見せる印の選び方の判定（純粋関数。どのタブでも同じ） |
 | `packages/scratch-gui/src/lib/genai-prompt.js` | 質問文の組み立て・分割・答えからの Ruby 取り出し（純粋関数） |
 | `packages/scratch-gui/src/lib/genai-repair.js` | 生成AI の Ruby の自動修正・スプライトごとの分割（純粋関数） |
 | `packages/scratch-gui/test/genai-lab/` | 質問文の検証（プロンプト・ラボ。CI では動かさない） |

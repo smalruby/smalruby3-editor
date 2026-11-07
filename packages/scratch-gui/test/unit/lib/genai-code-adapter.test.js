@@ -2,7 +2,6 @@ import {
     MARK_CLASSES,
     copyBlocks,
     createCodeTabAdapter,
-    marksToShow,
     nameOf,
     programsForPrompt,
     takeoverStateOf,
@@ -38,8 +37,8 @@ const makeVm = (targets, editing) => {
 // A converter stand-in: the code becomes one block (or a failure for 'NG').
 const fakeToBlocks = (target, code) =>
     Promise.resolve({
-        result: code !== 'NG',
-        errors: code === 'NG' ? [{ row: 0, column: 0, text: 'NG' }] : [],
+        result: code.trim() !== 'NG',
+        errors: code.trim() === 'NG' ? [{ row: 0, column: 0, text: 'NG' }] : [],
         blocks: code ? { b1: { id: 'b1', opcode: 'motion_movesteps', topLevel: true } } : {},
         apply: () => {
             target.blocks._blocks = code ? { b1: { id: 'b1', opcode: 'motion_movesteps', topLevel: true } } : {};
@@ -65,32 +64,6 @@ describe('programsForPrompt', () => {
             { name: 'Cat', code: '' },
         ];
         expect(programsForPrompt(programs, 'Cat').map((p) => p.name)).toEqual(['Abby', 'Cat']);
-    });
-});
-
-describe('marksToShow', () => {
-    const abby = {};
-    const dee = {};
-    test('prefers the sprite in the editor and leaves removed blocks out', () => {
-        const marks = [
-            { target: abby, changes: [{ kind: 'added', id: 'a' }] },
-            {
-                target: dee,
-                changes: [
-                    { kind: 'removed', id: 'r' },
-                    { kind: 'changed', id: 'c' },
-                ],
-            },
-        ];
-        expect(marksToShow(marks, dee)).toEqual({ owner: dee, ids: ['c'] });
-        expect(marksToShow(marks, null)).toEqual({ owner: abby, ids: ['a'] });
-    });
-
-    test('shows nothing when only removed blocks are marked', () => {
-        expect(marksToShow([{ target: abby, changes: [{ kind: 'removed', id: 'r' }] }], abby)).toEqual({
-            owner: null,
-            ids: [],
-        });
     });
 });
 
@@ -151,6 +124,14 @@ describe('createCodeTabAdapter', () => {
         expect(result.parts).toHaveLength(1);
         expect(result.parts[0].target).toBe(abby);
         expect(result.parts[0].changes.map((c) => c.kind)).toEqual(['added']);
+    });
+
+    test('tells no changes for an answer that does not become blocks', async () => {
+        const { abby, adapter } = setup();
+        const result = await adapter.check('```ruby\nNG\n```');
+        expect(result.ok).toBe(false);
+        expect(result.parts[0].target).toBe(abby);
+        expect(result.parts[0].changes).toEqual([]);
     });
 
     test('puts the answer in and switches back to the original', async () => {

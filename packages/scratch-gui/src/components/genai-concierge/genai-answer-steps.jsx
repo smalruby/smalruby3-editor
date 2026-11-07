@@ -12,8 +12,7 @@ import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { problemToJapanese } from '../../lib/genai-answer.js';
-import { marksToShow } from '../../lib/genai-code-adapter.js';
-import { canOfferTakeover } from '../../lib/genai-concierge-state.js';
+import { canOfferTakeover, marksToShow } from '../../lib/genai-concierge-state.js';
 import { buildRewritePrompt } from '../../lib/genai-prompt.js';
 import {
     MAX_TAKEOVER_TRIES,
@@ -665,11 +664,9 @@ const GenaiAnswerSteps = ({
 };
 
 GenaiAnswerSteps.propTypes = {
+    // Only the sprite in the editor is read here: the rest is the adapter's.
     vm: PropTypes.shape({
         editingTarget: PropTypes.object,
-        runtime: PropTypes.object,
-        on: PropTypes.func,
-        removeListener: PropTypes.func,
     }).isRequired,
     // What depends on the tab the panel is in (src/lib/genai-code-adapter.js describes it).
     adapter: PropTypes.shape({

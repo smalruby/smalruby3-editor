@@ -93,23 +93,6 @@ export const programsForPrompt = (programs, editingName) =>
     programs.filter((p) => (p.code && p.code.trim()) || p.name === editingName);
 
 /**
- * The marked changes to bring into view: those of the sprite in the editor, else the
- * first sprite with some. Removed blocks are not in the editor to be shown.
- * @param {Array<object>} marks - [{target, changes}]
- * @param {?object} editingTarget - the target in the editor
- * @returns {{owner: ?object, ids: Array<string>}} the target and the ids to show
- */
-export const marksToShow = (marks, editingTarget) => {
-    const marked = marks.filter((mark) => mark.changes.some((change) => change.kind !== 'removed'));
-    const mark = marked.find((m) => m.target === editingTarget) || marked[0];
-    if (!mark) return { owner: null, ids: [] };
-    return {
-        owner: mark.target,
-        ids: mark.changes.filter((change) => change.kind !== 'removed').map((change) => change.id),
-    };
-};
-
-/**
  * A copy of a target's blocks that deleting them (on putting other blocks in) leaves
  * intact: deleteBlock changes the block objects themselves.
  * @param {object} target - a target of the VM

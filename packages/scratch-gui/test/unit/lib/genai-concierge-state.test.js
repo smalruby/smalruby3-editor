@@ -9,6 +9,7 @@ import {
     isGenaiAvailable,
     isNudgeOffToday,
     localDateKey,
+    marksToShow,
     normalizeStudentGenai,
     panelPlacement,
     resolveGenaiTarget,
@@ -252,6 +253,32 @@ describe('canOfferTakeover', () => {
         expect(canOfferTakeover({ failures: 2, rubyteeAvailable: true })).toBe(true);
         expect(canOfferTakeover({ failures: 3, rubyteeAvailable: true })).toBe(true);
         expect(canOfferTakeover({ failures: 2, rubyteeAvailable: false })).toBe(false);
+    });
+});
+
+describe('marksToShow', () => {
+    const abby = {};
+    const dee = {};
+    test('prefers the sprite in the editor and leaves removed blocks out', () => {
+        const marks = [
+            { target: abby, changes: [{ kind: 'added', id: 'a' }] },
+            {
+                target: dee,
+                changes: [
+                    { kind: 'removed', id: 'r' },
+                    { kind: 'changed', id: 'c' },
+                ],
+            },
+        ];
+        expect(marksToShow(marks, dee)).toEqual({ owner: dee, ids: ['c'] });
+        expect(marksToShow(marks, null)).toEqual({ owner: abby, ids: ['a'] });
+    });
+
+    test('shows nothing when only removed blocks are marked', () => {
+        expect(marksToShow([{ target: abby, changes: [{ kind: 'removed', id: 'r' }] }], abby)).toEqual({
+            owner: null,
+            ids: [],
+        });
     });
 });
 

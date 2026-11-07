@@ -211,6 +211,23 @@ export const scrollToShowBlocks = ({ bbox, scale }) => {
 };
 
 /**
+ * The marked changes to bring into view: those of the sprite in the editor, else the
+ * first sprite with some. Removed blocks are not in the editor to be shown.
+ * @param {Array<object>} marks - [{target, changes}]
+ * @param {?object} editingTarget - the target in the editor
+ * @returns {{owner: ?object, ids: Array<string>}} the target and the ids to show
+ */
+export const marksToShow = (marks, editingTarget) => {
+    const marked = marks.filter((mark) => mark.changes.some((change) => change.kind !== 'removed'));
+    const mark = marked.find((m) => m.target === editingTarget) || marked[0];
+    if (!mark) return { owner: null, ids: [] };
+    return {
+        owner: mark.target,
+        ids: mark.changes.filter((change) => change.kind !== 'removed').map((change) => change.id),
+    };
+};
+
+/**
  * Resolves once Blockly has drawn the blocks it was given: where a block inside
  * a script sits is only known after it is drawn.
  * @param {?object} scratchBlocks - ScratchBlocks (Blockly's renderManagement)
