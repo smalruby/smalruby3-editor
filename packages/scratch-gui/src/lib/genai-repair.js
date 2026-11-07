@@ -33,8 +33,60 @@ const SOUND_CALL =
 const COSTUME_CALL = /\b(switch_costume_to|switch_costume)\s*\(\s*(?:(?:name|costume)\s*:\s*)?(["'])(.*?)\2\s*\)/g;
 const WAIT_CALL = /\bwait\s*\(\s*(\d+(?:\.\d+)?)\s*\)|\bwait\s+(\d+(?:\.\d+)?)\b/g;
 
+// Scratch block names turned into English, which generative AIs write for Smalruby
+// commands (seen in the prompt lab, #1283). Applied outside strings and comments.
+const COMMAND_ALIASES = [
+    [/(?<![\w.])when_green_flag_clicked\b/g, 'when_flag_clicked'],
+    [/(?<![\w.])when_(?:this_)?sprite_clicked\b/g, 'when_clicked'],
+    [/(?<![\w.])when_(?:broadcast_received|i_receive)\b/g, 'when_receive'],
+    [/(?<![\w.])forever(?=\s+do\b)/g, 'loop'],
+    [/(?<![\w.])touched\?/g, 'touching?'],
+    [/(?<![\w.])key_pressed\?/g, 'keyboard.pressed?'],
+    [/(?<![\w.])when_start_as_clone\b/g, 'when_start_as_a_clone'],
+    [/(?<![\w.])create_clone(?!\s*\(|\w)/g, 'create_clone("_myself_")'],
+    [/(?<![\w.])stop_all(?!\w)(?:\s*\(\s*\))?/g, 'stop("all")'],
+    [/(?<![\w.])(?:rand|pick_random|random)\s*\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)/g, 'rand($1..$2)'],
+    [/(?<![\w.])point_in_direction\s*\(\s*([^()]*?)\s*\)/g, 'self.direction = $1'],
+];
+
 /**
- * Repair one sprite's Ruby: command spellings and sound/costume names.
+ * Apply `fn` to the parts of a line that are code, leaving strings and the
+ * comment alone.
+ * @param {string} line - one line of Ruby.
+ * @param {function(string): string} fn - rewrites a piece of code.
+ * @returns {string} the line.
+ */
+const mapCode = (line, fn) => {
+    let out = '';
+    let piece = '';
+    let quote = null;
+    for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (quote) {
+            out += ch;
+            if (ch === '\\') {
+                out += line[++i] || '';
+            } else if (ch === quote) {
+                quote = null;
+            }
+        } else if (ch === '"' || ch === "'") {
+            out += fn(piece) + ch;
+            piece = '';
+            quote = ch;
+        } else if (ch === '#') {
+            return out + fn(piece) + line.slice(i);
+        } else {
+            piece += ch;
+        }
+    }
+    return out + fn(piece);
+};
+
+const renameCommands = (code) =>
+    COMMAND_ALIASES.reduce((text, [pattern, replacement]) => text.replace(pattern, replacement), code);
+
+/**
+ * Repair one sprite's Ruby: Scratch-style command names, command spellings and sound/costume names.
  * @param {string} code - the Ruby for one sprite.
  * @param {object} assets - what the sprite has.
  * @param {Array<string>} assets.sounds - sound names.
@@ -54,7 +106,7 @@ const repairRuby = (code, { sounds = [], costumes = [] } = {}) => {
         return name;
     };
     const lines = code.split('\n').map((line, index) => {
-        const fixed = line
+        const fixed = mapCode(line, renameCommands)
             .replace(SOUND_CALL, (whole, method, quote, name) => {
                 const resolved = resolve(name, sounds, 'sound', index + 1);
                 const command = method.endsWith('until_done') ? 'play_until_done' : 'play';

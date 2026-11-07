@@ -1,4 +1,5 @@
 import {
+    COMMAND_EXAMPLES,
     COPY_END,
     COPY_START,
     buildGenaiPrompt,
@@ -6,6 +7,7 @@ import {
     extractRuby,
     splitPrompt,
 } from '../../../src/lib/genai-prompt.js';
+import RubyToBlocksConverter from '../../../src/lib/ruby-to-blocks-converter';
 
 const programs = [
     {
@@ -103,4 +105,25 @@ describe('buildRewritePrompt', () => {
         expect(prompt).toContain('```ruby\nsleep 1 until x\n```');
         expect(prompt).toContain(COPY_END);
     });
+});
+
+describe('COMMAND_EXAMPLES', () => {
+    // `code … label`: the code may hold `…` for the body of a block, filled with a command here.
+    const codesOf = (example) =>
+        example
+            .slice(0, example.lastIndexOf(' … '))
+            .split(' / ')
+            .map((code) => `${code.replace('…', '\n  move(10)\n')}\n`);
+
+    test.each(COMMAND_EXAMPLES.flatMap((example) => codesOf(example).map((code) => [code])))(
+        'becomes ordinary blocks: %s',
+        async (code) => {
+            const converter = new RubyToBlocksConverter(null, { version: '2' });
+            const ok = await converter.targetCodeToBlocks(null, code);
+            const raw = Object.values(converter.blocks).filter((block) =>
+                ['ruby_statement', 'ruby_expression'].includes(block.opcode),
+            );
+            expect({ ok, errors: converter.errors, raw: raw.length }).toEqual({ ok: true, errors: [], raw: 0 });
+        },
+    );
 });
