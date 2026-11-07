@@ -65,6 +65,11 @@ const messages = defineMessages({
         defaultMessage: 'Ruby のきほん',
         description: 'Label for Ruby Basics tutorial category — TryRuby-inspired puts-centric series'
     },
+    [CATEGORIES.dnclBasics]: {
+        id: `gui.library.dnclBasics`,
+        defaultMessage: 'DNCL のきほん',
+        description: 'Label for the DNCL Basics tutorial category — Japanese pseudo-code fundamentals'
+    },
     membershipTag: {
         defaultMessage: 'Membership',
         description: 'Tag for filtering a library for member only assets',
