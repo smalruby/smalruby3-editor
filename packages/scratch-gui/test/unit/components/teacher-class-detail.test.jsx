@@ -36,6 +36,10 @@ const defaultProps = () => ({
     onUpdateAssignmentName: jest.fn(),
 });
 
+// E2 (#1303): the rarely changed settings sit in the folded「詳しい設定」.
+const openAdvanced = () =>
+    fireEvent.click(document.querySelector('[data-testid="classroom-assignment-advanced-toggle"]'));
+
 const renderDetail = (props) =>
     render(
         <IntlProvider locale="en">
@@ -218,25 +222,19 @@ describe('TeacherClassDetail — retention banner (issue #1052)', () => {
     const inDays = (days) => new Date(Date.now() + days * DAY).toISOString();
     const byTestId = (id) => document.querySelector(`[data-testid="${id}"]`);
 
-    test('shows no inline alert while the deadline is far away', () => {
-        renderDetail({ selectedClassroom: classroom({ expiresAt: inDays(60) }) });
+    test('shows only the grey deadline while more than 7 days are left (R4)', () => {
+        renderDetail({ selectedClassroom: classroom({ expiresAt: inDays(20) }) });
         expect(byTestId('classroom-retention-banner')).not.toBeInTheDocument();
+        expect(byTestId('classroom-detail-expires-at').textContent).toContain('Kept until');
     });
 
-    test('shows the inline alert next to the deadline within 30 days of deletion', () => {
-        renderDetail({ selectedClassroom: classroom({ expiresAt: inDays(20) }) });
+    test('shows the red alert and a download button within 7 days of deletion', () => {
+        const onDownloadAll = jest.fn();
+        renderDetail({ selectedClassroom: classroom({ expiresAt: inDays(5) }), onDownloadAll });
         const alert = byTestId('classroom-retention-banner');
         expect(alert).toBeInTheDocument();
         expect(alert.textContent).toContain('deleted automatically');
-    });
-
-    test('the download-all button triggers onDownloadAll near the deadline', () => {
-        const onDownloadAll = jest.fn();
-        renderDetail({
-            selectedClassroom: classroom({ expiresAt: inDays(5) }),
-            onDownloadAll,
-        });
-        fireEvent.click(byTestId('classroom-download-all'));
+        fireEvent.click(byTestId('classroom-retention-banner-download'));
         expect(onDownloadAll).toHaveBeenCalled();
     });
 
@@ -364,6 +362,7 @@ describe('TeacherClassDetail — 前回の提出物から始めさせる (#1202)
     test('説明タブに設定のチェックボックス (既定 OFF) を出し、切り替えを伝える', () => {
         const onChangeStartFromPrevious = jest.fn();
         renderDescription({ onChangeStartFromPrevious });
+        openAdvanced();
         const checkbox = byTestId('classroom-assignment-start-from-previous');
         expect(checkbox).not.toBeChecked();
         fireEvent.click(checkbox);
@@ -372,6 +371,7 @@ describe('TeacherClassDetail — 前回の提出物から始めさせる (#1202)
 
     test('ON のときはチェックされ、生徒視点プレビューに「前回の提出物から続けるのがおすすめ」と出す', () => {
         renderDescription({ startFromPrevious: true });
+        openAdvanced();
         expect(byTestId('classroom-assignment-start-from-previous')).toBeChecked();
         expect(byTestId('classroom-description-preview-start')).toHaveTextContent(
             "continuing from last time's submission is recommended",
@@ -420,6 +420,7 @@ describe('TeacherClassDetail — 他者参照 (#1208)', () => {
             assignmentEditor: editor({ onChangePeerView }),
             detailEntry: { tab: 'description', seq: 1 },
         });
+        openAdvanced();
         const select = byTestId('classroom-assignment-peer-view');
         expect(select).toHaveValue('none');
         expect(Array.from(select.options).map((o) => o.value)).toEqual(['none', 'always', 'afterSubmit']);
@@ -432,6 +433,7 @@ describe('TeacherClassDetail — 他者参照 (#1208)', () => {
             assignmentEditor: editor({ peerView: 'always' }),
             detailEntry: { tab: 'description', seq: 1 },
         });
+        openAdvanced();
         expect(byTestId('classroom-assignment-peer-view')).toHaveValue('always');
     });
 });
@@ -469,6 +471,7 @@ describe('TeacherClassDetail — メッシュのグループの人数 (#1257)', 
             assignmentEditor: editor({ onChangeMeshGroupLimit }),
             detailEntry: { tab: 'description', seq: 1 },
         });
+        openAdvanced();
         const select = byTestId('classroom-assignment-mesh-group-limit');
         expect(select).toHaveValue('0');
         expect(Array.from(select.options).map((o) => o.value)).toEqual(['6', '0']);
@@ -481,6 +484,170 @@ describe('TeacherClassDetail — メッシュのグループの人数 (#1257)', 
             assignmentEditor: editor({ meshGroupLimit: 6 }),
             detailEntry: { tab: 'description', seq: 1 },
         });
+        openAdvanced();
         expect(byTestId('classroom-assignment-mesh-group-limit')).toHaveValue('6');
+    });
+});
+
+describe('TeacherClassDetail — 1 画面に収める (#1303)', () => {
+    const byTestId = (id) => document.querySelector(`[data-testid="${id}"]`);
+    const editor = (over = {}) => ({
+        editorPages: [{ text: 'ねこを動かそう' }],
+        starterMode: 'none',
+        starterSource: null,
+        hasExistingStarter: false,
+        isSaving: false,
+        startFromPrevious: false,
+        peerView: 'none',
+        meshGroupLimit: 6,
+        onAddPage: jest.fn(),
+        onAttachPageImage: jest.fn(),
+        onChangeMeshGroupLimit: jest.fn(),
+        onChangePageText: jest.fn(),
+        onChangePeerView: jest.fn(),
+        onChangeStartFromPrevious: jest.fn(),
+        onMovePage: jest.fn(),
+        onRemovePage: jest.fn(),
+        onRemovePageImage: jest.fn(),
+        onRemoveStarter: jest.fn(),
+        onSave: jest.fn(),
+        onUseCurrentProject: jest.fn(),
+        onUseFile: jest.fn(),
+        ...over,
+    });
+    const renderDescription = (over) =>
+        renderDetail({ assignmentEditor: editor(over), detailEntry: { tab: 'description', seq: 1 } });
+
+    test('D1: 全作品ダウンロードとアーカイブは「…」の中にあり、タブの行には出さない', () => {
+        const onDownloadAll = jest.fn();
+        const onDeleteClassroom = jest.fn();
+        // jsdom has no scrollIntoView (the confirm box scrolls into view).
+        Element.prototype.scrollIntoView = jest.fn();
+        renderDetail({ onDownloadAll, onDeleteClassroom });
+        expect(byTestId('classroom-download-all')).not.toBeInTheDocument();
+        expect(byTestId('classroom-delete-classroom')).not.toBeInTheDocument();
+
+        fireEvent.click(byTestId('classroom-detail-more-menu'));
+        fireEvent.click(byTestId('classroom-download-all'));
+        expect(onDownloadAll).toHaveBeenCalled();
+
+        fireEvent.click(byTestId('classroom-detail-more-menu'));
+        fireEvent.click(byTestId('classroom-delete-classroom'));
+        fireEvent.click(byTestId('classroom-delete-confirm'));
+        expect(onDeleteClassroom).toHaveBeenCalledWith('c1');
+    });
+
+    test('D1: ダウンロード中は「…」の横に進み具合を出す', () => {
+        renderDetail({ downloadProgress: { current: 2, total: 5 } });
+        expect(byTestId('classroom-download-progress').textContent).toBe('2/5');
+    });
+
+    test('D2: 凡例の先頭に座席の色（灰色＝参加済み・青＝まだ参加していない）を出す', () => {
+        renderDetail({ members: [] });
+        const legend = byTestId('classroom-seat-color-legend');
+        expect(legend).toBeInTheDocument();
+        expect(legend.textContent).toContain('Joined');
+        expect(legend.textContent).toContain('Not joined yet');
+        // The seat colours come before the icon legend.
+        const iconLegend = byTestId('classroom-status-legend');
+        expect(legend.compareDocumentPosition(iconLegend) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    test('D3: 課題名は 1 行の入力欄で、横に「名前を変える」のラベルがある', () => {
+        const onUpdateAssignmentName = jest.fn();
+        renderDetail({ onUpdateAssignmentName });
+        const input = byTestId('classroom-detail-assignment-name');
+        expect(input.tagName).toBe('INPUT');
+        expect(input).toHaveAttribute('type', 'text');
+        const hint = byTestId('classroom-detail-assignment-name-hint');
+        expect(hint.textContent).toContain('Rename');
+        expect(hint).toHaveAttribute('for', input.id);
+
+        fireEvent.change(input, { target: { value: '課題2' } });
+        fireEvent.blur(input);
+        expect(onUpdateAssignmentName).toHaveBeenCalledWith('課題2');
+    });
+
+    test('E1: ［課題を保存］はページの編集欄より前（1 画面目）にある', () => {
+        const onSave = jest.fn();
+        renderDescription({ onSave });
+        const save = byTestId('classroom-assignment-save');
+        const firstPage = byTestId('classroom-assignment-page-0');
+        expect(save.compareDocumentPosition(firstPage) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        fireEvent.click(save);
+        expect(onSave).toHaveBeenCalled();
+    });
+
+    test('E2: 詳しい設定は畳まれていて、閉じたままでも現在の値が分かる', () => {
+        renderDescription();
+        expect(byTestId('classroom-assignment-start-from-previous')).not.toBeInTheDocument();
+        expect(byTestId('classroom-assignment-peer-view')).not.toBeInTheDocument();
+        expect(byTestId('classroom-assignment-mesh-group-limit')).not.toBeInTheDocument();
+        expect(byTestId('classroom-assignment-advanced-summary').textContent).toBe(
+            "From last time: No · Peer view: Don't show · Mesh: Up to 6",
+        );
+
+        fireEvent.click(byTestId('classroom-assignment-advanced-toggle'));
+        expect(byTestId('classroom-assignment-advanced-toggle')).toHaveAttribute('aria-expanded', 'true');
+        expect(byTestId('classroom-assignment-start-from-previous')).toBeInTheDocument();
+        expect(byTestId('classroom-assignment-peer-view')).toBeInTheDocument();
+        expect(byTestId('classroom-assignment-mesh-group-limit')).toBeInTheDocument();
+    });
+
+    test('E2: 要約は保存前の選択も反映する', () => {
+        renderDescription({ startFromPrevious: true, peerView: 'afterSubmit', meshGroupLimit: 0 });
+        expect(byTestId('classroom-assignment-advanced-summary').textContent).toBe(
+            'From last time: Yes · Peer view: After submitting their own · Mesh: No limit',
+        );
+    });
+
+    test('E2: 開いた詳しい設定は Escape で閉じる', () => {
+        renderDescription();
+        openAdvanced();
+        expect(byTestId('classroom-assignment-advanced-panel')).toBeInTheDocument();
+        fireEvent.keyDown(document, { key: 'Escape' });
+        expect(byTestId('classroom-assignment-advanced-panel')).not.toBeInTheDocument();
+        expect(byTestId('classroom-assignment-advanced-toggle')).toHaveAttribute('aria-expanded', 'false');
+    });
+
+    test('E2: 保存した値と同じなら「保存していません」も色も出さない', () => {
+        renderDescription({
+            startFromPrevious: false,
+            peerView: 'none',
+            meshGroupLimit: 6,
+            savedSettings: { startFromPrevious: false, peerView: 'none', meshGroupLimit: 6 },
+        });
+        expect(byTestId('classroom-assignment-advanced-unsaved')).not.toBeInTheDocument();
+        expect(document.querySelector('[data-changed="true"]')).not.toBeInTheDocument();
+    });
+
+    test('E2: 保存した値から変えた設定だけ色を付け、「保存していません」を出す', () => {
+        renderDescription({
+            startFromPrevious: false,
+            peerView: 'always',
+            meshGroupLimit: 6,
+            savedSettings: { startFromPrevious: false, peerView: 'none', meshGroupLimit: 6 },
+        });
+        expect(byTestId('classroom-assignment-advanced-unsaved').textContent).toBe('Not saved yet');
+        expect(byTestId('classroom-assignment-advanced-summary-peerView')).toHaveAttribute('data-changed', 'true');
+        expect(byTestId('classroom-assignment-advanced-summary-previous')).not.toHaveAttribute('data-changed');
+        expect(byTestId('classroom-assignment-advanced-summary-mesh')).not.toHaveAttribute('data-changed');
+        // The summary text itself is unchanged (the mark is a separate element).
+        expect(byTestId('classroom-assignment-advanced-summary').textContent).toBe(
+            'From last time: No · Peer view: Anytime · Mesh: Up to 6',
+        );
+    });
+
+    test('E3: ページが空のときプレビューは 1 行の案内だけ', () => {
+        renderDescription({ editorPages: [{ text: '  ' }] });
+        expect(byTestId('classroom-description-preview-empty').textContent).toBe('Write a page and it shows up here');
+        expect(byTestId('classroom-description-preview-body')).not.toBeInTheDocument();
+        expect(byTestId('classroom-description-preview-start')).not.toBeInTheDocument();
+    });
+
+    test('E3: 画像だけのページは空とみなさない', () => {
+        renderDescription({ editorPages: [{ text: '', imageUrl: 'https://example.com/a.png' }] });
+        expect(byTestId('classroom-description-preview-empty')).not.toBeInTheDocument();
+        expect(byTestId('classroom-description-preview-body')).toBeInTheDocument();
     });
 });

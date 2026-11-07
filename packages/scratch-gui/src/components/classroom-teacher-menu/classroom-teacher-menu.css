@@ -20,3 +20,26 @@
     font-weight: bold;
     line-height: 1;
 }
+
+.frame {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0.5rem;
+    border: 1px solid $ui-white;
+    border-radius: 0.25rem;
+    white-space: nowrap;
+}
+
+.icon {
+    width: 1.125rem;
+    height: 1.125rem;
+}
+
+.caret {
+    width: 0.5rem;
+}
+
+.frame .badge {
+    margin-left: 0;
+}

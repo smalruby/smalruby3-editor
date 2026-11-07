@@ -178,6 +178,7 @@ src/lib/*
 !src/lib/classroom-group-utils.js
 !src/lib/classroom-genai-settings.js
 !src/lib/classroom-retention.js
+!src/lib/classroom-stream.js
 !src/lib/classroom-teacher-session.js
 !src/lib/classroom-presence.js
 !src/lib/shared-assignment-taxonomy.js
@@ -394,6 +395,7 @@ test/unit/components/*
 !test/unit/components/teacher-notifications-list.test.jsx
 !test/unit/components/classroom-teacher-modal-share-suggestion.test.js
 !test/unit/components/classroom-teacher-view-layout.test.jsx
+!test/unit/components/classroom-teacher-evaluation.test.jsx
 !test/unit/components/classroom-teacher-menu.test.jsx
 !test/unit/components/menu-bar-classroom.test.jsx
 !test/unit/components/student-seat-selector.test.jsx
@@ -486,6 +488,7 @@ test/unit/lib/*
 !test/unit/lib/google-classroom-auth.test.js
 !test/unit/lib/classroom-google-share.test.js
 !test/unit/lib/classroom-retention.test.js
+!test/unit/lib/classroom-stream.test.js
 !test/unit/lib/classroom-presence.test.js
 !test/unit/lib/shared-assignment-taxonomy.test.js
 !test/unit/lib/shared-author-profile.test.js

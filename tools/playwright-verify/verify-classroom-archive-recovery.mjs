@@ -86,9 +86,13 @@ try {
     await page.click(tid('classroom-class-create'));
     await page.fill(tid('classroom-class-create-name'), CLASS_NAME);
     await page.fill(tid('classroom-class-create-count'), '5');
-    await page.fill(tid('classroom-class-create-assignment'), ASSIGNMENT_NAME);
     await page.click(tid('classroom-class-create-submit'));
     await page.waitForSelector(tid('classroom-board'), { timeout: 30000 });
+    // The create-class dialog makes only the class; the assignment is made inside it.
+    await page.click(tid('classroom-board-create'));
+    await page.fill(tid('classroom-board-create-name'), ASSIGNMENT_NAME);
+    await page.click(tid('classroom-board-create-submit'));
+    await page.waitForSelector('[data-testid^="classroom-board-open-"]', { timeout: 30000 });
     await sleep(1000);
 
     // --- 2. S3: expiry badge + retention banner (stg TTL = 1 day) ---
@@ -116,6 +120,8 @@ try {
     log('archiving the assignment...');
     await page.click('[data-testid^="classroom-board-open-"]');
     await page.waitForSelector(tid('classroom-phase-teacher-detail'), { timeout: 20000 });
+    // Archive lives in the detail's … menu (#1303).
+    await page.click(tid('classroom-detail-more-menu'));
     await page.click(tid('classroom-delete-classroom'));
     const confirmText = await page.textContent(tid('classroom-delete-confirm') + ' >> xpath=../..');
     assert(/アーカイブ|archive/i.test(confirmText || ''), 'confirm message speaks of archiving (not deletion)');

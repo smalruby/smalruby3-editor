@@ -34,7 +34,9 @@ const DOCS_SHOTS = process.env.DOCS_SHOTS === '1';
 // 測定した画面 → docs/classroom/screenshots の撮り直し先 (ファイル名は変えない)。
 const DOC_SHOT_NAMES = {
     'student-join': ['0301-student-join.png'],
-    'student-seat-pending': ['0308-student-kick-request-pending.png', '0315-student-seat-confirm.png'],
+    'student-seat': ['0302-student-seat.png'],
+    'student-seat-confirm': ['0315-student-seat-confirm.png'],
+    'student-seat-pending': ['0308-student-kick-request-pending.png'],
     'student-seat-rejected': ['0307-student-kicked-banner.png', '0309-student-kick-request-rejected.png'],
     'student-joined': ['0303-student-joined.png'],
     'student-assignment': ['0314-student-assignment-panel.png'],
@@ -107,7 +109,19 @@ const measure = (page, bodySelector) =>
         };
     }, bodySelector);
 
-const judge = async (page, { who, name, body = '[data-testid="classroom-modal"]', shot }) => {
+/**
+ * 主ボタンの下端 (px) を測る。縦スクロールせずに押せるかを見る (#1305)。
+ * @param {import('playwright').Page} page - 対象ページ
+ * @param {string} selector - 主ボタンのセレクタ
+ * @returns {Promise<?number>} 下端の y 座標 (見つからなければ null)
+ */
+const primaryBottom = (page, selector) =>
+    page.evaluate((sel) => {
+        const el = document.querySelector(sel);
+        return el ? Math.round(el.getBoundingClientRect().bottom) : null;
+    }, selector);
+
+const judge = async (page, { who, name, body = '[data-testid="classroom-modal"]', shot, primary }) => {
     const m = await measure(page, body);
     if (m.missing) {
         record({ who, name, ok: false, modal: '-', body: '-', page: '-', note: `${body} not found` });
@@ -116,8 +130,11 @@ const judge = async (page, { who, name, body = '[data-testid="classroom-modal"]'
     const fits = m.frame.top >= 0 && m.frame.left >= 0 && m.frame.bottom <= m.vh && m.frame.right <= m.vw;
     const bodyOk = m.bodyScroll <= m.bodyClient;
     const pageOk = m.pageScroll <= m.pageClient;
+    // 主ボタンを指定したら、その下端がビューポートの中にあることも見る。
+    const pb = primary ? await primaryBottom(page, primary) : null;
+    const primaryOk = !primary || (pb !== null && pb <= m.vh);
     // 生徒: 3 つとも必須。先生: 枠がはみ出さず、ページがスクロールしないこと (本文の中は可)。
-    const ok = who === 'student' ? fits && bodyOk && pageOk : fits && pageOk;
+    const ok = (who === 'student' ? fits && bodyOk && pageOk : fits && pageOk) && primaryOk;
     record({
         who,
         name,
@@ -125,6 +142,7 @@ const judge = async (page, { who, name, body = '[data-testid="classroom-modal"]'
         modal: `${fits ? 'OK' : 'NG'} ${m.frame.top}-${m.frame.bottom}/${m.vh}`,
         body: `${bodyOk ? 'OK' : 'NG'} ${m.bodyScroll}/${m.bodyClient}`,
         page: `${pageOk ? 'OK' : 'NG'} ${m.pageScroll}/${m.pageClient}`,
+        note: primary ? `primary ${primary} bottom ${pb ?? 'missing'}/${m.vh}` : undefined,
     });
     await page.screenshot({ path: resolve(SHOT_DIR, `classroom-viewport-${process.env.VIEWPORT ? `${process.env.VIEWPORT}-` : ''}${shot}.png`) });
     if (DOCS_SHOTS) {
@@ -221,6 +239,28 @@ const history = Array.from({ length: 5 }, (_, i) => ({
     await ctx.close();
 }
 
+
+// ---------- student-seat: 席を選ぶ前 → 番号ボタンで確認 (#1305 S1) ----------
+{
+    const { ctx, page } = await studentPage();
+    await openModal(page);
+    await page.locator('[data-testid="classroom-join-code-input"]').fill('abc234');
+    await page.locator('[data-testid="classroom-join-submit"]').click();
+    await page.locator('[data-testid="classroom-seat-grid"]').waitFor({ state: 'visible', timeout: 10000 });
+    await page.waitForTimeout(300);
+    await judge(page, { who: 'student', name: 'student-seat (40 seats, before picking)', shot: 'student-seat' });
+    await page.locator('[data-testid="classroom-seat-3"]').click();
+    await page.locator('[data-testid="classroom-seat-confirm"]').waitFor({ state: 'visible', timeout: 10000 });
+    await page.waitForTimeout(300);
+    await judge(page, {
+        who: 'student',
+        name: 'student-seat (confirm after tapping a seat)',
+        shot: 'student-seat-confirm',
+        primary: '[data-testid="classroom-confirm-seat"]',
+    });
+    await ctx.close();
+}
+
 // ---------- student-seat: kicked + 退室依頼待ち + 選択中 + エラー ----------
 const kickedRoutes = (activeIds) => async (p) => {
     await p.route('**/classrooms/verify-session', (r) =>
@@ -252,7 +292,12 @@ const kickedRoutes = (activeIds) => async (p) => {
     await page.locator('[data-testid="classroom-seat-3"]').click();
     await page.locator('[data-testid="classroom-confirm-seat"]').click();
     await page.waitForTimeout(800);
-    await judge(page, { who: 'student', name: 'student-seat (kicked + pending + selected + error)', shot: 'student-seat-pending' });
+    await judge(page, {
+        who: 'student',
+        name: 'student-seat (kicked + pending + selected + error)',
+        shot: 'student-seat-pending',
+        primary: '[data-testid="classroom-confirm-seat"]',
+    });
     await ctx.close();
 }
 
@@ -273,6 +318,7 @@ const kickedRoutes = (activeIds) => async (p) => {
     });
     await openModal(page);
     await page.locator('[data-testid="classroom-seat-grid"]').waitFor({ state: 'visible', timeout: 10000 });
+    await page.locator('[data-testid="classroom-seat-number-toggle"]').click();
     await page.locator('[data-testid="classroom-seat-number-input"]').fill('99');
     await page.locator('[data-testid="classroom-seat-number-submit"]').click();
     if (!SKIP_IDLE) {

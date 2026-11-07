@@ -124,9 +124,13 @@ try {
     const stamp = `${Date.now()}`.slice(-6);
     await page.fill('[data-testid="classroom-class-create-name"]', `CoTeacher検証-${stamp}`);
     await page.fill('[data-testid="classroom-class-create-count"]', '3');
-    await page.fill('[data-testid="classroom-class-create-assignment"]', `課題-${stamp}`);
     await page.click('[data-testid="classroom-class-create-submit"]');
     await page.waitForSelector('[data-testid="classroom-board"]', { timeout: 30000 });
+    // The create-class dialog makes only the class; the assignment is made inside it.
+    await page.click('[data-testid="classroom-board-create"]');
+    await page.fill('[data-testid="classroom-board-create-name"]', `課題-${stamp}`);
+    await page.click('[data-testid="classroom-board-create-submit"]');
+    await page.waitForSelector('[data-testid^="classroom-board-open-"]', { timeout: 30000 });
     await sleep(500);
 
     log('opening the class settings on the class list (v2: co-teachers are class-wide)...');

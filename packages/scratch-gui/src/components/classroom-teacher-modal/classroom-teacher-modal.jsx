@@ -5,10 +5,11 @@
  * with a sidebar (class list) and a main area that shows phase content.
  */
 import PropTypes from 'prop-types';
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { defineMessages, useIntl, FormattedMessage } from 'react-intl';
 
 import Modal from '../../containers/modal.jsx';
+import { formatClassLabel } from '../../lib/classroom-class-label.js';
 
 import ClassCodeDisplay from '../classroom-modal/class-code-display.jsx';
 import TeacherAssignmentBoard from '../classroom-modal/teacher-assignment-board.jsx';
@@ -137,6 +138,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         assignmentStartFromPrevious,
         assignmentPeerView,
         assignmentMeshGroupLimit,
+        assignmentSavedSettings,
         onAssignmentAddPage,
         onAssignmentRemovePage,
         onAssignmentMovePage,
@@ -150,7 +152,6 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         onAssignmentChangePeerView,
         onAssignmentChangeMeshGroupLimit,
         onAssignmentSave,
-        onAssignmentCancel,
         groups,
         teacherEmail,
         selectedGroup,
@@ -159,6 +160,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         onCreateClassWithAssignment,
         onUpdateGroupTopics,
         onUpdateAssignmentMeta,
+        onLoadAssignmentSummary,
         onCreateAssignmentInClass,
         onReuseAssignment,
         onDetailTabChange,
@@ -184,6 +186,20 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         shared.handleOpenShareFor(selectedClassroom);
     }, [selectedClassroom, selectedGroup, groups, shared, onSelectGroup]);
 
+    // A class opens on［ストリーム］(B5). Coming back from an assignment of the
+    // same class returns to the tab the teacher left (e.g.［授業］); another
+    // class or the class list starts on the stream again.
+    const [boardTab, setBoardTab] = useState({ groupId: null, tab: 'stream' });
+    const selectedGroupId = selectedGroup ? selectedGroup.groupId : null;
+    const handleBoardTabChange = useCallback(
+        (tab) => setBoardTab({ groupId: selectedGroupId, tab }),
+        [selectedGroupId],
+    );
+    // Leaving the class (the class list clears selectedGroup) forgets the tab.
+    useEffect(() => {
+        if (!selectedGroupId) setBoardTab({ groupId: null, tab: 'stream' });
+    }, [selectedGroupId]);
+
     // Opening a class scopes the board to its assignments (GC style).
     const scopedClassrooms = selectedGroup
         ? classrooms.filter((c) => c.groupId === selectedGroup.groupId)
@@ -191,6 +207,12 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
     const scopedArchivedClassrooms = selectedGroup
         ? (archivedClassrooms || []).filter((c) => c.groupId === selectedGroup.groupId)
         : archivedClassrooms || [];
+
+    // パンくずでボードへ戻る crumb はクラス名（ボードは［ストリーム］［授業］のタブを持つ
+    // クラスの画面）。クラスに属さない古い課題だけ従来の「課題一覧」。
+    const classCrumbLabel = selectedGroup
+        ? formatClassLabel(selectedGroup)
+        : intl.formatMessage(messagesBreadcrumbs.assignments);
 
     const renderMain = () => {
         // Fullscreen code display overlay
@@ -307,7 +329,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
 
         if (phase === 'teacher-class-detail' && selectedClassroom) {
             return (
-                <div className={styles.mainRelative}>
+                <div className={styles.mainFill}>
                     <div className={styles.detailBreadcrumbs}>
                         <TeacherBreadcrumbs
                             items={[
@@ -317,7 +339,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                                     testId: 'classroom-breadcrumb-class-list',
                                 },
                                 {
-                                    label: intl.formatMessage(messagesBreadcrumbs.assignments),
+                                    label: classCrumbLabel,
                                     onClick: onBackToDashboard,
                                     testId: 'classroom-breadcrumb-assignments',
                                 },
@@ -335,9 +357,9 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                             startFromPrevious: assignmentStartFromPrevious,
                             peerView: assignmentPeerView,
                             meshGroupLimit: assignmentMeshGroupLimit,
+                            savedSettings: assignmentSavedSettings,
                             onAddPage: onAssignmentAddPage,
                             onAttachPageImage: onAssignmentAttachPageImage,
-                            onCancel: onAssignmentCancel,
                             onChangePageText: onAssignmentChangePageText,
                             onMovePage: onAssignmentMovePage,
                             onRemovePage: onAssignmentRemovePage,
@@ -426,7 +448,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                                     testId: 'classroom-breadcrumb-class-list',
                                 },
                                 {
-                                    label: intl.formatMessage(messagesBreadcrumbs.assignments),
+                                    label: classCrumbLabel,
                                     onClick: onBackToDashboard,
                                     testId: 'classroom-breadcrumb-assignments',
                                 },
@@ -459,6 +481,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
             return (
                 <div className={styles.mainRelative}>
                     <TeacherAssignmentBoard
+                        key={selectedGroup.groupId}
                         allClassrooms={classrooms}
                         allGroups={groups || []}
                         archivedClassrooms={scopedArchivedClassrooms}
@@ -467,14 +490,17 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         error={error}
                         errorTitle={errorTitle}
                         group={selectedGroup}
+                        initialTab={boardTab.groupId === selectedGroup.groupId ? boardTab.tab : 'stream'}
                         isLoading={isLoading}
                         shared={shared}
                         onCreateAssignmentInClass={onCreateAssignmentInClass}
                         onDownloadClassAll={onDownloadClassAll}
+                        onLoadAssignmentSummary={onLoadAssignmentSummary}
                         onRestoreClassroom={onRestoreClassroom}
                         onReuseAssignment={onReuseAssignment}
                         onSelectClassroom={onSelectClassroom}
                         onShowClassList={onShowClassList}
+                        onTabChange={handleBoardTabChange}
                         onUpdateAssignmentMeta={onUpdateAssignmentMeta}
                         onUpdateGroupTopics={onUpdateGroupTopics}
                     />
@@ -493,7 +519,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                 <ClassroomTutorial name="classCreation">
                     <FormattedMessage
                         defaultMessage={
-                            'Let\'s start by creating a "Class"!\nCreate one class per lesson, e.g. "Lesson 3: Make a Chat App".\nClick the "Create Classroom" button in the sidebar on the left.'
+                            'Let\'s start by creating a "Class"!\nCreate one class per lesson, e.g. "Lesson 3: Make a Chat App".\nClick the "Create a class" button.'
                         }
                         description="Tutorial: class creation onboarding after first login"
                         id="gui.classroom.tutorial.classCreation"

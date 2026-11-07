@@ -136,7 +136,7 @@ const translateError = (intl, err, context = 'general') => {
     }
     if (msg.includes('no longer active')) {
         return intl.formatMessage({
-            defaultMessage: 'This classroom is no longer active.',
+            defaultMessage: 'This assignment is no longer active.',
             description: 'Error when classroom is archived',
             id: 'gui.classroom.error.classroomInactive',
         });

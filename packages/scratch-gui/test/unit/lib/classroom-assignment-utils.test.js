@@ -8,6 +8,7 @@ import {
     normalizeMeshGroupLimit,
     normalizePeerView,
     isEmptyAssignment,
+    summarizeAssignmentRow,
     moveItem,
     validateEditorPages,
 } from '../../../src/lib/classroom-assignment-utils';
@@ -170,5 +171,32 @@ describe('normalizeMeshGroupLimit (#1257)', () => {
         expect(normalizeMeshGroupLimit(undefined)).toBe(0);
         expect(normalizeMeshGroupLimit(null)).toBe(0);
         expect(normalizeMeshGroupLimit(3)).toBe(0);
+    });
+});
+
+describe('summarizeAssignmentRow (#1301: counts of an opened board row)', () => {
+    test('counts joined (not left) members and their submissions against the seats', () => {
+        const members = [
+            { memberId: 'seat-01', hasSubmission: true },
+            { memberId: 'seat-02', hasSubmission: false },
+            { memberId: 'seat-03', hasSubmission: true, left: true },
+        ];
+        expect(summarizeAssignmentRow({ members, studentCount: 30, assignment: null })).toEqual({
+            submitted: 1,
+            joined: 2,
+            capacity: 30,
+            descriptionLine: '',
+        });
+    });
+
+    test('the description is the first non-empty line of the first page', () => {
+        const assignment = { pages: [{ text: '\n  ねこを動かそう  \n2行目' }, { text: '次のページ' }] };
+        expect(summarizeAssignmentRow({ members: [], studentCount: 0, assignment }).descriptionLine).toBe(
+            'ねこを動かそう',
+        );
+    });
+
+    test('missing data gives zeros and an empty description', () => {
+        expect(summarizeAssignmentRow({})).toEqual({ submitted: 0, joined: 0, capacity: 0, descriptionLine: '' });
     });
 });

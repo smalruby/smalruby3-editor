@@ -9,7 +9,7 @@
  *   'keep' — keep the server-side starter as-is
  *   'new'  — upload a new starter on save (from the open project or a file)
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { defineMessages } from 'react-intl';
 import classroomAPI from '../lib/classroom-api.js';
 import {
@@ -100,6 +100,11 @@ const useTeacherAssignment = ({
         normalizeMeshGroupLimit(selectedClassroom && selectedClassroom.meshGroupLimit),
     );
     const [isSaving, setIsSaving] = useState(false);
+    // The stored start-from-previous / peer view, so the editor can mark an
+    // unsaved choice (#1303 review Q1). Updated on each (re)load, i.e. also
+    // right after a save.
+    const [savedStartFromPrevious, setSavedStartFromPrevious] = useState(false);
+    const [savedPeerView, setSavedPeerView] = useState('none');
 
     /** Release blob preview URLs to avoid leaking object URLs. */
     const releasePreviews = useCallback((pages) => {
@@ -128,6 +133,8 @@ const useTeacherAssignment = ({
             setStarterSource(null);
             setStartFromPrevious(data.startFromPrevious === true);
             setPeerView(normalizePeerView(data.peerView));
+            setSavedStartFromPrevious(data.startFromPrevious === true);
+            setSavedPeerView(normalizePeerView(data.peerView));
         } catch (err) {
             if (err.status === 401) {
                 handleTeacher401();
@@ -158,6 +165,15 @@ const useTeacherAssignment = ({
     useEffect(() => {
         setMeshGroupLimit(storedMeshGroupLimit);
     }, [phase === 'teacher-class-detail', selectedClassroom && selectedClassroom.classroomId, storedMeshGroupLimit]);
+
+    const savedSettings = useMemo(
+        () => ({
+            startFromPrevious: savedStartFromPrevious,
+            peerView: savedPeerView,
+            meshGroupLimit: storedMeshGroupLimit,
+        }),
+        [savedStartFromPrevious, savedPeerView, storedMeshGroupLimit],
+    );
 
     const handleAddPage = useCallback(() => {
         setEditorPages((pages) => (pages.length >= MAX_ASSIGNMENT_PAGES ? pages : [...pages, { text: '' }]));
@@ -368,14 +384,6 @@ const useTeacherAssignment = ({
         setClassrooms,
     ]);
 
-    const handleCancelAssignmentEdit = useCallback(() => {
-        releasePreviews(editorPages);
-        setEditorPages([]);
-        setStarterSource(null);
-        clearError();
-        setPhase('teacher-class-detail');
-    }, [editorPages, releasePreviews, clearError, setPhase]);
-
     return {
         editorPages,
         starterMode,
@@ -385,6 +393,7 @@ const useTeacherAssignment = ({
         startFromPrevious,
         peerView,
         meshGroupLimit,
+        savedSettings,
         loadAssignmentEditor,
         handleAddPage,
         handleRemovePage,
@@ -399,7 +408,6 @@ const useTeacherAssignment = ({
         handleChangePeerView,
         handleChangeMeshGroupLimit,
         handleSaveAssignment,
-        handleCancelAssignmentEdit,
         handleApplyTemplate,
     };
 };

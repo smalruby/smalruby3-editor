@@ -29,7 +29,7 @@ const StudentStatusView = ({
     <div data-testid="classroom-phase-student-status">
         <div className={styles.phaseTitle}>
             <FormattedMessage
-                defaultMessage="Your Classroom"
+                defaultMessage="Your Assignment"
                 description="Student status title"
                 id="gui.classroom.studentStatus.title"
             />
