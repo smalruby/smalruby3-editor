@@ -72,10 +72,17 @@ const stageSuffix = stage === 'prod' ? '' : `-${stage}`;
 
 | Stage | 許可オリジン (デフォルト) |
 |---|---|
-| stg | `https://smalruby.app`, `https://smalruby.jp`, `http://localhost:8601` |
-| prod | `https://smalruby.app`, `https://smalruby.jp` (localhost 除外) |
+| stg | `https://smalruby.app`, `https://smalruby.jp`, `http://localhost:8601`〜`8610`（classroom / bug-report / admin。api / rubytee-relay は `8601` だけ）, `https://preview.smalruby.app` |
+| prod | `https://smalruby.app`, `https://smalruby.jp` (localhost・プレビュー除外) |
 
 → ローカル開発は **stg エンドポイント** を使う。prod は CORS で localhost を弾く。
+
+ブランチプレビュー（`https://preview.smalruby.app`）は stg の API を見るので、非 prod ではどの API も
+このオリジンを許可する。stg の `CORS_ALLOWED_ORIGINS` は GitHub secrets（`.env.stg`）で明示されて
+いるため、**env を指定していても非 prod ではコード側で足す**（classroom / bug-report / admin は
+`lib/cors-origins.ts` の `resolveCorsOrigins`、api / rubytee-relay は `lib/preview-origins.ts` の
+`withPreviewOrigins`）。prod の許可オリジンは変えない。mesh-v2（AppSync）はオリジンを問わず
+プリフライトに応答し API キーで認可するため、CORS の設定を持たない。
 
 ### デプロイコマンド
 

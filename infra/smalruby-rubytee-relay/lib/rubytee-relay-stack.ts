@@ -12,6 +12,7 @@ import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
 import * as path from 'path';
 import { Construct } from 'constructs';
+import { withPreviewOrigins } from './preview-origins';
 
 export class RubyteeRelayStack extends cdk.Stack {
   public readonly table: dynamodb.Table;
@@ -35,9 +36,11 @@ export class RubyteeRelayStack extends cdk.Stack {
       ? undefined
       : (process.env.RUBYTEE_CUSTOM_DOMAIN || defaultCustomDomain);
 
-    // CORS設定（カンマ区切り環境変数 or デフォルト）
-    const corsOriginsEnv = process.env.CORS_ALLOWED_ORIGINS ||
-      'https://smalruby.app,https://smalruby.jp,http://localhost:8601';
+    // CORS設定（カンマ区切り環境変数 or デフォルト）。非 prod ではブランチプレビューも許可する。
+    const corsOriginsEnv = withPreviewOrigins(
+      stage,
+      process.env.CORS_ALLOWED_ORIGINS || 'https://smalruby.app,https://smalruby.jp,http://localhost:8601',
+    );
     const corsAllowOrigins = corsOriginsEnv.split(',').map(o => o.trim());
 
     // Rate limit config
