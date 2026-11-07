@@ -45,7 +45,7 @@ jobs:
     if: >-
       github.event_name != 'pull_request' ||
       contains(github.event.pull_request.labels.*.name, 'deploy-stg')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     outputs:
       projects: ${{ steps.detect.outputs.projects }}
       prod_projects: ${{ steps.detect.outputs.prod_projects }}
@@ -106,7 +106,7 @@ jobs:
     name: "[${{ matrix.project }}] deploy stg"
     needs: select
     if: needs.select.outputs.projects != '[]'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     environment: stg
     strategy:
       fail-fast: false
@@ -215,7 +215,7 @@ jobs:
     if: >-
       always() && github.event_name == 'pull_request' &&
       contains(github.event.pull_request.labels.*.name, 'deploy-stg')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       pull-requests: write
     steps:
@@ -243,7 +243,7 @@ jobs:
     if: >-
       github.event_name == 'push' && github.ref == 'refs/heads/develop' &&
       needs.select.outputs.prod_projects != '[]' && needs.deploy.result == 'success'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     # Environment `prod` を通るジョブだけが prod 用ロールを AssumeRole できる（AWS 側の信頼条件
     # sub = repo:smalruby/smalruby3-editor:environment:prod）。ロール ARN と .env は
     # Environment の Variables / Secrets に置く（docs/infra-deploy/README.md）。
@@ -345,7 +345,7 @@ jobs:
     name: prod に出した infra Issue を閉じる
     needs: [select, deploy-prod]
     if: needs.deploy-prod.result == 'success'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
       issues: write
@@ -382,7 +382,7 @@ jobs:
     name: prod デプロイの失敗を知らせる
     needs: [select, deploy-prod]
     if: always() && needs.deploy-prod.result == 'failure'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
       pull-requests: write

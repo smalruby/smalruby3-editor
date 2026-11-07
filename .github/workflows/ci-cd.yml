@@ -59,7 +59,7 @@ permissions:
 
 jobs:
   lint:
-    runs-on: ubuntu-24.04  # ubuntu-latest is 26.04: no Playwright chromium build yet
+    runs-on: ubuntu-26.04
     if: |
       (!(
         github.ref == 'refs/heads/develop' ||
@@ -80,7 +80,7 @@ jobs:
         run: npm run lint
 
   unit-test-vm:
-    runs-on: ubuntu-24.04  # ubuntu-latest is 26.04: no Playwright chromium build yet
+    runs-on: ubuntu-26.04
     if: |
       (!(
         github.ref == 'refs/heads/develop' ||
@@ -103,7 +103,7 @@ jobs:
         run: npm run test:unit --workspace=packages/scratch-vm
 
   unit-test-gui:
-    runs-on: ubuntu-24.04  # ubuntu-latest is 26.04: no Playwright chromium build yet
+    runs-on: ubuntu-26.04
     if: |
       (!(
         github.ref == 'refs/heads/develop' ||
@@ -126,7 +126,7 @@ jobs:
         run: npm run test:unit --workspace=packages/scratch-gui
 
   integration-test-vm:
-    runs-on: ubuntu-24.04  # ubuntu-latest is 26.04: no Playwright chromium build yet
+    runs-on: ubuntu-26.04
     if: |
       (!(
         github.ref == 'refs/heads/develop' ||
@@ -189,7 +189,7 @@ jobs:
           path: packages/scratch-vm/test-results/*
 
   integration-test-gui:
-    runs-on: ubuntu-24.04  # ubuntu-latest is 26.04: no Playwright chromium build yet
+    runs-on: ubuntu-26.04
     if: |
       (!(
         github.ref == 'refs/heads/develop' ||
@@ -240,7 +240,7 @@ jobs:
           path: packages/scratch-gui/test-results/*
 
   build-and-deploy:
-    runs-on: ubuntu-24.04  # ubuntu-latest is 26.04: no Playwright chromium build yet
+    runs-on: ubuntu-26.04
     env:
       NODE_OPTIONS: --max-old-space-size=4000
     steps:
@@ -348,7 +348,7 @@ jobs:
   # The rest (Google / Microsoft client IDs, message lengths, mesh intervals) are the same as
   # prod and come from the repo values.
   preview-deploy:
-    runs-on: ubuntu-24.04  # ubuntu-latest is 26.04: no Playwright chromium build yet
+    runs-on: ubuntu-26.04
     # Fork PRs get neither the secrets nor an OIDC token.
     if: |
       (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&

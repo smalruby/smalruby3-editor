@@ -12,7 +12,7 @@ permissions:
 jobs:
   test:
     name: "[smalruby3] Test before release"
-    runs-on: ubuntu-24.04  # ubuntu-latest is 26.04: keep the gem builds on 24.04
+    runs-on: ubuntu-24.04  # magnus does not compile on 26.04 (#1391)
     strategy:
       fail-fast: false
       matrix:
@@ -47,7 +47,9 @@ jobs:
   release:
     name: "[smalruby3] Publish to RubyGems"
     needs: test
-    runs-on: ubuntu-24.04  # ubuntu-latest is 26.04: keep the gem builds on 24.04
+    # Does not compile the native extensions (source gem only), but publish from the same
+    # image as `test`: this job runs only on a tag push, so 26.04 cannot be checked beforehand.
+    runs-on: ubuntu-24.04  # same image as `test` (#1391)
     environment: rubygems
     defaults:
       run:
