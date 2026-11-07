@@ -65,7 +65,9 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 |------------|------|------|
 | `classroom-detail-name` | div | 課題が属するクラス（学級）名 |
 | `classroom-detail-assignment-name` | input[type=text] | 課題名（1 行・blur / Enter で保存） |
-| `classroom-detail-assignment-name-hint` | label | 課題名の横の「名前を変える」（入力欄のラベル） |
+| `classroom-detail-assignment-name-save-hint` | div | 課題名の欄の下の「Enter か欄の外をクリックで保存」（欄にカーソルがある間だけ） |
+| `classroom-detail-assignment-name-saved` | span | 課題名の欄の横の「✓ 保存しました」（`role="status"`・保存後 2 秒ほど） |
+| `classroom-detail-assignment-name-save-error` | span | 課題名の欄の横の赤い「保存できませんでした」（`role="alert"`・保存に失敗したとき） |
 | `classroom-detail-expires-at` | div | 保存期限（ふだんは灰色。残り 7 日以内は `classroom-retention-banner` を含む） |
 | `classroom-detail-more-menu` | button | タブの行の右端の「…」（一覧は `classroom-detail-more-menu-list`） |
 | `classroom-download-progress` | span | 「…」の左の全作品ダウンロードの進み具合（`n/m`・ダウンロード中のみ） |

@@ -434,6 +434,7 @@ test/unit/containers/*
 !test/unit/containers/use-student-class-settings-refresh.test.js
 !test/unit/containers/use-student-assignment.test.js
 !test/unit/containers/use-teacher-assignment.test.js
+!test/unit/containers/use-teacher-classrooms-rename.test.js
 !test/unit/containers/use-student-submit.test.js
 !test/unit/containers/connection-modal-connected-message.test.jsx
 !test/unit/containers/connection-modal-smalrubot-s1.test.jsx

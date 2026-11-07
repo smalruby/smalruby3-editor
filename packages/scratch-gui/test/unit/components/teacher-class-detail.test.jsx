@@ -1,6 +1,6 @@
 /* eslint-env jest */
 import '@testing-library/jest-dom';
-import { fireEvent, render } from '@testing-library/react';
+import { act, fireEvent, render } from '@testing-library/react';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
 import TeacherClassDetail from '../../../src/components/classroom-modal/teacher-class-detail.jsx';
@@ -553,19 +553,102 @@ describe('TeacherClassDetail — 1 画面に収める (#1303)', () => {
         expect(legend.compareDocumentPosition(iconLegend) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     });
 
-    test('D3: 課題名は 1 行の入力欄で、横に「名前を変える」のラベルがある', () => {
+    test('D3: 課題名は 1 行の入力欄で、「名前を変える」は出さない (#1388)', () => {
         const onUpdateAssignmentName = jest.fn();
         renderDetail({ onUpdateAssignmentName });
         const input = byTestId('classroom-detail-assignment-name');
         expect(input.tagName).toBe('INPUT');
         expect(input).toHaveAttribute('type', 'text');
-        const hint = byTestId('classroom-detail-assignment-name-hint');
-        expect(hint.textContent).toContain('Rename');
-        expect(hint).toHaveAttribute('for', input.id);
+        expect(byTestId('classroom-detail-assignment-name-hint')).not.toBeInTheDocument();
+        expect(document.body.textContent).not.toContain('Rename');
 
         fireEvent.change(input, { target: { value: '課題2' } });
         fireEvent.blur(input);
         expect(onUpdateAssignmentName).toHaveBeenCalledWith('課題2');
+    });
+
+    describe('#1388: 課題名の保存のしかたと保存結果', () => {
+        afterEach(() => {
+            jest.useRealTimers();
+        });
+
+        test('入力欄にカーソルがある間だけ、保存のしかたの案内を出す', () => {
+            renderDetail();
+            const input = byTestId('classroom-detail-assignment-name');
+            expect(byTestId('classroom-detail-assignment-name-save-hint')).not.toBeInTheDocument();
+            fireEvent.focus(input);
+            expect(byTestId('classroom-detail-assignment-name-save-hint').textContent).toBe(
+                'Press Enter or click outside the field to save',
+            );
+            fireEvent.blur(input);
+            expect(byTestId('classroom-detail-assignment-name-save-hint')).not.toBeInTheDocument();
+        });
+
+        test('名前を変えて欄から離れると「保存しました」を 2 秒ほど出す', async () => {
+            jest.useFakeTimers();
+            const onUpdateAssignmentName = jest.fn(() => Promise.resolve(true));
+            renderDetail({ onUpdateAssignmentName });
+            const input = byTestId('classroom-detail-assignment-name');
+            fireEvent.focus(input);
+            fireEvent.change(input, { target: { value: '課題2' } });
+            fireEvent.blur(input);
+            await act(async () => {
+                await Promise.resolve();
+            });
+            expect(byTestId('classroom-detail-assignment-name-saved').textContent).toBe('✓ Saved');
+            expect(byTestId('classroom-detail-assignment-name-save-error')).not.toBeInTheDocument();
+            act(() => {
+                jest.advanceTimersByTime(2000);
+            });
+            expect(byTestId('classroom-detail-assignment-name-saved')).not.toBeInTheDocument();
+        });
+
+        test('Enter でも保存して「保存しました」を出す', async () => {
+            const onUpdateAssignmentName = jest.fn(() => Promise.resolve(true));
+            renderDetail({ onUpdateAssignmentName });
+            const input = byTestId('classroom-detail-assignment-name');
+            input.focus();
+            fireEvent.change(input, { target: { value: '課題3' } });
+            fireEvent.keyDown(input, { key: 'Enter' });
+            await act(async () => {
+                await Promise.resolve();
+            });
+            expect(onUpdateAssignmentName).toHaveBeenCalledWith('課題3');
+            expect(byTestId('classroom-detail-assignment-name-saved')).toBeInTheDocument();
+        });
+
+        test('保存に失敗したら赤で失敗を出し、「保存しました」は出さない', async () => {
+            const onUpdateAssignmentName = jest.fn(() => Promise.resolve(false));
+            renderDetail({ onUpdateAssignmentName });
+            const input = byTestId('classroom-detail-assignment-name');
+            fireEvent.change(input, { target: { value: '課題2' } });
+            fireEvent.blur(input);
+            await act(async () => {
+                await Promise.resolve();
+            });
+            const err = byTestId('classroom-detail-assignment-name-save-error');
+            expect(err.textContent).toBe("Couldn't save");
+            expect(err).toHaveAttribute('role', 'alert');
+            expect(byTestId('classroom-detail-assignment-name-saved')).not.toBeInTheDocument();
+
+            // Editing again clears the failure so it does not linger.
+            fireEvent.change(input, { target: { value: '課題4' } });
+            expect(byTestId('classroom-detail-assignment-name-save-error')).not.toBeInTheDocument();
+        });
+
+        test('名前が変わっていないときは何も出さない', async () => {
+            const onUpdateAssignmentName = jest.fn(() => Promise.resolve(true));
+            renderDetail({ onUpdateAssignmentName });
+            const input = byTestId('classroom-detail-assignment-name');
+            fireEvent.focus(input);
+            fireEvent.blur(input);
+            await act(async () => {
+                await Promise.resolve();
+            });
+            expect(onUpdateAssignmentName).not.toHaveBeenCalled();
+            expect(byTestId('classroom-detail-assignment-name-saved')).not.toBeInTheDocument();
+            expect(byTestId('classroom-detail-assignment-name-save-error')).not.toBeInTheDocument();
+        });
     });
 
     test('E1: ［課題を保存］はページの編集欄より前（1 画面目）にある', () => {
