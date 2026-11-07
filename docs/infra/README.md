@@ -71,7 +71,7 @@ const stageSuffix = stage === 'prod' ? '' : `-${stage}`;
 
 | Stage | 許可オリジン (デフォルト) |
 |---|---|
-| stg | `https://smalruby.app`, `https://smalruby.jp`, `http://localhost:8601`, `https://preview.smalruby.app` |
+| stg | `https://smalruby.app`, `https://smalruby.jp`, `http://localhost:8601`〜`8610`（classroom / bug-report / admin。api / rubytee-relay は `8601` だけ）, `https://preview.smalruby.app` |
 | prod | `https://smalruby.app`, `https://smalruby.jp` (localhost・プレビュー除外) |
 
 → ローカル開発は **stg エンドポイント** を使う。prod は CORS で localhost を弾く。
