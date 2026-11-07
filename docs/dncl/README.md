@@ -296,11 +296,11 @@ Smalruby は **DNCLv2 形式のプログラムをそのまま実行** できる�
   - `dncl-array-index-hint.test.js` — 範囲外の添字の警告（1 から数えたループ・数の添字・0 から数えたループは警告しない・二度代入した配列・要素を追加/削除する配列・関数の引数と同じ名前は推測しない）
   - `dncl-paste-tidy.test.js` — 貼り付け時の整形（行番号の削除・`//` コメント → `#`・整数除算と文字列の `//` は不変）
   - `dncl-paste-index-shift.test.js` — 貼り付け時の添字の書き換え（注釈の検出と表記の揺れ・数/式/2 次元/入れ子の添字・初期化/文字列/コメントは不変・書き換え位置・共通テスト例題の要確認の行）
-- エディタ側の単体テスト: `packages/scratch-gui/test/unit/containers/ruby-tab/dncl-index-shift.test.js`（注釈なしでは聞かない・「いいえ」で何も変えない・「はい」で 1 回の編集と印とまとめ）
   - `dncl-display-multi-arg.test.js` — `表示する` 多引数 / `puts(... + ...)` round-trip
   - `dncl-to-ruby.test.js` — DNCL → Ruby 変換ユニットテスト
   - `ruby-to-dncl.test.js` — Ruby → DNCL 逆変換ユニットテスト
   - `dncl-roundtrip.test.js` — DNCL ↔ Ruby round-trip 安定性
+- エディタ側の単体テスト: `packages/scratch-gui/test/unit/containers/ruby-tab/dncl-index-shift.test.js`（注釈なしでは聞かない・「いいえ」で何も変えない・「はい」で 1 回の編集と印とまとめ）
 - Round-trip テスト (左結合演算子の括弧除去): `packages/scratch-gui/test/unit/lib/ruby-roundtrip-puts-concat.test.js`
 - ブロック制限 UX の単体テスト:
   - `packages/scratch-gui/test/unit/reducers/dncl-mode-reducer.test.js` — `exitDnclModeExternallyRequested` シグナル
