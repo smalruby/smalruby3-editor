@@ -495,7 +495,6 @@ export default {
     'gui.classroom.continueChoice.confirmCurrent':
         'この課題で提出した作品を開きますか？ 今つくっているプロジェクトは置きかわります。',
     'gui.classroom.assignmentEditor.openButton': '課題を編集',
-    'gui.classroom.assignmentEditor.title': '課題を編集',
     'gui.classroom.assignmentEditor.hint':
         '生徒が参加コードで参加すると、このページが表示され、ボタンでスタータープロジェクトから始めます。',
     'gui.classroom.assignmentEditor.pageNumber': 'ページ {number}',
@@ -517,7 +516,6 @@ export default {
     'gui.classroom.assignmentEditor.removeStarter': 'スターターを削除',
     'gui.classroom.assignmentEditor.starterRemoveWarning':
         '保存すると、設定済みのスタータープロジェクトは削除されます。',
-    'gui.classroom.assignmentEditor.cancel': 'キャンセル',
     'gui.classroom.assignmentEditor.save': '課題を保存',
     'gui.classroom.assignmentEditor.limitsNote':
         'ページは10ページまで、1ページ500文字と画像1枚まで、スターターは1つです。',
@@ -697,6 +695,16 @@ export default {
     'gui.classroom.teacherDetail.seatNumber': '出席番号{number}',
     'gui.classroom.teacherDashboard.expiresAt': '有効期限: {date}',
     'gui.classroom.teacherDetail.expiresAt': '保存期限: {date}',
+    'gui.classroom.teacherDetail.renameHint': '名前を変える',
+    'gui.classroom.teacherDetail.moreMenu': 'その他の操作',
+    'gui.classroom.teacherDetail.seatColorJoined': '参加済み',
+    'gui.classroom.teacherDetail.seatColorNotJoined': 'まだ参加していない',
+    'gui.classroom.teacherDetail.previewEmpty': 'ページを書くとここに出ます',
+    'gui.classroom.assignmentEditor.advanced': '詳しい設定',
+    'gui.classroom.assignmentEditor.advancedUnsaved': '保存していません',
+    'gui.classroom.assignmentEditor.advancedSummary': '前回から: {previous}・他者参照: {peerView}・メッシュ: {mesh}',
+    'gui.classroom.assignmentEditor.summaryOn': 'する',
+    'gui.classroom.assignmentEditor.summaryOff': 'しない',
     'gui.classroom.teacherCreate.assignmentNameHint': '人数と課題名はいつでも変更できます。',
     'gui.classroom.carousel.submitTitle': '生徒が課題を提出できる',
     'gui.classroom.carousel.submitDesc': '参加コードでクラスに参加して、ワンクリックで作品を提出できます。',

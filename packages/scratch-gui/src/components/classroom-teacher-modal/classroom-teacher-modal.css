@@ -309,6 +309,15 @@
     height: 100%;
 }
 
+/* 課題詳細: 本文の高さに収め、座席・ページの一覧だけを枠の中でスクロールさせる（R6・#1303）。 */
+.main-fill {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    height: 100%;
+}
+
 .main-empty {
     display: flex;
     align-items: center;

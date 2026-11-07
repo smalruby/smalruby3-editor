@@ -503,7 +503,6 @@ export default {
     'gui.classroom.continueChoice.confirmCurrent':
         'このかだいでていしゅつしたさくひんをひらきますか？ いまつくっているプロジェクトはおきかわります。',
     'gui.classroom.assignmentEditor.openButton': 'かだいをへんしゅう',
-    'gui.classroom.assignmentEditor.title': 'かだいをへんしゅう',
     'gui.classroom.assignmentEditor.hint':
         'せいとがさんかコードでさんかすると、このページがひょうじされ、ボタンでスタータープロジェクトからはじめます。',
     'gui.classroom.assignmentEditor.pageNumber': 'ページ {number}',
@@ -525,7 +524,6 @@ export default {
     'gui.classroom.assignmentEditor.removeStarter': 'スターターをさくじょ',
     'gui.classroom.assignmentEditor.starterRemoveWarning':
         'ほぞんすると、せっていずみのスタータープロジェクトはさくじょされます。',
-    'gui.classroom.assignmentEditor.cancel': 'キャンセル',
     'gui.classroom.assignmentEditor.save': 'かだいをほぞん',
     'gui.classroom.assignmentEditor.limitsNote':
         'ページは10ページまで、1ページ500もじとがぞう1まいまで、スターターは1つです。',
@@ -712,6 +710,17 @@ export default {
     'gui.classroom.teacherDetail.seatNumber': 'しゅっせきばんごう{number}',
     'gui.classroom.teacherDashboard.expiresAt': 'ゆうこうきげん: {date}',
     'gui.classroom.teacherDetail.expiresAt': 'ほぞんきげん: {date}',
+    'gui.classroom.teacherDetail.renameHint': 'なまえをかえる',
+    'gui.classroom.teacherDetail.moreMenu': 'そのほかのそうさ',
+    'gui.classroom.teacherDetail.seatColorJoined': 'さんかずみ',
+    'gui.classroom.teacherDetail.seatColorNotJoined': 'まださんかしていない',
+    'gui.classroom.teacherDetail.previewEmpty': 'ページをかくとここにでます',
+    'gui.classroom.assignmentEditor.advanced': 'くわしいせってい',
+    'gui.classroom.assignmentEditor.advancedUnsaved': 'ほぞんしていません',
+    'gui.classroom.assignmentEditor.advancedSummary':
+        'ぜんかいから: {previous}・たしゃさんしょう: {peerView}・メッシュ: {mesh}',
+    'gui.classroom.assignmentEditor.summaryOn': 'する',
+    'gui.classroom.assignmentEditor.summaryOff': 'しない',
     'gui.classroom.teacherCreate.assignmentNameHint': 'にんずうとかだいめいはいつでもへんこうできます。',
     'gui.classroom.carousel.submitTitle': 'せいとがかだいをていしゅつできる',
     'gui.classroom.carousel.submitDesc':

@@ -308,6 +308,8 @@ try {
     log('teacher: create assignment 3 and turn on "start from previous"');
     const code3 = await createAssignmentInClass(`第3回-${stamp}`);
     await teacher.click('[data-testid="classroom-tab-description"]');
+    // The setting is folded in「詳しい設定」(#1303).
+    await teacher.click('[data-testid="classroom-assignment-advanced-toggle"]');
     await teacher.waitForSelector('[data-testid="classroom-assignment-start-from-previous"]', { timeout: 20000 });
     await teacher.check('[data-testid="classroom-assignment-start-from-previous"]');
     await shot(teacher, 'a3-teacher-setting-on');

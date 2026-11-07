@@ -120,6 +120,8 @@ try {
     log('archiving the assignment...');
     await page.click('[data-testid^="classroom-board-open-"]');
     await page.waitForSelector(tid('classroom-phase-teacher-detail'), { timeout: 20000 });
+    // Archive lives in the detail's … menu (#1303).
+    await page.click(tid('classroom-detail-more-menu'));
     await page.click(tid('classroom-delete-classroom'));
     const confirmText = await page.textContent(tid('classroom-delete-confirm') + ' >> xpath=../..');
     assert(/アーカイブ|archive/i.test(confirmText || ''), 'confirm message speaks of archiving (not deletion)');

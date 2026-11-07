@@ -64,20 +64,25 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | data-testid | 要素 | 説明 |
 |------------|------|------|
 | `classroom-detail-name` | div | 課題が属するクラス（学級）名 |
-| `classroom-detail-assignment-name` | input | 課題名（blur で保存） |
+| `classroom-detail-assignment-name` | input[type=text] | 課題名（1 行・blur / Enter で保存） |
+| `classroom-detail-assignment-name-hint` | label | 課題名の横の「名前を変える」（入力欄のラベル） |
+| `classroom-detail-expires-at` | div | 保存期限（ふだんは灰色。残り 7 日以内は `classroom-retention-banner` を含む） |
+| `classroom-detail-more-menu` | button | タブの行の右端の「…」（一覧は `classroom-detail-more-menu-list`） |
+| `classroom-download-progress` | span | 「…」の左の全作品ダウンロードの進み具合（`n/m`・ダウンロード中のみ） |
 | `classroom-tab-members` | button | 「メンバー」タブ（凡例 + 人数 + 更新 + 座席グリッド） |
 | `classroom-view-assignment` | a | 「課題を確認」（配信済みのとき・新しいタブ。生徒のステータス画面にもある） |
 | `classroom-detail-join-code` | div | 参加コード |
 | `classroom-detail-expand-code` | button | コード拡大表示 |
 | `classroom-members-grid` | div | 座席グリッド |
+| `classroom-seat-color-legend` | div | 座席の色の凡例（灰色＝参加済み・青＝まだ参加していない。状態アイコンの凡例より前） |
 | `classroom-status-legend` | div | 状態アイコンの凡例（各項目 `classroom-status-legend-{status}`） |
 | `classroom-status-icons` | span | 1 セル内の着席系 + 提出系アイコンのまとまり |
 | `classroom-status-icon-{status}` | span[role=img] | 状態アイコン（`data-status` と `aria-label` を持つ。status は `seated` / `notSeated` / `notJoined` / `submitted` / `notSubmitted` / `returned` / `kickRequested` / `occupied`） |
 | `classroom-members-count` | span | メンバー数 |
-| `classroom-delete-classroom` | button | 課題をアーカイブ（歴史的経緯で testid は delete のまま。soft-delete・復元可能） |
+| `classroom-delete-classroom` | button (menuitem) | 「…」の「課題をアーカイブ」（歴史的経緯で testid は delete のまま。soft-delete・復元可能） |
 | `classroom-delete-confirm` | button | アーカイブ確認 |
 | `classroom-delete-cancel` | button | アーカイブキャンセル |
-| `classroom-download-all` | button | 全提出ダウンロード |
+| `classroom-download-all` | button (menuitem) | 「…」の「全作品ダウンロード」 |
 
 ### メンバー詳細パネル (先生)
 
@@ -184,7 +189,6 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 
 | data-testid | 要素 | 説明 |
 |------------|------|------|
-| `classroom-phase-teacher-assignment-edit` | div | 課題エディタフェーズのルート |
 | `classroom-assignment-page-{n}` | div | ページ n（0-indexed）のカード |
 | `classroom-assignment-page-text-{n}` | textarea | ページ n の本文（最大500文字） |
 | `classroom-assignment-page-up-{n}` / `classroom-assignment-page-down-{n}` | button | ページの並べ替え |
@@ -197,11 +201,16 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-assignment-starter-current` | button | 今開いているプロジェクトをスターターに設定 |
 | `classroom-assignment-starter-file` | button | .sb3 ファイルをスターターに設定 |
 | `classroom-assignment-starter-remove` | button | スターターを削除 |
+| `classroom-assignment-pages` | div | ページの編集欄の枠（この枠の中だけスクロールする） |
+| `classroom-assignment-advanced-toggle` | button | 「詳しい設定」の開閉（`aria-expanded`） |
+| `classroom-assignment-advanced-summary` | span | 閉じた「詳しい設定」のいまの値（「前回から: しない・他者参照: しない・メッシュ: 6人まで」） |
+| `classroom-assignment-advanced-summary-{previous\|peerView\|mesh}` | span | 要約の各値。保存した値から変えたものは `data-changed="true"`（オレンジ色） |
+| `classroom-assignment-advanced-unsaved` | span | 「保存していません」（保存した値から変えた設定があるときだけ） |
+| `classroom-assignment-advanced-panel` | div | 開いた「詳しい設定」（下の 3 つの設定はこの中・開いたときだけある） |
 | `classroom-assignment-start-from-previous` | input (checkbox) | 「前回の提出物から始めさせる」（既定 OFF・保存で反映・Issue #1202） |
 | `classroom-assignment-peer-view` | select | 「他者参照」（`none` = しない（既定） / `always` = いつでも見られる / `afterSubmit` = 自分が提出したら見られる・保存で反映・Issue #1208） |
 | `classroom-assignment-mesh-group-limit` | select | 「メッシュのグループの人数」（`6` = 6人まで / `0` = 制限なし（この設定より前の課題の表示）・保存で反映・Issue #1257） |
-| `classroom-assignment-save` | button | 課題を保存 |
-| `classroom-assignment-cancel` | button | キャンセル（詳細画面へ戻る） |
+| `classroom-assignment-save` | button | 課題を保存（フォームの最上段） |
 
 ### 課題パネル（生徒）
 
@@ -330,8 +339,8 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-board-expiry-{classroomId}` | div | 開いた中の自動削除の警告（保存期限 7 日以内のときだけ・赤） |
 | `classroom-board-download-{classroomId}` | button | 警告の「全作品ダウンロード」（その課題だけ） |
 | `classroom-board-download-class` | button (menuitem) | 「…」の「全課題の提出物をダウンロード」（active + アーカイブ済みを 1 つの zip に） |
-| `classroom-retention-banner` | div | 課題詳細の保存期限アラートバナー（30 日以下で表示） |
-| `classroom-retention-banner-download` | button | バナー内の「全作品ダウンロード」 |
+| `classroom-retention-banner` | div | 課題詳細の保存期限の赤い警告（残り 7 日以内のときだけ・保存期限の右） |
+| `classroom-retention-banner-download` | button | 警告の中の「全作品ダウンロード」 |
 | `classroom-share-assignment` | button | 課題詳細の「この課題を共有」（みんなの課題フォームを開く） |
 | `shared-form` | form | みんなの課題の共有フォーム |
 | `shared-form-title` / `shared-form-summary` | input | タイトル / 短い説明 |
@@ -377,7 +386,6 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-breadcrumbs` | nav | パンくず（クラス一覧 > {クラス名} > ストリーム｜授業｜課題を作成などのサブビュー｜課題詳細） |
 | `classroom-breadcrumb-class-list` / `classroom-breadcrumb-assignments` | button | パンくずリンク |
 | `classroom-board-create-name` / `classroom-board-create-submit` | input / button | インライン課題作成（課題名） |
-| `classroom-board-create-mesh-group-limit` | select | インライン課題作成の「メッシュのグループの人数」（既定 `6` = 6人まで / `0` = 制限なし・Issue #1257） |
 | `classroom-board-reuse` | button (menuitem) | 作成メニューの「課題を再利用」 |
 | `classroom-board-reuse-view` | div | 再利用ビュー（全課題を日付降順） |
 | `classroom-board-reuse-filter` | select | 再利用ビューのクラスフィルタ |
@@ -386,6 +394,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-description-editor` | div | 説明タブの課題編集フォーム（埋め込み） |
 | `classroom-description-preview` | div | 右ペインの生徒視点プレビュー |
 | `classroom-description-preview-body` | div | プレビュー本文（テキスト+画像） |
+| `classroom-description-preview-empty` | p | どのページも空のときの 1 行「ページを書くとここに出ます」（本文・ページ送り・「参加したとき」の代わり） |
 | `classroom-description-preview-prev` / `-next` | button | プレビューのページ送り |
 | `classroom-description-preview-start` | div | プレビュー下の「参加したとき: …」（設定「前回の提出物から始めさせる」とスターターの有無で文言が変わる・Issue #1202） |
 | `classroom-avatar-email` | span | アカウントメニュー内のユーザーメール（OIDC トークンに email がある場合のみ。旧 `classroom-teacher-email` は廃止） |

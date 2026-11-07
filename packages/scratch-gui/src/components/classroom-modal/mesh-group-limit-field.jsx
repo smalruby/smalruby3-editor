@@ -1,8 +1,9 @@
 /**
  * Mesh group size limit setting of an assignment (#1257).
  *
- * Shared by the create screen and the assignment editor. The value is
- * 6 ("up to 6", the default for new assignments) or 0 ("no limit").
+ * Shown in the assignment editor's advanced settings (the create screen
+ * creates with the default — #1303 C1). The value is 6 ("up to 6", the
+ * default for new assignments) or 0 ("no limit").
  */
 import PropTypes from 'prop-types';
 import React, { useCallback } from 'react';
@@ -71,4 +72,5 @@ MeshGroupLimitField.propTypes = {
     onChange: PropTypes.func,
 };
 
+export { messages as meshGroupLimitMessages };
 export default MeshGroupLimitField;

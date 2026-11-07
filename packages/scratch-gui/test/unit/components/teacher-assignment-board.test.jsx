@@ -273,55 +273,41 @@ describe('TeacherAssignmentBoard — reuse excludes archived (review feedback)',
     });
 });
 
-describe('TeacherAssignmentBoard — mesh group size on the create screen (#1257)', () => {
-    test('defaults to "Up to 6" and sends the choice with the new assignment', () => {
+describe('TeacherAssignmentBoard — create screen asks only the name (#1303 C1)', () => {
+    test('does not ask the mesh group size and creates with the default "Up to 6"', () => {
         const props = defaultProps();
         renderBoard(props);
         clickCreateItem('classroom-board-create');
-        const select = byTestId('classroom-board-create-mesh-group-limit');
-        expect(select.value).toBe('6');
+        expect(byTestId('classroom-board-create-mesh-group-limit')).not.toBeInTheDocument();
 
         fireEvent.change(byTestId('classroom-board-create-name'), { target: { value: '課題2' } });
         fireEvent.click(byTestId('classroom-board-create-submit'));
         expect(props.onCreateAssignmentInClass).toHaveBeenCalledWith(props.group, '課題2', { meshGroupLimit: 6 });
     });
 
-    test('"No limit" is sent as 0', () => {
-        const props = defaultProps();
-        renderBoard(props);
-        clickCreateItem('classroom-board-create');
-        fireEvent.change(byTestId('classroom-board-create-mesh-group-limit'), { target: { value: '0' } });
-        fireEvent.change(byTestId('classroom-board-create-name'), { target: { value: '課題2' } });
-        fireEvent.click(byTestId('classroom-board-create-submit'));
-        expect(props.onCreateAssignmentInClass).toHaveBeenCalledWith(props.group, '課題2', { meshGroupLimit: 0 });
-    });
     test.each([
         ['cancel', () => fireEvent.click(byTestId('classroom-board-create-cancel'))],
         ['the assignments breadcrumb', () => fireEvent.click(byTestId('classroom-breadcrumb-assignments'))],
-    ])('leaving by %s resets the form, so reopening shows the defaults (review FYI4)', (_label, leave) => {
+    ])('leaving by %s resets the form, so reopening shows an empty name (review FYI4)', (_label, leave) => {
         const props = defaultProps();
         renderBoard(props);
         clickCreateItem('classroom-board-create');
         fireEvent.change(byTestId('classroom-board-create-name'), { target: { value: '書きかけ' } });
-        fireEvent.change(byTestId('classroom-board-create-mesh-group-limit'), { target: { value: '0' } });
         leave();
 
         clickCreateItem('classroom-board-create');
         expect(byTestId('classroom-board-create-name').value).toBe('');
-        expect(byTestId('classroom-board-create-mesh-group-limit').value).toBe('6');
     });
 
-    test('after creating, reopening shows the defaults', () => {
+    test('after creating, reopening shows an empty name', () => {
         const props = defaultProps();
         renderBoard(props);
         clickCreateItem('classroom-board-create');
         fireEvent.change(byTestId('classroom-board-create-name'), { target: { value: '課題2' } });
-        fireEvent.change(byTestId('classroom-board-create-mesh-group-limit'), { target: { value: '0' } });
         fireEvent.click(byTestId('classroom-board-create-submit'));
 
         clickCreateItem('classroom-board-create');
         expect(byTestId('classroom-board-create-name').value).toBe('');
-        expect(byTestId('classroom-board-create-mesh-group-limit').value).toBe('6');
     });
 
     test('the reuse class filter is reset when the reuse screen is closed', () => {

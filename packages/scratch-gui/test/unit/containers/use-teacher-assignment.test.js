@@ -105,6 +105,44 @@ describe('useTeacherAssignment — peerView (#1208)', () => {
     });
 });
 
+describe('useTeacherAssignment — savedSettings (#1303)', () => {
+    beforeEach(() => {
+        mockGetAssignment.mockReset();
+        mockSetAssignment.mockReset();
+        mockSetAssignment.mockResolvedValue({ imageUploadUrls: [], starterUploadUrl: null });
+    });
+
+    test('保存済みの値を持ち、保存するまで変更中の値には追従しない', async () => {
+        mockGetAssignment.mockResolvedValue({
+            assignment: { pages: [{ text: 'p' }] },
+            startFromPrevious: false,
+            peerView: 'none',
+        });
+        const hook = setup({ selectedClassroom: { classroomId: 'c1', meshGroupLimit: 6 } });
+        await act(async () => {});
+        expect(hook.result.current.savedSettings).toEqual({
+            startFromPrevious: false,
+            peerView: 'none',
+            meshGroupLimit: 6,
+        });
+
+        act(() => hook.result.current.handleChangePeerView('always'));
+        expect(hook.result.current.peerView).toBe('always');
+        expect(hook.result.current.savedSettings.peerView).toBe('none');
+
+        // After the save the editor reloads the stored values.
+        mockGetAssignment.mockResolvedValue({
+            assignment: { pages: [{ text: 'p' }] },
+            startFromPrevious: false,
+            peerView: 'always',
+        });
+        await act(async () => {
+            await hook.result.current.handleSaveAssignment();
+        });
+        expect(hook.result.current.savedSettings.peerView).toBe('always');
+    });
+});
+
 describe('useTeacherAssignment — meshGroupLimit (#1257)', () => {
     beforeEach(() => {
         mockGetAssignment.mockReset();

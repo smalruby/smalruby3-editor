@@ -138,6 +138,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         assignmentStartFromPrevious,
         assignmentPeerView,
         assignmentMeshGroupLimit,
+        assignmentSavedSettings,
         onAssignmentAddPage,
         onAssignmentRemovePage,
         onAssignmentMovePage,
@@ -151,7 +152,6 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         onAssignmentChangePeerView,
         onAssignmentChangeMeshGroupLimit,
         onAssignmentSave,
-        onAssignmentCancel,
         groups,
         teacherEmail,
         selectedGroup,
@@ -329,7 +329,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
 
         if (phase === 'teacher-class-detail' && selectedClassroom) {
             return (
-                <div className={styles.mainRelative}>
+                <div className={styles.mainFill}>
                     <div className={styles.detailBreadcrumbs}>
                         <TeacherBreadcrumbs
                             items={[
@@ -357,9 +357,9 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                             startFromPrevious: assignmentStartFromPrevious,
                             peerView: assignmentPeerView,
                             meshGroupLimit: assignmentMeshGroupLimit,
+                            savedSettings: assignmentSavedSettings,
                             onAddPage: onAssignmentAddPage,
                             onAttachPageImage: onAssignmentAttachPageImage,
-                            onCancel: onAssignmentCancel,
                             onChangePageText: onAssignmentChangePageText,
                             onMovePage: onAssignmentMovePage,
                             onRemovePage: onAssignmentRemovePage,
