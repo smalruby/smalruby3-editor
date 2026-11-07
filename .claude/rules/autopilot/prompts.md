@@ -141,7 +141,7 @@ prod へは **develop へのマージで workflow が自動で出す**（削除�
 
 ## infra と GUI を分ける（infra-first）
 
-ブランチプレビューは stg の API を見るので（#1344 が入るまでは prod）、infra と GUI を同じ PR に
+ブランチプレビュー（`preview.smalruby.app`）は stg の API を見るので、infra と GUI を同じ PR に
 入れると新しい API を使う GUI をプレビューで確認できない。手順の正準は `.claude/rules/infra/development.md` の
 「infra は別 Issue に分けて先に出す」。プロンプト側の規約は次のとおり（定数は `phases.js` の
 `INFRA_LABEL` = `🧱 infra`）:

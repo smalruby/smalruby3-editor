@@ -37,8 +37,8 @@ options:
   node tools/autopilot/bin/pw-check http://localhost:8787/ --wait '#board' \\
     --eval 'document.title'
 
-  # scratch-gui のプレビュー URL を確認
-  node tools/autopilot/bin/pw-check 'https://smalruby.jp/smalruby3-editor/<branch>/?no_beforeunload=1' \\
+  # scratch-gui のプレビュー URL（stg の API）を確認
+  node tools/autopilot/bin/pw-check 'https://preview.smalruby.app/<slug>/?no_beforeunload=1' \\
     --wait '[class*="gui_editor-wrapper"]' --timeout 90000
 `;
 

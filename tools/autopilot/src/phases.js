@@ -1043,7 +1043,7 @@ const SPIKE_LABEL = '🔬 spike';
  * infra は GUI と別の sub-issue に分け、**後方互換な変更だけ**を develop へ先行マージする。
  * develop へのマージで `Deploy Infra` workflow が stg → prod へ出し、**prod デプロイの成功で
  * workflow がこの Issue を閉じる**。後続の GUI Issue（`autopilot-after: #<infra>`）は stg と prod に
- * API が載ってから動き出すので、ブランチプレビュー（stg API を見る。#1344 までは prod）で確認できる。
+ * API が載ってから動き出すので、ブランチプレビュー（`preview.smalruby.app`。stg API を見る）で確認できる。
  * そのため、このラベルの Issue は Project の終端（merge で Close）では「完了」とみなさず、
  * GitHub で closed になったときだけ完了とする（{@link unresolvedAfterIssues} の closedOnly）。
  * 付けるのは Issue を作る側（decompose / 人間）。daemon は読むだけで付け外ししない。
@@ -1860,19 +1860,30 @@ function hasDodHandoffComment(comments) {
     return (comments || []).some((c) => c && isDodHandoffComment(c.body));
 }
 
-/** CI のブランチプレビュー URL（`https://smalruby.jp/smalruby3-editor/<branch>/`）のパターン。 */
-const PREVIEW_URL_RE = /https:\/\/smalruby\.jp\/smalruby3-editor\/[^\s)<>"'`]+/;
+/**
+ * CI のブランチプレビュー URL のパターン（優先順）。
+ * 1. `https://preview.smalruby.app/<slug>/` — stg の API を見るプレビュー（#1344）
+ * 2. `https://smalruby.jp/smalruby3-editor/<branch>/` — prod の API を見る旧 GitHub Pages
+ *    のプレビュー（#1345 で止めるまで並行運用）
+ * verify は stg を見るべきなので、新しい方が 1 つでもあればそれを採る。
+ */
+const PREVIEW_URL_RES = [
+    /https:\/\/preview\.smalruby\.app\/[^\s)<>"'`]+/,
+    /https:\/\/smalruby\.jp\/smalruby3-editor\/[^\s)<>"'`]+/,
+];
 
 /**
  * PR のコメント群から CI が貼ったブランチプレビュー URL を拾う（純粋関数）。
- * 先に現れたものを採用する。見つからなければ null。
+ * パターンの優先順に探し、同じパターンでは先に現れたものを採用する。見つからなければ null。
  * @param {Array<{body: string}>} comments
  * @returns {string|null}
  */
 function extractPreviewUrl(comments) {
-    for (const c of comments || []) {
-        const m = c && c.body && c.body.match(PREVIEW_URL_RE);
-        if (m) return m[0];
+    for (const re of PREVIEW_URL_RES) {
+        for (const c of comments || []) {
+            const m = c && c.body && c.body.match(re);
+            if (m) return m[0];
+        }
     }
     return null;
 }

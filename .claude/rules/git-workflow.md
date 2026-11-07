@@ -267,8 +267,8 @@ rm /tmp/issue-body.md
 
 `infra/**`（CDK・Lambda）とそれ以外（GUI など）の両方に変更が要る作業は、**必ず別の Issue に分ける**
 （infra を親 Issue の sub-issue にする）。infra は**後方互換な変更だけ**にして先に develop へ
-マージし、`Deploy Infra` workflow が stg → prod に出したら、GUI の PR をブランチプレビュー（stg の
-API を見る。プレビューのビルドが stg を向く #1344 が入るまでは prod を見る）で確認する。
+マージし、`Deploy Infra` workflow が stg → prod に出したら、GUI の PR をブランチプレビュー
+（`https://preview.smalruby.app/<slug>/`。stg の API を見る）で確認する。
 infra の Issue には `🧱 infra` ラベルを付け、PR 本文は `Refs #N`（prod デプロイの成功で
 workflow が閉じる）。GUI の Issue には `autopilot-after: #<infra>` を書く。手順の正準は
 `.claude/rules/infra/development.md` の「infra は別 Issue に分けて先に出す」。

@@ -455,3 +455,187 @@ jobs:
             gh pr comment "$PR_NUMBER" --repo ${{ github.repository }} \
               --body "🚀 Preview deployed: $PREVIEW_URL"
           fi
+
+  # Branch previews on https://preview.smalruby.app/<slug>/ (#1344), built with the stg values
+  # so a preview never touches production data. The GitHub Pages preview above (prod values)
+  # keeps running alongside until #1345 stops it.
+  #
+  # Environment `stg` overrides the repo Secrets / Variables of the same name (the endpoints and
+  # the mesh API key), and holds PREVIEW_DEPLOY_ROLE_ARN / PREVIEW_BUCKET_NAME /
+  # PREVIEW_DISTRIBUTION_ID (Outputs of SmalrubyWebHostingStack-stg, docs/infra/smalruby-web-hosting.md).
+  # The rest (Google / Microsoft client IDs, message lengths, mesh intervals) are the same as
+  # prod and come from the repo values.
+  preview-deploy:
+    runs-on: ubuntu-24.04  # ubuntu-latest is 26.04: no Playwright chromium build yet
+    # Fork PRs get neither the secrets nor an OIDC token.
+    if: |
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
+      (!(
+        github.ref == 'refs/heads/master' ||
+        github.ref == 'refs/heads/main' ||
+        startsWith(github.ref, 'refs/heads/hotfix/') ||
+        startsWith(github.head_ref, 'dependabot/') ||
+        startsWith(github.head_ref, 'renovate/')
+      ))
+    environment:
+      name: stg
+      url: ${{ steps.slug.outputs.url }}
+    permissions:
+      contents: read
+      id-token: write # AssumeRole the preview deploy role (GitHub OIDC)
+      pull-requests: write # comment the preview URL
+    env:
+      NODE_OPTIONS: --max-old-space-size=4000
+      BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          cache: 'npm'
+          node-version-file: '.nvmrc'
+      - name: Check the preview settings
+        id: check
+        env:
+          ROLE_ARN: ${{ vars.PREVIEW_DEPLOY_ROLE_ARN }}
+          BUCKET: ${{ vars.PREVIEW_BUCKET_NAME }}
+          DISTRIBUTION_ID: ${{ vars.PREVIEW_DISTRIBUTION_ID }}
+        run: |
+          set -euo pipefail
+          missing=()
+          [ -n "${ROLE_ARN}" ] || missing+=(PREVIEW_DEPLOY_ROLE_ARN)
+          [ -n "${BUCKET}" ] || missing+=(PREVIEW_BUCKET_NAME)
+          [ -n "${DISTRIBUTION_ID}" ] || missing+=(PREVIEW_DISTRIBUTION_ID)
+          if [ "${#missing[@]}" -gt 0 ]; then
+            # Not a failure of the PR: the preview is skipped until the values are registered.
+            echo "::warning::Environment stg の Variables に ${missing[*]} が未設定のため、preview.smalruby.app へのプレビューを出しません（docs/infra/smalruby-web-hosting.md の「CI のプレビュー」）。"
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Compute the preview slug
+        id: slug
+        if: steps.check.outputs.enabled == 'true'
+        run: |
+          set -euo pipefail
+          node --test scripts/preview-slug.test.mjs
+          slug="$(node scripts/preview-slug.mjs "${BRANCH_NAME}")"
+          echo "slug=${slug}" >> "$GITHUB_OUTPUT"
+          echo "url=https://preview.smalruby.app/${slug}/" >> "$GITHUB_OUTPUT"
+          echo "Preview slug: ${slug}"
+      - name: Install Dependencies
+        if: steps.check.outputs.enabled == 'true'
+        uses: ./.github/actions/install-dependencies
+      - name: Build with the stg values
+        if: steps.check.outputs.enabled == 'true'
+        env:
+          NODE_ENV: production
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          MESH_GRAPHQL_ENDPOINT: ${{ secrets.MESH_GRAPHQL_ENDPOINT }}
+          MESH_API_KEY: ${{ secrets.MESH_API_KEY }}
+          MESH_AWS_REGION: ${{ secrets.MESH_AWS_REGION }}
+          MESH_DATA_UPDATE_INTERVAL_MS: ${{ vars.MESH_DATA_UPDATE_INTERVAL_MS }}
+          MESH_EVENT_BATCH_INTERVAL_MS: ${{ vars.MESH_EVENT_BATCH_INTERVAL_MS }}
+          MESH_PERIODIC_DATA_SYNC_INTERVAL_MS: ${{ vars.MESH_PERIODIC_DATA_SYNC_INTERVAL_MS }}
+          RUBYTEE_RELAY_ENDPOINT: ${{ secrets.RUBYTEE_RELAY_ENDPOINT }}
+          CLASSROOM_API_ENDPOINT: ${{ secrets.CLASSROOM_API_ENDPOINT }}
+          BUG_REPORT_API_ENDPOINT: ${{ secrets.BUG_REPORT_API_ENDPOINT }}
+          SCRATCH_API_PROXY_ENDPOINT: ${{ vars.SCRATCH_API_PROXY_ENDPOINT }}
+          MICROSOFT_CLIENT_ID: ${{ secrets.MICROSOFT_CLIENT_ID }}
+          MAX_USER_MESSAGE_LENGTH: ${{ vars.MAX_USER_MESSAGE_LENGTH }}
+          MIN_USER_MESSAGE_LENGTH: ${{ vars.MIN_USER_MESSAGE_LENGTH }}
+          GTM_ID: ''
+          GTM_ENV_AUTH: ''
+          COMMIT_SHA: ${{ github.sha }}
+        run: npm run build
+      # Same as the GitHub Pages previews: the build uses relative paths, and postbuild.mjs makes
+      # the fetch-worker paths absolute for the subdirectory.
+      - name: Fix the worker paths for /<slug>/
+        if: steps.check.outputs.enabled == 'true'
+        env:
+          PUBLIC_PATH: /${{ steps.slug.outputs.slug }}/
+        run: |
+          cd packages/scratch-gui && npm exec node ./scripts/postbuild.mjs
+          echo '{"commitId":"${{ github.sha }}"}' > build/version.json
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        if: steps.check.outputs.enabled == 'true'
+        with:
+          role-to-assume: ${{ vars.PREVIEW_DEPLOY_ROLE_ARN }}
+          aws-region: ap-northeast-1
+      - name: Upload to s3://<bucket>/<slug>/
+        if: steps.check.outputs.enabled == 'true'
+        env:
+          BUCKET: ${{ vars.PREVIEW_BUCKET_NAME }}
+          SLUG: ${{ steps.slug.outputs.slug }}
+        run: |
+          set -euo pipefail
+          build=packages/scratch-gui/build
+          dest="s3://${BUCKET}/${SLUG}/"
+          # Split the build by cache lifetime (docs/infra/smalruby-web-hosting.md): file names with
+          # a hash (same rule as Workbox's dontCacheBustURLsMatching) are immutable, the rest
+          # (index.html, gui.js, sw.js, ...) are re-checked on every load.
+          hashed="$(mktemp -d)"
+          plain="$(mktemp -d)"
+          (cd "${build}" && find . -type f ! -name '.DS_Store' -print0) |
+            while IFS= read -r -d '' f; do
+              if printf '%s' "${f}" | grep -qE '\.[0-9a-f]{8,}\.'; then
+                to="${hashed}"
+              else
+                to="${plain}"
+              fi
+              mkdir -p "${to}/$(dirname "${f}")"
+              cp -p "${build}/${f}" "${to}/${f}"
+            done
+          aws s3 sync "${hashed}" "${dest}" --only-show-errors \
+            --cache-control 'public, max-age=31536000, immutable'
+          aws s3 sync "${plain}" "${dest}" --only-show-errors \
+            --cache-control 'max-age=0, s-maxage=60'
+          # Remove what the new build no longer has. Everything left was just uploaded, so
+          # --size-only keeps sync from re-uploading it (which would drop the Cache-Control).
+          aws s3 sync "${build}" "${dest}" --delete --size-only --only-show-errors \
+            --exclude '.DS_Store'
+      # Microsoft login returns to window.location.origin + '/auth-redirect.html', i.e. the
+      # bucket root, which every preview shares. Only develop writes it, so a branch cannot
+      # break the login of the other previews.
+      - name: Upload the shared /auth-redirect.html (develop only)
+        if: steps.check.outputs.enabled == 'true' && github.ref == 'refs/heads/develop'
+        env:
+          BUCKET: ${{ vars.PREVIEW_BUCKET_NAME }}
+        run: |
+          set -euo pipefail
+          for f in auth-redirect.html auth-redirect.js; do
+            aws s3 cp "packages/scratch-gui/build/${f}" "s3://${BUCKET}/${f}" --only-show-errors \
+              --cache-control 'max-age=0, s-maxage=60'
+          done
+      - name: Invalidate /<slug>/*
+        if: steps.check.outputs.enabled == 'true'
+        env:
+          DISTRIBUTION_ID: ${{ vars.PREVIEW_DISTRIBUTION_ID }}
+          SLUG: ${{ steps.slug.outputs.slug }}
+          IS_DEVELOP: ${{ github.ref == 'refs/heads/develop' }}
+        run: |
+          set -euo pipefail
+          paths=("/${SLUG}/*" "/${SLUG}")
+          if [ "${IS_DEVELOP}" = "true" ]; then
+            paths+=("/auth-redirect.html" "/auth-redirect.js")
+          fi
+          aws cloudfront create-invalidation --distribution-id "${DISTRIBUTION_ID}" \
+            --paths "${paths[@]}" --query 'Invalidation.Id' --output text
+      - name: Comment preview URL on PR (once only)
+        if: steps.check.outputs.enabled == 'true' && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PREVIEW_URL: ${{ steps.slug.outputs.url }}
+          PAGES_URL: https://smalruby.jp/smalruby3-editor/${{ github.head_ref }}/
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          ALREADY_COMMENTED=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json comments \
+            --jq "[.comments[].body | contains(\"$PREVIEW_URL\")] | any")
+          if [ "$ALREADY_COMMENTED" != "true" ]; then
+            gh pr comment "$PR_NUMBER" --repo "$REPO" --body "$(printf '%s\n' \
+              "🚀 Preview deployed (stg API): $PREVIEW_URL" \
+              "" \
+              "- GitHub Pages (prod API): $PAGES_URL")"
+          fi
