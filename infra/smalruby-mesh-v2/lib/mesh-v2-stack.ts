@@ -120,6 +120,9 @@ export class MeshV2Stack extends cdk.Stack {
     const defaultMaxConnTimeSeconds = stage === 'prod' ? '1500' : '300';
 
     // AppSync GraphQL API for Mesh v2
+    // CORS の許可オリジン設定は持たない（#1342）。AppSync の GraphQL エンドポイントは
+    // オリジンを問わずプリフライトに応答し、認可は API キー（x-api-key ヘッダ）で行うため、
+    // ブランチプレビュー（https://preview.smalruby.app）のために足す設定は無い。
     this.api = new appsync.GraphqlApi(this, 'MeshV2Api', {
       name: `MeshV2Api${stageSuffix}`,
       definition: appsync.Definition.fromFile(path.join(__dirname, '../graphql/schema.graphql')),
