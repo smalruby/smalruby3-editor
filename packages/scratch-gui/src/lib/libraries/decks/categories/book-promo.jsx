@@ -6,25 +6,24 @@
 // Fujimura's Smalruby book, so every deck opens with the book's
 // bibliographic info and closes with a "続きは書籍で" purchase link.
 //
-// The bibliographic details below are PLACEHOLDERS. The book's official
-// title, publisher, ISBN and purchase URL are still being confirmed with
-// the author; once fixed, update the single `BOOK` constant here and every
-// deck picks up the change (see docs/tutorial/improvement-plan.md Phase 3,
+// Confirmed bibliographic details (co-author takaokouji provided; see
+// docs/tutorial/book-kirakira-ruby-source.md and issue #962). Update the
+// single `BOOK` constant here and every deck picks up the change (Phase 3,
 // issue #956).
 import React from 'react';
 import {FormattedMessage} from 'react-intl';
 
 /**
- * Placeholder bibliographic info for the Smalruby book. Replace these values
- * in one place once the official details are confirmed (issue #956).
+ * Bibliographic info for the Smalruby book (confirmed via issue #962). Change
+ * these values in one place and every book-promo step picks it up.
  * @type {{title: string, author: string, publisher: string, isbn: string, url: string}}
  */
 export const BOOK = {
-    title: 'キラキラRuby', // 仮題 — 確定後に差し替え
-    author: '藤村健吾',
-    publisher: '', // 未確定
-    isbn: '', // 未確定
-    url: 'https://smalruby.app/', // プレースホルダ購入リンク — 確定後に差し替え
+    title: '小学生から楽しむ きらきらRubyプログラミング',
+    author: '高尾宏治・藤村健吾',
+    publisher: '日経BP',
+    isbn: '978-4-8222-8639-2',
+    url: 'https://bookplus.nikkei.com/atcl/catalog/20/P60510/',
 };
 
 /**
