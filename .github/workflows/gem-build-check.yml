@@ -23,7 +23,7 @@ permissions:
 jobs:
   build-linux:
     name: "Build gem (Linux / Ruby ${{ inputs.ruby-version || '3.4' }})"
-    runs-on: ubuntu-24.04  # ubuntu-latest is 26.04: keep the gem builds on 24.04
+    runs-on: ubuntu-26.04
     defaults:
       run:
         working-directory: ruby/smalruby3
@@ -74,7 +74,7 @@ jobs:
 
   build-windows:
     name: "Build gem (Windows / Ruby ${{ inputs.ruby-version || '3.4' }})"
-    runs-on: windows-latest
+    runs-on: windows-2025
     defaults:
       run:
         working-directory: ruby/smalruby3
