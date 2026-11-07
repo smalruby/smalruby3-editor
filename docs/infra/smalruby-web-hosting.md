@@ -186,14 +186,17 @@ aws s3 rm "s3://$BUCKET/test/index.html"
    同名の値より優先される。prod と同じ値（Google / Microsoft のクライアント ID・メッセージ長・メッシュの
    間隔）は repo の値をそのまま使う。値の一覧は `docs/infra/stg-prod-differences.md` の「GUI のビルド値」。
 4. `PUBLIC_PATH=/<slug>/` で `postbuild.mjs` を走らせ、fetch-worker のパスを絶対パスにする
-   （GitHub Pages のプレビューと同じ。ビルド自体は相対パスなので、置き場所を選ばない）。
+   （ビルド自体は相対パスなので、置き場所を選ばない）。
 5. GitHub OIDC で `PreviewDeployRoleArn` を AssumeRole し、`s3://<bucket>/<slug>/` に置く。上の
    「CI がアップロードするときの約束」どおり、ハッシュ付きのファイルとそれ以外で `Cache-Control` を
    分けて 2 回 sync し、最後に `--delete --size-only` で新しいビルドに無いものを消す。
 6. **develop のときだけ**、バケットのルートに `auth-redirect.html` / `auth-redirect.js` を置く
    （全プレビューが共有するので、ブランチからは上書きしない）。
-7. `/<slug>/*` を invalidation し、PR なら 1 回だけ URL をコメントする（GitHub Pages の旧プレビューの
-   URL と並べる）。
+7. `/<slug>/*` を invalidation し、PR なら 1 回だけ URL をコメントする。
+
+GitHub Pages へのプレビュー（`smalruby.jp/smalruby3-editor/<branch>/`・prod の API）と develop 版
+（`smalruby.jp/smalruby3-editor/`）の出力はやめた。gh-pages ブランチに残っている内容は消さずに置いてあり、
+もう更新されない。本番（smalruby.app）は従来どおり `build-and-deploy` が `smalruby/smalruby.app` へ出す。
 
 - ブランチ単位の `concurrency` はワークフロー全体のまま（プレフィックスが分かれているので、
   ブランチ間で競合しない）。

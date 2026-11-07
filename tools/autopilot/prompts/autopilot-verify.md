@@ -63,8 +63,8 @@ node tools/autopilot/bin/pw-check --serve-html tmp/monitor-preview.html --wait '
 があればそれを優先**し、無ければ dev server を起動して待機してから確認する。
 プレビューは **stg の API** を見る。先行の 🧱 infra Issue（`autopilot-after`）を待っていた
 GUI の Issue なら、その API はもう stg（と prod）にあるので、プレビューでそのまま確認できる。
-（PR コメントには GitHub Pages の旧プレビュー `https://smalruby.jp/smalruby3-editor/<branch>/`
-も並ぶが、それは prod の API を見て devlogin も効かないので、確認には使わない。）
+（古い PR のコメントに残る GitHub Pages の旧プレビュー `https://smalruby.jp/smalruby3-editor/<branch>/`
+はもう更新されず、prod の API を見て devlogin も効かないので、確認には使わない。）
 
 プレビューで確かめる前に、手順の正準 `.claude/rules/infra/development.md` の
 「ブランチプレビューで確かめる（stg の API）」に従う:

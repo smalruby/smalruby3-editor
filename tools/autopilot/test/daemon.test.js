@@ -688,7 +688,7 @@ test('applyDodHandoffs: DoD leaf with PR + no handoff -> posts one handoff comme
     const items = [{ issue: 631, itemId: 'i', status: 'DoD', kind: 'Issue', hitlLabel: true }];
     const deps = makeDodDeps({
         prByIssue: { 631: { number: 818, branch: 'topic/autopilot-631' } },
-        commentsByPr: { 818: [{ id: 1, body: 'Preview: https://smalruby.jp/smalruby3-editor/topic/autopilot-631/' }] },
+        commentsByPr: { 818: [{ id: 1, body: '🚀 Preview deployed (stg API): https://preview.smalruby.app/topic-autopilot-631/' }] },
         issueBody: { 631: '## DoD\n\n- [ ] ボタンが表示される\n\n## 備考\nx' },
     });
     const state = { running: new Map() };
@@ -696,7 +696,7 @@ test('applyDodHandoffs: DoD leaf with PR + no handoff -> posts one handoff comme
     assert.equal(deps.calls.posted.length, 1);
     assert.equal(deps.calls.posted[0].prNumber, 818);
     assert.match(deps.calls.posted[0].body, /<!-- autopilot:dod-handoff issue=631 pr=818 -->/);
-    assert.match(deps.calls.posted[0].body, /https:\/\/smalruby\.jp\/smalruby3-editor\/topic\/autopilot-631\//);
+    assert.match(deps.calls.posted[0].body, /https:\/\/preview\.smalruby\.app\/topic-autopilot-631\//);
     assert.match(deps.calls.posted[0].body, /- \[ \] ボタンが表示される/);
 });
 

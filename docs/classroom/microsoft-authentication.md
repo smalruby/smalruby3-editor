@@ -95,7 +95,7 @@ Google の `sub`（数値文字列）と Microsoft の `oid`（UUID）は自然�
 |-----|------|
 | `http://localhost:8601/auth-redirect.html` | ローカル開発 |
 | `https://smalruby.app/auth-redirect.html` | 本番 |
-| `https://smalruby.jp/smalruby3-editor/auth-redirect.html` | GitHub Pages のブランチプレビュー（prod の API） |
+| `https://smalruby.jp/smalruby3-editor/auth-redirect.html` | GitHub Pages の旧ブランチプレビュー（prod の API）。出力を止めたので新しいビルドは出ない。残っている旧プレビューのログイン用 |
 | `https://preview.smalruby.app/auth-redirect.html` | S3 + CloudFront のブランチプレビュー（stg の API）。全ブランチで共有し、develop のデプロイがバケットのルートに置く |
 
 ### アプリケーション設定
