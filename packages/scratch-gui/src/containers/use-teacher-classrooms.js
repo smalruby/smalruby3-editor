@@ -498,19 +498,22 @@ const useTeacherClassrooms = ({
         [idToken, clearError, showError, handleTeacher401, intl],
     );
 
+    // Resolves whether the name was saved, so the field can show the result (#1388).
     const handleUpdateAssignmentName = useCallback(
         async (assignmentName) => {
-            if (!idToken || !selectedClassroom) return;
+            if (!idToken || !selectedClassroom) return false;
             clearError();
             try {
                 await classroomAPI.updateClassroom(idToken, selectedClassroom.classroomId, { assignmentName });
                 setSelectedClassroom((prev) => ({ ...prev, assignmentName }));
+                return true;
             } catch (err) {
                 if (err.status === 401) {
                     await handleTeacher401();
                 } else {
                     showError(translateError(intl, err));
                 }
+                return false;
             }
         },
         [idToken, selectedClassroom, clearError, showError, handleTeacher401, intl],

@@ -310,10 +310,11 @@
     flex-wrap: wrap;
     gap: 0.5rem;
     align-items: stretch;
-    margin: 0.3rem 0;
+    /* 下は課題名の欄の下に重ねる保存のしかた（#1388）の 1 行分を空けておく。 */
+    margin: 0.3rem 0 0.7rem;
 }
 
-/* 課題名: ラベル・1 行の入力欄・「名前を変える」を横並び（#1303 D3）。 */
+/* 課題名: ラベル・1 行の入力欄・保存結果を横並び（#1303 D3 / #1388）。 */
 .name-col {
     flex: 1 1 340px;
     min-width: 0;
@@ -338,12 +339,47 @@
     font-family: inherit;
 }
 
-.assignment-name-rename-hint {
+/* 入力欄と、その下の保存のしかた（カーソルがある間だけ・#1388）。 */
+.assignment-name-field {
+    position: relative;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.name-col .assignment-name-field .assignment-name-input {
+    width: 100%;
+}
+
+/* 欄の下に重ねて出す（流れに入れると、フォーカスのたびに下のタブが動く）。 */
+.assignment-name-save-hint {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 0.15rem;
+    line-height: 1.2;
+    font-size: 0.75rem;
+    font-weight: normal;
+    color: #8c8c8c;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.assignment-name-saved,
+.assignment-name-save-error {
     flex: 0 0 auto;
     font-size: 0.8rem;
-    color: #855cd6;
     white-space: nowrap;
-    cursor: text;
+}
+
+.assignment-name-saved {
+    color: #0f9d58;
+}
+
+/* 赤は保存に失敗して対処が要るときだけ（R4）。 */
+.assignment-name-save-error {
+    color: #d32f2f;
 }
 
 /* 参加コードカード (redesign): 右カラム。コードと 3 つのボタンを 1 つの
