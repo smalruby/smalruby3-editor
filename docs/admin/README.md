@@ -67,8 +67,6 @@ Admin が扱うドメインは 2 階層で、**日本語の呼び方を次の表
 | SPA の `fetchClassrooms` / `setClassroomStatus` など | 課題 | 対応する API パスに合わせている。パスを変えない以上、関数名だけ変えると対応が読み取れなくなる |
 | `Classrooms.className` 属性 | 課題に保存された**クラス（学級）名の写し** | v1 の名残。v2 ではクラス側の `name` が真実で、生徒向け lookup は group の名前を優先する（`infra/smalruby-classroom/lambda/handler.ts`）。後方互換のため属性自体は残る。Admin の検索・表示はこの属性も対象にするので、入力欄の「クラス名」表記はこの属性を指す |
 
-teacher / student UI（`packages/scratch-gui/src/components/classroom-modal/**`）にも同種の揺れが数件残っており、生徒向けの分かりやすさとの兼ね合いを含めて別 Issue で整理する。
-
 ### 課題が `active` でも先生に見えているとは限らない
 
 **課題の状態だけでは先生の画面に出ているかは決まらない。** 親のクラス（学級）がアーカイブ中なら、中の課題が `active` でも先生のクラス一覧からは消える（アーカイブ済みのクラスを開かないと辿り着けない）。「課題が利用中＝先生に見えている」という誤読が EPIC #1129 の発端なので、Admin は課題レスポンスに**親クラスの状態**を必ず載せ、実効的な可視性を画面に出す。
