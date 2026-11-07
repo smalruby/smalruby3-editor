@@ -67,8 +67,7 @@
 | `GOOGLE_CLIENT_ID` / `MICROSOFT_CLIENT_ID`（classroom・bug-report） | **同じ**（stg 専用のクライアントは無い） |
 | `ADMIN_GOOGLE_CLIENT_ID`（admin・bug-report） | **同じ** |
 | `MESH_SECRET_KEY`（mesh-v2）/ `MESH_ZONE_SECRET_KEY`（api） | 別（stg は stg 専用の値） |
-| `ANTHROPIC_API_KEY`（rubytee-relay） | 別 |
-| `ANTHROPIC_API_KEY`（classroom） | **同じ**で、しかも **rubytee-relay の stg と同じ値**（下の「直すべき違い」を参照） |
+| `ANTHROPIC_API_KEY`（classroom・rubytee-relay） | 別。**機能 × stage ごとに 1 つずつ**（classroom の stg / prod、rubytee-relay の stg / prod の 4 つ）。どれも有効期限 2027-03-31 なので、それまでに発行し直すか、ID フェデレーションへ切り替える |
 
 ## コードの中の stage の分岐
 
@@ -149,7 +148,6 @@ GUI のビルド（webpack の `DefinePlugin`）が使う環境変数と、そ�
 | stg の CORS に preview を足す | 対象は smalruby-api / bug-report / classroom / rubytee-relay。admin は今の既定値のままでよい（エディタのプレビューは admin API を呼ばない）。mesh-v2 は AppSync なので CORS の設定が無い | プレビュー移行の前提 |
 | stg 向けの GUI ビルド値を GitHub に用意する | 上の表の「ローカルのルート `.env` だけ」「どこにも無い」の値を Environment `stg` に登録する（人間の作業） | プレビュー移行の前提 |
 | CORS プロキシのハードコードをやめる | 翻訳・音声合成の拡張の `CORS_PROXY_HOST` をビルド値から組み立てる（scratch-vm の変更） | プレビュー移行の前提（無いとプレビューでこの 2 つが動かない） |
-| classroom の `ANTHROPIC_API_KEY` | prod のクラス管理が、rubytee-relay の stg と同じ API キーを使っている。キーを分けて費用や上限を区別しているなら、prod 用のキーに直す必要がある | 要確認（意図した共用なら不要） |
 | mesh-v2 の `.env.production` | 他のプロジェクトは `.env.prod`。`Deploy Infra` は CI の中で `.env.prod` を作るので動作には関係ないが、手元の手順と docs が二通りになっている | 低 |
 
 ## OAuth クライアントを共用にする理由
