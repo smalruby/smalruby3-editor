@@ -282,6 +282,27 @@ function shouldCloseIssueOnMerge(item) {
 }
 
 /**
+ * merge / closed で Close に進めた Issue の worktree とローカルブランチを片付けてよいか（純粋関数・#1362）。
+ *
+ * daemon が無人で `git worktree remove --force` / `git branch -D` を撃つので、作業が失われうる
+ * ときは消さない。判定できなかった事実（undefined）は安全側＝消さない。🧱 infra も対象
+ * （GitHub の Issue を閉じないのとは別で、PR が merge されれば worktree は不要）。
+ * @param {object} facts
+ * @param {boolean} [facts.running] その Issue の worker が実行中か（`state.running`）
+ * @param {boolean} [facts.dirty] `git status --porcelain` が空でないか（gitignore 済みは含まない）
+ * @param {string|null} [facts.branch] worktree が checkout しているブランチ（detached なら null）
+ * @param {boolean} [facts.mergedIntoBase] ブランチ先端が `origin/<base>` に含まれるか
+ * @returns {{cleanup: boolean, reason: 'running'|'dirty'|'detached'|'not-merged'|null}}
+ */
+function shouldCleanupWorktree(facts = {}) {
+    if (facts.running !== false) return { cleanup: false, reason: 'running' };
+    if (facts.dirty !== false) return { cleanup: false, reason: 'dirty' };
+    if (!facts.branch) return { cleanup: false, reason: 'detached' };
+    if (facts.mergedIntoBase !== true) return { cleanup: false, reason: 'not-merged' };
+    return { cleanup: true, reason: null };
+}
+
+/**
  * Issue 本文から `autopilot-assignee:` ディレクティブ（駆動担当の明示指定）を抽出する（純粋関数）。
  *
  * 複数 assignee の Issue は既定で assignee の辞書順先頭が単一オーナー（{@link itemOwner}）に
@@ -3263,6 +3284,7 @@ module.exports = {
     AUTOPILOT_BRANCH_PREFIX,
     autopilotHeadBranch,
     resolveBaseRef,
+    shouldCleanupWorktree,
     baseFollowConflictBody,
     resolveConflictFailureBody,
     prConflictState,

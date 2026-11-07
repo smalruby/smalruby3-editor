@@ -840,6 +840,23 @@ bin/autopilot-worktree list
 `npm install` / `build:dev` 無しで即作業できる（`@smalruby/*` は main の dist に解決される）。
 単一パッケージのソース編集を想定。クロスパッケージのソース編集は `--full`。
 
+**自動の片付け（#1362）**: daemon が PR の merge を検知して Project を Close に進めたとき
+（merge-progression）と、GitHub で閉じた Issue を Close に揃えたとき（closed-reconcile）に、その Issue の
+worktree とローカルブランチを片付ける（🧱 infra の Issue も対象）。リモートブランチは消さない
+（`gh pr merge --delete-branch` に任せる）。ローカルブランチは autopilot が作った `topic/autopilot-*` だけ
+消し、`--pr` で別名のブランチを checkout していた場合は worktree だけ消す。gitignore されたファイル
+（`tmp/` のスクショや結果 JSON など）は worktree ごと消える。次のどれかに当てはまるときは**消さずに**
+daemon ログに理由を残す（残った worktree は `bin/autopilot-worktree remove` で手で消す）:
+
+- その Issue の worker が実行中
+- worktree に未コミットの変更か未追跡ファイルがある（`git status --porcelain` が空でない）
+- ブランチの先端が `origin/<base>`（`autopilot-base:` の値、無ければ develop。fetch 後）に含まれない
+  （merge せずに閉じた Issue はここで残る）
+- detached HEAD でブランチが分からない、または判定中に git がエラーになった
+
+判定は `phases.js` の `shouldCleanupWorktree`（純粋関数）、git の実行は daemon の `cleanupIssueWorktree`。
+片付けに失敗しても Close への前進は止めない。
+
 **base 追従（stale 起点の衝突防止・#950/#953）**: 新ブランチ作業フェーズ（implement 等）**と**
 PR ブランチ作業フェーズ（review / address-review）の**両方**で、着手時に daemon が作業ブランチを
 最新の base（`autopilot-base:` 指定 or develop）へ **merge** して自動追従する（rebase ではなく
