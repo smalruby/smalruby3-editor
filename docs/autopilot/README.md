@@ -861,6 +861,22 @@ daemon ログに理由を残す（残った worktree は `bin/autopilot-worktree
 判定は `phases.js` の `shouldCleanupWorktree`（純粋関数）、git の実行は daemon の `cleanupIssueWorktree`。
 片付けに失敗しても Close への前進は止めない。
 
+**dev server の後片付け（#1381）**: worker が UI 確認で起動した dev server（`webpack serve` / `npm start`）は、
+worker の tmux を閉じても残り、8601 をふさいだり、別の worktree の古いコードを返したりする。verify の
+プロンプトは起動前に 8601 の持ち主（cwd）を確かめ、結果ファイルを書く前に自分で止める。それに加えて
+daemon が次のときに止める（SIGTERM・止めた PID と理由を daemon ログに残す）:
+
+- **run が終わったとき**: その Issue の worktree を cwd に持つ dev server
+- **worktree を片付けるとき**（上の自動の片付け）: `git worktree remove` の前に、その worktree のもの
+- **毎 tick の掃除**: cwd の worktree が削除済みのもの（`/proc/<pid>/cwd` が `(deleted)`）と、
+  Status が終端（Close / Done）の Issue の worktree のもの
+
+止めるのは **autopilot の worktree（`.autopilot-worktrees/issue-<N>`）を cwd に持つプロセスだけ**。
+main checkout（`/app`）や人間・ほかのセッションが立てた dev server、worker が実行中の Issue のものは止めない。
+`pkill -f` のような広い一致は使わず、`/proc` を読んで PID と cwd で特定する（`/proc` が無い環境では何もしない）。
+判定は `phases.js` の `selectDevServersToStop`（純粋関数）、プロセスの列挙と停止は daemon の
+`listProcesses` / `stopWorktreeDevServers`。
+
 **base 追従（stale 起点の衝突防止・#950/#953）**: 新ブランチ作業フェーズ（implement 等）**と**
 PR ブランチ作業フェーズ（review / address-review）の**両方**で、着手時に daemon が作業ブランチを
 最新の base（`autopilot-base:` 指定 or develop）へ **merge** して自動追従する（rebase ではなく

@@ -172,6 +172,7 @@ function dispatchFixture({ follow, resolver } = {}) {
     const writes = [];
     const comments = [];
     const faces = [];
+    const stops = [];
     const state = {
         running: new Map(),
         history: [],
@@ -190,8 +191,9 @@ function dispatchFixture({ follow, resolver } = {}) {
         postIssueComment: async (repo, issue, body) => comments.push(body),
         syncFaces: async (it) => faces.push(it),
         execFileP: async () => ({ stdout: '' }),
+        stopDevServers: (opts) => { stops.push(opts.issues); return []; },
     };
-    return { state, cfg, deps, writes, comments, faces };
+    return { state, cfg, deps, writes, comments, faces, stops };
 }
 
 test('dispatchResolveConflict: 解消できたら AI Status を元に戻し、Status には触らない', async () => {
@@ -205,6 +207,8 @@ test('dispatchResolveConflict: 解消できたら AI Status を元に戻し、St
     assert.equal(f.state.running.size, 0);
     assert.equal(f.state.board.items[0].prs[0].mergeable, 'MERGEABLE');
     assert.equal(f.state.history[0].outcome, 'done');
+    // run が終わったら、その worktree の dev server を止める（#1381）
+    assert.deepEqual(f.stops, [[7]]);
 });
 
 test('dispatchResolveConflict: 解消できなければコメントして 🙋 を付ける（Status は変えない）', async () => {

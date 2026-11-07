@@ -92,9 +92,65 @@ node tools/autopilot/bin/pw-check \
   "https://preview.smalruby.app/<slug>/?no_beforeunload=1&devlogin=${DEV_BYPASS_TOKEN}" \
   --wait '[class*="gui_editor-wrapper"]' --timeout 90000 --eval '<DoD 確認式>'
 
-# プレビュー URL が無いとき（dev server をバックグラウンド起動 → 応答を待つ → 確認）
-# npm start をバックグラウンドで起動し、`until curl -sf -o /dev/null http://localhost:8601; do sleep 5; done` で待機してから pw-check を実行する
+# プレビュー URL が無いとき（dev server をバックグラウンド起動 → 応答を待つ → 確認 → 必ず止める）
+# 下の「dev server の起動と停止」に従う
 ```
+
+##### dev server の起動と停止（プレビュー URL が無いときだけ・#1381）
+
+worker の tmux を閉じても、バックグラウンドで起動した dev server は残る。残ると 8601 をふさぎ、
+次の確認が**別の worktree の古いコード**に当たってしまう。だから **起動前に 8601 の持ち主を確かめ、
+結果ファイルを書く前に自分が起動したものを止める**。
+
+1. **起動前に 8601 の持ち主を確かめる**。応答していなければ 2 へ。応答していたら、待ち受けている
+   プロセスの cwd を見る（`pkill -f` のような広い一致は使わない。PID と cwd で特定する）:
+
+   ```bash
+   WT="$(git rev-parse --show-toplevel)"
+   for pid in $(lsof -t -iTCP:8601 -sTCP:LISTEN 2>/dev/null); do
+     echo "$pid $(readlink /proc/$pid/cwd)"
+   done
+   ```
+
+   - cwd が**自分の worktree（`$WT` 配下）**なら、それを使ってよい（止めるのは自分で起動したときだけ）。
+   - cwd が**ほかの autopilot worktree（`.autopilot-worktrees/issue-<N>`）**で、末尾が `(deleted)` か
+     #N が終わっている（Close / Done・PR マージ済み）なら、その PID だけを `kill <PID>` で止めて 2 へ。
+     #N の worker がまだ動いている（`tmux ls` に `autopilot-*-<N>` がある）なら使わずに待つか、
+     待てなければ HITL で人間に知らせる。
+   - cwd が **main checkout（`/app`）やそれ以外**（人間・ほかのセッションのもの）なら**止めない**。
+     そのコードは自分の PR ではないので確認には使わず、HITL で人間に知らせる。
+2. **自分の worktree で起動し、プロセスグループを記録する**。Bash の呼び出しをまたぐとシェル変数は消えるので、
+   **ブロックごとに `WT` を定義し直す**（未定義だと `/tmp/dev-server.*` をほかの worker と共有してしまう）。
+   `setsid -f` で新しいセッションに切り離し、`$!` ではなく **8601 で待ち受けている PID の cwd を確かめてから**
+   その PGID を記録する（`$!` はシェルのジョブ制御の有無で npm の PID にならないことがある）:
+
+   ```bash
+   WT="$(git rev-parse --show-toplevel)"
+   rm -f "$WT/tmp/dev-server.pgid"
+   (cd "$WT/packages/scratch-gui" && setsid -f npm start > "$WT/tmp/dev-server.log" 2>&1 < /dev/null)
+   until curl -sf -o /dev/null http://localhost:8601; do sleep 5; done
+   PID="$(lsof -t -iTCP:8601 -sTCP:LISTEN 2>/dev/null | head -1)"
+   case "$(readlink "/proc/$PID/cwd")" in
+     "$WT"/*) ps -o pgid= -p "$PID" | tr -d ' ' > "$WT/tmp/dev-server.pgid" ;;
+     *) echo "8601 が自分の dev server ではない（1 に戻る）" ;;
+   esac
+   ```
+
+3. **pw-check で確認する**（上と同じ。URL は `http://localhost:8601/?no_beforeunload=1&...`）。
+4. **結果ファイルを書く前に止め、止まったことを確かめる**（確認が失敗したときも必ず止める）。
+   `setsid -f` で起動したので、記録した PGID でプロセスグループごと止められる（npm・sh・webpack がまとめて止まる）:
+
+   ```bash
+   WT="$(git rev-parse --show-toplevel)"
+   PGID="$(cat "$WT/tmp/dev-server.pgid" 2>/dev/null)"
+   [ -n "$PGID" ] && kill -- "-$PGID"
+   rm -f "$WT/tmp/dev-server.pgid"
+   for _ in 1 2 3 4 5 6; do curl -sf -o /dev/null http://localhost:8601 || break; sleep 5; done
+   curl -sf -o /dev/null http://localhost:8601 && echo "dev server がまだ応答している" || echo "停止を確認"
+   ```
+
+   まだ応答するなら、1 と同じ方法で 8601 の PID と cwd を見て、自分の worktree のものだけを止める。
+   止め忘れても daemon が run の終了時にこの worktree の dev server を止める（保険。頼らないこと）。
 
 `.claude/rules/scratch-gui/e2e-test.md` の URL パラメータ（`?no_beforeunload=1` 必須、`tab` / `rubyMode` 等）、
 data-testid 一覧、Monaco 操作に従う。`?tab=sounds` 直アクセスの扱いも同ドキュメントに従う。
@@ -133,6 +189,7 @@ echo AUTOPILOT_HITL
 - **ブラウザは `playwright` パッケージの bundled chromium を headless で使う**（`pw-check` ヘルパー推奨）。**Playwright MCP は使わない**。
 - **merge はしない**（モデル: DoD 後に人間が merge）。本スキルは DoD 確認まで。
 - dev server 起動は重い。**プレビュー URL があれば優先**し、無闇に毎回ビルドしない。
+- 起動した dev server は**結果ファイルを書く前に必ず止める**。8601 がほかの worktree のものなら使わない（3-B「dev server の起動と停止」）。
 - 音/autoplay の最終確認は実 Chrome（ホスト）— headless で「OK」と誤判定しない（種別 3-C）。
 - スクショは必ず `tmp/` 配下、`?tab=sounds` 直アクセス等 `.claude/rules/scratch-gui/e2e-test.md` の注意を尊重。
 - `AskUserQuestion` を使わない。Project/PR の状態反映は daemon（単一ライター）。bot 認証必須。

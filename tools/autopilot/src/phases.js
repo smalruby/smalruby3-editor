@@ -303,6 +303,77 @@ function shouldCleanupWorktree(facts = {}) {
 }
 
 /**
+ * プロセスのコマンドラインが dev server（scratch-gui の `webpack serve` / `npm start`）かを判定する（純粋関数・#1381）。
+ *
+ * worker が UI 確認で起動した dev server は tmux を閉じても残り、8601 をふさいだり古いコードの UI を
+ * 返したりする。止める対象を広げすぎないよう、`webpack serve` / `webpack-dev-server` / `npm [run] start`
+ * だけを拾う（`webpack --mode production` のようなビルドや jest は含めない）。
+ * @param {string} cmd 引数を空白でつないだコマンドライン（`/proc/<pid>/cmdline` 相当）
+ * @returns {boolean}
+ */
+function isDevServerCommand(cmd) {
+    if (!cmd) return false;
+    const s = String(cmd);
+    return /\bwebpack(?:\.js)?\s+serve\b/.test(s)
+        || /\bwebpack-dev-server\b/.test(s)
+        || /(?:^|[\s/])npm(?:-cli\.js)?\s+(?:run\s+)?start\b/.test(s);
+}
+
+/**
+ * プロセスの cwd が autopilot の worktree（`<root>/issue-<N>` かその配下）なら Issue 番号を返す（純粋関数・#1381）。
+ *
+ * 止めてよいのは autopilot の worktree を cwd に持つプロセスだけ（main checkout や人間のものは止めない）。
+ * cwd の dir が削除済みのとき Linux の `/proc/<pid>/cwd` は末尾に ` (deleted)` が付くので外して判定する。
+ * @param {string} cwd プロセスの cwd
+ * @param {string} worktreeRoot autopilot worktree の置き場所（`<main checkout>/.autopilot-worktrees`）
+ * @returns {number|null}
+ */
+function worktreeIssueFromCwd(cwd, worktreeRoot) {
+    if (!cwd || !worktreeRoot) return null;
+    const root = String(worktreeRoot).replace(/\/+$/, '');
+    if (!root) return null;
+    const dir = String(cwd).replace(/ \(deleted\)$/, '');
+    if (!dir.startsWith(`${root}/`)) return null;
+    const m = dir.slice(root.length + 1).match(/^issue-(\d+)(?:\/|$)/);
+    return m ? Number(m[1]) : null;
+}
+
+/**
+ * 止める dev server を選ぶ（純粋関数・#1381）。プロセスの列挙と停止は daemon 側。
+ *
+ * - `issues` を渡したとき（run の終了・worktree の削除）: その Issue の worktree のものだけ（reason=`target`）。
+ * - `issues` が無いとき（tick の掃除）: cwd が消えた worktree のもの（`cwd-deleted`）と、終端 Issue の
+ *   worktree のもの（`terminal-issue`）。
+ * どちらの場合も、autopilot の worktree 外・dev server でないもの・実行中の Issue・自分自身は止めない。
+ * @param {Array<{pid: number, cwd: string, cwdDeleted?: boolean, cmd: string}>} procs
+ * @param {object} opts
+ * @param {string} opts.worktreeRoot
+ * @param {number[]} [opts.issues] 対象 Issue（指定時はこれだけ）
+ * @param {Iterable<number>} [opts.terminalIssues] Status が終端（Close / Done）の Issue
+ * @param {Iterable<number>} [opts.runningIssues] worker が実行中の Issue
+ * @param {number} [opts.selfPid]
+ * @returns {Array<{pid: number, issue: number, cwd: string, reason: 'target'|'cwd-deleted'|'terminal-issue'}>}
+ */
+function selectDevServersToStop(procs, opts = {}) {
+    if (!Array.isArray(procs) || !opts.worktreeRoot) return [];
+    const targets = Array.isArray(opts.issues) ? new Set(opts.issues) : null;
+    const terminal = new Set(opts.terminalIssues || []);
+    const running = new Set(opts.runningIssues || []);
+    const out = [];
+    for (const p of procs) {
+        if (!p || p.pid === opts.selfPid || !isDevServerCommand(p.cmd)) continue;
+        const issue = worktreeIssueFromCwd(p.cwd, opts.worktreeRoot);
+        if (issue == null || running.has(issue)) continue;
+        let reason = null;
+        if (targets) reason = targets.has(issue) ? 'target' : null;
+        else if (p.cwdDeleted) reason = 'cwd-deleted';
+        else if (terminal.has(issue)) reason = 'terminal-issue';
+        if (reason) out.push({ pid: p.pid, issue, cwd: p.cwd, reason });
+    }
+    return out;
+}
+
+/**
  * Issue 本文から `autopilot-assignee:` ディレクティブ（駆動担当の明示指定）を抽出する（純粋関数）。
  *
  * 複数 assignee の Issue は既定で assignee の辞書順先頭が単一オーナー（{@link itemOwner}）に
@@ -3285,6 +3356,9 @@ module.exports = {
     autopilotHeadBranch,
     resolveBaseRef,
     shouldCleanupWorktree,
+    isDevServerCommand,
+    worktreeIssueFromCwd,
+    selectDevServersToStop,
     baseFollowConflictBody,
     resolveConflictFailureBody,
     prConflictState,

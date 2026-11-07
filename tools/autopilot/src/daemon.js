@@ -32,6 +32,8 @@ const {
     infraIssueSet,
     shouldCloseIssueOnMerge,
     shouldCleanupWorktree,
+    selectDevServersToStop,
+    TERMINAL_STATUSES,
     AUTOPILOT_BRANCH_PREFIX,
     parseAssigneeDirective,
     selectActionable,
@@ -1226,6 +1228,8 @@ async function dispatch(item, cfg, state, log) {
         await blockToHuman(`dispatch が例外で停止しました: ${e.message}`);
     } finally {
         state.running.delete(item.issue);
+        // worker が UI 確認で起動したまま残した dev server を止める（#1381）
+        stopWorktreeDevServers({ issues: [item.issue], runningIssues: [...state.running.keys()] }, log);
     }
 }
 
@@ -1271,6 +1275,7 @@ async function dispatchResolveConflict(item, cfg, state, log, deps = {}) {
         findItemId: project.findItemId, findPrForIssue: project.findPrForIssue, setField: project.setField,
         postIssueComment: project.postIssueComment, ensureWorktree, followBaseBranch, runConflictResolver,
         execFileP, getDirectives, syncFaces: (it) => syncFacesAfterIntents(it, [], cfg, log),
+        stopDevServers: stopWorktreeDevServers,
         readToken: project.readToken, botToken: project.botToken, ...deps,
     };
     const ctx = { projectId: cfg.projectId, fields: cfg.fields };
@@ -1345,6 +1350,7 @@ async function dispatchResolveConflict(item, cfg, state, log, deps = {}) {
     } finally {
         if (aiChanged) await setAi(prevAi);
         state.running.delete(item.issue);
+        io.stopDevServers({ issues: [item.issue], runningIssues: [...state.running.keys()] }, log);
     }
 }
 
@@ -1375,6 +1381,96 @@ async function collectGateContexts(cfg, items, running, state, log, deps = {}) {
     return contexts;
 }
 
+/** autopilot worktree の置き場所（`bin/autopilot-worktree` の WT_ROOT と同じ既定・#1381） */
+const WORKTREE_ROOT = process.env.AUTOPILOT_WORKTREE_ROOT || path.join(project.REPO_ROOT, '.autopilot-worktrees');
+
+/** dev server を止めた理由のログ文言（#1381） */
+const DEV_SERVER_STOP_REASONS = {
+    target: 'run の終了か worktree の削除',
+    'cwd-deleted': 'cwd の worktree が削除済み',
+    'terminal-issue': 'Issue が終端（Close / Done）',
+};
+
+/**
+ * `/proc` から動いているプロセスの pid・cwd・コマンドラインを列挙する（#1381）。
+ *
+ * 読めないプロセス（他ユーザー・列挙中に終了）は飛ばす。`/proc` が無い環境（macOS 等）は空配列。
+ * cwd が消えた dir は Linux では末尾 ` (deleted)` が付く。付かない場合に備えて存在も確かめる。
+ * @param {object} [deps] { procDir, readdirSync, readlinkSync, readFileSync, existsSync }（テスト用）
+ * @returns {Array<{pid: number, cwd: string, cwdDeleted: boolean, cmd: string}>}
+ */
+function listProcesses(deps = {}) {
+    const procDir = deps.procDir || '/proc';
+    const readdir = deps.readdirSync || fs.readdirSync;
+    const readlink = deps.readlinkSync || fs.readlinkSync;
+    const readFile = deps.readFileSync || fs.readFileSync;
+    const exists = deps.existsSync || fs.existsSync;
+    let names;
+    try { names = readdir(procDir); } catch { return []; }
+    const out = [];
+    for (const name of names) {
+        if (!/^\d+$/.test(name)) continue;
+        try {
+            const cwd = String(readlink(path.join(procDir, name, 'cwd')));
+            const cmd = String(readFile(path.join(procDir, name, 'cmdline'), 'utf8'))
+                .split('\0').filter(Boolean).join(' ');
+            const cwdDeleted = / \(deleted\)$/.test(cwd) || !exists(cwd);
+            out.push({ pid: Number(name), cwd, cwdDeleted, cmd });
+        } catch { /* 読めないプロセスは対象外 */ }
+    }
+    return out;
+}
+
+/**
+ * autopilot の worktree に残った dev server を止める（#1381）。判定は phases.js の
+ * {@link selectDevServersToStop}、ここはプロセスの列挙と SIGTERM だけ。PID と cwd で特定し、
+ * `pkill -f` のような広い一致は使わない。止めた PID と理由はログに残す。例外は投げない。
+ * @param {object} opts { issues?, terminalIssues?, runningIssues? }（selectDevServersToStop と同じ）
+ * @param {Function} log
+ * @param {object} [deps] { worktreeRoot, listProcesses, kill, selfPid }（テスト用）
+ * @returns {Array<{pid: number, issue: number, cwd: string, reason: string}>} 止めたもの
+ */
+function stopWorktreeDevServers(opts, log, deps = {}) {
+    const list = deps.listProcesses || listProcesses;
+    const kill = deps.kill || ((pid, sig) => process.kill(pid, sig));
+    let targets;
+    try {
+        targets = selectDevServersToStop(list(), {
+            ...opts,
+            worktreeRoot: deps.worktreeRoot || WORKTREE_ROOT,
+            selfPid: deps.selfPid !== undefined ? deps.selfPid : process.pid,
+        });
+    } catch (e) {
+        log(`dev server の確認に失敗（続行）: ${e.message}`);
+        return [];
+    }
+    const stopped = [];
+    for (const t of targets) {
+        const why = DEV_SERVER_STOP_REASONS[t.reason] || t.reason;
+        try {
+            kill(t.pid, 'SIGTERM');
+            stopped.push(t);
+            log(`#${t.issue}: dev server を止めた（PID ${t.pid}・${why}）: ${t.cwd}`);
+        } catch (e) {
+            log(`#${t.issue}: dev server の停止に失敗（PID ${t.pid}・続行）: ${e.message}`);
+        }
+    }
+    return stopped;
+}
+
+/**
+ * tick の掃除: cwd が消えた worktree・終端 Issue の worktree に残った dev server を止める（#1381）。
+ * @param {Array} items Project の item
+ * @param {object} state { running }
+ * @param {Function} log
+ * @param {object} [deps] stopWorktreeDevServers の deps
+ */
+function applyDevServerSweep(items, state, log, deps = {}) {
+    const terminalIssues = (items || [])
+        .filter((it) => it && TERMINAL_STATUSES.has(it.status)).map((it) => it.issue);
+    return stopWorktreeDevServers({ terminalIssues, runningIssues: [...state.running.keys()] }, log, deps);
+}
+
 /** 片付けを見送った理由のログ文言（#1362） */
 const CLEANUP_KEEP_REASONS = {
     running: 'worker が実行中',
@@ -1397,13 +1493,14 @@ const CLEANUP_KEEP_REASONS = {
  * @param {object} cfg
  * @param {object} state { running }
  * @param {Function} log
- * @param {object} [deps] { execFileP, existsSync, getDirectives }（テスト用の差し替え）
+ * @param {object} [deps] { execFileP, existsSync, getDirectives, stopDevServers }（テスト用の差し替え）
  * @returns {Promise<{status: 'removed'|'kept'|'absent'|'error', reason?: string}>}
  */
 async function cleanupIssueWorktree(item, cfg, state, log, deps = {}) {
     const exec = deps.execFileP || execFileP;
     const exists = deps.existsSync || fs.existsSync;
     const directives = deps.getDirectives || ((issue) => getDirectives(cfg, state, issue, log));
+    const stopDevServers = deps.stopDevServers || stopWorktreeDevServers;
     const issue = item.issue;
     try {
         const { stdout } = await exec(WORKTREE_BIN, ['path', String(issue)], { encoding: 'utf8' });
@@ -1432,6 +1529,8 @@ async function cleanupIssueWorktree(item, cfg, state, log, deps = {}) {
             log(`#${issue}: worktree を片付けない（${why}${decision.reason === 'not-merged' ? `: ${baseRef}` : ''}）: ${wt}`);
             return { status: 'kept', reason: decision.reason };
         }
+        // 消す worktree を cwd に持つ dev server を先に止める（cwd が消えても動き続けるため・#1381）
+        stopDevServers({ issues: [issue], runningIssues: [...state.running.keys()] }, log);
         const mainOpts = { cwd: project.REPO_ROOT, maxBuffer: 16 * 1024 * 1024 };
         await exec('git', ['worktree', 'remove', '--force', wt], mainOpts);
         let removedBranch = '';
@@ -1971,6 +2070,8 @@ async function tick(cfg, state, log) {
     await applyMergeProgression(items, cfg, state, log);
     // GitHub で closed な issue（EPIC・人手 close 含む）の Project Status を Close へ整合（#843 Fix B）
     await applyClosedReconcile(items, cfg, state, log, { closedSet });
+    // 終わった worktree（cwd が消えた・終端 Issue）に残った dev server を止める（#1381・/proc を読むだけ）
+    applyDevServerSweep(items, state, log);
     // 非終端 item に 🤖 autopilot / 🧭 tracking ラベルを担保（問い合わせのラベル限定の前提）
     await applyLabelHealing(items, cfg, state, log);
     // In Progress + AI 作業中のまま止まった item を検知して Blocked へ（#816）
@@ -2643,6 +2744,7 @@ async function main(opts = {}) {
 module.exports = {
     main, tick, runTickOnce, dispatch, applyMergeProgression, applyClosedReconcile, applyPrProjection,
     cleanupIssueWorktree,
+    listProcesses, stopWorktreeDevServers, applyDevServerSweep,
     applyDodHandoffs, detectStuck, recoverOrphanedWorkers, recoverStalledInFlightWorkers,
     markBlocked, getDirectives, populateAssigneeDirectives,
     applyLabelHealing, applyAfterWaitLabels,
