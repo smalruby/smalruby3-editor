@@ -2679,24 +2679,35 @@
     overflow-y: auto;
 }
 
-/* プライマリ = 青塗り（評価画面に統一・#1122）。 */
-.class-list-create-button {
-    background: #4c97ff;
-    color: white;
-    border: none;
-    border-radius: 0.5rem;
-    padding: 0.5rem 1.25rem;
-    font-size: 0.9rem;
-    cursor: pointer;
+/* クラス一覧（入口）: 本文はスクロールさせず、カードの一覧の枠だけをスクロールする（R6・#1300）。 */
+.class-list-landing {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
-.class-list-create-button:hover {
-    background: #3d89f0;
+.class-list-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    /* カードのホバー枠が切れないように少し余白を持たせる。 */
+    padding: 0 0.25rem 0.5rem 0;
 }
 
-.class-list-create-button:disabled {
-    opacity: 0.5;
-    cursor: default;
+/* 主ボタン（クラスを作成）と読み込み中の表示・インポートを 1 行に並べる（#1300 L1）。
+   主ボタンは共通の .primary-button（ClassroomButton）を使い、薄い色にしない。 */
+.class-list-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.class-list-loading {
+    font-size: 0.85rem;
+    color: hsla(225, 15%, 40%, 1);
 }
 
 .class-list-empty {
@@ -2729,8 +2740,15 @@
     border: 1px solid hsla(0, 0%, 0%, 0.15);
     border-radius: 0.5rem;
     background: white;
+    /* ボタンの既定色（無効時は灰色）に任せると名前が薄く見えるので明示する（#1300 L1）。 */
+    color: hsla(225, 15%, 20%, 1);
+    font-family: inherit;
     cursor: pointer;
     text-align: left;
+}
+
+.class-card-main:disabled {
+    cursor: progress;
 }
 
 .class-card-main:hover:not(:disabled) {
@@ -2745,6 +2763,55 @@
 .class-card-meta {
     font-size: 0.8rem;
     color: hsla(225, 15%, 40%, 1);
+}
+
+/* 要約の項目は「・」で区切る（#1300 L2）。 */
+.class-card-meta > span + span::before {
+    content: "・";
+}
+
+/* --- Create a class: small dialog over the class list (#1300 K5) --- */
+
+.create-class-backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: hsla(215, 30%, 20%, 0.35);
+}
+
+.create-class-dialog {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    width: 28rem;
+    max-width: calc(100% - 2rem);
+    padding: 1.25rem 1.5rem;
+    border-radius: 0.5rem;
+    background-color: white;
+    box-shadow: 0 0.5rem 1.5rem hsla(0, 0%, 0%, 0.2);
+}
+
+.create-class-title {
+    margin: 0 0 0.25rem;
+    font-size: 1.1rem;
+    color: hsla(225, 15%, 20%, 1);
+}
+
+.create-class-dialog input {
+    padding: 0.45rem;
+    border: 1px solid hsla(0, 0%, 0%, 0.15);
+    border-radius: 0.25rem;
+    font-size: 0.9rem;
+}
+
+.create-class-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
 }
 
 .class-card-badges {
@@ -3476,7 +3543,6 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
 
 /* セカンダリ = 白地 + 中立の枠線（評価画面に統一・#1122）。 */
 .class-list-import-button {
-    margin-left: 0.5rem;
     border: 1px solid #d9d9d9;
     background: white;
     color: #575e75;
@@ -3543,9 +3609,30 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
     gap: 0.5rem;
 }
 
-.class-settings-row input {
+.class-settings-row > .class-field {
     flex: 1;
     min-width: 0;
+}
+
+/* ラベル付きの入力欄（R1）: ラベルを欄の上に常に出す。作成ダイアログと設定画面で共有。 */
+.class-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.class-field input {
+    min-width: 0;
+}
+
+/* 設定画面で 4 つを 1 行に並べるとき、クラス名だけ広くする。 */
+.class-settings-row > .class-field-wide {
+    flex: 2;
+}
+
+.class-field-label {
+    font-size: 0.8rem;
+    color: hsla(225, 15%, 40%, 1);
 }
 
 .class-settings-co-teachers {

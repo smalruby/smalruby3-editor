@@ -72,42 +72,60 @@ describe('TeacherClassList', () => {
         expect(document.querySelector('[data-testid="classroom-class-card-g1"]')).toHaveTextContent('Co-managed');
     });
 
-    test('should submit with the first assignment being optional (class-only creation)', () => {
+    test('opens a small "Create a class" dialog over the class list with labelled fields', () => {
+        renderList();
+        const byTestId = (id) => document.querySelector(`[data-testid="${id}"]`);
+        fireEvent.click(byTestId('classroom-class-create'));
+
+        const dialog = byTestId('classroom-class-create-dialog');
+        expect(dialog).toBeInTheDocument();
+        expect(dialog).toHaveAttribute('role', 'dialog');
+        // The class list stays behind the dialog (no screen transition).
+        expect(byTestId('classroom-class-list')).toBeInTheDocument();
+        // Every field has a visible label (R1), not just a placeholder.
+        for (const field of ['name', 'section', 'year', 'count']) {
+            const input = byTestId(`classroom-class-create-${field}`);
+            expect(input.closest('label')).not.toBeNull();
+        }
+        expect(dialog).toHaveTextContent('Class name (required)');
+        expect(dialog).toHaveTextContent('Section');
+        expect(dialog).toHaveTextContent('School year');
+        expect(dialog).toHaveTextContent('Number of students (seat numbers)');
+        // The first-assignment field is gone (K3).
+        expect(byTestId('classroom-class-create-assignment')).toBeNull();
+    });
+
+    test('submits only the class fields with fixed Cancel / Create buttons', () => {
         const onCreateClassWithAssignment = jest.fn();
         renderList({ onCreateClassWithAssignment });
-        fireEvent.click(document.querySelector('[data-testid="classroom-class-create"]'));
+        const byTestId = (id) => document.querySelector(`[data-testid="${id}"]`);
+        fireEvent.click(byTestId('classroom-class-create'));
 
-        const submit = document.querySelector('[data-testid="classroom-class-create-submit"]');
+        const submit = byTestId('classroom-class-create-submit');
         expect(submit).toBeDisabled();
+        expect(submit).toHaveTextContent(/^Create$/);
+        expect(byTestId('classroom-class-create-cancel')).toHaveTextContent(/^Cancel$/);
 
-        fireEvent.change(document.querySelector('[data-testid="classroom-class-create-name"]'), {
-            target: { value: ' 技術 ' },
-        });
-        fireEvent.change(document.querySelector('[data-testid="classroom-class-create-count"]'), {
-            target: { value: '30' },
-        });
-        // Assignment name empty — the class can still be created
+        fireEvent.change(byTestId('classroom-class-create-name'), { target: { value: ' 技術 ' } });
+        fireEvent.change(byTestId('classroom-class-create-count'), { target: { value: '30' } });
         expect(submit).not.toBeDisabled();
-        expect(submit).toHaveTextContent('Create the class only');
+        // The button label never changes with the input.
+        expect(submit).toHaveTextContent(/^Create$/);
 
-        fireEvent.change(document.querySelector('[data-testid="classroom-class-create-section"]'), {
-            target: { value: '2年1組' },
-        });
+        fireEvent.change(byTestId('classroom-class-create-section'), { target: { value: '1組' } });
         fireEvent.click(submit);
-        expect(onCreateClassWithAssignment).toHaveBeenCalledWith(
-            expect.objectContaining({
-                name: '技術',
-                section: '2年1組',
-                studentCount: 30,
-                assignmentName: null,
-            }),
-        );
+        expect(onCreateClassWithAssignment).toHaveBeenCalledWith({
+            name: '技術',
+            year: expect.any(Number),
+            section: '1組',
+            studentCount: 30,
+        });
     });
 
     test.each([
-        ['cancel', 'classroom-class-create-cancel'],
-        ['the class list breadcrumb', 'classroom-breadcrumb-class-list'],
-    ])('should reset the create form when it is left by %s (review FYI4)', (_label, leaveTestId) => {
+        ['cancel', (byTestId) => fireEvent.click(byTestId('classroom-class-create-cancel'))],
+        ['Escape', (byTestId) => fireEvent.keyDown(byTestId('classroom-class-create-dialog'), { key: 'Escape' })],
+    ])('closes and resets the create dialog when it is left by %s', (_label, leave) => {
         renderList();
         const byTestId = (id) => document.querySelector(`[data-testid="${id}"]`);
         fireEvent.click(byTestId('classroom-class-create'));
@@ -116,15 +134,71 @@ describe('TeacherClassList', () => {
         fireEvent.change(byTestId('classroom-class-create-year'), { target: { value: '2030' } });
         fireEvent.change(byTestId('classroom-class-create-section'), { target: { value: '2年1組' } });
         fireEvent.change(byTestId('classroom-class-create-count'), { target: { value: '30' } });
-        fireEvent.change(byTestId('classroom-class-create-assignment'), { target: { value: '課題1' } });
-        fireEvent.click(byTestId(leaveTestId));
+        leave(byTestId);
+        expect(byTestId('classroom-class-create-dialog')).toBeNull();
 
         fireEvent.click(byTestId('classroom-class-create'));
         expect(byTestId('classroom-class-create-name').value).toBe('');
         expect(byTestId('classroom-class-create-year').value).toBe(defaultYear);
         expect(byTestId('classroom-class-create-section').value).toBe('');
         expect(byTestId('classroom-class-create-count').value).toBe('');
-        expect(byTestId('classroom-class-create-assignment').value).toBe('');
+    });
+
+    test('shows a failed create in the dialog, not behind it', () => {
+        const { rerender } = renderList();
+        const byTestId = (id) => document.querySelector(`[data-testid="${id}"]`);
+        fireEvent.click(byTestId('classroom-class-create'));
+        rerender(
+            <IntlProvider locale="en">
+                <TeacherClassList {...defaultProps()} error="Network error" />
+            </IntlProvider>,
+        );
+        const errors = document.querySelectorAll('[data-testid="classroom-error"]');
+        expect(errors).toHaveLength(1);
+        expect(byTestId('classroom-class-create-dialog')).toContainElement(errors[0]);
+    });
+
+    test('shows "Loading…" next to the create button while loading', () => {
+        renderList({ isLoading: true });
+        expect(document.querySelector('[data-testid="classroom-class-list-loading"]')).toHaveTextContent('Loading');
+    });
+
+    test('shows no loading text when idle', () => {
+        renderList();
+        expect(document.querySelector('[data-testid="classroom-class-list-loading"]')).toBeNull();
+    });
+
+    test('summarizes the class on its card: students and the generative AI', () => {
+        renderList({
+            groups: [
+                group({
+                    studentCount: 8,
+                    genai: { enabled: true, service: 'gemini', url: 'https://gemini.google.com/app', confirmed: true },
+                }),
+            ],
+        });
+        const summary = document.querySelector('[data-testid="classroom-class-summary-g1"]');
+        expect(summary).toHaveTextContent('8 students');
+        expect(summary).toHaveTextContent('Generative AI: Gemini');
+    });
+
+    test('leaves the generative AI out of the summary when it is not used', () => {
+        renderList({ groups: [group({ studentCount: 8, genai: { enabled: false } })] });
+        const summary = document.querySelector('[data-testid="classroom-class-summary-g1"]');
+        expect(summary).toHaveTextContent('8 students');
+        expect(summary).not.toHaveTextContent('Generative AI');
+    });
+
+    test('labels the year, section and student count in the class settings (K1)', () => {
+        renderList({ groups: [group({ studentCount: 30, section: '1組' })] });
+        fireEvent.click(document.querySelector('[data-testid="classroom-class-settings-open-g1"]'));
+        for (const field of ['name', 'year', 'section', 'count']) {
+            const input = document.querySelector(`[data-testid="classroom-class-settings-${field}"]`);
+            expect(input.closest('label')).not.toBeNull();
+        }
+        const form = document.querySelector('[data-testid="classroom-class-settings-g1"]');
+        expect(form).toHaveTextContent('School year');
+        expect(form).toHaveTextContent('Number of students (seat numbers)');
     });
 
     test('should show the class label with year and section', () => {

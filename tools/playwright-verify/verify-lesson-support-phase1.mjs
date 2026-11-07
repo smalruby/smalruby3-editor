@@ -89,10 +89,14 @@ try {
     await teacherPage.click('[data-testid="classroom-class-create"]');
     await teacherPage.fill('[data-testid="classroom-class-create-name"]', CLASS_NAME);
     await teacherPage.fill('[data-testid="classroom-class-create-count"]', '5');
-    await teacherPage.fill('[data-testid="classroom-class-create-assignment"]', ASSIGNMENT_NAME);
     await teacherPage.click('[data-testid="classroom-class-create-submit"]');
-    // Lands inside the new class: the assignment board lists the first lesson
+    // Lands inside the new class; the first lesson is made there (the create
+    // dialog makes only the class).
     await teacherPage.waitForSelector('[data-testid="classroom-board"]', { timeout: 30000 });
+    await teacherPage.click('[data-testid="classroom-board-create"]');
+    await teacherPage.fill('[data-testid="classroom-board-create-name"]', ASSIGNMENT_NAME);
+    await teacherPage.click('[data-testid="classroom-board-create-submit"]');
+    await teacherPage.waitForSelector('[data-testid^="classroom-board-open-"]', { timeout: 30000 });
     await sleep(500);
     await dismissTutorial(teacherPage);
     await teacherPage.locator('[data-testid^="classroom-board-open-"]').first().click();

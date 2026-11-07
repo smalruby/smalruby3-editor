@@ -73,9 +73,13 @@ try {
     await page.click('[data-testid="classroom-class-create"]');
     await page.fill('[data-testid="classroom-class-create-name"]', GROUP_NAME);
     await page.fill('[data-testid="classroom-class-create-count"]', '4');
-    await page.fill('[data-testid="classroom-class-create-assignment"]', ASSIGNMENT_NAME);
     await page.click('[data-testid="classroom-class-create-submit"]');
     await page.waitForSelector('[data-testid="classroom-board"]', { timeout: 30000 });
+    // The create-class dialog makes only the class; the assignment is made inside it.
+    await page.click('[data-testid="classroom-board-create"]');
+    await page.fill('[data-testid="classroom-board-create-name"]', ASSIGNMENT_NAME);
+    await page.click('[data-testid="classroom-board-create-submit"]');
+    await page.waitForSelector('[data-testid^="classroom-board-open-"]', { timeout: 30000 });
     await sleep(500);
     await dismissTutorial(page);
 
