@@ -26,7 +26,7 @@
 | smalruby-api | — | `IMPORT_EXISTING_CUSTOM_DOMAIN` / `IMPORTED_REGIONAL_DOMAIN_NAME` / `IMPORTED_REGIONAL_HOSTED_ZONE_ID` | 意図どおり（prod の `api.smalruby.app` は CDK の外で作ったものを import している） |
 | smalruby-bug-report | `DEV_BYPASS_TOKEN` / `BUG_REPORT_API_ENDPOINT` | — | 意図どおり（後者は integration テスト用） |
 | smalruby-classroom | `DEV_BYPASS_TOKEN` / `CLASSROOM_API_ENDPOINT` | — | 意図どおり（後者は integration テスト用） |
-| smalruby-mesh-v2 | — | — | キーは同じ。手順と docs は `.env.prod` にそろえた（手元に旧名 `.env.production` が残っていても、読むのは `.env` の symlink だけなので動く） |
+| smalruby-mesh-v2 | — | — | キーは同じ。手順と docs は `.env.prod`（手元に旧名 `.env.production` が残っていても、読むのは `.env` の symlink だけなので動く） |
 | smalruby-rubytee-relay | — | — | キーは同じ |
 
 

@@ -79,8 +79,8 @@ const stageSuffix = stage === 'prod' ? '' : `-${stage}`;
 `lib/cors-origins.ts` の `resolveCorsOrigins`、api / rubytee-relay は同じファイルの
 `withPreviewOrigins`）。`lib/cors-origins.ts` は全プロジェクトで同じ内容で、正本は
 `infra/shared/cors-origins.ts`（直すときは正本を直して `node infra/shared/sync.js`。
-`.claude/rules/infra/development.md` の「共有コード（infra/shared）」）。prod の許可オリジンは変えない。mesh-v2（AppSync）はオリジンを問わず
-プリフライトに応答し API キーで認可するため、CORS の設定を持たない。
+`.claude/rules/infra/development.md` の「共有コード（infra/shared）」）。prod の許可オリジンは変えない。
+mesh-v2（AppSync）はオリジンを問わずプリフライトに応答し API キーで認可するため、CORS の設定を持たない。
 
 ### デプロイコマンド
 

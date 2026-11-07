@@ -195,9 +195,9 @@ smalruby-mesh-v2/
 ├── docs/                       # Documentation
 ├── examples/                   # JavaScript client example
 ├── .env.stg                    # Staging environment variables
-├── .env.prod             # Production environment variables
+├── .env.prod                   # Production environment variables
 ├── .env.example                # Environment variables template
-├── .env -> .env.prod     # Symlink to active stage
+├── .env -> .env.prod           # Symlink to active stage
 ├── Gemfile                     # Ruby dependencies
 └── package.json                # Node.js dependencies
 ```

@@ -72,9 +72,9 @@ mesh-v2/
 ├── cdk.json                    # CDK configuration (stage context)
 ├── package.json                # Node.js dependencies
 ├── .env.stg                    # Staging environment variables
-├── .env.prod             # Production environment variables
+├── .env.prod                   # Production environment variables
 ├── .env.example                # Environment variables template
-└── .env -> .env.prod     # Symlink to active stage
+└── .env -> .env.prod           # Symlink to active stage
 ```
 
 ## 開発環境セットアップ
