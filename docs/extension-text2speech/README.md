@@ -1,7 +1,7 @@
 # 拡張機能: 音声合成 (Text to Speech)
 
 > **🔧 upstream 改良** — upstream にあるが Smalruby で機能を改良・拡張している
-> 改良点: 音声合成リクエストを Smalruby の**汎用** CORS 回避プロキシ (`api.smalruby.app/cors-proxy`) 経由に切り替え。Scratch の音声合成サービスは CORS を scratch.mit.edu 限定にしたため、smalruby.app からの直叩きが CORS で失敗する。
+> 改良点: 音声合成リクエストを Smalruby の**汎用** CORS 回避プロキシ (`<SCRATCH_API_PROXY_ENDPOINT>/cors-proxy`) 経由に切り替え。Scratch の音声合成サービスは CORS を scratch.mit.edu 限定にしたため、smalruby.app からの直叩きが CORS で失敗する。
 
 - **Smalruby ランタイム対応**: ❌（smalruby3 gem 未対応。AWS Polly API + ブラウザ音声再生）
 - **デフォルト表示**: ✅（拡張機能ライブラリにデフォルトで表示される）
@@ -20,8 +20,12 @@ Smalruby の**汎用** CORS プロキシで包む（`=== Smalruby: Start/End of 
 マーカーで囲む）:
 
 ```
-https://api.smalruby.app/cors-proxy?url=<encodeURIComponent(合成URL)>
+<SCRATCH_API_PROXY_ENDPOINT>/cors-proxy?url=<encodeURIComponent(合成URL)>
 ```
+
+プロキシの URL はビルド値 `SCRATCH_API_PROXY_ENDPOINT`（既定 `https://api.smalruby.app`。末尾の `/` は
+取り除く）から組み立てる（`packages/scratch-vm/src/util/cors-proxy-url.js`。翻訳と共通）。ブランチ
+プレビューは stg の API を見るので、prod の API（CORS がプレビューのオリジンを許可しない）を呼ばない。
 
 `SERVER_HOST` は upstream の値 (`https://synthesis-service.scratch.mit.edu`) のまま維持し、URL 組み立て
 箇所だけをラップするので upstream との差分が最小になる（upstream マージ時の silent revert 検知は
@@ -29,9 +33,7 @@ https://api.smalruby.app/cors-proxy?url=<encodeURIComponent(合成URL)>
 
 汎用 `cors-proxy` はサーバ側で対象 URL を fetch し、`audio/*` をバイナリと判定して mp3 を Base64 で返却
 （`isBase64Encoded: true`。API Gateway HTTP API v2 がクライアントへバイト列にデコード）、built-in CORS で
-レスポンスを返す（`infra/smalruby-api` の `GET /cors-proxy`）。translate (#857) と同じ根本原因だが、
-translate は専用 Lambda、音声合成は**既存の汎用プロキシを再利用**する点が異なり、専用 Lambda の追加も
-インフラの再デプロイも不要（#859）。
+レスポンスを返す（`infra/smalruby-api` の `GET /cors-proxy`）。translate と同じ根本原因で、どちらも同じ汎用プロキシを使う。
 
 ## ユーザーストーリー
 
@@ -43,6 +45,7 @@ translate は専用 Lambda、音声合成は**既存の汎用プロキシを再�
 
 - 拡張機能登録: `packages/scratch-gui/src/lib/libraries/extensions/index.jsx` の `extensionId: 'text2speech'`
 - VM 実装: `packages/scratch-vm/src/extensions/scratch3_text2speech/`
+- CORS プロキシの URL: `packages/scratch-vm/src/util/cors-proxy-url.js`
 
 ## ブロックパレット
 

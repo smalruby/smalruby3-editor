@@ -8,6 +8,9 @@ const MathUtil = require('../../util/math-util');
 const Clone = require('../../util/clone');
 const log = require('../../util/log');
 const {fetchWithTimeout} = require('../../util/fetch-with-timeout');
+// === Smalruby: Start of CORS proxy url ===
+const {getCorsProxyHost} = require('../../util/cors-proxy-url');
+// === Smalruby: End of CORS proxy url ===
 
 /**
  * Icon svg to be displayed in the blocks category menu, encoded as a data URI.
@@ -39,7 +42,9 @@ const SERVER_HOST = 'https://synthesis-service.scratch.mit.edu';
 // synth request URL is built (search for CORS_PROXY_HOST). SERVER_HOST stays at the
 // upstream value so upstream merges only touch the URL-build site (guarded by
 // test/unit/extension_text2speech_proxy.js). Same root cause as translate (#857/#859).
-const CORS_PROXY_HOST = 'https://api.smalruby.app/cors-proxy';
+// The proxy host follows the build value SCRATCH_API_PROXY_ENDPOINT (default
+// https://api.smalruby.app) so a branch preview uses the stg API (#1374).
+const CORS_PROXY_HOST = getCorsProxyHost();
 // === Smalruby: End of synthesis CORS proxy ===
 
 /**

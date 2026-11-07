@@ -78,7 +78,10 @@ const webBuilder = new ScratchWebpackConfigBuilder(common)
         'process.env.MESH_API_KEY': JSON.stringify(process.env.MESH_API_KEY),
         'process.env.MESH_AWS_REGION': JSON.stringify(process.env.MESH_AWS_REGION),
         'process.env.MESH_DATA_UPDATE_INTERVAL_MS': JSON.stringify(process.env.MESH_DATA_UPDATE_INTERVAL_MS),
-        'process.env.MESH_EVENT_BATCH_INTERVAL_MS': JSON.stringify(process.env.MESH_EVENT_BATCH_INTERVAL_MS)
+        'process.env.MESH_EVENT_BATCH_INTERVAL_MS': JSON.stringify(process.env.MESH_EVENT_BATCH_INTERVAL_MS),
+        // === Smalruby: Start of scratch api proxy endpoint ===
+        'process.env.SCRATCH_API_PROXY_ENDPOINT': JSON.stringify(process.env.SCRATCH_API_PROXY_ENDPOINT)
+        // === Smalruby: End of scratch api proxy endpoint ===
     }));
 
 const playgroundBuilder = webBuilder

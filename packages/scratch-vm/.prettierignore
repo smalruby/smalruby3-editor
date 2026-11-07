@@ -46,6 +46,7 @@ src/serialization/*
 # Level 2: src/util/*
 src/util/*
 !src/util/debug-logger.js
+!src/util/cors-proxy-url.js
 
 # ============================================================
 # Level 1: test/*
@@ -89,6 +90,7 @@ test/unit/*
 !test/unit/extension_smalrubot_s1.js
 !test/unit/extension_translate_proxy.js
 !test/unit/extension_text2speech_proxy.js
+!test/unit/util_cors-proxy-url.js
 !test/unit/extension_smalruby_ruby_each.js
 !test/unit/mesh_service_v2_cost.js
 !test/unit/mesh_service_v2_global_vars.js

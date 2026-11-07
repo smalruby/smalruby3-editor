@@ -1,7 +1,7 @@
 # 拡張機能: 翻訳 (Translate)
 
 > **🔧 upstream 改良** — upstream にあるが Smalruby で機能を改良・拡張している
-> 改良点: 翻訳リクエストの送信先を Smalruby の CORS 回避プロキシ (`api.smalruby.app/scratch-api-proxy/`) に上書き。Scratch の翻訳サービスは CORS を scratch.mit.edu 限定にしたため、smalruby.app からの直叩きが CORS で失敗する。
+> 改良点: 翻訳リクエストを Smalruby の**汎用** CORS 回避プロキシ (`<SCRATCH_API_PROXY_ENDPOINT>/cors-proxy`) 経由に切り替え。Scratch の翻訳サービスは CORS を scratch.mit.edu 限定にしたため、smalruby.app からの直叩きが CORS で失敗する。
 
 - **Smalruby ランタイム対応**: ❌（smalruby3 gem 未対応。Google Translate API 経由）
 - **デフォルト表示**: ✅（拡張機能ライブラリにデフォルトで表示される）
@@ -15,10 +15,21 @@
 
 Scratch の翻訳サービス (`translate-service.scratch.mit.edu`) は `Access-Control-Allow-Origin` を
 `scratch.mit.edu` 限定に締めたため、`smalruby.app` から直接叩くと CORS でブロックされる。
-そこで VM 実装 `scratch3_translate/index.js` の `serverURL` を Smalruby プロキシ
-`https://api.smalruby.app/scratch-api-proxy/` に上書きしている（`=== Smalruby: Start/End of translate CORS proxy ===`
-マーカーで囲む）。プロキシはサーバ側で `translate-service.scratch.mit.edu` を叩き、built-in CORS で
-レスポンスを返す（`infra/smalruby-api` の `GET /scratch-api-proxy/translate`）。
+そこで VM 実装 `scratch3_translate/index.js` では、翻訳 URL (`${serverURL}translate?...`) を
+Smalruby の**汎用** CORS プロキシで包む（`=== Smalruby: Start/End of translate CORS proxy ===`
+マーカーで囲む）:
+
+```
+<SCRATCH_API_PROXY_ENDPOINT>/cors-proxy?url=<encodeURIComponent(翻訳URL)>
+```
+
+プロキシの URL はビルド値 `SCRATCH_API_PROXY_ENDPOINT`（既定 `https://api.smalruby.app`。末尾の `/` は
+取り除く）から組み立てる（`packages/scratch-vm/src/util/cors-proxy-url.js`。音声合成と共通）。ブランチ
+プレビューは stg の API を見るので、prod の API（CORS がプレビューのオリジンを許可しない）を呼ばない。
+`serverURL` は upstream の値 (`https://translate-service.scratch.mit.edu/`) のまま維持し、URL 組み立て
+箇所だけをラップするので upstream との差分が最小になる（upstream マージ時の silent revert 検知は
+`test/unit/extension_translate_proxy.js` が担保）。プロキシはサーバ側で対象 URL を fetch し、テキスト応答を
+built-in CORS で返す（`infra/smalruby-api` の `GET /cors-proxy`）。
 
 ## ユーザーストーリー
 
@@ -30,6 +41,7 @@ Scratch の翻訳サービス (`translate-service.scratch.mit.edu`) は `Access-
 
 - 拡張機能登録: `packages/scratch-gui/src/lib/libraries/extensions/index.jsx` の `extensionId: 'translate'`
 - VM 実装: `packages/scratch-vm/src/extensions/scratch3_translate/`
+- CORS プロキシの URL: `packages/scratch-vm/src/util/cors-proxy-url.js`
 
 ## ブロックパレット
 

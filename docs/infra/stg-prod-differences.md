@@ -14,10 +14,7 @@
 ## まとめ
 
 - **インフラの違いの大半は意図した違い**。stage ごとのリソース名（prod は接尾辞なし）、カスタムドメイン（`stg.` 付き）、ログの保持期間、スロットリング、データ保持（RETAIN / PITR）、`DEV_BYPASS_TOKEN`（stg だけ）、admin の JWT authorizer（prod だけ）。
-- **プレビューを stg に向けるために足りないもの**:
-  1. stg の API の CORS に `https://preview.smalruby.app` が無い。
-  2. GitHub に **stg 向けの GUI ビルド値が 1 つも無い**。Environment `stg` は作られているが空で、repo Secrets / Variables はすべて prod 向けになっている。stg の値はローカルのルート `.env` にしか無い（下の「GUI のビルド値」を参照）。
-  3. 翻訳・音声合成の拡張は CORS プロキシの URL を `https://api.smalruby.app/cors-proxy`（prod）に**ハードコード**している。prod の CORS は preview を許可しないので、このままではプレビューで翻訳・音声合成が動かない。
+- **プレビューを stg に向けるための前提**はそろっている: stg の API の CORS は `https://preview.smalruby.app` を許可し（非 prod ではコードが足す）、stg 向けの GUI ビルド値は Environment `stg` にあり（下の「GUI のビルド値」）、翻訳・音声合成の CORS プロキシはビルド値 `SCRATCH_API_PROXY_ENDPOINT` から組み立てる。
 - **値が stg と prod で同じもの**: Google / Microsoft の OAuth クライアント ID と、admin 用の Google クライアント ID。どれも stg 専用のクライアントは無く、**本番と同じクライアント**を使っている。これは**意図した共用**で、分けない（下の「OAuth クライアントを共用にする理由」）。プレビューのオリジンは本番のクライアントに登録する。
 - **stg の設定値のせいで、プレビューでの確認が本番どおりにならないもの**: クラスの寿命（stg は 1 日）、メッシュの最大接続時間（stg は 5 分）など。テスト用に短くしてある値なので、プレビューで長く触る確認には向かない（「stg で本番どおりに動かないもの」を参照）。
 
@@ -44,7 +41,7 @@
 | プロジェクト | キー | stg | prod |
 |---|---|---|---|
 | 全部 | `STAGE` | `stg` | `prod` |
-| smalruby-api / bug-report / classroom / rubytee-relay | `CORS_ALLOWED_ORIGINS` | `https://smalruby.app`, `https://smalruby.jp`, `http://localhost:8601`（bug-report は `:8602` も） | `https://smalruby.app`, `https://smalruby.jp` |
+| smalruby-api / bug-report / classroom / rubytee-relay | `CORS_ALLOWED_ORIGINS` | `https://smalruby.app`, `https://smalruby.jp`, `http://localhost:8601`（bug-report は `:8602` も）。これに加えて、非 prod ではコードが `https://preview.smalruby.app` を足す | `https://smalruby.app`, `https://smalruby.jp` |
 | smalruby-admin | `CORS_ALLOWED_ORIGINS`（未設定 → コードの既定） | `https://smalruby.app` + localhost | `https://smalruby.app` |
 | smalruby-bug-report | `RESOLVED_TTL_DAYS` | 1 | 30 |
 | smalruby-classroom | `CLASSROOM_TTL_DAYS` | 1 | 90 |
@@ -118,17 +115,17 @@
 
 ## GUI のビルド値
 
-GUI のビルド（webpack の `DefinePlugin`）が使う環境変数と、それぞれの stg の値が今どこにあるか。プレビュー用のビルドが stg を向くには、右端の列の値を GitHub に用意する必要がある（Environment `stg` に置くのがよい。今は作られているが空）。
+GUI のビルド（webpack の `DefinePlugin`）が使う環境変数と、それぞれの stg の値がどこにあるか。プレビュー用のビルドは、Environment `stg` の値で repo の値（prod）を上書きして stg を向く。
 
 | 変数 | 今の GitHub での置き場所（prod の値） | stg の値 | 置き場所 |
 |---|---|---|---|
-| `MESH_GRAPHQL_ENDPOINT` | repo Secret | `stg.graphql.api.smalruby.app` | ローカルのルート `.env` だけ |
-| `MESH_API_KEY` | repo Secret | stg の AppSync の API キー | ローカルのルート `.env` だけ |
+| `MESH_GRAPHQL_ENDPOINT` | repo Secret | `stg.graphql.api.smalruby.app` | Environment `stg` の Secret |
+| `MESH_API_KEY` | repo Secret | stg の AppSync の API キー | Environment `stg` の Secret |
 | `MESH_AWS_REGION` | repo Secret | 同じ（`ap-northeast-1`） | — |
-| `RUBYTEE_RELAY_ENDPOINT` | repo Secret | `stg.rubytee.api.smalruby.app` | ローカルのルート `.env` だけ |
-| `CLASSROOM_API_ENDPOINT` | repo Secret | `stg.classroom.api.smalruby.app` | ローカルのルート `.env` だけ |
-| `BUG_REPORT_API_ENDPOINT` | repo Secret | `stg.bug-report.api.smalruby.app` | ローカルのルート `.env` だけ |
-| `SCRATCH_API_PROXY_ENDPOINT` | repo Variable | `https://stg.api.smalruby.app` | **どこにも無い**（ローカルも既定値の prod を使っている） |
+| `RUBYTEE_RELAY_ENDPOINT` | repo Secret | `stg.rubytee.api.smalruby.app` | Environment `stg` の Secret |
+| `CLASSROOM_API_ENDPOINT` | repo Secret | `stg.classroom.api.smalruby.app` | Environment `stg` の Secret |
+| `BUG_REPORT_API_ENDPOINT` | repo Secret | `stg.bug-report.api.smalruby.app` | Environment `stg` の Secret |
+| `SCRATCH_API_PROXY_ENDPOINT` | repo Variable | `https://stg.api.smalruby.app` | Environment `stg` の Variable（翻訳・音声合成の CORS プロキシにも使う） |
 | `GOOGLE_CLIENT_ID` / `MICROSOFT_CLIENT_ID` | repo Secret | prod と同じ値 | そのまま使える |
 | `GOOGLE_API_KEY` | repo Secret | stg 専用は無い | そのまま使える |
 | `MAX_USER_MESSAGE_LENGTH` / `MIN_USER_MESSAGE_LENGTH` | repo Variable | prod と同じ値（250 / 10） | そのまま使える |
@@ -139,15 +136,12 @@ GUI のビルド（webpack の `DefinePlugin`）が使う環境変数と、そ�
 補足:
 
 - `DEV_BYPASS_TOKEN` は GUI のビルドには埋め込まない。プレビューでは URL の `?devlogin=<DEV_BYPASS_TOKEN>` で渡す。
-- **ビルド値では切り替えられない URL**: 翻訳（`scratch3_translate`）と音声合成（`scratch3_text2speech`）は `https://api.smalruby.app/cors-proxy` を直接書いている。プレビューから stg に向けるには、`SCRATCH_API_PROXY_ENDPOINT` のようなビルド値から組み立てる変更が要る。
+- 翻訳（`scratch3_translate`）と音声合成（`scratch3_text2speech`）の CORS プロキシの URL は、ビルド値 `SCRATCH_API_PROXY_ENDPOINT` から `<endpoint>/cors-proxy` として組み立てる（既定 `https://api.smalruby.app`）。
 
 ## 直すべき違い（候補）
 
 | 候補 | 内容 | 優先度 |
 |---|---|---|
-| stg の CORS に preview を足す | 対象は smalruby-api / bug-report / classroom / rubytee-relay。admin は今の既定値のままでよい（エディタのプレビューは admin API を呼ばない）。mesh-v2 は AppSync なので CORS の設定が無い | プレビュー移行の前提 |
-| stg 向けの GUI ビルド値を GitHub に用意する | 上の表の「ローカルのルート `.env` だけ」「どこにも無い」の値を Environment `stg` に登録する（人間の作業） | プレビュー移行の前提 |
-| CORS プロキシのハードコードをやめる | 翻訳・音声合成の拡張の `CORS_PROXY_HOST` をビルド値から組み立てる（scratch-vm の変更） | プレビュー移行の前提（無いとプレビューでこの 2 つが動かない） |
 | mesh-v2 の `.env.production` | 他のプロジェクトは `.env.prod`。`Deploy Infra` は CI の中で `.env.prod` を作るので動作には関係ないが、手元の手順と docs が二通りになっている | 低 |
 
 ## OAuth クライアントを共用にする理由
