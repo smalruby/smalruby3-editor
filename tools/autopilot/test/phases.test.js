@@ -1209,29 +1209,33 @@ test('dodHandoffMarker / isDodHandoffComment / hasDodHandoffComment', () => {
     assert.equal(hasDodHandoffComment(null), false);
 });
 
-test('extractPreviewUrl: finds branch preview URL from CI comments', () => {
+test('extractPreviewUrl: finds the branch preview URL from CI comments', () => {
     const comments = [
         { body: 'some build log' },
-        { body: 'Preview: https://smalruby.jp/smalruby3-editor/topic/autopilot-631/ ready' },
+        { body: '🚀 Preview deployed (stg API): https://preview.smalruby.app/topic-autopilot-631/' },
     ];
-    assert.equal(extractPreviewUrl(comments), 'https://smalruby.jp/smalruby3-editor/topic/autopilot-631/');
+    assert.equal(extractPreviewUrl(comments), 'https://preview.smalruby.app/topic-autopilot-631/');
+    assert.equal(
+        extractPreviewUrl([{ body: 'see https://preview.smalruby.app/develop/)' }]),
+        'https://preview.smalruby.app/develop/',
+    );
     assert.equal(extractPreviewUrl([{ body: 'no url here' }]), null);
     assert.equal(extractPreviewUrl([]), null);
     assert.equal(extractPreviewUrl(null), null);
 });
 
-test('extractPreviewUrl: prefers the stg preview (preview.smalruby.app) over the old GitHub Pages one', () => {
+test('extractPreviewUrl: ignores the stopped GitHub Pages preview (#1345)', () => {
+    // 旧プレビューはもう更新されない（prod の API も見る）ので、DoD に使わせない。
     const comments = [
         { body: '🚀 Preview deployed: https://smalruby.jp/smalruby3-editor/topic/autopilot-1344/' },
-        {
-            body: '🚀 Preview (stg API): https://preview.smalruby.app/topic-autopilot-1344/\n' +
-                '- GitHub Pages (prod API): https://smalruby.jp/smalruby3-editor/topic/autopilot-1344/',
-        },
     ];
-    assert.equal(extractPreviewUrl(comments), 'https://preview.smalruby.app/topic-autopilot-1344/');
+    assert.equal(extractPreviewUrl(comments), null);
     assert.equal(
-        extractPreviewUrl([{ body: 'see https://preview.smalruby.app/develop/)' }]),
-        'https://preview.smalruby.app/develop/',
+        extractPreviewUrl([
+            ...comments,
+            { body: '🚀 Preview deployed (stg API): https://preview.smalruby.app/topic-autopilot-1344/' },
+        ]),
+        'https://preview.smalruby.app/topic-autopilot-1344/',
     );
 });
 
@@ -1269,13 +1273,13 @@ test('needsDodHandoff: DoD + PR + not yet generated -> true; otherwise false (id
 test('dodHandoffBody: includes marker, preview URL, checklist, headful steps, report exits', () => {
     const body = dodHandoffBody({
         issue: 631, pr: 818, repo: 'smalruby/smalruby3-editor', branch: 'topic/autopilot-631',
-        previewUrl: 'https://smalruby.jp/smalruby3-editor/topic/autopilot-631/',
+        previewUrl: 'https://preview.smalruby.app/topic-autopilot-631/',
         dodChecklist: '- [ ] ボタンが表示される\n- [ ] クリックでキャッシュ',
     });
     // 冪等判定に使うマーカー
     assert.match(body, /<!-- autopilot:dod-handoff issue=631 pr=818 -->/);
     // プレビュー URL
-    assert.match(body, /https:\/\/smalruby\.jp\/smalruby3-editor\/topic\/autopilot-631\//);
+    assert.match(body, /https:\/\/preview\.smalruby\.app\/topic-autopilot-631\//);
     // Issue の DoD チェックリストの転記
     assert.match(body, /- \[ \] ボタンが表示される/);
     // 定型 headful 手順

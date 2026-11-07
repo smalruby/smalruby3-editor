@@ -1933,14 +1933,12 @@ function hasDodHandoffComment(comments) {
 
 /**
  * CI のブランチプレビュー URL のパターン（優先順）。
- * 1. `https://preview.smalruby.app/<slug>/` — stg の API を見るプレビュー（#1344）
- * 2. `https://smalruby.jp/smalruby3-editor/<branch>/` — prod の API を見る旧 GitHub Pages
- *    のプレビュー（#1345 で止めるまで並行運用）
- * verify は stg を見るべきなので、新しい方が 1 つでもあればそれを採る。
+ * `https://preview.smalruby.app/<slug>/` — stg の API を見るプレビュー（#1344）。
+ * 旧 GitHub Pages のプレビュー（`https://smalruby.jp/smalruby3-editor/<branch>/`・prod の API）は
+ * #1345 で出力を止めた。古い PR のコメントに残っていても更新されないので拾わない。
  */
 const PREVIEW_URL_RES = [
     /https:\/\/preview\.smalruby\.app\/[^\s)<>"'`]+/,
-    /https:\/\/smalruby\.jp\/smalruby3-editor\/[^\s)<>"'`]+/,
 ];
 
 /**
