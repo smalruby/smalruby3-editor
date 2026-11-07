@@ -26,6 +26,9 @@ export const BUTTON_VARIANT_STYLE_KEYS = {
 };
 
 const ClassroomButton = ({
+    ariaCurrent,
+    ariaExpanded,
+    ariaHasPopup,
     autoFocus,
     children,
     className,
@@ -37,6 +40,9 @@ const ClassroomButton = ({
     onClick,
 }) => (
     <button
+        aria-current={ariaCurrent}
+        aria-expanded={ariaExpanded}
+        aria-haspopup={ariaHasPopup}
         autoFocus={autoFocus}
         className={classNames(styles[BUTTON_VARIANT_STYLE_KEYS[variant]], className)}
         data-testid={dataTestId}
@@ -50,6 +56,11 @@ const ClassroomButton = ({
 );
 
 ClassroomButton.propTypes = {
+    /** 手順のうち、いまの手順 (`"step"`) を示す (採点の画面 #1304)。 */
+    ariaCurrent: PropTypes.string,
+    /** メニューを開くボタンの開閉状態。 */
+    ariaExpanded: PropTypes.bool,
+    ariaHasPopup: PropTypes.string,
     autoFocus: PropTypes.bool,
     children: PropTypes.node,
     /** 画面固有の微調整クラス (例: 左寄せ) を足したいときだけ使う。 */

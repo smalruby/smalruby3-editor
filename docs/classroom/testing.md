@@ -396,27 +396,38 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-phase-teacher-group-manage` | div | 組管理フェーズのルート |
 | `classroom-sidebar-teachergroup-{groupId}` | li | サイドバーの組ヘッダー |
 
-### 学期末評価（AI 評価支援）
+### 採点（学期末・AI 採点支援）
 
 | data-testid | 要素 | 説明 |
 |------------|------|------|
-| `classroom-phase-teacher-evaluation` | div | 評価フェーズのルート |
-| `classroom-eval-lesson-{classroomId}` | input | 授業の選択チェックボックス |
-| `classroom-eval-load` | button | 提出を読み込む（sb3 をブラウザ内で静的解析） |
-| `classroom-eval-axis-name-{i}` / `classroom-eval-axis-desc-{i}` | input | 評価軸の名前 / 説明 |
-| `classroom-eval-strictness` | select | 厳しさ（やや甘め/標準/やや厳しめ） |
+| `classroom-phase-teacher-evaluation` | div | 採点フェーズのルート |
+| `classroom-eval-hint-toggle` | button | 説明の「詳しく / 閉じる」（`aria-expanded`） |
+| `classroom-eval-hint-detail` | span | 「詳しく」で開く説明の残り |
+| `classroom-eval-lesson-{classroomId}` | input | 課題の選択チェックボックス |
+| `classroom-eval-settings-summary` | div | 採点の設定の 1 行（観点の名前・採点の厳しさ・［変える］） |
+| `classroom-eval-settings-toggle` | button | 採点の設定の「変える / 閉じる」（`aria-expanded`） |
+| `classroom-eval-settings` | div | 開いた採点の設定（観点の欄・厳しさ） |
+| `classroom-eval-axis-name-{i}` / `classroom-eval-axis-desc-{i}` | input | 観点の名前 / どこを見るか（設定を開いたときだけ） |
+| `classroom-eval-strictness` | select | 採点の厳しさ（やや甘め/標準/やや厳しめ・設定を開いたときだけ） |
 | `classroom-eval-progress` | div | 進捗表示 |
-| `classroom-eval-matrix` | table | 席 × 授業マトリクス |
+| `classroom-eval-matrix` | table | 席 × 課題の表（表の枠の中だけスクロール） |
 | `classroom-eval-cell-{seat}-{classroomId}` | td | セル（未提出は ×、要確認はオレンジ） |
-| `classroom-eval-grade-{seat}-{classroomId}` | select | 評価（S/A/B/C。手動変更は較正サンプルになる） |
+| `classroom-eval-grade-{seat}-{classroomId}` | select | 採点（S/A/B/C。手動変更は較正サンプルになる） |
 | `classroom-eval-reason-{seat}-{classroomId}` | input | 根拠 |
 | `classroom-eval-comment-{seat}-{classroomId}` | textarea | 生徒向けコメント |
-| `classroom-eval-overall-{seat}` | td | 総合評価 |
-| `classroom-eval-run-grade` | button | AI評価を実行 |
-| `classroom-eval-run-comment` | button | コメント下書きを生成 |
-| `classroom-eval-export` / `classroom-eval-export-audit` | button | 評価CSV / 検証用CSV |
-| `classroom-eval-return-comments` | button | コメントを返却 |
-| `classroom-eval-back` | button | もどる |
+| `classroom-eval-overall-{seat}` | td | 総合 |
+| `classroom-eval-steps` | div | フッターの手順（1〜4 のボタンと矢印） |
+| `classroom-eval-load` | button | 手順 1「提出を読み込む」（sb3 をブラウザ内で静的解析） |
+| `classroom-eval-run-grade` | button | 手順 2「AIで採点」 |
+| `classroom-eval-run-comment` | button | 手順 3「コメントを下書き」 |
+| `classroom-eval-return-comments` | button | 手順 4「コメントを返却」 |
+| `classroom-eval-export-menu` | button | 「書き出し ▾」（`aria-expanded`。読み込む前は押せない） |
+| `classroom-eval-export` / `classroom-eval-export-audit` | button | 書き出しメニューの「採点結果（CSV）」/「検証用データ（CSV）」 |
+| `classroom-evaluation-cancel` | button | キャンセル（クラス一覧へ戻る） |
+
+手順のボタンのうち、いまの手順だけが `aria-current="step"`（主ボタン）。読み込む前 → 1、読み込んだら → 2、
+採点が 1 つでも入ったら → 3、コメントの下書きが 1 つでもあれば → 4（`currentEvalStep`）。
+1300×600 の収まりと手順の移り方は `tools/playwright-verify/verify-classroom-grading.mjs` が測る。
 
 ### メニューバー
 
