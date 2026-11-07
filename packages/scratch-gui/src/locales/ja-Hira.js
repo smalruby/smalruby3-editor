@@ -337,6 +337,8 @@ export default {
     'gui.classroom.board.streamCreated': 'かだい「{name}」をさくせいしました',
     'gui.classroom.board.streamArchived': 'かだい「{name}」をアーカイブしました',
     'gui.classroom.board.streamExpiring': 'かだい「{name}」は {date} にじどうでさくじょされます',
+    'gui.classroom.board.streamCreatedDateLabel': 'さくせいび',
+    'gui.classroom.board.streamArchivedDateLabel': 'アーカイブしたひ',
     'gui.classroom.board.createMenu': '＋ さくせい ▾',
     'gui.classroom.board.createAssignmentItem': 'かだい',
     'gui.classroom.board.moreMenu': 'そのほか',

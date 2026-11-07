@@ -355,6 +355,22 @@ describe('TeacherAssignmentBoard — Stream / Classwork tabs (#1301, B5)', () =>
         expect(byTestId('classroom-board-stream')).not.toBeInTheDocument();
     });
 
+    test('the breadcrumbs say the class and the tab; a sub view links back to the class', () => {
+        const crumbs = () => byTestId('classroom-breadcrumbs').textContent;
+        renderStream();
+        expect(crumbs()).toBe('Class list>技術 2026年度>Stream');
+        expect(byTestId('classroom-breadcrumb-assignments')).not.toBeInTheDocument();
+
+        fireEvent.click(byTestId('classroom-board-tab-classwork'));
+        expect(crumbs()).toBe('Class list>技術 2026年度>Classwork');
+
+        clickCreateItem('classroom-board-create');
+        expect(crumbs()).toBe('Class list>技術 2026年度>Create an assignment');
+        fireEvent.click(byTestId('classroom-breadcrumb-assignments'));
+        expect(byTestId('classroom-board-tab-classwork')).toHaveAttribute('aria-selected', 'true');
+        expect(crumbs()).toBe('Class list>技術 2026年度>Classwork');
+    });
+
     test('initialTab opens on Classwork and onTabChange reports the switches', () => {
         const onTabChange = jest.fn();
         renderStream({ initialTab: 'classwork', onTabChange });
@@ -400,6 +416,11 @@ describe('TeacherAssignmentBoard — stream entries (B5)', () => {
         expect(byTestId('classroom-board-stream-item-expiring-b').textContent).toContain(
             'The assignment "もうすぐ消える" will be deleted automatically on',
         );
+        // R1: the date on the right says which date it is; the expiring entry
+        // has its date in the text instead.
+        expect(byTestId('classroom-board-stream-date-created-a').textContent).toMatch(/^Created\s*\d/);
+        expect(byTestId('classroom-board-stream-date-archived-x').textContent).toMatch(/^Archived\s*\d/);
+        expect(byTestId('classroom-board-stream-date-expiring-b')).not.toBeInTheDocument();
     });
 
     test('an empty class shows the empty message', () => {
@@ -569,6 +590,9 @@ describe('TeacherAssignmentBoard — rows open in place (B3・B7)', () => {
         openRow('c2');
         expect(byTestId('classroom-board-row-detail-c1')).not.toBeInTheDocument();
         expect(byTestId('classroom-board-row-detail-c2')).toBeInTheDocument();
+        // Wait for c2's summary too: its setState would otherwise land after
+        // the test, outside act() (the warning this file used to print).
+        await waitFor(() => expect(byTestId('classroom-board-row-counts-c2').textContent).toContain('3'));
         openRow('c1');
         expect(props.onLoadAssignmentSummary).toHaveBeenCalledTimes(2);
 

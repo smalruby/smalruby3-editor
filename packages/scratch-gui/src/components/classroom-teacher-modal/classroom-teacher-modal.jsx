@@ -9,6 +9,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { defineMessages, useIntl, FormattedMessage } from 'react-intl';
 
 import Modal from '../../containers/modal.jsx';
+import { formatClassLabel } from '../../lib/classroom-class-label.js';
 
 import ClassCodeDisplay from '../classroom-modal/class-code-display.jsx';
 import TeacherAssignmentBoard from '../classroom-modal/teacher-assignment-board.jsx';
@@ -207,6 +208,12 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         ? (archivedClassrooms || []).filter((c) => c.groupId === selectedGroup.groupId)
         : archivedClassrooms || [];
 
+    // パンくずでボードへ戻る crumb はクラス名（ボードは［ストリーム］［授業］のタブを持つ
+    // クラスの画面）。クラスに属さない古い課題だけ従来の「課題一覧」。
+    const classCrumbLabel = selectedGroup
+        ? formatClassLabel(selectedGroup)
+        : intl.formatMessage(messagesBreadcrumbs.assignments);
+
     const renderMain = () => {
         // Fullscreen code display overlay
         if (codeDisplayFullscreen && codeDisplayClassroom) {
@@ -332,7 +339,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                                     testId: 'classroom-breadcrumb-class-list',
                                 },
                                 {
-                                    label: intl.formatMessage(messagesBreadcrumbs.assignments),
+                                    label: classCrumbLabel,
                                     onClick: onBackToDashboard,
                                     testId: 'classroom-breadcrumb-assignments',
                                 },
@@ -441,7 +448,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                                     testId: 'classroom-breadcrumb-class-list',
                                 },
                                 {
-                                    label: intl.formatMessage(messagesBreadcrumbs.assignments),
+                                    label: classCrumbLabel,
                                     onClick: onBackToDashboard,
                                     testId: 'classroom-breadcrumb-assignments',
                                 },

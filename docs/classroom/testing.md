@@ -293,6 +293,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-board-tab-stream` / `classroom-board-tab-classwork` | button (tab) | クラスの画面の［ストリーム］［授業］タブ（`aria-selected`。最初は［ストリーム］） |
 | `classroom-board-stream` | div | ［ストリーム］の枠（件数が多いときはこの中だけスクロール） |
 | `classroom-board-stream-item-{type}-{classroomId}` | button | ストリームの 1 行。`{type}` は `created`（作成）/ `archived`（アーカイブ）/ `expiring`（残り 7 日以内の自動削除の予定）。押すと［授業］でその課題へ |
+| `classroom-board-stream-date-{type}-{classroomId}` | span | ストリームの行の右端の日付とラベル（「作成日」／「アーカイブした日」）。`expiring` の行には無い（日付は文中） |
 | `classroom-board-stream-empty` | p | ストリームが空のときの案内 |
 | `classroom-board-create-menu` | button | ［＋ 作成 ▾］（主ボタン）。開いた一覧は `classroom-board-create-menu-list`（`role="menu"`） |
 | `classroom-board-create` | button (menuitem) | 作成メニューの「課題」（課題の作成画面へ） |
@@ -373,7 +374,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `shared-import-success` | p | 取り込み完了メッセージ（ボード上） |
 | `classroom-share-suggestion-banner` / `classroom-share-suggestion-open` | div/button | 共有推奨バナーと「共有フォームを開く」CTA（#1106） |
 | `classroom-board-share-suggested-{classroomId}` | span | ボード行の「共有おすすめ」マーク（#1106） |
-| `classroom-breadcrumbs` | nav | パンくず（クラス一覧 > 課題一覧 > 課題詳細） |
+| `classroom-breadcrumbs` | nav | パンくず（クラス一覧 > {クラス名} > ストリーム｜授業｜課題を作成などのサブビュー｜課題詳細） |
 | `classroom-breadcrumb-class-list` / `classroom-breadcrumb-assignments` | button | パンくずリンク |
 | `classroom-board-create-name` / `classroom-board-create-submit` | input / button | インライン課題作成（課題名） |
 | `classroom-board-create-mesh-group-limit` | select | インライン課題作成の「メッシュのグループの人数」（既定 `6` = 6人まで / `0` = 制限なし・Issue #1257） |
@@ -390,7 +391,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-avatar-email` | span | アカウントメニュー内のユーザーメール（OIDC トークンに email がある場合のみ。旧 `classroom-teacher-email` は廃止） |
 | `classroom-board-create-cancel` / `classroom-board-reuse-cancel` | button | インラインフォームのキャンセル |
 | `classroom-google-course-imported-{courseId}` | span | GC コースの「インポート済み」バッジ |
-| `classroom-breadcrumb-assignments` | button | パンくず「課題一覧」リンク |
+| `classroom-breadcrumb-assignments` | button | パンくずのクラス名リンク（クラスの画面へ戻る。testid は「課題一覧」だった頃の名前のまま。クラスに属さない古い課題では「課題一覧」） |
 | `classroom-ungrouped-list` | div | クラス未所属の課題のフォールバック一覧（develop 互換） |
 | `classroom-ungrouped-open-{classroomId}` | button | 未所属課題をひらく |
 | `classroom-phase-teacher-group-manage` | div | 組管理フェーズのルート |

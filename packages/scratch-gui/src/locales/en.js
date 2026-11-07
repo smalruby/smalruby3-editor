@@ -282,6 +282,8 @@ export default {
     'gui.classroom.board.streamCreated': 'Created the assignment "{name}"',
     'gui.classroom.board.streamArchived': 'Archived the assignment "{name}"',
     'gui.classroom.board.streamExpiring': 'The assignment "{name}" will be deleted automatically on {date}',
+    'gui.classroom.board.streamCreatedDateLabel': 'Created',
+    'gui.classroom.board.streamArchivedDateLabel': 'Archived',
     'gui.classroom.board.createMenu': '+ Create ▾',
     'gui.classroom.board.createAssignmentItem': 'Assignment',
     'gui.classroom.board.moreMenu': 'More',

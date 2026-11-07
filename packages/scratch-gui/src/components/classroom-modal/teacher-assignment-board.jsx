@@ -733,7 +733,27 @@ const StreamItem = ({ event, onOpen }) => {
                 {/* R4: red only for the entry the teacher has to act on now. */}
                 {event.type === 'expiring' ? <span className={styles.streamItemMark}>{'⚠'}</span> : null}
                 <span className={styles.streamItemText}>{text}</span>
-                {event.type === 'expiring' ? null : <span className={styles.streamItemDate}>{date}</span>}
+                {/* R1: the date says what it is (the expiring entry has it in its text). */}
+                {event.type === 'expiring' ? null : (
+                    <span className={styles.streamItemDate} data-testid={`classroom-board-stream-date-${event.key}`}>
+                        <span className={styles.boardRowMetaLabel}>
+                            {event.type === 'archived' ? (
+                                <FormattedMessage
+                                    defaultMessage="Archived"
+                                    description="Label of the date on a stream entry: the day the assignment was archived"
+                                    id="gui.classroom.board.streamArchivedDateLabel"
+                                />
+                            ) : (
+                                <FormattedMessage
+                                    defaultMessage="Created"
+                                    description="Label of the date on a stream entry: the day the assignment was created"
+                                    id="gui.classroom.board.streamCreatedDateLabel"
+                                />
+                            )}
+                        </span>
+                        {date}
+                    </span>
+                )}
             </button>
         </li>
     );
@@ -996,6 +1016,19 @@ const TeacherAssignmentBoard = ({
             id: 'gui.classroom.shared.openCatalog',
         },
     };
+    // パンくずの末尾（現在地）に出すタブ名。タブのボタンと同じ descriptor。
+    const tabMessages = {
+        stream: {
+            defaultMessage: 'Stream',
+            description: 'Tab of a class: the stream (announcements), like Google Classroom',
+            id: 'gui.classroom.board.tabStream',
+        },
+        classwork: {
+            defaultMessage: 'Classwork',
+            description: 'Tab of a class: the assignment list, like Google Classroom',
+            id: 'gui.classroom.board.tabClasswork',
+        },
+    };
     const handleBoardHome = useCallback(() => {
         resetSubViewForms();
         setShowInlineCreate(false);
@@ -1019,25 +1052,16 @@ const TeacherAssignmentBoard = ({
                         onClick: onShowClassList,
                         testId: 'classroom-breadcrumb-class-list',
                     },
-                    // サブビュー中は「課題一覧」を戻るリンクにし、現在地の crumb を足す。
+                    // 現在地は「クラス > タブ（またはサブビュー）」。サブビュー中はクラス名を
+                    // ボードへ戻るリンクにする（testid は歴史的経緯で ...-assignments のまま）。
                     subView
                         ? {
-                              label: intl.formatMessage({
-                                  defaultMessage: 'Assignments',
-                                  description: 'Breadcrumb label of the assignment board',
-                                  id: 'gui.classroom.breadcrumbs.assignments',
-                              }),
+                              label: formatClassLabel(group),
                               onClick: handleBoardHome,
                               testId: 'classroom-breadcrumb-assignments',
                           }
-                        : {
-                              label: intl.formatMessage({
-                                  defaultMessage: 'Assignments',
-                                  description: 'Breadcrumb label of the assignment board',
-                                  id: 'gui.classroom.breadcrumbs.assignments',
-                              }),
-                          },
-                ...(subView ? [{ label: intl.formatMessage(subViewMessages[subView]) }] : []),
+                        : { label: formatClassLabel(group) },
+                { label: intl.formatMessage(subView ? subViewMessages[subView] : tabMessages[tab]) },
             ]}
             className={styles.boardScreen}
             testId="classroom-board"
@@ -1055,11 +1079,7 @@ const TeacherAssignmentBoard = ({
                             type="button"
                             onClick={handleSelectStream}
                         >
-                            <FormattedMessage
-                                defaultMessage="Stream"
-                                description="Tab of a class: the stream (announcements), like Google Classroom"
-                                id="gui.classroom.board.tabStream"
-                            />
+                            <FormattedMessage {...tabMessages.stream} />
                         </button>
                         <button
                             aria-selected={tab === 'classwork'}
@@ -1069,11 +1089,7 @@ const TeacherAssignmentBoard = ({
                             type="button"
                             onClick={handleSelectClasswork}
                         >
-                            <FormattedMessage
-                                defaultMessage="Classwork"
-                                description="Tab of a class: the assignment list, like Google Classroom"
-                                id="gui.classroom.board.tabClasswork"
-                            />
+                            <FormattedMessage {...tabMessages.classwork} />
                         </button>
                     </div>
                     {tab === 'classwork' ? (

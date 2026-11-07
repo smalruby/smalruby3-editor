@@ -332,6 +332,8 @@ export default {
     'gui.classroom.board.streamCreated': '課題「{name}」を作成しました',
     'gui.classroom.board.streamArchived': '課題「{name}」をアーカイブしました',
     'gui.classroom.board.streamExpiring': '課題「{name}」は {date} に自動削除されます',
+    'gui.classroom.board.streamCreatedDateLabel': '作成日',
+    'gui.classroom.board.streamArchivedDateLabel': 'アーカイブした日',
     'gui.classroom.board.createMenu': '＋ 作成 ▾',
     'gui.classroom.board.createAssignmentItem': '課題',
     'gui.classroom.board.moreMenu': 'その他',

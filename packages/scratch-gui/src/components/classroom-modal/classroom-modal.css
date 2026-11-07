@@ -4407,6 +4407,10 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
 
 .stream-item-date {
     flex: none;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    white-space: nowrap;
     font-size: 0.8rem;
     color: hsla(225, 15%, 40%, 1);
 }
