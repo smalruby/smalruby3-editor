@@ -95,9 +95,9 @@ stg に無いのでプレビューで確認できず、マージしても prod �
 そこで **infra の変更は必ず GUI と別の Issue（親 Issue の sub-issue）にし、先に develop へ
 マージして stg → prod に出す**。GUI の Issue はそのあとに動き、プレビュー（stg）で確認する。
 
-> **並行運用中の注意**: PR には 2 つのプレビューが出る。確認に使うのは stg の API を見る
-> `https://preview.smalruby.app/<slug>/` のほう。GitHub Pages の旧プレビュー
-> （`https://smalruby.jp/smalruby3-editor/<branch>/`）は **prod の API を見る**（#1345 で止めるまで並行して出る）。
+> **旧プレビューに注意**: GitHub Pages のプレビュー（`https://smalruby.jp/smalruby3-editor/<branch>/`）は
+> もう更新されない（既に出ていたものが残っているだけで、**prod の API を見る**）。確認には PR のコメントに出る
+> `https://preview.smalruby.app/<slug>/` を使う。
 
 1. **Issue を分ける**: infra（`infra/**` だけ）を 1 つ、それ以外（GUI など）を 1 つ以上。
    - infra の Issue には **`🧱 infra` ラベル**を付け、**`autopilot-base:` は書かない**
@@ -163,8 +163,8 @@ node tools/autopilot/bin/pw-check \
 - スクリーンショットは `tmp/` 配下に保存する（URL にトークンが入るので、URL を含むログや
   スクショの説明文を GitHub に貼らない）。**`pw-check` の出力 JSON の `url`（失敗時は `error` も）には
   トークン入りの URL がそのまま出る**ので、出力を貼らずに確認結果だけを書く。
-- GitHub Pages の旧プレビュー（`smalruby.jp/smalruby3-editor/<branch>/`）は prod を見るので
-  devlogin は効かない（#1345 で止めるまで並行して出る）。ログインの確認は `preview.smalruby.app` で行う。
+- GitHub Pages の旧プレビュー（`smalruby.jp/smalruby3-editor/<branch>/`）はもう更新されず、prod を見るので
+  devlogin は効かない。ログインの確認は `preview.smalruby.app` で行う。
 
 ### プレビューで確かめる前に stg の状態を確認する
 

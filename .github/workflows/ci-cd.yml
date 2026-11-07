@@ -460,8 +460,8 @@ jobs:
           GTM_ENV_AUTH: ''
           COMMIT_SHA: ${{ github.sha }}
         run: npm run build
-      # Same as the GitHub Pages previews: the build uses relative paths, and postbuild.mjs makes
-      # the fetch-worker paths absolute for the subdirectory.
+      # The build uses relative paths, and postbuild.mjs makes the fetch-worker paths absolute
+      # for the subdirectory.
       - name: Fix the worker paths for /<slug>/
         if: steps.check.outputs.enabled == 'true'
         env:

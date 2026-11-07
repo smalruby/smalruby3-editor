@@ -34,6 +34,8 @@ See `.env.example` for the full list. Key groups:
 
 - secrets に追加する値: GitHub リポジトリの **Settings > Secrets and variables > Actions > Secrets** に登録し、workflow では `${{ secrets.KEY_NAME }}` で参照
 - vars に追加する値: 同 **Variables** に登録し、`${{ vars.KEY_NAME }}` で参照
-- `build-and-deploy` ジョブ内のビルドステップは **3箇所** ある（smalruby.app 用、smalruby3-editor GitHub Pages 用、ブランチプレビュー用）。すべてに追加すること
+- ビルドは **2 系統** ある。どちらにも追加すること:
+  - `build-and-deploy` ジョブ（本番の値。smalruby.app へ出す）: repo の Secrets / Variables を参照する
+  - `preview-deploy` ジョブ（stg の値。`preview.smalruby.app/<slug>/` へ出す）: `environment: stg` で動くので、stg で値が違うもの（エンドポイントなど）は **Environment `stg`** にも登録する。エンドポイントを足したら、ジョブの「Check that the build points to stg」の一覧にも足す
 
 新しい環境変数を `webpack.config.js` に追加した場合、workflow への追加を忘れると本番ビルドでその機能が無効になる。
