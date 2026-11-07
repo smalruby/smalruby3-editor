@@ -22,24 +22,50 @@ const rules = (editingName) => {
         '生徒は自分のプログラムを言葉で説明するのが苦手です。「どこに入れればいいかな？」のような質問を返さず、すぐに直したプログラムを出してください。',
         `直すのは、できるだけ${target}のプログラムだけにしてください。スモウルビーはスプライトのブロックを丸ごと入れかえるので、変えるスプライトごとに「# 「スプライト名」」という 1 行から始めて、変えないところも含めてそのスプライトのプログラムを全部書いてください。変えないスプライトは書かないでください。`,
         'コードの前に、何を変えたかを「〜を受け取ったときのブロックの中に、〜を鳴らす命令を足しました」のように、ブロックのことばで 1〜3 行で説明してください。Ruby の書き方の細かいことは言わないでください。',
-        '今のプログラムにある書き方と命令、下の「使える命令の例」だけを使ってください。音やコスチュームの名前は、下の一覧にあるものから選んでください。',
-        `コードの前に「${COPY_START}」、コードの後に「${COPY_END}」という行を書き、コードは \`\`\`ruby と \`\`\` で囲んでください。`,
+        '命令は、今のプログラムにある書き方か、下の「使える命令の例」の書き方で書いてください。例にない命令が要るときも、プログラムを出すのをやめずに、例と同じスモウルビーの書き方で書いてください。Scratch のブロック名を英語にしただけの命令（when_this_sprite_clicked など）は使えません。音やコスチュームの名前は、下の一覧にあるものから選んでください。',
+        `直したプログラムは全部、「${COPY_START}」の行と「${COPY_END}」の行のあいだに、1 つの \`\`\`ruby と \`\`\` で囲んで書いてください。変えるスプライトが 2 つ以上でも 1 つにまとめ、印の外にはコードを書かないでください（生徒は印のあいだだけをコピーします）。`,
         'コードの後に、動かして確かめることを 1 つだけ書いてください。',
         '中学生にわかる言葉で、短く答えてください。生徒の名前や学校名をたずねないでください。',
     ];
 };
 
-// Commands checked against the Ruby generator, so the AI does not invent names.
+// Commands checked against the converter (genai-prompt.test.js), so the AI does not
+// invent names. Without the events and sensing here, a careful AI declined to write a
+// program at all when the student's trouble needed one of them (#1283).
 const COMMAND_EXAMPLES = [
+    'when_flag_clicked do … end … 旗が押されたとき',
+    'when_clicked do … end … このスプライトが押されたとき',
+    'when_key_pressed("space") do … end … スペースキーが押されたとき（"right arrow" などの矢印キーも）',
+    'when_receive("合図") do … end … 合図を受け取ったとき',
+    'broadcast("合図") … 合図を送る（送るスプライトと受け取るスプライトの両方を書く）',
+    'loop do … end … ずっと',
+    '10.times do … end … 10 回繰り返す',
+    'if touching?("スプライト名") … end … もし〜に触れたなら（端は "_edge_"）',
+    'if keyboard.pressed?("space") … end … もしスペースキーが押されたなら',
     'move(10) … 10 歩動かす',
     'turn_right(15) … 右に 15 度回す',
+    'self.direction = 90 … 90 度に向ける',
     'go_to([0, 0]) … x座標を 0、y座標を 0 にする',
+    'self.x += 10 … x座標を 10 ずつ変える（self.y も同じ）',
+    'go_to([rand(-200..200), 180]) … x座標を -200 から 200 までの乱数、y座標を 180 にする',
     'bounce_if_on_edge … もし端に着いたら、跳ね返る',
     'sleep(1) … 1 秒待つ',
-    'say("こんにちは") … こんにちはと言う',
+    'say("こんにちは") … こんにちはと言う（say("やあ", 2) で 2 秒。言えるのはスプライトだけで、ステージは言えない）',
     'switch_costume("コスチューム名") … コスチュームを〜にする',
+    'next_costume … 次のコスチュームにする',
+    'switch_backdrop("背景の名前") … 背景を〜にする',
+    'show / hide … 表示する／隠す',
+    'create_clone("_myself_") … 自分のクローンを作る',
+    'when_start_as_a_clone do … end … クローンされたとき',
+    'delete_this_clone … このクローンを削除する',
+    'ask("名前は？") … 質問して答えを待つ（答えは answer）',
+    'if answer == "東京" … end … もし答えが東京なら',
+    'timer.reset … タイマーを 0 にする',
+    'if timer.value > 30 … end … もしタイマーが 30 より大きいなら',
+    'stop("all") … すべてを止める（吹き出しも消えるので、言わせたいときは say("おしまい", 2) のあとに止める）',
     'play("音の名前") … 〜の音を鳴らす',
     'play_until_done("音の名前") … 終わるまで〜の音を鳴らす',
+    '$score = 0 … 全部のスプライトで使う変数を 0 にする（$score += 1 で 1 ずつ変える）',
 ];
 
 const fence = (code) => `\`\`\`ruby\n${(code || '').replace(/\s+$/, '')}\n\`\`\``;
@@ -166,4 +192,13 @@ const buildRewritePrompt = ({ code, problems }) =>
         `コードの前に「${COPY_START}」、後に「${COPY_END}」の行を書き、コードは \`\`\`ruby と \`\`\` で囲んでください。`,
     ].join('\n');
 
-export { COPY_END, COPY_START, PROBLEM_KINDS, buildGenaiPrompt, buildRewritePrompt, extractRuby, splitPrompt };
+export {
+    COMMAND_EXAMPLES,
+    COPY_END,
+    COPY_START,
+    PROBLEM_KINDS,
+    buildGenaiPrompt,
+    buildRewritePrompt,
+    extractRuby,
+    splitPrompt,
+};

@@ -200,9 +200,62 @@ relay の呼び方: `POST /generate` に `purpose: "genai-takeover"` と、ク�
 
 文面は `src/lib/genai-prompt.js`（純粋関数）。生徒が Ruby を知らなくても使えるように、生成AI に
 次を頼んでいる: 質問を返さずすぐ直したプログラムを出す / 変えるスプライトごとに `# 「名前」` の
-1 行から全部書く / 使える命令の例だけを使う / 音・コスチュームは一覧の名前から選ぶ /
-「▼▼」〜「▲▲」の行でコードを囲む。質問文はエディタの言語にかかわらず日本語（困りごとの種類も
-日本語の名前で入る）。
+1 行から全部書く / 命令は今のプログラムか「使える命令の例」の書き方で書く / 音・コスチュームは
+一覧の名前から選ぶ / 直したプログラムは全部「▼▼」〜「▲▲」の行のあいだの 1 つのコード枠に入れる。
+質問文はエディタの言語にかかわらず日本語（困りごとの種類も日本語の名前で入る）。
+
+「使える命令の例」は、イベント・繰り返し・条件・クローン・質問・タイマーなど、生徒の困りごとで
+よく要る命令をひととおり載せている。例が少ないと、慎重な生成AI は「使える命令に無い」と考えて
+プログラムを出さずに断る（キー入力やメッセージが要る困りごとで実際に起きた）。また「例だけを
+使う」と書くと同じ理由で断るので、「例に無い命令が要るときも、出すのをやめずにスモウルビーの
+書き方で書く」と頼んでいる。例はすべて変換器でふつうのブロックになることを unit テスト
+（`genai-prompt.test.js`）で確かめている。
+
+### 自動で直す書き方
+
+生成AI がよく間違える書き方は、貼った答えをブロックにする前に `src/lib/genai-repair.js` が直す
+（直したところは「直したこと」として生徒に見せる）。文字列とコメントの中は変えない。
+
+| 生成AI の書き方 | 直した書き方 |
+|---|---|
+| `play(name: "pop")` / `play_sound("pop")` / `start_sound(...)` | `play("Pop")`（名前は一覧の表記にそろえる） |
+| `play_sound_until_done(...)` | `play_until_done(...)` |
+| `switch_costume_to(name: "b")` | `switch_costume("B")` |
+| `wait(1)` / `wait 1` | `sleep(1)` |
+| `when_green_flag_clicked` | `when_flag_clicked` |
+| `when_this_sprite_clicked` / `when_sprite_clicked` | `when_clicked` |
+| `when_broadcast_received(...)` / `when_i_receive(...)` | `when_receive(...)` |
+| `when_start_as_clone` | `when_start_as_a_clone` |
+| `forever do` | `loop do` |
+| `touched?(...)` | `touching?(...)` |
+| `key_pressed?(...)` | `keyboard.pressed?(...)` |
+| `point_in_direction(90)` | `self.direction = 90` |
+| `create_clone`（引数なし） | `create_clone("_myself_")` |
+| `stop_all` | `stop("all")` |
+| `rand(1, 10)` / `pick_random(1, 10)` / `random(1, 10)` | `rand(1..10)` |
+
+一覧に無い音・コスチュームの名前は、ほかの名前に置きかえず、生徒に選んでもらう。
+
+### 質問文の検証（プロンプト・ラボ）
+
+質問文と自動修正は、`packages/scratch-gui/test/genai-lab/` で検証する（CI では動かさない）。
+生徒の困りごとと作品の場面（`scenarios.js`）ごとに、本物の質問文をモデルに送り、答えを本物の
+判定（`checkAnswer`）と変換器で採点する。さらに採点役のモデルが、貼りつけたあとのプログラムで
+困りごとが解決するかを判定する。学校の生成AI（Gemini）で試す前に、Claude（Sonnet と、誤りの
+出やすい Haiku）で質問文を詰めるための道具。
+
+```bash
+cd packages/scratch-gui
+GENAI_LAB=1 GENAI_LAB_RUN=<名前> GENAI_LAB_MODELS=sonnet,haiku GENAI_LAB_REPEAT=3 \
+  npx jest test/genai-lab/lab.test.js
+# → <repo>/tmp/genai-lab/<名前>/summary.md（表）と grades.json、答え・判定の生ファイル
+```
+
+- モデルはコンテナ内の `claude -p`（道具なし・学校の生成AI に近い素の会話）で呼ぶ。
+- 同じ `GENAI_LAB_RUN` の答えは再利用するので、質問文以外（自動修正・採点）を変えたときは
+  モデルに聞き直さずに採点だけやり直せる。
+- `GENAI_LAB_ONLY` で場面を絞る。`GENAI_LAB_JUDGE=none` で採点役を使わない。
+- 場面の作品がブロックになることは `fixtures.test.js` で確かめる。
 
 ## 設定・データ永続化
 
@@ -229,6 +282,7 @@ relay の呼び方: `POST /generate` に `purpose: "genai-takeover"` と、ク�
 | `packages/scratch-gui/src/lib/genai-concierge-state.js` | 表示条件・相談先・声かけ・進み具合・パネルの位置の判定（純粋関数） |
 | `packages/scratch-gui/src/lib/genai-prompt.js` | 質問文の組み立て・分割・答えからの Ruby 取り出し（純粋関数） |
 | `packages/scratch-gui/src/lib/genai-repair.js` | 生成AI の Ruby の自動修正・スプライトごとの分割（純粋関数） |
+| `packages/scratch-gui/test/genai-lab/` | 質問文の検証（プロンプト・ラボ。CI では動かさない） |
 | `packages/scratch-gui/src/lib/genai-block-diff.js` | 今のプログラムと生成AI の案をブロックで比べる・ブロックの言葉にする（純粋関数。ブロックの定義は引数で受ける） |
 | `packages/scratch-gui/src/lib/genai-takeover.js` | ルビティーにまかせる: ルビティーに送る文の組み立て・作り直しのくり返し・relay の呼び出し（ジョブの問い合わせ） |
 | `packages/scratch-gui/src/lib/genai-answer.js` | 貼った答えを調べる（✔ / ✗ の判定）・書き直しのお願いの文・切りかえ（純粋関数。変換器は引数で受ける） |
