@@ -9,14 +9,18 @@
  * simple — a constrained format the teacher can fill in minutes.
  */
 import PropTypes from 'prop-types';
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FormattedMessage, defineMessages, useIntl } from 'react-intl';
 
 import Spinner from '../spinner/spinner.jsx';
 import ErrorDisplay from './error-display.jsx';
-import MeshGroupLimitField from './mesh-group-limit-field.jsx';
+import MeshGroupLimitField, { meshGroupLimitMessages } from './mesh-group-limit-field.jsx';
 
-import { MAX_ASSIGNMENT_PAGES, MAX_ASSIGNMENT_PAGE_TEXT_LENGTH } from '../../lib/classroom-assignment-utils.js';
+import {
+    MAX_ASSIGNMENT_PAGES,
+    MAX_ASSIGNMENT_PAGE_TEXT_LENGTH,
+    normalizeMeshGroupLimit,
+} from '../../lib/classroom-assignment-utils.js';
 
 import styles from './classroom-modal.css';
 
@@ -36,7 +40,28 @@ const messages = defineMessages({
         description: 'Assignment editor: peer view option — students see classmates\' work once they submit',
         id: 'gui.classroom.assignmentEditor.peerViewAfterSubmit',
     },
+    advancedSummary: {
+        defaultMessage: 'From last time: {previous} · Peer view: {peerView} · Mesh: {mesh}',
+        description: 'Assignment editor: current values shown on the folded advanced settings',
+        id: 'gui.classroom.assignmentEditor.advancedSummary',
+    },
+    summaryOn: {
+        defaultMessage: 'Yes',
+        description: 'Assignment editor: advanced settings summary — start from the previous submission is on',
+        id: 'gui.classroom.assignmentEditor.summaryOn',
+    },
+    summaryOff: {
+        defaultMessage: 'No',
+        description: 'Assignment editor: advanced settings summary — start from the previous submission is off',
+        id: 'gui.classroom.assignmentEditor.summaryOff',
+    },
 });
+
+const PEER_VIEW_MESSAGES = {
+    none: messages.peerViewNone,
+    always: messages.peerViewAlways,
+    afterSubmit: messages.peerViewAfterSubmit,
+};
 
 const AssignmentPageEditor = ({
     index,
@@ -225,6 +250,30 @@ const TeacherAssignmentEditor = ({
 }) => {
     const intl = useIntl();
     const starterFileInputRef = useRef(null);
+    // E2 (#1303): rarely changed settings are folded; the summary on the
+    // toggle shows the current (unsaved included) values (R3).
+    const [showAdvanced, setShowAdvanced] = useState(false);
+    const advancedRef = useRef(null);
+    const handleToggleAdvanced = useCallback(() => setShowAdvanced((v) => !v), []);
+    // The open panel floats over the pages, so a click elsewhere closes it.
+    useEffect(() => {
+        if (!showAdvanced) return () => {};
+        const handleDown = (e) => {
+            if (advancedRef.current && !advancedRef.current.contains(e.target)) setShowAdvanced(false);
+        };
+        document.addEventListener('mousedown', handleDown);
+        return () => document.removeEventListener('mousedown', handleDown);
+    }, [showAdvanced]);
+    const hasAdvanced = Boolean(onChangeStartFromPrevious || onChangePeerView || onChangeMeshGroupLimit);
+    const advancedSummary = intl.formatMessage(messages.advancedSummary, {
+        previous: intl.formatMessage(startFromPrevious ? messages.summaryOn : messages.summaryOff),
+        peerView: intl.formatMessage(PEER_VIEW_MESSAGES[peerView] || messages.peerViewNone),
+        mesh: intl.formatMessage(
+            normalizeMeshGroupLimit(meshGroupLimit) === 0
+                ? meshGroupLimitMessages.noLimit
+                : meshGroupLimitMessages.upToSix,
+        ),
+    });
 
     const handleStartFromPreviousChange = useCallback(
         (e) => onChangeStartFromPrevious && onChangeStartFromPrevious(e.target.checked),
@@ -289,236 +338,283 @@ const TeacherAssignmentEditor = ({
             data-testid={embedded ? 'classroom-description-editor' : 'classroom-phase-teacher-assignment-edit'}
         >
             {!embedded && (
-            <h2 className={styles.phaseTitle}>
-                <FormattedMessage
-                    defaultMessage="Edit Assignment"
-                    description="Assignment editor title"
-                    id="gui.classroom.assignmentEditor.title"
-                />
-                {selectedClassroom ? ` — ${selectedClassroom.className}` : ''}
-            </h2>
+                <h2 className={styles.phaseTitle}>
+                    <FormattedMessage
+                        defaultMessage="Edit Assignment"
+                        description="Assignment editor title"
+                        id="gui.classroom.assignmentEditor.title"
+                    />
+                    {selectedClassroom ? ` — ${selectedClassroom.className}` : ''}
+                </h2>
             )}
-            <p className={styles.teacherViewHint}>
-                <FormattedMessage
-                    defaultMessage="Students see these pages when they join with the class code, and start from the starter project with a button."
-                    description="Assignment editor explanation"
-                    id="gui.classroom.assignmentEditor.hint"
-                />
-            </p>
-
-            <ErrorDisplay error={error} errorTitle={errorTitle} />
-
-
-            {editorPages.map((page, i) => (
-                <AssignmentPageEditor
-                    index={i}
-                    key={i}
-                    page={page}
-                    pageCount={editorPages.length}
-                    onAttachImage={onAttachPageImage}
-                    onChangeText={onChangePageText}
-                    onMove={onMovePage}
-                    onRemove={onRemovePage}
-                    onRemoveImage={onRemovePageImage}
-                />
-            ))}
-
-            <div className={styles.buttonRow}>
-                <button
-                    className={styles.secondaryButton}
-                    data-testid="classroom-assignment-add-page"
-                    disabled={editorPages.length >= MAX_ASSIGNMENT_PAGES}
-                    onClick={onAddPage}
-                >
+            {/* E1 (#1303): the save button sits at the top (like Google
+                Classroom's "Assign"), so it is visible without scrolling. */}
+            <div className={styles.assignmentEditorHeader}>
+                <p className={styles.assignmentEditorHint}>
                     <FormattedMessage
-                        defaultMessage="+ Add Page"
-                        description="Assignment editor: add page"
-                        id="gui.classroom.assignmentEditor.addPage"
+                        defaultMessage="Students see these pages when they join with the class code, and start from the starter project with a button."
+                        description="Assignment editor explanation"
+                        id="gui.classroom.assignmentEditor.hint"
                     />
-                </button>
-            </div>
-
-            <div className={styles.assignmentStarterSection}>
-                <h3 className={styles.assignmentStarterTitle}>
-                    <FormattedMessage
-                        defaultMessage="Starter Project"
-                        description="Assignment editor: starter section title"
-                        id="gui.classroom.assignmentEditor.starterTitle"
-                    />
-                </h3>
-                <div className={styles.assignmentStarterStatus} data-testid="classroom-assignment-starter-status">
-                    {renderStarterStatus()}
-                </div>
-                <div className={styles.buttonRow}>
-                    <button
-                        className={styles.secondaryButton}
-                        data-testid="classroom-assignment-starter-current"
-                        onClick={onUseCurrentProject}
-                    >
-                        <FormattedMessage
-                            defaultMessage="Use the Open Project"
-                            description="Assignment editor: set open project as starter"
-                            id="gui.classroom.assignmentEditor.useCurrentProject"
-                        />
-                    </button>
-                    <button
-                        className={styles.secondaryButton}
-                        data-testid="classroom-assignment-starter-file"
-                        onClick={handleStarterFileClick}
-                    >
-                        <FormattedMessage
-                            defaultMessage="Choose .sb3 File"
-                            description="Assignment editor: set starter from file"
-                            id="gui.classroom.assignmentEditor.useFile"
-                        />
-                    </button>
-                    {starterMode !== 'none' && (
+                </p>
+                <div className={styles.assignmentEditorActions}>
+                    {!embedded && (
                         <button
-                            className={styles.dangerButton}
-                            data-testid="classroom-assignment-starter-remove"
-                            onClick={onRemoveStarter}
+                            className={styles.secondaryButton}
+                            data-testid="classroom-assignment-cancel"
+                            disabled={isSaving}
+                            onClick={onCancel}
                         >
                             <FormattedMessage
-                                defaultMessage="Remove Starter"
-                                description="Assignment editor: remove starter"
-                                id="gui.classroom.assignmentEditor.removeStarter"
+                                defaultMessage="Cancel"
+                                description="Assignment editor: cancel"
+                                id="gui.classroom.assignmentEditor.cancel"
                             />
                         </button>
                     )}
-                    <input
-                        accept=".sb3"
-                        hidden
-                        ref={starterFileInputRef}
-                        type="file"
-                        onChange={handleStarterFileChange}
-                    />
-                </div>
-                {hasExistingStarter && starterMode === 'none' && (
-                    <p className={styles.assignmentStarterWarning}>
-                        <FormattedMessage
-                            defaultMessage="The existing starter project will be deleted when you save."
-                            description="Assignment editor: warning that saving removes the existing starter"
-                            id="gui.classroom.assignmentEditor.starterRemoveWarning"
-                        />
-                    </p>
-                )}
-                {/* Follow-up lessons (#1202): students open last time's work by
-                    default instead of choosing (and mistaking) the starter. */}
-                {onChangeStartFromPrevious && (
-                    <label className={styles.assignmentStartFromPrevious}>
-                        <input
-                            checked={startFromPrevious}
-                            data-testid="classroom-assignment-start-from-previous"
-                            disabled={isSaving}
-                            type="checkbox"
-                            onChange={handleStartFromPreviousChange}
-                        />
-                        <span>
-                            <span className={styles.assignmentStartFromPreviousLabel}>
-                                <FormattedMessage
-                                    defaultMessage="Start from the previous submission"
-                                    description="Assignment editor: setting that opens the previous submission when students join"
-                                    id="gui.classroom.assignmentEditor.startFromPrevious"
-                                />
-                            </span>
-                            <span className={styles.assignmentStartFromPreviousHint}>
-                                <FormattedMessage
-                                    defaultMessage="For follow-up lessons: when students join, continuing from the project they submitted last time in this class is recommended (the starter is not offered). Students without one are told to start from the starter."
-                                    description="Assignment editor: explanation of the start-from-previous setting"
-                                    id="gui.classroom.assignmentEditor.startFromPreviousHint"
-                                />
-                            </span>
-                        </span>
-                    </label>
-                )}
-                {/* Peer view (#1208): students see classmates' submission
-                    images (never the .sb3) to learn from each other. */}
-                {onChangePeerView && (
-                    <div className={styles.assignmentPeerView}>
-                        <label className={styles.assignmentPeerViewRow}>
-                            <span className={styles.assignmentStartFromPreviousLabel}>
-                                <FormattedMessage
-                                    defaultMessage="Let students see classmates' work"
-                                    description="Assignment editor: label of the peer view setting"
-                                    id="gui.classroom.assignmentEditor.peerView"
-                                />
-                            </span>
-                            <select
-                                className={styles.assignmentPeerViewSelect}
-                                data-testid="classroom-assignment-peer-view"
-                                disabled={isSaving}
-                                value={peerView || 'none'}
-                                onChange={handlePeerViewChange}
-                            >
-                                <option value="none">
-                                    {intl.formatMessage(messages.peerViewNone)}
-                                </option>
-                                <option value="always">
-                                    {intl.formatMessage(messages.peerViewAlways)}
-                                </option>
-                                <option value="afterSubmit">
-                                    {intl.formatMessage(messages.peerViewAfterSubmit)}
-                                </option>
-                            </select>
-                        </label>
-                        <span className={styles.assignmentStartFromPreviousHint}>
-                            <FormattedMessage
-                                defaultMessage="Students see only the stage image and block images of classmates' submissions (not the project file, names or your comments). Choose after submitting to have them try on their own first."
-                                description="Assignment editor: explanation of the peer view setting"
-                                id="gui.classroom.assignmentEditor.peerViewHint"
-                            />
-                        </span>
-                    </div>
-                )}
-                {onChangeMeshGroupLimit && (
-                    <MeshGroupLimitField
+                    <button
+                        className={styles.primaryButton}
+                        data-testid="classroom-assignment-save"
                         disabled={isSaving}
-                        testId="classroom-assignment-mesh-group-limit"
-                        value={meshGroupLimit}
-                        onChange={onChangeMeshGroupLimit}
-                    />
-                )}
+                        onClick={onSave}
+                    >
+                        {isSaving ? (
+                            <Spinner className={styles.buttonSpinner} small />
+                        ) : (
+                            <FormattedMessage
+                                defaultMessage="Save Assignment"
+                                description="Assignment editor: save"
+                                id="gui.classroom.assignmentEditor.save"
+                            />
+                        )}
+                    </button>
+                </div>
             </div>
 
-            <div className={styles.buttonRow}>
-                {!embedded && (
-                <button
-                    className={styles.secondaryButton}
-                    data-testid="classroom-assignment-cancel"
-                    disabled={isSaving}
-                    onClick={onCancel}
-                >
-                    <FormattedMessage
-                        defaultMessage="Cancel"
-                        description="Assignment editor: cancel"
-                        id="gui.classroom.assignmentEditor.cancel"
-                    />
-                </button>
-                )}
-                <button
-                    className={styles.primaryButton}
-                    data-testid="classroom-assignment-save"
-                    disabled={isSaving}
-                    onClick={onSave}
-                >
-                    {isSaving ? (
-                        <Spinner className={styles.buttonSpinner} small />
-                    ) : (
-                        <FormattedMessage
-                            defaultMessage="Save Assignment"
-                            description="Assignment editor: save"
-                            id="gui.classroom.assignmentEditor.save"
+            <ErrorDisplay error={error} errorTitle={errorTitle} />
+
+            <div className={styles.assignmentEditorColumns}>
+                {/* The pages are a list whose length the teacher decides (up
+                    to 10), so only this frame scrolls (R6 exception). */}
+                <div className={styles.assignmentEditorPages} data-testid="classroom-assignment-pages">
+                    {editorPages.map((page, i) => (
+                        <AssignmentPageEditor
+                            index={i}
+                            key={i}
+                            page={page}
+                            pageCount={editorPages.length}
+                            onAttachImage={onAttachPageImage}
+                            onChangeText={onChangePageText}
+                            onMove={onMovePage}
+                            onRemove={onRemovePage}
+                            onRemoveImage={onRemovePageImage}
                         />
+                    ))}
+
+                    <div className={styles.buttonRow}>
+                        <button
+                            className={styles.secondaryButton}
+                            data-testid="classroom-assignment-add-page"
+                            disabled={editorPages.length >= MAX_ASSIGNMENT_PAGES}
+                            onClick={onAddPage}
+                        >
+                            <FormattedMessage
+                                defaultMessage="+ Add Page"
+                                description="Assignment editor: add page"
+                                id="gui.classroom.assignmentEditor.addPage"
+                            />
+                        </button>
+                    </div>
+                    <p className={styles.assignmentEditorLimits}>
+                        <FormattedMessage
+                            defaultMessage="Up to 10 pages, 500 characters and one image per page, one starter project."
+                            description="Assignment editor limits note"
+                            id="gui.classroom.assignmentEditor.limitsNote"
+                        />
+                    </p>
+                </div>
+
+                <div className={styles.assignmentEditorSide}>
+                    <div className={styles.assignmentStarterSection}>
+                        <h3 className={styles.assignmentStarterTitle}>
+                            <FormattedMessage
+                                defaultMessage="Starter Project"
+                                description="Assignment editor: starter section title"
+                                id="gui.classroom.assignmentEditor.starterTitle"
+                            />
+                        </h3>
+                        <div
+                            className={styles.assignmentStarterStatus}
+                            data-testid="classroom-assignment-starter-status"
+                        >
+                            {renderStarterStatus()}
+                        </div>
+                        <div className={styles.assignmentStarterButtons}>
+                            <button
+                                className={styles.secondaryButton}
+                                data-testid="classroom-assignment-starter-current"
+                                onClick={onUseCurrentProject}
+                            >
+                                <FormattedMessage
+                                    defaultMessage="Use the Open Project"
+                                    description="Assignment editor: set open project as starter"
+                                    id="gui.classroom.assignmentEditor.useCurrentProject"
+                                />
+                            </button>
+                            <button
+                                className={styles.secondaryButton}
+                                data-testid="classroom-assignment-starter-file"
+                                onClick={handleStarterFileClick}
+                            >
+                                <FormattedMessage
+                                    defaultMessage="Choose .sb3 File"
+                                    description="Assignment editor: set starter from file"
+                                    id="gui.classroom.assignmentEditor.useFile"
+                                />
+                            </button>
+                            {starterMode !== 'none' && (
+                                <button
+                                    className={styles.dangerButton}
+                                    data-testid="classroom-assignment-starter-remove"
+                                    onClick={onRemoveStarter}
+                                >
+                                    <FormattedMessage
+                                        defaultMessage="Remove Starter"
+                                        description="Assignment editor: remove starter"
+                                        id="gui.classroom.assignmentEditor.removeStarter"
+                                    />
+                                </button>
+                            )}
+                            <input
+                                accept=".sb3"
+                                hidden
+                                ref={starterFileInputRef}
+                                type="file"
+                                onChange={handleStarterFileChange}
+                            />
+                        </div>
+                        {hasExistingStarter && starterMode === 'none' && (
+                            <p className={styles.assignmentStarterWarning}>
+                                <FormattedMessage
+                                    defaultMessage="The existing starter project will be deleted when you save."
+                                    description="Assignment editor: warning that saving removes the existing starter"
+                                    id="gui.classroom.assignmentEditor.starterRemoveWarning"
+                                />
+                            </p>
+                        )}
+                    </div>
+
+                    {hasAdvanced && (
+                        <div className={styles.assignmentAdvanced} ref={advancedRef}>
+                            <button
+                                aria-expanded={showAdvanced}
+                                className={styles.assignmentAdvancedToggle}
+                                data-testid="classroom-assignment-advanced-toggle"
+                                type="button"
+                                onClick={handleToggleAdvanced}
+                            >
+                                <span className={styles.assignmentAdvancedTitle}>
+                                    {showAdvanced ? '▾ ' : '▸ '}
+                                    <FormattedMessage
+                                        defaultMessage="Advanced settings"
+                                        description="Assignment editor: toggle of the folded advanced settings"
+                                        id="gui.classroom.assignmentEditor.advanced"
+                                    />
+                                </span>
+                                <span
+                                    className={styles.assignmentAdvancedSummary}
+                                    data-testid="classroom-assignment-advanced-summary"
+                                >
+                                    {advancedSummary}
+                                </span>
+                            </button>
+                            {showAdvanced && (
+                                <div
+                                    className={styles.assignmentAdvancedPanel}
+                                    data-testid="classroom-assignment-advanced-panel"
+                                >
+                                    {/* Follow-up lessons (#1202): students open last time's work by
+                                        default instead of choosing (and mistaking) the starter. */}
+                                    {onChangeStartFromPrevious && (
+                                        <label className={styles.assignmentStartFromPrevious}>
+                                            <input
+                                                checked={startFromPrevious}
+                                                data-testid="classroom-assignment-start-from-previous"
+                                                disabled={isSaving}
+                                                type="checkbox"
+                                                onChange={handleStartFromPreviousChange}
+                                            />
+                                            <span>
+                                                <span className={styles.assignmentStartFromPreviousLabel}>
+                                                    <FormattedMessage
+                                                        defaultMessage="Start from the previous submission"
+                                                        description="Assignment editor: setting that opens the previous submission when students join"
+                                                        id="gui.classroom.assignmentEditor.startFromPrevious"
+                                                    />
+                                                </span>
+                                                <span className={styles.assignmentStartFromPreviousHint}>
+                                                    <FormattedMessage
+                                                        defaultMessage="For follow-up lessons: when students join, continuing from the project they submitted last time in this class is recommended (the starter is not offered). Students without one are told to start from the starter."
+                                                        description="Assignment editor: explanation of the start-from-previous setting"
+                                                        id="gui.classroom.assignmentEditor.startFromPreviousHint"
+                                                    />
+                                                </span>
+                                            </span>
+                                        </label>
+                                    )}
+                                    {/* Peer view (#1208): students see classmates' submission
+                                        images (never the .sb3) to learn from each other. */}
+                                    {onChangePeerView && (
+                                        <div className={styles.assignmentPeerView}>
+                                            <label className={styles.assignmentPeerViewRow}>
+                                                <span className={styles.assignmentStartFromPreviousLabel}>
+                                                    <FormattedMessage
+                                                        defaultMessage="Let students see classmates' work"
+                                                        description="Assignment editor: label of the peer view setting"
+                                                        id="gui.classroom.assignmentEditor.peerView"
+                                                    />
+                                                </span>
+                                                <select
+                                                    className={styles.assignmentPeerViewSelect}
+                                                    data-testid="classroom-assignment-peer-view"
+                                                    disabled={isSaving}
+                                                    value={peerView || 'none'}
+                                                    onChange={handlePeerViewChange}
+                                                >
+                                                    <option value="none">
+                                                        {intl.formatMessage(messages.peerViewNone)}
+                                                    </option>
+                                                    <option value="always">
+                                                        {intl.formatMessage(messages.peerViewAlways)}
+                                                    </option>
+                                                    <option value="afterSubmit">
+                                                        {intl.formatMessage(messages.peerViewAfterSubmit)}
+                                                    </option>
+                                                </select>
+                                            </label>
+                                            <span className={styles.assignmentStartFromPreviousHint}>
+                                                <FormattedMessage
+                                                    defaultMessage="Students see only the stage image and block images of classmates' submissions (not the project file, names or your comments). Choose after submitting to have them try on their own first."
+                                                    description="Assignment editor: explanation of the peer view setting"
+                                                    id="gui.classroom.assignmentEditor.peerViewHint"
+                                                />
+                                            </span>
+                                        </div>
+                                    )}
+                                    {onChangeMeshGroupLimit && (
+                                        <MeshGroupLimitField
+                                            disabled={isSaving}
+                                            testId="classroom-assignment-mesh-group-limit"
+                                            value={meshGroupLimit}
+                                            onChange={onChangeMeshGroupLimit}
+                                        />
+                                    )}
+                                </div>
+                            )}
+                        </div>
                     )}
-                </button>
+                </div>
             </div>
-            <p className={styles.teacherViewHint}>
-                <FormattedMessage
-                    defaultMessage="Up to 10 pages, 500 characters and one image per page, one starter project."
-                    description="Assignment editor limits note"
-                    id="gui.classroom.assignmentEditor.limitsNote"
-                />
-            </p>
         </div>
     );
 };

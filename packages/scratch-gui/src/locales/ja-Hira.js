@@ -701,6 +701,16 @@ export default {
     'gui.classroom.teacherDetail.seatNumber': 'しゅっせきばんごう{number}',
     'gui.classroom.teacherDashboard.expiresAt': 'ゆうこうきげん: {date}',
     'gui.classroom.teacherDetail.expiresAt': 'ほぞんきげん: {date}',
+    'gui.classroom.teacherDetail.renameHint': 'なまえをかえる',
+    'gui.classroom.teacherDetail.moreMenu': 'そのほかのそうさ',
+    'gui.classroom.teacherDetail.seatColorJoined': 'さんかずみ',
+    'gui.classroom.teacherDetail.seatColorNotJoined': 'まださんかしていない',
+    'gui.classroom.teacherDetail.previewEmpty': 'ページをかくとここにでます',
+    'gui.classroom.assignmentEditor.advanced': 'くわしいせってい',
+    'gui.classroom.assignmentEditor.advancedSummary':
+        'ぜんかいから: {previous}・たしゃさんしょう: {peerView}・メッシュ: {mesh}',
+    'gui.classroom.assignmentEditor.summaryOn': 'する',
+    'gui.classroom.assignmentEditor.summaryOff': 'しない',
     'gui.classroom.teacherCreate.assignmentNameHint': 'にんずうとかだいめいはいつでもへんこうできます。',
     'gui.classroom.carousel.submitTitle': 'せいとがかだいをていしゅつできる',
     'gui.classroom.carousel.submitDesc':

@@ -308,7 +308,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
 
         if (phase === 'teacher-class-detail' && selectedClassroom) {
             return (
-                <div className={styles.mainRelative}>
+                <div className={styles.mainFill}>
                     <div className={styles.detailBreadcrumbs}>
                         <TeacherBreadcrumbs
                             items={[

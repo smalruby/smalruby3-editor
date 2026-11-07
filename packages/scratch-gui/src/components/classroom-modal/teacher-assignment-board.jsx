@@ -15,7 +15,6 @@ import { buildAssignmentSections } from '../../lib/classroom-group-utils.js';
 import { formatClassLabel } from '../../lib/classroom-class-label.js';
 import { retentionLevel } from '../../lib/classroom-retention.js';
 import ErrorDisplay from './error-display.jsx';
-import MeshGroupLimitField from './mesh-group-limit-field.jsx';
 import SharedAssignmentCatalog from './shared-assignment-catalog.jsx';
 import TeacherShareStep from './teacher-share-step.jsx';
 import TeacherPasscodeImport from './teacher-passcode-import.jsx';
@@ -706,7 +705,6 @@ const TeacherAssignmentBoard = ({
     const [showTopicDialog, setShowTopicDialog] = useState(false);
     const [showInlineCreate, setShowInlineCreate] = useState(false);
     const [newAssignmentName, setNewAssignmentName] = useState('');
-    const [newMeshGroupLimit, setNewMeshGroupLimit] = useState(DEFAULT_MESH_GROUP_LIMIT);
     const [showReuse, setShowReuse] = useState(false);
     const [reuseFilterGroupId, setReuseFilterGroupId] = useState('');
     const [showArchived, setShowArchived] = useState(false);
@@ -750,7 +748,6 @@ const TeacherAssignmentBoard = ({
     // 画面の切り替え）のどちらでも入力を既定値に戻す。次に開いたときに前回の値が残らないように。
     const resetSubViewForms = useCallback(() => {
         setNewAssignmentName('');
-        setNewMeshGroupLimit(DEFAULT_MESH_GROUP_LIMIT);
         setReuseFilterGroupId('');
     }, []);
     const handleToggleInlineCreate = useCallback(() => {
@@ -764,11 +761,14 @@ const TeacherAssignmentBoard = ({
             e.preventDefault();
             const trimmed = newAssignmentName.trim();
             if (!trimmed || isLoading) return;
-            onCreateAssignmentInClass(group, trimmed, { meshGroupLimit: newMeshGroupLimit });
+            // C1 (#1303): the create screen asks only the name. New assignments
+            // get the default mesh group size; it is changed later in the
+            // description tab's advanced settings.
+            onCreateAssignmentInClass(group, trimmed, { meshGroupLimit: DEFAULT_MESH_GROUP_LIMIT });
             resetSubViewForms();
             setShowInlineCreate(false);
         },
-        [newAssignmentName, newMeshGroupLimit, isLoading, onCreateAssignmentInClass, group, resetSubViewForms],
+        [newAssignmentName, isLoading, onCreateAssignmentInClass, group, resetSubViewForms],
     );
     const handleToggleReuse = useCallback(() => {
         resetSubViewForms();
@@ -1202,12 +1202,6 @@ const TeacherAssignmentBoard = ({
                             onChange={handleNewAssignmentNameChange}
                         />
                     </div>
-                    <MeshGroupLimitField
-                        disabled={isLoading}
-                        testId="classroom-board-create-mesh-group-limit"
-                        value={newMeshGroupLimit}
-                        onChange={setNewMeshGroupLimit}
-                    />
                 </TeacherSubView>
             ) : showReuse ? (
                 // 課題を再利用（#1108: popover → 画面遷移。コピーは候補ごと、キャンセル左）
@@ -1437,4 +1431,5 @@ TeacherAssignmentBoard.propTypes = {
     shared: PropTypes.object,
 };
 
+export { BoardMenu, BoardMenuItem };
 export default TeacherAssignmentBoard;

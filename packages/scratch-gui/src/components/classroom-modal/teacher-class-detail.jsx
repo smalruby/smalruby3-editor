@@ -11,6 +11,7 @@ import ClassroomStatusIcon, {
     getSubmissionStatus,
 } from './classroom-status-icon.jsx';
 import ErrorDisplay from './error-display.jsx';
+import { BoardMenu, BoardMenuItem } from './teacher-assignment-board.jsx';
 import TeacherAssignmentEditor from './teacher-assignment-editor.jsx';
 import TeacherMemberDetail from './teacher-member-detail.jsx';
 
@@ -35,6 +36,14 @@ const MEMBER_LEGEND_STATUSES = [
     'returned',
     'kickRequested',
 ];
+
+/**
+ * Whether no page has anything students would see yet (#1303 E3).
+ * @param {Array<object>} pages - editor pages ({text, imageUrl, previewUrl})
+ * @returns {boolean} true when every page is blank
+ */
+const isAssignmentPreviewEmpty = (pages) =>
+    pages.every((p) => !(p.text || '').trim() && !p.previewUrl && !p.imageUrl);
 
 const TeacherClassDetail = ({
     selectedClassroom,
@@ -101,6 +110,7 @@ const TeacherClassDetail = ({
     const entryTab = (detailEntry && detailEntry.tab) || 'members';
     const [activeTab, setActiveTab] = useState(entryTab);
     const [previewPage, setPreviewPage] = useState(0);
+    const nameInputId = `classroom-detail-assignment-name-${selectedClassroom.classroomId}`;
     const [editAssignmentName, setEditAssignmentName] = useState(
         selectedClassroom.assignmentName || '',
     );
@@ -150,8 +160,8 @@ const TeacherClassDetail = ({
         setShowDeleteConfirm(true);
     }, []);
 
-    // The confirm box appears at the bottom of a long page — bring it into
-    // view so the teacher notices it (review round 3).
+    // The confirm box appears under the seat grid — bring it into view so the
+    // teacher notices it (review round 3).
     useEffect(() => {
         if (showDeleteConfirm && deleteConfirmRef.current) {
             deleteConfirmRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -171,8 +181,7 @@ const TeacherClassDetail = ({
         setEditAssignmentName(e.target.value);
     }, []);
 
-    // The name field is a 2-row textarea (long names wrap), but it is still a
-    // single-line value — Enter saves and leaves rather than inserting a break.
+    // Enter saves and leaves the name field (the value is saved on blur).
     const handleAssignmentNameKeyDown = useCallback((e) => {
         // The Enter that commits an IME conversion must not end the edit.
         // React's SyntheticKeyboardEvent omits isComposing, so read the native
@@ -196,9 +205,9 @@ const TeacherClassDetail = ({
 
     const intl = useIntl();
 
-    // Retention alert level (issue #1052/#1049): drives the inline warning
-    // next to the deadline and the urgent styling on the download button.
-    const retention = retentionLevel(selectedClassroom && selectedClassroom.expiresAt);
+    // Retention (issue #1052/#1049): red only within 7 days (R4 — same as the
+    // board rows, #1301 B4). Further out the deadline is a small grey line.
+    const retentionUrgent = retentionLevel(selectedClassroom && selectedClassroom.expiresAt) === 'warning';
 
     // Google Classroom share is posted with this teacher's own Google account,
     // so a class co-teacher who is not a teacher of the linked course cannot
@@ -314,26 +323,40 @@ const TeacherClassDetail = ({
                                 分け、各カラムを 2 行に収める。参加コードカードが
                                 縦に伸びて全体が崩れるのを防ぐ。 */}
                             <div className={styles.nameCodeRow}>
-                                {/* 左: 課題名（ラベルと 2 行入力を横並び・ラベルは縦中央） */}
+                                {/* 左: 課題名。1 行の入力欄と、編集できることを示す
+                                    「名前を変える」（どちらもラベル・#1303 D3）。 */}
                                 <div className={styles.nameCol}>
-                                    <span className={styles.assignmentNameLabel}>
+                                    <label className={styles.assignmentNameLabel} htmlFor={nameInputId}>
                                         <FormattedMessage
                                             defaultMessage="Assignment Name"
                                             description="Assignment name label in class detail"
                                             id="gui.classroom.teacherDetail.assignmentNameLabel"
                                         />
                                         {': '}
-                                    </span>
-                                    <textarea
+                                    </label>
+                                    <input
                                         className={styles.assignmentNameInput}
                                         data-testid="classroom-detail-assignment-name"
+                                        id={nameInputId}
                                         maxLength={50}
-                                        rows={2}
+                                        type="text"
                                         value={editAssignmentName}
                                         onBlur={handleAssignmentNameBlur}
                                         onChange={handleAssignmentNameChange}
                                         onKeyDown={handleAssignmentNameKeyDown}
                                     />
+                                    <label
+                                        className={styles.assignmentNameRenameHint}
+                                        data-testid="classroom-detail-assignment-name-hint"
+                                        htmlFor={nameInputId}
+                                    >
+                                        {'✎ '}
+                                        <FormattedMessage
+                                            defaultMessage="Rename"
+                                            description="Hint next to the assignment name field that the name can be changed there"
+                                            id="gui.classroom.teacherDetail.renameHint"
+                                        />
+                                    </label>
                                 </div>
 
                                 {/* 右: 参加コードカード。コードとボタンを 1 つの
@@ -514,16 +537,16 @@ const TeacherClassDetail = ({
                                     )}
                                 </div>
                             </div>
-                            {/* 保存期限とその警告を1行に統合（issue #1052/#1049）:
-                                期限が近いときだけ日付の右に警告を出し、専用バナーを
-                                廃して縦の表示領域を確保する。狭い幅では「ダウンロード
-                                して保存してください」を省略する（CSS の container query）。 */}
+                            {/* 保存期限（#1303 D1・R4）: ふだんは灰色の小さな 1 行。
+                                残り 7 日以内のときだけ赤い警告と「全作品ダウンロード」を
+                                日付の右に出す（課題一覧の行と同じ扱い）。狭い幅では
+                                「ダウンロードして保存してください」を省略する。 */}
                             {selectedClassroom.expiresAt && (
                                 <div
                                     className={classNames(styles.expiresAtText, {
-                                        [styles.expiresAtNotice]: retention === 'notice',
-                                        [styles.expiresAtWarning]: retention === 'warning',
+                                        [styles.expiresAtWarning]: retentionUrgent,
                                     })}
+                                    data-testid="classroom-detail-expires-at"
                                 >
                                     <span className={styles.expiresAtDate}>
                                         <FormattedMessage
@@ -537,7 +560,7 @@ const TeacherClassDetail = ({
                                             }}
                                         />
                                     </span>
-                                    {retention !== 'none' && (
+                                    {retentionUrgent && (
                                         <span
                                             className={styles.expiresAtAlert}
                                             data-testid="classroom-retention-banner"
@@ -558,6 +581,19 @@ const TeacherClassDetail = ({
                                                     id="gui.classroom.teacherDetail.retentionInlineHint"
                                                 />
                                             </span>
+                                            <button
+                                                className={styles.expiresAtDownload}
+                                                data-testid="classroom-retention-banner-download"
+                                                disabled={isLoading || !!downloadProgress}
+                                                type="button"
+                                                onClick={onDownloadAll}
+                                            >
+                                                <FormattedMessage
+                                                    defaultMessage="Download All"
+                                                    description="Download all submissions button"
+                                                    id="gui.classroom.teacherDetail.downloadAll"
+                                                />
+                                            </button>
                                         </span>
                                     )}
                                 </div>
@@ -630,24 +666,58 @@ const TeacherClassDetail = ({
                                         id="gui.classroom.members.title"
                                     />
                                 </button>
-                                <button
-                                    className={classNames(styles.secondaryButton, styles.detailTabsDownload, {
-                                        [styles.detailTabsDownloadUrgent]: retention !== 'none',
-                                    })}
-                                    data-testid="classroom-download-all"
-                                    disabled={isLoading || !!downloadProgress}
-                                    onClick={onDownloadAll}
-                                >
+                                {/* まれな操作は「…」の中（R2・#1303 D1）。ダウンロード中は
+                                    メニューが閉じるので、進み具合は「…」の横に出す。 */}
+                                <span className={styles.detailTabsMore}>
                                     {downloadProgress ? (
-                                        `${downloadProgress.current}/${downloadProgress.total}`
-                                    ) : (
-                                        <FormattedMessage
-                                            defaultMessage="Download All"
-                                            description="Download all submissions button"
-                                            id="gui.classroom.teacherDetail.downloadAll"
-                                        />
-                                    )}
-                                </button>
+                                        <span
+                                            className={styles.detailDownloadProgress}
+                                            data-testid="classroom-download-progress"
+                                        >
+                                            {`${downloadProgress.current}/${downloadProgress.total}`}
+                                        </span>
+                                    ) : null}
+                                    <BoardMenu
+                                        alignRight
+                                        ariaLabel={intl.formatMessage({
+                                            defaultMessage: 'More actions',
+                                            description: 'Accessible name of the … menu of the assignment detail',
+                                            id: 'gui.classroom.teacherDetail.moreMenu',
+                                        })}
+                                        buttonClassName={styles.boardKebab}
+                                        label="…"
+                                        testId="classroom-detail-more-menu"
+                                    >
+                                        {(close) => (
+                                            <React.Fragment>
+                                                <BoardMenuItem
+                                                    close={close}
+                                                    disabled={isLoading || !!downloadProgress}
+                                                    testId="classroom-download-all"
+                                                    onSelect={onDownloadAll}
+                                                >
+                                                    <FormattedMessage
+                                                        defaultMessage="Download All"
+                                                        description="Download all submissions button"
+                                                        id="gui.classroom.teacherDetail.downloadAll"
+                                                    />
+                                                </BoardMenuItem>
+                                                <BoardMenuItem
+                                                    close={close}
+                                                    disabled={isLoading}
+                                                    testId="classroom-delete-classroom"
+                                                    onSelect={handleDeleteClick}
+                                                >
+                                                    <FormattedMessage
+                                                        defaultMessage="Archive the assignment"
+                                                        description="Archive assignment button (soft-delete, restorable)"
+                                                        id="gui.classroom.teacherDetail.archiveClassroom"
+                                                    />
+                                                </BoardMenuItem>
+                                            </React.Fragment>
+                                        )}
+                                    </BoardMenu>
+                                </span>
                                 {/* 共有導線はボード（課題一覧）の各行「共有」に一本化した
                                     （#1109）。課題詳細タブ行の共有ボタンは廃止。 */}
                             </div>
@@ -689,10 +759,38 @@ const TeacherClassDetail = ({
                             {activeTab === 'members' && (
                                 <React.Fragment>
                             <div className={styles.membersHeader}>
-                                <ClassroomStatusLegend
-                                    className={styles.membersLegend}
-                                    statuses={MEMBER_LEGEND_STATUSES}
-                                />
+                                <div className={styles.membersLegends}>
+                                    {/* 座席の色の意味（R5・#1303 D2）。アイコンの凡例より先に出す。 */}
+                                    <div
+                                        className={styles.seatColorLegend}
+                                        data-testid="classroom-seat-color-legend"
+                                    >
+                                        <span className={styles.statusLegendItem}>
+                                            <span
+                                                className={classNames(styles.seatColorSwatch, styles.memberCellJoined)}
+                                            />
+                                            <FormattedMessage
+                                                defaultMessage="Joined"
+                                                description="Seat color legend: a grey seat is a student who joined"
+                                                id="gui.classroom.teacherDetail.seatColorJoined"
+                                            />
+                                        </span>
+                                        <span className={styles.statusLegendItem}>
+                                            <span
+                                                className={classNames(styles.seatColorSwatch, styles.memberCellEmpty)}
+                                            />
+                                            <FormattedMessage
+                                                defaultMessage="Not joined yet"
+                                                description="Seat color legend: a blue seat has no student yet"
+                                                id="gui.classroom.teacherDetail.seatColorNotJoined"
+                                            />
+                                        </span>
+                                    </div>
+                                    <ClassroomStatusLegend
+                                        className={styles.membersLegend}
+                                        statuses={MEMBER_LEGEND_STATUSES}
+                                    />
+                                </div>
                                 <div className={styles.membersHeaderRight}>
                                     <span
                                         className={styles.membersCount}
@@ -794,8 +892,10 @@ const TeacherClassDetail = ({
                             )}
 
 
-                            {/* Archive assignment (soft-delete, restorable — issue #1051).
+                            {/* Archive confirmation (soft-delete, restorable — issue #1051).
+                                The action itself is in the … menu (#1303 D1).
                                 data-testids keep the historical "delete" names for E2E stability. */}
+                            {(error || showDeleteConfirm) && (
                             <div className={styles.detailFooter}>
                                 <ErrorDisplay
                                     actionLabel={errorActionLabel}
@@ -845,27 +945,9 @@ const TeacherClassDetail = ({
                                             </button>
                                         </div>
                                     </div>
-                                ) : (
-                                    <div
-                                        className={
-                                            styles.detailFooterButtons
-                                        }
-                                    >
-                                        <button
-                                            className={styles.dangerButton}
-                                            data-testid="classroom-delete-classroom"
-                                            disabled={isLoading}
-                                            onClick={handleDeleteClick}
-                                        >
-                                            <FormattedMessage
-                                                defaultMessage="Archive the assignment"
-                                                description="Archive assignment button (soft-delete, restorable)"
-                                                id="gui.classroom.teacherDetail.archiveClassroom"
-                                            />
-                                        </button>
-                                    </div>
-                                )}
+                                ) : null}
                             </div>
+                            )}
                         </div>
 
                         {/* Right pane - member detail */}
@@ -874,6 +956,21 @@ const TeacherClassDetail = ({
                                 <div className={styles.assignmentPreview} data-testid="classroom-description-preview">
                                     {(() => {
                                         const pages = descEditor.editorPages || [];
+                                        // E3 (#1303): nothing written yet → one line, not an empty box.
+                                        if (isAssignmentPreviewEmpty(pages)) {
+                                            return (
+                                                <p
+                                                    className={styles.assignmentPreviewEmpty}
+                                                    data-testid="classroom-description-preview-empty"
+                                                >
+                                                    <FormattedMessage
+                                                        defaultMessage="Write a page and it shows up here"
+                                                        description="Student-view preview while no page has text or an image"
+                                                        id="gui.classroom.teacherDetail.previewEmpty"
+                                                    />
+                                                </p>
+                                            );
+                                        }
                                         const index = Math.min(previewPage, Math.max(0, pages.length - 1));
                                         const page = pages[index];
                                         return (

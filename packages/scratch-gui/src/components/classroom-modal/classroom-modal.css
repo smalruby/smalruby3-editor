@@ -313,14 +313,13 @@
     margin: 0.3rem 0;
 }
 
-/* 課題名: ラベルと 2 行入力を横並び。ラベルは縦中央、入力はカラム（=カード）
-   高さいっぱいに伸ばして参加コードカードと高さを揃える。 */
+/* 課題名: ラベル・1 行の入力欄・「名前を変える」を横並び（#1303 D3）。 */
 .name-col {
     flex: 1 1 340px;
     min-width: 0;
     display: flex;
     flex-direction: row;
-    align-items: stretch;
+    align-items: center;
     gap: 0.3rem;
 }
 
@@ -330,17 +329,21 @@
     white-space: nowrap;
 }
 
-/* 課題名は 2 行分の入力領域（長い名前が折り返して見える）。カード高さに
-   合わせて縦に伸びる。単一行の値なので monospace を避け、リサイズは無効。 */
+/* 課題名は 1 行の入力欄（編集できる欄だと分かる見た目・#1303 D3）。 */
 .name-col .assignment-name-input {
     flex: 1 1 auto;
     min-width: 0;
-    min-height: 2.8rem;
     box-sizing: border-box;
-    resize: none;
+    padding: 0.35rem 0.5rem;
     font-family: inherit;
-    line-height: 1.3;
-    overflow-y: auto;
+}
+
+.assignment-name-rename-hint {
+    flex: 0 0 auto;
+    font-size: 0.8rem;
+    color: #855cd6;
+    white-space: nowrap;
+    cursor: text;
 }
 
 /* 参加コードカード (redesign): 右カラム。コードと 3 つのボタンを 1 つの
@@ -495,7 +498,7 @@
     flex: 0 0 auto;
 }
 
-/* 期限が近いときの警告メッセージ（保存期限の右側にインライン表示）。 */
+/* 残り 7 日以内の警告メッセージ（保存期限の右側にインライン表示・R4）。 */
 .expires-at-alert {
     display: inline-flex;
     align-items: baseline;
@@ -507,6 +510,23 @@
 
 .expires-at-warning .expires-at-alert {
     color: hsla(10, 80%, 42%, 1);
+}
+
+.expires-at-download {
+    margin-left: 0.3rem;
+    padding: 0.1rem 0.6rem;
+    border: 1px solid hsla(10, 80%, 42%, 1);
+    border-radius: 0.3rem;
+    background: white;
+    color: hsla(10, 80%, 42%, 1);
+    font-size: 0.8rem;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.expires-at-download:disabled {
+    opacity: 0.5;
+    cursor: default;
 }
 
 .expires-at-alert-mark {
@@ -1135,6 +1155,28 @@
     color: #575e75;
 }
 
+.members-legends {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 0.9rem;
+}
+
+/* 座席の色の意味（#1303 D2・R5）。色見本は座席と同じクラスを使う。 */
+.seat-color-legend {
+    display: flex;
+    gap: 0.7rem;
+    font-size: 0.75rem;
+    color: #575e75;
+}
+
+.seat-color-swatch {
+    display: inline-block;
+    width: 0.8rem;
+    height: 0.8rem;
+    border-radius: 0.15rem;
+}
+
 .members-legend {
     display: flex;
     gap: 0.5rem;
@@ -1147,6 +1189,11 @@
     grid-template-columns: repeat(10, 1fr);
     gap: 4px;
     margin: 0.5rem 0;
+    /* The seats (up to 40) are a list: only this frame scrolls (R6 exception). */
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    align-content: start;
 }
 
 .member-cell {
@@ -1643,6 +1690,11 @@
 .detail-layout {
     display: flex;
     flex-direction: column;
+    /* Fill the modal body so only the lists (seats, pages) scroll inside
+       their own frames — the page itself does not (R6・#1303). */
+    flex: 1 1 auto;
+    min-height: 0;
+    box-sizing: border-box;
     /* Align with the unified teacher views; the breadcrumb wrapper above
        carries the top offset. */
     padding: 0 2rem 1.25rem;
@@ -1651,20 +1703,35 @@
 .detail-two-pane-layout {
     display: flex;
     gap: 1rem;
-    min-height: 350px;
+    flex: 1 1 auto;
+    min-height: 0;
 }
 
 .detail-left-pane {
     flex: 1;
     min-width: 0;
+    min-height: 0;
     display: flex;
     flex-direction: column;
+}
+
+/* Headers (title, name, deadline, tabs) keep their height; only the seat grid
+   and the description editor give up space (and scroll inside). */
+.detail-left-pane > * {
+    flex-shrink: 0;
+}
+
+.detail-left-pane > .members-grid,
+.detail-left-pane > .assignment-editor {
+    flex-shrink: 1;
 }
 
 .detail-right-pane {
     /* Wider now that the sidebar is gone (teacher review round 2) */
     width: 380px;
     flex-shrink: 0;
+    min-height: 0;
+    overflow-y: auto;
     border-left: 1px solid #e0e0e0;
     padding-left: 1rem;
 }
@@ -1963,7 +2030,115 @@
 /* --- Assignment editor (teacher) --- */
 
 .assignment-editor {
-    max-width: 640px;
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+/* E1 (#1303): 説明 1 行と［課題を保存］を最上段に置き、スクロールせずに見せる。 */
+.assignment-editor-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.assignment-editor-hint {
+    flex: 1 1 auto;
+    margin: 0;
+    color: #575e75;
+    font-size: 0.8rem;
+    line-height: 1.4;
+}
+
+.assignment-editor-actions {
+    flex: 0 0 auto;
+    display: flex;
+    gap: 0.5rem;
+}
+
+.assignment-editor-columns {
+    display: flex;
+    gap: 1rem;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+/* ページは先生が数を決める一覧なので、この枠の中だけスクロールする（R6 の例外）。 */
+.assignment-editor-pages {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 0.25rem;
+}
+
+.assignment-editor-limits {
+    margin: 0.25rem 0 0;
+    color: #575e75;
+    font-size: 0.75rem;
+}
+
+.assignment-editor-side {
+    flex: 0 0 16rem;
+    min-width: 0;
+}
+
+/* 横の列は狭いので、スターターのボタンは縦に並べて 1 行ずつに収める。 */
+.assignment-starter-buttons {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.4rem;
+}
+
+/* E2 (#1303): あまり変えない設定は「詳しい設定」に畳み、閉じた状態でも現在の値を出す（R3）。
+   開いた中身は下に重ねて出し、［課題を保存］や他の欄を押し下げない（R6）。 */
+.assignment-advanced {
+    position: relative;
+    margin-top: 0.75rem;
+    border-top: 1px solid #e5e8ec;
+    padding-top: 0.5rem;
+}
+
+.assignment-advanced-toggle {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.15rem;
+    width: 100%;
+    padding: 0.25rem 0;
+    border: none;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+}
+
+.assignment-advanced-title {
+    color: #575e75;
+    font-size: 0.9rem;
+    font-weight: bold;
+}
+
+.assignment-advanced-summary {
+    color: #575e75;
+    font-size: 0.75rem;
+}
+
+.assignment-advanced-panel {
+    position: absolute;
+    /* ページ欄の上（左側）に重ね、右上の［課題を保存］は隠さない。 */
+    right: calc(100% + 0.5rem);
+    bottom: 0;
+    z-index: 20;
+    width: 26rem;
+    max-width: 70vw;
+    padding: 0.25rem 0.9rem 0.75rem;
+    border: 1px solid hsla(0, 0%, 0%, 0.15);
+    border-radius: 0.4rem;
+    background: white;
+    box-shadow: 0 4px 12px hsla(0, 0%, 0%, 0.15);
 }
 
 /* トップレベル画面（TeacherScreen）の説明文。#1125 で .assignment-editor-hint から
@@ -2062,9 +2237,8 @@
 }
 
 .assignment-starter-section {
-    border-top: 1px solid #e5e8ec;
-    margin-top: 1rem;
-    padding-top: 1rem;
+    /* 横の列（ページの右）の先頭なので上の区切りは要らない（#1303）。 */
+    margin: 0;
 }
 
 .assignment-starter-title {
@@ -3950,6 +4124,12 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
     max-height: calc(100vh - 8rem);
 }
 
+.assignment-preview-empty {
+    margin: 0;
+    color: #575e75;
+    font-size: 0.85rem;
+}
+
 .assignment-preview-title {
     font-weight: bold;
     font-size: 0.9rem;
@@ -4026,8 +4206,16 @@ button.detail-tabs-download-urgent:hover:not(:disabled) {
     gap: 0.5rem;
 }
 
-.detail-tabs-download {
+.detail-tabs-more {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
     margin-left: auto;
+}
+
+.detail-download-progress {
+    font-size: 0.8rem;
+    color: #575e75;
 }
 
 .course-tile-imported {
