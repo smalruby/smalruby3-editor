@@ -140,7 +140,6 @@ GUI のビルド（webpack の `DefinePlugin`）が使う環境変数と、そ�
 補足:
 
 - `DEV_BYPASS_TOKEN` は GUI のビルドには埋め込まない。プレビューでは URL の `?devlogin=<DEV_BYPASS_TOKEN>` で渡す。
-- repo Secret の `GEMINI_RELAY_ENDPOINT` はどのビルドからも参照されていない（ルビティーを Claude に移したときの残り）。
 - **ビルド値では切り替えられない URL**: 翻訳（`scratch3_translate`）と音声合成（`scratch3_text2speech`）は `https://api.smalruby.app/cors-proxy` を直接書いている。プレビューから stg に向けるには、`SCRATCH_API_PROXY_ENDPOINT` のようなビルド値から組み立てる変更が要る。
 
 ## 直すべき違い（候補）
