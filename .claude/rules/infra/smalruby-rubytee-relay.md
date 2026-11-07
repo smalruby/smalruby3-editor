@@ -89,7 +89,7 @@ docker compose run --rm -w /app/infra/smalruby-rubytee-relay infra npx cdk deplo
 
 | Variable | Description |
 |----------|-------------|
-| `STAGE` | Deployment stage (`stg`, `stg2`, or `prod`) |
+| `STAGE` | Deployment stage (`stg` or `prod`) |
 | `ANTHROPIC_API_KEY` | Anthropic API key |
 | `CLAUDE_MODEL` | Claude model ID (default: `claude-haiku-4-5-20251001`) |
 | `CLAUDE_TAKEOVER_MODEL` | `purpose: "genai-takeover"`（生成AI の答えをルビティーにまかせる）で使うモデル（default: `claude-sonnet-5-5`）。`purpose` 未指定の呼び出しは `CLAUDE_MODEL` のまま |

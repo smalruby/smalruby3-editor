@@ -38,9 +38,6 @@ rm .env && ln -s .env.stg .env
 
 # prod に切り替え
 rm .env && ln -s .env.prod .env
-
-# stg2 (検証環境) に切り替え
-rm .env && ln -s .env.stg2 .env
 ```
 
 - **コマンドラインで env vars を上書きしない** (`.env` symlink を必ず使う)
@@ -54,7 +51,7 @@ CloudFormation スタック名・Lambda 関数名・DynamoDB テーブル名等�
 const stageSuffix = stage === 'prod' ? '' : `-${stage}`;
 ```
 
-例: `RubyteeRelayHandler` (prod) / `RubyteeRelayHandler-stg` (stg) / `RubyteeRelayHandler-stg2` (stg2)
+例: `RubyteeRelayHandler` (prod) / `RubyteeRelayHandler-stg` (stg)
 
 ### カスタムドメイン
 
@@ -64,7 +61,6 @@ const stageSuffix = stage === 'prod' ? '' : `-${stage}`;
 |---|---|
 | prod | `<service>.api.smalruby.app` |
 | stg | `stg.<service>.api.smalruby.app` |
-| stg2 | `stg2.<service>.api.smalruby.app` |
 
 **例外**: `smalruby-api` は **`api.smalruby.app` 直下** (旧 SAM スタックからの移行で既存ドメインをインポート)。
 

@@ -62,7 +62,6 @@ Mesh v2では、ステージごとに環境変数ファイルが用意されて�
 | ステージ | `.env` ファイル | 用途 |
 |---------|---------------|------|
 | `stg` | `.env.stg` | ステージング（開発用、高速な間隔） |
-| `stg2` | `.env.stg2` | ステージング2（並行テスト用） |
 | `prod` | `.env.production` | 本番環境（コスト最適化） |
 
 ### ステージの切り替え
@@ -200,7 +199,6 @@ aws appsync list-domain-names --query "domainNameConfigs[].domainName" --output 
 # 期待されるドメイン:
 #   graphql.api.smalruby.app        (prod)
 #   stg.graphql.api.smalruby.app    (stg)
-#   stg2.graphql.api.smalruby.app   (stg2)
 
 # DNS解決の確認
 dig stg.graphql.api.smalruby.app A +short
