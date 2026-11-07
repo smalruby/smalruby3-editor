@@ -130,9 +130,12 @@ decompose で分ける。人間が Issue を作るときも同じ）。
 `https://preview.smalruby.app/develop/` に出る。
 
 - **slug**（`scripts/preview-slug.mjs`）: ブランチ名を小文字にし、英数字以外の並びを `-` 1 つに
-  置き換え、先頭と末尾の `-` を落とす（例: `topic/autopilot-1329` → `topic-autopilot-1329`、
-  `develop` → `develop`）。63 文字（DNS ラベルの上限）を超える名前は切り詰めて、元の名前の
-  ハッシュ 8 桁を足す。使える文字が残らない名前（日本語だけ等）は `b-<ハッシュ 8 桁>`。
+  置き換え、先頭と末尾の `-` を落とす。**この正規化で名前が変わったときは、元の名前のハッシュ 8 桁を
+  必ず足す**（例: `topic/autopilot-1329` → `topic-autopilot-1329-<8 桁>`。`fix/foo_bar` と
+  `fix/foo-bar` のように正規化すると同じになるブランチが、プレビューを上書きし合わないため）。
+  そのまま slug として使える名前（`develop` など）は変えない。63 文字（DNS ラベルの上限）を超える
+  名前は切り詰めてハッシュを足す。使える文字が残らない名前（日本語だけ等）は `b-<ハッシュ 8 桁>`。
+  slug は推測で組み立てず、PR に CI が残すコメントの URL を使うか、`node scripts/preview-slug.mjs <branch>` で求める。
 - **片付け**（`.github/workflows/preview-cleanup.yml`）: PR を閉じるとそのブランチのプレビューが消え、
   週 1 回リモートに無いブランチのプレビューが消える（`develop` は消さない）。
 

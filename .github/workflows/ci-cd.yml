@@ -512,6 +512,36 @@ jobs:
           else
             echo "enabled=true" >> "$GITHUB_OUTPUT"
           fi
+      # Safety net: the build below reads the endpoints from Environment `stg`, which override
+      # the repo values of the same name. If one is missing there, the repo value (prod) is used
+      # silently and the preview would read and write production data. Every endpoint host must
+      # start with `stg.`; otherwise fail before building. Values are secrets, so never print them.
+      - name: Check that the build points to stg
+        if: steps.check.outputs.enabled == 'true'
+        env:
+          MESH_GRAPHQL_ENDPOINT: ${{ secrets.MESH_GRAPHQL_ENDPOINT }}
+          RUBYTEE_RELAY_ENDPOINT: ${{ secrets.RUBYTEE_RELAY_ENDPOINT }}
+          CLASSROOM_API_ENDPOINT: ${{ secrets.CLASSROOM_API_ENDPOINT }}
+          BUG_REPORT_API_ENDPOINT: ${{ secrets.BUG_REPORT_API_ENDPOINT }}
+          SCRATCH_API_PROXY_ENDPOINT: ${{ vars.SCRATCH_API_PROXY_ENDPOINT }}
+        run: |
+          set -euo pipefail
+          bad=()
+          for name in MESH_GRAPHQL_ENDPOINT RUBYTEE_RELAY_ENDPOINT CLASSROOM_API_ENDPOINT \
+            BUG_REPORT_API_ENDPOINT SCRATCH_API_PROXY_ENDPOINT; do
+            value="${!name}"
+            host="${value#*://}"
+            host="${host%%/*}"
+            case "${host}" in
+              stg.*) ;;
+              *) bad+=("${name}") ;;
+            esac
+          done
+          if [ "${#bad[@]}" -gt 0 ]; then
+            echo "::error::${bad[*]} が stg（ホストが stg. で始まる）を向いていません。Environment stg に登録されているか確かめてください。本番のデータに触れないよう、プレビューを出しません（docs/infra/smalruby-web-hosting.md の「CI のプレビュー」）。"
+            exit 1
+          fi
+          echo "All endpoints point to stg."
       - name: Compute the preview slug
         id: slug
         if: steps.check.outputs.enabled == 'true'

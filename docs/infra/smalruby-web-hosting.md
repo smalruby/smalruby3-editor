@@ -174,20 +174,25 @@ aws s3 rm "s3://$BUCKET/test/index.html"
 
 `preview-deploy` の流れ:
 
-1. ブランチ名から slug を作る（`develop` は `develop`。規則は `.claude/rules/infra/development.md` の
-   「ブランチプレビューで確かめる」）。
-2. **stg の値**で `npm run build` する。ジョブは `environment: stg` で動くので、Environment `stg` に置いた
+1. **エンドポイントが stg を向いているか確かめる**。Environment `stg` に値が無いと repo の値（prod）で
+   黙ってビルドされ、プレビューが本番のデータを読み書きしてしまう。`MESH_GRAPHQL_ENDPOINT` /
+   `RUBYTEE_RELAY_ENDPOINT` / `CLASSROOM_API_ENDPOINT` / `BUG_REPORT_API_ENDPOINT` /
+   `SCRATCH_API_PROXY_ENDPOINT` のホストが 1 つでも `stg.` で始まらなければ、ビルドせずにジョブを失敗させる
+   （値は secret なので出さず、名前だけを出す）。
+2. ブランチ名から slug を作る（`develop` は `develop`。正規化で名前が変わるブランチには元の名前の
+   ハッシュ 8 桁が付く。規則は `.claude/rules/infra/development.md` の「ブランチプレビューで確かめる」）。
+3. **stg の値**で `npm run build` する。ジョブは `environment: stg` で動くので、Environment `stg` に置いた
    Secrets / Variables（エンドポイント・メッシュの API キー・`SCRATCH_API_PROXY_ENDPOINT`）が repo の
    同名の値より優先される。prod と同じ値（Google / Microsoft のクライアント ID・メッセージ長・メッシュの
    間隔）は repo の値をそのまま使う。値の一覧は `docs/infra/stg-prod-differences.md` の「GUI のビルド値」。
-3. `PUBLIC_PATH=/<slug>/` で `postbuild.mjs` を走らせ、fetch-worker のパスを絶対パスにする
+4. `PUBLIC_PATH=/<slug>/` で `postbuild.mjs` を走らせ、fetch-worker のパスを絶対パスにする
    （GitHub Pages のプレビューと同じ。ビルド自体は相対パスなので、置き場所を選ばない）。
-4. GitHub OIDC で `PreviewDeployRoleArn` を AssumeRole し、`s3://<bucket>/<slug>/` に置く。上の
+5. GitHub OIDC で `PreviewDeployRoleArn` を AssumeRole し、`s3://<bucket>/<slug>/` に置く。上の
    「CI がアップロードするときの約束」どおり、ハッシュ付きのファイルとそれ以外で `Cache-Control` を
    分けて 2 回 sync し、最後に `--delete --size-only` で新しいビルドに無いものを消す。
-5. **develop のときだけ**、バケットのルートに `auth-redirect.html` / `auth-redirect.js` を置く
+6. **develop のときだけ**、バケットのルートに `auth-redirect.html` / `auth-redirect.js` を置く
    （全プレビューが共有するので、ブランチからは上書きしない）。
-6. `/<slug>/*` を invalidation し、PR なら 1 回だけ URL をコメントする（GitHub Pages の旧プレビューの
+7. `/<slug>/*` を invalidation し、PR なら 1 回だけ URL をコメントする（GitHub Pages の旧プレビューの
    URL と並べる）。
 
 - ブランチ単位の `concurrency` はワークフロー全体のまま（プレフィックスが分かれているので、

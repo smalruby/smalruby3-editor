@@ -4,6 +4,11 @@
 // safe as both a DNS label and an S3 key: lowercase a-z / 0-9 / '-', no leading or trailing
 // '-', at most 63 characters. `develop` stays `develop`.
 //
+// Whenever the normalization changes the name, the slug gets a hash of the original name.
+// Otherwise two branches that normalize the same (`fix/foo_bar` and `fix/foo-bar`,
+// `Feature/X` and `feature/x`) would share one prefix: their previews would overwrite each
+// other, and closing one PR would delete the other's preview.
+//
 // CLI: node scripts/preview-slug.mjs <branch>   -> prints the slug
 import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
@@ -19,7 +24,7 @@ const trimHyphens = s => s.replace(/^-+|-+$/g, '');
 /**
  * Normalize a branch name into a preview slug.
  * @param {string} branch - Git branch name (e.g. `topic/autopilot-1344`).
- * @returns {string} The slug (e.g. `topic-autopilot-1344`).
+ * @returns {string} The slug (e.g. `topic-autopilot-1344-<8 hex>`; `develop` stays `develop`).
  */
 export const previewSlug = branch => {
     if (typeof branch !== 'string' || branch === '') {
@@ -31,9 +36,9 @@ export const previewSlug = branch => {
         // and never yields an empty prefix, which would mean the bucket root.
         return `b-${shortHash(branch)}`;
     }
-    if (slug.length <= PREVIEW_SLUG_MAX_LENGTH) return slug;
-    // Cutting alone could make two long branches share a prefix; the hash of the original
-    // name keeps them distinct.
+    // A name that is already a valid slug (e.g. `develop`) is used as is.
+    if (slug === branch && slug.length <= PREVIEW_SLUG_MAX_LENGTH) return slug;
+    // Normalized or too long: the hash of the original name keeps different branches apart.
     const head = trimHyphens(slug.slice(0, PREVIEW_SLUG_MAX_LENGTH - HASH_LENGTH - 1));
     return `${head}-${shortHash(branch)}`;
 };
