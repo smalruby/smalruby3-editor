@@ -408,8 +408,8 @@ Playwright / 実 Chrome）に渡す引き継ぎを生成する**」。LLM は in
 
 1. 連携 PR と Issue 本文の **DoD チェックリスト**を取得（`extractDodChecklist`）。
 2. **プレビュー URL** を PR の CI コメントから拾う（`extractPreviewUrl`。
-   stg の API を見る `https://preview.smalruby.app/<slug>/` を優先し、無ければ prod の API を見る
-   旧 GitHub Pages の `https://smalruby.jp/smalruby3-editor/<branch>/`）。
+   stg の API を見る `https://preview.smalruby.app/<slug>/`。旧 GitHub Pages の
+   `https://smalruby.jp/smalruby3-editor/<branch>/` は出力を止めて更新されないので拾わない）。
 3. **テンプレートで引き継ぎ本文を生成**（`dodHandoffBody`）して `autopilot:dod-handoff` マーカー付き
    コメントを PR に投稿する。本文は「プレビュー URL ＋ Issue の DoD チェックリスト転記 ＋ 定型 headful
    手順（`?no_beforeunload=1`、スクショは `tmp/`→`docs/<feature>/screenshots/`、秘密情報は本文に

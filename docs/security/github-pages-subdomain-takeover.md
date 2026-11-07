@@ -113,7 +113,7 @@ dig +short smalruby.jp CAA
 |---|---|---|---|
 | `smalruby.app` | `smalruby.app` | https://smalruby.app/ | 🟢 現役 — smalruby3-editor から CI/CD で gh-pages push |
 | `smalruby.github.com` | `smalruby.jp` | https://smalruby.jp/ | 🟢 現役 — 静的ランディング |
-| `smalruby3-editor` | (なし) | smalruby.jp/smalruby3-editor/ | 🟢 現役 — エディタ本体配信 |
+| `smalruby3-editor` | (なし) | smalruby.jp/smalruby3-editor/ | 🟡 更新停止 — 旧 develop 版・ブランチプレビューの配信。CI は出力しなくなった（プレビューは `preview.smalruby.app` へ移行）。既存の内容は残している |
 | `smalruby3-gui` | (なし) | smalruby.jp/smalruby3-gui/ | 🟡 archive 済 — smalruby3-editor monorepo 統合後の後継誘導ページ |
 | `dxruby_sdl` | (なし) | smalruby.jp/dxruby_sdl/ | 🟡 active だが長期放置 — 歴史的資産として配信維持 (HTTPS 強制化のみ実施) |
 
