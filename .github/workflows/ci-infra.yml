@@ -401,3 +401,66 @@ jobs:
       - name: Run npm audit
         run: npm audit --audit-level=moderate
         continue-on-error: true
+
+  # ---------------------------------------------------------------------------
+  # smalruby-web-hosting
+  # ---------------------------------------------------------------------------
+  smalruby-web-hosting-unit-tests:
+    name: "[web-hosting] Unit Tests"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/smalruby-web-hosting
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: infra/smalruby-web-hosting/.node-version
+          cache: npm
+          cache-dependency-path: infra/smalruby-web-hosting/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Run unit tests
+        run: npm test
+
+  smalruby-web-hosting-cdk-build:
+    name: "[web-hosting] CDK Build & Synth"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/smalruby-web-hosting
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: infra/smalruby-web-hosting/.node-version
+          cache: npm
+          cache-dependency-path: infra/smalruby-web-hosting/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Build TypeScript
+        run: npm run build
+      # stg と prod で作るものが違う（prod は空のスタック）ので、両方を synth する
+      - name: Synthesize CDK stack (stg)
+        run: npx cdk synth --context stage=stg
+      - name: Synthesize CDK stack (prod)
+        run: npx cdk synth --context stage=prod
+
+  smalruby-web-hosting-security:
+    name: "[web-hosting] Security Audit"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/smalruby-web-hosting
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: infra/smalruby-web-hosting/.node-version
+          cache: npm
+          cache-dependency-path: infra/smalruby-web-hosting/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Run npm audit
+        run: npm audit --audit-level=moderate
+        continue-on-error: true

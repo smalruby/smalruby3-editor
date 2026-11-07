@@ -19,6 +19,7 @@ AWS CDK infrastructure projects live in `infra/`. Each project is independent fr
 | smalruby-api | `infra/smalruby-api/` | Smalruby API endpoints (HTTP API v2 + Lambda): cors-proxy, mesh-domain, scratch-api-proxy/* |
 | smalruby-bug-report | `infra/smalruby-bug-report/` | Program bug report service (HTTP API v2 + Lambda + DynamoDB + S3): 作品添付つき不具合報告 + 管理者レジストリ |
 | smalruby-admin | `infra/smalruby-admin/` | Admin service (HTTP API v2 + Lambda + DynamoDB): 管理 SPA のバックエンド（deny-by-default 許可リスト + 監査ログ） |
+| smalruby-web-hosting | `infra/smalruby-web-hosting/` | Web 配信基盤（Route 53。今後 S3 + CloudFront）: ブランチプレビュー `preview.smalruby.app`。stg だけに作り、prod は空のスタック |
 
 See project-specific rules for details:
 - `.claude/rules/infra/smalruby-mesh-v2.md`
@@ -27,6 +28,7 @@ See project-specific rules for details:
 - `.claude/rules/infra/smalruby-api.md`
 - `.claude/rules/infra/smalruby-bug-report.md`
 - `.claude/rules/infra/smalruby-admin.md`
+- `.claude/rules/infra/smalruby-web-hosting.md`
 
 ## Docker Service
 
@@ -299,15 +301,48 @@ account ID は CDK の `cdk.context.json` コミット方針で既にリポジ�
 
 ## データ保持（RemovalPolicy）と secret の互換性
 
-- **`RemovalPolicy.RETAIN` は「消えると取り戻せないデータ」の表だけ**。現在は次の 3 つ:
-  bug-report の `BugReportAdmins`、classroom の `SharedAssignments`（みんなの課題。prod のみ RETAIN）、
-  rubytee-relay の `RubyteeRelayUsage`（利用集計）。それ以外の運用テーブル（mesh-v2 / classroom の
-  クラス・課題系 / `BugReports` / rate limit / `RubyteeJobs`）は **DESTROY** — スタック削除・リソース
-  差し替えでデータが消える前提で扱うこと。RETAIN の表を増やすときはこの一覧も更新する。
+- **`RemovalPolicy.RETAIN` は次の 2 種類だけ**。RETAIN を増やすときはこの一覧も更新する。
+  1. **消えると取り戻せないデータ**の表: bug-report の `BugReportAdmins`、classroom の
+     `SharedAssignments`（みんなの課題。prod のみ RETAIN）、rubytee-relay の `RubyteeRelayUsage`（利用集計）。
+  2. **作り直すと、AWS の外に登録した値と食い違うリソース**: web-hosting の Route 53 ホストゾーン
+     `preview.smalruby.app`（stg のみ）。作り直すと NS が変わり、お名前.com に登録した委任の NS と合わなくなる。
+
+  それ以外の運用テーブル（mesh-v2 / classroom のクラス・課題系 / `BugReports` / rate limit /
+  `RubyteeJobs`）は **DESTROY** — スタック削除・リソース差し替えでデータが消える前提で扱うこと。
+- **RETAIN のリソースは、スタックを消すと AWS に取り残される**。同じ CDK をもう一度出すと、
+  取り残された物とは**別の新しいリソース**を作ろうとする（テーブルやバケットは同名で衝突して
+  デプロイが失敗し、Route 53 のゾーンは同名を許すので**黙って 2 つ目ができる**）。RETAIN を足す PR では、
+  作り直すときの手順（取り残された物を消すか `cdk import` で取り込む）を該当プロジェクトの
+  `docs/` に書く。レビューでは RETAIN の追加と手順の有無を対で確かめる。
 - **互換性クリティカルな secret**: `MESH_ZONE_SECRET_KEY`（smalruby-api）はローテートすると
   全ユーザーの mesh domain (CRC32) が変わる（詳細は `smalruby-api.md`）。mesh-v2 の
   `MESH_SECRET_KEY` は **未設定だと stack 既定の固定弱鍵 `'default-secret-key'` になる**
   フットガンがある（`.env.<stage>` で必ず設定する）。
+
+## 新しい CDK プロジェクトを足すときのチェックリスト
+
+`infra/<project>/` を新しく作る PR では、次をすべて同じ PR で（人間の作業は PR 本文と Issue に
+明記して）そろえる。漏れると CI が新しいプロジェクトを検査しない・自動デプロイが失敗する。
+レビューでもこの一覧で確かめる。
+
+1. **CI**: `.github/workflows/ci-infra.yml` に `[<project>] Unit Tests` / `CDK Build & Synth` /
+   `Security Audit` の 3 ジョブを足す（既存プロジェクトのジョブを写す）。このワークフローは
+   プロジェクトを自動検出しないので、足さないとテストも synth も CI で走らない。stage で作るものが
+   違うなら、`cdk synth` を各 stage で行う。`.github/workflows/` は Bot 権限外なので、push は
+   `bin/autopilot-push`（個人トークン経路）になり、PR に `👥 human-review-required` が付く。
+2. **デプロイ用 Secrets（人間・マージ前）**: `Deploy Infra` は差分のあったプロジェクトを自動で拾うが、
+   `.env` は Secrets から作る。repo Secrets に `INFRA_STG_DOTENV_<PROJECT>`、Environment `prod` に
+   `INFRA_PROD_DOTENV_<PROJECT>` が無いと、マージ後のデプロイがそのプロジェクトだけ失敗する
+   （`<PROJECT>` はハイフンを `_` にした大文字）。一覧は `docs/infra-deploy/README.md`。
+3. **prod で何も作らないプロジェクト**: prod のテンプレートが `AWS::CDK::Metadata` だけでも、
+   初回の `cdk diff` はスタックが無いので `BootstrapVersion` パラメータの追加を差分として出す
+   （`AWS::CDK::Metadata` は diff から除かれるが、パラメータは除かれない）。そのため初回の自動デプロイは
+   **空のスタックを作り**、2 回目からは「差分なし」で何もしない。削除・置き換えは含まないので
+   自動デプロイは止まらない。`AWS::CDK::Metadata` まで消すと（`versionReporting: false` など）
+   リソースが 0 個になり、CloudFormation がスタック作成を拒むので消さない。
+4. **rules と docs**: この表（Projects）とプロジェクト用の `.claude/rules/infra/<project>.md`、
+   `docs/infra/<project>.md` と `docs/infra/README.md` の一覧、`docs/infra-deploy/README.md` の Secrets 表。
+5. **`aws-cdk-lib` のバージョン**は既存プロジェクトと同じにピン留めする（上の共通規約）。
 
 ## Stage Switching via `.env` Symlink
 
