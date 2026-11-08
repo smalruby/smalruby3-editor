@@ -7,6 +7,7 @@ import {
     afterBlocksRender,
     canOfferTakeover,
     isGenaiAvailable,
+    isRubyTabGenaiAvailable,
     isNudgeOffToday,
     localDateKey,
     marksToShow,
@@ -355,5 +356,39 @@ describe('showInEditor', () => {
         vm.setEditingTarget = jest.fn();
         await showInEditor(vm, dog);
         expect(vm.listenerCount('workspaceUpdate')).toBe(0);
+    });
+});
+
+describe('isRubyTabGenaiAvailable', () => {
+    const student = {
+        role: 'student',
+        sessionToken: 'session',
+        classGenai: { enabled: true },
+        devFlag: false,
+        rubyVersion: '2',
+        dnclMode: false,
+    };
+
+    test('shows the face to a student of a class using a generative AI, with Ruby version 2', () => {
+        expect(isRubyTabGenaiAvailable(student)).toBe(true);
+    });
+
+    test('hides the face outside a class, to a teacher and with the setting off', () => {
+        expect(isRubyTabGenaiAvailable({ ...student, role: null, sessionToken: null })).toBe(false);
+        expect(isRubyTabGenaiAvailable({ ...student, role: 'teacher' })).toBe(false);
+        expect(isRubyTabGenaiAvailable({ ...student, classGenai: { enabled: false } })).toBe(false);
+    });
+
+    test('hides the face with Ruby version 1, also with ?features=genai', () => {
+        expect(isRubyTabGenaiAvailable({ ...student, rubyVersion: '1' })).toBe(false);
+        expect(isRubyTabGenaiAvailable({ ...student, role: null, devFlag: true, rubyVersion: '1' })).toBe(false);
+    });
+
+    test('hides the face in DNCL mode', () => {
+        expect(isRubyTabGenaiAvailable({ ...student, dnclMode: true })).toBe(false);
+    });
+
+    test('shows the face with ?features=genai outside a class', () => {
+        expect(isRubyTabGenaiAvailable({ ...student, role: null, sessionToken: null, devFlag: true })).toBe(true);
     });
 });

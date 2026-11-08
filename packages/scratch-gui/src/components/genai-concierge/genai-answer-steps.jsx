@@ -83,6 +83,11 @@ const describeProblem = (intl, problem) => {
                 place: placeOf(intl, problem.sprite, problem.line),
                 text: intl.formatMessage(messages.problemClassDef, { source: problem.source }),
             };
+        case 'otherSprite':
+            return {
+                place: null,
+                text: intl.formatMessage(messages.problemOtherSprite, { sprite: problem.sprite, only: problem.only }),
+            };
         case 'raw':
             return {
                 place: placeOf(intl, problem.sprite, null),
@@ -240,6 +245,8 @@ const GenaiAnswerSteps = ({
     onTakeover,
 }) => {
     const intl = useIntl();
+    // The Ruby tab puts code in the editor, not blocks (#1398).
+    const putsCode = adapter.puts === 'code';
     const [answer, setAnswer] = useState('');
     const [converted, setConverted] = useState(null);
     const [failures, setFailures] = useState(0);
@@ -513,7 +520,7 @@ const GenaiAnswerSteps = ({
                             />
                             <p className={styles.small}>
                                 <FormattedMessage
-                                    {...messages.applyReplaces}
+                                    {...(putsCode ? messages.applyReplacesCode : messages.applyReplaces)}
                                     values={{ names: quoteNames(converted.parts.map((part) => part.name)) }}
                                 />
                             </p>
@@ -569,7 +576,7 @@ const GenaiAnswerSteps = ({
                     {converted && converted.ok && (
                         <>
                             <button data-testid="genai-self" onClick={onClose}>
-                                <FormattedMessage {...messages.self} />
+                                <FormattedMessage {...(putsCode ? messages.selfCode : messages.self)} />
                             </button>
                             <button
                                 className={styles.primary}
@@ -577,7 +584,7 @@ const GenaiAnswerSteps = ({
                                 disabled={reflection.trim().length < 5 || busy}
                                 onClick={handleApply}
                             >
-                                <FormattedMessage {...messages.apply} />
+                                <FormattedMessage {...(putsCode ? messages.applyCode : messages.apply)} />
                             </button>
                         </>
                     )}
@@ -635,7 +642,8 @@ const GenaiAnswerSteps = ({
                             }}
                         />
                     </p>
-                    {marks && (
+                    {/* The Ruby tab has no marks yet (#1399). */}
+                    {marks && marks.length > 0 && (
                         <>
                             <ChangeList parts={marks} several={marks.length > 1} onShow={onShowBlocks} />
                             <p className={styles.small}>
@@ -677,6 +685,8 @@ GenaiAnswerSteps.propTypes = {
         apply: PropTypes.func.isRequired,
         switchSides: PropTypes.func.isRequired,
         watchMarks: PropTypes.func.isRequired,
+        // 'code' when the answer goes into a code editor (the Ruby tab); blocks otherwise.
+        puts: PropTypes.string,
     }).isRequired,
     serviceName: PropTypes.string,
     // The question copied to the AI first, and the trouble it was about: sent to Rubytee (#1282).

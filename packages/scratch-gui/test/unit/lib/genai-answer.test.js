@@ -225,3 +225,63 @@ describe('liveSnapshots', () => {
         expect(liveSnapshots(snapshots, [a])).toEqual([{ target: a, name: 'Abby' }]);
     });
 });
+
+describe('checkAnswer for one sprite (the Ruby tab, #1398)', () => {
+    test('fails an answer that also changes another sprite', async () => {
+        const answer = wrap('# 「Abby」\nmove(10)\n# 「Dee」\nmove(5)\n');
+        const result = await checkAnswer({ answer, sprites, editingName: 'Abby', onlyName: 'Abby', convert });
+        expect(result.ok).toBe(false);
+        expect(result.problems).toEqual([{ type: 'otherSprite', sprite: 'Dee', only: 'Abby' }]);
+        // Only the sprite in the editor is converted and put in.
+        expect(result.parts.map((part) => part.name)).toEqual(['Abby']);
+    });
+
+    test('fails an answer only for another sprite', async () => {
+        const answer = wrap('# 「Dee」\nmove(5)\n');
+        const result = await checkAnswer({ answer, sprites, editingName: 'Abby', onlyName: 'Abby', convert });
+        expect(result.ok).toBe(false);
+        expect(result.problems).toEqual([{ type: 'otherSprite', sprite: 'Dee', only: 'Abby' }]);
+        expect(result.parts).toEqual([]);
+    });
+
+    test('passes an answer for the sprite in the editor, with or without its heading', async () => {
+        const plain = await checkAnswer({
+            answer: wrap('move(10)\n'),
+            sprites,
+            editingName: 'Abby',
+            onlyName: 'Abby',
+            convert,
+        });
+        expect(plain.ok).toBe(true);
+        const headed = await checkAnswer({
+            answer: wrap('# 「Abby」\nmove(10)\n'),
+            sprites,
+            editingName: 'Abby',
+            onlyName: 'Abby',
+            convert,
+        });
+        expect(headed.ok).toBe(true);
+        expect(headed.code).toBe('move(10)\n');
+    });
+
+    test('keeps the lines above a comment that is only the name of the sprite', async () => {
+        // A block comment 「Abby」 comes out as `# Abby`: it is not a heading of another part.
+        const result = await checkAnswer({
+            answer: wrap('move(10)\n# Abby\nturn_right(15)\n'),
+            sprites,
+            editingName: 'Abby',
+            onlyName: 'Abby',
+            convert,
+        });
+        expect(result.ok).toBe(true);
+        expect(result.parts).toHaveLength(1);
+        expect(result.code).toContain('move(10)');
+        expect(result.code).toContain('turn_right(15)');
+    });
+
+    test('asks the AI for only the sprite in the editor', () => {
+        expect(problemToJapanese({ type: 'otherSprite', sprite: 'Dee', only: 'Abby' })).toBe(
+            '「Dee」のプログラムまで直しています。「Abby」の分だけにしてください',
+        );
+    });
+});

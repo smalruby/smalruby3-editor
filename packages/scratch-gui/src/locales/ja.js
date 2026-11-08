@@ -1722,6 +1722,8 @@ export default {
     'gui.genaiConcierge.starter.next': '〜まではできた。次に〜したい',
     'gui.genaiConcierge.kind.how': 'ブロックの使い方がわからない',
     'gui.genaiConcierge.starter.how': '〜するには、どのブロックを使えばいい？',
+    'gui.genaiConcierge.kind.howCommand': '命令の書き方がわからない',
+    'gui.genaiConcierge.starter.howCommand': '〜するには、どう書けばいい？',
     'gui.genaiConcierge.kind.moreFun': 'もっとおもしろくしたい',
     'gui.genaiConcierge.starter.moreFun': '〜を、もっと〜にしたい',
     'gui.genaiConcierge.serviceQuestion': '学校で使っている生成AI はどれ？',
@@ -1765,6 +1767,8 @@ export default {
     'gui.genaiConcierge.problemMissingSoundNone': '音「{name}」はありません（このスプライトには音がありません）',
     'gui.genaiConcierge.problemMissingCostume': 'コスチューム「{name}」はありません（使えるコスチューム: {names}）',
     'gui.genaiConcierge.problemMissingCostumeNone': 'コスチューム「{name}」はありません',
+    'gui.genaiConcierge.problemOtherSprite':
+        '「{sprite}」のプログラムまで直しています。「{only}」の分だけにしてもらおう',
     'gui.genaiConcierge.problemClassDef': 'クラスの定義（{source}）はブロックにできません',
     'gui.genaiConcierge.problemRaw': '{count} か所が、ふつうのブロックになりません',
     'gui.genaiConcierge.rubyShow': 'Ruby を見る',
@@ -1773,6 +1777,9 @@ export default {
     'gui.genaiConcierge.applyReplaces': '入れると、{names}のブロックが置きかわります。',
     'gui.genaiConcierge.apply': 'このブロックを入れる',
     'gui.genaiConcierge.self': '自分で組む',
+    'gui.genaiConcierge.applyReplacesCode': 'エディタの{names}のコードが置きかわります（Ctrl+Z で元にもどせます）。',
+    'gui.genaiConcierge.applyCode': 'このコードにする',
+    'gui.genaiConcierge.selfCode': '自分で書く',
     'gui.genaiConcierge.copyRewrite': '書き直しのお願いをコピー',
     'gui.genaiConcierge.takeover': 'ルビティーにまかせる',
     'gui.genaiConcierge.takeoverRunning':

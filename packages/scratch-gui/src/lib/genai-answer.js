@@ -35,22 +35,38 @@ const findClassDefinitions = (code) =>
  * @param {Array<{name: string, sounds: Array<string>, costumes: Array<string>}>} params.sprites -
  *     the sprites ('ステージ' for the stage).
  * @param {string} params.editingName - the sprite an answer without headings goes to.
+ * @param {?string} [params.onlyName] - the only sprite the answer may change (the Ruby tab,
+ *     #1398): a part for another sprite is a problem, and is neither converted nor put in.
  * @param {function(string, string): Promise<object>} params.convert - converts one sprite's
  *     Ruby; resolves to a converter with `result`, `errors` and `blocks`.
  * @returns {Promise<object>} `{ok, code, parts, fixes, problems}`: `parts` are
  *     `{name, code, fixes, converter}` and `problems` are objects with a `type`.
  */
-const checkAnswer = async ({ answer, sprites, editingName, convert }) => {
+const checkAnswer = async ({ answer, sprites, editingName, onlyName = null, convert }) => {
     const code = extractRuby(answer);
     if (!code) return { ok: false, code: '', parts: [], fixes: [], problems: [{ type: 'noProgram' }] };
     const byName = {};
     sprites.forEach((sprite) => {
         byName[sprite.name] = sprite;
     });
-    const sections = splitBySprite(code, Object.keys(byName)) || [{ name: editingName, code }];
+    const split = splitBySprite(code, Object.keys(byName), { leadingName: onlyName }) || [
+        { name: editingName, code },
+    ];
+    const problems = [];
+    // With onlyName, what is for that sprite (also before and between the headings) is one part.
+    const mine = split.filter((section) => section.name === onlyName);
+    const sections = onlyName
+        ? mine.length > 1
+            ? [{ name: onlyName, code: mine.map((section) => section.code).join('') }]
+            : mine
+        : split;
+    if (onlyName) {
+        split
+            .filter((section) => section.name !== onlyName)
+            .forEach((section) => problems.push({ type: 'otherSprite', sprite: section.name, only: onlyName }));
+    }
     const several = sections.length > 1;
     const parts = [];
-    const problems = [];
     for (const section of sections) {
         const sprite = byName[section.name] || { sounds: [], costumes: [] };
         const repaired = repairRuby(section.code, sprite);
@@ -92,7 +108,11 @@ const checkAnswer = async ({ answer, sprites, editingName, convert }) => {
     }
     return {
         ok: problems.length === 0,
-        code: several ? parts.map((part) => `# 「${part.name}」\n${part.code}`).join('\n') : parts[0].code,
+        code: several
+            ? parts.map((part) => `# 「${part.name}」\n${part.code}`).join('\n')
+            : parts.length > 0
+              ? parts[0].code
+              : code,
         parts,
         fixes: parts.flatMap((part) => part.fixes.map((fix) => ({ name: several ? part.name : null, ...fix }))),
         problems,
@@ -120,6 +140,8 @@ const problemToJapanese = (problem) => {
         }
         case 'classDef':
             return `${sprite}${problem.line} 行目: クラスの定義（${problem.source}）は使えません。「# 「スプライト名」」の行でスプライトごとに分けてください`;
+        case 'otherSprite':
+            return `「${problem.sprite}」のプログラムまで直しています。「${problem.only}」の分だけにしてください`;
         case 'raw':
             return `${sprite}${problem.count} か所が、スモウルビーのブロックになりませんでした`;
         case 'error':

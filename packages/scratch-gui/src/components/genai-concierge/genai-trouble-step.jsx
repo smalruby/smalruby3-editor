@@ -6,7 +6,7 @@ import { PROBLEM_KINDS } from '../../lib/genai-prompt.js';
 import styles from './genai-concierge.css';
 import messages, { KIND_MESSAGES } from './messages.js';
 
-const GenaiTroubleStep = ({ kindId, text, onKindChange, onTextChange, onMakePrompt }) => {
+const GenaiTroubleStep = ({ kinds, kindId, text, onKindChange, onTextChange, onMakePrompt }) => {
     const intl = useIntl();
     const starterOf = (id) => intl.formatMessage(KIND_MESSAGES[id].starter);
 
@@ -31,7 +31,7 @@ const GenaiTroubleStep = ({ kindId, text, onKindChange, onTextChange, onMakeProm
                     <FormattedMessage {...messages.troubleQuestion} />
                 </p>
                 <div className={styles.chips}>
-                    {PROBLEM_KINDS.map((k) => (
+                    {kinds.map((id) => PROBLEM_KINDS.find((k) => k.id === id)).map((k) => (
                         <button
                             key={k.id}
                             className={k.id === kindId ? styles.chipOn : styles.chip}
@@ -69,6 +69,8 @@ const GenaiTroubleStep = ({ kindId, text, onKindChange, onTextChange, onMakeProm
 };
 
 GenaiTroubleStep.propTypes = {
+    // The ids of the kinds of trouble the tab offers (genai-prompt.js), in that order.
+    kinds: PropTypes.arrayOf(PropTypes.string).isRequired,
     kindId: PropTypes.string,
     text: PropTypes.string.isRequired,
     onKindChange: PropTypes.func.isRequired,

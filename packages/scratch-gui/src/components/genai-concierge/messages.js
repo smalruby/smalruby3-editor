@@ -101,6 +101,16 @@ const messages = defineMessages({
         description: 'Sentence to start from for the trouble "how to use a block"',
         id: 'gui.genaiConcierge.starter.how',
     },
+    kindHowCommand: {
+        defaultMessage: "I don't know how to write a command",
+        description: 'Kind of trouble in the Ruby tab: the student does not know how to write a command',
+        id: 'gui.genaiConcierge.kind.howCommand',
+    },
+    starterHowCommand: {
+        defaultMessage: 'How should I write ...?',
+        description: 'Sentence to start from for the trouble "how to write a command"',
+        id: 'gui.genaiConcierge.starter.howCommand',
+    },
     kindMoreFun: {
         defaultMessage: 'I want to make it more fun',
         description: 'Kind of trouble: the student wants to make the work more fun',
@@ -311,6 +321,11 @@ const messages = defineMessages({
         description: 'Problem: the answer uses a costume, and the sprite has none',
         id: 'gui.genaiConcierge.problemMissingCostumeNone',
     },
+    problemOtherSprite: {
+        defaultMessage: 'It also changes "{sprite}". Ask for only "{only}"',
+        description: 'Problem in the Ruby tab: the answer changes another sprite than the one in the editor',
+        id: 'gui.genaiConcierge.problemOtherSprite',
+    },
     problemClassDef: {
         defaultMessage: 'A class definition ({source}) cannot become blocks',
         description: 'Problem: the answer is written as a Ruby class',
@@ -345,6 +360,21 @@ const messages = defineMessages({
         defaultMessage: 'Put these blocks in',
         description: 'Button putting the AI blocks in',
         id: 'gui.genaiConcierge.apply',
+    },
+    applyReplacesCode: {
+        defaultMessage: 'This replaces the code of {names} in the editor (Ctrl+Z takes it back).',
+        description: 'Ruby tab: which sprite the code is replaced in ({names}: sprite name)',
+        id: 'gui.genaiConcierge.applyReplacesCode',
+    },
+    applyCode: {
+        defaultMessage: 'Use this code',
+        description: 'Ruby tab: button putting the AI code in the editor',
+        id: 'gui.genaiConcierge.applyCode',
+    },
+    selfCode: {
+        defaultMessage: 'Write it myself',
+        description: 'Ruby tab: button closing the panel to write the program without the AI code',
+        id: 'gui.genaiConcierge.selfCode',
     },
     self: {
         defaultMessage: 'Build it myself',
@@ -485,6 +515,7 @@ const KIND_MESSAGES = {
     error: { label: messages.kindError, starter: messages.starterError },
     next: { label: messages.kindNext, starter: messages.starterNext },
     how: { label: messages.kindHow, starter: messages.starterHow },
+    'how-command': { label: messages.kindHowCommand, starter: messages.starterHowCommand },
     'more-fun': { label: messages.kindMoreFun, starter: messages.starterMoreFun },
 };
 

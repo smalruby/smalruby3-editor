@@ -17,6 +17,7 @@ import { tidyPastedDncl, withDoubleSlashHint } from '../lib/dncl/dncl-paste-tidy
 import { dnclToRuby } from '../lib/dncl/dncl-to-ruby';
 import { rubyToDncl } from '../lib/dncl/ruby-to-dncl';
 import FuriganaAnnotator from '../lib/furigana-annotator';
+import { makeRubyTabAdapterFactory } from '../lib/genai-ruby-adapter.js';
 import { wrapCurrentCodeWithClass } from '../lib/insert-class';
 import intlShape from '../lib/intlShape.js';
 import { isJapaneseLocale } from '../lib/locale-utils';
@@ -45,6 +46,7 @@ import {
 } from '../reducers/ruby-code';
 import { setRubyVersion, dismissV1Prompt } from '../reducers/settings';
 import { markRubyTabUsed } from '../reducers/tutorial-onboarding';
+import GenaiConcierge from './genai-concierge.jsx';
 import RubyDownloader from './ruby-downloader.jsx';
 import {
     FONT_SIZES,
@@ -224,6 +226,16 @@ const RubyTab = (props) => {
     intlRef.current = intl;
     const vmRef = useRef(vm);
     vmRef.current = vm;
+    // "生成AI に相談" in the Ruby and furigana modes (#1398). The adapter reads the editor
+    // and the mode when it needs them, so this function stays the same between renders.
+    const genaiAdapterRef = useRef(null);
+    if (!genaiAdapterRef.current) {
+        genaiAdapterRef.current = makeRubyTabAdapterFactory({
+            getEditor: () => editorRef.current,
+            getMonaco: () => monacoRef.current,
+            getMode: () => (furiganaEnabledRef.current ? 'furigana' : 'ruby'),
+        });
+    }
     // Load Monaco locale synchronously before first render
     const localeLoadedRef = useRef(false);
     if (!localeLoadedRef.current) {
@@ -1433,6 +1445,7 @@ const RubyTab = (props) => {
                         value={dnclMode ? dnclDisplayCode : code}
                         width="100%"
                     />
+                    <GenaiConcierge vm={vm} rubyTab dnclMode={dnclMode} createAdapter={genaiAdapterRef.current} />
                 </div>
             </div>
             {/* Hidden RubyDownloader for storing download callback */}

@@ -25,6 +25,7 @@ import {
     NUDGE_IDLE_SECONDS,
     isGenaiAvailable,
     isNudgeOffToday,
+    isRubyTabGenaiAvailable,
     localDateKey,
     panelPlacement,
     resolveGenaiTarget,
@@ -64,9 +65,13 @@ const FACE_WIDTH = 52;
 // Margin kept above the panel inside the script area.
 const PANEL_TOP_MARGIN = 12;
 
+// Whether the face is on the screen: a hidden tab panel (display: none) has no offsetParent.
+const isShown = (element) => Boolean(element && element.offsetParent);
+
 const GenaiConcierge = ({
     vm,
     createAdapter = createCodeTabAdapter,
+    rubyTab,
     rubyVersion,
     assignmentName,
     available,
@@ -84,7 +89,8 @@ const GenaiConcierge = ({
         [createAdapter, vm, intl, rubyVersion, scratchBlocks],
     );
     // The teacher may have turned the generative AI off since the page was last open.
-    useStudentClassSettingsRefresh({ role, sessionToken, dispatch });
+    // The code tab's panel reads it for both (both tabs are mounted at once, #1398).
+    useStudentClassSettingsRefresh({ role: rubyTab ? null : role, sessionToken, dispatch });
     const [area, setArea] = useState({ left: 12, width: 0, height: 0 });
     const [nudge, setNudge] = useState(false);
     const [open, setOpen] = useState(false);
@@ -165,7 +171,9 @@ const GenaiConcierge = ({
                 lastNudge: lastNudge.current,
                 idleMs,
                 gapMs,
-                busy: open || nudge || runningRef.current || document.hidden,
+                // Both tabs' panels are mounted at once: the one in a hidden tab keeps quiet,
+                // or it would greet the student on the next visit to that tab (#1398).
+                busy: open || nudge || runningRef.current || document.hidden || !isShown(rootRef.current),
                 offToday: isNudgeOffToday(readStorage(NUDGE_OFF_KEY), now),
             });
             if (!show) return;
@@ -181,11 +189,17 @@ const GenaiConcierge = ({
         };
     }, [vm, available, open, nudge]);
 
+    // A trouble the tab sees (an error in the Ruby editor) is where a new consultation starts.
     const handleOpen = useCallback(() => {
         setNudge(false);
         setOpen(true);
         setOpened(true);
-    }, []);
+        if (step !== 'trouble' || kindId || text.trim() || !adapter.initialTrouble) return;
+        const start = adapter.initialTrouble();
+        if (!start) return;
+        setKindId(start.kindId);
+        setText(start.text);
+    }, [adapter, step, kindId, text]);
 
     const handleClose = useCallback(() => {
         setOpen(false);
@@ -377,6 +391,7 @@ const GenaiConcierge = ({
                     <div className={styles.body}>
                         {step === 'trouble' && (
                             <GenaiTroubleStep
+                                kinds={adapter.problemKinds}
                                 kindId={kindId}
                                 text={text}
                                 onKindChange={handleKindChange}
@@ -461,6 +476,11 @@ GenaiConcierge.propTypes = {
     // by default. Pass a function that stays the same between renders (not an inline arrow):
     // a new one makes a new adapter, and the marks and the area are set up again each time.
     createAdapter: PropTypes.func,
+    // In the Ruby tab: the face is only for Ruby version 2 and not in DNCL mode (#1398).
+    rubyTab: PropTypes.bool,
+    // Read by mapStateToProps only.
+    // eslint-disable-next-line react/no-unused-prop-types
+    dnclMode: PropTypes.bool,
     rubyVersion: PropTypes.string,
     assignmentName: PropTypes.string,
     available: PropTypes.bool.isRequired,
@@ -484,8 +504,14 @@ GenaiConcierge.propTypes = {
     dispatch: PropTypes.func.isRequired,
 };
 
-const mapStateToProps = (state) => {
+const mapStateToProps = (state, ownProps) => {
     const { classroom } = state.scratchGui;
+    const access = {
+        role: classroom.role,
+        sessionToken: classroom.sessionToken,
+        classGenai: classroom.studentGenai,
+        devFlag: getUrlParams().features.includes('genai'),
+    };
     return {
         rubyVersion: state.scratchGui.settings.rubyVersion,
         role: classroom.role,
@@ -493,13 +519,15 @@ const mapStateToProps = (state) => {
         scratchBlocks: state.scratchGui.blockDisplay && state.scratchGui.blockDisplay.scratchBlocks,
         assignmentName: classroom.assignmentName,
         classGenai: classroom.studentGenai,
-        available: isGenaiAvailable({
-            role: classroom.role,
-            sessionToken: classroom.sessionToken,
-            classGenai: classroom.studentGenai,
-            devFlag: getUrlParams().features.includes('genai'),
-        }),
-        rubyteeAvailable: selectRubyteeAvailable(state),
+        available: ownProps.rubyTab
+            ? isRubyTabGenaiAvailable({
+                  ...access,
+                  rubyVersion: state.scratchGui.settings.rubyVersion,
+                  dnclMode: Boolean(ownProps.dnclMode),
+              })
+            : isGenaiAvailable(access),
+        // The Ruby tab's 「ルビティーにまかせる」 comes with #1400.
+        rubyteeAvailable: ownProps.rubyTab ? false : selectRubyteeAvailable(state),
         running: Boolean(state.scratchGui.vmStatus && state.scratchGui.vmStatus.running),
     };
 };

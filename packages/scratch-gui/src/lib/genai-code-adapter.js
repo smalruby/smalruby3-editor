@@ -8,6 +8,8 @@
 // An adapter is an object with these points:
 //
 // 1. Making the question
+//    - problemKinds: the ids of the kinds of trouble offered (PROBLEM_KINDS of genai-prompt.js).
+//    - initialTrouble() (optional): {kindId, text} to start the trouble with, or null.
 //    - programs(): [{name, code, sounds, costumes}] of every sprite and the stage, as the
 //      AI reads them (the code tab: each target as Ruby). Also what Rubytee is sent.
 //    - editingName(): the name of the sprite in the editor (「ステージ」 for the stage), or null.
@@ -23,6 +25,8 @@
 //      student's changes on the side left (switchSnapshots); resolves to {snapshots, marks}.
 //    - watchMarks(marks): marks the changes in the editor while the panel is open; returns
 //      the function that takes the marks away.
+//    - puts (optional): 'code' when the answer goes into a code editor (the panel's words
+//      then say code, not blocks).
 //    - showBlocks(owner, ids): brings what changed (ids of changes) of `owner` into view.
 // 4. Showing what is added or changed
 //    - marks and parts[].changes: [{target, name, changes}] with changes as
@@ -34,7 +38,7 @@
 import { checkAnswer, liveSnapshots, switchSnapshots } from './genai-answer.js';
 import { describeChanges, diffBlocks } from './genai-block-diff.js';
 import { afterBlocksRender, scrollToShowBlocks, showInEditor } from './genai-concierge-state.js';
-import { buildGenaiPrompt } from './genai-prompt.js';
+import { CODE_TAB_KINDS, buildGenaiPrompt } from './genai-prompt.js';
 import RubyGenerator from './ruby-generator';
 import { targetCodeToBlocks } from './ruby-to-blocks-converter';
 
@@ -298,6 +302,7 @@ export const createCodeTabAdapter = ({ vm, intl, rubyVersion, scratchBlocks, dep
             });
 
     return {
+        problemKinds: CODE_TAB_KINDS,
         programs,
         editingName,
         buildPrompt,

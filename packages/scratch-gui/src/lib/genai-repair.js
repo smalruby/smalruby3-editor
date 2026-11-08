@@ -129,12 +129,18 @@ const HEADING = /^\s*#\s*(?:[「『"]\s*)?(.+?)(?:\s*[」』"])?\s*(?:の\s*プ�
  * Split an answer that covers several sprites at `# 「name」` comment lines.
  * @param {string} code - the Ruby from the answer.
  * @param {Array<string>} names - the sprite names in the project (and 'ステージ').
+ * @param {object} [options] - options.
+ * @param {?string} [options.leadingName] - the sprite the lines before the first heading
+ *     belong to. Without it they are dropped. The Ruby tab's answer has no headings, so a
+ *     comment there that is only a sprite name (a block comment 「ネコ」) would otherwise
+ *     cut off the program above it (#1398).
  * @returns {?Array<{name: string, code: string}>} one part per sprite, or null when the
  *     answer has no sprite headings.
  */
-const splitBySprite = (code, names) => {
+const splitBySprite = (code, names, { leadingName = null } = {}) => {
     const parts = [];
-    let current = null;
+    const leading = { name: leadingName, lines: [] };
+    let current = leadingName ? leading : null;
     for (const line of code.split('\n')) {
         const match = line.match(HEADING);
         const name = match && names.find((n) => normalize(n) === normalize(match[1]));
@@ -146,6 +152,7 @@ const splitBySprite = (code, names) => {
         }
     }
     if (parts.length === 0) return null;
+    if (leading.lines.some((line) => line.trim())) parts.unshift(leading);
     return parts.map((part) => ({ name: part.name, code: `${part.lines.join('\n').trim()}\n` }));
 };
 
