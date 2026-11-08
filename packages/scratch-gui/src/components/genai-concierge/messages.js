@@ -116,6 +116,36 @@ const messages = defineMessages({
         description: 'Sentence to start from for the trouble "how to write a command"',
         id: 'gui.genaiConcierge.starter.howCommand',
     },
+    kindWrongAnswer: {
+        defaultMessage: 'The answer is wrong',
+        description: 'Kind of trouble in the Japanese (DNCL) mode: the program prints a wrong answer',
+        id: 'gui.genaiConcierge.kind.wrongAnswer',
+    },
+    starterWrongAnswer: {
+        defaultMessage: 'It should be ..., but it shows ...',
+        description: 'Sentence to start from for the trouble "the answer is wrong"',
+        id: 'gui.genaiConcierge.starter.wrongAnswer',
+    },
+    kindHowWrite: {
+        defaultMessage: "I don't know how to write it",
+        description: 'Kind of trouble in the Japanese (DNCL) mode: the student does not know how to write it',
+        id: 'gui.genaiConcierge.kind.howWrite',
+    },
+    starterHowWrite: {
+        defaultMessage: 'How should I write ...?',
+        description: 'Sentence to start from for the trouble "how to write it"',
+        id: 'gui.genaiConcierge.starter.howWrite',
+    },
+    kindHowThink: {
+        defaultMessage: "I don't know how to think about the problem",
+        description: 'Kind of trouble in the Japanese (DNCL) mode: the student does not know how to solve the problem',
+        id: 'gui.genaiConcierge.kind.howThink',
+    },
+    starterHowThink: {
+        defaultMessage: "In a problem asking for ..., I don't know how to think",
+        description: 'Sentence to start from for the trouble "how to think about the problem"',
+        id: 'gui.genaiConcierge.starter.howThink',
+    },
     kindMoreFun: {
         defaultMessage: 'I want to make it more fun',
         description: 'Kind of trouble: the student wants to make the work more fun',
@@ -351,6 +381,16 @@ const messages = defineMessages({
         description: 'Link hiding the repaired Ruby',
         id: 'gui.genaiConcierge.rubyHide',
     },
+    programShow: {
+        defaultMessage: 'See the program',
+        description: 'Link showing the DNCL program of the answer (Japanese mode of the Ruby tab)',
+        id: 'gui.genaiConcierge.programShow',
+    },
+    programHide: {
+        defaultMessage: 'Hide the program',
+        description: 'Link hiding the DNCL program of the answer (Japanese mode of the Ruby tab)',
+        id: 'gui.genaiConcierge.programHide',
+    },
     reflectionLabel: {
         defaultMessage: 'In one line of your own words, write what will change (required)',
         description: 'Label of the one-line reflection before putting the blocks in',
@@ -548,6 +588,9 @@ const KIND_MESSAGES = {
     how: { label: messages.kindHow, starter: messages.starterHow },
     'how-command': { label: messages.kindHowCommand, starter: messages.starterHowCommand },
     'more-fun': { label: messages.kindMoreFun, starter: messages.starterMoreFun },
+    'wrong-answer': { label: messages.kindWrongAnswer, starter: messages.starterWrongAnswer },
+    'how-write': { label: messages.kindHowWrite, starter: messages.starterHowWrite },
+    'how-think': { label: messages.kindHowThink, starter: messages.starterHowThink },
 };
 
 export { KIND_MESSAGES };

@@ -10,8 +10,10 @@ node_modules
 cdk.out
 cdk.out.*
 
-# Environment variables (all are gitignored; use symlink: ln -s .env.production .env)
+# Environment variables (all are gitignored; use symlink: ln -s .env.prod .env)
+# .env.production は旧名（#1373 で .env.prod にそろえた。手元の旧名ファイルも無視し続ける）
 .env
+.env.prod
 .env.production
 .env.stg
 .env.stg2

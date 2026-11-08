@@ -145,7 +145,7 @@ CDK スタック定義。以下のリソースを作成:
 | `validatePeerView()` / `peerViewOf()` | 課題設定「他者参照」（`none` / `always` / `afterSubmit`）の検証（未送信は undefined）と読み出し（未設定は `none`）#1239 |
 | `validateMeshGroupLimit()` / `meshGroupLimitOf()` | 課題のメッシュのグループの人数の上限（`6` / `0` = 制限なし）の検証（未送信は undefined・不正値は `ValidationError`）と読み出し（未設定は `0` = 制限なし。応答は常に `6` か `0`）#1255 |
 | `validateGenaiSetting()` / `genaiSettingOf()` | クラスの生成AI設定 `genai` の検証（保存済みの値に部分更新を重ね、service / https URL / 有効化条件を検証）と読み出し（未設定は無効）#1275 |
-| `validateRubyteeSetting()` / `rubyteeSettingOf()` | クラスのルビティー設定 `rubytee` の検証と読み出し（未設定は無効）#1275 |
+| `validateRubyteeSetting()` / `rubyteeSettingOf()` | クラスのルビティー設定 `rubytee`（`enabled` / `confirmed`）の検証（保存済みの値に部分更新を重ねる）と読み出し（未設定は無効・`confirmed` の無い既存の設定は `false`）#1275 #1411 |
 | `studentAiSettingsOf()` | 生徒向け応答に載せるクラスの AI 設定（`confirmed` を除く）#1275 |
 | `validateScreenshotLabels()` | 提出の任意項目 `screenshotLabels`（スプライト名の配列）の検証 #1239 |
 | `handleListNotifications()` | お知らせ一覧 + 未読数 (EPIC #1111) |

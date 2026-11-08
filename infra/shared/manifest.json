@@ -1,0 +1,14 @@
+{
+  "files": [
+    { "source": "cors-origins.ts", "dest": "lib/cors-origins.ts" },
+    { "source": "tests/cors-origins.test.ts", "dest": "lambda/tests/cors-origins.test.ts" },
+    { "source": "tests/shared-copies.test.ts", "dest": "lambda/tests/shared-copies.test.ts" }
+  ],
+  "projects": [
+    "smalruby-admin",
+    "smalruby-api",
+    "smalruby-bug-report",
+    "smalruby-classroom",
+    "smalruby-rubytee-relay"
+  ]
+}

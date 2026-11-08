@@ -62,7 +62,7 @@ Mesh v2では、ステージごとに環境変数ファイルが用意されて�
 | ステージ | `.env` ファイル | 用途 |
 |---------|---------------|------|
 | `stg` | `.env.stg` | ステージング（開発用、高速な間隔） |
-| `prod` | `.env.production` | 本番環境（コスト最適化） |
+| `prod` | `.env.prod` | 本番環境（コスト最適化） |
 
 ### ステージの切り替え
 
@@ -73,7 +73,7 @@ cd infra/smalruby-mesh-v2
 rm .env && ln -s .env.stg .env
 
 # 本番環境に切り替え
-rm .env && ln -s .env.production .env
+rm .env && ln -s .env.prod .env
 
 # 現在のステージを確認
 ls -la .env
