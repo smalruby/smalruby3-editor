@@ -338,6 +338,17 @@ export default {
     'gui.classroom.classAi.rubytee': 'Rubytee',
     'gui.classroom.classAi.rubyteeNote':
         "When the generative AI's answer doesn't work, “Leave it to Rubytee” lets Smalruby's AI (Claude) fix it. No sign-up needed.",
+    'gui.classroom.classAi.rubyteeCondition.wrong':
+        "Rubytee is an AI (Anthropic's Claude). Its answers may be wrong.",
+    'gui.classroom.classAi.rubyteeCondition.personal':
+        'Teach students not to enter personal information such as their name or address.',
+    'gui.classroom.classAi.rubyteeCondition.age':
+        "Students under 18 need a parent's or guardian's permission, which the school has checked.",
+    'gui.classroom.classAi.rubyteeTerms': 'Terms of Service',
+    'gui.classroom.classAi.rubyteePrivacy': 'Privacy Policy',
+    'gui.classroom.classAi.rubyteeConfirm': 'This class meets the conditions above (required)',
+    'gui.classroom.classAi.rubyteeUnconfirmed':
+        'Not confirmed yet. Rubytee keeps working; check the box below when you next save.',
     'gui.classroom.classAi.unsaved': 'Not saved',
     'gui.classroom.classAi.previewTitle': "Students' screen will look like this",
     'gui.classroom.classAi.previewCode': 'Code',

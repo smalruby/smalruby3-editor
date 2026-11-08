@@ -17,6 +17,7 @@ import {
     changedAiSettings,
     draftFromGroup,
     isDraftSavable,
+    isRubyteeUnconfirmed,
 } from '../../lib/classroom-genai-settings.js';
 import ClassAiSettings from './class-ai-settings.jsx';
 import ClassAiStudentPreview from './class-ai-student-preview.jsx';
@@ -340,6 +341,7 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
                     changed={changedAiSettings(group, aiDraft)}
                     draft={aiDraft}
                     isLoading={isLoading}
+                    rubyteeUnconfirmed={isRubyteeUnconfirmed(group)}
                     onChange={setAiDraft}
                 />
                 {confirmingArchive ? (
