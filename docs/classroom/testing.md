@@ -285,8 +285,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-class-ai-service-none/gemini/chatgpt/other` | button | 「使わない / Gemini / ChatGPT / その他」（選んでいるものは `aria-pressed="true"`。Claude は出さない） |
 | `classroom-class-ai-confirm-panel` | div | 生成AI を選んだときだけ行の下に開く確認（条件・確認チェック・URL） |
 | `classroom-class-ai-confirm` | checkbox | 「このクラスは条件を満たしています（必須）」。未チェックだと保存できない。サービスを変えると外れる |
-| `classroom-class-ai-confirm-reason` | span | 確認が要る理由（スモウルビーでは学校の許可を確かめられない・チェックすると保存できる） |
-| `classroom-class-ai-url-change` | button | 「生徒が開くページを変える（いまは …）」。押すと URL の入力欄を出す（「その他」では出ず、最初から入力欄） |
+| `classroom-class-ai-url-change` | button | 「生徒が開くページを変える（いまは …）」。必須のチェックと同じ行の右。押すと URL の入力欄を出す（「その他」では出ず、最初から入力欄） |
 | `classroom-class-ai-url` | input | 生徒が開くページの URL（Gemini / ChatGPT は既定値入り） |
 | `classroom-class-ai-url-error` | span | URL の誤り（空・https 以外・18 歳以上限定サービス）。「試す」と同じ場所に出る |
 | `classroom-class-ai-try` | a | 「試す（別タブ）」（URL が正しいときだけ表示） |

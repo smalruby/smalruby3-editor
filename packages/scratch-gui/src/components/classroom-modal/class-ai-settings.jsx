@@ -202,25 +202,26 @@ const ClassAiSettings = ({ changed, draft, isLoading, onChange, rubyteeUnconfirm
                             />
                         </span>
                         {changed.genai ? <UnsavedMark testId="classroom-class-ai-genai-unsaved" /> : null}
-                    </div>
-                    <div className={styles.services} role="group">
-                        {SERVICES.map((s) => {
-                            const isSelected = selected ? selected.key === s.key : s.key === 'none';
-                            return (
-                                <button
-                                    key={s.key}
-                                    aria-pressed={isSelected}
-                                    className={isSelected ? styles.serviceSelected : styles.service}
-                                    data-service={s.key}
-                                    data-testid={`classroom-class-ai-service-${s.key}`}
-                                    disabled={isLoading}
-                                    type="button"
-                                    onClick={handleService}
-                                >
-                                    {intl.formatMessage(s.name)}
-                                </button>
-                            );
-                        })}
+                        {/* The choices sit beside the label to keep both AIs' checks within 1300x600 (#1439). */}
+                        <div className={styles.services} role="group">
+                            {SERVICES.map((s) => {
+                                const isSelected = selected ? selected.key === s.key : s.key === 'none';
+                                return (
+                                    <button
+                                        key={s.key}
+                                        aria-pressed={isSelected}
+                                        className={isSelected ? styles.serviceSelected : styles.service}
+                                        data-service={s.key}
+                                        data-testid={`classroom-class-ai-service-${s.key}`}
+                                        disabled={isLoading}
+                                        type="button"
+                                        onClick={handleService}
+                                    >
+                                        {intl.formatMessage(s.name)}
+                                    </button>
+                                );
+                            })}
+                        </div>
                     </div>
                     <p className={styles.note}>
                         <FormattedMessage
@@ -233,17 +234,18 @@ const ClassAiSettings = ({ changed, draft, isLoading, onChange, rubyteeUnconfirm
                     {selected ? (
                         <div className={styles.confirmPanel} data-testid="classroom-class-ai-confirm-panel">
                             <p className={styles.condition}>{intl.formatMessage(selected.condition)}</p>
-                            <label className={styles.confirm}>
-                                <input
-                                    checked={draft.confirmed}
-                                    className={styles.checkbox}
-                                    data-testid="classroom-class-ai-confirm"
-                                    disabled={isLoading}
-                                    name="genaiConfirmed"
-                                    type="checkbox"
-                                    onChange={handleConfirm}
-                                />
-                                <span>
+                            {/* The folded URL shares the check's row, like Rubytee's links, so both fit 1300x600 (#1439). */}
+                            <div className={styles.confirmRow}>
+                                <label className={styles.confirm}>
+                                    <input
+                                        checked={draft.confirmed}
+                                        className={styles.checkbox}
+                                        data-testid="classroom-class-ai-confirm"
+                                        disabled={isLoading}
+                                        name="genaiConfirmed"
+                                        type="checkbox"
+                                        onChange={handleConfirm}
+                                    />
                                     <span className={styles.confirmLabel}>
                                         <FormattedMessage
                                             defaultMessage="This class meets the conditions (required)"
@@ -251,15 +253,27 @@ const ClassAiSettings = ({ changed, draft, isLoading, onChange, rubyteeUnconfirm
                                             id="gui.classroom.classAi.confirm"
                                         />
                                     </span>
-                                    <span className={styles.note} data-testid="classroom-class-ai-confirm-reason">
-                                        <FormattedMessage
-                                            defaultMessage="Smalruby can't check your school's permission, so we ask the teacher to. Check it to be able to save."
-                                            description="Why the teacher must confirm the generative AI's conditions"
-                                            id="gui.classroom.classAi.confirmReason"
-                                        />
+                                </label>
+                                {showUrlInput ? null : (
+                                    <span className={styles.urlFolded}>
+                                        <button
+                                            className={styles.linkButton}
+                                            data-testid="classroom-class-ai-url-change"
+                                            disabled={isLoading}
+                                            type="button"
+                                            onClick={handleOpenUrl}
+                                        >
+                                            <FormattedMessage
+                                                defaultMessage="Change the page students open (now {url})"
+                                                description="Opens the input for the page students open in the generative AI"
+                                                id="gui.classroom.classAi.urlChange"
+                                                values={{ url: displayGenaiUrl(draft.url) }}
+                                            />
+                                        </button>
+                                        {urlAside}
                                     </span>
-                                </span>
-                            </label>
+                                )}
+                            </div>
                             {showUrlInput ? (
                                 <label className={styles.urlLabel}>
                                     <FormattedMessage
@@ -281,25 +295,7 @@ const ClassAiSettings = ({ changed, draft, isLoading, onChange, rubyteeUnconfirm
                                         {urlAside}
                                     </span>
                                 </label>
-                            ) : (
-                                <span className={styles.urlRow}>
-                                    <button
-                                        className={styles.linkButton}
-                                        data-testid="classroom-class-ai-url-change"
-                                        disabled={isLoading}
-                                        type="button"
-                                        onClick={handleOpenUrl}
-                                    >
-                                        <FormattedMessage
-                                            defaultMessage="Change the page students open (now {url})"
-                                            description="Opens the input for the page students open in the generative AI"
-                                            id="gui.classroom.classAi.urlChange"
-                                            values={{ url: displayGenaiUrl(draft.url) }}
-                                        />
-                                    </button>
-                                    {urlAside}
-                                </span>
-                            )}
+                            ) : null}
                         </div>
                     ) : null}
                 </div>
@@ -338,7 +334,10 @@ const ClassAiSettings = ({ changed, draft, isLoading, onChange, rubyteeUnconfirm
                     {draft.rubytee ? (
                         <div className={styles.confirmPanel} data-testid="classroom-class-ai-rubytee-confirm-panel">
                             {rubyteeUnconfirmed && !draft.rubyteeConfirmed ? (
-                                <p className={styles.unconfirmed} data-testid="classroom-class-ai-rubytee-unconfirmed">
+                                <p
+                                    className={styles.unconfirmed}
+                                    data-testid="classroom-class-ai-rubytee-unconfirmed"
+                                >
                                     <FormattedMessage
                                         defaultMessage="Not confirmed yet. Rubytee keeps working; check the box below when you next save."
                                         description="Shown for a class that turned Rubytee on before the teacher's confirmation existed"

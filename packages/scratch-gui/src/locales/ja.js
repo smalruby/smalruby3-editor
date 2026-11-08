@@ -378,8 +378,6 @@ export default {
     'gui.classroom.classAi.service.other': 'その他',
     'gui.classroom.classAi.service.otherCondition': 'URL を入れます。利用条件は学校で確認してください。',
     'gui.classroom.classAi.confirm': 'このクラスは条件を満たしています（必須）',
-    'gui.classroom.classAi.confirmReason':
-        'スモウルビーでは学校の許可を確かめられないため、先生に確かめてもらいます。チェックすると保存できます。',
     'gui.classroom.classAi.urlChange': '生徒が開くページを変える（いまは {url}）',
     'gui.classroom.classAi.urlLabel': '生徒が開くページ',
     'gui.classroom.classAi.try': '試す（別タブ）',

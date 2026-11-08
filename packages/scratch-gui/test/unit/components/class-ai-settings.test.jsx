@@ -69,12 +69,13 @@ describe('ClassAiSettings', () => {
         expect(byTestId('classroom-class-ai-edit')).toBeNull();
     });
 
-    test('enables Gemini: the check explains why it is needed and the URL stays folded', () => {
+    test('enables Gemini: the check sits on one line with the folded URL', () => {
         const { lastDraft } = renderSettings();
         fireEvent.click(byTestId('classroom-class-ai-service-gemini'));
         expect(byTestId('classroom-class-ai-service-gemini')).toHaveAttribute('aria-pressed', 'true');
         expect(byTestId('classroom-class-ai-confirm-panel')).toBeInTheDocument();
-        expect(byTestId('classroom-class-ai-confirm-reason')).toHaveTextContent("Smalruby can't check");
+        // Why the check is needed is said once, by the hint beside the disabled [Save] (#1439).
+        expect(byTestId('classroom-class-ai-confirm-reason')).toBeNull();
         expect(lastDraft()).toMatchObject({
             use: true,
             service: 'gemini',
