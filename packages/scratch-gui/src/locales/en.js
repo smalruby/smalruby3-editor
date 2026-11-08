@@ -329,8 +329,6 @@ export default {
     'gui.classroom.classAi.service.other': 'Other',
     'gui.classroom.classAi.service.otherCondition': 'Enter its URL. Check its terms of use at your school.',
     'gui.classroom.classAi.confirm': 'This class meets the conditions (required)',
-    'gui.classroom.classAi.confirmReason':
-        "Smalruby can't check your school's permission, so we ask the teacher to. Check it to be able to save.",
     'gui.classroom.classAi.urlChange': 'Change the page students open (now {url})',
     'gui.classroom.classAi.urlLabel': 'Page students open',
     'gui.classroom.classAi.try': 'Try (new tab)',

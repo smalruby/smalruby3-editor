@@ -69,12 +69,13 @@ describe('ClassAiSettings', () => {
         expect(byTestId('classroom-class-ai-edit')).toBeNull();
     });
 
-    test('enables Gemini: the check explains why it is needed and the URL stays folded', () => {
+    test('enables Gemini: the check sits on one line with the folded URL', () => {
         const { lastDraft } = renderSettings();
         fireEvent.click(byTestId('classroom-class-ai-service-gemini'));
         expect(byTestId('classroom-class-ai-service-gemini')).toHaveAttribute('aria-pressed', 'true');
         expect(byTestId('classroom-class-ai-confirm-panel')).toBeInTheDocument();
-        expect(byTestId('classroom-class-ai-confirm-reason')).toHaveTextContent("Smalruby can't check");
+        // Why the check is needed is said once, by the hint beside the disabled [Save] (#1439).
+        expect(byTestId('classroom-class-ai-confirm-reason')).toBeNull();
         expect(lastDraft()).toMatchObject({
             use: true,
             service: 'gemini',
@@ -84,6 +85,10 @@ describe('ClassAiSettings', () => {
 
         expect(byTestId('classroom-class-ai-url')).toBeNull();
         expect(byTestId('classroom-class-ai-url-change')).toHaveTextContent('gemini.google.com/app');
+        // The folded URL shares the required check's row, so it costs no line of its own (#1439).
+        const confirmRow = byTestId('classroom-class-ai-confirm').closest('label').parentElement;
+        expect(confirmRow).toContainElement(byTestId('classroom-class-ai-url-change'));
+        expect(confirmRow).toContainElement(byTestId('classroom-class-ai-try'));
         expect(byTestId('classroom-class-ai-try')).toHaveAttribute('href', GENAI_DEFAULT_URLS.gemini);
         expect(byTestId('classroom-class-ai-try')).toHaveAttribute('target', '_blank');
 

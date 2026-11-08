@@ -385,8 +385,6 @@ export default {
     'gui.classroom.classAi.service.otherCondition':
         'URL をいれます。りようじょうけんはがっこうでかくにんしてください。',
     'gui.classroom.classAi.confirm': 'このクラスはじょうけんをみたしています（ひっす）',
-    'gui.classroom.classAi.confirmReason':
-        'スモウルビーではがっこうのきょかをたしかめられないため、せんせいにたしかめてもらいます。チェックするとほぞんできます。',
     'gui.classroom.classAi.urlChange': 'せいとがひらくページをかえる（いまは {url}）',
     'gui.classroom.classAi.urlLabel': 'せいとがひらくページ',
     'gui.classroom.classAi.try': 'ためす（べつタブ）',
