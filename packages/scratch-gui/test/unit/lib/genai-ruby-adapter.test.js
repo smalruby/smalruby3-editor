@@ -69,8 +69,9 @@ const makeMonaco = (markers) => ({ editor: { getModelMarkers: () => markers } })
 
 const fakeToBlocks = (target, code) =>
     Promise.resolve({
-        result: code.trim() !== 'NG',
-        errors: code.trim() === 'NG' ? [{ row: 0, column: 0, text: 'NG' }] : [],
+        // 'NG' fails (also as DNCL, which becomes the variable `@_var_NG_` in Ruby).
+        result: !/^(@_var_)?NG_?$/.test(code.trim()),
+        errors: /^(@_var_)?NG_?$/.test(code.trim()) ? [{ row: 0, column: 0, text: 'NG' }] : [],
         blocks: {},
         apply: () => Promise.resolve(target && target.blocks.apply && target.blocks.apply(code)),
     });
@@ -335,5 +336,62 @@ describe('lineDecorations', () => {
                 },
             },
         ]);
+    });
+});
+
+describe('the Ruby tab adapter in the Japanese (DNCL) mode (#1402)', () => {
+    const dncl = 'x ← 1\n表示する(x)\n';
+    const wrapDncl = (code) => `▼▼\n\`\`\`\n${code}\`\`\`\n▲▲`;
+
+    test('offers the kinds of trouble of DNCL and asks with the DNCL in the editor', () => {
+        const markers = [{ severity: 8, startLineNumber: 2, message: 'まちがい' }];
+        const { adapter } = setup({ mode: 'dncl', editorValue: dncl, markers });
+        expect(adapter.problemKinds).toEqual(['wrong-answer', 'error', 'how-write', 'how-think']);
+        expect(adapter.language).toBe('dncl');
+        const prompt = adapter.buildPrompt({ kindLabel: 'エラーが出る', text: 'y', assignmentName: null });
+        expect(prompt).toContain('```\nx ← 1\n表示する(x)\n```');
+        expect(prompt).toContain('2 行目: まちがい');
+        expect(prompt).not.toContain('say("やあ")');
+        expect(prompt).not.toContain('"Pop"');
+    });
+
+    test('asks the rewrite in DNCL, and in Ruby in the other modes', () => {
+        const params = { code: 'x ← 1\n', problems: ['p'] };
+        expect(setup({ mode: 'dncl' }).adapter.rewritePrompt(params)).toContain('DNCL の書き方で');
+        expect(setup().adapter.rewritePrompt(params)).toContain('```ruby');
+        expect(setup().adapter.language).toBe('ruby');
+    });
+
+    test('checks the answer as Ruby and puts the DNCL in the editor', async () => {
+        const { adapter, editor, vm } = setup({ mode: 'dncl', editorValue: dncl });
+        const result = await adapter.check(wrapDncl('x ← 2\n表示する(x)\n'));
+        expect(result.ok).toBe(true);
+        expect(result.parts[0].target).toBe(vm.editingTarget);
+        expect(result.parts[0].code).toBe('x ← 2\n表示する(x)\n');
+        expect(result.parts[0].lines).toEqual({ added: 0, changed: 1, removed: 0 });
+        const out = await adapter.apply(result.parts);
+        expect(editor.getValue()).toBe('x ← 2\n表示する(x)\n');
+        expect(out.snapshots[0]).toMatchObject({ before: dncl, after: 'x ← 2\n表示する(x)\n', dncl: true });
+    });
+
+    test('shows a conversion error on the DNCL line', async () => {
+        const { adapter } = setup({ mode: 'dncl', editorValue: dncl });
+        // The fake converter fails on 'NG'; the DNCL is one line, so is the error.
+        const result = await adapter.check(wrapDncl('NG\n'));
+        expect(result.ok).toBe(false);
+        expect(result.problems).toEqual([{ type: 'error', sprite: null, row: 0, text: 'NG' }]);
+    });
+
+    test('switches a sprite no longer in the editor through Ruby', async () => {
+        const { adapter, vm, dee } = setup({ mode: 'dncl', editorValue: dncl });
+        const abby = vm.editingTarget;
+        const applied = [];
+        abby.blocks.apply = (code) => applied.push(code);
+        const result = await adapter.check(wrapDncl('x ← 2\n表示する(x)\n'));
+        const { snapshots } = await adapter.apply(result.parts);
+        vm.editingTarget = dee;
+        await adapter.switchSides(snapshots, false);
+        expect(applied).toHaveLength(1);
+        expect(applied[0]).toContain('@x = 1');
     });
 });

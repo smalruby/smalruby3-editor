@@ -160,14 +160,14 @@ export const isGenaiAvailable = ({ role, sessionToken, classGenai, devFlag }) =>
 
 /**
  * Whether the face is shown in the Ruby tab (#1398): as in the code tab, and only for
- * Ruby version 2 (#1396 決定 4). Not in DNCL mode until it has its own question (#1402).
+ * Ruby version 2 (#1396 決定 4). Also in the Japanese (DNCL) mode, with its own
+ * question (#1402).
  * @param {object} params - the parameters of isGenaiAvailable, and:
  * @param {?string} params.rubyVersion - the Ruby version ('1' / '2')
- * @param {boolean} params.dnclMode - the editor is in DNCL mode
  * @returns {boolean} true to show the face
  */
-export const isRubyTabGenaiAvailable = ({ rubyVersion, dnclMode, ...rest }) =>
-    isGenaiAvailable(rest) && String(rubyVersion) === '2' && !dnclMode;
+export const isRubyTabGenaiAvailable = ({ rubyVersion, ...rest }) =>
+    isGenaiAvailable(rest) && String(rubyVersion) === '2';
 
 /** The steps of the panel, in order (the progress display under the header, #1293 G9). */
 const STEP_IDS = ['trouble', 'copy', 'paste'];

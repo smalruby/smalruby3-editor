@@ -5,10 +5,16 @@
 // changes another sprite is ✗, and the answer goes into the editor with executeEdits (so
 // Ctrl+Z takes it back). What the answer changes is shown in lines (#1399): Monaco's
 // inline diff before it goes in, and marks on the lines added or changed once it is in.
+// In the Japanese (DNCL) mode (#1402) the question, the answer and the lines are DNCL; the
+// answer is judged after it is turned into Ruby, and errors are shown on DNCL lines.
+import { dnclToRuby } from './dncl/dncl-to-ruby';
+import { rubyToDncl } from './dncl/ruby-to-dncl';
 import { checkAnswer, liveSnapshots, switchSnapshots } from './genai-answer.js';
 import { nameOf, takeoverStateOf } from './genai-code-adapter.js';
+import { checkDnclAnswer } from './genai-dncl-answer.js';
+import { DNCL_TAB_KINDS, buildDnclRewritePrompt, buildDnclTabPrompt } from './genai-dncl-prompt.js';
 import { carriedLines, countLineChanges, diffLines, markedLines } from './genai-line-diff.js';
-import { RUBY_TAB_KINDS, buildRubyTabPrompt } from './genai-prompt.js';
+import { RUBY_TAB_KINDS, buildRewritePrompt, buildRubyTabPrompt } from './genai-prompt.js';
 import { buildRubyTabTakeoverMessage } from './genai-takeover.js';
 import RubyGenerator from './ruby-generator';
 import { targetCodeToBlocks } from './ruby-to-blocks-converter';
@@ -82,7 +88,7 @@ const measureEditorArea = (root) => {
  * @param {object} params - parameters
  * @param {function(): ?object} params.getEditor - the Monaco editor
  * @param {function(): ?object} params.getMonaco - Monaco
- * @param {function(): string} params.getMode - 'ruby' or 'furigana'
+ * @param {function(): string} params.getMode - 'ruby', 'furigana' or 'dncl'
  * @param {object} [params.deps] - replacements for tests: toCode(target), toBlocks(target, code)
  * @returns {function(object): object} createAdapter({vm, intl, rubyVersion, scratchBlocks})
  */
@@ -93,6 +99,7 @@ export const makeRubyTabAdapterFactory =
         const toBlocks =
             deps.toBlocks || ((target, code) => targetCodeToBlocks(vm, target, code, intl, { version: rubyVersion }));
         const originals = () => vm.runtime.targets.filter((t) => t.isOriginal);
+        const isDncl = () => getMode() === 'dncl';
         const editing = () => vm.editingTarget;
         const editorCode = () => {
             const editor = getEditor();
@@ -128,14 +135,25 @@ export const makeRubyTabAdapterFactory =
             };
         };
 
-        const buildPrompt = ({ kindLabel, text, assignmentName }) =>
-            buildRubyTabPrompt({
+        const buildPrompt = ({ kindLabel, text, assignmentName }) => {
+            // DNCL: the code in the editor as it is; DNCL has no sounds, costumes or events.
+            if (isDncl()) {
+                return buildDnclTabPrompt({
+                    kindLabel,
+                    text,
+                    code: editorCode(),
+                    errors: editorErrors(getEditor(), getMonaco()),
+                    assignmentName,
+                });
+            }
+            return buildRubyTabPrompt({
                 ...editingProgram(),
                 kindLabel,
                 text,
                 errors: editorErrors(getEditor(), getMonaco()),
                 assignmentName,
             });
+        };
 
         // Rubytee too fixes only the sprite in the editor (#1400); check fails another sprite.
         const takeoverMessage = ({ kindLabel, text, exchanges }) =>
@@ -154,13 +172,19 @@ export const makeRubyTabAdapterFactory =
             });
             const name = nameOf(editing());
             const before = editorCode();
-            const result = await checkAnswer({
-                answer: text,
-                sprites: Object.keys(targets).map((n) => ({ name: n, ...assetsOf(targets[n]) })),
-                editingName: name,
-                onlyName: name,
-                convert: (n, code) => toBlocks(targets[n], code),
-            });
+            const result = isDncl()
+                ? await checkDnclAnswer({
+                      answer: text,
+                      editingName: name,
+                      convert: (n, ruby) => toBlocks(targets[n], ruby),
+                  })
+                : await checkAnswer({
+                      answer: text,
+                      sprites: Object.keys(targets).map((n) => ({ name: n, ...assetsOf(targets[n]) })),
+                      editingName: name,
+                      onlyName: name,
+                      convert: (n, code) => toBlocks(targets[n], code),
+                  });
             // What changes is shown in lines (mountDiff and lines), not in the words of blocks.
             result.parts.forEach((part) => {
                 part.target = targets[part.name];
@@ -196,9 +220,29 @@ export const makeRubyTabAdapterFactory =
         const apply = (parts) => {
             const part = parts.find((p) => p.target === editing());
             if (!part) return Promise.resolve({ snapshots: [], marks: [] });
-            const snapshots = [{ target: part.target, name: part.name, before: editorCode(), after: part.code }];
+            const snapshots = [
+                {
+                    target: part.target,
+                    name: part.name,
+                    before: editorCode(),
+                    after: part.code,
+                    ...(isDncl() ? { dncl: true } : {}),
+                },
+            ];
             replaceEditorCode(part.code);
             return Promise.resolve({ snapshots, marks: snapshots.map(markOf) });
+        };
+
+        // A sprite not in the editor is read from and put into its blocks, in the language of
+        // its versions (DNCL ones go through Ruby).
+        const blocksCode = (snap) => {
+            const ruby = toCode(snap.target);
+            return snap.dncl ? rubyToDncl(ruby).dncl : ruby;
+        };
+        const toBlocksFrom = (snap, code) => {
+            if (!snap.dncl) return toBlocks(snap.target, code);
+            const { ruby } = dnclToRuby(code);
+            return ruby === null ? Promise.resolve({ result: false }) : toBlocks(snap.target, ruby);
         };
 
         // The sprite in the editor switches in the editor (Ctrl+Z takes it back). One the
@@ -210,14 +254,14 @@ export const makeRubyTabAdapterFactory =
             const next = switchSnapshots(
                 live,
                 toAfter,
-                live.map((snap) => (inEditor(snap) ? editorCode() : toCode(snap.target))),
+                live.map((snap) => (inEditor(snap) ? editorCode() : blocksCode(snap))),
             );
             for (const snap of next) {
                 const code = toAfter ? snap.after : snap.before;
                 if (inEditor(snap)) {
                     replaceEditorCode(code);
                 } else {
-                    const converter = await toBlocks(snap.target, code || '');
+                    const converter = await toBlocksFrom(snap, code || '');
                     if (converter.result) await converter.apply();
                 }
             }
@@ -270,8 +314,9 @@ export const makeRubyTabAdapterFactory =
         const mountDiff = (element, part) => {
             const monaco = getMonaco();
             if (!monaco || !element) return () => {};
-            const original = monaco.editor.createModel(part.before || '', 'smalruby');
-            const modified = monaco.editor.createModel(part.code || '', 'smalruby');
+            const language = isDncl() ? 'dncl' : 'smalruby';
+            const original = monaco.editor.createModel(part.before || '', language);
+            const modified = monaco.editor.createModel(part.code || '', language);
             const diff = monaco.editor.createDiffEditor(element, {
                 renderSideBySide: false,
                 readOnly: true,
@@ -296,7 +341,14 @@ export const makeRubyTabAdapterFactory =
         };
 
         return {
-            problemKinds: RUBY_TAB_KINDS,
+            // Read when the panel renders: the mode may change while the panel is mounted.
+            get problemKinds() {
+                return isDncl() ? DNCL_TAB_KINDS : RUBY_TAB_KINDS;
+            },
+            get language() {
+                return isDncl() ? 'dncl' : 'ruby';
+            },
+            rewritePrompt: (params) => (isDncl() ? buildDnclRewritePrompt(params) : buildRewritePrompt(params)),
             puts: 'code',
             programs,
             editingName,

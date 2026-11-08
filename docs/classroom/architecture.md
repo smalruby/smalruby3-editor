@@ -493,7 +493,7 @@ erDiagram
         number studentCount "人数 (課題の座席数の真実, 任意)"
         string_array coTeacherEmails "クラス単位の共同管理者 (任意)"
         map genai "生成AI {enabled, service, url, confirmed} (#1275, 任意。未設定は無効)"
-        map rubytee "ルビティー {enabled} (#1275, 任意。未設定は無効)"
+        map rubytee "ルビティー {enabled, confirmed} (#1275, 任意。未設定は無効)"
         string createdAt "ISO8601"
         string updatedAt "ISO8601"
         number ttl "Unix timestamp (既定400日)"
@@ -513,9 +513,11 @@ erDiagram
 | `genai.url` | https の URL（最大 2048 文字） | http・不正な URL・18 歳以上限定サービスのホスト（`claude.ai` / `claude.com` / `anthropic.com`）は 400。省略すると `gemini` = `https://gemini.google.com/app`、`chatgpt` = `https://chatgpt.com/`（`service` を変えて `url` を省くと新しい既定に切り替わる） |
 | `genai.confirmed` | boolean（既定 false） | 先生が利用規約（年齢制限など）を確認した印。先生向けの応答にだけ含める |
 | `rubytee.enabled` | boolean（既定 false） | — |
+| `rubytee.confirmed` | boolean（既定 false） | 先生がルビティーを使わせる条件を確認した印。先生向けの応答にだけ含める。今は `enabled: true` に必須ではない（`{enabled: true}` だけでも保存できる） |
 
-- 項目の無い既存のクラスは両方無効として返す（先生向け: `genai = {enabled:false, service:null, url:null, confirmed:false}`、`rubytee = {enabled:false}`）。
-- 生徒向け（lookup / join / verify-session）は課題が属するクラスの設定から `confirmed` を除いて返す。
+- 項目の無い既存のクラスは両方無効として返す（先生向け: `genai = {enabled:false, service:null, url:null, confirmed:false}`、`rubytee = {enabled:false, confirmed:false}`）。`confirmed` の無い既存のルビティー設定は `confirmed:false` として読む。
+- `rubytee` も `genai` と同じく部分更新（`enabled` だけ送ると保存済みの `confirmed` は残る）。
+- 生徒向け（lookup / join / verify-session）は課題が属するクラスの設定から `confirmed`（`genai` / `rubytee` とも）を除いて返す。
 
 クラス（学級・Group）は**先生側の管理概念**で、1 つのクラスが年間の複数の課題（Classrooms レコード = 1 授業）を束ねる。生徒には見えない（生徒のモデル = 課題ごとの参加コード + 匿名席番号は不変）。
 

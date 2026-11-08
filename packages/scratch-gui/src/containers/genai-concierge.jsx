@@ -453,12 +453,9 @@ GenaiConcierge.propTypes = {
     // by default. Pass a function that stays the same between renders (not an inline arrow):
     // a new one makes a new adapter, and the marks and the area are set up again each time.
     createAdapter: PropTypes.func,
-    // In the Ruby tab: the face is only for Ruby version 2 and not in DNCL mode (#1398),
-    // nor 「ルビティーにまかせる」 (#1400).
+    // In the Ruby tab: the face is only for Ruby version 2 (#1398). 「ルビティーにまかせる」 is
+    // not offered in the Japanese (DNCL) mode (#1400): Rubytee does not answer in DNCL.
     rubyTab: PropTypes.bool,
-    // Read by mapStateToProps only.
-    // eslint-disable-next-line react/no-unused-prop-types
-    dnclMode: PropTypes.bool,
     rubyVersion: PropTypes.string,
     assignmentName: PropTypes.string,
     available: PropTypes.bool.isRequired,
@@ -502,11 +499,7 @@ const mapStateToProps = (state, ownProps) => {
         assignmentName: classroom.assignmentName,
         classGenai: classroom.studentGenai,
         available: ownProps.rubyTab
-            ? isRubyTabGenaiAvailable({
-                  ...access,
-                  rubyVersion: state.scratchGui.settings.rubyVersion,
-                  dnclMode: Boolean(ownProps.dnclMode),
-              })
+            ? isRubyTabGenaiAvailable({ ...access, rubyVersion: state.scratchGui.settings.rubyVersion })
             : isGenaiAvailable(access),
         rubyteeAvailable: isTakeoverAvailable({
             rubyteeAvailable: selectRubyteeAvailable(state),
