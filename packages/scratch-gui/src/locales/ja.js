@@ -1674,6 +1674,8 @@ export default {
     'gui.genaiConcierge.nudgeOpen': '相談する',
     'gui.genaiConcierge.nudgeLater': 'あとで',
     'gui.genaiConcierge.nudgeOff': '今日は出さない',
+    'gui.genaiConcierge.faceLabel': 'AI に相談',
+    'gui.genaiConcierge.faceLabelShort': 'AI',
     'gui.genaiConcierge.troubleQuestion': 'どんなことで困っている？',
     'gui.genaiConcierge.makePrompt': '相談文をつくる',
     'gui.genaiConcierge.kind.notWorking': '思ったとおりに動かない',

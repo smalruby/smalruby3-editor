@@ -32,9 +32,76 @@ $genai-mark: #ff3d8b;
     padding: 0;
 }
 
-.face img {
-    width: 30px;
-    height: 30px;
+.faceIcon {
+    width: 40px;
+    height: 40px;
+}
+
+.faceSkin {
+    fill: $looks-light-transparent;
+    stroke: $looks-secondary;
+}
+
+.faceEye {
+    fill: #333;
+}
+
+.faceMouth {
+    fill: none;
+    stroke: #333;
+}
+
+/* The face and its label side by side; only they take the pointer. */
+.root > .faceRow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    pointer-events: none;
+}
+
+.faceRow > * {
+    pointer-events: auto;
+}
+
+/* 「AI に相談」: a rounded label with a tail pointing at the face (#1414). */
+.faceLabel {
+    position: relative;
+    padding: 6px 12px;
+    border: 2px solid $looks-secondary;
+    border-radius: 14px;
+    background-color: $ui-white;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    color: $looks-secondary;
+    font-size: 0.85rem;
+    font-weight: bold;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.faceLabel::before,
+.faceLabel::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    border-style: solid;
+    transform: translateY(-50%);
+}
+
+/* The tail: an outline triangle with a white one over it. */
+.faceLabel::before {
+    left: -10px;
+    border-width: 7px 10px 7px 0;
+    border-color: transparent $looks-secondary transparent transparent;
+}
+
+.faceLabel::after {
+    left: -6px;
+    border-width: 5px 7px 5px 0;
+    border-color: transparent $ui-white transparent transparent;
+}
+
+.faceLabelShort {
+    padding: 6px 10px;
 }
 
 .bubble,

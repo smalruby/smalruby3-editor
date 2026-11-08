@@ -12,15 +12,16 @@ import { connect } from 'react-redux';
 import GenaiAnswerSteps from '../components/genai-concierge/genai-answer-steps.jsx';
 import styles from '../components/genai-concierge/genai-concierge.css';
 import GenaiCopyStep from '../components/genai-concierge/genai-copy-step.jsx';
+import GenaiFace from '../components/genai-concierge/genai-face.jsx';
 import GenaiNudge from '../components/genai-concierge/genai-nudge.jsx';
 import GenaiStepper from '../components/genai-concierge/genai-stepper.jsx';
 import GenaiTroubleStep from '../components/genai-concierge/genai-trouble-step.jsx';
 import messages from '../components/genai-concierge/messages.js';
-import rubyteeIcon from '../components/ruby-toolbar/icon--rubytee.svg';
 import { createCodeTabAdapter } from '../lib/genai-code-adapter.js';
 import {
     NUDGE_GAP_MS,
     NUDGE_IDLE_SECONDS,
+    faceLabel,
     isGenaiAvailable,
     isGenaiDevFlag,
     isNudgeOffToday,
@@ -426,14 +427,11 @@ const GenaiConcierge = ({
                     </div>
                 </div>
             )}
-            <button
-                className={styles.face}
-                data-testid="genai-face"
-                onClick={open ? handleClose : handleOpen}
+            <GenaiFace
                 title={title}
-            >
-                <img src={rubyteeIcon} alt={title} />
-            </button>
+                label={faceLabel({ areaWidth: area.width, rootLeft: area.left, faceWidth: FACE_WIDTH, open, nudge })}
+                onClick={open ? handleClose : handleOpen}
+            />
         </div>
     );
 };

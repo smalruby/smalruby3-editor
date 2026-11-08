@@ -5,8 +5,8 @@
 
 ## 概要
 
-スクリプトエリアの左下（ブロックパレットの右）に **ルビティーの顔** が出る。生徒は顔を押して
-（または手が止まったときの声かけから）次の順に進む。
+スクリプトエリアの左下（ブロックパレットの右）に **丸い顔と「AI に相談」の吹き出し** が出る。生徒は顔か
+吹き出しを押して（または手が止まったときの声かけから）次の順に進む。
 
 1. **困りごと** — 「どんなことで困っている？」の 1 行と 5 種類のボタン。種類を選ぶと、書き出しの例が
    入った入力欄が開く。自分のことばで書く（必須。書き出しの例のままでは進めない）
@@ -143,11 +143,18 @@ relay の呼び方: `POST /generate` に `purpose: "genai-takeover"` と、ク�
   ラベルの下に四角い点を並べて線でつなぎ、
   終わった段階は点を塗りつぶして ✓（線もそこまで塗る）、いまの段階は太い枠と太字、まだの段階は灰色。
   ブロックを入れる前なら、終わった段階のラベルを押してもどれる。
+- **顔と吹き出し**: 顔は目と口のある丸い顔（SVG・`$looks-secondary` の枠）。右に、顔を指すしっぽの
+  付いた「AI に相談」の吹き出しを出し、押すと顔と同じくパネルを開く。パネルを開いている間と声かけの間は
+  吹き出しを出さない（顔だけ）。顔の右の空き（右端のズームの列を除く）が狭い画面（SP など）では「AI」
+  だけに短くし、それも入らないときは出さない（判定は `faceLabel`）。顔と吹き出しはパネル側
+  （`genai-face.jsx`）だけで描くので、コードタブと Ruby タブで同じ。
 - パネルは **スクリプトエリアの右端** に出す（顔は左下のまま）。スクリプトエリアが狭くて顔と並ばない
   ときは顔の上に出す。高さはスクリプトエリアに収まるように決める。ブロックを入れたあとは、
   印の付いたブロック（無ければ入れたブロック全体）がスクリプトエリアの左上に来るように画面を動かす
   （パネルに重ならない）。
 
+![顔と「AI に相談」の吹き出し（1300×600）](screenshots/0100-face.png)
+![SP（横向き）でも吹き出しはズームのボタンと重ならない。iPad の縦向きのように顔の右が狭いと「AI」だけにする](screenshots/0109-face-sp.png)
 ![声かけ](screenshots/0101-nudge.png)
 ![困りごと（1300×600）](screenshots/0102-trouble.png)
 ![コピーして相談（コピーしたあと）](screenshots/0104-copy.png)
@@ -297,6 +304,7 @@ Ruby タブの **Ruby モードとふりがなモード** でも同じパネル�
   （そのときのコードと元のコードを比べ直して）付け直す。
 - まだ無いもの: ルビティーにまかせる（Ruby タブでは出さない）、日本語 (DNCL) モード。
 
+![Ruby タブの顔と吹き出し（コードタブと同じ）](screenshots/0200-ruby-face.png)
 ![Ruby タブの困りごと（顔はエディタの左下）](screenshots/0201-ruby-trouble.png)
 ![エラーがあるときは「エラーが出る」で始まる](screenshots/0205-ruby-error-start.png)
 ![別のスプライトまで直した答えは ✗](screenshots/0202-ruby-other-sprite-ng.png)
@@ -320,6 +328,7 @@ Ruby タブの **Ruby モードとふりがなモード** でも同じパネル�
 |---------|------|
 | `packages/scratch-gui/src/containers/genai-concierge.jsx` | 顔・パネル・声かけ・コピーと生成AI のタブ（表示条件は Redux から）。タブごとに違うところはアダプタ（`createAdapter`、既定はコードタブ用）に任せる |
 | `packages/scratch-gui/src/containers/use-student-class-settings-refresh.js` | ページを開いたときにクラスの AI 設定（生成AI・ルビティー）を verify-session で読み直す |
+| `packages/scratch-gui/src/components/genai-concierge/genai-face.jsx` | 顔と「AI に相談」の吹き出し（両方のタブで同じ） |
 | `packages/scratch-gui/src/components/genai-concierge/genai-nudge.jsx` | 声かけの吹き出し |
 | `packages/scratch-gui/src/components/genai-concierge/genai-stepper.jsx` | 進み具合の表示 |
 | `packages/scratch-gui/src/components/genai-concierge/genai-trouble-step.jsx` | 段階 1: 困りごと |
@@ -342,7 +351,8 @@ Ruby タブの **Ruby モードとふりがなモード** でも同じパネル�
 
 | data-testid | 要素 | 説明 |
 |------------|------|------|
-| `genai-face` | button | ルビティーの顔（押すとパネルを開く/閉じる）。コードタブとルビータブの両方にあるので、ルビータブのものはエディタの中（`[class*="editorWrapper"] [data-testid="genai-face"]`）で探す |
+| `genai-face` | button | 丸い顔（押すとパネルを開く/閉じる）。コードタブとルビータブの両方にあるので、ルビータブのものはエディタの中（`[class*="editorWrapper"] [data-testid="genai-face"]`）で探す |
+| `genai-face-label` | button | 顔の右の「AI に相談」（狭い画面では「AI」）の吹き出し。押すと顔と同じ。パネルを開いている間・声かけの間は無い |
 | `genai-nudge` | div | 声かけの吹き出し |
 | `genai-nudge-open` / `genai-nudge-later` / `genai-nudge-off` | button | 相談する / あとで / 今日は出さない |
 | `genai-panel` | div | パネル全体（一度開いたら閉じても消さず、`display: none` と `aria-hidden` で隠す） |
@@ -377,6 +387,6 @@ Ruby タブの **Ruby モードとふりがなモード** でも同じパネル�
 
 ## 画面の大きさ
 
-授業 PC の 1300×600 で、顔（ブロックパレットの右・左下）とパネル（右端）はスクリプトエリアの中に収まり、
+授業 PC の 1300×600 で、顔と吹き出し（ブロックパレットの右・左下）とパネル（右端）はスクリプトエリアの中に収まり、
 スクリプトエリアの下のバックパックの帯とは重ならない。パネルが邪魔なときはヘッダーをドラッグして
 動かせる。

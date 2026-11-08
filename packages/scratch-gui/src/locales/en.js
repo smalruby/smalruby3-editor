@@ -1275,6 +1275,8 @@ export default {
     'gui.genaiConcierge.nudgeOpen': 'Ask',
     'gui.genaiConcierge.nudgeLater': 'Later',
     'gui.genaiConcierge.nudgeOff': 'Not today',
+    'gui.genaiConcierge.faceLabel': 'Ask AI',
+    'gui.genaiConcierge.faceLabelShort': 'AI',
     'gui.genaiConcierge.troubleQuestion': 'What is the trouble?',
     'gui.genaiConcierge.makePrompt': 'Make the question',
     'gui.genaiConcierge.kind.notWorking': "It doesn't work the way I want",
