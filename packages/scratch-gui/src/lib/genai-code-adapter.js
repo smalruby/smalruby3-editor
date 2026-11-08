@@ -17,13 +17,16 @@
 //    - takeoverState(): the names Rubytee may use (the relay's stateContext).
 //    - takeoverMessage({kindLabel, text, exchanges}): the first message to Rubytee from the
 //      trouble and the consultation (genai-takeover.js), or null when the program is too long.
+//    - takeoverScope() (optional): what Rubytee is asked to fix, kept when it starts and
+//      given to check with each of its answers (the Ruby tab: the sprite in the editor).
 //    - rewritePrompt({code, problems}) (optional): the request to rewrite an answer that
 //      failed (buildRewritePrompt of genai-prompt.js by default, asking for Ruby).
 //    - language (optional): 'dncl' when the answer is DNCL, not Ruby (the panel's words then
 //      say program, not Ruby).
 // 2. Checking the answer
-//    - check(text): resolves to checkAnswer's result whose parts also have `target` (the
-//      target the part puts code in) and `changes` (what it adds or changes, see 4).
+//    - check(text, scope): resolves to checkAnswer's result whose parts also have `target` (the
+//      target the part puts code in) and `changes` (what it adds or changes, see 4). scope is
+//      from takeoverScope() for Rubytee's answers, else null.
 // 3. Putting it in, switching and marking
 //    - apply(parts): puts the checked parts in; resolves to {snapshots, marks}.
 //      snapshots: [{target, name, before, after}] (the code before and the AI's code).

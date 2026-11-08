@@ -447,13 +447,16 @@ const GenaiAnswerSteps = ({
         const controller = new AbortController();
         abortRef.current = controller;
         const stateContext = adapter.takeoverState();
+        // The answers are checked against what Rubytee was asked to fix, even if the student
+        // switches to another sprite while it works (#1426).
+        const scope = adapter.takeoverScope ? adapter.takeoverScope() : null;
         setTakeover({ state: 'running', tries: 1 });
         try {
             const out = await runTakeover({
                 first,
                 send: (userMessage, history) =>
                     requestTakeover({ userMessage, history, stateContext, sessionToken }, { signal: controller.signal }),
-                check: checkText,
+                check: (text) => adapter.check(text, scope),
                 toJapanese: problemToJapanese,
                 onTry: (n) => setTakeover({ state: 'running', tries: n }),
                 signal: controller.signal,
@@ -472,7 +475,7 @@ const GenaiAnswerSteps = ({
         } finally {
             if (abortRef.current === controller) abortRef.current = null;
         }
-    }, [adapter, troubleKind, troubleText, prompt, tries, sessionToken, checkText, onClearNotice]);
+    }, [adapter, troubleKind, troubleText, prompt, tries, sessionToken, onClearNotice]);
 
     const handleCancelTakeover = useCallback(() => {
         if (abortRef.current) abortRef.current.abort();
@@ -725,6 +728,7 @@ GenaiAnswerSteps.propTypes = {
     adapter: PropTypes.shape({
         takeoverState: PropTypes.func.isRequired,
         takeoverMessage: PropTypes.func.isRequired,
+        takeoverScope: PropTypes.func,
         check: PropTypes.func.isRequired,
         apply: PropTypes.func.isRequired,
         switchSides: PropTypes.func.isRequired,

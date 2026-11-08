@@ -187,6 +187,54 @@ describe('the Ruby tab adapter', () => {
         expect(out.result.parts.map((part) => part.name)).toEqual(['Abby']);
     });
 
+    // #1426: Rubytee takes minutes; the student may switch to another sprite meanwhile.
+    test('checks Rubytee answers against the sprite it started with after a switch', async () => {
+        const { adapter, vm, dee } = setup();
+        const abby = vm.editingTarget;
+        const scope = adapter.takeoverScope();
+        vm.editingTarget = dee;
+        const result = await adapter.check(wrap('# 「Abby」\nmove(10)\n'), scope);
+        expect(result.ok).toBe(true);
+        expect(result.parts.map((part) => part.target)).toEqual([abby]);
+        // The lines are counted from Abby's blocks, not from Dee in the editor.
+        expect(result.parts[0].before).toBe('move(0)\n');
+        expect(result.parts[0].lines).toEqual({ added: 0, changed: 1, removed: 0 });
+    });
+
+    test('fails a Rubytee answer for the sprite switched to', async () => {
+        const { adapter, vm, dee } = setup();
+        const scope = adapter.takeoverScope();
+        vm.editingTarget = dee;
+        const result = await adapter.check(wrap('# 「Dee」\nmove(10)\n'), scope);
+        expect(result.ok).toBe(false);
+        expect(result.problems[0]).toEqual({ type: 'otherSprite', sprite: 'Dee', only: 'Abby' });
+    });
+
+    test('checks against the sprite in the editor when the sprite started with is deleted', async () => {
+        const { adapter, vm, dee } = setup();
+        const scope = adapter.takeoverScope();
+        vm.runtime.targets = vm.runtime.targets.filter((t) => t !== vm.editingTarget);
+        vm.editingTarget = dee;
+        const result = await adapter.check(wrap('move(10)\n'), scope);
+        expect(result.parts.map((part) => part.target)).toEqual([dee]);
+    });
+
+    test('puts an answer for a sprite the editor no longer shows into its blocks', async () => {
+        const { adapter, editor, vm, dee } = setup();
+        const abby = vm.editingTarget;
+        const scope = adapter.takeoverScope();
+        vm.editingTarget = dee;
+        const loaded = [];
+        abby.blocks.apply = (code) => loaded.push(code);
+        const result = await adapter.check(wrap('move(10)\n'), scope);
+        const out = await adapter.apply(result.parts);
+        expect(loaded).toEqual(['move(10)\n']);
+        // The editor showing Dee is left alone.
+        expect(editor.getValue()).toBe('move(1)\n');
+        expect(out.snapshots).toEqual([{ target: abby, name: 'Abby', before: 'move(0)\n', after: 'move(10)\n' }]);
+        expect(out.marks[0]).toMatchObject({ target: abby, before: 'move(0)\n' });
+    });
+
     test('offers the kinds of trouble of the Ruby tab', () => {
         expect(setup().adapter.problemKinds).toContain('how-command');
     });
