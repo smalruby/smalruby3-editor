@@ -279,7 +279,7 @@ describe('faceLabel', () => {
         expect(faceLabel({ areaWidth: 0, rootLeft: 12, faceWidth: 52, open: false, nudge: false })).toBe('none');
     });
 
-    test('should shorten the label in a narrow area (a phone)', () => {
+    test('should shorten the label in a narrow area', () => {
         // 390 px wide: 390 - 60 (zoom buttons) - 12 - 52 - 8 = 258 px beside the face.
         expect(faceLabel({ areaWidth: 390, rootLeft: 12, faceWidth: 52, open: false, nudge: false })).toBe('short');
     });

@@ -224,8 +224,9 @@ export const panelPlacement = ({ areaWidth, rootLeft, panelWidth, faceWidth }) =
 };
 
 /**
- * Room beside the face (px) for the whole 「AI に相談」 label: less than this (a phone),
- * the label would cover much of the blocks or the code, so it is shortened to 「AI」.
+ * Room beside the face (px) for the whole 「AI に相談」 label: less than this (e.g. the
+ * code tab on an iPad held upright), the label would cover much of the blocks or the code,
+ * so it is shortened to 「AI」.
  */
 const FULL_LABEL_ROOM = 300;
 /** Room beside the face (px) for the short label. */

@@ -19,13 +19,10 @@ const GenaiFace = ({ title, label, onClick }) => (
             </svg>
         </button>
         {label !== 'none' && (
-            <button
-                className={classNames(styles.faceLabel, { [styles.faceLabelShort]: label === 'short' })}
-                data-testid="genai-face-label"
-                onClick={onClick}
-                title={title}
-            >
-                <FormattedMessage {...(label === 'short' ? messages.faceLabelShort : messages.faceLabel)} />
+            <button className={styles.faceLabel} data-testid="genai-face-label" onClick={onClick} title={title}>
+                <span className={classNames(styles.faceLabelBubble, { [styles.faceLabelShort]: label === 'short' })}>
+                    <FormattedMessage {...(label === 'short' ? messages.faceLabelShort : messages.faceLabel)} />
+                </span>
             </button>
         )}
     </div>
