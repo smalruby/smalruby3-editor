@@ -337,6 +337,11 @@ Ruby タブの **Ruby モード・ふりがなモード・日本語 (DNCL) モ�
   足りません」ではなく DNCL のことば（「「もし〜ならば」を「を実行する」で閉じてください」など）で言う
   （AI に `end` を書き足させないため。[`docs/dncl/README.md`](../dncl/README.md) の「閉じ忘れのエラー」）。
   書き直しのお願いも DNCL で頼む。
+- **添字の注意**: 答えの DNCL にもエディタの添字の警告と同じ判定（`findArrayIndexHints`）をかけ、配列の
+  範囲外を読むところ（1 から数えた添字）があれば、✔ のまま、✔ の下（行の差分の上）に「注意: 添字が 1 から
+  始まっているかもしれません…」と行ごとの説明（「◯ 行目: Data[i] は配列の範囲外になります…」）を出す
+  （`genai-index-hints`）。共通テストの問題は 1 から数えることもあるので ✗ にはしない（判定と
+  ［このコードにする］は変わらない）。Ruby・ふりがなモードでは出さない。
 - **入れる・比べる**: エディタに入れるのは DNCL（整形したもの）。行の差分は DNCL どうしで比べる。
   ほかのスプライトに移ったあとの切りかえは、DNCL を Ruby に直してブロックを置きかえる。
 - **ルビティーにまかせる**: 出さない（#1396 決定 3。relay が DNCL で答えられるようになるまで）。
@@ -347,6 +352,7 @@ Ruby タブの **Ruby モード・ふりがなモード・日本語 (DNCL) モ�
 ![エラーがあるときは DNCL の行番号のエラー文で始まる](screenshots/0306-dncl-error-start.png)
 ![DNCL で動かせない答えは ✗（DNCL の行で）](screenshots/0303-dncl-ng.png)
 ![共通テストの形（行番号・⎿・末尾の :）の答えも ✔、DNCL どうしの行の差分](screenshots/0304-dncl-ok.png)
+![1 から数えた添字の答えは ✔ のまま注意が出る](screenshots/0307-dncl-index-hint.png)
 ![入れたあと（増えた・変わった行に印）](screenshots/0305-dncl-done.png)
 
 ![Ruby タブの顔と吹き出し（コードタブと同じ）](screenshots/0200-ruby-face.png)
@@ -421,7 +427,7 @@ Ruby タブの **Ruby モード・ふりがなモード・日本語 (DNCL) モ�
 | `genai-notice` | p | コピーした / できなかったのお知らせ |
 | `genai-to-paste` | button | 答えが来たら次へ |
 | `genai-answer-toggle` | a | 調べたあとに畳んだ答えを見る / 閉じる |
-| `genai-answer` / `genai-convert` / `genai-checking` / `genai-convert-ok` / `genai-convert-ng` / `genai-fixes` / `genai-problems` / `genai-ruby-toggle` / `genai-reflection` / `genai-apply` / `genai-self` / `genai-copy-rewrite` | — | 段階 3〜4（答えを貼る・ブロックにする） |
+| `genai-answer` / `genai-convert` / `genai-checking` / `genai-convert-ok` / `genai-convert-ng` / `genai-fixes` / `genai-index-hints` / `genai-problems` / `genai-ruby-toggle` / `genai-reflection` / `genai-apply` / `genai-self` / `genai-copy-rewrite` | — | 段階 3〜4（答えを貼る・ブロックにする） |
 | `genai-takeover` | button | ルビティーにまかせる（✗ が 2 回・ルビティーが有効なクラスだけ） |
 | `genai-takeover-running` / `genai-takeover-cancel` | div / button | ルビティーが書き直している間（N / 3 回目）と［やめる］ |
 | `genai-takeover-by` / `genai-takeover-explanation` | div / p | ルビティーが作った案であることと、ルビティーの説明（✔ の中） |

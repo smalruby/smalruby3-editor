@@ -1338,6 +1338,10 @@ export default {
     'gui.genaiConcierge.convertOk': 'It can become blocks',
     'gui.genaiConcierge.convertNg': 'It cannot become blocks as it is',
     'gui.genaiConcierge.fixesTitle': 'What Smalruby fixed:',
+    'gui.genaiConcierge.indexHintsTitle':
+        'Note: the indexes may start at 1. In Smalruby Japanese mode, array indices start at 0.',
+    'gui.genaiConcierge.indexHint':
+        '{access} reads past the end of the array (the last element is {array}[{last}]). If the problem counts from 1, shift the index by 1, like {fixed}.',
     'gui.genaiConcierge.lineOf': 'Line {line}',
     'gui.genaiConcierge.spriteLineOf': '"{sprite}" line {line}',
     'gui.genaiConcierge.spriteOf': '"{sprite}"',
