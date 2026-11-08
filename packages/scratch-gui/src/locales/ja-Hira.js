@@ -368,10 +368,12 @@ export default {
     'gui.classroom.classSettings.unarchive': 'もどす',
     'gui.classroom.classSettings.cancel': 'キャンセル',
     'gui.classroom.classSettings.save': 'ほぞん',
+    'gui.classroom.classSettings.saveHintGenai': 'せいせいAI のじょうけんにチェックするとほぞんできます',
+    'gui.classroom.classSettings.saveHintRubytee': 'ルビティーのじょうけんにチェックするとほぞんできます',
     'gui.classroom.classAi.heading': 'このクラスでつかう AI',
     'gui.classroom.classAi.genaiLabel': 'がっこうのせいせいAI にそうだん',
     'gui.classroom.classAi.genaiNote':
-        'コードタブと Ruby タブのりょうほうに「せいせいAI にそうだん」ボタンがでます。せいとがはりつけるので、スモウルビーからはなにもおくりません。',
+        'コードタブと Ruby タブのりょうほうに「AI にそうだん」のかおがでます。せいとがはりつけるので、スモウルビーからはなにもおくりません。',
     'gui.classroom.classAi.service.none': 'つかわない',
     'gui.classroom.classAi.service.gemini': 'Gemini（Google）',
     'gui.classroom.classAi.service.geminiCondition':
@@ -400,6 +402,10 @@ export default {
         'せいとがなまえやじゅうしょなどのこじんじょうほうをいれないようしどうします。',
     'gui.classroom.classAi.rubyteeCondition.age':
         '18 さいみまんのせいとはほごしゃのきょかがひつようです（がっこうでかくにんしています）。',
+    'gui.classroom.classAi.rubyteeConditionsSummary':
+        'じょうけん: こたえのまちがい・こじんじょうほう・18 さいみまんのほごしゃのきょか',
+    'gui.classroom.classAi.rubyteeConditionsShow': 'くわしく',
+    'gui.classroom.classAi.rubyteeConditionsHide': 'とじる',
     'gui.classroom.classAi.rubyteeTerms': 'りようきやく',
     'gui.classroom.classAi.rubyteePrivacy': 'プライバシーポリシー',
     'gui.classroom.classAi.rubyteeConfirm': 'このクラスはうえのじょうけんをみたしています（ひっす）',

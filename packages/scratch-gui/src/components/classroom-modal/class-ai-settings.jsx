@@ -82,6 +82,11 @@ const messages = defineMessages({
         description: 'Condition the teacher checks before turning on Rubytee: no personal information',
         id: 'gui.classroom.classAi.rubyteeCondition.personal',
     },
+    rubyteeSummary: {
+        defaultMessage: "Conditions: wrong answers, personal information, and a parent's permission for under 18s.",
+        description: 'One-line summary of the conditions the teacher checks before turning on Rubytee',
+        id: 'gui.classroom.classAi.rubyteeConditionsSummary',
+    },
     rubyteeAge: {
         defaultMessage: "Students under 18 need a parent's or guardian's permission, which the school has checked.",
         description: 'Condition the teacher checks before turning on Rubytee: parental permission under 18',
@@ -128,6 +133,8 @@ const ClassAiSettings = ({ changed, draft, isLoading, onChange, rubyteeUnconfirm
     const intl = useIntl();
     // The URL rarely needs changing, so its input stays folded until asked for.
     const [urlOpen, setUrlOpen] = useState(false);
+    // Rubytee's conditions fold into a one-line summary (R3) so the form fits 1300x600 (#1427).
+    const [conditionsOpen, setConditionsOpen] = useState(false);
 
     const update = useCallback((changes) => onChange({ ...draft, ...changes }), [draft, onChange]);
 
@@ -145,6 +152,7 @@ const ClassAiSettings = ({ changed, draft, isLoading, onChange, rubyteeUnconfirm
     const handleConfirm = useCallback((e) => update({ confirmed: e.target.checked }), [update]);
     const handleUrl = useCallback((e) => update({ url: e.target.value }), [update]);
     const handleOpenUrl = useCallback(() => setUrlOpen(true), []);
+    const handleToggleConditions = useCallback(() => setConditionsOpen((open) => !open), []);
     const handleRubytee = useCallback((e) => onChange(draftWithRubytee(draft, e.target.checked)), [draft, onChange]);
     const handleRubyteeConfirm = useCallback((e) => update({ rubyteeConfirmed: e.target.checked }), [update]);
 
@@ -216,7 +224,7 @@ const ClassAiSettings = ({ changed, draft, isLoading, onChange, rubyteeUnconfirm
                     </div>
                     <p className={styles.note}>
                         <FormattedMessage
-                            defaultMessage="An “Ask a generative AI” button appears in both the Code tab and the Ruby tab. Students paste their work into the AI themselves, so Smalruby sends nothing."
+                            defaultMessage="An “Ask AI” face appears in both the Code tab and the Ruby tab. Students paste their work into the AI themselves, so Smalruby sends nothing."
                             description="What turning on the school's generative AI does on the students' screen"
                             id="gui.classroom.classAi.genaiNote"
                         />
@@ -231,6 +239,7 @@ const ClassAiSettings = ({ changed, draft, isLoading, onChange, rubyteeUnconfirm
                                     className={styles.checkbox}
                                     data-testid="classroom-class-ai-confirm"
                                     disabled={isLoading}
+                                    name="genaiConfirmed"
                                     type="checkbox"
                                     onChange={handleConfirm}
                                 />
@@ -337,11 +346,39 @@ const ClassAiSettings = ({ changed, draft, isLoading, onChange, rubyteeUnconfirm
                                     />
                                 </p>
                             ) : null}
-                            <ul className={styles.conditions}>
-                                {RUBYTEE_CONDITIONS.map((c) => (
-                                    <li key={c.key}>{intl.formatMessage(c.message)}</li>
-                                ))}
-                            </ul>
+                            <p className={styles.condition}>
+                                <span data-testid="classroom-class-ai-rubytee-conditions-summary">
+                                    {intl.formatMessage(messages.rubyteeSummary)}
+                                </span>{' '}
+                                <button
+                                    aria-expanded={conditionsOpen}
+                                    className={styles.linkButton}
+                                    data-testid="classroom-class-ai-rubytee-conditions-toggle"
+                                    type="button"
+                                    onClick={handleToggleConditions}
+                                >
+                                    {conditionsOpen ? (
+                                        <FormattedMessage
+                                            defaultMessage="Hide details"
+                                            description="Folds the details of Rubytee's conditions"
+                                            id="gui.classroom.classAi.rubyteeConditionsHide"
+                                        />
+                                    ) : (
+                                        <FormattedMessage
+                                            defaultMessage="Details"
+                                            description="Opens the details of Rubytee's conditions"
+                                            id="gui.classroom.classAi.rubyteeConditionsShow"
+                                        />
+                                    )}
+                                </button>
+                            </p>
+                            {conditionsOpen ? (
+                                <ul className={styles.conditions} data-testid="classroom-class-ai-rubytee-conditions">
+                                    {RUBYTEE_CONDITIONS.map((c) => (
+                                        <li key={c.key}>{intl.formatMessage(c.message)}</li>
+                                    ))}
+                                </ul>
+                            ) : null}
                             <div className={styles.confirmRow}>
                                 <label className={styles.confirm}>
                                     <input
@@ -349,6 +386,7 @@ const ClassAiSettings = ({ changed, draft, isLoading, onChange, rubyteeUnconfirm
                                         className={styles.checkbox}
                                         data-testid="classroom-class-ai-rubytee-confirm"
                                         disabled={isLoading}
+                                        name="rubyteeConfirmed"
                                         type="checkbox"
                                         onChange={handleRubyteeConfirm}
                                     />

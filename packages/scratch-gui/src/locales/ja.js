@@ -363,10 +363,12 @@ export default {
     'gui.classroom.classSettings.unarchive': 'もどす',
     'gui.classroom.classSettings.cancel': 'キャンセル',
     'gui.classroom.classSettings.save': '保存',
+    'gui.classroom.classSettings.saveHintGenai': '生成AI の条件にチェックすると保存できます',
+    'gui.classroom.classSettings.saveHintRubytee': 'ルビティーの条件にチェックすると保存できます',
     'gui.classroom.classAi.heading': 'このクラスで使う AI',
     'gui.classroom.classAi.genaiLabel': '学校の生成AI に相談',
     'gui.classroom.classAi.genaiNote':
-        'コードタブと Ruby タブの両方に「生成AI に相談」ボタンが出ます。生徒が貼り付けるので、スモウルビーからは何も送りません。',
+        'コードタブと Ruby タブの両方に「AI に相談」の顔が出ます。生徒が貼り付けるので、スモウルビーからは何も送りません。',
     'gui.classroom.classAi.service.none': '使わない',
     'gui.classroom.classAi.service.gemini': 'Gemini（Google）',
     'gui.classroom.classAi.service.geminiCondition':
@@ -391,6 +393,9 @@ export default {
         'ルビティーは AI（Anthropic の Claude）です。答えがまちがっていることがあります。',
     'gui.classroom.classAi.rubyteeCondition.personal': '生徒が名前や住所などの個人情報を入れないよう指導します。',
     'gui.classroom.classAi.rubyteeCondition.age': '18 歳未満の生徒は保護者の許可が必要です（学校で確認しています）。',
+    'gui.classroom.classAi.rubyteeConditionsSummary': '条件: 答えのまちがい・個人情報・18 歳未満の保護者の許可',
+    'gui.classroom.classAi.rubyteeConditionsShow': '詳しく',
+    'gui.classroom.classAi.rubyteeConditionsHide': '閉じる',
     'gui.classroom.classAi.rubyteeTerms': '利用規約',
     'gui.classroom.classAi.rubyteePrivacy': 'プライバシーポリシー',
     'gui.classroom.classAi.rubyteeConfirm': 'このクラスは上の条件を満たしています（必須）',

@@ -278,6 +278,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-class-settings-archive-confirm-message` | p | アーカイブ確認メッセージ |
 | `classroom-class-settings-archive-cancel` | button | アーカイブ確認のキャンセル |
 | `classroom-class-settings-save` / `classroom-class-settings-cancel` | button | 保存 / キャンセル |
+| `classroom-class-settings-save-hint` | button | ［保存］が押せない理由（足りない必須チェック: 生成AI / ルビティー）。押すとそのチェックへスクロールしてフォーカス。足りないチェックが無いときは出ない |
 | `classroom-class-ai-settings` | div | クラス設定の「このクラスで使う AI」欄（生成AI とルビティーの 2 行を常に表示） |
 | `classroom-class-ai-genai` | div | 「学校の生成AI に相談」の行 |
 | `classroom-class-ai-genai-unsaved` | span | 生成AI の行の「未保存」の印（保存済みの値から変わったときだけ） |
@@ -293,6 +294,9 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-class-ai-rubytee` | checkbox (`role="switch"`) | ルビティーのオン/オフ（既定オフ） |
 | `classroom-class-ai-rubytee-unsaved` | span | ルビティーの行の「未保存」の印 |
 | `classroom-class-ai-rubytee-confirm-panel` | div | ルビティーをオンにしたときだけ行の下に開く確認（条件・リンク・確認チェック） |
+| `classroom-class-ai-rubytee-conditions-summary` | span | ルビティーの条件の 1 行の要約 |
+| `classroom-class-ai-rubytee-conditions-toggle` | button | ［詳しく］/［閉じる］（`aria-expanded`）。条件の箇条書きを開く・畳む |
+| `classroom-class-ai-rubytee-conditions` | ul | ルビティーの条件の箇条書き（［詳しく］で開いたときだけ） |
 | `classroom-class-ai-rubytee-confirm` | checkbox | 「このクラスは上の条件を満たしています（必須）」。オンなのに未チェックだと保存できない。オフにすると外れる |
 | `classroom-class-ai-rubytee-terms` / `classroom-class-ai-rubytee-privacy` | a | 利用規約 / プライバシーポリシー（別タブ） |
 | `classroom-class-ai-rubytee-unconfirmed` | p | 確認の仕組みより前に有効にしたクラス（`rubytee.confirmed` が無い）の「まだ確認されていません」 |
