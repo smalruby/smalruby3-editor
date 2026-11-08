@@ -57,6 +57,10 @@ const checkDnclAnswer = async ({ answer, editingName, convert }) => {
                     RAW_OPCODES.includes(block.opcode),
                 ).length;
                 if (count > 0) problems.push({ type: 'raw', sprite: null, count });
+            } else if (transpiled.blockErrors.length > 0) {
+                // A missing or extra closer: said in the words of DNCL, not as the
+                // converter's missing `end`, which would lead the AI to write `end` (#1419).
+                toProblems(transpiled.blockErrors.map((error) => ({ row: error.line - 1, text: error.message })));
             } else {
                 const errors = part.converter.errors.map((error) => ({
                     row: typeof error.row === 'number' ? error.row : null,
