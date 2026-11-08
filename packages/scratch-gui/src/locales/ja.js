@@ -400,8 +400,13 @@ export default {
     'gui.classroom.classAi.previewTitle': '生徒の画面はこうなります',
     'gui.classroom.classAi.previewCode': 'コード',
     'gui.classroom.classAi.previewConsult': 'AI に相談',
-    'gui.classroom.classAi.previewConsultOff': '生成AI を使わないので、「AI に相談」ボタンは出ません。',
-    'gui.classroom.classAi.previewRubyteeOff': 'ルビティーがオフなので、Ruby タブの AI ボタンは出ません。',
+    'gui.classroom.classAi.previewConsultOff':
+        '生成AI を使わないので、コードタブにも Ruby タブにも「AI に相談」の顔は出ません。',
+    'gui.classroom.classAi.previewTakeover': 'ルビティーにまかせる',
+    'gui.classroom.classAi.previewRubyteeOff':
+        'ルビティーがオフなので、顔のパネルに［ルビティーにまかせる］は出ません。',
+    'gui.classroom.classAi.previewRubyteeNoGenai':
+        'ルビティーは「AI に相談」のパネルから使うので、生成AI を使わないと出ません。',
     'gui.classroom.management.titleBarLogout': 'ログアウト',
     'gui.classroom.notifications.buttonLabel': 'お知らせ',
     'gui.classroom.notifications.title': 'お知らせ',

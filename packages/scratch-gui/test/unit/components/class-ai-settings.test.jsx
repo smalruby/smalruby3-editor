@@ -194,15 +194,33 @@ describe('ClassAiSettings', () => {
         renderSettings();
         expect(byTestId('classroom-class-ai-preview')).toBeInTheDocument();
         expect(byTestId('classroom-class-ai-preview-consult')).toBeNull();
-        expect(byTestId('classroom-class-ai-preview-consult-off')).toBeInTheDocument();
-        expect(byTestId('classroom-class-ai-preview-rubytee')).toHaveAttribute('data-on', 'false');
-        expect(byTestId('classroom-class-ai-preview-rubytee-off')).toBeInTheDocument();
+        expect(byTestId('classroom-class-ai-preview-consult-ruby')).toBeNull();
+        expect(byTestId('classroom-class-ai-preview-rubytee')).toBeNull();
+        expect(byTestId('classroom-class-ai-preview-consult-off')).toHaveTextContent(
+            'neither the Code tab nor the Ruby tab',
+        );
+        expect(byTestId('classroom-class-ai-preview-rubytee-off')).toBeNull();
+        expect(byTestId('classroom-class-ai-preview-rubytee-no-genai')).toBeNull();
 
+        // The face of genai-concierge is in both tabs, and its panel has no Rubytee yet.
         fireEvent.click(byTestId('classroom-class-ai-service-gemini'));
-        expect(byTestId('classroom-class-ai-preview-consult')).toBeInTheDocument();
+        expect(byTestId('classroom-class-ai-preview-consult')).toHaveTextContent('Ask AI');
+        expect(byTestId('classroom-class-ai-preview-consult-ruby')).toHaveTextContent('Ask AI');
         expect(byTestId('classroom-class-ai-preview-consult-off')).toBeNull();
+        expect(byTestId('classroom-class-ai-preview-rubytee')).toHaveTextContent('Leave it to Rubytee');
+        expect(byTestId('classroom-class-ai-preview-rubytee')).toHaveAttribute('data-on', 'false');
+        expect(byTestId('classroom-class-ai-preview-rubytee-off')).toHaveTextContent("face's panel");
+
         fireEvent.click(byTestId('classroom-class-ai-rubytee'));
         expect(byTestId('classroom-class-ai-preview-rubytee')).toHaveAttribute('data-on', 'true');
         expect(byTestId('classroom-class-ai-preview-rubytee-off')).toBeNull();
+    });
+
+    test('the student preview says Rubytee needs the generative AI face', () => {
+        renderSettings({ rubytee: { enabled: true, confirmed: true } });
+        expect(byTestId('classroom-class-ai-preview-consult')).toBeNull();
+        expect(byTestId('classroom-class-ai-preview-rubytee')).toBeNull();
+        expect(byTestId('classroom-class-ai-preview-rubytee-off')).toBeNull();
+        expect(byTestId('classroom-class-ai-preview-rubytee-no-genai')).toHaveTextContent('“Ask AI” panel');
     });
 });
