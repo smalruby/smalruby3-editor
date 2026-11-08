@@ -257,6 +257,39 @@ GENAI_LAB=1 GENAI_LAB_RUN=<名前> GENAI_LAB_MODELS=sonnet,haiku GENAI_LAB_REPEA
 - `GENAI_LAB_ONLY` で場面を絞る。`GENAI_LAB_JUDGE=none` で採点役を使わない。
 - 場面の作品がブロックになることは `fixtures.test.js` で確かめる。
 
+## Ruby タブ
+
+Ruby タブの **Ruby モードとふりがなモード** でも同じパネルで相談できる（`src/lib/genai-ruby-adapter.js`
+のアダプタを `ruby-tab.jsx` が渡す）。段階はコードタブと同じで、変わるのは「何を渡し、何で答えさせ、
+どう確かめ、どう入れるか」だけ。
+
+- **顔**: エディタの左下（行番号の上）。右下はズームと画像保存のボタンなので空いている。パネルは
+  エディタの右側に開く。出す条件はコードタブと同じで、さらに **Ruby のバージョンが 2 のときだけ**
+  （`ruby_version=1` では出さない）。日本語 (DNCL) モードの間は出さない（DNCL 用の質問文ができるまで）。
+- **困りごと**: 種類は「思ったとおりに動かない / エラーが出る / 次に何を作ればいいかわからない /
+  命令の書き方がわからない / もっとおもしろくしたい」。エディタにエラーの印があるときに顔を押すと、
+  「エラーが出る」を選び、エラー文（「N 行目: …」）を入れた状態で始まる。
+- **直すのは今のスプライトだけ**: 質問文には、エディタにいま出ている Ruby（ブロックにまだ反映して
+  いない編集も含む）を「直すプログラム」として入れ、ほかのスプライトのコードは合図や変数の名前を
+  合わせるための **参考**（直さないと明記）として付ける。答えは今のスプライトの分だけを 1 つの
+  `ruby` のコード枠で書いてもらい、`# 「名前」` の見出しは書かないよう頼む。
+- **説明のことば**: Ruby モードは Ruby の書き方で「何を変えたか」を 1〜3 行。ふりがなモードは
+  やさしいことばで、命令に日本語の意味を添える（`loop`（ずっと））。どちらも **答えのコードは Ruby のまま**。
+  命令の例と、音・コスチュームの名前はコードタブと同じ。
+- **確かめる**: コードタブと同じ判定。答えが別のスプライトまで直している（`# 「名前」` が今の
+  スプライト以外）ときは ✗ にし、書き直しのお願いに「『<今のスプライト>』の分だけにしてください」を入れる。
+- **入れる**: ✔ のあと［このコードにする］で、エディタのコードを丸ごと置きかえる（`executeEdits`。
+  Ctrl+Z で元にもどせる）。ブロックへの反映は、生徒が自分で書いたときと同じ流れで行われる。
+  入れたあとの［元のプログラム］⇔［生成AI の案］の切りかえは、エディタにそのスプライトが出ている間だけ働く。
+- まだ無いもの: 入れる前の行の差分・入れたあとの印、ルビティーにまかせる（Ruby タブでは出さない）、
+  日本語 (DNCL) モード。
+
+![Ruby タブの困りごと（顔はエディタの左下）](screenshots/0201-ruby-trouble.png)
+![エラーがあるときは「エラーが出る」で始まる](screenshots/0205-ruby-error-start.png)
+![別のスプライトまで直した答えは ✗](screenshots/0202-ruby-other-sprite-ng.png)
+![✔ と［このコードにする］](screenshots/0203-ruby-ok.png)
+![入れたあと（エディタのコードが置きかわる）](screenshots/0204-ruby-done.png)
+
 ## 設定・データ永続化
 
 | キー | 場所 | 内容 |
@@ -264,7 +297,7 @@ GENAI_LAB=1 GENAI_LAB_RUN=<名前> GENAI_LAB_MODELS=sonnet,haiku GENAI_LAB_REPEA
 | `smalruby:classroom` の `studentGenai` | localStorage | クラスの生成AI 設定（`{enabled, service, url}`） |
 | `smalruby:genaiNudgeOff` | localStorage | ［今日は出さない］を押した日付（`YYYY-MM-DD`）。プロトタイプの `'true'` は無効扱い |
 | `smalruby:genaiService` | localStorage | 開発用（`?features=genai` でクラス外）に選んだ生成AI |
-| `?features=genai` | URL | クラスの外でも顔を出す（開発用） |
+| `?features=genai` | URL | クラスの外でも顔を出す（開発用。Ruby タブは `ruby_version=2` のときだけ） |
 | `?genai_idle=<秒>` | URL | 声かけまでの秒数を短くする（テスト用。あける時間も秒数の 4 倍までに縮む） |
 
 ## 主要ファイル
@@ -286,6 +319,7 @@ GENAI_LAB=1 GENAI_LAB_RUN=<名前> GENAI_LAB_MODELS=sonnet,haiku GENAI_LAB_REPEA
 | `packages/scratch-gui/src/lib/genai-block-diff.js` | 今のプログラムと生成AI の案をブロックで比べる・ブロックの言葉にする（純粋関数。ブロックの定義は引数で受ける） |
 | `packages/scratch-gui/src/lib/genai-takeover.js` | ルビティーにまかせる: ルビティーに送る文の組み立て・作り直しのくり返し・relay の呼び出し（ジョブの問い合わせ） |
 | `packages/scratch-gui/src/lib/genai-code-adapter.js` | コードタブ用のアダプタ。パネルがタブごとに差し替える点（質問文を作る・答えを確かめる・入れる／切りかえる／印を付ける・増える／変わるものの見せ方・顔の置き場所の測り方）をまとめる。差し替え点の説明はファイル冒頭 |
+| `packages/scratch-gui/src/lib/genai-ruby-adapter.js` | Ruby タブ（Ruby・ふりがなモード）用のアダプタ。エディタのコードで質問文を作る・今のスプライトだけを確かめる・エディタに入れる・エディタのエラーから困りごとを始める |
 | `packages/scratch-gui/src/lib/genai-answer.js` | 貼った答えを調べる（✔ / ✗ の判定）・書き直しのお願いの文・切りかえ（純粋関数。変換器は引数で受ける） |
 | `packages/scratch-gui/src/reducers/classroom.js` | `studentGenai` と `setStudentGenai` |
 
@@ -293,7 +327,7 @@ GENAI_LAB=1 GENAI_LAB_RUN=<名前> GENAI_LAB_MODELS=sonnet,haiku GENAI_LAB_REPEA
 
 | data-testid | 要素 | 説明 |
 |------------|------|------|
-| `genai-face` | button | ルビティーの顔（押すとパネルを開く/閉じる） |
+| `genai-face` | button | ルビティーの顔（押すとパネルを開く/閉じる）。コードタブとルビータブの両方にあるので、ルビータブのものはエディタの中（`[class*="editorWrapper"] [data-testid="genai-face"]`）で探す |
 | `genai-nudge` | div | 声かけの吹き出し |
 | `genai-nudge-open` / `genai-nudge-later` / `genai-nudge-off` | button | 相談する / あとで / 今日は出さない |
 | `genai-panel` | div | パネル全体（一度開いたら閉じても消さず、`display: none` と `aria-hidden` で隠す） |
@@ -301,7 +335,7 @@ GENAI_LAB=1 GENAI_LAB_RUN=<名前> GENAI_LAB_MODELS=sonnet,haiku GENAI_LAB_REPEA
 | `genai-stepper` | ol | 進み具合の表示 |
 | `genai-step-<id>` | li | 各段階（`trouble` / `copy` / `paste`）。`data-status` は `done` / `current` / `todo`。終わった段階は中のボタンでもどれる |
 | `genai-close` | button | 閉じる（×） |
-| `genai-kind-<id>` | button | 困りごとの種類（`not-working` / `error` / `next` / `how` / `more-fun`） |
+| `genai-kind-<id>` | button | 困りごとの種類（`not-working` / `error` / `next` / `how` / `more-fun`。Ruby タブは `how` の代わりに `how-command`） |
 | `genai-trouble-text` | textarea | 困りごとを自分のことばで書く欄（種類を選ぶと出る） |
 | `genai-make-prompt` | button | 相談文をつくる |
 | `genai-service-gemini` / `genai-service-chatgpt` / `genai-service-url` / `genai-service-change` | button / input / a | 開発用（`?features=genai` でクラス外）の生成AI 選択 |
