@@ -225,7 +225,12 @@ const RubyTab = (props) => {
     vmRef.current = vm;
     // "生成AI に相談" in the Ruby, furigana (#1398) and Japanese (DNCL, #1402) modes. The
     // adapter reads the editor and the mode when it needs them, so this function stays the
-    // same between renders.
+    // same between renders. The sprite in the editor is rubyCode.target, not
+    // vm.editingTarget: the editor keeps the code (and its sprite) that cannot become blocks
+    // while the VM switches to another sprite (#1435).
+    const rubyCodeTargetRef = useRef(rubyCode.target);
+    rubyCodeTargetRef.current = rubyCode.target;
+    const editorTargetListenersRef = useRef(new Set());
     const genaiAdapterRef = useRef(null);
     if (!genaiAdapterRef.current) {
         genaiAdapterRef.current = makeRubyTabAdapterFactory({
@@ -235,8 +240,18 @@ const RubyTab = (props) => {
                 if (dnclModeRef.current) return 'dncl';
                 return furiganaEnabledRef.current ? 'furigana' : 'ruby';
             },
+            getEditorTarget: () => rubyCodeTargetRef.current,
+            onEditorTargetChange: (listener) => {
+                editorTargetListenersRef.current.add(listener);
+                return () => editorTargetListenersRef.current.delete(listener);
+            },
         });
     }
+    // Told after the editor (a child, whose effects run first) has the new sprite's code. In
+    // the DNCL mode the DNCL comes in a later render; the adapter waits for it then.
+    useEffect(() => {
+        editorTargetListenersRef.current.forEach((listener) => listener());
+    }, [rubyCode.target]);
     // Load Monaco locale synchronously before first render
     const localeLoadedRef = useRef(false);
     if (!localeLoadedRef.current) {
