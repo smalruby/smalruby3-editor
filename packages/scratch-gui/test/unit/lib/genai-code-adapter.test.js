@@ -106,6 +106,14 @@ describe('createCodeTabAdapter', () => {
         expect(adapter.editingName()).toBe('Abby');
     });
 
+    test('sends Rubytee the whole project', () => {
+        const { adapter } = setup();
+        const message = adapter.takeoverMessage({ kindLabel: 'x', text: 'y', exchanges: [] });
+        expect(message).toContain('# 「ステージ」');
+        expect(message).toContain('# 「Abby」');
+        expect(message).toContain('生徒がいま作っているのは「Abby」です。');
+    });
+
     test('puts the sprite in the editor in the question even without code', () => {
         const { adapter } = setup();
         const prompt = adapter.buildPrompt({

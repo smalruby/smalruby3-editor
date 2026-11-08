@@ -9,6 +9,7 @@ import {
     isGenaiAvailable,
     isGenaiDevFlag,
     isRubyTabGenaiAvailable,
+    isTakeoverAvailable,
     isNudgeOffToday,
     localDateKey,
     marksToShow,
@@ -415,5 +416,21 @@ describe('isRubyTabGenaiAvailable', () => {
 
     test('shows the face with ?features=genai outside a class', () => {
         expect(isRubyTabGenaiAvailable({ ...student, role: null, sessionToken: null, devFlag: true })).toBe(true);
+    });
+});
+
+describe('isTakeoverAvailable', () => {
+    test('offers Rubytee in the code tab and in the Ruby and furigana modes of the Ruby tab', () => {
+        expect(isTakeoverAvailable({ rubyteeAvailable: true, rubyTab: false, dnclMode: false })).toBe(true);
+        expect(isTakeoverAvailable({ rubyteeAvailable: true, rubyTab: true, dnclMode: false })).toBe(true);
+    });
+
+    test('does not offer Rubytee in DNCL mode', () => {
+        expect(isTakeoverAvailable({ rubyteeAvailable: true, rubyTab: true, dnclMode: true })).toBe(false);
+    });
+
+    test('does not offer Rubytee when the class does not use it', () => {
+        expect(isTakeoverAvailable({ rubyteeAvailable: false, rubyTab: true, dnclMode: false })).toBe(false);
+        expect(isTakeoverAvailable({ rubyteeAvailable: false, rubyTab: false, dnclMode: false })).toBe(false);
     });
 });

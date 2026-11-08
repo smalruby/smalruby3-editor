@@ -25,6 +25,7 @@ import {
     isGenaiDevFlag,
     isNudgeOffToday,
     isRubyTabGenaiAvailable,
+    isTakeoverAvailable,
     localDateKey,
     panelPlacement,
     resolveGenaiTarget,
@@ -452,7 +453,8 @@ GenaiConcierge.propTypes = {
     // by default. Pass a function that stays the same between renders (not an inline arrow):
     // a new one makes a new adapter, and the marks and the area are set up again each time.
     createAdapter: PropTypes.func,
-    // In the Ruby tab: the face is only for Ruby version 2 (#1398).
+    // In the Ruby tab: the face is only for Ruby version 2 (#1398). 「ルビティーにまかせる」 is
+    // not offered in the Japanese (DNCL) mode (#1400): Rubytee does not answer in DNCL.
     rubyTab: PropTypes.bool,
     rubyVersion: PropTypes.string,
     assignmentName: PropTypes.string,
@@ -499,9 +501,11 @@ const mapStateToProps = (state, ownProps) => {
         available: ownProps.rubyTab
             ? isRubyTabGenaiAvailable({ ...access, rubyVersion: state.scratchGui.settings.rubyVersion })
             : isGenaiAvailable(access),
-        // The Ruby tab's 「ルビティーにまかせる」 comes with #1400, and stays off in the
-        // Japanese (DNCL) mode: Rubytee does not answer in DNCL (#1396 決定 3).
-        rubyteeAvailable: ownProps.rubyTab ? false : selectRubyteeAvailable(state),
+        rubyteeAvailable: isTakeoverAvailable({
+            rubyteeAvailable: selectRubyteeAvailable(state),
+            rubyTab: Boolean(ownProps.rubyTab),
+            dnclMode: Boolean(ownProps.dnclMode),
+        }),
         running: Boolean(state.scratchGui.vmStatus && state.scratchGui.vmStatus.running),
     };
 };
