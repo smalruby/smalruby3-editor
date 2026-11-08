@@ -13,7 +13,9 @@ process.env.JOBS_TABLE_NAME = 'Jobs';
 process.env.USAGE_TABLE_NAME = 'Usage';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const { handler } = require('../takeover-worker');
+const { handler, callClaudeForTakeover } = require('../takeover-worker');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { createAnthropicClient } = require('../anthropic-client');
 
 type Cmd = { kind: string; input: Record<string, any> }; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -52,5 +54,79 @@ describe('takeover worker handler', () => {
   test('jobId が UUID でなければ何も書かない', async () => {
     await handler({ jobId: 'x', userMessage: 'a', usageContext: {} });
     expect(mockSend).not.toHaveBeenCalled();
+  });
+});
+
+describe('callClaudeForTakeover', () => {
+  const body = {
+    model: 'claude-test',
+    max_tokens: 16,
+    system: [{ type: 'text', text: 'fixed', cache_control: { type: 'ephemeral', ttl: '1h' } }],
+    messages: [{ role: 'user', content: 'hi' }],
+  };
+  const json = (status: number, b: unknown) =>
+    new Response(JSON.stringify(b), { status, headers: { 'content-type': 'application/json' } });
+  const clientWith = (fn: (init?: RequestInit) => Promise<Response>, timeout = 1000) => createAnthropicClient({
+    env: { ANTHROPIC_API_KEY: 'sk-ant-api-test' },
+    timeout,
+    logLabel: 'test',
+    fetch: (async (_input: unknown, init?: RequestInit) => fn(init)) as typeof fetch,
+  }).client;
+
+  test('答えと usage 4 項目を返す。system の cache_control はそのまま、beta ヘッダは付けない', async () => {
+    let sent: RequestInit | undefined;
+    const client = clientWith(async init => {
+      sent = init;
+      return json(200, {
+        id: 'msg_1', type: 'message', role: 'assistant', model: 'claude-test', stop_reason: 'end_turn',
+        content: [{ type: 'text', text: 'こん' }, { type: 'text', text: 'にちは' }],
+        usage: { input_tokens: 3, output_tokens: 4, cache_creation_input_tokens: 5, cache_read_input_tokens: 6 },
+      });
+    });
+    const result = await callClaudeForTakeover(body, client);
+    expect(result).toEqual({
+      status: 'done',
+      text: 'こんにちは',
+      outputTokens: 4,
+      tokens: { inputTokens: 3, outputTokens: 4, cacheCreationTokens: 5, cacheReadTokens: 6 },
+    });
+    expect(JSON.parse(String(sent?.body)).system[0].cache_control).toEqual({ type: 'ephemeral', ttl: '1h' });
+    expect(new Headers(sent?.headers).get('anthropic-beta')).toBeNull();
+  });
+
+  test.each([[529, 'AI_OVERLOADED'], [500, 'AI_API_ERROR'], [400, 'AI_API_ERROR']])(
+    'Claude の %i は %s', async (status, code) => {
+      const client = clientWith(async () => json(status, { type: 'error', error: { type: 'x', message: 'x' } }));
+      expect(await callClaudeForTakeover(body, client)).toEqual({ status: 'error', error: code });
+    });
+
+  test('タイムアウトは AI_TIMEOUT', async () => {
+    const client = clientWith(init => new Promise((_resolve, reject) => {
+      init?.signal?.addEventListener('abort', () => {
+        const e = new Error('aborted');
+        e.name = 'AbortError';
+        reject(e);
+      });
+    }), 20);
+    expect(await callClaudeForTakeover(body, client)).toEqual({ status: 'error', error: 'AI_TIMEOUT' });
+  });
+
+  test('フェデレーションの交換に失敗したら AI_API_ERROR', async () => {
+    const { client } = createAnthropicClient({
+      env: {
+        ANTHROPIC_FEDERATION_RULE_ID: 'fdrl_test',
+        ANTHROPIC_ORGANIZATION_ID: 'org',
+        ANTHROPIC_SERVICE_ACCOUNT_ID: 'svac_test',
+      },
+      timeout: 1000,
+      logLabel: 'test',
+      identityTokenProvider: async () => 'aws-jwt',
+      fetch: (async () => json(401, { error: 'invalid_grant' })) as typeof fetch,
+    });
+    expect(await callClaudeForTakeover(body, client)).toEqual({ status: 'error', error: 'AI_API_ERROR' });
+  });
+
+  test('認証の値が無ければ AI_API_ERROR', async () => {
+    expect(await callClaudeForTakeover(body, null)).toEqual({ status: 'error', error: 'AI_API_ERROR' });
   });
 });

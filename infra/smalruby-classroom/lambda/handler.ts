@@ -22,6 +22,8 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { OAuth2Client } from 'google-auth-library';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import * as crypto from 'crypto';
+import Anthropic from '@anthropic-ai/sdk';
+import { classifyAnthropicError, createAnthropicClient, describeAnthropicError } from './anthropic-client';
 import {
   AiUsage,
   buildAiUsage,
@@ -147,7 +149,17 @@ const ASSIGNMENT_IMAGE_CONTENT_TYPES: Record<string, string> = {
 // One call handles at most EVAL_MAX_SUBMISSIONS submissions so the response
 // fits API Gateway's hard 30s integration timeout — the client chunks a
 // whole class into several calls (the cached system prompt is shared).
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
+// Claude is reached via Workload Identity Federation when its settings are
+// all present, otherwise via ANTHROPIC_API_KEY (#1437). No client = 503.
+// 25s per call: under API Gateway's 30s cap (previously no timeout at all, so
+// a slow call was cut by the gateway). No retries — a re-sent timeout would
+// double-bill and overrun the gateway limit.
+const EVAL_ANTHROPIC_TIMEOUT_MS = 25 * 1000;
+const { client: anthropicClient } = createAnthropicClient({
+  env: process.env,
+  timeout: EVAL_ANTHROPIC_TIMEOUT_MS,
+  logLabel: 'classroom',
+});
 const CLAUDE_MODEL = process.env.CLAUDE_MODEL || 'claude-haiku-4-5-20251001';
 const EVAL_MAX_SUBMISSIONS = parseInt(process.env.EVAL_MAX_SUBMISSIONS || '10', 10);
 const EVAL_MAX_PSEUDOCODE_LENGTH = parseInt(process.env.EVAL_MAX_PSEUDOCODE_LENGTH || '4000', 10);
@@ -4750,10 +4762,41 @@ function checkEvalRateLimit(teacherSub: string): void {
   }
 }
 
+type EvaluationClaudeResult =
+  | { ok: true; text: string; usage: Partial<Anthropic.Usage> }
+  | { ok: false; statusCode: number; error: string };
+
+/**
+ * Call Claude for one evaluation chunk. Never throws: SDK errors map to the
+ * existing error codes (API errors → 502 AI_API_ERROR, timeout → 504
+ * AI_TIMEOUT). Exported for unit tests (the client is injectable).
+ */
+export async function callClaudeForEvaluation(
+  system: string, user: string, client: Anthropic,
+): Promise<EvaluationClaudeResult> {
+  try {
+    const message = await client.messages.create({
+      model: CLAUDE_MODEL,
+      max_tokens: 4096,
+      system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
+      messages: [{ role: 'user', content: user }],
+    });
+    const first = message.content[0];
+    const text = first && first.type === 'text' ? first.text : '';
+    return { ok: true, text, usage: message.usage || {} };
+  } catch (err) {
+    console.error('Anthropic API error:', describeAnthropicError(err));
+    if (classifyAnthropicError(err).kind === 'timeout') {
+      return { ok: false, statusCode: 504, error: 'AI_TIMEOUT' };
+    }
+    return { ok: false, statusCode: 502, error: 'AI_API_ERROR' };
+  }
+}
+
 async function handleEvaluateSubmissions(
   identity: TeacherIdentity, classroomId: string, body: Record<string, unknown>,
 ): Promise<APIGatewayProxyStructuredResultV2> {
-  if (!ANTHROPIC_API_KEY) {
+  if (!anthropicClient) {
     return { statusCode: 503, body: JSON.stringify({ error: 'AI evaluation is not configured' }) };
   }
   const classroomResult = await docClient.send(new GetCommand({
@@ -4769,32 +4812,11 @@ async function handleEvaluateSubmissions(
   const request = validateEvaluateRequest(body);
   const { system, user } = buildEvaluationPrompt(request);
 
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'x-api-key': ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01',
-      'anthropic-beta': 'prompt-caching-2024-07-31',
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: CLAUDE_MODEL,
-      max_tokens: 4096,
-      system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
-      messages: [{ role: 'user', content: user }],
-    }),
-  });
-
-  if (!response.ok) {
-    const status = response.status === 529 ? 502 : 502;
-    console.error('Anthropic API error:', response.status, await response.text().catch(() => ''));
-    return { statusCode: status, body: JSON.stringify({ error: 'AI_API_ERROR' }) };
+  const claude = await callClaudeForEvaluation(system, user, anthropicClient);
+  if (!claude.ok) {
+    return { statusCode: claude.statusCode, body: JSON.stringify({ error: claude.error }) };
   }
-
-  const data = (await response.json()) as Record<string, unknown>;
-  const content = Array.isArray(data.content) ? (data.content[0] as Record<string, unknown>) : null;
-  const text = typeof content?.text === 'string' ? content.text : '';
-  const usage = (data.usage || {}) as Record<string, unknown>;
+  const { text, usage } = claude;
   console.log(JSON.stringify({
     event: 'classroom_evaluate',
     mode: request.mode,

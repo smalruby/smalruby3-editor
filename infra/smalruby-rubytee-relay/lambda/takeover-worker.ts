@@ -3,6 +3,8 @@
 // Claude を呼んで結果を jobs 表に書く。HTTP のルートは持たない（外から直接呼べない）。
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import type Anthropic from '@anthropic-ai/sdk';
+import { classifyAnthropicError, createAnthropicClient, describeAnthropicError } from './anthropic-client';
 import {
   TakeoverWorkerPayload,
   TAKEOVER_MAX_TOKENS,
@@ -17,12 +19,15 @@ import {
 
 const JOBS_TABLE_NAME = process.env.JOBS_TABLE_NAME || '';
 const USAGE_TABLE_NAME = process.env.USAGE_TABLE_NAME || '';
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
 const CLAUDE_TAKEOVER_MODEL = process.env.CLAUDE_TAKEOVER_MODEL || 'claude-sonnet-5-5';
-const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
-const ANTHROPIC_VERSION = '2023-06-01';
 
 const docClient = DynamoDBDocumentClient.from(new DynamoDBClient({}));
+// WIF の値がそろっていれば短期トークン、無ければ ANTHROPIC_API_KEY（#1437）。
+const { client: anthropicClient } = createAnthropicClient({
+  env: process.env,
+  timeout: TAKEOVER_ANTHROPIC_TIMEOUT_MS,
+  logLabel: 'takeover-worker',
+});
 
 /** Claude への takeover リクエスト本文（固定部分を system の先頭ブロックに置く）。 */
 export function buildTakeoverClaudeRequest(payload: TakeoverWorkerPayload, model: string): Record<string, unknown> {
@@ -47,52 +52,36 @@ export interface TakeoverResult {
   tokens?: UsageTokens;
 }
 
-/** Claude を呼ぶ（150 秒で打ち切り）。例外は投げず結果にする。 */
+/** Claude を呼ぶ（150 秒で打ち切り。client の timeout）。例外は投げず結果にする。 */
 export async function callClaudeForTakeover(
   requestBody: Record<string, unknown>,
-  fetchFn: typeof fetch = fetch,
+  client: Anthropic | null = anthropicClient,
 ): Promise<TakeoverResult> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TAKEOVER_ANTHROPIC_TIMEOUT_MS);
+  if (!client) {
+    console.error('[Takeover] Claude is not configured (no API key or federation settings)');
+    return { status: 'error', error: 'AI_API_ERROR' };
+  }
   try {
-    const res = await fetchFn(ANTHROPIC_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': ANTHROPIC_VERSION,
-      },
-      body: JSON.stringify(requestBody),
-      signal: controller.signal,
-    });
-    if (!res.ok) {
-      const errText = await res.text();
-      console.error(`[Takeover] Claude API error ${res.status}: ${errText}`);
-      return { status: 'error', error: anthropicErrorCode(res.status) };
-    }
-    const data = await res.json() as {
-      content?: Array<{ type: string; text?: string }>;
-      usage?: {
-        input_tokens?: number;
-        output_tokens?: number;
-        cache_creation_input_tokens?: number;
-        cache_read_input_tokens?: number;
-      };
-    };
-    const text = (data.content || []).filter(c => c.type === 'text').map(c => c.text || '').join('');
+    const message = await client.messages.create(
+      requestBody as unknown as Anthropic.MessageCreateParamsNonStreaming,
+    );
+    const text = message.content
+      .map(c => (c.type === 'text' ? c.text : ''))
+      .join('');
     const tokens: UsageTokens = {
-      inputTokens: data.usage?.input_tokens || 0,
-      outputTokens: data.usage?.output_tokens || 0,
-      cacheCreationTokens: data.usage?.cache_creation_input_tokens || 0,
-      cacheReadTokens: data.usage?.cache_read_input_tokens || 0,
+      inputTokens: message.usage?.input_tokens || 0,
+      outputTokens: message.usage?.output_tokens || 0,
+      cacheCreationTokens: message.usage?.cache_creation_input_tokens || 0,
+      cacheReadTokens: message.usage?.cache_read_input_tokens || 0,
     };
     return { status: 'done', text, outputTokens: tokens.outputTokens, tokens };
   } catch (err) {
-    const aborted = (err as { name?: string })?.name === 'AbortError';
-    console.error('[Takeover] Claude call failed:', aborted ? 'timeout' : err);
-    return { status: 'error', error: aborted ? 'AI_TIMEOUT' : 'INTERNAL_ERROR' };
-  } finally {
-    clearTimeout(timer);
+    console.error('[Takeover] Claude call failed:', describeAnthropicError(err));
+    const c = classifyAnthropicError(err);
+    if (c.kind === 'timeout') return { status: 'error', error: 'AI_TIMEOUT' };
+    if (c.kind === 'api') return { status: 'error', error: anthropicErrorCode(c.status) };
+    if (c.kind === 'federation') return { status: 'error', error: 'AI_API_ERROR' };
+    return { status: 'error', error: 'INTERNAL_ERROR' };
   }
 }
 

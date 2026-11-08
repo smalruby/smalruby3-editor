@@ -129,6 +129,7 @@ AWS Lambda リレーサービス（API Gateway HTTP API + Lambda + DynamoDB）�
 | `infra/smalruby-rubytee-relay/lambda/handler.ts` | API Lambda。リクエスト検証、レート制限、Claude API 呼び出し（Ruby タブ）、takeover のジョブ作成と `GET /jobs/{jobId}` |
 | `infra/smalruby-rubytee-relay/lambda/takeover.ts` | 「ルビティーにまかせる」の上限・システムプロンプト・キー・ジョブの形（純粋関数） |
 | `infra/smalruby-rubytee-relay/lambda/takeover-worker.ts` | takeover の worker Lambda。非同期で呼ばれ、Claude（Sonnet）を呼んで結果を jobs 表に書く |
+| `infra/smalruby-rubytee-relay/lambda/anthropic-client.ts` | worker が使う Claude の client（Anthropic SDK）。WIF の値がそろえば短期トークン、無ければ API キー。SDK のエラーを今のエラーコードに対応させる（classroom にも同じ内容のコピーがある） |
 | `infra/smalruby-rubytee-relay/lambda/smalruby-reference.ts` | スモウルビーの言語仕様（Ruby タブと takeover のプロンプトで共有） |
 | `infra/smalruby-rubytee-relay/lib/rubytee-relay-stack.ts` | CDK スタック定義 |
 | `infra/smalruby-rubytee-relay/lambda/tests/` | 単体テスト |
@@ -160,7 +161,8 @@ AWS Lambda リレーサービス（API Gateway HTTP API + Lambda + DynamoDB）�
 
 | 環境変数 | デフォルト | 用途 |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | - | Anthropic API キー |
+| `ANTHROPIC_API_KEY` | - | Anthropic API キー（下の WIF の値がそろっていない呼び出しで使う） |
+| `ANTHROPIC_FEDERATION_RULE_ID` / `ANTHROPIC_ORGANIZATION_ID` / `ANTHROPIC_SERVICE_ACCOUNT_ID` / `ANTHROPIC_WORKSPACE_ID` | 空 | **worker（ルビティーにまかせる）だけ**。Claude を Workload Identity Federation（WIF）で呼ぶ値。workspace 以外の 3 つがそろうと、worker の実行ロールの JWT（AWS STS `GetWebIdentityToken`）を短期トークンに交換して使い、`ANTHROPIC_API_KEY` は読まない。一部だけならキーのまま。交換に失敗してもキーには戻らない（`AI_API_ERROR`）。旧チャット（`handler.ts`）はキーのまま |
 | `CLAUDE_MODEL` | `claude-haiku-4-5-20251001` | 使用モデル（Ruby タブのルビティー。`purpose` 未指定のとき） |
 | `CLAUDE_TAKEOVER_MODEL` | `claude-sonnet-5-5` | 「ルビティーにまかせる」用モデル（`purpose: "genai-takeover"` のとき） |
 | `RATE_LIMIT_WINDOW_MINUTES` | `35` | レート制限ウィンドウ |
@@ -323,11 +325,14 @@ IP 40 回 / 35 分に回す（クラス管理の `classroomId` は UUID、`membe
 | 部品 | 役割 | 権限 |
 |---|---|---|
 | API Lambda `RubyteeRelayHandler{suffix}` | 入力チェック → レート制限 → ジョブを `pending` で作る → worker を非同期で起動 → `202`。`GET /jobs/{jobId}` に答える | rate limit 表の読み書き、jobs 表の `PutItem` / `GetItem`、usage 表の `UpdateItem`、**worker 1 つだけ**の `lambda:InvokeFunction` |
-| worker Lambda `RubyteeRelayTakeoverWorker{suffix}` | Claude を呼び、結果を jobs 表に書く。**HTTP のルートは無い**。再試行 0 回・timeout 180 秒・同時実行数の上限あり・起動待ちが 60 秒を超えた呼び出しは捨てる（`maxEventAge`） | jobs 表と usage 表の `UpdateItem` だけ |
+| worker Lambda `RubyteeRelayTakeoverWorker{suffix}` | Claude を呼び、結果を jobs 表に書く。**HTTP のルートは無い**。再試行 0 回・timeout 180 秒・同時実行数の上限あり・起動待ちが 60 秒を超えた呼び出しは捨てる（`maxEventAge`） | jobs 表と usage 表の `UpdateItem`、WIF 用の `sts:GetWebIdentityToken` だけ |
 | DynamoDB `RubyteeJobs{suffix}` | `{ jobId, status, createdAt, text?, outputTokens?, error?, ttl }`。**入力は保存しない**（worker には非同期呼び出しの payload だけで渡す）。TTL 1 時間 | — |
 
-- 新しい外部サービス・仕組み（Step Functions / SQS / Function URL / Anthropic SDK）は使わない。増えた依存は
-  AWS 公式の `@aws-sdk/client-lambda`（v3）だけ。
+- 新しい外部サービス・仕組み（Step Functions / SQS / Function URL）は使わない。
+- worker は Claude を **Anthropic の TypeScript SDK**（`@anthropic-ai/sdk`）で呼ぶ。WIF のトークンの
+  交換・キャッシュ・期限前の更新を SDK に任せるため。`maxRetries: 0`（タイムアウトの再送で二重に課金しない）・
+  `timeout` 150 秒。SDK は `anthropic-version: 2026-10-21` を送る。system の `cache_control`（`ttl: '1h'`）で
+  prompt caching が効く（beta ヘッダは付けない）。
 - jobId は `crypto.randomUUID()`（推測できない乱数）。UUID の形でなければ DynamoDB を見ずに 400。
 
 ## 利用の集計・席ごとの状況
