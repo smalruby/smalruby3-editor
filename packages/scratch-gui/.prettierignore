@@ -236,6 +236,8 @@ src/lib/*
 !src/lib/genai-code-adapter.js
 !src/lib/genai-ruby-adapter.js
 !src/lib/genai-line-diff.js
+!src/lib/genai-dncl-prompt.js
+!src/lib/genai-dncl-answer.js
 !src/containers/genai-concierge.jsx
 !src/components/genai-concierge/genai-concierge.css
 !src/components/genai-concierge/genai-nudge.jsx
@@ -552,6 +554,8 @@ test/unit/lib/*
 !test/unit/lib/genai-code-adapter.test.js
 !test/unit/lib/genai-ruby-adapter.test.js
 !test/unit/lib/genai-line-diff.test.js
+!test/unit/lib/genai-dncl-prompt.test.js
+!test/unit/lib/genai-dncl-answer.test.js
 !test/unit/lib/genai-ruby-prompt.test.js
 !test/genai-lab/
 !test/genai-lab/*.js

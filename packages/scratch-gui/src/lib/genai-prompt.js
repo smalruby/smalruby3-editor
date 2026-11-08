@@ -10,6 +10,10 @@ const PROBLEM_KINDS = [
     { id: 'more-fun', label: 'もっとおもしろくしたい', starter: '〜を、もっと〜にしたい' },
     // The Ruby tab's student writes commands, not blocks (#1398).
     { id: 'how-command', label: '命令の書き方がわからない', starter: '〜するには、どう書けばいい？' },
+    // The Japanese (DNCL) mode's student practices the DNCL of 共通テスト (#1402).
+    { id: 'wrong-answer', label: '答えが合わない', starter: '〜になるはずなのに、〜と表示される' },
+    { id: 'how-write', label: 'どう書けばいいかわからない', starter: '〜するには、どう書けばいい？' },
+    { id: 'how-think', label: '問題の考え方がわからない', starter: '〜を求める問題で、どう考えればいいかわからない' },
 ];
 
 // The kinds each tab offers, in order.

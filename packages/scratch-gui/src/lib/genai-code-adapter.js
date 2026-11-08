@@ -15,6 +15,10 @@
 //    - editingName(): the name of the sprite in the editor (「ステージ」 for the stage), or null.
 //    - buildPrompt({kindLabel, text, assignmentName}): the question copied to the AI.
 //    - takeoverState(): the names Rubytee may use (the relay's stateContext).
+//    - rewritePrompt({code, problems}) (optional): the request to rewrite an answer that
+//      failed (buildRewritePrompt of genai-prompt.js by default, asking for Ruby).
+//    - language (optional): 'dncl' when the answer is DNCL, not Ruby (the panel's words then
+//      say program, not Ruby).
 // 2. Checking the answer
 //    - check(text): resolves to checkAnswer's result whose parts also have `target` (the
 //      target the part puts code in) and `changes` (what it adds or changes, see 4).

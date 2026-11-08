@@ -384,8 +384,8 @@ describe('isRubyTabGenaiAvailable', () => {
         expect(isRubyTabGenaiAvailable({ ...student, role: null, devFlag: true, rubyVersion: '1' })).toBe(false);
     });
 
-    test('hides the face in DNCL mode', () => {
-        expect(isRubyTabGenaiAvailable({ ...student, dnclMode: true })).toBe(false);
+    test('shows the face in DNCL mode too (#1402)', () => {
+        expect(isRubyTabGenaiAvailable({ ...student, dnclMode: true })).toBe(true);
     });
 
     test('shows the face with ?features=genai outside a class', () => {
