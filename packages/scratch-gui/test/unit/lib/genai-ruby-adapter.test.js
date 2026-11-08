@@ -81,7 +81,8 @@ const setup = ({ mode = 'ruby', editorValue = 'move(1)\n', markers = [] } = {}) 
     const abby = makeTarget({ id: 'a', name: 'Abby', code: 'move(0)\n', sounds: ['Pop'], costumes: ['abby-a'] });
     const dee = makeTarget({ id: 'd', name: 'Dee', code: 'say("やあ")\n' });
     const stage = makeTarget({ id: 's', name: 'Stage', isStage: true });
-    // The VM tells the editor's switch to another sprite with targetsUpdate (setEditingTarget).
+    // The VM still tells its own switch with targetsUpdate (setEditingTarget); the adapter
+    // reads the switch of the editor from the Ruby tab instead (vm.show below, #1435).
     const vm = Object.assign(new EventEmitter(), { editingTarget: abby, runtime: { targets: [stage, abby, dee] } });
     const editor = makeEditor(editorValue);
     // The sprite the Ruby tab shows in the editor (rubyCode.target, #1435). The editor gets
@@ -477,6 +478,15 @@ describe('the Ruby tab adapter', () => {
         vm.show(null);
         vm.editingTarget = dee;
         expect(adapter.editingName()).toBe('Dee');
+    });
+
+    test('reads the sprite of the VM once the sprite the editor shows is deleted', () => {
+        const { adapter, vm, dee } = setup();
+        const abby = vm.editingTarget;
+        vm.editingTarget = dee;
+        vm.runtime.targets = vm.runtime.targets.filter((t) => t !== abby);
+        expect(adapter.editingName()).toBe('Dee');
+        expect(adapter.takeoverScope().target).toBe(dee);
     });
 
     test('leaves the marks to move along with what the student types', async () => {

@@ -247,7 +247,8 @@ const RubyTab = (props) => {
             },
         });
     }
-    // Told after the editor (a child, whose effects run first) has the new sprite's code.
+    // Told after the editor (a child, whose effects run first) has the new sprite's code. In
+    // the DNCL mode the DNCL comes in a later render; the adapter waits for it then.
     useEffect(() => {
         editorTargetListenersRef.current.forEach((listener) => listener());
     }, [rubyCode.target]);
