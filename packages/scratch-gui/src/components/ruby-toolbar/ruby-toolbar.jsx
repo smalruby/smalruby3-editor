@@ -342,7 +342,6 @@ const RubyToolbar = props => {
                     onSelectTarget={props.onSelectTarget}
                     onDismissBubble={props.onDismissBubble}
                 />
-
             </div>
 
             {/* === Smalruby: Start of mode toggle group === */}
