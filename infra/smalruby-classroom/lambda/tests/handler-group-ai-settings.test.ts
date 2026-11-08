@@ -9,12 +9,14 @@ export {};
  * 1. `genai` = { enabled, service, url, confirmed }。service は gemini / chatgpt / other だけ
  *    （claude などの 18 歳以上限定サービスは 400）。url は https のみ。gemini / chatgpt は
  *    url を省くと既定の URL になる。enabled=true には service と confirmed=true が要る。
- * 2. `rubytee` = { enabled }。
+ * 2. `rubytee` = { enabled, confirmed }。confirmed は先生が条件を確かめた印（#1411）。
+ *    後方互換のため enabled=true に confirmed は要らない（`{enabled: true}` だけでも保存できる）。
+ *    confirmed の無い既存のクラスは confirmed=false として読む。
  * 3. PATCH /classroom-groups/{id} は部分更新（送った項目だけ保存済みの値に重ねる）。
  *    条件を満たさない更新は 400 で書き込まない。送らない更新は設定を書き換えない。
  * 4. 先生向けの応答（一覧・作成・更新）は confirmed を含む全体を返す。
  * 5. 生徒向けの lookup / join / verify-session は enabled / service / url と rubytee.enabled を返す
- *    （confirmed は返さない）。設定が無い既存のクラス・クラスに属さない課題は「どちらも無効」。
+ *    （genai も rubytee も confirmed は返さない）。設定が無い既存のクラス・クラスに属さない課題は「どちらも無効」。
  */
 
 const mockSend = jest.fn();
@@ -191,14 +193,37 @@ describe('validateGenaiSetting (issue #1275)', () => {
   });
 });
 
-describe('validateRubyteeSetting (issue #1275)', () => {
-  test('boolean の enabled だけを受け付ける', () => {
-    const { validateRubyteeSetting } = require('../handler');
-    expect(validateRubyteeSetting({ enabled: true })).toEqual({ enabled: true });
-    expect(validateRubyteeSetting({ enabled: false })).toEqual({ enabled: false });
-    for (const bad of [null, [], {}, { enabled: 'yes' }, true]) {
-      expect(() => validateRubyteeSetting(bad)).toThrow('rubytee');
+describe('validateRubyteeSetting (issue #1275 / #1411)', () => {
+  const validate = (value: unknown, existing?: Row) => require('../handler').validateRubyteeSetting(value, existing);
+
+  test('boolean の enabled / confirmed を受け付け、confirmed を送らなければ false', () => {
+    expect(validate({ enabled: true })).toEqual({ enabled: true, confirmed: false });
+    expect(validate({ enabled: false })).toEqual({ enabled: false, confirmed: false });
+    expect(validate({ enabled: true, confirmed: true })).toEqual({ enabled: true, confirmed: true });
+    expect(validate({ confirmed: true })).toEqual({ enabled: false, confirmed: true });
+  });
+
+  test('オブジェクト以外・どちらも無い・boolean 以外は拒否する', () => {
+    for (const bad of [null, [], {}, { enabled: 'yes' }, { confirmed: 1 }, { enabled: true, confirmed: 'yes' }, true]) {
+      expect(() => validate(bad)).toThrow('rubytee');
     }
+  });
+
+  test('保存済みの設定に重ねる（enabled だけ送っても confirmed は残る）', () => {
+    const existing = { rubytee: { enabled: false, confirmed: true } };
+    expect(validate({ enabled: true }, existing)).toEqual({ enabled: true, confirmed: true });
+    expect(validate({ confirmed: false }, { rubytee: { enabled: true, confirmed: true } }))
+      .toEqual({ enabled: true, confirmed: false });
+  });
+});
+
+describe('rubyteeSettingOf (issue #1411)', () => {
+  test('confirmed の無い既存のクラスは confirmed=false として読む', () => {
+    const { rubyteeSettingOf } = require('../handler');
+    expect(rubyteeSettingOf(undefined)).toEqual({ enabled: false, confirmed: false });
+    expect(rubyteeSettingOf({ rubytee: { enabled: true } })).toEqual({ enabled: true, confirmed: false });
+    expect(rubyteeSettingOf({ rubytee: { enabled: true, confirmed: true } })).toEqual({ enabled: true, confirmed: true });
+    expect(rubyteeSettingOf({ rubytee: { enabled: 'yes', confirmed: 'yes' } })).toEqual({ enabled: false, confirmed: false });
   });
 });
 
@@ -211,7 +236,7 @@ describe('PATCH /classroom-groups/{id} (issue #1275)', () => {
     });
     expect(status).toBe(200);
     expect(body.genai).toEqual({ enabled: true, service: 'gemini', url: 'https://gemini.google.com/app', confirmed: true });
-    expect(body.rubytee).toEqual({ enabled: true });
+    expect(body.rubytee).toEqual({ enabled: true, confirmed: false });
     const names = Object.values(commands('UpdateCommand', 'ClassroomGroups')[0].input.ExpressionAttributeNames);
     expect(names).toEqual(expect.arrayContaining(['genai', 'rubytee']));
   });
@@ -221,6 +246,7 @@ describe('PATCH /classroom-groups/{id} (issue #1275)', () => {
     ['http の URL', { genai: { service: 'other', url: 'http://example.com/' } }],
     ['claude', { genai: { service: 'claude', confirmed: true, enabled: true } }],
     ['不正な rubytee', { rubytee: { enabled: 'on' } }],
+    ['不正な rubytee.confirmed', { rubytee: { enabled: true, confirmed: 'yes' } }],
   ])('%s は 400 で書き込まない', async (_label, body) => {
     useData(group());
     const res = await patch(body);
@@ -239,7 +265,21 @@ describe('PATCH /classroom-groups/{id} (issue #1275)', () => {
     useData(group({ teacherSub: 'someone-else', coTeacherEmails: ['dev-test-teacher@example.com'] }));
     const res = await patch({ rubytee: { enabled: true } });
     expect(res.status).toBe(200);
-    expect(res.body.rubytee).toEqual({ enabled: true });
+    expect(res.body.rubytee).toEqual({ enabled: true, confirmed: false });
+  });
+
+  test('ルビティーの confirmed を保存して返し、enabled だけの更新では残す (#1411)', async () => {
+    useData(group());
+    let res = await patch({ rubytee: { enabled: true, confirmed: true } });
+    expect(res.status).toBe(200);
+    expect(res.body.rubytee).toEqual({ enabled: true, confirmed: true });
+    const update = commands('UpdateCommand', 'ClassroomGroups')[0].input;
+    expect(Object.values(update.ExpressionAttributeValues)).toContainEqual({ enabled: true, confirmed: true });
+
+    mockSend.mockReset();
+    useData(group({ rubytee: { enabled: true, confirmed: true } }));
+    res = await patch({ rubytee: { enabled: false } });
+    expect(res.body.rubytee).toEqual({ enabled: false, confirmed: true });
   });
 
   test('関係の無い先生は 404', async () => {
@@ -255,30 +295,30 @@ describe('PATCH /classroom-groups/{id} (issue #1275)', () => {
     expect(names).not.toContain('genai');
     expect(names).not.toContain('rubytee');
     expect(body.genai).toEqual(DISABLED_GENAI);
-    expect(body.rubytee).toEqual({ enabled: false });
+    expect(body.rubytee).toEqual({ enabled: false, confirmed: false });
   });
 });
 
 describe('GET /classroom-groups (issue #1275)', () => {
   test('設定を返し、設定の無い既存のクラスは「どちらも無効」', async () => {
     const genai = { enabled: true, service: 'gemini', url: 'https://gemini.google.com/app', confirmed: true };
-    useData(group({ genai, rubytee: { enabled: true } }));
+    useData(group({ genai, rubytee: { enabled: true, confirmed: true } }));
     let [g] = (await call('GET', '/classroom-groups')).body.groups;
     expect(g.genai).toEqual(genai);
-    expect(g.rubytee).toEqual({ enabled: true });
+    expect(g.rubytee).toEqual({ enabled: true, confirmed: true });
 
     mockSend.mockReset();
     useData(group());
     [g] = (await call('GET', '/classroom-groups')).body.groups;
     expect(g.genai).toEqual(DISABLED_GENAI);
-    expect(g.rubytee).toEqual({ enabled: false });
+    expect(g.rubytee).toEqual({ enabled: false, confirmed: false });
   });
 });
 
 describe('生徒向けの lookup / join / verify-session (issue #1275)', () => {
   const enabledGroup = () => group({
     genai: { enabled: true, service: 'chatgpt', url: 'https://chatgpt.com/', confirmed: true },
-    rubytee: { enabled: true },
+    rubytee: { enabled: true, confirmed: true },
   });
   const ENABLED_STUDENT = {
     genai: { enabled: true, service: 'chatgpt', url: 'https://chatgpt.com/' },

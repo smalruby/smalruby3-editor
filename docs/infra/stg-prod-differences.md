@@ -26,7 +26,7 @@
 | smalruby-api | — | `IMPORT_EXISTING_CUSTOM_DOMAIN` / `IMPORTED_REGIONAL_DOMAIN_NAME` / `IMPORTED_REGIONAL_HOSTED_ZONE_ID` | 意図どおり（prod の `api.smalruby.app` は CDK の外で作ったものを import している） |
 | smalruby-bug-report | `DEV_BYPASS_TOKEN` / `BUG_REPORT_API_ENDPOINT` | — | 意図どおり（後者は integration テスト用） |
 | smalruby-classroom | `DEV_BYPASS_TOKEN` / `CLASSROOM_API_ENDPOINT` | — | 意図どおり（後者は integration テスト用） |
-| smalruby-mesh-v2 | — | — | キーは同じ。ファイル名だけ `.env.production`（他は `.env.prod`） |
+| smalruby-mesh-v2 | — | — | キーは同じ。手順と docs は `.env.prod`（手元に旧名 `.env.production` が残っていても、読むのは `.env` の symlink だけなので動く） |
 | smalruby-rubytee-relay | — | — | キーは同じ |
 
 
@@ -139,9 +139,7 @@ GUI のビルド（webpack の `DefinePlugin`）が使う環境変数と、そ�
 
 ## 直すべき違い（候補）
 
-| 候補 | 内容 | 優先度 |
-|---|---|---|
-| mesh-v2 の `.env.production` | 他のプロジェクトは `.env.prod`。`Deploy Infra` は CI の中で `.env.prod` を作るので動作には関係ないが、手元の手順と docs が二通りになっている | 低 |
+いまは無い。
 
 ## OAuth クライアントを共用にする理由
 

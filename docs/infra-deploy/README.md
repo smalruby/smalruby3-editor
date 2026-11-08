@@ -164,7 +164,7 @@ workflow は `environment: stg` を使い、**AWS 側の信頼条件も
    | `INFRA_PROD_DOTENV_SMALRUBY_ADMIN` | `infra/smalruby-admin/.env.prod` |
    | `INFRA_PROD_DOTENV_SMALRUBY_CLASSROOM` | `infra/smalruby-classroom/.env.prod` |
    | `INFRA_PROD_DOTENV_SMALRUBY_BUG_REPORT` | `infra/smalruby-bug-report/.env.prod` |
-   | `INFRA_PROD_DOTENV_SMALRUBY_MESH_V2` | `infra/smalruby-mesh-v2/.env.production` |
+   | `INFRA_PROD_DOTENV_SMALRUBY_MESH_V2` | `infra/smalruby-mesh-v2/.env.prod`（旧名 `.env.production` のままでも中身は同じ） |
    | `INFRA_PROD_DOTENV_SMALRUBY_RUBYTEE_RELAY` | `infra/smalruby-rubytee-relay/.env.prod` |
    | `INFRA_PROD_DOTENV_SMALRUBY_API` | prod 用の `.env`（無ければ `STAGE=prod` の 1 行） |
    | `INFRA_PROD_DOTENV_SMALRUBY_WEB_HOSTING` | `infra/smalruby-web-hosting/.env.prod`（`STAGE=prod` だけでよい） |
