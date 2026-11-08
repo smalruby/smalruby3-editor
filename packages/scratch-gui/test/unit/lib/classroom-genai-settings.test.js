@@ -9,6 +9,7 @@ import {
     isAiDraftChanged,
     isDraftSavable,
     isRubyteeUnconfirmed,
+    missingAiConfirmation,
     validateGenaiUrl,
 } from '../../../src/lib/classroom-genai-settings.js';
 
@@ -120,6 +121,34 @@ describe('classroom-genai-settings', () => {
 
         test('a class that turned Rubytee on before the confirmation existed asks for it on the next save', () => {
             expect(isDraftSavable(draftFromGroup({ rubytee: { enabled: true } }))).toBe(false);
+        });
+    });
+
+    describe('missingAiConfirmation', () => {
+        const base = {
+            use: true,
+            service: 'gemini',
+            url: GENAI_DEFAULT_URLS.gemini,
+            confirmed: true,
+            rubytee: false,
+            rubyteeConfirmed: false,
+        };
+
+        test('nothing is missing when every needed check is in', () => {
+            expect(missingAiConfirmation(base)).toBeNull();
+            expect(missingAiConfirmation({ ...base, use: false, service: null, confirmed: false })).toBeNull();
+            expect(missingAiConfirmation({ ...base, rubytee: true, rubyteeConfirmed: true })).toBeNull();
+        });
+
+        test('names the unchecked confirmation, the generative AI first (it is above)', () => {
+            expect(missingAiConfirmation({ ...base, confirmed: false })).toBe('genai');
+            expect(missingAiConfirmation({ ...base, rubytee: true })).toBe('rubytee');
+            expect(missingAiConfirmation({ ...base, confirmed: false, rubytee: true })).toBe('genai');
+            expect(missingAiConfirmation(draftFromGroup({ rubytee: { enabled: true } }))).toBe('rubytee');
+        });
+
+        test('a broken URL is not a missing check (its error shows next to the input)', () => {
+            expect(missingAiConfirmation({ ...base, url: 'http://gemini.google.com/' })).toBeNull();
         });
     });
 

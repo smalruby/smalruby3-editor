@@ -281,6 +281,31 @@ describe('TeacherClassList', () => {
         );
     });
 
+    test('when a confirmation is missing, the footer says which one and takes the teacher to it', () => {
+        renderList();
+        const byTestId = (id) => document.querySelector(`[data-testid="${id}"]`);
+        fireEvent.click(byTestId('classroom-class-settings-open-g1'));
+        expect(byTestId('classroom-class-settings-save-hint')).toBeNull();
+
+        fireEvent.click(byTestId('classroom-class-ai-service-gemini'));
+        expect(byTestId('classroom-class-settings-save-hint')).toHaveTextContent('generative AI');
+        fireEvent.click(byTestId('classroom-class-ai-confirm'));
+        expect(byTestId('classroom-class-settings-save-hint')).toBeNull();
+
+        fireEvent.click(byTestId('classroom-class-ai-rubytee'));
+        const hint = byTestId('classroom-class-settings-save-hint');
+        expect(hint).toHaveTextContent('Rubytee');
+        const scrollIntoView = jest.fn();
+        byTestId('classroom-class-ai-rubytee-confirm').scrollIntoView = scrollIntoView;
+        fireEvent.click(hint);
+        expect(scrollIntoView).toHaveBeenCalled();
+        expect(byTestId('classroom-class-ai-rubytee-confirm')).toHaveFocus();
+
+        fireEvent.click(byTestId('classroom-class-ai-rubytee-confirm'));
+        expect(byTestId('classroom-class-settings-save-hint')).toBeNull();
+        expect(byTestId('classroom-class-settings-save')).toBeEnabled();
+    });
+
     test('increasing the student count saves immediately without a warning', () => {
         const onUpdateGroup = jest.fn();
         renderList({ groups: [group({ studentCount: 30 })], onUpdateGroup });

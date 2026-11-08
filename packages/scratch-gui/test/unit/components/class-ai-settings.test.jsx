@@ -57,6 +57,8 @@ describe('ClassAiSettings', () => {
     test('shows both settings with what happens to the students, without steps', () => {
         renderSettings();
         expect(byTestId('classroom-class-ai-genai')).toHaveTextContent('both the Code tab and the Ruby tab');
+        // Same name as the face the students see (and the preview beside it).
+        expect(byTestId('classroom-class-ai-genai')).toHaveTextContent('“Ask AI” face');
         expect(byTestId('classroom-class-ai-genai')).toHaveTextContent('Smalruby sends nothing');
         expect(byTestId('classroom-class-ai-rubytee-row')).toHaveTextContent('Leave it to Rubytee');
         expect(byTestId('classroom-class-ai-rubytee-row')).toHaveTextContent('No sign-up needed');
@@ -106,10 +108,16 @@ describe('ClassAiSettings', () => {
         const { lastDraft } = renderSettings();
         expect(byTestId('classroom-class-ai-rubytee-confirm-panel')).toBeNull();
         fireEvent.click(byTestId('classroom-class-ai-rubytee'));
-        const panel = byTestId('classroom-class-ai-rubytee-confirm-panel');
-        expect(panel).toHaveTextContent('may be wrong');
-        expect(panel).toHaveTextContent('personal information');
-        expect(panel).toHaveTextContent('under 18');
+        // The conditions fold into one line (R3); the details open on demand.
+        expect(byTestId('classroom-class-ai-rubytee-conditions-summary')).toHaveTextContent('wrong answers');
+        expect(byTestId('classroom-class-ai-rubytee-conditions')).toBeNull();
+        fireEvent.click(byTestId('classroom-class-ai-rubytee-conditions-toggle'));
+        const conditions = byTestId('classroom-class-ai-rubytee-conditions');
+        expect(conditions).toHaveTextContent('may be wrong');
+        expect(conditions).toHaveTextContent('personal information');
+        expect(conditions).toHaveTextContent('under 18');
+        fireEvent.click(byTestId('classroom-class-ai-rubytee-conditions-toggle'));
+        expect(byTestId('classroom-class-ai-rubytee-conditions')).toBeNull();
         expect(byTestId('classroom-class-ai-rubytee-terms')).toHaveAttribute('href', '/terms-of-service.html');
         expect(byTestId('classroom-class-ai-rubytee-privacy')).toHaveAttribute('href', '/privacy-policy.html');
         expect(byTestId('classroom-class-ai-rubytee-confirm')).not.toBeChecked();

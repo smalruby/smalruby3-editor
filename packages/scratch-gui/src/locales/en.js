@@ -313,10 +313,12 @@ export default {
     'gui.classroom.classSettings.unarchive': 'Unarchive',
     'gui.classroom.classSettings.cancel': 'Cancel',
     'gui.classroom.classSettings.save': 'Save',
+    'gui.classroom.classSettings.saveHintGenai': "Check the generative AI's conditions to save",
+    'gui.classroom.classSettings.saveHintRubytee': "Check Rubytee's conditions to save",
     'gui.classroom.classAi.heading': 'AI used in this class',
     'gui.classroom.classAi.genaiLabel': "Consult the school's generative AI",
     'gui.classroom.classAi.genaiNote':
-        'An “Ask a generative AI” button appears in both the Code tab and the Ruby tab. Students paste their work into the AI themselves, so Smalruby sends nothing.',
+        'An “Ask AI” face appears in both the Code tab and the Ruby tab. Students paste their work into the AI themselves, so Smalruby sends nothing.',
     'gui.classroom.classAi.service.none': "Don't use",
     'gui.classroom.classAi.service.gemini': 'Gemini (Google)',
     'gui.classroom.classAi.service.geminiCondition':
@@ -344,6 +346,10 @@ export default {
         'Teach students not to enter personal information such as their name or address.',
     'gui.classroom.classAi.rubyteeCondition.age':
         "Students under 18 need a parent's or guardian's permission, which the school has checked.",
+    'gui.classroom.classAi.rubyteeConditionsSummary':
+        "Conditions: wrong answers, personal information, and a parent's permission for under 18s.",
+    'gui.classroom.classAi.rubyteeConditionsShow': 'Details',
+    'gui.classroom.classAi.rubyteeConditionsHide': 'Hide details',
     'gui.classroom.classAi.rubyteeTerms': 'Terms of Service',
     'gui.classroom.classAi.rubyteePrivacy': 'Privacy Policy',
     'gui.classroom.classAi.rubyteeConfirm': 'This class meets the conditions above (required)',

@@ -138,6 +138,19 @@ export const isDraftSavable = (draft) => {
 };
 
 /**
+ * Which required confirmation the teacher has not checked yet, so the form can
+ * say why [Save] is off and take them to it (#1427). A broken URL is not one:
+ * its error already shows next to the input.
+ * @param {object} draft - see draftFromGroup
+ * @returns {?string} 'genai' / 'rubytee' (in the order they appear), or null
+ */
+export const missingAiConfirmation = (draft) => {
+    if (draft.use && isService(draft.service) && !draft.confirmed) return 'genai';
+    if (draft.rubytee && !draft.rubyteeConfirmed) return 'rubytee';
+    return null;
+};
+
+/**
  * The PATCH body fields for the AI settings, only for what changed, so saving
  * a renamed class never touches (or re-validates) its AI settings.
  * @param {object} group - the stored class
