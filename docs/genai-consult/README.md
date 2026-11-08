@@ -365,7 +365,7 @@ Ruby タブの **Ruby モード・ふりがなモード・日本語 (DNCL) モ�
 | `packages/scratch-gui/src/lib/genai-block-diff.js` | 今のプログラムと生成AI の案をブロックで比べる・ブロックの言葉にする（純粋関数。ブロックの定義は引数で受ける） |
 | `packages/scratch-gui/src/lib/genai-takeover.js` | ルビティーにまかせる: ルビティーに送る文の組み立て・作り直しのくり返し・relay の呼び出し（ジョブの問い合わせ） |
 | `packages/scratch-gui/src/lib/genai-code-adapter.js` | コードタブ用のアダプタ。パネルがタブごとに差し替える点（質問文を作る・答えを確かめる・入れる／切りかえる／印を付ける・増える／変わるものの見せ方・顔の置き場所の測り方）をまとめる。差し替え点の説明はファイル冒頭 |
-| `packages/scratch-gui/src/lib/genai-ruby-adapter.js` | Ruby タブ（Ruby・ふりがなモード）用のアダプタ。エディタのコードで質問文を作る・今のスプライトだけを確かめる・エディタに入れる・エディタのエラーから困りごとを始める・行の差分の表示（Monaco）・入れたあとの行の印（decoration） |
+| `packages/scratch-gui/src/lib/genai-ruby-adapter.js` | Ruby タブ（Ruby・ふりがな・日本語 (DNCL) モード）用のアダプタ。エディタのコードで質問文を作る・今のスプライトだけを確かめる・エディタに入れる・エディタのエラーから困りごとを始める・行の差分の表示（Monaco）・入れたあとの行の印（decoration） |
 | `packages/scratch-gui/src/lib/genai-dncl-prompt.js` | 日本語 (DNCL) モードの質問文・困りごとの種類・命令の例・書き直しのお願い・答えからの DNCL 取り出し（純粋関数） |
 | `packages/scratch-gui/src/lib/genai-dncl-answer.js` | 日本語 (DNCL) モードの答えを調べる（DNCL → Ruby → 変換。エラーを DNCL の行に戻す。変換器は引数で受ける） |
 | `packages/scratch-gui/src/lib/genai-line-diff.js` | Ruby タブの行の差分（増える・変わる・なくなる行）と、その数・印を付ける行（純粋関数） |

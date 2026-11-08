@@ -2,7 +2,7 @@
 // the high school students practicing the DNCL of 共通テスト. The code in the editor goes
 // in as DNCL, and the answer comes back as DNCL (Smalruby reads DNCLv2 too). Pure functions.
 import { DNCL_BUILTIN_NAMES } from './dncl/dncl-builtins';
-import { COPY_END, COPY_START } from './genai-prompt.js';
+import { COPY_END, COPY_START, betweenCopyMarks } from './genai-prompt.js';
 
 // The kinds of trouble of DNCL mode, in order (labels in PROBLEM_KINDS of genai-prompt.js).
 const DNCL_TAB_KINDS = ['wrong-answer', 'error', 'how-write', 'how-think'];
@@ -116,17 +116,7 @@ const DNCL_LINE = /(を実行する|を繰り返す|と定義する|ならば\s*
  */
 const extractDncl = (answer) => {
     if (!answer) return null;
-    let text = answer;
-    let marked = false;
-    const start = text.indexOf('▼▼');
-    if (start >= 0) {
-        const afterStart = text.indexOf('\n', start);
-        if (afterStart >= 0) {
-            const end = text.indexOf('▲▲', afterStart);
-            text = end >= 0 ? text.slice(afterStart, end) : text.slice(afterStart);
-            marked = true;
-        }
-    }
+    const { text, marked } = betweenCopyMarks(answer);
     const blocks = [...text.matchAll(/```[^\n]*\n([\s\S]*?)```/g)];
     if (blocks.length > 0) return `${blocks[blocks.length - 1][1].replace(/\s+$/, '')}\n`;
     const plain = text.replace(/^\s*\n/, '').replace(/\s+$/, '');

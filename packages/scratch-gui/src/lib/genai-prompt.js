@@ -242,6 +242,21 @@ const splitPrompt = (prompt, count) => {
 };
 
 /**
+ * The part of a pasted answer between the copy markers (COPY_START / COPY_END), or the
+ * whole answer when it has none. Shared by the Ruby and the DNCL (#1402) answers.
+ * @param {string} answer - the pasted answer.
+ * @returns {{text: string, marked: boolean}} the text, and whether the markers were found.
+ */
+const betweenCopyMarks = (answer) => {
+    const start = answer.indexOf('▼▼');
+    if (start < 0) return { text: answer, marked: false };
+    const afterStart = answer.indexOf('\n', start);
+    if (afterStart < 0) return { text: answer, marked: false };
+    const end = answer.indexOf('▲▲', afterStart);
+    return { text: end >= 0 ? answer.slice(afterStart, end) : answer.slice(afterStart), marked: true };
+};
+
+/**
  * Take the Ruby code out of a pasted answer: the fenced code between the copy
  * markers, else the last ```ruby (or ```) block, else the text itself when it
  * looks like code.
@@ -250,13 +265,7 @@ const splitPrompt = (prompt, count) => {
  */
 const extractRuby = (answer) => {
     if (!answer) return null;
-    let text = answer;
-    const start = text.indexOf('▼▼');
-    if (start >= 0) {
-        const afterStart = text.indexOf('\n', start);
-        const end = text.indexOf('▲▲', afterStart);
-        text = end >= 0 ? text.slice(afterStart, end) : text.slice(afterStart);
-    }
+    const { text } = betweenCopyMarks(answer);
     const blocks = [...text.matchAll(/```[ \t]*([a-zA-Z]*)[^\n]*\n([\s\S]*?)```/g)];
     const ruby = blocks.filter((m) => !m[1] || /^(ruby|rb)$/i.test(m[1]));
     if (ruby.length > 0) return `${ruby[ruby.length - 1][2].replace(/\s+$/, '')}\n`;
@@ -291,6 +300,7 @@ export {
     COMMAND_EXAMPLES,
     COPY_END,
     COPY_START,
+    betweenCopyMarks,
     PROBLEM_KINDS,
     RUBY_TAB_KINDS,
     buildGenaiPrompt,
