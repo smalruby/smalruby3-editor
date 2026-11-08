@@ -9,7 +9,12 @@ import React, { useState } from 'react';
 import { IntlProvider } from 'react-intl';
 import ClassAiSettings from '../../../src/components/classroom-modal/class-ai-settings.jsx';
 import ClassAiStudentPreview from '../../../src/components/classroom-modal/class-ai-student-preview.jsx';
-import { changedAiSettings, draftFromGroup, GENAI_DEFAULT_URLS } from '../../../src/lib/classroom-genai-settings.js';
+import {
+    changedAiSettings,
+    draftFromGroup,
+    GENAI_DEFAULT_URLS,
+    isRubyteeUnconfirmed,
+} from '../../../src/lib/classroom-genai-settings.js';
 
 const byTestId = (id) => document.querySelector(`[data-testid="${id}"]`);
 
@@ -27,7 +32,12 @@ const Harness = ({ group, onDraft }) => {
     // The preview sits beside the settings, fed from the same unsaved draft.
     return (
         <React.Fragment>
-            <ClassAiSettings changed={changedAiSettings(group, draft)} draft={draft} onChange={handleChange} />
+            <ClassAiSettings
+                changed={changedAiSettings(group, draft)}
+                draft={draft}
+                rubyteeUnconfirmed={isRubyteeUnconfirmed(group)}
+                onChange={handleChange}
+            />
             <ClassAiStudentPreview genai={draft.use} rubytee={draft.rubytee} />
         </React.Fragment>
     );
@@ -90,6 +100,43 @@ describe('ClassAiSettings', () => {
         fireEvent.click(byTestId('classroom-class-ai-service-chatgpt'));
         expect(byTestId('classroom-class-ai-rubytee')).toBeChecked();
         expect(lastDraft()).toMatchObject({ service: 'chatgpt', rubytee: true });
+    });
+
+    test('turning Rubytee on asks the teacher to confirm what the student consent used to say', () => {
+        const { lastDraft } = renderSettings();
+        expect(byTestId('classroom-class-ai-rubytee-confirm-panel')).toBeNull();
+        fireEvent.click(byTestId('classroom-class-ai-rubytee'));
+        const panel = byTestId('classroom-class-ai-rubytee-confirm-panel');
+        expect(panel).toHaveTextContent('may be wrong');
+        expect(panel).toHaveTextContent('personal information');
+        expect(panel).toHaveTextContent('under 18');
+        expect(byTestId('classroom-class-ai-rubytee-terms')).toHaveAttribute('href', '/terms-of-service.html');
+        expect(byTestId('classroom-class-ai-rubytee-privacy')).toHaveAttribute('href', '/privacy-policy.html');
+        expect(byTestId('classroom-class-ai-rubytee-confirm')).not.toBeChecked();
+        expect(lastDraft()).toMatchObject({ rubytee: true, rubyteeConfirmed: false });
+
+        fireEvent.click(byTestId('classroom-class-ai-rubytee-confirm'));
+        expect(lastDraft()).toMatchObject({ rubytee: true, rubyteeConfirmed: true });
+
+        // Off and on again asks again.
+        fireEvent.click(byTestId('classroom-class-ai-rubytee'));
+        expect(byTestId('classroom-class-ai-rubytee-confirm-panel')).toBeNull();
+        fireEvent.click(byTestId('classroom-class-ai-rubytee'));
+        expect(byTestId('classroom-class-ai-rubytee-confirm')).not.toBeChecked();
+    });
+
+    test('a class that turned Rubytee on before the confirmation existed is shown as not confirmed', () => {
+        renderSettings({ rubytee: { enabled: true } });
+        expect(byTestId('classroom-class-ai-rubytee')).toBeChecked();
+        expect(byTestId('classroom-class-ai-rubytee-unconfirmed')).toBeInTheDocument();
+        fireEvent.click(byTestId('classroom-class-ai-rubytee-confirm'));
+        expect(byTestId('classroom-class-ai-rubytee-unconfirmed')).toBeNull();
+    });
+
+    test('a confirmed class shows its check without the notice', () => {
+        renderSettings({ rubytee: { enabled: true, confirmed: true } });
+        expect(byTestId('classroom-class-ai-rubytee-confirm')).toBeChecked();
+        expect(byTestId('classroom-class-ai-rubytee-unconfirmed')).toBeNull();
     });
 
     test('changing the service asks for the confirmation again and folds the URL', () => {

@@ -17,6 +17,7 @@ import {
     changedAiSettings,
     draftFromGroup,
     isDraftSavable,
+    isRubyteeUnconfirmed,
 } from '../../lib/classroom-genai-settings.js';
 import ClassAiSettings from './class-ai-settings.jsx';
 import ClassAiStudentPreview from './class-ai-student-preview.jsx';
@@ -340,6 +341,7 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
                     changed={changedAiSettings(group, aiDraft)}
                     draft={aiDraft}
                     isLoading={isLoading}
+                    rubyteeUnconfirmed={isRubyteeUnconfirmed(group)}
                     onChange={setAiDraft}
                 />
                 {confirmingArchive ? (
@@ -374,7 +376,7 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
                 {/* フッター（レビュー指摘）: 通常は キャンセル左 / アーカイブ・保存 右
                     （アーカイブは保存の左）。アーカイブ押下中は キャンセル・保存を隠し
                     「アーカイブしない / アーカイブする」のみ表示。 */}
-                <div className={styles.formFooter}>
+                <div className={classNames(styles.formFooter, styles.classSettingsFooter)}>
                     {confirmingArchive ? (
                         <React.Fragment>
                             <ClassroomButton

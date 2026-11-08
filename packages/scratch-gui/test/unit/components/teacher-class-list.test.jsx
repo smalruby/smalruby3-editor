@@ -249,14 +249,35 @@ describe('TeacherClassList', () => {
         expect(byTestId('classroom-class-settings-save')).toBeDisabled();
         fireEvent.click(byTestId('classroom-class-ai-confirm'));
         fireEvent.click(byTestId('classroom-class-ai-rubytee'));
+        // Rubytee asks for its own confirmation.
+        expect(byTestId('classroom-class-settings-save')).toBeDisabled();
+        fireEvent.click(byTestId('classroom-class-ai-rubytee-confirm'));
         fireEvent.click(byTestId('classroom-class-settings-save'));
 
         expect(onUpdateGroup).toHaveBeenCalledWith(
             'g1',
             expect.objectContaining({
                 genai: { enabled: true, service: 'gemini', url: 'https://gemini.google.com/app', confirmed: true },
-                rubytee: { enabled: true },
+                rubytee: { enabled: true, confirmed: true },
             }),
+        );
+    });
+
+    test('a class that turned Rubytee on before the confirmation existed asks for it on the next save', () => {
+        const onUpdateGroup = jest.fn();
+        renderList({ groups: [group({ rubytee: { enabled: true } })], onUpdateGroup });
+        const byTestId = (id) => document.querySelector(`[data-testid="${id}"]`);
+        fireEvent.click(byTestId('classroom-class-settings-open-g1'));
+        expect(byTestId('classroom-class-ai-rubytee')).toBeChecked();
+        expect(byTestId('classroom-class-ai-rubytee-unconfirmed')).toBeInTheDocument();
+        fireEvent.change(byTestId('classroom-class-settings-section'), { target: { value: '2年3組' } });
+        expect(byTestId('classroom-class-settings-save')).toBeDisabled();
+
+        fireEvent.click(byTestId('classroom-class-ai-rubytee-confirm'));
+        fireEvent.click(byTestId('classroom-class-settings-save'));
+        expect(onUpdateGroup).toHaveBeenCalledWith(
+            'g1',
+            expect.objectContaining({ section: '2年3組', rubytee: { enabled: true, confirmed: true } }),
         );
     });
 

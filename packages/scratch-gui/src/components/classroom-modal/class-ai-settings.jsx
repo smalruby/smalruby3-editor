@@ -9,7 +9,12 @@ import PropTypes from 'prop-types';
 import React, { useCallback, useState } from 'react';
 import { defineMessages, FormattedMessage, useIntl } from 'react-intl';
 
-import { displayGenaiUrl, draftWithService, validateGenaiUrl } from '../../lib/classroom-genai-settings.js';
+import {
+    displayGenaiUrl,
+    draftWithRubytee,
+    draftWithService,
+    validateGenaiUrl,
+} from '../../lib/classroom-genai-settings.js';
 
 import styles from './class-ai-settings.css';
 
@@ -67,6 +72,21 @@ const messages = defineMessages({
         description: 'Error when the generative AI URL points to an 18+ service',
         id: 'gui.classroom.classAi.urlError.adultOnly',
     },
+    rubyteeWrong: {
+        defaultMessage: "Rubytee is an AI (Anthropic's Claude). Its answers may be wrong.",
+        description: 'Condition the teacher checks before turning on Rubytee: AI answers may be wrong',
+        id: 'gui.classroom.classAi.rubyteeCondition.wrong',
+    },
+    rubyteePersonal: {
+        defaultMessage: 'Teach students not to enter personal information such as their name or address.',
+        description: 'Condition the teacher checks before turning on Rubytee: no personal information',
+        id: 'gui.classroom.classAi.rubyteeCondition.personal',
+    },
+    rubyteeAge: {
+        defaultMessage: "Students under 18 need a parent's or guardian's permission, which the school has checked.",
+        description: 'Condition the teacher checks before turning on Rubytee: parental permission under 18',
+        id: 'gui.classroom.classAi.rubyteeCondition.age',
+    },
 });
 
 const SERVICES = [
@@ -96,7 +116,15 @@ UnsavedMark.propTypes = {
     testId: PropTypes.string.isRequired,
 };
 
-const ClassAiSettings = ({ changed, draft, isLoading, onChange }) => {
+// What the students' consent screen used to say (removed in #1412), now
+// checked by the teacher when turning Rubytee on for the class (#1413).
+const RUBYTEE_CONDITIONS = [
+    { key: 'wrong', message: messages.rubyteeWrong },
+    { key: 'personal', message: messages.rubyteePersonal },
+    { key: 'age', message: messages.rubyteeAge },
+];
+
+const ClassAiSettings = ({ changed, draft, isLoading, onChange, rubyteeUnconfirmed }) => {
     const intl = useIntl();
     // The URL rarely needs changing, so its input stays folded until asked for.
     const [urlOpen, setUrlOpen] = useState(false);
@@ -117,7 +145,8 @@ const ClassAiSettings = ({ changed, draft, isLoading, onChange }) => {
     const handleConfirm = useCallback((e) => update({ confirmed: e.target.checked }), [update]);
     const handleUrl = useCallback((e) => update({ url: e.target.value }), [update]);
     const handleOpenUrl = useCallback(() => setUrlOpen(true), []);
-    const handleRubytee = useCallback((e) => update({ rubytee: e.target.checked }), [update]);
+    const handleRubytee = useCallback((e) => onChange(draftWithRubytee(draft, e.target.checked)), [draft, onChange]);
+    const handleRubyteeConfirm = useCallback((e) => update({ rubyteeConfirmed: e.target.checked }), [update]);
 
     const selected = draft.use ? SERVICES.find((s) => s.service === draft.service) : null;
     const urlError = selected ? validateGenaiUrl(draft.url) : null;
@@ -296,6 +325,71 @@ const ClassAiSettings = ({ changed, draft, isLoading, onChange }) => {
                             />
                         </span>
                     </div>
+
+                    {draft.rubytee ? (
+                        <div className={styles.confirmPanel} data-testid="classroom-class-ai-rubytee-confirm-panel">
+                            {rubyteeUnconfirmed && !draft.rubyteeConfirmed ? (
+                                <p className={styles.unconfirmed} data-testid="classroom-class-ai-rubytee-unconfirmed">
+                                    <FormattedMessage
+                                        defaultMessage="Not confirmed yet. Rubytee keeps working; check the box below when you next save."
+                                        description="Shown for a class that turned Rubytee on before the teacher's confirmation existed"
+                                        id="gui.classroom.classAi.rubyteeUnconfirmed"
+                                    />
+                                </p>
+                            ) : null}
+                            <ul className={styles.conditions}>
+                                {RUBYTEE_CONDITIONS.map((c) => (
+                                    <li key={c.key}>{intl.formatMessage(c.message)}</li>
+                                ))}
+                            </ul>
+                            <div className={styles.confirmRow}>
+                                <label className={styles.confirm}>
+                                    <input
+                                        checked={draft.rubyteeConfirmed}
+                                        className={styles.checkbox}
+                                        data-testid="classroom-class-ai-rubytee-confirm"
+                                        disabled={isLoading}
+                                        type="checkbox"
+                                        onChange={handleRubyteeConfirm}
+                                    />
+                                    <span className={styles.confirmLabel}>
+                                        <FormattedMessage
+                                            defaultMessage="This class meets the conditions above (required)"
+                                            description="Required checkbox confirming the class meets Rubytee's conditions"
+                                            id="gui.classroom.classAi.rubyteeConfirm"
+                                        />
+                                    </span>
+                                </label>
+                                <span className={styles.links}>
+                                    <a
+                                        data-testid="classroom-class-ai-rubytee-terms"
+                                        href="/terms-of-service.html"
+                                        rel="noopener noreferrer"
+                                        target="_blank"
+                                    >
+                                        <FormattedMessage
+                                            defaultMessage="Terms of Service"
+                                            description="Link to Smalruby's terms of service, next to the Rubytee confirmation"
+                                            id="gui.classroom.classAi.rubyteeTerms"
+                                        />
+                                    </a>
+                                    {' / '}
+                                    <a
+                                        data-testid="classroom-class-ai-rubytee-privacy"
+                                        href="/privacy-policy.html"
+                                        rel="noopener noreferrer"
+                                        target="_blank"
+                                    >
+                                        <FormattedMessage
+                                            defaultMessage="Privacy Policy"
+                                            description="Link to Smalruby's privacy policy, next to the Rubytee confirmation"
+                                            id="gui.classroom.classAi.rubyteePrivacy"
+                                        />
+                                    </a>
+                                </span>
+                            </div>
+                        </div>
+                    ) : null}
                 </div>
             </div>
         </div>
@@ -313,9 +407,12 @@ ClassAiSettings.propTypes = {
         url: PropTypes.string.isRequired,
         confirmed: PropTypes.bool.isRequired,
         rubytee: PropTypes.bool.isRequired,
+        rubyteeConfirmed: PropTypes.bool.isRequired,
     }).isRequired,
     isLoading: PropTypes.bool,
     onChange: PropTypes.func.isRequired,
+    /** The stored class has Rubytee on without the teacher's confirmation (see isRubyteeUnconfirmed). */
+    rubyteeUnconfirmed: PropTypes.bool,
 };
 
 export default ClassAiSettings;
