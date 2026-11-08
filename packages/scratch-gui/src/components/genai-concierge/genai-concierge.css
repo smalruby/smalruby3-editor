@@ -3,6 +3,9 @@
 /* The marks on the blocks the AI's version adds or changes (#1281): unlike any block colour. */
 $genai-mark: #ff3d8b;
 
+/* The steps not reached yet, and the line up to them (#1425): solid, so the line does not show through a node. */
+$step-todo: #d3d9e3;
+
 .root {
     position: absolute;
     bottom: 12px;
@@ -167,7 +170,10 @@ $genai-mark: #ff3d8b;
     cursor: pointer;
 }
 
-/* Progress display (#1293 G9): square nodes joined by a line under the step names. */
+/*
+ * Progress display (#1293 G9): round nodes joined by a line under the step names, like a
+ * delivery tracker (#1425). Filled circles, never an empty box, so no node looks like a checkbox.
+ */
 .stepper {
     position: relative;
     display: flex;
@@ -185,13 +191,13 @@ $genai-mark: #ff3d8b;
     content: '';
     position: absolute;
     left: calc(12px + 48px);
-    bottom: 15px;
+    bottom: 16px;
     height: 3px;
 }
 
 .stepper::before {
     right: calc(12px + 48px);
-    background-color: $ui-black-transparent;
+    background-color: $step-todo;
 }
 
 .stepper::after {
@@ -237,17 +243,18 @@ $genai-mark: #ff3d8b;
 }
 
 .stepNode {
-    width: 17px;
-    height: 17px;
-    box-sizing: border-box;
+    width: 19px;
+    height: 19px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 3px solid $ui-black-transparent;
-    background-color: $ui-white;
+    border-radius: 50%;
+    background-color: $step-todo;
     color: $ui-white;
-    font-size: 0.65rem;
+    font-size: 0.7rem;
+    font-weight: bold;
     line-height: 1;
+    transition: box-shadow 0.1s ease-out;
 }
 
 .step-done .stepName {
@@ -255,8 +262,14 @@ $genai-mark: #ff3d8b;
 }
 
 .step-done .stepNode {
-    border-color: $looks-secondary;
     background-color: $looks-secondary;
+}
+
+/* A step you can go back to only changes a little on hover (the name is underlined already). */
+.stepReturn:hover .stepNode,
+.stepReturn:focus-visible .stepNode {
+    background-color: $looks-secondary-dark;
+    box-shadow: 0 0 0 3px $looks-light-transparent;
 }
 
 .step-current .stepName {
@@ -264,8 +277,10 @@ $genai-mark: #ff3d8b;
     font-weight: bold;
 }
 
+/* The current step: a filled circle with a ring around it and no ✓, unlike a finished one. */
 .step-current .stepNode {
-    border-color: $looks-secondary;
+    background-color: $looks-secondary;
+    box-shadow: 0 0 0 3px $looks-transparent;
 }
 
 .body {
