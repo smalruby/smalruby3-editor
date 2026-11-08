@@ -1,4 +1,4 @@
-import { countLineChanges, diffLines, markedLines } from '../../../src/lib/genai-line-diff.js';
+import { carriedLines, countLineChanges, diffLines, markedLines } from '../../../src/lib/genai-line-diff.js';
 
 const kinds = (diff) => diff.map((line) => `${line.kind}:${line.text}`);
 
@@ -76,5 +76,16 @@ describe('markedLines', () => {
             { line: 2, kind: 'changed' },
             { line: 4, kind: 'added' },
         ]);
+    });
+});
+
+describe('carriedLines', () => {
+    test('carries the marks of the lines kept or changed in their place, not to new lines', () => {
+        // Line 2 is corrected in its place, a line is put in before line 3.
+        expect([...carriedLines('a\nｂ\nc\n', 'a\nb\nx\nc\n', [2, 3])]).toEqual([2, 4]);
+    });
+
+    test('carries nothing when no line was marked', () => {
+        expect([...carriedLines('a\nb\n', 'a\nB\n', [])]).toEqual([]);
     });
 });

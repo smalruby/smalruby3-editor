@@ -7,7 +7,7 @@
 // inline diff before it goes in, and marks on the lines added or changed once it is in.
 import { checkAnswer, liveSnapshots, switchSnapshots } from './genai-answer.js';
 import { nameOf, takeoverStateOf } from './genai-code-adapter.js';
-import { countLineChanges, diffLines, markedLines } from './genai-line-diff.js';
+import { carriedLines, countLineChanges, diffLines, markedLines } from './genai-line-diff.js';
 import { RUBY_TAB_KINDS, buildRubyTabPrompt } from './genai-prompt.js';
 import RubyGenerator from './ruby-generator';
 import { targetCodeToBlocks } from './ruby-to-blocks-converter';
@@ -57,9 +57,9 @@ export const lineDecorations = (lines) =>
  */
 export const countChanges = (before, after) => countLineChanges(diffLines(before, after));
 
-// Whether a change of the editor's content replaces all of it: the editor then shows
-// another sprite or the same one afresh (@monaco-editor/react puts a new value in as one
-// edit of the whole range, ruby-tab.jsx sometimes with setValue), and the marks go away.
+// Whether a change of the editor's content replaces all of it (@monaco-editor/react puts a
+// new value in as one edit of the whole range, ruby-tab.jsx sometimes with setValue, as for
+// the auto-correction): the marks go away with the old content then.
 const replacesAll = (event, lengthBefore) =>
     event.isFlush ||
     (event.changes.length === 1 &&
@@ -213,28 +213,40 @@ export const makeRubyTabAdapterFactory =
         };
 
         // Mark the lines added or changed while the editor shows the sprite of a mark, again
-        // each time it shows another sprite or the same one afresh (the lines are found
-        // again then). The student's own typing moves the marks along with the lines.
+        // each time it shows another sprite (the lines are found again then). The student's
+        // own typing moves the marks along with the lines. When the same sprite's code is
+        // replaced as a whole (the auto-correction, Ctrl+Z), only the lines marked just
+        // before keep their marks, so what the student typed meanwhile stays unmarked.
         const watchMarks = (marks) => {
             const editor = getEditor();
             if (!editor || !editor.createDecorationsCollection) return () => {};
             const collection = editor.createDecorationsCollection([]);
             let painted = null;
             let length = 0;
-            const paint = () => {
+            let text = '';
+            let marked = [];
+            const paint = (keep) => {
                 painted = editing();
                 const mark = marks.find((m) => m.target === painted);
-                collection.set(mark ? lineDecorations(markedLines(diffLines(mark.before, editorCode()))) : []);
+                const lines = mark ? markedLines(diffLines(mark.before, editorCode())) : [];
+                collection.set(lineDecorations(keep ? lines.filter(({ line }) => keep.has(line)) : lines));
             };
             const lengthNow = () => {
                 const model = editor.getModel();
                 return model && model.getValueLength ? model.getValueLength() : editorCode().length;
             };
-            paint();
-            length = lengthNow();
-            const listener = editor.onDidChangeModelContent((event) => {
-                if (editing() !== painted || replacesAll(event, length)) paint();
+            // What a replacement as a whole is compared with: the editor drops the marks then.
+            const remember = () => {
                 length = lengthNow();
+                text = editorCode();
+                marked = collection.getRanges ? collection.getRanges().map((range) => range.startLineNumber) : [];
+            };
+            paint();
+            remember();
+            const listener = editor.onDidChangeModelContent((event) => {
+                if (editing() !== painted) paint();
+                else if (replacesAll(event, length)) paint(carriedLines(text, editorCode(), marked));
+                remember();
             });
             return () => {
                 listener.dispose();

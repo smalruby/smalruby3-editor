@@ -97,3 +97,22 @@ export const markedLines = (diff) =>
     diff
         .filter((line) => line.kind === 'added' || line.kind === 'changed')
         .map((line) => ({ line: line.afterLine, kind: line.kind }));
+
+/**
+ * Where marked lines are after the code is replaced as a whole (the editor then drops its
+ * marks): a line kept or changed in its place carries its mark along, a new line does not.
+ * @param {string} before - the code before it was replaced
+ * @param {string} after - the code now
+ * @param {Array<number>} lines - the marked lines (1-based) in the code before
+ * @returns {Set<number>} the lines (1-based) of the code now the marks are carried to
+ */
+export const carriedLines = (before, after, lines) => {
+    const marked = new Set(lines);
+    const carried = new Set();
+    diffLines(before, after).forEach((line) => {
+        if ((line.kind === 'same' || line.kind === 'changed') && marked.has(line.beforeLine)) {
+            carried.add(line.afterLine);
+        }
+    });
+    return carried;
+};

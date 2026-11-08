@@ -49,6 +49,7 @@ const makeEditor = (value) => {
                 clear: () => {
                     editor.decorations = [];
                 },
+                getRanges: () => (editor.decorations || []).filter((d) => d && d.range).map((d) => d.range),
             };
         },
         onDidChangeModelContent: (listener) => {
@@ -248,6 +249,27 @@ describe('the Ruby tab adapter', () => {
         editor.decorations = ['kept by the editor'];
         editor.type('a\nB\nc\nd\n', false);
         expect(editor.decorations).toEqual(['kept by the editor']);
+    });
+
+    test('keeps the marks of the AI lines only when the code is replaced as a whole', async () => {
+        const { adapter, editor } = setup({ editorValue: 'a\nb\n' });
+        const result = await adapter.check(wrap('a\nB\nc\n'));
+        const { marks } = await adapter.apply(result.parts);
+        adapter.watchMarks(marks);
+        // The student adds a line (the editor leaves it unmarked), then the auto-correction
+        // puts the whole code in again with that line corrected.
+        editor.type('a\nB\nc\nｄ\n', false);
+        editor.type('a\nB\nc\nd\n');
+        expect(markedOf(editor)).toEqual(['2:genaiLineChanged', '3:genaiLineAdded']);
+    });
+
+    test('marks no line once Ctrl+Z takes the answer back', async () => {
+        const { adapter, editor } = setup({ editorValue: 'a\nb\n' });
+        const result = await adapter.check(wrap('a\nB\nc\n'));
+        const { marks } = await adapter.apply(result.parts);
+        adapter.watchMarks(marks);
+        editor.type('a\nb\n');
+        expect(markedOf(editor)).toEqual([]);
     });
 
     test('marks the AI version again after switching back to it, keeping the student edits', async () => {
