@@ -1,6 +1,7 @@
-// The progress display under the header (#1293 G9): square nodes joined by a
-// line under the step names. A finished step is filled in with ✓ (and can be
-// gone back to before the blocks are in), the current one is outlined in bold.
+// The progress display under the header (#1293 G9): round nodes joined by a
+// line under the step names, like a delivery tracker (#1425). A finished step is
+// a filled circle with ✓ (and can be gone back to before the blocks are in), the
+// current one a filled circle with a ring, the ones to come grey circles.
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React, { useCallback } from 'react';
