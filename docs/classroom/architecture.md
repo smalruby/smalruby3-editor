@@ -546,7 +546,8 @@ erDiagram
 
 - 入力: 課題名/課題文 + 評価軸（1〜6、grade モードのみ必須）+ 厳しさ（lenient/standard/strict）+ 較正サンプル（先生が採点した実例、最大5件）+ 提出（席番号・シグナル・擬似コード最大4000字）
 - モデル: `CLAUDE_MODEL`（既定 claude-haiku-4-5）。システムプロンプトに prompt caching（ephemeral）を適用し、同一課題のチャンク分割呼び出しでキャッシュを共有
-- `ANTHROPIC_API_KEY` 未設定のステージではエンドポイントは 503（機能無効）
+- Claude は Anthropic の TypeScript SDK（`@anthropic-ai/sdk`）で呼ぶ。`ANTHROPIC_FEDERATION_RULE_ID` / `ANTHROPIC_ORGANIZATION_ID` / `ANTHROPIC_SERVICE_ACCOUNT_ID`（+ 任意の `ANTHROPIC_WORKSPACE_ID`）がそろえば Workload Identity Federation（Lambda の実行ロールの JWT を AWS STS `GetWebIdentityToken` で取り、短期トークンに交換）、そろわなければ `ANTHROPIC_API_KEY`。どちらも無いステージではエンドポイントは 503（機能無効）
+- 1 回の呼び出しは 25 秒で打ち切り（API Gateway の 30 秒の上限より前）・再送しない。タイムアウトは 504 `AI_TIMEOUT`、Claude のエラーと WIF の交換の失敗は 502 `AI_API_ERROR`（キーには戻らない）
 - CloudWatch に `classroom_evaluate` イベント（トークン数・キャッシュヒット）を構造化ログ出力
 
 ### 課題コンテンツ（assignment）

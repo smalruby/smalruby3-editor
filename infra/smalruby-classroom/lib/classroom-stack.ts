@@ -525,6 +525,13 @@ export class ClassroomStack extends cdk.Stack {
         DDB_MAX_PAGES: process.env.DDB_MAX_PAGES || '25',
         // AI evaluation support (empty key disables the endpoint with 503)
         ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || '',
+        // Workload Identity Federation (#1437): when rule / organization /
+        // service account are all set, these take precedence over the key.
+        // Unset = empty = the key path, unchanged.
+        ANTHROPIC_FEDERATION_RULE_ID: process.env.ANTHROPIC_FEDERATION_RULE_ID || '',
+        ANTHROPIC_ORGANIZATION_ID: process.env.ANTHROPIC_ORGANIZATION_ID || '',
+        ANTHROPIC_SERVICE_ACCOUNT_ID: process.env.ANTHROPIC_SERVICE_ACCOUNT_ID || '',
+        ANTHROPIC_WORKSPACE_ID: process.env.ANTHROPIC_WORKSPACE_ID || '',
         CLAUDE_MODEL: process.env.CLAUDE_MODEL || 'claude-haiku-4-5-20251001',
         EVAL_MAX_SUBMISSIONS: process.env.EVAL_MAX_SUBMISSIONS || '10',
         EVAL_RATE_LIMIT_WINDOW_SECONDS: process.env.EVAL_RATE_LIMIT_WINDOW_SECONDS || '3600',
@@ -560,6 +567,14 @@ export class ClassroomStack extends cdk.Stack {
         resource: 'table',
         resourceName: name,
       })),
+    }));
+    // Workload Identity Federation for the Claude API (#1437): fetch the
+    // execution role's JWT from STS. The action has no resource-level scoping.
+    // Until the account enables outbound web identity federation the call just
+    // fails, and only when the federation settings are present.
+    handlerFn.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['sts:GetWebIdentityToken'],
+      resources: ['*'],
     }));
     this.submissionsBucket.grantPut(handlerFn);
     this.submissionsBucket.grantRead(handlerFn);
