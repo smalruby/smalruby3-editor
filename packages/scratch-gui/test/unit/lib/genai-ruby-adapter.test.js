@@ -1,4 +1,4 @@
-import { editorErrors, makeRubyTabAdapterFactory } from '../../../src/lib/genai-ruby-adapter.js';
+import { editorErrors, lineDecorations, makeRubyTabAdapterFactory } from '../../../src/lib/genai-ruby-adapter.js';
 
 const makeTarget = ({ id, name, isStage = false, code = '', sounds = [], costumes = [] }) => ({
     id,
@@ -11,24 +11,58 @@ const makeTarget = ({ id, name, isStage = false, code = '', sounds = [], costume
     blocks: { _blocks: {} },
 });
 
-// A Monaco editor with one model whose edits can be taken back.
+// A Monaco editor with one model whose edits can be taken back, and its decorations.
 const makeEditor = (value) => {
     const undo = [];
+    const listeners = [];
     let text = value;
-    return {
+    const editor = {
         undo,
+        decorations: null,
         getValue: () => text,
-        getModel: () => ({ uri: 'model', getFullModelRange: () => ({ all: true }) }),
+        getModel: () => ({
+            uri: 'model',
+            getFullModelRange: () => ({ all: true }),
+            getValueLength: () => text.length,
+        }),
         pushUndoStop: () => {},
+        // The whole text replaced (as the editor does for a new value), or a part of it typed.
+        type: (next, whole = true) => {
+            const lengthBefore = text.length;
+            text = next;
+            const event = { isFlush: false, changes: [{ rangeOffset: whole ? 0 : 1, rangeLength: lengthBefore }] };
+            listeners.slice().forEach((listener) => listener(event));
+        },
         executeEdits: (source, edits) => {
             undo.push(text);
-            text = edits[0].text;
+            editor.type(edits[0].text);
         },
         undoOnce: () => {
             text = undo.pop();
         },
+        createDecorationsCollection: () => {
+            editor.decorations = [];
+            return {
+                set: (list) => {
+                    editor.decorations = list;
+                },
+                clear: () => {
+                    editor.decorations = [];
+                },
+                getRanges: () => (editor.decorations || []).filter((d) => d && d.range).map((d) => d.range),
+            };
+        },
+        onDidChangeModelContent: (listener) => {
+            listeners.push(listener);
+            return { dispose: () => listeners.splice(listeners.indexOf(listener), 1) };
+        },
     };
+    return editor;
 };
+
+// The lines marked in the editor: 'line:kind'.
+const markedOf = (editor) =>
+    (editor.decorations || []).map((d) => `${d.range.startLineNumber}:${d.options.className}`);
 
 const makeMonaco = (markers) => ({ editor: { getModelMarkers: () => markers } });
 
@@ -131,7 +165,15 @@ describe('the Ruby tab adapter', () => {
         expect(out.snapshots).toEqual([
             { target: vm.editingTarget, name: 'Abby', before: 'move(1)\n', after: 'move(10)\n' },
         ]);
-        expect(out.marks).toEqual([]);
+        expect(out.marks).toEqual([
+            {
+                target: vm.editingTarget,
+                name: 'Abby',
+                changes: [],
+                before: 'move(1)\n',
+                lines: { added: 0, changed: 1, removed: 0 },
+            },
+        ]);
         editor.undoOnce();
         expect(editor.getValue()).toBe('move(1)\n');
     });
@@ -163,5 +205,99 @@ describe('the Ruby tab adapter', () => {
         expect(loaded).toEqual(['move(1)\n']);
         // The editor showing Dee is left alone.
         expect(editor.getValue()).toBe('move(10)\n');
+    });
+
+    test('counts the lines the answer adds, changes and removes from the code in the editor', async () => {
+        const { adapter } = setup({ editorValue: 'when_flag_clicked do\n  move(1)\n  turn_right(15)\nend\n' });
+        const result = await adapter.check(
+            wrap('when_flag_clicked do\n  move(10)\n  say("やあ")\n  wait(1)\n  turn_right(15)\nend\n'),
+        );
+        expect(result.parts[0].before).toBe('when_flag_clicked do\n  move(1)\n  turn_right(15)\nend\n');
+        expect(result.parts[0].lines).toEqual({ added: 2, changed: 1, removed: 0 });
+        expect(result.parts[0].changes).toEqual([]);
+    });
+
+    test('marks the lines added or changed while the AI version is in, and takes them away', async () => {
+        const { adapter, editor } = setup({ editorValue: 'a\nb\n' });
+        const result = await adapter.check(wrap('a\nB\nc\n'));
+        const { marks } = await adapter.apply(result.parts);
+        const stop = adapter.watchMarks(marks);
+        expect(markedOf(editor)).toEqual(['2:genaiLineChanged', '3:genaiLineAdded']);
+        stop();
+        expect(markedOf(editor)).toEqual([]);
+    });
+
+    test('marks no line while the editor shows another sprite, and marks again on coming back', async () => {
+        const { adapter, editor, vm, dee } = setup({ editorValue: 'a\nb\n' });
+        const abby = vm.editingTarget;
+        const result = await adapter.check(wrap('a\nB\nc\n'));
+        const { marks } = await adapter.apply(result.parts);
+        adapter.watchMarks(marks);
+        vm.editingTarget = dee;
+        editor.type('say("やあ")\n');
+        expect(markedOf(editor)).toEqual([]);
+        vm.editingTarget = abby;
+        editor.type('a\nB\nc\n');
+        expect(markedOf(editor)).toEqual(['2:genaiLineChanged', '3:genaiLineAdded']);
+    });
+
+    test('leaves the marks to move along with what the student types', async () => {
+        const { adapter, editor } = setup({ editorValue: 'a\nb\n' });
+        const result = await adapter.check(wrap('a\nB\nc\n'));
+        const { marks } = await adapter.apply(result.parts);
+        adapter.watchMarks(marks);
+        editor.decorations = ['kept by the editor'];
+        editor.type('a\nB\nc\nd\n', false);
+        expect(editor.decorations).toEqual(['kept by the editor']);
+    });
+
+    test('keeps the marks of the AI lines only when the code is replaced as a whole', async () => {
+        const { adapter, editor } = setup({ editorValue: 'a\nb\n' });
+        const result = await adapter.check(wrap('a\nB\nc\n'));
+        const { marks } = await adapter.apply(result.parts);
+        adapter.watchMarks(marks);
+        // The student adds a line (the editor leaves it unmarked), then the auto-correction
+        // puts the whole code in again with that line corrected.
+        editor.type('a\nB\nc\nｄ\n', false);
+        editor.type('a\nB\nc\nd\n');
+        expect(markedOf(editor)).toEqual(['2:genaiLineChanged', '3:genaiLineAdded']);
+    });
+
+    test('marks no line once Ctrl+Z takes the answer back', async () => {
+        const { adapter, editor } = setup({ editorValue: 'a\nb\n' });
+        const result = await adapter.check(wrap('a\nB\nc\n'));
+        const { marks } = await adapter.apply(result.parts);
+        adapter.watchMarks(marks);
+        editor.type('a\nb\n');
+        expect(markedOf(editor)).toEqual([]);
+    });
+
+    test('marks the AI version again after switching back to it, keeping the student edits', async () => {
+        const { adapter, editor } = setup({ editorValue: 'a\nb\n' });
+        const result = await adapter.check(wrap('a\nB\n'));
+        const { snapshots } = await adapter.apply(result.parts);
+        editor.type('a\nB\nx\n');
+        const back = await adapter.switchSides(snapshots, false);
+        expect(back.marks[0].lines).toEqual({ added: 1, changed: 1, removed: 0 });
+        expect(editor.getValue()).toBe('a\nb\n');
+        const again = await adapter.switchSides(back.snapshots, true);
+        expect(editor.getValue()).toBe('a\nB\nx\n');
+        adapter.watchMarks(again.marks);
+        expect(markedOf(editor)).toEqual(['2:genaiLineChanged', '3:genaiLineAdded']);
+    });
+});
+
+describe('lineDecorations', () => {
+    test('marks whole lines, with a bar by the line numbers', () => {
+        expect(lineDecorations([{ line: 3, kind: 'added' }])).toEqual([
+            {
+                range: { startLineNumber: 3, startColumn: 1, endLineNumber: 3, endColumn: 1 },
+                options: {
+                    isWholeLine: true,
+                    className: 'genaiLineAdded',
+                    linesDecorationsClassName: 'genaiLineAddedBar',
+                },
+            },
+        ]);
     });
 });

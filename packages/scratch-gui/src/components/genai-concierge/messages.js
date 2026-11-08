@@ -31,6 +31,11 @@ const messages = defineMessages({
         description: "Step 3 of asking a generative AI: paste the AI's answer and turn it into blocks",
         id: 'gui.genaiConcierge.stepPaste',
     },
+    stepPasteCode: {
+        defaultMessage: 'Answer to code',
+        description: "Ruby tab: step 3 of asking a generative AI: paste the AI's answer and put it in the code",
+        id: 'gui.genaiConcierge.stepPasteCode',
+    },
     nudgeText: {
         defaultMessage: 'Looks like you are stuck. Ask a generative AI?',
         description: 'Offer shown when the student has done nothing for a while',
@@ -471,6 +476,32 @@ const messages = defineMessages({
         defaultMessage: 'The blocks with a pink frame are added, a dashed one changed. Click a line to go to its block.',
         description: 'How the marked blocks look in the editor, and that a line of the list brings its block into view',
         id: 'gui.genaiConcierge.changesLegend',
+    },
+    linesTitle: {
+        defaultMessage: "Lines the AI's version adds, changes or removes",
+        description: 'Ruby tab: title of the line diff of the code now and the AI code',
+        id: 'gui.genaiConcierge.linesTitle',
+    },
+    linesCount: {
+        defaultMessage: '{added} lines added, {changed} changed, {removed} removed',
+        description: 'Ruby tab: how many lines the AI code adds, changes and removes, before it is put in',
+        id: 'gui.genaiConcierge.linesCount',
+    },
+    linesNone: {
+        defaultMessage: 'No line is added, changed or removed.',
+        description: 'Ruby tab: the AI code is the same as the code now',
+        id: 'gui.genaiConcierge.linesNone',
+    },
+    linesDone: {
+        defaultMessage: '{added} lines were added and {changed} changed.',
+        description: 'Ruby tab: how many lines the AI version added and changed, once it is in',
+        id: 'gui.genaiConcierge.linesDone',
+    },
+    linesLegend: {
+        defaultMessage:
+            'The lines with a bar by the line numbers are added, those with a dashed bar changed. Lines removed have no mark.',
+        description: 'Ruby tab: how the marked lines look in the editor',
+        id: 'gui.genaiConcierge.linesLegend',
     },
     changeAdded: {
         defaultMessage: '"{block}" is added',
