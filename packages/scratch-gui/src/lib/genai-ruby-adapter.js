@@ -165,13 +165,25 @@ export const makeRubyTabAdapterFactory =
             return errors.length > 0 ? { kindId: 'error', text: errors.join('\n') } : null;
         };
 
-        const check = async (text) => {
+        // 「ルビティーにまかせる」 fixes the sprite in the editor when it starts (#1426): its
+        // answers come minutes later, when the student may be on another sprite.
+        const takeoverScope = () => ({ target: editing() });
+
+        // The code of a sprite as the student sees it: the editor's, or its blocks' if the
+        // editor shows another sprite.
+        const codeOf = (target) => (target === editing() ? editorCode() : blocksCode({ target, dncl: isDncl() }));
+
+        // The answer may change only the sprite of the scope (takeoverScope), or else the
+        // sprite in the editor (also when the sprite of the scope was deleted meanwhile).
+        const check = async (text, scope = null) => {
             const targets = {};
             originals().forEach((t) => {
                 targets[nameOf(t)] = t;
             });
-            const name = nameOf(editing());
-            const before = editorCode();
+            const pinned = scope && scope.target;
+            const target = pinned && originals().includes(pinned) ? pinned : editing();
+            const name = nameOf(target);
+            const before = codeOf(target);
             const result = isDncl()
                 ? await checkDnclAnswer({
                       answer: text,
@@ -215,22 +227,28 @@ export const makeRubyTabAdapterFactory =
             lines: countChanges(snap.before, snap.after),
         });
 
-        // Only the sprite in the editor is put in (check leaves the others out). The blocks
-        // follow the editor as for the student's own typing.
-        const apply = (parts) => {
-            const part = parts.find((p) => p.target === editing());
-            if (!part) return Promise.resolve({ snapshots: [], marks: [] });
-            const snapshots = [
-                {
-                    target: part.target,
-                    name: part.name,
-                    before: editorCode(),
-                    after: part.code,
-                    ...(isDncl() ? { dncl: true } : {}),
-                },
-            ];
-            replaceEditorCode(part.code);
-            return Promise.resolve({ snapshots, marks: snapshots.map(markOf) });
+        // Only the sprite check let through is put in (check leaves the others out). In the
+        // editor the blocks follow it as for the student's own typing; a sprite the student
+        // moved away from meanwhile (#1426) gets it in its blocks, as switchSides does.
+        const apply = async (parts) => {
+            const part = parts.find((p) => p.target && vm.runtime.targets.includes(p.target));
+            if (!part) return { snapshots: [], marks: [] };
+            const snap = {
+                target: part.target,
+                name: part.name,
+                before: codeOf(part.target),
+                after: part.code,
+                ...(isDncl() ? { dncl: true } : {}),
+            };
+            if (part.target === editing()) {
+                replaceEditorCode(part.code);
+            } else {
+                const converter = await toBlocksFrom(snap, part.code);
+                if (!converter.result) return { snapshots: [], marks: [] };
+                await converter.apply();
+            }
+            const snapshots = [snap];
+            return { snapshots, marks: snapshots.map(markOf) };
         };
 
         // A sprite not in the editor is read from and put into its blocks, in the language of
@@ -378,6 +396,7 @@ export const makeRubyTabAdapterFactory =
             initialTrouble,
             takeoverState: () => takeoverStateOf(vm),
             takeoverMessage,
+            takeoverScope,
             check,
             apply,
             switchSides,
