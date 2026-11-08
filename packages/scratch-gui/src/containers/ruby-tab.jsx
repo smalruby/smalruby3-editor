@@ -1444,6 +1444,7 @@ const RubyTab = (props) => {
                         key={dnclMode ? 'genai-dncl' : 'genai-ruby'}
                         vm={vm}
                         rubyTab
+                        dnclMode={dnclMode}
                         createAdapter={genaiAdapterRef.current}
                     />
                 </div>

@@ -22,28 +22,57 @@ const isService = (value) => GENAI_SERVICES.includes(value);
 /** What "use it" starts from: nothing chosen and nothing confirmed. */
 export const FRESH_GENAI = { service: null, url: '', confirmed: false };
 
+const rubyteeOf = (group) => {
+    const stored = (group && group.rubytee) || {};
+    const rubytee = stored.enabled === true;
+    // Like the generative AI, the confirmation belongs to a period of use.
+    return { rubytee, rubyteeConfirmed: rubytee && stored.confirmed === true };
+};
+
 /**
  * Editable copy of a class's AI settings. Classes without settings read as
  * "both disabled".
  * @param {object} group - the class as returned by the teacher API
- * @returns {object} {use, service, url, confirmed, rubytee}
+ * @returns {object} {use, service, url, confirmed, rubytee, rubyteeConfirmed}
  */
 export const draftFromGroup = (group) => {
     const genai = (group && group.genai) || {};
     const service = isService(genai.service) ? genai.service : null;
     const use = genai.enabled === true && service !== null;
-    const rubytee = Boolean(group && group.rubytee && group.rubytee.enabled === true);
+    const rubytee = rubyteeOf(group);
     // A class that doesn't use generative AI starts from scratch,
     // instead of reviving the service and confirmation chosen before it was turned off.
-    if (!use) return { use: false, ...FRESH_GENAI, rubytee };
+    if (!use) return { use: false, ...FRESH_GENAI, ...rubytee };
     return {
         use,
         service,
         url: typeof genai.url === 'string' ? genai.url : '',
         confirmed: genai.confirmed === true,
-        rubytee,
+        ...rubytee,
     };
 };
+
+/**
+ * Whether the class has Rubytee on without the teacher's confirmation: it was
+ * turned on before the confirmation existed (#1413). It keeps working, and the
+ * next save asks for the confirmation.
+ * @param {object} group - the stored class
+ * @returns {boolean} true when Rubytee is on and not confirmed
+ */
+export const isRubyteeUnconfirmed = (group) => {
+    const { rubytee, rubyteeConfirmed } = rubyteeOf(group);
+    return rubytee && !rubyteeConfirmed;
+};
+
+/**
+ * Turn Rubytee on or off. Either way the confirmation starts over, as with
+ * the generative AI: it is asked for each period of use.
+ * @param {object} draft - see draftFromGroup
+ * @param {boolean} on - whether Rubytee is used
+ * @returns {object} the next draft (the same object when nothing changes)
+ */
+export const draftWithRubytee = (draft, on) =>
+    draft.rubytee === on ? draft : { ...draft, rubytee: on, rubyteeConfirmed: false };
 
 /**
  * Pick a generative AI (or none with `null`). Anything that depends on the
@@ -95,12 +124,15 @@ export const validateGenaiUrl = (url) => {
 };
 
 /**
- * Whether the server would accept the draft: enabling needs a service, the
- * teacher's confirmation of its terms and a valid URL.
+ * Whether the draft can be saved: enabling the generative AI needs a service,
+ * the teacher's confirmation of its terms and a valid URL, and Rubytee needs
+ * the teacher's confirmation too. The server doesn't require Rubytee's yet
+ * (#1411), so the form is what asks for it.
  * @param {object} draft - see draftFromGroup
  * @returns {boolean} true when it can be saved
  */
 export const isDraftSavable = (draft) => {
+    if (draft.rubytee && !draft.rubyteeConfirmed) return false;
     if (!draft.use) return true;
     return isService(draft.service) && draft.confirmed && validateGenaiUrl(draft.url) === null;
 };
@@ -129,8 +161,9 @@ export const buildAiSettingsUpdate = (group, draft) => {
         // The confirmation belonged to that period of use; turning it back on asks again.
         updates.genai = { enabled: false, confirmed: false };
     }
-    if (stored.rubytee !== draft.rubytee) {
-        updates.rubytee = { enabled: draft.rubytee };
+    const rubyteeConfirmed = draft.rubytee && draft.rubyteeConfirmed;
+    if (stored.rubytee !== draft.rubytee || stored.rubyteeConfirmed !== rubyteeConfirmed) {
+        updates.rubytee = { enabled: draft.rubytee, confirmed: rubyteeConfirmed };
     }
     return updates;
 };

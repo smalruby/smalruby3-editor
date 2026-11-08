@@ -394,6 +394,17 @@ export default {
     'gui.classroom.classAi.rubytee': 'ルビティー',
     'gui.classroom.classAi.rubyteeNote':
         'せいせいAI のこたえがつかえないとき、［ルビティーにまかせる］でスモウルビーの AI（Claude）がなおします。もうしこみはいりません。',
+    'gui.classroom.classAi.rubyteeCondition.wrong':
+        'ルビティーは AI（Anthropic の Claude）です。こたえがまちがっていることがあります。',
+    'gui.classroom.classAi.rubyteeCondition.personal':
+        'せいとがなまえやじゅうしょなどのこじんじょうほうをいれないようしどうします。',
+    'gui.classroom.classAi.rubyteeCondition.age':
+        '18 さいみまんのせいとはほごしゃのきょかがひつようです（がっこうでかくにんしています）。',
+    'gui.classroom.classAi.rubyteeTerms': 'りようきやく',
+    'gui.classroom.classAi.rubyteePrivacy': 'プライバシーポリシー',
+    'gui.classroom.classAi.rubyteeConfirm': 'このクラスはうえのじょうけんをみたしています（ひっす）',
+    'gui.classroom.classAi.rubyteeUnconfirmed':
+        'まだかくにんされていません。ルビティーはこのままつかえます。つぎにほぞんするときにしたのチェックをいれてください。',
     'gui.classroom.classAi.unsaved': 'みほぞん',
     'gui.classroom.classAi.previewTitle': 'せいとのがめんはこうなります',
     'gui.classroom.classAi.previewCode': 'コード',
@@ -1721,6 +1732,8 @@ export default {
     'gui.genaiConcierge.nudgeOpen': 'そうだんする',
     'gui.genaiConcierge.nudgeLater': 'あとで',
     'gui.genaiConcierge.nudgeOff': 'きょうはださない',
+    'gui.genaiConcierge.faceLabel': 'AI に そうだん',
+    'gui.genaiConcierge.faceLabelShort': 'AI',
     'gui.genaiConcierge.troubleQuestion': 'どんなことでこまっている？',
     'gui.genaiConcierge.makePrompt': 'そうだんぶんをつくる',
     'gui.genaiConcierge.kind.notWorking': 'おもったとおりにうごかない',

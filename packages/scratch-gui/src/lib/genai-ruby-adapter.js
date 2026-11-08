@@ -15,6 +15,7 @@ import { checkDnclAnswer } from './genai-dncl-answer.js';
 import { DNCL_TAB_KINDS, buildDnclRewritePrompt, buildDnclTabPrompt } from './genai-dncl-prompt.js';
 import { carriedLines, countLineChanges, diffLines, markedLines } from './genai-line-diff.js';
 import { RUBY_TAB_KINDS, buildRewritePrompt, buildRubyTabPrompt } from './genai-prompt.js';
+import { buildRubyTabTakeoverMessage } from './genai-takeover.js';
 import RubyGenerator from './ruby-generator';
 import { targetCodeToBlocks } from './ruby-to-blocks-converter';
 
@@ -119,6 +120,21 @@ export const makeRubyTabAdapterFactory =
 
         const editingName = () => (editing() ? nameOf(editing()) : null);
 
+        // The sprite in the editor (to fix) and the others (as reference), as the question
+        // and Rubytee read them.
+        const editingProgram = () => {
+            const target = editing();
+            return {
+                mode: getMode(),
+                editingName: nameOf(target),
+                code: editorCode(),
+                ...assetsOf(target),
+                others: originals()
+                    .filter((t) => t !== target)
+                    .map((t) => ({ name: nameOf(t), code: toCode(t), ...assetsOf(t) })),
+            };
+        };
+
         const buildPrompt = ({ kindLabel, text, assignmentName }) => {
             // DNCL: the code in the editor as it is; DNCL has no sounds, costumes or events.
             if (isDncl()) {
@@ -130,21 +146,18 @@ export const makeRubyTabAdapterFactory =
                     assignmentName,
                 });
             }
-            const target = editing();
             return buildRubyTabPrompt({
-                mode: getMode(),
+                ...editingProgram(),
                 kindLabel,
                 text,
-                editingName: nameOf(target),
-                code: editorCode(),
-                ...assetsOf(target),
-                others: originals()
-                    .filter((t) => t !== target)
-                    .map((t) => ({ name: nameOf(t), code: toCode(t), ...assetsOf(t) })),
                 errors: editorErrors(getEditor(), getMonaco()),
                 assignmentName,
             });
         };
+
+        // Rubytee too fixes only the sprite in the editor (#1400); check fails another sprite.
+        const takeoverMessage = ({ kindLabel, text, exchanges }) =>
+            buildRubyTabTakeoverMessage({ ...editingProgram(), kindLabel, text, exchanges });
 
         // An error in the editor starts the trouble as 「エラーが出る」 with the errors in it.
         const initialTrouble = () => {
@@ -360,6 +373,7 @@ export const makeRubyTabAdapterFactory =
             buildPrompt,
             initialTrouble,
             takeoverState: () => takeoverStateOf(vm),
+            takeoverMessage,
             check,
             apply,
             switchSides,

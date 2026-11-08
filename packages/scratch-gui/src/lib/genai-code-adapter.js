@@ -15,6 +15,8 @@
 //    - editingName(): the name of the sprite in the editor (「ステージ」 for the stage), or null.
 //    - buildPrompt({kindLabel, text, assignmentName}): the question copied to the AI.
 //    - takeoverState(): the names Rubytee may use (the relay's stateContext).
+//    - takeoverMessage({kindLabel, text, exchanges}): the first message to Rubytee from the
+//      trouble and the consultation (genai-takeover.js), or null when the program is too long.
 //    - rewritePrompt({code, problems}) (optional): the request to rewrite an answer that
 //      failed (buildRewritePrompt of genai-prompt.js by default, asking for Ruby).
 //    - language (optional): 'dncl' when the answer is DNCL, not Ruby (the panel's words then
@@ -43,6 +45,7 @@ import { checkAnswer, liveSnapshots, switchSnapshots } from './genai-answer.js';
 import { describeChanges, diffBlocks } from './genai-block-diff.js';
 import { afterBlocksRender, scrollToShowBlocks, showInEditor } from './genai-concierge-state.js';
 import { CODE_TAB_KINDS, buildGenaiPrompt } from './genai-prompt.js';
+import { buildTakeoverMessage } from './genai-takeover.js';
 import RubyGenerator from './ruby-generator';
 import { targetCodeToBlocks } from './ruby-to-blocks-converter';
 
@@ -311,6 +314,9 @@ export const createCodeTabAdapter = ({ vm, intl, rubyVersion, scratchBlocks, dep
         editingName,
         buildPrompt,
         takeoverState: () => takeoverStateOf(vm),
+        // The whole project is sent: the code tab's answer may change any sprite.
+        takeoverMessage: ({ kindLabel, text, exchanges }) =>
+            buildTakeoverMessage({ kindLabel, text, programs: programs(), editingName: editingName(), exchanges }),
         check,
         apply,
         switchSides,
