@@ -49,9 +49,17 @@ const checkAnswer = async ({ answer, sprites, editingName, onlyName = null, conv
     sprites.forEach((sprite) => {
         byName[sprite.name] = sprite;
     });
-    const split = splitBySprite(code, Object.keys(byName)) || [{ name: editingName, code }];
+    const split = splitBySprite(code, Object.keys(byName), { leadingName: onlyName }) || [
+        { name: editingName, code },
+    ];
     const problems = [];
-    const sections = onlyName ? split.filter((section) => section.name === onlyName) : split;
+    // With onlyName, what is for that sprite (also before and between the headings) is one part.
+    const mine = split.filter((section) => section.name === onlyName);
+    const sections = onlyName
+        ? mine.length > 1
+            ? [{ name: onlyName, code: mine.map((section) => section.code).join('') }]
+            : mine
+        : split;
     if (onlyName) {
         split
             .filter((section) => section.name !== onlyName)

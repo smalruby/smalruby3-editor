@@ -65,9 +65,13 @@ const FACE_WIDTH = 52;
 // Margin kept above the panel inside the script area.
 const PANEL_TOP_MARGIN = 12;
 
+// Whether the face is on the screen: a hidden tab panel (display: none) has no offsetParent.
+const isShown = (element) => Boolean(element && element.offsetParent);
+
 const GenaiConcierge = ({
     vm,
     createAdapter = createCodeTabAdapter,
+    rubyTab,
     rubyVersion,
     assignmentName,
     available,
@@ -85,7 +89,8 @@ const GenaiConcierge = ({
         [createAdapter, vm, intl, rubyVersion, scratchBlocks],
     );
     // The teacher may have turned the generative AI off since the page was last open.
-    useStudentClassSettingsRefresh({ role, sessionToken, dispatch });
+    // The code tab's panel reads it for both (both tabs are mounted at once, #1398).
+    useStudentClassSettingsRefresh({ role: rubyTab ? null : role, sessionToken, dispatch });
     const [area, setArea] = useState({ left: 12, width: 0, height: 0 });
     const [nudge, setNudge] = useState(false);
     const [open, setOpen] = useState(false);
@@ -166,7 +171,9 @@ const GenaiConcierge = ({
                 lastNudge: lastNudge.current,
                 idleMs,
                 gapMs,
-                busy: open || nudge || runningRef.current || document.hidden,
+                // Both tabs' panels are mounted at once: the one in a hidden tab keeps quiet,
+                // or it would greet the student on the next visit to that tab (#1398).
+                busy: open || nudge || runningRef.current || document.hidden || !isShown(rootRef.current),
                 offToday: isNudgeOffToday(readStorage(NUDGE_OFF_KEY), now),
             });
             if (!show) return;
@@ -470,9 +477,8 @@ GenaiConcierge.propTypes = {
     // a new one makes a new adapter, and the marks and the area are set up again each time.
     createAdapter: PropTypes.func,
     // In the Ruby tab: the face is only for Ruby version 2 and not in DNCL mode (#1398).
-    // Read by mapStateToProps only.
-    // eslint-disable-next-line react/no-unused-prop-types
     rubyTab: PropTypes.bool,
+    // Read by mapStateToProps only.
     // eslint-disable-next-line react/no-unused-prop-types
     dnclMode: PropTypes.bool,
     rubyVersion: PropTypes.string,

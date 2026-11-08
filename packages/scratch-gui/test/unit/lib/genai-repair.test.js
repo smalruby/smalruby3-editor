@@ -132,4 +132,17 @@ describe('splitBySprite', () => {
     test('returns null without headings', () => {
         expect(splitBySprite('when_flag_clicked do\nend\n', ['Abby'])).toBeNull();
     });
+
+    test('gives the lines before the first heading to leadingName', () => {
+        const code = 'move(10)\n# Dee\nmove(5)\n';
+        expect(splitBySprite(code, ['Abby', 'Dee'], { leadingName: 'Abby' })).toEqual([
+            { name: 'Abby', code: 'move(10)\n' },
+            { name: 'Dee', code: 'move(5)\n' },
+        ]);
+        // Without it they are dropped, as before.
+        expect(splitBySprite(code, ['Abby', 'Dee'])).toEqual([{ name: 'Dee', code: 'move(5)\n' }]);
+        expect(splitBySprite('\n# 「Dee」\nmove(5)\n', ['Abby', 'Dee'], { leadingName: 'Abby' })).toEqual([
+            { name: 'Dee', code: 'move(5)\n' },
+        ]);
+    });
 });

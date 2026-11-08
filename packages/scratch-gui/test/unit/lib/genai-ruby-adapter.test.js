@@ -37,7 +37,7 @@ const fakeToBlocks = (target, code) =>
         result: code.trim() !== 'NG',
         errors: code.trim() === 'NG' ? [{ row: 0, column: 0, text: 'NG' }] : [],
         blocks: {},
-        apply: () => Promise.resolve(),
+        apply: () => Promise.resolve(target && target.blocks.apply && target.blocks.apply(code)),
     });
 
 const setup = ({ mode = 'ruby', editorValue = 'move(1)\n', markers = [] } = {}) => {
@@ -146,5 +146,22 @@ describe('the Ruby tab adapter', () => {
         const again = await adapter.switchSides(back.snapshots, true);
         expect(editor.getValue()).toBe('move(10)\n');
         expect(again.snapshots[0].before).toBe('move(1)\n');
+    });
+
+    test('keeps both versions of a sprite the editor no longer shows, switching its blocks', async () => {
+        const { adapter, editor, vm, dee } = setup();
+        const abby = vm.editingTarget;
+        const result = await adapter.check(wrap('move(10)\n'));
+        const { snapshots } = await adapter.apply(result.parts);
+        // The student moves to Dee; Abby's blocks now have the AI's version.
+        abby.code = 'move(10)\n';
+        vm.editingTarget = dee;
+        const loaded = [];
+        abby.blocks.apply = (code) => loaded.push(code);
+        const back = await adapter.switchSides(snapshots, false);
+        expect(back.snapshots).toEqual([{ target: abby, name: 'Abby', before: 'move(1)\n', after: 'move(10)\n' }]);
+        expect(loaded).toEqual(['move(1)\n']);
+        // The editor showing Dee is left alone.
+        expect(editor.getValue()).toBe('move(10)\n');
     });
 });

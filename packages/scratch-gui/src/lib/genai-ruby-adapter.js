@@ -4,7 +4,7 @@
 // (also edits not yet in the blocks) and the other sprites as reference, an answer that
 // changes another sprite is ✗, and the answer goes into the editor with executeEdits (so
 // Ctrl+Z takes it back). The line diff, the marks and the switching come with #1399.
-import { checkAnswer, switchSnapshots } from './genai-answer.js';
+import { checkAnswer, liveSnapshots, switchSnapshots } from './genai-answer.js';
 import { describeChanges, diffBlocks } from './genai-block-diff.js';
 import { copyBlocks, nameOf, takeoverStateOf } from './genai-code-adapter.js';
 import { RUBY_TAB_KINDS, buildRubyTabPrompt } from './genai-prompt.js';
@@ -143,16 +143,28 @@ export const makeRubyTabAdapterFactory =
             return Promise.resolve({ snapshots, marks: [] });
         };
 
-        // Switching works while the editor shows the sprite put in (a full one comes with #1399).
-        const switchSides = (snapshots, toAfter) => {
-            const live = snapshots.filter((snap) => snap.target === editing());
+        // The sprite in the editor switches in the editor (Ctrl+Z takes it back). One the
+        // student moved away from meanwhile switches in its blocks, so its two versions are
+        // not lost; one that cannot become blocks stays as it is. A deleted sprite drops out.
+        // The line diff and the marks come with #1399.
+        const switchSides = async (snapshots, toAfter) => {
+            const live = liveSnapshots(snapshots, vm.runtime.targets);
+            const inEditor = (snap) => snap.target === editing();
             const next = switchSnapshots(
                 live,
                 toAfter,
-                live.map(() => editorCode()),
+                live.map((snap) => (inEditor(snap) ? editorCode() : toCode(snap.target))),
             );
-            next.forEach((snap) => replaceEditorCode(toAfter ? snap.after : snap.before));
-            return Promise.resolve({ snapshots: next, marks: [] });
+            for (const snap of next) {
+                const code = toAfter ? snap.after : snap.before;
+                if (inEditor(snap)) {
+                    replaceEditorCode(code);
+                } else {
+                    const converter = await toBlocks(snap.target, code || '');
+                    if (converter.result) await converter.apply();
+                }
+            }
+            return { snapshots: next, marks: [] };
         };
 
         return {

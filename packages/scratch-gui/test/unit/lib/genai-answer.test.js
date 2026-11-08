@@ -264,6 +264,21 @@ describe('checkAnswer for one sprite (the Ruby tab, #1398)', () => {
         expect(headed.code).toBe('move(10)\n');
     });
 
+    test('keeps the lines above a comment that is only the name of the sprite', async () => {
+        // A block comment 「Abby」 comes out as `# Abby`: it is not a heading of another part.
+        const result = await checkAnswer({
+            answer: wrap('move(10)\n# Abby\nturn_right(15)\n'),
+            sprites,
+            editingName: 'Abby',
+            onlyName: 'Abby',
+            convert,
+        });
+        expect(result.ok).toBe(true);
+        expect(result.parts).toHaveLength(1);
+        expect(result.code).toContain('move(10)');
+        expect(result.code).toContain('turn_right(15)');
+    });
+
     test('asks the AI for only the sprite in the editor', () => {
         expect(problemToJapanese({ type: 'otherSprite', sprite: 'Dee', only: 'Abby' })).toBe(
             '「Dee」のプログラムまで直しています。「Abby」の分だけにしてください',
