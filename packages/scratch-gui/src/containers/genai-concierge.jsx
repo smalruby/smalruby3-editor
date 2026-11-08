@@ -40,7 +40,7 @@ import useStudentClassSettingsRefresh from './use-student-class-settings-refresh
 const NUDGE_OFF_KEY = 'smalruby:genaiNudgeOff';
 // Development only: the generative AI chosen outside a class.
 const DEV_SERVICE_KEY = 'smalruby:genaiService';
-// The consent to Rubytee, shared with the Ruby tab (rubytee-modal-hoc.jsx).
+// The consent to Rubytee (the 「ルビティーにまかせる」 takeover).
 const RUBYTEE_CONSENT_KEY = 'smalruby:rubyteeConsent';
 
 const readStorage = (key) => {

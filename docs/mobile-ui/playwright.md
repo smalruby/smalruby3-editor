@@ -167,7 +167,6 @@ active 状態は `[data-active="true"]` 属性で表現される。
 | `ruby-toolbar-redo`                           | button | やり直す                   |
 | `ruby-toolbar-search`                         | button | 検索                       |
 | `ruby-toolbar-auto-correct`                   | button | 自動置換トグル             |
-| `ruby-toolbar-rubytee`                        | button | ルビティー (AI)            |
 | `ruby-toolbar-mode-furigana`                  | button | ふりがなモード             |
 | `ruby-toolbar-mode-ruby`                      | button | Ruby モード                |
 | `ruby-toolbar-mode-dncl`                      | button | 日本語(DNCL)モード         |

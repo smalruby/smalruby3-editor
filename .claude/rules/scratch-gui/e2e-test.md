@@ -54,7 +54,6 @@ expect(await isActiveByTestId(driver, 'ruby-toolbar-mode-dncl')).toBe(true);
 | `ruby-toolbar-search` | button | 検索 |
 | `ruby-toolbar-keyboard` | button | ソフトウェアキーボード表示/非表示トグル（タッチデバイスのみレンダリング） |
 | `ruby-toolbar-auto-correct` | button | 自動置換トグル |
-| `ruby-toolbar-rubytee` | button | ルビティー（AI） |
 | `ruby-toolbar-mode-furigana` | button | ふりがなモード |
 | `ruby-toolbar-mode-ruby` | button | Rubyモード |
 | `ruby-toolbar-mode-dncl` | button | 日本語(DNCL)モード |
@@ -71,26 +70,6 @@ expect(await isActiveByTestId(driver, 'ruby-toolbar-mode-dncl')).toBe(true);
 | `ruby-toolbar-prev-sprite` | button | 前のスプライト |
 | `ruby-toolbar-next-sprite` | button | 次のスプライト |
 | `ruby-toolbar-sprite-search` | input | スプライト検索 |
-
-### Rubytee Modal (`rubytee-modal.jsx`)
-
-| data-testid | 要素 | 説明 |
-|------------|------|------|
-| `rubytee-modal` | div | モーダル全体（ドラッグ可能なコンテナ） |
-| `rubytee-modal-close` | button | 閉じる（×） |
-| `rubytee-modal-history` | div | チャット履歴領域 |
-| `rubytee-modal-message-user` | div | ユーザー発言のメッセージ（複数） |
-| `rubytee-modal-message-model` | div | ルビティー応答のメッセージ（複数） |
-| `rubytee-modal-apply-code` | button | 「このコードを挿入」（最後の応答のコードブロックごと。`data-index` でコード番号） |
-| `rubytee-modal-loading` | div | 「考え中…」ローディング表示 |
-| `rubytee-modal-error` | div | エラーメッセージ |
-| `rubytee-modal-surprise` | button | おまかせプロンプト（サプライズ） |
-| `rubytee-modal-input` | textarea | メッセージ入力欄 |
-| `rubytee-modal-send` | button | 送信（非ローディング時のみレンダリング） |
-| `rubytee-modal-cancel` | button | キャンセル（ローディング時のみレンダリング） |
-| `rubytee-modal-char-counter` | span | 文字数カウンター（`N / 250`） |
-| `rubytee-modal-reset-consent` | a | 同意をリセット |
-| `rubytee-modal-clear-history` | button | 履歴をクリア |
 
 ### Palette Toggle (`palette-toggle.jsx`)
 

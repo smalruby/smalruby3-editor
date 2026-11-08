@@ -34,8 +34,6 @@ const renderToolbar = (overrides = {}) => {
         onInsertClass: jest.fn(),
         onPreviewRubyScript: jest.fn(),
         onDismissBubble: jest.fn(),
-        onOpenRubyteeModal: jest.fn(),
-        rubyteeBusy: false,
         // Mode-related props - the fields actually exercised by analytics
         furiganaEnabled: false,
         dnclMode: false,

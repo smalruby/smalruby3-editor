@@ -1457,7 +1457,6 @@ export default {
     'gui.rubyToolbar.commandPlaceholder': 'スプライトをなまえでけんさく',
     'gui.rubyToolbar.download': 'ルビースクリプトをダウンロード',
     'gui.rubyToolbar.stage': 'ステージ',
-    'gui.rubyToolbar.aiAssistant': 'ルビティー',
     'gui.rubyToolbar.furiganaOn': 'ふりがなをかくす',
     'gui.rubyToolbar.furiganaOff': 'ふりがなをみせる',
     'gui.rubyToolbar.autoCorrectOn': 'じどうちかんをオフにする',
@@ -1495,31 +1494,6 @@ export default {
     'gui.rubyteeConsent.consentCheckbox': '18さいいじょうです、またはほごしゃのきょかをもらいました',
     'gui.rubyteeConsent.cancel': 'つかわない',
     'gui.rubyteeConsent.accept': 'OK、つかう！',
-    'gui.rubyteeModal.resetConsent': 'どういをリセット',
-
-    // Rubytee modal
-    'gui.rubyteeModal.title': 'ルビティー（スモウルビーせんせい）',
-    'gui.rubyteeModal.clearHistory': 'かいわをリセット',
-    'gui.rubyteeModal.inputPlaceholder': 'つくりたいものを{min}もじから{max}もじでおしえてください...',
-    'gui.rubyteeModal.send': 'そうしん',
-    'gui.rubyteeModal.thinking': 'ルビティーがかんがえています... ({seconds}びょう)',
-    'gui.rubyteeModal.generatedCode': 'せいせいされたコード',
-    'gui.rubyteeModal.applyCode': 'プログラムをにゅうりょくする',
-    'gui.rubyteeModal.applyCodeNote':
-        'AIがつくったプログラムは、うごかないことがあります。そのときは、デバッグ（プログラムのもんだいをしらべてなおすこと）をたのしみましょう。',
-    'gui.rubyteeModal.emptyHistory':
-        'ルビティーといっしょにプログラミングしましょう！つくりたいものをおしえてください！',
-    'gui.rubyteeModal.you': 'あなた',
-    'gui.rubyteeModal.rubytee': 'ルビティー',
-    'gui.rubyteeModal.authError': 'にんしょうにしっぱいしました。もういちどおためしください。',
-    'gui.rubyteeModal.apiError': 'APIエラーがはっせいしました。もういちどおためしください。',
-    'gui.rubyteeModal.cancel': 'ちゅうだん',
-    'gui.rubyteeModal.surprise': 'サプライズ！',
-    'gui.rubyteeModal.timeoutError': 'リクエストがタイムアウトしました（2ふん）。もういちどおためしください。',
-    'gui.rubyteeModal.overloadedError':
-        'ルビティーへのアクセスがしゅうちゅうしているため、いちじてきにりようできません。5ふんほどまってから、もういちどおためしください。',
-    'gui.rubyteeModal.rateLimitError':
-        'りようかいすうのじょうげんにたっしました。{minutes}ふんごにもういちどおためしください。',
 
     // Tutorials
     ...gettingStartedHowtos,

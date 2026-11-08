@@ -1416,7 +1416,6 @@ export default {
     'gui.rubyToolbar.commandPlaceholder': 'スプライトを名前で検索',
     'gui.rubyToolbar.download': 'ルビースクリプトをダウンロード',
     'gui.rubyToolbar.stage': 'ステージ',
-    'gui.rubyToolbar.aiAssistant': 'ルビティー',
     'gui.rubyToolbar.furiganaOn': 'ふりがなをかくす',
     'gui.rubyToolbar.furiganaOff': 'ふりがなをみせる',
     'gui.rubyToolbar.autoCorrectOn': '自動置換をオフにする',
@@ -1453,29 +1452,6 @@ export default {
     'gui.rubyteeConsent.consentCheckbox': '18歳以上です、または保護者の許可をもらいました',
     'gui.rubyteeConsent.cancel': 'つかわない',
     'gui.rubyteeConsent.accept': 'OK、つかう！',
-    'gui.rubyteeModal.resetConsent': '同意をリセット',
-
-    // Rubytee modal
-    'gui.rubyteeModal.title': 'ルビティー（スモウルビー先生）',
-    'gui.rubyteeModal.clearHistory': '会話をリセット',
-    'gui.rubyteeModal.inputPlaceholder': '作りたいものを{min}文字から{max}文字で教えてください...',
-    'gui.rubyteeModal.send': '送信',
-    'gui.rubyteeModal.thinking': 'ルビティーが考えています... ({seconds}秒)',
-    'gui.rubyteeModal.generatedCode': '生成されたコード',
-    'gui.rubyteeModal.applyCode': 'プログラムを入力する',
-    'gui.rubyteeModal.applyCodeNote':
-        'AIが生成したプログラムは動作しないことがあります。そのときは、デバッグ（プログラムの問題を調べて直すこと）を楽しみましょう。',
-    'gui.rubyteeModal.emptyHistory': 'ルビティーといっしょにプログラミングしましょう！作りたいものを教えてください！',
-    'gui.rubyteeModal.you': 'あなた',
-    'gui.rubyteeModal.rubytee': 'ルビティー',
-    'gui.rubyteeModal.authError': '認証に失敗しました。もう一度お試しください。',
-    'gui.rubyteeModal.apiError': 'APIエラーが発生しました。もう一度お試しください。',
-    'gui.rubyteeModal.cancel': '中断',
-    'gui.rubyteeModal.surprise': 'サプライズ！',
-    'gui.rubyteeModal.timeoutError': 'リクエストがタイムアウトしました（2分）。もう一度お試しください。',
-    'gui.rubyteeModal.overloadedError':
-        'ルビティーへのアクセスが集中しているため、一時的に利用できません。5分ほど待ってから、もう一度お試しください。',
-    'gui.rubyteeModal.rateLimitError': '利用回数の上限に達しました。{minutes}分後にもう一度お試しください。',
 
     // Tutorials
     ...gettingStartedHowtos,

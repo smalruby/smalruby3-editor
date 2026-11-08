@@ -122,13 +122,13 @@ broadcast / グローバル変数 → scratch-vm の meshV2 拡張
                           → 受信側で broadcast 発火 / 変数更新
 ```
 
-### 5. ユーザーが AI に質問 (Rubytee)
+### 5. ユーザーが AI に作品をまかせる (Rubytee)
 
 ```
-ルビティーボタン → scratch-gui の rubytee-modal
-                → POST /generate to rubytee-relay (Lambda)
-                → Anthropic Claude API
-                → 生成された Ruby コードを Monaco に挿入
+［ルビティーにまかせる］ → scratch-gui の genai-takeover
+                        → POST /generate (purpose: genai-takeover) to rubytee-relay (Lambda)
+                        → GET /jobs/{jobId} で答えを待つ（worker Lambda → Anthropic Claude API）
+                        → ブロックにできた案だけを見せる
 ```
 
 ### 6. ユーザーがデスクトップで実行 (smalruby3 gem)
