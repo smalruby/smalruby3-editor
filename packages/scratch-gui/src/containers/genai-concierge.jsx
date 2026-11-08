@@ -7,7 +7,6 @@
 // panel's steps are the same wherever it is.
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import ReactDOM from 'react-dom';
 import { useIntl } from 'react-intl';
 import { connect } from 'react-redux';
 import GenaiAnswerSteps from '../components/genai-concierge/genai-answer-steps.jsx';
@@ -18,12 +17,12 @@ import GenaiStepper from '../components/genai-concierge/genai-stepper.jsx';
 import GenaiTroubleStep from '../components/genai-concierge/genai-trouble-step.jsx';
 import messages from '../components/genai-concierge/messages.js';
 import rubyteeIcon from '../components/ruby-toolbar/icon--rubytee.svg';
-import RubyteeConsent from '../components/rubytee-consent/rubytee-consent.jsx';
 import { createCodeTabAdapter } from '../lib/genai-code-adapter.js';
 import {
     NUDGE_GAP_MS,
     NUDGE_IDLE_SECONDS,
     isGenaiAvailable,
+    isGenaiDevFlag,
     isNudgeOffToday,
     isRubyTabGenaiAvailable,
     localDateKey,
@@ -40,8 +39,6 @@ import useStudentClassSettingsRefresh from './use-student-class-settings-refresh
 const NUDGE_OFF_KEY = 'smalruby:genaiNudgeOff';
 // Development only: the generative AI chosen outside a class.
 const DEV_SERVICE_KEY = 'smalruby:genaiService';
-// The consent to Rubytee (the 「ルビティーにまかせる」 takeover).
-const RUBYTEE_CONSENT_KEY = 'smalruby:rubyteeConsent';
 
 const readStorage = (key) => {
     try {
@@ -237,21 +234,6 @@ const GenaiConcierge = ({
         handleClose();
     }, [handleReset, handleClose]);
 
-    // 「ルビティーにまかせる」 asks for the consent to Rubytee first, as the Ruby tab does
-    // (that it is an AI, not a person, and may be wrong), then starts (#1282).
-    const [consentStart, setConsentStart] = useState(null);
-    const handleTakeover = useCallback((start) => {
-        if (readStorage(RUBYTEE_CONSENT_KEY) === 'true') start();
-        else setConsentStart(() => start);
-    }, []);
-    const handleConsentAccept = useCallback(() => {
-        writeStorage(RUBYTEE_CONSENT_KEY, 'true');
-        const start = consentStart;
-        setConsentStart(null);
-        if (start) start();
-    }, [consentStart]);
-    const handleConsentCancel = useCallback(() => setConsentStart(null), []);
-
     const handleKindChange = useCallback((id, starter) => {
         setKindId(id);
         if (starter !== null) setText(starter);
@@ -440,7 +422,6 @@ const GenaiConcierge = ({
                             onClose={handleClose}
                             onFinish={handleFinish}
                             onReset={handleReset}
-                            onTakeover={handleTakeover}
                         />
                     </div>
                 </div>
@@ -453,11 +434,6 @@ const GenaiConcierge = ({
             >
                 <img src={rubyteeIcon} alt={title} />
             </button>
-            {consentStart &&
-                ReactDOM.createPortal(
-                    <RubyteeConsent onAccept={handleConsentAccept} onCancel={handleConsentCancel} />,
-                    document.body,
-                )}
         </div>
     );
 };
@@ -510,7 +486,11 @@ const mapStateToProps = (state, ownProps) => {
         role: classroom.role,
         sessionToken: classroom.sessionToken,
         classGenai: classroom.studentGenai,
-        devFlag: getUrlParams().features.includes('genai'),
+        devFlag: isGenaiDevFlag({
+            features: getUrlParams().features,
+            production: process.env.NODE_ENV === 'production',
+            hostname: typeof window === 'undefined' ? '' : window.location.hostname,
+        }),
     };
     return {
         rubyVersion: state.scratchGui.settings.rubyVersion,

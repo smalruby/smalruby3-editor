@@ -189,7 +189,7 @@ aws logs tail /aws/lambda/RubyteeRelayHandler-stg --since 5m --format short | gr
 
 Rubytee は未成年者（子供）が利用するサービスのため、[Anthropic のガイドライン](https://support.claude.com/en/articles/9307344-responsible-use-of-anthropic-s-models-guidelines-for-organizations-serving-minors)に準拠する必要がある:
 
-1. **年齢確認**: フロントエンドで同意ダイアログ（チェックボックス式）を表示
+1. **利用の条件確認**: クラス管理で先生が条件を確かめてルビティーを有効にしたクラスの生徒だけが使える（生徒の画面では同意を取り直さない）
 2. **コンテンツモデレーション**: システムプロンプトに Child Safety Guidelines セクションを含む
-3. **AI 開示**: 同意ダイアログとモーダルで AI であることを明示
+3. **AI 開示**: 画面で AI（ルビティー）であることを明示
 4. **COPPA 準拠**: 利用規約とプライバシーポリシーに明記

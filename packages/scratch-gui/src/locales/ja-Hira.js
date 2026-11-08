@@ -371,7 +371,7 @@ export default {
     'gui.classroom.classAi.heading': 'このクラスでつかう AI',
     'gui.classroom.classAi.genaiLabel': 'がっこうのせいせいAI にそうだん',
     'gui.classroom.classAi.genaiNote':
-        'コードがめんに「AI にそうだん」ボタンがでます。せいとがはりつけるので、スモウルビーからはなにもおくりません。',
+        'コードタブと Ruby タブのりょうほうに「せいせいAI にそうだん」ボタンがでます。せいとがはりつけるので、スモウルビーからはなにもおくりません。',
     'gui.classroom.classAi.service.none': 'つかわない',
     'gui.classroom.classAi.service.gemini': 'Gemini（Google）',
     'gui.classroom.classAi.service.geminiCondition':
@@ -393,7 +393,7 @@ export default {
     'gui.classroom.classAi.urlError.adultOnly': '18 さいいじょうだけがつかえるサービスなのでえらべません。',
     'gui.classroom.classAi.rubytee': 'ルビティー',
     'gui.classroom.classAi.rubyteeNote':
-        'Ruby タブの AI ボタンで、スモウルビーの AI にしつもんできます。もうしこみはいりません。',
+        'せいせいAI のこたえがつかえないとき、［ルビティーにまかせる］でスモウルビーの AI（Claude）がなおします。もうしこみはいりません。',
     'gui.classroom.classAi.unsaved': 'みほぞん',
     'gui.classroom.classAi.previewTitle': 'せいとのがめんはこうなります',
     'gui.classroom.classAi.previewCode': 'コード',
@@ -1478,22 +1478,6 @@ export default {
     'gui.autoCorrectModal.fullwidthSymbols': 'ぜんかくきごう → はんかくきごう',
     'gui.autoCorrectModal.fullwidthSpace': 'ぜんかくスペース → はんかくスペース',
     'gui.autoCorrectModal.replaceInStrings': 'もじれつもおきかえる',
-
-    // Rubytee consent dialog
-    'gui.rubyteeConsent.title': 'ルビティーをつかうまえに',
-    'gui.rubyteeConsent.aiDisclosure': 'ルビティーは AI（じんこうちのう）です。にんげんではありません。',
-    'gui.rubyteeConsent.warningIncorrect': 'こたえがまちがっていることがあります',
-    'gui.rubyteeConsent.warningPersonalInfo':
-        'なまえやじゅうしょなどのこじんじょうほうをにゅうりょくしないでください',
-    'gui.rubyteeConsent.warningAskAdult': 'こまったらおとなにそうだんしてください',
-    'gui.rubyteeConsent.detailsToggle': 'くわしいせつめい（ほごしゃのかたへ）',
-    'gui.rubyteeConsent.detailsText':
-        'ルビティーは Anthropic しゃの Claude API をりようした AI コードせいせいしえんきのうです。にゅうりょくないようはとうほうじんのちゅうけいサービスをけいゆして Anthropic しゃにそうしんされます。こじんじょうほうはほぞんされません。',
-    'gui.rubyteeConsent.termsLink': 'りようきやく',
-    'gui.rubyteeConsent.privacyLink': 'プライバシーポリシー',
-    'gui.rubyteeConsent.consentCheckbox': '18さいいじょうです、またはほごしゃのきょかをもらいました',
-    'gui.rubyteeConsent.cancel': 'つかわない',
-    'gui.rubyteeConsent.accept': 'OK、つかう！',
 
     // Tutorials
     ...gettingStartedHowtos,

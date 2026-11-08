@@ -7,6 +7,7 @@ import {
     afterBlocksRender,
     canOfferTakeover,
     isGenaiAvailable,
+    isGenaiDevFlag,
     isRubyTabGenaiAvailable,
     isNudgeOffToday,
     localDateKey,
@@ -149,6 +150,30 @@ describe('isGenaiAvailable', () => {
 
     test('should show it with the development flag', () => {
         expect(isGenaiAvailable({ role: null, sessionToken: null, classGenai: off, devFlag: true })).toBe(true);
+    });
+});
+
+describe('isGenaiDevFlag', () => {
+    test('should turn ?features=genai on with the dev server', () => {
+        expect(isGenaiDevFlag({ features: ['genai'], production: false, hostname: 'localhost' })).toBe(true);
+    });
+
+    test('should turn it on in the branch previews', () => {
+        expect(isGenaiDevFlag({ features: ['genai'], production: true, hostname: 'preview.smalruby.app' })).toBe(
+            true,
+        );
+    });
+
+    test('should not turn it on in production (smalruby.app)', () => {
+        expect(isGenaiDevFlag({ features: ['genai'], production: true, hostname: 'smalruby.app' })).toBe(false);
+        expect(isGenaiDevFlag({ features: ['genai'], production: true, hostname: 'localhost' })).toBe(false);
+    });
+
+    test('should be off without ?features=genai', () => {
+        expect(isGenaiDevFlag({ features: [], production: false, hostname: 'localhost' })).toBe(false);
+        expect(isGenaiDevFlag({ features: ['other'], production: true, hostname: 'preview.smalruby.app' })).toBe(
+            false,
+        );
     });
 });
 

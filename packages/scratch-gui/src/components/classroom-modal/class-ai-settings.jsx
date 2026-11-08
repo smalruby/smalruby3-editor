@@ -187,7 +187,7 @@ const ClassAiSettings = ({ changed, draft, isLoading, onChange }) => {
                     </div>
                     <p className={styles.note}>
                         <FormattedMessage
-                            defaultMessage="A “Consult AI” button appears on the Code screen. Students paste their work into the AI themselves, so Smalruby sends nothing."
+                            defaultMessage="An “Ask a generative AI” button appears in both the Code tab and the Ruby tab. Students paste their work into the AI themselves, so Smalruby sends nothing."
                             description="What turning on the school's generative AI does on the students' screen"
                             id="gui.classroom.classAi.genaiNote"
                         />
@@ -290,7 +290,7 @@ const ClassAiSettings = ({ changed, draft, isLoading, onChange }) => {
                         {changed.rubytee ? <UnsavedMark testId="classroom-class-ai-rubytee-unsaved" /> : null}
                         <span className={styles.inlineNote}>
                             <FormattedMessage
-                                defaultMessage="Students can ask Smalruby's AI with the AI button in the Ruby tab. No sign-up needed."
+                                defaultMessage="When the generative AI's answer doesn't work, “Leave it to Rubytee” lets Smalruby's AI (Claude) fix it. No sign-up needed."
                                 description="What turning on Rubytee does on the students' screen"
                                 id="gui.classroom.classAi.rubyteeNote"
                             />

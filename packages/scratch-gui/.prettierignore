@@ -63,7 +63,6 @@ src/components/*
 !src/components/palette-toggle/
 !src/components/ruby-script-preview/
 !src/components/ruby-toolbar/
-!src/components/rubytee-consent/
 !src/components/url-loader-modal/
 !src/components/welcome-modal/
 !src/components/welcome-tooltip/
@@ -342,7 +341,6 @@ test/integration/*
 !test/integration/ruby-tab.test.js
 !test/integration/smalrubot-firmware.test.js
 !test/integration/smalrubot-s1-connection-flow.test.js
-!test/integration/rubytee-consent.test.js
 !test/integration/smalruby-tutorials.test.js
 !test/integration/v1-detection-prompt.test.js
 !test/integration/palette-toggle-position.test.js

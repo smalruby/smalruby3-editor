@@ -20,14 +20,13 @@ API キーをクライアントに直接持たせず、AWS Lambda の専用リ�
 
 - **Ruby を書き始めた小学生**として、生成AI の答えがうまくブロックにならなかったとき、ルビティーに作品を直してもらって続けたい
 - **教師**として、クラスで生成AI を使うときに、つまずいた生徒の助けになる手段を用意したい
-- **保護者**として、子どもが AI に依存しすぎないよう、初回利用時に**同意ダイアログ**で AI の特性を説明してほしい
+- **保護者**として、子どもが AI を使うのは、先生が条件を確かめて有効にしたクラスの中だけにしてほしい
 
 ## 安全・コンプライアンス（重要）
 
 このプロダクトは **未成年者向け** であり、Anthropic の利用規約に明示的に準拠する形で設計されている：
 
-- **同意ダイアログ**: 初回利用時に `rubytee-consent` モーダルで AI の特性・利用規約を表示し、ユーザーの同意を取得（localStorage に保存）
-- **年齢チェック**: 同意ダイアログにチェックボックス
+- **クラスで先生が有効にしたときだけ**: ルビティーは、クラス管理で先生がオンにしたクラスの生徒だけが使える。条件の確認は先生が有効にするときに行い、生徒の画面では同意を取り直さない（生徒向けの同意ダイアログは廃止した）
 - **AI 生成物であることの明示**: 出力に AI 生成のラベル
 - **COPPA 対応**: 法的文書（プライバシーポリシー）でも明示
 - **API キー秘匿**: クライアントは API キーを持たず、Lambda リレー経由
@@ -57,10 +56,7 @@ API キーをクライアントに直接持たせず、AWS Lambda の専用リ�
 ルビティーが有効なクラスの生徒には［ルビティーにまかせる］が出る。操作の流れと画面は
 [`docs/genai-consult/`](../genai-consult/) の「ルビティーにまかせる」を参照。
 
-**初回のみ**、同意ダイアログ (`rubytee-consent`) が出る。チェックを入れて「OK」で
-`localStorage.smalruby:rubyteeConsent = 'true'` が保存される。
-
-![同意ダイアログ](screenshots/0101-consent-1280x800.png)
+［ルビティーにまかせる］を押すと、同意画面を出さずにすぐ始まる（先生がクラスで有効にしたことが条件の確認になる）。
 
 呼び方:
 
@@ -71,7 +67,6 @@ API キーをクライアントに直接持たせず、AWS Lambda の専用リ�
 - 送るもの: 困りごと・作品全体の Ruby・生成AI に渡した質問文と貼りもどした答え・ブロックにできなかった理由
   （`userMessage` は 1 万字まで。古い相談から短くする）。`stateContext` は今のスプライトとステージの
   コスチューム・音の名前だけ（作品は `userMessage` に入っている）。
-- 呼ぶ前に、上の **同意ダイアログ**（AI であること・まちがえることがある）を通す。
 - 答えはブラウザでスモウルビーの変換に通し、ブロックにできたものだけを見せる。ブロックそのものは AI に作らせない。
 
 ## 主要ファイル
@@ -80,8 +75,7 @@ API キーをクライアントに直接持たせず、AWS Lambda の専用リ�
 
 | ファイル | 役割 |
 |---|---|
-| `packages/scratch-gui/src/components/rubytee-consent/rubytee-consent.jsx` | 同意ダイアログ |
-| `packages/scratch-gui/src/containers/genai-concierge.jsx` | 「生成AI に相談」のパネル。［ルビティーにまかせる］と同意フロー |
+| `packages/scratch-gui/src/containers/genai-concierge.jsx` | 「生成AI に相談」のパネル（［ルビティーにまかせる］はパネルの答えのステップ `genai-answer-steps.jsx`） |
 | `packages/scratch-gui/src/lib/genai-takeover.js` | ルビティーに送る文の組み立て・作り直しのくり返し・relay の呼び出し（ジョブの問い合わせ） |
 | `packages/scratch-gui/src/reducers/classroom.js` | `rubyteeEnabled`・`selectRubyteeAvailable`（使えるか） |
 
@@ -149,7 +143,6 @@ AWS Lambda リレーサービス（API Gateway HTTP API + Lambda + DynamoDB）�
 
 ### localStorage
 
-- `smalruby:rubyteeConsent` — 同意状態（`'true'` のみ ON）
 - `smalruby:classroom` の `rubyteeEnabled` — 参加しているクラスでルビティーが有効か（生徒のセッションと一緒に保存）
 
 ## モニタリング
@@ -354,7 +347,6 @@ docker compose run --rm -w /app/infra/smalruby-rubytee-relay infra npx cdk deplo
 ## テスト
 
 - 単体テスト（クライアント）: `packages/scratch-gui/test/unit/lib/genai-takeover.test.js`, `lib/genai-concierge-state.test.js`, `reducers/classroom-reducer.test.js`, `components/ruby-toolbar-no-rubytee.test.jsx`（Ruby タブにチャットのボタンが無いこと）
-- 結合テスト（クライアント）: `packages/scratch-gui/test/integration/rubytee-consent.test.js`
 - 単体テスト（Lambda）: `infra/smalruby-rubytee-relay/lambda/tests/`
 
 ## 関連ドキュメント

@@ -46,8 +46,9 @@ const renderSettings = (group = {}) => {
 describe('ClassAiSettings', () => {
     test('shows both settings with what happens to the students, without steps', () => {
         renderSettings();
-        expect(byTestId('classroom-class-ai-genai')).toHaveTextContent('Consult AI');
+        expect(byTestId('classroom-class-ai-genai')).toHaveTextContent('both the Code tab and the Ruby tab');
         expect(byTestId('classroom-class-ai-genai')).toHaveTextContent('Smalruby sends nothing');
+        expect(byTestId('classroom-class-ai-rubytee-row')).toHaveTextContent('Leave it to Rubytee');
         expect(byTestId('classroom-class-ai-rubytee-row')).toHaveTextContent('No sign-up needed');
         expect(byTestId('classroom-class-ai-service-none')).toHaveAttribute('aria-pressed', 'true');
         expect(byTestId('classroom-class-ai-service-claude')).toBeNull();
