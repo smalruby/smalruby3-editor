@@ -15,6 +15,8 @@
 //    - editingName(): the name of the sprite in the editor (「ステージ」 for the stage), or null.
 //    - buildPrompt({kindLabel, text, assignmentName}): the question copied to the AI.
 //    - takeoverState(): the names Rubytee may use (the relay's stateContext).
+//    - takeoverMessage({kindLabel, text, exchanges}): the first message to Rubytee from the
+//      trouble and the consultation (genai-takeover.js), or null when the program is too long.
 // 2. Checking the answer
 //    - check(text): resolves to checkAnswer's result whose parts also have `target` (the
 //      target the part puts code in) and `changes` (what it adds or changes, see 4).
@@ -39,6 +41,7 @@ import { checkAnswer, liveSnapshots, switchSnapshots } from './genai-answer.js';
 import { describeChanges, diffBlocks } from './genai-block-diff.js';
 import { afterBlocksRender, scrollToShowBlocks, showInEditor } from './genai-concierge-state.js';
 import { CODE_TAB_KINDS, buildGenaiPrompt } from './genai-prompt.js';
+import { buildTakeoverMessage } from './genai-takeover.js';
 import RubyGenerator from './ruby-generator';
 import { targetCodeToBlocks } from './ruby-to-blocks-converter';
 
@@ -307,6 +310,9 @@ export const createCodeTabAdapter = ({ vm, intl, rubyVersion, scratchBlocks, dep
         editingName,
         buildPrompt,
         takeoverState: () => takeoverStateOf(vm),
+        // The whole project is sent: the code tab's answer may change any sprite.
+        takeoverMessage: ({ kindLabel, text, exchanges }) =>
+            buildTakeoverMessage({ kindLabel, text, programs: programs(), editingName: editingName(), exchanges }),
         check,
         apply,
         switchSides,

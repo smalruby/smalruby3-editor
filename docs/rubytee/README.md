@@ -9,8 +9,9 @@ Rubytee（ルビティー）は **Anthropic Claude API** を使って、生徒�
 コードタブの「生成AI に相談」（[`docs/genai-consult/`](../genai-consult/)）で、生成AI の答えが 2 回ブロックに
 できなかったときに出る **［ルビティーにまかせる］** から使う（下の「ルビティーにまかせる」）。
 
-Ruby タブ（Ruby・ふりがなモード）からはルビティーを直接呼ばない。Ruby タブでの AI への相談も「生成AI に相談」の
-パネルで行う。
+Ruby タブ（Ruby・ふりがなモード）にもルビティーのボタンやチャットは無い。Ruby タブでの AI への相談も「生成AI に相談」の
+パネルで行い、コードタブと同じく答えが 2 回コードにできなかったときに［ルビティーにまかせる］が出る
+（今のスプライトだけを直してもらう。日本語 (DNCL) モードでは出さない）。
 
 API キーをクライアントに直接持たせず、AWS Lambda の専用リレー（`infra/smalruby-rubytee-relay`）を経由することで、API キー管理・レート制限・入力検証・年齢適合チェックを集約している。
 
@@ -39,7 +40,7 @@ API キーをクライアントに直接持たせず、AWS Lambda の専用リ�
 
 ルビティーは、**参加しているクラスで先生がルビティーを有効にしたときだけ** 使える。先生はクラス設定の「生成AI・ルビティー」欄で「ルビティー（スモウルビーの生成AI）も使う」をオンにする（[`docs/classroom/ui-ux.md`](../classroom/ui-ux.md)）。
 
-| 状態 | コードタブの［ルビティーにまかせる］ (`genai-takeover`) |
+| 状態 | コードタブ・Ruby タブ（Ruby・ふりがなモード）の［ルビティーにまかせる］ (`genai-takeover`) |
 |---|---|
 | クラスに参加していない | **出さない** |
 | 参加しているクラスでルビティーが無効 | **出さない** |
@@ -57,6 +58,12 @@ API キーをクライアントに直接持たせず、AWS Lambda の専用リ�
 [`docs/genai-consult/`](../genai-consult/) の「ルビティーにまかせる」を参照。
 
 ［ルビティーにまかせる］を押すと、同意画面を出さずにすぐ始まる（先生がクラスで有効にしたことが条件の確認になる）。
+
+Ruby タブ（Ruby・ふりがなモード）でも同じ条件で出す。違うのはルビティーに渡す文だけで、今のスプライトだけを
+直すこと・エディタにいま出ている Ruby・参考のほかのスプライトを渡し、ふりがなモードでは説明をやさしくしてもらう
+（`buildRubyTabTakeoverMessage`。詳細は [`docs/genai-consult/`](../genai-consult/) の「Ruby タブ」）。
+relay は同じ `purpose: "genai-takeover"` のまま（relay のシステムプロンプトの「変えるスプライトだけを
+`# 「名前」` から書く」という答えの形にそのまま合う）。日本語 (DNCL) モードでは出さない。
 
 呼び方:
 
@@ -76,7 +83,7 @@ API キーをクライアントに直接持たせず、AWS Lambda の専用リ�
 | ファイル | 役割 |
 |---|---|
 | `packages/scratch-gui/src/containers/genai-concierge.jsx` | 「生成AI に相談」のパネル（［ルビティーにまかせる］はパネルの答えのステップ `genai-answer-steps.jsx`） |
-| `packages/scratch-gui/src/lib/genai-takeover.js` | ルビティーに送る文の組み立て・作り直しのくり返し・relay の呼び出し（ジョブの問い合わせ） |
+| `packages/scratch-gui/src/lib/genai-takeover.js` | ルビティーに送る文の組み立て（コードタブ: 作品全体 / Ruby タブ: 今のスプライトだけ）・作り直しのくり返し・relay の呼び出し（ジョブの問い合わせ） |
 | `packages/scratch-gui/src/reducers/classroom.js` | `rubyteeEnabled`・`selectRubyteeAvailable`（使えるか） |
 
 ### infra/smalruby-rubytee-relay

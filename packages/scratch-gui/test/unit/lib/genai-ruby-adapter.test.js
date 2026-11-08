@@ -1,4 +1,5 @@
 import { editorErrors, lineDecorations, makeRubyTabAdapterFactory } from '../../../src/lib/genai-ruby-adapter.js';
+import { runTakeover } from '../../../src/lib/genai-takeover.js';
 
 const makeTarget = ({ id, name, isStage = false, code = '', sounds = [], costumes = [] }) => ({
     id,
@@ -142,6 +143,41 @@ describe('the Ruby tab adapter', () => {
         expect(adapter.buildPrompt({ kindLabel: 'x', text: 'y' })).toContain('2 行目: undefined method');
         expect(adapter.initialTrouble()).toEqual({ kindId: 'error', text: '2 行目: undefined method' });
         expect(setup().adapter.initialTrouble()).toBeNull();
+    });
+
+    test('asks Rubytee to fix only the sprite in the editor, from the editor', () => {
+        const { adapter } = setup();
+        const exchanges = [{ question: 'q', answer: 'a', problems: ['p'] }];
+        const message = adapter.takeoverMessage({ kindLabel: 'x', text: 'y', exchanges });
+        expect(message).toContain('直すのは「Abby」だけです');
+        expect(message).toContain('```ruby\nmove(1)\n```');
+        expect(message).not.toContain('move(0)');
+        expect(message).toContain('say("やあ")');
+        expect(message).toContain('Ruby の書き方で');
+    });
+
+    test('asks Rubytee for easy words in furigana mode', () => {
+        const { adapter } = setup({ mode: 'furigana' });
+        expect(adapter.takeoverMessage({ kindLabel: 'x', text: 'y', exchanges: [] })).toContain('やさしいことば');
+    });
+
+    test('asks Rubytee again when its answer changes another sprite (relay mocked)', async () => {
+        const { adapter } = setup();
+        const answers = [wrap('# 「Abby」\nmove(10)\n# 「Dee」\nmove(5)\n'), wrap('# 「Abby」\nmove(10)\n')];
+        const sent = [];
+        const out = await runTakeover({
+            first: adapter.takeoverMessage({ kindLabel: 'x', text: 'y', exchanges: [] }),
+            send: (message, history) => {
+                sent.push({ message, history });
+                return Promise.resolve(answers[sent.length - 1]);
+            },
+            check: adapter.check,
+            toJapanese: (problem) => `${problem.sprite} は直せません`,
+        });
+        expect(out.ok).toBe(true);
+        expect(out.tries).toBe(2);
+        expect(sent[1].message).toContain('Dee は直せません');
+        expect(out.result.parts.map((part) => part.name)).toEqual(['Abby']);
     });
 
     test('offers the kinds of trouble of the Ruby tab', () => {

@@ -306,3 +306,16 @@ export const TAKEOVER_AFTER_FAILURES = 2;
  */
 export const canOfferTakeover = ({ failures, rubyteeAvailable }) =>
     rubyteeAvailable === true && failures >= TAKEOVER_AFTER_FAILURES;
+
+/**
+ * Whether the panel may offer 「ルビティーにまかせる」 at all: in a class that uses Rubytee,
+ * in the code tab and in the Ruby tab's Ruby and furigana modes (#1400). Not in DNCL mode
+ * (#1396 決定 3): Rubytee answers in Ruby, not in the student's DNCL.
+ * @param {object} params - parameters
+ * @param {boolean} params.rubyteeAvailable - the student's class uses Rubytee
+ * @param {boolean} params.rubyTab - the panel is in the Ruby tab
+ * @param {boolean} params.dnclMode - the Ruby tab is in DNCL mode
+ * @returns {boolean} whether Rubytee may be offered
+ */
+export const isTakeoverAvailable = ({ rubyteeAvailable, rubyTab, dnclMode }) =>
+    rubyteeAvailable === true && !(rubyTab && dnclMode);

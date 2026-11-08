@@ -17,7 +17,6 @@ import { canOfferTakeover, marksToShow } from '../../lib/genai-concierge-state.j
 import { buildRewritePrompt } from '../../lib/genai-prompt.js';
 import {
     MAX_TAKEOVER_TRIES,
-    buildTakeoverMessage,
     requestTakeover,
     runTakeover,
     takeoverExplanation,
@@ -422,11 +421,9 @@ const GenaiAnswerSteps = ({
     // here and, if it fails, sent back with the reasons (at most MAX_TAKEOVER_TRIES times).
     // Only an answer that turns into blocks is shown as one to put in (#1282).
     const startTakeover = useCallback(async () => {
-        const first = buildTakeoverMessage({
+        const first = adapter.takeoverMessage({
             kindLabel: troubleKind,
             text: troubleText,
-            programs: adapter.programs(),
-            editingName: adapter.editingName(),
             exchanges: tries.map((t, i) => ({
                 question: i === 0 ? prompt : tries[i - 1].rewrite,
                 answer: t.answer,
@@ -717,9 +714,8 @@ GenaiAnswerSteps.propTypes = {
     }).isRequired,
     // What depends on the tab the panel is in (src/lib/genai-code-adapter.js describes it).
     adapter: PropTypes.shape({
-        programs: PropTypes.func.isRequired,
-        editingName: PropTypes.func.isRequired,
         takeoverState: PropTypes.func.isRequired,
+        takeoverMessage: PropTypes.func.isRequired,
         check: PropTypes.func.isRequired,
         apply: PropTypes.func.isRequired,
         switchSides: PropTypes.func.isRequired,

@@ -25,6 +25,7 @@ import {
     isGenaiDevFlag,
     isNudgeOffToday,
     isRubyTabGenaiAvailable,
+    isTakeoverAvailable,
     localDateKey,
     panelPlacement,
     resolveGenaiTarget,
@@ -452,7 +453,8 @@ GenaiConcierge.propTypes = {
     // by default. Pass a function that stays the same between renders (not an inline arrow):
     // a new one makes a new adapter, and the marks and the area are set up again each time.
     createAdapter: PropTypes.func,
-    // In the Ruby tab: the face is only for Ruby version 2 and not in DNCL mode (#1398).
+    // In the Ruby tab: the face is only for Ruby version 2 and not in DNCL mode (#1398),
+    // nor 「ルビティーにまかせる」 (#1400).
     rubyTab: PropTypes.bool,
     // Read by mapStateToProps only.
     // eslint-disable-next-line react/no-unused-prop-types
@@ -506,8 +508,11 @@ const mapStateToProps = (state, ownProps) => {
                   dnclMode: Boolean(ownProps.dnclMode),
               })
             : isGenaiAvailable(access),
-        // The Ruby tab's 「ルビティーにまかせる」 comes with #1400.
-        rubyteeAvailable: ownProps.rubyTab ? false : selectRubyteeAvailable(state),
+        rubyteeAvailable: isTakeoverAvailable({
+            rubyteeAvailable: selectRubyteeAvailable(state),
+            rubyTab: Boolean(ownProps.rubyTab),
+            dnclMode: Boolean(ownProps.dnclMode),
+        }),
         running: Boolean(state.scratchGui.vmStatus && state.scratchGui.vmStatus.running),
     };
 };
