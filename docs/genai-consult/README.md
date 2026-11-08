@@ -259,13 +259,13 @@ GENAI_LAB=1 GENAI_LAB_RUN=<名前> GENAI_LAB_MODELS=sonnet,haiku GENAI_LAB_REPEA
 
 ## Ruby タブ
 
-Ruby タブの **Ruby モードとふりがなモード** でも同じパネルで相談できる（`src/lib/genai-ruby-adapter.js`
+Ruby タブの **Ruby モード・ふりがなモード・日本語 (DNCL) モード** でも同じパネルで相談できる（`src/lib/genai-ruby-adapter.js`
 のアダプタを `ruby-tab.jsx` が渡す）。段階はコードタブと同じで、変わるのは「何を渡し、何で答えさせ、
 どう確かめ、どう入れるか」だけ。
 
 - **顔**: エディタの左下（行番号の上）。右下はズームと画像保存のボタンなので空いている。パネルは
   エディタの右側に開く。出す条件はコードタブと同じで、さらに **Ruby のバージョンが 2 のときだけ**
-  （`ruby_version=1` では出さない）。日本語 (DNCL) モードの間は出さない（DNCL 用の質問文ができるまで）。
+  （`ruby_version=1` では出さない）。日本語 (DNCL) モードでも出す（下の「日本語 (DNCL) モード」）。
 - **困りごと**: 種類は「思ったとおりに動かない / エラーが出る / 次に何を作ればいいかわからない /
   命令の書き方がわからない / もっとおもしろくしたい」。エディタにエラーの印があるときに顔を押すと、
   「エラーが出る」を選び、エラー文（「N 行目: …」）を入れた状態で始まる。
@@ -295,7 +295,39 @@ Ruby タブの **Ruby モードとふりがなモード** でも同じパネル�
 - **印を消す・付け直す**: ［これで閉じる］・［元のプログラム］・［もう一度相談する］で消す。× で閉じたら消し、
   開き直したら付け直す。別のスプライトに切りかえている間は出さず、相談したスプライトに戻ったら
   （そのときのコードと元のコードを比べ直して）付け直す。
-- まだ無いもの: ルビティーにまかせる（Ruby タブでは出さない）、日本語 (DNCL) モード。
+- まだ無いもの: ルビティーにまかせる（Ruby タブでは出さない）。
+
+### 日本語 (DNCL) モード
+
+共通テストの DNCL を練習する高校生向け。段階・行の差分・入れたあとの印・切りかえは Ruby モードと同じで、
+質問文・答えのことば・確かめ方が DNCL になる（`src/lib/genai-dncl-prompt.js` と `src/lib/genai-dncl-answer.js`）。
+
+- **困りごと**: 「答えが合わない / エラーが出る / どう書けばいいかわからない / 問題の考え方がわからない」。
+  エディタにエラーの印があれば「エラーが出る」とエラー文（DNCL の行番号）を入れて始める。
+- **質問文**: エディタにいま出ている DNCL をそのまま入れる。答えも DNCL で（共通テストの形の行番号・`｜` `⎿`・
+  末尾の `:` でもよい）、**配列の添字は 0 から**（問題文が 1 からでも 1 ずらして書く）、代入は `←` か `=`、
+  ブロックの終わりは「を実行する」「を繰り返す」「と定義する」、コメントは `#`（`//` は整数の割り算）、
+  説明は DNCL のことばで、と頼む。「書き方と使える命令の例」は、書き方（代入・配列・入力・もし・の間・
+  増やしながら・減らしながら・関数）と、`src/lib/dncl/dncl-builtins.js` の組み込み関数（`DNCL_BUILTIN_NAMES`）
+  1 つずつの例で作る（組み込み関数を足すと例も要る。unit テストで抜けと、どの例もふつうのブロックになることを確かめる）。
+  イベント・拡張機能・音・コスチュームの命令は使えないと書き、音・コスチュームの名前とほかのスプライトの
+  プログラムは入れない。
+- **確かめる**: 答えから DNCL を取り出し（印のあいだのコード枠。コード枠の言語名は問わない）、エディタに
+  貼りつけたときと同じ整形（行番号を消す・`//` のコメントを `#` に）をしてから、DNCLv2 の pre-processor を通して
+  Ruby に直し、Ruby モードと同じ判定（変換器のエラー・「Ruby のまま」のブロックが無ければ ✔）。エラーは
+  source map（`dncl-source-map.js`）で **DNCL の行** に戻して見せる。`//` のある行のエラーには「// は
+  コメントではない」を添える。書き直しのお願いも DNCL で頼む。
+- **入れる・比べる**: エディタに入れるのは DNCL（整形したもの）。行の差分は DNCL どうしで比べる。
+  ほかのスプライトに移ったあとの切りかえは、DNCL を Ruby に直してブロックを置きかえる。
+- **ルビティーにまかせる**: 出さない（#1396 決定 3。relay が DNCL で答えられるようになるまで）。
+- モードを日本語 (DNCL) と Ruby・ふりがなのあいだで切りかえると、相談は最初からになる（質問文・答え・
+  2 つの版がモードの言語で書かれているため）。エディタのコードはそのまま。
+
+![日本語 (DNCL) モードの困りごと](screenshots/0301-dncl-trouble.png)
+![エラーがあるときは DNCL の行番号のエラー文で始まる](screenshots/0306-dncl-error-start.png)
+![DNCL で動かせない答えは ✗（DNCL の行で）](screenshots/0303-dncl-ng.png)
+![共通テストの形（行番号・⎿・末尾の :）の答えも ✔、DNCL どうしの行の差分](screenshots/0304-dncl-ok.png)
+![入れたあと（増えた・変わった行に印）](screenshots/0305-dncl-done.png)
 
 ![Ruby タブの困りごと（顔はエディタの左下）](screenshots/0201-ruby-trouble.png)
 ![エラーがあるときは「エラーが出る」で始まる](screenshots/0205-ruby-error-start.png)
@@ -333,7 +365,9 @@ Ruby タブの **Ruby モードとふりがなモード** でも同じパネル�
 | `packages/scratch-gui/src/lib/genai-block-diff.js` | 今のプログラムと生成AI の案をブロックで比べる・ブロックの言葉にする（純粋関数。ブロックの定義は引数で受ける） |
 | `packages/scratch-gui/src/lib/genai-takeover.js` | ルビティーにまかせる: ルビティーに送る文の組み立て・作り直しのくり返し・relay の呼び出し（ジョブの問い合わせ） |
 | `packages/scratch-gui/src/lib/genai-code-adapter.js` | コードタブ用のアダプタ。パネルがタブごとに差し替える点（質問文を作る・答えを確かめる・入れる／切りかえる／印を付ける・増える／変わるものの見せ方・顔の置き場所の測り方）をまとめる。差し替え点の説明はファイル冒頭 |
-| `packages/scratch-gui/src/lib/genai-ruby-adapter.js` | Ruby タブ（Ruby・ふりがなモード）用のアダプタ。エディタのコードで質問文を作る・今のスプライトだけを確かめる・エディタに入れる・エディタのエラーから困りごとを始める・行の差分の表示（Monaco）・入れたあとの行の印（decoration） |
+| `packages/scratch-gui/src/lib/genai-ruby-adapter.js` | Ruby タブ（Ruby・ふりがな・日本語 (DNCL) モード）用のアダプタ。エディタのコードで質問文を作る・今のスプライトだけを確かめる・エディタに入れる・エディタのエラーから困りごとを始める・行の差分の表示（Monaco）・入れたあとの行の印（decoration） |
+| `packages/scratch-gui/src/lib/genai-dncl-prompt.js` | 日本語 (DNCL) モードの質問文・困りごとの種類・命令の例・書き直しのお願い・答えからの DNCL 取り出し（純粋関数） |
+| `packages/scratch-gui/src/lib/genai-dncl-answer.js` | 日本語 (DNCL) モードの答えを調べる（DNCL → Ruby → 変換。エラーを DNCL の行に戻す。変換器は引数で受ける） |
 | `packages/scratch-gui/src/lib/genai-line-diff.js` | Ruby タブの行の差分（増える・変わる・なくなる行）と、その数・印を付ける行（純粋関数） |
 | `packages/scratch-gui/src/lib/genai-answer.js` | 貼った答えを調べる（✔ / ✗ の判定）・書き直しのお願いの文・切りかえ（純粋関数。変換器は引数で受ける） |
 | `packages/scratch-gui/src/reducers/classroom.js` | `studentGenai` と `setStudentGenai` |
@@ -350,7 +384,7 @@ Ruby タブの **Ruby モードとふりがなモード** でも同じパネル�
 | `genai-stepper` | ol | 進み具合の表示 |
 | `genai-step-<id>` | li | 各段階（`trouble` / `copy` / `paste`）。`data-status` は `done` / `current` / `todo`。終わった段階は中のボタンでもどれる |
 | `genai-close` | button | 閉じる（×） |
-| `genai-kind-<id>` | button | 困りごとの種類（`not-working` / `error` / `next` / `how` / `more-fun`。Ruby タブは `how` の代わりに `how-command`） |
+| `genai-kind-<id>` | button | 困りごとの種類（`not-working` / `error` / `next` / `how` / `more-fun`。Ruby タブは `how` の代わりに `how-command`。日本語 (DNCL) モードは `wrong-answer` / `error` / `how-write` / `how-think`） |
 | `genai-trouble-text` | textarea | 困りごとを自分のことばで書く欄（種類を選ぶと出る） |
 | `genai-make-prompt` | button | 相談文をつくる |
 | `genai-service-gemini` / `genai-service-chatgpt` / `genai-service-url` / `genai-service-change` | button / input / a | 開発用（`?features=genai` でクラス外）の生成AI 選択 |

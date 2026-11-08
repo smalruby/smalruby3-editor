@@ -57,6 +57,14 @@ DNCL モードではコードタブのブロックが制限される（後述の
 
 Ruby タブを次に開いたとき、`exitDnclModeExternallyRequested` フラグが立っていれば DNCL 表示の復元（wasDncl パス）をスキップして Ruby コードを表示し、フラグをクリアする。これにより「バナーで戻したのに Ruby タブを開くと日本語モードに戻ってしまう」事故を防ぐ。
 
+### 生成AI に相談
+
+日本語モードでも、クラスで生成AI を使う生徒にはエディタの左下にルビティーの顔が出て、生成AI（Gemini など）に
+相談できる。質問文はエディタの DNCL のまま作り、答えも DNCL（共通テストの形でもよい・添字は 0 から）で
+もらう。貼り戻した答えは、DNCLv2 の pre-processor を通して Ruby に直してから確かめ、エラーはソースマップで
+DNCL の行に戻して見せる。詳しくは [`docs/genai-consult/README.md`](../genai-consult/README.md) の
+「日本語 (DNCL) モード」。
+
 ## 主要ファイル
 
 ### scratch-gui
@@ -74,7 +82,7 @@ Ruby タブを次に開いたとき、`exitDnclModeExternallyRequested` フラ�
 | `dncl-paste-index-shift.js` | **貼り付け時の添字の 0 始まりへの書き換え**（`hasOneBasedIndexNote` / `shiftArrayIndexes` / `findOneBasedSuspects`）。「添字は 1 から始まる」の注釈がある貼り付けテキストの配列の添字を 1 減らし、1 始まりを前提にしていそうな行を見つける。下の「貼り付け時の添字の書き換え」 |
 | `dncl-line-converter.js` | 行単位の DNCL → Ruby 変換 |
 | `dncl-identifier-converter.js` | 識別子（変数名）の変換 |
-| `dncl-builtins.js` | DNCL 組み込み関数の定義（`表示する`, `要素数` など）。`表示する` 多引数は `puts(... + ...)` に展開 |
+| `dncl-builtins.js` | DNCL 組み込み関数の定義（`表示する`, `要素数` など）。`表示する` 多引数は `puts(... + ...)` に展開。関数の一覧 `DNCL_BUILTIN_NAMES` は生成AI に相談の質問文の命令の例にも使う |
 | `dncl-keywords.js` | DNCL キーワード定義（`もし`, `ならば`, `を繰り返す` など）|
 | `dncl-validator.js` | DNCL コードの構文検証 |
 | `dncl-state.js` | パーサー状態管理 |

@@ -281,6 +281,15 @@ const GenaiAnswerSteps = ({
     const [converted, setConverted] = useState(null);
     const [failures, setFailures] = useState(0);
     const [showRuby, setShowRuby] = useState(false);
+    // A DNCL answer is not Ruby: the link says program (#1402).
+    const isDncl = adapter.language === 'dncl';
+    const showMessage = isDncl
+        ? showRuby
+            ? messages.programHide
+            : messages.programShow
+        : showRuby
+          ? messages.rubyHide
+          : messages.rubyShow;
     const [reflection, setReflection] = useState('');
     // [{target, name, before, after}]: the student switches between the two as often as they like.
     const [snapshots, setSnapshots] = useState(null);
@@ -408,7 +417,7 @@ const GenaiAnswerSteps = ({
     // The request goes to the AI, so it stays in Japanese whatever the editor language.
     // The request is kept for 「ルビティーにまかせる」 as the question of the next answer.
     const handleCopyRewrite = useCallback(() => {
-        const request = buildRewritePrompt({
+        const request = (adapter.rewritePrompt || buildRewritePrompt)({
             code: converted.code,
             problems: converted.problems.map(problemToJapanese),
         });
@@ -416,7 +425,7 @@ const GenaiAnswerSteps = ({
             list.length === 0 ? list : [...list.slice(0, -1), { ...list[list.length - 1], rewrite: request }],
         );
         onCopy(request, 'rewrite');
-    }, [onCopy, converted]);
+    }, [onCopy, converted, adapter]);
 
     // Rubytee rewrites the program from the whole consultation; each answer is checked
     // here and, if it fails, sent back with the reasons (at most MAX_TAKEOVER_TRIES times).
@@ -538,7 +547,7 @@ const GenaiAnswerSteps = ({
                                 <ChangeList parts={converted.parts} several={converted.parts.length > 1} />
                             )}
                             <a href="#" data-testid="genai-ruby-toggle" onClick={handleToggleRuby}>
-                                <FormattedMessage {...(showRuby ? messages.rubyHide : messages.rubyShow)} />
+                                <FormattedMessage {...showMessage} />
                             </a>
                             {showRuby && <pre className={styles.code}>{converted.code}</pre>}
                             <p className={styles.label}>
@@ -728,6 +737,10 @@ GenaiAnswerSteps.propTypes = {
         puts: PropTypes.string,
         // Shows the line diff of a checked part in an element; returns the function taking it away.
         mountDiff: PropTypes.func,
+        // 'dncl' when the answer is DNCL (the Japanese mode of the Ruby tab).
+        language: PropTypes.string,
+        // The request to rewrite a failed answer ({code, problems}); Ruby's by default.
+        rewritePrompt: PropTypes.func,
     }).isRequired,
     serviceName: PropTypes.string,
     // The question copied to the AI first, and the trouble it was about: sent to Rubytee (#1282).
