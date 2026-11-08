@@ -317,6 +317,40 @@ describe('the Ruby tab adapter', () => {
         expect(markedOf(editor)).toEqual(['2:genaiLineChanged', '3:genaiLineAdded']);
     });
 
+    test('does not read the code of the sprite waited for again each time the VM tells', async () => {
+        const { adapter, editor, vm, dee } = setup({ editorValue: 'a\nb\n' });
+        const abby = vm.editingTarget;
+        const result = await adapter.check(wrap('a\nB\nc\n'));
+        const { marks } = await adapter.apply(result.parts);
+        adapter.watchMarks(marks);
+        vm.switchTo(dee);
+        editor.type('say("やあ")\n');
+        let reads = 0;
+        let code = 'a\nB\nc\n';
+        Object.defineProperty(abby, 'code', {
+            get: () => {
+                reads += 1;
+                return code;
+            },
+            set: (next) => {
+                code = next;
+            },
+        });
+        vm.switchTo(abby);
+        // A moving sprite makes the VM tell it each frame while the editor has no new value.
+        vm.emit('targetsUpdate', {});
+        vm.emit('targetsUpdate', {});
+        expect(reads).toBe(1);
+        expect(markedOf(editor)).toEqual([]);
+        editor.type('a\nB\nc\n');
+        expect(markedOf(editor)).toEqual(['2:genaiLineChanged', '3:genaiLineAdded']);
+        // Away and back again: the sprite is compared again.
+        vm.switchTo(dee);
+        editor.type('say("やあ")\n');
+        vm.switchTo(abby);
+        expect(reads).toBe(2);
+    });
+
     test('stops listening to the VM once the marks are taken away', async () => {
         const { adapter, vm } = setup({ editorValue: 'a\nb\n' });
         const result = await adapter.check(wrap('a\nB\nc\n'));
