@@ -1732,6 +1732,8 @@ export default {
     'gui.genaiConcierge.nudgeOpen': 'そうだんする',
     'gui.genaiConcierge.nudgeLater': 'あとで',
     'gui.genaiConcierge.nudgeOff': 'きょうはださない',
+    'gui.genaiConcierge.faceLabel': 'AI に そうだん',
+    'gui.genaiConcierge.faceLabelShort': 'AI',
     'gui.genaiConcierge.troubleQuestion': 'どんなことでこまっている？',
     'gui.genaiConcierge.makePrompt': 'そうだんぶんをつくる',
     'gui.genaiConcierge.kind.notWorking': 'おもったとおりにうごかない',

@@ -240,6 +240,7 @@ src/lib/*
 !src/containers/genai-concierge.jsx
 !src/components/genai-concierge/genai-concierge.css
 !src/components/genai-concierge/genai-nudge.jsx
+!src/components/genai-concierge/genai-face.jsx
 !src/components/genai-concierge/genai-stepper.jsx
 !src/components/genai-concierge/genai-trouble-step.jsx
 !src/components/genai-concierge/genai-copy-step.jsx

@@ -2,6 +2,7 @@ import messages, { KIND_MESSAGES } from '../../../src/components/genai-concierge
 import {
     NUDGE_GAP_MS,
     copyChecklist,
+    faceLabel,
     genaiServiceLabel,
     TAKEOVER_AFTER_FAILURES,
     afterBlocksRender,
@@ -257,6 +258,35 @@ describe('panelPlacement', () => {
             left: 0,
             bottom: 60,
         });
+    });
+});
+
+describe('faceLabel', () => {
+    const wide = { areaWidth: 1200, rootLeft: 324, faceWidth: 52 };
+
+    test('should show the whole label beside the face when there is room', () => {
+        expect(faceLabel({ ...wide, open: false, nudge: false })).toBe('full');
+    });
+
+    test('should hide the label while the panel is open', () => {
+        expect(faceLabel({ ...wide, open: true, nudge: false })).toBe('none');
+    });
+
+    test('should leave the place to the nudge while it is shown', () => {
+        expect(faceLabel({ ...wide, open: false, nudge: true })).toBe('none');
+    });
+
+    test('should wait until the area is measured', () => {
+        expect(faceLabel({ areaWidth: 0, rootLeft: 12, faceWidth: 52, open: false, nudge: false })).toBe('none');
+    });
+
+    test('should shorten the label in a narrow area', () => {
+        // 390 px wide: 390 - 60 (zoom buttons) - 12 - 52 - 8 = 258 px beside the face.
+        expect(faceLabel({ areaWidth: 390, rootLeft: 12, faceWidth: 52, open: false, nudge: false })).toBe('short');
+    });
+
+    test('should hide the label when even the short one does not fit', () => {
+        expect(faceLabel({ areaWidth: 160, rootLeft: 12, faceWidth: 52, open: false, nudge: false })).toBe('none');
     });
 });
 
