@@ -12,7 +12,7 @@ import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
 import * as path from 'path';
 import { Construct } from 'constructs';
-import { withPreviewOrigins } from './preview-origins';
+import { withPreviewOrigins } from './cors-origins';
 
 export class RubyteeRelayStack extends cdk.Stack {
   public readonly table: dynamodb.Table;
