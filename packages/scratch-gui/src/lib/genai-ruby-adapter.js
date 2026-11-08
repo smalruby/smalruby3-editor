@@ -89,18 +89,28 @@ const measureEditorArea = (root) => {
  * @param {function(): ?object} params.getEditor - the Monaco editor
  * @param {function(): ?object} params.getMonaco - Monaco
  * @param {function(): string} params.getMode - 'ruby', 'furigana' or 'dncl'
+ * @param {function(): ?object} params.getEditorTarget - the sprite whose code is in the
+ *     editor (the Ruby tab's rubyCode.target)
+ * @param {function(function()): function()} params.onEditorTargetChange - listens to the
+ *     editor showing another sprite, told once the editor has its code; returns the unlisten
  * @param {object} [params.deps] - replacements for tests: toCode(target), toBlocks(target, code)
  * @returns {function(object): object} createAdapter({vm, intl, rubyVersion, scratchBlocks})
  */
 export const makeRubyTabAdapterFactory =
-    ({ getEditor, getMonaco, getMode, deps = {} }) =>
+    ({ getEditor, getMonaco, getMode, getEditorTarget, onEditorTargetChange, deps = {} }) =>
     ({ vm, intl, rubyVersion }) => {
         const toCode = deps.toCode || ((target) => RubyGenerator.targetToCode(target, { version: rubyVersion }));
         const toBlocks =
             deps.toBlocks || ((target, code) => targetCodeToBlocks(vm, target, code, intl, { version: rubyVersion }));
         const originals = () => vm.runtime.targets.filter((t) => t.isOriginal);
         const isDncl = () => getMode() === 'dncl';
-        const editing = () => vm.editingTarget;
+        // The sprite in the editor is the Ruby tab's, not the VM's (#1435): when the code in
+        // the editor cannot become blocks, the editor keeps it (and its sprite) while the VM
+        // switches to another sprite. Before the editor shows a sprite, it is the VM's.
+        const editing = () => {
+            const target = getEditorTarget();
+            return target && vm.runtime.targets.includes(target) ? target : vm.editingTarget;
+        };
         const editorCode = () => {
             const editor = getEditor();
             return editor ? editor.getValue() || '' : '';
@@ -291,12 +301,11 @@ export const makeRubyTabAdapterFactory =
         // own typing moves the marks along with the lines. When the same sprite's code is
         // replaced as a whole (the auto-correction, Ctrl+Z), only the lines marked just
         // before keep their marks, so what the student typed meanwhile stays unmarked.
-        // The switch to another sprite is also seen in the VM (targetsUpdate, #1410): the
-        // editor gets no new value for a sprite with the same code (a duplicate), so no edit
-        // tells it. The VM tells it before the editor has the new code, though, so a sprite
-        // with marks is marked then only when the editor already shows its code; else the
-        // marks wait for the new value (the edit above). The VM tells it again each frame a
-        // sprite moves, so the sprite waited for is not compared again until it is painted.
+        // The switch to another sprite is also told by the Ruby tab (onEditorTargetChange): the
+        // editor gets no new value for a sprite with the same code (a duplicate, #1410), so no
+        // edit tells it. A sprite with marks is marked then only when the editor already shows
+        // its code; else the marks wait for the new value (the edit above), and the sprite
+        // waited for is not compared again until it is painted.
         const watchMarks = (marks) => {
             const editor = getEditor();
             if (!editor || !editor.createDecorationsCollection) return () => {};
@@ -330,7 +339,7 @@ export const makeRubyTabAdapterFactory =
                 else if (replacesAll(event, length)) paint(carriedLines(text, editorCode(), marked));
                 remember();
             });
-            const onTargetsUpdate = () => {
+            const onSwitch = () => {
                 const target = editing();
                 if (target === painted || target === waited) return;
                 const mark = marks.find((m) => m.target === target);
@@ -342,10 +351,10 @@ export const makeRubyTabAdapterFactory =
                 }
                 remember();
             };
-            vm.on('targetsUpdate', onTargetsUpdate);
+            const unlisten = onEditorTargetChange(onSwitch);
             return () => {
                 listener.dispose();
-                vm.removeListener('targetsUpdate', onTargetsUpdate);
+                unlisten();
                 collection.clear();
             };
         };

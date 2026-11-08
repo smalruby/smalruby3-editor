@@ -83,18 +83,41 @@ const setup = ({ mode = 'ruby', editorValue = 'move(1)\n', markers = [] } = {}) 
     const stage = makeTarget({ id: 's', name: 'Stage', isStage: true });
     // The VM tells the editor's switch to another sprite with targetsUpdate (setEditingTarget).
     const vm = Object.assign(new EventEmitter(), { editingTarget: abby, runtime: { targets: [stage, abby, dee] } });
-    vm.switchTo = (target) => {
+    const editor = makeEditor(editorValue);
+    // The sprite the Ruby tab shows in the editor (rubyCode.target, #1435). The editor gets
+    // the code of the sprite (if given) before the Ruby tab tells that it shows it.
+    let shown = abby;
+    const shownListeners = new Set();
+    vm.show = (target, code) => {
+        shown = target;
+        if (typeof code === 'string') editor.type(code);
+        shownListeners.forEach((listener) => listener());
+    };
+    // The student switches to another sprite and its code goes in the editor (when the code
+    // in the editor cannot become blocks, only the VM switches: vm.editingTarget alone).
+    vm.switchTo = (target, code) => {
         vm.editingTarget = target;
         vm.emit('targetsUpdate', {});
+        vm.show(target, code);
     };
-    const editor = makeEditor(editorValue);
     const createAdapter = makeRubyTabAdapterFactory({
         getEditor: () => editor,
         getMonaco: () => makeMonaco(markers),
         getMode: () => mode,
+        getEditorTarget: () => shown,
+        onEditorTargetChange: (listener) => {
+            shownListeners.add(listener);
+            return () => shownListeners.delete(listener);
+        },
         deps: { toCode: (t) => t.code, toBlocks: fakeToBlocks },
     });
-    return { adapter: createAdapter({ vm, intl: null, rubyVersion: '2', scratchBlocks: null }), vm, editor, dee };
+    return {
+        adapter: createAdapter({ vm, intl: null, rubyVersion: '2', scratchBlocks: null }),
+        vm,
+        editor,
+        dee,
+        shownListeners,
+    };
 };
 
 const wrap = (code) => `▼▼\n\`\`\`ruby\n${code}\`\`\`\n▲▲`;
@@ -192,7 +215,7 @@ describe('the Ruby tab adapter', () => {
         const { adapter, vm, dee } = setup();
         const abby = vm.editingTarget;
         const scope = adapter.takeoverScope();
-        vm.editingTarget = dee;
+        vm.switchTo(dee);
         const result = await adapter.check(wrap('# 「Abby」\nmove(10)\n'), scope);
         expect(result.ok).toBe(true);
         expect(result.parts.map((part) => part.target)).toEqual([abby]);
@@ -204,7 +227,7 @@ describe('the Ruby tab adapter', () => {
     test('fails a Rubytee answer for the sprite switched to', async () => {
         const { adapter, vm, dee } = setup();
         const scope = adapter.takeoverScope();
-        vm.editingTarget = dee;
+        vm.switchTo(dee);
         const result = await adapter.check(wrap('# 「Dee」\nmove(10)\n'), scope);
         expect(result.ok).toBe(false);
         expect(result.problems[0]).toEqual({ type: 'otherSprite', sprite: 'Dee', only: 'Abby' });
@@ -214,7 +237,7 @@ describe('the Ruby tab adapter', () => {
         const { adapter, vm, dee } = setup();
         const scope = adapter.takeoverScope();
         vm.runtime.targets = vm.runtime.targets.filter((t) => t !== vm.editingTarget);
-        vm.editingTarget = dee;
+        vm.switchTo(dee);
         const result = await adapter.check(wrap('move(10)\n'), scope);
         expect(result.parts.map((part) => part.target)).toEqual([dee]);
     });
@@ -223,7 +246,7 @@ describe('the Ruby tab adapter', () => {
         const { adapter, editor, vm, dee } = setup();
         const abby = vm.editingTarget;
         const scope = adapter.takeoverScope();
-        vm.editingTarget = dee;
+        vm.switchTo(dee);
         const loaded = [];
         abby.blocks.apply = (code) => loaded.push(code);
         const result = await adapter.check(wrap('move(10)\n'), scope);
@@ -288,7 +311,7 @@ describe('the Ruby tab adapter', () => {
         const { snapshots } = await adapter.apply(result.parts);
         // The student moves to Dee; Abby's blocks now have the AI's version.
         abby.code = 'move(10)\n';
-        vm.editingTarget = dee;
+        vm.switchTo(dee);
         const loaded = [];
         abby.blocks.apply = (code) => loaded.push(code);
         const back = await adapter.switchSides(snapshots, false);
@@ -324,11 +347,9 @@ describe('the Ruby tab adapter', () => {
         const result = await adapter.check(wrap('a\nB\nc\n'));
         const { marks } = await adapter.apply(result.parts);
         adapter.watchMarks(marks);
-        vm.editingTarget = dee;
-        editor.type('say("やあ")\n');
+        vm.switchTo(dee, 'say("やあ")\n');
         expect(markedOf(editor)).toEqual([]);
-        vm.editingTarget = abby;
-        editor.type('a\nB\nc\n');
+        vm.switchTo(abby, 'a\nB\nc\n');
         expect(markedOf(editor)).toEqual(['2:genaiLineChanged', '3:genaiLineAdded']);
     });
 
@@ -355,24 +376,22 @@ describe('the Ruby tab adapter', () => {
         const { marks } = await adapter.apply(result.parts);
         adapter.watchMarks(marks);
         abby.code = 'a\nB\nc\n';
-        vm.switchTo(dee);
+        vm.switchTo(dee, 'say("やあ")\n');
         expect(markedOf(editor)).toEqual([]);
-        editor.type('say("やあ")\n');
-        // Back to Abby: the editor still shows Dee's code until its new value comes.
-        vm.switchTo(abby);
+        // Back to Abby, told before the editor has its code: the editor still shows Dee's.
+        vm.show(abby);
         expect(markedOf(editor)).toEqual([]);
         editor.type('a\nB\nc\n');
         expect(markedOf(editor)).toEqual(['2:genaiLineChanged', '3:genaiLineAdded']);
     });
 
-    test('does not read the code of the sprite waited for again each time the VM tells', async () => {
+    test('does not read the code of the sprite waited for again each time it is told', async () => {
         const { adapter, editor, vm, dee } = setup({ editorValue: 'a\nb\n' });
         const abby = vm.editingTarget;
         const result = await adapter.check(wrap('a\nB\nc\n'));
         const { marks } = await adapter.apply(result.parts);
         adapter.watchMarks(marks);
-        vm.switchTo(dee);
-        editor.type('say("やあ")\n');
+        vm.switchTo(dee, 'say("やあ")\n');
         let reads = 0;
         let code = 'a\nB\nc\n';
         Object.defineProperty(abby, 'code', {
@@ -384,29 +403,80 @@ describe('the Ruby tab adapter', () => {
                 code = next;
             },
         });
-        vm.switchTo(abby);
-        // A moving sprite makes the VM tell it each frame while the editor has no new value.
-        vm.emit('targetsUpdate', {});
-        vm.emit('targetsUpdate', {});
+        vm.show(abby);
+        // Told again while the editor has no new value.
+        vm.show(abby);
+        vm.show(abby);
         expect(reads).toBe(1);
         expect(markedOf(editor)).toEqual([]);
         editor.type('a\nB\nc\n');
         expect(markedOf(editor)).toEqual(['2:genaiLineChanged', '3:genaiLineAdded']);
         // Away and back again: the sprite is compared again.
-        vm.switchTo(dee);
-        editor.type('say("やあ")\n');
-        vm.switchTo(abby);
+        vm.switchTo(dee, 'say("やあ")\n');
+        vm.show(abby);
         expect(reads).toBe(2);
     });
 
-    test('stops listening to the VM once the marks are taken away', async () => {
-        const { adapter, vm } = setup({ editorValue: 'a\nb\n' });
+    test('stops listening to the switches once the marks are taken away', async () => {
+        const { adapter, shownListeners } = setup({ editorValue: 'a\nb\n' });
         const result = await adapter.check(wrap('a\nB\nc\n'));
         const { marks } = await adapter.apply(result.parts);
         const stop = adapter.watchMarks(marks);
-        expect(vm.listenerCount('targetsUpdate')).toBe(1);
+        expect(shownListeners.size).toBe(1);
         stop();
-        expect(vm.listenerCount('targetsUpdate')).toBe(0);
+        expect(shownListeners.size).toBe(0);
+    });
+
+    // #1435: when the code in the editor cannot become blocks, the Ruby tab keeps it (and
+    // its sprite) in the editor while the VM switches to another sprite.
+    test('reads the sprite the editor still shows, not the one the VM switched to', () => {
+        const { adapter, vm, dee } = setup();
+        vm.editingTarget = dee;
+        expect(adapter.editingName()).toBe('Abby');
+        expect(adapter.programs().map((p) => [p.name, p.code])).toEqual([
+            ['ステージ', ''],
+            ['Abby', 'move(1)\n'],
+            ['Dee', 'say("やあ")\n'],
+        ]);
+        const prompt = adapter.buildPrompt({ kindLabel: 'x', text: 'y', assignmentName: null });
+        expect(prompt).toContain('```ruby\nmove(1)\n```');
+        expect(adapter.takeoverMessage({ kindLabel: 'x', text: 'y', exchanges: [] })).toContain(
+            '直すのは「Abby」だけです',
+        );
+        expect(adapter.takeoverScope().target.getName()).toBe('Abby');
+    });
+
+    test('checks and puts an answer in the editor that still shows the sprite', async () => {
+        const { adapter, editor, vm, dee } = setup();
+        const abby = vm.editingTarget;
+        const scope = adapter.takeoverScope();
+        vm.editingTarget = dee;
+        const loaded = [];
+        abby.blocks.apply = (code) => loaded.push(code);
+        const result = await adapter.check(wrap('# 「Abby」\nmove(10)\n'), scope);
+        expect(result.ok).toBe(true);
+        // The lines are counted from the code the student sees, not from Abby's old blocks.
+        expect(result.parts[0].before).toBe('move(1)\n');
+        await adapter.apply(result.parts);
+        expect(editor.getValue()).toBe('move(10)\n');
+        expect(loaded).toEqual([]);
+    });
+
+    test('keeps the marks while the editor still shows the sprite', async () => {
+        const { adapter, editor, vm, dee } = setup({ editorValue: 'a\nb\n' });
+        const result = await adapter.check(wrap('a\nB\nc\n'));
+        const { marks } = await adapter.apply(result.parts);
+        adapter.watchMarks(marks);
+        vm.editingTarget = dee;
+        vm.emit('targetsUpdate', {});
+        expect(markedOf(editor)).toEqual(['2:genaiLineChanged', '3:genaiLineAdded']);
+    });
+
+    test('reads the sprite of the VM before the editor shows one', () => {
+        const { adapter, vm, dee } = setup();
+        vm.show(null);
+        vm.editingTarget = dee;
+        expect(adapter.editingName()).toBe('Dee');
     });
 
     test('leaves the marks to move along with what the student types', async () => {
@@ -520,7 +590,7 @@ describe('the Ruby tab adapter in the Japanese (DNCL) mode (#1402)', () => {
         abby.blocks.apply = (code) => applied.push(code);
         const result = await adapter.check(wrapDncl('x ← 2\n表示する(x)\n'));
         const { snapshots } = await adapter.apply(result.parts);
-        vm.editingTarget = dee;
+        vm.switchTo(dee);
         await adapter.switchSides(snapshots, false);
         expect(applied).toHaveLength(1);
         expect(applied[0]).toContain('@x = 1');
