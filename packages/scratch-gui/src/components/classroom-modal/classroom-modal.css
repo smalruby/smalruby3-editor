@@ -3215,6 +3215,17 @@
     color: #855cd6;
 }
 
+/* クラス設定の［保存］の行。AI の確認（生成AI・ルビティー）を両方開くと 1300×600 に
+   収まらないので、本文がスクロールしても確定のボタンが見えるように下に留める（R6・#1413）。 */
+.class-settings-footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+    padding: 0.5rem 0;
+    background: white;
+    box-shadow: 0 -0.5rem 0.5rem -0.5rem hsla(0, 0%, 0%, 0.15);
+}
+
 .class-settings-archive-confirm {
     margin: 0.5rem 0 0;
     padding: 0.5rem 0.75rem;
@@ -4142,6 +4153,8 @@
 /* The form keeps its width; the students' screen preview takes the room on its right. */
 .class-settings-screen {
     max-width: 78rem;
+    /* The page (<main>) scrolls, not this box: the sticky footer needs <main> as its scroller (#1413). */
+    overflow-y: visible;
 }
 
 .class-settings-layout {

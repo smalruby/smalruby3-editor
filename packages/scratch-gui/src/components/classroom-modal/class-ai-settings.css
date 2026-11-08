@@ -99,6 +99,23 @@
     font-size: 0.8rem;
 }
 
+.confirm-row {
+    display: flex;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 0.4rem 1rem;
+}
+
+.links {
+    margin-left: auto;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+.links a {
+    color: #855cd6;
+}
+
 .unconfirmed {
     margin: 0;
     font-size: 0.8rem;

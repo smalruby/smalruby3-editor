@@ -376,7 +376,7 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
                 {/* フッター（レビュー指摘）: 通常は キャンセル左 / アーカイブ・保存 右
                     （アーカイブは保存の左）。アーカイブ押下中は キャンセル・保存を隠し
                     「アーカイブしない / アーカイブする」のみ表示。 */}
-                <div className={styles.formFooter}>
+                <div className={classNames(styles.formFooter, styles.classSettingsFooter)}>
                     {confirmingArchive ? (
                         <React.Fragment>
                             <ClassroomButton

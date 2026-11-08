@@ -342,50 +342,52 @@ const ClassAiSettings = ({ changed, draft, isLoading, onChange, rubyteeUnconfirm
                                     <li key={c.key}>{intl.formatMessage(c.message)}</li>
                                 ))}
                             </ul>
-                            <p className={styles.condition}>
-                                <a
-                                    data-testid="classroom-class-ai-rubytee-terms"
-                                    href="/terms-of-service.html"
-                                    rel="noopener noreferrer"
-                                    target="_blank"
-                                >
-                                    <FormattedMessage
-                                        defaultMessage="Terms of Service"
-                                        description="Link to Smalruby's terms of service, next to the Rubytee confirmation"
-                                        id="gui.classroom.classAi.rubyteeTerms"
+                            <div className={styles.confirmRow}>
+                                <label className={styles.confirm}>
+                                    <input
+                                        checked={draft.rubyteeConfirmed}
+                                        className={styles.checkbox}
+                                        data-testid="classroom-class-ai-rubytee-confirm"
+                                        disabled={isLoading}
+                                        type="checkbox"
+                                        onChange={handleRubyteeConfirm}
                                     />
-                                </a>
-                                {' / '}
-                                <a
-                                    data-testid="classroom-class-ai-rubytee-privacy"
-                                    href="/privacy-policy.html"
-                                    rel="noopener noreferrer"
-                                    target="_blank"
-                                >
-                                    <FormattedMessage
-                                        defaultMessage="Privacy Policy"
-                                        description="Link to Smalruby's privacy policy, next to the Rubytee confirmation"
-                                        id="gui.classroom.classAi.rubyteePrivacy"
-                                    />
-                                </a>
-                            </p>
-                            <label className={styles.confirm}>
-                                <input
-                                    checked={draft.rubyteeConfirmed}
-                                    className={styles.checkbox}
-                                    data-testid="classroom-class-ai-rubytee-confirm"
-                                    disabled={isLoading}
-                                    type="checkbox"
-                                    onChange={handleRubyteeConfirm}
-                                />
-                                <span className={styles.confirmLabel}>
-                                    <FormattedMessage
-                                        defaultMessage="This class meets the conditions above (required)"
-                                        description="Required checkbox confirming the class meets Rubytee's conditions"
-                                        id="gui.classroom.classAi.rubyteeConfirm"
-                                    />
+                                    <span className={styles.confirmLabel}>
+                                        <FormattedMessage
+                                            defaultMessage="This class meets the conditions above (required)"
+                                            description="Required checkbox confirming the class meets Rubytee's conditions"
+                                            id="gui.classroom.classAi.rubyteeConfirm"
+                                        />
+                                    </span>
+                                </label>
+                                <span className={styles.links}>
+                                    <a
+                                        data-testid="classroom-class-ai-rubytee-terms"
+                                        href="/terms-of-service.html"
+                                        rel="noopener noreferrer"
+                                        target="_blank"
+                                    >
+                                        <FormattedMessage
+                                            defaultMessage="Terms of Service"
+                                            description="Link to Smalruby's terms of service, next to the Rubytee confirmation"
+                                            id="gui.classroom.classAi.rubyteeTerms"
+                                        />
+                                    </a>
+                                    {' / '}
+                                    <a
+                                        data-testid="classroom-class-ai-rubytee-privacy"
+                                        href="/privacy-policy.html"
+                                        rel="noopener noreferrer"
+                                        target="_blank"
+                                    >
+                                        <FormattedMessage
+                                            defaultMessage="Privacy Policy"
+                                            description="Link to Smalruby's privacy policy, next to the Rubytee confirmation"
+                                            id="gui.classroom.classAi.rubyteePrivacy"
+                                        />
+                                    </a>
                                 </span>
-                            </label>
+                            </div>
                         </div>
                     ) : null}
                 </div>
