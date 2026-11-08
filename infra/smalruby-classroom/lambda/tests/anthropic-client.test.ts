@@ -5,6 +5,7 @@ import {
   resolveAnthropicAuthMode,
   createAnthropicClient,
   classifyAnthropicError,
+  describeAnthropicError,
   awsWebIdentityTokenProvider,
 } from '../anthropic-client';
 
@@ -185,6 +186,19 @@ describe('classifyAnthropicError', () => {
     expect(fn).toHaveBeenCalledTimes(1);
   });
 
+  test('API のエラーのログには種類と request-id だけを出す（本文は出さない）', async () => {
+    const { fn } = mockFetch({
+      messages: () => new Response(
+        JSON.stringify({ type: 'error', error: { type: 'invalid_request_error', message: 'secret-ish detail' } }),
+        { status: 400, headers: { 'content-type': 'application/json', 'request-id': 'req_test' } },
+      ),
+    });
+    const err = await createMessage(keyClient(fn)).catch(e => e);
+    const text = describeAnthropicError(err);
+    expect(text).toBe('api status 400 invalid_request_error (request-id req_test)');
+    expect(text).not.toContain('secret-ish detail');
+  });
+
   test('それ以外は other', () => {
     expect(classifyAnthropicError(new Error('boom'))).toEqual({ kind: 'other' });
   });
@@ -205,8 +219,33 @@ describe('awsWebIdentityTokenProvider', () => {
     });
   });
 
-  test('トークンが空なら例外', async () => {
+  test('トークンが空なら federation の例外', async () => {
     const provider = awsWebIdentityTokenProvider({ send: async () => ({}) } as never);
-    await expect(provider()).rejects.toThrow();
+    const err = await provider().catch(e => e);
+    expect(classifyAnthropicError(err)).toEqual({ kind: 'federation', status: null });
+  });
+
+  test('STS の失敗は federation として分類し、理由をログに残す', async () => {
+    const stsError = new Error('Outbound web identity federation is disabled');
+    stsError.name = 'OutboundWebIdentityFederationDisabledException';
+    const provider = awsWebIdentityTokenProvider({ send: async () => { throw stsError; } } as never);
+    const err = await provider().catch(e => e);
+    expect(classifyAnthropicError(err)).toEqual({ kind: 'federation', status: null });
+    expect(describeAnthropicError(err)).toContain('OutboundWebIdentityFederationDisabledException');
+  });
+
+  test('STS の失敗は Messages を呼ばずキーにも戻らない', async () => {
+    const { fn, calls } = mockFetch({});
+    const provider = awsWebIdentityTokenProvider({ send: async () => { throw new Error('AccessDenied'); } } as never);
+    const { client } = createAnthropicClient({
+      env: { ...FEDERATION_ENV, ANTHROPIC_API_KEY: 'sk-ant-api-should-not-be-used' },
+      timeout: 1000,
+      fetch: fn,
+      identityTokenProvider: provider,
+      logLabel: 'test',
+    });
+    const err = await createMessage(client!).catch(e => e);
+    expect(classifyAnthropicError(err)).toEqual({ kind: 'federation', status: null });
+    expect(calls).toHaveLength(0);
   });
 });

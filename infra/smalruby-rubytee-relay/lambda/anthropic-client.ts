@@ -40,15 +40,24 @@ export function awsWebIdentityTokenProvider(
   sts: Pick<STSClient, 'send'> = new STSClient({ region: process.env.AWS_REGION }),
 ): () => Promise<string> {
   return async () => {
-    const res = await sts.send(new GetWebIdentityTokenCommand({
-      Audience: [ANTHROPIC_BASE_URL],
-      SigningAlgorithm: 'RS256',
-      DurationSeconds: 300,
-    }));
-    if (!res.WebIdentityToken) {
-      throw new Error('STS GetWebIdentityToken returned no token');
+    let token: string | undefined;
+    try {
+      const res = await sts.send(new GetWebIdentityTokenCommand({
+        Audience: [ANTHROPIC_BASE_URL],
+        SigningAlgorithm: 'RS256',
+        DurationSeconds: 300,
+      }));
+      token = res.WebIdentityToken;
+    } catch (err) {
+      // STS の失敗（アカウントで Outbound web identity federation が無効・権限不足など）も
+      // WIF の経路の失敗として扱う（呼び出し側のエラーコードを交換の失敗とそろえる）。
+      const detail = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+      throw new WorkloadIdentityError(`STS GetWebIdentityToken failed: ${detail}`);
     }
-    return res.WebIdentityToken;
+    if (!token) {
+      throw new WorkloadIdentityError('STS GetWebIdentityToken returned no token');
+    }
+    return token;
   };
 }
 
@@ -108,11 +117,21 @@ export function classifyAnthropicError(err: unknown): AnthropicErrorKind {
   return { kind: 'other' };
 }
 
-/** ログ用の短い説明。トークンや JWT を含めない（SDK の交換エラーは本文を伏字にしている）。 */
+/**
+ * ログ用の短い説明。トークンや JWT・応答本文を含めない。API のエラーは種類と request-id だけ
+ * （stg での切り分けと Console での照会に使う）。交換の応答が無い失敗（STS・接続・JWT の大きさ）は
+ * 手元で作った文言なので理由を残す。
+ */
 export function describeAnthropicError(err: unknown): string {
   const c = classifyAnthropicError(err);
   if (c.kind === 'timeout') return 'timeout';
-  if (c.kind === 'api') return `api status ${c.status}`;
-  if (c.kind === 'federation') return `federation token exchange failed (status ${c.status ?? 'none'})`;
+  if (c.kind === 'api') {
+    const e = err as APIError;
+    return `api status ${c.status}${e.type ? ` ${e.type}` : ''}${e.requestID ? ` (request-id ${e.requestID})` : ''}`;
+  }
+  if (c.kind === 'federation') {
+    if (c.status === null) return `federation token exchange failed: ${(err as Error).message}`;
+    return `federation token exchange failed (status ${c.status})`;
+  }
   return err instanceof Error ? `${err.name}: ${err.message}` : String(err);
 }

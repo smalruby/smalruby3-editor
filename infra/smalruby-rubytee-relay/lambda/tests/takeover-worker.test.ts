@@ -15,7 +15,7 @@ process.env.USAGE_TABLE_NAME = 'Usage';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { handler, callClaudeForTakeover } = require('../takeover-worker');
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const { createAnthropicClient } = require('../anthropic-client');
+const { createAnthropicClient, awsWebIdentityTokenProvider } = require('../anthropic-client');
 
 type Cmd = { kind: string; input: Record<string, any> }; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -122,6 +122,23 @@ describe('callClaudeForTakeover', () => {
       logLabel: 'test',
       identityTokenProvider: async () => 'aws-jwt',
       fetch: (async () => json(401, { error: 'invalid_grant' })) as typeof fetch,
+    });
+    expect(await callClaudeForTakeover(body, client)).toEqual({ status: 'error', error: 'AI_API_ERROR' });
+  });
+
+  test('STS で JWT を取れなかったら AI_API_ERROR（INTERNAL_ERROR にしない）', async () => {
+    const { client } = createAnthropicClient({
+      env: {
+        ANTHROPIC_FEDERATION_RULE_ID: 'fdrl_test',
+        ANTHROPIC_ORGANIZATION_ID: 'org',
+        ANTHROPIC_SERVICE_ACCOUNT_ID: 'svac_test',
+      },
+      timeout: 1000,
+      logLabel: 'test',
+      identityTokenProvider: awsWebIdentityTokenProvider({
+        send: async () => { throw new Error('AccessDenied'); },
+      } as never),
+      fetch: (async () => json(200, {})) as typeof fetch,
     });
     expect(await callClaudeForTakeover(body, client)).toEqual({ status: 'error', error: 'AI_API_ERROR' });
   });
