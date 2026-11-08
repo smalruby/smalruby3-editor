@@ -260,6 +260,11 @@ export const makeRubyTabAdapterFactory =
         // own typing moves the marks along with the lines. When the same sprite's code is
         // replaced as a whole (the auto-correction, Ctrl+Z), only the lines marked just
         // before keep their marks, so what the student typed meanwhile stays unmarked.
+        // The switch to another sprite is also seen in the VM (targetsUpdate, #1410): the
+        // editor gets no new value for a sprite with the same code (a duplicate), so no edit
+        // tells it. The VM tells it before the editor has the new code, though, so a sprite
+        // with marks is marked then only when the editor already shows its code; else the
+        // marks wait for the new value (the edit above).
         const watchMarks = (marks) => {
             const editor = getEditor();
             if (!editor || !editor.createDecorationsCollection) return () => {};
@@ -291,8 +296,21 @@ export const makeRubyTabAdapterFactory =
                 else if (replacesAll(event, length)) paint(carriedLines(text, editorCode(), marked));
                 remember();
             });
+            const onTargetsUpdate = () => {
+                const target = editing();
+                if (target === painted) return;
+                const mark = marks.find((m) => m.target === target);
+                if (!mark || editorCode() === blocksCode({ target, dncl: isDncl() })) {
+                    paint();
+                } else {
+                    collection.set([]);
+                }
+                remember();
+            };
+            vm.on('targetsUpdate', onTargetsUpdate);
             return () => {
                 listener.dispose();
+                vm.removeListener('targetsUpdate', onTargetsUpdate);
                 collection.clear();
             };
         };

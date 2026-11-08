@@ -1,3 +1,4 @@
+import { EventEmitter } from 'events';
 import { editorErrors, lineDecorations, makeRubyTabAdapterFactory } from '../../../src/lib/genai-ruby-adapter.js';
 
 const makeTarget = ({ id, name, isStage = false, code = '', sounds = [], costumes = [] }) => ({
@@ -79,7 +80,12 @@ const setup = ({ mode = 'ruby', editorValue = 'move(1)\n', markers = [] } = {}) 
     const abby = makeTarget({ id: 'a', name: 'Abby', code: 'move(0)\n', sounds: ['Pop'], costumes: ['abby-a'] });
     const dee = makeTarget({ id: 'd', name: 'Dee', code: 'say("やあ")\n' });
     const stage = makeTarget({ id: 's', name: 'Stage', isStage: true });
-    const vm = { editingTarget: abby, runtime: { targets: [stage, abby, dee] } };
+    // The VM tells the editor's switch to another sprite with targetsUpdate (setEditingTarget).
+    const vm = Object.assign(new EventEmitter(), { editingTarget: abby, runtime: { targets: [stage, abby, dee] } });
+    vm.switchTo = (target) => {
+        vm.editingTarget = target;
+        vm.emit('targetsUpdate', {});
+    };
     const editor = makeEditor(editorValue);
     const createAdapter = makeRubyTabAdapterFactory({
         getEditor: () => editor,
@@ -240,6 +246,49 @@ describe('the Ruby tab adapter', () => {
         vm.editingTarget = abby;
         editor.type('a\nB\nc\n');
         expect(markedOf(editor)).toEqual(['2:genaiLineChanged', '3:genaiLineAdded']);
+    });
+
+    // #1410: the editor gets no new value for a sprite whose code is the same (a duplicate).
+    test('takes the marks away on a sprite with the same code, and marks again on coming back', async () => {
+        const { adapter, editor, vm } = setup({ editorValue: 'a\nb\n' });
+        const abby = vm.editingTarget;
+        const result = await adapter.check(wrap('a\nB\nc\n'));
+        const { marks } = await adapter.apply(result.parts);
+        adapter.watchMarks(marks);
+        const copy = { ...abby, id: 'c', code: 'a\nB\nc\n', getName: () => 'Abby2' };
+        vm.runtime.targets.push(copy);
+        abby.code = 'a\nB\nc\n';
+        vm.switchTo(copy);
+        expect(markedOf(editor)).toEqual([]);
+        vm.switchTo(abby);
+        expect(markedOf(editor)).toEqual(['2:genaiLineChanged', '3:genaiLineAdded']);
+    });
+
+    test('waits for the code of the sprite switched to before marking it', async () => {
+        const { adapter, editor, vm, dee } = setup({ editorValue: 'a\nb\n' });
+        const abby = vm.editingTarget;
+        const result = await adapter.check(wrap('a\nB\nc\n'));
+        const { marks } = await adapter.apply(result.parts);
+        adapter.watchMarks(marks);
+        abby.code = 'a\nB\nc\n';
+        vm.switchTo(dee);
+        expect(markedOf(editor)).toEqual([]);
+        editor.type('say("やあ")\n');
+        // Back to Abby: the editor still shows Dee's code until its new value comes.
+        vm.switchTo(abby);
+        expect(markedOf(editor)).toEqual([]);
+        editor.type('a\nB\nc\n');
+        expect(markedOf(editor)).toEqual(['2:genaiLineChanged', '3:genaiLineAdded']);
+    });
+
+    test('stops listening to the VM once the marks are taken away', async () => {
+        const { adapter, vm } = setup({ editorValue: 'a\nb\n' });
+        const result = await adapter.check(wrap('a\nB\nc\n'));
+        const { marks } = await adapter.apply(result.parts);
+        const stop = adapter.watchMarks(marks);
+        expect(vm.listenerCount('targetsUpdate')).toBe(1);
+        stop();
+        expect(vm.listenerCount('targetsUpdate')).toBe(0);
     });
 
     test('leaves the marks to move along with what the student types', async () => {
