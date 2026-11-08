@@ -28,7 +28,6 @@ import reducer, {
     setStudentGenai,
     setRubyteeEnabled,
     selectRubyteeAvailable,
-    selectRubyteeUsage,
 } from '../../../src/reducers/classroom';
 
 const STORAGE_KEY = 'smalruby:classroom';
@@ -669,22 +668,6 @@ describe('classroom reducer', () => {
                 setTeacherSelection({ classroomId: 'class-123', joinCode: 'ABC234' }),
             );
             expect(selectRubyteeAvailable(asRoot({ ...teacher, rubyteeEnabled: true }))).toBe(false);
-        });
-
-        test('gives the class and seat to record with each request', () => {
-            const on = reducer(classroomInitialState, join({ rubyteeEnabled: true }));
-            expect(selectRubyteeUsage(asRoot(on))).toEqual({ classroom: 'class-123', seat: '5' });
-            expect(selectRubyteeUsage(asRoot(classroomInitialState))).toBeNull();
-        });
-
-        test('gives back the same usage object while the class and seat stay the same', () => {
-            const on = reducer(classroomInitialState, join({ rubyteeEnabled: true }));
-            const first = selectRubyteeUsage(asRoot(on));
-            expect(selectRubyteeUsage(asRoot({ ...on, studentPeerView: null }))).toBe(first);
-            expect(selectRubyteeUsage(asRoot({ ...on, seatNumber: 6 }))).toEqual({
-                classroom: 'class-123',
-                seat: '6',
-            });
         });
     });
 });

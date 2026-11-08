@@ -75,7 +75,6 @@ import FuriganaRenderer from './ruby-tab/furigana-renderer';
 import QuickFixProvider from './ruby-tab/quick-fix-provider';
 import styles from './ruby-tab/ruby-tab.css';
 import { showBubble, dismissBubble, removeBubble } from './ruby-tab/visual-report-bubble';
-import RubyteeModalHOC from './rubytee-modal-hoc.jsx';
 
 // === Initialization helpers ===
 
@@ -124,8 +123,6 @@ const RubyTab = (props) => {
         onClearAiSaveStatus,
         onFontSizeChange,
         onMarkRubyTabUsed,
-        onOpenRubyteeModal,
-        onRegisterRubyteeApply,
         v1PromptDismissed,
         onDismissV1Prompt,
         onSetDnclMode,
@@ -524,13 +521,6 @@ const RubyTab = (props) => {
         });
 
         updateUndoRedoState();
-
-        // Register callback for Rubytee (AI assistant) to insert code into the editor
-        if (onRegisterRubyteeApply) {
-            onRegisterRubyteeApply((code) => {
-                onChangeRef.current(code);
-            });
-        }
     }, []);
 
     // --- UI event handlers (useCallback for react/jsx-no-bind) ---
@@ -1412,7 +1402,6 @@ const RubyTab = (props) => {
                     onToggleAutoCorrect={handleToggleAutoCorrect}
                     onOpenAutoCorrectSettings={handleOpenAutoCorrectSettings}
                     onPreviewRubyScript={handlePreviewRubyScript}
-                    onOpenRubyteeModal={onOpenRubyteeModal}
                     dnclMode={dnclMode}
                     dnclValidating={dnclValidating}
                     onToggleDnclMode={handleToggleDnclMode}
@@ -1516,8 +1505,6 @@ RubyTab.propTypes = {
     projectTitle: PropTypes.string,
     locale: PropTypes.string,
     activeTabIndex: PropTypes.number,
-    onOpenRubyteeModal: PropTypes.func,
-    onRegisterRubyteeApply: PropTypes.func,
     v1PromptDismissed: PropTypes.bool,
     onDismissV1Prompt: PropTypes.func,
     onSetDnclMode: PropTypes.func,
@@ -1560,8 +1547,6 @@ const mapDispatchToProps = (dispatch) => ({
     onActivateTab: (tab) => dispatch(activateTab(tab)),
 });
 
-const ConnectedRubyTab = RubyteeModalHOC(
-    RubyToBlocksConverterHOC(injectIntl(connect(mapStateToProps, mapDispatchToProps)(RubyTab))),
-);
+const ConnectedRubyTab = RubyToBlocksConverterHOC(injectIntl(connect(mapStateToProps, mapDispatchToProps)(RubyTab)));
 
 export default ConnectedRubyTab;

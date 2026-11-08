@@ -93,11 +93,6 @@ const messages = defineMessages({
         defaultMessage: 'Download Ruby code',
         description: 'Tooltip for download button'
     },
-    aiAssistant: {
-        id: 'gui.rubyToolbar.aiAssistant',
-        defaultMessage: 'Rubytee',
-        description: 'Tooltip for AI assistant button'
-    },
     furiganaOn: {
         id: 'gui.rubyToolbar.furiganaOn',
         defaultMessage: 'Hide furigana',

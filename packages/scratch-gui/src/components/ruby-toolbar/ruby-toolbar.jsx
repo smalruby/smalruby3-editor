@@ -17,7 +17,6 @@ import iconRedo from './icon--redo.svg';
 import iconDownload from './icon--download.svg';
 import iconAutoCorrect from './icon--auto-correct.svg';
 import iconKeyboard from './icon--keyboard.svg';
-import iconRubytee from './icon--rubytee.svg';
 import Spinner from '../spinner/spinner.jsx';
 import {isJapaneseLocale} from '../../lib/locale-utils.js';
 import {isTouchDevice} from '../../lib/touch-device.js';
@@ -335,7 +334,7 @@ const RubyToolbar = props => {
                 </button>
             </div>
 
-            {/* Center: Navigation + AI */}
+            {/* Center: Navigation */}
             <div className={`${styles.toolbarPart} ${styles.modDashedBorder} ${styles.modCenter}`}>
                 <TargetSelector
                     editingTarget={props.editingTarget}
@@ -343,23 +342,6 @@ const RubyToolbar = props => {
                     onSelectTarget={props.onSelectTarget}
                     onDismissBubble={props.onDismissBubble}
                 />
-
-                {/* Rubytee AI Assistant — disabled in DNCL mode */}
-                {props.onOpenRubyteeModal && (
-                    <button
-                        className={styles.iconButton}
-                        data-testid="ruby-toolbar-rubytee"
-                        onClick={props.dnclMode ? null : props.onOpenRubyteeModal}
-                        disabled={props.dnclMode}
-                        aria-label={intl.formatMessage(messages.aiAssistant)}
-                        title={intl.formatMessage(messages.aiAssistant)}
-                    >
-                        <img
-                            src={iconRubytee}
-                            alt=""
-                        />
-                    </button>
-                )}
             </div>
 
             {/* === Smalruby: Start of mode toggle group === */}
@@ -503,7 +485,6 @@ RubyToolbar.propTypes = {
     onToggleAutoCorrect: PropTypes.func,
     onOpenAutoCorrectSettings: PropTypes.func,
     onPreviewRubyScript: PropTypes.func,
-    onOpenRubyteeModal: PropTypes.func,
     locale: PropTypes.string
 };
 

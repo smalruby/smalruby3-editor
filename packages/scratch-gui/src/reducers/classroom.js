@@ -472,32 +472,11 @@ const setRubyteeEnabled = (enabled) => ({ type: SET_RUBYTEE_ENABLED, enabled: en
  * requests are recorded per seat and a teacher has none — to see what the
  * students get, the teacher joins the class as a student.
  * @param {object} state - root redux state
- * @returns {boolean} whether the Ruby tab shows the Rubytee button
+ * @returns {boolean} whether the student is offered 「ルビティーにまかせる」
  */
 const selectRubyteeAvailable = (state) => {
     const classroom = state.scratchGui.classroom;
     return classroom.role === 'student' && !!classroom.sessionToken && classroom.rubyteeEnabled === true;
-};
-
-/**
- * What a Rubytee request carries for the relay's usage log (#1278 / #1276):
- * the class (assignment) id and the seat number only — never an e-mail or a name.
- * @param {object} state - root redux state
- * @returns {?{classroom: string, seat: string}} null outside a class
- */
-let lastRubyteeUsage = null;
-const selectRubyteeUsage = (state) => {
-    if (!selectRubyteeAvailable(state)) return null;
-    const { classroomId, seatNumber } = state.scratchGui.classroom;
-    if (!classroomId) return null;
-    const classroom = String(classroomId);
-    const seat = seatNumber === null || typeof seatNumber === 'undefined' ? '' : String(seatNumber);
-    // Hand back the same object while the class and seat stay the same, so that
-    // connect() does not re-render the Ruby tab's HOC on every store update.
-    if (!lastRubyteeUsage || lastRubyteeUsage.classroom !== classroom || lastRubyteeUsage.seat !== seat) {
-        lastRubyteeUsage = { classroom, seat };
-    }
-    return lastRubyteeUsage;
 };
 
 export default reducer;
@@ -534,5 +513,4 @@ export {
     setStudentGenai,
     setRubyteeEnabled,
     selectRubyteeAvailable,
-    selectRubyteeUsage,
 };

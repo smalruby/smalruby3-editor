@@ -5,7 +5,12 @@
 
 ## 概要
 
-Rubytee（ルビティー）は **Anthropic Claude API（claude-haiku-4-5）** を使って Ruby コードの生成・修正をチャット形式で支援する機能。Ruby タブの "ルビティー" ボタンから起動し、自然言語で要望を伝えると、現在のスプライト・ステージ・コードのコンテキストを踏まえたコードを生成する。
+Rubytee（ルビティー）は **Anthropic Claude API** を使って、生徒の作品を書き直す機能。
+コードタブの「生成AI に相談」（[`docs/genai-consult/`](../genai-consult/)）で、生成AI の答えが 2 回ブロックに
+できなかったときに出る **［ルビティーにまかせる］** から使う（下の「ルビティーにまかせる」）。
+
+Ruby タブ（Ruby・ふりがなモード）からはルビティーを直接呼ばない。Ruby タブでの AI への相談も「生成AI に相談」の
+パネルで行う。
 
 API キーをクライアントに直接持たせず、AWS Lambda の専用リレー（`infra/smalruby-rubytee-relay`）を経由することで、API キー管理・レート制限・入力検証・年齢適合チェックを集約している。
 
@@ -13,10 +18,9 @@ API キーをクライアントに直接持たせず、AWS Lambda の専用リ�
 
 ## ユーザーストーリー
 
-- **Ruby を書き始めた小学生**として、「キャラクターを左右に動かしたい」と日本語で頼んで、動くサンプルコードを得たい
-- **教師**として、生徒が詰まったときに「どこをどう直せばよいか」を AI に聞ける環境を提供したい
+- **Ruby を書き始めた小学生**として、生成AI の答えがうまくブロックにならなかったとき、ルビティーに作品を直してもらって続けたい
+- **教師**として、クラスで生成AI を使うときに、つまずいた生徒の助けになる手段を用意したい
 - **保護者**として、子どもが AI に依存しすぎないよう、初回利用時に**同意ダイアログ**で AI の特性を説明してほしい
-- **共通テスト対策中の高校生**として、自分が書いた DNCL/Ruby コードのレビューを AI に頼みたい
 
 ## 安全・コンプライアンス（重要）
 
@@ -28,7 +32,7 @@ API キーをクライアントに直接持たせず、AWS Lambda の専用リ�
 - **COPPA 対応**: 法的文書（プライバシーポリシー）でも明示
 - **API キー秘匿**: クライアントは API キーを持たず、Lambda リレー経由
 - **レート制限**: IP ベースで `35 分あたり 40 リクエスト`（DynamoDB の TTL で実装）
-- **入力長制限**: ユーザーメッセージ 10〜250 文字、現在コード 1000 文字、履歴 20 ターン
+- **入力長制限**: takeover は `userMessage` 1 万字・リクエスト全体 200KB など（下の「上限」）
 
 > **背景**: Gemini/Vertex AI ToS は 18 歳未満ユーザー向けアプリでの利用を禁止していたため、Anthropic へ移行した。Anthropic は安全措置を取れば未成年向け製品での利用を明示的に許可している。
 
@@ -36,51 +40,29 @@ API キーをクライアントに直接持たせず、AWS Lambda の専用リ�
 
 ルビティーは、**参加しているクラスで先生がルビティーを有効にしたときだけ** 使える。先生はクラス設定の「生成AI・ルビティー」欄で「ルビティー（スモウルビーの生成AI）も使う」をオンにする（[`docs/classroom/ui-ux.md`](../classroom/ui-ux.md)）。
 
-| 状態 | Ruby タブの AI ボタン (`ruby-toolbar-rubytee`) |
+| 状態 | コードタブの［ルビティーにまかせる］ (`genai-takeover`) |
 |---|---|
 | クラスに参加していない | **出さない** |
 | 参加しているクラスでルビティーが無効 | **出さない** |
-| 参加しているクラスでルビティーが有効 | 出す（従来どおり。DNCL モードでは押せない） |
+| 参加しているクラスでルビティーが有効 | 出す（生成AI の答えが 2 回ブロックにできなかったとき） |
 | 先生（クラスを開いている先生・ログイン中の先生） | **出さない** |
 
-- **出さない（押せない理由を出さない）理由**: 生徒の画面にはクラス外・無効のときに使えない機能を見せる必要がなく、押しても使えないボタンは「壊れている」と誤解されやすい。ツールバーの幅（SP / iPad を含む）も空く。使う・使わないは先生がクラスで決めるもので、生徒が自分で有効にする手段も無い。
-- **先生に出さない理由**: ルビティーのリクエストは出席番号ごとに記録する（下記）が、先生には出席番号が無い。生徒に見える画面を確かめたいときは、先生も参加コードで生徒として参加する。
-- 判定は redux の `scratchGui.classroom`（`role === 'student'` + セッションあり + `rubyteeEnabled`）。`rubyteeEnabled` は参加（`/classrooms/join`）とセッション検証（`/classrooms/verify-session`）の応答の `rubytee.enabled` から取り込み、生徒のセッションと一緒に localStorage（`smalruby:classroom`）に保存する。セッション検証はページを開いたとき（`src/containers/use-student-class-settings-refresh.js`）とクラスの画面を開いたときに行うので、先生が設定を変えると、生徒がページを再読み込みするかクラスの画面を開いたときに追従する。
-- 判定は GUI 側だけ。relay 側でクラス外の利用を止めることは別途判断する。
-- クラスを抜けたとき・設定が無効に変わったときは、開いていたチャット・同意ダイアログも閉じ、送信中のリクエストは取り消す。
-- 参加しているクラスか出席番号が変わったとき（クラスを抜けたときも含む）は、チャットの履歴と入力中の文を消す。学校の PC は共用なので、同じタブで次の生徒が参加したときに前の生徒の会話が見えたり、次の生徒の出席番号で relay に送られたりしないようにするため。
+- **出さない（押せない理由を出さない）理由**: 生徒の画面にはクラス外・無効のときに使えない機能を見せる必要がなく、押しても使えないボタンは「壊れている」と誤解されやすい。使う・使わないは先生がクラスで決めるもので、生徒が自分で有効にする手段も無い。
+- **先生に出さない理由**: ルビティーのリクエストは席ごとに数える（下記）が、先生には出席番号が無い。生徒に見える画面を確かめたいときは、先生も参加コードで生徒として参加する。
+- 判定は redux の `scratchGui.classroom`（`role === 'student'` + セッションあり + `rubyteeEnabled`）の `selectRubyteeAvailable`。`rubyteeEnabled` は参加（`/classrooms/join`）とセッション検証（`/classrooms/verify-session`）の応答の `rubytee.enabled` から取り込み、生徒のセッションと一緒に localStorage（`smalruby:classroom`）に保存する。セッション検証はページを開いたとき（`src/containers/use-student-class-settings-refresh.js`）とクラスの画面を開いたときに行うので、先生が設定を変えると、生徒がページを再読み込みするかクラスの画面を開いたときに追従する。
 
-### リクエストに付けるクラス・出席番号
-
-クラスで使うとき、relay への `POST /generate` に次の 2 つを付ける（relay の CloudWatch ログでの利用集計用。**メールアドレス・名前は送らない**）。
-
-| フィールド | 値 |
-|---|---|
-| `classroom` | 参加している課題（クラスルーム）の ID（`classroomId`） |
-| `seat` | 出席番号（文字列） |
-
-## UI / 操作フロー
-
-1. Ruby タブの **ruby-toolbar** で「ルビティー」ボタン (`ruby-toolbar-rubytee`) をクリック
-2. **初回のみ**: 同意ダイアログ (`rubytee-consent`) が表示される。チェックを入れて「OK」で `localStorage.smalruby:rubyteeConsent = 'true'` が保存される
-
-   ![同意ダイアログ](screenshots/0101-consent-1280x800.png)
-
-3. チャットモーダル (`rubytee-modal`) が開く
-
-   ![空のチャット](screenshots/0201-empty-chat-1280x800.png)
-
-4. 自然言語で要望を入力 → AI が現在のコンテキスト（編集中スプライト、ステージ、コード）を踏まえて Ruby コードを生成
-
-   ![AI 応答](screenshots/0202-with-response-1280x800.png)
-
-5. 生成されたコードは「適用」ボタンでエディタに挿入できる
-6. 「同意をリセット」で同意状態を削除可能
-
-## 生成AI への相談から使う（ルビティーにまかせる）
+## ルビティーにまかせる
 
 コードタブの「生成AI に相談」（`docs/genai-consult/`）で、生成AI の答えが 2 回ブロックにできなかったとき、
-ルビティーが有効なクラスの生徒には［ルビティーにまかせる］が出る。Ruby タブのチャットとは別の呼び方:
+ルビティーが有効なクラスの生徒には［ルビティーにまかせる］が出る。操作の流れと画面は
+[`docs/genai-consult/`](../genai-consult/) の「ルビティーにまかせる」を参照。
+
+**初回のみ**、同意ダイアログ (`rubytee-consent`) が出る。チェックを入れて「OK」で
+`localStorage.smalruby:rubyteeConsent = 'true'` が保存される。
+
+![同意ダイアログ](screenshots/0101-consent-1280x800.png)
+
+呼び方:
 
 - relay の `POST /generate` に `purpose: "genai-takeover"` を付けて呼ぶ（モデルは Sonnet・非同期ジョブ。
   `202 { jobId }` → `GET /jobs/{jobId}` を 3 秒から 10 秒まで間隔を伸ばしながら問い合わせる）。
@@ -89,36 +71,19 @@ API キーをクライアントに直接持たせず、AWS Lambda の専用リ�
 - 送るもの: 困りごと・作品全体の Ruby・生成AI に渡した質問文と貼りもどした答え・ブロックにできなかった理由
   （`userMessage` は 1 万字まで。古い相談から短くする）。`stateContext` は今のスプライトとステージの
   コスチューム・音の名前だけ（作品は `userMessage` に入っている）。
-- 呼ぶ前に、このページと同じ **同意ダイアログ**（AI であること・まちがえることがある）を通す
-  （`smalruby:rubyteeConsent` を共有）。
+- 呼ぶ前に、上の **同意ダイアログ**（AI であること・まちがえることがある）を通す。
 - 答えはブラウザでスモウルビーの変換に通し、ブロックにできたものだけを見せる。ブロックそのものは AI に作らせない。
 
 ## 主要ファイル
 
 ### scratch-gui
 
-#### UI コンポーネント
-
-- `packages/scratch-gui/src/components/rubytee-modal/rubytee-modal.jsx` — チャット UI 本体
-- `packages/scratch-gui/src/components/rubytee-modal/rubytee-modal.css` — スタイル
-- `packages/scratch-gui/src/components/rubytee-consent/rubytee-consent.jsx` — 同意ダイアログ
-- `packages/scratch-gui/src/components/ruby-toolbar/ruby-toolbar.jsx` — ルビティーボタン
-
-#### コンテナ・ライブラリ
-
 | ファイル | 役割 |
 |---|---|
-| `packages/scratch-gui/src/containers/rubytee-modal-hoc.jsx` | モーダル HOC、同意フロー、チャット履歴、API 呼び出し |
-| `packages/scratch-gui/src/lib/rubytee-api.js` | Relay API クライアント (`RubyteeAPI` クラス、`RateLimitError`)|
-| `packages/scratch-gui/src/lib/rubytee-context.js` | スプライト/ステージの状態コンテキスト構築 |
-| `packages/scratch-gui/src/reducers/classroom.js` | `rubyteeEnabled`・`selectRubyteeAvailable`（使えるか）・`selectRubyteeUsage`（送るクラス・出席番号） |
-
-#### Props 配線
-
-`RubyteeModalHOC` → `RubyTab` → `RubyToolbar` の props 伝播：
-
-- `onOpenRubyteeModal` — ルビティーボタンのクリックハンドラ。**使えないとき（上の「使える条件」）は渡さない**ので、ツールバーはボタンを出さない
-- `onRegisterRubyteeApply` — AI 生成コードをエディタに挿入するコールバック登録
+| `packages/scratch-gui/src/components/rubytee-consent/rubytee-consent.jsx` | 同意ダイアログ |
+| `packages/scratch-gui/src/containers/genai-concierge.jsx` | 「生成AI に相談」のパネル。［ルビティーにまかせる］と同意フロー |
+| `packages/scratch-gui/src/lib/genai-takeover.js` | ルビティーに送る文の組み立て・作り直しのくり返し・relay の呼び出し（ジョブの問い合わせ） |
+| `packages/scratch-gui/src/reducers/classroom.js` | `rubyteeEnabled`・`selectRubyteeAvailable`（使えるか） |
 
 ### infra/smalruby-rubytee-relay
 
@@ -126,10 +91,10 @@ AWS Lambda リレーサービス（API Gateway HTTP API + Lambda + DynamoDB）�
 
 | ファイル | 役割 |
 |---|---|
-| `infra/smalruby-rubytee-relay/lambda/handler.ts` | API Lambda。リクエスト検証、レート制限、Claude API 呼び出し（Ruby タブ）、takeover のジョブ作成と `GET /jobs/{jobId}` |
+| `infra/smalruby-rubytee-relay/lambda/handler.ts` | API Lambda。リクエスト検証、レート制限、Claude API 呼び出し（`purpose` 未指定の同期の呼び出し）、takeover のジョブ作成と `GET /jobs/{jobId}` |
 | `infra/smalruby-rubytee-relay/lambda/takeover.ts` | 「ルビティーにまかせる」の上限・システムプロンプト・キー・ジョブの形（純粋関数） |
 | `infra/smalruby-rubytee-relay/lambda/takeover-worker.ts` | takeover の worker Lambda。非同期で呼ばれ、Claude（Sonnet）を呼んで結果を jobs 表に書く |
-| `infra/smalruby-rubytee-relay/lambda/smalruby-reference.ts` | スモウルビーの言語仕様（Ruby タブと takeover のプロンプトで共有） |
+| `infra/smalruby-rubytee-relay/lambda/smalruby-reference.ts` | スモウルビーの言語仕様（同期の呼び出しと takeover のプロンプトで共有） |
 | `infra/smalruby-rubytee-relay/lib/rubytee-relay-stack.ts` | CDK スタック定義 |
 | `infra/smalruby-rubytee-relay/lambda/tests/` | 単体テスト |
 
@@ -161,7 +126,7 @@ AWS Lambda リレーサービス（API Gateway HTTP API + Lambda + DynamoDB）�
 | 環境変数 | デフォルト | 用途 |
 |---|---|---|
 | `ANTHROPIC_API_KEY` | - | Anthropic API キー |
-| `CLAUDE_MODEL` | `claude-haiku-4-5-20251001` | 使用モデル（Ruby タブのルビティー。`purpose` 未指定のとき） |
+| `CLAUDE_MODEL` | `claude-haiku-4-5-20251001` | 使用モデル（`purpose` 未指定のとき。GUI からは使っていない） |
 | `CLAUDE_TAKEOVER_MODEL` | `claude-sonnet-5-5` | 「ルビティーにまかせる」用モデル（`purpose: "genai-takeover"` のとき） |
 | `RATE_LIMIT_WINDOW_MINUTES` | `35` | レート制限ウィンドウ |
 | `RATE_LIMIT_MAX_REQUESTS` | `40` | ウィンドウ内最大リクエスト |
@@ -334,7 +299,7 @@ IP 40 回 / 35 分に回す（クラス管理の `classroomId` は UUID、`membe
 
 ### 集計表 `RubyteeRelayUsage{suffix}`（RETAIN・TTL なし）
 
-takeover と Ruby タブのルビティー（`purpose` 未指定 = `chat`）の**両方**を、`sessionToken` で確かめた席ごと・日ごとに
+takeover と `purpose` 未指定の呼び出し（= `chat`）の**両方**を、`sessionToken` で確かめた席ごと・日ごとに
 足し込む（1 回ごとの行は作らない）。書き込みに失敗しても答えは返す（fail-open）。
 
 - キー: `pk = classroom#<classroomId>`（席を確かめられなければ `classroom#-`）、`sk = <YYYY-MM-DD(JST)>#seat#<seat>#<purpose>`
@@ -388,15 +353,14 @@ docker compose run --rm -w /app/infra/smalruby-rubytee-relay infra npx cdk deplo
 
 ## テスト
 
-- 単体テスト（クライアント）: `packages/scratch-gui/test/unit/lib/rubytee-api.test.js`, `rubytee-context.test.js`, `containers/rubytee-modal-hoc-sanitize.test.js`, `containers/rubytee-modal-hoc-availability.test.jsx`（ボタンの出し分け）, `reducers/classroom-reducer.test.js`
+- 単体テスト（クライアント）: `packages/scratch-gui/test/unit/lib/genai-takeover.test.js`, `lib/genai-concierge-state.test.js`, `reducers/classroom-reducer.test.js`, `components/ruby-toolbar-no-rubytee.test.jsx`（Ruby タブにチャットのボタンが無いこと）
 - 結合テスト（クライアント）: `packages/scratch-gui/test/integration/rubytee-consent.test.js`
 - 単体テスト（Lambda）: `infra/smalruby-rubytee-relay/lambda/tests/`
 
 ## 関連ドキュメント
 
-- [`docs/ruby-editor/`](../ruby-editor/) — Rubytee の起点となる Ruby エディタ
+- [`docs/genai-consult/`](../genai-consult/) — ［ルビティーにまかせる］の起点となる「生成AI に相談」
 - `.claude/rules/infra/smalruby-rubytee-relay.md` — リレー実装・デプロイ・運用ルール
-- `.claude/rules/scratch-gui/development.md` — Rubytee セクション (props 配線等)
 - `.claude/skills/rubytee-monitor/SKILL.md` — CloudWatch ログ監視運用
 
 ## 関連 Issue / PR
