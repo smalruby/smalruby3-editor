@@ -571,6 +571,32 @@ $genai-mark: #ff3d8b;
     color: $text-primary-transparent;
 }
 
+/* The Ruby tab's inline diff of the code now and the AI's code (#1399). */
+.lineDiff {
+    height: 160px;
+    margin: 4px 0;
+    border: 1px solid $ui-black-transparent;
+    background-color: $ui-white;
+}
+
+/* The marks on the lines of the Ruby editor: a light background, and a bar by the line
+   numbers (solid for an added line, dashed for a changed one). */
+:global(.genaiLineAdded),
+:global(.genaiLineChanged) {
+    background-color: rgba(255, 61, 139, 0.08);
+}
+
+:global(.genaiLineAddedBar),
+:global(.genaiLineChangedBar) {
+    margin-left: 3px;
+    width: 4px !important;
+    border-left: 4px solid $genai-mark;
+}
+
+:global(.genaiLineChangedBar) {
+    border-left-style: dashed;
+}
+
 /* ...and the marks on the blocks in the editor (the class is put on the block's SVG
    group; only its own outline, not the blocks below it inside the same group). */
 :global(.genaiMarkAdded) > :global(.blocklyPath),

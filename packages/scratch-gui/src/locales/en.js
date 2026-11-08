@@ -1270,6 +1270,7 @@ export default {
     'gui.genaiConcierge.stepTrouble': 'Trouble',
     'gui.genaiConcierge.stepCopy': 'Copy and ask',
     'gui.genaiConcierge.stepPaste': 'Answer to blocks',
+    'gui.genaiConcierge.stepPasteCode': 'Answer to code',
     'gui.genaiConcierge.nudgeText': 'Looks like you are stuck. Ask a generative AI?',
     'gui.genaiConcierge.nudgeOpen': 'Ask',
     'gui.genaiConcierge.nudgeLater': 'Later',
@@ -1361,6 +1362,12 @@ export default {
     'gui.genaiConcierge.changesNone': 'No blocks are added or changed.',
     'gui.genaiConcierge.changesLegend':
         'The blocks with a pink frame are added, a dashed one changed. Click a line to go to its block.',
+    'gui.genaiConcierge.linesTitle': "Lines the AI's version adds, changes or removes",
+    'gui.genaiConcierge.linesCount': '{added} lines added, {changed} changed, {removed} removed',
+    'gui.genaiConcierge.linesNone': 'No line is added, changed or removed.',
+    'gui.genaiConcierge.linesDone': '{added} lines were added and {changed} changed.',
+    'gui.genaiConcierge.linesLegend':
+        'The lines with a bar by the line numbers are added, those with a dashed bar changed. Lines removed have no mark.',
     'gui.genaiConcierge.changeAdded': '"{block}" is added',
     'gui.genaiConcierge.changeAddedIn': '"{block}" is added in "{script}"',
     'gui.genaiConcierge.changeChanged': '"{before}" becomes "{block}"',

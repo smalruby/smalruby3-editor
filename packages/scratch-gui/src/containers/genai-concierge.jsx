@@ -387,7 +387,7 @@ const GenaiConcierge = ({
                             ×
                         </button>
                     </div>
-                    <GenaiStepper step={step} onStep={goTo} />
+                    <GenaiStepper step={step} putsCode={adapter.puts === 'code'} onStep={goTo} />
                     <div className={styles.body}>
                         {step === 'trouble' && (
                             <GenaiTroubleStep

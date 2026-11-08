@@ -8,6 +8,7 @@
 // After two failed checks, 「ルビティーにまかせる」 has Rubytee rewrite the program and
 // checks its answers here in the browser (#1282).
 // What depends on the tab (checking, putting in, switching, marking) is the adapter's (#1397).
+// The Ruby tab shows what changes in lines: Monaco's diff before, counts and marks after (#1399).
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
@@ -221,6 +222,36 @@ ChangeList.propTypes = {
     ).isRequired,
     several: PropTypes.bool,
     onShow: PropTypes.func,
+};
+
+// The lines the AI's code adds, changes and removes from the code in the editor: the
+// counts, and the adapter's inline diff (Monaco's in the Ruby tab).
+const LineDiff = ({ adapter, part }) => {
+    const ref = useRef(null);
+    useEffect(() => adapter.mountDiff(ref.current, part), [adapter, part]);
+    const { added, changed, removed } = part.lines;
+    return (
+        <div className={styles.changes} data-testid="genai-lines">
+            <p className={styles.changesTitle}>
+                <FormattedMessage {...messages.linesTitle} />
+            </p>
+            <p className={styles.small} data-testid="genai-lines-count">
+                {added + changed + removed === 0 ? (
+                    <FormattedMessage {...messages.linesNone} />
+                ) : (
+                    <FormattedMessage {...messages.linesCount} values={{ added, changed, removed }} />
+                )}
+            </p>
+            <div className={styles.lineDiff} data-testid="genai-line-diff" ref={ref} />
+        </div>
+    );
+};
+
+LineDiff.propTypes = {
+    adapter: PropTypes.shape({ mountDiff: PropTypes.func.isRequired }).isRequired,
+    part: PropTypes.shape({
+        lines: PropTypes.shape({ added: PropTypes.number, changed: PropTypes.number, removed: PropTypes.number }),
+    }).isRequired,
 };
 
 const GenaiAnswerSteps = ({
@@ -504,7 +535,11 @@ const GenaiAnswerSteps = ({
                                 </div>
                             )}
                             {converted.fixes.length > 0 && <FixList fixes={converted.fixes} />}
-                            <ChangeList parts={converted.parts} several={converted.parts.length > 1} />
+                            {adapter.mountDiff ? (
+                                converted.parts.map((part) => <LineDiff key={part.name} adapter={adapter} part={part} />)
+                            ) : (
+                                <ChangeList parts={converted.parts} several={converted.parts.length > 1} />
+                            )}
                             <a href="#" data-testid="genai-ruby-toggle" onClick={handleToggleRuby}>
                                 <FormattedMessage {...(showRuby ? messages.rubyHide : messages.rubyShow)} />
                             </a>
@@ -642,8 +677,15 @@ const GenaiAnswerSteps = ({
                             }}
                         />
                     </p>
-                    {/* The Ruby tab has no marks yet (#1399). */}
-                    {marks && marks.length > 0 && (
+                    {putsCode &&
+                        marks &&
+                        marks.map((mark) => (
+                            <p className={styles.small} data-testid="genai-lines-done" key={mark.name}>
+                                <FormattedMessage {...messages.linesDone} values={mark.lines} />{' '}
+                                <FormattedMessage {...messages.linesLegend} />
+                            </p>
+                        ))}
+                    {!putsCode && marks && marks.length > 0 && (
                         <>
                             <ChangeList parts={marks} several={marks.length > 1} onShow={onShowBlocks} />
                             <p className={styles.small}>
@@ -687,6 +729,8 @@ GenaiAnswerSteps.propTypes = {
         watchMarks: PropTypes.func.isRequired,
         // 'code' when the answer goes into a code editor (the Ruby tab); blocks otherwise.
         puts: PropTypes.string,
+        // Shows the line diff of a checked part in an element; returns the function taking it away.
+        mountDiff: PropTypes.func,
     }).isRequired,
     serviceName: PropTypes.string,
     // The question copied to the AI first, and the trouble it was about: sent to Rubytee (#1282).

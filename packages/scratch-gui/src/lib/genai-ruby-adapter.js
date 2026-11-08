@@ -3,10 +3,11 @@
 // in the editor is fixed (#1396 決定 1): the question carries the Ruby in the editor now
 // (also edits not yet in the blocks) and the other sprites as reference, an answer that
 // changes another sprite is ✗, and the answer goes into the editor with executeEdits (so
-// Ctrl+Z takes it back). The line diff, the marks and the switching come with #1399.
+// Ctrl+Z takes it back). What the answer changes is shown in lines (#1399): Monaco's
+// inline diff before it goes in, and marks on the lines added or changed once it is in.
 import { checkAnswer, liveSnapshots, switchSnapshots } from './genai-answer.js';
-import { describeChanges, diffBlocks } from './genai-block-diff.js';
-import { copyBlocks, nameOf, takeoverStateOf } from './genai-code-adapter.js';
+import { nameOf, takeoverStateOf } from './genai-code-adapter.js';
+import { countLineChanges, diffLines, markedLines } from './genai-line-diff.js';
 import { RUBY_TAB_KINDS, buildRubyTabPrompt } from './genai-prompt.js';
 import RubyGenerator from './ruby-generator';
 import { targetCodeToBlocks } from './ruby-to-blocks-converter';
@@ -30,6 +31,41 @@ export const editorErrors = (editor, monaco) => {
         .map((marker) => `${marker.startLineNumber} 行目: ${marker.message.replace(/\s*\n\s*/g, ' ')}`);
 };
 
+/** The classes of the marked lines in the editor (styled in genai-concierge.css). */
+export const LINE_MARK_CLASSES = { added: 'genaiLineAdded', changed: 'genaiLineChanged' };
+
+/**
+ * The decorations marking lines in the editor: the whole line, and a bar by the line numbers.
+ * @param {Array<{line: number, kind: string}>} lines - from markedLines
+ * @returns {Array<object>} Monaco's model decorations
+ */
+export const lineDecorations = (lines) =>
+    lines.map(({ line, kind }) => ({
+        range: { startLineNumber: line, startColumn: 1, endLineNumber: line, endColumn: 1 },
+        options: {
+            isWholeLine: true,
+            className: LINE_MARK_CLASSES[kind],
+            linesDecorationsClassName: `${LINE_MARK_CLASSES[kind]}Bar`,
+        },
+    }));
+
+/**
+ * The lines one version adds, changes and removes from the other, counted.
+ * @param {string} before - the code before
+ * @param {string} after - the code after
+ * @returns {{added: number, changed: number, removed: number}} the counts
+ */
+export const countChanges = (before, after) => countLineChanges(diffLines(before, after));
+
+// Whether a change of the editor's content replaces all of it: the editor then shows
+// another sprite or the same one afresh (@monaco-editor/react puts a new value in as one
+// edit of the whole range, ruby-tab.jsx sometimes with setValue), and the marks go away.
+const replacesAll = (event, lengthBefore) =>
+    event.isFlush ||
+    (event.changes.length === 1 &&
+        event.changes[0].rangeOffset === 0 &&
+        event.changes[0].rangeLength === lengthBefore);
+
 // The face goes at the bottom left of the editor, over the line numbers: the bottom right
 // has the zoom buttons. The panel opens at the right of the editor.
 const measureEditorArea = (root) => {
@@ -51,7 +87,7 @@ const measureEditorArea = (root) => {
  */
 export const makeRubyTabAdapterFactory =
     ({ getEditor, getMonaco, getMode, deps = {} }) =>
-    ({ vm, intl, rubyVersion, scratchBlocks }) => {
+    ({ vm, intl, rubyVersion }) => {
         const toCode = deps.toCode || ((target) => RubyGenerator.targetToCode(target, { version: rubyVersion }));
         const toBlocks =
             deps.toBlocks || ((target, code) => targetCodeToBlocks(vm, target, code, intl, { version: rubyVersion }));
@@ -99,15 +135,13 @@ export const makeRubyTabAdapterFactory =
             return errors.length > 0 ? { kindId: 'error', text: errors.join('\n') } : null;
         };
 
-        const changesOf = (before, after) =>
-            describeChanges(diffBlocks(before, after), before, after, scratchBlocks ? scratchBlocks.Blocks : null);
-
         const check = async (text) => {
             const targets = {};
             originals().forEach((t) => {
                 targets[nameOf(t)] = t;
             });
             const name = nameOf(editing());
+            const before = editorCode();
             const result = await checkAnswer({
                 answer: text,
                 sprites: Object.keys(targets).map((n) => ({ name: n, ...assetsOf(targets[n]) })),
@@ -115,10 +149,12 @@ export const makeRubyTabAdapterFactory =
                 onlyName: name,
                 convert: (n, code) => toBlocks(targets[n], code),
             });
+            // What changes is shown in lines (mountDiff and lines), not in the words of blocks.
             result.parts.forEach((part) => {
                 part.target = targets[part.name];
-                part.changes =
-                    result.ok && part.converter ? changesOf(copyBlocks(part.target), part.converter.blocks) : [];
+                part.changes = [];
+                part.before = before;
+                part.lines = countChanges(before, part.code);
             });
             return result;
         };
@@ -133,6 +169,16 @@ export const makeRubyTabAdapterFactory =
             editor.pushUndoStop();
         };
 
+        // The marks of a version: the lines are found again from `before` when the editor
+        // shows the sprite (watchMarks), so the student's edits meanwhile move them along.
+        const markOf = (snap) => ({
+            target: snap.target,
+            name: snap.name,
+            changes: [],
+            before: snap.before,
+            lines: countChanges(snap.before, snap.after),
+        });
+
         // Only the sprite in the editor is put in (check leaves the others out). The blocks
         // follow the editor as for the student's own typing.
         const apply = (parts) => {
@@ -140,13 +186,12 @@ export const makeRubyTabAdapterFactory =
             if (!part) return Promise.resolve({ snapshots: [], marks: [] });
             const snapshots = [{ target: part.target, name: part.name, before: editorCode(), after: part.code }];
             replaceEditorCode(part.code);
-            return Promise.resolve({ snapshots, marks: [] });
+            return Promise.resolve({ snapshots, marks: snapshots.map(markOf) });
         };
 
         // The sprite in the editor switches in the editor (Ctrl+Z takes it back). One the
         // student moved away from meanwhile switches in its blocks, so its two versions are
         // not lost; one that cannot become blocks stays as it is. A deleted sprite drops out.
-        // The line diff and the marks come with #1399.
         const switchSides = async (snapshots, toAfter) => {
             const live = liveSnapshots(snapshots, vm.runtime.targets);
             const inEditor = (snap) => snap.target === editing();
@@ -164,7 +209,66 @@ export const makeRubyTabAdapterFactory =
                     if (converter.result) await converter.apply();
                 }
             }
-            return { snapshots: next, marks: [] };
+            return { snapshots: next, marks: next.map(markOf) };
+        };
+
+        // Mark the lines added or changed while the editor shows the sprite of a mark, again
+        // each time it shows another sprite or the same one afresh (the lines are found
+        // again then). The student's own typing moves the marks along with the lines.
+        const watchMarks = (marks) => {
+            const editor = getEditor();
+            if (!editor || !editor.createDecorationsCollection) return () => {};
+            const collection = editor.createDecorationsCollection([]);
+            let painted = null;
+            let length = 0;
+            const paint = () => {
+                painted = editing();
+                const mark = marks.find((m) => m.target === painted);
+                collection.set(mark ? lineDecorations(markedLines(diffLines(mark.before, editorCode()))) : []);
+            };
+            const lengthNow = () => {
+                const model = editor.getModel();
+                return model && model.getValueLength ? model.getValueLength() : editorCode().length;
+            };
+            paint();
+            length = lengthNow();
+            const listener = editor.onDidChangeModelContent((event) => {
+                if (editing() !== painted || replacesAll(event, length)) paint();
+                length = lengthNow();
+            });
+            return () => {
+                listener.dispose();
+                collection.clear();
+            };
+        };
+
+        // Monaco's inline diff of the code in the editor and the answer, before it goes in.
+        const mountDiff = (element, part) => {
+            const monaco = getMonaco();
+            if (!monaco || !element) return () => {};
+            const original = monaco.editor.createModel(part.before || '', 'smalruby');
+            const modified = monaco.editor.createModel(part.code || '', 'smalruby');
+            const diff = monaco.editor.createDiffEditor(element, {
+                renderSideBySide: false,
+                readOnly: true,
+                originalEditable: false,
+                automaticLayout: true,
+                scrollBeyondLastLine: false,
+                minimap: { enabled: false },
+                renderOverviewRuler: false,
+                lineNumbersMinChars: 2,
+                folding: false,
+                fontSize: 12,
+                renderIndicators: true,
+                // Same lines as the counts (genai-line-diff.js): a line indented anew is changed.
+                ignoreTrimWhitespace: false,
+            });
+            diff.setModel({ original, modified });
+            return () => {
+                diff.dispose();
+                original.dispose();
+                modified.dispose();
+            };
         };
 
         return {
@@ -178,8 +282,8 @@ export const makeRubyTabAdapterFactory =
             check,
             apply,
             switchSides,
-            // No marks in the editor yet (#1399).
-            watchMarks: () => () => {},
+            watchMarks,
+            mountDiff,
             showBlocks: () => Promise.resolve(),
             measureArea: measureEditorArea,
         };

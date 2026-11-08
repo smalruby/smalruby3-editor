@@ -1708,6 +1708,7 @@ export default {
     'gui.genaiConcierge.stepTrouble': '困りごと',
     'gui.genaiConcierge.stepCopy': 'コピーして相談',
     'gui.genaiConcierge.stepPaste': '答えをブロックに',
+    'gui.genaiConcierge.stepPasteCode': '答えをコードに',
     'gui.genaiConcierge.nudgeText': '手が止まっているみたい。生成AI に相談してみる？',
     'gui.genaiConcierge.nudgeOpen': '相談する',
     'gui.genaiConcierge.nudgeLater': 'あとで',
@@ -1802,6 +1803,12 @@ export default {
     'gui.genaiConcierge.changesNone': '増える・変わるブロックはありません。',
     'gui.genaiConcierge.changesLegend':
         'ピンクの枠のブロックが増えたブロック、点線の枠が変わったブロックです。行を押すと、そのブロックへ移動します。',
+    'gui.genaiConcierge.linesTitle': '生成AI の案で増える・変わる・なくなる行',
+    'gui.genaiConcierge.linesCount': '{added} 行増える・{changed} 行変わる・{removed} 行なくなる',
+    'gui.genaiConcierge.linesNone': '増える・変わる・なくなる行はありません。',
+    'gui.genaiConcierge.linesDone': '{added} 行増えた・{changed} 行変わった',
+    'gui.genaiConcierge.linesLegend':
+        '行番号の横に線のある行が増えた行、点線のある行が変わった行です。なくなった行には印はありません。',
     'gui.genaiConcierge.changeAdded': '「{block}」が増えます',
     'gui.genaiConcierge.changeAddedIn': '「{script}」の中に「{block}」が増えます',
     'gui.genaiConcierge.changeChanged': '「{before}」が「{block}」に変わります',

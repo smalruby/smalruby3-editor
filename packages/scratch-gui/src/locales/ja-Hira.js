@@ -1758,6 +1758,7 @@ export default {
     'gui.genaiConcierge.stepTrouble': 'こまりごと',
     'gui.genaiConcierge.stepCopy': 'コピーしてそうだん',
     'gui.genaiConcierge.stepPaste': 'こたえをブロックに',
+    'gui.genaiConcierge.stepPasteCode': 'こたえをコードに',
     'gui.genaiConcierge.nudgeText': 'てがとまっているみたい。せいせいAI にそうだんしてみる？',
     'gui.genaiConcierge.nudgeOpen': 'そうだんする',
     'gui.genaiConcierge.nudgeLater': 'あとで',
@@ -1854,6 +1855,12 @@ export default {
     'gui.genaiConcierge.changesNone': 'ふえる・かわるブロックはありません。',
     'gui.genaiConcierge.changesLegend':
         'ピンクのわくのブロックがふえたブロック、てんせんのわくがかわったブロックです。ぎょうをおすと、そのブロックへいどうします。',
+    'gui.genaiConcierge.linesTitle': 'せいせいAI のあんでふえる・かわる・なくなるぎょう',
+    'gui.genaiConcierge.linesCount': '{added} ぎょうふえる・{changed} ぎょうかわる・{removed} ぎょうなくなる',
+    'gui.genaiConcierge.linesNone': 'ふえる・かわる・なくなるぎょうはありません。',
+    'gui.genaiConcierge.linesDone': '{added} ぎょうふえた・{changed} ぎょうかわった',
+    'gui.genaiConcierge.linesLegend':
+        'ぎょうばんごうのよこにせんのあるぎょうがふえたぎょう、てんせんのあるぎょうがかわったぎょうです。なくなったぎょうにはしるしはありません。',
     'gui.genaiConcierge.changeAdded': '「{block}」がふえます',
     'gui.genaiConcierge.changeAddedIn': '「{script}」のなかに「{block}」がふえます',
     'gui.genaiConcierge.changeChanged': '「{before}」が「{block}」にかわります',
