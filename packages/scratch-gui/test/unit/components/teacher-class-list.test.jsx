@@ -288,7 +288,11 @@ describe('TeacherClassList', () => {
         expect(byTestId('classroom-class-settings-save-hint')).toBeNull();
 
         fireEvent.click(byTestId('classroom-class-ai-service-gemini'));
-        expect(byTestId('classroom-class-settings-save-hint')).toHaveTextContent('generative AI');
+        const genaiHint = byTestId('classroom-class-settings-save-hint');
+        expect(genaiHint).toHaveTextContent('generative AI');
+        byTestId('classroom-class-ai-confirm').scrollIntoView = jest.fn();
+        fireEvent.click(genaiHint);
+        expect(byTestId('classroom-class-ai-confirm')).toHaveFocus();
         fireEvent.click(byTestId('classroom-class-ai-confirm'));
         expect(byTestId('classroom-class-settings-save-hint')).toBeNull();
 
