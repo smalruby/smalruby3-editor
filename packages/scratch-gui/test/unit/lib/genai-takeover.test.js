@@ -2,6 +2,7 @@ import {
     MAX_TAKEOVER_TRIES,
     TAKEOVER_MESSAGE_LIMIT,
     TakeoverError,
+    buildRubyTabTakeoverMessage,
     buildTakeoverMessage,
     buildTakeoverRetryMessage,
     pollDelay,
@@ -101,6 +102,86 @@ describe('buildTakeoverMessage', () => {
     test('is null when the program alone does not fit', () => {
         const huge = [{ name: 'ネコ', code: 'move(10)\n'.repeat(1500), sounds: [], costumes: [] }];
         expect(buildTakeoverMessage({ ...base, programs: huge })).toBeNull();
+    });
+});
+
+describe('buildRubyTabTakeoverMessage', () => {
+    const rubyTab = {
+        mode: 'ruby',
+        kindLabel: '思ったとおりに動かない',
+        text: '旗を押したら鳴いてほしい',
+        editingName: 'ネコ',
+        code: 'when_flag_clicked do\n  move(1)\nend\n',
+        sounds: ['ニャー'],
+        costumes: ['コスチューム1'],
+        others: [
+            { name: 'イヌ', code: 'when_receive("合図") do\n  say("ワン")\nend\n', sounds: [], costumes: [] },
+            { name: 'ステージ', code: '', sounds: [], costumes: ['背景1'] },
+        ],
+        exchanges: base.exchanges,
+    };
+
+    test('asks to fix only the sprite in the editor, from the code in the editor', () => {
+        const message = buildRubyTabTakeoverMessage(rubyTab);
+        expect(message).toContain('直すのは「ネコ」だけです');
+        expect(message).toContain('# 「ネコ」');
+        expect(message).toContain('move(1)');
+        expect(message).toContain('音: "ニャー"');
+        expect(message).toContain('ほかのスプライトのプログラムは書かないでください');
+        expect(message).toContain('旗を押したら鳴いてほしい');
+    });
+
+    test('has the other sprites with code as reference, and leaves out those without', () => {
+        const message = buildRubyTabTakeoverMessage(rubyTab);
+        expect(message).toContain('【参考：ほかのスプライトのプログラム（直さないでください）】');
+        expect(message).toContain('# 「イヌ」');
+        expect(message).toContain('say("ワン")');
+        expect(message).not.toContain('# 「ステージ」');
+    });
+
+    test('has every question, answer and reason of the consultation', () => {
+        const message = buildRubyTabTakeoverMessage(rubyTab);
+        expect(message).toContain('最初の質問文');
+        expect(message).toContain('2 回目の答え');
+        expect(message).toContain('2 行目: 文法のまちがい');
+    });
+
+    test('asks for easy words in furigana mode, and for Ruby words in Ruby mode', () => {
+        expect(buildRubyTabTakeoverMessage({ ...rubyTab, mode: 'furigana' })).toContain('やさしいことば');
+        expect(buildRubyTabTakeoverMessage(rubyTab)).not.toContain('やさしいことば');
+        expect(buildRubyTabTakeoverMessage(rubyTab)).toContain('Ruby の書き方で');
+    });
+
+    test('says so when the sprite has no program yet', () => {
+        expect(buildRubyTabTakeoverMessage({ ...rubyTab, code: '' })).toContain('（まだプログラムはありません）');
+    });
+
+    test('keeps within the relay limit by cutting the oldest exchanges first', () => {
+        const long = 'あ'.repeat(5000);
+        const message = buildRubyTabTakeoverMessage({
+            ...rubyTab,
+            exchanges: [
+                { question: `古い質問${long}`, answer: `古い答え${long}`, problems: ['古い理由'] },
+                { question: `新しい質問${long}`, answer: `新しい答え${long}`, problems: ['新しい理由'] },
+            ],
+        });
+        expect(message.length).toBeLessThanOrEqual(TAKEOVER_MESSAGE_LIMIT);
+        expect(message).toContain('新しい理由');
+        expect(message).toContain('（これより前の相談は、長いので省略）');
+        expect(message).not.toContain('古い理由');
+        expect(message).toContain('say("ワン")');
+    });
+
+    test('leaves the references out when they do not fit with the sprite', () => {
+        const others = [{ name: 'イヌ', code: 'say("ワン")\n'.repeat(1000), sounds: [], costumes: [] }];
+        const message = buildRubyTabTakeoverMessage({ ...rubyTab, others });
+        expect(message.length).toBeLessThanOrEqual(TAKEOVER_MESSAGE_LIMIT);
+        expect(message).toContain('move(1)');
+        expect(message).not.toContain('say("ワン")');
+    });
+
+    test('is null when the sprite alone does not fit', () => {
+        expect(buildRubyTabTakeoverMessage({ ...rubyTab, code: 'move(10)\n'.repeat(1500) })).toBeNull();
     });
 });
 

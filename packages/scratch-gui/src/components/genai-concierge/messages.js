@@ -56,6 +56,16 @@ const messages = defineMessages({
         description: 'Button turning the offer off for the rest of the day',
         id: 'gui.genaiConcierge.nudgeOff',
     },
+    faceLabel: {
+        defaultMessage: 'Ask AI',
+        description: 'Speech bubble beside the face opening the generative AI panel',
+        id: 'gui.genaiConcierge.faceLabel',
+    },
+    faceLabelShort: {
+        defaultMessage: 'AI',
+        description: 'Short speech bubble beside the face on a narrow screen',
+        id: 'gui.genaiConcierge.faceLabelShort',
+    },
     troubleQuestion: {
         defaultMessage: 'What is the trouble?',
         description: 'Question above the kinds of trouble',

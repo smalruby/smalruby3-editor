@@ -292,6 +292,10 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-class-ai-rubytee-row` | div | ルビティーの行 |
 | `classroom-class-ai-rubytee` | checkbox (`role="switch"`) | ルビティーのオン/オフ（既定オフ） |
 | `classroom-class-ai-rubytee-unsaved` | span | ルビティーの行の「未保存」の印 |
+| `classroom-class-ai-rubytee-confirm-panel` | div | ルビティーをオンにしたときだけ行の下に開く確認（条件・リンク・確認チェック） |
+| `classroom-class-ai-rubytee-confirm` | checkbox | 「このクラスは上の条件を満たしています（必須）」。オンなのに未チェックだと保存できない。オフにすると外れる |
+| `classroom-class-ai-rubytee-terms` / `classroom-class-ai-rubytee-privacy` | a | 利用規約 / プライバシーポリシー（別タブ） |
+| `classroom-class-ai-rubytee-unconfirmed` | p | 確認の仕組みより前に有効にしたクラス（`rubytee.confirmed` が無い）の「まだ確認されていません」 |
 | `classroom-class-ai-preview` | aside | 「生徒の画面はこうなります」の見本（幅 1100px 未満では `display: none`） |
 | `classroom-class-ai-preview-consult` | span | 見本のコード画面の「AI に相談」ボタン（生成AI を使うときだけ） |
 | `classroom-class-ai-preview-consult-off` | p | 生成AI を使わないときの説明 |

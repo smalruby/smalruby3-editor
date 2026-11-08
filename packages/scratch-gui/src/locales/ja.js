@@ -387,6 +387,15 @@ export default {
     'gui.classroom.classAi.rubytee': 'ルビティー',
     'gui.classroom.classAi.rubyteeNote':
         '生成AI の答えが使えないとき、［ルビティーにまかせる］でスモウルビーの AI（Claude）が直します。申し込みは要りません。',
+    'gui.classroom.classAi.rubyteeCondition.wrong':
+        'ルビティーは AI（Anthropic の Claude）です。答えがまちがっていることがあります。',
+    'gui.classroom.classAi.rubyteeCondition.personal': '生徒が名前や住所などの個人情報を入れないよう指導します。',
+    'gui.classroom.classAi.rubyteeCondition.age': '18 歳未満の生徒は保護者の許可が必要です（学校で確認しています）。',
+    'gui.classroom.classAi.rubyteeTerms': '利用規約',
+    'gui.classroom.classAi.rubyteePrivacy': 'プライバシーポリシー',
+    'gui.classroom.classAi.rubyteeConfirm': 'このクラスは上の条件を満たしています（必須）',
+    'gui.classroom.classAi.rubyteeUnconfirmed':
+        'まだ確認されていません。ルビティーはこのまま使えます。次に保存するときに下のチェックを入れてください。',
     'gui.classroom.classAi.unsaved': '未保存',
     'gui.classroom.classAi.previewTitle': '生徒の画面はこうなります',
     'gui.classroom.classAi.previewCode': 'コード',
@@ -1674,6 +1683,8 @@ export default {
     'gui.genaiConcierge.nudgeOpen': '相談する',
     'gui.genaiConcierge.nudgeLater': 'あとで',
     'gui.genaiConcierge.nudgeOff': '今日は出さない',
+    'gui.genaiConcierge.faceLabel': 'AI に相談',
+    'gui.genaiConcierge.faceLabelShort': 'AI',
     'gui.genaiConcierge.troubleQuestion': 'どんなことで困っている？',
     'gui.genaiConcierge.makePrompt': '相談文をつくる',
     'gui.genaiConcierge.kind.notWorking': '思ったとおりに動かない',

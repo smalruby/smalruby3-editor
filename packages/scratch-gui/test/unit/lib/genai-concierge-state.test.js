@@ -2,6 +2,7 @@ import messages, { KIND_MESSAGES } from '../../../src/components/genai-concierge
 import {
     NUDGE_GAP_MS,
     copyChecklist,
+    faceLabel,
     genaiServiceLabel,
     TAKEOVER_AFTER_FAILURES,
     afterBlocksRender,
@@ -9,6 +10,7 @@ import {
     isGenaiAvailable,
     isGenaiDevFlag,
     isRubyTabGenaiAvailable,
+    isTakeoverAvailable,
     isNudgeOffToday,
     localDateKey,
     marksToShow,
@@ -259,6 +261,35 @@ describe('panelPlacement', () => {
     });
 });
 
+describe('faceLabel', () => {
+    const wide = { areaWidth: 1200, rootLeft: 324, faceWidth: 52 };
+
+    test('should show the whole label beside the face when there is room', () => {
+        expect(faceLabel({ ...wide, open: false, nudge: false })).toBe('full');
+    });
+
+    test('should hide the label while the panel is open', () => {
+        expect(faceLabel({ ...wide, open: true, nudge: false })).toBe('none');
+    });
+
+    test('should leave the place to the nudge while it is shown', () => {
+        expect(faceLabel({ ...wide, open: false, nudge: true })).toBe('none');
+    });
+
+    test('should wait until the area is measured', () => {
+        expect(faceLabel({ areaWidth: 0, rootLeft: 12, faceWidth: 52, open: false, nudge: false })).toBe('none');
+    });
+
+    test('should shorten the label in a narrow area', () => {
+        // 390 px wide: 390 - 60 (zoom buttons) - 12 - 52 - 8 = 258 px beside the face.
+        expect(faceLabel({ areaWidth: 390, rootLeft: 12, faceWidth: 52, open: false, nudge: false })).toBe('short');
+    });
+
+    test('should hide the label when even the short one does not fit', () => {
+        expect(faceLabel({ areaWidth: 160, rootLeft: 12, faceWidth: 52, open: false, nudge: false })).toBe('none');
+    });
+});
+
 describe('scrollToShowBlocks', () => {
     test('should bring the top left of the blocks near the top left of the script area', () => {
         expect(scrollToShowBlocks({ bbox: { left: 300, top: 200 }, scale: 0.675 })).toEqual({
@@ -415,5 +446,21 @@ describe('isRubyTabGenaiAvailable', () => {
 
     test('shows the face with ?features=genai outside a class', () => {
         expect(isRubyTabGenaiAvailable({ ...student, role: null, sessionToken: null, devFlag: true })).toBe(true);
+    });
+});
+
+describe('isTakeoverAvailable', () => {
+    test('offers Rubytee in the code tab and in the Ruby and furigana modes of the Ruby tab', () => {
+        expect(isTakeoverAvailable({ rubyteeAvailable: true, rubyTab: false, dnclMode: false })).toBe(true);
+        expect(isTakeoverAvailable({ rubyteeAvailable: true, rubyTab: true, dnclMode: false })).toBe(true);
+    });
+
+    test('does not offer Rubytee in DNCL mode', () => {
+        expect(isTakeoverAvailable({ rubyteeAvailable: true, rubyTab: true, dnclMode: true })).toBe(false);
+    });
+
+    test('does not offer Rubytee when the class does not use it', () => {
+        expect(isTakeoverAvailable({ rubyteeAvailable: false, rubyTab: true, dnclMode: false })).toBe(false);
+        expect(isTakeoverAvailable({ rubyteeAvailable: false, rubyTab: false, dnclMode: false })).toBe(false);
     });
 });

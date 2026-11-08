@@ -223,6 +223,35 @@ export const panelPlacement = ({ areaWidth, rootLeft, panelWidth, faceWidth }) =
     return { left: Math.max(0, left), bottom: faceWidth + FACE_GAP };
 };
 
+/**
+ * Room beside the face (px) for the whole 「AI に相談」 label: less than this (e.g. the
+ * code tab on an iPad held upright), the label would cover much of the blocks or the code,
+ * so it is shortened to 「AI」.
+ */
+const FULL_LABEL_ROOM = 300;
+/** Room beside the face (px) for the short label. */
+const SHORT_LABEL_ROOM = 60;
+
+/**
+ * Which label goes beside the face (#1414). None while the panel is open or the nudge
+ * is shown (it is in the same place), nor before the area is measured.
+ * @param {object} params - parameters
+ * @param {number} params.areaWidth - width of the script area (the face's offset parent)
+ * @param {number} params.rootLeft - left of the face in the script area
+ * @param {number} params.faceWidth - width of the face
+ * @param {boolean} params.open - the panel is open
+ * @param {boolean} params.nudge - the nudge is shown
+ * @returns {'full'|'short'|'none'} the label to show
+ */
+export const faceLabel = ({ areaWidth, rootLeft, faceWidth, open, nudge }) => {
+    if (open || nudge || !areaWidth) return 'none';
+    // The label stays clear of the buttons along the right edge, as the panel does.
+    const room = areaWidth - PANEL_RIGHT_MARGIN - rootLeft - faceWidth - FACE_GAP;
+    if (room >= FULL_LABEL_ROOM) return 'full';
+    if (room >= SHORT_LABEL_ROOM) return 'short';
+    return 'none';
+};
+
 /** Space left above and to the left of the blocks when scrolling to them (px). */
 const BLOCKS_MARGIN = 24;
 
@@ -306,3 +335,16 @@ export const TAKEOVER_AFTER_FAILURES = 2;
  */
 export const canOfferTakeover = ({ failures, rubyteeAvailable }) =>
     rubyteeAvailable === true && failures >= TAKEOVER_AFTER_FAILURES;
+
+/**
+ * Whether the panel may offer 「ルビティーにまかせる」 at all: in a class that uses Rubytee,
+ * in the code tab and in the Ruby tab's Ruby and furigana modes (#1400). Not in DNCL mode
+ * (#1396 決定 3): Rubytee answers in Ruby, not in the student's DNCL.
+ * @param {object} params - parameters
+ * @param {boolean} params.rubyteeAvailable - the student's class uses Rubytee
+ * @param {boolean} params.rubyTab - the panel is in the Ruby tab
+ * @param {boolean} params.dnclMode - the Ruby tab is in DNCL mode
+ * @returns {boolean} whether Rubytee may be offered
+ */
+export const isTakeoverAvailable = ({ rubyteeAvailable, rubyTab, dnclMode }) =>
+    rubyteeAvailable === true && !(rubyTab && dnclMode);
