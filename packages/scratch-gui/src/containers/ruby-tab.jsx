@@ -266,6 +266,18 @@ const RubyTab = (props) => {
             // counterpart, so the whole DNCL line is marked.
             const sourceMap = dnclModeRef.current ? dnclSourceMapRef.current : null;
             let errors = sourceMap ? sourceMap.rubyErrorsToDncl(rawErrors) : rawErrors;
+            if (dnclModeRef.current && errors.length > 0) {
+                // A missing or extra closer makes the converter say a missing
+                // `end`; say it in the words of DNCL instead (Issue #1419).
+                const { blockErrors } = dnclToRuby(editorRef.current.getValue());
+                if (blockErrors.length > 0) {
+                    errors = blockErrors.map((err) => ({
+                        row: err.line - 1,
+                        column: err.column - 1,
+                        text: err.message,
+                    }));
+                }
+            }
             if (dnclModeRef.current) {
                 // `//` is integer division in Smalruby DNCL, never a comment,
                 // so a 共通テスト style `//` comment fails to convert. Tell

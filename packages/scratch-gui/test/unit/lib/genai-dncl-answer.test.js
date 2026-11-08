@@ -77,6 +77,19 @@ describe('checkDnclAnswer', () => {
         ]);
     });
 
+    test('a missing closer is said in the words of DNCL, not as a missing end (#1419)', async () => {
+        const result = await check('もし x > 0 ならば\n  表示する(x)');
+        expect(result.ok).toBe(false);
+        expect(result.problems).toEqual([
+            {
+                type: 'error',
+                sprite: null,
+                row: 0,
+                text: '「もし〜ならば」を「を実行する」で閉じてください',
+            },
+        ]);
+    });
+
     test('a `//` comment gets the hint to use #', async () => {
         const result = await check('a = 1 // 生徒番号\n表示する(a)');
         expect(result.ok).toBe(false);

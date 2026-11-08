@@ -84,7 +84,7 @@ DNCL の行に戻して見せる。詳しくは [`docs/genai-consult/README.md`]
 | `dncl-identifier-converter.js` | 識別子（変数名）の変換 |
 | `dncl-builtins.js` | DNCL 組み込み関数の定義（`表示する`, `要素数` など）。`表示する` 多引数は `puts(... + ...)` に展開。関数の一覧 `DNCL_BUILTIN_NAMES` は生成AI に相談の質問文の命令の例にも使う |
 | `dncl-keywords.js` | DNCL キーワード定義（`もし`, `ならば`, `を繰り返す` など）|
-| `dncl-validator.js` | DNCL コードの構文検証 |
+| `dncl-validator.js` | DNCL コードの構文検証（`validateDncl` = `@` / `$` の変数）と、**ブロックの閉じ忘れ・閉じすぎの検出**（`findDnclBlockErrors`。下の「閉じ忘れのエラー」） |
 | `dncl-state.js` | パーサー状態管理 |
 | `dncl-source-map.js` | DNCL 行 ↔ Ruby 行のマッピング（エラー位置表示用。詳細は下の「エラー行の対応（ソースマップ）」）|
 | `dncl-block-filter.js` | DNCL モードで使えるブロックのフィルタ |
@@ -110,6 +110,21 @@ DNCL モードでは、DNCL を Ruby に変換してからブロックに変換�
 | `増やしながら` / `減らしながら` を初期化 + `while`、終了行を加算 + `end` に展開 | 1 行 → 2 行 | それぞれ元の行 |
 
 対応表は**変換しながら記録する**（行数の比較から推定しない）。`dnclV2PreprocessWithLineMap` が前処理後の各行の元の行番号（`lineMap`）を返し、`dnclToRuby` が行変換で出力した Ruby の各行にそれを引き継いで `sourceMap` として返す。`validateDncl` の検証エラーの行も `lineMap` で DNCL の行に戻す。
+
+#### 閉じ忘れのエラー
+
+`を実行する` / `を繰り返す` / `と定義する` はどれも Ruby の `end` になるので、閉じ忘れや閉じすぎがあると Ruby の変換器が「`end` が足りません」のような **Ruby のことば**のエラーを返す。日本語モードの生徒にも、答えを書き直す生成AI にも `end` は関係が無いので、`findDnclBlockErrors` が DNCL のことばで言いかえる。
+
+| 書き方 | エラー（その行に付く） |
+|---|---|
+| `もし〜ならば` / `〜の間` / `〜ずつ増やしながら` / `〜ずつ減らしながら` / `関数` を閉じていない | 開いた行に「「もし〜ならば」を「を実行する」で閉じてください」など |
+| 閉じるブロックが無いのに `を実行する` などがある | 「「を実行する」で閉じるものがありません」 |
+| `もし` の外の `そうでなければ` / `そうでなくもし` | 「「そうでなければ」の前に「もし〜ならば」がありません」 |
+| 種類の違う閉じのことば（ほかに合うブロックが無い） | 閉じのことばの行に「「もし〜ならば」は「を繰り返す」ではなく「を実行する」で閉じてください」 |
+
+- 内側のブロックを閉じ忘れて外側の閉じのことばが来たとき（`〜の間` の中の `もし` を閉じ忘れて `を繰り返す`）は、外側ではなく**閉じ忘れた内側**の行に付ける。
+- 調べるのは **Ruby の `end` が合わなくなるときだけ**。種類の違う閉じのことばでも `end` の数が合えば Ruby は通り、エディタも受け付けるので、エラーにしない（`もし … を繰り返す` など）。
+- `dnclToRuby` はこのエラーがあっても Ruby を作り、`blockErrors`（DNCL の行）として返す（エディタは入力のたびに Ruby を送るので、ここで止めると古い Ruby のまま変換されてしまうため）。変換器が失敗したときに、エディタのエラーの印（`ruby-tab.jsx` の `showErrors`）と生成AI に相談の確かめ（`genai-dncl-answer.js`）が、変換器のエラーの代わりにこれを出す。
 
 #### Monaco Editor 言語定義
 
@@ -306,6 +321,7 @@ Smalruby は **DNCLv2 形式のプログラムをそのまま実行** できる�
   - `dncl-paste-index-shift.test.js` — 貼り付け時の添字の書き換え（注釈の検出と表記の揺れ・数/式/2 次元/入れ子の添字・初期化/文字列/コメントは不変・書き換え位置・共通テスト例題の要確認の行）
   - `dncl-display-multi-arg.test.js` — `表示する` 多引数 / `puts(... + ...)` round-trip
   - `dncl-to-ruby.test.js` — DNCL → Ruby 変換ユニットテスト
+  - `dncl-validator.test.js` — 閉じ忘れ・閉じすぎを DNCL のことばで言うこと（ブロックの種類ごとの閉じのことば・閉じ忘れた内側の行・`end` が合うときはエラーにしない・DNCLv2 の `⎿` / インデントの形）
   - `ruby-to-dncl.test.js` — Ruby → DNCL 逆変換ユニットテスト
   - `dncl-roundtrip.test.js` — DNCL ↔ Ruby round-trip 安定性
 - エディタ側の単体テスト: `packages/scratch-gui/test/unit/containers/ruby-tab/dncl-index-shift.test.js`（注釈なしでは聞かない・「いいえ」で何も変えない・「はい」で 1 回の編集と印とまとめ）

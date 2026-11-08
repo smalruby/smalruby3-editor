@@ -8,7 +8,7 @@ import {
   resetFunctionScopes,
 } from './dncl-state'
 import { dnclV2PreprocessWithLineMap } from './dncl-v2-preprocessor'
-import { validateDncl } from './dncl-validator'
+import { findDnclBlockErrors, validateDncl } from './dncl-validator'
 
 /**
  * Transpile DNCL source code to Ruby.
@@ -26,7 +26,10 @@ import { validateDncl } from './dncl-validator'
  * @returns {object} An object with `ruby` (the transpiled Ruby code or
  *   `null` on validation error), `errors` (array of validation errors whose
  *   `line` is the DNCL source line), and `sourceMap` (a `DnclSourceMap`
- *   between `source` and `ruby`, or `null` on validation error).
+ *   between `source` and `ruby`, or `null` on validation error), and
+ *   `blockErrors` (a missing or extra closer said in the words of DNCL, on
+ *   DNCL source lines; the Ruby is still made, and these are shown instead
+ *   of the converter's missing / extra `end` when it fails — Issue #1419).
  */
 const dnclToRuby = (source) => {
   const { source: normalized, lineMap } = dnclV2PreprocessWithLineMap(source)
@@ -41,6 +44,7 @@ const dnclToRuby = (source) => {
         line: lineMap[err.line - 1] || err.line,
       })),
       sourceMap: null,
+      blockErrors: [],
     }
   }
 
@@ -63,6 +67,10 @@ const dnclToRuby = (source) => {
     ruby: rubyLines.join('\n'),
     errors: [],
     sourceMap: new DnclSourceMap(rubyToDncl, sourceLineCount),
+    blockErrors: findDnclBlockErrors(normalized).map((err) => ({
+      ...err,
+      line: lineMap[err.line - 1] || err.line,
+    })),
   }
 }
 
