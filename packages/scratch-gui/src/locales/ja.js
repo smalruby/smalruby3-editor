@@ -1737,6 +1737,10 @@ export default {
     'gui.genaiConcierge.convertOk': 'ブロックにできます',
     'gui.genaiConcierge.convertNg': 'このままではブロックにできません',
     'gui.genaiConcierge.fixesTitle': 'スモウルビーが直したところ:',
+    'gui.genaiConcierge.indexHintsTitle':
+        '注意: 添字が 1 から始まっているかもしれません。スモウルビーの日本語では、配列の添字は 0 から始まります。',
+    'gui.genaiConcierge.indexHint':
+        '{access} は配列の範囲外になります（最後の要素は {array}[{last}]）。問題文で添字が 1 から始まるときは、{fixed} のように添字を 1 ずらして書いてください。',
     'gui.genaiConcierge.lineOf': '{line} 行目',
     'gui.genaiConcierge.spriteLineOf': '「{sprite}」の {line} 行目',
     'gui.genaiConcierge.spriteOf': '「{sprite}」',

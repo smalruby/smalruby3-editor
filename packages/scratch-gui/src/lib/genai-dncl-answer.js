@@ -3,6 +3,9 @@
 // form of 共通テスト with line numbers, ｜ / ⎿ and colons is read too), and then judged as
 // the Ruby modes are. Errors are moved back to DNCL lines with the source map.
 // The converter is passed in, so this file stays free of the VM.
+// An answer counting its indexes from 1 still turns into blocks, so it stays ✔, but the
+// accesses past the end of an array are noted as the editor warns about them (#1420).
+import { findArrayIndexHints } from './dncl/dncl-array-index-hint';
 import { tidyPastedDncl, withDoubleSlashHint } from './dncl/dncl-paste-tidy';
 import { dnclToRuby } from './dncl/dncl-to-ruby';
 import { extractDncl } from './genai-dncl-prompt.js';
@@ -28,10 +31,13 @@ const errorText = (error) =>
  *     the sprite; resolves to a converter with `result`, `errors` and `blocks`.
  * @returns {Promise<object>} checkAnswer's shape `{ok, code, parts, fixes, problems}`: the
  *     one part's `code` is the DNCL (what goes into the editor), errors are on DNCL rows.
+ *     `indexHints` are findArrayIndexHints of that DNCL (notes; they don't make it ✗).
  */
 const checkDnclAnswer = async ({ answer, editingName, convert }) => {
     const extracted = extractDncl(answer);
-    if (!extracted) return { ok: false, code: '', parts: [], fixes: [], problems: [{ type: 'noProgram' }] };
+    if (!extracted) {
+        return { ok: false, code: '', parts: [], fixes: [], problems: [{ type: 'noProgram' }], indexHints: [] };
+    }
     const code = tidyPastedDncl(extracted);
     const lines = code.split('\n');
     const part = { name: editingName, code, fixes: [], converter: null };
@@ -77,7 +83,8 @@ const checkDnclAnswer = async ({ answer, editingName, convert }) => {
             problems.push({ type: 'exception', sprite: null, text: e.message || String(e) });
         }
     }
-    return { ok: problems.length === 0, code, parts: [part], fixes: [], problems };
+    const indexHints = findArrayIndexHints(code);
+    return { ok: problems.length === 0, code, parts: [part], fixes: [], problems, indexHints };
 };
 
 export { checkDnclAnswer };

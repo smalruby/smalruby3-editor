@@ -1786,6 +1786,10 @@ export default {
     'gui.genaiConcierge.convertOk': 'ブロックにできます',
     'gui.genaiConcierge.convertNg': 'このままではブロックにできません',
     'gui.genaiConcierge.fixesTitle': 'スモウルビーがなおしたところ:',
+    'gui.genaiConcierge.indexHintsTitle':
+        'ちゅうい: そえじが 1 からはじまっているかもしれません。スモウルビーのにほんごでは、はいれつのそえじは 0 からはじまります。',
+    'gui.genaiConcierge.indexHint':
+        '{access} ははいれつのはんいがいになります（さいごのようそは {array}[{last}]）。もんだいぶんでそえじが 1 からはじまるときは、{fixed} のようにそえじを 1 ずらしてかいてください。',
     'gui.genaiConcierge.lineOf': '{line} ぎょうめ',
     'gui.genaiConcierge.spriteLineOf': '「{sprite}」の {line} ぎょうめ',
     'gui.genaiConcierge.spriteOf': '「{sprite}」',

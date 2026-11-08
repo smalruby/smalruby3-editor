@@ -125,6 +125,30 @@ FixList.propTypes = {
     fixes: PropTypes.arrayOf(PropTypes.object).isRequired,
 };
 
+// The accesses past the end of an array in a DNCL answer (#1420): the answer is still ✔
+// (a problem of 共通テスト may count from 1), but the student sees it before putting it in.
+const IndexHintList = ({ hints }) => {
+    const intl = useIntl();
+    return (
+        <div className={styles.indexHints} data-testid="genai-index-hints">
+            <p className={styles.small}>
+                <FormattedMessage {...messages.indexHintsTitle} />
+            </p>
+            <ul>
+                {hints.map((hint, i) => (
+                    <li key={i}>
+                        {placeOf(intl, null, hint.line)}: {intl.formatMessage(messages.indexHint, hint)}
+                    </li>
+                ))}
+            </ul>
+        </div>
+    );
+};
+
+IndexHintList.propTypes = {
+    hints: PropTypes.arrayOf(PropTypes.object).isRequired,
+};
+
 const ProblemList = ({ problems }) => {
     const intl = useIntl();
     return (
@@ -541,6 +565,9 @@ const GenaiAnswerSteps = ({
                                 </div>
                             )}
                             {converted.fixes.length > 0 && <FixList fixes={converted.fixes} />}
+                            {converted.indexHints && converted.indexHints.length > 0 && (
+                                <IndexHintList hints={converted.indexHints} />
+                            )}
                             {adapter.mountDiff ? (
                                 converted.parts.map((part) => <LineDiff key={part.name} adapter={adapter} part={part} />)
                             ) : (

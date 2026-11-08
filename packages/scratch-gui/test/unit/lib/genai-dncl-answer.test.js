@@ -97,6 +97,33 @@ describe('checkDnclAnswer', () => {
         expect(result.problems[0].row).toBe(0);
     });
 
+    test('an answer with 1-based indexes is ✔ with a note on the line (#1420)', async () => {
+        const code =
+            'Data = [3, 1, 2]\ngoukei ← 0\ni を 1 から 3 まで 1 ずつ増やしながら\n  goukei = goukei + Data[i]\nを繰り返す\n表示する(goukei)';
+        const result = await check(code);
+        expect(result.ok).toBe(true);
+        expect(result.problems).toEqual([]);
+        expect(result.indexHints).toEqual([
+            { line: 4, access: 'Data[i]', array: 'Data', last: 2, fixed: 'Data[i - 1]' },
+        ]);
+    });
+
+    test('an answer with 0-based indexes has no note', async () => {
+        const code =
+            'Data = [3, 1, 2]\ngoukei ← 0\ni を 0 から 2 まで 1 ずつ増やしながら\n  goukei = goukei + Data[i]\nを繰り返す\n表示する(goukei)';
+        const result = await check(code);
+        expect(result.ok).toBe(true);
+        expect(result.indexHints).toEqual([]);
+    });
+
+    test('the note is on the line of the tidied DNCL (line numbers taken away)', async () => {
+        const code = '(1) Data = [3, 1, 2]\n(2) 表示する(Data[3])';
+        const result = await check(code);
+        expect(result.ok).toBe(true);
+        expect(result.indexHints.map((hint) => hint.line)).toEqual([2]);
+        expect(result.parts[0].code.split('\n')[1]).toContain('Data[3]');
+    });
+
     test('an answer without a program is ✗', async () => {
         const result = await checkDnclAnswer({
             answer: 'ごめんなさい、わかりません。',

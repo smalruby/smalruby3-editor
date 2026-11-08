@@ -538,6 +538,23 @@ $step-todo: #d3d9e3;
     font-size: 0.75rem;
 }
 
+.index-hints {
+    margin: 0 0 6px;
+    padding: 4px 6px;
+    border-left: 3px solid $data-primary;
+    background-color: $ui-white;
+}
+
+.index-hints p {
+    margin: 0 0 2px;
+}
+
+.index-hints ul {
+    margin: 0;
+    padding-left: 18px;
+    font-size: 0.75rem;
+}
+
 .fixes code {
     background-color: $ui-white;
     padding: 0 3px;

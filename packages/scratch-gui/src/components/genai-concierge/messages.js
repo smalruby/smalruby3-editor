@@ -326,6 +326,19 @@ const messages = defineMessages({
         description: 'Heading of the list of what Smalruby repaired in the answer',
         id: 'gui.genaiConcierge.fixesTitle',
     },
+    indexHintsTitle: {
+        defaultMessage:
+            'Note: the indexes may start at 1. In Smalruby Japanese mode, array indices start at 0.',
+        description:
+            'Shown under the ✔ of a DNCL answer when it reads past the end of an array (counting from 1)',
+        id: 'gui.genaiConcierge.indexHintsTitle',
+    },
+    indexHint: {
+        defaultMessage:
+            '{access} reads past the end of the array (the last element is {array}[{last}]). If the problem counts from 1, shift the index by 1, like {fixed}.',
+        description: 'One access past the end of an array in a DNCL answer, in the words of the editor warning',
+        id: 'gui.genaiConcierge.indexHint',
+    },
     lineOf: {
         defaultMessage: 'Line {line}',
         description: 'Where a fix or problem is ({line}: line number)',
