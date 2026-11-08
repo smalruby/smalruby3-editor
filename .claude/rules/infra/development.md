@@ -330,6 +330,34 @@ account ID は CDK の `cdk.context.json` コミット方針で既にリポジ�
   `MESH_SECRET_KEY` は **未設定だと stack 既定の固定弱鍵 `'default-secret-key'` になる**
   フットガンがある（`.env.<stage>` で必ず設定する）。
 
+## 共有コード（infra/shared）
+
+CDK プロジェクトは互いに独立した npm パッケージなので、同じ内容のコードは **`infra/shared/` を
+正本にして、各プロジェクトへコピーして持つ**（import はしない）。
+
+| 正本 | 各プロジェクトのコピー | 中身 |
+|---|---|---|
+| `infra/shared/cors-origins.ts` | `lib/cors-origins.ts` | CORS 許可オリジン（`resolveCorsOrigins` / `withPreviewOrigins` / `PREVIEW_ORIGINS` / `localDevOrigins`） |
+| `infra/shared/tests/cors-origins.test.ts` | `lambda/tests/cors-origins.test.ts` | 上のテスト |
+| `infra/shared/tests/shared-copies.test.ts` | `lambda/tests/shared-copies.test.ts` | コピーが正本と一致するかの検査 |
+
+配る物と配布先（classroom / bug-report / admin / api / rubytee-relay）は **`infra/shared/manifest.json`
+が唯一の真実**。
+
+- **直すときは正本だけを直し、`node infra/shared/sync.js` でコピーを配る**。コピーを直接直さない。
+  `node infra/shared/sync.js --check` はずれを一覧して exit 1 にする（書き込まない）。
+- ずれは各プロジェクトの `npm test`（`shared-copies.test.ts`）が落とす。CI はプロジェクトごとに
+  `npm test` を走らせるので、`ci-infra.yml` に検査ジョブを足す必要はない。
+- **import にしない理由**: ① `Deploy Infra` は差分に `infra/<project>/` が現れたプロジェクトだけを
+  デプロイするので、`infra/shared/` だけを直すとどのプロジェクトにも出ない（コピーなら、直した
+  コピーのあるプロジェクトがデプロイ対象になる） ② 各プロジェクトの `tsconfig.json` は
+  `rootDir: "./"` で、プロジェクトの外のファイルを `tsc`（`npm run build`）が受け付けない。
+- 共有コードは **CDK 側（`lib/`）だけ**で、Node 標準以外の依存を持たない物にする（各プロジェクトの
+  `node_modules` の版の違いに左右されないため）。Lambda の bundling（esbuild）が読むコードを共有する
+  ときは、esbuild の解決も確かめてから足す。
+- 新しい共有コードを足すときは、正本・`manifest.json`・この表を同じ PR で更新する。新しいプロジェクトが
+  使うときは `manifest.json` の `projects` に足して `sync.js` を実行する。
+
 ## 新しい CDK プロジェクトを足すときのチェックリスト
 
 `infra/<project>/` を新しく作る PR では、次をすべて同じ PR で（人間の作業は PR 本文と Issue に
@@ -354,6 +382,8 @@ account ID は CDK の `cdk.context.json` コミット方針で既にリポジ�
 4. **rules と docs**: この表（Projects）とプロジェクト用の `.claude/rules/infra/<project>.md`、
    `docs/infra/<project>.md` と `docs/infra/README.md` の一覧、`docs/infra-deploy/README.md` の Secrets 表。
 5. **`aws-cdk-lib` のバージョン**は既存プロジェクトと同じにピン留めする（上の共通規約）。
+6. **CORS を持つ API なら共有コードを使う**: `infra/shared/manifest.json` の `projects` に足して
+   `node infra/shared/sync.js` を実行し、`lib/cors-origins.ts` を使う（上の「共有コード」）。
 
 ## Stage Switching via `.env` Symlink
 

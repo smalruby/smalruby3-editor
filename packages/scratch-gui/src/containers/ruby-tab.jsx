@@ -223,14 +223,18 @@ const RubyTab = (props) => {
     intlRef.current = intl;
     const vmRef = useRef(vm);
     vmRef.current = vm;
-    // "生成AI に相談" in the Ruby and furigana modes (#1398). The adapter reads the editor
-    // and the mode when it needs them, so this function stays the same between renders.
+    // "生成AI に相談" in the Ruby, furigana (#1398) and Japanese (DNCL, #1402) modes. The
+    // adapter reads the editor and the mode when it needs them, so this function stays the
+    // same between renders.
     const genaiAdapterRef = useRef(null);
     if (!genaiAdapterRef.current) {
         genaiAdapterRef.current = makeRubyTabAdapterFactory({
             getEditor: () => editorRef.current,
             getMonaco: () => monacoRef.current,
-            getMode: () => (furiganaEnabledRef.current ? 'furigana' : 'ruby'),
+            getMode: () => {
+                if (dnclModeRef.current) return 'dncl';
+                return furiganaEnabledRef.current ? 'furigana' : 'ruby';
+            },
         });
     }
     // Load Monaco locale synchronously before first render
@@ -1434,7 +1438,14 @@ const RubyTab = (props) => {
                         value={dnclMode ? dnclDisplayCode : code}
                         width="100%"
                     />
-                    <GenaiConcierge vm={vm} rubyTab dnclMode={dnclMode} createAdapter={genaiAdapterRef.current} />
+                    {/* Switching to or from DNCL starts the consultation again: the question, the
+                        answer and the two versions are in the language of the mode (#1402). */}
+                    <GenaiConcierge
+                        key={dnclMode ? 'genai-dncl' : 'genai-ruby'}
+                        vm={vm}
+                        rubyTab
+                        createAdapter={genaiAdapterRef.current}
+                    />
                 </div>
             </div>
             {/* Hidden RubyDownloader for storing download callback */}

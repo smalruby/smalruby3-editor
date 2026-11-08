@@ -3477,10 +3477,24 @@ export function genaiSettingOf(group: Record<string, unknown> | undefined): Gena
   };
 }
 
+export interface RubyteeSetting {
+  enabled: boolean;
+  /**
+   * The teacher confirmed the conditions for using Rubytee in this class
+   * (#1411). Not required to enable yet, so GUIs that only send `enabled`
+   * keep working; classes stored before this field read as false.
+   */
+  confirmed: boolean;
+}
+
 /** The stored rubytee setting of a class, defaulting to disabled. */
-export function rubyteeSettingOf(group: Record<string, unknown> | undefined): { enabled: boolean } {
-  const raw = group?.rubytee as Record<string, unknown> | undefined;
-  return { enabled: Boolean(raw && typeof raw === 'object' && raw.enabled === true) };
+export function rubyteeSettingOf(group: Record<string, unknown> | undefined): RubyteeSetting {
+  const raw = group?.rubytee;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return { enabled: false, confirmed: false };
+  }
+  const value = raw as Record<string, unknown>;
+  return { enabled: value.enabled === true, confirmed: value.confirmed === true };
 }
 
 /**
@@ -3544,12 +3558,30 @@ export function validateGenaiSetting(value: unknown, group?: Record<string, unkn
   return next;
 }
 
-export function validateRubyteeSetting(value: unknown): { enabled: boolean } {
-  if (!value || typeof value !== 'object' || Array.isArray(value)
-    || typeof (value as Record<string, unknown>).enabled !== 'boolean') {
+/**
+ * Validate a (partial) rubytee update and merge it onto the stored setting.
+ * @param value - the `rubytee` object of the request body
+ * @param group - the stored class, whose setting the update is merged onto
+ * @returns the full setting to store
+ */
+export function validateRubyteeSetting(value: unknown, group?: Record<string, unknown>): RubyteeSetting {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new ValidationError('rubytee must be an object');
+  }
+  const input = value as Record<string, unknown>;
+  if (input.enabled === undefined && input.confirmed === undefined) {
     throw new ValidationError('rubytee.enabled must be a boolean');
   }
-  return { enabled: (value as Record<string, unknown>).enabled as boolean };
+  const next = rubyteeSettingOf(group);
+  for (const key of ['enabled', 'confirmed'] as const) {
+    if (input[key] !== undefined) {
+      if (typeof input[key] !== 'boolean') {
+        throw new ValidationError(`rubytee.${key} must be a boolean`);
+      }
+      next[key] = input[key] as boolean;
+    }
+  }
+  return next;
 }
 
 /**
@@ -3559,7 +3591,7 @@ export function validateRubyteeSetting(value: unknown): { enabled: boolean } {
  */
 export function studentAiSettingsOf(group: Record<string, unknown> | undefined) {
   const { enabled, service, url } = genaiSettingOf(group);
-  return { genai: { enabled, service, url }, rubytee: rubyteeSettingOf(group) };
+  return { genai: { enabled, service, url }, rubytee: { enabled: rubyteeSettingOf(group).enabled } };
 }
 
 function mapGroupSummary(item: Record<string, unknown>, identity?: TeacherIdentity) {
@@ -3697,7 +3729,7 @@ async function handleUpdateGroup(identity: TeacherIdentity, groupId: string, bod
     updates.genai = validateGenaiSetting(body.genai, group);
   }
   if (body.rubytee !== undefined) {
-    updates.rubytee = validateRubyteeSetting(body.rubytee);
+    updates.rubytee = validateRubyteeSetting(body.rubytee, group);
   }
 
   const expressionParts: string[] = [];
