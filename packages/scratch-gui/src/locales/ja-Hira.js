@@ -408,9 +408,14 @@ export default {
     'gui.classroom.classAi.unsaved': 'みほぞん',
     'gui.classroom.classAi.previewTitle': 'せいとのがめんはこうなります',
     'gui.classroom.classAi.previewCode': 'コード',
-    'gui.classroom.classAi.previewConsult': 'AI にそうだん',
-    'gui.classroom.classAi.previewConsultOff': 'せいせいAI をつかわないので、「AI にそうだん」ボタンはでません。',
-    'gui.classroom.classAi.previewRubyteeOff': 'ルビティーがオフなので、Ruby タブの AI ボタンはでません。',
+    'gui.classroom.classAi.previewConsult': 'AI に そうだん',
+    'gui.classroom.classAi.previewConsultOff':
+        'せいせいAI をつかわないので、コードタブにも Ruby タブにも「AI に そうだん」のかおはでません。',
+    'gui.classroom.classAi.previewTakeover': 'ルビティーにまかせる',
+    'gui.classroom.classAi.previewRubyteeOff':
+        'ルビティーがオフなので、かおのパネルに［ルビティーにまかせる］はでません。',
+    'gui.classroom.classAi.previewRubyteeNoGenai':
+        'ルビティーは「AI に そうだん」のパネルからつかうので、せいせいAI をつかわないとでません。',
     'gui.classroom.management.titleBarLogout': 'ログアウト',
     'gui.classroom.notifications.buttonLabel': 'おしらせ',
     'gui.classroom.notifications.title': 'おしらせ',

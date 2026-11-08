@@ -273,16 +273,24 @@ export const makeRubyTabAdapterFactory =
         // own typing moves the marks along with the lines. When the same sprite's code is
         // replaced as a whole (the auto-correction, Ctrl+Z), only the lines marked just
         // before keep their marks, so what the student typed meanwhile stays unmarked.
+        // The switch to another sprite is also seen in the VM (targetsUpdate, #1410): the
+        // editor gets no new value for a sprite with the same code (a duplicate), so no edit
+        // tells it. The VM tells it before the editor has the new code, though, so a sprite
+        // with marks is marked then only when the editor already shows its code; else the
+        // marks wait for the new value (the edit above). The VM tells it again each frame a
+        // sprite moves, so the sprite waited for is not compared again until it is painted.
         const watchMarks = (marks) => {
             const editor = getEditor();
             if (!editor || !editor.createDecorationsCollection) return () => {};
             const collection = editor.createDecorationsCollection([]);
             let painted = null;
+            let waited = null;
             let length = 0;
             let text = '';
             let marked = [];
             const paint = (keep) => {
                 painted = editing();
+                waited = null;
                 const mark = marks.find((m) => m.target === painted);
                 const lines = mark ? markedLines(diffLines(mark.before, editorCode())) : [];
                 collection.set(lineDecorations(keep ? lines.filter(({ line }) => keep.has(line)) : lines));
@@ -304,8 +312,22 @@ export const makeRubyTabAdapterFactory =
                 else if (replacesAll(event, length)) paint(carriedLines(text, editorCode(), marked));
                 remember();
             });
+            const onTargetsUpdate = () => {
+                const target = editing();
+                if (target === painted || target === waited) return;
+                const mark = marks.find((m) => m.target === target);
+                if (!mark || editorCode() === blocksCode({ target, dncl: isDncl() })) {
+                    paint();
+                } else {
+                    collection.set([]);
+                    waited = target;
+                }
+                remember();
+            };
+            vm.on('targetsUpdate', onTargetsUpdate);
             return () => {
                 listener.dispose();
+                vm.removeListener('targetsUpdate', onTargetsUpdate);
                 collection.clear();
             };
         };

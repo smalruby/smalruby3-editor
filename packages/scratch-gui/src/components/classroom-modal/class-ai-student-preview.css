@@ -77,7 +77,7 @@
     background: #9966ff;
 }
 
-/* Same place as the real one: the bottom left of the Code screen. */
+/* Same place as the real one: the bottom left of the Code and Ruby screens. */
 .consult {
     position: absolute;
     left: 0.4rem;
@@ -107,7 +107,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.3rem;
-    height: 3.6rem;
+    height: 4.4rem;
     padding: 0.4rem 0.5rem;
     background: hsla(0, 0%, 98%, 1);
 }
@@ -119,22 +119,32 @@
     background: hsla(0, 0%, 0%, 0.15);
 }
 
-.ai-button,
-.ai-button-off {
+/* The face's panel, open: 「ルビティーにまかせる」 is only here (#1417). */
+.panel {
     position: absolute;
-    top: 0.3rem;
+    top: 0.35rem;
     right: 0.4rem;
-    padding: 0.05rem 0.35rem;
+    padding: 0.25rem;
+    border: 1px solid #855cd6;
+    border-radius: 0.35rem;
+    background: white;
+    box-shadow: 0 1px 3px hsla(0, 0%, 0%, 0.2);
+}
+
+.takeover,
+.takeover-off {
+    display: block;
+    padding: 0.1rem 0.35rem;
     border-radius: 0.75rem;
     background: #855cd6;
     color: white;
-    font-size: 0.6rem;
+    font-size: 0.55rem;
     font-weight: bold;
+    white-space: nowrap;
 }
 
-.ai-button-off {
+.takeover-off {
     background: hsla(0, 0%, 80%, 1);
-    color: white;
     opacity: 0.5;
 }
 

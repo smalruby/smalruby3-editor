@@ -352,10 +352,14 @@ export default {
     'gui.classroom.classAi.unsaved': 'Not saved',
     'gui.classroom.classAi.previewTitle': "Students' screen will look like this",
     'gui.classroom.classAi.previewCode': 'Code',
-    'gui.classroom.classAi.previewConsult': 'Consult AI',
+    'gui.classroom.classAi.previewConsult': 'Ask AI',
     'gui.classroom.classAi.previewConsultOff':
-        "Generative AI is not used, so the “Consult AI” button doesn't appear.",
-    'gui.classroom.classAi.previewRubyteeOff': "Rubytee is off, so the AI button in the Ruby tab doesn't appear.",
+        'Generative AI is not used, so the “Ask AI” face appears in neither the Code tab nor the Ruby tab.',
+    'gui.classroom.classAi.previewTakeover': 'Leave it to Rubytee',
+    'gui.classroom.classAi.previewRubyteeOff':
+        "Rubytee is off, so “Leave it to Rubytee” doesn't appear in the face's panel.",
+    'gui.classroom.classAi.previewRubyteeNoGenai':
+        "Rubytee is used from the “Ask AI” panel, so it doesn't appear without a generative AI.",
     'gui.classroom.management.titleBarLogout': 'Logout',
     'gui.classroom.classList.title': 'Your classes',
     'gui.classroom.classList.hint':
