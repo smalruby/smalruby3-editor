@@ -3,8 +3,10 @@
 // ?features=genai for development). The student describes the trouble, copies
 // a question with the whole project as Ruby into the class's generative AI, and
 // pastes the answer back to turn it into blocks.
+// What depends on the tab is the adapter's (#1397, src/lib/genai-code-adapter.js); the
+// panel's steps are the same wherever it is.
 import PropTypes from 'prop-types';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { useIntl } from 'react-intl';
 import { connect } from 'react-redux';
@@ -17,21 +19,18 @@ import GenaiTroubleStep from '../components/genai-concierge/genai-trouble-step.j
 import messages from '../components/genai-concierge/messages.js';
 import rubyteeIcon from '../components/ruby-toolbar/icon--rubytee.svg';
 import RubyteeConsent from '../components/rubytee-consent/rubytee-consent.jsx';
+import { createCodeTabAdapter } from '../lib/genai-code-adapter.js';
 import {
     NUDGE_GAP_MS,
     NUDGE_IDLE_SECONDS,
-    afterBlocksRender,
     isGenaiAvailable,
     isNudgeOffToday,
     localDateKey,
     panelPlacement,
     resolveGenaiTarget,
-    scrollToShowBlocks,
     shouldNudge,
-    showInEditor,
 } from '../lib/genai-concierge-state.js';
-import { PROBLEM_KINDS, buildGenaiPrompt } from '../lib/genai-prompt.js';
-import RubyGenerator from '../lib/ruby-generator';
+import { PROBLEM_KINDS } from '../lib/genai-prompt.js';
 import { getUrlParams } from '../lib/url-params.js';
 import { selectRubyteeAvailable } from '../reducers/classroom.js';
 import useStudentClassSettingsRefresh from './use-student-class-settings-refresh.js';
@@ -65,22 +64,9 @@ const FACE_WIDTH = 52;
 // Margin kept above the panel inside the script area.
 const PANEL_TOP_MARGIN = 12;
 
-// Where the face goes (the left edge of the script area right of the block palette, so
-// it does not cover blocks) and the size of the script area the panel has to fit in.
-const measureArea = (root) => {
-    const flyout = document.querySelector('.blocklyFlyout');
-    const parent = root && root.offsetParent;
-    if (!parent) return { left: 12, width: 0, height: 0 };
-    const left = flyout ? flyout.getBoundingClientRect().right - parent.getBoundingClientRect().left : 0;
-    return {
-        left: Math.max(12, Math.round(left + 12)),
-        width: parent.clientWidth,
-        height: parent.clientHeight,
-    };
-};
-
 const GenaiConcierge = ({
     vm,
+    createAdapter = createCodeTabAdapter,
     rubyVersion,
     assignmentName,
     available,
@@ -93,6 +79,10 @@ const GenaiConcierge = ({
     dispatch,
 }) => {
     const intl = useIntl();
+    const adapter = useMemo(
+        () => createAdapter({ vm, intl, rubyVersion, scratchBlocks }),
+        [createAdapter, vm, intl, rubyVersion, scratchBlocks],
+    );
     // The teacher may have turned the generative AI off since the page was last open.
     useStudentClassSettingsRefresh({ role, sessionToken, dispatch });
     const [area, setArea] = useState({ left: 12, width: 0, height: 0 });
@@ -131,7 +121,7 @@ const GenaiConcierge = ({
     useEffect(() => {
         if (!available) return;
         const update = () => {
-            const next = measureArea(rootRef.current);
+            const next = adapter.measureArea(rootRef.current);
             setArea((prev) =>
                 prev.left === next.left && prev.width === next.width && prev.height === next.height ? prev : next,
             );
@@ -143,7 +133,7 @@ const GenaiConcierge = ({
             clearInterval(timer);
             window.removeEventListener('resize', update);
         };
-    }, [available]);
+    }, [available, adapter]);
 
     // Count from when the face appears (e.g. on joining a class), not from the page load:
     // input before that is not watched, so an old start would offer help right away.
@@ -254,24 +244,12 @@ const GenaiConcierge = ({
     }, []);
 
     const handleMakePrompt = useCallback(() => {
-        const editing = vm.editingTarget;
         const kind = PROBLEM_KINDS.find((k) => k.id === kindId);
-        const programs = vm.runtime.targets
-            .filter((t) => t.isOriginal)
-            .map((t) => ({
-                name: t.isStage ? 'ステージ' : t.getName(),
-                code: RubyGenerator.targetToCode(t, { version: rubyVersion }),
-                sounds: t.getSounds().map((sound) => sound.name),
-                costumes: t.getCostumes().map((costume) => costume.name),
-            }))
-            .filter((p) => (p.code && p.code.trim()) || p.name === (editing && editing.getName()));
         setPrompt(
-            buildGenaiPrompt({
+            adapter.buildPrompt({
                 // The question to the AI stays in Japanese whatever the editor language (#1279).
                 kindLabel: kind.label,
                 text,
-                programs,
-                editingName: editing && !editing.isStage ? editing.getName() : null,
                 assignmentName,
             }),
         );
@@ -279,7 +257,7 @@ const GenaiConcierge = ({
         setCopied({});
         setPromptOpen(false);
         goTo('copy');
-    }, [vm, rubyVersion, kindId, text, assignmentName, goTo]);
+    }, [adapter, kindId, text, assignmentName, goTo]);
 
     // noopener: the opened page gets no reference back to Smalruby (it could otherwise
     // move this tab elsewhere), and the reference could not be used anyway (see aiOpened).
@@ -355,38 +333,8 @@ const GenaiConcierge = ({
     const handleTogglePrompt = useCallback(() => setPromptOpen((v) => !v), []);
     const handleClearNotice = useCallback(() => setNotice(''), []);
 
-    // Bring blocks into view at the top left, away from the panel at the right (#1293 G8):
-    // the marked ones when there are (a wide script would hide them under the panel, #1281),
-    // else all the blocks. Another sprite's blocks are shown in the editor first, and the
-    // scroll waits for its workspace update and for Blockly to draw the blocks (#1281 Q1).
-    const handleShowBlocks = useCallback(
-        (owner, ids) => {
-            showInEditor(vm, owner)
-                .then(() => afterBlocksRender(scratchBlocks))
-                .then(() => {
-                    const workspace = scratchBlocks && scratchBlocks.getMainWorkspace();
-                    if (!workspace) return;
-                    const boxes = (ids || [])
-                        .map((id) => workspace.getBlockById(id))
-                        .filter(Boolean)
-                        .map((block) => block.getBoundingRectangle());
-                    let box = null;
-                    if (boxes.length > 0) {
-                        box = {
-                            left: Math.min(...boxes.map((b) => b.left)),
-                            top: Math.min(...boxes.map((b) => b.top)),
-                        };
-                    } else {
-                        const all = workspace.getBlocksBoundingBox();
-                        const empty = !all || (all.right === all.left && all.bottom === all.top);
-                        box = empty ? null : all;
-                    }
-                    const to = scrollToShowBlocks({ bbox: box, scale: workspace.scale });
-                    if (to) workspace.scroll(to.x, to.y);
-                });
-        },
-        [vm, scratchBlocks],
-    );
+    // Bring what changed into view, away from the panel (and that sprite into the editor).
+    const handleShowBlocks = useCallback((owner, ids) => adapter.showBlocks(owner, ids), [adapter]);
 
     if (!available) return null;
 
@@ -460,7 +408,7 @@ const GenaiConcierge = ({
                         <GenaiAnswerSteps
                             key={answerKey}
                             vm={vm}
-                            rubyVersion={rubyVersion}
+                            adapter={adapter}
                             serviceName={target ? target.name : null}
                             prompt={prompt}
                             troubleKind={kindLabel}
@@ -469,7 +417,6 @@ const GenaiConcierge = ({
                             step={step}
                             notice={notice}
                             rubyteeAvailable={rubyteeAvailable}
-                            scratchBlocks={scratchBlocks}
                             onStep={goTo}
                             onCopy={copyAndOpen}
                             onShowBlocks={handleShowBlocks}
@@ -509,6 +456,11 @@ GenaiConcierge.propTypes = {
         removeListener: PropTypes.func,
         setEditingTarget: PropTypes.func,
     }).isRequired,
+    // Makes the adapter of the tab the panel is in: ({vm, intl, rubyVersion, scratchBlocks})
+    // => adapter (the points are described in src/lib/genai-code-adapter.js). The code tab's
+    // by default. Pass a function that stays the same between renders (not an inline arrow):
+    // a new one makes a new adapter, and the marks and the area are set up again each time.
+    createAdapter: PropTypes.func,
     rubyVersion: PropTypes.string,
     assignmentName: PropTypes.string,
     available: PropTypes.bool.isRequired,
