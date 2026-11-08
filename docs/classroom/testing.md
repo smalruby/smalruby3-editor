@@ -297,10 +297,12 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-class-ai-rubytee-terms` / `classroom-class-ai-rubytee-privacy` | a | 利用規約 / プライバシーポリシー（別タブ） |
 | `classroom-class-ai-rubytee-unconfirmed` | p | 確認の仕組みより前に有効にしたクラス（`rubytee.confirmed` が無い）の「まだ確認されていません」 |
 | `classroom-class-ai-preview` | aside | 「生徒の画面はこうなります」の見本（幅 1100px 未満では `display: none`） |
-| `classroom-class-ai-preview-consult` | span | 見本のコード画面の「AI に相談」ボタン（生成AI を使うときだけ） |
+| `classroom-class-ai-preview-consult` | span | 見本のコード画面の「AI に相談」の顔（生成AI を使うときだけ） |
+| `classroom-class-ai-preview-consult-ruby` | span | 見本の Ruby 画面の「AI に相談」の顔（生成AI を使うときだけ） |
 | `classroom-class-ai-preview-consult-off` | p | 生成AI を使わないときの説明 |
-| `classroom-class-ai-preview-rubytee` | span | 見本の Ruby タブの AI ボタン（`data-on="true/false"`。オフは薄く表示） |
-| `classroom-class-ai-preview-rubytee-off` | p | 「ルビティーがオフなので、Ruby タブの AI ボタンは出ません。」 |
+| `classroom-class-ai-preview-rubytee` | span | 見本の顔のパネルの［ルビティーにまかせる］（生成AI を使うときだけ。`data-on="true/false"`。オフは薄く表示） |
+| `classroom-class-ai-preview-rubytee-off` | p | 生成AI を使い、ルビティーがオフのときの説明 |
+| `classroom-class-ai-preview-rubytee-no-genai` | p | 生成AI を使わず、ルビティーがオンのときの説明（ルビティーは顔のパネルから使う） |
 | `classroom-show-archived` | button | 「アーカイブ済みのクラス（{count}）」トグル（アーカイブ済みが 1 件以上のとき表示） |
 | `classroom-archived-class-list` | ul | アーカイブ済みクラスのカード一覧 |
 | `classroom-class-restore-{groupId}` | button | アーカイブ済みクラスカードの「元に戻す」 |
