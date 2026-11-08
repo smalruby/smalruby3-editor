@@ -316,7 +316,7 @@ export default {
     'gui.classroom.classAi.heading': 'AI used in this class',
     'gui.classroom.classAi.genaiLabel': "Consult the school's generative AI",
     'gui.classroom.classAi.genaiNote':
-        'A “Consult AI” button appears on the Code screen. Students paste their work into the AI themselves, so Smalruby sends nothing.',
+        'An “Ask a generative AI” button appears in both the Code tab and the Ruby tab. Students paste their work into the AI themselves, so Smalruby sends nothing.',
     'gui.classroom.classAi.service.none': "Don't use",
     'gui.classroom.classAi.service.gemini': 'Gemini (Google)',
     'gui.classroom.classAi.service.geminiCondition':
@@ -337,7 +337,7 @@ export default {
     'gui.classroom.classAi.urlError.adultOnly': "This service is only for ages 18 and up, so it can't be used.",
     'gui.classroom.classAi.rubytee': 'Rubytee',
     'gui.classroom.classAi.rubyteeNote':
-        "Students can ask Smalruby's AI with the AI button in the Ruby tab. No sign-up needed.",
+        "When the generative AI's answer doesn't work, “Leave it to Rubytee” lets Smalruby's AI (Claude) fix it. No sign-up needed.",
     'gui.classroom.classAi.unsaved': 'Not saved',
     'gui.classroom.classAi.previewTitle': "Students' screen will look like this",
     'gui.classroom.classAi.previewCode': 'Code',

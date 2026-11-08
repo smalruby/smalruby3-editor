@@ -125,14 +125,32 @@ export const resolveGenaiTarget = ({ classGenai, devChoice }) => {
     return null;
 };
 
+/** The host of the branch previews (stg values, built like production). */
+export const PREVIEW_HOSTNAME = 'preview.smalruby.app';
+
+/**
+ * Whether `?features=genai` (the face outside a class, for development) works (#1412).
+ * Only with the dev server (`npm start`, not a production build) and in the branch
+ * previews: on smalruby.app the AI is only for the classes whose teacher turned it on.
+ * The previews are production builds too, so they are told apart by the host name.
+ * @param {object} params - parameters
+ * @param {string[]} params.features - the `?features=` values
+ * @param {boolean} params.production - a production build (`process.env.NODE_ENV`)
+ * @param {string} params.hostname - `window.location.hostname`
+ * @returns {boolean} true to turn the development flag on
+ */
+export const isGenaiDevFlag = ({ features, production, hostname }) =>
+    features.includes('genai') && (!production || hostname === PREVIEW_HOSTNAME);
+
 /**
  * Whether the face is shown: only to a student of a class that uses a
- * generative AI. `?features=genai` keeps it on outside a class for development.
+ * generative AI. `?features=genai` keeps it on outside a class for development
+ * (only with the dev server and the previews, see isGenaiDevFlag).
  * @param {object} params - parameters
  * @param {?string} params.role - classroom role ('student' / 'teacher' / null)
  * @param {?string} params.sessionToken - the student's session
  * @param {{enabled: boolean}} params.classGenai - see normalizeStudentGenai
- * @param {boolean} params.devFlag - `?features=genai`
+ * @param {boolean} params.devFlag - `?features=genai` (see isGenaiDevFlag)
  * @returns {boolean} true to show the face
  */
 export const isGenaiAvailable = ({ role, sessionToken, classGenai, devFlag }) => {

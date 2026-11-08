@@ -273,7 +273,6 @@ const GenaiAnswerSteps = ({
     onClose,
     onFinish,
     onReset,
-    onTakeover,
 }) => {
     const intl = useIntl();
     // The Ruby tab puts code in the editor, not blocks (#1398).
@@ -469,8 +468,6 @@ const GenaiAnswerSteps = ({
         }
     }, [adapter, troubleKind, troubleText, prompt, tries, sessionToken, checkText, onClearNotice]);
 
-    // The consent to Rubytee (that it is an AI) comes first, as in the Ruby tab.
-    const handleTakeover = useCallback(() => onTakeover(startTakeover), [onTakeover, startTakeover]);
     const handleCancelTakeover = useCallback(() => {
         if (abortRef.current) abortRef.current.abort();
         setTakeover(null);
@@ -624,7 +621,7 @@ const GenaiAnswerSteps = ({
                         </>
                     )}
                     {converted && !converted.ok && canOfferTakeover({ failures, rubyteeAvailable }) && (
-                        <button data-testid="genai-takeover" onClick={handleTakeover}>
+                        <button data-testid="genai-takeover" onClick={startTakeover}>
                             <FormattedMessage {...messages.takeover} />
                         </button>
                     )}
@@ -754,8 +751,6 @@ GenaiAnswerSteps.propTypes = {
     // 「これで閉じる」: keep the version shown now and start afresh next time.
     onFinish: PropTypes.func.isRequired,
     onReset: PropTypes.func.isRequired,
-    // 「ルビティーにまかせる」: called with the function starting it, once the consent is given.
-    onTakeover: PropTypes.func.isRequired,
 };
 
 export default GenaiAnswerSteps;

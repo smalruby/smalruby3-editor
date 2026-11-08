@@ -27,7 +27,6 @@ Smalruby のエディタ全体に影響する**設定**を管理する仕組み�
 | ふりがな | ON / OFF | localStorage `smalruby:furiganaEnabled` ([`docs/furigana/`](../furigana/)) |
 | DNCL モード | ON / OFF | localStorage `smalruby:dnclMode` ([`docs/dncl/`](../dncl/)) |
 | Auto-correct | ON / OFF | localStorage `smalruby:autoCorrectEnabled` ([`docs/ruby-editor/`](../ruby-editor/)) |
-| ルビティー同意 | 同意済み | localStorage `smalruby:rubyteeConsent` ([`docs/rubytee/`](../rubytee/)) |
 | クラスルーム管理 | (Smalruby 改良) | メニューから直接アクセス |
 
 ## 主要ファイル

@@ -89,15 +89,14 @@ Rubytee（ルビティー）は Anthropic Claude API を利用した AI 機能�
 | ファイル | 説明 |
 |---------|------|
 | `src/lib/genai-takeover.js` | ルビティーに送る文の組み立て・relay の呼び出し（ジョブの問い合わせ） |
-| `src/containers/genai-concierge.jsx` | ［ルビティーにまかせる］と同意フロー |
-| `src/components/rubytee-consent/rubytee-consent.jsx` | 同意確認ダイアログ |
+| `src/containers/genai-concierge.jsx` | 「生成AI に相談」のパネル（［ルビティーにまかせる］は `genai-answer-steps.jsx`） |
 
-### Consent Flow
+### 同意は先生側（生徒の画面では取らない）
 
-1. ［ルビティーにまかせる］をクリック
-2. `localStorage.getItem('smalruby:rubyteeConsent') !== 'true'` なら同意ダイアログを表示
-3. チェックボックス + OK → `localStorage.setItem('smalruby:rubyteeConsent', 'true')` → ルビティーを呼ぶ
-4. 「つかわない」→ 何も保存しない（次回また表示）
+AI 機能はクラス管理で先生が有効にしたクラスの生徒だけが使える。条件は先生が有効にするときに
+確かめるので、［ルビティーにまかせる］は同意画面を出さずにすぐ始まる（生徒向けの同意ダイアログと
+`smalruby:rubyteeConsent` は廃止）。開発用の `?features=genai` は dev server とブランチプレビュー
+だけで効く（`isGenaiDevFlag`）。
 
 ### Environment Variables
 

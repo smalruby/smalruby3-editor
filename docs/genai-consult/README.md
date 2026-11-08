@@ -97,8 +97,8 @@
 生成AI に書き直しをお願いしても 2 回ブロックにできなかったとき、ルビティー（Claude Sonnet）が作品を
 書き直す（`src/lib/genai-takeover.js`）。ルビティーが有効なクラス（`selectRubyteeAvailable`）の生徒だけ。
 
-1. ［ルビティーにまかせる］を押す。まだならルビティーの **同意ダイアログ**（AI であること・まちがえることが
-   ある・個人情報を書かない）を出す。Ruby タブのルビティーと同じもので、同意は共有（`smalruby:rubyteeConsent`）。
+1. ［ルビティーにまかせる］を押すと、すぐに始まる。生徒の画面では同意を取らない（先生がクラス管理で
+   ルビティーを有効にするときに条件を確かめているため）。
 2. ルビティーに渡すもの: 困りごと（種類と自分のことば）、作品全体の Ruby（スプライトごとに `# 「名前」` と
    音・コスチュームの名前）、生成AI に渡した質問文（最初の相談文と、コピーした書き直しのお願い）と
    貼りもどした答えのすべて、それぞれブロックにできなかった理由。relay の上限（1 万字）に収まらないときは
@@ -165,7 +165,7 @@ relay の呼び方: `POST /generate` に `purpose: "genai-takeover"` と、ク�
 |------|----|
 | 生徒としてクラス（課題）に参加していて、そのクラスで先生が生成AI を「使う」にしている | 出る |
 | 参加しているクラスで生成AI を使わない / クラスに参加していない / 先生 | 出ない |
-| `?features=genai`（開発用） | クラスの外でも出る |
+| `?features=genai`（開発用） | dev server（`npm start`）とブランチプレビュー（`preview.smalruby.app`）では、クラスの外でも出る。本番（smalruby.app）では効かない |
 
 クラスの設定（`genai.enabled` / `service` / `url`）は、参加（`/classrooms/join`）とセッション確認
 （`/classrooms/verify-session`）の応答で受け取り、Redux（`state.scratchGui.classroom.studentGenai`）に
@@ -182,7 +182,7 @@ relay の呼び方: `POST /generate` に `purpose: "genai-takeover"` と、ク�
 生成AI は URL のホスト名を出す）。
 
 プロトタイプにあった「1 回だけ聞いてブラウザに覚える」画面は、**`?features=genai` でクラスの外に
-いるときだけ**残している（開発・試用用）。クラスに参加していれば出ない（クラスで生成AI を使わない
+いるときだけ**残している（開発・試用用。dev server とプレビューだけ）。クラスに参加していれば出ない（クラスで生成AI を使わない
 なら顔そのものが出ないため、保険として残す必要がない）。
 
 ## 声かけ
@@ -311,7 +311,7 @@ Ruby タブの **Ruby モードとふりがなモード** でも同じパネル�
 | `smalruby:classroom` の `studentGenai` | localStorage | クラスの生成AI 設定（`{enabled, service, url}`） |
 | `smalruby:genaiNudgeOff` | localStorage | ［今日は出さない］を押した日付（`YYYY-MM-DD`）。プロトタイプの `'true'` は無効扱い |
 | `smalruby:genaiService` | localStorage | 開発用（`?features=genai` でクラス外）に選んだ生成AI |
-| `?features=genai` | URL | クラスの外でも顔を出す（開発用。Ruby タブは `ruby_version=2` のときだけ） |
+| `?features=genai` | URL | クラスの外でも顔を出す（開発用。dev server とプレビューだけで効き、本番では無視する。判定は `isGenaiDevFlag`。Ruby タブは `ruby_version=2` のときだけ） |
 | `?genai_idle=<秒>` | URL | 声かけまでの秒数を短くする（テスト用。あける時間も秒数の 4 倍までに縮む） |
 
 ## 主要ファイル
