@@ -5,14 +5,14 @@
  *   - 本文 (<main>) の scrollHeight / clientHeight
  *   - ［保存］([data-testid="classroom-class-settings-save"]) の getBoundingClientRect().bottom
  * を一覧で出す。どれか 1 つでも本文がスクロールするか［保存］が画面の外なら exit 1。
- * 確認のチェックは入れない (案内と理由が一番長く出る状態)。
+ * 確認のチェックは入れない (［保存］の左の案内が出て、一番長くなる状態)。
  *
  * classroom API は route interception でスタブするので stg デプロイ不要（dev server だけが前提）。
  * スクショは tmp/class-ai-settings-viewport-*.png。
  *
  *   node verify-class-ai-settings-viewport.mjs                 # コンテナ内 (headless)
  *   BASE=http://localhost:8621 node verify-class-ai-settings-viewport.mjs
- *   DOCS_SHOTS=1 node verify-class-ai-settings-viewport.mjs    # docs/classroom/screenshots の 0230 / 0242 も撮り直す
+ *   DOCS_SHOTS=1 node verify-class-ai-settings-viewport.mjs    # docs/classroom/screenshots の 0230 / 0231 / 0232 / 0242 / 0243 も撮り直す
  */
 import { chromium } from 'playwright';
 import { dirname, resolve } from 'node:path';
