@@ -523,11 +523,9 @@ export class ClassroomStack extends cdk.Stack {
         // explicit allowlist, so this has to be here for the documented knob
         // to actually be settable from .env.<stage>.
         DDB_MAX_PAGES: process.env.DDB_MAX_PAGES || '25',
-        // AI evaluation support (empty key disables the endpoint with 503)
-        ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || '',
-        // Workload Identity Federation (#1437): when rule / organization /
-        // service account are all set, these take precedence over the key.
-        // Unset = empty = the key path, unchanged.
+        // AI evaluation: Claude via Workload Identity Federation (#1437). Without
+        // rule / organization / service account the endpoint returns 503. There
+        // is no static API key path any more (#1438).
         ANTHROPIC_FEDERATION_RULE_ID: process.env.ANTHROPIC_FEDERATION_RULE_ID || '',
         ANTHROPIC_ORGANIZATION_ID: process.env.ANTHROPIC_ORGANIZATION_ID || '',
         ANTHROPIC_SERVICE_ACCOUNT_ID: process.env.ANTHROPIC_SERVICE_ACCOUNT_ID || '',

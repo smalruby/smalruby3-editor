@@ -90,7 +90,7 @@ docker compose run --rm -w /app/infra/smalruby-rubytee-relay infra npx cdk deplo
 | Variable | Description |
 |----------|-------------|
 | `STAGE` | Deployment stage (`stg` or `prod`) |
-| `ANTHROPIC_API_KEY` | Anthropic API key（worker だけ。WIF の 4 つの値がそろえば使わない。`docs/infra/claude-api-wif.md`） |
+| `ANTHROPIC_FEDERATION_RULE_ID` / `ANTHROPIC_ORGANIZATION_ID` / `ANTHROPIC_SERVICE_ACCOUNT_ID` / `ANTHROPIC_WORKSPACE_ID` | Claude を WIF で呼ぶ値（worker だけ。静的な API キーは使わない。`docs/infra/claude-api-wif.md`） |
 | `CLAUDE_TAKEOVER_MODEL` | 「ルビティーにまかせる」（worker）で使うモデル（default: `claude-sonnet-5-5`） |
 | `CLASSROOM_MEMBERSHIPS_TABLE_NAME` | 席を確かめるクラス管理の memberships 表名（既定 `ClassroomMemberships{suffix}`） |
 | `RATE_LIMIT_WINDOW_MINUTES` | Rate limit window in minutes (default: 35) |

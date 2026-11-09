@@ -20,7 +20,7 @@ relay の受け口（`RubyteeRelayHandler`）は Claude を呼ばない（Ruby �
 2. Anthropic の TypeScript SDK（`oidcFederationProvider`）が、その JWT を Claude API の短期トークンに交換して使う。交換・キャッシュ・期限前の更新は SDK が行う。
 3. Claude Console の **federation rule** が、JWT の `sub`（実行ロールの ARN）と audience を見て、どの service account・workspace のトークンを出すかを決める。
 
-コードは `lambda/anthropic-client.ts`（2 つのプロジェクトに同じ内容のコピー）。次の 4 つの環境変数が**すべて**そろうと WIF、そろわなければ `ANTHROPIC_API_KEY` で呼ぶ。どちらで動いているかは、起動時のログ `{"event":"anthropic_auth","mode":"federation" | "api-key"}` で分かる。WIF の交換に失敗してもキーには戻らない（`AI_API_ERROR`）。
+コードは `lambda/anthropic-client.ts`（2 つのプロジェクトに同じ内容のコピー）。次の 4 つの環境変数のうち、rule / organization / service account の 3 つがそろうと WIF で呼ぶ（workspace は任意）。静的な API キーの経路は無い。そろっていなければ Claude を呼ばない（AI 評価は 503、takeover は AI のエラー）。どちらの状態かは、起動時のログ `{"event":"anthropic_auth","mode":"federation" | "none"}` で分かる。WIF の交換に失敗したときは `AI_API_ERROR`。
 
 | 環境変数 | 値の形 | どこで見るか |
 |---|---|---|
@@ -86,7 +86,7 @@ done
 
 ### 4. 値を入れる
 
-`infra/<project>/.env.<stage>` に 4 つの値を書き足す。`.env.prod` は prod、`.env.stg` は stg。書き足す前にバックアップを取る（`cp .env.stg .env.stg.$(date +%Y%m%d%H%M)`）。`ANTHROPIC_API_KEY` は、キーを外す作業まで消さない（WIF の値が欠けたときの経路として残している）。
+`infra/<project>/.env.<stage>` に 4 つの値を書き足す。`.env.prod` は prod、`.env.stg` は stg。書き足す前にバックアップを取る（`cp .env.stg .env.stg.$(date +%Y%m%d%H%M)`）。
 
 ```
 ANTHROPIC_FEDERATION_RULE_ID=fdrl_...
@@ -133,5 +133,5 @@ Secrets を変えただけでは Lambda の環境変数は変わらない。出�
 | 交換が 401（認証履歴に `iss` の不一致） | issuer の URL が `IssuerIdentifier` と完全に一致していない | Console の issuer を直す |
 | 交換が 401（rule に合わない） | `subject_prefix` のロール ARN が違う。CDK がロールを作り直すと、ARN の末尾が変わる | 手順 2 で取り直して rule を直す |
 | `GetWebIdentityToken` が AccessDenied | ロールの Condition と `anthropic-client.ts` の呼び出し（audience・署名方式・秒数）がずれている | 両方をそろえる |
-| ログが `mode: "api-key"` のまま | 4 つの値の一部が無い、または出し直していない | 手順 4・5 |
+| ログが `mode: "none"` | 値の一部が無い、または出し直していない | 手順 4・5 |
 | 手元でウィザードのスニペットを動かして 401 | 手元の名義の JWT は rule のロールと合わない（正常） | 手順 6 のとおり Lambda から確かめる |

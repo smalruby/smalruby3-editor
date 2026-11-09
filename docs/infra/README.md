@@ -103,7 +103,7 @@ docker compose run --rm -w /app/infra/smalruby-rubytee-relay infra npx cdk deplo
 
 ```bash
 cp .env.example .env.<stage>
-# シークレット (ANTHROPIC_API_KEY, MESH_SECRET_KEY 等) を埋める
+# シークレット (MESH_SECRET_KEY 等) を埋める
 ln -sf .env.<stage> .env
 ```
 

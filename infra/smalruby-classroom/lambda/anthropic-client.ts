@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
-// Claude（Anthropic API）の client を作る。Workload Identity Federation（WIF）の値がそろっていれば
-// AWS STS の JWT を交換した短期トークンで、そろっていなければ ANTHROPIC_API_KEY で呼ぶ（#1437）。
+// Claude（Anthropic API）の client を作る。Workload Identity Federation（WIF）で、AWS STS の JWT を
+// 交換した短期トークンで呼ぶ（#1437）。静的な API キーの経路は持たない（#1438）。
 // smalruby-rubytee-relay の lambda/anthropic-client.ts と同じ内容（Lambda の bundling が読むコードなので
 // infra/shared ではなく各プロジェクトに持つ）。片方を直したらもう片方も直す。
 import Anthropic, { APIConnectionTimeoutError, APIError } from '@anthropic-ai/sdk';
@@ -11,24 +11,23 @@ import { GetWebIdentityTokenCommand, STSClient } from '@aws-sdk/client-sts';
 const ANTHROPIC_BASE_URL = 'https://api.anthropic.com';
 
 export interface AnthropicAuthEnv {
-  ANTHROPIC_API_KEY?: string;
   ANTHROPIC_FEDERATION_RULE_ID?: string;
   ANTHROPIC_ORGANIZATION_ID?: string;
   ANTHROPIC_SERVICE_ACCOUNT_ID?: string;
   ANTHROPIC_WORKSPACE_ID?: string;
 }
 
-export type AnthropicAuthMode = 'federation' | 'api-key' | 'none';
+export type AnthropicAuthMode = 'federation' | 'none';
 
 /**
- * どちらの経路で呼ぶか。フェデレーションは rule / organization / service account が
- * すべてそろったときだけ（workspace は任意）。一部だけなら設定の途中とみなしてキーを使う。
+ * WIF の値がそろっているか。rule / organization / service account がすべてそろったときだけ
+ * federation（workspace は任意）。一部だけなら none（呼ばない）。
  */
 export function resolveAnthropicAuthMode(env: AnthropicAuthEnv): AnthropicAuthMode {
   if (env.ANTHROPIC_FEDERATION_RULE_ID && env.ANTHROPIC_ORGANIZATION_ID && env.ANTHROPIC_SERVICE_ACCOUNT_ID) {
     return 'federation';
   }
-  return env.ANTHROPIC_API_KEY ? 'api-key' : 'none';
+  return 'none';
 }
 
 /**
@@ -76,7 +75,7 @@ export interface CreateAnthropicClientOptions {
  * client を作る（値が無ければ null）。maxRetries は 0: タイムアウトの再送で二重に課金したり
  * Lambda の時間を超えたりしないため（今までの fetch と同じくリトライしない）。
  * 交換・キャッシュ・期限前の更新は SDK に任せ、TokenCache で二重に包まない。
- * フェデレーションの交換に失敗してもキーには戻らない（設定の誤りを黙って隠さないため）。
+ * SDK は credentials を渡すと ANTHROPIC_API_KEY 環境変数を読まない。
  */
 export function createAnthropicClient(opts: CreateAnthropicClientOptions): {
   client: Anthropic | null;
@@ -96,9 +95,6 @@ export function createAnthropicClient(opts: CreateAnthropicClientOptions): {
       fetch: opts.fetch || globalThis.fetch,
     });
     return { client: new Anthropic({ ...common, credentials }), mode };
-  }
-  if (mode === 'api-key') {
-    return { client: new Anthropic({ ...common, apiKey: opts.env.ANTHROPIC_API_KEY }), mode };
   }
   return { client: null, mode };
 }
