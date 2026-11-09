@@ -128,9 +128,8 @@ export class RubyteeRelayStack extends cdk.Stack {
       environment: {
         JOBS_TABLE_NAME: this.jobsTable.tableName,
         USAGE_TABLE_NAME: this.usageTable.tableName,
-        ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || '',
-        // Workload Identity Federation（#1437）。rule / organization / service account が
-        // そろえば ANTHROPIC_API_KEY より優先する。未設定なら空 = キーの経路のまま。
+        // Claude は Workload Identity Federation（#1437）だけで呼ぶ。rule / organization /
+        // service account がそろっていなければ呼ばない（静的な API キーの経路は無い・#1438）。
         ANTHROPIC_FEDERATION_RULE_ID: process.env.ANTHROPIC_FEDERATION_RULE_ID || '',
         ANTHROPIC_ORGANIZATION_ID: process.env.ANTHROPIC_ORGANIZATION_ID || '',
         ANTHROPIC_SERVICE_ACCOUNT_ID: process.env.ANTHROPIC_SERVICE_ACCOUNT_ID || '',
@@ -186,8 +185,7 @@ export class RubyteeRelayStack extends cdk.Stack {
         USAGE_TABLE_NAME: this.usageTable.tableName,
         TAKEOVER_WORKER_FUNCTION_NAME: workerFn.functionName,
         CLASSROOM_MEMBERSHIPS_TABLE_NAME: classroomMembershipsTableName,
-        // handler は Claude を呼ばない（旧チャットを止めた・#1405）。ANTHROPIC_API_KEY と
-        // モデルの指定は worker だけが持つ。
+        // handler は Claude を呼ばない（旧チャットを止めた・#1405）。Claude の設定は worker だけが持つ。
         RATE_LIMIT_WINDOW_MINUTES: String(rateLimitWindowMinutes),
         RATE_LIMIT_MAX_REQUESTS: String(rateLimitMaxRequests),
         MIN_USER_MESSAGE_LENGTH: String(minUserMessageLength),

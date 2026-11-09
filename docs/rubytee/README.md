@@ -95,7 +95,7 @@ AWS Lambda リレーサービス（API Gateway HTTP API + Lambda + DynamoDB）�
 | `infra/smalruby-rubytee-relay/lambda/handler.ts` | API Lambda。リクエスト検証、レート制限、takeover のジョブ作成と `GET /jobs/{jobId}`。Claude は呼ばない。`purpose` が `genai-takeover` でない `POST /generate`（Ruby タブの旧チャット）は 410 `CHAT_DISCONTINUED` で断る |
 | `infra/smalruby-rubytee-relay/lambda/takeover.ts` | 「ルビティーにまかせる」の上限・システムプロンプト・キー・ジョブの形（純粋関数） |
 | `infra/smalruby-rubytee-relay/lambda/takeover-worker.ts` | takeover の worker Lambda。非同期で呼ばれ、Claude（Sonnet）を呼んで結果を jobs 表に書く |
-| `infra/smalruby-rubytee-relay/lambda/anthropic-client.ts` | worker が使う Claude の client（Anthropic SDK）。WIF の値がそろえば短期トークン、無ければ API キー。SDK のエラーを今のエラーコードに対応させる（classroom にも同じ内容のコピーがある） |
+| `infra/smalruby-rubytee-relay/lambda/anthropic-client.ts` | worker が使う Claude の client（Anthropic SDK）。WIF の短期トークンで呼ぶ（API キーの経路は無い）。SDK のエラーを今のエラーコードに対応させる（classroom にも同じ内容のコピーがある） |
 | `infra/smalruby-rubytee-relay/lambda/smalruby-reference.ts` | スモウルビーの言語仕様（takeover のプロンプトで使う） |
 | `infra/smalruby-rubytee-relay/lib/rubytee-relay-stack.ts` | CDK スタック定義 |
 | `infra/smalruby-rubytee-relay/lambda/tests/` | 単体テスト |
@@ -127,8 +127,7 @@ AWS Lambda リレーサービス（API Gateway HTTP API + Lambda + DynamoDB）�
 
 | 環境変数 | デフォルト | 用途 |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | - | Anthropic API キー。**worker だけ**。下の WIF の値がそろっていないときに使う |
-| `ANTHROPIC_FEDERATION_RULE_ID` / `ANTHROPIC_ORGANIZATION_ID` / `ANTHROPIC_SERVICE_ACCOUNT_ID` / `ANTHROPIC_WORKSPACE_ID` | 空 | **worker（ルビティーにまかせる）だけ**。Claude を Workload Identity Federation（WIF）で呼ぶ値。workspace 以外の 3 つがそろうと、worker の実行ロールの JWT（AWS STS `GetWebIdentityToken`）を短期トークンに交換して使い、`ANTHROPIC_API_KEY` は読まない。一部だけならキーのまま。交換に失敗してもキーには戻らない（`AI_API_ERROR`）。旧チャット（`handler.ts`）はキーのまま |
+| `ANTHROPIC_FEDERATION_RULE_ID` / `ANTHROPIC_ORGANIZATION_ID` / `ANTHROPIC_SERVICE_ACCOUNT_ID` / `ANTHROPIC_WORKSPACE_ID` | 空 | **worker（ルビティーにまかせる）だけ**。Claude を Workload Identity Federation（WIF）で呼ぶ値。workspace 以外の 3 つがそろうと、worker の実行ロールの JWT（AWS STS `GetWebIdentityToken`）を短期トークンに交換して使う。一部だけなら Claude を呼ばない。交換に失敗したときは `AI_API_ERROR`。設定は `docs/infra/claude-api-wif.md` |
 | `CLAUDE_TAKEOVER_MODEL` | `claude-sonnet-5-5` | 「ルビティーにまかせる」のモデル（worker だけ） |
 | `RATE_LIMIT_WINDOW_MINUTES` | `35` | レート制限ウィンドウ |
 | `RATE_LIMIT_MAX_REQUESTS` | `40` | ウィンドウ内最大リクエスト |

@@ -149,8 +149,8 @@ const ASSIGNMENT_IMAGE_CONTENT_TYPES: Record<string, string> = {
 // One call handles at most EVAL_MAX_SUBMISSIONS submissions so the response
 // fits API Gateway's hard 30s integration timeout — the client chunks a
 // whole class into several calls (the cached system prompt is shared).
-// Claude is reached via Workload Identity Federation when its settings are
-// all present, otherwise via ANTHROPIC_API_KEY (#1437). No client = 503.
+// Claude is reached via Workload Identity Federation (#1437); there is no
+// API key path (#1438). Without the federation settings there is no client = 503.
 // 25s per call: under API Gateway's 30s cap (previously no timeout at all, so
 // a slow call was cut by the gateway). No retries — a re-sent timeout would
 // double-bill and overrun the gateway limit.

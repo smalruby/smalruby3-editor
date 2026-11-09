@@ -6,10 +6,18 @@ const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
 
 const clientWith = (fn: (init?: RequestInit) => Promise<Response>, timeout = 1000) => createAnthropicClient({
-  env: { ANTHROPIC_API_KEY: 'sk-ant-api-test' },
+  env: {
+    ANTHROPIC_FEDERATION_RULE_ID: 'fdrl_test',
+    ANTHROPIC_ORGANIZATION_ID: '00000000-0000-4000-8000-000000000001',
+    ANTHROPIC_SERVICE_ACCOUNT_ID: 'svac_test',
+  },
+  identityTokenProvider: async () => 'aws-jwt',
   timeout,
   logLabel: 'test',
-  fetch: (async (_input: unknown, init?: RequestInit) => fn(init)) as typeof fetch,
+  // WIF のトークン交換には固定の応答を返し、Messages の呼び出しだけを fn に渡す
+  fetch: (async (input: unknown, init?: RequestInit) => (String(input).includes('/v1/oauth/token')
+    ? json(200, { access_token: 'sk-ant-oat-test', expires_in: 3600 })
+    : fn(init))) as typeof fetch,
 }).client!;
 
 beforeEach(() => {
@@ -42,7 +50,8 @@ describe('callClaudeForEvaluation', () => {
     expect(body.system).toEqual([{ type: 'text', text: 'SYSTEM', cache_control: { type: 'ephemeral' } }]);
     expect(body.messages).toEqual([{ role: 'user', content: 'USER' }]);
     expect(body.max_tokens).toBe(4096);
-    expect(new Headers(sent?.headers).get('anthropic-beta')).toBeNull();
+    // WIF では SDK が oauth の beta を付ける。prompt caching の beta は付けない
+    expect(new Headers(sent?.headers).get('anthropic-beta') ?? '').not.toContain('prompt-caching');
   });
 
   test.each([529, 500, 400])('Claude の %i は 502 AI_API_ERROR', async status => {
