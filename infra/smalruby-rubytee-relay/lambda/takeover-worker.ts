@@ -22,7 +22,7 @@ const USAGE_TABLE_NAME = process.env.USAGE_TABLE_NAME || '';
 const CLAUDE_TAKEOVER_MODEL = process.env.CLAUDE_TAKEOVER_MODEL || 'claude-sonnet-5-5';
 
 const docClient = DynamoDBDocumentClient.from(new DynamoDBClient({}));
-// WIF の値がそろっていれば短期トークン、無ければ ANTHROPIC_API_KEY（#1437）。
+// Claude は WIF の短期トークンだけで呼ぶ（#1437・API キーの経路は無い #1438）。
 const { client: anthropicClient } = createAnthropicClient({
   env: process.env,
   timeout: TAKEOVER_ANTHROPIC_TIMEOUT_MS,
@@ -58,7 +58,7 @@ export async function callClaudeForTakeover(
   client: Anthropic | null = anthropicClient,
 ): Promise<TakeoverResult> {
   if (!client) {
-    console.error('[Takeover] Claude is not configured (no API key or federation settings)');
+    console.error('[Takeover] Claude is not configured (no federation settings)');
     return { status: 'error', error: 'AI_API_ERROR' };
   }
   try {
