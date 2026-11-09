@@ -130,6 +130,12 @@ export class RubyteeRelayStack extends cdk.Stack {
         JOBS_TABLE_NAME: this.jobsTable.tableName,
         USAGE_TABLE_NAME: this.usageTable.tableName,
         ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || '',
+        // Workload Identity Federation（#1437）。rule / organization / service account が
+        // そろえば ANTHROPIC_API_KEY より優先する。未設定なら空 = キーの経路のまま。
+        ANTHROPIC_FEDERATION_RULE_ID: process.env.ANTHROPIC_FEDERATION_RULE_ID || '',
+        ANTHROPIC_ORGANIZATION_ID: process.env.ANTHROPIC_ORGANIZATION_ID || '',
+        ANTHROPIC_SERVICE_ACCOUNT_ID: process.env.ANTHROPIC_SERVICE_ACCOUNT_ID || '',
+        ANTHROPIC_WORKSPACE_ID: process.env.ANTHROPIC_WORKSPACE_ID || '',
         CLAUDE_TAKEOVER_MODEL: process.env.CLAUDE_TAKEOVER_MODEL || 'claude-sonnet-5-5',
         STAGE: stage,
       },
@@ -139,10 +145,16 @@ export class RubyteeRelayStack extends cdk.Stack {
         externalModules: [],
       },
     });
-    // worker の権限は「jobs 表と usage 表への UpdateItem」だけ
+    // worker の権限は「jobs 表と usage 表への UpdateItem」と、Claude の WIF 用の JWT の取得だけ
     workerFn.addToRolePolicy(new iam.PolicyStatement({
       actions: ['dynamodb:UpdateItem'],
       resources: [this.jobsTable.tableArn, this.usageTable.tableArn],
+    }));
+    // Workload Identity Federation（#1437）: 実行ロールの JWT を STS から取る。リソースを絞れない API。
+    // アカウントで Outbound web identity federation を有効にするまでは呼んでも失敗するだけ。
+    workerFn.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['sts:GetWebIdentityToken'],
+      resources: ['*'],
     }));
 
     // クラス管理（別スタック）の memberships 表。takeover / chat の席を sessionToken で確かめるため、
