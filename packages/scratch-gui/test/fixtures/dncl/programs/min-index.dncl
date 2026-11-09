@@ -1,0 +1,11 @@
+# 最小値とその添字
+Data = [8, 3, 6, 1, 7]
+saisyou = Data[0]
+basyo = 0
+i を 1 から 要素数(Data) - 1 まで 1 ずつ増やしながら
+  もし Data[i] < saisyou ならば
+    saisyou = Data[i]
+    basyo = i
+  を実行する
+を繰り返す
+表示する("最小値は", saisyou, "で添字は", basyo)

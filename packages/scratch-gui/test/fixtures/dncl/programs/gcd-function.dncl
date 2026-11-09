@@ -1,0 +1,12 @@
+# ユークリッドの互除法で最大公約数を求める関数（引数はほかの変数に写してから変える）
+関数 saidaikouyakusuu(a, b)
+  x = a
+  y = b
+  y != 0 の間
+    amari = x % y
+    x = y
+    y = amari
+  を繰り返す
+  返す x
+と定義する
+表示する(saidaikouyakusuu(12, 18))

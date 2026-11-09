@@ -1,0 +1,9 @@
+# 階乗を求める関数
+関数 kaijou(n)
+  kekka = 1
+  i を 1 から n まで 1 ずつ増やしながら
+    kekka = kekka * i
+  を繰り返す
+  返す kekka
+と定義する
+表示する(kaijou(5))

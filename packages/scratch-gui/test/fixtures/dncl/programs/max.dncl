@@ -1,0 +1,9 @@
+# 配列の最大値（最初の要素から始める）
+Data = [-5, -2, -9, -1]
+saidai = Data[0]
+i を 1 から 要素数(Data) - 1 まで 1 ずつ増やしながら
+  もし Data[i] > saidai ならば
+    saidai = Data[i]
+  を実行する
+を繰り返す
+表示する(saidai)

@@ -1,0 +1,6 @@
+# 「を繰り返す」で閉じ忘れている
+Tensu = [70, 85, 90, 60]
+goukei = 0
+i を 0 から 要素数(Tensu) - 1 まで 1 ずつ増やしながら
+  goukei = goukei + Tensu[i]
+表示する("合計", goukei)
