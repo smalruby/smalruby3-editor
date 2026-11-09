@@ -9,7 +9,12 @@ import analytics from '../lib/analytics';
 import { renderBlocksToCanvas } from '../lib/blocks-screenshot.js';
 import classroomAPI from '../lib/classroom-api.js';
 import { getProjectThumbnail } from '../lib/store-project-thumbnail.js';
-import { clearClassroomSession, clearSubmissionThumbnail, setSubmissionStatus } from '../reducers/classroom.js';
+import {
+    clearClassroomSession,
+    clearSubmissionThumbnail,
+    closeClassroomModal,
+    setSubmissionStatus,
+} from '../reducers/classroom.js';
 import translateError from './classroom-error-utils.js';
 
 // Server-side limit of each screenshotLabels entry (#1239).
@@ -28,6 +33,8 @@ const MAX_SCREENSHOT_LABEL_LENGTH = 100;
  * @param {object} params.intl - react-intl intl object
  * @param {Function} params.setIsLoading - loading state setter
  * @param {Function} params.setPhase - phase setter
+ * @param {Function} [params.targetCodeToBlocks] - converts the edited Ruby code to blocks
+ *     (from RubyToBlocksConverterHOC)
  * @returns {object} submit state and handler functions
  */
 const useStudentSubmit = ({
@@ -42,6 +49,7 @@ const useStudentSubmit = ({
     intl,
     setIsLoading,
     setPhase,
+    targetCodeToBlocks,
 }) => {
     const [thumbnailDataUrl, setThumbnailDataUrl] = useState(null);
     const [submitProgress, setSubmitProgress] = useState(null);
@@ -122,6 +130,20 @@ const useStudentSubmit = ({
         clearError();
         setIsLoading(true);
         try {
+            // Code edited in the Ruby tab is not blocks yet; submitting it as-is
+            // sent a project without those blocks (#1449). Convert first, like
+            // saving and running do.
+            if (targetCodeToBlocks) {
+                const converter = await targetCodeToBlocks(intl);
+                if (!converter.result) {
+                    // The HOC already opened the Ruby tab with the error; close
+                    // the modal so the student can see it.
+                    dispatch(closeClassroomModal());
+                    return;
+                }
+                await converter.apply();
+            }
+
             const submitProjectTitle = projectTitle || 'Untitled';
             const { blobs: screenshotBlobs, labels: screenshotLabels } = await captureBlockScreenshots();
 
@@ -200,6 +222,7 @@ const useStudentSubmit = ({
         projectTitle,
         thumbnailDataUrl,
         captureBlockScreenshots,
+        targetCodeToBlocks,
         dispatch,
         clearError,
         showError,
