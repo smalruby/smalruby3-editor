@@ -50,10 +50,36 @@ const convertIdentifier = (name) => {
 
 /**
  * Convert Japanese bracket strings 「...」 to "..." in a line.
+ * 「」 inside a `"..."` / `'...'` literal are part of that string's text
+ * (a Japanese sentence often quotes words with 「」), so they are left as
+ * they are. (Issue #1457)
  * @param {string} line - The source line.
  * @returns {string} The line with converted strings.
  */
-const convertJapaneseStrings = (line) => line.replace(/「([^」]*)」/g, '"$1"')
+const convertJapaneseStrings = (line) => {
+  let result = ''
+  let i = 0
+  while (i < line.length) {
+    const ch = line[i]
+    if (ch === '"' || ch === "'") {
+      const end = skipString(line, i, ch)
+      result += line.substring(i, end)
+      i = end
+      continue
+    }
+    if (ch === '「') {
+      const close = line.indexOf('」', i + 1)
+      if (close !== -1) {
+        result += `"${line.substring(i + 1, close)}"`
+        i = close + 1
+        continue
+      }
+    }
+    result += ch
+    i++
+  }
+  return result
+}
 
 /**
  * Convert arrow assignment ← to = in a string.
