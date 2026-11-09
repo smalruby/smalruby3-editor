@@ -17,6 +17,8 @@
 #   - `.husky/_` も main へ symlink。commit-msg フック（共有 `core.hooksPath`）が
 #     source する husky.sh は npm install の生成物なので、無いと commit / merge が
 #     まるごと失敗する（Issue #1137）。
+#   - `infra/<project>/node_modules` は、main の入っている版が worktree の lock と
+#     同じときだけ main へ symlink し、違えば worktree で `npm ci` する（Issue #1454）。
 #
 # 制約（lightweight モードの前提）:
 #   - **単一パッケージのソース編集**を想定。`@smalruby/<pkg>` は main checkout に
@@ -217,6 +219,17 @@ exclude_node_modules() {
         } >> "${exclude}"
         echo "excluded: husky helper symlink via ${exclude}"
     fi
+
+    # infra/<project>/node_modules の symlink も同様（Issue #1454）。infra 各プロジェクトの
+    # .gitignore は `node_modules/`（末尾スラッシュ）で、symlink には効かない（#801 と同型）。
+    local infra_marker="# autopilot: ignore shared infra node_modules symlinks (Issue #1454)"
+    if ! grep -qxF "${infra_marker}" "${exclude}" 2>/dev/null; then
+        {
+            echo "${infra_marker}"
+            echo "infra/*/node_modules"
+        } >> "${exclude}"
+        echo "excluded: infra node_modules symlinks via ${exclude}"
+    fi
 }
 
 # 各 packages/*/node_modules を main へ symlink（無い場合のみ）
@@ -293,6 +306,59 @@ link_husky_helpers() {
     echo "linked: .husky/_ -> main"
 }
 
+# infra/<project>/node_modules を worktree の lock に合わせて用意する（冪等・Issue #1454）。
+# 理由: infra の CDK プロジェクトは npm workspaces の外にあり、root / packages の
+# node_modules の symlink では入らない。worker が main のものへ手で symlink すると、
+# main checkout（人間と共有）が develop より古いとき古い依存でテストが走り、worktree の
+# lock に足された依存（#1442 の `@anthropic-ai/sdk` 等）が「Cannot find module」になる。
+# そこで main の `node_modules/.package-lock.json`（npm が入れた版の記録）と worktree の
+# `package-lock.json` を tools/autopilot/src/lockfile.js で比べ:
+#   - 一致する → main へ symlink（軽量モードの考え方どおり共有）
+#   - 一致しない / main に node_modules が無い → worktree で `npm ci`（lock 固定の版を
+#     入れるので 3 日ルールに反しない）
+# 再準備時は既存の symlink を張り直して判定し直す（base 追従で lock が変わった場合）。
+# 実体のディレクトリは、それ自体が lock と一致すればそのまま使う。
+# npm ci が失敗しても worktree の作成は止めない（infra を触らない Issue まで巻き込まない）。
+link_infra_node_modules() {
+    local wt="$1"
+    # このスクリプトと同じ checkout の比較処理を使う（無ければ worktree 側）
+    local compare
+    compare="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/tools/autopilot/src/lockfile.js"
+    [[ -f "${compare}" ]] || compare="${wt}/tools/autopilot/src/lockfile.js"
+    if [[ ! -f "${compare}" ]]; then
+        echo "warn: lockfile.js not found; skipping infra node_modules setup" >&2
+        return 0
+    fi
+    local lock
+    for lock in "${wt}"/infra/*/package-lock.json; do
+        [[ -f "${lock}" ]] || continue
+        local proj_dir proj src dst
+        proj_dir=$(dirname "${lock}")
+        proj=$(basename "${proj_dir}")
+        src="${MAIN_CHECKOUT}/infra/${proj}/node_modules"
+        dst="${proj_dir}/node_modules"
+        if [[ -L "${dst}" ]]; then
+            rm -f "${dst}"
+        elif [[ -d "${dst}" ]]; then
+            if node "${compare}" "${dst}/.package-lock.json" "${lock}" 2>/dev/null; then
+                continue
+            fi
+        fi
+        local why=""
+        if [[ -d "${src}" ]] && why=$(node "${compare}" "${src}/.package-lock.json" "${lock}" 2>&1); then
+            ln -s "${src}" "${dst}"
+            echo "linked: infra/${proj}/node_modules -> main"
+            continue
+        fi
+        echo "info: infra/${proj}: main node_modules does not match the lock (${why:-missing}); running npm ci"
+        if ! ( cd "${proj_dir}" && npm ci --no-audit --no-fund >/dev/null ); then
+            echo "warn: npm ci failed in infra/${proj}; its tests may not run in this worktree" >&2
+            continue
+        fi
+        echo "installed: infra/${proj}/node_modules (npm ci)"
+    done
+}
+
 cmd_create() {
     local issue="$1"; shift || true
     local base="origin/develop"
@@ -363,6 +429,8 @@ cmd_create() {
         link_prepare_artifacts "${wt}"
         # husky の生成物（commit-msg フックが source する husky.sh）も main へ symlink（#1137）
         link_husky_helpers "${wt}"
+        # infra の依存は worktree の lock に合わせる（一致すれば symlink・違えば npm ci。#1454）
+        link_infra_node_modules "${wt}"
     fi
 
     # symlink した node_modules / prepare 生成物を確実に無視させる保険（base が古くても効く）
