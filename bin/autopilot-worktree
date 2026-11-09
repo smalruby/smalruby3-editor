@@ -346,6 +346,8 @@ link_infra_node_modules() {
         fi
         local why=""
         if [[ -d "${src}" ]] && why=$(node "${compare}" "${src}/.package-lock.json" "${lock}" 2>&1); then
+            # lock と合わない実体が残っていると `ln -s` がその中に node_modules/node_modules を作る
+            rm -rf "${dst}"
             ln -s "${src}" "${dst}"
             echo "linked: infra/${proj}/node_modules -> main"
             continue

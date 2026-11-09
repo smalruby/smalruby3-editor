@@ -188,6 +188,9 @@ function runLinkInfra({ mainLock, mainInstalled, wtLock, wtExisting }) {
             path.join(mainDir, 'infra', proj, 'node_modules'),
             path.join(wtDir, 'infra', proj, 'node_modules'),
         );
+    } else if (wtExisting) {
+        // a real directory left by an earlier `npm ci` (wtExisting = its installed lock)
+        writeJson(path.join(wtDir, 'infra', proj, 'node_modules', '.package-lock.json'), wtExisting);
     }
     fs.mkdirSync(binDir, { recursive: true });
     fs.writeFileSync(
@@ -268,6 +271,30 @@ test('re-preparing replaces a stale symlink to main with npm ci', () => {
     });
     assert.strictEqual(r.isSymlink, false);
     assert.strictEqual(r.npmCalls.length, 1);
+});
+
+test('re-preparing keeps a real node_modules that equals the lock', () => {
+    const r = runLinkInfra({
+        mainLock: lockOf(STALE),
+        mainInstalled: installedOf(STALE),
+        wtLock: lockOf(CURRENT),
+        wtExisting: installedOf(CURRENT),
+    });
+    assert.strictEqual(r.isSymlink, false);
+    assert.deepStrictEqual(r.npmCalls, []);
+});
+
+test('re-preparing replaces a stale real node_modules with a symlink when main now matches', () => {
+    const r = runLinkInfra({
+        mainLock: lockOf(CURRENT),
+        mainInstalled: installedOf(CURRENT),
+        wtLock: lockOf(CURRENT),
+        wtExisting: installedOf(STALE),
+    });
+    // `ln -s` into an existing directory would create node_modules/node_modules instead
+    assert.strictEqual(r.isSymlink, true);
+    assert.strictEqual(r.target, r.mainNodeModules);
+    assert.deepStrictEqual(r.npmCalls, []);
 });
 
 test('lightweight setup calls link_infra_node_modules', () => {
