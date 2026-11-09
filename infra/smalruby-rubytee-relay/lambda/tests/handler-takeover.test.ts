@@ -1,4 +1,4 @@
-// handler の takeover 経路（非同期ジョブ）と、purpose 未指定の経路が変わらないことの確認。
+// handler の takeover 経路（非同期ジョブ）と、旧チャット（purpose が genai-takeover でない）を 410 で断ることの確認。
 // 他のテストファイルと識別子を共有しないよう、モジュールとして扱わせる（ts-jest の TS2451 対策）。
 export {};
 const mockSend = jest.fn();
@@ -162,12 +162,6 @@ describe('handler: takeover (purpose = genai-takeover)', () => {
     expect(JSON.parse(res.body).error).toBe('INPUT_TOO_LONG');
   });
 
-  test('purpose 未指定の経路は 200KB の判定をせず、従来の各項目の上限で答える', async () => {
-    const res = await handler(makeEvent({ userMessage: 'あ'.repeat(80000) }));
-    expect(res.statusCode).toBe(400);
-    expect(JSON.parse(res.body).error).toBe('INPUT_TOO_LONG');
-  });
-
   test('sessionToken が無ければ今の IP 単位で数え、表を引かない', async () => {
     await handler(makeEvent({ userMessage: takeoverBody.userMessage, purpose: 'genai-takeover' }));
     expect(rateKeysSent()).toEqual(['10.0.0.1']);
@@ -249,63 +243,42 @@ describe('handler: takeover の席は sessionToken で確かめる', () => {
   });
 });
 
-describe('handler: purpose 未指定は今のまま', () => {
-  test('250 字を超える入力は INPUT_TOO_LONG（takeover の上限は効かない）', async () => {
-    const res = await handler(makeEvent({ userMessage: 'a'.repeat(251) }));
-    expect(res.statusCode).toBe(400);
-    expect(JSON.parse(res.body).error).toBe('INPUT_TOO_LONG');
-  });
-
-  test('currentCode 1000 字の上限も今のまま', async () => {
-    const res = await handler(makeEvent({
-      userMessage: 'ねこをうごかしたいです',
-      stateContext: { sprite: { name: 'ネコ', currentCode: 'a'.repeat(1001) } },
-    }));
-    expect(res.statusCode).toBe(400);
-    expect(JSON.parse(res.body).error).toBe('INVALID_STATE_CONTEXT');
-  });
-
-  test('同期で Claude を呼び、max_tokens 1024 のまま・worker は起動しない', async () => {
-    const fetchMock = jest.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ content: [{ type: 'text', text: 'こたえ' }], usage: { input_tokens: 1, output_tokens: 2 } }),
-    });
+// #1405: Ruby タブのチャット（purpose 未指定）は GUI から外したので、受け口を止める。
+// Claude を呼ばず、レート制限・集計・席の確認の表にも触らない（費用も書き込みも発生させない）。
+describe('handler: 旧チャット（purpose が genai-takeover でない）は 410', () => {
+  const expectDiscontinued = async (body: unknown) => {
+    const fetchMock = jest.fn();
     const origFetch = global.fetch;
     global.fetch = fetchMock as unknown as typeof fetch;
     try {
-      const res = await handler(makeEvent({ userMessage: 'ねこをうごかしたいです', sessionToken: TOKEN }));
-      expect(res.statusCode).toBe(200);
-      const sent = JSON.parse(fetchMock.mock.calls[0][1].body);
-      expect(sent.max_tokens).toBe(1024);
+      const res = await handler(makeEvent(body));
+      expect(res.statusCode).toBe(410);
+      expect(JSON.parse(res.body)).toEqual({ error: 'CHAT_DISCONTINUED' });
+      expect(res.headers['Access-Control-Allow-Origin']).toBe('https://smalruby.app');
+      expect(fetchMock).not.toHaveBeenCalled();
       expect(mockLambdaSend).not.toHaveBeenCalled();
-      const rateKeys = commands()
-        .filter(c => c.kind === 'Update' && c.input.TableName === 'RateLimit')
-        .map(c => c.input.Key.sourceIp);
-      expect(rateKeys).toEqual(['10.0.0.1']);
-      // 集計は chat として数える
-      const usage = commands().find(c => c.kind === 'Update' && c.input.TableName === 'Usage');
-      expect(usage!.input.Key.sk).toMatch(/#seat#3#chat$/);
-      expect(usage!.input.UpdateExpression).toContain('#succeeded');
+      expect(mockSend).not.toHaveBeenCalled();
     } finally {
       global.fetch = origFetch;
     }
+  };
+
+  test('purpose 未指定は Claude を呼ばず 410 CHAT_DISCONTINUED', async () => {
+    await expectDiscontinued({ userMessage: 'ねこをうごかしたいです', sessionToken: TOKEN });
   });
 
-  test('chat の集計も、名乗った classroom / seat ではなく確かめた席で数える', async () => {
-    const fetchMock = jest.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ content: [{ type: 'text', text: 'こたえ' }], usage: { input_tokens: 1, output_tokens: 2 } }),
-    });
-    const origFetch = global.fetch;
-    global.fetch = fetchMock as unknown as typeof fetch;
-    try {
-      await handler(makeEvent({ userMessage: 'ねこをうごかしたいです', classroom: 'victim-cls', seat: '7' }));
-      const usage = commands().find(c => c.kind === 'Update' && c.input.TableName === 'Usage');
-      expect(usage!.input.Key).toEqual({ pk: 'classroom#-', sk: expect.stringMatching(/#seat#-#chat$/) });
-      expect(commands().find(c => c.kind === 'Query')).toBeUndefined();
-    } finally {
-      global.fetch = origFetch;
-    }
+  test('未知の purpose も 410', async () => {
+    await expectDiscontinued({ userMessage: 'ねこをうごかしたいです', purpose: 'chat' });
+  });
+
+  test('入力の検査より先に断る（大きすぎる入力でも 410）', async () => {
+    await expectDiscontinued({ userMessage: 'あ'.repeat(80000) });
+  });
+
+  test('本文が JSON でなければ従来どおり 400 INVALID_JSON', async () => {
+    const res = await handler({ ...makeEvent({}), body: '{' });
+    expect(res.statusCode).toBe(400);
+    expect(JSON.parse(res.body).error).toBe('INVALID_JSON');
   });
 });
 

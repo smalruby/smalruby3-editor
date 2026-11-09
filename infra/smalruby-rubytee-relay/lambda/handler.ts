@@ -4,7 +4,6 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, UpdateCommand, GetCommand, PutCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
 import { randomUUID } from 'crypto';
-import { SMALRUBY_REFERENCE } from './smalruby-reference';
 import {
   MAX_TAKEOVER_MESSAGE_LENGTH,
   MAX_TAKEOVER_CURRENT_CODE_LENGTH,
@@ -33,19 +32,12 @@ import {
 // Configuration (from environment variables)
 // ---------------------------------------------------------------------------
 const RATE_LIMIT_TABLE_NAME = process.env.RATE_LIMIT_TABLE_NAME || '';
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
-const CLAUDE_MODEL = process.env.CLAUDE_MODEL || 'claude-haiku-4-5-20251001';
-// 「ルビティーにまかせる」(purpose = genai-takeover) 用のモデル
-const CLAUDE_TAKEOVER_MODEL = process.env.CLAUDE_TAKEOVER_MODEL || 'claude-sonnet-5-5';
 const RATE_LIMIT_WINDOW_MINUTES = parseInt(process.env.RATE_LIMIT_WINDOW_MINUTES || '35', 10);
 const RATE_LIMIT_MAX_REQUESTS = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '40', 10);
-const MAX_USER_MESSAGE_LENGTH = parseInt(process.env.MAX_USER_MESSAGE_LENGTH || '250', 10);
 const MIN_USER_MESSAGE_LENGTH = parseInt(process.env.MIN_USER_MESSAGE_LENGTH || '10', 10);
 const CORS_ALLOWED_ORIGINS = (process.env.CORS_ALLOWED_ORIGINS || 'https://smalruby.app').split(',').map(o => o.trim());
 const MAX_FIELD_NAME_LENGTH = 100;       // sprite/costume/sound names
-const MAX_CURRENT_CODE_LENGTH = 1000;    // currentCode in stateContext
 const MAX_HISTORY_TURNS = 20;            // conversation turns
-const MAX_HISTORY_TURN_TEXT_LENGTH = 1000; // chars per history turn
 // 「ルビティーにまかせる」(takeover) 用
 const JOBS_TABLE_NAME = process.env.JOBS_TABLE_NAME || '';
 const USAGE_TABLE_NAME = process.env.USAGE_TABLE_NAME || '';
@@ -57,13 +49,10 @@ const TAKEOVER_IP_MAX_REQUESTS = parseInt(process.env.TAKEOVER_IP_MAX_REQUESTS |
 // クラス管理の memberships 表（別スタック・読み取り専用）。sessionToken から席を確かめる (#1317)
 const CLASSROOM_MEMBERSHIPS_TABLE_NAME = process.env.CLASSROOM_MEMBERSHIPS_TABLE_NAME || '';
 
-// Request purposes. Unknown / missing purposes fall back to the default model.
+// Request purposes. 受け付けるのは「ルビティーにまかせる」だけ。Ruby タブの旧チャット
+// （purpose 未指定）は GUI から外したので 410 で断る (#1405)。
 const PURPOSE_GENAI_TAKEOVER = 'genai-takeover';
 const KNOWN_PURPOSES = [PURPOSE_GENAI_TAKEOVER];
-
-// Anthropic API
-const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
-const ANTHROPIC_VERSION = '2023-06-01';
 
 // ---------------------------------------------------------------------------
 // DynamoDB client
@@ -151,7 +140,7 @@ const DANGEROUS_PATTERNS = [
 
 export function validateStateContext(
   stateContext?: StateContext,
-  maxCurrentCodeLength: number = MAX_CURRENT_CODE_LENGTH,
+  maxCurrentCodeLength: number = MAX_TAKEOVER_CURRENT_CODE_LENGTH,
 ): { valid: boolean; error?: string } {
   if (!stateContext) return { valid: true };
 
@@ -210,7 +199,7 @@ export function validateStateContext(
 
 export function validateHistory(
   history?: HistoryTurn[],
-  maxTurnTextLength: number = MAX_HISTORY_TURN_TEXT_LENGTH,
+  maxTurnTextLength: number = MAX_TAKEOVER_HISTORY_TURN_TEXT_LENGTH,
 ): { valid: boolean; error?: string } {
   if (!history) return { valid: true };
   if (history.length > MAX_HISTORY_TURNS) {
@@ -228,7 +217,7 @@ export function validateHistory(
 
 export function validateInput(
   userMessage: string,
-  maxLength: number = MAX_USER_MESSAGE_LENGTH,
+  maxLength: number = MAX_TAKEOVER_MESSAGE_LENGTH,
 ): { valid: boolean; error?: string } {
   if (!userMessage || typeof userMessage !== 'string') {
     return { valid: false, error: 'INPUT_MISSING' };
@@ -294,153 +283,7 @@ export async function checkAndIncrementRateLimit(
 }
 
 // ---------------------------------------------------------------------------
-// System instruction builder (English for cost efficiency)
-// ---------------------------------------------------------------------------
-export function buildSystemInstruction(stateContext?: StateContext): string {
-  const stateSection = stateContext ? buildStateSection(stateContext) : '';
-
-  return `You are "Smalruby Teacher". Help elementary and middle school students create fun games and animations by generating simple, easy-to-understand Ruby code for Smalruby (smalruby) programming.
-
-${SMALRUBY_REFERENCE}## Code Generation Guidelines
-
-1. **Keep it simple**: Write code that elementary/middle school students can read and understand. Use a single sprite unless the user explicitly asks for multiple sprites.
-2. **Make it interactive**: Prioritize code with movement, keyboard control, and coordinate changes.
-3. **Comment in Japanese**: Add Japanese comments where helpful
-4. **Always start with an event**: Begin programs with \`when_flag_clicked do...end\`
-5. **Output code in code blocks (required)**: Always output Ruby code in this format:
-   \`\`\`ruby
-   (code here)
-   \`\`\`
-6. **⚠️ One sprite per code block (CRITICAL)**: Each code block must contain code for **exactly one sprite**. When generating multiple sprites, use **separate code blocks** with explanation text between them. The user interface shows an "Insert this code" button for each code block, so the user needs to insert each sprite's code separately.
-
-   ✅ **Correct format (separate code blocks)**:
-   プレイヤーのスプライトです。
-   \`\`\`ruby
-   class Player
-     set_sprite "Shimaraby"
-     ...
-   end
-   \`\`\`
-   次に、新しいスプライトを追加して、以下のプログラムを入力してください。
-   \`\`\`ruby
-   class Enemy
-     set_sprite "Ghost"
-     ...
-   end
-   \`\`\`
-
-   ❌ **Wrong format (merged code blocks)**:
-   \`\`\`ruby
-   class Player
-     ...
-   end
-   class Enemy
-     ...
-   end
-   \`\`\`
-7. **Add explanation**: Briefly explain the code and how to use it in Japanese. When using multiple sprites, explain which sprite to add the code to.
-8. **Use only listed methods**: Only use the methods documented above
-9. **Check forbidden methods**: Always check the forbidden methods list before generating
-10. **⚠️ Costume/sound names must match current state**: Only use names listed in the "Current State" section
-
-## Important Output Rules
-
-- When asked to create a program, **always generate Ruby code**
-- Code block format must start with \`\`\`ruby and end with \`\`\`
-- Always include code unless there is a clear reason not to
-- **Respond in Japanese** for all explanations and messages
-
-## Complexity Control
-
-- **Default**: Generate simple code using a **single sprite** with basic elements (coordinates, costumes, keyboard input, loops). Use top-level form (without \`class\`) for simplicity.
-- **class / set_xxx configuration**: You MAY proactively use \`class Sprite1; set_name "名前"; set_sprite "すてきなスプライト名"; set_x 100; ... end\` when the program benefits from setting initial position, costume, or sprite appearance.
-- **Multiple sprites**: Only suggest when the user explicitly requests it (e.g., "2つのスプライトで", "もっと楽しく", "発展的に").
-- **def (method definition)**: Only use when the user explicitly asks for methods, refactoring, or code reuse.
-- **module / include**: Only use when the user explicitly mentions "module", "include", or "メソッドを共有".
-- **super**: Only use when the user explicitly mentions "super" or "オーバーライド".
-- **clone / create_clone**: Only use when the user asks for cloning or effects that require duplicates.
-
-## Critical Syntax Warnings
-
-These are the most common mistakes. **Always verify your output against these rules**:
-
-1. **\`self.x =\` NOT \`set_x()\`**: Outside class definitions, always use \`self.x = value\`, \`self.y = value\`, \`self.size = value\`, etc. The \`set_x()\`, \`set_y()\`, \`set_size()\` methods are ONLY valid at class definition top-level.
-2. **\`keyboard.pressed?\` NOT \`key_pressed?\`**: Always use \`keyboard.pressed?("key")\`, never \`key_pressed?\` or \`Keyboard.pressed?\`.
-3. **\`mouse.x\` NOT \`mouse_x\`**: Always use \`mouse.x\`, \`mouse.y\`, \`mouse.down?\` (lowercase).
-4. **\`timer.value\` NOT \`timer\`**: Always use \`timer.value\` and \`timer.reset\` (lowercase).
-13. **\`@items.push()\` NOT \`list("@items").push()\`**: Use arrays directly. \`list()\` does not exist.
-5. **\`touching?("_mouse_")\` NOT \`touching?("_mouse_pointer_")\`**: The target name is \`"_mouse_"\`, not \`"_mouse_pointer_"\`.
-6. **\`glide([x, y], secs: n)\` NOT \`glide(n, x, y)\`**: Coordinates in array, seconds as keyword argument.
-7. **\`go_to([x, y])\` NOT \`go_to(x, y)\`**: Coordinates must be in an array.
-8. **\`play()\` NOT \`play_sound()\`**: Use \`play("name")\` or \`play_until_done("name")\`.
-9. **No \`for\`/\`each\`**: Use \`loop do...end\`, \`N.times do...end\`, \`while...end\`, or \`until...end\`.
-10. **No \`puts\`/\`print\`/\`p\`**: Use \`say()\` to display text.
-11. **No string interpolation**: \`"Hello \#{name}"\` is NOT supported. Use concatenation: \`"Hello " + name\`.
-12. **Loop auto-wait**: Loops automatically wait 1 frame. Do NOT add \`sleep()\` for animation speed. Only use \`sleep()\` for delays ≥ 0.5s.
-- If the user asks about something unrelated to Smalruby programming, respond in Japanese: 「それはスモウルビーに関係がないので答えられません」
-
-## Child Safety Guidelines
-
-You are interacting with elementary and middle school students (ages 6-15). Follow these safety rules strictly:
-
-1. **Never ask for or discuss personal information**: Do not ask about the student's name, age, school, address, phone number, email, or any other personally identifiable information. If a student volunteers such information, gently redirect the conversation to programming.
-2. **Keep content age-appropriate**: Only discuss topics related to Smalruby programming, games, animations, and creative coding. Avoid mature themes, violence (beyond simple game mechanics like "game over"), horror, or controversial topics.
-3. **Be encouraging and supportive**: Use positive, encouraging language. Celebrate the student's ideas and efforts. If their code has issues, explain corrections in a constructive, educational way.
-4. **Do not role-play as a human**: You are an AI programming assistant called "Rubytee" (ルビティー). Always maintain this identity. Do not pretend to be a friend, family member, teacher, or any other human role.
-5. **Redirect off-topic conversations**: If asked about topics outside of programming (personal advice, homework in other subjects, social situations), politely redirect: 「プログラミングのことを聞いてね！」
-6. **No external links or resources**: Do not suggest visiting external websites, downloading software, or accessing resources outside of Smalruby.
-7. **Report-worthy content**: If a student's message contains concerning content (self-harm, abuse, bullying), respond with: 「心配なことがあったら、おうちの人や先生に相談してね。」 and redirect to programming.
-${stateSection}`;
-}
-
-function buildStateSection(stateContext: StateContext): string {
-  const parts: string[] = ['\n## Current State\n'];
-
-  if (stateContext.sprite) {
-    const s = stateContext.sprite;
-    parts.push(`### Currently Editing Sprite: "${s.name}"`);
-    parts.push(`- Coordinates: (${s.x}, ${s.y}), Direction: ${s.direction}°, Size: ${s.size}%`);
-
-    const costumeNames = (s.costumes || []).map(c => c.name);
-    parts.push(`- Costume list: ${costumeNames.length > 0 ? costumeNames.map(n => `"${n}"`).join(', ') : '(none)'}`);
-    parts.push('  - **Only names from this list can be used with switch_costume()**');
-
-    const soundNames = (s.sounds || []).map(s2 => s2.name);
-    parts.push(`- Sound list: ${soundNames.length > 0 ? soundNames.map(n => `"${n}"`).join(', ') : '(none — do NOT use play() or play_until_done())'}`);
-    if (soundNames.length > 0) {
-      parts.push('  - **Only names from this list can be used with play() / play_until_done()**');
-    }
-
-    if (s.currentCode) {
-      parts.push(`- Current code:\n\`\`\`ruby\n${s.currentCode}\n\`\`\``);
-    }
-    parts.push('');
-  }
-
-  if (stateContext.stage) {
-    const st = stateContext.stage;
-    parts.push('### Stage');
-    parts.push(`- Size: ${st.width}x${st.height}`);
-
-    const stageCostumes = (st.costumes || []).map(c => c.name);
-    parts.push(`- Backdrop list: ${stageCostumes.length > 0 ? stageCostumes.map(n => `"${n}"`).join(', ') : '(none)'}`);
-    parts.push('  - **Only names from this list can be used with switch_backdrop() / when_backdrop_switches()**');
-
-    if (st.sounds && st.sounds.length > 0) {
-      parts.push(`- Stage sound list: ${st.sounds.map(s => `"${s.name}"`).join(', ')}`);
-    }
-    parts.push('');
-  }
-
-  if (stateContext.vm && stateContext.vm.extensions && stateContext.vm.extensions.length > 0) {
-    parts.push(`### Active Extensions: ${stateContext.vm.extensions.join(', ')}\n`);
-  }
-
-  return parts.join('\n');
-}
-
-// ---------------------------------------------------------------------------
-// CORS helper
+// CORS
 // ---------------------------------------------------------------------------
 function getCorsHeaders(origin: string | undefined): Record<string, string> {
   const allowedOrigin = origin && CORS_ALLOWED_ORIGINS.includes(origin) ? origin : CORS_ALLOWED_ORIGINS[0];
@@ -452,12 +295,8 @@ function getCorsHeaders(origin: string | undefined): Record<string, string> {
 }
 
 // ---------------------------------------------------------------------------
-// Model selection / usage logging
+// Usage context
 // ---------------------------------------------------------------------------
-export function resolveModel(purpose: unknown): string {
-  return purpose === PURPOSE_GENAI_TAKEOVER ? CLAUDE_TAKEOVER_MODEL : CLAUDE_MODEL;
-}
-
 /**
  * Pick the purpose, and the classroom / seat verified from the sessionToken, to record in
  * CloudWatch and the usage table. The request's own classroom / seat are self-declared and
@@ -500,31 +339,6 @@ export async function verifySeatSession(sessionToken: unknown): Promise<SeatIden
     console.error('[Seat] failed to verify sessionToken, counting by IP only:', err);
     return null;
   }
-}
-
-/**
- * One structured log line per request (aggregated with CloudWatch Logs Insights).
- * sourceIp is omitted in prod for cost/privacy.
- */
-export function buildResponseLog(params: {
-  model: string;
-  usage: { outputTokens: number; inputTokens: number; cacheCreationTokens: number; cacheReadTokens: number };
-  userMessageLength: number;
-  usageContext: UsageContext;
-  sourceIp: string;
-  stage: string | undefined;
-}): string {
-  const logData: Record<string, unknown> = {
-    event: 'rubytee_response',
-    model: params.model,
-    ...params.usage,
-    userMessageLength: params.userMessageLength,
-    ...params.usageContext,
-  };
-  if (params.stage !== 'prod') {
-    logData.sourceIp = params.sourceIp;
-  }
-  return JSON.stringify(logData);
 }
 
 // ---------------------------------------------------------------------------
@@ -703,51 +517,33 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
     };
   }
 
-  const isTakeover = body.purpose === PURPOSE_GENAI_TAKEOVER;
+  // 旧チャット（purpose 未指定・未知の purpose）は受け付けない (#1405)。入力の検査・席の確認・
+  // レート制限・集計より先に返し、Claude の費用も DynamoDB の書き込みも発生させない。
+  if (body.purpose !== PURPOSE_GENAI_TAKEOVER) {
+    return jsonResponse(410, corsHeaders, { error: 'CHAT_DISCONTINUED' });
+  }
 
-  // Validate input (takeover だけ上限を広げる)
-  const validation = validateInput(
-    body.userMessage,
-    isTakeover ? MAX_TAKEOVER_MESSAGE_LENGTH : MAX_USER_MESSAGE_LENGTH,
-  );
+  // Validate input
+  const validation = validateInput(body.userMessage);
   if (!validation.valid) {
-    return {
-      statusCode: 400,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ error: validation.error }),
-    };
+    return jsonResponse(400, corsHeaders, { error: validation.error });
   }
 
   // Validate stateContext (prompt injection prevention)
-  const stateContextValidation = validateStateContext(
-    body.stateContext,
-    isTakeover ? MAX_TAKEOVER_CURRENT_CODE_LENGTH : MAX_CURRENT_CODE_LENGTH,
-  );
+  const stateContextValidation = validateStateContext(body.stateContext);
   if (!stateContextValidation.valid) {
-    return {
-      statusCode: 400,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ error: stateContextValidation.error }),
-    };
+    return jsonResponse(400, corsHeaders, { error: stateContextValidation.error });
   }
 
   // Validate history
-  const historyValidation = validateHistory(
-    body.history,
-    isTakeover ? MAX_TAKEOVER_HISTORY_TURN_TEXT_LENGTH : MAX_HISTORY_TURN_TEXT_LENGTH,
-  );
+  const historyValidation = validateHistory(body.history);
   if (!historyValidation.valid) {
-    return {
-      statusCode: 400,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ error: historyValidation.error }),
-    };
+    return jsonResponse(400, corsHeaders, { error: historyValidation.error });
   }
 
-  // takeover は Lambda の非同期呼び出しの payload 上限に収める。各項目の上限を通った後なので、
+  // Lambda の非同期呼び出しの payload 上限に収める。各項目の上限を通った後なので、
   // ここで超えるのは往復（history）を重ねたとき（userMessage / currentCode だけでは届かない）。
-  // purpose 未指定の経路は従来どおり各項目の上限だけで判定する。
-  if (isTakeover && Buffer.byteLength(event.body || '', 'utf8') > MAX_TAKEOVER_REQUEST_BYTES) {
+  if (Buffer.byteLength(event.body || '', 'utf8') > MAX_TAKEOVER_REQUEST_BYTES) {
     return jsonResponse(400, corsHeaders, { error: 'HISTORY_TOO_LONG' });
   }
 
@@ -755,125 +551,5 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
   const usageContext = extractUsageContext(body, await verifySeatSession(body.sessionToken));
 
   // 「ルビティーにまかせる」は非同期ジョブ（API Gateway の 30 秒の壁を避ける）
-  if (isTakeover) {
-    return handleTakeover({ body, usageContext, sourceIp, corsHeaders });
-  }
-
-  // Rate limiting by source IP
-  const rateLimitResult = await checkAndIncrementRateLimit(sourceIp);
-  if (!rateLimitResult.allowed) {
-    await recordUsage(usageContext, ['requests', 'rateLimited']);
-    console.log(`[RateLimit] Blocked: ${sourceIp}, resetAfterSeconds: ${rateLimitResult.resetAfterSeconds}`);
-    return {
-      statusCode: 429,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        error: 'RATE_LIMIT_EXCEEDED',
-        resetAfterSeconds: rateLimitResult.resetAfterSeconds,
-      }),
-    };
-  }
-
-  // Build Claude request
-  const systemInstruction = buildSystemInstruction(body.stateContext);
-
-  // Convert history to Claude messages format
-  // Input: { role: 'user'|'model', parts: [{ text }] }
-  // Claude: { role: 'user'|'assistant', content: string }
-  const claudeMessages = (body.history || []).map((turn: HistoryTurn) => ({
-    role: turn.role === 'model' ? 'assistant' as const : 'user' as const,
-    content: turn.parts[0].text,
-  }));
-  claudeMessages.push({ role: 'user' as const, content: body.userMessage });
-
-  const model = resolveModel(body.purpose);
-  const claudeRequestBody = {
-    model,
-    max_tokens: 1024,
-    system: [
-      {
-        type: 'text',
-        text: systemInstruction,
-        cache_control: { type: 'ephemeral' },
-      },
-    ],
-    messages: claudeMessages,
-  };
-
-  // Call Anthropic Claude API
-  try {
-    const claudeResponse = await fetch(ANTHROPIC_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': ANTHROPIC_VERSION,
-        'anthropic-beta': 'prompt-caching-2024-07-31',
-      },
-      body: JSON.stringify(claudeRequestBody),
-    });
-
-    if (!claudeResponse.ok) {
-      const errText = await claudeResponse.text();
-      console.error(`[Claude] API error ${claudeResponse.status}: ${errText}`);
-
-      // Map Anthropic error codes to appropriate relay responses
-      await recordUsage(usageContext, ['requests', 'failed']);
-      if (claudeResponse.status === 529) {
-        // Anthropic overloaded
-        return {
-          statusCode: 502,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ error: 'AI_OVERLOADED' }),
-        };
-      }
-
-      return {
-        statusCode: 502,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ error: 'AI_API_ERROR', status: claudeResponse.status }),
-      };
-    }
-
-    const claudeData = await claudeResponse.json() as {
-      content: Array<{ type: string; text: string }>;
-      usage?: {
-        input_tokens?: number;
-        output_tokens?: number;
-        cache_creation_input_tokens?: number;
-        cache_read_input_tokens?: number;
-      };
-    };
-
-    const responseText = claudeData.content?.[0]?.text || '';
-    const outputTokens = claudeData.usage?.output_tokens || 0;
-    const inputTokens = claudeData.usage?.input_tokens || 0;
-    const cacheCreationTokens = claudeData.usage?.cache_creation_input_tokens || 0;
-    const cacheReadTokens = claudeData.usage?.cache_read_input_tokens || 0;
-
-    console.log(buildResponseLog({
-      model,
-      usage: { outputTokens, inputTokens, cacheCreationTokens, cacheReadTokens },
-      userMessageLength: body.userMessage.length,
-      usageContext,
-      sourceIp,
-      stage: process.env.STAGE,
-    }));
-    await recordUsage(usageContext, ['requests', 'succeeded'],
-      { outputTokens, inputTokens, cacheCreationTokens, cacheReadTokens });
-
-    return {
-      statusCode: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: responseText, outputTokens }),
-    };
-  } catch (err) {
-    console.error('[Claude] Unexpected error:', err);
-    await recordUsage(usageContext, ['requests', 'failed']);
-    return {
-      statusCode: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ error: 'INTERNAL_ERROR' }),
-    };
-  }
+  return handleTakeover({ body, usageContext, sourceIp, corsHeaders });
 };
