@@ -30,9 +30,11 @@ const target = (id, name) => ({
     sprite: { name, costumes: [{ asset: { encodeDataURI: () => 'data:' } }] },
 });
 
+let hookDeps;
+
 const canvas = { toBlob: (cb) => cb({ size: 1 }) };
 
-const setup = (targets) => {
+const setup = (targets, extra = {}) => {
     const vm = {
         editingTarget: { id: targets[0].id },
         runtime: { targets },
@@ -51,7 +53,9 @@ const setup = (targets) => {
         intl: { formatMessage: (m) => m.defaultMessage },
         setIsLoading: jest.fn(),
         setPhase: jest.fn(),
+        ...extra,
     };
+    hookDeps = deps;
     return renderHook(() => useStudentSubmit(deps));
 };
 
@@ -95,5 +99,71 @@ describe('useStudentSubmit — screenshotLabels (#1208)', () => {
         const hook = setup([target('t0', 'あ'.repeat(120))]);
         await submit(hook);
         expect(mockCreateSubmission.mock.calls[0][4]).toEqual(['あ'.repeat(100)]);
+    });
+});
+
+// Ruby タブで書きかえたまま提出すると、ブロックに直る前の作品が出ていた (#1449)。
+describe('useStudentSubmit — Ruby をブロックに直してから提出する (#1449)', () => {
+    beforeEach(() => {
+        jest.useFakeTimers();
+        global.requestAnimationFrame = (cb) => cb();
+        mockCreateSubmission.mockReset();
+        mockUpload.mockReset();
+        mockRender.mockReset();
+        mockCreateSubmission.mockResolvedValue({ uploadUrl: 'u', screenshotUploadUrls: ['s0'] });
+        mockUpload.mockResolvedValue();
+        mockRender.mockResolvedValue(canvas);
+    });
+    afterEach(() => {
+        jest.useRealTimers();
+    });
+
+    const submit = async (hook) => {
+        await act(async () => {
+            const done = hook.result.current.handleConfirmSubmit();
+            for (let i = 0; i < 10; i++) {
+                jest.runAllTimers();
+                await Promise.resolve();
+            }
+            await done;
+        });
+    };
+
+    test('変換を適用してからブロック画像と作品を作る', async () => {
+        const order = [];
+        const apply = jest.fn(() => {
+            order.push('apply');
+            return Promise.resolve();
+        });
+        const targetCodeToBlocks = jest.fn().mockResolvedValue({ result: true, errors: [], apply });
+        mockRender.mockImplementation(() => {
+            order.push('screenshot');
+            return Promise.resolve(canvas);
+        });
+        const hook = setup([target('t0', 'ねこ')], { targetCodeToBlocks });
+        hookDeps.vm.saveProjectSb3.mockImplementation(() => {
+            order.push('sb3');
+            return Promise.resolve({ byteLength: 10 });
+        });
+        await submit(hook);
+        expect(targetCodeToBlocks).toHaveBeenCalledWith(hookDeps.intl);
+        expect(order).toEqual(['apply', 'screenshot', 'sb3']);
+        expect(mockCreateSubmission).toHaveBeenCalled();
+        expect(hookDeps.setPhase).toHaveBeenCalledWith('student-status');
+    });
+
+    test('変換に失敗したら提出せずにモーダルを閉じる', async () => {
+        const apply = jest.fn();
+        const targetCodeToBlocks = jest.fn().mockResolvedValue({ result: false, errors: [{}], apply });
+        const hook = setup([target('t0', 'ねこ')], { targetCodeToBlocks });
+        await submit(hook);
+        expect(apply).not.toHaveBeenCalled();
+        expect(mockCreateSubmission).not.toHaveBeenCalled();
+        expect(mockUpload).not.toHaveBeenCalled();
+        expect(hookDeps.vm.saveProjectSb3).not.toHaveBeenCalled();
+        expect(hookDeps.dispatch).toHaveBeenCalledWith(
+            expect.objectContaining({ type: 'scratch-gui/classroom/CLOSE_MODAL' }),
+        );
+        expect(hookDeps.setIsLoading).toHaveBeenLastCalledWith(false);
     });
 });

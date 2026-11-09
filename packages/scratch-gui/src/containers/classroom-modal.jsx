@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React, { useCallback, useRef, useState, useEffect } from 'react';
 import { useIntl } from 'react-intl';
 import { useDispatch, useSelector } from 'react-redux';
@@ -11,6 +12,7 @@ import {
 } from '../lib/classroom-kick-request-storage.js';
 import { evaluateKickRequestPoll } from '../lib/classroom-seat-selection.js';
 import { loadHistory, addToHistory } from '../lib/join-code-history.js';
+import RubyToBlocksConverterHOC from '../lib/ruby-to-blocks-converter-hoc.jsx';
 import { getUrlParams, clearClasscode } from '../lib/url-params.js';
 import { showAlertWithTimeout } from '../reducers/alerts.js';
 import {
@@ -29,7 +31,7 @@ import useKickRequestPolling from './use-kick-request-polling.js';
 import useStudentAssignment from './use-student-assignment.js';
 import useStudentSubmit from './use-student-submit.js';
 
-const ClassroomModal = () => {
+const ClassroomModal = ({ targetCodeToBlocks }) => {
     const dispatch = useDispatch();
     const intl = useIntl();
     const classroomState = useSelector((state) => state.scratchGui.classroom);
@@ -80,6 +82,7 @@ const ClassroomModal = () => {
         intl,
         setIsLoading,
         setPhase,
+        targetCodeToBlocks,
     });
 
     const handleClose = useCallback(() => {
@@ -561,4 +564,9 @@ const ClassroomModal = () => {
     );
 };
 
-export default ClassroomModal;
+ClassroomModal.propTypes = {
+    targetCodeToBlocks: PropTypes.func,
+};
+
+// Gives the submit flow the same Ruby -> blocks conversion as saving (#1449).
+export default RubyToBlocksConverterHOC(ClassroomModal);
