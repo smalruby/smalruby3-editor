@@ -5,7 +5,6 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
 import GenaiAnswerSteps from '../../../src/components/genai-concierge/genai-answer-steps.jsx';
-// eslint-disable-next-line import/first
 import { runTakeover } from '../../../src/lib/genai-takeover.js';
 import ja from '../../../src/locales/ja.js';
 

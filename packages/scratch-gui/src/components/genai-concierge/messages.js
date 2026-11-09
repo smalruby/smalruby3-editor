@@ -511,7 +511,7 @@ const messages = defineMessages({
         id: 'gui.genaiConcierge.takeoverFailed',
     },
     takeoverFailedCode: {
-        defaultMessage: 
+        defaultMessage:
             'Rubytee rewrote it {count} times, but a problem is still left. Write it yourself, or ask again.',
         description: 'Ruby tab: when none of the versions Rubytee made passed the check ({count}: tries)',
         id: 'gui.genaiConcierge.takeoverFailedCode',
