@@ -321,6 +321,7 @@ Smalruby は **DNCLv2 形式のプログラムをそのまま実行** できる�
   - `dncl-paste-index-shift.test.js` — 貼り付け時の添字の書き換え（注釈の検出と表記の揺れ・数/式/2 次元/入れ子の添字・初期化/文字列/コメントは不変・書き換え位置・共通テスト例題の要確認の行）
   - `dncl-display-multi-arg.test.js` — `表示する` 多引数 / `puts(... + ...)` round-trip
   - `dncl-to-ruby.test.js` — DNCL → Ruby 変換ユニットテスト
+  - `dncl-japanese-quotes-in-string.test.js` — `"..."` / `'...'` の中の `「」` はそのまま残し、`「...」` の文字列だけを `"..."` に直すこと（round-trip を含む）
   - `dncl-validator.test.js` — 閉じ忘れ・閉じすぎを DNCL のことばで言うこと（ブロックの種類ごとの閉じのことば・閉じ忘れた内側の行・`end` が合うときはエラーにしない・DNCLv2 の `⎿` / インデントの形）
   - `ruby-to-dncl.test.js` — Ruby → DNCL 逆変換ユニットテスト
   - `dncl-roundtrip.test.js` — DNCL ↔ Ruby round-trip 安定性
