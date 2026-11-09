@@ -173,6 +173,7 @@ Rubytee の統合ドキュメントは [`docs/rubytee/`](../rubytee/) を参照�
 
 ## 関連ドキュメント
 
+- [`claude-api-wif.md`](claude-api-wif.md) — Claude API を Workload Identity Federation で呼ぶための AWS と Claude Console の設定（作り直しの手順）
 - [`stg-prod-differences.md`](stg-prod-differences.md) — stg と prod の違いの一覧（意図した違いと直すべき違い・GUI ビルド値の stg 版の有無）
 - `.claude/rules/infra/` 配下の各プロジェクトルール
 - `CLAUDE.md` の "infra/" セクション
