@@ -8,7 +8,17 @@ const PROBLEM_KINDS = [
     { id: 'next', label: '次に何を作ればいいかわからない', starter: '〜まではできた。次に〜したい' },
     { id: 'how', label: 'ブロックの使い方がわからない', starter: '〜するには、どのブロックを使えばいい？' },
     { id: 'more-fun', label: 'もっとおもしろくしたい', starter: '〜を、もっと〜にしたい' },
+    // The Ruby tab's student writes commands, not blocks (#1398).
+    { id: 'how-command', label: '命令の書き方がわからない', starter: '〜するには、どう書けばいい？' },
+    // The Japanese (DNCL) mode's student practices the DNCL of 共通テスト (#1402).
+    { id: 'wrong-answer', label: '答えが合わない', starter: '〜になるはずなのに、〜と表示される' },
+    { id: 'how-write', label: 'どう書けばいいかわからない', starter: '〜するには、どう書けばいい？' },
+    { id: 'how-think', label: '問題の考え方がわからない', starter: '〜を求める問題で、どう考えればいいかわからない' },
 ];
+
+// The kinds each tab offers, in order.
+const CODE_TAB_KINDS = ['not-working', 'error', 'next', 'how', 'more-fun'];
+const RUBY_TAB_KINDS = ['not-working', 'error', 'next', 'how-command', 'more-fun'];
 
 const COPY_START = '▼▼ ここから下をコピーして、スモウルビーにもどろう ▼▼';
 const COPY_END = '▲▲ ここまで ▲▲';
@@ -112,6 +122,90 @@ const buildGenaiPrompt = ({ kindLabel, text, programs, editingName, assignmentNa
     return lines.join('\n');
 };
 
+// How the answer is explained in each mode of the Ruby tab (#1396 決定 2): in furigana
+// mode the student is just starting to read Ruby, so the words are easy and each command
+// gets its meaning, but the code stays Ruby (it goes into the same editor).
+const EXPLAIN_RULES = {
+    ruby: 'コードの前に、何を変えたかを「when_receive("合図") の中に play("Pop") を足しました」のように、Ruby の書き方で 1〜3 行で説明してください。',
+    furigana:
+        'コードの前に、何を変えたかを、小学生にもわかるやさしいことばで 1〜3 行で説明してください。命令には「loop（ずっと）」「move(10)（10 歩動かす）」のように日本語の意味を添えてください。答えのコードは Ruby のままで書いてください（日本語に直さないでください）。',
+};
+
+const rubyTabRules = (editingName, mode) => {
+    const target = `「${editingName}」`;
+    return [
+        '生徒は自分のプログラムを言葉で説明するのが苦手です。「どこに入れればいいかな？」のような質問を返さず、すぐに直したプログラムを出してください。',
+        `直すのは${target}のプログラムだけです。ほかのスプライトのプログラムは、合図や変数の名前を合わせるための参考です。直さないでください。`,
+        `答えは${target}のプログラムを、変えないところも含めて全部書いてください。スモウルビーはエディタのプログラムを丸ごと入れかえます。「# 「スプライト名」」の見出しは書かないでください。`,
+        EXPLAIN_RULES[mode] || EXPLAIN_RULES.ruby,
+        '命令は、今のプログラムにある書き方か、下の「使える命令の例」の書き方で書いてください。例にない命令が要るときも、プログラムを出すのをやめずに、例と同じスモウルビーの書き方で書いてください。Scratch のブロック名を英語にしただけの命令（when_this_sprite_clicked など）は使えません。音やコスチュームの名前は、下の一覧にあるものから選んでください。',
+        `直したプログラムは、「${COPY_START}」の行と「${COPY_END}」の行のあいだに、1 つの \`\`\`ruby と \`\`\` で囲んで書いてください。印の外にはコードを書かないでください（生徒は印のあいだだけをコピーします）。`,
+        'コードの後に、動かして確かめることを 1 つだけ書いてください。',
+        '中学生にわかる言葉で、短く答えてください。生徒の名前や学校名をたずねないでください。',
+    ];
+};
+
+/**
+ * The first prompt of the Ruby tab (#1398): only the sprite in the editor is fixed, with
+ * the Ruby in the editor now (also edits not yet in the blocks); the other sprites come
+ * as reference. The code tab's question (buildGenaiPrompt) stays as it is.
+ * @param {object} params - parameters.
+ * @param {string} params.mode - 'ruby' or 'furigana'.
+ * @param {string} params.kindLabel - the chosen kind of trouble.
+ * @param {string} params.text - the trouble in the student's own words.
+ * @param {string} params.editingName - the sprite in the editor (「ステージ」 for the stage).
+ * @param {string} params.code - the Ruby in the editor.
+ * @param {Array<string>} params.sounds - the sounds of the sprite in the editor.
+ * @param {Array<string>} params.costumes - the costumes of the sprite in the editor.
+ * @param {Array<{name: string, code: string, sounds: ?Array<string>, costumes: ?Array<string>}>} params.others -
+ *     the other sprites (and the stage) as Ruby; those without code are left out.
+ * @param {Array<string>} params.errors - the errors shown in the editor, one per line.
+ * @param {?string} params.assignmentName - the classroom assignment, if any.
+ * @returns {string} the prompt.
+ */
+const buildRubyTabPrompt = ({
+    mode,
+    kindLabel,
+    text,
+    editingName,
+    code,
+    sounds,
+    costumes,
+    others,
+    errors,
+    assignmentName,
+}) => {
+    const lines = [
+        'あなたは中学生のプログラミング学習を手伝う先生です。',
+        'スモウルビー（Scratch のブロックと Ruby のコードを行き来できるプログラミング環境）で、Ruby のコードを書いて作品を作っている生徒から相談が来ました。',
+        '',
+        '【守ってほしいこと】',
+        ...rubyTabRules(editingName, mode).map((rule) => `・${rule}`),
+        '',
+        '【困っていること】',
+        `${kindLabel}：`,
+        text.trim(),
+    ];
+    if (errors && errors.length > 0) lines.push('', '【エディタに出ているエラー】', ...errors);
+    if (assignmentName) lines.push('', '【課題】', assignmentName);
+    lines.push('', '【使える命令の例】', ...COMMAND_EXAMPLES);
+    lines.push('', `【直すプログラム（生徒がいま書いている「${editingName}」）】`);
+    lines.push(`「${editingName}」（音: ${quoteList(sounds)}／コスチューム: ${quoteList(costumes)}）:`);
+    lines.push(code && code.trim() ? fence(code) : '（まだプログラムはありません）');
+    const reference = (others || []).filter((p) => p.code && p.code.trim());
+    if (reference.length > 0) {
+        lines.push('', '【参考：ほかのスプライトのプログラム（直さないでください）】');
+        for (const program of reference) {
+            lines.push(
+                `「${program.name}」（音: ${quoteList(program.sounds)}／コスチューム: ${quoteList(program.costumes)}）:`,
+            );
+            lines.push(fence(program.code));
+        }
+    }
+    lines.push('', `「${editingName}」の分だけ、直したプログラムをください。`);
+    return lines.join('\n');
+};
+
 /**
  * Split a prompt into `count` parts at line breaks, for an AI that refused a long paste.
  * Every part but the last asks the AI to wait for the rest.
@@ -148,6 +242,21 @@ const splitPrompt = (prompt, count) => {
 };
 
 /**
+ * The part of a pasted answer between the copy markers (COPY_START / COPY_END), or the
+ * whole answer when it has none. Shared by the Ruby and the DNCL (#1402) answers.
+ * @param {string} answer - the pasted answer.
+ * @returns {{text: string, marked: boolean}} the text, and whether the markers were found.
+ */
+const betweenCopyMarks = (answer) => {
+    const start = answer.indexOf('▼▼');
+    if (start < 0) return { text: answer, marked: false };
+    const afterStart = answer.indexOf('\n', start);
+    if (afterStart < 0) return { text: answer, marked: false };
+    const end = answer.indexOf('▲▲', afterStart);
+    return { text: end >= 0 ? answer.slice(afterStart, end) : answer.slice(afterStart), marked: true };
+};
+
+/**
  * Take the Ruby code out of a pasted answer: the fenced code between the copy
  * markers, else the last ```ruby (or ```) block, else the text itself when it
  * looks like code.
@@ -156,13 +265,7 @@ const splitPrompt = (prompt, count) => {
  */
 const extractRuby = (answer) => {
     if (!answer) return null;
-    let text = answer;
-    const start = text.indexOf('▼▼');
-    if (start >= 0) {
-        const afterStart = text.indexOf('\n', start);
-        const end = text.indexOf('▲▲', afterStart);
-        text = end >= 0 ? text.slice(afterStart, end) : text.slice(afterStart);
-    }
+    const { text } = betweenCopyMarks(answer);
     const blocks = [...text.matchAll(/```[ \t]*([a-zA-Z]*)[^\n]*\n([\s\S]*?)```/g)];
     const ruby = blocks.filter((m) => !m[1] || /^(ruby|rb)$/i.test(m[1]));
     if (ruby.length > 0) return `${ruby[ruby.length - 1][2].replace(/\s+$/, '')}\n`;
@@ -193,11 +296,15 @@ const buildRewritePrompt = ({ code, problems }) =>
     ].join('\n');
 
 export {
+    CODE_TAB_KINDS,
     COMMAND_EXAMPLES,
     COPY_END,
     COPY_START,
+    betweenCopyMarks,
     PROBLEM_KINDS,
+    RUBY_TAB_KINDS,
     buildGenaiPrompt,
+    buildRubyTabPrompt,
     buildRewritePrompt,
     extractRuby,
     splitPrompt,

@@ -1,8 +1,10 @@
 /* Class settings: the AI used in the class (issue #1277, redesigned in #1290). */
 
 .section {
+    position: relative;
     display: flex;
-    padding: 0.5rem 0.75rem;
+    margin-top: 0.3rem;
+    padding: 0.6rem 0.75rem 0.5rem;
     border: 1px solid hsla(260, 60%, 60%, 0.3);
     border-radius: 0.5rem;
     background: white;
@@ -16,10 +18,18 @@
     gap: 0.4rem;
 }
 
+/* Sits on the box's top border like a legend, so it costs no line of its own (1300x600, #1439). */
 .heading {
+    position: absolute;
+    top: 0;
+    left: 0.5rem;
+    transform: translateY(-50%);
     margin: 0;
+    padding: 0 0.3rem;
+    background: white;
     font-size: 0.9rem;
     font-weight: bold;
+    line-height: 1.2;
 }
 
 .row {
@@ -35,8 +45,9 @@
 
 .row-head {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.3rem 0.5rem;
 }
 
 .row-label {
@@ -82,7 +93,7 @@
     color: hsla(225, 15%, 40%, 1);
 }
 
-/* Opens under the generative AI row only, so it reads as part of that choice. */
+/* Opens under the row it belongs to (generative AI or Rubytee), so it reads as part of that choice. */
 .confirm-panel {
     display: flex;
     flex-direction: column;
@@ -91,6 +102,36 @@
     padding: 0.4rem 0.6rem;
     border-left: 3px solid #855cd6;
     background: hsla(260, 60%, 60%, 0.06);
+}
+
+.conditions {
+    margin: 0;
+    padding-left: 1.1rem;
+    font-size: 0.8rem;
+}
+
+.confirm-row {
+    display: flex;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 0.4rem 1rem;
+}
+
+.links {
+    margin-left: auto;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+.links a {
+    color: #855cd6;
+}
+
+.unconfirmed {
+    margin: 0;
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: hsla(30, 60%, 30%, 1);
 }
 
 .condition {
@@ -133,6 +174,13 @@
 .url-label .url-row {
     flex: 1;
     min-width: 0;
+}
+
+.url-folded {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-left: auto;
 }
 
 .url-row {

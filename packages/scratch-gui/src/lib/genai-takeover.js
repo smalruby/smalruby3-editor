@@ -75,6 +75,37 @@ const fitExchange = (exchange, index, room) => {
 };
 
 /**
+ * The message of head and tail with the consultation between them, in at most 10000
+ * characters: the oldest exchanges are shortened or left out first.
+ * @param {Array<string>} head - the lines before the consultation (the trouble, the program).
+ * @param {Array<string>} tail - the lines after it (what to answer).
+ * @param {Array<{question: ?string, answer: string, problems: Array<string>}>} exchanges -
+ *     the consultation with the generative AI, oldest first.
+ * @returns {?string} the message, or null when head and tail alone are too long.
+ */
+const withExchanges = (head, tail, exchanges) => {
+    const fixed = [...head, ...tail].join('\n');
+    const title = '\n\n【生成AI への相談（古い順）】\n';
+    if (fixed.length > TAKEOVER_MESSAGE_LIMIT) return null;
+    // The line saying the older exchanges are left out has its room kept from the start:
+    // the exchange before it may take all the rest.
+    let room = TAKEOVER_MESSAGE_LIMIT - fixed.length - title.length - EARLIER_OMITTED.length - 2;
+    if (room < 0) return fixed;
+    const fitted = [];
+    for (let i = exchanges.length - 1; i >= 0; i--) {
+        const block = fitExchange(exchanges[i], i, room - 2);
+        if (!block) {
+            fitted.unshift(EARLIER_OMITTED);
+            break;
+        }
+        fitted.unshift(block);
+        room -= block.length + 2;
+    }
+    if (fitted.length === 0) return fixed;
+    return [head.join('\n'), title, fitted.join('\n\n'), tail.join('\n')].join('');
+};
+
+/**
  * The first message to Rubytee: the student's trouble, the whole program, and the
  * consultation with the generative AI (every question, pasted answer and reason it
  * could not be turned into blocks). The relay takes at most 10000 characters, so the
@@ -114,25 +145,81 @@ const buildTakeoverMessage = ({ kindLabel, text, programs, editingName, exchange
         '上の作品を元に、ブロックにできるプログラムを答えてください。',
         '変えるスプライトごとに「# 「スプライト名」」の行から、そのスプライトのプログラムを全部書いてください。',
     ];
-    const fixed = [...head, ...tail].join('\n');
-    const title = '\n\n【生成AI への相談（古い順）】\n';
-    if (fixed.length > TAKEOVER_MESSAGE_LIMIT) return null;
-    // The line saying the older exchanges are left out has its room kept from the start:
-    // the exchange before it may take all the rest.
-    let room = TAKEOVER_MESSAGE_LIMIT - fixed.length - title.length - EARLIER_OMITTED.length - 2;
-    if (room < 0) return fixed;
-    const fitted = [];
-    for (let i = exchanges.length - 1; i >= 0; i--) {
-        const block = fitExchange(exchanges[i], i, room - 2);
-        if (!block) {
-            fitted.unshift(EARLIER_OMITTED);
-            break;
-        }
-        fitted.unshift(block);
-        room -= block.length + 2;
+    return withExchanges(head, tail, exchanges);
+};
+
+// The explanation Rubytee writes before the code, by the mode of the Ruby tab (#1400): in
+// furigana mode the student reads Ruby with its meaning in Japanese, so the words are easy.
+const RUBY_TAB_EXPLAIN = {
+    ruby: '説明は、何を変えたかを「when_receive("合図") の中に play("Pop") を足しました」のように、Ruby の書き方で短く書いてください。',
+    furigana:
+        '生徒はふりがなモードで、Ruby の命令に日本語の意味をつけて読んでいます。説明は、小学生にもわかるやさしいことばで短く書き、命令には「loop（ずっと）」「move(10)（10 歩動かす）」のように日本語の意味を添えてください。コードは Ruby のままで書いてください。',
+};
+
+const programHeading = (program) => [
+    `# 「${program.name}」`,
+    `（音: ${quoteList(program.sounds)}／コスチューム: ${quoteList(program.costumes)}）`,
+];
+
+/**
+ * The first message to Rubytee from the Ruby tab (#1400): only the sprite in the editor is
+ * fixed (#1396 決定 1), with the Ruby in the editor now; the other sprites with code come
+ * as reference, so that the names of messages and variables match. As buildTakeoverMessage,
+ * the oldest exchanges are shortened or left out first to keep within 10000 characters;
+ * when the sprite and the references do not fit together, the references are left out.
+ * @param {object} params - parameters.
+ * @param {string} params.mode - 'ruby' or 'furigana'.
+ * @param {string} params.kindLabel - the chosen kind of trouble.
+ * @param {string} params.text - the trouble in the student's own words.
+ * @param {string} params.editingName - the sprite in the editor (「ステージ」 for the stage).
+ * @param {string} params.code - the Ruby in the editor.
+ * @param {Array<string>} params.sounds - the sounds of the sprite in the editor.
+ * @param {Array<string>} params.costumes - the costumes of the sprite in the editor.
+ * @param {Array<{name: string, code: string, sounds: ?Array<string>, costumes: ?Array<string>}>} params.others -
+ *     the other sprites (and the stage) as Ruby; those without code are left out.
+ * @param {Array<{question: ?string, answer: string, problems: Array<string>}>} params.exchanges -
+ *     the consultation with the generative AI, oldest first; problems in Japanese.
+ * @returns {?string} the message, or null when the sprite's program alone is too long to send.
+ */
+const buildRubyTabTakeoverMessage = ({
+    mode,
+    kindLabel,
+    text,
+    editingName,
+    code,
+    sounds,
+    costumes,
+    others,
+    exchanges,
+}) => {
+    const target = `「${editingName}」`;
+    const head = [
+        '生徒が学校の生成AI に Ruby のプログラムの相談をしましたが、その答えはスモウルビーのブロックにできませんでした。',
+        `生徒のやりたいことができて、ブロックにできるように、${target}のプログラムを書き直してください。`,
+        `直すのは${target}だけです。ほかのスプライトは、合図や変数の名前を合わせるための参考です。直さないでください。`,
+        RUBY_TAB_EXPLAIN[mode] || RUBY_TAB_EXPLAIN.ruby,
+        '',
+        '【困っていること】',
+        `${kindLabel || ''}：`,
+        (text || '').trim(),
+        '',
+        `【直すプログラム（生徒がいまエディタで書いている${target}）】`,
+        ...programHeading({ name: editingName, sounds, costumes }),
+        code && code.trim() ? fence(code) : '（まだプログラムはありません）',
+    ];
+    const reference = [];
+    const withCode = (others || []).filter((p) => p.code && p.code.trim());
+    if (withCode.length > 0) {
+        reference.push('', '【参考：ほかのスプライトのプログラム（直さないでください）】');
+        for (const program of withCode) reference.push(...programHeading(program), fence(program.code));
     }
-    if (fitted.length === 0) return fixed;
-    return [head.join('\n'), title, fitted.join('\n\n'), tail.join('\n')].join('');
+    const tail = [
+        '',
+        `${target}だけを、「# ${target}」の行から、変えないところも含めて全部書いてください。`,
+        'ほかのスプライトのプログラムは書かないでください。',
+    ];
+    const fits = (lines) => [...lines, ...tail].join('\n').length <= TAKEOVER_MESSAGE_LIMIT;
+    return withExchanges(fits([...head, ...reference]) ? [...head, ...reference] : head, tail, exchanges);
 };
 
 /**
@@ -306,6 +393,7 @@ export {
     MAX_TAKEOVER_TRIES,
     TAKEOVER_MESSAGE_LIMIT,
     TakeoverError,
+    buildRubyTabTakeoverMessage,
     buildTakeoverMessage,
     buildTakeoverRetryMessage,
     pollDelay,

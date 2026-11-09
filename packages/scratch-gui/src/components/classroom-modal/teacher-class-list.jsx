@@ -17,6 +17,8 @@ import {
     changedAiSettings,
     draftFromGroup,
     isDraftSavable,
+    isRubyteeUnconfirmed,
+    missingAiConfirmation,
 } from '../../lib/classroom-genai-settings.js';
 import ClassAiSettings from './class-ai-settings.jsx';
 import ClassAiStudentPreview from './class-ai-student-preview.jsx';
@@ -235,6 +237,15 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
     const handleCancelArchive = useCallback(() => setConfirmingArchive(false), []);
 
     const canSave = name.trim().length > 0 && parseInt(year, 10) >= 2000 && isDraftSavable(aiDraft);
+    // [Save] is off until the required checks are in; say which one, and take the teacher to it (#1427).
+    const missingConfirmation = missingAiConfirmation(aiDraft);
+    const formRef = useRef(null);
+    const handleGoToConfirmation = useCallback(() => {
+        const input = formRef.current && formRef.current.querySelector(`input[name="${missingConfirmation}Confirmed"]`);
+        if (!input) return;
+        input.scrollIntoView({ block: 'center' });
+        input.focus();
+    }, [missingConfirmation]);
     const newCount = parseInt(studentCount, 10);
     const isDecrease = newCount > 0 && originalCount > 0 && newCount < originalCount;
 
@@ -273,6 +284,7 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
         <div className={styles.classSettingsLayout}>
             <form
                 className={styles.classSettingsForm}
+                ref={formRef}
                 data-testid={`classroom-class-settings-${group.groupId}`}
                 onSubmit={handleSave}
             >
@@ -340,6 +352,7 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
                     changed={changedAiSettings(group, aiDraft)}
                     draft={aiDraft}
                     isLoading={isLoading}
+                    rubyteeUnconfirmed={isRubyteeUnconfirmed(group)}
                     onChange={setAiDraft}
                 />
                 {confirmingArchive ? (
@@ -374,7 +387,7 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
                 {/* フッター（レビュー指摘）: 通常は キャンセル左 / アーカイブ・保存 右
                     （アーカイブは保存の左）。アーカイブ押下中は キャンセル・保存を隠し
                     「アーカイブしない / アーカイブする」のみ表示。 */}
-                <div className={styles.formFooter}>
+                <div className={classNames(styles.formFooter, styles.classSettingsFooter)}>
                     {confirmingArchive ? (
                         <React.Fragment>
                             <ClassroomButton
@@ -423,6 +436,28 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
                                 )}
                             </ClassroomButton>
                             <div className={styles.footerRightGroup}>
+                                {missingConfirmation ? (
+                                    <button
+                                        className={styles.classSettingsSaveHint}
+                                        data-testid="classroom-class-settings-save-hint"
+                                        type="button"
+                                        onClick={handleGoToConfirmation}
+                                    >
+                                        {missingConfirmation === 'genai' ? (
+                                            <FormattedMessage
+                                                defaultMessage="Check the generative AI's conditions to save"
+                                                description="Shown beside the disabled Save button when the generative AI's required check is missing; jumps to it"
+                                                id="gui.classroom.classSettings.saveHintGenai"
+                                            />
+                                        ) : (
+                                            <FormattedMessage
+                                                defaultMessage="Check Rubytee's conditions to save"
+                                                description="Shown beside the disabled Save button when Rubytee's required check is missing; jumps to it"
+                                                id="gui.classroom.classSettings.saveHintRubytee"
+                                            />
+                                        )}
+                                    </button>
+                                ) : null}
                                 <ClassroomButton
                                     dataTestId="classroom-class-settings-archive"
                                     disabled={isLoading}

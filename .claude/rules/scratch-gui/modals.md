@@ -30,7 +30,6 @@ Smalruby モーダルの**本文ラッパー**（`<Box>` など、Modal の chil
 |---------|-------------|
 | `bug-report-modal.css` | `.body { background-color: $ui-white; }` |
 | `classroom-modal.css` | `.body { background-color: white; }` |
-| `rubytee-modal.css` | `.modal-container { background: white; }` |
 
 ### レビュー観点 / DoD
 

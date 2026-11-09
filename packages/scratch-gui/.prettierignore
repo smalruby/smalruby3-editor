@@ -63,8 +63,6 @@ src/components/*
 !src/components/palette-toggle/
 !src/components/ruby-script-preview/
 !src/components/ruby-toolbar/
-!src/components/rubytee-consent/
-!src/components/rubytee-modal/
 !src/components/url-loader-modal/
 !src/components/welcome-modal/
 !src/components/welcome-tooltip/
@@ -146,7 +144,6 @@ src/containers/*
 !src/containers/ruby-downloader.jsx
 !src/containers/ruby-tab.jsx
 !src/containers/smalrubot-firmware-modal.jsx
-!src/containers/rubytee-modal-hoc.jsx
 !src/containers/welcome-modal-hoc.jsx
 
 # ============================================================
@@ -235,9 +232,15 @@ src/lib/*
 !src/lib/genai-answer.js
 !src/lib/genai-block-diff.js
 !src/lib/genai-takeover.js
+!src/lib/genai-code-adapter.js
+!src/lib/genai-ruby-adapter.js
+!src/lib/genai-line-diff.js
+!src/lib/genai-dncl-prompt.js
+!src/lib/genai-dncl-answer.js
 !src/containers/genai-concierge.jsx
 !src/components/genai-concierge/genai-concierge.css
 !src/components/genai-concierge/genai-nudge.jsx
+!src/components/genai-concierge/genai-face.jsx
 !src/components/genai-concierge/genai-stepper.jsx
 !src/components/genai-concierge/genai-trouble-step.jsx
 !src/components/genai-concierge/genai-copy-step.jsx
@@ -245,8 +248,6 @@ src/lib/*
 !src/components/genai-concierge/messages.js
 !src/lib/genai-concierge-state.js
 !src/lib/ruby-to-blocks-converter-hoc.jsx
-!src/lib/rubytee-api.js
-!src/lib/rubytee-context.js
 !src/lib/touch-device.js
 !src/lib/url-loader-hoc.jsx
 !src/lib/url-loader.js
@@ -343,7 +344,6 @@ test/integration/*
 !test/integration/ruby-tab.test.js
 !test/integration/smalrubot-firmware.test.js
 !test/integration/smalrubot-s1-connection-flow.test.js
-!test/integration/rubytee-consent.test.js
 !test/integration/smalruby-tutorials.test.js
 !test/integration/v1-detection-prompt.test.js
 !test/integration/palette-toggle-position.test.js
@@ -379,6 +379,8 @@ test/unit/components/*
 !test/unit/components/koshien-test-modal.test.jsx
 !test/unit/components/url-loader-modal.test.jsx
 !test/unit/components/dncl-mode-notice.test.jsx
+!test/unit/components/genai-answer-steps-index-hints.test.jsx
+!test/unit/components/genai-answer-steps-words.test.jsx
 !test/unit/components/extension-button-dncl.test.jsx
 !test/unit/components/connected-step.test.jsx
 !test/unit/components/mesh-self-sensor-notice.test.jsx
@@ -410,6 +412,7 @@ test/unit/components/*
 !test/unit/components/welcome-tooltip.test.jsx
 !test/unit/components/project-title-input.test.jsx
 !test/unit/components/ruby-toolbar-analytics.test.jsx
+!test/unit/components/ruby-toolbar-no-rubytee.test.jsx
 !test/unit/components/ruby-toolbar-keyboard.test.jsx
 !test/unit/components/scanning-step-name-search.test.js
 !test/unit/components/student-join-form.test.js
@@ -447,8 +450,6 @@ test/unit/containers/*
 !test/unit/containers/google-drive-state-management.test.jsx
 !test/unit/containers/ruby-downloader.test.jsx
 !test/unit/containers/ruby-tab-project-changed.test.js
-!test/unit/containers/rubytee-modal-hoc-availability.test.jsx
-!test/unit/containers/rubytee-modal-hoc-sanitize.test.js
 !test/unit/containers/stage-header.test.jsx
 
 # Level 3: test/unit/helpers/* — Smalruby-only, no filter needed
@@ -551,11 +552,15 @@ test/unit/lib/*
 !test/unit/lib/genai-answer.test.js
 !test/unit/lib/genai-block-diff.test.js
 !test/unit/lib/genai-takeover.test.js
+!test/unit/lib/genai-code-adapter.test.js
+!test/unit/lib/genai-ruby-adapter.test.js
+!test/unit/lib/genai-line-diff.test.js
+!test/unit/lib/genai-dncl-prompt.test.js
+!test/unit/lib/genai-dncl-answer.test.js
+!test/unit/lib/genai-ruby-prompt.test.js
 !test/genai-lab/
 !test/genai-lab/*.js
 !test/unit/lib/ruby-to-blocks-converter-version.test.js
-!test/unit/lib/rubytee-api.test.js
-!test/unit/lib/rubytee-context.test.js
 !test/unit/lib/screen-utils.test.js
 !test/unit/lib/stale-block-delete-guard.test.js
 !test/unit/lib/smalrubot-firmware-flasher.test.js

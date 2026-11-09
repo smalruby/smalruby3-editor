@@ -17,6 +17,7 @@ import { tidyPastedDncl, withDoubleSlashHint } from '../lib/dncl/dncl-paste-tidy
 import { dnclToRuby } from '../lib/dncl/dncl-to-ruby';
 import { rubyToDncl } from '../lib/dncl/ruby-to-dncl';
 import FuriganaAnnotator from '../lib/furigana-annotator';
+import { makeRubyTabAdapterFactory } from '../lib/genai-ruby-adapter.js';
 import { wrapCurrentCodeWithClass } from '../lib/insert-class';
 import intlShape from '../lib/intlShape.js';
 import { isJapaneseLocale } from '../lib/locale-utils';
@@ -45,6 +46,7 @@ import {
 } from '../reducers/ruby-code';
 import { setRubyVersion, dismissV1Prompt } from '../reducers/settings';
 import { markRubyTabUsed } from '../reducers/tutorial-onboarding';
+import GenaiConcierge from './genai-concierge.jsx';
 import RubyDownloader from './ruby-downloader.jsx';
 import {
     FONT_SIZES,
@@ -73,7 +75,6 @@ import FuriganaRenderer from './ruby-tab/furigana-renderer';
 import QuickFixProvider from './ruby-tab/quick-fix-provider';
 import styles from './ruby-tab/ruby-tab.css';
 import { showBubble, dismissBubble, removeBubble } from './ruby-tab/visual-report-bubble';
-import RubyteeModalHOC from './rubytee-modal-hoc.jsx';
 
 // === Initialization helpers ===
 
@@ -122,8 +123,6 @@ const RubyTab = (props) => {
         onClearAiSaveStatus,
         onFontSizeChange,
         onMarkRubyTabUsed,
-        onOpenRubyteeModal,
-        onRegisterRubyteeApply,
         v1PromptDismissed,
         onDismissV1Prompt,
         onSetDnclMode,
@@ -224,6 +223,35 @@ const RubyTab = (props) => {
     intlRef.current = intl;
     const vmRef = useRef(vm);
     vmRef.current = vm;
+    // "生成AI に相談" in the Ruby, furigana (#1398) and Japanese (DNCL, #1402) modes. The
+    // adapter reads the editor and the mode when it needs them, so this function stays the
+    // same between renders. The sprite in the editor is rubyCode.target, not
+    // vm.editingTarget: the editor keeps the code (and its sprite) that cannot become blocks
+    // while the VM switches to another sprite (#1435).
+    const rubyCodeTargetRef = useRef(rubyCode.target);
+    rubyCodeTargetRef.current = rubyCode.target;
+    const editorTargetListenersRef = useRef(new Set());
+    const genaiAdapterRef = useRef(null);
+    if (!genaiAdapterRef.current) {
+        genaiAdapterRef.current = makeRubyTabAdapterFactory({
+            getEditor: () => editorRef.current,
+            getMonaco: () => monacoRef.current,
+            getMode: () => {
+                if (dnclModeRef.current) return 'dncl';
+                return furiganaEnabledRef.current ? 'furigana' : 'ruby';
+            },
+            getEditorTarget: () => rubyCodeTargetRef.current,
+            onEditorTargetChange: (listener) => {
+                editorTargetListenersRef.current.add(listener);
+                return () => editorTargetListenersRef.current.delete(listener);
+            },
+        });
+    }
+    // Told after the editor (a child, whose effects run first) has the new sprite's code. In
+    // the DNCL mode the DNCL comes in a later render; the adapter waits for it then.
+    useEffect(() => {
+        editorTargetListenersRef.current.forEach((listener) => listener());
+    }, [rubyCode.target]);
     // Load Monaco locale synchronously before first render
     const localeLoadedRef = useRef(false);
     if (!localeLoadedRef.current) {
@@ -253,6 +281,18 @@ const RubyTab = (props) => {
             // counterpart, so the whole DNCL line is marked.
             const sourceMap = dnclModeRef.current ? dnclSourceMapRef.current : null;
             let errors = sourceMap ? sourceMap.rubyErrorsToDncl(rawErrors) : rawErrors;
+            if (dnclModeRef.current && errors.length > 0) {
+                // A missing or extra closer makes the converter say a missing
+                // `end`; say it in the words of DNCL instead (Issue #1419).
+                const { blockErrors } = dnclToRuby(editorRef.current.getValue());
+                if (blockErrors.length > 0) {
+                    errors = blockErrors.map((err) => ({
+                        row: err.line - 1,
+                        column: err.column - 1,
+                        text: err.message,
+                    }));
+                }
+            }
             if (dnclModeRef.current) {
                 // `//` is integer division in Smalruby DNCL, never a comment,
                 // so a 共通テスト style `//` comment fails to convert. Tell
@@ -512,13 +552,6 @@ const RubyTab = (props) => {
         });
 
         updateUndoRedoState();
-
-        // Register callback for Rubytee (AI assistant) to insert code into the editor
-        if (onRegisterRubyteeApply) {
-            onRegisterRubyteeApply((code) => {
-                onChangeRef.current(code);
-            });
-        }
     }, []);
 
     // --- UI event handlers (useCallback for react/jsx-no-bind) ---
@@ -1400,7 +1433,6 @@ const RubyTab = (props) => {
                     onToggleAutoCorrect={handleToggleAutoCorrect}
                     onOpenAutoCorrectSettings={handleOpenAutoCorrectSettings}
                     onPreviewRubyScript={handlePreviewRubyScript}
-                    onOpenRubyteeModal={onOpenRubyteeModal}
                     dnclMode={dnclMode}
                     dnclValidating={dnclValidating}
                     onToggleDnclMode={handleToggleDnclMode}
@@ -1432,6 +1464,15 @@ const RubyTab = (props) => {
                         theme="vs"
                         value={dnclMode ? dnclDisplayCode : code}
                         width="100%"
+                    />
+                    {/* Switching to or from DNCL starts the consultation again: the question, the
+                        answer and the two versions are in the language of the mode (#1402). */}
+                    <GenaiConcierge
+                        key={dnclMode ? 'genai-dncl' : 'genai-ruby'}
+                        vm={vm}
+                        rubyTab
+                        dnclMode={dnclMode}
+                        createAdapter={genaiAdapterRef.current}
                     />
                 </div>
             </div>
@@ -1503,8 +1544,6 @@ RubyTab.propTypes = {
     projectTitle: PropTypes.string,
     locale: PropTypes.string,
     activeTabIndex: PropTypes.number,
-    onOpenRubyteeModal: PropTypes.func,
-    onRegisterRubyteeApply: PropTypes.func,
     v1PromptDismissed: PropTypes.bool,
     onDismissV1Prompt: PropTypes.func,
     onSetDnclMode: PropTypes.func,
@@ -1547,8 +1586,6 @@ const mapDispatchToProps = (dispatch) => ({
     onActivateTab: (tab) => dispatch(activateTab(tab)),
 });
 
-const ConnectedRubyTab = RubyteeModalHOC(
-    RubyToBlocksConverterHOC(injectIntl(connect(mapStateToProps, mapDispatchToProps)(RubyTab))),
-);
+const ConnectedRubyTab = RubyToBlocksConverterHOC(injectIntl(connect(mapStateToProps, mapDispatchToProps)(RubyTab)));
 
 export default ConnectedRubyTab;

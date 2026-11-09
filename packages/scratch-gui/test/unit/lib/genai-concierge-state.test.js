@@ -2,13 +2,18 @@ import messages, { KIND_MESSAGES } from '../../../src/components/genai-concierge
 import {
     NUDGE_GAP_MS,
     copyChecklist,
+    faceLabel,
     genaiServiceLabel,
     TAKEOVER_AFTER_FAILURES,
     afterBlocksRender,
     canOfferTakeover,
     isGenaiAvailable,
+    isGenaiDevFlag,
+    isRubyTabGenaiAvailable,
+    isTakeoverAvailable,
     isNudgeOffToday,
     localDateKey,
+    marksToShow,
     normalizeStudentGenai,
     panelPlacement,
     resolveGenaiTarget,
@@ -150,6 +155,30 @@ describe('isGenaiAvailable', () => {
     });
 });
 
+describe('isGenaiDevFlag', () => {
+    test('should turn ?features=genai on with the dev server', () => {
+        expect(isGenaiDevFlag({ features: ['genai'], production: false, hostname: 'localhost' })).toBe(true);
+    });
+
+    test('should turn it on in the branch previews', () => {
+        expect(isGenaiDevFlag({ features: ['genai'], production: true, hostname: 'preview.smalruby.app' })).toBe(
+            true,
+        );
+    });
+
+    test('should not turn it on in production (smalruby.app)', () => {
+        expect(isGenaiDevFlag({ features: ['genai'], production: true, hostname: 'smalruby.app' })).toBe(false);
+        expect(isGenaiDevFlag({ features: ['genai'], production: true, hostname: 'localhost' })).toBe(false);
+    });
+
+    test('should be off without ?features=genai', () => {
+        expect(isGenaiDevFlag({ features: [], production: false, hostname: 'localhost' })).toBe(false);
+        expect(isGenaiDevFlag({ features: ['other'], production: true, hostname: 'preview.smalruby.app' })).toBe(
+            false,
+        );
+    });
+});
+
 describe('genai concierge words', () => {
     test('should have a label and a starter for every kind of trouble', () => {
         PROBLEM_KINDS.forEach((kind) => {
@@ -232,6 +261,35 @@ describe('panelPlacement', () => {
     });
 });
 
+describe('faceLabel', () => {
+    const wide = { areaWidth: 1200, rootLeft: 324, faceWidth: 52 };
+
+    test('should show the whole label beside the face when there is room', () => {
+        expect(faceLabel({ ...wide, open: false, nudge: false })).toBe('full');
+    });
+
+    test('should hide the label while the panel is open', () => {
+        expect(faceLabel({ ...wide, open: true, nudge: false })).toBe('none');
+    });
+
+    test('should leave the place to the nudge while it is shown', () => {
+        expect(faceLabel({ ...wide, open: false, nudge: true })).toBe('none');
+    });
+
+    test('should wait until the area is measured', () => {
+        expect(faceLabel({ areaWidth: 0, rootLeft: 12, faceWidth: 52, open: false, nudge: false })).toBe('none');
+    });
+
+    test('should shorten the label in a narrow area', () => {
+        // 390 px wide: 390 - 60 (zoom buttons) - 12 - 52 - 8 = 258 px beside the face.
+        expect(faceLabel({ areaWidth: 390, rootLeft: 12, faceWidth: 52, open: false, nudge: false })).toBe('short');
+    });
+
+    test('should hide the label when even the short one does not fit', () => {
+        expect(faceLabel({ areaWidth: 160, rootLeft: 12, faceWidth: 52, open: false, nudge: false })).toBe('none');
+    });
+});
+
 describe('scrollToShowBlocks', () => {
     test('should bring the top left of the blocks near the top left of the script area', () => {
         expect(scrollToShowBlocks({ bbox: { left: 300, top: 200 }, scale: 0.675 })).toEqual({
@@ -252,6 +310,32 @@ describe('canOfferTakeover', () => {
         expect(canOfferTakeover({ failures: 2, rubyteeAvailable: true })).toBe(true);
         expect(canOfferTakeover({ failures: 3, rubyteeAvailable: true })).toBe(true);
         expect(canOfferTakeover({ failures: 2, rubyteeAvailable: false })).toBe(false);
+    });
+});
+
+describe('marksToShow', () => {
+    const abby = {};
+    const dee = {};
+    test('prefers the sprite in the editor and leaves removed blocks out', () => {
+        const marks = [
+            { target: abby, changes: [{ kind: 'added', id: 'a' }] },
+            {
+                target: dee,
+                changes: [
+                    { kind: 'removed', id: 'r' },
+                    { kind: 'changed', id: 'c' },
+                ],
+            },
+        ];
+        expect(marksToShow(marks, dee)).toEqual({ owner: dee, ids: ['c'] });
+        expect(marksToShow(marks, null)).toEqual({ owner: abby, ids: ['a'] });
+    });
+
+    test('shows nothing when only removed blocks are marked', () => {
+        expect(marksToShow([{ target: abby, changes: [{ kind: 'removed', id: 'r' }] }], abby)).toEqual({
+            owner: null,
+            ids: [],
+        });
     });
 });
 
@@ -328,5 +412,55 @@ describe('showInEditor', () => {
         vm.setEditingTarget = jest.fn();
         await showInEditor(vm, dog);
         expect(vm.listenerCount('workspaceUpdate')).toBe(0);
+    });
+});
+
+describe('isRubyTabGenaiAvailable', () => {
+    const student = {
+        role: 'student',
+        sessionToken: 'session',
+        classGenai: { enabled: true },
+        devFlag: false,
+        rubyVersion: '2',
+        dnclMode: false,
+    };
+
+    test('shows the face to a student of a class using a generative AI, with Ruby version 2', () => {
+        expect(isRubyTabGenaiAvailable(student)).toBe(true);
+    });
+
+    test('hides the face outside a class, to a teacher and with the setting off', () => {
+        expect(isRubyTabGenaiAvailable({ ...student, role: null, sessionToken: null })).toBe(false);
+        expect(isRubyTabGenaiAvailable({ ...student, role: 'teacher' })).toBe(false);
+        expect(isRubyTabGenaiAvailable({ ...student, classGenai: { enabled: false } })).toBe(false);
+    });
+
+    test('hides the face with Ruby version 1, also with ?features=genai', () => {
+        expect(isRubyTabGenaiAvailable({ ...student, rubyVersion: '1' })).toBe(false);
+        expect(isRubyTabGenaiAvailable({ ...student, role: null, devFlag: true, rubyVersion: '1' })).toBe(false);
+    });
+
+    test('shows the face in DNCL mode too (#1402)', () => {
+        expect(isRubyTabGenaiAvailable({ ...student, dnclMode: true })).toBe(true);
+    });
+
+    test('shows the face with ?features=genai outside a class', () => {
+        expect(isRubyTabGenaiAvailable({ ...student, role: null, sessionToken: null, devFlag: true })).toBe(true);
+    });
+});
+
+describe('isTakeoverAvailable', () => {
+    test('offers Rubytee in the code tab and in the Ruby and furigana modes of the Ruby tab', () => {
+        expect(isTakeoverAvailable({ rubyteeAvailable: true, rubyTab: false, dnclMode: false })).toBe(true);
+        expect(isTakeoverAvailable({ rubyteeAvailable: true, rubyTab: true, dnclMode: false })).toBe(true);
+    });
+
+    test('does not offer Rubytee in DNCL mode', () => {
+        expect(isTakeoverAvailable({ rubyteeAvailable: true, rubyTab: true, dnclMode: true })).toBe(false);
+    });
+
+    test('does not offer Rubytee when the class does not use it', () => {
+        expect(isTakeoverAvailable({ rubyteeAvailable: false, rubyTab: true, dnclMode: false })).toBe(false);
+        expect(isTakeoverAvailable({ rubyteeAvailable: false, rubyTab: false, dnclMode: false })).toBe(false);
     });
 });

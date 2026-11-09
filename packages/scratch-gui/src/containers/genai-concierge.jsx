@@ -3,35 +3,36 @@
 // ?features=genai for development). The student describes the trouble, copies
 // a question with the whole project as Ruby into the class's generative AI, and
 // pastes the answer back to turn it into blocks.
+// What depends on the tab is the adapter's (#1397, src/lib/genai-code-adapter.js); the
+// panel's steps are the same wherever it is.
 import PropTypes from 'prop-types';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import ReactDOM from 'react-dom';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useIntl } from 'react-intl';
 import { connect } from 'react-redux';
 import GenaiAnswerSteps from '../components/genai-concierge/genai-answer-steps.jsx';
 import styles from '../components/genai-concierge/genai-concierge.css';
 import GenaiCopyStep from '../components/genai-concierge/genai-copy-step.jsx';
+import GenaiFace from '../components/genai-concierge/genai-face.jsx';
 import GenaiNudge from '../components/genai-concierge/genai-nudge.jsx';
 import GenaiStepper from '../components/genai-concierge/genai-stepper.jsx';
 import GenaiTroubleStep from '../components/genai-concierge/genai-trouble-step.jsx';
 import messages from '../components/genai-concierge/messages.js';
-import rubyteeIcon from '../components/ruby-toolbar/icon--rubytee.svg';
-import RubyteeConsent from '../components/rubytee-consent/rubytee-consent.jsx';
+import { createCodeTabAdapter } from '../lib/genai-code-adapter.js';
 import {
     NUDGE_GAP_MS,
     NUDGE_IDLE_SECONDS,
-    afterBlocksRender,
+    faceLabel,
     isGenaiAvailable,
+    isGenaiDevFlag,
     isNudgeOffToday,
+    isRubyTabGenaiAvailable,
+    isTakeoverAvailable,
     localDateKey,
     panelPlacement,
     resolveGenaiTarget,
-    scrollToShowBlocks,
     shouldNudge,
-    showInEditor,
 } from '../lib/genai-concierge-state.js';
-import { PROBLEM_KINDS, buildGenaiPrompt } from '../lib/genai-prompt.js';
-import RubyGenerator from '../lib/ruby-generator';
+import { PROBLEM_KINDS } from '../lib/genai-prompt.js';
 import { getUrlParams } from '../lib/url-params.js';
 import { selectRubyteeAvailable } from '../reducers/classroom.js';
 import useStudentClassSettingsRefresh from './use-student-class-settings-refresh.js';
@@ -40,8 +41,6 @@ import useStudentClassSettingsRefresh from './use-student-class-settings-refresh
 const NUDGE_OFF_KEY = 'smalruby:genaiNudgeOff';
 // Development only: the generative AI chosen outside a class.
 const DEV_SERVICE_KEY = 'smalruby:genaiService';
-// The consent to Rubytee, shared with the Ruby tab (rubytee-modal-hoc.jsx).
-const RUBYTEE_CONSENT_KEY = 'smalruby:rubyteeConsent';
 
 const readStorage = (key) => {
     try {
@@ -65,22 +64,13 @@ const FACE_WIDTH = 52;
 // Margin kept above the panel inside the script area.
 const PANEL_TOP_MARGIN = 12;
 
-// Where the face goes (the left edge of the script area right of the block palette, so
-// it does not cover blocks) and the size of the script area the panel has to fit in.
-const measureArea = (root) => {
-    const flyout = document.querySelector('.blocklyFlyout');
-    const parent = root && root.offsetParent;
-    if (!parent) return { left: 12, width: 0, height: 0 };
-    const left = flyout ? flyout.getBoundingClientRect().right - parent.getBoundingClientRect().left : 0;
-    return {
-        left: Math.max(12, Math.round(left + 12)),
-        width: parent.clientWidth,
-        height: parent.clientHeight,
-    };
-};
+// Whether the face is on the screen: a hidden tab panel (display: none) has no offsetParent.
+const isShown = (element) => Boolean(element && element.offsetParent);
 
 const GenaiConcierge = ({
     vm,
+    createAdapter = createCodeTabAdapter,
+    rubyTab,
     rubyVersion,
     assignmentName,
     available,
@@ -93,8 +83,13 @@ const GenaiConcierge = ({
     dispatch,
 }) => {
     const intl = useIntl();
+    const adapter = useMemo(
+        () => createAdapter({ vm, intl, rubyVersion, scratchBlocks }),
+        [createAdapter, vm, intl, rubyVersion, scratchBlocks],
+    );
     // The teacher may have turned the generative AI off since the page was last open.
-    useStudentClassSettingsRefresh({ role, sessionToken, dispatch });
+    // The code tab's panel reads it for both (both tabs are mounted at once, #1398).
+    useStudentClassSettingsRefresh({ role: rubyTab ? null : role, sessionToken, dispatch });
     const [area, setArea] = useState({ left: 12, width: 0, height: 0 });
     const [nudge, setNudge] = useState(false);
     const [open, setOpen] = useState(false);
@@ -131,7 +126,7 @@ const GenaiConcierge = ({
     useEffect(() => {
         if (!available) return;
         const update = () => {
-            const next = measureArea(rootRef.current);
+            const next = adapter.measureArea(rootRef.current);
             setArea((prev) =>
                 prev.left === next.left && prev.width === next.width && prev.height === next.height ? prev : next,
             );
@@ -143,7 +138,7 @@ const GenaiConcierge = ({
             clearInterval(timer);
             window.removeEventListener('resize', update);
         };
-    }, [available]);
+    }, [available, adapter]);
 
     // Count from when the face appears (e.g. on joining a class), not from the page load:
     // input before that is not watched, so an old start would offer help right away.
@@ -175,7 +170,9 @@ const GenaiConcierge = ({
                 lastNudge: lastNudge.current,
                 idleMs,
                 gapMs,
-                busy: open || nudge || runningRef.current || document.hidden,
+                // Both tabs' panels are mounted at once: the one in a hidden tab keeps quiet,
+                // or it would greet the student on the next visit to that tab (#1398).
+                busy: open || nudge || runningRef.current || document.hidden || !isShown(rootRef.current),
                 offToday: isNudgeOffToday(readStorage(NUDGE_OFF_KEY), now),
             });
             if (!show) return;
@@ -191,11 +188,17 @@ const GenaiConcierge = ({
         };
     }, [vm, available, open, nudge]);
 
+    // A trouble the tab sees (an error in the Ruby editor) is where a new consultation starts.
     const handleOpen = useCallback(() => {
         setNudge(false);
         setOpen(true);
         setOpened(true);
-    }, []);
+        if (step !== 'trouble' || kindId || text.trim() || !adapter.initialTrouble) return;
+        const start = adapter.initialTrouble();
+        if (!start) return;
+        setKindId(start.kindId);
+        setText(start.text);
+    }, [adapter, step, kindId, text]);
 
     const handleClose = useCallback(() => {
         setOpen(false);
@@ -233,45 +236,18 @@ const GenaiConcierge = ({
         handleClose();
     }, [handleReset, handleClose]);
 
-    // 「ルビティーにまかせる」 asks for the consent to Rubytee first, as the Ruby tab does
-    // (that it is an AI, not a person, and may be wrong), then starts (#1282).
-    const [consentStart, setConsentStart] = useState(null);
-    const handleTakeover = useCallback((start) => {
-        if (readStorage(RUBYTEE_CONSENT_KEY) === 'true') start();
-        else setConsentStart(() => start);
-    }, []);
-    const handleConsentAccept = useCallback(() => {
-        writeStorage(RUBYTEE_CONSENT_KEY, 'true');
-        const start = consentStart;
-        setConsentStart(null);
-        if (start) start();
-    }, [consentStart]);
-    const handleConsentCancel = useCallback(() => setConsentStart(null), []);
-
     const handleKindChange = useCallback((id, starter) => {
         setKindId(id);
         if (starter !== null) setText(starter);
     }, []);
 
     const handleMakePrompt = useCallback(() => {
-        const editing = vm.editingTarget;
         const kind = PROBLEM_KINDS.find((k) => k.id === kindId);
-        const programs = vm.runtime.targets
-            .filter((t) => t.isOriginal)
-            .map((t) => ({
-                name: t.isStage ? 'ステージ' : t.getName(),
-                code: RubyGenerator.targetToCode(t, { version: rubyVersion }),
-                sounds: t.getSounds().map((sound) => sound.name),
-                costumes: t.getCostumes().map((costume) => costume.name),
-            }))
-            .filter((p) => (p.code && p.code.trim()) || p.name === (editing && editing.getName()));
         setPrompt(
-            buildGenaiPrompt({
+            adapter.buildPrompt({
                 // The question to the AI stays in Japanese whatever the editor language (#1279).
                 kindLabel: kind.label,
                 text,
-                programs,
-                editingName: editing && !editing.isStage ? editing.getName() : null,
                 assignmentName,
             }),
         );
@@ -279,7 +255,7 @@ const GenaiConcierge = ({
         setCopied({});
         setPromptOpen(false);
         goTo('copy');
-    }, [vm, rubyVersion, kindId, text, assignmentName, goTo]);
+    }, [adapter, kindId, text, assignmentName, goTo]);
 
     // noopener: the opened page gets no reference back to Smalruby (it could otherwise
     // move this tab elsewhere), and the reference could not be used anyway (see aiOpened).
@@ -355,38 +331,8 @@ const GenaiConcierge = ({
     const handleTogglePrompt = useCallback(() => setPromptOpen((v) => !v), []);
     const handleClearNotice = useCallback(() => setNotice(''), []);
 
-    // Bring blocks into view at the top left, away from the panel at the right (#1293 G8):
-    // the marked ones when there are (a wide script would hide them under the panel, #1281),
-    // else all the blocks. Another sprite's blocks are shown in the editor first, and the
-    // scroll waits for its workspace update and for Blockly to draw the blocks (#1281 Q1).
-    const handleShowBlocks = useCallback(
-        (owner, ids) => {
-            showInEditor(vm, owner)
-                .then(() => afterBlocksRender(scratchBlocks))
-                .then(() => {
-                    const workspace = scratchBlocks && scratchBlocks.getMainWorkspace();
-                    if (!workspace) return;
-                    const boxes = (ids || [])
-                        .map((id) => workspace.getBlockById(id))
-                        .filter(Boolean)
-                        .map((block) => block.getBoundingRectangle());
-                    let box = null;
-                    if (boxes.length > 0) {
-                        box = {
-                            left: Math.min(...boxes.map((b) => b.left)),
-                            top: Math.min(...boxes.map((b) => b.top)),
-                        };
-                    } else {
-                        const all = workspace.getBlocksBoundingBox();
-                        const empty = !all || (all.right === all.left && all.bottom === all.top);
-                        box = empty ? null : all;
-                    }
-                    const to = scrollToShowBlocks({ bbox: box, scale: workspace.scale });
-                    if (to) workspace.scroll(to.x, to.y);
-                });
-        },
-        [vm, scratchBlocks],
-    );
+    // Bring what changed into view, away from the panel (and that sprite into the editor).
+    const handleShowBlocks = useCallback((owner, ids) => adapter.showBlocks(owner, ids), [adapter]);
 
     if (!available) return null;
 
@@ -425,10 +371,11 @@ const GenaiConcierge = ({
                             ×
                         </button>
                     </div>
-                    <GenaiStepper step={step} onStep={goTo} />
+                    <GenaiStepper step={step} putsCode={adapter.puts === 'code'} onStep={goTo} />
                     <div className={styles.body}>
                         {step === 'trouble' && (
                             <GenaiTroubleStep
+                                kinds={adapter.problemKinds}
                                 kindId={kindId}
                                 text={text}
                                 onKindChange={handleKindChange}
@@ -460,7 +407,7 @@ const GenaiConcierge = ({
                         <GenaiAnswerSteps
                             key={answerKey}
                             vm={vm}
-                            rubyVersion={rubyVersion}
+                            adapter={adapter}
                             serviceName={target ? target.name : null}
                             prompt={prompt}
                             troubleKind={kindLabel}
@@ -469,7 +416,6 @@ const GenaiConcierge = ({
                             step={step}
                             notice={notice}
                             rubyteeAvailable={rubyteeAvailable}
-                            scratchBlocks={scratchBlocks}
                             onStep={goTo}
                             onCopy={copyAndOpen}
                             onShowBlocks={handleShowBlocks}
@@ -478,24 +424,15 @@ const GenaiConcierge = ({
                             onClose={handleClose}
                             onFinish={handleFinish}
                             onReset={handleReset}
-                            onTakeover={handleTakeover}
                         />
                     </div>
                 </div>
             )}
-            <button
-                className={styles.face}
-                data-testid="genai-face"
-                onClick={open ? handleClose : handleOpen}
+            <GenaiFace
                 title={title}
-            >
-                <img src={rubyteeIcon} alt={title} />
-            </button>
-            {consentStart &&
-                ReactDOM.createPortal(
-                    <RubyteeConsent onAccept={handleConsentAccept} onCancel={handleConsentCancel} />,
-                    document.body,
-                )}
+                label={faceLabel({ areaWidth: area.width, rootLeft: area.left, faceWidth: FACE_WIDTH, open, nudge })}
+                onClick={open ? handleClose : handleOpen}
+            />
         </div>
     );
 };
@@ -509,6 +446,14 @@ GenaiConcierge.propTypes = {
         removeListener: PropTypes.func,
         setEditingTarget: PropTypes.func,
     }).isRequired,
+    // Makes the adapter of the tab the panel is in: ({vm, intl, rubyVersion, scratchBlocks})
+    // => adapter (the points are described in src/lib/genai-code-adapter.js). The code tab's
+    // by default. Pass a function that stays the same between renders (not an inline arrow):
+    // a new one makes a new adapter, and the marks and the area are set up again each time.
+    createAdapter: PropTypes.func,
+    // In the Ruby tab: the face is only for Ruby version 2 (#1398). 「ルビティーにまかせる」 is
+    // not offered in the Japanese (DNCL) mode (#1400): Rubytee does not answer in DNCL.
+    rubyTab: PropTypes.bool,
     rubyVersion: PropTypes.string,
     assignmentName: PropTypes.string,
     available: PropTypes.bool.isRequired,
@@ -532,8 +477,18 @@ GenaiConcierge.propTypes = {
     dispatch: PropTypes.func.isRequired,
 };
 
-const mapStateToProps = (state) => {
+const mapStateToProps = (state, ownProps) => {
     const { classroom } = state.scratchGui;
+    const access = {
+        role: classroom.role,
+        sessionToken: classroom.sessionToken,
+        classGenai: classroom.studentGenai,
+        devFlag: isGenaiDevFlag({
+            features: getUrlParams().features,
+            production: process.env.NODE_ENV === 'production',
+            hostname: typeof window === 'undefined' ? '' : window.location.hostname,
+        }),
+    };
     return {
         rubyVersion: state.scratchGui.settings.rubyVersion,
         role: classroom.role,
@@ -541,13 +496,14 @@ const mapStateToProps = (state) => {
         scratchBlocks: state.scratchGui.blockDisplay && state.scratchGui.blockDisplay.scratchBlocks,
         assignmentName: classroom.assignmentName,
         classGenai: classroom.studentGenai,
-        available: isGenaiAvailable({
-            role: classroom.role,
-            sessionToken: classroom.sessionToken,
-            classGenai: classroom.studentGenai,
-            devFlag: getUrlParams().features.includes('genai'),
+        available: ownProps.rubyTab
+            ? isRubyTabGenaiAvailable({ ...access, rubyVersion: state.scratchGui.settings.rubyVersion })
+            : isGenaiAvailable(access),
+        rubyteeAvailable: isTakeoverAvailable({
+            rubyteeAvailable: selectRubyteeAvailable(state),
+            rubyTab: Boolean(ownProps.rubyTab),
+            dnclMode: Boolean(ownProps.dnclMode),
         }),
-        rubyteeAvailable: selectRubyteeAvailable(state),
         running: Boolean(state.scratchGui.vmStatus && state.scratchGui.vmStatus.running),
     };
 };

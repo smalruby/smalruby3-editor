@@ -368,10 +368,12 @@ export default {
     'gui.classroom.classSettings.unarchive': 'もどす',
     'gui.classroom.classSettings.cancel': 'キャンセル',
     'gui.classroom.classSettings.save': 'ほぞん',
+    'gui.classroom.classSettings.saveHintGenai': 'せいせいAI のじょうけんにチェックするとほぞんできます',
+    'gui.classroom.classSettings.saveHintRubytee': 'ルビティーのじょうけんにチェックするとほぞんできます',
     'gui.classroom.classAi.heading': 'このクラスでつかう AI',
     'gui.classroom.classAi.genaiLabel': 'がっこうのせいせいAI にそうだん',
     'gui.classroom.classAi.genaiNote':
-        'コードがめんに「AI にそうだん」ボタンがでます。せいとがはりつけるので、スモウルビーからはなにもおくりません。',
+        'コードタブと Ruby タブのりょうほうに「AI にそうだん」のかおがでます。せいとがはりつけるので、スモウルビーからはなにもおくりません。',
     'gui.classroom.classAi.service.none': 'つかわない',
     'gui.classroom.classAi.service.gemini': 'Gemini（Google）',
     'gui.classroom.classAi.service.geminiCondition':
@@ -383,8 +385,6 @@ export default {
     'gui.classroom.classAi.service.otherCondition':
         'URL をいれます。りようじょうけんはがっこうでかくにんしてください。',
     'gui.classroom.classAi.confirm': 'このクラスはじょうけんをみたしています（ひっす）',
-    'gui.classroom.classAi.confirmReason':
-        'スモウルビーではがっこうのきょかをたしかめられないため、せんせいにたしかめてもらいます。チェックするとほぞんできます。',
     'gui.classroom.classAi.urlChange': 'せいとがひらくページをかえる（いまは {url}）',
     'gui.classroom.classAi.urlLabel': 'せいとがひらくページ',
     'gui.classroom.classAi.try': 'ためす（べつタブ）',
@@ -393,13 +393,33 @@ export default {
     'gui.classroom.classAi.urlError.adultOnly': '18 さいいじょうだけがつかえるサービスなのでえらべません。',
     'gui.classroom.classAi.rubytee': 'ルビティー',
     'gui.classroom.classAi.rubyteeNote':
-        'Ruby タブの AI ボタンで、スモウルビーの AI にしつもんできます。もうしこみはいりません。',
+        'せいせいAI のこたえがつかえないとき、［ルビティーにまかせる］でスモウルビーの AI（Claude）がなおします。もうしこみはいりません。',
+    'gui.classroom.classAi.rubyteeCondition.wrong':
+        'ルビティーは AI（Anthropic の Claude）です。こたえがまちがっていることがあります。',
+    'gui.classroom.classAi.rubyteeCondition.personal':
+        'せいとがなまえやじゅうしょなどのこじんじょうほうをいれないようしどうします。',
+    'gui.classroom.classAi.rubyteeCondition.age':
+        '18 さいみまんのせいとはほごしゃのきょかがひつようです（がっこうでかくにんしています）。',
+    'gui.classroom.classAi.rubyteeConditionsSummary':
+        'じょうけん: こたえのまちがい・こじんじょうほう・18 さいみまんのほごしゃのきょか',
+    'gui.classroom.classAi.rubyteeConditionsShow': 'くわしく',
+    'gui.classroom.classAi.rubyteeConditionsHide': 'とじる',
+    'gui.classroom.classAi.rubyteeTerms': 'りようきやく',
+    'gui.classroom.classAi.rubyteePrivacy': 'プライバシーポリシー',
+    'gui.classroom.classAi.rubyteeConfirm': 'このクラスはうえのじょうけんをみたしています（ひっす）',
+    'gui.classroom.classAi.rubyteeUnconfirmed':
+        'まだかくにんされていません。ルビティーはこのままつかえます。つぎにほぞんするときにしたのチェックをいれてください。',
     'gui.classroom.classAi.unsaved': 'みほぞん',
     'gui.classroom.classAi.previewTitle': 'せいとのがめんはこうなります',
     'gui.classroom.classAi.previewCode': 'コード',
-    'gui.classroom.classAi.previewConsult': 'AI にそうだん',
-    'gui.classroom.classAi.previewConsultOff': 'せいせいAI をつかわないので、「AI にそうだん」ボタンはでません。',
-    'gui.classroom.classAi.previewRubyteeOff': 'ルビティーがオフなので、Ruby タブの AI ボタンはでません。',
+    'gui.classroom.classAi.previewConsult': 'AI に そうだん',
+    'gui.classroom.classAi.previewConsultOff':
+        'せいせいAI をつかわないので、コードタブにも Ruby タブにも「AI に そうだん」のかおはでません。',
+    'gui.classroom.classAi.previewTakeover': 'ルビティーにまかせる',
+    'gui.classroom.classAi.previewRubyteeOff':
+        'ルビティーがオフなので、かおのパネルに［ルビティーにまかせる］はでません。',
+    'gui.classroom.classAi.previewRubyteeNoGenai':
+        'ルビティーは「AI に そうだん」のパネルからつかうので、せいせいAI をつかわないとでません。',
     'gui.classroom.management.titleBarLogout': 'ログアウト',
     'gui.classroom.notifications.buttonLabel': 'おしらせ',
     'gui.classroom.notifications.title': 'おしらせ',
@@ -1457,7 +1477,6 @@ export default {
     'gui.rubyToolbar.commandPlaceholder': 'スプライトをなまえでけんさく',
     'gui.rubyToolbar.download': 'ルビースクリプトをダウンロード',
     'gui.rubyToolbar.stage': 'ステージ',
-    'gui.rubyToolbar.aiAssistant': 'ルビティー',
     'gui.rubyToolbar.furiganaOn': 'ふりがなをかくす',
     'gui.rubyToolbar.furiganaOff': 'ふりがなをみせる',
     'gui.rubyToolbar.autoCorrectOn': 'じどうちかんをオフにする',
@@ -1479,47 +1498,6 @@ export default {
     'gui.autoCorrectModal.fullwidthSymbols': 'ぜんかくきごう → はんかくきごう',
     'gui.autoCorrectModal.fullwidthSpace': 'ぜんかくスペース → はんかくスペース',
     'gui.autoCorrectModal.replaceInStrings': 'もじれつもおきかえる',
-
-    // Rubytee consent dialog
-    'gui.rubyteeConsent.title': 'ルビティーをつかうまえに',
-    'gui.rubyteeConsent.aiDisclosure': 'ルビティーは AI（じんこうちのう）です。にんげんではありません。',
-    'gui.rubyteeConsent.warningIncorrect': 'こたえがまちがっていることがあります',
-    'gui.rubyteeConsent.warningPersonalInfo':
-        'なまえやじゅうしょなどのこじんじょうほうをにゅうりょくしないでください',
-    'gui.rubyteeConsent.warningAskAdult': 'こまったらおとなにそうだんしてください',
-    'gui.rubyteeConsent.detailsToggle': 'くわしいせつめい（ほごしゃのかたへ）',
-    'gui.rubyteeConsent.detailsText':
-        'ルビティーは Anthropic しゃの Claude API をりようした AI コードせいせいしえんきのうです。にゅうりょくないようはとうほうじんのちゅうけいサービスをけいゆして Anthropic しゃにそうしんされます。こじんじょうほうはほぞんされません。',
-    'gui.rubyteeConsent.termsLink': 'りようきやく',
-    'gui.rubyteeConsent.privacyLink': 'プライバシーポリシー',
-    'gui.rubyteeConsent.consentCheckbox': '18さいいじょうです、またはほごしゃのきょかをもらいました',
-    'gui.rubyteeConsent.cancel': 'つかわない',
-    'gui.rubyteeConsent.accept': 'OK、つかう！',
-    'gui.rubyteeModal.resetConsent': 'どういをリセット',
-
-    // Rubytee modal
-    'gui.rubyteeModal.title': 'ルビティー（スモウルビーせんせい）',
-    'gui.rubyteeModal.clearHistory': 'かいわをリセット',
-    'gui.rubyteeModal.inputPlaceholder': 'つくりたいものを{min}もじから{max}もじでおしえてください...',
-    'gui.rubyteeModal.send': 'そうしん',
-    'gui.rubyteeModal.thinking': 'ルビティーがかんがえています... ({seconds}びょう)',
-    'gui.rubyteeModal.generatedCode': 'せいせいされたコード',
-    'gui.rubyteeModal.applyCode': 'プログラムをにゅうりょくする',
-    'gui.rubyteeModal.applyCodeNote':
-        'AIがつくったプログラムは、うごかないことがあります。そのときは、デバッグ（プログラムのもんだいをしらべてなおすこと）をたのしみましょう。',
-    'gui.rubyteeModal.emptyHistory':
-        'ルビティーといっしょにプログラミングしましょう！つくりたいものをおしえてください！',
-    'gui.rubyteeModal.you': 'あなた',
-    'gui.rubyteeModal.rubytee': 'ルビティー',
-    'gui.rubyteeModal.authError': 'にんしょうにしっぱいしました。もういちどおためしください。',
-    'gui.rubyteeModal.apiError': 'APIエラーがはっせいしました。もういちどおためしください。',
-    'gui.rubyteeModal.cancel': 'ちゅうだん',
-    'gui.rubyteeModal.surprise': 'サプライズ！',
-    'gui.rubyteeModal.timeoutError': 'リクエストがタイムアウトしました（2ふん）。もういちどおためしください。',
-    'gui.rubyteeModal.overloadedError':
-        'ルビティーへのアクセスがしゅうちゅうしているため、いちじてきにりようできません。5ふんほどまってから、もういちどおためしください。',
-    'gui.rubyteeModal.rateLimitError':
-        'りようかいすうのじょうげんにたっしました。{minutes}ふんごにもういちどおためしください。',
 
     // Tutorials
     ...gettingStartedHowtos,
@@ -1758,10 +1736,13 @@ export default {
     'gui.genaiConcierge.stepTrouble': 'こまりごと',
     'gui.genaiConcierge.stepCopy': 'コピーしてそうだん',
     'gui.genaiConcierge.stepPaste': 'こたえをブロックに',
+    'gui.genaiConcierge.stepPasteCode': 'こたえをコードに',
     'gui.genaiConcierge.nudgeText': 'てがとまっているみたい。せいせいAI にそうだんしてみる？',
     'gui.genaiConcierge.nudgeOpen': 'そうだんする',
     'gui.genaiConcierge.nudgeLater': 'あとで',
     'gui.genaiConcierge.nudgeOff': 'きょうはださない',
+    'gui.genaiConcierge.faceLabel': 'AI に そうだん',
+    'gui.genaiConcierge.faceLabelShort': 'AI',
     'gui.genaiConcierge.troubleQuestion': 'どんなことでこまっている？',
     'gui.genaiConcierge.makePrompt': 'そうだんぶんをつくる',
     'gui.genaiConcierge.kind.notWorking': 'おもったとおりにうごかない',
@@ -1772,6 +1753,8 @@ export default {
     'gui.genaiConcierge.starter.next': '〜まではできた。つぎに〜したい',
     'gui.genaiConcierge.kind.how': 'ブロックのつかいかたがわからない',
     'gui.genaiConcierge.starter.how': '〜するには、どのブロックをつかえばいい？',
+    'gui.genaiConcierge.kind.howCommand': 'めいれいのかきかたがわからない',
+    'gui.genaiConcierge.starter.howCommand': '〜するには、どうかけばいい？',
     'gui.genaiConcierge.kind.moreFun': 'もっとおもしろくしたい',
     'gui.genaiConcierge.starter.moreFun': '〜を、もっと〜にしたい',
     'gui.genaiConcierge.serviceQuestion': 'がっこうでつかっているせいせいAI はどれ？',
@@ -1800,13 +1783,21 @@ export default {
     'gui.genaiConcierge.promptHide': 'なかみをとじる',
     'gui.genaiConcierge.pasteQuestion': '{name} のこたえを、まるごとはりつけよう',
     'gui.genaiConcierge.convert': 'ブロックにできるかしらべる',
+    'gui.genaiConcierge.convertCode': 'プログラムをたしかめる',
     'gui.genaiConcierge.answerShow': 'こたえをみる',
     'gui.genaiConcierge.answerHide': 'こたえをとじる',
     'gui.genaiConcierge.backTo': '「{step}」にもどる',
     'gui.genaiConcierge.checking': 'ブロックにできるかしらべています…',
+    'gui.genaiConcierge.checkingCode': 'プログラムをたしかめています…',
     'gui.genaiConcierge.convertOk': 'ブロックにできます',
     'gui.genaiConcierge.convertNg': 'このままではブロックにできません',
+    'gui.genaiConcierge.convertOkCode': 'もんだいはみつかりませんでした（このままうごかせます）',
+    'gui.genaiConcierge.convertNgCode': 'このプログラムにはもんだいがあります',
     'gui.genaiConcierge.fixesTitle': 'スモウルビーがなおしたところ:',
+    'gui.genaiConcierge.indexHintsTitle':
+        'ちゅうい: そえじが 1 からはじまっているかもしれません。スモウルビーのにほんごでは、はいれつのそえじは 0 からはじまります。',
+    'gui.genaiConcierge.indexHint':
+        '{access} ははいれつのはんいがいになります（さいごのようそは {array}[{last}]）。もんだいぶんでそえじが 1 からはじまるときは、{fixed} のようにそえじを 1 ずらしてかいてください。',
     'gui.genaiConcierge.lineOf': '{line} ぎょうめ',
     'gui.genaiConcierge.spriteLineOf': '「{sprite}」の {line} ぎょうめ',
     'gui.genaiConcierge.spriteOf': '「{sprite}」',
@@ -1815,14 +1806,30 @@ export default {
     'gui.genaiConcierge.problemMissingSoundNone': 'おと「{name}」はありません（このスプライトにはおとがありません）',
     'gui.genaiConcierge.problemMissingCostume': 'コスチューム「{name}」はありません（つかえるコスチューム: {names}）',
     'gui.genaiConcierge.problemMissingCostumeNone': 'コスチューム「{name}」はありません',
+    'gui.genaiConcierge.problemOtherSprite':
+        '「{sprite}」のプログラムまでなおしています。「{only}」のぶんだけにしてもらおう',
     'gui.genaiConcierge.problemClassDef': 'クラスのていぎ（{source}）はブロックにできません',
     'gui.genaiConcierge.problemRaw': '{count} かしょが、ふつうのブロックになりません',
+    'gui.genaiConcierge.problemClassDefCode': 'クラスのていぎ（{source}）は、スモウルビーではつかえません',
+    'gui.genaiConcierge.problemRawCode': '{count} かしょに、スモウルビーでつかえないかきかたがあります',
     'gui.genaiConcierge.rubyShow': 'Ruby をみる',
     'gui.genaiConcierge.rubyHide': 'Ruby をかくす',
+    'gui.genaiConcierge.kind.wrongAnswer': 'こたえがあわない',
+    'gui.genaiConcierge.starter.wrongAnswer': '〜になるはずなのに、〜とひょうじされる',
+    'gui.genaiConcierge.kind.howWrite': 'どうかけばいいかわからない',
+    'gui.genaiConcierge.starter.howWrite': '〜するには、どうかけばいい？',
+    'gui.genaiConcierge.kind.howThink': 'もんだいのかんがえかたがわからない',
+    'gui.genaiConcierge.starter.howThink': '〜をもとめるもんだいで、どうかんがえればいいかわからない',
+    'gui.genaiConcierge.programShow': 'プログラムをみる',
+    'gui.genaiConcierge.programHide': 'プログラムをかくす',
     'gui.genaiConcierge.reflectionLabel': 'どこがかわるのか、じぶんのことばで 1 ぎょうかこう（ひっす）',
     'gui.genaiConcierge.applyReplaces': 'いれると、{names}のブロックがおきかわります。',
     'gui.genaiConcierge.apply': 'このブロックをいれる',
     'gui.genaiConcierge.self': 'じぶんでくむ',
+    'gui.genaiConcierge.applyReplacesCode':
+        'エディタの{names}のコードがおきかわります（Ctrl+Z でもとにもどせます）。',
+    'gui.genaiConcierge.applyCode': 'このコードにする',
+    'gui.genaiConcierge.selfCode': 'じぶんでかく',
     'gui.genaiConcierge.copyRewrite': 'かきなおしのおねがいをコピー',
     'gui.genaiConcierge.takeover': 'ルビティーにまかせる',
     'gui.genaiConcierge.takeoverRunning':
@@ -1831,6 +1838,8 @@ export default {
     'gui.genaiConcierge.takeoverBy': 'ルビティー（AI）がつくったあんです。やりたいことになっているか、たしかめよう。',
     'gui.genaiConcierge.takeoverFailed':
         'ルビティーが {count} かいかきなおしても、ブロックにできませんでした。じぶんでくむか、もういちどそうだんしてみよう。',
+    'gui.genaiConcierge.takeoverFailedCode':
+        'ルビティーが {count} かいかきなおしても、もんだいがのこりました。じぶんでかくか、もういちどそうだんしてみよう。',
     'gui.genaiConcierge.takeoverErrorRate':
         'ルビティーをつかえるかいすうをこえました。{minutes} ふんほどまってから、もういちどためしてね。',
     'gui.genaiConcierge.takeoverErrorTooLong': 'さくひんがながすぎて、ルビティーにまかせられません。',
@@ -1846,6 +1855,12 @@ export default {
     'gui.genaiConcierge.changesNone': 'ふえる・かわるブロックはありません。',
     'gui.genaiConcierge.changesLegend':
         'ピンクのわくのブロックがふえたブロック、てんせんのわくがかわったブロックです。ぎょうをおすと、そのブロックへいどうします。',
+    'gui.genaiConcierge.linesTitle': 'せいせいAI のあんでふえる・かわる・なくなるぎょう',
+    'gui.genaiConcierge.linesCount': '{added} ぎょうふえる・{changed} ぎょうかわる・{removed} ぎょうなくなる',
+    'gui.genaiConcierge.linesNone': 'ふえる・かわる・なくなるぎょうはありません。',
+    'gui.genaiConcierge.linesDone': '{added} ぎょうふえた・{changed} ぎょうかわった',
+    'gui.genaiConcierge.linesLegend':
+        'ぎょうばんごうのよこにせんのあるぎょうがふえたぎょう、てんせんのあるぎょうがかわったぎょうです。なくなったぎょうにはしるしはありません。',
     'gui.genaiConcierge.changeAdded': '「{block}」がふえます',
     'gui.genaiConcierge.changeAddedIn': '「{script}」のなかに「{block}」がふえます',
     'gui.genaiConcierge.changeChanged': '「{before}」が「{block}」にかわります',

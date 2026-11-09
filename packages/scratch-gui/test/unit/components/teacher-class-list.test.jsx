@@ -249,15 +249,65 @@ describe('TeacherClassList', () => {
         expect(byTestId('classroom-class-settings-save')).toBeDisabled();
         fireEvent.click(byTestId('classroom-class-ai-confirm'));
         fireEvent.click(byTestId('classroom-class-ai-rubytee'));
+        // Rubytee asks for its own confirmation.
+        expect(byTestId('classroom-class-settings-save')).toBeDisabled();
+        fireEvent.click(byTestId('classroom-class-ai-rubytee-confirm'));
         fireEvent.click(byTestId('classroom-class-settings-save'));
 
         expect(onUpdateGroup).toHaveBeenCalledWith(
             'g1',
             expect.objectContaining({
                 genai: { enabled: true, service: 'gemini', url: 'https://gemini.google.com/app', confirmed: true },
-                rubytee: { enabled: true },
+                rubytee: { enabled: true, confirmed: true },
             }),
         );
+    });
+
+    test('a class that turned Rubytee on before the confirmation existed asks for it on the next save', () => {
+        const onUpdateGroup = jest.fn();
+        renderList({ groups: [group({ rubytee: { enabled: true } })], onUpdateGroup });
+        const byTestId = (id) => document.querySelector(`[data-testid="${id}"]`);
+        fireEvent.click(byTestId('classroom-class-settings-open-g1'));
+        expect(byTestId('classroom-class-ai-rubytee')).toBeChecked();
+        expect(byTestId('classroom-class-ai-rubytee-unconfirmed')).toBeInTheDocument();
+        fireEvent.change(byTestId('classroom-class-settings-section'), { target: { value: '2年3組' } });
+        expect(byTestId('classroom-class-settings-save')).toBeDisabled();
+
+        fireEvent.click(byTestId('classroom-class-ai-rubytee-confirm'));
+        fireEvent.click(byTestId('classroom-class-settings-save'));
+        expect(onUpdateGroup).toHaveBeenCalledWith(
+            'g1',
+            expect.objectContaining({ section: '2年3組', rubytee: { enabled: true, confirmed: true } }),
+        );
+    });
+
+    test('when a confirmation is missing, the footer says which one and takes the teacher to it', () => {
+        renderList();
+        const byTestId = (id) => document.querySelector(`[data-testid="${id}"]`);
+        fireEvent.click(byTestId('classroom-class-settings-open-g1'));
+        expect(byTestId('classroom-class-settings-save-hint')).toBeNull();
+
+        fireEvent.click(byTestId('classroom-class-ai-service-gemini'));
+        const genaiHint = byTestId('classroom-class-settings-save-hint');
+        expect(genaiHint).toHaveTextContent('generative AI');
+        byTestId('classroom-class-ai-confirm').scrollIntoView = jest.fn();
+        fireEvent.click(genaiHint);
+        expect(byTestId('classroom-class-ai-confirm')).toHaveFocus();
+        fireEvent.click(byTestId('classroom-class-ai-confirm'));
+        expect(byTestId('classroom-class-settings-save-hint')).toBeNull();
+
+        fireEvent.click(byTestId('classroom-class-ai-rubytee'));
+        const hint = byTestId('classroom-class-settings-save-hint');
+        expect(hint).toHaveTextContent('Rubytee');
+        const scrollIntoView = jest.fn();
+        byTestId('classroom-class-ai-rubytee-confirm').scrollIntoView = scrollIntoView;
+        fireEvent.click(hint);
+        expect(scrollIntoView).toHaveBeenCalled();
+        expect(byTestId('classroom-class-ai-rubytee-confirm')).toHaveFocus();
+
+        fireEvent.click(byTestId('classroom-class-ai-rubytee-confirm'));
+        expect(byTestId('classroom-class-settings-save-hint')).toBeNull();
+        expect(byTestId('classroom-class-settings-save')).toBeEnabled();
     });
 
     test('increasing the student count saves immediately without a warning', () => {

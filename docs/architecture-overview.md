@@ -77,7 +77,7 @@ Smalruby 3 モノレポ全体のアーキテクチャを 1 枚にまとめる。
 | `packages/scratch-svg-renderer` | SVG → 描画用前処理 | JS |
 | `packages/task-herder` | 非同期タスクキュー (throttle / concurrency) | JS |
 | `infra/smalruby-mesh-v2` | リアルタイム通信 (AppSync + DynamoDB) | TS (CDK) + Ruby (resolver) |
-| `infra/smalruby-rubytee-relay` | AI チャット (Anthropic Claude relay) | TS (CDK + Lambda) |
+| `infra/smalruby-rubytee-relay` | ルビティー (Anthropic Claude relay) | TS (CDK + Lambda) |
 | `infra/smalruby-classroom` | クラス管理・課題提出 | TS (CDK + Lambda) |
 | `infra/smalruby-api` | 共通 API (CORS proxy / Mesh zone / Scratch API proxy) | TS (CDK + Lambda) |
 | `ruby/smalruby3` | デスクトップ Ruby + SDL2 ランタイム (gem) | Ruby + Rust + Swift |
@@ -122,13 +122,13 @@ broadcast / グローバル変数 → scratch-vm の meshV2 拡張
                           → 受信側で broadcast 発火 / 変数更新
 ```
 
-### 5. ユーザーが AI に質問 (Rubytee)
+### 5. ユーザーが AI に作品をまかせる (Rubytee)
 
 ```
-ルビティーボタン → scratch-gui の rubytee-modal
-                → POST /generate to rubytee-relay (Lambda)
-                → Anthropic Claude API
-                → 生成された Ruby コードを Monaco に挿入
+［ルビティーにまかせる］ → scratch-gui の genai-takeover
+                        → POST /generate (purpose: genai-takeover) to rubytee-relay (Lambda)
+                        → GET /jobs/{jobId} で答えを待つ（worker Lambda → Anthropic Claude API）
+                        → ブロックにできた案だけを見せる
 ```
 
 ### 6. ユーザーがデスクトップで実行 (smalruby3 gem)

@@ -1,6 +1,7 @@
-// The progress display under the header (#1293 G9): square nodes joined by a
-// line under the step names. A finished step is filled in with ✓ (and can be
-// gone back to before the blocks are in), the current one is outlined in bold.
+// The progress display under the header (#1293 G9): round nodes joined by a
+// line under the step names, like a delivery tracker (#1425). A finished step is
+// a filled circle with ✓ (and can be gone back to before the blocks are in), the
+// current one a filled circle with a ring, the ones to come grey circles.
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React, { useCallback } from 'react';
@@ -15,8 +16,12 @@ const STEP_MESSAGES = {
     paste: messages.stepPaste,
 };
 
-const GenaiStepper = ({ step, onStep }) => {
+// The Ruby tab's answer goes into the code, not the blocks (#1399).
+const CODE_STEP_MESSAGES = { ...STEP_MESSAGES, paste: messages.stepPasteCode };
+
+const GenaiStepper = ({ step, putsCode, onStep }) => {
     const intl = useIntl();
+    const names = putsCode ? CODE_STEP_MESSAGES : STEP_MESSAGES;
     const items = stepperItems(step);
     const at = items.filter((item) => item.status === 'done').length;
     const handleReturn = useCallback((e) => onStep(e.currentTarget.dataset.step), [onStep]);
@@ -24,7 +29,7 @@ const GenaiStepper = ({ step, onStep }) => {
     return (
         <ol className={styles.stepper} data-testid="genai-stepper" data-at={Math.min(at, items.length - 1)}>
             {items.map((item) => {
-                const name = intl.formatMessage(STEP_MESSAGES[item.id]);
+                const name = intl.formatMessage(names[item.id]);
                 const content = (
                     <>
                         <span className={styles.stepName}>{name}</span>
@@ -62,6 +67,8 @@ const GenaiStepper = ({ step, onStep }) => {
 
 GenaiStepper.propTypes = {
     step: PropTypes.string.isRequired,
+    // The answer goes into a code editor (the adapter's puts is 'code').
+    putsCode: PropTypes.bool,
     onStep: PropTypes.func.isRequired,
 };
 

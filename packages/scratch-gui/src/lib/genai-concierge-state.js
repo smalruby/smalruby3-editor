@@ -125,20 +125,49 @@ export const resolveGenaiTarget = ({ classGenai, devChoice }) => {
     return null;
 };
 
+/** The host of the branch previews (stg values, built like production). */
+export const PREVIEW_HOSTNAME = 'preview.smalruby.app';
+
+/**
+ * Whether `?features=genai` (the face outside a class, for development) works (#1412).
+ * Only with the dev server (`npm start`, not a production build) and in the branch
+ * previews: on smalruby.app the AI is only for the classes whose teacher turned it on.
+ * The previews are production builds too, so they are told apart by the host name.
+ * @param {object} params - parameters
+ * @param {string[]} params.features - the `?features=` values
+ * @param {boolean} params.production - a production build (`process.env.NODE_ENV`)
+ * @param {string} params.hostname - `window.location.hostname`
+ * @returns {boolean} true to turn the development flag on
+ */
+export const isGenaiDevFlag = ({ features, production, hostname }) =>
+    features.includes('genai') && (!production || hostname === PREVIEW_HOSTNAME);
+
 /**
  * Whether the face is shown: only to a student of a class that uses a
- * generative AI. `?features=genai` keeps it on outside a class for development.
+ * generative AI. `?features=genai` keeps it on outside a class for development
+ * (only with the dev server and the previews, see isGenaiDevFlag).
  * @param {object} params - parameters
  * @param {?string} params.role - classroom role ('student' / 'teacher' / null)
  * @param {?string} params.sessionToken - the student's session
  * @param {{enabled: boolean}} params.classGenai - see normalizeStudentGenai
- * @param {boolean} params.devFlag - `?features=genai`
+ * @param {boolean} params.devFlag - `?features=genai` (see isGenaiDevFlag)
  * @returns {boolean} true to show the face
  */
 export const isGenaiAvailable = ({ role, sessionToken, classGenai, devFlag }) => {
     if (role === 'student' && sessionToken && classGenai && classGenai.enabled) return true;
     return Boolean(devFlag);
 };
+
+/**
+ * Whether the face is shown in the Ruby tab (#1398): as in the code tab, and only for
+ * Ruby version 2 (#1396 決定 4). Also in the Japanese (DNCL) mode, with its own
+ * question (#1402).
+ * @param {object} params - the parameters of isGenaiAvailable, and:
+ * @param {?string} params.rubyVersion - the Ruby version ('1' / '2')
+ * @returns {boolean} true to show the face
+ */
+export const isRubyTabGenaiAvailable = ({ rubyVersion, ...rest }) =>
+    isGenaiAvailable(rest) && String(rubyVersion) === '2';
 
 /** The steps of the panel, in order (the progress display under the header, #1293 G9). */
 const STEP_IDS = ['trouble', 'copy', 'paste'];
@@ -194,6 +223,35 @@ export const panelPlacement = ({ areaWidth, rootLeft, panelWidth, faceWidth }) =
     return { left: Math.max(0, left), bottom: faceWidth + FACE_GAP };
 };
 
+/**
+ * Room beside the face (px) for the whole 「AI に相談」 label: less than this (e.g. the
+ * code tab on an iPad held upright), the label would cover much of the blocks or the code,
+ * so it is shortened to 「AI」.
+ */
+const FULL_LABEL_ROOM = 300;
+/** Room beside the face (px) for the short label. */
+const SHORT_LABEL_ROOM = 60;
+
+/**
+ * Which label goes beside the face (#1414). None while the panel is open or the nudge
+ * is shown (it is in the same place), nor before the area is measured.
+ * @param {object} params - parameters
+ * @param {number} params.areaWidth - width of the script area (the face's offset parent)
+ * @param {number} params.rootLeft - left of the face in the script area
+ * @param {number} params.faceWidth - width of the face
+ * @param {boolean} params.open - the panel is open
+ * @param {boolean} params.nudge - the nudge is shown
+ * @returns {'full'|'short'|'none'} the label to show
+ */
+export const faceLabel = ({ areaWidth, rootLeft, faceWidth, open, nudge }) => {
+    if (open || nudge || !areaWidth) return 'none';
+    // The label stays clear of the buttons along the right edge, as the panel does.
+    const room = areaWidth - PANEL_RIGHT_MARGIN - rootLeft - faceWidth - FACE_GAP;
+    if (room >= FULL_LABEL_ROOM) return 'full';
+    if (room >= SHORT_LABEL_ROOM) return 'short';
+    return 'none';
+};
+
 /** Space left above and to the left of the blocks when scrolling to them (px). */
 const BLOCKS_MARGIN = 24;
 
@@ -208,6 +266,23 @@ const BLOCKS_MARGIN = 24;
 export const scrollToShowBlocks = ({ bbox, scale }) => {
     if (!bbox) return null;
     return { x: BLOCKS_MARGIN - bbox.left * scale, y: BLOCKS_MARGIN - bbox.top * scale };
+};
+
+/**
+ * The marked changes to bring into view: those of the sprite in the editor, else the
+ * first sprite with some. Removed blocks are not in the editor to be shown.
+ * @param {Array<object>} marks - [{target, changes}]
+ * @param {?object} editingTarget - the target in the editor
+ * @returns {{owner: ?object, ids: Array<string>}} the target and the ids to show
+ */
+export const marksToShow = (marks, editingTarget) => {
+    const marked = marks.filter((mark) => mark.changes.some((change) => change.kind !== 'removed'));
+    const mark = marked.find((m) => m.target === editingTarget) || marked[0];
+    if (!mark) return { owner: null, ids: [] };
+    return {
+        owner: mark.target,
+        ids: mark.changes.filter((change) => change.kind !== 'removed').map((change) => change.id),
+    };
 };
 
 /**
@@ -260,3 +335,16 @@ export const TAKEOVER_AFTER_FAILURES = 2;
  */
 export const canOfferTakeover = ({ failures, rubyteeAvailable }) =>
     rubyteeAvailable === true && failures >= TAKEOVER_AFTER_FAILURES;
+
+/**
+ * Whether the panel may offer 「ルビティーにまかせる」 at all: in a class that uses Rubytee,
+ * in the code tab and in the Ruby tab's Ruby and furigana modes (#1400). Not in DNCL mode
+ * (#1396 決定 3): Rubytee answers in Ruby, not in the student's DNCL.
+ * @param {object} params - parameters
+ * @param {boolean} params.rubyteeAvailable - the student's class uses Rubytee
+ * @param {boolean} params.rubyTab - the panel is in the Ruby tab
+ * @param {boolean} params.dnclMode - the Ruby tab is in DNCL mode
+ * @returns {boolean} whether Rubytee may be offered
+ */
+export const isTakeoverAvailable = ({ rubyteeAvailable, rubyTab, dnclMode }) =>
+    rubyteeAvailable === true && !(rubyTab && dnclMode);

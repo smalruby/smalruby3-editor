@@ -9,7 +9,12 @@ import PropTypes from 'prop-types';
 import React, { useCallback, useState } from 'react';
 import { defineMessages, FormattedMessage, useIntl } from 'react-intl';
 
-import { displayGenaiUrl, draftWithService, validateGenaiUrl } from '../../lib/classroom-genai-settings.js';
+import {
+    displayGenaiUrl,
+    draftWithRubytee,
+    draftWithService,
+    validateGenaiUrl,
+} from '../../lib/classroom-genai-settings.js';
 
 import styles from './class-ai-settings.css';
 
@@ -67,6 +72,26 @@ const messages = defineMessages({
         description: 'Error when the generative AI URL points to an 18+ service',
         id: 'gui.classroom.classAi.urlError.adultOnly',
     },
+    rubyteeWrong: {
+        defaultMessage: "Rubytee is an AI (Anthropic's Claude). Its answers may be wrong.",
+        description: 'Condition the teacher checks before turning on Rubytee: AI answers may be wrong',
+        id: 'gui.classroom.classAi.rubyteeCondition.wrong',
+    },
+    rubyteePersonal: {
+        defaultMessage: 'Teach students not to enter personal information such as their name or address.',
+        description: 'Condition the teacher checks before turning on Rubytee: no personal information',
+        id: 'gui.classroom.classAi.rubyteeCondition.personal',
+    },
+    rubyteeSummary: {
+        defaultMessage: "Conditions: wrong answers, personal information, and a parent's permission for under 18s.",
+        description: 'One-line summary of the conditions the teacher checks before turning on Rubytee',
+        id: 'gui.classroom.classAi.rubyteeConditionsSummary',
+    },
+    rubyteeAge: {
+        defaultMessage: "Students under 18 need a parent's or guardian's permission, which the school has checked.",
+        description: 'Condition the teacher checks before turning on Rubytee: parental permission under 18',
+        id: 'gui.classroom.classAi.rubyteeCondition.age',
+    },
 });
 
 const SERVICES = [
@@ -96,10 +121,20 @@ UnsavedMark.propTypes = {
     testId: PropTypes.string.isRequired,
 };
 
-const ClassAiSettings = ({ changed, draft, isLoading, onChange }) => {
+// What the students' consent screen used to say (removed in #1412), now
+// checked by the teacher when turning Rubytee on for the class (#1413).
+const RUBYTEE_CONDITIONS = [
+    { key: 'wrong', message: messages.rubyteeWrong },
+    { key: 'personal', message: messages.rubyteePersonal },
+    { key: 'age', message: messages.rubyteeAge },
+];
+
+const ClassAiSettings = ({ changed, draft, isLoading, onChange, rubyteeUnconfirmed }) => {
     const intl = useIntl();
     // The URL rarely needs changing, so its input stays folded until asked for.
     const [urlOpen, setUrlOpen] = useState(false);
+    // Rubytee's conditions fold into a one-line summary (R3) so the form fits 1300x600 (#1427).
+    const [conditionsOpen, setConditionsOpen] = useState(false);
 
     const update = useCallback((changes) => onChange({ ...draft, ...changes }), [draft, onChange]);
 
@@ -117,7 +152,9 @@ const ClassAiSettings = ({ changed, draft, isLoading, onChange }) => {
     const handleConfirm = useCallback((e) => update({ confirmed: e.target.checked }), [update]);
     const handleUrl = useCallback((e) => update({ url: e.target.value }), [update]);
     const handleOpenUrl = useCallback(() => setUrlOpen(true), []);
-    const handleRubytee = useCallback((e) => update({ rubytee: e.target.checked }), [update]);
+    const handleToggleConditions = useCallback(() => setConditionsOpen((open) => !open), []);
+    const handleRubytee = useCallback((e) => onChange(draftWithRubytee(draft, e.target.checked)), [draft, onChange]);
+    const handleRubyteeConfirm = useCallback((e) => update({ rubyteeConfirmed: e.target.checked }), [update]);
 
     const selected = draft.use ? SERVICES.find((s) => s.service === draft.service) : null;
     const urlError = selected ? validateGenaiUrl(draft.url) : null;
@@ -165,29 +202,30 @@ const ClassAiSettings = ({ changed, draft, isLoading, onChange }) => {
                             />
                         </span>
                         {changed.genai ? <UnsavedMark testId="classroom-class-ai-genai-unsaved" /> : null}
-                    </div>
-                    <div className={styles.services} role="group">
-                        {SERVICES.map((s) => {
-                            const isSelected = selected ? selected.key === s.key : s.key === 'none';
-                            return (
-                                <button
-                                    key={s.key}
-                                    aria-pressed={isSelected}
-                                    className={isSelected ? styles.serviceSelected : styles.service}
-                                    data-service={s.key}
-                                    data-testid={`classroom-class-ai-service-${s.key}`}
-                                    disabled={isLoading}
-                                    type="button"
-                                    onClick={handleService}
-                                >
-                                    {intl.formatMessage(s.name)}
-                                </button>
-                            );
-                        })}
+                        {/* The choices sit beside the label to keep both AIs' checks within 1300x600 (#1439). */}
+                        <div className={styles.services} role="group">
+                            {SERVICES.map((s) => {
+                                const isSelected = selected ? selected.key === s.key : s.key === 'none';
+                                return (
+                                    <button
+                                        key={s.key}
+                                        aria-pressed={isSelected}
+                                        className={isSelected ? styles.serviceSelected : styles.service}
+                                        data-service={s.key}
+                                        data-testid={`classroom-class-ai-service-${s.key}`}
+                                        disabled={isLoading}
+                                        type="button"
+                                        onClick={handleService}
+                                    >
+                                        {intl.formatMessage(s.name)}
+                                    </button>
+                                );
+                            })}
+                        </div>
                     </div>
                     <p className={styles.note}>
                         <FormattedMessage
-                            defaultMessage="A “Consult AI” button appears on the Code screen. Students paste their work into the AI themselves, so Smalruby sends nothing."
+                            defaultMessage="An “Ask AI” face appears in both the Code tab and the Ruby tab. Students paste their work into the AI themselves, so Smalruby sends nothing."
                             description="What turning on the school's generative AI does on the students' screen"
                             id="gui.classroom.classAi.genaiNote"
                         />
@@ -196,16 +234,18 @@ const ClassAiSettings = ({ changed, draft, isLoading, onChange }) => {
                     {selected ? (
                         <div className={styles.confirmPanel} data-testid="classroom-class-ai-confirm-panel">
                             <p className={styles.condition}>{intl.formatMessage(selected.condition)}</p>
-                            <label className={styles.confirm}>
-                                <input
-                                    checked={draft.confirmed}
-                                    className={styles.checkbox}
-                                    data-testid="classroom-class-ai-confirm"
-                                    disabled={isLoading}
-                                    type="checkbox"
-                                    onChange={handleConfirm}
-                                />
-                                <span>
+                            {/* The folded URL shares the check's row, like Rubytee's links, so both fit 1300x600 (#1439). */}
+                            <div className={styles.confirmRow}>
+                                <label className={styles.confirm}>
+                                    <input
+                                        checked={draft.confirmed}
+                                        className={styles.checkbox}
+                                        data-testid="classroom-class-ai-confirm"
+                                        disabled={isLoading}
+                                        name="genaiConfirmed"
+                                        type="checkbox"
+                                        onChange={handleConfirm}
+                                    />
                                     <span className={styles.confirmLabel}>
                                         <FormattedMessage
                                             defaultMessage="This class meets the conditions (required)"
@@ -213,15 +253,27 @@ const ClassAiSettings = ({ changed, draft, isLoading, onChange }) => {
                                             id="gui.classroom.classAi.confirm"
                                         />
                                     </span>
-                                    <span className={styles.note} data-testid="classroom-class-ai-confirm-reason">
-                                        <FormattedMessage
-                                            defaultMessage="Smalruby can't check your school's permission, so we ask the teacher to. Check it to be able to save."
-                                            description="Why the teacher must confirm the generative AI's conditions"
-                                            id="gui.classroom.classAi.confirmReason"
-                                        />
+                                </label>
+                                {showUrlInput ? null : (
+                                    <span className={styles.urlFolded}>
+                                        <button
+                                            className={styles.linkButton}
+                                            data-testid="classroom-class-ai-url-change"
+                                            disabled={isLoading}
+                                            type="button"
+                                            onClick={handleOpenUrl}
+                                        >
+                                            <FormattedMessage
+                                                defaultMessage="Change the page students open (now {url})"
+                                                description="Opens the input for the page students open in the generative AI"
+                                                id="gui.classroom.classAi.urlChange"
+                                                values={{ url: displayGenaiUrl(draft.url) }}
+                                            />
+                                        </button>
+                                        {urlAside}
                                     </span>
-                                </span>
-                            </label>
+                                )}
+                            </div>
                             {showUrlInput ? (
                                 <label className={styles.urlLabel}>
                                     <FormattedMessage
@@ -243,25 +295,7 @@ const ClassAiSettings = ({ changed, draft, isLoading, onChange }) => {
                                         {urlAside}
                                     </span>
                                 </label>
-                            ) : (
-                                <span className={styles.urlRow}>
-                                    <button
-                                        className={styles.linkButton}
-                                        data-testid="classroom-class-ai-url-change"
-                                        disabled={isLoading}
-                                        type="button"
-                                        onClick={handleOpenUrl}
-                                    >
-                                        <FormattedMessage
-                                            defaultMessage="Change the page students open (now {url})"
-                                            description="Opens the input for the page students open in the generative AI"
-                                            id="gui.classroom.classAi.urlChange"
-                                            values={{ url: displayGenaiUrl(draft.url) }}
-                                        />
-                                    </button>
-                                    {urlAside}
-                                </span>
-                            )}
+                            ) : null}
                         </div>
                     ) : null}
                 </div>
@@ -290,12 +324,109 @@ const ClassAiSettings = ({ changed, draft, isLoading, onChange }) => {
                         {changed.rubytee ? <UnsavedMark testId="classroom-class-ai-rubytee-unsaved" /> : null}
                         <span className={styles.inlineNote}>
                             <FormattedMessage
-                                defaultMessage="Students can ask Smalruby's AI with the AI button in the Ruby tab. No sign-up needed."
+                                defaultMessage="When the generative AI's answer doesn't work, “Leave it to Rubytee” lets Smalruby's AI (Claude) fix it. No sign-up needed."
                                 description="What turning on Rubytee does on the students' screen"
                                 id="gui.classroom.classAi.rubyteeNote"
                             />
                         </span>
                     </div>
+
+                    {draft.rubytee ? (
+                        <div className={styles.confirmPanel} data-testid="classroom-class-ai-rubytee-confirm-panel">
+                            {rubyteeUnconfirmed && !draft.rubyteeConfirmed ? (
+                                <p
+                                    className={styles.unconfirmed}
+                                    data-testid="classroom-class-ai-rubytee-unconfirmed"
+                                >
+                                    <FormattedMessage
+                                        defaultMessage="Not confirmed yet. Rubytee keeps working; check the box below when you next save."
+                                        description="Shown for a class that turned Rubytee on before the teacher's confirmation existed"
+                                        id="gui.classroom.classAi.rubyteeUnconfirmed"
+                                    />
+                                </p>
+                            ) : null}
+                            <p className={styles.condition}>
+                                <span data-testid="classroom-class-ai-rubytee-conditions-summary">
+                                    {intl.formatMessage(messages.rubyteeSummary)}
+                                </span>{' '}
+                                <button
+                                    aria-expanded={conditionsOpen}
+                                    className={styles.linkButton}
+                                    data-testid="classroom-class-ai-rubytee-conditions-toggle"
+                                    type="button"
+                                    onClick={handleToggleConditions}
+                                >
+                                    {conditionsOpen ? (
+                                        <FormattedMessage
+                                            defaultMessage="Hide details"
+                                            description="Folds the details of Rubytee's conditions"
+                                            id="gui.classroom.classAi.rubyteeConditionsHide"
+                                        />
+                                    ) : (
+                                        <FormattedMessage
+                                            defaultMessage="Details"
+                                            description="Opens the details of Rubytee's conditions"
+                                            id="gui.classroom.classAi.rubyteeConditionsShow"
+                                        />
+                                    )}
+                                </button>
+                            </p>
+                            {conditionsOpen ? (
+                                <ul className={styles.conditions} data-testid="classroom-class-ai-rubytee-conditions">
+                                    {RUBYTEE_CONDITIONS.map((c) => (
+                                        <li key={c.key}>{intl.formatMessage(c.message)}</li>
+                                    ))}
+                                </ul>
+                            ) : null}
+                            <div className={styles.confirmRow}>
+                                <label className={styles.confirm}>
+                                    <input
+                                        checked={draft.rubyteeConfirmed}
+                                        className={styles.checkbox}
+                                        data-testid="classroom-class-ai-rubytee-confirm"
+                                        disabled={isLoading}
+                                        name="rubyteeConfirmed"
+                                        type="checkbox"
+                                        onChange={handleRubyteeConfirm}
+                                    />
+                                    <span className={styles.confirmLabel}>
+                                        <FormattedMessage
+                                            defaultMessage="This class meets the conditions above (required)"
+                                            description="Required checkbox confirming the class meets Rubytee's conditions"
+                                            id="gui.classroom.classAi.rubyteeConfirm"
+                                        />
+                                    </span>
+                                </label>
+                                <span className={styles.links}>
+                                    <a
+                                        data-testid="classroom-class-ai-rubytee-terms"
+                                        href="/terms-of-service.html"
+                                        rel="noopener noreferrer"
+                                        target="_blank"
+                                    >
+                                        <FormattedMessage
+                                            defaultMessage="Terms of Service"
+                                            description="Link to Smalruby's terms of service, next to the Rubytee confirmation"
+                                            id="gui.classroom.classAi.rubyteeTerms"
+                                        />
+                                    </a>
+                                    {' / '}
+                                    <a
+                                        data-testid="classroom-class-ai-rubytee-privacy"
+                                        href="/privacy-policy.html"
+                                        rel="noopener noreferrer"
+                                        target="_blank"
+                                    >
+                                        <FormattedMessage
+                                            defaultMessage="Privacy Policy"
+                                            description="Link to Smalruby's privacy policy, next to the Rubytee confirmation"
+                                            id="gui.classroom.classAi.rubyteePrivacy"
+                                        />
+                                    </a>
+                                </span>
+                            </div>
+                        </div>
+                    ) : null}
                 </div>
             </div>
         </div>
@@ -313,9 +444,12 @@ ClassAiSettings.propTypes = {
         url: PropTypes.string.isRequired,
         confirmed: PropTypes.bool.isRequired,
         rubytee: PropTypes.bool.isRequired,
+        rubyteeConfirmed: PropTypes.bool.isRequired,
     }).isRequired,
     isLoading: PropTypes.bool,
     onChange: PropTypes.func.isRequired,
+    /** The stored class has Rubytee on without the teacher's confirmation (see isRubyteeUnconfirmed). */
+    rubyteeUnconfirmed: PropTypes.bool,
 };
 
 export default ClassAiSettings;

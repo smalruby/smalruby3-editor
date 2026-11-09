@@ -31,6 +31,11 @@ const messages = defineMessages({
         description: "Step 3 of asking a generative AI: paste the AI's answer and turn it into blocks",
         id: 'gui.genaiConcierge.stepPaste',
     },
+    stepPasteCode: {
+        defaultMessage: 'Answer to code',
+        description: "Ruby tab: step 3 of asking a generative AI: paste the AI's answer and put it in the code",
+        id: 'gui.genaiConcierge.stepPasteCode',
+    },
     nudgeText: {
         defaultMessage: 'Looks like you are stuck. Ask a generative AI?',
         description: 'Offer shown when the student has done nothing for a while',
@@ -50,6 +55,16 @@ const messages = defineMessages({
         defaultMessage: 'Not today',
         description: 'Button turning the offer off for the rest of the day',
         id: 'gui.genaiConcierge.nudgeOff',
+    },
+    faceLabel: {
+        defaultMessage: 'Ask AI',
+        description: 'Speech bubble beside the face opening the generative AI panel',
+        id: 'gui.genaiConcierge.faceLabel',
+    },
+    faceLabelShort: {
+        defaultMessage: 'AI',
+        description: 'Short speech bubble beside the face on a narrow screen',
+        id: 'gui.genaiConcierge.faceLabelShort',
     },
     troubleQuestion: {
         defaultMessage: 'What is the trouble?',
@@ -100,6 +115,46 @@ const messages = defineMessages({
         defaultMessage: 'Which block should I use to ...?',
         description: 'Sentence to start from for the trouble "how to use a block"',
         id: 'gui.genaiConcierge.starter.how',
+    },
+    kindHowCommand: {
+        defaultMessage: "I don't know how to write a command",
+        description: 'Kind of trouble in the Ruby tab: the student does not know how to write a command',
+        id: 'gui.genaiConcierge.kind.howCommand',
+    },
+    starterHowCommand: {
+        defaultMessage: 'How should I write ...?',
+        description: 'Sentence to start from for the trouble "how to write a command"',
+        id: 'gui.genaiConcierge.starter.howCommand',
+    },
+    kindWrongAnswer: {
+        defaultMessage: 'The answer is wrong',
+        description: 'Kind of trouble in the Japanese (DNCL) mode: the program prints a wrong answer',
+        id: 'gui.genaiConcierge.kind.wrongAnswer',
+    },
+    starterWrongAnswer: {
+        defaultMessage: 'It should be ..., but it shows ...',
+        description: 'Sentence to start from for the trouble "the answer is wrong"',
+        id: 'gui.genaiConcierge.starter.wrongAnswer',
+    },
+    kindHowWrite: {
+        defaultMessage: "I don't know how to write it",
+        description: 'Kind of trouble in the Japanese (DNCL) mode: the student does not know how to write it',
+        id: 'gui.genaiConcierge.kind.howWrite',
+    },
+    starterHowWrite: {
+        defaultMessage: 'How should I write ...?',
+        description: 'Sentence to start from for the trouble "how to write it"',
+        id: 'gui.genaiConcierge.starter.howWrite',
+    },
+    kindHowThink: {
+        defaultMessage: "I don't know how to think about the problem",
+        description: 'Kind of trouble in the Japanese (DNCL) mode: the student does not know how to solve the problem',
+        id: 'gui.genaiConcierge.kind.howThink',
+    },
+    starterHowThink: {
+        defaultMessage: "In a problem asking for ..., I don't know how to think",
+        description: 'Sentence to start from for the trouble "how to think about the problem"',
+        id: 'gui.genaiConcierge.starter.howThink',
     },
     kindMoreFun: {
         defaultMessage: 'I want to make it more fun',
@@ -236,6 +291,11 @@ const messages = defineMessages({
         description: 'Button checking whether the pasted answer turns into blocks',
         id: 'gui.genaiConcierge.convert',
     },
+    convertCode: {
+        defaultMessage: 'Check the program',
+        description: 'Ruby tab: button checking the pasted answer (it is turned into blocks only to see that it runs)',
+        id: 'gui.genaiConcierge.convertCode',
+    },
     answerShow: {
         defaultMessage: 'See the answer',
         description: 'Link opening the pasted answer again after it was checked',
@@ -256,6 +316,11 @@ const messages = defineMessages({
         description: 'Shown with a spinner while the pasted answer is being checked',
         id: 'gui.genaiConcierge.checking',
     },
+    checkingCode: {
+        defaultMessage: 'Checking the program…',
+        description: 'Ruby tab: shown with a spinner while the pasted answer is being checked',
+        id: 'gui.genaiConcierge.checkingCode',
+    },
     convertOk: {
         defaultMessage: 'It can become blocks',
         description: 'Result of the check: the answer turns into blocks',
@@ -266,10 +331,33 @@ const messages = defineMessages({
         description: 'Result of the check: the answer does not turn into blocks',
         id: 'gui.genaiConcierge.convertNg',
     },
+    convertOkCode: {
+        defaultMessage: 'No problem was found in the program',
+        description: 'Ruby tab: result of the check: the answer can run as it is',
+        id: 'gui.genaiConcierge.convertOkCode',
+    },
+    convertNgCode: {
+        defaultMessage: 'This program has a problem',
+        description: 'Ruby tab: result of the check: the answer has a problem',
+        id: 'gui.genaiConcierge.convertNgCode',
+    },
     fixesTitle: {
         defaultMessage: 'What Smalruby fixed:',
         description: 'Heading of the list of what Smalruby repaired in the answer',
         id: 'gui.genaiConcierge.fixesTitle',
+    },
+    indexHintsTitle: {
+        defaultMessage:
+            'Note: the indexes may start at 1. In Smalruby Japanese mode, array indices start at 0.',
+        description:
+            'Shown under the ✔ of a DNCL answer when it reads past the end of an array (counting from 1)',
+        id: 'gui.genaiConcierge.indexHintsTitle',
+    },
+    indexHint: {
+        defaultMessage:
+            '{access} reads past the end of the array (the last element is {array}[{last}]). If the problem counts from 1, shift the index by 1, like {fixed}.',
+        description: 'One access past the end of an array in a DNCL answer, in the words of the editor warning',
+        id: 'gui.genaiConcierge.indexHint',
     },
     lineOf: {
         defaultMessage: 'Line {line}',
@@ -311,6 +399,11 @@ const messages = defineMessages({
         description: 'Problem: the answer uses a costume, and the sprite has none',
         id: 'gui.genaiConcierge.problemMissingCostumeNone',
     },
+    problemOtherSprite: {
+        defaultMessage: 'It also changes "{sprite}". Ask for only "{only}"',
+        description: 'Problem in the Ruby tab: the answer changes another sprite than the one in the editor',
+        id: 'gui.genaiConcierge.problemOtherSprite',
+    },
     problemClassDef: {
         defaultMessage: 'A class definition ({source}) cannot become blocks',
         description: 'Problem: the answer is written as a Ruby class',
@@ -321,6 +414,16 @@ const messages = defineMessages({
         description: 'Problem: some lines would stay as "Ruby" blocks',
         id: 'gui.genaiConcierge.problemRaw',
     },
+    problemClassDefCode: {
+        defaultMessage: 'A class definition ({source}) cannot be used in Smalruby',
+        description: 'Ruby tab: problem: the answer is written as a Ruby class',
+        id: 'gui.genaiConcierge.problemClassDefCode',
+    },
+    problemRawCode: {
+        defaultMessage: '{count} places are written in a way Smalruby cannot use',
+        description: 'Ruby tab: problem: some lines are written in a way Smalruby cannot run',
+        id: 'gui.genaiConcierge.problemRawCode',
+    },
     rubyShow: {
         defaultMessage: 'See the Ruby',
         description: 'Link showing the repaired Ruby',
@@ -330,6 +433,16 @@ const messages = defineMessages({
         defaultMessage: 'Hide the Ruby',
         description: 'Link hiding the repaired Ruby',
         id: 'gui.genaiConcierge.rubyHide',
+    },
+    programShow: {
+        defaultMessage: 'See the program',
+        description: 'Link showing the DNCL program of the answer (Japanese mode of the Ruby tab)',
+        id: 'gui.genaiConcierge.programShow',
+    },
+    programHide: {
+        defaultMessage: 'Hide the program',
+        description: 'Link hiding the DNCL program of the answer (Japanese mode of the Ruby tab)',
+        id: 'gui.genaiConcierge.programHide',
     },
     reflectionLabel: {
         defaultMessage: 'In one line of your own words, write what will change (required)',
@@ -345,6 +458,21 @@ const messages = defineMessages({
         defaultMessage: 'Put these blocks in',
         description: 'Button putting the AI blocks in',
         id: 'gui.genaiConcierge.apply',
+    },
+    applyReplacesCode: {
+        defaultMessage: 'This replaces the code of {names} in the editor (Ctrl+Z takes it back).',
+        description: 'Ruby tab: which sprite the code is replaced in ({names}: sprite name)',
+        id: 'gui.genaiConcierge.applyReplacesCode',
+    },
+    applyCode: {
+        defaultMessage: 'Use this code',
+        description: 'Ruby tab: button putting the AI code in the editor',
+        id: 'gui.genaiConcierge.applyCode',
+    },
+    selfCode: {
+        defaultMessage: 'Write it myself',
+        description: 'Ruby tab: button closing the panel to write the program without the AI code',
+        id: 'gui.genaiConcierge.selfCode',
     },
     self: {
         defaultMessage: 'Build it myself',
@@ -381,6 +509,12 @@ const messages = defineMessages({
             'Rubytee rewrote it {count} times, but it still could not be turned into blocks. Build it yourself, or ask again.',
         description: 'When none of the versions Rubytee made turned into blocks ({count}: tries)',
         id: 'gui.genaiConcierge.takeoverFailed',
+    },
+    takeoverFailedCode: {
+        defaultMessage:
+            'Rubytee rewrote it {count} times, but a problem is still left. Write it yourself, or ask again.',
+        description: 'Ruby tab: when none of the versions Rubytee made passed the check ({count}: tries)',
+        id: 'gui.genaiConcierge.takeoverFailedCode',
     },
     takeoverErrorRate: {
         defaultMessage: 'You have used Rubytee many times. Try again in about {minutes} minutes.',
@@ -442,6 +576,32 @@ const messages = defineMessages({
         description: 'How the marked blocks look in the editor, and that a line of the list brings its block into view',
         id: 'gui.genaiConcierge.changesLegend',
     },
+    linesTitle: {
+        defaultMessage: "Lines the AI's version adds, changes or removes",
+        description: 'Ruby tab: title of the line diff of the code now and the AI code',
+        id: 'gui.genaiConcierge.linesTitle',
+    },
+    linesCount: {
+        defaultMessage: '{added} lines added, {changed} changed, {removed} removed',
+        description: 'Ruby tab: how many lines the AI code adds, changes and removes, before it is put in',
+        id: 'gui.genaiConcierge.linesCount',
+    },
+    linesNone: {
+        defaultMessage: 'No line is added, changed or removed.',
+        description: 'Ruby tab: the AI code is the same as the code now',
+        id: 'gui.genaiConcierge.linesNone',
+    },
+    linesDone: {
+        defaultMessage: '{added} lines were added and {changed} changed.',
+        description: 'Ruby tab: how many lines the AI version added and changed, once it is in',
+        id: 'gui.genaiConcierge.linesDone',
+    },
+    linesLegend: {
+        defaultMessage:
+            'The lines with a bar by the line numbers are added, those with a dashed bar changed. Lines removed have no mark.',
+        description: 'Ruby tab: how the marked lines look in the editor',
+        id: 'gui.genaiConcierge.linesLegend',
+    },
     changeAdded: {
         defaultMessage: '"{block}" is added',
         description: 'A block added ({block}: the words of the block)',
@@ -485,7 +645,11 @@ const KIND_MESSAGES = {
     error: { label: messages.kindError, starter: messages.starterError },
     next: { label: messages.kindNext, starter: messages.starterNext },
     how: { label: messages.kindHow, starter: messages.starterHow },
+    'how-command': { label: messages.kindHowCommand, starter: messages.starterHowCommand },
     'more-fun': { label: messages.kindMoreFun, starter: messages.starterMoreFun },
+    'wrong-answer': { label: messages.kindWrongAnswer, starter: messages.starterWrongAnswer },
+    'how-write': { label: messages.kindHowWrite, starter: messages.starterHowWrite },
+    'how-think': { label: messages.kindHowThink, starter: messages.starterHowThink },
 };
 
 export { KIND_MESSAGES };

@@ -4,9 +4,12 @@ import {
     changedAiSettings,
     displayGenaiUrl,
     draftFromGroup,
+    draftWithRubytee,
     draftWithService,
     isAiDraftChanged,
     isDraftSavable,
+    isRubyteeUnconfirmed,
+    missingAiConfirmation,
     validateGenaiUrl,
 } from '../../../src/lib/classroom-genai-settings.js';
 
@@ -19,13 +22,14 @@ describe('classroom-genai-settings', () => {
                 url: '',
                 confirmed: false,
                 rubytee: false,
+                rubyteeConfirmed: false,
             });
         });
 
         test('reads stored settings', () => {
             const group = {
                 genai: { enabled: true, service: 'gemini', url: GENAI_DEFAULT_URLS.gemini, confirmed: true },
-                rubytee: { enabled: true },
+                rubytee: { enabled: true, confirmed: true },
             };
             expect(draftFromGroup(group)).toEqual({
                 use: true,
@@ -33,6 +37,7 @@ describe('classroom-genai-settings', () => {
                 url: GENAI_DEFAULT_URLS.gemini,
                 confirmed: true,
                 rubytee: true,
+                rubyteeConfirmed: true,
             });
         });
 
@@ -47,7 +52,19 @@ describe('classroom-genai-settings', () => {
                 url: '',
                 confirmed: false,
                 rubytee: true,
+                rubyteeConfirmed: false,
             });
+        });
+
+        test('a class that turned Rubytee on before the confirmation existed reads as not confirmed', () => {
+            expect(draftFromGroup({ rubytee: { enabled: true } })).toMatchObject({
+                rubytee: true,
+                rubyteeConfirmed: false,
+            });
+        });
+
+        test('a class without Rubytee starts from scratch, even with a stored confirmation', () => {
+            expect(draftFromGroup({ rubytee: { enabled: false, confirmed: true } }).rubyteeConfirmed).toBe(false);
         });
 
         test('ignores services that are not offered', () => {
@@ -75,7 +92,14 @@ describe('classroom-genai-settings', () => {
     });
 
     describe('isDraftSavable', () => {
-        const base = { use: true, service: 'gemini', url: GENAI_DEFAULT_URLS.gemini, confirmed: true, rubytee: false };
+        const base = {
+            use: true,
+            service: 'gemini',
+            url: GENAI_DEFAULT_URLS.gemini,
+            confirmed: true,
+            rubytee: false,
+            rubyteeConfirmed: false,
+        };
 
         test('not using generative AI is always savable', () => {
             expect(isDraftSavable({ ...base, use: false, service: null, confirmed: false })).toBe(true);
@@ -88,20 +112,67 @@ describe('classroom-genai-settings', () => {
             expect(isDraftSavable({ ...base, service: 'other', url: '' })).toBe(false);
             expect(isDraftSavable({ ...base, url: 'http://gemini.google.com/' })).toBe(false);
         });
+
+        test('Rubytee needs the teacher\'s confirmation to be saved on', () => {
+            expect(isDraftSavable({ ...base, rubytee: true, rubyteeConfirmed: false })).toBe(false);
+            expect(isDraftSavable({ ...base, rubytee: true, rubyteeConfirmed: true })).toBe(true);
+            expect(isDraftSavable({ ...base, use: false, rubytee: true, rubyteeConfirmed: false })).toBe(false);
+        });
+
+        test('a class that turned Rubytee on before the confirmation existed asks for it on the next save', () => {
+            expect(isDraftSavable(draftFromGroup({ rubytee: { enabled: true } }))).toBe(false);
+        });
+    });
+
+    describe('missingAiConfirmation', () => {
+        const base = {
+            use: true,
+            service: 'gemini',
+            url: GENAI_DEFAULT_URLS.gemini,
+            confirmed: true,
+            rubytee: false,
+            rubyteeConfirmed: false,
+        };
+
+        test('nothing is missing when every needed check is in', () => {
+            expect(missingAiConfirmation(base)).toBeNull();
+            expect(missingAiConfirmation({ ...base, use: false, service: null, confirmed: false })).toBeNull();
+            expect(missingAiConfirmation({ ...base, rubytee: true, rubyteeConfirmed: true })).toBeNull();
+        });
+
+        test('names the unchecked confirmation, the generative AI first (it is above)', () => {
+            expect(missingAiConfirmation({ ...base, confirmed: false })).toBe('genai');
+            expect(missingAiConfirmation({ ...base, rubytee: true })).toBe('rubytee');
+            expect(missingAiConfirmation({ ...base, confirmed: false, rubytee: true })).toBe('genai');
+            expect(missingAiConfirmation(draftFromGroup({ rubytee: { enabled: true } }))).toBe('rubytee');
+        });
+
+        test('a broken URL is not a missing check (its error shows next to the input)', () => {
+            expect(missingAiConfirmation({ ...base, url: 'http://gemini.google.com/' })).toBeNull();
+        });
     });
 
     describe('buildAiSettingsUpdate', () => {
         test('returns nothing when the settings did not change', () => {
             const group = {
                 genai: { enabled: true, service: 'gemini', url: GENAI_DEFAULT_URLS.gemini, confirmed: true },
-                rubytee: { enabled: false },
+                    rubytee: { enabled: false },
             };
             expect(buildAiSettingsUpdate(group, draftFromGroup(group))).toEqual({});
+            const confirmed = { rubytee: { enabled: true, confirmed: true } };
+            expect(buildAiSettingsUpdate(confirmed, draftFromGroup(confirmed))).toEqual({});
             expect(buildAiSettingsUpdate({}, draftFromGroup({}))).toEqual({});
         });
 
         test('enables Gemini with the full setting', () => {
-            const draft = { use: true, service: 'gemini', url: GENAI_DEFAULT_URLS.gemini, confirmed: true, rubytee: false };
+            const draft = {
+                use: true,
+                service: 'gemini',
+                url: GENAI_DEFAULT_URLS.gemini,
+                confirmed: true,
+                rubytee: false,
+                rubyteeConfirmed: false,
+            };
             expect(buildAiSettingsUpdate({}, draft)).toEqual({
                 genai: { enabled: true, service: 'gemini', url: GENAI_DEFAULT_URLS.gemini, confirmed: true },
             });
@@ -122,19 +193,45 @@ describe('classroom-genai-settings', () => {
             expect(isAiDraftChanged({}, { ...draftFromGroup({}), use: true, service: 'gemini' })).toBe(true);
         });
 
-        test('sends rubytee only when it changed', () => {
-            const draft = { ...draftFromGroup({}), rubytee: true };
-            expect(buildAiSettingsUpdate({}, draft)).toEqual({ rubytee: { enabled: true } });
+        test('sends rubytee with its confirmation only when it changed', () => {
+            const draft = { ...draftFromGroup({}), rubytee: true, rubyteeConfirmed: true };
+            expect(buildAiSettingsUpdate({}, draft)).toEqual({ rubytee: { enabled: true, confirmed: true } });
+        });
+
+        test('confirming Rubytee on a class that turned it on before sends the confirmation', () => {
+            const group = { rubytee: { enabled: true } };
+            const draft = { ...draftFromGroup(group), rubyteeConfirmed: true };
+            expect(buildAiSettingsUpdate(group, draft)).toEqual({ rubytee: { enabled: true, confirmed: true } });
+        });
+
+        test('turning Rubytee off drops its confirmation', () => {
+            const group = { rubytee: { enabled: true, confirmed: true } };
+            const draft = { ...draftFromGroup(group), rubytee: false, rubyteeConfirmed: false };
+            expect(buildAiSettingsUpdate(group, draft)).toEqual({ rubytee: { enabled: false, confirmed: false } });
         });
 
         test('trims the URL', () => {
-            const draft = { use: true, service: 'other', url: ' https://ai.example.ed.jp/ ', confirmed: true, rubytee: false };
+            const draft = {
+                use: true,
+                service: 'other',
+                url: ' https://ai.example.ed.jp/ ',
+                confirmed: true,
+                rubytee: false,
+                rubyteeConfirmed: false,
+            };
             expect(buildAiSettingsUpdate({}, draft).genai.url).toBe('https://ai.example.ed.jp/');
         });
     });
 
     describe('draftWithService', () => {
-        const gemini = { use: true, service: 'gemini', url: 'https://gemini.example.ed.jp/', confirmed: true, rubytee: true };
+        const gemini = {
+            use: true,
+            service: 'gemini',
+            url: 'https://gemini.example.ed.jp/',
+            confirmed: true,
+            rubytee: true,
+            rubyteeConfirmed: true,
+        };
 
         test('choosing another service resets its URL and confirmation', () => {
             expect(draftWithService(gemini, 'chatgpt')).toEqual({
@@ -143,6 +240,7 @@ describe('classroom-genai-settings', () => {
                 url: GENAI_DEFAULT_URLS.chatgpt,
                 confirmed: false,
                 rubytee: true,
+                rubyteeConfirmed: true,
             });
         });
 
@@ -157,11 +255,37 @@ describe('classroom-genai-settings', () => {
                 url: '',
                 confirmed: false,
                 rubytee: true,
+                rubyteeConfirmed: true,
             });
         });
 
         test('Claude is never offered', () => {
             expect(draftWithService(gemini, 'claude')).toBe(gemini);
+        });
+    });
+
+    describe('draftWithRubytee', () => {
+        const draft = draftFromGroup({ rubytee: { enabled: true, confirmed: true } });
+
+        test('turning it on asks for the confirmation', () => {
+            expect(draftWithRubytee(draftFromGroup({}), true)).toMatchObject({ rubytee: true, rubyteeConfirmed: false });
+        });
+
+        test('turning it off drops the confirmation', () => {
+            expect(draftWithRubytee(draft, false)).toMatchObject({ rubytee: false, rubyteeConfirmed: false });
+        });
+
+        test('keeps the draft when nothing changes', () => {
+            expect(draftWithRubytee(draft, true)).toBe(draft);
+        });
+    });
+
+    describe('isRubyteeUnconfirmed', () => {
+        test('tells a class that turned Rubytee on before the confirmation existed', () => {
+            expect(isRubyteeUnconfirmed({ rubytee: { enabled: true } })).toBe(true);
+            expect(isRubyteeUnconfirmed({ rubytee: { enabled: true, confirmed: true } })).toBe(false);
+            expect(isRubyteeUnconfirmed({ rubytee: { enabled: false } })).toBe(false);
+            expect(isRubyteeUnconfirmed({})).toBe(false);
         });
     });
 

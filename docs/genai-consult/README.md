@@ -5,8 +5,8 @@
 
 ## 概要
 
-スクリプトエリアの左下（ブロックパレットの右）に **ルビティーの顔** が出る。生徒は顔を押して
-（または手が止まったときの声かけから）次の順に進む。
+スクリプトエリアの左下（ブロックパレットの右）に **丸い顔と「AI に相談」の吹き出し** が出る。生徒は顔か
+吹き出しを押して（または手が止まったときの声かけから）次の順に進む。
 
 1. **困りごと** — 「どんなことで困っている？」の 1 行と 5 種類のボタン。種類を選ぶと、書き出しの例が
    入った入力欄が開く。自分のことばで書く（必須。書き出しの例のままでは進めない）
@@ -30,7 +30,7 @@
    自分のことばで 1 行書いてから（必須）［このブロックを入れる］（または［自分で組む］で閉じる）。
    ✗ なら、ブロックにできなかったところ（最大 5 つ）と［書き直しのお願いをコピー］を出す。
    ✗ が 2 回になったら、ルビティーが有効なクラス（`selectRubyteeAvailable`）では
-   ［ルビティーにまかせる］も出す（下の「ルビティーにまかせる」）。
+   ［ルビティーにまかせる］も出す（下の「ルビティーにまかせる」。Ruby タブは「Ruby タブ」の節）。
 5. **切りかえて比べる** — 入れたあとは［元のプログラム］⇔［生成AI の案］を何度でも切りかえられる。
    答えに入っていたスプライト（複数あれば全部）がいっしょに切りかわる。それぞれの側で生徒が変えた
    ところは、切りかえても残る（切りかえる直前のブロックをその側の内容として覚える）。途中で消した
@@ -97,8 +97,8 @@
 生成AI に書き直しをお願いしても 2 回ブロックにできなかったとき、ルビティー（Claude Sonnet）が作品を
 書き直す（`src/lib/genai-takeover.js`）。ルビティーが有効なクラス（`selectRubyteeAvailable`）の生徒だけ。
 
-1. ［ルビティーにまかせる］を押す。まだならルビティーの **同意ダイアログ**（AI であること・まちがえることが
-   ある・個人情報を書かない）を出す。Ruby タブのルビティーと同じもので、同意は共有（`smalruby:rubyteeConsent`）。
+1. ［ルビティーにまかせる］を押すと、すぐに始まる。生徒の画面では同意を取らない（先生がクラス管理で
+   ルビティーを有効にするときに条件を確かめているため）。
 2. ルビティーに渡すもの: 困りごと（種類と自分のことば）、作品全体の Ruby（スプライトごとに `# 「名前」` と
    音・コスチュームの名前）、生成AI に渡した質問文（最初の相談文と、コピーした書き直しのお願い）と
    貼りもどした答えのすべて、それぞれブロックにできなかった理由。relay の上限（1 万字）に収まらないときは
@@ -137,17 +137,27 @@ relay の呼び方: `POST /generate` に `purpose: "genai-takeover"` と、ク�
 - ボタンの帯（［もどる］と主ボタン）は **パネルの下端に固定** し、中身だけがスクロールする。
   1300×600 で、どの段階もパネルの中をスクロールせずに主ボタンまで見える。
 - 段階を移ったとき・分けたときは、前のお知らせ（「コピーしました」など）を消す。
-- ヘッダーの下は **進み具合の表示**（タブではない）。ラベルは「困りごと」「コピーして相談」「答えをブロックに」の
+- ヘッダーの下は **進み具合の表示**（タブではない）。ラベルは「困りごと」「コピーして相談」「答えをブロックに」（Ruby タブは「答えをコードに」）の
   3 つで、3 つ目が上の段階 3〜6（相談の答えを自分のプログラムに入れて比べる）をまとめて表す。
   生徒が読んで何をする段階か分かるように、ラベルは「答えをどうするのか」を書く。
-  ラベルの下に四角い点を並べて線でつなぎ、
-  終わった段階は点を塗りつぶして ✓（線もそこまで塗る）、いまの段階は太い枠と太字、まだの段階は灰色。
-  ブロックを入れる前なら、終わった段階のラベルを押してもどれる。
+  ラベルの下に丸い点を並べて線でつなぐ（通販の配送状況のようなステップ表示。チェックボックスに見えて
+  押せると思わせないよう、四角や枠だけの点にしない）。
+  終わった段階は紫の丸に白い ✓（線もそこまで紫）、いまの段階は ✓ の無い紫の丸に薄い紫のリングと太字、
+  まだの段階は灰色の丸。
+  ブロックを入れる前なら、終わった段階のラベルを押してもどれる（押せる段階は hover で点が少し濃くなる）。
+- **顔と吹き出し**: 顔は目と口のある丸い顔（SVG・`$looks-secondary` の枠）。右に、顔を指すしっぽの
+  付いた「AI に相談」の吹き出しを出し、押すと顔と同じくパネルを開く。パネルを開いている間と声かけの間は
+  吹き出しを出さない（顔だけ）。顔の右の空き（右端のズームの列を除く）が 300px より狭いとき（iPad の
+  縦向きのコードタブなど）は「AI」だけに短くし、それも入らないときは出さない（判定は `faceLabel`）。
+  吹き出しのボタンは、見た目より大きい 44×44px 以上の押せる範囲を持つ（スマホで押しやすいように）。顔と吹き出しはパネル側
+  （`genai-face.jsx`）だけで描くので、コードタブと Ruby タブで同じ。
 - パネルは **スクリプトエリアの右端** に出す（顔は左下のまま）。スクリプトエリアが狭くて顔と並ばない
   ときは顔の上に出す。高さはスクリプトエリアに収まるように決める。ブロックを入れたあとは、
   印の付いたブロック（無ければ入れたブロック全体）がスクリプトエリアの左上に来るように画面を動かす
   （パネルに重ならない）。
 
+![顔と「AI に相談」の吹き出し（1300×600）](screenshots/0100-face.png)
+![SP（横向き）でも吹き出しはズームのボタンと重ならない。iPad の縦向きのように顔の右が狭いと「AI」だけにする](screenshots/0109-face-sp.png)
 ![声かけ](screenshots/0101-nudge.png)
 ![困りごと（1300×600）](screenshots/0102-trouble.png)
 ![コピーして相談（コピーしたあと）](screenshots/0104-copy.png)
@@ -165,7 +175,7 @@ relay の呼び方: `POST /generate` に `purpose: "genai-takeover"` と、ク�
 |------|----|
 | 生徒としてクラス（課題）に参加していて、そのクラスで先生が生成AI を「使う」にしている | 出る |
 | 参加しているクラスで生成AI を使わない / クラスに参加していない / 先生 | 出ない |
-| `?features=genai`（開発用） | クラスの外でも出る |
+| `?features=genai`（開発用） | dev server（`npm start`）とブランチプレビュー（`preview.smalruby.app`）では、クラスの外でも出る。本番（smalruby.app）では効かない |
 
 クラスの設定（`genai.enabled` / `service` / `url`）は、参加（`/classrooms/join`）とセッション確認
 （`/classrooms/verify-session`）の応答で受け取り、Redux（`state.scratchGui.classroom.studentGenai`）に
@@ -182,7 +192,7 @@ relay の呼び方: `POST /generate` に `purpose: "genai-takeover"` と、ク�
 生成AI は URL のホスト名を出す）。
 
 プロトタイプにあった「1 回だけ聞いてブラウザに覚える」画面は、**`?features=genai` でクラスの外に
-いるときだけ**残している（開発・試用用）。クラスに参加していれば出ない（クラスで生成AI を使わない
+いるときだけ**残している（開発・試用用。dev server とプレビューだけ）。クラスに参加していれば出ない（クラスで生成AI を使わない
 なら顔そのものが出ないため、保険として残す必要がない）。
 
 ## 声かけ
@@ -257,6 +267,127 @@ GENAI_LAB=1 GENAI_LAB_RUN=<名前> GENAI_LAB_MODELS=sonnet,haiku GENAI_LAB_REPEA
 - `GENAI_LAB_ONLY` で場面を絞る。`GENAI_LAB_JUDGE=none` で採点役を使わない。
 - 場面の作品がブロックになることは `fixtures.test.js` で確かめる。
 
+## Ruby タブ
+
+Ruby タブの **Ruby モード・ふりがなモード・日本語 (DNCL) モード** でも同じパネルで相談できる（`src/lib/genai-ruby-adapter.js`
+のアダプタを `ruby-tab.jsx` が渡す）。段階はコードタブと同じで、変わるのは「何を渡し、何で答えさせ、
+どう確かめ、どう入れるか」だけ。
+
+- **顔**: エディタの左下（行番号の上）。右下はズームと画像保存のボタンなので空いている。パネルは
+  エディタの右側に開く。出す条件はコードタブと同じで、さらに **Ruby のバージョンが 2 のときだけ**
+  （`ruby_version=1` では出さない）。日本語 (DNCL) モードでも出す（下の「日本語 (DNCL) モード」）。
+- **困りごと**: 種類は「思ったとおりに動かない / エラーが出る / 次に何を作ればいいかわからない /
+  命令の書き方がわからない / もっとおもしろくしたい」。エディタにエラーの印があるときに顔を押すと、
+  「エラーが出る」を選び、エラー文（「N 行目: …」）を入れた状態で始まる。
+- **直すのは今のスプライトだけ**: 質問文には、エディタにいま出ている Ruby（ブロックにまだ反映して
+  いない編集も含む）を「直すプログラム」として入れ、ほかのスプライトのコードは合図や変数の名前を
+  合わせるための **参考**（直さないと明記）として付ける。答えは今のスプライトの分だけを 1 つの
+  `ruby` のコード枠で書いてもらい、`# 「名前」` の見出しは書かないよう頼む。
+- **説明のことば**: Ruby モードは Ruby の書き方で「何を変えたか」を 1〜3 行。ふりがなモードは
+  やさしいことばで、命令に日本語の意味を添える（`loop`（ずっと））。どちらも **答えのコードは Ruby のまま**。
+  命令の例と、音・コスチュームの名前はコードタブと同じ。
+- **確かめる**: コードタブと同じ判定。答えが別のスプライトまで直している（`# 「名前」` が今の
+  スプライト以外）ときは ✗ にし、書き直しのお願いに「『<今のスプライト>』の分だけにしてください」を入れる。
+- **確かめたことの言い方**: 判定はコードタブと同じく答えを試しにブロックに直して行うが、Ruby タブで
+  ブロックに直すのは動かすためなので、**画面にはブロックの話を出さない**（3 モードとも）。ボタンは
+  ［プログラムを確かめる］、✔ は「問題は見つかりませんでした（このまま動かせます）」、✗ は「このプログラムには
+  問題があります」、問題の説明は「N か所に、スモウルビーで使えない書き方があります」「クラスの定義（…）は、
+  スモウルビーでは使えません」、ルビティーで直らなかったときは「…書き直しても、問題が残りました」
+  （`messages.js` の `*Code` のキー。`putsCode` で出し分ける）。生成AI・ルビティーに送る文（質問文・書き直しの
+  お願い・ルビティーへの文）は「ブロックに直せる書き方で」と頼むので変えない。
+- **［Ruby を見る］は出さない**（Ruby・ふりがなモード）: 答えそのものが Ruby で、✔ の下の行の差分に
+  コードが出ているため。日本語 (DNCL) モードは答えを DNCL のまま見られる［プログラムを見る］を残す。
+- **入れる前に比べる**: ✔ の下に、今のコード（エディタにいま出ているもの）と生成AI の案の **行の差分**
+  を Monaco の差分表示（インライン。`createDiffEditor`）で見せ、「N 行増える・M 行変わる・K 行なくなる」を
+  出す（コードタブの「増える・変わるブロック」の代わり）。コードタブと同じく「どこが変わるか」を自分の
+  ことばで書いてから［このコードにする］。
+- **入れる**: ［このコードにする］で、エディタのコードを丸ごと置きかえる（`executeEdits`。
+  Ctrl+Z で元にもどせる）。ブロックへの反映は、生徒が自分で書いたときと同じ流れで行われる。
+  確かめたあとに生徒がほかのスプライトに切りかえていたら、エディタには入れず、確かめたスプライトの
+  ブロックに入れる（切りかえと同じ。ブロックにできないときは入れない）。
+- **入れたあとの印**: 増えた行・変わった行に、エディタの decoration で印を付ける（行全体をうすいピンク、
+  行番号の横に線。増えた行は実線・変わった行は点線。なくなった行は印を付けようがないので数だけ）。
+  パネルにも「N 行増えた・M 行変わった」を出す。印は生徒が書き足すと行といっしょに動く。
+  自動置換や Ctrl+Z でコードが丸ごと入れなおされたときは、直前に印のあった行（の位置）にだけ印を残す
+  （生徒が書いた行には付けない。答えを Ctrl+Z で取り消せば印も消える）。
+- **切りかえ**: ［元のプログラム］⇔［生成AI の案］を何度でも切りかえられ、それぞれの側で生徒が変えた
+  ところは残る（`switchSnapshots`）。エディタに出ているスプライトはエディタのコードを置きかえ、
+  ほかのスプライトに移ったあとはそのスプライトのブロックを置きかえる。印は［生成AI の案］の間だけ出す。
+- **印を消す・付け直す**: ［これで閉じる］・［元のプログラム］・［もう一度相談する］で消す。× で閉じたら消し、
+  開き直したら付け直す。別のスプライトに切りかえている間は出さず、相談したスプライトに戻ったら
+  （そのときのコードと元のコードを比べ直して）付け直す。
+- **ルビティーにまかせる**: コードタブと同じく、✗ が 2 回になったらルビティーが有効なクラスでは
+  ［ルビティーにまかせる］を出す（同意画面は出さない。判定は `isTakeoverAvailable`）。ルビティーに渡すのは
+  「今のスプライトだけを直すこと」、今のスプライトのコード（エディタにいま出ている Ruby）、参考のほかの
+  スプライト（コードのあるものだけ。直さないと明記）、困りごと、生成AI とのやりとり
+  （`buildRubyTabTakeoverMessage`）。1 万字に収まらないときは古いやりとりから短くし、それでも
+  今のスプライトと参考が入りきらないときは参考を省く（今のスプライトだけで入らないときは
+  「作品が長すぎて…」）。ふりがなモードでは、説明をやさしいことばで書き、命令に日本語の意味を添えるよう頼む
+  （コードは Ruby のまま）。答えはコードタブと同じくブラウザで確かめ、ほかのスプライトまで直していたら
+  理由を付けて作り直してもらう。✔ になった案は、上の行の差分・［このコードにする］・切りかえの流れに乗る。
+  relay は同じ `purpose: "genai-takeover"` を使う（relay のプロンプトは変えていない）。
+  ルビティーは 1 回に 1〜2 分かかるので、その間に生徒がほかのスプライトに切りかえることがある。
+  確かめ・行の差分・入れるは **［ルビティーにまかせる］を押したときのスプライト** に対して行う
+  （アダプタの `takeoverScope()` を始めたときに覚え、`check(text, scope)` に渡す）。そのスプライトが
+  エディタに出ていなければ、行の差分はそのスプライトのブロックのコードと比べ、［このコードにする］は
+  そのスプライトのブロックに入れる（切りかえと同じ。ブロックにできないときは入れない）。
+  途中でそのスプライトを消したときは、エディタに出ているスプライトに対して確かめる。
+- **エディタに出ているスプライト**: 上の「今のスプライト」「エディタに出ているスプライト」は、VM の
+  `editingTarget` ではなく Ruby タブがエディタに出しているスプライト（`rubyCode.target`）を指す。
+  エディタのコードがブロックにできないままスプライトを切りかえると、Ruby タブはエディタに前のスプライトの
+  コードを出したままにするので、そのあいだは質問文・確かめ・行の差分・［このコードにする］・印も
+  前のスプライト（生徒が見ているコード）に対して行う。アダプタは `getEditorTarget` で読み、
+  切りかえは `onEditorTargetChange`（エディタに新しいコードが入ったあとに知らされる）で知る。
+
+### 日本語 (DNCL) モード
+
+共通テストの DNCL を練習する高校生向け。段階・行の差分・入れたあとの印・切りかえは Ruby モードと同じで、
+質問文・答えのことば・確かめ方が DNCL になる（`src/lib/genai-dncl-prompt.js` と `src/lib/genai-dncl-answer.js`）。
+
+- **困りごと**: 「答えが合わない / エラーが出る / どう書けばいいかわからない / 問題の考え方がわからない」。
+  エディタにエラーの印があれば「エラーが出る」とエラー文（DNCL の行番号）を入れて始める。
+- **質問文**: エディタにいま出ている DNCL をそのまま入れる。答えも DNCL で（共通テストの形の行番号・`｜` `⎿`・
+  末尾の `:` でもよい）、**配列の添字は 0 から**（問題文が 1 からでも 1 ずらして書く）、代入は `←` か `=`、
+  ブロックの終わりは「を実行する」「を繰り返す」「と定義する」、コメントは `#`（`//` は整数の割り算）、
+  説明は DNCL のことばで、と頼む。「書き方と使える命令の例」は、書き方（代入・配列・入力・もし・の間・
+  増やしながら・減らしながら・関数）と、`src/lib/dncl/dncl-builtins.js` の組み込み関数（`DNCL_BUILTIN_NAMES`）
+  1 つずつの例で作る（組み込み関数を足すと例も要る。unit テストで抜けと、どの例もふつうのブロックになることを確かめる）。
+  イベント・拡張機能・音・コスチュームの命令は使えないと書き、音・コスチュームの名前とほかのスプライトの
+  プログラムは入れない。
+- **確かめる**: 答えから DNCL を取り出し（印のあいだのコード枠。コード枠の言語名は問わない）、エディタに
+  貼りつけたときと同じ整形（行番号を消す・`//` のコメントを `#` に）をしてから、DNCLv2 の pre-processor を通して
+  Ruby に直し、Ruby モードと同じ判定（変換器のエラー・「Ruby のまま」のブロックが無ければ ✔）。エラーは
+  source map（`dncl-source-map.js`）で **DNCL の行** に戻して見せる。`//` のある行のエラーには「// は
+  コメントではない」を添える。閉じ忘れ・閉じすぎ（`を実行する` などが足りない・多い）は変換器の「`end` が
+  足りません」ではなく DNCL のことば（「「もし〜ならば」を「を実行する」で閉じてください」など）で言う
+  （AI に `end` を書き足させないため。[`docs/dncl/README.md`](../dncl/README.md) の「閉じ忘れのエラー」）。
+  書き直しのお願いも DNCL で頼む。
+- **添字の注意**: 答えの DNCL にもエディタの添字の警告と同じ判定（`findArrayIndexHints`）をかけ、配列の
+  範囲外を読むところ（1 から数えた添字）があれば、✔ のまま、✔ の下（行の差分の上）に「注意: 添字が 1 から
+  始まっているかもしれません…」と行ごとの説明（「◯ 行目: Data[i] は配列の範囲外になります…」）を出す
+  （`genai-index-hints`）。共通テストの問題は 1 から数えることもあるので ✗ にはしない（判定と
+  ［このコードにする］は変わらない）。Ruby・ふりがなモードでは出さない。
+- **入れる・比べる**: エディタに入れるのは DNCL（整形したもの）。行の差分は DNCL どうしで比べる。
+  ほかのスプライトに移ったあとの切りかえは、DNCL を Ruby に直してブロックを置きかえる。
+- **ルビティーにまかせる**: 出さない（#1396 決定 3。relay が DNCL で答えられるようになるまで）。
+- モードを日本語 (DNCL) と Ruby・ふりがなのあいだで切りかえると、相談は最初からになる（質問文・答え・
+  2 つの版がモードの言語で書かれているため）。エディタのコードはそのまま。
+
+![日本語 (DNCL) モードの困りごと](screenshots/0301-dncl-trouble.png)
+![エラーがあるときは DNCL の行番号のエラー文で始まる](screenshots/0306-dncl-error-start.png)
+![DNCL で動かせない答えは ✗（DNCL の行で）](screenshots/0303-dncl-ng.png)
+![共通テストの形（行番号・⎿・末尾の :）の答えも ✔、DNCL どうしの行の差分](screenshots/0304-dncl-ok.png)
+![1 から数えた添字の答えは ✔ のまま注意が出る](screenshots/0307-dncl-index-hint.png)
+![入れたあと（増えた・変わった行に印）](screenshots/0305-dncl-done.png)
+
+![Ruby タブの顔と吹き出し（コードタブと同じ）](screenshots/0200-ruby-face.png)
+![Ruby タブの困りごと（顔はエディタの左下）](screenshots/0201-ruby-trouble.png)
+![エラーがあるときは「エラーが出る」で始まる](screenshots/0205-ruby-error-start.png)
+![別のスプライトまで直した答えは ✗](screenshots/0202-ruby-other-sprite-ng.png)
+![✔ と行の差分・［このコードにする］](screenshots/0203-ruby-ok.png)
+![入れたあと（増えた・変わった行に印）](screenshots/0204-ruby-done.png)
+![［元のプログラム］に切りかえると印は消える](screenshots/0206-ruby-switch-before.png)
+
 ## 設定・データ永続化
 
 | キー | 場所 | 内容 |
@@ -264,27 +395,33 @@ GENAI_LAB=1 GENAI_LAB_RUN=<名前> GENAI_LAB_MODELS=sonnet,haiku GENAI_LAB_REPEA
 | `smalruby:classroom` の `studentGenai` | localStorage | クラスの生成AI 設定（`{enabled, service, url}`） |
 | `smalruby:genaiNudgeOff` | localStorage | ［今日は出さない］を押した日付（`YYYY-MM-DD`）。プロトタイプの `'true'` は無効扱い |
 | `smalruby:genaiService` | localStorage | 開発用（`?features=genai` でクラス外）に選んだ生成AI |
-| `?features=genai` | URL | クラスの外でも顔を出す（開発用） |
+| `?features=genai` | URL | クラスの外でも顔を出す（開発用。dev server とプレビューだけで効き、本番では無視する。判定は `isGenaiDevFlag`。Ruby タブは `ruby_version=2` のときだけ） |
 | `?genai_idle=<秒>` | URL | 声かけまでの秒数を短くする（テスト用。あける時間も秒数の 4 倍までに縮む） |
 
 ## 主要ファイル
 
 | ファイル | 役割 |
 |---------|------|
-| `packages/scratch-gui/src/containers/genai-concierge.jsx` | 顔・パネル・声かけ・コピーと生成AI のタブ（表示条件は Redux から） |
+| `packages/scratch-gui/src/containers/genai-concierge.jsx` | 顔・パネル・声かけ・コピーと生成AI のタブ（表示条件は Redux から）。タブごとに違うところはアダプタ（`createAdapter`、既定はコードタブ用）に任せる |
 | `packages/scratch-gui/src/containers/use-student-class-settings-refresh.js` | ページを開いたときにクラスの AI 設定（生成AI・ルビティー）を verify-session で読み直す |
+| `packages/scratch-gui/src/components/genai-concierge/genai-face.jsx` | 顔と「AI に相談」の吹き出し（両方のタブで同じ） |
 | `packages/scratch-gui/src/components/genai-concierge/genai-nudge.jsx` | 声かけの吹き出し |
 | `packages/scratch-gui/src/components/genai-concierge/genai-stepper.jsx` | 進み具合の表示 |
 | `packages/scratch-gui/src/components/genai-concierge/genai-trouble-step.jsx` | 段階 1: 困りごと |
 | `packages/scratch-gui/src/components/genai-concierge/genai-copy-step.jsx` | 段階 2: 質問文のコピー・分割（開発用の生成AI 選択を含む） |
-| `packages/scratch-gui/src/components/genai-concierge/genai-answer-steps.jsx` | 段階 3〜6: 答えを貼る・ブロックにする・切りかえ |
+| `packages/scratch-gui/src/components/genai-concierge/genai-answer-steps.jsx` | 段階 3〜6: 答えを貼る・ブロックにする・切りかえ（確かめる・入れる・印はアダプタを呼ぶ） |
 | `packages/scratch-gui/src/components/genai-concierge/messages.js` | 文言（`gui.genaiConcierge.*`） |
-| `packages/scratch-gui/src/lib/genai-concierge-state.js` | 表示条件・相談先・声かけ・進み具合・パネルの位置の判定（純粋関数） |
+| `packages/scratch-gui/src/lib/genai-concierge-state.js` | 表示条件・相談先・声かけ・進み具合・パネルの位置・見せる印の選び方の判定（純粋関数。どのタブでも同じ） |
 | `packages/scratch-gui/src/lib/genai-prompt.js` | 質問文の組み立て・分割・答えからの Ruby 取り出し（純粋関数） |
 | `packages/scratch-gui/src/lib/genai-repair.js` | 生成AI の Ruby の自動修正・スプライトごとの分割（純粋関数） |
 | `packages/scratch-gui/test/genai-lab/` | 質問文の検証（プロンプト・ラボ。CI では動かさない） |
 | `packages/scratch-gui/src/lib/genai-block-diff.js` | 今のプログラムと生成AI の案をブロックで比べる・ブロックの言葉にする（純粋関数。ブロックの定義は引数で受ける） |
 | `packages/scratch-gui/src/lib/genai-takeover.js` | ルビティーにまかせる: ルビティーに送る文の組み立て・作り直しのくり返し・relay の呼び出し（ジョブの問い合わせ） |
+| `packages/scratch-gui/src/lib/genai-code-adapter.js` | コードタブ用のアダプタ。パネルがタブごとに差し替える点（質問文を作る・答えを確かめる・入れる／切りかえる／印を付ける・増える／変わるものの見せ方・顔の置き場所の測り方）をまとめる。差し替え点の説明はファイル冒頭 |
+| `packages/scratch-gui/src/lib/genai-ruby-adapter.js` | Ruby タブ（Ruby・ふりがな・日本語 (DNCL) モード）用のアダプタ。エディタのコードで質問文とルビティーに送る文（Ruby・ふりがなモード）を作る・今のスプライトだけを確かめる・エディタに入れる・エディタのエラーから困りごとを始める・行の差分の表示（Monaco）・入れたあとの行の印（decoration） |
+| `packages/scratch-gui/src/lib/genai-dncl-prompt.js` | 日本語 (DNCL) モードの質問文・困りごとの種類・命令の例・書き直しのお願い・答えからの DNCL 取り出し（純粋関数） |
+| `packages/scratch-gui/src/lib/genai-dncl-answer.js` | 日本語 (DNCL) モードの答えを調べる（DNCL → Ruby → 変換。エラーを DNCL の行に戻す。変換器は引数で受ける） |
+| `packages/scratch-gui/src/lib/genai-line-diff.js` | Ruby タブの行の差分（増える・変わる・なくなる行）と、その数・印を付ける行（純粋関数） |
 | `packages/scratch-gui/src/lib/genai-answer.js` | 貼った答えを調べる（✔ / ✗ の判定）・書き直しのお願いの文・切りかえ（純粋関数。変換器は引数で受ける） |
 | `packages/scratch-gui/src/reducers/classroom.js` | `studentGenai` と `setStudentGenai` |
 
@@ -292,7 +429,8 @@ GENAI_LAB=1 GENAI_LAB_RUN=<名前> GENAI_LAB_MODELS=sonnet,haiku GENAI_LAB_REPEA
 
 | data-testid | 要素 | 説明 |
 |------------|------|------|
-| `genai-face` | button | ルビティーの顔（押すとパネルを開く/閉じる） |
+| `genai-face` | button | 丸い顔（押すとパネルを開く/閉じる）。コードタブとルビータブの両方にあるので、ルビータブのものはエディタの中（`[class*="editorWrapper"] [data-testid="genai-face"]`）で探す |
+| `genai-face-label` | button | 顔の右の「AI に相談」（狭い画面では「AI」）の吹き出し。押すと顔と同じ。パネルを開いている間・声かけの間は無い |
 | `genai-nudge` | div | 声かけの吹き出し |
 | `genai-nudge-open` / `genai-nudge-later` / `genai-nudge-off` | button | 相談する / あとで / 今日は出さない |
 | `genai-panel` | div | パネル全体（一度開いたら閉じても消さず、`display: none` と `aria-hidden` で隠す） |
@@ -300,7 +438,7 @@ GENAI_LAB=1 GENAI_LAB_RUN=<名前> GENAI_LAB_MODELS=sonnet,haiku GENAI_LAB_REPEA
 | `genai-stepper` | ol | 進み具合の表示 |
 | `genai-step-<id>` | li | 各段階（`trouble` / `copy` / `paste`）。`data-status` は `done` / `current` / `todo`。終わった段階は中のボタンでもどれる |
 | `genai-close` | button | 閉じる（×） |
-| `genai-kind-<id>` | button | 困りごとの種類（`not-working` / `error` / `next` / `how` / `more-fun`） |
+| `genai-kind-<id>` | button | 困りごとの種類（`not-working` / `error` / `next` / `how` / `more-fun`。Ruby タブは `how` の代わりに `how-command`。日本語 (DNCL) モードは `wrong-answer` / `error` / `how-write` / `how-think`） |
 | `genai-trouble-text` | textarea | 困りごとを自分のことばで書く欄（種類を選ぶと出る） |
 | `genai-make-prompt` | button | 相談文をつくる |
 | `genai-service-gemini` / `genai-service-chatgpt` / `genai-service-url` / `genai-service-change` | button / input / a | 開発用（`?features=genai` でクラス外）の生成AI 選択 |
@@ -314,17 +452,19 @@ GENAI_LAB=1 GENAI_LAB_RUN=<名前> GENAI_LAB_MODELS=sonnet,haiku GENAI_LAB_REPEA
 | `genai-notice` | p | コピーした / できなかったのお知らせ |
 | `genai-to-paste` | button | 答えが来たら次へ |
 | `genai-answer-toggle` | a | 調べたあとに畳んだ答えを見る / 閉じる |
-| `genai-answer` / `genai-convert` / `genai-checking` / `genai-convert-ok` / `genai-convert-ng` / `genai-fixes` / `genai-problems` / `genai-ruby-toggle` / `genai-reflection` / `genai-apply` / `genai-self` / `genai-copy-rewrite` | — | 段階 3〜4（答えを貼る・ブロックにする） |
+| `genai-answer` / `genai-convert` / `genai-checking` / `genai-convert-ok` / `genai-convert-ng` / `genai-fixes` / `genai-index-hints` / `genai-problems` / `genai-ruby-toggle` / `genai-reflection` / `genai-apply` / `genai-self` / `genai-copy-rewrite` | — | 段階 3〜4（答えを貼る・ブロックにする） |
 | `genai-takeover` | button | ルビティーにまかせる（✗ が 2 回・ルビティーが有効なクラスだけ） |
 | `genai-takeover-running` / `genai-takeover-cancel` | div / button | ルビティーが書き直している間（N / 3 回目）と［やめる］ |
 | `genai-takeover-by` / `genai-takeover-explanation` | div / p | ルビティーが作った案であることと、ルビティーの説明（✔ の中） |
 | `genai-takeover-failed` / `genai-takeover-error` | p | 3 回ともブロックにできなかった / relay のエラー |
 | `genai-switch-before` / `genai-switch-after` / `genai-switch-state` / `genai-again` / `genai-finish` | — | 入れたあとの切りかえ |
 | `genai-changes` | div | 増える・変わるブロックの一覧（入れる前の確認と、［生成AI の案］が入っている間） |
+| `genai-lines` / `genai-lines-count` / `genai-line-diff` | div / p / div | Ruby タブ: 入れる前の行の差分（数と Monaco の差分表示） |
+| `genai-lines-done` | p | Ruby タブ: 入れたあとの「N 行増えた・M 行変わった」 |
 | `genai-change` | li | 一覧の 1 行。`data-kind` は `added` / `changed` / `removed`。入れたあとは中のリンクでそのブロックへ移動 |
 
 ## 画面の大きさ
 
-授業 PC の 1300×600 で、顔（ブロックパレットの右・左下）とパネル（右端）はスクリプトエリアの中に収まり、
+授業 PC の 1300×600 で、顔と吹き出し（ブロックパレットの右・左下）とパネル（右端）はスクリプトエリアの中に収まり、
 スクリプトエリアの下のバックパックの帯とは重ならない。パネルが邪魔なときはヘッダーをドラッグして
 動かせる。

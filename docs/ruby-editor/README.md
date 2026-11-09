@@ -57,7 +57,6 @@ ruby-toolbar 上部のセグメントで切替：
 | 検索 | Monaco の find |
 | キーボード (`ruby-toolbar-keyboard`) | ソフトウェアキーボードの表示/非表示（タッチデバイスのみ表示）。Monaco 組み込みの iPad キーボードウィジェットは zoom ボタンと重なるため CSS で非表示にしており、その代替 |
 | 自動置換 (`ruby-toolbar-auto-correct`) | 自動置換のオン/オフ |
-| ルビティー (`ruby-toolbar-rubytee`) | AI アシスタントを開く。参加しているクラスでルビティーが有効なときだけ出る（[`docs/rubytee/`](../rubytee/) 参照）|
 | その他メニュー (`ruby-toolbar-more-menu`) | Ruby スクリプト保存、クラス挿入、プレビュー、自動置換設定 |
 | スプライト切替 | エディタ対象スプライトの prev/next |
 
@@ -270,7 +269,7 @@ debounceMs = Math.max(50, lastRenderMs * 2);
 
 - [`docs/furigana/`](../furigana/) — ふりがな機能（Ruby エディタ上の表示モード）
 - [`docs/dncl/`](../dncl/) — 日本語プログラミングモード
-- [`docs/rubytee/`](../rubytee/) — AI アシスタント
+- [`docs/rubytee/`](../rubytee/) — ルビティー（「生成AI に相談」の［ルビティーにまかせる］）
 - [`docs/smalruby-language-spec.ja.md`](../smalruby-language-spec.ja.md) — Smalruby Ruby 言語仕様
 - [`docs/smalruby-language-spec-extensions.ja.md`](../smalruby-language-spec-extensions.ja.md) — 拡張機能の Ruby 表現
 - [`docs/smalruby-language-spec-v1-diff.ja.md`](../smalruby-language-spec-v1-diff.ja.md) — Ruby v1 と v2 の差分

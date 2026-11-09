@@ -3,6 +3,9 @@
 /* The marks on the blocks the AI's version adds or changes (#1281): unlike any block colour. */
 $genai-mark: #ff3d8b;
 
+/* The steps not reached yet, and the line up to them (#1425): solid, so the line does not show through a node. */
+$step-todo: #d3d9e3;
+
 .root {
     position: absolute;
     bottom: 12px;
@@ -32,9 +35,90 @@ $genai-mark: #ff3d8b;
     padding: 0;
 }
 
-.face img {
-    width: 30px;
-    height: 30px;
+.faceIcon {
+    width: 40px;
+    height: 40px;
+}
+
+.faceSkin {
+    fill: $looks-light-transparent;
+    stroke: $looks-secondary;
+}
+
+.faceEye {
+    fill: #333;
+}
+
+.faceMouth {
+    fill: none;
+    stroke: #333;
+}
+
+/* The face and its label side by side; only they take the pointer. */
+.root > .faceRow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    pointer-events: none;
+}
+
+.faceRow > * {
+    pointer-events: auto;
+}
+
+/*
+ * 「AI に相談」: a rounded label with a tail pointing at the face (#1414). The button is
+ * at least 44×44px to tap on a phone (.claude/rules/scratch-gui/mobile-ui.md); the label
+ * inside it is smaller.
+ */
+.faceLabel {
+    display: flex;
+    align-items: center;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+}
+
+.faceLabelBubble {
+    position: relative;
+    padding: 6px 12px;
+    border: 2px solid $looks-secondary;
+    border-radius: 14px;
+    background-color: $ui-white;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    color: $looks-secondary;
+    font-size: 0.85rem;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.faceLabelBubble::before,
+.faceLabelBubble::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    border-style: solid;
+    transform: translateY(-50%);
+}
+
+/* The tail: an outline triangle with a white one over it. */
+.faceLabelBubble::before {
+    left: -10px;
+    border-width: 7px 10px 7px 0;
+    border-color: transparent $looks-secondary transparent transparent;
+}
+
+.faceLabelBubble::after {
+    left: -6px;
+    border-width: 5px 7px 5px 0;
+    border-color: transparent $ui-white transparent transparent;
+}
+
+.faceLabelShort {
+    padding: 6px 10px;
 }
 
 .bubble,
@@ -86,7 +170,10 @@ $genai-mark: #ff3d8b;
     cursor: pointer;
 }
 
-/* Progress display (#1293 G9): square nodes joined by a line under the step names. */
+/*
+ * Progress display (#1293 G9): round nodes joined by a line under the step names, like a
+ * delivery tracker (#1425). Filled circles, never an empty box, so no node looks like a checkbox.
+ */
 .stepper {
     position: relative;
     display: flex;
@@ -104,13 +191,13 @@ $genai-mark: #ff3d8b;
     content: '';
     position: absolute;
     left: calc(12px + 48px);
-    bottom: 15px;
+    bottom: 16px;
     height: 3px;
 }
 
 .stepper::before {
     right: calc(12px + 48px);
-    background-color: $ui-black-transparent;
+    background-color: $step-todo;
 }
 
 .stepper::after {
@@ -156,17 +243,18 @@ $genai-mark: #ff3d8b;
 }
 
 .stepNode {
-    width: 17px;
-    height: 17px;
-    box-sizing: border-box;
+    width: 19px;
+    height: 19px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 3px solid $ui-black-transparent;
-    background-color: $ui-white;
+    border-radius: 50%;
+    background-color: $step-todo;
     color: $ui-white;
-    font-size: 0.65rem;
+    font-size: 0.7rem;
+    font-weight: bold;
     line-height: 1;
+    transition: box-shadow 0.1s ease-out;
 }
 
 .step-done .stepName {
@@ -174,8 +262,14 @@ $genai-mark: #ff3d8b;
 }
 
 .step-done .stepNode {
-    border-color: $looks-secondary;
     background-color: $looks-secondary;
+}
+
+/* A step you can go back to only changes a little on hover (the name is underlined already). */
+.stepReturn:hover .stepNode,
+.stepReturn:focus-visible .stepNode {
+    background-color: $looks-secondary-dark;
+    box-shadow: 0 0 0 3px $looks-light-transparent;
 }
 
 .step-current .stepName {
@@ -183,8 +277,10 @@ $genai-mark: #ff3d8b;
     font-weight: bold;
 }
 
+/* The current step: a filled circle with a ring around it and no ✓, unlike a finished one. */
 .step-current .stepNode {
-    border-color: $looks-secondary;
+    background-color: $looks-secondary;
+    box-shadow: 0 0 0 3px $looks-transparent;
 }
 
 .body {
@@ -442,6 +538,23 @@ $genai-mark: #ff3d8b;
     font-size: 0.75rem;
 }
 
+.index-hints {
+    margin: 0 0 6px;
+    padding: 4px 6px;
+    border-left: 3px solid $data-primary;
+    background-color: $ui-white;
+}
+
+.index-hints p {
+    margin: 0 0 2px;
+}
+
+.index-hints ul {
+    margin: 0;
+    padding-left: 18px;
+    font-size: 0.75rem;
+}
+
 .fixes code {
     background-color: $ui-white;
     padding: 0 3px;
@@ -569,6 +682,32 @@ $genai-mark: #ff3d8b;
 
 .change-removed {
     color: $text-primary-transparent;
+}
+
+/* The Ruby tab's inline diff of the code now and the AI's code (#1399). */
+.lineDiff {
+    height: 160px;
+    margin: 4px 0;
+    border: 1px solid $ui-black-transparent;
+    background-color: $ui-white;
+}
+
+/* The marks on the lines of the Ruby editor: a light background, and a bar by the line
+   numbers (solid for an added line, dashed for a changed one). */
+:global(.genaiLineAdded),
+:global(.genaiLineChanged) {
+    background-color: rgba(255, 61, 139, 0.08);
+}
+
+:global(.genaiLineAddedBar),
+:global(.genaiLineChangedBar) {
+    margin-left: 3px;
+    width: 4px !important;
+    border-left: 4px solid $genai-mark;
+}
+
+:global(.genaiLineChangedBar) {
+    border-left-style: dashed;
 }
 
 /* ...and the marks on the blocks in the editor (the class is put on the block's SVG

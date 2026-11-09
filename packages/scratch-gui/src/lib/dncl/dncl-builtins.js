@@ -80,4 +80,23 @@ const convertBuiltinFunctions = (text) => {
   return result
 }
 
-export { convertBuiltinFunctions }
+/**
+ * The built-in functions `convertBuiltinFunctions` converts. The question to a
+ * generative AI in Japanese mode lists an example of each (genai-dncl-prompt.js,
+ * #1402), so a function added here is also offered there.
+ */
+const DNCL_BUILTIN_NAMES = [
+  '表示する',
+  '含む',
+  '要素数',
+  '整数',
+  '文字列',
+  '乱数',
+  '四捨五入',
+  '切り捨て',
+  '切り上げ',
+  '絶対値',
+  '平方根',
+]
+
+export { DNCL_BUILTIN_NAMES, convertBuiltinFunctions }

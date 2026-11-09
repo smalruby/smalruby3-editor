@@ -234,7 +234,6 @@ Monaco Editor + ルビーツールバー。
 | 検索 (🔍)                    | `ruby-toolbar-search`                        | テキスト検索                                                |
 | 自動置換                     | `ruby-toolbar-auto-correct`                  | 自動置換トグル                                              |
 | 前/次のスプライト            | `ruby-toolbar-prev-sprite` / `-next-sprite`  | スプライト切替                                              |
-| AI ルビティー                | `ruby-toolbar-rubytee`                       | Anthropic Claude による AI コード生成                       |
 | ふりがな (mode tab)          | `ruby-toolbar-mode-furigana`                 | ふりがなモード                                              |
 | Ruby (mode tab)              | `ruby-toolbar-mode-ruby`                     | Ruby モード                                                 |
 | 日本語 (mode tab)            | `ruby-toolbar-mode-dncl`                     | 日本語(DNCL)モード                                          |
