@@ -845,6 +845,14 @@ bin/autopilot-worktree list
 `npm install` / `build:dev` 無しで即作業できる（`@smalruby/*` は main の dist に解決される）。
 単一パッケージのソース編集を想定。クロスパッケージのソース編集は `--full`。
 
+`infra/<project>/node_modules`（npm workspaces の外）は、main checkout の入っている版
+（`node_modules/.package-lock.json`）が worktree の `package-lock.json` と同じときだけ main へ symlink し、
+違う・main に無いときは worktree の `infra/<project>` で `npm ci --no-audit --no-fund` を実行する。
+main checkout は人間と共有で develop より古いことがあり、そのまま共有すると worktree の lock に足された
+依存が無くてテストが読み込めないため。比べるのは package ごとの `version` / `resolved`
+（`tools/autopilot/src/lockfile.js`。他プラットフォーム向けの optional 依存は無くてよい）。
+`npm ci` は lock に固定された版を入れるので 3 日ルールに反しない。
+
 **自動の片付け（#1362）**: daemon が PR の merge を検知して Project を Close に進めたとき
 （merge-progression）と、GitHub で閉じた Issue を Close に揃えたとき（closed-reconcile）に、その Issue の
 worktree とローカルブランチを片付ける（🧱 infra の Issue も対象）。リモートブランチは消さない

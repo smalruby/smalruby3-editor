@@ -120,10 +120,16 @@ Issue 本文のディレクティブは **行頭のみ**で発火する（`phase
   `cannot open .husky/_/husky.sh` で **すべての commit が失敗**する。特に daemon の base 追従
   （`git merge origin/<base>`）は merge コミット作成段階で落ち、競合ゼロなのに
   `base-follow-conflict` として Blocked になっていた（#957）。`--full` は対象外。
+- 軽量モードの **`infra/<project>/node_modules`** は、main の入っている版
+  （`node_modules/.package-lock.json`）が worktree の `package-lock.json` と同じときだけ main へ
+  **symlink** し、違う・main に無いときは worktree で **`npm ci`** する（#1454）。main checkout は
+  develop より古いことがあり、古い依存でテストが走る（lock に足された依存が `Cannot find module`）
+  のを防ぐため。比較は `tools/autopilot/src/lockfile.js`（版の集合で見る。ファイルの完全一致に
+  しない）。worker が infra の `node_modules` を手で main へ symlink しない。`--full` は対象外。
 - 既存 PR ブランチでの作業（review / address-review）は `--pr <number>`（daemon の
   `ensureWorktree` が使う経路）。
-- worktree 内では node_modules / prepare 生成物 / `.husky/_` symlink の誤ステージ防止を
-  `git-common-dir` の `info/exclude` で担保している（Issue #801 / #1001 / #1137）。
+- worktree 内では node_modules（`infra/*/node_modules` を含む）/ prepare 生成物 / `.husky/_` symlink の
+  誤ステージ防止を `git-common-dir` の `info/exclude` で担保している（Issue #801 / #1001 / #1137 / #1454）。
   この保険を外さない。
 
 ## infra のデプロイは worker が行わない
