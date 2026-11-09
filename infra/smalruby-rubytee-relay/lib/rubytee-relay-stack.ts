@@ -150,11 +150,19 @@ export class RubyteeRelayStack extends cdk.Stack {
       actions: ['dynamodb:UpdateItem'],
       resources: [this.jobsTable.tableArn, this.usageTable.tableArn],
     }));
-    // Workload Identity Federation（#1437）: 実行ロールの JWT を STS から取る。リソースを絞れない API。
-    // アカウントで Outbound web identity federation を有効にするまでは呼んでも失敗するだけ。
+    // Workload Identity Federation（#1437）: 実行ロールの JWT を STS から取る。リソースを絞れない API なので、
+    // 条件で Claude API 向けの JWT だけにする（ほかの audience の JWT を発行させない・#1443）。
+    // 値は lambda/anthropic-client.ts の呼び出しと合わせる（ずれるとデプロイは通るのに実行時に拒否される）。
+    // audience は配列のキーなので、ForAllValues だけだとキーが無い呼び出しも通る。Null で必須にする。
     workerFn.addToRolePolicy(new iam.PolicyStatement({
       actions: ['sts:GetWebIdentityToken'],
       resources: ['*'],
+      conditions: {
+        'ForAllValues:StringEquals': { 'sts:IdentityTokenAudience': ['https://api.anthropic.com'] },
+        Null: { 'sts:IdentityTokenAudience': 'false' },
+        StringEquals: { 'sts:SigningAlgorithm': 'RS256' },
+        NumericLessThanEquals: { 'sts:DurationSeconds': 300 },
+      },
     }));
 
     // クラス管理（別スタック）の memberships 表。takeover / chat の席を sessionToken で確かめるため、
