@@ -64,6 +64,7 @@
 | `ADMIN_GOOGLE_CLIENT_ID`（admin・bug-report） | **同じ** |
 | `MESH_SECRET_KEY`（mesh-v2）/ `MESH_ZONE_SECRET_KEY`（api） | 別（stg は stg 専用の値） |
 | `ANTHROPIC_API_KEY`（classroom・rubytee-relay） | 別。**機能 × stage ごとに 1 つずつ**（classroom の stg / prod、rubytee-relay の stg / prod の 4 つ）。どれも有効期限 2027-03-31 なので、それまでに発行し直すか、ID フェデレーションへ切り替える |
+| `ANTHROPIC_FEDERATION_RULE_ID` / `ANTHROPIC_ORGANIZATION_ID` / `ANTHROPIC_SERVICE_ACCOUNT_ID` / `ANTHROPIC_WORKSPACE_ID`（classroom・rubytee-relay の worker） | 任意。そろえると `ANTHROPIC_API_KEY` の代わりに Workload Identity Federation で呼ぶ。workspace は stg / prod・機能ごとに別。rule の `subject_prefix` は各 Lambda の実行ロールの ARN なので stage ごとに別 |
 
 ## コードの中の stage の分岐
 

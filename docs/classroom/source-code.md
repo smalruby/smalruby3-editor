@@ -7,6 +7,7 @@ smalruby3-editor/
 ├── infra/smalruby-classroom/          ← AWS CDK インフラ + Lambda
 │   ├── lib/classroom-stack.ts         ← CDK スタック定義
 │   ├── lambda/handler.ts              ← Lambda ハンドラー (全 API ロジック)
+│   ├── lambda/anthropic-client.ts     ← AI 評価の Claude client (WIF / API キー。relay と同じ内容)
 │   ├── lambda/tests/
 │   │   └── handler.integration.test.ts ← 結合テスト
 │   ├── .env.stg / .env.prod           ← ステージ別環境変数
