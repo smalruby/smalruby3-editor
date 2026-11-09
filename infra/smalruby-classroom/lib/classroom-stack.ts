@@ -569,12 +569,21 @@ export class ClassroomStack extends cdk.Stack {
       })),
     }));
     // Workload Identity Federation for the Claude API (#1437): fetch the
-    // execution role's JWT from STS. The action has no resource-level scoping.
-    // Until the account enables outbound web identity federation the call just
-    // fails, and only when the federation settings are present.
+    // execution role's JWT from STS. The action has no resource-level scoping,
+    // so the conditions keep this role from minting JWTs for any other audience
+    // (#1443). They must match the request in lambda/anthropic-client.ts:
+    // a wrong value passes deploy but denies the call at run time.
+    // The audience key is an array, so ForAllValues needs the Null check too
+    // (ForAllValues alone also matches a request without the key).
     handlerFn.addToRolePolicy(new iam.PolicyStatement({
       actions: ['sts:GetWebIdentityToken'],
       resources: ['*'],
+      conditions: {
+        'ForAllValues:StringEquals': { 'sts:IdentityTokenAudience': ['https://api.anthropic.com'] },
+        Null: { 'sts:IdentityTokenAudience': 'false' },
+        StringEquals: { 'sts:SigningAlgorithm': 'RS256' },
+        NumericLessThanEquals: { 'sts:DurationSeconds': 300 },
+      },
     }));
     this.submissionsBucket.grantPut(handlerFn);
     this.submissionsBucket.grantRead(handlerFn);
