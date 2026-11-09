@@ -12,7 +12,8 @@
 //   program Smalruby takes from the answer solves the student's trouble.
 // GENAI_LAB_SET (default "code"): "code" = the code tab (scenarios.js), "dncl" = the Ruby
 //   tab's Japanese (DNCL) mode (dncl-scenarios.js, #1403), "all" = both.
-// GENAI_LAB_ASK (default "1"): "0" = never ask a model. Use it for answers got by hand
+// GENAI_LAB_ASK (default "1"): "0" = never ask a model for answers (the judge still runs
+//   unless GENAI_LAB_JUDGE=none). Use it for answers got by hand
 //   (e.g. the school's Gemini): put them at <run>/<model>/<scenario>-<n>.md and only
 //   those are graded; missing ones are listed as not answered.
 // GENAI_LAB_PROMPTS_ONLY=1: only write <run>/<scenario>.prompt.md (to paste by hand).
@@ -192,7 +193,6 @@ const programText = (sprites) =>
  */
 const judge = async (scenario, result, file) => {
     if (judgeModel === 'none' || result.parts.length === 0) return null;
-    if (!fs.existsSync(file) && !ask) return null;
     if (!fs.existsSync(file) && scenario.dncl) {
         const prompt = [
             'スモウルビーの日本語モード（大学入学共通テストの DNCL の形のプログラム。配列の添字は 0 から）で、高校生の困りごとを生成AI に相談しました。',
