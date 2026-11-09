@@ -46,7 +46,6 @@ export class RubyteeRelayStack extends cdk.Stack {
     // Rate limit config
     const rateLimitWindowMinutes = parseInt(process.env.RATE_LIMIT_WINDOW_MINUTES || '35', 10);
     const rateLimitMaxRequests = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '40', 10);
-    const maxUserMessageLength = parseInt(process.env.MAX_USER_MESSAGE_LENGTH || '250', 10);
     const minUserMessageLength = parseInt(process.env.MIN_USER_MESSAGE_LENGTH || '10', 10);
 
     // Stack全体にタグ付与
@@ -187,12 +186,10 @@ export class RubyteeRelayStack extends cdk.Stack {
         USAGE_TABLE_NAME: this.usageTable.tableName,
         TAKEOVER_WORKER_FUNCTION_NAME: workerFn.functionName,
         CLASSROOM_MEMBERSHIPS_TABLE_NAME: classroomMembershipsTableName,
-        ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || '',
-        CLAUDE_MODEL: process.env.CLAUDE_MODEL || 'claude-haiku-4-5-20251001',
-        CLAUDE_TAKEOVER_MODEL: process.env.CLAUDE_TAKEOVER_MODEL || 'claude-sonnet-5-5',
+        // handler は Claude を呼ばない（旧チャットを止めた・#1405）。ANTHROPIC_API_KEY と
+        // モデルの指定は worker だけが持つ。
         RATE_LIMIT_WINDOW_MINUTES: String(rateLimitWindowMinutes),
         RATE_LIMIT_MAX_REQUESTS: String(rateLimitMaxRequests),
-        MAX_USER_MESSAGE_LENGTH: String(maxUserMessageLength),
         MIN_USER_MESSAGE_LENGTH: String(minUserMessageLength),
         CORS_ALLOWED_ORIGINS: corsOriginsEnv,
         STAGE: stage,

@@ -12,7 +12,7 @@ smalruby の費用で Claude API を呼ぶ Lambda は、静的な API キーで�
 | クラス管理の AI 評価 | `ClassroomHandler` / `ClassroomHandler-stg` | `infra/smalruby-classroom` |
 | ルビティーにまかせる（takeover） | `RubyteeRelayTakeoverWorker` / `RubyteeRelayTakeoverWorker-stg` | `infra/smalruby-rubytee-relay` |
 
-relay の旧チャット（`RubyteeRelayHandler`）は対象外で、API キーのまま動く。
+relay の受け口（`RubyteeRelayHandler`）は Claude を呼ばない（Ruby タブの旧チャットは止めた）ので対象外。
 
 ## 仕組み
 
@@ -86,7 +86,7 @@ done
 
 ### 4. 値を入れる
 
-`infra/<project>/.env.<stage>` に 4 つの値を書き足す。`.env.prod` は prod、`.env.stg` は stg。書き足す前にバックアップを取る（`cp .env.stg .env.stg.$(date +%Y%m%d%H%M)`）。`ANTHROPIC_API_KEY` は、キーを外す作業まで消さない（relay の旧チャットが使っている）。
+`infra/<project>/.env.<stage>` に 4 つの値を書き足す。`.env.prod` は prod、`.env.stg` は stg。書き足す前にバックアップを取る（`cp .env.stg .env.stg.$(date +%Y%m%d%H%M)`）。`ANTHROPIC_API_KEY` は、キーを外す作業まで消さない（WIF の値が欠けたときの経路として残している）。
 
 ```
 ANTHROPIC_FEDERATION_RULE_ID=fdrl_...

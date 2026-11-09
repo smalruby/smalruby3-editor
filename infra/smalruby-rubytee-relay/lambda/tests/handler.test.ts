@@ -1,4 +1,4 @@
-import { validateInput, validateStateContext, validateHistory, getCurrentWindowStart, checkAndIncrementRateLimit, buildSystemInstruction, resolveModel, extractUsageContext, buildResponseLog } from '../handler';
+import { validateInput, validateStateContext, validateHistory, getCurrentWindowStart, checkAndIncrementRateLimit, extractUsageContext } from '../handler';
 
 // ---------------------------------------------------------------------------
 // validateInput
@@ -39,28 +39,28 @@ describe('validateInput', () => {
   });
 
   test('マルチバイト文字（日本語）は1文字としてカウントされる', () => {
-    const msg = 'あ'.repeat(250); // 250文字の日本語
-    expect(msg.length).toBe(250); // JSのString.lengthでも250
+    const msg = 'あ'.repeat(10000); // 10000文字の日本語
+    expect(msg.length).toBe(10000); // JSのString.lengthでも10000
     expect(validateInput(msg)).toEqual({ valid: true });
   });
 
-  test('message exceeding 250 chars fails', () => {
-    const longMsg = 'a'.repeat(251);
+  test('message exceeding 10000 chars fails', () => {
+    const longMsg = 'a'.repeat(10001);
     const result = validateInput(longMsg);
     expect(result.valid).toBe(false);
     expect(result.error).toBe('INPUT_TOO_LONG');
   });
 
-  test('マルチバイト251文字は INPUT_TOO_LONG エラーになる', () => {
-    const msg = 'あ'.repeat(251);
-    expect(msg.length).toBe(251);
+  test('マルチバイト10001文字は INPUT_TOO_LONG エラーになる', () => {
+    const msg = 'あ'.repeat(10001);
+    expect(msg.length).toBe(10001);
     const result = validateInput(msg);
     expect(result.valid).toBe(false);
     expect(result.error).toBe('INPUT_TOO_LONG');
   });
 
-  test('message exactly 250 chars passes', () => {
-    const msg = 'a'.repeat(250);
+  test('message exactly 10000 chars passes', () => {
+    const msg = 'a'.repeat(10000);
     expect(validateInput(msg)).toEqual({ valid: true });
   });
 
@@ -160,16 +160,16 @@ describe('validateStateContext', () => {
     expect(result.error).toBe('INVALID_STATE_CONTEXT');
   });
 
-  test('currentCode within 1000 chars passes', () => {
+  test('currentCode within 10000 chars passes', () => {
     const result = validateStateContext({
       sprite: { ...validSprite, currentCode: 'when_flag_clicked do\n  move(10)\nend' },
     });
     expect(result.valid).toBe(true);
   });
 
-  test('currentCode exceeding 1000 chars fails', () => {
+  test('currentCode exceeding 10000 chars fails', () => {
     const result = validateStateContext({
-      sprite: { ...validSprite, currentCode: 'a'.repeat(1001) },
+      sprite: { ...validSprite, currentCode: 'a'.repeat(10001) },
     });
     expect(result.valid).toBe(false);
     expect(result.error).toBe('INVALID_STATE_CONTEXT');
@@ -237,9 +237,9 @@ describe('validateHistory', () => {
     expect(result.error).toBe('HISTORY_TOO_LONG');
   });
 
-  test('turn text exceeding 1000 chars fails', () => {
+  test('turn text exceeding 10000 chars fails', () => {
     const history = [
-      { role: 'model' as const, parts: [{ text: 'a'.repeat(1001) }] },
+      { role: 'model' as const, parts: [{ text: 'a'.repeat(10001) }] },
     ];
     const result = validateHistory(history);
     expect(result.valid).toBe(false);
@@ -331,109 +331,6 @@ describe('checkAndIncrementRateLimit', () => {
 });
 
 // ---------------------------------------------------------------------------
-// buildSystemInstruction
-// ---------------------------------------------------------------------------
-describe('buildSystemInstruction', () => {
-  test('includes Smalruby Teacher role', () => {
-    const instruction = buildSystemInstruction();
-    expect(instruction).toContain('Smalruby Teacher');
-  });
-
-  test('includes forbidden methods section', () => {
-    const instruction = buildSystemInstruction();
-    expect(instruction).toContain('Forbidden Methods');
-  });
-
-  test('includes respond in Japanese instruction', () => {
-    const instruction = buildSystemInstruction();
-    expect(instruction).toContain('Respond in Japanese');
-  });
-
-  test('includes sprite state when provided', () => {
-    const stateContext = {
-      sprite: {
-        name: 'Cat',
-        x: 10,
-        y: 20,
-        size: 100,
-        direction: 90,
-        costumes: [{ name: 'costume1' }],
-        sounds: [{ name: 'meow' }],
-      },
-    };
-    const instruction = buildSystemInstruction(stateContext);
-    expect(instruction).toContain('Cat');
-    expect(instruction).toContain('costume1');
-    expect(instruction).toContain('meow');
-  });
-
-  test('includes stage state when provided', () => {
-    const stateContext = {
-      stage: {
-        width: 480,
-        height: 360,
-        costumes: [{ name: 'backdrop1' }],
-      },
-    };
-    const instruction = buildSystemInstruction(stateContext);
-    expect(instruction).toContain('Stage');
-    expect(instruction).toContain('backdrop1');
-  });
-
-  test('shows no-sound warning when sound list is empty', () => {
-    const stateContext = {
-      sprite: {
-        name: 'Sprite1',
-        x: 0,
-        y: 0,
-        size: 100,
-        direction: 90,
-        costumes: [],
-        sounds: [],
-      },
-    };
-    const instruction = buildSystemInstruction(stateContext);
-    expect(instruction).toContain('do NOT use play()');
-  });
-
-  test('includes current code when provided', () => {
-    const stateContext = {
-      sprite: {
-        name: 'Cat',
-        x: 0,
-        y: 0,
-        size: 100,
-        direction: 90,
-        costumes: [],
-        sounds: [],
-        currentCode: 'when_flag_clicked do\n  move(10)\nend',
-      },
-    };
-    const instruction = buildSystemInstruction(stateContext);
-    expect(instruction).toContain('when_flag_clicked do');
-    expect(instruction).toContain('move(10)');
-  });
-});
-
-// ---------------------------------------------------------------------------
-// resolveModel (purpose によるモデルの使い分け)
-// ---------------------------------------------------------------------------
-describe('resolveModel', () => {
-  test('purpose 未指定は従来のモデル（CLAUDE_MODEL）', () => {
-    expect(resolveModel(undefined)).toBe('claude-haiku-4-5-20251001');
-  });
-
-  test('genai-takeover は Sonnet（CLAUDE_TAKEOVER_MODEL）', () => {
-    expect(resolveModel('genai-takeover')).toBe('claude-sonnet-5-5');
-  });
-
-  test('未知の purpose は従来のモデル', () => {
-    expect(resolveModel('something-else')).toBe('claude-haiku-4-5-20251001');
-    expect(resolveModel(123)).toBe('claude-haiku-4-5-20251001');
-  });
-});
-
-// ---------------------------------------------------------------------------
 // extractUsageContext (ログに残すクラス・出席番号)
 // ---------------------------------------------------------------------------
 describe('extractUsageContext', () => {
@@ -456,45 +353,5 @@ describe('extractUsageContext', () => {
 
   test('purpose は既知の値だけ記録する', () => {
     expect(extractUsageContext({ purpose: 'free text\nwith newline' })).toEqual({});
-  });
-});
-
-// ---------------------------------------------------------------------------
-// buildResponseLog (1 リクエスト 1 行の構造化ログ)
-// ---------------------------------------------------------------------------
-describe('buildResponseLog', () => {
-  const usage = { outputTokens: 1, inputTokens: 2, cacheCreationTokens: 3, cacheReadTokens: 4 };
-
-  test('classroom / seat を含み、メールアドレス・名前は含まない', () => {
-    const line = buildResponseLog({
-      model: 'claude-sonnet-5-5',
-      usage,
-      userMessageLength: 20,
-      usageContext: extractUsageContext({ purpose: 'genai-takeover' }, { classroom: 'c1', seat: '3' }),
-      sourceIp: '1.2.3.4',
-      stage: 'prod',
-    });
-    expect(line).not.toContain('\n');
-    const data = JSON.parse(line);
-    expect(data).toEqual({
-      event: 'rubytee_response',
-      model: 'claude-sonnet-5-5',
-      outputTokens: 1,
-      inputTokens: 2,
-      cacheCreationTokens: 3,
-      cacheReadTokens: 4,
-      userMessageLength: 20,
-      purpose: 'genai-takeover',
-      classroom: 'c1',
-      seat: '3',
-    });
-  });
-
-  test('stg では sourceIp も残す（従来どおり）', () => {
-    const data = JSON.parse(buildResponseLog({
-      model: 'm', usage, userMessageLength: 10, usageContext: {}, sourceIp: '1.2.3.4', stage: 'stg',
-    }));
-    expect(data.sourceIp).toBe('1.2.3.4');
-    expect(data.classroom).toBeUndefined();
   });
 });

@@ -90,13 +90,11 @@ docker compose run --rm -w /app/infra/smalruby-rubytee-relay infra npx cdk deplo
 | Variable | Description |
 |----------|-------------|
 | `STAGE` | Deployment stage (`stg` or `prod`) |
-| `ANTHROPIC_API_KEY` | Anthropic API key |
-| `CLAUDE_MODEL` | Claude model ID (default: `claude-haiku-4-5-20251001`) |
-| `CLAUDE_TAKEOVER_MODEL` | `purpose: "genai-takeover"`（生成AI の答えをルビティーにまかせる）で使うモデル（default: `claude-sonnet-5-5`）。`purpose` 未指定の呼び出しは `CLAUDE_MODEL` のまま |
+| `ANTHROPIC_API_KEY` | Anthropic API key（worker だけ。WIF の 4 つの値がそろえば使わない。`docs/infra/claude-api-wif.md`） |
+| `CLAUDE_TAKEOVER_MODEL` | 「ルビティーにまかせる」（worker）で使うモデル（default: `claude-sonnet-5-5`） |
 | `CLASSROOM_MEMBERSHIPS_TABLE_NAME` | 席を確かめるクラス管理の memberships 表名（既定 `ClassroomMemberships{suffix}`） |
 | `RATE_LIMIT_WINDOW_MINUTES` | Rate limit window in minutes (default: 35) |
 | `RATE_LIMIT_MAX_REQUESTS` | Max requests per window (default: 40) |
-| `MAX_USER_MESSAGE_LENGTH` | Max user message length (default: 250) |
 | `MIN_USER_MESSAGE_LENGTH` | Min user message length (default: 10) |
 | `CORS_ALLOWED_ORIGINS` | Comma-separated allowed origins |
 | `RUBYTEE_CUSTOM_DOMAIN` | Override custom domain. Set `false` to disable |
@@ -113,65 +111,34 @@ docker compose run --rm -w /app/infra/smalruby-rubytee-relay infra npx cdk deplo
 
 ## System Prompt Tuning
 
-システムプロンプト（`lambda/handler.ts` の `buildSystemInstruction`）を変更する場合の手順:
+relay が Claude を呼ぶのは「ルビティーにまかせる」の worker だけ（Ruby タブの旧チャットは止めた。`POST /generate` は
+`purpose: "genai-takeover"` 以外を 410 `CHAT_DISCONTINUED` で断る）。システムプロンプトは `lambda/takeover.ts` の
+`buildTakeoverSystem`（言語仕様は `lambda/smalruby-reference.ts`）。変える手順:
 
-1. **ローカルで curl テスト**: `handler.ts` を編集 → stg にデプロイ → `curl` でレスポンス品質を確認
-2. **改善ループ**: 品質が不十分なら handler.ts を修正 → 再デプロイ → 再テスト（デプロイせずにローカルでの修正・確認ループを優先し、最終確認としてデプロイする）
-3. **integration テスト**: `npm run test:integration` で stg エンドポイントに対してバリデーション + 正常系テスト
-4. **prod デプロイ**: stg で品質確認後に prod へデプロイ
-
-**CRITICAL**: プロンプト変更時はデプロイ前にローカルで十分にチューニングすること。デプロイのたびに Lambda のコールドスタートが発生し、改善ループが遅くなるため。
+1. **ローカルで unit テスト**: `lambda/tests/takeover.test.ts` / `takeover-worker.test.ts`
+2. **stg で確かめる**: PR に `deploy-stg` ラベルを付けて stg に出し、worker を直接 invoke するか、ブランチプレビューで「ルビティーにまかせる」を動かして答えの形を見る
+3. **prod**: develop へのマージで出る
 
 ### プロンプトチューニングの評価ポイント
 
 - **Smalruby 文法の正確性**: `set_x()` ではなく `self.x =` を使用しているか、正しいメソッド名か
-- **スプライト名の正確性**: `"Cat"` は使用不可。`"Shimacat"` / `"Cat 2"` 等のみ使用可
-- **複雑さの制御**: 初回は単一スプライト・シンプルな構成。`def`/`module`/`include`/`super`/`clone` はユーザーが明示的に要求した場合のみ
-- **コードブロックの分離**: 1 コードブロックに 1 スプライトのみ。複数スプライト時はブロック間に説明文を挿入
-- **会話の継続性**: 2回目以降のプロンプトで元のコードを引き継いで発展できるか
-- **コスト効率**: システムプロンプトのトークン数がキャッシュ閾値を超えているか
+- **答えの形**: `COPY_START` / `COPY_END` の印のあいだに、そのスプライトの Ruby が 1 つだけあるか（GUI の `checkAnswer` が読む）
+- **コスト効率**: system の固定部分が、モデルのキャッシュの最小トークン数を超えているか
 
 ## Prompt Caching (コスト最適化)
 
-Anthropic Claude のプロンプトキャッシュを利用してコストを削減する。
-
-### 仕組み
-
-- `system` パラメータに `cache_control: { type: 'ephemeral' }` を付与
-- ヘッダー `anthropic-beta: prompt-caching-2024-07-31` を送信
-- キャッシュの TTL は 5 分間（同一内容のシステムプロンプトが 5 分以内に再利用される）
-
-### 最小トークン要件
-
-| モデル | 最小トークン数 |
-|--------|-------------|
-| Claude Haiku 4.5 | **4,096** |
-| Claude Sonnet 4.5 | 1,024 |
-| Claude Opus 4.5 | 4,096 |
-
-`claude-sonnet-5-5`（`genai-takeover`）でも stg で `cacheCreationTokens` が出ており、今のシステムプロンプトでキャッシュが効くことを確認済み。
-
-**CRITICAL**: システムプロンプトが最小トークン数を下回るとキャッシュが効かない。プロンプトを変更する際はトークン数に注意し、CloudWatch ログの `cacheCreationTokens` / `cacheReadTokens` で動作を確認すること。
-
-### コスト比較（Claude Haiku 4.5）
-
-| 条件 | 1やりとり | 40回セッション |
-|------|----------|--------------|
-| キャッシュなし | ~$0.005 | ~$0.20 |
-| キャッシュあり（hit） | ~$0.0016 | ~$0.07 |
+- system の先頭ブロック（固定部分）に `cache_control: { type: 'ephemeral', ttl: '1h' }` を付ける（`buildTakeoverSystem`）。毎回変わる作品の状態は後ろのブロックに置く。beta ヘッダは付けない
+- 最小トークン数を下回るとキャッシュが効かない（Sonnet 系 1,024 / Haiku・Opus 系 4,096）。今の固定部分は約 6,300 トークンで、2 回目から `cacheReadTokens` が付く
+- workspace を新しくした直後の 1 回目は `cacheCreationTokens`（workspace ごとにキャッシュが分かれる）
 
 ### CloudWatch ログでの確認
 
 ```bash
-aws logs tail /aws/lambda/RubyteeRelayHandler-stg --since 5m --format short | grep "rubytee_response"
+aws logs tail /aws/lambda/RubyteeRelayTakeoverWorker-stg --since 5m --format short | grep "rubytee_takeover_response"
 ```
 
-ログ出力例:
-```json
-{"event":"rubytee_response","model":"claude-haiku-4-5-20251001","outputTokens":350,"inputTokens":17,"cacheCreationTokens":4964,"cacheReadTokens":0}
-```
-- `cacheCreationTokens > 0`: キャッシュ作成（初回リクエスト）
-- `cacheReadTokens > 0`: キャッシュヒット（2回目以降）
+- `cacheCreationTokens > 0`: キャッシュ作成（初回）
+- `cacheReadTokens > 0`: キャッシュヒット
 - 両方 0: キャッシュが効いていない（トークン数不足の可能性）
 
 ## CORS Configuration
@@ -190,6 +157,6 @@ aws logs tail /aws/lambda/RubyteeRelayHandler-stg --since 5m --format short | gr
 Rubytee は未成年者（子供）が利用するサービスのため、[Anthropic のガイドライン](https://support.claude.com/en/articles/9307344-responsible-use-of-anthropic-s-models-guidelines-for-organizations-serving-minors)に準拠する必要がある:
 
 1. **利用の条件確認**: クラス管理で先生が条件を確かめてルビティーを有効にしたクラスの生徒だけが使える（生徒の画面では同意を取り直さない）
-2. **コンテンツモデレーション**: システムプロンプトに Child Safety Guidelines セクションを含む
+2. **コンテンツモデレーション**: takeover のシステムプロンプト（`lambda/takeover.ts`）に Child Safety Guidelines セクションを含む
 3. **AI 開示**: 画面で AI（ルビティー）であることを明示
 4. **COPPA 準拠**: 利用規約とプライバシーポリシーに明記

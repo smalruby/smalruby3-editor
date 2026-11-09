@@ -92,20 +92,20 @@ AWS Lambda リレーサービス（API Gateway HTTP API + Lambda + DynamoDB）�
 
 | ファイル | 役割 |
 |---|---|
-| `infra/smalruby-rubytee-relay/lambda/handler.ts` | API Lambda。リクエスト検証、レート制限、Claude API 呼び出し（`purpose` 未指定の同期の呼び出し）、takeover のジョブ作成と `GET /jobs/{jobId}` |
+| `infra/smalruby-rubytee-relay/lambda/handler.ts` | API Lambda。リクエスト検証、レート制限、takeover のジョブ作成と `GET /jobs/{jobId}`。Claude は呼ばない。`purpose` が `genai-takeover` でない `POST /generate`（Ruby タブの旧チャット）は 410 `CHAT_DISCONTINUED` で断る |
 | `infra/smalruby-rubytee-relay/lambda/takeover.ts` | 「ルビティーにまかせる」の上限・システムプロンプト・キー・ジョブの形（純粋関数） |
 | `infra/smalruby-rubytee-relay/lambda/takeover-worker.ts` | takeover の worker Lambda。非同期で呼ばれ、Claude（Sonnet）を呼んで結果を jobs 表に書く |
 | `infra/smalruby-rubytee-relay/lambda/anthropic-client.ts` | worker が使う Claude の client（Anthropic SDK）。WIF の値がそろえば短期トークン、無ければ API キー。SDK のエラーを今のエラーコードに対応させる（classroom にも同じ内容のコピーがある） |
-| `infra/smalruby-rubytee-relay/lambda/smalruby-reference.ts` | スモウルビーの言語仕様（同期の呼び出しと takeover のプロンプトで共有） |
+| `infra/smalruby-rubytee-relay/lambda/smalruby-reference.ts` | スモウルビーの言語仕様（takeover のプロンプトで使う） |
 | `infra/smalruby-rubytee-relay/lib/rubytee-relay-stack.ts` | CDK スタック定義 |
 | `infra/smalruby-rubytee-relay/lambda/tests/` | 単体テスト |
 
 #### Lambda の主要ロジック
 
-- 入力検証（メッセージ長、フィールド長、履歴ターン数の上限）
-- IP ベースレート制限（DynamoDB の TTL 機能で window 管理）
-- `system` プロンプト + `messages` 配列に変換して Anthropic API へ POST
-- **Prompt caching** (`cache_control: ephemeral`) を有効化してコスト削減
+- `purpose` が `genai-takeover` でなければ、ほかの処理より先に 410 `CHAT_DISCONTINUED` を返す（Claude の費用も DynamoDB の書き込みも発生させない）
+- 入力検証（メッセージ長、フィールド長、履歴ターン数の上限。takeover の上限）
+- 席・IP ごとのレート制限（DynamoDB の TTL 機能で window 管理）
+- ジョブを作って worker を非同期で起動し、`202` を返す。Claude を呼ぶのは worker だけ（system の `cache_control` で prompt caching）
 - CORS 検証（`CORS_ALLOWED_ORIGINS` 環境変数）
 - エラー時は `429 RATE_LIMIT_EXCEEDED` などの構造化エラー
 
@@ -127,13 +127,11 @@ AWS Lambda リレーサービス（API Gateway HTTP API + Lambda + DynamoDB）�
 
 | 環境変数 | デフォルト | 用途 |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | - | Anthropic API キー（下の WIF の値がそろっていない呼び出しで使う） |
+| `ANTHROPIC_API_KEY` | - | Anthropic API キー。**worker だけ**。下の WIF の値がそろっていないときに使う |
 | `ANTHROPIC_FEDERATION_RULE_ID` / `ANTHROPIC_ORGANIZATION_ID` / `ANTHROPIC_SERVICE_ACCOUNT_ID` / `ANTHROPIC_WORKSPACE_ID` | 空 | **worker（ルビティーにまかせる）だけ**。Claude を Workload Identity Federation（WIF）で呼ぶ値。workspace 以外の 3 つがそろうと、worker の実行ロールの JWT（AWS STS `GetWebIdentityToken`）を短期トークンに交換して使い、`ANTHROPIC_API_KEY` は読まない。一部だけならキーのまま。交換に失敗してもキーには戻らない（`AI_API_ERROR`）。旧チャット（`handler.ts`）はキーのまま |
-| `CLAUDE_MODEL` | `claude-haiku-4-5-20251001` | 使用モデル（`purpose` 未指定のとき。GUI からは使っていない） |
-| `CLAUDE_TAKEOVER_MODEL` | `claude-sonnet-5-5` | 「ルビティーにまかせる」用モデル（`purpose: "genai-takeover"` のとき） |
+| `CLAUDE_TAKEOVER_MODEL` | `claude-sonnet-5-5` | 「ルビティーにまかせる」のモデル（worker だけ） |
 | `RATE_LIMIT_WINDOW_MINUTES` | `35` | レート制限ウィンドウ |
 | `RATE_LIMIT_MAX_REQUESTS` | `40` | ウィンドウ内最大リクエスト |
-| `MAX_USER_MESSAGE_LENGTH` | `250` | ユーザーメッセージ最大文字数 |
 | `MIN_USER_MESSAGE_LENGTH` | `10` | ユーザーメッセージ最小文字数 |
 | `CORS_ALLOWED_ORIGINS` | `https://smalruby.app` | CORS 許可オリジン |
 | `RATE_LIMIT_TABLE_NAME` | - | DynamoDB テーブル名（CDK で設定）|
@@ -145,9 +143,7 @@ AWS Lambda リレーサービス（API Gateway HTTP API + Lambda + DynamoDB）�
 
 固定の上限値:
 - `MAX_FIELD_NAME_LENGTH = 100`（スプライト/コスチューム/サウンド名）
-- `MAX_CURRENT_CODE_LENGTH = 1000`（現在編集中コード）
 - `MAX_HISTORY_TURNS = 20`（会話履歴）
-- `MAX_HISTORY_TURN_TEXT_LENGTH = 1000`（履歴 1 ターンあたり）
 - takeover だけの上限は下の「ルビティーにまかせる（takeover）の呼び方」を参照
 
 ### localStorage
@@ -158,14 +154,14 @@ AWS Lambda リレーサービス（API Gateway HTTP API + Lambda + DynamoDB）�
 
 CloudWatch ログで利用状況を監視。Rubytee 利用パターンとコスト異常検出は `rubytee-monitor` skill を使用（`.claude/skills/rubytee-monitor/`）。
 
-### リクエストの任意フィールドと構造化ログ
+### リクエストのフィールドと構造化ログ
 
-`POST /generate` のリクエストには、従来の `userMessage` / `history` / `stateContext` に加えて
-次の**任意**フィールドを付けられる（付けない従来のクライアントはそのまま動く）。
+`POST /generate` のリクエストは、`userMessage` / `history` / `stateContext` に加えて次のフィールドを持つ。
+`purpose` は必須で、`genai-takeover` 以外は 410 になる。
 
 | フィールド | 例 | 用途 |
 |---|---|---|
-| `purpose` | `"genai-takeover"` | 用途。`genai-takeover` のときだけ `CLAUDE_TAKEOVER_MODEL`（Sonnet）を使う。未指定・未知の値は従来のモデル |
+| `purpose` | `"genai-takeover"` | 用途。受け付けるのは `genai-takeover` だけ（Ruby タブの旧チャットの「未指定」は 410 `CHAT_DISCONTINUED`） |
 | `sessionToken` | `"3b241101-…"` | 生徒がクラスに参加したときにもらうトークン（クラス管理の `sessionToken`）。relay が席を確かめる。クラスに参加していなければ送らない |
 
 **席は `sessionToken` からだけ決める**（`classroom` / `seat` は自己申告なので、送られてきても**無視する**）。
@@ -175,8 +171,7 @@ relay はクラス管理の `ClassroomMemberships{suffix}` の GSI `sessionToken
 kicked・表が読めない）は**席として数えない**（ログ・集計は `classroom` / `seat` なし）。
 これは不正防止の判定なので fail-open（席として信じる）にはしないが、答えは返す。
 
-確かめた席は CloudWatch ログ・集計表・takeover の席の上限に使う。`purpose` 未指定の呼び出しは
-今の IP レート制限のまま（席で上限は変わらない）。takeover は 1 席ごとに数える（下記）。
+確かめた席は CloudWatch ログ・集計表・takeover の席の上限に使う。takeover は 1 席ごとに数える（下記）。
 クラス管理のメンバー一覧の `aiUsage` はこの classroomId / 出席番号で relay の表を引く
 （`docs/classroom/architecture.md`）。
 
@@ -184,21 +179,21 @@ kicked・表が読めない）は**席として数えない**（ログ・集計�
 知っていれば誰でも、他の生徒の席の枠を使い切る・先生に見せる `aiUsage` をずらす・RETAIN の集計表に
 好きな `classroom#...` の行を作る・自己申告の席だけで IP 1600 回の枠を使う、ができた（#1317）。
 
-1 リクエストにつき 1 行の JSON ログ（`event: "rubytee_response"`）が出る:
+Claude を 1 回呼ぶごとに、worker が 1 行の JSON ログ（`event: "rubytee_takeover_response"`）を出す:
 
 ```json
-{"event":"rubytee_response","model":"claude-sonnet-5-5","outputTokens":350,"inputTokens":17,"cacheCreationTokens":0,"cacheReadTokens":4964,"userMessageLength":42,"purpose":"genai-takeover","classroom":"cls_abc123","seat":"12"}
+{"event":"rubytee_takeover_response","model":"claude-sonnet-5-5","outputTokens":350,"inputTokens":17,"cacheCreationTokens":0,"cacheReadTokens":4964,"userMessageLength":42,"purpose":"genai-takeover","classroom":"cls_abc123","seat":"12"}
 ```
 
 ### CloudWatch Logs Insights の集計クエリ例
 
-ロググループ `/aws/lambda/RubyteeRelayHandler`（prod）/ `/aws/lambda/RubyteeRelayHandler-stg`（stg）で実行する。
+ロググループ `/aws/lambda/RubyteeRelayTakeoverWorker`（prod）/ `/aws/lambda/RubyteeRelayTakeoverWorker-stg`（stg）で実行する。
 
 とても多く使っている利用者（クラス・出席番号ごとの回数とトークン）:
 
 ```
 fields @timestamp, classroom, seat
-| filter event = "rubytee_response" and ispresent(classroom)
+| filter event = "rubytee_takeover_response" and ispresent(classroom)
 | stats count(*) as requests, sum(outputTokens) as output, sum(inputTokens + cacheCreationTokens + cacheReadTokens) as input by classroom, seat
 | sort requests desc
 | limit 50
@@ -208,7 +203,7 @@ fields @timestamp, classroom, seat
 
 ```
 fields @timestamp
-| filter event = "rubytee_response"
+| filter event = "rubytee_takeover_response"
 | stats count(*) as requests, sum(outputTokens) as output by purpose, model
 | sort requests desc
 ```
@@ -217,16 +212,16 @@ fields @timestamp
 
 ```
 fields @timestamp
-| filter event = "rubytee_response" and ispresent(classroom)
+| filter event = "rubytee_takeover_response" and ispresent(classroom)
 | stats count(*) as requests by classroom, bin(1d)
 | sort requests desc
 ```
 
 ## ルビティーにまかせる（takeover）の呼び方
 
-`purpose: "genai-takeover"` のときだけ、上限を広げて **非同期ジョブ**で答える（Sonnet が 8192 トークンを
-出し切ると API Gateway HTTP API の統合タイムアウト 30 秒を超えうるため）。`purpose` 未指定の
-呼び出しは今の同期のまま（モデル・上限・プロンプト・IP レート制限も今のまま）。
+`purpose: "genai-takeover"` の呼び出しを、**非同期ジョブ**で答える（Sonnet が 8192 トークンを
+出し切ると API Gateway HTTP API の統合タイムアウト 30 秒を超えうるため）。relay が受け付けるのはこの呼び出しだけ
+（`purpose` 未指定の旧チャットは 410）。
 
 ### 流れ
 
@@ -243,16 +238,16 @@ fields @timestamp
 スロットリング（prod 40 rps / burst 80、stg 10 / 20）を持つ。`GET` はレート制限の回数に数えない。
 ジョブは **1 時間**で消える（それ以降は `404 JOB_NOT_FOUND`）。
 
-### 上限（takeover のときだけ）
+### 上限
 
-| 項目 | takeover | 従来（`purpose` 未指定） |
-|---|---|---|
-| `userMessage` | 10000 字（`DANGEROUS_PATTERNS` のチェックは残る） | 250 字 |
-| `stateContext.sprite.currentCode` | 10000 字 | 1000 字 |
-| `history` | 20 ターン × 10000 字 | 20 ターン × 1000 字 |
-| リクエスト全体 | **200KB（UTF-8）**。上の各項目の上限を通った後に判定し、超えたら `400 HISTORY_TOO_LONG`（`userMessage` / `currentCode` だけでは届かず、超えるのは往復を重ねたとき） | 判定しない（各項目の上限だけ） |
-| `max_tokens` | 8192 | 1024 |
-| レート制限 | `sessionToken` で席を確かめられれば IP 1600 回 / 35 分 + **1 席 40 回 / 35 分**。確かめられなければ IP 40 回 / 35 分 | IP 40 回 / 35 分 |
+| 項目 | 上限 |
+|---|---|
+| `userMessage` | 10000 字（`DANGEROUS_PATTERNS` のチェックは残る） |
+| `stateContext.sprite.currentCode` | 10000 字 |
+| `history` | 20 ターン × 10000 字 |
+| リクエスト全体 | **200KB（UTF-8）**。上の各項目の上限を通った後に判定し、超えたら `400 HISTORY_TOO_LONG`（`userMessage` / `currentCode` だけでは届かず、超えるのは往復を重ねたとき） |
+| `max_tokens` | 8192 |
+| レート制限 | `sessionToken` で席を確かめられれば IP 1600 回 / 35 分 + **1 席 40 回 / 35 分**。確かめられなければ IP 40 回 / 35 分 |
 
 レート制限は **IP → 席の順**に数える。IP の上限で 429 になったときは席を数えない（先生に見せる席の回数が、
 その生徒が使っていない分で増えないように）。席のキー `seat#<classroom>:<seat>` は `:` で区切るので、
@@ -304,11 +299,10 @@ IP 40 回 / 35 分に回す（クラス管理の `classroomId` は UUID、`membe
 
 ### 集計表 `RubyteeRelayUsage{suffix}`（RETAIN・TTL なし）
 
-takeover と `purpose` 未指定の呼び出し（= `chat`）の**両方**を、`sessionToken` で確かめた席ごと・日ごとに
-足し込む（1 回ごとの行は作らない）。書き込みに失敗しても答えは返す（fail-open）。
+takeover の呼び出しを、`sessionToken` で確かめた席ごと・日ごとに足し込む（1 回ごとの行は作らない）。書き込みに失敗しても答えは返す（fail-open）。
 
 - キー: `pk = classroom#<classroomId>`（席を確かめられなければ `classroom#-`）、`sk = <YYYY-MM-DD(JST)>#seat#<seat>#<purpose>`
-  （`seat` が無ければ `-`、`purpose` 未指定は `chat`）
+  （`seat` が無ければ `-`。旧チャットを止める前の行には `purpose` が `chat` のものが残っている）
 - 属性（`ADD` で足し込む数）: `requests`（受け付けた回数）/ `rateLimited`（429）/ `succeeded` / `failed` /
   `inputTokens` / `outputTokens` / `cacheReadTokens` / `cacheCreationTokens`
 - 名前・メールアドレス・IP・入力や答えの中身は残さない。

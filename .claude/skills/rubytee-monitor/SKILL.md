@@ -24,74 +24,67 @@ Rubytee relay の CloudWatch ログを取得・分析し、不適切な利用パ
 
 ## Phase 1: ログの取得
 
-### ログの取得
+relay で Claude を呼ぶのは「ルビティーにまかせる」の **worker** だけ（Ruby タブの旧チャットは止めた）。ログは 2 つのロググループにある:
 
-CloudWatch Logs Insights を使用してログを取得する。`docker compose run` の `infra` サービスで AWS CLI を実行する。
+- worker `/aws/lambda/RubyteeRelayTakeoverWorker<suffix>`: Claude の呼び出しごとの `rubytee_takeover_response`（JSON）と、Claude のエラー
+- 受け口 `/aws/lambda/RubyteeRelayHandler<suffix>`: レート制限で断った記録（`[RateLimit] Takeover blocked`）など。Claude は呼ばない
+
+コンテナ内では AWS CLI を直接実行する（`AWS_PROFILE=smalruby AWS_REGION=ap-northeast-1`）。
 
 **ログ取得用の AWS CLI コマンド**:
 
 ```bash
-# 全 rubytee_response イベント
-docker compose run --rm -w /app/infra/smalruby-rubytee-relay infra \
-  aws logs filter-log-events \
-    --log-group-name "/aws/lambda/RubyteeRelayHandler<suffix>" \
-    --start-time <epoch_ms> \
-    --filter-pattern '"rubytee_response"' \
-    --query 'events[].message' \
-    --output text
+# Claude の呼び出し（1 回 1 行の JSON）
+aws logs filter-log-events \
+  --log-group-name "/aws/lambda/RubyteeRelayTakeoverWorker<suffix>" \
+  --start-time <epoch_ms> \
+  --filter-pattern '"rubytee_takeover_response"' \
+  --query 'events[].message' --output text
 
-# レートリミット（ブロック）イベント
-docker compose run --rm -w /app/infra/smalruby-rubytee-relay infra \
-  aws logs filter-log-events \
-    --log-group-name "/aws/lambda/RubyteeRelayHandler<suffix>" \
-    --start-time <epoch_ms> \
-    --filter-pattern '"[RateLimit] Blocked"' \
-    --query 'events[].message' \
-    --output text
+# Claude のエラー
+aws logs filter-log-events \
+  --log-group-name "/aws/lambda/RubyteeRelayTakeoverWorker<suffix>" \
+  --start-time <epoch_ms> \
+  --filter-pattern '"[Takeover] Claude call failed"' \
+  --query 'events[].message' --output text
 
-# Claude API エラー
-docker compose run --rm -w /app/infra/smalruby-rubytee-relay infra \
-  aws logs filter-log-events \
-    --log-group-name "/aws/lambda/RubyteeRelayHandler<suffix>" \
-    --start-time <epoch_ms> \
-    --filter-pattern '"[Claude] API error"' \
-    --query 'events[].message' \
-    --output text
+# レート制限で断った記録（席 / IP）
+aws logs filter-log-events \
+  --log-group-name "/aws/lambda/RubyteeRelayHandler<suffix>" \
+  --start-time <epoch_ms> \
+  --filter-pattern '"[RateLimit] Takeover blocked"' \
+  --query 'events[].message' --output text
 ```
 
-**ロググループ名のサフィックス**:
-
-| ステージ | サフィックス |
-|---------|------------|
-| prod | （なし） → `/aws/lambda/RubyteeRelayHandler` |
-| stg | `-stg` → `/aws/lambda/RubyteeRelayHandler-stg` |
+**ロググループ名のサフィックス**: prod は無し、stg は `-stg`。
 
 **epoch_ms の計算**:
 
 ```bash
-# macOS
-date -v-24H +%s000    # 24時間前
-date -v-7d +%s000     # 7日前
-date -v-1H +%s000     # 1時間前
+date -d '24 hours ago' +%s000   # Linux（コンテナ内）
+date -v-24H +%s000              # macOS
 ```
+
+席ごと・日ごとの回数とトークンは、集計表 `RubyteeRelayUsage<suffix>` にもある（`docs/rubytee/README.md` の「利用の集計・席ごとの状況」）。
 
 ---
 
 ## Phase 2: ログの分析
 
-取得したログを以下の観点で分析する。
+取得したログを以下の観点で分析する。`rubytee_takeover_response` の項目は `model` / `status` / `inputTokens` / `outputTokens` /
+`cacheCreationTokens` / `cacheReadTokens` / `userMessageLength` / `purpose` / `classroom` / `seat`。
 
 ### 2a. 利用統計サマリー
 
 ```
 ## 利用統計（<期間>、<ステージ>）
 
-- 総リクエスト数: N
-- ユニーク IP 数: N（stg のみ、prod は sourceIp なし）
-- レートリミット発動回数: N
-- Claude API エラー数: N
+- Claude の呼び出し数: N（status ごと: done / error）
+- クラス数・席数: N / N（classroom / seat があるもの）
+- レート制限で断った回数: N（席 / IP）
+- Claude のエラー数: N
 - 平均出力トークン: N
-- 平均入力トークン: N
+- 平均入力トークン: N（input + cacheCreation + cacheRead）
 ```
 
 ### 2b. キャッシュ効率分析
@@ -99,44 +92,35 @@ date -v-1H +%s000     # 1時間前
 ```
 ## キャッシュ効率
 
-- キャッシュヒット率: N%（cacheReadTokens > 0 のリクエスト / 総リクエスト）
+- キャッシュヒット率: N%（cacheReadTokens > 0 の呼び出し / 総数）
 - キャッシュ作成回数: N（cacheCreationTokens > 0）
-- キャッシュヒット回数: N（cacheReadTokens > 0）
 - キャッシュミス回数: N（両方 0）
 
-⚠️ キャッシュミスが多い場合: システムプロンプトのトークン数が 4,096 を下回っている可能性
+⚠️ キャッシュミスが多い場合: system の固定部分が、モデルのキャッシュの最小トークン数を下回っている可能性。
+キャッシュの TTL は 1 時間（ttl: '1h'）なので、利用がまばらな時間帯の作成は正常
 ```
 
 ### 2c. コスト推定
 
-Claude Haiku 4.5 の料金で概算する:
-
-| 項目 | 単価（1M トークン） |
-|------|-------------------|
-| Input tokens | $1.00 |
-| Output tokens | $5.00 |
-| Cache write | $1.25 |
-| Cache read | $0.10 |
+ログの `model` の料金で計算する。料金は変わるので、この文書に単価を書かない。最新の料金表（claude-api の skill か
+Anthropic の公式の料金ページ）で、input / output / cache write（1 時間 TTL の単価）/ cache read の単価を確かめて使う。
 
 ```
-## コスト推定
+## コスト推定（<model>）
 
-- Input: $X.XX（N tokens × $1.00/1M）
-- Output: $X.XX（N tokens × $5.00/1M）
-- Cache write: $X.XX（N tokens × $1.25/1M）
-- Cache read: $X.XX（N tokens × $0.10/1M）
+- Input / Output / Cache write / Cache read の各トークン数 × 単価
 - **合計: $X.XX**
-- 1リクエストあたり平均: $X.XXXX
+- 1 回あたり平均: $X.XXXX
 ```
 
 ### 2d. 不適切な利用パターンの検出
 
-以下のパターンを検出し、フラグを立てる:
+以下のパターンを検出し、フラグを立てる（上限は `lambda/takeover.ts`: 入力 10000 字・出力 8192 トークン・1 席 40 回 / 35 分）:
 
-1. **異常に長いユーザーメッセージ**: `userMessageLength` が 200 を超えるリクエスト
-2. **レートリミット頻発**: 同一 IP（stg のみ）からの連続ブロック
-3. **異常に高い出力トークン**: `outputTokens` が 1000 を超えるリクエスト
-4. **Claude API エラー集中**: 短期間にエラーが集中している場合
+1. **上限に近い長さの入力**: `userMessageLength` が 8000 を超える呼び出し
+2. **上限に近い出力**: `outputTokens` が 7000 を超える呼び出し（作品が大きすぎる・答えが暴走している）
+3. **同じ席の集中**: 1 つの `classroom` + `seat` の回数が、席の上限（40 回 / 35 分）に何度も届いている
+4. **Claude のエラーの集中**: 短期間にエラーが集中している場合
 5. **529 (Overloaded) エラー**: Anthropic API の過負荷
 
 ---
@@ -169,7 +153,7 @@ Claude Haiku 4.5 の料金で概算する:
 
 ### 推奨アクションの例
 
-- **キャッシュヒット率が低い場合**: 「システムプロンプトのトークン数を確認してください（最小 4,096 トークン）」
+- **キャッシュヒット率が低い場合**: 「system の固定部分のトークン数が、モデルのキャッシュの最小トークン数を超えているか確認してください」
 - **レートリミット頻発の場合**: 「レートリミットの閾値調整を検討してください（現在: RATE_LIMIT_MAX_REQUESTS/RATE_LIMIT_WINDOW_MINUTES）」
 - **529 エラーが多い場合**: 「Anthropic のステータスページを確認してください: https://status.anthropic.com」
 - **コストが想定を超える場合**: 「1日あたりのコスト上限アラートの設定を検討してください」
