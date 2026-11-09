@@ -1,0 +1,10 @@
+# 関数の引数に代入してしまったもの（引数は変えられない。ほかの変数に写してから使う）
+関数 saidaikouyakusuu(a, b)
+  b != 0 の間
+    amari = a % b
+    a = b
+    b = amari
+  を繰り返す
+  返す a
+と定義する
+表示する(saidaikouyakusuu(12, 18))

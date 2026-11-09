@@ -1,0 +1,15 @@
+# 選択ソート（小さい順）
+Data = [5, 3, 8, 1, 4]
+n = 要素数(Data)
+i を 0 から n - 2 まで 1 ずつ増やしながら
+  saisyou = i
+  j を i + 1 から n - 1 まで 1 ずつ増やしながら
+    もし Data[j] < Data[saisyou] ならば
+      saisyou = j
+    を実行する
+  を繰り返す
+  tmp = Data[i]
+  Data[i] = Data[saisyou]
+  Data[saisyou] = tmp
+を繰り返す
+表示する(Data)

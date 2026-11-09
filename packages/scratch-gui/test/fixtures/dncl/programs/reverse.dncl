@@ -1,0 +1,9 @@
+# 配列を逆順にする
+Data = [1, 2, 3, 4, 5]
+n = 要素数(Data)
+i を 0 から n // 2 - 1 まで 1 ずつ増やしながら
+  tmp = Data[i]
+  Data[i] = Data[n - 1 - i]
+  Data[n - 1 - i] = tmp
+を繰り返す
+表示する(Data)

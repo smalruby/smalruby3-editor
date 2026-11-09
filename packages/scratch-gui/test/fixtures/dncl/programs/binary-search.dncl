@@ -1,0 +1,17 @@
+# 二分探索（昇順に並んだ配列）
+Data = [1, 3, 4, 7, 9, 11, 15]
+sagasu = 9
+hidari = 0
+migi = 要素数(Data) - 1
+basyo = -1
+hidari <= migi かつ basyo == -1 の間
+  aida = (hidari + migi) // 2
+  もし Data[aida] == sagasu ならば
+    basyo = aida
+  そうでなくもし Data[aida] < sagasu ならば
+    hidari = aida + 1
+  そうでなければ
+    migi = aida - 1
+  を実行する
+を繰り返す
+表示する(basyo)

@@ -1,0 +1,8 @@
+# 合計と平均
+Tensu = [70, 85, 90, 60]
+goukei = 0
+i を 0 から 要素数(Tensu) - 1 まで 1 ずつ増やしながら
+  goukei = goukei + Tensu[i]
+を繰り返す
+表示する("合計", goukei)
+表示する("平均", goukei / 要素数(Tensu))

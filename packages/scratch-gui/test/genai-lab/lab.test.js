@@ -10,10 +10,19 @@
 // GENAI_LAB_ONLY: comma-separated scenario ids. GENAI_LAB_REPEAT (default 1): answers per scenario.
 // GENAI_LAB_JUDGE (default "sonnet"; "none" to skip): the model that judges whether the
 //   program Smalruby takes from the answer solves the student's trouble.
+// GENAI_LAB_SET (default "code"): "code" = the code tab (scenarios.js), "dncl" = the Ruby
+//   tab's Japanese (DNCL) mode (dncl-scenarios.js, #1403), "all" = both.
+// GENAI_LAB_ASK (default "1"): "0" = never ask a model for answers (the judge still runs
+//   unless GENAI_LAB_JUDGE=none). Use it for answers got by hand
+//   (e.g. the school's Gemini): put them at <run>/<model>/<scenario>-<n>.md and only
+//   those are graded; missing ones are listed as not answered.
+// GENAI_LAB_PROMPTS_ONLY=1: only write <run>/<scenario>.prompt.md (to paste by hand).
 import { spawn } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { checkAnswer, problemToJapanese } from '../../src/lib/genai-answer.js';
+import { checkDnclAnswer } from '../../src/lib/genai-dncl-answer.js';
+import { DNCL_COMMAND_EXAMPLES, buildDnclTabPrompt } from '../../src/lib/genai-dncl-prompt.js';
 import {
     COMMAND_EXAMPLES,
     COPY_END,
@@ -22,7 +31,8 @@ import {
     buildGenaiPrompt,
 } from '../../src/lib/genai-prompt.js';
 import RubyToBlocksConverter from '../../src/lib/ruby-to-blocks-converter';
-import scenarios from './scenarios.js';
+import dnclScenarios from './dncl-scenarios.js';
+import codeScenarios from './scenarios.js';
 
 const enabled = process.env.GENAI_LAB === '1';
 const models = (process.env.GENAI_LAB_MODELS || 'sonnet').split(',').filter(Boolean);
@@ -31,6 +41,21 @@ const repeat = Number(process.env.GENAI_LAB_REPEAT || 1);
 const runName = process.env.GENAI_LAB_RUN || new Date().toISOString().replace(/[:.]/g, '-');
 const runDir = path.resolve(__dirname, '../../../../tmp/genai-lab', runName);
 const judgeModel = process.env.GENAI_LAB_JUDGE || 'sonnet';
+const set = process.env.GENAI_LAB_SET || 'code';
+const ask = process.env.GENAI_LAB_ASK !== '0';
+const promptsOnly = process.env.GENAI_LAB_PROMPTS_ONLY === '1';
+const scenarios = [
+    ...(set === 'code' || set === 'all' ? codeScenarios : []),
+    ...(set === 'dncl' || set === 'all' ? dnclScenarios.map((scenario) => ({ ...scenario, dncl: true })) : []),
+];
+
+// The labels the concierge shows for the DNCL mode's kinds (ja.js gui.genaiConcierge.kind.*).
+const DNCL_KIND_LABELS = {
+    'wrong-answer': '答えが合わない',
+    error: 'エラーが出る',
+    'how-write': 'どう書けばいいかわからない',
+    'how-think': '問題の考え方がわからない',
+};
 const CONCURRENCY = 3;
 
 // A plain chat assistant, like the school's: no tools and none of Claude Code's instructions.
@@ -74,13 +99,39 @@ const convert = async (name, code) => {
     return converter;
 };
 
-const promptFor = (scenario) =>
-    buildGenaiPrompt({
-        kindLabel: PROBLEM_KINDS.find((kind) => kind.id === scenario.kind).label,
-        text: scenario.text,
-        programs: scenario.sprites,
+/**
+ * The errors the editor would show for a DNCL scenario's code, as the concierge passes them
+ * (`<line> 行目: <message>`): the same check as for an answer, on the code itself.
+ * @param {object} scenario - a DNCL scenario.
+ * @returns {Promise<Array<string>>} the error lines.
+ */
+const dnclEditorErrors = async (scenario) => {
+    if (!scenario.code.trim()) return [];
+    const result = await checkDnclAnswer({
+        answer: `\`\`\`\n${scenario.code}\`\`\``,
         editingName: scenario.editingName,
+        convert,
     });
+    return result.problems
+        .filter((problem) => problem.type === 'error')
+        .map((problem) => `${problem.row === null ? '' : `${problem.row + 1} 行目: `}${problem.text}`);
+};
+
+const promptFor = async (scenario) =>
+    scenario.dncl
+        ? buildDnclTabPrompt({
+              kindLabel: DNCL_KIND_LABELS[scenario.kind],
+              text: scenario.text,
+              code: scenario.code,
+              errors: await dnclEditorErrors(scenario),
+              assignmentName: null,
+          })
+        : buildGenaiPrompt({
+              kindLabel: PROBLEM_KINDS.find((kind) => kind.id === scenario.kind).label,
+              text: scenario.text,
+              programs: scenario.sprites,
+              editingName: scenario.editingName,
+          });
 
 /**
  * Grade one answer: what the student would see in Smalruby, and how well the
@@ -90,20 +141,23 @@ const promptFor = (scenario) =>
  * @returns {Promise<object>} the grade.
  */
 const grade = async (scenario, answer) => {
-    const result = await checkAnswer({
-        answer,
-        sprites: scenario.sprites,
-        editingName: scenario.editingName,
-        convert,
-    });
+    const result = scenario.dncl
+        ? await checkDnclAnswer({ answer, editingName: scenario.editingName, convert })
+        : await checkAnswer({
+              answer,
+              sprites: scenario.sprites,
+              editingName: scenario.editingName,
+              convert,
+          });
     const start = answer.indexOf(COPY_START);
     const end = answer.indexOf(COPY_END);
     const written = result.parts.map((part) => part.name);
-    const expected = scenario.expect.sprites;
+    const expected = scenario.dncl ? [scenario.editingName] : scenario.expect.sprites;
     return {
         ok: result.ok,
         markers: start >= 0 && end > start,
-        rubyFence: /```ruby/.test(answer),
+        // DNCL answers may name the fence anything (extractDncl takes any).
+        rubyFence: scenario.dncl ? /```/.test(answer) : /```ruby/.test(answer),
         asksBack: result.parts.length === 0 && /[？?]/.test(answer),
         explainsFirst: start > 0 && answer.slice(0, start).trim().length > 0,
         checkAfter: end >= 0 && answer.slice(end + COPY_END.length).trim().length > 0,
@@ -113,6 +167,8 @@ const grade = async (scenario, answer) => {
         fixes: result.fixes,
         problems: result.problems.map((problem) => problemToJapanese(problem)),
         codeOutside: codeOutsideMarks(answer),
+        // DNCL: lines reading past an array (indexes counted from 1); a note, not ✗ (#1420).
+        indexHints: result.indexHints ? result.indexHints.length : 0,
         length: answer.length,
         result,
     };
@@ -137,6 +193,27 @@ const programText = (sprites) =>
  */
 const judge = async (scenario, result, file) => {
     if (judgeModel === 'none' || result.parts.length === 0) return null;
+    if (!fs.existsSync(file) && scenario.dncl) {
+        const prompt = [
+            'スモウルビーの日本語モード（大学入学共通テストの DNCL の形のプログラム。配列の添字は 0 から）で、高校生の困りごとを生成AI に相談しました。',
+            '生徒は答えのプログラムを貼りつけ、スモウルビーはエディタのプログラムを丸ごと入れかえました。',
+            '入れかえたあとのプログラムで、困りごとが解決するかを判定してください。判定するのは、困りごとに書かれたことができるようになったかだけです。',
+            '',
+            `【困りごと】${scenario.text}`,
+            '',
+            '【スモウルビーの DNCL の書き方の例（どれも正しい書き方）】',
+            ...DNCL_COMMAND_EXAMPLES.map((example) => `${example.note}:\n${example.code}`),
+            '',
+            '【前のプログラム】',
+            `\`\`\`\n${scenario.code || '（なし）\n'}\`\`\``,
+            '',
+            '【入れかえたあとのプログラム】',
+            `\`\`\`\n${result.parts[0].code}\`\`\``,
+            '',
+            '次の JSON だけを 1 行で答えてください: {"solves": true か false, "reason": "日本語で 1 文"}',
+        ].join('\n');
+        fs.writeFileSync(file, await askModel(judgeModel, prompt));
+    }
     if (!fs.existsSync(file)) {
         const after = scenario.sprites.map((sprite) => {
             const part = result.parts.find((p) => p.name === sprite.name);
@@ -201,8 +278,8 @@ const summarize = (rows) => {
     const lines = [
         `# genai-lab ${runName}`,
         '',
-        '| model | scenario | # | ブロック化 | 解決 | 印 | 印の外のコード | 質問返し | 説明 | 確かめ | 書いた | 足りない | 余分 | 自動修正 | 問題・判定 |',
-        '|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|',
+        '| model | scenario | # | ブロック化 | 解決 | 印 | 印の外のコード | 質問返し | 説明 | 確かめ | 書いた | 足りない | 余分 | 添字の注意 | 自動修正 | 問題・判定 |',
+        '|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|',
     ];
     for (const row of rows) {
         const g = row.grade;
@@ -222,6 +299,7 @@ const summarize = (rows) => {
                 g.written.join('・'),
                 g.missingSprites.join('・'),
                 g.extraSprites.join('・'),
+                g.indexHints || '',
                 g.fixes.map((fix) => `${fix.from} → ${fix.to}`).join('<br>'),
                 [...g.problems, g.verdict && !g.verdict.solves ? g.verdict.reason : null]
                     .filter(Boolean)
@@ -251,14 +329,28 @@ const summarize = (rows) => {
         async () => {
             fs.mkdirSync(runDir, { recursive: true });
             const picked = scenarios.filter((scenario) => only.length === 0 || only.includes(scenario.id));
+            const prompts = {};
+            for (const scenario of picked) {
+                prompts[scenario.id] = await promptFor(scenario);
+                fs.writeFileSync(path.join(runDir, `${scenario.id}.prompt.md`), prompts[scenario.id]);
+            }
+            if (promptsOnly) {
+                // eslint-disable-next-line no-console
+                console.log(`genai-lab: prompts in ${runDir}`);
+                return;
+            }
             const jobs = [];
+            const notAnswered = [];
             for (const model of models) {
                 for (const scenario of picked) {
-                    const prompt = promptFor(scenario);
-                    fs.writeFileSync(path.join(runDir, `${scenario.id}.prompt.md`), prompt);
+                    const prompt = prompts[scenario.id];
                     for (let n = 1; n <= repeat; n++) {
+                        const file = path.join(runDir, model, `${scenario.id}-${n}.md`);
+                        if (!ask && !fs.existsSync(file)) {
+                            notAnswered.push(`${model}/${scenario.id}-${n}`);
+                            continue;
+                        }
                         jobs.push(async () => {
-                            const file = path.join(runDir, model, `${scenario.id}-${n}.md`);
                             fs.mkdirSync(path.dirname(file), { recursive: true });
                             if (!fs.existsSync(file)) fs.writeFileSync(file, await askModel(model, prompt));
                             const answer = fs.readFileSync(file, 'utf8');
@@ -271,7 +363,8 @@ const summarize = (rows) => {
             }
             const rows = await runPool(jobs);
             fs.writeFileSync(path.join(runDir, 'grades.json'), `${JSON.stringify(rows, null, 2)}\n`);
-            fs.writeFileSync(path.join(runDir, 'summary.md'), summarize(rows));
+            const notAnsweredLines = notAnswered.length > 0 ? `\n未回答: ${notAnswered.join('、')}\n` : '';
+            fs.writeFileSync(path.join(runDir, 'summary.md'), summarize(rows) + notAnsweredLines);
             // eslint-disable-next-line no-console
             console.log(`genai-lab: ${path.join(runDir, 'summary.md')}`);
             expect(rows.length).toBe(jobs.length);
