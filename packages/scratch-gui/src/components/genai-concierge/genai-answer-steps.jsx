@@ -9,6 +9,8 @@
 // checks its answers here in the browser (#1282).
 // What depends on the tab (checking, putting in, switching, marking) is the adapter's (#1397).
 // The Ruby tab shows what changes in lines: Monaco's diff before, counts and marks after (#1399).
+// The Ruby tab still checks an answer by turning it into blocks, but only to see that it
+// runs: its words say whether the program has a problem, not whether it becomes blocks (#1446).
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
@@ -58,8 +60,8 @@ const placeOf = (intl, sprite, line) => {
     return sprite ? intl.formatMessage(messages.spriteOf, { sprite }) : null;
 };
 
-// A problem from checkAnswer in the student's language.
-const describeProblem = (intl, problem) => {
+// A problem from checkAnswer in the student's language (putsCode: the Ruby tab's words).
+const describeProblem = (intl, problem, putsCode) => {
     switch (problem.type) {
         case 'noProgram':
             return { place: null, text: intl.formatMessage(messages.problemNoProgram) };
@@ -81,7 +83,9 @@ const describeProblem = (intl, problem) => {
         case 'classDef':
             return {
                 place: placeOf(intl, problem.sprite, problem.line),
-                text: intl.formatMessage(messages.problemClassDef, { source: problem.source }),
+                text: intl.formatMessage(putsCode ? messages.problemClassDefCode : messages.problemClassDef, {
+                    source: problem.source,
+                }),
             };
         case 'otherSprite':
             return {
@@ -91,7 +95,7 @@ const describeProblem = (intl, problem) => {
         case 'raw':
             return {
                 place: placeOf(intl, problem.sprite, null),
-                text: intl.formatMessage(messages.problemRaw, { count: problem.count }),
+                text: intl.formatMessage(putsCode ? messages.problemRawCode : messages.problemRaw, { count: problem.count }),
             };
         case 'error':
             return {
@@ -149,12 +153,12 @@ IndexHintList.propTypes = {
     hints: PropTypes.arrayOf(PropTypes.object).isRequired,
 };
 
-const ProblemList = ({ problems }) => {
+const ProblemList = ({ problems, putsCode }) => {
     const intl = useIntl();
     return (
         <ul data-testid="genai-problems">
             {problems.slice(0, 5).map((problem, i) => {
-                const { place, text } = describeProblem(intl, problem);
+                const { place, text } = describeProblem(intl, problem, putsCode);
                 return <li key={i}>{place ? `${place}: ${text}` : text}</li>;
             })}
         </ul>
@@ -163,6 +167,7 @@ const ProblemList = ({ problems }) => {
 
 ProblemList.propTypes = {
     problems: PropTypes.arrayOf(PropTypes.object).isRequired,
+    putsCode: PropTypes.bool,
 };
 
 const changeMessage = (intl, change) => {
@@ -313,6 +318,9 @@ const GenaiAnswerSteps = ({
         : showRuby
           ? messages.rubyHide
           : messages.rubyShow;
+    // In the Ruby and furigana modes the answer is Ruby already and the line diff shows it,
+    // so there is no Ruby to see (#1446). A DNCL answer is shown as its program.
+    const showsCode = !putsCode || isDncl;
     const [reflection, setReflection] = useState('');
     // [{target, name, before, after}]: the student switches between the two as often as they like.
     const [snapshots, setSnapshots] = useState(null);
@@ -538,7 +546,7 @@ const GenaiAnswerSteps = ({
                     {checking && (
                         <div className={styles.checking} data-testid="genai-checking">
                             <span className={styles.spinner} />
-                            <FormattedMessage {...messages.checking} />
+                            <FormattedMessage {...(putsCode ? messages.checkingCode : messages.checking)} />
                         </div>
                     )}
                     {running && (
@@ -554,7 +562,7 @@ const GenaiAnswerSteps = ({
                         <div className={styles.ok} data-testid="genai-convert-ok">
                             <p className={styles.verdict}>
                                 <span className={styles.markOk}>✔</span>
-                                <FormattedMessage {...messages.convertOk} />
+                                <FormattedMessage {...(putsCode ? messages.convertOkCode : messages.convertOk)} />
                             </p>
                             {byRubytee !== null && (
                                 <div className={styles.byRubytee} data-testid="genai-takeover-by">
@@ -573,10 +581,12 @@ const GenaiAnswerSteps = ({
                             ) : (
                                 <ChangeList parts={converted.parts} several={converted.parts.length > 1} />
                             )}
-                            <a href="#" data-testid="genai-ruby-toggle" onClick={handleToggleRuby}>
-                                <FormattedMessage {...showMessage} />
-                            </a>
-                            {showRuby && <pre className={styles.code}>{converted.code}</pre>}
+                            {showsCode && (
+                                <a href="#" data-testid="genai-ruby-toggle" onClick={handleToggleRuby}>
+                                    <FormattedMessage {...showMessage} />
+                                </a>
+                            )}
+                            {showsCode && showRuby && <pre className={styles.code}>{converted.code}</pre>}
                             <p className={styles.label}>
                                 <FormattedMessage {...messages.reflectionLabel} />
                             </p>
@@ -598,13 +608,16 @@ const GenaiAnswerSteps = ({
                         <div className={styles.ng} data-testid="genai-convert-ng">
                             <p className={styles.verdict}>
                                 <span className={styles.markNg}>✗</span>
-                                <FormattedMessage {...messages.convertNg} />
+                                <FormattedMessage {...(putsCode ? messages.convertNgCode : messages.convertNg)} />
                             </p>
                             {converted.fixes.length > 0 && <FixList fixes={converted.fixes} />}
-                            <ProblemList problems={converted.problems} />
+                            <ProblemList problems={converted.problems} putsCode={putsCode} />
                             {takeover && takeover.state === 'failed' && (
                                 <p className={styles.notice} data-testid="genai-takeover-failed">
-                                    <FormattedMessage {...messages.takeoverFailed} values={{ count: takeover.tries }} />
+                                    <FormattedMessage
+                                        {...(putsCode ? messages.takeoverFailedCode : messages.takeoverFailed)}
+                                        values={{ count: takeover.tries }}
+                                    />
                                 </p>
                             )}
                             {takeover && takeover.state === 'error' && (
@@ -638,7 +651,7 @@ const GenaiAnswerSteps = ({
                             disabled={!answer.trim() || checking}
                             onClick={handleConvert}
                         >
-                            <FormattedMessage {...messages.convert} />
+                            <FormattedMessage {...(putsCode ? messages.convertCode : messages.convert)} />
                         </button>
                     )}
                     {converted && converted.ok && (

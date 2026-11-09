@@ -1783,12 +1783,16 @@ export default {
     'gui.genaiConcierge.promptHide': 'なかみをとじる',
     'gui.genaiConcierge.pasteQuestion': '{name} のこたえを、まるごとはりつけよう',
     'gui.genaiConcierge.convert': 'ブロックにできるかしらべる',
+    'gui.genaiConcierge.convertCode': 'プログラムをたしかめる',
     'gui.genaiConcierge.answerShow': 'こたえをみる',
     'gui.genaiConcierge.answerHide': 'こたえをとじる',
     'gui.genaiConcierge.backTo': '「{step}」にもどる',
     'gui.genaiConcierge.checking': 'ブロックにできるかしらべています…',
+    'gui.genaiConcierge.checkingCode': 'プログラムをたしかめています…',
     'gui.genaiConcierge.convertOk': 'ブロックにできます',
     'gui.genaiConcierge.convertNg': 'このままではブロックにできません',
+    'gui.genaiConcierge.convertOkCode': 'もんだいはみつかりませんでした（このままうごかせます）',
+    'gui.genaiConcierge.convertNgCode': 'このプログラムにはもんだいがあります',
     'gui.genaiConcierge.fixesTitle': 'スモウルビーがなおしたところ:',
     'gui.genaiConcierge.indexHintsTitle':
         'ちゅうい: そえじが 1 からはじまっているかもしれません。スモウルビーのにほんごでは、はいれつのそえじは 0 からはじまります。',
@@ -1806,6 +1810,8 @@ export default {
         '「{sprite}」のプログラムまでなおしています。「{only}」のぶんだけにしてもらおう',
     'gui.genaiConcierge.problemClassDef': 'クラスのていぎ（{source}）はブロックにできません',
     'gui.genaiConcierge.problemRaw': '{count} かしょが、ふつうのブロックになりません',
+    'gui.genaiConcierge.problemClassDefCode': 'クラスのていぎ（{source}）は、スモウルビーではつかえません',
+    'gui.genaiConcierge.problemRawCode': '{count} かしょに、スモウルビーでつかえないかきかたがあります',
     'gui.genaiConcierge.rubyShow': 'Ruby をみる',
     'gui.genaiConcierge.rubyHide': 'Ruby をかくす',
     'gui.genaiConcierge.kind.wrongAnswer': 'こたえがあわない',
@@ -1832,6 +1838,8 @@ export default {
     'gui.genaiConcierge.takeoverBy': 'ルビティー（AI）がつくったあんです。やりたいことになっているか、たしかめよう。',
     'gui.genaiConcierge.takeoverFailed':
         'ルビティーが {count} かいかきなおしても、ブロックにできませんでした。じぶんでくむか、もういちどそうだんしてみよう。',
+    'gui.genaiConcierge.takeoverFailedCode':
+        'ルビティーが {count} かいかきなおしても、もんだいがのこりました。じぶんでかくか、もういちどそうだんしてみよう。',
     'gui.genaiConcierge.takeoverErrorRate':
         'ルビティーをつかえるかいすうをこえました。{minutes} ふんほどまってから、もういちどためしてね。',
     'gui.genaiConcierge.takeoverErrorTooLong': 'さくひんがながすぎて、ルビティーにまかせられません。',
