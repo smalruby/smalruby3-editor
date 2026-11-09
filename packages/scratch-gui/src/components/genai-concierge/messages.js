@@ -291,6 +291,11 @@ const messages = defineMessages({
         description: 'Button checking whether the pasted answer turns into blocks',
         id: 'gui.genaiConcierge.convert',
     },
+    convertCode: {
+        defaultMessage: 'Check the program',
+        description: 'Ruby tab: button checking the pasted answer (it is turned into blocks only to see that it runs)',
+        id: 'gui.genaiConcierge.convertCode',
+    },
     answerShow: {
         defaultMessage: 'See the answer',
         description: 'Link opening the pasted answer again after it was checked',
@@ -311,6 +316,11 @@ const messages = defineMessages({
         description: 'Shown with a spinner while the pasted answer is being checked',
         id: 'gui.genaiConcierge.checking',
     },
+    checkingCode: {
+        defaultMessage: 'Checking the program…',
+        description: 'Ruby tab: shown with a spinner while the pasted answer is being checked',
+        id: 'gui.genaiConcierge.checkingCode',
+    },
     convertOk: {
         defaultMessage: 'It can become blocks',
         description: 'Result of the check: the answer turns into blocks',
@@ -320,6 +330,16 @@ const messages = defineMessages({
         defaultMessage: 'It cannot become blocks as it is',
         description: 'Result of the check: the answer does not turn into blocks',
         id: 'gui.genaiConcierge.convertNg',
+    },
+    convertOkCode: {
+        defaultMessage: 'No problem was found in the program',
+        description: 'Ruby tab: result of the check: the answer can run as it is',
+        id: 'gui.genaiConcierge.convertOkCode',
+    },
+    convertNgCode: {
+        defaultMessage: 'This program has a problem',
+        description: 'Ruby tab: result of the check: the answer has a problem',
+        id: 'gui.genaiConcierge.convertNgCode',
     },
     fixesTitle: {
         defaultMessage: 'What Smalruby fixed:',
@@ -393,6 +413,16 @@ const messages = defineMessages({
         defaultMessage: '{count} places do not become ordinary blocks',
         description: 'Problem: some lines would stay as "Ruby" blocks',
         id: 'gui.genaiConcierge.problemRaw',
+    },
+    problemClassDefCode: {
+        defaultMessage: 'A class definition ({source}) cannot be used in Smalruby',
+        description: 'Ruby tab: problem: the answer is written as a Ruby class',
+        id: 'gui.genaiConcierge.problemClassDefCode',
+    },
+    problemRawCode: {
+        defaultMessage: '{count} places are written in a way Smalruby cannot use',
+        description: 'Ruby tab: problem: some lines are written in a way Smalruby cannot run',
+        id: 'gui.genaiConcierge.problemRawCode',
     },
     rubyShow: {
         defaultMessage: 'See the Ruby',
@@ -479,6 +509,12 @@ const messages = defineMessages({
             'Rubytee rewrote it {count} times, but it still could not be turned into blocks. Build it yourself, or ask again.',
         description: 'When none of the versions Rubytee made turned into blocks ({count}: tries)',
         id: 'gui.genaiConcierge.takeoverFailed',
+    },
+    takeoverFailedCode: {
+        defaultMessage:
+            'Rubytee rewrote it {count} times, but a problem is still left. Write it yourself, or ask again.',
+        description: 'Ruby tab: when none of the versions Rubytee made passed the check ({count}: tries)',
+        id: 'gui.genaiConcierge.takeoverFailedCode',
     },
     takeoverErrorRate: {
         defaultMessage: 'You have used Rubytee many times. Try again in about {minutes} minutes.',

@@ -1733,12 +1733,16 @@ export default {
     'gui.genaiConcierge.promptHide': '中身を閉じる',
     'gui.genaiConcierge.pasteQuestion': '{name} の答えを、まるごと貼りつけよう',
     'gui.genaiConcierge.convert': 'ブロックにできるか調べる',
+    'gui.genaiConcierge.convertCode': 'プログラムを確かめる',
     'gui.genaiConcierge.answerShow': '答えを見る',
     'gui.genaiConcierge.answerHide': '答えを閉じる',
     'gui.genaiConcierge.backTo': '「{step}」にもどる',
     'gui.genaiConcierge.checking': 'ブロックにできるか調べています…',
+    'gui.genaiConcierge.checkingCode': 'プログラムを確かめています…',
     'gui.genaiConcierge.convertOk': 'ブロックにできます',
     'gui.genaiConcierge.convertNg': 'このままではブロックにできません',
+    'gui.genaiConcierge.convertOkCode': '問題は見つかりませんでした（このまま動かせます）',
+    'gui.genaiConcierge.convertNgCode': 'このプログラムには問題があります',
     'gui.genaiConcierge.fixesTitle': 'スモウルビーが直したところ:',
     'gui.genaiConcierge.indexHintsTitle':
         '注意: 添字が 1 から始まっているかもしれません。スモウルビーの日本語では、配列の添字は 0 から始まります。',
@@ -1756,6 +1760,8 @@ export default {
         '「{sprite}」のプログラムまで直しています。「{only}」の分だけにしてもらおう',
     'gui.genaiConcierge.problemClassDef': 'クラスの定義（{source}）はブロックにできません',
     'gui.genaiConcierge.problemRaw': '{count} か所が、ふつうのブロックになりません',
+    'gui.genaiConcierge.problemClassDefCode': 'クラスの定義（{source}）は、スモウルビーでは使えません',
+    'gui.genaiConcierge.problemRawCode': '{count} か所に、スモウルビーで使えない書き方があります',
     'gui.genaiConcierge.rubyShow': 'Ruby を見る',
     'gui.genaiConcierge.rubyHide': 'Ruby をかくす',
     'gui.genaiConcierge.kind.wrongAnswer': '答えが合わない',
@@ -1781,6 +1787,8 @@ export default {
     'gui.genaiConcierge.takeoverBy': 'ルビティー（AI）が作った案です。やりたいことになっているか、確かめよう。',
     'gui.genaiConcierge.takeoverFailed':
         'ルビティーが {count} 回書き直しても、ブロックにできませんでした。自分で組むか、もう一度相談してみよう。',
+    'gui.genaiConcierge.takeoverFailedCode':
+        'ルビティーが {count} 回書き直しても、問題が残りました。自分で書くか、もう一度相談してみよう。',
     'gui.genaiConcierge.takeoverErrorRate':
         'ルビティーを使える回数をこえました。{minutes} 分ほど待ってから、もう一度ためしてね。',
     'gui.genaiConcierge.takeoverErrorTooLong': '作品が長すぎて、ルビティーにまかせられません。',
