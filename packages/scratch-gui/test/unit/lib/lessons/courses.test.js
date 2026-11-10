@@ -16,6 +16,7 @@ import {
     findLesson,
     lessonClearRule,
 } from '../../../../src/lib/lessons/courses';
+import { validateGoal } from '../../../../src/lib/lessons/goal';
 import en from '../../../../src/locales/en';
 import ja from '../../../../src/locales/ja';
 import jaHira from '../../../../src/locales/ja-Hira';
@@ -125,6 +126,8 @@ describe('lesson courses', () => {
             );
             expect(c).toHaveProperty('task');
             expect(c).toHaveProperty('goal');
+            // A malformed goal would silently never be met (attachGoalMonitor does not validate)
+            if (c.goal !== null) expect(validateGoal(c.goal)).toEqual([]);
             expect(c).toHaveProperty('allowedBlocks');
             expect(c).toHaveProperty('setup');
             expect(c).toHaveProperty('code');

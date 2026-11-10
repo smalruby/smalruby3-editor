@@ -6,6 +6,7 @@ import {
 } from '../../../src/lib/lessons/lesson-progress';
 import reducer, {
     closeLesson,
+    dismissCompleted,
     getCurrentChallenge,
     isLessonMode,
     lessonModeInitialState,
@@ -89,6 +90,32 @@ describe('lesson-mode reducer', () => {
         expect(Object.keys(saved.challenges)).toEqual(['blocks-l1-quiz']);
         // 変わらなければ同じ state
         expect(reducer(reloaded, reloadProgress())).toBe(reloaded);
+    });
+
+    test('markChallengeCompleted shows "You did it!" for that challenge, even when already completed', () => {
+        const opened = reducer(lessonModeInitialState, openChallenge('blocks-l1-quiz'));
+        expect(opened.justCompletedId).toBeNull();
+        const first = reducer(opened, markChallengeCompleted('blocks-l1-quiz', '2026-11-10T00:00:00.000Z'));
+        expect(first.justCompletedId).toBe('blocks-l1-quiz');
+        const dismissed = reducer(first, dismissCompleted());
+        expect(dismissed.justCompletedId).toBeNull();
+        expect(dismissed.progress).toBe(first.progress);
+        expect(reducer(dismissed, dismissCompleted())).toBe(dismissed);
+        // completed again: the record keeps the first time but the toast shows again
+        const again = reducer(dismissed, markChallengeCompleted('blocks-l1-quiz', '2026-11-11T00:00:00.000Z'));
+        expect(again.justCompletedId).toBe('blocks-l1-quiz');
+        expect(again.progress.challenges['blocks-l1-quiz'].completedAt).toBe('2026-11-10T00:00:00.000Z');
+        // unknown ids change nothing
+        expect(reducer(dismissed, markChallengeCompleted('nope', '2026-11-11T00:00:00.000Z'))).toBe(dismissed);
+    });
+
+    test('opening another challenge or closing the lesson hides "You did it!"', () => {
+        const done = reducer(
+            reducer(lessonModeInitialState, openChallenge('blocks-l1-quiz')),
+            markChallengeCompleted('blocks-l1-quiz', '2026-11-10T00:00:00.000Z'),
+        );
+        expect(reducer(done, openChallenge('blocks-l1-count')).justCompletedId).toBeNull();
+        expect(reducer(done, closeLesson()).justCompletedId).toBeNull();
     });
 
     test('markChallengeCompleted fills the time when not given', () => {

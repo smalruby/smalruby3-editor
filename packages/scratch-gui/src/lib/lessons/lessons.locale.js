@@ -17,6 +17,9 @@ export const ja = {
     'gui.lessons.challenge.blocks-l1-broadcast.name': 'なかまに合図しよう',
     'gui.lessons.challenge.blocks-l1-speak.name': 'しゃべらせよう',
     'gui.lessons.challenge.blocks-l1-message-list.name': 'メッセージをためよう',
+    'gui.lessons.completed.title': 'できた！',
+    'gui.lessons.completed.skills': 'できること: {skills}',
+    'gui.lessons.completed.close': '閉じる',
 };
 
 export const jaHira = {
@@ -34,6 +37,9 @@ export const jaHira = {
     'gui.lessons.challenge.blocks-l1-broadcast.name': 'なかまにあいずしよう',
     'gui.lessons.challenge.blocks-l1-speak.name': 'しゃべらせよう',
     'gui.lessons.challenge.blocks-l1-message-list.name': 'メッセージをためよう',
+    'gui.lessons.completed.title': 'できた！',
+    'gui.lessons.completed.skills': 'できること: {skills}',
+    'gui.lessons.completed.close': 'とじる',
 };
 
 export const en = {
@@ -51,4 +57,7 @@ export const en = {
     'gui.lessons.challenge.blocks-l1-broadcast.name': 'Signal a friend',
     'gui.lessons.challenge.blocks-l1-speak.name': 'Make it speak',
     'gui.lessons.challenge.blocks-l1-message-list.name': 'Collect messages',
+    'gui.lessons.completed.title': 'You did it!',
+    'gui.lessons.completed.skills': 'Now you can: {skills}',
+    'gui.lessons.completed.close': 'Close',
 };
