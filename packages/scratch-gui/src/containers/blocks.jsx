@@ -35,6 +35,9 @@ import {setScratchBlocks} from '../reducers/block-display';
 import {activateColorPicker} from '../reducers/color-picker';
 import {closeExtensionLibrary, openSoundRecorder, openConnectionModal} from '../reducers/modals';
 import {activateCustomProcedures, deactivateCustomProcedures} from '../reducers/custom-procedures';
+// === Smalruby: Start of lesson mode ===
+import {getLessonAllowedBlocks} from '../reducers/lesson-mode';
+// === Smalruby: End of lesson mode ===
 import {setConnectionModalExtensionId} from '../reducers/connection-modal';
 import {updateMetrics} from '../reducers/workspace-metrics';
 import {isTimeTravel2020} from '../reducers/time-travel';
@@ -1329,7 +1332,10 @@ const mapStateToProps = state => ({
     messages: state.locales.messages,
     dnclMode: state.scratchGui.dnclMode.dnclMode, // === Smalruby: DNCL block filtering ===
     selectedBlocks: state.scratchGui.blockDisplay.selectedBlocks,
-    tutorialAllowedBlocks: state.scratchGui.cards.tutorialAllowedBlocks,
+    // === Smalruby: Start of lesson mode ===
+    // レッスンモードのチャレンジの allowedBlocks をチュートリアルより優先する
+    tutorialAllowedBlocks: getLessonAllowedBlocks(state) || state.scratchGui.cards.tutorialAllowedBlocks,
+    // === Smalruby: End of lesson mode ===
     toolboxXML: state.scratchGui.toolbox.toolboxXML,
     activeTabIndex: state.scratchGui.editorTab.activeTabIndex,
     customProceduresVisible: state.scratchGui.customProcedures.active,

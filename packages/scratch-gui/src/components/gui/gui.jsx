@@ -33,6 +33,9 @@ import GenaiConcierge from '../../containers/genai-concierge.jsx';
 import WebGlModal from '../../containers/webgl-modal.jsx';
 import TipsLibrary from '../../containers/tips-library.jsx';
 import Cards from '../../containers/cards.jsx';
+// === Smalruby: Start of lesson mode ===
+import LessonMode from '../../containers/lesson-mode.jsx';
+// === Smalruby: End of lesson mode ===
 import Alerts from '../../containers/alerts.jsx';
 import DragLayer from '../../containers/drag-layer.jsx';
 import ConnectionModal from '../../containers/connection-modal.jsx';
@@ -578,6 +581,9 @@ const GUIComponent = props => {
                             className={styles.editorWrapper}
                             element="main"
                         >
+                            {/* === Smalruby: Start of lesson mode === */}
+                            <LessonMode />
+                            {/* === Smalruby: End of lesson mode === */}
                             <Tabs
                                 forceRenderTabPanel
                                 className={tabClassNames.tabs}

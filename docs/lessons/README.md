@@ -136,15 +136,65 @@
 | 項目 | 説明 |
 |------|------|
 | `courseId` / `lessonId` / `challengeId` | いま開いているチャレンジ。`challengeId` が null ならレッスンモードではない |
+| `pendingChallengeId` | 開こうとしているチャレンジ（新しい作品ができるまでの間だけ入る。下の「レッスンモード」） |
+| `hintVisible` / `hintIndex` | ヒントの吹き出しを出しているか・何番めのヒントか（チャレンジを開く・閉じるたびに最初にもどる） |
 | `progress` | 記録の写し（起動時に localStorage から読む） |
 
 | action / selector | 説明 |
 |------|------|
-| `openChallenge(challengeId)` | チャレンジを開く（知らない id は無視） |
+| `startChallenge(challengeId)` | **チャレンジを開く入口**（レッスン表が呼ぶ）。新しい作品 → setup → `openChallenge` の順にコンテナが進める（知らない id は無視） |
+| `cancelStartChallenge()` | 開こうとしていたチャレンジを取り消す（「保存しますか」で取りやめたとき） |
+| `openChallenge(challengeId)` | レッスンモードに入る（作品の準備は済んでいる前提。知らない id は無視） |
 | `closeLesson()` | レッスンモードを抜ける（記録は残す） |
+| `showHint()` / `hideHint()` / `nextHint()` / `prevHint()` | ヒントの吹き出しの出し入れと「進める・もどる」（ヒントが無いチャレンジでは出ない。両端で止まる） |
 | `markChallengeCompleted(challengeId, completedAt?)` | 「できた」にして localStorage にも書く。書く前に localStorage の最新と合わせる（別のタブが書いた分を消さない） |
 | `reloadProgress()` | localStorage の最新を写しに取り込む（別のタブが書いた分を、レッスン表を開くときなどに反映する。書かない） |
 | `isLessonMode(state)` / `getCurrentChallenge(state)` | レッスンモードか / `{course, lesson, challenge}` |
+| `getLessonAllowedBlocks(state)` | パレットに出すブロック（チャレンジの `allowedBlocks`。無ければ null）。Blocks コンテナがチュートリアルの `tutorialAllowedBlocks` より優先して使う |
+| `getCurrentHint(state)` | `{visible, index, count, step}`（レッスンモードでなければ null）。吹き出しの実装はこれを読む |
+
+## レッスンモード
+
+チャレンジを開いたときの画面。ふだんのエディタはそのまま使い、次を足す。
+
+- **新しい作品から始める**: `startChallenge(id)` → いまの作品に変更があればメニューの「新規」と同じ
+  「保存しますか」の確認（取りやめると `cancelStartChallenge`）→ 新しい作品（Google Drive のファイルとの
+  結び付きも切る）→ 作品ができたらチャレンジの setup を適用 → `openChallenge(id)`。
+  この流れは `containers/lesson-mode.jsx` が進める（作成中 → 表示中の遷移で「できた」を検出する）。
+- **setup**: `lib/lessons/challenge-setup.js` の `setupForChallenge(course, challenge)` が
+  `lib/deck-setup.js` に渡す形を作る。コースの言語から既定（ブロック = コードタブ、Ruby = Ruby タブ・Ruby
+  モード、DNCL = Ruby タブ・DNCL モード）を決め、チャレンジの `setup` で上書きする。
+- **課題バー**（`components/lesson-task-bar/`）: エディタ列（タブの上）に 1 行・40px で出す。
+  「何個め / 全部で何個」・課題の 1 行（`task`。無ければチャレンジの名前）・ヒント・やめる。
+  stage の列には掛からないので、1300×600 の授業のパソコンでもコードエリアは 40px 縮むだけ。
+  SP（MobileGui）でも同じ場所に出る。
+- **パレットを絞る**: チャレンジの `allowedBlocks`（deck と同じ形）。Blocks コンテナの `tutorialAllowedBlocks`
+  にレッスンの分を優先して渡すので、仕組みはチュートリアルと同じ（`allowedBlocks` が null なら絞らない）。
+- **ヒント**: 「ヒント」ボタンで `showHint` / `hideHint`。吹き出しの見た目と「進める・もどる」の操作は
+  吹き出しの実装が `getCurrentHint` と `nextHint` / `prevHint` を使って作る（置き場所は
+  `containers/lesson-mode.jsx` の `<LessonTaskBar>` の次）。ヒントが無いチャレンジではボタンが無効。
+- **やめる**: `closeLesson()`。課題バーが消え、パレットが元にもどる（作品はそのまま）。レッスン表にもどるのは
+  レッスン表の実装が足す。
+
+レッスン表ができるまでの入口として、コンテナがマウント中は `window.smalruby.startChallenge(id)` で
+`startChallenge` を呼べる（Playwright / Selenium からも使う）。URL パラメータは作らない。
+
+### data-testid
+
+| data-testid | 要素 | 説明 |
+|------------|------|------|
+| `lesson-task-bar` | div | 課題バー全体（レッスンモードのときだけある） |
+| `lesson-task-bar-position` | span | 「何個め / 全部で何個」 |
+| `lesson-task-bar-task` | span | 課題の 1 行（長いときは省略記号。全文は `title`） |
+| `lesson-task-bar-hint` | button | ヒントの吹き出しの出し入れ（ヒントが無ければ disabled） |
+| `lesson-task-bar-quit` | button | やめる |
+
+### スクリーンショット
+
+| ファイル | 説明 |
+|---------|------|
+| `screenshots/0201-lesson-mode-1300x600.png` | 授業のパソコン（1300×600）でチャレンジ 3「押したら話そう」を開いたところ |
+| `screenshots/0202-lesson-mode-667x375.png` | SP 横（MobileGui）で同じチャレンジを開いたところ |
 
 ## 主要ファイル
 
@@ -153,9 +203,15 @@
 | `packages/scratch-gui/src/lib/lessons/courses.js` | コース・レッスン・チャレンジのデータと検索 |
 | `packages/scratch-gui/src/lib/lessons/lessons.locale.js` | 文言（en / ja / ja-Hira。`src/locales/*.js` に spread） |
 | `packages/scratch-gui/src/lib/lessons/lesson-progress.js` | 端末への記録・クリア判定・できること |
-| `packages/scratch-gui/src/reducers/lesson-mode.js` | いま開いているチャレンジと記録の写し |
-| `packages/scratch-gui/test/unit/lib/lessons/` | データの形・記録・クリア判定の unit テスト |
+| `packages/scratch-gui/src/lib/lessons/challenge-setup.js` | チャレンジを開くときの setup（言語の既定 + チャレンジの `setup`） |
+| `packages/scratch-gui/src/reducers/lesson-mode.js` | いま開いているチャレンジ・開こうとしているチャレンジ・ヒント・記録の写し |
+| `packages/scratch-gui/src/containers/lesson-mode.jsx` | チャレンジを開く流れ（新しい作品 → setup → レッスンモード）と課題バーのマウント。`gui.jsx` のエディタ列の先頭に常時マウント |
+| `packages/scratch-gui/src/components/lesson-task-bar/` | 課題バー（1 行・40px） |
+| `packages/scratch-gui/src/containers/blocks.jsx` | `getLessonAllowedBlocks` でパレットを絞る（Smalruby マーカー `lesson mode`） |
+| `packages/scratch-gui/test/unit/lib/lessons/` | データの形・記録・クリア判定・setup の unit テスト |
 | `packages/scratch-gui/test/unit/reducers/lesson-mode-reducer.test.js` | reducer の unit テスト |
+| `packages/scratch-gui/test/unit/components/lesson-task-bar.test.jsx` / `test/unit/containers/lesson-mode.test.jsx` | 課題バーとチャレンジを開く流れの unit テスト |
+| `packages/scratch-gui/test/integration/smalruby-lessons.test.js` | チャレンジを開く → 課題バー・絞ったパレット → やめる → 元にもどる（Selenium） |
 
 ## 設定・データ永続化
 
