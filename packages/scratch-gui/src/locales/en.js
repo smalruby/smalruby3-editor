@@ -653,6 +653,8 @@ export default {
         'The information we collect includes language selection, blocks usage, and some events like saving, loading, and uploading a project. We DO NOT collect any personal information.',
     'gui.telemetryOptIn.buttonTextNo': 'No, thanks',
     'gui.extensionLibrary.showAllExtensions': 'Show all extensions',
+    'gui.smalruby3.rubyToBlocksConverter.cannotChangeArgument':
+        '"{NAME}" is an argument, so it cannot be changed.\nCopy it to another variable and change that one (e.g. x = {NAME}).',
     'gui.smalruby3.rubyToBlocksConverter.couldNotConvertPrimitive': '"{ SOURCE }" could not be converted the block.',
     'gui.smalruby3.rubyToBlocksConverter.wrongInstruction': '"{ SOURCE }" is the wrong instruction.',
     'gui.smalruby3.rubyToBlocksConverter.wrongInstructionInClass':

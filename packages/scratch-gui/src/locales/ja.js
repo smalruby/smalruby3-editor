@@ -930,6 +930,8 @@ export default {
         '命令ブロックではないブロックが含まれています。\nブロック定義の中では命令ブロック（コマンド）だけを使ってください。',
     'gui.smalruby3.rubyToBlocksConverter.invalidMyBlockArgumentType':
         'ブロック定義「{NAME}」の引数#{INDEX}の型がまちがっています。\n数値、文字列、またはブーリアンの値を使ってください。',
+    'gui.smalruby3.rubyToBlocksConverter.cannotChangeArgument':
+        '「{NAME}」は引数なので、値を変えられません。\n別の変数に写してから、その変数を変えてください（例: x = {NAME}）。',
     'gui.smalruby3.rubyToBlocksConverter.wrongInstructionInMyBlock':
         '「{SOURCE}」は命令がまちがっています。\nつづりを確認するか、対応しているブロックを使ってください。',
     'gui.smalruby3.rubyToBlocksConverter.spriteAndCostumesSoundsExclusive':

@@ -20,6 +20,7 @@
 import { spawn } from 'child_process';
 import fs from 'fs';
 import path from 'path';
+import { createIntl } from 'react-intl';
 import { checkAnswer, problemToJapanese } from '../../src/lib/genai-answer.js';
 import { checkDnclAnswer } from '../../src/lib/genai-dncl-answer.js';
 import { DNCL_COMMAND_EXAMPLES, buildDnclTabPrompt } from '../../src/lib/genai-dncl-prompt.js';
@@ -31,6 +32,7 @@ import {
     buildGenaiPrompt,
 } from '../../src/lib/genai-prompt.js';
 import RubyToBlocksConverter from '../../src/lib/ruby-to-blocks-converter';
+import ja from '../../src/locales/ja.js';
 import dnclScenarios from './dncl-scenarios.js';
 import codeScenarios from './scenarios.js';
 
@@ -93,8 +95,12 @@ const askModel = (model, prompt) =>
         child.stdin.end(prompt);
     });
 
+// The errors in Japanese, as the editor shows them (the student's Smalruby is in Japanese).
+const jaIntl = createIntl({ locale: 'ja', messages: ja });
+
 const convert = async (name, code) => {
     const converter = new RubyToBlocksConverter(null, { version: '2' });
+    converter.setTranslatorFunction(jaIntl.formatMessage);
     converter.result = await converter.targetCodeToBlocks(null, code);
     return converter;
 };

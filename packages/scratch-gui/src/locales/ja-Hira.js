@@ -957,6 +957,8 @@ export default {
         'めいれいブロックではないブロックがふくまれています。\nブロックていぎのなかではめいれいブロック（コマンド）だけをつかってください。',
     'gui.smalruby3.rubyToBlocksConverter.invalidMyBlockArgumentType':
         'ブロックていぎ「{NAME}」のひきすう#{INDEX}のかたがまちがっています。\nすうち、もじれつ、またはブーリアンのあたいをつかってください。',
+    'gui.smalruby3.rubyToBlocksConverter.cannotChangeArgument':
+        '「{NAME}」はひきすうなので、あたいをかえられません。\nべつのへんすうにうつしてから、そのへんすうをかえてください（れい: x = {NAME}）。',
     'gui.smalruby3.rubyToBlocksConverter.wrongInstructionInMyBlock':
         '「{SOURCE}」はめいれいがまちがっています。\nつづりをかくにんするか、たいおうしているブロックをつかってください。',
     'gui.smalruby3.rubyToBlocksConverter.spriteAndCostumesSoundsExclusive':
