@@ -8,6 +8,7 @@ import {
     lessonClearStatus,
     loadProgress,
     markChallengeCompleted,
+    mergeProgress,
     saveProgress,
 } from '../../../../src/lib/lessons/lesson-progress';
 
@@ -69,6 +70,25 @@ describe('lesson progress', () => {
         test('ignores unknown challenge ids', () => {
             const before = emptyProgress();
             expect(markChallengeCompleted(before, 'no-such-challenge', NOW)).toBe(before);
+        });
+    });
+
+    describe('mergeProgress', () => {
+        test('adds records only the other side has and keeps the earlier time', () => {
+            const mine = markChallengeCompleted(emptyProgress(), 'blocks-l1-quiz', LATER);
+            let other = markChallengeCompleted(emptyProgress(), 'blocks-l1-quiz', NOW);
+            other = markChallengeCompleted(other, 'blocks-l1-count', LATER);
+            const merged = mergeProgress(mine, other);
+            expect(merged.challenges['blocks-l1-quiz'].completedAt).toBe(NOW);
+            expect(merged.challenges['blocks-l1-count'].completedAt).toBe(LATER);
+            expect(mine.challenges['blocks-l1-quiz'].completedAt).toBe(LATER);
+        });
+
+        test('returns the same object when the other side adds nothing', () => {
+            const mine = markChallengeCompleted(emptyProgress(), 'blocks-l1-quiz', NOW);
+            const other = markChallengeCompleted(emptyProgress(), 'blocks-l1-quiz', LATER);
+            expect(mergeProgress(mine, other)).toBe(mine);
+            expect(mergeProgress(mine, emptyProgress())).toBe(mine);
         });
     });
 
@@ -172,6 +192,11 @@ describe('lesson progress', () => {
             );
             expect(
                 loadProgress(makeStorage({ [LESSON_PROGRESS_STORAGE_KEY]: '{"challenges":{"a":3,"b":{}}}' })),
+            ).toEqual(emptyProgress());
+            expect(
+                loadProgress(
+                    makeStorage({ [LESSON_PROGRESS_STORAGE_KEY]: `{"challenges":{"a":{"completedAt":"${NOW}"}}}` }),
+                ),
             ).toEqual(emptyProgress());
         });
 

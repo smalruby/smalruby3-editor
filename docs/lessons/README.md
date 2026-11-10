@@ -103,6 +103,7 @@
 |------|------|
 | `loadProgress(storage?)` / `saveProgress(progress, storage?)` | 読み書き（例外を出さない） |
 | `markChallengeCompleted(progress, challengeId, completedAt)` | 「できた」にした新しい記録を返す |
+| `mergeProgress(progress, other)` | 2 つの記録を合わせる（同じチャレンジは早い日時を残す） |
 | `isChallengeCompleted(progress, challengeId)` | できたか |
 | `lessonClearStatus(lesson, progress)` | `{cleared, completedCount, count, missingRequired}` |
 | `completedSkills(progress)` | できることの一覧 |
@@ -121,7 +122,7 @@
 |------|------|
 | `openChallenge(challengeId)` | チャレンジを開く（知らない id は無視） |
 | `closeLesson()` | レッスンモードを抜ける（記録は残す） |
-| `markChallengeCompleted(challengeId, completedAt?)` | 「できた」にして localStorage にも書く |
+| `markChallengeCompleted(challengeId, completedAt?)` | 「できた」にして localStorage にも書く。書く前に localStorage の最新と合わせる（別のタブが書いた分を消さない） |
 | `isLessonMode(state)` / `getCurrentChallenge(state)` | レッスンモードか / `{course, lesson, challenge}` |
 
 ## 主要ファイル

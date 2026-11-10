@@ -21,8 +21,13 @@ const defaultStorage = () => {
     }
 };
 
+// exportProgress が courseId / lessonId を必ず送れるよう、3 つそろったものだけを記録とみなす
 const isRecord = (value) =>
-    value !== null && typeof value === 'object' && typeof value.completedAt === 'string';
+    value !== null &&
+    typeof value === 'object' &&
+    typeof value.completedAt === 'string' &&
+    typeof value.courseId === 'string' &&
+    typeof value.lessonId === 'string';
 
 /**
  * 記録を読む。読めない・壊れているときは空の記録（落とさない）。
@@ -58,6 +63,24 @@ export const saveProgress = (progress, storage = defaultStorage()) => {
     } catch (e) {
         return false;
     }
+};
+
+/**
+ * 2 つの記録を合わせる（同じチャレンジは早い日時を残す）。別のタブが先に書いた
+ * 分を、こちらの写しで上書きして消さないために使う。
+ * @param {object} progress - こちらの記録。
+ * @param {object} other - 合わせる記録（例: いまの localStorage）。
+ * @returns {object} 合わせた記録（other で何も変わらなければ progress そのもの）。
+ */
+export const mergeProgress = (progress, other) => {
+    let challenges = null;
+    Object.entries(other.challenges).forEach(([id, record]) => {
+        const mine = progress.challenges[id];
+        if (mine && mine.completedAt <= record.completedAt) return;
+        if (!challenges) challenges = { ...progress.challenges };
+        challenges[id] = record;
+    });
+    return challenges ? { ...progress, challenges } : progress;
 };
 
 /**

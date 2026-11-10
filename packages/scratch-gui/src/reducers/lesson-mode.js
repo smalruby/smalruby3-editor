@@ -1,7 +1,12 @@
 // いま開いているチャレンジ（レッスンモード）と、端末の記録。
 // 記録の正は localStorage（lib/lessons/lesson-progress.js）で、ここはその写し。
 import { findChallenge } from '../lib/lessons/courses';
-import { loadProgress, markChallengeCompleted as markProgress, saveProgress } from '../lib/lessons/lesson-progress';
+import {
+    loadProgress,
+    markChallengeCompleted as markProgress,
+    mergeProgress,
+    saveProgress,
+} from '../lib/lessons/lesson-progress';
 
 const OPEN_CHALLENGE = 'scratch-gui/lesson-mode/OPEN_CHALLENGE';
 const CLOSE_LESSON = 'scratch-gui/lesson-mode/CLOSE_LESSON';
@@ -34,7 +39,9 @@ const reducer = function (state, action) {
         case CLOSE_LESSON:
             return { ...state, ...closedState };
         case MARK_CHALLENGE_COMPLETED: {
-            const progress = markProgress(state.progress, action.challengeId, action.completedAt);
+            // 別のタブが起動後に書いた分を消さないよう、localStorage の最新と合わせてから足す
+            const latest = mergeProgress(state.progress, loadProgress());
+            const progress = markProgress(latest, action.challengeId, action.completedAt);
             if (progress === state.progress) return state;
             saveProgress(progress);
             return { ...state, progress };
