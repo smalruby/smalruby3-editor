@@ -1,4 +1,9 @@
-import { LESSON_PROGRESS_STORAGE_KEY } from '../../../src/lib/lessons/lesson-progress';
+import {
+    LESSON_PROGRESS_STORAGE_KEY,
+    emptyProgress,
+    markChallengeCompleted as markProgress,
+    saveProgress,
+} from '../../../src/lib/lessons/lesson-progress';
 import reducer, {
     closeLesson,
     getCurrentChallenge,
@@ -56,6 +61,18 @@ describe('lesson-mode reducer', () => {
         expect(state.progress.challenges['blocks-l1-broadcast'].completedAt).toBe('2026-11-10T00:00:00.000Z');
         const saved = JSON.parse(window.localStorage.getItem(LESSON_PROGRESS_STORAGE_KEY));
         expect(saved.challenges['blocks-l1-broadcast'].lessonId).toBe('blocks-l1');
+    });
+
+    test('markChallengeCompleted keeps records another tab wrote after start-up', () => {
+        // 別のタブが起動後に書いた記録
+        saveProgress(markProgress(emptyProgress(), 'blocks-l1-quiz', '2026-11-10T00:00:00.000Z'));
+        const state = reducer(
+            lessonModeInitialState,
+            markChallengeCompleted('blocks-l1-broadcast', '2026-11-10T01:00:00.000Z'),
+        );
+        expect(Object.keys(state.progress.challenges).sort()).toEqual(['blocks-l1-broadcast', 'blocks-l1-quiz']);
+        const saved = JSON.parse(window.localStorage.getItem(LESSON_PROGRESS_STORAGE_KEY));
+        expect(Object.keys(saved.challenges).sort()).toEqual(['blocks-l1-broadcast', 'blocks-l1-quiz']);
     });
 
     test('markChallengeCompleted fills the time when not given', () => {

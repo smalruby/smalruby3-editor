@@ -62,7 +62,7 @@
 | 項目 | 型 | 既定 | 説明 |
 |------|----|------|------|
 | `id` | string | — | **記録のキー**。並びを変えても変わらないよう番号を入れない（例: `blocks-l1-click-say`） |
-| `number` | number | — | レッスンの中で何個めか（表示用） |
+| `number` | number | 並びから | レッスンの中で何個めか（表示用）。`defineLesson` が並びから付ける |
 | `name` | message | id から | チャレンジの名前 |
 | `task` | message \| null | null | 課題の 1 行 |
 | `skills` | `{id, name}`[] | [] | できること。id で重ねる（別のチャレンジで同じものが身についても 1 つ） |
@@ -103,6 +103,7 @@
 |------|------|
 | `loadProgress(storage?)` / `saveProgress(progress, storage?)` | 読み書き（例外を出さない） |
 | `markChallengeCompleted(progress, challengeId, completedAt)` | 「できた」にした新しい記録を返す |
+| `mergeProgress(progress, other)` | 2 つの記録を合わせる（同じチャレンジは早い日時を残す） |
 | `isChallengeCompleted(progress, challengeId)` | できたか |
 | `lessonClearStatus(lesson, progress)` | `{cleared, completedCount, count, missingRequired}` |
 | `completedSkills(progress)` | できることの一覧 |
@@ -121,7 +122,7 @@
 |------|------|
 | `openChallenge(challengeId)` | チャレンジを開く（知らない id は無視） |
 | `closeLesson()` | レッスンモードを抜ける（記録は残す） |
-| `markChallengeCompleted(challengeId, completedAt?)` | 「できた」にして localStorage にも書く |
+| `markChallengeCompleted(challengeId, completedAt?)` | 「できた」にして localStorage にも書く。書く前に localStorage の最新と合わせる（別のタブが書いた分を消さない） |
 | `isLessonMode(state)` / `getCurrentChallenge(state)` | レッスンモードか / `{course, lesson, challenge}` |
 
 ## 主要ファイル

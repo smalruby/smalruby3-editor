@@ -18,7 +18,7 @@ const message = (id) => ({ id, defaultMessage: ja[id] });
  * チャレンジの定義に既定値を埋める。いまの deck の項目（allowedBlocks / setup /
  * steps / code）をそのまま持ち、レッスン用の項目を足す。読む側が項目の有無を
  * 毎回確かめなくてよいように、ここで全部そろえる。
- * @param {object} def - チャレンジの定義（id と number は必須）。
+ * @param {object} def - チャレンジの定義（id は必須。number は defineLesson が付ける）。
  * @returns {object} 正規化したチャレンジ。
  */
 const defineChallenge = (def) => ({
@@ -43,7 +43,8 @@ const defineChallenge = (def) => ({
 
 /**
  * レッスンを定義する。必須はチャレンジの `required` を正とし、クリア条件の
- * `required` はそこから作る（二重に書かない）。
+ * `required` はそこから作る（二重に書かない）。何個めか（`number`）も並びから
+ * 付ける（並びを変えたときに番号がずれないように、定義には書かない）。
  * @param {object} def - レッスンの定義。
  * @param {string} def.id - レッスン id。
  * @param {number} def.count - クリアに要るチャレンジの数。
@@ -51,7 +52,7 @@ const defineChallenge = (def) => ({
  * @returns {object} レッスン。
  */
 const defineLesson = ({ id, count, challenges }) => {
-    const normalized = challenges.map(defineChallenge);
+    const normalized = challenges.map((def, index) => defineChallenge({ ...def, number: index + 1 }));
     return {
         id,
         name: message(`gui.lessons.lesson.${id}.name`),
@@ -78,17 +79,17 @@ const blocksLesson1 = defineLesson({
     id: 'blocks-l1',
     count: 7,
     challenges: [
-        { id: 'blocks-l1-key-sound', number: 1 },
-        { id: 'blocks-l1-arrow-move', number: 2 },
-        { id: 'blocks-l1-click-say', number: 3, required: true },
-        { id: 'blocks-l1-repeat', number: 4 },
-        { id: 'blocks-l1-if', number: 5 },
-        { id: 'blocks-l1-ask-answer', number: 6, required: true },
-        { id: 'blocks-l1-quiz', number: 7 },
-        { id: 'blocks-l1-count', number: 8, required: true },
-        { id: 'blocks-l1-broadcast', number: 9, required: true },
-        { id: 'blocks-l1-speak', number: 10 },
-        { id: 'blocks-l1-message-list', number: 11, required: true },
+        { id: 'blocks-l1-key-sound' },
+        { id: 'blocks-l1-arrow-move' },
+        { id: 'blocks-l1-click-say', required: true },
+        { id: 'blocks-l1-repeat' },
+        { id: 'blocks-l1-if' },
+        { id: 'blocks-l1-ask-answer', required: true },
+        { id: 'blocks-l1-quiz' },
+        { id: 'blocks-l1-count', required: true },
+        { id: 'blocks-l1-broadcast', required: true },
+        { id: 'blocks-l1-speak' },
+        { id: 'blocks-l1-message-list', required: true },
     ],
 });
 

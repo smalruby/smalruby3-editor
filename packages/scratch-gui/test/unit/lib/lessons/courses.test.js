@@ -88,6 +88,14 @@ describe('lesson courses', () => {
         });
     });
 
+    test('challenge numbers follow the order in the lesson', () => {
+        COURSES.forEach((course) =>
+            course.lessons.forEach((lesson) => {
+                expect(lesson.challenges.map((c) => c.number)).toEqual(lesson.challenges.map((_, i) => i + 1));
+            }),
+        );
+    });
+
     test('challenge ids are unique across all courses (they are the record keys)', () => {
         const ids = allChallenges().map((c) => c.id);
         expect(new Set(ids).size).toBe(ids.length);
