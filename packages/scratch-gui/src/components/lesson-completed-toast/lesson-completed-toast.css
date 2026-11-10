@@ -1,0 +1,74 @@
+@import "../../css/z-index.css";
+@import "../../css/colors.css";
+
+/* Non-blocking toast pinned to the top-center of the viewport, above the editor but
+   below modals. Only the toast itself takes pointer events.
+   top = menu bar (3rem) + lesson task bar (2.5rem, lesson-task-bar.css) + gap, so the
+   toast does not cover the task bar while a challenge is open. */
+.toast {
+    position: fixed;
+    top: calc(3rem + 2.5rem + 0.5rem);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: $z-index-card;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: min(92vw, 640px);
+    padding: 12px 12px 12px 16px;
+    background-color: rgba(255, 255, 255, 0.98);
+    border: 2px solid $motion-primary;
+    border-radius: 12px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+    color: $text-primary;
+}
+
+.icon {
+    font-size: 28px;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.body {
+    flex: 1;
+    min-width: 0;
+}
+
+.title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 18px;
+    font-weight: bold;
+    color: $motion-primary;
+}
+
+.challengeName {
+    font-size: 14px;
+    font-weight: normal;
+    color: $text-primary;
+}
+
+.skills {
+    margin-top: 4px;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.close {
+    background: none;
+    border: none;
+    color: $text-primary;
+    cursor: pointer;
+    font-size: 20px;
+    line-height: 1;
+    flex-shrink: 0;
+    padding: 4px 8px;
+    min-width: 44px;
+    min-height: 44px;
+}
+
+.close:hover {
+    opacity: 0.7;
+}

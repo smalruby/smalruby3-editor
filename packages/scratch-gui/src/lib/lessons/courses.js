@@ -46,7 +46,8 @@ export const defineChallenge = (def) => ({
     category: null,
     // できること: [{id, name}]。レッスンをまたいで id で重ねる
     skills: [],
-    // できた の判定（uses / result）。中身は 1-f で決める
+    // できた の判定: 条件の配列（全部を満たしたら「できた」）。形は goal.js と
+    // docs/lessons/README.md。null ならそのチャレンジは判定しない
     goal: null,
     required: false,
     allowedBlocks: null,

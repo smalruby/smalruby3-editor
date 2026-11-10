@@ -67,7 +67,7 @@
 | `task` | message \| null | null | 課題の 1 行 |
 | `category` | string \| null | null | なかま（パレットの色）。`CATEGORIES` の値（`motion` / `looks` / `sound` / `events` / `control` / `sensing` / `operators` / `variables` / `lists` / `extensions`）。レッスン表が色の丸で見せる |
 | `skills` | `{id, name}`[] | [] | できること。id で重ねる（別のチャレンジで同じものが身についても 1 つ） |
-| `goal` | object \| null | null | できた の判定（`uses` / `result`）。形は判定の実装で決める |
+| `goal` | 条件[] \| null | null | できた の判定。条件の配列で、全部を満たしたら「できた」（下の「できた の判定」）。null なら判定しない |
 | `required` | boolean | false | レッスンの必須か |
 | `allowedBlocks` | object \| null | null | パレットに出すブロック（deck と同じ形） |
 | `setup` | object \| null | null | 始めるときの準備（deck と同じ形。`lib/deck-setup.js`） |
@@ -130,6 +130,187 @@
 | `completedSkills(progress)` | できることの一覧 |
 | `exportProgress(progress)` | 送るための形 |
 
+## できた の判定（`goal`）
+
+レッスンモードのあいだ、エディタは VM の実行を見張り、チャレンジの `goal` を満たしたら記録に「できた」と
+書いて「できた！」（身についた「できること」の一覧つき）を出す。**プログラムの形は見ない**（ブロックの
+並び・個数は条件にしない。いろいろな作り方を認めるため）。ヒントの最後の手段「プログラムを入れる」で入れた
+プログラムでも、動けば「できた」になる。
+
+判定は `packages/scratch-gui/src/lib/lessons/goal.js`（純粋関数）、VM との接続は `goal-monitor.js`。
+
+### `goal` の形
+
+`goal` は **条件の配列**。全部を満たしたら「できた」。条件は `type` で分かれる。
+
+| `type` | 見るもの | 項目 |
+|--------|---------|------|
+| `uses` | 決めたきっかけ（`trigger`）から始まったスクリプトで、決めたブロックが動いた | `trigger`（省略可）, `blocks`（必須）, `order` |
+| `said` | 言った（考えた）文字 | `text`, `equalsAnswer`, `equalsVariable`, `answer`, `target` |
+| `variable` | 変数の値（ステージの変数を先に探す） | `name`, `value` |
+| `list` | リストの中身 | `name`, `length`, `itemsFromAnswers` |
+| `sprites` | スプライトの数（クローンを除く） | `min` |
+| `costumes` | コスチューム（`target: 'stage'` なら背景）の数が、チャレンジを開いたときより増えた。後から足したスプライトは数えない | `added`（既定 1）, `target` |
+| `extension` | 拡張機能を読み込んだ | `id`（例: `text2speech`） |
+
+**`uses` の項目**
+
+- `trigger`: `{hat, key, message, target, sentBy}`。`hat` はハットの opcode（`event_whenkeypressed` /
+  `event_whenflagclicked` / `event_whenthisspriteclicked` / `event_whenbroadcastreceived` など）。
+  `key` はキー（`space` / `up arrow` / `1` ...。「どれかのキー」のスクリプトも合格）、`message` はメッセージ名、
+  `target` は `'stage'` / `'sprite'`、`sentBy: 'other'` は「メッセージを別のスプライト（ステージ）が送った」。
+  省くとどのハットから始まったスクリプトでもよい。コードエリアでスクリプトをクリックして動かしたものは
+  数えない（きっかけが違う）。
+- `blocks`: 動いたブロックの一覧。要素は opcode の文字列か `{opcode, count, args, distinct}`。
+  - `count`: **1 回のスクリプトの実行（スレッド 1 本）の中で** その回数以上動いた（例: 背景を 6 回かえた）。
+    「待つ」「繰り返す」のように待ちながら何度も呼ばれるブロックは、呼ばれた回数になる
+  - `args`: 引数の条件（引数名 → 値の条件。例: `{DY: {gt: 0}}`）。条件に合う実行を数える
+  - `distinct`: その引数の **ちがう値** が `count` 種類以上あった（例: `{opcode: 'looks_say', distinct: 'MESSAGE', count: 2}` =
+    2 種類のセリフを言った）
+  - 要素ごとに「きっかけに合うどれかのスクリプトの実行で満たした」を見るので、同じキーのスクリプトが 2 本に
+    分かれていてもよい
+- `order`: opcode の並び。1 回のスクリプトの実行の中で、それぞれの **最初の実行** がこの順だった
+  （例: `['sensing_resettimer', 'sensing_askandwait']`）
+
+**値の条件（matcher）**: 値そのもの（等しい）・RegExp（`test`）・`{eq, ne, gt, gte, lt, lte, includes, matches}`。
+比べ方は Scratch と同じで、両方が数なら数として、そうでなければ文字（大文字小文字を区別しない）として比べる
+（全角の「７」と 7 は等しくない）。
+
+**`said` の項目**: `text`（matcher）、`equalsAnswer: true`（最後に「聞いて待つ」で入力した答えと同じ文字を言った）、
+`equalsVariable: '<変数名>'`（言った時点のその変数の値と同じ）、`answer`（言った時点の最後の答えの条件。
+例: `{eq: 7}` / `{ne: 7}`。まだ答えていなければ合わない）、`target`（`'stage'` / `'sprite'`）。
+吹き出しを消す（空の文字）は記録しない。
+
+**`list` の項目**: `length`（matcher。例: `{gte: 3}`）、`itemsFromAnswers: true`（中身が全部「聞いて待つ」に
+入力した答え）。
+
+`validateGoal(goal)` が形を確かめる（courses.js に入れる前のテスト用）。
+
+### レッスン 1 の 11 のチャレンジの `goal`（例）
+
+1-g で courses.js に入れるときの形。「できた の条件」（各 Issue の仕様）をこの形で書いたもの。
+
+```js
+// 1 キーで音を鳴らそう: スペースキーで、2 つの音が順に鳴った
+[{ type: 'uses', trigger: { hat: 'event_whenkeypressed', key: 'space' }, blocks: ['sound_playuntildone', 'sound_play'], order: ['sound_playuntildone', 'sound_play'] }]
+
+// 2 矢印キーで動かそう: 上と下の矢印キーで、ネコが上と下の両方に動いた
+[
+    { type: 'uses', trigger: { hat: 'event_whenkeypressed', key: 'up arrow' }, blocks: [{ opcode: 'motion_changeyby', args: { DY: { gt: 0 } } }] },
+    { type: 'uses', trigger: { hat: 'event_whenkeypressed', key: 'down arrow' }, blocks: [{ opcode: 'motion_changeyby', args: { DY: { lt: 0 } } }] },
+]
+
+// 3 押したら話そう: コスチュームを 1 つ以上足し、ネコを押して、セリフが出て、コスチュームがかわった
+[
+    { type: 'costumes', added: 1 },
+    { type: 'uses', trigger: { hat: 'event_whenthisspriteclicked' }, blocks: ['looks_sayforsecs', 'looks_nextcostume'] },
+]
+
+// 4 くり返そう: ステージの 1 のキーで、背景が 6 回かわった
+[{ type: 'uses', trigger: { hat: 'event_whenkeypressed', key: '1', target: 'stage' }, blocks: ['control_repeat', { opcode: 'looks_switchbackdropto', count: 6 }] }]
+
+// 5 もし〜なら: さわったときのセリフと、さわっていないときのセリフの両方が出た
+[{ type: 'uses', trigger: { hat: 'event_whenflagclicked' }, blocks: ['sensing_touchingobject', { opcode: 'looks_say', distinct: 'MESSAGE', count: 2 }] }]
+
+// 6 聞いて答えよう: リセット → 聞く の順で、入力した答えと、かかった秒数を言った
+[
+    {
+        type: 'uses',
+        trigger: { hat: 'event_whenthisspriteclicked' },
+        blocks: ['sensing_resettimer', 'sensing_askandwait', 'sensing_answer', 'sensing_timer', { opcode: 'looks_sayforsecs', count: 2 }],
+        order: ['sensing_resettimer', 'sensing_askandwait'],
+    },
+    { type: 'said', equalsAnswer: true },
+]
+
+// 7 クイズを作ろう: 7 を入れたら「正解です」、ほかの数で「ちがいます」と言った
+[
+    { type: 'said', text: '正解です', answer: { eq: 7 } },
+    { type: 'said', text: 'ちがいます', answer: { ne: 7 } },
+]
+
+// 8 数えよう: 変数「回数」が 3 以上になり、その数を言った
+[
+    { type: 'variable', name: '回数', value: { gte: 3 } },
+    { type: 'said', equalsVariable: '回数' },
+]
+
+// 9 なかまに合図しよう: スプライト 2 つ以上。ネコを押して送ったメッセージで、別のスプライトがセリフを言った
+[
+    { type: 'sprites', min: 2 },
+    { type: 'uses', trigger: { hat: 'event_whenthisspriteclicked' }, blocks: ['event_broadcast'] },
+    { type: 'uses', trigger: { hat: 'event_whenbroadcastreceived', sentBy: 'other' }, blocks: ['looks_sayforsecs'] },
+]
+
+// 10 しゃべらせよう: 音声合成を足して、しゃべるブロックが動いた
+[
+    { type: 'extension', id: 'text2speech' },
+    { type: 'uses', trigger: { hat: 'event_whenthisspriteclicked' }, blocks: ['text2speech_speakAndWait'] },
+]
+
+// 11 メッセージをためよう: リスト「トーク」に、入力したメッセージが 3 つ以上たまった
+[{ type: 'list', name: 'トーク', length: { gte: 3 }, itemsFromAnswers: true }]
+```
+
+これらが形として書けて、意図したプログラムで満たされることは `test/unit/lib/lessons/goal.test.js` で確かめている。
+
+### VM の見張り方（scratch-vm は変えない）
+
+scratch-vm には「ブロックが動いた」を知らせるイベントが無い（`BLOCK_GLOW_ON` はクリックしたスクリプトだけ、
+`SCRIPT_GLOW_ON` は編集中のスプライトだけ、Profiler は opcode ごとの回数だけでスレッドが分からない）。
+そこで `vm-execution-hook.js` が **runtime インスタンスの `getOpcodeFunction` を包む**。execute.js がブロックの
+関数（primitive）を取りに来たときに、呼び出しを記録してから元の関数へ渡すラッパーを返す。ラッパーは
+`(args, util)` をそのまま受けるので、`util.thread` から **どのスレッド（＝どのハットから始まったスクリプト）か**
+（`thread.topBlock` のブロック・`thread.target`・クリックで動かしたか `thread.stackClick`）と、引数の値が分かる。
+
+| 事実 | 取り方 |
+|------|--------|
+| ブロックの実行（opcode・引数・スレッド） | 上のフック。スレッドの最初の実行で run（1 回のスクリプトの実行）を作る。モニター用のスレッド（`thread.updateMonitor`）は除く |
+| きっかけ（ハット） | `thread.topBlock` のブロックの opcode とフィールド（`KEY_OPTION` / `BROADCAST_OPTION`） |
+| 誰がメッセージを送ったか | `event_broadcast` / `event_broadcastandwait` の実行を記録（メッセージ名 → ターゲット id）。受け取ったスクリプトの run に送り主を持つ |
+| 言った文字 | runtime の `SAY` イベント（`say` / `think` も。空の文字は吹き出しを消すだけなので記録しない）。言った時点の変数の値も一緒に持つ |
+| 答え | runtime の `ANSWER` イベント |
+| 変数・リスト・スプライト数・コスチューム数・拡張機能 | 判定のたびに VM を読む（`takeSnapshot`）。コスチューム数は見張りを始めたときの数と比べる |
+
+注意:
+
+- execute.js は取った関数を **ブロックごとの cache**（`BlockCached`）に持つので、見張りを始めるとき全ターゲットの
+  `blocks.resetCache()` を呼んで、包む前に取られた関数を作り直させる。一度包んだら runtime の間は包んだまま
+  （listener が無いときは元の関数を呼ぶだけ）。
+- primitive の中から別の primitive を呼ぶもの（mesh v2 の broadcast など）は外側だけ記録する。
+- 判定は、何か記録があったあとの次の step（runtime の `BEFORE_STEP`）で 1 回だけ行う（1 step に何度も判定しない）。
+  スプライト・コスチューム・拡張機能の変化は `PROJECT_CHANGED` / `targetWasCreated` / `EXTENSION_ADDED` で判定を
+  予約する。
+- 記録は上限つき（run 200 本・言った文字 500・答え 500・1 ブロックの引数の組み合わせ 50 種）。ずっと動く
+  プログラムでも増え続けない。
+- 満たしたら見張りをやめる（1 チャレンジにつき「できた」は 1 回。同じチャレンジを開き直せばまた見張る）。
+
+### 「できた！」の表示
+
+`containers/lesson-goal-watcher.jsx`（gui.jsx に常時マウント）が、レッスンモードのあいだだけ見張りをつなぎ、
+満たしたら `markChallengeCompleted` を dispatch して `components/lesson-completed-toast/` を出す。
+記録にすでにある（前にできた）チャレンジでも「できた！」は出す（記録の日時は最初のまま）。
+
+| data-testid | 要素 | 説明 |
+|------------|------|------|
+| `lesson-completed-toast` | div | 「できた！」の toast |
+| `lesson-completed-toast-title` | span | 「できた！」 |
+| `lesson-completed-toast-challenge` | span | チャレンジの名前 |
+| `lesson-completed-toast-skills` | div | できることの一覧（`skills` が無いチャレンジでは出ない） |
+| `lesson-completed-toast-close` | button | 閉じる |
+
+![できた！（1300×600）](screenshots/0101-completed-toast-1300x600.png)
+
+デバッグ・テスト用に `window.smalruby.lessonGoal` を出している（integration テスト
+`test/integration/lesson-goal.test.js` と pw-check が使う。レッスン表・レッスンモードの UI ができるまでの入口）:
+
+| 関数 | 説明 |
+|------|------|
+| `attach(goal, onSatisfied)` | チャレンジを開かずに、いまの VM に goal をつないで試す。見張りをやめる関数を返す |
+| `evaluateGoal` / `validateGoal` | goal.js の関数そのもの |
+| `openChallenge(id)` / `closeLesson()` | チャレンジを開く / レッスンモードを抜ける（Redux の action） |
+| `markCompleted(id)` | 「できた」にする（記録 + 「できた！」） |
+
 ## 状態（Redux）
 
 `packages/scratch-gui/src/reducers/lesson-mode.js`（`state.scratchGui.lessonMode`）。
@@ -140,15 +321,17 @@
 | `pendingChallengeId` | 開こうとしているチャレンジ（新しい作品ができるまでの間だけ入る。下の「レッスンモード」） |
 | `hintVisible` / `hintIndex` | ヒントの吹き出しを出しているか・何番めのヒントか（チャレンジを開く・閉じるたびに最初にもどる） |
 | `progress` | 記録の写し（起動時に localStorage から読む） |
+| `justCompletedId` | 「できた！」を出しているチャレンジ id（null なら出していない） |
 
 | action / selector | 説明 |
 |------|------|
 | `startChallenge(challengeId)` | **チャレンジを開く入口**（レッスン表が呼ぶ）。新しい作品 → setup → `openChallenge` の順にコンテナが進める（知らない id は無視） |
 | `cancelStartChallenge()` | 開こうとしていたチャレンジを取り消す（「保存しますか」で取りやめたとき） |
-| `openChallenge(challengeId)` | レッスンモードに入る（作品の準備は済んでいる前提。知らない id は無視） |
+| `openChallenge(challengeId)` | レッスンモードに入る（作品の準備は済んでいる前提。知らない id は無視）。「できた！」は消す |
 | `closeLesson()` | レッスンモードを抜ける（記録は残す） |
 | `showHint()` / `hideHint()` / `nextHint()` / `prevHint()` | ヒントの吹き出しの出し入れと「進める・もどる」（ヒントが無いチャレンジでは出ない。両端で止まる） |
-| `markChallengeCompleted(challengeId, completedAt?)` | 「できた」にして localStorage にも書く。書く前に localStorage の最新と合わせる（別のタブが書いた分を消さない） |
+| `markChallengeCompleted(challengeId, completedAt?)` | 「できた」にして localStorage にも書く。書く前に localStorage の最新と合わせる（別のタブが書いた分を消さない）。`justCompletedId` をそのチャレンジにする（すでにできていても） |
+| `dismissCompleted()` | 「できた！」を閉じる |
 | `reloadProgress()` | localStorage の最新を写しに取り込む（別のタブが書いた分を、レッスン表を開くときなどに反映する。書かない） |
 | `isLessonMode(state)` / `getCurrentChallenge(state)` | レッスンモードか / `{course, lesson, challenge}` |
 | `getLessonAllowedBlocks(state)` | パレットに出すブロック（チャレンジの `allowedBlocks`。無ければ null）。Blocks コンテナがチュートリアルの `tutorialAllowedBlocks` より優先して使う |
@@ -270,7 +453,12 @@
 | `packages/scratch-gui/src/lib/lessons/lessons.locale.js` | 文言（en / ja / ja-Hira。`src/locales/*.js` に spread） |
 | `packages/scratch-gui/src/lib/lessons/lesson-progress.js` | 端末への記録・クリア判定・できること |
 | `packages/scratch-gui/src/lib/lessons/challenge-setup.js` | チャレンジを開くときの setup（言語の既定 + チャレンジの `setup`） |
-| `packages/scratch-gui/src/reducers/lesson-mode.js` | いま開いているチャレンジ・開こうとしているチャレンジ・ヒント・記録の写し |
+| `packages/scratch-gui/src/lib/lessons/goal.js` | できた の判定（`goal` の形・事実の記録・判定の純粋関数・`validateGoal`） |
+| `packages/scratch-gui/src/lib/lessons/vm-execution-hook.js` | ブロックの実行をスレッドつきで取るフック（runtime の `getOpcodeFunction` を包む） |
+| `packages/scratch-gui/src/lib/lessons/goal-monitor.js` | VM を見張って goal を判定する（`attachGoalMonitor` / `takeSnapshot`） |
+| `packages/scratch-gui/src/containers/lesson-goal-watcher.jsx` | レッスンモードのあいだ見張りをつなぎ、できたら記録して「できた！」を出す（gui.jsx に常時マウント） |
+| `packages/scratch-gui/src/components/lesson-completed-toast/` | 「できた！」の表示 |
+| `packages/scratch-gui/src/reducers/lesson-mode.js` | いま開いているチャレンジ・開こうとしているチャレンジ・ヒント・「できた！」・記録の写し |
 | `packages/scratch-gui/src/containers/lesson-mode.jsx` | チャレンジを開く流れ（新しい作品 → setup → レッスンモード）と課題バーのマウント。`gui.jsx` のエディタ列の先頭に常時マウント |
 | `packages/scratch-gui/src/components/lesson-task-bar/` | 課題バー（1 行・40px） |
 | `packages/scratch-gui/src/components/lessons-library/` | レッスン表（モーダル） |
@@ -279,8 +467,10 @@
 | `packages/scratch-gui/src/reducers/modals.js` | `lessonsLibrary` モーダルの開閉（Smalruby マーカー `lessons library`） |
 | `packages/scratch-gui/src/components/mobile-drawer/mobile-drawer.jsx` | SP のドロワーの「レッスン」 |
 | `packages/scratch-gui/src/containers/blocks.jsx` | `getLessonAllowedBlocks` でパレットを絞る（Smalruby マーカー `lesson mode`） |
-| `packages/scratch-gui/test/unit/lib/lessons/` | データの形・記録・クリア判定・setup の unit テスト |
+| `packages/scratch-gui/test/unit/lib/lessons/` | データの形・記録・クリア判定・setup・できた の判定・見張りの unit テスト |
 | `packages/scratch-gui/test/unit/reducers/lesson-mode-reducer.test.js` | reducer の unit テスト |
+| `packages/scratch-gui/test/unit/components/lesson-completed-toast.test.jsx` / `test/unit/containers/lesson-goal-watcher.test.jsx` | 「できた！」と見張りのコンテナの unit テスト |
+| `packages/scratch-gui/test/integration/lesson-goal.test.js` | 本物の VM に Ruby のプログラムを入れて動かし、判定が true になる integration テスト |
 | `packages/scratch-gui/src/components/menu-bar/menu-bar.jsx` | 「レッスン」ボタンと吹き出し（`lessons button` マーカー）、「?」メニューのチュートリアル / デバッグ項目（`help menu` マーカー） |
 | `packages/scratch-gui/src/containers/menu-bar-hoc.jsx` | `onOpenLessonsLibrary` / `showLessonsTooltip`（`lessons button` マーカー）と `onOpenTipsLibrary`（`help menu` マーカー）の供給 |
 | `packages/scratch-gui/test/unit/components/lesson-task-bar.test.jsx` / `test/unit/containers/lesson-mode.test.jsx` | 課題バーとチャレンジを開く流れの unit テスト |

@@ -22,6 +22,7 @@ const NEXT_HINT = 'scratch-gui/lesson-mode/NEXT_HINT';
 const PREV_HINT = 'scratch-gui/lesson-mode/PREV_HINT';
 const MARK_CHALLENGE_COMPLETED = 'scratch-gui/lesson-mode/MARK_CHALLENGE_COMPLETED';
 const RELOAD_PROGRESS = 'scratch-gui/lesson-mode/RELOAD_PROGRESS';
+const DISMISS_COMPLETED = 'scratch-gui/lesson-mode/DISMISS_COMPLETED';
 
 // ヒントの吹き出しの状態。チャレンジを開く・閉じるたびに最初にもどす
 const hintClosedState = {
@@ -36,6 +37,8 @@ const closedState = {
     // 開こうとしているチャレンジ（新しい作品ができるまでの間だけ入る）
     pendingChallengeId: null,
     ...hintClosedState,
+    // 「できた！」を出しているチャレンジ id（閉じる・別のチャレンジを開くと null）
+    justCompletedId: null,
 };
 
 const initialState = {
@@ -67,6 +70,7 @@ const reducer = function (state, action) {
                 challengeId: found.challenge.id,
                 pendingChallengeId: null,
                 ...hintClosedState,
+                justCompletedId: null,
             };
         }
         case CLOSE_LESSON:
@@ -88,10 +92,14 @@ const reducer = function (state, action) {
             // 別のタブが起動後に書いた分を消さないよう、localStorage の最新と合わせてから足す
             const latest = mergeProgress(state.progress, loadProgress());
             const progress = markProgress(latest, action.challengeId, action.completedAt);
-            if (progress === state.progress) return state;
-            saveProgress(progress);
-            return { ...state, progress };
+            if (progress !== state.progress) saveProgress(progress);
+            // もう一度できたときも「できた！」は出す（記録は最初の日時のまま）
+            const justCompletedId = findChallenge(action.challengeId) ? action.challengeId : state.justCompletedId;
+            if (progress === state.progress && justCompletedId === state.justCompletedId) return state;
+            return { ...state, progress, justCompletedId };
         }
+        case DISMISS_COMPLETED:
+            return state.justCompletedId === null ? state : { ...state, justCompletedId: null };
         case RELOAD_PROGRESS: {
             // 別のタブが書いた分を写しに取り込む（レッスン表を開くときなど）。localStorage は書かない
             const progress = mergeProgress(state.progress, loadProgress());
@@ -137,6 +145,8 @@ const markChallengeCompleted = (challengeId, completedAt = new Date().toISOStrin
 });
 
 const reloadProgress = () => ({ type: RELOAD_PROGRESS });
+
+const dismissCompleted = () => ({ type: DISMISS_COMPLETED });
 
 const isLessonMode = (state) => state.scratchGui.lessonMode.challengeId !== null;
 
@@ -193,6 +203,7 @@ export {
     prevHint,
     markChallengeCompleted,
     reloadProgress,
+    dismissCompleted,
     isLessonMode,
     getCurrentChallenge,
     getLessonAllowedBlocks,
