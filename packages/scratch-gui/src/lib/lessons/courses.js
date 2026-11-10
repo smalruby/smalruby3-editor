@@ -89,7 +89,16 @@ const blocksLesson1 = defineLesson({
     challenges: [
         { id: 'blocks-l1-key-sound' },
         { id: 'blocks-l1-arrow-move' },
-        { id: 'blocks-l1-click-say', required: true },
+        {
+            id: 'blocks-l1-click-say',
+            required: true,
+            task: message('gui.lessons.challenge.blocks-l1-click-say.task'),
+            allowedBlocks: {
+                looks: ['looks_say', 'looks_sayforsecs'],
+                event: ['event_whenthisspriteclicked'],
+            },
+            setup: { tab: 'code' },
+        },
         { id: 'blocks-l1-repeat' },
         { id: 'blocks-l1-if' },
         { id: 'blocks-l1-ask-answer', required: true },
