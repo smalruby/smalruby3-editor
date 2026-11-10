@@ -1773,6 +1773,8 @@ export default {
     'gui.genaiConcierge.programShow': 'プログラムを見る',
     'gui.genaiConcierge.programHide': 'プログラムをかくす',
     'gui.genaiConcierge.reflectionLabel': 'どこが変わるのか、自分のことばで 1 行書こう（必須）',
+    'gui.genaiConcierge.reflectionHint': 'あと {count} 文字書くと、［このブロックを入れる］を押せます',
+    'gui.genaiConcierge.reflectionHintCode': 'あと {count} 文字書くと、［このコードにする］を押せます',
     'gui.genaiConcierge.applyReplaces': '入れると、{names}のブロックが置きかわります。',
     'gui.genaiConcierge.apply': 'このブロックを入れる',
     'gui.genaiConcierge.self': '自分で組む',

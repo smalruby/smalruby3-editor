@@ -225,4 +225,34 @@ describe('GenaiAnswerSteps words (#1446)', () => {
             expect(screen.getByTestId('genai-answer')).toBeInTheDocument();
         });
     });
+
+    // The button stays disabled until the reflection is long enough: the student is told how
+    // many characters are left, or the disabled button looks broken.
+    describe.each([
+        ['code', '［このブロックを入れる］'],
+        ['ruby', '［このコードにする］'],
+    ])('the reflection before putting it in (%s)', (tab, button) => {
+        const reflect = (value) => fireEvent.change(screen.getByTestId('genai-reflection'), { target: { value } });
+
+        test('says how many characters are left until the button can be pressed', async () => {
+            renderSteps(tab, okResult);
+            paste();
+            await convert();
+            expect(screen.getByTestId('genai-reflection-hint')).toHaveTextContent(
+                `あと 5 文字書くと、${button}を押せます`,
+            );
+            reflect('動く');
+            expect(screen.getByTestId('genai-reflection-hint')).toHaveTextContent('あと 3 文字');
+            expect(screen.getByTestId('genai-apply')).toBeDisabled();
+        });
+
+        test('the hint goes and the button can be pressed at 5 characters', async () => {
+            renderSteps(tab, okResult);
+            paste();
+            await convert();
+            reflect('動くように');
+            expect(screen.queryByTestId('genai-reflection-hint')).toBeNull();
+            expect(screen.getByTestId('genai-apply')).toBeEnabled();
+        });
+    });
 });

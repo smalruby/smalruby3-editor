@@ -449,6 +449,16 @@ const messages = defineMessages({
         description: 'Label of the one-line reflection before putting the blocks in',
         id: 'gui.genaiConcierge.reflectionLabel',
     },
+    reflectionHint: {
+        defaultMessage: '{count} more characters and you can press "Put these blocks in"',
+        description: 'Under the reflection while it is too short ({count}: characters still needed)',
+        id: 'gui.genaiConcierge.reflectionHint',
+    },
+    reflectionHintCode: {
+        defaultMessage: '{count} more characters and you can press "Use this code"',
+        description: 'Under the reflection in the Ruby tab while it is too short ({count}: characters still needed)',
+        id: 'gui.genaiConcierge.reflectionHintCode',
+    },
     applyReplaces: {
         defaultMessage: 'Putting them in replaces the blocks of {names}.',
         description: 'Which sprites the blocks are replaced in ({names}: sprite names)',

@@ -314,6 +314,15 @@ $step-todo: #d3d9e3;
     margin-right: auto;
 }
 
+/* A line under the buttons of the footer (e.g. what is still needed before a button can be pressed). */
+.footerHint {
+    flex-basis: 100%;
+    margin: 0;
+    text-align: right;
+    font-size: 0.75rem;
+    color: $text-primary;
+}
+
 .question {
     margin: 2px 0 8px;
     font-weight: bold;

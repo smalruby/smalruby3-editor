@@ -1823,6 +1823,8 @@ export default {
     'gui.genaiConcierge.programShow': 'プログラムをみる',
     'gui.genaiConcierge.programHide': 'プログラムをかくす',
     'gui.genaiConcierge.reflectionLabel': 'どこがかわるのか、じぶんのことばで 1 ぎょうかこう（ひっす）',
+    'gui.genaiConcierge.reflectionHint': 'あと {count} もじかくと、［このブロックをいれる］をおせます',
+    'gui.genaiConcierge.reflectionHintCode': 'あと {count} もじかくと、［このコードにする］をおせます',
     'gui.genaiConcierge.applyReplaces': 'いれると、{names}のブロックがおきかわります。',
     'gui.genaiConcierge.apply': 'このブロックをいれる',
     'gui.genaiConcierge.self': 'じぶんでくむ',

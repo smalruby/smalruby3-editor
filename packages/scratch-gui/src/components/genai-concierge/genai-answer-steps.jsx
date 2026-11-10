@@ -30,6 +30,9 @@ import messages from './messages.js';
 
 const quoteNames = (names) => names.map((name) => `「${name}」`).join('');
 
+// Characters of the one-line reflection needed before the answer can be put in.
+const MIN_REFLECTION = 5;
+
 // Lines of the list shown before 「ほかに N か所」.
 const MAX_CHANGES = 6;
 
@@ -699,11 +702,20 @@ const GenaiAnswerSteps = ({
                             <button
                                 className={styles.primary}
                                 data-testid="genai-apply"
-                                disabled={reflection.trim().length < 5 || busy}
+                                disabled={reflection.trim().length < MIN_REFLECTION || busy}
                                 onClick={handleApply}
                             >
                                 <FormattedMessage {...(putsCode ? messages.applyCode : messages.apply)} />
                             </button>
+                            {reflection.trim().length < MIN_REFLECTION && (
+                                // In the footer, which is always in view: the reflection may be scrolled away.
+                                <p className={styles.footerHint} data-testid="genai-reflection-hint">
+                                    <FormattedMessage
+                                        {...(putsCode ? messages.reflectionHintCode : messages.reflectionHint)}
+                                        values={{ count: MIN_REFLECTION - reflection.trim().length }}
+                                    />
+                                </p>
+                            )}
                         </>
                     )}
                     {converted && !converted.ok && canOfferTakeover({ failures, rubyteeAvailable }) && (
