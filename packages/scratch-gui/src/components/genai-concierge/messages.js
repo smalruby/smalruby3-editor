@@ -479,6 +479,16 @@ const messages = defineMessages({
         description: 'Button closing the panel to build the program without the AI blocks',
         id: 'gui.genaiConcierge.self',
     },
+    nextAnswerLabel: {
+        defaultMessage: "Copy the request and send it to {name}. When {name} answers again, paste the new answer here",
+        description: 'Label of the field for the AI\'s rewritten answer, under a failed check ({name}: e.g. Gemini)',
+        id: 'gui.genaiConcierge.nextAnswerLabel',
+    },
+    nextAnswerPlaceholder: {
+        defaultMessage: "Paste {name}'s new answer here (Ctrl+V)",
+        description: 'Placeholder of the field for the AI\'s rewritten answer ({name}: e.g. Gemini)',
+        id: 'gui.genaiConcierge.nextAnswerPlaceholder',
+    },
     copyRewrite: {
         defaultMessage: 'Copy a request to rewrite it',
         description: 'Button copying a request asking the AI to rewrite the program',

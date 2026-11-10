@@ -11,6 +11,8 @@
 // The Ruby tab shows what changes in lines: Monaco's diff before, counts and marks after (#1399).
 // The Ruby tab still checks an answer by turning it into blocks, but only to see that it
 // runs: its words say whether the program has a problem, not whether it becomes blocks (#1446).
+// After ✗, an empty field takes the AI's rewritten answer, so the student need not find the
+// folded answer to paste over it.
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
@@ -306,6 +308,8 @@ const GenaiAnswerSteps = ({
     // The Ruby tab puts code in the editor, not blocks (#1398).
     const putsCode = adapter.puts === 'code';
     const [answer, setAnswer] = useState('');
+    // The AI's next answer, pasted under ✗ (it becomes the answer when it is checked).
+    const [nextAnswer, setNextAnswer] = useState('');
     const [converted, setConverted] = useState(null);
     const [failures, setFailures] = useState(0);
     const [showRuby, setShowRuby] = useState(false);
@@ -359,16 +363,26 @@ const GenaiAnswerSteps = ({
     // Check a text as an answer, with what it adds or changes (does not set state).
     const checkText = useCallback((text) => adapter.check(text), [adapter]);
 
-    const convertAnswer = useCallback(async () => {
-        const result = await checkText(answer);
-        setConverted(result);
-        if (!result.ok) {
-            setFailures((f) => f + 1);
-            setTries((list) => [...list, { answer, problems: result.problems.map(problemToJapanese), rewrite: null }]);
-        }
-    }, [answer, checkText]);
+    const convertAnswer = useCallback(
+        async (text) => {
+            const result = await checkText(text);
+            setConverted(result);
+            if (!result.ok) {
+                setFailures((f) => f + 1);
+                setTries((list) => [
+                    ...list,
+                    { answer: text, problems: result.problems.map(problemToJapanese), rewrite: null },
+                ]);
+            }
+        },
+        [checkText],
+    );
 
+    // Checks the answer, or the next answer pasted under ✗ (it takes the answer's place).
     const handleConvert = useCallback(async () => {
+        const text = nextAnswer.trim() ? nextAnswer : answer;
+        setAnswer(text);
+        setNextAnswer('');
         setConverted(null);
         setByRubytee(null);
         setTakeover(null);
@@ -379,11 +393,11 @@ const GenaiAnswerSteps = ({
         // Let the spinner paint before the (synchronous-heavy) conversion starts.
         await new Promise((resolve) => setTimeout(resolve, 50));
         try {
-            await convertAnswer();
+            await convertAnswer(text);
         } finally {
             setChecking(false);
         }
-    }, [convertAnswer, onClearNotice]);
+    }, [answer, nextAnswer, convertAnswer, onClearNotice]);
 
     // Bring the marked changes into view: those of the sprite in the editor first.
     const showMarks = useCallback(
@@ -436,6 +450,7 @@ const GenaiAnswerSteps = ({
         setConverted(null);
         setByRubytee(null);
     }, []);
+    const handleNextAnswerChange = useCallback((e) => setNextAnswer(e.target.value), []);
     const handleToCopy = useCallback(() => onStep('copy'), [onStep]);
     const handleToggleAnswer = useCallback((e) => {
         e.preventDefault();
@@ -630,6 +645,25 @@ const GenaiAnswerSteps = ({
                                     {notice}
                                 </p>
                             )}
+                            {canFold && (
+                                <div className={styles.nextAnswer}>
+                                    <p className={styles.label}>
+                                        <FormattedMessage
+                                            {...messages.nextAnswerLabel}
+                                            values={{ name: serviceName || '' }}
+                                        />
+                                    </p>
+                                    <textarea
+                                        className={styles.prompt}
+                                        data-testid="genai-answer-next"
+                                        value={nextAnswer}
+                                        placeholder={intl.formatMessage(messages.nextAnswerPlaceholder, {
+                                            name: serviceName || '',
+                                        })}
+                                        onChange={handleNextAnswerChange}
+                                    />
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
@@ -676,11 +710,21 @@ const GenaiAnswerSteps = ({
                     )}
                     {converted && !converted.ok && converted.code && (
                         <button
-                            className={styles.primary}
+                            className={nextAnswer.trim() ? '' : styles.primary}
                             data-testid="genai-copy-rewrite"
                             onClick={handleCopyRewrite}
                         >
                             <FormattedMessage {...messages.copyRewrite} />
+                        </button>
+                    )}
+                    {converted && !converted.ok && nextAnswer.trim() && (
+                        <button
+                            className={styles.primary}
+                            data-testid="genai-convert"
+                            disabled={checking}
+                            onClick={handleConvert}
+                        >
+                            <FormattedMessage {...(putsCode ? messages.convertCode : messages.convert)} />
                         </button>
                     )}
                 </div>

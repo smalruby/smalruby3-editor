@@ -223,6 +223,41 @@ export const panelPlacement = ({ areaWidth, rootLeft, panelWidth, faceWidth }) =
     return { left: Math.max(0, left), bottom: faceWidth + FACE_GAP };
 };
 
+/** Height of the menu bar at the top of the page ($menu-bar-height): the panel stays below it. */
+const MENU_BAR_HEIGHT = 48;
+/** Space kept between the panel and the edges it stays in (px). */
+const PANEL_EDGE = 8;
+/** The panel is never dragged so low that less than this height is left for it (px). */
+const MIN_PANEL_HEIGHT = 240;
+
+/**
+ * Where the panel may be dragged to, and how tall it may grow (#1293 P5). It stays in the
+ * box around the face that clips it (the editor below the tabs), below the menu bar and in
+ * the window: out of them it is cut off or covered, and its header (× and the handle to
+ * move it) can no longer be reached. It may grow up to the top of that space.
+ * @param {object} params - parameters
+ * @param {number} params.rootLeft - left of the face's box in the window
+ * @param {number} params.rootBottom - bottom of the face's box in the window
+ * @param {{left: number, bottom: number}} params.place - the panel in the face's box (panelPlacement)
+ * @param {number} params.panelWidth - width of the panel
+ * @param {{x: number, y: number}} params.offset - how far the student dragged the panel
+ * @param {{top: number, left: number, right: number, bottom: number}} params.clip - the box that
+ *   clips the panel, in the window (the window itself when nothing clips it)
+ * @returns {{offset: {x: number, y: number}, maxHeight: number}} the offset kept in the space and the panel's max height
+ */
+export const panelFrame = ({ rootLeft, rootBottom, place, panelWidth, offset, clip }) => {
+    const top = Math.max(MENU_BAR_HEIGHT, clip.top) + PANEL_EDGE;
+    const baseBottom = rootBottom - place.bottom;
+    const maxY = clip.bottom - PANEL_EDGE - baseBottom;
+    const minY = Math.min(maxY, top + MIN_PANEL_HEIGHT - baseBottom);
+    const y = Math.min(maxY, Math.max(minY, offset.y));
+    const baseLeft = rootLeft + place.left;
+    const maxX = clip.right - PANEL_EDGE - panelWidth - baseLeft;
+    const minX = Math.min(maxX, clip.left + PANEL_EDGE - baseLeft);
+    const x = Math.min(maxX, Math.max(minX, offset.x));
+    return { offset: { x, y }, maxHeight: Math.max(0, baseBottom + y - top) };
+};
+
 /**
  * Room beside the face (px) for the whole 「AI に相談」 label: less than this (e.g. the
  * code tab on an iPad held upright), the label would cover much of the blocks or the code,

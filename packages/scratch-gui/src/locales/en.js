@@ -1380,6 +1380,8 @@ export default {
     'gui.genaiConcierge.applyReplacesCode': 'This replaces the code of {names} in the editor (Ctrl+Z takes it back).',
     'gui.genaiConcierge.applyCode': 'Use this code',
     'gui.genaiConcierge.selfCode': 'Write it myself',
+    'gui.genaiConcierge.nextAnswerLabel': "Copy the request and send it to {name}. When {name} answers again, paste the new answer here",
+    'gui.genaiConcierge.nextAnswerPlaceholder': "Paste {name}'s new answer here (Ctrl+V)",
     'gui.genaiConcierge.copyRewrite': 'Copy a request to rewrite it',
     'gui.genaiConcierge.takeover': 'Leave it to Rubytee',
     'gui.genaiConcierge.takeoverRunning':

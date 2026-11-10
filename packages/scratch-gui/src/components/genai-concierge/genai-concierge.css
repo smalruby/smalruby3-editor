@@ -501,6 +501,21 @@ $step-todo: #d3d9e3;
     background-color: #fdecec;
 }
 
+/* The AI's rewritten answer is pasted here, under ✗. */
+.nextAnswer {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px dashed $ui-black-transparent;
+}
+
+.nextAnswer .label {
+    font-size: 0.8rem;
+}
+
+.nextAnswer textarea {
+    background-color: $ui-white;
+}
+
 .ok p,
 .ng p {
     margin: 0 0 6px;
