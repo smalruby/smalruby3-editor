@@ -31,6 +31,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/components/connection-modal/connection-modal.jsx` | network filter detection feature | ネットワークフィルター検出 |
 | `src/components/connection-modal/error-step.jsx` | smalrubot firmware flash | エラーステップのファームウェアボタン |
 | `src/reducers/modals.js` | smalrubot firmware modal | ファームウェアモーダル開時に接続モーダルを自動で閉じる |
+| `src/reducers/modals.js` | lessons library | レッスン表のモーダル `lessonsLibrary`（定数・初期状態・`openLessonsLibrary` / `closeLessonsLibrary` の定義と export。`docs/lessons/README.md`） |
 | `src/components/connection-modal/connection-modal.jsx` | meshV2 initial step feature | Mesh v2 初期ステップ UI |
 | `src/components/connection-modal/connection-modal.jsx` | smalrubotS1 dedicated flow | SmalrubotS1 専用フロー (PHASES、ステップ振り分け、propTypes) |
 | `src/containers/connection-modal.jsx` | smalrubotS1 dedicated flow | SmalrubotS1 専用フロー (initial phase 判定、ハンドラー、props) |
@@ -50,6 +51,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/containers/gui.jsx` | welcome modal | `onShowWelcomeModal` を Redux `openWelcomeModal()` にマップ |
 | `src/components/gui/gui.jsx` | DNCL mode notice | DnclModeNotice コンポーネントの import・配置・`onRequestExitDnclMode` prop |
 | `src/components/gui/gui.jsx` | lesson mode | レッスンモードのコンテナ `LessonMode`（課題バー + チャレンジを開く流れ）の import と、エディタ列（`<Tabs>` の前）への常時マウント（`docs/lessons/README.md`） |
+| `src/components/gui/gui.jsx` | lessons library | レッスン表のコンテナ `LessonsLibrary` の import と、他のモーダルと並ぶ場所（`WelcomeModalHOC` の次）への常時マウント（`docs/lessons/README.md`） |
 | `src/containers/gui.jsx` | DNCL mode notice | `onRequestExitDnclMode` を Redux `setDnclMode(false)` + `requestExternalExitDnclMode()` にマップ |
 | `src/components/gui/gui.jsx` | genai concierge | 「生成AI に相談」の顔（`GenaiConcierge`）の import とスクリプトエリアへの常時マウント。表示条件はコンテナ側で判定（`docs/genai-consult/README.md`） |
 | `src/components/extension-button/extension-button.jsx` | DNCL extension confirm | DNCL モード時の拡張機能ボタンを confirm ダイアログ化（メッセージ定義 + クリックハンドラの 2 箇所）。OK でふりがなモードに戻して拡張機能ライブラリを開く |
@@ -72,7 +74,9 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/components/menu-bar/menu-bar.jsx` | welcome tooltip | About (`?`) ボタンの左隣にウェルカムバルーンを描画。`buildAboutMenu` 内に `WelcomeTooltip` 配置 + `position: relative` 化、`handleClickWelcomeTooltip` ハンドラ追加、`onShowWelcomeModal` 用 mapDispatchToProps 追加 |
 | `src/components/menu-bar/menu-bar.jsx` | help menu | 「チュートリアル」「デバッグ」をメニューバーのボタンから「?」メニューの項目へ移す。`buildAboutMenu` 内に `MenuSection`（`menu-bar-help-tutorials` / `menu-bar-help-debug`）を追加し、upstream の about 項目（`onClickAbout`）も `MenuSection` で囲んで区切り線を入れる、`?` の div に `data-testid="menu-bar-about"`、upstream のボタン群（と先頭の `Divider`）・`helpIcon` / `debugIcon` import を削除 |
 | `src/components/menu/menu.jsx` | menu item data-testid | `MenuItem` が `data-testid` prop を `<li>` に渡す（props の分割代入・`<li>` の属性・propTypes の 3 箇所）。integration テスト / Playwright がメニュー項目を直接指せるようにする |
-| `src/containers/menu-bar-hoc.jsx` | help menu | 「?」メニューのチュートリアル項目用に `onOpenTipsLibrary` を mapDispatchToProps で供給（upstream は menu-bar.jsx 側で直接 dispatch） |
+| `src/containers/menu-bar-hoc.jsx` | help menu | 「?」メニューのチュートリアル項目用に `onOpenTipsLibrary` を mapDispatchToProps で供給（upstream は menu-bar.jsx 側で直接 dispatch）。`openLessonsLibrary` の import も同じ行（同一モジュールの二重 import を eslint が禁じるため） |
+| `src/components/menu-bar/menu-bar.jsx` | lessons button | upstream の「チュートリアル」ボタンがあった場所（区切り線の間）に「レッスン」ボタン（`menu-bar-lessons`。`lessonsIcon` = `icon--tutorials.svg`）を置き、はじめての人向けの吹き出し `LessonsTooltip`（`lessons-tooltip.jsx`）をその下に出す。`ariaMessages.lessons`、`onOpenLessonsLibrary` / `showLessonsTooltip` の propTypes |
+| `src/containers/menu-bar-hoc.jsx` | lessons button | `showLessonsTooltip`（`tutorial-onboarding` の `shouldShowTooltip`）と `onOpenLessonsLibrary`（`markTutorialSeen` + `openLessonsLibrary`）を供給 |
 | `src/components/menu-bar/settings-menu.jsx` | classroom management menu | クラス管理メニューアイテムの import、レンダリング、Redux 接続 |
 | `src/components/menu-bar/settings-menu.jsx` | display mode menu | 表示モード (自動/PC/スマホ) 切替。テーマ/Ruby と同じ `PreferenceMenu` サブメニュー形式 + 専用アイコン。`useDisplayMode` hook + `persistDisplayMode` の import、ハンドラ、Redux (open/close) 接続、レンダリング (Issue #865) |
 | `src/reducers/menus.js` | display mode menu | `PreferenceMenu` サブメニューの開閉用 Redux state (`displayModeMenu`)。定数/rootMenu への登録/initialState/open・close・selector の追加 (Issue #865) |

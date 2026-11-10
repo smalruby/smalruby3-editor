@@ -36,6 +36,9 @@ import Cards from '../../containers/cards.jsx';
 // === Smalruby: Start of lesson mode ===
 import LessonMode from '../../containers/lesson-mode.jsx';
 // === Smalruby: End of lesson mode ===
+// === Smalruby: Start of lessons library ===
+import LessonsLibrary from '../../containers/lessons-library.jsx';
+// === Smalruby: End of lessons library ===
 import Alerts from '../../containers/alerts.jsx';
 import DragLayer from '../../containers/drag-layer.jsx';
 import ConnectionModal from '../../containers/connection-modal.jsx';
@@ -517,6 +520,9 @@ const GUIComponent = props => {
                     {/* === Smalruby: Start of welcome modal === */}
                     <WelcomeModalHOC />
                     {/* === Smalruby: End of welcome modal === */}
+                    {/* === Smalruby: Start of lessons library === */}
+                    <LessonsLibrary />
+                    {/* === Smalruby: End of lessons library === */}
                     {!menuBarHidden && <MenuBar
                         ariaRole="banner"
                         ariaLabel={intl.formatMessage(ariaMessages.menuBar)}

@@ -23,6 +23,7 @@ import {
     showHint,
     startChallenge,
 } from '../reducers/lesson-mode';
+import { openLessonsLibrary } from '../reducers/modals';
 import {
     getIsAnyCreatingNewState,
     getIsShowingProject,
@@ -165,7 +166,11 @@ const mapStateToProps = (state) => {
 const mapDispatchToProps = (dispatch) => ({
     dispatch,
     onCancelStart: () => dispatch(cancelStartChallenge()),
-    onCloseLesson: () => dispatch(closeLesson()),
+    onCloseLesson: () => {
+        // やめたらレッスン表にもどる（次のチャレンジをすぐ選べるように）
+        dispatch(closeLesson());
+        dispatch(openLessonsLibrary());
+    },
     onHideHint: () => dispatch(hideHint()),
     onOpenChallenge: (challengeId) => dispatch(openChallenge(challengeId)),
     onRequestNewProject: () => {
