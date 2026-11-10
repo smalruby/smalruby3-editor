@@ -28,6 +28,7 @@ import {
     isRubyTabGenaiAvailable,
     isTakeoverAvailable,
     localDateKey,
+    panelFrame,
     panelPlacement,
     resolveGenaiTarget,
     shouldNudge,
@@ -61,8 +62,23 @@ const writeStorage = (key, value) => {
 // Width of the panel (also in genai-concierge.css) and of the face, for placing the panel.
 const PANEL_WIDTH = 340;
 const FACE_WIDTH = 52;
-// Margin kept above the panel inside the script area.
-const PANEL_TOP_MARGIN = 12;
+
+// The nearest box around the face that clips what overflows it, cut to the window.
+const clippingBox = (element) => {
+    const box = { top: 0, left: 0, right: window.innerWidth, bottom: window.innerHeight };
+    for (let node = element.parentElement; node && node !== document.body; node = node.parentElement) {
+        if (window.getComputedStyle(node).overflow !== 'visible') {
+            const rect = node.getBoundingClientRect();
+            return {
+                top: Math.max(box.top, rect.top),
+                left: Math.max(box.left, rect.left),
+                right: Math.min(box.right, rect.right),
+                bottom: Math.min(box.bottom, rect.bottom),
+            };
+        }
+    }
+    return box;
+};
 
 // Whether the face is on the screen: a hidden tab panel (display: none) has no offsetParent.
 const isShown = (element) => Boolean(element && element.offsetParent);
@@ -110,6 +126,11 @@ const GenaiConcierge = ({
     const [answerKey, setAnswerKey] = useState(0);
     const [offset, setOffset] = useState({ x: 0, y: 0 });
     const drag = useRef(null);
+    // The face's box and the box that clips the panel, in the window: the panel stays in it.
+    const [box, setBox] = useState(null);
+    // Keeps a dragged offset in that box (set at each render).
+    const keepInWindow = useRef((o) => o);
+    const panelRef = useRef(null);
     // Whether this panel already opened the generative AI. Gemini and ChatGPT send
     // Cross-Origin-Opener-Policy, which cuts the opened tab off from Smalruby: it can't be
     // found by name, focused or reused. So the AI is opened once, and later copies only
@@ -130,6 +151,12 @@ const GenaiConcierge = ({
             setArea((prev) =>
                 prev.left === next.left && prev.width === next.width && prev.height === next.height ? prev : next,
             );
+            if (!rootRef.current) return;
+            const rect = rootRef.current.getBoundingClientRect();
+            // The other tab's face (display: none) has no box.
+            if (!rect.width && !rect.height) return;
+            const nextBox = { left: rect.left, bottom: rect.bottom, clip: clippingBox(rootRef.current) };
+            setBox((prev) => (prev && JSON.stringify(prev) === JSON.stringify(nextBox) ? prev : nextBox));
         };
         update();
         const timer = setInterval(update, 1000);
@@ -298,10 +325,11 @@ const GenaiConcierge = ({
     const handleDragStart = useCallback(
         (e) => {
             if (e.target.closest('button')) return;
-            drag.current = { x: e.clientX - offset.x, y: e.clientY - offset.y };
+            const shown = keepInWindow.current(offset);
+            drag.current = { x: e.clientX - shown.x, y: e.clientY - shown.y };
             const move = (ev) => {
                 if (!drag.current) return;
-                setOffset({ x: ev.clientX - drag.current.x, y: ev.clientY - drag.current.y });
+                setOffset(keepInWindow.current({ x: ev.clientX - drag.current.x, y: ev.clientY - drag.current.y }));
             };
             const up = () => {
                 drag.current = null;
@@ -347,19 +375,38 @@ const GenaiConcierge = ({
         panelWidth: PANEL_WIDTH,
         faceWidth: FACE_WIDTH,
     });
+    const frameOf = (o) =>
+        panelFrame({
+            rootLeft: box.left,
+            rootBottom: box.bottom,
+            place,
+            // Narrower than PANEL_WIDTH on a phone (max-width in genai-concierge.css).
+            panelWidth: (panelRef.current && panelRef.current.offsetWidth) || PANEL_WIDTH,
+            offset: o,
+            clip: box.clip,
+        });
+    keepInWindow.current = box ? (o) => frameOf(o).offset : (o) => o;
+    const frame = box ? frameOf(offset) : { offset, maxHeight: null };
     const panelStyle = {
         left: place.left,
         bottom: place.bottom,
-        transform: `translate(${offset.x}px, ${offset.y}px)`,
+        transform: `translate(${frame.offset.x}px, ${frame.offset.y}px)`,
     };
-    // The panel never scrolls the page: it fits in the script area above its bottom edge (#1293 P5).
-    if (area.height) panelStyle.maxHeight = area.height - 12 - place.bottom - PANEL_TOP_MARGIN;
+    // The panel never scrolls the page: it may grow up to the top of the box that clips it
+    // (below the menu bar), not over it, so × and the handle to move it stay in reach (#1293 P5).
+    if (frame.maxHeight !== null) panelStyle.maxHeight = frame.maxHeight;
     if (!open) panelStyle.display = 'none';
     return (
         <div className={styles.root} ref={rootRef} style={{ left: area.left }}>
             {nudge && !open && <GenaiNudge onOpen={handleOpen} onLater={handleNudgeLater} onOff={handleNudgeOff} />}
             {opened && (
-                <div className={styles.panel} data-testid="genai-panel" style={panelStyle} aria-hidden={!open}>
+                <div
+                    className={styles.panel}
+                    data-testid="genai-panel"
+                    ref={panelRef}
+                    style={panelStyle}
+                    aria-hidden={!open}
+                >
                     <div className={styles.header} data-testid="genai-drag-handle" onPointerDown={handleDragStart}>
                         <span>{title}</span>
                         <button

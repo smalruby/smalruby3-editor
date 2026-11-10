@@ -1773,12 +1773,17 @@ export default {
     'gui.genaiConcierge.programShow': 'プログラムを見る',
     'gui.genaiConcierge.programHide': 'プログラムをかくす',
     'gui.genaiConcierge.reflectionLabel': 'どこが変わるのか、自分のことばで 1 行書こう（必須）',
+    'gui.genaiConcierge.reflectionHint': 'あと {count} 文字書くと、［このブロックを入れる］を押せます',
+    'gui.genaiConcierge.reflectionHintCode': 'あと {count} 文字書くと、［このコードにする］を押せます',
     'gui.genaiConcierge.applyReplaces': '入れると、{names}のブロックが置きかわります。',
     'gui.genaiConcierge.apply': 'このブロックを入れる',
     'gui.genaiConcierge.self': '自分で組む',
     'gui.genaiConcierge.applyReplacesCode': 'エディタの{names}のコードが置きかわります（Ctrl+Z で元にもどせます）。',
     'gui.genaiConcierge.applyCode': 'このコードにする',
     'gui.genaiConcierge.selfCode': '自分で書く',
+    'gui.genaiConcierge.nextAnswerLabel':
+        '［書き直しのお願いをコピー］して {name} に送ろう。{name} が答えなおしたら、新しい答えをここに貼りつけよう',
+    'gui.genaiConcierge.nextAnswerPlaceholder': '{name} の新しい答えを、ここに貼りつけ（Ctrl+V）',
     'gui.genaiConcierge.copyRewrite': '書き直しのお願いをコピー',
     'gui.genaiConcierge.takeover': 'ルビティーにまかせる',
     'gui.genaiConcierge.takeoverRunning':

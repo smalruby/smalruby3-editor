@@ -449,6 +449,16 @@ const messages = defineMessages({
         description: 'Label of the one-line reflection before putting the blocks in',
         id: 'gui.genaiConcierge.reflectionLabel',
     },
+    reflectionHint: {
+        defaultMessage: '{count} more characters and you can press "Put these blocks in"',
+        description: 'Under the reflection while it is too short ({count}: characters still needed)',
+        id: 'gui.genaiConcierge.reflectionHint',
+    },
+    reflectionHintCode: {
+        defaultMessage: '{count} more characters and you can press "Use this code"',
+        description: 'Under the reflection in the Ruby tab while it is too short ({count}: characters still needed)',
+        id: 'gui.genaiConcierge.reflectionHintCode',
+    },
     applyReplaces: {
         defaultMessage: 'Putting them in replaces the blocks of {names}.',
         description: 'Which sprites the blocks are replaced in ({names}: sprite names)',
@@ -478,6 +488,16 @@ const messages = defineMessages({
         defaultMessage: 'Build it myself',
         description: 'Button closing the panel to build the program without the AI blocks',
         id: 'gui.genaiConcierge.self',
+    },
+    nextAnswerLabel: {
+        defaultMessage: "Send {name} the request (Copy a request to rewrite it). When {name} answers again, paste the new answer here",
+        description: 'Label of the field for the AI\'s rewritten answer, under a failed check ({name}: e.g. Gemini)',
+        id: 'gui.genaiConcierge.nextAnswerLabel',
+    },
+    nextAnswerPlaceholder: {
+        defaultMessage: "Paste {name}'s new answer here (Ctrl+V)",
+        description: 'Placeholder of the field for the AI\'s rewritten answer ({name}: e.g. Gemini)',
+        id: 'gui.genaiConcierge.nextAnswerPlaceholder',
     },
     copyRewrite: {
         defaultMessage: 'Copy a request to rewrite it',

@@ -43,13 +43,13 @@ const adapterOf = (tab, result) => ({
     ...(tab === 'code' ? {} : { mountDiff: jest.fn(() => () => {}), puts: 'code', language: tab }),
 });
 
-const renderSteps = (tab, result, locale = 'ja') => {
+const renderSteps = (tab, result, locale = 'ja', adapter = adapterOf(tab, result)) => {
     const noop = () => {};
     render(
         <IntlProvider locale={locale} messages={locale === 'ja' ? ja : {}}>
             <GenaiAnswerSteps
                 vm={{}}
-                adapter={adapterOf(tab, result)}
+                adapter={adapter}
                 step="paste"
                 open
                 rubyteeAvailable
@@ -67,11 +67,9 @@ const renderSteps = (tab, result, locale = 'ja') => {
 
 const paste = () => fireEvent.change(screen.getByTestId('genai-answer'), { target: { value: 'answer' } });
 
-// A new answer: changing it takes the last result away and brings the check button back.
-const paste2 = () => {
-    fireEvent.click(screen.getByTestId('genai-answer-toggle'));
-    fireEvent.change(screen.getByTestId('genai-answer'), { target: { value: 'answer 2' } });
-};
+// The AI's next answer, pasted into the field under ✗.
+const paste2 = (value = 'answer 2') =>
+    fireEvent.change(screen.getByTestId('genai-answer-next'), { target: { value } });
 
 const convert = async () => {
     await act(async () => {
@@ -188,6 +186,73 @@ describe('GenaiAnswerSteps words (#1446)', () => {
                 await new Promise((resolve) => setTimeout(resolve, 10));
             });
             expect(screen.getByTestId('genai-takeover-failed')).toHaveTextContent('ブロックにできませんでした');
+        });
+    });
+
+    // After ✗ the student sends the rewrite request and pastes the AI's new answer: the
+    // field for it is under ✗, not behind 「答えを見る」.
+    describe.each(['code', 'ruby', 'dncl'])('the next answer after ✗ (%s)', (tab) => {
+        test('an empty field for it is shown under ✗', async () => {
+            renderSteps(tab, ngResult);
+            paste();
+            await convert();
+            const next = screen.getByTestId('genai-answer-next');
+            expect(screen.getByTestId('genai-convert-ng')).toContainElement(next);
+            expect(next).toHaveValue('');
+            expect(screen.queryByTestId('genai-convert')).toBeNull();
+        });
+
+        test('pasting it brings the check button, which checks the new answer', async () => {
+            const adapter = adapterOf(tab, ngResult);
+            adapter.check.mockResolvedValueOnce(ngResult).mockResolvedValueOnce(okResult);
+            renderSteps(tab, ngResult, 'ja', adapter);
+            paste();
+            await convert();
+            paste2('answer 2');
+            await convert();
+            expect(adapter.check).toHaveBeenLastCalledWith('answer 2');
+            expect(screen.getByTestId('genai-convert-ok')).toBeInTheDocument();
+            expect(screen.queryByTestId('genai-answer-next')).toBeNull();
+            fireEvent.click(screen.getByTestId('genai-answer-toggle'));
+            expect(screen.getByTestId('genai-answer')).toHaveValue('answer 2');
+        });
+
+        test('no field when no program was found (the answer stays open to paste again)', async () => {
+            renderSteps(tab, { ...ngResult, code: '', problems: [{ type: 'noProgram' }] });
+            paste();
+            await convert();
+            expect(screen.queryByTestId('genai-answer-next')).toBeNull();
+            expect(screen.getByTestId('genai-answer')).toBeInTheDocument();
+        });
+    });
+
+    // The button stays disabled until the reflection is long enough: the student is told how
+    // many characters are left, or the disabled button looks broken.
+    describe.each([
+        ['code', '［このブロックを入れる］'],
+        ['ruby', '［このコードにする］'],
+    ])('the reflection before putting it in (%s)', (tab, button) => {
+        const reflect = (value) => fireEvent.change(screen.getByTestId('genai-reflection'), { target: { value } });
+
+        test('says how many characters are left until the button can be pressed', async () => {
+            renderSteps(tab, okResult);
+            paste();
+            await convert();
+            expect(screen.getByTestId('genai-reflection-hint')).toHaveTextContent(
+                `あと 5 文字書くと、${button}を押せます`,
+            );
+            reflect('動く');
+            expect(screen.getByTestId('genai-reflection-hint')).toHaveTextContent('あと 3 文字');
+            expect(screen.getByTestId('genai-apply')).toBeDisabled();
+        });
+
+        test('the hint goes and the button can be pressed at 5 characters', async () => {
+            renderSteps(tab, okResult);
+            paste();
+            await convert();
+            reflect('動くように');
+            expect(screen.queryByTestId('genai-reflection-hint')).toBeNull();
+            expect(screen.getByTestId('genai-apply')).toBeEnabled();
         });
     });
 });

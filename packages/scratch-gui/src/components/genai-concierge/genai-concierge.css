@@ -314,6 +314,15 @@ $step-todo: #d3d9e3;
     margin-right: auto;
 }
 
+/* A line under the buttons of the footer (e.g. what is still needed before a button can be pressed). */
+.footerHint {
+    flex-basis: 100%;
+    margin: 0;
+    text-align: right;
+    font-size: 0.75rem;
+    color: $text-primary;
+}
+
 .question {
     margin: 2px 0 8px;
     font-weight: bold;
@@ -499,6 +508,21 @@ $step-todo: #d3d9e3;
 
 .ng {
     background-color: #fdecec;
+}
+
+/* The AI's rewritten answer is pasted here, under ✗. */
+.nextAnswer {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px dashed $ui-black-transparent;
+}
+
+.nextAnswer .label {
+    font-size: 0.8rem;
+}
+
+.nextAnswer textarea {
+    background-color: $ui-white;
 }
 
 .ok p,

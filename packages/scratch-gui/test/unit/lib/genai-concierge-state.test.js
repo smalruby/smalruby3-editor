@@ -15,6 +15,7 @@ import {
     localDateKey,
     marksToShow,
     normalizeStudentGenai,
+    panelFrame,
     panelPlacement,
     resolveGenaiTarget,
     scrollToShowBlocks,
@@ -240,6 +241,42 @@ describe('copyChecklist', () => {
 
     test('should move on to pasting once copied', () => {
         expect(copyChecklist({ copied: true })).toEqual(['done', 'next', 'wait']);
+    });
+});
+
+describe('panelFrame', () => {
+    // A 1300×600 window (a class PC): the editor clips the panel (below the tabs at 76 px,
+    // up to 930 px from the left), the face's box at its bottom left.
+    const clip = { top: 76, left: 0, right: 930, bottom: 570 };
+    const frame = (offset, place = { left: 500, bottom: 0 }, box = clip) =>
+        panelFrame({ rootLeft: 12, rootBottom: 558, place, panelWidth: 340, offset, clip: box });
+
+    test('the panel grows up to just below the top of the editor', () => {
+        expect(frame({ x: 0, y: 0 })).toEqual({ offset: { x: 0, y: 0 }, maxHeight: 558 - 84 });
+    });
+
+    test('never over the menu bar, even when nothing else clips it', () => {
+        const window = { top: 0, left: 0, right: 1300, bottom: 600 };
+        expect(frame({ x: 0, y: 0 }, undefined, window).maxHeight).toBe(558 - 56);
+    });
+
+    test('dragged up, its top stays at the top of the editor', () => {
+        const { offset, maxHeight } = frame({ x: 0, y: -1000 });
+        expect(offset.y).toBe(84 + 240 - 558);
+        expect(558 + offset.y - maxHeight).toBe(84);
+    });
+
+    test('dragged down, its bottom (and the buttons there) stays in the editor', () => {
+        expect(frame({ x: 0, y: 500 }).offset.y).toBe(570 - 8 - 558);
+    });
+
+    test('dragged sideways, it stays in the editor (not under the stage)', () => {
+        expect(frame({ x: 1000, y: 0 }).offset.x).toBe(930 - 8 - 340 - 512);
+        expect(frame({ x: -2000, y: 0 }).offset.x).toBe(8 - 512);
+    });
+
+    test('above the face (bottom), it starts from there', () => {
+        expect(frame({ x: 0, y: 0 }, { left: 0, bottom: 60 }).maxHeight).toBe(558 - 60 - 84);
     });
 });
 

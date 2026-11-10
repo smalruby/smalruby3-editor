@@ -1374,12 +1374,17 @@ export default {
     'gui.genaiConcierge.programShow': 'See the program',
     'gui.genaiConcierge.programHide': 'Hide the program',
     'gui.genaiConcierge.reflectionLabel': 'In one line of your own words, write what will change (required)',
+    'gui.genaiConcierge.reflectionHint': '{count} more characters and you can press "Put these blocks in"',
+    'gui.genaiConcierge.reflectionHintCode': '{count} more characters and you can press "Use this code"',
     'gui.genaiConcierge.applyReplaces': 'Putting them in replaces the blocks of {names}.',
     'gui.genaiConcierge.apply': 'Put these blocks in',
     'gui.genaiConcierge.self': 'Build it myself',
     'gui.genaiConcierge.applyReplacesCode': 'This replaces the code of {names} in the editor (Ctrl+Z takes it back).',
     'gui.genaiConcierge.applyCode': 'Use this code',
     'gui.genaiConcierge.selfCode': 'Write it myself',
+    'gui.genaiConcierge.nextAnswerLabel':
+        'Send {name} the request (Copy a request to rewrite it). When {name} answers again, paste the new answer here',
+    'gui.genaiConcierge.nextAnswerPlaceholder': "Paste {name}'s new answer here (Ctrl+V)",
     'gui.genaiConcierge.copyRewrite': 'Copy a request to rewrite it',
     'gui.genaiConcierge.takeover': 'Leave it to Rubytee',
     'gui.genaiConcierge.takeoverRunning':

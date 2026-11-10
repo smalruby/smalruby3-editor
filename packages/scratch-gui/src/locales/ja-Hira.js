@@ -1823,6 +1823,8 @@ export default {
     'gui.genaiConcierge.programShow': 'プログラムをみる',
     'gui.genaiConcierge.programHide': 'プログラムをかくす',
     'gui.genaiConcierge.reflectionLabel': 'どこがかわるのか、じぶんのことばで 1 ぎょうかこう（ひっす）',
+    'gui.genaiConcierge.reflectionHint': 'あと {count} もじかくと、［このブロックをいれる］をおせます',
+    'gui.genaiConcierge.reflectionHintCode': 'あと {count} もじかくと、［このコードにする］をおせます',
     'gui.genaiConcierge.applyReplaces': 'いれると、{names}のブロックがおきかわります。',
     'gui.genaiConcierge.apply': 'このブロックをいれる',
     'gui.genaiConcierge.self': 'じぶんでくむ',
@@ -1830,6 +1832,9 @@ export default {
         'エディタの{names}のコードがおきかわります（Ctrl+Z でもとにもどせます）。',
     'gui.genaiConcierge.applyCode': 'このコードにする',
     'gui.genaiConcierge.selfCode': 'じぶんでかく',
+    'gui.genaiConcierge.nextAnswerLabel':
+        '［かきなおしのおねがいをコピー］して {name} におくろう。{name} がこたえなおしたら、あたらしいこたえをここにはりつけよう',
+    'gui.genaiConcierge.nextAnswerPlaceholder': '{name} のあたらしいこたえを、ここにはりつけ（Ctrl+V）',
     'gui.genaiConcierge.copyRewrite': 'かきなおしのおねがいをコピー',
     'gui.genaiConcierge.takeover': 'ルビティーにまかせる',
     'gui.genaiConcierge.takeoverRunning':
