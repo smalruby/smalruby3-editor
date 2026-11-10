@@ -103,6 +103,13 @@ describe('LessonsLibrary', () => {
         expect(getByTestId('lessons-library-badge')).toHaveTextContent('Programmer Debut!');
     });
 
+    test('does not show the course badge for a course that has no lessons yet', () => {
+        const course = defineCourse({ id: 'empty-course', language: LANGUAGES.BLOCKS, lessons: [] });
+        const { queryByTestId, getByTestId } = renderLibrary({ courses: [course] });
+        expect(getByTestId('lessons-library-course-empty-course')).toBeInTheDocument();
+        expect(queryByTestId('lessons-library-badge')).not.toBeInTheDocument();
+    });
+
     test('calls onSelectChallenge with the challenge id', () => {
         const { getByTestId, onSelectChallenge } = renderLibrary();
         fireEvent.click(getByTestId('lessons-library-challenge-blocks-l1-click-say'));

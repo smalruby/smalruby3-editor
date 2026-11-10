@@ -266,7 +266,9 @@ LessonSection.propTypes = {
 
 const CourseSection = ({ course, progress, onSelectChallenge }) => {
     const intl = useIntl();
-    const cleared = course.lessons.every((lesson) => lessonClearStatus(lesson, progress).cleared);
+    // レッスンがまだ無いコースに印を付けない（every は空配列で true になる）
+    const cleared =
+        course.lessons.length > 0 && course.lessons.every((lesson) => lessonClearStatus(lesson, progress).cleared);
     const skills = useMemo(() => courseSkills(course), [course]);
     return (
         <section className={styles.course} data-testid={`lessons-library-course-${course.id}`}>

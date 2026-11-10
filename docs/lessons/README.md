@@ -358,8 +358,10 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 - **やめる → もどる**: レッスンモードの「やめる」は `closeLesson()` のあとレッスン表を開く（次のチャレンジを
   すぐ選べる）。
 - **はじめての人向けの吹き出し**: 「レッスン」ボタンの下に「レッスンをはじめよう！」（`menu-bar/lessons-tooltip.jsx`）。
-  `tutorial-onboarding` reducer の `shouldShowTooltip` を流用し、レッスン表を一度開く（`markTutorialSeen`）と出ない
-  （Ruby タブを使った人にも出ない）。
+  `tutorial-onboarding` reducer の `shouldShowTooltip` を流用し、レッスン表を一度開く（`markTutorialSeen`）と出ない。
+  同じ reducer の印を見るので、**以前のチュートリアルの吹き出しを消した端末（`smalruby:tutorialSeen`）や、
+  Ruby タブを使った端末（`smalruby:rubyTabUsed`）にも出ない**（「一度レッスン表を開いたら出さない」より広い条件。
+  レッスン表専用の印にするかは未決）。
 
 状態は `modals.lessonsLibrary`（`openLessonsLibrary` / `closeLessonsLibrary`）。コンテナは
 `containers/lessons-library.jsx`（`gui.jsx` に常時マウントし、`modals.lessonsLibrary` が true の間だけ描く）。
@@ -487,4 +489,5 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | 種類 | キー | 説明 |
 |------|------|------|
 | localStorage | `smalruby:lessonProgress` | チャレンジ ID → できた日時（とコース・レッスン） |
-| localStorage | `smalruby:tutorialSeen` | `true` なら「レッスン」ボタンの下の吹き出しを出さない（`tutorial-onboarding` reducer。レッスン表を一度開くと書く） |
+| localStorage | `smalruby:tutorialSeen` | `true` なら「レッスン」ボタンの下の吹き出しを出さない（`tutorial-onboarding` reducer。レッスン表を一度開くと書く。以前のチュートリアルの吹き出しが書いたものも同じ） |
+| localStorage | `smalruby:rubyTabUsed` | `true` でも吹き出しを出さない（`tutorial-onboarding` reducer。Ruby タブを使うと書く） |
