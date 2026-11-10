@@ -28,13 +28,15 @@ const LessonHintContainer = ({
 }) => {
     const intl = useIntl();
     const blocks = hint && hint.visible && hint.step ? hint.step.blocks : null;
-    // 変換した XML は Ruby ごとに覚える（もどる・進めるで同じブロックを変換し直さない）
+    // 変換した XML は Ruby ごとに覚える（もどる・進めるで同じブロックを変換し直さない）。
+    // 変換の結果は Ruby のバージョンでも変わるので、キーに含める
     const cacheRef = useRef(new Map());
     const [rendered, setRendered] = useState({ blocks: null, xml: null, error: false });
 
     useEffect(() => {
         if (!blocks) return () => {};
-        const cached = cacheRef.current.get(blocks);
+        const cacheKey = `${rubyVersion}\n${blocks}`;
+        const cached = cacheRef.current.get(cacheKey);
         if (cached) {
             setRendered({ blocks, xml: cached.xml, error: cached.error });
             return () => {};
@@ -55,7 +57,7 @@ const LessonHintContainer = ({
                 return { xml: null, error: true };
             })
             .then((result) => {
-                cacheRef.current.set(blocks, result);
+                cacheRef.current.set(cacheKey, result);
                 if (!cancelled) setRendered({ blocks, ...result });
             });
         return () => {

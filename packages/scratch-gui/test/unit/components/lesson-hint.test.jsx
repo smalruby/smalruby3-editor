@@ -213,6 +213,28 @@ describe('LessonHint', () => {
         expect(scratchBlocks.workspace.dispose).toHaveBeenCalledTimes(1);
     });
 
+    test('disposes the read-only workspace when drawing fails, and still shows the text', () => {
+        const scratchBlocks = makeScratchBlocks();
+        scratchBlocks.Xml.domToWorkspace = jest.fn(() => {
+            throw new Error('bad xml');
+        });
+        const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+        const { getByTestId, unmount } = renderHint({
+            scratchBlocks,
+            blocksXml: '<xml><block type="nope"></block></xml>',
+            mediaPath: './static/blocks-media/default/',
+        });
+        expect(getByTestId('lesson-hint-title')).toBeInTheDocument();
+        expect(scratchBlocks.Events.enable).toHaveBeenCalledTimes(1);
+        expect(scratchBlocks.common.setMainWorkspace).toHaveBeenCalledWith(scratchBlocks.main);
+        expect(scratchBlocks.workspace.dispose).toHaveBeenCalledTimes(1);
+        expect(warn).toHaveBeenCalled();
+        unmount();
+        // 捨てたワークスペースをもう一度 dispose しない
+        expect(scratchBlocks.workspace.dispose).toHaveBeenCalledTimes(1);
+        warn.mockRestore();
+    });
+
     test('shows a note when the blocks could not be converted', () => {
         const { getByTestId, queryByTestId } = renderHint({ blocksError: true });
         expect(getByTestId('lesson-hint-blocks-error')).toBeInTheDocument();
