@@ -146,6 +146,17 @@
 | `reloadProgress()` | localStorage の最新を写しに取り込む（別のタブが書いた分を、レッスン表を開くときなどに反映する。書かない） |
 | `isLessonMode(state)` / `getCurrentChallenge(state)` | レッスンモードか / `{course, lesson, challenge}` |
 
+## いまのチュートリアルの入口
+
+レッスン機能がチュートリアルの役目を引き継ぐため、従来の **「チュートリアル」「デバッグ」のボタンはメニューバーから外し、右上の「?」メニューの項目**にした（ふだんは目に入らないようにする。そろったら消す）。
+
+- 「?」メニュー › チュートリアル → チュートリアル一覧（`tips-library`）
+- 「?」メニュー › デバッグ → デバッグ画面（`debug-modal`）
+- `?tutorial=<urlId>` で直接開く経路はそのまま動く（教科書や授業資料のリンク用）
+- はじめての人向けの吹き出し（旧 `tutorial-tooltip`）は出さない。レッスンの入口への案内はレッスン機能側で作る
+
+詳細は [`docs/menu-bar/`](../menu-bar/) の「「?」メニュー（ヘルプ）」と [`docs/tutorial/`](../tutorial/) を参照。
+
 ## 主要ファイル
 
 | ファイル | 説明 |
@@ -156,6 +167,8 @@
 | `packages/scratch-gui/src/reducers/lesson-mode.js` | いま開いているチャレンジと記録の写し |
 | `packages/scratch-gui/test/unit/lib/lessons/` | データの形・記録・クリア判定の unit テスト |
 | `packages/scratch-gui/test/unit/reducers/lesson-mode-reducer.test.js` | reducer の unit テスト |
+| `packages/scratch-gui/src/components/menu-bar/menu-bar.jsx` | 「?」メニューのチュートリアル / デバッグ項目（`help menu` マーカー） |
+| `packages/scratch-gui/src/containers/menu-bar-hoc.jsx` | `onOpenTipsLibrary` の供給（`help menu` マーカー） |
 
 ## 設定・データ永続化
 

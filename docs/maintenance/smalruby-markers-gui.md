@@ -69,6 +69,9 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/components/menu-bar/menu-bar.jsx` | classroom button | クラスルームボタンの import、レンダリング、Redux 接続 |
 | `src/components/menu-bar/menu-bar.jsx` | classroom teacher menu | 先生用「クラス管理」メニューを右端（? の左）に置く。先生ログイン中はウェルカムの吹き出しを出さない（welcome tooltip マーカー内）・`classroomTeacherLoggedIn` の Redux 接続 |
 | `src/components/menu-bar/menu-bar.jsx` | welcome tooltip | About (`?`) ボタンの左隣にウェルカムバルーンを描画。`buildAboutMenu` 内に `WelcomeTooltip` 配置 + `position: relative` 化、`handleClickWelcomeTooltip` ハンドラ追加、`onShowWelcomeModal` 用 mapDispatchToProps 追加 |
+| `src/components/menu-bar/menu-bar.jsx` | help menu | 「チュートリアル」「デバッグ」をメニューバーのボタンから「?」メニューの項目へ移す。`buildAboutMenu` 内に `MenuSection`（`menu-bar-help-tutorials` / `menu-bar-help-debug`）を追加し、upstream の about 項目（`onClickAbout`）も `MenuSection` で囲んで区切り線を入れる、`?` の div に `data-testid="menu-bar-about"`、upstream のボタン群（と先頭の `Divider`）・`helpIcon` / `debugIcon` import を削除 |
+| `src/components/menu/menu.jsx` | menu item data-testid | `MenuItem` が `data-testid` prop を `<li>` に渡す（props の分割代入・`<li>` の属性・propTypes の 3 箇所）。integration テスト / Playwright がメニュー項目を直接指せるようにする |
+| `src/containers/menu-bar-hoc.jsx` | help menu | 「?」メニューのチュートリアル項目用に `onOpenTipsLibrary` を mapDispatchToProps で供給（upstream は menu-bar.jsx 側で直接 dispatch） |
 | `src/components/menu-bar/settings-menu.jsx` | classroom management menu | クラス管理メニューアイテムの import、レンダリング、Redux 接続 |
 | `src/components/menu-bar/settings-menu.jsx` | display mode menu | 表示モード (自動/PC/スマホ) 切替。テーマ/Ruby と同じ `PreferenceMenu` サブメニュー形式 + 専用アイコン。`useDisplayMode` hook + `persistDisplayMode` の import、ハンドラ、Redux (open/close) 接続、レンダリング (Issue #865) |
 | `src/reducers/menus.js` | display mode menu | `PreferenceMenu` サブメニューの開閉用 Redux state (`displayModeMenu`)。定数/rootMenu への登録/initialState/open・close・selector の追加 (Issue #865) |

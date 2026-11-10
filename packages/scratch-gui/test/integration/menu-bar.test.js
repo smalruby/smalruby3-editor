@@ -152,7 +152,10 @@ describe('Menu bar settings', () => {
             .window()
             .setRect({width: 1024, height: 768});
 
-        const collapsibleMenus = ['Settings', 'File', 'Edit', 'Tutorials'];
+        // === Smalruby: Start of help menu ===
+        // 'Tutorials' is a "?" menu item in Smalruby, not a collapsible menu-bar label.
+        const collapsibleMenus = ['Settings', 'File', 'Edit'];
+        // === Smalruby: End of help menu ===
         for (const menu of collapsibleMenus) {
             const settingsMenu = await findByText(menu, scope.menuBar);
             expect(await settingsMenu.isDisplayed()).toBe(false);
@@ -165,7 +168,10 @@ describe('Menu bar settings', () => {
             .window()
             .setRect({width: 1200, height: 768});
 
-        const collapsibleMenus = ['Settings', 'File', 'Edit', 'Tutorials'];
+        // === Smalruby: Start of help menu ===
+        // 'Tutorials' is a "?" menu item in Smalruby, not a collapsible menu-bar label.
+        const collapsibleMenus = ['Settings', 'File', 'Edit'];
+        // === Smalruby: End of help menu ===
         for (const menu of collapsibleMenus) {
             const settingsMenu = await findByText(menu, scope.menuBar);
             expect(await settingsMenu.isDisplayed()).toBe(true);
