@@ -480,7 +480,7 @@ const messages = defineMessages({
         id: 'gui.genaiConcierge.self',
     },
     nextAnswerLabel: {
-        defaultMessage: "Copy the request and send it to {name}. When {name} answers again, paste the new answer here",
+        defaultMessage: "Send {name} the request (Copy a request to rewrite it). When {name} answers again, paste the new answer here",
         description: 'Label of the field for the AI\'s rewritten answer, under a failed check ({name}: e.g. Gemini)',
         id: 'gui.genaiConcierge.nextAnswerLabel',
     },

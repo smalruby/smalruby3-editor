@@ -1779,7 +1779,8 @@ export default {
     'gui.genaiConcierge.applyReplacesCode': 'エディタの{names}のコードが置きかわります（Ctrl+Z で元にもどせます）。',
     'gui.genaiConcierge.applyCode': 'このコードにする',
     'gui.genaiConcierge.selfCode': '自分で書く',
-    'gui.genaiConcierge.nextAnswerLabel': '［書き直しのお願いをコピー］して {name} に送ろう。{name} が答えなおしたら、新しい答えをここに貼りつけよう',
+    'gui.genaiConcierge.nextAnswerLabel':
+        '［書き直しのお願いをコピー］して {name} に送ろう。{name} が答えなおしたら、新しい答えをここに貼りつけよう',
     'gui.genaiConcierge.nextAnswerPlaceholder': '{name} の新しい答えを、ここに貼りつけ（Ctrl+V）',
     'gui.genaiConcierge.copyRewrite': '書き直しのお願いをコピー',
     'gui.genaiConcierge.takeover': 'ルビティーにまかせる',

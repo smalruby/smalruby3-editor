@@ -654,6 +654,9 @@ const GenaiAnswerSteps = ({
                                         />
                                     </p>
                                     <textarea
+                                        aria-label={intl.formatMessage(messages.nextAnswerPlaceholder, {
+                                            name: serviceName || '',
+                                        })}
                                         className={styles.prompt}
                                         data-testid="genai-answer-next"
                                         value={nextAnswer}

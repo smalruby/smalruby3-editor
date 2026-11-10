@@ -128,8 +128,9 @@ const GenaiConcierge = ({
     const drag = useRef(null);
     // The face's box and the box that clips the panel, in the window: the panel stays in it.
     const [box, setBox] = useState(null);
-    // Keeps a dragged offset in the window (set at each render).
+    // Keeps a dragged offset in that box (set at each render).
     const keepInWindow = useRef((o) => o);
+    const panelRef = useRef(null);
     // Whether this panel already opened the generative AI. Gemini and ChatGPT send
     // Cross-Origin-Opener-Policy, which cuts the opened tab off from Smalruby: it can't be
     // found by name, focused or reused. So the AI is opened once, and later copies only
@@ -379,7 +380,8 @@ const GenaiConcierge = ({
             rootLeft: box.left,
             rootBottom: box.bottom,
             place,
-            panelWidth: PANEL_WIDTH,
+            // Narrower than PANEL_WIDTH on a phone (max-width in genai-concierge.css).
+            panelWidth: (panelRef.current && panelRef.current.offsetWidth) || PANEL_WIDTH,
             offset: o,
             clip: box.clip,
         });
@@ -390,15 +392,21 @@ const GenaiConcierge = ({
         bottom: place.bottom,
         transform: `translate(${frame.offset.x}px, ${frame.offset.y}px)`,
     };
-    // The panel never scrolls the page: it may grow up to just below the menu bar, not over it,
-    // so × and the handle to move it stay in reach (#1293 P5).
+    // The panel never scrolls the page: it may grow up to the top of the box that clips it
+    // (below the menu bar), not over it, so × and the handle to move it stay in reach (#1293 P5).
     if (frame.maxHeight !== null) panelStyle.maxHeight = frame.maxHeight;
     if (!open) panelStyle.display = 'none';
     return (
         <div className={styles.root} ref={rootRef} style={{ left: area.left }}>
             {nudge && !open && <GenaiNudge onOpen={handleOpen} onLater={handleNudgeLater} onOff={handleNudgeOff} />}
             {opened && (
-                <div className={styles.panel} data-testid="genai-panel" style={panelStyle} aria-hidden={!open}>
+                <div
+                    className={styles.panel}
+                    data-testid="genai-panel"
+                    ref={panelRef}
+                    style={panelStyle}
+                    aria-hidden={!open}
+                >
                     <div className={styles.header} data-testid="genai-drag-handle" onPointerDown={handleDragStart}>
                         <span>{title}</span>
                         <button

@@ -1830,7 +1830,8 @@ export default {
         'エディタの{names}のコードがおきかわります（Ctrl+Z でもとにもどせます）。',
     'gui.genaiConcierge.applyCode': 'このコードにする',
     'gui.genaiConcierge.selfCode': 'じぶんでかく',
-    'gui.genaiConcierge.nextAnswerLabel': '［かきなおしのおねがいをコピー］して {name} におくろう。{name} がこたえなおしたら、あたらしいこたえをここにはりつけよう',
+    'gui.genaiConcierge.nextAnswerLabel':
+        '［かきなおしのおねがいをコピー］して {name} におくろう。{name} がこたえなおしたら、あたらしいこたえをここにはりつけよう',
     'gui.genaiConcierge.nextAnswerPlaceholder': '{name} のあたらしいこたえを、ここにはりつけ（Ctrl+V）',
     'gui.genaiConcierge.copyRewrite': 'かきなおしのおねがいをコピー',
     'gui.genaiConcierge.takeover': 'ルビティーにまかせる',
