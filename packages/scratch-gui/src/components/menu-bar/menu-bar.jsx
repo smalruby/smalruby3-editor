@@ -674,32 +674,38 @@ class MenuBar extends React.Component {
                     {/* === Smalruby: Start of help menu === */}
                     {/* Tutorials / Debug live here instead of as menu-bar buttons so
                         they stay out of sight until someone looks for help. The
-                        data-testid goes on an inner span because MenuItem does not
-                        forward unknown props to its <li>. */}
+                        upstream "about" items below get their own MenuSection so a
+                        divider separates the two groups. */}
                     <MenuSection>
-                        <MenuItem onClick={this.wrapAboutMenuCallback(this.props.onOpenTipsLibrary)}>
-                            <span data-testid="menu-bar-help-tutorials">
-                                <FormattedMessage {...ariaMessages.tutorials} />
-                            </span>
+                        <MenuItem
+                            data-testid="menu-bar-help-tutorials"
+                            onClick={this.wrapAboutMenuCallback(this.props.onOpenTipsLibrary)}
+                        >
+                            <FormattedMessage {...ariaMessages.tutorials} />
                         </MenuItem>
-                        <MenuItem onClick={this.wrapAboutMenuCallback(this.props.onOpenDebugModal)}>
-                            <span data-testid="menu-bar-help-debug">
-                                <FormattedMessage {...ariaMessages.debug} />
-                            </span>
+                        <MenuItem
+                            data-testid="menu-bar-help-debug"
+                            onClick={this.wrapAboutMenuCallback(this.props.onOpenDebugModal)}
+                        >
+                            <FormattedMessage {...ariaMessages.debug} />
                         </MenuItem>
                     </MenuSection>
+                    <MenuSection>
+                        {/* === Smalruby: End of help menu === */}
+                        {
+                            onClickAbout.map(itemProps => (
+                                <MenuItem
+                                    key={itemProps.title}
+                                    isRtl={this.props.isRtl}
+                                    onClick={this.wrapAboutMenuCallback(itemProps.onClick)}
+                                >
+                                    {itemProps.title}
+                                </MenuItem>
+                            ))
+                        }
+                        {/* === Smalruby: Start of help menu === */}
+                    </MenuSection>
                     {/* === Smalruby: End of help menu === */}
-                    {
-                        onClickAbout.map(itemProps => (
-                            <MenuItem
-                                key={itemProps.title}
-                                isRtl={this.props.isRtl}
-                                onClick={this.wrapAboutMenuCallback(itemProps.onClick)}
-                            >
-                                {itemProps.title}
-                            </MenuItem>
-                        ))
-                    }
                 </MenuBarMenu>
             </div>
         );

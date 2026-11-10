@@ -63,6 +63,11 @@ const MenuItem = ({
     children,
     className,
     closeOnClick = true,
+    // === Smalruby: Start of menu item data-testid ===
+    // Let callers put a data-testid on the <li> itself so integration tests
+    // and Playwright can target menu items without wrapping their children.
+    'data-testid': dataTestId,
+    // === Smalruby: End of menu item data-testid ===
     expanded = false,
     onClick
 }) => (
@@ -74,6 +79,9 @@ const MenuItem = ({
             {[styles.expanded]: expanded}
         )}
         data-close-on-click={closeOnClick}
+        // === Smalruby: Start of menu item data-testid ===
+        data-testid={dataTestId}
+        // === Smalruby: End of menu item data-testid ===
         onClick={onClick}
     >
         {children}
@@ -84,6 +92,9 @@ MenuItem.propTypes = {
     children: PropTypes.node,
     className: PropTypes.string,
     closeOnClick: PropTypes.bool,
+    // === Smalruby: Start of menu item data-testid ===
+    'data-testid': PropTypes.string,
+    // === Smalruby: End of menu item data-testid ===
     expanded: PropTypes.bool,
     onClick: PropTypes.func
 };

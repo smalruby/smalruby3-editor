@@ -167,8 +167,8 @@
 | `packages/scratch-gui/src/reducers/lesson-mode.js` | いま開いているチャレンジと記録の写し |
 | `packages/scratch-gui/test/unit/lib/lessons/` | データの形・記録・クリア判定の unit テスト |
 | `packages/scratch-gui/test/unit/reducers/lesson-mode-reducer.test.js` | reducer の unit テスト |
-  - `packages/scratch-gui/src/components/menu-bar/menu-bar.jsx` — 「?」メニューのチュートリアル / デバッグ項目（`help menu` マーカー）
-  - `packages/scratch-gui/src/containers/menu-bar-hoc.jsx` — `onOpenTipsLibrary` の供給（`help menu` マーカー）
+| `packages/scratch-gui/src/components/menu-bar/menu-bar.jsx` | 「?」メニューのチュートリアル / デバッグ項目（`help menu` マーカー） |
+| `packages/scratch-gui/src/containers/menu-bar-hoc.jsx` | `onOpenTipsLibrary` の供給（`help menu` マーカー） |
 
 ## 設定・データ永続化
 

@@ -42,7 +42,7 @@
 
 ![「?」メニュー展開](screenshots/0102-help-menu-1280x800.png)
 
-右上の「?」を押すと **チュートリアル / デバッグ / スモウルビーについて / ウェルカムをもう一度見る** が並ぶ。
+右上の「?」を押すと **チュートリアル / デバッグ** と、区切り線をはさんで **スモウルビーについて / ウェルカムをもう一度見る** が並ぶ。
 upstream ではチュートリアルとデバッグはメニューバーのボタン（「編集」の右）だが、Smalruby はふだん目に入らないよう「?」の中に置く（レッスン機能がチュートリアルの役目を引き継ぐため。`docs/lessons/` 参照）。押したときの動きは upstream のボタンと同じ（チュートリアル一覧 `tips-library` / デバッグ画面 `debug-modal` を開く）。
 
 - `?tutorial=<urlId>` で直接チュートリアルを開く経路はそのまま動く（[`docs/tutorial/`](../tutorial/)）。
@@ -52,8 +52,8 @@ upstream ではチュートリアルとデバッグはメニューバーのボ�
 | data-testid | 要素 | 説明 |
 |---|---|---|
 | `menu-bar-about` | div | 「?」ボタン（押すとメニューが開く） |
-| `menu-bar-help-tutorials` | span (`li` 内) | チュートリアル一覧を開く |
-| `menu-bar-help-debug` | span (`li` 内) | デバッグ画面を開く |
+| `menu-bar-help-tutorials` | li (`MenuItem`) | チュートリアル一覧を開く |
+| `menu-bar-help-debug` | li (`MenuItem`) | デバッグ画面を開く |
 
 ## 主要ファイル
 

@@ -30,9 +30,11 @@ describe('Smalruby Tutorials', () => {
         await waitForLoadingFinished();
         // === Smalruby: the Tutorials entry lives in the "?" (help) menu, not in
         // the menu bar. Open the library from there and pick the first tutorial.
+        // "Getting Started" is also the category heading, so target the tile
+        // name element rather than any text match.
         await clickXpath('//*[@data-testid="menu-bar-about"]');
         await clickXpath('//*[@data-testid="menu-bar-help-tutorials"]');
-        await clickText('さあ、始めましょう', scope.modal);
+        await clickXpath('//*[contains(@class, "library-item_library-item-name")][.//text()="Getting Started"]');
         await findByXpath('//div[contains(@class, "card_card_")]');
 
         // Make sure the background is still interactable
