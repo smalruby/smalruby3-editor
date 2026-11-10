@@ -1753,6 +1753,8 @@ export default {
     'gui.genaiConcierge.lineOf': '{line} 行目',
     'gui.genaiConcierge.spriteLineOf': '「{sprite}」の {line} 行目',
     'gui.genaiConcierge.spriteOf': '「{sprite}」',
+    'gui.genaiConcierge.noProgramRetry':
+        '答えにプログラムが無いときは、もう一度送ってみよう。［もどる］で相談文をコピーしなおせます（同じ相談文でも、答えが出ることがあります）',
     'gui.genaiConcierge.problemNoProgram': '貼りつけた文にプログラムが見つかりませんでした',
     'gui.genaiConcierge.problemMissingSound': '音「{name}」はありません（使える音: {names}）',
     'gui.genaiConcierge.problemMissingSoundNone': '音「{name}」はありません（このスプライトには音がありません）',

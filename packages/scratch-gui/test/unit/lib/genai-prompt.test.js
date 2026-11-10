@@ -32,6 +32,9 @@ describe('buildGenaiPrompt', () => {
         expect(prompt).toContain('質問を返さず、すぐに直したプログラムを出してください');
         expect(prompt).toContain('直すのは、できるだけ「ねこ」のプログラムだけ');
         expect(prompt).toContain('「# 「スプライト名」」という 1 行から始めて');
+        expect(prompt).toContain(
+            '合図を送る（broadcast）ように直すときは、その合図を受け取るスプライトのプログラム（when_receive）も書いてください',
+        );
         expect(prompt).toContain('play("音の名前")');
         expect(prompt).toContain(COPY_START);
         expect(prompt).toContain('思ったとおりに動かない：\nかべで止まってほしい');

@@ -255,4 +255,24 @@ describe('GenaiAnswerSteps words (#1446)', () => {
             expect(screen.getByTestId('genai-apply')).toBeEnabled();
         });
     });
+
+    // The AI sometimes declines with one line and no program (Gemini, #1283): the student is
+    // told to send the question again.
+    describe.each(['code', 'ruby', 'dncl'])('an answer without a program (%s)', (tab) => {
+        test('says to send the question again', async () => {
+            renderSteps(tab, { ...ngResult, code: '', problems: [{ type: 'noProgram' }] });
+            paste();
+            await convert();
+            expect(screen.getByTestId('genai-no-program-retry')).toHaveTextContent(
+                '答えにプログラムが無いときは、もう一度送ってみよう。［もどる］で相談文をコピーしなおせます',
+            );
+        });
+
+        test('not when the answer has a program', async () => {
+            renderSteps(tab, ngResult);
+            paste();
+            await convert();
+            expect(screen.queryByTestId('genai-no-program-retry')).toBeNull();
+        });
+    });
 });

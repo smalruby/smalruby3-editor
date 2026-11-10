@@ -630,6 +630,13 @@ const GenaiAnswerSteps = ({
                             </p>
                             {converted.fixes.length > 0 && <FixList fixes={converted.fixes} />}
                             <ProblemList problems={converted.problems} putsCode={putsCode} />
+                            {!canFold && (
+                                // The AI sometimes declines with one line and no program: sending
+                                // the same question again usually brings an answer.
+                                <p className={styles.small} data-testid="genai-no-program-retry">
+                                    <FormattedMessage {...messages.noProgramRetry} />
+                                </p>
+                            )}
                             {takeover && takeover.state === 'failed' && (
                                 <p className={styles.notice} data-testid="genai-takeover-failed">
                                     <FormattedMessage
