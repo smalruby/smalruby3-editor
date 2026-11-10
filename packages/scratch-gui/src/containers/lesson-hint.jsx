@@ -2,6 +2,8 @@
 // いまの code と同じ変換でブロックの XML にして、LessonHint に渡す。
 // 「プログラムを入れる」はチュートリアルのカードの insertCodeButton と同じ仕組み
 // （updateRubyCode → コードタブを出すと Ruby タブが変換してブロックを入れる）。
+// チャレンジの `codeTarget` が 'stage' のとき（ステージのプログラム）は、入れる前にステージを
+// えらび、Ruby タブの相手（rubyCode.target）もステージにしてから入れる。
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useIntl } from 'react-intl';
@@ -12,7 +14,7 @@ import { rubyToBlocksXml } from '../lib/lessons/hint-blocks';
 import { colorModeMap } from '../lib/settings/color-mode';
 import { BLOCKS_TAB_INDEX, RUBY_TAB_INDEX, activateTab } from '../reducers/editor-tab';
 import { getCurrentChallenge, getCurrentHint, hideHint, nextHint, prevHint } from '../reducers/lesson-mode';
-import { updateRubyCode } from '../reducers/ruby-code';
+import { updateRubyCode, updateRubyCodeTarget } from '../reducers/ruby-code';
 
 const LessonHintContainer = ({
     colorMode,
@@ -65,8 +67,14 @@ const LessonHintContainer = ({
 
     const handleInsertCode = useCallback(() => {
         if (!current || !current.challenge.code) return;
-        onInsertCode(current.challenge.code, current.course.language);
-    }, [current, onInsertCode]);
+        let target = null;
+        if (current.challenge.codeTarget === 'stage' && vm && vm.runtime) {
+            // ステージのプログラム: いま編集中のスプライトではなくステージに入れる
+            target = vm.runtime.getTargetForStage() || null;
+            if (target) vm.setEditingTarget(target.id);
+        }
+        onInsertCode(current.challenge.code, current.course.language, target, rubyVersion);
+    }, [current, onInsertCode, rubyVersion, vm]);
 
     if (!hint || !hint.visible || !current) return null;
     const step = hint.step;
@@ -133,10 +141,13 @@ const mapDispatchToProps = (dispatch) => ({
     onHideHint: () => dispatch(hideHint()),
     onNextHint: () => dispatch(nextHint()),
     onPrevHint: () => dispatch(prevHint()),
-    onInsertCode: (code, language) => {
+    onInsertCode: (code, language, target, rubyVersion) => {
         // カードの insertCodeButton と同じ: Ruby を入れてから目的のタブを出す。ブロックの
         // コースではコードタブ（Ruby タブが変換してブロックにする）、Ruby / DNCL のコースでは Ruby タブ
         dispatch(hideHint());
+        // 入れる相手が指定されたとき（ステージ）は、Ruby タブの相手を先にその target にする
+        // （Ruby タブは rubyCode.target に向けて変換するため）
+        if (target) dispatch(updateRubyCodeTarget(target, rubyVersion));
         dispatch(updateRubyCode(code));
         dispatch(activateTab(language === LANGUAGES.BLOCKS ? BLOCKS_TAB_INDEX : RUBY_TAB_INDEX));
     },

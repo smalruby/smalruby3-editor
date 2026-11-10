@@ -113,8 +113,35 @@ describe('LessonHint container', () => {
         const { getByTestId } = renderContainer(props);
         expect(getByTestId('lesson-hint-debug').querySelectorAll('li')).toHaveLength(2);
         fireEvent.click(getByTestId('lesson-hint-insert-code'));
-        expect(props.onInsertCode).toHaveBeenCalledWith(props.current.challenge.code, 'blocks');
+        expect(props.onInsertCode).toHaveBeenCalledWith(props.current.challenge.code, 'blocks', null, '2');
         expect(rubyToBlocksXml).not.toHaveBeenCalled();
+    });
+
+    test('a challenge with codeTarget "stage" selects the stage and inserts the code there', () => {
+        const stage = { id: 'stage-id', isStage: true };
+        const vm = {
+            editingTarget: { id: 'sprite' },
+            runtime: { getTargetForStage: () => stage },
+            setEditingTarget: jest.fn(),
+        };
+        const current = findChallenge('blocks-l1-repeat');
+        expect(current.challenge.codeTarget).toBe('stage');
+        const { challenge } = current;
+        const hint = {
+            visible: true,
+            index: challenge.steps.length,
+            count: challenge.steps.length + 1,
+            step: null,
+            spotlight: false,
+            lastResort: true,
+            debug: challenge.debug,
+            code: challenge.code,
+        };
+        const props = { ...baseProps(), current, hint, vm };
+        const { getByTestId } = renderContainer(props);
+        fireEvent.click(getByTestId('lesson-hint-insert-code'));
+        expect(vm.setEditingTarget).toHaveBeenCalledWith('stage-id');
+        expect(props.onInsertCode).toHaveBeenCalledWith(challenge.code, 'blocks', stage, '2');
     });
 
     test('next / back / close dispatch', () => {

@@ -29,6 +29,36 @@ describe('rubyToBlocksXml', () => {
         expect(xml).toMatch(/^<xml[^>]*><block id="[^"]+" type="looks_nextcostume"><\/block><\/xml>$/);
     });
 
+    test('self.y += -10 becomes "change y by -10" (challenge 2 duplicates the up script with -10)', async () => {
+        const { xml, errors } = await rubyToBlocksXml(null, null, 'self.y += -10\n');
+        expect(errors).toEqual([]);
+        expect(xml).toContain('type="motion_changeyby"');
+        expect(xml).toContain('<field name="NUM">-10</field>');
+    });
+
+    test('"3.times" without a block draws an empty "repeat 3" C block (challenge 4 hint)', async () => {
+        // `3.times do ... end` は中身が無いと変換できないので、ヒントは中身の無い `3.times` で描く
+        const { xml, errors } = await rubyToBlocksXml(null, null, '3.times\n');
+        expect(errors).toEqual([]);
+        expect(xml).toMatch(/<block id="[^"]+" type="control_repeat">/);
+        expect(xml).toContain('<field name="NUM">3</field>');
+    });
+
+    test('draws sound and backdrop blocks even when the project does not have the asset yet', async () => {
+        // ヒントは「Owl の音を鳴らす」のように、これから足すものを描く。作品にその音・背景が
+        // 無くてもエラーにしない（code を入れるときの変換は従来どおり確かめる）
+        const target = { id: 't', isStage: false, getSounds: () => [{ name: 'Meow' }], getCostumes: () => [] };
+        const vm = { runtime: { getTargetForStage: () => ({ getCostumes: () => [{ name: 'backdrop1' }] }) } };
+        const sound = await rubyToBlocksXml(vm, target, 'play("Owl")\n');
+        expect(sound.errors).toEqual([]);
+        expect(sound.xml).toContain('type="sound_play"');
+        expect(sound.xml).toContain('<field name="SOUND_MENU">Owl</field>');
+        const backdrop = await rubyToBlocksXml(vm, target, 'switch_backdrop("Arctic")\n');
+        expect(backdrop.errors).toEqual([]);
+        expect(backdrop.xml).toContain('type="looks_switchbackdropto"');
+        expect(backdrop.xml).toContain('<field name="BACKDROP">Arctic</field>');
+    });
+
     test('returns errors instead of xml for Ruby that does not parse', async () => {
         const { xml, errors } = await rubyToBlocksXml(null, null, 'when_clicked do\n');
         expect(xml).toBeNull();

@@ -7,6 +7,8 @@ import { blocksToXml } from './blocks-xml';
 
 /**
  * Ruby をブロックの XML にする。
+ * 音・コスチューム・背景の名前が作品に無くてもエラーにしない（ヒントは「Owl の音を鳴らす」の
+ * ように、これから足すものを描く）。
  * @param {?object} vm - Scratch VM（変数・拡張機能の参照に使う。null でもよい）。
  * @param {?object} target - 変換の文脈にする target（スプライトかステージ。null でもよい）。
  * @param {string} code - Ruby のコード。
@@ -15,7 +17,7 @@ import { blocksToXml } from './blocks-xml';
  * @returns {Promise<{xml: ?string, errors: Array<object>}>} 変換できたら `xml`、できなければ `errors`。
  */
 export const rubyToBlocksXml = async (vm, target, code, intl, options = { version: '2' }) => {
-    const converter = new RubyToBlocksConverter(vm, options);
+    const converter = new RubyToBlocksConverter(vm, { ...options, validateAssets: false });
     if (intl) converter.setTranslatorFunction(intl.formatMessage);
     const ok = await converter.targetCodeToBlocks(target, code);
     if (!ok) return { xml: null, errors: converter.errors };

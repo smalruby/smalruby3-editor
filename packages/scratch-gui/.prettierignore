@@ -355,6 +355,7 @@ test/integration/*
 !test/integration/smalruby-tutorials.test.js
 !test/integration/smalruby-lessons.test.js
 !test/integration/smalruby-lessons-hint.test.js
+!test/integration/smalruby-lesson1-challenges-1-4.test.js
 !test/integration/v1-detection-prompt.test.js
 !test/integration/palette-toggle-position.test.js
 !test/integration/version-update-notification.test.js
