@@ -153,6 +153,7 @@ src/lib/*
 # Smalruby-only directories
 !src/lib/ruby-generator/
 !src/lib/dncl/
+!src/lib/lessons/
 !src/lib/ruby-to-blocks-converter/
 !src/lib/settings/
 !src/lib/themes/
@@ -303,6 +304,7 @@ src/reducers/*
 !src/reducers/google-drive-file.js
 !src/reducers/koshien-file.js
 !src/reducers/koshien-mock-panel.js
+!src/reducers/lesson-mode.js
 !src/reducers/mesh-v2.js
 !src/reducers/palette-visibility.js
 !src/reducers/ruby-code.js
@@ -458,6 +460,7 @@ test/unit/containers/*
 test/unit/lib/*
 # Smalruby-only directories
 !test/unit/lib/dncl/
+!test/unit/lib/lessons/
 !test/unit/lib/libraries/
 !test/unit/lib/ruby-generator/
 !test/unit/lib/ruby-roundtrip/
@@ -575,6 +578,7 @@ test/unit/reducers/*
 !test/unit/reducers/koshien-mock-panel-reducer.test.js
 !test/unit/reducers/cards_reducer.test.js
 !test/unit/reducers/dncl-mode-reducer.test.js
+!test/unit/reducers/lesson-mode-reducer.test.js
 !test/unit/reducers/classroom-reducer.test.js
 !test/unit/reducers/menus-reducer.test.js
 !test/unit/reducers/palette-visibility-reducer.test.js
