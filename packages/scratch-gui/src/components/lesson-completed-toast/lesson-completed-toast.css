@@ -2,10 +2,12 @@
 @import "../../css/colors.css";
 
 /* Non-blocking toast pinned to the top-center of the viewport, above the editor but
-   below modals. Only the toast itself takes pointer events. */
+   below modals. Only the toast itself takes pointer events.
+   top = menu bar (3rem) + lesson task bar (2.5rem, lesson-task-bar.css) + gap, so the
+   toast does not cover the task bar while a challenge is open. */
 .toast {
     position: fixed;
-    top: 56px;
+    top: calc(3rem + 2.5rem + 0.5rem);
     left: 50%;
     transform: translateX(-50%);
     z-index: $z-index-card;

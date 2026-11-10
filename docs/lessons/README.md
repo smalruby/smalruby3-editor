@@ -191,7 +191,7 @@
 
 ```js
 // 1 キーで音を鳴らそう: スペースキーで、2 つの音が順に鳴った
-[{ type: 'uses', trigger: { hat: 'event_whenkeypressed', key: 'space' }, blocks: ['sound_playuntildone', 'sound_play'] }]
+[{ type: 'uses', trigger: { hat: 'event_whenkeypressed', key: 'space' }, blocks: ['sound_playuntildone', 'sound_play'], order: ['sound_playuntildone', 'sound_play'] }]
 
 // 2 矢印キーで動かそう: 上と下の矢印キーで、ネコが上と下の両方に動いた
 [

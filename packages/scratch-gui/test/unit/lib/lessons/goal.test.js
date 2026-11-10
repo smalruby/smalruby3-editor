@@ -402,6 +402,7 @@ describe('lesson 1 goals can be written in this shape', () => {
                     type: 'uses',
                     trigger: { hat: 'event_whenkeypressed', key: 'space' },
                     blocks: ['sound_playuntildone', 'sound_play'],
+                    order: ['sound_playuntildone', 'sound_play'],
                 },
             ],
             play: (facts) =>
