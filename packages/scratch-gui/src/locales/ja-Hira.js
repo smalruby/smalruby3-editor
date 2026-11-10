@@ -1,5 +1,6 @@
 // Tutorial category locale strings are split into per-category modules
 // (issue #932) so tutorial categories can be developed independently.
+import { jaHira as lessonsMessages } from '../lib/lessons/lessons.locale.js';
 import { jaHira as blockSeriesHowtos } from '../lib/libraries/decks/categories/block-series.locale.js';
 import { jaHira as dnclHowtos } from '../lib/libraries/decks/categories/dncl.locale.js';
 import { jaHira as gettingStartedHowtos } from '../lib/libraries/decks/categories/getting-started.locale.js';
@@ -1626,6 +1627,7 @@ export default {
     // Ruby Basics 1: putsでけいさんしてみよう
     'gui.library.rubyBasics': 'Ruby のきほん',
     ...rubyBasicsHowtos,
+    ...lessonsMessages,
     ...blockSeriesHowtos,
     ...dnclHowtos,
     // Mesh tag
