@@ -52,6 +52,12 @@ describe('buildDnclTabPrompt', () => {
         expect(prompt).toContain('「関数」は「と定義する」');
     });
 
+    // Gemini read the error of an assignment to an argument as a matter of `=` and `←` (#1403).
+    test('says an argument of a function cannot be assigned to, with the way out', () => {
+        expect(prompt).toContain('関数の引数には代入できません');
+        expect(prompt).toContain('「x ← a」のようにほかの変数に写してから');
+    });
+
     test('asks for the explanation in the words of DNCL, and the code between the markers', () => {
         expect(prompt).toContain('DNCL のことばで 1〜3 行で説明してください');
         expect(prompt).toContain(COPY_START);

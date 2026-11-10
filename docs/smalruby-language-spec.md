@@ -343,6 +343,7 @@ greet("hello")
 
 **Restrictions**:
 - Keyword arguments are not supported (`def foo(name:)` is invalid)
+- Arguments cannot be assigned to (`name = "x"` and `name += 1` are errors; copy the argument to another variable and change that one)
 - Class methods (`def self.method`) cannot be defined
 - `attr_accessor`/`attr_reader`/`attr_writer` are not supported
 - Method overloading is not supported
