@@ -50,6 +50,7 @@ src/components/*
 !src/components/koshien-test-modal/
 !src/components/koshien-settings-modal/
 !src/components/koshien-mock-panel/
+!src/components/lesson-completed-toast/
 !src/components/mesh-self-sensor-notice/
 !src/components/mobile-bottom-tabs/
 !src/components/mobile-drawer/
@@ -138,6 +139,7 @@ src/containers/*
 !src/containers/extension-library.css
 !src/containers/google-drive-loader-hoc.jsx
 !src/containers/koshien-mock-panel.jsx
+!src/containers/lesson-goal-watcher.jsx
 !src/containers/mesh-self-sensor-notice.jsx
 !src/containers/mesh-v2-seat-connect.jsx
 !src/containers/google-drive-saver-hoc.jsx
@@ -346,6 +348,7 @@ test/integration/*
 !test/integration/ruby-tab.test.js
 !test/integration/smalrubot-firmware.test.js
 !test/integration/smalrubot-s1-connection-flow.test.js
+!test/integration/lesson-goal.test.js
 !test/integration/smalruby-tutorials.test.js
 !test/integration/v1-detection-prompt.test.js
 !test/integration/palette-toggle-position.test.js
@@ -385,6 +388,7 @@ test/unit/components/*
 !test/unit/components/genai-answer-steps-words.test.jsx
 !test/unit/components/extension-button-dncl.test.jsx
 !test/unit/components/connected-step.test.jsx
+!test/unit/components/lesson-completed-toast.test.jsx
 !test/unit/components/mesh-self-sensor-notice.test.jsx
 !test/unit/components/mesh-v2-scanning-step-seats.test.jsx
 !test/unit/components/mesh-v2-seat-connect.test.jsx
@@ -422,6 +426,7 @@ test/unit/components/*
 # Level 3: test/unit/containers/*
 test/unit/containers/*
 !test/unit/containers/ruby-tab/
+!test/unit/containers/lesson-goal-watcher.test.jsx
 !test/unit/containers/backpack.test.jsx
 !test/unit/containers/cards.test.jsx
 !test/unit/containers/classroom-classcode-utils.test.js
