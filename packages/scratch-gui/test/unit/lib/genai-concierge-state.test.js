@@ -1,6 +1,7 @@
 import messages, { KIND_MESSAGES } from '../../../src/components/genai-concierge/messages.js';
 import {
     NUDGE_GAP_MS,
+    NUDGE_IDLE_SECONDS,
     copyChecklist,
     faceLabel,
     genaiServiceLabel,
@@ -85,10 +86,16 @@ describe('isNudgeOffToday', () => {
 });
 
 describe('shouldNudge', () => {
-    const base = { now: 1000000, lastActivity: 0, lastNudge: 0, idleMs: 150000, busy: false, offToday: false };
+    const idleMs = NUDGE_IDLE_SECONDS * 1000;
+    const base = { now: idleMs, lastActivity: 0, lastNudge: 0, idleMs, busy: false, offToday: false };
+
+    test('should wait 7 minutes, about half of a 15-minute work time', () => {
+        expect(NUDGE_IDLE_SECONDS).toBe(7 * 60);
+    });
 
     test('should offer help after the idle time', () => {
         expect(shouldNudge(base)).toBe(true);
+        expect(shouldNudge({ ...base, now: idleMs - 1 })).toBe(false);
     });
 
     test('should wait while the student is active', () => {
