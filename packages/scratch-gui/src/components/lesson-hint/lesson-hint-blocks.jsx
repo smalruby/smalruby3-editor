@@ -42,29 +42,35 @@ const renderBlocks = (scratchBlocks, div, xml, mediaPath, colorMode) => {
         scratchBlocks.common.setMainWorkspace(mainWorkspace);
     }
     try {
-        // VM の blockListener はエディタのワークスペースにしか付いていないが、念のため止める
-        scratchBlocks.Events.disable();
-        const dom = scratchBlocks.utils.xml.textToDom(xml);
-        scratchBlocks.Xml.domToWorkspace(dom, workspace);
-        // スクリプトが複数あるときは縦に並べる
-        workspace.cleanUp();
-    } finally {
-        scratchBlocks.Events.enable();
+        try {
+            // VM の blockListener はエディタのワークスペースにしか付いていないが、念のため止める
+            scratchBlocks.Events.disable();
+            const dom = scratchBlocks.utils.xml.textToDom(xml);
+            scratchBlocks.Xml.domToWorkspace(dom, workspace);
+            // スクリプトが複数あるときは縦に並べる
+            workspace.cleanUp();
+        } finally {
+            scratchBlocks.Events.enable();
+        }
+        const hasHat = workspace.getTopBlocks(false).some((block) => {
+            const root = block.getSvgRoot && block.getSvgRoot();
+            return root && root.getAttribute('data-shapes') === 'hat';
+        });
+        const box = workspace.getBlocksBoundingBox();
+        const scale = workspace.scale;
+        const top = PADDING + (hasHat ? HAT_PADDING * scale : 0);
+        const width = Math.ceil((box.right - box.left) * scale + PADDING * 2);
+        const height = Math.ceil((box.bottom - box.top) * scale + top + PADDING);
+        div.style.width = `${Math.max(width, 1)}px`;
+        div.style.height = `${Math.max(height, 1)}px`;
+        scratchBlocks.svgResize(workspace);
+        // 内容の左上が見えるように平行移動する（スクロールバーは無い）
+        workspace.translate(-box.left * scale + PADDING, -box.top * scale + top);
+    } catch (err) {
+        // 描けなかったワークスペースを Blockly の一覧（common.getAllWorkspaces）に残さない
+        workspace.dispose();
+        throw err;
     }
-    const hasHat = workspace.getTopBlocks(false).some((block) => {
-        const root = block.getSvgRoot && block.getSvgRoot();
-        return root && root.getAttribute('data-shapes') === 'hat';
-    });
-    const box = workspace.getBlocksBoundingBox();
-    const scale = workspace.scale;
-    const top = PADDING + (hasHat ? HAT_PADDING * scale : 0);
-    const width = Math.ceil((box.right - box.left) * scale + PADDING * 2);
-    const height = Math.ceil((box.bottom - box.top) * scale + top + PADDING);
-    div.style.width = `${Math.max(width, 1)}px`;
-    div.style.height = `${Math.max(height, 1)}px`;
-    scratchBlocks.svgResize(workspace);
-    // 内容の左上が見えるように平行移動する（スクロールバーは無い）
-    workspace.translate(-box.left * scale + PADDING, -box.top * scale + top);
     return workspace;
 };
 

@@ -30,7 +30,11 @@ export const HINT_SIDES = Object.freeze({
 const BLOCKS = '[class*="blocks_blocks_"]';
 
 // DOM の探し方。selectors は候補（最初に見えたもの。`union` なら見えたもの全部を合わせた矩形）。
-// upstream の部品は data-testid を持たないので CSS Modules のクラス名の接頭辞で探す。
+// Smalruby の部品（サイドレール・拡張機能のボタン）は data-testid で探す。upstream の部品は
+// data-testid を持たないので CSS Modules のクラス名の接頭辞（`<css ファイル名>_<クラス名>_`。
+// localIdentName は scratch-webpack-configuration の `[name]_[local]_[hash:base64:5]`）で探す。
+// upstream がクラス名を変えると壊れるので、使っているクラスが css に残っているかを
+// test/unit/lib/lessons/hint-targets.test.js が見張る。
 // SP（MobileGui）ではサイドレールのボタン（data-testid）を先に探す。
 const TARGET_SPECS = {
     [HINT_TARGETS.PALETTE]: {
@@ -65,7 +69,8 @@ const TARGET_SPECS = {
         sides: [HINT_SIDES.LEFT, HINT_SIDES.TOP, HINT_SIDES.INSIDE],
     },
     [HINT_TARGETS.EXTENSION_BUTTON]: {
-        selectors: ['[class*="gui_extension-button-container_"]'],
+        // components/extension-button/（Smalruby が手を入れている部品）の data-testid
+        selectors: ['[data-testid="extension-button"]'],
         sides: [HINT_SIDES.RIGHT, HINT_SIDES.TOP],
     },
     [HINT_TARGETS.GREEN_FLAG]: {

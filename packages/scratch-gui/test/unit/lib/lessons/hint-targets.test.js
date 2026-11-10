@@ -113,6 +113,44 @@ describe('findHintTargetRect', () => {
         expect(findHintTargetRect(HINT_TARGETS.COSTUMES_TAB, document)).toEqual(rect(100, 0, 200, 40));
         expect(findHintTargetRect(HINT_TARGETS.SOUNDS_TAB, document)).toEqual(rect(200, 0, 300, 40));
     });
+
+    test('the extension button is found by the data-testid of the Smalruby component', () => {
+        addEl('extension-button_extension-button-container_abc', rect(0, 540, 60, 600), {
+            'data-testid': 'extension-button',
+        });
+        expect(findHintTargetRect(HINT_TARGETS.EXTENSION_BUTTON, document)).toEqual(rect(0, 540, 60, 600));
+    });
+});
+
+// upstream の部品は data-testid を持たないので CSS Modules のクラス名の接頭辞（`<css ファイル名>_<クラス名>_`）で
+// 探している。upstream がクラス名を変えると静かに壊れる（吹き出しが画面の真ん中に出る）ので、
+// 使っている接頭辞の一覧と、そのクラスが css にまだあることを見張る
+describe('hint targets: CSS Modules class names of upstream components', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const srcDir = path.resolve(__dirname, '../../../../src');
+    const source = fs.readFileSync(path.join(srcDir, 'lib/lessons/hint-targets.js'), 'utf8');
+    // 接頭辞 → その css ファイル（src/components からの相対）とクラス名
+    const classPrefixes = {
+        blocks_blocks_: ['blocks/blocks.css', 'blocks'],
+        gui_tab_: ['gui/gui.css', 'tab'],
+        'stage_stage-wrapper_': ['stage/stage.css', 'stage-wrapper'],
+        'sprite-selector_sprite-selector_': ['sprite-selector/sprite-selector.css', 'sprite-selector'],
+        'stage-selector_stage-selector_': ['stage-selector/stage-selector.css', 'stage-selector'],
+        'green-flag_green-flag_': ['green-flag/green-flag.css', 'green-flag'],
+    };
+
+    test('every class prefix used by the selectors is listed here', () => {
+        const used = new Set(Array.from(source.matchAll(/\[class\*="([^"]+)"\]/g), (m) => m[1]));
+        expect(Array.from(used).sort()).toEqual(Object.keys(classPrefixes).sort());
+    });
+
+    test.each(Object.entries(classPrefixes))('%s: the class is still defined in %s', (prefix, [cssFile, className]) => {
+        const [fileName] = cssFile.split('/').slice(-1)[0].split('.');
+        expect(prefix).toBe(`${fileName}_${className}_`);
+        const css = fs.readFileSync(path.join(srcDir, 'components', cssFile), 'utf8');
+        expect(css).toMatch(new RegExp(`\\.${className.replace(/-/g, '\\-')}[\\s.:,{\\[]`));
+    });
 });
 
 describe('computeHintPlacement', () => {
