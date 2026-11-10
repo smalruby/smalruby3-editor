@@ -374,6 +374,12 @@ const messages = defineMessages({
         description: 'Which sprite a problem is about',
         id: 'gui.genaiConcierge.spriteOf',
     },
+    noProgramRetry: {
+        defaultMessage:
+            'If the answer has no program, send the question again: "Back" takes you to copy it (the same question often gets an answer)',
+        description: 'Under "no program found" in what was pasted (the AI may have declined)',
+        id: 'gui.genaiConcierge.noProgramRetry',
+    },
     problemNoProgram: {
         defaultMessage: 'No program was found in what you pasted',
         description: 'Problem: the pasted answer has no program',

@@ -1355,6 +1355,8 @@ export default {
     'gui.genaiConcierge.lineOf': 'Line {line}',
     'gui.genaiConcierge.spriteLineOf': '"{sprite}" line {line}',
     'gui.genaiConcierge.spriteOf': '"{sprite}"',
+    'gui.genaiConcierge.noProgramRetry':
+        'If the answer has no program, send the question again: "Back" takes you to copy it (the same question often gets an answer)',
     'gui.genaiConcierge.problemNoProgram': 'No program was found in what you pasted',
     'gui.genaiConcierge.problemMissingSound': 'There is no sound "{name}" (sounds you can use: {names})',
     'gui.genaiConcierge.problemMissingSoundNone': 'There is no sound "{name}" (this sprite has no sounds)',

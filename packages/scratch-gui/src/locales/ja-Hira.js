@@ -1803,6 +1803,8 @@ export default {
     'gui.genaiConcierge.lineOf': '{line} ぎょうめ',
     'gui.genaiConcierge.spriteLineOf': '「{sprite}」の {line} ぎょうめ',
     'gui.genaiConcierge.spriteOf': '「{sprite}」',
+    'gui.genaiConcierge.noProgramRetry':
+        'こたえにプログラムがないときは、もういちどおくってみよう。［もどる］でそうだんぶんをコピーしなおせます（おなじそうだんぶんでも、こたえがでることがあります）',
     'gui.genaiConcierge.problemNoProgram': 'はりつけたぶんにプログラムがみつかりませんでした',
     'gui.genaiConcierge.problemMissingSound': 'おと「{name}」はありません（つかえるおと: {names}）',
     'gui.genaiConcierge.problemMissingSoundNone': 'おと「{name}」はありません（このスプライトにはおとがありません）',

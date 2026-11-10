@@ -26,11 +26,13 @@ const COPY_END = '▲▲ ここまで ▲▲';
 // Students cannot describe their program in chat, so a question back (「どのブロックの中かな？」)
 // stalls them. The AI answers with the whole changed program right away; the
 // student learns by reading the "what changed" lines and trying it.
+// "Only the sprite in the editor" gave way too far once: the AI sent a broadcast and left
+// out the sprite receiving it (Gemini, #1283), so the rule names that exception.
 const rules = (editingName) => {
     const target = editingName ? `「${editingName}」` : '直すスプライト';
     return [
         '生徒は自分のプログラムを言葉で説明するのが苦手です。「どこに入れればいいかな？」のような質問を返さず、すぐに直したプログラムを出してください。',
-        `直すのは、できるだけ${target}のプログラムだけにしてください。スモウルビーはスプライトのブロックを丸ごと入れかえるので、変えるスプライトごとに「# 「スプライト名」」という 1 行から始めて、変えないところも含めてそのスプライトのプログラムを全部書いてください。変えないスプライトは書かないでください。`,
+        `直すのは、できるだけ${target}のプログラムだけにしてください。スモウルビーはスプライトのブロックを丸ごと入れかえるので、変えるスプライトごとに「# 「スプライト名」」という 1 行から始めて、変えないところも含めてそのスプライトのプログラムを全部書いてください。ただし、合図を送る（broadcast）ように直すときは、その合図を受け取るスプライトのプログラム（when_receive）も書いてください。受け取るプログラムが無いと、合図を送っても何も起きません。変えないスプライトは書かないでください。`,
         'コードの前に、何を変えたかを「〜を受け取ったときのブロックの中に、〜を鳴らす命令を足しました」のように、ブロックのことばで 1〜3 行で説明してください。Ruby の書き方の細かいことは言わないでください。',
         '命令は、今のプログラムにある書き方か、下の「使える命令の例」の書き方で書いてください。例にない命令が要るときも、プログラムを出すのをやめずに、例と同じスモウルビーの書き方で書いてください。Scratch のブロック名を英語にしただけの命令（when_this_sprite_clicked など）は使えません。音やコスチュームの名前は、下の一覧にあるものから選んでください。',
         `直したプログラムは全部、「${COPY_START}」の行と「${COPY_END}」の行のあいだに、1 つの \`\`\`ruby と \`\`\` で囲んで書いてください。変えるスプライトが 2 つ以上でも 1 つにまとめ、印の外にはコードを書かないでください（生徒は印のあいだだけをコピーします）。`,
