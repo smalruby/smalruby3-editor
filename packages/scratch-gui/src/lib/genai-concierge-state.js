@@ -3,8 +3,12 @@
  * class lets its students open, and when the face offers help by itself.
  */
 
-/** Seconds of inactivity before the face offers help (2 min 30 s). */
-export const NUDGE_IDLE_SECONDS = 150;
+/**
+ * Seconds of inactivity before the face offers help (7 min): about half of the
+ * 15 minutes a lesson gives to hands-on work, so a student who is still
+ * thinking is not interrupted.
+ */
+export const NUDGE_IDLE_SECONDS = 420;
 
 /** Once the face has offered help, it waits this long before offering again. */
 export const NUDGE_GAP_MS = 10 * 60 * 1000;
