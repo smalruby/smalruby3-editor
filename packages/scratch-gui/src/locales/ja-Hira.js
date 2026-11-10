@@ -1630,6 +1630,10 @@ export default {
     'gui.library.rubyBasics': 'Ruby のきほん',
     ...rubyBasicsHowtos,
     ...lessonsMessages,
+    'gui.lessonTaskBar.ariaLabel': 'レッスンのかだい',
+    'gui.lessonTaskBar.position': '{number} / ぜんぶで {count}',
+    'gui.lessonTaskBar.hint': 'ヒント',
+    'gui.lessonTaskBar.quit': 'やめる',
     ...blockSeriesHowtos,
     ...dnclHowtos,
     // Mesh tag

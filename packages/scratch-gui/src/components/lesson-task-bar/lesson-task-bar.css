@@ -1,0 +1,62 @@
+@import "../../css/colors.css";
+@import "../../css/units.css";
+
+/*
+    1 行・40px 固定。editor-wrapper（flex column）の先頭に置くので、
+    下のタブとコードエリアはこの高さの分だけ縮む（stage の列は変わらない）。
+*/
+.bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+    height: 2.5rem;
+    padding: 0 0.75rem;
+    background-color: $motion-primary;
+    color: $ui-white;
+    font-size: 0.875rem;
+    line-height: 1.2;
+    overflow: hidden;
+}
+
+.position {
+    flex-shrink: 0;
+    padding: 0.125rem 0.5rem;
+    border-radius: 1rem;
+    background-color: $ui-white;
+    color: $motion-primary;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.task {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-weight: bold;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.button {
+    flex-shrink: 0;
+    padding: 0.25rem 0.75rem;
+    border: 1px solid $ui-white;
+    border-radius: 1rem;
+    background: none;
+    color: $ui-white;
+    font-size: 0.75rem;
+    font-weight: bold;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.button:hover:not(:disabled) {
+    background-color: $ui-white;
+    color: $motion-primary;
+}
+
+.button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
