@@ -105,6 +105,8 @@ export default {
     'gui.menuBar.classroomJoined': 'クラス:しゅっせきばんごう{seatNumber}',
     'gui.menuBar.classroomManagement': 'クラスかんり...',
     'gui.menuBar.aboutSmalruby': 'スモウルビーについて',
+    'gui.menuBar.debug': 'デバッグ',
+    'gui.menuBar.tutorials': 'チュートリアル',
     'gui.menuBar.showWelcomeAgain': 'ウェルカムをもういちどみる',
     'gui.welcomeModal.title': 'スモウルビーへようこそ',
     'gui.welcomeModal.lead':
@@ -1651,7 +1653,6 @@ export default {
     'gui.menuBar.updateTooltip': 'あたらしいスモウルビーをつかってみよう！',
     'gui.menuBar.updateConfirm':
         'あたらしいバージョンのスモウルビーがりようかのうです。いますぐこうしんするばあいは「OK」を、あとにするばあいは「キャンセル」をおしてください。',
-    'gui.menuBar.tutorialTooltip': 'ルビーをためしてみよう!',
     'gui.welcomeTooltip.label': 'スモウルビーへようこそ',
     'gui.aria.clearButton': 'クリア',
     'gui.extensionButton.dnclExtensionConfirm':

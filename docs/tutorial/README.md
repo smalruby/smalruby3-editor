@@ -18,9 +18,11 @@
 
 ### カードチュートリアル (upstream 由来)
 
-メニューバーの「チュートリアル」ボタンから `tips-library` を開き、チュートリアルを選ぶ：
+メニューバー右上の「?」メニューの **「チュートリアル」** から `tips-library` を開き、チュートリアルを選ぶ（メニューバーに直接のボタンは置かない。ふだんは目に入らないようにするため。「?」メニューの構成は [`docs/menu-bar/`](../menu-bar/) を参照）：
 
 ![チュートリアル一覧](screenshots/0201-tips-library-1280x800.png)
+
+URL パラメータ `?tutorial=<urlId>`（例: `?tutorial=getStarted`）で直接チュートリアルを開く経路は「?」メニューとは独立に動く（`src/lib/tutorial-from-url.js`）。教科書や授業資料のリンクはこちらを使う。
 
 1. 全画面のチュートリアルカードが表示される
 2. 「次へ」「前へ」で進む
@@ -30,7 +32,7 @@ Smalruby 独自のチュートリアル（「さあ、始めましょう」や�
 
 ### Ruby タブオンボーディング (Smalruby 独自)
 
-初めて Ruby タブを訪問したときに、tutorial-tooltip がメニューバー周辺に表示され、Ruby タブの使い方をガイド。`tutorial-onboarding` reducer の `MARK_RUBY_TAB_USED` で表示状態を管理。
+はじめての人向けの吹き出し（メニューバーの「チュートリアル」ボタン横の「ルビーを試してみよう!」）は廃止した。レッスンの入口への案内は `docs/lessons/` のレッスン機能側で作る。`tutorial-onboarding` reducer（`MARK_RUBY_TAB_USED` など）は Ruby タブ訪問の記録のために残っている。
 
 ### classroom-tutorial (Smalruby 独自)
 
@@ -52,8 +54,7 @@ Smalruby Classroom の各フェーズ（教師ログイン、クラス作成、�
 
 | ファイル | 役割 |
 |---|---|
-| `packages/scratch-gui/src/components/menu-bar/tutorial-tooltip.jsx` | ツールチップ UI |
-| `packages/scratch-gui/src/reducers/tutorial-onboarding.js` | onboarding state（`MARK_TUTORIAL_SEEN`, `MARK_RUBY_TAB_USED`, `DISMISS_TOOLTIP`）|
+| `packages/scratch-gui/src/reducers/tutorial-onboarding.js` | onboarding state（`MARK_TUTORIAL_SEEN`, `MARK_RUBY_TAB_USED`, `DISMISS_TOOLTIP`）。吹き出し UI は廃止済みで、現在は Ruby タブ訪問の記録に使う |
 | `packages/scratch-gui/src/components/classroom-tutorial/` | クラスルーム機能のチュートリアル UI |
 | `packages/scratch-gui/src/reducers/classroom-tutorial.js` | クラスルームチュートリアル state |
 | `packages/scratch-gui/src/lib/libraries/decks/categories/book-promo.jsx` | Block 軸シリーズ共通の書籍プロモ要素（`BOOK` 書誌プレースホルダ / `BOOK_URL` / オープニング・クロージング step ファクトリ）。書誌確定後は `BOOK` 定数 1 箇所を差し替える（Phase 3, #956）。カテゴリは `blockBasics`（第1章）と `blockGames`（第4章）の 2 章のみ。第5章・第6章（`blockMath` / `blockScience`）は元となる書籍 PDF が提供されなかったため対象外（#962）|
@@ -62,6 +63,9 @@ Smalruby Classroom の各フェーズ（教師ログイン、クラス作成、�
 
 `src/containers/cards.jsx`, `src/components/cards/cards.jsx`:
 - "tutorial glow animation" — チュートリアルのハイライト用アニメーション
+
+`src/components/menu-bar/menu-bar.jsx`, `src/containers/menu-bar-hoc.jsx`:
+- "help menu" — 「チュートリアル」「デバッグ」をメニューバーのボタンから「?」メニューの項目へ移す
 
 ### scratch-vm
 
@@ -89,7 +93,7 @@ Smalruby Classroom の各フェーズ（教師ログイン、クラス作成、�
 
 ## 関連ドキュメント
 
-- [`docs/menu-bar/`](../menu-bar/) — `tutorial-tooltip` の表示位置
+- [`docs/menu-bar/`](../menu-bar/) — 「?」メニュー（チュートリアル・デバッグの入口）
 - [`docs/classroom/`](../classroom/) — `classroom-tutorial` の対象機能
 - [`docs/ruby-editor/`](../ruby-editor/) — Ruby タブ onboarding の対象
 
