@@ -34,7 +34,6 @@ import GoogleDriveLoaderHOC from '../../containers/google-drive-loader-hoc.jsx';
 import GoogleDriveSaverHOC from '../../containers/google-drive-saver-hoc.jsx';
 import GoogleDriveSaveDialog from '../google-drive-save-dialog/google-drive-save-dialog.jsx';
 import SettingsMenu from './settings-menu.jsx';
-import TutorialTooltip from './tutorial-tooltip.jsx';
 // === Smalruby: Start of welcome tooltip ===
 import WelcomeTooltip from '../welcome-tooltip/welcome-tooltip.jsx';
 // === Smalruby: End of welcome tooltip ===
@@ -131,7 +130,10 @@ import {PLATFORM} from '../../lib/platform';
 
 import styles from './menu-bar.css';
 
-import helpIcon from '../../lib/assets/icon--tutorials.svg';
+// === Smalruby: Start of help menu ===
+// The Tutorials / Debug buttons (and their icons) moved into the "?" menu,
+// so upstream's `helpIcon` / `debugIcon` imports are not needed here.
+// === Smalruby: End of help menu ===
 import mystuffIcon from './icon--mystuff.png';
 import profileIcon from './profile-hatti.png';
 import remixIcon from './icon--remix.svg';
@@ -139,7 +141,6 @@ import dropdownCaret from './dropdown-caret.svg';
 import aboutIcon from './icon--about.svg';
 import fileIcon from './icon--file.svg';
 import editIcon from './icon--edit.svg';
-import debugIcon from '../debug-modal/icons/icon--debug.svg';
 import koshienIcon from './icon--koshien.svg';
 import meshConnectedIcon from './icon--mesh-connected.png';
 import meshDisconnectedIcon from './icon--mesh-disconnected.png';
@@ -289,7 +290,6 @@ class MenuBar extends React.Component {
             'handleClickKoshienMockPanel',
             'handleMeshV2MenuClick',
             'handleSmalrubotS1FirmwareFlash',
-            'handleClickTutorials',
             'handleClickWelcomeTooltip', // === Smalruby: welcome tooltip ===
             'handleUpdateAvailable',
             'handleUpdateNotificationClick'
@@ -492,15 +492,6 @@ class MenuBar extends React.Component {
         this.props.onRequestCloseKoshien();
         this.props.onOpenKoshienMockPanel();
     }
-    handleClickTutorials () {
-        if (this.props.showTutorialTooltip) {
-            // First-time user: activate tutorial directly
-            this.props.onActivateTutorial();
-        } else {
-            // Returning user: open tips library
-            this.props.onOpenTipsLibrary();
-        }
-    }
     // === Smalruby: Start of welcome tooltip ===
     handleClickWelcomeTooltip () {
         this.props.onShowWelcomeModal();
@@ -658,6 +649,9 @@ class MenuBar extends React.Component {
                 // === Smalruby: Start of welcome tooltip ===
                 style={{position: 'relative'}}
                 // === Smalruby: End of welcome tooltip ===
+                // === Smalruby: Start of help menu ===
+                data-testid="menu-bar-about"
+                // === Smalruby: End of help menu ===
                 onClick={this.props.onRequestOpenAbout}
             >
                 {/* === Smalruby: Start of welcome tooltip === */}
@@ -677,6 +671,24 @@ class MenuBar extends React.Component {
                     place={this.props.isRtl ? 'right' : 'left'}
                     onRequestClose={this.props.onRequestCloseAbout}
                 >
+                    {/* === Smalruby: Start of help menu === */}
+                    {/* Tutorials / Debug live here instead of as menu-bar buttons so
+                        they stay out of sight until someone looks for help. The
+                        data-testid goes on an inner span because MenuItem does not
+                        forward unknown props to its <li>. */}
+                    <MenuSection>
+                        <MenuItem onClick={this.wrapAboutMenuCallback(this.props.onOpenTipsLibrary)}>
+                            <span data-testid="menu-bar-help-tutorials">
+                                <FormattedMessage {...ariaMessages.tutorials} />
+                            </span>
+                        </MenuItem>
+                        <MenuItem onClick={this.wrapAboutMenuCallback(this.props.onOpenDebugModal)}>
+                            <span data-testid="menu-bar-help-debug">
+                                <FormattedMessage {...ariaMessages.debug} />
+                            </span>
+                        </MenuItem>
+                    </MenuSection>
+                    {/* === Smalruby: End of help menu === */}
                     {
                         onClickAbout.map(itemProps => (
                             <MenuItem
@@ -1103,42 +1115,11 @@ class MenuBar extends React.Component {
                             </MenuBarItemTooltip>
                         ) : [])}
                     </div>
-                    <Divider className={classNames(styles.divider)} />
-                    <div className={styles.fileGroup}>
-                        <div
-                            className={styles.tutorialButtonWrapper}
-                        >
-                            <div
-                                aria-label={this.props.intl.formatMessage(ariaMessages.tutorials)}
-                                className={classNames(styles.menuBarItem, styles.noOffset, styles.hoverable)}
-                                onClick={this.handleClickTutorials}
-                            >
-                                <img
-                                    className={styles.helpIcon}
-                                    src={helpIcon}
-                                />
-                                <span className={styles.learnLabel}>
-                                    <FormattedMessage {...ariaMessages.tutorials} />
-                                </span>
-                            </div>
-                            {this.props.showTutorialTooltip ? (
-                                <TutorialTooltip onClick={this.handleClickTutorials} />
-                            ) : null}
-                        </div>
-                        <div
-                            aria-label={this.props.intl.formatMessage(ariaMessages.debug)}
-                            className={classNames(styles.menuBarItem, styles.noOffset, styles.hoverable)}
-                            onClick={this.props.onOpenDebugModal}
-                        >
-                            <img
-                                className={styles.helpIcon}
-                                src={debugIcon}
-                            />
-                            <span className={styles.debugLabel}>
-                                <FormattedMessage {...ariaMessages.debug} />
-                            </span>
-                        </div>
-                    </div>
+                    {/* === Smalruby: Start of help menu === */}
+                    {/* upstream renders the Tutorials and Debug buttons here (between two
+                        dividers). Smalruby moves both into the "?" menu (buildAboutMenu),
+                        so this group and its leading divider are intentionally omitted. */}
+                    {/* === Smalruby: End of help menu === */}
                     <Divider className={classNames(styles.divider)} />
                     <div className={styles.fileGroup}>
                         {(() => {
@@ -1785,8 +1766,6 @@ MenuBar.propTypes = {
     onClickLogo: PropTypes.func,
     onOpenTipsLibrary: PropTypes.func,
     onActivateRubyTab: PropTypes.func,
-    onActivateTutorial: PropTypes.func,
-    showTutorialTooltip: PropTypes.bool,
     onShowWelcomeModal: PropTypes.func, // === Smalruby: welcome tooltip ===
     onClickMeshV2: PropTypes.func,
     onClickSmalrubotS1: PropTypes.func, // === Smalruby: smalrubot firmware menu ===

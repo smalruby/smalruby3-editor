@@ -96,8 +96,6 @@ src/components/connection-modal/*
 
 # Level 3: src/components/menu-bar/*
 src/components/menu-bar/*
-!src/components/menu-bar/tutorial-tooltip.css
-!src/components/menu-bar/tutorial-tooltip.jsx
 
 # ============================================================
 # Level 2: src/containers/*
@@ -344,6 +342,7 @@ test/integration/*
 !test/integration/ruby-tab.test.js
 !test/integration/smalrubot-firmware.test.js
 !test/integration/smalrubot-s1-connection-flow.test.js
+!test/integration/smalruby-help-menu.test.js
 !test/integration/smalruby-tutorials.test.js
 !test/integration/v1-detection-prompt.test.js
 !test/integration/palette-toggle-position.test.js
@@ -400,6 +399,7 @@ test/unit/components/*
 !test/unit/components/classroom-teacher-evaluation.test.jsx
 !test/unit/components/classroom-teacher-menu.test.jsx
 !test/unit/components/menu-bar-classroom.test.jsx
+!test/unit/components/menu-bar-help-menu.test.jsx
 !test/unit/components/student-seat-selector.test.jsx
 !test/unit/components/mobile-bottom-tabs.test.jsx
 !test/unit/components/mobile-drawer.test.jsx

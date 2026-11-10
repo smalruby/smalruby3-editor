@@ -94,6 +94,7 @@ export default {
     'gui.menuBar.classroomJoined': 'Class: Seat {seatNumber}',
     'gui.menuBar.classroomManagement': 'Class Management...',
     'gui.menuBar.aboutSmalruby': 'About Smalruby',
+    'gui.menuBar.debug': 'Debug',
     'gui.classroom.management.title': 'Class Management',
     'gui.classroom.roleSelect.prompt': 'How do you use the classroom?',
     'gui.classroom.roleSelect.teacher': 'Teacher',
@@ -1243,7 +1244,6 @@ export default {
     'gui.menuBar.updateTooltip': 'Try the new Smalruby!',
     'gui.menuBar.updateConfirm':
         'A new version of Smalruby is available. Press "OK" to update now, or "Cancel" to update later.',
-    'gui.menuBar.tutorialTooltip': 'Try Ruby!',
     'gui.welcomeTooltip.label': 'Welcome to Smalruby',
     'gui.aria.clearButton': 'Clear',
     'gui.extensionButton.dnclExtensionConfirm':
