@@ -11,6 +11,7 @@ import reducer, {
     lessonModeInitialState,
     markChallengeCompleted,
     openChallenge,
+    reloadProgress,
 } from '../../../src/reducers/lesson-mode';
 
 const wrap = (lessonMode) => ({ scratchGui: { lessonMode } });
@@ -73,6 +74,21 @@ describe('lesson-mode reducer', () => {
         expect(Object.keys(state.progress.challenges).sort()).toEqual(['blocks-l1-broadcast', 'blocks-l1-quiz']);
         const saved = JSON.parse(window.localStorage.getItem(LESSON_PROGRESS_STORAGE_KEY));
         expect(Object.keys(saved.challenges).sort()).toEqual(['blocks-l1-broadcast', 'blocks-l1-quiz']);
+    });
+
+    test('reloadProgress takes in records another tab wrote without writing back', () => {
+        const state = reducer(
+            lessonModeInitialState,
+            markChallengeCompleted('blocks-l1-broadcast', '2026-11-10T00:00:00.000Z'),
+        );
+        // 別のタブが書いた記録（こちらの分は含まない）
+        saveProgress(markProgress(emptyProgress(), 'blocks-l1-quiz', '2026-11-10T01:00:00.000Z'));
+        const reloaded = reducer(state, reloadProgress());
+        expect(Object.keys(reloaded.progress.challenges).sort()).toEqual(['blocks-l1-broadcast', 'blocks-l1-quiz']);
+        const saved = JSON.parse(window.localStorage.getItem(LESSON_PROGRESS_STORAGE_KEY));
+        expect(Object.keys(saved.challenges)).toEqual(['blocks-l1-quiz']);
+        // 変わらなければ同じ state
+        expect(reducer(reloaded, reloadProgress())).toBe(reloaded);
     });
 
     test('markChallengeCompleted fills the time when not given', () => {

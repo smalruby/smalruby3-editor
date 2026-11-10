@@ -11,6 +11,7 @@ import {
 const OPEN_CHALLENGE = 'scratch-gui/lesson-mode/OPEN_CHALLENGE';
 const CLOSE_LESSON = 'scratch-gui/lesson-mode/CLOSE_LESSON';
 const MARK_CHALLENGE_COMPLETED = 'scratch-gui/lesson-mode/MARK_CHALLENGE_COMPLETED';
+const RELOAD_PROGRESS = 'scratch-gui/lesson-mode/RELOAD_PROGRESS';
 
 const closedState = {
     courseId: null,
@@ -46,6 +47,11 @@ const reducer = function (state, action) {
             saveProgress(progress);
             return { ...state, progress };
         }
+        case RELOAD_PROGRESS: {
+            // 別のタブが書いた分を写しに取り込む（レッスン表を開くときなど）。localStorage は書かない
+            const progress = mergeProgress(state.progress, loadProgress());
+            return progress === state.progress ? state : { ...state, progress };
+        }
         default:
             return state;
     }
@@ -60,6 +66,8 @@ const markChallengeCompleted = (challengeId, completedAt = new Date().toISOStrin
     challengeId,
     completedAt,
 });
+
+const reloadProgress = () => ({ type: RELOAD_PROGRESS });
 
 const isLessonMode = (state) => state.scratchGui.lessonMode.challengeId !== null;
 
@@ -78,6 +86,7 @@ export {
     openChallenge,
     closeLesson,
     markChallengeCompleted,
+    reloadProgress,
     isLessonMode,
     getCurrentChallenge,
 };

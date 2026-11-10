@@ -70,9 +70,29 @@
 | `required` | boolean | false | レッスンの必須か |
 | `allowedBlocks` | object \| null | null | パレットに出すブロック（deck と同じ形） |
 | `setup` | object \| null | null | 始めるときの準備（deck と同じ形。`lib/deck-setup.js`） |
-| `steps` | ヒント[] | [] | ヒント。各ヒントに `target`（指す場所）と `blocks`（吹き出しに描くブロック）を持つ（既定 null） |
-| `code` | string \| null | null | ヒントの最後の手段「プログラムを入れる」 |
+| `steps` | ヒント[] | [] | ヒント（下の表） |
+| `code` | string \| null | null | ヒントの最後の手段「プログラムを入れる」（Ruby。deck の `code` と同じ） |
 | `debug` | message[] | [] | うまく動かないときは |
+
+ヒント（`steps` の要素）。deck の step と同じ `title` を文言にし、吹き出しのための項目を足す。
+省いた項目は `defineChallenge` が既定値で埋める。
+
+| 項目 | 型 | 既定 | 説明 |
+|------|----|------|------|
+| `title` | message \| null | null | 吹き出しの文言 |
+| `target` | string \| null | null | 指す場所。パレット・コードエリア・ステージ・スプライトリスト・音タブ・コスチュームタブ・背景を選ぶ・拡張機能のボタン・旗・キーボード（場所の無いもの）。値の名前は吹き出しの実装で決める |
+| `blocks` | string \| null | null | 吹き出しに描くブロック（Ruby。`code` と同じ変換でブロックにする） |
+| `spotlight` | boolean | false | はじめて開いたチャレンジだけ、周りを暗くして `target` を照らす |
+
+記録（下の「記録の形」）は **できたチャレンジだけ**を持つ。「はじめて開いたか」（`spotlight` の判定）は
+記録には入れず、吹き出しの実装で別のキーに残す。
+
+文言の message id の付け方: `gui.lessons.course.<id>.{name,badge}`・`gui.lessons.lesson.<id>.name`・
+`gui.lessons.challenge.<id>.name`。`task` / `steps[].title` / `debug[]` / できること（`skills[].name`）も
+同じ `gui.lessons.` の下に置き、3 locale（en / ja / ja-Hira）にそろえる（テストが解決できることを確かめる）。
+
+`defineCourse` / `defineLesson` / `defineChallenge` は export してあるので、コースやレッスンが増えて
+ファイルを分けるときも同じ形で定義できる。
 
 レッスン 1 の 11 のチャレンジは、いまは `id` と名前だけが入っている（中身は後から入れる）。
 
@@ -123,6 +143,7 @@
 | `openChallenge(challengeId)` | チャレンジを開く（知らない id は無視） |
 | `closeLesson()` | レッスンモードを抜ける（記録は残す） |
 | `markChallengeCompleted(challengeId, completedAt?)` | 「できた」にして localStorage にも書く。書く前に localStorage の最新と合わせる（別のタブが書いた分を消さない） |
+| `reloadProgress()` | localStorage の最新を写しに取り込む（別のタブが書いた分を、レッスン表を開くときなどに反映する。書かない） |
 | `isLessonMode(state)` / `getCurrentChallenge(state)` | レッスンモードか / `{course, lesson, challenge}` |
 
 ## 主要ファイル

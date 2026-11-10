@@ -21,7 +21,7 @@ const message = (id) => ({ id, defaultMessage: ja[id] });
  * @param {object} def - チャレンジの定義（id は必須。number は defineLesson が付ける）。
  * @returns {object} 正規化したチャレンジ。
  */
-const defineChallenge = (def) => ({
+export const defineChallenge = (def) => ({
     name: message(`gui.lessons.challenge.${def.id}.name`),
     // 課題の 1 行（message descriptor）
     task: null,
@@ -37,8 +37,9 @@ const defineChallenge = (def) => ({
     // うまく動かないときは: [message descriptor]
     debug: [],
     ...def,
-    // ヒント。target = 指す場所、blocks = 吹き出しに描くブロック
-    steps: (def.steps || []).map((step) => ({ target: null, blocks: null, ...step })),
+    // ヒント。title = 文言、target = 指す場所、blocks = 吹き出しに描くブロック、
+    // spotlight = はじめて開いたチャレンジだけ周りを暗くして指す場所を照らす
+    steps: (def.steps || []).map((step) => ({ title: null, target: null, blocks: null, spotlight: false, ...step })),
 });
 
 /**
@@ -51,7 +52,7 @@ const defineChallenge = (def) => ({
  * @param {Array<object>} def.challenges - チャレンジの定義（並び順）。
  * @returns {object} レッスン。
  */
-const defineLesson = ({ id, count, challenges }) => {
+export const defineLesson = ({ id, count, challenges }) => {
     const normalized = challenges.map((def, index) => defineChallenge({ ...def, number: index + 1 }));
     return {
         id,
@@ -64,7 +65,14 @@ const defineLesson = ({ id, count, challenges }) => {
     };
 };
 
-const defineCourse = ({ id, language, lessons }) => ({
+/**
+ * @param {object} def - コースの定義。
+ * @param {string} def.id - コース id。
+ * @param {string} def.language - 言語（`LANGUAGES`）。
+ * @param {Array<object>} def.lessons - レッスン（並び順）。
+ * @returns {object} コース。
+ */
+export const defineCourse = ({ id, language, lessons }) => ({
     id,
     language,
     name: message(`gui.lessons.course.${id}.name`),

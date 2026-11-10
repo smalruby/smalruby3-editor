@@ -9,6 +9,8 @@
 import {
     COURSES,
     LANGUAGES,
+    defineChallenge,
+    defineLesson,
     findChallenge,
     findCourse,
     findLesson,
@@ -131,6 +133,41 @@ describe('lesson courses', () => {
                 expect(step).toHaveProperty('blocks');
             });
         });
+    });
+
+    test('defineChallenge fills the defaults and keeps what the definition gives', () => {
+        const challenge = defineChallenge({
+            id: 'x-y',
+            required: true,
+            steps: [{ target: 'palette', spotlight: true }, { blocks: 'move(10)' }],
+        });
+        expect(challenge).toEqual({
+            id: 'x-y',
+            name: { id: 'gui.lessons.challenge.x-y.name', defaultMessage: undefined },
+            task: null,
+            skills: [],
+            goal: null,
+            required: true,
+            allowedBlocks: null,
+            setup: null,
+            code: null,
+            debug: [],
+            steps: [
+                { title: null, target: 'palette', blocks: null, spotlight: true },
+                { title: null, target: null, blocks: 'move(10)', spotlight: false },
+            ],
+        });
+    });
+
+    test('defineLesson numbers the challenges in order and derives the required ids', () => {
+        const lesson = defineLesson({
+            id: 'l',
+            count: 2,
+            challenges: [{ id: 'a' }, { id: 'b', required: true }, { id: 'c', required: true }],
+        });
+        expect(lesson.name.id).toBe('gui.lessons.lesson.l.name');
+        expect(lesson.challenges.map((c) => c.number)).toEqual([1, 2, 3]);
+        expect(lesson.clear).toEqual({ count: 2, required: ['b', 'c'] });
     });
 
     test('the clear count never exceeds the number of challenges and covers the required ones', () => {
