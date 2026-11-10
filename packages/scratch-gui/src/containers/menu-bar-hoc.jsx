@@ -3,9 +3,9 @@ import PropTypes from 'prop-types';
 import bindAll from 'lodash.bindall';
 import React from 'react';
 
+// === Smalruby: Start of help menu ===
 import {openTipsLibrary} from '../reducers/modals';
-import {activateDeck} from '../reducers/cards';
-import {markTutorialSeen, shouldShowTooltip} from '../reducers/tutorial-onboarding';
+// === Smalruby: End of help menu ===
 
 const MenuBarHOC = function (WrappedComponent) {
     class MenuBarContainer extends React.PureComponent {
@@ -53,16 +53,14 @@ const MenuBarHOC = function (WrappedComponent) {
         confirmWithMessage: message => (confirm(message)) // eslint-disable-line no-alert
     };
     const mapStateToProps = state => ({
-        projectChanged: state.scratchGui.projectChanged,
-        showTutorialTooltip: shouldShowTooltip(state)
+        projectChanged: state.scratchGui.projectChanged
     });
+    // === Smalruby: Start of help menu ===
+    // The "?" menu's Tutorials item opens the tutorial library from here.
     const mapDispatchToProps = dispatch => ({
-        onOpenTipsLibrary: () => dispatch(openTipsLibrary()),
-        onActivateTutorial: () => {
-            dispatch(markTutorialSeen());
-            dispatch(activateDeck('intro-getting-started'));
-        }
+        onOpenTipsLibrary: () => dispatch(openTipsLibrary())
     });
+    // === Smalruby: End of help menu ===
     // Allow incoming props to override redux-provided props. Used to mock in tests.
     const mergeProps = (stateProps, dispatchProps, ownProps) => Object.assign(
         {}, stateProps, dispatchProps, ownProps
