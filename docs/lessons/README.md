@@ -175,6 +175,10 @@
   `containers/lesson-mode.jsx` の `<LessonTaskBar>` の次）。ヒントが無いチャレンジではボタンが無効。
 - **やめる**: `closeLesson()`。課題バーが消え、パレットが元にもどる（作品はそのまま）。レッスン表にもどるのは
   レッスン表の実装が足す。
+- **いまのチュートリアル（カード）との関係**: 両方が同時に開くと、カードの `allowedBlocks` / setup と
+  レッスンのものが食い違うので、どちらか一方だけにする。チャレンジを開くときは開いていたカードを閉じ
+  （`closeCards`）、レッスンモード中に「?」メニューなどからチュートリアルを開く（`activateDeck`）と
+  レッスンモードを抜ける（開こうとしていたチャレンジも取り消す）。
 
 レッスン表ができるまでの入口として、コンテナがマウント中は `window.smalruby.startChallenge(id)` で
 `startChallenge` を呼べる（Playwright / Selenium からも使う）。URL パラメータは作らない。

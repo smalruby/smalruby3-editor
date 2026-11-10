@@ -22,6 +22,9 @@ const NEXT_HINT = 'scratch-gui/lesson-mode/NEXT_HINT';
 const PREV_HINT = 'scratch-gui/lesson-mode/PREV_HINT';
 const MARK_CHALLENGE_COMPLETED = 'scratch-gui/lesson-mode/MARK_CHALLENGE_COMPLETED';
 const RELOAD_PROGRESS = 'scratch-gui/lesson-mode/RELOAD_PROGRESS';
+// チュートリアルのカードを開く action（reducers/cards.js の ACTIVATE_DECK）。カードの
+// allowedBlocks / setup がレッスンのものと食い違うので、開いたらレッスンモードを抜ける
+const ACTIVATE_DECK = 'scratch-gui/cards/ACTIVATE_DECK';
 
 // ヒントの吹き出しの状態。チャレンジを開く・閉じるたびに最初にもどす
 const hintClosedState = {
@@ -70,7 +73,10 @@ const reducer = function (state, action) {
             };
         }
         case CLOSE_LESSON:
-            return { ...state, ...closedState };
+        case ACTIVATE_DECK:
+            return state.challengeId === null && state.pendingChallengeId === null
+                ? state
+                : { ...state, ...closedState };
         case SHOW_HINT:
             if (state.challengeId === null || hintCount(state) === 0) return state;
             return { ...state, hintVisible: true };
