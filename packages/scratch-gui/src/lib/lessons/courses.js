@@ -2,6 +2,7 @@
 // コース › レッスン › チャレンジのデータ。形の説明は docs/lessons/README.md。
 // 文言は lessons.locale.js（message descriptor の id で引く）。
 
+import { HINT_TARGETS } from './hint-targets';
 import { ja } from './lessons.locale';
 
 /** コースの言語。言語の中にコースが並ぶ。 */
@@ -95,10 +96,42 @@ const blocksLesson1 = defineLesson({
             required: true,
             task: message('gui.lessons.challenge.blocks-l1-click-say.task'),
             allowedBlocks: {
-                looks: ['looks_say', 'looks_sayforsecs'],
+                looks: ['looks_say', 'looks_sayforsecs', 'looks_nextcostume'],
                 event: ['event_whenthisspriteclicked'],
             },
             setup: { tab: 'code' },
+            // ヒントは仮（1-g で仕様の文言に置き換える）。吹き出しの部品の動作確認用
+            steps: [
+                { title: message('gui.lessons.challenge.blocks-l1-click-say.step1'), target: HINT_TARGETS.COSTUMES_TAB },
+                {
+                    title: message('gui.lessons.challenge.blocks-l1-click-say.step2'),
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: 'when_clicked do\nend\n',
+                    spotlight: true,
+                },
+                {
+                    title: message('gui.lessons.challenge.blocks-l1-click-say.step3'),
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: 'say("こんにちは！", 2)\n',
+                    spotlight: true,
+                },
+                {
+                    title: message('gui.lessons.challenge.blocks-l1-click-say.step4'),
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: 'next_costume\n',
+                },
+                { title: message('gui.lessons.challenge.blocks-l1-click-say.step5'), target: HINT_TARGETS.STAGE, spotlight: true },
+                {
+                    title: message('gui.lessons.challenge.blocks-l1-click-say.step6'),
+                    target: HINT_TARGETS.CODE_AREA,
+                    spotlight: true,
+                },
+            ],
+            debug: [
+                message('gui.lessons.challenge.blocks-l1-click-say.debug1'),
+                message('gui.lessons.challenge.blocks-l1-click-say.debug2'),
+            ],
+            code: 'when_clicked do\n  say("こんにちは！", 2)\n  next_costume\nend\n',
         },
         { id: 'blocks-l1-repeat' },
         { id: 'blocks-l1-if' },

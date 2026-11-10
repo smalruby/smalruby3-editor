@@ -30,6 +30,7 @@ import {
     getIsShowingWithoutId,
     requestNewProject,
 } from '../reducers/project-state';
+import LessonHint from './lesson-hint.jsx';
 
 const LessonMode = ({
     current,
@@ -111,15 +112,19 @@ const LessonMode = ({
     }, [hint, onHideHint, onShowHint]);
 
     if (!current) return null;
-    // ヒントの吹き出しは <LessonTaskBar> の次に置く（状態は getCurrentHint）
+    // ヒントの吹き出し（containers/lesson-hint.jsx）は document.body に portal で出るので、
+    // ここに置いてもエディタの列のレイアウトには影響しない
     return (
-        <LessonTaskBar
-            challenge={current.challenge}
-            challengeCount={current.lesson.challenges.length}
-            hintAvailable={Boolean(hint && hint.count > 0)}
-            onHint={handleHint}
-            onQuit={onCloseLesson}
-        />
+        <>
+            <LessonTaskBar
+                challenge={current.challenge}
+                challengeCount={current.lesson.challenges.length}
+                hintAvailable={Boolean(hint && hint.count > 0)}
+                onHint={handleHint}
+                onQuit={onCloseLesson}
+            />
+            <LessonHint />
+        </>
     );
 };
 
