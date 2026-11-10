@@ -99,6 +99,28 @@ describe('LessonMode container', () => {
         expect(props.onRequestNewProject).toHaveBeenCalledTimes(1);
     });
 
+    test('does not start a second new project when the pending challenge changes during creation', async () => {
+        const props = { ...baseProps(), pendingChallengeId: CHALLENGE_ID };
+        const { rerender } = renderLessonMode(props);
+        expect(props.onRequestNewProject).toHaveBeenCalledTimes(1);
+        // 作品を作っている間に別のチャレンジに変わる
+        rerender({
+            ...props,
+            pendingChallengeId: 'blocks-l1-quiz',
+            isAnyCreatingNewState: true,
+            isShowingProject: false,
+        });
+        rerender({
+            ...props,
+            pendingChallengeId: 'blocks-l1-quiz',
+            isAnyCreatingNewState: false,
+            isShowingProject: true,
+        });
+        await flush();
+        expect(props.onRequestNewProject).toHaveBeenCalledTimes(1);
+        expect(props.onOpenChallenge).toHaveBeenCalledWith('blocks-l1-quiz');
+    });
+
     test('waits until a project is showing before starting a new one', () => {
         const props = { ...baseProps(), pendingChallengeId: CHALLENGE_ID, isShowingProject: false };
         const { rerender } = renderLessonMode(props);

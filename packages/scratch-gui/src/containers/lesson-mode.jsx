@@ -12,6 +12,7 @@ import { applyDeckSetup } from '../lib/deck-setup';
 import { setupForChallenge } from '../lib/lessons/challenge-setup';
 import { findChallenge } from '../lib/lessons/courses';
 import sharedMessages from '../lib/shared-messages';
+import { closeCards } from '../reducers/cards';
 import { clearGoogleDriveFile } from '../reducers/google-drive-file';
 import {
     cancelStartChallenge,
@@ -52,14 +53,16 @@ const LessonMode = ({
     const intl = useIntl();
 
     // 1. 開こうとしているチャレンジがあれば、新しい作品にする（いまの作品に変更が
-    //    あればメニューの「新規」と同じ確認）。同じ id で二度始めないよう ref で覚える
+    //    あればメニューの「新規」と同じ確認）。新しい作品を頼んだことを ref で覚え、
+    //    作品ができる前に別のチャレンジに変わっても二度は頼まない（できた作品で
+    //    そのチャレンジを開く）。ref は pendingChallengeId が無くなるときに消す
     const startedForRef = useRef(null);
     useEffect(() => {
         if (pendingChallengeId === null) {
             startedForRef.current = null;
             return;
         }
-        if (!isShowingProject || startedForRef.current === pendingChallengeId) return;
+        if (!isShowingProject || startedForRef.current !== null) return;
         startedForRef.current = pendingChallengeId;
         // eslint-disable-next-line no-alert
         if (projectChanged && !window.confirm(intl.formatMessage(sharedMessages.replaceProjectWarning))) {
@@ -174,7 +177,10 @@ const mapDispatchToProps = (dispatch) => ({
     onHideHint: () => dispatch(hideHint()),
     onOpenChallenge: (challengeId) => dispatch(openChallenge(challengeId)),
     onRequestNewProject: () => {
-        // メニューの「新規」と同じ: Google Drive のファイルとの結び付きも切る
+        // メニューの「新規」と同じ: Google Drive のファイルとの結び付きも切る。
+        // 開いていたチュートリアルのカードも閉じる（カードの allowedBlocks が
+        // レッスンをやめた後のパレットに残らないように）
+        dispatch(closeCards());
         dispatch(clearGoogleDriveFile());
         dispatch(requestNewProject(false));
     },

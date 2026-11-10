@@ -4,6 +4,7 @@ import {
     markChallengeCompleted as markProgress,
     saveProgress,
 } from '../../../src/lib/lessons/lesson-progress';
+import { activateDeck } from '../../../src/reducers/cards';
 import reducer, {
     closeLesson,
     dismissCompleted,
@@ -162,6 +163,19 @@ describe('lesson-mode reducer: starting a challenge', () => {
         let state = reducer(lessonModeInitialState, startChallenge('blocks-l1-click-say'));
         state = reducer(state, closeLesson());
         expect(state.pendingChallengeId).toBeNull();
+    });
+
+    test('opening a tutorial deck leaves lesson mode and drops a pending challenge', () => {
+        let state = reducer(lessonModeInitialState, openChallenge('blocks-l1-click-say'));
+        state = reducer(state, startChallenge('blocks-l1-quiz'));
+        state = reducer(state, activateDeck('chat-1-basic-1'));
+        expect(isLessonMode(wrap(state))).toBe(false);
+        expect(state.pendingChallengeId).toBeNull();
+    });
+
+    test('opening a tutorial deck outside lesson mode keeps the state as is', () => {
+        const state = reducer(lessonModeInitialState, activateDeck('chat-1-basic-1'));
+        expect(state).toBe(lessonModeInitialState);
     });
 });
 
