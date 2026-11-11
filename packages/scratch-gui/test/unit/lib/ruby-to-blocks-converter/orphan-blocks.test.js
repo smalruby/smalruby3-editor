@@ -431,6 +431,12 @@ describe('RubyToBlocksConverter: no orphan blocks', () => {
                 /^"1 \+ 2" is a value/,
             ],
             ['a string in a method', 'def foo\n  "a"\n  move(10)\nend', 1, /^""a"" is a value/],
+            [
+                'a calculation over two lines in a method',
+                'def foo\n  1 +\n    2\n  move(10)\nend',
+                1,
+                /^"1 \+ 2" is a value[^]*say\(1 \+ 2\)/,
+            ],
             // #1550: a symbol is not a command, wherever it is written (it was dropped silently after a statement).
             ['a symbol in an event', 'when_flag_clicked do\n  :a\nend', 1, /^":a" is not a command[^]*move\(10\)/],
             [

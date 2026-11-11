@@ -25,7 +25,8 @@ const messages = defineMessages({
     valueAsStatement: {
         defaultMessage: '"{ SOURCE }" is a value, so it cannot be written as a command by itself.' +
             '\nUse it in a command (e.g. say({ SOURCE })) or set it to a variable.',
-        description: 'Error message when a value (reporter) is written as a line by itself inside a block body',
+        description: 'Error message when a value (reporter) is written as a line by itself inside a block body ' +
+            'or before the last line of a method body',
         id: 'gui.smalruby3.rubyToBlocksConverter.valueAsStatement'
     }
 });
@@ -174,9 +175,11 @@ const CoreHandlers = {
      * @returns {RubyToBlocksConverterError} The error.
      */
     _valueAsStatementError (node) {
+        // The source is also shown as `say(...)`, so a value written over several lines is put on one line.
+        const source = this._getSource(node).replace(/\s*\n\s*/g, ' ').trim();
         return new RubyToBlocksConverterError(
             node,
-            this._translator(messages.valueAsStatement, {SOURCE: this._firstLineSource(node)})
+            this._translator(messages.valueAsStatement, {SOURCE: source})
         );
     },
 
