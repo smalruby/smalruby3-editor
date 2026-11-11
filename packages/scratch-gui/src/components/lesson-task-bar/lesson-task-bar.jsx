@@ -2,7 +2,8 @@
 // 「何個め / 全部で何個」・課題の 1 行・ヒント・ほかのチャレンジへ。見た目の高さは 40px に収め、
 // 1300×600 の授業のパソコンでコードエリアを圧迫しない。
 // 課題の全文（チャレンジの定義の改行つき・画像があれば画像も）は、バーにマウスを乗せているあいだ
-// バーの下に大きめの字で出す（先生がプロジェクターに映して説明する場面のため。課題が短くても出す）。
+// バーの下に大きめの字で出す（先生がプロジェクターに映して説明する場面のため。課題が短くても出す。
+// 横切っただけでちらつかないよう、乗せてから少し待って出す）。
 // タッチ（SP）では課題の文のタップで開き、もう一度のタップで閉じる。パネルは absolute なので、
 // エディタの列の幅も高さも変えない。
 import PropTypes from 'prop-types';
@@ -35,6 +36,10 @@ const messages = defineMessages({
 
 const FULL_TEXT_ID = 'lesson-task-bar-full-text';
 
+// マウスを乗せてから全文を出すまでの間（ms）。バーはタブとコードエリアのあいだにあるので、
+// タブへ動かす途中にバーを横切っただけで大きなパネルがちらつかないようにする。離したらすぐ消す
+export const HOVER_DELAY_MS = 300;
+
 // 改行の前後が両方とも半角（英語など）なら空白でつなぎ、それ以外（日本語）は空白を入れずにつなぐ
 const HALF_WIDTH = /[\x21-\x7e]/;
 const toOneLine = (text) =>
@@ -51,6 +56,14 @@ const LessonTaskBar = ({ challenge, challengeCount, hintAvailable, hintVisible, 
     // マウスを乗せているあいだだけ開く（hovered）と、タップ・キーボードで開いたまま（pinned）
     const [hovered, setHovered] = useState(false);
     const [pinned, setPinned] = useState(false);
+    const hoverTimerRef = useRef(null);
+    const clearHoverTimer = useCallback(() => {
+        if (hoverTimerRef.current !== null) {
+            clearTimeout(hoverTimerRef.current);
+            hoverTimerRef.current = null;
+        }
+    }, []);
+    useEffect(() => clearHoverTimer, [clearHoverTimer]);
     // 直前に課題の文を押したポインタの種類（マウスの click では開いたままにしない）
     const pointerTypeRef = useRef(null);
     // ヒントの吹き出しと「できた！」はバーの下に出るので、出ているあいだはパネルを重ねない
@@ -83,12 +96,25 @@ const LessonTaskBar = ({ challenge, challengeCount, hintAvailable, hintVisible, 
     }, [pinned]);
 
     // タッチでも pointerover が来るので、マウスのときだけ見る
-    const handlePointerEnter = useCallback((e) => {
-        if (e.pointerType === 'mouse') setHovered(true);
-    }, []);
-    const handlePointerLeave = useCallback((e) => {
-        if (e.pointerType === 'mouse') setHovered(false);
-    }, []);
+    const handlePointerEnter = useCallback(
+        (e) => {
+            if (e.pointerType !== 'mouse') return;
+            clearHoverTimer();
+            hoverTimerRef.current = setTimeout(() => {
+                hoverTimerRef.current = null;
+                setHovered(true);
+            }, HOVER_DELAY_MS);
+        },
+        [clearHoverTimer],
+    );
+    const handlePointerLeave = useCallback(
+        (e) => {
+            if (e.pointerType !== 'mouse') return;
+            clearHoverTimer();
+            setHovered(false);
+        },
+        [clearHoverTimer],
+    );
 
     const handleTaskPointerDown = useCallback((e) => {
         pointerTypeRef.current = e.pointerType || null;

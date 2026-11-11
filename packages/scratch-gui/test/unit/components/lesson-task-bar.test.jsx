@@ -3,7 +3,7 @@ import '@testing-library/jest-dom';
 import { act, fireEvent, render } from '@testing-library/react';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
-import LessonTaskBar from '../../../src/components/lesson-task-bar/lesson-task-bar.jsx';
+import LessonTaskBar, { HOVER_DELAY_MS } from '../../../src/components/lesson-task-bar/lesson-task-bar.jsx';
 import { findChallenge } from '../../../src/lib/lessons/courses';
 import en from '../../../src/locales/en';
 import ja from '../../../src/locales/ja';
@@ -76,6 +76,13 @@ describe('LessonTaskBar', () => {
     });
 
     describe('full text panel', () => {
+        beforeEach(() => {
+            jest.useFakeTimers();
+        });
+        afterEach(() => {
+            jest.useRealTimers();
+        });
+
         // jsdom には PointerEvent が無いので、pointerType を持たせた MouseEvent で代わりにする
         const pointer = (el, type, pointerType = 'mouse', relatedTarget = null) => {
             const event = new MouseEvent(type, { bubbles: true, cancelable: true, relatedTarget });
@@ -84,7 +91,13 @@ describe('LessonTaskBar', () => {
                 el.dispatchEvent(event);
             });
         };
-        const hover = (el) => pointer(el, 'pointerover');
+        // 乗せてから HOVER_DELAY_MS 待って出る
+        const hover = (el) => {
+            pointer(el, 'pointerover');
+            act(() => {
+                jest.advanceTimersByTime(HOVER_DELAY_MS);
+            });
+        };
         const unhover = (el) => pointer(el, 'pointerout', 'mouse', document.body);
         const tap = (el) => {
             pointer(el, 'pointerdown', 'touch');
@@ -105,6 +118,20 @@ describe('LessonTaskBar', () => {
                 'Make the cat meow and then play the "Owl" sound when the space key is pressed',
             );
             unhover(getByTestId('lesson-task-bar'));
+            expect(queryByTestId('lesson-task-bar-full-text')).toBeNull();
+        });
+
+        test('does not flash when the mouse only crosses the bar', () => {
+            const { getByTestId, queryByTestId } = renderBar();
+            pointer(getByTestId('lesson-task-bar'), 'pointerover');
+            act(() => {
+                jest.advanceTimersByTime(HOVER_DELAY_MS - 50);
+            });
+            expect(queryByTestId('lesson-task-bar-full-text')).toBeNull();
+            unhover(getByTestId('lesson-task-bar'));
+            act(() => {
+                jest.advanceTimersByTime(HOVER_DELAY_MS);
+            });
             expect(queryByTestId('lesson-task-bar-full-text')).toBeNull();
         });
 
