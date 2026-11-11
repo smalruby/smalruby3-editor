@@ -47,6 +47,11 @@ const messages = defineMessages({
         description: 'Button on the last hint page that inserts the finished program',
         defaultMessage: 'Insert the program',
     },
+    insertCodeError: {
+        id: 'gui.lessonHint.insertCodeError',
+        description: 'Shown under the insert button when the program cannot be inserted yet',
+        defaultMessage: 'The program cannot be inserted yet. Do the earlier hints first.',
+    },
     blocksError: {
         id: 'gui.lessonHint.blocksError',
         description: 'Shown when the blocks of a hint could not be drawn',
@@ -113,6 +118,7 @@ const LessonHint = ({
     debug = [],
     hasCode = false,
     index,
+    insertErrors = [],
     lastResort = false,
     mediaPath = './static/blocks-media/default/',
     onClose,
@@ -203,6 +209,20 @@ const LessonHint = ({
                                     {intl.formatMessage(messages.insertCode)}
                                 </button>
                             ) : null}
+                            {hasCode && insertErrors.length > 0 ? (
+                                <div
+                                    className={styles.insertError}
+                                    data-testid="lesson-hint-insert-code-error"
+                                    role="alert"
+                                >
+                                    <div className={styles.insertErrorTitle}>
+                                        {intl.formatMessage(messages.insertCodeError)}
+                                    </div>
+                                    {insertErrors.map((text, i) => (
+                                        <div key={i}>{text}</div>
+                                    ))}
+                                </div>
+                            ) : null}
                         </>
                     ) : (
                         <>
@@ -263,6 +283,8 @@ LessonHint.propTypes = {
     debug: PropTypes.arrayOf(PropTypes.object),
     hasCode: PropTypes.bool,
     index: PropTypes.number.isRequired,
+    // 「プログラムを入れる」を試して失敗したときのわけ（変換のエラーの文言）
+    insertErrors: PropTypes.arrayOf(PropTypes.string),
     lastResort: PropTypes.bool,
     mediaPath: PropTypes.string,
     onClose: PropTypes.func.isRequired,
