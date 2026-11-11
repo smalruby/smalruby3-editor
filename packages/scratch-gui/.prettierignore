@@ -41,6 +41,7 @@ src/components/*
 !src/components/classroom-teacher-panel/
 !src/components/classroom-peer-panel/
 !src/components/classroom-tutorial/
+!src/components/balloon/
 !src/components/smalrubot-firmware-modal/
 !src/components/blocks-screenshot-button/
 !src/components/google-drive-save-dialog/
@@ -399,6 +400,7 @@ test/unit/components/*
 !test/unit/components/dncl-mode-notice.test.jsx
 !test/unit/components/lesson-task-bar.test.jsx
 !test/unit/components/lesson-hint.test.jsx
+!test/unit/components/balloon.test.jsx
 !test/unit/components/lessons-library.test.jsx
 !test/unit/components/genai-answer-steps-index-hints.test.jsx
 !test/unit/components/genai-answer-steps-words.test.jsx

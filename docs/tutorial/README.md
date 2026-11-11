@@ -38,6 +38,10 @@ Smalruby 独自のチュートリアル（「さあ、始めましょう」や�
 
 Smalruby Classroom の各フェーズ（教師ログイン、クラス作成、生徒参加など）でツールチップ風の解説を表示。
 
+画面の真ん中に出すカード + OK で、指す場所のそばに出す吹き出しとは形が違うので、共通の吹き出し部品
+（`components/balloon/`。`docs/lessons/README.md` の「吹き出しの共通の土台」）の `Balloon` は使わない。
+見た目をそろえるため、`balloon-tokens.css` の白地・角丸・影・文字色と、OK に `BalloonButton`（塗りのボタン）を使う。
+
 ## 主要ファイル
 
 ### scratch-gui
@@ -55,7 +59,7 @@ Smalruby Classroom の各フェーズ（教師ログイン、クラス作成、�
 | ファイル | 役割 |
 |---|---|
 | `packages/scratch-gui/src/reducers/tutorial-onboarding.js` | onboarding state（`MARK_TUTORIAL_SEEN`, `MARK_RUBY_TAB_USED`, `DISMISS_TOOLTIP`）。吹き出し UI は廃止済みで、現在は Ruby タブ訪問の記録に使う |
-| `packages/scratch-gui/src/components/classroom-tutorial/` | クラスルーム機能のチュートリアル UI |
+| `packages/scratch-gui/src/components/classroom-tutorial/` | クラスルーム機能のチュートリアル UI（見た目のトークンと OK ボタンは `components/balloon/`） |
 | `packages/scratch-gui/src/reducers/classroom-tutorial.js` | クラスルームチュートリアル state |
 | `packages/scratch-gui/src/lib/libraries/decks/categories/book-promo.jsx` | Block 軸シリーズ共通の書籍プロモ要素（`BOOK` 書誌プレースホルダ / `BOOK_URL` / オープニング・クロージング step ファクトリ）。書誌確定後は `BOOK` 定数 1 箇所を差し替える（Phase 3, #956）。カテゴリは `blockBasics`（第1章）と `blockGames`（第4章）の 2 章のみ。第5章・第6章（`blockMath` / `blockScience`）は元となる書籍 PDF が提供されなかったため対象外（#962）|
 
