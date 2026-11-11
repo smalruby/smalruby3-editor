@@ -21,6 +21,7 @@ import reducer, {
     cancelStartChallenge,
     showHint,
     hideHint,
+    finishHint,
     nextHint,
     prevHint,
     getLessonAllowedBlocks,
@@ -366,6 +367,42 @@ describe('lesson-mode reducer: hints', () => {
         state = reducer(state, openChallenge('blocks-l1-quiz'));
         expect(state.hintVisible).toBe(true);
         expect(state.hintIndex).toBe(0);
+    });
+
+    test('closing with × keeps the page; reopening shows the same page', () => {
+        let state = withSteps(reducer(lessonModeInitialState, openChallenge('blocks-l1-click-say')));
+        state = reducer(state, nextHint());
+        state = reducer(state, nextHint());
+        state = reducer(state, hideHint());
+        state = reducer(state, showHint());
+        expect(getCurrentHint(wrap(state))).toEqual(expect.objectContaining({ visible: true, index: 2 }));
+    });
+
+    test('finishHint closes the balloon and the next open starts from the first page', () => {
+        let state = withSteps(reducer(lessonModeInitialState, openChallenge('blocks-l1-click-say')));
+        state = reducer(state, nextHint());
+        state = reducer(state, nextHint());
+        state = reducer(state, finishHint());
+        expect(getCurrentHint(wrap(state))).toEqual(expect.objectContaining({ visible: false, index: 0 }));
+        state = reducer(state, showHint());
+        expect(getCurrentHint(wrap(state))).toEqual(expect.objectContaining({ visible: true, index: 0 }));
+        expect(reducer(lessonModeInitialState, finishHint())).toBe(lessonModeInitialState);
+    });
+
+    test('completing the open challenge closes the balloon and keeps its page', () => {
+        let state = withSteps(reducer(lessonModeInitialState, openChallenge('blocks-l1-click-say')));
+        state = reducer(state, nextHint());
+        state = reducer(state, markChallengeCompleted('blocks-l1-click-say', '2026-11-10T00:00:00.000Z'));
+        expect(state.justCompletedId).toBe('blocks-l1-click-say');
+        expect(getCurrentHint(wrap(state))).toEqual(expect.objectContaining({ visible: false, index: 1 }));
+        state = reducer(state, showHint());
+        expect(getCurrentHint(wrap(state))).toEqual(expect.objectContaining({ visible: true, index: 1 }));
+    });
+
+    test('completing another challenge does not close the balloon', () => {
+        let state = withSteps(reducer(lessonModeInitialState, openChallenge('blocks-l1-click-say')));
+        state = reducer(state, markChallengeCompleted('blocks-l1-quiz', '2026-11-10T00:00:00.000Z'));
+        expect(state.hintVisible).toBe(true);
     });
 
     test('hint actions do nothing outside lesson mode', () => {

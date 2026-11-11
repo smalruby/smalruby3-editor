@@ -19,6 +19,7 @@ const OPEN_CHALLENGE = 'scratch-gui/lesson-mode/OPEN_CHALLENGE';
 const CLOSE_LESSON = 'scratch-gui/lesson-mode/CLOSE_LESSON';
 const SHOW_HINT = 'scratch-gui/lesson-mode/SHOW_HINT';
 const HIDE_HINT = 'scratch-gui/lesson-mode/HIDE_HINT';
+const FINISH_HINT = 'scratch-gui/lesson-mode/FINISH_HINT';
 const NEXT_HINT = 'scratch-gui/lesson-mode/NEXT_HINT';
 const PREV_HINT = 'scratch-gui/lesson-mode/PREV_HINT';
 const MARK_CHALLENGE_COMPLETED = 'scratch-gui/lesson-mode/MARK_CHALLENGE_COMPLETED';
@@ -112,7 +113,12 @@ const reducer = function (state, action) {
             if (state.challengeId === null || hintCount(state) === 0) return state;
             return { ...state, hintVisible: true };
         case HIDE_HINT:
+            // ×で閉じたときは、開き直すと同じページから
             return state.hintVisible ? { ...state, hintVisible: false } : state;
+        case FINISH_HINT:
+            // 「おわり」で閉じたときは、最後まで読んだので、開き直すと 1 ページ目から（#1528）
+            if (state.challengeId === null) return state;
+            return { ...state, ...hintClosedState };
         case NEXT_HINT: {
             if (state.challengeId === null) return state;
             const last = hintCount(state) - 1;
@@ -128,8 +134,18 @@ const reducer = function (state, action) {
             if (progress !== state.progress) saveProgress(progress);
             // もう一度できたときも「できた！」は出す（記録は最初の日時のまま）
             const justCompletedId = findChallenge(action.challengeId) ? action.challengeId : state.justCompletedId;
-            if (progress === state.progress && justCompletedId === state.justCompletedId) return state;
-            return { ...state, progress, justCompletedId };
+            // いま開いているチャレンジができたら、ヒントの吹き出しを閉じる（#1528）。できたあとは
+            // ヒントの役目が終わり、「できた！」（の「次のチャレンジ」）を吹き出しで隠さないため。
+            // ページはそのまま（×で閉じたときと同じ。課題バーの「ヒント」で開き直すと同じページ）
+            const hintVisible = action.challengeId === state.challengeId ? false : state.hintVisible;
+            if (
+                progress === state.progress &&
+                justCompletedId === state.justCompletedId &&
+                hintVisible === state.hintVisible
+            ) {
+                return state;
+            }
+            return { ...state, progress, justCompletedId, hintVisible };
         }
         case DISMISS_COMPLETED:
             return state.justCompletedId === null ? state : { ...state, justCompletedId: null };
@@ -173,6 +189,9 @@ const closeLesson = () => ({ type: CLOSE_LESSON });
 const showHint = () => ({ type: SHOW_HINT });
 
 const hideHint = () => ({ type: HIDE_HINT });
+
+/** 最後のページの「おわり」で閉じる。次に開くときは 1 ページ目から（×の hideHint は同じページから）。 */
+const finishHint = () => ({ type: FINISH_HINT });
 
 const nextHint = () => ({ type: NEXT_HINT });
 
@@ -261,6 +280,7 @@ export {
     closeLesson,
     showHint,
     hideHint,
+    finishHint,
     nextHint,
     prevHint,
     markChallengeCompleted,

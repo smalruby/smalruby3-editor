@@ -39,7 +39,13 @@ const makeScratchBlocks = () => {
 };
 
 const renderHint = (props = {}, { locale = 'en', messages = en } = {}) => {
-    const handlers = { onClose: jest.fn(), onInsertCode: jest.fn(), onNext: jest.fn(), onPrev: jest.fn() };
+    const handlers = {
+        onClose: jest.fn(),
+        onFinish: jest.fn(),
+        onInsertCode: jest.fn(),
+        onNext: jest.fn(),
+        onPrev: jest.fn(),
+    };
     const utils = render(
         <IntlProvider locale={locale} messages={messages}>
             <LessonHint count={7} index={1} target={HINT_TARGETS.PALETTE} title={title} {...handlers} {...props} />
@@ -100,7 +106,9 @@ describe('LessonHint', () => {
         expect(last.getByTestId('lesson-hint-finish')).not.toBeDisabled();
         expect(last.getByTestId('lesson-hint-finish')).toHaveTextContent('Finish');
         fireEvent.click(last.getByTestId('lesson-hint-finish'));
-        expect(last.onClose).toHaveBeenCalledTimes(1);
+        // 「おわり」は × とちがい、次に開くときは 1 ページ目から（onFinish）
+        expect(last.onFinish).toHaveBeenCalledTimes(1);
+        expect(last.onClose).not.toHaveBeenCalled();
         expect(last.onNext).not.toHaveBeenCalled();
     });
 
