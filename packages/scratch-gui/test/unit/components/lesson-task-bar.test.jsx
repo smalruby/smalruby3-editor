@@ -157,6 +157,70 @@ describe('LessonTaskBar', () => {
             expect(queryByTestId('lesson-task-bar-full-text-toggle')).toBeNull();
         });
 
+        describe('when fonts load', () => {
+            // フォントが測ったあとに読み込まれると、文の幅だけが変わり要素の大きさは変わらない
+            // （resize も ResizeObserver も来ない）。document.fonts の読み込みで測り直す
+            let resolveReady;
+            const makeFonts = () => {
+                const fonts = new EventTarget();
+                fonts.ready = new Promise((resolve) => {
+                    resolveReady = resolve;
+                });
+                return fonts;
+            };
+            const setFonts = (value) => Object.defineProperty(document, 'fonts', { configurable: true, value });
+            afterEach(() => {
+                delete document.fonts;
+            });
+
+            test('measures again when a font finishes loading', () => {
+                const fonts = makeFonts();
+                setFonts(fonts);
+                scrollWidth = 200;
+                clientWidth = 300;
+                const { getByTestId, queryByTestId } = renderBar();
+                expect(getByTestId('lesson-task-bar-task')).toHaveAttribute('data-truncated', 'false');
+                scrollWidth = 600;
+                act(() => {
+                    fonts.dispatchEvent(new Event('loadingdone'));
+                });
+                expect(getByTestId('lesson-task-bar-task')).toHaveAttribute('data-truncated', 'true');
+                expect(queryByTestId('lesson-task-bar-full-text-toggle')).not.toBeNull();
+            });
+
+            test('measures again when document.fonts.ready resolves', async () => {
+                setFonts(makeFonts());
+                scrollWidth = 200;
+                clientWidth = 300;
+                const { getByTestId } = renderBar();
+                expect(getByTestId('lesson-task-bar-task')).toHaveAttribute('data-truncated', 'false');
+                scrollWidth = 600;
+                await act(async () => {
+                    resolveReady();
+                    await Promise.resolve();
+                });
+                expect(getByTestId('lesson-task-bar-task')).toHaveAttribute('data-truncated', 'true');
+            });
+
+            test('stops listening to the fonts when it goes away', () => {
+                const fonts = makeFonts();
+                setFonts(fonts);
+                const removeSpy = jest.spyOn(fonts, 'removeEventListener');
+                const { unmount } = renderBar();
+                unmount();
+                expect(removeSpy).toHaveBeenCalledWith('loadingdone', expect.any(Function));
+            });
+
+            test('works where there is no document.fonts', () => {
+                setFonts(undefined);
+                scrollWidth = 600;
+                clientWidth = 300;
+                const { getByTestId, unmount } = renderBar();
+                expect(getByTestId('lesson-task-bar-task')).toHaveAttribute('data-truncated', 'true');
+                expect(() => unmount()).not.toThrow();
+            });
+        });
+
         test('closes when the hint balloon or the "You did it!" toast shows', () => {
             scrollWidth = 600;
             clientWidth = 300;

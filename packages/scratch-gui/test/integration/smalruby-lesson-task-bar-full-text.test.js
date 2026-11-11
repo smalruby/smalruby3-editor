@@ -48,10 +48,26 @@ describe('Smalruby Lessons: full text of the task', () => {
         await waitForLoadingFinished();
         await driver.executeScript(`window.smalruby.startChallenge(${JSON.stringify(CHALLENGE_ID)})`);
         await findByXpath(byTestId('lesson-task-bar'));
-        await driver.sleep(1000);
 
-        // 課題の文は 1 行に入りきらず切れている → 「全文」ボタンがある（閉じている）
-        expect(await attrByTestId('lesson-task-bar-task', 'data-truncated')).toBe('true');
+        // 切れるかどうかを、その環境のフォントに任せない。CI のランナーには日本語のフォントが無く、
+        // かなや漢字が細い代わりの字で描かれて課題の文が 1 行に入ってしまう（授業のパソコンでは切れる）。
+        // そこで、課題の文の字の間を広げてから、フォントが読み込まれたことを知らせる。課題の文は
+        // width: 0 の flex なので要素の大きさは変わらず（resize も ResizeObserver も来ない）、
+        // document.fonts の loadingdone で測り直したときだけ「切れている」になる
+        await driver.executeScript(`
+            const style = document.createElement('style');
+            style.textContent = '[data-testid="lesson-task-bar-task"] { letter-spacing: 0.75em; }';
+            document.head.appendChild(style);
+            document.fonts.dispatchEvent(new Event('loadingdone'));
+        `);
+
+        // 課題の文は 1 行に入りきらず切れている → 「全文」ボタンがある（閉じている）。
+        // 測り直しが済むまで待つ
+        await driver.wait(
+            async () => (await attrByTestId('lesson-task-bar-task', 'data-truncated')) === 'true',
+            5000,
+            'the task line should be cut off at 1300x600',
+        );
         expect(await countByTestId('lesson-task-bar-full-text-toggle')).toBe(1);
         expect(await attrByTestId('lesson-task-bar-full-text-toggle', 'aria-expanded')).toBe('false');
         expect(await countByTestId('lesson-task-bar-full-text')).toBe(0);
