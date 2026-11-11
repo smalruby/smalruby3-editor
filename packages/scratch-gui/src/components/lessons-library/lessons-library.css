@@ -215,19 +215,24 @@
     min-width: 0;
 }
 
+/*
+    カード = 左にブロックの色の帯（10px）、右に名前。白地で背が低い（承認されたモック・案 C）。
+    帯の色は style で渡す（いまの色のモードのブロックの色）
+*/
 .card {
     position: relative;
     display: flex;
-    flex-direction: column;
+    align-items: center;
     width: 100%;
     height: 100%;
-    padding: 0;
+    min-height: 3.5rem;
+    padding: 0.75rem 2rem 0.75rem 1.5rem;
     border: 1px solid $ui-black-transparent;
     border-radius: 0.5rem;
     background-color: $ui-white;
     color: $text-primary;
     font-family: inherit;
-    text-align: center;
+    text-align: left;
     overflow: hidden;
     cursor: pointer;
     transition: 0.1s ease-out;
@@ -256,31 +261,21 @@
     height: 100%;
 }
 
-/*
-    カードの絵（仮の絵: なかまの色の上に記号。image があればその絵）。
-    高さは承認されたモック（54px）に合わせて低めにし、1300×600 で 3 レッスン 11 枚がスクロールなしで見えるようにする
-*/
-.card-art {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 3.5rem;
-    flex-shrink: 0;
+.card-band {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 10px;
 }
 
-.card-symbol {
-    font-size: 1.75rem;
-    line-height: 1;
-}
-
-.card-image {
-    max-width: 80%;
-    max-height: 3rem;
+/* なかまが無いチャレンジ（色無し） */
+.card-band-none {
+    background-color: $ui-tertiary;
 }
 
 .card-name {
     display: block;
-    padding: 0.5rem 0.5rem 0.625rem;
     font-size: 0.875rem;
     font-weight: bold;
     line-height: 1.3;
@@ -303,63 +298,19 @@
     font-weight: bold;
 }
 
-/* 「次はこれ！」。左上に出す（右上は ✓） */
+/* 「次はこれ！」。右下に出す（右上は ✓・左は帯） */
 .next-mark {
     position: absolute;
-    top: 0.375rem;
-    left: 0.375rem;
-    padding: 0.125rem 0.5rem;
-    border-radius: 1rem;
+    right: 0.375rem;
+    bottom: 0.25rem;
+    padding: 0 0.375rem;
+    border-radius: 0.25rem;
     background-color: $data-primary;
     color: $ui-white;
-    font-size: 0.75rem;
+    font-size: 0.6875rem;
     font-weight: bold;
+    line-height: 1.4;
     white-space: nowrap;
-}
-
-/* なかま（パレットの色。scratch-blocks の各カテゴリの primary を薄くしたもの） */
-.category-none {
-    background-color: $ui-tertiary;
-}
-
-.category-motion {
-    background-color: rgba(76, 151, 255, 0.2);
-}
-
-.category-looks {
-    background-color: rgba(153, 102, 255, 0.2);
-}
-
-.category-sound {
-    background-color: rgba(207, 99, 207, 0.2);
-}
-
-.category-events {
-    background-color: rgba(255, 191, 0, 0.25);
-}
-
-.category-control {
-    background-color: rgba(255, 171, 25, 0.25);
-}
-
-.category-sensing {
-    background-color: rgba(92, 177, 214, 0.25);
-}
-
-.category-operators {
-    background-color: rgba(89, 192, 89, 0.22);
-}
-
-.category-variables {
-    background-color: rgba(255, 140, 26, 0.22);
-}
-
-.category-lists {
-    background-color: rgba(255, 102, 26, 0.22);
-}
-
-.category-extensions {
-    background-color: rgba(15, 189, 140, 0.2);
 }
 
 /* パソコンの幅が狭いとき・SP 横は 3 列 */
@@ -396,21 +347,15 @@
     }
 }
 
-/* SP 横（高さが低い）: 帯と絵を低くして、カードを多く見せる */
+/* SP 横（高さが低い）: 帯とカードを低くして、カードを多く見せる */
 @media (max-height: 480px) {
     .filter-bar {
         padding: 0.5rem 1rem;
     }
 
-    .card-art {
-        height: 3rem;
-    }
-
-    .card-symbol {
-        font-size: 1.5rem;
-    }
-
-    .card-image {
-        max-height: 2.5rem;
+    .card {
+        min-height: 3rem;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
     }
 }

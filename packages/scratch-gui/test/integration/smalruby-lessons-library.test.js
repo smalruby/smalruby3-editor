@@ -114,6 +114,49 @@ describe('Smalruby Lessons Library', () => {
         expect(await getLogs()).toEqual([]);
     });
 
+    test('the cards are a color band + the name, and the 11 cards fit in 1300×600 without scrolling', async () => {
+        await driver.manage().window().setRect({ width: 1300, height: 600 });
+        await loadUri(`${uri}?no_beforeunload=1`);
+        await waitForLoadingFinished();
+        await driver.executeScript(`window.localStorage.removeItem(${JSON.stringify(PROGRESS_KEY)})`);
+        await clickByTestId(driver, 'menu-bar-lessons');
+        await findByXpath(byTestId('lessons-library'));
+        await driver.sleep(500);
+
+        // 帯の色 = 多く使うブロックのなかまの色（#1543）。絵は無い
+        const bands = await driver.executeScript(
+            `return Array.from(document.querySelectorAll('[data-testid="lessons-library-card-band"]'))
+                .map(el => [el.dataset.category, getComputedStyle(el).backgroundColor, el.getBoundingClientRect().width]);`,
+        );
+        expect(bands.map(([category]) => category)).toEqual([
+            'sound',
+            'motion',
+            'looks',
+            'control',
+            'control',
+            'sensing',
+            'sensing',
+            'variables',
+            'events',
+            'extensions',
+            'lists',
+        ]);
+        expect(bands[0][1]).toBe('rgb(207, 99, 207)');
+        expect(bands[1][1]).toBe('rgb(76, 151, 255)');
+        bands.forEach(([, , width]) => expect(width).toBe(10));
+        expect(await countByTestId(driver, 'lessons-library-card-art')).toBe(0);
+
+        // 11 枚がスクロールせずに見える（いちばん下のカードが画面の中）
+        const fit = await driver.executeScript(
+            `const cards = Array.from(document.querySelectorAll('[data-testid^="lessons-library-challenge-blocks"]'));
+            return {
+                innerHeight: window.innerHeight,
+                bottom: Math.max(...cards.map(el => el.getBoundingClientRect().bottom)),
+            };`,
+        );
+        expect(fit.bottom).toBeLessThanOrEqual(fit.innerHeight);
+    });
+
     test('?locale=ja-Hira opens the library in hiragana', async () => {
         await loadUri(`${uri}?no_beforeunload=1&locale=ja-Hira`);
         await waitForLoadingFinished();

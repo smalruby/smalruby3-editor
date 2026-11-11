@@ -4,7 +4,7 @@
 //   - 薄い紫の帯に検索ボックス ＋ 区切り ＋ 言語のボタン（コースがある言語だけ。選んだものはオレンジ）。
 //     コースが 4 つを超えたら 2 段目にコースのボタン（押すとそのコースまでスクロール）
 //   - コース = 大きい見出し（全部できたら名前の前に ✓、右にプログレスバーと「5 / 11」）、
-//     レッスン = 小さい見出し、チャレンジ = カード（できたら右上に ✓）
+//     レッスン = 小さい見出し、チャレンジ = カード（左にブロックの色の帯・右に名前。できたら右上に ✓）
 // 絞り込み・言語・コースのボタンの判定は lib/lessons/library-filter.js（純粋関数）。
 // 状態（記録・開く・閉じる）は containers/lessons-library.jsx が渡す。
 import classNames from 'classnames';
@@ -15,6 +15,7 @@ import Modal from '../../containers/modal.jsx';
 import TagButton from '../../containers/tag-button.jsx';
 import { LANGUAGES } from '../../lib/lessons/courses';
 import { filterCourseStatuses, libraryLanguages, showCourseNav } from '../../lib/lessons/library-filter';
+import { DEFAULT_MODE, getColorsForMode } from '../../lib/settings/color-mode';
 import Divider from '../divider/divider.jsx';
 import Filter from '../filter/filter.jsx';
 import styles from './lessons-library.css';
@@ -72,52 +73,52 @@ const messages = defineMessages({
     },
     categoryMotion: {
         id: 'gui.lessonsLibrary.category.motion',
-        description: 'Block category name used as the label of the picture of a challenge card',
+        description: 'Block category name used as the label of the color band of a challenge card',
         defaultMessage: 'Motion',
     },
     categoryLooks: {
         id: 'gui.lessonsLibrary.category.looks',
-        description: 'Block category name used as the label of the picture of a challenge card',
+        description: 'Block category name used as the label of the color band of a challenge card',
         defaultMessage: 'Looks',
     },
     categorySound: {
         id: 'gui.lessonsLibrary.category.sound',
-        description: 'Block category name used as the label of the picture of a challenge card',
+        description: 'Block category name used as the label of the color band of a challenge card',
         defaultMessage: 'Sound',
     },
     categoryEvents: {
         id: 'gui.lessonsLibrary.category.events',
-        description: 'Block category name used as the label of the picture of a challenge card',
+        description: 'Block category name used as the label of the color band of a challenge card',
         defaultMessage: 'Events',
     },
     categoryControl: {
         id: 'gui.lessonsLibrary.category.control',
-        description: 'Block category name used as the label of the picture of a challenge card',
+        description: 'Block category name used as the label of the color band of a challenge card',
         defaultMessage: 'Control',
     },
     categorySensing: {
         id: 'gui.lessonsLibrary.category.sensing',
-        description: 'Block category name used as the label of the picture of a challenge card',
+        description: 'Block category name used as the label of the color band of a challenge card',
         defaultMessage: 'Sensing',
     },
     categoryOperators: {
         id: 'gui.lessonsLibrary.category.operators',
-        description: 'Block category name used as the label of the picture of a challenge card',
+        description: 'Block category name used as the label of the color band of a challenge card',
         defaultMessage: 'Operators',
     },
     categoryVariables: {
         id: 'gui.lessonsLibrary.category.variables',
-        description: 'Block category name used as the label of the picture of a challenge card',
+        description: 'Block category name used as the label of the color band of a challenge card',
         defaultMessage: 'Variables',
     },
     categoryLists: {
         id: 'gui.lessonsLibrary.category.lists',
-        description: 'Block category name used as the label of the picture of a challenge card',
+        description: 'Block category name used as the label of the color band of a challenge card',
         defaultMessage: 'Lists',
     },
     categoryExtensions: {
         id: 'gui.lessonsLibrary.category.extensions',
-        description: 'Block category name used as the label of the picture of a challenge card',
+        description: 'Block category name used as the label of the color band of a challenge card',
         defaultMessage: 'Extensions',
     },
 });
@@ -128,18 +129,19 @@ const LANGUAGE_LABELS = {
     [LANGUAGES.DNCL]: messages.tabDncl,
 };
 
-// なかま（カテゴリ id）→ カードの絵の色のクラスと名前
+// なかま（カテゴリ id）→ カードの帯の色（いまの色のモードのブロックの色。lib/settings/color-mode の
+// キー）と名前。拡張機能は拡張の緑（ペンなどの拡張と同じ pen の色）
 const CATEGORY_STYLES = {
-    motion: { className: styles.categoryMotion, label: messages.categoryMotion },
-    looks: { className: styles.categoryLooks, label: messages.categoryLooks },
-    sound: { className: styles.categorySound, label: messages.categorySound },
-    events: { className: styles.categoryEvents, label: messages.categoryEvents },
-    control: { className: styles.categoryControl, label: messages.categoryControl },
-    sensing: { className: styles.categorySensing, label: messages.categorySensing },
-    operators: { className: styles.categoryOperators, label: messages.categoryOperators },
-    variables: { className: styles.categoryVariables, label: messages.categoryVariables },
-    lists: { className: styles.categoryLists, label: messages.categoryLists },
-    extensions: { className: styles.categoryExtensions, label: messages.categoryExtensions },
+    motion: { colorKey: 'motion', label: messages.categoryMotion },
+    looks: { colorKey: 'looks', label: messages.categoryLooks },
+    sound: { colorKey: 'sounds', label: messages.categorySound },
+    events: { colorKey: 'event', label: messages.categoryEvents },
+    control: { colorKey: 'control', label: messages.categoryControl },
+    sensing: { colorKey: 'sensing', label: messages.categorySensing },
+    operators: { colorKey: 'operators', label: messages.categoryOperators },
+    variables: { colorKey: 'data', label: messages.categoryVariables },
+    lists: { colorKey: 'data_lists', label: messages.categoryLists },
+    extensions: { colorKey: 'pen', label: messages.categoryExtensions },
 };
 
 // 見せたいところへスクロールする（jsdom には scrollIntoView が無い）
@@ -147,38 +149,33 @@ const scrollToElement = (element) => {
     if (element && typeof element.scrollIntoView === 'function') element.scrollIntoView({ block: 'start' });
 };
 
-// カードの絵。challenge.card.image があればその絵、無ければなかまの色の上に記号（仮の絵）
-const CardArt = ({ challenge }) => {
+// カードの左の帯。色はそのチャレンジで多く使うブロックのなかまの色（challenge.card.category・
+// 決め方は lib/lessons/card-color.js）。無ければ色無し
+const CardBand = ({ challenge, colorMode }) => {
     const intl = useIntl();
-    const category = challenge.category ? CATEGORY_STYLES[challenge.category] : null;
-    const card = challenge.card || {};
+    const categoryId = challenge.card ? challenge.card.category : null;
+    const category = categoryId ? CATEGORY_STYLES[categoryId] : null;
     const label = category ? intl.formatMessage(category.label) : null;
+    const colors = category ? getColorsForMode(colorMode)[category.colorKey] : null;
     return (
         <span
-            className={classNames(styles.cardArt, category ? category.className : styles.categoryNone)}
-            data-testid="lessons-library-card-art"
+            className={classNames(styles.cardBand, { [styles.cardBandNone]: !colors })}
+            data-testid="lessons-library-card-band"
+            data-category={categoryId || ''}
+            {...(colors ? { style: { backgroundColor: colors.colourPrimary } } : {})}
             {...(label ? { role: 'img', 'aria-label': label, title: label } : { 'aria-hidden': true })}
-        >
-            {card.image ? (
-                <img className={styles.cardImage} src={card.image} alt="" draggable={false} />
-            ) : (
-                <span className={styles.cardSymbol} aria-hidden>
-                    {card.symbol || challenge.number}
-                </span>
-            )}
-        </span>
+        />
     );
 };
 
-CardArt.propTypes = {
+CardBand.propTypes = {
     challenge: PropTypes.shape({
-        number: PropTypes.number.isRequired,
-        category: PropTypes.string,
-        card: PropTypes.shape({ image: PropTypes.string, symbol: PropTypes.string }),
+        card: PropTypes.shape({ category: PropTypes.string, main: PropTypes.string }),
     }).isRequired,
+    colorMode: PropTypes.string.isRequired,
 };
 
-const ChallengeCard = ({ challenge, completed, next, onSelect }) => {
+const ChallengeCard = ({ challenge, colorMode, completed, next, onSelect }) => {
     const intl = useIntl();
     const handleClick = useCallback(() => onSelect(challenge.id), [challenge.id, onSelect]);
     return (
@@ -194,7 +191,7 @@ const ChallengeCard = ({ challenge, completed, next, onSelect }) => {
                 data-next={next ? 'true' : 'false'}
                 onClick={handleClick}
             >
-                <CardArt challenge={challenge} />
+                <CardBand challenge={challenge} colorMode={colorMode} />
                 <span className={styles.cardName}>{intl.formatMessage(challenge.name)}</span>
                 {next ? (
                     <span className={styles.nextMark} data-testid="lessons-library-challenge-next">
@@ -221,15 +218,15 @@ ChallengeCard.propTypes = {
         id: PropTypes.string.isRequired,
         number: PropTypes.number.isRequired,
         name: PropTypes.object.isRequired,
-        category: PropTypes.string,
         card: PropTypes.object,
     }).isRequired,
+    colorMode: PropTypes.string.isRequired,
     completed: PropTypes.bool.isRequired,
     next: PropTypes.bool,
     onSelect: PropTypes.func.isRequired,
 };
 
-const LessonSection = ({ lessonStatus, focused, nextChallengeId, onSelectChallenge }) => {
+const LessonSection = ({ lessonStatus, colorMode, focused, nextChallengeId, onSelectChallenge }) => {
     const { lesson, number } = lessonStatus;
     const intl = useIntl();
     const sectionRef = useRef(null);
@@ -252,6 +249,7 @@ const LessonSection = ({ lessonStatus, focused, nextChallengeId, onSelectChallen
                     <ChallengeCard
                         key={challenge.id}
                         challenge={challenge}
+                        colorMode={colorMode}
                         completed={completed}
                         next={challenge.id === nextChallengeId}
                         onSelect={onSelectChallenge}
@@ -274,12 +272,13 @@ LessonSection.propTypes = {
             PropTypes.shape({ challenge: PropTypes.object.isRequired, completed: PropTypes.bool.isRequired }),
         ).isRequired,
     }).isRequired,
+    colorMode: PropTypes.string.isRequired,
     focused: PropTypes.bool,
     nextChallengeId: PropTypes.string,
     onSelectChallenge: PropTypes.func.isRequired,
 };
 
-const CourseSection = ({ status, focusLessonId, nextChallengeId, onSelectChallenge }) => {
+const CourseSection = ({ status, colorMode, focusLessonId, nextChallengeId, onSelectChallenge }) => {
     const intl = useIntl();
     const { course, completedCount, total, allCompleted } = status;
     const percent = total > 0 ? Math.round((completedCount / total) * 100) : 0;
@@ -319,6 +318,7 @@ const CourseSection = ({ status, focusLessonId, nextChallengeId, onSelectChallen
                 <LessonSection
                     key={lessonStatus.lesson.id}
                     lessonStatus={lessonStatus}
+                    colorMode={colorMode}
                     focused={lessonStatus.lesson.id === focusLessonId}
                     nextChallengeId={nextChallengeId}
                     onSelectChallenge={onSelectChallenge}
@@ -340,6 +340,7 @@ CourseSection.propTypes = {
         allCompleted: PropTypes.bool.isRequired,
         lessons: PropTypes.array.isRequired,
     }).isRequired,
+    colorMode: PropTypes.string.isRequired,
     focusLessonId: PropTypes.string,
     nextChallengeId: PropTypes.string,
     onSelectChallenge: PropTypes.func.isRequired,
@@ -348,6 +349,7 @@ CourseSection.propTypes = {
 const LessonsLibrary = ({
     courses,
     progress,
+    colorMode = DEFAULT_MODE,
     initialLanguage = LANGUAGES.BLOCKS,
     focusLessonId = null,
     nextChallengeId = null,
@@ -441,6 +443,7 @@ const LessonsLibrary = ({
                             <CourseSection
                                 key={status.course.id}
                                 status={status}
+                                colorMode={colorMode}
                                 focusLessonId={focusLessonId}
                                 nextChallengeId={nextChallengeId}
                                 onSelectChallenge={onSelectChallenge}
@@ -458,6 +461,8 @@ LessonsLibrary.propTypes = {
     courses: PropTypes.arrayOf(PropTypes.object).isRequired,
     // lesson-progress.js の記録
     progress: PropTypes.shape({ challenges: PropTypes.object.isRequired }).isRequired,
+    // 色のモード（lib/settings/color-mode）。カードの帯をブロックと同じ色にする
+    colorMode: PropTypes.string,
     initialLanguage: PropTypes.oneOf(Object.values(LANGUAGES)),
     // 開いたときに見せるレッスン（そこへスクロールして囲む）と、次として目立たせるチャレンジ。
     // 「できた！」の「次のチャレンジ」で開いたとき（lesson-progress.js の lessonsLibraryFocus）
