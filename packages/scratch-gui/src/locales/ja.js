@@ -1579,6 +1579,8 @@ export default {
     'gui.lessonTaskBar.position': '{number} / 全部で {count}',
     'gui.lessonTaskBar.hint': 'ヒント',
     'gui.lessonTaskBar.quit': 'やめる',
+    'gui.lessonTaskBar.fullText': '全文',
+    'gui.lessonTaskBar.fullTextLabel': '課題の全文を見る',
     'gui.lessonHint.ariaLabel': 'ヒント',
     'gui.lessonHint.position': 'ヒント {number} / {count}',
     'gui.lessonHint.prev': 'もどる',

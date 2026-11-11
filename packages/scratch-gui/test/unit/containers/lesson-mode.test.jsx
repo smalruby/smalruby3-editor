@@ -24,6 +24,7 @@ const baseProps = () => ({
     isShowingWithoutId: true,
     onCancelStart: jest.fn(),
     onCloseLesson: jest.fn(),
+    onDismissCompleted: jest.fn(),
     onHideHint: jest.fn(),
     onOpenChallenge: jest.fn(),
     onRequestNewProject: jest.fn(),

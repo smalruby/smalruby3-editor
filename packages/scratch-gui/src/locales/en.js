@@ -1245,6 +1245,8 @@ export default {
     'gui.lessonTaskBar.position': '{number} of {count}',
     'gui.lessonTaskBar.hint': 'Hint',
     'gui.lessonTaskBar.quit': 'Quit',
+    'gui.lessonTaskBar.fullText': 'Read all',
+    'gui.lessonTaskBar.fullTextLabel': 'Show the whole task',
     'gui.lessonHint.ariaLabel': 'Hint',
     'gui.lessonHint.position': 'Hint {number} of {count}',
     'gui.lessonHint.prev': 'Back',
