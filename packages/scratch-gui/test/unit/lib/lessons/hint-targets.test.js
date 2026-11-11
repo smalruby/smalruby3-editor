@@ -5,8 +5,10 @@ import { COURSES } from '../../../../src/lib/lessons/courses';
 import {
     HINT_SIDES,
     HINT_TARGETS,
+    clampHintPosition,
     computeHintPlacement,
     findHintTargetRect,
+    hintViewport,
     preferredSides,
 } from '../../../../src/lib/lessons/hint-targets';
 
@@ -145,12 +147,15 @@ describe('hint targets: CSS Modules class names of upstream components', () => {
         expect(Array.from(used).sort()).toEqual(Object.keys(classPrefixes).sort());
     });
 
-    test.each(Object.entries(classPrefixes))('%s: the class is still defined in %s', (prefix, [cssFile, className]) => {
-        const [fileName] = cssFile.split('/').slice(-1)[0].split('.');
-        expect(prefix).toBe(`${fileName}_${className}_`);
-        const css = fs.readFileSync(path.join(srcDir, 'components', cssFile), 'utf8');
-        expect(css).toMatch(new RegExp(`\\.${className.replace(/-/g, '\\-')}[\\s.:,{\\[]`));
-    });
+    test.each(Object.entries(classPrefixes))(
+        '%s: the class is still defined in %s',
+        (prefix, [cssFile, className]) => {
+            const [fileName] = cssFile.split('/').slice(-1)[0].split('.');
+            expect(prefix).toBe(`${fileName}_${className}_`);
+            const css = fs.readFileSync(path.join(srcDir, 'components', cssFile), 'utf8');
+            expect(css).toMatch(new RegExp(`\\.${className.replace(/-/g, '\\-')}[\\s.:,{\\[]`));
+        },
+    );
 });
 
 describe('computeHintPlacement', () => {
@@ -214,5 +219,58 @@ describe('computeHintPlacement', () => {
         expect(computeHintPlacement({ target, balloon, viewport }).side).toBe(HINT_SIDES.LEFT);
         const atLeft = rect(10, 250, 110, 350);
         expect(computeHintPlacement({ target: atLeft, balloon, viewport }).side).toBe(HINT_SIDES.RIGHT);
+    });
+});
+
+describe('hint targets: clampHintPosition (dragging the balloon)', () => {
+    const viewport = { width: 1000, height: 600 };
+    const balloon = { width: 300, height: 200 };
+
+    test('keeps a position that is already on screen', () => {
+        expect(clampHintPosition({ left: 100, top: 50 }, balloon, viewport)).toEqual({ left: 100, top: 50 });
+    });
+
+    test('does not let the balloon go off any edge (8px margin)', () => {
+        expect(clampHintPosition({ left: -50, top: -20 }, balloon, viewport)).toEqual({ left: 8, top: 8 });
+        expect(clampHintPosition({ left: 900, top: 550 }, balloon, viewport)).toEqual({ left: 692, top: 392 });
+    });
+
+    test('a balloon bigger than the screen sticks to the top-left margin', () => {
+        expect(clampHintPosition({ left: 300, top: 300 }, { width: 1200, height: 700 }, viewport)).toEqual({
+            left: 8,
+            top: 8,
+        });
+    });
+
+    test('uses the given margin', () => {
+        expect(clampHintPosition({ left: -5, top: 0 }, balloon, viewport, 0)).toEqual({ left: 0, top: 0 });
+    });
+});
+
+describe('hint targets: the SP side rail is above the balloon', () => {
+    afterEach(() => {
+        document.body.innerHTML = '';
+    });
+
+    test('hintViewport starts right of the side rail, and is the whole screen without it', () => {
+        const win = { innerWidth: 375, innerHeight: 667 };
+        expect(hintViewport(document, win)).toEqual({ left: 0, width: 375, height: 667 });
+        addEl('rail', rect(0, 0, 56, 667), { 'data-testid': 'mobile-side-rail' });
+        expect(hintViewport(document, win)).toEqual({ left: 56, width: 375, height: 667 });
+    });
+
+    test('placement and dragging keep the balloon right of the rail', () => {
+        const viewport = { left: 56, width: 375, height: 667 };
+        const balloon = { width: 256, height: 200 };
+        const placed = computeHintPlacement({
+            target: rect(0, 120, 56, 170),
+            balloon,
+            viewport,
+            sides: [HINT_SIDES.BOTTOM],
+        });
+        expect(placed.left).toBe(64);
+        expect(clampHintPosition({ left: 0, top: 100 }, balloon, viewport).left).toBe(64);
+        // 場所の無いヒントは、レールの右の範囲の真ん中
+        expect(computeHintPlacement({ target: null, balloon, viewport }).left).toBeCloseTo(56 + (375 - 56 - 256) / 2);
     });
 });

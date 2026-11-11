@@ -362,6 +362,34 @@ describe('variable names given as a list (ja-Hira writes 「かいすう」)', (
         ).toBe(false);
     });
 
+    // ja で作った作品を en で開いて「プログラムを入れる」と、「回数」と「count」の両方がある（#1514）
+    test('variable passes when any of the names that exist matches, not only the first one', () => {
+        const goal = [{ type: 'variable', name: ['回数', 'かいすう', 'count'], value: { gte: 3 } }];
+        const both = (a, b) =>
+            snapshot({
+                variables: [
+                    { name: '回数', type: '', value: a, isStage: true },
+                    { name: 'count', type: '', value: b, isStage: true },
+                ],
+            });
+        expect(satisfied(goal, createFacts(), both(0, 3))).toBe(true);
+        expect(satisfied(goal, createFacts(), both(3, 0))).toBe(true);
+        expect(satisfied(goal, createFacts(), both(1, 2))).toBe(false);
+    });
+
+    test('list passes when any of the names that exist matches', () => {
+        const goal = [{ type: 'list', name: ['トーク', 'talk'], length: { gte: 3 }, itemsFromAnswers: true }];
+        const facts = createFacts();
+        ['a', 'b', 'c'].forEach((answer) => recordAnswer(facts, answer));
+        const lists = snapshot({
+            variables: [
+                { name: 'トーク', type: 'list', value: [], isStage: true },
+                { name: 'talk', type: 'list', value: ['a', 'b', 'c'], isStage: true },
+            ],
+        });
+        expect(satisfied(goal, facts, lists)).toBe(true);
+    });
+
     test('equalsVariable matches any of the names', () => {
         const goal = [{ type: 'said', equalsVariable: ['回数', 'かいすう'] }];
         const facts = createFacts();

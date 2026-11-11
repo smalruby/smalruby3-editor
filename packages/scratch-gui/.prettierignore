@@ -101,8 +101,6 @@ src/components/connection-modal/*
 
 # Level 3: src/components/menu-bar/*
 src/components/menu-bar/*
-!src/components/menu-bar/lessons-tooltip.css
-!src/components/menu-bar/lessons-tooltip.jsx
 
 # ============================================================
 # Level 2: src/containers/*

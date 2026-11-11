@@ -67,7 +67,7 @@ describe('LessonMode container', () => {
         expect(queryByTestId('lesson-task-bar')).not.toBeInTheDocument();
     });
 
-    test('renders the task bar in lesson mode and quits with the quit button', () => {
+    test('renders the task bar in lesson mode and leaves it with the "try another challenge" button', () => {
         const props = {
             ...baseProps(),
             current: findChallenge(CHALLENGE_ID),
@@ -93,48 +93,32 @@ describe('LessonMode container', () => {
         expect(props.onHideHint).toHaveBeenCalledTimes(1);
     });
 
-    test('opening the full text hides the hint balloon and dismisses the "You did it!" toast', () => {
-        // jsdom はレイアウトしないので、課題の文が切れている（全文ボタンが出る）ことにする
-        const proto = window.HTMLElement.prototype;
-        Object.defineProperty(proto, 'scrollWidth', { configurable: true, get: () => 600 });
-        Object.defineProperty(proto, 'clientWidth', { configurable: true, get: () => 300 });
-        try {
-            const props = {
-                ...baseProps(),
-                current: findChallenge(CHALLENGE_ID),
-                hint: { visible: true, index: 0, count: 2, step: {} },
-                toastVisible: true,
-            };
-            const { getByTestId } = renderLessonMode(props);
-            fireEvent.click(getByTestId('lesson-task-bar-full-text-toggle'));
-            expect(props.onHideHint).toHaveBeenCalledTimes(1);
-            expect(props.onDismissCompleted).toHaveBeenCalledTimes(1);
-        } finally {
-            delete proto.scrollWidth;
-            delete proto.clientWidth;
-        }
+    test('tapping the task to open the full text hides the hint balloon and dismisses the "You did it!" toast', () => {
+        const props = {
+            ...baseProps(),
+            current: findChallenge(CHALLENGE_ID),
+            hint: { visible: true, index: 0, count: 2, step: {} },
+            toastVisible: true,
+        };
+        const { getByTestId } = renderLessonMode(props);
+        // ポインタの種類が分からない click（タップ・キーボード）で開く
+        fireEvent.click(getByTestId('lesson-task-bar-task'));
+        expect(props.onHideHint).toHaveBeenCalledTimes(1);
+        expect(props.onDismissCompleted).toHaveBeenCalledTimes(1);
     });
 
     test('opening the full text leaves a hidden hint and no toast alone', () => {
-        const proto = window.HTMLElement.prototype;
-        Object.defineProperty(proto, 'scrollWidth', { configurable: true, get: () => 600 });
-        Object.defineProperty(proto, 'clientWidth', { configurable: true, get: () => 300 });
-        try {
-            const props = {
-                ...baseProps(),
-                current: findChallenge(CHALLENGE_ID),
-                hint: { visible: false, index: 0, count: 2, step: {} },
-                toastVisible: false,
-            };
-            const { getByTestId } = renderLessonMode(props);
-            fireEvent.click(getByTestId('lesson-task-bar-full-text-toggle'));
-            expect(getByTestId('lesson-task-bar-full-text')).toBeInTheDocument();
-            expect(props.onHideHint).not.toHaveBeenCalled();
-            expect(props.onDismissCompleted).not.toHaveBeenCalled();
-        } finally {
-            delete proto.scrollWidth;
-            delete proto.clientWidth;
-        }
+        const props = {
+            ...baseProps(),
+            current: findChallenge(CHALLENGE_ID),
+            hint: { visible: false, index: 0, count: 2, step: {} },
+            toastVisible: false,
+        };
+        const { getByTestId } = renderLessonMode(props);
+        fireEvent.click(getByTestId('lesson-task-bar-task'));
+        expect(getByTestId('lesson-task-bar-full-text')).toBeInTheDocument();
+        expect(props.onHideHint).not.toHaveBeenCalled();
+        expect(props.onDismissCompleted).not.toHaveBeenCalled();
     });
 
     test('a pending challenge starts a new project once', () => {

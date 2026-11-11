@@ -30,7 +30,7 @@ const CLEAR_LESSONS_LIBRARY_FOCUS = 'scratch-gui/lesson-mode/CLEAR_LESSONS_LIBRA
 // allowedBlocks / setup がレッスンのものと食い違うので、開いたらレッスンモードを抜ける
 const ACTIVATE_DECK = 'scratch-gui/cards/ACTIVATE_DECK';
 
-// ヒントの吹き出しの状態。チャレンジを開く・閉じるたびに最初にもどす
+// ヒントの吹き出しの状態。チャレンジを閉じるたびに最初にもどす（開くときは 1 ページ目を出す）
 const hintClosedState = {
     hintVisible: false,
     hintIndex: 0,
@@ -56,6 +56,10 @@ const closedState = {
 
 const initialState = {
     ...closedState,
+    // チャレンジを開いた回数。吹き出しの key にして、開き直したら（同じチャレンジでも）吹き出しの
+    // 中の状態（ドラッグした位置・「置き換えますか？」）を捨てる。吹き出しはチャレンジを始めると
+    // 自動で開くので、前のチャレンジから開いたままのときは unmount されないため
+    hintSession: 0,
     progress: loadProgress(),
     // レッスン表を開くときに見せるチャレンジ（「次のチャレンジ」で開いたとき・#1520）。
     // レッスン表は、これが入っているレッスンへスクロールし、次のまだできていないチャレンジを
@@ -84,6 +88,8 @@ const reducer = function (state, action) {
             // このチャレンジを開いているあいだは state の値で照らし続ける
             const hintSpotlight = !isSpotlightSeen(found.challenge.id);
             if (hintSpotlight) markSpotlightSeen(found.challenge.id);
+            // ヒントボタンを押さなくても、始めたら 1 ページ目を出す（ヒントの無いチャレンジは出さない）。
+            // 閉じたあとは課題バーの「ヒント」で開き直す
             return {
                 ...state,
                 courseId: found.course.id,
@@ -91,6 +97,8 @@ const reducer = function (state, action) {
                 challengeId: found.challenge.id,
                 pendingChallengeId: null,
                 ...hintClosedState,
+                hintVisible: hintPageCount(found.challenge) > 0,
+                hintSession: (state.hintSession || 0) + 1,
                 hintSpotlight,
                 justCompletedId: null,
             };
@@ -219,15 +227,16 @@ const getLessonAllowedBlocks = (state) => {
  * ヒントの吹き出しの状態（見た目は吹き出しの実装が作る）。
  * @param {object} state - Redux の state。
  * @returns {?{visible: boolean, index: number, count: number, step: ?object, spotlight: boolean,
- *   lastResort: boolean, debug: Array<object>, code: ?(string|object)}}
+ *   lastResort: boolean, debug: Array<object>, code: ?(string|object), session: number}}
  *   レッスンモードでなければ null。`step` はいまのヒント（最後の手段のページでは null）。
  *   `spotlight` はこのページで周りを暗くするか（はじめて開いたチャレンジ、かつ `step.spotlight`）。
+ *   `session` はチャレンジを開いた回数（吹き出しの key。開き直したら中の状態を捨てる）。
  *   `lastResort` は最後の手段のページ（`debug` = うまく動かないときは、`code` = プログラムを入れる）か。
  */
 const getCurrentHint = (state) => {
     const found = getCurrentChallenge(state);
     if (!found) return null;
-    const { hintVisible, hintIndex, hintSpotlight } = state.scratchGui.lessonMode;
+    const { hintVisible, hintIndex, hintSession, hintSpotlight } = state.scratchGui.lessonMode;
     const { steps, debug, code } = found.challenge;
     const step = steps[hintIndex] || null;
     return {
@@ -239,6 +248,7 @@ const getCurrentHint = (state) => {
         lastResort: hasLastResort(found.challenge) && hintIndex === steps.length,
         debug,
         code,
+        session: hintSession || 0,
     };
 };
 

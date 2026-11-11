@@ -5,7 +5,7 @@
  * チャレンジを開く → 「プログラムを入れる」→ 課題の操作 →「できた！」になることを確かめる。
  *
  * - 1 キーで音を鳴らそう: en の作品のネコの音は "Meow"（日本語の作品は「ニャー」）
- * - 8 数えよう: 変数「回数」（en の文言も「回数」という変数を作ろうと書く）
+ * - 8 数えよう: 変数「count」（en の名前。ja は「回数」）
  * - 9 なかまに合図しよう: ペンギンをライブラリから足して、ネコ（Sprite1）に code を入れる
  */
 import path from 'path';
@@ -30,6 +30,20 @@ const byTestId = (testId) => `//*[@data-testid="${testId}"]`;
 let driver;
 
 const clickByTestId = (testId) => driver.executeScript(`document.querySelector('[data-testid="${testId}"]').click()`);
+
+// ヒントの吹き出しはチャレンジを始めると自動で開く。閉じているときだけ課題バーの「ヒント」で開き直す
+const openHint = async () => {
+    const open = await driver.executeScript(`return document.querySelectorAll('[data-testid="lesson-hint"]').length`);
+    if (open === 0) await clickByTestId('lesson-task-bar-hint');
+    await findByXpath('//*[@data-testid="lesson-hint"]');
+};
+
+// 最後のページの「正解のプログラムを確認する」→ 確認の「はい」（今までの「プログラムを入れる」と同じ動き）
+const confirmInsertCode = async () => {
+    await clickByTestId('lesson-hint-insert-code');
+    await findByXpath('//*[@data-testid="lesson-hint-insert-code-yes"]');
+    await clickByTestId('lesson-hint-insert-code-yes');
+};
 
 const textByTestId = (testId) =>
     driver.executeScript(`return document.querySelector('[data-testid="${testId}"]').textContent`);
@@ -97,11 +111,11 @@ const openChallenge = async (challengeId) => {
 
 // ヒントを開き、最後の手段のページまで進めて「プログラムを入れる」を押す
 const insertProgramFromHints = async (hintCount) => {
-    await clickByTestId('lesson-task-bar-hint');
+    await openHint();
     await findByXpath(byTestId('lesson-hint'));
     for (let i = 1; i < hintCount; i++) await clickByTestId('lesson-hint-next');
     expect(await textByTestId('lesson-hint-position')).toBe(`Hint ${hintCount} of ${hintCount}`);
-    await clickByTestId('lesson-hint-insert-code');
+    await confirmInsertCode();
 };
 
 // 「プログラムを入れる」のわけ（入らなかったとき）が出ていないか
@@ -164,11 +178,11 @@ describe('Smalruby Lessons in the English UI', () => {
         await loadEnglishEditor();
         await openChallenge('blocks-l1-count');
 
-        // ヒント 1 のとおり「変数を作る」で「回数」を作る（en の文言も「回数」）
+        // ヒント 1 のとおり「変数を作る」で「count」を作る（en の名前）
         await clickBlocksCategory('Variables');
         await clickText('Make a Variable');
         const input = await findByXpath("//input[@name='New variable name:']");
-        await input.sendKeys('回数');
+        await input.sendKeys('count');
         await clickButton('OK');
         await driver.sleep(500);
 
@@ -187,7 +201,7 @@ describe('Smalruby Lessons in the English UI', () => {
         expect(await waitForCompletedToast()).toBe('Count');
         const count = await driver.executeScript(`
             const stage = window.smalruby.vm.runtime.getTargetForStage();
-            return stage.lookupVariableByNameAndType('回数', '').value;
+            return stage.lookupVariableByNameAndType('count', '').value;
         `);
         expect(Number(count)).toBe(3);
     });

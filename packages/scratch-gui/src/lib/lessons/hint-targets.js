@@ -140,13 +140,44 @@ export const preferredSides = (target) => (TARGET_SPECS[target] ? TARGET_SPECS[t
 const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
 
 /**
+ * ドラッグで動かした吹き出しを画面の内側に収める（margin の内側。画面より大きいときは左上に寄せる）。
+ * ドラッグ中だけでなく、ページが変わって大きさが変わったとき・画面の大きさが変わったときにも使う。
+ * @param {{left: number, top: number}} position - 吹き出しの左上（viewport 座標）。
+ * @param {{width: number, height: number}} balloon - 吹き出しの大きさ。
+ * @param {{width: number, height: number, left: ?number}} viewport - 画面の大きさ（`left` は左の使えない幅）。
+ * @param {number} [margin] - 画面の端から空ける幅。
+ * @returns {{left: number, top: number}} 収めた左上。
+ */
+export const clampHintPosition = (position, balloon, viewport, margin = 8) => {
+    const minLeft = (viewport.left || 0) + margin;
+    return {
+        left: clamp(position.left, minLeft, Math.max(minLeft, viewport.width - balloon.width - margin)),
+        top: clamp(position.top, margin, Math.max(margin, viewport.height - balloon.height - margin)),
+    };
+};
+
+/**
+ * 吹き出しを置いてよい画面の範囲。SP のサイドレール（`mobile-side-rail`）は吹き出しより上の層に
+ * あるので、その右から置く（レールの下に吹き出しが隠れ、取っ手やボタンを押せなくなるのを防ぐ）。
+ * @param {Document} doc - document。
+ * @param {{innerWidth: number, innerHeight: number}} win - window。
+ * @returns {{left: number, width: number, height: number}} 画面の大きさと、左の使えない幅。
+ */
+export const hintViewport = (doc, win) => {
+    const rail = doc.querySelector('[data-testid="mobile-side-rail"]');
+    const r = rail ? rail.getBoundingClientRect() : null;
+    const left = r && r.right > 0 && r.bottom - r.top > 0 ? r.right : 0;
+    return { left, width: win.innerWidth, height: win.innerHeight };
+};
+
+/**
  * 吹き出しの置き方を決める。指す場所の横（右 → 左）に収まらないときは下（→ 上）に、
  * それも収まらないときは指す場所の中に置く。場所が無ければ画面の真ん中。
  * 画面からはみ出さないよう、最後に margin の内側に収める。
  * @param {object} args - 引数。
  * @param {?{left: number, top: number, right: number, bottom: number}} args.target - 指す場所の矩形（無ければ null）。
  * @param {{width: number, height: number}} args.balloon - 吹き出しの大きさ。
- * @param {{width: number, height: number}} args.viewport - 画面の大きさ。
+ * @param {{width: number, height: number, left: ?number}} args.viewport - 画面の大きさ（`left` は左の使えない幅。`hintViewport`）。
  * @param {Array<string>} [args.sides] - 置く側の候補（既定は右 → 左 → 下 → 上 → 中）。
  * @param {number} [args.gap] - 指す場所と吹き出しのすき間。
  * @param {number} [args.margin] - 画面の端から空ける幅。
@@ -154,10 +185,11 @@ const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
  *   吹き出しの左上（viewport 座標）・置いた側・矢印の位置（吹き出しの左上からの相対。無ければ null）。
  */
 export const computeHintPlacement = ({ target, balloon, viewport, sides, gap = 12, margin = 8 }) => {
-    const maxLeft = Math.max(margin, viewport.width - balloon.width - margin);
+    const minLeft = (viewport.left || 0) + margin;
+    const maxLeft = Math.max(minLeft, viewport.width - balloon.width - margin);
     const maxTop = Math.max(margin, viewport.height - balloon.height - margin);
     const settle = (left, top, side, anchor) => {
-        const l = clamp(left, margin, maxLeft);
+        const l = clamp(left, minLeft, maxLeft);
         const t = clamp(top, margin, maxTop);
         const arrow = anchor
             ? {
@@ -168,7 +200,12 @@ export const computeHintPlacement = ({ target, balloon, viewport, sides, gap = 1
         return { left: l, top: t, side, arrow };
     };
     if (!target) {
-        return settle((viewport.width - balloon.width) / 2, (viewport.height - balloon.height) / 2, HINT_SIDES.CENTER);
+        const areaLeft = viewport.left || 0;
+        return settle(
+            areaLeft + (viewport.width - areaLeft - balloon.width) / 2,
+            (viewport.height - balloon.height) / 2,
+            HINT_SIDES.CENTER,
+        );
     }
     const cx = (target.left + target.right) / 2;
     const cy = (target.top + target.bottom) / 2;

@@ -7,6 +7,7 @@
 //   - カテゴリそのものを出すか（toolbox XML 側・isDynamicCategoryAllowed）
 //   - flyout の中身をどこまで出すか（カテゴリのコールバック側・filterDynamicCategoryXmlList）
 // をここで決める。
+import { allowedBlockOpcode } from './lessons/block-defaults';
 
 /** 変数カテゴリのうち、ふつうの変数のブロック。 */
 const VARIABLE_OPCODES = [
@@ -42,7 +43,8 @@ const CATEGORY_OPCODES = {
 };
 
 /**
- * allowedBlocks（deck / チャレンジの `{category: [opcode]}`）を opcode の配列にする。
+ * allowedBlocks（deck / チャレンジの `{category: [opcode]}`）を opcode の配列にする。項目は opcode の
+ * 文字列か、初期値を持つ `{opcode, fields, inputs}`（lessons/block-defaults.js）。
  * @param {?object} allowedBlocks - deck と同じ形の allowedBlocks。
  * @returns {?Array.<string>} opcode の配列。allowedBlocks が無ければ null。
  */
@@ -50,7 +52,7 @@ const allowedBlocksToIds = (allowedBlocks) => {
     if (!allowedBlocks) return null;
     const ids = [];
     Object.values(allowedBlocks).forEach((blocks) => {
-        if (Array.isArray(blocks)) ids.push(...blocks);
+        if (Array.isArray(blocks)) ids.push(...blocks.map(allowedBlockOpcode).filter(Boolean));
     });
     return ids;
 };

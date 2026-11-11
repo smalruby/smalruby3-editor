@@ -9,7 +9,7 @@ import React from 'react';
 import {openLessonsLibrary, openTipsLibrary} from '../reducers/modals';
 // === Smalruby: End of help menu ===
 // === Smalruby: Start of lessons button ===
-import {markTutorialSeen, shouldShowTooltip} from '../reducers/tutorial-onboarding';
+import {markTutorialSeen} from '../reducers/tutorial-onboarding';
 import {isLessonMode} from '../reducers/lesson-mode';
 // === Smalruby: End of lessons button ===
 
@@ -61,15 +61,11 @@ const MenuBarHOC = function (WrappedComponent) {
     const mapStateToProps = state => ({
         projectChanged: state.scratchGui.projectChanged,
         // === Smalruby: Start of lessons button ===
-        // The first-time balloon under the Lessons button (reuses the tutorial
-        // onboarding flag: it goes away once the lessons library has been opened).
-        // While a challenge is open the first-time balloons (this one and the
-        // welcome balloon) would cover the lesson task bar, so they stay hidden
-        // (#1498). The welcome balloon's state is kept and it comes back after
-        // leaving; opening a challenge also marks the tutorial as seen
-        // (reducers/tutorial-onboarding.js), so this one does not come back.
-        lessonModeActive: isLessonMode(state),
-        showLessonsTooltip: shouldShowTooltip(state) && !isLessonMode(state)
+        // While a challenge is open the welcome balloon would cover the lesson
+        // task bar, so it stays hidden (#1498). Its state is kept and it comes
+        // back after leaving. There is no first-time balloon under the Lessons
+        // button (#1512).
+        lessonModeActive: isLessonMode(state)
         // === Smalruby: End of lessons button ===
     });
     // === Smalruby: Start of help menu ===

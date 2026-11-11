@@ -21,6 +21,20 @@ let driver;
 
 const clickByTestId = (testId) => driver.executeScript(`document.querySelector('[data-testid="${testId}"]').click()`);
 
+// ヒントの吹き出しはチャレンジを始めると自動で開く。閉じているときだけ課題バーの「ヒント」で開き直す
+const openHint = async () => {
+    const open = await driver.executeScript(`return document.querySelectorAll('[data-testid="lesson-hint"]').length`);
+    if (open === 0) await clickByTestId('lesson-task-bar-hint');
+    await findByXpath('//*[@data-testid="lesson-hint"]');
+};
+
+// 最後のページの「正解のプログラムを確認する」→ 確認の「はい」（今までの「プログラムを入れる」と同じ動き）
+const confirmInsertCode = async () => {
+    await clickByTestId('lesson-hint-insert-code');
+    await findByXpath('//*[@data-testid="lesson-hint-insert-code-yes"]');
+    await clickByTestId('lesson-hint-insert-code-yes');
+};
+
 const textByTestId = (testId) =>
     driver.executeScript(`return document.querySelector('[data-testid="${testId}"]').textContent`);
 
@@ -85,7 +99,7 @@ const openChallengeAndInsertCode = async (challengeId, { hintCount, firstTarget,
     await findByXpath(byTestId('lesson-task-bar'));
     await driver.sleep(1000);
 
-    await clickByTestId('lesson-task-bar-hint');
+    await openHint();
     await findByXpath(byTestId('lesson-hint'));
     expect(await textByTestId('lesson-hint-position')).toBe(`Hint 1 of ${hintCount}`);
     expect(
@@ -97,12 +111,12 @@ const openChallengeAndInsertCode = async (challengeId, { hintCount, firstTarget,
     if (beforeInsert) {
         await clickByTestId('lesson-hint-close');
         await beforeInsert();
-        await clickByTestId('lesson-task-bar-hint');
+        await openHint();
         await findByXpath(byTestId('lesson-hint'));
     }
     for (let i = 1; i < hintCount; i++) await clickByTestId('lesson-hint-next');
     expect(await textByTestId('lesson-hint-position')).toBe(`Hint ${hintCount} of ${hintCount}`);
-    await clickByTestId('lesson-hint-insert-code');
+    await confirmInsertCode();
     await driver.wait(
         async () => (await editingTargetOpcodes()).includes(hatOpcode),
         20000,
@@ -163,7 +177,7 @@ describe('Smalruby Lessons: lesson 1 challenges 9-11', () => {
             });`);
         await clickCat();
         expect(await waitForCompletedToast()).toBe('Signal a friend');
-        expect(await driver.executeScript('return window.__lessonSays;')).toEqual([['Penguin', 'やあ！']]);
+        expect(await driver.executeScript('return window.__lessonSays;')).toEqual([['Penguin', 'Hi!']]);
     });
 
     test('9 なかまに合図しよう: inserting the program without the penguin adds it from the library', async () => {
@@ -206,23 +220,23 @@ describe('Smalruby Lessons: lesson 1 challenges 9-11', () => {
             hintCount: 5,
             firstTarget: 'palette',
             hatOpcode: 'event_whenthisspriteclicked',
-            // ヒント 1 のとおり「リストを作る」で「トーク」を作る（既定 = すべてのスプライト用）
+            // ヒント 1 のとおり「リストを作る」で「talk」を作る（en の名前。既定 = すべてのスプライト用）
             beforeInsert: async () => {
                 await clickBlocksCategory('Variables');
                 await clickText('Make a List');
                 const input = await findByXpath("//input[@name='New list name:']");
-                await input.sendKeys('トーク');
+                await input.sendKeys('talk');
                 await clickButton('OK');
                 await driver.sleep(500);
             },
         });
 
-        // Ruby の `$トーク` は「リストを作る」で作ったステージのリストと同じもの（2 つにならない）
+        // Ruby の `$talk` は「リストを作る」で作ったステージのリストと同じもの（2 つにならない）
         const lists = await driver.executeScript(`
             return window.smalruby.vm.runtime.targets
                 .filter(t => t.isOriginal)
                 .flatMap(t => Object.values(t.variables)
-                    .filter(v => v.name === 'トーク')
+                    .filter(v => v.name === 'talk')
                     .map(v => ({ isStage: t.isStage, type: v.type })));
         `);
         expect(lists).toEqual([{ isStage: true, type: 'list' }]);
@@ -241,7 +255,7 @@ describe('Smalruby Lessons: lesson 1 challenges 9-11', () => {
         expect(await waitForCompletedToast()).toBe('Collect messages');
         const items = await driver.executeScript(`
             const stage = window.smalruby.vm.runtime.getTargetForStage();
-            return stage.lookupVariableByNameAndType('トーク', 'list').value;
+            return stage.lookupVariableByNameAndType('talk', 'list').value;
         `);
         expect(items).toEqual(['こんにちは', 'げんき？', 'またね']);
     });

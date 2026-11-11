@@ -16,6 +16,16 @@
     max-height: calc(100vh - 1rem);
 }
 
+/*
+    ヘッダー（色の帯）をドラッグの取っ手にする。touch-action: none でタッチのドラッグを
+    ページのスクロールにとられないようにする（Pointer Events でマウスとタッチを同じに扱う）
+*/
+.drag-handle {
+    cursor: move;
+    touch-action: none;
+    user-select: none;
+}
+
 .body {
     flex: 1 1 auto;
     min-height: 0;
@@ -102,6 +112,25 @@
 .insert-error-title {
     margin-bottom: 0.25rem;
     font-weight: bold;
+}
+
+.confirm {
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    border: 1px solid $balloon-primary;
+    background-color: $ui-white;
+}
+
+.confirm-text {
+    margin: 0 0 0.5rem;
+    font-weight: bold;
+    white-space: pre-line;
+}
+
+.confirm-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
 }
 
 .footer {

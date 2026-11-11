@@ -245,10 +245,10 @@ describe('lesson-mode reducer: hints', () => {
         expect(getCurrentHint(wrap(lessonModeInitialState))).toBeNull();
     });
 
-    test('opening a challenge starts with the hint hidden at the first step', () => {
+    test('opening a challenge opens the hint at the first step (no need to press the hint button)', () => {
         const state = withSteps(reducer(lessonModeInitialState, openChallenge('blocks-l1-click-say')));
         expect(getCurrentHint(wrap(state))).toEqual({
-            visible: false,
+            visible: true,
             index: 0,
             count: 3,
             step: STEPS[0],
@@ -256,7 +256,17 @@ describe('lesson-mode reducer: hints', () => {
             lastResort: false,
             debug: [],
             code: null,
+            session: 1,
         });
+    });
+
+    test('each opening of a challenge (even the same one) is a new hint session', () => {
+        let state = withSteps(reducer(lessonModeInitialState, openChallenge('blocks-l1-click-say')));
+        const first = getCurrentHint(wrap(state)).session;
+        state = reducer(state, openChallenge('blocks-l1-click-say'));
+        expect(getCurrentHint(wrap(state)).session).toBe(first + 1);
+        state = reducer(state, openChallenge('blocks-l1-quiz'));
+        expect(getCurrentHint(wrap(withSteps(state))).session).toBe(first + 2);
     });
 
     test('the first time a challenge is opened, spotlight steps light up; the next time they do not', () => {
@@ -321,8 +331,17 @@ describe('lesson-mode reducer: hints', () => {
         );
     });
 
+    test('a challenge without any hint page does not open the balloon', () => {
+        extra = { steps: [], debug: [], code: null };
+        const state = reducer(lessonModeInitialState, openChallenge('blocks-l1-click-say'));
+        expect(state.hintVisible).toBe(false);
+        expect(reducer(state, showHint())).toBe(state);
+    });
+
     test('showHint / hideHint toggle the balloon', () => {
         let state = withSteps(reducer(lessonModeInitialState, openChallenge('blocks-l1-click-say')));
+        state = reducer(state, hideHint());
+        expect(getCurrentHint(wrap(state)).visible).toBe(false);
         state = reducer(state, showHint());
         expect(getCurrentHint(wrap(state)).visible).toBe(true);
         state = reducer(state, hideHint());
@@ -340,12 +359,12 @@ describe('lesson-mode reducer: hints', () => {
         expect(getCurrentHint(wrap(state)).index).toBe(1);
     });
 
-    test('opening another challenge resets the hint', () => {
+    test('opening another challenge resets the hint to its first page (opened)', () => {
         let state = withSteps(reducer(lessonModeInitialState, openChallenge('blocks-l1-click-say')));
-        state = reducer(state, showHint());
+        state = reducer(state, hideHint());
         state = reducer(state, nextHint());
         state = reducer(state, openChallenge('blocks-l1-quiz'));
-        expect(state.hintVisible).toBe(false);
+        expect(state.hintVisible).toBe(true);
         expect(state.hintIndex).toBe(0);
     });
 

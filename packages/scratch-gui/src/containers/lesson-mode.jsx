@@ -192,7 +192,7 @@ const mapDispatchToProps = (dispatch) => ({
     dispatch,
     onCancelStart: () => dispatch(cancelStartChallenge()),
     onCloseLesson: () => {
-        // やめたらレッスン表にもどる（次のチャレンジをすぐ選べるように）
+        // 「ほかのチャレンジへ」: いまのチャレンジを終えてレッスン表を開く（次のチャレンジをすぐ選べるように）
         dispatch(closeLesson());
         dispatch(openLessonsLibrary());
     },
