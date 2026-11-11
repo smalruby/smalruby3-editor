@@ -1,5 +1,6 @@
 @import "../../css/colors.css";
 @import "../../css/units.css";
+@import "../../css/z-index.css";
 
 /* 全文のパネルの置き場所。バー自身は overflow: hidden なので、パネルはこの外側に置く */
 .wrapper {
@@ -84,8 +85,13 @@
     課題の全文。バーのすぐ下に、エディタの列の幅で重ねて出す（absolute なのでレイアウトは変えない）。
     先生がプロジェクターに映して読み上げる場面を想定して、字は大きめ（1300px 幅で 1.5rem 近く、
     SP では 1rem まで小さく）。改行はチャレンジの定義どおり（pre-line）。
-    z-index はパレット（40）より上、「できた！」の toast（$z-index-card = 480）とヒントの吹き出し
-    （$z-index-tooltip = 490）より下。どちらかが出ているあいだはパネルを出さない（lesson-task-bar.jsx）。
+    マウスで乗せて出すパネルは、ヒントの吹き出し（$z-index-tooltip = 490。document.body への portal で
+    DOM ではこのパネルより後ろ）より上に重ねる。乗せているあいだだけの一時的なものなので、吹き出しは
+    動かさずに上から隠す。メニューバー（$z-index-menu-bar = 491）と同じ層で DOM ではメニューバーより後ろなので、
+    メニューバーのメニュー（ファイルなど）と重なると項目を隠す。そのため、メニューが開いているあいだと
+    「できた！」の toast（$z-index-card = 480）が出ているあいだは出さない（lesson-task-bar.jsx）。
+    タップで開いたまま（pinned）のパネルは吹き出し・toast と同時には出さないので、パレット（40）より上・
+    toast より下の 470 のまま。
     マウスで乗せて出しているときは、パネルの上へ動かしたら消えるように pointer-events: none
     （バーから離れたら消える）。タップで開いたとき（pinned）だけ、中をスクロールできるようにする
 */
@@ -94,7 +100,7 @@
     top: 100%;
     left: 0;
     right: 0;
-    z-index: 470;
+    z-index: $z-index-menu-bar;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
@@ -113,6 +119,7 @@
 
 .full-text-pinned {
     composes: full-text;
+    z-index: 470;
     pointer-events: auto;
 }
 

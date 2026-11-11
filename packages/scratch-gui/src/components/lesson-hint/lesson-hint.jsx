@@ -264,6 +264,7 @@ const LessonHint = ({
     lastResort = false,
     mediaPath = './static/blocks-media/default/',
     onClose,
+    onFinish,
     onInsertCode,
     onNext,
     onPrev,
@@ -443,8 +444,9 @@ const LessonHint = ({
                         {intl.formatMessage(messages.prev)}
                     </BalloonButton>
                     {isLastPage ? (
-                        // 最後のページのあとは無いので、「進める」の代わりに「おわり」で閉じる
-                        <BalloonButton primary data-testid="lesson-hint-finish" onClick={onClose}>
+                        // 最後のページのあとは無いので、「進める」の代わりに「おわり」で閉じる。
+                        // ×（onClose）とちがい、次に開くときは 1 ページ目から（onFinish・#1528）
+                        <BalloonButton primary data-testid="lesson-hint-finish" onClick={onFinish || onClose}>
                             {intl.formatMessage(messages.finish)}
                         </BalloonButton>
                     ) : (
@@ -473,6 +475,8 @@ LessonHint.propTypes = {
     lastResort: PropTypes.bool,
     mediaPath: PropTypes.string,
     onClose: PropTypes.func.isRequired,
+    // 「おわり」で閉じる（無ければ onClose）
+    onFinish: PropTypes.func,
     onInsertCode: PropTypes.func,
     onNext: PropTypes.func.isRequired,
     onPrev: PropTypes.func.isRequired,
