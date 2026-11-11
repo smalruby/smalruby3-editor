@@ -100,7 +100,8 @@ echo "  stop:    curl -X POST localhost:<PORT>/shutdown  (supervisor も停止�
 booting を確認する:
 
 - **`booting: false`**: 稼働している。結果を報告して **D: 運用サポート** に移る。
-- **`booting: true`（AWS SSO 失効など）**: daemon はモニタだけ立てて起動待ちになっている（#1510）。
+- **`booting: true` で `authError` なし**: 起動中（Project 情報を取得中）。数秒後にもう一度確かめる。
+- **`booting: true` で `authError` あり（AWS SSO 失効など）**: daemon はモニタだけ立てて起動待ちになっている（#1510）。
   人間にモニタ（`http://localhost:<PORT>/`）の **「🔐 再接続（SSO ログイン）」** でコードを承認して
   もらう（device code + ブラウザ承認 = 人間のみ。コンテナで
   `aws sso login --sso-session smalruby --use-device-code` を実行してもよい）。承認後は daemon が

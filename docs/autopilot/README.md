@@ -582,8 +582,12 @@ worker は**非対話**で動くので、許可プロンプトで止まると運
   「SSO ログインが必要です（autopilot は起動待ち）」と表示する。上の「🔐 再接続（SSO ログイン）」で
   コードを承認するか、コンテナで `aws sso login` を実行すると（30 秒ごとに確かめ直す）、Project の
   情報を取って稼働を始める。起動待ちの間は Project 情報が要る操作（`/tick` / `/refresh` /
-  `/resume` / `/later` / `/inject` / `/resolve-conflict`）を `503 {booting:true}` で断る。認証以外の
-  起動エラー（GitHub に届かない等）は従来どおり exit して supervisor に任せる。
+  `/resume` / `/later` / `/inject` / `/resolve-conflict`）を `503 {booting:true}` で断る。認証が通る
+  起動でも、最初に Project 情報を取り終えるまでの数秒は `booting: true`（`notice: "starting"`・
+  ピル **`起動中`**）。SSO ログインが通ったのに bot トークンが取れないとき（秘密鍵・App の設定など
+  SSO 以外の原因）は、案内を「bot トークンが取れません」に切り替える（`notice: "boot-not-sso"`）。
+  認証以外の起動エラー（GitHub に届かない等）は従来どおり exit して supervisor に任せる。
+  `--once` は待たずに終了する。
 
 ---
 

@@ -666,6 +666,10 @@ async function forceResume() {
 
 function renderAlerts(d) {
   const parts = usageAlerts(d);
+  if (d.notice === 'starting') {
+    // 起動中（#1510）: 認証は通っていて Project 情報を取っている。数秒で稼働に変わる
+    parts.push('<div class="alert auth-a">⏳ <b>起動中…</b> <span>Project の情報を取っています。</span></div>');
+  }
   if (d.authError) {
     const R = d.reauth;
     let ra = '';
@@ -681,7 +685,10 @@ function renderAlerts(d) {
     }
     // 起動待ち（#1510）: devpod の再起動直後など、SSO が切れたまま起動した。エラーではなく次の手順として見せる
     const head = d.booting
-      ? '🔐 <b>SSO ログインが必要です（autopilot は起動待ち）</b> <span>' + esc(d.reauthHint || '') + '</span>'
+      ? (d.notice === 'boot-not-sso'
+        ? '🔐 <b>bot トークンが取れません（autopilot は起動待ち）</b>'
+        : '🔐 <b>SSO ログインが必要です（autopilot は起動待ち）</b>')
+        + ' <span>' + esc(d.reauthHint || '') + '</span>'
         + '<details><summary>詳細</summary>' + esc(d.authError) + '</details>'
       : '🔐 <b>認証エラー（auto-pause 中）</b> ' + esc(d.authError) + '<span>' + esc(d.reauthHint || '') + '</span>';
     parts.push('<div class="alert auth-a">' + head
@@ -880,7 +887,7 @@ async function refresh() {
     // ボードが目標状態に追いついた保留だけ解除（古いキャッシュで楽観的に動かした行を戻さない）
     laterPending = laterPendingReducer(laterPending, { type: 'board', items: d.items || [] });
     const st = document.getElementById('state');
-    if (d.booting) { st.className = 'pill auth'; st.textContent = 'SSO 待ち'; }
+    if (d.booting) { st.className = 'pill auth'; st.textContent = d.authError ? 'SSO 待ち' : '起動中'; }
     else if (d.authError) { st.className = 'pill auth'; st.textContent = 'AUTH ⚠'; }
     else if (d.paused && d.pausedBy === 'usage') { st.className = 'pill usagep'; st.textContent = 'USAGE ⏸'; }
     else if (d.paused) { st.className = 'pill paused'; st.textContent = 'PAUSED'; }
@@ -890,6 +897,14 @@ async function refresh() {
       + ' · 実行中 ' + (d.running || []).length
       + (d.rate && d.rate.minRemaining != null ? ' · API残 ' + d.rate.minRemaining + (d.rate.warn ? '⚠' : '') : '')
       + (d.updatedAt ? ' · 更新 ' + Math.round((Date.now() - d.updatedAt) / 1000) + 's前' : '');
+    // 起動待ちの間は Project 情報が無く、daemon が 503 で断る操作のボタンを止める（#1510）
+    for (const id of ['resume', 'ticknow', 'refreshboard']) {
+      const b = document.getElementById(id);
+      if (!b) continue;
+      if (b.dataset.title == null) b.dataset.title = b.title;
+      b.disabled = !!d.booting;
+      b.title = d.booting ? '起動待ちのため使えません' : b.dataset.title;
+    }
     renderUsage(d);
     renderVersion(d);
     renderAlerts(d);

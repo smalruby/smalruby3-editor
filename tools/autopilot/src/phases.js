@@ -2848,6 +2848,37 @@ const AUTH_ERROR_PATTERNS = [
 const AUTH_ERROR_RE = new RegExp(AUTH_ERROR_PATTERNS.join('|'), 'i');
 
 /**
+ * 認証が通ったときに daemon の state へ当てる差分（純粋関数・#1510）。
+ * auth で落ちた pause だけを外し、人間・usage の pause は残す（`pausedBy` の区別を保つ不変条件）。
+ * 稼働中の回復（checkAuthHealth）と起動待ちからの回復（bootProjectInfo）の両方が使う。
+ * @param {{pausedBy?: (string|null)}} state
+ * @returns {{authError: null, paused?: boolean, pausedBy?: null}}
+ */
+function authRecoveryPatch(state) {
+    if (state && state.pausedBy === 'auth') return { paused: false, pausedBy: null, authError: null };
+    return { authError: null };
+}
+
+/**
+ * モニタ・/status に出す認証まわりの案内の種類を決める（純粋関数・#1510）。
+ * - `starting`: 起動中で Project 情報を取っている（認証エラーは無い）
+ * - `boot-sso`: 起動待ちで SSO ログインが要る
+ * - `boot-not-sso`: 起動待ちで、SSO ログインは通ったのに bot トークンが取れない（鍵・App の設定など）
+ * - `auth`: 稼働中の認証失効（従来の auto-pause）
+ * - null: 案内なし
+ * @param {{booting?: boolean, authError?: (string|null), bootSsoDone?: boolean}} state
+ * @returns {('starting'|'boot-sso'|'boot-not-sso'|'auth'|null)}
+ */
+function authNoticeKind(state) {
+    const s = state || {};
+    if (s.booting) {
+        if (!s.authError) return 'starting';
+        return s.bootSsoDone ? 'boot-not-sso' : 'boot-sso';
+    }
+    return s.authError ? 'auth' : null;
+}
+
+/**
  * 認証系エラー（AWS SSO 失効・bot-token 取得不能等）かを判定する純粋関数。
  *
  * `bin/bot-token` は SSO 失効時に「AWS 認証が失効/未設定…」を stderr に出して die する。
@@ -3411,6 +3442,8 @@ module.exports = {
     evaluate,
     sanitizeForSurface,
     isAuthError,
+    authRecoveryPatch,
+    authNoticeKind,
     DEFAULT_WATCHDOG,
     AUTOPILOT_LABEL,
     HITL_LABEL,

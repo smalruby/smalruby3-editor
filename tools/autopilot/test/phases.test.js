@@ -2120,3 +2120,20 @@ test('infraIssueSet / shouldCloseIssueOnMerge: 🧱 infra ラベルで判定す�
         assert.deepEqual(extractCommentRefs(undefined), []);
     });
 }
+
+test('authRecoveryPatch: auth の pause だけを外し、人間・usage の pause は残す（#1510）', () => {
+    const { authRecoveryPatch } = require('../src/phases');
+    assert.deepStrictEqual(authRecoveryPatch({ pausedBy: 'auth' }), { paused: false, pausedBy: null, authError: null });
+    assert.deepStrictEqual(authRecoveryPatch({ pausedBy: 'human' }), { authError: null });
+    assert.deepStrictEqual(authRecoveryPatch({ pausedBy: 'usage' }), { authError: null });
+    assert.deepStrictEqual(authRecoveryPatch({ pausedBy: null }), { authError: null });
+});
+
+test('authNoticeKind: 起動中・起動待ち（SSO / SSO 以外）・稼働中の失効を見分ける（#1510）', () => {
+    const { authNoticeKind } = require('../src/phases');
+    assert.equal(authNoticeKind({ booting: true }), 'starting');
+    assert.equal(authNoticeKind({ booting: true, authError: 'x' }), 'boot-sso');
+    assert.equal(authNoticeKind({ booting: true, authError: 'x', bootSsoDone: true }), 'boot-not-sso');
+    assert.equal(authNoticeKind({ authError: 'x' }), 'auth');
+    assert.equal(authNoticeKind({}), null);
+});

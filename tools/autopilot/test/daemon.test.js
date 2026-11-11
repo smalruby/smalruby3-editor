@@ -2580,3 +2580,81 @@ test('startHttp: 起動待ちの間は Project 情報が要る操作を 503 で�
         await new Promise((r) => server.close(r));
     }
 });
+
+test('bootProjectInfo: 認証が通る起動でも、最初の取得が終わるまでは booting（その間の tick を断る）', async () => {
+    const { bootProjectInfo, runTickOnce } = require('../src/daemon');
+    const cfg = { owner: 'o', project: 4 };
+    const state = { paused: false, pausedBy: null, authError: null, booting: true, running: new Map() };
+    let release;
+    const gate = new Promise((r) => { release = r; });
+    let ticked = false;
+    const p = bootProjectInfo(cfg, state, () => {}, {
+        resolveProjectInfo: async () => { await gate; return { projectId: 'P', fields: {} }; },
+    });
+    // 取得中: booting のまま・認証エラーは無い（モニタは「起動中」）
+    const r = await runTickOnce(cfg, state, () => {}, { tick: async () => { ticked = true; return {}; } });
+    assert.equal(r.booting, true);
+    assert.equal(ticked, false);
+    assert.equal(boardResponse({ concurrency: 1 }, state).notice, 'starting');
+    release();
+    await p;
+    assert.equal(state.booting, false);
+    assert.equal(boardResponse({ concurrency: 1 }, state).notice, null);
+});
+
+test('bootProjectInfo: once（単発実行）は認証エラーでも待たずに throw する', async () => {
+    const { bootProjectInfo } = require('../src/daemon');
+    const state = { paused: false, pausedBy: null, authError: null, booting: true, running: new Map() };
+    let slept = false;
+    await assert.rejects(
+        bootProjectInfo({ owner: 'o', project: 4 }, state, () => {}, {
+            once: true,
+            resolveProjectInfo: async () => { throw new Error(SSO_EXPIRED); },
+            sleep: async () => { slept = true; },
+        }),
+        /失効/,
+    );
+    assert.equal(slept, false);
+    assert.equal(state.booting, false);
+});
+
+test('wakeBoot: 取り直しの最中に呼ばれた合図を覚えておき、次の待ちをすぐ終わらせる', async () => {
+    const { bootProjectInfo, wakeBoot } = require('../src/daemon');
+    const cfg = { owner: 'o', project: 4 };
+    const state = { paused: false, pausedBy: null, authError: null, booting: true, running: new Map() };
+    let calls = 0;
+    const started = Date.now();
+    await bootProjectInfo(cfg, state, () => {}, {
+        resolveProjectInfo: async () => {
+            calls += 1;
+            if (calls === 1) {
+                // 承認前に始まった取り直しの最中に、SSO ログインの成功が届く
+                wakeBoot(state);
+                throw new Error(SSO_EXPIRED);
+            }
+            return { projectId: 'P', fields: {} };
+        },
+        retryMs: 60_000,
+    });
+    assert.equal(calls, 2);
+    assert.ok(Date.now() - started < 5_000, '60 秒待たずに取り直している');
+    assert.equal(state.bootWakePending, false);
+});
+
+test('boardResponse: SSO ログインが通ったのに bot トークンが取れないときは、SSO 以外の原因の案内にする', () => {
+    const { BOOT_NOT_SSO_HINT } = require('../src/daemon');
+    const state = { running: new Map(), booting: true, paused: true, pausedBy: 'auth', authError: 'bot-token: x', bootSsoDone: true };
+    const b = boardResponse({ concurrency: 1 }, state);
+    assert.equal(b.notice, 'boot-not-sso');
+    assert.equal(b.reauthHint, BOOT_NOT_SSO_HINT);
+});
+
+test('bootProjectInfo: usage で pause していたら、回復しても usage の pause は残す', async () => {
+    const { bootProjectInfo } = require('../src/daemon');
+    const state = { paused: true, pausedBy: 'usage', authError: null, booting: true, running: new Map() };
+    await bootProjectInfo({ owner: 'o', project: 4 }, state, () => {}, {
+        resolveProjectInfo: async () => ({ projectId: 'P', fields: {} }),
+    });
+    assert.equal(state.paused, true);
+    assert.equal(state.pausedBy, 'usage');
+});
