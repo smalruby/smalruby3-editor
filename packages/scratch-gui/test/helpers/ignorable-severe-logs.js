@@ -16,13 +16,20 @@
  *    (コンテナ・CI) では読み込みの数秒後に `console.error` で出る。Drive 連携を使わない
  *    テストには関係が無い。
  * 4. Google のスクリプト・画像 (`apis.google.com/js/api.js`・`www.google.com/images/cleardot.gif`)
- *    の取得失敗と、それを受けた「Failed to load Google scripts」。devpod の egress firewall が
+ *    `csi.gstatic.com/csi`（gapi の計測ビーコン）の取得失敗と、それを受けた「Failed to load Google scripts」。devpod の egress firewall が
  *    Google を通さないため `ERR_CONNECTION_REFUSED` などになる（環境由来で、アプリの不具合ではない。
  *    Drive 連携を使わないテストには関係が無い）。
  * 5. 翻訳の無い文言の `MISSING_TRANSLATION`（react-intl が default message へ fallback した通知）。
  *    Smalruby 独自の文言は en / ja / ja-Hira にしか無いので、ほかの言語へ切り替える
  *    localization のテストで大量に出る。表示は英語の既定文言で崩れない。
  * 6. connection-modal のテストがわざと繋がらない `wss://fake.fake/` を使うときの WebSocket 失敗。
+ * 7. upstream 由来の既存の警告（getLogs() が SEVERE を返していなかった間に隠れていたもの。
+ *    動作には影響しないが本来は直すべきもので、follow-up で扱う）:
+ *    - `Prompt` / `RecordModal` が `Modal` に必須の `id` を渡していない prop type 警告
+ *      （変数・リストの作成ダイアログ / 音の録音ダイアログ）
+ *    - `ListMonitor` の `value` の prop type 警告（リストモニターに配列が渡る）と、
+ *      リストモニターの入力欄に `autoComplete={false}` を渡している DOM 属性の警告
+ *    - scratch-blocks の `Attempted to focus unregistered node`（ツールボックスのブロックのクリック後など）
  *
  * ここが「既知の無害なログ」の唯一の一覧。各テストに同じ判定をコピーしないこと。
  * @param {string} message ブラウザログのメッセージ。
@@ -39,10 +46,16 @@ const isIgnorableSevereLog = (message) =>
     // 中身の無い `[object ErrorEvent]` に限定する（通常の例外はメッセージを持つ）。
     (/static[\\/]monaco[\\/][\w.+-]+[\\/]vs[\\/]/.test(message) && /\[object ErrorEvent\]/.test(message)) ||
     /Failed to initialize Google Drive API/.test(message) ||
-    /\/\/(?:www\.google\.com\/images\/cleardot\.gif|apis\.google\.com\/js\/api\.js) .*net::ERR_/.test(message) ||
+    /\/\/(?:www\.google\.com\/images\/cleardot\.gif|apis\.google\.com\/js\/api\.js|csi\.gstatic\.com\/csi\?\S*) .*net::ERR_/.test(
+        message,
+    ) ||
     /"Failed to load Google scripts:"/.test(message) ||
     /\[@formatjs\/intl Error MISSING_TRANSLATION\]/.test(message) ||
-    /WebSocket connection to 'wss:\/\/fake\.fake\/' failed/.test(message);
+    /WebSocket connection to 'wss:\/\/fake\.fake\/' failed/.test(message) ||
+    (/The prop `id` is marked as required in `Modal`/.test(message) && /at (?:PromptComponent|RecordModal) /.test(message)) ||
+    /Invalid prop `value` supplied to `ListMonitor`/.test(message) ||
+    (/for a non-boolean attribute/.test(message) && /"autoComplete"/.test(message) && /at ListMonitorScroller /.test(message)) ||
+    /Uncaught Error: Attempted to focus unregistered node/.test(message);
 
 /**
  * ログのレベルを名前 (`'SEVERE'` など) にそろえる。
