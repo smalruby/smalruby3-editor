@@ -69,7 +69,7 @@
 | `skills` | `{id, name}`[] | [] | できること。id で重ねる（別のチャレンジで同じものが身についても 1 つ） |
 | `goal` | 条件[] \| null | null | できた の判定。条件の配列で、全部を満たしたら「できた」（下の「できた の判定」）。null なら判定しない |
 | `required` | boolean | false | レッスンの必須か |
-| `allowedBlocks` | object \| null | null | パレットに出すブロック（deck と同じ形） |
+| `allowedBlocks` | object \| null | null | パレットに出すブロック（deck と同じ形）。項目は opcode か、初期値を持つ `{opcode, fields, inputs}`（下の「パレットのブロックの初期値」） |
 | `setup` | object \| null | null | 始めるときの準備（deck と同じ形。`lib/deck-setup.js`） |
 | `steps` | ヒント[] | [] | ヒント（下の表） |
 | `code` | string \| `{ja, 'ja-Hira', en}` \| null | null | ヒントの最後の手段「プログラムを入れる」（Ruby。deck の `code` と同じ）。作品の中の名前が locale で変わるときは locale ごとに書く（下の「英語の UI でも使う（locale ごとの `code`）」） |
@@ -567,6 +567,25 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
       `test/unit/lib/lesson-dynamic-categories-decks.test.js` が Ruby をブロックに変換して確かめる。
     - `?only_blocks=`・ステージのコメント・ブロックの選択（`selectedBlocks`）で絞るときは、これまでどおり
       2 つとも出る。
+- **パレットのブロックの初期値**: `allowedBlocks` の項目は opcode の文字列のほかに
+  `{opcode, fields: {名前: 値}, inputs: {名前: 値}}` と書ける。仕様のパレットの表記（`[1 ▼]`・`(3)`）の初期値を
+  ここに書く（`src/lib/lessons/block-defaults.js`。Blocks コンテナがツールボックスの XML と「変数」「ブロック
+  定義」の flyout に入れる。チュートリアルのカードの `allowedBlocks` にも効く）。
+  - `fields` はブロックそのもののフィールド（「キーが押されたとき」の `KEY_OPTION` など。ツールボックスの XML に
+    書いていないフィールドは足す）。`inputs` は入力の影のフィールド（数・文字・音や背景のメニュー）。影の無い
+    入力（「もし」の六角形の穴など）には入れられない。
+  - 値は文字列・数か、locale ごとの `{ja, 'ja-Hira', en}`（`code` と同じ選び方。無い locale は en → ja）。作品の
+    中の名前（ネコの音「ニャー」/ "Meow"）は作品を作った locale で変わるので locale ごとに書く。▼ に無い名前
+    （足す前の背景「Canyon」など）も、そのまま ▼ に出る。
+  - 書かないブロックはツールボックスの初期値のまま。メッセージ（「あいさつ」）・変数（「回数」）・リスト
+    （「トーク」）の ▼ は子どもが作るものなので書かない（無い名前を入れると flyout が作ってしまう）。
+  - レッスン 1 で書いている初期値: 1 = キー「スペース」・音 2 つとも「ニャー」（Owl を足したあとも）、
+    2 = キー「上向き矢印」、4 = キー「1」・繰り返す 3・背景「Canyon」、5 = 言う「くすぐったい！」、
+    6 = 聞く「なまえは？」、7 = 聞く「4+3=?」・`=` の右 7・言う「正解です」、9 = 言う「やあ！」、
+    10 = しゃべる「ボタンが押されました」、11 = 聞く「メッセージは？」。ほか（3・8 の「こんにちは！」、
+    「(1) 秒待つ」、変数の 0・1、「なにか」を追加など）はツールボックスの初期値が仕様と同じ。
+    初期値で済むようになったヒント（▼で「上向き矢印」をえらぶ・「なまえは？」と書く・右に 7 を入れる・
+    ことばを書く）は、「なっているか見よう」「のままでいいよ」の文言にしている。
 - **ヒント**: 「ヒント」ボタンで `showHint` / `hideHint`。吹き出し（下の「ヒントの吹き出し」）は
   `containers/lesson-mode.jsx` の `<LessonTaskBar>` の次に置いた `containers/lesson-hint.jsx` が出す。
   ヒントが無いチャレンジではボタンが無効。
@@ -779,6 +798,7 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `packages/scratch-gui/src/reducers/modals.js` | `lessonsLibrary` モーダルの開閉（Smalruby マーカー `lessons library`） |
 | `packages/scratch-gui/src/components/mobile-drawer/mobile-drawer.jsx` | SP のドロワーの「レッスン」 |
 | `packages/scratch-gui/src/containers/blocks.jsx` | `getLessonAllowedBlocks` でパレットを絞る（Smalruby マーカー `lesson mode`）。「変数」「ブロック定義」のコールバックも絞る（マーカー `lesson dynamic category filtering`） |
+| `packages/scratch-gui/src/lib/lessons/block-defaults.js` | `allowedBlocks` に書いたブロックの初期値を集め、ツールボックスの XML・flyout の要素に入れる純粋関数（`blocks.jsx` のマーカー `lesson palette block defaults`） |
 | `packages/scratch-gui/src/lib/lesson-dynamic-categories.js` | 「変数」「ブロック定義」を `allowedBlocks` で絞る純粋関数（カテゴリを出すか・flyout の中身） |
 | `packages/scratch-gui/src/lib/make-toolbox-xml.js` | `allowedBlocks` に無ければ「変数」「ブロック定義」のカテゴリを出さない（マーカー `lesson dynamic category filtering`） |
 | `packages/scratch-gui/test/unit/lib/lesson-dynamic-categories.test.js` | 上の純粋関数・toolbox XML・既存の deck / チャレンジの unit テスト |

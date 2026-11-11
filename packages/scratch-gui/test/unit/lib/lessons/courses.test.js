@@ -20,12 +20,19 @@ import {
     lessonClearRule,
     localizeCode,
 } from '../../../../src/lib/lessons/courses';
+import { allowedBlockOpcode } from '../../../../src/lib/lessons/block-defaults';
 import { validateGoal } from '../../../../src/lib/lessons/goal';
 import { rubyToBlocksXml } from '../../../../src/lib/lessons/hint-blocks';
 import { HINT_TARGETS } from '../../../../src/lib/lessons/hint-targets';
 import en from '../../../../src/locales/en';
 import ja from '../../../../src/locales/ja';
 import jaHira from '../../../../src/locales/ja-Hira';
+
+// パレットのブロック（allowedBlocks）を opcode だけで比べる。初期値は block-defaults.test.js で見る
+const allowedOpcodes = (challenge) =>
+    Object.fromEntries(
+        Object.entries(challenge.allowedBlocks).map(([category, entries]) => [category, entries.map(allowedBlockOpcode)]),
+    );
 
 const LOCALES = { en, ja, 'ja-Hira': jaHira };
 
@@ -235,7 +242,7 @@ describe('lesson courses', () => {
                 'マウスでネコにさわったら「くすぐったい！」、さわっていないときは「さわってみて」と言うようにしよう',
             );
             expect(c.skills.map((s) => jaText(s.name))).toEqual(['もし〜なら', 'ずっと', 'さわったか調べる']);
-            expect(c.allowedBlocks).toEqual({
+            expect(allowedOpcodes(c)).toEqual({
                 event: ['event_whenflagclicked'],
                 control: ['control_forever', 'control_if', 'control_if_else'],
                 sensing: ['sensing_touchingobject'],
@@ -282,7 +289,7 @@ describe('lesson courses', () => {
                 'ネコを押したら名前を聞いて、答えた名前と、答えるまでにかかった秒数を言うようにしよう',
             );
             expect(c.skills.map((s) => jaText(s.name))).toEqual(['聞いて答える', 'タイマー', 'ことばをつなぐ']);
-            expect(c.allowedBlocks).toEqual({
+            expect(allowedOpcodes(c)).toEqual({
                 event: ['event_whenthisspriteclicked'],
                 sensing: ['sensing_resettimer', 'sensing_askandwait', 'sensing_answer', 'sensing_timer'],
                 operators: ['operator_join'],
@@ -297,7 +304,7 @@ describe('lesson courses', () => {
                 ['stage', null, false],
             ]);
             expect(c.steps.map((s) => jaText(s.title))).toEqual([
-                '水色の「調べる」の「聞いて待つ」をつなげて、「なまえは？」と書こう。',
+                '水色の「調べる」の「聞いて待つ」をつなげよう。「なまえは？」と聞くよ。',
                 '「言う」をつなげて、白いところに、丸い「答え」のブロックを入れよう。',
                 '聞く前に「タイマーをリセット」を入れよう。タイマーは 0 から数えはじめるよ。',
                 '緑の「演算」の「と」で、丸い「タイマー」と「秒でした」をつないで、もう 1 つの「言う」に入れよう。',
@@ -338,7 +345,7 @@ describe('lesson courses', () => {
             expect(c.skills.map((s) => jaText(s.name))).toEqual(['くらべる', 'もし〜なら']);
             // 「もし〜なら」は 5 と同じできること（id で重ねる）
             expect(c.skills.map((s) => s.id)).toContain(challenge('blocks-l1-if').skills[0].id);
-            expect(c.allowedBlocks).toEqual({
+            expect(allowedOpcodes(c)).toEqual({
                 event: ['event_whenthisspriteclicked'],
                 sensing: ['sensing_askandwait', 'sensing_answer'],
                 control: ['control_if', 'control_if_else'],
@@ -354,7 +361,7 @@ describe('lesson courses', () => {
             expect(c.steps.map((s) => jaText(s.title))).toEqual([
                 '「聞いて待つ」で問題を出そう。',
                 '緑の「演算」の「=」を、「もし」の穴に入れよう。',
-                '「=」の左に「答え」、右に 7 を入れよう。',
+                '「=」の左に「答え」を入れよう。右は 7 のままでいいよ。',
                 '7 と、7 じゃない数の両方をためそう。',
             ]);
             expect(c.debug.map(jaText)).toEqual([
@@ -376,7 +383,7 @@ describe('lesson courses', () => {
             expect(c.required).toBe(true);
             expect(jaText(c.task)).toBe('ネコを押した回数を数えて、その数を言うようにしよう。3 回押してみよう');
             expect(c.skills.map((s) => jaText(s.name))).toEqual(['変数を作る', '変数']);
-            expect(c.allowedBlocks).toEqual({
+            expect(allowedOpcodes(c)).toEqual({
                 event: ['event_whenflagclicked', 'event_whenthisspriteclicked'],
                 data: ['data_setvariableto', 'data_changevariableby', 'data_variable'],
                 looks: ['looks_say'],
@@ -426,7 +433,7 @@ describe('lesson courses', () => {
                 '合図（メッセージ）',
                 'スプライトごとのプログラム',
             ]);
-            expect(c.allowedBlocks).toEqual({
+            expect(allowedOpcodes(c)).toEqual({
                 event: ['event_whenthisspriteclicked', 'event_broadcast', 'event_whenbroadcastreceived'],
                 looks: ['looks_sayforsecs'],
             });
@@ -473,7 +480,7 @@ describe('lesson courses', () => {
                 '拡張機能「音声合成」を足して、ネコを押したら「ボタンが押されました」としゃべるようにしよう',
             );
             expect(c.skills.map((s) => jaText(s.name))).toEqual(['拡張機能を足す', '音声合成']);
-            expect(c.allowedBlocks).toEqual({
+            expect(allowedOpcodes(c)).toEqual({
                 event: ['event_whenthisspriteclicked'],
                 text2speech: ['text2speech_speakAndWait'],
             });
@@ -486,7 +493,7 @@ describe('lesson courses', () => {
             ]);
             expect(c.steps.map((s) => jaText(s.title))).toEqual([
                 '左下のボタンから「音声合成」をえらぼう。パレットに新しいなかまがふえるよ。',
-                '「押されたとき」に「しゃべる」をつなげて、ことばを書こう。',
+                '「押されたとき」に「しゃべる」をつなげよう。ことばは「ボタンが押されました」になっているよ。',
                 'ネコを押してみよう。',
             ]);
             expect(c.debug.map(jaText)).toEqual([
@@ -507,7 +514,7 @@ describe('lesson courses', () => {
                 'ネコを押したら「メッセージは？」と聞いて、答えをリスト「トーク」にためよう。3 つためてみよう',
             );
             expect(c.skills.map((s) => jaText(s.name))).toEqual(['リストを作る', 'リストに追加する']);
-            expect(c.allowedBlocks).toEqual({
+            expect(allowedOpcodes(c)).toEqual({
                 event: ['event_whenflagclicked', 'event_whenthisspriteclicked'],
                 data: ['data_deletealloflist', 'data_addtolist'],
                 sensing: ['sensing_askandwait', 'sensing_answer'],
@@ -568,7 +575,7 @@ describe('lesson courses', () => {
             expect(c.required).toBe(false);
             expect(ja[c.task.id]).toBe('スペースキーを押したら、ネコが「ニャー」と鳴いたあと、「Owl」の音が鳴るようにしよう');
             expect(c.skills.map((s) => ja[s.name.id])).toEqual(['キーで動かす', '音を鳴らす', '音を足す']);
-            expect(c.allowedBlocks).toEqual({
+            expect(allowedOpcodes(c)).toEqual({
                 event: ['event_whenkeypressed'],
                 sound: ['sound_playuntildone', 'sound_play'],
             });
@@ -597,7 +604,7 @@ describe('lesson courses', () => {
             expect(c.required).toBe(false);
             expect(ja[c.task.id]).toBe('上向き矢印キーで上へ、下向き矢印キーで下へ、ネコを動かそう');
             expect(c.skills.map((s) => ja[s.name.id])).toEqual(['座標で動かす', 'ブロックを複製する']);
-            expect(c.allowedBlocks).toEqual({ event: ['event_whenkeypressed'], motion: ['motion_changeyby'] });
+            expect(allowedOpcodes(c)).toEqual({ event: ['event_whenkeypressed'], motion: ['motion_changeyby'] });
             expect(hints(c)).toEqual([
                 [PALETTE, 'self.y += 10\n', false],
                 [PALETTE, 'when_key_pressed("up arrow") do\nend\n', false],
@@ -629,7 +636,7 @@ describe('lesson courses', () => {
                 'ネコに好きなコスチュームを足して、押したら「こんにちは！」と言って、見た目がかわるようにしよう',
             );
             expect(c.skills.map((s) => ja[s.name.id])).toEqual(['押したら動く', 'セリフを言う', 'コスチュームを足す']);
-            expect(c.allowedBlocks).toEqual({
+            expect(allowedOpcodes(c)).toEqual({
                 event: ['event_whenthisspriteclicked'],
                 looks: ['looks_sayforsecs', 'looks_nextcostume'],
             });
@@ -658,7 +665,7 @@ describe('lesson courses', () => {
             expect(c.required).toBe(false);
             expect(ja[c.task.id]).toBe('1 のキーを押したら、背景が「Canyon」と「Arctic」に 3 回かわるようにしよう');
             expect(c.skills.map((s) => ja[s.name.id])).toEqual(['くり返し', '背景を足す', 'ステージのプログラム']);
-            expect(c.allowedBlocks).toEqual({
+            expect(allowedOpcodes(c)).toEqual({
                 event: ['event_whenkeypressed'],
                 control: ['control_repeat', 'control_wait'],
                 looks: ['looks_switchbackdropto'],
@@ -716,7 +723,7 @@ describe('lesson courses', () => {
             expectJa('blocks-l1-arrow-move', {
                 steps: [
                     '「動き」の青いブロックを使うよ。上下は y、左右は x。',
-                    'キーのブロックの下にくっつけて、▼で「上向き矢印」をえらぼう。',
+                    'キーのブロックの下にくっつけよう。▼が「上向き矢印」になっているか見よう。',
                     'できたかたまりを右クリックして「複製」。もう 1 つできたら、「下向き矢印」と「-10」に変えよう。',
                     '矢印キーで、ネコが上と下に動くか見よう。',
                 ],
