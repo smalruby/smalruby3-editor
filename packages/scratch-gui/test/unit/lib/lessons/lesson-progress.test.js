@@ -326,6 +326,15 @@ describe('completedAction', () => {
         );
     });
 
+    test('skips a next lesson that is already all done', () => {
+        // Lesson 2 is all done already: "other lessons" goes on to lesson 3
+        expect(completedAction(challengeId(4), done(1, 2, 3, 4, 5, 6, 7))).toBe(COMPLETED_ACTIONS.OTHER_LESSONS);
+        // Lessons 2 and 3 are all done already: nothing is left after lesson 1
+        expect(completedAction(challengeId(1), done(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11))).toBe(
+            COMPLETED_ACTIONS.LIBRARY,
+        );
+    });
+
     test('is "otherLessons" with a test course too', () => {
         const progress = { version: 1, challenges: { a: record('l1'), b: record('l1') } };
         expect(completedAction('a', progress, twoLessonCourses())).toBe(COMPLETED_ACTIONS.OTHER_LESSONS);
@@ -370,6 +379,18 @@ describe('lessonsLibraryFocus', () => {
         expect(lessonsLibraryFocus(challengeId(7), done(5, 6, 7))).toEqual(
             expect.objectContaining({ lessonId: 'blocks-l3', nextChallengeId: challengeId(8) }),
         );
+    });
+
+    test('skips a next lesson that is already all done', () => {
+        expect(lessonsLibraryFocus(challengeId(4), done(1, 2, 3, 4, 5, 6, 7, 9))).toEqual(
+            expect.objectContaining({ lessonId: 'blocks-l3', nextChallengeId: challengeId(8) }),
+        );
+    });
+
+    test('when the whole course is done, stays in the lesson without a mark', () => {
+        const focus = lessonsLibraryFocus(challengeId(2), done(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11));
+        expect(focus.lessonId).toBe('blocks-l1');
+        expect(focus.nextChallengeId).toBeNull();
     });
 
     test('on the last lesson all done, stays there without a mark', () => {

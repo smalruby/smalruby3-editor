@@ -190,8 +190,9 @@ export const exportProgress = (progress) =>
 /**
  * 「できた！」のボタン（#1520）。
  *   - `next`: レッスンにまだできていないチャレンジがある →「次のチャレンジ」
- *   - `otherLessons`: レッスンのチャレンジが全部できて、コースに次のレッスンがある →「ほかのレッスンへ」
- *   - `library`: 全部できて、次のレッスンが無い →「レッスン表へ」
+ *   - `otherLessons`: レッスンのチャレンジが全部できて、コースの後ろにまだ全部はできていないレッスンが
+ *     ある →「ほかのレッスンへ」
+ *   - `library`: 全部できて、後ろにそういうレッスンが無い →「レッスン表へ」
  * 並び順で最後かどうかでは決めない（途中を飛ばした生徒に「おわり」と言わないため）。
  */
 export const COMPLETED_ACTIONS = Object.freeze({
@@ -203,11 +204,16 @@ export const COMPLETED_ACTIONS = Object.freeze({
 const isLessonAllCompleted = (lesson, progress) => lessonProgress(lesson, progress).allCompleted;
 
 /**
+ * コースの中で、`lesson` より後ろにある、まだ全部はできていない最初のレッスン。全部できている
+ * レッスンは飛ばす（「ほかのレッスンへ」で、もうやることの無いレッスンを開かないため）。
  * @param {object} course - コース。
  * @param {object} lesson - レッスン。
- * @returns {?object} コースの中で次のレッスン。無ければ null。
+ * @param {object} progress - 記録。
+ * @returns {?object} レッスン。無ければ null。
  */
-const nextLessonOf = (course, lesson) => course.lessons[course.lessons.indexOf(lesson) + 1] || null;
+const nextLessonOf = (course, lesson, progress) =>
+    course.lessons.slice(course.lessons.indexOf(lesson) + 1).find((l) => !isLessonAllCompleted(l, progress)) ||
+    null;
 
 /**
  * 「できた！」に出すボタンの種類（COMPLETED_ACTIONS）。
@@ -219,7 +225,7 @@ const nextLessonOf = (course, lesson) => course.lessons[course.lessons.indexOf(l
 export const completedAction = (challengeId, progress, courses = COURSES) => {
     const found = findChallenge(challengeId, courses);
     if (!found || !isLessonAllCompleted(found.lesson, progress)) return COMPLETED_ACTIONS.NEXT;
-    return nextLessonOf(found.course, found.lesson) ? COMPLETED_ACTIONS.OTHER_LESSONS : COMPLETED_ACTIONS.LIBRARY;
+    return nextLessonOf(found.course, found.lesson, progress) ? COMPLETED_ACTIONS.OTHER_LESSONS : COMPLETED_ACTIONS.LIBRARY;
 };
 
 /**
@@ -245,8 +251,8 @@ const nextIncompleteChallenge = (lesson, progress, afterId) => {
  * 目立たせるか（#1520）。「できた！」のボタン（completedAction）と食い違わないように決める:
  *   - レッスンにまだできていないチャレンジがある: いまのレッスン。次は、いまの次から並び順に
  *     さがしたまだできていないもの（最後まで行ったら先頭にもどる）。
- *   - 全部できていて、コースに次のレッスンがある: 次のレッスンの、まだできていない最初のもの。
- *   - 全部できていて、次のレッスンが無い: いまのレッスン。印は付けない。
+ *   - 全部できていて、後ろにまだ全部はできていないレッスンがある: そのレッスンの、まだできていない最初のもの。
+ *   - 全部できていて、後ろにそういうレッスンが無い: いまのレッスン。印は付けない。
  * @param {string} challengeId - いまのチャレンジ id。
  * @param {object} progress - 記録。
  * @param {Array} [courses] - コース（テスト用）。
@@ -260,7 +266,7 @@ export const lessonsLibraryFocus = (challengeId, progress, courses = COURSES) =>
     let focusLesson = lesson;
     let next;
     if (completedAction(challengeId, progress, courses) === COMPLETED_ACTIONS.OTHER_LESSONS) {
-        focusLesson = nextLessonOf(course, lesson);
+        focusLesson = nextLessonOf(course, lesson, progress);
         next = nextIncompleteChallenge(focusLesson, progress, null);
     } else {
         next = nextIncompleteChallenge(lesson, progress, challengeId);
