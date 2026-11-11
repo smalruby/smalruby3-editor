@@ -66,13 +66,29 @@ const LessonTaskBar = ({ challenge, challengeCount, hintAvailable, hintVisible, 
     useEffect(() => clearHoverTimer, [clearHoverTimer]);
     // 直前に課題の文を押したポインタの種類（マウスの click では開いたままにしない）
     const pointerTypeRef = useRef(null);
-    // ヒントの吹き出しと「できた！」はバーの下に出るので、出ているあいだはパネルを重ねない
-    const covered = Boolean(hintVisible || toastVisible);
-    const open = !covered && (hovered || pinned);
+    // マウスで乗せて出す全文は、ヒントの吹き出しが出ていても出す（チャレンジを始めるとヒントが
+    // 自動で開くので、止めると吹き出しを閉じるまで課題が読めない）。乗せているあいだだけの一時的な
+    // ものなので、吹き出しの状態（ページ・ドラッグした位置）は変えずに上へ重ねる（CSS の z-index）。
+    // 「できた！」の toast が出ているあいだは出さない
+    const hoverOpen = hovered && !toastVisible;
+    // タップで開いたままにするパネルは、吹き出し・toast と重ねない（開くときは onOpenFullText で閉じる）
+    const pinCovered = Boolean(hintVisible || toastVisible);
+    const pinOpen = pinned && !pinCovered;
+    const open = pinOpen || hoverOpen;
 
     useEffect(() => {
-        if (covered) setPinned(false);
-    }, [covered]);
+        if (pinCovered) setPinned(false);
+    }, [pinCovered]);
+    // バーの「ヒント」を押して吹き出しを出したときは、乗せたままでもホバーのパネルを引っ込める
+    // （出したばかりの吹き出しを隠さない）。もう一度乗せ直せば出る
+    const prevHintVisibleRef = useRef(Boolean(hintVisible));
+    useEffect(() => {
+        if (hintVisible && !prevHintVisibleRef.current) {
+            clearHoverTimer();
+            setHovered(false);
+        }
+        prevHintVisibleRef.current = Boolean(hintVisible);
+    }, [hintVisible, clearHoverTimer]);
     useEffect(() => setPinned(false), [task]);
 
     // タップで開いているあいだ、外を押す・Esc で閉じる
@@ -167,7 +183,7 @@ const LessonTaskBar = ({ challenge, challengeCount, hintAvailable, hintVisible, 
             </div>
             {open && (
                 <div
-                    className={pinned ? styles.fullTextPinned : styles.fullText}
+                    className={pinOpen ? styles.fullTextPinned : styles.fullText}
                     data-testid="lesson-task-bar-full-text"
                     id={FULL_TEXT_ID}
                 >
@@ -201,14 +217,14 @@ LessonTaskBar.propTypes = {
     }).isRequired,
     challengeCount: PropTypes.number.isRequired,
     hintAvailable: PropTypes.bool,
-    // ヒントの吹き出しが出ているか（出ているあいだは全文のパネルを出さない）
+    // ヒントの吹き出しが出ているか（出ているあいだはタップで全文を開いたままにしない。ホバーでは出す）
     hintVisible: PropTypes.bool,
     onHint: PropTypes.func.isRequired,
     // タップで全文のパネルを開くとき（ヒントの吹き出し・「できた！」を閉じる）
     onOpenFullText: PropTypes.func,
     // ほかのチャレンジへ（いまのチャレンジを終えてレッスン表を開く）
     onQuit: PropTypes.func.isRequired,
-    // 「できた！」の toast が出ているか（出ているあいだは全文のパネルを出さない）
+    // 「できた！」の toast が出ているか（出ているあいだは全文のパネルを出さない。ホバーでも）
     toastVisible: PropTypes.bool,
 };
 
