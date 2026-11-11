@@ -101,7 +101,18 @@ export default function (Generator) {
                 return '';
             }
 
-            const value = Generator.valueToCode(block, 'VALUE', Generator.ORDER_NONE) || '0';
+            let value = Generator.valueToCode(block, 'VALUE', Generator.ORDER_NONE) || '0';
+            // === Smalruby: Start of nil / symbol return value ===
+            // A method ending in `nil` / `:a` keeps the text block "" / "a" and a comment marker
+            // (issue #1548). Restore the literal only while the text is still what it was.
+            const symbolMatch = comment.match(/,@ruby:symbol:(.+)$/);
+            if (comment.includes(',@ruby:nil') && value === Generator.quote_('')) {
+                value = 'nil';
+            } else if (symbolMatch && value === Generator.quote_(symbolMatch[1])) {
+                const name = symbolMatch[1];
+                value = /^[\p{L}_][\p{L}\p{N}_]*[?!=]?$/u.test(name) ? `:${name}` : `:${value}`;
+            }
+            // === Smalruby: End of nil / symbol return value ===
             if (comment.includes('@ruby:syntax:return')) {
                 return `return ${Generator.nosToCode(value)}\n`;
             }

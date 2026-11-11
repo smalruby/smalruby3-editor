@@ -277,8 +277,15 @@ const ExpressionHandlers = {
                 }
             }
         });
+        // `return nil` / `return :a` keeps the text "" / "a" and a marker to come back as written (issue #1548).
+        let literalMarker = '';
+        if (this._isPrimitive(returnValue) && (returnValue.type === 'nil' || returnValue.type === 'sym')) {
+            const isNil = returnValue.type === 'nil';
+            literalMarker = isNil ? ',@ruby:nil' : `,@ruby:symbol:${returnValue.value}`;
+            returnValue = this._createTextBlock(isNil ? '' : returnValue.value.toString());
+        }
         assignBlock.comment = this._createComment(
-            `@ruby:syntax:return @ruby:return:${procedureName}`, assignBlock.id
+            `@ruby:syntax:return @ruby:return:${procedureName}${literalMarker}`, assignBlock.id
         );
         if (returnValue) {
             this._addTextInput(
