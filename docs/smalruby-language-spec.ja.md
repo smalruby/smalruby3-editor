@@ -386,6 +386,8 @@ def check(x)
 end
 ```
 
+最後の `true` / `false` は、`return true` と同じく「(1) = (1)」/「(0) < (0)」のブロックで返すので、往復しても `true` / `false` のまま（文字列の `"true"` にはならない）。
+
 ### super
 
 `module` で定義したメソッドを `class` で `include` し、同名のメソッドでオーバーライドしている場合、`super` でモジュール側のメソッドを呼び出せます。

@@ -247,14 +247,13 @@ const MyBlocksConverter = {
                     const value = (b instanceof Primitive) ? b.value : b;
                     return converter._createNumberBlock('math_number', value);
                 }
-                if (converter._isTrue(b)) {
-                    converter._discardValue(b);
-                    return converter._createTextBlock('true');
+                // `true` / `false` stay as their `1 = 1` / `0 < 0` blocks (as `return true` does), so the
+                // implicit return comes back as `true`, not the string `"true"`.
+                if (converter._isBlock(b) && (converter._isTrue(b) || converter._isFalse(b))) {
+                    return b;
                 }
-                if (converter._isFalse(b)) {
-                    converter._discardValue(b);
-                    return converter._createTextBlock('false');
-                }
+                if (converter._isTrue(b)) return converter._createTextBlock('true');
+                if (converter._isFalse(b)) return converter._createTextBlock('false');
                 if (converter._isString(b) || converter.isNil(b) || converter._isSymbol(b)) {
                     const value = (b instanceof Primitive) ? b.value : b;
                     return converter._createTextBlock(value === null ? '' : value.toString());

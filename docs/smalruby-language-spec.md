@@ -362,6 +362,8 @@ def check(x)
 end
 ```
 
+A trailing `true` / `false` is returned as the "(1) = (1)" / "(0) < (0)" block, the same as `return true`, so it comes back as `true` / `false` (not the string `"true"`).
+
 ### super
 
 When a class `include`s a module and overrides a same-named method, `super` calls the module's version of that method.

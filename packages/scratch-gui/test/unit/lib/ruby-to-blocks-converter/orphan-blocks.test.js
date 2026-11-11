@@ -184,10 +184,10 @@ describe('RubyToBlocksConverter: no orphan blocks', () => {
             [
                 'reverse! of a list',
                 'ticket = [12, 47, 35]\nticket.reverse!',
-                'ticket = [12, 47, 35]\n@_ticket_1_.reverse!',
+                null,
             ],
-            ['reverse! of a string', 's = "hello"\ns.reverse!', 's = "hello"\n@_s_1_.reverse!'],
-            ['sort! of a list', 't = [3, 1, 2]\nt.sort!', 't = [3, 1, 2]\n@_t_1_.sort!'],
+            ['reverse! of a string', 's = "hello"\ns.reverse!', null],
+            ['sort! of a list', 't = [3, 1, 2]\nt.sort!', null],
             [
                 'string method as a statement',
                 dedent`
@@ -245,7 +245,7 @@ describe('RubyToBlocksConverter: no orphan blocks', () => {
             [
                 'koshien map_from with a local variable',
                 'm = "x"\n$map = koshien.map_from("14:0", m)',
-                'm = "x"\n$map = koshien.map_from("14:0", @_m_1_)',
+                null,
             ],
             ['smalrubot LED on', 'smalrubot_s1.led("left", true)', null],
             ['smalrubot LED off', 'smalrubot_s1.led("right", false)', null],
@@ -258,13 +258,7 @@ describe('RubyToBlocksConverter: no orphan blocks', () => {
 
                     say(is_true, 1)
                 `,
-                dedent`
-                    def is_true
-                      "true"
-                    end
-
-                    say(is_true, 1)
-                `,
+                null,
             ],
             [
                 'nested calls of a method with a return value',
