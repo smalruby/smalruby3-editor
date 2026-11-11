@@ -4,8 +4,13 @@ import bindAll from 'lodash.bindall';
 import React from 'react';
 
 // === Smalruby: Start of help menu ===
-import {openTipsLibrary} from '../reducers/modals';
+// openLessonsLibrary belongs to the lessons button below (one import line
+// because eslint forbids importing the same module twice).
+import {openLessonsLibrary, openTipsLibrary} from '../reducers/modals';
 // === Smalruby: End of help menu ===
+// === Smalruby: Start of lessons button ===
+import {markTutorialSeen, shouldShowTooltip} from '../reducers/tutorial-onboarding';
+// === Smalruby: End of lessons button ===
 
 const MenuBarHOC = function (WrappedComponent) {
     class MenuBarContainer extends React.PureComponent {
@@ -53,12 +58,23 @@ const MenuBarHOC = function (WrappedComponent) {
         confirmWithMessage: message => (confirm(message)) // eslint-disable-line no-alert
     };
     const mapStateToProps = state => ({
-        projectChanged: state.scratchGui.projectChanged
+        projectChanged: state.scratchGui.projectChanged,
+        // === Smalruby: Start of lessons button ===
+        // The first-time balloon under the Lessons button (reuses the tutorial
+        // onboarding flag: it goes away once the lessons library has been opened).
+        showLessonsTooltip: shouldShowTooltip(state)
+        // === Smalruby: End of lessons button ===
     });
     // === Smalruby: Start of help menu ===
     // The "?" menu's Tutorials item opens the tutorial library from here.
     const mapDispatchToProps = dispatch => ({
-        onOpenTipsLibrary: () => dispatch(openTipsLibrary())
+        onOpenTipsLibrary: () => dispatch(openTipsLibrary()),
+        // === Smalruby: Start of lessons button ===
+        onOpenLessonsLibrary: () => {
+            dispatch(markTutorialSeen());
+            dispatch(openLessonsLibrary());
+        }
+        // === Smalruby: End of lessons button ===
     });
     // === Smalruby: End of help menu ===
     // Allow incoming props to override redux-provided props. Used to mock in tests.

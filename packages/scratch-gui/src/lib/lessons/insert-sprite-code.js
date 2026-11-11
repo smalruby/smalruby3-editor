@@ -21,6 +21,18 @@ const spritesOf = (vm) => vm.runtime.targets.filter((t) => t.isOriginal && !t.is
 export const findSpriteByName = (vm, name) => spritesOf(vm).find((t) => t.getName() === name) || null;
 
 /**
+ * `spriteCodes` のほかに、チャレンジの `code` を入れるスプライトを探す（`spriteCodes` に名前の無い
+ * 最初のスプライト = ネコ）。
+ * @param {object} vm - Scratch VM。
+ * @param {Array<{sprite: string}>} spriteCodes - スプライトの名前とプログラム。
+ * @returns {?object} スプライト。いなければ null。
+ */
+export const findCodeSprite = (vm, spriteCodes) => {
+    const names = spriteCodes.map((s) => s.sprite);
+    return spritesOf(vm).find((t) => !names.includes(t.getName())) || null;
+};
+
+/**
  * ライブラリのスプライトを足す。
  * @param {object} vm - Scratch VM。
  * @param {string} name - ライブラリのスプライトの名前（例: `Penguin`）。
@@ -62,6 +74,5 @@ export const insertSpriteCodes = async (vm, spriteCodes, { toBlocks, library = s
             console.warn(`[lesson-hint] the code for "${sprite}" did not convert:`, converter.errors);
         }
     }
-    const names = spriteCodes.map((s) => s.sprite);
-    return spritesOf(vm).find((t) => !names.includes(t.getName())) || null;
+    return findCodeSprite(vm, spriteCodes);
 };

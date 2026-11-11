@@ -255,6 +255,13 @@ const evaluateUses = (condition, facts) => {
     return true;
 };
 
+// 変数名の条件（文字列か文字列の配列）を配列にする
+const variableNames = (name) => (Array.isArray(name) ? name : [name]);
+
+const isVariableName = (name) =>
+    typeof name === 'string' ||
+    (Array.isArray(name) && name.length > 0 && name.every((n) => typeof n === 'string'));
+
 const evaluateSaid = (condition, facts) =>
     facts.says.some((say) => {
         if (condition.target === 'stage' && !say.isStage) return false;
@@ -264,8 +271,10 @@ const evaluateSaid = (condition, facts) =>
             return false;
         }
         if (!isUnset(condition.equalsVariable)) {
-            if (!Object.prototype.hasOwnProperty.call(say.variables, condition.equalsVariable)) return false;
-            if (compareValues(say.text, say.variables[condition.equalsVariable]) !== 0) return false;
+            const names = variableNames(condition.equalsVariable).filter((name) =>
+                Object.prototype.hasOwnProperty.call(say.variables, name),
+            );
+            if (!names.some((name) => compareValues(say.text, say.variables[name]) === 0)) return false;
         }
         if (!isUnset(condition.answer)) {
             if (isUnset(say.answer) || !matchValue(condition.answer, say.answer)) return false;
@@ -273,9 +282,11 @@ const evaluateSaid = (condition, facts) =>
         return true;
     });
 
-// ステージ（すべてのスプライト用）の変数を先に探す
+// ステージ（すべてのスプライト用）の変数を先に探す。name は名前の配列でもよい（どれか 1 つ。
+// ja-Hira の文言は「かいすう」と書くので、子どもが「かいすう」で作っても同じ変数として見る）
 const findVariable = (snapshot, name, type) => {
-    const variables = (snapshot.variables || []).filter((v) => (v.type || '') === type && v.name === name);
+    const names = variableNames(name);
+    const variables = (snapshot.variables || []).filter((v) => (v.type || '') === type && names.includes(v.name));
     return variables.find((v) => v.isStage) || variables[0] || null;
 };
 
@@ -429,13 +440,16 @@ export const validateGoal = (goal) => {
                 ) {
                     errors.push(`${at}: said needs text, equalsAnswer, equalsVariable or answer`);
                 }
+                if (!isUnset(condition.equalsVariable) && !isVariableName(condition.equalsVariable)) {
+                    errors.push(`${at}: said.equalsVariable must be a variable name or an array of names`);
+                }
                 break;
             case 'variable':
-                if (typeof condition.name !== 'string') errors.push(`${at}: variable.name is required`);
+                if (!isVariableName(condition.name)) errors.push(`${at}: variable.name is required`);
                 if (!isMatcher(condition.value)) errors.push(`${at}: variable.value must be a matcher`);
                 break;
             case 'list':
-                if (typeof condition.name !== 'string') errors.push(`${at}: list.name is required`);
+                if (!isVariableName(condition.name)) errors.push(`${at}: list.name is required`);
                 if (!isMatcher(condition.length)) errors.push(`${at}: list.length must be a matcher`);
                 break;
             case 'sprites':

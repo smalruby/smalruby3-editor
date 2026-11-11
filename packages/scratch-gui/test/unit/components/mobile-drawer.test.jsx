@@ -55,6 +55,7 @@ const baseProps = () => ({
     onStartSavingToGoogleDrive: jest.fn(),
     onStartSelectingUrlLoad: jest.fn(),
     onOpenWelcomeModal: jest.fn(),
+    onOpenLessonsLibrary: jest.fn(),
     onReportBug: jest.fn(),
     intl: fakeIntl,
 });
@@ -202,6 +203,13 @@ describe('MobileDrawer', () => {
     test('tutorials menu item is not rendered (SP unsupported)', () => {
         const { queryByTestId } = renderWithIntl();
         expect(queryByTestId('mobile-drawer-tutorials')).toBeNull();
+    });
+
+    test('clicking "Lessons" opens the lessons library + onClose', () => {
+        const { getByTestId, props } = renderWithIntl();
+        fireEvent.click(getByTestId('mobile-drawer-lessons'));
+        expect(props.onOpenLessonsLibrary).toHaveBeenCalledTimes(1);
+        expect(props.onClose).toHaveBeenCalledTimes(1);
     });
 
     test('classroom is hidden when not configured', () => {

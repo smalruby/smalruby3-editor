@@ -1,12 +1,13 @@
 /**
  * Data-shape coverage for the lesson courses (コース › レッスン › チャレンジ).
  *
- * The challenge contents arrive later (1-g), so the regressions guarded here are
- * the skeleton every later sub-issue builds on: ids are unique and stable, the
- * lesson clear rule matches the spec, every challenge has the normalized fields,
- * and every message id resolves in en / ja / ja-Hira.
+ * The regressions guarded here are the skeleton every sub-issue builds on (ids are
+ * unique and stable, the lesson clear rule matches the spec, every challenge has the
+ * normalized fields, every message id resolves in en / ja / ja-Hira) and the spec of
+ * the challenges whose contents are in (task / palette / hints / goal / code).
  */
 import {
+    CATEGORIES,
     COURSES,
     LANGUAGES,
     defineChallenge,
@@ -17,6 +18,7 @@ import {
     lessonClearRule,
 } from '../../../../src/lib/lessons/courses';
 import { validateGoal } from '../../../../src/lib/lessons/goal';
+import { HINT_TARGETS } from '../../../../src/lib/lessons/hint-targets';
 import en from '../../../../src/locales/en';
 import ja from '../../../../src/locales/ja';
 import jaHira from '../../../../src/locales/ja-Hira';
@@ -78,6 +80,25 @@ describe('lesson courses', () => {
         const lesson = findLesson('blocks-l1');
         expect(ja[lesson.name.id]).toBe('ブロックのなかま');
         expect(lesson.challenges.map((c) => `${c.number} ${ja[c.name.id]}`)).toEqual(LESSON1_CHALLENGE_NAMES);
+    });
+
+    test('every lesson 1 challenge has a category (the block family shown in the lessons library)', () => {
+        const lesson = findLesson('blocks-l1');
+        const known = Object.values(CATEGORIES);
+        lesson.challenges.forEach((c) => expect(known).toContain(c.category));
+        expect(lesson.challenges.map((c) => c.category)).toEqual([
+            'sound',
+            'motion',
+            'looks',
+            'control',
+            'control',
+            'sensing',
+            'operators',
+            'variables',
+            'events',
+            'extensions',
+            'lists',
+        ]);
     });
 
     test('lesson 1 clears with 7 challenges including the 3rd, 6th, 8th, 9th and 11th', () => {
@@ -148,6 +169,7 @@ describe('lesson courses', () => {
             id: 'x-y',
             name: { id: 'gui.lessons.challenge.x-y.name', defaultMessage: undefined },
             task: null,
+            category: null,
             skills: [],
             goal: null,
             required: true,
@@ -155,6 +177,7 @@ describe('lesson courses', () => {
             allowedBlocks: null,
             setup: null,
             code: null,
+            codeTarget: null,
             debug: [],
             steps: [
                 { title: null, target: 'palette', blocks: null, spotlight: true },
@@ -214,7 +237,8 @@ describe('lesson courses', () => {
                 sensing: ['sensing_touchingobject'],
                 looks: ['looks_say'],
             });
-            expect(c.setup).toEqual({ tab: 'code' });
+            // タブはコースの言語の既定（ブロックのコース = コードタブ。challenge-setup.js）
+            expect(c.setup).toBeNull();
             expect(hints(c)).toEqual([
                 ['palette', 'loop do\nend\n', false],
                 ['palette', 'if false\nelse\nend\n', false],
@@ -296,7 +320,7 @@ describe('lesson courses', () => {
             ]);
             expect(c.code).toBe(
                 'when_clicked do\n  timer.reset\n  ask("なまえは？")\n  say(answer, 2)\n' +
-                    '  say(timer.value.to_s + "秒でした", 2)\nend\n',
+                    '  say(timer.value + "秒でした", 2)\nend\n',
             );
         });
 
@@ -333,7 +357,7 @@ describe('lesson courses', () => {
                 'いつも「ちがいます」になるときは、「=」の左に「答え」、右に 7 が入っているか見よう。数は半角の 7 で入れよう。',
             ]);
             expect(c.goal).toEqual([
-                { type: 'said', text: '正解です', answer: { eq: 7 } },
+                { type: 'said', text: /^(正解です|せいかいです)$/, answer: { eq: 7 } },
                 { type: 'said', text: 'ちがいます', answer: { ne: 7 } },
             ]);
             expect(c.code).toBe(
@@ -369,8 +393,8 @@ describe('lesson courses', () => {
                 '押すたびに 1 にもどるときは、「0 にする」が「押されたとき」のほうに入っていないか見よう。',
             ]);
             expect(c.goal).toEqual([
-                { type: 'variable', name: '回数', value: { gte: 3 } },
-                { type: 'said', equalsVariable: '回数' },
+                { type: 'variable', name: ['回数', 'かいすう'], value: { gte: 3 } },
+                { type: 'said', equalsVariable: ['回数', 'かいすう'] },
             ]);
             expect(c.code).toBe('when_flag_clicked do\n  $回数 = 0\nend\n\nwhen_clicked do\n  $回数 += 1\n  say($回数)\nend\n');
         });
@@ -402,7 +426,7 @@ describe('lesson courses', () => {
                 event: ['event_whenthisspriteclicked', 'event_broadcast', 'event_whenbroadcastreceived'],
                 looks: ['looks_sayforsecs'],
             });
-            expect(c.setup).toEqual({ tab: 'code' });
+            expect(c.setup).toBeNull();
             expect(hints(c)).toEqual([
                 ['sprite-list', null, true],
                 ['sprite-list', 'broadcast("あいさつ")\n', false],
@@ -450,7 +474,7 @@ describe('lesson courses', () => {
                 text2speech: ['text2speech_speakAndWait'],
             });
             // 拡張機能は子どもがヒント 1 で足す（setup では入れない）
-            expect(c.setup).toEqual({ tab: 'code' });
+            expect(c.setup).toBeNull();
             expect(hints(c)).toEqual([
                 ['extension-button', null, true],
                 ['palette', 'text2speech.speak("ボタンが押されました")\n', false],
@@ -527,6 +551,207 @@ describe('lesson courses', () => {
     test.each(Object.keys(LOCALES))('every message id resolves in %s', (locale) => {
         collectMessages().forEach((message) => {
             expect(LOCALES[locale][message.id]).toEqual(expect.any(String));
+        });
+    });
+
+    describe('lesson 1 challenges 1-4 (the spec of the sub-issue)', () => {
+        const { PALETTE, CODE_AREA, STAGE, SPRITE_LIST, SOUNDS_TAB, COSTUMES_TAB, BACKDROP, KEYBOARD } = HINT_TARGETS;
+        const challenge = (id) => findChallenge(id).challenge;
+        const hints = (c) => c.steps.map((s) => [s.target, s.blocks, s.spotlight]);
+
+        test('1 キーで音を鳴らそう: space key plays two sounds in order', () => {
+            const c = challenge('blocks-l1-key-sound');
+            expect(c.required).toBe(false);
+            expect(ja[c.task.id]).toBe('スペースキーを押したら、ネコが「ニャー」と鳴いたあと、「Owl」の音が鳴るようにしよう');
+            expect(c.skills.map((s) => ja[s.name.id])).toEqual(['キーで動かす', '音を鳴らす', '音を足す']);
+            expect(c.allowedBlocks).toEqual({
+                event: ['event_whenkeypressed'],
+                sound: ['sound_playuntildone', 'sound_play'],
+            });
+            expect(hints(c)).toEqual([
+                [SOUNDS_TAB, null, false],
+                [PALETTE, 'when_key_pressed("space") do\nend\n', true],
+                [PALETTE, 'play_until_done("ニャー")\n', true],
+                [CODE_AREA, 'play("Owl")\n', false],
+                [KEYBOARD, null, true],
+            ]);
+            expect(c.debug).toHaveLength(2);
+            expect(c.goal).toEqual([
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenkeypressed', key: 'space' },
+                    blocks: ['sound_playuntildone', 'sound_play'],
+                    order: ['sound_playuntildone', 'sound_play'],
+                },
+            ]);
+            expect(c.code).toBe('when_key_pressed("space") do\n  play_until_done("ニャー")\n  play("Owl")\nend\n');
+            expect(c.codeTarget).toBeNull();
+        });
+
+        test('2 矢印キーで動かそう: up and down arrow keys change y both ways', () => {
+            const c = challenge('blocks-l1-arrow-move');
+            expect(c.required).toBe(false);
+            expect(ja[c.task.id]).toBe('上向き矢印キーで上へ、下向き矢印キーで下へ、ネコを動かそう');
+            expect(c.skills.map((s) => ja[s.name.id])).toEqual(['座標で動かす', 'ブロックを複製する']);
+            expect(c.allowedBlocks).toEqual({ event: ['event_whenkeypressed'], motion: ['motion_changeyby'] });
+            expect(hints(c)).toEqual([
+                [PALETTE, 'self.y += 10\n', false],
+                [PALETTE, 'when_key_pressed("up arrow") do\nend\n', false],
+                [CODE_AREA, null, false],
+                [STAGE, null, false],
+            ]);
+            expect(c.debug).toHaveLength(2);
+            expect(c.goal).toEqual([
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenkeypressed', key: 'up arrow' },
+                    blocks: [{ opcode: 'motion_changeyby', args: { DY: { gt: 0 } } }],
+                },
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenkeypressed', key: 'down arrow' },
+                    blocks: [{ opcode: 'motion_changeyby', args: { DY: { lt: 0 } } }],
+                },
+            ]);
+            expect(c.code).toBe(
+                'when_key_pressed("up arrow") do\n  self.y += 10\nend\n\nwhen_key_pressed("down arrow") do\n  self.y += -10\nend\n',
+            );
+        });
+
+        test('3 押したら話そう (required): add a costume, click the cat, say and next costume', () => {
+            const c = challenge('blocks-l1-click-say');
+            expect(c.required).toBe(true);
+            expect(ja[c.task.id]).toBe(
+                'ネコに好きなコスチュームを足して、押したら「こんにちは！」と言って、見た目がかわるようにしよう',
+            );
+            expect(c.skills.map((s) => ja[s.name.id])).toEqual(['押したら動く', 'セリフを言う', 'コスチュームを足す']);
+            expect(c.allowedBlocks).toEqual({
+                event: ['event_whenthisspriteclicked'],
+                looks: ['looks_sayforsecs', 'looks_nextcostume'],
+            });
+            expect(hints(c)).toEqual([
+                [COSTUMES_TAB, null, false],
+                [PALETTE, 'when_clicked do\nend\n', true],
+                [PALETTE, 'say("こんにちは！", 2)\n', true],
+                [PALETTE, 'next_costume\n', false],
+                [STAGE, null, true],
+                [CODE_AREA, null, true],
+            ]);
+            expect(c.debug).toHaveLength(2);
+            expect(c.goal).toEqual([
+                { type: 'costumes', added: 1 },
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenthisspriteclicked' },
+                    blocks: ['looks_sayforsecs', 'looks_nextcostume'],
+                },
+            ]);
+            expect(c.code).toBe('when_clicked do\n  say("こんにちは！", 2)\n  next_costume\nend\n');
+        });
+
+        test('4 くり返そう: the stage switches the backdrop 6 times on the 1 key', () => {
+            const c = challenge('blocks-l1-repeat');
+            expect(c.required).toBe(false);
+            expect(ja[c.task.id]).toBe('1 のキーを押したら、背景が「Canyon」と「Arctic」に 3 回かわるようにしよう');
+            expect(c.skills.map((s) => ja[s.name.id])).toEqual(['くり返し', '背景を足す', 'ステージのプログラム']);
+            expect(c.allowedBlocks).toEqual({
+                event: ['event_whenkeypressed'],
+                control: ['control_repeat', 'control_wait'],
+                looks: ['looks_switchbackdropto'],
+            });
+            expect(hints(c)).toEqual([
+                [BACKDROP, null, false],
+                [SPRITE_LIST, null, false],
+                [PALETTE, '3.times\n', false],
+                [CODE_AREA, 'switch_backdrop("Arctic")\n', false],
+                [KEYBOARD, null, false],
+            ]);
+            expect(c.debug).toHaveLength(2);
+            expect(c.goal).toEqual([
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenkeypressed', key: '1', target: 'stage' },
+                    blocks: ['control_repeat', { opcode: 'looks_switchbackdropto', count: 6 }],
+                },
+            ]);
+            // ステージのプログラムなので、「プログラムを入れる」はステージに入れる
+            expect(c.codeTarget).toBe('stage');
+            expect(c.code).toBe(
+                'when_key_pressed("1") do\n  3.times do\n    switch_backdrop("Canyon")\n    sleep(1)\n' +
+                    '    switch_backdrop("Arctic")\n    sleep(1)\n  end\nend\n',
+            );
+        });
+
+        test('the hint texts of challenges 1-4 are the spec, and ja-Hira is all kana', () => {
+            const expectJa = (id, texts) => {
+                const c = challenge(id);
+                expect(c.steps.map((s) => ja[s.title.id])).toEqual(texts.steps);
+                expect(c.debug.map((d) => ja[d.id])).toEqual(texts.debug);
+                [...c.steps.map((s) => s.title.id), ...c.debug.map((d) => d.id), c.task.id].forEach((messageId) => {
+                    // 漢字を使わない（ひらがな・カタカナ・記号・英数字だけ）
+                    expect({ messageId, text: jaHira[messageId] }).toEqual({
+                        messageId,
+                        text: expect.not.stringMatching(/[\u4e00-\u9fff]/),
+                    });
+                    expect(en[messageId]).toEqual(expect.any(String));
+                });
+            };
+            expectJa('blocks-l1-key-sound', {
+                steps: [
+                    '上の「音」タブを開いて、左下のボタンから「Owl」をえらんで足そう。',
+                    '「コード」タブにもどって、黄色い「イベント」のブロックをコードエリアへドラッグしよう。',
+                    'このブロックを、下にくっつけよう。カチッとはまれば OK。',
+                    'もう 1 つ音のブロックをつなげて、▼で「Owl」をえらぼう。',
+                    'スペースキーを押してみよう。',
+                ],
+                debug: [
+                    '鳴らないときは、パソコンの音量と、▼でえらんだ音の名前を見よう。',
+                    'ブロックがはなれていると、下のブロックは動かないよ。',
+                ],
+            });
+            expectJa('blocks-l1-arrow-move', {
+                steps: [
+                    '「動き」の青いブロックを使うよ。上下は y、左右は x。',
+                    'キーのブロックの下にくっつけて、▼で「上向き矢印」をえらぼう。',
+                    'できたかたまりを右クリックして「複製」。もう 1 つできたら、「下向き矢印」と「-10」に変えよう。',
+                    '矢印キーで、ネコが上と下に動くか見よう。',
+                ],
+                debug: [
+                    '動かないときは、ステージを 1 回クリックしてからキーを押そう。',
+                    '下に動かないときは、数が「-10」（マイナス）になっているか見よう。',
+                ],
+            });
+            expectJa('blocks-l1-click-say', {
+                steps: [
+                    '上の「コスチューム」タブを開いて、左下のボタンから好きなコスチュームを足そう。えらんでも、筆で描いてもいいよ。',
+                    '「コード」タブにもどって、「押されたとき」のブロックをコードエリアへドラッグしよう。',
+                    '紫の「見た目」のブロックをくっつけて、白いところをクリックして「こんにちは！」と書こう。',
+                    'その下に、これもくっつけよう。',
+                    'ステージのネコをクリックしてみよう。',
+                    'いらないブロックは、パレットへドラッグしてもどすと消えるよ。',
+                ],
+                debug: [
+                    '何も起きないときは、ステージのネコそのものを押しているか見よう。',
+                    'プログラムを入れたスプライトと、押したスプライトが同じか、右下のスプライトリストで確かめよう。',
+                ],
+            });
+            expectJa('blocks-l1-repeat', {
+                steps: [
+                    '右下の「背景を選ぶ」から、「Canyon」と「Arctic」を足そう。',
+                    '右の「ステージ」をえらぼう。ステージにもプログラムを書けるよ。',
+                    'オレンジの「制御」の「繰り返す」で、ブロックをはさもう。',
+                    '中に「背景を…にする」「1 秒待つ」を 2 組入れよう。',
+                    '1 のキーを押してみよう。',
+                ],
+                debug: [
+                    '1 回しかかわらないときは、ブロックが「繰り返す」の口の中に入っているか見よう。',
+                    'すぐ終わるときは「1 秒待つ」が入っているか見よう。',
+                ],
+            });
+        });
+
+        test('codeTarget is null or "stage" on every challenge', () => {
+            allChallenges().forEach((c) => expect([null, 'stage']).toContain(c.codeTarget));
         });
     });
 });

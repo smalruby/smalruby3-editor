@@ -33,13 +33,17 @@ describe('LessonTaskBar', () => {
         const { getByTestId } = renderBar();
         expect(getByTestId('lesson-task-bar')).toBeInTheDocument();
         expect(getByTestId('lesson-task-bar-position')).toHaveTextContent('3 of 11');
-        expect(getByTestId('lesson-task-bar-task')).toHaveTextContent('Make the cat say "Hello!" when it is clicked');
+        expect(getByTestId('lesson-task-bar-task')).toHaveTextContent(
+            'Add a costume you like to the cat, and make it say "Hello!" and change its look when it is clicked',
+        );
     });
 
     test('falls back to the challenge name when there is no task line yet', () => {
-        const { getByTestId } = renderBar({ challengeId: 'blocks-l1-quiz' });
-        expect(getByTestId('lesson-task-bar-position')).toHaveTextContent('7 of 11');
-        expect(getByTestId('lesson-task-bar-task')).toHaveTextContent('Make a quiz');
+        // レッスン 1 のチャレンジはどれも課題があるので、課題の無いチャレンジに見せかける
+        const { challenge } = findChallenge('blocks-l1-broadcast');
+        const { getByTestId } = renderBar({ challenge: { ...challenge, task: null } });
+        expect(getByTestId('lesson-task-bar-position')).toHaveTextContent('9 of 11');
+        expect(getByTestId('lesson-task-bar-task')).toHaveTextContent('Signal a friend');
     });
 
     test('uses the Japanese strings', () => {

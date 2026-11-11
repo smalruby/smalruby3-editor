@@ -3,8 +3,7 @@
  * チャレンジを開く → ヒントを最後まで進めて「プログラムを入れる」→ 課題の操作（旗・マウス・ネコを押す・
  * 答えを入力する）→「できた！」の toast。
  *
- * レッスン表（一覧の画面）はまだ無いので、チャレンジはレッスン表が呼ぶのと同じ
- * `window.smalruby.startChallenge(id)` で開く（docs/lessons/README.md の「レッスンモード」）。
+ * チャレンジは子どもと同じく、メニューバーの「レッスン」→ レッスン表のチャレンジを押して開く。
  */
 import path from 'path';
 import { Key } from 'selenium-webdriver';
@@ -81,7 +80,10 @@ const openChallengeAndInsertCode = async (challengeId, { hintCount, firstTarget,
     // 授業のパソコンの大きさ。既定の幅ではステージが画面の外にはみ出してネコを押せない
     await driver.manage().window().setRect({ width: 1300, height: 600 });
     await waitForLoadingFinished();
-    await driver.executeScript(`window.smalruby.startChallenge(${JSON.stringify(challengeId)})`);
+    await findByXpath(byTestId('menu-bar-lessons'));
+    await clickByTestId('menu-bar-lessons');
+    await findByXpath(byTestId(`lessons-library-challenge-${challengeId}`));
+    await clickByTestId(`lessons-library-challenge-${challengeId}`);
     await findByXpath(byTestId('lesson-task-bar'));
     await driver.sleep(1000);
 

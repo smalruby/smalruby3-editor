@@ -53,7 +53,9 @@ describe('Smalruby Lessons', () => {
         const position = await findByXpath(byTestId('lesson-task-bar-position'));
         expect(await position.getText()).toBe('3 of 11');
         const task = await findByXpath(byTestId('lesson-task-bar-task'));
-        expect(await task.getText()).toBe('Make the cat say "Hello!" when it is clicked');
+        expect(await task.getText()).toBe(
+            'Add a costume you like to the cat, and make it say "Hello!" and change its look when it is clicked',
+        );
 
         // パレットはチャレンジの allowedBlocks（見た目・イベント）だけ
         expect(await textExists('Looks', scope.blocksTab)).toBe(true);
@@ -80,18 +82,21 @@ describe('Smalruby Lessons', () => {
         expect(severeLogs(logs)).toEqual([]);
     });
 
-    test('a challenge without allowedBlocks keeps the whole palette', async () => {
+    // パレットを絞らないチャレンジ（allowedBlocks: null）は、レッスン 1 にはもう無い（11 個とも絞る）。
+    // その場合に全部が出ることは reducer の unit テスト（getLessonAllowedBlocks が null）で確かめる
+    test('a challenge later in the lesson restricts the palette to its own categories', async () => {
         await loadUri(`${uri}?no_beforeunload=1`);
         await waitForLoadingFinished();
 
-        await startChallenge(driver, 'blocks-l1-quiz');
+        await startChallenge(driver, 'blocks-l1-broadcast');
         await findByXpath(byTestId('lesson-task-bar'));
         await driver.sleep(1000);
 
         const position = await findByXpath(byTestId('lesson-task-bar-position'));
-        expect(await position.getText()).toBe('7 of 11');
-        expect(await textExists('Motion', scope.blocksTab)).toBe(true);
+        expect(await position.getText()).toBe('9 of 11');
+        expect(await textExists('Events', scope.blocksTab)).toBe(true);
         expect(await textExists('Looks', scope.blocksTab)).toBe(true);
+        expect(await textExists('Motion', scope.blocksTab)).toBe(false);
 
         await clickByTestId(driver, 'lesson-task-bar-quit');
         await driver.sleep(500);
