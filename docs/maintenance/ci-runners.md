@@ -11,10 +11,8 @@ GitHub Actions の runner（`runs-on`）は **版を固定する**。`ubuntu-lat
 
 ## 例外（古い版に残しているジョブ）
 
-| ジョブ | 版 | 理由 | 追跡 |
-|---|---|---|---|
-| `ci-ruby.yml` の `unit-test`、`gem-build-check.yml` の `build-linux`、`release-gem.yml` の `test` | `ubuntu-24.04` | smalruby3 gem のネイティブ拡張が使う `magnus` が 26.04 ではコンパイルできない（新しい libclang と `bindgen` 0.69 の組み合わせ） | #1391 |
-| `release-gem.yml` の `release` | `ubuntu-24.04` | ネイティブ拡張はコンパイルしない（ソース gem を作って公開するだけ）。ただしタグ push でしか走らず 26.04 で事前に確かめられないので、`test` と同じ版で出す。`test` を 26.04 に上げるときに一緒に上げる | #1391 |
+いまは無い（全ジョブが上の表の label で動く）。古い版に残すジョブができたら、ここに
+「ジョブ / 版 / 理由 / 追跡 Issue」の表を作って載せる。
 
 ## なぜ固定するか
 
