@@ -154,14 +154,33 @@ const ContextUtils = {
             }
         });
 
+        if (!saved.blocks) {
+            return;
+        }
+        const exists = blockId => Object.prototype.hasOwnProperty.call(this._context.blocks, blockId);
         const nodeToBlockMap = this._context.nodeToBlockMap;
-        if (saved.blocks && nodeToBlockMap) {
+        if (nodeToBlockMap) {
             nodeToBlockMap.forEach((blockId, node) => {
-                if (!Object.prototype.hasOwnProperty.call(this._context.blocks, blockId)) {
+                if (!exists(blockId)) {
                     nodeToBlockMap.delete(node);
                 }
             });
         }
+        // A kept block may have been given a comment that was dropped above.
+        Object.values(this._context.blocks).forEach(block => {
+            if (block.comment && !Object.prototype.hasOwnProperty.call(this._context.comments, block.comment)) {
+                delete block.comment;
+            }
+        });
+        // These are not snapshotted, so drop the IDs of the blocks removed above; otherwise a later
+        // pass (e.g. turning an argument into a boolean one) looks the block up and gets undefined.
+        ['argumentBlocks', 'procedureCallBlocks'].forEach(key => {
+            const byId = this._context[key];
+            if (!byId) return;
+            Object.keys(byId).forEach(id => {
+                byId[id] = byId[id].filter(exists);
+            });
+        });
     },
 
     _setTarget (target) {
