@@ -163,7 +163,12 @@ describe('LessonsLibrary', () => {
         });
 
         test('hides the skills section when no challenge has skills yet', () => {
-            const { queryByTestId } = renderLibrary();
+            const noSkills = defineCourse({
+                id: 'test-course',
+                language: LANGUAGES.BLOCKS,
+                lessons: [defineLesson({ id: 'test-l1', count: 1, challenges: [{ id: 'test-a' }] })],
+            });
+            const { queryByTestId } = renderLibrary({ courses: [noSkills], progress: emptyProgress() });
             expect(queryByTestId('lessons-library-skills')).not.toBeInTheDocument();
         });
 

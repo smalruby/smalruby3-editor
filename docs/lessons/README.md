@@ -73,6 +73,7 @@
 | `setup` | object \| null | null | 始めるときの準備（deck と同じ形。`lib/deck-setup.js`） |
 | `steps` | ヒント[] | [] | ヒント（下の表） |
 | `code` | string \| null | null | ヒントの最後の手段「プログラムを入れる」（Ruby。deck の `code` と同じ） |
+| `codeTarget` | `'stage'` \| null | null | `code` を入れる相手。null はいま編集中のスプライト。`'stage'` はステージのプログラムのチャレンジ（入れる前にステージをえらぶ） |
 | `debug` | message[] | [] | うまく動かないときは |
 
 ヒント（`steps` の要素）。deck の step と同じ `title` を文言にし、吹き出しのための項目を足す。
@@ -101,9 +102,47 @@
 `defineCourse` / `defineLesson` / `defineChallenge` は export してあるので、コースやレッスンが増えて
 ファイルを分けるときも同じ形で定義できる。
 
-レッスン 1 の 11 のチャレンジは、いまは `id`・名前・なかま（`category`）だけが入っている（中身は後から入れる）。
-チャレンジ 3「押したら話そう」には、吹き出しの部品の動作確認のために仮のヒント（6 つ + 最後の手段）と
-`debug` / `code` が入っている（中身を入れるときに置き換える）。
+レッスン 1 の 11 のチャレンジのうち、1〜4 は中身（課題・できること・パレット・ヒント・判定・Ruby）が
+入っている（下の「レッスン 1 のチャレンジ」）。5〜11 は `id`・名前・なかま（`category`）だけ（中身は後から入れる）。
+
+### レッスン 1 のチャレンジ
+
+1 つのチャレンジは 5 分・3〜5 ブロック。どれも「キーかスプライトを押したら、何かが起きる」形で、毎回
+新しい作品（ネコ）から始める。文言は `lessons.locale.js`（ja / ja-Hira / en）。
+
+| # | id | 課題 | できること | パレット（`allowedBlocks`） | できた の条件（`goal`） |
+|---|----|------|-----------|---------------------------|------------------------|
+| 1 | `blocks-l1-key-sound` | スペースキーを押したら、ネコが「ニャー」と鳴いたあと、「Owl」の音が鳴る | キーで動かす・音を鳴らす・音を足す | `event_whenkeypressed` / `sound_playuntildone` / `sound_play` | スペースキーのスクリプトで `sound_playuntildone` → `sound_play` の順に動いた |
+| 2 | `blocks-l1-arrow-move` | 上向き矢印キーで上へ、下向き矢印キーで下へ、ネコを動かす | 座標で動かす・ブロックを複製する | `event_whenkeypressed` / `motion_changeyby` | 上向き矢印キーのスクリプトで `DY > 0`、下向き矢印キーのスクリプトで `DY < 0` の `motion_changeyby` が動いた |
+| 3（必須） | `blocks-l1-click-say` | コスチュームを足して、押したら「こんにちは！」と言って、見た目がかわる | 押したら動く・セリフを言う・コスチュームを足す | `event_whenthisspriteclicked` / `looks_sayforsecs` / `looks_nextcostume` | コスチュームが始めより 1 つ以上増え、スプライトを押したスクリプトで `looks_sayforsecs` と `looks_nextcostume` が動いた |
+| 4 | `blocks-l1-repeat` | 1 のキーを押したら、背景が「Canyon」と「Arctic」に 3 回かわる（**ステージのプログラム**） | くり返し・背景を足す・ステージのプログラム | `event_whenkeypressed` / `control_repeat` / `control_wait` / `looks_switchbackdropto` | ステージの 1 のキーのスクリプトで `control_repeat` が動き、`looks_switchbackdropto` が 6 回動いた |
+
+ヒントは、音タブ・コスチュームタブ・背景を選ぶ・スプライトリストのように「足す・えらぶ」場所を指すものと、
+パレット・コードエリアを指して**本物のブロック**を描くもの、ステージ・キーボードを指して「動かしてみよう」と
+言うものの並び。スポットライト（はじめて開いたときだけ）は基本操作（出す・くっつける・押す・消す）のヒントに
+だけ付けている（チャレンジ 1 のパレットとキーボード、チャレンジ 3 のパレット・ステージ・コードエリア）。
+
+作るときの注意:
+
+- **ヒントに描くブロックは、まだ足していない音・背景でもよい**。吹き出しの変換（`hint-blocks.js`）は
+  converter の `validateAssets: false` で音・コスチューム・背景の存在を確かめない（「Owl の音を鳴らす」は
+  Owl を足す前から描く）。**`code` を入れるときの変換は従来どおり確かめる**ので、チャレンジ 1 の `code`
+  （`play("Owl")`）はヒント 1 のとおり Owl を足してから、チャレンジ 4 の `code` は背景を足してから入れる
+  （足していなければ入れずに、吹き出しの中に「まだプログラムを入れられないよ。先にヒントのとおりに足そう。」と
+  変換のエラー（「音「Owl」は存在しません。…先に音を追加してください。」）を出す）。
+- 中身の無い「繰り返す」を描くときは **`3.times`**（ブロック無し）と書く。`3.times do ... end` は中身が
+  無いと変換できない。
+- `self.y += -10` は「y座標を -10 ずつ変える」になる（チャレンジ 2 の下向き矢印）。
+- チャレンジ 1 の `code` の `play_until_done("ニャー")` は**日本語の作品の音の名前**。英語の作品ではネコの音は
+  "Meow" なので、英語で開いたときはプログラムを入れようとすると吹き出しに「sound "ニャー" does not exist.」が出て入らない（コースは日本語を
+  前提にしている。`goal` は音の名前を見ないので、手で作れば英語でも「できた」になる）。
+- ライブラリの音「Owl」・背景「Canyon」「Arctic」の表示名は日本語でも英語のまま（ライブラリの名前は
+  翻訳されない）。ヒントの文言もそのまま "Owl" / "Canyon" / "Arctic" と書く。
+- チャレンジ 4 のように**ステージのプログラム**のチャレンジは `codeTarget: 'stage'` にする。
+  「プログラムを入れる」がステージをえらんで（`vm.setEditingTarget`）Ruby タブの相手（`rubyCode.target`）も
+  ステージにしてから入れるので、スプライトを編集中に押してもステージに入る。
+- エディタ（コードエリア）にフォーカスがあってもキーはステージに届く（`vm-listener-hoc` は SVG への
+  keydown を VM に渡す）。`integration` テストはコードエリアをクリックしてからキーを押して確かめている。
 
 ## 記録の形（端末）
 
@@ -459,8 +498,12 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 - **最後の手段**: 最後のページは「うまく動かないときは」（`debug` の箇条書き）と「プログラムを入れる」
   （`code`）。「プログラムを入れる」はチュートリアルのカードの `insertCodeButton` と同じ仕組み
   （`updateRubyCode(code)` → ブロックのコースではコードタブ、Ruby / DNCL のコースでは Ruby タブを出す。
-  コードタブでは Ruby タブが変換してブロックにする）。入れると吹き出しは閉じる。入れて動かしても「できた」に
-  なる（判定側は区別しない）。
+  コードタブでは Ruby タブが変換してブロックにする）。チャレンジの `codeTarget` が `'stage'` なら、入れる前に
+  ステージをえらび、Ruby タブの相手（`rubyCode.target`）もステージにする（ステージのプログラムのチャレンジ）。
+  入れる前に同じ変換を音・コスチューム・背景の確かめ込みで試し（`rubyToBlocksXml` の `validateAssets: true`）、
+  失敗するとき（ヒントの「Owl を足そう」をまだしていない等）は入れずに、ボタンの下にわけを出す
+  （`lesson-hint-insert-code-error`。入れると Ruby タブに切りかわってエラーになり、ブロックのコースの子どもには
+  何が起きたかわかりにくいため）。入れると吹き出しは閉じる。入れて動かしても「できた」になる（判定側は区別しない）。
 - **文言**: `gui.lessonHint.*`（`src/locales/{en,ja,ja-Hira}.js`）。
 
 ### data-testid
@@ -480,6 +523,7 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `lesson-hint-blocks-error` | p | ブロックを描けなかったときの注意 |
 | `lesson-hint-debug-title` / `lesson-hint-debug` | div / ul | 「うまく動かないときは」と箇条書き（最後のページ） |
 | `lesson-hint-insert-code` | button | プログラムを入れる（最後のページ。`code` があるときだけ） |
+| `lesson-hint-insert-code-error` | div | プログラムを入れられないときのわけ（音・背景をまだ足していない等） |
 | `lesson-hint-prev` / `lesson-hint-next` / `lesson-hint-close` | button | もどる / 進める / 閉じる |
 
 ### スクリーンショット
@@ -496,6 +540,10 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `screenshots/0302-lessons-library-1300x600.png` | レッスン表（1300×600）。2 つできた状態 |
 | `screenshots/0303-lessons-library-375x667.png` | レッスン表（SP 縦 375×667。1 列） |
 | `screenshots/0304-lessons-library-cleared-1300x600.png` | レッスン 1 をクリアした状態（「クリア！」と「プログラマー デビュー！」） |
+| `screenshots/0501-challenge1-key-sound-hint1-1300x600.png` | チャレンジ 1「キーで音を鳴らそう」の最初のヒント（音タブを指す） |
+| `screenshots/0502-challenge2-arrow-move-hint1-1300x600.png` | チャレンジ 2「矢印キーで動かそう」の最初のヒント（パレットを指し「y座標を 10 ずつ変える」を描く） |
+| `screenshots/0503-challenge3-click-say-hint1-1300x600.png` | チャレンジ 3「押したら話そう」の最初のヒント（コスチュームタブを指す） |
+| `screenshots/0504-challenge4-repeat-hint1-1300x600.png` | チャレンジ 4「くり返そう」の最初のヒント（背景を選ぶを指す） |
 
 ## いまのチュートリアルの入口
 
@@ -523,6 +571,7 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `packages/scratch-gui/src/lib/lessons/spotlight-seen.js` | スポットライトを見せたチャレンジの記録（`smalruby:lessonSpotlightSeen`） |
 | `packages/scratch-gui/test/unit/components/lesson-hint.test.jsx` / `test/unit/containers/lesson-hint.test.jsx` | 吹き出しとコンテナの unit テスト |
 | `packages/scratch-gui/test/integration/smalruby-lessons-hint.test.js` | ヒントを開く → 本物のブロック・指す場所・初回だけのスポットライト → 進める → プログラムを入れる → 2 回目はスポットライト無し（Selenium） |
+| `packages/scratch-gui/test/integration/smalruby-lesson1-challenges-1-4.test.js` | レッスン 1 のチャレンジ 1〜4 を開く → ヒントを最後まで進めて「プログラムを入れる」→ 課題の操作（実際のキー入力・ステージのネコをクリック）→「できた！」（Selenium） |
 | `packages/scratch-gui/src/lib/lessons/goal.js` | できた の判定（`goal` の形・事実の記録・判定の純粋関数・`validateGoal`） |
 | `packages/scratch-gui/src/lib/lessons/vm-execution-hook.js` | ブロックの実行をスレッドつきで取るフック（runtime の `getOpcodeFunction` を包む） |
 | `packages/scratch-gui/src/lib/lessons/goal-monitor.js` | VM を見張って goal を判定する（`attachGoalMonitor` / `takeSnapshot`） |

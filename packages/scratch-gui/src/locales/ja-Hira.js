@@ -1641,6 +1641,7 @@ export default {
     'gui.lessonHint.close': 'とじる',
     'gui.lessonHint.debugTitle': 'うまくうごかないときは',
     'gui.lessonHint.insertCode': 'プログラムをいれる',
+    'gui.lessonHint.insertCodeError': 'まだプログラムをいれられないよ。さきにヒントのとおりにたそう。',
     'gui.lessonHint.blocksError': '（このブロックはかけませんでした）',
     'gui.menuBar.lessons': 'レッスン',
     'gui.menuBar.lessonsTooltip': 'レッスンをはじめよう！',

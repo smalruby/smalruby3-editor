@@ -130,6 +130,22 @@
     background-color: $motion-tertiary;
 }
 
+.insert-error {
+    margin-top: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    border: 1px solid $error-primary;
+    background-color: $error-transparent;
+    color: $text-primary;
+    font-size: 0.8125rem;
+    white-space: pre-line;
+}
+
+.insert-error-title {
+    margin-bottom: 0.25rem;
+    font-weight: bold;
+}
+
 .footer {
     display: flex;
     justify-content: space-between;
