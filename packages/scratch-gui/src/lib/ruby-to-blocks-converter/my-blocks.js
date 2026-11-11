@@ -121,6 +121,7 @@ const MyBlocksConverter = {
                             }
                         }
                     });
+                    sourceBlock.parent = evacuationBlock.id;
                     evacuationBlock.comment = converter._createComment(commentText, evacuationBlock.id);
                     resultBlocks.push(evacuationBlock);
                 }
@@ -247,9 +248,11 @@ const MyBlocksConverter = {
                     return converter._createNumberBlock('math_number', value);
                 }
                 if (converter._isTrue(b)) {
+                    converter._discardValue(b);
                     return converter._createTextBlock('true');
                 }
                 if (converter._isFalse(b)) {
+                    converter._discardValue(b);
                     return converter._createTextBlock('false');
                 }
                 if (converter._isString(b) || converter.isNil(b) || converter._isSymbol(b)) {

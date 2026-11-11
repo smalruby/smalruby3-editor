@@ -168,7 +168,7 @@ const KoshienConverter = {
 
                 const block = converter.changeRubyExpressionBlock(receiver, 'koshien_calcGoalRoute', 'statement');
                 converter.addField(block, 'RESULT', r.name || ' ');
-                converter.removeBlock(result);
+                converter.discardValue(result);
                 return block;
             }
 
@@ -183,9 +183,9 @@ const KoshienConverter = {
             converter.addTextInput(block, 'SRC', src, '0:0');
             converter.addTextInput(block, 'DST', dst, '0:0');
             converter.addField(block, 'EXCEPT_CELLS', ec.name || ' ');
-            converter.removeBlock(exceptCells);
+            converter.discardValue(exceptCells);
             converter.addField(block, 'RESULT', r.name || ' ');
-            converter.removeBlock(result);
+            converter.discardValue(result);
             return block;
         });
 
@@ -226,7 +226,7 @@ const KoshienConverter = {
             const block = converter.changeRubyExpressionBlock(receiver, 'koshien_mapFrom', 'value');
             converter.addTextInput(block, 'POSITION', args[0], '0:0');
             converter.addField(block, 'MAP', converter.lookupVariableFromVariableBlock(args[1])?.name || ' ');
-            converter.removeBlock(args[1]);
+            converter.discardValue(args[1]);
             return block;
         });
 
@@ -249,7 +249,7 @@ const KoshienConverter = {
             converter.addTextInput(block, 'POSITION', cent, '0:0');
             converter.addTextInput(block, 'OBJECTS', objects, 'ABCD');
             converter.addField(block, 'RESULT', r.name || ' ');
-            converter.removeBlock(result);
+            converter.discardValue(result);
             return block;
         });
 

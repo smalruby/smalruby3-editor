@@ -205,6 +205,8 @@ const SensingConverter = {
             } else if (converter._isFalse(dragMode)) {
                 dragMode = 'not draggable';
             }
+            // Only the literal's value picks the field: drop its `1 = 1` / `0 < 0` block.
+            converter.discardValue(args[0]);
             converter.addField(block, 'DRAG_MODE', dragMode);
             return block;
         });

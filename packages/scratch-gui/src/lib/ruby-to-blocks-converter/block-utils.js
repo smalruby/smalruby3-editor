@@ -70,25 +70,46 @@ const BlockUtils = {
      */
     _addBooleanInput (block, name, value) {
         if (this._isFalse(value)) {
-            this._discardFalseLiteral(value);
+            this._discardBooleanLiteral(value);
             return;
         }
         this._addInput(block, name, value);
     },
 
     /**
-     * Drop the `0 < 0` block (with its text inputs and `@ruby:literal:false:N` comment) that
-     * `visitFalseNode` made, so that no orphan block is left behind.
-     * @param {*} value - The `false` literal (a block, a primitive, or `false`).
+     * Drop the `1 = 1` / `0 < 0` block (with its text inputs and `@ruby:literal:true|false:N`
+     * comment) that `visitTrueNode` / `visitFalseNode` made, when only the literal's value is
+     * used (e.g. to pick a field or opcode), so that no orphan block is left behind. The literal
+     * counter is wound back when it was the last one, so that the next literal keeps its number.
+     * @param {*} value - The `true` / `false` literal (a block, a primitive, or a boolean).
      */
-    _discardFalseLiteral (value) {
+    _discardBooleanLiteral (value) {
         if (!this._isBlock(value)) return;
         const comment = value.comment ? this._context.comments[value.comment] : null;
         if (comment) {
-            const match = /^@ruby:literal:false:(\d+)$/.exec(comment.text);
-            if (match && this._context.literalCallIndices.false === parseInt(match[1], 10)) {
-                this._context.literalCallIndices.false -= 1;
+            const match = /^@ruby:literal:(true|false):(\d+)$/.exec(comment.text);
+            if (match && this._context.literalCallIndices[match[1]] === parseInt(match[2], 10)) {
+                this._context.literalCallIndices[match[1]] -= 1;
             }
+        }
+        this._discardBlock(value);
+    },
+
+    discardValue (value) {
+        return this._discardValue(value);
+    },
+
+    /**
+     * Drop a converted value that is read but not put into an input (only its value is used,
+     * e.g. as a field value or to choose the opcode), so that its block is not left behind as
+     * an orphan. A primitive (number, string, symbol, ...) has no block, so nothing is dropped.
+     * @param {*} value - The converted value (a block, a primitive, or a literal).
+     */
+    _discardValue (value) {
+        if (!this._isBlock(value)) return;
+        if (this._isTrue(value) || this._isFalse(value)) {
+            this._discardBooleanLiteral(value);
+            return;
         }
         this._discardBlock(value);
     },
@@ -100,6 +121,7 @@ const BlockUtils = {
      * @param {object} block - The block to drop.
      */
     _discardBlock (block) {
+        if (!this._isBlock(block)) return;
         const ids = [];
         const collect = b => {
             if (!b || ids.includes(b.id)) return;
@@ -133,8 +155,10 @@ const BlockUtils = {
         const previousNode = this._context.currentNode;
         this._context.currentNode = null;
 
+        // A shadow is needed only when the value is a block: a number (or `''`) becomes the
+        // shadow itself, and an extra one would be left behind as an orphan.
         let shadowBlock;
-        if (!this._isNumber(inputValue)) {
+        if (!this._isNumber(inputValue) && inputValue !== '') {
             shadowBlock = this._createNumberBlock(opcode, shadowValue);
         }
         this._addInput(block, name, this._createNumberBlock(opcode, inputValue), shadowBlock);
@@ -152,7 +176,7 @@ const BlockUtils = {
 
         let shadowBlock;
         const opcode = 'note';
-        if (!this._isNumber(inputValue)) {
+        if (!this._isNumber(inputValue) && inputValue !== '') {
             shadowBlock = this._createNoteBlock(opcode, shadowValue);
         }
         this._addInput(block, name, this._createNoteBlock(opcode, inputValue), shadowBlock);
@@ -192,8 +216,10 @@ const BlockUtils = {
         const previousNode = this._context.currentNode;
         this._context.currentNode = null;
 
+        // A shadow is needed only when the value is a block: any other value (a string, or a
+        // number such as a pin) becomes the shadow itself, and an extra one would be an orphan.
         let shadowBlock;
-        if (!this._isString(inputValue)) {
+        if (this._isBlock(inputValue)) {
             shadowBlock = this._createFieldBlock(opcode, fieldName, shadowValue);
         }
         this._addInput(block, name, this._createFieldBlock(opcode, fieldName, inputValue), shadowBlock);

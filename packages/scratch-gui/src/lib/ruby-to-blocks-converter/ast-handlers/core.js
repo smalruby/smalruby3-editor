@@ -107,6 +107,7 @@ const CoreHandlers = {
             let value = split.value;
             if (this._isBlock(value) &&
                 value.opcode === 'smalrubyRuby_returnValue') {
+                this._discardBlock(value);
                 value = this._createBlock('smalrubyRuby_returnValueTruthy', 'value_boolean');
             }
             // === Smalruby: End of returnValue to returnValueTruthy conversion ===
@@ -169,6 +170,13 @@ const CoreHandlers = {
                 }
             }
         }
+        // A value block after the first one is not linked nor used (e.g. the returnValue
+        // REPORTER of `"a".reverse` written as a statement): drop it, or it is left as an orphan.
+        blocks.slice(1).forEach(b => {
+            if (this._isBlock(b) && !this._isStatementBlock(b) && !b.parent) {
+                this._discardBlock(b);
+            }
+        });
         // === Smalruby: End of statement-only linking ===
         const block = blocks[0];
         if (block !== null && typeof block !== 'undefined' && !this._isStatementBlock(block)) {
