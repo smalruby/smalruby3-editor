@@ -12,6 +12,23 @@ export const LANGUAGES = Object.freeze({
     DNCL: 'dncl',
 });
 
+/**
+ * チャレンジの「なかま」（パレットの色で見せる）。値はパレットのカテゴリ id と
+ * 同じにして、レッスン表が色を引けるようにする。
+ */
+export const CATEGORIES = Object.freeze({
+    MOTION: 'motion',
+    LOOKS: 'looks',
+    SOUND: 'sound',
+    EVENTS: 'events',
+    CONTROL: 'control',
+    SENSING: 'sensing',
+    OPERATORS: 'operators',
+    VARIABLES: 'variables',
+    LISTS: 'lists',
+    EXTENSIONS: 'extensions',
+});
+
 // defaultMessage は ja の文言（FormattedMessage が locale に無いときの表示）。
 const message = (id) => ({ id, defaultMessage: ja[id] });
 
@@ -26,6 +43,8 @@ export const defineChallenge = (def) => ({
     name: message(`gui.lessons.challenge.${def.id}.name`),
     // 課題の 1 行（message descriptor）
     task: null,
+    // なかま（パレットの色）。`CATEGORIES` の値。無ければ null（レッスン表は色無しで出す）
+    category: null,
     // できること: [{id, name}]。レッスンをまたいで id で重ねる
     skills: [],
     // できた の判定: 条件の配列（全部を満たしたら「できた」）。形は goal.js と
@@ -89,10 +108,11 @@ const blocksLesson1 = defineLesson({
     id: 'blocks-l1',
     count: 7,
     challenges: [
-        { id: 'blocks-l1-key-sound' },
-        { id: 'blocks-l1-arrow-move' },
+        { id: 'blocks-l1-key-sound', category: CATEGORIES.SOUND },
+        { id: 'blocks-l1-arrow-move', category: CATEGORIES.MOTION },
         {
             id: 'blocks-l1-click-say',
+            category: CATEGORIES.LOOKS,
             required: true,
             task: message('gui.lessons.challenge.blocks-l1-click-say.task'),
             allowedBlocks: {
@@ -133,14 +153,14 @@ const blocksLesson1 = defineLesson({
             ],
             code: 'when_clicked do\n  say("こんにちは！", 2)\n  next_costume\nend\n',
         },
-        { id: 'blocks-l1-repeat' },
-        { id: 'blocks-l1-if' },
-        { id: 'blocks-l1-ask-answer', required: true },
-        { id: 'blocks-l1-quiz' },
-        { id: 'blocks-l1-count', required: true },
-        { id: 'blocks-l1-broadcast', required: true },
-        { id: 'blocks-l1-speak' },
-        { id: 'blocks-l1-message-list', required: true },
+        { id: 'blocks-l1-repeat', category: CATEGORIES.CONTROL },
+        { id: 'blocks-l1-if', category: CATEGORIES.CONTROL },
+        { id: 'blocks-l1-ask-answer', category: CATEGORIES.SENSING, required: true },
+        { id: 'blocks-l1-quiz', category: CATEGORIES.OPERATORS },
+        { id: 'blocks-l1-count', category: CATEGORIES.VARIABLES, required: true },
+        { id: 'blocks-l1-broadcast', category: CATEGORIES.EVENTS, required: true },
+        { id: 'blocks-l1-speak', category: CATEGORIES.EXTENSIONS },
+        { id: 'blocks-l1-message-list', category: CATEGORIES.LISTS, required: true },
     ],
 });
 

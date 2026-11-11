@@ -7,6 +7,7 @@
  * and every message id resolves in en / ja / ja-Hira.
  */
 import {
+    CATEGORIES,
     COURSES,
     LANGUAGES,
     defineChallenge,
@@ -80,6 +81,25 @@ describe('lesson courses', () => {
         expect(lesson.challenges.map((c) => `${c.number} ${ja[c.name.id]}`)).toEqual(LESSON1_CHALLENGE_NAMES);
     });
 
+    test('every lesson 1 challenge has a category (the block family shown in the lessons library)', () => {
+        const lesson = findLesson('blocks-l1');
+        const known = Object.values(CATEGORIES);
+        lesson.challenges.forEach((c) => expect(known).toContain(c.category));
+        expect(lesson.challenges.map((c) => c.category)).toEqual([
+            'sound',
+            'motion',
+            'looks',
+            'control',
+            'control',
+            'sensing',
+            'operators',
+            'variables',
+            'events',
+            'extensions',
+            'lists',
+        ]);
+    });
+
     test('lesson 1 clears with 7 challenges including the 3rd, 6th, 8th, 9th and 11th', () => {
         const lesson = findLesson('blocks-l1');
         const rule = lessonClearRule(lesson);
@@ -148,6 +168,7 @@ describe('lesson courses', () => {
             id: 'x-y',
             name: { id: 'gui.lessons.challenge.x-y.name', defaultMessage: undefined },
             task: null,
+            category: null,
             skills: [],
             goal: null,
             required: true,

@@ -8,8 +8,8 @@
 探すための一覧ではなく、「何をやって、何ができるようになったか」が見えるレッスンにして、先生の
 説明がなくてもスモウルビーでのプログラミングのやり方が身につくようにする。
 
-このドキュメントは仕組みの全体像（データの形・記録の形・状態・主要ファイル）をまとめる。
-画面（レッスン表・レッスンモード・吹き出し）と判定は、それぞれの実装に合わせて追記する。
+このドキュメントは仕組みの全体像（データの形・記録の形・状態・レッスン表・レッスンモード・主要ファイル）をまとめる。
+ヒントの吹き出しと判定は、それぞれの実装に合わせて追記する。
 
 ## ユーザーストーリー
 
@@ -65,6 +65,7 @@
 | `number` | number | 並びから | レッスンの中で何個めか（表示用）。`defineLesson` が並びから付ける |
 | `name` | message | id から | チャレンジの名前 |
 | `task` | message \| null | null | 課題の 1 行 |
+| `category` | string \| null | null | なかま（パレットの色）。`CATEGORIES` の値（`motion` / `looks` / `sound` / `events` / `control` / `sensing` / `operators` / `variables` / `lists` / `extensions`）。レッスン表が色の丸で見せる |
 | `skills` | `{id, name}`[] | [] | できること。id で重ねる（別のチャレンジで同じものが身についても 1 つ） |
 | `goal` | 条件[] \| null | null | できた の判定。条件の配列で、全部を満たしたら「できた」（下の「できた の判定」）。null なら判定しない |
 | `required` | boolean | false | レッスンの必須か |
@@ -100,9 +101,9 @@
 `defineCourse` / `defineLesson` / `defineChallenge` は export してあるので、コースやレッスンが増えて
 ファイルを分けるときも同じ形で定義できる。
 
-レッスン 1 の 11 のチャレンジは、いまは `id` と名前だけが入っている（中身は後から入れる）。チャレンジ 3
-「押したら話そう」には、吹き出しの部品の動作確認のために仮のヒント（6 つ + 最後の手段）と `debug` / `code` が
-入っている（中身を入れるときに置き換える）。
+レッスン 1 の 11 のチャレンジは、いまは `id`・名前・なかま（`category`）だけが入っている（中身は後から入れる）。
+チャレンジ 3「押したら話そう」には、吹き出しの部品の動作確認のために仮のヒント（6 つ + 最後の手段）と
+`debug` / `code` が入っている（中身を入れるときに置き換える）。
 
 ## 記録の形（端末）
 
@@ -345,6 +346,59 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `getLessonAllowedBlocks(state)` | パレットに出すブロック（チャレンジの `allowedBlocks`。無ければ null）。Blocks コンテナがチュートリアルの `tutorialAllowedBlocks` より優先して使う |
 | `getCurrentHint(state)` | `{visible, index, count, step, spotlight, lastResort, debug, code}`（レッスンモードでなければ null）。`count` は最後の手段のページを含む。`step` はいまのヒント（最後の手段のページでは null）、`spotlight` はこのページで周りを暗くするか、`lastResort` は最後の手段のページか。吹き出しのコンテナ（`containers/lesson-hint.jsx`）はこれを読む |
 
+## レッスン表
+
+メニューバーの「レッスン」ボタン（upstream の「チュートリアル」ボタンがあった場所）を押すと開くモーダル
+（`components/lessons-library/`。フルスクリーン、本文は不透明な白）。SP / iPad の `MobileGui` ではドロワーの
+「レッスン」から開く。
+
+![レッスン表（1300×600）](screenshots/0302-lessons-library-1300x600.png)
+
+- **言語のタブ**: ブロック／Ruby／日本語。コースが無い言語は「準備中」と出す（いまはブロックだけ中身がある）。
+- **コース › レッスン › チャレンジ**: コース名の次に、レッスンごとに「レッスン n」と名前、
+  進み具合「**m / 全部で何個 できた（必須 x / y）**」、クリアしていれば「クリア！」。
+  コースの全レッスンをクリアすると、コース名の横にクリアの印（「プログラマー デビュー！」）が付く。
+- **チャレンジ**: 番号・なかまの色の丸（`category`。名前は `title` / `aria-label`）・名前・「必須」の印・
+  「できた」の印（できたものは緑の背景）。押すと `startChallenge(id)` を呼んでレッスン表を閉じ、
+  レッスンモードに入る。
+- **できること**: コースの全チャレンジの `skills` を並び順に（同じ id は 1 つ）。できたチャレンジのものは
+  色つき、まだのものは点線。どのチャレンジにも `skills` が無いあいだは出さない。
+- **記録の取り込み**: 開くたびに `reloadProgress()` を呼び、別のタブで書いた記録も反映する。
+- **やめる → もどる**: レッスンモードの「やめる」は `closeLesson()` のあとレッスン表を開く（次のチャレンジを
+  すぐ選べる）。
+- **はじめての人向けの吹き出し**: 「レッスン」ボタンの下に「レッスンをはじめよう！」（`menu-bar/lessons-tooltip.jsx`）。
+  `tutorial-onboarding` reducer の `shouldShowTooltip` を流用し、レッスン表を一度開く（`markTutorialSeen`）と出ない。
+  同じ reducer の印を見るので、**以前のチュートリアルの吹き出しを消した端末（`smalruby:tutorialSeen`）や、
+  Ruby タブを使った端末（`smalruby:rubyTabUsed`）にも出ない**（「一度レッスン表を開いたら出さない」より広い条件。
+  レッスン表専用の印にするかは未決）。
+
+状態は `modals.lessonsLibrary`（`openLessonsLibrary` / `closeLessonsLibrary`）。コンテナは
+`containers/lessons-library.jsx`（`gui.jsx` に常時マウントし、`modals.lessonsLibrary` が true の間だけ描く）。
+
+1300×600（授業のパソコン）ではチャレンジ 11 個が 4 列・3 段に収まりスクロールしない。375 幅（SP 縦）では
+1 列になり本文がスクロールする。
+
+### data-testid（レッスン表）
+
+| data-testid | 要素 | 説明 |
+|------------|------|------|
+| `menu-bar-lessons` | div | メニューバーの「レッスン」ボタン |
+| `lessons-tooltip` | div | 「レッスン」ボタンの下の、はじめての人向けの吹き出し（押すとレッスン表が開く） |
+| `mobile-drawer-lessons` | button | SP のドロワーの「レッスン」 |
+| `lessons-library` | div | レッスン表の本文（開いているときだけある） |
+| `lessons-library-tab-<blocks\|ruby\|dncl>` | button | 言語のタブ（`aria-selected`） |
+| `lessons-library-coming-soon` | p | コースが無い言語の「準備中」 |
+| `lessons-library-course-<courseId>` | section | コース |
+| `lessons-library-badge` | span | コースのクリアの印（全レッスンをクリアしたときだけ） |
+| `lessons-library-lesson-<lessonId>` | section | レッスン |
+| `lessons-library-progress` | span | 「m / n できた（必須 x / y）」 |
+| `lessons-library-lesson-cleared` | span | レッスンの「クリア！」（クリアしたときだけ） |
+| `lessons-library-challenge-<challengeId>` | button | チャレンジ（`data-completed="true\|false"`） |
+| `lessons-library-challenge-required` | span | 「必須」の印 |
+| `lessons-library-challenge-done` | span | 「できた」の印 |
+| `lessons-library-skills` | div | できること（skills があるときだけ） |
+| `lessons-library-skill-<skillId>` | li | できることの 1 つ（`data-done="true\|false"`） |
+
 ## レッスンモード
 
 チャレンジを開いたときの画面。ふだんのエディタはそのまま使い、次を足す。
@@ -365,15 +419,14 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 - **ヒント**: 「ヒント」ボタンで `showHint` / `hideHint`。吹き出し（下の「ヒントの吹き出し」）は
   `containers/lesson-mode.jsx` の `<LessonTaskBar>` の次に置いた `containers/lesson-hint.jsx` が出す。
   ヒントが無いチャレンジではボタンが無効。
-- **やめる**: `closeLesson()`。課題バーが消え、パレットが元にもどる（作品はそのまま）。レッスン表にもどるのは
-  レッスン表の実装が足す。
+- **やめる**: `closeLesson()` のあとレッスン表を開く。課題バーが消え、パレットが元にもどる（作品はそのまま）。
 - **いまのチュートリアル（カード）との関係**: 両方が同時に開くと、カードの `allowedBlocks` / setup と
   レッスンのものが食い違うので、どちらか一方だけにする。チャレンジを開くときは開いていたカードを閉じ
   （`closeCards`）、レッスンモード中に「?」メニューなどからチュートリアルを開く（`activateDeck`）と
   レッスンモードを抜ける（開こうとしていたチャレンジも取り消す）。
 
-レッスン表ができるまでの入口として、コンテナがマウント中は `window.smalruby.startChallenge(id)` で
-`startChallenge` を呼べる（Playwright / Selenium からも使う）。URL パラメータは作らない。
+レッスン表のほかに、コンテナがマウント中は `window.smalruby.startChallenge(id)` で
+`startChallenge` を呼べる（Playwright / Selenium から使う）。URL パラメータは作らない。
 
 ### ヒントの吹き出し
 
@@ -439,6 +492,10 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `screenshots/0402-lesson-hint-667x375.png` | 同じヒントを SP 横（667×375）で開いたところ（パレットの右に収まる） |
 | `screenshots/0403-lesson-hint-375x667.png` | 同じヒントを SP 縦（375×667。縦持ちゲートを閉じたあと）で開いたところ（収まらないのでパレットの中） |
 | `screenshots/0404-lesson-hint-last-resort-1300x600.png` | 最後の手段のページ（うまく動かないときは・プログラムを入れる） |
+| `screenshots/0301-lessons-button-1300x600.png` | メニューバーの「レッスン」ボタンと、はじめての人向けの吹き出し（1300×600） |
+| `screenshots/0302-lessons-library-1300x600.png` | レッスン表（1300×600）。2 つできた状態 |
+| `screenshots/0303-lessons-library-375x667.png` | レッスン表（SP 縦 375×667。1 列） |
+| `screenshots/0304-lessons-library-cleared-1300x600.png` | レッスン 1 をクリアした状態（「クリア！」と「プログラマー デビュー！」） |
 
 ## いまのチュートリアルの入口
 
@@ -447,7 +504,7 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 - 「?」メニュー › チュートリアル → チュートリアル一覧（`tips-library`）
 - 「?」メニュー › デバッグ → デバッグ画面（`debug-modal`）
 - `?tutorial=<urlId>` で直接開く経路はそのまま動く（教科書や授業資料のリンク用）
-- はじめての人向けの吹き出し（旧 `tutorial-tooltip`）は出さない。レッスンの入口への案内はレッスン機能側で作る
+- はじめての人向けの吹き出し（旧 `tutorial-tooltip`）は出さない。代わりに「レッスン」ボタンの下に吹き出しを出す（上の「レッスン表」）
 
 詳細は [`docs/menu-bar/`](../menu-bar/) の「「?」メニュー（ヘルプ）」と [`docs/tutorial/`](../tutorial/) を参照。
 
@@ -459,9 +516,6 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `packages/scratch-gui/src/lib/lessons/lessons.locale.js` | 文言（en / ja / ja-Hira。`src/locales/*.js` に spread） |
 | `packages/scratch-gui/src/lib/lessons/lesson-progress.js` | 端末への記録・クリア判定・できること |
 | `packages/scratch-gui/src/lib/lessons/challenge-setup.js` | チャレンジを開くときの setup（言語の既定 + チャレンジの `setup`） |
-| `packages/scratch-gui/src/reducers/lesson-mode.js` | いま開いているチャレンジ・開こうとしているチャレンジ・ヒント・「できた！」・記録の写し |
-| `packages/scratch-gui/src/containers/lesson-mode.jsx` | チャレンジを開く流れ（新しい作品 → setup → レッスンモード）と課題バーのマウント。`gui.jsx` のエディタ列の先頭に常時マウント |
-| `packages/scratch-gui/src/components/lesson-task-bar/` | 課題バー（1 行・40px） |
 | `packages/scratch-gui/src/components/lesson-hint/` | ヒントの吹き出し（`lesson-hint.jsx` = 見た目・置き方・スポットライト、`lesson-hint-blocks.jsx` = 読み取り専用ワークスペースに本物のブロックを描く） |
 | `packages/scratch-gui/src/containers/lesson-hint.jsx` | 吹き出しのコンテナ（`getCurrentHint` を読み、`blocks` を XML にし、「プログラムを入れる」を dispatch） |
 | `packages/scratch-gui/src/lib/lessons/hint-targets.js` | 指す場所の名前（`HINT_TARGETS`）・DOM の探し方・置き方（純粋関数） |
@@ -469,20 +523,30 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `packages/scratch-gui/src/lib/lessons/spotlight-seen.js` | スポットライトを見せたチャレンジの記録（`smalruby:lessonSpotlightSeen`） |
 | `packages/scratch-gui/test/unit/components/lesson-hint.test.jsx` / `test/unit/containers/lesson-hint.test.jsx` | 吹き出しとコンテナの unit テスト |
 | `packages/scratch-gui/test/integration/smalruby-lessons-hint.test.js` | ヒントを開く → 本物のブロック・指す場所・初回だけのスポットライト → 進める → プログラムを入れる → 2 回目はスポットライト無し（Selenium） |
-| `packages/scratch-gui/src/containers/blocks.jsx` | `getLessonAllowedBlocks` でパレットを絞る（Smalruby マーカー `lesson mode`） |
-| `packages/scratch-gui/test/unit/lib/lessons/` | データの形・記録・クリア判定・setup・できた の判定・見張りの unit テスト |
-| `packages/scratch-gui/test/unit/reducers/lesson-mode-reducer.test.js` | reducer の unit テスト |
-| `packages/scratch-gui/test/unit/components/lesson-task-bar.test.jsx` / `test/unit/containers/lesson-mode.test.jsx` | 課題バーとチャレンジを開く流れの unit テスト |
-| `packages/scratch-gui/test/integration/smalruby-lessons.test.js` | チャレンジを開く → 課題バー・絞ったパレット → やめる → 元にもどる（Selenium） |
 | `packages/scratch-gui/src/lib/lessons/goal.js` | できた の判定（`goal` の形・事実の記録・判定の純粋関数・`validateGoal`） |
 | `packages/scratch-gui/src/lib/lessons/vm-execution-hook.js` | ブロックの実行をスレッドつきで取るフック（runtime の `getOpcodeFunction` を包む） |
 | `packages/scratch-gui/src/lib/lessons/goal-monitor.js` | VM を見張って goal を判定する（`attachGoalMonitor` / `takeSnapshot`） |
 | `packages/scratch-gui/src/containers/lesson-goal-watcher.jsx` | レッスンモードのあいだ見張りをつなぎ、できたら記録して「できた！」を出す（gui.jsx に常時マウント） |
 | `packages/scratch-gui/src/components/lesson-completed-toast/` | 「できた！」の表示 |
+| `packages/scratch-gui/src/reducers/lesson-mode.js` | いま開いているチャレンジ・開こうとしているチャレンジ・ヒント・「できた！」・記録の写し |
+| `packages/scratch-gui/src/containers/lesson-mode.jsx` | チャレンジを開く流れ（新しい作品 → setup → レッスンモード）と課題バーのマウント。`gui.jsx` のエディタ列の先頭に常時マウント |
+| `packages/scratch-gui/src/components/lesson-task-bar/` | 課題バー（1 行・40px） |
+| `packages/scratch-gui/src/components/lessons-library/` | レッスン表（モーダル） |
+| `packages/scratch-gui/src/containers/lessons-library.jsx` | レッスン表のコンテナ（開くたびに記録を取り込む・チャレンジを押したら `startChallenge` + 閉じる）。`gui.jsx` に常時マウント（Smalruby マーカー `lessons library`） |
+| `packages/scratch-gui/src/components/menu-bar/lessons-tooltip.jsx` | 「レッスン」ボタンの下の、はじめての人向けの吹き出し |
+| `packages/scratch-gui/src/reducers/modals.js` | `lessonsLibrary` モーダルの開閉（Smalruby マーカー `lessons library`） |
+| `packages/scratch-gui/src/components/mobile-drawer/mobile-drawer.jsx` | SP のドロワーの「レッスン」 |
+| `packages/scratch-gui/src/containers/blocks.jsx` | `getLessonAllowedBlocks` でパレットを絞る（Smalruby マーカー `lesson mode`） |
+| `packages/scratch-gui/test/unit/lib/lessons/` | データの形・記録・クリア判定・setup・できた の判定・見張りの unit テスト |
+| `packages/scratch-gui/test/unit/reducers/lesson-mode-reducer.test.js` | reducer の unit テスト |
 | `packages/scratch-gui/test/unit/components/lesson-completed-toast.test.jsx` / `test/unit/containers/lesson-goal-watcher.test.jsx` | 「できた！」と見張りのコンテナの unit テスト |
 | `packages/scratch-gui/test/integration/lesson-goal.test.js` | 本物の VM に Ruby のプログラムを入れて動かし、判定が true になる integration テスト |
-| `packages/scratch-gui/src/components/menu-bar/menu-bar.jsx` | 「?」メニューのチュートリアル / デバッグ項目（`help menu` マーカー） |
-| `packages/scratch-gui/src/containers/menu-bar-hoc.jsx` | `onOpenTipsLibrary` の供給（`help menu` マーカー） |
+| `packages/scratch-gui/src/components/menu-bar/menu-bar.jsx` | 「レッスン」ボタンと吹き出し（`lessons button` マーカー）、「?」メニューのチュートリアル / デバッグ項目（`help menu` マーカー） |
+| `packages/scratch-gui/src/containers/menu-bar-hoc.jsx` | `onOpenLessonsLibrary` / `showLessonsTooltip`（`lessons button` マーカー）と `onOpenTipsLibrary`（`help menu` マーカー）の供給 |
+| `packages/scratch-gui/test/unit/components/lesson-task-bar.test.jsx` / `test/unit/containers/lesson-mode.test.jsx` | 課題バーとチャレンジを開く流れの unit テスト |
+| `packages/scratch-gui/test/integration/smalruby-lessons.test.js` | チャレンジを開く → 課題バー・絞ったパレット → やめる → 元にもどる（Selenium） |
+| `packages/scratch-gui/test/unit/components/lessons-library.test.jsx` / `test/unit/containers/lessons-library.test.jsx` / `test/unit/components/menu-bar-lessons.test.jsx` | レッスン表（できた印・進み具合・クリア表示・できること）、コンテナ、「レッスン」ボタンと吹き出しの unit テスト |
+| `packages/scratch-gui/test/integration/smalruby-lessons-library.test.js` | メニューから開く → チャレンジを押す → レッスンモード → やめる → レッスン表にもどる・記録に合わせた「できた」と進み具合（Selenium） |
 
 ## 設定・データ永続化
 
@@ -490,3 +554,5 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 |------|------|------|
 | localStorage | `smalruby:lessonProgress` | チャレンジ ID → できた日時（とコース・レッスン） |
 | localStorage | `smalruby:lessonSpotlightSeen` | チャレンジ ID → はじめて開いた日時（ヒントのスポットライトを 2 回目から出さないため） |
+| localStorage | `smalruby:tutorialSeen` | `true` なら「レッスン」ボタンの下の吹き出しを出さない（`tutorial-onboarding` reducer。レッスン表を一度開くと書く。以前のチュートリアルの吹き出しが書いたものも同じ） |
+| localStorage | `smalruby:rubyTabUsed` | `true` でも吹き出しを出さない（`tutorial-onboarding` reducer。Ruby タブを使うと書く） |
