@@ -53,7 +53,9 @@ describe('Smalruby Lessons', () => {
         const position = await findByXpath(byTestId('lesson-task-bar-position'));
         expect(await position.getText()).toBe('3 of 11');
         const task = await findByXpath(byTestId('lesson-task-bar-task'));
-        expect(await task.getText()).toBe('Add a costume you like to the cat, and make it say "Hello!" and change its look when it is clicked');
+        expect(await task.getText()).toBe(
+            'Add a costume you like to the cat, and make it say "Hello!" and change its look when it is clicked',
+        );
 
         // パレットはチャレンジの allowedBlocks（見た目・イベント）だけ
         expect(await textExists('Looks', scope.blocksTab)).toBe(true);

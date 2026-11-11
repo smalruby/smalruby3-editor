@@ -33,7 +33,9 @@ describe('LessonTaskBar', () => {
         const { getByTestId } = renderBar();
         expect(getByTestId('lesson-task-bar')).toBeInTheDocument();
         expect(getByTestId('lesson-task-bar-position')).toHaveTextContent('3 of 11');
-        expect(getByTestId('lesson-task-bar-task')).toHaveTextContent('Add a costume you like to the cat, and make it say "Hello!" and change its look when it is clicked');
+        expect(getByTestId('lesson-task-bar-task')).toHaveTextContent(
+            'Add a costume you like to the cat, and make it say "Hello!" and change its look when it is clicked',
+        );
     });
 
     test('falls back to the challenge name when there is no task line yet', () => {

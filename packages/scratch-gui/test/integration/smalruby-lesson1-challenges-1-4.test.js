@@ -154,7 +154,11 @@ describe('Smalruby Lessons: lesson 1 challenges 1-4', () => {
 
         await insertProgramFromHints(7);
         await waitForOpcode('sprite', 'looks_nextcostume');
-        expect(await opcodesOf('sprite')).toEqual(['event_whenthisspriteclicked', 'looks_nextcostume', 'looks_sayforsecs']);
+        expect(await opcodesOf('sprite')).toEqual([
+            'event_whenthisspriteclicked',
+            'looks_nextcostume',
+            'looks_sayforsecs',
+        ]);
         expect(await countByTestId('lesson-completed-toast')).toBe(0);
 
         await clickCatOnStage();
