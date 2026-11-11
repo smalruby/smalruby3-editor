@@ -70,6 +70,22 @@ end
 - Class inheritance (`class Foo < Bar`) is syntactically accepted but the superclass is ignored
 - Only **event handlers** (`when_xxx`), **method definitions** (`def`), and **`include`** are allowed at the class top-level
 
+### What Cannot Be Written Inside a Block
+
+The following cannot be written there. Writing one is an error that points to the line (it is never dropped silently).
+
+- An **event handler** (`when_xxx do ... end`) cannot be written inside a block such as `do ... end`, `if` or `loop`, nor inside a method definition (`def`). Move it out of the block (to the top level or directly in the class definition) so that it starts a script of its own
+- A **line with only a value** (just `x`, just `1 + 2`) cannot be written inside a block such as `do ... end`, `if` or `loop`. Use it in a command such as `say(x)`, or set it to a variable (the last value written directly in a method definition is its return value, see [Return Values](#return-values))
+
+```ruby
+when_flag_clicked do
+  move(10)
+  when_clicked do   # error: it is an event, so it cannot be placed inside another block
+    move(5)
+  end
+end
+```
+
 ### Module and Include
 
 Define a `module` and `include` it in a class to share methods across sprites.

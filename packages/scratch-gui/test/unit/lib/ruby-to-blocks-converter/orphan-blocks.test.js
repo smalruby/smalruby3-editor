@@ -18,6 +18,10 @@
  * - `microbit_v1.when_pin_connected(0)`: a second `touchPins` menu that the hat did not refer to;
  * - a method that ends with `true`: the literal was replaced by a `"true"` text;
  * - a nested call of a method with a return value: the evacuation's variable had no parent.
+ *
+ * or from a statement that cannot be placed in a block body (#1544), which is now an error:
+ * - an event (hat) inside `do ... end` / `if` / `def`: it and its body were lost;
+ * - a value written as a line by itself (`x`, `1 + 2`) after another statement in a block body.
  */
 import dedent from 'dedent';
 
@@ -287,6 +291,181 @@ describe('RubyToBlocksConverter: no orphan blocks', () => {
             );
             // the dropped literal gives its number back to the next one
             expect(literalComments).toEqual(['@ruby:literal:true:1']);
+        });
+    });
+
+    describe('a statement that cannot be placed in a block body is an error, not dropped', () => {
+        const convertWithErrors = async (code) => {
+            const { target, runtime } = makeSpriteTarget();
+            const converter = makeConverter(target, runtime, { version: '2' });
+            const result = await converter.targetCodeToBlocks(target, code);
+            return { converter, result };
+        };
+
+        test.each([
+            [
+                'an event after a statement',
+                dedent`
+                    when_flag_clicked do
+                      move(10)
+                      when_clicked do
+                        move(5)
+                      end
+                    end
+                `,
+                2,
+                /"when_clicked do" is an event/,
+            ],
+            [
+                'an event as the first statement',
+                dedent`
+                    when_flag_clicked do
+                      when_clicked do
+                        move(5)
+                      end
+                    end
+                `,
+                1,
+                /"when_clicked do" is an event/,
+            ],
+            [
+                'an event in an if',
+                dedent`
+                    when_flag_clicked do
+                      if x > 0
+                        when_key_pressed("space") do
+                        end
+                      end
+                    end
+                `,
+                2,
+                /"when_key_pressed\("space"\) do" is an event/,
+            ],
+            [
+                'an event in a loop',
+                dedent`
+                    loop do
+                      move(10)
+                      when_clicked do
+                      end
+                    end
+                `,
+                2,
+                /is an event/,
+            ],
+            [
+                'an event in a method',
+                dedent`
+                    def foo
+                      move(10)
+                      when_clicked do
+                        move(5)
+                      end
+                    end
+                `,
+                2,
+                /is an event/,
+            ],
+            [
+                'an event in a class',
+                dedent`
+                    class Sprite1
+                      when_flag_clicked do
+                        move(1)
+                        when_clicked do
+                        end
+                      end
+                    end
+                `,
+                3,
+                /is an event/,
+            ],
+            [
+                'a variable after a statement',
+                dedent`
+                    when_flag_clicked do
+                      move(10)
+                      x
+                    end
+                `,
+                2,
+                /"x" is a value[^]*say\(x\)/,
+            ],
+            [
+                'a calculation after a statement',
+                dedent`
+                    when_flag_clicked do
+                      move(10)
+                      1 + 2
+                    end
+                `,
+                2,
+                /"1 \+ 2" is a value/,
+            ],
+            ['a variable as the first statement', 'when_flag_clicked do\n  x\nend', 1, /"x" is a value/],
+            [
+                'a value in an if in a method',
+                dedent`
+                    def f(x)
+                      if x > 0
+                        move(1)
+                        x
+                      end
+                    end
+                `,
+                3,
+                /"x" is a value/,
+            ],
+        ])('%s', async (_name, code, row, text) => {
+            const { converter, result } = await convertWithErrors(code);
+            expect(result).toBe(false);
+            expect(converter.errors).toHaveLength(1);
+            expect(converter.errors[0].row).toBe(row);
+            expect(converter.errors[0].text).toMatch(text);
+        });
+
+        test.each([
+            [
+                'an event at the top level',
+                dedent`
+                    when_flag_clicked do
+                      move(10)
+                    end
+
+                    when_clicked do
+                      move(5)
+                    end
+                `,
+            ],
+            [
+                'the return value of a method',
+                dedent`
+                    def add(a, b)
+                      a + b
+                    end
+
+                    say(add(1, 2))
+                `,
+            ],
+            ['a value at the top level', 'x'],
+        ])('%s is still converted', async (_name, code) => {
+            const { converter, target, ruby } = await convert(code);
+            expect(ruby).toBe(code);
+            expect(findOrphans(converter._context.blocks, converter._context.comments)).toEqual([]);
+            expect(findOrphans(target.blocks._blocks, target.comments)).toEqual([]);
+        });
+
+        test('a method defined in a loop is still a script of its own', async () => {
+            const { converter, target, ruby } = await convert(dedent`
+                loop do
+                  move(10)
+                  def g
+                  end
+                end
+            `);
+            expect(ruby).toBe('def g\nend\n\nloop do\n  move(10)\nend');
+            expect(findOrphans(converter._context.blocks, converter._context.comments)).toEqual([]);
+            expect(findOrphans(target.blocks._blocks, target.comments)).toEqual([]);
         });
     });
 

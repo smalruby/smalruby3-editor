@@ -29,6 +29,11 @@ const ContextUtils = {
             variableHint: null,
             isValue: false,
             inMyBlockDefinition: false,
+            // what the statements being converted are the body of (#1544): 'block' for a block
+            // body (`do ... end`, `if`, ...), where neither an event nor a value written as a line
+            // by itself can be placed; 'method' for a method body (`def`), where an event cannot
+            // be placed but a value can (it is the return value); null for a script or a class.
+            statementBodyKind: null,
             scopeStack: [],
             scopeCounter: 1,
             currentScopeIndex: 1,

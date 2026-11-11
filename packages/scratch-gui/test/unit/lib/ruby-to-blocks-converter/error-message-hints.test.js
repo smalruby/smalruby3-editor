@@ -46,4 +46,22 @@ describe('Error message resolution hints', () => {
         expect(converter.errors[0].text).toMatch(/statement blocks/);
         expect(converter.errors[0].text).toMatch(/commands/);
     });
+
+    test('eventInsideBlock error tells where to move the event', async () => {
+        const converter = new RubyToBlocksConverter(null, {version: 2});
+        const code = 'when_flag_clicked do\n  move(10)\n  when_clicked do\n  end\nend';
+        await converter.targetCodeToBlocks(target, code);
+        expect(converter.errors.length).toBeGreaterThan(0);
+        expect(converter.errors[0].text).toMatch(/is an event/);
+        expect(converter.errors[0].text).toMatch(/Move it out of the block/);
+    });
+
+    test('valueAsStatement error tells how to use the value', async () => {
+        const converter = new RubyToBlocksConverter(null, {version: 2});
+        const code = 'when_flag_clicked do\n  move(10)\n  x\nend';
+        await converter.targetCodeToBlocks(target, code);
+        expect(converter.errors.length).toBeGreaterThan(0);
+        expect(converter.errors[0].text).toMatch(/is a value/);
+        expect(converter.errors[0].text).toMatch(/say\(x\)/);
+    });
 });
