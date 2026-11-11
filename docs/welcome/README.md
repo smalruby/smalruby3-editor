@@ -78,7 +78,7 @@ SP ではメニューバーが表示されないため、`☰` から開く Mobi
 - **scratch-gui**:
   - `src/components/welcome-modal/welcome-modal.{jsx,css}` — モーダル本体
   - `src/components/welcome-modal/icon-ruby.svg` — Ruby カードの公式ロゴアイコン
-  - `src/components/welcome-tooltip/welcome-tooltip.{jsx,css}` — About (`?`) ボタン左隣のウェルカムバルーン（5 日後に自動非表示）
+  - `src/components/welcome-tooltip/welcome-tooltip.{jsx,css}` — About (`?`) ボタン左隣のウェルカムバルーン（5 日後に自動非表示）。見た目は共通の吹き出し `src/components/balloon/`（青の callout + 閉じるボタン）
   - `src/components/menu-bar/menu-bar.jsx` — `WelcomeTooltip` の配置と `openWelcomeModal` の dispatch（マーカー）
   - `src/containers/welcome-modal-hoc.jsx` — Redux 接続。`isOpen` を読み、CTA で dispatch
   - `src/components/gui/gui.jsx` — About メニュー項目の構築（マーカー）と HOC のレンダリング

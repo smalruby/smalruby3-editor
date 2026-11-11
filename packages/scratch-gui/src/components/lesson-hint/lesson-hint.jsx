@@ -1,13 +1,16 @@
 // レッスンモードのヒントの吹き出し。指す場所（lib/lessons/hint-targets.js）のそばに出し、
 // 中に本物のブロック（LessonHintBlocks）を描く。spotlight のときは周りを暗くして指す場所を照らす。
 // 最後のページは「うまく動かないときは」と「プログラムを入れる」（最後の手段）。
+// 枠・しっぽ・ヘッダー・ボタンの見た目は共通の吹き出し（components/balloon）を使う。
 // document.body に portal で出す（エディタの列のレイアウトに影響しない）。
-import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { defineMessages, useIntl } from 'react-intl';
 import { HINT_SIDES, computeHintPlacement, findHintTargetRect, preferredSides } from '../../lib/lessons/hint-targets';
+import BalloonButton from '../balloon/balloon-button.jsx';
+import BalloonHeader from '../balloon/balloon-header.jsx';
+import Balloon, { BALLOON_VARIANTS } from '../balloon/balloon.jsx';
 import LessonHintBlocks from './lesson-hint-blocks.jsx';
 import styles from './lesson-hint.css';
 
@@ -160,9 +163,12 @@ const LessonHint = ({
                     }}
                 />
             ) : null}
-            <div
+            <Balloon
                 ref={balloonRef}
-                className={classNames(styles.balloon, styles[`side-${side}`])}
+                variant={BALLOON_VARIANTS.PANEL}
+                arrowSide={arrow ? side : null}
+                arrowStyle={arrowStyle}
+                className={styles.balloon}
                 data-testid="lesson-hint"
                 data-side={side}
                 data-target={target || ''}
@@ -170,22 +176,15 @@ const LessonHint = ({
                 aria-label={intl.formatMessage(messages.ariaLabel)}
                 style={placement ? { left: placement.left, top: placement.top } : { visibility: 'hidden' }}
             >
-                {arrow ? <div className={styles.arrow} style={arrowStyle} /> : null}
-                <div className={styles.header}>
-                    <span className={styles.position} data-testid="lesson-hint-position">
+                <BalloonHeader
+                    closeLabel={intl.formatMessage(messages.close)}
+                    closeTestId="lesson-hint-close"
+                    onClose={onClose}
+                >
+                    <span data-testid="lesson-hint-position">
                         {intl.formatMessage(messages.position, { number: index + 1, count })}
                     </span>
-                    <button
-                        type="button"
-                        className={styles.closeButton}
-                        data-testid="lesson-hint-close"
-                        aria-label={intl.formatMessage(messages.close)}
-                        title={intl.formatMessage(messages.close)}
-                        onClick={onClose}
-                    >
-                        ×
-                    </button>
-                </div>
+                </BalloonHeader>
                 <div className={styles.body}>
                     {lastResort ? (
                         <>
@@ -249,26 +248,19 @@ const LessonHint = ({
                     )}
                 </div>
                 <div className={styles.footer}>
-                    <button
-                        type="button"
-                        className={styles.navButton}
-                        data-testid="lesson-hint-prev"
-                        disabled={index <= 0}
-                        onClick={onPrev}
-                    >
+                    <BalloonButton data-testid="lesson-hint-prev" disabled={index <= 0} onClick={onPrev}>
                         {intl.formatMessage(messages.prev)}
-                    </button>
-                    <button
-                        type="button"
-                        className={classNames(styles.navButton, styles.nextButton)}
+                    </BalloonButton>
+                    <BalloonButton
+                        primary
                         data-testid="lesson-hint-next"
                         disabled={index >= count - 1}
                         onClick={onNext}
                     >
                         {intl.formatMessage(messages.next)}
-                    </button>
+                    </BalloonButton>
                 </div>
-            </div>
+            </Balloon>
         </>,
         document.body,
     );
