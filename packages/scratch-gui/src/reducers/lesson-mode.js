@@ -117,7 +117,7 @@ const reducer = function (state, action) {
             return state.hintVisible ? { ...state, hintVisible: false } : state;
         case FINISH_HINT:
             // 「おわり」で閉じたときは、最後まで読んだので、開き直すと 1 ページ目から（#1528）
-            if (state.challengeId === null) return state;
+            if (state.challengeId === null || (!state.hintVisible && state.hintIndex === 0)) return state;
             return { ...state, ...hintClosedState };
         case NEXT_HINT: {
             if (state.challengeId === null) return state;

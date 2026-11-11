@@ -387,6 +387,9 @@ describe('lesson-mode reducer: hints', () => {
         state = reducer(state, showHint());
         expect(getCurrentHint(wrap(state))).toEqual(expect.objectContaining({ visible: true, index: 0 }));
         expect(reducer(lessonModeInitialState, finishHint())).toBe(lessonModeInitialState);
+        // すでに閉じていて 1 ページ目なら、何も変えない（同じ state を返す）
+        const closed = reducer(state, hideHint());
+        expect(reducer(closed, finishHint())).toBe(closed);
     });
 
     test('completing the open challenge closes the balloon and keeps its page', () => {
