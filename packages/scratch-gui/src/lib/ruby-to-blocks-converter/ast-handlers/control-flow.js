@@ -264,7 +264,7 @@ const ControlFlowHandlers = {
         // Negate condition: unless cond => if !(cond)
         const notBlock = this._createBlock('operator_not', 'value_boolean');
         if (this._isFalseOrBooleanBlock(cond)) {
-            this._addInput(notBlock, 'OPERAND', cond);
+            this._addBooleanInput(notBlock, 'OPERAND', cond);
         }
 
         const unlessThen = this._processStatement(node.statements);
@@ -336,7 +336,7 @@ const ControlFlowHandlers = {
         // Negate condition: while cond => until !(cond)
         const notBlock = this._createBlock('operator_not', 'value_boolean');
         if (this._isFalseOrBooleanBlock(cond)) {
-            this._addInput(notBlock, 'OPERAND', cond);
+            this._addBooleanInput(notBlock, 'OPERAND', cond);
         }
 
         const statement = this._processStatement(node.statements);

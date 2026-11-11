@@ -2,7 +2,12 @@
 // ブロックにしたとき使う「変数」「ブロック定義」カテゴリのブロックが allowedBlocks に入っているか。
 // 入っていないと、allowedBlocks による動的カテゴリの絞り込み（lesson-dynamic-categories.js）で
 // そのカテゴリや中のブロックが消え、チュートリアルを進められなくなる。
-import { LIST_OPCODES, PROCEDURE_OPCODES, VARIABLE_OPCODES } from '../../../src/lib/lesson-dynamic-categories';
+import {
+    LIST_OPCODES,
+    PROCEDURE_OPCODES,
+    VARIABLE_OPCODES,
+    allowedBlocksToIds,
+} from '../../../src/lib/lesson-dynamic-categories';
 import { COURSES } from '../../../src/lib/lessons/courses';
 import decks from '../../../src/lib/libraries/decks/index.jsx';
 import RubyToBlocksConverter from '../../../src/lib/ruby-to-blocks-converter';
@@ -33,7 +38,7 @@ const usedDynamicOpcodes = async (code) => {
     return [...new Set(opcodes.filter((opcode) => DYNAMIC_OPCODES.has(opcode)))].sort();
 };
 
-const allowedIds = (allowedBlocks) => Object.values(allowedBlocks).flat();
+const allowedIds = (allowedBlocks) => allowedBlocksToIds(allowedBlocks);
 
 // チャレンジの code / blocks は locale ごとのオブジェクト（{ja, 'ja-Hira', en}）でもよいので、全部の locale を見る
 const rubyOf = (value) => {

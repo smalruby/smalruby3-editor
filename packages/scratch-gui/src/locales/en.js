@@ -1255,7 +1255,6 @@ export default {
     'gui.lessonHint.insertCodeError': 'The program cannot be inserted yet. Do the earlier hints first.',
     'gui.lessonHint.blocksError': '(These blocks could not be drawn.)',
     'gui.menuBar.lessons': 'Lessons',
-    'gui.menuBar.lessonsTooltip': 'Start a lesson!',
     'gui.lessonsLibrary.title': 'Lessons',
     'gui.lessonsLibrary.tab.blocks': 'Blocks',
     'gui.lessonsLibrary.tab.ruby': 'Ruby',

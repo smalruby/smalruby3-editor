@@ -74,24 +74,15 @@ describe('MenuBar Lessons button', () => {
         expect(store.getActions()).toContainEqual(openLessonsLibrary());
     });
 
-    test('shows the first-time balloon under the button until the library has been opened', () => {
-        const { container, store } = renderMenuBar({ tooltipDismissed: false });
-        const tooltip = container.querySelector('[data-testid="lessons-tooltip"]');
-        expect(tooltip).toBeTruthy();
-        expect(tooltip.textContent).toBe('Start a lesson!');
-        tooltip.click();
-        expect(store.getActions()).toContainEqual(openLessonsLibrary());
-    });
-
-    test('hides the balloon once the onboarding is done', () => {
-        const { container } = renderMenuBar({ tooltipDismissed: true });
+    // Issue #1512: 「レッスンをはじめよう！」の吹き出しはどの端末にも出さない（はじめての人でも）
+    test('does not show a first-time balloon under the Lessons button', () => {
+        const { container } = renderMenuBar({ tooltipDismissed: false });
         expect(container.querySelector('[data-testid="lessons-tooltip"]')).toBeFalsy();
     });
 
-    // Issue #1498: レッスンモードでは課題バーに重なるので、はじめての人向けの吹き出しを出さない
-    test('hides the first-time balloons while a challenge is open', () => {
+    // Issue #1498: レッスンモードでは課題バーに重なるので、ウェルカムバルーンを出さない
+    test('hides the welcome balloon while a challenge is open', () => {
         const { container } = renderMenuBar({ challengeId: 'blocks-l1-if' });
-        expect(container.querySelector('[data-testid="lessons-tooltip"]')).toBeFalsy();
         expect(container.querySelector('[data-testid="welcome-tooltip"]')).toBeFalsy();
     });
 

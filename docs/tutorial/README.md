@@ -32,7 +32,7 @@ Smalruby 独自のチュートリアル（「さあ、始めましょう」や�
 
 ### Ruby タブオンボーディング (Smalruby 独自)
 
-はじめての人向けの吹き出し（メニューバーの「チュートリアル」ボタン横の「ルビーを試してみよう!」）は廃止した。レッスンの入口への案内は `docs/lessons/` のレッスン機能側で作る。`tutorial-onboarding` reducer（`MARK_RUBY_TAB_USED` など）は Ruby タブ訪問の記録のために残っている。
+はじめての人向けの吹き出し（メニューバーの「チュートリアル」ボタン横の「ルビーを試してみよう!」）は廃止した。レッスンの入口は `docs/lessons/` のメニューの「レッスン」で、吹き出しでは誘わない。`tutorial-onboarding` reducer（`MARK_RUBY_TAB_USED` など）は Ruby タブ訪問の記録のために残っている。
 
 ### classroom-tutorial (Smalruby 独自)
 
@@ -87,11 +87,13 @@ Smalruby Classroom の各フェーズ（教師ログイン、クラス作成、�
 
 ### Redux state
 
-- `tutorial-onboarding` — `tutorialSeen`, `rubyTabUsed`, `dismissedTooltips`
+- `tutorial-onboarding` — `tutorialSeen`, `rubyTabUsed`, `tooltipDismissed`（いずれも書かれるだけで、読む画面は無い）
 - `classroom-tutorial` — クラスルームチュートリアル状態
 - `cards` — チュートリアルカードの開閉・現在ステップ
 
 ### LocalStorage
+
+- `smalruby:tutorialSeen` — レッスン表を開くと `true`（`markTutorialSeen`）。`smalruby:rubyTabUsed` — Ruby タブを使うと `true`（`markRubyTabUsed`）。どちらも起動時に `tutorial-onboarding` の state へ読み込むだけで、表示の判定には使っていない
 
 特定の onboarding 完了フラグは Redux state にあるが、永続化はプロジェクト state や `legacy-storage` 経由で扱われる場合がある。
 

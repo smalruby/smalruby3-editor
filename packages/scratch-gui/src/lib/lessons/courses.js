@@ -182,6 +182,8 @@ const challengeMessage = (challengeId, field) => message(`gui.lessons.challenge.
 // ヒントの文言は並びの番号（step1, step2, ...）で引く
 const withTitles = (challengeId, steps) =>
     steps.map((step, i) => ({ ...step, title: challengeMessage(challengeId, `step${i + 1}`) }));
+// 「言う」の初期値「こんにちは！」（仕様の表記。ツールボックスの初期値は半角の「こんにちは!」なので書く）
+const SAY_HELLO = { MESSAGE: { ja: 'こんにちは！', 'ja-Hira': 'こんにちは！', en: 'Hello!' } };
 const debugTips = (challengeId, count) =>
     Array.from({ length: count }, (_, i) => challengeMessage(challengeId, `debug${i + 1}`));
 
@@ -198,8 +200,12 @@ const blocksLesson1 = defineLesson({
             task: challengeMessage('blocks-l1-key-sound', 'task'),
             skills: [skill('key-control'), skill('play-sound'), skill('add-sound')],
             allowedBlocks: {
-                event: ['event_whenkeypressed'],
-                sound: ['sound_playuntildone', 'sound_play'],
+                event: [{ opcode: 'event_whenkeypressed', fields: { KEY_OPTION: 'space' } }],
+                // 音の ▼ は、足した「Owl」ではなくネコの音（作品を作った locale の名前）
+                sound: [
+                    { opcode: 'sound_playuntildone', inputs: { SOUND_MENU: { ja: 'ニャー', 'ja-Hira': 'Meow', en: 'Meow' } } },
+                    { opcode: 'sound_play', inputs: { SOUND_MENU: { ja: 'ニャー', 'ja-Hira': 'Meow', en: 'Meow' } } },
+                ],
             },
             steps: withTitles('blocks-l1-key-sound', [
                 { target: HINT_TARGETS.SOUNDS_TAB },
@@ -242,7 +248,7 @@ const blocksLesson1 = defineLesson({
             image: { src: arrowKeysImage, alt: challengeMessage('blocks-l1-arrow-move', 'image') },
             skills: [skill('move-by-coordinates'), skill('duplicate-blocks')],
             allowedBlocks: {
-                event: ['event_whenkeypressed'],
+                event: [{ opcode: 'event_whenkeypressed', fields: { KEY_OPTION: 'up arrow' } }],
                 motion: ['motion_changeyby'],
             },
             steps: withTitles('blocks-l1-arrow-move', [
@@ -275,7 +281,7 @@ const blocksLesson1 = defineLesson({
             skills: [skill('click-trigger'), skill('say'), skill('add-costume')],
             allowedBlocks: {
                 event: ['event_whenthisspriteclicked'],
-                looks: ['looks_sayforsecs', 'looks_nextcostume'],
+                looks: [{ opcode: 'looks_sayforsecs', inputs: SAY_HELLO }, 'looks_nextcostume'],
             },
             steps: withTitles('blocks-l1-click-say', [
                 { target: HINT_TARGETS.COSTUMES_TAB },
@@ -316,9 +322,10 @@ const blocksLesson1 = defineLesson({
             task: challengeMessage('blocks-l1-repeat', 'task'),
             skills: [skill('repeat'), skill('add-backdrop'), skill('stage-program')],
             allowedBlocks: {
-                event: ['event_whenkeypressed'],
-                control: ['control_repeat', 'control_wait'],
-                looks: ['looks_switchbackdropto'],
+                event: [{ opcode: 'event_whenkeypressed', fields: { KEY_OPTION: '1' } }],
+                control: [{ opcode: 'control_repeat', inputs: { TIMES: 3 } }, 'control_wait'],
+                // 背景の名前はライブラリの名前（locale で変わらない）。足す前は ▼ に無いので、ツールボックスの初期値になる
+                looks: [{ opcode: 'looks_switchbackdropto', inputs: { BACKDROP: 'Canyon' } }],
             },
             steps: withTitles('blocks-l1-repeat', [
                 { target: HINT_TARGETS.BACKDROP },
@@ -352,11 +359,16 @@ const blocksLesson1 = defineLesson({
                 event: ['event_whenflagclicked'],
                 control: ['control_forever', 'control_if', 'control_if_else'],
                 sensing: ['sensing_touchingobject'],
-                looks: ['looks_say'],
+                looks: [
+                    {
+                        opcode: 'looks_say',
+                        inputs: { MESSAGE: { ja: 'くすぐったい！', 'ja-Hira': 'くすぐったい！', en: 'That tickles!' } },
+                    },
+                ],
             },
             steps: withTitles('blocks-l1-if', [
                 { target: HINT_TARGETS.PALETTE, blocks: 'loop do\nend\n' },
-                // `false` は空の穴として描く（hint-blocks.js）
+                // `false` は空の穴として描く（Ruby → ブロック変換が条件の穴の `false` を空の穴にする）
                 { target: HINT_TARGETS.PALETTE, blocks: 'if false\nelse\nend\n' },
                 { target: HINT_TARGETS.PALETTE, blocks: 'touching?("_mouse_")\n' },
                 { target: HINT_TARGETS.CODE_AREA },
@@ -393,9 +405,17 @@ const blocksLesson1 = defineLesson({
             skills: [skill('ask-answer'), skill('timer'), skill('join')],
             allowedBlocks: {
                 event: ['event_whenthisspriteclicked'],
-                sensing: ['sensing_resettimer', 'sensing_askandwait', 'sensing_answer', 'sensing_timer'],
+                sensing: [
+                    'sensing_resettimer',
+                    {
+                        opcode: 'sensing_askandwait',
+                        inputs: { QUESTION: { ja: 'なまえは？', 'ja-Hira': 'なまえは？', en: "What's your name?" } },
+                    },
+                    'sensing_answer',
+                    'sensing_timer',
+                ],
                 operators: ['operator_join'],
-                looks: ['looks_sayforsecs'],
+                looks: [{ opcode: 'looks_sayforsecs', inputs: SAY_HELLO }],
             },
             steps: withTitles('blocks-l1-ask-answer', [
                 {
@@ -456,10 +476,15 @@ const blocksLesson1 = defineLesson({
             skills: [skill('compare'), skill('if')],
             allowedBlocks: {
                 event: ['event_whenthisspriteclicked'],
-                sensing: ['sensing_askandwait', 'sensing_answer'],
+                sensing: [{ opcode: 'sensing_askandwait', inputs: { QUESTION: '4+3=?' } }, 'sensing_answer'],
                 control: ['control_if', 'control_if_else'],
-                operators: ['operator_equals'],
-                looks: ['looks_sayforsecs'],
+                operators: [{ opcode: 'operator_equals', inputs: { OPERAND2: 7 } }],
+                looks: [
+                    {
+                        opcode: 'looks_sayforsecs',
+                        inputs: { MESSAGE: { ja: '正解です', 'ja-Hira': 'せいかいです', en: 'Correct' } },
+                    },
+                ],
             },
             steps: withTitles('blocks-l1-quiz', [
                 { target: HINT_TARGETS.PALETTE },
@@ -486,7 +511,7 @@ const blocksLesson1 = defineLesson({
                     '    say("Wrong", 2)\n  end\nend\n',
             },
         },
-        // 8 数えよう（変数・必須）: 押した回数を変数「回数」で数えて言う
+        // 8 数えよう（変数・必須）: 押した回数を変数「回数」（en は count）で数えて言う
         {
             id: 'blocks-l1-count',
             category: CATEGORIES.VARIABLES,
@@ -498,29 +523,30 @@ const blocksLesson1 = defineLesson({
             allowedBlocks: {
                 event: ['event_whenflagclicked', 'event_whenthisspriteclicked'],
                 data: ['data_setvariableto', 'data_changevariableby', 'data_variable'],
-                looks: ['looks_say'],
+                looks: [{ opcode: 'looks_say', inputs: SAY_HELLO }],
             },
             steps: withTitles('blocks-l1-count', [
                 { target: HINT_TARGETS.PALETTE },
-                // en の文言も「回数」という変数を作ろうと書く（"回数" (count)）ので、en は ja と同じ名前
-                { target: HINT_TARGETS.PALETTE, blocks: { ja: '$回数 = 0\n', 'ja-Hira': '$かいすう = 0\n', en: '$回数 = 0\n' } },
+                // en の文言は「count」という変数を作ろうと書く（#1514）
+                { target: HINT_TARGETS.PALETTE, blocks: { ja: '$回数 = 0\n', 'ja-Hira': '$かいすう = 0\n', en: '$count = 0\n' } },
                 {
                     target: HINT_TARGETS.PALETTE,
-                    blocks: { ja: '$回数 += 1\n', 'ja-Hira': '$かいすう += 1\n', en: '$回数 += 1\n' },
+                    blocks: { ja: '$回数 += 1\n', 'ja-Hira': '$かいすう += 1\n', en: '$count += 1\n' },
                 },
                 { target: HINT_TARGETS.STAGE },
             ]),
             debug: debugTips('blocks-l1-count', 1),
             // `$回数` はステージの変数 =「変数を作る」の既定（すべてのスプライト用）と同じ
-            // ja-Hira のヒントは「かいすう」という変数を作ろうと書くので、どちらの名前でもよい
+            // ja-Hira のヒントは「かいすう」、en は「count」という変数を作ろうと書く。locale を途中で
+            // 変えた作品（ja で作って en で開く等）でも通るよう、判定はどの名前でもよい
             goal: [
-                { type: 'variable', name: ['回数', 'かいすう'], value: { gte: 3 } },
-                { type: 'said', equalsVariable: ['回数', 'かいすう'] },
+                { type: 'variable', name: ['回数', 'かいすう', 'count'], value: { gte: 3 } },
+                { type: 'said', equalsVariable: ['回数', 'かいすう', 'count'] },
             ],
             code: {
                 ja: 'when_flag_clicked do\n  $回数 = 0\nend\n\nwhen_clicked do\n  $回数 += 1\n  say($回数)\nend\n',
                 'ja-Hira': 'when_flag_clicked do\n  $かいすう = 0\nend\n\nwhen_clicked do\n  $かいすう += 1\n  say($かいすう)\nend\n',
-                en: 'when_flag_clicked do\n  $回数 = 0\nend\n\nwhen_clicked do\n  $回数 += 1\n  say($回数)\nend\n',
+                en: 'when_flag_clicked do\n  $count = 0\nend\n\nwhen_clicked do\n  $count += 1\n  say($count)\nend\n',
             },
         },
         // 9 なかまに合図しよう（イベント・必須）: ネコを押したら合図を送り、受け取ったペンギンが言う
@@ -531,14 +557,29 @@ const blocksLesson1 = defineLesson({
             task: challengeMessage('blocks-l1-broadcast', 'task'),
             skills: [skill('add-sprite'), skill('broadcast'), skill('sprite-program')],
             allowedBlocks: {
+                // メッセージの ▼（あいさつ）は、子どもが「新しいメッセージ」で作るのでツールボックスの初期値のまま
                 event: ['event_whenthisspriteclicked', 'event_broadcast', 'event_whenbroadcastreceived'],
-                looks: ['looks_sayforsecs'],
+                looks: [{ opcode: 'looks_sayforsecs', inputs: { MESSAGE: 'やあ！' } }],
             },
             steps: withTitles('blocks-l1-broadcast', [
                 { target: HINT_TARGETS.SPRITE_LIST, spotlight: true },
-                { target: HINT_TARGETS.SPRITE_LIST, blocks: 'broadcast("あいさつ")\n' },
+                {
+                    target: HINT_TARGETS.SPRITE_LIST,
+                    blocks: {
+                        ja: 'broadcast("あいさつ")\n',
+                        'ja-Hira': 'broadcast("あいさつ")\n',
+                        en: 'broadcast("hello")\n',
+                    },
+                },
                 { target: HINT_TARGETS.SPRITE_LIST },
-                { target: HINT_TARGETS.PALETTE, blocks: 'when_receive("あいさつ") do\nend\n' },
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: {
+                        ja: 'when_receive("あいさつ") do\nend\n',
+                        'ja-Hira': 'when_receive("あいさつ") do\nend\n',
+                        en: 'when_receive("hello") do\nend\n',
+                    },
+                },
                 { target: HINT_TARGETS.STAGE },
             ]),
             debug: debugTips('blocks-l1-broadcast', 2),
@@ -552,10 +593,23 @@ const blocksLesson1 = defineLesson({
                 },
             ],
             // code はネコのプログラム。ペンギンのプログラムは spriteCodes で入れる（ペンギンがいなければ
-            // ライブラリから足す。insert-sprite-code.js）。メッセージ「あいさつ」とセリフ「やあ！」は en の課題も
-            // 日本語のまま書く（"やあ！" (Hi!)）ので、locale で分けない
-            code: 'when_clicked do\n  broadcast("あいさつ")\nend\n',
-            spriteCodes: [{ sprite: 'Penguin', code: 'when_receive("あいさつ") do\n  say("やあ！", 2)\nend\n' }],
+            // ライブラリから足す。insert-sprite-code.js）。メッセージとセリフは ja / ja-Hira が「あいさつ」「やあ！」、
+            // en が "hello" / "Hi!"（#1514）。キーの無い locale は en に戻るので、ja と同じ ja-Hira も書く
+            code: {
+                ja: 'when_clicked do\n  broadcast("あいさつ")\nend\n',
+                'ja-Hira': 'when_clicked do\n  broadcast("あいさつ")\nend\n',
+                en: 'when_clicked do\n  broadcast("hello")\nend\n',
+            },
+            spriteCodes: [
+                {
+                    sprite: 'Penguin',
+                    code: {
+                        ja: 'when_receive("あいさつ") do\n  say("やあ！", 2)\nend\n',
+                        'ja-Hira': 'when_receive("あいさつ") do\n  say("やあ！", 2)\nend\n',
+                        en: 'when_receive("hello") do\n  say("Hi!", 2)\nend\n',
+                    },
+                },
+            ],
         },
         // 10 しゃべらせよう（拡張機能）: 音声合成を足して、ネコを押したらしゃべる
         {
@@ -567,17 +621,24 @@ const blocksLesson1 = defineLesson({
             // 拡張機能は子どもがヒント 1 で足す（setup.extensions では入れない）
             allowedBlocks: {
                 event: ['event_whenthisspriteclicked'],
-                text2speech: ['text2speech_speakAndWait'],
+                text2speech: [
+                    {
+                        opcode: 'text2speech_speakAndWait',
+                        inputs: {
+                            WORDS: { ja: 'ボタンが押されました', 'ja-Hira': 'ボタンがおされました', en: 'The button was clicked' },
+                        },
+                    },
+                ],
             },
             steps: withTitles('blocks-l1-speak', [
                 { target: HINT_TARGETS.EXTENSION_BUTTON, spotlight: true },
-                // en の課題も「ボタンが押されました」としゃべると書く
+                // en の課題は "The button was clicked" としゃべると書く（#1514）
                 {
                     target: HINT_TARGETS.PALETTE,
                     blocks: {
                         ja: 'text2speech.speak("ボタンが押されました")\n',
                         'ja-Hira': 'text2speech.speak("ボタンがおされました")\n',
-                        en: 'text2speech.speak("ボタンが押されました")\n',
+                        en: 'text2speech.speak("The button was clicked")\n',
                     },
                 },
                 { target: HINT_TARGETS.STAGE },
@@ -595,10 +656,10 @@ const blocksLesson1 = defineLesson({
             code: {
                 ja: 'when_clicked do\n  text2speech.speak("ボタンが押されました")\nend\n',
                 'ja-Hira': 'when_clicked do\n  text2speech.speak("ボタンがおされました")\nend\n',
-                en: 'when_clicked do\n  text2speech.speak("ボタンが押されました")\nend\n',
+                en: 'when_clicked do\n  text2speech.speak("The button was clicked")\nend\n',
             },
         },
-        // 11 メッセージをためよう（リスト・必須）: 聞いた答えをリスト「トーク」にためる
+        // 11 メッセージをためよう（リスト・必須）: 聞いた答えをリスト「トーク」（en は talk）にためる
         {
             id: 'blocks-l1-message-list',
             category: CATEGORIES.LISTS,
@@ -611,21 +672,32 @@ const blocksLesson1 = defineLesson({
             allowedBlocks: {
                 event: ['event_whenflagclicked', 'event_whenthisspriteclicked'],
                 data: ['data_deletealloflist', 'data_addtolist'],
-                sensing: ['sensing_askandwait', 'sensing_answer'],
+                sensing: [{ opcode: 'sensing_askandwait', inputs: { QUESTION: 'メッセージは？' } }, 'sensing_answer'],
             },
             steps: withTitles('blocks-l1-message-list', [
                 { target: HINT_TARGETS.PALETTE },
-                { target: HINT_TARGETS.PALETTE, blocks: '$トーク.clear\n' },
-                { target: HINT_TARGETS.PALETTE, blocks: '$トーク.push(answer)\n' },
+                { target: HINT_TARGETS.PALETTE, blocks: { ja: '$トーク.clear\n', 'ja-Hira': '$トーク.clear\n', en: '$talk.clear\n' } },
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: { ja: '$トーク.push(answer)\n', 'ja-Hira': '$トーク.push(answer)\n', en: '$talk.push(answer)\n' },
+                },
                 { target: HINT_TARGETS.STAGE },
             ]),
             debug: debugTips('blocks-l1-message-list', 2),
             // `$トーク` はステージのリスト =「リストを作る」の既定（すべてのスプライト用）と同じ。
-            // en の課題も「トーク」「メッセージは？」と日本語のまま書くので、locale で分けない
-            goal: [{ type: 'list', name: 'トーク', length: { gte: 3 }, itemsFromAnswers: true }],
-            code:
-                'when_flag_clicked do\n  $トーク.clear\nend\n\nwhen_clicked do\n  ask("メッセージは？")\n' +
-                '  $トーク.push(answer)\nend\n',
+            // en の課題はリスト "talk"・質問 "Message?" と書く（#1514）。判定はどちらのリストの名前でもよい
+            goal: [{ type: 'list', name: ['トーク', 'talk'], length: { gte: 3 }, itemsFromAnswers: true }],
+            code: {
+                ja:
+                    'when_flag_clicked do\n  $トーク.clear\nend\n\nwhen_clicked do\n  ask("メッセージは？")\n' +
+                    '  $トーク.push(answer)\nend\n',
+                'ja-Hira':
+                    'when_flag_clicked do\n  $トーク.clear\nend\n\nwhen_clicked do\n  ask("メッセージは？")\n' +
+                    '  $トーク.push(answer)\nend\n',
+                en:
+                    'when_flag_clicked do\n  $talk.clear\nend\n\nwhen_clicked do\n  ask("Message?")\n' +
+                    '  $talk.push(answer)\nend\n',
+            },
         },
     ],
 });
