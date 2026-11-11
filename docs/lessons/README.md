@@ -22,7 +22,7 @@
 | 階層 | 説明 | 例 |
 |------|------|----|
 | 言語 | ブロック／Ruby／日本語（DNCL）。言語の中にコースが並ぶ | `blocks` |
-| コース | レッスンの並び。コースのチャレンジが全部できるとクリアの印がもらえる | 「きょうからプログラマー」（印: 「プログラマー デビュー！」） |
+| コース | レッスンの並び。コースのチャレンジが全部できると、レッスン表のコース名の前に ✓ が付く | 「きょうからプログラマー」 |
 | レッスン | チャレンジの並び | レッスン 1「うごかしてみよう」（4 個）・2「えらんで たずねよう」（3 個）・3「おぼえて つたえよう」（4 個） |
 | チャレンジ | いまの deck 1 本に当たる。毎回、新しい作品から始める | 「押したら話そう」 |
 
@@ -43,7 +43,6 @@
 | `id` | string | 例: `kyou-kara-programmer` |
 | `language` | `blocks` \| `ruby` \| `dncl` | `LANGUAGES` |
 | `name` | message | コースの名前 |
-| `badge` | message | クリアの印の名前（コースのチャレンジが全部できたときに出す） |
 | `lessons` | レッスン[] | 並び順 |
 
 ### レッスン
@@ -68,7 +67,8 @@
 | `name` | message | id から | チャレンジの名前 |
 | `task` | message \| null | null | 課題の 1 行。全文では改行（`\n`）をそのまま出す（バーの 1 行ではつなぐ） |
 | `image` | `{src, alt}` \| null | null | 課題の全文といっしょに出す画像（任意）。`src` は import した画像の URL、`alt` は message |
-| `category` | string \| null | null | なかま（パレットの色）。`CATEGORIES` の値（`motion` / `looks` / `sound` / `events` / `control` / `sensing` / `operators` / `variables` / `lists` / `extensions`）。レッスン表が色の丸で見せる |
+| `category` | string \| null | null | なかま（パレットの色）。`CATEGORIES` の値（`motion` / `looks` / `sound` / `events` / `control` / `sensing` / `operators` / `variables` / `lists` / `extensions`）。レッスン表のカードの絵の地の色 |
+| `card` | `{image, symbol}` \| null | null | レッスン表のカードの絵。`image` は import した画像の URL（チャレンジで使うスプライトやできあがりの小さな絵）、無ければ `symbol`（記号・絵文字）をなかまの色の上に出す仮の絵。`image` を足すだけで差しかわる |
 | `goal` | 条件[] \| null | null | できた の判定。条件の配列で、全部を満たしたら「できた」（下の「できた の判定」）。null なら判定しない |
 | `allowedBlocks` | object \| null | null | パレットに出すブロック（deck と同じ形）。項目は opcode か、初期値を持つ `{opcode, fields, inputs}`（下の「パレットのブロックの初期値」） |
 | `setup` | object \| null | null | 始めるときの準備（deck と同じ形。`lib/deck-setup.js`） |
@@ -97,7 +97,7 @@
 吹き出しだけ。「できた」の有無は見ない（できていなくても 2 回目は照らさない。別のチャレンジは、それをはじめて
 開くときに照らす）。
 
-文言の message id の付け方: `gui.lessons.course.<id>.{name,badge}`・`gui.lessons.lesson.<id>.name`・
+文言の message id の付け方: `gui.lessons.course.<id>.name`・`gui.lessons.lesson.<id>.name`・
 `gui.lessons.challenge.<id>.name`。`task` / `steps[].title` / `debug[]` も
 同じ `gui.lessons.` の下に置き、3 locale（en / ja / ja-Hira）にそろえる（テストが解決できることを確かめる）。
 
@@ -506,19 +506,35 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 ## レッスン表
 
 メニューバーの「レッスン」ボタン（upstream の「チュートリアル」ボタンがあった場所）を押すと開くモーダル
-（`components/lessons-library/`。フルスクリーン、本文は不透明な白）。SP / iPad の `MobileGui` ではドロワーの
-「レッスン」から開く。
+（`components/lessons-library/`。フルスクリーン）。SP / iPad の `MobileGui` ではドロワーの「レッスン」から開く。
+
+見た目はスモウルビーの「スプライトを選ぶ」画面（`components/library/`）や Scratch の「チュートリアルを選ぶ」
+画面に近い形にそろえる（児童・生徒が見慣れているため）。部品も同じもの（`Filter` / `Divider` / `TagButton`）を使う。
 
 ![レッスン表（1300×600）](screenshots/0302-lessons-library-1300x600.png)
 
-- **言語のタブ**: ブロック／Ruby／日本語。コースが無い言語は「準備中」と出す（いまはブロックだけ中身がある）。
-- **コース › レッスン › チャレンジ**: コース名の次に、レッスンごとに「レッスン n」と名前、
-  進み具合「**m / n できた**」。コースのチャレンジが全部できると、コース名の横にクリアの印
-  （「プログラマー デビュー！」）が付く。数えるのは `courseProgress`（`lesson-progress.js`）。見た目は作り直す
-  予定（必須・クリア・できることの表示は外した）。
-- **チャレンジ**: 番号（レッスンの中の番号）・なかまの色の丸（`category`。名前は `title` / `aria-label`）・名前・
-  「できた」の印（できたものは緑の背景）。押すと `startChallenge(id)` を呼んでレッスン表を閉じ、
-  レッスンモードに入る。
+- **上の帯**: 紫のヘッダー（← 戻る ／ 「レッスンを選ぶ」）、その下の薄い紫の帯に**検索ボックス** ＋ 区切り ＋
+  **言語のボタン**（選んでいるものはオレンジ・`aria-pressed`）。言語のボタンは**コースがある言語だけ**出す
+  （いまは「ブロック」だけ。Ruby・日本語のコースができたら自然に出る。`libraryLanguages`）。
+  帯は 1 行に収め、はみ出すボタンは横にスクロールする（SP）。
+- **コースのボタン（増えたとき）**: 1 ページに縦に並べる。いま選んでいる言語のコースが **4 つを超えたら**、帯の
+  2 段目にコースのボタン（押すとそのコースまでスクロール）を出す（`showCourseNav` / `COURSE_NAV_THRESHOLD`。
+  いまは 1 コースなので出ない）。
+- **コース** = 大きい見出し。右に**プログレスバー**と「**5 / 11**」（コース全体のできた数 / 全部の数。
+  `courseProgress`）。コースのチャレンジが**全部できたら名前の前に ✓**。
+- **レッスン** = コースの中の小さい見出し（「レッスン 1」＋ 名前）。
+- **チャレンジ** = カード（絵 ＋ 名前）。できたら右上に ✓。1300×600 で 4 列、SP 横で 3 列、SP 縦で 2 列。
+  押すと `startChallenge(id)` を呼んでレッスン表を閉じ、レッスンモードに入る（作品を置きかえる確認を含む）。
+- **カードの絵**: チャレンジの `card.image` があればその絵、無ければなかま（`category`）の色の上に `card.symbol`
+  （絵文字）を出す仮の絵（なかまの名前は `aria-label`）。いまのチャレンジはどれも新しい作品のネコで始まるので、
+  スプライトのコスチュームでは見分けが付かない。そのため今は 11 個とも仮の絵で、できあがりの小さな絵を
+  用意できたら `card.image` を足して差しかえる。
+- **出さないもの**: 「クリア！」「プログラマー デビュー！」、必須のマーク・必須のバー、「できること」の一覧。
+  （段 2 で先生が必須にしたときだけ、バーを「必須」と「そのほか」の 2 本にする予定。今は作らない）
+- **検索**: チャレンジの名前（いまの locale の文言）の部分一致。前後の空白は無視し、大文字・小文字と全角・半角は
+  区別しない（`normalizeQuery`）。合うチャレンジだけ出し、合うものが無いレッスン・コースは隠す。コースの
+  バーと「n / m」は絞り込みで変えない。1 つも無いときは「『○○』に合うチャレンジはありません」。
+  判定は `lib/lessons/library-filter.js` の `filterCourseStatuses`（純粋関数）。
 - **記録の取り込み**: 開くたびに `reloadProgress()` を呼び、別のタブで書いた記録も反映する。
 - **ほかのチャレンジへ → もどる**: レッスンモードの「ほかのチャレンジへ」は `closeLesson()` のあとレッスン表を開く（次のチャレンジを
   すぐ選べる）。
@@ -529,10 +545,9 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
   - 全部できていて、コースに次のレッスンがある: 次のレッスンの、まだできていない最初のチャレンジ。
   - 全部できていて、次のレッスンが無い（レッスン 3）: いまのレッスンを見せ、「次はこれ！」は付けない。
 
-  そのレッスンの言語のタブを開き、レッスンへスクロールして（`scrollIntoView`）薄い青で囲み
-  （`data-focused="true"`）、次のチャレンジを太い青の枠と「次はこれ！」で目立たせる（`data-next="true"`・
-  `lessons-library-challenge-next`）。メニューから開いたときは、どれも付けない。レッスン表の見た目は
-  作り直す予定なので、見せ方はそのときに変えてよい（渡すのは `focusLessonId` / `nextChallengeId` の 2 つ）。
+  そのレッスンの言語を選び、レッスンへスクロールして（`scrollIntoView`）薄い紫で囲み
+  （`data-focused="true"`）、次のチャレンジのカードをオレンジの太い枠と左上の「次はこれ！」で目立たせる
+  （`data-next="true"`・`lessons-library-challenge-next`）。メニューから開いたときは、どれも付けない。
 
   ![次のチャレンジで開いたレッスン表（1300×600）](screenshots/0305-lessons-library-next-1300x600.png)
 - **はじめての人向けの吹き出しは出さない**: 「レッスン」ボタンの下に吹き出しで誘うことはしない（どの端末でも）。
@@ -545,8 +560,11 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 状態は `modals.lessonsLibrary`（`openLessonsLibrary` / `closeLessonsLibrary`）。コンテナは
 `containers/lessons-library.jsx`（`gui.jsx` に常時マウントし、`modals.lessonsLibrary` が true の間だけ描く）。
 
-1300×600（授業のパソコン）では 1 つのレッスンのチャレンジ（3〜4 個）が 1 段に並び、3 つのレッスンがスクロールせずに収まる。375 幅（SP 縦）では
-1 列になり本文がスクロールする。
+| SP 横（667×375） | SP 縦（375×667） |
+|---|---|
+| ![レッスン表（SP 横）](screenshots/0306-lessons-library-667x375.png) | ![レッスン表（SP 縦）](screenshots/0303-lessons-library-375x667.png) |
+
+![検索したとき（1300×600）](screenshots/0307-lessons-library-search-1300x600.png)
 
 ひらがな表示で確かめるときは URL に `?locale=ja-Hira` を付ける（大文字・小文字は区別しない。`ja-hira` でもよい）。
 
@@ -557,14 +575,20 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `menu-bar-lessons` | div | メニューバーの「レッスン」ボタン |
 | `mobile-drawer-lessons` | button | SP のドロワーの「レッスン」 |
 | `lessons-library` | div | レッスン表の本文（開いているときだけある） |
-| `lessons-library-tab-<blocks\|ruby\|dncl>` | button | 言語のタブ（`aria-selected`） |
-| `lessons-library-coming-soon` | p | コースが無い言語の「準備中」 |
+| `lessons-library-search` | div | 検索ボックス（中の `input` に入力する。`button` は消すボタン） |
+| `lessons-library-no-match` | p | 検索に合うチャレンジが無いときの文 |
+| `lessons-library-tab-<blocks\|ruby\|dncl>` | button | 言語のボタン（コースがある言語だけ。`aria-pressed`） |
+| `lessons-library-course-nav` | div | コースのボタンの段（コースが 4 つを超えたときだけ） |
+| `lessons-library-course-nav-<courseId>` | button | コースのボタン（押すとそのコースまでスクロール） |
 | `lessons-library-course-<courseId>` | section | コース |
-| `lessons-library-badge` | span | コースのクリアの印（コースのチャレンジが全部できたときだけ） |
-| `lessons-library-lesson-<lessonId>` | section | レッスン |
-| `lessons-library-progress` | span | 「m / n できた」（レッスンごとに 1 つ） |
-| `lessons-library-challenge-<challengeId>` | button | チャレンジ（`data-completed="true\|false"`） |
-| `lessons-library-challenge-done` | span | 「できた」の印 |
+| `lessons-library-course-done` | span | コース名の前の ✓（コースのチャレンジが全部できたときだけ） |
+| `lessons-library-course-progress` | div | コースのプログレスバー（`role="progressbar"`）と数 |
+| `lessons-library-course-progress-text` | span | 「m / n」（コース全体） |
+| `lessons-library-lesson-<lessonId>` | section | レッスン（`data-focused`） |
+| `lessons-library-challenge-<challengeId>` | button | チャレンジのカード（`data-completed="true\|false"`・`data-next`） |
+| `lessons-library-card-art` | span | カードの絵 |
+| `lessons-library-challenge-done` | span | カードの右上の ✓ |
+| `lessons-library-challenge-next` | span | 「次はこれ！」 |
 
 ## レッスンモード
 
@@ -828,9 +852,11 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `screenshots/0407-lesson-hint-dragged-667x375.png` | SP 横でヘッダーをタッチでドラッグして動かしたところ（しっぽは消える） |
 | `screenshots/0408-lesson-hint-auto-open-375x667.png` | SP 縦（縦持ちの案内を閉じたあと）で自動で開いたヒント（サイドレールの右に置く） |
 | `screenshots/0301-lessons-button-1300x600.png` | メニューバーの「レッスン」ボタン（1300×600。はじめての人にも吹き出しは出ない） |
-| `screenshots/0302-lessons-library-1300x600.png` | レッスン表（1300×600）。3 つのレッスンで、2 つできた状態 |
-| `screenshots/0303-lessons-library-375x667.png` | レッスン表（SP 縦 375×667。1 列） |
-| `screenshots/0304-lessons-library-cleared-1300x600.png` | コースのチャレンジが全部できた状態（「プログラマー デビュー！」） |
+| `screenshots/0302-lessons-library-1300x600.png` | レッスン表（1300×600）。3 つのレッスンで、いくつかできた状態 |
+| `screenshots/0303-lessons-library-375x667.png` | レッスン表（SP 縦 375×667。カード 2 列） |
+| `screenshots/0304-lessons-library-cleared-1300x600.png` | コースのチャレンジが全部できた状態（コース名の前に ✓） |
+| `screenshots/0306-lessons-library-667x375.png` | レッスン表（SP 横 667×375） |
+| `screenshots/0307-lessons-library-search-1300x600.png` | 検索したとき（「キー」） |
 | `screenshots/0101-completed-toast-1300x600.png` | 「できた！」と「次のチャレンジ」（チャレンジ 3） |
 | `screenshots/0102-completed-toast-last-1300x600.png` | 最後のレッスン（レッスン 3）のチャレンジが全部できたときの「できた！」（これでおわり・レッスン表へ） |
 | `screenshots/0305-lessons-library-next-1300x600.png` | 「次のチャレンジ」で開いたレッスン表（1〜3 ができていて、4 に「次はこれ！」） |
@@ -906,7 +932,7 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `packages/scratch-gui/test/integration/smalruby-lesson1-challenges-1-4.test.js` | レッスン 1 のチャレンジ 1〜4 を開く → ヒントを最後まで進めて「プログラムを入れる」→ 課題の操作（実際のキー入力・ステージのネコをクリック）→「できた！」（Selenium） |
 | `packages/scratch-gui/test/integration/smalruby-lesson1-challenges-5-8.test.js` | チャレンジ 5〜8 を開く → プログラムを入れる → 旗・マウス・ネコを押す・答えを入力する →「できた！」（Selenium・1300×600） |
 | `packages/scratch-gui/test/integration/smalruby-lesson1-challenges-9-11.test.js` | チャレンジ 9〜11 を開く → ペンギン・リストを足す → プログラムを入れる → ネコを押す・旗・答えを入力する →「できた！」（Selenium・1300×600） |
-| `packages/scratch-gui/test/integration/smalruby-lesson1-clear.test.js` | コースの全体: レッスン表から 11 個すべてが開ける（課題バーはレッスンの中の番号）→ レッスン 1・2 を 1 つのレッスンだったころの記録で入れ、レッスン 3 の 4 つを「プログラムを入れる」→ 操作 →「できた！」→ レッスンごとの進み具合と「プログラマー デビュー！」（Selenium・1300×600） |
+| `packages/scratch-gui/test/integration/smalruby-lesson1-clear.test.js` | コースの全体: レッスン表から 11 個すべてが開ける（課題バーはレッスンの中の番号）→ レッスン 1・2 を 1 つのレッスンだったころの記録で入れ、レッスン 3 の 4 つを「プログラムを入れる」→ 操作 →「できた！」→ コースの進み具合とコース名の前の ✓（Selenium・1300×600） |
 | `packages/scratch-gui/src/lib/lessons/goal.js` | できた の判定（`goal` の形・事実の記録・判定の純粋関数・`validateGoal`） |
 | `packages/scratch-gui/src/lib/lessons/vm-execution-hook.js` | ブロックの実行をスレッドつきで取るフック（runtime の `getOpcodeFunction` を包む） |
 | `packages/scratch-gui/src/lib/lessons/goal-monitor.js` | VM を見張って goal を判定する（`attachGoalMonitor` / `takeSnapshot`） |
@@ -916,6 +942,8 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `packages/scratch-gui/src/containers/lesson-mode.jsx` | チャレンジを開く流れ（新しい作品 → setup → レッスンモード）と課題バーのマウント。`gui.jsx` のエディタ列の先頭に常時マウント |
 | `packages/scratch-gui/src/components/lesson-task-bar/` | 課題バー（1 行・40px） |
 | `packages/scratch-gui/src/components/lessons-library/` | レッスン表（モーダル） |
+| `packages/scratch-gui/src/lib/lessons/library-filter.js` | レッスン表の検索（`filterCourseStatuses`）・出す言語（`libraryLanguages`）・コースのボタンを出すか（`showCourseNav`） |
+| `packages/scratch-gui/test/unit/lib/lessons/library-filter.test.js` | 上の unit テスト |
 | `packages/scratch-gui/src/lib/lessons/open-lessons-library.js` | レッスン表をいまのレッスンを見せて開く（`openLessonsLibraryAt`。「次のチャレンジ」が使う） |
 | `packages/scratch-gui/test/integration/smalruby-lessons-next-challenge.test.js` | 「できた！」の「次のチャレンジ」→ レッスン表のいまのレッスン・「次はこれ！」→ 選ぶと開く。最後のチャレンジの文言（Selenium） |
 | `packages/scratch-gui/src/containers/lessons-library.jsx` | レッスン表のコンテナ（開くたびに記録を取り込む・チャレンジを押したら `startChallenge` + 閉じる）。`gui.jsx` に常時マウント（Smalruby マーカー `lessons library`） |
@@ -936,8 +964,8 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `packages/scratch-gui/test/unit/components/lesson-task-bar.test.jsx` / `test/unit/containers/lesson-mode.test.jsx` | 課題バーとチャレンジを開く流れの unit テスト |
 | `packages/scratch-gui/test/integration/smalruby-lesson-task-bar-full-text.test.js` | 課題バーにマウスを乗せると改行つきの全文（画像も）が出て離すと消える・ヒントの吹き出しが出ていても吹き出しより上に出る・タップで開閉・「ほかのチャレンジへ」でレッスン表（Selenium・1300×600） |
 | `packages/scratch-gui/test/integration/smalruby-lessons.test.js` | チャレンジを開く → 課題バー・絞ったパレット → やめる → 元にもどる（Selenium） |
-| `packages/scratch-gui/test/unit/components/lessons-library.test.jsx` / `test/unit/containers/lessons-library.test.jsx` / `test/unit/components/menu-bar-lessons.test.jsx` | レッスン表（3 つのレッスン・できた印・レッスンごとの進み具合・コースの印）、コンテナ、「レッスン」ボタン（吹き出しを出さないこと）の unit テスト |
-| `packages/scratch-gui/test/integration/smalruby-lessons-library.test.js` | メニューから開く → チャレンジを押す → レッスンモード → やめる → レッスン表にもどる・記録に合わせた「できた」と進み具合（Selenium） |
+| `packages/scratch-gui/test/unit/components/lessons-library.test.jsx` / `test/unit/containers/lessons-library.test.jsx` / `test/unit/components/menu-bar-lessons.test.jsx` | レッスン表（3 つのレッスン・カードの絵・✓・コースのバー・検索・言語とコースのボタン・「次はこれ！」）、コンテナ、「レッスン」ボタン（吹き出しを出さないこと）の unit テスト |
+| `packages/scratch-gui/test/integration/smalruby-lessons-library.test.js` | メニューから開く → チャレンジを押す → レッスンモード → やめる → レッスン表にもどる・記録に合わせた ✓ とコースの進み具合・検索（Selenium） |
 
 ## 設定・データ永続化
 

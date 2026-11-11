@@ -60,7 +60,7 @@ const allChallenges = () =>
 const collectMessages = () => {
     const messages = [];
     COURSES.forEach((course) => {
-        messages.push(course.name, course.badge);
+        messages.push(course.name);
         course.lessons.forEach((lesson) => {
             messages.push(lesson.name);
             lesson.challenges.forEach((challenge) => {
@@ -80,8 +80,16 @@ describe('lesson courses', () => {
         expect(course).toBeTruthy();
         expect(course.language).toBe(LANGUAGES.BLOCKS);
         expect(ja[course.name.id]).toBe('きょうからプログラマー');
-        expect(ja[course.badge.id]).toBe('プログラマー デビュー！');
+        // クリアの印（「プログラマー デビュー！」）は無い。全部できたらレッスン表のコース名の前に ✓（#1530）
+        expect(course.badge).toBeUndefined();
         expect(COURSES[0]).toBe(course);
+    });
+
+    test('every challenge has a card picture (an image or a symbol)', () => {
+        allChallenges().forEach((challenge) => {
+            expect(challenge.card).toBeTruthy();
+            expect(Boolean(challenge.card.image || challenge.card.symbol)).toBe(true);
+        });
     });
 
     test('every course language is one of blocks / ruby / dncl', () => {
@@ -192,6 +200,7 @@ describe('lesson courses', () => {
             task: null,
             image: null,
             category: null,
+            card: null,
             goal: null,
             spriteCodes: [],
             allowedBlocks: null,

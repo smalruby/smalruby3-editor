@@ -4,7 +4,6 @@
 
 export const ja = {
     'gui.lessons.course.kyou-kara-programmer.name': 'きょうからプログラマー',
-    'gui.lessons.course.kyou-kara-programmer.badge': 'プログラマー デビュー！',
     'gui.lessons.lesson.blocks-l1.name': 'うごかしてみよう',
     'gui.lessons.lesson.blocks-l2.name': 'えらんで たずねよう',
     'gui.lessons.lesson.blocks-l3.name': 'おぼえて つたえよう',
@@ -133,7 +132,6 @@ export const ja = {
 
 export const jaHira = {
     'gui.lessons.course.kyou-kara-programmer.name': 'きょうからプログラマー',
-    'gui.lessons.course.kyou-kara-programmer.badge': 'プログラマー デビュー！',
     'gui.lessons.lesson.blocks-l1.name': 'うごかしてみよう',
     'gui.lessons.lesson.blocks-l2.name': 'えらんで たずねよう',
     'gui.lessons.lesson.blocks-l3.name': 'おぼえて つたえよう',
@@ -263,7 +261,6 @@ export const jaHira = {
 
 export const en = {
     'gui.lessons.course.kyou-kara-programmer.name': 'Programmer from Today',
-    'gui.lessons.course.kyou-kara-programmer.badge': 'Programmer Debut!',
     'gui.lessons.lesson.blocks-l1.name': "Let's Move",
     'gui.lessons.lesson.blocks-l2.name': 'Choose and Ask',
     'gui.lessons.lesson.blocks-l3.name': 'Remember and Tell',

@@ -25,11 +25,13 @@ const countByTestId = (d, testId) =>
 const textByTestId = (d, testId) =>
     d.executeScript(`return document.querySelector('[data-testid="${testId}"]').textContent`);
 
-// レッスンごとの「n / m done」
-const progressTexts = (d) =>
+// コースの見出しの「n / m」（コース全体の進み具合）
+const courseProgressText = (d) => textByTestId(d, 'lessons-library-course-progress-text');
+
+const visibleChallengeIds = (d) =>
     d.executeScript(
-        `return Array.from(document.querySelectorAll('[data-testid="lessons-library-progress"]'))
-            .map(el => el.textContent);`,
+        `return Array.from(document.querySelectorAll('[data-testid^="lessons-library-challenge-blocks"]'))
+            .map(el => el.dataset.testid.replace('lessons-library-challenge-', ''));`,
     );
 
 // lessonId は 11 のチャレンジが 1 つのレッスンだったころの値（読むときに今の定義で読みかえる・#1529）
@@ -56,13 +58,28 @@ describe('Smalruby Lessons Library', () => {
 
         await clickByTestId(driver, 'menu-bar-lessons');
         await findByXpath(byTestId('lessons-library'));
-        expect(await progressTexts(driver)).toEqual(['0 / 4 done', '0 / 3 done', '0 / 4 done']);
+        expect(await courseProgressText(driver)).toBe('0 / 11');
         expect(await countByTestId(driver, 'lessons-library-challenge-done')).toBe(0);
+        expect(await countByTestId(driver, 'lessons-library-course-done')).toBe(0);
         // 本文は不透明（青いオーバーレイが透けない）
         const bodyBackground = await driver.executeScript(
             `return getComputedStyle(document.querySelector('[data-testid="lessons-library"]')).backgroundColor`,
         );
-        expect(bodyBackground).toBe('rgb(255, 255, 255)');
+        expect(bodyBackground).not.toBe('rgba(0, 0, 0, 0)');
+
+        // 検索: 名前の部分一致。合うチャレンジだけ・合わないレッスンは隠す・無ければその旨
+        const search = await driver.findElement({ css: '[data-testid="lessons-library-search"] input' });
+        await search.sendKeys('quiz');
+        await driver.sleep(300);
+        expect(await visibleChallengeIds(driver)).toEqual(['blocks-l1-quiz']);
+        expect(await countByTestId(driver, 'lessons-library-lesson-blocks-l1')).toBe(0);
+        await search.sendKeys('zzz');
+        await driver.sleep(300);
+        expect(await textByTestId(driver, 'lessons-library-no-match')).toBe('No challenges match "quizzzz"');
+        await driver.executeScript(`document.querySelector('[data-testid="lessons-library-search"] button').click()`);
+        await driver.sleep(300);
+        expect(await countByTestId(driver, 'lessons-library-no-match')).toBe(0);
+        expect((await visibleChallengeIds(driver)).length).toBe(11);
 
         // チャレンジを押す → レッスン表が閉じてレッスンモードに入る
         await clickByTestId(driver, `lessons-library-challenge-${CHALLENGE_ID}`);
@@ -89,7 +106,7 @@ describe('Smalruby Lessons Library', () => {
         await findByXpath(byTestId('lessons-library'));
         await driver.sleep(500);
         expect(await countByTestId(driver, 'lesson-task-bar')).toBe(0);
-        expect(await progressTexts(driver)).toEqual(['2 / 4 done', '1 / 3 done', '0 / 4 done']);
+        expect(await courseProgressText(driver)).toBe('3 / 11');
         expect(await countByTestId(driver, 'lessons-library-challenge-done')).toBe(3);
         expect(await countByTestId(driver, 'lessons-library-challenge-required')).toBe(0);
 
@@ -105,7 +122,12 @@ describe('Smalruby Lessons Library', () => {
         await findByXpath(byTestId('menu-bar-lessons'));
         await clickByTestId(driver, 'menu-bar-lessons');
         await findByXpath(byTestId('lessons-library'));
-        expect(await progressTexts(driver)).toEqual(['0 / 4 できた', '0 / 3 できた', '0 / 4 できた']);
+        expect(await courseProgressText(driver)).toBe('0 / 11');
+        expect(
+            await driver.executeScript(
+                `return document.querySelector('[data-testid="lessons-library-search"] input').placeholder`,
+            ),
+        ).toBe('けんさく');
         expect(await textByTestId(driver, 'lessons-library-lesson-blocks-l2')).toContain('えらんで たずねよう');
     });
 });
