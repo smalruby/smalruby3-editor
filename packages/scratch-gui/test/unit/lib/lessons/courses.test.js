@@ -85,10 +85,15 @@ describe('lesson courses', () => {
         expect(COURSES[0]).toBe(course);
     });
 
-    test('every challenge has a card picture (an image or a symbol)', () => {
+    test('every challenge has a card with a color (category) and a main family, and no picture (#1543)', () => {
+        const known = Object.values(CATEGORIES);
         allChallenges().forEach((challenge) => {
-            expect(challenge.card).toBeTruthy();
-            expect(Boolean(challenge.card.image || challenge.card.symbol)).toBe(true);
+            expect(known).toContain(challenge.card.category);
+            expect(known).toContain(challenge.card.main);
+            // カードの絵はやめた（描き続けるのが難しい）。色の決め方は card-color.test.js
+            expect(challenge.card).not.toHaveProperty('image');
+            expect(challenge.card).not.toHaveProperty('symbol');
+            expect(challenge).not.toHaveProperty('category');
         });
     });
 
@@ -125,18 +130,16 @@ describe('lesson courses', () => {
         });
     });
 
-    test('every challenge of the course has a category (the block family shown in the lessons library)', () => {
+    test('the main family of each challenge of the course (the color on a tie)', () => {
         const challenges = findCourse('kyou-kara-programmer').lessons.flatMap((l) => l.challenges);
-        const known = Object.values(CATEGORIES);
-        challenges.forEach((c) => expect(known).toContain(c.category));
-        expect(challenges.map((c) => c.category)).toEqual([
+        expect(challenges.map((c) => c.card.main)).toEqual([
             'sound',
             'motion',
             'looks',
             'control',
             'control',
             'sensing',
-            'operators',
+            'sensing',
             'variables',
             'events',
             'extensions',
@@ -199,7 +202,6 @@ describe('lesson courses', () => {
             name: { id: 'gui.lessons.challenge.x-y.name', defaultMessage: undefined },
             task: null,
             image: null,
-            category: null,
             card: null,
             goal: null,
             spriteCodes: [],

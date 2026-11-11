@@ -107,11 +107,11 @@ export const defineChallenge = (def) => ({
     // 課題の全文といっしょに出す画像（任意）: {src, alt}。src は import した画像の URL
     // （webpack の asset。チュートリアルの deck の画像と同じ扱い）、alt は message descriptor
     image: null,
-    // なかま（パレットの色）。`CATEGORIES` の値。無ければ null（レッスン表は色無しで出す）
-    category: null,
-    // レッスン表のカードの絵: {image, symbol}。image は import した画像の URL（チャレンジで使う
-    // スプライトやできあがりの小さな絵）、無ければ symbol（記号・絵文字）を、なかまの色の上に出す
-    // 仮の絵。絵を用意できたら image を足すだけで差しかわる（#1530）
+    // レッスン表のカード: {category, main}。category = カードの左の帯の色（なかま。`CATEGORIES` の値）、
+    // main = そのチャレンジで覚えるメインのなかま。category は「できあがりのプログラム（code と
+    // spriteCodes）でいちばん多いなかま、同じ数なら main」（card-color.js・docs/lessons/design.md の「カード」）。
+    // 決め方どおりかは test/unit/lib/lessons/card-color.test.js が本物の変換で数えて確かめる。
+    // 無ければ null（レッスン表は色無しで出す）
     card: null,
     // できた の判定: 条件の配列（全部を満たしたら「できた」）。形は goal.js と
     // docs/lessons/README.md。null ならそのチャレンジは判定しない
@@ -186,8 +186,7 @@ const blocksLesson1 = defineLesson({
         // 1 キーで音を鳴らそう（音）: スペースキーで「ニャー」のあと「Owl」が鳴る
         {
             id: 'blocks-l1-key-sound',
-            category: CATEGORIES.SOUND,
-            card: { symbol: '🔔' },
+            card: { category: CATEGORIES.SOUND, main: CATEGORIES.SOUND },
             task: challengeMessage('blocks-l1-key-sound', 'task'),
             allowedBlocks: {
                 event: [{ opcode: 'event_whenkeypressed', fields: { KEY_OPTION: 'space' } }],
@@ -232,8 +231,7 @@ const blocksLesson1 = defineLesson({
         // 2 矢印キーで動かそう（動き）: 上下の矢印キーで y 座標を変える
         {
             id: 'blocks-l1-arrow-move',
-            category: CATEGORIES.MOTION,
-            card: { symbol: '➡️' },
+            card: { category: CATEGORIES.MOTION, main: CATEGORIES.MOTION },
             task: challengeMessage('blocks-l1-arrow-move', 'task'),
             // 課題の全文に画像を出す例（どのキーでどちらへ動くか）
             image: { src: arrowKeysImage, alt: challengeMessage('blocks-l1-arrow-move', 'image') },
@@ -265,8 +263,7 @@ const blocksLesson1 = defineLesson({
         // 3 押したら話そう（見た目）: コスチュームを足して、押したらセリフと次のコスチューム
         {
             id: 'blocks-l1-click-say',
-            category: CATEGORIES.LOOKS,
-            card: { symbol: '💬' },
+            card: { category: CATEGORIES.LOOKS, main: CATEGORIES.LOOKS },
             task: challengeMessage('blocks-l1-click-say', 'task'),
             allowedBlocks: {
                 event: ['event_whenthisspriteclicked'],
@@ -307,8 +304,7 @@ const blocksLesson1 = defineLesson({
         // 4 くり返そう（制御）: ステージのプログラム。1 のキーで背景が 3 回（6 回）かわる
         {
             id: 'blocks-l1-repeat',
-            category: CATEGORIES.CONTROL,
-            card: { symbol: '🔁' },
+            card: { category: CATEGORIES.CONTROL, main: CATEGORIES.CONTROL },
             task: challengeMessage('blocks-l1-repeat', 'task'),
             allowedBlocks: {
                 event: [{ opcode: 'event_whenkeypressed', fields: { KEY_OPTION: '1' } }],
@@ -346,8 +342,7 @@ const blocksLesson2 = defineLesson({
         // 5 もし〜なら（制御）: マウスがさわっているか・いないかでセリフを変える
         {
             id: 'blocks-l1-if',
-            category: CATEGORIES.CONTROL,
-            card: { symbol: '🔀' },
+            card: { category: CATEGORIES.CONTROL, main: CATEGORIES.CONTROL },
             task: challengeMessage('blocks-l1-if', 'task'),
             // パレットは仕様の「もし <> なら」と、ヒント 2 の「もし〜なら でなければ」の両方を出す
             allowedBlocks: {
@@ -394,8 +389,7 @@ const blocksLesson2 = defineLesson({
         // 6 聞いて答えよう（調べる）: 名前を聞いて、答えと、かかった秒数を言う
         {
             id: 'blocks-l1-ask-answer',
-            category: CATEGORIES.SENSING,
-            card: { symbol: '❓' },
+            card: { category: CATEGORIES.SENSING, main: CATEGORIES.SENSING },
             task: challengeMessage('blocks-l1-ask-answer', 'task'),
             allowedBlocks: {
                 event: ['event_whenthisspriteclicked'],
@@ -465,8 +459,7 @@ const blocksLesson2 = defineLesson({
         // 7 クイズを作ろう（演算）: 答えが 7 なら「正解です」、ちがえば「ちがいます」
         {
             id: 'blocks-l1-quiz',
-            category: CATEGORIES.OPERATORS,
-            card: { symbol: '📝' },
+            card: { category: CATEGORIES.SENSING, main: CATEGORIES.SENSING },
             task: challengeMessage('blocks-l1-quiz', 'task'),
             allowedBlocks: {
                 event: ['event_whenthisspriteclicked'],
@@ -514,8 +507,7 @@ const blocksLesson3 = defineLesson({
         // 8 数えよう（変数）: 押した回数を変数「回数」（en は count）で数えて言う
         {
             id: 'blocks-l1-count',
-            category: CATEGORIES.VARIABLES,
-            card: { symbol: '🔢' },
+            card: { category: CATEGORIES.VARIABLES, main: CATEGORIES.VARIABLES },
             task: challengeMessage('blocks-l1-count', 'task'),
             // 変数のカテゴリと中のブロックもこの allowedBlocks で絞る（lesson-dynamic-categories.js）。
             // 「変数を作る」と変数のレポーター（モニターのチェックボックス）は、変数のブロックがあれば出る
@@ -551,8 +543,7 @@ const blocksLesson3 = defineLesson({
         // 9 なかまに合図しよう（イベント）: ネコを押したら合図を送り、受け取ったペンギンが言う
         {
             id: 'blocks-l1-broadcast',
-            category: CATEGORIES.EVENTS,
-            card: { symbol: '📣' },
+            card: { category: CATEGORIES.EVENTS, main: CATEGORIES.EVENTS },
             task: challengeMessage('blocks-l1-broadcast', 'task'),
             allowedBlocks: {
                 // メッセージの ▼（あいさつ）は、子どもが「新しいメッセージ」で作るのでツールボックスの初期値のまま
@@ -612,8 +603,7 @@ const blocksLesson3 = defineLesson({
         // 10 しゃべらせよう（拡張機能）: 音声合成を足して、ネコを押したらしゃべる
         {
             id: 'blocks-l1-speak',
-            category: CATEGORIES.EXTENSIONS,
-            card: { symbol: '🗣️' },
+            card: { category: CATEGORIES.EXTENSIONS, main: CATEGORIES.EXTENSIONS },
             task: challengeMessage('blocks-l1-speak', 'task'),
             // 拡張機能のカテゴリはパレットを絞っても全部出る（make-toolbox-xml）。ここは使うブロックの記録。
             // 拡張機能は子どもがヒント 1 で足す（setup.extensions では入れない）
@@ -660,8 +650,7 @@ const blocksLesson3 = defineLesson({
         // 11 メッセージをためよう（リスト）: 聞いた答えをリスト「トーク」（en は talk）にためる
         {
             id: 'blocks-l1-message-list',
-            category: CATEGORIES.LISTS,
-            card: { symbol: '📋' },
+            card: { category: CATEGORIES.LISTS, main: CATEGORIES.LISTS },
             task: challengeMessage('blocks-l1-message-list', 'task'),
             // 変数のカテゴリと中のブロックもこの allowedBlocks で絞る（lesson-dynamic-categories.js）。
             // 「リストを作る」とリストのレポーター（作ったリストをステージに出すチェックボックス）は、

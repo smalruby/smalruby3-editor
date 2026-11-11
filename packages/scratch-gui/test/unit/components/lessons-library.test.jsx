@@ -8,6 +8,7 @@ import configureStore from 'redux-mock-store';
 import LessonsLibrary from '../../../src/components/lessons-library/lessons-library.jsx';
 import { COURSES, defineCourse, defineLesson, LANGUAGES } from '../../../src/lib/lessons/courses';
 import { emptyProgress, markChallengeCompleted } from '../../../src/lib/lessons/lesson-progress';
+import { colorModeMap } from '../../../src/lib/settings/color-mode';
 import en from '../../../src/locales/en';
 import ja from '../../../src/locales/ja';
 
@@ -96,28 +97,52 @@ describe('LessonsLibrary', () => {
         expect(queryByTestId('lessons-library-course-done')).not.toBeInTheDocument();
     });
 
-    test('each card has a picture with the category color and the challenge symbol', () => {
+    // カード = 左にブロックの色の帯 ＋ 名前（#1543）。色はいまの色のモードのブロックの色
+    const bandOf = (getByTestId, id) =>
+        getByTestId(`lessons-library-challenge-${id}`).querySelector('[data-testid="lessons-library-card-band"]');
+
+    test('each card has a band with the color of its block family and the name, without a picture', () => {
         const { getByTestId } = renderLibrary();
-        const art = getByTestId('lessons-library-challenge-blocks-l1-click-say').querySelector(
-            '[data-testid="lessons-library-card-art"]',
-        );
-        expect(art).toHaveAttribute('aria-label', 'Looks');
-        expect(art).toHaveTextContent('💬');
-        const sound = getByTestId('lessons-library-challenge-blocks-l1-key-sound').querySelector(
-            '[data-testid="lessons-library-card-art"]',
-        );
-        expect(sound).toHaveAttribute('aria-label', 'Sound');
+        const card = getByTestId('lessons-library-challenge-blocks-l1-click-say');
+        const band = bandOf(getByTestId, 'blocks-l1-click-say');
+        expect(band).toHaveAttribute('aria-label', 'Looks');
+        expect(band).toHaveAttribute('data-category', 'looks');
+        expect(band).toHaveStyle({ backgroundColor: '#9966FF' });
+        expect(card).toHaveTextContent('Talk when clicked');
+        expect(card.querySelector('img')).toBeNull();
+        expect(bandOf(getByTestId, 'blocks-l1-key-sound')).toHaveAttribute('aria-label', 'Sound');
+        expect(bandOf(getByTestId, 'blocks-l1-key-sound')).toHaveStyle({ backgroundColor: '#CF63CF' });
+        expect(bandOf(getByTestId, 'blocks-l1-message-list')).toHaveStyle({ backgroundColor: '#FF661A' });
+        expect(bandOf(getByTestId, 'blocks-l1-count')).toHaveStyle({ backgroundColor: '#FF8C1A' });
+        // 拡張機能は拡張の緑
+        expect(bandOf(getByTestId, 'blocks-l1-speak')).toHaveStyle({ backgroundColor: '#0fBD8C' });
     });
 
-    test('a card shows the image of the challenge when it has one', () => {
+    test('the band follows the color mode of the blocks', () => {
+        const { getByTestId } = renderLibrary({ colorMode: 'high-contrast' });
+        const expected = colorModeMap['high-contrast'].colors.looks.colourPrimary;
+        expect(bandOf(getByTestId, 'blocks-l1-click-say')).toHaveStyle({ backgroundColor: expected });
+    });
+
+    // ダークのブロックの地はほぼ黒なので、なかまの色が出る縁の色（colourTertiary）を帯にする
+    test('the band uses the outline color of the blocks in the dark mode', () => {
+        const { getByTestId } = renderLibrary({ colorMode: 'dark' });
+        const expected = colorModeMap.dark.colors.looks.colourTertiary;
+        expect(expected).toBe('#9966FF');
+        expect(bandOf(getByTestId, 'blocks-l1-click-say')).toHaveStyle({ backgroundColor: expected });
+    });
+
+    test('a card without a family has a band without a color', () => {
         const course = defineCourse({
-            id: 'pic',
+            id: 'plain',
             language: LANGUAGES.BLOCKS,
-            lessons: [defineLesson({ id: 'pic-l1', challenges: [{ id: 'pic-a', card: { image: 'cat.svg' } }] })],
+            lessons: [defineLesson({ id: 'plain-l1', challenges: [{ id: 'plain-a' }] })],
         });
         const { getByTestId } = renderLibrary({ courses: [course] });
-        const img = getByTestId('lessons-library-challenge-pic-a').querySelector('img');
-        expect(img).toHaveAttribute('src', 'cat.svg');
+        const band = bandOf(getByTestId, 'plain-a');
+        expect(band).toHaveAttribute('aria-hidden', 'true');
+        expect(band).toHaveAttribute('data-category', '');
+        expect(band.getAttribute('style')).toBeNull();
     });
 
     test('shows the progress of the whole course as a bar and "0 / 11" before anything is done', () => {

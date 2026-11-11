@@ -15,6 +15,7 @@ import { clearLessonsLibraryFocus, reloadProgress, startChallenge } from '../red
 import { closeLessonsLibrary } from '../reducers/modals';
 
 const LessonsLibrary = ({
+    colorMode,
     focusChallengeId = null,
     onReloadProgress,
     onRequestClose,
@@ -42,6 +43,7 @@ const LessonsLibrary = ({
     if (!visible) return null;
     return (
         <LessonsLibraryComponent
+            colorMode={colorMode}
             courses={COURSES}
             progress={progress}
             {...(focus ? { initialLanguage: focus.language } : {})}
@@ -54,6 +56,8 @@ const LessonsLibrary = ({
 };
 
 LessonsLibrary.propTypes = {
+    // 色のモード。カードの帯をブロックと同じ色にする
+    colorMode: PropTypes.string.isRequired,
     // 「次のチャレンジ」で開いたときの、いまのチャレンジ id（null ならふつうに開く）
     focusChallengeId: PropTypes.string,
     onReloadProgress: PropTypes.func.isRequired,
@@ -64,6 +68,7 @@ LessonsLibrary.propTypes = {
 };
 
 const mapStateToProps = (state) => ({
+    colorMode: state.scratchGui.settings.colorMode,
     focusChallengeId: state.scratchGui.lessonMode.libraryFocusChallengeId,
     progress: state.scratchGui.lessonMode.progress,
     visible: state.scratchGui.modals.lessonsLibrary,

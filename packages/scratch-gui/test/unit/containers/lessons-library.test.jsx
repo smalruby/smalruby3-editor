@@ -18,12 +18,14 @@ const buildStore = ({ visible, focus = null }) =>
         scratchGui: {
             lessonMode: { progress: emptyProgress(), libraryFocusChallengeId: focus },
             modals: { lessonsLibrary: visible },
+            settings: { colorMode: 'default' },
         },
     });
 
 const renderUnconnected = (props = {}) => {
     const store = buildStore({ visible: true });
     const all = {
+        colorMode: 'default',
         onReloadProgress: jest.fn(),
         onRequestClose: jest.fn(),
         onStartChallenge: jest.fn(),
