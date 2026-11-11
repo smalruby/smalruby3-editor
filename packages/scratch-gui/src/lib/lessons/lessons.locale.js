@@ -364,9 +364,9 @@ export const en = {
         'If it switches only once, check that the blocks are inside the mouth of "repeat".',
     'gui.lessons.challenge.blocks-l1-repeat.debug2': 'If it ends right away, check that "wait 1 seconds" is in there.',
     'gui.lessons.challenge.blocks-l1-if.name': 'If ...',
-    'gui.lessons.skill.if': 'If ... else',
-    'gui.lessons.skill.forever': 'Forever',
-    'gui.lessons.skill.touching': 'Check what it touches',
+    'gui.lessons.skill.if': 'if ... else',
+    'gui.lessons.skill.forever': 'forever',
+    'gui.lessons.skill.touching': 'check what it touches',
     'gui.lessons.challenge.blocks-l1-if.task': 'Make the cat say "That tickles!" when the mouse touches it, and "Touch me" when it does not',
     'gui.lessons.challenge.blocks-l1-if.step1': 'Snap "forever" under the green flag block.',
     'gui.lessons.challenge.blocks-l1-if.step2': 'Put "if ... then ... else" inside "forever".',
@@ -376,9 +376,9 @@ export const en = {
     'gui.lessons.challenge.blocks-l1-if.debug1': 'If the line does not change, check that there is one "say" inside "if" and one inside "else".',
     'gui.lessons.challenge.blocks-l1-if.debug2': 'If it checks only once, check that the blocks are inside "forever".',
     'gui.lessons.challenge.blocks-l1-ask-answer.name': 'Ask and answer',
-    'gui.lessons.skill.ask-answer': 'Ask and answer',
-    'gui.lessons.skill.timer': 'Timer',
-    'gui.lessons.skill.join': 'Join words',
+    'gui.lessons.skill.ask-answer': 'ask and answer',
+    'gui.lessons.skill.timer': 'timer',
+    'gui.lessons.skill.join': 'join words',
     'gui.lessons.challenge.blocks-l1-ask-answer.task': 'Make the cat ask your name when it is clicked, then say the name and how many seconds you took to answer',
     'gui.lessons.challenge.blocks-l1-ask-answer.step1': 'Snap on "ask and wait" from the light blue "Sensing", and type "What\'s your name?".',
     'gui.lessons.challenge.blocks-l1-ask-answer.step2': 'Snap on a "say" block, and put the round "answer" block into its white part.',
@@ -388,7 +388,7 @@ export const en = {
     'gui.lessons.challenge.blocks-l1-ask-answer.debug1': 'If the cat says the word "answer", check that you put in the round "answer" block instead of typing the word.',
     'gui.lessons.challenge.blocks-l1-ask-answer.debug2': 'If the seconds are very large, check that "reset timer" comes before "ask and wait".',
     'gui.lessons.challenge.blocks-l1-quiz.name': 'Make a quiz',
-    'gui.lessons.skill.compare': 'Compare',
+    'gui.lessons.skill.compare': 'compare',
     'gui.lessons.challenge.blocks-l1-quiz.task': 'Make the cat ask "4+3=?" when it is clicked, and say "Correct" for 7 and "Wrong" for anything else',
     'gui.lessons.challenge.blocks-l1-quiz.step1': 'Ask the question with "ask and wait".',
     'gui.lessons.challenge.blocks-l1-quiz.step2': 'Put the "=" from the green "Operators" into the hole of "if".',
@@ -396,8 +396,8 @@ export const en = {
     'gui.lessons.challenge.blocks-l1-quiz.step4': 'Try both 7 and a number that is not 7.',
     'gui.lessons.challenge.blocks-l1-quiz.debug1': 'If it always says "Wrong", check that "answer" is on the left of "=" and 7 is on the right. Type 7 as a half-width number.',
     'gui.lessons.challenge.blocks-l1-count.name': 'Count',
-    'gui.lessons.skill.make-variable': 'Make a variable',
-    'gui.lessons.skill.variable': 'Variables',
+    'gui.lessons.skill.make-variable': 'make a variable',
+    'gui.lessons.skill.variable': 'variables',
     'gui.lessons.challenge.blocks-l1-count.task': 'Count how many times the cat is clicked, and make it say the number. Try clicking it 3 times',
     'gui.lessons.challenge.blocks-l1-count.step1': 'In the orange "Variables", click "Make a Variable" and make a variable named "回数" (count).',
     'gui.lessons.challenge.blocks-l1-count.step2': 'Make a program that sets it back to 0 when the green flag is clicked.',
@@ -410,9 +410,9 @@ export const en = {
     // チャレンジ 9〜11
     'gui.lessons.challenge.blocks-l1-broadcast.task':
         'Add a penguin, and make the penguin say "やあ！" (Hi!) when the cat is clicked',
-    'gui.lessons.skill.add-sprite': 'Add a sprite',
-    'gui.lessons.skill.broadcast': 'Broadcast messages',
-    'gui.lessons.skill.sprite-program': 'A program for each sprite',
+    'gui.lessons.skill.add-sprite': 'add a sprite',
+    'gui.lessons.skill.broadcast': 'broadcast messages',
+    'gui.lessons.skill.sprite-program': 'a program for each sprite',
     'gui.lessons.challenge.blocks-l1-broadcast.step1': 'Add a penguin with "Choose a Sprite" at the bottom right.',
     'gui.lessons.challenge.blocks-l1-broadcast.step2':
         'Select the cat and snap "when this sprite clicked" and "broadcast" together. Choose "New message" from ▼ and make "あいさつ" (hello).',
@@ -426,7 +426,7 @@ export const en = {
         "Also check that you did not put the penguin's program on the cat.",
     'gui.lessons.challenge.blocks-l1-speak.task':
         'Add the "Text to Speech" extension, and make the cat speak "ボタンが押されました" (the button was clicked) when it is clicked',
-    'gui.lessons.skill.add-extension': 'Add an extension',
+    'gui.lessons.skill.add-extension': 'add an extension',
     'gui.lessons.skill.text2speech': 'Text to Speech',
     'gui.lessons.challenge.blocks-l1-speak.step1':
         'Choose "Text to Speech" with the button at the bottom left. New blocks join the palette.',
@@ -437,8 +437,8 @@ export const en = {
         'If you hear nothing, check the volume of the computer. Text to Speech works only when it is connected to the Internet.',
     'gui.lessons.challenge.blocks-l1-message-list.task':
         'When the cat is clicked, ask "メッセージは？" (message?) and keep the answers in the list "トーク" (talk). Try keeping 3',
-    'gui.lessons.skill.make-list': 'Make a list',
-    'gui.lessons.skill.add-to-list': 'Add to a list',
+    'gui.lessons.skill.make-list': 'make a list',
+    'gui.lessons.skill.add-to-list': 'add to a list',
     'gui.lessons.challenge.blocks-l1-message-list.step1':
         'Under "Variables", click "Make a List" and make a list named "トーク" (talk). An empty box appears on the stage.',
     'gui.lessons.challenge.blocks-l1-message-list.step2':

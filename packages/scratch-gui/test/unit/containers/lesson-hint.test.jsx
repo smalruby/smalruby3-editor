@@ -269,6 +269,24 @@ describe('LessonHint container', () => {
         ]);
     });
 
+    test('pressing "insert the program" twice while it is working inserts (and adds the penguin) once', async () => {
+        const cat = { id: 'cat', isOriginal: true, isStage: false, getName: () => 'Sprite1' };
+        const stage = { id: 'stage', isOriginal: true, isStage: true, getName: () => 'Stage' };
+        const props = spriteCodesSetup([stage, cat]);
+        const penguin = { id: 'penguin', isOriginal: true, isStage: false, getName: () => 'Penguin' };
+        props.vm.addSprite = jest.fn(() => {
+            props.vm.runtime.targets.push(penguin);
+            return Promise.resolve();
+        });
+        const { getByTestId } = renderContainer(props);
+        fireEvent.click(getByTestId('lesson-hint-insert-code'));
+        fireEvent.click(getByTestId('lesson-hint-insert-code'));
+        await waitFor(() => expect(props.onInsertCode).toHaveBeenCalled());
+        await flush();
+        expect(props.vm.addSprite).toHaveBeenCalledTimes(1);
+        expect(props.onInsertCode).toHaveBeenCalledTimes(1);
+    });
+
     test('a challenge with spriteCodes inserts nothing when one of the programs would not convert', async () => {
         rubyToBlocksXml
             .mockImplementationOnce(() => Promise.resolve({ xml: '<xml></xml>', errors: [] }))

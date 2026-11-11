@@ -81,7 +81,7 @@ const LessonHintContainer = ({
         };
     }, [blocks, intl, rubyVersion, vm]);
 
-    const handleInsertCode = useCallback(async () => {
+    const insertChallengeCode = useCallback(async () => {
         if (!current || !current.challenge.code) return;
         const { challenge } = current;
         const hasVm = Boolean(vm && vm.runtime);
@@ -124,6 +124,16 @@ const LessonHintContainer = ({
         if (target) vm.setEditingTarget(target.id);
         onInsertCode(current.challenge.code, current.course.language, target, rubyVersion);
     }, [current, intl, onInsertCode, rubyVersion, vm]);
+
+    // 「プログラムを入れる」を続けて押したときに 2 回入れない（spriteCodes ではペンギンが 2 匹足される）
+    const insertingRef = useRef(false);
+    const handleInsertCode = useCallback(() => {
+        if (insertingRef.current) return Promise.resolve();
+        insertingRef.current = true;
+        return insertChallengeCode().finally(() => {
+            insertingRef.current = false;
+        });
+    }, [insertChallengeCode]);
 
     if (!hint || !hint.visible || !current) return null;
     const step = hint.step;
