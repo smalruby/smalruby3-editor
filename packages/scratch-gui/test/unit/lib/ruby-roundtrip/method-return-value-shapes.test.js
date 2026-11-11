@@ -132,6 +132,14 @@ describe('Ruby to blocks: a return value that no block can hold', () => {
             expect(errors[0].row).toBe(2);
             expect(errors[0].text).toContain(`"${value}" cannot be returned from a method`);
         });
+
+        test('<value> before the last line is an error on its line', async () => {
+            const { result, errors } = await convert(`def self.foo\n  move(1)\n  ${value}\n  move(10)\nend\n`);
+            expect(result).toBe(false);
+            expect(errors).toHaveLength(1);
+            expect(errors[0].row).toBe(2);
+            expect(errors[0].text).toContain(`"${value}" is not a command`);
+        });
     });
 
     test('return with a command as its value is an error', async () => {

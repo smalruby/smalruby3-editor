@@ -171,6 +171,12 @@ const CoreHandlers = {
         if (value instanceof Primitive && value.type === 'sym') {
             throw this._notCommandError(node);
         }
+        // A value no block can hold (e.g. `self`, `[1]`, `Foo`, `"#{x}"`) before the last line of a method
+        // dropped the rest of the method silently (#1553).
+        if (bodyKind === 'method' && (this._isUnreturnableValue(value) ||
+            (!value && /^Interpolated/.test(this._getNodeTypeName(node) || '')))) {
+            throw this._notCommandError(node);
+        }
         // In a block body, other literals (e.g. `"abc"`) become an assignment to a temporary
         // variable (see `_processStatement`); in a method body they are values.
         const isValue = this._isValueBlock(value) && value.opcode !== 'data_setvariableto';
