@@ -180,6 +180,7 @@ describe('lesson courses', () => {
             id: 'x-y',
             name: { id: 'gui.lessons.challenge.x-y.name', defaultMessage: undefined },
             task: null,
+            image: null,
             category: null,
             skills: [],
             goal: null,
@@ -238,8 +239,9 @@ describe('lesson courses', () => {
             const c = challenge('blocks-l1-if');
             expect(c.number).toBe(5);
             expect(c.required).toBe(false);
+            // 課題の全文では読みやすいところで改行する（課題バーの 1 行ではつなぐ）
             expect(jaText(c.task)).toBe(
-                'マウスでネコにさわったら「くすぐったい！」、さわっていないときは「さわってみて」と言うようにしよう',
+                'マウスでネコにさわったら「くすぐったい！」、\nさわっていないときは「さわってみて」と言うようにしよう',
             );
             expect(c.skills.map((s) => jaText(s.name))).toEqual(['もし〜なら', 'ずっと', 'さわったか調べる']);
             expect(allowedOpcodes(c)).toEqual({
@@ -286,7 +288,7 @@ describe('lesson courses', () => {
             expect(c.number).toBe(6);
             expect(c.required).toBe(true);
             expect(jaText(c.task)).toBe(
-                'ネコを押したら名前を聞いて、答えた名前と、答えるまでにかかった秒数を言うようにしよう',
+                'ネコを押したら名前を聞いて、\n答えた名前と、答えるまでにかかった秒数を言うようにしよう',
             );
             expect(c.skills.map((s) => jaText(s.name))).toEqual(['聞いて答える', 'タイマー', 'ことばをつなぐ']);
             expect(allowedOpcodes(c)).toEqual({
@@ -340,7 +342,7 @@ describe('lesson courses', () => {
             expect(c.number).toBe(7);
             expect(c.required).toBe(false);
             expect(jaText(c.task)).toBe(
-                'ネコを押したら「4＋3＝？」と聞いて、7 なら「正解です」、ちがえば「ちがいます」と言うようにしよう',
+                'ネコを押したら「4＋3＝？」と聞いて、\n7 なら「正解です」、ちがえば「ちがいます」と言うようにしよう',
             );
             expect(c.skills.map((s) => jaText(s.name))).toEqual(['くらべる', 'もし〜なら']);
             // 「もし〜なら」は 5 と同じできること（id で重ねる）
@@ -381,7 +383,7 @@ describe('lesson courses', () => {
             const c = challenge('blocks-l1-count');
             expect(c.number).toBe(8);
             expect(c.required).toBe(true);
-            expect(jaText(c.task)).toBe('ネコを押した回数を数えて、その数を言うようにしよう。3 回押してみよう');
+            expect(jaText(c.task)).toBe('ネコを押した回数を数えて、その数を言うようにしよう。\n3 回押してみよう');
             expect(c.skills.map((s) => jaText(s.name))).toEqual(['変数を作る', '変数']);
             expect(allowedOpcodes(c)).toEqual({
                 event: ['event_whenflagclicked', 'event_whenthisspriteclicked'],
@@ -427,7 +429,7 @@ describe('lesson courses', () => {
             const c = challenge('blocks-l1-broadcast');
             expect(c.number).toBe(9);
             expect(c.required).toBe(true);
-            expect(jaText(c.task)).toBe('ペンギンを足して、ネコを押したらペンギンが「やあ！」と言うようにしよう');
+            expect(jaText(c.task)).toBe('ペンギンを足して、\nネコを押したらペンギンが「やあ！」と言うようにしよう');
             expect(c.skills.map((s) => jaText(s.name))).toEqual([
                 'スプライトを足す',
                 '合図（メッセージ）',
@@ -477,7 +479,7 @@ describe('lesson courses', () => {
             expect(c.number).toBe(10);
             expect(c.required).toBe(false);
             expect(jaText(c.task)).toBe(
-                '拡張機能「音声合成」を足して、ネコを押したら「ボタンが押されました」としゃべるようにしよう',
+                '拡張機能「音声合成」を足して、\nネコを押したら「ボタンが押されました」としゃべるようにしよう',
             );
             expect(c.skills.map((s) => jaText(s.name))).toEqual(['拡張機能を足す', '音声合成']);
             expect(allowedOpcodes(c)).toEqual({
@@ -511,7 +513,7 @@ describe('lesson courses', () => {
             expect(c.number).toBe(11);
             expect(c.required).toBe(true);
             expect(jaText(c.task)).toBe(
-                'ネコを押したら「メッセージは？」と聞いて、答えをリスト「トーク」にためよう。3 つためてみよう',
+                'ネコを押したら「メッセージは？」と聞いて、\n答えをリスト「トーク」にためよう。\n3 つためてみよう',
             );
             expect(c.skills.map((s) => jaText(s.name))).toEqual(['リストを作る', 'リストに追加する']);
             expect(allowedOpcodes(c)).toEqual({
@@ -575,7 +577,7 @@ describe('lesson courses', () => {
         test('1 キーで音を鳴らそう: space key plays two sounds in order', () => {
             const c = challenge('blocks-l1-key-sound');
             expect(c.required).toBe(false);
-            expect(ja[c.task.id]).toBe('スペースキーを押したら、ネコが「ニャー」と鳴いたあと、「Owl」の音が鳴るようにしよう');
+            expect(ja[c.task.id]).toBe('スペースキーを押したら、\nネコが「ニャー」と鳴いたあと、「Owl」の音が鳴るようにしよう');
             expect(c.skills.map((s) => ja[s.name.id])).toEqual(['キーで動かす', '音を鳴らす', '音を足す']);
             expect(allowedOpcodes(c)).toEqual({
                 event: ['event_whenkeypressed'],
@@ -605,6 +607,9 @@ describe('lesson courses', () => {
             const c = challenge('blocks-l1-arrow-move');
             expect(c.required).toBe(false);
             expect(ja[c.task.id]).toBe('上向き矢印キーで上へ、下向き矢印キーで下へ、ネコを動かそう');
+            // 課題の全文に出す画像の例（jest では画像の import は fileMock の文字列）
+            expect(typeof c.image.src).toBe('string');
+            expect(ja[c.image.alt.id]).toBe('上向き矢印キーでネコが上へ、下向き矢印キーで下へ動く');
             expect(c.skills.map((s) => ja[s.name.id])).toEqual(['座標で動かす', 'ブロックを複製する']);
             expect(allowedOpcodes(c)).toEqual({ event: ['event_whenkeypressed'], motion: ['motion_changeyby'] });
             expect(hints(c)).toEqual([
@@ -635,7 +640,7 @@ describe('lesson courses', () => {
             const c = challenge('blocks-l1-click-say');
             expect(c.required).toBe(true);
             expect(ja[c.task.id]).toBe(
-                'ネコに好きなコスチュームを足して、押したら「こんにちは！」と言って、見た目がかわるようにしよう',
+                'ネコに好きなコスチュームを足して、\n押したら「こんにちは！」と言って、見た目がかわるようにしよう',
             );
             expect(c.skills.map((s) => ja[s.name.id])).toEqual(['押したら動く', 'セリフを言う', 'コスチュームを足す']);
             expect(allowedOpcodes(c)).toEqual({
@@ -665,7 +670,7 @@ describe('lesson courses', () => {
         test('4 くり返そう: the stage switches the backdrop 6 times on the 1 key', () => {
             const c = challenge('blocks-l1-repeat');
             expect(c.required).toBe(false);
-            expect(ja[c.task.id]).toBe('1 のキーを押したら、背景が「Canyon」と「Arctic」に 3 回かわるようにしよう');
+            expect(ja[c.task.id]).toBe('1 のキーを押したら、\n背景が「Canyon」と「Arctic」に 3 回かわるようにしよう');
             expect(c.skills.map((s) => ja[s.name.id])).toEqual(['くり返し', '背景を足す', 'ステージのプログラム']);
             expect(allowedOpcodes(c)).toEqual({
                 event: ['event_whenkeypressed'],

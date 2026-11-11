@@ -64,7 +64,8 @@
 | `id` | string | — | **記録のキー**。並びを変えても変わらないよう番号を入れない（例: `blocks-l1-click-say`） |
 | `number` | number | 並びから | レッスンの中で何個めか（表示用）。`defineLesson` が並びから付ける |
 | `name` | message | id から | チャレンジの名前 |
-| `task` | message \| null | null | 課題の 1 行 |
+| `task` | message \| null | null | 課題の 1 行。全文では改行（`\n`）をそのまま出す（バーの 1 行ではつなぐ） |
+| `image` | `{src, alt}` \| null | null | 課題の全文といっしょに出す画像（任意）。`src` は import した画像の URL、`alt` は message |
 | `category` | string \| null | null | なかま（パレットの色）。`CATEGORIES` の値（`motion` / `looks` / `sound` / `events` / `control` / `sensing` / `operators` / `variables` / `lists` / `extensions`）。レッスン表が色の丸で見せる |
 | `skills` | `{id, name}`[] | [] | できること。id で重ねる（別のチャレンジで同じものが身についても 1 つ） |
 | `goal` | 条件[] \| null | null | できた の判定。条件の配列で、全部を満たしたら「できた」（下の「できた の判定」）。null なら判定しない |
@@ -485,7 +486,7 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 - **できること**: コースの全チャレンジの `skills` を並び順に（同じ id は 1 つ）。できたチャレンジのものは
   色つき、まだのものは点線。どのチャレンジにも `skills` が無いあいだは出さない。
 - **記録の取り込み**: 開くたびに `reloadProgress()` を呼び、別のタブで書いた記録も反映する。
-- **やめる → もどる**: レッスンモードの「やめる」は `closeLesson()` のあとレッスン表を開く（次のチャレンジを
+- **ほかのチャレンジへ → もどる**: レッスンモードの「ほかのチャレンジへ」は `closeLesson()` のあとレッスン表を開く（次のチャレンジを
   すぐ選べる）。
 - **はじめての人向けの吹き出しは出さない**: 「レッスン」ボタンの下に吹き出しで誘うことはしない（どの端末でも）。
   レッスンに入る道は、メニューの「レッスン」（SP はドロワーの「レッスン」）と、段 2 のクラス管理との統合
@@ -534,29 +535,42 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
   `lib/deck-setup.js` に渡す形を作る。コースの言語から既定（ブロック = コードタブ、Ruby = Ruby タブ・Ruby
   モード、DNCL = Ruby タブ・DNCL モード）を決め、チャレンジの `setup` で上書きする。
 - **課題バー**（`components/lesson-task-bar/`）: エディタ列（タブの上）に 1 行・40px で出す。
-  「何個め / 全部で何個」・課題の 1 行（`task`。無ければチャレンジの名前）・ヒント・やめる。
+  「何個め / 全部で何個」・課題の 1 行（`task`。無ければチャレンジの名前）・ヒント・ほかのチャレンジへ。
   stage の列には掛からないので、1300×600 の授業のパソコンでもコードエリアは 40px 縮むだけ。
   課題の文は長くてもエディタ列を広げない（広げるとステージが画面の右にはみ出す）。入りきらない分は
-  … で切る（全文は `title` にもある）。SP（MobileGui）でも同じ場所に出る。
+  … で切る（全文は下のパネルで読む）。課題の文の改行（下の「課題の全文」）は、バーの 1 行ではつなぐ
+  （前後が両方とも半角なら空白でつなぎ、日本語は空白を入れない）。SP（MobileGui）でも同じ場所に出る。
 - **はじめての人向けの表示と重ねない**: 「レッスンをはじめよう！」とウェルカムバルーンはレッスンモードのあいだ
   出さない（抜けたらウェルカムバルーンは元どおり。「レッスンをはじめよう！」はチャレンジを開いた時点で役目を終える）。SP の「スマホ用の画面です」の案内（`MobileModeNotice`、画面の上に `fixed` で
   出る）は、レッスンモードに入ったら閉じて、閉じたことを記録する（一度きりの案内で、レッスンを始めた人は
   もう画面を使えているため。課題バーの下へずらすと、課題バーの下に出る全文パネル・ヒント・「できた！」と重なる）。
-- **課題の全文**: 課題の文が … で切れているときだけ、バーに「全文」ボタンが出る。ボタンか課題の文を押すと、
-  課題バーのすぐ下に全文を折り返して出すパネルを開く（もう一度押す・外（コードエリアも含む）を押す・Esc で閉じる）。`title` は
-  タッチ端末や子どもには気づきにくいため。切れているかは課題の文の `scrollWidth > clientWidth` で決め、
-  窓の大きさ（`resize`）と課題の文の幅（`ResizeObserver`）が変わるたびと、フォントの読み込み
-  （`document.fonts` の `loadingdone` / `ready`。文の幅だけが変わり要素の大きさは変わらないので
-  `ResizeObserver` では気づけない）で測り直す（全部入るようになれば
-  ボタンは消え、パネルも閉じる）。日本語のフォントが無い環境（CI のランナー）では、かなや漢字が細い代わりの字で
-  描かれて課題の文が 1 行に入ってしまうので、integration テストは課題の文の字の間を広げてから
-  `loadingdone` を送り、フォントに頼らずに切れた状態を作る。パネルは `position: absolute` でエディタの列に重ねるので、エディタの列の
-  幅も高さも変えない（ステージは押し出さない）。「できた！」の toast とヒントの吹き出しも課題バーの下に
-  出るので重ねない: パネルを開くとその 2 つを閉じ、どちらかが出たらパネルを閉じる（z-index もパネルの
-  470 より toast の 480・吹き出しの 490 が上）。文言は `gui.lessonTaskBar.fullText`（全文 / ぜんぶ / Read all）と
-  `gui.lessonTaskBar.fullTextLabel`（ボタンの aria-label）。
+- **課題の全文**: 課題バーにマウスを乗せているあいだ、課題が短くても長くても、課題バーのすぐ下に全文を
+  出す（バーから離れるとすぐ消える）。出すのは乗せてから 300ms たってから（`HOVER_DELAY_MS`。バーはタブと
+  コードエリアのあいだにあるので、横切っただけでパネルがちらつかないように）。先生がプロジェクターに映して「今日の課題は〜です」と説明する場面を想定し、
+  字は大きめ（`clamp(1rem, 1.8vw, 1.5rem)`。1300px 幅で約 23px、SP では 16px まで小さく）。課題の文は
+  チャレンジの定義（`lessons.locale.js`）で読みやすいところに改行（`\n`）を入れておき、パネルでは
+  その改行どおりに出す（`white-space: pre-line`）。チャレンジに `image` があれば、文の下に画像も出す
+  （縦は 10rem まで）。
+  - **SP・タッチ**: タッチでは乗せる操作が無いので、課題の文（`button`）のタップで開き、もう一度のタップで
+    閉じる。開いているあいだは外（コードエリアも含む）を押す・Esc でも閉じる。キーボードでも課題の文に
+    フォーカスして Enter で開閉できる。乗せて出すのはポインタの種類が `mouse` のときだけ（タッチでも
+    `pointerover` が来るため）で、マウスで課題の文を押しても開いたままにはしない（離せば消える）。
+  - **パネルの置き方**: `position: absolute` でエディタの列に重ねるので、エディタの列の幅も高さも変えない
+    （ステージは押し出さない）。マウスで出しているときは `pointer-events: none`（パネルの上へ動かしても
+    バーから離れたことになり消える）、タップで開いたときだけ中をスクロールできる。
+  - **ヒントの吹き出し・「できた！」と重ねない**: どちらも課題バーの下に出るので、どちらかが出ているあいだは
+    パネルを出さない（タップで開いていたものも閉じる）。タップで開くとその 2 つを閉じる（z-index もパネルの
+    470 より toast の 480・吹き出しの 490 が上）。
 
   ![課題の全文（1300×600）](screenshots/0203-lesson-task-full-text-1300x600.png)
+
+  ![画像つきの課題の全文（1300×600）](screenshots/0205-lesson-task-full-text-image-1300x600.png)
+- **チャレンジの画像**（`image`。任意）: `{src, alt}`。`src` は `src/lib/lessons/images/` に置いた画像を
+  `courses.js` で import した URL（webpack の asset。チュートリアルの deck の画像
+  `src/lib/libraries/decks/steps/` と同じ扱いで、バンドルに入るので file:// の integration テストでもそのまま
+  読める）。`alt` は message descriptor（`gui.lessons.challenge.<id>.image`）。画像の文字は言語で変わるので、
+  画像の中には字を入れない（言葉は課題の文と `alt` に書く）。例: チャレンジ 2「矢印キーで動かそう」の
+  `images/arrow-keys.svg`（上・下の矢印キーとネコの動く向き）。
 - **パレットを絞る**: チャレンジの `allowedBlocks`（deck と同じ形）。Blocks コンテナの `tutorialAllowedBlocks`
   にレッスンの分を優先して渡すので、仕組みはチュートリアルと同じ（`allowedBlocks` が null なら絞らない）。
   - **「変数」「ブロック定義」も絞る**: この 2 つは scratch-blocks が flyout を開くたびに中身を作る動的カテゴリ
@@ -601,7 +615,7 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 - **ヒント**: 「ヒント」ボタンで `showHint` / `hideHint`。吹き出し（下の「ヒントの吹き出し」）は
   `containers/lesson-mode.jsx` の `<LessonTaskBar>` の次に置いた `containers/lesson-hint.jsx` が出す。
   ヒントが無いチャレンジではボタンが無効。
-- **やめる**: `closeLesson()` のあとレッスン表を開く。課題バーが消え、パレットが元にもどる（作品はそのまま）。
+- **ほかのチャレンジへ**（いまのチャレンジを終える）: `closeLesson()` のあとレッスン表を開く。課題バーが消え、パレットが元にもどる（作品はそのまま）。
 - **いまのチュートリアル（カード）との関係**: 両方が同時に開くと、カードの `allowedBlocks` / setup と
   レッスンのものが食い違うので、どちらか一方だけにする。チャレンジを開くときは開いていたカードを閉じ
   （`closeCards`）、レッスンモード中に「?」メニューなどからチュートリアルを開く（`activateDeck`）と
@@ -692,11 +706,12 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 |------------|------|------|
 | `lesson-task-bar` | div | 課題バー全体（レッスンモードのときだけある） |
 | `lesson-task-bar-position` | span | 「何個め / 全部で何個」 |
-| `lesson-task-bar-task` | span | 課題の 1 行（長いときは省略記号。全文は `title`）。`data-truncated="true\|false"` = 切れているか。切れているときは押すと全文のパネルを開閉する |
-| `lesson-task-bar-full-text-toggle` | button | 「全文」（切れているときだけある。`aria-expanded` / `aria-controls`） |
-| `lesson-task-bar-full-text` | div | 課題の全文のパネル（開いているときだけある） |
+| `lesson-task-bar-task` | button | 課題の 1 行（長いときは省略記号）。タップ・キーボードで全文のパネルを開閉する（`aria-expanded` / `aria-controls`） |
+| `lesson-task-bar-full-text` | div | 課題の全文のパネル（マウスを乗せているあいだ・タップで開いているあいだだけある） |
+| `lesson-task-bar-full-text-text` | p | パネルの課題の文（改行つき） |
+| `lesson-task-bar-full-text-image` | img | パネルの画像（チャレンジに `image` があるときだけ） |
 | `lesson-task-bar-hint` | button | ヒントの吹き出しの出し入れ（ヒントが無ければ disabled） |
-| `lesson-task-bar-quit` | button | やめる |
+| `lesson-task-bar-quit` | button | ほかのチャレンジへ（いまのチャレンジを終えてレッスン表を開く） |
 | `lesson-hint` | div | ヒントの吹き出し（`data-side` = 置いた側 `right` / `left` / `bottom` / `top` / `inside` / `center`、`data-target` = 指す場所） |
 | `lesson-hint-spotlight` | div | スポットライトの穴（照らしているときだけある） |
 | `lesson-hint-position` | span | 「ヒント n / N」 |
@@ -714,8 +729,9 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 |---------|------|
 | `screenshots/0201-lesson-mode-1300x600.png` | 授業のパソコン（1300×600）でチャレンジ 3「押したら話そう」を開いたところ |
 | `screenshots/0202-lesson-mode-667x375.png` | SP 横（MobileGui）で同じチャレンジを開いたところ |
-| `screenshots/0203-lesson-task-full-text-1300x600.png` | 1300×600 でチャレンジ 5「もし〜なら」の課題の全文を開いたところ |
-| `screenshots/0204-lesson-task-full-text-667x375.png` | SP 横（MobileGui）で同じ全文を開いたところ |
+| `screenshots/0203-lesson-task-full-text-1300x600.png` | 1300×600 でチャレンジ 5「もし〜なら」の課題バーにマウスを乗せ、改行つきの全文を出したところ |
+| `screenshots/0204-lesson-task-full-text-667x375.png` | SP 横（MobileGui）で同じ課題の文をタップして全文を開いたところ |
+| `screenshots/0205-lesson-task-full-text-image-1300x600.png` | 1300×600 でチャレンジ 2「矢印キーで動かそう」の全文（画像つき）を出したところ |
 | `screenshots/0401-lesson-hint-1300x600.png` | ヒント 2（パレットを指す・はじめてなのでスポットライト・本物のブロック）を 1300×600 で開いたところ |
 | `screenshots/0402-lesson-hint-667x375.png` | 同じヒントを SP 横（667×375）で開いたところ（パレットの右に収まる） |
 | `screenshots/0403-lesson-hint-375x667.png` | 同じヒントを SP 縦（375×667。縦持ちゲートを閉じたあと）で開いたところ（収まらないのでパレットの中） |
@@ -778,6 +794,7 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 
 | ファイル | 説明 |
 |---------|------|
+| `packages/scratch-gui/src/lib/lessons/images/` | チャレンジの `image` に使う画像（`courses.js` で import する） |
 | `packages/scratch-gui/src/lib/lessons/courses.js` | コース・レッスン・チャレンジのデータと検索。locale ごとの Ruby を選ぶ `localizeCode` / `challengeCodeFor` / `challengeCodeCandidates` |
 | `packages/scratch-gui/src/lib/lessons/lessons.locale.js` | 文言（en / ja / ja-Hira。`src/locales/*.js` に spread） |
 | `packages/scratch-gui/src/lib/lessons/lesson-progress.js` | 端末への記録・クリア判定・できること |
@@ -821,6 +838,7 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `packages/scratch-gui/src/components/menu-bar/menu-bar.jsx` | 「レッスン」ボタン（`lessons button` マーカー）、「?」メニューのチュートリアル / デバッグ項目（`help menu` マーカー） |
 | `packages/scratch-gui/src/containers/menu-bar-hoc.jsx` | `onOpenLessonsLibrary` / `lessonModeActive`（`lessons button` マーカー）と `onOpenTipsLibrary`（`help menu` マーカー）の供給 |
 | `packages/scratch-gui/test/unit/components/lesson-task-bar.test.jsx` / `test/unit/containers/lesson-mode.test.jsx` | 課題バーとチャレンジを開く流れの unit テスト |
+| `packages/scratch-gui/test/integration/smalruby-lesson-task-bar-full-text.test.js` | 課題バーにマウスを乗せると改行つきの全文（画像も）が出て離すと消える・タップで開閉・「ほかのチャレンジへ」でレッスン表（Selenium・1300×600） |
 | `packages/scratch-gui/test/integration/smalruby-lessons.test.js` | チャレンジを開く → 課題バー・絞ったパレット → やめる → 元にもどる（Selenium） |
 | `packages/scratch-gui/test/unit/components/lessons-library.test.jsx` / `test/unit/containers/lessons-library.test.jsx` / `test/unit/components/menu-bar-lessons.test.jsx` | レッスン表（できた印・進み具合・クリア表示・できること）、コンテナ、「レッスン」ボタン（吹き出しを出さないこと）の unit テスト |
 | `packages/scratch-gui/test/integration/smalruby-lessons-library.test.js` | メニューから開く → チャレンジを押す → レッスンモード → やめる → レッスン表にもどる・記録に合わせた「できた」と進み具合（Selenium） |
