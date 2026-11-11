@@ -5,6 +5,7 @@ import configureStore from 'redux-mock-store';
 import MenuBar from '../../../src/components/menu-bar/menu-bar';
 import { PLATFORM } from '../../../src/lib/platform';
 import { DEFAULT_MODE } from '../../../src/lib/settings/color-mode';
+import { lessonModeInitialState } from '../../../src/reducers/lesson-mode';
 import { menuInitialState } from '../../../src/reducers/menus';
 import { openDebugModal, openTipsLibrary } from '../../../src/reducers/modals';
 import { LoadingState } from '../../../src/reducers/project-state';
@@ -34,6 +35,7 @@ const buildStore = ({ aboutMenuOpen = false } = {}) =>
             meshV2: { domain: null },
             cards: { visible: false, activeDeckId: null, step: 0 },
             tutorialOnboarding: tutorialOnboardingInitialState,
+            lessonMode: lessonModeInitialState,
             classroom: { className: null, seatNumber: null, teacherLoggedIn: false },
             projectChanged: false,
             projectTitle: 'Untitled',

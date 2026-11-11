@@ -8,6 +8,9 @@ import {fireEvent} from '@testing-library/react';
 
 import {PLATFORM} from '../../../src/lib/platform';
 import {tutorialOnboardingInitialState} from '../../../src/reducers/tutorial-onboarding';
+// === Smalruby: Start of lessons button ===
+import {lessonModeInitialState} from '../../../src/reducers/lesson-mode';
+// === Smalruby: End of lessons button ===
 
 import configureStore from 'redux-mock-store';
 import {Provider} from 'react-redux';
@@ -64,6 +67,7 @@ describe('MenuBar Component', () => {
                 step: 0
             },
             tutorialOnboarding: tutorialOnboardingInitialState,
+            lessonMode: lessonModeInitialState, // === Smalruby: lessons button ===
             projectChanged: false,
             projectTitle: 'Untitled'
         },
@@ -156,6 +160,7 @@ describe('MenuBar Component', () => {
                         step: 0
                     },
                     tutorialOnboarding: tutorialOnboardingInitialState,
+                    lessonMode: lessonModeInitialState, // === Smalruby: lessons button ===
                     projectChanged: false,
                     projectTitle: 'Untitled'
                 },

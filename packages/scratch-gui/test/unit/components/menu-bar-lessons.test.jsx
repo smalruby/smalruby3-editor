@@ -6,6 +6,7 @@ import configureStore from 'redux-mock-store';
 import MenuBar from '../../../src/components/menu-bar/menu-bar';
 import { PLATFORM } from '../../../src/lib/platform';
 import { DEFAULT_MODE } from '../../../src/lib/settings/color-mode';
+import { lessonModeInitialState } from '../../../src/reducers/lesson-mode';
 import { menuInitialState } from '../../../src/reducers/menus';
 import { openLessonsLibrary } from '../../../src/reducers/modals';
 import { LoadingState } from '../../../src/reducers/project-state';
@@ -18,7 +19,7 @@ jest.mock('../../../src/lib/classroom-api', () => ({
     isClassroomConfigured: () => false,
 }));
 
-const buildStore = ({ tooltipDismissed = false } = {}) =>
+const buildStore = ({ tooltipDismissed = false, challengeId = null } = {}) =>
     configureStore()({
         locales: { isRtl: false, locale: 'en-US' },
         scratchGui: {
@@ -35,6 +36,7 @@ const buildStore = ({ tooltipDismissed = false } = {}) =>
             meshV2: { domain: null },
             cards: { visible: false, activeDeckId: null, step: 0 },
             tutorialOnboarding: { tutorialSeen: tooltipDismissed, rubyTabUsed: false, tooltipDismissed },
+            lessonMode: { ...lessonModeInitialState, challengeId },
             classroom: { className: null, seatNumber: null, teacherLoggedIn: false },
             projectChanged: false,
             projectTitle: 'Untitled',
@@ -84,5 +86,17 @@ describe('MenuBar Lessons button', () => {
     test('hides the balloon once the onboarding is done', () => {
         const { container } = renderMenuBar({ tooltipDismissed: true });
         expect(container.querySelector('[data-testid="lessons-tooltip"]')).toBeFalsy();
+    });
+
+    // Issue #1498: レッスンモードでは課題バーに重なるので、はじめての人向けの吹き出しを出さない
+    test('hides the first-time balloons while a challenge is open', () => {
+        const { container } = renderMenuBar({ challengeId: 'blocks-l1-if' });
+        expect(container.querySelector('[data-testid="lessons-tooltip"]')).toBeFalsy();
+        expect(container.querySelector('[data-testid="welcome-tooltip"]')).toBeFalsy();
+    });
+
+    test('shows the welcome balloon outside lesson mode', () => {
+        const { container } = renderMenuBar();
+        expect(container.querySelector('[data-testid="welcome-tooltip"]')).toBeTruthy();
     });
 });

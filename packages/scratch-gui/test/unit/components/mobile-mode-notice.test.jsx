@@ -54,4 +54,25 @@ describe('MobileModeNotice (Issue #865)', () => {
         expect(window.localStorage.getItem(DISMISS_STORAGE_KEY)).toBe('true');
         expect(queryByTestId('mobile-mode-notice')).not.toBeInTheDocument();
     });
+
+    // Issue #1498: レッスンモードでは課題バー・全文パネルに重なるので、入ったら閉じる
+    test('closes and records the dismissal when lesson mode is active', () => {
+        const { queryByTestId } = renderWithIntl(<MobileModeNotice lessonModeActive />);
+        expect(queryByTestId('mobile-mode-notice')).not.toBeInTheDocument();
+        expect(window.localStorage.getItem(DISMISS_STORAGE_KEY)).toBe('true');
+    });
+
+    test('closes when lesson mode starts while the notice is shown', () => {
+        const { getByTestId, queryByTestId, rerender } = renderWithIntl(
+            <MobileModeNotice lessonModeActive={false} />,
+        );
+        expect(getByTestId('mobile-mode-notice')).toBeInTheDocument();
+        rerender(
+            <IntlProvider locale="en" messages={{}}>
+                <MobileModeNotice lessonModeActive />
+            </IntlProvider>,
+        );
+        expect(queryByTestId('mobile-mode-notice')).not.toBeInTheDocument();
+        expect(window.localStorage.getItem(DISMISS_STORAGE_KEY)).toBe('true');
+    });
 });

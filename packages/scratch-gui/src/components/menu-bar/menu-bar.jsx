@@ -667,8 +667,9 @@ class MenuBar extends React.Component {
             >
                 {/* === Smalruby: Start of welcome tooltip === */}
                 {/* The balloon sits just left of "?", where the teacher menu is
-                    while a teacher is logged in (#1299). */}
-                {this.props.classroomTeacherLoggedIn ? null : (
+                    while a teacher is logged in (#1299). It stays hidden in lesson
+                    mode, where it would cover the lesson task bar (#1498). */}
+                {this.props.classroomTeacherLoggedIn || this.props.lessonModeActive ? null : (
                     <WelcomeTooltip onClick={this.handleClickWelcomeTooltip} />
                 )}
                 {/* === Smalruby: End of welcome tooltip === */}
@@ -1811,6 +1812,7 @@ MenuBar.propTypes = {
     onOpenTipsLibrary: PropTypes.func,
     // === Smalruby: Start of lessons button ===
     onOpenLessonsLibrary: PropTypes.func,
+    lessonModeActive: PropTypes.bool,
     showLessonsTooltip: PropTypes.bool,
     // === Smalruby: End of lessons button ===
     onActivateRubyTab: PropTypes.func,

@@ -4,6 +4,7 @@ import MenuBarHOC from '../../../src/containers/menu-bar-hoc.jsx';
 import {render} from '@testing-library/react';
 import '@testing-library/jest-dom';
 import {tutorialOnboardingInitialState} from '../../../src/reducers/tutorial-onboarding';
+import {lessonModeInitialState} from '../../../src/reducers/lesson-mode';
 
 // TODO rewrite this test to use react-testing-library
 
@@ -16,7 +17,8 @@ describe('Menu Bar HOC', () => {
         store = mockStore({
             scratchGui: {
                 projectChanged: true,
-                tutorialOnboarding: tutorialOnboardingInitialState
+                tutorialOnboarding: tutorialOnboardingInitialState,
+                lessonMode: lessonModeInitialState
             }
         });
 
@@ -170,4 +172,44 @@ describe('Menu Bar HOC', () => {
         expect(element).toHaveTextContent(/false/i);
     });
 
+
+    // === Smalruby: Start of lessons button ===
+    // Issue #1498: the first-time balloons overlap the lesson task bar, so they
+    // stay hidden while a challenge is open and come back once it is closed.
+    describe('first-time balloons and lesson mode', () => {
+        const renderWith = lessonMode => {
+            const PropsProbe = jest.fn(() => null);
+            const WrappedComponent = MenuBarHOC(PropsProbe);
+            render(
+                <WrappedComponent
+                    store={mockStore({
+                        scratchGui: {
+                            projectChanged: false,
+                            tutorialOnboarding: tutorialOnboardingInitialState,
+                            lessonMode
+                        }
+                    })}
+                />
+            );
+            return PropsProbe.mock.calls[PropsProbe.mock.calls.length - 1][0];
+        };
+
+        test('shows the balloons outside lesson mode', () => {
+            const props = renderWith(lessonModeInitialState);
+            expect(props.showLessonsTooltip).toBe(true);
+            expect(props.lessonModeActive).toBe(false);
+        });
+
+        test('hides the balloons while a challenge is open', () => {
+            const props = renderWith({...lessonModeInitialState, challengeId: 'blocks-l1-if'});
+            expect(props.showLessonsTooltip).toBe(false);
+            expect(props.lessonModeActive).toBe(true);
+        });
+
+        test('keeps the onboarding state, so the balloon returns after leaving lesson mode', () => {
+            const props = renderWith({...lessonModeInitialState, challengeId: null});
+            expect(props.showLessonsTooltip).toBe(true);
+        });
+    });
+    // === Smalruby: End of lessons button ===
 });

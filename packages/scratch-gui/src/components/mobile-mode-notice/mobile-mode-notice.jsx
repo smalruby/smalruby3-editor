@@ -1,4 +1,5 @@
-import React, { useCallback, useState } from 'react';
+import PropTypes from 'prop-types';
+import React, { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { defineMessages, FormattedMessage, injectIntl } from 'react-intl';
 
@@ -55,11 +56,16 @@ const wasDismissed = () => {
  * MobileGui からのみマウントされる (= スマホモード時のみ)。PC (広幅) では
  * MobileGui 自体がマウントされないので表示されない。閉じると localStorage に
  * 記録し、そのマシンでは以後出さない。
+ *
+ * レッスンモード（チャレンジを開いている）に入ったら閉じる (Issue #1498)。
+ * fixed で画面の上に出るので、課題バーと全文パネルに重なるため。一度きりの案内で、
+ * レッスンを始めた人はもう画面を使えているので、閉じたことを記録してよい。
  * @param {object} props - props
  * @param {object} props.intl - react-intl
+ * @param {boolean} [props.lessonModeActive] - レッスンモード中か
  * @returns {JSX.Element|null} portal 経由で body 直下にレンダリング (dismiss 済みなら null)
  */
-const MobileModeNoticeComponent = ({ intl }) => {
+const MobileModeNoticeComponent = ({ intl, lessonModeActive }) => {
     const [visible, setVisible] = useState(() => !wasDismissed());
 
     const dismiss = useCallback(() => {
@@ -69,6 +75,10 @@ const MobileModeNoticeComponent = ({ intl }) => {
         setVisible(false);
     }, []);
 
+    useEffect(() => {
+        if (lessonModeActive && visible) dismiss();
+    }, [lessonModeActive, visible, dismiss]);
+
     const handleSwitchToDesktop = useCallback(() => {
         // PC モードへ固定 (localStorage 保存)。ResponsiveGui がイベントを受けて
         // desktop GUI に切り替える。以後この案内も不要なので dismiss も記録する。
@@ -76,7 +86,7 @@ const MobileModeNoticeComponent = ({ intl }) => {
         dismiss();
     }, [dismiss]);
 
-    if (typeof document === 'undefined' || !visible) {
+    if (typeof document === 'undefined' || !visible || lessonModeActive) {
         return null;
     }
 
@@ -123,6 +133,11 @@ const MobileModeNoticeComponent = ({ intl }) => {
 
 MobileModeNoticeComponent.propTypes = {
     intl: intlShape.isRequired,
+    lessonModeActive: PropTypes.bool,
+};
+
+MobileModeNoticeComponent.defaultProps = {
+    lessonModeActive: false,
 };
 
 const MobileModeNotice = injectIntl(MobileModeNoticeComponent);

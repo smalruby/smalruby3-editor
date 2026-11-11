@@ -10,6 +10,7 @@ import {openLessonsLibrary, openTipsLibrary} from '../reducers/modals';
 // === Smalruby: End of help menu ===
 // === Smalruby: Start of lessons button ===
 import {markTutorialSeen, shouldShowTooltip} from '../reducers/tutorial-onboarding';
+import {isLessonMode} from '../reducers/lesson-mode';
 // === Smalruby: End of lessons button ===
 
 const MenuBarHOC = function (WrappedComponent) {
@@ -62,7 +63,13 @@ const MenuBarHOC = function (WrappedComponent) {
         // === Smalruby: Start of lessons button ===
         // The first-time balloon under the Lessons button (reuses the tutorial
         // onboarding flag: it goes away once the lessons library has been opened).
-        showLessonsTooltip: shouldShowTooltip(state)
+        // While a challenge is open the first-time balloons (this one and the
+        // welcome balloon) would cover the lesson task bar, so they stay hidden
+        // (#1498). The welcome balloon's state is kept and it comes back after
+        // leaving; opening a challenge also marks the tutorial as seen
+        // (reducers/tutorial-onboarding.js), so this one does not come back.
+        lessonModeActive: isLessonMode(state),
+        showLessonsTooltip: shouldShowTooltip(state) && !isLessonMode(state)
         // === Smalruby: End of lessons button ===
     });
     // === Smalruby: Start of help menu ===

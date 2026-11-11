@@ -364,6 +364,7 @@ test/integration/*
 !test/integration/smalruby-lessons.test.js
 !test/integration/smalruby-lessons-hint.test.js
 !test/integration/smalruby-lesson-task-bar-full-text.test.js
+!test/integration/smalruby-lessons-first-time-balloons.test.js
 !test/integration/smalruby-lesson1-challenges-1-4.test.js
 !test/integration/smalruby-lessons-library.test.js
 !test/integration/v1-detection-prompt.test.js
@@ -612,6 +613,7 @@ test/unit/reducers/*
 !test/unit/reducers/cards_reducer.test.js
 !test/unit/reducers/dncl-mode-reducer.test.js
 !test/unit/reducers/lesson-mode-reducer.test.js
+!test/unit/reducers/tutorial-onboarding-reducer.test.js
 !test/unit/reducers/classroom-reducer.test.js
 !test/unit/reducers/menus-reducer.test.js
 !test/unit/reducers/palette-visibility-reducer.test.js
