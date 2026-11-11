@@ -705,13 +705,14 @@ class Blocks extends React.Component {
     // === Smalruby: Start of lesson dynamic category filtering ===
     /**
      * The opcodes allowed by the lesson challenge / tutorial (allowedBlocks), or null when the palette
-     * is not narrowed by them (no allowedBlocks, DNCL mode, or every block allowed).
+     * is not narrowed by them (no allowedBlocks, DNCL mode, no opcode at all, or every block allowed).
+     * An allowedBlocks without any opcode never narrowed the palette (only_blocks became ''), so keep that.
      * @returns {?Array.<string>} allowed opcodes.
      */
     getTutorialAllowedBlockIds () {
         if (this.props.dnclMode) return null;
         const ids = allowedBlocksToIds(this.props.tutorialAllowedBlocks);
-        if (!ids || ids.length >= TOTAL_DEFAULT_BLOCKS) return null;
+        if (!ids || ids.length === 0 || ids.length >= TOTAL_DEFAULT_BLOCKS) return null;
         return ids;
     }
     // === Smalruby: End of lesson dynamic category filtering ===
