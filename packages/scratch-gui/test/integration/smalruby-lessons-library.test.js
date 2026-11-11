@@ -25,6 +25,14 @@ const countByTestId = (d, testId) =>
 const textByTestId = (d, testId) =>
     d.executeScript(`return document.querySelector('[data-testid="${testId}"]').textContent`);
 
+// レッスンごとの「n / m done」
+const progressTexts = (d) =>
+    d.executeScript(
+        `return Array.from(document.querySelectorAll('[data-testid="lessons-library-progress"]'))
+            .map(el => el.textContent);`,
+    );
+
+// lessonId は 11 のチャレンジが 1 つのレッスンだったころの値（読むときに今の定義で読みかえる・#1529）
 const record = (completedAt) => ({ completedAt, courseId: 'kyou-kara-programmer', lessonId: 'blocks-l1' });
 
 describe('Smalruby Lessons Library', () => {
@@ -48,7 +56,7 @@ describe('Smalruby Lessons Library', () => {
 
         await clickByTestId(driver, 'menu-bar-lessons');
         await findByXpath(byTestId('lessons-library'));
-        expect(await textByTestId(driver, 'lessons-library-progress')).toBe('0 / 11 done (required 0 / 5)');
+        expect(await progressTexts(driver)).toEqual(['0 / 4 done', '0 / 3 done', '0 / 4 done']);
         expect(await countByTestId(driver, 'lessons-library-challenge-done')).toBe(0);
         // 本文は不透明（青いオーバーレイが透けない）
         const bodyBackground = await driver.executeScript(
@@ -61,7 +69,7 @@ describe('Smalruby Lessons Library', () => {
         await findByXpath(byTestId('lesson-task-bar'));
         await driver.sleep(1000);
         expect(await countByTestId(driver, 'lessons-library')).toBe(0);
-        expect(await textByTestId(driver, 'lesson-task-bar-position')).toBe('3 of 11');
+        expect(await textByTestId(driver, 'lesson-task-bar-position')).toBe('3 of 4');
 
         // 別のタブが書いた記録のつもりで localStorage に 2 つ入れておく
         const progress = {
@@ -69,6 +77,7 @@ describe('Smalruby Lessons Library', () => {
             challenges: {
                 'blocks-l1-click-say': record('2026-11-10T00:00:00.000Z'),
                 'blocks-l1-repeat': record('2026-11-10T00:00:01.000Z'),
+                'blocks-l1-quiz': record('2026-11-10T00:00:02.000Z'),
             },
         };
         await driver.executeScript(
@@ -80,9 +89,9 @@ describe('Smalruby Lessons Library', () => {
         await findByXpath(byTestId('lessons-library'));
         await driver.sleep(500);
         expect(await countByTestId(driver, 'lesson-task-bar')).toBe(0);
-        expect(await textByTestId(driver, 'lessons-library-progress')).toBe('2 / 11 done (required 1 / 5)');
-        expect(await countByTestId(driver, 'lessons-library-challenge-done')).toBe(2);
-        expect(await countByTestId(driver, 'lessons-library-challenge-required')).toBe(5);
+        expect(await progressTexts(driver)).toEqual(['2 / 4 done', '1 / 3 done', '0 / 4 done']);
+        expect(await countByTestId(driver, 'lessons-library-challenge-done')).toBe(3);
+        expect(await countByTestId(driver, 'lessons-library-challenge-required')).toBe(0);
 
         // 既知の無害なログ (Google Drive の初期化失敗など) は getLogs() が除く
         expect(await getLogs()).toEqual([]);
@@ -96,6 +105,7 @@ describe('Smalruby Lessons Library', () => {
         await findByXpath(byTestId('menu-bar-lessons'));
         await clickByTestId(driver, 'menu-bar-lessons');
         await findByXpath(byTestId('lessons-library'));
-        expect(await textByTestId(driver, 'lessons-library-progress')).toBe('0 / 11 できた（ひっす 0 / 5）');
+        expect(await progressTexts(driver)).toEqual(['0 / 4 できた', '0 / 3 できた', '0 / 4 できた']);
+        expect(await textByTestId(driver, 'lessons-library-lesson-blocks-l2')).toContain('えらんで たずねよう');
     });
 });

@@ -6,6 +6,8 @@
  * done yet marked. Only when every challenge of the lesson is done the toast says the lesson
  * is over, and the button points to the other lessons (or to the lessons library when there
  * is no next lesson). Finishing the last challenge after skipping some keeps "Next challenge".
+ * The course has 3 lessons (#1529), so finishing lesson 1 moves to lesson 2, and finishing the
+ * last lesson goes back to the lessons library.
  *
  * The challenge is opened and completed through the debug hook `window.smalruby.lessonGoal`
  * (like lesson-goal.test.js) so that the test only covers the toast and the library.
@@ -18,22 +20,13 @@ const { getDriver, loadUri } = seleniumHelper;
 
 const uri = `${path.resolve(__dirname, '../../build/index.html')}?no_beforeunload=1`;
 
-const FIRST = 'blocks-l1-key-sound';
-const SECOND = 'blocks-l1-arrow-move';
-const LAST = 'blocks-l1-message-list';
-const ALL = [
-    'blocks-l1-key-sound',
-    'blocks-l1-arrow-move',
-    'blocks-l1-click-say',
-    'blocks-l1-repeat',
-    'blocks-l1-if',
-    'blocks-l1-ask-answer',
-    'blocks-l1-quiz',
-    'blocks-l1-count',
-    'blocks-l1-broadcast',
-    'blocks-l1-speak',
-    LAST,
-];
+// レッスン 1（うごかしてみよう）・レッスン 3（おぼえて つたえよう）のチャレンジ
+const LESSON1 = ['blocks-l1-key-sound', 'blocks-l1-arrow-move', 'blocks-l1-click-say', 'blocks-l1-repeat'];
+const LESSON3 = ['blocks-l1-count', 'blocks-l1-broadcast', 'blocks-l1-speak', 'blocks-l1-message-list'];
+const [FIRST, SECOND] = LESSON1;
+const LAST = LESSON1[LESSON1.length - 1];
+// レッスン 2 の最初
+const LESSON2_FIRST = 'blocks-l1-if';
 
 let driver;
 
@@ -134,26 +127,48 @@ describe('Lessons: "Next challenge" on the completed toast', () => {
         expect(await marked[0].getAttribute('data-testid')).toBe(`lessons-library-challenge-${FIRST}`);
     });
 
-    test('when every challenge is done, says the lesson is over and points to the lessons library', async () => {
-        await loadWithEmptyRecord();
-        await driver.executeScript(`window.smalruby.lessonGoal.openChallenge(arguments[0]);`, ALL[3]);
-        for (const id of ALL) {
+    // Mark every challenge of the lesson done, the toast being for `openId` (not the last in the order)
+    const completeLesson = async (ids, openId) => {
+        await driver.executeScript(`window.smalruby.lessonGoal.openChallenge(arguments[0]);`, openId);
+        for (const id of ids) {
             await driver.executeScript(`window.smalruby.lessonGoal.markCompleted(arguments[0]);`, id);
         }
-        // The toast is for the open challenge (not the last one in the order)
-        await driver.executeScript(`window.smalruby.lessonGoal.markCompleted(arguments[0]);`, ALL[3]);
+        await driver.executeScript(`window.smalruby.lessonGoal.markCompleted(arguments[0]);`, openId);
         await waitForTestId('lesson-completed-toast');
+    };
+
+    test('when every challenge of lesson 1 is done, points to the other lessons and opens lesson 2', async () => {
+        await loadWithEmptyRecord();
+        await completeLesson(LESSON1, SECOND);
 
         const last = await waitForTestId('lesson-completed-toast-last');
         expect(await last.getText()).toBe('You have done every challenge of this lesson.');
         const next = await driver.findElement({ css: byTestId('lesson-completed-toast-next') });
-        // There is only lesson 1 yet: no next lesson
+        expect(await next.getAttribute('data-action')).toBe('otherLessons');
+
+        await clickByTestId('lesson-completed-toast-next');
+        await waitForTestId('lessons-library', 'the lessons library did not open');
+        const lesson2 = await driver.findElement({ css: byTestId('lessons-library-lesson-blocks-l2') });
+        expect(await lesson2.getAttribute('data-focused')).toBe('true');
+        const lesson1 = await driver.findElement({ css: byTestId('lessons-library-lesson-blocks-l1') });
+        expect(await lesson1.getAttribute('data-focused')).toBe('false');
+        const marked = await driver.findElements({ css: '[data-next="true"]' });
+        expect(marked).toHaveLength(1);
+        expect(await marked[0].getAttribute('data-testid')).toBe(`lessons-library-challenge-${LESSON2_FIRST}`);
+    });
+
+    test('when every challenge of the last lesson is done, points to the lessons library', async () => {
+        await loadWithEmptyRecord();
+        await completeLesson(LESSON3, LESSON3[1]);
+
+        await waitForTestId('lesson-completed-toast-last');
+        const next = await driver.findElement({ css: byTestId('lesson-completed-toast-next') });
         expect(await next.getText()).toBe('Go to the lessons');
         expect(await next.getAttribute('data-action')).toBe('library');
 
         await clickByTestId('lesson-completed-toast-next');
         await waitForTestId('lessons-library', 'the lessons library did not open');
-        const lesson = await driver.findElement({ css: byTestId('lessons-library-lesson-blocks-l1') });
+        const lesson = await driver.findElement({ css: byTestId('lessons-library-lesson-blocks-l3') });
         expect(await lesson.getAttribute('data-focused')).toBe('true');
         expect(await driver.findElements({ css: '[data-next="true"]' })).toHaveLength(0);
     });

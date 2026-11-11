@@ -133,16 +133,6 @@
     white-space: nowrap;
 }
 
-.cleared-mark {
-    padding: 0.125rem 0.5rem;
-    border-radius: 1rem;
-    background-color: $pen-primary;
-    color: $ui-white;
-    font-size: 0.75rem;
-    font-weight: bold;
-    white-space: nowrap;
-}
-
 /*
     チャレンジの並び。1300×600 の授業のパソコン（本文の幅 ≈ 1270px）で 4 列・3 段に
     収まり、375px（SP 縦）では 1 列になる。
@@ -262,7 +252,6 @@
 }
 
 .next-mark,
-.required-mark,
 .done-mark {
     flex-shrink: 0;
     padding: 0.125rem 0.5rem;
@@ -272,50 +261,9 @@
     white-space: nowrap;
 }
 
-.required-mark {
-    border: 1px solid $control-primary;
-    color: $control-primary;
-}
-
 .done-mark {
     background-color: $pen-primary;
     color: $ui-white;
-}
-
-/* できること。できたものは色つき、まだのものは点線 */
-.skills {
-    margin-top: 0.75rem;
-}
-
-.skills-title {
-    margin: 0 0 0.375rem;
-    font-size: 0.875rem;
-    font-weight: bold;
-}
-
-.skill-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.375rem;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-}
-
-.skill {
-    padding: 0.25rem 0.625rem;
-    border: 1px dashed $text-primary-transparent;
-    border-radius: 1rem;
-    color: $text-primary-transparent;
-    font-size: 0.75rem;
-    white-space: nowrap;
-}
-
-.skill-done {
-    border: 1px solid $motion-primary;
-    background-color: $motion-primary;
-    color: $ui-white;
-    font-weight: bold;
 }
 
 @media (max-width: 480px) {

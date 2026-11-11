@@ -74,7 +74,7 @@ describe('LessonMode container', () => {
             hint: { visible: false, index: 0, count: 0, step: null },
         };
         const { getByTestId } = renderLessonMode(props);
-        expect(getByTestId('lesson-task-bar-position')).toHaveTextContent('3 of 11');
+        expect(getByTestId('lesson-task-bar-position')).toHaveTextContent('3 of 4');
         fireEvent.click(getByTestId('lesson-task-bar-quit'));
         expect(props.onCloseLesson).toHaveBeenCalledTimes(1);
     });

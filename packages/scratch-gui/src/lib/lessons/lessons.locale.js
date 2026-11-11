@@ -5,18 +5,9 @@
 export const ja = {
     'gui.lessons.course.kyou-kara-programmer.name': 'きょうからプログラマー',
     'gui.lessons.course.kyou-kara-programmer.badge': 'プログラマー デビュー！',
-    'gui.lessons.lesson.blocks-l1.name': 'ブロックのなかま',
-    'gui.lessons.skill.key-control': 'キーで動かす',
-    'gui.lessons.skill.play-sound': '音を鳴らす',
-    'gui.lessons.skill.add-sound': '音を足す',
-    'gui.lessons.skill.move-by-coordinates': '座標で動かす',
-    'gui.lessons.skill.duplicate-blocks': 'ブロックを複製する',
-    'gui.lessons.skill.click-trigger': '押したら動く',
-    'gui.lessons.skill.say': 'セリフを言う',
-    'gui.lessons.skill.add-costume': 'コスチュームを足す',
-    'gui.lessons.skill.repeat': 'くり返し',
-    'gui.lessons.skill.add-backdrop': '背景を足す',
-    'gui.lessons.skill.stage-program': 'ステージのプログラム',
+    'gui.lessons.lesson.blocks-l1.name': 'うごかしてみよう',
+    'gui.lessons.lesson.blocks-l2.name': 'えらんで たずねよう',
+    'gui.lessons.lesson.blocks-l3.name': 'おぼえて つたえよう',
     'gui.lessons.challenge.blocks-l1-key-sound.name': 'キーで音を鳴らそう',
     'gui.lessons.challenge.blocks-l1-key-sound.task':
         'スペースキーを押したら、\nネコが「ニャー」と鳴いたあと、「Owl」の音が鳴るようにしよう',
@@ -63,9 +54,6 @@ export const ja = {
     'gui.lessons.challenge.blocks-l1-repeat.debug1': '1 回しかかわらないときは、ブロックが「繰り返す」の口の中に入っているか見よう。',
     'gui.lessons.challenge.blocks-l1-repeat.debug2': 'すぐ終わるときは「1 秒待つ」が入っているか見よう。',
     'gui.lessons.challenge.blocks-l1-if.name': 'もし〜なら',
-    'gui.lessons.skill.if': 'もし〜なら',
-    'gui.lessons.skill.forever': 'ずっと',
-    'gui.lessons.skill.touching': 'さわったか調べる',
     'gui.lessons.challenge.blocks-l1-if.task':
         'マウスでネコにさわったら「くすぐったい！」、\nさわっていないときは「さわってみて」と言うようにしよう',
     'gui.lessons.challenge.blocks-l1-if.step1': '旗のブロックの下に「ずっと」をつなげよう。',
@@ -76,9 +64,6 @@ export const ja = {
     'gui.lessons.challenge.blocks-l1-if.debug1': 'セリフがかわらないときは、「言う」が「もし」の中と「でなければ」の中に 1 つずつ入っているか見よう。',
     'gui.lessons.challenge.blocks-l1-if.debug2': '1 回しか調べないときは、「ずっと」の中に入っているか見よう。',
     'gui.lessons.challenge.blocks-l1-ask-answer.name': '聞いて答えよう',
-    'gui.lessons.skill.ask-answer': '聞いて答える',
-    'gui.lessons.skill.timer': 'タイマー',
-    'gui.lessons.skill.join': 'ことばをつなぐ',
     'gui.lessons.challenge.blocks-l1-ask-answer.task': 'ネコを押したら名前を聞いて、\n答えた名前と、答えるまでにかかった秒数を言うようにしよう',
     'gui.lessons.challenge.blocks-l1-ask-answer.step1': '水色の「調べる」の「聞いて待つ」をつなげよう。「なまえは？」と聞くよ。',
     'gui.lessons.challenge.blocks-l1-ask-answer.step2': '「言う」をつなげて、白いところに、丸い「答え」のブロックを入れよう。',
@@ -88,7 +73,6 @@ export const ja = {
     'gui.lessons.challenge.blocks-l1-ask-answer.debug1': '「答え」という文字を言ってしまうときは、文字を書いたのではなく、丸い「答え」のブロックを入れたか見よう。',
     'gui.lessons.challenge.blocks-l1-ask-answer.debug2': '秒数がとても大きいときは、「タイマーをリセット」が「聞いて待つ」の前にあるか見よう。',
     'gui.lessons.challenge.blocks-l1-quiz.name': 'クイズを作ろう',
-    'gui.lessons.skill.compare': 'くらべる',
     'gui.lessons.challenge.blocks-l1-quiz.task': 'ネコを押したら「4＋3＝？」と聞いて、\n7 なら「正解です」、ちがえば「ちがいます」と言うようにしよう',
     'gui.lessons.challenge.blocks-l1-quiz.step1': '「聞いて待つ」で問題を出そう。',
     'gui.lessons.challenge.blocks-l1-quiz.step2': '緑の「演算」の「=」を、「もし」の穴に入れよう。',
@@ -96,8 +80,6 @@ export const ja = {
     'gui.lessons.challenge.blocks-l1-quiz.step4': '7 と、7 じゃない数の両方をためそう。',
     'gui.lessons.challenge.blocks-l1-quiz.debug1': 'いつも「ちがいます」になるときは、「=」の左に「答え」、右に 7 が入っているか見よう。数は半角の 7 で入れよう。',
     'gui.lessons.challenge.blocks-l1-count.name': '数えよう',
-    'gui.lessons.skill.make-variable': '変数を作る',
-    'gui.lessons.skill.variable': '変数',
     'gui.lessons.challenge.blocks-l1-count.task': 'ネコを押した回数を数えて、その数を言うようにしよう。\n3 回押してみよう',
     'gui.lessons.challenge.blocks-l1-count.step1': 'オレンジの「変数」で「変数を作る」を押して、「回数」という変数を作ろう。',
     'gui.lessons.challenge.blocks-l1-count.step2': '旗を押したら 0 にもどすプログラムを作ろう。',
@@ -110,9 +92,6 @@ export const ja = {
     // チャレンジ 9〜11
     'gui.lessons.challenge.blocks-l1-broadcast.task':
         'ペンギンを足して、\nネコを押したらペンギンが「やあ！」と言うようにしよう',
-    'gui.lessons.skill.add-sprite': 'スプライトを足す',
-    'gui.lessons.skill.broadcast': '合図（メッセージ）',
-    'gui.lessons.skill.sprite-program': 'スプライトごとのプログラム',
     'gui.lessons.challenge.blocks-l1-broadcast.step1': '右下の「スプライトを選ぶ」から、ペンギンを足そう。',
     'gui.lessons.challenge.blocks-l1-broadcast.step2':
         'ネコをえらんで、「押されたとき」と「送る」をつなげよう。▼の「新しいメッセージ」で「あいさつ」を作ろう。',
@@ -125,8 +104,6 @@ export const ja = {
     'gui.lessons.challenge.blocks-l1-broadcast.debug2': 'ペンギンのプログラムを、ネコに書いていないかも見よう。',
     'gui.lessons.challenge.blocks-l1-speak.task':
         '拡張機能「音声合成」を足して、\nネコを押したら「ボタンが押されました」としゃべるようにしよう',
-    'gui.lessons.skill.add-extension': '拡張機能を足す',
-    'gui.lessons.skill.text2speech': '音声合成',
     'gui.lessons.challenge.blocks-l1-speak.step1':
         '左下のボタンから「音声合成」をえらぼう。パレットに新しいなかまがふえるよ。',
     'gui.lessons.challenge.blocks-l1-speak.step2': '「押されたとき」に「しゃべる」をつなげよう。ことばは「ボタンが押されました」になっているよ。',
@@ -135,8 +112,6 @@ export const ja = {
         '声が出ないときは、パソコンの音量を見よう。音声合成はインターネットにつながっていないと使えないよ。',
     'gui.lessons.challenge.blocks-l1-message-list.task':
         'ネコを押したら「メッセージは？」と聞いて、\n答えをリスト「トーク」にためよう。\n3 つためてみよう',
-    'gui.lessons.skill.make-list': 'リストを作る',
-    'gui.lessons.skill.add-to-list': 'リストに追加する',
     'gui.lessons.challenge.blocks-l1-message-list.step1':
         '「変数」の下の「リストを作る」を押して、「トーク」というリストを作ろう。ステージに空の箱が出るよ。',
     'gui.lessons.challenge.blocks-l1-message-list.step2': '旗を押したら、トークを空にするプログラムを作ろう。',
@@ -149,7 +124,6 @@ export const ja = {
     'gui.lessons.challenge.blocks-l1-message-list.debug2':
         '「答え」という文字がたまるときは、丸い「答え」のブロックを入れたか見よう。',
     'gui.lessons.completed.title': 'できた！',
-    'gui.lessons.completed.skills': 'できること: {skills}',
     'gui.lessons.completed.next': '次のチャレンジ',
     'gui.lessons.completed.lastInLesson': 'このレッスンのチャレンジは、これでおわり。',
     'gui.lessons.completed.otherLessons': 'ほかのレッスンへ',
@@ -160,18 +134,9 @@ export const ja = {
 export const jaHira = {
     'gui.lessons.course.kyou-kara-programmer.name': 'きょうからプログラマー',
     'gui.lessons.course.kyou-kara-programmer.badge': 'プログラマー デビュー！',
-    'gui.lessons.lesson.blocks-l1.name': 'ブロックのなかま',
-    'gui.lessons.skill.key-control': 'キーでうごかす',
-    'gui.lessons.skill.play-sound': 'おとをならす',
-    'gui.lessons.skill.add-sound': 'おとをたす',
-    'gui.lessons.skill.move-by-coordinates': 'ざひょうでうごかす',
-    'gui.lessons.skill.duplicate-blocks': 'ブロックをふくせいする',
-    'gui.lessons.skill.click-trigger': 'おしたらうごく',
-    'gui.lessons.skill.say': 'セリフをいう',
-    'gui.lessons.skill.add-costume': 'コスチュームをたす',
-    'gui.lessons.skill.repeat': 'くりかえし',
-    'gui.lessons.skill.add-backdrop': 'はいけいをたす',
-    'gui.lessons.skill.stage-program': 'ステージのプログラム',
+    'gui.lessons.lesson.blocks-l1.name': 'うごかしてみよう',
+    'gui.lessons.lesson.blocks-l2.name': 'えらんで たずねよう',
+    'gui.lessons.lesson.blocks-l3.name': 'おぼえて つたえよう',
     'gui.lessons.challenge.blocks-l1-key-sound.name': 'キーでおとをならそう',
     'gui.lessons.challenge.blocks-l1-key-sound.task':
         'スペースキーをおしたら、\nネコが「Meow」（ニャー）とないたあと、「Owl」のおとがなるようにしよう',
@@ -219,9 +184,6 @@ export const jaHira = {
     'gui.lessons.challenge.blocks-l1-repeat.debug1': '1 かいしかかわらないときは、ブロックが「くりかえす」のくちのなかにはいっているかみよう。',
     'gui.lessons.challenge.blocks-l1-repeat.debug2': 'すぐおわるときは「1 びょうまつ」がはいっているかみよう。',
     'gui.lessons.challenge.blocks-l1-if.name': 'もし〜なら',
-    'gui.lessons.skill.if': 'もし〜なら',
-    'gui.lessons.skill.forever': 'ずっと',
-    'gui.lessons.skill.touching': 'さわったかしらべる',
     'gui.lessons.challenge.blocks-l1-if.task':
         'マウスでネコにさわったら「くすぐったい！」、\nさわっていないときは「さわってみて」というようにしよう',
     'gui.lessons.challenge.blocks-l1-if.step1': 'はたのブロックのしたに「ずっと」をつなげよう。',
@@ -232,9 +194,6 @@ export const jaHira = {
     'gui.lessons.challenge.blocks-l1-if.debug1': 'セリフがかわらないときは、「いう」が「もし」のなかと「でなければ」のなかに 1 つずつはいっているかみよう。',
     'gui.lessons.challenge.blocks-l1-if.debug2': '1 かいしかしらべないときは、「ずっと」のなかにはいっているかみよう。',
     'gui.lessons.challenge.blocks-l1-ask-answer.name': 'きいてこたえよう',
-    'gui.lessons.skill.ask-answer': 'きいてこたえる',
-    'gui.lessons.skill.timer': 'タイマー',
-    'gui.lessons.skill.join': 'ことばをつなぐ',
     'gui.lessons.challenge.blocks-l1-ask-answer.task': 'ネコをおしたらなまえをきいて、\nこたえたなまえと、こたえるまでにかかったびょうすうをいうようにしよう',
     'gui.lessons.challenge.blocks-l1-ask-answer.step1': 'みずいろの「しらべる」の「きいてまつ」をつなげよう。「なまえは？」ときくよ。',
     'gui.lessons.challenge.blocks-l1-ask-answer.step2': '「いう」をつなげて、しろいところに、まるい「こたえ」のブロックをいれよう。',
@@ -244,7 +203,6 @@ export const jaHira = {
     'gui.lessons.challenge.blocks-l1-ask-answer.debug1': '「こたえ」というもじをいってしまうときは、もじをかいたのではなく、まるい「こたえ」のブロックをいれたかみよう。',
     'gui.lessons.challenge.blocks-l1-ask-answer.debug2': 'びょうすうがとてもおおきいときは、「タイマーをリセット」が「きいてまつ」のまえにあるかみよう。',
     'gui.lessons.challenge.blocks-l1-quiz.name': 'クイズをつくろう',
-    'gui.lessons.skill.compare': 'くらべる',
     'gui.lessons.challenge.blocks-l1-quiz.task': 'ネコをおしたら「4＋3＝？」ときいて、\n7 なら「せいかいです」、ちがえば「ちがいます」というようにしよう',
     'gui.lessons.challenge.blocks-l1-quiz.step1': '「きいてまつ」でもんだいをだそう。',
     'gui.lessons.challenge.blocks-l1-quiz.step2': 'みどりの「えんざん」の「=」を、「もし」のあなにいれよう。',
@@ -252,8 +210,6 @@ export const jaHira = {
     'gui.lessons.challenge.blocks-l1-quiz.step4': '7 と、7 じゃないかずのりょうほうをためそう。',
     'gui.lessons.challenge.blocks-l1-quiz.debug1': 'いつも「ちがいます」になるときは、「=」のひだりに「こたえ」、みぎに 7 がはいっているかみよう。かずははんかくの 7 でいれよう。',
     'gui.lessons.challenge.blocks-l1-count.name': 'かぞえよう',
-    'gui.lessons.skill.make-variable': 'へんすうをつくる',
-    'gui.lessons.skill.variable': 'へんすう',
     'gui.lessons.challenge.blocks-l1-count.task': 'ネコをおしたかいすうをかぞえて、そのかずをいうようにしよう。\n3 かいおしてみよう',
     'gui.lessons.challenge.blocks-l1-count.step1': 'オレンジの「へんすう」で「へんすうをつくる」をおして、「かいすう」というへんすうをつくろう。',
     'gui.lessons.challenge.blocks-l1-count.step2': 'はたをおしたら 0 にもどすプログラムをつくろう。',
@@ -266,9 +222,6 @@ export const jaHira = {
     // チャレンジ 9〜11
     'gui.lessons.challenge.blocks-l1-broadcast.task':
         'ペンギンをたして、\nネコをおしたらペンギンが「やあ！」というようにしよう',
-    'gui.lessons.skill.add-sprite': 'スプライトをたす',
-    'gui.lessons.skill.broadcast': 'あいず（メッセージ）',
-    'gui.lessons.skill.sprite-program': 'スプライトごとのプログラム',
     'gui.lessons.challenge.blocks-l1-broadcast.step1': 'みぎしたの「スプライトをえらぶ」から、ペンギンをたそう。',
     'gui.lessons.challenge.blocks-l1-broadcast.step2':
         'ネコをえらんで、「おされたとき」と「おくる」をつなげよう。▼の「あたらしいメッセージ」で「あいさつ」をつくろう。',
@@ -281,8 +234,6 @@ export const jaHira = {
     'gui.lessons.challenge.blocks-l1-broadcast.debug2': 'ペンギンのプログラムを、ネコにかいていないかもみよう。',
     'gui.lessons.challenge.blocks-l1-speak.task':
         'かくちょうきのう「おんせいごうせい」をたして、\nネコをおしたら「ボタンがおされました」としゃべるようにしよう',
-    'gui.lessons.skill.add-extension': 'かくちょうきのうをたす',
-    'gui.lessons.skill.text2speech': 'おんせいごうせい',
     'gui.lessons.challenge.blocks-l1-speak.step1':
         'ひだりしたのボタンから「おんせいごうせい」をえらぼう。パレットにあたらしいなかまがふえるよ。',
     'gui.lessons.challenge.blocks-l1-speak.step2': '「おされたとき」に「しゃべる」をつなげよう。ことばは「ボタンがおされました」になっているよ。',
@@ -291,8 +242,6 @@ export const jaHira = {
         'こえがでないときは、パソコンのおんりょうをみよう。おんせいごうせいはインターネットにつながっていないとつかえないよ。',
     'gui.lessons.challenge.blocks-l1-message-list.task':
         'ネコをおしたら「メッセージは？」ときいて、\nこたえをリスト「トーク」にためよう。\n3 つためてみよう',
-    'gui.lessons.skill.make-list': 'リストをつくる',
-    'gui.lessons.skill.add-to-list': 'リストについかする',
     'gui.lessons.challenge.blocks-l1-message-list.step1':
         '「へんすう」のしたの「リストをつくる」をおして、「トーク」というリストをつくろう。ステージにからのはこがでるよ。',
     'gui.lessons.challenge.blocks-l1-message-list.step2': 'はたをおしたら、トークをからにするプログラムをつくろう。',
@@ -305,7 +254,6 @@ export const jaHira = {
     'gui.lessons.challenge.blocks-l1-message-list.debug2':
         '「こたえ」というもじがたまるときは、まるい「こたえ」のブロックをいれたかみよう。',
     'gui.lessons.completed.title': 'できた！',
-    'gui.lessons.completed.skills': 'できること: {skills}',
     'gui.lessons.completed.next': 'つぎのチャレンジ',
     'gui.lessons.completed.lastInLesson': 'このレッスンのチャレンジは、これでおわり。',
     'gui.lessons.completed.otherLessons': 'ほかのレッスンへ',
@@ -316,18 +264,9 @@ export const jaHira = {
 export const en = {
     'gui.lessons.course.kyou-kara-programmer.name': 'Programmer from Today',
     'gui.lessons.course.kyou-kara-programmer.badge': 'Programmer Debut!',
-    'gui.lessons.lesson.blocks-l1.name': 'Block Families',
-    'gui.lessons.skill.key-control': 'control with keys',
-    'gui.lessons.skill.play-sound': 'play a sound',
-    'gui.lessons.skill.add-sound': 'add a sound',
-    'gui.lessons.skill.move-by-coordinates': 'move with coordinates',
-    'gui.lessons.skill.duplicate-blocks': 'duplicate blocks',
-    'gui.lessons.skill.click-trigger': 'react to a click',
-    'gui.lessons.skill.say': 'say something',
-    'gui.lessons.skill.add-costume': 'add a costume',
-    'gui.lessons.skill.repeat': 'repeat',
-    'gui.lessons.skill.add-backdrop': 'add a backdrop',
-    'gui.lessons.skill.stage-program': 'program the stage',
+    'gui.lessons.lesson.blocks-l1.name': "Let's Move",
+    'gui.lessons.lesson.blocks-l2.name': 'Choose and Ask',
+    'gui.lessons.lesson.blocks-l3.name': 'Remember and Tell',
     'gui.lessons.challenge.blocks-l1-key-sound.name': 'Play a sound with a key',
     'gui.lessons.challenge.blocks-l1-key-sound.task':
         'Make the cat meow and then play the "Owl" sound\nwhen the space key is pressed',
@@ -379,9 +318,6 @@ export const en = {
         'If it switches only once, check that the blocks are inside the mouth of "repeat".',
     'gui.lessons.challenge.blocks-l1-repeat.debug2': 'If it ends right away, check that "wait 1 seconds" is in there.',
     'gui.lessons.challenge.blocks-l1-if.name': 'If ...',
-    'gui.lessons.skill.if': 'if ... else',
-    'gui.lessons.skill.forever': 'forever',
-    'gui.lessons.skill.touching': 'check what it touches',
     'gui.lessons.challenge.blocks-l1-if.task':
         'Make the cat say "That tickles!" when the mouse touches it,\nand "Touch me" when it does not',
     'gui.lessons.challenge.blocks-l1-if.step1': 'Snap "forever" under the green flag block.',
@@ -392,9 +328,6 @@ export const en = {
     'gui.lessons.challenge.blocks-l1-if.debug1': 'If the line does not change, check that there is one "say" inside "if" and one inside "else".',
     'gui.lessons.challenge.blocks-l1-if.debug2': 'If it checks only once, check that the blocks are inside "forever".',
     'gui.lessons.challenge.blocks-l1-ask-answer.name': 'Ask and answer',
-    'gui.lessons.skill.ask-answer': 'ask and answer',
-    'gui.lessons.skill.timer': 'timer',
-    'gui.lessons.skill.join': 'join words',
     'gui.lessons.challenge.blocks-l1-ask-answer.task': 'Make the cat ask your name when it is clicked,\nthen say the name and how many seconds you took to answer',
     'gui.lessons.challenge.blocks-l1-ask-answer.step1': 'Snap on "ask and wait" from the light blue "Sensing". It asks "What\'s your name?".',
     'gui.lessons.challenge.blocks-l1-ask-answer.step2': 'Snap on a "say" block, and put the round "answer" block into its white part.',
@@ -404,7 +337,6 @@ export const en = {
     'gui.lessons.challenge.blocks-l1-ask-answer.debug1': 'If the cat says the word "answer", check that you put in the round "answer" block instead of typing the word.',
     'gui.lessons.challenge.blocks-l1-ask-answer.debug2': 'If the seconds are very large, check that "reset timer" comes before "ask and wait".',
     'gui.lessons.challenge.blocks-l1-quiz.name': 'Make a quiz',
-    'gui.lessons.skill.compare': 'compare',
     'gui.lessons.challenge.blocks-l1-quiz.task': 'Make the cat ask "4+3=?" when it is clicked,\nand say "Correct" for 7 and "Wrong" for anything else',
     'gui.lessons.challenge.blocks-l1-quiz.step1': 'Ask the question with "ask and wait".',
     'gui.lessons.challenge.blocks-l1-quiz.step2': 'Put the "=" from the green "Operators" into the hole of "if".',
@@ -412,8 +344,6 @@ export const en = {
     'gui.lessons.challenge.blocks-l1-quiz.step4': 'Try both 7 and a number that is not 7.',
     'gui.lessons.challenge.blocks-l1-quiz.debug1': 'If it always says "Wrong", check that "answer" is on the left of "=" and 7 is on the right. Type 7 as a half-width number.',
     'gui.lessons.challenge.blocks-l1-count.name': 'Count',
-    'gui.lessons.skill.make-variable': 'make a variable',
-    'gui.lessons.skill.variable': 'variables',
     'gui.lessons.challenge.blocks-l1-count.task': 'Count how many times the cat is clicked, and make it say the number.\nTry clicking it 3 times',
     'gui.lessons.challenge.blocks-l1-count.step1': 'In the orange "Variables", click "Make a Variable" and make a variable named "count".',
     'gui.lessons.challenge.blocks-l1-count.step2': 'Make a program that sets it back to 0 when the green flag is clicked.',
@@ -426,9 +356,6 @@ export const en = {
     // チャレンジ 9〜11
     'gui.lessons.challenge.blocks-l1-broadcast.task':
         'Add a penguin,\nand make the penguin say "Hi!" when the cat is clicked',
-    'gui.lessons.skill.add-sprite': 'add a sprite',
-    'gui.lessons.skill.broadcast': 'broadcast messages',
-    'gui.lessons.skill.sprite-program': 'a program for each sprite',
     'gui.lessons.challenge.blocks-l1-broadcast.step1': 'Add a penguin with "Choose a Sprite" at the bottom right.',
     'gui.lessons.challenge.blocks-l1-broadcast.step2':
         'Select the cat and snap "when this sprite clicked" and "broadcast" together. Choose "New message" from ▼ and make "hello".',
@@ -442,8 +369,6 @@ export const en = {
         "Also check that you did not put the penguin's program on the cat.",
     'gui.lessons.challenge.blocks-l1-speak.task':
         'Add the "Text to Speech" extension,\nand make the cat speak "The button was clicked"\nwhen it is clicked',
-    'gui.lessons.skill.add-extension': 'add an extension',
-    'gui.lessons.skill.text2speech': 'Text to Speech',
     'gui.lessons.challenge.blocks-l1-speak.step1':
         'Choose "Text to Speech" with the button at the bottom left. New blocks join the palette.',
     'gui.lessons.challenge.blocks-l1-speak.step2':
@@ -453,8 +378,6 @@ export const en = {
         'If you hear nothing, check the volume of the computer. Text to Speech works only when it is connected to the Internet.',
     'gui.lessons.challenge.blocks-l1-message-list.task':
         'When the cat is clicked, ask "Message?"\nand keep the answers in the list "talk".\nTry keeping 3',
-    'gui.lessons.skill.make-list': 'make a list',
-    'gui.lessons.skill.add-to-list': 'add to a list',
     'gui.lessons.challenge.blocks-l1-message-list.step1':
         'Under "Variables", click "Make a List" and make a list named "talk". An empty box appears on the stage.',
     'gui.lessons.challenge.blocks-l1-message-list.step2':
@@ -468,7 +391,6 @@ export const en = {
     'gui.lessons.challenge.blocks-l1-message-list.debug2':
         'If the word "answer" is kept, check that you put in the round "answer" block.',
     'gui.lessons.completed.title': 'You did it!',
-    'gui.lessons.completed.skills': 'Now you can: {skills}',
     'gui.lessons.completed.next': 'Next challenge',
     'gui.lessons.completed.lastInLesson': 'You have done every challenge of this lesson.',
     'gui.lessons.completed.otherLessons': 'Go to other lessons',

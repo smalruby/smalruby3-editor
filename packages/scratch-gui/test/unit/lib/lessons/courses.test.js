@@ -2,7 +2,7 @@
  * Data-shape coverage for the lesson courses (コース › レッスン › チャレンジ).
  *
  * The regressions guarded here are the skeleton every sub-issue builds on (ids are
- * unique and stable, the lesson clear rule matches the spec, every challenge has the
+ * unique and stable, the 11 challenges are split into the 3 lessons of the spec, every challenge has the
  * normalized fields, every message id resolves in en / ja / ja-Hira) and the spec of
  * the challenges whose contents are in (task / palette / hints / goal / code).
  */
@@ -17,7 +17,6 @@ import {
     challengeCodeCandidates,
     challengeCodeFor,
     findLesson,
-    lessonClearRule,
     localizeCode,
 } from '../../../../src/lib/lessons/courses';
 import { allowedBlockOpcode } from '../../../../src/lib/lessons/block-defaults';
@@ -36,18 +35,23 @@ const allowedOpcodes = (challenge) =>
 
 const LOCALES = { en, ja, 'ja-Hira': jaHira };
 
-const LESSON1_CHALLENGE_NAMES = [
-    '1 キーで音を鳴らそう',
-    '2 矢印キーで動かそう',
-    '3 押したら話そう',
-    '4 くり返そう',
-    '5 もし〜なら',
-    '6 聞いて答えよう',
-    '7 クイズを作ろう',
-    '8 数えよう',
-    '9 なかまに合図しよう',
-    '10 しゃべらせよう',
-    '11 メッセージをためよう',
+// 11 のチャレンジを 3 つのレッスンに分ける（#1529）。番号はレッスンの中の番号
+const LESSONS = [
+    {
+        id: 'blocks-l1',
+        names: { ja: 'うごかしてみよう', 'ja-Hira': 'うごかしてみよう', en: "Let's Move" },
+        challenges: ['1 キーで音を鳴らそう', '2 矢印キーで動かそう', '3 押したら話そう', '4 くり返そう'],
+    },
+    {
+        id: 'blocks-l2',
+        names: { ja: 'えらんで たずねよう', 'ja-Hira': 'えらんで たずねよう', en: 'Choose and Ask' },
+        challenges: ['1 もし〜なら', '2 聞いて答えよう', '3 クイズを作ろう'],
+    },
+    {
+        id: 'blocks-l3',
+        names: { ja: 'おぼえて つたえよう', 'ja-Hira': 'おぼえて つたえよう', en: 'Remember and Tell' },
+        challenges: ['1 数えよう', '2 なかまに合図しよう', '3 しゃべらせよう', '4 メッセージをためよう'],
+    },
 ];
 
 const allChallenges = () =>
@@ -62,7 +66,6 @@ const collectMessages = () => {
             lesson.challenges.forEach((challenge) => {
                 messages.push(challenge.name);
                 if (challenge.task) messages.push(challenge.task);
-                challenge.skills.forEach((skill) => messages.push(skill.name));
                 challenge.steps.forEach((step) => step.title && messages.push(step.title));
                 challenge.debug.forEach((tip) => messages.push(tip));
             });
@@ -87,17 +90,38 @@ describe('lesson courses', () => {
         });
     });
 
-    test('lesson 1 is "ブロックのなかま" with the 11 challenges in order', () => {
-        const lesson = findLesson('blocks-l1');
-        expect(ja[lesson.name.id]).toBe('ブロックのなかま');
-        expect(lesson.challenges.map((c) => `${c.number} ${ja[c.name.id]}`)).toEqual(LESSON1_CHALLENGE_NAMES);
+    test('the course has the 3 lessons with their challenges in order', () => {
+        const course = findCourse('kyou-kara-programmer');
+        expect(course.lessons.map((l) => l.id)).toEqual(LESSONS.map((l) => l.id));
+        LESSONS.forEach(({ id, names, challenges }) => {
+            const lesson = findLesson(id);
+            Object.entries(names).forEach(([locale, name]) => expect(LOCALES[locale][lesson.name.id]).toBe(name));
+            expect(lesson.challenges.map((c) => `${c.number} ${ja[c.name.id]}`)).toEqual(challenges);
+        });
     });
 
-    test('every lesson 1 challenge has a category (the block family shown in the lessons library)', () => {
-        const lesson = findLesson('blocks-l1');
+    test('the lessons have no clear rule and the challenges no required / skills (removed in #1529)', () => {
+        findCourse('kyou-kara-programmer').lessons.forEach((lesson) => {
+            expect(lesson).not.toHaveProperty('clear');
+            lesson.challenges.forEach((c) => {
+                expect(c).not.toHaveProperty('required');
+                expect(c).not.toHaveProperty('skills');
+            });
+        });
+        ['en', 'ja', 'ja-Hira'].forEach((locale) => {
+            expect(Object.keys(LOCALES[locale]).filter((id) => /^gui\.lessons\.skill\./.test(id))).toEqual([]);
+            ['required', 'cleared', 'skillsTitle'].forEach((key) =>
+                expect(LOCALES[locale]).not.toHaveProperty(`gui.lessonsLibrary.${key}`),
+            );
+            expect(LOCALES[locale]).not.toHaveProperty('gui.lessons.completed.skills');
+        });
+    });
+
+    test('every challenge of the course has a category (the block family shown in the lessons library)', () => {
+        const challenges = findCourse('kyou-kara-programmer').lessons.flatMap((l) => l.challenges);
         const known = Object.values(CATEGORIES);
-        lesson.challenges.forEach((c) => expect(known).toContain(c.category));
-        expect(lesson.challenges.map((c) => c.category)).toEqual([
+        challenges.forEach((c) => expect(known).toContain(c.category));
+        expect(challenges.map((c) => c.category)).toEqual([
             'sound',
             'motion',
             'looks',
@@ -110,17 +134,6 @@ describe('lesson courses', () => {
             'extensions',
             'lists',
         ]);
-    });
-
-    test('lesson 1 clears with 7 challenges including the 3rd, 6th, 8th, 9th and 11th', () => {
-        const lesson = findLesson('blocks-l1');
-        const rule = lessonClearRule(lesson);
-        expect(rule.count).toBe(7);
-        const requiredNumbers = rule.required.map((id) => findChallenge(id).challenge.number);
-        expect(requiredNumbers).toEqual([3, 6, 8, 9, 11]);
-        lesson.challenges.forEach((c) => {
-            expect(c.required).toBe([3, 6, 8, 9, 11].includes(c.number));
-        });
     });
 
     test('challenge numbers follow the order in the lesson', () => {
@@ -150,8 +163,6 @@ describe('lesson courses', () => {
                 expect.objectContaining({
                     id: expect.any(String),
                     number: expect.any(Number),
-                    required: expect.any(Boolean),
-                    skills: expect.any(Array),
                     steps: expect.any(Array),
                     debug: expect.any(Array),
                 }),
@@ -173,7 +184,6 @@ describe('lesson courses', () => {
     test('defineChallenge fills the defaults and keeps what the definition gives', () => {
         const challenge = defineChallenge({
             id: 'x-y',
-            required: true,
             steps: [{ target: 'palette', spotlight: true }, { blocks: 'move(10)' }],
         });
         expect(challenge).toEqual({
@@ -182,9 +192,7 @@ describe('lesson courses', () => {
             task: null,
             image: null,
             category: null,
-            skills: [],
             goal: null,
-            required: true,
             spriteCodes: [],
             allowedBlocks: null,
             setup: null,
@@ -198,32 +206,17 @@ describe('lesson courses', () => {
         });
     });
 
-    test('defineLesson numbers the challenges in order and derives the required ids', () => {
-        const lesson = defineLesson({
-            id: 'l',
-            count: 2,
-            challenges: [{ id: 'a' }, { id: 'b', required: true }, { id: 'c', required: true }],
-        });
+    test('defineLesson numbers the challenges in order', () => {
+        const lesson = defineLesson({ id: 'l', challenges: [{ id: 'a' }, { id: 'b' }, { id: 'c' }] });
         expect(lesson.name.id).toBe('gui.lessons.lesson.l.name');
         expect(lesson.challenges.map((c) => c.number)).toEqual([1, 2, 3]);
-        expect(lesson.clear).toEqual({ count: 2, required: ['b', 'c'] });
-    });
-
-    test('the clear count never exceeds the number of challenges and covers the required ones', () => {
-        COURSES.forEach((course) =>
-            course.lessons.forEach((lesson) => {
-                const rule = lessonClearRule(lesson);
-                expect(rule.count).toBeLessThanOrEqual(lesson.challenges.length);
-                expect(rule.count).toBeGreaterThanOrEqual(rule.required.length);
-            }),
-        );
     });
 
     test('findChallenge returns the course and lesson the challenge belongs to', () => {
         const found = findChallenge('blocks-l1-broadcast');
         expect(found.course.id).toBe('kyou-kara-programmer');
-        expect(found.lesson.id).toBe('blocks-l1');
-        expect(found.challenge.number).toBe(9);
+        expect(found.lesson.id).toBe('blocks-l3');
+        expect(found.challenge.number).toBe(2);
         expect(findChallenge('no-such-challenge')).toBeNull();
         expect(findCourse('no-such-course')).toBeNull();
         expect(findLesson('no-such-lesson')).toBeNull();
@@ -237,13 +230,11 @@ describe('lesson courses', () => {
 
         test('5 もし〜なら: says one line when the mouse touches the cat and another when it does not', () => {
             const c = challenge('blocks-l1-if');
-            expect(c.number).toBe(5);
-            expect(c.required).toBe(false);
+            expect([findChallenge(c.id).lesson.id, c.number]).toEqual(['blocks-l2', 1]);
             // 課題の全文では読みやすいところで改行する（課題バーの 1 行ではつなぐ）
             expect(jaText(c.task)).toBe(
                 'マウスでネコにさわったら「くすぐったい！」、\nさわっていないときは「さわってみて」と言うようにしよう',
             );
-            expect(c.skills.map((s) => jaText(s.name))).toEqual(['もし〜なら', 'ずっと', 'さわったか調べる']);
             expect(allowedOpcodes(c)).toEqual({
                 event: ['event_whenflagclicked'],
                 control: ['control_forever', 'control_if', 'control_if_else'],
@@ -283,14 +274,12 @@ describe('lesson courses', () => {
             );
         });
 
-        test('6 聞いて答えよう (required): asks the name and says the answer and the seconds it took', () => {
+        test('6 聞いて答えよう: asks the name and says the answer and the seconds it took', () => {
             const c = challenge('blocks-l1-ask-answer');
-            expect(c.number).toBe(6);
-            expect(c.required).toBe(true);
+            expect([findChallenge(c.id).lesson.id, c.number]).toEqual(['blocks-l2', 2]);
             expect(jaText(c.task)).toBe(
                 'ネコを押したら名前を聞いて、\n答えた名前と、答えるまでにかかった秒数を言うようにしよう',
             );
-            expect(c.skills.map((s) => jaText(s.name))).toEqual(['聞いて答える', 'タイマー', 'ことばをつなぐ']);
             expect(allowedOpcodes(c)).toEqual({
                 event: ['event_whenthisspriteclicked'],
                 sensing: ['sensing_resettimer', 'sensing_askandwait', 'sensing_answer', 'sensing_timer'],
@@ -339,14 +328,11 @@ describe('lesson courses', () => {
 
         test('7 クイズを作ろう: says 正解です for 7 and ちがいます for another number', () => {
             const c = challenge('blocks-l1-quiz');
-            expect(c.number).toBe(7);
-            expect(c.required).toBe(false);
+            expect([findChallenge(c.id).lesson.id, c.number]).toEqual(['blocks-l2', 3]);
             expect(jaText(c.task)).toBe(
                 'ネコを押したら「4＋3＝？」と聞いて、\n7 なら「正解です」、ちがえば「ちがいます」と言うようにしよう',
             );
-            expect(c.skills.map((s) => jaText(s.name))).toEqual(['くらべる', 'もし〜なら']);
             // 「もし〜なら」は 5 と同じできること（id で重ねる）
-            expect(c.skills.map((s) => s.id)).toContain(challenge('blocks-l1-if').skills[0].id);
             expect(allowedOpcodes(c)).toEqual({
                 event: ['event_whenthisspriteclicked'],
                 sensing: ['sensing_askandwait', 'sensing_answer'],
@@ -379,12 +365,10 @@ describe('lesson courses', () => {
             );
         });
 
-        test('8 数えよう (required): counts the clicks in the variable 回数 and says it', () => {
+        test('8 数えよう: counts the clicks in the variable 回数 and says it', () => {
             const c = challenge('blocks-l1-count');
-            expect(c.number).toBe(8);
-            expect(c.required).toBe(true);
+            expect([findChallenge(c.id).lesson.id, c.number]).toEqual(['blocks-l3', 1]);
             expect(jaText(c.task)).toBe('ネコを押した回数を数えて、その数を言うようにしよう。\n3 回押してみよう');
-            expect(c.skills.map((s) => jaText(s.name))).toEqual(['変数を作る', '変数']);
             expect(allowedOpcodes(c)).toEqual({
                 event: ['event_whenflagclicked', 'event_whenthisspriteclicked'],
                 data: ['data_setvariableto', 'data_changevariableby', 'data_variable'],
@@ -425,16 +409,10 @@ describe('lesson courses', () => {
         const hints = (c) => c.steps.map((s) => [s.target, localizeCode(s.blocks, 'ja'), s.spotlight]);
         const jaText = (descriptor) => ja[descriptor.id];
 
-        test('9 なかまに合図しよう (required): clicking the cat broadcasts and the penguin says', () => {
+        test('9 なかまに合図しよう: clicking the cat broadcasts and the penguin says', () => {
             const c = challenge('blocks-l1-broadcast');
-            expect(c.number).toBe(9);
-            expect(c.required).toBe(true);
+            expect([findChallenge(c.id).lesson.id, c.number]).toEqual(['blocks-l3', 2]);
             expect(jaText(c.task)).toBe('ペンギンを足して、\nネコを押したらペンギンが「やあ！」と言うようにしよう');
-            expect(c.skills.map((s) => jaText(s.name))).toEqual([
-                'スプライトを足す',
-                '合図（メッセージ）',
-                'スプライトごとのプログラム',
-            ]);
             expect(allowedOpcodes(c)).toEqual({
                 event: ['event_whenthisspriteclicked', 'event_broadcast', 'event_whenbroadcastreceived'],
                 looks: ['looks_sayforsecs'],
@@ -476,12 +454,10 @@ describe('lesson courses', () => {
 
         test('10 しゃべらせよう: the Text to Speech extension speaks when the cat is clicked', () => {
             const c = challenge('blocks-l1-speak');
-            expect(c.number).toBe(10);
-            expect(c.required).toBe(false);
+            expect([findChallenge(c.id).lesson.id, c.number]).toEqual(['blocks-l3', 3]);
             expect(jaText(c.task)).toBe(
                 '拡張機能「音声合成」を足して、\nネコを押したら「ボタンが押されました」としゃべるようにしよう',
             );
-            expect(c.skills.map((s) => jaText(s.name))).toEqual(['拡張機能を足す', '音声合成']);
             expect(allowedOpcodes(c)).toEqual({
                 event: ['event_whenthisspriteclicked'],
                 text2speech: ['text2speech_speakAndWait'],
@@ -508,14 +484,12 @@ describe('lesson courses', () => {
             expect(localizeCode(c.code, 'ja')).toBe('when_clicked do\n  text2speech.speak("ボタンが押されました")\nend\n');
         });
 
-        test('11 メッセージをためよう (required): keeps the answers in the list トーク', () => {
+        test('11 メッセージをためよう: keeps the answers in the list トーク', () => {
             const c = challenge('blocks-l1-message-list');
-            expect(c.number).toBe(11);
-            expect(c.required).toBe(true);
+            expect([findChallenge(c.id).lesson.id, c.number]).toEqual(['blocks-l3', 4]);
             expect(jaText(c.task)).toBe(
                 'ネコを押したら「メッセージは？」と聞いて、\n答えをリスト「トーク」にためよう。\n3 つためてみよう',
             );
-            expect(c.skills.map((s) => jaText(s.name))).toEqual(['リストを作る', 'リストに追加する']);
             expect(allowedOpcodes(c)).toEqual({
                 event: ['event_whenflagclicked', 'event_whenthisspriteclicked'],
                 data: ['data_deletealloflist', 'data_addtolist'],
@@ -553,11 +527,7 @@ describe('lesson courses', () => {
         });
 
         test('the ja-Hira strings of 9-11 have no kanji', () => {
-            const ids = Object.keys(jaHira).filter((id) =>
-                /blocks-l1-(broadcast|speak|message-list)\.|skill\.(add-sprite|broadcast|sprite-program|add-extension|text2speech|make-list|add-to-list)$/.test(
-                    id,
-                ),
-            );
+            const ids = Object.keys(jaHira).filter((id) => /blocks-l1-(broadcast|speak|message-list)\./.test(id));
             expect(ids.length).toBeGreaterThan(20);
             ids.forEach((id) => expect({ id, text: jaHira[id] }).toEqual({ id, text: expect.not.stringMatching(/\p{Script=Han}/u) }));
         });
@@ -576,9 +546,7 @@ describe('lesson courses', () => {
 
         test('1 キーで音を鳴らそう: space key plays two sounds in order', () => {
             const c = challenge('blocks-l1-key-sound');
-            expect(c.required).toBe(false);
             expect(ja[c.task.id]).toBe('スペースキーを押したら、\nネコが「ニャー」と鳴いたあと、「Owl」の音が鳴るようにしよう');
-            expect(c.skills.map((s) => ja[s.name.id])).toEqual(['キーで動かす', '音を鳴らす', '音を足す']);
             expect(allowedOpcodes(c)).toEqual({
                 event: ['event_whenkeypressed'],
                 sound: ['sound_playuntildone', 'sound_play'],
@@ -605,12 +573,10 @@ describe('lesson courses', () => {
 
         test('2 矢印キーで動かそう: up and down arrow keys change y both ways', () => {
             const c = challenge('blocks-l1-arrow-move');
-            expect(c.required).toBe(false);
             expect(ja[c.task.id]).toBe('上向き矢印キーで上へ、下向き矢印キーで下へ、ネコを動かそう');
             // 課題の全文に出す画像の例（jest では画像の import は fileMock の文字列）
             expect(typeof c.image.src).toBe('string');
             expect(ja[c.image.alt.id]).toBe('上向き矢印キーでネコが上へ、下向き矢印キーで下へ動く');
-            expect(c.skills.map((s) => ja[s.name.id])).toEqual(['座標で動かす', 'ブロックを複製する']);
             expect(allowedOpcodes(c)).toEqual({ event: ['event_whenkeypressed'], motion: ['motion_changeyby'] });
             expect(hints(c)).toEqual([
                 [PALETTE, 'self.y += 10\n', false],
@@ -636,13 +602,11 @@ describe('lesson courses', () => {
             );
         });
 
-        test('3 押したら話そう (required): add a costume, click the cat, say and next costume', () => {
+        test('3 押したら話そう: add a costume, click the cat, say and next costume', () => {
             const c = challenge('blocks-l1-click-say');
-            expect(c.required).toBe(true);
             expect(ja[c.task.id]).toBe(
                 'ネコに好きなコスチュームを足して、\n押したら「こんにちは！」と言って、見た目がかわるようにしよう',
             );
-            expect(c.skills.map((s) => ja[s.name.id])).toEqual(['押したら動く', 'セリフを言う', 'コスチュームを足す']);
             expect(allowedOpcodes(c)).toEqual({
                 event: ['event_whenthisspriteclicked'],
                 looks: ['looks_sayforsecs', 'looks_nextcostume'],
@@ -669,9 +633,7 @@ describe('lesson courses', () => {
 
         test('4 くり返そう: the stage switches the backdrop 6 times on the 1 key', () => {
             const c = challenge('blocks-l1-repeat');
-            expect(c.required).toBe(false);
             expect(ja[c.task.id]).toBe('1 のキーを押したら、\n背景が「Canyon」と「Arctic」に 3 回かわるようにしよう');
-            expect(c.skills.map((s) => ja[s.name.id])).toEqual(['くり返し', '背景を足す', 'ステージのプログラム']);
             expect(allowedOpcodes(c)).toEqual({
                 event: ['event_whenkeypressed'],
                 control: ['control_repeat', 'control_wait'],

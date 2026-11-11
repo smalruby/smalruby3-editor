@@ -11,11 +11,6 @@ const messages = defineMessages({
         defaultMessage: 'You did it!',
         description: 'Title of the toast shown when a lesson challenge is completed',
     },
-    skills: {
-        id: 'gui.lessons.completed.skills',
-        defaultMessage: 'Now you can: {skills}',
-        description: 'Line listing the skills learned by the completed challenge',
-    },
     next: {
         id: 'gui.lessons.completed.next',
         defaultMessage: 'Next challenge',
@@ -47,14 +42,6 @@ const messages = defineMessages({
     },
 });
 
-/**
- * できることの区切り。日本語は「・」、それ以外は ", "（空白だけの文言は ICU message で
- * 消えるので locale 文字列にはしない）。
- * @param {string} locale - intl の locale。
- * @returns {string} 区切り。
- */
-const skillSeparator = (locale) => (String(locale).toLowerCase().startsWith('ja') ? '・' : ', ');
-
 // ボタンの文言（COMPLETED_ACTIONS ごと）
 const BUTTON_MESSAGES = {
     [COMPLETED_ACTIONS.NEXT]: messages.next,
@@ -63,7 +50,7 @@ const BUTTON_MESSAGES = {
 };
 
 /**
- * 「できた！」の表示。チャレンジの名前と、身についた「できること」と、「次のチャレンジ」
+ * 「できた！」の表示。チャレンジの名前と、「次のチャレンジ」
  * （レッスンのチャレンジが全部できたら「ほかのレッスンへ」か「レッスン表へ」）を並べる。
  * @param {object} props - props。
  * @param {object} props.challenge - できたチャレンジ。
@@ -75,7 +62,6 @@ const BUTTON_MESSAGES = {
  */
 const LessonCompletedToast = ({ action = COMPLETED_ACTIONS.NEXT, challenge, onClose, onNextChallenge, intl }) => {
     const lessonDone = action !== COMPLETED_ACTIONS.NEXT;
-    const skills = (challenge.skills || []).map((skill) => intl.formatMessage(skill.name));
     return (
         <div className={styles.toast} role="status" data-testid="lesson-completed-toast">
             <span className={styles.icon} aria-hidden="true">
@@ -88,13 +74,6 @@ const LessonCompletedToast = ({ action = COMPLETED_ACTIONS.NEXT, challenge, onCl
                         {intl.formatMessage(challenge.name)}
                     </span>
                 </div>
-                {skills.length > 0 ? (
-                    <div className={styles.skills} data-testid="lesson-completed-toast-skills">
-                        {intl.formatMessage(messages.skills, {
-                            skills: skills.join(skillSeparator(intl.locale)),
-                        })}
-                    </div>
-                ) : null}
                 {lessonDone ? (
                     <div className={styles.lastInLesson} data-testid="lesson-completed-toast-last">
                         {intl.formatMessage(messages.lastInLesson)}
@@ -132,7 +111,6 @@ LessonCompletedToast.propTypes = {
     action: PropTypes.oneOf(Object.values(COMPLETED_ACTIONS)),
     challenge: PropTypes.shape({
         name: PropTypes.object.isRequired,
-        skills: PropTypes.arrayOf(PropTypes.shape({ id: PropTypes.string, name: PropTypes.object })),
     }).isRequired,
     intl: intlShape.isRequired,
     onClose: PropTypes.func.isRequired,

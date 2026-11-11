@@ -1,8 +1,10 @@
 /**
- * Integration test for clearing lesson 1 (ブロックのなかま) as a whole.
- * レッスン表から 11 個のチャレンジがすべて開ける → 必須 5 つ（3・6・8・9・11）+ 2 つ（7・10）を
- * 「プログラムを入れる」→ 操作 →「できた！」→ レッスン表に「クリア！」とコースの印
- * 「プログラマー デビュー！」が出て、できたチャレンジの「できること」に印が付く（1300×600）。
+ * Integration test for finishing the course 「きょうからプログラマー」 (3 lessons, 11 challenges).
+ * レッスン表から 11 個のチャレンジがすべて開ける（課題バーの番号はレッスンの中の番号）→
+ * レッスン 1・2 の 7 つは、11 のチャレンジが 1 つのレッスンだったころの記録（lessonId: 'blocks-l1'）
+ * として入れておく → レッスン 3 の 4 つを「プログラムを入れる」→ 操作 →「できた！」→ レッスン表の
+ * 進み具合がレッスンごとに正しく出て、コースのチャレンジが全部できたらコースの印
+ * 「プログラマー デビュー！」が出る（1300×600）。必須・クリア・できることは段 1 から外した（#1529）。
  * 1 つずつの細かい確かめは smalruby-lesson1-challenges-*.test.js。
  */
 import path from 'path';
@@ -15,7 +17,8 @@ const { findByXpath, getDriver, loadUri, waitForLoadingFinished } = new Selenium
 const uri = path.resolve(__dirname, '../../build/index.html');
 
 const PROGRESS_KEY = 'smalruby:lessonProgress';
-const LESSON = COURSES[0].lessons[0];
+const COURSE = COURSES[0];
+const LAST_LESSON = COURSE.lessons[COURSE.lessons.length - 1];
 
 const byTestId = (testId) => `//*[@data-testid="${testId}"]`;
 
@@ -109,33 +112,8 @@ const waitForCompleted = async () => {
     return textByTestId('lesson-completed-toast-challenge');
 };
 
-// 必須 5 つ + 2 つ。準備（insertCode の前）と操作（後）
+// レッスン 3 の 4 つ。操作は insertCode の後
 const PLAYS = [
-    {
-        id: 'blocks-l1-click-say',
-        before: () => driver.executeScript('return window.smalruby.vm.duplicateCostume(0);'),
-        hat: 'event_whenthisspriteclicked',
-        play: clickCat,
-    },
-    {
-        id: 'blocks-l1-ask-answer',
-        hat: 'event_whenthisspriteclicked',
-        play: async () => {
-            await clickCat();
-            await answerQuestion('たろう');
-        },
-    },
-    {
-        id: 'blocks-l1-quiz',
-        hat: 'event_whenthisspriteclicked',
-        play: async () => {
-            await clickCat();
-            await answerQuestion('7');
-            await driver.sleep(2500);
-            await clickCat();
-            await answerQuestion('5');
-        },
-    },
     {
         id: 'blocks-l1-count',
         hat: 'event_whenthisspriteclicked',
@@ -172,7 +150,13 @@ const PLAYS = [
     },
 ];
 
-describe('Smalruby Lessons: clearing lesson 1', () => {
+const progressTexts = () =>
+    driver.executeScript(
+        `return Array.from(document.querySelectorAll('[data-testid="lessons-library-progress"]'))
+            .map(el => el.textContent);`,
+    );
+
+describe('Smalruby Lessons: finishing the course', () => {
     beforeAll(async () => {
         driver = await getDriver();
     });
@@ -181,57 +165,77 @@ describe('Smalruby Lessons: clearing lesson 1', () => {
         await driver.quit();
     });
 
-    test('all 11 challenges open from the library; 5 required + 2 clear the lesson and the course', async () => {
+    test('all 11 challenges open from the library; old records and the last lesson finish the course', async () => {
         await loadUri(`${uri}?no_beforeunload=1`);
         await driver.manage().window().setRect({ width: 1300, height: 600 });
         await waitForLoadingFinished();
         await driver.executeScript(`window.localStorage.removeItem(${JSON.stringify(PROGRESS_KEY)})`);
 
-        // 11 個とも、レッスン表から開ける（課題バーの「何個め」と課題の 1 行）
-        expect(LESSON.challenges).toHaveLength(11);
+        // 11 個とも、レッスン表から開ける（課題バーの「何個め / レッスンの数」と課題の 1 行）
+        expect(COURSE.lessons.map((l) => l.challenges.length)).toEqual([4, 3, 4]);
         // （やめると、開いたときのレッスン表にもどる）
         await openLibrary();
-        for (const challenge of LESSON.challenges) {
-            await clickByTestId(`lessons-library-challenge-${challenge.id}`);
-            await findByXpath(byTestId('lesson-task-bar'));
-            await driver.sleep(1000);
-            expect(await textByTestId('lesson-task-bar-position')).toBe(`${challenge.number} of 11`);
-            expect((await textByTestId('lesson-task-bar-task')).length).toBeGreaterThan(0);
-            await clickByTestId('lesson-task-bar-quit');
-            await findByXpath(byTestId('lessons-library'));
-            await driver.sleep(300);
+        for (const lesson of COURSE.lessons) {
+            for (const challenge of lesson.challenges) {
+                await clickByTestId(`lessons-library-challenge-${challenge.id}`);
+                await findByXpath(byTestId('lesson-task-bar'));
+                await driver.sleep(1000);
+                expect(await textByTestId('lesson-task-bar-position')).toBe(
+                    `${challenge.number} of ${lesson.challenges.length}`,
+                );
+                expect((await textByTestId('lesson-task-bar-task')).length).toBeGreaterThan(0);
+                await clickByTestId('lesson-task-bar-quit');
+                await findByXpath(byTestId('lessons-library'));
+                await driver.sleep(300);
+            }
         }
 
-        // 必須 5 つ + 2 つを「できた」にする
-        expect(PLAYS.filter((p) => LESSON.clear.required.includes(p.id))).toHaveLength(LESSON.clear.required.length);
-        expect(PLAYS).toHaveLength(LESSON.clear.count);
-        for (const play of PLAYS) {
-            await driver.navigate().refresh();
-            await waitForLoadingFinished();
-            await openFromLibrary(play.id);
-            if (play.before) await play.before();
-            await insertCode(play.hat);
-            await play.play();
-            await waitForCompleted();
-        }
-
-        // レッスン表: 7 つできた・必須 5 / 5・クリア！・コースの印・できることの印
+        // レッスン 1・2 は、1 つのレッスンだったころの記録（lessonId はみな blocks-l1）
+        const oldRecords = Object.fromEntries(
+            COURSE.lessons
+                .slice(0, 2)
+                .flatMap((l) => l.challenges)
+                .map((c) => [
+                    c.id,
+                    { completedAt: '2026-11-01T00:00:00.000Z', courseId: COURSE.id, lessonId: 'blocks-l1' },
+                ]),
+        );
+        await driver.executeScript(
+            `window.localStorage.setItem(${JSON.stringify(PROGRESS_KEY)}, arguments[0])`,
+            JSON.stringify({ version: 1, challenges: oldRecords }),
+        );
         await driver.navigate().refresh();
         await waitForLoadingFinished();
         await openLibrary();
-        expect(await textByTestId('lessons-library-progress')).toBe('7 / 11 done (required 5 / 5)');
-        expect(await countByTestId('lessons-library-challenge-done')).toBe(7);
-        expect(await textByTestId('lessons-library-lesson-cleared')).toBe('Cleared!');
+        expect(await progressTexts()).toEqual(['4 / 4 done', '3 / 3 done', '0 / 4 done']);
+        expect(await countByTestId('lessons-library-badge')).toBe(0);
+        // 必須・クリア・できることの表示は無い
+        expect(await countByTestId('lessons-library-challenge-required')).toBe(0);
+        expect(await countByTestId('lessons-library-lesson-cleared')).toBe(0);
+        expect(await countByTestId('lessons-library-skills')).toBe(0);
+
+        // レッスン 3 の 4 つを「できた」にする。最後のレッスンなので、全部できたら「レッスン表へ」
+        expect(PLAYS.map((p) => p.id)).toEqual(LAST_LESSON.challenges.map((c) => c.id));
+        for (const [index, play] of PLAYS.entries()) {
+            await driver.navigate().refresh();
+            await waitForLoadingFinished();
+            await openFromLibrary(play.id);
+            await insertCode(play.hat);
+            await play.play();
+            await waitForCompleted();
+            expect(
+                await driver.executeScript(
+                    `return document.querySelector('[data-testid="lesson-completed-toast-next"]').dataset.action`,
+                ),
+            ).toBe(index === PLAYS.length - 1 ? 'library' : 'next');
+        }
+
+        // レッスン表: レッスンごとに全部できた・コースの印
+        await driver.navigate().refresh();
+        await waitForLoadingFinished();
+        await openLibrary();
+        expect(await progressTexts()).toEqual(['4 / 4 done', '3 / 3 done', '4 / 4 done']);
+        expect(await countByTestId('lessons-library-challenge-done')).toBe(11);
         expect(await textByTestId('lessons-library-badge')).toContain('Programmer Debut!');
-        const done = new Set(
-            LESSON.challenges
-                .filter((c) => PLAYS.some((p) => p.id === c.id))
-                .flatMap((c) => c.skills.map((s) => s.id)),
-        );
-        const marks = await driver.executeScript(`
-            return Array.from(document.querySelectorAll('[data-testid^="lessons-library-skill-"]'))
-                .map(li => [li.getAttribute('data-testid').replace('lessons-library-skill-', ''), li.dataset.done]);`);
-        expect(marks.length).toBeGreaterThan(0);
-        marks.forEach(([id, mark]) => expect([id, mark]).toEqual([id, done.has(id) ? 'true' : 'false']));
     });
 });

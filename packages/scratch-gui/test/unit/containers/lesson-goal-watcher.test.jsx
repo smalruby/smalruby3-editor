@@ -10,7 +10,6 @@ jest.mock('../../../src/lib/lessons/courses.js', () => {
     const makeChallenge = (id, name) => ({
         id,
         name: { id: `gui.lessons.challenge.${id}.name`, defaultMessage: name },
-        skills: [{ id: 's', name: { id: 'gui.lessons.skill.s.name', defaultMessage: 'Say things' } }],
         goal: [{ type: 'uses', trigger: { hat: 'event_whenflagclicked' }, blocks: ['looks_say'] }],
     });
     const lesson = {
@@ -136,7 +135,6 @@ describe('LessonGoalWatcher', () => {
             onDismiss,
         });
         expect(getByTestId('lesson-completed-toast-challenge')).toHaveTextContent('Test challenge');
-        expect(getByTestId('lesson-completed-toast-skills')).toHaveTextContent('Say things');
         fireEvent.click(getByTestId('lesson-completed-toast-close'));
         expect(onDismiss).toHaveBeenCalledTimes(1);
     });

@@ -24,13 +24,13 @@ const clickByTestId = (testId) => driver.executeScript(`document.querySelector('
 const countByTestId = (testId) =>
     driver.executeScript(`return document.querySelectorAll('[data-testid="${testId}"]').length`);
 
-const startChallenge = async (id, number) => {
+const startChallenge = async (id, position) => {
     await driver.executeScript(`window.smalruby.startChallenge(${JSON.stringify(id)})`);
     await driver.wait(
         async () =>
             (await driver.executeScript(
                 `const el = document.querySelector('[data-testid="lesson-task-bar-position"]'); return el && el.textContent;`,
-            )) === `${number} / 全部で 11`,
+            )) === position,
         10000,
         `challenge ${id} should open`,
     );
@@ -101,7 +101,7 @@ describe('Smalruby Lessons: full text of the task', () => {
         await waitForLoadingFinished();
 
         // 短い課題（チャレンジ 2）でも出る。画像つきの例
-        await startChallenge('blocks-l1-arrow-move', 2);
+        await startChallenge('blocks-l1-arrow-move', '2 / 4');
         expect(await countByTestId('lesson-task-bar-full-text')).toBe(0);
         // 「全文」ボタンはもう無い
         expect(await countByTestId('lesson-task-bar-full-text-toggle')).toBe(0);
@@ -133,7 +133,7 @@ describe('Smalruby Lessons: full text of the task', () => {
         expect(await countByTestId('lesson-hint')).toBe(1);
 
         // 長い課題（チャレンジ 5）は、定義の改行どおりに 2 行以上で出る。画像の無いチャレンジは画像を出さない
-        await startChallenge('blocks-l1-if', 5);
+        await startChallenge('blocks-l1-if', '1 / 3');
         await hoverBar();
         await findByXpath(byTestId('lesson-task-bar-full-text'));
         layout = await panelLayout();

@@ -9,10 +9,6 @@ import { ja } from '../../../src/lib/lessons/lessons.locale.js';
 const challenge = {
     id: 'blocks-l1-key-sound',
     name: { id: 'gui.lessons.challenge.blocks-l1-key-sound.name', defaultMessage: 'Play a sound with a key' },
-    skills: [
-        { id: 'key', name: { id: 'gui.lessons.skill.key.name', defaultMessage: 'Move with keys' } },
-        { id: 'sound', name: { id: 'gui.lessons.skill.sound.name', defaultMessage: 'Play sounds' } },
-    ],
 };
 
 const renderToast = (props = {}, { locale = 'en', messages = {} } = {}) =>
@@ -23,31 +19,16 @@ const renderToast = (props = {}, { locale = 'en', messages = {} } = {}) =>
     );
 
 describe('LessonCompletedToast', () => {
-    test('shows the title, the challenge name and the skills', () => {
+    test('shows the title and the challenge name (no skills line since #1529)', () => {
         const { getByTestId } = renderToast();
         expect(getByTestId('lesson-completed-toast')).toBeInTheDocument();
         expect(getByTestId('lesson-completed-toast-title')).toHaveTextContent('You did it!');
         expect(getByTestId('lesson-completed-toast-challenge')).toHaveTextContent('Play a sound with a key');
-        expect(getByTestId('lesson-completed-toast-skills')).toHaveTextContent(
-            'Now you can: Move with keys, Play sounds',
-        );
     });
 
-    test('uses the Japanese strings and separator', () => {
-        const messages = {
-            ...ja,
-            'gui.lessons.skill.key.name': 'キーで動かす',
-            'gui.lessons.skill.sound.name': '音を鳴らす',
-        };
-        const { getByTestId } = renderToast({}, { locale: 'ja', messages });
+    test('uses the Japanese strings', () => {
+        const { getByTestId, queryByTestId } = renderToast({}, { locale: 'ja', messages: ja });
         expect(getByTestId('lesson-completed-toast-title')).toHaveTextContent('できた！');
-        expect(getByTestId('lesson-completed-toast-skills')).toHaveTextContent(
-            'できること: キーで動かす・音を鳴らす',
-        );
-    });
-
-    test('omits the skills line when the challenge has none', () => {
-        const { queryByTestId } = renderToast({ challenge: { ...challenge, skills: [] } });
         expect(queryByTestId('lesson-completed-toast-skills')).not.toBeInTheDocument();
     });
 
