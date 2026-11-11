@@ -2,8 +2,11 @@
  * rubyToBlocksXml: ヒントの `blocks`（Ruby）を本物のブロックの XML にする。
  * 変換はいまの code と同じ ruby-to-blocks-converter（prism）を使う。
  */
-import { COURSES } from '../../../../src/lib/lessons/courses';
+import { COURSES, localizeCode } from '../../../../src/lib/lessons/courses';
 import { rubyToBlocksXml } from '../../../../src/lib/lessons/hint-blocks';
+
+// code / blocks は locale ごとに持てる（courses.js の localizeCode）ので、UI の 3 つの locale で確かめる
+const LOCALES = ['ja', 'ja-Hira', 'en'];
 
 const allSteps = () =>
     COURSES.flatMap((course) =>
@@ -113,13 +116,17 @@ describe('rubyToBlocksXml', () => {
         const steps = allSteps();
         expect(steps.length).toBeGreaterThan(0);
         for (const { challenge, step } of steps) {
-            const { xml, errors } = await rubyToBlocksXml(null, null, step.blocks);
-            expect({ id: challenge.id, blocks: step.blocks, errors }).toEqual({
-                id: challenge.id,
-                blocks: step.blocks,
-                errors: [],
-            });
-            expect(xml).toMatch(/<block /);
+            for (const locale of LOCALES) {
+                const blocks = localizeCode(step.blocks, locale);
+                const { xml, errors } = await rubyToBlocksXml(null, null, blocks);
+                expect({ id: challenge.id, locale, blocks, errors }).toEqual({
+                    id: challenge.id,
+                    locale,
+                    blocks,
+                    errors: [],
+                });
+                expect(xml).toMatch(/<block /);
+            }
         }
     });
 
@@ -127,8 +134,10 @@ describe('rubyToBlocksXml', () => {
         const challenges = COURSES.flatMap((c) => c.lessons.flatMap((l) => l.challenges)).filter((c) => c.code);
         expect(challenges.length).toBeGreaterThan(0);
         for (const challenge of challenges) {
-            const { errors } = await rubyToBlocksXml(null, null, challenge.code);
-            expect({ id: challenge.id, errors }).toEqual({ id: challenge.id, errors: [] });
+            for (const locale of LOCALES) {
+                const { errors } = await rubyToBlocksXml(null, null, localizeCode(challenge.code, locale));
+                expect({ id: challenge.id, locale, errors }).toEqual({ id: challenge.id, locale, errors: [] });
+            }
         }
     });
 
@@ -138,8 +147,10 @@ describe('rubyToBlocksXml', () => {
         );
         expect(entries.map((e) => e.sprite)).toContain('Penguin');
         for (const { id, sprite, code } of entries) {
-            const { errors } = await rubyToBlocksXml(null, null, code);
-            expect({ id, sprite, errors }).toEqual({ id, sprite, errors: [] });
+            for (const locale of LOCALES) {
+                const { errors } = await rubyToBlocksXml(null, null, localizeCode(code, locale));
+                expect({ id, sprite, locale, errors }).toEqual({ id, sprite, locale, errors: [] });
+            }
         }
     });
 

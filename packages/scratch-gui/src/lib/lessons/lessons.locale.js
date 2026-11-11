@@ -168,7 +168,7 @@ export const jaHira = {
     'gui.lessons.skill.stage-program': 'ステージのプログラム',
     'gui.lessons.challenge.blocks-l1-key-sound.name': 'キーでおとをならそう',
     'gui.lessons.challenge.blocks-l1-key-sound.task':
-        'スペースキーをおしたら、ネコが「ニャー」とないたあと、「Owl」のおとがなるようにしよう',
+        'スペースキーをおしたら、ネコが「Meow」（ニャー）とないたあと、「Owl」のおとがなるようにしよう',
     'gui.lessons.challenge.blocks-l1-key-sound.step1': 'うえの「おと」タブをひらいて、ひだりしたのボタンから「Owl」をえらんでたそう。',
     'gui.lessons.challenge.blocks-l1-key-sound.step2':
         '「コード」タブにもどって、きいろい「イベント」のブロックをコードエリアへドラッグしよう。',

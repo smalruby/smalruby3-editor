@@ -11,12 +11,15 @@
 // 入れずに吹き出しの中にわけを出す（入れると Ruby タブに切りかわってエラーになり、ブロックの
 // コースの子どもには何が起きたかわかりにくいため）。`spriteCodes` も同じく、入れる前に全部を確かめる
 // （ペンギンにだけ入って、ネコの分で止まる、という半端な状態にしない）。
+// `code` / `spriteCodes` / ヒントの `blocks` は locale ごとに持てる（作品の中の名前が locale で変わる。
+// courses.js の localizeCode）。いまの locale のものを使い、「プログラムを入れる」では、それが作品に
+// 合わない（日本語の作品を英語の UI で開いた等）ときは、ほかの locale のものを試す。
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useIntl } from 'react-intl';
 import { connect } from 'react-redux';
 import LessonHint from '../components/lesson-hint/lesson-hint.jsx';
-import { LANGUAGES } from '../lib/lessons/courses';
+import { LANGUAGES, challengeCodeCandidates, localizeCode } from '../lib/lessons/courses';
 import { rubyToBlocksXml } from '../lib/lessons/hint-blocks';
 import { findCodeSprite, findSpriteByName, insertSpriteCodes } from '../lib/lessons/insert-sprite-code';
 import { targetCodeToBlocks } from '../lib/ruby-to-blocks-converter';
@@ -38,7 +41,7 @@ const LessonHintContainer = ({
     vm,
 }) => {
     const intl = useIntl();
-    const blocks = hint && hint.visible && hint.step ? hint.step.blocks : null;
+    const blocks = hint && hint.visible && hint.step ? localizeCode(hint.step.blocks, intl.locale) : null;
     // 変換した XML は Ruby ごとに覚える（もどる・進めるで同じブロックを変換し直さない）。
     // 変換の結果は Ruby のバージョンでも変わるので、キーに含める
     const cacheRef = useRef(new Map());
@@ -85,35 +88,52 @@ const LessonHintContainer = ({
         if (!current || !current.challenge.code) return;
         const { challenge } = current;
         const hasVm = Boolean(vm && vm.runtime);
-        const spriteCodes = hasVm ? challenge.spriteCodes || [] : [];
         const stage = challenge.codeTarget === 'stage' && hasVm ? vm.runtime.getTargetForStage() : null;
-        // code を入れる相手: ステージのプログラムはステージ、spriteCodes があれば残りのスプライト（ネコ）。
-        // どちらでもなければ null（いま編集中のスプライトに入れる）
-        const codeSprite = spriteCodes.length > 0 ? findCodeSprite(vm, spriteCodes) : null;
         const editing = vm && vm.editingTarget ? vm.editingTarget : null;
         // 確かめる組: [target, code]。まだいないスプライト（これから足すペンギン）は target なしで確かめる
         // （target が無いと音・コスチュームは確かめない。足すのはライブラリのままのスプライトなので足りる）
-        const checks = [
-            ...spriteCodes.map(({ sprite, code }) => [findSpriteByName(vm, sprite), code]),
-            [stage || codeSprite || editing, challenge.code],
-        ];
+        const checksFor = (candidate) => {
+            const spriteCodes = hasVm ? candidate.spriteCodes : [];
+            // code を入れる相手: ステージのプログラムはステージ、spriteCodes があれば残りのスプライト（ネコ）。
+            // どちらでもなければ null（いま編集中のスプライトに入れる）
+            const codeSprite = spriteCodes.length > 0 ? findCodeSprite(vm, spriteCodes) : null;
+            return [
+                ...spriteCodes.map(({ sprite, code }) => [findSpriteByName(vm, sprite), code]),
+                [stage || codeSprite || editing, candidate.code],
+            ];
+        };
+        const candidates = challengeCodeCandidates(challenge, intl.locale);
+        // 作品に合う最初の組を使う。どれも合わなければ、わけのいちばん少ない組（同じなら先の組 =
+        // いまの locale）のわけを出す。日本語の作品を英語の UI で開いて Owl をまだ足していないとき、
+        // en の組のわけ（"Meow" も Owl も無い）を出すと、作品にある「ニャー」を探させてしまう
+        let chosen = null;
+        let fewestErrors = null;
         try {
-            const results = await Promise.all(
-                checks.map(([t, code]) =>
-                    rubyToBlocksXml(vm, t, code, intl, { version: rubyVersion, validateAssets: true }),
-                ),
-            );
-            const errors = results.flatMap((r) => r.errors);
-            if (errors.length > 0) {
-                setInsertErrors(errors.map((e) => e.text).filter(Boolean));
+            for (const candidate of candidates) {
+                const results = await Promise.all(
+                    checksFor(candidate).map(([t, code]) =>
+                        rubyToBlocksXml(vm, t, code, intl, { version: rubyVersion, validateAssets: true }),
+                    ),
+                );
+                const errors = results.flatMap((r) => r.errors);
+                if (errors.length === 0) {
+                    chosen = candidate;
+                    break;
+                }
+                if (!fewestErrors || errors.length < fewestErrors.length) fewestErrors = errors;
+            }
+            if (!chosen) {
+                setInsertErrors(fewestErrors.map((e) => e.text).filter(Boolean));
                 return;
             }
         } catch (err) {
-            // 試しの変換そのものが落ちたときは、従来どおり入れて Ruby タブにまかせる
+            // 試しの変換そのものが落ちたときは、従来どおり（いまの locale の組を）入れて Ruby タブにまかせる
             // eslint-disable-next-line no-console
             console.warn('[lesson-hint] could not check the program before inserting:', err);
+            chosen = candidates[0];
         }
         setInsertErrors([]);
+        const spriteCodes = hasVm ? chosen.spriteCodes : [];
         let target = stage;
         if (spriteCodes.length > 0) {
             // ほかのスプライト（ペンギン）のプログラムを先に入れ、code はネコに入れる
@@ -122,7 +142,7 @@ const LessonHintContainer = ({
             });
         }
         if (target) vm.setEditingTarget(target.id);
-        onInsertCode(current.challenge.code, current.course.language, target, rubyVersion);
+        onInsertCode(chosen.code, current.course.language, target, rubyVersion);
     }, [current, intl, onInsertCode, rubyVersion, vm]);
 
     // 「プログラムを入れる」を続けて押したときに 2 回入れない（spriteCodes ではペンギンが 2 匹足される）
@@ -177,7 +197,8 @@ LessonHintContainer.propTypes = {
         spotlight: PropTypes.bool.isRequired,
         lastResort: PropTypes.bool.isRequired,
         debug: PropTypes.arrayOf(PropTypes.object).isRequired,
-        code: PropTypes.string,
+        // `code` は locale ごとのオブジェクトでもよい（ここでは有無だけを見る）
+        code: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
     }),
     onHideHint: PropTypes.func.isRequired,
     onInsertCode: PropTypes.func.isRequired,

@@ -194,7 +194,7 @@ const getLessonAllowedBlocks = (state) => {
  * ヒントの吹き出しの状態（見た目は吹き出しの実装が作る）。
  * @param {object} state - Redux の state。
  * @returns {?{visible: boolean, index: number, count: number, step: ?object, spotlight: boolean,
- *   lastResort: boolean, debug: Array<object>, code: ?string}}
+ *   lastResort: boolean, debug: Array<object>, code: ?(string|object)}}
  *   レッスンモードでなければ null。`step` はいまのヒント（最後の手段のページでは null）。
  *   `spotlight` はこのページで周りを暗くするか（はじめて開いたチャレンジ、かつ `step.spotlight`）。
  *   `lastResort` は最後の手段のページ（`debug` = うまく動かないときは、`code` = プログラムを入れる）か。
