@@ -570,10 +570,10 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `screenshots/0502-challenge2-arrow-move-hint1-1300x600.png` | チャレンジ 2「矢印キーで動かそう」の最初のヒント（パレットを指し「y座標を 10 ずつ変える」を描く） |
 | `screenshots/0503-challenge3-click-say-hint1-1300x600.png` | チャレンジ 3「押したら話そう」の最初のヒント（コスチュームタブを指す） |
 | `screenshots/0504-challenge4-repeat-hint1-1300x600.png` | チャレンジ 4「くり返そう」の最初のヒント（背景を選ぶを指す） |
-| `screenshots/0505-challenge5-hint-1300x600.png` | チャレンジ 5「もし〜なら」のヒント 1（「ずっと」を描く） |
-| `screenshots/0506-challenge6-hint-1300x600.png` | チャレンジ 6「聞いて答えよう」のヒント 1（「なまえは？ と聞いて待つ」を描く） |
-| `screenshots/0507-challenge7-hint-1300x600.png` | チャレンジ 7「クイズを作ろう」のヒント 1 |
-| `screenshots/0508-challenge8-hint-1300x600.png` | チャレンジ 8「数えよう」のヒント 1（「変数を作る」） |
+| `screenshots/0505-challenge5-if-hint1-1300x600.png` | チャレンジ 5「もし〜なら」のヒント 1（「ずっと」を描く） |
+| `screenshots/0506-challenge6-ask-answer-hint1-1300x600.png` | チャレンジ 6「聞いて答えよう」のヒント 1（「なまえは？ と聞いて待つ」を描く） |
+| `screenshots/0507-challenge7-quiz-hint1-1300x600.png` | チャレンジ 7「クイズを作ろう」のヒント 1 |
+| `screenshots/0508-challenge8-count-hint1-1300x600.png` | チャレンジ 8「数えよう」のヒント 1（「変数を作る」） |
 
 ## いまのチュートリアルの入口
 
