@@ -472,6 +472,92 @@ test('prune_infra_store is a no-op without a store', () => {
     }
 });
 
+// Run from the host, worktrees made in devpod (/app/...) are registered but not visible.
+test('prune_infra_store removes nothing while a registered worktree is not accessible', () => {
+    const env = makeEnv();
+    try {
+        setupMain(env, { mainLock: lockOf(STALE), mainInstalled: installedOf(STALE) });
+        const c = setupWorktree(env, 'wt-c', { wtLock: lockOf(NEWER) });
+        runShell(env, `link_infra_node_modules ${JSON.stringify(c)}`);
+        const [entry] = storeEntries(env);
+        fs.rmSync(c, { recursive: true, force: true });
+        runShell(
+            env,
+            [
+                `list_worktree_paths() { echo ${JSON.stringify(env.mainDir)}; echo /nonexistent/issue-1; }`,
+                'prune_infra_store 2>/dev/null',
+            ].join('\n'),
+        );
+        assert.deepStrictEqual(storeEntries(env), [entry]);
+    } finally {
+        fs.rmSync(env.root, { recursive: true, force: true });
+    }
+});
+
+test('prune_infra_store keeps an entry linked through another spelling of the store root', () => {
+    const env = makeEnv();
+    try {
+        setupMain(env, { mainLock: lockOf(STALE), mainInstalled: installedOf(STALE) });
+        const a = setupWorktree(env, 'wt-a', { wtLock: lockOf(CURRENT) });
+        runShell(env, `link_infra_node_modules ${JSON.stringify(a)}`);
+        const [entry] = storeEntries(env);
+        // e.g. created with AUTOPILOT_WORKTREE_ROOT ending in a slash
+        const dst = path.join(a, 'infra', PROJ, 'node_modules');
+        fs.unlinkSync(dst);
+        fs.symlinkSync(`${env.wtRoot}//.infra-node-modules/${entry}/node_modules`, dst);
+        runShell(env, 'prune_infra_store');
+        assert.deepStrictEqual(storeEntries(env), [entry]);
+    } finally {
+        fs.rmSync(env.root, { recursive: true, force: true });
+    }
+});
+
+test('prune_infra_store removes a dead lock left without its store entry', () => {
+    const env = makeEnv();
+    try {
+        fs.mkdirSync(env.mainDir, { recursive: true });
+        fs.mkdirSync(path.join(env.store, `${PROJ}-deadbeefdeadbeef.lock`), { recursive: true });
+        fs.writeFileSync(path.join(env.store, `${PROJ}-deadbeefdeadbeef.lock`, 'pid'), '999999\n');
+        // a live one (an install in progress) stays
+        fs.mkdirSync(path.join(env.store, `${PROJ}-feedfeedfeedfeed.lock`), { recursive: true });
+        fs.writeFileSync(path.join(env.store, `${PROJ}-feedfeedfeedfeed.lock`, 'pid'), `${process.pid}\n`);
+        const out = runShell(env, 'prune_infra_store');
+        assert.deepStrictEqual(storeEntries(env), [`${PROJ}-feedfeedfeedfeed.lock`]);
+        assert.match(out, /removed: stale lock/);
+    } finally {
+        fs.rmSync(env.root, { recursive: true, force: true });
+    }
+});
+
+test('ensure_infra_store uses an entry another process placed during its install', () => {
+    const env = makeEnv();
+    try {
+        const a = setupWorktree(env, 'wt-a', { wtLock: lockOf(CURRENT) });
+        const store = path.join(env.store, `${PROJ}-race`);
+        // npm stub that also lets "the other process" place the entry mid-install
+        fs.writeFileSync(
+            path.join(env.binDir, 'npm'),
+            [
+                '#!/usr/bin/env bash',
+                'rm -rf node_modules && mkdir -p node_modules',
+                'cp package-lock.json node_modules/.package-lock.json',
+                `mkdir -p ${JSON.stringify(path.join(store, 'node_modules'))}`,
+                '',
+            ].join('\n'),
+            { mode: 0o755 },
+        );
+        const out = runShell(
+            env,
+            `mkdir -p "\${INFRA_STORE}"\nensure_infra_store ${JSON.stringify(LOCKFILE_JS)} ${JSON.stringify(path.join(a, 'infra', PROJ))} ${JSON.stringify(store)}`,
+        );
+        assert.strictEqual(out.trim(), path.join(store, 'node_modules'));
+        assert.deepStrictEqual(fs.readdirSync(store), ['node_modules'], 'no install nested inside the entry');
+        assert.deepStrictEqual(storeEntries(env), [`${PROJ}-race`], 'the partial install was removed');
+    } finally {
+        fs.rmSync(env.root, { recursive: true, force: true });
+    }
+});
+
 test('re-preparing replaces a stale symlink to main with the shared store', () => {
     const r = runLinkInfra({
         mainLock: lockOf(STALE),

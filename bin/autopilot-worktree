@@ -372,7 +372,13 @@ ensure_infra_store() {
         rm -rf "${tmp}"
         return 1
     fi
-    mv "${tmp}" "${store}"
+    # 死んだロックを同時に奪った別プロセスが先に置いていたら、そちらを使う
+    # （置き場があると `mv` はその中へ入れてしまい、使われない install が残る）
+    if [[ -d "${store}" ]]; then
+        rm -rf "${tmp}"
+    else
+        mv "${tmp}" "${store}"
+    fi
     echo "${store}/node_modules"
 }
 
@@ -458,13 +464,16 @@ list_worktree_paths() {
     sed -n 's/^worktree //p' <<<"${list}"
 }
 
-# 置き場の node_modules をどれかの worktree の infra/*/node_modules が指しているか
+# 置き場の node_modules をどれかの worktree の infra/*/node_modules が指しているか。
+# リンク先は置き場の名前で照合する（作ったときと AUTOPILOT_WORKTREE_ROOT の書き方が違っても
+# 使用中のものを消さないため。別の置き場の同名を「使用中」とみなすのは安全側）。
 infra_store_referenced() {
-    local target="$1/node_modules" w link
+    local name w link
+    name=$(basename "$1")
     while IFS= read -r w; do
         [[ -n "${w}" ]] || continue
         for link in "${w}"/infra/*/node_modules; do
-            [[ -L "${link}" && "$(readlink "${link}")" == "${target}" ]] && return 0
+            [[ -L "${link}" && "$(readlink "${link}")" == */"${name}"/node_modules ]] && return 0
         done
     done < <(list_worktree_paths)
     return 1
@@ -472,15 +481,29 @@ infra_store_referenced() {
 
 # どの worktree からも使われていない置き場を消す（Issue #1456）。worktree の片付け（#1362・
 # daemon の cleanupIssueWorktree と `remove`）の後に呼ぶ。使用中（ロック中）の置き場は飛ばす。
-# 持ち主の死んだ作りかけ（`.tmp.<pid>`）も消す。
+# 持ち主の死んだ作りかけ（`.tmp.<pid>`）と、置き場の無いまま残った死んだロックも消す。
+# 参照を確かめられない worktree が 1 つでもあれば何も消さない（安全側）。ホスト（/Users/...）から
+# 呼ぶと devpod で作った worktree（/app/...）が見えず、使用中の置き場まで未参照と判定してしまうため。
 prune_infra_store() {
     [[ -d "${INFRA_STORE}" ]] || return 0
-    local entry name pid
+    local entry name pid w
+    while IFS= read -r w; do
+        [[ -z "${w}" || -d "${w}" ]] && continue
+        echo "info: not pruning the infra store: worktree ${w} is not accessible here" >&2
+        return 0
+    done < <(list_worktree_paths)
     for entry in "${INFRA_STORE}"/*; do
         [[ -d "${entry}" ]] || continue
         name=$(basename "${entry}")
         case "${name}" in
-            *.lock) continue ;;
+            *.lock)
+                pid=$(cat "${entry}/pid" 2>/dev/null || true)
+                if [[ ! -d "${entry%.lock}" && -n "${pid}" ]] && ! kill -0 "${pid}" 2>/dev/null; then
+                    rm -rf "${entry}"
+                    echo "removed: stale lock ${entry}"
+                fi
+                continue
+                ;;
             *.tmp.*)
                 pid="${name##*.tmp.}"
                 if ! kill -0 "${pid}" 2>/dev/null; then

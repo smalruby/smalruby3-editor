@@ -876,7 +876,8 @@ main checkout は人間と共有で develop より古いことがあり、その
   `npm ci` する。置き場の中身が lock と合わなければ入れ直す。
 - どの worktree の `infra/*/node_modules` からも指されなくなった置き場は、worktree の片付け（下の #1362・
   `bin/autopilot-worktree remove`）の後に `bin/autopilot-worktree prune-infra-store` が消す（ロック中のものは
-  飛ばす。持ち主の死んだ作りかけも消す）。手で呼んでもよい。
+  飛ばす。持ち主の死んだ作りかけ・ロックも消す）。手で呼んでもよい。登録済みの worktree に見えないものが
+  1 つでもあると（ホストから呼んで devpod の `/app/...` が見えない等）、使用中かを確かめられないので何も消さない。
 
 **自動の片付け（#1362）**: daemon が PR の merge を検知して Project を Close に進めたとき
 （merge-progression）と、GitHub で閉じた Issue を Close に揃えたとき（closed-reconcile）に、その Issue の
