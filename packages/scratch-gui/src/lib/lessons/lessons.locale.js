@@ -30,6 +30,7 @@ export const ja = {
     'gui.lessons.challenge.blocks-l1-key-sound.debug2': 'ブロックがはなれていると、下のブロックは動かないよ。',
     'gui.lessons.challenge.blocks-l1-arrow-move.name': '矢印キーで動かそう',
     'gui.lessons.challenge.blocks-l1-arrow-move.task': '上向き矢印キーで上へ、下向き矢印キーで下へ、ネコを動かそう',
+    'gui.lessons.challenge.blocks-l1-arrow-move.image': '上向き矢印キーでネコが上へ、下向き矢印キーで下へ動く',
     'gui.lessons.challenge.blocks-l1-arrow-move.step1': '「動き」の青いブロックを使うよ。上下は y、左右は x。',
     'gui.lessons.challenge.blocks-l1-arrow-move.step2': 'キーのブロックの下にくっつけて、▼で「上向き矢印」をえらぼう。',
     'gui.lessons.challenge.blocks-l1-arrow-move.step3':
@@ -65,7 +66,8 @@ export const ja = {
     'gui.lessons.skill.if': 'もし〜なら',
     'gui.lessons.skill.forever': 'ずっと',
     'gui.lessons.skill.touching': 'さわったか調べる',
-    'gui.lessons.challenge.blocks-l1-if.task': 'マウスでネコにさわったら「くすぐったい！」、さわっていないときは「さわってみて」と言うようにしよう',
+    'gui.lessons.challenge.blocks-l1-if.task': 
+        'マウスでネコにさわったら「くすぐったい！」、\nさわっていないときは「さわってみて」と言うようにしよう',
     'gui.lessons.challenge.blocks-l1-if.step1': '旗のブロックの下に「ずっと」をつなげよう。',
     'gui.lessons.challenge.blocks-l1-if.step2': '「ずっと」の中に「もし〜なら でなければ」を入れよう。',
     'gui.lessons.challenge.blocks-l1-if.step3': '水色の「調べる」から、六角形のブロックを「もし」の六角形の穴に入れよう。',
@@ -179,6 +181,7 @@ export const jaHira = {
     'gui.lessons.challenge.blocks-l1-key-sound.debug2': 'ブロックがはなれていると、したのブロックはうごかないよ。',
     'gui.lessons.challenge.blocks-l1-arrow-move.name': 'やじるしキーでうごかそう',
     'gui.lessons.challenge.blocks-l1-arrow-move.task': 'うえむきやじるしキーでうえへ、したむきやじるしキーでしたへ、ネコをうごかそう',
+    'gui.lessons.challenge.blocks-l1-arrow-move.image': 'うえむきやじるしキーでネコがうえへ、したむきやじるしキーでしたへうごく',
     'gui.lessons.challenge.blocks-l1-arrow-move.step1': '「うごき」のあおいブロックをつかうよ。じょうげは y、さゆうは x。',
     'gui.lessons.challenge.blocks-l1-arrow-move.step2': 'キーのブロックのしたにくっつけて、▼で「うえむきやじるし」をえらぼう。',
     'gui.lessons.challenge.blocks-l1-arrow-move.step3':
@@ -214,7 +217,8 @@ export const jaHira = {
     'gui.lessons.skill.if': 'もし〜なら',
     'gui.lessons.skill.forever': 'ずっと',
     'gui.lessons.skill.touching': 'さわったかしらべる',
-    'gui.lessons.challenge.blocks-l1-if.task': 'マウスでネコにさわったら「くすぐったい！」、さわっていないときは「さわってみて」というようにしよう',
+    'gui.lessons.challenge.blocks-l1-if.task': 
+        'マウスでネコにさわったら「くすぐったい！」、\nさわっていないときは「さわってみて」というようにしよう',
     'gui.lessons.challenge.blocks-l1-if.step1': 'はたのブロックのしたに「ずっと」をつなげよう。',
     'gui.lessons.challenge.blocks-l1-if.step2': '「ずっと」のなかに「もし〜なら でなければ」をいれよう。',
     'gui.lessons.challenge.blocks-l1-if.step3': 'みずいろの「しらべる」から、ろっかっけいのブロックを「もし」のろっかっけいのあなにいれよう。',
@@ -330,6 +334,8 @@ export const en = {
     'gui.lessons.challenge.blocks-l1-key-sound.debug2': 'If the blocks are apart, the lower block does not run.',
     'gui.lessons.challenge.blocks-l1-arrow-move.name': 'Move with the arrow keys',
     'gui.lessons.challenge.blocks-l1-arrow-move.task': 'Move the cat up with the up arrow key and down with the down arrow key',
+    'gui.lessons.challenge.blocks-l1-arrow-move.image':
+        'The up arrow key moves the cat up, and the down arrow key moves it down',
     'gui.lessons.challenge.blocks-l1-arrow-move.step1': 'Use the blue "Motion" blocks. Up and down is y, left and right is x.',
     'gui.lessons.challenge.blocks-l1-arrow-move.step2': 'Snap it under the key block and choose "up arrow" with the ▼.',
     'gui.lessons.challenge.blocks-l1-arrow-move.step3':
@@ -367,7 +373,8 @@ export const en = {
     'gui.lessons.skill.if': 'if ... else',
     'gui.lessons.skill.forever': 'forever',
     'gui.lessons.skill.touching': 'check what it touches',
-    'gui.lessons.challenge.blocks-l1-if.task': 'Make the cat say "That tickles!" when the mouse touches it, and "Touch me" when it does not',
+    'gui.lessons.challenge.blocks-l1-if.task': 
+        'Make the cat say "That tickles!" when the mouse touches it,\nand "Touch me" when it does not',
     'gui.lessons.challenge.blocks-l1-if.step1': 'Snap "forever" under the green flag block.',
     'gui.lessons.challenge.blocks-l1-if.step2': 'Put "if ... then ... else" inside "forever".',
     'gui.lessons.challenge.blocks-l1-if.step3': 'From the light blue "Sensing", put the hexagon block into the hexagon hole of "if".',

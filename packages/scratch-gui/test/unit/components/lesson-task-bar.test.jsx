@@ -49,8 +49,13 @@ describe('LessonTaskBar', () => {
     test('uses the Japanese strings', () => {
         const { getByTestId } = renderBar({}, { locale: 'ja', messages: ja });
         expect(getByTestId('lesson-task-bar-position')).toHaveTextContent('3 / 全部で 11');
-        expect(getByTestId('lesson-task-bar-quit')).toHaveTextContent('やめる');
+        expect(getByTestId('lesson-task-bar-quit')).toHaveTextContent('ほかのチャレンジへ');
         expect(getByTestId('lesson-task-bar-hint')).toHaveTextContent('ヒント');
+    });
+
+    test('uses the English label for the button that opens the lessons library', () => {
+        const { getByTestId } = renderBar();
+        expect(getByTestId('lesson-task-bar-quit')).toHaveTextContent('Try another challenge');
     });
 
     test('quit button calls onQuit', () => {
@@ -71,184 +76,112 @@ describe('LessonTaskBar', () => {
     });
 
     describe('full text panel', () => {
-        // jsdom はレイアウトしないので、課題の文の幅を決めて「切れている / 切れていない」を作る
-        let scrollWidth;
-        let clientWidth;
-        let restore;
-        beforeEach(() => {
-            scrollWidth = 0;
-            clientWidth = 0;
-            const proto = window.HTMLElement.prototype;
-            const isTask = (el) => el.getAttribute && el.getAttribute('data-testid') === 'lesson-task-bar-task';
-            Object.defineProperty(proto, 'scrollWidth', {
-                configurable: true,
-                get() {
-                    return isTask(this) ? scrollWidth : 0;
-                },
+        // jsdom には PointerEvent が無いので、pointerType を持たせた MouseEvent で代わりにする
+        const pointer = (el, type, pointerType = 'mouse', relatedTarget = null) => {
+            const event = new MouseEvent(type, { bubbles: true, cancelable: true, relatedTarget });
+            Object.defineProperty(event, 'pointerType', { value: pointerType });
+            act(() => {
+                el.dispatchEvent(event);
             });
-            Object.defineProperty(proto, 'clientWidth', {
-                configurable: true,
-                get() {
-                    return isTask(this) ? clientWidth : 0;
-                },
-            });
-            // jsdom の本物は Element.prototype にあるので、上書きを消せば元にもどる
-            restore = () => {
-                delete proto.scrollWidth;
-                delete proto.clientWidth;
-            };
-        });
-        afterEach(() => restore());
+        };
+        const hover = (el) => pointer(el, 'pointerover');
+        const unhover = (el) => pointer(el, 'pointerout', 'mouse', document.body);
+        const tap = (el) => {
+            pointer(el, 'pointerdown', 'touch');
+            fireEvent.click(el);
+        };
 
-        test('cannot be opened when the task fits', () => {
-            scrollWidth = 200;
-            clientWidth = 300;
-            const { getByTestId, queryByTestId } = renderBar();
-            expect(getByTestId('lesson-task-bar-task')).toHaveAttribute('data-truncated', 'false');
+        test('is closed at first and has no "Read all" button', () => {
+            const { queryByTestId, getByTestId } = renderBar();
+            expect(queryByTestId('lesson-task-bar-full-text')).toBeNull();
             expect(queryByTestId('lesson-task-bar-full-text-toggle')).toBeNull();
-            fireEvent.click(getByTestId('lesson-task-bar-task'));
-            expect(queryByTestId('lesson-task-bar-full-text')).toBeNull();
+            expect(getByTestId('lesson-task-bar-task')).toHaveAttribute('aria-expanded', 'false');
         });
 
-        test('opens and closes with the "Read all" button when the task is cut off', () => {
-            scrollWidth = 600;
-            clientWidth = 300;
-            const { getByTestId, queryByTestId } = renderBar();
-            const toggle = getByTestId('lesson-task-bar-full-text-toggle');
-            expect(toggle).toHaveTextContent('Read all');
-            expect(toggle).toHaveAttribute('aria-expanded', 'false');
-            fireEvent.click(toggle);
-            expect(toggle).toHaveAttribute('aria-expanded', 'true');
+        test('shows the whole task under the bar while the mouse is on the bar, even for a short task', () => {
+            const { getByTestId, queryByTestId } = renderBar({ challengeId: 'blocks-l1-key-sound' });
+            hover(getByTestId('lesson-task-bar'));
             expect(getByTestId('lesson-task-bar-full-text')).toHaveTextContent(
-                'Add a costume you like to the cat, and make it say "Hello!" and change its look when it is clicked',
+                'Make the cat meow and then play the "Owl" sound when the space key is pressed',
             );
-            expect(toggle).toHaveAttribute('aria-controls', getByTestId('lesson-task-bar-full-text').id);
-            fireEvent.click(toggle);
+            unhover(getByTestId('lesson-task-bar'));
             expect(queryByTestId('lesson-task-bar-full-text')).toBeNull();
         });
 
-        test('opens by pressing the task line, closes by pressing outside or Escape', () => {
-            scrollWidth = 600;
-            clientWidth = 300;
-            const { getByTestId, queryByTestId } = renderBar();
-            fireEvent.click(getByTestId('lesson-task-bar-task'));
+        test('keeps the line breaks of the task in the panel and joins them in the bar', () => {
+            const { getByTestId } = renderBar({ challengeId: 'blocks-l1-if' }, { locale: 'ja', messages: ja });
+            // バーの 1 行は改行を取って 1 行にする（日本語は空白を入れない）
+            expect(getByTestId('lesson-task-bar-task').textContent).toBe(
+                'マウスでネコにさわったら「くすぐったい！」、さわっていないときは「さわってみて」と言うようにしよう',
+            );
+            hover(getByTestId('lesson-task-bar'));
+            expect(getByTestId('lesson-task-bar-full-text-text').textContent).toBe(
+                'マウスでネコにさわったら「くすぐったい！」、\nさわっていないときは「さわってみて」と言うようにしよう',
+            );
+        });
+
+        test('joins English lines with a space in the bar', () => {
+            const { getByTestId } = renderBar({ challengeId: 'blocks-l1-if' });
+            expect(getByTestId('lesson-task-bar-task').textContent).toBe(
+                'Make the cat say "That tickles!" when the mouse touches it, and "Touch me" when it does not',
+            );
+        });
+
+        test('shows the image of the challenge with its alt text', () => {
+            const { getByTestId } = renderBar({ challengeId: 'blocks-l1-arrow-move' });
+            hover(getByTestId('lesson-task-bar'));
+            const image = getByTestId('lesson-task-bar-full-text-image');
+            expect(image.tagName).toBe('IMG');
+            expect(image).toHaveAttribute(
+                'alt',
+                'The up arrow key moves the cat up, and the down arrow key moves it down',
+            );
+        });
+
+        test('shows no image for a challenge without one', () => {
+            const { getByTestId, queryByTestId } = renderBar({ challengeId: 'blocks-l1-key-sound' });
+            hover(getByTestId('lesson-task-bar'));
             expect(getByTestId('lesson-task-bar-full-text')).toBeInTheDocument();
-            // パネルの中を押しても閉じない
+            expect(queryByTestId('lesson-task-bar-full-text-image')).toBeNull();
+        });
+
+        test('does not open on a touch "hover" and a mouse click does not pin it', () => {
+            const { getByTestId, queryByTestId } = renderBar();
+            pointer(getByTestId('lesson-task-bar'), 'pointerover', 'touch');
+            expect(queryByTestId('lesson-task-bar-full-text')).toBeNull();
+            // マウスで押しても開いたままにはならない（離せば消える）
+            hover(getByTestId('lesson-task-bar'));
+            pointer(getByTestId('lesson-task-bar-task'), 'pointerdown', 'mouse');
+            fireEvent.click(getByTestId('lesson-task-bar-task'));
+            unhover(getByTestId('lesson-task-bar'));
+            expect(queryByTestId('lesson-task-bar-full-text')).toBeNull();
+        });
+
+        test('opens with a tap on the task and closes with another tap (SP)', () => {
+            const { getByTestId, queryByTestId } = renderBar();
+            const task = getByTestId('lesson-task-bar-task');
+            tap(task);
+            expect(getByTestId('lesson-task-bar-full-text')).toBeInTheDocument();
+            expect(task).toHaveAttribute('aria-expanded', 'true');
+            expect(task).toHaveAttribute('aria-controls', getByTestId('lesson-task-bar-full-text').id);
+            tap(task);
+            expect(queryByTestId('lesson-task-bar-full-text')).toBeNull();
+            expect(task).toHaveAttribute('aria-expanded', 'false');
+        });
+
+        test('a tapped panel closes by pressing outside or Escape, not by pressing inside', () => {
+            const { getByTestId, queryByTestId } = renderBar();
+            tap(getByTestId('lesson-task-bar-task'));
             fireEvent.pointerDown(getByTestId('lesson-task-bar-full-text'));
             expect(getByTestId('lesson-task-bar-full-text')).toBeInTheDocument();
             fireEvent.pointerDown(document.body);
             expect(queryByTestId('lesson-task-bar-full-text')).toBeNull();
-            fireEvent.click(getByTestId('lesson-task-bar-task'));
+            tap(getByTestId('lesson-task-bar-task'));
             fireEvent.keyDown(document, { key: 'Escape' });
             expect(queryByTestId('lesson-task-bar-full-text')).toBeNull();
         });
 
-        test('closes when the task fits again after a resize', () => {
-            scrollWidth = 600;
-            clientWidth = 300;
-            const { getByTestId, queryByTestId } = renderBar();
-            fireEvent.click(getByTestId('lesson-task-bar-full-text-toggle'));
-            expect(getByTestId('lesson-task-bar-full-text')).toBeInTheDocument();
-            clientWidth = 700;
-            act(() => {
-                window.dispatchEvent(new Event('resize'));
-            });
-            expect(queryByTestId('lesson-task-bar-full-text')).toBeNull();
-            expect(queryByTestId('lesson-task-bar-full-text-toggle')).toBeNull();
-        });
-
-        describe('when fonts load', () => {
-            // フォントが測ったあとに読み込まれると、文の幅だけが変わり要素の大きさは変わらない
-            // （resize も ResizeObserver も来ない）。document.fonts の読み込みで測り直す
-            let resolveReady;
-            const makeFonts = () => {
-                const fonts = new EventTarget();
-                fonts.ready = new Promise((resolve) => {
-                    resolveReady = resolve;
-                });
-                return fonts;
-            };
-            const setFonts = (value) => Object.defineProperty(document, 'fonts', { configurable: true, value });
-            afterEach(() => {
-                delete document.fonts;
-            });
-
-            test('measures again when a font finishes loading', () => {
-                const fonts = makeFonts();
-                setFonts(fonts);
-                scrollWidth = 200;
-                clientWidth = 300;
-                const { getByTestId, queryByTestId } = renderBar();
-                expect(getByTestId('lesson-task-bar-task')).toHaveAttribute('data-truncated', 'false');
-                scrollWidth = 600;
-                act(() => {
-                    fonts.dispatchEvent(new Event('loadingdone'));
-                });
-                expect(getByTestId('lesson-task-bar-task')).toHaveAttribute('data-truncated', 'true');
-                expect(queryByTestId('lesson-task-bar-full-text-toggle')).not.toBeNull();
-            });
-
-            test('measures again when document.fonts.ready resolves', async () => {
-                setFonts(makeFonts());
-                scrollWidth = 200;
-                clientWidth = 300;
-                const { getByTestId } = renderBar();
-                expect(getByTestId('lesson-task-bar-task')).toHaveAttribute('data-truncated', 'false');
-                scrollWidth = 600;
-                await act(async () => {
-                    resolveReady();
-                    await Promise.resolve();
-                });
-                expect(getByTestId('lesson-task-bar-task')).toHaveAttribute('data-truncated', 'true');
-            });
-
-            test('stops listening to the fonts when it goes away', () => {
-                const fonts = makeFonts();
-                setFonts(fonts);
-                const addSpy = jest.spyOn(fonts, 'addEventListener');
-                const removeSpy = jest.spyOn(fonts, 'removeEventListener');
-                const { unmount } = renderBar();
-                expect(addSpy).toHaveBeenCalledTimes(1);
-                unmount();
-                // 付けたのと同じ関数を外す（別の関数を外しても、付けたほうは残る）
-                expect(removeSpy).toHaveBeenCalledWith('loadingdone', addSpy.mock.calls[0][1]);
-            });
-
-            test('keeps one listener when the challenge changes', () => {
-                const fonts = makeFonts();
-                setFonts(fonts);
-                const addSpy = jest.spyOn(fonts, 'addEventListener');
-                const removeSpy = jest.spyOn(fonts, 'removeEventListener');
-                const { rerender } = renderBar();
-                const { challenge, lesson } = findChallenge('blocks-l1-if');
-                rerender(
-                    <IntlProvider locale="en" messages={en}>
-                        <LessonTaskBar
-                            challenge={challenge}
-                            challengeCount={lesson.challenges.length}
-                            hintAvailable
-                            onHint={jest.fn()}
-                            onQuit={jest.fn()}
-                        />
-                    </IntlProvider>,
-                );
-                expect(addSpy).toHaveBeenCalledTimes(1);
-                expect(removeSpy).not.toHaveBeenCalled();
-            });
-
-            test('works where there is no document.fonts', () => {
-                setFonts(undefined);
-                scrollWidth = 600;
-                clientWidth = 300;
-                const { getByTestId, unmount } = renderBar();
-                expect(getByTestId('lesson-task-bar-task')).toHaveAttribute('data-truncated', 'true');
-                expect(() => unmount()).not.toThrow();
-            });
-        });
-
-        test('closes when the hint balloon or the "You did it!" toast shows', () => {
-            scrollWidth = 600;
-            clientWidth = 300;
+        test('closes when the hint balloon or the "You did it!" toast shows, and does not open on hover then', () => {
             const { getByTestId, queryByTestId, rerender, onHint, onQuit } = renderBar();
             const { challenge, lesson } = findChallenge('blocks-l1-click-say');
             const bar = (extra) => (
@@ -263,34 +196,45 @@ describe('LessonTaskBar', () => {
                     />
                 </IntlProvider>
             );
-            fireEvent.click(getByTestId('lesson-task-bar-full-text-toggle'));
+            tap(getByTestId('lesson-task-bar-task'));
             rerender(bar({ hintVisible: true }));
             expect(queryByTestId('lesson-task-bar-full-text')).toBeNull();
+            hover(getByTestId('lesson-task-bar'));
+            expect(queryByTestId('lesson-task-bar-full-text')).toBeNull();
+            unhover(getByTestId('lesson-task-bar'));
             rerender(bar({ hintVisible: false }));
-            fireEvent.click(getByTestId('lesson-task-bar-full-text-toggle'));
+            tap(getByTestId('lesson-task-bar-task'));
             expect(getByTestId('lesson-task-bar-full-text')).toBeInTheDocument();
             rerender(bar({ toastVisible: true }));
             expect(queryByTestId('lesson-task-bar-full-text')).toBeNull();
         });
 
-        test('asks to close the hint and the toast when it opens', () => {
-            scrollWidth = 600;
-            clientWidth = 300;
+        test('asks to close the hint and the toast when it is opened with a tap', () => {
             const onOpenFullText = jest.fn();
             const { getByTestId } = renderBar({ onOpenFullText });
-            fireEvent.click(getByTestId('lesson-task-bar-full-text-toggle'));
+            tap(getByTestId('lesson-task-bar-task'));
             expect(onOpenFullText).toHaveBeenCalledTimes(1);
             // 閉じるときは呼ばない
-            fireEvent.click(getByTestId('lesson-task-bar-full-text-toggle'));
+            tap(getByTestId('lesson-task-bar-task'));
             expect(onOpenFullText).toHaveBeenCalledTimes(1);
         });
 
-        test('uses the Japanese label', () => {
-            scrollWidth = 600;
-            clientWidth = 300;
-            const { getByTestId } = renderBar({}, { locale: 'ja', messages: ja });
-            expect(getByTestId('lesson-task-bar-full-text-toggle')).toHaveTextContent('全文');
-            expect(getByTestId('lesson-task-bar-full-text-toggle')).toHaveAttribute('aria-label', '課題の全文を見る');
+        test('closes a tapped panel when the challenge changes', () => {
+            const { getByTestId, queryByTestId, rerender } = renderBar();
+            tap(getByTestId('lesson-task-bar-task'));
+            const { challenge, lesson } = findChallenge('blocks-l1-if');
+            rerender(
+                <IntlProvider locale="en" messages={en}>
+                    <LessonTaskBar
+                        challenge={challenge}
+                        challengeCount={lesson.challenges.length}
+                        hintAvailable
+                        onHint={jest.fn()}
+                        onQuit={jest.fn()}
+                    />
+                </IntlProvider>,
+            );
+            expect(queryByTestId('lesson-task-bar-full-text')).toBeNull();
         });
     });
 });

@@ -1,7 +1,8 @@
 /**
  * Integration tests for the lesson task bar's full text panel (課題の全文).
- * 授業のパソコン（1300×600・日本語）でチャレンジ 5「もし〜なら」を開くと、課題の文が … で切れる。
- * 「全文」ボタンで課題バーの下に全文を出し、全文が見える・ステージは画面の外にはみ出さないことを確かめる。
+ * 授業のパソコン（1300×600・日本語）で、課題バーにマウスを乗せると、課題が短くても長くても、
+ * 改行つきの全文（画像があれば画像も）がバーの下に出て、離すと消えることを確かめる。
+ * タッチ（ポインタの種類が無い click）では課題の文で開閉し、「ほかのチャレンジへ」でレッスン表が開く。
  */
 import path from 'path';
 import SeleniumHelper from '../helpers/selenium-helper';
@@ -10,9 +11,8 @@ const { findByXpath, getDriver, getLogs, loadUri, waitForLoadingFinished } = new
 
 const uri = path.resolve(__dirname, '../../build/index.html');
 
-const CHALLENGE_ID = 'blocks-l1-if';
-const FULL_TASK =
-    'マウスでネコにさわったら「くすぐったい！」、さわっていないときは「さわってみて」と言うようにしよう';
+const IF_TASK =
+    'マウスでネコにさわったら「くすぐったい！」、\nさわっていないときは「さわってみて」と言うようにしよう';
 
 const byTestId = (testId) => `//*[@data-testid="${testId}"]`;
 
@@ -23,10 +23,50 @@ const clickByTestId = (testId) => driver.executeScript(`document.querySelector('
 const countByTestId = (testId) =>
     driver.executeScript(`return document.querySelectorAll('[data-testid="${testId}"]').length`);
 
-const attrByTestId = (testId, attr) =>
-    driver.executeScript(
-        `return document.querySelector('[data-testid="${testId}"]').getAttribute(${JSON.stringify(attr)})`,
+const startChallenge = async (id, number) => {
+    await driver.executeScript(`window.smalruby.startChallenge(${JSON.stringify(id)})`);
+    await driver.wait(
+        async () =>
+            (await driver.executeScript(
+                `const el = document.querySelector('[data-testid="lesson-task-bar-position"]'); return el && el.textContent;`,
+            )) === `${number} / 全部で 11`,
+        10000,
+        `challenge ${id} should open`,
     );
+};
+
+const hoverBar = async () => {
+    const bar = await driver.findElement({ css: '[data-testid="lesson-task-bar-position"]' });
+    await driver.actions().move({ origin: bar }).perform();
+};
+
+const moveToWorkspace = async () => {
+    const workspace = await driver.findElement({ css: '.blocklyMainBackground' });
+    await driver.actions().move({ origin: workspace, x: 0, y: 0 }).perform();
+};
+
+const panelLayout = () =>
+    driver.executeScript(`
+        const panel = document.querySelector('[data-testid="lesson-task-bar-full-text"]');
+        const text = document.querySelector('[data-testid="lesson-task-bar-full-text-text"]');
+        const image = document.querySelector('[data-testid="lesson-task-bar-full-text-image"]');
+        const bar = document.querySelector('[data-testid="lesson-task-bar"]').getBoundingClientRect();
+        const stage = document.querySelector('[class*="stage_stage-wrapper_"]').getBoundingClientRect();
+        const rect = panel.getBoundingClientRect();
+        return {
+            text: text.textContent,
+            fontSize: parseFloat(getComputedStyle(text).fontSize),
+            lineCount: Math.round(text.getBoundingClientRect().height / parseFloat(getComputedStyle(text).lineHeight)),
+            imageLoaded: image ? image.complete && image.naturalWidth > 0 : null,
+            fits: panel.scrollHeight <= panel.clientHeight + 1,
+            panelTop: rect.top,
+            panelBottom: rect.bottom,
+            barBottom: bar.bottom,
+            stageRight: stage.right,
+            innerWidth: window.innerWidth,
+            innerHeight: window.innerHeight,
+        };
+    `);
 
 describe('Smalruby Lessons: full text of the task', () => {
     beforeAll(async () => {
@@ -37,93 +77,76 @@ describe('Smalruby Lessons: full text of the task', () => {
         await driver.quit();
     });
 
-    test('shows the whole task under the bar at 1300x600 without pushing the stage out', async () => {
+    test('shows the whole task (with line breaks and an image) under the bar while the mouse is on it', async () => {
         await loadUri(`${uri}?no_beforeunload=1&locale=ja`);
         await driver.manage().window().setRect({ width: 1300, height: 600 });
         await waitForLoadingFinished();
-        await driver.executeScript(`window.smalruby.startChallenge(${JSON.stringify(CHALLENGE_ID)})`);
-        await findByXpath(byTestId('lesson-task-bar'));
 
-        // 切れるかどうかを、その環境のフォントに任せない。CI のランナーには日本語のフォントが無く、
-        // かなや漢字が細い代わりの字で描かれて課題の文が 1 行に入ってしまう（授業のパソコンでは切れる）。
-        // そこで、課題の文の字の間を広げてから、フォントが読み込まれたことを知らせる。課題の文は
-        // width: 0 の flex なので要素の大きさは変わらず（resize も ResizeObserver も来ない）、
-        // document.fonts の loadingdone で測り直したときだけ「切れている」になる
-        await driver.executeScript(`
-            const style = document.createElement('style');
-            style.textContent = '[data-testid="lesson-task-bar-task"] { letter-spacing: 0.75em; }';
-            document.head.appendChild(style);
-            document.fonts.dispatchEvent(new Event('loadingdone'));
-        `);
-
-        // 課題の文は 1 行に入りきらず切れている → 「全文」ボタンがある（閉じている）。
-        // 測り直しが済むまで待つ
-        await driver.wait(
-            async () => (await attrByTestId('lesson-task-bar-task', 'data-truncated')) === 'true',
-            5000,
-            'the task line should be cut off at 1300x600',
-        );
-        expect(await countByTestId('lesson-task-bar-full-text-toggle')).toBe(1);
-        expect(await attrByTestId('lesson-task-bar-full-text-toggle', 'aria-expanded')).toBe('false');
+        // 短い課題（チャレンジ 2）でも出る。画像つきの例
+        await startChallenge('blocks-l1-arrow-move', 2);
         expect(await countByTestId('lesson-task-bar-full-text')).toBe(0);
-
-        await clickByTestId('lesson-task-bar-full-text-toggle');
+        // 「全文」ボタンはもう無い
+        expect(await countByTestId('lesson-task-bar-full-text-toggle')).toBe(0);
+        await hoverBar();
         await findByXpath(byTestId('lesson-task-bar-full-text'));
-        expect(await attrByTestId('lesson-task-bar-full-text-toggle', 'aria-expanded')).toBe('true');
-
-        const layout = await driver.executeScript(`
-            const panel = document.querySelector('[data-testid="lesson-task-bar-full-text"]');
-            const bar = document.querySelector('[data-testid="lesson-task-bar"]').getBoundingClientRect();
-            const stage = document.querySelector('[class*="stage_stage-wrapper_"]').getBoundingClientRect();
-            const rect = panel.getBoundingClientRect();
-            return {
-                text: panel.textContent,
-                // 全文が切れずに見えている（パネルの中でスクロールしない・画面の中にある）
-                fits: panel.scrollHeight <= panel.clientHeight + 1 && panel.scrollWidth <= panel.clientWidth + 1,
-                panelTop: rect.top,
-                panelBottom: rect.bottom,
-                barBottom: bar.bottom,
-                stageRight: stage.right,
-                innerWidth: window.innerWidth,
-                innerHeight: window.innerHeight,
-            };
-        `);
-        expect(layout.text).toBe(FULL_TASK);
+        await driver.wait(
+            async () => (await panelLayout()).imageLoaded === true,
+            5000,
+            'the image of the challenge should load',
+        );
+        let layout = await panelLayout();
+        expect(layout.text).toBe('上向き矢印キーで上へ、下向き矢印キーで下へ、ネコを動かそう');
         expect(layout.fits).toBe(true);
+        // プロジェクターで読める大きさ（バーの 14px より大きく）
+        expect(layout.fontSize).toBeGreaterThanOrEqual(20);
         expect(Math.abs(layout.panelTop - layout.barBottom)).toBeLessThanOrEqual(1);
         expect(layout.panelBottom).toBeLessThanOrEqual(layout.innerHeight);
-        // エディタの列を広げていない: ステージの右端が画面の中
         expect(layout.stageRight).toBeLessThanOrEqual(layout.innerWidth);
 
-        // もう一度押すと閉じる
-        await clickByTestId('lesson-task-bar-full-text-toggle');
+        // バーから離れると消える（パネルの上に動かしても残らない）
+        await moveToWorkspace();
+        await driver.sleep(200);
         expect(await countByTestId('lesson-task-bar-full-text')).toBe(0);
 
-        // 課題の文を押しても開き、外（ステージ）を押すと閉じる
+        // 長い課題（チャレンジ 5）は、定義の改行どおりに 2 行以上で出る。画像の無いチャレンジは画像を出さない
+        await startChallenge('blocks-l1-if', 5);
+        await hoverBar();
+        await findByXpath(byTestId('lesson-task-bar-full-text'));
+        layout = await panelLayout();
+        expect(layout.text).toBe(IF_TASK);
+        expect(layout.lineCount).toBeGreaterThanOrEqual(2);
+        expect(layout.imageLoaded).toBeNull();
+        expect(layout.fits).toBe(true);
+        expect(layout.stageRight).toBeLessThanOrEqual(layout.innerWidth);
+        await moveToWorkspace();
+        await driver.sleep(200);
+        expect(await countByTestId('lesson-task-bar-full-text')).toBe(0);
+
+        // タップ（ポインタの種類が無い click）では課題の文で開き、もう一度で閉じる
         await clickByTestId('lesson-task-bar-task');
         await findByXpath(byTestId('lesson-task-bar-full-text'));
-        await driver.findElement({ css: '[class*="stage_stage-wrapper_"] canvas' }).click();
-        await driver.sleep(200);
+        await clickByTestId('lesson-task-bar-task');
         expect(await countByTestId('lesson-task-bar-full-text')).toBe(0);
 
-        // コードエリアを押しても閉じる（Blockly は pointerdown を preventDefault するので mousedown が来ない）
-        await clickByTestId('lesson-task-bar-full-text-toggle');
+        // タップで開いているときにヒントを開くと、全文は閉じる（重ねない）
+        await clickByTestId('lesson-task-bar-task');
         await findByXpath(byTestId('lesson-task-bar-full-text'));
-        const workspace = await driver.findElement({ css: '.blocklyMainBackground' });
-        await driver.actions().move({ origin: workspace, x: 100, y: 120 }).click().perform();
-        await driver.sleep(200);
-        expect(await countByTestId('lesson-task-bar-full-text')).toBe(0);
-
-        // ヒントの吹き出しが出ているときに全文を開くと、吹き出しは閉じる（重ねない）
         await clickByTestId('lesson-task-bar-hint');
         await findByXpath(byTestId('lesson-hint'));
-        await clickByTestId('lesson-task-bar-full-text-toggle');
+        expect(await countByTestId('lesson-task-bar-full-text')).toBe(0);
+        // 全文をタップで開くと、ヒントの吹き出しは閉じる
+        await clickByTestId('lesson-task-bar-task');
         await findByXpath(byTestId('lesson-task-bar-full-text'));
         expect(await countByTestId('lesson-hint')).toBe(0);
-        // ヒントを開くと全文のパネルが閉じる
-        await clickByTestId('lesson-task-bar-hint');
-        await findByXpath(byTestId('lesson-hint'));
-        expect(await countByTestId('lesson-task-bar-full-text')).toBe(0);
+
+        // 「ほかのチャレンジへ」でレッスンモードを抜けてレッスン表が開く
+        const label = await driver.executeScript(
+            `return document.querySelector('[data-testid="lesson-task-bar-quit"]').textContent`,
+        );
+        expect(label).toBe('ほかのチャレンジへ');
+        await clickByTestId('lesson-task-bar-quit');
+        await findByXpath(byTestId('lessons-library'));
+        expect(await countByTestId('lesson-task-bar')).toBe(0);
 
         // 既知の無害なログ (Google Drive の初期化失敗など) は getLogs() が除く
         expect(await getLogs()).toEqual([]);

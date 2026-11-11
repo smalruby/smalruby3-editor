@@ -3,6 +3,7 @@
 // 文言は lessons.locale.js（message descriptor の id で引く）。
 
 import { HINT_TARGETS } from './hint-targets';
+import arrowKeysImage from './images/arrow-keys.svg';
 import { ja } from './lessons.locale';
 
 /** コースの言語。言語の中にコースが並ぶ。 */
@@ -100,8 +101,12 @@ export const challengeCodeCandidates = (challenge, locale) => {
  */
 export const defineChallenge = (def) => ({
     name: message(`gui.lessons.challenge.${def.id}.name`),
-    // 課題の 1 行（message descriptor）
+    // 課題の 1 行（message descriptor）。課題バーの下に出す全文では改行（\n）をそのまま出すので、
+    // 長い課題は読みやすいところで改行しておく（バーの 1 行では改行を取ってつなぐ）
     task: null,
+    // 課題の全文といっしょに出す画像（任意）: {src, alt}。src は import した画像の URL
+    // （webpack の asset。チュートリアルの deck の画像と同じ扱い）、alt は message descriptor
+    image: null,
     // なかま（パレットの色）。`CATEGORIES` の値。無ければ null（レッスン表は色無しで出す）
     category: null,
     // できること: [{id, name}]。レッスンをまたいで id で重ねる
@@ -233,6 +238,8 @@ const blocksLesson1 = defineLesson({
             id: 'blocks-l1-arrow-move',
             category: CATEGORIES.MOTION,
             task: challengeMessage('blocks-l1-arrow-move', 'task'),
+            // 課題の全文に画像を出す例（どのキーでどちらへ動くか）
+            image: { src: arrowKeysImage, alt: challengeMessage('blocks-l1-arrow-move', 'image') },
             skills: [skill('move-by-coordinates'), skill('duplicate-blocks')],
             allowedBlocks: {
                 event: ['event_whenkeypressed'],

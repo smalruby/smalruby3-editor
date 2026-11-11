@@ -173,6 +173,7 @@ describe('lesson courses', () => {
             id: 'x-y',
             name: { id: 'gui.lessons.challenge.x-y.name', defaultMessage: undefined },
             task: null,
+            image: null,
             category: null,
             skills: [],
             goal: null,
@@ -231,8 +232,9 @@ describe('lesson courses', () => {
             const c = challenge('blocks-l1-if');
             expect(c.number).toBe(5);
             expect(c.required).toBe(false);
+            // 課題の全文では読みやすいところで改行する（課題バーの 1 行ではつなぐ）
             expect(jaText(c.task)).toBe(
-                'マウスでネコにさわったら「くすぐったい！」、さわっていないときは「さわってみて」と言うようにしよう',
+                'マウスでネコにさわったら「くすぐったい！」、\nさわっていないときは「さわってみて」と言うようにしよう',
             );
             expect(c.skills.map((s) => jaText(s.name))).toEqual(['もし〜なら', 'ずっと', 'さわったか調べる']);
             expect(c.allowedBlocks).toEqual({
@@ -596,6 +598,9 @@ describe('lesson courses', () => {
             const c = challenge('blocks-l1-arrow-move');
             expect(c.required).toBe(false);
             expect(ja[c.task.id]).toBe('上向き矢印キーで上へ、下向き矢印キーで下へ、ネコを動かそう');
+            // 課題の全文に出す画像の例（jest では画像の import は fileMock の文字列）
+            expect(typeof c.image.src).toBe('string');
+            expect(ja[c.image.alt.id]).toBe('上向き矢印キーでネコが上へ、下向き矢印キーで下へ動く');
             expect(c.skills.map((s) => ja[s.name.id])).toEqual(['座標で動かす', 'ブロックを複製する']);
             expect(c.allowedBlocks).toEqual({ event: ['event_whenkeypressed'], motion: ['motion_changeyby'] });
             expect(hints(c)).toEqual([
