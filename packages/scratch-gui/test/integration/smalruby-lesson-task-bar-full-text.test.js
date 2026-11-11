@@ -2,6 +2,7 @@
  * Integration tests for the lesson task bar's full text panel (課題の全文).
  * 授業のパソコン（1300×600・日本語）で、課題バーにマウスを乗せると、課題が短くても長くても、
  * 改行つきの全文（画像があれば画像も）がバーの下に出て、離すと消えることを確かめる。
+ * チャレンジを始めると自動で開くヒントの吹き出しが出ていても、ホバーの全文は吹き出しより上に出る。
  * タッチ（ポインタの種類が無い click）では課題の文で開閉し、「ほかのチャレンジへ」でレッスン表が開く。
  */
 import path from 'path';
@@ -33,11 +34,24 @@ const startChallenge = async (id, number) => {
         10000,
         `challenge ${id} should open`,
     );
-    // チャレンジを始めるとヒントが自動で開く。ヒントが開いているあいだは全文を出さないので閉じておく
+    // チャレンジを始めるとヒントが自動で開く。開いたままでもホバーで全文が出ることを確かめるので閉じない
     await findByXpath(byTestId('lesson-hint'));
-    await clickByTestId('lesson-hint-close');
-    await driver.wait(async () => (await countByTestId('lesson-hint')) === 0, 5000, 'the hint should close');
 };
+
+// 全文のパネルがヒントの吹き出しより上に重なっているか（どちらも同じ重ね合わせの文脈にいるので、
+// z-index で比べる。マウスで出したパネルは pointer-events: none なので elementFromPoint では見られない）
+const panelAboveHint = () =>
+    driver.executeScript(`
+        const panel = document.querySelector('[data-testid="lesson-task-bar-full-text"]');
+        const hint = document.querySelector('[data-testid="lesson-hint"]');
+        let balloon = hint;
+        while (balloon && getComputedStyle(balloon).position !== 'fixed') balloon = balloon.parentElement;
+        return {
+            hintVisible: Boolean(hint) && getComputedStyle(hint).visibility !== 'hidden',
+            panelZ: parseInt(getComputedStyle(panel).zIndex, 10),
+            hintZ: balloon ? parseInt(getComputedStyle(balloon).zIndex, 10) : null,
+        };
+    `);
 
 const hoverBar = async () => {
     const bar = await driver.findElement({ css: '[data-testid="lesson-task-bar-position"]' });
@@ -91,8 +105,13 @@ describe('Smalruby Lessons: full text of the task', () => {
         expect(await countByTestId('lesson-task-bar-full-text')).toBe(0);
         // 「全文」ボタンはもう無い
         expect(await countByTestId('lesson-task-bar-full-text-toggle')).toBe(0);
+        // ヒントの吹き出しが出ていても、マウスを乗せれば全文が吹き出しより上に出る
         await hoverBar();
         await findByXpath(byTestId('lesson-task-bar-full-text'));
+        const stacking = await panelAboveHint();
+        expect(stacking.hintVisible).toBe(true);
+        expect(stacking.hintZ).not.toBeNull();
+        expect(stacking.panelZ).toBeGreaterThan(stacking.hintZ);
         await driver.wait(
             async () => (await panelLayout()).imageLoaded === true,
             5000,
@@ -107,10 +126,11 @@ describe('Smalruby Lessons: full text of the task', () => {
         expect(layout.panelBottom).toBeLessThanOrEqual(layout.innerHeight);
         expect(layout.stageRight).toBeLessThanOrEqual(layout.innerWidth);
 
-        // バーから離れると消える（パネルの上に動かしても残らない）
+        // バーから離れると消える（パネルの上に動かしても残らない）。ヒントの吹き出しはそのまま
         await moveToWorkspace();
         await driver.sleep(200);
         expect(await countByTestId('lesson-task-bar-full-text')).toBe(0);
+        expect(await countByTestId('lesson-hint')).toBe(1);
 
         // 長い課題（チャレンジ 5）は、定義の改行どおりに 2 行以上で出る。画像の無いチャレンジは画像を出さない
         await startChallenge('blocks-l1-if', 5);
@@ -126,9 +146,12 @@ describe('Smalruby Lessons: full text of the task', () => {
         await driver.sleep(200);
         expect(await countByTestId('lesson-task-bar-full-text')).toBe(0);
 
-        // タップ（ポインタの種類が無い click）では課題の文で開き、もう一度で閉じる
+        // タップ（ポインタの種類が無い click）では課題の文で開き、もう一度で閉じる。
+        // ヒントの吹き出しが出ているときにタップで開くと、吹き出しは閉じる（開いたままのパネルとは重ねない）
+        expect(await countByTestId('lesson-hint')).toBe(1);
         await clickByTestId('lesson-task-bar-task');
         await findByXpath(byTestId('lesson-task-bar-full-text'));
+        await driver.wait(async () => (await countByTestId('lesson-hint')) === 0, 5000, 'the hint should close');
         await clickByTestId('lesson-task-bar-task');
         expect(await countByTestId('lesson-task-bar-full-text')).toBe(0);
 
