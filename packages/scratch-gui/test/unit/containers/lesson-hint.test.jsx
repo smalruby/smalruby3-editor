@@ -1,14 +1,29 @@
 /* eslint-env jest */
 import '@testing-library/jest-dom';
-import { act, fireEvent, render } from '@testing-library/react';
+import { act, fireEvent, render, waitFor } from '@testing-library/react';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
 import { LessonHint } from '../../../src/containers/lesson-hint.jsx';
 import { findChallenge } from '../../../src/lib/lessons/courses';
 import { rubyToBlocksXml } from '../../../src/lib/lessons/hint-blocks';
+import { targetCodeToBlocks } from '../../../src/lib/ruby-to-blocks-converter';
 
 jest.mock('../../../src/lib/lessons/hint-blocks', () => ({
     rubyToBlocksXml: jest.fn(() => Promise.resolve({ xml: '<xml><block type="x"></block></xml>', errors: [] })),
+}));
+
+const applied = [];
+jest.mock('../../../src/lib/ruby-to-blocks-converter', () => ({
+    targetCodeToBlocks: jest.fn((vm, target) =>
+        Promise.resolve({
+            result: true,
+            errors: [],
+            apply: () => {
+                applied.push(target.id);
+                return Promise.resolve();
+            },
+        }),
+    ),
 }));
 
 const CHALLENGE_ID = 'blocks-l1-click-say';
@@ -54,6 +69,8 @@ const flush = () => act(() => Promise.resolve());
 describe('LessonHint container', () => {
     beforeEach(() => {
         rubyToBlocksXml.mockClear();
+        targetCodeToBlocks.mockClear();
+        applied.length = 0;
     });
 
     test('renders nothing while the hint is hidden or outside lesson mode', () => {
@@ -178,6 +195,113 @@ describe('LessonHint container', () => {
         expect(rubyToBlocksXml.mock.calls[0][1]).toBe(stage);
         expect(vm.setEditingTarget).toHaveBeenCalledWith('stage-id');
         expect(props.onInsertCode).toHaveBeenCalledWith(challenge.code, 'blocks', stage, '2');
+    });
+
+    test('a challenge with spriteCodes puts them in first and inserts the code into the remaining sprite', async () => {
+        const cat = { id: 'cat', isOriginal: true, isStage: false, getName: () => 'Sprite1' };
+        const penguin = { id: 'penguin', isOriginal: true, isStage: false, getName: () => 'Penguin' };
+        const stage = { id: 'stage', isOriginal: true, isStage: true, getName: () => 'Stage' };
+        const vm = {
+            editingTarget: penguin,
+            runtime: { targets: [stage, cat, penguin] },
+            setEditingTarget: jest.fn(),
+            addSprite: jest.fn(),
+        };
+        const current = findChallenge('blocks-l1-broadcast');
+        const { challenge } = current;
+        const hint = {
+            visible: true,
+            index: challenge.steps.length,
+            count: challenge.steps.length + 1,
+            step: null,
+            spotlight: false,
+            lastResort: true,
+            debug: challenge.debug,
+            code: challenge.code,
+        };
+        const props = { ...baseProps(), current, hint, vm };
+        const { getByTestId } = renderContainer(props);
+        fireEvent.click(getByTestId('lesson-hint-insert-code'));
+        await waitFor(() => expect(props.onInsertCode).toHaveBeenCalled());
+        expect(targetCodeToBlocks).toHaveBeenCalledTimes(1);
+        expect(targetCodeToBlocks.mock.calls[0].slice(1, 3)).toEqual([penguin, challenge.spriteCodes[0].code]);
+        expect(applied).toEqual(['penguin']);
+        expect(vm.addSprite).not.toHaveBeenCalled();
+        expect(vm.setEditingTarget).toHaveBeenCalledWith('cat');
+        expect(props.onInsertCode).toHaveBeenCalledWith(challenge.code, 'blocks', cat, '2');
+    });
+
+    const spriteCodesSetup = (targets) => {
+        const vm = {
+            editingTarget: targets[1],
+            runtime: { targets },
+            setEditingTarget: jest.fn(),
+            addSprite: jest.fn(),
+        };
+        const current = findChallenge('blocks-l1-broadcast');
+        const { challenge } = current;
+        const hint = {
+            visible: true,
+            index: challenge.steps.length,
+            count: challenge.steps.length + 1,
+            step: null,
+            spotlight: false,
+            lastResort: true,
+            debug: challenge.debug,
+            code: challenge.code,
+        };
+        return { ...baseProps(), current, hint, vm };
+    };
+
+    test('a challenge with spriteCodes checks every program (penguin and cat) before inserting', async () => {
+        const cat = { id: 'cat', isOriginal: true, isStage: false, getName: () => 'Sprite1' };
+        const penguin = { id: 'penguin', isOriginal: true, isStage: false, getName: () => 'Penguin' };
+        const stage = { id: 'stage', isOriginal: true, isStage: true, getName: () => 'Stage' };
+        const props = spriteCodesSetup([stage, penguin, cat]);
+        const { challenge } = props.current;
+        const { getByTestId } = renderContainer(props);
+        fireEvent.click(getByTestId('lesson-hint-insert-code'));
+        await waitFor(() => expect(props.onInsertCode).toHaveBeenCalled());
+        const checked = rubyToBlocksXml.mock.calls.map((c) => [c[1], c[2], c[4].validateAssets]);
+        expect(checked).toEqual([
+            [penguin, challenge.spriteCodes[0].code, true],
+            [cat, challenge.code, true],
+        ]);
+    });
+
+    test('pressing "insert the program" twice while it is working inserts (and adds the penguin) once', async () => {
+        const cat = { id: 'cat', isOriginal: true, isStage: false, getName: () => 'Sprite1' };
+        const stage = { id: 'stage', isOriginal: true, isStage: true, getName: () => 'Stage' };
+        const props = spriteCodesSetup([stage, cat]);
+        const penguin = { id: 'penguin', isOriginal: true, isStage: false, getName: () => 'Penguin' };
+        props.vm.addSprite = jest.fn(() => {
+            props.vm.runtime.targets.push(penguin);
+            return Promise.resolve();
+        });
+        const { getByTestId } = renderContainer(props);
+        fireEvent.click(getByTestId('lesson-hint-insert-code'));
+        fireEvent.click(getByTestId('lesson-hint-insert-code'));
+        await waitFor(() => expect(props.onInsertCode).toHaveBeenCalled());
+        await flush();
+        expect(props.vm.addSprite).toHaveBeenCalledTimes(1);
+        expect(props.onInsertCode).toHaveBeenCalledTimes(1);
+    });
+
+    test('a challenge with spriteCodes inserts nothing when one of the programs would not convert', async () => {
+        rubyToBlocksXml
+            .mockImplementationOnce(() => Promise.resolve({ xml: '<xml></xml>', errors: [] }))
+            .mockImplementationOnce(() => Promise.resolve({ xml: null, errors: [{ text: 'cannot convert' }] }));
+        const cat = { id: 'cat', isOriginal: true, isStage: false, getName: () => 'Sprite1' };
+        const stage = { id: 'stage', isOriginal: true, isStage: true, getName: () => 'Stage' };
+        // ペンギンはまだいない: target なしで確かめ、足さない
+        const props = spriteCodesSetup([stage, cat]);
+        const { getByTestId } = renderContainer(props);
+        fireEvent.click(getByTestId('lesson-hint-insert-code'));
+        await waitFor(() => expect(getByTestId('lesson-hint-insert-code-error')).toHaveTextContent('cannot convert'));
+        expect(rubyToBlocksXml.mock.calls[0][1]).toBeNull();
+        expect(props.vm.addSprite).not.toHaveBeenCalled();
+        expect(targetCodeToBlocks).not.toHaveBeenCalled();
+        expect(props.onInsertCode).not.toHaveBeenCalled();
     });
 
     test('next / back / close dispatch', () => {

@@ -51,6 +51,9 @@ export const defineChallenge = (def) => ({
     // docs/lessons/README.md。null ならそのチャレンジは判定しない
     goal: null,
     required: false,
+    // code のほかに、名前で決めたスプライトに入れるプログラム: [{sprite, code}]（`sprite` はライブラリの
+    // スプライトの名前。いなければライブラリから足す）。このときの code は残りのスプライト（ネコ）に入る
+    spriteCodes: [],
     allowedBlocks: null,
     setup: null,
     // 最後の手段の「プログラムを入れる」（いまの deck の code）
@@ -380,9 +383,94 @@ const blocksLesson1 = defineLesson({
             ],
             code: 'when_flag_clicked do\n  $回数 = 0\nend\n\nwhen_clicked do\n  $回数 += 1\n  say($回数)\nend\n',
         },
-        { id: 'blocks-l1-broadcast', category: CATEGORIES.EVENTS, required: true },
-        { id: 'blocks-l1-speak', category: CATEGORIES.EXTENSIONS },
-        { id: 'blocks-l1-message-list', category: CATEGORIES.LISTS, required: true },
+        // 9 なかまに合図しよう（イベント・必須）: ネコを押したら合図を送り、受け取ったペンギンが言う
+        {
+            id: 'blocks-l1-broadcast',
+            category: CATEGORIES.EVENTS,
+            required: true,
+            task: challengeMessage('blocks-l1-broadcast', 'task'),
+            skills: [skill('add-sprite'), skill('broadcast'), skill('sprite-program')],
+            allowedBlocks: {
+                event: ['event_whenthisspriteclicked', 'event_broadcast', 'event_whenbroadcastreceived'],
+                looks: ['looks_sayforsecs'],
+            },
+            steps: withTitles('blocks-l1-broadcast', [
+                { target: HINT_TARGETS.SPRITE_LIST, spotlight: true },
+                { target: HINT_TARGETS.SPRITE_LIST, blocks: 'broadcast("あいさつ")\n' },
+                { target: HINT_TARGETS.SPRITE_LIST },
+                { target: HINT_TARGETS.PALETTE, blocks: 'when_receive("あいさつ") do\nend\n' },
+                { target: HINT_TARGETS.STAGE },
+            ]),
+            debug: debugTips('blocks-l1-broadcast', 2),
+            goal: [
+                { type: 'sprites', min: 2 },
+                { type: 'uses', trigger: { hat: 'event_whenthisspriteclicked' }, blocks: ['event_broadcast'] },
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenbroadcastreceived', sentBy: 'other' },
+                    blocks: ['looks_sayforsecs'],
+                },
+            ],
+            // code はネコのプログラム。ペンギンのプログラムは spriteCodes で入れる（ペンギンがいなければ
+            // ライブラリから足す。insert-sprite-code.js）
+            code: 'when_clicked do\n  broadcast("あいさつ")\nend\n',
+            spriteCodes: [{ sprite: 'Penguin', code: 'when_receive("あいさつ") do\n  say("やあ！", 2)\nend\n' }],
+        },
+        // 10 しゃべらせよう（拡張機能）: 音声合成を足して、ネコを押したらしゃべる
+        {
+            id: 'blocks-l1-speak',
+            category: CATEGORIES.EXTENSIONS,
+            task: challengeMessage('blocks-l1-speak', 'task'),
+            skills: [skill('add-extension'), skill('text2speech')],
+            // 拡張機能のカテゴリはパレットを絞っても全部出る（make-toolbox-xml）。ここは使うブロックの記録。
+            // 拡張機能は子どもがヒント 1 で足す（setup.extensions では入れない）
+            allowedBlocks: {
+                event: ['event_whenthisspriteclicked'],
+                text2speech: ['text2speech_speakAndWait'],
+            },
+            steps: withTitles('blocks-l1-speak', [
+                { target: HINT_TARGETS.EXTENSION_BUTTON, spotlight: true },
+                { target: HINT_TARGETS.PALETTE, blocks: 'text2speech.speak("ボタンが押されました")\n' },
+                { target: HINT_TARGETS.STAGE },
+            ]),
+            debug: debugTips('blocks-l1-speak', 1),
+            goal: [
+                { type: 'extension', id: 'text2speech' },
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenthisspriteclicked' },
+                    blocks: ['text2speech_speakAndWait'],
+                },
+            ],
+            // 拡張機能を足す前に入れても、変換が音声合成を読み込む（target-applier）
+            code: 'when_clicked do\n  text2speech.speak("ボタンが押されました")\nend\n',
+        },
+        // 11 メッセージをためよう（リスト・必須）: 聞いた答えをリスト「トーク」にためる
+        {
+            id: 'blocks-l1-message-list',
+            category: CATEGORIES.LISTS,
+            required: true,
+            task: challengeMessage('blocks-l1-message-list', 'task'),
+            skills: [skill('make-list'), skill('add-to-list')],
+            // リストのカテゴリはパレットを絞っても全部出る（make-toolbox-xml）。ここは使うブロックの記録
+            allowedBlocks: {
+                event: ['event_whenflagclicked', 'event_whenthisspriteclicked'],
+                data: ['data_deletealloflist', 'data_addtolist'],
+                sensing: ['sensing_askandwait', 'sensing_answer'],
+            },
+            steps: withTitles('blocks-l1-message-list', [
+                { target: HINT_TARGETS.PALETTE },
+                { target: HINT_TARGETS.PALETTE, blocks: '$トーク.clear\n' },
+                { target: HINT_TARGETS.PALETTE, blocks: '$トーク.push(answer)\n' },
+                { target: HINT_TARGETS.STAGE },
+            ]),
+            debug: debugTips('blocks-l1-message-list', 2),
+            // `$トーク` はステージのリスト =「リストを作る」の既定（すべてのスプライト用）と同じ
+            goal: [{ type: 'list', name: 'トーク', length: { gte: 3 }, itemsFromAnswers: true }],
+            code:
+                'when_flag_clicked do\n  $トーク.clear\nend\n\nwhen_clicked do\n  ask("メッセージは？")\n' +
+                '  $トーク.push(answer)\nend\n',
+        },
     ],
 });
 

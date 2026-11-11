@@ -39,7 +39,9 @@ describe('LessonTaskBar', () => {
     });
 
     test('falls back to the challenge name when there is no task line yet', () => {
-        const { getByTestId } = renderBar({ challengeId: 'blocks-l1-broadcast' });
+        // レッスン 1 のチャレンジはどれも課題があるので、課題の無いチャレンジに見せかける
+        const { challenge } = findChallenge('blocks-l1-broadcast');
+        const { getByTestId } = renderBar({ challenge: { ...challenge, task: null } });
         expect(getByTestId('lesson-task-bar-position')).toHaveTextContent('9 of 11');
         expect(getByTestId('lesson-task-bar-task')).toHaveTextContent('Signal a friend');
     });

@@ -4,9 +4,13 @@
 // （updateRubyCode → コードタブを出すと Ruby タブが変換してブロックを入れる）。
 // チャレンジの `codeTarget` が 'stage' のとき（ステージのプログラム）は、入れる前にステージを
 // えらび、Ruby タブの相手（rubyCode.target）もステージにしてから入れる。
+// チャレンジに `spriteCodes`（ほかのスプライトのプログラム）があるときは、それを先に
+// それぞれのスプライトへ入れ（いなければライブラリから足す）、code は残りのスプライト（ネコ）を
+// えらんでから入れる。
 // 入れる前に同じ変換を音・背景の確かめ込みで試し、失敗するとき（Owl をまだ足していない等）は
 // 入れずに吹き出しの中にわけを出す（入れると Ruby タブに切りかわってエラーになり、ブロックの
-// コースの子どもには何が起きたかわかりにくいため）。
+// コースの子どもには何が起きたかわかりにくいため）。`spriteCodes` も同じく、入れる前に全部を確かめる
+// （ペンギンにだけ入って、ネコの分で止まる、という半端な状態にしない）。
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useIntl } from 'react-intl';
@@ -14,6 +18,8 @@ import { connect } from 'react-redux';
 import LessonHint from '../components/lesson-hint/lesson-hint.jsx';
 import { LANGUAGES } from '../lib/lessons/courses';
 import { rubyToBlocksXml } from '../lib/lessons/hint-blocks';
+import { findCodeSprite, findSpriteByName, insertSpriteCodes } from '../lib/lessons/insert-sprite-code';
+import { targetCodeToBlocks } from '../lib/ruby-to-blocks-converter';
 import { colorModeMap } from '../lib/settings/color-mode';
 import { BLOCKS_TAB_INDEX, RUBY_TAB_INDEX, activateTab } from '../reducers/editor-tab';
 import { getCurrentChallenge, getCurrentHint, hideHint, nextHint, prevHint } from '../reducers/lesson-mode';
@@ -75,18 +81,29 @@ const LessonHintContainer = ({
         };
     }, [blocks, intl, rubyVersion, vm]);
 
-    const handleInsertCode = useCallback(async () => {
+    const insertChallengeCode = useCallback(async () => {
         if (!current || !current.challenge.code) return;
-        const stage =
-            current.challenge.codeTarget === 'stage' && vm && vm.runtime ? vm.runtime.getTargetForStage() : null;
-        // ステージのプログラム: いま編集中のスプライトではなくステージに入れる
-        const target = stage || null;
-        const checkTarget = target || (vm && vm.editingTarget ? vm.editingTarget : null);
+        const { challenge } = current;
+        const hasVm = Boolean(vm && vm.runtime);
+        const spriteCodes = hasVm ? challenge.spriteCodes || [] : [];
+        const stage = challenge.codeTarget === 'stage' && hasVm ? vm.runtime.getTargetForStage() : null;
+        // code を入れる相手: ステージのプログラムはステージ、spriteCodes があれば残りのスプライト（ネコ）。
+        // どちらでもなければ null（いま編集中のスプライトに入れる）
+        const codeSprite = spriteCodes.length > 0 ? findCodeSprite(vm, spriteCodes) : null;
+        const editing = vm && vm.editingTarget ? vm.editingTarget : null;
+        // 確かめる組: [target, code]。まだいないスプライト（これから足すペンギン）は target なしで確かめる
+        // （target が無いと音・コスチュームは確かめない。足すのはライブラリのままのスプライトなので足りる）
+        const checks = [
+            ...spriteCodes.map(({ sprite, code }) => [findSpriteByName(vm, sprite), code]),
+            [stage || codeSprite || editing, challenge.code],
+        ];
         try {
-            const { errors } = await rubyToBlocksXml(vm, checkTarget, current.challenge.code, intl, {
-                version: rubyVersion,
-                validateAssets: true,
-            });
+            const results = await Promise.all(
+                checks.map(([t, code]) =>
+                    rubyToBlocksXml(vm, t, code, intl, { version: rubyVersion, validateAssets: true }),
+                ),
+            );
+            const errors = results.flatMap((r) => r.errors);
             if (errors.length > 0) {
                 setInsertErrors(errors.map((e) => e.text).filter(Boolean));
                 return;
@@ -97,9 +114,26 @@ const LessonHintContainer = ({
             console.warn('[lesson-hint] could not check the program before inserting:', err);
         }
         setInsertErrors([]);
+        let target = stage;
+        if (spriteCodes.length > 0) {
+            // ほかのスプライト（ペンギン）のプログラムを先に入れ、code はネコに入れる
+            target = await insertSpriteCodes(vm, spriteCodes, {
+                toBlocks: (t, code) => targetCodeToBlocks(vm, t, code, intl, { version: rubyVersion }),
+            });
+        }
         if (target) vm.setEditingTarget(target.id);
         onInsertCode(current.challenge.code, current.course.language, target, rubyVersion);
     }, [current, intl, onInsertCode, rubyVersion, vm]);
+
+    // 「プログラムを入れる」を続けて押したときに 2 回入れない（spriteCodes ではペンギンが 2 匹足される）
+    const insertingRef = useRef(false);
+    const handleInsertCode = useCallback(() => {
+        if (insertingRef.current) return Promise.resolve();
+        insertingRef.current = true;
+        return insertChallengeCode().finally(() => {
+            insertingRef.current = false;
+        });
+    }, [insertChallengeCode]);
 
     if (!hint || !hint.visible || !current) return null;
     const step = hint.step;
@@ -171,7 +205,8 @@ const mapDispatchToProps = (dispatch) => ({
         // カードの insertCodeButton と同じ: Ruby を入れてから目的のタブを出す。ブロックの
         // コースではコードタブ（Ruby タブが変換してブロックにする）、Ruby / DNCL のコースでは Ruby タブ
         dispatch(hideHint());
-        // 入れる相手が指定されたとき（ステージ）は、Ruby タブの相手を先にその target にする
+        // 入れる相手が指定されたとき（ステージ・spriteCodes のときのネコ）は、Ruby タブの相手を先に
+        // その target にする
         // （Ruby タブは rubyCode.target に向けて変換するため）
         if (target) dispatch(updateRubyCodeTarget(target, rubyVersion));
         dispatch(updateRubyCode(code));

@@ -131,4 +131,32 @@ describe('rubyToBlocksXml', () => {
             expect({ id: challenge.id, errors }).toEqual({ id: challenge.id, errors: [] });
         }
     });
+
+    test('every program for another sprite (spriteCodes) converts to blocks (challenge 9 penguin)', async () => {
+        const entries = COURSES.flatMap((c) => c.lessons.flatMap((l) => l.challenges)).flatMap((c) =>
+            c.spriteCodes.map((entry) => ({ id: c.id, ...entry })),
+        );
+        expect(entries.map((e) => e.sprite)).toContain('Penguin');
+        for (const { id, sprite, code } of entries) {
+            const { errors } = await rubyToBlocksXml(null, null, code);
+            expect({ id, sprite, errors }).toEqual({ id, sprite, errors: [] });
+        }
+    });
+
+    test('a Japanese list name draws the list blocks (challenge 11 hints)', async () => {
+        const clear = await rubyToBlocksXml(null, null, '$トーク.clear\n');
+        expect(clear.errors).toEqual([]);
+        expect(clear.xml).toContain('type="data_deletealloflist"');
+        expect(clear.xml).toMatch(/<field name="LIST" id="[^"]+" variabletype="list">トーク<\/field>/);
+        const push = await rubyToBlocksXml(null, null, '$トーク.push(answer)\n');
+        expect(push.xml).toContain('type="data_addtolist"');
+        expect(push.xml).toContain('type="sensing_answer"');
+    });
+
+    test('the Text to Speech block converts without the extension loaded (challenge 10 hint)', async () => {
+        const { xml, errors } = await rubyToBlocksXml(null, null, 'text2speech.speak("ボタンが押されました")\n');
+        expect(errors).toEqual([]);
+        expect(xml).toContain('type="text2speech_speakAndWait"');
+        expect(xml).toContain('>ボタンが押されました</field>');
+    });
 });

@@ -173,6 +173,7 @@ describe('lesson courses', () => {
             skills: [],
             goal: null,
             required: true,
+            spriteCodes: [],
             allowedBlocks: null,
             setup: null,
             code: null,
@@ -402,6 +403,148 @@ describe('lesson courses', () => {
             ['blocks-l1-if', 'blocks-l1-ask-answer', 'blocks-l1-quiz', 'blocks-l1-count'].forEach((id) => {
                 expect({ id, errors: validateGoal(challenge(id).goal) }).toEqual({ id, errors: [] });
             });
+        });
+    });
+
+    // チャレンジ 9〜11（Issue #1475 の仕様）
+    describe('lesson 1 challenges 9-11 (the spec of the sub-issue)', () => {
+        const challenge = (id) => findChallenge(id).challenge;
+        const hints = (c) => c.steps.map((s) => [s.target, s.blocks, s.spotlight]);
+        const jaText = (descriptor) => ja[descriptor.id];
+
+        test('9 なかまに合図しよう (required): clicking the cat broadcasts and the penguin says', () => {
+            const c = challenge('blocks-l1-broadcast');
+            expect(c.number).toBe(9);
+            expect(c.required).toBe(true);
+            expect(jaText(c.task)).toBe('ペンギンを足して、ネコを押したらペンギンが「やあ！」と言うようにしよう');
+            expect(c.skills.map((s) => jaText(s.name))).toEqual([
+                'スプライトを足す',
+                '合図（メッセージ）',
+                'スプライトごとのプログラム',
+            ]);
+            expect(c.allowedBlocks).toEqual({
+                event: ['event_whenthisspriteclicked', 'event_broadcast', 'event_whenbroadcastreceived'],
+                looks: ['looks_sayforsecs'],
+            });
+            expect(c.setup).toBeNull();
+            expect(hints(c)).toEqual([
+                ['sprite-list', null, true],
+                ['sprite-list', 'broadcast("あいさつ")\n', false],
+                ['sprite-list', null, false],
+                ['palette', 'when_receive("あいさつ") do\nend\n', false],
+                ['stage', null, false],
+            ]);
+            expect(c.steps.map((s) => jaText(s.title))).toEqual([
+                '右下の「スプライトを選ぶ」から、ペンギンを足そう。',
+                'ネコをえらんで、「押されたとき」と「送る」をつなげよう。▼の「新しいメッセージ」で「あいさつ」を作ろう。',
+                'ペンギンをえらぶと、コードエリアが空になるよ。プログラムはスプライトごとにあるんだ。',
+                'ペンギンに「受け取ったとき」と「言う」をつなげよう。',
+                'ネコを押してみよう。',
+            ]);
+            expect(c.debug.map(jaText)).toEqual([
+                'ペンギンが言わないときは、「送る」と「受け取ったとき」のメッセージの名前が同じか見よう。',
+                'ペンギンのプログラムを、ネコに書いていないかも見よう。',
+            ]);
+            expect(c.goal).toEqual([
+                { type: 'sprites', min: 2 },
+                { type: 'uses', trigger: { hat: 'event_whenthisspriteclicked' }, blocks: ['event_broadcast'] },
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenbroadcastreceived', sentBy: 'other' },
+                    blocks: ['looks_sayforsecs'],
+                },
+            ]);
+            // code はネコ、ペンギンのプログラムは spriteCodes（ライブラリの「Penguin」）
+            expect(c.code).toBe('when_clicked do\n  broadcast("あいさつ")\nend\n');
+            expect(c.spriteCodes).toEqual([
+                { sprite: 'Penguin', code: 'when_receive("あいさつ") do\n  say("やあ！", 2)\nend\n' },
+            ]);
+        });
+
+        test('10 しゃべらせよう: the Text to Speech extension speaks when the cat is clicked', () => {
+            const c = challenge('blocks-l1-speak');
+            expect(c.number).toBe(10);
+            expect(c.required).toBe(false);
+            expect(jaText(c.task)).toBe(
+                '拡張機能「音声合成」を足して、ネコを押したら「ボタンが押されました」としゃべるようにしよう',
+            );
+            expect(c.skills.map((s) => jaText(s.name))).toEqual(['拡張機能を足す', '音声合成']);
+            expect(c.allowedBlocks).toEqual({
+                event: ['event_whenthisspriteclicked'],
+                text2speech: ['text2speech_speakAndWait'],
+            });
+            // 拡張機能は子どもがヒント 1 で足す（setup では入れない）
+            expect(c.setup).toBeNull();
+            expect(hints(c)).toEqual([
+                ['extension-button', null, true],
+                ['palette', 'text2speech.speak("ボタンが押されました")\n', false],
+                ['stage', null, false],
+            ]);
+            expect(c.steps.map((s) => jaText(s.title))).toEqual([
+                '左下のボタンから「音声合成」をえらぼう。パレットに新しいなかまがふえるよ。',
+                '「押されたとき」に「しゃべる」をつなげて、ことばを書こう。',
+                'ネコを押してみよう。',
+            ]);
+            expect(c.debug.map(jaText)).toEqual([
+                '声が出ないときは、パソコンの音量を見よう。音声合成はインターネットにつながっていないと使えないよ。',
+            ]);
+            expect(c.goal).toEqual([
+                { type: 'extension', id: 'text2speech' },
+                { type: 'uses', trigger: { hat: 'event_whenthisspriteclicked' }, blocks: ['text2speech_speakAndWait'] },
+            ]);
+            expect(c.code).toBe('when_clicked do\n  text2speech.speak("ボタンが押されました")\nend\n');
+        });
+
+        test('11 メッセージをためよう (required): keeps the answers in the list トーク', () => {
+            const c = challenge('blocks-l1-message-list');
+            expect(c.number).toBe(11);
+            expect(c.required).toBe(true);
+            expect(jaText(c.task)).toBe(
+                'ネコを押したら「メッセージは？」と聞いて、答えをリスト「トーク」にためよう。3 つためてみよう',
+            );
+            expect(c.skills.map((s) => jaText(s.name))).toEqual(['リストを作る', 'リストに追加する']);
+            expect(c.allowedBlocks).toEqual({
+                event: ['event_whenflagclicked', 'event_whenthisspriteclicked'],
+                data: ['data_deletealloflist', 'data_addtolist'],
+                sensing: ['sensing_askandwait', 'sensing_answer'],
+            });
+            expect(hints(c)).toEqual([
+                ['palette', null, false],
+                ['palette', '$トーク.clear\n', false],
+                ['palette', '$トーク.push(answer)\n', false],
+                ['stage', null, false],
+            ]);
+            expect(c.steps.map((s) => jaText(s.title))).toEqual([
+                '「変数」の下の「リストを作る」を押して、「トーク」というリストを作ろう。ステージに空の箱が出るよ。',
+                '旗を押したら、トークを空にするプログラムを作ろう。',
+                '押されたら聞いて、答えをトークに追加するプログラムを作ろう。',
+                '旗を押してから、ネコを 3 回押して、メッセージを書こう。ステージの箱に、書いた順にたまっていくよ。',
+            ]);
+            expect(c.debug.map(jaText)).toEqual([
+                '1 つしかたまらないときは、「すべてを削除する」が「押されたとき」のほうに入っていないか見よう。',
+                '「答え」という文字がたまるときは、丸い「答え」のブロックを入れたか見よう。',
+            ]);
+            expect(c.goal).toEqual([{ type: 'list', name: 'トーク', length: { gte: 3 }, itemsFromAnswers: true }]);
+            expect(c.code).toBe(
+                'when_flag_clicked do\n  $トーク.clear\nend\n\nwhen_clicked do\n  ask("メッセージは？")\n' +
+                    '  $トーク.push(answer)\nend\n',
+            );
+        });
+
+        test('the goals of 9-11 pass validateGoal', () => {
+            ['blocks-l1-broadcast', 'blocks-l1-speak', 'blocks-l1-message-list'].forEach((id) => {
+                expect({ id, errors: validateGoal(challenge(id).goal) }).toEqual({ id, errors: [] });
+            });
+        });
+
+        test('the ja-Hira strings of 9-11 have no kanji', () => {
+            const ids = Object.keys(jaHira).filter((id) =>
+                /blocks-l1-(broadcast|speak|message-list)\.|skill\.(add-sprite|broadcast|sprite-program|add-extension|text2speech|make-list|add-to-list)$/.test(
+                    id,
+                ),
+            );
+            expect(ids.length).toBeGreaterThan(20);
+            ids.forEach((id) => expect({ id, text: jaHira[id] }).toEqual({ id, text: expect.not.stringMatching(/\p{Script=Han}/u) }));
         });
     });
 
