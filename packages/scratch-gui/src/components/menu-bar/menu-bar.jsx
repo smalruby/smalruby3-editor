@@ -38,7 +38,6 @@ import SettingsMenu from './settings-menu.jsx';
 import WelcomeTooltip from '../welcome-tooltip/welcome-tooltip.jsx';
 // === Smalruby: End of welcome tooltip ===
 // === Smalruby: Start of lessons button ===
-import LessonsTooltip from './lessons-tooltip.jsx';
 import lessonsIcon from '../../lib/assets/icon--tutorials.svg';
 // === Smalruby: End of lessons button ===
 
@@ -1139,9 +1138,7 @@ class MenuBar extends React.Component {
                         so this group and its leading divider are intentionally omitted. */}
                     {/* === Smalruby: End of help menu === */}
                     {/* === Smalruby: Start of lessons button === */}
-                    {/* The Lessons button takes the place of upstream's Tutorials button.
-                        The first-time balloon (LessonsTooltip) hangs under it until the
-                        lessons library has been opened once. */}
+                    {/* The Lessons button takes the place of upstream's Tutorials button. */}
                     <Divider className={classNames(styles.divider)} />
                     <div className={styles.fileGroup}>
                         <div style={{position: 'relative'}}>
@@ -1159,9 +1156,6 @@ class MenuBar extends React.Component {
                                     <FormattedMessage {...ariaMessages.lessons} />
                                 </span>
                             </div>
-                            {this.props.showLessonsTooltip ? (
-                                <LessonsTooltip onClick={this.props.onOpenLessonsLibrary} />
-                            ) : null}
                         </div>
                     </div>
                     {/* === Smalruby: End of lessons button === */}
@@ -1813,7 +1807,6 @@ MenuBar.propTypes = {
     // === Smalruby: Start of lessons button ===
     onOpenLessonsLibrary: PropTypes.func,
     lessonModeActive: PropTypes.bool,
-    showLessonsTooltip: PropTypes.bool,
     // === Smalruby: End of lessons button ===
     onActivateRubyTab: PropTypes.func,
     onShowWelcomeModal: PropTypes.func, // === Smalruby: welcome tooltip ===
