@@ -69,3 +69,41 @@ export const blocksToXml = (blocks) => {
         .join('');
     return `<xml xmlns="${XML_NS}">${scripts}</xml>`;
 };
+
+// `false` の Ruby の印（ruby-to-blocks-converter の visitFalseNode が付けるコメント）
+const FALSE_LITERAL_COMMENT = /^@ruby:literal:false:/;
+
+/**
+ * 条件の穴に入った `false`（変換では「0 < 0」のブロックになる）を外して、空の穴にする。
+ * ブロック → Ruby は空の穴を `if false` と書くので、ヒントの吹き出しでは `if false` を
+ * 「もし <  > なら」（空の穴）として描く。外したブロックとその影も集合から消す。
+ * @param {?object} blocks - `converter.blocks` と同じ形（変更しない）。
+ * @param {?object} comments - 変換のコメント（コメント id → `{text}`）。
+ * @returns {object} 空の穴にしたブロックの集合。
+ */
+export const emptyFalseConditions = (blocks, comments) => {
+    const all = { ...(blocks || {}) };
+    const isFalseLiteral = (block) => {
+        const comment = block && block.comment && comments ? comments[block.comment] : null;
+        return Boolean(comment) && FALSE_LITERAL_COMMENT.test(comment.text || '');
+    };
+    const remove = (id) => {
+        const block = all[id];
+        if (!block) return;
+        delete all[id];
+        Object.values(block.inputs || {}).forEach((input) => {
+            if (input.block) remove(input.block);
+            if (input.shadow && input.shadow !== input.block) remove(input.shadow);
+        });
+    };
+    Object.keys(all).forEach((id) => {
+        const block = all[id];
+        const condition = block && block.inputs && block.inputs.CONDITION;
+        if (!condition || !isFalseLiteral(all[condition.block])) return;
+        const inputs = { ...block.inputs };
+        delete inputs.CONDITION;
+        all[id] = { ...block, inputs };
+        remove(condition.block);
+    });
+    return all;
+};

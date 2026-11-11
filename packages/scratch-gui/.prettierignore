@@ -351,6 +351,7 @@ test/integration/*
 !test/integration/smalrubot-firmware.test.js
 !test/integration/smalrubot-s1-connection-flow.test.js
 !test/integration/lesson-goal.test.js
+!test/integration/smalruby-lesson1-challenges-5-8.test.js
 !test/integration/smalruby-help-menu.test.js
 !test/integration/smalruby-tutorials.test.js
 !test/integration/smalruby-lessons.test.js

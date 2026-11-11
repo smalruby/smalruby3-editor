@@ -134,10 +134,205 @@ const blocksLesson1 = defineLesson({
             code: 'when_clicked do\n  say("こんにちは！", 2)\n  next_costume\nend\n',
         },
         { id: 'blocks-l1-repeat' },
-        { id: 'blocks-l1-if' },
-        { id: 'blocks-l1-ask-answer', required: true },
-        { id: 'blocks-l1-quiz' },
-        { id: 'blocks-l1-count', required: true },
+        // === チャレンジ 5〜8 ===
+        // 5 もし〜なら（制御）: マウスがさわっているか・いないかでセリフを変える
+        {
+            id: 'blocks-l1-if',
+            task: message('gui.lessons.challenge.blocks-l1-if.task'),
+            skills: [
+                { id: 'if', name: message('gui.lessons.skill.if') },
+                { id: 'forever', name: message('gui.lessons.skill.forever') },
+                { id: 'touching', name: message('gui.lessons.skill.touching') },
+            ],
+            // パレットは仕様の「もし <> なら」と、ヒント 2 の「もし〜なら でなければ」の両方を出す
+            allowedBlocks: {
+                event: ['event_whenflagclicked'],
+                control: ['control_forever', 'control_if', 'control_if_else'],
+                sensing: ['sensing_touchingobject'],
+                looks: ['looks_say'],
+            },
+            setup: { tab: 'code' },
+            steps: [
+                {
+                    title: message('gui.lessons.challenge.blocks-l1-if.step1'),
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: 'loop do\nend\n',
+                },
+                {
+                    title: message('gui.lessons.challenge.blocks-l1-if.step2'),
+                    target: HINT_TARGETS.PALETTE,
+                    // `false` は空の穴として描く（hint-blocks.js）
+                    blocks: 'if false\nelse\nend\n',
+                },
+                {
+                    title: message('gui.lessons.challenge.blocks-l1-if.step3'),
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: 'touching?("_mouse_")\n',
+                },
+                { title: message('gui.lessons.challenge.blocks-l1-if.step4'), target: HINT_TARGETS.CODE_AREA },
+                {
+                    title: message('gui.lessons.challenge.blocks-l1-if.step5'),
+                    target: HINT_TARGETS.GREEN_FLAG,
+                    spotlight: true,
+                },
+            ],
+            debug: [
+                message('gui.lessons.challenge.blocks-l1-if.debug1'),
+                message('gui.lessons.challenge.blocks-l1-if.debug2'),
+            ],
+            // then と else の両方の「言う」が動いた = ちがうセリフを 2 種類言った
+            goal: [
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenflagclicked' },
+                    blocks: ['sensing_touchingobject', { opcode: 'looks_say', distinct: 'MESSAGE', count: 2 }],
+                },
+            ],
+            code:
+                'when_flag_clicked do\n  loop do\n    if touching?("_mouse_")\n      say("くすぐったい！")\n' +
+                '    else\n      say("さわってみて")\n    end\n  end\nend\n',
+        },
+        // 6 聞いて答えよう（調べる・必須）: 名前を聞いて、答えと、かかった秒数を言う
+        {
+            id: 'blocks-l1-ask-answer',
+            required: true,
+            task: message('gui.lessons.challenge.blocks-l1-ask-answer.task'),
+            skills: [
+                { id: 'ask-answer', name: message('gui.lessons.skill.ask-answer') },
+                { id: 'timer', name: message('gui.lessons.skill.timer') },
+                { id: 'join', name: message('gui.lessons.skill.join') },
+            ],
+            allowedBlocks: {
+                event: ['event_whenthisspriteclicked'],
+                sensing: ['sensing_resettimer', 'sensing_askandwait', 'sensing_answer', 'sensing_timer'],
+                operators: ['operator_join'],
+                looks: ['looks_sayforsecs'],
+            },
+            setup: { tab: 'code' },
+            steps: [
+                {
+                    title: message('gui.lessons.challenge.blocks-l1-ask-answer.step1'),
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: 'ask("なまえは？")\n',
+                },
+                {
+                    title: message('gui.lessons.challenge.blocks-l1-ask-answer.step2'),
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: 'answer\n',
+                },
+                {
+                    title: message('gui.lessons.challenge.blocks-l1-ask-answer.step3'),
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: 'timer.reset\n',
+                },
+                {
+                    title: message('gui.lessons.challenge.blocks-l1-ask-answer.step4'),
+                    target: HINT_TARGETS.PALETTE,
+                    // 「と」1 つを描く。code の `timer.value.to_s + ...` は「(タイマー) と ()」が中に入った
+                    // 「と」2 つになるので、吹き出しは子どもが作るのと同じ形の Ruby にする
+                    blocks: 'timer.value + "秒でした"\n',
+                },
+                { title: message('gui.lessons.challenge.blocks-l1-ask-answer.step5'), target: HINT_TARGETS.STAGE },
+            ],
+            debug: [
+                message('gui.lessons.challenge.blocks-l1-ask-answer.debug1'),
+                message('gui.lessons.challenge.blocks-l1-ask-answer.debug2'),
+            ],
+            // 秒数は 3.217 のような小数のまま言う（四捨五入は入れない）
+            goal: [
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenthisspriteclicked' },
+                    blocks: [
+                        'sensing_resettimer',
+                        'sensing_askandwait',
+                        'sensing_answer',
+                        'sensing_timer',
+                        { opcode: 'looks_sayforsecs', count: 2 },
+                    ],
+                    order: ['sensing_resettimer', 'sensing_askandwait'],
+                },
+                { type: 'said', equalsAnswer: true },
+            ],
+            code:
+                'when_clicked do\n  timer.reset\n  ask("なまえは？")\n  say(answer, 2)\n' +
+                '  say(timer.value.to_s + "秒でした", 2)\nend\n',
+        },
+        // 7 クイズを作ろう（演算）: 答えが 7 なら「正解です」、ちがえば「ちがいます」
+        {
+            id: 'blocks-l1-quiz',
+            task: message('gui.lessons.challenge.blocks-l1-quiz.task'),
+            skills: [
+                { id: 'compare', name: message('gui.lessons.skill.compare') },
+                { id: 'if', name: message('gui.lessons.skill.if') },
+            ],
+            allowedBlocks: {
+                event: ['event_whenthisspriteclicked'],
+                sensing: ['sensing_askandwait', 'sensing_answer'],
+                control: ['control_if', 'control_if_else'],
+                operators: ['operator_equals'],
+                looks: ['looks_sayforsecs'],
+            },
+            setup: { tab: 'code' },
+            steps: [
+                { title: message('gui.lessons.challenge.blocks-l1-quiz.step1'), target: HINT_TARGETS.PALETTE },
+                {
+                    title: message('gui.lessons.challenge.blocks-l1-quiz.step2'),
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: '"" == 7\n',
+                },
+                { title: message('gui.lessons.challenge.blocks-l1-quiz.step3'), target: HINT_TARGETS.CODE_AREA },
+                { title: message('gui.lessons.challenge.blocks-l1-quiz.step4'), target: HINT_TARGETS.STAGE },
+            ],
+            debug: [message('gui.lessons.challenge.blocks-l1-quiz.debug1')],
+            // 比べ方は Scratch と同じなので、全角の「７」は 7 と等しくない（「ちがいます」の側に入る）
+            goal: [
+                { type: 'said', text: '正解です', answer: { eq: 7 } },
+                { type: 'said', text: 'ちがいます', answer: { ne: 7 } },
+            ],
+            code:
+                'when_clicked do\n  ask("4+3=?")\n  if answer == 7\n    say("正解です", 2)\n  else\n' +
+                '    say("ちがいます", 2)\n  end\nend\n',
+        },
+        // 8 数えよう（変数・必須）: 押した回数を変数「回数」で数えて言う
+        {
+            id: 'blocks-l1-count',
+            required: true,
+            task: message('gui.lessons.challenge.blocks-l1-count.task'),
+            skills: [
+                { id: 'make-variable', name: message('gui.lessons.skill.make-variable') },
+                { id: 'variable', name: message('gui.lessons.skill.variable') },
+            ],
+            // 変数のカテゴリはパレットを絞っても全部出る（make-toolbox-xml）。ここは使うブロックの記録
+            allowedBlocks: {
+                event: ['event_whenflagclicked', 'event_whenthisspriteclicked'],
+                data: ['data_setvariableto', 'data_changevariableby', 'data_variable'],
+                looks: ['looks_say'],
+            },
+            setup: { tab: 'code' },
+            steps: [
+                { title: message('gui.lessons.challenge.blocks-l1-count.step1'), target: HINT_TARGETS.PALETTE },
+                {
+                    title: message('gui.lessons.challenge.blocks-l1-count.step2'),
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: '$回数 = 0\n',
+                },
+                {
+                    title: message('gui.lessons.challenge.blocks-l1-count.step3'),
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: '$回数 += 1\n',
+                },
+                { title: message('gui.lessons.challenge.blocks-l1-count.step4'), target: HINT_TARGETS.STAGE },
+            ],
+            debug: [message('gui.lessons.challenge.blocks-l1-count.debug1')],
+            // `$回数` はステージの変数 =「変数を作る」の既定（すべてのスプライト用）と同じ
+            goal: [
+                { type: 'variable', name: '回数', value: { gte: 3 } },
+                { type: 'said', equalsVariable: '回数' },
+            ],
+            code: 'when_flag_clicked do\n  $回数 = 0\nend\n\nwhen_clicked do\n  $回数 += 1\n  say($回数)\nend\n',
+        },
+        // === ここまで チャレンジ 5〜8 ===
         { id: 'blocks-l1-broadcast', required: true },
         { id: 'blocks-l1-speak' },
         { id: 'blocks-l1-message-list', required: true },

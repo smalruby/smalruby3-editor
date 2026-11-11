@@ -388,6 +388,8 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
   （Blocks コンテナが Redux に置いた ScratchBlocks を使う）。inject は main workspace を差し替えるので、
   描いたあとにエディタのワークスペースを `setMainWorkspace` で戻す。変換した XML は Ruby ごとに覚える。
   変換できない Ruby は「（このブロックは描けませんでした）」を出す（文言は出る）。
+  条件の穴に入った `false` は空の穴として描く（`if false` = 「もし <  > なら」。ブロック → Ruby が空の穴を
+  `if false` と書くのに合わせる。`blocks-xml.js` の `emptyFalseConditions`）。
 - **指す場所**: `target` の場所を DOM から探し（`lib/lessons/hint-targets.js` の `findHintTargetRect`。
   Smalruby の部品は data-testid（SP のサイドレール `mobile-side-rail-*`・拡張機能のボタン `extension-button`）、
   upstream の部品は data-testid を持たないので CSS Modules のクラス名の接頭辞 `<css ファイル名>_<クラス名>_`
@@ -440,6 +442,32 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `screenshots/0403-lesson-hint-375x667.png` | 同じヒントを SP 縦（375×667。縦持ちゲートを閉じたあと）で開いたところ（収まらないのでパレットの中） |
 | `screenshots/0404-lesson-hint-last-resort-1300x600.png` | 最後の手段のページ（うまく動かないときは・プログラムを入れる） |
 
+### チャレンジ 5〜8 のメモ
+
+レッスン 1 のチャレンジ 5〜8 の中身（課題・パレット・ヒント・`goal`・`code`）を入れたときに決めたこと。
+
+- **5 もし〜なら**: パレットには「もし <> なら」と「もし <> なら でなければ」の両方を出す（ヒント 2 は
+  「でなければ」のほう）。ヒント 2 の吹き出しは `if false\nelse\nend` で、空の穴の「もし <  > なら でなければ」を描く。
+- **6 聞いて答えよう**: `code` の `timer.value.to_s + "秒でした"` はブロックの「と」になる（`.to_s` も
+  「(タイマー) と ()」の「と」になるので、「と」が 2 つの入れ子）。ヒント 4 の吹き出しは子どもが作るのと同じ
+  「(タイマー) と (秒でした)」を描くため `timer.value + "秒でした"` にしている。秒数は 3.217 のような小数のまま
+  言う（四捨五入は入れない）。
+- **7 クイズを作ろう**: 比べ方は Scratch と同じなので、全角の「７」は 7 と等しくない（「ちがいます」になる）。
+  ヒントの「うまく動かないときは」で半角の 7 を案内し、判定は `answer: {eq: 7}` と `{ne: 7}` の両方を見る。
+- **8 数えよう**: Ruby の `$回数` はステージの変数（ブロックの「すべてのスプライト用」）で、「変数を作る」の
+  既定と同じ。先に「変数を作る」で「回数」を作ってから「プログラムを入れる」でも、変数は 1 つのまま
+  （integration テストで確かめている）。日本語の変数名も Ruby ⇔ ブロックで行き来できる。
+  パレットを絞っても変数のカテゴリは全部出る（`make-toolbox-xml.js`）。
+
+| ファイル | 説明 |
+|---------|------|
+| `screenshots/0505-challenge5-hint-1300x600.png` | チャレンジ 5「もし〜なら」のヒント 1（「ずっと」を描く） |
+| `screenshots/0506-challenge6-hint-1300x600.png` | チャレンジ 6「聞いて答えよう」のヒント 1（「なまえは？ と聞いて待つ」を描く） |
+| `screenshots/0507-challenge7-hint-1300x600.png` | チャレンジ 7「クイズを作ろう」のヒント 1 |
+| `screenshots/0508-challenge8-hint-1300x600.png` | チャレンジ 8「数えよう」のヒント 1（「変数を作る」） |
+
+![チャレンジ 5 のヒント 1（1300×600）](screenshots/0505-challenge5-hint-1300x600.png)
+
 ## いまのチュートリアルの入口
 
 レッスン機能がチュートリアルの役目を引き継ぐため、従来の **「チュートリアル」「デバッグ」のボタンはメニューバーから外し、右上の「?」メニューの項目**にした（ふだんは目に入らないようにする。そろったら消す）。
@@ -481,6 +509,7 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `packages/scratch-gui/src/components/lesson-completed-toast/` | 「できた！」の表示 |
 | `packages/scratch-gui/test/unit/components/lesson-completed-toast.test.jsx` / `test/unit/containers/lesson-goal-watcher.test.jsx` | 「できた！」と見張りのコンテナの unit テスト |
 | `packages/scratch-gui/test/integration/lesson-goal.test.js` | 本物の VM に Ruby のプログラムを入れて動かし、判定が true になる integration テスト |
+| `packages/scratch-gui/test/integration/smalruby-lesson1-challenges-5-8.test.js` | チャレンジ 5〜8 を開く → プログラムを入れる → 旗・マウス・ネコを押す・答えを入力する →「できた！」（Selenium・1300×600） |
 | `packages/scratch-gui/src/components/menu-bar/menu-bar.jsx` | 「?」メニューのチュートリアル / デバッグ項目（`help menu` マーカー） |
 | `packages/scratch-gui/src/containers/menu-bar-hoc.jsx` | `onOpenTipsLibrary` の供給（`help menu` マーカー） |
 

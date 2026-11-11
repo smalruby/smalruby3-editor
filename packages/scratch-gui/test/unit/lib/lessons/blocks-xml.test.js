@@ -2,7 +2,7 @@
  * blocksToXml: VM 形式のブロック（Ruby → ブロック変換の出力）を、Blockly が読める
  * XML にする（scratch-vm の Blocks#toXML と同じ形。ヒントの吹き出しに描くため）。
  */
-import { blocksToXml } from '../../../../src/lib/lessons/blocks-xml';
+import { blocksToXml, emptyFalseConditions } from '../../../../src/lib/lessons/blocks-xml';
 
 const hat = {
     id: 'hat',
@@ -107,5 +107,56 @@ describe('blocksToXml', () => {
         );
         expect(blocksToXml({})).toBe('<xml xmlns="http://www.w3.org/1999/xhtml"></xml>');
         expect(blocksToXml(null)).toBe('<xml xmlns="http://www.w3.org/1999/xhtml"></xml>');
+    });
+});
+
+describe('emptyFalseConditions', () => {
+    const shadow = (id, parent, value) => ({
+        id,
+        opcode: 'text',
+        shadow: true,
+        topLevel: false,
+        parent,
+        inputs: {},
+        fields: { TEXT: { name: 'TEXT', value } },
+    });
+    const ifWith = (conditionId, comment) => ({
+        if: {
+            id: 'if',
+            opcode: 'control_if',
+            topLevel: true,
+            inputs: { CONDITION: { name: 'CONDITION', block: conditionId, shadow: null } },
+            fields: {},
+        },
+        lt: {
+            id: 'lt',
+            opcode: 'operator_lt',
+            topLevel: false,
+            parent: 'if',
+            comment,
+            inputs: {
+                OPERAND1: { name: 'OPERAND1', block: 'a', shadow: 'a' },
+                OPERAND2: { name: 'OPERAND2', block: 'b', shadow: 'b' },
+            },
+            fields: {},
+        },
+        a: shadow('a', 'lt', '0'),
+        b: shadow('b', 'lt', '0'),
+    });
+
+    test('removes the false literal (0 < 0 with the @ruby:literal:false comment) from the hole', () => {
+        const blocks = ifWith('lt', 'lt_comment');
+        const result = emptyFalseConditions(blocks, { lt_comment: { text: '@ruby:literal:false:1' } });
+        expect(Object.keys(result)).toEqual(['if']);
+        expect(result.if.inputs).toEqual({});
+        // 元の集合は変えない
+        expect(blocks.if.inputs.CONDITION.block).toBe('lt');
+        expect(Object.keys(blocks)).toEqual(['if', 'lt', 'a', 'b']);
+    });
+
+    test('keeps a real comparison (no false literal comment) in the hole', () => {
+        const blocks = ifWith('lt', null);
+        expect(emptyFalseConditions(blocks, {})).toEqual(blocks);
+        expect(emptyFalseConditions(null, null)).toEqual({});
     });
 });
