@@ -618,7 +618,7 @@ const blocksLesson1 = defineLesson({
                     {
                         opcode: 'text2speech_speakAndWait',
                         inputs: {
-                            WORDS: { ja: 'ボタンが押されました', 'ja-Hira': 'ボタンがおされました', en: 'ボタンが押されました' },
+                            WORDS: { ja: 'ボタンが押されました', 'ja-Hira': 'ボタンがおされました', en: 'The button was clicked' },
                         },
                     },
                 ],

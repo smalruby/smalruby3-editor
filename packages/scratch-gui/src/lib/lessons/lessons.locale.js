@@ -431,7 +431,7 @@ export const en = {
     'gui.lessons.challenge.blocks-l1-speak.step1':
         'Choose "Text to Speech" with the button at the bottom left. New blocks join the palette.',
     'gui.lessons.challenge.blocks-l1-speak.step2':
-        'Snap "speak" under "when this sprite clicked". The words are already "ボタンが押されました".',
+        'Snap "speak" under "when this sprite clicked". The words are already "The button was clicked".',
     'gui.lessons.challenge.blocks-l1-speak.step3': 'Click the cat.',
     'gui.lessons.challenge.blocks-l1-speak.debug1':
         'If you hear nothing, check the volume of the computer. Text to Speech works only when it is connected to the Internet.',
