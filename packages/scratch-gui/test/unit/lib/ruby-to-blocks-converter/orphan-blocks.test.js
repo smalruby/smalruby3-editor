@@ -199,6 +199,17 @@ describe('RubyToBlocksConverter: no orphan blocks', () => {
                 null,
             ],
             [
+                'string method as a statement between other statements',
+                dedent`
+                    when_flag_clicked do
+                      move(10)
+                      "a".reverse
+                      move(20)
+                    end
+                `,
+                null,
+            ],
+            [
                 'string method as a condition',
                 dedent`
                     when_flag_clicked do
