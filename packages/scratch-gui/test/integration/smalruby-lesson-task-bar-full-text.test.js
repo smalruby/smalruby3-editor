@@ -33,6 +33,10 @@ const startChallenge = async (id, number) => {
         10000,
         `challenge ${id} should open`,
     );
+    // チャレンジを始めるとヒントが自動で開く。ヒントが開いているあいだは全文を出さないので閉じておく
+    await findByXpath(byTestId('lesson-hint'));
+    await clickByTestId('lesson-hint-close');
+    await driver.wait(async () => (await countByTestId('lesson-hint')) === 0, 5000, 'the hint should close');
 };
 
 const hoverBar = async () => {
