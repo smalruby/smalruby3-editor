@@ -85,15 +85,29 @@ describe('GenaiAnswerSteps words (#1446)', () => {
 
     describe.each(['ruby', 'dncl'])('the Ruby tab (%s)', (tab) => {
         test('the button and the spinner say the program is checked', async () => {
-            renderSteps(tab, okResult);
+            // The check is held until the spinner has been seen: racing a short wait against the
+            // panel's own wait before checking made this fail on a slow CI (#1508).
+            let finishCheck;
+            const adapter = adapterOf(tab, okResult);
+            adapter.check.mockImplementation(
+                () =>
+                    new Promise((resolve) => {
+                        finishCheck = () => resolve(okResult);
+                    }),
+            );
+            renderSteps(tab, okResult, 'ja', adapter);
             paste();
             expect(screen.getByTestId('genai-convert')).toHaveTextContent('プログラムを確かめる');
             await act(async () => {
                 fireEvent.click(screen.getByTestId('genai-convert'));
-                await new Promise((resolve) => setTimeout(resolve, 10));
+                await new Promise((resolve) => setTimeout(resolve, 100));
             });
+            expect(adapter.check).toHaveBeenCalled();
             expect(screen.getByTestId('genai-checking')).toHaveTextContent('プログラムを確かめています');
-            await act(() => new Promise((resolve) => setTimeout(resolve, 100)));
+            expect(panelText()).not.toMatch(/ブロック/);
+            await act(async () => finishCheck());
+            expect(screen.queryByTestId('genai-checking')).toBeNull();
+            expect(screen.getByTestId('genai-convert-ok')).toBeInTheDocument();
             expect(panelText()).not.toMatch(/ブロック/);
         });
 
