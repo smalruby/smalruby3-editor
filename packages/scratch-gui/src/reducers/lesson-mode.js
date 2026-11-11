@@ -11,6 +11,7 @@ import {
     mergeProgress,
     saveProgress,
 } from '../lib/lessons/lesson-progress';
+import { isSpotlightSeen, markSpotlightSeen } from '../lib/lessons/spotlight-seen';
 
 const START_CHALLENGE = 'scratch-gui/lesson-mode/START_CHALLENGE';
 const CANCEL_START_CHALLENGE = 'scratch-gui/lesson-mode/CANCEL_START_CHALLENGE';
@@ -33,6 +34,11 @@ const hintClosedState = {
     hintIndex: 0,
 };
 
+// ヒントのページ数。steps の後ろに「うまく動かないときは」と「プログラムを入れる」の
+// 最後の手段のページが 1 つ付く（debug も code も無いチャレンジでは付かない）
+const hasLastResort = (challenge) => challenge.debug.length > 0 || Boolean(challenge.code);
+const hintPageCount = (challenge) => challenge.steps.length + (hasLastResort(challenge) ? 1 : 0);
+
 const closedState = {
     courseId: null,
     lessonId: null,
@@ -40,6 +46,8 @@ const closedState = {
     // 開こうとしているチャレンジ（新しい作品ができるまでの間だけ入る）
     pendingChallengeId: null,
     ...hintClosedState,
+    // はじめて開いたチャレンジか（spotlight のヒントで周りを暗くする。開いたときに決める）
+    hintSpotlight: false,
     // 「できた！」を出しているチャレンジ id（閉じる・別のチャレンジを開くと null）
     justCompletedId: null,
 };
@@ -51,7 +59,7 @@ const initialState = {
 
 const hintCount = (state) => {
     const found = state.challengeId === null ? null : findChallenge(state.challengeId);
-    return found ? found.challenge.steps.length : 0;
+    return found ? hintPageCount(found.challenge) : 0;
 };
 
 const reducer = function (state, action) {
@@ -66,6 +74,10 @@ const reducer = function (state, action) {
         case OPEN_CHALLENGE: {
             const found = findChallenge(action.challengeId);
             if (!found) return state;
+            // はじめて開いたチャレンジだけスポットライトを出す。開いた時点で「見た」と記録し、
+            // このチャレンジを開いているあいだは state の値で照らし続ける
+            const hintSpotlight = !isSpotlightSeen(found.challenge.id);
+            if (hintSpotlight) markSpotlightSeen(found.challenge.id);
             return {
                 ...state,
                 courseId: found.course.id,
@@ -73,6 +85,7 @@ const reducer = function (state, action) {
                 challengeId: found.challenge.id,
                 pendingChallengeId: null,
                 ...hintClosedState,
+                hintSpotlight,
                 justCompletedId: null,
             };
         }
@@ -180,19 +193,27 @@ const getLessonAllowedBlocks = (state) => {
 /**
  * ヒントの吹き出しの状態（見た目は吹き出しの実装が作る）。
  * @param {object} state - Redux の state。
- * @returns {?{visible: boolean, index: number, count: number, step: ?object}}
- *   レッスンモードでなければ null。`step` はいまのヒント（無ければ null）。
+ * @returns {?{visible: boolean, index: number, count: number, step: ?object, spotlight: boolean,
+ *   lastResort: boolean, debug: Array<object>, code: ?string}}
+ *   レッスンモードでなければ null。`step` はいまのヒント（最後の手段のページでは null）。
+ *   `spotlight` はこのページで周りを暗くするか（はじめて開いたチャレンジ、かつ `step.spotlight`）。
+ *   `lastResort` は最後の手段のページ（`debug` = うまく動かないときは、`code` = プログラムを入れる）か。
  */
 const getCurrentHint = (state) => {
     const found = getCurrentChallenge(state);
     if (!found) return null;
-    const { hintVisible, hintIndex } = state.scratchGui.lessonMode;
-    const { steps } = found.challenge;
+    const { hintVisible, hintIndex, hintSpotlight } = state.scratchGui.lessonMode;
+    const { steps, debug, code } = found.challenge;
+    const step = steps[hintIndex] || null;
     return {
         visible: hintVisible,
         index: hintIndex,
-        count: steps.length,
-        step: steps[hintIndex] || null,
+        count: hintPageCount(found.challenge),
+        step,
+        spotlight: hintSpotlight && Boolean(step && step.spotlight),
+        lastResort: hasLastResort(found.challenge) && hintIndex === steps.length,
+        debug,
+        code,
     };
 };
 

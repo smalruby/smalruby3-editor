@@ -4,6 +4,7 @@ import {
     markChallengeCompleted as markProgress,
     saveProgress,
 } from '../../../src/lib/lessons/lesson-progress';
+import { SPOTLIGHT_SEEN_STORAGE_KEY, markSpotlightSeen } from '../../../src/lib/lessons/spotlight-seen';
 import { activateDeck } from '../../../src/reducers/cards';
 import reducer, {
     closeLesson,
@@ -198,11 +199,19 @@ describe('lesson-mode reducer: allowed blocks', () => {
 });
 
 describe('lesson-mode reducer: hints', () => {
-    // ヒントが 3 つあるチャレンジに見せかける
+    // ヒントが 3 つあるチャレンジに見せかける（2 つめは spotlight。最後の手段は無し）
     const withSteps = (state) => ({ ...state, challengeId: 'blocks-l1-click-say' });
+    const STEPS = [
+        { title: 'a', spotlight: false },
+        { title: 'b', spotlight: true },
+        { title: 'c', spotlight: false },
+    ];
     let findChallengeSpy;
+    let extra = {};
 
     beforeEach(() => {
+        window.localStorage.clear();
+        extra = {};
         const courses = require('../../../src/lib/lessons/courses');
         const real = courses.findChallenge;
         findChallengeSpy = jest.spyOn(courses, 'findChallenge').mockImplementation((id) => {
@@ -210,7 +219,7 @@ describe('lesson-mode reducer: hints', () => {
             if (!found) return found;
             return {
                 ...found,
-                challenge: { ...found.challenge, steps: [{ title: 'a' }, { title: 'b' }, { title: 'c' }] },
+                challenge: { ...found.challenge, steps: STEPS, debug: [], code: null, ...extra },
             };
         });
     });
@@ -225,7 +234,78 @@ describe('lesson-mode reducer: hints', () => {
 
     test('opening a challenge starts with the hint hidden at the first step', () => {
         const state = withSteps(reducer(lessonModeInitialState, openChallenge('blocks-l1-click-say')));
-        expect(getCurrentHint(wrap(state))).toEqual({ visible: false, index: 0, count: 3, step: { title: 'a' } });
+        expect(getCurrentHint(wrap(state))).toEqual({
+            visible: false,
+            index: 0,
+            count: 3,
+            step: STEPS[0],
+            spotlight: false,
+            lastResort: false,
+            debug: [],
+            code: null,
+        });
+    });
+
+    test('the first time a challenge is opened, spotlight steps light up; the next time they do not', () => {
+        let state = withSteps(reducer(lessonModeInitialState, openChallenge('blocks-l1-click-say')));
+        expect(state.hintSpotlight).toBe(true);
+        expect(getCurrentHint(wrap(state)).spotlight).toBe(false);
+        state = reducer(state, nextHint());
+        expect(getCurrentHint(wrap(state)).spotlight).toBe(true);
+        // 開いた時点で「見た」と記録される
+        expect(JSON.parse(window.localStorage.getItem(SPOTLIGHT_SEEN_STORAGE_KEY))).toHaveProperty(
+            'blocks-l1-click-say',
+        );
+
+        state = reducer(state, closeLesson());
+        expect(state.hintSpotlight).toBe(false);
+        state = withSteps(reducer(state, openChallenge('blocks-l1-click-say')));
+        state = reducer(state, nextHint());
+        expect(state.hintSpotlight).toBe(false);
+        expect(getCurrentHint(wrap(state)).spotlight).toBe(false);
+    });
+
+    test('a challenge seen on another day does not spotlight, but a new challenge does', () => {
+        markSpotlightSeen('blocks-l1-click-say', window.localStorage, '2026-01-01T00:00:00.000Z');
+        let state = reducer(lessonModeInitialState, openChallenge('blocks-l1-click-say'));
+        expect(state.hintSpotlight).toBe(false);
+        state = reducer(state, openChallenge('blocks-l1-quiz'));
+        expect(state.hintSpotlight).toBe(true);
+    });
+
+    test('debug tips or code add a last-resort page after the steps', () => {
+        extra = { debug: [{ id: 'd1' }], code: 'when_clicked do\nend\n' };
+        let state = withSteps(reducer(lessonModeInitialState, openChallenge('blocks-l1-click-say')));
+        expect(getCurrentHint(wrap(state)).count).toBe(4);
+        state = reducer(state, nextHint());
+        state = reducer(state, nextHint());
+        expect(getCurrentHint(wrap(state)).lastResort).toBe(false);
+        state = reducer(state, nextHint());
+        expect(getCurrentHint(wrap(state))).toEqual(
+            expect.objectContaining({
+                index: 3,
+                step: null,
+                spotlight: false,
+                lastResort: true,
+                debug: [{ id: 'd1' }],
+                code: 'when_clicked do\nend\n',
+            }),
+        );
+        expect(reducer(state, nextHint())).toBe(state);
+
+        extra = { debug: [], code: 'move(10)\n' };
+        expect(getCurrentHint(wrap(state)).count).toBe(4);
+        extra = { debug: [{ id: 'd1' }], code: null };
+        expect(getCurrentHint(wrap(state)).count).toBe(4);
+    });
+
+    test('showHint works for a challenge with only a last-resort page', () => {
+        extra = { steps: [], code: 'move(10)\n' };
+        let state = reducer(lessonModeInitialState, openChallenge('blocks-l1-click-say'));
+        state = reducer(state, showHint());
+        expect(getCurrentHint(wrap(state))).toEqual(
+            expect.objectContaining({ visible: true, index: 0, count: 1, step: null, lastResort: true }),
+        );
     });
 
     test('showHint / hideHint toggle the balloon', () => {
@@ -241,7 +321,7 @@ describe('lesson-mode reducer: hints', () => {
         expect(reducer(state, prevHint())).toBe(state);
         state = reducer(state, nextHint());
         state = reducer(state, nextHint());
-        expect(getCurrentHint(wrap(state))).toEqual(expect.objectContaining({ index: 2, step: { title: 'c' } }));
+        expect(getCurrentHint(wrap(state))).toEqual(expect.objectContaining({ index: 2, step: STEPS[2] }));
         expect(reducer(state, nextHint())).toBe(state);
         state = reducer(state, prevHint());
         expect(getCurrentHint(wrap(state)).index).toBe(1);
