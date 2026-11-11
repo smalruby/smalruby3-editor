@@ -81,6 +81,25 @@ describe('isIgnorableSevereLog (environment noise)', () => {
         messages.forEach((message) => expect(isIgnorableSevereLog(message)).toBe(true));
     });
 
+    test('ignores react-intl MISSING_TRANSLATION fallbacks for locales without Smalruby strings', () => {
+        const message =
+            'file:///build/gui.js 343831:16 Error: [@formatjs/intl Error MISSING_TRANSLATION] Missing message: ' +
+            '"gui.menuBar.lessons" for locale "de", using default message (Lessons) as fallback.';
+        expect(isIgnorableSevereLog(message)).toBe(true);
+    });
+
+    test('ignores the intentionally unreachable wss://fake.fake/ of the connection modal test', () => {
+        const message =
+            "network 4 WebSocket connection to 'wss://fake.fake/' failed: " +
+            'Error in connection establishment: net::ERR_NAME_NOT_RESOLVED';
+        expect(isIgnorableSevereLog(message)).toBe(true);
+    });
+
+    test('does not ignore other WebSocket failures', () => {
+        const message = "WebSocket connection to 'wss://example.com/' failed: net::ERR_NAME_NOT_RESOLVED";
+        expect(isIgnorableSevereLog(message)).toBe(false);
+    });
+
     test('does not ignore other google.com resource failures', () => {
         const message = 'https://www.google.com/other.js - Failed to load resource: net::ERR_CONNECTION_REFUSED';
         expect(isIgnorableSevereLog(message)).toBe(false);

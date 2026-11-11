@@ -19,6 +19,10 @@
  *    の取得失敗と、それを受けた「Failed to load Google scripts」。devpod の egress firewall が
  *    Google を通さないため `ERR_CONNECTION_REFUSED` などになる（環境由来で、アプリの不具合ではない。
  *    Drive 連携を使わないテストには関係が無い）。
+ * 5. 翻訳の無い文言の `MISSING_TRANSLATION`（react-intl が default message へ fallback した通知）。
+ *    Smalruby 独自の文言は en / ja / ja-Hira にしか無いので、ほかの言語へ切り替える
+ *    localization のテストで大量に出る。表示は英語の既定文言で崩れない。
+ * 6. connection-modal のテストがわざと繋がらない `wss://fake.fake/` を使うときの WebSocket 失敗。
  *
  * ここが「既知の無害なログ」の唯一の一覧。各テストに同じ判定をコピーしないこと。
  * @param {string} message ブラウザログのメッセージ。
@@ -36,7 +40,9 @@ const isIgnorableSevereLog = (message) =>
     (/static[\\/]monaco[\\/][\w.+-]+[\\/]vs[\\/]/.test(message) && /\[object ErrorEvent\]/.test(message)) ||
     /Failed to initialize Google Drive API/.test(message) ||
     /\/\/(?:www\.google\.com\/images\/cleardot\.gif|apis\.google\.com\/js\/api\.js) .*net::ERR_/.test(message) ||
-    /"Failed to load Google scripts:"/.test(message);
+    /"Failed to load Google scripts:"/.test(message) ||
+    /\[@formatjs\/intl Error MISSING_TRANSLATION\]/.test(message) ||
+    /WebSocket connection to 'wss:\/\/fake\.fake\/' failed/.test(message);
 
 /**
  * ログのレベルを名前 (`'SEVERE'` など) にそろえる。
