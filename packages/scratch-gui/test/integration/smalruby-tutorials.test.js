@@ -4,8 +4,6 @@
  * to reduce cold-start overhead.
  */
 import path from 'path';
-// === Smalruby: 既知の無視できる SEVERE ログの判定は helper に切り出してある（unit test 付き） ===
-import { unexpectedSevereLogs } from '../helpers/ignorable-severe-logs';
 import SeleniumHelper from '../helpers/selenium-helper';
 
 const { clickText, clickXpath, findByXpath, getDriver, getLogs, loadUri, scope, textExists, waitForLoadingFinished } =
@@ -41,18 +39,16 @@ describe('Smalruby Tutorials', () => {
         await clickText('Costumes');
         await clickText('Code');
 
-        const logs = await getLogs({ includeAllLevels: true });
-        // === Smalruby: 既知の無視できる SEVERE ログを除外する (isIgnorableSevereLog 参照) ===
-        expect(unexpectedSevereLogs(logs)).toEqual([]);
+        // 既知の無害なログ (Monaco worker・Google Drive の初期化失敗など) は getLogs() が除く
+        expect(await getLogs()).toEqual([]);
     });
 
     test('can open tutorials by url id', async () => {
         await loadUri(`${uriWithTutorial('getStarted')}`);
         await findByXpath('//div[contains(@class, "card_card_")]');
 
-        const logs = await getLogs({ includeAllLevels: true });
-        // === Smalruby: 既知の無視できる SEVERE ログを除外する (isIgnorableSevereLog 参照) ===
-        expect(unexpectedSevereLogs(logs)).toEqual([]);
+        // 既知の無害なログ (Monaco worker・Google Drive の初期化失敗など) は getLogs() が除く
+        expect(await getLogs()).toEqual([]);
     });
 
     test('can close tutorial card', async () => {

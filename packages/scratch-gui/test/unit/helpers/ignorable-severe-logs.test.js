@@ -2,10 +2,7 @@ import {
     filterBrowserLogs,
     isIgnorableSevereLog,
     levelName,
-    unexpectedSevereLogs,
 } from '../../helpers/ignorable-severe-logs';
-
-const severe = (message) => ({ level: { name: 'SEVERE' }, message, timestamp: 0, type: '' });
 
 // CI (Chrome stable) が実際に出したメッセージを貼っている（パスだけ版付きの配信パス
 // `static/monaco/<版>/vs` に合わせた・#1318）。自前ホストした Monaco の
@@ -43,22 +40,6 @@ describe('isIgnorableSevereLog', () => {
     });
 });
 
-describe('unexpectedSevereLogs', () => {
-    test('keeps only non-ignorable SEVERE entries', () => {
-        const logs = [
-            { level: { name: 'WARNING' }, message: 'Uncaught TypeError: warning level is dropped' },
-            severe(MONACO_WORKER_LOGS[0]),
-            severe(MONACO_WORKER_LOGS[1]),
-            severe('Uncaught TypeError: real failure'),
-        ];
-        expect(unexpectedSevereLogs(logs)).toEqual([severe('Uncaught TypeError: real failure')]);
-    });
-
-    test('returns an empty array when everything is ignorable', () => {
-        expect(unexpectedSevereLogs(MONACO_WORKER_LOGS.map(severe))).toEqual([]);
-    });
-});
-
 describe('isIgnorableSevereLog (environment noise)', () => {
     test('ignores the Google Drive API init failure seen without Google credentials', () => {
         const message =
@@ -86,6 +67,14 @@ describe('isIgnorableSevereLog (environment noise)', () => {
             'file:///build/gui.js 343831:16 Error: [@formatjs/intl Error MISSING_TRANSLATION] Missing message: ' +
             '"gui.menuBar.lessons" for locale "de", using default message (Lessons) as fallback.';
         expect(isIgnorableSevereLog(message)).toBe(true);
+    });
+
+    test.each(['ja', 'ja-Hira'])('does not ignore a MISSING_TRANSLATION for locale %s (Smalruby strings must exist)', (locale) => {
+        const message =
+            'file:///build/gui.js 343831:16 Error: [@formatjs/intl Error MISSING_TRANSLATION] Missing message: ' +
+            `\\"gui.menuBar.lessons\\" for locale \\"${locale}\\", using default message (Lessons) as fallback.`;
+        expect(isIgnorableSevereLog(message)).toBe(false);
+        expect(isIgnorableSevereLog(message.replace(/\\/g, ''))).toBe(false);
     });
 
     test('ignores the intentionally unreachable wss://fake.fake/ of the connection modal test', () => {

@@ -22,9 +22,11 @@
  * 5. 翻訳の無い文言の `MISSING_TRANSLATION`（react-intl が default message へ fallback した通知）。
  *    Smalruby 独自の文言は en / ja / ja-Hira にしか無いので、ほかの言語へ切り替える
  *    localization のテストで大量に出る。表示は英語の既定文言で崩れない。
+ *    **ja / ja-Hira の欠落は除外しない**（Smalruby の文言は必ずこの 2 つに入れる規約なので、
+ *    欠けていれば本物の不具合として落とす）。
  * 6. connection-modal のテストがわざと繋がらない `wss://fake.fake/` を使うときの WebSocket 失敗。
  * 7. upstream 由来の既存の警告（getLogs() が SEVERE を返していなかった間に隠れていたもの。
- *    動作には影響しないが本来は直すべきもので、follow-up で扱う）:
+ *    動作には影響しないが本来は直すべきもので、follow-up の #1499 で扱う）:
  *    - `Prompt` / `RecordModal` が `Modal` に必須の `id` を渡していない prop type 警告
  *      （変数・リストの作成ダイアログ / 音の録音ダイアログ）
  *    - `ListMonitor` の `value` の prop type 警告（リストモニターに配列が渡る）と、
@@ -50,8 +52,10 @@ const isIgnorableSevereLog = (message) =>
         message,
     ) ||
     /"Failed to load Google scripts:"/.test(message) ||
-    /\[@formatjs\/intl Error MISSING_TRANSLATION\]/.test(message) ||
+    (/\[@formatjs\/intl Error MISSING_TRANSLATION\]/.test(message) &&
+        !/for locale \\?"ja(?:-Hira)?\\?"/.test(message)) ||
     /WebSocket connection to 'wss:\/\/fake\.fake\/' failed/.test(message) ||
+    // ここから下の 4 つは upstream 由来の本物の不具合。直すまでの除外（#1499）
     (/The prop `id` is marked as required in `Modal`/.test(message) && /at (?:PromptComponent|RecordModal) /.test(message)) ||
     /Invalid prop `value` supplied to `ListMonitor`/.test(message) ||
     (/for a non-boolean attribute/.test(message) && /"autoComplete"/.test(message) && /at ListMonitorScroller /.test(message)) ||
@@ -94,13 +98,4 @@ const filterBrowserLogs = (entries, options = {}) => {
     });
 };
 
-/**
- * SEVERE ログのうち、無視できないものだけを返す。
- * @param {Array<{level: {name: string}, message: string}>} logs
- *     `getLogs({includeAllLevels: true})` の戻り値。
- * @returns {Array<object>} 無視できない SEVERE ログ。
- */
-const unexpectedSevereLogs = (logs) =>
-    logs.filter((l) => levelName(l.level) === 'SEVERE').filter((l) => !isIgnorableSevereLog(l.message));
-
-export { DEFAULT_LOG_WHITELIST, filterBrowserLogs, isIgnorableSevereLog, levelName, unexpectedSevereLogs };
+export { DEFAULT_LOG_WHITELIST, filterBrowserLogs, isIgnorableSevereLog, levelName };
