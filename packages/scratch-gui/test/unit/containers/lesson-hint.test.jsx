@@ -1,14 +1,29 @@
 /* eslint-env jest */
 import '@testing-library/jest-dom';
-import { act, fireEvent, render } from '@testing-library/react';
+import { act, fireEvent, render, waitFor } from '@testing-library/react';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
 import { LessonHint } from '../../../src/containers/lesson-hint.jsx';
 import { findChallenge } from '../../../src/lib/lessons/courses';
 import { rubyToBlocksXml } from '../../../src/lib/lessons/hint-blocks';
+import { targetCodeToBlocks } from '../../../src/lib/ruby-to-blocks-converter';
 
 jest.mock('../../../src/lib/lessons/hint-blocks', () => ({
     rubyToBlocksXml: jest.fn(() => Promise.resolve({ xml: '<xml><block type="x"></block></xml>', errors: [] })),
+}));
+
+const applied = [];
+jest.mock('../../../src/lib/ruby-to-blocks-converter', () => ({
+    targetCodeToBlocks: jest.fn((vm, target) =>
+        Promise.resolve({
+            result: true,
+            errors: [],
+            apply: () => {
+                applied.push(target.id);
+                return Promise.resolve();
+            },
+        }),
+    ),
 }));
 
 const CHALLENGE_ID = 'blocks-l1-click-say';
@@ -113,8 +128,42 @@ describe('LessonHint container', () => {
         const { getByTestId } = renderContainer(props);
         expect(getByTestId('lesson-hint-debug').querySelectorAll('li')).toHaveLength(2);
         fireEvent.click(getByTestId('lesson-hint-insert-code'));
-        expect(props.onInsertCode).toHaveBeenCalledWith(props.current.challenge.code, 'blocks');
+        expect(props.onInsertCode).toHaveBeenCalledWith(props.current.challenge.code, 'blocks', null, '2');
         expect(rubyToBlocksXml).not.toHaveBeenCalled();
+    });
+
+    test('a challenge with spriteCodes puts them in first and inserts the code into the remaining sprite', async () => {
+        const cat = { id: 'cat', isOriginal: true, isStage: false, getName: () => 'Sprite1' };
+        const penguin = { id: 'penguin', isOriginal: true, isStage: false, getName: () => 'Penguin' };
+        const stage = { id: 'stage', isOriginal: true, isStage: true, getName: () => 'Stage' };
+        const vm = {
+            editingTarget: penguin,
+            runtime: { targets: [stage, cat, penguin] },
+            setEditingTarget: jest.fn(),
+            addSprite: jest.fn(),
+        };
+        const current = findChallenge('blocks-l1-broadcast');
+        const { challenge } = current;
+        const hint = {
+            visible: true,
+            index: challenge.steps.length,
+            count: challenge.steps.length + 1,
+            step: null,
+            spotlight: false,
+            lastResort: true,
+            debug: challenge.debug,
+            code: challenge.code,
+        };
+        const props = { ...baseProps(), current, hint, vm };
+        const { getByTestId } = renderContainer(props);
+        fireEvent.click(getByTestId('lesson-hint-insert-code'));
+        await waitFor(() => expect(props.onInsertCode).toHaveBeenCalled());
+        expect(targetCodeToBlocks).toHaveBeenCalledTimes(1);
+        expect(targetCodeToBlocks.mock.calls[0].slice(1, 3)).toEqual([penguin, challenge.spriteCodes[0].code]);
+        expect(applied).toEqual(['penguin']);
+        expect(vm.addSprite).not.toHaveBeenCalled();
+        expect(vm.setEditingTarget).toHaveBeenCalledWith('cat');
+        expect(props.onInsertCode).toHaveBeenCalledWith(challenge.code, 'blocks', cat, '2');
     });
 
     test('next / back / close dispatch', () => {

@@ -32,6 +32,9 @@ export const defineChallenge = (def) => ({
     // docs/lessons/README.md。null ならそのチャレンジは判定しない
     goal: null,
     required: false,
+    // code のほかに、名前で決めたスプライトに入れるプログラム: [{sprite, code}]（`sprite` はライブラリの
+    // スプライトの名前。いなければライブラリから足す）。このときの code は残りのスプライト（ネコ）に入る
+    spriteCodes: [],
     allowedBlocks: null,
     setup: null,
     // 最後の手段の「プログラムを入れる」（いまの deck の code）
@@ -333,9 +336,146 @@ const blocksLesson1 = defineLesson({
             code: 'when_flag_clicked do\n  $回数 = 0\nend\n\nwhen_clicked do\n  $回数 += 1\n  say($回数)\nend\n',
         },
         // === ここまで チャレンジ 5〜8 ===
-        { id: 'blocks-l1-broadcast', required: true },
-        { id: 'blocks-l1-speak' },
-        { id: 'blocks-l1-message-list', required: true },
+        // === チャレンジ 9〜11 ===
+        // 9 なかまに合図しよう（イベント・必須）: ネコを押したら合図を送り、受け取ったペンギンが言う
+        {
+            id: 'blocks-l1-broadcast',
+            required: true,
+            task: message('gui.lessons.challenge.blocks-l1-broadcast.task'),
+            skills: [
+                { id: 'add-sprite', name: message('gui.lessons.skill.add-sprite') },
+                { id: 'broadcast', name: message('gui.lessons.skill.broadcast') },
+                { id: 'sprite-program', name: message('gui.lessons.skill.sprite-program') },
+            ],
+            allowedBlocks: {
+                event: ['event_whenthisspriteclicked', 'event_broadcast', 'event_whenbroadcastreceived'],
+                looks: ['looks_sayforsecs'],
+            },
+            setup: { tab: 'code' },
+            steps: [
+                {
+                    title: message('gui.lessons.challenge.blocks-l1-broadcast.step1'),
+                    target: HINT_TARGETS.SPRITE_LIST,
+                    spotlight: true,
+                },
+                {
+                    title: message('gui.lessons.challenge.blocks-l1-broadcast.step2'),
+                    target: HINT_TARGETS.SPRITE_LIST,
+                    blocks: 'broadcast("あいさつ")\n',
+                },
+                {
+                    title: message('gui.lessons.challenge.blocks-l1-broadcast.step3'),
+                    target: HINT_TARGETS.SPRITE_LIST,
+                },
+                {
+                    title: message('gui.lessons.challenge.blocks-l1-broadcast.step4'),
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: 'when_receive("あいさつ") do\nend\n',
+                },
+                { title: message('gui.lessons.challenge.blocks-l1-broadcast.step5'), target: HINT_TARGETS.STAGE },
+            ],
+            debug: [
+                message('gui.lessons.challenge.blocks-l1-broadcast.debug1'),
+                message('gui.lessons.challenge.blocks-l1-broadcast.debug2'),
+            ],
+            goal: [
+                { type: 'sprites', min: 2 },
+                { type: 'uses', trigger: { hat: 'event_whenthisspriteclicked' }, blocks: ['event_broadcast'] },
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenbroadcastreceived', sentBy: 'other' },
+                    blocks: ['looks_sayforsecs'],
+                },
+            ],
+            // code はネコのプログラム。ペンギンのプログラムは spriteCodes で入れる（ペンギンがいなければ
+            // ライブラリから足す。insert-sprite-code.js）
+            code: 'when_clicked do\n  broadcast("あいさつ")\nend\n',
+            spriteCodes: [{ sprite: 'Penguin', code: 'when_receive("あいさつ") do\n  say("やあ！", 2)\nend\n' }],
+        },
+        // 10 しゃべらせよう（拡張機能）: 音声合成を足して、ネコを押したらしゃべる
+        {
+            id: 'blocks-l1-speak',
+            task: message('gui.lessons.challenge.blocks-l1-speak.task'),
+            skills: [
+                { id: 'add-extension', name: message('gui.lessons.skill.add-extension') },
+                { id: 'text2speech', name: message('gui.lessons.skill.text2speech') },
+            ],
+            // 拡張機能のカテゴリはパレットを絞っても全部出る（make-toolbox-xml）。ここは使うブロックの記録
+            allowedBlocks: {
+                event: ['event_whenthisspriteclicked'],
+                text2speech: ['text2speech_speakAndWait'],
+            },
+            // 拡張機能は子どもがヒント 1 で足す（setup.extensions では入れない）
+            setup: { tab: 'code' },
+            steps: [
+                {
+                    title: message('gui.lessons.challenge.blocks-l1-speak.step1'),
+                    target: HINT_TARGETS.EXTENSION_BUTTON,
+                    spotlight: true,
+                },
+                {
+                    title: message('gui.lessons.challenge.blocks-l1-speak.step2'),
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: 'text2speech.speak("ボタンが押されました")\n',
+                },
+                { title: message('gui.lessons.challenge.blocks-l1-speak.step3'), target: HINT_TARGETS.STAGE },
+            ],
+            debug: [message('gui.lessons.challenge.blocks-l1-speak.debug1')],
+            goal: [
+                { type: 'extension', id: 'text2speech' },
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenthisspriteclicked' },
+                    blocks: ['text2speech_speakAndWait'],
+                },
+            ],
+            // 拡張機能を足す前に入れても、変換が音声合成を読み込む（target-applier）
+            code: 'when_clicked do\n  text2speech.speak("ボタンが押されました")\nend\n',
+        },
+        // 11 メッセージをためよう（リスト・必須）: 聞いた答えをリスト「トーク」にためる
+        {
+            id: 'blocks-l1-message-list',
+            required: true,
+            task: message('gui.lessons.challenge.blocks-l1-message-list.task'),
+            skills: [
+                { id: 'make-list', name: message('gui.lessons.skill.make-list') },
+                { id: 'add-to-list', name: message('gui.lessons.skill.add-to-list') },
+            ],
+            // リストのカテゴリはパレットを絞っても全部出る（make-toolbox-xml）。ここは使うブロックの記録
+            allowedBlocks: {
+                event: ['event_whenflagclicked', 'event_whenthisspriteclicked'],
+                data: ['data_deletealloflist', 'data_addtolist'],
+                sensing: ['sensing_askandwait', 'sensing_answer'],
+            },
+            setup: { tab: 'code' },
+            steps: [
+                {
+                    title: message('gui.lessons.challenge.blocks-l1-message-list.step1'),
+                    target: HINT_TARGETS.PALETTE,
+                },
+                {
+                    title: message('gui.lessons.challenge.blocks-l1-message-list.step2'),
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: '$トーク.clear\n',
+                },
+                {
+                    title: message('gui.lessons.challenge.blocks-l1-message-list.step3'),
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: '$トーク.push(answer)\n',
+                },
+                { title: message('gui.lessons.challenge.blocks-l1-message-list.step4'), target: HINT_TARGETS.STAGE },
+            ],
+            debug: [
+                message('gui.lessons.challenge.blocks-l1-message-list.debug1'),
+                message('gui.lessons.challenge.blocks-l1-message-list.debug2'),
+            ],
+            // `$トーク` はステージのリスト =「リストを作る」の既定（すべてのスプライト用）と同じ
+            goal: [{ type: 'list', name: 'トーク', length: { gte: 3 }, itemsFromAnswers: true }],
+            code:
+                'when_flag_clicked do\n  $トーク.clear\nend\n\nwhen_clicked do\n  ask("メッセージは？")\n' +
+                '  $トーク.push(answer)\nend\n',
+        },
+        // === ここまで チャレンジ 9〜11 ===
     ],
 });
 

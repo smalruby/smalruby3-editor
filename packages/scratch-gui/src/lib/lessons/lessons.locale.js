@@ -67,6 +67,47 @@ export const ja = {
     'gui.lessons.challenge.blocks-l1-broadcast.name': 'なかまに合図しよう',
     'gui.lessons.challenge.blocks-l1-speak.name': 'しゃべらせよう',
     'gui.lessons.challenge.blocks-l1-message-list.name': 'メッセージをためよう',
+    // チャレンジ 9〜11
+    'gui.lessons.challenge.blocks-l1-broadcast.task':
+        'ペンギンを足して、ネコを押したらペンギンが「やあ！」と言うようにしよう',
+    'gui.lessons.skill.add-sprite': 'スプライトを足す',
+    'gui.lessons.skill.broadcast': '合図（メッセージ）',
+    'gui.lessons.skill.sprite-program': 'スプライトごとのプログラム',
+    'gui.lessons.challenge.blocks-l1-broadcast.step1': '右下の「スプライトを選ぶ」から、ペンギンを足そう。',
+    'gui.lessons.challenge.blocks-l1-broadcast.step2':
+        'ネコをえらんで、「押されたとき」と「送る」をつなげよう。▼の「新しいメッセージ」で「あいさつ」を作ろう。',
+    'gui.lessons.challenge.blocks-l1-broadcast.step3':
+        'ペンギンをえらぶと、コードエリアが空になるよ。プログラムはスプライトごとにあるんだ。',
+    'gui.lessons.challenge.blocks-l1-broadcast.step4': 'ペンギンに「受け取ったとき」と「言う」をつなげよう。',
+    'gui.lessons.challenge.blocks-l1-broadcast.step5': 'ネコを押してみよう。',
+    'gui.lessons.challenge.blocks-l1-broadcast.debug1':
+        'ペンギンが言わないときは、「送る」と「受け取ったとき」のメッセージの名前が同じか見よう。',
+    'gui.lessons.challenge.blocks-l1-broadcast.debug2': 'ペンギンのプログラムを、ネコに書いていないかも見よう。',
+    'gui.lessons.challenge.blocks-l1-speak.task':
+        '拡張機能「音声合成」を足して、ネコを押したら「ボタンが押されました」としゃべるようにしよう',
+    'gui.lessons.skill.add-extension': '拡張機能を足す',
+    'gui.lessons.skill.text2speech': '音声合成',
+    'gui.lessons.challenge.blocks-l1-speak.step1':
+        '左下のボタンから「音声合成」をえらぼう。パレットに新しいなかまがふえるよ。',
+    'gui.lessons.challenge.blocks-l1-speak.step2': '「押されたとき」に「しゃべる」をつなげて、ことばを書こう。',
+    'gui.lessons.challenge.blocks-l1-speak.step3': 'ネコを押してみよう。',
+    'gui.lessons.challenge.blocks-l1-speak.debug1':
+        '声が出ないときは、パソコンの音量を見よう。音声合成はインターネットにつながっていないと使えないよ。',
+    'gui.lessons.challenge.blocks-l1-message-list.task':
+        'ネコを押したら「メッセージは？」と聞いて、答えをリスト「トーク」にためよう。3 つためてみよう',
+    'gui.lessons.skill.make-list': 'リストを作る',
+    'gui.lessons.skill.add-to-list': 'リストに追加する',
+    'gui.lessons.challenge.blocks-l1-message-list.step1':
+        '「変数」の下の「リストを作る」を押して、「トーク」というリストを作ろう。ステージに空の箱が出るよ。',
+    'gui.lessons.challenge.blocks-l1-message-list.step2': '旗を押したら、トークを空にするプログラムを作ろう。',
+    'gui.lessons.challenge.blocks-l1-message-list.step3':
+        '押されたら聞いて、答えをトークに追加するプログラムを作ろう。',
+    'gui.lessons.challenge.blocks-l1-message-list.step4':
+        '旗を押してから、ネコを 3 回押して、メッセージを書こう。ステージの箱に、書いた順にたまっていくよ。',
+    'gui.lessons.challenge.blocks-l1-message-list.debug1':
+        '1 つしかたまらないときは、「すべてを削除する」が「押されたとき」のほうに入っていないか見よう。',
+    'gui.lessons.challenge.blocks-l1-message-list.debug2':
+        '「答え」という文字がたまるときは、丸い「答え」のブロックを入れたか見よう。',
     'gui.lessons.completed.title': 'できた！',
     'gui.lessons.completed.skills': 'できること: {skills}',
     'gui.lessons.completed.close': '閉じる',
@@ -137,6 +178,47 @@ export const jaHira = {
     'gui.lessons.challenge.blocks-l1-broadcast.name': 'なかまにあいずしよう',
     'gui.lessons.challenge.blocks-l1-speak.name': 'しゃべらせよう',
     'gui.lessons.challenge.blocks-l1-message-list.name': 'メッセージをためよう',
+    // チャレンジ 9〜11
+    'gui.lessons.challenge.blocks-l1-broadcast.task':
+        'ペンギンをたして、ネコをおしたらペンギンが「やあ！」というようにしよう',
+    'gui.lessons.skill.add-sprite': 'スプライトをたす',
+    'gui.lessons.skill.broadcast': 'あいず（メッセージ）',
+    'gui.lessons.skill.sprite-program': 'スプライトごとのプログラム',
+    'gui.lessons.challenge.blocks-l1-broadcast.step1': 'みぎしたの「スプライトをえらぶ」から、ペンギンをたそう。',
+    'gui.lessons.challenge.blocks-l1-broadcast.step2':
+        'ネコをえらんで、「おされたとき」と「おくる」をつなげよう。▼の「あたらしいメッセージ」で「あいさつ」をつくろう。',
+    'gui.lessons.challenge.blocks-l1-broadcast.step3':
+        'ペンギンをえらぶと、コードエリアがからになるよ。プログラムはスプライトごとにあるんだ。',
+    'gui.lessons.challenge.blocks-l1-broadcast.step4': 'ペンギンに「うけとったとき」と「いう」をつなげよう。',
+    'gui.lessons.challenge.blocks-l1-broadcast.step5': 'ネコをおしてみよう。',
+    'gui.lessons.challenge.blocks-l1-broadcast.debug1':
+        'ペンギンがいわないときは、「おくる」と「うけとったとき」のメッセージのなまえがおなじかみよう。',
+    'gui.lessons.challenge.blocks-l1-broadcast.debug2': 'ペンギンのプログラムを、ネコにかいていないかもみよう。',
+    'gui.lessons.challenge.blocks-l1-speak.task':
+        'かくちょうきのう「おんせいごうせい」をたして、ネコをおしたら「ボタンがおされました」としゃべるようにしよう',
+    'gui.lessons.skill.add-extension': 'かくちょうきのうをたす',
+    'gui.lessons.skill.text2speech': 'おんせいごうせい',
+    'gui.lessons.challenge.blocks-l1-speak.step1':
+        'ひだりしたのボタンから「おんせいごうせい」をえらぼう。パレットにあたらしいなかまがふえるよ。',
+    'gui.lessons.challenge.blocks-l1-speak.step2': '「おされたとき」に「しゃべる」をつなげて、ことばをかこう。',
+    'gui.lessons.challenge.blocks-l1-speak.step3': 'ネコをおしてみよう。',
+    'gui.lessons.challenge.blocks-l1-speak.debug1':
+        'こえがでないときは、パソコンのおんりょうをみよう。おんせいごうせいはインターネットにつながっていないとつかえないよ。',
+    'gui.lessons.challenge.blocks-l1-message-list.task':
+        'ネコをおしたら「メッセージは？」ときいて、こたえをリスト「トーク」にためよう。3 つためてみよう',
+    'gui.lessons.skill.make-list': 'リストをつくる',
+    'gui.lessons.skill.add-to-list': 'リストについかする',
+    'gui.lessons.challenge.blocks-l1-message-list.step1':
+        '「へんすう」のしたの「リストをつくる」をおして、「トーク」というリストをつくろう。ステージにからのはこがでるよ。',
+    'gui.lessons.challenge.blocks-l1-message-list.step2': 'はたをおしたら、トークをからにするプログラムをつくろう。',
+    'gui.lessons.challenge.blocks-l1-message-list.step3':
+        'おされたらきいて、こたえをトークについかするプログラムをつくろう。',
+    'gui.lessons.challenge.blocks-l1-message-list.step4':
+        'はたをおしてから、ネコを 3 かいおして、メッセージをかこう。ステージのはこに、かいたじゅんにたまっていくよ。',
+    'gui.lessons.challenge.blocks-l1-message-list.debug1':
+        '1 つしかたまらないときは、「すべてをさくじょする」が「おされたとき」のほうにはいっていないかみよう。',
+    'gui.lessons.challenge.blocks-l1-message-list.debug2':
+        '「こたえ」というもじがたまるときは、まるい「こたえ」のブロックをいれたかみよう。',
     'gui.lessons.completed.title': 'できた！',
     'gui.lessons.completed.skills': 'できること: {skills}',
     'gui.lessons.completed.close': 'とじる',
@@ -207,6 +289,50 @@ export const en = {
     'gui.lessons.challenge.blocks-l1-broadcast.name': 'Signal a friend',
     'gui.lessons.challenge.blocks-l1-speak.name': 'Make it speak',
     'gui.lessons.challenge.blocks-l1-message-list.name': 'Collect messages',
+    // チャレンジ 9〜11
+    'gui.lessons.challenge.blocks-l1-broadcast.task':
+        'Add a penguin, and make the penguin say "やあ！" (Hi!) when the cat is clicked',
+    'gui.lessons.skill.add-sprite': 'Add a sprite',
+    'gui.lessons.skill.broadcast': 'Broadcast messages',
+    'gui.lessons.skill.sprite-program': 'A program for each sprite',
+    'gui.lessons.challenge.blocks-l1-broadcast.step1': 'Add a penguin with "Choose a Sprite" at the bottom right.',
+    'gui.lessons.challenge.blocks-l1-broadcast.step2':
+        'Select the cat and snap "when this sprite clicked" and "broadcast" together. Choose "New message" from ▼ and make "あいさつ" (hello).',
+    'gui.lessons.challenge.blocks-l1-broadcast.step3':
+        'When you select the penguin, the code area becomes empty. Each sprite has its own program.',
+    'gui.lessons.challenge.blocks-l1-broadcast.step4': 'Snap "when I receive" and "say" together for the penguin.',
+    'gui.lessons.challenge.blocks-l1-broadcast.step5': 'Click the cat.',
+    'gui.lessons.challenge.blocks-l1-broadcast.debug1':
+        'If the penguin does not speak, check that the message in "broadcast" and in "when I receive" has the same name.',
+    'gui.lessons.challenge.blocks-l1-broadcast.debug2':
+        "Also check that you did not put the penguin's program on the cat.",
+    'gui.lessons.challenge.blocks-l1-speak.task':
+        'Add the "Text to Speech" extension, and make the cat speak "ボタンが押されました" (the button was clicked) when it is clicked',
+    'gui.lessons.skill.add-extension': 'Add an extension',
+    'gui.lessons.skill.text2speech': 'Text to Speech',
+    'gui.lessons.challenge.blocks-l1-speak.step1':
+        'Choose "Text to Speech" with the button at the bottom left. New blocks join the palette.',
+    'gui.lessons.challenge.blocks-l1-speak.step2':
+        'Snap "speak" under "when this sprite clicked" and type the words.',
+    'gui.lessons.challenge.blocks-l1-speak.step3': 'Click the cat.',
+    'gui.lessons.challenge.blocks-l1-speak.debug1':
+        'If you hear nothing, check the volume of the computer. Text to Speech works only when it is connected to the Internet.',
+    'gui.lessons.challenge.blocks-l1-message-list.task':
+        'When the cat is clicked, ask "メッセージは？" (message?) and keep the answers in the list "トーク" (talk). Try keeping 3',
+    'gui.lessons.skill.make-list': 'Make a list',
+    'gui.lessons.skill.add-to-list': 'Add to a list',
+    'gui.lessons.challenge.blocks-l1-message-list.step1':
+        'Under "Variables", click "Make a List" and make a list named "トーク" (talk). An empty box appears on the stage.',
+    'gui.lessons.challenge.blocks-l1-message-list.step2':
+        'Make a program that empties トーク when the green flag is clicked.',
+    'gui.lessons.challenge.blocks-l1-message-list.step3':
+        'Make a program that asks when the cat is clicked and adds the answer to トーク.',
+    'gui.lessons.challenge.blocks-l1-message-list.step4':
+        'Click the green flag, then click the cat 3 times and type messages. They pile up in the box on the stage in the order you typed them.',
+    'gui.lessons.challenge.blocks-l1-message-list.debug1':
+        'If only one is kept, check that "delete all of" is not under "when this sprite clicked".',
+    'gui.lessons.challenge.blocks-l1-message-list.debug2':
+        'If the word "answer" is kept, check that you put in the round "answer" block.',
     'gui.lessons.completed.title': 'You did it!',
     'gui.lessons.completed.skills': 'Now you can: {skills}',
     'gui.lessons.completed.close': 'Close',
