@@ -116,7 +116,8 @@ const clickCatOnStage = async () => {
 const waitForCompletedToast = async (challengeName) => {
     await findByXpath(byTestId('lesson-completed-toast'));
     expect(await textByTestId('lesson-completed-toast-challenge')).toBe(challengeName);
-    expect(await countByTestId('lesson-completed-toast-skills')).toBe(1);
+    // 「できること」は段 1 から外した（#1529）
+    expect(await countByTestId('lesson-completed-toast-skills')).toBe(0);
 };
 
 const resetProgress = () =>
@@ -157,7 +158,7 @@ describe('Smalruby Lessons: lesson 1 challenges 1-4', () => {
     test('challenge 3 (押したら話そう): add a costume, insert the program, click the cat → できた！', async () => {
         await loadEditor('');
         await openChallenge('blocks-l1-click-say');
-        expect(await textByTestId('lesson-task-bar-position')).toBe('3 of 11');
+        expect(await textByTestId('lesson-task-bar-position')).toBe('3 of 4');
 
         // コスチュームを足す（コスチュームタブで足したのと同じ VM の状態）
         await driver.executeScript(`return window.smalruby.vm.duplicateCostume(0);`);
@@ -173,7 +174,6 @@ describe('Smalruby Lessons: lesson 1 challenges 1-4', () => {
 
         await clickCatOnStage();
         await waitForCompletedToast('Talk when clicked');
-        expect(await textByTestId('lesson-completed-toast-skills')).toContain('add a costume');
 
         const saved = await driver.executeScript(
             `return JSON.parse(window.localStorage.getItem('smalruby:lessonProgress'));`,
@@ -191,7 +191,7 @@ describe('Smalruby Lessons: lesson 1 challenges 1-4', () => {
     test('challenge 2 (矢印キーで動かそう): insert the program, press up and down with the code area focused → できた！', async () => {
         await loadEditor('');
         await openChallenge('blocks-l1-arrow-move');
-        expect(await textByTestId('lesson-task-bar-position')).toBe('2 of 11');
+        expect(await textByTestId('lesson-task-bar-position')).toBe('2 of 4');
 
         // ヒント 1 は「y座標を 10 ずつ変える」を描く
         await openHint();
@@ -231,7 +231,7 @@ describe('Smalruby Lessons: lesson 1 challenges 1-4', () => {
         // 日本語の作品（ネコの音は「ニャー」）に ja の code を入れる
         await loadEditor('&locale=ja');
         await openChallenge('blocks-l1-key-sound');
-        expect(await textByTestId('lesson-task-bar-position')).toBe('1 / 全部で 11');
+        expect(await textByTestId('lesson-task-bar-position')).toBe('1 / 4');
 
         // Owl を足す前に「プログラムを入れる」を押すと、入れずに吹き出しの中にわけが出る
         await insertProgramFromHints(6);
@@ -266,7 +266,7 @@ describe('Smalruby Lessons: lesson 1 challenges 1-4', () => {
     test('challenge 4 (くり返そう): add the backdrops, insert the program into the stage, press 1 → できた！', async () => {
         await loadEditor('');
         await openChallenge('blocks-l1-repeat');
-        expect(await textByTestId('lesson-task-bar-position')).toBe('4 of 11');
+        expect(await textByTestId('lesson-task-bar-position')).toBe('4 of 4');
 
         await addBackdropsNamed(['Canyon', 'Arctic']);
         expect(

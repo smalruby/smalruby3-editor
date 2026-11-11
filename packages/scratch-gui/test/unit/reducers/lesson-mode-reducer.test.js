@@ -45,12 +45,12 @@ describe('lesson-mode reducer', () => {
         expect(state).toEqual(
             expect.objectContaining({
                 courseId: 'kyou-kara-programmer',
-                lessonId: 'blocks-l1',
+                lessonId: 'blocks-l2',
                 challengeId: 'blocks-l1-quiz',
             }),
         );
         expect(isLessonMode(wrap(state))).toBe(true);
-        expect(getCurrentChallenge(wrap(state)).challenge.number).toBe(7);
+        expect(getCurrentChallenge(wrap(state)).challenge.number).toBe(3);
     });
 
     test('openChallenge ignores unknown ids', () => {
@@ -74,7 +74,7 @@ describe('lesson-mode reducer', () => {
         );
         expect(state.progress.challenges['blocks-l1-broadcast'].completedAt).toBe('2026-11-10T00:00:00.000Z');
         const saved = JSON.parse(window.localStorage.getItem(LESSON_PROGRESS_STORAGE_KEY));
-        expect(saved.challenges['blocks-l1-broadcast'].lessonId).toBe('blocks-l1');
+        expect(saved.challenges['blocks-l1-broadcast'].lessonId).toBe('blocks-l3');
     });
 
     test('markChallengeCompleted keeps records another tab wrote after start-up', () => {

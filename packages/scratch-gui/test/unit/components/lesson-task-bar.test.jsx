@@ -29,10 +29,10 @@ const renderBar = (props = {}, { locale = 'en', messages = en } = {}) => {
 };
 
 describe('LessonTaskBar', () => {
-    test('shows the task line and "n of N"', () => {
+    test('shows the task line and "n of N" (the number within the lesson)', () => {
         const { getByTestId } = renderBar();
         expect(getByTestId('lesson-task-bar')).toBeInTheDocument();
-        expect(getByTestId('lesson-task-bar-position')).toHaveTextContent('3 of 11');
+        expect(getByTestId('lesson-task-bar-position')).toHaveTextContent('3 of 4');
         expect(getByTestId('lesson-task-bar-task')).toHaveTextContent(
             'Add a costume you like to the cat, and make it say "Hello!" and change its look when it is clicked',
         );
@@ -42,13 +42,13 @@ describe('LessonTaskBar', () => {
         // レッスン 1 のチャレンジはどれも課題があるので、課題の無いチャレンジに見せかける
         const { challenge } = findChallenge('blocks-l1-broadcast');
         const { getByTestId } = renderBar({ challenge: { ...challenge, task: null } });
-        expect(getByTestId('lesson-task-bar-position')).toHaveTextContent('9 of 11');
+        expect(getByTestId('lesson-task-bar-position')).toHaveTextContent('2 of 4');
         expect(getByTestId('lesson-task-bar-task')).toHaveTextContent('Signal a friend');
     });
 
     test('uses the Japanese strings', () => {
         const { getByTestId } = renderBar({}, { locale: 'ja', messages: ja });
-        expect(getByTestId('lesson-task-bar-position')).toHaveTextContent('3 / 全部で 11');
+        expect(getByTestId('lesson-task-bar-position')).toHaveTextContent('3 / 4');
         expect(getByTestId('lesson-task-bar-quit')).toHaveTextContent('ほかのチャレンジへ');
         expect(getByTestId('lesson-task-bar-hint')).toHaveTextContent('ヒント');
     });

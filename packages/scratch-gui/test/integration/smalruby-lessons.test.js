@@ -55,9 +55,9 @@ describe('Smalruby Lessons', () => {
         await findByXpath(byTestId('lesson-task-bar'));
         await driver.sleep(1000);
 
-        // 課題の 1 行と「何個め / 全部で何個」
+        // 課題の 1 行と「何個め / レッスンの中の数」
         const position = await findByXpath(byTestId('lesson-task-bar-position'));
-        expect(await position.getText()).toBe('3 of 11');
+        expect(await position.getText()).toBe('3 of 4');
         const task = await findByXpath(byTestId('lesson-task-bar-task'));
         expect(await task.getText()).toBe(
             'Add a costume you like to the cat, and make it say "Hello!" and change its look when it is clicked',
@@ -105,7 +105,7 @@ describe('Smalruby Lessons', () => {
         await driver.sleep(1000);
 
         const position = await findByXpath(byTestId('lesson-task-bar-position'));
-        expect(await position.getText()).toBe('9 of 11');
+        expect(await position.getText()).toBe('2 of 4');
         expect(await textExists('Events', scope.blocksTab)).toBe(true);
         expect(await textExists('Looks', scope.blocksTab)).toBe(true);
         expect(await textExists('Motion', scope.blocksTab)).toBe(false);
@@ -124,7 +124,7 @@ describe('Smalruby Lessons', () => {
         await driver.sleep(1000);
 
         const position = await findByXpath(byTestId('lesson-task-bar-position'));
-        expect(await position.getText()).toBe('8 of 11');
+        expect(await position.getText()).toBe('1 of 4');
         expect(await textExists('Variables', scope.blocksTab)).toBe(true);
         expect(await textExists('Make a Variable', scope.blocksTab)).toBe(true);
         // リストのブロックは allowedBlocks に無いので「リストを作る」は出ない

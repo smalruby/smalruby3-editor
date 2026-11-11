@@ -109,12 +109,9 @@ export const defineChallenge = (def) => ({
     image: null,
     // なかま（パレットの色）。`CATEGORIES` の値。無ければ null（レッスン表は色無しで出す）
     category: null,
-    // できること: [{id, name}]。レッスンをまたいで id で重ねる
-    skills: [],
     // できた の判定: 条件の配列（全部を満たしたら「できた」）。形は goal.js と
     // docs/lessons/README.md。null ならそのチャレンジは判定しない
     goal: null,
-    required: false,
     // code のほかに、名前で決めたスプライトに入れるプログラム: [{sprite, code}]（`sprite` はライブラリの
     // スプライトの名前。いなければライブラリから足す）。このときの code は残りのスプライト（ネコ）に入る
     spriteCodes: [],
@@ -136,27 +133,20 @@ export const defineChallenge = (def) => ({
 });
 
 /**
- * レッスンを定義する。必須はチャレンジの `required` を正とし、クリア条件の
- * `required` はそこから作る（二重に書かない）。何個めか（`number`）も並びから
- * 付ける（並びを変えたときに番号がずれないように、定義には書かない）。
+ * レッスンを定義する。何個めか（`number`。レッスンの中の番号）は並びから付ける（並びを
+ * 変えたときに番号がずれないように、定義には書かない）。クリア条件（n 個・必須）は持たない:
+ * 段 1 では、レッスンやコースの「全部できた」はチャレンジが全部できたとき（lesson-progress.js）。
+ * 先生が必須にするチャレンジは段 2 でクラス管理の課題の側に持つ（#1529）。
  * @param {object} def - レッスンの定義。
  * @param {string} def.id - レッスン id。
- * @param {number} def.count - クリアに要るチャレンジの数。
  * @param {Array<object>} def.challenges - チャレンジの定義（並び順）。
  * @returns {object} レッスン。
  */
-export const defineLesson = ({ id, count, challenges }) => {
-    const normalized = challenges.map((def, index) => defineChallenge({ ...def, number: index + 1 }));
-    return {
-        id,
-        name: message(`gui.lessons.lesson.${id}.name`),
-        challenges: normalized,
-        clear: {
-            count,
-            required: normalized.filter((c) => c.required).map((c) => c.id),
-        },
-    };
-};
+export const defineLesson = ({ id, challenges }) => ({
+    id,
+    name: message(`gui.lessons.lesson.${id}.name`),
+    challenges: challenges.map((def, index) => defineChallenge({ ...def, number: index + 1 })),
+});
 
 /**
  * @param {object} def - コースの定義。
@@ -174,9 +164,6 @@ export const defineCourse = ({ id, language, lessons }) => ({
     lessons,
 });
 
-// できること。レッスンをまたいで id で重ねるので、文言は id ごとに 1 つ
-const skill = (id) => ({ id, name: message(`gui.lessons.skill.${id}`) });
-
 // チャレンジの文言（task / stepN / debugN）を id から引く
 const challengeMessage = (challengeId, field) => message(`gui.lessons.challenge.${challengeId}.${field}`);
 // ヒントの文言は並びの番号（step1, step2, ...）で引く
@@ -189,16 +176,16 @@ const debugTips = (challengeId, count) =>
 
 // チャレンジ id は記録（localStorage・クラスへの引き継ぎ）のキーなので、並びを
 // 変えても変わらない名前にする（番号を入れない）。中身（仕様）は EPIC #1466 の sub-issue。
+// レッスンの id（blocks-l1 / blocks-l2 / blocks-l3）とチャレンジ id は別のもの。チャレンジ id に
+// 入っている「l1」は、11 のチャレンジが 1 つのレッスンだったころの名残で、記録のキーなので変えない（#1529）。
 const blocksLesson1 = defineLesson({
     id: 'blocks-l1',
-    count: 7,
     challenges: [
         // 1 キーで音を鳴らそう（音）: スペースキーで「ニャー」のあと「Owl」が鳴る
         {
             id: 'blocks-l1-key-sound',
             category: CATEGORIES.SOUND,
             task: challengeMessage('blocks-l1-key-sound', 'task'),
-            skills: [skill('key-control'), skill('play-sound'), skill('add-sound')],
             allowedBlocks: {
                 event: [{ opcode: 'event_whenkeypressed', fields: { KEY_OPTION: 'space' } }],
                 // 音の ▼ は、足した「Owl」ではなくネコの音（作品を作った locale の名前）
@@ -246,7 +233,6 @@ const blocksLesson1 = defineLesson({
             task: challengeMessage('blocks-l1-arrow-move', 'task'),
             // 課題の全文に画像を出す例（どのキーでどちらへ動くか）
             image: { src: arrowKeysImage, alt: challengeMessage('blocks-l1-arrow-move', 'image') },
-            skills: [skill('move-by-coordinates'), skill('duplicate-blocks')],
             allowedBlocks: {
                 event: [{ opcode: 'event_whenkeypressed', fields: { KEY_OPTION: 'up arrow' } }],
                 motion: ['motion_changeyby'],
@@ -272,13 +258,11 @@ const blocksLesson1 = defineLesson({
             ],
             code: 'when_key_pressed("up arrow") do\n  self.y += 10\nend\n\nwhen_key_pressed("down arrow") do\n  self.y += -10\nend\n',
         },
-        // 3 押したら話そう（見た目・必須）: コスチュームを足して、押したらセリフと次のコスチューム
+        // 3 押したら話そう（見た目）: コスチュームを足して、押したらセリフと次のコスチューム
         {
             id: 'blocks-l1-click-say',
             category: CATEGORIES.LOOKS,
-            required: true,
             task: challengeMessage('blocks-l1-click-say', 'task'),
-            skills: [skill('click-trigger'), skill('say'), skill('add-costume')],
             allowedBlocks: {
                 event: ['event_whenthisspriteclicked'],
                 looks: [{ opcode: 'looks_sayforsecs', inputs: SAY_HELLO }, 'looks_nextcostume'],
@@ -320,7 +304,6 @@ const blocksLesson1 = defineLesson({
             id: 'blocks-l1-repeat',
             category: CATEGORIES.CONTROL,
             task: challengeMessage('blocks-l1-repeat', 'task'),
-            skills: [skill('repeat'), skill('add-backdrop'), skill('stage-program')],
             allowedBlocks: {
                 event: [{ opcode: 'event_whenkeypressed', fields: { KEY_OPTION: '1' } }],
                 control: [{ opcode: 'control_repeat', inputs: { TIMES: 3 } }, 'control_wait'],
@@ -348,12 +331,17 @@ const blocksLesson1 = defineLesson({
                 'when_key_pressed("1") do\n  3.times do\n    switch_backdrop("Canyon")\n    sleep(1)\n' +
                 '    switch_backdrop("Arctic")\n    sleep(1)\n  end\nend\n',
         },
+    ],
+});
+
+const blocksLesson2 = defineLesson({
+    id: 'blocks-l2',
+    challenges: [
         // 5 もし〜なら（制御）: マウスがさわっているか・いないかでセリフを変える
         {
             id: 'blocks-l1-if',
             category: CATEGORIES.CONTROL,
             task: challengeMessage('blocks-l1-if', 'task'),
-            skills: [skill('if'), skill('forever'), skill('touching')],
             // パレットは仕様の「もし <> なら」と、ヒント 2 の「もし〜なら でなければ」の両方を出す
             allowedBlocks: {
                 event: ['event_whenflagclicked'],
@@ -396,13 +384,11 @@ const blocksLesson1 = defineLesson({
                         '    else\n      say("Touch me")\n    end\n  end\nend\n',
                 },
         },
-        // 6 聞いて答えよう（調べる・必須）: 名前を聞いて、答えと、かかった秒数を言う
+        // 6 聞いて答えよう（調べる）: 名前を聞いて、答えと、かかった秒数を言う
         {
             id: 'blocks-l1-ask-answer',
             category: CATEGORIES.SENSING,
-            required: true,
             task: challengeMessage('blocks-l1-ask-answer', 'task'),
-            skills: [skill('ask-answer'), skill('timer'), skill('join')],
             allowedBlocks: {
                 event: ['event_whenthisspriteclicked'],
                 sensing: [
@@ -473,7 +459,6 @@ const blocksLesson1 = defineLesson({
             id: 'blocks-l1-quiz',
             category: CATEGORIES.OPERATORS,
             task: challengeMessage('blocks-l1-quiz', 'task'),
-            skills: [skill('compare'), skill('if')],
             allowedBlocks: {
                 event: ['event_whenthisspriteclicked'],
                 sensing: [{ opcode: 'sensing_askandwait', inputs: { QUESTION: '4+3=?' } }, 'sensing_answer'],
@@ -511,13 +496,17 @@ const blocksLesson1 = defineLesson({
                     '    say("Wrong", 2)\n  end\nend\n',
             },
         },
-        // 8 数えよう（変数・必須）: 押した回数を変数「回数」（en は count）で数えて言う
+    ],
+});
+
+const blocksLesson3 = defineLesson({
+    id: 'blocks-l3',
+    challenges: [
+        // 8 数えよう（変数）: 押した回数を変数「回数」（en は count）で数えて言う
         {
             id: 'blocks-l1-count',
             category: CATEGORIES.VARIABLES,
-            required: true,
             task: challengeMessage('blocks-l1-count', 'task'),
-            skills: [skill('make-variable'), skill('variable')],
             // 変数のカテゴリと中のブロックもこの allowedBlocks で絞る（lesson-dynamic-categories.js）。
             // 「変数を作る」と変数のレポーター（モニターのチェックボックス）は、変数のブロックがあれば出る
             allowedBlocks: {
@@ -549,13 +538,11 @@ const blocksLesson1 = defineLesson({
                 en: 'when_flag_clicked do\n  $count = 0\nend\n\nwhen_clicked do\n  $count += 1\n  say($count)\nend\n',
             },
         },
-        // 9 なかまに合図しよう（イベント・必須）: ネコを押したら合図を送り、受け取ったペンギンが言う
+        // 9 なかまに合図しよう（イベント）: ネコを押したら合図を送り、受け取ったペンギンが言う
         {
             id: 'blocks-l1-broadcast',
             category: CATEGORIES.EVENTS,
-            required: true,
             task: challengeMessage('blocks-l1-broadcast', 'task'),
-            skills: [skill('add-sprite'), skill('broadcast'), skill('sprite-program')],
             allowedBlocks: {
                 // メッセージの ▼（あいさつ）は、子どもが「新しいメッセージ」で作るのでツールボックスの初期値のまま
                 event: ['event_whenthisspriteclicked', 'event_broadcast', 'event_whenbroadcastreceived'],
@@ -616,7 +603,6 @@ const blocksLesson1 = defineLesson({
             id: 'blocks-l1-speak',
             category: CATEGORIES.EXTENSIONS,
             task: challengeMessage('blocks-l1-speak', 'task'),
-            skills: [skill('add-extension'), skill('text2speech')],
             // 拡張機能のカテゴリはパレットを絞っても全部出る（make-toolbox-xml）。ここは使うブロックの記録。
             // 拡張機能は子どもがヒント 1 で足す（setup.extensions では入れない）
             allowedBlocks: {
@@ -659,13 +645,11 @@ const blocksLesson1 = defineLesson({
                 en: 'when_clicked do\n  text2speech.speak("The button was clicked")\nend\n',
             },
         },
-        // 11 メッセージをためよう（リスト・必須）: 聞いた答えをリスト「トーク」（en は talk）にためる
+        // 11 メッセージをためよう（リスト）: 聞いた答えをリスト「トーク」（en は talk）にためる
         {
             id: 'blocks-l1-message-list',
             category: CATEGORIES.LISTS,
-            required: true,
             task: challengeMessage('blocks-l1-message-list', 'task'),
-            skills: [skill('make-list'), skill('add-to-list')],
             // 変数のカテゴリと中のブロックもこの allowedBlocks で絞る（lesson-dynamic-categories.js）。
             // 「リストを作る」とリストのレポーター（作ったリストをステージに出すチェックボックス）は、
             // リストのブロックがあれば出る
@@ -706,7 +690,7 @@ export const COURSES = [
     defineCourse({
         id: 'kyou-kara-programmer',
         language: LANGUAGES.BLOCKS,
-        lessons: [blocksLesson1],
+        lessons: [blocksLesson1, blocksLesson2, blocksLesson3],
     }),
 ];
 
@@ -745,10 +729,3 @@ export const findChallenge = (challengeId, courses = COURSES) => {
     }
     return null;
 };
-
-/**
- * レッスンのクリア条件。
- * @param {object} lesson - レッスン。
- * @returns {{count: number, required: Array<string>}} n 個と必須のチャレンジ id。
- */
-export const lessonClearRule = (lesson) => lesson.clear;

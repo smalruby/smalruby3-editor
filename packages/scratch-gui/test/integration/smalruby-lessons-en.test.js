@@ -144,7 +144,7 @@ describe('Smalruby Lessons in the English UI', () => {
             await driver.executeScript('return window.smalruby.vm.editingTarget.sprite.sounds.map(s => s.name);'),
         ).toEqual(['Meow']);
         await openChallenge('blocks-l1-key-sound');
-        expect(await textByTestId('lesson-task-bar-position')).toBe('1 of 11');
+        expect(await textByTestId('lesson-task-bar-position')).toBe('1 of 4');
 
         // 「Owl」を足す（音タブで足したのと同じ VM の状態。複製は元の次 = index 1 に入る）
         await driver.executeScript(`const vm = window.smalruby.vm;

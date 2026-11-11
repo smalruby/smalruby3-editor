@@ -5,8 +5,8 @@ import React from 'react';
 import { IntlProvider } from 'react-intl';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
-import LessonsLibrary, { courseSkills } from '../../../src/components/lessons-library/lessons-library.jsx';
-import { COURSES, defineCourse, defineLesson, LANGUAGES } from '../../../src/lib/lessons/courses';
+import LessonsLibrary from '../../../src/components/lessons-library/lessons-library.jsx';
+import { COURSES, defineCourse, LANGUAGES } from '../../../src/lib/lessons/courses';
 import { emptyProgress, markChallengeCompleted } from '../../../src/lib/lessons/lesson-progress';
 import en from '../../../src/locales/en';
 import ja from '../../../src/locales/ja';
@@ -15,8 +15,12 @@ import ja from '../../../src/locales/ja';
 const store = configureStore()({ locales: { isRtl: false } });
 
 const LESSON = COURSES[0].lessons[0];
-const ALL_IDS = LESSON.challenges.map((c) => c.id);
-const REQUIRED_IDS = LESSON.clear.required;
+// コースの 11 のチャレンジ（レッスン 1: 4・レッスン 2: 3・レッスン 3: 4）
+const ALL_IDS = COURSES[0].lessons.flatMap((lesson) => lesson.challenges.map((c) => c.id));
+const LESSON_IDS = ['blocks-l1', 'blocks-l2', 'blocks-l3'];
+
+// レッスンごとの「n / m done」
+const progressTexts = (getAllByTestId) => getAllByTestId('lessons-library-progress').map((el) => el.textContent);
 
 const progressWith = (ids, courses = COURSES) =>
     ids.reduce(
@@ -44,20 +48,30 @@ const renderLibrary = (props = {}, { locale = 'en', messages = en } = {}) => {
 };
 
 describe('LessonsLibrary', () => {
-    test('shows the blocks course with lesson 1 and all 11 challenges in order', () => {
-        const { getByTestId, getAllByTestId, queryByTestId } = renderLibrary();
+    test('shows the blocks course with the 3 lessons and their challenges in order', () => {
+        const { getByTestId, queryByTestId } = renderLibrary();
         expect(getByTestId('lessons-library')).toBeInTheDocument();
         expect(getByTestId('lessons-library-course-kyou-kara-programmer')).toHaveTextContent('Programmer from Today');
         expect(getByTestId('lessons-library-lesson-blocks-l1')).toHaveTextContent('Lesson 1');
-        expect(getByTestId('lessons-library-lesson-blocks-l1')).toHaveTextContent('Block Families');
-        const buttons = ALL_IDS.map((id) => getByTestId(`lessons-library-challenge-${id}`));
-        expect(buttons[2]).toHaveTextContent('3');
-        expect(buttons[2]).toHaveTextContent('Talk when clicked');
-        // 必須の印は 5 つ、できたの印は無し
-        expect(getAllByTestId('lessons-library-challenge-required')).toHaveLength(REQUIRED_IDS.length);
+        expect(getByTestId('lessons-library-lesson-blocks-l1')).toHaveTextContent("Let's Move");
+        expect(getByTestId('lessons-library-lesson-blocks-l2')).toHaveTextContent('Lesson 2');
+        expect(getByTestId('lessons-library-lesson-blocks-l2')).toHaveTextContent('Choose and Ask');
+        expect(getByTestId('lessons-library-lesson-blocks-l3')).toHaveTextContent('Lesson 3');
+        expect(getByTestId('lessons-library-lesson-blocks-l3')).toHaveTextContent('Remember and Tell');
+        LESSON_IDS.forEach((lessonId) => {
+            const section = getByTestId(`lessons-library-lesson-${lessonId}`);
+            const ids = COURSES[0].lessons.find((l) => l.id === lessonId).challenges.map((c) => c.id);
+            ids.forEach((id) => expect(section.contains(getByTestId(`lessons-library-challenge-${id}`))).toBe(true));
+        });
+        // 番号はレッスンの中の番号
+        const quiz = getByTestId('lessons-library-challenge-blocks-l1-quiz');
+        expect(quiz).toHaveTextContent('3');
+        // 必須・クリア・できることの表示は無い（#1529）。できたの印も無し
+        expect(queryByTestId('lessons-library-challenge-required')).not.toBeInTheDocument();
+        expect(queryByTestId('lessons-library-lesson-cleared')).not.toBeInTheDocument();
+        expect(queryByTestId('lessons-library-skills')).not.toBeInTheDocument();
         expect(queryByTestId('lessons-library-challenge-done')).not.toBeInTheDocument();
         expect(queryByTestId('lessons-library-badge')).not.toBeInTheDocument();
-        expect(queryByTestId('lessons-library-lesson-cleared')).not.toBeInTheDocument();
     });
 
     test('shows the category color dot with the category name', () => {
@@ -68,38 +82,32 @@ describe('LessonsLibrary', () => {
         expect(sound).toHaveAttribute('aria-label', 'Sound');
     });
 
-    test('shows "0 / 11 done" and the required count before anything is done', () => {
-        const { getByTestId } = renderLibrary();
-        expect(getByTestId('lessons-library-progress')).toHaveTextContent('0 / 11 done (required 0 / 5)');
+    test('shows "0 / n done" for each lesson before anything is done', () => {
+        const { getAllByTestId } = renderLibrary();
+        expect(progressTexts(getAllByTestId)).toEqual(['0 / 4 done', '0 / 3 done', '0 / 4 done']);
     });
 
-    test('marks completed challenges and counts them in the progress', () => {
-        const progress = progressWith(['blocks-l1-click-say', 'blocks-l1-repeat']);
+    test('marks completed challenges and counts them in the progress of their lesson', () => {
+        const progress = progressWith(['blocks-l1-click-say', 'blocks-l1-repeat', 'blocks-l1-quiz']);
         const { getByTestId, getAllByTestId } = renderLibrary({ progress });
-        expect(getAllByTestId('lessons-library-challenge-done')).toHaveLength(2);
+        expect(getAllByTestId('lessons-library-challenge-done')).toHaveLength(3);
         expect(getByTestId('lessons-library-challenge-blocks-l1-click-say')).toHaveAttribute(
             'data-completed',
             'true',
         );
         expect(getByTestId('lessons-library-challenge-blocks-l1-repeat')).toHaveAttribute('data-completed', 'true');
         expect(getByTestId('lessons-library-challenge-blocks-l1-if')).toHaveAttribute('data-completed', 'false');
-        expect(getByTestId('lessons-library-progress')).toHaveTextContent('2 / 11 done (required 1 / 5)');
+        expect(progressTexts(getAllByTestId)).toEqual(['2 / 4 done', '1 / 3 done', '0 / 4 done']);
     });
 
-    test('does not show the badge when 7 are done but a required one is missing', () => {
-        // 必須 5 つのうち 4 つ + 必須でない 3 つ = 7 個
-        const ids = [...REQUIRED_IDS.slice(0, 4), 'blocks-l1-key-sound', 'blocks-l1-arrow-move', 'blocks-l1-repeat'];
-        const { getByTestId, queryByTestId } = renderLibrary({ progress: progressWith(ids) });
-        expect(getByTestId('lessons-library-progress')).toHaveTextContent('7 / 11 done (required 4 / 5)');
-        expect(queryByTestId('lessons-library-lesson-cleared')).not.toBeInTheDocument();
+    test('does not show the course badge until every challenge of the course is done', () => {
+        const { queryByTestId } = renderLibrary({ progress: progressWith(ALL_IDS.slice(0, 10)) });
         expect(queryByTestId('lessons-library-badge')).not.toBeInTheDocument();
     });
 
-    test('shows "Cleared!" and the course badge when the lesson is cleared', () => {
-        const ids = [...REQUIRED_IDS, 'blocks-l1-key-sound', 'blocks-l1-arrow-move'];
-        const { getByTestId } = renderLibrary({ progress: progressWith(ids) });
-        expect(getByTestId('lessons-library-progress')).toHaveTextContent('7 / 11 done (required 5 / 5)');
-        expect(getByTestId('lessons-library-lesson-cleared')).toHaveTextContent('Cleared!');
+    test('shows the course badge when every challenge of the course is done', () => {
+        const { getByTestId, getAllByTestId } = renderLibrary({ progress: progressWith(ALL_IDS) });
+        expect(progressTexts(getAllByTestId)).toEqual(['4 / 4 done', '3 / 3 done', '4 / 4 done']);
         expect(getByTestId('lessons-library-badge')).toHaveTextContent('Programmer Debut!');
     });
 
@@ -129,57 +137,15 @@ describe('LessonsLibrary', () => {
     });
 
     test('uses the Japanese strings', () => {
-        const { getByTestId } = renderLibrary({}, { locale: 'ja', messages: ja });
+        const utils = renderLibrary({}, { locale: 'ja', messages: ja });
+        const { getByTestId } = utils;
         expect(getByTestId('lessons-library-tab-blocks')).toHaveTextContent('ブロック');
         expect(getByTestId('lessons-library-tab-dncl')).toHaveTextContent('日本語');
-        expect(getByTestId('lessons-library-progress')).toHaveTextContent('0 / 11 できた（必須 0 / 5）');
+        const { getAllByTestId } = utils;
+        expect(progressTexts(getAllByTestId)).toEqual(['0 / 4 できた', '0 / 3 できた', '0 / 4 できた']);
         expect(getByTestId('lessons-library-lesson-blocks-l1')).toHaveTextContent('レッスン 1');
-        expect(getByTestId('lessons-library-challenge-blocks-l1-click-say')).toHaveTextContent('必須');
-    });
-
-    describe('skills (できること)', () => {
-        const skill = (id) => ({ id, name: { id: `test.skill.${id}`, defaultMessage: `skill ${id}` } });
-        const course = defineCourse({
-            id: 'test-course',
-            language: LANGUAGES.BLOCKS,
-            lessons: [
-                defineLesson({
-                    id: 'test-l1',
-                    count: 1,
-                    challenges: [
-                        { id: 'test-a', skills: [skill('move'), skill('say')] },
-                        { id: 'test-b', skills: [skill('say'), skill('repeat')] },
-                    ],
-                }),
-            ],
-        });
-
-        test('courseSkills lists each skill once, in course order, with the challenges that teach it', () => {
-            expect(courseSkills(course).map((s) => [s.id, s.challengeIds])).toEqual([
-                ['move', ['test-a']],
-                ['say', ['test-a', 'test-b']],
-                ['repeat', ['test-b']],
-            ]);
-        });
-
-        test('hides the skills section when no challenge has skills yet', () => {
-            const noSkills = defineCourse({
-                id: 'test-course',
-                language: LANGUAGES.BLOCKS,
-                lessons: [defineLesson({ id: 'test-l1', count: 1, challenges: [{ id: 'test-a' }] })],
-            });
-            const { queryByTestId } = renderLibrary({ courses: [noSkills], progress: emptyProgress() });
-            expect(queryByTestId('lessons-library-skills')).not.toBeInTheDocument();
-        });
-
-        test('colors the skills of completed challenges and leaves the rest dotted', () => {
-            const progress = progressWith(['test-a'], [course]);
-            const { getByTestId } = renderLibrary({ courses: [course], progress });
-            expect(getByTestId('lessons-library-skills')).toHaveTextContent('What you can do');
-            expect(getByTestId('lessons-library-skill-move')).toHaveAttribute('data-done', 'true');
-            expect(getByTestId('lessons-library-skill-say')).toHaveAttribute('data-done', 'true');
-            expect(getByTestId('lessons-library-skill-repeat')).toHaveAttribute('data-done', 'false');
-        });
+        expect(getByTestId('lessons-library-lesson-blocks-l1')).toHaveTextContent('うごかしてみよう');
+        expect(getByTestId('lessons-library-lesson-blocks-l3')).toHaveTextContent('おぼえて つたえよう');
     });
 
     test('without a focus, no lesson is focused and no challenge is marked as next', () => {
