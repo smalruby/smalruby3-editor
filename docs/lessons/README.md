@@ -102,8 +102,8 @@
 `defineCourse` / `defineLesson` / `defineChallenge` は export してあるので、コースやレッスンが増えて
 ファイルを分けるときも同じ形で定義できる。
 
-レッスン 1 の 11 のチャレンジのうち、1〜4 は中身（課題・できること・パレット・ヒント・判定・Ruby）が
-入っている（下の「レッスン 1 のチャレンジ」）。5〜11 は `id`・名前・なかま（`category`）だけ（中身は後から入れる）。
+レッスン 1 の 11 のチャレンジのうち、1〜8 は中身（課題・できること・パレット・ヒント・判定・Ruby）が
+入っている（下の「レッスン 1 のチャレンジ」）。9〜11 は `id`・名前・なかま（`category`）だけ（中身は後から入れる）。
 
 ### レッスン 1 のチャレンジ
 
@@ -116,6 +116,10 @@
 | 2 | `blocks-l1-arrow-move` | 上向き矢印キーで上へ、下向き矢印キーで下へ、ネコを動かす | 座標で動かす・ブロックを複製する | `event_whenkeypressed` / `motion_changeyby` | 上向き矢印キーのスクリプトで `DY > 0`、下向き矢印キーのスクリプトで `DY < 0` の `motion_changeyby` が動いた |
 | 3（必須） | `blocks-l1-click-say` | コスチュームを足して、押したら「こんにちは！」と言って、見た目がかわる | 押したら動く・セリフを言う・コスチュームを足す | `event_whenthisspriteclicked` / `looks_sayforsecs` / `looks_nextcostume` | コスチュームが始めより 1 つ以上増え、スプライトを押したスクリプトで `looks_sayforsecs` と `looks_nextcostume` が動いた |
 | 4 | `blocks-l1-repeat` | 1 のキーを押したら、背景が「Canyon」と「Arctic」に 3 回かわる（**ステージのプログラム**） | くり返し・背景を足す・ステージのプログラム | `event_whenkeypressed` / `control_repeat` / `control_wait` / `looks_switchbackdropto` | ステージの 1 のキーのスクリプトで `control_repeat` が動き、`looks_switchbackdropto` が 6 回動いた |
+| 5 | `blocks-l1-if` | マウスでネコにさわったら「くすぐったい！」、さわっていないときは「さわってみて」と言う | もし〜なら・ずっと・さわったか調べる | `event_whenflagclicked` / `control_forever` / `control_if` / `control_if_else` / `sensing_touchingobject` / `looks_say` | 旗のスクリプトで `sensing_touchingobject` が動き、ちがうセリフ（`MESSAGE`）の `looks_say` が 2 種類動いた |
+| 6（必須） | `blocks-l1-ask-answer` | ネコを押したら名前を聞いて、答えた名前と、答えるまでにかかった秒数を言う | 聞いて答える・タイマー・ことばをつなぐ | `event_whenthisspriteclicked` / `sensing_resettimer` / `sensing_askandwait` / `sensing_answer` / `sensing_timer` / `operator_join` / `looks_sayforsecs` | スプライトを押したスクリプトで `sensing_resettimer` → `sensing_askandwait` の順に動き、`sensing_answer`・`sensing_timer`・`looks_sayforsecs` 2 回が動いた。答えと同じことばを言った |
+| 7 | `blocks-l1-quiz` | ネコを押したら「4＋3＝？」と聞いて、7 なら「正解です」、ちがえば「ちがいます」と言う | くらべる・もし〜なら | `event_whenthisspriteclicked` / `sensing_askandwait` / `sensing_answer` / `control_if` / `control_if_else` / `operator_equals` / `looks_sayforsecs` | 答えが 7 のときに「正解です」（ja-Hira の「せいかいです」も可）、7 でないときに「ちがいます」を言った（両方） |
+| 8（必須） | `blocks-l1-count` | ネコを押した回数を数えて、その数を言う。3 回押す | 変数を作る・変数 | `event_whenflagclicked` / `event_whenthisspriteclicked` / `data_setvariableto` / `data_changevariableby` / `data_variable` / `looks_say` | 変数「回数」（ja-Hira の「かいすう」も可）が 3 以上になり、その値を言った |
 
 ヒントは、音タブ・コスチュームタブ・背景を選ぶ・スプライトリストのように「足す・えらぶ」場所を指すものと、
 パレット・コードエリアを指して**本物のブロック**を描くもの、ステージ・キーボードを指して「動かしてみよう」と
@@ -141,6 +145,19 @@
 - チャレンジ 4 のように**ステージのプログラム**のチャレンジは `codeTarget: 'stage'` にする。
   「プログラムを入れる」がステージをえらんで（`vm.setEditingTarget`）Ruby タブの相手（`rubyCode.target`）も
   ステージにしてから入れるので、スプライトを編集中に押してもステージに入る。
+- **5 もし〜なら**: パレットには「もし <> なら」と「もし <> なら でなければ」の両方を出す（ヒント 2 は
+  「でなければ」のほう）。ヒント 2 の吹き出しは `if false\nelse\nend` で、空の穴の「もし <  > なら でなければ」を描く。
+- **6 聞いて答えよう**: `code` とヒント 4 の吹き出しは `timer.value + "秒でした"`（「(タイマー) と (秒でした)」の
+  「と」1 つ。子どもが作ったブロックから生成される Ruby も同じ形）。仕様の `timer.value.to_s + "秒でした"` は、
+  `.to_s` も「(タイマー) と ()」の「と」になるので、入れると「と」2 つの入れ子になり子どもが作るものと見た目が
+  ちがう。秒数は 3.217 のような小数のまま言う（四捨五入は入れない）。
+- **7 クイズを作ろう**: 比べ方は Scratch と同じなので、全角の「７」は 7 と等しくない（「ちがいます」になる）。
+  ヒントの「うまく動かないときは」で半角の 7 を案内し、判定は `answer: {eq: 7}` と `{ne: 7}` の両方を見る。
+- **8 数えよう**: Ruby の `$回数` はステージの変数（ブロックの「すべてのスプライト用」）で、「変数を作る」の
+  既定と同じ。先に「変数を作る」で「回数」を作ってから「プログラムを入れる」でも、変数は 1 つのまま
+  （integration テストで確かめている）。日本語の変数名も Ruby ⇔ ブロックで行き来できる。
+  パレットを絞っても変数のカテゴリは全部出る（`make-toolbox-xml.js`）。ja-Hira のヒントは「かいすう」という
+  変数を作ろうと書くので、`goal` は「回数」「かいすう」のどちらでもよい（7 の「せいかいです」も同じ）。
 - エディタ（コードエリア）にフォーカスがあってもキーはステージに届く（`vm-listener-hoc` は SVG への
   keydown を VM に渡す）。`integration` テストはコードエリアをクリックしてからキーを押して確かめている。
 
@@ -224,9 +241,14 @@
 （全角の「７」と 7 は等しくない）。
 
 **`said` の項目**: `text`（matcher）、`equalsAnswer: true`（最後に「聞いて待つ」で入力した答えと同じ文字を言った）、
-`equalsVariable: '<変数名>'`（言った時点のその変数の値と同じ）、`answer`（言った時点の最後の答えの条件。
+`equalsVariable: '<変数名>'`（言った時点のその変数の値と同じ。名前の配列ならどれか 1 つ）、`answer`（言った時点の最後の答えの条件。
 例: `{eq: 7}` / `{ne: 7}`。まだ答えていなければ合わない）、`target`（`'stage'` / `'sprite'`）。
 吹き出しを消す（空の文字）は記録しない。
+
+**変数・リストの名前**（`variable` / `list` の `name`、`said` の `equalsVariable`）は、文字列か名前の配列
+（どれか 1 つの名前の変数を見る）。ja-Hira のヒントは変数名をひらがなで書く（「かいすう」）ので、
+`['回数', 'かいすう']` のように両方を書く。言う文字も同じで、ja-Hira の課題がひらがなで書く文字は
+RegExp で両方を許す（例: `/^(正解です|せいかいです)$/`）。
 
 **`list` の項目**: `length`（matcher。例: `{gte: 3}`）、`itemsFromAnswers: true`（中身が全部「聞いて待つ」に
 入力した答え）。
@@ -272,14 +294,14 @@
 
 // 7 クイズを作ろう: 7 を入れたら「正解です」、ほかの数で「ちがいます」と言った
 [
-    { type: 'said', text: '正解です', answer: { eq: 7 } },
+    { type: 'said', text: /^(正解です|せいかいです)$/, answer: { eq: 7 } },
     { type: 'said', text: 'ちがいます', answer: { ne: 7 } },
 ]
 
 // 8 数えよう: 変数「回数」が 3 以上になり、その数を言った
 [
-    { type: 'variable', name: '回数', value: { gte: 3 } },
-    { type: 'said', equalsVariable: '回数' },
+    { type: 'variable', name: ['回数', 'かいすう'], value: { gte: 3 } },
+    { type: 'said', equalsVariable: ['回数', 'かいすう'] },
 ]
 
 // 9 なかまに合図しよう: スプライト 2 つ以上。ネコを押して送ったメッセージで、別のスプライトがセリフを言った
@@ -452,6 +474,8 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 - **課題バー**（`components/lesson-task-bar/`）: エディタ列（タブの上）に 1 行・40px で出す。
   「何個め / 全部で何個」・課題の 1 行（`task`。無ければチャレンジの名前）・ヒント・やめる。
   stage の列には掛からないので、1300×600 の授業のパソコンでもコードエリアは 40px 縮むだけ。
+  課題の文は長くてもエディタ列を広げない（広げるとステージが画面の右にはみ出す）。入りきらない分は
+  … で切り、全文は `title`（マウスを乗せると出る）。
   SP（MobileGui）でも同じ場所に出る。
 - **パレットを絞る**: チャレンジの `allowedBlocks`（deck と同じ形）。Blocks コンテナの `tutorialAllowedBlocks`
   にレッスンの分を優先して渡すので、仕組みはチュートリアルと同じ（`allowedBlocks` が null なら絞らない）。
@@ -480,6 +504,8 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
   （Blocks コンテナが Redux に置いた ScratchBlocks を使う）。inject は main workspace を差し替えるので、
   描いたあとにエディタのワークスペースを `setMainWorkspace` で戻す。変換した XML は Ruby ごとに覚える。
   変換できない Ruby は「（このブロックは描けませんでした）」を出す（文言は出る）。
+  条件の穴に入った `false` は空の穴として描く（`if false` = 「もし <  > なら」。ブロック → Ruby が空の穴を
+  `if false` と書くのに合わせる。`blocks-xml.js` の `emptyFalseConditions`）。
 - **指す場所**: `target` の場所を DOM から探し（`lib/lessons/hint-targets.js` の `findHintTargetRect`。
   Smalruby の部品は data-testid（SP のサイドレール `mobile-side-rail-*`・拡張機能のボタン `extension-button`）、
   upstream の部品は data-testid を持たないので CSS Modules のクラス名の接頭辞 `<css ファイル名>_<クラス名>_`
@@ -544,6 +570,10 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `screenshots/0502-challenge2-arrow-move-hint1-1300x600.png` | チャレンジ 2「矢印キーで動かそう」の最初のヒント（パレットを指し「y座標を 10 ずつ変える」を描く） |
 | `screenshots/0503-challenge3-click-say-hint1-1300x600.png` | チャレンジ 3「押したら話そう」の最初のヒント（コスチュームタブを指す） |
 | `screenshots/0504-challenge4-repeat-hint1-1300x600.png` | チャレンジ 4「くり返そう」の最初のヒント（背景を選ぶを指す） |
+| `screenshots/0505-challenge5-if-hint1-1300x600.png` | チャレンジ 5「もし〜なら」のヒント 1（「ずっと」を描く） |
+| `screenshots/0506-challenge6-ask-answer-hint1-1300x600.png` | チャレンジ 6「聞いて答えよう」のヒント 1（「なまえは？ と聞いて待つ」を描く） |
+| `screenshots/0507-challenge7-quiz-hint1-1300x600.png` | チャレンジ 7「クイズを作ろう」のヒント 1 |
+| `screenshots/0508-challenge8-count-hint1-1300x600.png` | チャレンジ 8「数えよう」のヒント 1（「変数を作る」） |
 
 ## いまのチュートリアルの入口
 
@@ -572,6 +602,7 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `packages/scratch-gui/test/unit/components/lesson-hint.test.jsx` / `test/unit/containers/lesson-hint.test.jsx` | 吹き出しとコンテナの unit テスト |
 | `packages/scratch-gui/test/integration/smalruby-lessons-hint.test.js` | ヒントを開く → 本物のブロック・指す場所・初回だけのスポットライト → 進める → プログラムを入れる → 2 回目はスポットライト無し（Selenium） |
 | `packages/scratch-gui/test/integration/smalruby-lesson1-challenges-1-4.test.js` | レッスン 1 のチャレンジ 1〜4 を開く → ヒントを最後まで進めて「プログラムを入れる」→ 課題の操作（実際のキー入力・ステージのネコをクリック）→「できた！」（Selenium） |
+| `packages/scratch-gui/test/integration/smalruby-lesson1-challenges-5-8.test.js` | チャレンジ 5〜8 を開く → プログラムを入れる → 旗・マウス・ネコを押す・答えを入力する →「できた！」（Selenium・1300×600） |
 | `packages/scratch-gui/src/lib/lessons/goal.js` | できた の判定（`goal` の形・事実の記録・判定の純粋関数・`validateGoal`） |
 | `packages/scratch-gui/src/lib/lessons/vm-execution-hook.js` | ブロックの実行をスレッドつきで取るフック（runtime の `getOpcodeFunction` を包む） |
 | `packages/scratch-gui/src/lib/lessons/goal-monitor.js` | VM を見張って goal を判定する（`attachGoalMonitor` / `takeSnapshot`） |

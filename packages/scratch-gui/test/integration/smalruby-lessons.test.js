@@ -86,12 +86,13 @@ describe('Smalruby Lessons', () => {
         await loadUri(`${uri}?no_beforeunload=1`);
         await waitForLoadingFinished();
 
-        await startChallenge(driver, 'blocks-l1-quiz');
+        // 中身（パレット）がまだ入っていないチャレンジ
+        await startChallenge(driver, 'blocks-l1-broadcast');
         await findByXpath(byTestId('lesson-task-bar'));
         await driver.sleep(1000);
 
         const position = await findByXpath(byTestId('lesson-task-bar-position'));
-        expect(await position.getText()).toBe('7 of 11');
+        expect(await position.getText()).toBe('9 of 11');
         expect(await textExists('Motion', scope.blocksTab)).toBe(true);
         expect(await textExists('Looks', scope.blocksTab)).toBe(true);
 
