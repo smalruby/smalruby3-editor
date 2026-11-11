@@ -1,11 +1,13 @@
-import { findLesson } from '../../../../src/lib/lessons/courses';
+import { defineCourse, defineLesson, findLesson } from '../../../../src/lib/lessons/courses';
 import {
     LESSON_PROGRESS_STORAGE_KEY,
     completedSkills,
     emptyProgress,
     exportProgress,
     isChallengeCompleted,
+    isLastChallengeOfLesson,
     lessonClearStatus,
+    lessonsLibraryFocus,
     loadProgress,
     markChallengeCompleted,
     mergeProgress,
@@ -184,12 +186,8 @@ describe('lesson progress', () => {
         });
 
         test('loads empty progress when the stored value is broken', () => {
-            expect(loadProgress(makeStorage({ [LESSON_PROGRESS_STORAGE_KEY]: '{oops' }))).toEqual(
-                emptyProgress(),
-            );
-            expect(loadProgress(makeStorage({ [LESSON_PROGRESS_STORAGE_KEY]: '[1,2]' }))).toEqual(
-                emptyProgress(),
-            );
+            expect(loadProgress(makeStorage({ [LESSON_PROGRESS_STORAGE_KEY]: '{oops' }))).toEqual(emptyProgress());
+            expect(loadProgress(makeStorage({ [LESSON_PROGRESS_STORAGE_KEY]: '[1,2]' }))).toEqual(emptyProgress());
             expect(
                 loadProgress(makeStorage({ [LESSON_PROGRESS_STORAGE_KEY]: '{"challenges":{"a":3,"b":{}}}' })),
             ).toEqual(emptyProgress());
@@ -210,5 +208,73 @@ describe('lesson progress', () => {
             expect(loadProgress(null)).toEqual(emptyProgress());
             expect(saveProgress(emptyProgress(), null)).toBe(false);
         });
+    });
+});
+
+describe('isLastChallengeOfLesson', () => {
+    test('is true only for the last challenge in the lesson order', () => {
+        expect(isLastChallengeOfLesson(lesson1Id(11))).toBe(true);
+        expect(isLastChallengeOfLesson(lesson1Id(1))).toBe(false);
+        expect(isLastChallengeOfLesson(lesson1Id(10))).toBe(false);
+        expect(isLastChallengeOfLesson('no-such-challenge')).toBe(false);
+    });
+});
+
+describe('lessonsLibraryFocus', () => {
+    const done = (...numbers) =>
+        numbers.reduce((p, n) => markChallengeCompleted(p, lesson1Id(n), NOW), emptyProgress());
+
+    test('focuses the current lesson and the next challenge after the current one', () => {
+        expect(lessonsLibraryFocus(lesson1Id(3), done(3))).toEqual({
+            language: 'blocks',
+            courseId: 'kyou-kara-programmer',
+            lessonId: 'blocks-l1',
+            nextChallengeId: lesson1Id(4),
+        });
+    });
+
+    test('skips challenges that are already done', () => {
+        expect(lessonsLibraryFocus(lesson1Id(3), done(3, 4, 5)).nextChallengeId).toBe(lesson1Id(6));
+    });
+
+    test('wraps around to the first challenges not done yet', () => {
+        expect(lessonsLibraryFocus(lesson1Id(10), done(10, 11, 1)).nextChallengeId).toBe(lesson1Id(2));
+    });
+
+    test('on the last challenge (no next lesson) points to one not done yet in the lesson', () => {
+        const focus = lessonsLibraryFocus(lesson1Id(11), done(11, 1));
+        expect(focus.lessonId).toBe('blocks-l1');
+        expect(focus.nextChallengeId).toBe(lesson1Id(2));
+    });
+
+    test('never picks the current challenge, and is null when everything is done', () => {
+        const all = done(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11);
+        expect(lessonsLibraryFocus(lesson1Id(5), all).nextChallengeId).toBeNull();
+        expect(lessonsLibraryFocus(lesson1Id(5), emptyProgress()).nextChallengeId).toBe(lesson1Id(6));
+    });
+
+    test('on the last challenge, moves to the next lesson of the course when there is one', () => {
+        const courses = [
+            defineCourse({
+                id: 'c',
+                language: 'blocks',
+                lessons: [
+                    defineLesson({ id: 'l1', count: 1, challenges: [{ id: 'a' }, { id: 'b' }] }),
+                    defineLesson({ id: 'l2', count: 1, challenges: [{ id: 'c1' }, { id: 'c2' }] }),
+                ],
+            }),
+        ];
+        const progress = { version: 1, challenges: { c1: { completedAt: NOW, courseId: 'c', lessonId: 'l2' } } };
+        expect(lessonsLibraryFocus('b', progress, courses)).toEqual({
+            language: 'blocks',
+            courseId: 'c',
+            lessonId: 'l2',
+            nextChallengeId: 'c2',
+        });
+        expect(lessonsLibraryFocus('a', progress, courses).lessonId).toBe('l1');
+    });
+
+    test('is null for an unknown challenge', () => {
+        expect(lessonsLibraryFocus('no-such-challenge', emptyProgress())).toBeNull();
     });
 });

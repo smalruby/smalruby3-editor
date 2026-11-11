@@ -6,19 +6,26 @@ import React from 'react';
 import { IntlProvider } from 'react-intl';
 import { LessonGoalWatcher } from '../../../src/containers/lesson-goal-watcher.jsx';
 
-jest.mock('../../../src/lib/lessons/courses.js', () => ({
-    findChallenge: (id) =>
-        id === 'test-challenge'
-            ? {
-                  challenge: {
-                      id,
-                      name: { id: 'gui.lessons.challenge.test.name', defaultMessage: 'Test challenge' },
-                      skills: [{ id: 's', name: { id: 'gui.lessons.skill.s.name', defaultMessage: 'Say things' } }],
-                      goal: [{ type: 'uses', trigger: { hat: 'event_whenflagclicked' }, blocks: ['looks_say'] }],
-                  },
-              }
-            : null,
-}));
+jest.mock('../../../src/lib/lessons/courses.js', () => {
+    const makeChallenge = (id, name) => ({
+        id,
+        name: { id: `gui.lessons.challenge.${id}.name`, defaultMessage: name },
+        skills: [{ id: 's', name: { id: 'gui.lessons.skill.s.name', defaultMessage: 'Say things' } }],
+        goal: [{ type: 'uses', trigger: { hat: 'event_whenflagclicked' }, blocks: ['looks_say'] }],
+    });
+    const lesson = {
+        id: 'l',
+        challenges: [makeChallenge('test-challenge', 'Test challenge'), makeChallenge('last-challenge', 'Last')],
+    };
+    const course = { id: 'c', language: 'blocks', lessons: [lesson] };
+    return {
+        COURSES: [course],
+        findChallenge: (id) => {
+            const challenge = lesson.challenges.find((c) => c.id === id);
+            return challenge ? { course, lesson, challenge } : null;
+        },
+    };
+});
 
 const makeVm = () => {
     const runtime = new EventEmitter();
@@ -42,7 +49,7 @@ const makeVm = () => {
 const renderWatcher = (props) =>
     render(
         <IntlProvider locale="en">
-            <LessonGoalWatcher onCompleted={jest.fn()} onDismiss={jest.fn()} {...props} />
+            <LessonGoalWatcher onCompleted={jest.fn()} onDismiss={jest.fn()} onNextChallenge={jest.fn()} {...props} />
         </IntlProvider>,
     );
 
@@ -87,6 +94,7 @@ describe('LessonGoalWatcher', () => {
                     justCompletedId={null}
                     onCompleted={onCompleted}
                     onDismiss={jest.fn()}
+                    onNextChallenge={jest.fn()}
                 />
             </IntlProvider>,
         );
@@ -98,6 +106,7 @@ describe('LessonGoalWatcher', () => {
                     justCompletedId={null}
                     onCompleted={onCompleted}
                     onDismiss={jest.fn()}
+                    onNextChallenge={jest.fn()}
                 />
             </IntlProvider>,
         );
@@ -119,6 +128,33 @@ describe('LessonGoalWatcher', () => {
         expect(getByTestId('lesson-completed-toast-skills')).toHaveTextContent('Say things');
         fireEvent.click(getByTestId('lesson-completed-toast-close'));
         expect(onDismiss).toHaveBeenCalledTimes(1);
+    });
+
+    test('"Next challenge" dismisses the toast and opens the library at the current challenge', () => {
+        const onDismiss = jest.fn();
+        const onNextChallenge = jest.fn();
+        const { getByTestId } = renderWatcher({
+            vm: makeVm(),
+            challengeId: 'test-challenge',
+            justCompletedId: 'test-challenge',
+            onDismiss,
+            onNextChallenge,
+        });
+        const next = getByTestId('lesson-completed-toast-next');
+        expect(next).toHaveAttribute('data-last', 'false');
+        fireEvent.click(next);
+        expect(onDismiss).toHaveBeenCalledTimes(1);
+        expect(onNextChallenge).toHaveBeenCalledWith('test-challenge');
+    });
+
+    test('the last challenge of the lesson shows the "other lessons" wording', () => {
+        const { getByTestId } = renderWatcher({
+            vm: makeVm(),
+            challengeId: 'last-challenge',
+            justCompletedId: 'last-challenge',
+        });
+        expect(getByTestId('lesson-completed-toast-last')).toBeInTheDocument();
+        expect(getByTestId('lesson-completed-toast-next')).toHaveAttribute('data-last', 'true');
     });
 
     test('exposes window.smalruby.lessonGoal while mounted with a VM', () => {

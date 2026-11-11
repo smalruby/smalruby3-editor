@@ -1,5 +1,5 @@
-@import "../../css/z-index.css";
-@import "../../css/colors.css";
+@import '../../css/z-index.css';
+@import '../../css/colors.css';
 
 /* Non-blocking toast pinned to the top-center of the viewport, above the editor but
    below modals. Only the toast itself takes pointer events.
@@ -54,6 +54,32 @@
     margin-top: 4px;
     font-size: 13px;
     line-height: 1.5;
+}
+
+.lastInLesson {
+    margin-top: 4px;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+.actions {
+    margin-top: 8px;
+}
+
+.next {
+    min-height: 44px;
+    padding: 8px 20px;
+    border: none;
+    border-radius: 22px;
+    background-color: $motion-primary;
+    color: $ui-white;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.next:hover {
+    opacity: 0.85;
 }
 
 .close {

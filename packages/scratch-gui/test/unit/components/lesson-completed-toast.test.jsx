@@ -57,4 +57,52 @@ describe('LessonCompletedToast', () => {
         fireEvent.click(getByTestId('lesson-completed-toast-close'));
         expect(onClose).toHaveBeenCalledTimes(1);
     });
+
+    test('shows "Next challenge" and calls onNextChallenge', () => {
+        const onNextChallenge = jest.fn();
+        const { getByTestId, queryByTestId } = renderToast({ onNextChallenge });
+        const next = getByTestId('lesson-completed-toast-next');
+        expect(next).toHaveTextContent('Next challenge');
+        expect(next).toHaveAttribute('data-last', 'false');
+        expect(queryByTestId('lesson-completed-toast-last')).not.toBeInTheDocument();
+        fireEvent.click(next);
+        expect(onNextChallenge).toHaveBeenCalledTimes(1);
+    });
+
+    test('on the last challenge of the lesson, says so and points to other lessons', () => {
+        const onNextChallenge = jest.fn();
+        const { getByTestId } = renderToast({ onNextChallenge, isLastChallenge: true });
+        expect(getByTestId('lesson-completed-toast-last')).toHaveTextContent(
+            'That was the last challenge of this lesson.',
+        );
+        const next = getByTestId('lesson-completed-toast-next');
+        expect(next).toHaveTextContent('Go to other lessons');
+        expect(next).toHaveAttribute('data-last', 'true');
+        fireEvent.click(next);
+        expect(onNextChallenge).toHaveBeenCalledTimes(1);
+    });
+
+    test('uses the Japanese strings for the next button', () => {
+        const { getByTestId, rerender } = renderToast({ onNextChallenge: jest.fn() }, { locale: 'ja', messages: ja });
+        expect(getByTestId('lesson-completed-toast-next')).toHaveTextContent('次のチャレンジ');
+        rerender(
+            <IntlProvider locale="ja" messages={ja}>
+                <LessonCompletedToast
+                    challenge={challenge}
+                    onClose={jest.fn()}
+                    onNextChallenge={jest.fn()}
+                    isLastChallenge
+                />
+            </IntlProvider>,
+        );
+        expect(getByTestId('lesson-completed-toast-last')).toHaveTextContent(
+            'このレッスンのチャレンジは、これでおわり。',
+        );
+        expect(getByTestId('lesson-completed-toast-next')).toHaveTextContent('ほかのレッスンへ');
+    });
+
+    test('omits the next button without onNextChallenge', () => {
+        const { queryByTestId } = renderToast();
+        expect(queryByTestId('lesson-completed-toast-next')).not.toBeInTheDocument();
+    });
 });

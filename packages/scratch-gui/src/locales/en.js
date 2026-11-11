@@ -1268,6 +1268,7 @@ export default {
     'gui.lessonsLibrary.cleared': 'Cleared!',
     'gui.lessonsLibrary.required': 'Required',
     'gui.lessonsLibrary.done': 'Done',
+    'gui.lessonsLibrary.next': 'Next!',
     'gui.lessonsLibrary.skillsTitle': 'What you can do',
     'gui.lessonsLibrary.category.motion': 'Motion',
     'gui.lessonsLibrary.category.looks': 'Looks',

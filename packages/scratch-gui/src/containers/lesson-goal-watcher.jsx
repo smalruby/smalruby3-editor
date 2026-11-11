@@ -1,10 +1,12 @@
 import PropTypes from 'prop-types';
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { connect } from 'react-redux';
 import LessonCompletedToast from '../components/lesson-completed-toast/lesson-completed-toast.jsx';
 import { findChallenge } from '../lib/lessons/courses.js';
 import { attachGoalMonitor } from '../lib/lessons/goal-monitor.js';
 import { evaluateGoal, validateGoal } from '../lib/lessons/goal.js';
+import { isLastChallengeOfLesson } from '../lib/lessons/lesson-progress.js';
+import { openLessonsLibraryAt } from '../lib/lessons/open-lessons-library.js';
 import { closeLesson, dismissCompleted, markChallengeCompleted, openChallenge } from '../reducers/lesson-mode.js';
 
 // Always-mounted container. While a challenge is open (lesson mode) it watches the VM
@@ -16,6 +18,7 @@ const LessonGoalWatcher = ({
     justCompletedId,
     onCompleted,
     onDismiss,
+    onNextChallenge,
     onOpenChallenge,
     onCloseLesson,
 }) => {
@@ -50,8 +53,22 @@ const LessonGoalWatcher = ({
         };
     }, [vm, onOpenChallenge, onCloseLesson]);
 
+    // 「次のチャレンジ」: 「できた！」を閉じて、レッスン表をいまのレッスンで開く（#1520）。
+    // レッスンモードは抜けない（レッスン表を閉じたら、いまのチャレンジにもどる）
+    const handleNextChallenge = useCallback(() => {
+        onDismiss();
+        onNextChallenge(challengeId);
+    }, [challengeId, onDismiss, onNextChallenge]);
+
     if (!challenge || justCompletedId !== challengeId) return null;
-    return <LessonCompletedToast challenge={challenge} onClose={onDismiss} />;
+    return (
+        <LessonCompletedToast
+            challenge={challenge}
+            isLastChallenge={isLastChallengeOfLesson(challenge.id)}
+            onClose={onDismiss}
+            onNextChallenge={handleNextChallenge}
+        />
+    );
 };
 
 LessonGoalWatcher.propTypes = {
@@ -60,6 +77,7 @@ LessonGoalWatcher.propTypes = {
     onCloseLesson: PropTypes.func,
     onCompleted: PropTypes.func.isRequired,
     onDismiss: PropTypes.func.isRequired,
+    onNextChallenge: PropTypes.func.isRequired,
     onOpenChallenge: PropTypes.func,
     vm: PropTypes.object,
 };
@@ -73,6 +91,7 @@ const mapStateToProps = (state) => ({
 const mapDispatchToProps = (dispatch) => ({
     onCompleted: (challengeId) => dispatch(markChallengeCompleted(challengeId)),
     onDismiss: () => dispatch(dismissCompleted()),
+    onNextChallenge: (challengeId) => openLessonsLibraryAt(dispatch, challengeId),
     onOpenChallenge: (challengeId) => dispatch(openChallenge(challengeId)),
     onCloseLesson: () => dispatch(closeLesson()),
 });

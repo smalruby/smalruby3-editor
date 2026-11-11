@@ -181,4 +181,32 @@ describe('LessonsLibrary', () => {
             expect(getByTestId('lessons-library-skill-repeat')).toHaveAttribute('data-done', 'false');
         });
     });
+
+    test('without a focus, no lesson is focused and no challenge is marked as next', () => {
+        const { getByTestId, queryByTestId } = renderLibrary();
+        expect(getByTestId(`lessons-library-lesson-${LESSON.id}`)).toHaveAttribute('data-focused', 'false');
+        expect(queryByTestId('lessons-library-challenge-next')).not.toBeInTheDocument();
+    });
+
+    test('focuses the lesson, scrolls to it and marks the next challenge', () => {
+        const scrollIntoView = jest.fn();
+        window.HTMLElement.prototype.scrollIntoView = scrollIntoView;
+        try {
+            const { getByTestId, getAllByTestId } = renderLibrary({
+                focusLessonId: LESSON.id,
+                nextChallengeId: ALL_IDS[3],
+            });
+            const section = getByTestId(`lessons-library-lesson-${LESSON.id}`);
+            expect(section).toHaveAttribute('data-focused', 'true');
+            expect(scrollIntoView).toHaveBeenCalledTimes(1);
+            expect(scrollIntoView.mock.instances[0]).toBe(section);
+            const next = getByTestId(`lessons-library-challenge-${ALL_IDS[3]}`);
+            expect(next).toHaveAttribute('data-next', 'true');
+            expect(getAllByTestId('lessons-library-challenge-next')).toHaveLength(1);
+            expect(next).toHaveTextContent('Next!');
+            expect(getByTestId(`lessons-library-challenge-${ALL_IDS[4]}`)).toHaveAttribute('data-next', 'false');
+        } finally {
+            delete window.HTMLElement.prototype.scrollIntoView;
+        }
+    });
 });

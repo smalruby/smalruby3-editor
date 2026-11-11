@@ -24,6 +24,8 @@ const PREV_HINT = 'scratch-gui/lesson-mode/PREV_HINT';
 const MARK_CHALLENGE_COMPLETED = 'scratch-gui/lesson-mode/MARK_CHALLENGE_COMPLETED';
 const RELOAD_PROGRESS = 'scratch-gui/lesson-mode/RELOAD_PROGRESS';
 const DISMISS_COMPLETED = 'scratch-gui/lesson-mode/DISMISS_COMPLETED';
+const FOCUS_LESSONS_LIBRARY = 'scratch-gui/lesson-mode/FOCUS_LESSONS_LIBRARY';
+const CLEAR_LESSONS_LIBRARY_FOCUS = 'scratch-gui/lesson-mode/CLEAR_LESSONS_LIBRARY_FOCUS';
 // チュートリアルのカードを開く action（reducers/cards.js の ACTIVATE_DECK）。カードの
 // allowedBlocks / setup がレッスンのものと食い違うので、開いたらレッスンモードを抜ける
 const ACTIVATE_DECK = 'scratch-gui/cards/ACTIVATE_DECK';
@@ -55,6 +57,10 @@ const closedState = {
 const initialState = {
     ...closedState,
     progress: loadProgress(),
+    // レッスン表を開くときに見せるチャレンジ（「次のチャレンジ」で開いたとき・#1520）。
+    // レッスン表は、これが入っているレッスンへスクロールし、次のまだできていないチャレンジを
+    // 目立たせる（lessonsLibraryFocus）。レッスンを閉じても消さない（レッスン表が閉じるときに消す）
+    libraryFocusChallengeId: null,
 };
 
 const hintCount = (state) => {
@@ -119,6 +125,13 @@ const reducer = function (state, action) {
         }
         case DISMISS_COMPLETED:
             return state.justCompletedId === null ? state : { ...state, justCompletedId: null };
+        case FOCUS_LESSONS_LIBRARY:
+            if (!findChallenge(action.challengeId) || state.libraryFocusChallengeId === action.challengeId) {
+                return state;
+            }
+            return { ...state, libraryFocusChallengeId: action.challengeId };
+        case CLEAR_LESSONS_LIBRARY_FOCUS:
+            return state.libraryFocusChallengeId === null ? state : { ...state, libraryFocusChallengeId: null };
         case RELOAD_PROGRESS: {
             // 別のタブが書いた分を写しに取り込む（レッスン表を開くときなど）。localStorage は書かない
             const progress = mergeProgress(state.progress, loadProgress());
@@ -166,6 +179,18 @@ const markChallengeCompleted = (challengeId, completedAt = new Date().toISOStrin
 const reloadProgress = () => ({ type: RELOAD_PROGRESS });
 
 const dismissCompleted = () => ({ type: DISMISS_COMPLETED });
+
+/**
+ * レッスン表を開いたときに、このチャレンジのレッスンを見せて、その次のまだできていない
+ * チャレンジを目立たせる（「次のチャレンジ」・#1520）。開くのは modals の openLessonsLibrary
+ * （まとめて出すときは lib/lessons/open-lessons-library.js の openLessonsLibraryAt）。
+ * @param {string} challengeId - いまのチャレンジ id（知らない id は無視）。
+ * @returns {object} action。
+ */
+const focusLessonsLibrary = (challengeId) => ({ type: FOCUS_LESSONS_LIBRARY, challengeId });
+
+/** レッスン表を閉じたとき、見せるチャレンジを消す（次にメニューから開いたときは先頭から）。 */
+const clearLessonsLibraryFocus = () => ({ type: CLEAR_LESSONS_LIBRARY_FOCUS });
 
 const isLessonMode = (state) => state.scratchGui.lessonMode.challengeId !== null;
 
@@ -231,6 +256,8 @@ export {
     markChallengeCompleted,
     reloadProgress,
     dismissCompleted,
+    focusLessonsLibrary,
+    clearLessonsLibraryFocus,
     isLessonMode,
     getCurrentChallenge,
     getLessonAllowedBlocks,

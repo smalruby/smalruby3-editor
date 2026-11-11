@@ -1,5 +1,5 @@
-@import "../../css/colors.css";
-@import "../../css/units.css";
+@import '../../css/colors.css';
+@import '../../css/units.css';
 
 .header {
     background-color: $motion-primary;
@@ -94,6 +94,15 @@
     white-space: nowrap;
 }
 
+/* 「次のチャレンジ」で開いたとき、いまのレッスンを囲む（そこへスクロールする） */
+.lesson-focused {
+    padding: 0.5rem;
+    margin: -0.5rem;
+    border-radius: 0.75rem;
+    background-color: $ui-primary;
+    scroll-margin-top: 1rem;
+}
+
 .lesson + .lesson {
     margin-top: 1rem;
 }
@@ -177,6 +186,12 @@
     background-color: $pen-transparent;
 }
 
+/* 次にやるチャレンジ。太い枠で目立たせる（できた の色より強く） */
+.challenge-next {
+    border: 3px solid $motion-primary;
+    box-shadow: 0 0 0 3px $ui-alert-overlay;
+}
+
 .challenge-number {
     flex-shrink: 0;
     min-width: 1.5rem;
@@ -246,6 +261,7 @@
     line-height: 1.25;
 }
 
+.next-mark,
 .required-mark,
 .done-mark {
     flex-shrink: 0;
@@ -319,4 +335,9 @@
     .challenges {
         grid-template-columns: 1fr;
     }
+}
+
+.next-mark {
+    background-color: $motion-primary;
+    color: $ui-white;
 }

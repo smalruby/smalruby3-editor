@@ -148,6 +148,9 @@ export const ja = {
         '「答え」という文字がたまるときは、丸い「答え」のブロックを入れたか見よう。',
     'gui.lessons.completed.title': 'できた！',
     'gui.lessons.completed.skills': 'できること: {skills}',
+    'gui.lessons.completed.next': '次のチャレンジ',
+    'gui.lessons.completed.lastInLesson': 'このレッスンのチャレンジは、これでおわり。',
+    'gui.lessons.completed.otherLessons': 'ほかのレッスンへ',
     'gui.lessons.completed.close': '閉じる',
 };
 
@@ -297,6 +300,9 @@ export const jaHira = {
         '「こたえ」というもじがたまるときは、まるい「こたえ」のブロックをいれたかみよう。',
     'gui.lessons.completed.title': 'できた！',
     'gui.lessons.completed.skills': 'できること: {skills}',
+    'gui.lessons.completed.next': 'つぎのチャレンジ',
+    'gui.lessons.completed.lastInLesson': 'このレッスンのチャレンジは、これでおわり。',
+    'gui.lessons.completed.otherLessons': 'ほかのレッスンへ',
     'gui.lessons.completed.close': 'とじる',
 };
 
@@ -453,5 +459,8 @@ export const en = {
         'If the word "answer" is kept, check that you put in the round "answer" block.',
     'gui.lessons.completed.title': 'You did it!',
     'gui.lessons.completed.skills': 'Now you can: {skills}',
+    'gui.lessons.completed.next': 'Next challenge',
+    'gui.lessons.completed.lastInLesson': 'That was the last challenge of this lesson.',
+    'gui.lessons.completed.otherLessons': 'Go to other lessons',
     'gui.lessons.completed.close': 'Close',
 };

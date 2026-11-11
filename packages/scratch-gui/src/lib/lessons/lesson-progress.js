@@ -3,7 +3,6 @@
 //
 // 保存の形:
 //   { version: 1, challenges: { <challengeId>: { completedAt, courseId, lessonId } } }
-
 import { COURSES, findChallenge } from './courses';
 
 export const LESSON_PROGRESS_STORAGE_KEY = 'smalruby:lessonProgress';
@@ -171,3 +170,70 @@ export const exportProgress = (progress) =>
             completedAt: record.completedAt,
         }))
         .sort((a, b) => a.completedAt.localeCompare(b.completedAt) || a.challengeId.localeCompare(b.challengeId));
+
+/**
+ * レッスンの最後のチャレンジか（並び順で最後）。「できた！」の文言を変える。
+ * 必須がそろったかどうかでは変えない（必須は段 1 から外す予定・#1520）。
+ * @param {string} challengeId - チャレンジ id。
+ * @param {Array} [courses] - コース（テスト用）。
+ * @returns {boolean} 最後なら true（知らない id は false）。
+ */
+export const isLastChallengeOfLesson = (challengeId, courses = COURSES) => {
+    const found = findChallenge(challengeId, courses);
+    if (!found) return false;
+    const { challenges } = found.lesson;
+    return challenges[challenges.length - 1].id === challengeId;
+};
+
+/**
+ * レッスンの中で、`afterId` の次から並び順にさがして（最後まで行ったら先頭にもどる）、
+ * まだできていない最初のチャレンジ。`afterId` 自身は選ばない。
+ * @param {object} lesson - レッスン。
+ * @param {object} progress - 記録。
+ * @param {?string} afterId - ここの次からさがす。null なら先頭から。
+ * @returns {?object} チャレンジ。全部できていれば null。
+ */
+const nextIncompleteChallenge = (lesson, progress, afterId) => {
+    const { challenges } = lesson;
+    const start = afterId === null ? 0 : challenges.findIndex((c) => c.id === afterId) + 1;
+    for (let i = 0; i < challenges.length; i++) {
+        const challenge = challenges[(start + i) % challenges.length];
+        if (challenge.id !== afterId && !isChallengeCompleted(progress, challenge.id)) return challenge;
+    }
+    return null;
+};
+
+/**
+ * 「次のチャレンジ」でレッスン表を開くとき、どのレッスンを見せて、どのチャレンジを次として
+ * 目立たせるか（#1520）。
+ *   - レッスンの途中: いまのレッスン。次は、いまの次から並び順にさがしたまだできていないもの
+ *     （最後まで行ったら先頭にもどる）。
+ *   - レッスンの最後: コースに次のレッスンがあればそのレッスンの、まだできていない最初のもの。
+ *     次のレッスンが無ければ、いまのレッスンの中でまだできていないもの。
+ * @param {string} challengeId - いまのチャレンジ id。
+ * @param {object} progress - 記録。
+ * @param {Array} [courses] - コース（テスト用）。
+ * @returns {?{language: string, courseId: string, lessonId: string, nextChallengeId: ?string}}
+ *   知らない id は null。`nextChallengeId` は全部できていれば null。
+ */
+export const lessonsLibraryFocus = (challengeId, progress, courses = COURSES) => {
+    const found = findChallenge(challengeId, courses);
+    if (!found) return null;
+    const { course, lesson } = found;
+    let focusLesson = lesson;
+    let next = null;
+    if (isLastChallengeOfLesson(challengeId, courses)) {
+        const nextLesson = course.lessons[course.lessons.indexOf(lesson) + 1];
+        if (nextLesson) {
+            focusLesson = nextLesson;
+            next = nextIncompleteChallenge(nextLesson, progress, null);
+        }
+    }
+    if (focusLesson === lesson) next = nextIncompleteChallenge(lesson, progress, challengeId);
+    return {
+        language: course.language,
+        courseId: course.id,
+        lessonId: focusLesson.id,
+        nextChallengeId: next ? next.id : null,
+    };
+};
