@@ -95,6 +95,14 @@ describe('Smalruby Lessons: full text of the task', () => {
         await driver.sleep(200);
         expect(await countByTestId('lesson-task-bar-full-text')).toBe(0);
 
+        // コードエリアを押しても閉じる（Blockly は pointerdown を preventDefault するので mousedown が来ない）
+        await clickByTestId('lesson-task-bar-full-text-toggle');
+        await findByXpath(byTestId('lesson-task-bar-full-text'));
+        const workspace = await driver.findElement({ css: '.blocklyMainBackground' });
+        await driver.actions().move({ origin: workspace, x: 100, y: 120 }).click().perform();
+        await driver.sleep(200);
+        expect(await countByTestId('lesson-task-bar-full-text')).toBe(0);
+
         // ヒントの吹き出しが出ているときに全文を開くと、吹き出しは閉じる（重ねない）
         await clickByTestId('lesson-task-bar-hint');
         await findByXpath(byTestId('lesson-hint'));

@@ -34,7 +34,7 @@ const messages = defineMessages({
     fullTextLabel: {
         id: 'gui.lessonTaskBar.fullTextLabel',
         description: 'Accessible name of the button that shows the whole task',
-        defaultMessage: 'Show the whole task',
+        defaultMessage: 'Read all of the task',
     },
     quit: {
         id: 'gui.lessonTaskBar.quit',
@@ -90,12 +90,13 @@ const LessonTaskBar = ({ challenge, challengeCount, hintAvailable, hintVisible, 
         const handleKey = (e) => {
             if (e.key === 'Escape') setOpen(false);
         };
-        document.addEventListener('mousedown', handlePointer);
-        document.addEventListener('touchstart', handlePointer);
+        // mousedown ではなく pointerdown（capture）で見る。Blockly のコードエリアは pointerdown を
+        // preventDefault するので、互換の mousedown が来ず、コードエリアを押しても閉じなかった。
+        // pointerdown はタッチも含む
+        document.addEventListener('pointerdown', handlePointer, true);
         document.addEventListener('keydown', handleKey);
         return () => {
-            document.removeEventListener('mousedown', handlePointer);
-            document.removeEventListener('touchstart', handlePointer);
+            document.removeEventListener('pointerdown', handlePointer, true);
             document.removeEventListener('keydown', handleKey);
         };
     }, [open]);

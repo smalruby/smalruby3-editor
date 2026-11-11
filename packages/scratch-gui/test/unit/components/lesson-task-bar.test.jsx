@@ -134,9 +134,9 @@ describe('LessonTaskBar', () => {
             fireEvent.click(getByTestId('lesson-task-bar-task'));
             expect(getByTestId('lesson-task-bar-full-text')).toBeInTheDocument();
             // パネルの中を押しても閉じない
-            fireEvent.mouseDown(getByTestId('lesson-task-bar-full-text'));
+            fireEvent.pointerDown(getByTestId('lesson-task-bar-full-text'));
             expect(getByTestId('lesson-task-bar-full-text')).toBeInTheDocument();
-            fireEvent.mouseDown(document.body);
+            fireEvent.pointerDown(document.body);
             expect(queryByTestId('lesson-task-bar-full-text')).toBeNull();
             fireEvent.click(getByTestId('lesson-task-bar-task'));
             fireEvent.keyDown(document, { key: 'Escape' });
