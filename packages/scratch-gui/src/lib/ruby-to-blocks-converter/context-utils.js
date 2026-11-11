@@ -116,7 +116,9 @@ const ContextUtils = {
             'variables',
             'lists',
             'broadcastMsgs',
-            'procedures'
+            'procedures',
+            'comments',
+            'literalCallIndices'
         ];
 
         const saved = {};
@@ -127,7 +129,13 @@ const ContextUtils = {
         return saved;
     },
 
-    // could not restore attributes.
+    /**
+     * Roll the context back to a `_saveContext` snapshot: drop the entries (blocks, comments,
+     * variables, ...) made since then and put back the ones removed or replaced since then,
+     * so that a conversion attempt that was given up leaves no orphan block or comment behind.
+     * The attributes of an entry that was kept (e.g. a block's `parent`) are not restored.
+     * @param {object} saved - The snapshot returned by `_saveContext`.
+     */
     _restoreContext (saved) {
         if (!saved) {
             return;
@@ -141,11 +149,37 @@ const ContextUtils = {
                     }
                 });
                 Object.keys(saved[key]).forEach(id => {
-                    if (!Object.prototype.hasOwnProperty.call(saved[key], id)) {
-                        this._context[key][id] = saved[key][id];
-                    }
+                    this._context[key][id] = saved[key][id];
                 });
             }
+        });
+
+        if (!saved.blocks) {
+            return;
+        }
+        const exists = blockId => Object.prototype.hasOwnProperty.call(this._context.blocks, blockId);
+        const nodeToBlockMap = this._context.nodeToBlockMap;
+        if (nodeToBlockMap) {
+            nodeToBlockMap.forEach((blockId, node) => {
+                if (!exists(blockId)) {
+                    nodeToBlockMap.delete(node);
+                }
+            });
+        }
+        // A kept block may have been given a comment that was dropped above.
+        Object.values(this._context.blocks).forEach(block => {
+            if (block.comment && !Object.prototype.hasOwnProperty.call(this._context.comments, block.comment)) {
+                delete block.comment;
+            }
+        });
+        // These are not snapshotted, so drop the IDs of the blocks removed above; otherwise a later
+        // pass (e.g. turning an argument into a boolean one) looks the block up and gets undefined.
+        ['argumentBlocks', 'procedureCallBlocks'].forEach(key => {
+            const byId = this._context[key];
+            if (!byId) return;
+            Object.keys(byId).forEach(id => {
+                byId[id] = byId[id].filter(exists);
+            });
         });
     },
 

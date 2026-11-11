@@ -299,7 +299,10 @@ const ControlConverter = {
             if (converter._isFalseOrBooleanBlock(cond)) {
                 converter._addBooleanInput(block, 'CONDITION', cond);
             }
-            converter._addSubstack(block, statement);
+            // control_wait_until has no SUBSTACK input
+            if (opcode === 'control_repeat_until') {
+                converter._addSubstack(block, statement);
+            }
             if (hadWithScreenRefresh && opcode === 'control_repeat_until') {
                 addWithScreenRefreshComment(converter, block);
             } else if (hadWait && opcode === 'control_repeat_until') {
