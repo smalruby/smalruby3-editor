@@ -38,6 +38,13 @@ import {activateCustomProcedures, deactivateCustomProcedures} from '../reducers/
 // === Smalruby: Start of lesson mode ===
 import {getLessonAllowedBlocks} from '../reducers/lesson-mode';
 import {allowedBlocksToIds, filterDynamicCategoryXmlList} from '../lib/lesson-dynamic-categories';
+// === Smalruby: Start of lesson palette block defaults ===
+import {
+    allowedBlockDefaults,
+    applyBlockDefaultsToElements,
+    applyBlockDefaultsToToolboxXml
+} from '../lib/lessons/block-defaults';
+// === Smalruby: End of lesson palette block defaults ===
 // === Smalruby: End of lesson mode ===
 import {setConnectionModalExtensionId} from '../reducers/connection-modal';
 import {updateMetrics} from '../reducers/workspace-metrics';
@@ -195,16 +202,22 @@ class Blocks extends React.Component {
         // lesson / tutorial allowedBlocks has to be applied here (make-toolbox-xml cannot see them).
         this.workspace.registerToolboxCategoryCallback(
             'VARIABLE',
-            ws => filterDynamicCategoryXmlList(
-                this.ScratchBlocks.ScratchVariables.getVariablesCategory(ws),
-                this.getTutorialAllowedBlockIds()
+            ws => applyBlockDefaultsToElements(
+                filterDynamicCategoryXmlList(
+                    this.ScratchBlocks.ScratchVariables.getVariablesCategory(ws),
+                    this.getTutorialAllowedBlockIds()
+                ),
+                this.getTutorialBlockDefaults()
             )
         );
         this.workspace.registerToolboxCategoryCallback(
             'PROCEDURE',
-            ws => filterDynamicCategoryXmlList(
-                this.ScratchBlocks.ScratchProcedures.getProceduresCategory(ws),
-                this.getTutorialAllowedBlockIds()
+            ws => applyBlockDefaultsToElements(
+                filterDynamicCategoryXmlList(
+                    this.ScratchBlocks.ScratchProcedures.getProceduresCategory(ws),
+                    this.getTutorialAllowedBlockIds()
+                ),
+                this.getTutorialBlockDefaults()
             )
         );
         // === Smalruby: End of lesson dynamic category filtering ===
@@ -717,6 +730,17 @@ class Blocks extends React.Component {
     }
     // === Smalruby: End of lesson dynamic category filtering ===
 
+    // === Smalruby: Start of lesson palette block defaults ===
+    /**
+     * The initial values (fields / inputs) of the blocks in the lesson challenge / tutorial palette, or null.
+     * @returns {?object} `{opcode: {fields, inputs}}` (lib/lessons/block-defaults.js).
+     */
+    getTutorialBlockDefaults () {
+        if (this.props.dnclMode) return null;
+        return allowedBlockDefaults(this.props.tutorialAllowedBlocks, this.props.locale);
+    }
+    // === Smalruby: End of lesson palette block defaults ===
+
     getToolboxXML () {
         // Use try/catch because this requires digging pretty deep into the VM
         // Code inside intentionally ignores several error situations (no stage, etc.)
@@ -773,7 +797,7 @@ class Blocks extends React.Component {
                 }
             }
 
-            return makeToolboxXML(false, target.isStage, target.id, dynamicBlocksXML,
+            const toolboxXML = makeToolboxXML(false, target.isStage, target.id, dynamicBlocksXML,
                 targetCostumes[targetCostumes.length - 1].name,
                 stageCostumes[stageCostumes.length - 1].name,
                 targetSounds.length > 0 ? targetSounds[targetSounds.length - 1].name : '',
@@ -783,6 +807,9 @@ class Blocks extends React.Component {
                 this.props.dnclMode, // === Smalruby: hide extensions in DNCL mode ===
                 dynamicCategoryIds // === Smalruby: lesson dynamic category filtering ===
             );
+            // === Smalruby: Start of lesson palette block defaults ===
+            return applyBlockDefaultsToToolboxXml(toolboxXML, this.getTutorialBlockDefaults());
+            // === Smalruby: End of lesson palette block defaults ===
         } catch {
             return null;
         }

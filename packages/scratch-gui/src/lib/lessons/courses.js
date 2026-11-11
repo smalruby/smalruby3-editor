@@ -177,6 +177,8 @@ const challengeMessage = (challengeId, field) => message(`gui.lessons.challenge.
 // ヒントの文言は並びの番号（step1, step2, ...）で引く
 const withTitles = (challengeId, steps) =>
     steps.map((step, i) => ({ ...step, title: challengeMessage(challengeId, `step${i + 1}`) }));
+// 「言う」の初期値「こんにちは！」（仕様の表記。ツールボックスの初期値は半角の「こんにちは!」なので書く）
+const SAY_HELLO = { MESSAGE: { ja: 'こんにちは！', 'ja-Hira': 'こんにちは！', en: 'Hello!' } };
 const debugTips = (challengeId, count) =>
     Array.from({ length: count }, (_, i) => challengeMessage(challengeId, `debug${i + 1}`));
 
@@ -193,8 +195,12 @@ const blocksLesson1 = defineLesson({
             task: challengeMessage('blocks-l1-key-sound', 'task'),
             skills: [skill('key-control'), skill('play-sound'), skill('add-sound')],
             allowedBlocks: {
-                event: ['event_whenkeypressed'],
-                sound: ['sound_playuntildone', 'sound_play'],
+                event: [{ opcode: 'event_whenkeypressed', fields: { KEY_OPTION: 'space' } }],
+                // 音の ▼ は、足した「Owl」ではなくネコの音（作品を作った locale の名前）
+                sound: [
+                    { opcode: 'sound_playuntildone', inputs: { SOUND_MENU: { ja: 'ニャー', 'ja-Hira': 'Meow', en: 'Meow' } } },
+                    { opcode: 'sound_play', inputs: { SOUND_MENU: { ja: 'ニャー', 'ja-Hira': 'Meow', en: 'Meow' } } },
+                ],
             },
             steps: withTitles('blocks-l1-key-sound', [
                 { target: HINT_TARGETS.SOUNDS_TAB },
@@ -235,7 +241,7 @@ const blocksLesson1 = defineLesson({
             task: challengeMessage('blocks-l1-arrow-move', 'task'),
             skills: [skill('move-by-coordinates'), skill('duplicate-blocks')],
             allowedBlocks: {
-                event: ['event_whenkeypressed'],
+                event: [{ opcode: 'event_whenkeypressed', fields: { KEY_OPTION: 'up arrow' } }],
                 motion: ['motion_changeyby'],
             },
             steps: withTitles('blocks-l1-arrow-move', [
@@ -268,7 +274,7 @@ const blocksLesson1 = defineLesson({
             skills: [skill('click-trigger'), skill('say'), skill('add-costume')],
             allowedBlocks: {
                 event: ['event_whenthisspriteclicked'],
-                looks: ['looks_sayforsecs', 'looks_nextcostume'],
+                looks: [{ opcode: 'looks_sayforsecs', inputs: SAY_HELLO }, 'looks_nextcostume'],
             },
             steps: withTitles('blocks-l1-click-say', [
                 { target: HINT_TARGETS.COSTUMES_TAB },
@@ -309,9 +315,10 @@ const blocksLesson1 = defineLesson({
             task: challengeMessage('blocks-l1-repeat', 'task'),
             skills: [skill('repeat'), skill('add-backdrop'), skill('stage-program')],
             allowedBlocks: {
-                event: ['event_whenkeypressed'],
-                control: ['control_repeat', 'control_wait'],
-                looks: ['looks_switchbackdropto'],
+                event: [{ opcode: 'event_whenkeypressed', fields: { KEY_OPTION: '1' } }],
+                control: [{ opcode: 'control_repeat', inputs: { TIMES: 3 } }, 'control_wait'],
+                // 背景の名前はライブラリの名前（locale で変わらない）。足す前は ▼ に無いので、ツールボックスの初期値になる
+                looks: [{ opcode: 'looks_switchbackdropto', inputs: { BACKDROP: 'Canyon' } }],
             },
             steps: withTitles('blocks-l1-repeat', [
                 { target: HINT_TARGETS.BACKDROP },
@@ -345,7 +352,12 @@ const blocksLesson1 = defineLesson({
                 event: ['event_whenflagclicked'],
                 control: ['control_forever', 'control_if', 'control_if_else'],
                 sensing: ['sensing_touchingobject'],
-                looks: ['looks_say'],
+                looks: [
+                    {
+                        opcode: 'looks_say',
+                        inputs: { MESSAGE: { ja: 'くすぐったい！', 'ja-Hira': 'くすぐったい！', en: 'That tickles!' } },
+                    },
+                ],
             },
             steps: withTitles('blocks-l1-if', [
                 { target: HINT_TARGETS.PALETTE, blocks: 'loop do\nend\n' },
@@ -386,9 +398,17 @@ const blocksLesson1 = defineLesson({
             skills: [skill('ask-answer'), skill('timer'), skill('join')],
             allowedBlocks: {
                 event: ['event_whenthisspriteclicked'],
-                sensing: ['sensing_resettimer', 'sensing_askandwait', 'sensing_answer', 'sensing_timer'],
+                sensing: [
+                    'sensing_resettimer',
+                    {
+                        opcode: 'sensing_askandwait',
+                        inputs: { QUESTION: { ja: 'なまえは？', 'ja-Hira': 'なまえは？', en: "What's your name?" } },
+                    },
+                    'sensing_answer',
+                    'sensing_timer',
+                ],
                 operators: ['operator_join'],
-                looks: ['looks_sayforsecs'],
+                looks: [{ opcode: 'looks_sayforsecs', inputs: SAY_HELLO }],
             },
             steps: withTitles('blocks-l1-ask-answer', [
                 {
@@ -449,10 +469,15 @@ const blocksLesson1 = defineLesson({
             skills: [skill('compare'), skill('if')],
             allowedBlocks: {
                 event: ['event_whenthisspriteclicked'],
-                sensing: ['sensing_askandwait', 'sensing_answer'],
+                sensing: [{ opcode: 'sensing_askandwait', inputs: { QUESTION: '4+3=?' } }, 'sensing_answer'],
                 control: ['control_if', 'control_if_else'],
-                operators: ['operator_equals'],
-                looks: ['looks_sayforsecs'],
+                operators: [{ opcode: 'operator_equals', inputs: { OPERAND2: 7 } }],
+                looks: [
+                    {
+                        opcode: 'looks_sayforsecs',
+                        inputs: { MESSAGE: { ja: '正解です', 'ja-Hira': 'せいかいです', en: 'Correct' } },
+                    },
+                ],
             },
             steps: withTitles('blocks-l1-quiz', [
                 { target: HINT_TARGETS.PALETTE },
@@ -491,7 +516,7 @@ const blocksLesson1 = defineLesson({
             allowedBlocks: {
                 event: ['event_whenflagclicked', 'event_whenthisspriteclicked'],
                 data: ['data_setvariableto', 'data_changevariableby', 'data_variable'],
-                looks: ['looks_say'],
+                looks: [{ opcode: 'looks_say', inputs: SAY_HELLO }],
             },
             steps: withTitles('blocks-l1-count', [
                 { target: HINT_TARGETS.PALETTE },
@@ -525,8 +550,9 @@ const blocksLesson1 = defineLesson({
             task: challengeMessage('blocks-l1-broadcast', 'task'),
             skills: [skill('add-sprite'), skill('broadcast'), skill('sprite-program')],
             allowedBlocks: {
+                // メッセージの ▼（あいさつ）は、子どもが「新しいメッセージ」で作るのでツールボックスの初期値のまま
                 event: ['event_whenthisspriteclicked', 'event_broadcast', 'event_whenbroadcastreceived'],
-                looks: ['looks_sayforsecs'],
+                looks: [{ opcode: 'looks_sayforsecs', inputs: { MESSAGE: 'やあ！' } }],
             },
             steps: withTitles('blocks-l1-broadcast', [
                 { target: HINT_TARGETS.SPRITE_LIST, spotlight: true },
@@ -588,7 +614,14 @@ const blocksLesson1 = defineLesson({
             // 拡張機能は子どもがヒント 1 で足す（setup.extensions では入れない）
             allowedBlocks: {
                 event: ['event_whenthisspriteclicked'],
-                text2speech: ['text2speech_speakAndWait'],
+                text2speech: [
+                    {
+                        opcode: 'text2speech_speakAndWait',
+                        inputs: {
+                            WORDS: { ja: 'ボタンが押されました', 'ja-Hira': 'ボタンがおされました', en: 'The button was clicked' },
+                        },
+                    },
+                ],
             },
             steps: withTitles('blocks-l1-speak', [
                 { target: HINT_TARGETS.EXTENSION_BUTTON, spotlight: true },
@@ -632,7 +665,7 @@ const blocksLesson1 = defineLesson({
             allowedBlocks: {
                 event: ['event_whenflagclicked', 'event_whenthisspriteclicked'],
                 data: ['data_deletealloflist', 'data_addtolist'],
-                sensing: ['sensing_askandwait', 'sensing_answer'],
+                sensing: [{ opcode: 'sensing_askandwait', inputs: { QUESTION: 'メッセージは？' } }, 'sensing_answer'],
             },
             steps: withTitles('blocks-l1-message-list', [
                 { target: HINT_TARGETS.PALETTE },

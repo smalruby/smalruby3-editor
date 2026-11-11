@@ -31,7 +31,7 @@ export const ja = {
     'gui.lessons.challenge.blocks-l1-arrow-move.name': '矢印キーで動かそう',
     'gui.lessons.challenge.blocks-l1-arrow-move.task': '上向き矢印キーで上へ、下向き矢印キーで下へ、ネコを動かそう',
     'gui.lessons.challenge.blocks-l1-arrow-move.step1': '「動き」の青いブロックを使うよ。上下は y、左右は x。',
-    'gui.lessons.challenge.blocks-l1-arrow-move.step2': 'キーのブロックの下にくっつけて、▼で「上向き矢印」をえらぼう。',
+    'gui.lessons.challenge.blocks-l1-arrow-move.step2': 'キーのブロックの下にくっつけよう。▼が「上向き矢印」になっているか見よう。',
     'gui.lessons.challenge.blocks-l1-arrow-move.step3':
         'できたかたまりを右クリックして「複製」。もう 1 つできたら、「下向き矢印」と「-10」に変えよう。',
     'gui.lessons.challenge.blocks-l1-arrow-move.step4': '矢印キーで、ネコが上と下に動くか見よう。',
@@ -45,7 +45,7 @@ export const ja = {
     'gui.lessons.challenge.blocks-l1-click-say.step2':
         '「コード」タブにもどって、「押されたとき」のブロックをコードエリアへドラッグしよう。',
     'gui.lessons.challenge.blocks-l1-click-say.step3':
-        '紫の「見た目」のブロックをくっつけて、白いところをクリックして「こんにちは！」と書こう。',
+        '紫の「見た目」のブロックをくっつけよう。白いところは「こんにちは！」になっているよ。',
     'gui.lessons.challenge.blocks-l1-click-say.step4': 'その下に、これもくっつけよう。',
     'gui.lessons.challenge.blocks-l1-click-say.step5': 'ステージのネコをクリックしてみよう。',
     'gui.lessons.challenge.blocks-l1-click-say.step6': 'いらないブロックは、パレットへドラッグしてもどすと消えるよ。',
@@ -78,7 +78,7 @@ export const ja = {
     'gui.lessons.skill.timer': 'タイマー',
     'gui.lessons.skill.join': 'ことばをつなぐ',
     'gui.lessons.challenge.blocks-l1-ask-answer.task': 'ネコを押したら名前を聞いて、答えた名前と、答えるまでにかかった秒数を言うようにしよう',
-    'gui.lessons.challenge.blocks-l1-ask-answer.step1': '水色の「調べる」の「聞いて待つ」をつなげて、「なまえは？」と書こう。',
+    'gui.lessons.challenge.blocks-l1-ask-answer.step1': '水色の「調べる」の「聞いて待つ」をつなげよう。「なまえは？」と聞くよ。',
     'gui.lessons.challenge.blocks-l1-ask-answer.step2': '「言う」をつなげて、白いところに、丸い「答え」のブロックを入れよう。',
     'gui.lessons.challenge.blocks-l1-ask-answer.step3': '聞く前に「タイマーをリセット」を入れよう。タイマーは 0 から数えはじめるよ。',
     'gui.lessons.challenge.blocks-l1-ask-answer.step4': '緑の「演算」の「と」で、丸い「タイマー」と「秒でした」をつないで、もう 1 つの「言う」に入れよう。',
@@ -90,7 +90,7 @@ export const ja = {
     'gui.lessons.challenge.blocks-l1-quiz.task': 'ネコを押したら「4＋3＝？」と聞いて、7 なら「正解です」、ちがえば「ちがいます」と言うようにしよう',
     'gui.lessons.challenge.blocks-l1-quiz.step1': '「聞いて待つ」で問題を出そう。',
     'gui.lessons.challenge.blocks-l1-quiz.step2': '緑の「演算」の「=」を、「もし」の穴に入れよう。',
-    'gui.lessons.challenge.blocks-l1-quiz.step3': '「=」の左に「答え」、右に 7 を入れよう。',
+    'gui.lessons.challenge.blocks-l1-quiz.step3': '「=」の左に「答え」を入れよう。右は 7 のままでいいよ。',
     'gui.lessons.challenge.blocks-l1-quiz.step4': '7 と、7 じゃない数の両方をためそう。',
     'gui.lessons.challenge.blocks-l1-quiz.debug1': 'いつも「ちがいます」になるときは、「=」の左に「答え」、右に 7 が入っているか見よう。数は半角の 7 で入れよう。',
     'gui.lessons.challenge.blocks-l1-count.name': '数えよう',
@@ -127,7 +127,7 @@ export const ja = {
     'gui.lessons.skill.text2speech': '音声合成',
     'gui.lessons.challenge.blocks-l1-speak.step1':
         '左下のボタンから「音声合成」をえらぼう。パレットに新しいなかまがふえるよ。',
-    'gui.lessons.challenge.blocks-l1-speak.step2': '「押されたとき」に「しゃべる」をつなげて、ことばを書こう。',
+    'gui.lessons.challenge.blocks-l1-speak.step2': '「押されたとき」に「しゃべる」をつなげよう。ことばは「ボタンが押されました」になっているよ。',
     'gui.lessons.challenge.blocks-l1-speak.step3': 'ネコを押してみよう。',
     'gui.lessons.challenge.blocks-l1-speak.debug1':
         '声が出ないときは、パソコンの音量を見よう。音声合成はインターネットにつながっていないと使えないよ。',
@@ -180,7 +180,7 @@ export const jaHira = {
     'gui.lessons.challenge.blocks-l1-arrow-move.name': 'やじるしキーでうごかそう',
     'gui.lessons.challenge.blocks-l1-arrow-move.task': 'うえむきやじるしキーでうえへ、したむきやじるしキーでしたへ、ネコをうごかそう',
     'gui.lessons.challenge.blocks-l1-arrow-move.step1': '「うごき」のあおいブロックをつかうよ。じょうげは y、さゆうは x。',
-    'gui.lessons.challenge.blocks-l1-arrow-move.step2': 'キーのブロックのしたにくっつけて、▼で「うえむきやじるし」をえらぼう。',
+    'gui.lessons.challenge.blocks-l1-arrow-move.step2': 'キーのブロックのしたにくっつけよう。▼が「うえむきやじるし」になっているかみよう。',
     'gui.lessons.challenge.blocks-l1-arrow-move.step3':
         'できたかたまりをみぎクリックして「ふくせい」。もう 1 つできたら、「したむきやじるし」と「-10」にかえよう。',
     'gui.lessons.challenge.blocks-l1-arrow-move.step4': 'やじるしキーで、ネコがうえとしたにうごくかみよう。',
@@ -194,7 +194,7 @@ export const jaHira = {
     'gui.lessons.challenge.blocks-l1-click-say.step2':
         '「コード」タブにもどって、「おされたとき」のブロックをコードエリアへドラッグしよう。',
     'gui.lessons.challenge.blocks-l1-click-say.step3':
-        'むらさきの「みため」のブロックをくっつけて、しろいところをクリックして「こんにちは！」とかこう。',
+        'むらさきの「みため」のブロックをくっつけよう。しろいところは「こんにちは！」になっているよ。',
     'gui.lessons.challenge.blocks-l1-click-say.step4': 'そのしたに、これもくっつけよう。',
     'gui.lessons.challenge.blocks-l1-click-say.step5': 'ステージのネコをクリックしてみよう。',
     'gui.lessons.challenge.blocks-l1-click-say.step6': 'いらないブロックは、パレットへドラッグしてもどすときえるよ。',
@@ -227,7 +227,7 @@ export const jaHira = {
     'gui.lessons.skill.timer': 'タイマー',
     'gui.lessons.skill.join': 'ことばをつなぐ',
     'gui.lessons.challenge.blocks-l1-ask-answer.task': 'ネコをおしたらなまえをきいて、こたえたなまえと、こたえるまでにかかったびょうすうをいうようにしよう',
-    'gui.lessons.challenge.blocks-l1-ask-answer.step1': 'みずいろの「しらべる」の「きいてまつ」をつなげて、「なまえは？」とかこう。',
+    'gui.lessons.challenge.blocks-l1-ask-answer.step1': 'みずいろの「しらべる」の「きいてまつ」をつなげよう。「なまえは？」ときくよ。',
     'gui.lessons.challenge.blocks-l1-ask-answer.step2': '「いう」をつなげて、しろいところに、まるい「こたえ」のブロックをいれよう。',
     'gui.lessons.challenge.blocks-l1-ask-answer.step3': 'きくまえに「タイマーをリセット」をいれよう。タイマーは 0 からかぞえはじめるよ。',
     'gui.lessons.challenge.blocks-l1-ask-answer.step4': 'みどりの「えんざん」の「と」で、まるい「タイマー」と「びょうでした」をつないで、もう 1 つの「いう」にいれよう。',
@@ -239,7 +239,7 @@ export const jaHira = {
     'gui.lessons.challenge.blocks-l1-quiz.task': 'ネコをおしたら「4＋3＝？」ときいて、7 なら「せいかいです」、ちがえば「ちがいます」というようにしよう',
     'gui.lessons.challenge.blocks-l1-quiz.step1': '「きいてまつ」でもんだいをだそう。',
     'gui.lessons.challenge.blocks-l1-quiz.step2': 'みどりの「えんざん」の「=」を、「もし」のあなにいれよう。',
-    'gui.lessons.challenge.blocks-l1-quiz.step3': '「=」のひだりに「こたえ」、みぎに 7 をいれよう。',
+    'gui.lessons.challenge.blocks-l1-quiz.step3': '「=」のひだりに「こたえ」をいれよう。みぎは 7 のままでいいよ。',
     'gui.lessons.challenge.blocks-l1-quiz.step4': '7 と、7 じゃないかずのりょうほうをためそう。',
     'gui.lessons.challenge.blocks-l1-quiz.debug1': 'いつも「ちがいます」になるときは、「=」のひだりに「こたえ」、みぎに 7 がはいっているかみよう。かずははんかくの 7 でいれよう。',
     'gui.lessons.challenge.blocks-l1-count.name': 'かぞえよう',
@@ -276,7 +276,7 @@ export const jaHira = {
     'gui.lessons.skill.text2speech': 'おんせいごうせい',
     'gui.lessons.challenge.blocks-l1-speak.step1':
         'ひだりしたのボタンから「おんせいごうせい」をえらぼう。パレットにあたらしいなかまがふえるよ。',
-    'gui.lessons.challenge.blocks-l1-speak.step2': '「おされたとき」に「しゃべる」をつなげて、ことばをかこう。',
+    'gui.lessons.challenge.blocks-l1-speak.step2': '「おされたとき」に「しゃべる」をつなげよう。ことばは「ボタンがおされました」になっているよ。',
     'gui.lessons.challenge.blocks-l1-speak.step3': 'ネコをおしてみよう。',
     'gui.lessons.challenge.blocks-l1-speak.debug1':
         'こえがでないときは、パソコンのおんりょうをみよう。おんせいごうせいはインターネットにつながっていないとつかえないよ。',
@@ -331,7 +331,7 @@ export const en = {
     'gui.lessons.challenge.blocks-l1-arrow-move.name': 'Move with the arrow keys',
     'gui.lessons.challenge.blocks-l1-arrow-move.task': 'Move the cat up with the up arrow key and down with the down arrow key',
     'gui.lessons.challenge.blocks-l1-arrow-move.step1': 'Use the blue "Motion" blocks. Up and down is y, left and right is x.',
-    'gui.lessons.challenge.blocks-l1-arrow-move.step2': 'Snap it under the key block and choose "up arrow" with the ▼.',
+    'gui.lessons.challenge.blocks-l1-arrow-move.step2': 'Snap it under the key block. Check that the ▼ shows "up arrow".',
     'gui.lessons.challenge.blocks-l1-arrow-move.step3':
         'Right-click the script you made and choose "Duplicate". Change the copy to "down arrow" and "-10".',
     'gui.lessons.challenge.blocks-l1-arrow-move.step4': 'Check that the arrow keys move the cat up and down.',
@@ -345,7 +345,7 @@ export const en = {
     'gui.lessons.challenge.blocks-l1-click-say.step2':
         'Go back to the "Code" tab and drag the "when this sprite clicked" block into the code area.',
     'gui.lessons.challenge.blocks-l1-click-say.step3':
-        'Snap on the purple "Looks" block, click the white part, and type "Hello!".',
+        'Snap on the purple "Looks" block. The white part already says "Hello!".',
     'gui.lessons.challenge.blocks-l1-click-say.step4': 'Snap this one on underneath.',
     'gui.lessons.challenge.blocks-l1-click-say.step5': 'Click the cat on the stage.',
     'gui.lessons.challenge.blocks-l1-click-say.step6': 'To remove a block you do not need, drag it back to the palette.',
@@ -380,7 +380,7 @@ export const en = {
     'gui.lessons.skill.timer': 'timer',
     'gui.lessons.skill.join': 'join words',
     'gui.lessons.challenge.blocks-l1-ask-answer.task': 'Make the cat ask your name when it is clicked, then say the name and how many seconds you took to answer',
-    'gui.lessons.challenge.blocks-l1-ask-answer.step1': 'Snap on "ask and wait" from the light blue "Sensing", and type "What\'s your name?".',
+    'gui.lessons.challenge.blocks-l1-ask-answer.step1': 'Snap on "ask and wait" from the light blue "Sensing". It asks "What\'s your name?".',
     'gui.lessons.challenge.blocks-l1-ask-answer.step2': 'Snap on a "say" block, and put the round "answer" block into its white part.',
     'gui.lessons.challenge.blocks-l1-ask-answer.step3': 'Put "reset timer" before asking. The timer starts counting from 0.',
     'gui.lessons.challenge.blocks-l1-ask-answer.step4': 'Use "join" from the green "Operators" to join the round "timer" and " seconds", and put it into another "say".',
@@ -392,7 +392,7 @@ export const en = {
     'gui.lessons.challenge.blocks-l1-quiz.task': 'Make the cat ask "4+3=?" when it is clicked, and say "Correct" for 7 and "Wrong" for anything else',
     'gui.lessons.challenge.blocks-l1-quiz.step1': 'Ask the question with "ask and wait".',
     'gui.lessons.challenge.blocks-l1-quiz.step2': 'Put the "=" from the green "Operators" into the hole of "if".',
-    'gui.lessons.challenge.blocks-l1-quiz.step3': 'Put "answer" on the left of "=", and 7 on the right.',
+    'gui.lessons.challenge.blocks-l1-quiz.step3': 'Put "answer" on the left of "=". Keep 7 on the right.',
     'gui.lessons.challenge.blocks-l1-quiz.step4': 'Try both 7 and a number that is not 7.',
     'gui.lessons.challenge.blocks-l1-quiz.debug1': 'If it always says "Wrong", check that "answer" is on the left of "=" and 7 is on the right. Type 7 as a half-width number.',
     'gui.lessons.challenge.blocks-l1-count.name': 'Count',
@@ -431,7 +431,7 @@ export const en = {
     'gui.lessons.challenge.blocks-l1-speak.step1':
         'Choose "Text to Speech" with the button at the bottom left. New blocks join the palette.',
     'gui.lessons.challenge.blocks-l1-speak.step2':
-        'Snap "speak" under "when this sprite clicked" and type the words.',
+        'Snap "speak" under "when this sprite clicked". The words are already "The button was clicked".',
     'gui.lessons.challenge.blocks-l1-speak.step3': 'Click the cat.',
     'gui.lessons.challenge.blocks-l1-speak.debug1':
         'If you hear nothing, check the volume of the computer. Text to Speech works only when it is connected to the Internet.',
