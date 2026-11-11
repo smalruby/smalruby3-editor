@@ -208,32 +208,87 @@ describe('LessonTaskBar', () => {
             expect(queryByTestId('lesson-task-bar-full-text')).toBeNull();
         });
 
-        test('closes when the hint balloon or the "You did it!" toast shows, and does not open on hover then', () => {
-            const { getByTestId, queryByTestId, rerender, onHint, onQuit } = renderBar();
+        const barWith = (extra, handlers) => {
             const { challenge, lesson } = findChallenge('blocks-l1-click-say');
-            const bar = (extra) => (
+            return (
                 <IntlProvider locale="en" messages={en}>
                     <LessonTaskBar
                         challenge={challenge}
                         challengeCount={lesson.challenges.length}
                         hintAvailable
-                        onHint={onHint}
-                        onQuit={onQuit}
+                        onHint={handlers.onHint}
+                        onQuit={handlers.onQuit}
                         {...extra}
                     />
                 </IntlProvider>
             );
+        };
+
+        test('closes a tapped panel when the hint balloon or the "You did it!" toast shows', () => {
+            const { getByTestId, queryByTestId, rerender, onHint, onQuit } = renderBar();
+            const bar = (extra) => barWith(extra, { onHint, onQuit });
             tap(getByTestId('lesson-task-bar-task'));
             rerender(bar({ hintVisible: true }));
             expect(queryByTestId('lesson-task-bar-full-text')).toBeNull();
-            hover(getByTestId('lesson-task-bar'));
-            expect(queryByTestId('lesson-task-bar-full-text')).toBeNull();
-            unhover(getByTestId('lesson-task-bar'));
             rerender(bar({ hintVisible: false }));
+            // 吹き出しが閉じても、閉じたパネルは勝手に開き直さない
+            expect(queryByTestId('lesson-task-bar-full-text')).toBeNull();
             tap(getByTestId('lesson-task-bar-task'));
             expect(getByTestId('lesson-task-bar-full-text')).toBeInTheDocument();
             rerender(bar({ toastVisible: true }));
             expect(queryByTestId('lesson-task-bar-full-text')).toBeNull();
+        });
+
+        test('shows the whole task on hover even while the hint balloon is open', () => {
+            const { getByTestId, queryByTestId, onHint, onQuit } = renderBar({ hintVisible: true });
+            hover(getByTestId('lesson-task-bar'));
+            expect(getByTestId('lesson-task-bar-full-text')).toBeInTheDocument();
+            expect(getByTestId('lesson-task-bar-task')).toHaveAttribute('aria-expanded', 'true');
+            // 吹き出しには触らない（閉じるよう頼まない）
+            expect(onHint).not.toHaveBeenCalled();
+            expect(onQuit).not.toHaveBeenCalled();
+            unhover(getByTestId('lesson-task-bar'));
+            expect(queryByTestId('lesson-task-bar-full-text')).toBeNull();
+        });
+
+        test('hides the hover panel when the hint balloon is opened from the bar, until the mouse comes back', () => {
+            const { getByTestId, queryByTestId, rerender, onHint, onQuit } = renderBar();
+            const bar = (extra) => barWith(extra, { onHint, onQuit });
+            hover(getByTestId('lesson-task-bar'));
+            expect(getByTestId('lesson-task-bar-full-text')).toBeInTheDocument();
+            rerender(bar({ hintVisible: true }));
+            expect(queryByTestId('lesson-task-bar-full-text')).toBeNull();
+            unhover(getByTestId('lesson-task-bar'));
+            hover(getByTestId('lesson-task-bar'));
+            expect(getByTestId('lesson-task-bar-full-text')).toBeInTheDocument();
+        });
+
+        test('does not open on hover while a menu of the menu bar is open', () => {
+            // パネルはメニューバーと同じ z-index（DOM では後ろ）なので、開いたメニューの項目を隠してしまう
+            const { getByTestId, queryByTestId, rerender, onHint, onQuit } = renderBar({ menuOpen: true });
+            hover(getByTestId('lesson-task-bar'));
+            expect(queryByTestId('lesson-task-bar-full-text')).toBeNull();
+            rerender(barWith({ menuOpen: false }, { onHint, onQuit }));
+            expect(getByTestId('lesson-task-bar-full-text')).toBeInTheDocument();
+        });
+
+        test('does not open on hover while the "You did it!" toast shows', () => {
+            const { getByTestId, queryByTestId } = renderBar({ toastVisible: true });
+            hover(getByTestId('lesson-task-bar'));
+            expect(queryByTestId('lesson-task-bar-full-text')).toBeNull();
+        });
+
+        test('a tap while the hint balloon is open asks to close the balloon and opens the panel', () => {
+            const onOpenFullText = jest.fn();
+            const { getByTestId, rerender, onHint, onQuit } = renderBar({ hintVisible: true, onOpenFullText });
+            tap(getByTestId('lesson-task-bar-task'));
+            expect(onOpenFullText).toHaveBeenCalledTimes(1);
+            // 親（lesson-mode）が吹き出しを閉じる
+            rerender(barWith({ hintVisible: false, onOpenFullText }, { onHint, onQuit }));
+            expect(getByTestId('lesson-task-bar-full-text')).toBeInTheDocument();
+            // タップで開いたので、マウスが離れても開いたまま
+            unhover(getByTestId('lesson-task-bar'));
+            expect(getByTestId('lesson-task-bar-full-text')).toBeInTheDocument();
         });
 
         test('asks to close the hint and the toast when it is opened with a tap', () => {

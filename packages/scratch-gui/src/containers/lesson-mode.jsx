@@ -41,6 +41,7 @@ const LessonMode = ({
     isAnyCreatingNewState,
     isShowingProject,
     isShowingWithoutId,
+    menuOpen,
     onCancelStart,
     onCloseLesson,
     onDismissCompleted,
@@ -130,6 +131,7 @@ const LessonMode = ({
                 challengeCount={current.lesson.challenges.length}
                 hintAvailable={Boolean(hint && hint.count > 0)}
                 hintVisible={Boolean(hint && hint.visible)}
+                menuOpen={menuOpen}
                 onHint={handleHint}
                 onOpenFullText={handleOpenFullText}
                 onQuit={onCloseLesson}
@@ -156,6 +158,7 @@ LessonMode.propTypes = {
     isAnyCreatingNewState: PropTypes.bool.isRequired,
     isShowingProject: PropTypes.bool.isRequired,
     isShowingWithoutId: PropTypes.bool.isRequired,
+    menuOpen: PropTypes.bool,
     onCancelStart: PropTypes.func.isRequired,
     onCloseLesson: PropTypes.func.isRequired,
     onDismissCompleted: PropTypes.func.isRequired,
@@ -178,6 +181,8 @@ const mapStateToProps = (state) => {
         isAnyCreatingNewState: getIsAnyCreatingNewState(loadingState),
         isShowingProject: getIsShowingProject(loadingState),
         isShowingWithoutId: getIsShowingWithoutId(loadingState),
+        // メニューバーのメニューがどれか開いているか（課題バーのホバーの全文がメニューに重ならないように）
+        menuOpen: Object.values(state.scratchGui.menus).some(Boolean),
         pendingChallengeId: state.scratchGui.lessonMode.pendingChallengeId,
         projectChanged: state.scratchGui.projectChanged,
         // lesson-goal-watcher.jsx が「できた！」の toast を出す条件と同じ

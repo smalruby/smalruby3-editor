@@ -592,9 +592,15 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
   - **パネルの置き方**: `position: absolute` でエディタの列に重ねるので、エディタの列の幅も高さも変えない
     （ステージは押し出さない）。マウスで出しているときは `pointer-events: none`（パネルの上へ動かしても
     バーから離れたことになり消える）、タップで開いたときだけ中をスクロールできる。
-  - **ヒントの吹き出し・「できた！」と重ねない**: どちらも課題バーの下に出るので、どちらかが出ているあいだは
-    パネルを出さない（タップで開いていたものも閉じる）。タップで開くとその 2 つを閉じる（z-index もパネルの
-    470 より toast の 480・吹き出しの 490 が上）。
+  - **ヒントの吹き出しが出ていても、マウスを乗せれば全文を出す**: チャレンジを始めるとヒントが自動で開くので、
+    吹き出しが出ているあいだ止めると、先生がプロジェクターで課題を説明する前にまず吹き出しを閉じる操作が要る。
+    乗せて出す全文は一時的なものなので、吹き出しの状態（ページ・ドラッグした位置）は変えずに、パネルを吹き出しの
+    上に重ねる（z-index は `$z-index-menu-bar` = 491。吹き出しの 490 より上。メニューバーと同じ層で DOM では
+    後ろにあるので、メニューバーのメニュー（ファイルなど）が開いているあいだは乗せても出さない）。バーの「ヒント」を押して吹き出しを出したときは、乗せたままでもパネルを引っ込める（出したばかりの
+    吹き出しを隠さない。乗せ直せばまた出る）。
+  - **「できた！」・タップで開いたパネルは重ねない**: 「できた！」の toast が出ているあいだは、乗せても全文を
+    出さない。タップで開いたまま（pinned）のパネルは、吹き出し・toast のどちらかが出ると閉じ、タップで開くと
+    その 2 つを閉じる（z-index は 470。toast の 480・吹き出しの 490 より下）。
 
   ![課題の全文（1300×600）](screenshots/0203-lesson-task-full-text-1300x600.png)
 
@@ -919,7 +925,7 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `packages/scratch-gui/src/components/menu-bar/menu-bar.jsx` | 「レッスン」ボタン（`lessons button` マーカー）、「?」メニューのチュートリアル / デバッグ項目（`help menu` マーカー） |
 | `packages/scratch-gui/src/containers/menu-bar-hoc.jsx` | `onOpenLessonsLibrary` / `lessonModeActive`（`lessons button` マーカー）と `onOpenTipsLibrary`（`help menu` マーカー）の供給 |
 | `packages/scratch-gui/test/unit/components/lesson-task-bar.test.jsx` / `test/unit/containers/lesson-mode.test.jsx` | 課題バーとチャレンジを開く流れの unit テスト |
-| `packages/scratch-gui/test/integration/smalruby-lesson-task-bar-full-text.test.js` | 課題バーにマウスを乗せると改行つきの全文（画像も）が出て離すと消える・タップで開閉・「ほかのチャレンジへ」でレッスン表（Selenium・1300×600） |
+| `packages/scratch-gui/test/integration/smalruby-lesson-task-bar-full-text.test.js` | 課題バーにマウスを乗せると改行つきの全文（画像も）が出て離すと消える・ヒントの吹き出しが出ていても吹き出しより上に出る・タップで開閉・「ほかのチャレンジへ」でレッスン表（Selenium・1300×600） |
 | `packages/scratch-gui/test/integration/smalruby-lessons.test.js` | チャレンジを開く → 課題バー・絞ったパレット → やめる → 元にもどる（Selenium） |
 | `packages/scratch-gui/test/unit/components/lessons-library.test.jsx` / `test/unit/containers/lessons-library.test.jsx` / `test/unit/components/menu-bar-lessons.test.jsx` | レッスン表（できた印・進み具合・クリア表示・できること）、コンテナ、「レッスン」ボタン（吹き出しを出さないこと）の unit テスト |
 | `packages/scratch-gui/test/integration/smalruby-lessons-library.test.js` | メニューから開く → チャレンジを押す → レッスンモード → やめる → レッスン表にもどる・記録に合わせた「できた」と進み具合（Selenium） |
