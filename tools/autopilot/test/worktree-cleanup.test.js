@@ -28,11 +28,15 @@ test('shouldCleanupWorktree: クリーン・base にマージ済み・非実行�
  * git / autopilot-worktree 呼び出しを記録する execFileP の偽物。
  * @param {object} o status / branch / ancestor(true|false|'error') の挙動
  */
-function makeExec({ status = '', branch = 'topic/autopilot-7', ancestor = true } = {}) {
+function makeExec({ status = '', branch = 'topic/autopilot-7', ancestor = true, pruneFails = false } = {}) {
     const calls = [];
     const exec = async (cmd, args, opts = {}) => {
         calls.push({ cmd, args, cwd: opts.cwd });
         if (/autopilot-worktree$/.test(cmd) && args[0] === 'path') return { stdout: `/wt/issue-${args[1]}\n` };
+        if (/autopilot-worktree$/.test(cmd) && args[0] === 'prune-infra-store') {
+            if (pruneFails) throw new Error('prune boom');
+            return { stdout: '' };
+        }
         if (cmd !== 'git') throw new Error(`unexpected ${cmd}`);
         const sub = args[0];
         if (sub === 'status') return { stdout: status };
@@ -80,6 +84,31 @@ test('cleanupIssueWorktree: マージ済みでクリーンなら worktree とロ
     const mb = calls.find((c) => c.args[0] === 'merge-base');
     assert.deepEqual(mb.args, ['merge-base', '--is-ancestor', 'topic/autopilot-7', 'origin/develop']);
     assert.ok(logs.some((m) => /片付け/.test(m)));
+});
+
+const pruneCalls = (calls) => calls.filter((c) => /autopilot-worktree$/.test(c.cmd) && c.args[0] === 'prune-infra-store');
+
+test('cleanupIssueWorktree: 消した後に infra の共有置き場を掃除する（#1456）', async () => {
+    const { exec, calls } = makeExec();
+    await cleanupIssueWorktree({ issue: 7 }, cfg, { running: new Map() }, () => {}, baseDeps(exec));
+    assert.equal(pruneCalls(calls).length, 1);
+    // worktree を消した後に呼ぶ（消す前だとその worktree の symlink が参照として残る）
+    const idx = (pred) => calls.findIndex(pred);
+    assert.ok(idx((c) => c.args[0] === 'worktree') < idx((c) => c.args[0] === 'prune-infra-store'));
+});
+
+test('cleanupIssueWorktree: 共有置き場の掃除に失敗しても removed のまま（#1456）', async () => {
+    const { exec } = makeExec({ pruneFails: true });
+    const logs = [];
+    const r = await cleanupIssueWorktree({ issue: 7 }, cfg, { running: new Map() }, (m) => logs.push(m), baseDeps(exec));
+    assert.equal(r.status, 'removed');
+    assert.ok(logs.some((m) => /共有置き場の掃除に失敗/.test(m)));
+});
+
+test('cleanupIssueWorktree: 消さないときは共有置き場も掃除しない', async () => {
+    const { exec, calls } = makeExec({ status: ' M a.js\n' });
+    await cleanupIssueWorktree({ issue: 7 }, cfg, { running: new Map() }, () => {}, baseDeps(exec));
+    assert.equal(pruneCalls(calls).length, 0);
 });
 
 test('cleanupIssueWorktree: EPIC サブ（autopilot-base あり）は宣言 base で判定する', async () => {

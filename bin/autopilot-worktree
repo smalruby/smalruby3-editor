@@ -18,7 +18,9 @@
 #     source する husky.sh は npm install の生成物なので、無いと commit / merge が
 #     まるごと失敗する（Issue #1137）。
 #   - `infra/<project>/node_modules` は、main の入っている版が worktree の lock と
-#     同じときだけ main へ symlink し、違えば worktree で `npm ci` する（Issue #1454）。
+#     同じときだけ main へ symlink し、違えば lock でキーにした共有の置き場
+#     （`<WT_ROOT>/.infra-node-modules/`）で 1 回だけ `npm ci` してそこへ symlink する
+#     （Issue #1454 / #1456）。
 #
 # 制約（lightweight モードの前提）:
 #   - **単一パッケージのソース編集**を想定。`@smalruby/<pkg>` は main checkout に
@@ -35,6 +37,7 @@
 #   bin/autopilot-worktree path <issue>                 # worktree パスを表示
 #   bin/autopilot-worktree remove <issue> [--delete-branch]
 #   bin/autopilot-worktree list
+#   bin/autopilot-worktree prune-infra-store            # 使われていない infra の共有置き場を消す
 #
 # 環境変数:
 #   AUTOPILOT_WORKTREE_ROOT  worktree を作る親dir
@@ -306,7 +309,80 @@ link_husky_helpers() {
     echo "linked: .husky/_ -> main"
 }
 
-# infra/<project>/node_modules を worktree の lock に合わせて用意する（冪等・Issue #1454）。
+# infra の依存を worktree 間で共有する置き場（Issue #1456）。
+# main が lock と合わないとき worktree ごとに `npm ci` すると、1 worktree あたり約 1.45 GB・約 4 分
+# かかっていた（5 プロジェクト分）。lock の内容でキーにした置き場に 1 回だけ入れ、同じ lock の
+# worktree（同じ develop から切ったもの）はそこへ symlink して共有する。
+#   <WT_ROOT>/.infra-node-modules/<project>-<lock の sha256 先頭16桁>/
+#       package.json / package-lock.json（worktree からコピー）+ node_modules/
+# 置き場は完成してから rename で置くので、途中の状態は見えない。作成・リンク・掃除は
+# 置き場ごとの `<置き場>.lock`（mkdir の排他）の中で行う。
+INFRA_STORE="${WT_ROOT}/.infra-node-modules"
+
+# ファイルの sha256（macOS には sha256sum が無いので shasum にフォールバック）
+infra_sha256() {
+    if command -v sha256sum >/dev/null 2>&1; then
+        sha256sum "$1" | cut -d' ' -f1
+    else
+        shasum -a 256 "$1" | cut -d' ' -f1
+    fi
+}
+
+# mkdir による排他ロック（Issue #1456）。取れるまで 1 秒ごとに待つ（既定 900 秒まで）。
+# 持ち主の pid が死んでいるか、pid を書く前に落ちたまま 1 分経ったロックは奪う。
+acquire_dir_lock() {
+    local lockdir="$1" max="${AUTOPILOT_INFRA_LOCK_WAIT:-900}" waited=0 owner
+    while ! mkdir "${lockdir}" 2>/dev/null; do
+        owner=$(cat "${lockdir}/pid" 2>/dev/null || true)
+        if [[ -n "${owner}" ]] && ! kill -0 "${owner}" 2>/dev/null; then
+            echo "info: removing stale lock ${lockdir} (pid ${owner} is gone)" >&2
+            rm -rf "${lockdir}"
+            continue
+        fi
+        if [[ -z "${owner}" && -n "$(find "${lockdir}" -maxdepth 0 -mmin +1 2>/dev/null)" ]]; then
+            rm -rf "${lockdir}"
+            continue
+        fi
+        (( waited >= max )) && return 1
+        sleep 1
+        waited=$((waited + 1))
+    done
+    echo "${BASHPID}" > "${lockdir}/pid"
+}
+
+release_dir_lock() {
+    rm -rf "$1"
+}
+
+# lock に合う置き場を用意して、その node_modules のパスを stdout に出す（ロックの中で呼ぶ）。
+# 既にあり lock と一致すれば何もしない。無い・壊れていれば一時 dir で `npm ci` して rename する。
+ensure_infra_store() {
+    local compare="$1" proj_dir="$2" store="$3"
+    local lock="${proj_dir}/package-lock.json"
+    if [[ -d "${store}" ]] && node "${compare}" "${store}/node_modules/.package-lock.json" "${lock}" 2>/dev/null; then
+        echo "${store}/node_modules"
+        return 0
+    fi
+    rm -rf "${store}"
+    local tmp="${store}.tmp.${BASHPID}"
+    rm -rf "${tmp}"
+    mkdir -p "${tmp}"
+    cp "${proj_dir}/package.json" "${lock}" "${tmp}/"
+    if ! ( cd "${tmp}" && npm ci --no-audit --no-fund >/dev/null ); then
+        rm -rf "${tmp}"
+        return 1
+    fi
+    # 死んだロックを同時に奪った別プロセスが先に置いていたら、そちらを使う
+    # （置き場があると `mv` はその中へ入れてしまい、使われない install が残る）
+    if [[ -d "${store}" ]]; then
+        rm -rf "${tmp}"
+    else
+        mv "${tmp}" "${store}"
+    fi
+    echo "${store}/node_modules"
+}
+
+# infra/<project>/node_modules を worktree の lock に合わせて用意する（冪等・Issue #1454 / #1456）。
 # 理由: infra の CDK プロジェクトは npm workspaces の外にあり、root / packages の
 # node_modules の symlink では入らない。worker が main のものへ手で symlink すると、
 # main checkout（人間と共有）が develop より古いとき古い依存でテストが走り、worktree の
@@ -314,8 +390,10 @@ link_husky_helpers() {
 # そこで main の `node_modules/.package-lock.json`（npm が入れた版の記録）と worktree の
 # `package-lock.json` を tools/autopilot/src/lockfile.js で比べ:
 #   - 一致する → main へ symlink（軽量モードの考え方どおり共有）
-#   - 一致しない / main に node_modules が無い → worktree で `npm ci`（lock 固定の版を
+#   - 一致しない / main に node_modules が無い → lock でキーにした共有の置き場
+#     （INFRA_STORE）へ symlink。置き場が無ければそこで 1 回だけ `npm ci`（lock 固定の版を
 #     入れるので 3 日ルールに反しない）
+#   - 置き場のロックが取れない（待ちの上限）→ 従来どおり worktree で `npm ci`
 # 再準備時は既存の symlink を張り直して判定し直す（base 追従で lock が変わった場合）。
 # 実体のディレクトリは、それ自体が lock と一致すればそのまま使う。
 # npm ci が失敗しても worktree の作成は止めない（infra を触らない Issue まで巻き込まない）。
@@ -352,12 +430,95 @@ link_infra_node_modules() {
             echo "linked: infra/${proj}/node_modules -> main"
             continue
         fi
-        echo "info: infra/${proj}: main node_modules does not match the lock (${why:-missing}); running npm ci"
+        echo "info: infra/${proj}: main node_modules does not match the lock (${why:-missing}); using the shared store"
+        local store target
+        store="${INFRA_STORE}/${proj}-$(infra_sha256 "${lock}" | cut -c1-16)"
+        mkdir -p "${INFRA_STORE}"
+        if acquire_dir_lock "${store}.lock"; then
+            if target=$(ensure_infra_store "${compare}" "${proj_dir}" "${store}"); then
+                rm -rf "${dst}"
+                # 掃除（prune_infra_store）とすれ違わないよう、リンクもロックの中で張る
+                ln -s "${target}" "${dst}"
+                release_dir_lock "${store}.lock"
+                echo "linked: infra/${proj}/node_modules -> ${store}"
+            else
+                release_dir_lock "${store}.lock"
+                echo "warn: npm ci failed for infra/${proj} in ${store}; its tests may not run in this worktree" >&2
+            fi
+            continue
+        fi
+        echo "warn: could not lock ${store}; running npm ci in the worktree" >&2
+        rm -rf "${dst}"
         if ! ( cd "${proj_dir}" && npm ci --no-audit --no-fund >/dev/null ); then
             echo "warn: npm ci failed in infra/${proj}; its tests may not run in this worktree" >&2
             continue
         fi
         echo "installed: infra/${proj}/node_modules (npm ci)"
+    done
+}
+
+# 登録済みの worktree のパス（main checkout を含む）を 1 行ずつ出す
+list_worktree_paths() {
+    local list
+    list=$(git -C "${MAIN_CHECKOUT}" worktree list --porcelain)
+    sed -n 's/^worktree //p' <<<"${list}"
+}
+
+# 置き場の node_modules をどれかの worktree の infra/*/node_modules が指しているか。
+# リンク先は置き場の名前で照合する（作ったときと AUTOPILOT_WORKTREE_ROOT の書き方が違っても
+# 使用中のものを消さないため。別の置き場の同名を「使用中」とみなすのは安全側）。
+infra_store_referenced() {
+    local name w link
+    name=$(basename "$1")
+    while IFS= read -r w; do
+        [[ -n "${w}" ]] || continue
+        for link in "${w}"/infra/*/node_modules; do
+            [[ -L "${link}" && "$(readlink "${link}")" == */"${name}"/node_modules ]] && return 0
+        done
+    done < <(list_worktree_paths)
+    return 1
+}
+
+# どの worktree からも使われていない置き場を消す（Issue #1456）。worktree の片付け（#1362・
+# daemon の cleanupIssueWorktree と `remove`）の後に呼ぶ。使用中（ロック中）の置き場は飛ばす。
+# 持ち主の死んだ作りかけ（`.tmp.<pid>`）と、置き場の無いまま残った死んだロックも消す。
+# 参照を確かめられない worktree が 1 つでもあれば何も消さない（安全側）。ホスト（/Users/...）から
+# 呼ぶと devpod で作った worktree（/app/...）が見えず、使用中の置き場まで未参照と判定してしまうため。
+prune_infra_store() {
+    [[ -d "${INFRA_STORE}" ]] || return 0
+    local entry name pid w
+    while IFS= read -r w; do
+        [[ -z "${w}" || -d "${w}" ]] && continue
+        echo "info: not pruning the infra store: worktree ${w} is not accessible here" >&2
+        return 0
+    done < <(list_worktree_paths)
+    for entry in "${INFRA_STORE}"/*; do
+        [[ -d "${entry}" ]] || continue
+        name=$(basename "${entry}")
+        case "${name}" in
+            *.lock)
+                pid=$(cat "${entry}/pid" 2>/dev/null || true)
+                if [[ ! -d "${entry%.lock}" && -n "${pid}" ]] && ! kill -0 "${pid}" 2>/dev/null; then
+                    rm -rf "${entry}"
+                    echo "removed: stale lock ${entry}"
+                fi
+                continue
+                ;;
+            *.tmp.*)
+                pid="${name##*.tmp.}"
+                if ! kill -0 "${pid}" 2>/dev/null; then
+                    rm -rf "${entry}"
+                    echo "removed: stale partial install ${entry}"
+                fi
+                continue
+                ;;
+        esac
+        AUTOPILOT_INFRA_LOCK_WAIT=0 acquire_dir_lock "${entry}.lock" || continue
+        if ! infra_store_referenced "${entry}"; then
+            rm -rf "${entry}"
+            echo "removed: unused infra store ${entry}"
+        fi
+        release_dir_lock "${entry}.lock"
     done
 }
 
@@ -459,6 +620,8 @@ cmd_remove() {
     branch=$(wt_branch "${issue}")
     git -C "${MAIN_CHECKOUT}" worktree remove --force "${wt}" 2>/dev/null \
         && echo "removed worktree: ${wt}" || echo "info: worktree not found: ${wt}"
+    # どこからも使われなくなった infra の共有置き場を掃除する（#1456）
+    prune_infra_store || true
     if [[ "${del_branch}" == "true" ]]; then
         git -C "${MAIN_CHECKOUT}" branch -D "${branch}" 2>/dev/null \
             && echo "deleted branch: ${branch}" || echo "info: branch not found: ${branch}"
@@ -474,12 +637,14 @@ case "${1:-}" in
     path)   shift; cmd_path "$@" ;;
     remove) shift; cmd_remove "$@" ;;
     list)   shift; cmd_list "$@" ;;
+    prune-infra-store) shift; prune_infra_store ;;
     *)
-        echo "usage: autopilot-worktree {create|path|remove|list} ..." >&2
+        echo "usage: autopilot-worktree {create|path|remove|list|prune-infra-store} ..." >&2
         echo "  create <issue> [base-ref] [--full] [--branch <name>] [--pr <n>]" >&2
         echo "  path <issue>" >&2
         echo "  remove <issue> [--delete-branch]" >&2
         echo "  list" >&2
+        echo "  prune-infra-store" >&2
         exit 2
         ;;
 esac
