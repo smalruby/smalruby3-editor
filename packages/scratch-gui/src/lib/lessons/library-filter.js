@@ -13,8 +13,13 @@ export const LANGUAGE_ORDER = Object.freeze([LANGUAGES.BLOCKS, LANGUAGES.RUBY, L
  */
 export const COURSE_NAV_THRESHOLD = 4;
 
+// カタカナ（ァ〜ヶ）とひらがな（ぁ〜ゖ）の符号位置の差
+const KATAKANA_TO_HIRAGANA = 0x60;
+
 /**
- * 検索の文字を比べやすい形にする（前後の空白を取る・全角英数を半角に・小文字に）。
+ * 検索の文字を比べやすい形にする（前後の空白を取る・全角英数を半角に・小文字に・カタカナをひらがなに）。
+ * カタカナをひらがなにそろえるのは、「クイズ」を「くいず」と打っても見つかるようにするため
+ * （子どもはカタカナに変換せずに打つことが多い）。
  * @param {?string} query - 入力された文字。
  * @returns {string} 比べる文字（空なら絞り込まない）。
  */
@@ -22,7 +27,8 @@ export const normalizeQuery = (query) =>
     String(query || '')
         .normalize('NFKC')
         .trim()
-        .toLowerCase();
+        .toLowerCase()
+        .replace(/[\u30a1-\u30f6]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - KATAKANA_TO_HIRAGANA));
 
 /**
  * 名前が検索の文字を含むか（部分一致）。空の検索は全部に合う。

@@ -21,6 +21,11 @@ describe('normalizeQuery', () => {
         expect(normalizeQuery('')).toBe('');
         expect(normalizeQuery(null)).toBe('');
     });
+
+    test('folds katakana (full- and half-width) into hiragana', () => {
+        expect(normalizeQuery('クイズ')).toBe('くいず');
+        expect(normalizeQuery('ｷｰ')).toBe('きー');
+    });
 });
 
 describe('matchesQuery', () => {
@@ -28,6 +33,8 @@ describe('matchesQuery', () => {
         expect(matchesQuery('キーで音を鳴らそう', 'キー')).toBe(true);
         expect(matchesQuery('Play a Sound with a Key', 'KEY')).toBe(true);
         expect(matchesQuery('くり返そう', 'キー')).toBe(false);
+        expect(matchesQuery('クイズを作ろう', 'くいず')).toBe(true);
+        expect(matchesQuery('キーでおとをならそう', 'きー')).toBe(true);
     });
 
     test('an empty query matches everything', () => {
