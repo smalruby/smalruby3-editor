@@ -92,10 +92,10 @@ describe('Smalruby Lessons: hint balloon', () => {
         const side = await attrByTestId(driver, 'lesson-hint', 'data-side');
         expect(['right', 'bottom', 'inside']).toContain(side);
 
-        // ヒント 3: 「こんにちは！」と言うブロック
+        // ヒント 3: 「言う」ブロック（CI の en では、en の課題の文言どおり "Hello!" と言う）
         await clickByTestId(driver, 'lesson-hint-next');
         await driver.wait(
-            async () => (await hintBlockText(driver)).includes('こんにちは！'),
+            async () => (await hintBlockText(driver)).includes('Hello!'),
             20000,
             'the say block did not render',
         );
