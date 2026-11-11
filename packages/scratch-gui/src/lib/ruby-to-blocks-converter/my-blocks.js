@@ -236,7 +236,14 @@ const MyBlocksConverter = {
             const savedCurrentProcedureName = converter._context.currentProcedureName;
             converter._context.inMyBlockDefinition = true;
             converter._context.currentProcedureName = procedureName;
-            let body = converter.visit(node.body);
+            const savedBodyKind = converter._context.statementBodyKind;
+            converter._context.statementBodyKind = 'method';
+            let body;
+            try {
+                body = converter.visit(node.body);
+            } finally {
+                converter._context.statementBodyKind = savedBodyKind;
+            }
             if (typeof body === 'undefined') {
                 body = [];
             } else if (!_.isArray(body)) {

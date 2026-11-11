@@ -928,6 +928,10 @@ export default {
         '条件がブーリアンではありません：{SOURCE}\n比較演算子（==、<、>など）を使ってください。',
     'gui.smalruby3.rubyToBlocksConverter.includeNotStatementBlocks':
         '命令ブロックではないブロックが含まれています。\nブロック定義の中では命令ブロック（コマンド）だけを使ってください。',
+    'gui.smalruby3.rubyToBlocksConverter.eventInsideBlock':
+        '「{ SOURCE }」はイベントなので、ほかのブロックの中には書けません。\nブロックの外に出して、そこから始まるスクリプトにしてください。',
+    'gui.smalruby3.rubyToBlocksConverter.valueAsStatement':
+        '「{ SOURCE }」は値なので、それだけを命令として書くことはできません。\n命令の中で使う（例: say({ SOURCE })）か、変数に入れてください。',
     'gui.smalruby3.rubyToBlocksConverter.invalidMyBlockArgumentType':
         'ブロック定義「{NAME}」の引数#{INDEX}の型がまちがっています。\n数値、文字列、またはブーリアンの値を使ってください。',
     'gui.smalruby3.rubyToBlocksConverter.cannotChangeArgument':

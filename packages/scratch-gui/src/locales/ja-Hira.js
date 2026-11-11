@@ -955,6 +955,10 @@ export default {
         'じょうけんがブーリアンではありません：{SOURCE}\nひかくえんざんし（==、<、>など）をつかってください。',
     'gui.smalruby3.rubyToBlocksConverter.includeNotStatementBlocks':
         'めいれいブロックではないブロックがふくまれています。\nブロックていぎのなかではめいれいブロック（コマンド）だけをつかってください。',
+    'gui.smalruby3.rubyToBlocksConverter.eventInsideBlock':
+        '「{ SOURCE }」はイベントなので、ほかのブロックのなかにはかけません。\nブロックのそとにだして、そこからはじまるスクリプトにしてください。',
+    'gui.smalruby3.rubyToBlocksConverter.valueAsStatement':
+        '「{ SOURCE }」はあたいなので、それだけをめいれいとしてかくことはできません。\nめいれいのなかでつかう（れい: say({ SOURCE })）か、へんすうにいれてください。',
     'gui.smalruby3.rubyToBlocksConverter.invalidMyBlockArgumentType':
         'ブロックていぎ「{NAME}」のひきすう#{INDEX}のかたがまちがっています。\nすうち、もじれつ、またはブーリアンのあたいをつかってください。',
     'gui.smalruby3.rubyToBlocksConverter.cannotChangeArgument':

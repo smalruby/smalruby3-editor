@@ -659,6 +659,10 @@ export default {
     'gui.smalruby3.rubyToBlocksConverter.wrongInstruction': '"{ SOURCE }" is the wrong instruction.',
     'gui.smalruby3.rubyToBlocksConverter.wrongInstructionInClass':
         '"{ SOURCE }" cannot be placed directly inside a class definition. Use it inside an event block (e.g. when_flag_clicked) or a method definition (def).',
+    'gui.smalruby3.rubyToBlocksConverter.eventInsideBlock':
+        '"{ SOURCE }" is an event, so it cannot be placed inside another block.\nMove it out of the block so that it starts a script of its own.',
+    'gui.smalruby3.rubyToBlocksConverter.valueAsStatement':
+        '"{ SOURCE }" is a value, so it cannot be written as a command by itself.\nUse it in a command (e.g. say({ SOURCE })) or set it to a variable.',
     'gui.smalruby3.rubyToBlocksConverter.invalidBackdropName':
         'backdrop "{ NAME }" does not exist in the backdrop library.',
     'gui.smalruby3.rubyToBlocksConverter.spriteMethodInStageClass':
