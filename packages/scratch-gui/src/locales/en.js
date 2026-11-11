@@ -659,6 +659,8 @@ export default {
     'gui.smalruby3.rubyToBlocksConverter.wrongInstruction': '"{ SOURCE }" is the wrong instruction.',
     'gui.smalruby3.rubyToBlocksConverter.wrongInstructionInClass':
         '"{ SOURCE }" cannot be placed directly inside a class definition. Use it inside an event block (e.g. when_flag_clicked) or a method definition (def).',
+    'gui.smalruby3.rubyToBlocksConverter.includeNotStatementBlocks':
+        '"{ SOURCE }" is not a command, so it cannot be written here.\nWrite a command (e.g. move(10)) instead, or delete this line.',
     'gui.smalruby3.rubyToBlocksConverter.eventInsideBlock':
         '"{ SOURCE }" is an event, so it cannot be placed inside another block.\nMove it out of the block so that it starts a script of its own.',
     'gui.smalruby3.rubyToBlocksConverter.valueAsStatement':

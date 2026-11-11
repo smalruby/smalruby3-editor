@@ -416,6 +416,69 @@ describe('RubyToBlocksConverter: no orphan blocks', () => {
                 3,
                 /"x" is a value/,
             ],
+            // #1549: a value on a line before the last one in a method shows its source, not "undefined".
+            ['a variable in a method', 'def foo\n  x\n  move(10)\nend', 1, /^"x" is a value[^]*say\(x\)/],
+            [
+                'a calculation in a method',
+                dedent`
+                    def foo
+                      move(5)
+                      1 + 2
+                      move(10)
+                    end
+                `,
+                2,
+                /^"1 \+ 2" is a value/,
+            ],
+            ['a string in a method', 'def foo\n  "a"\n  move(10)\nend', 1, /^""a"" is a value/],
+            [
+                'a calculation over two lines in a method',
+                'def foo\n  1 +\n    2\n  move(10)\nend',
+                1,
+                /^"1 \+ 2" is a value[^]*say\(1 \+ 2\)/,
+            ],
+            // #1550: a symbol is not a command, wherever it is written (it was dropped silently after a statement).
+            ['a symbol in an event', 'when_flag_clicked do\n  :a\nend', 1, /^":a" is not a command[^]*move\(10\)/],
+            [
+                'a symbol after a statement',
+                dedent`
+                    when_flag_clicked do
+                      move(10)
+                      :a
+                      move(5)
+                    end
+                `,
+                2,
+                /^":a" is not a command/,
+            ],
+            [
+                'a symbol in the else of an if',
+                dedent`
+                    when_flag_clicked do
+                      if x > 1
+                        move(1)
+                      else
+                        :b
+                      end
+                    end
+                `,
+                4,
+                /^":b" is not a command/,
+            ],
+            [
+                'a symbol after a statement in an if in a method',
+                dedent`
+                    def foo
+                      if x > 1
+                        move(1)
+                        :a
+                      end
+                    end
+                `,
+                3,
+                /^":a" is not a command/,
+            ],
+            ['a symbol in a method', 'def foo\n  :a\n  move(10)\nend', 1, /^":a" is not a command/],
         ])('%s', async (_name, code, row, text) => {
             const { converter, result } = await convertWithErrors(code);
             expect(result).toBe(false);

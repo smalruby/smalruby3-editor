@@ -10,9 +10,10 @@ const messages = defineMessages({
         id: 'gui.smalruby3.rubyToBlocksConverter.conditionIsNotBoolean'
     },
     includeNotStatementBlocks: {
-        defaultMessage: 'include not statement blocks.' +
-            '\nOnly use statement blocks (commands) inside a block definition.',
-        description: 'Error message when non-statement blocks are included in My Block definition body',
+        defaultMessage: '"{ SOURCE }" is not a command, so it cannot be written here.' +
+            '\nWrite a command (e.g. move(10)) instead, or delete this line.',
+        description: 'Error message when a line that is not a command (e.g. a symbol such as :a) is written ' +
+            'in a block body (do ... end, if, a method definition)',
         id: 'gui.smalruby3.rubyToBlocksConverter.includeNotStatementBlocks'
     },
     eventInsideBlock: {
@@ -24,7 +25,8 @@ const messages = defineMessages({
     valueAsStatement: {
         defaultMessage: '"{ SOURCE }" is a value, so it cannot be written as a command by itself.' +
             '\nUse it in a command (e.g. say({ SOURCE })) or set it to a variable.',
-        description: 'Error message when a value (reporter) is written as a line by itself inside a block body',
+        description: 'Error message when a value (reporter) is written as a line by itself inside a block body ' +
+            'or before the last line of a method body',
         id: 'gui.smalruby3.rubyToBlocksConverter.valueAsStatement'
     }
 });
@@ -45,7 +47,7 @@ const CoreHandlers = {
         const bodyKind = this._context.statementBodyKind;
         this._context.statementBodyKind = null;
         const blocks = [];
-        node.body.forEach(childNode => {
+        node.body.forEach((childNode, index) => {
             // Reset per-statement operator indices so each statement's operators are independently indexed.
             // This ensures `1 != 50\n2 != 60` produces two blocks both with index :1, while
             // `1 != 50 && 2 != 60` (a single expression) produces indices :1 and :2.
@@ -53,7 +55,7 @@ const CoreHandlers = {
             this._context.methodCallIndices = {};
             const block = this.visit(childNode);
             if (bodyKind) {
-                this._checkStatementInBody(childNode, block, bodyKind);
+                this._checkStatementInBody(childNode, block, bodyKind, index === node.body.length - 1);
             }
             if (_.isArray(block)) {
                 block.forEach(b => {
@@ -112,36 +114,85 @@ const CoreHandlers = {
     },
 
     /**
-     * Throw an error for a statement in a block body (`do ... end`, `if`, ...) that cannot be
-     * placed there, instead of leaving it as a block attached to nothing (#1544):
+     * Throw an error for a statement in a block body (`do ... end`, `if`, ...) or a method body (`def`)
+     * that cannot be placed there, instead of leaving it as a block attached to nothing (#1544):
      * - an event (hat), e.g. `when_clicked do ... end` inside `when_flag_clicked do ... end`;
      *   it is neither linked in the body nor a script of its own, so it and its body would be lost.
-     * - in a block body (not in a method body, where it is the return value), a value written as
-     *   a line by itself, e.g. `x` or `1 + 2`; it cannot be linked either.
+     * - a value written as a line by itself, e.g. `x` or `1 + 2`; it cannot be linked either.
+     *   In a method body, the last line is the return value, so only the lines before it are checked (#1549).
+     * - a symbol written as a line by itself, e.g. `:a`; it is not a command. On the second or a later
+     *   line of a block body it was dropped silently (#1550).
      * A method definition (`def`) is left as before: it is placed as a script of its own.
      * A value made by splitting one statement (e.g. the return value of `"a".reverse`, which
      * comes as an array after its command) is not checked.
      * @param {object} node - The statement node.
      * @param {object|Array} result - What visiting the statement returned.
      * @param {string} bodyKind - 'block' or 'method' (see `statementBodyKind` of the context).
+     * @param {boolean} isLast - Whether the statement is the last one in the body.
      */
-    _checkStatementInBody (node, result, bodyKind) {
+    _checkStatementInBody (node, result, bodyKind, isLast) {
         const blocks = _.isArray(result) ? result : [result];
-        const source = () => this._getSource(node).split('\n')[0].trim();
         if (blocks.some(b => this._isBlock(b) && this._getBlockType(b) === 'hat' &&
             b.opcode !== 'procedures_definition')) {
             throw new RubyToBlocksConverterError(
                 node,
-                this._translator(messages.eventInsideBlock, {SOURCE: source()})
+                this._translator(messages.eventInsideBlock, {SOURCE: this._firstLineSource(node)})
             );
         }
-        if (bodyKind === 'block' && blocks.length === 1 && this._isValueBlock(blocks[0]) &&
-            blocks[0].opcode !== 'data_setvariableto') {
-            throw new RubyToBlocksConverterError(
-                node,
-                this._translator(messages.valueAsStatement, {SOURCE: source()})
-            );
+        if (bodyKind === 'method' && isLast) {
+            return;
         }
+        if (blocks.length !== 1) {
+            return;
+        }
+        const Primitive = require('../primitive').default;
+        const value = blocks[0];
+        if (value instanceof Primitive && value.type === 'sym') {
+            throw this._notCommandError(node);
+        }
+        // In a block body, other literals (e.g. `"abc"`) become an assignment to a temporary
+        // variable (see `_processStatement`); in a method body they are values.
+        const isValue = this._isValueBlock(value) && value.opcode !== 'data_setvariableto';
+        const isLiteral = value instanceof Primitive && (this._isNumber(value) || this._isString(value) ||
+            this._isTrue(value) || this._isFalse(value) || this.isNil(value));
+        if (isValue || (bodyKind === 'method' && isLiteral)) {
+            throw this._valueAsStatementError(node);
+        }
+    },
+
+    /**
+     * The first line of the source of a node, to show in an error message.
+     * @param {object} node - The node.
+     * @returns {string} The first line of the source.
+     */
+    _firstLineSource (node) {
+        return this._getSource(node).split('\n')[0].trim();
+    },
+
+    /**
+     * The error for a value written as a line by itself (e.g. `x` or `1 + 2`).
+     * @param {object} node - The node of the line.
+     * @returns {RubyToBlocksConverterError} The error.
+     */
+    _valueAsStatementError (node) {
+        // The source is also shown as `say(...)`, so a value written over several lines is put on one line.
+        const source = this._getSource(node).replace(/\s*\n\s*/g, ' ').trim();
+        return new RubyToBlocksConverterError(
+            node,
+            this._translator(messages.valueAsStatement, {SOURCE: source})
+        );
+    },
+
+    /**
+     * The error for a line that is not a command (e.g. `:a`) in a block body or a method body.
+     * @param {object} node - The node of the line.
+     * @returns {RubyToBlocksConverterError} The error.
+     */
+    _notCommandError (node) {
+        return new RubyToBlocksConverterError(
+            node,
+            this._translator(messages.includeNotStatementBlocks, {SOURCE: this._firstLineSource(node)})
+        );
     },
 
     visitBeginNode (node) {
@@ -248,11 +299,46 @@ const CoreHandlers = {
         if (block !== null && typeof block !== 'undefined' && !this._isStatementBlock(block)) {
             if (!(this._context.inMyBlockDefinition && block.opcode === 'data_setvariableto')) {
                 this._context.inMyBlockDefinition = savedInMyBlockDefinition;
-                throw new RubyToBlocksConverterError(node, this._translator(messages.includeNotStatementBlocks));
+                throw this._notCommandError(this._nodeOfBlock(block) || this._firstStatementNode(node));
             }
         }
         this._context.inMyBlockDefinition = savedInMyBlockDefinition;
         return block;
+    },
+
+    /**
+     * The node a block (or a primitive) was made from, if it is known.
+     * @param {object} block - The block or the primitive.
+     * @returns {object|null} The node.
+     */
+    _nodeOfBlock (block) {
+        if (block && block.node) {
+            return block.node;
+        }
+        if (this._isBlock(block)) {
+            for (const [n, id] of this._context.nodeToBlockMap.entries()) {
+                if (id === block.id) {
+                    return n;
+                }
+            }
+        }
+        return null;
+    },
+
+    /**
+     * The first statement in a body node (e.g. `StatementsNode`, `ElseNode`), or the node itself.
+     * @param {object} node - The body node.
+     * @returns {object} The first statement node.
+     */
+    _firstStatementNode (node) {
+        let n = node;
+        if (n && n.statements) {
+            n = n.statements;
+        }
+        if (n && n.body && n.body.length > 0) {
+            return n.body[0];
+        }
+        return n || node;
     },
 
     _getBlockIdFromResult (result) {
