@@ -5,7 +5,7 @@ import LessonCompletedToast from '../components/lesson-completed-toast/lesson-co
 import { findChallenge } from '../lib/lessons/courses.js';
 import { attachGoalMonitor } from '../lib/lessons/goal-monitor.js';
 import { evaluateGoal, validateGoal } from '../lib/lessons/goal.js';
-import { isLastChallengeOfLesson } from '../lib/lessons/lesson-progress.js';
+import { completedAction } from '../lib/lessons/lesson-progress.js';
 import { openLessonsLibraryAt } from '../lib/lessons/open-lessons-library.js';
 import { closeLesson, dismissCompleted, markChallengeCompleted, openChallenge } from '../reducers/lesson-mode.js';
 
@@ -21,6 +21,7 @@ const LessonGoalWatcher = ({
     onNextChallenge,
     onOpenChallenge,
     onCloseLesson,
+    progress,
 }) => {
     const found = useMemo(() => (challengeId === null ? null : findChallenge(challengeId)), [challengeId]);
     const challenge = found ? found.challenge : null;
@@ -64,7 +65,7 @@ const LessonGoalWatcher = ({
     return (
         <LessonCompletedToast
             challenge={challenge}
-            isLastChallenge={isLastChallengeOfLesson(challenge.id)}
+            action={completedAction(challenge.id, progress)}
             onClose={onDismiss}
             onNextChallenge={handleNextChallenge}
         />
@@ -79,6 +80,8 @@ LessonGoalWatcher.propTypes = {
     onDismiss: PropTypes.func.isRequired,
     onNextChallenge: PropTypes.func.isRequired,
     onOpenChallenge: PropTypes.func,
+    // lesson-progress.js の記録（「できた！」のボタンを決める）
+    progress: PropTypes.shape({ challenges: PropTypes.object.isRequired }).isRequired,
     vm: PropTypes.object,
 };
 
@@ -86,6 +89,7 @@ const mapStateToProps = (state) => ({
     vm: state.scratchGui.vm,
     challengeId: state.scratchGui.lessonMode.challengeId,
     justCompletedId: state.scratchGui.lessonMode.justCompletedId,
+    progress: state.scratchGui.lessonMode.progress,
 });
 
 const mapDispatchToProps = (dispatch) => ({

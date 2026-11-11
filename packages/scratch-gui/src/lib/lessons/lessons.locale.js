@@ -151,6 +151,7 @@ export const ja = {
     'gui.lessons.completed.next': '次のチャレンジ',
     'gui.lessons.completed.lastInLesson': 'このレッスンのチャレンジは、これでおわり。',
     'gui.lessons.completed.otherLessons': 'ほかのレッスンへ',
+    'gui.lessons.completed.library': 'レッスン表へ',
     'gui.lessons.completed.close': '閉じる',
 };
 
@@ -303,6 +304,7 @@ export const jaHira = {
     'gui.lessons.completed.next': 'つぎのチャレンジ',
     'gui.lessons.completed.lastInLesson': 'このレッスンのチャレンジは、これでおわり。',
     'gui.lessons.completed.otherLessons': 'ほかのレッスンへ',
+    'gui.lessons.completed.library': 'レッスンひょうへ',
     'gui.lessons.completed.close': 'とじる',
 };
 
@@ -460,7 +462,8 @@ export const en = {
     'gui.lessons.completed.title': 'You did it!',
     'gui.lessons.completed.skills': 'Now you can: {skills}',
     'gui.lessons.completed.next': 'Next challenge',
-    'gui.lessons.completed.lastInLesson': 'That was the last challenge of this lesson.',
+    'gui.lessons.completed.lastInLesson': 'You have done every challenge of this lesson.',
     'gui.lessons.completed.otherLessons': 'Go to other lessons',
+    'gui.lessons.completed.library': 'Go to the lessons',
     'gui.lessons.completed.close': 'Close',
 };

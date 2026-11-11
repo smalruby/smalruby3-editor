@@ -411,8 +411,8 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `lesson-completed-toast-title` | span | 「できた！」 |
 | `lesson-completed-toast-challenge` | span | チャレンジの名前 |
 | `lesson-completed-toast-skills` | div | できることの一覧（`skills` が無いチャレンジでは出ない） |
-| `lesson-completed-toast-last` | div | 「このレッスンのチャレンジは、これでおわり。」（レッスンの最後のチャレンジのときだけ） |
-| `lesson-completed-toast-next` | button | 「次のチャレンジ」（最後のチャレンジのときは「ほかのレッスンへ」。`data-last` が `true` / `false`） |
+| `lesson-completed-toast-last` | div | 「このレッスンのチャレンジは、これでおわり。」（レッスンのチャレンジが全部できたときだけ） |
+| `lesson-completed-toast-next` | button | 「次のチャレンジ」／「ほかのレッスンへ」／「レッスン表へ」。`data-action` が `next` / `otherLessons` / `library`（`COMPLETED_ACTIONS`） |
 | `lesson-completed-toast-close` | button | 閉じる |
 
 **次のチャレンジ**: 「できた！」のあと何をすればよいかがわかるように、「次のチャレンジ」を置く。押すと「できた！」を
@@ -420,13 +420,17 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 レッスンモードは抜けない。レッスン表を閉じれば、いまのチャレンジにもどる）。レッスン表は、そのレッスンへ
 スクロールして囲み、**次のまだできていないチャレンジ**に「次はこれ！」の印を付ける（下の「レッスン表」）。
 
-- 「最後」は並び順でレッスンの最後のチャレンジのこと（`isLastChallengeOfLesson`）。最後のときは
-  「このレッスンのチャレンジは、これでおわり。」と出し、ボタンを「ほかのレッスンへ」にする。
+- ボタンは `completedAction(challengeId, progress)`（`lesson-progress.js`）で決める:
+  - レッスンにまだできていないチャレンジがある →「次のチャレンジ」（並び順で最後のチャレンジでも。
+    途中を飛ばした生徒に「おわり」と言わないため）。
+  - レッスンのチャレンジが全部できた →「このレッスンのチャレンジは、これでおわり。」と出し、
+    コースに次のレッスンがあれば「ほかのレッスンへ」（レッスン表で次のレッスンを見せる）、
+    無ければ「レッスン表へ」。
 - 必須がそろったか（クリアしたか）では文言を変えない（必須はなくす予定のため）。
 
 ![できた！（1300×600）](screenshots/0101-completed-toast-1300x600.png)
 
-![レッスンの最後のチャレンジの「できた！」（1300×600）](screenshots/0102-completed-toast-last-1300x600.png)
+![レッスンのチャレンジが全部できたときの「できた！」（1300×600）](screenshots/0102-completed-toast-last-1300x600.png)
 
 デバッグ・テスト用に `window.smalruby.lessonGoal` を出している（integration テスト
 `test/integration/lesson-goal.test.js` と pw-check が使う。レッスン表・レッスンモードの UI ができるまでの入口）:
@@ -489,11 +493,10 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
   すぐ選べる）。
 - **いまのレッスンを見せて開く**: 「できた！」の「次のチャレンジ」で開いたときは、いまのチャレンジから
   `lessonsLibraryFocus(challengeId, progress)`（`lesson-progress.js`）で見せるものを決める:
-  - レッスンの途中: いまのレッスン。次は、いまの次から並び順にさがしたまだできていないチャレンジ
-    （最後まで行ったら先頭にもどる。いまのチャレンジは選ばない）。
-  - レッスンの最後: コースに次のレッスンがあれば、そのレッスンのまだできていない最初のチャレンジ。
-    無ければ（いまはレッスン 1 だけ）、いまのレッスンの中でまだできていないもの。
-  - 全部できていれば、レッスンは見せるが「次はこれ！」は付けない。
+  - レッスンにまだできていないチャレンジがある: いまのレッスン。次は、いまの次から並び順にさがした
+    まだできていないチャレンジ（最後まで行ったら先頭にもどる。いまのチャレンジは選ばない）。
+  - 全部できていて、コースに次のレッスンがある: 次のレッスンの、まだできていない最初のチャレンジ。
+  - 全部できていて、次のレッスンが無い（いまはレッスン 1 だけ）: いまのレッスンを見せ、「次はこれ！」は付けない。
 
   そのレッスンの言語のタブを開き、レッスンへスクロールして（`scrollIntoView`）薄い青で囲み
   （`data-focused="true"`）、次のチャレンジを太い青の枠と「次はこれ！」で目立たせる（`data-next="true"`・
@@ -723,7 +726,7 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `screenshots/0303-lessons-library-375x667.png` | レッスン表（SP 縦 375×667。1 列） |
 | `screenshots/0304-lessons-library-cleared-1300x600.png` | レッスン 1 をクリアした状態（「クリア！」と「プログラマー デビュー！」） |
 | `screenshots/0101-completed-toast-1300x600.png` | 「できた！」と「次のチャレンジ」（チャレンジ 3） |
-| `screenshots/0102-completed-toast-last-1300x600.png` | レッスンの最後のチャレンジ（11）の「できた！」（これでおわり・ほかのレッスンへ） |
+| `screenshots/0102-completed-toast-last-1300x600.png` | レッスンのチャレンジが全部できたときの「できた！」（これでおわり・レッスン表へ） |
 | `screenshots/0305-lessons-library-next-1300x600.png` | 「次のチャレンジ」で開いたレッスン表（1〜3 ができていて、4 に「次はこれ！」） |
 | `screenshots/0501-challenge1-key-sound-hint1-1300x600.png` | チャレンジ 1「キーで音を鳴らそう」の最初のヒント（音タブを指す） |
 | `screenshots/0502-challenge2-arrow-move-hint1-1300x600.png` | チャレンジ 2「矢印キーで動かそう」の最初のヒント（パレットを指し「y座標を 10 ずつ変える」を描く） |

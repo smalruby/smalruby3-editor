@@ -172,17 +172,45 @@ export const exportProgress = (progress) =>
         .sort((a, b) => a.completedAt.localeCompare(b.completedAt) || a.challengeId.localeCompare(b.challengeId));
 
 /**
- * レッスンの最後のチャレンジか（並び順で最後）。「できた！」の文言を変える。
- * 必須がそろったかどうかでは変えない（必須は段 1 から外す予定・#1520）。
- * @param {string} challengeId - チャレンジ id。
- * @param {Array} [courses] - コース（テスト用）。
- * @returns {boolean} 最後なら true（知らない id は false）。
+ * 「できた！」のボタン（#1520）。
+ *   - `next`: レッスンにまだできていないチャレンジがある →「次のチャレンジ」
+ *   - `otherLessons`: レッスンのチャレンジが全部できて、コースに次のレッスンがある →「ほかのレッスンへ」
+ *   - `library`: 全部できて、次のレッスンが無い →「レッスン表へ」
+ * 並び順で最後かどうかでは決めない（途中を飛ばした生徒に「おわり」と言わないため）。
+ * 必須がそろったかどうかでも決めない（必須は段 1 から外す予定）。
  */
-export const isLastChallengeOfLesson = (challengeId, courses = COURSES) => {
+export const COMPLETED_ACTIONS = Object.freeze({
+    NEXT: 'next',
+    OTHER_LESSONS: 'otherLessons',
+    LIBRARY: 'library',
+});
+
+/**
+ * @param {object} lesson - レッスン。
+ * @param {object} progress - 記録。
+ * @returns {boolean} レッスンのチャレンジが全部できていれば true。
+ */
+const isLessonAllCompleted = (lesson, progress) =>
+    lesson.challenges.every((challenge) => isChallengeCompleted(progress, challenge.id));
+
+/**
+ * @param {object} course - コース。
+ * @param {object} lesson - レッスン。
+ * @returns {?object} コースの中で次のレッスン。無ければ null。
+ */
+const nextLessonOf = (course, lesson) => course.lessons[course.lessons.indexOf(lesson) + 1] || null;
+
+/**
+ * 「できた！」に出すボタンの種類（COMPLETED_ACTIONS）。
+ * @param {string} challengeId - できたチャレンジ id。
+ * @param {object} progress - 記録（できたチャレンジを含む）。
+ * @param {Array} [courses] - コース（テスト用）。
+ * @returns {string} COMPLETED_ACTIONS のどれか（知らない id は NEXT）。
+ */
+export const completedAction = (challengeId, progress, courses = COURSES) => {
     const found = findChallenge(challengeId, courses);
-    if (!found) return false;
-    const { challenges } = found.lesson;
-    return challenges[challenges.length - 1].id === challengeId;
+    if (!found || !isLessonAllCompleted(found.lesson, progress)) return COMPLETED_ACTIONS.NEXT;
+    return nextLessonOf(found.course, found.lesson) ? COMPLETED_ACTIONS.OTHER_LESSONS : COMPLETED_ACTIONS.LIBRARY;
 };
 
 /**
@@ -205,31 +233,29 @@ const nextIncompleteChallenge = (lesson, progress, afterId) => {
 
 /**
  * 「次のチャレンジ」でレッスン表を開くとき、どのレッスンを見せて、どのチャレンジを次として
- * 目立たせるか（#1520）。
- *   - レッスンの途中: いまのレッスン。次は、いまの次から並び順にさがしたまだできていないもの
- *     （最後まで行ったら先頭にもどる）。
- *   - レッスンの最後: コースに次のレッスンがあればそのレッスンの、まだできていない最初のもの。
- *     次のレッスンが無ければ、いまのレッスンの中でまだできていないもの。
+ * 目立たせるか（#1520）。「できた！」のボタン（completedAction）と食い違わないように決める:
+ *   - レッスンにまだできていないチャレンジがある: いまのレッスン。次は、いまの次から並び順に
+ *     さがしたまだできていないもの（最後まで行ったら先頭にもどる）。
+ *   - 全部できていて、コースに次のレッスンがある: 次のレッスンの、まだできていない最初のもの。
+ *   - 全部できていて、次のレッスンが無い: いまのレッスン。印は付けない。
  * @param {string} challengeId - いまのチャレンジ id。
  * @param {object} progress - 記録。
  * @param {Array} [courses] - コース（テスト用）。
  * @returns {?{language: string, courseId: string, lessonId: string, nextChallengeId: ?string}}
- *   知らない id は null。`nextChallengeId` は全部できていれば null。
+ *   知らない id は null。`nextChallengeId` は印を付けないとき null。
  */
 export const lessonsLibraryFocus = (challengeId, progress, courses = COURSES) => {
     const found = findChallenge(challengeId, courses);
     if (!found) return null;
     const { course, lesson } = found;
     let focusLesson = lesson;
-    let next = null;
-    if (isLastChallengeOfLesson(challengeId, courses)) {
-        const nextLesson = course.lessons[course.lessons.indexOf(lesson) + 1];
-        if (nextLesson) {
-            focusLesson = nextLesson;
-            next = nextIncompleteChallenge(nextLesson, progress, null);
-        }
+    let next;
+    if (completedAction(challengeId, progress, courses) === COMPLETED_ACTIONS.OTHER_LESSONS) {
+        focusLesson = nextLessonOf(course, lesson);
+        next = nextIncompleteChallenge(focusLesson, progress, null);
+    } else {
+        next = nextIncompleteChallenge(lesson, progress, challengeId);
     }
-    if (focusLesson === lesson) next = nextIncompleteChallenge(lesson, progress, challengeId);
     return {
         language: course.language,
         courseId: course.id,

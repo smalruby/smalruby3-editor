@@ -1,11 +1,12 @@
 import { defineCourse, defineLesson, findLesson } from '../../../../src/lib/lessons/courses';
 import {
+    COMPLETED_ACTIONS,
     LESSON_PROGRESS_STORAGE_KEY,
+    completedAction,
     completedSkills,
     emptyProgress,
     exportProgress,
     isChallengeCompleted,
-    isLastChallengeOfLesson,
     lessonClearStatus,
     lessonsLibraryFocus,
     loadProgress,
@@ -211,12 +212,44 @@ describe('lesson progress', () => {
     });
 });
 
-describe('isLastChallengeOfLesson', () => {
-    test('is true only for the last challenge in the lesson order', () => {
-        expect(isLastChallengeOfLesson(lesson1Id(11))).toBe(true);
-        expect(isLastChallengeOfLesson(lesson1Id(1))).toBe(false);
-        expect(isLastChallengeOfLesson(lesson1Id(10))).toBe(false);
-        expect(isLastChallengeOfLesson('no-such-challenge')).toBe(false);
+const twoLessonCourses = () => [
+    defineCourse({
+        id: 'c',
+        language: 'blocks',
+        lessons: [
+            defineLesson({ id: 'l1', count: 1, challenges: [{ id: 'a' }, { id: 'b' }] }),
+            defineLesson({ id: 'l2', count: 1, challenges: [{ id: 'c1' }, { id: 'c2' }] }),
+        ],
+    }),
+];
+
+const record = (lessonId) => ({ completedAt: NOW, courseId: 'c', lessonId });
+
+describe('completedAction', () => {
+    const done = (...numbers) =>
+        numbers.reduce((p, n) => markChallengeCompleted(p, lesson1Id(n), NOW), emptyProgress());
+
+    test('is "next" while the lesson has challenges not done, even on the last challenge', () => {
+        expect(completedAction(lesson1Id(3), done(3))).toBe(COMPLETED_ACTIONS.NEXT);
+        // Skipped to the last challenge: the lesson is not over yet
+        expect(completedAction(lesson1Id(11), done(11))).toBe(COMPLETED_ACTIONS.NEXT);
+    });
+
+    test('is "library" when every challenge of the lesson is done and there is no next lesson', () => {
+        const all = done(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11);
+        expect(completedAction(lesson1Id(11), all)).toBe(COMPLETED_ACTIONS.LIBRARY);
+        // Not only on the last challenge in the order
+        expect(completedAction(lesson1Id(4), all)).toBe(COMPLETED_ACTIONS.LIBRARY);
+    });
+
+    test('is "otherLessons" when every challenge of the lesson is done and the course has a next lesson', () => {
+        const progress = { version: 1, challenges: { a: record('l1'), b: record('l1') } };
+        expect(completedAction('a', progress, twoLessonCourses())).toBe(COMPLETED_ACTIONS.OTHER_LESSONS);
+        expect(completedAction('c1', progress, twoLessonCourses())).toBe(COMPLETED_ACTIONS.NEXT);
+    });
+
+    test('is "next" for an unknown challenge', () => {
+        expect(completedAction('no-such-challenge', emptyProgress())).toBe(COMPLETED_ACTIONS.NEXT);
     });
 });
 
@@ -253,25 +286,29 @@ describe('lessonsLibraryFocus', () => {
         expect(lessonsLibraryFocus(lesson1Id(5), emptyProgress()).nextChallengeId).toBe(lesson1Id(6));
     });
 
-    test('on the last challenge, moves to the next lesson of the course when there is one', () => {
-        const courses = [
-            defineCourse({
-                id: 'c',
-                language: 'blocks',
-                lessons: [
-                    defineLesson({ id: 'l1', count: 1, challenges: [{ id: 'a' }, { id: 'b' }] }),
-                    defineLesson({ id: 'l2', count: 1, challenges: [{ id: 'c1' }, { id: 'c2' }] }),
-                ],
-            }),
-        ];
-        const progress = { version: 1, challenges: { c1: { completedAt: NOW, courseId: 'c', lessonId: 'l2' } } };
-        expect(lessonsLibraryFocus('b', progress, courses)).toEqual({
+    test('when the lesson is all done, moves to the next lesson of the course when there is one', () => {
+        const courses = twoLessonCourses();
+        const progress = {
+            version: 1,
+            challenges: { a: record('l1'), b: record('l1'), c1: record('l2') },
+        };
+        expect(lessonsLibraryFocus('a', progress, courses)).toEqual({
             language: 'blocks',
             courseId: 'c',
             lessonId: 'l2',
             nextChallengeId: 'c2',
         });
-        expect(lessonsLibraryFocus('a', progress, courses).lessonId).toBe('l1');
+    });
+
+    test('stays in the lesson while it has challenges not done, even on the last challenge', () => {
+        const courses = twoLessonCourses();
+        const progress = { version: 1, challenges: { b: record('l1') } };
+        expect(lessonsLibraryFocus('b', progress, courses)).toEqual({
+            language: 'blocks',
+            courseId: 'c',
+            lessonId: 'l1',
+            nextChallengeId: 'a',
+        });
     });
 
     test('is null for an unknown challenge', () => {

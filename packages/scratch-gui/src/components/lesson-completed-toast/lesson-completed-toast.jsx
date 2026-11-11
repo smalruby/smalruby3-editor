@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import { defineMessages, injectIntl } from 'react-intl';
 import intlShape from '../../lib/intlShape.js';
+import { COMPLETED_ACTIONS } from '../../lib/lessons/lesson-progress.js';
 import styles from './lesson-completed-toast.css';
 
 const messages = defineMessages({
@@ -22,13 +23,22 @@ const messages = defineMessages({
     },
     lastInLesson: {
         id: 'gui.lessons.completed.lastInLesson',
-        defaultMessage: 'That was the last challenge of this lesson.',
-        description: 'Shown on the completed toast when the challenge is the last one of its lesson',
+        defaultMessage: 'You have done every challenge of this lesson.',
+        description: 'Shown on the completed toast when every challenge of the lesson is done',
     },
     otherLessons: {
         id: 'gui.lessons.completed.otherLessons',
         defaultMessage: 'Go to other lessons',
-        description: 'Button on the completed toast of the last challenge of a lesson; opens the lessons library',
+        description:
+            'Button on the completed toast when every challenge of the lesson is done and the course has a next ' +
+            'lesson; opens the lessons library at the next lesson',
+    },
+    library: {
+        id: 'gui.lessons.completed.library',
+        defaultMessage: 'Go to the lessons',
+        description:
+            'Button on the completed toast when every challenge of the lesson is done and there is no next ' +
+            'lesson; opens the lessons library',
     },
     close: {
         id: 'gui.lessons.completed.close',
@@ -45,18 +55,26 @@ const messages = defineMessages({
  */
 const skillSeparator = (locale) => (String(locale).toLowerCase().startsWith('ja') ? '・' : ', ');
 
+// ボタンの文言（COMPLETED_ACTIONS ごと）
+const BUTTON_MESSAGES = {
+    [COMPLETED_ACTIONS.NEXT]: messages.next,
+    [COMPLETED_ACTIONS.OTHER_LESSONS]: messages.otherLessons,
+    [COMPLETED_ACTIONS.LIBRARY]: messages.library,
+};
+
 /**
  * 「できた！」の表示。チャレンジの名前と、身についた「できること」と、「次のチャレンジ」
- * （レッスンの最後なら「ほかのレッスンへ」）を並べる。
+ * （レッスンのチャレンジが全部できたら「ほかのレッスンへ」か「レッスン表へ」）を並べる。
  * @param {object} props - props。
  * @param {object} props.challenge - できたチャレンジ。
- * @param {boolean} props.isLastChallenge - レッスンの最後のチャレンジか。
+ * @param {string} props.action - ボタンの種類（lesson-progress.js の COMPLETED_ACTIONS）。
  * @param {Function} props.onClose - 閉じる。
  * @param {Function} props.onNextChallenge - 「次のチャレンジ」（レッスン表を開く）。
  * @param {object} props.intl - react-intl。
  * @returns {React.ReactElement} toast。
  */
-const LessonCompletedToast = ({ challenge, isLastChallenge, onClose, onNextChallenge, intl }) => {
+const LessonCompletedToast = ({ action = COMPLETED_ACTIONS.NEXT, challenge, onClose, onNextChallenge, intl }) => {
+    const lessonDone = action !== COMPLETED_ACTIONS.NEXT;
     const skills = (challenge.skills || []).map((skill) => intl.formatMessage(skill.name));
     return (
         <div className={styles.toast} role="status" data-testid="lesson-completed-toast">
@@ -77,7 +95,7 @@ const LessonCompletedToast = ({ challenge, isLastChallenge, onClose, onNextChall
                         })}
                     </div>
                 ) : null}
-                {isLastChallenge ? (
+                {lessonDone ? (
                     <div className={styles.lastInLesson} data-testid="lesson-completed-toast-last">
                         {intl.formatMessage(messages.lastInLesson)}
                     </div>
@@ -89,9 +107,9 @@ const LessonCompletedToast = ({ challenge, isLastChallenge, onClose, onNextChall
                             className={styles.next}
                             onClick={onNextChallenge}
                             data-testid="lesson-completed-toast-next"
-                            data-last={isLastChallenge ? 'true' : 'false'}
+                            data-action={action}
                         >
-                            {intl.formatMessage(isLastChallenge ? messages.otherLessons : messages.next)}
+                            {intl.formatMessage(BUTTON_MESSAGES[action])}
                         </button>
                     </div>
                 ) : null}
@@ -109,13 +127,14 @@ const LessonCompletedToast = ({ challenge, isLastChallenge, onClose, onNextChall
 };
 
 LessonCompletedToast.propTypes = {
+    // ボタンの種類。next =「次のチャレンジ」、otherLessons / library はレッスンのチャレンジが全部できたとき
+    // （「これでおわり」の行も出す）。決め方は lesson-progress.js の completedAction
+    action: PropTypes.oneOf(Object.values(COMPLETED_ACTIONS)),
     challenge: PropTypes.shape({
         name: PropTypes.object.isRequired,
         skills: PropTypes.arrayOf(PropTypes.shape({ id: PropTypes.string, name: PropTypes.object })),
     }).isRequired,
     intl: intlShape.isRequired,
-    // レッスンの最後のチャレンジか（並び順で最後）。文言を「ほかのレッスンへ」にする
-    isLastChallenge: PropTypes.bool,
     onClose: PropTypes.func.isRequired,
     // 「次のチャレンジ」。レッスン表をいまのレッスンで開く。無ければボタンを出さない
     onNextChallenge: PropTypes.func,
