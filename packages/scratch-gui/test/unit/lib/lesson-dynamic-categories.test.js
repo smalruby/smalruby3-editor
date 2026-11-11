@@ -103,13 +103,22 @@ describe('lesson-dynamic-categories', () => {
                 'data_changevariableby',
             ]);
         });
-        test('keeps the make-a-list button and drops dangling separators', () => {
+        test('keeps the make-a-list button, the list reporter and drops dangling separators', () => {
+            // data_listcontents は allowedBlocks に無くても残す（モニターのチェックボックスでステージに箱を出すため）
             const ids = ['data_deletealloflist', 'data_addtolist'];
             expect(describeList(filterDynamicCategoryXmlList(variablesFlyout(), ids))).toEqual([
                 'CREATE_LIST',
+                'data_listcontents',
                 'data_addtolist',
                 'sep',
                 'data_deletealloflist',
+            ]);
+        });
+        test('keeps the variable reporter whenever a variable block is allowed', () => {
+            expect(describeList(filterDynamicCategoryXmlList(variablesFlyout(), ['data_setvariableto']))).toEqual([
+                'CREATE_VARIABLE',
+                'data_variable',
+                'data_setvariableto',
             ]);
         });
         test('filters the My Blocks flyout', () => {

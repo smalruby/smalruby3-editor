@@ -362,7 +362,8 @@ const blocksLesson1 = defineLesson({
             required: true,
             task: challengeMessage('blocks-l1-count', 'task'),
             skills: [skill('make-variable'), skill('variable')],
-            // 変数のカテゴリはパレットを絞っても全部出る（make-toolbox-xml）。ここは使うブロックの記録
+            // 変数のカテゴリと中のブロックもこの allowedBlocks で絞る（lesson-dynamic-categories.js）。
+            // 「変数を作る」と変数のレポーター（モニターのチェックボックス）は、変数のブロックがあれば出る
             allowedBlocks: {
                 event: ['event_whenflagclicked', 'event_whenthisspriteclicked'],
                 data: ['data_setvariableto', 'data_changevariableby', 'data_variable'],
@@ -452,7 +453,9 @@ const blocksLesson1 = defineLesson({
             required: true,
             task: challengeMessage('blocks-l1-message-list', 'task'),
             skills: [skill('make-list'), skill('add-to-list')],
-            // リストのカテゴリはパレットを絞っても全部出る（make-toolbox-xml）。ここは使うブロックの記録
+            // 変数のカテゴリと中のブロックもこの allowedBlocks で絞る（lesson-dynamic-categories.js）。
+            // 「リストを作る」とリストのレポーター（作ったリストをステージに出すチェックボックス）は、
+            // リストのブロックがあれば出る
             allowedBlocks: {
                 event: ['event_whenflagclicked', 'event_whenthisspriteclicked'],
                 data: ['data_deletealloflist', 'data_addtolist'],

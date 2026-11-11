@@ -79,7 +79,13 @@ const isDynamicCategoryAllowed = (category, allowedIds) => {
 const keepFlyoutElement = (element, allowedIds) => {
     const tag = (element.tagName || '').toLowerCase();
     if (tag === 'block') {
-        return allowedIds.includes(element.getAttribute('type'));
+        const type = element.getAttribute('type');
+        // 変数・リストのレポーターは、モニターのチェックボックスを持つ。scratch-blocks は作った
+        // 変数・リストをこのチェックボックスでステージに出すので、「作る」ボタンを出すなら一緒に残す
+        // （残さないと、リストを作ってもステージに箱が出ない）
+        if (type === 'data_variable') return anyAllowed(VARIABLE_OPCODES, allowedIds);
+        if (type === 'data_listcontents') return anyAllowed(LIST_OPCODES, allowedIds);
+        return allowedIds.includes(type);
     }
     if (tag === 'button') {
         // 「変数を作る」は変数のブロック、「リストを作る」はリストのブロックが

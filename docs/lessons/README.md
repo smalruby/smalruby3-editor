@@ -492,9 +492,14 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
     - 中身: `allowedBlocks` にあるブロックだけ（`blocks.jsx` で登録するカテゴリのコールバックで絞る）。
       「変数を作る」は変数のブロック（`data_variable` など）が、「リストを作る」はリストのブロック
       （`data_addtolist` など）が、「ブロックを作る」は `procedures_*` が 1 つでもあれば出す。
+      変数・リストのレポーター（`data_variable` / `data_listcontents`）も同じ条件で出す。モニターの
+      チェックボックスを持ち、作った変数・リストをステージに出すのはこのチェックボックスなので、
+      残さないと「リストを作る」で作ったリストの箱がステージに出ない。
     - 変数を使うチャレンジ・チュートリアルは、`allowedBlocks` に `data: [...]`（ブロック定義なら
       `procedures: [...]`）を書く。キー名は自由（中の opcode だけを見る）。チャットのチュートリアルと
-      Ruby の基本 3・4・6 には書いてある。
+      Ruby の基本 3・4・6 には書いてある。deck とチャレンジのプログラム（`code`・ヒントのブロック）が使う
+      変数・リスト・ブロック定義の opcode が `allowedBlocks` に入っているかは
+      `test/unit/lib/lesson-dynamic-categories-decks.test.js` が Ruby をブロックに変換して確かめる。
     - `?only_blocks=`・ステージのコメント・ブロックの選択（`selectedBlocks`）で絞るときは、これまでどおり
       2 つとも出る。
 - **ヒント**: 「ヒント」ボタンで `showHint` / `hideHint`。吹き出し（下の「ヒントの吹き出し」）は
@@ -678,6 +683,7 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `packages/scratch-gui/src/lib/lesson-dynamic-categories.js` | 「変数」「ブロック定義」を `allowedBlocks` で絞る純粋関数（カテゴリを出すか・flyout の中身） |
 | `packages/scratch-gui/src/lib/make-toolbox-xml.js` | `allowedBlocks` に無ければ「変数」「ブロック定義」のカテゴリを出さない（マーカー `lesson dynamic category filtering`） |
 | `packages/scratch-gui/test/unit/lib/lesson-dynamic-categories.test.js` | 上の純粋関数・toolbox XML・既存の deck / チャレンジの unit テスト |
+| `packages/scratch-gui/test/unit/lib/lesson-dynamic-categories-decks.test.js` | すべての deck・チャレンジのプログラムを変換し、使う変数・リスト・ブロック定義の opcode が `allowedBlocks` にあるか |
 | `packages/scratch-gui/test/unit/lib/lessons/` | データの形・記録・クリア判定・setup・できた の判定・見張りの unit テスト |
 | `packages/scratch-gui/test/unit/reducers/lesson-mode-reducer.test.js` | reducer の unit テスト |
 | `packages/scratch-gui/test/unit/components/lesson-completed-toast.test.jsx` / `test/unit/containers/lesson-goal-watcher.test.jsx` | 「できた！」と見張りのコンテナの unit テスト |
