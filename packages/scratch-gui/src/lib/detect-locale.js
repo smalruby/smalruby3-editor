@@ -5,12 +5,6 @@
 
 import queryString from 'query-string';
 
-/**
- * look for language setting in the browser. Check against supported locales.
- * If there's a parameter in the URL, override the browser setting
- * @param {Array.string} supportedLocales An array of supported locale codes.
- * @returns {string} the preferred locale
- */
 // === Smalruby: Start of case-insensitive locale matching ===
 /**
  * Find a supported locale without regard to case and return its canonical spelling
@@ -25,6 +19,12 @@ const findSupportedLocale = (supportedLocales, candidate) => {
 };
 // === Smalruby: End of case-insensitive locale matching ===
 
+/**
+ * look for language setting in the browser. Check against supported locales.
+ * If there's a parameter in the URL, override the browser setting
+ * @param {Array.string} supportedLocales An array of supported locale codes.
+ * @returns {string} the preferred locale
+ */
 const detectLocale = supportedLocales => {
     let locale = 'en'; // default
     // === Smalruby: Start of case-insensitive locale matching ===

@@ -1,4 +1,7 @@
 import {detectLocale} from '../../../src/lib/detect-locale.js';
+// === Smalruby: Start of case-insensitive locale matching ===
+import l10nLocales from 'scratch-l10n';
+// === Smalruby: End of case-insensitive locale matching ===
 
 const supportedLocales = ['en', 'es', 'pt-br', 'de', 'it'];
 
@@ -112,6 +115,22 @@ describe('detectLocale with mixed-case supported locales', () => {
         mockWindowLocation.search = '';
         mockWindowNavigator.language = 'ja-hira';
         expect(detectLocale(smalrubyLocales)).toEqual('ja-Hira');
+    });
+
+    // The real list from scratch-l10n: only the mixed-case ja-Hira should change.
+    test.each([
+        ['', 'pt-BR', 'pt-br'],
+        ['', 'zh-TW', 'zh-tw'],
+        ['', 'es-MX', 'es'],
+        ['', 'xx', 'en'],
+        ['?locale=es-419', 'en-US', 'es-419'],
+        ['?locale=ZH-TW', 'en-US', 'zh-tw'],
+        ['?lang=ja-hira', 'en-US', 'ja-Hira'],
+        ['?locale=ja-Hira-JP', 'en-US', 'en'],
+    ])('with the scratch-l10n locales, search=%s navigator=%s returns %s', (search, language, expected) => {
+        mockWindowLocation.search = search;
+        mockWindowNavigator.language = language;
+        expect(detectLocale(Object.keys(l10nLocales))).toEqual(expected);
     });
 });
 // === Smalruby: End of case-insensitive locale matching ===
