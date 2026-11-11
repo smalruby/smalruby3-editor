@@ -479,8 +479,18 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
   「何個め / 全部で何個」・課題の 1 行（`task`。無ければチャレンジの名前）・ヒント・やめる。
   stage の列には掛からないので、1300×600 の授業のパソコンでもコードエリアは 40px 縮むだけ。
   課題の文は長くてもエディタ列を広げない（広げるとステージが画面の右にはみ出す）。入りきらない分は
-  … で切り、全文は `title`（マウスを乗せると出る）。
-  SP（MobileGui）でも同じ場所に出る。
+  … で切る（全文は `title` にもある）。SP（MobileGui）でも同じ場所に出る。
+- **課題の全文**: 課題の文が … で切れているときだけ、バーに「全文」ボタンが出る。ボタンか課題の文を押すと、
+  課題バーのすぐ下に全文を折り返して出すパネルを開く（もう一度押す・外（コードエリアも含む）を押す・Esc で閉じる）。`title` は
+  タッチ端末や子どもには気づきにくいため。切れているかは課題の文の `scrollWidth > clientWidth` で決め、
+  窓の大きさ（`resize`）と課題の文の幅（`ResizeObserver`）が変わるたびに測り直す（全部入るようになれば
+  ボタンは消え、パネルも閉じる）。パネルは `position: absolute` でエディタの列に重ねるので、エディタの列の
+  幅も高さも変えない（ステージは押し出さない）。「できた！」の toast とヒントの吹き出しも課題バーの下に
+  出るので重ねない: パネルを開くとその 2 つを閉じ、どちらかが出たらパネルを閉じる（z-index もパネルの
+  470 より toast の 480・吹き出しの 490 が上）。文言は `gui.lessonTaskBar.fullText`（全文 / ぜんぶ / Read all）と
+  `gui.lessonTaskBar.fullTextLabel`（ボタンの aria-label）。
+
+  ![課題の全文（1300×600）](screenshots/0203-lesson-task-full-text-1300x600.png)
 - **パレットを絞る**: チャレンジの `allowedBlocks`（deck と同じ形）。Blocks コンテナの `tutorialAllowedBlocks`
   にレッスンの分を優先して渡すので、仕組みはチュートリアルと同じ（`allowedBlocks` が null なら絞らない）。
 - **ヒント**: 「ヒント」ボタンで `showHint` / `hideHint`。吹き出し（下の「ヒントの吹き出し」）は
@@ -576,7 +586,9 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 |------------|------|------|
 | `lesson-task-bar` | div | 課題バー全体（レッスンモードのときだけある） |
 | `lesson-task-bar-position` | span | 「何個め / 全部で何個」 |
-| `lesson-task-bar-task` | span | 課題の 1 行（長いときは省略記号。全文は `title`） |
+| `lesson-task-bar-task` | span | 課題の 1 行（長いときは省略記号。全文は `title`）。`data-truncated="true\|false"` = 切れているか。切れているときは押すと全文のパネルを開閉する |
+| `lesson-task-bar-full-text-toggle` | button | 「全文」（切れているときだけある。`aria-expanded` / `aria-controls`） |
+| `lesson-task-bar-full-text` | div | 課題の全文のパネル（開いているときだけある） |
 | `lesson-task-bar-hint` | button | ヒントの吹き出しの出し入れ（ヒントが無ければ disabled） |
 | `lesson-task-bar-quit` | button | やめる |
 | `lesson-hint` | div | ヒントの吹き出し（`data-side` = 置いた側 `right` / `left` / `bottom` / `top` / `inside` / `center`、`data-target` = 指す場所） |
@@ -596,6 +608,8 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 |---------|------|
 | `screenshots/0201-lesson-mode-1300x600.png` | 授業のパソコン（1300×600）でチャレンジ 3「押したら話そう」を開いたところ |
 | `screenshots/0202-lesson-mode-667x375.png` | SP 横（MobileGui）で同じチャレンジを開いたところ |
+| `screenshots/0203-lesson-task-full-text-1300x600.png` | 1300×600 でチャレンジ 5「もし〜なら」の課題の全文を開いたところ |
+| `screenshots/0204-lesson-task-full-text-667x375.png` | SP 横（MobileGui）で同じ全文を開いたところ |
 | `screenshots/0401-lesson-hint-1300x600.png` | ヒント 2（パレットを指す・はじめてなのでスポットライト・本物のブロック）を 1300×600 で開いたところ |
 | `screenshots/0402-lesson-hint-667x375.png` | 同じヒントを SP 横（667×375）で開いたところ（パレットの右に収まる） |
 | `screenshots/0403-lesson-hint-375x667.png` | 同じヒントを SP 縦（375×667。縦持ちゲートを閉じたあと）で開いたところ（収まらないのでパレットの中） |

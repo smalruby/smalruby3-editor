@@ -1634,6 +1634,8 @@ export default {
     'gui.lessonTaskBar.position': '{number} / ぜんぶで {count}',
     'gui.lessonTaskBar.hint': 'ヒント',
     'gui.lessonTaskBar.quit': 'やめる',
+    'gui.lessonTaskBar.fullText': 'ぜんぶ',
+    'gui.lessonTaskBar.fullTextLabel': 'かだいをぜんぶみる',
     'gui.lessonHint.ariaLabel': 'ヒント',
     'gui.lessonHint.position': 'ヒント {number} / {count}',
     'gui.lessonHint.prev': 'もどる',

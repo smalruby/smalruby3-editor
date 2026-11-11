@@ -1,6 +1,12 @@
 @import "../../css/colors.css";
 @import "../../css/units.css";
 
+/* 全文のパネルの置き場所。バー自身は overflow: hidden なので、パネルはこの外側に置く */
+.wrapper {
+    position: relative;
+    flex-shrink: 0;
+}
+
 /*
     1 行・40px 固定。editor-wrapper（flex column）の先頭に置くので、
     下のタブとコードエリアはこの高さの分だけ縮む（stage の列は変わらない）。
@@ -64,4 +70,40 @@
 .button:disabled {
     opacity: 0.5;
     cursor: default;
+}
+
+.task-cut-off {
+    cursor: pointer;
+}
+
+.button-active {
+    background-color: $ui-white;
+    color: $motion-primary;
+}
+
+/*
+    課題の全文。バーのすぐ下に、エディタの列の幅で重ねて出す（absolute なのでレイアウトは変えない）。
+    z-index はパレット（40）より上、「できた！」の toast（$z-index-card = 480）とヒントの吹き出し
+    （$z-index-tooltip = 490）より下。どちらかが出たらパネルは閉じる（lesson-task-bar.jsx）。
+*/
+.full-text {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 470;
+    max-height: 40vh;
+    overflow-y: auto;
+    padding: 0.5rem 0.75rem;
+    border: 2px solid $motion-primary;
+    border-top: none;
+    border-radius: 0 0 0.5rem 0.5rem;
+    background-color: $ui-white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    color: $text-primary;
+    font-size: 0.875rem;
+    font-weight: bold;
+    line-height: 1.5;
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
