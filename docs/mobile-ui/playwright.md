@@ -107,7 +107,7 @@ active 状態は `[data-active="true"]` 属性で表現される。
 
 ### 3.3 MobileModeNotice (`mobile-mode-notice.jsx`)
 
-スマホモードで一度だけ表示される案内バー (#865)。「いまはスマホ用の画面である / PC とは違う / メニューから PC モードへ切り替えられる」ことを伝える。閉じると `localStorage['smalruby:mobileModeNoticeDismissed']='true'` に記録し以後出さない。
+スマホモードで一度だけ表示される案内バー (#865)。「いまはスマホ用の画面である / PC とは違う / メニューから PC モードへ切り替えられる」ことを伝える。閉じると `localStorage['smalruby:mobileModeNoticeDismissed']='true'` に記録し以後出さない。レッスンモードに入ったときも同じく閉じて記録する（課題バーに重なるため）。
 
 | data-testid                    | 要素   | 役割                                              |
 | ------------------------------ | ------ | ------------------------------------------------- |

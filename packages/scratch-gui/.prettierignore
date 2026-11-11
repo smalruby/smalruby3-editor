@@ -364,6 +364,7 @@ test/integration/*
 !test/integration/smalruby-lessons.test.js
 !test/integration/smalruby-lessons-hint.test.js
 !test/integration/smalruby-lesson-task-bar-full-text.test.js
+!test/integration/smalruby-lessons-first-time-balloons.test.js
 !test/integration/smalruby-lesson1-challenges-1-4.test.js
 !test/integration/smalruby-lessons-library.test.js
 !test/integration/v1-detection-prompt.test.js
