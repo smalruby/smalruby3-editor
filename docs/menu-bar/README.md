@@ -48,13 +48,12 @@ upstream ではチュートリアルとデバッグはメニューバーのボ�
 
 - `?tutorial=<urlId>` で直接チュートリアルを開く経路はそのまま動く（[`docs/tutorial/`](../tutorial/)）。
 - SP / iPad の `MobileGui` にはもともとチュートリアル / デバッグのボタンは無い（ドロワーの「ヘルプ」は「スモウルビーについて」「ウェルカムをもう一度見る」「不具合を報告」のみ）。
-- はじめての人向けの吹き出し（旧 `tutorial-tooltip`「ルビーを試してみよう!」）は廃止し、代わりに「レッスン」ボタンの下に「レッスンをはじめよう！」の吹き出し（`lessons-tooltip`）を出す。一度レッスン表を開くと出なくなる（[`docs/lessons/`](../lessons/)）。
+- はじめての人向けの吹き出し（旧 `tutorial-tooltip`「ルビーを試してみよう!」）は廃止した。「レッスン」ボタンの下にも吹き出しは出さない（[`docs/lessons/`](../lessons/)）。
 - SP / iPad の `MobileGui` では、ドロワーの「レッスン」（`mobile-drawer-lessons`）からレッスン表を開く。
 
 | data-testid | 要素 | 説明 |
 |---|---|---|
 | `menu-bar-lessons` | div | 「レッスン」ボタン（レッスン表を開く） |
-| `lessons-tooltip` | div | 「レッスン」ボタンの下の、はじめての人向けの吹き出し |
 | `menu-bar-about` | div | 「?」ボタン（押すとメニューが開く） |
 | `menu-bar-help-tutorials` | li (`MenuItem`) | チュートリアル一覧を開く |
 | `menu-bar-help-debug` | li (`MenuItem`) | デバッグ画面を開く |
@@ -68,8 +67,7 @@ upstream ではチュートリアルとデバッグはメニューバーのボ�
 | `packages/scratch-gui/src/components/menu-bar/menu-bar.jsx` | メニューバー本体（Smalruby マーカー多数）|
 | `packages/scratch-gui/src/components/menu-bar/menu-bar.css` | スタイル（mobile-ui 用 `max-height: 800px` 圧縮も含む）|
 | `packages/scratch-gui/src/components/menu-bar/settings-menu.jsx` | 設定メニュー（Smalruby のクラスルーム管理を含む）|
-| `packages/scratch-gui/src/containers/menu-bar-hoc.jsx` | メニューバー HOC（「?」メニューのチュートリアル項目用 `onOpenTipsLibrary`、「レッスン」ボタン用 `onOpenLessonsLibrary` / `showLessonsTooltip` を供給）|
-| `packages/scratch-gui/src/components/menu-bar/lessons-tooltip.jsx` | 「レッスン」ボタンの下の吹き出し |
+| `packages/scratch-gui/src/containers/menu-bar-hoc.jsx` | メニューバー HOC（「?」メニューのチュートリアル項目用 `onOpenTipsLibrary`、「レッスン」ボタン用 `onOpenLessonsLibrary` / `lessonModeActive` を供給）|
 | `packages/scratch-gui/src/components/gui/gui.jsx` | 「?」メニューの「スモウルビーについて」「ウェルカムをもう一度見る」の定義（about menu マーカー）|
 | `packages/scratch-gui/src/components/language-selector/` | 言語選択 |
 | `packages/scratch-gui/src/lib/version-checker.js` | バージョン更新確認（Smalruby 独自）|

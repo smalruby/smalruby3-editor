@@ -41,9 +41,9 @@ describe('Smalruby Lessons Library', () => {
         await waitForLoadingFinished();
         await driver.executeScript(`window.localStorage.removeItem(${JSON.stringify(PROGRESS_KEY)})`);
 
-        // 「レッスン」のボタンと、はじめての人向けの吹き出し
+        // 「レッスン」のボタン。はじめての人向けの吹き出しは出さない (#1512)
         await findByXpath(byTestId('menu-bar-lessons'));
-        expect(await countByTestId(driver, 'lessons-tooltip')).toBe(1);
+        expect(await countByTestId(driver, 'lessons-tooltip')).toBe(0);
         expect(await countByTestId(driver, 'lessons-library')).toBe(0);
 
         await clickByTestId(driver, 'menu-bar-lessons');
@@ -83,8 +83,6 @@ describe('Smalruby Lessons Library', () => {
         expect(await textByTestId(driver, 'lessons-library-progress')).toBe('2 / 11 done (required 1 / 5)');
         expect(await countByTestId(driver, 'lessons-library-challenge-done')).toBe(2);
         expect(await countByTestId(driver, 'lessons-library-challenge-required')).toBe(5);
-        // 一度開いたので、吹き出しは出ない
-        expect(await countByTestId(driver, 'lessons-tooltip')).toBe(0);
 
         // 既知の無害なログ (Google Drive の初期化失敗など) は getLogs() が除く
         expect(await getLogs()).toEqual([]);
