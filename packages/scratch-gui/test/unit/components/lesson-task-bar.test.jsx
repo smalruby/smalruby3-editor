@@ -205,10 +205,35 @@ describe('LessonTaskBar', () => {
             test('stops listening to the fonts when it goes away', () => {
                 const fonts = makeFonts();
                 setFonts(fonts);
+                const addSpy = jest.spyOn(fonts, 'addEventListener');
                 const removeSpy = jest.spyOn(fonts, 'removeEventListener');
                 const { unmount } = renderBar();
+                expect(addSpy).toHaveBeenCalledTimes(1);
                 unmount();
-                expect(removeSpy).toHaveBeenCalledWith('loadingdone', expect.any(Function));
+                // 付けたのと同じ関数を外す（別の関数を外しても、付けたほうは残る）
+                expect(removeSpy).toHaveBeenCalledWith('loadingdone', addSpy.mock.calls[0][1]);
+            });
+
+            test('keeps one listener when the challenge changes', () => {
+                const fonts = makeFonts();
+                setFonts(fonts);
+                const addSpy = jest.spyOn(fonts, 'addEventListener');
+                const removeSpy = jest.spyOn(fonts, 'removeEventListener');
+                const { rerender } = renderBar();
+                const { challenge, lesson } = findChallenge('blocks-l1-if');
+                rerender(
+                    <IntlProvider locale="en" messages={en}>
+                        <LessonTaskBar
+                            challenge={challenge}
+                            challengeCount={lesson.challenges.length}
+                            hintAvailable
+                            onHint={jest.fn()}
+                            onQuit={jest.fn()}
+                        />
+                    </IntlProvider>,
+                );
+                expect(addSpy).toHaveBeenCalledTimes(1);
+                expect(removeSpy).not.toHaveBeenCalled();
             });
 
             test('works where there is no document.fonts', () => {
