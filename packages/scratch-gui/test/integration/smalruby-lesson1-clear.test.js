@@ -3,8 +3,8 @@
  * レッスン表から 11 個のチャレンジがすべて開ける（課題バーの番号はレッスンの中の番号）→
  * レッスン 1・2 の 7 つは、11 のチャレンジが 1 つのレッスンだったころの記録（lessonId: 'blocks-l1'）
  * として入れておく → レッスン 3 の 4 つを「プログラムを入れる」→ 操作 →「できた！」→ レッスン表の
- * 進み具合がレッスンごとに正しく出て、コースのチャレンジが全部できたらコースの印
- * 「プログラマー デビュー！」が出る（1300×600）。必須・クリア・できることは段 1 から外した（#1529）。
+ * コースの進み具合（「n / 11」）が正しく出て、コースのチャレンジが全部できたら
+ * コース名の前に ✓ が出る（1300×600）。必須・クリア・できることは段 1 から外した（#1529）。
  * 1 つずつの細かい確かめは smalruby-lesson1-challenges-*.test.js。
  */
 import path from 'path';
@@ -150,11 +150,8 @@ const PLAYS = [
     },
 ];
 
-const progressTexts = () =>
-    driver.executeScript(
-        `return Array.from(document.querySelectorAll('[data-testid="lessons-library-progress"]'))
-            .map(el => el.textContent);`,
-    );
+// コースの見出しの「n / m」（コース全体の進み具合）
+const courseProgressText = () => textByTestId('lessons-library-course-progress-text');
 
 describe('Smalruby Lessons: finishing the course', () => {
     beforeAll(async () => {
@@ -207,9 +204,10 @@ describe('Smalruby Lessons: finishing the course', () => {
         await driver.navigate().refresh();
         await waitForLoadingFinished();
         await openLibrary();
-        expect(await progressTexts()).toEqual(['4 / 4 done', '3 / 3 done', '0 / 4 done']);
+        expect(await courseProgressText()).toBe('7 / 11');
+        expect(await countByTestId('lessons-library-course-done')).toBe(0);
+        // 必須・クリア・できること・コースの印（「プログラマー デビュー！」）の表示は無い
         expect(await countByTestId('lessons-library-badge')).toBe(0);
-        // 必須・クリア・できることの表示は無い
         expect(await countByTestId('lessons-library-challenge-required')).toBe(0);
         expect(await countByTestId('lessons-library-lesson-cleared')).toBe(0);
         expect(await countByTestId('lessons-library-skills')).toBe(0);
@@ -230,12 +228,13 @@ describe('Smalruby Lessons: finishing the course', () => {
             ).toBe(index === PLAYS.length - 1 ? 'library' : 'next');
         }
 
-        // レッスン表: レッスンごとに全部できた・コースの印
+        // レッスン表: 全部できた → コース名の前に ✓（「プログラマー デビュー！」は出さない）
         await driver.navigate().refresh();
         await waitForLoadingFinished();
         await openLibrary();
-        expect(await progressTexts()).toEqual(['4 / 4 done', '3 / 3 done', '4 / 4 done']);
+        expect(await courseProgressText()).toBe('11 / 11');
         expect(await countByTestId('lessons-library-challenge-done')).toBe(11);
-        expect(await textByTestId('lessons-library-badge')).toContain('Programmer Debut!');
+        expect(await countByTestId('lessons-library-course-done')).toBe(1);
+        expect(await countByTestId('lessons-library-badge')).toBe(0);
     });
 });
