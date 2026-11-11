@@ -3,18 +3,33 @@
 //   - 開くたびに reloadProgress()（別のタブが書いた記録を写しに取り込む）
 //   - チャレンジを押すと startChallenge(id)（containers/lesson-mode.jsx が開く流れを進める）
 //     → レッスン表を閉じる
+//   - 「できた！」の「次のチャレンジ」で開いたとき（lessonMode.libraryFocusChallengeId・#1520）は、
+//     そのレッスンへスクロールし、次のまだできていないチャレンジを目立たせる。閉じるときに消す
 import PropTypes from 'prop-types';
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import { connect } from 'react-redux';
 import LessonsLibraryComponent from '../components/lessons-library/lessons-library.jsx';
 import { COURSES } from '../lib/lessons/courses';
-import { reloadProgress, startChallenge } from '../reducers/lesson-mode';
+import { lessonsLibraryFocus } from '../lib/lessons/lesson-progress';
+import { clearLessonsLibraryFocus, reloadProgress, startChallenge } from '../reducers/lesson-mode';
 import { closeLessonsLibrary } from '../reducers/modals';
 
-const LessonsLibrary = ({ onReloadProgress, onRequestClose, onStartChallenge, progress, visible }) => {
+const LessonsLibrary = ({
+    focusChallengeId = null,
+    onReloadProgress,
+    onRequestClose,
+    onStartChallenge,
+    progress,
+    visible,
+}) => {
     useEffect(() => {
         if (visible) onReloadProgress();
     }, [visible, onReloadProgress]);
+
+    const focus = useMemo(
+        () => (focusChallengeId === null ? null : lessonsLibraryFocus(focusChallengeId, progress)),
+        [focusChallengeId, progress],
+    );
 
     const handleSelectChallenge = useCallback(
         (challengeId) => {
@@ -29,6 +44,9 @@ const LessonsLibrary = ({ onReloadProgress, onRequestClose, onStartChallenge, pr
         <LessonsLibraryComponent
             courses={COURSES}
             progress={progress}
+            {...(focus ? { initialLanguage: focus.language } : {})}
+            focusLessonId={focus ? focus.lessonId : null}
+            nextChallengeId={focus ? focus.nextChallengeId : null}
             onRequestClose={onRequestClose}
             onSelectChallenge={handleSelectChallenge}
         />
@@ -36,6 +54,8 @@ const LessonsLibrary = ({ onReloadProgress, onRequestClose, onStartChallenge, pr
 };
 
 LessonsLibrary.propTypes = {
+    // 「次のチャレンジ」で開いたときの、いまのチャレンジ id（null ならふつうに開く）
+    focusChallengeId: PropTypes.string,
     onReloadProgress: PropTypes.func.isRequired,
     onRequestClose: PropTypes.func.isRequired,
     onStartChallenge: PropTypes.func.isRequired,
@@ -44,13 +64,17 @@ LessonsLibrary.propTypes = {
 };
 
 const mapStateToProps = (state) => ({
+    focusChallengeId: state.scratchGui.lessonMode.libraryFocusChallengeId,
     progress: state.scratchGui.lessonMode.progress,
     visible: state.scratchGui.modals.lessonsLibrary,
 });
 
 const mapDispatchToProps = (dispatch) => ({
     onReloadProgress: () => dispatch(reloadProgress()),
-    onRequestClose: () => dispatch(closeLessonsLibrary()),
+    onRequestClose: () => {
+        dispatch(closeLessonsLibrary());
+        dispatch(clearLessonsLibraryFocus());
+    },
     onStartChallenge: (challengeId) => dispatch(startChallenge(challengeId)),
 });
 

@@ -3,7 +3,6 @@
 //
 // 保存の形:
 //   { version: 1, challenges: { <challengeId>: { completedAt, courseId, lessonId } } }
-
 import { COURSES, findChallenge } from './courses';
 
 export const LESSON_PROGRESS_STORAGE_KEY = 'smalruby:lessonProgress';
@@ -171,3 +170,96 @@ export const exportProgress = (progress) =>
             completedAt: record.completedAt,
         }))
         .sort((a, b) => a.completedAt.localeCompare(b.completedAt) || a.challengeId.localeCompare(b.challengeId));
+
+/**
+ * 「できた！」のボタン（#1520）。
+ *   - `next`: レッスンにまだできていないチャレンジがある →「次のチャレンジ」
+ *   - `otherLessons`: レッスンのチャレンジが全部できて、コースに次のレッスンがある →「ほかのレッスンへ」
+ *   - `library`: 全部できて、次のレッスンが無い →「レッスン表へ」
+ * 並び順で最後かどうかでは決めない（途中を飛ばした生徒に「おわり」と言わないため）。
+ * 必須がそろったかどうかでも決めない（必須は段 1 から外す予定）。
+ */
+export const COMPLETED_ACTIONS = Object.freeze({
+    NEXT: 'next',
+    OTHER_LESSONS: 'otherLessons',
+    LIBRARY: 'library',
+});
+
+/**
+ * @param {object} lesson - レッスン。
+ * @param {object} progress - 記録。
+ * @returns {boolean} レッスンのチャレンジが全部できていれば true。
+ */
+const isLessonAllCompleted = (lesson, progress) =>
+    lesson.challenges.every((challenge) => isChallengeCompleted(progress, challenge.id));
+
+/**
+ * @param {object} course - コース。
+ * @param {object} lesson - レッスン。
+ * @returns {?object} コースの中で次のレッスン。無ければ null。
+ */
+const nextLessonOf = (course, lesson) => course.lessons[course.lessons.indexOf(lesson) + 1] || null;
+
+/**
+ * 「できた！」に出すボタンの種類（COMPLETED_ACTIONS）。
+ * @param {string} challengeId - できたチャレンジ id。
+ * @param {object} progress - 記録（できたチャレンジを含む）。
+ * @param {Array} [courses] - コース（テスト用）。
+ * @returns {string} COMPLETED_ACTIONS のどれか（知らない id は NEXT）。
+ */
+export const completedAction = (challengeId, progress, courses = COURSES) => {
+    const found = findChallenge(challengeId, courses);
+    if (!found || !isLessonAllCompleted(found.lesson, progress)) return COMPLETED_ACTIONS.NEXT;
+    return nextLessonOf(found.course, found.lesson) ? COMPLETED_ACTIONS.OTHER_LESSONS : COMPLETED_ACTIONS.LIBRARY;
+};
+
+/**
+ * レッスンの中で、`afterId` の次から並び順にさがして（最後まで行ったら先頭にもどる）、
+ * まだできていない最初のチャレンジ。`afterId` 自身は選ばない。
+ * @param {object} lesson - レッスン。
+ * @param {object} progress - 記録。
+ * @param {?string} afterId - ここの次からさがす。null なら先頭から。
+ * @returns {?object} チャレンジ。全部できていれば null。
+ */
+const nextIncompleteChallenge = (lesson, progress, afterId) => {
+    const { challenges } = lesson;
+    const start = afterId === null ? 0 : challenges.findIndex((c) => c.id === afterId) + 1;
+    for (let i = 0; i < challenges.length; i++) {
+        const challenge = challenges[(start + i) % challenges.length];
+        if (challenge.id !== afterId && !isChallengeCompleted(progress, challenge.id)) return challenge;
+    }
+    return null;
+};
+
+/**
+ * 「次のチャレンジ」でレッスン表を開くとき、どのレッスンを見せて、どのチャレンジを次として
+ * 目立たせるか（#1520）。「できた！」のボタン（completedAction）と食い違わないように決める:
+ *   - レッスンにまだできていないチャレンジがある: いまのレッスン。次は、いまの次から並び順に
+ *     さがしたまだできていないもの（最後まで行ったら先頭にもどる）。
+ *   - 全部できていて、コースに次のレッスンがある: 次のレッスンの、まだできていない最初のもの。
+ *   - 全部できていて、次のレッスンが無い: いまのレッスン。印は付けない。
+ * @param {string} challengeId - いまのチャレンジ id。
+ * @param {object} progress - 記録。
+ * @param {Array} [courses] - コース（テスト用）。
+ * @returns {?{language: string, courseId: string, lessonId: string, nextChallengeId: ?string}}
+ *   知らない id は null。`nextChallengeId` は印を付けないとき null。
+ */
+export const lessonsLibraryFocus = (challengeId, progress, courses = COURSES) => {
+    const found = findChallenge(challengeId, courses);
+    if (!found) return null;
+    const { course, lesson } = found;
+    let focusLesson = lesson;
+    let next;
+    if (completedAction(challengeId, progress, courses) === COMPLETED_ACTIONS.OTHER_LESSONS) {
+        focusLesson = nextLessonOf(course, lesson);
+        next = nextIncompleteChallenge(focusLesson, progress, null);
+    } else {
+        next = nextIncompleteChallenge(lesson, progress, challengeId);
+    }
+    return {
+        language: course.language,
+        courseId: course.id,
+        lessonId: focusLesson.id,
+        nextChallengeId: next ? next.id : null,
+    };
+};

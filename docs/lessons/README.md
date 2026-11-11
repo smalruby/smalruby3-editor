@@ -427,9 +427,26 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `lesson-completed-toast-title` | span | 「できた！」 |
 | `lesson-completed-toast-challenge` | span | チャレンジの名前 |
 | `lesson-completed-toast-skills` | div | できることの一覧（`skills` が無いチャレンジでは出ない） |
+| `lesson-completed-toast-last` | div | 「このレッスンのチャレンジは、これでおわり。」（レッスンのチャレンジが全部できたときだけ） |
+| `lesson-completed-toast-next` | button | 「次のチャレンジ」／「ほかのレッスンへ」／「レッスン表へ」。`data-action` が `next` / `otherLessons` / `library`（`COMPLETED_ACTIONS`） |
 | `lesson-completed-toast-close` | button | 閉じる |
 
+**次のチャレンジ**: 「できた！」のあと何をすればよいかがわかるように、「次のチャレンジ」を置く。押すと「できた！」を
+閉じ、**レッスン表をいまのレッスンで開く**（`lib/lessons/open-lessons-library.js` の `openLessonsLibraryAt`。
+レッスンモードは抜けない。レッスン表を閉じれば、いまのチャレンジにもどる）。レッスン表は、そのレッスンへ
+スクロールして囲み、**次のまだできていないチャレンジ**に「次はこれ！」の印を付ける（下の「レッスン表」）。
+
+- ボタンは `completedAction(challengeId, progress)`（`lesson-progress.js`）で決める:
+  - レッスンにまだできていないチャレンジがある →「次のチャレンジ」（並び順で最後のチャレンジでも。
+    途中を飛ばした生徒に「おわり」と言わないため）。
+  - レッスンのチャレンジが全部できた →「このレッスンのチャレンジは、これでおわり。」と出し、
+    コースに次のレッスンがあれば「ほかのレッスンへ」（レッスン表で次のレッスンを見せる）、
+    無ければ「レッスン表へ」。
+- 必須がそろったか（クリアしたか）では文言を変えない（必須はなくす予定のため）。
+
 ![できた！（1300×600）](screenshots/0101-completed-toast-1300x600.png)
+
+![レッスンのチャレンジが全部できたときの「できた！」（1300×600）](screenshots/0102-completed-toast-last-1300x600.png)
 
 デバッグ・テスト用に `window.smalruby.lessonGoal` を出している（integration テスト
 `test/integration/lesson-goal.test.js` と pw-check が使う。レッスン表・レッスンモードの UI ができるまでの入口）:
@@ -454,6 +471,7 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `hintSpotlight` | はじめて開いたチャレンジか（`spotlight` のヒントで周りを暗くする）。`openChallenge` で `smalruby:lessonSpotlightSeen` を見て決め、同時に「見た」と記録する |
 | `progress` | 記録の写し（起動時に localStorage から読む） |
 | `justCompletedId` | 「できた！」を出しているチャレンジ id（null なら出していない） |
+| `libraryFocusChallengeId` | レッスン表を開いたときに見せるチャレンジ（「次のチャレンジ」で開いたとき）。レッスン表はこれから見せるレッスンと次のチャレンジを決める（`lessonsLibraryFocus`）。レッスンを閉じても消さず、レッスン表が閉じるときに消す |
 
 | action / selector | 説明 |
 |------|------|
@@ -464,6 +482,7 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `showHint()` / `hideHint()` / `nextHint()` / `prevHint()` | ヒントの吹き出しの出し入れと「進める・もどる」（ヒントが無いチャレンジでは出ない。両端で止まる） |
 | `markChallengeCompleted(challengeId, completedAt?)` | 「できた」にして localStorage にも書く。書く前に localStorage の最新と合わせる（別のタブが書いた分を消さない）。`justCompletedId` をそのチャレンジにする（すでにできていても） |
 | `dismissCompleted()` | 「できた！」を閉じる |
+| `focusLessonsLibrary(challengeId)` / `clearLessonsLibraryFocus()` | レッスン表で見せるチャレンジを入れる / 消す（知らない id は無視）。開くのは modals の `openLessonsLibrary`。2 つをまとめて出すのは `openLessonsLibraryAt(dispatch, challengeId)` |
 | `reloadProgress()` | localStorage の最新を写しに取り込む（別のタブが書いた分を、レッスン表を開くときなどに反映する。書かない） |
 | `isLessonMode(state)` / `getCurrentChallenge(state)` | レッスンモードか / `{course, lesson, challenge}` |
 | `getLessonAllowedBlocks(state)` | パレットに出すブロック（チャレンジの `allowedBlocks`。無ければ null）。Blocks コンテナがチュートリアルの `tutorialAllowedBlocks` より優先して使う |
@@ -489,6 +508,19 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 - **記録の取り込み**: 開くたびに `reloadProgress()` を呼び、別のタブで書いた記録も反映する。
 - **ほかのチャレンジへ → もどる**: レッスンモードの「ほかのチャレンジへ」は `closeLesson()` のあとレッスン表を開く（次のチャレンジを
   すぐ選べる）。
+- **いまのレッスンを見せて開く**: 「できた！」の「次のチャレンジ」で開いたときは、いまのチャレンジから
+  `lessonsLibraryFocus(challengeId, progress)`（`lesson-progress.js`）で見せるものを決める:
+  - レッスンにまだできていないチャレンジがある: いまのレッスン。次は、いまの次から並び順にさがした
+    まだできていないチャレンジ（最後まで行ったら先頭にもどる。いまのチャレンジは選ばない）。
+  - 全部できていて、コースに次のレッスンがある: 次のレッスンの、まだできていない最初のチャレンジ。
+  - 全部できていて、次のレッスンが無い（いまはレッスン 1 だけ）: いまのレッスンを見せ、「次はこれ！」は付けない。
+
+  そのレッスンの言語のタブを開き、レッスンへスクロールして（`scrollIntoView`）薄い青で囲み
+  （`data-focused="true"`）、次のチャレンジを太い青の枠と「次はこれ！」で目立たせる（`data-next="true"`・
+  `lessons-library-challenge-next`）。メニューから開いたときは、どれも付けない。レッスン表の見た目は
+  作り直す予定なので、見せ方はそのときに変えてよい（渡すのは `focusLessonId` / `nextChallengeId` の 2 つ）。
+
+  ![次のチャレンジで開いたレッスン表（1300×600）](screenshots/0305-lessons-library-next-1300x600.png)
 - **はじめての人向けの吹き出しは出さない**: 「レッスン」ボタンの下に吹き出しで誘うことはしない（どの端末でも）。
   レッスンに入る道は、メニューの「レッスン」（SP はドロワーの「レッスン」）と、段 2 のクラス管理との統合
   （課題にレッスンを紐付けたときだけ、クラスに参加して「はじめる」を選ぶとそのコースを開く）にする。
@@ -775,6 +807,9 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `screenshots/0302-lessons-library-1300x600.png` | レッスン表（1300×600）。2 つできた状態 |
 | `screenshots/0303-lessons-library-375x667.png` | レッスン表（SP 縦 375×667。1 列） |
 | `screenshots/0304-lessons-library-cleared-1300x600.png` | レッスン 1 をクリアした状態（「クリア！」と「プログラマー デビュー！」） |
+| `screenshots/0101-completed-toast-1300x600.png` | 「できた！」と「次のチャレンジ」（チャレンジ 3） |
+| `screenshots/0102-completed-toast-last-1300x600.png` | レッスンのチャレンジが全部できたときの「できた！」（これでおわり・レッスン表へ） |
+| `screenshots/0305-lessons-library-next-1300x600.png` | 「次のチャレンジ」で開いたレッスン表（1〜3 ができていて、4 に「次はこれ！」） |
 | `screenshots/0501-challenge1-key-sound-hint1-1300x600.png` | チャレンジ 1「キーで音を鳴らそう」の最初のヒント（音タブを指す） |
 | `screenshots/0502-challenge2-arrow-move-hint1-1300x600.png` | チャレンジ 2「矢印キーで動かそう」の最初のヒント（パレットを指し「y座標を 10 ずつ変える」を描く） |
 | `screenshots/0503-challenge3-click-say-hint1-1300x600.png` | チャレンジ 3「押したら話そう」の最初のヒント（コスチュームタブを指す） |
@@ -857,6 +892,8 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `packages/scratch-gui/src/containers/lesson-mode.jsx` | チャレンジを開く流れ（新しい作品 → setup → レッスンモード）と課題バーのマウント。`gui.jsx` のエディタ列の先頭に常時マウント |
 | `packages/scratch-gui/src/components/lesson-task-bar/` | 課題バー（1 行・40px） |
 | `packages/scratch-gui/src/components/lessons-library/` | レッスン表（モーダル） |
+| `packages/scratch-gui/src/lib/lessons/open-lessons-library.js` | レッスン表をいまのレッスンを見せて開く（`openLessonsLibraryAt`。「次のチャレンジ」が使う） |
+| `packages/scratch-gui/test/integration/smalruby-lessons-next-challenge.test.js` | 「できた！」の「次のチャレンジ」→ レッスン表のいまのレッスン・「次はこれ！」→ 選ぶと開く。最後のチャレンジの文言（Selenium） |
 | `packages/scratch-gui/src/containers/lessons-library.jsx` | レッスン表のコンテナ（開くたびに記録を取り込む・チャレンジを押したら `startChallenge` + 閉じる）。`gui.jsx` に常時マウント（Smalruby マーカー `lessons library`） |
 | `packages/scratch-gui/src/reducers/modals.js` | `lessonsLibrary` モーダルの開閉（Smalruby マーカー `lessons library`） |
 | `packages/scratch-gui/src/components/mobile-drawer/mobile-drawer.jsx` | SP のドロワーの「レッスン」 |

@@ -7,16 +7,16 @@ import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
 import ConnectedLessonsLibrary, { LessonsLibrary } from '../../../src/containers/lessons-library.jsx';
 import { emptyProgress } from '../../../src/lib/lessons/lesson-progress';
-import { reloadProgress, startChallenge } from '../../../src/reducers/lesson-mode';
+import { clearLessonsLibraryFocus, reloadProgress, startChallenge } from '../../../src/reducers/lesson-mode';
 import { closeLessonsLibrary } from '../../../src/reducers/modals';
 
 const CHALLENGE_ID = 'blocks-l1-click-say';
 
-const buildStore = ({ visible }) =>
+const buildStore = ({ visible, focus = null }) =>
     configureStore()({
         locales: { isRtl: false },
         scratchGui: {
-            lessonMode: { progress: emptyProgress() },
+            lessonMode: { progress: emptyProgress(), libraryFocusChallengeId: focus },
             modals: { lessonsLibrary: visible },
         },
     });
@@ -85,5 +85,29 @@ describe('LessonsLibrary container', () => {
         fireEvent.click(getByTestId(`lessons-library-challenge-${CHALLENGE_ID}`));
         expect(store.getActions()).toContainEqual(startChallenge(CHALLENGE_ID));
         expect(store.getActions()).toContainEqual(closeLessonsLibrary());
+    });
+
+    test('with a focus, shows the lesson of that challenge and marks the next one', () => {
+        const { getByTestId } = renderUnconnected({ focusChallengeId: CHALLENGE_ID });
+        const lesson = getByTestId('lessons-library-lesson-blocks-l1');
+        expect(lesson).toHaveAttribute('data-focused', 'true');
+        const next = lesson.querySelector('[data-next="true"]');
+        expect(next).not.toBeNull();
+        expect(next.getAttribute('data-testid')).not.toBe(`lessons-library-challenge-${CHALLENGE_ID}`);
+    });
+
+    test('connected: closing the library also clears the focus', () => {
+        const store = buildStore({ visible: true, focus: CHALLENGE_ID });
+        const { getByTestId } = render(
+            <Provider store={store}>
+                <IntlProvider locale="en">
+                    <ConnectedLessonsLibrary />
+                </IntlProvider>
+            </Provider>,
+        );
+        expect(getByTestId('lessons-library-lesson-blocks-l1')).toHaveAttribute('data-focused', 'true');
+        fireEvent.click(getByTestId(`lessons-library-challenge-${CHALLENGE_ID}`));
+        expect(store.getActions()).toContainEqual(closeLessonsLibrary());
+        expect(store.getActions()).toContainEqual(clearLessonsLibraryFocus());
     });
 });

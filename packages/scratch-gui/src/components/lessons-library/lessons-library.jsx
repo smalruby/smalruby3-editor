@@ -3,7 +3,7 @@
 // 状態（記録・開く・閉じる）は containers/lessons-library.jsx が渡す。
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { defineMessages, useIntl } from 'react-intl';
 import Modal from '../../containers/modal.jsx';
 import { LANGUAGES } from '../../lib/lessons/courses';
@@ -60,6 +60,11 @@ const messages = defineMessages({
         id: 'gui.lessonsLibrary.done',
         description: 'Mark on a challenge that has been completed',
         defaultMessage: 'Done',
+    },
+    next: {
+        id: 'gui.lessonsLibrary.next',
+        description: 'Mark on the challenge to do next (opened from "Next challenge" on the completed toast)',
+        defaultMessage: 'Next!',
     },
     skillsTitle: {
         id: 'gui.lessonsLibrary.skillsTitle',
@@ -156,7 +161,7 @@ const courseSkills = (course) => {
     return Array.from(byId.values());
 };
 
-const ChallengeCard = ({ challenge, completed, onSelect }) => {
+const ChallengeCard = ({ challenge, completed, next, onSelect }) => {
     const intl = useIntl();
     const category = challenge.category ? CATEGORY_STYLES[challenge.category] : null;
     const handleClick = useCallback(() => onSelect(challenge.id), [challenge.id, onSelect]);
@@ -164,9 +169,13 @@ const ChallengeCard = ({ challenge, completed, onSelect }) => {
         <li className={styles.challengeItem}>
             <button
                 type="button"
-                className={classNames(styles.challenge, { [styles.challengeDone]: completed })}
+                className={classNames(styles.challenge, {
+                    [styles.challengeDone]: completed,
+                    [styles.challengeNext]: next,
+                })}
                 data-testid={`lessons-library-challenge-${challenge.id}`}
                 data-completed={completed ? 'true' : 'false'}
+                data-next={next ? 'true' : 'false'}
                 onClick={handleClick}
             >
                 <span className={styles.challengeNumber}>{challenge.number}</span>
@@ -181,6 +190,11 @@ const ChallengeCard = ({ challenge, completed, onSelect }) => {
                     <span className={classNames(styles.categoryDot, styles.categoryNone)} />
                 )}
                 <span className={styles.challengeName}>{intl.formatMessage(challenge.name)}</span>
+                {next ? (
+                    <span className={styles.nextMark} data-testid="lessons-library-challenge-next">
+                        {intl.formatMessage(messages.next)}
+                    </span>
+                ) : null}
                 {challenge.required ? (
                     <span className={styles.requiredMark} data-testid="lessons-library-challenge-required">
                         {intl.formatMessage(messages.required)}
@@ -205,15 +219,30 @@ ChallengeCard.propTypes = {
         required: PropTypes.bool,
     }).isRequired,
     completed: PropTypes.bool.isRequired,
+    next: PropTypes.bool,
     onSelect: PropTypes.func.isRequired,
 };
 
-const LessonSection = ({ lesson, number, progress, onSelectChallenge }) => {
+// レッスン表を開いたときに見せるレッスンへスクロールする（jsdom には scrollIntoView が無い）
+const scrollToSection = (element) => {
+    if (element && typeof element.scrollIntoView === 'function') element.scrollIntoView({ block: 'start' });
+};
+
+const LessonSection = ({ lesson, number, progress, focused, nextChallengeId, onSelectChallenge }) => {
     const intl = useIntl();
+    const sectionRef = useRef(null);
+    useEffect(() => {
+        if (focused) scrollToSection(sectionRef.current);
+    }, [focused]);
     const status = lessonClearStatus(lesson, progress);
     const requiredDone = lesson.clear.required.length - status.missingRequired.length;
     return (
-        <section className={styles.lesson} data-testid={`lessons-library-lesson-${lesson.id}`}>
+        <section
+            ref={sectionRef}
+            className={classNames(styles.lesson, { [styles.lessonFocused]: focused })}
+            data-testid={`lessons-library-lesson-${lesson.id}`}
+            data-focused={focused ? 'true' : 'false'}
+        >
             <div className={styles.lessonHeader}>
                 <h3 className={styles.lessonTitle}>
                     <span className={styles.lessonNumber}>
@@ -241,6 +270,7 @@ const LessonSection = ({ lesson, number, progress, onSelectChallenge }) => {
                         key={challenge.id}
                         challenge={challenge}
                         completed={isChallengeCompleted(progress, challenge.id)}
+                        next={challenge.id === nextChallengeId}
                         onSelect={onSelectChallenge}
                     />
                 ))}
@@ -261,10 +291,12 @@ LessonSection.propTypes = {
     }).isRequired,
     number: PropTypes.number.isRequired,
     progress: PropTypes.object.isRequired,
+    focused: PropTypes.bool,
+    nextChallengeId: PropTypes.string,
     onSelectChallenge: PropTypes.func.isRequired,
 };
 
-const CourseSection = ({ course, progress, onSelectChallenge }) => {
+const CourseSection = ({ course, progress, focusLessonId, nextChallengeId, onSelectChallenge }) => {
     const intl = useIntl();
     // レッスンがまだ無いコースに印を付けない（every は空配列で true になる）
     const cleared =
@@ -286,6 +318,8 @@ const CourseSection = ({ course, progress, onSelectChallenge }) => {
                     lesson={lesson}
                     number={index + 1}
                     progress={progress}
+                    focused={lesson.id === focusLessonId}
+                    nextChallengeId={nextChallengeId}
                     onSelectChallenge={onSelectChallenge}
                 />
             ))}
@@ -321,6 +355,8 @@ CourseSection.propTypes = {
         lessons: PropTypes.array.isRequired,
     }).isRequired,
     progress: PropTypes.object.isRequired,
+    focusLessonId: PropTypes.string,
+    nextChallengeId: PropTypes.string,
     onSelectChallenge: PropTypes.func.isRequired,
 };
 
@@ -328,6 +364,8 @@ const LessonsLibrary = ({
     courses,
     progress,
     initialLanguage = LANGUAGES.BLOCKS,
+    focusLessonId = null,
+    nextChallengeId = null,
     onRequestClose,
     onSelectChallenge,
 }) => {
@@ -371,6 +409,8 @@ const LessonsLibrary = ({
                                 key={course.id}
                                 course={course}
                                 progress={progress}
+                                focusLessonId={focusLessonId}
+                                nextChallengeId={nextChallengeId}
                                 onSelectChallenge={onSelectChallenge}
                             />
                         ))
@@ -387,6 +427,10 @@ LessonsLibrary.propTypes = {
     // lesson-progress.js の記録
     progress: PropTypes.shape({ challenges: PropTypes.object.isRequired }).isRequired,
     initialLanguage: PropTypes.oneOf(Object.values(LANGUAGES)),
+    // 開いたときに見せるレッスン（そこへスクロールして囲む）と、次として目立たせるチャレンジ。
+    // 「できた！」の「次のチャレンジ」で開いたとき（lesson-progress.js の lessonsLibraryFocus）
+    focusLessonId: PropTypes.string,
+    nextChallengeId: PropTypes.string,
     onRequestClose: PropTypes.func.isRequired,
     onSelectChallenge: PropTypes.func.isRequired,
 };

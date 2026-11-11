@@ -7,8 +7,10 @@ import {
 import { SPOTLIGHT_SEEN_STORAGE_KEY, markSpotlightSeen } from '../../../src/lib/lessons/spotlight-seen';
 import { activateDeck } from '../../../src/reducers/cards';
 import reducer, {
+    clearLessonsLibraryFocus,
     closeLesson,
     dismissCompleted,
+    focusLessonsLibrary,
     getCurrentChallenge,
     isLessonMode,
     lessonModeInitialState,
@@ -370,5 +372,31 @@ describe('lesson-mode reducer: hints', () => {
         expect(reducer(lessonModeInitialState, showHint())).toBe(lessonModeInitialState);
         expect(reducer(lessonModeInitialState, nextHint())).toBe(lessonModeInitialState);
         expect(reducer(lessonModeInitialState, prevHint())).toBe(lessonModeInitialState);
+    });
+});
+
+describe('lesson-mode reducer: lessons library focus', () => {
+    const ID = 'blocks-l1-click-say';
+
+    test('starts without a focus', () => {
+        expect(lessonModeInitialState.libraryFocusChallengeId).toBeNull();
+    });
+
+    test('focusLessonsLibrary keeps the challenge, clearLessonsLibraryFocus removes it', () => {
+        const focused = reducer(lessonModeInitialState, focusLessonsLibrary(ID));
+        expect(focused.libraryFocusChallengeId).toBe(ID);
+        expect(reducer(focused, focusLessonsLibrary(ID))).toBe(focused);
+        const cleared = reducer(focused, clearLessonsLibraryFocus());
+        expect(cleared.libraryFocusChallengeId).toBeNull();
+        expect(reducer(cleared, clearLessonsLibraryFocus())).toBe(cleared);
+    });
+
+    test('ignores an unknown challenge', () => {
+        expect(reducer(lessonModeInitialState, focusLessonsLibrary('no-such'))).toBe(lessonModeInitialState);
+    });
+
+    test('closing the lesson keeps the focus (the library clears it when it closes)', () => {
+        const open = reducer(reducer(lessonModeInitialState, openChallenge(ID)), focusLessonsLibrary(ID));
+        expect(reducer(open, closeLesson()).libraryFocusChallengeId).toBe(ID);
     });
 });

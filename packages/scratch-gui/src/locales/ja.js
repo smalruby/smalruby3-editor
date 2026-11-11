@@ -1604,6 +1604,7 @@ export default {
     'gui.lessonsLibrary.cleared': 'クリア！',
     'gui.lessonsLibrary.required': '必須',
     'gui.lessonsLibrary.done': 'できた',
+    'gui.lessonsLibrary.next': '次はこれ！',
     'gui.lessonsLibrary.skillsTitle': 'できること',
     'gui.lessonsLibrary.category.motion': '動き',
     'gui.lessonsLibrary.category.looks': '見た目',
