@@ -46,11 +46,12 @@ const LessonHintContainer = ({
     // 変換の結果は Ruby のバージョンでも変わるので、キーに含める
     const cacheRef = useRef(new Map());
     const [rendered, setRendered] = useState({ blocks: null, xml: null, error: false });
-    // 「プログラムを入れる」を試して失敗したときのわけ（変換のエラーの文言）。ページが変わったら消す
+    // 「プログラムを入れる」を試して失敗したときのわけ（変換のエラーの文言）。ページが変わったら・開き直したら消す
     const [insertErrors, setInsertErrors] = useState([]);
     const hintIndex = hint ? hint.index : null;
     const hintVisible = Boolean(hint && hint.visible);
-    useEffect(() => setInsertErrors([]), [hintIndex, hintVisible]);
+    const hintSession = hint ? hint.session : null;
+    useEffect(() => setInsertErrors([]), [hintIndex, hintVisible, hintSession]);
 
     useEffect(() => {
         if (!blocks) return () => {};
@@ -160,6 +161,8 @@ const LessonHintContainer = ({
     const blocksReady = blocks !== null && rendered.blocks === blocks;
     return (
         <LessonHint
+            // チャレンジを開き直したら、ドラッグした位置や「置き換えますか？」を持ち越さない
+            key={hint.session}
             blocksError={blocksReady && rendered.error}
             blocksXml={blocksReady ? rendered.xml : null}
             colorMode={colorMode}
@@ -199,6 +202,7 @@ LessonHintContainer.propTypes = {
         debug: PropTypes.arrayOf(PropTypes.object).isRequired,
         // `code` は locale ごとのオブジェクトでもよい（ここでは有無だけを見る）
         code: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
+        session: PropTypes.number,
     }),
     onHideHint: PropTypes.func.isRequired,
     onInsertCode: PropTypes.func.isRequired,

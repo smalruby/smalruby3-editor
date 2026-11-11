@@ -343,7 +343,7 @@ describe('LessonHint', () => {
         };
         const drag = (handle, from, to, pointerType = 'mouse') => {
             fireEvent.pointerDown(handle, { clientX: from.x, clientY: from.y, button: 0, pointerType, pointerId: 1 });
-            fireEvent.pointerMove(window, { clientX: to.x, clientY: to.y, pointerType, pointerId: 1 });
+            fireEvent.pointerMove(window, { clientX: to.x, clientY: to.y, buttons: 1, pointerType, pointerId: 1 });
             fireEvent.pointerUp(window, { clientX: to.x, clientY: to.y, pointerType, pointerId: 1 });
         };
 
@@ -414,6 +414,49 @@ describe('LessonHint', () => {
             );
             act(() => {
                 jest.advanceTimersByTime(400);
+            });
+            expect(balloon.style.left).toBe('250px');
+            expect(balloon.style.top).toBe('100px');
+        });
+
+        test('a press with a few pixels of jitter does not move the balloon (the tail stays)', () => {
+            const { balloon, handle } = setup();
+            drag(handle, { x: 400, y: 210 }, { x: 402, y: 211 });
+            expect(balloon.style.left).toBe('350px');
+            expect(balloon.getAttribute('data-dragged')).toBe('false');
+        });
+
+        test('a mouse released where no pointerup came (outside the window) ends the drag', () => {
+            const { balloon, handle } = setup();
+            fireEvent.pointerDown(handle, {
+                clientX: 400,
+                clientY: 210,
+                button: 0,
+                pointerType: 'mouse',
+                pointerId: 1,
+            });
+            fireEvent.pointerMove(window, {
+                clientX: 300,
+                clientY: 110,
+                buttons: 1,
+                pointerType: 'mouse',
+                pointerId: 1,
+            });
+            expect(balloon.style.left).toBe('250px');
+            // ボタンを押していない move（pointerup を取りこぼした）では動かさず、ドラッグを終える
+            fireEvent.pointerMove(window, {
+                clientX: 200,
+                clientY: 50,
+                buttons: 0,
+                pointerType: 'mouse',
+                pointerId: 1,
+            });
+            fireEvent.pointerMove(window, {
+                clientX: 100,
+                clientY: 50,
+                buttons: 1,
+                pointerType: 'mouse',
+                pointerId: 1,
             });
             expect(balloon.style.left).toBe('250px');
             expect(balloon.style.top).toBe('100px');

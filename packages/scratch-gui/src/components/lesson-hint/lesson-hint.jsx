@@ -152,6 +152,9 @@ const useHintPlacement = (target, balloonRef, deps) => {
 
 const viewportSize = () => hintViewport(document, window);
 
+// ドラッグとみなすまでに動かす距離（px）。ヘッダーを押しただけの手ぶれで吹き出しを動かさない
+const DRAG_THRESHOLD = 4;
+
 /**
  * ヘッダーをドラッグして吹き出しを動かす（Pointer Events なのでマウスとタッチの両方）。
  * 動かした位置は画面の内側に収め、吹き出しの大きさ（ページで変わる）や画面の大きさが変わったときも収め直す。
@@ -182,8 +185,17 @@ const useHintDrag = (balloonRef, deps) => {
             e.preventDefault();
             const start = el.getBoundingClientRect();
             const offset = { x: e.clientX - start.left, y: e.clientY - start.top };
+            const origin = { x: e.clientX, y: e.clientY };
             const pointerId = e.pointerId;
-            const onMove = (ev) => {
+            let moving = false;
+            let onMove = null;
+            const stop = () => {
+                window.removeEventListener('pointermove', onMove);
+                window.removeEventListener('pointerup', stop);
+                window.removeEventListener('pointercancel', stop);
+                cleanupRef.current = null;
+            };
+            onMove = (ev) => {
                 if (
                     typeof pointerId !== 'undefined' &&
                     typeof ev.pointerId !== 'undefined' &&
@@ -191,13 +203,16 @@ const useHintDrag = (balloonRef, deps) => {
                 ) {
                     return;
                 }
+                // ボタンを離したのに pointerup が来なかったとき（窓の外で離した等）は、ここで終える
+                // （押していないのに吹き出しがポインタについてくる、を残さない）
+                if (ev.pointerType === 'mouse' && ev.buttons === 0) {
+                    stop();
+                    return;
+                }
+                // 押しただけ（手ぶれの数 px）では動かさない（動かすとしっぽが消えてしまう）
+                if (!moving && Math.hypot(ev.clientX - origin.x, ev.clientY - origin.y) < DRAG_THRESHOLD) return;
+                moving = true;
                 setPosition(settle({ left: ev.clientX - offset.x, top: ev.clientY - offset.y }));
-            };
-            const stop = () => {
-                window.removeEventListener('pointermove', onMove);
-                window.removeEventListener('pointerup', stop);
-                window.removeEventListener('pointercancel', stop);
-                cleanupRef.current = null;
             };
             if (cleanupRef.current) cleanupRef.current();
             window.addEventListener('pointermove', onMove);

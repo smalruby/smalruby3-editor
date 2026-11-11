@@ -434,6 +434,7 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `courseId` / `lessonId` / `challengeId` | いま開いているチャレンジ。`challengeId` が null ならレッスンモードではない |
 | `pendingChallengeId` | 開こうとしているチャレンジ（新しい作品ができるまでの間だけ入る。下の「レッスンモード」） |
 | `hintVisible` / `hintIndex` | ヒントの吹き出しを出しているか・何番めのヒントか（チャレンジを開く・閉じるたびに最初にもどる。開いたときはヒントがあれば出す） |
+| `hintSession` | チャレンジを開いた回数（`openChallenge` のたびに増える。同じチャレンジを開き直しても増える）。吹き出しの `key` にして、開き直したらドラッグした位置・確認・入れられなかったわけを持ち越さない（吹き出しは開いたまま次のチャレンジに移ることがあり、そのときは作り直されないため） |
 | `hintSpotlight` | はじめて開いたチャレンジか（`spotlight` のヒントで周りを暗くする）。`openChallenge` で `smalruby:lessonSpotlightSeen` を見て決め、同時に「見た」と記録する |
 | `progress` | 記録の写し（起動時に localStorage から読む） |
 | `justCompletedId` | 「できた！」を出しているチャレンジ id（null なら出していない） |
@@ -450,7 +451,7 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `reloadProgress()` | localStorage の最新を写しに取り込む（別のタブが書いた分を、レッスン表を開くときなどに反映する。書かない） |
 | `isLessonMode(state)` / `getCurrentChallenge(state)` | レッスンモードか / `{course, lesson, challenge}` |
 | `getLessonAllowedBlocks(state)` | パレットに出すブロック（チャレンジの `allowedBlocks`。無ければ null）。Blocks コンテナがチュートリアルの `tutorialAllowedBlocks` より優先して使う |
-| `getCurrentHint(state)` | `{visible, index, count, step, spotlight, lastResort, debug, code}`（レッスンモードでなければ null）。`count` は最後の手段のページを含む。`step` はいまのヒント（最後の手段のページでは null）、`spotlight` はこのページで周りを暗くするか、`lastResort` は最後の手段のページか。吹き出しのコンテナ（`containers/lesson-hint.jsx`）はこれを読む |
+| `getCurrentHint(state)` | `{visible, index, count, step, spotlight, lastResort, debug, code, session}`（レッスンモードでなければ null）。`count` は最後の手段のページを含む。`step` はいまのヒント（最後の手段のページでは null）、`spotlight` はこのページで周りを暗くするか、`lastResort` は最後の手段のページか。吹き出しのコンテナ（`containers/lesson-hint.jsx`）はこれを読む |
 
 ## レッスン表
 
@@ -624,10 +625,12 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
   そのあとが無いので、「進める」の代わりに **「おわり」**（`lesson-hint-finish`。押すと閉じる）を出す。
 - **ドラッグで動かす**: 吹き出しのヘッダー（色の帯。`lesson-hint-drag-handle`）をドラッグすると動かせる。
   Pointer Events なのでマウスとタッチの両方で動き、帯は `touch-action: none`（タッチのドラッグをスクロールにとられない）。
-  閉じるボタンを押したときはドラッグを始めない。動かした位置は画面の内側に収める（`clampHintPosition`。端から 8px。
+  閉じるボタンを押したときはドラッグを始めない。押しただけの手ぶれ（4px 未満）では動かさない（しっぽが消えないように）。
+  ボタンを離したのに `pointerup` が来なかったとき（窓の外で離した等）は、次のボタンを押していない `pointermove` で終える。動かした位置は画面の内側に収める（`clampHintPosition`。端から 8px。
   ページが変わって大きさが変わったとき・画面の大きさが変わったときも収め直す）。
   - **ページを進めても動かした位置を保つ**: じゃまだから動かしたのに、次のページで元の場所（同じじゃまな場所）に
     戻ってくると、ページのたびに動かし直すことになるため。吹き出しを閉じて開き直すと、元の置き方（指す場所のそば）に戻る。
+    チャレンジを開き直したとき（同じチャレンジでも）も元の置き方に戻る（`hintSession`）。
   - **動かしたあとはしっぽ（場所を指す三角）を出さない**: 指す場所から離れたしっぽは、違う場所を指して見えるため。
     スポットライト（周りを暗くして場所を照らす）は吹き出しの位置と関係なく指す場所を照らし続ける（場所はそれでわかる）。
     動かしたかは `lesson-hint` の `data-dragged="true|false"`。

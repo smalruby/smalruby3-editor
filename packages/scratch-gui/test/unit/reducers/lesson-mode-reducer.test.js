@@ -254,7 +254,17 @@ describe('lesson-mode reducer: hints', () => {
             lastResort: false,
             debug: [],
             code: null,
+            session: 1,
         });
+    });
+
+    test('each opening of a challenge (even the same one) is a new hint session', () => {
+        let state = withSteps(reducer(lessonModeInitialState, openChallenge('blocks-l1-click-say')));
+        const first = getCurrentHint(wrap(state)).session;
+        state = reducer(state, openChallenge('blocks-l1-click-say'));
+        expect(getCurrentHint(wrap(state)).session).toBe(first + 1);
+        state = reducer(state, openChallenge('blocks-l1-quiz'));
+        expect(getCurrentHint(wrap(withSteps(state))).session).toBe(first + 2);
     });
 
     test('the first time a challenge is opened, spotlight steps light up; the next time they do not', () => {

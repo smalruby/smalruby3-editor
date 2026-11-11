@@ -87,6 +87,24 @@ describe('LessonHint container', () => {
         expect(outside.queryByTestId('lesson-hint')).not.toBeInTheDocument();
     });
 
+    test('opening the challenge again drops what was going on in the balloon (the confirmation)', async () => {
+        const props = baseProps();
+        const last = hintFor(6, { session: 1 });
+        const { getByTestId, queryByTestId, rerender } = renderContainer({ ...props, hint: last });
+        await flush();
+        fireEvent.click(getByTestId('lesson-hint-insert-code'));
+        expect(getByTestId('lesson-hint-insert-code-confirm')).toBeInTheDocument();
+        // 同じページのまま開き直した（吹き出しは開いたまま）: 確認を持ち越さない
+        rerender(
+            <IntlProvider locale="en">
+                <LessonHint {...props} hint={{ ...last, session: 2 }} />
+            </IntlProvider>,
+        );
+        await flush();
+        expect(queryByTestId('lesson-hint-insert-code-confirm')).not.toBeInTheDocument();
+        expect(getByTestId('lesson-hint-insert-code')).toBeInTheDocument();
+    });
+
     test('converts the Ruby of the step into blocks with the editing target and shows them', async () => {
         const props = baseProps();
         const { getByTestId } = renderContainer(props);
