@@ -1,7 +1,8 @@
 /**
  * Integration tests for the lesson hint balloon (ヒントの吹き出し).
- * レッスンモードに入る → ヒントを開く → 吹き出しに本物のブロックが描かれ、指す場所と初回だけの
- * スポットライトがある → 進める → 最後に「プログラムを入れる」でブロックが入る → 2 回目はスポットライト無し。
+ * レッスンモードに入る → ヒントの 1 ページ目が自動で開く → 吹き出しに本物のブロックが描かれ、指す場所と初回だけの
+ * スポットライトがある → 進める → 最後に「正解のプログラムを確認する」→ 確認（いいえで何もしない／はいで入れる）
+ * → 2 回目はスポットライト無し。吹き出しはヘッダーをドラッグして動かせる（画面の外には出ない）・「おわり」で閉じる。
  */
 import path from 'path';
 import SeleniumHelper from '../helpers/selenium-helper';
@@ -70,12 +71,10 @@ describe('Smalruby Lessons: hint balloon', () => {
 
         await startChallenge(driver, CHALLENGE_ID);
         await findByXpath(byTestId('lesson-task-bar'));
-        await driver.sleep(1000);
-        expect(await countByTestId(driver, 'lesson-hint')).toBe(0);
+        // ヒントボタンを押さなくても、1 ページ目が自動で開く
+        await findByXpath(byTestId('lesson-hint'));
 
         // ヒント 1: コスチュームタブを指す（spotlight ではない）
-        await clickByTestId(driver, 'lesson-task-bar-hint');
-        await findByXpath(byTestId('lesson-hint'));
         expect(await textByTestId(driver, 'lesson-hint-position')).toBe('Hint 1 of 7');
         expect(await attrByTestId(driver, 'lesson-hint', 'data-target')).toBe('costumes-tab');
         expect(await attrByTestId(driver, 'lesson-hint', 'data-side')).toBe('bottom');
@@ -107,7 +106,7 @@ describe('Smalruby Lessons: hint balloon', () => {
         await clickByTestId(driver, 'lesson-hint-next');
         expect(await textByTestId(driver, 'lesson-hint-position')).toBe('Hint 3 of 7');
 
-        // 最後のページ: うまく動かないときは + プログラムを入れる
+        // 最後のページ: うまく動かないときは + 正解のプログラムを確認する
         for (let i = 0; i < 4; i++) await clickByTestId(driver, 'lesson-hint-next');
         expect(await textByTestId(driver, 'lesson-hint-position')).toBe('Hint 7 of 7');
         expect(await countByTestId(driver, 'lesson-hint-debug-title')).toBe(1);
@@ -116,11 +115,26 @@ describe('Smalruby Lessons: hint balloon', () => {
                 `return document.querySelectorAll('[data-testid="lesson-hint-debug"] li').length`,
             ),
         ).toBe(2);
-        expect(
-            await driver.executeScript(`return document.querySelector('[data-testid="lesson-hint-next"]').disabled`),
-        ).toBe(true);
+        // 「進める」の代わりに「おわり」
+        expect(await countByTestId(driver, 'lesson-hint-next')).toBe(0);
+        expect(await textByTestId(driver, 'lesson-hint-finish')).toBe('Finish');
 
+        // 押すと確認が出る。「いいえ」では何も変わらない
+        expect(await textByTestId(driver, 'lesson-hint-insert-code')).toBe('See the correct program');
         await clickByTestId(driver, 'lesson-hint-insert-code');
+        await findByXpath(byTestId('lesson-hint-insert-code-confirm'));
+        expect(await textByTestId(driver, 'lesson-hint-insert-code-confirm')).toContain(
+            'Replace your program with the correct program?',
+        );
+        await clickByTestId(driver, 'lesson-hint-insert-code-no');
+        await driver.sleep(500);
+        expect(await countByTestId(driver, 'lesson-hint-insert-code-confirm')).toBe(0);
+        expect(await countByTestId(driver, 'lesson-hint')).toBe(1);
+        expect(await editingTargetOpcodes(driver)).toEqual([]);
+
+        // 「はい」で今までの「プログラムを入れる」と同じ（ブロックが入って吹き出しが閉じる）
+        await clickByTestId(driver, 'lesson-hint-insert-code');
+        await clickByTestId(driver, 'lesson-hint-insert-code-yes');
         await driver.wait(
             async () => (await editingTargetOpcodes(driver)).includes('looks_nextcostume'),
             20000,
@@ -142,9 +156,9 @@ describe('Smalruby Lessons: hint balloon', () => {
         await driver.executeScript('window.confirm = () => true;');
         await startChallenge(driver, CHALLENGE_ID);
         await findByXpath(byTestId('lesson-task-bar'));
-        await driver.sleep(1000);
-        await clickByTestId(driver, 'lesson-task-bar-hint');
+        // 2 回目も 1 ページ目が自動で開く
         await findByXpath(byTestId('lesson-hint'));
+        expect(await textByTestId(driver, 'lesson-hint-position')).toBe('Hint 1 of 7');
         await clickByTestId(driver, 'lesson-hint-next');
         expect(await textByTestId(driver, 'lesson-hint-position')).toBe('Hint 2 of 7');
         expect(await countByTestId(driver, 'lesson-hint-spotlight')).toBe(0);
@@ -157,6 +171,89 @@ describe('Smalruby Lessons: hint balloon', () => {
         await clickByTestId(driver, 'lesson-task-bar-quit');
         await driver.sleep(500);
         expect(await countByTestId(driver, 'lesson-hint')).toBe(0);
+
+        // 既知の無害なログ (Google Drive の初期化失敗など) は getLogs() が除く
+        expect(await getLogs()).toEqual([]);
+    });
+
+    test('the balloon can be dragged by its header, stays on screen and on the next page; Finish closes it', async () => {
+        await loadUri(`${uri}?no_beforeunload=1`);
+        await driver.manage().window().setRect({ width: 1300, height: 800 });
+        await waitForLoadingFinished();
+        await driver.executeScript('window.confirm = () => true;');
+        await startChallenge(driver, CHALLENGE_ID);
+        await findByXpath(byTestId('lesson-task-bar'));
+        await findByXpath(byTestId('lesson-hint'));
+        await driver.sleep(500);
+
+        const rectOf = () =>
+            driver.executeScript(`const r = document.querySelector('[data-testid="lesson-hint"]').getBoundingClientRect();
+                return {left: r.left, top: r.top, right: r.right, bottom: r.bottom,
+                    vw: window.innerWidth, vh: window.innerHeight};`);
+        const before = await rectOf();
+        expect(await attrByTestId(driver, 'lesson-hint', 'data-dragged')).toBe('false');
+        // ヒント 1 はコスチュームタブを指す（しっぽがある）
+        expect(
+            await driver.executeScript(
+                `return document.querySelectorAll('[data-testid="lesson-hint"] [data-balloon-arrow]').length`,
+            ),
+        ).toBe(1);
+
+        // ヘッダーをマウスでドラッグして動かす
+        const handle = await driver.findElement({ css: '[data-testid="lesson-hint-drag-handle"]' });
+        await driver
+            .actions()
+            .move({ origin: handle, x: -40, y: 0 })
+            .press()
+            .move({ origin: handle, x: 60, y: 150 })
+            .release()
+            .perform();
+        await driver.sleep(300);
+        const moved = await rectOf();
+        expect(Math.round(moved.left - before.left)).toBe(100);
+        expect(Math.round(moved.top - before.top)).toBe(150);
+        expect(await attrByTestId(driver, 'lesson-hint', 'data-dragged')).toBe('true');
+        // 動かしたあとはしっぽを出さない
+        expect(
+            await driver.executeScript(
+                `return document.querySelectorAll('[data-testid="lesson-hint"] [data-balloon-arrow]').length`,
+            ),
+        ).toBe(0);
+
+        // 画面の外へは出ない（右下の角までドラッグする）
+        await driver
+            .actions()
+            .move({ origin: handle, x: -40, y: 0 })
+            .press()
+            .move({ x: Math.floor(moved.vw) - 2, y: Math.floor(moved.vh) - 2 })
+            .release()
+            .perform();
+        await driver.sleep(300);
+        const clamped = await rectOf();
+        expect(clamped.right).toBeLessThanOrEqual(clamped.vw);
+        expect(clamped.bottom).toBeLessThanOrEqual(clamped.vh);
+        expect(clamped.left).toBeGreaterThanOrEqual(0);
+        expect(clamped.top).toBeGreaterThanOrEqual(0);
+
+        // 次のページでも動かした位置のまま（画面の内側に収め直す）
+        await clickByTestId(driver, 'lesson-hint-next');
+        await driver.sleep(500);
+        expect(await attrByTestId(driver, 'lesson-hint', 'data-dragged')).toBe('true');
+        const next = await rectOf();
+        expect(next.right).toBeLessThanOrEqual(next.vw);
+        expect(next.bottom).toBeLessThanOrEqual(next.vh);
+
+        // 最後のページの「おわり」で閉じる。ヒントで開き直すと、元の置き方にもどる
+        for (let i = 0; i < 10 && (await countByTestId(driver, 'lesson-hint-finish')) === 0; i++) {
+            await clickByTestId(driver, 'lesson-hint-next');
+        }
+        await clickByTestId(driver, 'lesson-hint-finish');
+        await driver.sleep(300);
+        expect(await countByTestId(driver, 'lesson-hint')).toBe(0);
+        await clickByTestId(driver, 'lesson-task-bar-hint');
+        await findByXpath(byTestId('lesson-hint'));
+        expect(await attrByTestId(driver, 'lesson-hint', 'data-dragged')).toBe('false');
+        await clickByTestId(driver, 'lesson-task-bar-quit');
 
         // 既知の無害なログ (Google Drive の初期化失敗など) は getLogs() が除く
         expect(await getLogs()).toEqual([]);

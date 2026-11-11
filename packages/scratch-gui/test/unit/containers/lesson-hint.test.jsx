@@ -66,6 +66,12 @@ const renderContainer = (props, locale = 'en') =>
 
 const flush = () => act(() => Promise.resolve());
 
+// 「正解のプログラムを確認する」→ 確認の「はい」（いまの「プログラムを入れる」と同じ動き）
+const insertWithConfirm = (getByTestId) => {
+    fireEvent.click(getByTestId('lesson-hint-insert-code'));
+    fireEvent.click(getByTestId('lesson-hint-insert-code-yes'));
+};
+
 describe('LessonHint container', () => {
     beforeEach(() => {
         rubyToBlocksXml.mockClear();
@@ -129,7 +135,7 @@ describe('LessonHint container', () => {
         const props = { ...baseProps(), hint: hintFor(6) };
         const { getByTestId, queryByTestId } = renderContainer(props);
         expect(getByTestId('lesson-hint-debug').querySelectorAll('li')).toHaveLength(2);
-        fireEvent.click(getByTestId('lesson-hint-insert-code'));
+        insertWithConfirm(getByTestId);
         await flush();
         // 入れる前に、音・背景の確かめ込みで同じ変換を試す
         // code は locale ごとに持つので、いまの locale（en）のものを入れる
@@ -161,7 +167,7 @@ describe('LessonHint container', () => {
         };
         const props = { ...baseProps(), current, hint };
         const { getByTestId } = renderContainer(props);
-        fireEvent.click(getByTestId('lesson-hint-insert-code'));
+        insertWithConfirm(getByTestId);
         await flush();
         expect(props.onInsertCode).not.toHaveBeenCalled();
         expect(getByTestId('lesson-hint-insert-code-error')).toHaveTextContent('sound "Owl" does not exist.');
@@ -191,7 +197,7 @@ describe('LessonHint container', () => {
         async (locale, call) => {
             const props = keySoundLastPage();
             const { getByTestId } = renderContainer(props, locale);
-            fireEvent.click(getByTestId('lesson-hint-insert-code'));
+            insertWithConfirm(getByTestId);
             await waitFor(() => expect(props.onInsertCode).toHaveBeenCalled());
             expect(rubyToBlocksXml).toHaveBeenCalledTimes(1);
             expect(props.onInsertCode.mock.calls[0][0]).toContain(call);
@@ -205,7 +211,7 @@ describe('LessonHint container', () => {
         );
         const props = keySoundLastPage();
         const { getByTestId, queryByTestId } = renderContainer(props, 'en');
-        fireEvent.click(getByTestId('lesson-hint-insert-code'));
+        insertWithConfirm(getByTestId);
         await waitFor(() => expect(props.onInsertCode).toHaveBeenCalled());
         expect(rubyToBlocksXml.mock.calls.map((c) => c[2])).toEqual([
             localizeCode(props.current.challenge.code, 'en'),
@@ -230,7 +236,7 @@ describe('LessonHint container', () => {
             );
         const props = keySoundLastPage();
         const { getByTestId } = renderContainer(props, 'en');
-        fireEvent.click(getByTestId('lesson-hint-insert-code'));
+        insertWithConfirm(getByTestId);
         await flush();
         expect(props.onInsertCode).not.toHaveBeenCalled();
         const error = getByTestId('lesson-hint-insert-code-error');
@@ -273,7 +279,7 @@ describe('LessonHint container', () => {
         };
         const props = { ...baseProps(), current, hint, vm };
         const { getByTestId } = renderContainer(props);
-        fireEvent.click(getByTestId('lesson-hint-insert-code'));
+        insertWithConfirm(getByTestId);
         await flush();
         // 試しの変換もステージを相手にする（背景はステージのもの）
         expect(rubyToBlocksXml.mock.calls[0][1]).toBe(stage);
@@ -305,7 +311,7 @@ describe('LessonHint container', () => {
         };
         const props = { ...baseProps(), current, hint, vm };
         const { getByTestId } = renderContainer(props);
-        fireEvent.click(getByTestId('lesson-hint-insert-code'));
+        insertWithConfirm(getByTestId);
         await waitFor(() => expect(props.onInsertCode).toHaveBeenCalled());
         expect(targetCodeToBlocks).toHaveBeenCalledTimes(1);
         expect(targetCodeToBlocks.mock.calls[0].slice(1, 3)).toEqual([penguin, challenge.spriteCodes[0].code]);
@@ -344,7 +350,7 @@ describe('LessonHint container', () => {
         const props = spriteCodesSetup([stage, penguin, cat]);
         const { challenge } = props.current;
         const { getByTestId } = renderContainer(props);
-        fireEvent.click(getByTestId('lesson-hint-insert-code'));
+        insertWithConfirm(getByTestId);
         await waitFor(() => expect(props.onInsertCode).toHaveBeenCalled());
         const checked = rubyToBlocksXml.mock.calls.map((c) => [c[1], c[2], c[4].validateAssets]);
         expect(checked).toEqual([
@@ -363,8 +369,8 @@ describe('LessonHint container', () => {
             return Promise.resolve();
         });
         const { getByTestId } = renderContainer(props);
-        fireEvent.click(getByTestId('lesson-hint-insert-code'));
-        fireEvent.click(getByTestId('lesson-hint-insert-code'));
+        insertWithConfirm(getByTestId);
+        insertWithConfirm(getByTestId);
         await waitFor(() => expect(props.onInsertCode).toHaveBeenCalled());
         await flush();
         expect(props.vm.addSprite).toHaveBeenCalledTimes(1);
@@ -380,7 +386,7 @@ describe('LessonHint container', () => {
         // ペンギンはまだいない: target なしで確かめ、足さない
         const props = spriteCodesSetup([stage, cat]);
         const { getByTestId } = renderContainer(props);
-        fireEvent.click(getByTestId('lesson-hint-insert-code'));
+        insertWithConfirm(getByTestId);
         await waitFor(() => expect(getByTestId('lesson-hint-insert-code-error')).toHaveTextContent('cannot convert'));
         expect(rubyToBlocksXml.mock.calls[0][1]).toBeNull();
         expect(props.vm.addSprite).not.toHaveBeenCalled();

@@ -1,13 +1,25 @@
 // レッスンモードのヒントの吹き出し。指す場所（lib/lessons/hint-targets.js）のそばに出し、
 // 中に本物のブロック（LessonHintBlocks）を描く。spotlight のときは周りを暗くして指す場所を照らす。
-// 最後のページは「うまく動かないときは」と「プログラムを入れる」（最後の手段）。
+// 最後のページは「うまく動かないときは」と「正解のプログラムを確認する」（最後の手段）。押すと吹き出しの中で
+// 「置き換えますか？」を確かめ、はいで正解のプログラムを入れる（onInsertCode）。最後のページの「進める」は「おわり」
+// （押すと閉じる）。
+// ヘッダー（色の帯）をドラッグすると吹き出しを動かせる（マウス・タッチ。Pointer Events）。動かした位置は
+// ページを進めても保ち（じゃまだから動かした場所に、また戻ってこないように）、吹き出しを閉じると元の置き方に戻る。
+// 動かしたあとは指す場所から離れるので、しっぽは消す（スポットライトは指す場所を照らし続ける）。
 // 枠・しっぽ・ヘッダー・ボタンの見た目は共通の吹き出し（components/balloon）を使う。
 // document.body に portal で出す（エディタの列のレイアウトに影響しない）。
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { defineMessages, useIntl } from 'react-intl';
-import { HINT_SIDES, computeHintPlacement, findHintTargetRect, preferredSides } from '../../lib/lessons/hint-targets';
+import {
+    HINT_SIDES,
+    clampHintPosition,
+    computeHintPlacement,
+    findHintTargetRect,
+    hintViewport,
+    preferredSides,
+} from '../../lib/lessons/hint-targets';
 import BalloonButton from '../balloon/balloon-button.jsx';
 import BalloonHeader from '../balloon/balloon-header.jsx';
 import Balloon, { BALLOON_VARIANTS } from '../balloon/balloon.jsx';
@@ -45,10 +57,35 @@ const messages = defineMessages({
         description: 'Heading of the last hint page with tips for when the program does not work',
         defaultMessage: 'If it does not work',
     },
-    insertCode: {
-        id: 'gui.lessonHint.insertCode',
-        description: 'Button on the last hint page that inserts the finished program',
-        defaultMessage: 'Insert the program',
+    checkAnswer: {
+        id: 'gui.lessonHint.checkAnswer',
+        description: 'Button on the last hint page that asks whether to replace the program with the correct one',
+        defaultMessage: 'See the correct program',
+    },
+    checkAnswerConfirm: {
+        id: 'gui.lessonHint.checkAnswerConfirm',
+        description: 'Confirmation shown before replacing the program with the correct one',
+        defaultMessage: 'Replace your program with the correct program? The program you made will be deleted.',
+    },
+    checkAnswerYes: {
+        id: 'gui.lessonHint.checkAnswerYes',
+        description: 'Button that replaces the program with the correct one',
+        defaultMessage: 'Yes',
+    },
+    checkAnswerNo: {
+        id: 'gui.lessonHint.checkAnswerNo',
+        description: 'Button that cancels replacing the program',
+        defaultMessage: 'No',
+    },
+    finish: {
+        id: 'gui.lessonHint.finish',
+        description: 'Button on the last hint page that closes the hint balloon',
+        defaultMessage: 'Finish',
+    },
+    dragLabel: {
+        id: 'gui.lessonHint.dragLabel',
+        description: 'Tooltip of the header of the hint balloon, which can be dragged to move the balloon',
+        defaultMessage: 'Drag to move',
     },
     insertCodeError: {
         id: 'gui.lessonHint.insertCodeError',
@@ -85,7 +122,7 @@ const useHintPlacement = (target, balloonRef, deps) => {
         const placement = computeHintPlacement({
             target: targetRect,
             balloon: { width: size.width, height: size.height },
-            viewport: { width: window.innerWidth, height: window.innerHeight },
+            viewport: viewportSize(),
             sides: preferredSides(target),
         });
         setState((prev) =>
@@ -113,6 +150,93 @@ const useHintPlacement = (target, balloonRef, deps) => {
     return { ...state, remeasure: measure };
 };
 
+const viewportSize = () => hintViewport(document, window);
+
+/**
+ * ヘッダーをドラッグして吹き出しを動かす（Pointer Events なのでマウスとタッチの両方）。
+ * 動かした位置は画面の内側に収め、吹き出しの大きさ（ページで変わる）や画面の大きさが変わったときも収め直す。
+ * @param {object} balloonRef - 吹き出しの ref。
+ * @param {Array} deps - 収め直すきっかけ（ページの番号など）。
+ * @returns {{position: ?{left: number, top: number}, onPointerDown: Function}} 動かした位置（動かしていなければ null）と取っ手の handler。
+ */
+const useHintDrag = (balloonRef, deps) => {
+    const [position, setPosition] = useState(null);
+    const cleanupRef = useRef(null);
+
+    const settle = useCallback(
+        (next) => {
+            const el = balloonRef.current;
+            if (!el || !next) return next;
+            const size = el.getBoundingClientRect();
+            return clampHintPosition(next, { width: size.width, height: size.height }, viewportSize());
+        },
+        [balloonRef],
+    );
+
+    const onPointerDown = useCallback(
+        (e) => {
+            // 閉じるボタンなど、ヘッダーの中のボタンはふつうに押せるようにする
+            if (e.button > 0 || (e.target && e.target.closest && e.target.closest('button'))) return;
+            const el = balloonRef.current;
+            if (!el) return;
+            e.preventDefault();
+            const start = el.getBoundingClientRect();
+            const offset = { x: e.clientX - start.left, y: e.clientY - start.top };
+            const pointerId = e.pointerId;
+            const onMove = (ev) => {
+                if (
+                    typeof pointerId !== 'undefined' &&
+                    typeof ev.pointerId !== 'undefined' &&
+                    ev.pointerId !== pointerId
+                ) {
+                    return;
+                }
+                setPosition(settle({ left: ev.clientX - offset.x, top: ev.clientY - offset.y }));
+            };
+            const stop = () => {
+                window.removeEventListener('pointermove', onMove);
+                window.removeEventListener('pointerup', stop);
+                window.removeEventListener('pointercancel', stop);
+                cleanupRef.current = null;
+            };
+            if (cleanupRef.current) cleanupRef.current();
+            window.addEventListener('pointermove', onMove);
+            window.addEventListener('pointerup', stop);
+            window.addEventListener('pointercancel', stop);
+            cleanupRef.current = stop;
+        },
+        [balloonRef, settle],
+    );
+
+    // ドラッグの途中で閉じたとき（unmount）に window の listener を残さない
+    useEffect(
+        () => () => {
+            if (cleanupRef.current) cleanupRef.current();
+        },
+        [],
+    );
+
+    // ページが変わって大きさが変わったとき・画面の大きさが変わったときも画面の内側に収め直す
+    const reclamp = useCallback(() => {
+        setPosition((prev) => {
+            if (!prev) return prev;
+            const next = settle(prev);
+            return next.left === prev.left && next.top === prev.top ? prev : next;
+        });
+    }, [settle]);
+    useLayoutEffect(reclamp, [reclamp, ...deps]);
+    useEffect(() => {
+        window.addEventListener('resize', reclamp);
+        const timer = window.setInterval(reclamp, 300);
+        return () => {
+            window.removeEventListener('resize', reclamp);
+            window.clearInterval(timer);
+        };
+    }, [reclamp]);
+
+    return { position, onPointerDown };
+};
+
 const LessonHint = ({
     blocksError = false,
     blocksXml,
@@ -138,11 +262,31 @@ const LessonHint = ({
     const [renderedTick, setRenderedTick] = useState(0);
     const handleRendered = useCallback(() => setRenderedTick((t) => t + 1), []);
     const { targetRect, placement } = useHintPlacement(target, balloonRef, [index, blocksXml, renderedTick]);
+    const { position: dragged, onPointerDown } = useHintDrag(balloonRef, [
+        index,
+        blocksXml,
+        renderedTick,
+        lastResort,
+    ]);
+    // 「正解のプログラムを確認する」を押して、置き換えてよいかを確かめているところか（ページが変わったらやめる）
+    const [confirming, setConfirming] = useState(false);
+    useEffect(() => setConfirming(false), [index, lastResort]);
+    const handleAskInsert = useCallback(() => setConfirming(true), []);
+    const handleCancelInsert = useCallback(() => setConfirming(false), []);
+    const handleConfirmInsert = useCallback(() => {
+        setConfirming(false);
+        if (onInsertCode) onInsertCode();
+    }, [onInsertCode]);
 
     if (typeof document === 'undefined') return null;
 
     const side = placement ? placement.side : HINT_SIDES.CENTER;
-    const arrow = placement ? placement.arrow : null;
+    // 動かしたあとは指す場所から離れるので、しっぽは出さない
+    const arrow = placement && !dragged ? placement.arrow : null;
+    const isLastPage = index >= count - 1;
+    let balloonStyle = { visibility: 'hidden' };
+    if (dragged) balloonStyle = { left: dragged.left, top: dragged.top };
+    else if (placement) balloonStyle = { left: placement.left, top: placement.top };
     const arrowStyle = arrow
         ? side === HINT_SIDES.RIGHT || side === HINT_SIDES.LEFT
             ? { top: arrow.y }
@@ -172,11 +316,16 @@ const LessonHint = ({
                 data-testid="lesson-hint"
                 data-side={side}
                 data-target={target || ''}
+                data-dragged={dragged ? 'true' : 'false'}
                 role="dialog"
                 aria-label={intl.formatMessage(messages.ariaLabel)}
-                style={placement ? { left: placement.left, top: placement.top } : { visibility: 'hidden' }}
+                style={balloonStyle}
             >
                 <BalloonHeader
+                    className={styles.dragHandle}
+                    data-testid="lesson-hint-drag-handle"
+                    title={intl.formatMessage(messages.dragLabel)}
+                    onPointerDown={onPointerDown}
                     closeLabel={intl.formatMessage(messages.close)}
                     closeTestId="lesson-hint-close"
                     onClose={onClose}
@@ -198,15 +347,42 @@ const LessonHint = ({
                                     ))}
                                 </ul>
                             ) : null}
-                            {hasCode ? (
+                            {hasCode && !confirming ? (
                                 <button
                                     type="button"
                                     className={styles.insertButton}
                                     data-testid="lesson-hint-insert-code"
-                                    onClick={onInsertCode}
+                                    onClick={handleAskInsert}
                                 >
-                                    {intl.formatMessage(messages.insertCode)}
+                                    {intl.formatMessage(messages.checkAnswer)}
                                 </button>
+                            ) : null}
+                            {hasCode && confirming ? (
+                                <div
+                                    className={styles.confirm}
+                                    data-testid="lesson-hint-insert-code-confirm"
+                                    role="alertdialog"
+                                    aria-label={intl.formatMessage(messages.checkAnswer)}
+                                >
+                                    <p className={styles.confirmText}>
+                                        {intl.formatMessage(messages.checkAnswerConfirm)}
+                                    </p>
+                                    <div className={styles.confirmButtons}>
+                                        <BalloonButton
+                                            data-testid="lesson-hint-insert-code-no"
+                                            onClick={handleCancelInsert}
+                                        >
+                                            {intl.formatMessage(messages.checkAnswerNo)}
+                                        </BalloonButton>
+                                        <BalloonButton
+                                            primary
+                                            data-testid="lesson-hint-insert-code-yes"
+                                            onClick={handleConfirmInsert}
+                                        >
+                                            {intl.formatMessage(messages.checkAnswerYes)}
+                                        </BalloonButton>
+                                    </div>
+                                </div>
                             ) : null}
                             {hasCode && insertErrors.length > 0 ? (
                                 <div
@@ -251,14 +427,16 @@ const LessonHint = ({
                     <BalloonButton data-testid="lesson-hint-prev" disabled={index <= 0} onClick={onPrev}>
                         {intl.formatMessage(messages.prev)}
                     </BalloonButton>
-                    <BalloonButton
-                        primary
-                        data-testid="lesson-hint-next"
-                        disabled={index >= count - 1}
-                        onClick={onNext}
-                    >
-                        {intl.formatMessage(messages.next)}
-                    </BalloonButton>
+                    {isLastPage ? (
+                        // 最後のページのあとは無いので、「進める」の代わりに「おわり」で閉じる
+                        <BalloonButton primary data-testid="lesson-hint-finish" onClick={onClose}>
+                            {intl.formatMessage(messages.finish)}
+                        </BalloonButton>
+                    ) : (
+                        <BalloonButton primary data-testid="lesson-hint-next" onClick={onNext}>
+                            {intl.formatMessage(messages.next)}
+                        </BalloonButton>
+                    )}
                 </div>
             </Balloon>
         </>,

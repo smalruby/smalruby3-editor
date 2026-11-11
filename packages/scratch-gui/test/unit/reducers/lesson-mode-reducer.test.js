@@ -243,10 +243,10 @@ describe('lesson-mode reducer: hints', () => {
         expect(getCurrentHint(wrap(lessonModeInitialState))).toBeNull();
     });
 
-    test('opening a challenge starts with the hint hidden at the first step', () => {
+    test('opening a challenge opens the hint at the first step (no need to press the hint button)', () => {
         const state = withSteps(reducer(lessonModeInitialState, openChallenge('blocks-l1-click-say')));
         expect(getCurrentHint(wrap(state))).toEqual({
-            visible: false,
+            visible: true,
             index: 0,
             count: 3,
             step: STEPS[0],
@@ -319,8 +319,17 @@ describe('lesson-mode reducer: hints', () => {
         );
     });
 
+    test('a challenge without any hint page does not open the balloon', () => {
+        extra = { steps: [], debug: [], code: null };
+        const state = reducer(lessonModeInitialState, openChallenge('blocks-l1-click-say'));
+        expect(state.hintVisible).toBe(false);
+        expect(reducer(state, showHint())).toBe(state);
+    });
+
     test('showHint / hideHint toggle the balloon', () => {
         let state = withSteps(reducer(lessonModeInitialState, openChallenge('blocks-l1-click-say')));
+        state = reducer(state, hideHint());
+        expect(getCurrentHint(wrap(state)).visible).toBe(false);
         state = reducer(state, showHint());
         expect(getCurrentHint(wrap(state)).visible).toBe(true);
         state = reducer(state, hideHint());
@@ -338,12 +347,12 @@ describe('lesson-mode reducer: hints', () => {
         expect(getCurrentHint(wrap(state)).index).toBe(1);
     });
 
-    test('opening another challenge resets the hint', () => {
+    test('opening another challenge resets the hint to its first page (opened)', () => {
         let state = withSteps(reducer(lessonModeInitialState, openChallenge('blocks-l1-click-say')));
-        state = reducer(state, showHint());
+        state = reducer(state, hideHint());
         state = reducer(state, nextHint());
         state = reducer(state, openChallenge('blocks-l1-quiz'));
-        expect(state.hintVisible).toBe(false);
+        expect(state.hintVisible).toBe(true);
         expect(state.hintIndex).toBe(0);
     });
 

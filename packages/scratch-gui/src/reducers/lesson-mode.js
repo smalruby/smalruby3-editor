@@ -28,7 +28,7 @@ const DISMISS_COMPLETED = 'scratch-gui/lesson-mode/DISMISS_COMPLETED';
 // allowedBlocks / setup がレッスンのものと食い違うので、開いたらレッスンモードを抜ける
 const ACTIVATE_DECK = 'scratch-gui/cards/ACTIVATE_DECK';
 
-// ヒントの吹き出しの状態。チャレンジを開く・閉じるたびに最初にもどす
+// ヒントの吹き出しの状態。チャレンジを閉じるたびに最初にもどす（開くときは 1 ページ目を出す）
 const hintClosedState = {
     hintVisible: false,
     hintIndex: 0,
@@ -78,6 +78,8 @@ const reducer = function (state, action) {
             // このチャレンジを開いているあいだは state の値で照らし続ける
             const hintSpotlight = !isSpotlightSeen(found.challenge.id);
             if (hintSpotlight) markSpotlightSeen(found.challenge.id);
+            // ヒントボタンを押さなくても、始めたら 1 ページ目を出す（ヒントの無いチャレンジは出さない）。
+            // 閉じたあとは課題バーの「ヒント」で開き直す
             return {
                 ...state,
                 courseId: found.course.id,
@@ -85,6 +87,7 @@ const reducer = function (state, action) {
                 challengeId: found.challenge.id,
                 pendingChallengeId: null,
                 ...hintClosedState,
+                hintVisible: hintPageCount(found.challenge) > 0,
                 hintSpotlight,
                 justCompletedId: null,
             };

@@ -23,6 +23,20 @@ let driver;
 
 const clickByTestId = (testId) => driver.executeScript(`document.querySelector('[data-testid="${testId}"]').click()`);
 
+// ヒントの吹き出しはチャレンジを始めると自動で開く。閉じているときだけ課題バーの「ヒント」で開き直す
+const openHint = async () => {
+    const open = await driver.executeScript(`return document.querySelectorAll('[data-testid="lesson-hint"]').length`);
+    if (open === 0) await clickByTestId('lesson-task-bar-hint');
+    await findByXpath('//*[@data-testid="lesson-hint"]');
+};
+
+// 最後のページの「正解のプログラムを確認する」→ 確認の「はい」（今までの「プログラムを入れる」と同じ動き）
+const confirmInsertCode = async () => {
+    await clickByTestId('lesson-hint-insert-code');
+    await findByXpath('//*[@data-testid="lesson-hint-insert-code-yes"]');
+    await clickByTestId('lesson-hint-insert-code-yes');
+};
+
 const textByTestId = (testId) =>
     driver.executeScript(`return document.querySelector('[data-testid="${testId}"]').textContent`);
 
@@ -68,12 +82,12 @@ const openFromLibrary = async (challengeId) => {
 
 // ヒントを最後のページまで進めて「プログラムを入れる」
 const insertCode = async (hatOpcode) => {
-    await clickByTestId('lesson-task-bar-hint');
+    await openHint();
     await findByXpath(byTestId('lesson-hint'));
     for (let i = 0; i < 10 && (await countByTestId('lesson-hint-insert-code')) === 0; i++) {
         await clickByTestId('lesson-hint-next');
     }
-    await clickByTestId('lesson-hint-insert-code');
+    await confirmInsertCode();
     await driver.wait(
         async () =>
             driver.executeScript(
@@ -210,7 +224,9 @@ describe('Smalruby Lessons: clearing lesson 1', () => {
         expect(await textByTestId('lessons-library-lesson-cleared')).toBe('Cleared!');
         expect(await textByTestId('lessons-library-badge')).toContain('Programmer Debut!');
         const done = new Set(
-            LESSON.challenges.filter((c) => PLAYS.some((p) => p.id === c.id)).flatMap((c) => c.skills.map((s) => s.id)),
+            LESSON.challenges
+                .filter((c) => PLAYS.some((p) => p.id === c.id))
+                .flatMap((c) => c.skills.map((s) => s.id)),
         );
         const marks = await driver.executeScript(`
             return Array.from(document.querySelectorAll('[data-testid^="lessons-library-skill-"]'))
