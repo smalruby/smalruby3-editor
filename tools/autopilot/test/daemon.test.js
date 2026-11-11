@@ -2446,3 +2446,137 @@ test('startHttp: usage pause 中の /resume は 409 で /force-resume へ誘導�
         server.close();
     }
 });
+
+// === 起動時の認証待ち: bootProjectInfo（SSO が切れたまま起動してもモニタから起動できる・#1510） ===
+
+const SSO_EXPIRED = 'bot-token: AWS 認証が失効/未設定のため Secrets Manager から秘密鍵を取得できません。';
+
+test('bootProjectInfo: 認証が取れるまで auth で pause して待ち、回復したら Project 情報を入れて pause を外す', async () => {
+    const { bootProjectInfo } = require('../src/daemon');
+    const cfg = { owner: 'o', project: 4, projectId: null, fields: null, statusOrder: [] };
+    const state = { paused: false, pausedBy: null, authError: null, booting: false, running: new Map() };
+    let calls = 0;
+    const seen = [];
+    await bootProjectInfo(cfg, state, () => {}, {
+        resolveProjectInfo: async () => {
+            calls += 1;
+            if (calls < 3) throw new Error(SSO_EXPIRED);
+            return { projectId: 'PVT_x', fields: { Status: { options: { 'Sprint Backlog': 'a', 'In Progress': 'b' } } } };
+        },
+        sleep: async () => {
+            seen.push({ booting: state.booting, paused: state.paused, pausedBy: state.pausedBy, authError: !!state.authError });
+        },
+    });
+    assert.equal(calls, 3);
+    // 待っている間は起動待ち + auth の auto-pause（モニタに SSO ログインを促す）
+    assert.deepStrictEqual(seen, [
+        { booting: true, paused: true, pausedBy: 'auth', authError: true },
+        { booting: true, paused: true, pausedBy: 'auth', authError: true },
+    ]);
+    assert.equal(cfg.projectId, 'PVT_x');
+    assert.deepStrictEqual(cfg.statusOrder, ['Sprint Backlog', 'In Progress']);
+    assert.equal(state.booting, false);
+    assert.equal(state.paused, false);
+    assert.equal(state.pausedBy, null);
+    assert.equal(state.authError, null);
+});
+
+test('bootProjectInfo: 待っている間に人間が pause したら、回復しても pause のまま', async () => {
+    const { bootProjectInfo } = require('../src/daemon');
+    const cfg = { owner: 'o', project: 4 };
+    const state = { paused: false, pausedBy: null, authError: null, booting: false, running: new Map() };
+    let calls = 0;
+    await bootProjectInfo(cfg, state, () => {}, {
+        resolveProjectInfo: async () => {
+            calls += 1;
+            if (calls === 1) throw new Error(SSO_EXPIRED);
+            return { projectId: 'P', fields: {} };
+        },
+        sleep: async () => { state.paused = true; state.pausedBy = 'human'; },
+    });
+    assert.equal(state.booting, false);
+    assert.equal(state.paused, true);
+    assert.equal(state.pausedBy, 'human');
+    assert.equal(state.authError, null);
+});
+
+test('bootProjectInfo: 認証以外のエラーは待たずに throw する（supervisor が再起動する）', async () => {
+    const { bootProjectInfo } = require('../src/daemon');
+    const state = { paused: false, pausedBy: null, authError: null, booting: false, running: new Map() };
+    let slept = false;
+    await assert.rejects(
+        bootProjectInfo({ owner: 'o', project: 4 }, state, () => {}, {
+            resolveProjectInfo: async () => { throw new Error('getaddrinfo ENOTFOUND api.github.com'); },
+            sleep: async () => { slept = true; },
+        }),
+        /ENOTFOUND/,
+    );
+    assert.equal(slept, false);
+    assert.equal(state.booting, false);
+});
+
+test('bootProjectInfo: wakeBoot で待ちを打ち切ってすぐ取り直す（モニタの SSO ログイン成功）', async () => {
+    const { bootProjectInfo, wakeBoot } = require('../src/daemon');
+    const cfg = { owner: 'o', project: 4 };
+    const state = { paused: false, pausedBy: null, authError: null, booting: false, running: new Map() };
+    let ok = false;
+    const started = Date.now();
+    const p = bootProjectInfo(cfg, state, () => {}, {
+        resolveProjectInfo: async () => {
+            if (!ok) throw new Error(SSO_EXPIRED);
+            return { projectId: 'P', fields: {} };
+        },
+        retryMs: 60_000,
+    });
+    // 最初の失敗で待ちに入るのを待つ
+    while (!state.booting) await new Promise((r) => setImmediate(r));
+    ok = true;
+    wakeBoot(state);
+    await p;
+    assert.equal(cfg.projectId, 'P');
+    assert.ok(Date.now() - started < 5_000, '60 秒の待ちを打ち切っている');
+    assert.equal(state.bootWake, null);
+});
+
+test('runTickOnce: 起動待ちの間は tick しない', async () => {
+    const { runTickOnce } = require('../src/daemon');
+    let ticked = false;
+    const r = await runTickOnce({}, { booting: true, running: new Map() }, () => {}, { tick: async () => { ticked = true; return {}; } });
+    assert.equal(ticked, false);
+    assert.equal(r.booting, true);
+    assert.equal(r.ran, false);
+});
+
+test('boardResponse / statusResponse: 起動待ちなら booting と、モニタで起動まで進む手順を返す', () => {
+    const { BOOT_REAUTH_HINT, REAUTH_HINT } = require('../src/daemon');
+    const cfg = { assignee: null, concurrency: 1 };
+    const booting = { running: new Map(), booting: true, paused: true, pausedBy: 'auth', authError: 'expired' };
+    assert.equal(boardResponse(cfg, booting).booting, true);
+    assert.equal(boardResponse(cfg, booting).reauthHint, BOOT_REAUTH_HINT);
+    assert.equal(statusResponse(cfg, booting).booting, true);
+    // 稼働中の失効は従来の手順のまま
+    const running = { running: new Map(), paused: true, pausedBy: 'auth', authError: 'expired' };
+    assert.equal(boardResponse(cfg, running).booting, false);
+    assert.equal(boardResponse(cfg, running).reauthHint, REAUTH_HINT);
+});
+
+test('startHttp: 起動待ちの間は Project 情報が要る操作を 503 で断り、/board と /status は返す', async () => {
+    const cfg = { ...makeCfg(), port: 0, assignee: null, concurrency: 1, projectId: null, fields: null, now: () => 1 };
+    const state = { paused: true, pausedBy: 'auth', authError: 'expired', booting: true, running: new Map(), board: null };
+    const { server, port } = await startTestHttp(cfg, state);
+    try {
+        for (const p of ['/tick', '/refresh', '/resume', '/inject?issue=1&phase=implement', '/resolve-conflict?issue=1']) {
+            const { status, body } = await httpRequestJson(port, 'POST', p);
+            assert.strictEqual(status, 503, p);
+            assert.strictEqual(body.booting, true, p);
+        }
+        assert.strictEqual(state.paused, true, '/resume で auth の pause が外れていない');
+        const board = await httpRequestJson(port, 'GET', '/board');
+        assert.strictEqual(board.status, 200);
+        assert.strictEqual(board.body.booting, true);
+        const st = await httpRequestJson(port, 'GET', '/status');
+        assert.strictEqual(st.status, 200);
+    } finally {
+        await new Promise((r) => server.close(r));
+    }
+});

@@ -23,18 +23,19 @@ for (const h of d.history.slice(0,10)) console.log(new Date(h.endedAt).toISOStri
 
 - 接続できない場合: daemon が起動していない（クラッシュ含む）。`tmux has-session -t autopilot-daemon`・
   `/tmp/autopilot-daemon.pid`・`tmp/autopilot-daemon.log` の末尾でクラッシュ理由を確認する。
-  **認証（`bin/bot-token >/dev/null 2>&1`）が有効なら Claude が `bash tmp/autopilot_up.sh` で再起動してよい**
-  （SSO 失効なら先に人間へ `aws sso login --sso-session smalruby --use-device-code` を依頼 → 回復確認 → 起動）。
-  起動後に `curl -s localhost:8787/status` で疎通・authError・boot commit を確認して報告する。
-  daemon が bot-token 取得不能で未捕捉例外クラッシュした事例があるため、**再起動前の認証確認は必須**。
+  **Claude が `bash tmp/autopilot_up.sh` で再起動してよい**。SSO が切れていても daemon はモニタを
+  立てて起動待ち（`booting: true`）になる（#1510）。
+  起動後に `curl -s localhost:8787/status` で疎通・authError・booting・boot commit を確認して報告する。
 
 ### 2. 異常の種類ごとに診断する
 
 **認証失効（authError あり / pausedBy=auth）**
 - `bin/bot-token --whoami` を実行して再現確認。
-- SSO 失効なら、ユーザーに `aws sso login --sso-session smalruby --use-device-code` の実行を
-  依頼する（デバイスコード承認はホストのブラウザで人間が行う。Claude は代行できない）。
-- 再認証後は daemon が自動で resume する（次の interval で回復を検知）。
+- SSO 失効なら、ユーザーにモニタの **「🔐 再接続（SSO ログイン）」** でコードの承認を依頼する
+  （コンテナで `aws sso login --sso-session smalruby --use-device-code` を実行してもよい。
+  デバイスコード承認はホストのブラウザで人間が行う。Claude は代行できない）。
+- 再認証後は daemon が自動で resume する（次の interval で回復を検知）。`booting: true`（起動待ち）
+  なら、承認したところで稼働を始める。
 
 **Blocked の item（`check autopilot #<issue>` で特定 Issue を指されたときは必ず）**
 1. Issue の bot コメント（Blocked 理由）を読む:

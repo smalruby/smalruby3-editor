@@ -404,3 +404,10 @@ test('MONITOR_HTML: Issue 列の左端に 📋（Issue と PR をコピー）を
     assert.match(MONITOR_HTML, /animation-delay: var\(--flash-delay, 0ms\)/);
     assert.match(MONITOR_HTML, /data-issue="' \+ it\.issue \+ '"/);
 });
+
+test('MONITOR_HTML: 起動待ちは「SSO ログインが必要」と出し、再接続ボタンで起動まで進める（#1510）', () => {
+    assert.match(MONITOR_HTML, /d\.booting/);
+    assert.match(MONITOR_HTML, /SSO ログインが必要です（autopilot は起動待ち）/);
+    assert.match(MONITOR_HTML, /SSO 待ち/);
+    assert.match(MONITOR_HTML, /id="reauthbtn"/);
+});

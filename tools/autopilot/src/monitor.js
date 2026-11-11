@@ -673,14 +673,18 @@ function renderAlerts(d) {
       ra = '<div class="reauth-info">📱 デバイス認証'
         + (R.code ? ' コード <code>' + esc(R.code) + '</code> <button onclick="copyText(&quot;' + esc(R.code) + '&quot;)">📋 コピー</button>' : '')
         + (R.url ? ' <a target="_blank" rel="noopener" href="' + esc(R.completeUrl || R.url) + '">🔗 認証ページを開く</a>' : '')
-        + '<span class="subtext">ホストのブラウザでコードを承認すると autopilot が自動で再開します</span></div>';
+        + '<span class="subtext">ホストのブラウザでコードを承認すると autopilot が自動で' + (d.booting ? '起動' : '再開') + 'します</span></div>';
     } else if (R && R.status === 'error') {
       ra = '<div class="reauth-info">⚠️ 再接続に失敗: ' + esc(R.error || '') + '</div>';
     } else if (R && R.status === 'starting') {
       ra = '<div class="reauth-info">⏳ SSO ログインを起動中…</div>';
     }
-    parts.push('<div class="alert auth-a">🔐 <b>認証エラー（auto-pause 中）</b> ' + esc(d.authError)
-      + '<span>' + esc(d.reauthHint || '') + '</span>'
+    // 起動待ち（#1510）: devpod の再起動直後など、SSO が切れたまま起動した。エラーではなく次の手順として見せる
+    const head = d.booting
+      ? '🔐 <b>SSO ログインが必要です（autopilot は起動待ち）</b> <span>' + esc(d.reauthHint || '') + '</span>'
+        + '<details><summary>詳細</summary>' + esc(d.authError) + '</details>'
+      : '🔐 <b>認証エラー（auto-pause 中）</b> ' + esc(d.authError) + '<span>' + esc(d.reauthHint || '') + '</span>';
+    parts.push('<div class="alert auth-a">' + head
       + '<button id="reauthbtn" onclick="reauth()">🔐 再接続（SSO ログイン）</button>'
       + '<button onclick="copyText(&quot;check autopilot&quot;)">📋 claude へ: check autopilot</button>'
       + ra + '</div>');
@@ -876,7 +880,8 @@ async function refresh() {
     // ボードが目標状態に追いついた保留だけ解除（古いキャッシュで楽観的に動かした行を戻さない）
     laterPending = laterPendingReducer(laterPending, { type: 'board', items: d.items || [] });
     const st = document.getElementById('state');
-    if (d.authError) { st.className = 'pill auth'; st.textContent = 'AUTH ⚠'; }
+    if (d.booting) { st.className = 'pill auth'; st.textContent = 'SSO 待ち'; }
+    else if (d.authError) { st.className = 'pill auth'; st.textContent = 'AUTH ⚠'; }
     else if (d.paused && d.pausedBy === 'usage') { st.className = 'pill usagep'; st.textContent = 'USAGE ⏸'; }
     else if (d.paused) { st.className = 'pill paused'; st.textContent = 'PAUSED'; }
     else { st.className = 'pill ok'; st.textContent = 'RUNNING'; }

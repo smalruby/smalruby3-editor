@@ -576,6 +576,14 @@ worker は**非対話**で動くので、許可プロンプトで止まると運
   モニタに表示する。ボタンは**認証ページを別タブで自動オープン**し、**コードはコピー
   ボタン**付きで出す。ホストのブラウザでコードを承認すれば `aws sso login` が完了し、
   次の認証ヘルスチェックで **auto-resume** する（`onSuccess` で即時再チェック）。
+- **SSO が切れたままでも起動できる（起動待ち）**: devpod の再起動直後のように、起動の時点で
+  bot トークンが取れないときも daemon は落ちない。先に Web モニタを立て、**起動待ち**
+  （`booting: true` + `pausedBy: "auth"`・状態ピル **`SSO 待ち`**）として
+  「SSO ログインが必要です（autopilot は起動待ち）」と表示する。上の「🔐 再接続（SSO ログイン）」で
+  コードを承認するか、コンテナで `aws sso login` を実行すると（30 秒ごとに確かめ直す）、Project の
+  情報を取って稼働を始める。起動待ちの間は Project 情報が要る操作（`/tick` / `/refresh` /
+  `/resume` / `/later` / `/inject` / `/resolve-conflict`）を `503 {booting:true}` で断る。認証以外の
+  起動エラー（GitHub に届かない等）は従来どおり exit して supervisor に任せる。
 
 ---
 
@@ -674,7 +682,7 @@ GitHub Projects で行い、モニタは俯瞰・log 閲覧・pause/resume/即�
   `GET /board`・`GET /status` にも `claudeUsage` として載る。
   **used ≥ 80% は警告色**。Pro/Max サブスク以外や初回 API 応答前は `rate_limits` が無いため
   **「—」表示**にしてレイアウトを崩さない。
-- **アラート帯**: 認証失効（auto-pause 中・再認証手順つき + **「🔐 再接続（SSO ログイン）」
+- **アラート帯**: 認証失効（auto-pause 中、または起動待ちの「SSO ログインが必要です」・再認証手順つき + **「🔐 再接続（SSO ログイン）」
   ボタン**で device code の URL 自動オープン & コードのコピー）/ Blocked 一覧 /
   **Claude 使用量の auto-pause**（理由・使用率・閾値・リセット時刻 + `⚡ 強制再開…` → その場で
   「本当に再開？ [再開する] [やめる]」に置き換わる 2 段階。ブラウザの confirm は使わない）/
@@ -941,11 +949,10 @@ tmux new -d -s autopilot 'tools/autopilot/bin/autopilot-supervise --port 8787'
 > **起動 / 再起動 / 更新反映（update autopilot）は Claude（autopilot スキル）が実行してよい。**
 > autopilot スキルが生成する tmux 起動ラッパ `tmp/autopilot_up.sh` があれば、Claude が
 > `bash tmp/autopilot_up.sh` で起動・再起動できる（従来「人間のみ」だったが解禁）。
-> **前提: 起動前に `bin/bot-token` が成功すること** — bot トークンを取得できないと daemon は
-> 未捕捉例外でクラッシュする（実際に SSO 失効でプロセスごと落ちた事例あり）。
-> **AWS SSO 再認証だけは人間**（device code + ブラウザ承認は代行不可）: 失効時は
-> `aws sso login --sso-session smalruby --use-device-code` を人間が実行し、`bin/bot-token --whoami`
-> で回復を確認してから Claude が起動する。再起動は `POST /shutdown` →（必要なら `git pull`）→
+> **SSO が切れていても起動してよい** — daemon はモニタを立てて起動待ちになり、人間がモニタの
+> 「🔐 再接続（SSO ログイン）」でコードを承認すると稼働を始める（上の「認証の無人運用」）。
+> **AWS SSO 再認証だけは人間**（device code + ブラウザ承認は代行不可）。Claude は起動したあと
+> モニタの URL を伝え、承認を人間に頼む。再起動は `POST /shutdown` →（必要なら `git pull`）→
 > `bash tmp/autopilot_up.sh`。詳細は `.claude/skills/autopilot/SKILL.md`。
 
 ##### クラッシュ耐性（外部 supervisor・#953）
@@ -1006,13 +1013,13 @@ HTTP API（curl からも操作可能）:
 |---|---|
 | `GET /` | Web モニタ（俯瞰ボード HTML） |
 | `GET /board` | 俯瞰ボードデータ（items + running + history + auth 状態 + `claudeUsage` + `usagePause` / `usageOverrides` + `version` + `autopilotUpdate`）を JSON で返す |
-| `GET /status` | `{paused, pausedBy, authError, reauthHint, reauth, assignee, concurrency, claudeUsage, usagePause, usageOverrides, version, autopilotUpdate, running:[{issue,phase}]}`。`pausedBy` は `human` / `auth` / `usage`。`usagePause` は判定結果（`pause, window, percent, threshold, resetsAt, thresholds, forced[]`） |
+| `GET /status` | `{paused, pausedBy, authError, reauthHint, reauth, booting, assignee, concurrency, claudeUsage, usagePause, usageOverrides, version, autopilotUpdate, running:[{issue,phase}]}`。`pausedBy` は `human` / `auth` / `usage`。`usagePause` は判定結果（`pause, window, percent, threshold, resetsAt, thresholds, forced[]`） |
 | `GET /log?issue=<n>` | 実行中 item の tmux pane キャプチャ（人間観測用） |
 | `POST /tick` | interval を待たず 1 サイクル即実行。`{ran, paused, picked:[...], running:[...]}` を返す。実行中は `409 {busy:true}`、pause 中は `{ran:true, paused:true, picked:[]}` の no-op |
 | `POST /pause` | 新規ディスパッチを止める（実行中はそのまま） |
 | `POST /resume` | ポーリング再開（usage の auto-pause 中は `409 {forceResumeRequired:true}`） |
 | `POST /force-resume` | Claude 使用量の auto-pause を強制再開。超過中の枠はその枠の次のリセットまで auto-pause しない。`{paused, pausedBy, overrides}` |
-| `POST /reauth` | SSO 再認証（device code）を daemon 側で起動し、認証 URL と user code を抽出して返す（`{status, url, code, completeUrl}`）。成功で auto-resume |
+| `POST /reauth` | SSO 再認証（device code）を daemon 側で起動し、認証 URL と user code を抽出して返す（`{status, url, code, completeUrl}`）。成功で auto-resume（起動待ちなら稼働を始める） |
 | `POST /refresh` | 俯瞰ボードを即時再取得（`listItems`）。モニタの「🔄 更新」ボタン。レート僅少時は `{refreshed:false, skipped:'rate-limited'}` で no-op |
 | `POST /later` | body `{issue, later: boolean}`。`💤 later` を付与 / 除去する（モニタの「💤 あとで」/「↩ 今やる」）。Issue 単位で直列化し連続リクエストは最後の目標へ畳み込む。既に目的の状態なら書き込まない。`{issue, later, changed}` を返す |
 | `POST /stop?issue=<n>` | その item の tmux セッションを kill して force-stop |
