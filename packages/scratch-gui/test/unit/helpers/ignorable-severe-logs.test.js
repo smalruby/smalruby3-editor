@@ -84,26 +84,29 @@ describe('isIgnorableSevereLog (environment noise)', () => {
         expect(isIgnorableSevereLog(message)).toBe(true);
     });
 
-    test.each([
-        '"Warning: Failed %s type: %s%s" "prop" "The prop `id` is marked as required in `Modal`, but its value is ' +
-            '`undefined`." "\\n    at Modal (gui.js:1:1)\\n    at PromptComponent (gui.js:2:2)"',
-        '"Warning: Failed %s type: %s%s" "prop" "Invalid prop `value` supplied to `ListMonitor`, expected one of ' +
-            'type [number, string]."',
-        'gui.js 544813:158161 Uncaught Error: Attempted to focus unregistered node: [object Object].',
-        '"Warning: Failed %s type: %s%s" "prop" "The prop `id` is marked as required in `Modal`, but its value is ' +
-            '`undefined`." "\\n    at Modal (:1:5)\\n    at ConnectFunction (:2:3)\\n    at RecordModal (:3:7)"',
-        '"Warning: Received `%s` for a non-boolean attribute `%s`." "false" "autoComplete" "autoComplete" ' +
-            '"\\n    at input\\n    at Grid (:1:1)\\n    at ListMonitorScroller (:2:5)"',
-        'http://csi.gstatic.com/csi?v=3&s=gapi_global&action=global&rt= - Failed to load resource: ' +
-            'net::ERR_CONNECTION_REFUSED',
-    ])('ignores known upstream warnings that were hidden by the broken getLogs() (%#)', (message) => {
+    test('ignores the gapi csi beacon blocked by the firewall', () => {
+        const message =
+            'http://csi.gstatic.com/csi?v=3&s=gapi_global&action=global&rt= - Failed to load resource: ' +
+            'net::ERR_CONNECTION_REFUSED';
         expect(isIgnorableSevereLog(message)).toBe(true);
     });
 
-    test('does not ignore a missing Modal id outside the Prompt', () => {
-        const message =
-            '"Warning: Failed %s type: %s%s" "prop" "The prop `id` is marked as required in `Modal`, but its value ' +
-            'is `undefined`." "\\n    at Modal (gui.js:1:1)\\n    at LessonsModal (gui.js:2:2)"';
+    test('ignores the scratch-blocks focus error left to upstream', () => {
+        const message = 'gui.js 544813:158161 Uncaught Error: Attempted to focus unregistered node: [object Object].';
+        expect(isIgnorableSevereLog(message)).toBe(true);
+    });
+
+    // #1499 で直したので、もう除外しない（再発したら統合テストで落とす）
+    test.each([
+        '"Warning: Failed %s type: %s%s" "prop" "The prop `id` is marked as required in `Modal`, but its value is ' +
+            '`undefined`." "\\n    at Modal (gui.js:1:1)\\n    at PromptComponent (gui.js:2:2)"',
+        '"Warning: Failed %s type: %s%s" "prop" "The prop `id` is marked as required in `Modal`, but its value is ' +
+            '`undefined`." "\\n    at Modal (:1:5)\\n    at ConnectFunction (:2:3)\\n    at RecordModal (:3:7)"',
+        '"Warning: Failed %s type: %s%s" "prop" "Invalid prop `value` supplied to `ListMonitor`, expected one of ' +
+            'type [number, string]."',
+        '"Warning: Received `%s` for a non-boolean attribute `%s`." "false" "autoComplete" "autoComplete" ' +
+            '"\\n    at input\\n    at Grid (:1:1)\\n    at ListMonitorScroller (:2:5)"',
+    ])('does not ignore the upstream warnings fixed in #1499 (%#)', (message) => {
         expect(isIgnorableSevereLog(message)).toBe(false);
     });
 

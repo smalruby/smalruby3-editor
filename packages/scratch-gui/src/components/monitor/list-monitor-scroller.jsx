@@ -51,7 +51,9 @@ class ListMonitorScroller extends React.Component {
                         <div className={styles.inputWrapper}>
                             <input
                                 autoFocus
-                                autoComplete={false}
+                                // === Smalruby: Start of upstream warning fixes ===
+                                autoComplete="off"
+                                // === Smalruby: End of upstream warning fixes ===
                                 className={classNames(styles.listInput, 'no-drag')}
                                 spellCheck={false}
                                 style={{color: this.props.categoryColor.text}}
