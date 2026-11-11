@@ -1646,7 +1646,6 @@ export default {
     'gui.lessonHint.insertCodeError': 'まだプログラムをいれられないよ。さきにヒントのとおりにたそう。',
     'gui.lessonHint.blocksError': '（このブロックはかけませんでした）',
     'gui.menuBar.lessons': 'レッスン',
-    'gui.menuBar.lessonsTooltip': 'レッスンをはじめよう！',
     'gui.lessonsLibrary.title': 'レッスン',
     'gui.lessonsLibrary.tab.blocks': 'ブロック',
     'gui.lessonsLibrary.tab.ruby': 'Ruby',

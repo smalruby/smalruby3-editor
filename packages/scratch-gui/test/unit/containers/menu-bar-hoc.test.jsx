@@ -174,8 +174,8 @@ describe('Menu Bar HOC', () => {
 
 
     // === Smalruby: Start of lessons button ===
-    // Issue #1498: the first-time balloons overlap the lesson task bar, so they
-    // stay hidden while a challenge is open and come back once it is closed.
+    // Issue #1498: the welcome balloon overlaps the lesson task bar, so the menu
+    // bar is told whether a challenge is open (it comes back once it is closed).
     describe('first-time balloons and lesson mode', () => {
         const renderWith = lessonMode => {
             const PropsProbe = jest.fn(() => null);
@@ -194,21 +194,20 @@ describe('Menu Bar HOC', () => {
             return PropsProbe.mock.calls[PropsProbe.mock.calls.length - 1][0];
         };
 
-        test('shows the balloons outside lesson mode', () => {
+        test('reports that lesson mode is off outside a challenge', () => {
             const props = renderWith(lessonModeInitialState);
-            expect(props.showLessonsTooltip).toBe(true);
             expect(props.lessonModeActive).toBe(false);
         });
 
-        test('hides the balloons while a challenge is open', () => {
+        test('reports that lesson mode is on while a challenge is open', () => {
             const props = renderWith({...lessonModeInitialState, challengeId: 'blocks-l1-if'});
-            expect(props.showLessonsTooltip).toBe(false);
             expect(props.lessonModeActive).toBe(true);
         });
 
-        test('keeps the onboarding state, so the balloon returns after leaving lesson mode', () => {
-            const props = renderWith({...lessonModeInitialState, challengeId: null});
-            expect(props.showLessonsTooltip).toBe(true);
+        // Issue #1512: the "Start a lesson!" balloon is gone, so the HOC no longer supplies it
+        test('does not supply a lessons balloon flag', () => {
+            const props = renderWith(lessonModeInitialState);
+            expect(props).not.toHaveProperty('showLessonsTooltip');
         });
     });
     // === Smalruby: End of lessons button ===
