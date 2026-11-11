@@ -72,9 +72,9 @@
 | `allowedBlocks` | object \| null | null | パレットに出すブロック（deck と同じ形） |
 | `setup` | object \| null | null | 始めるときの準備（deck と同じ形。`lib/deck-setup.js`） |
 | `steps` | ヒント[] | [] | ヒント（下の表） |
-| `code` | string \| null | null | ヒントの最後の手段「プログラムを入れる」（Ruby。deck の `code` と同じ） |
+| `code` | string \| `{ja, 'ja-Hira', en}` \| null | null | ヒントの最後の手段「プログラムを入れる」（Ruby。deck の `code` と同じ）。作品の中の名前が locale で変わるときは locale ごとに書く（下の「英語の UI でも使う（locale ごとの `code`）」） |
 | `codeTarget` | `'stage'` \| null | null | `code` を入れる相手。null はいま編集中のスプライト。`'stage'` はステージのプログラムのチャレンジ（入れる前にステージをえらぶ） |
-| `spriteCodes` | `{sprite, code}`[] | [] | `code` のほかに、名前で決めたスプライトに入れるプログラム（2 つのスプライトでやりとりするチャレンジ用）。`sprite` はライブラリのスプライトの名前。下の「最後の手段」 |
+| `spriteCodes` | `{sprite, code}`[] | [] | `code` のほかに、名前で決めたスプライトに入れるプログラム（2 つのスプライトでやりとりするチャレンジ用）。`sprite` はライブラリのスプライトの名前。`code` は `code` と同じく locale ごとにも書ける。下の「最後の手段」 |
 | `debug` | message[] | [] | うまく動かないときは |
 
 ヒント（`steps` の要素）。deck の step と同じ `title` を文言にし、吹き出しのための項目を足す。
@@ -84,7 +84,7 @@
 |------|----|------|------|
 | `title` | message \| null | null | 吹き出しの文言 |
 | `target` | string \| null | null | 指す場所（`lib/lessons/hint-targets.js` の `HINT_TARGETS`）: `palette`（パレット）・`code-area`（コードエリア）・`stage`（ステージ）・`sprite-list`（スプライトリスト）・`sounds-tab`（音タブ）・`costumes-tab`（コスチュームタブ）・`backdrop`（背景を選ぶ）・`extension-button`（拡張機能のボタン）・`green-flag`（旗）・`keyboard`（場所の無いもの。画面の真ん中に出す） |
-| `blocks` | string \| null | null | 吹き出しに描くブロック（Ruby。`code` と同じ変換でブロックにする） |
+| `blocks` | string \| `{ja, 'ja-Hira', en}` \| null | null | 吹き出しに描くブロック（Ruby。`code` と同じ変換でブロックにする）。`code` と同じく locale ごとにも書ける |
 | `spotlight` | boolean | false | はじめて開いたチャレンジだけ、周りを暗くして `target` を照らす |
 
 `steps` の後ろには、`debug` か `code` があれば**最後の手段のページ**（「うまく動かないときは」と「プログラムを入れる」）が
@@ -103,6 +103,43 @@
 `defineCourse` / `defineLesson` / `defineChallenge` は export してあるので、コースやレッスンが増えて
 ファイルを分けるときも同じ形で定義できる。
 
+### 英語の UI でも使う（locale ごとの `code`）
+
+コースは日本語の UI だけでなく、**英語の UI（en）でも使える**（英語の生徒もいるため）。文言は 3 locale
+（ja / ja-Hira / en）にそろえ、作品の中の名前に依存する Ruby（`code`・`spriteCodes[].code`・ヒントの `blocks`）は
+locale ごとに書ける:
+
+```js
+code: {
+    ja: 'when_key_pressed("space") do\n  play_until_done("ニャー")\n  play("Owl")\nend\n',
+    'ja-Hira': 'when_key_pressed("space") do\n  play_until_done("Meow")\n  play("Owl")\nend\n',
+    en: 'when_key_pressed("space") do\n  play_until_done("Meow")\n  play("Owl")\nend\n',
+},
+```
+
+- 文字列はそのまま全 locale で使う。オブジェクトはいまの UI の locale（`intl.locale`）のものを使い、キーが
+  無い locale は **en**、en も無ければ **ja** に戻る（`courses.js` の `localizeCode`）。ja-Hira を ja と同じに
+  したいときも、en に戻らないよう **ja-Hira のキーを省かずに書く**。
+- 新しい作品の名前は作品を作ったときの locale で決まる。ネコの音は ja が「ニャー」、en と ja-Hira が "Meow"
+  （scratch-l10n に ja-Hira の訳が無い）。スプライト名（「スプライト1」/ "Sprite1"）・コスチューム名・背景名も
+  locale で変わるので、`code` で名前を使うときは locale ごとに書く（いまのレッスン 1 で名前を使うのはチャレンジ 1 の
+  ネコの音だけ。スプライトは名前でなく「`spriteCodes` に名前の無い最初のスプライト」で探す）。ライブラリの名前
+  （"Owl" / "Canyon" / "Arctic" / "Penguin"）は locale で変わらない。
+- **「プログラムを入れる」は作品に合う組を探す**: いまの locale の `code`（と `spriteCodes`）を音・背景の確かめ込みで
+  試し、作品に合わない（日本語の作品を英語の UI で開いた、先生が配った日本語の作品を英語の生徒が開いた等）ときは、
+  ほかの locale の組を順に試して、合った組を入れる（`challengeCodeCandidates`）。どれも合わなければ、いまの
+  locale の組のわけを出す（Owl をまだ足していない等）。
+- セリフ・変数名・リスト名は、その locale の課題とヒントの文言に合わせる。レッスン 1 では en の課題が
+  "Hello!" / "That tickles!" / "Touch me" / "What's your name?" / " seconds" / "Correct" / "Wrong" と書くので en の
+  `code` もそれを言う。変数「回数」・リスト「トーク」・メッセージ「あいさつ」・セリフ「やあ！」・「ボタンが押されました」は
+  en の文言も日本語の名前のまま書く（`"回数" (count)` のように英語を添える）ので、en の `code` も日本語の名前。
+  ja-Hira はヒントのとおり `$かいすう`・「せいかいです」・「びょうでした」・「ボタンがおされました」。
+- **`goal` は全 locale の `code` が言うものを許す**: 名前は配列（`['回数', 'かいすう']`）、言う文字は RegExp
+  （チャレンジ 7 の `/^(正解です|せいかいです|correct)$/i` と `/^(ちがいます|wrong)$/i`）。
+- テスト: `courses.test.js` が全チャレンジの `code` を ja / ja-Hira / en それぞれの新しい作品の名前で（音・背景の
+  確かめ込みで）ブロックに変換できることを確かめる。integration は `smalruby-lessons-en.test.js`（en で
+  チャレンジ 1・8・9 を開いて「プログラムを入れる」→ 操作 →「できた」）。
+
 レッスン 1 の 11 のチャレンジは、どれも中身（課題・できること・パレット・ヒント・判定・Ruby）が
 入っている（下の「レッスン 1 のチャレンジ」）。
 
@@ -119,7 +156,7 @@
 | 4 | `blocks-l1-repeat` | 1 のキーを押したら、背景が「Canyon」と「Arctic」に 3 回かわる（**ステージのプログラム**） | くり返し・背景を足す・ステージのプログラム | `event_whenkeypressed` / `control_repeat` / `control_wait` / `looks_switchbackdropto` | ステージの 1 のキーのスクリプトで `control_repeat` が動き、`looks_switchbackdropto` が 6 回動いた |
 | 5 | `blocks-l1-if` | マウスでネコにさわったら「くすぐったい！」、さわっていないときは「さわってみて」と言う | もし〜なら・ずっと・さわったか調べる | `event_whenflagclicked` / `control_forever` / `control_if` / `control_if_else` / `sensing_touchingobject` / `looks_say` | 旗のスクリプトで `sensing_touchingobject` が動き、ちがうセリフ（`MESSAGE`）の `looks_say` が 2 種類動いた |
 | 6（必須） | `blocks-l1-ask-answer` | ネコを押したら名前を聞いて、答えた名前と、答えるまでにかかった秒数を言う | 聞いて答える・タイマー・ことばをつなぐ | `event_whenthisspriteclicked` / `sensing_resettimer` / `sensing_askandwait` / `sensing_answer` / `sensing_timer` / `operator_join` / `looks_sayforsecs` | スプライトを押したスクリプトで `sensing_resettimer` → `sensing_askandwait` の順に動き、`sensing_answer`・`sensing_timer`・`looks_sayforsecs` 2 回が動いた。答えと同じことばを言った |
-| 7 | `blocks-l1-quiz` | ネコを押したら「4＋3＝？」と聞いて、7 なら「正解です」、ちがえば「ちがいます」と言う | くらべる・もし〜なら | `event_whenthisspriteclicked` / `sensing_askandwait` / `sensing_answer` / `control_if` / `control_if_else` / `operator_equals` / `looks_sayforsecs` | 答えが 7 のときに「正解です」（ja-Hira の「せいかいです」も可）、7 でないときに「ちがいます」を言った（両方） |
+| 7 | `blocks-l1-quiz` | ネコを押したら「4＋3＝？」と聞いて、7 なら「正解です」、ちがえば「ちがいます」と言う | くらべる・もし〜なら | `event_whenthisspriteclicked` / `sensing_askandwait` / `sensing_answer` / `control_if` / `control_if_else` / `operator_equals` / `looks_sayforsecs` | 答えが 7 のときに「正解です」（ja-Hira の「せいかいです」、en の "Correct" も可）、7 でないときに「ちがいます」（en の "Wrong" も可）を言った（両方） |
 | 8（必須） | `blocks-l1-count` | ネコを押した回数を数えて、その数を言う。3 回押す | 変数を作る・変数 | `event_whenflagclicked` / `event_whenthisspriteclicked` / `data_setvariableto` / `data_changevariableby` / `data_variable` / `looks_say` | 変数「回数」（ja-Hira の「かいすう」も可）が 3 以上になり、その値を言った |
 | 9（必須） | `blocks-l1-broadcast` | ペンギンを足して、ネコを押したらペンギンが「やあ！」と言う（**2 つのスプライト**） | スプライトを足す・合図（メッセージ）・スプライトごとのプログラム | `event_whenthisspriteclicked` / `event_broadcast` / `event_whenbroadcastreceived` / `looks_sayforsecs` | スプライト 2 つ以上・押されたときで送る・**別のスプライト**が受け取ったときに言う（`sentBy: 'other'`） |
 | 10 | `blocks-l1-speak` | 拡張機能「音声合成」を足して、ネコを押したら「ボタンが押されました」としゃべる | 拡張機能を足す・音声合成 | `event_whenthisspriteclicked` / `text2speech_speakAndWait` | 拡張機能 `text2speech` が読み込まれている・押されたときで `text2speech_speakAndWait` |
@@ -141,9 +178,8 @@
 - 中身の無い「繰り返す」を描くときは **`3.times`**（ブロック無し）と書く。`3.times do ... end` は中身が
   無いと変換できない。
 - `self.y += -10` は「y座標を -10 ずつ変える」になる（チャレンジ 2 の下向き矢印）。
-- チャレンジ 1 の `code` の `play_until_done("ニャー")` は**日本語の作品の音の名前**。英語の作品ではネコの音は
-  "Meow" なので、英語で開いたときはプログラムを入れようとすると吹き出しに「sound "ニャー" does not exist.」が出て入らない（コースは日本語を
-  前提にしている。`goal` は音の名前を見ないので、手で作れば英語でも「できた」になる）。
+- チャレンジ 1 の `code` とヒント 3 のネコの音は locale ごとに書く（ja は「ニャー」、en / ja-Hira は "Meow"。上の
+  「英語の UI でも使う」）。`goal` は音の名前を見ない。
 - ライブラリの音「Owl」・背景「Canyon」「Arctic」の表示名は日本語でも英語のまま（ライブラリの名前は
   翻訳されない）。ヒントの文言もそのまま "Owl" / "Canyon" / "Arctic" と書く。
 - チャレンジ 4 のように**ステージのプログラム**のチャレンジは `codeTarget: 'stage'` にする。
@@ -252,7 +288,7 @@
 **変数・リストの名前**（`variable` / `list` の `name`、`said` の `equalsVariable`）は、文字列か名前の配列
 （どれか 1 つの名前の変数を見る）。ja-Hira のヒントは変数名をひらがなで書く（「かいすう」）ので、
 `['回数', 'かいすう']` のように両方を書く。言う文字も同じで、ja-Hira の課題がひらがなで書く文字は
-RegExp で両方を許す（例: `/^(正解です|せいかいです)$/`）。
+RegExp で両方を許す（例: `/^(正解です|せいかいです|correct)$/i`。en の `code` が言う文字も許す）。
 
 **`list` の項目**: `length`（matcher。例: `{gte: 3}`）、`itemsFromAnswers: true`（中身が全部「聞いて待つ」に
 入力した答え）。
@@ -298,8 +334,8 @@ RegExp で両方を許す（例: `/^(正解です|せいかいです)$/`）。
 
 // 7 クイズを作ろう: 7 を入れたら「正解です」、ほかの数で「ちがいます」と言った
 [
-    { type: 'said', text: /^(正解です|せいかいです)$/, answer: { eq: 7 } },
-    { type: 'said', text: 'ちがいます', answer: { ne: 7 } },
+    { type: 'said', text: /^(正解です|せいかいです|correct)$/i, answer: { eq: 7 } },
+    { type: 'said', text: /^(ちがいます|wrong)$/i, answer: { ne: 7 } },
 ]
 
 // 8 数えよう: 変数「回数」が 3 以上になり、その数を言った
@@ -551,7 +587,8 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
   エディタより大きい 0.8 倍）に描く。スクリーンショットは使わない。言語・色のモードはエディタと同じ
   （Blocks コンテナが Redux に置いた ScratchBlocks を使う）。inject は main workspace を差し替えるので、
   描いたあとにエディタのワークスペースを `setMainWorkspace` で戻す。変換した XML は Ruby ごとに覚える。
-  変換できない Ruby は「（このブロックは描けませんでした）」を出す（文言は出る）。
+  変換できない Ruby は「（このブロックは描けませんでした）」を出す（文言は出る）。`blocks` が locale ごとの
+  オブジェクトなら、いまの UI の locale のものを描く（`localizeCode`）。
   条件の穴に入った `false` は空の穴として描く（`if false` = 「もし <  > なら」。ブロック → Ruby が空の穴を
   `if false` と書くのに合わせる。`blocks-xml.js` の `emptyFalseConditions`）。
 - **指す場所**: `target` の場所を DOM から探し（`lib/lessons/hint-targets.js` の `findHintTargetRect`。
@@ -701,7 +738,7 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 
 | ファイル | 説明 |
 |---------|------|
-| `packages/scratch-gui/src/lib/lessons/courses.js` | コース・レッスン・チャレンジのデータと検索 |
+| `packages/scratch-gui/src/lib/lessons/courses.js` | コース・レッスン・チャレンジのデータと検索。locale ごとの Ruby を選ぶ `localizeCode` / `challengeCodeFor` / `challengeCodeCandidates` |
 | `packages/scratch-gui/src/lib/lessons/lessons.locale.js` | 文言（en / ja / ja-Hira。`src/locales/*.js` に spread） |
 | `packages/scratch-gui/src/lib/lessons/lesson-progress.js` | 端末への記録・クリア判定・できること |
 | `packages/scratch-gui/src/lib/lessons/challenge-setup.js` | チャレンジを開くときの setup（言語の既定 + チャレンジの `setup`） |

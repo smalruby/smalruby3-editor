@@ -4,7 +4,7 @@ import { act, fireEvent, render, waitFor } from '@testing-library/react';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
 import { LessonHint } from '../../../src/containers/lesson-hint.jsx';
-import { findChallenge } from '../../../src/lib/lessons/courses';
+import { findChallenge, localizeCode } from '../../../src/lib/lessons/courses';
 import { rubyToBlocksXml } from '../../../src/lib/lessons/hint-blocks';
 import { targetCodeToBlocks } from '../../../src/lib/ruby-to-blocks-converter';
 
@@ -57,9 +57,9 @@ const baseProps = () => ({
     vm: { editingTarget: { id: 'sprite' } },
 });
 
-const renderContainer = (props) =>
+const renderContainer = (props, locale = 'en') =>
     render(
-        <IntlProvider locale="en">
+        <IntlProvider locale={locale}>
             <LessonHint {...props} />
         </IntlProvider>,
     );
@@ -132,21 +132,21 @@ describe('LessonHint container', () => {
         fireEvent.click(getByTestId('lesson-hint-insert-code'));
         await flush();
         // 入れる前に、音・背景の確かめ込みで同じ変換を試す
-        expect(rubyToBlocksXml).toHaveBeenCalledWith(
-            props.vm,
-            props.vm.editingTarget,
-            props.current.challenge.code,
-            expect.anything(),
-            { version: '2', validateAssets: true },
-        );
-        expect(props.onInsertCode).toHaveBeenCalledWith(props.current.challenge.code, 'blocks', null, '2');
+        // code は locale ごとに持つので、いまの locale（en）のものを入れる
+        const code = localizeCode(props.current.challenge.code, 'en');
+        expect(code).toContain('say("Hello!", 2)');
+        expect(rubyToBlocksXml).toHaveBeenCalledWith(props.vm, props.vm.editingTarget, code, expect.anything(), {
+            version: '2',
+            validateAssets: true,
+        });
+        expect(props.onInsertCode).toHaveBeenCalledWith(code, 'blocks', null, '2');
         expect(queryByTestId('lesson-hint-insert-code-error')).not.toBeInTheDocument();
     });
 
     test('does not insert and shows why when the program would not convert yet (e.g. Owl not added)', async () => {
-        rubyToBlocksXml.mockImplementationOnce(() =>
-            Promise.resolve({ xml: null, errors: [{ text: 'sound "Owl" does not exist.' }] }),
-        );
+        // en の code（"Meow"）も、ほかの locale の code（「ニャー」）も入らない
+        const owlMissing = () => Promise.resolve({ xml: null, errors: [{ text: 'sound "Owl" does not exist.' }] });
+        rubyToBlocksXml.mockImplementationOnce(owlMissing).mockImplementationOnce(owlMissing);
         const current = findChallenge('blocks-l1-key-sound');
         const { challenge } = current;
         const hint = {
@@ -165,6 +165,67 @@ describe('LessonHint container', () => {
         await flush();
         expect(props.onInsertCode).not.toHaveBeenCalled();
         expect(getByTestId('lesson-hint-insert-code-error')).toHaveTextContent('sound "Owl" does not exist.');
+    });
+
+    const keySoundLastPage = () => {
+        const current = findChallenge('blocks-l1-key-sound');
+        const { challenge } = current;
+        const hint = {
+            visible: true,
+            index: challenge.steps.length,
+            count: challenge.steps.length + 1,
+            step: null,
+            spotlight: false,
+            lastResort: true,
+            debug: challenge.debug,
+            code: challenge.code,
+        };
+        return { ...baseProps(), current, hint };
+    };
+
+    test.each([
+        ['en', 'play_until_done("Meow")'],
+        ['ja', 'play_until_done("ニャー")'],
+    ])(
+        'inserts the code of the UI locale (%s): the cat sound of the project of that locale',
+        async (locale, call) => {
+            const props = keySoundLastPage();
+            const { getByTestId } = renderContainer(props, locale);
+            fireEvent.click(getByTestId('lesson-hint-insert-code'));
+            await waitFor(() => expect(props.onInsertCode).toHaveBeenCalled());
+            expect(rubyToBlocksXml).toHaveBeenCalledTimes(1);
+            expect(props.onInsertCode.mock.calls[0][0]).toContain(call);
+        },
+    );
+
+    test('falls back to the code of another locale when the project has the names of that locale', async () => {
+        // 日本語の作品（ネコの音は「ニャー」）を英語の UI で開いた: en の code は入らないが、ja の code は入る
+        rubyToBlocksXml.mockImplementationOnce(() =>
+            Promise.resolve({ xml: null, errors: [{ text: 'sound "Meow" does not exist.' }] }),
+        );
+        const props = keySoundLastPage();
+        const { getByTestId, queryByTestId } = renderContainer(props, 'en');
+        fireEvent.click(getByTestId('lesson-hint-insert-code'));
+        await waitFor(() => expect(props.onInsertCode).toHaveBeenCalled());
+        expect(rubyToBlocksXml.mock.calls.map((c) => c[2])).toEqual([
+            localizeCode(props.current.challenge.code, 'en'),
+            localizeCode(props.current.challenge.code, 'ja'),
+        ]);
+        expect(props.onInsertCode.mock.calls[0][0]).toContain('play_until_done("ニャー")');
+        expect(queryByTestId('lesson-hint-insert-code-error')).not.toBeInTheDocument();
+    });
+
+    test('draws the hint blocks of the UI locale', async () => {
+        const current = findChallenge('blocks-l1-key-sound');
+        const step = current.challenge.steps[2];
+        const hint = { ...keySoundLastPage().hint, index: 2, step, lastResort: false };
+        renderContainer({ ...baseProps(), current, hint }, 'en');
+        await flush();
+        expect(rubyToBlocksXml.mock.calls[0][2]).toBe('play_until_done("Meow")\n');
+        rubyToBlocksXml.mockClear();
+        renderContainer({ ...baseProps(), current, hint }, 'ja');
+        await flush();
+        expect(rubyToBlocksXml.mock.calls[0][2]).toBe('play_until_done("ニャー")\n');
     });
 
     test('a challenge with codeTarget "stage" selects the stage and inserts the code there', async () => {

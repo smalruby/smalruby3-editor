@@ -173,14 +173,14 @@ describe('Smalruby Lessons: lesson 1 challenges 5-8', () => {
         await answerQuestion('たろう');
         // 答え（2 秒）→ 秒数（2 秒）を言ったら「できた」
         expect(await waitForCompletedToast()).toBe('Ask and answer');
-        // 言った文字（スプライトの「聞いて待つ」は質問も吹き出しで言う）: 質問・名前・「<小数の秒数>秒でした」。
-        // 秒数は四捨五入しない
+        // 言った文字（スプライトの「聞いて待つ」は質問も吹き出しで言う）: 質問・名前・「<小数の秒数> seconds」。
+        // UI は en なので、code も en の課題の文言（"What's your name?" / " seconds"）。秒数は四捨五入しない
         const says = await driver.executeScript('return window.__lessonSays;');
-        expect(says.slice(0, 2)).toEqual(['なまえは？', 'たろう']);
-        expect(says[2]).toMatch(/^\d+(\.\d+)?秒でした$/);
+        expect(says.slice(0, 2)).toEqual(["What's your name?", 'たろう']);
+        expect(says[2]).toMatch(/^\d+(\.\d+)? seconds$/);
     });
 
-    test('7 クイズを作ろう: 7 says 正解です, another number says ちがいます, then it is done', async () => {
+    test('7 クイズを作ろう: 7 says Correct, another number says Wrong (the en code), then it is done', async () => {
         await openChallengeAndInsertCode('blocks-l1-quiz', {
             hintCount: 5,
             firstTarget: 'palette',
@@ -189,7 +189,7 @@ describe('Smalruby Lessons: lesson 1 challenges 5-8', () => {
 
         await clickCat();
         await answerQuestion('7');
-        // 「正解です」だけでは「できた」にならない
+        // 「Correct」（正解）だけでは「できた」にならない
         await driver.sleep(2500);
         expect(await countCompletedToasts()).toBe(0);
 

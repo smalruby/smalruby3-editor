@@ -14,10 +14,14 @@ import {
     defineLesson,
     findChallenge,
     findCourse,
+    challengeCodeCandidates,
+    challengeCodeFor,
     findLesson,
     lessonClearRule,
+    localizeCode,
 } from '../../../../src/lib/lessons/courses';
 import { validateGoal } from '../../../../src/lib/lessons/goal';
+import { rubyToBlocksXml } from '../../../../src/lib/lessons/hint-blocks';
 import { HINT_TARGETS } from '../../../../src/lib/lessons/hint-targets';
 import en from '../../../../src/locales/en';
 import ja from '../../../../src/locales/ja';
@@ -220,7 +224,7 @@ describe('lesson courses', () => {
     // チャレンジ 5〜8（Issue #1474 の仕様）
     describe('lesson 1 challenges 5-8 (the spec of the sub-issue)', () => {
         const challenge = (id) => findChallenge(id).challenge;
-        const hints = (c) => c.steps.map((s) => [s.target, s.blocks, s.spotlight]);
+        const hints = (c) => c.steps.map((s) => [s.target, localizeCode(s.blocks, 'ja'), s.spotlight]);
         const jaText = (descriptor) => ja[descriptor.id];
 
         test('5 もし〜なら: says one line when the mouse touches the cat and another when it does not', () => {
@@ -264,7 +268,7 @@ describe('lesson courses', () => {
                     blocks: ['sensing_touchingobject', { opcode: 'looks_say', distinct: 'MESSAGE', count: 2 }],
                 },
             ]);
-            expect(c.code).toBe(
+            expect(localizeCode(c.code, 'ja')).toBe(
                 'when_flag_clicked do\n  loop do\n    if touching?("_mouse_")\n      say("くすぐったい！")\n' +
                     '    else\n      say("さわってみて")\n    end\n  end\nend\n',
             );
@@ -318,7 +322,7 @@ describe('lesson courses', () => {
                 },
                 { type: 'said', equalsAnswer: true },
             ]);
-            expect(c.code).toBe(
+            expect(localizeCode(c.code, 'ja')).toBe(
                 'when_clicked do\n  timer.reset\n  ask("なまえは？")\n  say(answer, 2)\n' +
                     '  say(timer.value + "秒でした", 2)\nend\n',
             );
@@ -357,10 +361,10 @@ describe('lesson courses', () => {
                 'いつも「ちがいます」になるときは、「=」の左に「答え」、右に 7 が入っているか見よう。数は半角の 7 で入れよう。',
             ]);
             expect(c.goal).toEqual([
-                { type: 'said', text: /^(正解です|せいかいです)$/, answer: { eq: 7 } },
-                { type: 'said', text: 'ちがいます', answer: { ne: 7 } },
+                { type: 'said', text: /^(正解です|せいかいです|correct)$/i, answer: { eq: 7 } },
+                { type: 'said', text: /^(ちがいます|wrong)$/i, answer: { ne: 7 } },
             ]);
-            expect(c.code).toBe(
+            expect(localizeCode(c.code, 'ja')).toBe(
                 'when_clicked do\n  ask("4+3=?")\n  if answer == 7\n    say("正解です", 2)\n  else\n' +
                     '    say("ちがいます", 2)\n  end\nend\n',
             );
@@ -396,7 +400,7 @@ describe('lesson courses', () => {
                 { type: 'variable', name: ['回数', 'かいすう'], value: { gte: 3 } },
                 { type: 'said', equalsVariable: ['回数', 'かいすう'] },
             ]);
-            expect(c.code).toBe('when_flag_clicked do\n  $回数 = 0\nend\n\nwhen_clicked do\n  $回数 += 1\n  say($回数)\nend\n');
+            expect(localizeCode(c.code, 'ja')).toBe('when_flag_clicked do\n  $回数 = 0\nend\n\nwhen_clicked do\n  $回数 += 1\n  say($回数)\nend\n');
         });
 
         test('the goals of 5-8 pass validateGoal', () => {
@@ -409,7 +413,7 @@ describe('lesson courses', () => {
     // チャレンジ 9〜11（Issue #1475 の仕様）
     describe('lesson 1 challenges 9-11 (the spec of the sub-issue)', () => {
         const challenge = (id) => findChallenge(id).challenge;
-        const hints = (c) => c.steps.map((s) => [s.target, s.blocks, s.spotlight]);
+        const hints = (c) => c.steps.map((s) => [s.target, localizeCode(s.blocks, 'ja'), s.spotlight]);
         const jaText = (descriptor) => ja[descriptor.id];
 
         test('9 なかまに合図しよう (required): clicking the cat broadcasts and the penguin says', () => {
@@ -455,7 +459,7 @@ describe('lesson courses', () => {
                 },
             ]);
             // code はネコ、ペンギンのプログラムは spriteCodes（ライブラリの「Penguin」）
-            expect(c.code).toBe('when_clicked do\n  broadcast("あいさつ")\nend\n');
+            expect(localizeCode(c.code, 'ja')).toBe('when_clicked do\n  broadcast("あいさつ")\nend\n');
             expect(c.spriteCodes).toEqual([
                 { sprite: 'Penguin', code: 'when_receive("あいさつ") do\n  say("やあ！", 2)\nend\n' },
             ]);
@@ -492,7 +496,7 @@ describe('lesson courses', () => {
                 { type: 'extension', id: 'text2speech' },
                 { type: 'uses', trigger: { hat: 'event_whenthisspriteclicked' }, blocks: ['text2speech_speakAndWait'] },
             ]);
-            expect(c.code).toBe('when_clicked do\n  text2speech.speak("ボタンが押されました")\nend\n');
+            expect(localizeCode(c.code, 'ja')).toBe('when_clicked do\n  text2speech.speak("ボタンが押されました")\nend\n');
         });
 
         test('11 メッセージをためよう (required): keeps the answers in the list トーク', () => {
@@ -525,7 +529,7 @@ describe('lesson courses', () => {
                 '「答え」という文字がたまるときは、丸い「答え」のブロックを入れたか見よう。',
             ]);
             expect(c.goal).toEqual([{ type: 'list', name: 'トーク', length: { gte: 3 }, itemsFromAnswers: true }]);
-            expect(c.code).toBe(
+            expect(localizeCode(c.code, 'ja')).toBe(
                 'when_flag_clicked do\n  $トーク.clear\nend\n\nwhen_clicked do\n  ask("メッセージは？")\n' +
                     '  $トーク.push(answer)\nend\n',
             );
@@ -557,7 +561,7 @@ describe('lesson courses', () => {
     describe('lesson 1 challenges 1-4 (the spec of the sub-issue)', () => {
         const { PALETTE, CODE_AREA, STAGE, SPRITE_LIST, SOUNDS_TAB, COSTUMES_TAB, BACKDROP, KEYBOARD } = HINT_TARGETS;
         const challenge = (id) => findChallenge(id).challenge;
-        const hints = (c) => c.steps.map((s) => [s.target, s.blocks, s.spotlight]);
+        const hints = (c) => c.steps.map((s) => [s.target, localizeCode(s.blocks, 'ja'), s.spotlight]);
 
         test('1 キーで音を鳴らそう: space key plays two sounds in order', () => {
             const c = challenge('blocks-l1-key-sound');
@@ -584,7 +588,7 @@ describe('lesson courses', () => {
                     order: ['sound_playuntildone', 'sound_play'],
                 },
             ]);
-            expect(c.code).toBe('when_key_pressed("space") do\n  play_until_done("ニャー")\n  play("Owl")\nend\n');
+            expect(localizeCode(c.code, 'ja')).toBe('when_key_pressed("space") do\n  play_until_done("ニャー")\n  play("Owl")\nend\n');
             expect(c.codeTarget).toBeNull();
         });
 
@@ -613,7 +617,7 @@ describe('lesson courses', () => {
                     blocks: [{ opcode: 'motion_changeyby', args: { DY: { lt: 0 } } }],
                 },
             ]);
-            expect(c.code).toBe(
+            expect(localizeCode(c.code, 'ja')).toBe(
                 'when_key_pressed("up arrow") do\n  self.y += 10\nend\n\nwhen_key_pressed("down arrow") do\n  self.y += -10\nend\n',
             );
         });
@@ -646,7 +650,7 @@ describe('lesson courses', () => {
                     blocks: ['looks_sayforsecs', 'looks_nextcostume'],
                 },
             ]);
-            expect(c.code).toBe('when_clicked do\n  say("こんにちは！", 2)\n  next_costume\nend\n');
+            expect(localizeCode(c.code, 'ja')).toBe('when_clicked do\n  say("こんにちは！", 2)\n  next_costume\nend\n');
         });
 
         test('4 くり返そう: the stage switches the backdrop 6 times on the 1 key', () => {
@@ -676,7 +680,7 @@ describe('lesson courses', () => {
             ]);
             // ステージのプログラムなので、「プログラムを入れる」はステージに入れる
             expect(c.codeTarget).toBe('stage');
-            expect(c.code).toBe(
+            expect(localizeCode(c.code, 'ja')).toBe(
                 'when_key_pressed("1") do\n  3.times do\n    switch_backdrop("Canyon")\n    sleep(1)\n' +
                     '    switch_backdrop("Arctic")\n    sleep(1)\n  end\nend\n',
             );
@@ -752,6 +756,132 @@ describe('lesson courses', () => {
 
         test('codeTarget is null or "stage" on every challenge', () => {
             allChallenges().forEach((c) => expect([null, 'stage']).toContain(c.codeTarget));
+        });
+    });
+
+    // 「プログラムを入れる」の code は locale ごとに持てる（Issue #1488）。作品の中の名前（ネコの音
+    // 「ニャー」/ "Meow"）は作品を作ったときの locale で変わるため
+    describe('code per locale (ja / ja-Hira / en)', () => {
+        const challenge = (id) => findChallenge(id).challenge;
+        // 新しい作品のネコの音の名前（scratch-l10n の gui.defaultProject.meow。ja-Hira は訳が無く Meow）
+        const CAT_SOUND = { ja: 'ニャー', 'ja-Hira': 'Meow', en: 'Meow' };
+        // その locale の新しい作品に、チャレンジで足すもの（Owl・コスチューム・Canyon / Arctic）を足した状態
+        const projectFor = (locale) => {
+            const stage = {
+                id: 'stage',
+                isStage: true,
+                getSounds: () => [{ name: 'pop' }],
+                getCostumes: () => [{ name: 'backdrop1' }, { name: 'Canyon' }, { name: 'Arctic' }],
+            };
+            const cat = {
+                id: 'cat',
+                isStage: false,
+                getSounds: () => [{ name: CAT_SOUND[locale] }, { name: 'Owl' }],
+                getCostumes: () => [{ name: 'costume1' }, { name: 'costume2' }],
+            };
+            return { vm: { runtime: { getTargetForStage: () => stage } }, stage, cat };
+        };
+
+        test('localizeCode: a string as is, the locale, else en, else ja', () => {
+            expect(localizeCode('move(10)\n', 'en')).toBe('move(10)\n');
+            expect(localizeCode(null, 'en')).toBeNull();
+            const all = { ja: 'a', 'ja-Hira': 'b', en: 'c' };
+            expect(localizeCode(all, 'ja')).toBe('a');
+            expect(localizeCode(all, 'ja-Hira')).toBe('b');
+            expect(localizeCode(all, 'en')).toBe('c');
+            expect(localizeCode(all, 'zh-cn')).toBe('c');
+            expect(localizeCode({ ja: 'a' }, 'en')).toBe('a');
+            expect(localizeCode({ ja: 'a', en: 'c' }, 'ja-Hira')).toBe('c');
+        });
+
+        test('challengeCodeCandidates: the UI locale first, then the other locales, without duplicates', () => {
+            const c = challenge('blocks-l1-key-sound');
+            expect(challengeCodeCandidates(c, 'en').map((x) => x.code)).toEqual([
+                localizeCode(c.code, 'en'),
+                localizeCode(c.code, 'ja'),
+            ]);
+            expect(challengeCodeCandidates(c, 'ja').map((x) => x.code)).toEqual([
+                localizeCode(c.code, 'ja'),
+                localizeCode(c.code, 'en'),
+            ]);
+            // locale で分けないチャレンジ（9: あいさつ / やあ！）は 1 つ
+            const broadcast = challenge('blocks-l1-broadcast');
+            expect(challengeCodeCandidates(broadcast, 'en')).toEqual([challengeCodeFor(broadcast, 'ja')]);
+        });
+
+        test('challenge 1 plays the cat sound of the project of the locale', () => {
+            const c = challenge('blocks-l1-key-sound');
+            expect(localizeCode(c.code, 'ja')).toContain('play_until_done("ニャー")');
+            expect(localizeCode(c.code, 'en')).toContain('play_until_done("Meow")');
+            expect(localizeCode(c.steps[2].blocks, 'en')).toBe('play_until_done("Meow")\n');
+        });
+
+        test('the en code says the lines the en task and hints write', () => {
+            const en = (id) => localizeCode(challenge(id).code, 'en');
+            expect(en('blocks-l1-click-say')).toContain('say("Hello!", 2)');
+            expect(en('blocks-l1-if')).toContain('say("That tickles!")');
+            expect(en('blocks-l1-if')).toContain('say("Touch me")');
+            expect(en('blocks-l1-ask-answer')).toContain('ask("What\'s your name?")');
+            expect(en('blocks-l1-ask-answer')).toContain('timer.value + " seconds"');
+            expect(en('blocks-l1-quiz')).toContain('say("Correct", 2)');
+            expect(en('blocks-l1-quiz')).toContain('say("Wrong", 2)');
+            // en の文言も変数「回数」・リスト「トーク」・メッセージ「あいさつ」と日本語の名前で書く
+            expect(en('blocks-l1-count')).toContain('$回数');
+            expect(en('blocks-l1-message-list')).toContain('$トーク');
+            expect(en('blocks-l1-broadcast')).toContain('broadcast("あいさつ")');
+        });
+
+        test('the ja-Hira code uses the kana names its hints write', () => {
+            const hira = (id) => localizeCode(challenge(id).code, 'ja-Hira');
+            expect(hira('blocks-l1-count')).toContain('$かいすう');
+            expect(hira('blocks-l1-quiz')).toContain('say("せいかいです", 2)');
+            expect(hira('blocks-l1-ask-answer')).toContain('"びょうでした"');
+            expect(hira('blocks-l1-speak')).toContain('"ボタンがおされました"');
+        });
+
+        test('the goals accept what the code of every locale says (7: Correct / Wrong)', () => {
+            const [correct, wrong] = challenge('blocks-l1-quiz').goal;
+            ['正解です', 'せいかいです', 'Correct'].forEach((text) => expect(correct.text.test(text)).toBe(true));
+            ['ちがいます', 'Wrong'].forEach((text) => expect(wrong.text.test(text)).toBe(true));
+            const count = challenge('blocks-l1-count').goal[0];
+            expect(count.name).toEqual(expect.arrayContaining(['回数', 'かいすう']));
+        });
+
+        test.each(['ja', 'ja-Hira', 'en'])(
+            'every challenge code (%s) converts to blocks in a new project of that locale',
+            async (locale) => {
+                const { vm, stage, cat } = projectFor(locale);
+                const challenges = allChallenges().filter((c) => c.code);
+                expect(challenges).toHaveLength(11);
+                for (const c of challenges) {
+                    const { code, spriteCodes } = challengeCodeFor(c, locale);
+                    const target = c.codeTarget === 'stage' ? stage : cat;
+                    // validateAssets: 「プログラムを入れる」の前と同じく、音・背景が作品にあるかも確かめる
+                    const options = { version: '2', validateAssets: true };
+                    const { errors } = await rubyToBlocksXml(vm, target, code, null, options);
+                    expect({ id: c.id, locale, errors }).toEqual({ id: c.id, locale, errors: [] });
+                    for (const entry of spriteCodes) {
+                        // ペンギンはライブラリから足すので target なしで確かめる（lesson-hint.jsx と同じ）
+                        const result = await rubyToBlocksXml(vm, null, entry.code, null, options);
+                        expect({ id: c.id, locale, sprite: entry.sprite, errors: result.errors }).toEqual({
+                            id: c.id,
+                            locale,
+                            sprite: entry.sprite,
+                            errors: [],
+                        });
+                    }
+                }
+            },
+        );
+
+        test('the en code of challenge 1 does not fit a ja project (so it falls back to the ja code)', async () => {
+            const { vm, cat } = projectFor('ja');
+            const c = challenge('blocks-l1-key-sound');
+            const options = { version: '2', validateAssets: true };
+            const enResult = await rubyToBlocksXml(vm, cat, localizeCode(c.code, 'en'), null, options);
+            expect(enResult.errors).toHaveLength(1);
+            const jaResult = await rubyToBlocksXml(vm, cat, localizeCode(c.code, 'ja'), null, options);
+            expect(jaResult.errors).toEqual([]);
         });
     });
 });

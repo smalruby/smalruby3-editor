@@ -35,15 +35,21 @@ const usedDynamicOpcodes = async (code) => {
 
 const allowedIds = (allowedBlocks) => Object.values(allowedBlocks).flat();
 
+// チャレンジの code / blocks は locale ごとのオブジェクト（{ja, 'ja-Hira', en}）でもよいので、全部の locale を見る
+const rubyOf = (value) => {
+    if (typeof value === 'string') return [value];
+    return value && typeof value === 'object' ? Object.values(value) : [];
+};
+
 const codesOf = (item) => {
     const codes = [];
-    if (typeof item.code === 'string') codes.push(item.code);
-    (item.spriteCodes || []).forEach((sc) => typeof sc.code === 'string' && codes.push(sc.code));
+    codes.push(...rubyOf(item.code));
+    (item.spriteCodes || []).forEach((sc) => codes.push(...rubyOf(sc.code)));
     (item.steps || []).forEach((step) => {
         // codeType: 'blocks' 以外（Ruby タブで写すコードなど）も、コードタブに切り替えたら同じブロックになる
         if (typeof step.code === 'string') codes.push(step.code);
         // チャレンジのヒントの吹き出しに描くブロック（パレットから探すブロック）
-        if (typeof step.blocks === 'string') codes.push(step.blocks);
+        codes.push(...rubyOf(step.blocks));
     });
     return codes;
 };

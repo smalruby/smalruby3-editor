@@ -7,7 +7,8 @@
  *   エディタにフォーカスがあってもキーがステージ（VM）に届くことの確認を兼ねる。
  * - 音「Owl」・背景「Canyon」「Arctic」は、ネットワーク無しで足せるよう、いまの音・背景を複製して
  *   名前を変えて作る（ライブラリから足すのと同じ VM の状態になる）。
- * - チャレンジ 1 の code は「ニャー」（日本語の作品の音の名前）を鳴らすので、日本語の locale で開く。
+ * - チャレンジ 1 は日本語の locale で開き、日本語の作品（ネコの音「ニャー」）に ja の code が入ることを見る
+ *   （英語の作品は smalruby-lessons-en.test.js）。
  *
  * レッスン表はまだ無いので、入口は `window.smalruby.startChallenge(id)`。
  */
@@ -213,7 +214,7 @@ describe('Smalruby Lessons: lesson 1 challenges 1-4', () => {
     });
 
     test('challenge 1 (キーで音を鳴らそう): add "Owl", insert the program, press space → できた！', async () => {
-        // code は「ニャー」（日本語の作品の音の名前）を鳴らすので日本語で開く
+        // 日本語の作品（ネコの音は「ニャー」）に ja の code を入れる
         await loadEditor('&locale=ja');
         await openChallenge('blocks-l1-key-sound');
         expect(await textByTestId('lesson-task-bar-position')).toBe('1 / 全部で 11');

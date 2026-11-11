@@ -32,6 +32,65 @@ export const CATEGORIES = Object.freeze({
 // defaultMessage は ja の文言（FormattedMessage が locale に無いときの表示）。
 const message = (id) => ({ id, defaultMessage: ja[id] });
 
+// locale ごとに持つ Ruby（`code` / `spriteCodes[].code` / ヒントの `blocks`）で、いまの locale の
+// キーが無いときに使う locale（en → ja の順）
+const CODE_FALLBACK_LOCALES = ['en', 'ja'];
+
+const isLocalizedCode = (value) => value !== null && typeof value === 'object';
+
+/**
+ * locale ごとに持てる Ruby から、いまの locale のものを選ぶ。作品の中の名前（ネコの音「ニャー」/
+ * "Meow" など）は作品を作ったときの locale で変わるので、`code` などは文字列のほかに
+ * `{ja: '...', 'ja-Hira': '...', en: '...'}` の形でも書ける。キーが無い locale は en、en も無ければ ja。
+ * @param {?(string|object)} value - Ruby の文字列か、locale → Ruby のオブジェクト。
+ * @param {string} locale - いまの locale（例: `ja` / `ja-Hira` / `en`）。
+ * @returns {?string} Ruby。無ければ null。
+ */
+export const localizeCode = (value, locale) => {
+    if (!isLocalizedCode(value)) return typeof value === 'string' ? value : null;
+    const key = [locale, ...CODE_FALLBACK_LOCALES].find((l) => Object.prototype.hasOwnProperty.call(value, l));
+    return key ? value[key] : null;
+};
+
+/**
+ * 「プログラムを入れる」で入れる組（`code` と `spriteCodes`）を、locale の Ruby にして返す。
+ * @param {object} challenge - チャレンジ。
+ * @param {string} locale - いまの locale。
+ * @returns {{code: ?string, spriteCodes: Array<{sprite: string, code: ?string}>}} 入れる組。
+ */
+export const challengeCodeFor = (challenge, locale) => ({
+    code: localizeCode(challenge.code, locale),
+    spriteCodes: (challenge.spriteCodes || []).map(({ sprite, code }) => ({
+        sprite,
+        code: localizeCode(code, locale),
+    })),
+});
+
+/**
+ * 「プログラムを入れる」で試す組を、使いたい順に返す（同じ中身は 1 つにまとめる）。先頭はいまの
+ * locale の組。作品はそれを作ったときの locale の名前を持つので（日本語の作品を英語の UI で開く、
+ * 先生が配った日本語の作品を英語の生徒が開く）、いまの locale の組が作品に合わないときは、ほかの
+ * locale の組を試す。
+ * @param {object} challenge - チャレンジ。
+ * @param {string} locale - いまの locale。
+ * @returns {Array<{code: ?string, spriteCodes: Array<object>}>} 試す組（1 つ以上）。
+ */
+export const challengeCodeCandidates = (challenge, locale) => {
+    const locales = [locale, ...CODE_FALLBACK_LOCALES];
+    [challenge.code, ...(challenge.spriteCodes || []).map((s) => s.code)]
+        .filter(isLocalizedCode)
+        .forEach((value) => locales.push(...Object.keys(value)));
+    const seen = new Set();
+    return locales
+        .map((l) => challengeCodeFor(challenge, l))
+        .filter((candidate) => {
+            const key = JSON.stringify(candidate);
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+};
+
 /**
  * チャレンジの定義に既定値を埋める。いまの deck の項目（allowedBlocks / setup /
  * steps / code）をそのまま持ち、レッスン用の項目を足す。読む側が項目の有無を
@@ -56,7 +115,9 @@ export const defineChallenge = (def) => ({
     spriteCodes: [],
     allowedBlocks: null,
     setup: null,
-    // 最後の手段の「プログラムを入れる」（いまの deck の code）
+    // 最後の手段の「プログラムを入れる」（いまの deck の code）。Ruby の文字列か、作品の中の名前が
+    // locale で変わるときは locale ごとの `{ja, 'ja-Hira', en}`（`localizeCode`）。spriteCodes の code と
+    // ヒントの blocks も同じ
     code: null,
     // code を入れる相手。null = いま編集中のスプライト、'stage' = ステージ（ステージのプログラムの
     // チャレンジ。入れる前にステージをえらぶ）
@@ -138,7 +199,15 @@ const blocksLesson1 = defineLesson({
             steps: withTitles('blocks-l1-key-sound', [
                 { target: HINT_TARGETS.SOUNDS_TAB },
                 { target: HINT_TARGETS.PALETTE, blocks: 'when_key_pressed("space") do\nend\n', spotlight: true },
-                { target: HINT_TARGETS.PALETTE, blocks: 'play_until_done("ニャー")\n', spotlight: true },
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: {
+                        ja: 'play_until_done("ニャー")\n',
+                        'ja-Hira': 'play_until_done("Meow")\n',
+                        en: 'play_until_done("Meow")\n',
+                    },
+                    spotlight: true,
+                },
                 { target: HINT_TARGETS.CODE_AREA, blocks: 'play("Owl")\n' },
                 { target: HINT_TARGETS.KEYBOARD, spotlight: true },
             ]),
@@ -151,7 +220,13 @@ const blocksLesson1 = defineLesson({
                     order: ['sound_playuntildone', 'sound_play'],
                 },
             ],
-            code: 'when_key_pressed("space") do\n  play_until_done("ニャー")\n  play("Owl")\nend\n',
+            // ネコの音の名前は作品を作ったときの locale で変わる（ja =「ニャー」、en = "Meow"。ja-Hira は
+            // scratch-l10n に訳が無く "Meow"）。作品に合わないときは、ほかの locale の code を試す（lesson-hint.jsx）
+            code: {
+                ja: 'when_key_pressed("space") do\n  play_until_done("ニャー")\n  play("Owl")\nend\n',
+                'ja-Hira': 'when_key_pressed("space") do\n  play_until_done("Meow")\n  play("Owl")\nend\n',
+                en: 'when_key_pressed("space") do\n  play_until_done("Meow")\n  play("Owl")\nend\n',
+            },
         },
         // 2 矢印キーで動かそう（動き）: 上下の矢印キーで y 座標を変える
         {
@@ -198,7 +273,15 @@ const blocksLesson1 = defineLesson({
             steps: withTitles('blocks-l1-click-say', [
                 { target: HINT_TARGETS.COSTUMES_TAB },
                 { target: HINT_TARGETS.PALETTE, blocks: 'when_clicked do\nend\n', spotlight: true },
-                { target: HINT_TARGETS.PALETTE, blocks: 'say("こんにちは！", 2)\n', spotlight: true },
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: {
+                        ja: 'say("こんにちは！", 2)\n',
+                        'ja-Hira': 'say("こんにちは！", 2)\n',
+                        en: 'say("Hello!", 2)\n',
+                    },
+                    spotlight: true,
+                },
                 { target: HINT_TARGETS.PALETTE, blocks: 'next_costume\n' },
                 { target: HINT_TARGETS.STAGE, spotlight: true },
                 { target: HINT_TARGETS.CODE_AREA, spotlight: true },
@@ -212,7 +295,12 @@ const blocksLesson1 = defineLesson({
                     blocks: ['looks_sayforsecs', 'looks_nextcostume'],
                 },
             ],
-            code: 'when_clicked do\n  say("こんにちは！", 2)\n  next_costume\nend\n',
+            // セリフは課題の文言に合わせる（en の課題は "Hello!"）
+            code: {
+                ja: 'when_clicked do\n  say("こんにちは！", 2)\n  next_costume\nend\n',
+                'ja-Hira': 'when_clicked do\n  say("こんにちは！", 2)\n  next_costume\nend\n',
+                en: 'when_clicked do\n  say("Hello!", 2)\n  next_costume\nend\n',
+            },
         },
         // 4 くり返そう（制御）: ステージのプログラム。1 のキーで背景が 3 回（6 回）かわる
         {
@@ -277,8 +365,17 @@ const blocksLesson1 = defineLesson({
                 },
             ],
             code:
-                'when_flag_clicked do\n  loop do\n    if touching?("_mouse_")\n      say("くすぐったい！")\n' +
-                '    else\n      say("さわってみて")\n    end\n  end\nend\n',
+                {
+                    ja:
+                        'when_flag_clicked do\n  loop do\n    if touching?("_mouse_")\n      say("くすぐったい！")\n' +
+                        '    else\n      say("さわってみて")\n    end\n  end\nend\n',
+                    'ja-Hira':
+                        'when_flag_clicked do\n  loop do\n    if touching?("_mouse_")\n      say("くすぐったい！")\n' +
+                        '    else\n      say("さわってみて")\n    end\n  end\nend\n',
+                    en:
+                        'when_flag_clicked do\n  loop do\n    if touching?("_mouse_")\n      say("That tickles!")\n' +
+                        '    else\n      say("Touch me")\n    end\n  end\nend\n',
+                },
         },
         // 6 聞いて答えよう（調べる・必須）: 名前を聞いて、答えと、かかった秒数を言う
         {
@@ -294,11 +391,21 @@ const blocksLesson1 = defineLesson({
                 looks: ['looks_sayforsecs'],
             },
             steps: withTitles('blocks-l1-ask-answer', [
-                { target: HINT_TARGETS.PALETTE, blocks: 'ask("なまえは？")\n' },
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: { ja: 'ask("なまえは？")\n', 'ja-Hira': 'ask("なまえは？")\n', en: 'ask("What\'s your name?")\n' },
+                },
                 { target: HINT_TARGETS.PALETTE, blocks: 'answer\n' },
                 { target: HINT_TARGETS.PALETTE, blocks: 'timer.reset\n' },
                 // 「(タイマー) と (秒でした)」の「と」1 つ（code と同じ書き方）
-                { target: HINT_TARGETS.PALETTE, blocks: 'timer.value + "秒でした"\n' },
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: {
+                        ja: 'timer.value + "秒でした"\n',
+                        'ja-Hira': 'timer.value + "びょうでした"\n',
+                        en: 'timer.value + " seconds"\n',
+                    },
+                },
                 { target: HINT_TARGETS.STAGE },
             ]),
             debug: debugTips('blocks-l1-ask-answer', 2),
@@ -322,8 +429,17 @@ const blocksLesson1 = defineLesson({
             // なり、入れると子どもが作るのとちがう入れ子の「と」2 つになる。子どもが作ったブロックから
             // 生成される Ruby と同じ `timer.value + "秒でした"`（「と」1 つ）にする
             code:
-                'when_clicked do\n  timer.reset\n  ask("なまえは？")\n  say(answer, 2)\n' +
-                '  say(timer.value + "秒でした", 2)\nend\n',
+                {
+                    ja:
+                        'when_clicked do\n  timer.reset\n  ask("なまえは？")\n  say(answer, 2)\n' +
+                        '  say(timer.value + "秒でした", 2)\nend\n',
+                    'ja-Hira':
+                        'when_clicked do\n  timer.reset\n  ask("なまえは？")\n  say(answer, 2)\n' +
+                        '  say(timer.value + "びょうでした", 2)\nend\n',
+                    en:
+                        'when_clicked do\n  timer.reset\n  ask("What\'s your name?")\n  say(answer, 2)\n' +
+                        '  say(timer.value + " seconds", 2)\nend\n',
+                },
         },
         // 7 クイズを作ろう（演算）: 答えが 7 なら「正解です」、ちがえば「ちがいます」
         {
@@ -346,14 +462,22 @@ const blocksLesson1 = defineLesson({
             ]),
             debug: debugTips('blocks-l1-quiz', 1),
             // 比べ方は Scratch と同じなので、全角の「７」は 7 と等しくない（「ちがいます」の側に入る）
-            // ja-Hira の課題は「せいかいです」と書くので、ひらがなで言っても正解の側に数える
+            // ja-Hira の課題は「せいかいです」、en の課題は "Correct" / "Wrong" と書くので、どれで言っても数える
             goal: [
-                { type: 'said', text: /^(正解です|せいかいです)$/, answer: { eq: 7 } },
-                { type: 'said', text: 'ちがいます', answer: { ne: 7 } },
+                { type: 'said', text: /^(正解です|せいかいです|correct)$/i, answer: { eq: 7 } },
+                { type: 'said', text: /^(ちがいます|wrong)$/i, answer: { ne: 7 } },
             ],
-            code:
-                'when_clicked do\n  ask("4+3=?")\n  if answer == 7\n    say("正解です", 2)\n  else\n' +
-                '    say("ちがいます", 2)\n  end\nend\n',
+            code: {
+                ja:
+                    'when_clicked do\n  ask("4+3=?")\n  if answer == 7\n    say("正解です", 2)\n  else\n' +
+                    '    say("ちがいます", 2)\n  end\nend\n',
+                'ja-Hira':
+                    'when_clicked do\n  ask("4+3=?")\n  if answer == 7\n    say("せいかいです", 2)\n  else\n' +
+                    '    say("ちがいます", 2)\n  end\nend\n',
+                en:
+                    'when_clicked do\n  ask("4+3=?")\n  if answer == 7\n    say("Correct", 2)\n  else\n' +
+                    '    say("Wrong", 2)\n  end\nend\n',
+            },
         },
         // 8 数えよう（変数・必須）: 押した回数を変数「回数」で数えて言う
         {
@@ -371,8 +495,12 @@ const blocksLesson1 = defineLesson({
             },
             steps: withTitles('blocks-l1-count', [
                 { target: HINT_TARGETS.PALETTE },
-                { target: HINT_TARGETS.PALETTE, blocks: '$回数 = 0\n' },
-                { target: HINT_TARGETS.PALETTE, blocks: '$回数 += 1\n' },
+                // en の文言も「回数」という変数を作ろうと書く（"回数" (count)）ので、en は ja と同じ名前
+                { target: HINT_TARGETS.PALETTE, blocks: { ja: '$回数 = 0\n', 'ja-Hira': '$かいすう = 0\n', en: '$回数 = 0\n' } },
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: { ja: '$回数 += 1\n', 'ja-Hira': '$かいすう += 1\n', en: '$回数 += 1\n' },
+                },
                 { target: HINT_TARGETS.STAGE },
             ]),
             debug: debugTips('blocks-l1-count', 1),
@@ -382,7 +510,11 @@ const blocksLesson1 = defineLesson({
                 { type: 'variable', name: ['回数', 'かいすう'], value: { gte: 3 } },
                 { type: 'said', equalsVariable: ['回数', 'かいすう'] },
             ],
-            code: 'when_flag_clicked do\n  $回数 = 0\nend\n\nwhen_clicked do\n  $回数 += 1\n  say($回数)\nend\n',
+            code: {
+                ja: 'when_flag_clicked do\n  $回数 = 0\nend\n\nwhen_clicked do\n  $回数 += 1\n  say($回数)\nend\n',
+                'ja-Hira': 'when_flag_clicked do\n  $かいすう = 0\nend\n\nwhen_clicked do\n  $かいすう += 1\n  say($かいすう)\nend\n',
+                en: 'when_flag_clicked do\n  $回数 = 0\nend\n\nwhen_clicked do\n  $回数 += 1\n  say($回数)\nend\n',
+            },
         },
         // 9 なかまに合図しよう（イベント・必須）: ネコを押したら合図を送り、受け取ったペンギンが言う
         {
@@ -413,7 +545,8 @@ const blocksLesson1 = defineLesson({
                 },
             ],
             // code はネコのプログラム。ペンギンのプログラムは spriteCodes で入れる（ペンギンがいなければ
-            // ライブラリから足す。insert-sprite-code.js）
+            // ライブラリから足す。insert-sprite-code.js）。メッセージ「あいさつ」とセリフ「やあ！」は en の課題も
+            // 日本語のまま書く（"やあ！" (Hi!)）ので、locale で分けない
             code: 'when_clicked do\n  broadcast("あいさつ")\nend\n',
             spriteCodes: [{ sprite: 'Penguin', code: 'when_receive("あいさつ") do\n  say("やあ！", 2)\nend\n' }],
         },
@@ -431,7 +564,15 @@ const blocksLesson1 = defineLesson({
             },
             steps: withTitles('blocks-l1-speak', [
                 { target: HINT_TARGETS.EXTENSION_BUTTON, spotlight: true },
-                { target: HINT_TARGETS.PALETTE, blocks: 'text2speech.speak("ボタンが押されました")\n' },
+                // en の課題も「ボタンが押されました」としゃべると書く
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: {
+                        ja: 'text2speech.speak("ボタンが押されました")\n',
+                        'ja-Hira': 'text2speech.speak("ボタンがおされました")\n',
+                        en: 'text2speech.speak("ボタンが押されました")\n',
+                    },
+                },
                 { target: HINT_TARGETS.STAGE },
             ]),
             debug: debugTips('blocks-l1-speak', 1),
@@ -444,7 +585,11 @@ const blocksLesson1 = defineLesson({
                 },
             ],
             // 拡張機能を足す前に入れても、変換が音声合成を読み込む（target-applier）
-            code: 'when_clicked do\n  text2speech.speak("ボタンが押されました")\nend\n',
+            code: {
+                ja: 'when_clicked do\n  text2speech.speak("ボタンが押されました")\nend\n',
+                'ja-Hira': 'when_clicked do\n  text2speech.speak("ボタンがおされました")\nend\n',
+                en: 'when_clicked do\n  text2speech.speak("ボタンが押されました")\nend\n',
+            },
         },
         // 11 メッセージをためよう（リスト・必須）: 聞いた答えをリスト「トーク」にためる
         {
@@ -468,7 +613,8 @@ const blocksLesson1 = defineLesson({
                 { target: HINT_TARGETS.STAGE },
             ]),
             debug: debugTips('blocks-l1-message-list', 2),
-            // `$トーク` はステージのリスト =「リストを作る」の既定（すべてのスプライト用）と同じ
+            // `$トーク` はステージのリスト =「リストを作る」の既定（すべてのスプライト用）と同じ。
+            // en の課題も「トーク」「メッセージは？」と日本語のまま書くので、locale で分けない
             goal: [{ type: 'list', name: 'トーク', length: { gte: 3 }, itemsFromAnswers: true }],
             code:
                 'when_flag_clicked do\n  $トーク.clear\nend\n\nwhen_clicked do\n  ask("メッセージは？")\n' +
