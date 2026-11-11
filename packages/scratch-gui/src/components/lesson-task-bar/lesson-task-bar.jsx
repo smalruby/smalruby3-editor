@@ -58,19 +58,32 @@ const LessonTaskBar = ({ challenge, challengeCount, hintAvailable, hintVisible, 
     const [open, setOpen] = useState(false);
 
     // 切れているかを測る。窓の大きさのほか、ステージの大きさの切り替えなどで
-    // エディタの列だけが変わることもあるので、ResizeObserver があればそれでも測り直す
+    // エディタの列だけが変わることもあるので、ResizeObserver があればそれでも測り直す。
+    // フォントの読み込みでは文の幅だけが変わり、要素の大きさ（width: 0 の flex）は変わらないので
+    // ResizeObserver では気づけない。document.fonts（FontFaceSet）の読み込みでも測り直す
     const measure = useCallback(() => setTruncated(isCutOff(taskRef.current)), []);
     useLayoutEffect(measure, [measure, task]);
     useEffect(() => {
-        window.addEventListener('resize', measure);
+        let active = true;
+        const remeasure = () => {
+            if (active) measure();
+        };
+        window.addEventListener('resize', remeasure);
         let observer = null;
         if (typeof ResizeObserver !== 'undefined' && taskRef.current) {
-            observer = new ResizeObserver(measure);
+            observer = new ResizeObserver(remeasure);
             observer.observe(taskRef.current);
         }
+        const fonts = typeof document === 'undefined' ? null : document.fonts;
+        if (fonts) {
+            if (fonts.addEventListener) fonts.addEventListener('loadingdone', remeasure);
+            if (fonts.ready && fonts.ready.then) fonts.ready.then(remeasure, () => {});
+        }
         return () => {
-            window.removeEventListener('resize', measure);
+            active = false;
+            window.removeEventListener('resize', remeasure);
             if (observer) observer.disconnect();
+            if (fonts && fonts.removeEventListener) fonts.removeEventListener('loadingdone', remeasure);
         };
     }, [measure]);
 

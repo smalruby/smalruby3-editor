@@ -5,7 +5,6 @@
  * チャレンジを開いた時点で役目を終えるので出ない）ことを確かめる。
  */
 import path from 'path';
-import { unexpectedSevereLogs } from '../helpers/ignorable-severe-logs';
 import SeleniumHelper from '../helpers/selenium-helper';
 
 const { findByXpath, getDriver, getLogs, loadUri, waitForLoadingFinished } = new SeleniumHelper();
@@ -15,10 +14,6 @@ const uri = path.resolve(__dirname, '../../build/index.html');
 const CHALLENGE_ID = 'blocks-l1-if';
 
 const byTestId = (testId) => `//*[@data-testid="${testId}"]`;
-
-// Google Drive API の初期化失敗（gapi が読めない環境で数秒後に出る）はレッスンとは無関係
-const isGoogleDriveInitLog = (log) => /Failed to initialize Google Drive API/.test(log.message);
-const severeLogs = (logs) => unexpectedSevereLogs(logs).filter((log) => !isGoogleDriveInitLog(log));
 
 let driver;
 
@@ -37,6 +32,11 @@ describe('Smalruby Lessons: first-time balloons in lesson mode', () => {
     });
 
     test('hides the balloons at 1300x600 while a challenge is open and shows them again after quitting', async () => {
+        // はじめての人として始める。jest.retryTimes(1) の再試行は同じブラウザ（beforeAll の driver）で
+        // 走るので、1 回目に付いた `smalruby:tutorialSeen` が残っていると、再試行は最初の吹き出しの
+        // 確認で落ちて 1 回目の本当の失敗の理由が隠れる (#1505)
+        await loadUri(`${uri}?no_beforeunload=1&locale=ja`);
+        await driver.executeScript('localStorage.clear()');
         await loadUri(`${uri}?no_beforeunload=1&locale=ja`);
         await driver.manage().window().setRect({ width: 1300, height: 600 });
         await waitForLoadingFinished();
@@ -63,7 +63,7 @@ describe('Smalruby Lessons: first-time balloons in lesson mode', () => {
         expect(await countByTestId('lessons-tooltip')).toBe(0);
         expect(await driver.executeScript("return localStorage.getItem('smalruby:tutorialSeen')")).toBe('true');
 
-        const logs = await getLogs();
-        expect(severeLogs(logs)).toEqual([]);
+        // getLogs() は既知の無害なログ（Google Drive API の初期化失敗など）を除いた SEVERE だけを返す
+        expect(await getLogs()).toEqual([]);
     });
 });
