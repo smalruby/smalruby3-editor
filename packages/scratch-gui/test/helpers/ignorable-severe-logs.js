@@ -25,13 +25,11 @@
  *    **ja / ja-Hira の欠落は除外しない**（Smalruby の文言は必ずこの 2 つに入れる規約なので、
  *    欠けていれば本物の不具合として落とす）。
  * 6. connection-modal のテストがわざと繋がらない `wss://fake.fake/` を使うときの WebSocket 失敗。
- * 7. upstream 由来の既存の警告（getLogs() が SEVERE を返していなかった間に隠れていたもの。
- *    動作には影響しないが本来は直すべきもので、follow-up の #1499 で扱う）:
- *    - `Prompt` / `RecordModal` が `Modal` に必須の `id` を渡していない prop type 警告
- *      （変数・リストの作成ダイアログ / 音の録音ダイアログ）
- *    - `ListMonitor` の `value` の prop type 警告（リストモニターに配列が渡る）と、
- *      リストモニターの入力欄に `autoComplete={false}` を渡している DOM 属性の警告
- *    - scratch-blocks の `Attempted to focus unregistered node`（ツールボックスのブロックのクリック後など）
+ * 7. scratch-blocks (Blockly の FocusManager) の `Attempted to focus unregistered node`。
+ *    ツールボックスのブロックをクリックして値の吹き出しが出たあとに、ときどき非同期で出る
+ *    （同じ手順でも毎回は出ない）。ドロップダウンが預かったフォーカスを返す `setTimeout` の
+ *    `focusNode` から投げられており、Smalruby のコードは呼び出し経路に無いので Smalruby 側では
+ *    直さない（#1499 で調査。upstream の scratch-blocks の更新を待つ）。動作には影響しない。
  *
  * ここが「既知の無害なログ」の唯一の一覧。各テストに同じ判定をコピーしないこと。
  * @param {string} message ブラウザログのメッセージ。
@@ -55,10 +53,6 @@ const isIgnorableSevereLog = (message) =>
     (/\[@formatjs\/intl Error MISSING_TRANSLATION\]/.test(message) &&
         !/for locale \\?"ja(?:-Hira)?\\?"/.test(message)) ||
     /WebSocket connection to 'wss:\/\/fake\.fake\/' failed/.test(message) ||
-    // ここから下の 4 つは upstream 由来の本物の不具合。直すまでの除外（#1499）
-    (/The prop `id` is marked as required in `Modal`/.test(message) && /at (?:PromptComponent|RecordModal) /.test(message)) ||
-    /Invalid prop `value` supplied to `ListMonitor`/.test(message) ||
-    (/for a non-boolean attribute/.test(message) && /"autoComplete"/.test(message) && /at ListMonitorScroller /.test(message)) ||
     /Uncaught Error: Attempted to focus unregistered node/.test(message);
 
 /**

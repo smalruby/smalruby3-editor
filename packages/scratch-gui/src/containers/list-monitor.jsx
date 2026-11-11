@@ -194,7 +194,14 @@ ListMonitor.propTypes = {
     targetId: PropTypes.string,
     value: PropTypes.oneOfType([
         PropTypes.number,
-        PropTypes.string
+        PropTypes.string,
+        // === Smalruby: Start of upstream warning fixes ===
+        // The list monitor receives the list items as an array (as the component expects)
+        PropTypes.arrayOf(PropTypes.oneOfType([
+            PropTypes.string,
+            PropTypes.number
+        ]))
+        // === Smalruby: End of upstream warning fixes ===
     ]),
     vm: PropTypes.instanceOf(VM),
     width: PropTypes.number,

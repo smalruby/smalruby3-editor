@@ -98,6 +98,10 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/containers/prompt.jsx` | IME composition guard | 変数・リスト・ブロック作成ダイアログで IME 変換確定の Enter が OK にならないようにする (issue #1167) |
 | `src/containers/slider-prompt.jsx` | IME composition guard | スライダー範囲設定で IME 変換確定の Enter が OK にならないようにする (issue #1167) |
 | `src/containers/list-monitor.jsx` | IME composition guard | ステージ上のリスト編集で IME 変換確定の Enter が新規項目挿入にならないようにする (issue #1167) |
+| `src/components/prompt/prompt.jsx` | upstream warning fixes | `Modal` に必須の `id`（`prompt`）を渡す。upstream は渡しておらず prop type 警告が出る (issue #1499) |
+| `src/components/record-modal/record-modal.jsx` | upstream warning fixes | `Modal` に必須の `id`（`recordModal`）を渡す (issue #1499) |
+| `src/components/monitor/list-monitor-scroller.jsx` | upstream warning fixes | リスト項目の入力欄の `autoComplete={false}`（DOM 属性の警告）を `"off"` にする (issue #1499) |
+| `src/containers/list-monitor.jsx` | upstream warning fixes | `value` の prop type に配列（リストの項目）を足す。リストモニターには配列が渡るので警告が出ていた (issue #1499) |
 | `src/components/forms/buffered-input-hoc.jsx` | IME composition guard | スプライト名 / x / y / 大きさ / 向きの入力で IME 変換確定の Enter が flush + blur にならないようにする (issue #1167) |
 | `src/playground/index.ejs` | interactive-widget viewport for Android keyboard | meta viewport に `interactive-widget=resizes-content` を追加。Android Chrome 108+ でキーボード出現時に layout viewport が縮み、`100dvh` 等の dvh 系単位が追従するようになる |
 | `src/playground/render-gui.jsx` | URL params for Playwright | URL パラメーター import |

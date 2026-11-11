@@ -43,6 +43,9 @@ const PromptComponent = props => (
     <Modal
         className={styles.modalContent}
         contentLabel={props.title}
+        // === Smalruby: Start of upstream warning fixes ===
+        id="prompt"
+        // === Smalruby: End of upstream warning fixes ===
         onRequestClose={props.onCancel}
     >
         <Box className={styles.body}>
