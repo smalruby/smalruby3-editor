@@ -72,6 +72,8 @@ const {
     TRACKER_STICKY_MARKER,
     sanitizeForSurface,
     isAuthError,
+    authRecoveryPatch,
+    authNoticeKind,
     labelActions,
     isGateItem,
     healingLabelActions,
@@ -391,6 +393,34 @@ const REAUTH_HINT =
     '`bin/bot-token --whoami` で確認してください。回復すると autopilot は自動で再開します。';
 
 /**
+ * 起動時に認証が取れず Project 情報を待っている間（state.booting）にモニタへ出す手順。
+ * devpod の再起動直後は SSO が切れているのが普通なので、ターミナルに戻らずモニタの
+ * ボタンだけで起動まで進められることを伝える（#1510）。
+ */
+const BOOT_REAUTH_HINT =
+    '「🔐 再接続（SSO ログイン）」を押し、開いたページでコードを承認してください。' +
+    '承認すると autopilot が起動します（コンテナで `aws sso login --sso-session smalruby --use-device-code` を実行しても起動します）。';
+
+/**
+ * 起動待ちで、SSO ログインは通ったのに bot トークンが取れないときの手順（#1510）。
+ * bot-token の失敗はどれも認証系エラー扱い（isAuthError）なので、SSO 以外の原因
+ * （Secret ID・App のインストール・config の欠落）でも起動待ちになる。そのとき「SSO ログインを」と
+ * 言い続けないようにする。
+ */
+const BOOT_NOT_SSO_HINT =
+    'SSO ログインは通りましたが、bot トークンがまだ取れません（秘密鍵・GitHub App・`~/.config/smalruby-bot/config` を確認）。' +
+    '「詳細」のエラーを見るか、Claude に `check autopilot` を頼んでください。';
+
+/** 起動時の認証待ちで、認証を確かめ直す間隔（ターミナルでの SSO ログインを拾うため） */
+const BOOT_AUTH_RETRY_MS = 30_000;
+
+/**
+ * 起動待ち（state.booting）の間に受け付けない操作。どれも Project の ID・フィールドが要る。
+ * /resume は auth の pause を外しても稼働できないので、理由を返して断る。
+ */
+const BOOT_BLOCKED_PATHS = new Set(['/tick', '/refresh', '/later', '/inject', '/resolve-conflict', '/resume']);
+
+/**
  * `aws sso login --use-device-code` の出力から認証 URL と user code を抽出する（純粋関数）。
  * AWS CLI のバージョンで文言が異なる（"open the following URL" / "Please visit ..." 等）ため、
  * URL と `XXXX-XXXX` 形式のコードをパターンで拾い、コード入力不要の完全 URL も組み立てる。
@@ -496,12 +526,9 @@ async function checkAuthHealth(cfg, state, log, deps = {}) {
     const getToken = deps.botToken || project.botToken;
     try {
         await getToken();
-        if (state.pausedBy === 'auth') {
-            state.paused = false;
-            state.pausedBy = null;
-            state.authError = null;
-            log('auth recovered — auto-resume');
-        }
+        const wasAuthPaused = state.pausedBy === 'auth';
+        Object.assign(state, authRecoveryPatch(state));
+        if (wasAuthPaused) log('auth recovered — auto-resume');
         return true;
     } catch (e) {
         recordAuthFailure(state, e, log);
@@ -572,6 +599,105 @@ function handleProcessError(state, err, log, kind = 'error', proc = process) {
 function installProcessSafetyNet(state, log, proc = process) {
     proc.on('unhandledRejection', (reason) => handleProcessError(state, reason, log, 'unhandledRejection', proc));
     proc.on('uncaughtException', (err) => handleProcessError(state, err, log, 'uncaughtException', proc));
+}
+
+/**
+ * Project の ID とフィールド定義を取る（起動時に 1 度）。bot トークンが要るので、
+ * SSO が切れていると認証系エラーで throw する。
+ * @param {object} cfg owner / project を使う
+ * @returns {Promise<{projectId: string, fields: object}>}
+ */
+async function resolveProjectInfo(cfg) {
+    const token = await project.botToken();
+    const proj = await project.getProject(cfg.owner, cfg.project, token);
+    const fields = await project.getFields(cfg.owner, cfg.project, token);
+    return { projectId: proj.id, fields };
+}
+
+/**
+ * 起動待ちの sleep を今すぐ終わらせる（モニタからの SSO ログインが成功したとき）。
+ * 取り直しの最中（sleep していない）に呼ばれたら、次の sleep をすぐ終わらせるよう覚えておく
+ * （その取り直しは承認前に始まっていて失敗しうるので、合図を捨てると最大 30 秒待つ）。
+ * @param {object} state
+ */
+function wakeBoot(state) {
+    if (!state || !state.booting) return;
+    if (typeof state.bootWake === 'function') state.bootWake();
+    else state.bootWakePending = true;
+}
+
+/**
+ * `ms` だけ待つ。ただし {@link wakeBoot} が呼ばれたらその時点で終わる。
+ * @param {object} state bootWake を一時的に置く
+ * @param {number} ms
+ * @returns {Promise<void>}
+ */
+function sleepUntilWoken(state, ms) {
+    return new Promise((resolve) => {
+        if (state.bootWakePending) {
+            state.bootWakePending = false;
+            return resolve();
+        }
+        let timer = null;
+        const finish = () => {
+            if (timer) clearTimeout(timer);
+            if (state.bootWake === finish) state.bootWake = null;
+            resolve();
+        };
+        timer = setTimeout(finish, ms);
+        state.bootWake = finish;
+    });
+}
+
+/**
+ * 起動時に Project 情報を取り、cfg に入れる（#1510）。
+ *
+ * devpod の再起動直後は SSO が切れていて bot トークンが取れない。以前はここで落ちて
+ * モニタすら開けず、人間がターミナルで `aws sso login` してから起動し直す必要があった。
+ * いまは HTTP サーバを先に立て、認証系エラーのあいだは **auto-pause（pausedBy='auth'）+
+ * state.booting** で待つ。モニタの「再接続」で SSO が通る（{@link wakeBoot}）か、
+ * {@link BOOT_AUTH_RETRY_MS} ごとの再試行で回復を拾ったら、Project 情報を取って抜ける。
+ * 認証以外のエラーは従来どおり throw する（exit → supervisor が再起動・#953）。`once`（単発実行）は
+ * 待たずに認証エラーも throw する。
+ *
+ * state.booting は main が **true で初期化**しておく（最初の取得が終わるまで Project 情報が無いので、
+ * 認証が通る起動でもその間の /tick 等を断る）。
+ * @param {object} cfg projectId / fields / statusOrder を書き込む
+ * @param {object} state booting / paused / pausedBy / authError を書き換える
+ * @param {Function} log
+ * @param {object} [deps] テスト用（resolveProjectInfo / sleep / retryMs）と once
+ * @returns {Promise<void>}
+ */
+async function bootProjectInfo(cfg, state, log, deps = {}) {
+    const resolve = deps.resolveProjectInfo || resolveProjectInfo;
+    const wait = deps.sleep || ((ms) => sleepUntilWoken(state, ms));
+    const retryMs = deps.retryMs || BOOT_AUTH_RETRY_MS;
+    state.booting = true;
+    for (;;) {
+        let info;
+        try {
+            info = await resolve(cfg);
+        } catch (e) {
+            if (!isAuthError(e) || deps.once) {
+                state.booting = false;
+                throw e;
+            }
+            if (!state.authError) log('boot: bot トークンが取れないため、モニタで SSO ログインを待つ');
+            recordAuthFailure(state, e, log);
+            await wait(retryMs);
+            continue;
+        }
+        cfg.projectId = info.projectId;
+        cfg.fields = info.fields;
+        // 投入順を Board view の見た目に揃えるための Status 列順（= option 定義順）
+        cfg.statusOrder = Object.keys((info.fields.Status && info.fields.Status.options) || {});
+        if (state.authError) log('boot: 認証が回復した — 稼働を始める');
+        Object.assign(state, authRecoveryPatch(state));
+        state.booting = false;
+        state.bootSsoDone = false;
+        state.bootWakePending = false;
+        return;
+    }
 }
 
 /**
@@ -2403,6 +2529,7 @@ function maybeRefreshBoardPeriodic(cfg, state, log, deps = {}) {
  */
 async function runTickOnce(cfg, state, log, deps = {}) {
     const tickFn = deps.tick || tick;
+    if (state.booting) return { ran: false, booting: true, running: [] };
     if (state.ticking) return { ran: false, busy: true };
     state.ticking = true;
     try {
@@ -2424,6 +2551,19 @@ async function runTickOnce(cfg, state, log, deps = {}) {
 }
 
 /**
+ * モニタ・/status に出す再認証の手順。起動待ちならモニタのボタンで起動まで進む手順を返す。
+ * @param {object} state
+ * @returns {string|null}
+ */
+function reauthHintFor(state) {
+    const kind = authNoticeKind(state);
+    if (kind === 'boot-sso') return BOOT_REAUTH_HINT;
+    if (kind === 'boot-not-sso') return BOOT_NOT_SSO_HINT;
+    if (kind === 'auth') return REAUTH_HINT;
+    return null;
+}
+
+/**
  * `GET /board` のレスポンス（俯瞰ボード・読み取り専用）を組み立てる純粋関数。
  * items は refreshBoard のキャッシュ、running/paused/claudeUsage は live。
  * @param {object} cfg
@@ -2436,8 +2576,10 @@ function boardResponse(cfg, state) {
         paused: state.paused,
         pausedBy: state.pausedBy || (state.paused ? 'human' : null),
         authError: state.authError || null,
-        reauthHint: state.authError ? REAUTH_HINT : null,
+        reauthHint: reauthHintFor(state),
         reauth: state.reauth || null,
+        booting: !!state.booting,
+        notice: authNoticeKind(state),
         assignee: cfg.assignee,
         concurrency: cfg.concurrency,
         running: [...state.running.entries()].map(([issue, v]) => ({ issue, phase: v.phase, since: v.since })),
@@ -2463,8 +2605,10 @@ function statusResponse(cfg, state) {
         paused: state.paused,
         pausedBy: state.pausedBy || (state.paused ? 'human' : null),
         authError: state.authError || null,
-        reauthHint: state.authError ? REAUTH_HINT : null,
+        reauthHint: reauthHintFor(state),
         reauth: state.reauth || null,
+        booting: !!state.booting,
+        notice: authNoticeKind(state),
         assignee: cfg.assignee,
         concurrency: cfg.concurrency,
         rate: state.ratePlan || null,
@@ -2508,6 +2652,13 @@ function startHttp(cfg, state, log) {
         if (req.method === 'GET' && url.pathname === '/status') {
             return send(200, statusResponse(cfg, state));
         }
+        if (req.method === 'POST' && state.booting && BOOT_BLOCKED_PATHS.has(url.pathname)) {
+            // 起動待ち（#1510）: Project 情報がまだ無いので、SSO ログインを先に済ませてもらう。
+            return send(503, {
+                booting: true,
+                error: state.authError ? 'waiting for sso login: use POST /reauth' : 'starting: loading project info',
+            });
+        }
         if (req.method === 'POST' && url.pathname === '/tick') {
             // 即時 tick: interval を待たずに 1 サイクル実行する（Web モニタの「今すぐ確認」）。
             // 再入防止つき。実行中なら 409 busy。pause 中は tick が早期 return し no-op（paused:true で返る）。
@@ -2542,7 +2693,14 @@ function startHttp(cfg, state, log) {
         if (req.method === 'POST' && url.pathname === '/reauth') {
             // SSO 再認証を daemon 側で起動し、device code の URL/コードをモニタへ surface する。
             // 成功したら checkAuthHealth を即時に回して auto-resume を早める。
-            startReauth(state, log, { onSuccess: () => checkAuthHealth(cfg, state, log) })
+            // 起動待ち（#1510）なら、待っている bootProjectInfo も起こして Project 情報を取り直させる。
+            // SSO ログインが通ったのに bot トークンが取れなければ、起動待ちの案内を「SSO 以外の原因」に変える。
+            startReauth(state, log, {
+                onSuccess: () => checkAuthHealth(cfg, state, log).then((ok) => {
+                    if (!ok && state.booting) state.bootSsoDone = true;
+                    wakeBoot(state);
+                }),
+            })
                 .then((r) => send(200, r || { status: 'ok' }))
                 .catch((e) => { log(`reauth error: ${e.message}`); send(500, { error: e.message }); });
             return;
@@ -2647,9 +2805,8 @@ function usageFilePath() {
 /** デーモン起動 */
 async function main(opts = {}) {
     const log = opts.log || ((m) => process.stderr.write(`[autopilot-daemon] ${m}\n`));
-    const token = await project.botToken();
-    const proj = await project.getProject(opts.owner || 'smalruby', opts.project || 4, token);
-    const fields = await project.getFields(opts.owner || 'smalruby', opts.project || 4, token);
+    // projectId / fields / statusOrder は bot トークンが要るので、モニタを立てた後の
+    // bootProjectInfo で入れる（SSO が切れた起動でもモニタから SSO ログインできるように・#1510）。
     const cfg = {
         owner: opts.owner || 'smalruby',
         project: opts.project || 4,
@@ -2658,12 +2815,11 @@ async function main(opts = {}) {
         // 既定 5 分（単位は秒で CLI 指定 → ms）。実運用で 20 秒等の高頻度ポーリングは API を無駄に叩く。
         intervalMs: opts.intervalMs || 300_000,
         port: opts.port || 8787,
-        projectId: proj.id,
-        fields,
+        projectId: null,
+        fields: null,
         // enroll モデル: 開発者個人の daemon は自分がオーナーの item だけ処理する（未設定=全件）
         assignee: opts.assignee || process.env.AUTOPILOT_ASSIGNEE || null,
-        // 投入順を Board view の見た目に揃えるための Status 列順（= option 定義順）
-        statusOrder: Object.keys((fields.Status && fields.Status.options) || {}),
+        statusOrder: [],
         now: () => Date.now(),
         // 稼働バージョン表示 + 更新検知（#885）: 動作中 checkout と監視ブランチ
         repoRoot: opts.repoRoot || project.REPO_ROOT,
@@ -2688,7 +2844,8 @@ async function main(opts = {}) {
         cfg.promptDir = undefined;
     }
     const state = {
-        paused: false, pausedBy: null, authError: null, reauth: null,
+        // booting は最初の Project 情報の取得が終わるまで true（その間の /tick 等を断る・#1510）
+        paused: false, pausedBy: null, authError: null, reauth: null, booting: true,
         running: new Map(), ticking: false, claudeUsage: null,
         usagePause: null, usageOverrides: {},
         version: null, autopilotUpdate: null,
@@ -2714,6 +2871,8 @@ async function main(opts = {}) {
         process.on('SIGINT', () => process.exit(EXIT_OK));
     } catch (e) { log(`pid file warn: ${e.message}`); }
     startHttp(cfg, state, log);
+    // SSO が切れていれば、ここでモニタからの SSO ログイン（または定期の再試行）を待つ（#1510）
+    await bootProjectInfo(cfg, state, log, { once: !!opts.once });
     log(`daemon up: project #${cfg.project}, assignee ${cfg.assignee || '(all)'}, concurrency ${cfg.concurrency}, interval ${cfg.intervalMs}ms, pid ${process.pid} (${pidFilePath()})`);
     // 俯瞰ボードは起動時に 1 度だけ即時取得する。以降は専用タイマーを持たず、
     // 各 poll/tick の直後（下の refreshBoard）と、モニタの「🔄 更新」ボタン
@@ -2749,7 +2908,8 @@ module.exports = {
     markBlocked, getDirectives, populateAssigneeDirectives,
     applyLabelHealing, applyAfterWaitLabels,
     applyDecomposeSubIssueSetup,
-    isGateItem, collectGateContexts, checkAuthHealth, REAUTH_HINT,
+    isGateItem, collectGateContexts, checkAuthHealth, REAUTH_HINT, BOOT_REAUTH_HINT, BOOT_NOT_SSO_HINT,
+    bootProjectInfo, wakeBoot,
     recordAuthFailure, handleProcessError, installProcessSafetyNet,
     parseSsoDeviceOutput, startReauth,
     refreshBoard, recordHistory, refreshRateLimits, patchBoardCache, patchLaterCache, setLaterLabel,

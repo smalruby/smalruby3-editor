@@ -95,14 +95,17 @@ echo "  stop:    curl -X POST localhost:<PORT>/shutdown  (supervisor も停止�
 
 ### A-4. 起動（Claude が実行してよい）
 
-**認証が有効なら Claude が自分で起動する。** まず `bin/bot-token >/dev/null 2>&1` で認証を確認し:
+**Claude が自分で起動する。** `bash tmp/autopilot_up.sh` を実行し（`docker compose` 等で
+ラップしない）、数秒待って `curl -s localhost:<PORT>/status` で疎通・assignee・paused・authError・
+booting を確認する:
 
-- **成功**: `bash tmp/autopilot_up.sh` を実行して起動する（`docker compose` 等でラップしない）。
-  数秒待って `curl -s localhost:<PORT>/status` で疎通・assignee・paused・authError を確認し、
-  結果を報告して **D: 運用サポート** に移る。
-- **失敗（AWS SSO 失効など）**: **起動しない**（daemon は bot-token 取得不能だとクラッシュしうる）。
-  人間に `aws sso login --sso-session smalruby --use-device-code`（device code + ブラウザ承認 =
-  人間のみ）を依頼し、完了後 `bin/bot-token --whoami` で疎通を再確認してから起動する。
+- **`booting: false`**: 稼働している。結果を報告して **D: 運用サポート** に移る。
+- **`booting: true` で `authError` なし**: 起動中（Project 情報を取得中）。数秒後にもう一度確かめる。
+- **`booting: true` で `authError` あり（AWS SSO 失効など）**: daemon はモニタだけ立てて起動待ちになっている（#1510）。
+  人間にモニタ（`http://localhost:<PORT>/`）の **「🔐 再接続（SSO ログイン）」** でコードを承認して
+  もらう（device code + ブラウザ承認 = 人間のみ。コンテナで
+  `aws sso login --sso-session smalruby --use-device-code` を実行してもよい）。承認後は daemon が
+  自分で稼働を始めるので、`/status` の `booting: false` を確認して報告する。
 
 > 起動/再起動の条件と再起動（update autopilot）手順は末尾「起動/再起動は Claude が実行してよい」を参照。
 
@@ -178,17 +181,15 @@ GUI をプレビューで確認できない:
 `tmp/autopilot_up.sh` が用意されていれば、**daemon の起動・再起動・更新反映は Claude が
 自分で実行してよい**（従来「人間のみ」だったが解禁）。ただし次を守る:
 
-- **起動前に必ず認証を確認する**: `bin/bot-token >/dev/null 2>&1`（または `--whoami`）。
-  失敗したら**起動しない**。daemon は bot-token 取得不能だと未捕捉例外でクラッシュしうる
-  （実際に SSO 失効でプロセスごと落ちた事例あり）。
-- **AWS SSO 再認証は人間のみ**: device code + ブラウザ承認は Claude が代行できない。失効時は
-  `aws sso login --sso-session smalruby --use-device-code` を人間に依頼し、
-  `bin/bot-token --whoami` で回復を確認してから起動する。
+- **SSO が切れていても起動してよい**: daemon はモニタを立てて起動待ち（`booting: true`）になり、
+  SSO ログインが通ると自分で稼働を始める（#1510）。
+- **AWS SSO 再認証は人間のみ**: device code + ブラウザ承認は Claude が代行できない。起動待ちなら
+  モニタの「🔐 再接続（SSO ログイン）」での承認を人間に頼む。
 - **起動**: `bash tmp/autopilot_up.sh`（tmux 未起動なら新規起動・既起動なら no-op）。
 - **再起動 / 更新反映（update autopilot）**: `curl -X POST localhost:<PORT>/shutdown` →
   必要なら `/app` で `git pull origin develop` → `bash tmp/autopilot_up.sh`。走行中 worker が
   あれば中断されるので、**完了を待つか中断可否を人間に確認**する。
-- **起動後は必ず疎通確認**: `curl -s localhost:<PORT>/status` で paused / authError / boot commit を確認して報告する。
+- **起動後は必ず疎通確認**: `curl -s localhost:<PORT>/status` で paused / authError / booting / boot commit を確認して報告する。
 - スクリプトが無い場合は Mode A の手順で `tmp/autopilot_up.sh` を生成してから起動する。
 
 ## 注意
