@@ -37,6 +37,10 @@ import SettingsMenu from './settings-menu.jsx';
 // === Smalruby: Start of welcome tooltip ===
 import WelcomeTooltip from '../welcome-tooltip/welcome-tooltip.jsx';
 // === Smalruby: End of welcome tooltip ===
+// === Smalruby: Start of lessons button ===
+import LessonsTooltip from './lessons-tooltip.jsx';
+import lessonsIcon from '../../lib/assets/icon--tutorials.svg';
+// === Smalruby: End of lessons button ===
 
 import {
     openDebugModal,
@@ -164,6 +168,13 @@ const ariaMessages = defineMessages({
         defaultMessage: 'Tutorials',
         description: 'accessibility text for the tutorials button'
     },
+    // === Smalruby: Start of lessons button ===
+    lessons: {
+        id: 'gui.menuBar.lessons',
+        defaultMessage: 'Lessons',
+        description: 'accessibility text for the lessons button'
+    },
+    // === Smalruby: End of lessons button ===
     debug: {
         id: 'gui.menuBar.debug',
         defaultMessage: 'Debug',
@@ -1126,6 +1137,33 @@ class MenuBar extends React.Component {
                         dividers). Smalruby moves both into the "?" menu (buildAboutMenu),
                         so this group and its leading divider are intentionally omitted. */}
                     {/* === Smalruby: End of help menu === */}
+                    {/* === Smalruby: Start of lessons button === */}
+                    {/* The Lessons button takes the place of upstream's Tutorials button.
+                        The first-time balloon (LessonsTooltip) hangs under it until the
+                        lessons library has been opened once. */}
+                    <Divider className={classNames(styles.divider)} />
+                    <div className={styles.fileGroup}>
+                        <div style={{position: 'relative'}}>
+                            <div
+                                aria-label={this.props.intl.formatMessage(ariaMessages.lessons)}
+                                className={classNames(styles.menuBarItem, styles.noOffset, styles.hoverable)}
+                                data-testid="menu-bar-lessons"
+                                onClick={this.props.onOpenLessonsLibrary}
+                            >
+                                <img
+                                    className={styles.helpIcon}
+                                    src={lessonsIcon}
+                                />
+                                <span className={styles.learnLabel}>
+                                    <FormattedMessage {...ariaMessages.lessons} />
+                                </span>
+                            </div>
+                            {this.props.showLessonsTooltip ? (
+                                <LessonsTooltip onClick={this.props.onOpenLessonsLibrary} />
+                            ) : null}
+                        </div>
+                    </div>
+                    {/* === Smalruby: End of lessons button === */}
                     <Divider className={classNames(styles.divider)} />
                     <div className={styles.fileGroup}>
                         {(() => {
@@ -1771,6 +1809,10 @@ MenuBar.propTypes = {
     onClickLogin: PropTypes.func,
     onClickLogo: PropTypes.func,
     onOpenTipsLibrary: PropTypes.func,
+    // === Smalruby: Start of lessons button ===
+    onOpenLessonsLibrary: PropTypes.func,
+    showLessonsTooltip: PropTypes.bool,
+    // === Smalruby: End of lessons button ===
     onActivateRubyTab: PropTypes.func,
     onShowWelcomeModal: PropTypes.func, // === Smalruby: welcome tooltip ===
     onClickMeshV2: PropTypes.func,

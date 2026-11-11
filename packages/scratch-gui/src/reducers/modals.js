@@ -16,6 +16,9 @@ const MODAL_KOSHIEN_TEST = 'koshienTestModal';
 const MODAL_KOSHIEN_SETTINGS = 'koshienSettingsModal';
 const MODAL_TIPS_LIBRARY = 'tipsLibrary';
 const MODAL_WELCOME = 'welcomeModal';
+// === Smalruby: Start of lessons library ===
+const MODAL_LESSONS_LIBRARY = 'lessonsLibrary';
+// === Smalruby: End of lessons library ===
 
 const initialState = {
     [MODAL_BACKDROP_LIBRARY]: false,
@@ -32,7 +35,10 @@ const initialState = {
     [MODAL_KOSHIEN_TEST]: false,
     [MODAL_KOSHIEN_SETTINGS]: false,
     [MODAL_TIPS_LIBRARY]: false,
-    [MODAL_WELCOME]: false
+    [MODAL_WELCOME]: false,
+    // === Smalruby: Start of lessons library ===
+    [MODAL_LESSONS_LIBRARY]: false
+    // === Smalruby: End of lessons library ===
 };
 
 const reducer = function (state, action) {
@@ -114,6 +120,14 @@ const openTipsLibrary = function () {
 const openWelcomeModal = function () {
     return openModal(MODAL_WELCOME);
 };
+// === Smalruby: Start of lessons library ===
+const openLessonsLibrary = function () {
+    return openModal(MODAL_LESSONS_LIBRARY);
+};
+const closeLessonsLibrary = function () {
+    return closeModal(MODAL_LESSONS_LIBRARY);
+};
+// === Smalruby: End of lessons library ===
 const closeBackdropLibrary = function () {
     return closeModal(MODAL_BACKDROP_LIBRARY);
 };
@@ -191,5 +205,9 @@ export {
     closeKoshienTestModal,
     closeKoshienSettingsModal,
     closeTipsLibrary,
-    closeWelcomeModal
+    closeWelcomeModal,
+    // === Smalruby: Start of lessons library ===
+    openLessonsLibrary,
+    closeLessonsLibrary
+    // === Smalruby: End of lessons library ===
 };

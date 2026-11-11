@@ -12,6 +12,23 @@ export const LANGUAGES = Object.freeze({
     DNCL: 'dncl',
 });
 
+/**
+ * チャレンジの「なかま」（パレットの色で見せる）。値はパレットのカテゴリ id と
+ * 同じにして、レッスン表が色を引けるようにする。
+ */
+export const CATEGORIES = Object.freeze({
+    MOTION: 'motion',
+    LOOKS: 'looks',
+    SOUND: 'sound',
+    EVENTS: 'events',
+    CONTROL: 'control',
+    SENSING: 'sensing',
+    OPERATORS: 'operators',
+    VARIABLES: 'variables',
+    LISTS: 'lists',
+    EXTENSIONS: 'extensions',
+});
+
 // defaultMessage は ja の文言（FormattedMessage が locale に無いときの表示）。
 const message = (id) => ({ id, defaultMessage: ja[id] });
 
@@ -26,6 +43,8 @@ export const defineChallenge = (def) => ({
     name: message(`gui.lessons.challenge.${def.id}.name`),
     // 課題の 1 行（message descriptor）
     task: null,
+    // なかま（パレットの色）。`CATEGORIES` の値。無ければ null（レッスン表は色無しで出す）
+    category: null,
     // できること: [{id, name}]。レッスンをまたいで id で重ねる
     skills: [],
     // できた の判定: 条件の配列（全部を満たしたら「できた」）。形は goal.js と
@@ -106,6 +125,7 @@ const blocksLesson1 = defineLesson({
         // 1 キーで音を鳴らそう（音）: スペースキーで「ニャー」のあと「Owl」が鳴る
         {
             id: 'blocks-l1-key-sound',
+            category: CATEGORIES.SOUND,
             task: challengeMessage('blocks-l1-key-sound', 'task'),
             skills: [skill('key-control'), skill('play-sound'), skill('add-sound')],
             allowedBlocks: {
@@ -133,6 +153,7 @@ const blocksLesson1 = defineLesson({
         // 2 矢印キーで動かそう（動き）: 上下の矢印キーで y 座標を変える
         {
             id: 'blocks-l1-arrow-move',
+            category: CATEGORIES.MOTION,
             task: challengeMessage('blocks-l1-arrow-move', 'task'),
             skills: [skill('move-by-coordinates'), skill('duplicate-blocks')],
             allowedBlocks: {
@@ -163,6 +184,7 @@ const blocksLesson1 = defineLesson({
         // 3 押したら話そう（見た目・必須）: コスチュームを足して、押したらセリフと次のコスチューム
         {
             id: 'blocks-l1-click-say',
+            category: CATEGORIES.LOOKS,
             required: true,
             task: challengeMessage('blocks-l1-click-say', 'task'),
             skills: [skill('click-trigger'), skill('say'), skill('add-costume')],
@@ -192,6 +214,7 @@ const blocksLesson1 = defineLesson({
         // 4 くり返そう（制御）: ステージのプログラム。1 のキーで背景が 3 回（6 回）かわる
         {
             id: 'blocks-l1-repeat',
+            category: CATEGORIES.CONTROL,
             task: challengeMessage('blocks-l1-repeat', 'task'),
             skills: [skill('repeat'), skill('add-backdrop'), skill('stage-program')],
             allowedBlocks: {
@@ -220,13 +243,13 @@ const blocksLesson1 = defineLesson({
                 'when_key_pressed("1") do\n  3.times do\n    switch_backdrop("Canyon")\n    sleep(1)\n' +
                 '    switch_backdrop("Arctic")\n    sleep(1)\n  end\nend\n',
         },
-        { id: 'blocks-l1-if' },
-        { id: 'blocks-l1-ask-answer', required: true },
-        { id: 'blocks-l1-quiz' },
-        { id: 'blocks-l1-count', required: true },
-        { id: 'blocks-l1-broadcast', required: true },
-        { id: 'blocks-l1-speak' },
-        { id: 'blocks-l1-message-list', required: true },
+        { id: 'blocks-l1-if', category: CATEGORIES.CONTROL },
+        { id: 'blocks-l1-ask-answer', category: CATEGORIES.SENSING, required: true },
+        { id: 'blocks-l1-quiz', category: CATEGORIES.OPERATORS },
+        { id: 'blocks-l1-count', category: CATEGORIES.VARIABLES, required: true },
+        { id: 'blocks-l1-broadcast', category: CATEGORIES.EVENTS, required: true },
+        { id: 'blocks-l1-speak', category: CATEGORIES.EXTENSIONS },
+        { id: 'blocks-l1-message-list', category: CATEGORIES.LISTS, required: true },
     ],
 });
 
