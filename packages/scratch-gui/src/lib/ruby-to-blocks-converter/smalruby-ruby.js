@@ -67,6 +67,8 @@ const SmalrubyRubyConverter = {
                 mutation,
             });
             converter._addField(block, 'RECEIVER', varInfo.name);
+            // The receiver is kept as the variable's name: drop its `data_variable` block.
+            converter._discardValue(receiver);
             converter._addField(block, 'METHOD', method);
             if (args.length > 0) {
                 converter._addTextInput(block, 'ARG1', args[0], '');

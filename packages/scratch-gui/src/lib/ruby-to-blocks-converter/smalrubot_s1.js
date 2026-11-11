@@ -101,6 +101,8 @@ const SmalrubotS1Converter = {
                 receiver, opcode, 'statement'
             );
             converter.addField(block, 'POSITION', args[0]);
+            // Only the literal's value picks the opcode: drop its `1 = 1` / `0 < 0` block.
+            converter.discardValue(args[1]);
             return block;
         });
 

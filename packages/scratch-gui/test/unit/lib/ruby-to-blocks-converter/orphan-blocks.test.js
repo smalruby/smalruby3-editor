@@ -8,6 +8,16 @@
  *   (`0 < 0` with an extra `@ruby:literal:false:N` comment);
  * - `wait` removed from a loop / `wait until`: its `text` block kept pointing at it;
  * - `case x`: the subject was converted once more than the number of `when`s.
+ *
+ * or from an argument that was converted but only read as a value (a field, or which opcode to
+ * use), and never put into an input (#1534):
+ * - `self.drag_mode = true` / `smalrubot_s1.led("left", false)`: the `1 = 1` / `0 < 0` block;
+ * - `ticket.reverse!`: the receiver's `data_variable` block (and its `@ruby:lvar` comment);
+ * - `"a".reverse` as a statement / `if "a".reverse`: the `returnValue` reporter;
+ * - `koshien.map_from("0:0", m)`: the `data_variable` was deleted but not its comment;
+ * - `microbit_v1.when_pin_connected(0)`: a second `touchPins` menu that the hat did not refer to;
+ * - a method that ends with `true`: the literal was replaced by a `"true"` text;
+ * - a nested call of a method with a return value: the evacuation's variable had no parent.
  */
 import dedent from 'dedent';
 
@@ -165,6 +175,125 @@ describe('RubyToBlocksConverter: no orphan blocks', () => {
         expect(ruby).toBe(code);
         expect(findOrphans(converter._context.blocks, converter._context.comments)).toEqual([]);
         expect(findOrphans(target.blocks._blocks, target.comments)).toEqual([]);
+    });
+
+    describe('an argument used only as a value', () => {
+        test.each([
+            ['drag mode = true', 'self.drag_mode = true', 'self.drag_mode = "draggable"'],
+            ['drag mode = false', 'self.drag_mode = false', 'self.drag_mode = "not draggable"'],
+            [
+                'reverse! of a list',
+                'ticket = [12, 47, 35]\nticket.reverse!',
+                'ticket = [12, 47, 35]\n@_ticket_1_.reverse!',
+            ],
+            ['reverse! of a string', 's = "hello"\ns.reverse!', 's = "hello"\n@_s_1_.reverse!'],
+            ['sort! of a list', 't = [3, 1, 2]\nt.sort!', 't = [3, 1, 2]\n@_t_1_.sort!'],
+            [
+                'string method as a statement',
+                dedent`
+                    when_flag_clicked do
+                      "a".reverse
+                      "b".upcase
+                    end
+                `,
+                null,
+            ],
+            [
+                'string method as a statement between other statements',
+                dedent`
+                    when_flag_clicked do
+                      move(10)
+                      "a".reverse
+                      move(20)
+                    end
+                `,
+                null,
+            ],
+            [
+                'string method as a condition',
+                dedent`
+                    when_flag_clicked do
+                      if "hello".reverse
+                        say("truthy", 2)
+                      end
+                    end
+                `,
+                null,
+            ],
+            [
+                'string method as an unless condition',
+                dedent`
+                    when_flag_clicked do
+                      unless "hello".reverse
+                        say("falsy", 2)
+                      end
+                    end
+                `,
+                null,
+            ],
+            [
+                'micro:bit pin connected',
+                dedent`
+                    microbit_v1.when_pin_connected(0) do
+                    end
+
+                    microbit_v1.when_pin_connected(2) do
+                    end
+                `,
+                null,
+            ],
+            [
+                'koshien map_from with a local variable',
+                'm = "x"\n$map = koshien.map_from("14:0", m)',
+                'm = "x"\n$map = koshien.map_from("14:0", @_m_1_)',
+            ],
+            ['smalrubot LED on', 'smalrubot_s1.led("left", true)', null],
+            ['smalrubot LED off', 'smalrubot_s1.led("right", false)', null],
+            [
+                'method ending with true',
+                dedent`
+                    def is_true
+                      true
+                    end
+
+                    say(is_true, 1)
+                `,
+                dedent`
+                    def is_true
+                      "true"
+                    end
+
+                    say(is_true, 1)
+                `,
+            ],
+            [
+                'nested calls of a method with a return value',
+                dedent`
+                    def add(a, b)
+                      a + b
+                    end
+
+                    when_flag_clicked do
+                      say(add(add(1, 5), add(2, 3)))
+                    end
+                `,
+                null,
+            ],
+        ])('%s', async (_name, code, expected) => {
+            const { converter, target, ruby } = await convert(code);
+            expect(findOrphans(converter._context.blocks, converter._context.comments)).toEqual([]);
+            expect(findOrphans(target.blocks._blocks, target.comments)).toEqual([]);
+            expect(ruby).toBe(expected === null ? code : expected);
+        });
+
+        test('self.drag_mode = true leaves no literal comment', async () => {
+            const { converter } = await convert('self.drag_mode = true\na = true');
+            const literalComments = commentTexts(converter).filter((t) =>
+                t.startsWith('@ruby:literal:true:'),
+            );
+            // the dropped literal gives its number back to the next one
+            expect(literalComments).toEqual(['@ruby:literal:true:1']);
+        });
     });
 
     describe('Ruby → Blocks → Ruby is unchanged', () => {

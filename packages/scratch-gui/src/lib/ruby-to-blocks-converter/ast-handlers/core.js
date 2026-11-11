@@ -107,6 +107,7 @@ const CoreHandlers = {
             let value = split.value;
             if (this._isBlock(value) &&
                 value.opcode === 'smalrubyRuby_returnValue') {
+                this._discardBlock(value);
                 value = this._createBlock('smalrubyRuby_returnValueTruthy', 'value_boolean');
             }
             // === Smalruby: End of returnValue to returnValueTruthy conversion ===
@@ -162,13 +163,26 @@ const CoreHandlers = {
             for (let i = 1; i < blocks.length; i++) {
                 if (this._isBlock(blocks[i]) && this._isStatementBlock(blocks[i])) {
                     if (prevIdx >= 0) {
-                        blocks[prevIdx].next = blocks[i].id;
-                        blocks[i].parent = blocks[prevIdx].id;
+                        // Link to the end of the previous chain: it can already have statements
+                        // after it (e.g. `move(10)` → the `"a".reverse` command), and linking to
+                        // its head would cut them off.
+                        const tail = this._lastBlock(blocks[prevIdx]);
+                        tail.next = blocks[i].id;
+                        blocks[i].parent = tail.id;
                     }
                     prevIdx = i;
                 }
             }
         }
+        // A value block after the first one is not linked nor used (e.g. the returnValue
+        // REPORTER of `"a".reverse` written as a statement): drop it, or it is left as an orphan.
+        // A hat is kept: `_discardBlock` keeps `next`, so its script would point to a dropped block.
+        blocks.slice(1).forEach(b => {
+            if (this._isBlock(b) && !this._isStatementBlock(b) && this._getBlockType(b) !== 'hat' &&
+                !b.parent) {
+                this._discardBlock(b);
+            }
+        });
         // === Smalruby: End of statement-only linking ===
         const block = blocks[0];
         if (block !== null && typeof block !== 'undefined' && !this._isStatementBlock(block)) {
