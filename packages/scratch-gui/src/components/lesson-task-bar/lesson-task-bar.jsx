@@ -47,7 +47,17 @@ const toOneLine = (text) =>
         HALF_WIDTH.test(whole.charAt(offset - 1)) && HALF_WIDTH.test(whole.charAt(offset + match.length)) ? ' ' : '',
     );
 
-const LessonTaskBar = ({ challenge, challengeCount, hintAvailable, hintVisible, onHint, onOpenFullText, onQuit, toastVisible }) => {
+const LessonTaskBar = ({
+    challenge,
+    challengeCount,
+    hintAvailable,
+    hintVisible,
+    menuOpen,
+    onHint,
+    onOpenFullText,
+    onQuit,
+    toastVisible,
+}) => {
     const intl = useIntl();
     // 課題の 1 行が無いチャレンジ（中身がまだのもの）は名前を出す
     const task = intl.formatMessage(challenge.task || challenge.name);
@@ -69,8 +79,9 @@ const LessonTaskBar = ({ challenge, challengeCount, hintAvailable, hintVisible, 
     // マウスで乗せて出す全文は、ヒントの吹き出しが出ていても出す（チャレンジを始めるとヒントが
     // 自動で開くので、止めると吹き出しを閉じるまで課題が読めない）。乗せているあいだだけの一時的な
     // ものなので、吹き出しの状態（ページ・ドラッグした位置）は変えずに上へ重ねる（CSS の z-index）。
-    // 「できた！」の toast が出ているあいだは出さない
-    const hoverOpen = hovered && !toastVisible;
+    // 「できた！」の toast が出ているあいだは出さない。メニューバーのメニューが開いているあいだも出さない
+    // （パネルはメニューバーと同じ z-index で DOM では後ろにあるので、重なるとメニューの項目を隠す）
+    const hoverOpen = hovered && !toastVisible && !menuOpen;
     // タップで開いたままにするパネルは、吹き出し・toast と重ねない（開くときは onOpenFullText で閉じる）
     const pinCovered = Boolean(hintVisible || toastVisible);
     const pinOpen = pinned && !pinCovered;
@@ -219,6 +230,8 @@ LessonTaskBar.propTypes = {
     hintAvailable: PropTypes.bool,
     // ヒントの吹き出しが出ているか（出ているあいだはタップで全文を開いたままにしない。ホバーでは出す）
     hintVisible: PropTypes.bool,
+    // メニューバーのメニュー（ファイル・編集など）が開いているか（開いているあいだはホバーで全文を出さない）
+    menuOpen: PropTypes.bool,
     onHint: PropTypes.func.isRequired,
     // タップで全文のパネルを開くとき（ヒントの吹き出し・「できた！」を閉じる）
     onOpenFullText: PropTypes.func,

@@ -263,6 +263,15 @@ describe('LessonTaskBar', () => {
             expect(getByTestId('lesson-task-bar-full-text')).toBeInTheDocument();
         });
 
+        test('does not open on hover while a menu of the menu bar is open', () => {
+            // パネルはメニューバーと同じ z-index（DOM では後ろ）なので、開いたメニューの項目を隠してしまう
+            const { getByTestId, queryByTestId, rerender, onHint, onQuit } = renderBar({ menuOpen: true });
+            hover(getByTestId('lesson-task-bar'));
+            expect(queryByTestId('lesson-task-bar-full-text')).toBeNull();
+            rerender(barWith({ menuOpen: false }, { onHint, onQuit }));
+            expect(getByTestId('lesson-task-bar-full-text')).toBeInTheDocument();
+        });
+
         test('does not open on hover while the "You did it!" toast shows', () => {
             const { getByTestId, queryByTestId } = renderBar({ toastVisible: true });
             hover(getByTestId('lesson-task-bar'));
