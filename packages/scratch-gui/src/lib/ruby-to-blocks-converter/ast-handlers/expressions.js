@@ -281,7 +281,10 @@ const ExpressionHandlers = {
         let literalMarker = '';
         if (this._isPrimitive(returnValue) && (returnValue.type === 'nil' || returnValue.type === 'sym')) {
             const isNil = returnValue.type === 'nil';
-            literalMarker = isNil ? ',@ruby:nil' : `,@ruby:symbol:${returnValue.value}`;
+            // A comment keeps one line for the marker, so a symbol with a line break stays a string.
+            if (isNil || !/[\r\n]/.test(returnValue.value)) {
+                literalMarker = isNil ? ',@ruby:nil' : `,@ruby:symbol:${returnValue.value}`;
+            }
             returnValue = this._createTextBlock(isNil ? '' : returnValue.value.toString());
         }
         assignBlock.comment = this._createComment(

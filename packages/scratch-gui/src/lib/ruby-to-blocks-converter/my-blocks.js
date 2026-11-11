@@ -266,7 +266,10 @@ const MyBlocksConverter = {
                 if (b instanceof Primitive && (b.type === 'nil' || b.type === 'sym')) {
                     const isNil = b.type === 'nil';
                     const textBlock = converter._createTextBlock(isNil ? '' : b.value.toString());
-                    literalMarkers[textBlock.id] = isNil ? '@ruby:nil' : `@ruby:symbol:${b.value}`;
+                    // A comment keeps one line for the marker, so a symbol with a line break stays a string.
+                    if (isNil || !/[\r\n]/.test(b.value)) {
+                        literalMarkers[textBlock.id] = isNil ? '@ruby:nil' : `@ruby:symbol:${b.value}`;
+                    }
                     return textBlock;
                 }
                 if (converter._isString(b) || converter.isNil(b) || converter._isSymbol(b)) {

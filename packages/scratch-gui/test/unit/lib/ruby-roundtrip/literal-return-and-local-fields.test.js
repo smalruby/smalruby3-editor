@@ -129,6 +129,18 @@ describe('Ruby Roundtrip: literal at the end of a method definition', () => {
         );
     });
 
+    // A comment keeps one line for the marker: a symbol with a line break comes back as a string,
+    // without a stray `# b` comment line.
+    test.each([
+        ['at the end', 'def self.foo\n  :"a\\nb"\nend', 'def self.foo\n  "a\\nb"\nend'],
+        ['after return', 'def self.foo\n  return :"a\\nb"\nend', 'def self.foo\n  return "a\\nb"\nend'],
+    ])('a symbol with a line break %s comes back as a string', async (_name, code, expected) => {
+        await converter.targetCodeToBlocks(target, code);
+        await converter.applyTargetBlocks(target);
+        RubyGenerator.currentTarget = target;
+        expect(RubyGenerator.targetToCode(target, { version: converter.version }).trim()).toBe(expected);
+    });
+
     test.each([
         ['nil', 'nil', '"x"'],
         ['a symbol', ':a', '"x"'],
