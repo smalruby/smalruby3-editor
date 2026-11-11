@@ -155,6 +155,12 @@ describe('lessons/block-defaults', () => {
             ['blocks-l1-speak', 'ja', { text2speech_speakAndWait: { WORDS: 'ボタンが押されました' } }],
             ['blocks-l1-speak', 'ja-Hira', { text2speech_speakAndWait: { WORDS: 'ボタンがおされました' } }],
             ['blocks-l1-message-list', 'ja', { sensing_askandwait: { QUESTION: 'メッセージは？' } }],
+            // ツールボックスの初期値は半角の「こんにちは!」なので、仕様の全角「こんにちは！」を書く
+            ['blocks-l1-click-say', 'ja', { looks_sayforsecs: { MESSAGE: 'こんにちは！' } }],
+            ['blocks-l1-click-say', 'ja-Hira', { looks_sayforsecs: { MESSAGE: 'こんにちは！' } }],
+            ['blocks-l1-click-say', 'en', { looks_sayforsecs: { MESSAGE: 'Hello!' } }],
+            ['blocks-l1-ask-answer', 'ja', { looks_sayforsecs: { MESSAGE: 'こんにちは！' } }],
+            ['blocks-l1-count', 'ja', { looks_say: { MESSAGE: 'こんにちは！' } }],
         ])('%s (%s) has the initial values of the spec', (id, locale, expected) => {
             const defaults = defaultsOf(id, locale);
             Object.entries(expected).forEach(([opcode, inputs]) => {

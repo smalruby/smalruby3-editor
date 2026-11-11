@@ -177,6 +177,8 @@ const challengeMessage = (challengeId, field) => message(`gui.lessons.challenge.
 // ヒントの文言は並びの番号（step1, step2, ...）で引く
 const withTitles = (challengeId, steps) =>
     steps.map((step, i) => ({ ...step, title: challengeMessage(challengeId, `step${i + 1}`) }));
+// 「言う」の初期値「こんにちは！」（仕様の表記。ツールボックスの初期値は半角の「こんにちは!」なので書く）
+const SAY_HELLO = { MESSAGE: { ja: 'こんにちは！', 'ja-Hira': 'こんにちは！', en: 'Hello!' } };
 const debugTips = (challengeId, count) =>
     Array.from({ length: count }, (_, i) => challengeMessage(challengeId, `debug${i + 1}`));
 
@@ -272,7 +274,7 @@ const blocksLesson1 = defineLesson({
             skills: [skill('click-trigger'), skill('say'), skill('add-costume')],
             allowedBlocks: {
                 event: ['event_whenthisspriteclicked'],
-                looks: ['looks_sayforsecs', 'looks_nextcostume'],
+                looks: [{ opcode: 'looks_sayforsecs', inputs: SAY_HELLO }, 'looks_nextcostume'],
             },
             steps: withTitles('blocks-l1-click-say', [
                 { target: HINT_TARGETS.COSTUMES_TAB },
@@ -406,7 +408,7 @@ const blocksLesson1 = defineLesson({
                     'sensing_timer',
                 ],
                 operators: ['operator_join'],
-                looks: ['looks_sayforsecs'],
+                looks: [{ opcode: 'looks_sayforsecs', inputs: SAY_HELLO }],
             },
             steps: withTitles('blocks-l1-ask-answer', [
                 {
@@ -514,7 +516,7 @@ const blocksLesson1 = defineLesson({
             allowedBlocks: {
                 event: ['event_whenflagclicked', 'event_whenthisspriteclicked'],
                 data: ['data_setvariableto', 'data_changevariableby', 'data_variable'],
-                looks: ['looks_say'],
+                looks: [{ opcode: 'looks_say', inputs: SAY_HELLO }],
             },
             steps: withTitles('blocks-l1-count', [
                 { target: HINT_TARGETS.PALETTE },

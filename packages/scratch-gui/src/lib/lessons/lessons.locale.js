@@ -45,7 +45,7 @@ export const ja = {
     'gui.lessons.challenge.blocks-l1-click-say.step2':
         '「コード」タブにもどって、「押されたとき」のブロックをコードエリアへドラッグしよう。',
     'gui.lessons.challenge.blocks-l1-click-say.step3':
-        '紫の「見た目」のブロックをくっつけて、白いところをクリックして「こんにちは！」と書こう。',
+        '紫の「見た目」のブロックをくっつけよう。白いところは「こんにちは！」になっているよ。',
     'gui.lessons.challenge.blocks-l1-click-say.step4': 'その下に、これもくっつけよう。',
     'gui.lessons.challenge.blocks-l1-click-say.step5': 'ステージのネコをクリックしてみよう。',
     'gui.lessons.challenge.blocks-l1-click-say.step6': 'いらないブロックは、パレットへドラッグしてもどすと消えるよ。',
@@ -194,7 +194,7 @@ export const jaHira = {
     'gui.lessons.challenge.blocks-l1-click-say.step2':
         '「コード」タブにもどって、「おされたとき」のブロックをコードエリアへドラッグしよう。',
     'gui.lessons.challenge.blocks-l1-click-say.step3':
-        'むらさきの「みため」のブロックをくっつけて、しろいところをクリックして「こんにちは！」とかこう。',
+        'むらさきの「みため」のブロックをくっつけよう。しろいところは「こんにちは！」になっているよ。',
     'gui.lessons.challenge.blocks-l1-click-say.step4': 'そのしたに、これもくっつけよう。',
     'gui.lessons.challenge.blocks-l1-click-say.step5': 'ステージのネコをクリックしてみよう。',
     'gui.lessons.challenge.blocks-l1-click-say.step6': 'いらないブロックは、パレットへドラッグしてもどすときえるよ。',
@@ -345,7 +345,7 @@ export const en = {
     'gui.lessons.challenge.blocks-l1-click-say.step2':
         'Go back to the "Code" tab and drag the "when this sprite clicked" block into the code area.',
     'gui.lessons.challenge.blocks-l1-click-say.step3':
-        'Snap on the purple "Looks" block, click the white part, and type "Hello!".',
+        'Snap on the purple "Looks" block. The white part already says "Hello!".',
     'gui.lessons.challenge.blocks-l1-click-say.step4': 'Snap this one on underneath.',
     'gui.lessons.challenge.blocks-l1-click-say.step5': 'Click the cat on the stage.',
     'gui.lessons.challenge.blocks-l1-click-say.step6': 'To remove a block you do not need, drag it back to the palette.',
