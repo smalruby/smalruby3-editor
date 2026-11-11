@@ -37,6 +37,7 @@ import {closeExtensionLibrary, openSoundRecorder, openConnectionModal} from '../
 import {activateCustomProcedures, deactivateCustomProcedures} from '../reducers/custom-procedures';
 // === Smalruby: Start of lesson mode ===
 import {getLessonAllowedBlocks} from '../reducers/lesson-mode';
+import {allowedBlocksToIds, filterDynamicCategoryXmlList} from '../lib/lesson-dynamic-categories';
 // === Smalruby: End of lesson mode ===
 import {setConnectionModalExtensionId} from '../reducers/connection-modal';
 import {updateMetrics} from '../reducers/workspace-metrics';
@@ -189,14 +190,24 @@ class Blocks extends React.Component {
             }
         );
         this.workspace = this.ScratchBlocks.inject(this.blocks, workspaceConfig);
+        // === Smalruby: Start of lesson dynamic category filtering ===
+        // Variables / My Blocks are built by these callbacks each time the flyout is shown, so the
+        // lesson / tutorial allowedBlocks has to be applied here (make-toolbox-xml cannot see them).
         this.workspace.registerToolboxCategoryCallback(
             'VARIABLE',
-            this.ScratchBlocks.ScratchVariables.getVariablesCategory
+            ws => filterDynamicCategoryXmlList(
+                this.ScratchBlocks.ScratchVariables.getVariablesCategory(ws),
+                this.getTutorialAllowedBlockIds()
+            )
         );
         this.workspace.registerToolboxCategoryCallback(
             'PROCEDURE',
-            this.ScratchBlocks.ScratchProcedures.getProceduresCategory
+            ws => filterDynamicCategoryXmlList(
+                this.ScratchBlocks.ScratchProcedures.getProceduresCategory(ws),
+                this.getTutorialAllowedBlockIds()
+            )
         );
+        // === Smalruby: End of lesson dynamic category filtering ===
 
         this.toolboxUpdateChangeListener = event => {
             if (
@@ -691,6 +702,20 @@ class Blocks extends React.Component {
         }
     }
 
+    // === Smalruby: Start of lesson dynamic category filtering ===
+    /**
+     * The opcodes allowed by the lesson challenge / tutorial (allowedBlocks), or null when the palette
+     * is not narrowed by them (no allowedBlocks, DNCL mode, or every block allowed).
+     * @returns {?Array.<string>} allowed opcodes.
+     */
+    getTutorialAllowedBlockIds () {
+        if (this.props.dnclMode) return null;
+        const ids = allowedBlocksToIds(this.props.tutorialAllowedBlocks);
+        if (!ids || ids.length >= TOTAL_DEFAULT_BLOCKS) return null;
+        return ids;
+    }
+    // === Smalruby: End of lesson dynamic category filtering ===
+
     getToolboxXML () {
         // Use try/catch because this requires digging pretty deep into the VM
         // Code inside intentionally ignores several error situations (no stage, etc.)
@@ -718,15 +743,12 @@ class Blocks extends React.Component {
             // === Smalruby: End of DNCL block filtering ===
 
             // tutorialAllowedBlocks has highest priority (active tutorial overrides stage comments and URL params)
-            if (!onlyBlocks && this.props.tutorialAllowedBlocks) {
-                const allowedBlockIds = [];
-                Object.values(this.props.tutorialAllowedBlocks).forEach(categoryBlocks => {
-                    allowedBlockIds.push(...categoryBlocks);
-                });
-                if (allowedBlockIds.length < TOTAL_DEFAULT_BLOCKS) {
-                    onlyBlocks = allowedBlockIds.join(',');
-                }
+            // === Smalruby: Start of lesson dynamic category filtering ===
+            const dynamicCategoryIds = this.getTutorialAllowedBlockIds();
+            if (!onlyBlocks && dynamicCategoryIds) {
+                onlyBlocks = dynamicCategoryIds.join(',');
             }
+            // === Smalruby: End of lesson dynamic category filtering ===
 
             // Check for only_blocks setting in Stage comments (second priority)
             if (!onlyBlocks) {
@@ -757,7 +779,8 @@ class Blocks extends React.Component {
                 getColorsForMode(this.props.colorMode),
                 onlyBlocks,
                 !!onlyBlocks, // isOnlyBlocksSpecified: true if onlyBlocks has a value
-                this.props.dnclMode // === Smalruby: hide extensions in DNCL mode ===
+                this.props.dnclMode, // === Smalruby: hide extensions in DNCL mode ===
+                dynamicCategoryIds // === Smalruby: lesson dynamic category filtering ===
             );
         } catch {
             return null;

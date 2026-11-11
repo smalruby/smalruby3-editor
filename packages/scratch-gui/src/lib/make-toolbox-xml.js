@@ -1,6 +1,9 @@
 import * as ScratchBlocks from 'scratch-blocks';
 import {defaultColors} from './settings/color-mode';
 import {parseHexFormatToSelectedBlocks} from './block-utils';
+// === Smalruby: Start of lesson dynamic category filtering ===
+import {isDynamicCategoryAllowed} from './lesson-dynamic-categories';
+// === Smalruby: End of lesson dynamic category filtering ===
 
 const categorySeparator = '<sep gap="36"/>';
 
@@ -888,13 +891,16 @@ const filterBlocks = function (categoryXML, allowedPatterns) {
  * @param {?string} onlyBlocks - The only_blocks URL parameter for filtering blocks.
  * @param {?boolean} isOnlyBlocksSpecified - Whether the onlyBlocks parameter was explicitly specified.
  * @param {?boolean} dnclMode - Whether DNCL (Japanese) mode is active. Hides extension categories.
+ * @param {?Array.<string>} dynamicCategoryIds - Allowed opcodes of a lesson / tutorial. When given, the
+ * Variables and My Blocks categories are shown only if one of their blocks is allowed.
  * @returns {string} - a ScratchBlocks-style XML document for the contents of the toolbox.
  */
 const makeToolboxXML = function (
     isInitialSetup, isStage = true, targetId, categoriesXML = [],
     costumeName = '', backdropName = '', soundName = '', colors = defaultColors,
     onlyBlocks = null, isOnlyBlocksSpecified = false,
-    dnclMode = false // === Smalruby: hide extensions in DNCL mode ===
+    dnclMode = false, // === Smalruby: hide extensions in DNCL mode ===
+    dynamicCategoryIds = null // === Smalruby: lesson dynamic category filtering ===
 ) {
     isStage = isInitialSetup || isStage;
     const gap = [categorySeparator];
@@ -928,8 +934,15 @@ const makeToolboxXML = function (
     let operatorsXML = moveCategory('operators') || operators(isInitialSetup, isStage, targetId, colors.operators);
 
     // Variables and myBlocks are always included (exception categories)
-    const variablesXML = moveCategory('data') || variables(isInitialSetup, isStage, targetId, colors.data);
-    const myBlocksXML = moveCategory('procedures') || myBlocks(isInitialSetup, isStage, targetId, colors.more);
+    let variablesXML = moveCategory('data') || variables(isInitialSetup, isStage, targetId, colors.data);
+    let myBlocksXML = moveCategory('procedures') || myBlocks(isInitialSetup, isStage, targetId, colors.more);
+
+    // === Smalruby: Start of lesson dynamic category filtering ===
+    // Lessons / tutorials hide the Variables and My Blocks categories unless allowedBlocks has one of their
+    // blocks. The blocks inside are filtered by the category callbacks (containers/blocks.jsx).
+    if (!isDynamicCategoryAllowed('variables', dynamicCategoryIds)) variablesXML = '';
+    if (!isDynamicCategoryAllowed('myBlocks', dynamicCategoryIds)) myBlocksXML = '';
+    // === Smalruby: End of lesson dynamic category filtering ===
 
     // Apply filtering to core categories if only_blocks parameter is provided
     if (isOnlyBlocksSpecified) {

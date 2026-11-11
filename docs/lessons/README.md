@@ -160,7 +160,7 @@
 - **8 数えよう**: Ruby の `$回数` はステージの変数（ブロックの「すべてのスプライト用」）で、「変数を作る」の
   既定と同じ。先に「変数を作る」で「回数」を作ってから「プログラムを入れる」でも、変数は 1 つのまま
   （integration テストで確かめている）。日本語の変数名も Ruby ⇔ ブロックで行き来できる。
-  パレットを絞っても変数のカテゴリは全部出る（`make-toolbox-xml.js`）。ja-Hira のヒントは「かいすう」という
+  `allowedBlocks` に変数のブロックを書いたので「変数」のカテゴリと「変数を作る」が出る（下の「パレットを絞る」）。ja-Hira のヒントは「かいすう」という
   変数を作ろうと書くので、`goal` は「回数」「かいすう」のどちらでもよい（7 の「せいかいです」も同じ）。
 - エディタ（コードエリア）にフォーカスがあってもキーはステージに届く（`vm-listener-hoc` は SVG への
   keydown を VM に渡す）。`integration` テストはコードエリアをクリックしてからキーを押して確かめている。
@@ -483,6 +483,20 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
   SP（MobileGui）でも同じ場所に出る。
 - **パレットを絞る**: チャレンジの `allowedBlocks`（deck と同じ形）。Blocks コンテナの `tutorialAllowedBlocks`
   にレッスンの分を優先して渡すので、仕組みはチュートリアルと同じ（`allowedBlocks` が null なら絞らない）。
+  - **「変数」「ブロック定義」も絞る**: この 2 つは scratch-blocks が flyout を開くたびに中身を作る動的カテゴリ
+    （toolbox XML では `custom="VARIABLE"` / `custom="PROCEDURE"` の空の category）なので、ふつうのカテゴリの
+    絞り込み（`only_blocks`）が効かない。`allowedBlocks` があるときは `src/lib/lesson-dynamic-categories.js` で
+    次のように決める（チュートリアルのカードの `allowedBlocks` にも同じように効く）。
+    - カテゴリを出すか: そのカテゴリの opcode（`data_*` / `procedures_*`）が `allowedBlocks` に 1 つも無ければ
+      出さない（`make-toolbox-xml.js` の最後の引数。Smalruby マーカー `lesson dynamic category filtering`）。
+    - 中身: `allowedBlocks` にあるブロックだけ（`blocks.jsx` で登録するカテゴリのコールバックで絞る）。
+      「変数を作る」は変数のブロック（`data_variable` など）が、「リストを作る」はリストのブロック
+      （`data_addtolist` など）が、「ブロックを作る」は `procedures_*` が 1 つでもあれば出す。
+    - 変数を使うチャレンジ・チュートリアルは、`allowedBlocks` に `data: [...]`（ブロック定義なら
+      `procedures: [...]`）を書く。キー名は自由（中の opcode だけを見る）。チャットのチュートリアルと
+      Ruby の基本 3・4・6 には書いてある。
+    - `?only_blocks=`・ステージのコメント・ブロックの選択（`selectedBlocks`）で絞るときは、これまでどおり
+      2 つとも出る。
 - **ヒント**: 「ヒント」ボタンで `showHint` / `hideHint`。吹き出し（下の「ヒントの吹き出し」）は
   `containers/lesson-mode.jsx` の `<LessonTaskBar>` の次に置いた `containers/lesson-hint.jsx` が出す。
   ヒントが無いチャレンジではボタンが無効。
@@ -585,6 +599,8 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `screenshots/0506-challenge6-ask-answer-hint1-1300x600.png` | チャレンジ 6「聞いて答えよう」のヒント 1（「なまえは？ と聞いて待つ」を描く） |
 | `screenshots/0507-challenge7-quiz-hint1-1300x600.png` | チャレンジ 7「クイズを作ろう」のヒント 1 |
 | `screenshots/0508-challenge8-count-hint1-1300x600.png` | チャレンジ 8「数えよう」のヒント 1（「変数を作る」） |
+| `screenshots/0512-challenge8-count-variables-1300x600.png` | チャレンジ 8 のパレット（「変数」カテゴリに「変数を作る」と許可した変数のブロックだけ。「ブロック定義」は無い） |
+| `screenshots/0513-challenge4-no-variables-1300x600.png` | チャレンジ 4 のパレット（変数を使わないので「変数」「ブロック定義」が無い） |
 
 ### チャレンジ 9〜11 のメモ
 
@@ -658,7 +674,10 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `packages/scratch-gui/src/components/menu-bar/lessons-tooltip.jsx` | 「レッスン」ボタンの下の、はじめての人向けの吹き出し |
 | `packages/scratch-gui/src/reducers/modals.js` | `lessonsLibrary` モーダルの開閉（Smalruby マーカー `lessons library`） |
 | `packages/scratch-gui/src/components/mobile-drawer/mobile-drawer.jsx` | SP のドロワーの「レッスン」 |
-| `packages/scratch-gui/src/containers/blocks.jsx` | `getLessonAllowedBlocks` でパレットを絞る（Smalruby マーカー `lesson mode`） |
+| `packages/scratch-gui/src/containers/blocks.jsx` | `getLessonAllowedBlocks` でパレットを絞る（Smalruby マーカー `lesson mode`）。「変数」「ブロック定義」のコールバックも絞る（マーカー `lesson dynamic category filtering`） |
+| `packages/scratch-gui/src/lib/lesson-dynamic-categories.js` | 「変数」「ブロック定義」を `allowedBlocks` で絞る純粋関数（カテゴリを出すか・flyout の中身） |
+| `packages/scratch-gui/src/lib/make-toolbox-xml.js` | `allowedBlocks` に無ければ「変数」「ブロック定義」のカテゴリを出さない（マーカー `lesson dynamic category filtering`） |
+| `packages/scratch-gui/test/unit/lib/lesson-dynamic-categories.test.js` | 上の純粋関数・toolbox XML・既存の deck / チャレンジの unit テスト |
 | `packages/scratch-gui/test/unit/lib/lessons/` | データの形・記録・クリア判定・setup・できた の判定・見張りの unit テスト |
 | `packages/scratch-gui/test/unit/reducers/lesson-mode-reducer.test.js` | reducer の unit テスト |
 | `packages/scratch-gui/test/unit/components/lesson-completed-toast.test.jsx` / `test/unit/containers/lesson-goal-watcher.test.jsx` | 「できた！」と見張りのコンテナの unit テスト |

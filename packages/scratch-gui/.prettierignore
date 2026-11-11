@@ -162,6 +162,7 @@ src/lib/*
 !src/lib/ruby-generator/
 !src/lib/dncl/
 !src/lib/lessons/
+!src/lib/lesson-dynamic-categories.js
 !src/lib/ruby-to-blocks-converter/
 !src/lib/settings/
 !src/lib/themes/
@@ -549,6 +550,7 @@ test/unit/lib/*
 !test/unit/lib/layout-constants.test.js
 !test/unit/lib/legacy-storage.test.js
 !test/unit/lib/make-toolbox-xml.test.js
+!test/unit/lib/lesson-dynamic-categories.test.js
 !test/unit/lib/mesh-v2-classroom-binding.test.js
 !test/unit/lib/mesh-v2-seat-connect.test.js
 !test/unit/lib/mesh-v2-seat-label.test.js
