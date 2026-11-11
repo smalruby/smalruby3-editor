@@ -150,6 +150,23 @@ describe('RubyToBlocksConverter: no orphan blocks', () => {
         expect(Object.keys(block.inputs)).toEqual(['CONDITION']);
     });
 
+    test('a local variable set from an argument that is later used as a boolean', async () => {
+        // The first visit of `x` (looking for an `a=` writer) registered its argument block;
+        // dropping that block must also drop its ID, or making `x` boolean reads undefined.
+        const code = dedent`
+            def foo(x)
+              a = x
+              if x
+                move(10)
+              end
+            end
+        `;
+        const { converter, target, ruby } = await convert(code);
+        expect(ruby).toBe(code);
+        expect(findOrphans(converter._context.blocks, converter._context.comments)).toEqual([]);
+        expect(findOrphans(target.blocks._blocks, target.comments)).toEqual([]);
+    });
+
     describe('Ruby → Blocks → Ruby is unchanged', () => {
         test.each([
             'a = false',
