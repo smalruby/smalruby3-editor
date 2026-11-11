@@ -609,8 +609,9 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
   描いたあとにエディタのワークスペースを `setMainWorkspace` で戻す。変換した XML は Ruby ごとに覚える。
   変換できない Ruby は「（このブロックは描けませんでした）」を出す（文言は出る）。`blocks` が locale ごとの
   オブジェクトなら、いまの UI の locale のものを描く（`localizeCode`）。
-  条件の穴に入った `false` は空の穴として描く（`if false` = 「もし <  > なら」。ブロック → Ruby が空の穴を
-  `if false` と書くのに合わせる。`blocks-xml.js` の `emptyFalseConditions`）。
+  条件の穴に入った `false` は空の穴として描く（`if false` = 「もし <  > なら」）。これは Ruby → ブロック変換
+  そのものの決まり（ブロック → Ruby が空の穴を `false` と書くのに合わせて、条件の穴の `false` は空の穴になる。
+  `docs/smalruby-language-spec.ja.md` の「リテラル」）なので、ヒント側で手を加えない。
 - **指す場所**: `target` の場所を DOM から探し（`lib/lessons/hint-targets.js` の `findHintTargetRect`。
   Smalruby の部品は data-testid（SP のサイドレール `mobile-side-rail-*`・拡張機能のボタン `extension-button`）、
   upstream の部品は data-testid を持たないので CSS Modules のクラス名の接頭辞 `<css ファイル名>_<クラス名>_`

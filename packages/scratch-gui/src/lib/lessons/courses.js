@@ -349,7 +349,7 @@ const blocksLesson1 = defineLesson({
             },
             steps: withTitles('blocks-l1-if', [
                 { target: HINT_TARGETS.PALETTE, blocks: 'loop do\nend\n' },
-                // `false` は空の穴として描く（hint-blocks.js）
+                // `false` は空の穴として描く（Ruby → ブロック変換が条件の穴の `false` を空の穴にする）
                 { target: HINT_TARGETS.PALETTE, blocks: 'if false\nelse\nend\n' },
                 { target: HINT_TARGETS.PALETTE, blocks: 'touching?("_mouse_")\n' },
                 { target: HINT_TARGETS.CODE_AREA },

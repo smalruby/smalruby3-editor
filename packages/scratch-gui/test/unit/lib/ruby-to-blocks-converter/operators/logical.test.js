@@ -2,8 +2,7 @@ import RubyToBlocksConverter from '../../../../../src/lib/ruby-to-blocks-convert
 import {
     convertAndExpectToEqualBlocks,
     convertAndExpectRubyBlockError,
-    rubyToExpected,
-    expectedInfo
+    rubyToExpected
 } from '../../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Operators', () => {
@@ -59,52 +58,12 @@ describe('RubyToBlocksConverter/Operators', () => {
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
+        // `false` in a Boolean input is an empty hole (generated back as `false`) (#1491)
         code = 'false && false';
         expected = [
             {
                 opcode: 'operator_and',
-                inputs: [
-                    {
-                        name: 'OPERAND1',
-                        block: {
-                            opcode: 'operator_lt',
-                            inputs: [
-                                {
-                                    name: 'OPERAND1',
-                                    block: expectedInfo.makeText('0')
-                                },
-                                {
-                                    name: 'OPERAND2',
-                                    block: expectedInfo.makeText('0')
-                                }
-                            ],
-                            comment: {
-                                text: '@ruby:literal:false:1',
-                                minimized: true
-                            }
-                        }
-                    },
-                    {
-                        name: 'OPERAND2',
-                        block: {
-                            opcode: 'operator_lt',
-                            inputs: [
-                                {
-                                    name: 'OPERAND1',
-                                    block: expectedInfo.makeText('0')
-                                },
-                                {
-                                    name: 'OPERAND2',
-                                    block: expectedInfo.makeText('0')
-                                }
-                            ],
-                            comment: {
-                                text: '@ruby:literal:false:2',
-                                minimized: true
-                            }
-                        }
-                    }
-                ]
+                inputs: []
             }
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
@@ -150,52 +109,12 @@ describe('RubyToBlocksConverter/Operators', () => {
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
+        // `false` in a Boolean input is an empty hole (generated back as `false`) (#1491)
         code = 'false || false';
         expected = [
             {
                 opcode: 'operator_or',
-                inputs: [
-                    {
-                        name: 'OPERAND1',
-                        block: {
-                            opcode: 'operator_lt',
-                            inputs: [
-                                {
-                                    name: 'OPERAND1',
-                                    block: expectedInfo.makeText('0')
-                                },
-                                {
-                                    name: 'OPERAND2',
-                                    block: expectedInfo.makeText('0')
-                                }
-                            ],
-                            comment: {
-                                text: '@ruby:literal:false:1',
-                                minimized: true
-                            }
-                        }
-                    },
-                    {
-                        name: 'OPERAND2',
-                        block: {
-                            opcode: 'operator_lt',
-                            inputs: [
-                                {
-                                    name: 'OPERAND1',
-                                    block: expectedInfo.makeText('0')
-                                },
-                                {
-                                    name: 'OPERAND2',
-                                    block: expectedInfo.makeText('0')
-                                }
-                            ],
-                            comment: {
-                                text: '@ruby:literal:false:2',
-                                minimized: true
-                            }
-                        }
-                    }
-                ]
+                inputs: []
             }
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
@@ -258,32 +177,12 @@ describe('RubyToBlocksConverter/Operators', () => {
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
+        // `false` in a Boolean input is an empty hole (generated back as `false`) (#1491)
         code = '!false';
         expected = [
             {
                 opcode: 'operator_not',
-                inputs: [
-                    {
-                        name: 'OPERAND',
-                        block: {
-                            opcode: 'operator_lt',
-                            inputs: [
-                                {
-                                    name: 'OPERAND1',
-                                    block: expectedInfo.makeText('0')
-                                },
-                                {
-                                    name: 'OPERAND2',
-                                    block: expectedInfo.makeText('0')
-                                }
-                            ],
-                            comment: {
-                                text: '@ruby:literal:false:1',
-                                minimized: true
-                            }
-                        }
-                    }
-                ]
+                inputs: []
             }
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);

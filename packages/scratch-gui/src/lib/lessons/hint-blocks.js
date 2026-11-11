@@ -3,7 +3,7 @@
 // ブロックは VM の target には入れず、Blockly の XML にして読み取り専用ワークスペースに描く。
 
 import RubyToBlocksConverter from '../ruby-to-blocks-converter';
-import { blocksToXml, emptyFalseConditions } from './blocks-xml';
+import { blocksToXml } from './blocks-xml';
 
 /**
  * Ruby をブロックの XML にする。
@@ -22,6 +22,6 @@ export const rubyToBlocksXml = async (vm, target, code, intl, options = { versio
     if (intl) converter.setTranslatorFunction(intl.formatMessage);
     const ok = await converter.targetCodeToBlocks(target, code);
     if (!ok) return { xml: null, errors: converter.errors };
-    // 条件の穴の `false` は空の穴として描く（`if false` = 「もし <  > なら」）
-    return { xml: blocksToXml(emptyFalseConditions(converter.blocks, converter._context.comments)), errors: [] };
+    // 条件の穴の `false` は変換で空の穴になる（`if false` = 「もし <  > なら」）
+    return { xml: blocksToXml(converter.blocks), errors: [] };
 };
