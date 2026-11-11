@@ -4,13 +4,13 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styles from './balloon.css';
 
-const BalloonCloseButton = ({ className, label, onClick, testId }) => (
+const BalloonCloseButton = ({ className, label, onClick, testId, title }) => (
     <button
         type="button"
         className={classNames(styles.closeButton, className)}
         data-testid={testId}
         aria-label={label}
-        title={label}
+        title={title}
         onClick={onClick}
     >
         ×
@@ -22,6 +22,8 @@ BalloonCloseButton.propTypes = {
     label: PropTypes.string.isRequired,
     onClick: PropTypes.func.isRequired,
     testId: PropTypes.string,
+    // マウスを乗せたときの説明。翻訳した文言があるときだけ渡す（aria-label だけの部品もある）
+    title: PropTypes.string,
 };
 
 export default BalloonCloseButton;

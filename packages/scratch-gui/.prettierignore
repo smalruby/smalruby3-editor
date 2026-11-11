@@ -401,6 +401,7 @@ test/unit/components/*
 !test/unit/components/lesson-task-bar.test.jsx
 !test/unit/components/lesson-hint.test.jsx
 !test/unit/components/balloon.test.jsx
+!test/unit/components/classroom-tutorial.test.jsx
 !test/unit/components/lessons-library.test.jsx
 !test/unit/components/genai-answer-steps-index-hints.test.jsx
 !test/unit/components/genai-answer-steps-words.test.jsx

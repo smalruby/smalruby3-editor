@@ -66,6 +66,13 @@ describe('BalloonCloseButton', () => {
         fireEvent.click(button);
         expect(onClick).toHaveBeenCalledTimes(1);
     });
+
+    test('has no hover title unless one is given', () => {
+        const { getByTestId, rerender } = render(<BalloonCloseButton label="Close" testId="c" onClick={jest.fn()} />);
+        expect(getByTestId('c')).not.toHaveAttribute('title');
+        rerender(<BalloonCloseButton label="Close" title="Close" testId="c" onClick={jest.fn()} />);
+        expect(getByTestId('c')).toHaveAttribute('title', 'Close');
+    });
 });
 
 describe('BalloonHeader', () => {
@@ -77,6 +84,8 @@ describe('BalloonHeader', () => {
             </BalloonHeader>,
         );
         expect(getByText('Hint 1 of 3')).toBeInTheDocument();
+        expect(getByTestId('h-close')).toHaveAttribute('aria-label', 'Close');
+        expect(getByTestId('h-close')).toHaveAttribute('title', 'Close');
         fireEvent.click(getByTestId('h-close'));
         expect(onClose).toHaveBeenCalledTimes(1);
     });

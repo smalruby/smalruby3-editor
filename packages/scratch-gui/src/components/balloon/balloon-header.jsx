@@ -7,7 +7,7 @@ import styles from './balloon.css';
 const BalloonHeader = ({ children, closeLabel, closeTestId, onClose }) => (
     <div className={styles.header}>
         <span className={styles.headerTitle}>{children}</span>
-        {onClose ? <BalloonCloseButton label={closeLabel || ''} testId={closeTestId} onClick={onClose} /> : null}
+        {onClose ? <BalloonCloseButton label={closeLabel || ''} title={closeLabel} testId={closeTestId} onClick={onClose} /> : null}
     </div>
 );
 
