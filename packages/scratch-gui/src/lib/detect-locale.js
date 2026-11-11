@@ -5,6 +5,20 @@
 
 import queryString from 'query-string';
 
+// === Smalruby: Start of case-insensitive locale matching ===
+/**
+ * Find a supported locale without regard to case and return its canonical spelling
+ * (e.g. 'ja-hira' -> 'ja-Hira'). Lowercasing alone never matches mixed-case codes.
+ * @param {Array.<string>} supportedLocales An array of supported locale codes.
+ * @param {string} candidate The locale code to look up.
+ * @returns {string|undefined} the supported locale code, or undefined if unsupported
+ */
+const findSupportedLocale = (supportedLocales, candidate) => {
+    const lower = candidate.toLowerCase();
+    return supportedLocales.find(l => l.toLowerCase() === lower);
+};
+// === Smalruby: End of case-insensitive locale matching ===
+
 /**
  * look for language setting in the browser. Check against supported locales.
  * If there's a parameter in the URL, override the browser setting
@@ -13,17 +27,15 @@ import queryString from 'query-string';
  */
 const detectLocale = supportedLocales => {
     let locale = 'en'; // default
-    let browserLocale = window.navigator.userLanguage || window.navigator.language;
-    browserLocale = browserLocale.toLowerCase();
+    // === Smalruby: Start of case-insensitive locale matching ===
+    const browserLocale = window.navigator.userLanguage || window.navigator.language;
     // try to set locale from browserLocale
-    if (supportedLocales.includes(browserLocale)) {
-        locale = browserLocale;
-    } else {
-        browserLocale = browserLocale.split('-')[0];
-        if (supportedLocales.includes(browserLocale)) {
-            locale = browserLocale;
-        }
+    const browserMatch = findSupportedLocale(supportedLocales, browserLocale) ||
+        findSupportedLocale(supportedLocales, browserLocale.split('-')[0]);
+    if (browserMatch) {
+        locale = browserMatch;
     }
+    // === Smalruby: End of case-insensitive locale matching ===
 
     const queryParams = queryString.parse(location.search);
     // Flatten potential arrays and remove falsy values
@@ -32,10 +44,12 @@ const detectLocale = supportedLocales => {
         return locale;
     }
 
-    const urlLocale = potentialLocales[0].toLowerCase();
-    if (supportedLocales.includes(urlLocale)) {
+    // === Smalruby: Start of case-insensitive locale matching ===
+    const urlLocale = findSupportedLocale(supportedLocales, potentialLocales[0]);
+    if (urlLocale) {
         return urlLocale;
     }
+    // === Smalruby: End of case-insensitive locale matching ===
 
     return locale;
 };

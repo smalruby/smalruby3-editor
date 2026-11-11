@@ -94,4 +94,15 @@ describe('Smalruby Lessons Library', () => {
         const logs = await getLogs({ includeAllLevels: true });
         expect(severeLogs(logs)).toEqual([]);
     });
+
+    test('?locale=ja-Hira opens the library in hiragana', async () => {
+        await loadUri(`${uri}?no_beforeunload=1&locale=ja-Hira`);
+        await waitForLoadingFinished();
+        await driver.executeScript(`window.localStorage.removeItem(${JSON.stringify(PROGRESS_KEY)})`);
+
+        await findByXpath(byTestId('menu-bar-lessons'));
+        await clickByTestId(driver, 'menu-bar-lessons');
+        await findByXpath(byTestId('lessons-library'));
+        expect(await textByTestId(driver, 'lessons-library-progress')).toBe('0 / 11 できた（ひっす 0 / 5）');
+    });
 });
