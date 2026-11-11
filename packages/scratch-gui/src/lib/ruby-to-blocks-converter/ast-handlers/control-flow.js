@@ -116,8 +116,11 @@ const ControlFlowHandlers = {
         const subjectNode = node.predicate;
         const subjectResult = this.visit(subjectNode);
         const subjectSplit = this._splitPreBlocksAndValue(subjectResult);
-        const subject = subjectSplit.value;
         const preBlocks = subjectSplit.preBlocks;
+        // Each `when` visits the subject again (a block can be used only once), so drop this one.
+        if (this._isBlock(subjectSplit.value)) {
+            this._discardBlock(subjectSplit.value);
+        }
 
         const subjectSource = this._getSource(subjectNode);
 

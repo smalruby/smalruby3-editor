@@ -89,13 +89,30 @@ const BlockUtils = {
             if (match && this._context.literalCallIndices.false === parseInt(match[1], 10)) {
                 this._context.literalCallIndices.false -= 1;
             }
-            delete this._context.comments[value.comment];
         }
-        const ids = [value.id];
-        Object.values(value.inputs).forEach(input => {
-            if (input.block) ids.push(input.block);
-            if (input.shadow && input.shadow !== input.block) ids.push(input.shadow);
-        });
+        this._discardBlock(value);
+    },
+
+    /**
+     * Drop a block that will not be used, with the blocks in its inputs (recursively) and their
+     * comments, so that no orphan block (a child whose parent is gone) or comment is left in the
+     * context. The blocks after it (`next`) are kept: the caller unlinks the block from its chain.
+     * @param {object} block - The block to drop.
+     */
+    _discardBlock (block) {
+        const ids = [];
+        const collect = b => {
+            if (!b || ids.includes(b.id)) return;
+            ids.push(b.id);
+            if (b.comment) {
+                delete this._context.comments[b.comment];
+            }
+            Object.values(b.inputs || {}).forEach(input => {
+                collect(this._context.blocks[input.block]);
+                collect(this._context.blocks[input.shadow]);
+            });
+        };
+        collect(block);
         ids.forEach(id => {
             delete this._context.blocks[id];
             delete this._context.blockTypes[id];
@@ -257,7 +274,7 @@ const BlockUtils = {
             }
             if (isWaitBlock) {
                 hadWait = true;
-                delete this._context.blocks[b.id];
+                this._discardBlock(b);
                 if (prev) {
                     this._context.blocks[prev].next = null;
                 }

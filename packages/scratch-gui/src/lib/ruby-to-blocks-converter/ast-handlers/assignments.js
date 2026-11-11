@@ -189,10 +189,13 @@ const AssignmentHandlers = {
                     rubyBlock = null;
                 }
             }
+            const savedBeforeWriter = this._saveContext();
             const block = this.callMethod(null, writeName, [this.visit(valueNode)], rubyBlockArgs, rubyBlock, node);
             if (block) {
                 return block;
             }
+            // Not a writer method: drop what visiting the value made, as it is visited again below.
+            this._restoreContext(savedBeforeWriter);
         }
         const variable = this._lookupOrCreateVariable(varName);
         let rh = this.visit(valueNode);
