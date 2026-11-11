@@ -65,9 +65,7 @@ const MyBlocksConverter = {
                 const argumentId = procedure.argumentIds[i];
                 if (converter._isFalseOrBooleanBlock(arg)) {
                     if (procedure.argumentVariables[i].isBoolean) {
-                        if (!converter._isFalse(arg)) {
-                            converter._addInput(block, argumentId, arg, null);
-                        }
+                        converter._addBooleanInput(block, argumentId, arg);
                         return;
                     }
                 }
