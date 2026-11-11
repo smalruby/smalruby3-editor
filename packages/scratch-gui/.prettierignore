@@ -613,6 +613,7 @@ test/unit/reducers/*
 !test/unit/reducers/cards_reducer.test.js
 !test/unit/reducers/dncl-mode-reducer.test.js
 !test/unit/reducers/lesson-mode-reducer.test.js
+!test/unit/reducers/tutorial-onboarding-reducer.test.js
 !test/unit/reducers/classroom-reducer.test.js
 !test/unit/reducers/menus-reducer.test.js
 !test/unit/reducers/palette-visibility-reducer.test.js

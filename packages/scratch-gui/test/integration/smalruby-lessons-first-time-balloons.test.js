@@ -1,7 +1,8 @@
 /**
  * Integration tests for the first-time balloons in lesson mode (Issue #1498).
  * 「レッスンをはじめよう！」とウェルカムバルーンは、授業のパソコン（1300×600）で課題バーに重なる。
- * レッスンモードのあいだは出さず、レッスンモードを抜けたら元どおり出ることを確かめる。
+ * レッスンモードのあいだは出さず、抜けたらウェルカムバルーンは元どおり出る（「レッスンをはじめよう！」は
+ * チャレンジを開いた時点で役目を終えるので出ない）ことを確かめる。
  */
 import path from 'path';
 import { unexpectedSevereLogs } from '../helpers/ignorable-severe-logs';
@@ -53,12 +54,14 @@ describe('Smalruby Lessons: first-time balloons in lesson mode', () => {
         expect(await countByTestId('lessons-tooltip')).toBe(0);
         expect(await countByTestId('welcome-tooltip')).toBe(0);
 
-        // やめると（レッスン表が開く）、記録は消していないので元どおり出る
+        // やめると（レッスン表が開く）、ウェルカムバルーンは記録を消していないので元どおり出る。
+        // 「レッスンをはじめよう！」はチャレンジを開いた時点で役目を終えたので、もう出ない
         await clickByTestId('lesson-task-bar-quit');
         await driver.sleep(500);
         expect(await countByTestId('lesson-task-bar')).toBe(0);
-        expect(await countByTestId('lessons-tooltip')).toBe(1);
         expect(await countByTestId('welcome-tooltip')).toBe(1);
+        expect(await countByTestId('lessons-tooltip')).toBe(0);
+        expect(await driver.executeScript("return localStorage.getItem('smalruby:tutorialSeen')")).toBe('true');
 
         const logs = await getLogs();
         expect(severeLogs(logs)).toEqual([]);

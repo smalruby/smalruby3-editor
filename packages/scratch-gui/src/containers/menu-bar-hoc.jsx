@@ -64,8 +64,10 @@ const MenuBarHOC = function (WrappedComponent) {
         // The first-time balloon under the Lessons button (reuses the tutorial
         // onboarding flag: it goes away once the lessons library has been opened).
         // While a challenge is open the first-time balloons (this one and the
-        // welcome balloon) would cover the lesson task bar, so they stay hidden;
-        // the onboarding state is kept and they come back after leaving (#1498).
+        // welcome balloon) would cover the lesson task bar, so they stay hidden
+        // (#1498). The welcome balloon's state is kept and it comes back after
+        // leaving; opening a challenge also marks the tutorial as seen
+        // (reducers/tutorial-onboarding.js), so this one does not come back.
         lessonModeActive: isLessonMode(state),
         showLessonsTooltip: shouldShowTooltip(state) && !isLessonMode(state)
         // === Smalruby: End of lessons button ===
