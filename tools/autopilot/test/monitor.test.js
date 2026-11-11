@@ -404,3 +404,15 @@ test('MONITOR_HTML: Issue 列の左端に 📋（Issue と PR をコピー）を
     assert.match(MONITOR_HTML, /animation-delay: var\(--flash-delay, 0ms\)/);
     assert.match(MONITOR_HTML, /data-issue="' \+ it\.issue \+ '"/);
 });
+
+test('MONITOR_HTML: 起動待ちは「SSO ログインが必要」と出し、再接続ボタンで起動まで進める（#1510）', () => {
+    assert.match(MONITOR_HTML, /d\.booting/);
+    assert.match(MONITOR_HTML, /SSO ログインが必要です（autopilot は起動待ち）/);
+    assert.match(MONITOR_HTML, /SSO 待ち/);
+    assert.match(MONITOR_HTML, /id="reauthbtn"/);
+    // 起動中（Project 情報の取得中）と、SSO 以外の原因で起動待ちのときの表示
+    assert.match(MONITOR_HTML, /notice === 'starting'/);
+    assert.match(MONITOR_HTML, /boot-not-sso/);
+    // 起動待ちの間は daemon が断る操作のボタンを止める
+    assert.match(MONITOR_HTML, /b\.disabled = !!d\.booting/);
+});
