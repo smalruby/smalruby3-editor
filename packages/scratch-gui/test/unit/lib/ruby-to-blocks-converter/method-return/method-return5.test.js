@@ -197,7 +197,25 @@ describe('RubyToBlocksConverter/Method Return Bug Fixes', () => {
                         inputs: [
                             {
                                 name: 'VALUE',
-                                block: expectedInfo.makeText('true')
+                                // `true` stays as its `1 = 1` block so it comes back as `true` (#1541)
+                                block: {
+                                    opcode: 'operator_equals',
+                                    inputs: [
+                                        {
+                                            name: 'OPERAND1',
+                                            block: expectedInfo.makeText('1')
+                                        },
+                                        {
+                                            name: 'OPERAND2',
+                                            block: expectedInfo.makeText('1')
+                                        }
+                                    ],
+                                    comment: {
+                                        text: '@ruby:literal:true:1',
+                                        minimized: true
+                                    }
+                                },
+                                shadow: expectedInfo.makeText('0')
                             }
                         ],
                         comment: {

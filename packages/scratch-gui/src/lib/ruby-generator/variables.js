@@ -3,6 +3,10 @@
 const SCALAR_TYPE = '';
 const LIST_TYPE = 'list';
 
+// A Ruby local variable is kept as a target variable named `_<name>_<scope index>_`
+// (see `_lookupOrCreateVariable` in ruby-to-blocks-converter/variable-utils.js).
+const LOCAL_VARIABLE_PATTERN = /^_((?![A-Z])[\p{L}_][\p{L}\p{N}_]*)_\d+_$/u;
+
 const escapeIdentityRegexp =
     /[\x00-\x1f\x7f-\x9f !"#$%&'()*+,-./:;<=>?@[\\\]^`{|}~]/g; // eslint-disable-line no-control-regex
 
@@ -64,6 +68,12 @@ export default function (Generator) {
             isStage = target.isStage;
         }
         if (currVar && currVar.type === type) {
+            // A field (e.g. koshien `map_from`'s MAP, a `reverse!` receiver) only keeps the
+            // variable's name, so a local variable has no `@ruby:lvar` comment to restore it.
+            const localMatch = currVar.name.match(LOCAL_VARIABLE_PATTERN);
+            if (localMatch) {
+                return localMatch[1];
+            }
             return this.makeVariableName(isStage, currVar.name);
         }
         return null;
