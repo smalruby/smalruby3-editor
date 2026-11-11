@@ -381,6 +381,8 @@ end
 
 A trailing `true` / `false` is returned as the "(1) = (1)" / "(0) < (0)" block, the same as `return true`, so it comes back as `true` / `false` (not the string `"true"`).
 
+`nil` and a symbol (`:a`) have no block of their own, so the blocks return them as the strings `""` / `"a"`. The block's comment keeps the original (`@ruby:nil` / `@ruby:symbol:a`), so both a trailing value and `return nil` / `return :a` come back as `nil` / `:a` after a round trip (if you change the text in the blocks, the changed text is used).
+
 ### super
 
 When a class `include`s a module and overrides a same-named method, `super` calls the module's version of that method.

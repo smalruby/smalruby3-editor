@@ -243,23 +243,33 @@ const MyBlocksConverter = {
             } else if (!_.isArray(body)) {
                 body = [body];
             }
+            const literalMarkers = {};
             body = body.filter(b => b !== null && typeof b !== 'undefined').map(b => {
                 if (converter._isNumber(b)) {
                     const value = (b instanceof Primitive) ? b.value : b;
                     return converter._createNumberBlock('math_number', value);
                 }
-                // `true` / `false` stay as their `1 = 1` / `0 < 0` blocks (as `return true` does), so the
-                // implicit return comes back as `true`, not the string `"true"`.
-                if (converter._isBlock(b) && (converter._isTrue(b) || converter._isFalse(b))) {
-                    return b;
-                }
+                // A block stays as it is: `true` / `false` as their `1 = 1` / `0 < 0` blocks (as `return true`
+                // does), so the implicit return comes back as `true`, not the string `"true"`, and
+                // `:a.to_s` (a block with a symbol marker) as its join block.
+                if (converter._isBlock(b)) return b;
                 if (converter._isTrue(b)) return converter._createTextBlock('true');
                 if (converter._isFalse(b)) return converter._createTextBlock('false');
+                // `nil` / a symbol has no block of its own, so it becomes a text block and the return
+                // block remembers the original with a comment marker (issue #1548).
+                if (b instanceof Primitive && (b.type === 'nil' || b.type === 'sym')) {
+                    const isNil = b.type === 'nil';
+                    const textBlock = converter._createTextBlock(isNil ? '' : b.value.toString());
+                    // A comment keeps one line for the marker, so a symbol with a line break stays a string.
+                    if (isNil || !/[\r\n]/.test(b.value)) {
+                        literalMarkers[textBlock.id] = isNil ? '@ruby:nil' : `@ruby:symbol:${b.value}`;
+                    }
+                    return textBlock;
+                }
                 if (converter._isString(b) || converter.isNil(b) || converter._isSymbol(b)) {
                     const value = (b instanceof Primitive) ? b.value : b;
                     return converter._createTextBlock(value === null ? '' : value.toString());
                 }
-                if (converter._isBlock(b)) return b;
                 return b;
             });
             converter._context.inMyBlockDefinition = savedInMyBlockDefinition;
@@ -336,7 +346,11 @@ const MyBlocksConverter = {
                             }
                         }
                     });
-                    returnBlock.comment = converter._createComment(`@ruby:return:${procedureName}`, returnBlock.id);
+                    const literalMarker = literalMarkers[last.id];
+                    returnBlock.comment = converter._createComment(
+                        `@ruby:return:${procedureName}${literalMarker ? `,${literalMarker}` : ''}`,
+                        returnBlock.id
+                    );
 
                     if (last.shadow) {
                         // Shadow blocks (e.g. math_number, text) are used directly as both block and shadow
