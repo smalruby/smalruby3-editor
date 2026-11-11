@@ -24,6 +24,7 @@ const baseProps = () => ({
     isShowingWithoutId: true,
     onCancelStart: jest.fn(),
     onCloseLesson: jest.fn(),
+    onDismissCompleted: jest.fn(),
     onHideHint: jest.fn(),
     onOpenChallenge: jest.fn(),
     onRequestNewProject: jest.fn(),
@@ -90,6 +91,50 @@ describe('LessonMode container', () => {
         rerender({ ...props, hint: { ...props.hint, visible: true } });
         fireEvent.click(getByTestId('lesson-task-bar-hint'));
         expect(props.onHideHint).toHaveBeenCalledTimes(1);
+    });
+
+    test('opening the full text hides the hint balloon and dismisses the "You did it!" toast', () => {
+        // jsdom はレイアウトしないので、課題の文が切れている（全文ボタンが出る）ことにする
+        const proto = window.HTMLElement.prototype;
+        Object.defineProperty(proto, 'scrollWidth', { configurable: true, get: () => 600 });
+        Object.defineProperty(proto, 'clientWidth', { configurable: true, get: () => 300 });
+        try {
+            const props = {
+                ...baseProps(),
+                current: findChallenge(CHALLENGE_ID),
+                hint: { visible: true, index: 0, count: 2, step: {} },
+                toastVisible: true,
+            };
+            const { getByTestId } = renderLessonMode(props);
+            fireEvent.click(getByTestId('lesson-task-bar-full-text-toggle'));
+            expect(props.onHideHint).toHaveBeenCalledTimes(1);
+            expect(props.onDismissCompleted).toHaveBeenCalledTimes(1);
+        } finally {
+            delete proto.scrollWidth;
+            delete proto.clientWidth;
+        }
+    });
+
+    test('opening the full text leaves a hidden hint and no toast alone', () => {
+        const proto = window.HTMLElement.prototype;
+        Object.defineProperty(proto, 'scrollWidth', { configurable: true, get: () => 600 });
+        Object.defineProperty(proto, 'clientWidth', { configurable: true, get: () => 300 });
+        try {
+            const props = {
+                ...baseProps(),
+                current: findChallenge(CHALLENGE_ID),
+                hint: { visible: false, index: 0, count: 2, step: {} },
+                toastVisible: false,
+            };
+            const { getByTestId } = renderLessonMode(props);
+            fireEvent.click(getByTestId('lesson-task-bar-full-text-toggle'));
+            expect(getByTestId('lesson-task-bar-full-text')).toBeInTheDocument();
+            expect(props.onHideHint).not.toHaveBeenCalled();
+            expect(props.onDismissCompleted).not.toHaveBeenCalled();
+        } finally {
+            delete proto.scrollWidth;
+            delete proto.clientWidth;
+        }
     });
 
     test('a pending challenge starts a new project once', () => {

@@ -17,6 +17,7 @@ import { clearGoogleDriveFile } from '../reducers/google-drive-file';
 import {
     cancelStartChallenge,
     closeLesson,
+    dismissCompleted,
     getCurrentChallenge,
     getCurrentHint,
     hideHint,
@@ -42,6 +43,7 @@ const LessonMode = ({
     isShowingWithoutId,
     onCancelStart,
     onCloseLesson,
+    onDismissCompleted,
     onHideHint,
     onOpenChallenge,
     onRequestNewProject,
@@ -49,6 +51,7 @@ const LessonMode = ({
     onStartChallenge,
     pendingChallengeId,
     projectChanged,
+    toastVisible,
     vm,
 }) => {
     const intl = useIntl();
@@ -112,6 +115,11 @@ const LessonMode = ({
         else onShowHint();
     }, [hint, onHideHint, onShowHint]);
 
+    const handleOpenFullText = useCallback(() => {
+        if (hint && hint.visible) onHideHint();
+        if (toastVisible) onDismissCompleted();
+    }, [hint, onHideHint, toastVisible, onDismissCompleted]);
+
     if (!current) return null;
     // ヒントの吹き出し（containers/lesson-hint.jsx）は document.body に portal で出るので、
     // ここに置いてもエディタの列のレイアウトには影響しない
@@ -121,8 +129,11 @@ const LessonMode = ({
                 challenge={current.challenge}
                 challengeCount={current.lesson.challenges.length}
                 hintAvailable={Boolean(hint && hint.count > 0)}
+                hintVisible={Boolean(hint && hint.visible)}
                 onHint={handleHint}
+                onOpenFullText={handleOpenFullText}
                 onQuit={onCloseLesson}
+                toastVisible={toastVisible}
             />
             <LessonHint />
         </>
@@ -147,6 +158,7 @@ LessonMode.propTypes = {
     isShowingWithoutId: PropTypes.bool.isRequired,
     onCancelStart: PropTypes.func.isRequired,
     onCloseLesson: PropTypes.func.isRequired,
+    onDismissCompleted: PropTypes.func.isRequired,
     onHideHint: PropTypes.func.isRequired,
     onOpenChallenge: PropTypes.func.isRequired,
     onRequestNewProject: PropTypes.func.isRequired,
@@ -154,6 +166,7 @@ LessonMode.propTypes = {
     onStartChallenge: PropTypes.func.isRequired,
     pendingChallengeId: PropTypes.string,
     projectChanged: PropTypes.bool.isRequired,
+    toastVisible: PropTypes.bool,
     vm: PropTypes.object,
 };
 
@@ -167,6 +180,10 @@ const mapStateToProps = (state) => {
         isShowingWithoutId: getIsShowingWithoutId(loadingState),
         pendingChallengeId: state.scratchGui.lessonMode.pendingChallengeId,
         projectChanged: state.scratchGui.projectChanged,
+        // lesson-goal-watcher.jsx が「できた！」の toast を出す条件と同じ
+        toastVisible:
+            state.scratchGui.lessonMode.challengeId !== null &&
+            state.scratchGui.lessonMode.justCompletedId === state.scratchGui.lessonMode.challengeId,
         vm: state.scratchGui.vm,
     };
 };
@@ -179,6 +196,7 @@ const mapDispatchToProps = (dispatch) => ({
         dispatch(closeLesson());
         dispatch(openLessonsLibrary());
     },
+    onDismissCompleted: () => dispatch(dismissCompleted()),
     onHideHint: () => dispatch(hideHint()),
     onOpenChallenge: (challengeId) => dispatch(openChallenge(challengeId)),
     onRequestNewProject: () => {

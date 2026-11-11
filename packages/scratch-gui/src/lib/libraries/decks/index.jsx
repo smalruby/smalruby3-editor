@@ -52,7 +52,9 @@ const decks = {
             event: ['event_whenflagclicked', 'event_whenbroadcastreceived', 'event_broadcast'],
             control: [],
             sensing: [],
-            operators: []
+            operators: [],
+            // 変数を使うので、変数のカテゴリを出す（allowedBlocks に無いカテゴリは出ない）
+            data: ['data_variable', 'data_setvariableto', 'data_changevariableby', 'data_showvariable', 'data_hidevariable']
         },
         steps: [
             {
@@ -182,7 +184,9 @@ end`,
             event: ['event_whenflagclicked', 'event_whenbroadcastreceived', 'event_broadcast'],
             control: [],
             sensing: [],
-            operators: []
+            operators: [],
+            // 変数を使うので、変数のカテゴリを出す（allowedBlocks に無いカテゴリは出ない）
+            data: ['data_variable', 'data_setvariableto', 'data_changevariableby', 'data_showvariable', 'data_hidevariable']
         },
         steps: [
             {
@@ -295,7 +299,9 @@ end`,
             event: ['event_whenflagclicked', 'event_whenbroadcastreceived', 'event_broadcast'],
             control: [],
             sensing: [],
-            operators: []
+            operators: [],
+            // 変数を使うので、変数のカテゴリを出す（allowedBlocks に無いカテゴリは出ない）
+            data: ['data_variable', 'data_setvariableto', 'data_changevariableby', 'data_showvariable', 'data_hidevariable']
         },
         steps: [
             {
@@ -414,7 +420,9 @@ end`,
             event: ['event_whenthisspriteclicked', 'event_whenbroadcastreceived', 'event_broadcast'],
             control: [],
             sensing: [],
-            operators: []
+            operators: [],
+            // 変数を使うので、変数のカテゴリを出す（allowedBlocks に無いカテゴリは出ない）
+            data: ['data_variable', 'data_setvariableto', 'data_changevariableby', 'data_showvariable', 'data_hidevariable']
         },
         steps: [
             {
@@ -547,7 +555,9 @@ end`,
             event: ['event_whenthisspriteclicked', 'event_whenbroadcastreceived', 'event_broadcast'],
             control: [],
             sensing: [],
-            operators: []
+            operators: [],
+            // 変数を使うので、変数のカテゴリを出す（allowedBlocks に無いカテゴリは出ない）
+            data: ['data_variable', 'data_setvariableto', 'data_changevariableby', 'data_showvariable', 'data_hidevariable']
         },
         steps: [
             {
@@ -669,7 +679,9 @@ end`,
             event: ['event_whenthisspriteclicked', 'event_whenbroadcastreceived', 'event_broadcast'],
             control: [],
             sensing: [],
-            operators: []
+            operators: [],
+            // 変数を使うので、変数のカテゴリを出す（allowedBlocks に無いカテゴリは出ない）
+            data: ['data_variable', 'data_setvariableto', 'data_changevariableby', 'data_showvariable', 'data_hidevariable']
         },
         steps: [
             {
@@ -811,7 +823,9 @@ end`,
             event: ['event_whenthisspriteclicked', 'event_whenbroadcastreceived', 'event_broadcast'],
             control: [],
             sensing: [],
-            operators: []
+            operators: [],
+            // 変数を使うので、変数のカテゴリを出す（allowedBlocks に無いカテゴリは出ない）
+            data: ['data_variable', 'data_setvariableto', 'data_changevariableby', 'data_showvariable', 'data_hidevariable']
         },
         steps: [
             {
@@ -952,7 +966,9 @@ end`,
             event: ['event_whenthisspriteclicked', 'event_whenbroadcastreceived', 'event_broadcast'],
             control: [],
             sensing: [],
-            operators: []
+            operators: [],
+            // 変数を使うので、変数のカテゴリを出す（allowedBlocks に無いカテゴリは出ない）
+            data: ['data_variable', 'data_setvariableto', 'data_changevariableby', 'data_showvariable', 'data_hidevariable']
         },
         steps: [
             {
@@ -1071,7 +1087,9 @@ end`,
             event: ['event_whenthisspriteclicked', 'event_whenbroadcastreceived', 'event_broadcast'],
             control: [],
             sensing: [],
-            operators: []
+            operators: [],
+            // 変数を使うので、変数のカテゴリを出す（allowedBlocks に無いカテゴリは出ない）
+            data: ['data_variable', 'data_setvariableto', 'data_changevariableby', 'data_showvariable', 'data_hidevariable']
         },
         steps: [
             {
