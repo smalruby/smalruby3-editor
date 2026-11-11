@@ -665,6 +665,10 @@ export default {
         '"{ SOURCE }" is an event, so it cannot be placed inside another block.\nMove it out of the block so that it starts a script of its own.',
     'gui.smalruby3.rubyToBlocksConverter.valueAsStatement':
         '"{ SOURCE }" is a value, so it cannot be written as a command by itself.\nUse it in a command (e.g. say({ SOURCE })) or set it to a variable.',
+    'gui.smalruby3.rubyToBlocksConverter.cannotReturnValue':
+        '"{ SOURCE }" cannot be returned from a method, because there is no block for this value.\nReturn a number, a string, true / false, or a variable instead.',
+    'gui.smalruby3.rubyToBlocksConverter.returnMultipleValues':
+        '"{ SOURCE }" returns more than one value, but a method can return only one value.\nReturn one value (e.g. return { FIRST }).',
     'gui.smalruby3.rubyToBlocksConverter.invalidBackdropName':
         'backdrop "{ NAME }" does not exist in the backdrop library.',
     'gui.smalruby3.rubyToBlocksConverter.spriteMethodInStageClass':

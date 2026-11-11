@@ -932,6 +932,10 @@ export default {
         '「{ SOURCE }」はイベントなので、ほかのブロックの中には書けません。\nブロックの外に出して、そこから始まるスクリプトにしてください。',
     'gui.smalruby3.rubyToBlocksConverter.valueAsStatement':
         '「{ SOURCE }」は値なので、それだけを命令として書くことはできません。\n命令の中で使う（例: say({ SOURCE })）か、変数に入れてください。',
+    'gui.smalruby3.rubyToBlocksConverter.cannotReturnValue':
+        '「{ SOURCE }」はブロックにできない値なので、メソッドから返せません。\n数値、文字列、true / false、変数のどれかを返してください。',
+    'gui.smalruby3.rubyToBlocksConverter.returnMultipleValues':
+        '「{ SOURCE }」は値を2つ以上返していますが、メソッドが返せる値は1つだけです。\n返す値を1つにしてください（例: return { FIRST }）。',
     'gui.smalruby3.rubyToBlocksConverter.invalidMyBlockArgumentType':
         'ブロック定義「{NAME}」の引数#{INDEX}の型がまちがっています。\n数値、文字列、またはブーリアンの値を使ってください。',
     'gui.smalruby3.rubyToBlocksConverter.cannotChangeArgument':
