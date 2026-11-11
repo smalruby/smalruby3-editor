@@ -15,7 +15,7 @@ import Modal from '../../containers/modal.jsx';
 import TagButton from '../../containers/tag-button.jsx';
 import { LANGUAGES } from '../../lib/lessons/courses';
 import { filterCourseStatuses, libraryLanguages, showCourseNav } from '../../lib/lessons/library-filter';
-import { DEFAULT_MODE, getColorsForMode } from '../../lib/settings/color-mode';
+import { DARK_MODE, DEFAULT_MODE, getColorsForMode } from '../../lib/settings/color-mode';
 import Divider from '../divider/divider.jsx';
 import Filter from '../filter/filter.jsx';
 import styles from './lessons-library.css';
@@ -157,12 +157,15 @@ const CardBand = ({ challenge, colorMode }) => {
     const category = categoryId ? CATEGORY_STYLES[categoryId] : null;
     const label = category ? intl.formatMessage(category.label) : null;
     const colors = category ? getColorsForMode(colorMode)[category.colorKey] : null;
+    // ダークのブロックは地（colourPrimary）がほぼ黒で、なかまの色は縁（colourTertiary）に出る。
+    // 白いカードの帯では地の色だとどれも黒く見えるので、縁の色を使う
+    const bandColor = colors && (colorMode === DARK_MODE ? colors.colourTertiary : colors.colourPrimary);
     return (
         <span
             className={classNames(styles.cardBand, { [styles.cardBandNone]: !colors })}
             data-testid="lessons-library-card-band"
             data-category={categoryId || ''}
-            {...(colors ? { style: { backgroundColor: colors.colourPrimary } } : {})}
+            {...(bandColor ? { style: { backgroundColor: bandColor } } : {})}
             {...(label ? { role: 'img', 'aria-label': label, title: label } : { 'aria-hidden': true })}
         />
     );

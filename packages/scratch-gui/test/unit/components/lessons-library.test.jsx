@@ -124,6 +124,14 @@ describe('LessonsLibrary', () => {
         expect(bandOf(getByTestId, 'blocks-l1-click-say')).toHaveStyle({ backgroundColor: expected });
     });
 
+    // ダークのブロックの地はほぼ黒なので、なかまの色が出る縁の色（colourTertiary）を帯にする
+    test('the band uses the outline color of the blocks in the dark mode', () => {
+        const { getByTestId } = renderLibrary({ colorMode: 'dark' });
+        const expected = colorModeMap.dark.colors.looks.colourTertiary;
+        expect(expected).toBe('#9966FF');
+        expect(bandOf(getByTestId, 'blocks-l1-click-say')).toHaveStyle({ backgroundColor: expected });
+    });
+
     test('a card without a family has a band without a color', () => {
         const course = defineCourse({
             id: 'plain',

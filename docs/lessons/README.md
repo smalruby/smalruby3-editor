@@ -534,7 +534,7 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
     形のあるブロック（帽子・値のブロックを含む。shadow は数えない）をなかまごとに数える。なかまは opcode の
     接頭辞（`data_` は名前に `list` があればリスト、無ければ変数。分からない接頭辞は拡張機能）。
   - いちばん多いなかま。同じ数で並んだら `card.main`。
-  - 色はいまの色のモード（`lib/settings/color-mode`）のブロックの色（`colourPrimary`）。拡張機能は拡張の緑（`pen`）。
+  - 色はいまの色のモード（`lib/settings/color-mode`）のブロックの色（`colourPrimary`。ダークはブロックの地がほぼ黒でなかまの色が縁に出るので、縁の `colourTertiary`）。拡張機能は拡張の緑（`pen`）。
 
   数えるのは重い（Ruby → ブロックの変換）ので実行時にはせず、結果を `card.category` に書いておく。
   決め方どおりかは `test/unit/lib/lessons/card-color.test.js` が本物の `RubyToBlocksConverter` で数えて確かめる

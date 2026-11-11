@@ -279,6 +279,8 @@
     font-size: 0.875rem;
     font-weight: bold;
     line-height: 1.3;
+    /* SP 縦の 2 列で名前が折り返すとき、2 行目が 1 文字だけ（「…鳴らそ／う」）にならないよう行をそろえる */
+    text-wrap: balance;
 }
 
 /* できたら右上に ✓ */
