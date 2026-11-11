@@ -14,6 +14,9 @@ import webdriver from 'selenium-webdriver';
 import chrome from 'selenium-webdriver/chrome';
 
 import packageJson from '../../package.json';
+// === Smalruby: Start of getLogs SEVERE filter ===
+import {filterBrowserLogs} from './ignorable-severe-logs';
+// === Smalruby: End of getLogs SEVERE filter ===
 
 const {By, until} = webdriver;
 
@@ -520,27 +523,16 @@ class SeleniumHelper {
         const outerError = new Error(`getLogs failed with arguments:\n\twhitelist: ${whitelist}`);
         try {
             await this.setTitle(`getLogs ${whitelist}`);
-            if (!whitelist) {
-                // Default whitelist
-                whitelist = [
-                    'The play() request was interrupted by a call to pause()'
-                ];
-            }
             const entries = await this.driver.manage()
                 .logs()
                 .get('browser');
-            return entries.filter(entry => {
-                const message = entry.message;
-                for (const element of whitelist) {
-                    if (message.indexOf(element) !== -1) {
-                        return false;
-                    } else if (!includeAllLevels && entry.level !== 'SEVERE') {
-                        // WARNING: this doesn't do what it looks like it does!
-                        return false;
-                    }
-                }
-                return true;
-            });
+            // === Smalruby: Start of getLogs SEVERE filter ===
+            // `entry.level` is a `logging.Level` object, so upstream's `entry.level !== 'SEVERE'`
+            // dropped every SEVERE entry and `expect(await getLogs()).toEqual([])` checked nothing
+            // (#1481). The filtering, including the single list of known harmless logs, lives in
+            // ignorable-severe-logs.js.
+            return filterBrowserLogs(entries, {whitelist, includeAllLevels});
+            // === Smalruby: End of getLogs SEVERE filter ===
         } catch (cause) {
             throw await enhanceError(outerError, cause);
         }

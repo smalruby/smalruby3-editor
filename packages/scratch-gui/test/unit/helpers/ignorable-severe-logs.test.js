@@ -1,4 +1,9 @@
-import { isIgnorableSevereLog, unexpectedSevereLogs } from '../../helpers/ignorable-severe-logs';
+import {
+    filterBrowserLogs,
+    isIgnorableSevereLog,
+    levelName,
+    unexpectedSevereLogs,
+} from '../../helpers/ignorable-severe-logs';
 
 const severe = (message) => ({ level: { name: 'SEVERE' }, message, timestamp: 0, type: '' });
 
@@ -51,5 +56,85 @@ describe('unexpectedSevereLogs', () => {
 
     test('returns an empty array when everything is ignorable', () => {
         expect(unexpectedSevereLogs(MONACO_WORKER_LOGS.map(severe))).toEqual([]);
+    });
+});
+
+describe('isIgnorableSevereLog (environment noise)', () => {
+    test('ignores the Google Drive API init failure seen without Google credentials', () => {
+        const message =
+            'file:///app/packages/scratch-gui/build/gui.js 2:1234 "Failed to initialize Google Drive API:" Object';
+        expect(isIgnorableSevereLog(message)).toBe(true);
+    });
+
+    test('ignores cleardot.gif blocked by the devpod firewall', () => {
+        const message =
+            'https://www.google.com/images/cleardot.gif - Failed to load resource: net::ERR_CONNECTION_REFUSED';
+        expect(isIgnorableSevereLog(message)).toBe(true);
+    });
+
+    test('ignores the Google api.js script blocked by the devpod firewall', () => {
+        const messages = [
+            'https://apis.google.com/js/api.js - Failed to load resource: net::ERR_CONNECTION_REFUSED',
+            'file:///app/packages/scratch-gui/build/gui.js 113040:16 "Failed to load Google scripts:" Error: ' +
+                'Failed to load script: https://apis.google.com/js/api.js',
+        ];
+        messages.forEach((message) => expect(isIgnorableSevereLog(message)).toBe(true));
+    });
+
+    test('does not ignore other google.com resource failures', () => {
+        const message = 'https://www.google.com/other.js - Failed to load resource: net::ERR_CONNECTION_REFUSED';
+        expect(isIgnorableSevereLog(message)).toBe(false);
+    });
+});
+
+describe('levelName', () => {
+    test.each([
+        ['SEVERE', 'SEVERE'],
+        [{ name: 'SEVERE', value: 1000 }, 'SEVERE'],
+        [undefined, ''],
+    ])('normalizes %p to %p', (level, expected) => {
+        expect(levelName(level)).toBe(expected);
+    });
+});
+
+describe('filterBrowserLogs', () => {
+    const entry = (name, message) => ({ level: { name, value: 0 }, message, timestamp: 0, type: '' });
+    const realError = entry('SEVERE', 'Uncaught TypeError: real failure');
+
+    test('returns SEVERE entries by default (level is an object, not a string)', () => {
+        const logs = [entry('INFO', 'info'), entry('WARNING', 'warn'), realError];
+        expect(filterBrowserLogs(logs)).toEqual([realError]);
+    });
+
+    test('accepts a string level too', () => {
+        const stringLevel = { level: 'SEVERE', message: 'Uncaught Error: boom' };
+        expect(filterBrowserLogs([stringLevel])).toEqual([stringLevel]);
+    });
+
+    test('drops known harmless SEVERE entries', () => {
+        const logs = [
+            entry('SEVERE', 'gui.js 2:1 "Failed to initialize Google Drive API:" Object'),
+            entry('SEVERE', 'https://www.google.com/images/cleardot.gif - Failed to load resource: net::ERR_CONNECTION_REFUSED'),
+            entry('SEVERE', MONACO_WORKER_LOGS[1]),
+            realError,
+        ];
+        expect(filterBrowserLogs(logs)).toEqual([realError]);
+    });
+
+    test('drops entries matching the default whitelist', () => {
+        const logs = [entry('SEVERE', 'Uncaught (in promise) The play() request was interrupted by a call to pause()')];
+        expect(filterBrowserLogs(logs)).toEqual([]);
+    });
+
+    test('a custom whitelist replaces the default one but keeps the known harmless list', () => {
+        const play = entry('SEVERE', 'The play() request was interrupted by a call to pause()');
+        const logs = [play, entry('SEVERE', 'expected noise'), entry('SEVERE', MONACO_WORKER_LOGS[1]), realError];
+        expect(filterBrowserLogs(logs, { whitelist: ['expected noise'] })).toEqual([play, realError]);
+    });
+
+    test('includeAllLevels returns every level (raw, for debugging)', () => {
+        const drive = entry('SEVERE', '"Failed to initialize Google Drive API:"');
+        const logs = [entry('INFO', 'info'), drive, realError];
+        expect(filterBrowserLogs(logs, { includeAllLevels: true })).toEqual(logs);
     });
 });

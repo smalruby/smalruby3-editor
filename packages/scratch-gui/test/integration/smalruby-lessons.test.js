@@ -3,7 +3,6 @@
  * チャレンジを開く → 新しい作品・課題バー・絞ったパレット → やめる → 元にもどる。
  */
 import path from 'path';
-import { unexpectedSevereLogs } from '../helpers/ignorable-severe-logs';
 import SeleniumHelper from '../helpers/selenium-helper';
 
 const { findByXpath, getDriver, getLogs, loadUri, scope, textExists, waitForLoadingFinished } = new SeleniumHelper();
@@ -13,10 +12,6 @@ const uri = path.resolve(__dirname, '../../build/index.html');
 const CHALLENGE_ID = 'blocks-l1-click-say';
 
 const byTestId = (testId) => `//*[@data-testid="${testId}"]`;
-
-// Google Drive API の初期化失敗（gapi が読めない環境で数秒後に出る）はレッスンとは無関係
-const isGoogleDriveInitLog = (log) => /Failed to initialize Google Drive API/.test(log.message);
-const severeLogs = (logs) => unexpectedSevereLogs(logs).filter((log) => !isGoogleDriveInitLog(log));
 
 let driver;
 
@@ -78,8 +73,8 @@ describe('Smalruby Lessons', () => {
         expect(await textExists('Sound', scope.blocksTab)).toBe(true);
         expect(await textExists('Control', scope.blocksTab)).toBe(true);
 
-        const logs = await getLogs({ includeAllLevels: true });
-        expect(severeLogs(logs)).toEqual([]);
+        // 既知の無害なログ (Google Drive の初期化失敗など) は getLogs() が除く
+        expect(await getLogs()).toEqual([]);
     });
 
     // パレットを絞らないチャレンジ（allowedBlocks: null）は、レッスン 1 にはもう無い（11 個とも絞る）。

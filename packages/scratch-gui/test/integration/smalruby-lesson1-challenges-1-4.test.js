@@ -12,7 +12,6 @@
  * レッスン表はまだ無いので、入口は `window.smalruby.startChallenge(id)`。
  */
 import path from 'path';
-import { unexpectedSevereLogs } from '../helpers/ignorable-severe-logs';
 import SeleniumHelper from '../helpers/selenium-helper';
 
 const { findByXpath, getDriver, getLogs, Key, loadUri, waitForLoadingFinished } = new SeleniumHelper();
@@ -20,10 +19,6 @@ const { findByXpath, getDriver, getLogs, Key, loadUri, waitForLoadingFinished } 
 const uri = path.resolve(__dirname, '../../build/index.html');
 
 const byTestId = (testId) => `//*[@data-testid="${testId}"]`;
-
-// Google Drive API の初期化失敗（gapi が読めない環境で数秒後に出る）はレッスンとは無関係
-const isGoogleDriveInitLog = (log) => /Failed to initialize Google Drive API/.test(log.message);
-const severeLogs = (logs) => unexpectedSevereLogs(logs).filter((log) => !isGoogleDriveInitLog(log));
 
 let driver;
 
@@ -174,8 +169,8 @@ describe('Smalruby Lessons: lesson 1 challenges 1-4', () => {
         await clickByTestId('lesson-completed-toast-close');
         await clickByTestId('lesson-task-bar-quit');
 
-        const logs = await getLogs({ includeAllLevels: true });
-        expect(severeLogs(logs)).toEqual([]);
+        // 既知の無害なログ (Google Drive の初期化失敗など) は getLogs() が除く
+        expect(await getLogs()).toEqual([]);
     });
 
     test('challenge 2 (矢印キーで動かそう): insert the program, press up and down with the code area focused → できた！', async () => {
@@ -213,8 +208,8 @@ describe('Smalruby Lessons: lesson 1 challenges 1-4', () => {
         await clickByTestId('lesson-completed-toast-close');
         await clickByTestId('lesson-task-bar-quit');
 
-        const logs = await getLogs({ includeAllLevels: true });
-        expect(severeLogs(logs)).toEqual([]);
+        // 既知の無害なログ (Google Drive の初期化失敗など) は getLogs() が除く
+        expect(await getLogs()).toEqual([]);
     });
 
     test('challenge 1 (キーで音を鳴らそう): add "Owl", insert the program, press space → できた！', async () => {
@@ -249,8 +244,8 @@ describe('Smalruby Lessons: lesson 1 challenges 1-4', () => {
         await clickByTestId('lesson-completed-toast-close');
         await clickByTestId('lesson-task-bar-quit');
 
-        const logs = await getLogs({ includeAllLevels: true });
-        expect(severeLogs(logs)).toEqual([]);
+        // 既知の無害なログ (Google Drive の初期化失敗など) は getLogs() が除く
+        expect(await getLogs()).toEqual([]);
     });
 
     test('challenge 4 (くり返そう): add the backdrops, insert the program into the stage, press 1 → できた！', async () => {
@@ -291,7 +286,7 @@ describe('Smalruby Lessons: lesson 1 challenges 1-4', () => {
         await clickByTestId('lesson-completed-toast-close');
         await clickByTestId('lesson-task-bar-quit');
 
-        const logs = await getLogs({ includeAllLevels: true });
-        expect(severeLogs(logs)).toEqual([]);
+        // 既知の無害なログ (Google Drive の初期化失敗など) は getLogs() が除く
+        expect(await getLogs()).toEqual([]);
     });
 });

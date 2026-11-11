@@ -4,7 +4,6 @@
  * と、記録（localStorage）に合わせた「できた」と進み具合の表示。
  */
 import path from 'path';
-import { unexpectedSevereLogs } from '../helpers/ignorable-severe-logs';
 import SeleniumHelper from '../helpers/selenium-helper';
 
 const { findByXpath, getDriver, getLogs, loadUri, waitForLoadingFinished } = new SeleniumHelper();
@@ -15,10 +14,6 @@ const CHALLENGE_ID = 'blocks-l1-click-say';
 const PROGRESS_KEY = 'smalruby:lessonProgress';
 
 const byTestId = (testId) => `//*[@data-testid="${testId}"]`;
-
-// Google Drive API の初期化失敗（gapi が読めない環境で数秒後に出る）はレッスンとは無関係
-const isGoogleDriveInitLog = (log) => /Failed to initialize Google Drive API/.test(log.message);
-const severeLogs = (logs) => unexpectedSevereLogs(logs).filter((log) => !isGoogleDriveInitLog(log));
 
 let driver;
 
@@ -91,7 +86,7 @@ describe('Smalruby Lessons Library', () => {
         // 一度開いたので、吹き出しは出ない
         expect(await countByTestId(driver, 'lessons-tooltip')).toBe(0);
 
-        const logs = await getLogs({ includeAllLevels: true });
-        expect(severeLogs(logs)).toEqual([]);
+        // 既知の無害なログ (Google Drive の初期化失敗など) は getLogs() が除く
+        expect(await getLogs()).toEqual([]);
     });
 });
