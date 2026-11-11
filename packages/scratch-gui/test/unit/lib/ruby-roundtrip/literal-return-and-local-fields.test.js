@@ -166,6 +166,13 @@ describe('Ruby Roundtrip: local variable kept in a field', () => {
         await expectRoundTrip(converter, target, `${name} = "abc"\n${name}.reverse!`);
     });
 
+    test.each([
+        ['@_x_1_'],
+        ['$_x_1_'],
+    ])('String#reverse! on %s (named like a local variable inside) keeps its name', async (name) => {
+        await expectRoundTrip(converter, target, `${name} = "abc"\n${name}.reverse!`);
+    });
+
     test('koshien map_from with a local variable', async () => {
         await expectRoundTrip(
             converter,
