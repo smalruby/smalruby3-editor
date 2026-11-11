@@ -260,7 +260,7 @@ const ControlConverter = {
         converter.registerOnIf((cond, statement, elseStatement) => {
             const block = converter._createBlock('control_if', 'statement');
             if (converter._isFalseOrBooleanBlock(cond)) {
-                converter._addInput(block, 'CONDITION', cond);
+                converter._addBooleanInput(block, 'CONDITION', cond);
             }
             converter._addSubstack(block, statement);
             if (elseStatement) {
@@ -297,9 +297,12 @@ const ControlConverter = {
             }
             const block = converter._createBlock(opcode, 'statement');
             if (converter._isFalseOrBooleanBlock(cond)) {
-                converter._addInput(block, 'CONDITION', cond);
+                converter._addBooleanInput(block, 'CONDITION', cond);
             }
-            converter._addSubstack(block, statement);
+            // control_wait_until has no SUBSTACK input
+            if (opcode === 'control_repeat_until') {
+                converter._addSubstack(block, statement);
+            }
             if (hadWithScreenRefresh && opcode === 'control_repeat_until') {
                 addWithScreenRefreshComment(converter, block);
             } else if (hadWait && opcode === 'control_repeat_until') {

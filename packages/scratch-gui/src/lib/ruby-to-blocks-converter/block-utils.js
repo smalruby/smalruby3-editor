@@ -56,6 +56,75 @@ const BlockUtils = {
         };
     },
 
+    addBooleanInput (block, name, value) {
+        return this._addBooleanInput(block, name, value);
+    },
+
+    /**
+     * Put a value into a Boolean (hexagonal) input. A `false` literal leaves the input empty:
+     * Scratch has no Boolean literal and the generator writes an empty Boolean input as `false`,
+     * so `if false` ⇔ an empty hole round-trips without the `0 < 0` stand-in block.
+     * @param {object} block - The block that owns the input.
+     * @param {string} name - The input name (e.g. `CONDITION`, `OPERAND`).
+     * @param {*} value - The converted value (a block, or a `false` literal).
+     */
+    _addBooleanInput (block, name, value) {
+        if (this._isFalse(value)) {
+            this._discardFalseLiteral(value);
+            return;
+        }
+        this._addInput(block, name, value);
+    },
+
+    /**
+     * Drop the `0 < 0` block (with its text inputs and `@ruby:literal:false:N` comment) that
+     * `visitFalseNode` made, so that no orphan block is left behind.
+     * @param {*} value - The `false` literal (a block, a primitive, or `false`).
+     */
+    _discardFalseLiteral (value) {
+        if (!this._isBlock(value)) return;
+        const comment = value.comment ? this._context.comments[value.comment] : null;
+        if (comment) {
+            const match = /^@ruby:literal:false:(\d+)$/.exec(comment.text);
+            if (match && this._context.literalCallIndices.false === parseInt(match[1], 10)) {
+                this._context.literalCallIndices.false -= 1;
+            }
+        }
+        this._discardBlock(value);
+    },
+
+    /**
+     * Drop a block that will not be used, with the blocks in its inputs (recursively) and their
+     * comments, so that no orphan block (a child whose parent is gone) or comment is left in the
+     * context. The blocks after it (`next`) are kept: the caller unlinks the block from its chain.
+     * @param {object} block - The block to drop.
+     */
+    _discardBlock (block) {
+        const ids = [];
+        const collect = b => {
+            if (!b || ids.includes(b.id)) return;
+            ids.push(b.id);
+            if (b.comment) {
+                delete this._context.comments[b.comment];
+            }
+            Object.values(b.inputs || {}).forEach(input => {
+                collect(this._context.blocks[input.block]);
+                collect(this._context.blocks[input.shadow]);
+            });
+        };
+        collect(block);
+        ids.forEach(id => {
+            delete this._context.blocks[id];
+            delete this._context.blockTypes[id];
+        });
+        const nodeToBlockMap = this._context.nodeToBlockMap;
+        if (nodeToBlockMap) {
+            nodeToBlockMap.forEach((blockId, node) => {
+                if (ids.includes(blockId)) nodeToBlockMap.delete(node);
+            });
+        }
+    },
+
     addNumberInput (block, name, opcode, inputValue, shadowValue) {
         return this._addNumberInput(block, name, opcode, inputValue, shadowValue);
     },
@@ -205,7 +274,7 @@ const BlockUtils = {
             }
             if (isWaitBlock) {
                 hadWait = true;
-                delete this._context.blocks[b.id];
+                this._discardBlock(b);
                 if (prev) {
                     this._context.blocks[prev].next = null;
                 }

@@ -116,8 +116,11 @@ const ControlFlowHandlers = {
         const subjectNode = node.predicate;
         const subjectResult = this.visit(subjectNode);
         const subjectSplit = this._splitPreBlocksAndValue(subjectResult);
-        const subject = subjectSplit.value;
         const preBlocks = subjectSplit.preBlocks;
+        // Each `when` visits the subject again (a block can be used only once), so drop this one.
+        if (this._isBlock(subjectSplit.value)) {
+            this._discardBlock(subjectSplit.value);
+        }
 
         const subjectSource = this._getSource(subjectNode);
 
@@ -264,7 +267,7 @@ const ControlFlowHandlers = {
         // Negate condition: unless cond => if !(cond)
         const notBlock = this._createBlock('operator_not', 'value_boolean');
         if (this._isFalseOrBooleanBlock(cond)) {
-            this._addInput(notBlock, 'OPERAND', cond);
+            this._addBooleanInput(notBlock, 'OPERAND', cond);
         }
 
         const unlessThen = this._processStatement(node.statements);
@@ -336,7 +339,7 @@ const ControlFlowHandlers = {
         // Negate condition: while cond => until !(cond)
         const notBlock = this._createBlock('operator_not', 'value_boolean');
         if (this._isFalseOrBooleanBlock(cond)) {
-            this._addInput(notBlock, 'OPERAND', cond);
+            this._addBooleanInput(notBlock, 'OPERAND', cond);
         }
 
         const statement = this._processStatement(node.statements);
