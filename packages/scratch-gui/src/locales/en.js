@@ -1252,6 +1252,7 @@ export default {
     'gui.lessonHint.close': 'Close',
     'gui.lessonHint.debugTitle': 'If it does not work',
     'gui.lessonHint.insertCode': 'Insert the program',
+    'gui.lessonHint.insertCodeError': 'The program cannot be inserted yet. Do the earlier hints first.',
     'gui.lessonHint.blocksError': '(These blocks could not be drawn.)',
     'gui.menuBar.lessons': 'Lessons',
     'gui.menuBar.lessonsTooltip': 'Start a lesson!',

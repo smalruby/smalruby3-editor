@@ -4,6 +4,9 @@
 // （updateRubyCode → コードタブを出すと Ruby タブが変換してブロックを入れる）。
 // チャレンジの `codeTarget` が 'stage' のとき（ステージのプログラム）は、入れる前にステージを
 // えらび、Ruby タブの相手（rubyCode.target）もステージにしてから入れる。
+// 入れる前に同じ変換を音・背景の確かめ込みで試し、失敗するとき（Owl をまだ足していない等）は
+// 入れずに吹き出しの中にわけを出す（入れると Ruby タブに切りかわってエラーになり、ブロックの
+// コースの子どもには何が起きたかわかりにくいため）。
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useIntl } from 'react-intl';
@@ -34,6 +37,11 @@ const LessonHintContainer = ({
     // 変換の結果は Ruby のバージョンでも変わるので、キーに含める
     const cacheRef = useRef(new Map());
     const [rendered, setRendered] = useState({ blocks: null, xml: null, error: false });
+    // 「プログラムを入れる」を試して失敗したときのわけ（変換のエラーの文言）。ページが変わったら消す
+    const [insertErrors, setInsertErrors] = useState([]);
+    const hintIndex = hint ? hint.index : null;
+    const hintVisible = Boolean(hint && hint.visible);
+    useEffect(() => setInsertErrors([]), [hintIndex, hintVisible]);
 
     useEffect(() => {
         if (!blocks) return () => {};
@@ -67,16 +75,31 @@ const LessonHintContainer = ({
         };
     }, [blocks, intl, rubyVersion, vm]);
 
-    const handleInsertCode = useCallback(() => {
+    const handleInsertCode = useCallback(async () => {
         if (!current || !current.challenge.code) return;
-        let target = null;
-        if (current.challenge.codeTarget === 'stage' && vm && vm.runtime) {
-            // ステージのプログラム: いま編集中のスプライトではなくステージに入れる
-            target = vm.runtime.getTargetForStage() || null;
-            if (target) vm.setEditingTarget(target.id);
+        const stage =
+            current.challenge.codeTarget === 'stage' && vm && vm.runtime ? vm.runtime.getTargetForStage() : null;
+        // ステージのプログラム: いま編集中のスプライトではなくステージに入れる
+        const target = stage || null;
+        const checkTarget = target || (vm && vm.editingTarget ? vm.editingTarget : null);
+        try {
+            const { errors } = await rubyToBlocksXml(vm, checkTarget, current.challenge.code, intl, {
+                version: rubyVersion,
+                validateAssets: true,
+            });
+            if (errors.length > 0) {
+                setInsertErrors(errors.map((e) => e.text).filter(Boolean));
+                return;
+            }
+        } catch (err) {
+            // 試しの変換そのものが落ちたときは、従来どおり入れて Ruby タブにまかせる
+            // eslint-disable-next-line no-console
+            console.warn('[lesson-hint] could not check the program before inserting:', err);
         }
+        setInsertErrors([]);
+        if (target) vm.setEditingTarget(target.id);
         onInsertCode(current.challenge.code, current.course.language, target, rubyVersion);
-    }, [current, onInsertCode, rubyVersion, vm]);
+    }, [current, intl, onInsertCode, rubyVersion, vm]);
 
     if (!hint || !hint.visible || !current) return null;
     const step = hint.step;
@@ -90,6 +113,7 @@ const LessonHintContainer = ({
             debug={hint.debug}
             hasCode={Boolean(hint.code)}
             index={hint.index}
+            insertErrors={insertErrors}
             lastResort={hint.lastResort}
             mediaPath={`./static/${colorModeMap[colorMode].blocksMediaFolder}/`}
             onClose={onHideHint}

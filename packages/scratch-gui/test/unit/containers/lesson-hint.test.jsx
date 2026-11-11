@@ -108,16 +108,49 @@ describe('LessonHint container', () => {
         console.warn.mockRestore();
     });
 
-    test('the last page inserts the challenge code for the course language', () => {
+    test('the last page inserts the challenge code for the course language', async () => {
         const props = { ...baseProps(), hint: hintFor(6) };
-        const { getByTestId } = renderContainer(props);
+        const { getByTestId, queryByTestId } = renderContainer(props);
         expect(getByTestId('lesson-hint-debug').querySelectorAll('li')).toHaveLength(2);
         fireEvent.click(getByTestId('lesson-hint-insert-code'));
+        await flush();
+        // 入れる前に、音・背景の確かめ込みで同じ変換を試す
+        expect(rubyToBlocksXml).toHaveBeenCalledWith(
+            props.vm,
+            props.vm.editingTarget,
+            props.current.challenge.code,
+            expect.anything(),
+            { version: '2', validateAssets: true },
+        );
         expect(props.onInsertCode).toHaveBeenCalledWith(props.current.challenge.code, 'blocks', null, '2');
-        expect(rubyToBlocksXml).not.toHaveBeenCalled();
+        expect(queryByTestId('lesson-hint-insert-code-error')).not.toBeInTheDocument();
     });
 
-    test('a challenge with codeTarget "stage" selects the stage and inserts the code there', () => {
+    test('does not insert and shows why when the program would not convert yet (e.g. Owl not added)', async () => {
+        rubyToBlocksXml.mockImplementationOnce(() =>
+            Promise.resolve({ xml: null, errors: [{ text: 'sound "Owl" does not exist.' }] }),
+        );
+        const current = findChallenge('blocks-l1-key-sound');
+        const { challenge } = current;
+        const hint = {
+            visible: true,
+            index: challenge.steps.length,
+            count: challenge.steps.length + 1,
+            step: null,
+            spotlight: false,
+            lastResort: true,
+            debug: challenge.debug,
+            code: challenge.code,
+        };
+        const props = { ...baseProps(), current, hint };
+        const { getByTestId } = renderContainer(props);
+        fireEvent.click(getByTestId('lesson-hint-insert-code'));
+        await flush();
+        expect(props.onInsertCode).not.toHaveBeenCalled();
+        expect(getByTestId('lesson-hint-insert-code-error')).toHaveTextContent('sound "Owl" does not exist.');
+    });
+
+    test('a challenge with codeTarget "stage" selects the stage and inserts the code there', async () => {
         const stage = { id: 'stage-id', isStage: true };
         const vm = {
             editingTarget: { id: 'sprite' },
@@ -140,6 +173,9 @@ describe('LessonHint container', () => {
         const props = { ...baseProps(), current, hint, vm };
         const { getByTestId } = renderContainer(props);
         fireEvent.click(getByTestId('lesson-hint-insert-code'));
+        await flush();
+        // 試しの変換もステージを相手にする（背景はステージのもの）
+        expect(rubyToBlocksXml.mock.calls[0][1]).toBe(stage);
         expect(vm.setEditingTarget).toHaveBeenCalledWith('stage-id');
         expect(props.onInsertCode).toHaveBeenCalledWith(challenge.code, 'blocks', stage, '2');
     });

@@ -223,12 +223,23 @@ describe('Smalruby Lessons: lesson 1 challenges 1-4', () => {
         await openChallenge('blocks-l1-key-sound');
         expect(await textByTestId('lesson-task-bar-position')).toBe('1 / 全部で 11');
 
+        // Owl を足す前に「プログラムを入れる」を押すと、入れずに吹き出しの中にわけが出る
+        await insertProgramFromHints(6);
+        await findByXpath(byTestId('lesson-hint-insert-code-error'));
+        expect(await textByTestId('lesson-hint-insert-code-error')).toContain('Owl');
+        expect(await opcodesOf('sprite')).toEqual([]);
+        await clickByTestId('lesson-hint-close');
+
         await addSoundNamed('Owl');
         expect(
             await driver.executeScript('return window.smalruby.vm.editingTarget.sprite.sounds.map(s => s.name);'),
         ).toEqual(['ニャー', 'Owl']);
 
-        await insertProgramFromHints(6);
+        // ヒントは最後のページのまま開き直す（わけは消えている）
+        await clickByTestId('lesson-task-bar-hint');
+        await findByXpath(byTestId('lesson-hint-insert-code'));
+        expect(await countByTestId('lesson-hint-insert-code-error')).toBe(0);
+        await clickByTestId('lesson-hint-insert-code');
         await waitForOpcode('sprite', 'sound_play');
         expect(await opcodesOf('sprite')).toEqual(['event_whenkeypressed', 'sound_play', 'sound_playuntildone']);
 

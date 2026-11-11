@@ -59,6 +59,17 @@ describe('rubyToBlocksXml', () => {
         expect(backdrop.xml).toContain('<field name="BACKDROP">Arctic</field>');
     });
 
+    test('with validateAssets: true, a sound the project does not have is an error (checked before inserting)', async () => {
+        const target = { id: 't', isStage: false, getSounds: () => [{ name: 'Meow' }], getCostumes: () => [] };
+        const { xml, errors } = await rubyToBlocksXml(null, target, 'play("Owl")\n', null, {
+            version: '2',
+            validateAssets: true,
+        });
+        expect(xml).toBeNull();
+        expect(errors).toHaveLength(1);
+        expect(errors[0].text).toContain('Owl');
+    });
+
     test('returns errors instead of xml for Ruby that does not parse', async () => {
         const { xml, errors } = await rubyToBlocksXml(null, null, 'when_clicked do\n');
         expect(xml).toBeNull();
