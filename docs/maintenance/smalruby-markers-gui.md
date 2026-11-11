@@ -156,6 +156,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/components/menu-bar/project-title-input.jsx` | read-only project title for Google Drive | Google Drive の閲覧専用プロジェクトでタイトル入力を read-only 化（4 ペア） |
 | `src/components/menu-bar/project-title-input.css` | read-only project title for Google Drive | 同機能のスタイル |
 | `src/components/cards/card.css` | insert-code button overlay / tutorial glow animation | チュートリアルカードの「コードを挿入」ボタンのオーバーレイとハイライトアニメーションのスタイル |
+| `test/helpers/selenium-helper.js` | getLogs SEVERE filter | `getLogs()` が SEVERE を返さなかった不具合（`entry.level` は `logging.Level` のオブジェクト）を直し、絞り込みと既知の無害なログの一覧を `test/helpers/ignorable-severe-logs.js` の `filterBrowserLogs` に任せる（import と本体の 2 ペア）。他の Smalruby マーカー（extra helpers / no-sandbox など）は従来どおり |
 
 > 注: `src/lib/url-params.js` は Smalruby 固有ファイル（`.prettierignore` ホワイトリスト対象）の
 > ため本表の対象外（旧エントリは削除済み。固有ファイル内のマーカーは取り外し可能拡張の

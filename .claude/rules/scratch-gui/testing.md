@@ -146,6 +146,13 @@ describe('RubyToBlocksConverter/Event', () => {
    });
    ```
 
+   ログの検査は `expect(await getLogs()).toEqual([])` と書く。`getLogs()` は既定で
+   SEVERE だけを返し、既知の無害なログ（`test/helpers/ignorable-severe-logs.js` の
+   `isIgnorableSevereLog`。環境由来のノイズと、follow-up 待ちの upstream 由来の警告）を除く。
+   無害なログを足すときはこの 1 か所に、部品名や URL まで狭く一致するパターンで足し、
+   unit テスト（`test/unit/helpers/ignorable-severe-logs.test.js`）も足す。
+   テストごとに同じ除外をコピーしない。
+
 4. **Run lint**:
    ```bash
    docker compose run --rm app bash -c "cd /app/packages/scratch-gui && npm run test:lint"

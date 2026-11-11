@@ -1,6 +1,8 @@
-import { isIgnorableSevereLog, unexpectedSevereLogs } from '../../helpers/ignorable-severe-logs';
-
-const severe = (message) => ({ level: { name: 'SEVERE' }, message, timestamp: 0, type: '' });
+import {
+    filterBrowserLogs,
+    isIgnorableSevereLog,
+    levelName,
+} from '../../helpers/ignorable-severe-logs';
 
 // CI (Chrome stable) が実際に出したメッセージを貼っている（パスだけ版付きの配信パス
 // `static/monaco/<版>/vs` に合わせた・#1318）。自前ホストした Monaco の
@@ -38,18 +40,132 @@ describe('isIgnorableSevereLog', () => {
     });
 });
 
-describe('unexpectedSevereLogs', () => {
-    test('keeps only non-ignorable SEVERE entries', () => {
-        const logs = [
-            { level: { name: 'WARNING' }, message: 'Uncaught TypeError: warning level is dropped' },
-            severe(MONACO_WORKER_LOGS[0]),
-            severe(MONACO_WORKER_LOGS[1]),
-            severe('Uncaught TypeError: real failure'),
-        ];
-        expect(unexpectedSevereLogs(logs)).toEqual([severe('Uncaught TypeError: real failure')]);
+describe('isIgnorableSevereLog (environment noise)', () => {
+    test('ignores the Google Drive API init failure seen without Google credentials', () => {
+        const message =
+            'file:///app/packages/scratch-gui/build/gui.js 2:1234 "Failed to initialize Google Drive API:" Object';
+        expect(isIgnorableSevereLog(message)).toBe(true);
     });
 
-    test('returns an empty array when everything is ignorable', () => {
-        expect(unexpectedSevereLogs(MONACO_WORKER_LOGS.map(severe))).toEqual([]);
+    test('ignores cleardot.gif blocked by the devpod firewall', () => {
+        const message =
+            'https://www.google.com/images/cleardot.gif - Failed to load resource: net::ERR_CONNECTION_REFUSED';
+        expect(isIgnorableSevereLog(message)).toBe(true);
+    });
+
+    test('ignores the Google api.js script blocked by the devpod firewall', () => {
+        const messages = [
+            'https://apis.google.com/js/api.js - Failed to load resource: net::ERR_CONNECTION_REFUSED',
+            'file:///app/packages/scratch-gui/build/gui.js 113040:16 "Failed to load Google scripts:" Error: ' +
+                'Failed to load script: https://apis.google.com/js/api.js',
+        ];
+        messages.forEach((message) => expect(isIgnorableSevereLog(message)).toBe(true));
+    });
+
+    test('ignores react-intl MISSING_TRANSLATION fallbacks for locales without Smalruby strings', () => {
+        const message =
+            'file:///build/gui.js 343831:16 Error: [@formatjs/intl Error MISSING_TRANSLATION] Missing message: ' +
+            '"gui.menuBar.lessons" for locale "de", using default message (Lessons) as fallback.';
+        expect(isIgnorableSevereLog(message)).toBe(true);
+    });
+
+    test.each(['ja', 'ja-Hira'])('does not ignore a MISSING_TRANSLATION for locale %s (Smalruby strings must exist)', (locale) => {
+        const message =
+            'file:///build/gui.js 343831:16 Error: [@formatjs/intl Error MISSING_TRANSLATION] Missing message: ' +
+            `\\"gui.menuBar.lessons\\" for locale \\"${locale}\\", using default message (Lessons) as fallback.`;
+        expect(isIgnorableSevereLog(message)).toBe(false);
+        expect(isIgnorableSevereLog(message.replace(/\\/g, ''))).toBe(false);
+    });
+
+    test('ignores the intentionally unreachable wss://fake.fake/ of the connection modal test', () => {
+        const message =
+            "network 4 WebSocket connection to 'wss://fake.fake/' failed: " +
+            'Error in connection establishment: net::ERR_NAME_NOT_RESOLVED';
+        expect(isIgnorableSevereLog(message)).toBe(true);
+    });
+
+    test.each([
+        '"Warning: Failed %s type: %s%s" "prop" "The prop `id` is marked as required in `Modal`, but its value is ' +
+            '`undefined`." "\\n    at Modal (gui.js:1:1)\\n    at PromptComponent (gui.js:2:2)"',
+        '"Warning: Failed %s type: %s%s" "prop" "Invalid prop `value` supplied to `ListMonitor`, expected one of ' +
+            'type [number, string]."',
+        'gui.js 544813:158161 Uncaught Error: Attempted to focus unregistered node: [object Object].',
+        '"Warning: Failed %s type: %s%s" "prop" "The prop `id` is marked as required in `Modal`, but its value is ' +
+            '`undefined`." "\\n    at Modal (:1:5)\\n    at ConnectFunction (:2:3)\\n    at RecordModal (:3:7)"',
+        '"Warning: Received `%s` for a non-boolean attribute `%s`." "false" "autoComplete" "autoComplete" ' +
+            '"\\n    at input\\n    at Grid (:1:1)\\n    at ListMonitorScroller (:2:5)"',
+        'http://csi.gstatic.com/csi?v=3&s=gapi_global&action=global&rt= - Failed to load resource: ' +
+            'net::ERR_CONNECTION_REFUSED',
+    ])('ignores known upstream warnings that were hidden by the broken getLogs() (%#)', (message) => {
+        expect(isIgnorableSevereLog(message)).toBe(true);
+    });
+
+    test('does not ignore a missing Modal id outside the Prompt', () => {
+        const message =
+            '"Warning: Failed %s type: %s%s" "prop" "The prop `id` is marked as required in `Modal`, but its value ' +
+            'is `undefined`." "\\n    at Modal (gui.js:1:1)\\n    at LessonsModal (gui.js:2:2)"';
+        expect(isIgnorableSevereLog(message)).toBe(false);
+    });
+
+    test('does not ignore other WebSocket failures', () => {
+        const message = "WebSocket connection to 'wss://example.com/' failed: net::ERR_NAME_NOT_RESOLVED";
+        expect(isIgnorableSevereLog(message)).toBe(false);
+    });
+
+    test('does not ignore other google.com resource failures', () => {
+        const message = 'https://www.google.com/other.js - Failed to load resource: net::ERR_CONNECTION_REFUSED';
+        expect(isIgnorableSevereLog(message)).toBe(false);
+    });
+});
+
+describe('levelName', () => {
+    test.each([
+        ['SEVERE', 'SEVERE'],
+        [{ name: 'SEVERE', value: 1000 }, 'SEVERE'],
+        [undefined, ''],
+    ])('normalizes %p to %p', (level, expected) => {
+        expect(levelName(level)).toBe(expected);
+    });
+});
+
+describe('filterBrowserLogs', () => {
+    const entry = (name, message) => ({ level: { name, value: 0 }, message, timestamp: 0, type: '' });
+    const realError = entry('SEVERE', 'Uncaught TypeError: real failure');
+
+    test('returns SEVERE entries by default (level is an object, not a string)', () => {
+        const logs = [entry('INFO', 'info'), entry('WARNING', 'warn'), realError];
+        expect(filterBrowserLogs(logs)).toEqual([realError]);
+    });
+
+    test('accepts a string level too', () => {
+        const stringLevel = { level: 'SEVERE', message: 'Uncaught Error: boom' };
+        expect(filterBrowserLogs([stringLevel])).toEqual([stringLevel]);
+    });
+
+    test('drops known harmless SEVERE entries', () => {
+        const logs = [
+            entry('SEVERE', 'gui.js 2:1 "Failed to initialize Google Drive API:" Object'),
+            entry('SEVERE', 'https://www.google.com/images/cleardot.gif - Failed to load resource: net::ERR_CONNECTION_REFUSED'),
+            entry('SEVERE', MONACO_WORKER_LOGS[1]),
+            realError,
+        ];
+        expect(filterBrowserLogs(logs)).toEqual([realError]);
+    });
+
+    test('drops entries matching the default whitelist', () => {
+        const logs = [entry('SEVERE', 'Uncaught (in promise) The play() request was interrupted by a call to pause()')];
+        expect(filterBrowserLogs(logs)).toEqual([]);
+    });
+
+    test('a custom whitelist replaces the default one but keeps the known harmless list', () => {
+        const play = entry('SEVERE', 'The play() request was interrupted by a call to pause()');
+        const logs = [play, entry('SEVERE', 'expected noise'), entry('SEVERE', MONACO_WORKER_LOGS[1]), realError];
+        expect(filterBrowserLogs(logs, { whitelist: ['expected noise'] })).toEqual([play, realError]);
+    });
+
+    test('includeAllLevels returns every level (raw, for debugging)', () => {
+        const drive = entry('SEVERE', '"Failed to initialize Google Drive API:"');
+        const logs = [entry('INFO', 'info'), drive, realError];
+        expect(filterBrowserLogs(logs, { includeAllLevels: true })).toEqual(logs);
     });
 });
