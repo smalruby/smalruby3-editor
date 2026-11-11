@@ -215,6 +215,29 @@ describe('LessonHint container', () => {
         expect(queryByTestId('lesson-hint-insert-code-error')).not.toBeInTheDocument();
     });
 
+    test('shows the reasons of the locale whose program is closest to the project when none fits', async () => {
+        // 日本語の作品を英語の UI で開き、Owl をまだ足していない: en の code は "Meow" と Owl の 2 つ、
+        // ja の code は Owl の 1 つが合わない。作品にある「ニャー」を探させないよう、Owl だけを出す
+        rubyToBlocksXml
+            .mockImplementationOnce(() =>
+                Promise.resolve({
+                    xml: null,
+                    errors: [{ text: 'sound "Meow" does not exist.' }, { text: 'sound "Owl" does not exist.' }],
+                }),
+            )
+            .mockImplementationOnce(() =>
+                Promise.resolve({ xml: null, errors: [{ text: 'sound "Owl" does not exist.' }] }),
+            );
+        const props = keySoundLastPage();
+        const { getByTestId } = renderContainer(props, 'en');
+        fireEvent.click(getByTestId('lesson-hint-insert-code'));
+        await flush();
+        expect(props.onInsertCode).not.toHaveBeenCalled();
+        const error = getByTestId('lesson-hint-insert-code-error');
+        expect(error).toHaveTextContent('sound "Owl" does not exist.');
+        expect(error).not.toHaveTextContent('Meow');
+    });
+
     test('draws the hint blocks of the UI locale', async () => {
         const current = findChallenge('blocks-l1-key-sound');
         const step = current.challenge.steps[2];

@@ -103,9 +103,11 @@ const LessonHintContainer = ({
             ];
         };
         const candidates = challengeCodeCandidates(challenge, intl.locale);
-        // 作品に合う最初の組を使う。どれも合わなければ、いまの locale の組のわけを出す
+        // 作品に合う最初の組を使う。どれも合わなければ、わけのいちばん少ない組（同じなら先の組 =
+        // いまの locale）のわけを出す。日本語の作品を英語の UI で開いて Owl をまだ足していないとき、
+        // en の組のわけ（"Meow" も Owl も無い）を出すと、作品にある「ニャー」を探させてしまう
         let chosen = null;
-        let firstErrors = null;
+        let fewestErrors = null;
         try {
             for (const candidate of candidates) {
                 const results = await Promise.all(
@@ -118,10 +120,10 @@ const LessonHintContainer = ({
                     chosen = candidate;
                     break;
                 }
-                if (!firstErrors) firstErrors = errors;
+                if (!fewestErrors || errors.length < fewestErrors.length) fewestErrors = errors;
             }
             if (!chosen) {
-                setInsertErrors(firstErrors.map((e) => e.text).filter(Boolean));
+                setInsertErrors(fewestErrors.map((e) => e.text).filter(Boolean));
                 return;
             }
         } catch (err) {
