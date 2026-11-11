@@ -48,6 +48,7 @@ const baseProps = () => ({
     colorMode: 'default',
     current: findChallenge(CHALLENGE_ID),
     hint: hintFor(1),
+    onFinishHint: jest.fn(),
     onHideHint: jest.fn(),
     onInsertCode: jest.fn(),
     onNextHint: jest.fn(),

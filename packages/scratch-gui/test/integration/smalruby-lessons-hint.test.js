@@ -167,6 +167,12 @@ describe('Smalruby Lessons: hint balloon', () => {
         // 閉じる
         await clickByTestId(driver, 'lesson-hint-close');
         expect(await countByTestId(driver, 'lesson-hint')).toBe(0);
+        // ×で閉じたときは、課題バーの「ヒント」で開き直すと同じページ（#1528）
+        await clickByTestId(driver, 'lesson-task-bar-hint');
+        await findByXpath(byTestId('lesson-hint'));
+        expect(await textByTestId(driver, 'lesson-hint-position')).toBe('Hint 2 of 7');
+        await clickByTestId(driver, 'lesson-hint-close');
+        expect(await countByTestId(driver, 'lesson-hint')).toBe(0);
         // やめると吹き出しの状態も消える
         await clickByTestId(driver, 'lesson-task-bar-quit');
         await driver.sleep(500);
@@ -243,7 +249,7 @@ describe('Smalruby Lessons: hint balloon', () => {
         expect(next.right).toBeLessThanOrEqual(next.vw);
         expect(next.bottom).toBeLessThanOrEqual(next.vh);
 
-        // 最後のページの「おわり」で閉じる。ヒントで開き直すと、元の置き方にもどる
+        // 最後のページの「おわり」で閉じる。ヒントで開き直すと、元の置き方にもどり、1 ページ目から（#1528）
         for (let i = 0; i < 10 && (await countByTestId(driver, 'lesson-hint-finish')) === 0; i++) {
             await clickByTestId(driver, 'lesson-hint-next');
         }
@@ -253,6 +259,36 @@ describe('Smalruby Lessons: hint balloon', () => {
         await clickByTestId(driver, 'lesson-task-bar-hint');
         await findByXpath(byTestId('lesson-hint'));
         expect(await attrByTestId(driver, 'lesson-hint', 'data-dragged')).toBe('false');
+        expect(await textByTestId(driver, 'lesson-hint-position')).toBe('Hint 1 of 7');
+        await clickByTestId(driver, 'lesson-task-bar-quit');
+
+        // 既知の無害なログ (Google Drive の初期化失敗など) は getLogs() が除く
+        expect(await getLogs()).toEqual([]);
+    });
+
+    test('completing the challenge closes the balloon so it does not cover "You did it!" (#1528)', async () => {
+        await loadUri(`${uri}?no_beforeunload=1`);
+        await driver.manage().window().setRect({ width: 1300, height: 600 });
+        await waitForLoadingFinished();
+        await driver.executeScript('window.confirm = () => true;');
+        await startChallenge(driver, CHALLENGE_ID);
+        await findByXpath(byTestId('lesson-task-bar'));
+        await findByXpath(byTestId('lesson-hint'));
+        await clickByTestId(driver, 'lesson-hint-next');
+        expect(await textByTestId(driver, 'lesson-hint-position')).toBe('Hint 2 of 7');
+
+        await driver.executeScript(`window.smalruby.lessonGoal.markCompleted(${JSON.stringify(CHALLENGE_ID)})`);
+        await findByXpath(byTestId('lesson-completed-toast'));
+        await driver.wait(
+            async () => (await countByTestId(driver, 'lesson-hint')) === 0,
+            5000,
+            'the hint balloon did not close when the challenge was completed',
+        );
+
+        // 開き直すと、閉じたときのページ（×で閉じたときと同じ）
+        await clickByTestId(driver, 'lesson-task-bar-hint');
+        await findByXpath(byTestId('lesson-hint'));
+        expect(await textByTestId(driver, 'lesson-hint-position')).toBe('Hint 2 of 7');
         await clickByTestId(driver, 'lesson-task-bar-quit');
 
         // 既知の無害なログ (Google Drive の初期化失敗など) は getLogs() が除く

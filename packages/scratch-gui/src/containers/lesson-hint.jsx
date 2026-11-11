@@ -25,13 +25,21 @@ import { findCodeSprite, findSpriteByName, insertSpriteCodes } from '../lib/less
 import { targetCodeToBlocks } from '../lib/ruby-to-blocks-converter';
 import { colorModeMap } from '../lib/settings/color-mode';
 import { BLOCKS_TAB_INDEX, RUBY_TAB_INDEX, activateTab } from '../reducers/editor-tab';
-import { getCurrentChallenge, getCurrentHint, hideHint, nextHint, prevHint } from '../reducers/lesson-mode';
+import {
+    finishHint,
+    getCurrentChallenge,
+    getCurrentHint,
+    hideHint,
+    nextHint,
+    prevHint,
+} from '../reducers/lesson-mode';
 import { updateRubyCode, updateRubyCodeTarget } from '../reducers/ruby-code';
 
 const LessonHintContainer = ({
     colorMode,
     current,
     hint,
+    onFinishHint,
     onHideHint,
     onInsertCode,
     onNextHint,
@@ -174,6 +182,7 @@ const LessonHintContainer = ({
             lastResort={hint.lastResort}
             mediaPath={`./static/${colorModeMap[colorMode].blocksMediaFolder}/`}
             onClose={onHideHint}
+            onFinish={onFinishHint}
             onInsertCode={handleInsertCode}
             onNext={onNextHint}
             onPrev={onPrevHint}
@@ -204,6 +213,7 @@ LessonHintContainer.propTypes = {
         code: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
         session: PropTypes.number,
     }),
+    onFinishHint: PropTypes.func.isRequired,
     onHideHint: PropTypes.func.isRequired,
     onInsertCode: PropTypes.func.isRequired,
     onNextHint: PropTypes.func.isRequired,
@@ -223,6 +233,7 @@ const mapStateToProps = (state) => ({
 });
 
 const mapDispatchToProps = (dispatch) => ({
+    onFinishHint: () => dispatch(finishHint()),
     onHideHint: () => dispatch(hideHint()),
     onNextHint: () => dispatch(nextHint()),
     onPrevHint: () => dispatch(prevHint()),

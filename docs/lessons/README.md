@@ -479,8 +479,9 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `cancelStartChallenge()` | 開こうとしていたチャレンジを取り消す（「保存しますか」で取りやめたとき） |
 | `openChallenge(challengeId)` | レッスンモードに入る（作品の準備は済んでいる前提。知らない id は無視）。「できた！」は消す |
 | `closeLesson()` | レッスンモードを抜ける（記録は残す） |
-| `showHint()` / `hideHint()` / `nextHint()` / `prevHint()` | ヒントの吹き出しの出し入れと「進める・もどる」（ヒントが無いチャレンジでは出ない。両端で止まる） |
-| `markChallengeCompleted(challengeId, completedAt?)` | 「できた」にして localStorage にも書く。書く前に localStorage の最新と合わせる（別のタブが書いた分を消さない）。`justCompletedId` をそのチャレンジにする（すでにできていても） |
+| `showHint()` / `hideHint()` / `nextHint()` / `prevHint()` | ヒントの吹き出しの出し入れと「進める・もどる」（ヒントが無いチャレンジでは出ない。両端で止まる）。`hideHint` はページを保つ |
+| `finishHint()` | 「おわり」で閉じる（次に開くときは 1 ページ目から） |
+| `markChallengeCompleted(challengeId, completedAt?)` | 「できた」にして localStorage にも書く。書く前に localStorage の最新と合わせる（別のタブが書いた分を消さない）。`justCompletedId` をそのチャレンジにする（すでにできていても）。いま開いているチャレンジなら、ヒントの吹き出しを閉じる（ページは保つ） |
 | `dismissCompleted()` | 「できた！」を閉じる |
 | `focusLessonsLibrary(challengeId)` / `clearLessonsLibraryFocus()` | レッスン表で見せるチャレンジを入れる / 消す（知らない id は無視）。開くのは modals の `openLessonsLibrary`。2 つをまとめて出すのは `openLessonsLibraryAt(dispatch, challengeId)` |
 | `reloadProgress()` | localStorage の最新を写しに取り込む（別のタブが書いた分を、レッスン表を開くときなどに反映する。書かない） |
@@ -707,6 +708,14 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
   パレットやステージはそのまま操作できる（ドラッグ中のブロックは吹き出しより上を通る）。
 - **進める・もどる・閉じる**: `nextHint` / `prevHint` / `hideHint`。最初で「もどる」が無効。最後のページは
   そのあとが無いので、「進める」の代わりに **「おわり」**（`lesson-hint-finish`。押すと閉じる）を出す。
+- **開き直したときのページ**: 閉じ方で変える。
+  - **×（閉じる・`hideHint`）**: 同じページから。読みかけを一度よけただけなので。
+  - **「おわり」（`finishHint`）**: 1 ページ目から。最後まで読んだので、次に「ヒント」を押したときに最後のページ
+    （うまく動かないときは）がまた出ると、何をすればよいかわかりにくいため。
+  - **できたとき（`markChallengeCompleted` がいま開いているチャレンジ）**: 吹き出しを自動で閉じる。できたあとは
+    ヒントの役目が終わり、「できた！」（の「次のチャレンジ」）を吹き出しで隠さないため（1300×600 でも角が重なりうる・
+    動かしていると隠しうる）。ページは × と同じくそのまま（課題バーの「ヒント」で開き直すと同じページ。読みかけの
+    ページを見直したいときにそのまま戻れるように）。別のチャレンジの「できた」では閉じない。
 - **ドラッグで動かす**: 吹き出しのヘッダー（色の帯。`lesson-hint-drag-handle`）をドラッグすると動かせる。
   Pointer Events なのでマウスとタッチの両方で動き、帯は `touch-action: none`（タッチのドラッグをスクロールにとられない）。
   閉じるボタンを押したときはドラッグを始めない。押しただけの手ぶれ（4px 未満）では動かさない（しっぽが消えないように）。
@@ -787,7 +796,7 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `lesson-hint-insert-code` | button | 正解のプログラムを確認する（最後のページ。`code` があるときだけ。押すと確認を出す） |
 | `lesson-hint-insert-code-confirm` | div | 「正解のプログラムで置き換えますか？…」の確認（押したあとだけある） |
 | `lesson-hint-insert-code-yes` / `lesson-hint-insert-code-no` | button | 確認の「はい」（プログラムを入れる）/「いいえ」（何もしない） |
-| `lesson-hint-finish` | button | おわり（最後のページで「進める」の代わり。押すと閉じる） |
+| `lesson-hint-finish` | button | おわり（最後のページで「進める」の代わり。押すと閉じ、次は 1 ページ目から開く） |
 | `lesson-hint-drag-handle` | div | 吹き出しのヘッダー（ドラッグで動かす取っ手） |
 | `lesson-hint-insert-code-error` | div | プログラムを入れられないときのわけ（音・背景をまだ足していない等） |
 | `lesson-hint-prev` / `lesson-hint-next` / `lesson-hint-close` | button | もどる / 進める（最後のページには無い） / 閉じる |
