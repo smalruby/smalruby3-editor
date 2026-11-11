@@ -81,3 +81,37 @@ describe('detectLocale', () => {
         expect(detectLocale(supportedLocales)).toEqual('de');
     });
 });
+
+// === Smalruby: Start of case-insensitive locale matching ===
+describe('detectLocale with mixed-case supported locales', () => {
+    const smalrubyLocales = ['en', 'ja', 'ja-Hira', 'zh-cn', 'pt-br'];
+
+    beforeEach(() => {
+        mockWindowNavigator.language = 'en-US';
+    });
+
+    test.each([
+        ['ja-Hira', 'ja-Hira'],
+        ['ja-hira', 'ja-Hira'],
+        ['JA-HIRA', 'ja-Hira'],
+        ['ja', 'ja'],
+        ['en', 'en'],
+        ['zh-cn', 'zh-cn'],
+        ['zh-CN', 'zh-cn'],
+    ])('?locale=%s returns the canonical %s', (param, expected) => {
+        mockWindowLocation.search = `?locale=${param}`;
+        expect(detectLocale(smalrubyLocales)).toEqual(expected);
+    });
+
+    test('ignores unsupported locales', () => {
+        mockWindowLocation.search = '?locale=xx-Yy';
+        expect(detectLocale(smalrubyLocales)).toEqual('en');
+    });
+
+    test('uses the canonical form for the navigator language too', () => {
+        mockWindowLocation.search = '';
+        mockWindowNavigator.language = 'ja-hira';
+        expect(detectLocale(smalrubyLocales)).toEqual('ja-Hira');
+    });
+});
+// === Smalruby: End of case-insensitive locale matching ===
