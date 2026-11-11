@@ -282,22 +282,22 @@ const evaluateSaid = (condition, facts) =>
         return true;
     });
 
-// ステージ（すべてのスプライト用）の変数を先に探す。name は名前の配列でもよい（どれか 1 つ。
-// ja-Hira の文言は「かいすう」と書くので、子どもが「かいすう」で作っても同じ変数として見る）
-const findVariable = (snapshot, name, type) => {
-    const names = variableNames(name);
-    const variables = (snapshot.variables || []).filter((v) => (v.type || '') === type && names.includes(v.name));
-    return variables.find((v) => v.isStage) || variables[0] || null;
-};
+// 名前ごとに、ステージ（すべてのスプライト用）の変数を先に探す。name は名前の配列でもよい
+// （locale ごとの名前。ja-Hira は「かいすう」、en は「count」と書く）。ja で作った作品を en で開いて
+// 「プログラムを入れる」と両方の名前がそろうことがあるので、見つかった変数のどれかが合えばよい
+const findVariables = (snapshot, name, type) =>
+    variableNames(name)
+        .map((n) => {
+            const variables = (snapshot.variables || []).filter((v) => (v.type || '') === type && v.name === n);
+            return variables.find((v) => v.isStage) || variables[0] || null;
+        })
+        .filter((v) => v !== null);
 
-const evaluateVariable = (condition, snapshot) => {
-    const variable = findVariable(snapshot, condition.name, '');
-    return variable !== null && matchValue(condition.value, variable.value);
-};
+const evaluateVariable = (condition, snapshot) =>
+    findVariables(snapshot, condition.name, '').some((variable) => matchValue(condition.value, variable.value));
 
-const evaluateList = (condition, facts, snapshot) => {
-    const variable = findVariable(snapshot, condition.name, 'list');
-    if (variable === null || !Array.isArray(variable.value)) return false;
+const listMatches = (condition, facts, variable) => {
+    if (!Array.isArray(variable.value)) return false;
     const items = variable.value;
     if (!isUnset(condition.length) && !matchValue(condition.length, items.length)) return false;
     if (condition.itemsFromAnswers) {
@@ -306,6 +306,9 @@ const evaluateList = (condition, facts, snapshot) => {
     }
     return true;
 };
+
+const evaluateList = (condition, facts, snapshot) =>
+    findVariables(snapshot, condition.name, 'list').some((variable) => listMatches(condition, facts, variable));
 
 const evaluateSprites = (condition, snapshot) => (snapshot.spriteCount || 0) >= (condition.min || 1);
 

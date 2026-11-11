@@ -327,11 +327,15 @@ const OperatorsConverter = {
                 !(converter._isBlock(receiver) && receiver.opcode === 'data_variable')) return null;
 
             const block = converter._createBlock('operator_not', 'value_boolean');
-            converter._addInput(
-                block,
-                'OPERAND',
-                converter._createTextBlock(converter._isNumber(receiver) ? receiver.toString() : receiver)
-            );
+            if (converter._isFalse(receiver)) {
+                converter._addBooleanInput(block, 'OPERAND', receiver);
+            } else {
+                converter._addInput(
+                    block,
+                    'OPERAND',
+                    converter._createTextBlock(converter._isNumber(receiver) ? receiver.toString() : receiver)
+                );
+            }
             return block;
         });
 
@@ -389,10 +393,10 @@ const OperatorsConverter = {
                 }
             });
             if (converter._isFalseOrBooleanBlock(operands[0])) {
-                converter._addInput(block, 'OPERAND1', converter._createTextBlock(operands[0]));
+                converter._addBooleanInput(block, 'OPERAND1', operands[0]);
             }
             if (converter._isFalseOrBooleanBlock(operands[1])) {
-                converter._addInput(block, 'OPERAND2', converter._createTextBlock(operands[1]));
+                converter._addBooleanInput(block, 'OPERAND2', operands[1]);
             }
             return block;
         });
@@ -405,10 +409,10 @@ const OperatorsConverter = {
                 }
             });
             if (converter._isFalseOrBooleanBlock(operands[0])) {
-                converter._addInput(block, 'OPERAND1', converter._createTextBlock(operands[0]));
+                converter._addBooleanInput(block, 'OPERAND1', operands[0]);
             }
             if (converter._isFalseOrBooleanBlock(operands[1])) {
-                converter._addInput(block, 'OPERAND2', converter._createTextBlock(operands[1]));
+                converter._addBooleanInput(block, 'OPERAND2', operands[1]);
             }
             return block;
         });

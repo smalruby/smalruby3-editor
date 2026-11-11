@@ -18,10 +18,10 @@ describe('tutorialOnboarding reducer', () => {
         expect(window.localStorage.getItem('smalruby:tutorialSeen')).toBe('true');
     });
 
-    // Issue #1498: レッスン表を通らずにチャレンジを開いても「レッスンをはじめよう！」の役目は終わる
-    test('opening a challenge marks the tutorial as seen', () => {
+    // Issue #1512: 「レッスンをはじめよう！」が無くなったので、チャレンジを開いても印は付けない
+    test('opening a challenge leaves the onboarding state as it is', () => {
         const state = reducer(firstTime, openChallenge('blocks-l1-if'));
-        expect(state).toEqual({ tutorialSeen: true, rubyTabUsed: false, tooltipDismissed: true });
-        expect(window.localStorage.getItem('smalruby:tutorialSeen')).toBe('true');
+        expect(state).toEqual(firstTime);
+        expect(window.localStorage.getItem('smalruby:tutorialSeen')).toBeNull();
     });
 });

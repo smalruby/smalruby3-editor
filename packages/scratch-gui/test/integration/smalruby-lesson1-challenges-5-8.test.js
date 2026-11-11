@@ -203,23 +203,23 @@ describe('Smalruby Lessons: lesson 1 challenges 5-8', () => {
             hintCount: 5,
             firstTarget: 'palette',
             hatOpcode: 'event_whenthisspriteclicked',
-            // ヒント 1 のとおり「変数を作る」で「回数」を作る（既定 = すべてのスプライト用）
+            // ヒント 1 のとおり「変数を作る」で「count」を作る（en の名前。既定 = すべてのスプライト用）
             beforeInsert: async () => {
                 await clickBlocksCategory('Variables');
                 await clickText('Make a Variable');
                 const input = await findByXpath("//input[@name='New variable name:']");
-                await input.sendKeys('回数');
+                await input.sendKeys('count');
                 await clickButton('OK');
                 await driver.sleep(500);
             },
         });
 
-        // Ruby の `$回数` は「変数を作る」で作ったステージの変数と同じもの（2 つにならない）
+        // Ruby の `$count` は「変数を作る」で作ったステージの変数と同じもの（2 つにならない）
         const variables = await driver.executeScript(`
             return window.smalruby.vm.runtime.targets
                 .filter(t => t.isOriginal)
                 .flatMap(t => Object.values(t.variables)
-                    .filter(v => v.name === '回数')
+                    .filter(v => v.name === 'count')
                     .map(v => ({ isStage: t.isStage, type: v.type })));
         `);
         expect(variables).toEqual([{ isStage: true, type: '' }]);
@@ -235,7 +235,7 @@ describe('Smalruby Lessons: lesson 1 challenges 5-8', () => {
         expect(await waitForCompletedToast()).toBe('Count');
         const count = await driver.executeScript(`
             const stage = window.smalruby.vm.runtime.getTargetForStage();
-            return stage.lookupVariableByNameAndType('回数', '').value;
+            return stage.lookupVariableByNameAndType('count', '').value;
         `);
         expect(Number(count)).toBe(3);
     });

@@ -163,7 +163,7 @@ describe('Smalruby Lessons: lesson 1 challenges 9-11', () => {
             });`);
         await clickCat();
         expect(await waitForCompletedToast()).toBe('Signal a friend');
-        expect(await driver.executeScript('return window.__lessonSays;')).toEqual([['Penguin', 'やあ！']]);
+        expect(await driver.executeScript('return window.__lessonSays;')).toEqual([['Penguin', 'Hi!']]);
     });
 
     test('9 なかまに合図しよう: inserting the program without the penguin adds it from the library', async () => {
@@ -206,23 +206,23 @@ describe('Smalruby Lessons: lesson 1 challenges 9-11', () => {
             hintCount: 5,
             firstTarget: 'palette',
             hatOpcode: 'event_whenthisspriteclicked',
-            // ヒント 1 のとおり「リストを作る」で「トーク」を作る（既定 = すべてのスプライト用）
+            // ヒント 1 のとおり「リストを作る」で「talk」を作る（en の名前。既定 = すべてのスプライト用）
             beforeInsert: async () => {
                 await clickBlocksCategory('Variables');
                 await clickText('Make a List');
                 const input = await findByXpath("//input[@name='New list name:']");
-                await input.sendKeys('トーク');
+                await input.sendKeys('talk');
                 await clickButton('OK');
                 await driver.sleep(500);
             },
         });
 
-        // Ruby の `$トーク` は「リストを作る」で作ったステージのリストと同じもの（2 つにならない）
+        // Ruby の `$talk` は「リストを作る」で作ったステージのリストと同じもの（2 つにならない）
         const lists = await driver.executeScript(`
             return window.smalruby.vm.runtime.targets
                 .filter(t => t.isOriginal)
                 .flatMap(t => Object.values(t.variables)
-                    .filter(v => v.name === 'トーク')
+                    .filter(v => v.name === 'talk')
                     .map(v => ({ isStage: t.isStage, type: v.type })));
         `);
         expect(lists).toEqual([{ isStage: true, type: 'list' }]);
@@ -241,7 +241,7 @@ describe('Smalruby Lessons: lesson 1 challenges 9-11', () => {
         expect(await waitForCompletedToast()).toBe('Collect messages');
         const items = await driver.executeScript(`
             const stage = window.smalruby.vm.runtime.getTargetForStage();
-            return stage.lookupVariableByNameAndType('トーク', 'list').value;
+            return stage.lookupVariableByNameAndType('talk', 'list').value;
         `);
         expect(items).toEqual(['こんにちは', 'げんき？', 'またね']);
     });

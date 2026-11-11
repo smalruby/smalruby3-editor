@@ -80,7 +80,7 @@ describe('rubyToBlocksXml', () => {
     });
 
     test('"if false" draws "if <  > then else" with an empty hole (challenge 5 hint)', async () => {
-        // ブロック → Ruby は空の穴を `if false` と書くので、ヒントでは `false` を空の穴として描く
+        // ブロック → Ruby は空の穴を `if false` と書くので、Ruby → ブロックでも条件の穴の `false` は空の穴になる
         const { xml, errors } = await rubyToBlocksXml(null, null, 'if false\nelse\nend\n');
         expect(errors).toEqual([]);
         expect(xml).toMatch(/^<xml[^>]*><block id="[^"]+" type="control_if_else"><\/block><\/xml>$/);

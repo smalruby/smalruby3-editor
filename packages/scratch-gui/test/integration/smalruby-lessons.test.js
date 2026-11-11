@@ -147,7 +147,7 @@ describe('Smalruby Lessons', () => {
         await clickBlocksCategory('Variables');
         await clickText('Make a List');
         const input = await findByXpath("//input[@name='New list name:']");
-        await input.sendKeys('トーク');
+        await input.sendKeys('talk');
         await clickButton('OK');
         await driver.sleep(1000);
 
