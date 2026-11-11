@@ -399,7 +399,7 @@ export const en = {
     'gui.lessons.skill.make-variable': 'make a variable',
     'gui.lessons.skill.variable': 'variables',
     'gui.lessons.challenge.blocks-l1-count.task': 'Count how many times the cat is clicked, and make it say the number. Try clicking it 3 times',
-    'gui.lessons.challenge.blocks-l1-count.step1': 'In the orange "Variables", click "Make a Variable" and make a variable named "回数" (count).',
+    'gui.lessons.challenge.blocks-l1-count.step1': 'In the orange "Variables", click "Make a Variable" and make a variable named "count".',
     'gui.lessons.challenge.blocks-l1-count.step2': 'Make a program that sets it back to 0 when the green flag is clicked.',
     'gui.lessons.challenge.blocks-l1-count.step3': 'Make a program that adds 1 when the cat is clicked, and says the number.',
     'gui.lessons.challenge.blocks-l1-count.step4': 'Click the green flag, then click the cat 3 times. The number also shows at the top left of the stage.',
@@ -409,13 +409,13 @@ export const en = {
     'gui.lessons.challenge.blocks-l1-message-list.name': 'Collect messages',
     // チャレンジ 9〜11
     'gui.lessons.challenge.blocks-l1-broadcast.task':
-        'Add a penguin, and make the penguin say "やあ！" (Hi!) when the cat is clicked',
+        'Add a penguin, and make the penguin say "Hi!" when the cat is clicked',
     'gui.lessons.skill.add-sprite': 'add a sprite',
     'gui.lessons.skill.broadcast': 'broadcast messages',
     'gui.lessons.skill.sprite-program': 'a program for each sprite',
     'gui.lessons.challenge.blocks-l1-broadcast.step1': 'Add a penguin with "Choose a Sprite" at the bottom right.',
     'gui.lessons.challenge.blocks-l1-broadcast.step2':
-        'Select the cat and snap "when this sprite clicked" and "broadcast" together. Choose "New message" from ▼ and make "あいさつ" (hello).',
+        'Select the cat and snap "when this sprite clicked" and "broadcast" together. Choose "New message" from ▼ and make "hello".',
     'gui.lessons.challenge.blocks-l1-broadcast.step3':
         'When you select the penguin, the code area becomes empty. Each sprite has its own program.',
     'gui.lessons.challenge.blocks-l1-broadcast.step4': 'Snap "when I receive" and "say" together for the penguin.',
@@ -425,7 +425,7 @@ export const en = {
     'gui.lessons.challenge.blocks-l1-broadcast.debug2':
         "Also check that you did not put the penguin's program on the cat.",
     'gui.lessons.challenge.blocks-l1-speak.task':
-        'Add the "Text to Speech" extension, and make the cat speak "ボタンが押されました" (the button was clicked) when it is clicked',
+        'Add the "Text to Speech" extension, and make the cat speak "The button was clicked" when it is clicked',
     'gui.lessons.skill.add-extension': 'add an extension',
     'gui.lessons.skill.text2speech': 'Text to Speech',
     'gui.lessons.challenge.blocks-l1-speak.step1':
@@ -436,15 +436,15 @@ export const en = {
     'gui.lessons.challenge.blocks-l1-speak.debug1':
         'If you hear nothing, check the volume of the computer. Text to Speech works only when it is connected to the Internet.',
     'gui.lessons.challenge.blocks-l1-message-list.task':
-        'When the cat is clicked, ask "メッセージは？" (message?) and keep the answers in the list "トーク" (talk). Try keeping 3',
+        'When the cat is clicked, ask "Message?" and keep the answers in the list "talk". Try keeping 3',
     'gui.lessons.skill.make-list': 'make a list',
     'gui.lessons.skill.add-to-list': 'add to a list',
     'gui.lessons.challenge.blocks-l1-message-list.step1':
-        'Under "Variables", click "Make a List" and make a list named "トーク" (talk). An empty box appears on the stage.',
+        'Under "Variables", click "Make a List" and make a list named "talk". An empty box appears on the stage.',
     'gui.lessons.challenge.blocks-l1-message-list.step2':
-        'Make a program that empties トーク when the green flag is clicked.',
+        'Make a program that empties talk when the green flag is clicked.',
     'gui.lessons.challenge.blocks-l1-message-list.step3':
-        'Make a program that asks when the cat is clicked and adds the answer to トーク.',
+        'Make a program that asks when the cat is clicked and adds the answer to talk.',
     'gui.lessons.challenge.blocks-l1-message-list.step4':
         'Click the green flag, then click the cat 3 times and type messages. They pile up in the box on the stage in the order you typed them.',
     'gui.lessons.challenge.blocks-l1-message-list.debug1':

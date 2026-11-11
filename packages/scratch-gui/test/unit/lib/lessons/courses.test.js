@@ -397,8 +397,8 @@ describe('lesson courses', () => {
                 '押すたびに 1 にもどるときは、「0 にする」が「押されたとき」のほうに入っていないか見よう。',
             ]);
             expect(c.goal).toEqual([
-                { type: 'variable', name: ['回数', 'かいすう'], value: { gte: 3 } },
-                { type: 'said', equalsVariable: ['回数', 'かいすう'] },
+                { type: 'variable', name: ['回数', 'かいすう', 'count'], value: { gte: 3 } },
+                { type: 'said', equalsVariable: ['回数', 'かいすう', 'count'] },
             ]);
             expect(localizeCode(c.code, 'ja')).toBe('when_flag_clicked do\n  $回数 = 0\nend\n\nwhen_clicked do\n  $回数 += 1\n  say($回数)\nend\n');
         });
@@ -460,7 +460,7 @@ describe('lesson courses', () => {
             ]);
             // code はネコ、ペンギンのプログラムは spriteCodes（ライブラリの「Penguin」）
             expect(localizeCode(c.code, 'ja')).toBe('when_clicked do\n  broadcast("あいさつ")\nend\n');
-            expect(c.spriteCodes).toEqual([
+            expect(challengeCodeFor(c, 'ja').spriteCodes).toEqual([
                 { sprite: 'Penguin', code: 'when_receive("あいさつ") do\n  say("やあ！", 2)\nend\n' },
             ]);
         });
@@ -528,7 +528,9 @@ describe('lesson courses', () => {
                 '1 つしかたまらないときは、「すべてを削除する」が「押されたとき」のほうに入っていないか見よう。',
                 '「答え」という文字がたまるときは、丸い「答え」のブロックを入れたか見よう。',
             ]);
-            expect(c.goal).toEqual([{ type: 'list', name: 'トーク', length: { gte: 3 }, itemsFromAnswers: true }]);
+            expect(c.goal).toEqual([
+                { type: 'list', name: ['トーク', 'talk'], length: { gte: 3 }, itemsFromAnswers: true },
+            ]);
             expect(localizeCode(c.code, 'ja')).toBe(
                 'when_flag_clicked do\n  $トーク.clear\nend\n\nwhen_clicked do\n  ask("メッセージは？")\n' +
                     '  $トーク.push(answer)\nend\n',
@@ -804,9 +806,9 @@ describe('lesson courses', () => {
                 localizeCode(c.code, 'ja'),
                 localizeCode(c.code, 'en'),
             ]);
-            // locale で分けないチャレンジ（9: あいさつ / やあ！）は 1 つ
-            const broadcast = challenge('blocks-l1-broadcast');
-            expect(challengeCodeCandidates(broadcast, 'en')).toEqual([challengeCodeFor(broadcast, 'ja')]);
+            // locale で分けないチャレンジ（2: 矢印キー）は 1 つ
+            const arrow = challenge('blocks-l1-arrow-move');
+            expect(challengeCodeCandidates(arrow, 'en')).toEqual([challengeCodeFor(arrow, 'ja')]);
         });
 
         test('challenge 1 plays the cat sound of the project of the locale', () => {
@@ -825,10 +827,57 @@ describe('lesson courses', () => {
             expect(en('blocks-l1-ask-answer')).toContain('timer.value + " seconds"');
             expect(en('blocks-l1-quiz')).toContain('say("Correct", 2)');
             expect(en('blocks-l1-quiz')).toContain('say("Wrong", 2)');
-            // en の文言も変数「回数」・リスト「トーク」・メッセージ「あいさつ」と日本語の名前で書く
-            expect(en('blocks-l1-count')).toContain('$回数');
-            expect(en('blocks-l1-message-list')).toContain('$トーク');
-            expect(en('blocks-l1-broadcast')).toContain('broadcast("あいさつ")');
+        });
+
+        // 8〜11 で子どもが作る名前は、en では英語（Ruby の変数名に使える小文字の英語・#1514）
+        test('the en code and hints of 8-11 use the English names the en task and hints write', () => {
+            const enCode = (id) => challengeCodeFor(challenge(id), 'en');
+            const enHints = (id) => challenge(id).steps.map((s) => localizeCode(s.blocks, 'en'));
+            const enText = (descriptor) => en[descriptor.id];
+            expect(enCode('blocks-l1-count').code).toBe(
+                'when_flag_clicked do\n  $count = 0\nend\n\nwhen_clicked do\n  $count += 1\n  say($count)\nend\n',
+            );
+            expect(enHints('blocks-l1-count')).toEqual([null, '$count = 0\n', '$count += 1\n', null]);
+            expect(enText(challenge('blocks-l1-count').steps[0].title)).toContain('"count"');
+
+            expect(enCode('blocks-l1-broadcast')).toEqual({
+                code: 'when_clicked do\n  broadcast("hello")\nend\n',
+                spriteCodes: [{ sprite: 'Penguin', code: 'when_receive("hello") do\n  say("Hi!", 2)\nend\n' }],
+            });
+            expect(enHints('blocks-l1-broadcast')).toEqual([
+                null,
+                'broadcast("hello")\n',
+                null,
+                'when_receive("hello") do\nend\n',
+                null,
+            ]);
+            expect(enText(challenge('blocks-l1-broadcast').task)).toContain('"Hi!"');
+            expect(enText(challenge('blocks-l1-broadcast').steps[1].title)).toContain('"hello"');
+
+            expect(enCode('blocks-l1-speak').code).toBe(
+                'when_clicked do\n  text2speech.speak("The button was clicked")\nend\n',
+            );
+            expect(enHints('blocks-l1-speak')).toEqual([null, 'text2speech.speak("The button was clicked")\n', null]);
+            expect(enText(challenge('blocks-l1-speak').task)).toContain('"The button was clicked"');
+
+            expect(enCode('blocks-l1-message-list').code).toBe(
+                'when_flag_clicked do\n  $talk.clear\nend\n\nwhen_clicked do\n  ask("Message?")\n' +
+                    '  $talk.push(answer)\nend\n',
+            );
+            expect(enHints('blocks-l1-message-list')).toEqual([null, '$talk.clear\n', '$talk.push(answer)\n', null]);
+            expect(enText(challenge('blocks-l1-message-list').task)).toContain('"talk"');
+            expect(enText(challenge('blocks-l1-message-list').task)).toContain('"Message?"');
+        });
+
+        test('the en texts of 8-11 do not ask for Japanese names', () => {
+            ['blocks-l1-count', 'blocks-l1-broadcast', 'blocks-l1-speak', 'blocks-l1-message-list'].forEach((id) => {
+                const c = challenge(id);
+                const ids = [c.name, c.task, ...c.steps.map((s) => s.title), ...c.debug].map((d) => d.id);
+                ids.forEach((key) => {
+                    // ▼ や ✓ などの記号はよい。かな・漢字が無いこと
+                    expect({ key, text: en[key] }).toEqual({ key, text: expect.not.stringMatching(/[\u3040-\u30ff\u4e00-\u9fff]/) });
+                });
+            });
         });
 
         test('the ja-Hira code uses the kana names its hints write', () => {
@@ -843,8 +892,11 @@ describe('lesson courses', () => {
             const [correct, wrong] = challenge('blocks-l1-quiz').goal;
             ['正解です', 'せいかいです', 'Correct'].forEach((text) => expect(correct.text.test(text)).toBe(true));
             ['ちがいます', 'Wrong'].forEach((text) => expect(wrong.text.test(text)).toBe(true));
-            const count = challenge('blocks-l1-count').goal[0];
-            expect(count.name).toEqual(expect.arrayContaining(['回数', 'かいすう']));
+            const count = challenge('blocks-l1-count').goal;
+            expect(count[0].name).toEqual(expect.arrayContaining(['回数', 'かいすう', 'count']));
+            expect(count[1].equalsVariable).toEqual(expect.arrayContaining(['回数', 'かいすう', 'count']));
+            const talk = challenge('blocks-l1-message-list').goal[0];
+            expect(talk.name).toEqual(expect.arrayContaining(['トーク', 'talk']));
         });
 
         test.each(['ja', 'ja-Hira', 'en'])(

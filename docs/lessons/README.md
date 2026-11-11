@@ -132,11 +132,26 @@ code: {
   （Owl をまだ足していない等。日本語の作品を英語の UI で開いたときに、作品に無い "Meow" を探させない）。
 - セリフ・変数名・リスト名は、その locale の課題とヒントの文言に合わせる。レッスン 1 では en の課題が
   "Hello!" / "That tickles!" / "Touch me" / "What's your name?" / " seconds" / "Correct" / "Wrong" と書くので en の
-  `code` もそれを言う。変数「回数」・リスト「トーク」・メッセージ「あいさつ」・セリフ「やあ！」・「ボタンが押されました」は
-  en の文言も日本語の名前のまま書く（`"回数" (count)` のように英語を添える）ので、en の `code` も日本語の名前。
-  ja-Hira はヒントのとおり `$かいすう`・「せいかいです」・「びょうでした」・「ボタンがおされました」。
-- **`goal` は全 locale の `code` が言うものを許す**: 名前は配列（`['回数', 'かいすう']`）、言う文字は RegExp
-  （チャレンジ 7 の `/^(正解です|せいかいです|correct)$/i` と `/^(ちがいます|wrong)$/i`）。
+  `code` もそれを言う。
+- **子どもが作る名前は en では英語**（Ruby の変数名に使える小文字の英語）。英語の生徒に日本語を入力させないため。
+  en の課題・ヒント・`code`（とヒントの `blocks`）は次の名前を使い、ja / ja-Hira は日本語の名前のまま:
+
+  | チャレンジ | ja | ja-Hira | en |
+  |---|---|---|---|
+  | 8 変数 | 回数 | かいすう | `count` |
+  | 9 メッセージ / セリフ | あいさつ / やあ！ | あいさつ / やあ！ | `hello` / "Hi!" |
+  | 10 しゃべることば | ボタンが押されました | ボタンがおされました | "The button was clicked" |
+  | 11 リスト / 質問 | トーク / メッセージは？ | トーク / メッセージは？ | `talk` / "Message?" |
+
+  ja-Hira はほかにヒントのとおり「せいかいです」・「びょうでした」。
+- **`goal` は全 locale の `code` が言うものを許す**: 名前は配列（`['回数', 'かいすう', 'count']` / `['トーク', 'talk']`）、
+  言う文字は RegExp（チャレンジ 7 の `/^(正解です|せいかいです|correct)$/i` と `/^(ちがいます|wrong)$/i`）。
+  9〜10 の判定はメッセージ名・ことばを見ない。
+- **locale をまたいだ作品**（日本語の UI で「回数」を作った作品を英語の UI で開いた、先生が日本語で配った作品を
+  英語の生徒が開いた等）: 判定はどの locale の名前でも通る。同じ判定に複数の名前の変数・リストがある（「回数」と
+  `count` の両方がある）ときは、どれか 1 つが条件に合えばよい（`goal.js` の `findVariables`）。「プログラムを入れる」は
+  いまの UI の locale の名前で入れる（変数・リストは変換で足されるので作品に合わないことはない。英語の UI なら `$count`
+  が新しく作られ、子どもが作った「回数」はそのまま残る）。名前を作品に合わせて読みかえることはしない。
 - ja-Hira の新しい作品のネコの音は "Meow" なので、ja-Hira のチャレンジ 1 の課題は「ネコが「Meow」（ニャー）とないたあと」と
   書く（ブロックの ▼ に出る名前と合わせる）。
 - テスト: `courses.test.js` が全チャレンジの `code` を ja / ja-Hira / en それぞれの新しい作品の名前で（音・背景の
@@ -162,10 +177,10 @@ code: {
 | 5 | `blocks-l1-if` | マウスでネコにさわったら「くすぐったい！」、さわっていないときは「さわってみて」と言う | もし〜なら・ずっと・さわったか調べる | `event_whenflagclicked` / `control_forever` / `control_if` / `control_if_else` / `sensing_touchingobject` / `looks_say` | 旗のスクリプトで `sensing_touchingobject` が動き、ちがうセリフ（`MESSAGE`）の `looks_say` が 2 種類動いた |
 | 6（必須） | `blocks-l1-ask-answer` | ネコを押したら名前を聞いて、答えた名前と、答えるまでにかかった秒数を言う | 聞いて答える・タイマー・ことばをつなぐ | `event_whenthisspriteclicked` / `sensing_resettimer` / `sensing_askandwait` / `sensing_answer` / `sensing_timer` / `operator_join` / `looks_sayforsecs` | スプライトを押したスクリプトで `sensing_resettimer` → `sensing_askandwait` の順に動き、`sensing_answer`・`sensing_timer`・`looks_sayforsecs` 2 回が動いた。答えと同じことばを言った |
 | 7 | `blocks-l1-quiz` | ネコを押したら「4＋3＝？」と聞いて、7 なら「正解です」、ちがえば「ちがいます」と言う | くらべる・もし〜なら | `event_whenthisspriteclicked` / `sensing_askandwait` / `sensing_answer` / `control_if` / `control_if_else` / `operator_equals` / `looks_sayforsecs` | 答えが 7 のときに「正解です」（ja-Hira の「せいかいです」、en の "Correct" も可）、7 でないときに「ちがいます」（en の "Wrong" も可）を言った（両方） |
-| 8（必須） | `blocks-l1-count` | ネコを押した回数を数えて、その数を言う。3 回押す | 変数を作る・変数 | `event_whenflagclicked` / `event_whenthisspriteclicked` / `data_setvariableto` / `data_changevariableby` / `data_variable` / `looks_say` | 変数「回数」（ja-Hira の「かいすう」も可）が 3 以上になり、その値を言った |
+| 8（必須） | `blocks-l1-count` | ネコを押した回数を数えて、その数を言う。3 回押す | 変数を作る・変数 | `event_whenflagclicked` / `event_whenthisspriteclicked` / `data_setvariableto` / `data_changevariableby` / `data_variable` / `looks_say` | 変数「回数」（ja-Hira の「かいすう」、en の `count` も可）が 3 以上になり、その値を言った |
 | 9（必須） | `blocks-l1-broadcast` | ペンギンを足して、ネコを押したらペンギンが「やあ！」と言う（**2 つのスプライト**） | スプライトを足す・合図（メッセージ）・スプライトごとのプログラム | `event_whenthisspriteclicked` / `event_broadcast` / `event_whenbroadcastreceived` / `looks_sayforsecs` | スプライト 2 つ以上・押されたときで送る・**別のスプライト**が受け取ったときに言う（`sentBy: 'other'`） |
 | 10 | `blocks-l1-speak` | 拡張機能「音声合成」を足して、ネコを押したら「ボタンが押されました」としゃべる | 拡張機能を足す・音声合成 | `event_whenthisspriteclicked` / `text2speech_speakAndWait` | 拡張機能 `text2speech` が読み込まれている・押されたときで `text2speech_speakAndWait` |
-| 11（必須） | `blocks-l1-message-list` | ネコを押したら「メッセージは？」と聞いて、答えをリスト「トーク」にためる。3 つためる | リストを作る・リストに追加する | `event_whenflagclicked` / `event_whenthisspriteclicked` / `data_deletealloflist` / `data_addtolist` / `sensing_askandwait` / `sensing_answer` | リスト「トーク」の長さ 3 以上・中身が答えから（`itemsFromAnswers`） |
+| 11（必須） | `blocks-l1-message-list` | ネコを押したら「メッセージは？」と聞いて、答えをリスト「トーク」にためる。3 つためる | リストを作る・リストに追加する | `event_whenflagclicked` / `event_whenthisspriteclicked` / `data_deletealloflist` / `data_addtolist` / `sensing_askandwait` / `sensing_answer` | リスト「トーク」（en の `talk` も可）の長さ 3 以上・中身が答えから（`itemsFromAnswers`） |
 
 ヒントは、音タブ・コスチュームタブ・背景を選ぶ・スプライトリストのように「足す・えらぶ」場所を指すものと、
 パレット・コードエリアを指して**本物のブロック**を描くもの、ステージ・キーボードを指して「動かしてみよう」と
@@ -202,7 +217,7 @@ code: {
   既定と同じ。先に「変数を作る」で「回数」を作ってから「プログラムを入れる」でも、変数は 1 つのまま
   （integration テストで確かめている）。日本語の変数名も Ruby ⇔ ブロックで行き来できる。
   `allowedBlocks` に変数のブロックを書いたので「変数」のカテゴリと「変数を作る」が出る（下の「パレットを絞る」）。ja-Hira のヒントは「かいすう」という
-  変数を作ろうと書くので、`goal` は「回数」「かいすう」のどちらでもよい（7 の「せいかいです」も同じ）。
+  変数を作ろうと書き、en は `count` と書くので、`goal` は「回数」「かいすう」「count」のどれでもよい（7 の「せいかいです」も同じ）。
 - エディタ（コードエリア）にフォーカスがあってもキーはステージに届く（`vm-listener-hoc` は SVG への
   keydown を VM に渡す）。`integration` テストはコードエリアをクリックしてからキーを押して確かめている。
 
@@ -291,8 +306,8 @@ code: {
 吹き出しを消す（空の文字）は記録しない。
 
 **変数・リストの名前**（`variable` / `list` の `name`、`said` の `equalsVariable`）は、文字列か名前の配列
-（どれか 1 つの名前の変数を見る）。ja-Hira のヒントは変数名をひらがなで書く（「かいすう」）ので、
-`['回数', 'かいすう']` のように両方を書く。言う文字も同じで、ja-Hira の課題がひらがなで書く文字は
+（見つかった変数のどれか 1 つが合えばよい）。ja-Hira のヒントは変数名をひらがなで書き（「かいすう」）、en は英語で
+書く（`count`）ので、`['回数', 'かいすう', 'count']` のように全部を書く。言う文字も同じで、ja-Hira の課題がひらがなで書く文字は
 RegExp で両方を許す（例: `/^(正解です|せいかいです|correct)$/i`。en の `code` が言う文字も許す）。
 
 **`list` の項目**: `length`（matcher。例: `{gte: 3}`）、`itemsFromAnswers: true`（中身が全部「聞いて待つ」に
@@ -343,10 +358,10 @@ RegExp で両方を許す（例: `/^(正解です|せいかいです|correct)$/i
     { type: 'said', text: /^(ちがいます|wrong)$/i, answer: { ne: 7 } },
 ]
 
-// 8 数えよう: 変数「回数」が 3 以上になり、その数を言った
+// 8 数えよう: 変数「回数」（en は count）が 3 以上になり、その数を言った
 [
-    { type: 'variable', name: ['回数', 'かいすう'], value: { gte: 3 } },
-    { type: 'said', equalsVariable: ['回数', 'かいすう'] },
+    { type: 'variable', name: ['回数', 'かいすう', 'count'], value: { gte: 3 } },
+    { type: 'said', equalsVariable: ['回数', 'かいすう', 'count'] },
 ]
 
 // 9 なかまに合図しよう: スプライト 2 つ以上。ネコを押して送ったメッセージで、別のスプライトがセリフを言った
@@ -363,7 +378,7 @@ RegExp で両方を許す（例: `/^(正解です|せいかいです|correct)$/i
 ]
 
 // 11 メッセージをためよう: リスト「トーク」に、入力したメッセージが 3 つ以上たまった
-[{ type: 'list', name: 'トーク', length: { gte: 3 }, itemsFromAnswers: true }]
+[{ type: 'list', name: ['トーク', 'talk'], length: { gte: 3 }, itemsFromAnswers: true }]
 ```
 
 これらが形として書けて、意図したプログラムで満たされることは `test/unit/lib/lessons/goal.test.js` で確かめている。
