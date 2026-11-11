@@ -4,7 +4,7 @@ import { act, fireEvent, render, waitFor } from '@testing-library/react';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
 import { LessonHint } from '../../../src/containers/lesson-hint.jsx';
-import { findChallenge, localizeCode } from '../../../src/lib/lessons/courses';
+import { challengeCodeFor, findChallenge, localizeCode } from '../../../src/lib/lessons/courses';
 import { rubyToBlocksXml } from '../../../src/lib/lessons/hint-blocks';
 import { targetCodeToBlocks } from '../../../src/lib/ruby-to-blocks-converter';
 
@@ -308,11 +308,13 @@ describe('LessonHint container', () => {
         fireEvent.click(getByTestId('lesson-hint-insert-code'));
         await waitFor(() => expect(props.onInsertCode).toHaveBeenCalled());
         expect(targetCodeToBlocks).toHaveBeenCalledTimes(1);
-        expect(targetCodeToBlocks.mock.calls[0].slice(1, 3)).toEqual([penguin, challenge.spriteCodes[0].code]);
+        // 9 のメッセージ・セリフは locale ごと。UI は en なので en の組（"hello" / "Hi!"）を入れる
+        const en = challengeCodeFor(challenge, 'en');
+        expect(targetCodeToBlocks.mock.calls[0].slice(1, 3)).toEqual([penguin, en.spriteCodes[0].code]);
         expect(applied).toEqual(['penguin']);
         expect(vm.addSprite).not.toHaveBeenCalled();
         expect(vm.setEditingTarget).toHaveBeenCalledWith('cat');
-        expect(props.onInsertCode).toHaveBeenCalledWith(challenge.code, 'blocks', cat, '2');
+        expect(props.onInsertCode).toHaveBeenCalledWith(en.code, 'blocks', cat, '2');
     });
 
     const spriteCodesSetup = (targets) => {
@@ -347,9 +349,10 @@ describe('LessonHint container', () => {
         fireEvent.click(getByTestId('lesson-hint-insert-code'));
         await waitFor(() => expect(props.onInsertCode).toHaveBeenCalled());
         const checked = rubyToBlocksXml.mock.calls.map((c) => [c[1], c[2], c[4].validateAssets]);
+        const en = challengeCodeFor(challenge, 'en');
         expect(checked).toEqual([
-            [penguin, challenge.spriteCodes[0].code, true],
-            [cat, challenge.code, true],
+            [penguin, en.spriteCodes[0].code, true],
+            [cat, en.code, true],
         ]);
     });
 
@@ -372,9 +375,14 @@ describe('LessonHint container', () => {
     });
 
     test('a challenge with spriteCodes inserts nothing when one of the programs would not convert', async () => {
+        // en の組も ja の組（ほかの locale へのフォールバック）も、ネコのプログラムが変換できない
+        const ok = () => Promise.resolve({ xml: '<xml></xml>', errors: [] });
+        const ng = () => Promise.resolve({ xml: null, errors: [{ text: 'cannot convert' }] });
         rubyToBlocksXml
-            .mockImplementationOnce(() => Promise.resolve({ xml: '<xml></xml>', errors: [] }))
-            .mockImplementationOnce(() => Promise.resolve({ xml: null, errors: [{ text: 'cannot convert' }] }));
+            .mockImplementationOnce(ok)
+            .mockImplementationOnce(ng)
+            .mockImplementationOnce(ok)
+            .mockImplementationOnce(ng);
         const cat = { id: 'cat', isOriginal: true, isStage: false, getName: () => 'Sprite1' };
         const stage = { id: 'stage', isOriginal: true, isStage: true, getName: () => 'Stage' };
         // ペンギンはまだいない: target なしで確かめ、足さない
