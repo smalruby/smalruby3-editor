@@ -294,8 +294,7 @@ const blocksLesson1 = defineLesson({
                 { target: HINT_TARGETS.PALETTE, blocks: 'ask("なまえは？")\n' },
                 { target: HINT_TARGETS.PALETTE, blocks: 'answer\n' },
                 { target: HINT_TARGETS.PALETTE, blocks: 'timer.reset\n' },
-                // 「と」1 つを描く。code の `timer.value.to_s + ...` は「(タイマー) と ()」が中に入った
-                // 「と」2 つになるので、吹き出しは子どもが作るのと同じ形の Ruby にする
+                // 「(タイマー) と (秒でした)」の「と」1 つ（code と同じ書き方）
                 { target: HINT_TARGETS.PALETTE, blocks: 'timer.value + "秒でした"\n' },
                 { target: HINT_TARGETS.STAGE },
             ]),
@@ -316,9 +315,12 @@ const blocksLesson1 = defineLesson({
                 },
                 { type: 'said', equalsAnswer: true },
             ],
+            // 仕様の Ruby は `timer.value.to_s + "秒でした"` だが、`.to_s` も「(タイマー) と ()」の「と」に
+            // なり、入れると子どもが作るのとちがう入れ子の「と」2 つになる。子どもが作ったブロックから
+            // 生成される Ruby と同じ `timer.value + "秒でした"`（「と」1 つ）にする
             code:
                 'when_clicked do\n  timer.reset\n  ask("なまえは？")\n  say(answer, 2)\n' +
-                '  say(timer.value.to_s + "秒でした", 2)\nend\n',
+                '  say(timer.value + "秒でした", 2)\nend\n',
         },
         // 7 クイズを作ろう（演算）: 答えが 7 なら「正解です」、ちがえば「ちがいます」
         {
@@ -341,8 +343,9 @@ const blocksLesson1 = defineLesson({
             ]),
             debug: debugTips('blocks-l1-quiz', 1),
             // 比べ方は Scratch と同じなので、全角の「７」は 7 と等しくない（「ちがいます」の側に入る）
+            // ja-Hira の課題は「せいかいです」と書くので、ひらがなで言っても正解の側に数える
             goal: [
-                { type: 'said', text: '正解です', answer: { eq: 7 } },
+                { type: 'said', text: /^(正解です|せいかいです)$/, answer: { eq: 7 } },
                 { type: 'said', text: 'ちがいます', answer: { ne: 7 } },
             ],
             code:
@@ -370,9 +373,10 @@ const blocksLesson1 = defineLesson({
             ]),
             debug: debugTips('blocks-l1-count', 1),
             // `$回数` はステージの変数 =「変数を作る」の既定（すべてのスプライト用）と同じ
+            // ja-Hira のヒントは「かいすう」という変数を作ろうと書くので、どちらの名前でもよい
             goal: [
-                { type: 'variable', name: '回数', value: { gte: 3 } },
-                { type: 'said', equalsVariable: '回数' },
+                { type: 'variable', name: ['回数', 'かいすう'], value: { gte: 3 } },
+                { type: 'said', equalsVariable: ['回数', 'かいすう'] },
             ],
             code: 'when_flag_clicked do\n  $回数 = 0\nend\n\nwhen_clicked do\n  $回数 += 1\n  say($回数)\nend\n',
         },

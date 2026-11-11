@@ -350,6 +350,37 @@ describe('result conditions on the snapshot', () => {
     });
 });
 
+describe('variable names given as a list (ja-Hira writes 「かいすう」)', () => {
+    test('variable matches any of the names', () => {
+        const goal = [{ type: 'variable', name: ['回数', 'かいすう'], value: { gte: 3 } }];
+        const facts = createFacts();
+        expect(
+            satisfied(goal, facts, snapshot({ variables: [{ name: 'かいすう', type: '', value: 3, isStage: true }] })),
+        ).toBe(true);
+        expect(
+            satisfied(goal, facts, snapshot({ variables: [{ name: 'かず', type: '', value: 3, isStage: true }] })),
+        ).toBe(false);
+    });
+
+    test('equalsVariable matches any of the names', () => {
+        const goal = [{ type: 'said', equalsVariable: ['回数', 'かいすう'] }];
+        const facts = createFacts();
+        recordSay(facts, { targetId: 'cat', text: 2, variables: { かいすう: 3 } });
+        expect(satisfied(goal, facts)).toBe(false);
+        recordSay(facts, { targetId: 'cat', text: 3, variables: { かいすう: 3 } });
+        expect(satisfied(goal, facts)).toBe(true);
+    });
+
+    test('validateGoal accepts a list of names and rejects an empty one', () => {
+        expect(validateGoal([{ type: 'variable', name: ['回数', 'かいすう'], value: 1 }])).toEqual([]);
+        expect(validateGoal([{ type: 'said', equalsVariable: ['回数', 'かいすう'] }])).toEqual([]);
+        expect(validateGoal([{ type: 'variable', name: [], value: 1 }])).toEqual(['goal[0]: variable.name is required']);
+        expect(validateGoal([{ type: 'said', equalsVariable: [1] }])).toEqual([
+            'goal[0]: said.equalsVariable must be a variable name or an array of names',
+        ]);
+    });
+});
+
 describe('validateGoal', () => {
     test('accepts well-formed goals', () => {
         expect(

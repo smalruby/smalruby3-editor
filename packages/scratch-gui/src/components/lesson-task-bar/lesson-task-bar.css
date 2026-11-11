@@ -30,7 +30,12 @@
 }
 
 .task {
-    flex: 1 1 auto;
+    /*
+        width: 0 で、課題の文の長さをエディタの列の最小幅に入れない（入れると長い課題で
+        エディタの列が広がり、ステージが画面の右にはみ出す）。入りきらない分は … で切る
+    */
+    flex: 1 1 0;
+    width: 0;
     min-width: 0;
     font-weight: bold;
     white-space: nowrap;

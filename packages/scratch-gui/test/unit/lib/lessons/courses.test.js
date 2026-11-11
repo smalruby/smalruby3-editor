@@ -319,7 +319,7 @@ describe('lesson courses', () => {
             ]);
             expect(c.code).toBe(
                 'when_clicked do\n  timer.reset\n  ask("なまえは？")\n  say(answer, 2)\n' +
-                    '  say(timer.value.to_s + "秒でした", 2)\nend\n',
+                    '  say(timer.value + "秒でした", 2)\nend\n',
             );
         });
 
@@ -356,7 +356,7 @@ describe('lesson courses', () => {
                 'いつも「ちがいます」になるときは、「=」の左に「答え」、右に 7 が入っているか見よう。数は半角の 7 で入れよう。',
             ]);
             expect(c.goal).toEqual([
-                { type: 'said', text: '正解です', answer: { eq: 7 } },
+                { type: 'said', text: /^(正解です|せいかいです)$/, answer: { eq: 7 } },
                 { type: 'said', text: 'ちがいます', answer: { ne: 7 } },
             ]);
             expect(c.code).toBe(
@@ -392,8 +392,8 @@ describe('lesson courses', () => {
                 '押すたびに 1 にもどるときは、「0 にする」が「押されたとき」のほうに入っていないか見よう。',
             ]);
             expect(c.goal).toEqual([
-                { type: 'variable', name: '回数', value: { gte: 3 } },
-                { type: 'said', equalsVariable: '回数' },
+                { type: 'variable', name: ['回数', 'かいすう'], value: { gte: 3 } },
+                { type: 'said', equalsVariable: ['回数', 'かいすう'] },
             ]);
             expect(c.code).toBe('when_flag_clicked do\n  $回数 = 0\nend\n\nwhen_clicked do\n  $回数 += 1\n  say($回数)\nend\n');
         });

@@ -193,8 +193,19 @@ describe('lesson-mode reducer: allowed blocks', () => {
     });
 
     test('getLessonAllowedBlocks is null for a challenge that does not restrict the palette', () => {
-        const state = reducer(lessonModeInitialState, openChallenge('blocks-l1-quiz'));
-        expect(getLessonAllowedBlocks(wrap(state))).toBeNull();
+        // レッスン 1 のチャレンジはどれもパレットを絞るので、絞らないチャレンジに見せかける
+        const courses = require('../../../src/lib/lessons/courses');
+        const real = courses.findChallenge;
+        const spy = jest.spyOn(courses, 'findChallenge').mockImplementation((id) => {
+            const found = real(id);
+            return found && { ...found, challenge: { ...found.challenge, allowedBlocks: null } };
+        });
+        try {
+            const state = reducer(lessonModeInitialState, openChallenge('blocks-l1-quiz'));
+            expect(getLessonAllowedBlocks(wrap(state))).toBeNull();
+        } finally {
+            spy.mockRestore();
+        }
     });
 });
 
