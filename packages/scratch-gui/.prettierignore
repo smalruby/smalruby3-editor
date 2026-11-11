@@ -48,6 +48,7 @@ src/components/*
 !src/components/image-viewer/
 !src/components/dncl-mode-notice/
 !src/components/lesson-task-bar/
+!src/components/lessons-library/
 !src/components/koshien-test-modal/
 !src/components/koshien-settings-modal/
 !src/components/koshien-mock-panel/
@@ -98,6 +99,8 @@ src/components/connection-modal/*
 
 # Level 3: src/components/menu-bar/*
 src/components/menu-bar/*
+!src/components/menu-bar/lessons-tooltip.css
+!src/components/menu-bar/lessons-tooltip.jsx
 
 # ============================================================
 # Level 2: src/containers/*
@@ -138,8 +141,9 @@ src/containers/*
 !src/containers/extension-library.css
 !src/containers/google-drive-loader-hoc.jsx
 !src/containers/koshien-mock-panel.jsx
-!src/containers/lesson-mode.jsx
 !src/containers/lesson-goal-watcher.jsx
+!src/containers/lesson-mode.jsx
+!src/containers/lessons-library.jsx
 !src/containers/mesh-self-sensor-notice.jsx
 !src/containers/mesh-v2-seat-connect.jsx
 !src/containers/google-drive-saver-hoc.jsx
@@ -352,6 +356,7 @@ test/integration/*
 !test/integration/smalruby-help-menu.test.js
 !test/integration/smalruby-tutorials.test.js
 !test/integration/smalruby-lessons.test.js
+!test/integration/smalruby-lessons-library.test.js
 !test/integration/v1-detection-prompt.test.js
 !test/integration/palette-toggle-position.test.js
 !test/integration/version-update-notification.test.js
@@ -387,6 +392,7 @@ test/unit/components/*
 !test/unit/components/url-loader-modal.test.jsx
 !test/unit/components/dncl-mode-notice.test.jsx
 !test/unit/components/lesson-task-bar.test.jsx
+!test/unit/components/lessons-library.test.jsx
 !test/unit/components/genai-answer-steps-index-hints.test.jsx
 !test/unit/components/genai-answer-steps-words.test.jsx
 !test/unit/components/extension-button-dncl.test.jsx
@@ -410,6 +416,7 @@ test/unit/components/*
 !test/unit/components/classroom-teacher-menu.test.jsx
 !test/unit/components/menu-bar-classroom.test.jsx
 !test/unit/components/menu-bar-help-menu.test.jsx
+!test/unit/components/menu-bar-lessons.test.jsx
 !test/unit/components/student-seat-selector.test.jsx
 !test/unit/components/mobile-bottom-tabs.test.jsx
 !test/unit/components/mobile-drawer.test.jsx
@@ -434,6 +441,7 @@ test/unit/containers/*
 !test/unit/containers/backpack.test.jsx
 !test/unit/containers/cards.test.jsx
 !test/unit/containers/lesson-mode.test.jsx
+!test/unit/containers/lessons-library.test.jsx
 !test/unit/containers/classroom-classcode-utils.test.js
 !test/unit/containers/classroom-error-utils.test.js
 !test/unit/containers/classroom-teacher-menu.test.jsx
