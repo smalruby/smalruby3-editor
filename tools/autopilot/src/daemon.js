@@ -1614,6 +1614,7 @@ const CLEANUP_KEEP_REASONS = {
  * `autopilot-base:`（EPIC サブは `topic/...`）、無ければ develop で `merge-base --is-ancestor` する。
  * リモートブランチは消さない（`gh pr merge --delete-branch` に任せる）。ローカルブランチは
  * autopilot が作った `topic/autopilot-*` だけ消す（`--pr` で人間のブランチを checkout していたら残す）。
+ * 消した後は `autopilot-worktree prune-infra-store` で使われなくなった infra の共有置き場も消す（#1456）。
  * 失敗しても例外にしない（merge 進行を止めない）。
  * @param {object} item { issue }
  * @param {object} cfg
@@ -1665,6 +1666,9 @@ async function cleanupIssueWorktree(item, cfg, state, log, deps = {}) {
             removedBranch = ` + ブランチ ${facts.branch}`;
         }
         log(`#${issue}: worktree を片付けた（${wt}${removedBranch}）`);
+        // どの worktree からも使われなくなった infra の共有置き場を消す（#1456）。失敗しても片付けは成功扱い
+        await exec(WORKTREE_BIN, ['prune-infra-store'], { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 })
+            .catch((e) => log(`#${issue}: infra の共有置き場の掃除に失敗（続行）: ${e.message}`));
         return { status: 'removed' };
     } catch (e) {
         log(`#${issue}: worktree の片付けに失敗（消さずに続行）: ${e.message}`);

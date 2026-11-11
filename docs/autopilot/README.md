@@ -859,11 +859,24 @@ bin/autopilot-worktree list
 
 `infra/<project>/node_modules`（npm workspaces の外）は、main checkout の入っている版
 （`node_modules/.package-lock.json`）が worktree の `package-lock.json` と同じときだけ main へ symlink し、
-違う・main に無いときは worktree の `infra/<project>` で `npm ci --no-audit --no-fund` を実行する。
+違う・main に無いときは lock でキーにした**共有の置き場**へ symlink する。
 main checkout は人間と共有で develop より古いことがあり、そのまま共有すると worktree の lock に足された
 依存が無くてテストが読み込めないため。比べるのは package ごとの `version` / `resolved`
 （`tools/autopilot/src/lockfile.js`。他プラットフォーム向けの optional 依存は無くてよい）。
 `npm ci` は lock に固定された版を入れるので 3 日ルールに反しない。
+
+**infra の共有の置き場（#1456）**: worktree ごとに `npm ci` すると 1 worktree あたり約 1.45 GB・約 4 分
+（5 プロジェクト分）かかるため、`<WT_ROOT>/.infra-node-modules/<project>-<package-lock.json の sha256 先頭16桁>/`
+に 1 回だけ入れ（worktree の `package.json` / `package-lock.json` をコピーして `npm ci`）、同じ lock の worktree
+（同じ develop から切ったもの）はそこを共有する。
+
+- 作りかけは `<置き場>.tmp.<pid>` に入れ、完成してから rename で置く（途中の状態は見えない）。
+- 作成・リンク・掃除は置き場ごとの `<置き場>.lock`（`mkdir` の排他）の中で行う。持ち主の pid が死んだロックは
+  奪う。ロックが待ちの上限（`AUTOPILOT_INFRA_LOCK_WAIT` 秒・既定 900）までに取れなければ、従来どおり worktree で
+  `npm ci` する。置き場の中身が lock と合わなければ入れ直す。
+- どの worktree の `infra/*/node_modules` からも指されなくなった置き場は、worktree の片付け（下の #1362・
+  `bin/autopilot-worktree remove`）の後に `bin/autopilot-worktree prune-infra-store` が消す（ロック中のものは
+  飛ばす。持ち主の死んだ作りかけも消す）。手で呼んでもよい。
 
 **自動の片付け（#1362）**: daemon が PR の merge を検知して Project を Close に進めたとき
 （merge-progression）と、GitHub で閉じた Issue を Close に揃えたとき（closed-reconcile）に、その Issue の

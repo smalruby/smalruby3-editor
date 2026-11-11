@@ -122,7 +122,9 @@ Issue 本文のディレクティブは **行頭のみ**で発火する（`phase
   `base-follow-conflict` として Blocked になっていた（#957）。`--full` は対象外。
 - 軽量モードの **`infra/<project>/node_modules`** は、main の入っている版
   （`node_modules/.package-lock.json`）が worktree の `package-lock.json` と同じときだけ main へ
-  **symlink** し、違う・main に無いときは worktree で **`npm ci`** する（#1454）。main checkout は
+  **symlink** し、違う・main に無いときは lock の sha256 でキーにした共有の置き場
+  （`.autopilot-worktrees/.infra-node-modules/`）で 1 回だけ **`npm ci`** してそこへ symlink する
+  （#1454 / #1456）。main checkout は
   develop より古いことがあり、古い依存でテストが走る（lock に足された依存が `Cannot find module`）
   のを防ぐため。比較は `tools/autopilot/src/lockfile.js`（版の集合で見る。ファイルの完全一致に
   しない）。worker が infra の `node_modules` を手で main へ symlink しない。`--full` は対象外。
