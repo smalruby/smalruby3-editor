@@ -927,7 +927,7 @@ export default {
     'gui.smalruby3.rubyToBlocksConverter.conditionIsNotBoolean':
         '条件がブーリアンではありません：{SOURCE}\n比較演算子（==、<、>など）を使ってください。',
     'gui.smalruby3.rubyToBlocksConverter.includeNotStatementBlocks':
-        '命令ブロックではないブロックが含まれています。\nブロック定義の中では命令ブロック（コマンド）だけを使ってください。',
+        '「{ SOURCE }」は命令ではないので、ここには書けません。\n命令（例: move(10)）に書きかえるか、この行を消してください。',
     'gui.smalruby3.rubyToBlocksConverter.eventInsideBlock':
         '「{ SOURCE }」はイベントなので、ほかのブロックの中には書けません。\nブロックの外に出して、そこから始まるスクリプトにしてください。',
     'gui.smalruby3.rubyToBlocksConverter.valueAsStatement':
@@ -936,8 +936,6 @@ export default {
         'ブロック定義「{NAME}」の引数#{INDEX}の型がまちがっています。\n数値、文字列、またはブーリアンの値を使ってください。',
     'gui.smalruby3.rubyToBlocksConverter.cannotChangeArgument':
         '「{NAME}」は引数なので、値を変えられません。\n別の変数に写してから、その変数を変えてください（例: x = {NAME}）。',
-    'gui.smalruby3.rubyToBlocksConverter.wrongInstructionInMyBlock':
-        '「{SOURCE}」は命令がまちがっています。\nつづりを確認するか、対応しているブロックを使ってください。',
     'gui.smalruby3.rubyToBlocksConverter.spriteAndCostumesSoundsExclusive':
         'set_spriteとset_costumes/set_soundsは同時に使えません。\nset_spriteかset_costumes/set_soundsのどちらかを使ってください。',
     'gui.smalruby3.rubyToBlocksConverter.invalidSpriteName':

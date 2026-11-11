@@ -75,7 +75,8 @@ end
 The following cannot be written there. Writing one is an error that points to the line (it is never dropped silently).
 
 - An **event handler** (`when_xxx do ... end`) cannot be written inside a block such as `do ... end`, `if` or `loop`, nor inside a method definition (`def`). Move it out of the block (to the top level or directly in the class definition) so that it starts a script of its own
-- A **line with only a value** (just `x`, just `1 + 2`) cannot be written inside a block such as `do ... end`, `if` or `loop`. Use it in a command such as `say(x)`, or set it to a variable (the last value written directly in a method definition is its return value, see [Return Values](#return-values))
+- A **line with only a value** (just `x`, just `1 + 2`) cannot be written inside a block such as `do ... end`, `if` or `loop`. Use it in a command such as `say(x)`, or set it to a variable. Directly in a method definition (`def`), it cannot be written before the last line either (the value on the last line is the return value, see [Return Values](#return-values))
+- A **line with only a symbol** (just `:a`) is not a command, so it cannot be written inside a block, nor in a method definition before the last line
 
 ```ruby
 when_flag_clicked do

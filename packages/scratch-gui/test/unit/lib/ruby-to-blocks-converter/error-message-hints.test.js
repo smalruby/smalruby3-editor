@@ -43,8 +43,8 @@ describe('Error message resolution hints', () => {
         ].join('\n');
         await converter.targetCodeToBlocks(target, code);
         expect(converter.errors.length).toBeGreaterThan(0);
-        expect(converter.errors[0].text).toMatch(/statement blocks/);
-        expect(converter.errors[0].text).toMatch(/commands/);
+        expect(converter.errors[0].text).toMatch(/"def my_proc" is not a command/);
+        expect(converter.errors[0].text).toMatch(/Write a command \(e\.g\. move\(10\)\) instead/);
     });
 
     test('eventInsideBlock error tells where to move the event', async () => {

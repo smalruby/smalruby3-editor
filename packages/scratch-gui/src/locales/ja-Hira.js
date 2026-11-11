@@ -954,7 +954,7 @@ export default {
     'gui.smalruby3.rubyToBlocksConverter.conditionIsNotBoolean':
         'じょうけんがブーリアンではありません：{SOURCE}\nひかくえんざんし（==、<、>など）をつかってください。',
     'gui.smalruby3.rubyToBlocksConverter.includeNotStatementBlocks':
-        'めいれいブロックではないブロックがふくまれています。\nブロックていぎのなかではめいれいブロック（コマンド）だけをつかってください。',
+        '「{ SOURCE }」はめいれいではないので、ここにはかけません。\nめいれい（れい: move(10)）にかきかえるか、このぎょうをけしてください。',
     'gui.smalruby3.rubyToBlocksConverter.eventInsideBlock':
         '「{ SOURCE }」はイベントなので、ほかのブロックのなかにはかけません。\nブロックのそとにだして、そこからはじまるスクリプトにしてください。',
     'gui.smalruby3.rubyToBlocksConverter.valueAsStatement':
@@ -963,8 +963,6 @@ export default {
         'ブロックていぎ「{NAME}」のひきすう#{INDEX}のかたがまちがっています。\nすうち、もじれつ、またはブーリアンのあたいをつかってください。',
     'gui.smalruby3.rubyToBlocksConverter.cannotChangeArgument':
         '「{NAME}」はひきすうなので、あたいをかえられません。\nべつのへんすうにうつしてから、そのへんすうをかえてください（れい: x = {NAME}）。',
-    'gui.smalruby3.rubyToBlocksConverter.wrongInstructionInMyBlock':
-        '「{SOURCE}」はめいれいがまちがっています。\nつづりをかくにんするか、たいおうしているブロックをつかってください。',
     'gui.smalruby3.rubyToBlocksConverter.spriteAndCostumesSoundsExclusive':
         'set_spriteとset_costumes/set_soundsはどうじにつかえません。\nset_spriteかset_costumes/set_soundsのどちらかをつかってください。',
     'gui.smalruby3.rubyToBlocksConverter.invalidSpriteName':

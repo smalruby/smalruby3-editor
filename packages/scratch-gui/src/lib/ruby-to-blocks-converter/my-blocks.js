@@ -10,12 +10,6 @@ const messages = defineMessages({
             '\nUse a number, string, or boolean value.',
         description: 'Error message when My Block argument has invalid type',
         id: 'gui.smalruby3.rubyToBlocksConverter.invalidMyBlockArgumentType'
-    },
-    wrongInstructionInMyBlock: {
-        defaultMessage: '"{SOURCE}" is the wrong instruction.' +
-            '\nCheck the spelling or use a supported block.',
-        description: 'Error message when non-statement block found in My Block definition body',
-        id: 'gui.smalruby3.rubyToBlocksConverter.wrongInstructionInMyBlock'
     }
 });
 
@@ -423,18 +417,9 @@ const MyBlocksConverter = {
                     converter._isString(b) ||
                     converter._isTrue(b) ||
                     converter._isFalse(b)) {
-                    let bNode = b.node;
-                    if (!bNode && b.id) {
-                        for (const [n, id] of converter._context.nodeToBlockMap.entries()) {
-                            if (id === b.id) {
-                                bNode = n;
-                                break;
-                            }
-                        }
-                    }
-                    const src = converter._truncateSource(bNode ? bNode.source : '');
-                    const msg = converter._translator(messages.wrongInstructionInMyBlock, {SOURCE: src});
-                    throw new RubyToBlocksConverterError(bNode, msg);
+                    // A value on a line before the last one: `_checkStatementInBody` throws for it,
+                    // so this is a fallback for a value that comes another way (#1549).
+                    throw converter._valueAsStatementError(converter._nodeOfBlock(b) || node);
                 }
             });
             if (body.length > 0 && converter._isBlock(body[0])) {
