@@ -160,7 +160,7 @@ end
 | Array | `[1, 2, 3]`, `[x, y]` | Used for coordinates in `go_to`, variable storage |
 | Hash | `{key: val}` | Used for keyword arguments and hash variable storage |
 | Range | `1..10`, `1...10` | Used in `rand()` etc. |
-| true / false | `true`, `false` | |
+| true / false | `true`, `false` | In blocks, `true` becomes "(1) = (1)" and `false` becomes "(0) < (0)". A `false` in a Boolean hole (the condition of `if` / `unless` / `until` / `while` / `wait until`, inside `&&` / `\|\|` / `!`, or a Boolean argument of a custom block) becomes an **empty hole** instead (blocks → Ruby writes an empty hole as `false`, so the round trip is stable) |
 | nil | `nil` | |
 | Regexp | `/^hello/i` | Used with `=~`/`!~` operators and variable assignment |
 
