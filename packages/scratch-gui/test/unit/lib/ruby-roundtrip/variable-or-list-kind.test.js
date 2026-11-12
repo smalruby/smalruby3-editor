@@ -207,6 +207,24 @@ describe('Ruby to blocks: whether @a is a variable or a list (issue #1622)', () 
             expect(namesAndTypes(target)).toEqual(['list:_a_list_']);
         });
 
+        // The code names the list `a` beside the variable `a`, so `@a` is the variable even when the
+        // code only reads it: it does not become the list `a` too.
+        test.each([
+            ['in the sprite', false, '@'],
+            ['on the stage', true, '$'],
+        ])('%s with nothing, a read of @a beside @_a_list_ is the variable a', async (_name, onStage, p) => {
+            await roundTrip(`say(${p}a)\nsay(${p}_a_list_)`);
+            expect(namesAndTypes(ownerOf(onStage))).toEqual(['list:a', 'variable:a']);
+            expect(opcodes()).toEqual(expect.arrayContaining(['data_variable', 'data_listcontents']));
+        });
+
+        test('with nothing, @a.length beside @_a_list_ is the length of the variable a', async () => {
+            await roundTrip('say(@a.length)\n@_a_list_.push(1)');
+            expect(opcodes()).toContain('operator_length');
+            expect(opcodes()).not.toContain('data_lengthoflist');
+            expect(namesAndTypes(target)).toEqual(['list:a', 'variable:a']);
+        });
+
         test('set to a number, it is a variable of that name', async () => {
             await roundTrip('@_a_list_ = 1\nsay(@a)');
             expect(namesAndTypes(target)).toEqual(['variable:_a_list_', 'variable:a']);

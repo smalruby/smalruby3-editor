@@ -102,6 +102,8 @@ const TargetApplier = {
                     variable.scope !== 'local' &&
                     (variable.fromTarget ||
                         writtenIds.has(variable.id) ||
+                        // `@a` beside `@_a_list_` in the code (`say(@a)` and `say(@_a_list_)`)
+                        this._kindOfVariable(variable) === 'scalar' ||
                         Object.prototype.hasOwnProperty.call(initializeValues, `:${variable.name}`));
                 if (list && !keptBesideList) {
                     droppedScalarToList[variable.id] = list;

@@ -594,6 +594,11 @@ const VariableUtils = {
         if (use && use.scalar) return 'scalar';
         const scope = prefix === '$' ? 'global' : 'instance';
         const name = rubyName.slice(1);
+        // The code also uses `@_a_list_` for the list `a` beside: `@a` is the variable `a`, even when
+        // the code only reads it (`say(@a)` and `say(@_a_list_)`).
+        const aliasName = `${prefix}_${name}_list_`;
+        const names = this._context.rubyVariableNames;
+        if (names && names.has(aliasName) && this._listNameOfAlias(aliasName) === name) return 'scalar';
         if (this._ownerHasVariable(scope, name, Variable.SCALAR_TYPE)) return 'scalar';
         if (this._ownerHasVariable(scope, name, Variable.LIST_TYPE)) return 'list';
         return null;
