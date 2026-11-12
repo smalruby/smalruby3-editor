@@ -124,7 +124,7 @@ DNCL モードでは、DNCL を Ruby に変換してからブロックに変換�
 
 - 内側のブロックを閉じ忘れて外側の閉じのことばが来たとき（`〜の間` の中の `もし` を閉じ忘れて `を繰り返す`）は、外側ではなく**閉じ忘れた内側**の行に付ける。
 - 調べるのは **Ruby の `end` が合わなくなるときだけ**。種類の違う閉じのことばでも `end` の数が合えば Ruby は通り、エディタも受け付けるので、エラーにしない（`もし … を繰り返す` など）。
-- `with_screen_refresh do` / `loop do` / `when_flag_clicked do` / `list.each do |x|` など、日本語に書きかえるものが無い `xxx do`（`|x|` 付きも）は Ruby → 日本語でそのまま残し、その `end` は `を実行する` にする（`N.times do` と `(a..b).step(s) do |i|` は `〜ずつ増やしながら` に、`while x do` / `until x do` は `〜の間` になる）。外側のブロックの閉じのことばを取らないよう、`ruby-to-dncl-line-converter.js` はこの行もブロックとして積む。`findDnclBlockErrors` もこの行を `を実行する` で閉じるブロックとして数える（判定は `dncl-validator.js` の `isDoBlockLine`。行末のコメントを除いてから行末の `do` だけを見るので、文字列やコメントの中の `do` は数えない）。こうしたブロックはブロックに変換できないので、日本語モードへの切りかえでは、ほかの対応していない命令と同じくその行に「日本語モードでは対応していない記述です」を出す。
+- `with_screen_refresh do` / `loop do` / `when_flag_clicked do` / `list.each do |x|` など、日本語に書きかえるものが無い `xxx do`（`|x|` 付きも）は Ruby → 日本語でそのまま残し、その `end` は `を実行する` にする（`N.times do` と `(a..b).step(s) do |i|` は `〜ずつ増やしながら` に、`while x do` / `until x do` は `〜の間` になる）。外側のブロックの閉じのことばを取らないよう、`ruby-to-dncl-line-converter.js` はこの行もブロックとして積む。`findDnclBlockErrors` もこの行を `を実行する` で閉じるブロックとして数える（判定は `dncl-validator.js` の `isDoBlockLine`。行末のコメントを除いてから行末の `do` だけを見るので、文字列やコメントの中の `do` は数えない）。日本語モードにはこうした命令が無いので、ほかの対応していない命令と同じくその行に「「with_screen_refresh」は日本語モードでは書けない命令です。…」を出し、Ruby には変換しない（下の「日本語モードに無い命令」）。
 - `dnclToRuby` はこのエラーがあっても Ruby を作り、`blockErrors`（DNCL の行）として返す（エディタは入力のたびに Ruby を送るので、ここで止めると古い Ruby のまま変換されてしまうため）。変換器が失敗したときに、エディタのエラーの印（`ruby-tab.jsx` の `showErrors`）と生成AI に相談の確かめ（`genai-dncl-answer.js`）が、変換器のエラーの代わりにこれを出す。
 
 #### Monaco Editor 言語定義
@@ -286,10 +286,12 @@ Smalruby は **DNCLv2 形式のプログラムをそのまま実行** できる�
 
 - `要素数 N の配列 A` 形式の配列宣言
 - `配列 A のすべての要素に 0 を代入する`（要素数が書かれないため、生成する Ruby の配列サイズが決まらない）
-- 例題中で定義されていない関数の呼び出し（`差分(...)` / `最大値(...)` / `枚数(...)` など。問題文で「用意されている」とされる関数）
+- 例題中で定義されていない関数の呼び出し（`差分(...)` / `最大値(...)` / `枚数(...)` など。問題文で「用意されている」とされる関数）。下の「日本語モードに無い命令」と同じエラーになる
 - `変数 に 式 を入れる` 形式の自然言語代入
 - 全角ブラケット `［］`
 - 後判定の繰り返し（Ruby の `begin ... end while / until`、旧 DNCL の `繰り返し` … `を 〜 になるまで実行する`）。共通テスト用プログラム表記には前判定の繰り返し（`〜の間繰り返す` と `〜ずつ増やしながら繰り返す`）しか無く、後判定は旧課程「情報関係基礎」の旧 DNCL にしかないため、**対応しないことに決めている**（できないことはできないと伝える）。切りかえ・表示・入力のときにその行へエラー（`gui.rubyTab.dnclPostTestLoopError`）を出し、Ruby には変換しない。判定は `dncl-validator.js` の `isPostTestLoopLine`（`rubyToDncl` の `errors` と `validateDncl` の両方が使う）。書き直し方は最初の 1 回をループの前に書いて `〜の間` にする（`docs/smalruby-dncl-spec.ja.md`「後判定の繰り返しは書けない」）
+
+- **日本語モードに無い命令**（Ruby の命令やメソッド呼び出し）。`move(2)` / `bounce_if_on_edge` / `with_screen_refresh do` / `[1, 2].each do |x|` のような名前は、DNCL → Ruby で変数と取られて `@move(2)` のような壊れた Ruby になっていたので、その行と名前を示すエラー（id は `unsupportedCommand`）を出して Ruby には変換しない。文言は名前で分ける（`dncl-validator.js` の `isRubyCommandName`）。英字で始まる名前（`move`）は Ruby の命令なので「Ruby モードでは書けます」（`gui.rubyTab.dnclUnsupportedCommandError`）、日本語の名前（定義し忘れた関数や、共通テストで「用意されている」とされる `差分(...)` など）は「「関数 名前(…)」で定義してください」（`gui.rubyTab.dnclUndefinedFunctionError`）にする。切りかえ（Ruby の行に出す）・表示（ブロックのタブからの同期）・入力のどれでも同じ。判定は `dncl-validator.js` の `findUnsupportedCommands`（`validateDncl` と `rubyToDncl` の `errors` の両方が使う）で、命令と取るのは (1) `(` の付いた名前（`.` の後のメソッドは除く）、(2) 1 行に名前だけで、大文字始まりでも、その日本語の中で代入・繰り返し・関数の引数として宣言された変数でもないもの、(3) `xxx do` の `xxx`。日本語モードにある名前（`dncl-keywords.js` の `DNCL_KEYWORDS` / `RUBY_LITERALS` と、その日本語の中の `関数` で定義した名前）は命令と取らない。変数は呼び出されない限り命令と取らないので、`move = 1` のように命令と同じ名前の変数は書ける
 
 ### Smalruby 独自の差分
 
@@ -328,6 +330,7 @@ Smalruby は **DNCLv2 形式のプログラムをそのまま実行** できる�
   - `dncl-japanese-quotes-in-string.test.js` — `"..."` / `'...'` の中の `「」` はそのまま残し、`「...」` の文字列だけを `"..."` に直すこと（round-trip を含む）
   - `dncl-validator.test.js` — 閉じ忘れ・閉じすぎを DNCL のことばで言うこと（ブロックの種類ごとの閉じのことば・閉じ忘れた内側の行・`end` が合うときはエラーにしない・DNCLv2 の `⎿` / インデントの形）
   - `ruby-to-dncl.test.js` — Ruby → DNCL 逆変換ユニットテスト
+  - `dncl-unsupported-command.test.js` — 日本語モードに無い命令（引数あり・なし・変数と同じ名前・式や条件の中・`xxx do` と `|x|`）がその行のエラーで止まり、定義した関数の呼び出しや組み込み関数は往復できること（DNCL → Ruby と Ruby → DNCL の両方）
   - `dncl-do-block.test.js` — 日本語にしない `xxx do ... end` が `を実行する` で閉じ、外側の `〜の間` / `もし` / `関数` の閉じのことばがずれないこと（入れ子・`until x do`・後判定の中・文字列やコメントの中の `do`）
   - `dncl-roundtrip.test.js` — DNCL ↔ Ruby round-trip 安定性
 - エディタ側の単体テスト: `packages/scratch-gui/test/unit/containers/ruby-tab/dncl-index-shift.test.js`（注釈なしでは聞かない・「いいえ」で何も変えない・「はい」で 1 回の編集と印とまとめ）

@@ -9,7 +9,11 @@
  * its blocks closed by the right words.
  */
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
-import { findDnclBlockErrors } from '../../../../src/lib/dncl/dncl-validator';
+import {
+    findDnclBlockErrors,
+    POST_TEST_LOOP_ERROR_ID,
+    UNSUPPORTED_COMMAND_ERROR_ID,
+} from '../../../../src/lib/dncl/dncl-validator';
 import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
 
 const convert = (code) => rubyToDncl(code).dncl;
@@ -113,21 +117,18 @@ describe('Ruby → DNCL: the end of a do block (issue #1665)', () => {
         const { dncl, errors } = rubyToDncl(ruby);
         expect(dncl.split('\n')[3]).toBe('  を実行する');
         expect(dncl.split('\n')[4]).toBe('end while a < 1');
-        expect(errors.map((e) => e.line)).toEqual([1, 5]);
+        expect(errors.filter((e) => e.id === POST_TEST_LOOP_ERROR_ID).map((e) => e.line)).toEqual([1, 5]);
     });
 
-    test('the DNCL of a do block inside の間 has no block error and goes back to the same structure', () => {
+    test('the DNCL of a do block inside の間 has no block error and stops on the do line (issue #1679)', () => {
         const ruby = lines('while @a < 1', '  with_screen_refresh do', '    @b = 1', '  end', 'end');
         const dncl = convert(ruby);
         expect(findDnclBlockErrors(dncl)).toEqual([]);
         const back = dnclToRuby(dncl);
-        expect(back.errors).toEqual([]);
-        expect(back.ruby.split('\n')).toEqual([
-            'while @a < 1',
-            '  @with_screen_refresh do',
-            '    @b = 1',
-            '  end',
-            'end',
+        // Not `@with_screen_refresh do`: the Japanese mode has no such command.
+        expect(back.ruby).toBeNull();
+        expect(back.errors.map(({ line, id, name }) => ({ line, id, name }))).toEqual([
+            { line: 2, id: UNSUPPORTED_COMMAND_ERROR_ID, name: 'with_screen_refresh' },
         ]);
     });
 });
