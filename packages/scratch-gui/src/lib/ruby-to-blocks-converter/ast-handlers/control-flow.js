@@ -448,7 +448,11 @@ const ControlFlowHandlers = {
         try {
             // Two return values in the condition are saved in variables again too (issue #1725), so
             // the condition reads the values of this check, not of the first one.
-            split = this._splitPreBlocksAndValue(this._saveReturnValuesUsedTwice(this._processCondition(node)));
+            split = this._splitPreBlocksAndValue(
+                this._withReturnValueTempsKept(() =>
+                    this._saveReturnValuesUsedTwice(this._processCondition(node), node),
+                ),
+            );
         } finally {
             context.methodCallIndices = after.methodCallIndices;
             context.savedReturnValueInStatement = after.savedReturnValueInStatement;

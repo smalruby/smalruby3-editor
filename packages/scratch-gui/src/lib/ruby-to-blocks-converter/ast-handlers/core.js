@@ -158,7 +158,7 @@ const CoreHandlers = {
                 );
             }
             // A statement that uses two return values saves them in variables first (issue #1725).
-            const block = this._saveReturnValuesUsedTwice(this.visit(childNode));
+            const block = this._saveReturnValuesUsedTwice(this.visit(childNode), childNode);
             if (bodyKind) {
                 this._checkStatementInBody(childNode, block, bodyKind, index === node.body.length - 1);
             }
@@ -558,6 +558,10 @@ const CoreHandlers = {
         let blocks;
         try {
             blocks = this.visit(node);
+            if (node && this._getNodeTypeName(node) === 'IfNode') {
+                // `elsif`: its condition is the statement of the `if` in `else` (issue #1725).
+                blocks = this._saveReturnValuesUsedTwice(blocks, node);
+            }
         } finally {
             this._context.statementBodyKind = savedBodyKind;
         }

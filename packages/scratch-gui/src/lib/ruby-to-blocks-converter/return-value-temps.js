@@ -1,9 +1,12 @@
 // === Smalruby: This file is Smalruby-specific (return values saved in instance variables, issue #1725) ===
 import _ from 'lodash';
+import { RubyToBlocksConverterError } from './errors';
+import { myBlocksMessages } from './my-blocks';
 
 const RETURN_VALUE_OPCODE = 'smalrubyRuby_returnValue';
 const TEMP_PREFIX = '@_ret';
-const TEMP_NAME_PATTERN = /@_ret(\d+)(?![\w?!])/g;
+const RETURN_VALUE_TEMP_TYPE = '';
+const TEMP_NAME_PATTERN = /[@$]_ret(\d+)(?![\w?!])/g;
 
 /**
  * A call of a method block (`"cd".reverse`) used as a value becomes the method block before the statement
@@ -52,25 +55,68 @@ const ReturnValueTemps = {
     },
 
     /**
-     * The next name for a saved return value. A name the code already uses is skipped, so the value of
-     * a variable written by the user is not overwritten.
-     * @param {Set<number>} usedInStatement - The numbers already given in this statement.
-     * @returns {string} The Ruby name (`@_ret1`).
+     * Whether a number of a saved return value must not be used. A name the code already uses is
+     * skipped, so the value of a variable written by the user is not overwritten. On a sprite, the name
+     * of a variable of the stage is skipped too, and on the stage the name of a variable of a sprite:
+     * `@_ret1` of the stage is a variable for all sprites, so `@_ret1` of a sprite would be an error.
+     * @param {number} n - The number.
+     * @returns {boolean} Whether `@_retN` is taken.
      */
-    _nextReturnValueTempName(usedInStatement) {
-        if (!this._context.returnValueTempsInSource) {
-            const source = this._context.rootNode ? this._getSource(this._context.rootNode) : '';
+    _returnValueTempTaken(n) {
+        const context = this._context;
+        if (!context.returnValueTempsInSource) {
+            const source = context.rootNode ? this._getSource(context.rootNode) : '';
             const numbers = new Set();
             let match;
             TEMP_NAME_PATTERN.lastIndex = 0;
             while ((match = TEMP_NAME_PATTERN.exec(source)) !== null) {
                 numbers.add(Number(match[1]));
             }
-            this._context.returnValueTempsInSource = numbers;
+            context.returnValueTempsInSource = numbers;
         }
+        if (context.returnValueTempsInSource.has(n) || this._returnValueTemps().reserved.has(n)) return true;
+        const name = `${TEMP_PREFIX.slice(1)}${n}`;
+        const known = context.variables && context.variables[name];
+        if (known && known.scope !== (this._isStage() ? 'global' : 'instance')) return true;
+        if (this._isStage() && this.vm && this.vm.runtime && this.vm.runtime.targets) {
+            return this.vm.runtime.targets.some(
+                (t) =>
+                    !t.isStage &&
+                    Object.values(t.variables || {}).some(
+                        (v) => v.name === name && v.type === RETURN_VALUE_TEMP_TYPE,
+                    ),
+            );
+        }
+        return false;
+    },
+
+    /**
+     * The numbers given so far in the code, and the numbers no other statement may use.
+     * @returns {{given: Set<number>, reserved: Set<number>}} The two sets of the context.
+     */
+    _returnValueTemps() {
+        const context = this._context;
+        if (!context.returnValueTempsGiven) context.returnValueTempsGiven = new Set();
+        if (!context.returnValueTempsReserved) context.returnValueTempsReserved = new Set();
+        return { given: context.returnValueTempsGiven, reserved: context.returnValueTempsReserved };
+    },
+
+    /**
+     * The next name for a saved return value.
+     * @param {Set<number>} usedInStatement - The numbers already given in this statement.
+     * @param {boolean} exclusive - Whether the statement calls a method of its own between saving a value
+     *     and reading it: the method may run a statement that saves values too, so the numbers of this
+     *     statement are used by no other statement.
+     * @returns {string} The Ruby name (`@_ret1`).
+     */
+    _nextReturnValueTempName(usedInStatement, exclusive) {
+        const { given, reserved } = this._returnValueTemps();
         let n = 1;
-        while (usedInStatement.has(n) || this._context.returnValueTempsInSource.has(n)) n++;
+        const skipped = exclusive ? given : new Set();
+        while (usedInStatement.has(n) || skipped.has(n) || this._returnValueTempTaken(n)) n++;
         usedInStatement.add(n);
+        given.add(n);
+        if (exclusive) reserved.add(n);
         return `${TEMP_PREFIX}${n}`;
     },
 
@@ -79,9 +125,10 @@ const ReturnValueTemps = {
      * of another call (see `ReturnValueTemps`).
      * @param {Array|object} result - What visiting one statement returned: the blocks put before it, then
      *     the statement (or the value of the last line of a method).
+     * @param {object} node - The node of the statement, for an error.
      * @returns {Array|object} The blocks, with a "set variable" block after each call whose value is saved.
      */
-    _saveReturnValuesUsedTwice(result) {
+    _saveReturnValuesUsedTwice(result, node) {
         if (!_.isArray(result) || result.length < 2) return result;
         const sources = this._context.returnValueSources || {};
         const indexIn = (list, id) => list.findIndex((b) => this._isBlock(b) && b.id === id);
@@ -99,10 +146,30 @@ const ReturnValueTemps = {
         });
         if (saved.length === 0) return result;
 
+        // A call of a method of the program (`foo`) after a saved value, before the statement reads it.
+        const firstSaved = Math.min(...saved.map(({ sourceId }) => indexIn(result, sourceId)));
+        const callsAfterSaved = result
+            .slice(firstSaved + 1, -1)
+            .filter((b) => this._isBlock(b) && b.opcode === 'procedures_call');
+        const procedureName = this._context.currentProcedureName;
+        const recursive =
+            procedureName && callsAfterSaved.find((b) => this._procedureNameOfCall(b) === procedureName);
+        if (recursive) {
+            // The call of the method itself would run this statement again and overwrite the values.
+            throw new RubyToBlocksConverterError(
+                node || this._context.currentNode,
+                this._translator(myBlocksMessages.recursiveCallAfterSavedValue, {
+                    SOURCE: this._getSource(node || this._context.currentNode),
+                    NAME: procedureName,
+                }),
+            );
+        }
+        const exclusive = callsAfterSaved.length > 0;
+
         const blocks = result.slice();
         const usedInStatement = new Set();
         saved.forEach(({ reporter, sourceId }) => {
-            const variable = this._lookupOrCreateVariable(this._nextReturnValueTempName(usedInStatement));
+            const variable = this._lookupOrCreateVariable(this._nextReturnValueTempName(usedInStatement, exclusive));
             const variableField = {
                 name: 'VARIABLE',
                 id: variable.id,
@@ -124,6 +191,35 @@ const ReturnValueTemps = {
             delete sources[reporter.id];
         });
         return blocks;
+    },
+
+    /**
+     * The name of the method a `procedures_call` block calls.
+     * @param {object} block - The procedures_call block.
+     * @returns {string} The name (the first word of its proccode).
+     */
+    _procedureNameOfCall(block) {
+        const proccode = (block.mutation && block.mutation.proccode) || '';
+        return proccode.split(' ')[0];
+    },
+
+    /**
+     * Run a function and forget the numbers of saved return values it gave. The calls of the condition
+     * of a loop made again at the end of its body save the values in the same variables as the
+     * statement of the loop, which gives its numbers after them.
+     * @param {Function} fn - The function.
+     * @returns {*} What the function returned.
+     */
+    _withReturnValueTempsKept(fn) {
+        const { given, reserved } = this._returnValueTemps();
+        const keptGiven = new Set(given);
+        const keptReserved = new Set(reserved);
+        try {
+            return fn();
+        } finally {
+            this._context.returnValueTempsGiven = keptGiven;
+            this._context.returnValueTempsReserved = keptReserved;
+        }
     },
 };
 

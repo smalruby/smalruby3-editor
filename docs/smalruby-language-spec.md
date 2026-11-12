@@ -417,7 +417,7 @@ say(("ab" * 3).length + "cd".reverse.length)
 say(@_ret1.length + @_ret2.length)
 ```
 
-A value used once (`say("ab".reverse)`, `say("ab".reverse.upcase)`) comes back as written. A name `@_retN` that the program already uses is skipped, and the next number is used.
+A value used once (`say("ab".reverse)`, `say("ab".reverse.upcase)`) comes back as written. A name `@_retN` that the program already uses is skipped, and the next number is used. A variable of the stage is a variable of all sprites, so the stage skips the names of the variables of the sprites (and a sprite skips the names of the stage). When the statement calls a method of the program after saving a value (`say("ab".reverse.length + foo)`), its numbers are used by no other statement, so the statements in the method do not overwrite them. A call of the method itself there (`return "ab".reverse.length + f(n - 1)`) is an error.
 
 A value in parentheses, as in `return (x + 1)`, returns the value in them. A comment marker (`@ruby:return-paren`) brings the parentheses back as `return (x + 1)` after a round trip (`return(1)` becomes `return (1)`, and `return ((1))` becomes `return (1)`). Two or more lines in the parentheses (`(move(10); 1)`) or nothing in them (`()`) is an error.
 
