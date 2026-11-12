@@ -435,7 +435,7 @@ export const en = {
     'gui.lessons.challenge.blocks-l1-ask-answer.step4':
         'Put "reset timer" above "ask and wait". The timer starts counting from 0.',
     'gui.lessons.challenge.blocks-l1-ask-answer.step5':
-        'Snap on another "say", and use "join" from the green "Operators" to join the round "timer" and " seconds" in it.',
+        'Snap on another "say", then use "join" from the green "Operators" to join the round "timer" and " seconds", and put it in the new "say".',
     'gui.lessons.challenge.blocks-l1-ask-answer.step6':
         'Click the cat, type your name in the box that appears at the bottom, and click ✓.',
     'gui.lessons.challenge.blocks-l1-ask-answer.debug1':
