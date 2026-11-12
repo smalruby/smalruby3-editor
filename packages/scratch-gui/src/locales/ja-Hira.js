@@ -1000,6 +1000,8 @@ export default {
         '「{ SOURCE }」はブロックにできません。redo（くりかえしのおなじかいをやりなおす）にあたるブロックがないためです。\nredo をけして、「〜までくりかえす」のじょうけんでめいれいをくりかえしてください（れい: until x > 3 ... end）。',
     'gui.smalruby3.rubyToBlocksConverter.retryNotSupported':
         '「{ SOURCE }」はブロックにできません。retry（rescue のあとで begin をやりなおす）にあたるブロックがないためです。\nretry をけして、「〜までくりかえす」のじょうけんでめいれいをくりかえしてください（れい: until x > 3 ... end）。',
+    'gui.smalruby3.rubyToBlocksConverter.exceptionHandlingNotSupported':
+        '「{ SOURCE }」はブロックにできません。れいがいしょり（rescue / else / ensure）にあたるブロックがないためです。\nrescue / else / ensure とそのあとのめいれいをけして、うまくいったときにうごかすめいれいだけをかいてください。',
     'gui.smalruby3.rubyToBlocksConverter.beginLoopBodyNeverEnds':
         '「{ SOURCE }」はブロックにできません。begin と end のあいだのめいれいが、あとになにもつづけられないめいれい（loop do ... end・return・stop など）でおわっていて、じょうけんがたしかめられることがないためです。\nbegin ... end と end のあとのじょうけんをけして、めいれいだけをかいてください。',
     'gui.smalruby3.rubyToBlocksConverter.invalidMyBlockArgumentType':

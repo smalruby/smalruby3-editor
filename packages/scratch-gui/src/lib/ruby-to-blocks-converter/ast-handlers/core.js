@@ -102,6 +102,17 @@ const messages = defineMessages({
         description: 'Error message when retry is written in rescue',
         id: 'gui.smalruby3.rubyToBlocksConverter.retryNotSupported',
     },
+    exceptionHandlingNotSupported: {
+        defaultMessage:
+            '"{ SOURCE }" cannot be made into blocks, because there is no block for exception handling ' +
+            '(rescue / else / ensure).' +
+            '\nDelete rescue / else / ensure and the commands after them, and write only the commands ' +
+            'that run when nothing goes wrong.',
+        description:
+            'Error message when exception handling (rescue / else / ensure, or a modifier such as ' +
+            'x rescue y) is written',
+        id: 'gui.smalruby3.rubyToBlocksConverter.exceptionHandlingNotSupported',
+    },
 });
 
 // Values with no block of their own: they cannot be a method's return value (issue #1553).
@@ -404,7 +415,8 @@ const CoreHandlers = {
     },
 
     /**
-     * The error for a jump with no block (`break` / `next` / `redo` / `retry`) (issue #1609).
+     * The error for a jump with no block (`break` / `next` / `redo` / `retry`) (issue #1609),
+     * and for exception handling (`rescue` / `else` / `ensure`) (issue #1620).
      * Without it the line was dropped, and `break if x > 3` came back as ` if x > 3`.
      * The whole line is shown, so that a modifier (e.g. `break if x > 3`) is shown with its condition.
      * @param {object} node - The node of the jump.
@@ -436,8 +448,27 @@ const CoreHandlers = {
         throw this._jumpNotSupportedError(node, messages.retryNotSupported);
     },
 
+    /**
+     * The error for a body with rescue / else / ensure (issue #1620): there is no block for exception
+     * handling, and the clauses (and a `retry` in them) used to be dropped without an error.
+     * The body of `begin`, `def`, `do`, `class` and `module` is a BeginNode when it has a clause.
+     * The error is on the line of the first clause. A body with no clause is not an error.
+     * @param {object} bodyNode - The body (a BeginNode, a StatementsNode or null).
+     */
+    _checkNoExceptionHandling(bodyNode) {
+        const clause = bodyNode && (bodyNode.rescueClause || bodyNode.elseClause || bodyNode.ensureClause);
+        if (clause) {
+            throw this._jumpNotSupportedError(clause, messages.exceptionHandlingNotSupported);
+        }
+    },
+
     visitBeginNode(node) {
+        this._checkNoExceptionHandling(node);
         return this.visit(node.statements);
+    },
+
+    visitRescueModifierNode(node) {
+        throw this._jumpNotSupportedError(node, messages.exceptionHandlingNotSupported);
     },
 
     _processCondition(node) {

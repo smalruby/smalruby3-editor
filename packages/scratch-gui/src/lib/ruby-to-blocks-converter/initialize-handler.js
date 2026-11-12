@@ -15,6 +15,7 @@ const InitializeHandler = {
      * @param {boolean} isStageClass - Whether this is a Stage class
      */
     _processInitialize(defNode, isStageClass) {
+        this._checkNoExceptionHandling(defNode.body);
         const commentParts = [];
 
         // Save arguments if present

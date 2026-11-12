@@ -25,6 +25,7 @@ const ModuleVisitor = {
         if (this._context.currentModuleName) {
             throw new RubyToBlocksConverterError(node, this._translator(messages.nestedModuleNotSupported));
         }
+        this._checkNoExceptionHandling(node.body);
 
         const moduleName = node.name;
 
