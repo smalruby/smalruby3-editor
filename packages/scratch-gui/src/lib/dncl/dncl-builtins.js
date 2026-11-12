@@ -19,21 +19,30 @@ const isStringLiteral = (arg) => {
 };
 
 /**
+ * The argument of a built-in that becomes a method call on it (`整数(式)` →
+ * `式.to_i`, `文字列(式)` → `式.to_s`, ...), as the receiver of that method.
+ * An argument that is an expression is put in parentheses, so the method
+ * applies to the whole argument (`a + 1` → `(a + 1)`; `a + 1.to_i` would
+ * convert `1` only). `でない` is converted before that, as it negates the
+ * argument it ends (`x でない` → `(!x)`; `!x.to_s` would negate the string).
+ * A variable, call, index, `( ... )` group or number is left as it is.
+ * (Issues #1672, #1686)
+ * @param {string} arg - The argument (DNCL text, may contain `でない`).
+ * @returns {string} The argument, in parentheses if it is an expression.
+ */
+const toReceiver = (arg) => {
+    const expr = convertNegation(arg.trim());
+    const single = /^-\d+(\.\d+)?$/.test(expr) || (isSingleOperand(expr) && !expr.startsWith('!'));
+    return single ? expr : `(${expr})`;
+};
+
+/**
  * One non-string argument of a multi-argument `表示する`, as a `.to_s`
- * term of the `+` chain. An argument that is an expression is put in
- * parentheses first, so `.to_s` applies to the whole argument
- * (`a + 1` → `(a + 1).to_s`, not `a + 1.to_s`). `でない` is converted
- * before that, as it negates the argument it ends (`x でない` →
- * `(!x).to_s`; `!x.to_s` would negate the string). A variable, call,
- * index, `( ... )` group or number is left as it is. (Issue #1672)
+ * term of the `+` chain (`a + 1` → `(a + 1).to_s`). (Issue #1672)
  * @param {string} arg - The argument (DNCL text, may contain `でない`).
  * @returns {string} The argument followed by `.to_s`.
  */
-const toDisplayTerm = (arg) => {
-    const expr = convertNegation(arg.trim());
-    const single = /^-\d+(\.\d+)?$/.test(expr) || (isSingleOperand(expr) && !expr.startsWith('!'));
-    return single ? `${expr}.to_s` : `(${expr}).to_s`;
-};
+const toDisplayTerm = (arg) => `${toReceiver(arg)}.to_s`;
 
 /**
  * Convert DNCL built-in function calls to Ruby equivalents. Uses balanced
@@ -69,28 +78,29 @@ const convertBuiltinFunctions = (text) => {
     result = replaceCall(result, '含む', (args) => {
         const parts = splitArgsAtTopLevel(args);
         if (parts.length === 2) {
-            return `${parts[0]}.include?(${parts[1]})`;
+            return `${toReceiver(parts[0])}.include?(${parts[1]})`;
         }
         return `含む(${args})`;
     });
 
     // 要素数(Name) → Name.length
-    result = replaceCall(result, '要素数', (args) => `${args}.length`);
+    result = replaceCall(result, '要素数', (args) => `${toReceiver(args)}.length`);
 
-    // 整数(expr) → expr.to_i
-    result = replaceCall(result, '整数', (args) => `${args}.to_i`);
+    // 整数(expr) → expr.to_i — an expression is parenthesized (`toReceiver`),
+    // and so are the arguments of the other method-call built-ins below.
+    result = replaceCall(result, '整数', (args) => `${toReceiver(args)}.to_i`);
 
     // 文字列(expr) → expr.to_s
-    result = replaceCall(result, '文字列', (args) => `${args}.to_s`);
+    result = replaceCall(result, '文字列', (args) => `${toReceiver(args)}.to_s`);
 
     // 乱数(n) → rand(n)
     result = replaceCall(result, '乱数', (args) => `rand(${args})`);
 
     // Math functions
-    result = replaceCall(result, '四捨五入', (args) => `${args}.round`);
-    result = replaceCall(result, '切り捨て', (args) => `${args}.floor`);
-    result = replaceCall(result, '切り上げ', (args) => `${args}.ceil`);
-    result = replaceCall(result, '絶対値', (args) => `${args}.abs`);
+    result = replaceCall(result, '四捨五入', (args) => `${toReceiver(args)}.round`);
+    result = replaceCall(result, '切り捨て', (args) => `${toReceiver(args)}.floor`);
+    result = replaceCall(result, '切り上げ', (args) => `${toReceiver(args)}.ceil`);
+    result = replaceCall(result, '絶対値', (args) => `${toReceiver(args)}.abs`);
     result = replaceCall(result, '平方根', (args) => `Math.sqrt(${args})`);
 
     return result;

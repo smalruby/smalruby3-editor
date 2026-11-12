@@ -382,8 +382,13 @@ const stripIntegerDivisionToI = (line) => {
                 const inner = line.substring(i + 1, close);
                 if (containsTopLevelSlash(inner)) {
                     // Recursively strip nested wrappers in `inner` before emitting.
-                    result += stripIntegerDivisionToI(inner);
-                    i = close + 1 + TO_I_SUFFIX.length; // past `).to_i`
+                    const end = close + 1 + TO_I_SUFFIX.length; // past `).to_i`
+                    const stripped = stripIntegerDivisionToI(inner);
+                    // A method after it (`(a / 2).to_i.to_s`) applies to the
+                    // whole division, so the parentheses stay: `(a / 2).to_s`,
+                    // not `a / 2.to_s`. (Issue #1686)
+                    result += line[end] === '.' ? `(${stripped})` : stripped;
+                    i = end;
                     continue;
                 }
             }
