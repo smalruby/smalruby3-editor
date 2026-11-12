@@ -74,8 +74,9 @@ smalruby3-editor の機能ドキュメントは **ユーザーストーリー単
 | 機能 | upstream 区分 | 状態 |
 |---|---|---|
 | [`mobile-ui/`](mobile-ui/) — モバイル/タブレット UI 全般（旧 `docs/sp/`） | 🆕 独自 | ✅ |
-| [`menu-bar/`](menu-bar/) — メニューバー・言語切替・アカウントメニュー・tutorial-tooltip | 🔧 改良 | ✅ |
+| [`menu-bar/`](menu-bar/) — メニューバー・言語切替・アカウントメニュー・「?」メニュー（チュートリアル / デバッグの入口） | 🔧 改良 | ✅ |
 | [`tutorial/`](tutorial/) — cards・tips-library・tutorial-onboarding・classroom-tutorial | 🔧 改良 | ✅ |
+| [`lessons/`](lessons/) — コース › レッスン › チャレンジのデータ・端末への記録・レッスンモード | 🆕 独自 | ✏️ |
 | [`alerts/`](alerts/) — alerts・crash-message・error-boundary・coming-soon・browser/webgl-modal | ⬆️ そのまま | ✅ |
 | [`settings/`](settings/) — Ruby バージョン切替・各種設定永続化 | 🔧 改良 | ✅ |
 | [`screenshot/`](screenshot/) — blocks-screenshot・ruby-screenshot | 🆕 独自 | ✅ |

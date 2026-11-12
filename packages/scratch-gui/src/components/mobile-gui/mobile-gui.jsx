@@ -6,6 +6,7 @@ import { saveBackpackObject } from '../../lib/backpack-api.js';
 import codePayload from '../../lib/backpack/code-payload.js';
 import ConnectedIntlProvider from '../../lib/connected-intl-provider.jsx';
 import { COSTUMES_TAB_INDEX } from '../../reducers/editor-tab.js';
+import { isLessonMode } from '../../reducers/lesson-mode.js';
 import MobileDrawer from '../mobile-drawer/mobile-drawer.jsx';
 import MobileModeNotice from '../mobile-mode-notice/mobile-mode-notice.jsx';
 import MobileOrientationGate from '../mobile-orientation-gate/mobile-orientation-gate.jsx';
@@ -32,7 +33,7 @@ const MOBILE_MODE_CLASS = 'smalruby-mobile-mode';
 const MOBILE_FULLSCREEN_CLASS = 'smalruby-mobile-fullscreen';
 const MOBILE_BACKPACK_OPEN_CLASS = 'smalruby-mobile-backpack-open';
 
-const MobileGui = ({ activeTabIndex, isFullScreen, vm, ...props }) => {
+const MobileGui = ({ activeTabIndex, isFullScreen, lessonModeActive, vm, ...props }) => {
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [spriteTabActive, setSpriteTabActive] = useState(false);
     const [paintToolbarCollapsed, setPaintToolbarCollapsed] = useState(false);
@@ -295,9 +296,10 @@ const MobileGui = ({ activeTabIndex, isFullScreen, vm, ...props }) => {
                     {/*
                      * スマホモードであることと PC モードへ切り替えられることを
                      * 伝える一度きりの案内 (Issue #865)。閉じたら localStorage に
-                     * 記録して以後出さない。
+                     * 記録して以後出さない。レッスンモードに入ったら閉じる
+                     * (課題バーに重なるため・Issue #1498)。
                      */}
-                    <MobileModeNotice />
+                    <MobileModeNotice lessonModeActive={lessonModeActive} />
                     <MobileSpritePanel active={spriteTabActive} />
                     {/*
                      * コスチュームタブで上部ツールバーを出し入れするトグル。
@@ -325,12 +327,14 @@ const MobileGui = ({ activeTabIndex, isFullScreen, vm, ...props }) => {
 MobileGui.propTypes = {
     activeTabIndex: PropTypes.number.isRequired,
     isFullScreen: PropTypes.bool.isRequired,
+    lessonModeActive: PropTypes.bool,
     vm: PropTypes.object,
 };
 
 const mapStateToProps = (state) => ({
     activeTabIndex: state.scratchGui.editorTab.activeTabIndex,
     isFullScreen: state.scratchGui.mode.isFullScreen,
+    lessonModeActive: isLessonMode(state),
     vm: state.scratchGui.vm,
 });
 

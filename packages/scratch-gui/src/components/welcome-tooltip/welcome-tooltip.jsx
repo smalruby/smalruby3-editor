@@ -2,6 +2,8 @@ import PropTypes from 'prop-types';
 import React, { useCallback, useState } from 'react';
 import { FormattedMessage } from 'react-intl';
 import analytics from '../../lib/analytics';
+import BalloonCloseButton from '../balloon/balloon-close-button.jsx';
+import Balloon from '../balloon/balloon.jsx';
 import styles from './welcome-tooltip.css';
 
 const sendEvent = (action) => {
@@ -82,23 +84,14 @@ const WelcomeTooltip = ({ onClick }) => {
 
     return (
         <div className={styles.tooltipContainer} data-testid="welcome-tooltip">
-            <div className={styles.tooltip} onClick={handleClick} role="button" tabIndex={0}>
-                <div className={styles.arrow} />
+            <Balloon arrowSide="left" className={styles.tooltip} onClick={handleClick} role="button" tabIndex={0}>
                 <FormattedMessage
                     defaultMessage="Welcome to Smalruby"
                     description="Balloon hint near the help button inviting users to open the welcome modal"
                     id="gui.welcomeTooltip.label"
                 />
-                <button
-                    aria-label="Close"
-                    className={styles.close}
-                    data-testid="welcome-tooltip-close"
-                    onClick={handleClose}
-                    type="button"
-                >
-                    {'×'}
-                </button>
-            </div>
+                <BalloonCloseButton label="Close" testId="welcome-tooltip-close" onClick={handleClose} />
+            </Balloon>
         </div>
     );
 };

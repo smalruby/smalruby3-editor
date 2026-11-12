@@ -33,6 +33,12 @@ import GenaiConcierge from '../../containers/genai-concierge.jsx';
 import WebGlModal from '../../containers/webgl-modal.jsx';
 import TipsLibrary from '../../containers/tips-library.jsx';
 import Cards from '../../containers/cards.jsx';
+// === Smalruby: Start of lesson mode ===
+import LessonMode from '../../containers/lesson-mode.jsx';
+// === Smalruby: End of lesson mode ===
+// === Smalruby: Start of lessons library ===
+import LessonsLibrary from '../../containers/lessons-library.jsx';
+// === Smalruby: End of lessons library ===
 import Alerts from '../../containers/alerts.jsx';
 import DragLayer from '../../containers/drag-layer.jsx';
 import ConnectionModal from '../../containers/connection-modal.jsx';
@@ -61,6 +67,9 @@ import ClassroomMeshConnectPrompt from '../../containers/classroom-mesh-connect-
 // === Smalruby: Start of meshV2 self-sensor notice ===
 import MeshSelfSensorNotice from '../../containers/mesh-self-sensor-notice.jsx';
 // === Smalruby: End of meshV2 self-sensor notice ===
+// === Smalruby: Start of lesson goal watcher ===
+import LessonGoalWatcher from '../../containers/lesson-goal-watcher.jsx';
+// === Smalruby: End of lesson goal watcher ===
 // === Smalruby: Start of welcome modal ===
 import WelcomeModalHOC from '../../containers/welcome-modal-hoc.jsx';
 // === Smalruby: End of welcome modal ===
@@ -191,6 +200,9 @@ const GUIComponent = props => {
         blocksId,
         blocksTabVisible,
         dnclMode, // === Smalruby: DNCL block filtering ===
+        // === Smalruby: Start of lesson mode ===
+        lessonTaskBarVisible,
+        // === Smalruby: End of lesson mode ===
         cardsVisible,
         canChangeLanguage,
         canChangeColorMode,
@@ -371,7 +383,10 @@ const GUIComponent = props => {
             const stageSize = isNarrowDesktop ? STAGE_DISPLAY_SIZES.small : baseStageSize;
             // === Smalruby: End of iPad portrait narrow desktop stage size ===
             const boxStyles = classNames(styles.bodyWrapper, {
-                [styles.bodyWrapperWithoutMenuBar]: menuBarHidden
+                [styles.bodyWrapperWithoutMenuBar]: menuBarHidden,
+                // === Smalruby: Start of lesson mode ===
+                [styles.bodyWrapperWithLessonTaskBar]: lessonTaskBarVisible
+                // === Smalruby: End of lesson mode ===
             });
 
         return isPlayerOnly ? (
@@ -510,10 +525,16 @@ const GUIComponent = props => {
                     {/* === Smalruby: Start of meshV2 self-sensor notice === */}
                     <MeshSelfSensorNotice />
                     {/* === Smalruby: End of meshV2 self-sensor notice === */}
+                    {/* === Smalruby: Start of lesson goal watcher === */}
+                    <LessonGoalWatcher />
+                    {/* === Smalruby: End of lesson goal watcher === */}
                     {/* === Smalruby: End of smalrubot firmware modal === */}
                     {/* === Smalruby: Start of welcome modal === */}
                     <WelcomeModalHOC />
                     {/* === Smalruby: End of welcome modal === */}
+                    {/* === Smalruby: Start of lessons library === */}
+                    <LessonsLibrary />
+                    {/* === Smalruby: End of lessons library === */}
                     {!menuBarHidden && <MenuBar
                         ariaRole="banner"
                         ariaLabel={intl.formatMessage(ariaMessages.menuBar)}
@@ -571,6 +592,10 @@ const GUIComponent = props => {
                         username={username}
                         accountMenuOptions={accountMenuOptions}
                     />}
+                    {/* === Smalruby: Start of lesson mode === */}
+                    {/* 課題バーは画面の幅いっぱい（エディタの列とステージの列の両方の上）に出す */}
+                    <LessonMode />
+                    {/* === Smalruby: End of lesson mode === */}
                     <Box className={classNames(boxStyles, styles.flexWrapper)}>
                         <Box
                             role="main"
@@ -882,6 +907,9 @@ GUIComponent.propTypes = {
     smalrubotFirmwareModalVisible: PropTypes.bool, // === Smalruby: smalrubot firmware modal ===
     blocksTabVisible: PropTypes.bool,
     dnclMode: PropTypes.bool, // === Smalruby: DNCL block filtering ===
+    // === Smalruby: Start of lesson mode ===
+    lessonTaskBarVisible: PropTypes.bool,
+    // === Smalruby: End of lesson mode ===
     blocksId: PropTypes.string,
     canChangeLanguage: PropTypes.bool,
     canChangeColorMode: PropTypes.bool,

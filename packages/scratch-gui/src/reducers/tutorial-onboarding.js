@@ -77,13 +77,10 @@ const dismissTooltip = function () {
     };
 };
 
-const shouldShowTooltip = (state) => !state.scratchGui.tutorialOnboarding.tooltipDismissed;
-
 export {
     reducer as default,
     initialState as tutorialOnboardingInitialState,
     markTutorialSeen,
     markRubyTabUsed,
     dismissTooltip,
-    shouldShowTooltip,
 };

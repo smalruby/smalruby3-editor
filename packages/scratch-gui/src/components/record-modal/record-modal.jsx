@@ -21,6 +21,9 @@ const RecordModal = props => {
         <Modal
             className={styles.modalContent}
             contentLabel={intl.formatMessage(messages.title)}
+            // === Smalruby: Start of upstream warning fixes ===
+            id="recordModal"
+            // === Smalruby: End of upstream warning fixes ===
             onRequestClose={props.onCancel}
         >
             <Box className={styles.body}>

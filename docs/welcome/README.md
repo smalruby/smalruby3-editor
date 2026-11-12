@@ -63,6 +63,8 @@ SP ではメニューバーが表示されないため、`☰` から開く Mobi
 - バルーンクリックでウェルカムモーダルが開く（同時にバルーンは永続的に非表示）
 - バルーン右端の `×` でも閉じられる（モーダルは開かない）
 - 初回表示から **5 日経過すると次回起動時に自動的に非表示**（起動時のみチェック、滞在中は消えない）
+- **レッスンモード（チャレンジを開いている）のあいだは出さない**（課題バーに重なるため）。記録は変えないので、レッスンモードを抜けると元どおり出る
+- クラス管理の先生がログインしているあいだも出さない（先生メニューがその位置に出るため）
 
 ### モーダル本体の表示トリガー
 
@@ -78,7 +80,7 @@ SP ではメニューバーが表示されないため、`☰` から開く Mobi
 - **scratch-gui**:
   - `src/components/welcome-modal/welcome-modal.{jsx,css}` — モーダル本体
   - `src/components/welcome-modal/icon-ruby.svg` — Ruby カードの公式ロゴアイコン
-  - `src/components/welcome-tooltip/welcome-tooltip.{jsx,css}` — About (`?`) ボタン左隣のウェルカムバルーン（5 日後に自動非表示）
+  - `src/components/welcome-tooltip/welcome-tooltip.{jsx,css}` — About (`?`) ボタン左隣のウェルカムバルーン（5 日後に自動非表示）。見た目は共通の吹き出し `src/components/balloon/`（青の callout + 閉じるボタン）
   - `src/components/menu-bar/menu-bar.jsx` — `WelcomeTooltip` の配置と `openWelcomeModal` の dispatch（マーカー）
   - `src/containers/welcome-modal-hoc.jsx` — Redux 接続。`isOpen` を読み、CTA で dispatch
   - `src/components/gui/gui.jsx` — About メニュー項目の構築（マーカー）と HOC のレンダリング

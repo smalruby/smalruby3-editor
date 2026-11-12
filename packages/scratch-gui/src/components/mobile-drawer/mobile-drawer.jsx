@@ -22,9 +22,15 @@ import { openBugReportModal } from '../../reducers/bug-report.js';
 import { openClassroomModal, openTeacherModal } from '../../reducers/classroom.js';
 import { setConnectionModalExtensionId } from '../../reducers/connection-modal.js';
 import { selectLocale } from '../../reducers/locales.js';
-import { openConnectionModal, openUrlLoaderModal, openWelcomeModal } from '../../reducers/modals.js';
+import {
+    openConnectionModal,
+    openLessonsLibrary,
+    openUrlLoaderModal,
+    openWelcomeModal,
+} from '../../reducers/modals.js';
 import { requestNewProject } from '../../reducers/project-state.js';
 import { setRubyVersion } from '../../reducers/settings.js';
+import { markTutorialSeen } from '../../reducers/tutorial-onboarding.js';
 import closeIcon from './icon--close.svg';
 import styles from './mobile-drawer.css';
 
@@ -130,6 +136,11 @@ const messages = defineMessages({
         defaultMessage: 'Version 2',
         description: 'Mobile drawer label for Ruby version 2',
         id: 'gui.mobile.drawer.settings.ruby.v2',
+    },
+    lessons: {
+        defaultMessage: 'Lessons',
+        description: 'accessibility text for the lessons button',
+        id: 'gui.menuBar.lessons',
     },
     sectionHelp: {
         defaultMessage: 'Help',
@@ -244,6 +255,7 @@ const hasV2Features = (vm) => {
  * @param {Function} props.onStartSavingToGoogleDrive - GoogleDriveSaverHOC 注入
  * @param {Function} props.onStartSelectingUrlLoad - Scratch URL ローダーモーダル
  * @param {Function} props.onOpenWelcomeModal - ウェルカムモーダルを開く (#658)
+ * @param {Function} props.onOpenLessonsLibrary - レッスン表を開く
  * @param {Function} props.onReportBug - プログラム不具合報告モーダルを開く (#731)
  * @param {object} props.intl - react-intl
  * @returns {JSX.Element|null} portal 経由で body 直下にレンダリング
@@ -267,6 +279,7 @@ const MobileDrawerComponent = ({
     onStartSavingToGoogleDrive,
     onStartSelectingUrlLoad,
     onOpenWelcomeModal,
+    onOpenLessonsLibrary,
     onReportBug,
     intl,
 }) => {
@@ -365,6 +378,11 @@ const MobileDrawerComponent = ({
         onOpenWelcomeModal();
         onClose();
     }, [onOpenWelcomeModal, onClose]);
+
+    const handleClickLessons = useCallback(() => {
+        onOpenLessonsLibrary();
+        onClose();
+    }, [onOpenLessonsLibrary, onClose]);
 
     const handleClickReportBug = useCallback(() => {
         onReportBug();
@@ -706,6 +724,18 @@ const MobileDrawerComponent = ({
                         </>
                     )}
 
+                    {/* ===== レッスン（レッスン表を開く） ===== */}
+                    <li>
+                        <button
+                            type="button"
+                            className={styles.menuItem}
+                            onClick={handleClickLessons}
+                            data-testid="mobile-drawer-lessons"
+                        >
+                            <FormattedMessage {...messages.lessons} />
+                        </button>
+                    </li>
+
                     {/* ===== ヘルプ (accordion トグル) ===== */}
                     <li>{renderToggle(<FormattedMessage {...messages.sectionHelp} />, SUBMENU_HELP)}</li>
                     {isExpanded(SUBMENU_HELP) && (
@@ -770,6 +800,7 @@ MobileDrawerComponent.propTypes = {
     onStartSavingToGoogleDrive: PropTypes.func.isRequired,
     onStartSelectingUrlLoad: PropTypes.func.isRequired,
     onOpenWelcomeModal: PropTypes.func.isRequired,
+    onOpenLessonsLibrary: PropTypes.func.isRequired,
     onReportBug: PropTypes.func.isRequired,
     intl: intlShape.isRequired,
 };
@@ -796,6 +827,10 @@ const mapDispatchToProps = (dispatch) => ({
     },
     onStartSelectingUrlLoad: () => dispatch(openUrlLoaderModal()),
     onOpenWelcomeModal: () => dispatch(openWelcomeModal()),
+    onOpenLessonsLibrary: () => {
+        dispatch(markTutorialSeen());
+        dispatch(openLessonsLibrary());
+    },
     onReportBug: () => dispatch(openBugReportModal()),
 });
 

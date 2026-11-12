@@ -17,6 +17,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 |----------|--------|------|
 | `src/lib/audio/audio-buffer-player.js` | null-safe AudioContext (issue #633) | `?tab=sounds` 直接遷移時 (user gesture 前) に `SharedAudioContext` が createBuffer を持たない空オブジェクトを返しても crash しないよう、buffer を遅延生成にする。`buffer` getter / `ensureBuffer` / `_hasAudioContext` の追加と `play` のガード。`SharedAudioContext` 自体は変更しない (autoplay policy の既知不具合回避) |
 | `src/lib/download-blob.js` | mobile-friendly download strategy (issue #833) | iOS/iPadOS Safari は anchor `download` 属性を無視するため、スクショ等の DL が無反応になる。`isAppleMobile` / `chooseDownloadStrategy` (純粋関数) / `makeFile` / `openBlobInNewTab` を追加し、モバイルでは Web Share API → 新規タブの順でフォールバック。デスクトップは anchor click のまま変更なし |
+| `src/lib/detect-locale.js` | case-insensitive locale matching | URL (`?locale=` / `?lang=`) とブラウザの言語を、大文字・小文字を区別せずに対応言語と比べ、対応言語の正しい表記で返す（`ja-hira` → `ja-Hira`）。upstream は小文字にしてから `includes` で比べるため、`ja-Hira` のような大文字を含む言語に一致しない。`findSupportedLocale` の追加と 2 か所の比較（3 ペア） |
 | `src/reducers/gui.ts` | Redux state registry | Smalruby reducer の import |
 | `src/reducers/gui.ts` | initial state | Smalruby 初期 state の展開 |
 | `src/reducers/gui.ts` | reducers | Smalruby reducer の登録 |
@@ -31,6 +32,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/components/connection-modal/connection-modal.jsx` | network filter detection feature | ネットワークフィルター検出 |
 | `src/components/connection-modal/error-step.jsx` | smalrubot firmware flash | エラーステップのファームウェアボタン |
 | `src/reducers/modals.js` | smalrubot firmware modal | ファームウェアモーダル開時に接続モーダルを自動で閉じる |
+| `src/reducers/modals.js` | lessons library | レッスン表のモーダル `lessonsLibrary`（定数・初期状態・`openLessonsLibrary` / `closeLessonsLibrary` の定義と export。`docs/lessons/README.md`） |
 | `src/components/connection-modal/connection-modal.jsx` | meshV2 initial step feature | Mesh v2 初期ステップ UI |
 | `src/components/connection-modal/connection-modal.jsx` | smalrubotS1 dedicated flow | SmalrubotS1 専用フロー (PHASES、ステップ振り分け、propTypes) |
 | `src/containers/connection-modal.jsx` | smalrubotS1 dedicated flow | SmalrubotS1 専用フロー (initial phase 判定、ハンドラー、props) |
@@ -46,9 +48,14 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/components/modal/modal.css` | default modal background | `.modal-content` (非フルスクリーン) に既定背景 `$ui-white` を付与し、本文背景の設定漏れでも青いオーバーレイが透けないようにする (案X) |
 | `src/components/gui/gui.jsx` | meshV2 classroom binding | クラス状態に応じて Mesh v2 ドメインを参加コードに固定する常時マウントの binding |
 | `src/components/gui/gui.jsx` | meshV2 self-sensor notice | グローバル変数名と mesh センサーの値の重複を検出し初回のみ通知する常時マウントのバナー (Issue #707) の import と配置 |
+| `src/components/gui/gui.jsx` | lesson goal watcher | レッスンモードのあいだ VM を見張り、チャレンジの「できた」を判定して記録・「できた！」を出す常時マウントのコンテナ（`containers/lesson-goal-watcher.jsx`）の import と配置 |
 | `src/components/gui/gui.jsx` | welcome modal | 初回訪問者向けウェルカムモーダル HOC の import と配置、`onShowWelcomeModal` prop |
 | `src/containers/gui.jsx` | welcome modal | `onShowWelcomeModal` を Redux `openWelcomeModal()` にマップ |
 | `src/components/gui/gui.jsx` | DNCL mode notice | DnclModeNotice コンポーネントの import・配置・`onRequestExitDnclMode` prop |
+| `src/components/gui/gui.jsx` | lesson mode | レッスンモードのコンテナ `LessonMode`（課題バー + チャレンジを開く流れ）の import と、メニューバーと本体（`flexWrapper`）のあいだへの常時マウント（課題バーを画面の幅いっぱいに出す）。`lessonTaskBarVisible` の destructure・propType と、本体に `bodyWrapperWithLessonTaskBar` を付ける classNames（`docs/lessons/README.md`） |
+| `src/containers/gui.jsx` | lesson mode | `getCurrentChallenge` の import と、`lessonTaskBarVisible`（チャレンジを開いているか）の state マッピング |
+| `src/components/gui/gui.css` | lesson mode | `.body-wrapper-with-lesson-task-bar`: 課題バー（2.5rem）が出ているあいだ本体の高さをその分縮める（narrow-height・メニューバーなしの組み合わせも） |
+| `src/components/gui/gui.jsx` | lessons library | レッスン表のコンテナ `LessonsLibrary` の import と、他のモーダルと並ぶ場所（`WelcomeModalHOC` の次）への常時マウント（`docs/lessons/README.md`） |
 | `src/containers/gui.jsx` | DNCL mode notice | `onRequestExitDnclMode` を Redux `setDnclMode(false)` + `requestExternalExitDnclMode()` にマップ |
 | `src/components/gui/gui.jsx` | genai concierge | 「生成AI に相談」の顔（`GenaiConcierge`）の import とスクリプトエリアへの常時マウント。表示条件はコンテナ側で判定（`docs/genai-consult/README.md`） |
 | `src/components/extension-button/extension-button.jsx` | DNCL extension confirm | DNCL モード時の拡張機能ボタンを confirm ダイアログ化（メッセージ定義 + クリックハンドラの 2 箇所）。OK でふりがなモードに戻して拡張機能ライブラリを開く |
@@ -69,6 +76,11 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/components/menu-bar/menu-bar.jsx` | classroom button | クラスルームボタンの import、レンダリング、Redux 接続 |
 | `src/components/menu-bar/menu-bar.jsx` | classroom teacher menu | 先生用「クラス管理」メニューを右端（? の左）に置く。先生ログイン中はウェルカムの吹き出しを出さない（welcome tooltip マーカー内）・`classroomTeacherLoggedIn` の Redux 接続 |
 | `src/components/menu-bar/menu-bar.jsx` | welcome tooltip | About (`?`) ボタンの左隣にウェルカムバルーンを描画。`buildAboutMenu` 内に `WelcomeTooltip` 配置 + `position: relative` 化、`handleClickWelcomeTooltip` ハンドラ追加、`onShowWelcomeModal` 用 mapDispatchToProps 追加 |
+| `src/components/menu-bar/menu-bar.jsx` | help menu | 「チュートリアル」「デバッグ」をメニューバーのボタンから「?」メニューの項目へ移す。`buildAboutMenu` 内に `MenuSection`（`menu-bar-help-tutorials` / `menu-bar-help-debug`）を追加し、upstream の about 項目（`onClickAbout`）も `MenuSection` で囲んで区切り線を入れる、`?` の div に `data-testid="menu-bar-about"`、upstream のボタン群（と先頭の `Divider`）・`helpIcon` / `debugIcon` import を削除 |
+| `src/components/menu/menu.jsx` | menu item data-testid | `MenuItem` が `data-testid` prop を `<li>` に渡す（props の分割代入・`<li>` の属性・propTypes の 3 箇所）。integration テスト / Playwright がメニュー項目を直接指せるようにする |
+| `src/containers/menu-bar-hoc.jsx` | help menu | 「?」メニューのチュートリアル項目用に `onOpenTipsLibrary` を mapDispatchToProps で供給（upstream は menu-bar.jsx 側で直接 dispatch）。`openLessonsLibrary` の import も同じ行（同一モジュールの二重 import を eslint が禁じるため） |
+| `src/components/menu-bar/menu-bar.jsx` | lessons button | upstream の「チュートリアル」ボタンがあった場所（区切り線の間）に「レッスン」ボタン（`menu-bar-lessons`。`lessonsIcon` = `icon--tutorials.svg`）を置く（吹き出しは出さない）。`ariaMessages.lessons`、`onOpenLessonsLibrary` / `lessonModeActive` の propTypes |
+| `src/containers/menu-bar-hoc.jsx` | lessons button | `lessonModeActive`（`isLessonMode`。レッスンモード中はウェルカムバルーンを出さない）と `onOpenLessonsLibrary`（`markTutorialSeen` + `openLessonsLibrary`）を供給 |
 | `src/components/menu-bar/settings-menu.jsx` | classroom management menu | クラス管理メニューアイテムの import、レンダリング、Redux 接続 |
 | `src/components/menu-bar/settings-menu.jsx` | display mode menu | 表示モード (自動/PC/スマホ) 切替。テーマ/Ruby と同じ `PreferenceMenu` サブメニュー形式 + 専用アイコン。`useDisplayMode` hook + `persistDisplayMode` の import、ハンドラ、Redux (open/close) 接続、レンダリング (Issue #865) |
 | `src/reducers/menus.js` | display mode menu | `PreferenceMenu` サブメニューの開閉用 Redux state (`displayModeMenu`)。定数/rootMenu への登録/initialState/open・close・selector の追加 (Issue #865) |
@@ -88,6 +100,10 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/containers/prompt.jsx` | IME composition guard | 変数・リスト・ブロック作成ダイアログで IME 変換確定の Enter が OK にならないようにする (issue #1167) |
 | `src/containers/slider-prompt.jsx` | IME composition guard | スライダー範囲設定で IME 変換確定の Enter が OK にならないようにする (issue #1167) |
 | `src/containers/list-monitor.jsx` | IME composition guard | ステージ上のリスト編集で IME 変換確定の Enter が新規項目挿入にならないようにする (issue #1167) |
+| `src/components/prompt/prompt.jsx` | upstream warning fixes | `Modal` に必須の `id`（`prompt`）を渡す。upstream は渡しておらず prop type 警告が出る (issue #1499) |
+| `src/components/record-modal/record-modal.jsx` | upstream warning fixes | `Modal` に必須の `id`（`recordModal`）を渡す (issue #1499) |
+| `src/components/monitor/list-monitor-scroller.jsx` | upstream warning fixes | リスト項目の入力欄の `autoComplete={false}`（DOM 属性の警告）を `"off"` にする (issue #1499) |
+| `src/containers/list-monitor.jsx` | upstream warning fixes | `value` の prop type に配列（リストの項目）を足す。リストモニターには配列が渡るので警告が出ていた (issue #1499) |
 | `src/components/forms/buffered-input-hoc.jsx` | IME composition guard | スプライト名 / x / y / 大きさ / 向きの入力で IME 変換確定の Enter が flush + blur にならないようにする (issue #1167) |
 | `src/playground/index.ejs` | interactive-widget viewport for Android keyboard | meta viewport に `interactive-widget=resizes-content` を追加。Android Chrome 108+ でキーボード出現時に layout viewport が縮み、`100dvh` 等の dvh 系単位が追従するようになる |
 | `src/playground/render-gui.jsx` | URL params for Playwright | URL パラメーター import |
@@ -95,6 +111,14 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/playground/render-gui.jsx` | MobileGui dispatcher | ResponsiveGui import + GUI を ResponsiveGui に差し替え (issue #572 Phase 2-A) |
 | `src/playground/render-gui.jsx` | storage worker timeout HOC | scratch-storage の FetchWorkerTool に 5s タイムアウトを当てる HOC import と compose 配置 (subdir deploy + iOS Safari の Worker hang 対策) |
 | `src/components/gui/gui.jsx` | about menu | About メニュー項目（`/about.html` を新規タブで開く + ウェルカムモーダル再表示）の定義と MenuBar への注入 |
+| `src/components/sprite-info/sprite-info.jsx` | compact middle sprite info | 中サイズのステージ（`STAGE_DISPLAY_SIZES.middle`。Smalruby 独自）のときだけ別の形で描く: 「スプライト」の字なし・x / y は入力欄の左隣・大きさ / 向きはアイコン（`icon--size.svg` / direction-picker の `icon--all-around.svg`。`title` / `aria-label` は `gui.smalruby3.SpriteInfo.sizeIcon` / `directionIcon`）。icon の import・messages・render の分岐（`docs/sprite/README.md`） |
+| `src/components/sprite-info/sprite-info.css` | compact middle sprite info | 上の詰めた形のスタイル（`.compact` / `.compact-name` / `.label-icon`） |
+| `src/components/direction-picker/direction-picker.jsx` | compact middle sprite info | `labelIcon` prop: 渡されたら「向き」の字の代わりにそれを Label に出す（propType も） |
+| `src/containers/direction-picker.jsx` | compact middle sprite info | `labelIcon` prop をコンポーネントへ渡す（propType も） |
+| `src/components/stage-selector/stage-selector.jsx` | middle stage selector without header | `hideHeader` prop: 渡されたら見出し「ステージ」（`.header`）を描かず、`.no-header` のクラスを付ける（分割代入・className・render・propType の 4 ペア。`docs/stage/README.md`） |
+| `src/components/stage-selector/stage-selector.css` | middle stage selector without header | 見出しが無いときの背景の絵の上の余白（`.no-header .costume-canvas`） |
+| `src/components/target-pane/target-pane.jsx` | middle stage selector without header | 中サイズのステージ（`STAGE_DISPLAY_SIZES.middle`）のとき StageSelector に `hideHeader` を渡す。SP のスプライトのパネルは `keepStageSelectorHeader` で見出しを残す（分割代入・JSX・propType の 3 ペア） |
+| `test/integration/backdrops.test.js` / `test/integration/sounds.test.js` | middle stage selector without header | 中サイズのステージ（既定）では見出し「Stage」が無いので、ステージを選ぶのに見出しの代わりに列の「Backdrops」の行（`.label`）を押す |
 | `src/components/target-pane/target-pane.jsx` | mobile-sprite-panel suppress-library | MobileSpritePanel が同一ツリーで TargetPane を再描画する際の SpriteLibrary 二重表示を `hideSpriteLibrary` prop で抑止 (issue #572 Phase 2-F) |
 | `src/playground/render-gui-standalone.jsx` | URL params for Playwright | URL パラメーター import |
 | `src/playground/render-gui-standalone.jsx` | no_beforeunload URL param | beforeunload 無効化 |
@@ -122,6 +146,9 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/containers/blocks.jsx` | stale block delete event guard | scratch-blocks v2 の非同期イベント配送で、ワークスペースリロードを跨いで届いた stale な delete イベントが VM のスクリプトを消す問題のガード。`attachVM` で `vm.blockListener` を `createStaleBlockDeleteGuard` でラップ (issue #710)。import も含む |
 | `src/containers/blocks.jsx` | Ruby-converted toolbox update deferral | `onWorkspaceUpdate` の fromRuby 分岐の `updateToolbox()` を `Events.disable()` 窓の外 (finally 後) へ移動。窓内では flyout 再構築の create イベントが破棄され、新規変数が `runtime.monitorBlocks` / `flyoutBlocks` に登録されずモニタチェックボックスが無反応になる問題の修正 (issue #719)。フラグ宣言部と実行部の 2 箇所 |
 | `src/containers/blocks.jsx` | extension category flyout scroll | `handleExtensionAdded` 末尾で `_pendingScrollToCategoryId` をセット。scratch-blocks v1 は追加カテゴリへ自動でフォーカスしたが v2 continuous toolbox はしないため、post-rebuild で新カテゴリへスクロールさせる (Issue #749 の v13.7.2 再整合で `setBlockStyle` 復元と共存) |
+| `src/containers/blocks.jsx` | lesson mode | `getLessonAllowedBlocks` と `allowedBlocksToIds` / `filterDynamicCategoryXmlList` の import と、`mapStateToProps` の `tutorialAllowedBlocks` にレッスンモードのチャレンジの `allowedBlocks` をチュートリアルより優先して渡す（`docs/lessons/README.md`） |
+| `src/containers/blocks.jsx` | lesson dynamic category filtering | 「変数」「ブロック定義」のカテゴリコールバックを `allowedBlocks` で絞り、`applyBlockDefaultsToElements` で初期値を入れるラッパー、`getTutorialAllowedBlockIds`、`getToolboxXML` で `onlyBlocks` と `makeToolboxXML` の最後の引数に渡す部分（`docs/lessons/README.md`） |
+| `src/containers/blocks.jsx` | lesson palette block defaults | `lib/lessons/block-defaults.js` の import、`getTutorialBlockDefaults`（`allowedBlocks` に書いたブロックの初期値を locale で選ぶ）、`getToolboxXML` の戻り値に `applyBlockDefaultsToToolboxXml` で初期値を入れる部分（`docs/lessons/README.md`） |
 | `src/containers/custom-procedures.jsx` | cat-blocks theme for custom procedures | `setBlocks` で `workspaceConfig.scratchTheme` に catblocks/classic を設定し、定義モーダルのブロックをメインエディタと同じテーマにする (Issue #749 の v13.7.2 再整合で upstream の `workspaceConfig.theme = theme` 採用と共存) |
 | `src/containers/stage-header.jsx` | classroom submission thumbnail | クラスルーム参加中の生徒にだけ upstream の「提出サムネイルを設定」ボタンを表示。`isStudentJoined` ヘルパー + import、`manuallySaveThumbnails`/`userOwnsProject` を joined 由来の props にマップ、`onUpdateProjectThumbnail` でキャプチャを redux にキャッシュ、`isStudentJoined` の named export (issue #631) |
 | `src/lib/vm-manager-hoc.jsx` | koshien mock config wiring | VM 初期化時に `wireKoshienMockConfig(vm)` を呼び、甲子園拡張機能が練習ゲーム設定（マップ/自機サイド/相手AI）を読めるよう runtime に getter を差し込む (import + componentDidMount) |
@@ -130,6 +157,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/lib/define-dynamic-block.js` | argumentsByMethod support / argumentsByMethod layout / menu field support | 拡張ブロックの `argumentsByMethod`（メソッドごとの引数定義）と menu フィールドのサポート。undo/redo・プロジェクトロードのため複数回の `domToMutation` を許容 |
 | `src/lib/sb-file-uploader-hoc.jsx` | clear Google Drive state on file upload | ローカル sb3 ファイルのアップロード時に Google Drive のロード状態をクリア（3 ペア） |
 | `src/lib/make-toolbox-xml.js` | DNCL hide extensions | DNCL（日本語）モード時にツールボックスから拡張機能カテゴリを隠す |
+| `src/lib/make-toolbox-xml.js` | lesson dynamic category filtering | `isDynamicCategoryAllowed` の import と、引数 `dynamicCategoryIds`（レッスン・チュートリアルの `allowedBlocks`）に変数・ブロック定義の opcode が無ければ「変数」「ブロック定義」のカテゴリを出さない |
 | `src/lib/locale-utils.js` | Japanese locale check | 日本語ロケール（ja / ja-Hira）判定ヘルパー |
 | `src/lib/legacy-storage.ts` | local sprite assets | スプライトの画像アセットをローカル配信の web store から解決する追加登録 |
 | `src/lib/legacy-backpack-storage.ts` | localStorage backpack support | バックパックを localStorage に保存する対応（5 ペア） |
@@ -143,6 +171,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/components/menu-bar/project-title-input.jsx` | read-only project title for Google Drive | Google Drive の閲覧専用プロジェクトでタイトル入力を read-only 化（4 ペア） |
 | `src/components/menu-bar/project-title-input.css` | read-only project title for Google Drive | 同機能のスタイル |
 | `src/components/cards/card.css` | insert-code button overlay / tutorial glow animation | チュートリアルカードの「コードを挿入」ボタンのオーバーレイとハイライトアニメーションのスタイル |
+| `test/helpers/selenium-helper.js` | getLogs SEVERE filter | `getLogs()` が SEVERE を返さなかった不具合（`entry.level` は `logging.Level` のオブジェクト）を直し、絞り込みと既知の無害なログの一覧を `test/helpers/ignorable-severe-logs.js` の `filterBrowserLogs` に任せる（import と本体の 2 ペア）。他の Smalruby マーカー（extra helpers / no-sandbox など）は従来どおり |
 
 > 注: `src/lib/url-params.js` は Smalruby 固有ファイル（`.prettierignore` ホワイトリスト対象）の
 > ため本表の対象外（旧エントリは削除済み。固有ファイル内のマーカーは取り外し可能拡張の

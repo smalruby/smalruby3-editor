@@ -56,6 +56,8 @@ src/components/*
 !src/components/classroom-peer-panel/
 !src/components/classroom-peer-panel/**
 !src/components/classroom-tutorial/
+!src/components/balloon/
+!src/components/balloon/**
 !src/components/classroom-tutorial/**
 !src/components/smalrubot-firmware-modal/
 !src/components/smalrubot-firmware-modal/**
@@ -68,12 +70,20 @@ src/components/*
 !src/components/image-viewer/
 !src/components/image-viewer/**
 !src/components/dncl-mode-notice/
+!src/components/lesson-task-bar/
+!src/components/lesson-task-bar/**
+!src/components/lesson-hint/
+!src/components/lesson-hint/**
+!src/components/lessons-library/
+!src/components/lessons-library/**
 !src/components/dncl-mode-notice/**
 !src/components/koshien-test-modal/
 !src/components/koshien-test-modal/**
 !src/components/koshien-settings-modal/
 !src/components/koshien-settings-modal/**
 !src/components/koshien-mock-panel/
+!src/components/lesson-completed-toast/
+!src/components/lesson-completed-toast/**
 !src/components/koshien-mock-panel/**
 !src/components/mesh-self-sensor-notice/
 !src/components/mesh-self-sensor-notice/**
@@ -139,8 +149,6 @@ src/components/connection-modal/*
 
 # Level 3: src/components/menu-bar/*
 src/components/menu-bar/*
-!src/components/menu-bar/tutorial-tooltip.css
-!src/components/menu-bar/tutorial-tooltip.jsx
 
 # ============================================================
 # Level 2: src/containers/*
@@ -182,6 +190,10 @@ src/containers/*
 !src/containers/extension-library.css
 !src/containers/google-drive-loader-hoc.jsx
 !src/containers/koshien-mock-panel.jsx
+!src/containers/lesson-hint.jsx
+!src/containers/lesson-goal-watcher.jsx
+!src/containers/lesson-mode.jsx
+!src/containers/lessons-library.jsx
 !src/containers/mesh-self-sensor-notice.jsx
 !src/containers/mesh-v2-seat-connect.jsx
 !src/containers/google-drive-saver-hoc.jsx
@@ -198,6 +210,9 @@ src/lib/*
 !src/lib/ruby-generator/
 !src/lib/ruby-generator/**
 !src/lib/dncl/
+!src/lib/lessons/
+!src/lib/lessons/**
+!src/lib/lesson-dynamic-categories.js
 !src/lib/dncl/**
 !src/lib/ruby-to-blocks-converter/
 !src/lib/ruby-to-blocks-converter/**
@@ -359,6 +374,7 @@ src/reducers/*
 !src/reducers/google-drive-file.js
 !src/reducers/koshien-file.js
 !src/reducers/koshien-mock-panel.js
+!src/reducers/lesson-mode.js
 !src/reducers/mesh-v2.js
 !src/reducers/palette-visibility.js
 !src/reducers/ruby-code.js
@@ -407,7 +423,20 @@ test/integration/*
 !test/integration/ruby-tab.test.js
 !test/integration/smalrubot-firmware.test.js
 !test/integration/smalrubot-s1-connection-flow.test.js
+!test/integration/lesson-goal.test.js
+!test/integration/smalruby-lesson1-challenges-5-8.test.js
+!test/integration/smalruby-lesson1-challenges-9-11.test.js
+!test/integration/smalruby-help-menu.test.js
 !test/integration/smalruby-tutorials.test.js
+!test/integration/smalruby-lessons.test.js
+!test/integration/smalruby-lessons-hint.test.js
+!test/integration/smalruby-lesson-task-bar-full-text.test.js
+!test/integration/smalruby-lesson-task-bar-layout.test.js
+!test/integration/smalruby-lessons-first-time-balloons.test.js
+!test/integration/smalruby-lesson1-challenges-1-4.test.js
+!test/integration/smalruby-lessons-library.test.js
+!test/integration/smalruby-lessons-en.test.js
+!test/integration/smalruby-lessons-next-challenge.test.js
 !test/integration/v1-detection-prompt.test.js
 !test/integration/palette-toggle-position.test.js
 !test/integration/version-update-notification.test.js
@@ -443,10 +472,18 @@ test/unit/components/*
 !test/unit/components/koshien-test-modal.test.jsx
 !test/unit/components/url-loader-modal.test.jsx
 !test/unit/components/dncl-mode-notice.test.jsx
+!test/unit/components/lesson-task-bar.test.jsx
+!test/unit/components/sprite-info-compact.test.jsx
+!test/unit/components/stage-selector-compact.test.jsx
+!test/unit/components/lesson-hint.test.jsx
+!test/unit/components/balloon.test.jsx
+!test/unit/components/classroom-tutorial.test.jsx
+!test/unit/components/lessons-library.test.jsx
 !test/unit/components/genai-answer-steps-index-hints.test.jsx
 !test/unit/components/genai-answer-steps-words.test.jsx
 !test/unit/components/extension-button-dncl.test.jsx
 !test/unit/components/connected-step.test.jsx
+!test/unit/components/lesson-completed-toast.test.jsx
 !test/unit/components/mesh-self-sensor-notice.test.jsx
 !test/unit/components/mesh-v2-scanning-step-seats.test.jsx
 !test/unit/components/mesh-v2-seat-connect.test.jsx
@@ -464,6 +501,8 @@ test/unit/components/*
 !test/unit/components/classroom-teacher-evaluation.test.jsx
 !test/unit/components/classroom-teacher-menu.test.jsx
 !test/unit/components/menu-bar-classroom.test.jsx
+!test/unit/components/menu-bar-help-menu.test.jsx
+!test/unit/components/menu-bar-lessons.test.jsx
 !test/unit/components/student-seat-selector.test.jsx
 !test/unit/components/mobile-bottom-tabs.test.jsx
 !test/unit/components/mobile-drawer.test.jsx
@@ -484,9 +523,13 @@ test/unit/components/*
 # Level 3: test/unit/containers/*
 test/unit/containers/*
 !test/unit/containers/ruby-tab/
+!test/unit/containers/lesson-goal-watcher.test.jsx
 !test/unit/containers/ruby-tab/**
 !test/unit/containers/backpack.test.jsx
 !test/unit/containers/cards.test.jsx
+!test/unit/containers/lesson-mode.test.jsx
+!test/unit/containers/lesson-hint.test.jsx
+!test/unit/containers/lessons-library.test.jsx
 !test/unit/containers/classroom-classcode-utils.test.js
 !test/unit/containers/classroom-error-utils.test.js
 !test/unit/containers/classroom-teacher-menu.test.jsx
@@ -523,6 +566,8 @@ test/unit/containers/*
 test/unit/lib/*
 # Smalruby-only directories
 !test/unit/lib/dncl/
+!test/unit/lib/lessons/
+!test/unit/lib/lessons/**
 !test/unit/lib/dncl/**
 !test/unit/lib/libraries/
 !test/unit/lib/libraries/**
@@ -590,6 +635,8 @@ test/unit/lib/*
 !test/unit/lib/layout-constants.test.js
 !test/unit/lib/legacy-storage.test.js
 !test/unit/lib/make-toolbox-xml.test.js
+!test/unit/lib/lesson-dynamic-categories.test.js
+!test/unit/lib/lesson-dynamic-categories-decks.test.js
 !test/unit/lib/mesh-v2-classroom-binding.test.js
 !test/unit/lib/mesh-v2-seat-connect.test.js
 !test/unit/lib/mesh-v2-seat-label.test.js
@@ -645,6 +692,8 @@ test/unit/reducers/*
 !test/unit/reducers/koshien-mock-panel-reducer.test.js
 !test/unit/reducers/cards_reducer.test.js
 !test/unit/reducers/dncl-mode-reducer.test.js
+!test/unit/reducers/lesson-mode-reducer.test.js
+!test/unit/reducers/tutorial-onboarding-reducer.test.js
 !test/unit/reducers/classroom-reducer.test.js
 !test/unit/reducers/menus-reducer.test.js
 !test/unit/reducers/palette-visibility-reducer.test.js

@@ -266,6 +266,14 @@ end`,
             control: [],
             sensing: [],
             operators: [],
+            // 変数を使うので、そのカテゴリを出す（allowedBlocks に無いカテゴリは出ない）
+            data: [
+                'data_variable',
+                'data_setvariableto',
+                'data_changevariableby',
+                'data_showvariable',
+                'data_hidevariable',
+            ],
         },
         steps: [
             {
@@ -383,6 +391,26 @@ end`,
             control: [],
             sensing: [],
             operators: [],
+            // 配列（リスト）と変数を使うので、そのカテゴリを出す（allowedBlocks に無いカテゴリは出ない）
+            data: [
+                'data_variable',
+                'data_setvariableto',
+                'data_changevariableby',
+                'data_showvariable',
+                'data_hidevariable',
+                'data_listcontents',
+                'data_addtolist',
+                'data_deleteoflist',
+                'data_deletealloflist',
+                'data_insertatlist',
+                'data_replaceitemoflist',
+                'data_itemoflist',
+                'data_itemnumoflist',
+                'data_lengthoflist',
+                'data_listcontainsitem',
+                'data_showlist',
+                'data_hidelist',
+            ],
         },
         steps: [
             {
@@ -623,6 +651,8 @@ end`,
             control: [],
             sensing: [],
             operators: [],
+            // メソッド（ブロック定義）を使うので、そのカテゴリを出す（allowedBlocks に無いカテゴリは出ない）
+            procedures: ['procedures_definition', 'procedures_call'],
         },
         steps: [
             {

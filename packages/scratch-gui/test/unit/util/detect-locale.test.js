@@ -1,4 +1,7 @@
 import {detectLocale} from '../../../src/lib/detect-locale.js';
+// === Smalruby: Start of case-insensitive locale matching ===
+import l10nLocales from 'scratch-l10n';
+// === Smalruby: End of case-insensitive locale matching ===
 
 const supportedLocales = ['en', 'es', 'pt-br', 'de', 'it'];
 
@@ -81,3 +84,53 @@ describe('detectLocale', () => {
         expect(detectLocale(supportedLocales)).toEqual('de');
     });
 });
+
+// === Smalruby: Start of case-insensitive locale matching ===
+describe('detectLocale with mixed-case supported locales', () => {
+    const smalrubyLocales = ['en', 'ja', 'ja-Hira', 'zh-cn', 'pt-br'];
+
+    beforeEach(() => {
+        mockWindowNavigator.language = 'en-US';
+    });
+
+    test.each([
+        ['ja-Hira', 'ja-Hira'],
+        ['ja-hira', 'ja-Hira'],
+        ['JA-HIRA', 'ja-Hira'],
+        ['ja', 'ja'],
+        ['en', 'en'],
+        ['zh-cn', 'zh-cn'],
+        ['zh-CN', 'zh-cn'],
+    ])('?locale=%s returns the canonical %s', (param, expected) => {
+        mockWindowLocation.search = `?locale=${param}`;
+        expect(detectLocale(smalrubyLocales)).toEqual(expected);
+    });
+
+    test('ignores unsupported locales', () => {
+        mockWindowLocation.search = '?locale=xx-Yy';
+        expect(detectLocale(smalrubyLocales)).toEqual('en');
+    });
+
+    test('uses the canonical form for the navigator language too', () => {
+        mockWindowLocation.search = '';
+        mockWindowNavigator.language = 'ja-hira';
+        expect(detectLocale(smalrubyLocales)).toEqual('ja-Hira');
+    });
+
+    // The real list from scratch-l10n: only the mixed-case ja-Hira should change.
+    test.each([
+        ['', 'pt-BR', 'pt-br'],
+        ['', 'zh-TW', 'zh-tw'],
+        ['', 'es-MX', 'es'],
+        ['', 'xx', 'en'],
+        ['?locale=es-419', 'en-US', 'es-419'],
+        ['?locale=ZH-TW', 'en-US', 'zh-tw'],
+        ['?lang=ja-hira', 'en-US', 'ja-Hira'],
+        ['?locale=ja-Hira-JP', 'en-US', 'en'],
+    ])('with the scratch-l10n locales, search=%s navigator=%s returns %s', (search, language, expected) => {
+        mockWindowLocation.search = search;
+        mockWindowNavigator.language = language;
+        expect(detectLocale(Object.keys(l10nLocales))).toEqual(expected);
+    });
+});
+// === Smalruby: End of case-insensitive locale matching ===

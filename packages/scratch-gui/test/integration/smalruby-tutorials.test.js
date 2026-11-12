@@ -4,8 +4,6 @@
  * to reduce cold-start overhead.
  */
 import path from 'path';
-// === Smalruby: 既知の無視できる SEVERE ログの判定は helper に切り出してある（unit test 付き） ===
-import { unexpectedSevereLogs } from '../helpers/ignorable-severe-logs';
 import SeleniumHelper from '../helpers/selenium-helper';
 
 const { clickText, clickXpath, findByXpath, getDriver, getLogs, loadUri, scope, textExists, waitForLoadingFinished } =
@@ -25,35 +23,32 @@ describe('Smalruby Tutorials', () => {
         await driver.quit();
     });
 
-    test('opens with the Tutorial Library showing and no severe logs', async () => {
+    test('opens a tutorial from the "?" menu and no severe logs', async () => {
         await loadUri(uri);
-        // === Smalruby: clear any persistent localStorage state from prior runs
-        // and wait for the editor to finish loading before looking for the
-        // first-time-user tooltip.
-        await driver.executeScript(
-            `window.localStorage.removeItem('smalruby:tutorialSeen'); window.localStorage.removeItem('smalruby:rubyTabUsed');`,
-        );
-        await driver.navigate().refresh();
         await waitForLoadingFinished();
-        await clickText('Try Ruby!');
+        // === Smalruby: the Tutorials entry lives in the "?" (help) menu, not in
+        // the menu bar. Open the library from there and pick the first tutorial.
+        // "Getting Started" is also the category heading, so target the tile
+        // name element rather than any text match.
+        await clickXpath('//*[@data-testid="menu-bar-about"]');
+        await clickXpath('//*[@data-testid="menu-bar-help-tutorials"]');
+        await clickXpath('//*[contains(@class, "library-item_library-item-name")][.//text()="Getting Started"]');
         await findByXpath('//div[contains(@class, "card_card_")]');
 
         // Make sure the background is still interactable
         await clickText('Costumes');
         await clickText('Code');
 
-        const logs = await getLogs({ includeAllLevels: true });
-        // === Smalruby: 既知の無視できる SEVERE ログを除外する (isIgnorableSevereLog 参照) ===
-        expect(unexpectedSevereLogs(logs)).toEqual([]);
+        // 既知の無害なログ (Monaco worker・Google Drive の初期化失敗など) は getLogs() が除く
+        expect(await getLogs()).toEqual([]);
     });
 
     test('can open tutorials by url id', async () => {
         await loadUri(`${uriWithTutorial('getStarted')}`);
         await findByXpath('//div[contains(@class, "card_card_")]');
 
-        const logs = await getLogs({ includeAllLevels: true });
-        // === Smalruby: 既知の無視できる SEVERE ログを除外する (isIgnorableSevereLog 参照) ===
-        expect(unexpectedSevereLogs(logs)).toEqual([]);
+        // 既知の無害なログ (Monaco worker・Google Drive の初期化失敗など) は getLogs() が除く
+        expect(await getLogs()).toEqual([]);
     });
 
     test('can close tutorial card', async () => {

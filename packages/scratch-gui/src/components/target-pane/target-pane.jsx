@@ -23,6 +23,9 @@ const TargetPane = ({
     hideSpriteLibrary,
     // === Smalruby: End of mobile-sprite-panel suppress-library ===
     hoveredTarget,
+    // === Smalruby: Start of middle stage selector without header ===
+    keepStageSelectorHeader,
+    // === Smalruby: End of middle stage selector without header ===
     spriteLibraryVisible,
     onActivateBlocksTab,
     onChangeSpriteDirection,
@@ -90,6 +93,9 @@ const TargetPane = ({
                     stage.costume.asset
                 }
                 backdropCount={stage.costumeCount}
+                // === Smalruby: Start of middle stage selector without header ===
+                hideHeader={stageSize === STAGE_DISPLAY_SIZES.middle && !keepStageSelectorHeader}
+                // === Smalruby: End of middle stage selector without header ===
                 id={stage.id}
                 selected={stage.id === editingTarget}
                 onSelect={onSelectSprite}
@@ -149,6 +155,9 @@ TargetPane.propTypes = {
         receivedBlocks: PropTypes.bool,
         sprite: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
     }),
+    // === Smalruby: Start of middle stage selector without header ===
+    keepStageSelectorHeader: PropTypes.bool,
+    // === Smalruby: End of middle stage selector without header ===
     onActivateBlocksTab: PropTypes.func.isRequired,
     onChangeSpriteDirection: PropTypes.func,
     onChangeSpriteName: PropTypes.func,

@@ -1,0 +1,165 @@
+@import '../../css/colors.css';
+@import '../../css/units.css';
+@import '../../css/z-index.css';
+@import '../balloon/balloon-tokens.css';
+
+/*
+    吹き出しは viewport 座標の position: fixed（置き方は lib/lessons/hint-targets.js の純粋関数）。
+    ツールチップと同じ高さ（モーダルより下、ブロックのドラッグ層より下）に置くので、
+    照らしたパレットからブロックをドラッグすると、ドラッグ中のブロックは吹き出しの上を通る。
+*/
+.balloon {
+    position: fixed;
+    z-index: $z-index-tooltip;
+    width: max-content;
+    max-width: min(22rem, calc(100vw - 1rem));
+    max-height: calc(100vh - 1rem);
+}
+
+/*
+    ヘッダー（色の帯）をドラッグの取っ手にする。touch-action: none でタッチのドラッグを
+    ページのスクロールにとられないようにする（Pointer Events でマウスとタッチを同じに扱う）
+*/
+.drag-handle {
+    cursor: move;
+    touch-action: none;
+    user-select: none;
+}
+
+.body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    padding: 0.75rem;
+}
+
+.title {
+    margin: 0 0 0.5rem;
+    font-weight: bold;
+    white-space: pre-line;
+}
+
+.title:last-child {
+    margin-bottom: 0;
+}
+
+/* 本物のブロックを描く Blockly の読み取り専用ワークスペース。大きさは描いた中身から決める */
+.blocks {
+    position: relative;
+    width: 1px;
+    height: 1px;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.blocks :global(.blocklyMainBackground) {
+    stroke: none;
+    fill: transparent;
+}
+
+.blocks :global(.blocklySvg) {
+    background-color: transparent;
+}
+
+.blocks-error {
+    margin: 0.25rem 0 0;
+    font-size: 0.75rem;
+    color: $text-primary-transparent;
+}
+
+.debug-title {
+    margin-bottom: 0.25rem;
+    font-weight: bold;
+}
+
+.debug-list {
+    margin: 0 0 0.75rem;
+    padding-left: 1.25rem;
+}
+
+.debug-list li + li {
+    margin-top: 0.25rem;
+}
+
+.insert-button {
+    display: block;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: none;
+    border-radius: 0.5rem;
+    background-color: $balloon-primary;
+    color: $ui-white;
+    font-size: 0.875rem;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.insert-button:hover {
+    background-color: $balloon-primary-hover;
+}
+
+.insert-error {
+    margin-top: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    border: 1px solid $error-primary;
+    background-color: $error-transparent;
+    color: $text-primary;
+    font-size: 0.8125rem;
+    white-space: pre-line;
+}
+
+.insert-error-title {
+    margin-bottom: 0.25rem;
+    font-weight: bold;
+}
+
+.confirm {
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    border: 1px solid $balloon-primary;
+    background-color: $ui-white;
+}
+
+.confirm-text {
+    margin: 0 0 0.5rem;
+    font-weight: bold;
+    white-space: pre-line;
+}
+
+.confirm-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem 0.75rem;
+}
+
+/*
+    スポットライト: 指す場所の矩形に穴を開け、巨大な box-shadow で周りを暗くする。
+    pointer-events: none なので、照らしたパレットやステージはそのまま操作できる。
+*/
+.spotlight {
+    position: fixed;
+    z-index: $z-index-tooltip-overlay;
+    border-radius: 0.5rem;
+    box-shadow: 0 0 0 200vmax rgba(0, 0, 0, 0.55);
+    pointer-events: none;
+}
+
+/* SP 横（667px）でパレット（右端 ≈ 373px）の右に収まる幅にする */
+@media (max-width: 768px) {
+    .balloon {
+        max-width: min(16rem, calc(100vw - 1rem));
+        font-size: 0.8125rem;
+    }
+
+    .body {
+        padding: 0.5rem;
+    }
+}

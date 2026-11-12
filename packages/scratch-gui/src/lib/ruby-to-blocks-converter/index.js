@@ -36,6 +36,9 @@ class RubyToBlocksConverter extends Visitor {
         super();
         this.vm = vm;
         this.version = options && options.version ? options.version : 1;
+        // 音・コスチューム・背景の名前が作品に無いときにエラーにするか。レッスンのヒントの吹き出しは
+        // まだ足していない音や背景のブロックも描くので false にする
+        this.validateAssets = !(options && options.validateAssets === false);
         this._translator = (message, values) => {
             let text = message.defaultMessage;
             if (values) {

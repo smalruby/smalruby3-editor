@@ -1,5 +1,6 @@
 // Tutorial category locale strings are split into per-category modules
 // (issue #932) so tutorial categories can be developed independently.
+import { jaHira as lessonsMessages } from '../lib/lessons/lessons.locale.js';
 import { jaHira as blockSeriesHowtos } from '../lib/libraries/decks/categories/block-series.locale.js';
 import { jaHira as dnclHowtos } from '../lib/libraries/decks/categories/dncl.locale.js';
 import { jaHira as gettingStartedHowtos } from '../lib/libraries/decks/categories/getting-started.locale.js';
@@ -104,6 +105,8 @@ export default {
     'gui.menuBar.classroomJoined': 'クラス:しゅっせきばんごう{seatNumber}',
     'gui.menuBar.classroomManagement': 'クラスかんり...',
     'gui.menuBar.aboutSmalruby': 'スモウルビーについて',
+    'gui.menuBar.debug': 'デバッグ',
+    'gui.menuBar.tutorials': 'チュートリアル',
     'gui.menuBar.showWelcomeAgain': 'ウェルカムをもういちどみる',
     'gui.welcomeModal.title': 'スモウルビーへようこそ',
     'gui.welcomeModal.lead':
@@ -909,6 +912,8 @@ export default {
         'もうしわけありません。スモウルビーがクラッシュしたようです。このバグはじどうてきにスモウルビーチームにほうこくされました。ページをさいよみこみしてください。',
     'gui.smalruby3.gui.defaultProjectTitle': 'スモウルビーのプロジェクト',
     'gui.smalruby3.gui.rubyTab': 'ルビー',
+    'gui.smalruby3.SpriteInfo.sizeIcon': 'おおきさ（%）',
+    'gui.smalruby3.SpriteInfo.directionIcon': 'むき（ど）',
     'gui.smalruby3.previewInfo.betawelcome': 'スモウルビー3.0 ベータばんにようこそ!',
     'gui.smalruby3.previewInfo.label': 'スモウルビー3.0をためしてみる',
     'gui.smalruby3.previewInfo.invitation':
@@ -1642,6 +1647,48 @@ export default {
     // Ruby Basics 1: putsでけいさんしてみよう
     'gui.library.rubyBasics': 'Ruby のきほん',
     ...rubyBasicsHowtos,
+    ...lessonsMessages,
+    'gui.lessonTaskBar.ariaLabel': 'レッスンのかだい',
+    'gui.lessonTaskBar.position': '{number} / {count}',
+    'gui.lessonTaskBar.hint': 'ヒント',
+    'gui.lessonTaskBar.another': 'ほかのチャレンジへ',
+    'gui.lessonTaskBar.end': 'レッスンをおえる',
+    'gui.lessonHint.ariaLabel': 'ヒント',
+    'gui.lessonHint.position': 'ヒント {number} / {count}',
+    'gui.lessonHint.prev': 'もどる',
+    'gui.lessonHint.next': 'すすめる',
+    'gui.lessonHint.close': 'とじる',
+    'gui.lessonHint.debugTitle': 'うまくうごかないときは',
+    'gui.lessonHint.checkAnswer': 'せいかいのプログラムをかくにんする',
+    'gui.lessonHint.checkAnswerConfirm':
+        'せいかいのプログラムでおきかえますか？あなたがつくったプログラムはきえます。',
+    'gui.lessonHint.checkAnswerYes': 'はい',
+    'gui.lessonHint.checkAnswerNo': 'いいえ',
+    'gui.lessonHint.finish': 'おわり',
+    'gui.lessonHint.dragLabel': 'ドラッグでうごかせます',
+    'gui.lessonHint.insertCodeError': 'まだプログラムをいれられないよ。さきにヒントのとおりにたそう。',
+    'gui.lessonHint.blocksError': '（このブロックはかけませんでした）',
+    'gui.menuBar.lessons': 'レッスン',
+    'gui.lessonsLibrary.title': 'レッスンをえらぶ',
+    'gui.lessonsLibrary.search': 'けんさく',
+    'gui.lessonsLibrary.noMatch': '「{query}」にあうチャレンジはありません',
+    'gui.lessonsLibrary.tab.blocks': 'ブロック',
+    'gui.lessonsLibrary.tab.ruby': 'Ruby',
+    'gui.lessonsLibrary.tab.dncl': 'にほんご',
+    'gui.lessonsLibrary.lessonNumber': 'レッスン {number}',
+    'gui.lessonsLibrary.courseProgress': '{completed} / {total}',
+    'gui.lessonsLibrary.done': 'できた',
+    'gui.lessonsLibrary.next': 'つぎはこれ！',
+    'gui.lessonsLibrary.category.motion': 'うごき',
+    'gui.lessonsLibrary.category.looks': 'みため',
+    'gui.lessonsLibrary.category.sound': 'おと',
+    'gui.lessonsLibrary.category.events': 'イベント',
+    'gui.lessonsLibrary.category.control': 'せいぎょ',
+    'gui.lessonsLibrary.category.sensing': 'しらべる',
+    'gui.lessonsLibrary.category.operators': 'えんざん',
+    'gui.lessonsLibrary.category.variables': 'へんすう',
+    'gui.lessonsLibrary.category.lists': 'リスト',
+    'gui.lessonsLibrary.category.extensions': 'かくちょうきのう',
     ...blockSeriesHowtos,
     ...dnclHowtos,
     // Mesh tag
@@ -1661,7 +1708,6 @@ export default {
     'gui.menuBar.updateTooltip': 'あたらしいスモウルビーをつかってみよう！',
     'gui.menuBar.updateConfirm':
         'あたらしいバージョンのスモウルビーがりようかのうです。いますぐこうしんするばあいは「OK」を、あとにするばあいは「キャンセル」をおしてください。',
-    'gui.menuBar.tutorialTooltip': 'ルビーをためしてみよう!',
     'gui.welcomeTooltip.label': 'スモウルビーへようこそ',
     'gui.aria.clearButton': 'クリア',
     'gui.extensionButton.dnclExtensionConfirm':

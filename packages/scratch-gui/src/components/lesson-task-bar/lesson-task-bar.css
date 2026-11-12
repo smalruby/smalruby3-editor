@@ -1,0 +1,159 @@
+@import '../../css/colors.css';
+@import '../../css/units.css';
+@import '../../css/z-index.css';
+
+/* 全文のパネルの置き場所。バー自身は overflow: hidden なので、パネルはこの外側に置く */
+.wrapper {
+    position: relative;
+    flex-shrink: 0;
+}
+
+/*
+    1 行・40px 固定。メニューバーのすぐ下に画面の幅いっぱい（エディタの列とステージの列の両方の上）で出す。
+    本体（gui.css の .body-wrapper-with-lesson-task-bar）はこの高さの分だけ縮む。
+    課題の文が残りの幅を取るので、「ヒント」「ほかのチャレンジへ」「レッスンをおえる」は右端に寄る。
+*/
+.bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+    height: 2.5rem;
+    padding: 0 0.75rem;
+    background-color: $motion-primary;
+    color: $ui-white;
+    font-size: 0.875rem;
+    line-height: 1.2;
+    overflow: hidden;
+}
+
+.position {
+    flex-shrink: 0;
+    padding: 0.125rem 0.5rem;
+    border-radius: 1rem;
+    background-color: $ui-white;
+    color: $motion-primary;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.task {
+    /*
+        width: 0 で、課題の文の長さをバーの最小幅に入れない（入れると長い課題で
+        バーが画面より広がる）。入りきらない分は … で切る。
+        全文は下のパネルで読むので、ここは 1 行だけ
+    */
+    flex: 1 1 0;
+    width: 0;
+    min-width: 0;
+    padding: 0;
+    border: none;
+    background: none;
+    color: inherit;
+    font: inherit;
+    font-weight: bold;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+}
+
+.button {
+    flex-shrink: 0;
+    padding: 0.25rem 0.75rem;
+    border: 1px solid $ui-white;
+    border-radius: 1rem;
+    background: none;
+    color: $ui-white;
+    font-size: 0.75rem;
+    font-weight: bold;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.button:hover:not(:disabled) {
+    background-color: $ui-white;
+    color: $motion-primary;
+}
+
+.button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+/* 「ほかのチャレンジへ」: 主な道なので白地で目立たせる */
+.button-primary {
+    composes: button;
+    background-color: $ui-white;
+    color: $motion-primary;
+}
+
+.button-primary:hover:not(:disabled) {
+    opacity: 0.85;
+}
+
+/* 「レッスンをおえる」: 右端。「ほかのチャレンジへ」より目立たせない（透明地に白い枠・字は細め） */
+.button-end {
+    composes: button;
+    font-weight: normal;
+}
+
+/*
+    課題の全文。バーのすぐ下に、バーと同じ幅（画面の幅）で重ねて出す（absolute なのでレイアウトは変えない）。
+    先生がプロジェクターに映して読み上げる場面を想定して、字は大きめ（1300px 幅で 1.5rem 近く、
+    SP では 1rem まで小さく）。改行はチャレンジの定義どおり（pre-line）。
+    マウスで乗せて出すパネルは、ヒントの吹き出し（$z-index-tooltip = 490。document.body への portal で
+    DOM ではこのパネルより後ろ）より上に重ねる。乗せているあいだだけの一時的なものなので、吹き出しは
+    動かさずに上から隠す。メニューバー（$z-index-menu-bar = 491）と同じ層で DOM ではメニューバーより後ろなので、
+    メニューバーのメニュー（ファイルなど）と重なると項目を隠す。そのため、メニューが開いているあいだと
+    「できた！」の toast（$z-index-card = 480）が出ているあいだは出さない（lesson-task-bar.jsx）。
+    タップで開いたまま（pinned）のパネルは吹き出し・toast と同時には出さないので、パレット（40）より上・
+    toast より下の 470 のまま。
+    マウスで乗せて出しているときは、パネルの上へ動かしたら消えるように pointer-events: none
+    （バーから離れたら消える）。タップで開いたとき（pinned）だけ、中をスクロールできるようにする
+*/
+.full-text {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: $z-index-menu-bar;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    max-height: 60vh;
+    overflow-y: auto;
+    padding: 0.75rem 1rem;
+    border: 2px solid $motion-primary;
+    border-top: none;
+    border-radius: 0 0 0.5rem 0.5rem;
+    background-color: $ui-white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    color: $text-primary;
+    pointer-events: none;
+}
+
+.full-text-pinned {
+    composes: full-text;
+    z-index: 470;
+    pointer-events: auto;
+}
+
+.full-text-text {
+    margin: 0;
+    font-size: clamp(1rem, 1.8vw, 1.5rem);
+    font-weight: bold;
+    line-height: 1.5;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+}
+
+/* 画像は字の邪魔にならない大きさに収める（縦はパネルの中で 10rem まで） */
+.full-text-image {
+    display: block;
+    max-width: 100%;
+    max-height: 10rem;
+    object-fit: contain;
+}

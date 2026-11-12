@@ -39,6 +39,9 @@ class DirectionPicker extends React.Component {
                 direction={this.props.direction}
                 disabled={this.props.disabled}
                 labelAbove={this.props.labelAbove}
+                // === Smalruby: Start of compact middle sprite info ===
+                labelIcon={this.props.labelIcon}
+                // === Smalruby: End of compact middle sprite info ===
                 popoverOpen={this.state.popoverOpen && !this.props.disabled}
                 rotationStyle={this.props.rotationStyle}
                 onChangeDirection={this.props.onChangeDirection}
@@ -56,6 +59,9 @@ DirectionPicker.propTypes = {
     direction: PropTypes.number,
     disabled: PropTypes.bool,
     labelAbove: PropTypes.bool,
+    // === Smalruby: Start of compact middle sprite info ===
+    labelIcon: PropTypes.node,
+    // === Smalruby: End of compact middle sprite info ===
     onChangeDirection: PropTypes.func,
     onChangeRotationStyle: PropTypes.func,
     rotationStyle: PropTypes.string

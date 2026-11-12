@@ -161,7 +161,11 @@ describe('Working with sounds', () => {
         await loadUri(uri);
         await clickText('Sounds');
         await clickText('Copy', scope.soundsTab); // Copy the meow sound
-        await clickXpath('//span[text()="Stage"]');
+        // === Smalruby: Start of middle stage selector without header ===
+        // 中サイズのステージ（既定）ではステージの列に見出し「Stage」が無いので、列の「Backdrops」の行を押す
+        await clickXpath('//div[contains(@class, "stage-selector_stage-selector_")]' +
+            '//div[contains(@class, "stage-selector_label_")]');
+        // === Smalruby: End of middle stage selector without header ===
         await findByText('0.02', scope.soundsTab); // Original pop sound duration
         await clickText('Paste', scope.soundsTab);
         await findByText('0.61', scope.soundsTab); // Duration of pop + meow sound

@@ -104,8 +104,16 @@ const MobileSpritePanelComponent = ({ active, vm, onNewBackdropClick }) => {
                  * "small" にすると name / x / y のみに省略されるが、モバイルで
                  * もすべての項目を編集できた方が良いので "middle" を採用
                  * (270px 右ペインと違いモバイルでは 390px+ あるため十分収まる)。
+                 * ただしステージの列の見出し「ステージ」は、中サイズのデスクトップでだけ
+                 * 消す決まりなので（#1585）、SP では keepStageSelectorHeader で残す。
                  */}
-                <TargetPane vm={vm} stageSize="middle" hideSpriteLibrary onNewBackdropClick={onNewBackdropClick} />
+                <TargetPane
+                    vm={vm}
+                    stageSize="middle"
+                    hideSpriteLibrary
+                    keepStageSelectorHeader
+                    onNewBackdropClick={onNewBackdropClick}
+                />
             </ModalFocusProvider>
         </div>,
         document.body,

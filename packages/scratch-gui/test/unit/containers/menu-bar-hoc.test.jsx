@@ -4,6 +4,7 @@ import MenuBarHOC from '../../../src/containers/menu-bar-hoc.jsx';
 import {render} from '@testing-library/react';
 import '@testing-library/jest-dom';
 import {tutorialOnboardingInitialState} from '../../../src/reducers/tutorial-onboarding';
+import {lessonModeInitialState} from '../../../src/reducers/lesson-mode';
 
 // TODO rewrite this test to use react-testing-library
 
@@ -16,7 +17,8 @@ describe('Menu Bar HOC', () => {
         store = mockStore({
             scratchGui: {
                 projectChanged: true,
-                tutorialOnboarding: tutorialOnboardingInitialState
+                tutorialOnboarding: tutorialOnboardingInitialState,
+                lessonMode: lessonModeInitialState
             }
         });
 
@@ -170,4 +172,43 @@ describe('Menu Bar HOC', () => {
         expect(element).toHaveTextContent(/false/i);
     });
 
+
+    // === Smalruby: Start of lessons button ===
+    // Issue #1498: the welcome balloon overlaps the lesson task bar, so the menu
+    // bar is told whether a challenge is open (it comes back once it is closed).
+    describe('first-time balloons and lesson mode', () => {
+        const renderWith = lessonMode => {
+            const PropsProbe = jest.fn(() => null);
+            const WrappedComponent = MenuBarHOC(PropsProbe);
+            render(
+                <WrappedComponent
+                    store={mockStore({
+                        scratchGui: {
+                            projectChanged: false,
+                            tutorialOnboarding: tutorialOnboardingInitialState,
+                            lessonMode
+                        }
+                    })}
+                />
+            );
+            return PropsProbe.mock.calls[PropsProbe.mock.calls.length - 1][0];
+        };
+
+        test('reports that lesson mode is off outside a challenge', () => {
+            const props = renderWith(lessonModeInitialState);
+            expect(props.lessonModeActive).toBe(false);
+        });
+
+        test('reports that lesson mode is on while a challenge is open', () => {
+            const props = renderWith({...lessonModeInitialState, challengeId: 'blocks-l1-if'});
+            expect(props.lessonModeActive).toBe(true);
+        });
+
+        // Issue #1512: the "Start a lesson!" balloon is gone, so the HOC no longer supplies it
+        test('does not supply a lessons balloon flag', () => {
+            const props = renderWith(lessonModeInitialState);
+            expect(props).not.toHaveProperty('showLessonsTooltip');
+        });
+    });
+    // === Smalruby: End of lessons button ===
 });

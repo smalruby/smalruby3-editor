@@ -43,6 +43,9 @@ const StageSelector = props => {
         containerRef,
         dragOver,
         fileInputRef,
+        // === Smalruby: Start of middle stage selector without header ===
+        hideHeader,
+        // === Smalruby: End of middle stage selector without header ===
         selected,
         raised,
         receivedBlocks,
@@ -63,7 +66,10 @@ const StageSelector = props => {
             className={classNames(styles.stageSelector, {
                 [styles.isSelected]: selected,
                 [styles.raised]: raised || dragOver,
-                [styles.receivedBlocks]: receivedBlocks
+                [styles.receivedBlocks]: receivedBlocks,
+                // === Smalruby: Start of middle stage selector without header ===
+                [styles.noHeader]: hideHeader
+                // === Smalruby: End of middle stage selector without header ===
             })}
             componentRef={containerRef}
             onClick={onClick}
@@ -71,15 +77,23 @@ const StageSelector = props => {
             onPointerLeave={onPointerLeave}
             {...componentProps}
         >
-            <div className={styles.header}>
-                <div className={styles.headerTitle}>
-                    <FormattedMessage
-                        defaultMessage="Stage"
-                        description="Label for the stage in the stage selector"
-                        id="gui.stageSelector.stage"
-                    />
+            {/*
+              * === Smalruby: Start of middle stage selector without header ===
+              * 中サイズのステージ（Smalruby 独自）では見出し「ステージ」を出さず、
+              * 背景の番号が「背景を選ぶ」ボタンと重ならないようにする（#1585）
+              */}
+            {hideHeader ? null : (
+                <div className={styles.header}>
+                    <div className={styles.headerTitle}>
+                        <FormattedMessage
+                            defaultMessage="Stage"
+                            description="Label for the stage in the stage selector"
+                            id="gui.stageSelector.stage"
+                        />
+                    </div>
                 </div>
-            </div>
+            )}
+            {/* === Smalruby: End of middle stage selector without header === */}
             {url ? (
                 <img
                     className={styles.costumeCanvas}
@@ -134,6 +148,9 @@ StageSelector.propTypes = {
     containerRef: PropTypes.func,
     dragOver: PropTypes.bool,
     fileInputRef: PropTypes.func,
+    // === Smalruby: Start of middle stage selector without header ===
+    hideHeader: PropTypes.bool,
+    // === Smalruby: End of middle stage selector without header ===
     onBackdropFileUpload: PropTypes.func,
     onBackdropFileUploadClick: PropTypes.func,
     onClick: PropTypes.func,

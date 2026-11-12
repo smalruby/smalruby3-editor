@@ -1,3 +1,5 @@
+@import '../balloon/balloon-tokens.css';
+
 .overlay {
     position: absolute;
     top: 0;
@@ -11,15 +13,17 @@
     z-index: 10;
 }
 
+/* 画面中央のカード。色・角丸・影・文字は吹き出しのトークン（components/balloon）にそろえる */
 .card {
-    background: white;
-    border-radius: 8px;
+    background: $balloon-surface;
+    border-radius: $balloon-radius-panel;
     padding: 1.5rem 2rem;
     max-width: 480px;
     width: 90%;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    box-shadow: $balloon-shadow-panel;
     text-align: center;
-    color: #575e75;
+    color: $balloon-text;
+    font-family: $balloon-font-family;
 }
 
 .body {
@@ -31,14 +35,5 @@
 
 .dismiss-button {
     padding: 0.5rem 2rem;
-    background: #4c97ff;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
     font-size: 0.95rem;
-}
-
-.dismiss-button:hover {
-    background: #3373cc;
 }

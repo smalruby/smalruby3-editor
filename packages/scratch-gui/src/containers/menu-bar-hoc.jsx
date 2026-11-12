@@ -3,9 +3,15 @@ import PropTypes from 'prop-types';
 import bindAll from 'lodash.bindall';
 import React from 'react';
 
-import {openTipsLibrary} from '../reducers/modals';
-import {activateDeck} from '../reducers/cards';
-import {markTutorialSeen, shouldShowTooltip} from '../reducers/tutorial-onboarding';
+// === Smalruby: Start of help menu ===
+// openLessonsLibrary belongs to the lessons button below (one import line
+// because eslint forbids importing the same module twice).
+import {openLessonsLibrary, openTipsLibrary} from '../reducers/modals';
+// === Smalruby: End of help menu ===
+// === Smalruby: Start of lessons button ===
+import {markTutorialSeen} from '../reducers/tutorial-onboarding';
+import {isLessonMode} from '../reducers/lesson-mode';
+// === Smalruby: End of lessons button ===
 
 const MenuBarHOC = function (WrappedComponent) {
     class MenuBarContainer extends React.PureComponent {
@@ -54,15 +60,26 @@ const MenuBarHOC = function (WrappedComponent) {
     };
     const mapStateToProps = state => ({
         projectChanged: state.scratchGui.projectChanged,
-        showTutorialTooltip: shouldShowTooltip(state)
+        // === Smalruby: Start of lessons button ===
+        // While a challenge is open the welcome balloon would cover the lesson
+        // task bar, so it stays hidden (#1498). Its state is kept and it comes
+        // back after leaving. There is no first-time balloon under the Lessons
+        // button (#1512).
+        lessonModeActive: isLessonMode(state)
+        // === Smalruby: End of lessons button ===
     });
+    // === Smalruby: Start of help menu ===
+    // The "?" menu's Tutorials item opens the tutorial library from here.
     const mapDispatchToProps = dispatch => ({
         onOpenTipsLibrary: () => dispatch(openTipsLibrary()),
-        onActivateTutorial: () => {
+        // === Smalruby: Start of lessons button ===
+        onOpenLessonsLibrary: () => {
             dispatch(markTutorialSeen());
-            dispatch(activateDeck('intro-getting-started'));
+            dispatch(openLessonsLibrary());
         }
+        // === Smalruby: End of lessons button ===
     });
+    // === Smalruby: End of help menu ===
     // Allow incoming props to override redux-provided props. Used to mock in tests.
     const mergeProps = (stateProps, dispatchProps, ownProps) => Object.assign(
         {}, stateProps, dispatchProps, ownProps

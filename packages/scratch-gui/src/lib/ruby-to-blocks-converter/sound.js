@@ -13,7 +13,8 @@ const messages = defineMessages({
 const Effects = ['PITCH', 'PAN'];
 
 const validateSound = function (converter, soundName, node) {
-    // Skip validation if no target context (e.g., in tests)
+    // Skip validation if no target context (e.g., in tests) or when the converter was told not to
+    if (converter.validateAssets === false) return;
     if (!converter._context.target || !converter._context.target.getSounds) {
         return;
     }
