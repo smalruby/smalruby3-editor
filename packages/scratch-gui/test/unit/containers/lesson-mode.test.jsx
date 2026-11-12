@@ -229,6 +229,32 @@ describe('LessonMode container', () => {
         expect(props.onOpenChallenge).toHaveBeenCalledWith(CHALLENGE_ID);
     });
 
+    // 課題バーが出る・消えると、ステージの列が上下に動く（大きさは変わらない）。ステージは
+    // window の resize / scroll でしか canvas の位置を測り直さないので、知らせないとマウスの
+    // 位置が課題バーの高さの分ずれて、ネコにさわっても「さわった」にならない（#1581）
+    test('tells the stage to measure again when the task bar appears and disappears', () => {
+        const onResize = jest.fn();
+        window.addEventListener('resize', onResize);
+        try {
+            const props = baseProps();
+            const { rerender } = renderLessonMode(props);
+            expect(onResize).not.toHaveBeenCalled();
+
+            const inLesson = { ...props, current: findChallenge(CHALLENGE_ID), hint: null };
+            rerender(inLesson);
+            expect(onResize).toHaveBeenCalledTimes(1);
+
+            // 同じチャレンジのまま描き直しても知らせない
+            rerender({ ...inLesson, toastVisible: true });
+            expect(onResize).toHaveBeenCalledTimes(1);
+
+            rerender(props);
+            expect(onResize).toHaveBeenCalledTimes(2);
+        } finally {
+            window.removeEventListener('resize', onResize);
+        }
+    });
+
     test('exposes window.smalruby.startChallenge while mounted', () => {
         const props = baseProps();
         const { unmount } = renderLessonMode(props);

@@ -6,7 +6,7 @@
  * チャレンジは子どもと同じく、メニューバーの「レッスン」→ レッスン表のチャレンジを押して開く。
  */
 import path from 'path';
-import { Key } from 'selenium-webdriver';
+import { Key, Origin } from 'selenium-webdriver';
 import SeleniumHelper from '../helpers/selenium-helper';
 
 const { clickBlocksCategory, clickButton, clickText, findByXpath, getDriver, loadUri, waitForLoadingFinished } =
@@ -43,11 +43,20 @@ const editingTargetOpcodes = () =>
 
 const stageCanvas = () => driver.findElement({ css: '[class*="stage_stage-wrapper_"] canvas' });
 
-// マウスをステージの上で動かす（x, y はステージの真ん中からのずれ。ネコは真ん中にいる）
+// マウスをステージの上で動かす（x, y はネコからのずれ）。座標は決め打ちせず、ステージの canvas の矩形と
+// ネコ（スプライト）の x / y から画面の座標を出す。move({origin: element}) は画面に見えている部分の
+// 真ん中を起点にするので、ステージの右端が少しでも画面の外に出ると起点がネコからずれる
 const moveMouseOnStage = async (x, y) => {
+    const point = await driver.executeScript(`
+        const rect = document.querySelector('[class*="stage_stage-wrapper_"] canvas').getBoundingClientRect();
+        const cat = window.smalruby.vm.runtime.targets.find(t => t.isOriginal && !t.isStage);
+        return {
+            x: Math.round(rect.left + rect.width / 2 + (cat.x * rect.width) / 480),
+            y: Math.round(rect.top + rect.height / 2 - (cat.y * rect.height) / 360),
+        };`);
     await driver
         .actions()
-        .move({ origin: await stageCanvas(), x, y })
+        .move({ origin: Origin.VIEWPORT, x: point.x + x, y: point.y + y })
         .perform();
 };
 
@@ -153,7 +162,7 @@ describe('Smalruby Lessons: lesson 1 challenges 5-8', () => {
         ]);
 
         // マウスをネコからはなしたまま旗 →「さわってみて」だけでは「できた」にならない
-        await moveMouseOnStage(-200, -150);
+        await moveMouseOnStage(-150, -100);
         await clickGreenFlag();
         await driver.sleep(1500);
         expect(await countCompletedToasts()).toBe(0);
