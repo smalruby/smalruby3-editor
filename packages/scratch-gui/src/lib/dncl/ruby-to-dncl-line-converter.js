@@ -3,10 +3,23 @@ import { convertBuiltins } from './ruby-to-dncl-builtins';
 import { ID, processSegments } from './ruby-to-dncl-identifier';
 
 /**
+ * `end while condition` / `end until condition`: the end of `begin ... end`
+ * whose body runs once before the condition is checked.
+ */
+const POST_TEST_END_RE = /^end\s+(while|until)\s+(.+)$/;
+
+/**
+ * Whether a (trimmed) Ruby line is `end while condition` / `end until condition`.
+ * @param {string} trimmed - The trimmed Ruby line.
+ * @returns {boolean} True for the end of `begin ... end while / until`.
+ */
+const isPostTestLoopEnd = (trimmed) => POST_TEST_END_RE.test(trimmed);
+
+/**
  * Convert a single Ruby line to DNCL.
  *
  * `blockStack` is a stack of block-context strings (`'if'`, `'loop'`,
- * `'func'`) used to translate `end` to the right DNCL terminator. The
+ * `'func'`, and `'postTestLoop'` / `'begin'` pushed by `rubyToDncl`) used to translate `end` to the right DNCL terminator. The
  * caller (`rubyToDncl`) owns the stack so for-loop detection (which lives
  * outside this function) can interleave its own entries on the same stack.
  * @param {string} line - A single line of Ruby code.
@@ -113,9 +126,24 @@ const convertLine = (line, blockStack) => {
         return `${indent}返す ${expr}`;
     }
 
+    // end while condition → を condition でなくなるまで実行する
+    // end until condition → を condition になるまで実行する
+    // (closes `begin` of DNCL の後判定の繰り返し `繰り返し`, issue #1626)
+    const postTestMatch = trimmed.match(POST_TEST_END_RE);
+    if (postTestMatch && blockStack[blockStack.length - 1] === 'postTestLoop') {
+        blockStack.pop();
+        const condition = processSegments(postTestMatch[2]);
+        const until = postTestMatch[1] === 'while' ? 'でなくなるまで' : 'になるまで';
+        return `${indent}を ${condition} ${until}実行する`;
+    }
+
     // end → depends on block context
     if (trimmed === 'end') {
         const blockType = blockStack.pop() || 'if';
+        // A plain `begin ... end` has no DNCL form (see rubyToDncl).
+        if (blockType === 'begin') {
+            return line;
+        }
         if (blockType === 'loop') {
             return `${indent}を繰り返す`;
         }
@@ -166,4 +194,4 @@ const detectForLoopPattern = (pending, whileLine, whileIndent) => {
     };
 };
 
-export { convertLine, detectForLoopPattern };
+export { convertLine, detectForLoopPattern, isPostTestLoopEnd };

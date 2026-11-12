@@ -1,6 +1,26 @@
 // === Smalruby: This file is Smalruby-specific (Ruby to DNCL reverse transpiler) ===
 import { ID, processSegments } from './ruby-to-dncl-identifier';
-import { convertLine, detectForLoopPattern } from './ruby-to-dncl-line-converter';
+import { convertLine, detectForLoopPattern, isPostTestLoopEnd } from './ruby-to-dncl-line-converter';
+
+/**
+ * Whether the `begin` at `lines[index]` is closed by `end while cond` /
+ * `end until cond` (a loop whose body runs once before the condition is
+ * checked, issue #1626) rather than a plain `end`. The closer is the first
+ * code line after it that is not indented deeper than the `begin`.
+ * @param {Array<string>} lines - The Ruby lines.
+ * @param {number} index - The index of the `begin` line.
+ * @param {string} indent - The indent of the `begin` line.
+ * @returns {boolean} True for `begin ... end while / until`.
+ */
+const isPostTestLoopBegin = (lines, index, indent) => {
+    for (let j = index + 1; j < lines.length; j++) {
+        if (lines[j].trim() === '') continue;
+        const lineIndent = lines[j].match(/^(\s*)/)[1];
+        if (lineIndent.length > indent.length) continue;
+        return lineIndent === indent && isPostTestLoopEnd(lines[j].trim());
+    }
+    return false;
+};
 
 /**
  * Transpile Ruby source code to DNCL.
@@ -94,6 +114,20 @@ const rubyToDncl = (source) => {
                 dnclLines.push(`${indent}を繰り返す`);
                 continue;
             }
+        }
+
+        // `begin ... end while cond` → `繰り返し ... を cond でなくなるまで実行する`
+        // (DNCL の後判定の繰り返し, issue #1626). A plain `begin ... end` has
+        // no DNCL form and is left as it is.
+        if (trimmed === 'begin') {
+            if (isPostTestLoopBegin(lines, i, indent)) {
+                blockStack.push('postTestLoop');
+                dnclLines.push(`${indent}繰り返し`);
+            } else {
+                blockStack.push('begin');
+                dnclLines.push(line);
+            }
+            continue;
         }
 
         const result = convertLine(line, blockStack);
