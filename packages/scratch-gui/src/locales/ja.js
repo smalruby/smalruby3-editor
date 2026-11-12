@@ -969,6 +969,8 @@ export default {
         '「{ SOURCE }」はブロックにできません。redo（繰り返しの同じ回をやり直す）に当たるブロックがないためです。\nredo を消して、「〜まで繰り返す」の条件で命令を繰り返してください（例: until x > 3 ... end）。',
     'gui.smalruby3.rubyToBlocksConverter.retryNotSupported':
         '「{ SOURCE }」はブロックにできません。retry（rescue のあとで begin をやり直す）に当たるブロックがないためです。\nretry を消して、「〜まで繰り返す」の条件で命令を繰り返してください（例: until x > 3 ... end）。',
+    'gui.smalruby3.rubyToBlocksConverter.beginLoopBodyNeverEnds':
+        '「{ SOURCE }」はブロックにできません。begin と end の間の命令が終わらないので、条件が確かめられることがないためです。\nbegin ... end と end のあとの条件を消して、命令だけを書いてください。',
     'gui.smalruby3.rubyToBlocksConverter.invalidMyBlockArgumentType':
         'ブロック定義「{NAME}」の引数#{INDEX}の型がまちがっています。\n数値、文字列、またはブーリアンの値を使ってください。',
     'gui.smalruby3.rubyToBlocksConverter.cannotChangeArgument':
