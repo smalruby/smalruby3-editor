@@ -958,7 +958,7 @@ export default {
     'gui.smalruby3.rubyToBlocksConverter.eventInsideBlock':
         '「{ SOURCE }」はイベントなので、ほかのブロックのなかにはかけません。\nブロックのそとにだして、そこからはじまるスクリプトにしてください。',
     'gui.smalruby3.rubyToBlocksConverter.defInsideBlock':
-        '「{ SOURCE }」はメソッドのていぎなので、ブロックやメソッドのなかにはかけません。\n「{ SOURCE }」から、たいおうする「end」までをまとめて、ブロックのそとにだしてください。',
+        '「{ SOURCE }」はメソッドのていぎなので、ブロックやメソッドのなかにはかけません。\n「{ SOURCE }」から、たいおうする「end」までをまとめて、ブロックやメソッドのそとにだしてください。',
     'gui.smalruby3.rubyToBlocksConverter.valueAsStatement':
         '「{ SOURCE }」はあたいなので、それだけをめいれいとしてかくことはできません。\nめいれいのなかでつかう（れい: say({ SOURCE })）か、へんすうにいれてください。',
     'gui.smalruby3.rubyToBlocksConverter.cannotReturnValue':

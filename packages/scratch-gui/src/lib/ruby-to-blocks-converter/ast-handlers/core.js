@@ -24,7 +24,7 @@ const messages = defineMessages({
     },
     defInsideBlock: {
         defaultMessage: '"{ SOURCE }" defines a method, so it cannot be written inside a block or a method.' +
-            '\nMove the whole method, from "{ SOURCE }" to its "end", out of the block.',
+            '\nMove the whole method, from "{ SOURCE }" to its "end", out of the block or the method.',
         description: 'Error message when a method definition (def) is written inside a block body ' +
             '(do ... end, if, ...) or a method body',
         id: 'gui.smalruby3.rubyToBlocksConverter.defInsideBlock'

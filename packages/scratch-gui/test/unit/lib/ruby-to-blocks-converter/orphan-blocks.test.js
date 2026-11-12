@@ -588,7 +588,9 @@ describe('RubyToBlocksConverter: no orphan blocks', () => {
             expect(converter.errors).toHaveLength(1);
             expect(converter.errors[0].row).toBe(row);
             expect(converter.errors[0].text).toMatch(defInsideBlock);
-            expect(converter.errors[0].text).toMatch(/Move the whole method, from "def my_proc" to its "end"/);
+            expect(converter.errors[0].text).toMatch(
+                /Move the whole method, from "def my_proc" to its "end", out of the block or the method\.$/,
+            );
         });
 
         test('methods, initialize and events directly in a class are still converted', async () => {
