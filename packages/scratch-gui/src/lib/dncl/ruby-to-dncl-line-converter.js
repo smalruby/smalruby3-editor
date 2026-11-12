@@ -1,6 +1,6 @@
 // === Smalruby: This file is Smalruby-specific (Ruby→DNCL line converter) ===
-import { convertBuiltins } from './ruby-to-dncl-builtins';
 import { skipString } from './paren-utils';
+import { convertBuiltins } from './ruby-to-dncl-builtins';
 import { ID, processSegments } from './ruby-to-dncl-identifier';
 
 /**

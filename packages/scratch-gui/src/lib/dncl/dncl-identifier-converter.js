@@ -113,6 +113,9 @@ const convertOperators = (segment) => {
     return result;
 };
 
+/** Words that end the operand of a `でない` (it binds tighter than they do). */
+const LOGICAL_WORDS = ['かつ', 'または', '&&', '||'];
+
 /** The postfix logical NOT of DNCL. */
 const NEGATION = 'でない';
 
@@ -127,7 +130,18 @@ const NEGATION = 'でない';
  * @returns {boolean} True if the word is there as a whole word.
  */
 const isWordAt = (line, i, word) =>
-    line.startsWith(word, i) && (i === 0 || /\s/.test(line[i - 1])) && /^(\s|$|[)\],])/.test(line.slice(i + word.length));
+    line.startsWith(word, i) &&
+    (i === 0 || /\s/.test(line[i - 1])) &&
+    /^(\s|$|[)\],])/.test(line.slice(i + word.length));
+
+/**
+ * The first of `words` that starts at `i` as a whole word.
+ * @param {string} line - The source line.
+ * @param {number} i - The position to check.
+ * @param {Array<string>} words - The words.
+ * @returns {string|undefined} The word, or undefined.
+ */
+const wordAt = (line, i, words) => words.find((w) => isWordAt(line, i, w));
 
 /**
  * Whether the `=` at `i` is an assignment (not part of `==`, `!=`, `<=`, `>=`).
@@ -192,7 +206,7 @@ const convertNegation = (line) => {
                 continue;
             }
         }
-        const word = ['かつ', 'または', '&&', '||'].find((w) => isWordAt(line, i, w));
+        const word = wordAt(line, i, LOGICAL_WORDS);
         if (word) {
             out += word;
             i += word.length;
@@ -306,4 +320,11 @@ const processSegments = (source) => {
     return result;
 };
 
-export { convertArrow, convertIdentifier, convertJapaneseStrings, convertNegation, convertOperators, processSegments };
+export {
+    convertArrow,
+    convertIdentifier,
+    convertJapaneseStrings,
+    convertNegation,
+    convertOperators,
+    processSegments,
+};
