@@ -13,6 +13,7 @@ const renderBar = (props = {}, { locale = 'en', messages = en } = {}) => {
     const { challenge, lesson } = findChallenge(props.challengeId || 'blocks-l1-click-say');
     const onHint = jest.fn();
     const onQuit = jest.fn();
+    const onEnd = jest.fn();
     const utils = render(
         <IntlProvider locale={locale} messages={messages}>
             <LessonTaskBar
@@ -21,11 +22,12 @@ const renderBar = (props = {}, { locale = 'en', messages = en } = {}) => {
                 hintAvailable
                 onHint={onHint}
                 onQuit={onQuit}
+                onEnd={onEnd}
                 {...props}
             />
         </IntlProvider>,
     );
-    return { ...utils, onHint, onQuit };
+    return { ...utils, onHint, onQuit, onEnd };
 };
 
 describe('LessonTaskBar', () => {
@@ -56,6 +58,26 @@ describe('LessonTaskBar', () => {
     test('uses the English label for the button that opens the lessons library', () => {
         const { getByTestId } = renderBar();
         expect(getByTestId('lesson-task-bar-quit')).toHaveTextContent('Try another challenge');
+    });
+
+    test('"End lesson" is the last button of the bar and calls onEnd', () => {
+        const { getByTestId, onEnd, onQuit } = renderBar();
+        const end = getByTestId('lesson-task-bar-end');
+        expect(end).toHaveTextContent('End lesson');
+        expect(getByTestId('lesson-task-bar').lastElementChild).toBe(end);
+        fireEvent.click(end);
+        expect(onEnd).toHaveBeenCalledTimes(1);
+        expect(onQuit).not.toHaveBeenCalled();
+    });
+
+    test('"End lesson" uses the Japanese string', () => {
+        const { getByTestId } = renderBar({}, { locale: 'ja', messages: ja });
+        expect(getByTestId('lesson-task-bar-end')).toHaveTextContent('レッスンをおえる');
+    });
+
+    test('omits "End lesson" without onEnd', () => {
+        const { queryByTestId } = renderBar({ onEnd: undefined });
+        expect(queryByTestId('lesson-task-bar-end')).not.toBeInTheDocument();
     });
 
     test('quit button calls onQuit', () => {

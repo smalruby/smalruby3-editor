@@ -94,6 +94,46 @@ describe('Smalruby Lessons', () => {
         expect(await getLogs()).toEqual([]);
     });
 
+    test('"End lesson" leaves the lesson, keeps the program and gives back every block', async () => {
+        await loadUri(`${uri}?no_beforeunload=1`);
+        await waitForLoadingFinished();
+
+        await startChallenge(driver, CHALLENGE_ID);
+        await findByXpath(byTestId('lesson-task-bar'));
+        await driver.sleep(1000);
+        expect(await textExists('Motion', scope.blocksTab)).toBe(false);
+
+        // チャレンジの途中で作ったプログラム（の代わりに 1 つブロックを置く）
+        await driver.executeScript(`
+            window.smalruby.vm.editingTarget.blocks.createBlock({
+                id: 'end-lesson-test', opcode: 'event_whenflagclicked', next: null, parent: null,
+                inputs: {}, fields: {}, topLevel: true, shadow: false, x: 0, y: 0,
+            });
+        `);
+
+        const end = await findByXpath(byTestId('lesson-task-bar-end'));
+        expect(await end.getText()).toBe('End lesson');
+        await clickByTestId(driver, 'lesson-task-bar-end');
+        await driver.sleep(1000);
+
+        // 課題バーが消え、レッスン表は開かない
+        expect(await countByTestId(driver, 'lesson-task-bar')).toBe(0);
+        expect(await countByTestId(driver, 'lessons-library')).toBe(0);
+        // パレットは全部のブロックにもどる（allowedBlocks が外れる）
+        expect(await textExists('Motion', scope.blocksTab)).toBe(true);
+        expect(await textExists('Sound', scope.blocksTab)).toBe(true);
+        expect(await textExists('Control', scope.blocksTab)).toBe(true);
+        expect(await textExists('Variables', scope.blocksTab)).toBe(true);
+        expect(await textExists('My Blocks', scope.blocksTab)).toBe(true);
+        expect(await textExists('Make a Variable', scope.blocksTab)).toBe(true);
+        // プログラムはそのまま
+        const kept = await driver.executeScript(
+            `return Boolean(window.smalruby.vm.editingTarget.blocks.getBlock('end-lesson-test'));`,
+        );
+        expect(kept).toBe(true);
+        expect(await getLogs()).toEqual([]);
+    });
+
     // パレットを絞らないチャレンジ（allowedBlocks: null）は、レッスン 1 にはもう無い（11 個とも絞る）。
     // その場合に全部が出ることは reducer の unit テスト（getLessonAllowedBlocks が null）で確かめる
     test('a challenge later in the lesson restricts the palette to its own categories', async () => {

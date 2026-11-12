@@ -25,6 +25,7 @@ const baseProps = () => ({
     onCancelStart: jest.fn(),
     onCloseLesson: jest.fn(),
     onDismissCompleted: jest.fn(),
+    onEndLesson: jest.fn(),
     onHideHint: jest.fn(),
     onOpenChallenge: jest.fn(),
     onRequestNewProject: jest.fn(),
@@ -77,6 +78,18 @@ describe('LessonMode container', () => {
         expect(getByTestId('lesson-task-bar-position')).toHaveTextContent('3 of 4');
         fireEvent.click(getByTestId('lesson-task-bar-quit'));
         expect(props.onCloseLesson).toHaveBeenCalledTimes(1);
+    });
+
+    test('"End lesson" leaves the lesson without opening the lessons library', () => {
+        const props = {
+            ...baseProps(),
+            current: findChallenge(CHALLENGE_ID),
+            hint: { visible: false, index: 0, count: 0, step: null },
+        };
+        const { getByTestId } = renderLessonMode(props);
+        fireEvent.click(getByTestId('lesson-task-bar-end'));
+        expect(props.onEndLesson).toHaveBeenCalledTimes(1);
+        expect(props.onCloseLesson).not.toHaveBeenCalled();
     });
 
     test('hint button shows the hint, and hides it when it is visible', () => {

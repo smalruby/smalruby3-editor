@@ -113,9 +113,14 @@ const clickCatOnStage = async () => {
     await driver.actions().move({ origin: 'viewport', x: center.x, y: center.y }).click().perform();
 };
 
-const waitForCompletedToast = async (challengeName) => {
+const waitForCompletedToast = async (challengeId) => {
     await findByXpath(byTestId('lesson-completed-toast'));
-    expect(await textByTestId('lesson-completed-toast-challenge')).toBe(challengeName);
+    // チャレンジの名前は出さない（課題バーに出ている）ので、data-challenge-id で見る
+    expect(
+        await driver.executeScript(
+            `return document.querySelector('[data-testid="lesson-completed-toast"]').getAttribute('data-challenge-id');`,
+        ),
+    ).toBe(challengeId);
     // 「できること」は段 1 から外した（#1529）
     expect(await countByTestId('lesson-completed-toast-skills')).toBe(0);
 };
@@ -173,7 +178,7 @@ describe('Smalruby Lessons: lesson 1 challenges 1-4', () => {
         expect(await countByTestId('lesson-completed-toast')).toBe(0);
 
         await clickCatOnStage();
-        await waitForCompletedToast('Talk when clicked');
+        await waitForCompletedToast('blocks-l1-click-say');
 
         const saved = await driver.executeScript(
             `return JSON.parse(window.localStorage.getItem('smalruby:lessonProgress'));`,
@@ -223,7 +228,7 @@ describe('Smalruby Lessons: lesson 1 challenges 1-4', () => {
         );
         expect(await countByTestId('lesson-completed-toast')).toBe(0);
         await pressKey(Key.ARROW_DOWN);
-        await waitForCompletedToast('Move with the arrow keys');
+        await waitForCompletedToast('blocks-l1-arrow-move');
         await clickByTestId('lesson-completed-toast-close');
         await clickByTestId('lesson-task-bar-quit');
 
@@ -259,7 +264,7 @@ describe('Smalruby Lessons: lesson 1 challenges 1-4', () => {
 
         await focusCodeArea();
         await pressKey(Key.SPACE);
-        await waitForCompletedToast('キーで音を鳴らそう');
+        await waitForCompletedToast('blocks-l1-key-sound');
         await clickByTestId('lesson-completed-toast-close');
         await clickByTestId('lesson-task-bar-quit');
 
@@ -321,7 +326,7 @@ describe('Smalruby Lessons: lesson 1 challenges 1-4', () => {
         await focusCodeArea();
         await pressKey('1');
         // 3 回 × (1 秒 + 1 秒) で 6 回かわる（6 秒ほどかかる）
-        await waitForCompletedToast('Repeat');
+        await waitForCompletedToast('blocks-l1-repeat');
         await clickByTestId('lesson-completed-toast-close');
         await clickByTestId('lesson-task-bar-quit');
 

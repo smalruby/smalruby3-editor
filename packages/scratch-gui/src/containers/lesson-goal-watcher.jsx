@@ -5,7 +5,7 @@ import LessonCompletedToast from '../components/lesson-completed-toast/lesson-co
 import { findChallenge } from '../lib/lessons/courses.js';
 import { attachGoalMonitor } from '../lib/lessons/goal-monitor.js';
 import { evaluateGoal, validateGoal } from '../lib/lessons/goal.js';
-import { completedAction } from '../lib/lessons/lesson-progress.js';
+import { completedAction, isChallengeCompleted } from '../lib/lessons/lesson-progress.js';
 import { openLessonsLibraryAt } from '../lib/lessons/open-lessons-library.js';
 import { closeLesson, dismissCompleted, markChallengeCompleted, openChallenge } from '../reducers/lesson-mode.js';
 
@@ -62,10 +62,15 @@ const LessonGoalWatcher = ({
     }, [challengeId, onDismiss, onNextChallenge]);
 
     if (!challenge || justCompletedId !== challengeId) return null;
+    const { course, lesson } = found;
     return (
         <LessonCompletedToast
-            challenge={challenge}
             action={completedAction(challenge.id, progress)}
+            challengeId={challenge.id}
+            challenges={lesson.challenges.map((c) => ({ id: c.id, completed: isChallengeCompleted(progress, c.id) }))}
+            courseName={course.name}
+            lessonName={lesson.name}
+            lessonNumber={course.lessons.indexOf(lesson) + 1}
             onClose={onDismiss}
             onNextChallenge={handleNextChallenge}
         />

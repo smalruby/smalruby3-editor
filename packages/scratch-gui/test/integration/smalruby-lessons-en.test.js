@@ -88,7 +88,10 @@ const waitForCompletedToast = async () => {
         20000,
         'the completed toast did not appear',
     );
-    return textByTestId('lesson-completed-toast-challenge');
+    // チャレンジの名前は出さない（課題バーに出ている）ので、できたチャレンジは data-challenge-id で見る
+    return driver.executeScript(
+        `return document.querySelector('[data-testid="lesson-completed-toast"]').getAttribute('data-challenge-id');`,
+    );
 };
 
 const countCompletedToasts = async () =>
@@ -166,7 +169,7 @@ describe('Smalruby Lessons in the English UI', () => {
 
         await focusCodeArea();
         await pressKey(Key.SPACE);
-        expect(await waitForCompletedToast()).toBe('Play a sound with a key');
+        expect(await waitForCompletedToast()).toBe('blocks-l1-key-sound');
         await clickByTestId('lesson-completed-toast-close');
         await clickByTestId('lesson-task-bar-quit');
 
@@ -198,7 +201,7 @@ describe('Smalruby Lessons in the English UI', () => {
         await driver.sleep(300);
         expect(await countCompletedToasts()).toBe(0);
         await clickCat();
-        expect(await waitForCompletedToast()).toBe('Count');
+        expect(await waitForCompletedToast()).toBe('blocks-l1-count');
         const count = await driver.executeScript(`
             const stage = window.smalruby.vm.runtime.getTargetForStage();
             return stage.lookupVariableByNameAndType('count', '').value;
@@ -219,6 +222,6 @@ describe('Smalruby Lessons in the English UI', () => {
         expect(await driver.executeScript('return window.smalruby.vm.editingTarget.getName();')).toBe('Sprite1');
 
         await clickCat();
-        expect(await waitForCompletedToast()).toBe('Signal a friend');
+        expect(await waitForCompletedToast()).toBe('blocks-l1-broadcast');
     });
 });

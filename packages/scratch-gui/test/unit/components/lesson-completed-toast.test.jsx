@@ -4,97 +4,156 @@ import { fireEvent, render } from '@testing-library/react';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
 import LessonCompletedToast from '../../../src/components/lesson-completed-toast/lesson-completed-toast.jsx';
-import { ja } from '../../../src/lib/lessons/lessons.locale.js';
+import { en, ja, jaHira } from '../../../src/lib/lessons/lessons.locale.js';
 
-const challenge = {
-    id: 'blocks-l1-key-sound',
-    name: { id: 'gui.lessons.challenge.blocks-l1-key-sound.name', defaultMessage: 'Play a sound with a key' },
-};
+const lessonName = { id: 'gui.lessons.lesson.blocks-l1.name', defaultMessage: 'Let it move' };
+const courseName = { id: 'gui.lessons.course.kyou-kara-programmer.name', defaultMessage: 'Programmer from today' };
 
-const renderToast = (props = {}, { locale = 'en', messages = {} } = {}) =>
+// レッスン 1 の 4 つ。1・2 ができていて、いま 2 ができた
+const midLesson = [
+    { id: 'a', completed: true },
+    { id: 'b', completed: true },
+    { id: 'c', completed: false },
+    { id: 'd', completed: false },
+];
+const allDone = midLesson.map((c) => ({ ...c, completed: true }));
+
+const renderToast = (props = {}, { locale = 'en', messages = en } = {}) =>
     render(
         <IntlProvider locale={locale} messages={messages}>
-            <LessonCompletedToast challenge={challenge} onClose={jest.fn()} {...props} />
+            <LessonCompletedToast
+                challengeId="b"
+                challenges={midLesson}
+                courseName={courseName}
+                lessonName={lessonName}
+                lessonNumber={1}
+                onClose={jest.fn()}
+                onNextChallenge={jest.fn()}
+                {...props}
+            />
         </IntlProvider>,
     );
 
+const dotStates = (getByTestId) =>
+    Array.from(getByTestId('lesson-completed-toast-dots').children).map((d) => [
+        d.dataset.completed,
+        d.dataset.current,
+    ]);
+
 describe('LessonCompletedToast', () => {
-    test('shows the title and the challenge name (no skills line since #1529)', () => {
-        const { getByTestId } = renderToast();
-        expect(getByTestId('lesson-completed-toast')).toBeInTheDocument();
-        expect(getByTestId('lesson-completed-toast-title')).toHaveTextContent('You did it!');
-        expect(getByTestId('lesson-completed-toast-challenge')).toHaveTextContent('Play a sound with a key');
+    describe('a challenge is done (the lesson goes on)', () => {
+        test('shows "You did it!", the dots and how many are left, without the challenge name', () => {
+            const { getByTestId, queryByTestId } = renderToast();
+            const toast = getByTestId('lesson-completed-toast');
+            expect(toast).toHaveAttribute('data-action', 'next');
+            expect(toast).toHaveAttribute('data-challenge-id', 'b');
+            expect(getByTestId('lesson-completed-toast-title')).toHaveTextContent('You did it!');
+            expect(getByTestId('lesson-completed-toast-remaining')).toHaveTextContent('2 more in this lesson');
+            expect(queryByTestId('lesson-completed-toast-detail')).not.toBeInTheDocument();
+            expect(queryByTestId('lesson-completed-toast-challenge')).not.toBeInTheDocument();
+            expect(dotStates(getByTestId)).toEqual([
+                ['true', 'false'],
+                ['true', 'true'],
+                ['false', 'false'],
+                ['false', 'false'],
+            ]);
+        });
+
+        test('"Next challenge" calls onNextChallenge and "Keep looking" calls onClose', () => {
+            const onNextChallenge = jest.fn();
+            const onClose = jest.fn();
+            const { getByTestId } = renderToast({ onNextChallenge, onClose });
+            const next = getByTestId('lesson-completed-toast-next');
+            expect(next).toHaveTextContent('Next challenge');
+            expect(next).toHaveAttribute('data-action', 'next');
+            fireEvent.click(next);
+            expect(onNextChallenge).toHaveBeenCalledTimes(1);
+            const close = getByTestId('lesson-completed-toast-close');
+            expect(close).toHaveTextContent('Keep looking');
+            fireEvent.click(close);
+            expect(onClose).toHaveBeenCalledTimes(1);
+        });
+
+        test('uses the Japanese strings', () => {
+            const { getByTestId } = renderToast({}, { locale: 'ja', messages: ja });
+            expect(getByTestId('lesson-completed-toast-title')).toHaveTextContent('できた！');
+            expect(getByTestId('lesson-completed-toast-remaining')).toHaveTextContent('このレッスンは、あと 2 つ');
+            expect(getByTestId('lesson-completed-toast-next')).toHaveTextContent('次のチャレンジへ');
+            expect(getByTestId('lesson-completed-toast-close')).toHaveTextContent('もう少し見る');
+        });
+
+        test('uses the hiragana strings', () => {
+            const { getByTestId } = renderToast({}, { locale: 'ja-Hira', messages: jaHira });
+            expect(getByTestId('lesson-completed-toast-next')).toHaveTextContent('つぎのチャレンジへ');
+            expect(getByTestId('lesson-completed-toast-close')).toHaveTextContent('もうすこしみる');
+        });
     });
 
-    test('uses the Japanese strings', () => {
-        const { getByTestId, queryByTestId } = renderToast({}, { locale: 'ja', messages: ja });
-        expect(getByTestId('lesson-completed-toast-title')).toHaveTextContent('できた！');
-        expect(queryByTestId('lesson-completed-toast-skills')).not.toBeInTheDocument();
+    describe('every challenge of the lesson is done and another lesson is left', () => {
+        const props = { action: 'otherLessons', challenges: allDone, challengeId: 'd', lessonNumber: 2 };
+
+        test('shows the lesson title, all dots filled and the lesson line', () => {
+            const { getByTestId, queryByTestId } = renderToast(props);
+            expect(getByTestId('lesson-completed-toast')).toHaveAttribute('data-action', 'otherLessons');
+            expect(getByTestId('lesson-completed-toast-title')).toHaveTextContent('Lesson 2 complete!');
+            expect(getByTestId('lesson-completed-toast-detail')).toHaveTextContent(
+                `You finished all 4 challenges of "Let's Move".`,
+            );
+            expect(queryByTestId('lesson-completed-toast-remaining')).not.toBeInTheDocument();
+            expect(dotStates(getByTestId).every(([completed]) => completed === 'true')).toBe(true);
+            const next = getByTestId('lesson-completed-toast-next');
+            expect(next).toHaveTextContent('Next lesson');
+            expect(next).toHaveAttribute('data-action', 'otherLessons');
+        });
+
+        test('uses the Japanese strings', () => {
+            const { getByTestId } = renderToast(props, { locale: 'ja', messages: ja });
+            expect(getByTestId('lesson-completed-toast-title')).toHaveTextContent('レッスン 2 ぜんぶできた！');
+            expect(getByTestId('lesson-completed-toast-detail')).toHaveTextContent(
+                '「うごかしてみよう」の 4 つ、全部できました',
+            );
+            expect(getByTestId('lesson-completed-toast-next')).toHaveTextContent('次のレッスンへ');
+        });
+
+        test('uses the hiragana strings', () => {
+            const { getByTestId } = renderToast(props, { locale: 'ja-Hira', messages: jaHira });
+            expect(getByTestId('lesson-completed-toast-detail')).toHaveTextContent('の 4 つ、ぜんぶできました');
+            expect(getByTestId('lesson-completed-toast-next')).toHaveTextContent('つぎのレッスンへ');
+        });
     });
 
-    test('close button invokes onClose', () => {
-        const onClose = jest.fn();
-        const { getByTestId } = renderToast({ onClose });
-        fireEvent.click(getByTestId('lesson-completed-toast-close'));
-        expect(onClose).toHaveBeenCalledTimes(1);
+    describe('every challenge of the lesson is done and no lesson is left', () => {
+        const props = { action: 'library', challenges: allDone, challengeId: 'd', lessonNumber: 3 };
+
+        test('shows the course line and "Go to the lessons"', () => {
+            const { getByTestId } = renderToast(props);
+            expect(getByTestId('lesson-completed-toast-title')).toHaveTextContent('Lesson 3 complete!');
+            expect(getByTestId('lesson-completed-toast-detail')).toHaveTextContent(
+                'That was every lesson in "Programmer from Today".',
+            );
+            const next = getByTestId('lesson-completed-toast-next');
+            expect(next).toHaveTextContent('Go to the lessons');
+            expect(next).toHaveAttribute('data-action', 'library');
+        });
+
+        test('uses the Japanese strings', () => {
+            const { getByTestId } = renderToast(props, { locale: 'ja', messages: ja });
+            expect(getByTestId('lesson-completed-toast-detail')).toHaveTextContent(
+                '「きょうからプログラマー」のレッスンは、これで全部です',
+            );
+            expect(getByTestId('lesson-completed-toast-next')).toHaveTextContent('レッスン表へ');
+        });
+
+        test('uses the hiragana strings', () => {
+            const { getByTestId } = renderToast(props, { locale: 'ja-Hira', messages: jaHira });
+            expect(getByTestId('lesson-completed-toast-detail')).toHaveTextContent('のレッスンは、これでぜんぶです');
+            expect(getByTestId('lesson-completed-toast-next')).toHaveTextContent('レッスンひょうへ');
+        });
     });
 
-    test('shows "Next challenge" and calls onNextChallenge', () => {
-        const onNextChallenge = jest.fn();
-        const { getByTestId, queryByTestId } = renderToast({ onNextChallenge });
-        const next = getByTestId('lesson-completed-toast-next');
-        expect(next).toHaveTextContent('Next challenge');
-        expect(next).toHaveAttribute('data-action', 'next');
-        expect(queryByTestId('lesson-completed-toast-last')).not.toBeInTheDocument();
-        fireEvent.click(next);
-        expect(onNextChallenge).toHaveBeenCalledTimes(1);
-    });
-
-    test('when the lesson is all done and there is a next lesson, says so and points to other lessons', () => {
-        const onNextChallenge = jest.fn();
-        const { getByTestId } = renderToast({ onNextChallenge, action: 'otherLessons' });
-        expect(getByTestId('lesson-completed-toast-last')).toHaveTextContent(
-            'You have done every challenge of this lesson.',
-        );
-        const next = getByTestId('lesson-completed-toast-next');
-        expect(next).toHaveTextContent('Go to other lessons');
-        expect(next).toHaveAttribute('data-action', 'otherLessons');
-        fireEvent.click(next);
-        expect(onNextChallenge).toHaveBeenCalledTimes(1);
-    });
-
-    test('when the lesson is all done and there is no next lesson, points to the lessons library', () => {
-        const { getByTestId } = renderToast({ onNextChallenge: jest.fn(), action: 'library' });
-        expect(getByTestId('lesson-completed-toast-last')).toBeInTheDocument();
-        const next = getByTestId('lesson-completed-toast-next');
-        expect(next).toHaveTextContent('Go to the lessons');
-        expect(next).toHaveAttribute('data-action', 'library');
-    });
-
-    test('uses the Japanese strings for the next button', () => {
-        const renderJa = (action) => (
-            <IntlProvider locale="ja" messages={ja}>
-                <LessonCompletedToast
-                    challenge={challenge}
-                    onClose={jest.fn()}
-                    onNextChallenge={jest.fn()}
-                    action={action}
-                />
-            </IntlProvider>
-        );
-        const { getByTestId, rerender } = render(renderJa('next'));
-        expect(getByTestId('lesson-completed-toast-next')).toHaveTextContent('次のチャレンジ');
-        rerender(renderJa('otherLessons'));
-        expect(getByTestId('lesson-completed-toast-last')).toHaveTextContent(
-            'このレッスンのチャレンジは、これでおわり。',
-        );
-        expect(getByTestId('lesson-completed-toast-next')).toHaveTextContent('ほかのレッスンへ');
-        rerender(renderJa('library'));
-        expect(getByTestId('lesson-completed-toast-next')).toHaveTextContent('レッスン表へ');
-    });
-
-    test('omits the next button without onNextChallenge', () => {
-        const { queryByTestId } = renderToast();
+    test('omits the next button without onNextChallenge but keeps "Keep looking"', () => {
+        const { getByTestId, queryByTestId } = renderToast({ onNextChallenge: undefined });
         expect(queryByTestId('lesson-completed-toast-next')).not.toBeInTheDocument();
+        expect(getByTestId('lesson-completed-toast-close')).toBeInTheDocument();
     });
 });

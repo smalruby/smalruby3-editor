@@ -1267,6 +1267,7 @@ export default {
     'gui.lessonTaskBar.position': '{number} of {count}',
     'gui.lessonTaskBar.hint': 'Hint',
     'gui.lessonTaskBar.another': 'Try another challenge',
+    'gui.lessonTaskBar.end': 'End lesson',
     'gui.lessonHint.ariaLabel': 'Hint',
     'gui.lessonHint.position': 'Hint {number} of {count}',
     'gui.lessonHint.prev': 'Back',

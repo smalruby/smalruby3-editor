@@ -45,6 +45,7 @@ const LessonMode = ({
     onCancelStart,
     onCloseLesson,
     onDismissCompleted,
+    onEndLesson,
     onHideHint,
     onOpenChallenge,
     onRequestNewProject,
@@ -144,6 +145,7 @@ const LessonMode = ({
                 hintAvailable={Boolean(hint && hint.count > 0)}
                 hintVisible={Boolean(hint && hint.visible)}
                 menuOpen={menuOpen}
+                onEnd={onEndLesson}
                 onHint={handleHint}
                 onOpenFullText={handleOpenFullText}
                 onQuit={onCloseLesson}
@@ -174,6 +176,7 @@ LessonMode.propTypes = {
     onCancelStart: PropTypes.func.isRequired,
     onCloseLesson: PropTypes.func.isRequired,
     onDismissCompleted: PropTypes.func.isRequired,
+    onEndLesson: PropTypes.func.isRequired,
     onHideHint: PropTypes.func.isRequired,
     onOpenChallenge: PropTypes.func.isRequired,
     onRequestNewProject: PropTypes.func.isRequired,
@@ -214,6 +217,9 @@ const mapDispatchToProps = (dispatch) => ({
         dispatch(openLessonsLibrary());
     },
     onDismissCompleted: () => dispatch(dismissCompleted()),
+    // 「レッスンをおえる」: レッスンから出るだけ（レッスン表は開かない・確認も出さない）。作品はそのまま残り、
+    // パレットは getLessonAllowedBlocks が null になって全部のブロックにもどる
+    onEndLesson: () => dispatch(closeLesson()),
     onHideHint: () => dispatch(hideHint()),
     onOpenChallenge: (challengeId) => dispatch(openChallenge(challengeId)),
     onRequestNewProject: () => {

@@ -1597,6 +1597,7 @@ export default {
     'gui.lessonTaskBar.position': '{number} / {count}',
     'gui.lessonTaskBar.hint': 'ヒント',
     'gui.lessonTaskBar.another': 'ほかのチャレンジへ',
+    'gui.lessonTaskBar.end': 'レッスンをおえる',
     'gui.lessonHint.ariaLabel': 'ヒント',
     'gui.lessonHint.position': 'ヒント {number} / {count}',
     'gui.lessonHint.prev': 'もどる',

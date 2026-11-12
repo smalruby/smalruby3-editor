@@ -83,7 +83,10 @@ const waitForCompletedToast = async () => {
         20000,
         'the completed toast did not appear',
     );
-    return textByTestId('lesson-completed-toast-challenge');
+    // チャレンジの名前は出さない（課題バーに出ている）ので、できたチャレンジは data-challenge-id で見る
+    return driver.executeScript(
+        `return document.querySelector('[data-testid="lesson-completed-toast"]').getAttribute('data-challenge-id');`,
+    );
 };
 
 const countCompletedToasts = async () =>
@@ -176,7 +179,7 @@ describe('Smalruby Lessons: lesson 1 challenges 9-11', () => {
                 if (text) window.__lessonSays.push([target.getName(), String(text)]);
             });`);
         await clickCat();
-        expect(await waitForCompletedToast()).toBe('Signal a friend');
+        expect(await waitForCompletedToast()).toBe('blocks-l1-broadcast');
         expect(await driver.executeScript('return window.__lessonSays;')).toEqual([['Penguin', 'Hi!']]);
     });
 
@@ -194,7 +197,7 @@ describe('Smalruby Lessons: lesson 1 challenges 9-11', () => {
         // ネコをえらんだ状態で入れる（コードエリアはネコのプログラム）
         expect(await driver.executeScript('return window.smalruby.vm.editingTarget.getName();')).toBe('Sprite1');
         await clickCat();
-        expect(await waitForCompletedToast()).toBe('Signal a friend');
+        expect(await waitForCompletedToast()).toBe('blocks-l1-broadcast');
     });
 
     test('10 しゃべらせよう: the program loads Text to Speech and the speak block runs headless', async () => {
@@ -212,7 +215,7 @@ describe('Smalruby Lessons: lesson 1 challenges 9-11', () => {
         ).toBe(true);
         // headless では声が出なくても（音声の取得に失敗しても）ブロックの実行は記録される
         await clickCat();
-        expect(await waitForCompletedToast()).toBe('Make it speak');
+        expect(await waitForCompletedToast()).toBe('blocks-l1-speak');
     });
 
     test('11 メッセージをためよう: a list made with "Make a List", the flag, and 3 answers', async () => {
@@ -252,7 +255,7 @@ describe('Smalruby Lessons: lesson 1 challenges 9-11', () => {
         expect(await countCompletedToasts()).toBe(0);
         await clickCat();
         await answerQuestion('またね');
-        expect(await waitForCompletedToast()).toBe('Collect messages');
+        expect(await waitForCompletedToast()).toBe('blocks-l1-message-list');
         const items = await driver.executeScript(`
             const stage = window.smalruby.vm.runtime.getTargetForStage();
             return stage.lookupVariableByNameAndType('talk', 'list').value;

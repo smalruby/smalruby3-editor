@@ -161,11 +161,14 @@ export const ja = {
     'gui.lessons.challenge.blocks-l1-message-list.debug2':
         '「答え」という文字がたまるときは、丸い「答え」のブロックを入れたか見よう。',
     'gui.lessons.completed.title': 'できた！',
-    'gui.lessons.completed.next': '次のチャレンジ',
-    'gui.lessons.completed.lastInLesson': 'このレッスンのチャレンジは、これでおわり。',
-    'gui.lessons.completed.otherLessons': 'ほかのレッスンへ',
+    'gui.lessons.completed.remaining': 'このレッスンは、あと {count} つ',
+    'gui.lessons.completed.lessonTitle': 'レッスン {number} ぜんぶできた！',
+    'gui.lessons.completed.lessonDetail': '「{name}」の {count} つ、全部できました',
+    'gui.lessons.completed.courseDetail': '「{course}」のレッスンは、これで全部です',
+    'gui.lessons.completed.next': '次のチャレンジへ',
+    'gui.lessons.completed.nextLesson': '次のレッスンへ',
     'gui.lessons.completed.library': 'レッスン表へ',
-    'gui.lessons.completed.close': '閉じる',
+    'gui.lessons.completed.close': 'もう少し見る',
 };
 
 export const jaHira = {
@@ -335,11 +338,14 @@ export const jaHira = {
     'gui.lessons.challenge.blocks-l1-message-list.debug2':
         '「こたえ」というもじがたまるときは、まるい「こたえ」のブロックをいれたかみよう。',
     'gui.lessons.completed.title': 'できた！',
-    'gui.lessons.completed.next': 'つぎのチャレンジ',
-    'gui.lessons.completed.lastInLesson': 'このレッスンのチャレンジは、これでおわり。',
-    'gui.lessons.completed.otherLessons': 'ほかのレッスンへ',
+    'gui.lessons.completed.remaining': 'このレッスンは、あと {count} つ',
+    'gui.lessons.completed.lessonTitle': 'レッスン {number} ぜんぶできた！',
+    'gui.lessons.completed.lessonDetail': '「{name}」の {count} つ、ぜんぶできました',
+    'gui.lessons.completed.courseDetail': '「{course}」のレッスンは、これでぜんぶです',
+    'gui.lessons.completed.next': 'つぎのチャレンジへ',
+    'gui.lessons.completed.nextLesson': 'つぎのレッスンへ',
     'gui.lessons.completed.library': 'レッスンひょうへ',
-    'gui.lessons.completed.close': 'とじる',
+    'gui.lessons.completed.close': 'もうすこしみる',
 };
 
 export const en = {
@@ -511,9 +517,12 @@ export const en = {
     'gui.lessons.challenge.blocks-l1-message-list.debug2':
         'If the word "answer" is kept, check that you put in the round "answer" block.',
     'gui.lessons.completed.title': 'You did it!',
+    'gui.lessons.completed.remaining': '{count} more in this lesson',
+    'gui.lessons.completed.lessonTitle': 'Lesson {number} complete!',
+    'gui.lessons.completed.lessonDetail': 'You finished all {count} challenges of "{name}".',
+    'gui.lessons.completed.courseDetail': 'That was every lesson in "{course}".',
     'gui.lessons.completed.next': 'Next challenge',
-    'gui.lessons.completed.lastInLesson': 'You have done every challenge of this lesson.',
-    'gui.lessons.completed.otherLessons': 'Go to other lessons',
+    'gui.lessons.completed.nextLesson': 'Next lesson',
     'gui.lessons.completed.library': 'Go to the lessons',
-    'gui.lessons.completed.close': 'Close',
+    'gui.lessons.completed.close': 'Keep looking',
 };
