@@ -299,12 +299,19 @@ export default function (Generator) {
         }
         const keyword = isWhile ? 'while' : 'until';
         const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
-        const body = useScreenRefresh ? wrapWithScreenRefresh(branch) : `${branch}${wait}`;
+        // `wait` goes in `with_screen_refresh do ... end`, the only statement the loop can have (issue #1656).
+        const body = useScreenRefresh ? wrapWithScreenRefresh(`${branch}${wait}`) : `${branch}${wait}`;
         // `begin ... end while cond` (issue #1610): the body before the loop is not written (see scrub.js).
         if (beginLoopBodyOf(Generator, block)) {
             return `begin\n${body}end ${keyword} ${operator}\n`;
         }
-        return `${keyword} ${operator}\n${body}end\n`;
+        // An empty "repeat until" is `until x do` / `end`: `until x` / `end` is "wait until" (issue #1655).
+        // A body of only the calls of the condition (not written, issue #1606) comes back from
+        // `until x` / `end` as it is, so it does not get `do`.
+        const substack = block.inputs && block.inputs.SUBSTACK;
+        const emptyLoop = body === '' && !(substack && Generator.getBlock(substack.block));
+        const doKeyword = emptyLoop ? ' do' : '';
+        return `${keyword} ${operator}${doKeyword}\n${body}end\n`;
     };
 
     Generator.control_stop = function (block) {

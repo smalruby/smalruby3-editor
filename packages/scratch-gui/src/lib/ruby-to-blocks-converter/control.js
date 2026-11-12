@@ -287,19 +287,24 @@ const ControlConverter = {
             return rubyBlock || [];
         });
 
-        converter.registerOnUntil((cond, statement) => {
+        // until / while (also `wait until x`, the modifier form of `until x` / `wait` / `end`).
+        // `loop` tells how the loop is written: `modifier` for `wait until x`, `doKeyword` for
+        // `until x do` (issues #1655 / #1656).
+        converter.registerOnUntil((cond, statement, loop = {}) => {
             const hadWithScreenRefresh = converter._hadWithScreenRefreshWrapper;
             converter._hadWithScreenRefreshWrapper = false;
 
             statement = converter._removeWaitBlocks(statement);
             const hadWait = converter._hadWaitInLastRemove;
 
-            let opcode;
-            // An empty body is "wait until", unless `with_screen_refresh do end` marks an empty loop
+            // A loop with nothing in its body is "wait until" only when it is written as
+            // `wait until x` or as `until x` / `end`. An empty "repeat until" is written
+            // `until x do` / `end` (or with `with_screen_refresh do end` in the saved form), and
+            // `wait` in the body of `until x` ... `end` is kept as a mark of the loop.
+            let opcode = 'control_repeat_until';
             if (statement === null && !hadWithScreenRefresh) {
-                opcode = 'control_wait_until';
-            } else {
-                opcode = 'control_repeat_until';
+                const waitUntil = hadWait ? loop.modifier : !loop.doKeyword;
+                if (waitUntil) opcode = 'control_wait_until';
             }
             const block = converter._createBlock(opcode, 'statement');
             if (converter._isFalseOrBooleanBlock(cond)) {
@@ -308,11 +313,9 @@ const ControlConverter = {
             // control_wait_until has no SUBSTACK input
             if (opcode === 'control_repeat_until') {
                 converter._addSubstack(block, statement);
-            }
-            if (hadWithScreenRefresh && opcode === 'control_repeat_until') {
-                addWithScreenRefreshComment(converter, block);
-            } else if (hadWait && opcode === 'control_repeat_until') {
-                block.comment = converter._createComment('@ruby:method:wait', block.id);
+                // Both marks, as `N.times.with_screen_refresh do ... wait end` keeps them
+                if (hadWithScreenRefresh) addWithScreenRefreshComment(converter, block);
+                if (hadWait) addMethodComment(converter, block, WAIT_COMMENT);
             }
             return block;
         });
