@@ -1,8 +1,8 @@
 // === Smalruby: This file is Smalruby-specific (DNCL source validator) ===
 import { DNCL_KEYWORDS, RUBY_LITERALS } from './dncl-keywords';
 import { findFunctionNames } from './dncl-state';
-import { codeOfLine } from './dncl-trailing-comment';
-import { findMatchingClose, skipString } from './paren-utils';
+import { codeOfLine, commentIndex, stringEndAt } from './dncl-trailing-comment';
+import { findMatchingClose } from './paren-utils';
 
 /**
  * The id of the error for the post-test loop (issue #1626). The Japanese mode
@@ -100,24 +100,18 @@ const TRAILING_IDENT_RE =
  * @returns {string} The code without strings and comment.
  */
 const codeWithoutStrings = (line) => {
+    const comment = commentIndex(line);
+    const code = comment === -1 ? line : line.substring(0, comment);
     let out = '';
     let i = 0;
-    while (i < line.length) {
-        const ch = line[i];
-        if (ch === '#') break;
-        let end = -1;
-        if (ch === '"' || ch === "'") {
-            end = skipString(line, i, ch);
-        } else if (ch === '「') {
-            const close = line.indexOf('」', i + 1);
-            if (close !== -1) end = close + 1;
-        }
-        if (end > i) {
+    while (i < code.length) {
+        const end = stringEndAt(code, i);
+        if (end !== -1) {
             out += ' '.repeat(end - i);
             i = end;
             continue;
         }
-        out += ch;
+        out += code[i];
         i++;
     }
     return out;
