@@ -151,9 +151,9 @@ export const ja = {
         'ネコを押したら「メッセージは？」と聞いて、\n答えをリスト「トーク」にためよう。\n3 つためてみよう',
     'gui.lessons.challenge.blocks-l1-message-list.step1':
         '「変数」の下の「リストを作る」を押して、「トーク」というリストを作ろう。ステージに空の箱が出るよ。',
-    'gui.lessons.challenge.blocks-l1-message-list.step2': '旗を押したら、トークを空にするプログラムを作ろう。',
+    'gui.lessons.challenge.blocks-l1-message-list.step2': '1 つめのプログラム: 旗を押したら「トーク」を空にしよう。',
     'gui.lessons.challenge.blocks-l1-message-list.step3':
-        '押されたら聞いて、答えをトークに追加するプログラムを作ろう。',
+        '2 つめのプログラムを、旗のプログラムとはべつに作ろう。黄色い「イベント」の「このスプライトが押されたとき」を新しく置いて、その下で「メッセージは？」と聞いて、答えを「トーク」に追加しよう。',
     'gui.lessons.challenge.blocks-l1-message-list.step4':
         '旗を押してから、ネコを 3 回押して、メッセージを書こう。ステージの箱に、書いた順にたまっていくよ。',
     'gui.lessons.challenge.blocks-l1-message-list.debug1':
@@ -324,9 +324,10 @@ export const jaHira = {
         'ネコをおしたら「メッセージは？」ときいて、\nこたえをリスト「トーク」にためよう。\n3 つためてみよう',
     'gui.lessons.challenge.blocks-l1-message-list.step1':
         '「へんすう」のしたの「リストをつくる」をおして、「トーク」というリストをつくろう。ステージにからのはこがでるよ。',
-    'gui.lessons.challenge.blocks-l1-message-list.step2': 'はたをおしたら、トークをからにするプログラムをつくろう。',
+    'gui.lessons.challenge.blocks-l1-message-list.step2':
+        '1 つめのプログラム: はたをおしたら「トーク」をからにしよう。',
     'gui.lessons.challenge.blocks-l1-message-list.step3':
-        'おされたらきいて、こたえをトークについかするプログラムをつくろう。',
+        '2 つめのプログラムを、はたのプログラムとはべつにつくろう。きいろい「イベント」の「このスプライトがおされたとき」をあたらしくおいて、そのしたで「メッセージは？」ときいて、こたえを「トーク」についかしよう。',
     'gui.lessons.challenge.blocks-l1-message-list.step4':
         'はたをおしてから、ネコを 3 かいおして、メッセージをかこう。ステージのはこに、かいたじゅんにたまっていくよ。',
     'gui.lessons.challenge.blocks-l1-message-list.debug1':
@@ -500,10 +501,9 @@ export const en = {
         'When the cat is clicked, ask "Message?"\nand keep the answers in the list "talk".\nTry keeping 3',
     'gui.lessons.challenge.blocks-l1-message-list.step1':
         'Under "Variables", click "Make a List" and make a list named "talk". An empty box appears on the stage.',
-    'gui.lessons.challenge.blocks-l1-message-list.step2':
-        'Make a program that empties talk when the green flag is clicked.',
+    'gui.lessons.challenge.blocks-l1-message-list.step2': 'Program 1: when the green flag is clicked, empty "talk".',
     'gui.lessons.challenge.blocks-l1-message-list.step3':
-        'Make a program that asks when the cat is clicked and adds the answer to talk.',
+        'Make program 2 separately from the flag program. Put a new "when this sprite clicked" from the yellow "Events", and under it ask "Message?" and add the answer to "talk".',
     'gui.lessons.challenge.blocks-l1-message-list.step4':
         'Click the green flag, then click the cat 3 times and type messages. They pile up in the box on the stage in the order you typed them.',
     'gui.lessons.challenge.blocks-l1-message-list.debug1':
