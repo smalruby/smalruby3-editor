@@ -33,14 +33,32 @@ describe('RubyGenerator class-wrapper helpers', () => {
 
     describe('_generateSetXxx', () => {
         test('generates set_x for non-default x', () => {
-            const target = {x: 50, y: 0, direction: 90, visible: true, size: 100, currentCostume: 0, rotationStyle: 'all around', sprite: {}};
+            const target = {
+                x: 50,
+                y: 0,
+                direction: 90,
+                visible: true,
+                size: 100,
+                currentCostume: 0,
+                rotationStyle: 'all around',
+                sprite: {},
+            };
             const setLines = [];
             RubyGenerator._generateSetXxx(target, setLines, [], true);
             expect(setLines).toEqual(['set_x 50']);
         });
 
         test('generates multiple set_xxx for multiple non-defaults', () => {
-            const target = {x: 10, y: 20, direction: 45, visible: true, size: 100, currentCostume: 0, rotationStyle: 'all around', sprite: {}};
+            const target = {
+                x: 10,
+                y: 20,
+                direction: 45,
+                visible: true,
+                size: 100,
+                currentCostume: 0,
+                rotationStyle: 'all around',
+                sprite: {},
+            };
             const setLines = [];
             RubyGenerator._generateSetXxx(target, setLines, [], true);
             expect(setLines).toContain('set_x 10');
@@ -49,15 +67,32 @@ describe('RubyGenerator class-wrapper helpers', () => {
         });
 
         test('skips attributes not in allowedAttributes when not autoAll', () => {
-            const target = {x: 50, y: 20, direction: 90, visible: true, size: 100, currentCostume: 0, rotationStyle: 'all around', sprite: {}};
+            const target = {
+                x: 50,
+                y: 20,
+                direction: 90,
+                visible: true,
+                size: 100,
+                currentCostume: 0,
+                rotationStyle: 'all around',
+                sprite: {},
+            };
             const setLines = [];
             RubyGenerator._generateSetXxx(target, setLines, ['x'], false);
             expect(setLines).toEqual(['set_x 50']);
         });
 
         test('generates set_costumes', () => {
-            const target = {x: 0, y: 0, direction: 90, visible: true, size: 100, currentCostume: 0, rotationStyle: 'all around',
-                sprite: {costumes: [{name: 'cat'}, {name: 'dog'}]}};
+            const target = {
+                x: 0,
+                y: 0,
+                direction: 90,
+                visible: true,
+                size: 100,
+                currentCostume: 0,
+                rotationStyle: 'all around',
+                sprite: { costumes: [{ name: 'cat' }, { name: 'dog' }] },
+            };
             const setLines = [];
             RubyGenerator._generateSetXxx(target, setLines, ['costumes'], false);
             expect(setLines).toEqual(['set_costumes ["cat", "dog"]']);
@@ -66,14 +101,14 @@ describe('RubyGenerator class-wrapper helpers', () => {
 
     describe('_generateStageSetXxx', () => {
         test('generates set_current_backdrop for non-default', () => {
-            const target = {currentCostume: 2, sprite: {}};
+            const target = { currentCostume: 2, sprite: {} };
             const setLines = [];
             RubyGenerator._generateStageSetXxx(target, setLines, ['current_backdrop'], false);
             expect(setLines).toEqual(['set_current_backdrop 3']);
         });
 
         test('generates set_backdrops', () => {
-            const target = {currentCostume: 0, sprite: {costumes: [{name: 'bg1'}, {name: 'bg2'}]}};
+            const target = { currentCostume: 0, sprite: { costumes: [{ name: 'bg1' }, { name: 'bg2' }] } };
             const setLines = [];
             RubyGenerator._generateStageSetXxx(target, setLines, ['backdrops'], false);
             expect(setLines).toEqual(['set_backdrops ["bg1", "bg2"]']);
@@ -85,9 +120,9 @@ describe('RubyGenerator class-wrapper helpers', () => {
             const target = {
                 isStage: false,
                 variables: {
-                    v1: {name: 'x', type: '', value: 10},
-                    v2: {name: 'name', type: '', value: 'hello'}
-                }
+                    v1: { name: 'x', type: '', value: 10 },
+                    v2: { name: 'name', type: '', value: 'hello' },
+                },
             };
             const lines = RubyGenerator._generateInitialize(target, []);
             expect(lines).toContain('def initialize');
@@ -100,8 +135,8 @@ describe('RubyGenerator class-wrapper helpers', () => {
             const target = {
                 isStage: false,
                 variables: {
-                    l1: {name: 'items', type: 'list', value: ['a', 'b']}
-                }
+                    l1: { name: 'items', type: 'list', value: ['a', 'b'] },
+                },
             };
             const lines = RubyGenerator._generateInitialize(target, []);
             expect(lines).toContain('def initialize');
@@ -113,8 +148,8 @@ describe('RubyGenerator class-wrapper helpers', () => {
             const target = {
                 isStage: true,
                 variables: {
-                    v1: {name: 'score', type: '', value: 100}
-                }
+                    v1: { name: 'score', type: '', value: 100 },
+                },
             };
             const lines = RubyGenerator._generateInitialize(target, []);
             expect(lines).toContain('def initialize');
@@ -125,7 +160,7 @@ describe('RubyGenerator class-wrapper helpers', () => {
         test('returns empty array when no variables', () => {
             const target = {
                 isStage: false,
-                variables: {}
+                variables: {},
             };
             const lines = RubyGenerator._generateInitialize(target, []);
             expect(lines).toHaveLength(0);
@@ -135,9 +170,9 @@ describe('RubyGenerator class-wrapper helpers', () => {
             const target = {
                 isStage: false,
                 variables: {
-                    v1: {name: 'x', type: '', value: 10},
-                    v2: {name: '_return_foo_', type: '', value: ''}
-                }
+                    v1: { name: 'x', type: '', value: 10 },
+                    v2: { name: '_return_foo_', type: '', value: '' },
+                },
             };
             const lines = RubyGenerator._generateInitialize(target, []);
             expect(lines).toContain('  @x = 10');
@@ -148,9 +183,9 @@ describe('RubyGenerator class-wrapper helpers', () => {
             const target = {
                 isStage: false,
                 variables: {
-                    v1: {name: 'x', type: '', value: 10},
-                    v2: {name: '_temp_1_', type: '', value: 0}
-                }
+                    v1: { name: 'x', type: '', value: 10 },
+                    v2: { name: '_temp_1_', type: '', value: 0 },
+                },
             };
             const lines = RubyGenerator._generateInitialize(target, []);
             expect(lines).toContain('  @x = 10');
@@ -161,13 +196,13 @@ describe('RubyGenerator class-wrapper helpers', () => {
             const target = {
                 isStage: false,
                 variables: {
-                    v1: {name: 'z_var', type: '', value: 3},
-                    v2: {name: 'a_var', type: '', value: 1},
-                    v3: {name: 'm_var', type: '', value: 2}
-                }
+                    v1: { name: 'z_var', type: '', value: 3 },
+                    v2: { name: 'a_var', type: '', value: 1 },
+                    v3: { name: 'm_var', type: '', value: 2 },
+                },
             };
             const lines = RubyGenerator._generateInitialize(target, []);
-            const bodyLines = lines.filter(l => l.startsWith('  @'));
+            const bodyLines = lines.filter((l) => l.startsWith('  @'));
             expect(bodyLines[0]).toBe('  @a_var = 1');
             expect(bodyLines[1]).toBe('  @m_var = 2');
             expect(bodyLines[2]).toBe('  @z_var = 3');
@@ -177,9 +212,9 @@ describe('RubyGenerator class-wrapper helpers', () => {
             const target = {
                 isStage: true,
                 variables: {
-                    v1: {name: 'score', type: '', value: 10},
-                    b1: {name: 'message1', type: 'broadcast_msg', value: 'message1'}
-                }
+                    v1: { name: 'score', type: '', value: 10 },
+                    b1: { name: 'message1', type: 'broadcast_msg', value: 'message1' },
+                },
             };
             const lines = RubyGenerator._generateInitialize(target, []);
             expect(lines.join('\n')).not.toMatch(/message1/);
@@ -190,8 +225,8 @@ describe('RubyGenerator class-wrapper helpers', () => {
             const target = {
                 isStage: false,
                 variables: {
-                    v1: {name: 'x', type: '', value: 10}
-                }
+                    v1: { name: 'x', type: '', value: 10 },
+                },
             };
             const commentTexts = ['@ruby:initialize:args=(a, b)'];
             const lines = RubyGenerator._generateInitialize(target, commentTexts);
@@ -202,8 +237,8 @@ describe('RubyGenerator class-wrapper helpers', () => {
             const target = {
                 isStage: false,
                 variables: {
-                    v1: {name: 'x', type: '', value: 10}
-                }
+                    v1: { name: 'x', type: '', value: 10 },
+                },
             };
             const commentTexts = ['@ruby:initialize:super'];
             const lines = RubyGenerator._generateInitialize(target, commentTexts);
@@ -214,8 +249,8 @@ describe('RubyGenerator class-wrapper helpers', () => {
             const target = {
                 isStage: false,
                 variables: {
-                    v1: {name: 'x', type: '', value: 10}
-                }
+                    v1: { name: 'x', type: '', value: 10 },
+                },
             };
             const commentTexts = ['@ruby:initialize:args=(a),super=(a)'];
             const lines = RubyGenerator._generateInitialize(target, commentTexts);

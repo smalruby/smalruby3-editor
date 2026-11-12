@@ -3,7 +3,6 @@
 // 入れる。2 つのスプライトでやりとりするチャレンジ（レッスン 1 のチャレンジ 9: ネコとペンギン）用。
 // Ruby タブは編集中のスプライト 1 つに向けて変換するので、ほかのスプライトには Ruby タブを通さず
 // 変換して直接入れる（genai-code-adapter の loadCode と同じ: targetCodeToBlocks → apply）。
-
 import spriteLibraryContent from '../libraries/sprites.json';
 
 // ライブラリから足したスプライトを置く場所。ネコ（真ん中）と重ならないように右に置く

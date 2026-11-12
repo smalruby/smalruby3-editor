@@ -1,7 +1,7 @@
-const {MeshClientSimulator} = require('./lib/mesh-client-simulator');
-const {LoadTestMetrics} = require('./lib/load-test-metrics');
+const { MeshClientSimulator } = require('./lib/mesh-client-simulator');
+const { LoadTestMetrics } = require('./lib/load-test-metrics');
 
-const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * Run Data Update Load Test.
@@ -14,7 +14,7 @@ const runDataUpdateLoadTest = async function (config) {
         nodesPerGroup = 4,
         updatesPerSecondPerNode = 4,
         durationMinutes = 5,
-        groupId = 'load-test-group-default'
+        groupId = 'load-test-group-default',
     } = config;
 
     const clients = [];
@@ -29,7 +29,7 @@ const runDataUpdateLoadTest = async function (config) {
                 nodeName: `node-${g}-${n}`,
                 appsyncEndpoint: process.env.MESH_GRAPHQL_ENDPOINT || process.env.APPSYNC_ENDPOINT,
                 apiKey: process.env.MESH_API_KEY || process.env.APPSYNC_API_KEY,
-                domain: `test-domain-${Date.now()}`
+                domain: `test-domain-${Date.now()}`,
             });
             clients.push(client);
         }
@@ -55,15 +55,15 @@ const runDataUpdateLoadTest = async function (config) {
     // Remaining clients join the group
     for (let i = 1; i < clients.length; i += batchSize) {
         const batch = clients.slice(i, Math.min(i + batchSize, clients.length));
-        await Promise.all(batch.map(c => c.connect()));
-        await Promise.all(batch.map(c => c.join()));
+        await Promise.all(batch.map((c) => c.connect()));
+        await Promise.all(batch.map((c) => c.join()));
         console.log(`${Math.min(i + batchSize, clients.length)}/${clients.length} clients connected and joined`);
         if (i + batchSize < clients.length) await sleep(100);
     }
 
     console.log('Starting load test...');
     const startTime = Date.now();
-    const endTime = startTime + (durationMinutes * 60 * 1000);
+    const endTime = startTime + durationMinutes * 60 * 1000;
     const updateInterval = 1000 / updatesPerSecondPerNode;
 
     /**
@@ -80,7 +80,7 @@ const runDataUpdateLoadTest = async function (config) {
             try {
                 await client.updateData({
                     load_test_value: Math.random(),
-                    timestamp: Date.now()
+                    timestamp: Date.now(),
                 });
                 const responseTime = Date.now() - clientStartTime;
                 clientMetrics.recordDataUpdate(client.groupId, responseTime);
@@ -95,7 +95,7 @@ const runDataUpdateLoadTest = async function (config) {
         }
     };
 
-    const updatePromises = clients.map(client => runClientUpdates(client, updateInterval, endTime, metrics));
+    const updatePromises = clients.map((client) => runClientUpdates(client, updateInterval, endTime, metrics));
 
     // Progress reporting
     const progressInterval = setInterval(() => {
@@ -108,7 +108,7 @@ const runDataUpdateLoadTest = async function (config) {
     console.log('Disconnecting clients...');
     for (let i = 0; i < clients.length; i += batchSize) {
         const batch = clients.slice(i, i + batchSize);
-        await Promise.all(batch.map(c => c.disconnect()));
+        await Promise.all(batch.map((c) => c.disconnect()));
     }
 
     return metrics.generateReport();
@@ -133,7 +133,7 @@ const main = async function () {
         nodesPerGroup: 4,
         updatesPerSecondPerNode: 4,
         durationMinutes: 1,
-        groupId: `basic-test-${Date.now()}`
+        groupId: `basic-test-${Date.now()}`,
     });
     console.log('結果:', JSON.stringify(basicResult, null, 2));
 };

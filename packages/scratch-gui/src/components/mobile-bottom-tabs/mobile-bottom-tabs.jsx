@@ -3,12 +3,6 @@ import React, { useCallback, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { FormattedMessage } from 'react-intl';
 import { connect } from 'react-redux';
-
-import codeIcon from '../gui/icon--code.svg';
-import costumesIcon from '../gui/icon--costumes.svg';
-import rubyIcon from '../gui/icon--ruby.svg';
-import soundsIcon from '../gui/icon--sounds.svg';
-import spriteIcon from './icon--sprite-cat.svg';
 import {
     activateTab,
     BLOCKS_TAB_INDEX,
@@ -16,6 +10,11 @@ import {
     RUBY_TAB_INDEX,
     SOUNDS_TAB_INDEX,
 } from '../../reducers/editor-tab.js';
+import codeIcon from '../gui/icon--code.svg';
+import costumesIcon from '../gui/icon--costumes.svg';
+import rubyIcon from '../gui/icon--ruby.svg';
+import soundsIcon from '../gui/icon--sounds.svg';
+import spriteIcon from './icon--sprite-cat.svg';
 import styles from './mobile-bottom-tabs.css';
 
 /**
@@ -149,14 +148,14 @@ const MobileBottomTabsComponent = ({
     ];
 
     const handleClick = useCallback(
-        event => {
+        (event) => {
             const key = event.currentTarget.dataset.tabKey;
             if (key === SPRITE_KEY) {
                 onSpriteTabActiveChange(true);
                 return;
             }
             onSpriteTabActiveChange(false);
-            const tab = tabs.find(t => t.key === key);
+            const tab = tabs.find((t) => t.key === key);
             if (tab && typeof tab.tabIndex === 'number') {
                 onActivateTab(tab.tabIndex);
             }
@@ -166,7 +165,7 @@ const MobileBottomTabsComponent = ({
         [onActivateTab, onSpriteTabActiveChange],
     );
 
-    const isActive = tab => {
+    const isActive = (tab) => {
         if (tab.key === SPRITE_KEY) return spriteTabActive;
         if (spriteTabActive) return false;
         return activeTabIndex === tab.tabIndex;
@@ -186,7 +185,7 @@ const MobileBottomTabsComponent = ({
             data-testid="mobile-bottom-tabs"
             aria-label="mobile bottom navigation"
         >
-            {tabs.map(tab => (
+            {tabs.map((tab) => (
                 <button
                     key={tab.key}
                     type="button"
@@ -213,13 +212,13 @@ MobileBottomTabsComponent.propTypes = {
     onActivateTab: PropTypes.func.isRequired,
 };
 
-const mapStateToProps = state => ({
+const mapStateToProps = (state) => ({
     activeTabIndex: state.scratchGui.editorTab.activeTabIndex,
     isFullScreen: state.scratchGui.mode.isFullScreen,
 });
 
-const mapDispatchToProps = dispatch => ({
-    onActivateTab: tabIndex => dispatch(activateTab(tabIndex)),
+const mapDispatchToProps = (dispatch) => ({
+    onActivateTab: (tabIndex) => dispatch(activateTab(tabIndex)),
 });
 
 const MobileBottomTabs = connect(mapStateToProps, mapDispatchToProps)(MobileBottomTabsComponent);

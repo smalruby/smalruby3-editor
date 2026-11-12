@@ -4,7 +4,6 @@
 // 同じ数で並んだら、そのチャレンジで覚えるメインのなかま。
 // 変換（Ruby → ブロック）はここではしない（RubyToBlocksConverter は重いので、数えた結果を
 // 定義に書いておき、unit テストで変換して決め方どおりかを確かめる）。
-
 import { CATEGORIES } from './courses';
 
 // opcode の接頭辞 → なかま。data_ は変数とリストに分かれる（下の LIST_OPCODE）

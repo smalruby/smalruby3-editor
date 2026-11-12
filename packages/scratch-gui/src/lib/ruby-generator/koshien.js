@@ -50,7 +50,7 @@ export default function (Generator) {
 
     Generator.koshien_calcGoalRoute = function (block) {
         const resultListName = Generator.listNameByName(
-            Generator.getFieldValue(block, 'RESULT', Generator.ORDER_NONE)
+            Generator.getFieldValue(block, 'RESULT', Generator.ORDER_NONE),
         );
         const result = koshienListArg(Generator, resultListName);
 
@@ -61,11 +61,11 @@ export default function (Generator) {
         const src = Generator.valueToCode(block, 'SRC', Generator.ORDER_NONE) || Generator.quote_('0:0');
         const dst = Generator.valueToCode(block, 'DST', Generator.ORDER_NONE) || Generator.quote_('0:0');
         const exceptCellsListName = Generator.listNameByName(
-            Generator.getFieldValue(block, 'EXCEPT_CELLS', Generator.ORDER_NONE)
+            Generator.getFieldValue(block, 'EXCEPT_CELLS', Generator.ORDER_NONE),
         );
         const exceptCells = koshienListArg(Generator, exceptCellsListName);
         const resultListName = Generator.listNameByName(
-            Generator.getFieldValue(block, 'RESULT', Generator.ORDER_NONE)
+            Generator.getFieldValue(block, 'RESULT', Generator.ORDER_NONE),
         );
         const result = koshienListArg(Generator, resultListName);
 
@@ -81,7 +81,7 @@ export default function (Generator) {
     Generator.koshien_mapFrom = function (block) {
         const position = Generator.valueToCode(block, 'POSITION', Generator.ORDER_NONE) || Generator.quote_('0:0');
         const mapVariableName = Generator.variableNameByName(
-            Generator.getFieldValue(block, 'MAP', Generator.ORDER_NONE)
+            Generator.getFieldValue(block, 'MAP', Generator.ORDER_NONE),
         );
         const map = mapVariableName ? mapVariableName : 'nil';
         return [`koshien.map_from(${position}, ${map})`];
@@ -96,11 +96,10 @@ export default function (Generator) {
         const sqSize = Generator.valueToCode(block, 'SQ_SIZE', Generator.ORDER_NONE) || 5;
         const objects = Generator.valueToCode(block, 'OBJECTS', Generator.ORDER_NONE) || Generator.quote_('ABCD');
         const resultListName = Generator.listNameByName(
-            Generator.getFieldValue(block, 'RESULT', Generator.ORDER_NONE)
+            Generator.getFieldValue(block, 'RESULT', Generator.ORDER_NONE),
         );
         const result = koshienListArg(Generator, resultListName);
 
-         
         return `koshien.locate_objects(result: ${result}, sq_size: ${sqSize}, cent: ${position}, objects: ${objects})\n`;
     };
 

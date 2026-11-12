@@ -1,5 +1,5 @@
 // === Smalruby: This file is Smalruby-specific (List/show/hide handlers for variable converter) ===
-import {RubyToBlocksConverterError} from './errors';
+import { RubyToBlocksConverterError } from './errors';
 
 /**
  * Register all list operation and show/hide variable handlers on the converter.
@@ -11,10 +11,15 @@ import {RubyToBlocksConverterError} from './errors';
  * @param {Function} convertHashSet - Helper to convert hash bracket write.
  */
 export const registerListOperations = function (
-    converter, messages, convertToListBlock, adjustIndex, convertHashGet, convertHashSet
+    converter,
+    messages,
+    convertToListBlock,
+    adjustIndex,
+    convertHashGet,
+    convertHashSet,
 ) {
-    converter.registerOnSend('self', 'show_variable', 1, params => {
-        const {args} = params;
+    converter.registerOnSend('self', 'show_variable', 1, (params) => {
+        const { args } = params;
         if (!converter._isString(args[0])) return null;
 
         const variable = converter._lookupOrCreateVariable(args[0]);
@@ -25,16 +30,16 @@ export const registerListOperations = function (
                         name: 'VARIABLE',
                         id: variable.id,
                         value: variable.name,
-                        variableType: variable.type
-                    }
-                }
+                        variableType: variable.type,
+                    },
+                },
             });
         }
         return null;
     });
 
-    converter.registerOnSend('self', 'hide_variable', 1, params => {
-        const {args} = params;
+    converter.registerOnSend('self', 'hide_variable', 1, (params) => {
+        const { args } = params;
         if (!converter._isString(args[0])) return null;
 
         const variable = converter._lookupOrCreateVariable(args[0]);
@@ -45,22 +50,22 @@ export const registerListOperations = function (
                         name: 'VARIABLE',
                         id: variable.id,
                         value: variable.name,
-                        variableType: variable.type
-                    }
-                }
+                        variableType: variable.type,
+                    },
+                },
             });
         }
         return null;
     });
 
-    converter.registerOnSend('self', 'list', 1, params => {
-        const {args} = params;
+    converter.registerOnSend('self', 'list', 1, (params) => {
+        const { args } = params;
         if (!converter._isString(args[0])) return null;
 
         if (converter.version >= 2) {
             throw new RubyToBlocksConverterError(
                 params.node,
-                converter._translator(messages.listSyntaxNotAvailableInV2)
+                converter._translator(messages.listSyntaxNotAvailableInV2),
             );
         }
 
@@ -72,16 +77,16 @@ export const registerListOperations = function (
                         name: 'LIST',
                         id: variable.id,
                         value: variable.name,
-                        variableType: variable.type
-                    }
-                }
+                        variableType: variable.type,
+                    },
+                },
             });
         }
         return null;
     });
 
-    converter.registerOnSend('self', 'show_list', 1, params => {
-        const {args} = params;
+    converter.registerOnSend('self', 'show_list', 1, (params) => {
+        const { args } = params;
         if (!converter._isString(args[0])) return null;
 
         const variable = converter._lookupOrCreateList(args[0]);
@@ -92,16 +97,16 @@ export const registerListOperations = function (
                         name: 'LIST',
                         id: variable.id,
                         value: variable.name,
-                        variableType: variable.type
-                    }
-                }
+                        variableType: variable.type,
+                    },
+                },
             });
         }
         return null;
     });
 
-    converter.registerOnSend('self', 'hide_list', 1, params => {
-        const {args} = params;
+    converter.registerOnSend('self', 'hide_list', 1, (params) => {
+        const { args } = params;
         if (!converter._isString(args[0])) return null;
 
         const variable = converter._lookupOrCreateList(args[0]);
@@ -112,50 +117,46 @@ export const registerListOperations = function (
                         name: 'LIST',
                         id: variable.id,
                         value: variable.name,
-                        variableType: variable.type
-                    }
-                }
+                        variableType: variable.type,
+                    },
+                },
             });
         }
         return null;
     });
 
-    converter.registerOnSend('variable', 'push', 1, params => {
-        const {receiver, args} = params;
+    converter.registerOnSend('variable', 'push', 1, (params) => {
+        const { receiver, args } = params;
         if (!converter._isStringOrBlock(args[0]) && !converter._isNumberOrBlock(args[0])) return null;
 
-        const {block: listBlock, converted} = convertToListBlock(converter, messages, receiver);
+        const { block: listBlock, converted } = convertToListBlock(converter, messages, receiver);
         const recv = converted ? listBlock : receiver;
         if (!recv) return null;
 
         const block = converter._changeBlock(recv, 'data_addtolist', 'statement');
-        converter._addTextInput(
-            block, 'ITEM', converter._isNumber(args[0]) ? args[0].toString() : args[0], 'thing'
-        );
+        converter._addTextInput(block, 'ITEM', converter._isNumber(args[0]) ? args[0].toString() : args[0], 'thing');
         return block;
     });
 
-    converter.registerOnSend('variable', '<<', 1, params => {
-        const {receiver, args} = params;
+    converter.registerOnSend('variable', '<<', 1, (params) => {
+        const { receiver, args } = params;
         if (!converter._isStringOrBlock(args[0]) && !converter._isNumberOrBlock(args[0])) return null;
 
         // convertToListBlock will throw error in v1 if receiver is data_variable
-        const {block: listBlock, converted} = convertToListBlock(converter, messages, receiver);
+        const { block: listBlock, converted } = convertToListBlock(converter, messages, receiver);
         const recv = converted ? listBlock : receiver;
         if (!recv) return null;
 
         const block = converter._changeBlock(recv, 'data_addtolist', 'statement');
-        converter._addTextInput(
-            block, 'ITEM', converter._isNumber(args[0]) ? args[0].toString() : args[0], 'thing'
-        );
+        converter._addTextInput(block, 'ITEM', converter._isNumber(args[0]) ? args[0].toString() : args[0], 'thing');
         return block;
     });
 
-    converter.registerOnSend('variable', 'delete_at', 1, params => {
-        const {receiver, args} = params;
+    converter.registerOnSend('variable', 'delete_at', 1, (params) => {
+        const { receiver, args } = params;
         if (!converter._isNumberOrBlock(args[0])) return null;
 
-        const {block: listBlock, converted} = convertToListBlock(converter, messages, receiver);
+        const { block: listBlock, converted } = convertToListBlock(converter, messages, receiver);
         const recv = converted ? listBlock : receiver;
         if (!recv) return null;
 
@@ -163,9 +164,7 @@ export const registerListOperations = function (
         if (converter._isNumber(args[0]) && Number(args[0]) === -1) {
             const block = converter._changeBlock(recv, 'data_deleteoflist', 'statement');
             converter._addNumberInput(block, 'INDEX', 'math_integer', 1, 1);
-            block.comment = converter._createComment(
-                '@ruby:array:delete_at:last', block.id
-            );
+            block.comment = converter._createComment('@ruby:array:delete_at:last', block.id);
             return block;
         }
 
@@ -176,75 +175,75 @@ export const registerListOperations = function (
         return block;
     });
 
-    converter.registerOnSend('variable', 'clear', 0, params => {
-        const {receiver} = params;
+    converter.registerOnSend('variable', 'clear', 0, (params) => {
+        const { receiver } = params;
 
-        const {block: listBlock, converted} = convertToListBlock(converter, messages, receiver);
+        const { block: listBlock, converted } = convertToListBlock(converter, messages, receiver);
         const recv = converted ? listBlock : receiver;
         if (!recv) return null;
 
         return converter._changeBlock(recv, 'data_deletealloflist', 'statement');
     });
 
-    converter.registerOnSend('variable', 'insert', 2, params => {
-        const {receiver, args} = params;
+    converter.registerOnSend('variable', 'insert', 2, (params) => {
+        const { receiver, args } = params;
         if (!converter._isNumberOrBlock(args[0])) return null;
         if (!converter._isStringOrBlock(args[1]) && !converter._isNumberOrBlock(args[1])) return null;
 
-        const {block: listBlock, converted} = convertToListBlock(converter, messages, receiver);
+        const { block: listBlock, converted } = convertToListBlock(converter, messages, receiver);
         const recv = converted ? listBlock : receiver;
         if (!recv) return null;
         const index = adjustIndex(converter, args[0], converted);
 
         const block = converter._changeBlock(recv, 'data_insertatlist', 'statement');
         converter._addNumberInput(block, 'INDEX', 'math_integer', index, 1);
-        converter._addTextInput(
-            block, 'ITEM', converter._isNumber(args[1]) ? args[1].toString() : args[1], 'thing'
-        );
+        converter._addTextInput(block, 'ITEM', converter._isNumber(args[1]) ? args[1].toString() : args[1], 'thing');
         return block;
     });
 
-    converter.registerOnSend('variable', '[]=', 2, params => {
-        const {receiver, args} = params;
+    converter.registerOnSend('variable', '[]=', 2, (params) => {
+        const { receiver, args } = params;
 
         // Hash write: $a[:key] = value or $a["key"] = value
         if (converter._isSymbol(args[0]) || converter._isString(args[0])) {
             if (converter.version < 2) {
                 throw new RubyToBlocksConverterError(
                     converter._context.currentNode,
-                    converter._translator(messages.hashSyntaxNotAvailableInV1)
+                    converter._translator(messages.hashSyntaxNotAvailableInV1),
                 );
             }
-            if (!converter._isStringOrBlock(args[1]) && !converter._isNumberOrBlock(args[1]) &&
-                !(converter._isPrimitive(args[1]) && args[1].type === 'sym')) return null;
+            if (
+                !converter._isStringOrBlock(args[1]) &&
+                !converter._isNumberOrBlock(args[1]) &&
+                !(converter._isPrimitive(args[1]) && args[1].type === 'sym')
+            )
+                return null;
             return convertHashSet(converter, receiver, args[0], args[1]);
         }
 
         if (!converter._isNumberOrBlock(args[0])) return null;
         if (!converter._isStringOrBlock(args[1]) && !converter._isNumberOrBlock(args[1])) return null;
 
-        const {block: listBlock, converted} = convertToListBlock(converter, messages, receiver);
+        const { block: listBlock, converted } = convertToListBlock(converter, messages, receiver);
         const recv = converted ? listBlock : receiver;
         if (!recv) return null;
         const index = adjustIndex(converter, args[0], converted);
 
         const block = converter._changeBlock(recv, 'data_replaceitemoflist', 'statement');
         converter._addNumberInput(block, 'INDEX', 'math_integer', index, 1);
-        converter._addTextInput(
-            block, 'ITEM', converter._isNumber(args[1]) ? args[1].toString() : args[1], 'thing'
-        );
+        converter._addTextInput(block, 'ITEM', converter._isNumber(args[1]) ? args[1].toString() : args[1], 'thing');
         return block;
     });
 
-    converter.registerOnSend('variable', '[]', 1, params => {
-        const {receiver, args} = params;
+    converter.registerOnSend('variable', '[]', 1, (params) => {
+        const { receiver, args } = params;
 
         // Hash access: $a[:key] or $a["key"]
         if (converter._isSymbol(args[0]) || converter._isString(args[0])) {
             if (converter.version < 2) {
                 throw new RubyToBlocksConverterError(
                     converter._context.currentNode,
-                    converter._translator(messages.hashSyntaxNotAvailableInV1)
+                    converter._translator(messages.hashSyntaxNotAvailableInV1),
                 );
             }
             return convertHashGet(converter, receiver, args[0]);
@@ -252,7 +251,7 @@ export const registerListOperations = function (
 
         if (!converter._isNumberOrBlock(args[0])) return null;
 
-        const {block: listBlock, converted} = convertToListBlock(converter, messages, receiver);
+        const { block: listBlock, converted } = convertToListBlock(converter, messages, receiver);
         if (converted && listBlock) {
             const index = adjustIndex(converter, args[0], true);
             const block = converter._changeBlock(listBlock, 'data_itemoflist', 'value');
@@ -269,37 +268,33 @@ export const registerListOperations = function (
         return null;
     });
 
-    converter.registerOnSend('variable', 'index', 1, params => {
-        const {receiver, args} = params;
+    converter.registerOnSend('variable', 'index', 1, (params) => {
+        const { receiver, args } = params;
         if (!converter._isStringOrBlock(args[0]) && !converter._isNumberOrBlock(args[0])) return null;
 
-        const {block: listBlock, converted} = convertToListBlock(converter, messages, receiver);
+        const { block: listBlock, converted } = convertToListBlock(converter, messages, receiver);
         const recv = converted ? listBlock : receiver;
         if (!recv) return null;
 
         const block = converter._changeBlock(recv, 'data_itemnumoflist', 'value');
-        converter._addTextInput(
-            block, 'ITEM', converter._isNumber(args[0]) ? args[0].toString() : args[0], 'thing'
-        );
+        converter._addTextInput(block, 'ITEM', converter._isNumber(args[0]) ? args[0].toString() : args[0], 'thing');
 
         // Wrap in operator_subtract(result, 1) for 0-indexed return value
         if (converted) {
             const subtractBlock = converter._createBlock('operator_subtract', 'value');
             converter._addInput(subtractBlock, 'NUM1', block);
             converter._addNumberInput(subtractBlock, 'NUM2', 'math_number', 1, 0);
-            subtractBlock.comment = converter._createComment(
-                '@ruby:array:index', subtractBlock.id
-            );
+            subtractBlock.comment = converter._createComment('@ruby:array:index', subtractBlock.id);
             return subtractBlock;
         }
 
         return block;
     });
 
-    converter.registerOnSend('variable', 'length', 0, params => {
-        const {receiver} = params;
+    converter.registerOnSend('variable', 'length', 0, (params) => {
+        const { receiver } = params;
 
-        const {block: listBlock, converted} = convertToListBlock(converter, messages, receiver);
+        const { block: listBlock, converted } = convertToListBlock(converter, messages, receiver);
         if (converted && listBlock) {
             return converter._changeBlock(listBlock, 'data_lengthoflist', 'value');
         }
@@ -310,30 +305,28 @@ export const registerListOperations = function (
         return null;
     });
 
-    converter.registerOnSend('variable', 'include?', 1, params => {
-        const {receiver, args} = params;
+    converter.registerOnSend('variable', 'include?', 1, (params) => {
+        const { receiver, args } = params;
         if (!converter._isStringOrBlock(args[0]) && !converter._isNumberOrBlock(args[0])) return null;
 
         let recv = receiver;
         if (converter.version >= 2) {
-            const {block: listBlock, converted} = convertToListBlock(converter, messages, receiver);
+            const { block: listBlock, converted } = convertToListBlock(converter, messages, receiver);
             recv = converted ? listBlock : receiver;
             if (!recv) return null;
         }
 
         const block = converter._changeBlock(recv, 'data_listcontainsitem', 'value_boolean');
-        converter._addTextInput(
-            block, 'ITEM', converter._isNumber(args[0]) ? args[0].toString() : args[0], 'thing'
-        );
+        converter._addTextInput(block, 'ITEM', converter._isNumber(args[0]) ? args[0].toString() : args[0], 'thing');
         return block;
     });
 
-    converter.registerOnSend('variable', 'empty?', 0, params => {
+    converter.registerOnSend('variable', 'empty?', 0, (params) => {
         if (converter.version < 2) return null;
 
-        const {receiver} = params;
+        const { receiver } = params;
 
-        const {block: listBlock, converted} = convertToListBlock(converter, messages, receiver);
+        const { block: listBlock, converted } = convertToListBlock(converter, messages, receiver);
         if (!converted || !listBlock) return null;
 
         const name = 'empty?';

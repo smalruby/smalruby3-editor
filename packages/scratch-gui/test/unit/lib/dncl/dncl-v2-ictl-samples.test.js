@@ -5,10 +5,9 @@
 // Ruby was syntactically broken (e.g. `end が足りません`). Each block below
 // pins one notation; the end-to-end cases check that whole (shortened)
 // sample programs become Ruby that prism parses without errors.
-
-import { loadPrism } from '../../../../src/lib/prism-parser';
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
 import { dnclV2Preprocess } from '../../../../src/lib/dncl/dncl-v2-preprocessor';
+import { loadPrism } from '../../../../src/lib/prism-parser';
 
 /**
  * Strip string literals and comments, then report whether any non-ASCII
@@ -16,74 +15,55 @@ import { dnclV2Preprocess } from '../../../../src/lib/dncl/dncl-v2-preprocessor'
  * @param {string} ruby - Generated Ruby source.
  * @returns {boolean} True when untranslated Japanese remains in code.
  */
-const hasUntranslatedJapanese = (ruby) =>
-    /[\u0080-\uffff]/.test(ruby.replace(/"[^"]*"/g, '').replace(/#.*$/gm, ''));
+const hasUntranslatedJapanese = (ruby) => /[\u0080-\uffff]/.test(ruby.replace(/"[^"]*"/g, '').replace(/#.*$/gm, ''));
 
 describe('DNCLv2 pre-processor: ICTL sample notations (Issue #1186)', () => {
     test('`もし(` and `)ならば` without surrounding spaces become an if opener', () => {
-        expect(dnclV2Preprocess('もし( a < b ) and ( c == 0 )ならば:')).toBe(
-            'もし ( a < b ) かつ ( c == 0 ) ならば',
-        );
-        expect(dnclToRuby('もし( a < b )ならば:\n ⎿ a = 1').ruby).toBe(
-            'if ( @a < @b )\n  @a = 1\nend',
-        );
+        expect(dnclV2Preprocess('もし( a < b ) and ( c == 0 )ならば:')).toBe('もし ( a < b ) かつ ( c == 0 ) ならば');
+        expect(dnclToRuby('もし( a < b )ならば:\n ⎿ a = 1').ruby).toBe('if ( @a < @b )\n  @a = 1\nend');
     });
 
     test('`そうでなくもし(` and `)の間` without spaces are recognized', () => {
-        expect(dnclV2Preprocess('そうでなくもし(a == 1)ならば')).toBe(
-            'そうでなくもし (a == 1) ならば',
-        );
+        expect(dnclV2Preprocess('そうでなくもし(a == 1)ならば')).toBe('そうでなくもし (a == 1) ならば');
         expect(dnclV2Preprocess('(a < 3)の間繰り返す:')).toBe('(a < 3) の間');
     });
 
     test('hyphenated line numbers like `(00-1)` are stripped', () => {
-        expect(dnclV2Preprocess('(00-1) Iremono = [2,2,1]')).toBe(
-            'Iremono = [2,2,1]',
-        );
+        expect(dnclV2Preprocess('(00-1) Iremono = [2,2,1]')).toBe('Iremono = [2,2,1]');
         expect(dnclV2Preprocess('(00) n = 1')).toBe('n = 1');
     });
 
     test('a full-width colon `：` after a control-flow keyword is stripped', () => {
-        expect(
-            dnclV2Preprocess('i を 2 から n まで 1 ずつ増やしながら繰り返す：'),
-        ).toBe('i を 2 から n まで 1 ずつ増やしながら');
-        expect(dnclV2Preprocess('もし a < 10 ならば：')).toBe(
-            'もし a < 10 ならば',
+        expect(dnclV2Preprocess('i を 2 から n まで 1 ずつ増やしながら繰り返す：')).toBe(
+            'i を 2 から n まで 1 ずつ増やしながら',
         );
+        expect(dnclV2Preprocess('もし a < 10 ならば：')).toBe('もし a < 10 ならば');
     });
 
     test('a full-width colon inside a string is left alone', () => {
-        expect(dnclV2Preprocess('表示する("待ち時間：")')).toBe(
-            '表示する("待ち時間：")',
-        );
+        expect(dnclV2Preprocess('表示する("待ち時間：")')).toBe('表示する("待ち時間：")');
     });
 
     // `//` is always integer division; 共通テスト `//` comments are turned
     // into `#` when pasted (see dncl-paste-tidy.test.js, Issue #1192).
     test('`//` stays integer division, even on a numbered line', () => {
-        expect(dnclV2Preprocess('(00) n = 1 // 生徒番号')).toBe(
-            'n = 1 // 生徒番号',
-        );
+        expect(dnclV2Preprocess('(00) n = 1 // 生徒番号')).toBe('n = 1 // 生徒番号');
         expect(dnclV2Preprocess('(1) a = 10 // 3')).toBe('a = 10 // 3');
         expect(dnclV2Preprocess('a = 合計 // 個数')).toBe('a = 合計 // 個数');
-        expect(dnclToRuby('a = 合計 // 個数').ruby).toBe(
-            '@a = (@合計 / @個数).to_i',
-        );
+        expect(dnclToRuby('a = 合計 // 個数').ruby).toBe('@a = (@合計 / @個数).to_i');
     });
 
     test('`#` comments (the pasted form of `//` comments) are kept', () => {
-        expect(dnclV2Preprocess('(00) n = 1 # 生徒番号')).toBe(
-            'n = 1 # 生徒番号',
-        );
-        expect(dnclV2Preprocess('表示する("http://x")')).toBe(
-            '表示する("http://x")',
-        );
+        expect(dnclV2Preprocess('(00) n = 1 # 生徒番号')).toBe('n = 1 # 生徒番号');
+        expect(dnclV2Preprocess('表示する("http://x")')).toBe('表示する("http://x")');
     });
 
     test('an unclosed bracket in un-numbered code does not swallow later lines', () => {
-        expect(
-            dnclV2Preprocess('表示する("a"\nx = 1\ny = 2').split('\n'),
-        ).toEqual(['表示する("a"', 'x = 1', 'y = 2']);
+        expect(dnclV2Preprocess('表示する("a"\nx = 1\ny = 2').split('\n')).toEqual([
+            '表示する("a"',
+            'x = 1',
+            'y = 2',
+        ]);
     });
 
     test('a statement continued on an unnumbered line is joined', () => {
@@ -124,26 +104,20 @@ describe('DNCLv2 pre-processor: ICTL sample notations (Issue #1186)', () => {
 
 describe('DNCLv2 array declaration (Issue #1186)', () => {
     test('`配列変数 X を初期化する` becomes an empty array', () => {
-        expect(dnclV2Preprocess('(02) 配列変数 Hirabun を初期化する')).toBe(
-            'Hirabun = []',
+        expect(dnclV2Preprocess('(02) 配列変数 Hirabun を初期化する')).toBe('Hirabun = []');
+        expect(dnclToRuby('配列変数 Hirabun を初期化する\nHirabun[0] = 1').ruby).toBe(
+            '@_array_Hirabun_ = []\n@_array_Hirabun_[0] = 1',
         );
-        expect(
-            dnclToRuby('配列変数 Hirabun を初期化する\nHirabun[0] = 1').ruby,
-        ).toBe('@_array_Hirabun_ = []\n@_array_Hirabun_[0] = 1');
     });
 });
 
 describe('DNCLv2 input forms (Issue #1186)', () => {
     test('`【整数を入力】` asks and converts the answer to an integer', () => {
-        expect(dnclToRuby('n =【整数を入力】').ruby).toBe(
-            'ask("")\n@n = answer.to_i',
-        );
+        expect(dnclToRuby('n =【整数を入力】').ruby).toBe('ask("")\n@n = answer.to_i');
     });
 
     test('`【文字列を入力】` asks and keeps the answer as a string', () => {
-        expect(dnclToRuby('meishou =【文字列を入力】').ruby).toBe(
-            'ask("")\n@meishou = answer',
-        );
+        expect(dnclToRuby('meishou =【文字列を入力】').ruby).toBe('ask("")\n@meishou = answer');
     });
 });
 
@@ -314,15 +288,9 @@ describe('DNCLv2 blocks written with indentation only (Issue #1186)', () => {
     test('nested blocks close innermost first, and blank / comment lines do not close', () => {
         expect(
             dnclV2Preprocess(
-                [
-                    'a の間繰り返す:',
-                    '  もし b ならば:',
-                    '    b = 0',
-                    '',
-                    '# comment',
-                    '    c = 1',
-                    'd = 2',
-                ].join('\n'),
+                ['a の間繰り返す:', '  もし b ならば:', '    b = 0', '', '# comment', '    c = 1', 'd = 2'].join(
+                    '\n',
+                ),
             ).split('\n'),
         ).toEqual([
             'a の間',
@@ -339,15 +307,14 @@ describe('DNCLv2 blocks written with indentation only (Issue #1186)', () => {
 
     test('explicit closer lines and `⎿` markers are not closed twice', () => {
         expect(
-            dnclV2Preprocess(
-                ['もし a ならば:', '    a = 1', 'を実行する', 'b = 2'].join('\n'),
-            ).split('\n'),
+            dnclV2Preprocess(['もし a ならば:', '    a = 1', 'を実行する', 'b = 2'].join('\n')).split('\n'),
         ).toEqual(['もし a ならば', '    a = 1', 'を実行する', 'b = 2']);
-        expect(
-            dnclV2Preprocess(
-                ['(1) もし a ならば:', '(2)  ⎿ a = 1', '(3) b = 2'].join('\n'),
-            ).split('\n'),
-        ).toEqual(['もし a ならば', '  a = 1', 'を実行する', 'b = 2']);
+        expect(dnclV2Preprocess(['(1) もし a ならば:', '(2)  ⎿ a = 1', '(3) b = 2'].join('\n')).split('\n')).toEqual([
+            'もし a ならば',
+            '  a = 1',
+            'を実行する',
+            'b = 2',
+        ]);
     });
 
     test('Smalruby DNCL without colons keeps its explicit closers only', () => {

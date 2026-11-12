@@ -22,7 +22,15 @@ const ARROW_SIDES = ['top', 'bottom', 'left', 'right'];
 
 const Balloon = React.forwardRef(
     (
-        { arrowSide = null, arrowStyle, children, className, color = BALLOON_COLORS.BLUE, variant = BALLOON_VARIANTS.CALLOUT, ...rest },
+        {
+            arrowSide = null,
+            arrowStyle,
+            children,
+            className,
+            color = BALLOON_COLORS.BLUE,
+            variant = BALLOON_VARIANTS.CALLOUT,
+            ...rest
+        },
         ref,
     ) => (
         <div

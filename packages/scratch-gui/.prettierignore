@@ -4,6 +4,11 @@
 # How it works: ignore everything, then re-include Smalruby directories/files
 # level by level (gitignore requires parent dirs to be un-ignored first).
 #
+# The leading `*` matches files at ANY depth, so `!dir/` alone only re-includes
+# the directory itself — the files inside stay ignored. Always pair it:
+#   - whole directory is Smalruby-only:  `!dir/` + `!dir/**`
+#   - mixed directory (has upstream files): `!dir/` + `dir/*` + `!dir/<file>`
+#
 # This file is the canonical whitelist of Smalruby-specific files for Prettier.
 # (The .claude/rules mirror was removed; this file is the single source of truth.)
 # When adding a new Smalruby-specific file, add it here.
@@ -31,46 +36,89 @@ src/*
 src/components/*
 # Smalruby-only directories (all contents included)
 !src/components/auto-correct-modal/
+!src/components/auto-correct-modal/**
 !src/components/block-display-modal/
+!src/components/block-display-modal/**
 !src/components/bug-report-consent/
+!src/components/bug-report-consent/**
 !src/components/bug-report-modal/
+!src/components/bug-report-modal/**
 !src/components/classroom-modal/
+!src/components/classroom-modal/**
 !src/components/classroom-teacher-modal/
+!src/components/classroom-teacher-modal/**
 !src/components/classroom-teacher-menu/
+!src/components/classroom-teacher-menu/**
 !src/components/classroom-teacher-kick-toast/
+!src/components/classroom-teacher-kick-toast/**
 !src/components/classroom-teacher-panel/
+!src/components/classroom-teacher-panel/**
 !src/components/classroom-peer-panel/
+!src/components/classroom-peer-panel/**
 !src/components/classroom-tutorial/
 !src/components/balloon/
+!src/components/balloon/**
+!src/components/classroom-tutorial/**
 !src/components/smalrubot-firmware-modal/
+!src/components/smalrubot-firmware-modal/**
 !src/components/blocks-screenshot-button/
+!src/components/blocks-screenshot-button/**
 !src/components/google-drive-save-dialog/
+!src/components/google-drive-save-dialog/**
 !src/components/google-sign-in-slot/
+!src/components/google-sign-in-slot/**
 !src/components/image-viewer/
+!src/components/image-viewer/**
 !src/components/dncl-mode-notice/
 !src/components/lesson-task-bar/
+!src/components/lesson-task-bar/**
 !src/components/lesson-hint/
+!src/components/lesson-hint/**
 !src/components/lessons-library/
+!src/components/lessons-library/**
+!src/components/dncl-mode-notice/**
 !src/components/koshien-test-modal/
+!src/components/koshien-test-modal/**
 !src/components/koshien-settings-modal/
+!src/components/koshien-settings-modal/**
 !src/components/koshien-mock-panel/
 !src/components/lesson-completed-toast/
+!src/components/lesson-completed-toast/**
+!src/components/koshien-mock-panel/**
 !src/components/mesh-self-sensor-notice/
+!src/components/mesh-self-sensor-notice/**
 !src/components/mobile-bottom-tabs/
+!src/components/mobile-bottom-tabs/**
 !src/components/mobile-drawer/
+!src/components/mobile-drawer/**
 !src/components/mobile-gui/
+!src/components/mobile-gui/**
 !src/components/mobile-mode-notice/
+!src/components/mobile-mode-notice/**
 !src/components/mobile-orientation-gate/
+!src/components/mobile-orientation-gate/**
 !src/components/mobile-paint-toolbar-toggle/
+!src/components/mobile-paint-toolbar-toggle/**
 !src/components/mobile-side-rail/
+!src/components/mobile-side-rail/**
 !src/components/mobile-sprite-panel/
+!src/components/mobile-sprite-panel/**
 !src/components/mobile-top-bar/
+!src/components/mobile-top-bar/**
 !src/components/palette-toggle/
+!src/components/palette-toggle/**
 !src/components/ruby-script-preview/
+!src/components/ruby-script-preview/**
 !src/components/ruby-toolbar/
+!src/components/ruby-toolbar/**
 !src/components/url-loader-modal/
+!src/components/url-loader-modal/**
 !src/components/welcome-modal/
+!src/components/welcome-modal/**
 !src/components/welcome-tooltip/
+!src/components/welcome-tooltip/**
+!src/components/genai-concierge/
+!src/components/genai-concierge/**
 # Mixed directories
 !src/components/connection-modal/
 !src/components/menu-bar/
@@ -108,6 +156,7 @@ src/components/menu-bar/*
 src/containers/*
 # Smalruby-only directory
 !src/containers/ruby-tab/
+!src/containers/ruby-tab/**
 # Individual Smalruby files
 !src/containers/block-display-modal.jsx
 !src/containers/bug-report-modal.jsx
@@ -159,12 +208,17 @@ src/containers/*
 src/lib/*
 # Smalruby-only directories
 !src/lib/ruby-generator/
+!src/lib/ruby-generator/**
 !src/lib/dncl/
 !src/lib/lessons/
+!src/lib/lessons/**
 !src/lib/lesson-dynamic-categories.js
+!src/lib/dncl/**
 !src/lib/ruby-to-blocks-converter/
+!src/lib/ruby-to-blocks-converter/**
 !src/lib/settings/
 !src/lib/themes/
+!src/lib/themes/**
 # Mixed directory
 !src/lib/libraries/
 # Individual Smalruby files
@@ -178,7 +232,9 @@ src/lib/*
 !src/lib/classroom-api.js
 !src/lib/classroom-assignment-utils.js
 !src/lib/classroom-assignment-templates/
+!src/lib/classroom-assignment-templates/**
 !src/lib/classroom-evaluation/
+!src/lib/classroom-evaluation/**
 !src/lib/classroom-download-utils.js
 !src/lib/classroom-google-share.js
 !src/lib/classroom-group-utils.js
@@ -247,14 +303,6 @@ src/lib/*
 !src/lib/genai-dncl-prompt.js
 !src/lib/genai-dncl-answer.js
 !src/containers/genai-concierge.jsx
-!src/components/genai-concierge/genai-concierge.css
-!src/components/genai-concierge/genai-nudge.jsx
-!src/components/genai-concierge/genai-face.jsx
-!src/components/genai-concierge/genai-stepper.jsx
-!src/components/genai-concierge/genai-trouble-step.jsx
-!src/components/genai-concierge/genai-copy-step.jsx
-!src/components/genai-concierge/genai-answer-steps.jsx
-!src/components/genai-concierge/messages.js
 !src/lib/genai-concierge-state.js
 !src/lib/ruby-to-blocks-converter-hoc.jsx
 !src/lib/touch-device.js
@@ -266,6 +314,14 @@ src/lib/*
 !src/lib/use-is-narrow-screen.js
 !src/lib/version-checker.js
 
+# Level 3: src/lib/settings/*
+# color-mode/ and theme/ are upstream; only these are Smalruby-only.
+src/lib/settings/*
+!src/lib/settings/display-mode/
+!src/lib/settings/display-mode/**
+!src/lib/settings/ruby-version/
+!src/lib/settings/ruby-version/**
+
 # Level 3: src/lib/libraries/*
 src/lib/libraries/*
 !src/lib/libraries/extensions/
@@ -275,10 +331,15 @@ src/lib/libraries/*
 src/lib/libraries/extensions/*
 # Smalruby-only directories
 !src/lib/libraries/extensions/g2s/
+!src/lib/libraries/extensions/g2s/**
 !src/lib/libraries/extensions/koshien/
+!src/lib/libraries/extensions/koshien/**
 !src/lib/libraries/extensions/microbitMore/
+!src/lib/libraries/extensions/microbitMore/**
 !src/lib/libraries/extensions/smalruby-ruby/
+!src/lib/libraries/extensions/smalruby-ruby/**
 !src/lib/libraries/extensions/tm2scratch/
+!src/lib/libraries/extensions/tm2scratch/**
 
 # Level 4: src/lib/libraries/decks/*
 # index.jsx and the other pre-existing deck assets are upstream-derived and
@@ -286,9 +347,10 @@ src/lib/libraries/extensions/*
 # (issue #932).
 src/lib/libraries/decks/*
 !src/lib/libraries/decks/categories/
+!src/lib/libraries/decks/categories/**
 !src/lib/libraries/decks/green-flag-icon.jsx
 
-# Level 5: src/lib/libraries/decks/categories/* — Smalruby-only, no filter needed
+# Level 5: src/lib/libraries/decks/categories/* — Smalruby-only (whole directory via `/**`)
 
 # ============================================================
 # Level 2: src/locales/*
@@ -333,7 +395,14 @@ test/*
 test/__mocks__/*
 !test/__mocks__/browserWasiShimMock.js
 
-# Level 2: test/helpers/* — Smalruby-only, no filter needed
+# Level 2: test/helpers/*
+# intl-helpers.jsx and selenium-helper.js are upstream.
+test/helpers/*
+!test/helpers/expect-to-equal-blocks.js
+!test/helpers/ignorable-severe-logs.js
+!test/helpers/menu-xpaths.js
+!test/helpers/ruby-helper.js
+!test/helpers/smalruby-mock-state.js
 
 # Level 2: test/integration/*
 test/integration/*
@@ -380,6 +449,7 @@ test/unit/*
 !test/unit/components/
 !test/unit/containers/
 !test/unit/helpers/
+!test/unit/helpers/**
 !test/unit/lib/
 !test/unit/reducers/
 !test/unit/util/
@@ -451,6 +521,7 @@ test/unit/components/*
 test/unit/containers/*
 !test/unit/containers/ruby-tab/
 !test/unit/containers/lesson-goal-watcher.test.jsx
+!test/unit/containers/ruby-tab/**
 !test/unit/containers/backpack.test.jsx
 !test/unit/containers/cards.test.jsx
 !test/unit/containers/lesson-mode.test.jsx
@@ -486,17 +557,23 @@ test/unit/containers/*
 !test/unit/containers/ruby-tab-project-changed.test.js
 !test/unit/containers/stage-header.test.jsx
 
-# Level 3: test/unit/helpers/* — Smalruby-only, no filter needed
+# Level 3: test/unit/helpers/* — Smalruby-only (whole directory via `/**`)
 
 # Level 3: test/unit/lib/*
 test/unit/lib/*
 # Smalruby-only directories
 !test/unit/lib/dncl/
 !test/unit/lib/lessons/
+!test/unit/lib/lessons/**
+!test/unit/lib/dncl/**
 !test/unit/lib/libraries/
+!test/unit/lib/libraries/**
 !test/unit/lib/ruby-generator/
+!test/unit/lib/ruby-generator/**
 !test/unit/lib/ruby-roundtrip/
+!test/unit/lib/ruby-roundtrip/**
 !test/unit/lib/ruby-to-blocks-converter/
+!test/unit/lib/ruby-to-blocks-converter/**
 # Individual Smalruby files
 !test/unit/lib/analytics.test.js
 !test/unit/lib/image-viewer-math.test.js
@@ -596,7 +673,7 @@ test/unit/lib/*
 !test/unit/lib/genai-dncl-answer.test.js
 !test/unit/lib/genai-ruby-prompt.test.js
 !test/genai-lab/
-!test/genai-lab/*.js
+!test/genai-lab/**
 !test/unit/lib/ruby-to-blocks-converter-version.test.js
 !test/unit/lib/screen-utils.test.js
 !test/unit/lib/stale-block-delete-guard.test.js

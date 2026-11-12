@@ -1,11 +1,11 @@
 import RubyToBlocksConverter from '../../../../../src/lib/ruby-to-blocks-converter';
-import {RubyToBlocksConverterError} from '../../../../../src/lib/ruby-to-blocks-converter/errors';
+import { RubyToBlocksConverterError } from '../../../../../src/lib/ruby-to-blocks-converter/errors';
 import {
     convertAndExpectToEqualBlocks,
     convertAndExpectRubyBlockError,
     rubyToExpected,
     expectedInfo,
-    expectNoArgsMethod
+    expectNoArgsMethod,
 } from '../../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Looks', () => {
@@ -15,7 +15,7 @@ describe('RubyToBlocksConverter/Looks', () => {
     let expected;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
         code = null;
         expected = null;
@@ -30,16 +30,16 @@ describe('RubyToBlocksConverter/Looks', () => {
                     fields: [
                         {
                             name: 'EFFECT',
-                            value: 'COLOR'
-                        }
+                            value: 'COLOR',
+                        },
                     ],
                     inputs: [
                         {
                             name: 'CHANGE',
-                            block: expectedInfo.makeNumber(25)
-                        }
-                    ]
-                }
+                            block: expectedInfo.makeNumber(25),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -50,17 +50,17 @@ describe('RubyToBlocksConverter/Looks', () => {
                     fields: [
                         {
                             name: 'EFFECT',
-                            value: 'COLOR'
-                        }
+                            value: 'COLOR',
+                        },
                     ],
                     inputs: [
                         {
                             name: 'CHANGE',
                             block: (await rubyToExpected(converter, target, 'x'))[0],
-                            shadow: expectedInfo.makeNumber(25)
-                        }
-                    ]
-                }
+                            shadow: expectedInfo.makeNumber(25),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -73,32 +73,34 @@ describe('RubyToBlocksConverter/Looks', () => {
                     fields: [
                         {
                             name: 'EFFECT',
-                            value: 'COLOR'
-                        }
+                            value: 'COLOR',
+                        },
                     ],
                     inputs: [
                         {
                             name: 'CHANGE',
-                            block: expectedInfo.makeNumber(25)
-                        }
-                    ]
-                }
+                            block: expectedInfo.makeNumber(25),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
 
         test('invalid', async () => {
-            { for (const c of [
-                'change_effect_by',
-                'change_effect_by()',
-                'change_effect_by("color")',
-                'change_effect_by(25)',
-                'change_effect_by("invalid effect", 25)',
-                'change_effect_by(1, 25)',
-                'change_effect_by("color", 25, 1)'
-            ]) {
-                await convertAndExpectRubyBlockError(converter, target, c);
-            } }
+            {
+                for (const c of [
+                    'change_effect_by',
+                    'change_effect_by()',
+                    'change_effect_by("color")',
+                    'change_effect_by(25)',
+                    'change_effect_by("invalid effect", 25)',
+                    'change_effect_by(1, 25)',
+                    'change_effect_by("color", 25, 1)',
+                ]) {
+                    await convertAndExpectRubyBlockError(converter, target, c);
+                }
+            }
         });
     });
 
@@ -111,16 +113,16 @@ describe('RubyToBlocksConverter/Looks', () => {
                     fields: [
                         {
                             name: 'EFFECT',
-                            value: 'COLOR'
-                        }
+                            value: 'COLOR',
+                        },
                     ],
                     inputs: [
                         {
                             name: 'VALUE',
-                            block: expectedInfo.makeNumber(25)
-                        }
-                    ]
-                }
+                            block: expectedInfo.makeNumber(25),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -131,17 +133,17 @@ describe('RubyToBlocksConverter/Looks', () => {
                     fields: [
                         {
                             name: 'EFFECT',
-                            value: 'COLOR'
-                        }
+                            value: 'COLOR',
+                        },
                     ],
                     inputs: [
                         {
                             name: 'VALUE',
                             block: (await rubyToExpected(converter, target, 'x'))[0],
-                            shadow: expectedInfo.makeNumber(25)
-                        }
-                    ]
-                }
+                            shadow: expectedInfo.makeNumber(25),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -154,32 +156,34 @@ describe('RubyToBlocksConverter/Looks', () => {
                     fields: [
                         {
                             name: 'EFFECT',
-                            value: 'COLOR'
-                        }
+                            value: 'COLOR',
+                        },
                     ],
                     inputs: [
                         {
                             name: 'VALUE',
-                            block: expectedInfo.makeNumber(25)
-                        }
-                    ]
-                }
+                            block: expectedInfo.makeNumber(25),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
 
         test('invalid', async () => {
-            { for (const c of [
-                'set_effect',
-                'set_effect()',
-                'set_effect("color")',
-                'set_effect(25)',
-                'set_effect("invalid effect", 25)',
-                'set_effect(1, 25)',
-                'set_effect("color", 25, 1)'
-            ]) {
-                await convertAndExpectRubyBlockError(converter, target, c);
-            } }
+            {
+                for (const c of [
+                    'set_effect',
+                    'set_effect()',
+                    'set_effect("color")',
+                    'set_effect(25)',
+                    'set_effect("invalid effect", 25)',
+                    'set_effect(1, 25)',
+                    'set_effect("color", 25, 1)',
+                ]) {
+                    await convertAndExpectRubyBlockError(converter, target, c);
+                }
+            }
         });
     });
 

@@ -2,7 +2,7 @@ import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter'
 import {
     convertAndExpectToEqualBlocks,
     convertAndExpectRubyBlockError,
-    expectedInfo
+    expectedInfo,
 } from '../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Video', () => {
@@ -12,7 +12,7 @@ describe('RubyToBlocksConverter/Video', () => {
     let expected;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
         code = null;
         expected = null;
@@ -46,12 +46,12 @@ describe('RubyToBlocksConverter/Video', () => {
                         name: 'VIDEO_STATE',
                         block: {
                             opcode: 'videoSensing_menu_VIDEO_STATE',
-                            fields: [{name: 'VIDEO_STATE', value: 'on'}],
-                            shadow: true
-                        }
-                    }
-                ]
-            }
+                            fields: [{ name: 'VIDEO_STATE', value: 'on' }],
+                            shadow: true,
+                        },
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
@@ -64,19 +64,16 @@ describe('RubyToBlocksConverter/Video', () => {
                 inputs: [
                     {
                         name: 'TRANSPARENCY',
-                        block: expectedInfo.makeNumber(50)
-                    }
-                ]
-            }
+                        block: expectedInfo.makeNumber(50),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
 
     test('invalid', async () => {
-        for (const s of [
-            'video_sensing.video_turn("invalid_state")',
-            'video_sensing.video_transparency = "abc"'
-        ]) {
+        for (const s of ['video_sensing.video_turn("invalid_state")', 'video_sensing.video_transparency = "abc"']) {
             await convertAndExpectRubyBlockError(converter, target, s);
         }
     });

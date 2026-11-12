@@ -113,13 +113,13 @@ export default function (Generator) {
     const propertyToMethod = {
         'x position': 'x',
         'y position': 'y',
-        'direction': 'direction',
+        direction: 'direction',
         'costume #': 'costume_number',
         'costume name': 'costume_name',
-        'size': 'size',
-        'volume': 'volume',
+        size: 'size',
+        volume: 'volume',
         'backdrop #': 'backdrop_number',
-        'backdrop name': 'backdrop_name'
+        'backdrop name': 'backdrop_name',
     };
     Generator.sensing_of = function (block) {
         const property = Generator.getFieldValue(block, 'PROPERTY') || null;
@@ -138,7 +138,7 @@ export default function (Generator) {
         DAYOFWEEK: 'wday + 1',
         HOUR: 'hour',
         MINUTE: 'min',
-        SECOND: 'sec'
+        SECOND: 'sec',
     };
     Generator.sensing_current = function (block) {
         const menu = Generator.getFieldValue(block, 'CURRENTMENU');

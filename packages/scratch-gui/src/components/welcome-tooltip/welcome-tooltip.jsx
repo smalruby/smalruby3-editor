@@ -84,13 +84,7 @@ const WelcomeTooltip = ({ onClick }) => {
 
     return (
         <div className={styles.tooltipContainer} data-testid="welcome-tooltip">
-            <Balloon
-                arrowSide="left"
-                className={styles.tooltip}
-                onClick={handleClick}
-                role="button"
-                tabIndex={0}
-            >
+            <Balloon arrowSide="left" className={styles.tooltip} onClick={handleClick} role="button" tabIndex={0}>
                 <FormattedMessage
                     defaultMessage="Welcome to Smalruby"
                     description="Balloon hint near the help button inviting users to open the welcome modal"

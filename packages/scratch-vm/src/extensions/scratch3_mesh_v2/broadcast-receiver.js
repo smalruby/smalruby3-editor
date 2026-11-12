@@ -41,7 +41,7 @@ const BroadcastReceiverMixin = {
         const baseTime = new Date(sortedEvents[0].timestamp).getTime();
 
         // キューに追加
-        sortedEvents.forEach(event => {
+        sortedEvents.forEach((event) => {
             const eventTime = new Date(event.timestamp).getTime();
             const offsetMs = eventTime - baseTime;
 
@@ -100,11 +100,7 @@ const BroadcastReceiverMixin = {
 
             // まだタイミングが来ていない場合は待機
             if (offsetMs > elapsedMs) {
-                debug(
-                    () =>
-                        `Mesh V2: Waiting for event ${event.name} ` +
-                        `(needs ${offsetMs}ms, elapsed ${elapsedMs}ms)`,
-                );
+                debug(() => `Mesh V2: Waiting for event ${event.name} (needs ${offsetMs}ms, elapsed ${elapsedMs}ms)`);
                 break;
             }
 

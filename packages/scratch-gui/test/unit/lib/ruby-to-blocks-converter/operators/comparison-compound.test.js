@@ -3,7 +3,7 @@ import {
     convertAndExpectToEqualBlocks,
     convertAndExpectRubyBlockError,
     rubyToExpected,
-    expectedInfo
+    expectedInfo,
 } from '../../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Operators', () => {
@@ -13,7 +13,7 @@ describe('RubyToBlocksConverter/Operators', () => {
     let expected;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
         code = null;
         expected = null;
@@ -32,18 +32,18 @@ describe('RubyToBlocksConverter/Operators', () => {
                             inputs: [
                                 {
                                     name: 'OPERAND1',
-                                    block: expectedInfo.makeText('1')
+                                    block: expectedInfo.makeText('1'),
                                 },
                                 {
                                     name: 'OPERAND2',
-                                    block: expectedInfo.makeText('50')
-                                }
+                                    block: expectedInfo.makeText('50'),
+                                },
                             ],
                             comment: {
                                 text: '@ruby:operator:>=:1',
-                                minimized: true
-                            }
-                        }
+                                minimized: true,
+                            },
+                        },
                     },
                     {
                         name: 'OPERAND2',
@@ -52,25 +52,25 @@ describe('RubyToBlocksConverter/Operators', () => {
                             inputs: [
                                 {
                                     name: 'OPERAND1',
-                                    block: expectedInfo.makeText('1')
+                                    block: expectedInfo.makeText('1'),
                                 },
                                 {
                                     name: 'OPERAND2',
-                                    block: expectedInfo.makeText('50')
-                                }
+                                    block: expectedInfo.makeText('50'),
+                                },
                             ],
                             comment: {
                                 text: '@ruby:operator:>=:1',
-                                minimized: true
-                            }
-                        }
-                    }
+                                minimized: true,
+                            },
+                        },
+                    },
                 ],
                 comment: {
                     text: '@ruby:operator:>=:1',
-                    minimized: true
-                }
-            }
+                    minimized: true,
+                },
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -87,19 +87,19 @@ describe('RubyToBlocksConverter/Operators', () => {
                                 {
                                     name: 'OPERAND1',
                                     block: (await rubyToExpected(converter, target, 'x'))[0],
-                                    shadow: expectedInfo.makeText('')
+                                    shadow: expectedInfo.makeText(''),
                                 },
                                 {
                                     name: 'OPERAND2',
                                     block: (await rubyToExpected(converter, target, 'y'))[0],
-                                    shadow: expectedInfo.makeText('50')
-                                }
+                                    shadow: expectedInfo.makeText('50'),
+                                },
                             ],
                             comment: {
                                 text: '@ruby:operator:>=:1',
-                                minimized: true
-                            }
-                        }
+                                minimized: true,
+                            },
+                        },
                     },
                     {
                         name: 'OPERAND2',
@@ -109,26 +109,26 @@ describe('RubyToBlocksConverter/Operators', () => {
                                 {
                                     name: 'OPERAND1',
                                     block: (await rubyToExpected(converter, target, 'x'))[0],
-                                    shadow: expectedInfo.makeText('')
+                                    shadow: expectedInfo.makeText(''),
                                 },
                                 {
                                     name: 'OPERAND2',
                                     block: (await rubyToExpected(converter, target, 'y'))[0],
-                                    shadow: expectedInfo.makeText('50')
-                                }
+                                    shadow: expectedInfo.makeText('50'),
+                                },
                             ],
                             comment: {
                                 text: '@ruby:operator:>=:1',
-                                minimized: true
-                            }
-                        }
-                    }
+                                minimized: true,
+                            },
+                        },
+                    },
                 ],
                 comment: {
                     text: '@ruby:operator:>=:1',
-                    minimized: true
-                }
-            }
+                    minimized: true,
+                },
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
@@ -146,18 +146,18 @@ describe('RubyToBlocksConverter/Operators', () => {
                             inputs: [
                                 {
                                     name: 'OPERAND1',
-                                    block: expectedInfo.makeText('1')
+                                    block: expectedInfo.makeText('1'),
                                 },
                                 {
                                     name: 'OPERAND2',
-                                    block: expectedInfo.makeText('50')
-                                }
+                                    block: expectedInfo.makeText('50'),
+                                },
                             ],
                             comment: {
                                 text: '@ruby:operator:<=:1',
-                                minimized: true
-                            }
-                        }
+                                minimized: true,
+                            },
+                        },
                     },
                     {
                         name: 'OPERAND2',
@@ -166,25 +166,25 @@ describe('RubyToBlocksConverter/Operators', () => {
                             inputs: [
                                 {
                                     name: 'OPERAND1',
-                                    block: expectedInfo.makeText('1')
+                                    block: expectedInfo.makeText('1'),
                                 },
                                 {
                                     name: 'OPERAND2',
-                                    block: expectedInfo.makeText('50')
-                                }
+                                    block: expectedInfo.makeText('50'),
+                                },
                             ],
                             comment: {
                                 text: '@ruby:operator:<=:1',
-                                minimized: true
-                            }
-                        }
-                    }
+                                minimized: true,
+                            },
+                        },
+                    },
                 ],
                 comment: {
                     text: '@ruby:operator:<=:1',
-                    minimized: true
-                }
-            }
+                    minimized: true,
+                },
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -201,19 +201,19 @@ describe('RubyToBlocksConverter/Operators', () => {
                                 {
                                     name: 'OPERAND1',
                                     block: (await rubyToExpected(converter, target, 'x'))[0],
-                                    shadow: expectedInfo.makeText('')
+                                    shadow: expectedInfo.makeText(''),
                                 },
                                 {
                                     name: 'OPERAND2',
                                     block: (await rubyToExpected(converter, target, 'y'))[0],
-                                    shadow: expectedInfo.makeText('50')
-                                }
+                                    shadow: expectedInfo.makeText('50'),
+                                },
                             ],
                             comment: {
                                 text: '@ruby:operator:<=:1',
-                                minimized: true
-                            }
-                        }
+                                minimized: true,
+                            },
+                        },
                     },
                     {
                         name: 'OPERAND2',
@@ -223,26 +223,26 @@ describe('RubyToBlocksConverter/Operators', () => {
                                 {
                                     name: 'OPERAND1',
                                     block: (await rubyToExpected(converter, target, 'x'))[0],
-                                    shadow: expectedInfo.makeText('')
+                                    shadow: expectedInfo.makeText(''),
                                 },
                                 {
                                     name: 'OPERAND2',
                                     block: (await rubyToExpected(converter, target, 'y'))[0],
-                                    shadow: expectedInfo.makeText('50')
-                                }
+                                    shadow: expectedInfo.makeText('50'),
+                                },
                             ],
                             comment: {
                                 text: '@ruby:operator:<=:1',
-                                minimized: true
-                            }
-                        }
-                    }
+                                minimized: true,
+                            },
+                        },
+                    },
                 ],
                 comment: {
                     text: '@ruby:operator:<=:1',
-                    minimized: true
-                }
-            }
+                    minimized: true,
+                },
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });

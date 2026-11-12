@@ -10,23 +10,23 @@ import {
     MakeyMakeyConverter,
     LooksConverter,
     SoundConverter,
-    SensingConverter
+    SensingConverter,
 } from './register-converters';
 
 /**
  * Mixin for converter registration and execution methods.
  */
 const ConverterRegistry = {
-    registerOnSendWithBlock (receiverName, name, numArgs, numRubyBlockArgs, createBlockFunc) {
+    registerOnSendWithBlock(receiverName, name, numArgs, numRubyBlockArgs, createBlockFunc) {
         if (receiverName === 'any') {
-            this._anyReceiverNames().forEach(rn => {
+            this._anyReceiverNames().forEach((rn) => {
                 this.registerOnSendWithBlock(rn, name, numArgs, numRubyBlockArgs, createBlockFunc);
             });
             return;
         }
 
         if (_.isArray(receiverName)) {
-            receiverName.forEach(rn => {
+            receiverName.forEach((rn) => {
                 this.registerOnSendWithBlock(rn, name, numArgs, numRubyBlockArgs, createBlockFunc);
             });
             return;
@@ -40,7 +40,7 @@ const ConverterRegistry = {
 
         // If numArgs is an array, register for each value
         if (_.isArray(numArgs)) {
-            numArgs.forEach(n => {
+            numArgs.forEach((n) => {
                 this.registerOnSendWithBlock(receiverName, name, n, numRubyBlockArgs, createBlockFunc);
             });
             return;
@@ -63,18 +63,18 @@ const ConverterRegistry = {
         createBlockFuncs.push(createBlockFunc);
     },
 
-    registerOnSend (receiverName, name, numArgs, createBlockFunc) {
+    registerOnSend(receiverName, name, numArgs, createBlockFunc) {
         this.registerOnSendWithBlock(receiverName, name, numArgs, 'none', createBlockFunc);
     },
 
-    registerOnSendMyBlock (receiverName, myBlockHandler) {
+    registerOnSendMyBlock(receiverName, myBlockHandler) {
         if (receiverName === 'any') {
-            this._anyReceiverNames().forEach(rn => this.registerOnSendMyBlock(rn, myBlockHandler));
+            this._anyReceiverNames().forEach((rn) => this.registerOnSendMyBlock(rn, myBlockHandler));
             return;
         }
 
         if (_.isArray(receiverName)) {
-            receiverName.forEach(rn => this.registerOnSendMyBlock(rn, myBlockHandler));
+            receiverName.forEach((rn) => this.registerOnSendMyBlock(rn, myBlockHandler));
             return;
         }
 
@@ -90,39 +90,39 @@ const ConverterRegistry = {
         this._receiverToMyBlocks[receiverName].push(myBlockHandler);
     },
 
-    registerOnIf (handler) {
+    registerOnIf(handler) {
         this._onIfHandlers.push(handler);
     },
 
-    registerOnUntil (handler) {
+    registerOnUntil(handler) {
         this._onUntilHandlers.push(handler);
     },
 
-    registerOnOpAsgn (handler) {
+    registerOnOpAsgn(handler) {
         this._onOpAsgnHandlers.push(handler);
     },
 
-    registerOnAnd (handler) {
+    registerOnAnd(handler) {
         this._onAndHandlers.push(handler);
     },
 
-    registerOnOr (handler) {
+    registerOnOr(handler) {
         this._onOrHandlers.push(handler);
     },
 
-    registerOnVar (handler) {
+    registerOnVar(handler) {
         this._onVarHandlers.push(handler);
     },
 
-    registerOnVasgn (handler) {
+    registerOnVasgn(handler) {
         this._onVasgnHandlers.push(handler);
     },
 
-    registerOnDefs (handler) {
+    registerOnDefs(handler) {
         this._onDefsHandlers.push(handler);
     },
 
-    callMethod (receiver, name, args, rubyBlockArgs, rubyBlock, node) {
+    callMethod(receiver, name, args, rubyBlockArgs, rubyBlock, node) {
         const receiverName = this._getReceiverName(receiver);
         if (!receiverName) return null;
 
@@ -138,7 +138,7 @@ const ConverterRegistry = {
                     rubyBlockArgs: rubyBlockArgs,
                     rubyBlock: rubyBlock,
                     node: node,
-                    procedure: procedure
+                    procedure: procedure,
                 };
 
                 const previousNode = this._context.currentNode;
@@ -186,7 +186,7 @@ const ConverterRegistry = {
             args: args,
             rubyBlockArgs: rubyBlockArgs,
             rubyBlock: rubyBlock,
-            node: node
+            node: node,
         };
 
         const previousNode = this._context.currentNode;
@@ -206,7 +206,7 @@ const ConverterRegistry = {
         return null;
     },
 
-    _callConvertersHandler (handlerName, ...args) {
+    _callConvertersHandler(handlerName, ...args) {
         // First, check registered handlers based on handlerName
         const handlersMap = {
             onIf: this._onIfHandlers,
@@ -216,7 +216,7 @@ const ConverterRegistry = {
             onOr: this._onOrHandlers,
             onVar: this._onVarHandlers,
             onVasgn: this._onVasgnHandlers,
-            onDefs: this._onDefsHandlers
+            onDefs: this._onDefsHandlers,
         };
 
         const handlers = handlersMap[handlerName];
@@ -241,7 +241,7 @@ const ConverterRegistry = {
             MakeyMakeyConverter,
             LooksConverter,
             SoundConverter,
-            SensingConverter
+            SensingConverter,
         ];
 
         for (let i = 0; i < legacyConverters.length; i++) {
@@ -255,7 +255,7 @@ const ConverterRegistry = {
         }
 
         return null;
-    }
+    },
 };
 
 export default ConverterRegistry;

@@ -2,7 +2,7 @@ import RubyToBlocksConverter from '../../../../../../src/lib/ruby-to-blocks-conv
 import {
     convertAndExpectToEqualBlocks,
     rubyToExpected,
-    expectedInfo
+    expectedInfo,
 } from '../../../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/My Blocks (v1)', () => {
@@ -10,7 +10,7 @@ describe('RubyToBlocksConverter/My Blocks (v1)', () => {
     let target;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '1'});
+        converter = new RubyToBlocksConverter(null, { version: '1' });
         target = null;
     });
 
@@ -34,24 +34,22 @@ describe('RubyToBlocksConverter/My Blocks (v1)', () => {
                                 arguments: [
                                     {
                                         name: 'arg1',
-                                        type: 'string_number'
-                                    }
-                                ]
+                                        type: 'string_number',
+                                    },
+                                ],
                             },
-                            shadow: true
-                        }
-                    }
-                ]
+                            shadow: true,
+                        },
+                    },
+                ],
             },
             {
                 opcode: 'procedures_call',
                 mutation: {
                     proccode: 'made_block %s',
-                    argument_blocks: [
-                        expectedInfo.makeText('12')
-                    ]
-                }
-            }
+                    argument_blocks: [expectedInfo.makeText('12')],
+                },
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
@@ -77,13 +75,13 @@ describe('RubyToBlocksConverter/My Blocks (v1)', () => {
                                 arguments: [
                                     {
                                         name: 'arg1',
-                                        type: 'string_number'
-                                    }
-                                ]
+                                        type: 'string_number',
+                                    },
+                                ],
                             },
-                            shadow: true
-                        }
-                    }
+                            shadow: true,
+                        },
+                    },
                 ],
                 next: {
                     opcode: 'procedures_call',
@@ -100,31 +98,29 @@ describe('RubyToBlocksConverter/My Blocks (v1)', () => {
                                             fields: [
                                                 {
                                                     name: 'VALUE',
-                                                    value: 'arg1'
-                                                }
-                                            ]
+                                                    value: 'arg1',
+                                                },
+                                            ],
                                         },
-                                        shadow: expectedInfo.makeNumber('')
+                                        shadow: expectedInfo.makeNumber(''),
                                     },
                                     {
                                         name: 'NUM2',
-                                        block: expectedInfo.makeNumber(1)
-                                    }
-                                ]
-                            }
-                        ]
-                    }
-                }
+                                        block: expectedInfo.makeNumber(1),
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                },
             },
             {
                 opcode: 'procedures_call',
                 mutation: {
                     proccode: 'made_block %s',
-                    argument_blocks: [
-                        expectedInfo.makeText('12')
-                    ]
-                }
-            }
+                    argument_blocks: [expectedInfo.makeText('12')],
+                },
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });

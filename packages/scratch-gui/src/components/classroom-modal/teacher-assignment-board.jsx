@@ -9,21 +9,19 @@
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
-
 import { DEFAULT_MESH_GROUP_LIMIT } from '../../lib/classroom-assignment-utils.js';
-import { buildAssignmentSections } from '../../lib/classroom-group-utils.js';
 import { formatClassLabel } from '../../lib/classroom-class-label.js';
+import { buildAssignmentSections } from '../../lib/classroom-group-utils.js';
 import { retentionLevel } from '../../lib/classroom-retention.js';
 import { buildStreamEvents } from '../../lib/classroom-stream.js';
 import BoardMenu, { BoardMenuItem } from './board-menu.jsx';
+import ClassroomButton from './classroom-button.jsx';
+import styles from './classroom-modal.css';
 import ErrorDisplay from './error-display.jsx';
 import SharedAssignmentCatalog from './shared-assignment-catalog.jsx';
-import TeacherShareStep from './teacher-share-step.jsx';
 import TeacherPasscodeImport from './teacher-passcode-import.jsx';
-import ClassroomButton from './classroom-button.jsx';
+import TeacherShareStep from './teacher-share-step.jsx';
 import { TeacherScreen, TeacherSubView } from './teacher-view-layout.jsx';
-
-import styles from './classroom-modal.css';
 
 /**
  * Heading of a topic section. Named topics have a ⋮ menu to rename (inline)
@@ -264,10 +262,7 @@ const AssignmentRow = ({
     );
     const handleToggle = useCallback(() => onToggle(classroom), [onToggle, classroom]);
     const handleShare = useCallback(() => onShare(classroom), [onShare, classroom]);
-    const handleDownload = useCallback(
-        () => onDownloadAssignment(classroom),
-        [onDownloadAssignment, classroom],
-    );
+    const handleDownload = useCallback(() => onDownloadAssignment(classroom), [onDownloadAssignment, classroom]);
     const handleTopicChange = useCallback(
         (e) => {
             onUpdateAssignmentMeta(classroom.classroomId, { topic: e.target.value || null });
@@ -307,9 +302,7 @@ const AssignmentRow = ({
                     type="button"
                     onClick={handleToggle}
                 >
-                    <span className={styles.boardRowName}>
-                        {classroom.assignmentName || classroom.className}
-                    </span>
+                    <span className={styles.boardRowName}>{classroom.assignmentName || classroom.className}</span>
                     {/* 共有推奨マーク (#1106): 運営が共有をおすすめした課題。 */}
                     {classroom.recommendedForSharing ? (
                         <span
@@ -493,10 +486,7 @@ const AssignmentRow = ({
                         </p>
                     ) : null}
                     {urgent ? (
-                        <div
-                            className={styles.boardRowRetentionWarning}
-                            data-testid={`classroom-board-expiry-${id}`}
-                        >
+                        <div className={styles.boardRowRetentionWarning} data-testid={`classroom-board-expiry-${id}`}>
                             <span className={styles.boardRowRetentionMark}>{'⚠'}</span>
                             <span className={styles.boardRowRetentionText}>
                                 <FormattedMessage
@@ -785,9 +775,7 @@ const TeacherAssignmentBoard = ({
 
     // 再利用の対象はアクティブなクラス・課題のみ（レビュー指摘）。アーカイブ済みの
     // クラス（組）に属する課題や、アーカイブ済みの課題は候補・フィルタから除外する。
-    const activeGroupIds = new Set(
-        (allGroups || []).filter((g) => g.status !== 'archived').map((g) => g.groupId),
-    );
+    const activeGroupIds = new Set((allGroups || []).filter((g) => g.status !== 'archived').map((g) => g.groupId));
     const reuseGroups = (allGroups || []).filter((g) => g.status !== 'archived');
     // Reuse picker: active assignments (of active classes), newest first, filterable.
     const reuseCandidates = (allClassrooms || [])
@@ -828,9 +816,7 @@ const TeacherAssignmentBoard = ({
             if (!onLoadAssignmentSummary || (known && !known.failed)) return;
             setSummaries((prev) => ({ ...prev, [id]: { loading: true } }));
             Promise.resolve(onLoadAssignmentSummary(classroom))
-                .then((data) =>
-                    setSummaries((prev) => ({ ...prev, [id]: data ? { data } : { failed: true } })),
-                )
+                .then((data) => setSummaries((prev) => ({ ...prev, [id]: data ? { data } : { failed: true } })))
                 .catch(() => setSummaries((prev) => ({ ...prev, [id]: { failed: true } })));
         },
         [onLoadAssignmentSummary],
@@ -937,24 +923,24 @@ const TeacherAssignmentBoard = ({
     return (
         <TeacherScreen
             breadcrumbs={[
-                    {
-                        label: intl.formatMessage({
-                            defaultMessage: 'Class list',
-                            description: 'Breadcrumb link back to the class list',
-                            id: 'gui.classroom.breadcrumbs.classList',
-                        }),
-                        onClick: onShowClassList,
-                        testId: 'classroom-breadcrumb-class-list',
-                    },
-                    // 現在地は「クラス > タブ（またはサブビュー）」。サブビュー中はクラス名を
-                    // ボードへ戻るリンクにする（testid は歴史的経緯で ...-assignments のまま）。
-                    subView
-                        ? {
-                              label: formatClassLabel(group),
-                              onClick: handleBoardHome,
-                              testId: 'classroom-breadcrumb-assignments',
-                          }
-                        : { label: formatClassLabel(group) },
+                {
+                    label: intl.formatMessage({
+                        defaultMessage: 'Class list',
+                        description: 'Breadcrumb link back to the class list',
+                        id: 'gui.classroom.breadcrumbs.classList',
+                    }),
+                    onClick: onShowClassList,
+                    testId: 'classroom-breadcrumb-class-list',
+                },
+                // 現在地は「クラス > タブ（またはサブビュー）」。サブビュー中はクラス名を
+                // ボードへ戻るリンクにする（testid は歴史的経緯で ...-assignments のまま）。
+                subView
+                    ? {
+                          label: formatClassLabel(group),
+                          onClick: handleBoardHome,
+                          testId: 'classroom-breadcrumb-assignments',
+                      }
+                    : { label: formatClassLabel(group) },
                 { label: intl.formatMessage(subView ? subViewMessages[subView] : tabMessages[tab]) },
             ]}
             className={styles.boardScreen}
@@ -1127,11 +1113,7 @@ const TeacherAssignmentBoard = ({
                 </div>
             ) : null}
             {showTopicDialog ? (
-                <TopicAddDialog
-                    isLoading={isLoading}
-                    onAdd={handleAddTopic}
-                    onCancel={handleCloseTopicDialog}
-                />
+                <TopicAddDialog isLoading={isLoading} onAdd={handleAddTopic} onCancel={handleCloseTopicDialog} />
             ) : null}
             <ErrorDisplay error={error} errorTitle={errorTitle} />
             {shared && shared.lastImported ? (
@@ -1234,10 +1216,7 @@ const TeacherAssignmentBoard = ({
                 <TeacherSubView
                     footer={
                         <>
-                            <ClassroomButton
-                                dataTestId="classroom-board-reuse-cancel"
-                                onClick={handleToggleReuse}
-                            >
+                            <ClassroomButton dataTestId="classroom-board-reuse-cancel" onClick={handleToggleReuse}>
                                 <FormattedMessage
                                     defaultMessage="Cancel"
                                     description="Close the reuse picker without copying"
@@ -1289,9 +1268,7 @@ const TeacherAssignmentBoard = ({
                         {reuseCandidates.map((c) => (
                             <li key={c.classroomId} className={styles.boardRow}>
                                 <span className={styles.boardRowMain}>
-                                    <span className={styles.boardRowName}>
-                                        {c.assignmentName || c.className}
-                                    </span>
+                                    <span className={styles.boardRowName}>{c.assignmentName || c.className}</span>
                                     <span className={styles.boardRowCode}>{groupLabelFor(c.groupId)}</span>
                                 </span>
                                 <button
@@ -1316,116 +1293,116 @@ const TeacherAssignmentBoard = ({
                 // R6: only this list frame scrolls (its length follows the number of
                 // assignments); the tabs and［＋ 作成 ▾］stay visible above it.
                 <div className={styles.boardList} data-testid="classroom-board-list">
-            {sections.length === 0 ? (
-                <p className={styles.boardEmpty} data-testid="classroom-board-empty">
-                    <FormattedMessage
-                        defaultMessage={'No assignments yet. Choose "+ Create" → "Assignment" to add one.'}
-                        description="Empty state of the assignment board"
-                        id="gui.classroom.board.empty"
-                    />
-                </p>
-            ) : null}
-            {sections.map((section) => (
-                <div
-                    key={section.topic || '__none__'}
-                    className={styles.boardSection}
-                    data-testid={`classroom-board-section-${section.topic || 'none'}`}
-                >
-                    <TopicHeading
-                        isLoading={isLoading}
-                        topic={section.topic}
-                        onRemove={handleRemoveTopic}
-                        onRename={handleRenameTopic}
-                    />
-                    <ul className={styles.boardRows}>
-                        {section.classrooms.map((classroom) => (
-                            <AssignmentRow
-                                key={classroom.classroomId}
-                                classroom={classroom}
-                                downloadingId={downloadingId}
-                                downloadProgress={downloadProgress}
-                                isLoading={isLoading}
-                                isOpen={openId === classroom.classroomId}
-                                summary={summaries[classroom.classroomId]}
-                                topics={topics}
-                                onDownloadAssignment={handleDownloadAssignment}
-                                onSelectClassroom={onSelectClassroom}
-                                onShare={shared ? shared.handleOpenShareFor : null}
-                                onToggle={handleToggleRow}
-                                onUpdateAssignmentMeta={onUpdateAssignmentMeta}
+                    {sections.length === 0 ? (
+                        <p className={styles.boardEmpty} data-testid="classroom-board-empty">
+                            <FormattedMessage
+                                defaultMessage={'No assignments yet. Choose "+ Create" → "Assignment" to add one.'}
+                                description="Empty state of the assignment board"
+                                id="gui.classroom.board.empty"
                             />
-                        ))}
-                    </ul>
-                </div>
-            ))}
-            {archivedRows.length > 0 ? (
-                <div className={styles.boardSection} data-testid="classroom-board-archived-section">
-                    <button
-                        className={styles.archivedToggle}
-                        data-testid="classroom-board-archived-toggle"
-                        type="button"
-                        onClick={handleToggleArchived}
-                    >
-                        {showArchived ? '▼ ' : '▶ '}
-                        {intl.formatMessage(
-                            {
-                                defaultMessage: 'Archived assignments ({count})',
-                                description: 'Toggle of the archived assignments section on the board',
-                                id: 'gui.classroom.board.archivedToggle',
-                            },
-                            { count: archivedRows.length },
-                        )}
-                    </button>
-                    {showArchived ? (
-                        <ul className={styles.boardRows} data-testid="classroom-board-archived-list">
-                            {archivedRows.map((classroom) => (
-                                <li
-                                    key={classroom.classroomId}
-                                    className={styles.boardRow}
-                                    data-testid={`classroom-board-archived-row-${classroom.classroomId}`}
-                                >
-                                    <span className={styles.boardRowMain}>
-                                        <span className={styles.boardRowName}>
-                                            {classroom.assignmentName || classroom.className}
-                                        </span>
-                                        <span className={styles.boardRowCode}>
-                                            {classroom.expiresAt
-                                                ? intl.formatMessage(
-                                                      {
-                                                          defaultMessage: 'Kept until {date}',
-                                                          description:
-                                                              'Retention deadline shown on an archived assignment row',
-                                                          id: 'gui.classroom.board.archivedExpires',
-                                                      },
-                                                      {
-                                                          date: new Date(
-                                                              classroom.expiresAt,
-                                                          ).toLocaleDateString(),
-                                                      },
-                                                  )
-                                                : null}
-                                        </span>
-                                    </span>
-                                    <button
-                                        className={styles.reuseRowCopy}
-                                        data-classroom-id={classroom.classroomId}
-                                        data-testid={`classroom-board-restore-${classroom.classroomId}`}
-                                        disabled={isLoading}
-                                        type="button"
-                                        onClick={handleRestore}
-                                    >
-                                        <FormattedMessage
-                                            defaultMessage="Restore"
-                                            description="Button that restores an archived assignment"
-                                            id="gui.classroom.board.restore"
-                                        />
-                                    </button>
-                                </li>
-                            ))}
-                        </ul>
+                        </p>
                     ) : null}
-                </div>
-            ) : null}
+                    {sections.map((section) => (
+                        <div
+                            key={section.topic || '__none__'}
+                            className={styles.boardSection}
+                            data-testid={`classroom-board-section-${section.topic || 'none'}`}
+                        >
+                            <TopicHeading
+                                isLoading={isLoading}
+                                topic={section.topic}
+                                onRemove={handleRemoveTopic}
+                                onRename={handleRenameTopic}
+                            />
+                            <ul className={styles.boardRows}>
+                                {section.classrooms.map((classroom) => (
+                                    <AssignmentRow
+                                        key={classroom.classroomId}
+                                        classroom={classroom}
+                                        downloadingId={downloadingId}
+                                        downloadProgress={downloadProgress}
+                                        isLoading={isLoading}
+                                        isOpen={openId === classroom.classroomId}
+                                        summary={summaries[classroom.classroomId]}
+                                        topics={topics}
+                                        onDownloadAssignment={handleDownloadAssignment}
+                                        onSelectClassroom={onSelectClassroom}
+                                        onShare={shared ? shared.handleOpenShareFor : null}
+                                        onToggle={handleToggleRow}
+                                        onUpdateAssignmentMeta={onUpdateAssignmentMeta}
+                                    />
+                                ))}
+                            </ul>
+                        </div>
+                    ))}
+                    {archivedRows.length > 0 ? (
+                        <div className={styles.boardSection} data-testid="classroom-board-archived-section">
+                            <button
+                                className={styles.archivedToggle}
+                                data-testid="classroom-board-archived-toggle"
+                                type="button"
+                                onClick={handleToggleArchived}
+                            >
+                                {showArchived ? '▼ ' : '▶ '}
+                                {intl.formatMessage(
+                                    {
+                                        defaultMessage: 'Archived assignments ({count})',
+                                        description: 'Toggle of the archived assignments section on the board',
+                                        id: 'gui.classroom.board.archivedToggle',
+                                    },
+                                    { count: archivedRows.length },
+                                )}
+                            </button>
+                            {showArchived ? (
+                                <ul className={styles.boardRows} data-testid="classroom-board-archived-list">
+                                    {archivedRows.map((classroom) => (
+                                        <li
+                                            key={classroom.classroomId}
+                                            className={styles.boardRow}
+                                            data-testid={`classroom-board-archived-row-${classroom.classroomId}`}
+                                        >
+                                            <span className={styles.boardRowMain}>
+                                                <span className={styles.boardRowName}>
+                                                    {classroom.assignmentName || classroom.className}
+                                                </span>
+                                                <span className={styles.boardRowCode}>
+                                                    {classroom.expiresAt
+                                                        ? intl.formatMessage(
+                                                              {
+                                                                  defaultMessage: 'Kept until {date}',
+                                                                  description:
+                                                                      'Retention deadline shown on an archived assignment row',
+                                                                  id: 'gui.classroom.board.archivedExpires',
+                                                              },
+                                                              {
+                                                                  date: new Date(
+                                                                      classroom.expiresAt,
+                                                                  ).toLocaleDateString(),
+                                                              },
+                                                          )
+                                                        : null}
+                                                </span>
+                                            </span>
+                                            <button
+                                                className={styles.reuseRowCopy}
+                                                data-classroom-id={classroom.classroomId}
+                                                data-testid={`classroom-board-restore-${classroom.classroomId}`}
+                                                disabled={isLoading}
+                                                type="button"
+                                                onClick={handleRestore}
+                                            >
+                                                <FormattedMessage
+                                                    defaultMessage="Restore"
+                                                    description="Button that restores an archived assignment"
+                                                    id="gui.classroom.board.restore"
+                                                />
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : null}
+                        </div>
+                    ) : null}
                 </div>
             )}
         </TeacherScreen>

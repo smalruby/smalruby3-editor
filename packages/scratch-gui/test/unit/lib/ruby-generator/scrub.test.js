@@ -4,14 +4,14 @@ import RubyGenerator from '../../../../src/lib/ruby-generator';
  * Helper to create a minimal mock target with blocks and comments.
  */
 const createMockTarget = (blocks = {}, comments = {}) => ({
-    sprite: {name: 'Sprite1'},
+    sprite: { name: 'Sprite1' },
     comments,
     blocks: {
-        getBlock: id => blocks[id] || null,
-        getInputs: block => block.inputs || {},
-        getScripts: () => []
+        getBlock: (id) => blocks[id] || null,
+        getInputs: (block) => block.inputs || {},
+        getScripts: () => [],
     },
-    variables: {}
+    variables: {},
 });
 
 describe('RubyGenerator scrub_', () => {
@@ -26,13 +26,13 @@ describe('RubyGenerator scrub_', () => {
         const target = createMockTarget();
         RubyGenerator.currentTarget = target;
 
-        const block = {id: 'b1', inputs: {}, parent: null};
+        const block = { id: 'b1', inputs: {}, parent: null };
         expect(RubyGenerator.scrub_(block, null)).toEqual('');
     });
 
     test('returns code as-is for simple block with no next/comments', () => {
-        const block = {id: 'b1', inputs: {}, parent: null, next: null};
-        const blocks = {b1: block};
+        const block = { id: 'b1', inputs: {}, parent: null, next: null };
+        const blocks = { b1: block };
         const target = createMockTarget(blocks);
         RubyGenerator.currentTarget = target;
 
@@ -40,9 +40,9 @@ describe('RubyGenerator scrub_', () => {
     });
 
     test('prepends block comment', () => {
-        const block = {id: 'b1', inputs: {}, parent: null, next: null};
-        const blocks = {b1: block};
-        const comments = {c1: {blockId: 'b1', text: 'my comment'}};
+        const block = { id: 'b1', inputs: {}, parent: null, next: null };
+        const blocks = { b1: block };
+        const comments = { c1: { blockId: 'b1', text: 'my comment' } };
         const target = createMockTarget(blocks, comments);
         RubyGenerator.currentTarget = target;
 
@@ -51,9 +51,9 @@ describe('RubyGenerator scrub_', () => {
     });
 
     test('filters @ruby: directive lines from comments', () => {
-        const block = {id: 'b1', inputs: {}, parent: null, next: null};
-        const blocks = {b1: block};
-        const comments = {c1: {blockId: 'b1', text: '@ruby:operator:+=:index\nvisible comment'}};
+        const block = { id: 'b1', inputs: {}, parent: null, next: null };
+        const blocks = { b1: block };
+        const comments = { c1: { blockId: 'b1', text: '@ruby:operator:+=:index\nvisible comment' } };
         const target = createMockTarget(blocks, comments);
         RubyGenerator.currentTarget = target;
 
@@ -62,9 +62,9 @@ describe('RubyGenerator scrub_', () => {
     });
 
     test('adds end and indents next for isStatement blocks', () => {
-        const nextBlock = {id: 'b2', opcode: 'motion_movesteps', inputs: {}, parent: 'b1', next: null};
-        const block = {id: 'b1', inputs: {}, parent: null, next: 'b2', isStatement: true};
-        const blocks = {b1: block, b2: nextBlock};
+        const nextBlock = { id: 'b2', opcode: 'motion_movesteps', inputs: {}, parent: 'b1', next: null };
+        const block = { id: 'b1', inputs: {}, parent: null, next: 'b2', isStatement: true };
+        const blocks = { b1: block, b2: nextBlock };
         const target = createMockTarget(blocks);
         RubyGenerator.currentTarget = target;
 
@@ -82,9 +82,9 @@ describe('RubyGenerator scrub_', () => {
     });
 
     test('skips next chain when _skipNextInScrub is set', () => {
-        const nextBlock = {id: 'b2', opcode: 'motion_movesteps', inputs: {}, parent: 'b1', next: null};
-        const block = {id: 'b1', inputs: {}, parent: null, next: 'b2', _skipNextInScrub: true};
-        const blocks = {b1: block, b2: nextBlock};
+        const nextBlock = { id: 'b2', opcode: 'motion_movesteps', inputs: {}, parent: 'b1', next: null };
+        const block = { id: 'b1', inputs: {}, parent: null, next: 'b2', _skipNextInScrub: true };
+        const blocks = { b1: block, b2: nextBlock };
         const target = createMockTarget(blocks);
         RubyGenerator.currentTarget = target;
 
@@ -94,9 +94,9 @@ describe('RubyGenerator scrub_', () => {
     });
 
     test('inline comment appended to code line', () => {
-        const block = {id: 'b1', inputs: {}, parent: null, next: null};
-        const blocks = {b1: block};
-        const comments = {c1: {blockId: 'b1', text: '@ruby:comment_position:inline\nside note'}};
+        const block = { id: 'b1', inputs: {}, parent: null, next: null };
+        const blocks = { b1: block };
+        const comments = { c1: { blockId: 'b1', text: '@ruby:comment_position:inline\nside note' } };
         const target = createMockTarget(blocks, comments);
         RubyGenerator.currentTarget = target;
 

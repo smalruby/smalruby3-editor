@@ -44,11 +44,7 @@ const NetworkFilterMixin = {
         // This ensures old behavior is preserved if errorType is missing
         if (error.message) {
             const message = error.message.toLowerCase();
-            if (
-                message.includes('not found') ||
-                message.includes('expired') ||
-                message.includes('unauthorized')
-            ) {
+            if (message.includes('not found') || message.includes('expired') || message.includes('unauthorized')) {
                 log.warn('Mesh V2: Disconnecting based on error message (fallback). Consider checking errorType.');
                 return 'expired';
             }
@@ -131,7 +127,7 @@ const NetworkFilterMixin = {
      * @returns {Promise<boolean>} True if WebSocket is available.
      */
     testWebSocket() {
-        return new Promise(resolve => {
+        return new Promise((resolve) => {
             try {
                 // Derived from https://xxx.appsync-api.region.amazonaws.com/graphql
                 // to wss://xxx.appsync-realtime-api.region.amazonaws.com/graphql
@@ -157,7 +153,7 @@ const NetworkFilterMixin = {
                     resolve(true);
                 };
 
-                socket.onerror = err => {
+                socket.onerror = (err) => {
                     debug(() => `Mesh V2: WebSocket test failed: ${err}`);
                     clearTimeout(timeout);
                     resolve(false);

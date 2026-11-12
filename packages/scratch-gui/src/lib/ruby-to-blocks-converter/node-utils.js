@@ -7,21 +7,20 @@ import NodeTypeChecks from './node-type-checks';
 const NodeUtils = {
     ...NodeTypeChecks,
 
-    _checkNumChildren (node, length) {
+    _checkNumChildren(node, length) {
         // Prism node children are named properties, not an array.
     },
 
-    _getRubyVariableName (varBlock) {
+    _getRubyVariableName(varBlock) {
         const varName = varBlock.fields.VARIABLE.value;
-        const variable = this._context.variables[varName] ||
-            this._context.localVariables[varName];
+        const variable = this._context.variables[varName] || this._context.localVariables[varName];
         if (!variable) return varName;
         if (variable.scope === 'instance') return `@${variable.name}`;
         if (variable.scope === 'global') return `$${variable.name}`;
         return variable.originalName || variable.name;
     },
 
-    _wrapVariableAsBooleanCondition (varBlock) {
+    _wrapVariableAsBooleanCondition(varBlock) {
         // Creates !(varBlock == (0 < 0)) as a boolean block.
         // Uses the same pattern as visitFalseNode: operator_lt with OPERAND1/OPERAND2 text inputs.
         // (0 < 0) is false; !(varBlock == false) is truthy when varBlock is truthy.
@@ -49,7 +48,7 @@ const NodeUtils = {
      * @param {*} value - A literal value or block object
      * @returns {'string'|'number'|'boolean'|null} The inferred data type, or null if unknown
      */
-    _inferDataType (value) {
+    _inferDataType(value) {
         if (this._isString(value)) return 'string';
         if (this._isNumber(value)) return 'number';
         if (this._isTrue(value) || this._isFalse(value)) return 'boolean';
@@ -67,7 +66,7 @@ const NodeUtils = {
      * @param {object} block - The block object
      * @returns {'string'|'number'|'boolean'|null} The data type of the block's return value, or null if unknown
      */
-    _getBlockDataType (block) {
+    _getBlockDataType(block) {
         if (!this._isBlock(block)) return null;
 
         const comment = block.comment ? this._context.comments[block.comment] : null;
@@ -76,10 +75,7 @@ const NodeUtils = {
         if (commentText === '@ruby:method:to_s') return 'string';
         if (commentText === '@ruby:method:to_i') return 'number';
 
-        const STRING_OPCODES = [
-            'operator_join',
-            'operator_letter_of'
-        ];
+        const STRING_OPCODES = ['operator_join', 'operator_letter_of'];
         const NUMBER_OPCODES = [
             'operator_add',
             'operator_subtract',
@@ -89,7 +85,7 @@ const NodeUtils = {
             'operator_round',
             'operator_mathop',
             'operator_random',
-            'operator_length'
+            'operator_length',
         ];
         const BOOLEAN_OPCODES = [
             'operator_and',
@@ -98,7 +94,7 @@ const NodeUtils = {
             'operator_equals',
             'operator_gt',
             'operator_lt',
-            'operator_contains'
+            'operator_contains',
         ];
 
         if (STRING_OPCODES.includes(block.opcode)) return 'string';
@@ -108,11 +104,11 @@ const NodeUtils = {
         return null;
     },
 
-    getRubyExpression (block) {
+    getRubyExpression(block) {
         return this._getRubyExpression(block);
     },
 
-    _getRubyExpression (block) {
+    _getRubyExpression(block) {
         if (this._isRubyExpression(block)) {
             const textBlock = this._context.blocks[block.inputs.EXPRESSION.block];
             return textBlock.fields.TEXT.value;
@@ -120,7 +116,7 @@ const NodeUtils = {
         return null;
     },
 
-    _getRubyStatement (block) {
+    _getRubyStatement(block) {
         if (this._isRubyStatement(block)) {
             const textBlock = this._context.blocks[block.inputs.STATEMENT.block];
             return textBlock.fields.TEXT.value;
@@ -128,7 +124,7 @@ const NodeUtils = {
         return null;
     },
 
-    _matchRubyExpression (block, regexp) {
+    _matchRubyExpression(block, regexp) {
         if (!this._isBlock(block) || block.opcode !== 'ruby_expression') {
             return false;
         }
@@ -136,7 +132,7 @@ const NodeUtils = {
         return regexp.test(textBlock.fields.TEXT.value);
     },
 
-    _equalRubyExpression (block, expression) {
+    _equalRubyExpression(block, expression) {
         if (!this._isBlock(block) || block.opcode !== 'ruby_expression') {
             return false;
         }
@@ -149,7 +145,7 @@ const NodeUtils = {
      * Prism WASM returns UTF-8 byte offsets, but JavaScript strings use
      * UTF-16 char indices. This mapping must be built once after setting sourceCode.
      */
-    _buildByteToCharMap () {
+    _buildByteToCharMap() {
         const sourceCode = this._context.sourceCode;
         if (!sourceCode) {
             this._context.byteToChar = new Int32Array(1);
@@ -161,8 +157,8 @@ const NodeUtils = {
         let bi = 0;
         while (ci < sourceCode.length) {
             const cp = sourceCode.codePointAt(ci);
-            const charLen = cp > 0xFFFF ? 2 : 1; // surrogate pair in UTF-16
-            const byteLen = cp <= 0x7F ? 1 : cp <= 0x7FF ? 2 : cp <= 0xFFFF ? 3 : 4;
+            const charLen = cp > 0xffff ? 2 : 1; // surrogate pair in UTF-16
+            const byteLen = cp <= 0x7f ? 1 : cp <= 0x7ff ? 2 : cp <= 0xffff ? 3 : 4;
             for (let b = 0; b < byteLen; b++) {
                 byteToChar[bi + b] = ci;
             }
@@ -179,7 +175,7 @@ const NodeUtils = {
      * @param {number} byteOffset - UTF-8 byte offset from Prism
      * @returns {number} UTF-16 char offset for JavaScript
      */
-    _byteOffsetToCharOffset (byteOffset) {
+    _byteOffsetToCharOffset(byteOffset) {
         if (!this._context.byteToChar) {
             this._buildByteToCharMap();
         }
@@ -189,17 +185,17 @@ const NodeUtils = {
         return map[byteOffset];
     },
 
-    _getSource (node) {
+    _getSource(node) {
         if (!node || !node.location) {
             return '';
         }
-        const {startOffset, length} = node.location;
+        const { startOffset, length } = node.location;
         const startChar = this._byteOffsetToCharOffset(startOffset);
         const endChar = this._byteOffsetToCharOffset(startOffset + length);
         return this._context.sourceCode.slice(startChar, endChar);
     },
 
-    _truncateSource (src, maxLength = 40) {
+    _truncateSource(src, maxLength = 40) {
         if (!src) return src;
         const newlineIndex = src.indexOf('\n');
         if (newlineIndex >= 0) {
@@ -211,7 +207,7 @@ const NodeUtils = {
         return src;
     },
 
-    _getLineForOffset (byteOffset) {
+    _getLineForOffset(byteOffset) {
         if (typeof byteOffset !== 'number' || !this._context.sourceCode) {
             return 1;
         }
@@ -241,7 +237,7 @@ const NodeUtils = {
         return line;
     },
 
-    _getNodeStartLine (node) {
+    _getNodeStartLine(node) {
         if (!node || !node.location) return null;
         if (typeof node.location.startLine !== 'undefined') {
             return node.location.startLine || null;
@@ -252,7 +248,7 @@ const NodeUtils = {
         return null;
     },
 
-    _getNodeEndLine (node) {
+    _getNodeEndLine(node) {
         if (!node || !node.location) return null;
         if (typeof node.location.endLine !== 'undefined') {
             return node.location.endLine || null;
@@ -263,21 +259,21 @@ const NodeUtils = {
         return null;
     },
 
-    _getLoc (node) {
+    _getLoc(node) {
         if (!node || !node.location) {
-            return {line: 1, column: 0};
+            return { line: 1, column: 0 };
         }
         // Prism's JS binding location has startOffset/length (byte offsets), not startLine/startColumn.
         // Compute line/column from startOffset and the stored source code.
         if (typeof node.location.startLine !== 'undefined') {
             return {
                 line: node.location.startLine || 1,
-                column: node.location.startColumn || 0
+                column: node.location.startColumn || 0,
             };
         }
         const byteOffset = node.location.startOffset;
         if (typeof byteOffset !== 'number' || !this._context.sourceCode) {
-            return {line: 1, column: 0};
+            return { line: 1, column: 0 };
         }
         // Convert byte offset to char offset before walking the string
         const charOffset = this._byteOffsetToCharOffset(byteOffset);
@@ -292,10 +288,10 @@ const NodeUtils = {
                 column++;
             }
         }
-        return {line, column};
+        return { line, column };
     },
 
-    _toErrorAnnotation (row, column, message, source) {
+    _toErrorAnnotation(row, column, message, source) {
         if (typeof row === 'undefined' || row === null) {
             row = 0;
         } else {
@@ -309,9 +305,9 @@ const NodeUtils = {
             column: column,
             type: 'error',
             text: message,
-            source: this._truncateSource(source)
+            source: this._truncateSource(source),
         };
-    }
+    },
 };
 
 export default NodeUtils;

@@ -9,7 +9,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import { FormattedMessage } from 'react-intl';
-
 import styles from './classroom-modal.css';
 
 const StudentPreviousComment = ({ previousComment }) => {

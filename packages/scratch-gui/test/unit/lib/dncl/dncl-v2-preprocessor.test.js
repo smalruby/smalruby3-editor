@@ -12,7 +12,6 @@
 // implicit `end` insertion based on `⎿` count.
 //
 // See Issue #640.
-
 import { dnclV2Preprocess } from '../../../../src/lib/dncl/dncl-v2-preprocessor';
 
 describe('DNCLv2 pre-processor: line numbers', () => {
@@ -53,9 +52,7 @@ describe('DNCLv2 pre-processor: trailing colons', () => {
     });
 
     test('strips colon after そうでなくもし ... ならば', () => {
-        expect(dnclV2Preprocess('そうでなくもし a > 5 ならば:')).toBe(
-            'そうでなくもし a > 5 ならば',
-        );
+        expect(dnclV2Preprocess('そうでなくもし a > 5 ならば:')).toBe('そうでなくもし a > 5 ならば');
     });
 
     test('strips colon after の間繰り返す (and normalizes suffix)', () => {
@@ -91,15 +88,15 @@ describe('DNCLv2 pre-processor: 繰り返す suffix normalization', () => {
     });
 
     test('normalizes 増やしながら繰り返す to 増やしながら', () => {
-        expect(
-            dnclV2Preprocess('i を 1 から 10 まで 1 ずつ増やしながら繰り返す'),
-        ).toBe('i を 1 から 10 まで 1 ずつ増やしながら');
+        expect(dnclV2Preprocess('i を 1 から 10 まで 1 ずつ増やしながら繰り返す')).toBe(
+            'i を 1 から 10 まで 1 ずつ増やしながら',
+        );
     });
 
     test('normalizes 減らしながら繰り返す to 減らしながら', () => {
-        expect(
-            dnclV2Preprocess('i を 10 から 0 まで 1 ずつ減らしながら繰り返す'),
-        ).toBe('i を 10 から 0 まで 1 ずつ減らしながら');
+        expect(dnclV2Preprocess('i を 10 から 0 まで 1 ずつ減らしながら繰り返す')).toBe(
+            'i を 10 から 0 まで 1 ずつ減らしながら',
+        );
     });
 
     test('strips both colon and 繰り返す suffix', () => {
@@ -113,15 +110,11 @@ describe('DNCLv2 pre-processor: 繰り返す suffix normalization', () => {
 
 describe('DNCLv2 pre-processor: comma-separated multi-assignment', () => {
     test('splits two assignments on one line', () => {
-        expect(dnclV2Preprocess('hidari = 0 , migi = kazu - 1')).toBe(
-            'hidari = 0\nmigi = kazu - 1',
-        );
+        expect(dnclV2Preprocess('hidari = 0 , migi = kazu - 1')).toBe('hidari = 0\nmigi = kazu - 1');
     });
 
     test('splits three assignments on one line', () => {
-        expect(dnclV2Preprocess('a = 1 , b = 2 , c = 3')).toBe(
-            'a = 1\nb = 2\nc = 3',
-        );
+        expect(dnclV2Preprocess('a = 1 , b = 2 , c = 3')).toBe('a = 1\nb = 2\nc = 3');
     });
 
     test('preserves indent on each split line', () => {
@@ -209,11 +202,7 @@ describe('DNCLv2 pre-processor: ｜ / ⎿ indent markers (Phase 4)', () => {
     });
 
     test('double ｜ becomes 4 spaces of indent', () => {
-        const input = [
-            '(7) もし a > 0 ならば:',
-            '(8)  ｜ もし b > 0 ならば:',
-            '(9)  ｜  ｜ a = 1',
-        ].join('\n');
+        const input = ['(7) もし a > 0 ならば:', '(8)  ｜ もし b > 0 ならば:', '(9)  ｜  ｜ a = 1'].join('\n');
         const out = dnclV2Preprocess(input);
         expect(out).toContain('    a = 1');
         expect(out).not.toContain('｜');
@@ -231,11 +220,7 @@ describe('DNCLv2 pre-processor: ｜ / ⎿ indent markers (Phase 4)', () => {
     });
 
     test('double ⎿ closes 2 blocks at once', () => {
-        const input = [
-            '(7) もし a > 0 ならば:',
-            '(8)  ｜ もし b > 0 ならば:',
-            '(9)  ⎿  ⎿ a = 1',
-        ].join('\n');
+        const input = ['(7) もし a > 0 ならば:', '(8)  ｜ もし b > 0 ならば:', '(9)  ⎿  ⎿ a = 1'].join('\n');
         const out = dnclV2Preprocess(input);
         const lines = out.split('\n');
         expect(lines).toEqual([
@@ -248,27 +233,17 @@ describe('DNCLv2 pre-processor: ｜ / ⎿ indent markers (Phase 4)', () => {
     });
 
     test('⎿ on while loop emits を繰り返す', () => {
-        const input = [
-            '(7) a > 0 の間繰り返す:',
-            '(8)  ⎿ a = a - 1',
-        ].join('\n');
+        const input = ['(7) a > 0 の間繰り返す:', '(8)  ⎿ a = a - 1'].join('\n');
         const out = dnclV2Preprocess(input);
         const lines = out.split('\n');
         expect(lines).toEqual(['a > 0 の間', '  a = a - 1', 'を繰り返す']);
     });
 
     test('⎿ on for loop emits を繰り返す', () => {
-        const input = [
-            '(1) i を 1 から 10 まで 1 ずつ増やしながら繰り返す:',
-            '(2)  ⎿ 表示する(i)',
-        ].join('\n');
+        const input = ['(1) i を 1 から 10 まで 1 ずつ増やしながら繰り返す:', '(2)  ⎿ 表示する(i)'].join('\n');
         const out = dnclV2Preprocess(input);
         const lines = out.split('\n');
-        expect(lines).toEqual([
-            'i を 1 から 10 まで 1 ずつ増やしながら',
-            '  表示する(i)',
-            'を繰り返す',
-        ]);
+        expect(lines).toEqual(['i を 1 から 10 まで 1 ずつ増やしながら', '  表示する(i)', 'を繰り返す']);
     });
 
     test('⎿ on function definition emits と定義する', () => {
@@ -342,11 +317,7 @@ describe('DNCLv2 pre-processor: ｜ / ⎿ indent markers (Phase 4)', () => {
     });
 
     test('mixed ASCII `|` and ⎿ markers (typical auto-correct output)', () => {
-        const input = [
-            '(7) もし a > 0 ならば:',
-            '(8)  | もし b > 0 ならば:',
-            '(9)  ⎿  ⎿ a = 1',
-        ].join('\n');
+        const input = ['(7) もし a > 0 ならば:', '(8)  | もし b > 0 ならば:', '(9)  ⎿  ⎿ a = 1'].join('\n');
         const out = dnclV2Preprocess(input);
         const lines = out.split('\n');
         expect(lines).toEqual([
@@ -384,10 +355,7 @@ describe('DNCLv2 pre-processor: function definition (Phase 5)', () => {
     });
 
     test('full DNCLv2 function definition with body and ⎿', () => {
-        const input = [
-            '(1) calc(x) を定義する:',
-            '(2)  ⎿ 返す x + 1',
-        ].join('\n');
+        const input = ['(1) calc(x) を定義する:', '(2)  ⎿ 返す x + 1'].join('\n');
         const out = dnclV2Preprocess(input);
         const lines = out.split('\n');
         expect(lines).toEqual(['関数 calc(x)', '  返す x + 1', 'と定義する']);
@@ -400,29 +368,18 @@ describe('DNCLv2 pre-processor: function definition (Phase 5)', () => {
 
     test('does NOT match `を定義する` mid-line (only end-of-line)', () => {
         // `a = "calc(x) を定義する"` should not be touched
-        expect(dnclV2Preprocess('a = "calc(x) を定義する"')).toBe(
-            'a = "calc(x) を定義する"',
-        );
+        expect(dnclV2Preprocess('a = "calc(x) を定義する"')).toBe('a = "calc(x) を定義する"');
     });
 });
 
 describe('DNCLv2 pre-processor: idempotency', () => {
     test('Smalruby DNCL passes through unchanged', () => {
-        const src = [
-            'a = 1',
-            'もし a > 0 ならば',
-            '  表示する(a)',
-            'を実行する',
-        ].join('\n');
+        const src = ['a = 1', 'もし a > 0 ならば', '  表示する(a)', 'を実行する'].join('\n');
         expect(dnclV2Preprocess(src)).toBe(src);
     });
 
     test('running the pre-processor twice gives the same result', () => {
-        const src = [
-            '(1) Data = [1, 2, 3]',
-            '(2) もし a > 0 ならば:',
-            '(3)  ⎿ 表示する(a)',
-        ].join('\n');
+        const src = ['(1) Data = [1, 2, 3]', '(2) もし a > 0 ならば:', '(3)  ⎿ 表示する(a)'].join('\n');
         const once = dnclV2Preprocess(src);
         const twice = dnclV2Preprocess(once);
         expect(twice).toBe(once);

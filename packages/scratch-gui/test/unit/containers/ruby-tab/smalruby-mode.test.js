@@ -1,4 +1,4 @@
-import {smalrubyLanguageConfiguration} from '../../../../src/containers/ruby-tab/smalruby-mode';
+import { smalrubyLanguageConfiguration } from '../../../../src/containers/ruby-tab/smalruby-mode';
 
 describe('smalrubyLanguageConfiguration', () => {
     describe('indentationRules', () => {
@@ -31,10 +31,10 @@ describe('smalrubyLanguageConfiguration', () => {
                 'rescue',
                 'ensure',
                 '  if x > 0',
-                '  def foo'
+                '  def foo',
             ];
 
-            shouldIncrease.forEach(line => {
+            shouldIncrease.forEach((line) => {
                 test(`should match: "${line}"`, () => {
                     expect(increasePattern.test(line)).toBe(true);
                 });
@@ -46,10 +46,10 @@ describe('smalrubyLanguageConfiguration', () => {
                 'move(10)',
                 'puts "hello"',
                 'if x > 0 then y end',
-                '# if comment'
+                '# if comment',
             ];
 
-            shouldNotIncrease.forEach(line => {
+            shouldNotIncrease.forEach((line) => {
                 test(`should not match: "${line}"`, () => {
                     expect(increasePattern.test(line)).toBe(false);
                 });
@@ -69,10 +69,10 @@ describe('smalrubyLanguageConfiguration', () => {
                 '  end',
                 '  else',
                 '  elsif x > 0',
-                '  when 1'
+                '  when 1',
             ];
 
-            shouldDecrease.forEach(line => {
+            shouldDecrease.forEach((line) => {
                 test(`should match: "${line}"`, () => {
                     expect(decreasePattern.test(line)).toBe(true);
                 });
@@ -94,10 +94,10 @@ describe('smalrubyLanguageConfiguration', () => {
                 'when_receive("message")',
                 // "when" alone (without trailing space) should not
                 // trigger dedent to avoid false positives while typing
-                'when'
+                'when',
             ];
 
-            shouldNotDecrease.forEach(line => {
+            shouldNotDecrease.forEach((line) => {
                 test(`should not match: "${line}"`, () => {
                     expect(decreasePattern.test(line)).toBe(false);
                 });

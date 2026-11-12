@@ -12,33 +12,30 @@ import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FormattedMessage, defineMessages, useIntl } from 'react-intl';
-
-import Spinner from '../spinner/spinner.jsx';
-import ErrorDisplay from './error-display.jsx';
-import MeshGroupLimitField, { meshGroupLimitMessages } from './mesh-group-limit-field.jsx';
-
 import {
     MAX_ASSIGNMENT_PAGES,
     MAX_ASSIGNMENT_PAGE_TEXT_LENGTH,
     normalizeMeshGroupLimit,
 } from '../../lib/classroom-assignment-utils.js';
-
+import Spinner from '../spinner/spinner.jsx';
 import styles from './classroom-modal.css';
+import ErrorDisplay from './error-display.jsx';
+import MeshGroupLimitField, { meshGroupLimitMessages } from './mesh-group-limit-field.jsx';
 
 const messages = defineMessages({
     peerViewNone: {
         defaultMessage: "Don't show",
-        description: 'Assignment editor: peer view option — students cannot see classmates\' work',
+        description: "Assignment editor: peer view option — students cannot see classmates' work",
         id: 'gui.classroom.assignmentEditor.peerViewNone',
     },
     peerViewAlways: {
         defaultMessage: 'Anytime',
-        description: 'Assignment editor: peer view option — students can always see classmates\' work',
+        description: "Assignment editor: peer view option — students can always see classmates' work",
         id: 'gui.classroom.assignmentEditor.peerViewAlways',
     },
     peerViewAfterSubmit: {
         defaultMessage: 'After submitting their own',
-        description: 'Assignment editor: peer view option — students see classmates\' work once they submit',
+        description: "Assignment editor: peer view option — students see classmates' work once they submit",
         id: 'gui.classroom.assignmentEditor.peerViewAfterSubmit',
     },
     advancedSummary: {
@@ -600,7 +597,12 @@ const TeacherAssignmentEditor = ({
                                     {/* Peer view (#1208): students see classmates' submission
                                         images (never the .sb3) to learn from each other. */}
                                     {onChangePeerView && (
-                                        <div className={classNames(styles.assignmentPeerView, settingClass('peerView'))}>
+                                        <div
+                                            className={classNames(
+                                                styles.assignmentPeerView,
+                                                settingClass('peerView'),
+                                            )}
+                                        >
                                             <label className={styles.assignmentPeerViewRow}>
                                                 <span className={styles.assignmentStartFromPreviousLabel}>
                                                     <FormattedMessage

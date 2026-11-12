@@ -26,8 +26,7 @@ describe('RubyGenerator/SmalrubyRuby', () => {
                 fields: { METHOD: { value: 'reverse' } },
                 next: null,
             };
-            const result =
-                RubyGenerator.smalrubyRuby_stringMethod(block);
+            const result = RubyGenerator.smalrubyRuby_stringMethod(block);
             expect(result).toEqual('"hello".reverse\n');
         });
 
@@ -42,8 +41,7 @@ describe('RubyGenerator/SmalrubyRuby', () => {
                 inputs: { ARG1: {} },
                 next: null,
             };
-            const result =
-                RubyGenerator.smalrubyRuby_stringMethod(block);
+            const result = RubyGenerator.smalrubyRuby_stringMethod(block);
             expect(result).toEqual('"hello".delete("l")\n');
         });
 
@@ -62,8 +60,7 @@ describe('RubyGenerator/SmalrubyRuby', () => {
                 inputs: { ARG1: {}, ARG2: {} },
                 next: null,
             };
-            const result =
-                RubyGenerator.smalrubyRuby_stringMethod(block);
+            const result = RubyGenerator.smalrubyRuby_stringMethod(block);
             expect(result).toEqual('"hello".gsub("l", "r")\n');
         });
 
@@ -78,8 +75,7 @@ describe('RubyGenerator/SmalrubyRuby', () => {
                 },
                 next: null,
             };
-            const result =
-                RubyGenerator.smalrubyRuby_stringMethod(block);
+            const result = RubyGenerator.smalrubyRuby_stringMethod(block);
             expect(result).toEqual('name.reverse!\n');
         });
 
@@ -94,8 +90,7 @@ describe('RubyGenerator/SmalrubyRuby', () => {
                 inputs: { ARG1: {} },
                 next: null,
             };
-            const result =
-                RubyGenerator.smalrubyRuby_stringMethod(block);
+            const result = RubyGenerator.smalrubyRuby_stringMethod(block);
             expect(result).toEqual('"Jimmy" * 5\n');
         });
     });
@@ -103,8 +98,7 @@ describe('RubyGenerator/SmalrubyRuby', () => {
     describe('returnValue', () => {
         test('should return _rv_ placeholder', () => {
             const block = { opcode: 'smalrubyRuby_returnValue' };
-            const result =
-                RubyGenerator.smalrubyRuby_returnValue(block);
+            const result = RubyGenerator.smalrubyRuby_returnValue(block);
             expect(result[0]).toEqual('_rv_');
         });
     });
@@ -114,34 +108,26 @@ describe('RubyGenerator/SmalrubyRuby', () => {
             const block = {
                 opcode: 'smalrubyRuby_returnValueTruthy',
             };
-            const result =
-                RubyGenerator.smalrubyRuby_returnValueTruthy(block);
+            const result = RubyGenerator.smalrubyRuby_returnValueTruthy(block);
             expect(result[0]).toEqual('_rv_truthy_');
         });
     });
 
     describe('finishTargets (post-processing)', () => {
         test('should inline _rv_ with preceding method call', () => {
-            const input =
-                '  "Jimmy".reverse\n  say(_rv_, 2)\n';
+            const input = '  "Jimmy".reverse\n  say(_rv_, 2)\n';
             const result = RubyGenerator.finishTargets(input, {});
-            expect(result).toEqual(
-                '  say("Jimmy".reverse, 2)\n',
-            );
+            expect(result).toEqual('  say("Jimmy".reverse, 2)\n');
         });
 
         test('should inline _rv_ with gsub (args)', () => {
-            const input =
-                '  "hello".gsub("l", "r")\n  say(_rv_, 2)\n';
+            const input = '  "hello".gsub("l", "r")\n  say(_rv_, 2)\n';
             const result = RubyGenerator.finishTargets(input, {});
-            expect(result).toEqual(
-                '  say("hello".gsub("l", "r"), 2)\n',
-            );
+            expect(result).toEqual('  say("hello".gsub("l", "r"), 2)\n');
         });
 
         test('should inline _rv_truthy_ with empty?', () => {
-            const input =
-                '  name.empty?\n  if _rv_truthy_\n';
+            const input = '  name.empty?\n  if _rv_truthy_\n';
             const result = RubyGenerator.finishTargets(input, {});
             expect(result).toEqual('  if name.empty?\n');
         });
@@ -149,28 +135,23 @@ describe('RubyGenerator/SmalrubyRuby', () => {
         test('should not inline when no _rv_ reference follows', () => {
             const input = '  "hello".reverse\n  say("world")\n';
             const result = RubyGenerator.finishTargets(input, {});
-            expect(result).toEqual(
-                '  "hello".reverse\n  say("world")\n',
-            );
+            expect(result).toEqual('  "hello".reverse\n  say("world")\n');
         });
 
         test('should handle array method max', () => {
-            const input =
-                '  ticket.max\n  say(_rv_, 2)\n';
+            const input = '  ticket.max\n  say(_rv_, 2)\n';
             const result = RubyGenerator.finishTargets(input, {});
             expect(result).toEqual('  say(ticket.max, 2)\n');
         });
 
         test('should handle hash method keys', () => {
-            const input =
-                '  books.keys\n  say(_rv_)\n';
+            const input = '  books.keys\n  say(_rv_)\n';
             const result = RubyGenerator.finishTargets(input, {});
             expect(result).toEqual('  say(books.keys)\n');
         });
 
         test('should inline * operator', () => {
-            const input =
-                '  "Jimmy" * 5\n  say(_rv_, 2)\n';
+            const input = '  "Jimmy" * 5\n  say(_rv_, 2)\n';
             const result = RubyGenerator.finishTargets(input, {});
             expect(result).toEqual('  say("Jimmy" * 5, 2)\n');
         });

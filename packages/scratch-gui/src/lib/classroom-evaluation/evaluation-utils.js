@@ -61,7 +61,11 @@ const toCsv = (rows) => `${'\ufeff'}${rows.map((row) => row.map(csvField).join('
 const buildEvaluationCsv = (lessons, seats, getCell) => {
     const header = ['出席番号'];
     for (const lesson of lessons) {
-        header.push(`${lesson.assignmentName}:提出`, `${lesson.assignmentName}:評価`, `${lesson.assignmentName}:評価理由`);
+        header.push(
+            `${lesson.assignmentName}:提出`,
+            `${lesson.assignmentName}:評価`,
+            `${lesson.assignmentName}:評価理由`,
+        );
     }
     header.push('総合評価');
 
@@ -130,4 +134,13 @@ const DEFAULT_RUBRIC_AXES = [
     { name: '工夫', description: '課題の要件を超えた自分なりの工夫・追加がある' },
 ];
 
-export { GRADE_ORDER, combineOverall, buildEvaluationCsv, buildAuditCsv, chunk, csvField, toCsv, DEFAULT_RUBRIC_AXES };
+export {
+    GRADE_ORDER,
+    combineOverall,
+    buildEvaluationCsv,
+    buildAuditCsv,
+    chunk,
+    csvField,
+    toCsv,
+    DEFAULT_RUBRIC_AXES,
+};

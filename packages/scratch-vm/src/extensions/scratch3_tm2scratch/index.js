@@ -182,7 +182,7 @@ const loadSpeechCommands = () => {
 // ---------------------------------------------------------------------------
 
 class Scratch3TM2ScratchBlocks {
-    constructor (runtime) {
+    constructor(runtime) {
         this.runtime = runtime;
         this.locale = this._getLocale();
 
@@ -207,14 +207,14 @@ class Scratch3TM2ScratchBlocks {
 
         this.runtime.ioDevices.video.enableVideo();
 
-        this._devices = [{text: 'default', value: ''}];
+        this._devices = [{ text: 'default', value: '' }];
         try {
-            navigator.mediaDevices.enumerateDevices().then(devices => {
+            navigator.mediaDevices.enumerateDevices().then((devices) => {
                 for (const device of devices) {
                     if (device.kind === 'videoinput') {
                         this._devices.push({
                             text: device.label,
-                            value: device.deviceId
+                            value: device.deviceId,
                         });
                     }
                 }
@@ -228,7 +228,7 @@ class Scratch3TM2ScratchBlocks {
     // Block definitions
     // -----------------------------------------------------------------------
 
-    getInfo () {
+    getInfo() {
         this.locale = this._getLocale();
 
         return {
@@ -245,9 +245,9 @@ class Scratch3TM2ScratchBlocks {
                         LABEL: {
                             type: ArgumentType.STRING,
                             menu: 'received_menu',
-                            defaultValue: Message.any[this.locale]
-                        }
-                    }
+                            defaultValue: Message.any[this.locale],
+                        },
+                    },
                 },
                 {
                     opcode: 'isImageLabelDetected',
@@ -257,9 +257,9 @@ class Scratch3TM2ScratchBlocks {
                         LABEL: {
                             type: ArgumentType.STRING,
                             menu: 'image_labels_menu',
-                            defaultValue: Message.any_without_of[this.locale]
-                        }
-                    }
+                            defaultValue: Message.any_without_of[this.locale],
+                        },
+                    },
                 },
                 {
                     opcode: 'imageLabelConfidence',
@@ -270,9 +270,9 @@ class Scratch3TM2ScratchBlocks {
                         LABEL: {
                             type: ArgumentType.STRING,
                             menu: 'image_labels_without_any_menu',
-                            defaultValue: ''
-                        }
-                    }
+                            defaultValue: '',
+                        },
+                    },
                 },
                 {
                     opcode: 'setImageClassificationModelURL',
@@ -281,19 +281,19 @@ class Scratch3TM2ScratchBlocks {
                     arguments: {
                         URL: {
                             type: ArgumentType.STRING,
-                            defaultValue: Message.image_classification_sample_model_url[this.locale]
-                        }
-                    }
+                            defaultValue: Message.image_classification_sample_model_url[this.locale],
+                        },
+                    },
                 },
                 {
                     opcode: 'classifyVideoImageBlock',
                     text: Message.classify_image[this.locale],
-                    blockType: BlockType.COMMAND
+                    blockType: BlockType.COMMAND,
                 },
                 {
                     opcode: 'getImageLabel',
                     text: Message.image_label[this.locale],
-                    blockType: BlockType.REPORTER
+                    blockType: BlockType.REPORTER,
                 },
                 '---',
                 // --- Sound classification ---
@@ -305,9 +305,9 @@ class Scratch3TM2ScratchBlocks {
                         LABEL: {
                             type: ArgumentType.STRING,
                             menu: 'received_sound_label_menu',
-                            defaultValue: Message.any[this.locale]
-                        }
-                    }
+                            defaultValue: Message.any[this.locale],
+                        },
+                    },
                 },
                 {
                     opcode: 'isSoundLabelDetected',
@@ -317,9 +317,9 @@ class Scratch3TM2ScratchBlocks {
                         LABEL: {
                             type: ArgumentType.STRING,
                             menu: 'sound_labels_menu',
-                            defaultValue: Message.any_without_of[this.locale]
-                        }
-                    }
+                            defaultValue: Message.any_without_of[this.locale],
+                        },
+                    },
                 },
                 {
                     opcode: 'soundLabelConfidence',
@@ -330,9 +330,9 @@ class Scratch3TM2ScratchBlocks {
                         LABEL: {
                             type: ArgumentType.STRING,
                             menu: 'sound_labels_without_any_menu',
-                            defaultValue: ''
-                        }
-                    }
+                            defaultValue: '',
+                        },
+                    },
                 },
                 {
                     opcode: 'setSoundClassificationModelURL',
@@ -341,14 +341,14 @@ class Scratch3TM2ScratchBlocks {
                     arguments: {
                         URL: {
                             type: ArgumentType.STRING,
-                            defaultValue: Message.sound_classification_sample_model_url[this.locale]
-                        }
-                    }
+                            defaultValue: Message.sound_classification_sample_model_url[this.locale],
+                        },
+                    },
                 },
                 {
                     opcode: 'getSoundLabel',
                     text: Message.sound_label[this.locale],
-                    blockType: BlockType.REPORTER
+                    blockType: BlockType.REPORTER,
                 },
                 '---',
                 // --- Configuration ---
@@ -360,9 +360,9 @@ class Scratch3TM2ScratchBlocks {
                         CLASSIFICATION_STATE: {
                             type: ArgumentType.STRING,
                             menu: 'classification_menu',
-                            defaultValue: 'off'
-                        }
-                    }
+                            defaultValue: 'off',
+                        },
+                    },
                 },
                 {
                     opcode: 'setClassificationInterval',
@@ -372,9 +372,9 @@ class Scratch3TM2ScratchBlocks {
                         CLASSIFICATION_INTERVAL: {
                             type: ArgumentType.STRING,
                             menu: 'classification_interval_menu',
-                            defaultValue: '1'
-                        }
-                    }
+                            defaultValue: '1',
+                        },
+                    },
                 },
                 {
                     opcode: 'setConfidenceThreshold',
@@ -383,15 +383,15 @@ class Scratch3TM2ScratchBlocks {
                     arguments: {
                         CONFIDENCE_THRESHOLD: {
                             type: ArgumentType.NUMBER,
-                            defaultValue: 0.5
-                        }
-                    }
+                            defaultValue: 0.5,
+                        },
+                    },
                 },
                 {
                     opcode: 'getConfidenceThreshold',
                     text: Message.get_confidence_threshold[this.locale],
                     blockType: BlockType.REPORTER,
-                    disableMonitor: true
+                    disableMonitor: true,
                 },
                 {
                     opcode: 'videoToggle',
@@ -401,9 +401,9 @@ class Scratch3TM2ScratchBlocks {
                         VIDEO_STATE: {
                             type: ArgumentType.STRING,
                             menu: 'video_menu',
-                            defaultValue: 'off'
-                        }
-                    }
+                            defaultValue: 'off',
+                        },
+                    },
                 },
                 {
                     opcode: 'switchCamera',
@@ -413,44 +413,44 @@ class Scratch3TM2ScratchBlocks {
                         DEVICE: {
                             type: ArgumentType.STRING,
                             defaultValue: '',
-                            menu: 'mediadevices'
-                        }
-                    }
-                }
+                            menu: 'mediadevices',
+                        },
+                    },
+                },
             ],
             menus: {
                 received_menu: {
                     acceptReporters: true,
-                    items: 'getLabelsMenu'
+                    items: 'getLabelsMenu',
                 },
                 image_labels_menu: {
                     acceptReporters: true,
-                    items: 'getLabelsWithAnyWithoutOfMenu'
+                    items: 'getLabelsWithAnyWithoutOfMenu',
                 },
                 image_labels_without_any_menu: {
                     acceptReporters: true,
-                    items: 'getLabelsWithoutAnyMenu'
+                    items: 'getLabelsWithoutAnyMenu',
                 },
                 received_sound_label_menu: {
                     acceptReporters: true,
-                    items: 'getSoundLabelsWithoutBackgroundMenu'
+                    items: 'getSoundLabelsWithoutBackgroundMenu',
                 },
                 sound_labels_menu: {
                     acceptReporters: true,
-                    items: 'getSoundLabelsWithoutBackgroundWithAnyWithoutOfMenu'
+                    items: 'getSoundLabelsWithoutBackgroundWithAnyWithoutOfMenu',
                 },
                 sound_labels_without_any_menu: {
                     acceptReporters: true,
-                    items: 'getSoundLabelsWithoutAnyMenu'
+                    items: 'getSoundLabelsWithoutAnyMenu',
                 },
                 video_menu: this._getVideoMenu(),
                 classification_interval_menu: this._getClassificationIntervalMenu(),
                 classification_menu: this._getClassificationMenu(),
                 mediadevices: {
                     acceptReporters: true,
-                    items: 'getDevices'
-                }
-            }
+                    items: 'getDevices',
+                },
+            },
         };
     }
 
@@ -458,7 +458,7 @@ class Scratch3TM2ScratchBlocks {
     // Block handlers — Image
     // -----------------------------------------------------------------------
 
-    whenReceived (args) {
+    whenReceived(args) {
         const label = this.getImageLabel();
         if (args.LABEL === Message.any[this.locale]) {
             return label !== '';
@@ -466,7 +466,7 @@ class Scratch3TM2ScratchBlocks {
         return label === args.LABEL;
     }
 
-    isImageLabelDetected (args) {
+    isImageLabelDetected(args) {
         const label = this.getImageLabel();
         if (args.LABEL === Message.any_without_of[this.locale]) {
             return label !== '';
@@ -474,28 +474,27 @@ class Scratch3TM2ScratchBlocks {
         return label === args.LABEL;
     }
 
-    imageLabelConfidence (args) {
+    imageLabelConfidence(args) {
         if (args.LABEL === '') return 0;
-        const entry = this._imageProbableLabels.find(e => e.label === args.LABEL);
+        const entry = this._imageProbableLabels.find((e) => e.label === args.LABEL);
         return entry ? entry.confidence : 0;
     }
 
-    setImageClassificationModelURL (args) {
+    setImageClassificationModelURL(args) {
         return this._loadImageModel(args.URL);
     }
 
-    classifyVideoImageBlock (_args, util) {
+    classifyVideoImageBlock(_args, util) {
         if (this._isImageClassifying) {
             if (util) util.yield();
             return;
         }
         const video = this._getVideoElement();
         if (!video) return;
-        return this._classifyImage(video)
-            .then(result => JSON.stringify(result));
+        return this._classifyImage(video).then((result) => JSON.stringify(result));
     }
 
-    getImageLabel () {
+    getImageLabel() {
         if (this._imageProbableLabels.length === 0) return '';
         const best = this._getMostProbable(this._imageProbableLabels);
         return best.confidence >= this.confidenceThreshold ? best.label : '';
@@ -505,7 +504,7 @@ class Scratch3TM2ScratchBlocks {
     // Block handlers — Sound
     // -----------------------------------------------------------------------
 
-    whenReceivedSoundLabel (args) {
+    whenReceivedSoundLabel(args) {
         if (!this._soundClassifierEnabled) return false;
         const label = this.getSoundLabel();
         if (args.LABEL === Message.any[this.locale]) {
@@ -514,7 +513,7 @@ class Scratch3TM2ScratchBlocks {
         return label === args.LABEL;
     }
 
-    isSoundLabelDetected (args) {
+    isSoundLabelDetected(args) {
         const label = this.getSoundLabel();
         if (args.LABEL === Message.any_without_of[this.locale]) {
             return label !== '';
@@ -522,18 +521,18 @@ class Scratch3TM2ScratchBlocks {
         return label === args.LABEL;
     }
 
-    soundLabelConfidence (args) {
+    soundLabelConfidence(args) {
         if (this._soundProbableLabels.length === 0) return 0;
         if (args.LABEL === '') return 0;
-        const entry = this._soundProbableLabels.find(e => e.label === args.LABEL);
+        const entry = this._soundProbableLabels.find((e) => e.label === args.LABEL);
         return entry ? entry.confidence : 0;
     }
 
-    setSoundClassificationModelURL (args) {
+    setSoundClassificationModelURL(args) {
         return this._loadSoundModel(args.URL);
     }
 
-    getSoundLabel () {
+    getSoundLabel() {
         if (this._soundProbableLabels.length === 0) return '';
         const best = this._getMostProbable(this._soundProbableLabels);
         return best.confidence >= this.confidenceThreshold ? best.label : '';
@@ -543,7 +542,7 @@ class Scratch3TM2ScratchBlocks {
     // Block handlers — Configuration
     // -----------------------------------------------------------------------
 
-    toggleClassification (args) {
+    toggleClassification(args) {
         const state = args.CLASSIFICATION_STATE;
         if (this._timer) {
             clearInterval(this._timer);
@@ -558,7 +557,7 @@ class Scratch3TM2ScratchBlocks {
         }
     }
 
-    setClassificationInterval (args) {
+    setClassificationInterval(args) {
         if (this._timer) {
             clearInterval(this._timer);
         }
@@ -568,17 +567,17 @@ class Scratch3TM2ScratchBlocks {
         }, this._minInterval);
     }
 
-    setConfidenceThreshold (args) {
+    setConfidenceThreshold(args) {
         let threshold = Cast.toNumber(args.CONFIDENCE_THRESHOLD);
         threshold = MathUtil.clamp(threshold, 0, 1);
         this.confidenceThreshold = threshold;
     }
 
-    getConfidenceThreshold () {
+    getConfidenceThreshold() {
         return this.confidenceThreshold;
     }
 
-    videoToggle (args) {
+    videoToggle(args) {
         const state = args.VIDEO_STATE;
         if (state === 'off') {
             this.runtime.ioDevices.video.disableVideo();
@@ -588,31 +587,29 @@ class Scratch3TM2ScratchBlocks {
         }
     }
 
-    switchCamera (args) {
+    switchCamera(args) {
         if (args.DEVICE === '') return;
         const provider = this.runtime.ioDevices.video.provider;
         if (!provider || !provider._track) return;
 
         provider._track.stop();
         const deviceId = args.DEVICE;
-        navigator.mediaDevices
-            .getUserMedia({audio: false, video: {deviceId}})
-            .then(stream => {
-                try {
-                    provider._video.srcObject = stream;
-                } catch (_e) {
-                    provider._video.src = window.URL.createObjectURL(stream);
-                }
-                provider._video.play();
-                provider._track = stream.getTracks()[0];
-            });
+        navigator.mediaDevices.getUserMedia({ audio: false, video: { deviceId } }).then((stream) => {
+            try {
+                provider._video.srcObject = stream;
+            } catch (_e) {
+                provider._video.src = window.URL.createObjectURL(stream);
+            }
+            provider._video.play();
+            provider._track = stream.getTracks()[0];
+        });
     }
 
     // -----------------------------------------------------------------------
     // Dynamic menus
     // -----------------------------------------------------------------------
 
-    getLabelsMenu () {
+    getLabelsMenu() {
         const items = [Message.any[this.locale]];
         if (this._imageMetadata) {
             return items.concat(this._imageMetadata.labels);
@@ -620,7 +617,7 @@ class Scratch3TM2ScratchBlocks {
         return items;
     }
 
-    getLabelsWithAnyWithoutOfMenu () {
+    getLabelsWithAnyWithoutOfMenu() {
         const items = [Message.any_without_of[this.locale]];
         if (this._imageMetadata) {
             return items.concat(this._imageMetadata.labels);
@@ -628,37 +625,33 @@ class Scratch3TM2ScratchBlocks {
         return items;
     }
 
-    getLabelsWithoutAnyMenu () {
+    getLabelsWithoutAnyMenu() {
         if (this._imageMetadata) {
             return [''].concat(this._imageMetadata.labels);
         }
         return [''];
     }
 
-    getSoundLabelsWithoutBackgroundMenu () {
+    getSoundLabelsWithoutBackgroundMenu() {
         const items = [Message.any[this.locale]];
         if (!this._soundMetadata) return items;
-        return items.concat(
-            this._soundMetadata.wordLabels.filter(l => l !== BACKGROUND_NOISE)
-        );
+        return items.concat(this._soundMetadata.wordLabels.filter((l) => l !== BACKGROUND_NOISE));
     }
 
-    getSoundLabelsWithoutBackgroundWithAnyWithoutOfMenu () {
+    getSoundLabelsWithoutBackgroundWithAnyWithoutOfMenu() {
         const items = [Message.any_without_of[this.locale]];
         if (!this._soundMetadata) return items;
-        return items.concat(
-            this._soundMetadata.wordLabels.filter(l => l !== BACKGROUND_NOISE)
-        );
+        return items.concat(this._soundMetadata.wordLabels.filter((l) => l !== BACKGROUND_NOISE));
     }
 
-    getSoundLabelsWithoutAnyMenu () {
+    getSoundLabelsWithoutAnyMenu() {
         if (this._soundMetadata) {
             return this._soundMetadata.wordLabels;
         }
         return [''];
     }
 
-    getDevices () {
+    getDevices() {
         return this._devices;
     }
 
@@ -666,18 +659,18 @@ class Scratch3TM2ScratchBlocks {
     // Internal helpers
     // -----------------------------------------------------------------------
 
-    _getLocale () {
+    _getLocale() {
         const locale = formatMessage.setup().locale;
         if (AvailableLocales.includes(locale)) return locale;
         return 'en';
     }
 
-    _getVideoElement () {
+    _getVideoElement() {
         const provider = this.runtime.ioDevices.video.provider;
         return provider ? provider._video : null;
     }
 
-    _getMostProbable (probabilities) {
+    _getMostProbable(probabilities) {
         let best = probabilities[0];
         for (let i = 1; i < probabilities.length; i++) {
             if (probabilities[i].confidence > best.confidence) {
@@ -687,30 +680,30 @@ class Scratch3TM2ScratchBlocks {
         return best;
     }
 
-    _getVideoMenu () {
+    _getVideoMenu() {
         return [
-            {text: Message.off[this.locale], value: 'off'},
-            {text: Message.on[this.locale], value: 'on'},
-            {text: Message.video_on_flipped[this.locale], value: 'on-flipped'}
+            { text: Message.off[this.locale], value: 'off' },
+            { text: Message.on[this.locale], value: 'on' },
+            { text: Message.video_on_flipped[this.locale], value: 'on-flipped' },
         ];
     }
 
-    _getClassificationIntervalMenu () {
+    _getClassificationIntervalMenu() {
         return {
             acceptReporters: true,
             items: [
-                {text: '1', value: '1'},
-                {text: '0.5', value: '0.5'},
-                {text: '0.2', value: '0.2'},
-                {text: '0.1', value: '0.1'}
-            ]
+                { text: '1', value: '1' },
+                { text: '0.5', value: '0.5' },
+                { text: '0.2', value: '0.2' },
+                { text: '0.1', value: '0.1' },
+            ],
         };
     }
 
-    _getClassificationMenu () {
+    _getClassificationMenu() {
         return [
-            {text: Message.off[this.locale], value: 'off'},
-            {text: Message.on[this.locale], value: 'on'}
+            { text: Message.off[this.locale], value: 'off' },
+            { text: Message.on[this.locale], value: 'on' },
         ];
     }
 
@@ -718,7 +711,7 @@ class Scratch3TM2ScratchBlocks {
     // Model loading & classification
     // -----------------------------------------------------------------------
 
-    async _loadImageModel (url) {
+    async _loadImageModel(url) {
         try {
             const tf = await loadTf();
             await tf.ready();
@@ -730,8 +723,7 @@ class Scratch3TM2ScratchBlocks {
             if (
                 url === this._imageModelUrl &&
                 this._imageMetadata &&
-                new Date(metadata.timeStamp).getTime() ===
-                    new Date(this._imageMetadata.timeStamp).getTime()
+                new Date(metadata.timeStamp).getTime() === new Date(this._imageMetadata.timeStamp).getTime()
             ) {
                 log.info(`Image model already loaded: ${url}`);
                 return;
@@ -756,7 +748,7 @@ class Scratch3TM2ScratchBlocks {
         }
     }
 
-    async _loadSoundModel (url) {
+    async _loadSoundModel(url) {
         try {
             const speechCommands = await loadSpeechCommands();
             const timestamp = Date.now();
@@ -766,8 +758,7 @@ class Scratch3TM2ScratchBlocks {
             if (
                 url === this._soundModelUrl &&
                 this._soundMetadata &&
-                new Date(metadata.timeStamp).getTime() ===
-                    new Date(this._soundMetadata.timeStamp).getTime()
+                new Date(metadata.timeStamp).getTime() === new Date(this._soundMetadata.timeStamp).getTime()
             ) {
                 log.info(`Sound model already loaded: ${url}`);
                 return;
@@ -782,7 +773,7 @@ class Scratch3TM2ScratchBlocks {
                 'BROWSER_FFT',
                 undefined,
                 `${url}model.json`,
-                `${url}metadata.json`
+                `${url}metadata.json`,
             );
             await recognizer.ensureModelLoaded();
 
@@ -798,14 +789,14 @@ class Scratch3TM2ScratchBlocks {
         }
     }
 
-    _classifyVideoImage () {
+    _classifyVideoImage() {
         if (this._isImageClassifying) return;
         const video = this._getVideoElement();
         if (!video) return;
         this._classifyImage(video);
     }
 
-    async _classifyImage (input) {
+    async _classifyImage(input) {
         if (!this._imageMetadata || !this._imageClassifier) {
             this._isImageClassifying = false;
             return [];
@@ -829,7 +820,7 @@ class Scratch3TM2ScratchBlocks {
             const labels = this._imageMetadata.labels || [];
             const result = Array.from(data).map((confidence, index) => ({
                 label: labels[index] || String(index),
-                confidence
+                confidence,
             }));
 
             this._imageProbableLabels = result;
@@ -845,20 +836,23 @@ class Scratch3TM2ScratchBlocks {
         }
     }
 
-    _startSoundClassification () {
+    _startSoundClassification() {
         if (!this._soundClassifier) return;
         const wordLabels = this._soundClassifier.wordLabels();
-        this._soundClassifier.listen(result => {
-            if (!this._soundClassifierEnabled || !result || !result.scores) return;
-            const scores = Array.from(result.scores);
-            this._soundProbableLabels = scores.map((confidence, index) => ({
-                label: wordLabels[index],
-                confidence
-            }));
-            setTimeout(() => {
-                this._soundProbableLabels = [];
-            }, this._resultTTL);
-        }, {probabilityThreshold: 0.0});
+        this._soundClassifier.listen(
+            (result) => {
+                if (!this._soundClassifierEnabled || !result || !result.scores) return;
+                const scores = Array.from(result.scores);
+                this._soundProbableLabels = scores.map((confidence, index) => ({
+                    label: wordLabels[index],
+                    confidence,
+                }));
+                setTimeout(() => {
+                    this._soundProbableLabels = [];
+                }, this._resultTTL);
+            },
+            { probabilityThreshold: 0.0 },
+        );
     }
 }
 

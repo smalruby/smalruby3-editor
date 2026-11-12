@@ -29,7 +29,7 @@ export default function (Generator) {
             allowedAttributes = attrPart.split(',');
 
             // Check for <=superclass in the attributes
-            const superAttrIndex = allowedAttributes.findIndex(a => a.startsWith('<='));
+            const superAttrIndex = allowedAttributes.findIndex((a) => a.startsWith('<='));
             if (superAttrIndex >= 0) {
                 const encoded = allowedAttributes[superAttrIndex].slice(2);
                 // Decode: leading // → ::, then / → ::
@@ -42,7 +42,7 @@ export default function (Generator) {
             }
 
             // Check for name=ClassName in the attributes
-            const nameAttrIndex = allowedAttributes.findIndex(a => a.startsWith('name='));
+            const nameAttrIndex = allowedAttributes.findIndex((a) => a.startsWith('name='));
             if (nameAttrIndex >= 0) {
                 explicitClassName = allowedAttributes[nameAttrIndex].slice('name='.length);
                 // Replace name=ClassName with plain 'name' for attribute processing
@@ -50,7 +50,7 @@ export default function (Generator) {
             }
 
             // Check for sprite=SpriteName in the attributes
-            const spriteAttrIndex = allowedAttributes.findIndex(a => a.startsWith('sprite='));
+            const spriteAttrIndex = allowedAttributes.findIndex((a) => a.startsWith('sprite='));
             if (spriteAttrIndex >= 0) {
                 const spriteName = allowedAttributes[spriteAttrIndex].slice('sprite='.length);
                 setLines.push(`set_sprite ${this.quote_(spriteName)}`);
@@ -75,8 +75,7 @@ export default function (Generator) {
             // Stage always uses class name "Stage"
             className = 'Stage';
             // Generate set_name if explicitly listed or auto-wrapping, and name differs from "Stage"
-            if ((allowedAttributes.indexOf('name') >= 0 || isAutoWrap) &&
-                target.sprite.name !== 'Stage') {
+            if ((allowedAttributes.indexOf('name') >= 0 || isAutoWrap) && target.sprite.name !== 'Stage') {
                 setLines.push(`set_name ${this.quote_(target.sprite.name)}`);
             }
         } else if (explicitClassName) {
@@ -92,7 +91,7 @@ export default function (Generator) {
                 className = spriteName;
             } else {
                 // Calculate sprite index
-                const sprites = target.runtime.targets.filter(t => !t.isStage);
+                const sprites = target.runtime.targets.filter((t) => !t.isStage);
                 const index = sprites.indexOf(target) + 1;
                 className = `Sprite${index}`;
                 setLines.push(`set_name ${this.quote_(spriteName)}`);
@@ -103,7 +102,7 @@ export default function (Generator) {
             if (isAutoWrap && this._isValidClassName(spriteName)) {
                 className = spriteName;
             } else {
-                const sprites = target.runtime.targets.filter(t => !t.isStage);
+                const sprites = target.runtime.targets.filter((t) => !t.isStage);
                 const index = sprites.indexOf(target) + 1;
                 className = `Sprite${index}`;
                 if (isAutoWrap && spriteName !== className) {
@@ -122,7 +121,7 @@ export default function (Generator) {
 
         let setCode = '';
         if (setLines.length > 0) {
-            setCode = setLines.map(line => `${this.INDENT}${line}\n`).join('');
+            setCode = setLines.map((line) => `${this.INDENT}${line}\n`).join('');
         }
 
         // Generate def initialize from target variables/lists
@@ -131,14 +130,14 @@ export default function (Generator) {
             const commentTexts = this.getTargetCommentTexts ? this.getTargetCommentTexts() || [] : [];
             const initLines = this._generateInitialize(target, commentTexts);
             if (initLines.length > 0) {
-                initCode = initLines.map(line => `${this.INDENT}${line}\n`).join('');
+                initCode = initLines.map((line) => `${this.INDENT}${line}\n`).join('');
             }
         }
 
         // Generate include statements for modules
         let includeCode = '';
         if (includeNames.length > 0) {
-            includeCode = includeNames.map(name => `${this.INDENT}include ${name}\n`).join('');
+            includeCode = includeNames.map((name) => `${this.INDENT}include ${name}\n`).join('');
         }
 
         // Generate attr_accessor/reader/writer statements
@@ -149,15 +148,13 @@ export default function (Generator) {
             if (attrMatch) {
                 const kind = attrMatch[1];
                 const names = attrMatch[2].split('+');
-                const syms = names.map(n => `:${n}`).join(', ');
+                const syms = names.map((n) => `:${n}`).join(', ');
                 attrLines.push(`attr_${kind} ${syms}`);
                 allowedAttributes.splice(i, 1);
             }
         }
         if (attrLines.length > 0) {
-            attrAccessorCode = attrLines
-                .map(line => `${this.INDENT}${line}\n`)
-                .join('');
+            attrAccessorCode = attrLines.map((line) => `${this.INDENT}${line}\n`).join('');
         }
 
         // Store attr accessor info for variable name resolution
@@ -165,7 +162,7 @@ export default function (Generator) {
         for (const line of attrLines) {
             const match = line.match(/^attr_(?:accessor|reader|writer)\s+(.+)$/);
             if (match) {
-                match[1].split(',').forEach(s => {
+                match[1].split(',').forEach((s) => {
                     const name = s.trim().replace(/^:/, '');
                     this._attrAccessorNames.add(name);
                 });
@@ -182,10 +179,12 @@ export default function (Generator) {
             for (const section of sections) {
                 const trimmed = section.trim();
                 if (trimmed.length === 0) continue;
-                if (/^self\.when\(/.test(trimmed) ||
+                if (
+                    /^self\.when\(/.test(trimmed) ||
                     /^when_/.test(trimmed) ||
                     /^\w+\.when[\s_(]/.test(trimmed) ||
-                    /^def /.test(trimmed)) {
+                    /^def /.test(trimmed)
+                ) {
                     insideSections.push(section);
                 } else {
                     outsideSections.push(section);
@@ -199,7 +198,7 @@ export default function (Generator) {
                 const commented = outsideSections
                     .join('\n\n')
                     .split('\n')
-                    .map(line => (line.trim().length > 0 ? `# ${line}` : ''))
+                    .map((line) => (line.trim().length > 0 ? `# ${line}` : ''))
                     .join('\n');
                 outsideCode = `\n${commented}\n`;
             }
@@ -209,7 +208,7 @@ export default function (Generator) {
             code = this.prefixLines(code, this.INDENT);
         }
         // Build the inner class content with separators
-        const innerParts = [setCode, initCode, includeCode, attrAccessorCode, code].filter(p => p.length > 0);
+        const innerParts = [setCode, initCode, includeCode, attrAccessorCode, code].filter((p) => p.length > 0);
         const innerCode = innerParts.join('\n');
         let inheritance = '';
         if (superclassPath) {
@@ -227,7 +226,7 @@ export default function (Generator) {
     };
 
     Generator._generateSetXxx = function (target, setLines, allowedAttributes, autoAll) {
-        const has = attr => autoAll || allowedAttributes.indexOf(attr) >= 0;
+        const has = (attr) => autoAll || allowedAttributes.indexOf(attr) >= 0;
         if (has('x') && target.x !== 0) {
             setLines.push(`set_x ${target.x}`);
         }
@@ -250,11 +249,11 @@ export default function (Generator) {
             setLines.push(`set_rotation_style ${this.quote_(target.rotationStyle)}`);
         }
         if (has('costumes') && target.sprite && target.sprite.costumes) {
-            const costumeNames = target.sprite.costumes.map(c => this.quote_(c.name));
+            const costumeNames = target.sprite.costumes.map((c) => this.quote_(c.name));
             setLines.push(`set_costumes [${costumeNames.join(', ')}]`);
         }
         if (has('sounds') && target.sprite && target.sprite.sounds) {
-            const soundNames = target.sprite.sounds.map(s => this.quote_(s.name));
+            const soundNames = target.sprite.sounds.map((s) => this.quote_(s.name));
             setLines.push(`set_sounds [${soundNames.join(', ')}]`);
         }
     };
@@ -297,13 +296,13 @@ export default function (Generator) {
             }
             assignments.push({
                 name: variable.name,
-                code: `  ${prefix}${variable.name} = ${valueCode}`
+                code: `  ${prefix}${variable.name} = ${valueCode}`,
             });
         }
 
         if (assignments.length === 0) {
             // Check if there's an @ruby:initialize comment (args/super without variables)
-            const initComment = commentTexts.find(c => c.startsWith('@ruby:initialize'));
+            const initComment = commentTexts.find((c) => c.startsWith('@ruby:initialize'));
             if (!initComment) return [];
         }
 
@@ -313,7 +312,7 @@ export default function (Generator) {
         // Parse @ruby:initialize comment for args and super
         let args = '';
         let superCall = '';
-        const initComment = commentTexts.find(c => c.startsWith('@ruby:initialize:'));
+        const initComment = commentTexts.find((c) => c.startsWith('@ruby:initialize:'));
         if (initComment) {
             const parts = initComment.slice('@ruby:initialize:'.length);
             // Parse comma-separated key=value pairs, but handle super=(...)
@@ -332,7 +331,7 @@ export default function (Generator) {
         if (superCall) {
             lines.push(superCall);
         }
-        assignments.forEach(a => lines.push(a.code));
+        assignments.forEach((a) => lines.push(a.code));
         lines.push('end');
         return lines;
     };
@@ -352,16 +351,16 @@ export default function (Generator) {
     };
 
     Generator._generateStageSetXxx = function (target, setLines, allowedAttributes, autoAll) {
-        const has = attr => autoAll || allowedAttributes.indexOf(attr) >= 0;
+        const has = (attr) => autoAll || allowedAttributes.indexOf(attr) >= 0;
         if (has('current_backdrop') && target.currentCostume > 0) {
             setLines.push(`set_current_backdrop ${target.currentCostume + 1}`);
         }
         if (has('backdrops') && target.sprite && target.sprite.costumes) {
-            const backdropNames = target.sprite.costumes.map(c => this.quote_(c.name));
+            const backdropNames = target.sprite.costumes.map((c) => this.quote_(c.name));
             setLines.push(`set_backdrops [${backdropNames.join(', ')}]`);
         }
         if (has('sounds') && target.sprite && target.sprite.sounds) {
-            const soundNames = target.sprite.sounds.map(s => this.quote_(s.name));
+            const soundNames = target.sprite.sounds.map((s) => this.quote_(s.name));
             setLines.push(`set_sounds [${soundNames.join(', ')}]`);
         }
     };

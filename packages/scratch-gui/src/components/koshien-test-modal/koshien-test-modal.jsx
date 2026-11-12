@@ -1,21 +1,17 @@
+import VM from '@smalruby/scratch-vm';
 import PropTypes from 'prop-types';
 import React from 'react';
-import { connect } from 'react-redux';
 import { defineMessages, injectIntl, FormattedMessage } from 'react-intl';
-import VM from '@smalruby/scratch-vm';
+import { connect } from 'react-redux';
+import Modal from '../../containers/modal.jsx';
+import reloadIcon from '../../lib/assets/icon--reload.svg';
+import downloadBlob from '../../lib/download-blob';
 import intlShape from '../../lib/intlShape.js';
-
+import { buildKoshienTestPlan } from '../../lib/koshien-test-url';
+import { generateProjectCode } from '../../lib/ruby-script-preview';
 import Box from '../box/box.jsx';
 import Button from '../button/button.jsx';
-import Modal from '../../containers/modal.jsx';
-
-import { generateProjectCode } from '../../lib/ruby-script-preview';
-import { buildKoshienTestPlan } from '../../lib/koshien-test-url';
-import downloadBlob from '../../lib/download-blob';
-
-import reloadIcon from '../../lib/assets/icon--reload.svg';
 import stopIcon from '../close-button/icon--close.svg';
-
 import styles from './koshien-test-modal.css';
 
 const messages = defineMessages({
@@ -89,23 +85,11 @@ export const KoshienTestModal = (props) => {
             iconSrc={stopIcon}
             onClick={handleStop}
         >
-            <FormattedMessage
-                defaultMessage="Stop"
-                description="Stop button in modal"
-                id="gui.modal.stop"
-            />
+            <FormattedMessage defaultMessage="Stop" description="Stop button in modal" id="gui.modal.stop" />
         </Button>
     ) : (
-        <Button
-            className={styles.reloadButton}
-            iconSrc={reloadIcon}
-            onClick={handleReload}
-        >
-            <FormattedMessage
-                defaultMessage="Reload"
-                description="Reload button in modal"
-                id="gui.modal.reload"
-            />
+        <Button className={styles.reloadButton} iconSrc={reloadIcon} onClick={handleReload}>
+            <FormattedMessage defaultMessage="Reload" description="Reload button in modal" id="gui.modal.reload" />
         </Button>
     );
 
@@ -120,15 +104,9 @@ export const KoshienTestModal = (props) => {
             loading={loading}
             onRequestClose={onRequestClose}
         >
-            <Box
-                className={styles.body}
-                grow={1}
-            >
+            <Box className={styles.body} grow={1}>
                 {tooLong && (
-                    <div
-                        className={styles.tooLongBanner}
-                        data-testid="koshien-test-too-long-banner"
-                    >
+                    <div className={styles.tooLongBanner} data-testid="koshien-test-too-long-banner">
                         <div className={styles.tooLongText}>
                             <FormattedMessage
                                 defaultMessage="This AI is too large to pass to the viewer through the URL. Save it as a Ruby (.rb) file and load it from the viewer to test it."

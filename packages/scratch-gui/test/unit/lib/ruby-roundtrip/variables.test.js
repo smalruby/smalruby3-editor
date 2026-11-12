@@ -6,20 +6,23 @@ import {
     makeSpriteTarget,
     makeConverter,
     setupRubyGenerator,
-    expectRoundTrip
+    expectRoundTrip,
 } from '../../helpers/ruby-roundtrip-helper';
 
 describe('Ruby Roundtrip: Variables category blocks', () => {
     let target, runtime, converter;
 
     beforeEach(() => {
-        ({target, runtime} = makeSpriteTarget());
+        ({ target, runtime } = makeSpriteTarget());
         setupRubyGenerator();
         converter = makeConverter(target, runtime);
     });
 
     test('Ruby -> Code -> Ruby', async () => {
-        await expectRoundTrip(converter, target, dedent`
+        await expectRoundTrip(
+            converter,
+            target,
+            dedent`
             $my_variable = 0
             @sprite_only_variable = 0
             $my_variable += 1
@@ -75,7 +78,8 @@ describe('Ruby Roundtrip: Variables category blocks', () => {
             list("$my_list")
 
             list("$sprite_only_list")
-        `, dedent`
+        `,
+            dedent`
             $my_variable = 0
             @sprite_only_variable = 0
             $my_variable += 1
@@ -131,6 +135,7 @@ describe('Ruby Roundtrip: Variables category blocks', () => {
             list("$my_list")
 
             list("$sprite_only_list")
-        `);
+        `,
+        );
     });
 });

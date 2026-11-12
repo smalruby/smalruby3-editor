@@ -5,7 +5,7 @@ describe('RubyToBlocksConverter/Variables/SymbolReference', () => {
     let target;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
     });
 
@@ -63,7 +63,7 @@ describe('RubyToBlocksConverter/Variables/SymbolReference', () => {
             expect(converter.errors).toHaveLength(0);
 
             const blocks = Object.values(converter.blocks);
-            const setVarBlock = blocks.find(b => b.opcode === 'data_setvariableto');
+            const setVarBlock = blocks.find((b) => b.opcode === 'data_setvariableto');
             expect(setVarBlock).toBeDefined();
 
             // The VALUE input should be a data_itemnumoflist block
@@ -89,7 +89,7 @@ describe('RubyToBlocksConverter/Variables/SymbolReference', () => {
             expect(converter.errors).toHaveLength(0);
 
             const blocks = Object.values(converter.blocks);
-            const setVarBlock = blocks.find(b => b.opcode === 'data_setvariableto');
+            const setVarBlock = blocks.find((b) => b.opcode === 'data_setvariableto');
             expect(setVarBlock).toBeDefined();
 
             const valueBlockId = setVarBlock.inputs.VALUE.block;
@@ -104,10 +104,7 @@ describe('RubyToBlocksConverter/Variables/SymbolReference', () => {
         });
 
         test('symbols are collected', async () => {
-            const code = [
-                '$a = :foo',
-                '$b = :bar'
-            ].join('\n');
+            const code = ['$a = :foo', '$b = :bar'].join('\n');
             await converter.targetCodeToBlocks(target, code);
             expect(Array.from(converter._context.symbols)).toEqual([':foo', ':bar']);
         });
@@ -121,7 +118,7 @@ describe('RubyToBlocksConverter/Variables/SymbolReference', () => {
             expect(converter.errors).toHaveLength(0);
 
             const blocks = Object.values(converter.blocks);
-            const equalsBlock = blocks.find(b => b.opcode === 'operator_equals');
+            const equalsBlock = blocks.find((b) => b.opcode === 'operator_equals');
             expect(equalsBlock).toBeDefined();
 
             // Both operands should be data_itemnumoflist blocks
@@ -149,7 +146,7 @@ describe('RubyToBlocksConverter/Variables/SymbolReference', () => {
             expect(converter.errors).toHaveLength(0);
 
             const blocks = Object.values(converter.blocks);
-            const hatBlock = blocks.find(b => b.opcode === 'event_whenflagclicked');
+            const hatBlock = blocks.find((b) => b.opcode === 'event_whenflagclicked');
             expect(hatBlock).toBeDefined();
         });
 

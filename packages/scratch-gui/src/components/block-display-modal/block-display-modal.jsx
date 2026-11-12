@@ -1,62 +1,59 @@
 import classNames from 'classnames';
+import bindAll from 'lodash.bindall';
 import PropTypes from 'prop-types';
 import React from 'react';
-import bindAll from 'lodash.bindall';
-import {defineMessages, FormattedMessage, injectIntl} from 'react-intl';
-import intlShape from '../../lib/intlShape.js';
+import { defineMessages, FormattedMessage, injectIntl } from 'react-intl';
 import * as Blockly from 'scratch-blocks';
-import {CATEGORY_BLOCKS, generateBlockOrder} from '../../lib/block-utils';
-
-import Box from '../box/box.jsx';
 import Modal from '../../containers/modal.jsx';
+import { CATEGORY_BLOCKS, generateBlockOrder } from '../../lib/block-utils';
+import intlShape from '../../lib/intlShape.js';
+import Box from '../box/box.jsx';
 import blockDisplayIcon from '../menu-bar/block-display-icon.png';
-import copyIcon from './icon--clipboard-copy.svg';
 import fileIcon from '../menu-bar/icon--file.svg';
-
 import styles from './block-display-modal.css';
+import copyIcon from './icon--clipboard-copy.svg';
 
 const messages = defineMessages({
     title: {
         defaultMessage: 'Block Display Settings',
         description: 'Title for the block display settings modal',
-        id: 'gui.smalruby3.blockDisplayModal.title'
+        id: 'gui.smalruby3.blockDisplayModal.title',
     },
     alwaysVisible: {
         defaultMessage: 'Always visible',
         description: 'Label for categories that are always visible',
-        id: 'gui.smalruby3.blockDisplayModal.alwaysVisible'
+        id: 'gui.smalruby3.blockDisplayModal.alwaysVisible',
     },
     saveToFile: {
         defaultMessage: 'Save to File',
         description: 'Label for save to file button',
-        id: 'gui.smalruby3.blockDisplayModal.saveToFile'
-    }
+        id: 'gui.smalruby3.blockDisplayModal.saveToFile',
+    },
 });
 
 // Define block categories with their IDs and ScratchBlocks.Msg keys
 const BLOCK_CATEGORIES = [
-    {id: 'motion', messageKey: 'CATEGORY_MOTION'},
-    {id: 'looks', messageKey: 'CATEGORY_LOOKS'},
-    {id: 'sound', messageKey: 'CATEGORY_SOUND'},
-    {id: 'event', messageKey: 'CATEGORY_EVENTS'},
-    {id: 'control', messageKey: 'CATEGORY_CONTROL'},
-    {id: 'sensing', messageKey: 'CATEGORY_SENSING'},
-    {id: 'operators', messageKey: 'CATEGORY_OPERATORS'}
+    { id: 'motion', messageKey: 'CATEGORY_MOTION' },
+    { id: 'looks', messageKey: 'CATEGORY_LOOKS' },
+    { id: 'sound', messageKey: 'CATEGORY_SOUND' },
+    { id: 'event', messageKey: 'CATEGORY_EVENTS' },
+    { id: 'control', messageKey: 'CATEGORY_CONTROL' },
+    { id: 'sensing', messageKey: 'CATEGORY_SENSING' },
+    { id: 'operators', messageKey: 'CATEGORY_OPERATORS' },
 ];
 
 const ALWAYS_VISIBLE_CATEGORIES = [
-    {id: 'variables', messageKey: 'CATEGORY_VARIABLES'},
-    {id: 'myBlocks', messageKey: 'CATEGORY_MYBLOCKS'},
-    {id: 'extensions', messageId: 'gui.smalruby3.blockDisplayModal.extensions'}
+    { id: 'variables', messageKey: 'CATEGORY_VARIABLES' },
+    { id: 'myBlocks', messageKey: 'CATEGORY_MYBLOCKS' },
+    { id: 'extensions', messageId: 'gui.smalruby3.blockDisplayModal.extensions' },
 ];
 
 // CATEGORY_BLOCKS imported from block-utils.js
 
 // Helper functions imported from make-toolbox-xml.js
 
-
 class BlockDisplayModal extends React.Component {
-    constructor (props) {
+    constructor(props) {
         super(props);
         bindAll(this, [
             'handleCategoryChange',
@@ -66,28 +63,28 @@ class BlockDisplayModal extends React.Component {
             'scrollToCategorySection',
             'setBlockListRef',
             'handleCopyClick',
-            'handleSaveToFile'
+            'handleSaveToFile',
         ]);
 
         this.state = {
             selectedCategoryIndex: 0,
-            copyButtonState: 'normal' // 'normal' | 'copying' | 'copied'
+            copyButtonState: 'normal', // 'normal' | 'copying' | 'copied'
         };
 
         // Ref for the block list container
         this.blockListRef = null;
     }
 
-    handleCategoryChange (event) {
+    handleCategoryChange(event) {
         const categoryId = event.target.getAttribute('data-category');
         const isChecked = event.target.checked;
 
         // Find the category index for the clicked category
-        const categoryIndex = BLOCK_CATEGORIES.findIndex(category => category.id === categoryId);
+        const categoryIndex = BLOCK_CATEGORIES.findIndex((category) => category.id === categoryId);
 
         // Update the selected category to sync the right pane
         if (categoryIndex !== -1) {
-            this.setState({selectedCategoryIndex: categoryIndex});
+            this.setState({ selectedCategoryIndex: categoryIndex });
             // Scroll to the corresponding category section
             this.scrollToCategorySection(categoryIndex);
         }
@@ -95,21 +92,21 @@ class BlockDisplayModal extends React.Component {
         this.props.onCategoryChange(categoryId, isChecked);
     }
 
-    handleBlockChange (event) {
+    handleBlockChange(event) {
         const blockId = event.target.getAttribute('data-block');
         const categoryId = event.target.getAttribute('data-category');
         const isChecked = event.target.checked;
         this.props.onBlockChange(categoryId, blockId, isChecked);
     }
 
-    handleCategorySelect (event) {
+    handleCategorySelect(event) {
         const categoryIndex = parseInt(event.currentTarget.getAttribute('data-category-index'), 10);
-        this.setState({selectedCategoryIndex: categoryIndex});
+        this.setState({ selectedCategoryIndex: categoryIndex });
         // Scroll to the corresponding category section
         this.scrollToCategorySection(categoryIndex);
     }
 
-    handleBlockListScroll () {
+    handleBlockListScroll() {
         if (!this.blockListRef) return;
 
         const blockListContainer = this.blockListRef;
@@ -130,11 +127,11 @@ class BlockDisplayModal extends React.Component {
 
         // Update the selected category index if it changed
         if (this.state.selectedCategoryIndex !== activeCategoryIndex) {
-            this.setState({selectedCategoryIndex: activeCategoryIndex});
+            this.setState({ selectedCategoryIndex: activeCategoryIndex });
         }
     }
 
-    scrollToCategorySection (categoryIndex) {
+    scrollToCategorySection(categoryIndex) {
         if (!this.blockListRef) return;
 
         const blockListContainer = this.blockListRef;
@@ -149,17 +146,17 @@ class BlockDisplayModal extends React.Component {
 
             blockListContainer.scrollTo({
                 top: Math.max(0, scrollPosition),
-                behavior: 'smooth'
+                behavior: 'smooth',
             });
         }
     }
 
-    setBlockListRef (ref) {
+    setBlockListRef(ref) {
         this.blockListRef = ref;
     }
 
-    generateOnlyBlocksUrl () {
-        const {selectedBlocks} = this.props;
+    generateOnlyBlocksUrl() {
+        const { selectedBlocks } = this.props;
         const currentUrl = typeof window === 'undefined' ? '' : window.location.href;
 
         // Parse current URL to preserve hash
@@ -178,10 +175,10 @@ class BlockDisplayModal extends React.Component {
 
         // Create binary string representing block selection
         let binaryString = '';
-        blockOrder.forEach(blockId => {
+        blockOrder.forEach((blockId) => {
             // Check if this block is selected in any category
             let isSelected = false;
-            Object.keys(selectedBlocks).forEach(categoryId => {
+            Object.keys(selectedBlocks).forEach((categoryId) => {
                 const blocksInCategory = selectedBlocks[categoryId] || [];
                 if (blocksInCategory.includes(blockId)) {
                     isSelected = true;
@@ -198,9 +195,7 @@ class BlockDisplayModal extends React.Component {
             // Pad chunk to 4 bits if needed
             const paddedChunk = chunk.padEnd(4, '0');
             // Reverse bits for proper ordering (LSB first)
-            const reversedChunk = paddedChunk.split('')
-                .reverse()
-                .join('');
+            const reversedChunk = paddedChunk.split('').reverse().join('');
             // Convert to decimal then hex
             const decimal = parseInt(reversedChunk, 2);
             const hex = decimal.toString(16);
@@ -216,11 +211,11 @@ class BlockDisplayModal extends React.Component {
         return newUrl;
     }
 
-    async handleCopyClick () {
+    async handleCopyClick() {
         const url = this.generateOnlyBlocksUrl();
 
         try {
-            this.setState({copyButtonState: 'copying'});
+            this.setState({ copyButtonState: 'copying' });
 
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 await navigator.clipboard.writeText(url);
@@ -238,20 +233,20 @@ class BlockDisplayModal extends React.Component {
                 document.body.removeChild(textArea);
             }
 
-            this.setState({copyButtonState: 'copied'});
+            this.setState({ copyButtonState: 'copied' });
 
             // Reset button state after 2 seconds
             setTimeout(() => {
-                this.setState({copyButtonState: 'normal'});
+                this.setState({ copyButtonState: 'normal' });
             }, 2000);
         } catch (error) {
             // Handle copy failure - silently reset button state
-            this.setState({copyButtonState: 'normal'});
+            this.setState({ copyButtonState: 'normal' });
         }
     }
 
-    handleSaveToFile () {
-        const {vm} = this.props;
+    handleSaveToFile() {
+        const { vm } = this.props;
         if (!vm) return;
 
         // Generate the only_blocks parameter
@@ -286,16 +281,7 @@ class BlockDisplayModal extends React.Component {
         } else {
             // Create new comment
             const commentId = Blockly.utils.idGenerator.genUid();
-            stage.createComment(
-                commentId,
-                null,
-                commentText,
-                100,
-                100,
-                200,
-                100,
-                false
-            );
+            stage.createComment(commentId, null, commentText, 100, 100, 200, 100, false);
         }
 
         vm.emitWorkspaceUpdate();
@@ -304,29 +290,24 @@ class BlockDisplayModal extends React.Component {
         this.props.onSetProjectChanged();
     }
 
-    getCategoryCheckboxState (categoryId) {
-        const {selectedBlocks} = this.props;
+    getCategoryCheckboxState(categoryId) {
+        const { selectedBlocks } = this.props;
         const allBlocksInCategory = CATEGORY_BLOCKS[categoryId] || [];
         const selectedBlocksInCategory = selectedBlocks[categoryId] || [];
 
         if (selectedBlocksInCategory.length === 0) {
-            return {checked: false, indeterminate: false};
+            return { checked: false, indeterminate: false };
         }
         if (selectedBlocksInCategory.length === allBlocksInCategory.length) {
-            return {checked: true, indeterminate: false};
+            return { checked: true, indeterminate: false };
         }
-        return {checked: false, indeterminate: true};
+        return { checked: false, indeterminate: true };
     }
 
-    render () {
-        const {
-            intl,
-            onRequestClose,
-            selectedBlocks,
-            scratchBlocks
-        } = this.props;
+    render() {
+        const { intl, onRequestClose, selectedBlocks, scratchBlocks } = this.props;
 
-        const {selectedCategoryIndex} = this.state;
+        const { selectedCategoryIndex } = this.state;
 
         return (
             <Modal
@@ -354,7 +335,7 @@ class BlockDisplayModal extends React.Component {
                                         <div
                                             key={category.id}
                                             className={classNames(styles.categoryItem, {
-                                                [styles.selectedCategory]: selectedCategoryIndex === index
+                                                [styles.selectedCategory]: selectedCategoryIndex === index,
                                             })}
                                             data-category={category.id}
                                         >
@@ -363,7 +344,7 @@ class BlockDisplayModal extends React.Component {
                                                 className={styles.checkbox}
                                                 data-category={category.id}
                                                 checked={checkboxState.checked}
-                                                ref={checkbox => {
+                                                ref={(checkbox) => {
                                                     if (checkbox) {
                                                         checkbox.indeterminate = checkboxState.indeterminate;
                                                     }
@@ -375,10 +356,11 @@ class BlockDisplayModal extends React.Component {
                                                 data-category-index={index}
                                                 onClick={this.handleCategorySelect}
                                             >
-                                                {scratchBlocks && scratchBlocks.Msg &&
-                                                    scratchBlocks.Msg[category.messageKey] ?
-                                                    scratchBlocks.Msg[category.messageKey] :
-                                                    category.messageKey}
+                                                {scratchBlocks &&
+                                                scratchBlocks.Msg &&
+                                                scratchBlocks.Msg[category.messageKey]
+                                                    ? scratchBlocks.Msg[category.messageKey]
+                                                    : category.messageKey}
                                             </span>
                                         </div>
                                     );
@@ -393,25 +375,20 @@ class BlockDisplayModal extends React.Component {
                                         id="gui.smalruby3.blockDisplayModal.alwaysVisibleTitle"
                                     />
                                 </div>
-                                {ALWAYS_VISIBLE_CATEGORIES.map(category => (
-                                    <div
-                                        key={category.id}
-                                        className={styles.categoryItem}
-                                    >
+                                {ALWAYS_VISIBLE_CATEGORIES.map((category) => (
+                                    <div key={category.id} className={styles.categoryItem}>
                                         <label className={styles.categoryLabel}>
-                                            <input
-                                                type="checkbox"
-                                                className={styles.checkbox}
-                                                checked
-                                                disabled
-                                            />
-                                            <span className={classNames(styles.categoryName, styles.alwaysVisibleText)}>
-                                                {category.messageKey ?
-                                                    (scratchBlocks && scratchBlocks.Msg &&
-                                                        scratchBlocks.Msg[category.messageKey] ?
-                                                        scratchBlocks.Msg[category.messageKey] :
-                                                        category.messageKey) :
-                                                    intl.formatMessage({id: category.messageId})}
+                                            <input type="checkbox" className={styles.checkbox} checked disabled />
+                                            <span
+                                                className={classNames(styles.categoryName, styles.alwaysVisibleText)}
+                                            >
+                                                {category.messageKey
+                                                    ? scratchBlocks &&
+                                                      scratchBlocks.Msg &&
+                                                      scratchBlocks.Msg[category.messageKey]
+                                                        ? scratchBlocks.Msg[category.messageKey]
+                                                        : category.messageKey
+                                                    : intl.formatMessage({ id: category.messageId })}
                                             </span>
                                         </label>
                                     </div>
@@ -434,12 +411,13 @@ class BlockDisplayModal extends React.Component {
                                             data-category-index={categoryIndex}
                                         >
                                             <div className={styles.categoryHeader}>
-                                                {scratchBlocks && scratchBlocks.Msg &&
-                                                    scratchBlocks.Msg[category.messageKey] ?
-                                                    scratchBlocks.Msg[category.messageKey] :
-                                                    category.messageKey}
+                                                {scratchBlocks &&
+                                                scratchBlocks.Msg &&
+                                                scratchBlocks.Msg[category.messageKey]
+                                                    ? scratchBlocks.Msg[category.messageKey]
+                                                    : category.messageKey}
                                             </div>
-                                            {categoryBlocks.map(blockType => {
+                                            {categoryBlocks.map((blockType) => {
                                                 const selectedBlocksInCategory = selectedBlocks[category.id] || [];
                                                 const isBlockSelected = selectedBlocksInCategory.includes(blockType);
 
@@ -449,8 +427,11 @@ class BlockDisplayModal extends React.Component {
                                                 const scratchBlocksKey = blockType.toUpperCase();
                                                 let blockName;
 
-                                                if (scratchBlocks && scratchBlocks.Msg &&
-                                                    scratchBlocks.Msg[scratchBlocksKey]) {
+                                                if (
+                                                    scratchBlocks &&
+                                                    scratchBlocks.Msg &&
+                                                    scratchBlocks.Msg[scratchBlocksKey]
+                                                ) {
                                                     // Use ScratchBlocks translation if available
                                                     blockName = scratchBlocks.Msg[scratchBlocksKey];
                                                 } else {
@@ -458,15 +439,12 @@ class BlockDisplayModal extends React.Component {
                                                     const messageId = `gui.smalruby3.blockDisplayModal.${blockType}`;
                                                     blockName = intl.formatMessage({
                                                         id: messageId,
-                                                        defaultMessage: blockType
+                                                        defaultMessage: blockType,
                                                     });
                                                 }
 
                                                 return (
-                                                    <div
-                                                        key={blockType}
-                                                        className={styles.blockItem}
-                                                    >
+                                                    <div key={blockType} className={styles.blockItem}>
                                                         <label className={styles.blockLabel}>
                                                             <input
                                                                 type="checkbox"
@@ -476,9 +454,7 @@ class BlockDisplayModal extends React.Component {
                                                                 data-category={category.id}
                                                                 onChange={this.handleBlockChange}
                                                             />
-                                                            <span className={styles.blockName}>
-                                                                {blockName}
-                                                            </span>
+                                                            <span className={styles.blockName}>{blockName}</span>
                                                         </label>
                                                     </div>
                                                 );
@@ -493,17 +469,13 @@ class BlockDisplayModal extends React.Component {
                         <div className={styles.urlButtonContainer}>
                             <button
                                 className={classNames(styles.copyUrlButton, {
-                                    [styles.copied]: this.state.copyButtonState === 'copied'
+                                    [styles.copied]: this.state.copyButtonState === 'copied',
                                 })}
                                 onClick={this.handleCopyClick}
                                 disabled={this.state.copyButtonState === 'copying'}
                                 title={this.state.copyButtonState === 'copied' ? 'Copied!' : 'Copy URL'}
                             >
-                                <img
-                                    className={styles.copyIcon}
-                                    src={copyIcon}
-                                    alt="Copy"
-                                />
+                                <img className={styles.copyIcon} src={copyIcon} alt="Copy" />
                                 <span className={styles.buttonLabel}>
                                     <FormattedMessage
                                         defaultMessage="Copy URL"
@@ -517,11 +489,7 @@ class BlockDisplayModal extends React.Component {
                                 onClick={this.handleSaveToFile}
                                 title="Save to File"
                             >
-                                <img
-                                    className={styles.saveIcon}
-                                    src={fileIcon}
-                                    alt="File"
-                                />
+                                <img className={styles.saveIcon} src={fileIcon} alt="File" />
                                 <span className={styles.buttonLabel}>
                                     <FormattedMessage
                                         defaultMessage="Save to File"
@@ -546,7 +514,7 @@ BlockDisplayModal.propTypes = {
     onCategoryChange: PropTypes.func.isRequired,
     onBlockChange: PropTypes.func.isRequired,
     onSetProjectChanged: PropTypes.func.isRequired,
-    vm: PropTypes.instanceOf(Object)
+    vm: PropTypes.instanceOf(Object),
 };
 
 export default injectIntl(BlockDisplayModal);

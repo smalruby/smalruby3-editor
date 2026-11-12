@@ -14,7 +14,15 @@
 //
 // プログラムの形は見ない（ブロックの並びや個数は条件にしない）。
 
-export const CONDITION_TYPES = Object.freeze(['uses', 'said', 'variable', 'list', 'sprites', 'costumes', 'extension']);
+export const CONDITION_TYPES = Object.freeze([
+    'uses',
+    'said',
+    'variable',
+    'list',
+    'sprites',
+    'costumes',
+    'extension',
+]);
 
 // facts の上限（ずっと動くプログラムでも際限なく増えないように）
 const MAX_RUNS = 200;
@@ -214,7 +222,8 @@ const triggerMatches = (trigger, run) => {
 
 const normalizeBlockEntry = (entry) => (typeof entry === 'string' ? { opcode: entry } : entry);
 
-const argsMatch = (matchers, args) => Object.entries(matchers).every(([name, matcher]) => matchValue(matcher, args[name]));
+const argsMatch = (matchers, args) =>
+    Object.entries(matchers).every(([name, matcher]) => matchValue(matcher, args[name]));
 
 const blockEntrySatisfiedByRun = (entry, run) => {
     const op = run.ops[entry.opcode];
@@ -259,8 +268,7 @@ const evaluateUses = (condition, facts) => {
 const variableNames = (name) => (Array.isArray(name) ? name : [name]);
 
 const isVariableName = (name) =>
-    typeof name === 'string' ||
-    (Array.isArray(name) && name.length > 0 && name.every((n) => typeof n === 'string'));
+    typeof name === 'string' || (Array.isArray(name) && name.length > 0 && name.every((n) => typeof n === 'string'));
 
 const evaluateSaid = (condition, facts) =>
     facts.says.some((say) => {
@@ -373,7 +381,9 @@ const isMatcher = (value) =>
     value instanceof RegExp ||
     (typeof value === 'object' &&
         value !== null &&
-        Object.keys(value).every((key) => ['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'includes', 'matches'].includes(key)));
+        Object.keys(value).every((key) =>
+            ['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'includes', 'matches'].includes(key),
+        ));
 
 /**
  * goal の形を確かめる（courses.js に入れる前のテスト用）。
@@ -469,7 +479,8 @@ export const validateGoal = (goal) => {
                 }
                 break;
             case 'extension':
-                if (typeof condition.id !== 'string' || condition.id === '') errors.push(`${at}: extension.id is required`);
+                if (typeof condition.id !== 'string' || condition.id === '')
+                    errors.push(`${at}: extension.id is required`);
                 break;
             default:
                 break;

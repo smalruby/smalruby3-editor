@@ -4,7 +4,9 @@ const gqlTag = require('graphql-tag');
 const gql = gqlTag.default || gqlTag;
 
 // Production configuration for Smalruby 3 Mesh V2
-const GRAPHQL_ENDPOINT = process.env.MESH_GRAPHQL_ENDPOINT || 'https://mpe3yhgk6zdxfhjbay2vqcq5qe.appsync-api.ap-northeast-1.amazonaws.com/graphql';
+const GRAPHQL_ENDPOINT =
+    process.env.MESH_GRAPHQL_ENDPOINT ||
+    'https://mpe3yhgk6zdxfhjbay2vqcq5qe.appsync-api.ap-northeast-1.amazonaws.com/graphql';
 const REGION = process.env.MESH_AWS_REGION || 'ap-northeast-1';
 const API_KEY = process.env.MESH_API_KEY || 'da2-kdkm7p5cfzbr5jsikmoqvddowi';
 
@@ -19,9 +21,9 @@ const createClient = () => {
         region: REGION,
         auth: {
             type: 'API_KEY',
-            apiKey: API_KEY
+            apiKey: API_KEY,
         },
-        disableOffline: true
+        disableOffline: true,
     });
 
     return client;
@@ -34,5 +36,5 @@ module.exports = {
     createClient,
     getClient,
     gql,
-    GRAPHQL_ENDPOINT
+    GRAPHQL_ENDPOINT,
 };

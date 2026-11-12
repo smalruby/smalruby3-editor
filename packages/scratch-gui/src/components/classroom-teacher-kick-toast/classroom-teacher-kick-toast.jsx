@@ -42,10 +42,7 @@ const KickRequestRow = ({ request, busy, onApprove, onReject, onOpenAssignment }
                     values={{ name: request.occupantName || '-' }}
                 />
             </div>
-            <div
-                className={styles.reason}
-                data-testid="classroom-teacher-kick-toast-reason"
-            >
+            <div className={styles.reason} data-testid="classroom-teacher-kick-toast-reason">
                 {request.reason ? (
                     `「${request.reason}」`
                 ) : (
@@ -88,11 +85,7 @@ const KickRequestRow = ({ request, busy, onApprove, onReject, onOpenAssignment }
                         id="gui.classroomTeacherKick.reject"
                     />
                 </button>
-                <button
-                    className={styles.link}
-                    data-testid="classroom-teacher-kick-toast-open"
-                    onClick={handleOpen}
-                >
+                <button className={styles.link} data-testid="classroom-teacher-kick-toast-open" onClick={handleOpen}>
                     <FormattedMessage
                         defaultMessage="Open assignment"
                         description="Teacher kick-request toast: open the assignment in class management (#1200)"
@@ -150,12 +143,7 @@ const ClassroomTeacherKickToast = ({
     const shown = expanded ? requests : requests.slice(0, 1);
     const others = requests.length - shown.length;
     return (
-        <div
-            aria-live="polite"
-            className={styles.toast}
-            data-testid="classroom-teacher-kick-toast"
-            role="status"
-        >
+        <div aria-live="polite" className={styles.toast} data-testid="classroom-teacher-kick-toast" role="status">
             <div className={styles.header}>
                 <FormattedMessage
                     defaultMessage="Kick requests ({count})"
@@ -177,10 +165,7 @@ const ClassroomTeacherKickToast = ({
                 ))}
             </div>
             {error ? (
-                <div
-                    className={styles.error}
-                    data-testid="classroom-teacher-kick-toast-error"
-                >
+                <div className={styles.error} data-testid="classroom-teacher-kick-toast-error">
                     {error}
                 </div>
             ) : null}
@@ -199,11 +184,7 @@ const ClassroomTeacherKickToast = ({
                         />
                     </button>
                 ) : null}
-                <button
-                    className={styles.button}
-                    data-testid="classroom-teacher-kick-toast-later"
-                    onClick={onLater}
-                >
+                <button className={styles.button} data-testid="classroom-teacher-kick-toast-later" onClick={onLater}>
                     <FormattedMessage
                         defaultMessage="Later"
                         description="Teacher kick-request toast: hide for now (the menu keeps the count) (#1200)"

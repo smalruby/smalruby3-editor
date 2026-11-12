@@ -132,7 +132,8 @@
     padding: 0.375rem 0.5rem 0.375rem 0.75rem;
     background-color: $balloon-primary;
     color: $ui-white;
-    border-radius: calc($balloon-radius-panel - $balloon-border-width) calc($balloon-radius-panel - $balloon-border-width) 0 0;
+    border-radius: calc($balloon-radius-panel - $balloon-border-width)
+        calc($balloon-radius-panel - $balloon-border-width) 0 0;
     font-weight: bold;
 }
 

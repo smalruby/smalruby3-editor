@@ -1,14 +1,15 @@
 import _ from 'lodash';
-import {defineMessages} from 'react-intl';
-import {RubyToBlocksConverterError} from '../errors';
+import { defineMessages } from 'react-intl';
+import { RubyToBlocksConverterError } from '../errors';
 
 const messages = defineMessages({
     cannotChangeArgument: {
-        defaultMessage: '"{NAME}" is an argument, so it cannot be changed.' +
+        defaultMessage:
+            '"{NAME}" is an argument, so it cannot be changed.' +
             '\nCopy it to another variable and change that one (e.g. x = {NAME}).',
         description: 'Error message when an argument of a method (a function in DNCL) is assigned to',
-        id: 'gui.smalruby3.rubyToBlocksConverter.cannotChangeArgument'
-    }
+        id: 'gui.smalruby3.rubyToBlocksConverter.cannotChangeArgument',
+    },
 });
 
 /**
@@ -16,7 +17,7 @@ const messages = defineMessages({
  * @mixes RubyToBlocksConverter
  */
 const AssignmentHandlers = {
-    visitCallOperatorWriteNode (node) {
+    visitCallOperatorWriteNode(node) {
         // e.g. self.size += 10 (CallOperatorWriteNode in Prism)
         // node.receiver = self, node.read_name = 'size', node.binaryOperator = '+', node.value = 10
         const saved = this._saveContext();
@@ -43,9 +44,12 @@ const AssignmentHandlers = {
         // If lh is a ruby_expression block, fix the source text to be "receiver.readName"
         // The callMethod handler used _getSource(node) which gives the whole assignment expression.
         // We need just the read part (e.g. "pen.color" not "pen.color += 10").
-        if (this._isRubyExpression(lh) &&
+        if (
+            this._isRubyExpression(lh) &&
             receiverNameForLh &&
-            receiverNameForLh !== 'sprite' && receiverNameForLh !== 'stage') {
+            receiverNameForLh !== 'sprite' &&
+            receiverNameForLh !== 'stage'
+        ) {
             const textBlock = this._context.blocks[lh.inputs.EXPRESSION.block];
             if (textBlock) {
                 textBlock.fields.TEXT.value = `${receiverNameForLh}.${node.readName}`;
@@ -79,31 +83,34 @@ const AssignmentHandlers = {
         return block;
     },
 
-    visitLocalVariableOperatorWriteNode (node) {
+    visitLocalVariableOperatorWriteNode(node) {
         return this._onVarOpAsgn(node.name, 'local', node.binaryOperator, node.value, node);
     },
 
-    visitGlobalVariableOperatorWriteNode (node) {
+    visitGlobalVariableOperatorWriteNode(node) {
         return this._onVarOpAsgn(node.name, 'global', node.binaryOperator, node.value, node);
     },
 
-    visitInstanceVariableOperatorWriteNode (node) {
+    visitInstanceVariableOperatorWriteNode(node) {
         return this._onVarOpAsgn(node.name, 'instance', node.binaryOperator, node.value, node);
     },
 
     // The argument reporter of a definition cannot be set: assigning to an argument would
     // set another variable of the same name, and the argument would keep its value.
-    _rejectArgumentChange (name, scope, node) {
+    _rejectArgumentChange(name, scope, node) {
         if (scope !== 'local') return;
         const varName = this._toSnakeCaseLowercase(name);
         const currentScope = this._getCurrentScope();
         const local = currentScope && currentScope.localVars[varName];
         if (local && local.variable.isArgument) {
-            throw new RubyToBlocksConverterError(node, this._translator(messages.cannotChangeArgument, {NAME: varName}));
+            throw new RubyToBlocksConverterError(
+                node,
+                this._translator(messages.cannotChangeArgument, { NAME: varName }),
+            );
         }
     },
 
-    _onVarOpAsgn (name, scope, operator, valueNode, node) {
+    _onVarOpAsgn(name, scope, operator, valueNode, node) {
         this._rejectArgumentChange(name, scope, node);
         const saved = this._saveContext();
 
@@ -153,19 +160,19 @@ const AssignmentHandlers = {
         return block;
     },
 
-    visitLocalVariableWriteNode (node) {
+    visitLocalVariableWriteNode(node) {
         return this._onVasgn(node.name, 'local', node.value, node);
     },
 
-    visitGlobalVariableWriteNode (node) {
+    visitGlobalVariableWriteNode(node) {
         return this._onVasgn(node.name, 'global', node.value, node);
     },
 
-    visitInstanceVariableWriteNode (node) {
+    visitInstanceVariableWriteNode(node) {
         return this._onVasgn(node.name, 'instance', node.value, node);
     },
 
-    _onVasgn (name, scope, valueNode, node) {
+    _onVasgn(name, scope, valueNode, node) {
         this._rejectArgumentChange(name, scope, node);
         const saved = this._saveContext();
 
@@ -217,7 +224,7 @@ const AssignmentHandlers = {
             return [...preBlocks, block];
         }
         return block;
-    }
+    },
 };
 
 export default AssignmentHandlers;

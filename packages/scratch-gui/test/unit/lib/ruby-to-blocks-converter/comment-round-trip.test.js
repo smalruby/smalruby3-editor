@@ -1,12 +1,12 @@
 import Blocks from '@smalruby/scratch-vm/src/engine/blocks';
-import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter';
 import RubyGenerator from '../../../../src/lib/ruby-generator';
+import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter';
 
 describe('Ruby Comment Round Trip', () => {
     let converter;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
     });
 
     const expectRoundTrip = async (code, expectedRuby = null) => {
@@ -16,19 +16,19 @@ describe('Ruby Comment Round Trip', () => {
 
         const blocks = new Blocks();
         blocks.forceNoGlow = true;
-        Object.keys(converter.blocks).forEach(blockId => {
+        Object.keys(converter.blocks).forEach((blockId) => {
             blocks.createBlock(converter.blocks[blockId]);
         });
 
         const variables = {};
-        [converter.variables, converter._context.localVariables].forEach(vars => {
-            Object.values(vars).forEach(v => {
+        [converter.variables, converter._context.localVariables].forEach((vars) => {
+            Object.values(vars).forEach((v) => {
                 variables[v.id] = v;
             });
         });
 
         const lists = {};
-        Object.values(converter.lists).forEach(v => {
+        Object.values(converter.lists).forEach((v) => {
             lists[v.id] = v;
         });
 
@@ -39,16 +39,16 @@ describe('Ruby Comment Round Trip', () => {
             lists: lists,
             comments: converter._context.comments,
             isStage: false,
-            lookupVariableById: id => variables[id],
+            lookupVariableById: (id) => variables[id],
             lookupVariableByNameAndType: (name, type) => {
-                return Object.values(variables).find(v => v.name === name && v.type === type);
-            }
+                return Object.values(variables).find((v) => v.name === name && v.type === type);
+            },
         };
 
-        RubyGenerator.init({version: '2'});
+        RubyGenerator.init({ version: '2' });
         RubyGenerator.currentTarget = target;
 
-        const generatedRuby = RubyGenerator.targetToCode(target, {version: '2'});
+        const generatedRuby = RubyGenerator.targetToCode(target, { version: '2' });
         expect(generatedRuby.trim()).toEqual((expectedRuby || code).trim());
     };
 
@@ -72,7 +72,7 @@ describe('Ruby Comment Round Trip', () => {
 
         const comments = converter._context.comments;
         const commentValues = Object.values(comments);
-        const targetComments = commentValues.filter(c => c.blockId === null && !c.text.startsWith('@ruby:'));
+        const targetComments = commentValues.filter((c) => c.blockId === null && !c.text.startsWith('@ruby:'));
         expect(targetComments).toHaveLength(1);
         expect(targetComments[0].text).toBe('just a comment');
 
@@ -87,11 +87,11 @@ describe('Ruby Comment Round Trip', () => {
             comments: comments,
             isStage: false,
             lookupVariableById: () => null,
-            lookupVariableByNameAndType: () => null
+            lookupVariableByNameAndType: () => null,
         };
-        RubyGenerator.init({version: '2'});
+        RubyGenerator.init({ version: '2' });
         RubyGenerator.currentTarget = target;
-        const generatedRuby = RubyGenerator.targetToCode(target, {version: '2'});
+        const generatedRuby = RubyGenerator.targetToCode(target, { version: '2' });
         expect(generatedRuby.trim()).toEqual('# just a comment');
     });
 
@@ -110,7 +110,7 @@ describe('Ruby Comment Round Trip', () => {
             '    move(2)',
             '    bounce_if_on_edge',
             '  end',
-            'end'
+            'end',
         ].join('\n');
         const result = await converter.targetCodeToBlocks(null, code);
         expect(converter.errors).toHaveLength(0);
@@ -118,17 +118,21 @@ describe('Ruby Comment Round Trip', () => {
 
         const comments = converter._context.comments;
         const commentValues = Object.values(comments);
-        const userComments = commentValues.filter(c => !c.text.startsWith('@ruby:') &&
-            c.text.split('\n').some(line => !line.startsWith('@ruby:')));
+        const userComments = commentValues.filter(
+            (c) => !c.text.startsWith('@ruby:') && c.text.split('\n').some((line) => !line.startsWith('@ruby:')),
+        );
 
         // All 4 user comments should be preserved
-        const userTexts = userComments.map(c =>
-            c.text.split('\n').filter(l => !l.startsWith('@ruby:')).join('\n')
+        const userTexts = userComments.map((c) =>
+            c.text
+                .split('\n')
+                .filter((l) => !l.startsWith('@ruby:'))
+                .join('\n'),
         );
-        expect(userTexts.some(t => t.includes('before loop'))).toBe(true);
-        expect(userTexts.some(t => t.includes('before if'))).toBe(true);
-        expect(userTexts.some(t => t.includes('before point_towards'))).toBe(true);
-        expect(userTexts.some(t => t.includes('before move in else'))).toBe(true);
+        expect(userTexts.some((t) => t.includes('before loop'))).toBe(true);
+        expect(userTexts.some((t) => t.includes('before if'))).toBe(true);
+        expect(userTexts.some((t) => t.includes('before point_towards'))).toBe(true);
+        expect(userTexts.some((t) => t.includes('before move in else'))).toBe(true);
     });
 
     test('Japanese comments with multibyte characters are preserved', async () => {
@@ -148,7 +152,7 @@ describe('Ruby Comment Round Trip', () => {
         // Verify comment is stored
         const comments = converter._context.comments;
         const commentValues = Object.values(comments);
-        const hasClassDescription = commentValues.some(c => c.text.includes('class description'));
+        const hasClassDescription = commentValues.some((c) => c.text.includes('class description'));
         expect(hasClassDescription).toBe(true);
 
         // For full round-trip with class, a proper sprite target mock would be needed.

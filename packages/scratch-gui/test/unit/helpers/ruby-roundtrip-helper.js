@@ -12,25 +12,24 @@
  *   field values and require no VM mock.
  * - `isStage: true` targets can be tested by passing the stage as the target.
  */
-import RubyToBlocksConverter from '../../../src/lib/ruby-to-blocks-converter';
-import RubyGenerator from '../../../src/lib/ruby-generator';
-import Variable from '@smalruby/scratch-vm/src/engine/variable';
 import Blocks from '@smalruby/scratch-vm/src/engine/blocks';
-
-import MathBlocks from '../../../src/lib/ruby-generator/math.js';
-import TextBlocks from '../../../src/lib/ruby-generator/text.js';
+import Variable from '@smalruby/scratch-vm/src/engine/variable';
+import RubyGenerator from '../../../src/lib/ruby-generator';
 import ColourBlocks from '../../../src/lib/ruby-generator/colour.js';
-import MotionBlocks from '../../../src/lib/ruby-generator/motion.js';
-import LooksBlocks from '../../../src/lib/ruby-generator/looks.js';
-import SoundBlocks from '../../../src/lib/ruby-generator/sound.js';
-import EventBlocks from '../../../src/lib/ruby-generator/event.js';
 import ControlBlocks from '../../../src/lib/ruby-generator/control.js';
-import SensingBlocks from '../../../src/lib/ruby-generator/sensing.js';
-import OperatorsBlocks from '../../../src/lib/ruby-generator/operators.js';
 import DataBlocks from '../../../src/lib/ruby-generator/data.js';
+import EventBlocks from '../../../src/lib/ruby-generator/event.js';
+import LooksBlocks from '../../../src/lib/ruby-generator/looks.js';
+import MathBlocks from '../../../src/lib/ruby-generator/math.js';
+import MotionBlocks from '../../../src/lib/ruby-generator/motion.js';
+import OperatorsBlocks from '../../../src/lib/ruby-generator/operators.js';
 import ProcedureBlocks from '../../../src/lib/ruby-generator/procedure.js';
 import RubyBlocks from '../../../src/lib/ruby-generator/ruby.js';
+import SensingBlocks from '../../../src/lib/ruby-generator/sensing.js';
 import SmalrubyRubyBlocks from '../../../src/lib/ruby-generator/smalruby-ruby.js';
+import SoundBlocks from '../../../src/lib/ruby-generator/sound.js';
+import TextBlocks from '../../../src/lib/ruby-generator/text.js';
+import RubyToBlocksConverter from '../../../src/lib/ruby-to-blocks-converter';
 
 /**
  * Build a minimal target-like object.
@@ -48,19 +47,19 @@ const makeTargetObj = (id, isStage, runtime) => {
         broadcastMsgs: {},
         comments: {},
         runtime,
-        createVariable (vid, name, type) {
+        createVariable(vid, name, type) {
             this.variables[vid] = new Variable(vid, name, type);
         },
-        lookupVariableByNameAndType (name, type) {
+        lookupVariableByNameAndType(name, type) {
             for (const varId in this.variables) {
                 const currVar = this.variables[varId];
                 if (currVar.name === name && currVar.type === type) return currVar;
             }
             return null;
         },
-        createComment (cid, blockId, text, x, y, width, height, minimized) {
-            this.comments[cid] = {id: cid, blockId, text, x, y, width, height, minimized};
-        }
+        createComment(cid, blockId, text, x, y, width, height, minimized) {
+            this.comments[cid] = { id: cid, blockId, text, x, y, width, height, minimized };
+        },
     };
     t.blocks = new Blocks(runtime);
     return t;
@@ -77,12 +76,12 @@ const makeTargetObj = (id, isStage, runtime) => {
 export const makeSpriteTarget = () => {
     const runtime = {
         emitProjectChanged: () => {},
-        getTargetForStage: null // filled below
+        getTargetForStage: null, // filled below
     };
     const stage = makeTargetObj('stage', true, runtime);
     const target = makeTargetObj('sprite1', false, runtime);
     runtime.getTargetForStage = () => stage;
-    return {target, stage, runtime};
+    return { target, stage, runtime };
 };
 
 /**
@@ -93,11 +92,11 @@ export const makeSpriteTarget = () => {
 export const makeStageTarget = () => {
     const runtime = {
         emitProjectChanged: () => {},
-        getTargetForStage: null // filled below
+        getTargetForStage: null, // filled below
     };
     const stage = makeTargetObj('stage', true, runtime);
     runtime.getTargetForStage = () => stage;
-    return {target: stage, stage, runtime};
+    return { target: stage, stage, runtime };
 };
 
 /**
@@ -105,7 +104,7 @@ export const makeStageTarget = () => {
  * Call this in beforeEach so each test starts fresh.
  */
 export const setupRubyGenerator = () => {
-    RubyGenerator.cache_ = {comments: {}, targetCommentTexts: []};
+    RubyGenerator.cache_ = { comments: {}, targetCommentTexts: [] };
     RubyGenerator.definitions_ = {};
     RubyGenerator.functionNames_ = {};
 
@@ -142,8 +141,8 @@ export const makeConverter = (target, runtime, options) => {
         emitWorkspaceUpdate: () => {},
         extensionManager: {
             isExtensionLoaded: () => true, // treat all extensions as already loaded
-            loadExtensionURL: () => Promise.resolve()
-        }
+            loadExtensionURL: () => Promise.resolve(),
+        },
     };
     const converter = new RubyToBlocksConverter(vm, options);
     converter._context.target = target;
@@ -162,7 +161,7 @@ export const rubyToBlocksToRuby = async (converter, target, code, options = {}) 
     const result = await converter.targetCodeToBlocks(target, code);
     if (!result) {
         throw new Error(
-            `Failed to convert Ruby to blocks.\nErrors: ${JSON.stringify(converter.errors)}\nCode:\n${code}`
+            `Failed to convert Ruby to blocks.\nErrors: ${JSON.stringify(converter.errors)}\nCode:\n${code}`,
         );
     }
     await converter.applyTargetBlocks(target);
@@ -172,7 +171,7 @@ export const rubyToBlocksToRuby = async (converter, target, code, options = {}) 
     // the converter to v2 (makeConverter(..., {version: 2})) then get v2 output
     // without having to also pass {version} to expectRoundTrip. Explicit
     // options.version still wins.
-    const genOptions = {version: converter.version, ...options};
+    const genOptions = { version: converter.version, ...options };
     return RubyGenerator.targetToCode(target, genOptions).trim();
 };
 

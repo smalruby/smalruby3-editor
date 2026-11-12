@@ -6,6 +6,7 @@
  * normalized fields, every message id resolves in en / ja / ja-Hira) and the spec of
  * the challenges whose contents are in (task / palette / hints / goal / code).
  */
+import { allowedBlockOpcode } from '../../../../src/lib/lessons/block-defaults';
 import {
     CATEGORIES,
     COURSES,
@@ -19,7 +20,6 @@ import {
     findLesson,
     localizeCode,
 } from '../../../../src/lib/lessons/courses';
-import { allowedBlockOpcode } from '../../../../src/lib/lessons/block-defaults';
 import { validateGoal } from '../../../../src/lib/lessons/goal';
 import { rubyToBlocksXml } from '../../../../src/lib/lessons/hint-blocks';
 import { HINT_TARGETS } from '../../../../src/lib/lessons/hint-targets';
@@ -30,7 +30,10 @@ import jaHira from '../../../../src/locales/ja-Hira';
 // パレットのブロック（allowedBlocks）を opcode だけで比べる。初期値は block-defaults.test.js で見る
 const allowedOpcodes = (challenge) =>
     Object.fromEntries(
-        Object.entries(challenge.allowedBlocks).map(([category, entries]) => [category, entries.map(allowedBlockOpcode)]),
+        Object.entries(challenge.allowedBlocks).map(([category, entries]) => [
+            category,
+            entries.map(allowedBlockOpcode),
+        ]),
     );
 
 const LOCALES = { en, ja, 'ja-Hira': jaHira };
@@ -54,8 +57,7 @@ const LESSONS = [
     },
 ];
 
-const allChallenges = () =>
-    COURSES.flatMap((course) => course.lessons.flatMap((lesson) => lesson.challenges));
+const allChallenges = () => COURSES.flatMap((course) => course.lessons.flatMap((lesson) => lesson.challenges));
 
 const collectMessages = () => {
     const messages = [];
@@ -417,7 +419,9 @@ describe('lesson courses', () => {
                 { type: 'variable', name: ['回数', 'かいすう', 'count'], value: { gte: 3 } },
                 { type: 'said', equalsVariable: ['回数', 'かいすう', 'count'] },
             ]);
-            expect(localizeCode(c.code, 'ja')).toBe('when_flag_clicked do\n  $回数 = 0\nend\n\nwhen_clicked do\n  $回数 += 1\n  say($回数)\nend\n');
+            expect(localizeCode(c.code, 'ja')).toBe(
+                'when_flag_clicked do\n  $回数 = 0\nend\n\nwhen_clicked do\n  $回数 += 1\n  say($回数)\nend\n',
+            );
         });
 
         test('the goals of 5-8 pass validateGoal', () => {
@@ -503,9 +507,15 @@ describe('lesson courses', () => {
             ]);
             expect(c.goal).toEqual([
                 { type: 'extension', id: 'text2speech' },
-                { type: 'uses', trigger: { hat: 'event_whenthisspriteclicked' }, blocks: ['text2speech_speakAndWait'] },
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenthisspriteclicked' },
+                    blocks: ['text2speech_speakAndWait'],
+                },
             ]);
-            expect(localizeCode(c.code, 'ja')).toBe('when_clicked do\n  text2speech.speak("ボタンが押されました")\nend\n');
+            expect(localizeCode(c.code, 'ja')).toBe(
+                'when_clicked do\n  text2speech.speak("ボタンが押されました")\nend\n',
+            );
         });
 
         test('11 メッセージをためよう: keeps the answers in the list トーク', () => {
@@ -553,7 +563,9 @@ describe('lesson courses', () => {
         test('the ja-Hira strings of 9-11 have no kanji', () => {
             const ids = Object.keys(jaHira).filter((id) => /blocks-l1-(broadcast|speak|message-list)\./.test(id));
             expect(ids.length).toBeGreaterThan(20);
-            ids.forEach((id) => expect({ id, text: jaHira[id] }).toEqual({ id, text: expect.not.stringMatching(/\p{Script=Han}/u) }));
+            ids.forEach((id) =>
+                expect({ id, text: jaHira[id] }).toEqual({ id, text: expect.not.stringMatching(/\p{Script=Han}/u) }),
+            );
         });
     });
 
@@ -570,7 +582,9 @@ describe('lesson courses', () => {
 
         test('1 キーで音を鳴らそう: space key plays two sounds in order', () => {
             const c = challenge('blocks-l1-key-sound');
-            expect(ja[c.task.id]).toBe('スペースキーを押したら、\nネコが「ニャー」と鳴いたあと、「Owl」の音が鳴るようにしよう');
+            expect(ja[c.task.id]).toBe(
+                'スペースキーを押したら、\nネコが「ニャー」と鳴いたあと、「Owl」の音が鳴るようにしよう',
+            );
             expect(allowedOpcodes(c)).toEqual({
                 event: ['event_whenkeypressed'],
                 sound: ['sound_playuntildone', 'sound_play'],
@@ -591,7 +605,9 @@ describe('lesson courses', () => {
                     order: ['sound_playuntildone', 'sound_play'],
                 },
             ]);
-            expect(localizeCode(c.code, 'ja')).toBe('when_key_pressed("space") do\n  play_until_done("ニャー")\n  play("Owl")\nend\n');
+            expect(localizeCode(c.code, 'ja')).toBe(
+                'when_key_pressed("space") do\n  play_until_done("ニャー")\n  play("Owl")\nend\n',
+            );
             expect(c.codeTarget).toBeNull();
         });
 
@@ -652,7 +668,9 @@ describe('lesson courses', () => {
                     blocks: ['looks_sayforsecs', 'looks_nextcostume'],
                 },
             ]);
-            expect(localizeCode(c.code, 'ja')).toBe('when_clicked do\n  say("こんにちは！", 2)\n  next_costume\nend\n');
+            expect(localizeCode(c.code, 'ja')).toBe(
+                'when_clicked do\n  say("こんにちは！", 2)\n  next_costume\nend\n',
+            );
         });
 
         test('4 くり返そう: the stage switches the backdrop 6 times on the 1 key', () => {
@@ -771,8 +789,11 @@ describe('lesson courses', () => {
                 expect(hats.length).toBeGreaterThan(0);
                 const drawn = c.steps.map((s) => localizeCode(s.blocks, locale) || '');
                 hats.forEach((hat) => {
-                    expect({ id: c.id, hat, drawn: drawn.some((b) => b.split('\n').some((l) => l.startsWith(`${hat} do`))) })
-                        .toEqual({ id: c.id, hat, drawn: true });
+                    expect({
+                        id: c.id,
+                        hat,
+                        drawn: drawn.some((b) => b.split('\n').some((l) => l.startsWith(`${hat} do`))),
+                    }).toEqual({ id: c.id, hat, drawn: true });
                 });
             });
         });
@@ -910,7 +931,10 @@ describe('lesson courses', () => {
                 const ids = [c.name, c.task, ...c.steps.map((s) => s.title), ...c.debug].map((d) => d.id);
                 ids.forEach((key) => {
                     // ▼ や ✓ などの記号はよい。かな・漢字が無いこと
-                    expect({ key, text: en[key] }).toEqual({ key, text: expect.not.stringMatching(/[\u3040-\u30ff\u4e00-\u9fff]/) });
+                    expect({ key, text: en[key] }).toEqual({
+                        key,
+                        text: expect.not.stringMatching(/[\u3040-\u30ff\u4e00-\u9fff]/),
+                    });
                 });
             });
         });

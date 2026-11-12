@@ -9,19 +9,13 @@ import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useState } from 'react';
 import { FormattedMessage } from 'react-intl';
 import { useDispatch, useSelector } from 'react-redux';
-
+import { isTutorialSeen, markClassroomTutorialSeen } from '../../reducers/classroom-tutorial.js';
 import ErrorDisplay from '../classroom-modal/error-display.jsx';
 import GoogleCourseList from '../classroom-modal/google-course-list.jsx';
 import TeacherBreadcrumbs from '../classroom-modal/teacher-breadcrumbs.jsx';
 import Spinner from '../spinner/spinner.jsx';
-
-import {
-    isTutorialSeen,
-    markClassroomTutorialSeen,
-} from '../../reducers/classroom-tutorial.js';
-
-import googleAuthHintImage from './google-auth-hint.png';
 import styles from './classroom-teacher-modal.css';
+import googleAuthHintImage from './google-auth-hint.png';
 
 const TeacherGoogleCoursesPhase = ({
     error,
@@ -36,9 +30,7 @@ const TeacherGoogleCoursesPhase = ({
     onSelectGoogleCourse,
 }) => {
     const dispatch = useDispatch();
-    const checkboxesSeen = useSelector((state) =>
-        isTutorialSeen(state, 'checkboxes'),
-    );
+    const checkboxesSeen = useSelector((state) => isTutorialSeen(state, 'checkboxes'));
     const [showAuthHint, setShowAuthHint] = useState(false);
 
     // On mount: auto-load courses or show auth hint.
@@ -58,10 +50,7 @@ const TeacherGoogleCoursesPhase = ({
     }, [dispatch, onLoadGoogleCourses]);
 
     return (
-        <div
-            className={styles.mainRelative}
-            data-testid="classroom-phase-teacher-google-courses"
-        >
+        <div className={styles.mainRelative} data-testid="classroom-phase-teacher-google-courses">
             {showAuthHint && (
                 <div className={styles.authHintOverlay}>
                     <div className={styles.authHint}>
@@ -110,93 +99,93 @@ const TeacherGoogleCoursesPhase = ({
                 </div>
             )}
             <div className={styles.googleCoursesView}>
-            <TeacherBreadcrumbs
-                items={[
-                    {
-                        label: (
-                            <FormattedMessage
-                                defaultMessage="Class list"
-                                description="Breadcrumb link back to the class list"
-                                id="gui.classroom.breadcrumbs.classList"
-                            />
-                        ),
-                        onClick: onBack,
-                        testId: 'classroom-breadcrumb-class-list',
-                    },
-                    {
-                        label: (
-                            <FormattedMessage
-                                defaultMessage="Import from Google Classroom"
-                                description="Breadcrumb label of the GC import view"
-                                id="gui.classroom.breadcrumbs.importGc"
-                            />
-                        ),
-                    },
-                ]}
-            />
-            <h2 className={styles.googleCoursesTitle}>
-                <FormattedMessage
-                    defaultMessage="Import from Google Classroom"
-                    description="Google Classroom import view title"
-                    id="gui.classroom.management.googleCoursesTitle"
+                <TeacherBreadcrumbs
+                    items={[
+                        {
+                            label: (
+                                <FormattedMessage
+                                    defaultMessage="Class list"
+                                    description="Breadcrumb link back to the class list"
+                                    id="gui.classroom.breadcrumbs.classList"
+                                />
+                            ),
+                            onClick: onBack,
+                            testId: 'classroom-breadcrumb-class-list',
+                        },
+                        {
+                            label: (
+                                <FormattedMessage
+                                    defaultMessage="Import from Google Classroom"
+                                    description="Breadcrumb label of the GC import view"
+                                    id="gui.classroom.breadcrumbs.importGc"
+                                />
+                            ),
+                        },
+                    ]}
                 />
-            </h2>
-            <p className={styles.mainPhaseGuide}>
-                <FormattedMessage
-                    defaultMessage="Select a class to import and click the Import button."
-                    description="Guide for Google Classroom course selection"
-                    id="gui.classroom.management.googleCoursesGuide"
-                />
-            </p>
-            <ErrorDisplay error={error} errorTitle={errorTitle} />
-            {isLoading ? (
-                <div className={styles.courseListLoading}>
-                    <Spinner large level="primary" />
+                <h2 className={styles.googleCoursesTitle}>
+                    <FormattedMessage
+                        defaultMessage="Import from Google Classroom"
+                        description="Google Classroom import view title"
+                        id="gui.classroom.management.googleCoursesTitle"
+                    />
+                </h2>
+                <p className={styles.mainPhaseGuide}>
+                    <FormattedMessage
+                        defaultMessage="Select a class to import and click the Import button."
+                        description="Guide for Google Classroom course selection"
+                        id="gui.classroom.management.googleCoursesGuide"
+                    />
+                </p>
+                <ErrorDisplay error={error} errorTitle={errorTitle} />
+                {isLoading ? (
+                    <div className={styles.courseListLoading}>
+                        <Spinner large level="primary" />
+                    </div>
+                ) : googleCourses.length === 0 ? (
+                    <div>
+                        <FormattedMessage
+                            defaultMessage="No courses found"
+                            description="No Google Classroom courses"
+                            id="gui.classroom.management.noCourses"
+                        />
+                    </div>
+                ) : (
+                    <GoogleCourseList
+                        courses={googleCourses}
+                        importedCourseIds={importedCourseIds}
+                        selectedCourseId={selectedGoogleCourse?.courseId}
+                        onSelect={onSelectGoogleCourse}
+                    />
+                )}
+                {/* フッターを基本ポリシーに統一（#1108）: キャンセル左 / インポート右 */}
+                <div className={styles.mainFooterSplit}>
+                    <button
+                        className={styles.secondaryFooterButton}
+                        data-testid="classroom-google-import-cancel"
+                        disabled={isLoading}
+                        type="button"
+                        onClick={onBack}
+                    >
+                        <FormattedMessage
+                            defaultMessage="Cancel"
+                            description="Cancel the Google Classroom import and go back to the class list"
+                            id="gui.classroom.management.importCancel"
+                        />
+                    </button>
+                    <button
+                        className={styles.loginButton}
+                        data-testid="classroom-google-import-confirm"
+                        disabled={!selectedGoogleCourse || isLoading}
+                        onClick={onConfirmGoogleImport}
+                    >
+                        <FormattedMessage
+                            defaultMessage="Import"
+                            description="Import Google Classroom course"
+                            id="gui.classroom.management.importButton"
+                        />
+                    </button>
                 </div>
-            ) : googleCourses.length === 0 ? (
-                <div>
-                    <FormattedMessage
-                        defaultMessage="No courses found"
-                        description="No Google Classroom courses"
-                        id="gui.classroom.management.noCourses"
-                    />
-                </div>
-            ) : (
-                <GoogleCourseList
-                    courses={googleCourses}
-                    importedCourseIds={importedCourseIds}
-                    selectedCourseId={selectedGoogleCourse?.courseId}
-                    onSelect={onSelectGoogleCourse}
-                />
-            )}
-            {/* フッターを基本ポリシーに統一（#1108）: キャンセル左 / インポート右 */}
-            <div className={styles.mainFooterSplit}>
-                <button
-                    className={styles.secondaryFooterButton}
-                    data-testid="classroom-google-import-cancel"
-                    disabled={isLoading}
-                    type="button"
-                    onClick={onBack}
-                >
-                    <FormattedMessage
-                        defaultMessage="Cancel"
-                        description="Cancel the Google Classroom import and go back to the class list"
-                        id="gui.classroom.management.importCancel"
-                    />
-                </button>
-                <button
-                    className={styles.loginButton}
-                    data-testid="classroom-google-import-confirm"
-                    disabled={!selectedGoogleCourse || isLoading}
-                    onClick={onConfirmGoogleImport}
-                >
-                    <FormattedMessage
-                        defaultMessage="Import"
-                        description="Import Google Classroom course"
-                        id="gui.classroom.management.importButton"
-                    />
-                </button>
-            </div>
             </div>
         </div>
     );

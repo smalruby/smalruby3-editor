@@ -3,7 +3,7 @@ import {
     convertAndExpectToEqualBlocks,
     convertAndExpectRubyBlockError,
     rubyToExpected,
-    expectedInfo
+    expectedInfo,
 } from '../../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Operators', () => {
@@ -13,7 +13,7 @@ describe('RubyToBlocksConverter/Operators', () => {
     let expected;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
         code = null;
         expected = null;
@@ -27,14 +27,14 @@ describe('RubyToBlocksConverter/Operators', () => {
                 inputs: [
                     {
                         name: 'NUM1',
-                        block: expectedInfo.makeNumber(1)
+                        block: expectedInfo.makeNumber(1),
                     },
                     {
                         name: 'NUM2',
-                        block: expectedInfo.makeNumber(2)
-                    }
-                ]
-            }
+                        block: expectedInfo.makeNumber(2),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -49,25 +49,23 @@ describe('RubyToBlocksConverter/Operators', () => {
                     {
                         name: 'NUM1',
                         block: (await rubyToExpected(converter, target, 'x'))[0],
-                        shadow: expectedInfo.makeNumber('')
+                        shadow: expectedInfo.makeNumber(''),
                     },
                     {
                         name: 'NUM2',
                         block: (await rubyToExpected(converter, target, 'y'))[0],
-                        shadow: expectedInfo.makeNumber('')
-                    }
-                ]
-            }
+                        shadow: expectedInfo.makeNumber(''),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
-        { for (const s of [
-            '"1" % "2"',
-            '1 % "2"',
-            '"1" % 2'
-        ]) {
-            await convertAndExpectRubyBlockError(converter, target, s);
-        } }
+        {
+            for (const s of ['"1" % "2"', '1 % "2"', '"1" % 2']) {
+                await convertAndExpectRubyBlockError(converter, target, s);
+            }
+        }
     });
 
     test('operator_round', async () => {
@@ -78,10 +76,10 @@ describe('RubyToBlocksConverter/Operators', () => {
                 inputs: [
                     {
                         name: 'NUM',
-                        block: expectedInfo.makeNumber(2)
-                    }
-                ]
-            }
+                        block: expectedInfo.makeNumber(2),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -93,19 +91,18 @@ describe('RubyToBlocksConverter/Operators', () => {
                     {
                         name: 'NUM',
                         block: (await rubyToExpected(converter, target, 'x'))[0],
-                        shadow: expectedInfo.makeNumber('')
-                    }
-                ]
-            }
+                        shadow: expectedInfo.makeNumber(''),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
-        { for (const s of [
-            '"2".round',
-            '"2".round(1)'
-        ]) {
-            await convertAndExpectRubyBlockError(converter, target, s);
-        } }
+        {
+            for (const s of ['"2".round', '"2".round(1)']) {
+                await convertAndExpectRubyBlockError(converter, target, s);
+            }
+        }
     });
 
     test('operator_mathop', async () => {
@@ -113,20 +110,20 @@ describe('RubyToBlocksConverter/Operators', () => {
 
         for (const three of ['3', '(3)']) {
             operatorCodes = {
-                'abs': `${three}.abs`,
-                'floor': `${three}.floor`,
-                'ceiling': `${three}.ceil`,
-                'sqrt': `Math.sqrt(${three})`,
-                'sin': `Math.sin(${three})`,
-                'cos': `Math.cos(${three})`,
-                'tan': `Math.tan(${three})`,
-                'asin': `Math.asin(${three})`,
-                'acos': `Math.acos(${three})`,
-                'atan': `Math.atan(${three})`,
-                'ln': `Math.log(${three})`,
-                'log': `Math.log10(${three})`,
+                abs: `${three}.abs`,
+                floor: `${three}.floor`,
+                ceiling: `${three}.ceil`,
+                sqrt: `Math.sqrt(${three})`,
+                sin: `Math.sin(${three})`,
+                cos: `Math.cos(${three})`,
+                tan: `Math.tan(${three})`,
+                asin: `Math.asin(${three})`,
+                acos: `Math.acos(${three})`,
+                atan: `Math.atan(${three})`,
+                ln: `Math.log(${three})`,
+                log: `Math.log10(${three})`,
                 'e ^': `Math::E ** ${three}`,
-                '10 ^': `10 ** ${three}`
+                '10 ^': `10 ** ${three}`,
             };
             for (const operator of Object.keys(operatorCodes)) {
                 code = operatorCodes[operator];
@@ -136,36 +133,36 @@ describe('RubyToBlocksConverter/Operators', () => {
                         fields: [
                             {
                                 name: 'OPERATOR',
-                                value: operator
-                            }
+                                value: operator,
+                            },
                         ],
                         inputs: [
                             {
                                 name: 'NUM',
-                                block: expectedInfo.makeNumber(3)
-                            }
-                        ]
-                    }
+                                block: expectedInfo.makeNumber(3),
+                            },
+                        ],
+                    },
                 ];
                 await convertAndExpectToEqualBlocks(converter, target, code, expected);
             }
         }
 
         operatorCodes = {
-            'abs': 'x.abs',
-            'floor': 'x.floor',
-            'ceiling': 'x.ceil',
-            'sqrt': 'Math.sqrt(x)',
-            'sin': 'Math.sin(x)',
-            'cos': 'Math.cos(x)',
-            'tan': 'Math.tan(x)',
-            'asin': 'Math.asin(x)',
-            'acos': 'Math.acos(x)',
-            'atan': 'Math.atan(x)',
-            'ln': 'Math.log(x)',
-            'log': 'Math.log10(x)',
+            abs: 'x.abs',
+            floor: 'x.floor',
+            ceiling: 'x.ceil',
+            sqrt: 'Math.sqrt(x)',
+            sin: 'Math.sin(x)',
+            cos: 'Math.cos(x)',
+            tan: 'Math.tan(x)',
+            asin: 'Math.asin(x)',
+            acos: 'Math.acos(x)',
+            atan: 'Math.atan(x)',
+            ln: 'Math.log(x)',
+            log: 'Math.log10(x)',
             'e ^': 'Math::E ** x',
-            '10 ^': '10 ** x'
+            '10 ^': '10 ** x',
         };
         for (const operator of Object.keys(operatorCodes)) {
             code = operatorCodes[operator];
@@ -175,17 +172,17 @@ describe('RubyToBlocksConverter/Operators', () => {
                     fields: [
                         {
                             name: 'OPERATOR',
-                            value: operator
-                        }
+                            value: operator,
+                        },
                     ],
                     inputs: [
                         {
                             name: 'NUM',
                             block: (await rubyToExpected(converter, target, 'x'))[0],
-                            shadow: expectedInfo.makeNumber('')
-                        }
-                    ]
-                }
+                            shadow: expectedInfo.makeNumber(''),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         }

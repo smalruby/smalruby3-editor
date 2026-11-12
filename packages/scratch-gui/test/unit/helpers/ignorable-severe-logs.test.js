@@ -1,8 +1,4 @@
-import {
-    filterBrowserLogs,
-    isIgnorableSevereLog,
-    levelName,
-} from '../../helpers/ignorable-severe-logs';
+import { filterBrowserLogs, isIgnorableSevereLog, levelName } from '../../helpers/ignorable-severe-logs';
 
 // CI (Chrome stable) が実際に出したメッセージを貼っている（パスだけ版付きの配信パス
 // `static/monaco/<版>/vs` に合わせた・#1318）。自前ホストした Monaco の
@@ -69,13 +65,16 @@ describe('isIgnorableSevereLog (environment noise)', () => {
         expect(isIgnorableSevereLog(message)).toBe(true);
     });
 
-    test.each(['ja', 'ja-Hira'])('does not ignore a MISSING_TRANSLATION for locale %s (Smalruby strings must exist)', (locale) => {
-        const message =
-            'file:///build/gui.js 343831:16 Error: [@formatjs/intl Error MISSING_TRANSLATION] Missing message: ' +
-            `\\"gui.menuBar.lessons\\" for locale \\"${locale}\\", using default message (Lessons) as fallback.`;
-        expect(isIgnorableSevereLog(message)).toBe(false);
-        expect(isIgnorableSevereLog(message.replace(/\\/g, ''))).toBe(false);
-    });
+    test.each(['ja', 'ja-Hira'])(
+        'does not ignore a MISSING_TRANSLATION for locale %s (Smalruby strings must exist)',
+        (locale) => {
+            const message =
+                'file:///build/gui.js 343831:16 Error: [@formatjs/intl Error MISSING_TRANSLATION] Missing message: ' +
+                `\\"gui.menuBar.lessons\\" for locale \\"${locale}\\", using default message (Lessons) as fallback.`;
+            expect(isIgnorableSevereLog(message)).toBe(false);
+            expect(isIgnorableSevereLog(message.replace(/\\/g, ''))).toBe(false);
+        },
+    );
 
     test('ignores the intentionally unreachable wss://fake.fake/ of the connection modal test', () => {
         const message =
@@ -148,7 +147,10 @@ describe('filterBrowserLogs', () => {
     test('drops known harmless SEVERE entries', () => {
         const logs = [
             entry('SEVERE', 'gui.js 2:1 "Failed to initialize Google Drive API:" Object'),
-            entry('SEVERE', 'https://www.google.com/images/cleardot.gif - Failed to load resource: net::ERR_CONNECTION_REFUSED'),
+            entry(
+                'SEVERE',
+                'https://www.google.com/images/cleardot.gif - Failed to load resource: net::ERR_CONNECTION_REFUSED',
+            ),
             entry('SEVERE', MONACO_WORKER_LOGS[1]),
             realError,
         ];
@@ -156,7 +158,9 @@ describe('filterBrowserLogs', () => {
     });
 
     test('drops entries matching the default whitelist', () => {
-        const logs = [entry('SEVERE', 'Uncaught (in promise) The play() request was interrupted by a call to pause()')];
+        const logs = [
+            entry('SEVERE', 'Uncaught (in promise) The play() request was interrupted by a call to pause()'),
+        ];
         expect(filterBrowserLogs(logs)).toEqual([]);
     });
 

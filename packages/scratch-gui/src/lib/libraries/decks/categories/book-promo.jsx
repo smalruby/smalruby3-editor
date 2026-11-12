@@ -12,7 +12,7 @@
 // deck picks up the change (see docs/tutorial/improvement-plan.md Phase 3,
 // issue #956).
 import React from 'react';
-import {FormattedMessage} from 'react-intl';
+import { FormattedMessage } from 'react-intl';
 
 /**
  * Placeholder bibliographic info for the Smalruby book. Replace these values
@@ -47,7 +47,7 @@ export const bookOpeningStep = (chapter, image) => ({
             defaultMessage="📖 「{bookTitle}」（{author} 著）第{chapter}章より。このチュートリアルでは本書 第{chapter}章の冒頭部分を体験できます。"
             description="Opening step for a book-based Block tutorial: shows the book title/author and which chapter it excerpts"
             id="gui.howtos.book-promo.opening.title"
-            values={{bookTitle: BOOK.title, author: BOOK.author, chapter}}
+            values={{ bookTitle: BOOK.title, author: BOOK.author, chapter }}
         />
     ),
     image,
@@ -67,7 +67,7 @@ export const bookClosingStep = (chapter, image) => ({
             defaultMessage="ここまでで体験したのは本書 第{chapter}章の最初の数ページの内容です。続きは書籍をご覧ください。先生・保護者の方へ：本書を購入してお子さんに配布し、チュートリアルと並行して進めると、より深く理解できます。"
             description="Closing step for a book-based Block tutorial: only the opening pages were covered, buy the book for the rest"
             id="gui.howtos.book-promo.closing.title"
-            values={{chapter}}
+            values={{ chapter }}
         />
     ),
     image,
@@ -95,7 +95,7 @@ export const bookAdvancedClosingStep = (chapter, image) => ({
             defaultMessage="ここで動かしたプログラムは本書 第{chapter}章【発展】セクションのものです。このプログラムをゼロから自分で作る手順は、本書をご覧ください。"
             description="Closing step for the advanced (発展) Block tutorial deck: the finished program is from the book's advanced section"
             id="gui.howtos.book-promo.advancedClosing.title"
-            values={{chapter}}
+            values={{ chapter }}
         />
     ),
     image,

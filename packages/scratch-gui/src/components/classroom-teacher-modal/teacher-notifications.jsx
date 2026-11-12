@@ -9,7 +9,6 @@
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { defineMessages, useIntl, FormattedMessage } from 'react-intl';
-
 import styles from './classroom-teacher-modal.css';
 
 const PANEL_PREVIEW_COUNT = 5;
@@ -203,11 +202,7 @@ const TeacherNotifications = ({
                                 id="gui.classroom.notifications.title"
                             />
                         </span>
-                        <PanelMenu
-                            unreadCount={unreadCount}
-                            onMarkAllRead={onMarkAllRead}
-                            onShowAll={onShowAll}
-                        />
+                        <PanelMenu unreadCount={unreadCount} onMarkAllRead={onMarkAllRead} onShowAll={onShowAll} />
                     </div>
                     {notifications.length === 0 ? (
                         <div className={styles.notificationsEmpty} data-testid="classroom-notifications-empty">

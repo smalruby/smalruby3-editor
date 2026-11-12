@@ -67,9 +67,9 @@ export default function (Generator) {
         // === Smalruby: Start of regex literal variable generation ===
         if (comment && comment.includes('@ruby:regexp:literal') && hasValueInput) {
             const lvarMatch = comment.match(/@ruby:lvar:([^:,\s]+):\d+/);
-            const variable = lvarMatch ?
-                lvarMatch[1] :
-                Generator.variableName(Generator.getFieldId(block, 'VARIABLE'));
+            const variable = lvarMatch
+                ? lvarMatch[1]
+                : Generator.variableName(Generator.getFieldId(block, 'VARIABLE'));
             const value = Generator.valueToCode(block, 'VALUE', Generator.ORDER_NONE) || '""';
             const regexLiteral = Generator.unquoteRegex_(value) || Generator.nosToCode(value);
             return `${variable} = ${regexLiteral}\n`;
@@ -101,8 +101,31 @@ export default function (Generator) {
                 return '';
             }
 
-            const value = Generator.valueToCode(block, 'VALUE', Generator.ORDER_NONE) || '0';
+            let value = Generator.valueToCode(block, 'VALUE', Generator.ORDER_NONE) || '0';
+            // === Smalruby: Start of nil / symbol return value ===
+            // A method ending in `nil` / `:a` keeps the text block "" / "a" and a comment marker
+            // (issue #1548). Restore the literal only while the text is still what it was.
+            const symbolMatch = comment.match(/,@ruby:symbol:(.+)$/);
+            if (comment.includes(',@ruby:nil') && value === Generator.quote_('')) {
+                value = 'nil';
+            } else if (symbolMatch && value === Generator.quote_(symbolMatch[1])) {
+                const name = symbolMatch[1];
+                value = /^[\p{L}_][\p{L}\p{N}_]*[?!=]?$/u.test(name) ? `:${name}` : `:${value}`;
+            }
+            // === Smalruby: End of nil / symbol return value ===
             if (comment.includes('@ruby:syntax:return')) {
+                // === Smalruby: Start of bare return ===
+                // `return` without a value keeps the text "" and a comment marker (issue #1553).
+                if (comment.includes(',@ruby:return-bare') && value === Generator.quote_('')) {
+                    return 'return\n';
+                }
+                // === Smalruby: End of bare return ===
+                // === Smalruby: Start of parenthesized return value ===
+                // `return (x + 1)` keeps a comment marker to bring the parentheses back (issue #1557).
+                if (comment.includes(',@ruby:return-paren')) {
+                    return `return (${Generator.nosToCode(value)})\n`;
+                }
+                // === Smalruby: End of parenthesized return value ===
                 return `return ${Generator.nosToCode(value)}\n`;
             }
 
@@ -110,8 +133,11 @@ export default function (Generator) {
             if (block._isLastReturnInProcedure) {
                 // Check if there's a cached super call for this method
                 const returnMethodMatch = comment.match(/@ruby:return:(\w+)/);
-                if (returnMethodMatch && Generator.returnCallCache_ &&
-                    Generator.returnCallCache_[returnMethodMatch[1]]) {
+                if (
+                    returnMethodMatch &&
+                    Generator.returnCallCache_ &&
+                    Generator.returnCallCache_[returnMethodMatch[1]]
+                ) {
                     const cachedCall = Generator.returnCallCache_[returnMethodMatch[1]];
                     delete Generator.returnCallCache_[returnMethodMatch[1]];
                     return `${cachedCall}\n`;
@@ -129,9 +155,9 @@ export default function (Generator) {
             const op = compoundMatch[1];
             // Extract original variable name from @ruby:lvar comment if present
             const lvarMatch = comment.match(/@ruby:lvar:([^:,\s]+):\d+/);
-            const variable = lvarMatch ?
-                lvarMatch[1] :
-                Generator.variableName(Generator.getFieldId(block, 'VARIABLE'));
+            const variable = lvarMatch
+                ? lvarMatch[1]
+                : Generator.variableName(Generator.getFieldId(block, 'VARIABLE'));
             const operatorBlock = Generator.getBlock(block.inputs.VALUE.block);
             if (operatorBlock) {
                 // For operator_join (string +=), use STRING2 input; for numeric operators, use NUM2

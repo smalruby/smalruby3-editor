@@ -1,15 +1,15 @@
-import {Variable, LOCAL_VARIABLE_PATTERN} from './constants';
-import {loadCostume} from '@smalruby/scratch-vm/src/import/load-costume';
-import {loadSound} from '@smalruby/scratch-vm/src/import/load-sound';
-import spritesLibrary from '../libraries/sprites.json';
+import { loadCostume } from '@smalruby/scratch-vm/src/import/load-costume';
+import { loadSound } from '@smalruby/scratch-vm/src/import/load-sound';
+import backdropsLibrary from '../libraries/backdrops.json';
 import costumesLibrary from '../libraries/costumes.json';
 import soundsLibrary from '../libraries/sounds.json';
-import backdropsLibrary from '../libraries/backdrops.json';
+import spritesLibrary from '../libraries/sprites.json';
+import { Variable, LOCAL_VARIABLE_PATTERN } from './constants';
 
-const spritesMap = new Map(spritesLibrary.map(s => [s.name, s]));
-const costumesMap = new Map(costumesLibrary.map(c => [c.name, c]));
-const soundsMap = new Map(soundsLibrary.map(s => [s.name, s]));
-const backdropsMap = new Map(backdropsLibrary.map(b => [b.name, b]));
+const spritesMap = new Map(spritesLibrary.map((s) => [s.name, s]));
+const costumesMap = new Map(costumesLibrary.map((c) => [c.name, c]));
+const soundsMap = new Map(soundsLibrary.map((s) => [s.name, s]));
+const backdropsMap = new Map(backdropsLibrary.map((b) => [b.name, b]));
 
 /**
  * Mixin for applying blocks to a VM target.
@@ -20,7 +20,7 @@ const TargetApplier = {
      * @param {Target} target - VM target to apply blocks to
      * @returns {Promise} Promise that resolves when application is complete
      */
-    applyTargetBlocks (target) {
+    applyTargetBlocks(target) {
         // Sequence counter to handle re-entrant calls. When classInfo includes
         // costumes/sounds, vm.addCostume triggers emitProjectChanged → React
         // re-render → the useEffect in ruby-tab.jsx may fire again while
@@ -46,7 +46,7 @@ const TargetApplier = {
                 varsToDelete.push(varId);
             }
         }
-        varsToDelete.forEach(varId => {
+        varsToDelete.forEach((varId) => {
             target.deleteVariable(varId);
         });
 
@@ -66,8 +66,8 @@ const TargetApplier = {
         // wins over the eager scalar; the second iteration of
         // localVariables drops the duplicate. ===
         const seenVarKeys = new Set();
-        ['lists', 'variables', 'localVariables'].forEach(storeName => {
-            Object.keys(this._context[storeName]).forEach(name => {
+        ['lists', 'variables', 'localVariables'].forEach((storeName) => {
+            Object.keys(this._context[storeName]).forEach((name) => {
                 const variable = this._context[storeName][name];
                 if (variable.isArgument) return;
 
@@ -119,8 +119,8 @@ const TargetApplier = {
 
         // Apply initialize values to variables/lists
         if (this._context.initializeValues) {
-            Object.keys(this._context.initializeValues).forEach(varName => {
-                const {value, type} = this._context.initializeValues[varName];
+            Object.keys(this._context.initializeValues).forEach((varName) => {
+                const { value, type } = this._context.initializeValues[varName];
                 // Find the variable on the appropriate target
                 const varType = type === 'list' ? Variable.LIST_TYPE : Variable.SCALAR_TYPE;
                 const owner = target.isStage ? stage : target;
@@ -132,10 +132,10 @@ const TargetApplier = {
         }
 
         // Update variable IDs in blocks
-        Object.keys(this._context.blocks).forEach(blockId => {
+        Object.keys(this._context.blocks).forEach((blockId) => {
             const block = this._context.blocks[blockId];
             if (block.fields) {
-                ['VARIABLE', 'LIST'].forEach(fieldName => {
+                ['VARIABLE', 'LIST'].forEach((fieldName) => {
                     const field = block.fields[fieldName];
                     if (field && variableIdMap[field.id]) {
                         field.id = variableIdMap[field.id];
@@ -147,11 +147,12 @@ const TargetApplier = {
         // Map of old broadcast IDs to existing IDs (for reusing existing broadcast vars)
         const broadcastIdMap = {};
 
-        Object.keys(this._context.broadcastMsgs).forEach(name => {
+        Object.keys(this._context.broadcastMsgs).forEach((name) => {
             const broadcastMsg = this._context.broadcastMsgs[name];
             // Check if a broadcast variable with the same name already exists in stage
             const existingBroadcast = stage.lookupVariableByNameAndType(
-                broadcastMsg.name, Variable.BROADCAST_MESSAGE_TYPE
+                broadcastMsg.name,
+                Variable.BROADCAST_MESSAGE_TYPE,
             );
             if (existingBroadcast) {
                 // Reuse existing broadcast variable ID
@@ -164,7 +165,7 @@ const TargetApplier = {
 
         // Update BROADCAST_OPTION field IDs in blocks to match existing broadcast variable IDs
         if (Object.keys(broadcastIdMap).length > 0) {
-            Object.keys(this._context.blocks).forEach(blockId => {
+            Object.keys(this._context.blocks).forEach((blockId) => {
                 const block = this._context.blocks[blockId];
                 if (block.fields && block.fields.BROADCAST_OPTION) {
                     const field = block.fields.BROADCAST_OPTION;
@@ -176,7 +177,7 @@ const TargetApplier = {
         }
 
         const extensionPromises = [];
-        this._context.extensionIDs.forEach(extensionID => {
+        this._context.extensionIDs.forEach((extensionID) => {
             if (!this.vm.extensionManager.isExtensionLoaded(extensionID)) {
                 extensionPromises.push(this.vm.extensionManager.loadExtensionURL(extensionID));
             }
@@ -194,14 +195,13 @@ const TargetApplier = {
             // harmless, so only this catastrophic whole-graph case is
             // rejected.
             const contextBlockIds = Object.keys(this._context.blocks);
-            const hasTopLevelScript = contextBlockIds.some(blockId => {
+            const hasTopLevelScript = contextBlockIds.some((blockId) => {
                 const block = this._context.blocks[blockId];
                 return block.topLevel && !block.shadow;
             });
             if (contextBlockIds.length > 0 && !hasTopLevelScript) {
                 throw new Error(
-                    'Converted block graph is broken: ' +
-                    `${contextBlockIds.length} blocks but no top-level script`
+                    `Converted block graph is broken: ${contextBlockIds.length} blocks but no top-level script`,
                 );
             }
 
@@ -215,19 +215,19 @@ const TargetApplier = {
             // (_deleteScript flips `topLevel` to false), so holding bare
             // references would corrupt the snapshot.
             const oldBlocks = {};
-            Object.keys(target.blocks._blocks).forEach(blockId => {
+            Object.keys(target.blocks._blocks).forEach((blockId) => {
                 oldBlocks[blockId] = Object.assign({}, target.blocks._blocks[blockId]);
             });
             const oldScripts = target.blocks._scripts.slice();
             const oldComments = target.comments;
 
             try {
-                Object.keys(target.blocks._blocks).forEach(blockId => {
+                Object.keys(target.blocks._blocks).forEach((blockId) => {
                     target.blocks.deleteBlock(blockId);
                 });
                 target.comments = {};
 
-                Object.keys(this._context.blocks).forEach(blockId => {
+                Object.keys(this._context.blocks).forEach((blockId) => {
                     target.blocks.createBlock(this._context.blocks[blockId]);
                 });
             } catch (error) {
@@ -243,11 +243,17 @@ const TargetApplier = {
                 throw error;
             }
 
-            Object.keys(this._context.comments).forEach(commentId => {
+            Object.keys(this._context.comments).forEach((commentId) => {
                 const comment = this._context.comments[commentId];
                 target.createComment(
-                    comment.id, comment.blockId, comment.text,
-                    comment.x, comment.y, comment.width, comment.height, comment.minimized
+                    comment.id,
+                    comment.blockId,
+                    comment.text,
+                    comment.x,
+                    comment.y,
+                    comment.width,
+                    comment.height,
+                    comment.minimized,
                 );
             });
 
@@ -255,7 +261,7 @@ const TargetApplier = {
             // to trigger renderer updates and Redux state changes.
             const classInfo = this._context.classInfo;
             if (classInfo) {
-                const has = prop => Object.prototype.hasOwnProperty.call(classInfo, prop);
+                const has = (prop) => Object.prototype.hasOwnProperty.call(classInfo, prop);
 
                 if (has('name')) {
                     target.sprite.name = classInfo.name;
@@ -329,42 +335,40 @@ const TargetApplier = {
                     const spriteData = spritesMap.get(classInfo.sprite);
                     if (spriteData) {
                         if (spriteData.costumes) {
-                            newCostumes = spriteData.costumes.map(c => Object.assign({}, c));
+                            newCostumes = spriteData.costumes.map((c) => Object.assign({}, c));
                         }
                         if (spriteData.sounds) {
-                            newSounds = spriteData.sounds.map(s => Object.assign({}, s));
+                            newSounds = spriteData.sounds.map((s) => Object.assign({}, s));
                         }
                     }
                 }
 
                 // Apply individual costumes (complete replacement)
                 if (has('costumes') && Array.isArray(classInfo.costumes)) {
-                    newCostumes = classInfo.costumes.map(name => {
+                    newCostumes = classInfo.costumes.map((name) => {
                         const costumeData = costumesMap.get(name);
-                        return costumeData ? Object.assign({}, costumeData) : {name};
+                        return costumeData ? Object.assign({}, costumeData) : { name };
                     });
                 }
 
                 // Apply backdrops (stage-specific, uses backdrop library)
                 if (has('backdrops') && Array.isArray(classInfo.backdrops)) {
-                    newCostumes = classInfo.backdrops.map(name => {
+                    newCostumes = classInfo.backdrops.map((name) => {
                         const backdropData = backdropsMap.get(name);
-                        return backdropData ? Object.assign({}, backdropData) : {name};
+                        return backdropData ? Object.assign({}, backdropData) : { name };
                     });
                 }
 
                 // Apply individual sounds (complete replacement)
                 if (has('sounds') && Array.isArray(classInfo.sounds)) {
-                    newSounds = classInfo.sounds.map(name => {
+                    newSounds = classInfo.sounds.map((name) => {
                         const soundData = soundsMap.get(name);
-                        return soundData ? Object.assign({}, soundData) : {name};
+                        return soundData ? Object.assign({}, soundData) : { name };
                     });
                 }
 
                 // Load assets via VM API and replace costumes/sounds
-                return this._loadAndReplaceCostumesAndSounds(
-                    target, newCostumes, newSounds
-                );
+                return this._loadAndReplaceCostumesAndSounds(target, newCostumes, newSounds);
             }
 
             this.vm.emitWorkspaceUpdate();
@@ -372,7 +376,7 @@ const TargetApplier = {
                 this.vm.emitTargetsUpdate();
             }
         });
-    }
+    },
 };
 
 /**
@@ -394,24 +398,30 @@ TargetApplier._loadAndReplaceCostumesAndSounds = function (target, newCostumes, 
             // Load each costume asset directly via loadCostume (from scratch-vm).
             // This creates renderer skins without the side effects of vm.addCostume
             // (no name deduplication, no emitProjectChanged, no re-render triggers).
-            const costumeObjs = newCostumes.map(c => ({
+            const costumeObjs = newCostumes.map((c) => ({
                 name: c.name,
                 rotationCenterX: c.rotationCenterX,
                 rotationCenterY: c.rotationCenterY,
                 bitmapResolution: c.bitmapResolution,
-                skinId: null
+                skinId: null,
             }));
-            const costumeChain = costumeObjs.reduce((chain, costumeObj, i) => chain.then(() => {
-                const c = newCostumes[i];
-                const md5ext = c.md5ext || `${c.assetId}.${c.dataFormat}`;
-                return loadCostume(md5ext, costumeObj, runtime, 2);
-            }), Promise.resolve());
+            const costumeChain = costumeObjs.reduce(
+                (chain, costumeObj, i) =>
+                    chain.then(() => {
+                        const c = newCostumes[i];
+                        const md5ext = c.md5ext || `${c.assetId}.${c.dataFormat}`;
+                        return loadCostume(md5ext, costumeObj, runtime, 2);
+                    }),
+                Promise.resolve(),
+            );
 
-            promises.push(costumeChain.then(() => {
-                // Replace costumes array directly — no name dedup, no min-1 guard
-                target.sprite.costumes = costumeObjs;
-                target.setCostume(0);
-            }));
+            promises.push(
+                costumeChain.then(() => {
+                    // Replace costumes array directly — no name dedup, no min-1 guard
+                    target.sprite.costumes = costumeObjs;
+                    target.setCostume(0);
+                }),
+            );
         } else {
             // Fallback for test environments without renderer/storage
             target.sprite.costumes = newCostumes;
@@ -421,23 +431,25 @@ TargetApplier._loadAndReplaceCostumesAndSounds = function (target, newCostumes, 
     if (newSounds && newSounds.length > 0) {
         if (hasRenderer && hasStorage) {
             // Load each sound asset directly via loadSound (from scratch-vm).
-            const soundObjs = newSounds.map(s => ({
+            const soundObjs = newSounds.map((s) => ({
                 name: s.name,
                 format: s.format || s.dataFormat,
                 md5: s.md5ext || `${s.assetId}.${s.dataFormat}`,
                 rate: s.rate,
-                sampleCount: s.sampleCount
+                sampleCount: s.sampleCount,
             }));
             const soundBank = target.sprite.soundBank;
             const soundChain = soundObjs.reduce(
                 (chain, soundObj) => chain.then(() => loadSound(soundObj, runtime, soundBank)),
-                Promise.resolve()
+                Promise.resolve(),
             );
 
-            promises.push(soundChain.then(() => {
-                // Replace sounds array directly
-                target.sprite.sounds = soundObjs;
-            }));
+            promises.push(
+                soundChain.then(() => {
+                    // Replace sounds array directly
+                    target.sprite.sounds = soundObjs;
+                }),
+            );
         } else {
             // Fallback for test environments without renderer/storage
             target.sprite.sounds = newSounds;

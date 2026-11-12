@@ -1,4 +1,4 @@
-import {DISPLAY_MODE_AUTO, DISPLAY_MODE_DESKTOP, DISPLAY_MODE_MOBILE} from '.';
+import { DISPLAY_MODE_AUTO, DISPLAY_MODE_DESKTOP, DISPLAY_MODE_MOBILE } from '.';
 
 const STORAGE_KEY = 'smalruby:displayMode';
 
@@ -10,8 +10,7 @@ const STORAGE_KEY = 'smalruby:displayMode';
  */
 const DISPLAY_MODE_CHANGED_EVENT = 'smalruby:displayModeChanged';
 
-const isValidDisplayMode = mode =>
-    [DISPLAY_MODE_AUTO, DISPLAY_MODE_DESKTOP, DISPLAY_MODE_MOBILE].includes(mode);
+const isValidDisplayMode = (mode) => [DISPLAY_MODE_AUTO, DISPLAY_MODE_DESKTOP, DISPLAY_MODE_MOBILE].includes(mode);
 
 /**
  * localStorage から現在の表示モード設定を読む。未設定 / 不正値なら `auto`。
@@ -30,7 +29,7 @@ const detectDisplayMode = () => {
  * `auto` は「設定なし」と等価なのでキーを削除する。
  * @param {string} mode - 保存する表示モード
  */
-const persistDisplayMode = mode => {
+const persistDisplayMode = (mode) => {
     if (!isValidDisplayMode(mode)) {
         throw new Error(`Invalid display mode: ${mode}`);
     }
@@ -47,10 +46,4 @@ const persistDisplayMode = mode => {
     }
 };
 
-export {
-    STORAGE_KEY,
-    DISPLAY_MODE_CHANGED_EVENT,
-    isValidDisplayMode,
-    detectDisplayMode,
-    persistDisplayMode
-};
+export { STORAGE_KEY, DISPLAY_MODE_CHANGED_EVENT, isValidDisplayMode, detectDisplayMode, persistDisplayMode };

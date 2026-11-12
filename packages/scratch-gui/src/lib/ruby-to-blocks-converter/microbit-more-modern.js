@@ -1,35 +1,50 @@
 // === Smalruby: This file is Smalruby-specific (modern micro:bit More API handlers) ===
-
-import Primitive from './primitive';
 import {
-    MicrobitMore, MicrobitMoreData,
-    ButtonIDMenu, ButtonIDMenuLower, ButtonEventMenu,
-    TouchIDMenu, TouchIDMenuLower, TouchEventMenu,
-    GestureMenuLower, GestureMenuValue,
-    AnalogIn, AnalogInPin, Gpio, GpioPin,
+    MicrobitMore,
+    MicrobitMoreData,
+    ButtonIDMenu,
+    ButtonIDMenuLower,
+    ButtonEventMenu,
+    TouchIDMenu,
+    TouchIDMenuLower,
+    TouchEventMenu,
+    GestureMenuLower,
+    GestureMenuValue,
+    AnalogIn,
+    AnalogInPin,
+    Gpio,
+    GpioPin,
     AccelerationMenu,
-    PinModeMenu, PinModeMenuLower,
-    DigitalValueMenuLower, DigitalValueMenuValue,
-    PinEventTypeMenuLower, PinEventTypeMenuValue,
-    PinEventMenuLower, PinEventMenuValue,
+    PinModeMenu,
+    PinModeMenuLower,
+    DigitalValueMenuLower,
+    DigitalValueMenuValue,
+    PinEventTypeMenuLower,
+    PinEventTypeMenuValue,
+    PinEventMenuLower,
+    PinEventMenuValue,
     ConnectionStateMenu,
-    TouchPinIDMenuLower, TouchPinIDMenuValue,
-    TiltDirectionMenuLower, TiltDirectionMenuValue,
-    TiltAngleDirectionMenuLower, TiltAngleDirectionMenuValue
+    TouchPinIDMenuLower,
+    TouchPinIDMenuValue,
+    TiltDirectionMenuLower,
+    TiltDirectionMenuValue,
+    TiltAngleDirectionMenuLower,
+    TiltAngleDirectionMenuValue,
 } from './microbit-more-menus';
+import Primitive from './primitive';
 
 /**
  * Register modern micro:bit More API handlers (receiver: 'microbit').
  * @param {object} converter - The RubyToBlocksConverter instance
  */
 const registerModernHandlers = function (converter) {
-    converter.registerOnSend('self', MicrobitMore, 0, params => {
-        const {node} = params;
+    converter.registerOnSend('self', MicrobitMore, 0, (params) => {
+        const { node } = params;
         return converter.createRubyExpressionBlock(MicrobitMore, node);
     });
 
-    converter.registerOnSendWithBlock(MicrobitMore, 'when_microbit', 1, 0, params => {
-        const {receiver, args, rubyBlock} = params;
+    converter.registerOnSendWithBlock(MicrobitMore, 'when_microbit', 1, 0, (params) => {
+        const { receiver, args, rubyBlock } = params;
 
         if (!converter.isString(args[0])) return null;
         const index = ConnectionStateMenu.indexOf(args[0].toString().toLowerCase());
@@ -42,8 +57,8 @@ const registerModernHandlers = function (converter) {
         return block;
     });
 
-    converter.registerOnSendWithBlock(MicrobitMore, 'when_button_is', 2, 0, params => {
-        const {receiver, args, rubyBlock} = params;
+    converter.registerOnSendWithBlock(MicrobitMore, 'when_button_is', 2, 0, (params) => {
+        const { receiver, args, rubyBlock } = params;
 
         if (converter.isString(args[0])) {
             const index = ButtonIDMenuLower.indexOf(args[0].toString().toLowerCase());
@@ -67,8 +82,8 @@ const registerModernHandlers = function (converter) {
         return block;
     });
 
-    converter.registerOnSend(MicrobitMore, 'button_pressed?', 1, params => {
-        const {receiver, args} = params;
+    converter.registerOnSend(MicrobitMore, 'button_pressed?', 1, (params) => {
+        const { receiver, args } = params;
 
         if (converter.isString(args[0])) {
             const index = ButtonIDMenuLower.indexOf(args[0].toString().toLowerCase());
@@ -78,14 +93,13 @@ const registerModernHandlers = function (converter) {
             return null;
         }
 
-        const block =
-            converter.changeRubyExpressionBlock(receiver, 'microbitMore_isButtonPressed', 'value_boolean');
+        const block = converter.changeRubyExpressionBlock(receiver, 'microbitMore_isButtonPressed', 'value_boolean');
         converter.addField(block, 'NAME', args[0]);
         return block;
     });
 
-    converter.registerOnSendWithBlock(MicrobitMore, 'when_pin_is', 2, 0, params => {
-        const {receiver, args, rubyBlock} = params;
+    converter.registerOnSendWithBlock(MicrobitMore, 'when_pin_is', 2, 0, (params) => {
+        const { receiver, args, rubyBlock } = params;
 
         if (converter.isString(args[0])) {
             const index = TouchIDMenuLower.indexOf(args[0].toString().toLowerCase());
@@ -110,8 +124,8 @@ const registerModernHandlers = function (converter) {
         return block;
     });
 
-    converter.registerOnSend(MicrobitMore, 'pin_is_touched?', 1, params => {
-        const {receiver, args} = params;
+    converter.registerOnSend(MicrobitMore, 'pin_is_touched?', 1, (params) => {
+        const { receiver, args } = params;
 
         if (converter.isString(args[0])) {
             const index = TouchIDMenuLower.indexOf(args[0].toString().toLowerCase());
@@ -121,14 +135,13 @@ const registerModernHandlers = function (converter) {
             return null;
         }
 
-        const block =
-            converter.changeRubyExpressionBlock(receiver, 'microbitMore_isPinTouched', 'value_boolean');
+        const block = converter.changeRubyExpressionBlock(receiver, 'microbitMore_isPinTouched', 'value_boolean');
         converter.addField(block, 'NAME', args[0]);
         return block;
     });
 
-    converter.registerOnSendWithBlock(MicrobitMore, 'when', 1, 0, params => {
-        const {receiver, args, rubyBlock} = params;
+    converter.registerOnSendWithBlock(MicrobitMore, 'when', 1, 0, (params) => {
+        const { receiver, args, rubyBlock } = params;
 
         if (converter.isString(args[0])) {
             const index = GestureMenuLower.indexOf(args[0].toString().toLowerCase());
@@ -144,8 +157,8 @@ const registerModernHandlers = function (converter) {
         return block;
     });
 
-    converter.registerOnSendWithBlock(MicrobitMore, 'when_tilted', 1, 0, params => {
-        const {receiver, args, rubyBlock} = params;
+    converter.registerOnSendWithBlock(MicrobitMore, 'when_tilted', 1, 0, (params) => {
+        const { receiver, args, rubyBlock } = params;
 
         if (converter.isString(args[0])) {
             const index = TiltDirectionMenuLower.indexOf(args[0].toString().toLowerCase());
@@ -161,8 +174,8 @@ const registerModernHandlers = function (converter) {
         return block;
     });
 
-    converter.registerOnSendWithBlock(MicrobitMore, 'when_pin_connected', 1, 0, params => {
-        const {receiver, args, rubyBlock} = params;
+    converter.registerOnSendWithBlock(MicrobitMore, 'when_pin_connected', 1, 0, (params) => {
+        const { receiver, args, rubyBlock } = params;
 
         if (converter.isNumber(args[0])) {
             const index = TouchPinIDMenuLower.indexOf(args[0].toString());
@@ -178,8 +191,8 @@ const registerModernHandlers = function (converter) {
         return block;
     });
 
-    converter.registerOnSend(MicrobitMore, 'tilted?', 1, params => {
-        const {receiver, args} = params;
+    converter.registerOnSend(MicrobitMore, 'tilted?', 1, (params) => {
+        const { receiver, args } = params;
 
         if (converter.isString(args[0])) {
             const index = TiltDirectionMenuLower.indexOf(args[0].toString().toLowerCase());
@@ -189,14 +202,13 @@ const registerModernHandlers = function (converter) {
             return null;
         }
 
-        const block =
-            converter.changeRubyExpressionBlock(receiver, 'microbitMore_isTilted', 'value_boolean');
+        const block = converter.changeRubyExpressionBlock(receiver, 'microbitMore_isTilted', 'value_boolean');
         converter.addField(block, 'DIRECTION', args[0]);
         return block;
     });
 
-    converter.registerOnSend(MicrobitMore, 'tilt_angle', 1, params => {
-        const {receiver, args} = params;
+    converter.registerOnSend(MicrobitMore, 'tilt_angle', 1, (params) => {
+        const { receiver, args } = params;
 
         if (converter.isString(args[0])) {
             const index = TiltAngleDirectionMenuLower.indexOf(args[0].toString().toLowerCase());
@@ -211,10 +223,10 @@ const registerModernHandlers = function (converter) {
         return block;
     });
 
-    const displayPatternHandler5 = params => {
-        const {receiver, args} = params;
+    const displayPatternHandler5 = (params) => {
+        const { receiver, args } = params;
 
-        if (!args.every(x => converter.isString(x))) return null;
+        if (!args.every((x) => converter.isString(x))) return null;
 
         const block = converter.changeRubyExpressionBlock(receiver, 'microbitMore_displayMatrix', 'statement');
 
@@ -232,8 +244,8 @@ const registerModernHandlers = function (converter) {
     // backward compatibility: microbit.display(...) was renamed to display_pattern
     converter.registerOnSend(MicrobitMore, 'display', 5, displayPatternHandler5);
 
-    converter.registerOnSend(MicrobitMore, 'display_pattern', 1, params => {
-        const {receiver, args} = params;
+    converter.registerOnSend(MicrobitMore, 'display_pattern', 1, (params) => {
+        const { receiver, args } = params;
 
         if (!converter.isBlock(args[0])) return null;
 
@@ -242,8 +254,8 @@ const registerModernHandlers = function (converter) {
         return block;
     });
 
-    converter.registerOnSend(MicrobitMore, 'display_text', 1, params => {
-        const {receiver, args} = params;
+    converter.registerOnSend(MicrobitMore, 'display_text', 1, (params) => {
+        const { receiver, args } = params;
 
         if (!converter.isStringOrBlock(args[0])) return null;
 
@@ -252,8 +264,8 @@ const registerModernHandlers = function (converter) {
         return block;
     });
 
-    converter.registerOnSend(MicrobitMore, 'display_text_delay', 2, params => {
-        const {receiver, args} = params;
+    converter.registerOnSend(MicrobitMore, 'display_text_delay', 2, (params) => {
+        const { receiver, args } = params;
 
         if (!converter.isStringOrBlock(args[0])) return null;
         if (!converter.isNumberOrBlock(args[1])) return null;
@@ -264,43 +276,43 @@ const registerModernHandlers = function (converter) {
         return block;
     });
 
-    converter.registerOnSend(MicrobitMore, 'clear_display', 0, params => {
-        const {receiver} = params;
+    converter.registerOnSend(MicrobitMore, 'clear_display', 0, (params) => {
+        const { receiver } = params;
         return converter.changeRubyExpressionBlock(receiver, 'microbitMore_displayClear', 'statement');
     });
 
-    converter.registerOnSend(MicrobitMore, 'light_intensity', 0, params => {
-        const {receiver} = params;
+    converter.registerOnSend(MicrobitMore, 'light_intensity', 0, (params) => {
+        const { receiver } = params;
         return converter.changeRubyExpressionBlock(receiver, 'microbitMore_getLightLevel', 'value');
     });
 
-    converter.registerOnSend(MicrobitMore, 'temperature', 0, params => {
-        const {receiver} = params;
+    converter.registerOnSend(MicrobitMore, 'temperature', 0, (params) => {
+        const { receiver } = params;
         return converter.changeRubyExpressionBlock(receiver, 'microbitMore_getTemperature', 'value');
     });
 
-    converter.registerOnSend(MicrobitMore, 'angle_with_north', 0, params => {
-        const {receiver} = params;
+    converter.registerOnSend(MicrobitMore, 'angle_with_north', 0, (params) => {
+        const { receiver } = params;
         return converter.changeRubyExpressionBlock(receiver, 'microbitMore_getCompassHeading', 'value');
     });
 
-    converter.registerOnSend(MicrobitMore, 'pitch', 0, params => {
-        const {receiver} = params;
+    converter.registerOnSend(MicrobitMore, 'pitch', 0, (params) => {
+        const { receiver } = params;
         return converter.changeRubyExpressionBlock(receiver, 'microbitMore_getPitch', 'value');
     });
 
-    converter.registerOnSend(MicrobitMore, 'roll', 0, params => {
-        const {receiver} = params;
+    converter.registerOnSend(MicrobitMore, 'roll', 0, (params) => {
+        const { receiver } = params;
         return converter.changeRubyExpressionBlock(receiver, 'microbitMore_getRoll', 'value');
     });
 
-    converter.registerOnSend(MicrobitMore, 'sound_level', 0, params => {
-        const {receiver} = params;
+    converter.registerOnSend(MicrobitMore, 'sound_level', 0, (params) => {
+        const { receiver } = params;
         return converter.changeRubyExpressionBlock(receiver, 'microbitMore_getSoundLevel', 'value');
     });
 
-    converter.registerOnSend(MicrobitMore, 'magnetic_force', 1, params => {
-        const {receiver, args} = params;
+    converter.registerOnSend(MicrobitMore, 'magnetic_force', 1, (params) => {
+        const { receiver, args } = params;
 
         if (converter.isString(args[0])) {
             const index = AccelerationMenu.indexOf(args[0].toString().toLowerCase());
@@ -315,8 +327,8 @@ const registerModernHandlers = function (converter) {
         return block;
     });
 
-    converter.registerOnSend(MicrobitMore, 'acceleration', 1, params => {
-        const {receiver, args} = params;
+    converter.registerOnSend(MicrobitMore, 'acceleration', 1, (params) => {
+        const { receiver, args } = params;
 
         if (converter.isString(args[0])) {
             const index = AccelerationMenu.indexOf(args[0].toString().toLowerCase());
@@ -331,8 +343,8 @@ const registerModernHandlers = function (converter) {
         return block;
     });
 
-    converter.registerOnSend(MicrobitMore, 'analog_value', 1, params => {
-        const {receiver, args} = params;
+    converter.registerOnSend(MicrobitMore, 'analog_value', 1, (params) => {
+        const { receiver, args } = params;
 
         if (converter.isString(args[0])) {
             const index = AnalogInPin.indexOf(args[0].toString().toLowerCase());
@@ -347,8 +359,8 @@ const registerModernHandlers = function (converter) {
         return block;
     });
 
-    converter.registerOnSend(MicrobitMore, 'set_pin_to_input_pull', 2, params => {
-        const {receiver, args} = params;
+    converter.registerOnSend(MicrobitMore, 'set_pin_to_input_pull', 2, (params) => {
+        const { receiver, args } = params;
 
         if (converter.isString(args[0])) {
             const index = GpioPin.indexOf(args[0].toString().toLowerCase());
@@ -371,8 +383,8 @@ const registerModernHandlers = function (converter) {
         return block;
     });
 
-    converter.registerOnSend(MicrobitMore, 'is_pin_high?', 1, params => {
-        const {receiver, args} = params;
+    converter.registerOnSend(MicrobitMore, 'is_pin_high?', 1, (params) => {
+        const { receiver, args } = params;
 
         if (converter.isString(args[0])) {
             const index = GpioPin.indexOf(args[0].toString().toLowerCase());
@@ -387,8 +399,8 @@ const registerModernHandlers = function (converter) {
         return block;
     });
 
-    converter.registerOnSend(MicrobitMore, 'set_digital', 2, params => {
-        const {receiver, args} = params;
+    converter.registerOnSend(MicrobitMore, 'set_digital', 2, (params) => {
+        const { receiver, args } = params;
 
         if (converter.isString(args[0])) {
             const index = GpioPin.indexOf(args[0].toString().toLowerCase());
@@ -407,13 +419,19 @@ const registerModernHandlers = function (converter) {
 
         const block = converter.changeRubyExpressionBlock(receiver, 'microbitMore_setDigitalOut', 'statement');
         converter.addField(block, 'PIN', args[0]);
-        converter.addFieldInput(block, 'LEVEL', 'microbitMore_menu_digitalValueMenu', 'digitalValueMenu',
-            args[1], 'false');
+        converter.addFieldInput(
+            block,
+            'LEVEL',
+            'microbitMore_menu_digitalValueMenu',
+            'digitalValueMenu',
+            args[1],
+            'false',
+        );
         return block;
     });
 
-    converter.registerOnSend(MicrobitMore, 'set_analog', 2, params => {
-        const {receiver, args} = params;
+    converter.registerOnSend(MicrobitMore, 'set_analog', 2, (params) => {
+        const { receiver, args } = params;
 
         if (converter.isString(args[0])) {
             const index = GpioPin.indexOf(args[0].toString().toLowerCase());
@@ -430,8 +448,8 @@ const registerModernHandlers = function (converter) {
         return block;
     });
 
-    converter.registerOnSend(MicrobitMore, 'set_servo', 2, params => {
-        const {receiver, args} = params;
+    converter.registerOnSend(MicrobitMore, 'set_servo', 2, (params) => {
+        const { receiver, args } = params;
 
         if (converter.isString(args[0])) {
             const index = GpioPin.indexOf(args[0].toString().toLowerCase());
@@ -449,8 +467,8 @@ const registerModernHandlers = function (converter) {
         return block;
     });
 
-    converter.registerOnSend(MicrobitMore, 'play_tone', 2, params => {
-        const {receiver, args} = params;
+    converter.registerOnSend(MicrobitMore, 'play_tone', 2, (params) => {
+        const { receiver, args } = params;
 
         if (!converter.isNumberOrBlock(args[0])) return null;
         if (!converter.isNumberOrBlock(args[1])) return null;
@@ -461,13 +479,13 @@ const registerModernHandlers = function (converter) {
         return block;
     });
 
-    converter.registerOnSend(MicrobitMore, 'stop_tone', 0, params => {
-        const {receiver} = params;
+    converter.registerOnSend(MicrobitMore, 'stop_tone', 0, (params) => {
+        const { receiver } = params;
         return converter.changeRubyExpressionBlock(receiver, 'microbitMore_stopTone', 'statement');
     });
 
-    converter.registerOnSend(MicrobitMore, 'listen_event_on', 2, params => {
-        const {receiver, args} = params;
+    converter.registerOnSend(MicrobitMore, 'listen_event_on', 2, (params) => {
+        const { receiver, args } = params;
 
         if (converter.isString(args[0])) {
             const index = PinEventTypeMenuLower.indexOf(args[0].toString().toLowerCase());
@@ -485,16 +503,14 @@ const registerModernHandlers = function (converter) {
             return null;
         }
 
-        const block = converter.changeRubyExpressionBlock(
-            receiver, 'microbitMore_listenPinEventType', 'statement'
-        );
+        const block = converter.changeRubyExpressionBlock(receiver, 'microbitMore_listenPinEventType', 'statement');
         converter.addField(block, 'EVENT_TYPE', args[0]);
         converter.addField(block, 'PIN', args[1]);
         return block;
     });
 
-    converter.registerOnSendWithBlock(MicrobitMore, 'when_catch_at_pin', 2, 0, params => {
-        const {receiver, args, rubyBlock} = params;
+    converter.registerOnSendWithBlock(MicrobitMore, 'when_catch_at_pin', 2, 0, (params) => {
+        const { receiver, args, rubyBlock } = params;
 
         if (converter.isString(args[0])) {
             const index = PinEventMenuLower.indexOf(args[0].toString().toLowerCase());
@@ -519,8 +535,8 @@ const registerModernHandlers = function (converter) {
         return block;
     });
 
-    converter.registerOnSend(MicrobitMore, 'value_of', 2, params => {
-        const {receiver, args} = params;
+    converter.registerOnSend(MicrobitMore, 'value_of', 2, (params) => {
+        const { receiver, args } = params;
 
         if (converter.isString(args[0])) {
             const index = PinEventMenuLower.indexOf(args[0].toString().toLowerCase());
@@ -544,8 +560,8 @@ const registerModernHandlers = function (converter) {
         return block;
     });
 
-    converter.registerOnSendWithBlock(MicrobitMore, 'when_data_received_from_microbit', 1, 0, params => {
-        const {receiver, args, rubyBlock} = params;
+    converter.registerOnSendWithBlock(MicrobitMore, 'when_data_received_from_microbit', 1, 0, (params) => {
+        const { receiver, args, rubyBlock } = params;
 
         if (!converter.isStringOrBlock(args[0])) return null;
 
@@ -555,8 +571,8 @@ const registerModernHandlers = function (converter) {
         return block;
     });
 
-    converter.registerOnSend(MicrobitMore, 'data', 0, params => {
-        const {receiver, node} = params;
+    converter.registerOnSend(MicrobitMore, 'data', 0, (params) => {
+        const { receiver, node } = params;
 
         const block = converter.changeRubyExpressionBlock(receiver, 'ruby_expression', 'value_boolean');
         block.node = node;
@@ -564,8 +580,8 @@ const registerModernHandlers = function (converter) {
         return block;
     });
 
-    converter.registerOnSend(MicrobitMoreData, '[]', 1, params => {
-        const {receiver, args} = params;
+    converter.registerOnSend(MicrobitMoreData, '[]', 1, (params) => {
+        const { receiver, args } = params;
 
         if (!converter.isStringOrBlock(args[0])) return null;
 
@@ -574,8 +590,8 @@ const registerModernHandlers = function (converter) {
         return block;
     });
 
-    converter.registerOnSend(MicrobitMore, 'send_data_to_microbit', 2, params => {
-        const {receiver, args} = params;
+    converter.registerOnSend(MicrobitMore, 'send_data_to_microbit', 2, (params) => {
+        const { receiver, args } = params;
 
         if (!converter.isStringOrBlock(args[0])) return null;
         if (!converter.isStringOrBlock(args[1])) return null;

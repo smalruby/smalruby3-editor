@@ -3,7 +3,7 @@ import {
     convertAndExpectToEqualBlocks,
     convertAndExpectRubyBlockError,
     rubyToExpected,
-    expectedInfo
+    expectedInfo,
 } from '../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Koshien', () => {
@@ -11,7 +11,7 @@ describe('RubyToBlocksConverter/Koshien', () => {
     let target;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
     });
 
@@ -26,10 +26,10 @@ describe('RubyToBlocksConverter/Koshien', () => {
                 inputs: [
                     {
                         name: 'MESSAGE',
-                        block: expectedInfo.makeText('hello')
-                    }
-                ]
-            }
+                        block: expectedInfo.makeText('hello'),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -41,19 +41,18 @@ describe('RubyToBlocksConverter/Koshien', () => {
                     {
                         name: 'MESSAGE',
                         block: (await rubyToExpected(converter, target, 'x'))[0],
-                        shadow: expectedInfo.makeText('hello')
-                    }
-                ]
-            }
+                        shadow: expectedInfo.makeText('hello'),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
-        { for (const s of [
-            'koshien.set_message()',
-            'koshien.set_message("hello", "world")'
-        ]) {
-            await convertAndExpectRubyBlockError(converter, target, s);
-        } }
+        {
+            for (const s of ['koshien.set_message()', 'koshien.set_message("hello", "world")']) {
+                await convertAndExpectRubyBlockError(converter, target, s);
+            }
+        }
     });
 
     describe('coordinates on the 17x17 map', () => {
@@ -66,7 +65,7 @@ describe('RubyToBlocksConverter/Koshien', () => {
         for (const version of ['1', '2']) {
             describe(`version ${version}`, () => {
                 beforeEach(() => {
-                    converter = new RubyToBlocksConverter(null, {version});
+                    converter = new RubyToBlocksConverter(null, { version });
                 });
 
                 test('accepts coordinates from 0 to 16', async () => {
@@ -78,10 +77,10 @@ describe('RubyToBlocksConverter/Koshien', () => {
                                 inputs: [
                                     {
                                         name: 'POSITION',
-                                        block: expectedInfo.makeText(position)
-                                    }
-                                ]
-                            }
+                                        block: expectedInfo.makeText(position),
+                                    },
+                                ],
+                            },
                         ];
                         await convertAndExpectToEqualBlocks(converter, target, code, expected);
                     }
@@ -97,7 +96,7 @@ describe('RubyToBlocksConverter/Koshien', () => {
                         'koshien.map_from("16:16", nil)',
                         'koshien.calc_route(src: "16:16", dst: "0:16", except_cells: nil, result: nil)',
                         'koshien.locate_objects(sq_size: 5, cent: "16:16", objects: "A", result: nil)',
-                        'koshien.position(16, 16)'
+                        'koshien.position(16, 16)',
                     ]) {
                         await converter.targetCodeToBlocks(target, code);
                         expect(converter.errors).toHaveLength(0);
@@ -118,16 +117,32 @@ describe('RubyToBlocksConverter/Koshien', () => {
                         'koshien.map_from("17:0", nil)',
                         'koshien.calc_route(src: "17:16", dst: "0:16", except_cells: nil, result: nil)',
                         'koshien.calc_route(src: "0:0", dst: "0:17", except_cells: nil, result: nil)',
-                        'koshien.locate_objects(sq_size: 5, cent: "17:16", objects: "A", result: nil)'
+                        'koshien.locate_objects(sq_size: 5, cent: "17:16", objects: "A", result: nil)',
                     ]) {
                         await convertAndExpectErrorText(code, /is an invalid coordinate\..*0 to 16/s);
                     }
-                    await convertAndExpectErrorText('koshien.position(17, 0)', /is an invalid coordinate\..*0 to 16/s);
-                    await convertAndExpectErrorText('koshien.position(0, -1)', /is an invalid coordinate\..*0 to 16/s);
+                    await convertAndExpectErrorText(
+                        'koshien.position(17, 0)',
+                        /is an invalid coordinate\..*0 to 16/s,
+                    );
+                    await convertAndExpectErrorText(
+                        'koshien.position(0, -1)',
+                        /is an invalid coordinate\..*0 to 16/s,
+                    );
                 });
 
                 test('rejects coordinates that are not whole numbers', async () => {
-                    for (const position of [':5', '5:', '1.5:2', ' 3: 4', '3 :4', '+3:4', '1e1:0', '0x1:0', '1:2:3']) {
+                    for (const position of [
+                        ':5',
+                        '5:',
+                        '1.5:2',
+                        ' 3: 4',
+                        '3 :4',
+                        '+3:4',
+                        '1e1:0',
+                        '0x1:0',
+                        '1:2:3',
+                    ]) {
                         for (const method of ['get_map_area', 'position_of_x', 'position_of_y']) {
                             await convertAndExpectErrorText(
                                 `koshien.${method}("${position}")`,

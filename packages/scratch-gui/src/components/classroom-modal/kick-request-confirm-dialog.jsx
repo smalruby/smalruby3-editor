@@ -1,7 +1,6 @@
-import { FormattedMessage, defineMessages, useIntl } from 'react-intl';
 import PropTypes from 'prop-types';
 import React, { useCallback, useState } from 'react';
-
+import { FormattedMessage, defineMessages, useIntl } from 'react-intl';
 import styles from './classroom-modal.css';
 
 const messages = defineMessages({

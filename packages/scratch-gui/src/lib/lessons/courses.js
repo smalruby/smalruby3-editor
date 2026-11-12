@@ -1,7 +1,6 @@
 // === Smalruby: This file is Smalruby-specific (lesson courses data) ===
 // コース › レッスン › チャレンジのデータ。形の説明は docs/lessons/README.md。
 // 文言は lessons.locale.js（message descriptor の id で引く）。
-
 import { HINT_TARGETS } from './hint-targets';
 import arrowKeysImage from './images/arrow-keys.svg';
 import { ja } from './lessons.locale';
@@ -192,7 +191,10 @@ const blocksLesson1 = defineLesson({
                 event: [{ opcode: 'event_whenkeypressed', fields: { KEY_OPTION: 'space' } }],
                 // 音の ▼ は、足した「Owl」ではなくネコの音（作品を作った locale の名前）
                 sound: [
-                    { opcode: 'sound_playuntildone', inputs: { SOUND_MENU: { ja: 'ニャー', 'ja-Hira': 'Meow', en: 'Meow' } } },
+                    {
+                        opcode: 'sound_playuntildone',
+                        inputs: { SOUND_MENU: { ja: 'ニャー', 'ja-Hira': 'Meow', en: 'Meow' } },
+                    },
                     { opcode: 'sound_play', inputs: { SOUND_MENU: { ja: 'ニャー', 'ja-Hira': 'Meow', en: 'Meow' } } },
                 ],
             },
@@ -362,7 +364,9 @@ const blocksLesson2 = defineLesson({
                 looks: [
                     {
                         opcode: 'looks_say',
-                        inputs: { MESSAGE: { ja: 'くすぐったい！', 'ja-Hira': 'くすぐったい！', en: 'That tickles!' } },
+                        inputs: {
+                            MESSAGE: { ja: 'くすぐったい！', 'ja-Hira': 'くすぐったい！', en: 'That tickles!' },
+                        },
                     },
                 ],
             },
@@ -393,18 +397,17 @@ const blocksLesson2 = defineLesson({
                     blocks: ['sensing_touchingobject', { opcode: 'looks_say', distinct: 'MESSAGE', count: 2 }],
                 },
             ],
-            code:
-                {
-                    ja:
-                        'when_flag_clicked do\n  loop do\n    if touching?("_mouse_")\n      say("くすぐったい！")\n' +
-                        '    else\n      say("さわってみて")\n    end\n  end\nend\n',
-                    'ja-Hira':
-                        'when_flag_clicked do\n  loop do\n    if touching?("_mouse_")\n      say("くすぐったい！")\n' +
-                        '    else\n      say("さわってみて")\n    end\n  end\nend\n',
-                    en:
-                        'when_flag_clicked do\n  loop do\n    if touching?("_mouse_")\n      say("That tickles!")\n' +
-                        '    else\n      say("Touch me")\n    end\n  end\nend\n',
-                },
+            code: {
+                ja:
+                    'when_flag_clicked do\n  loop do\n    if touching?("_mouse_")\n      say("くすぐったい！")\n' +
+                    '    else\n      say("さわってみて")\n    end\n  end\nend\n',
+                'ja-Hira':
+                    'when_flag_clicked do\n  loop do\n    if touching?("_mouse_")\n      say("くすぐったい！")\n' +
+                    '    else\n      say("さわってみて")\n    end\n  end\nend\n',
+                en:
+                    'when_flag_clicked do\n  loop do\n    if touching?("_mouse_")\n      say("That tickles!")\n' +
+                    '    else\n      say("Touch me")\n    end\n  end\nend\n',
+            },
         },
         // 6 聞いて答えよう（調べる）: 名前を聞いて、答えと、かかった秒数を言う
         {
@@ -469,18 +472,17 @@ const blocksLesson2 = defineLesson({
             // 仕様の Ruby は `timer.value.to_s + "秒でした"` だが、`.to_s` も「(タイマー) と ()」の「と」に
             // なり、入れると子どもが作るのとちがう入れ子の「と」2 つになる。子どもが作ったブロックから
             // 生成される Ruby と同じ `timer.value + "秒でした"`（「と」1 つ）にする
-            code:
-                {
-                    ja:
-                        'when_clicked do\n  timer.reset\n  ask("なまえは？")\n  say(answer, 2)\n' +
-                        '  say(timer.value + "秒でした", 2)\nend\n',
-                    'ja-Hira':
-                        'when_clicked do\n  timer.reset\n  ask("なまえは？")\n  say(answer, 2)\n' +
-                        '  say(timer.value + "びょうでした", 2)\nend\n',
-                    en:
-                        'when_clicked do\n  timer.reset\n  ask("What\'s your name?")\n  say(answer, 2)\n' +
-                        '  say(timer.value + " seconds", 2)\nend\n',
-                },
+            code: {
+                ja:
+                    'when_clicked do\n  timer.reset\n  ask("なまえは？")\n  say(answer, 2)\n' +
+                    '  say(timer.value + "秒でした", 2)\nend\n',
+                'ja-Hira':
+                    'when_clicked do\n  timer.reset\n  ask("なまえは？")\n  say(answer, 2)\n' +
+                    '  say(timer.value + "びょうでした", 2)\nend\n',
+                en:
+                    'when_clicked do\n  timer.reset\n  ask("What\'s your name?")\n  say(answer, 2)\n' +
+                    '  say(timer.value + " seconds", 2)\nend\n',
+            },
         },
         // 7 クイズを作ろう（演算）: 答えが 7 なら「正解です」、ちがえば「ちがいます」
         {
@@ -584,7 +586,8 @@ const blocksLesson3 = defineLesson({
             ],
             code: {
                 ja: 'when_flag_clicked do\n  $回数 = 0\nend\n\nwhen_clicked do\n  $回数 += 1\n  say($回数)\nend\n',
-                'ja-Hira': 'when_flag_clicked do\n  $かいすう = 0\nend\n\nwhen_clicked do\n  $かいすう += 1\n  say($かいすう)\nend\n',
+                'ja-Hira':
+                    'when_flag_clicked do\n  $かいすう = 0\nend\n\nwhen_clicked do\n  $かいすう += 1\n  say($かいすう)\nend\n',
                 en: 'when_flag_clicked do\n  $count = 0\nend\n\nwhen_clicked do\n  $count += 1\n  say($count)\nend\n',
             },
         },
@@ -661,7 +664,11 @@ const blocksLesson3 = defineLesson({
                     {
                         opcode: 'text2speech_speakAndWait',
                         inputs: {
-                            WORDS: { ja: 'ボタンが押されました', 'ja-Hira': 'ボタンがおされました', en: 'The button was clicked' },
+                            WORDS: {
+                                ja: 'ボタンが押されました',
+                                'ja-Hira': 'ボタンがおされました',
+                                en: 'The button was clicked',
+                            },
                         },
                     },
                 ],

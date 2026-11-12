@@ -1,10 +1,10 @@
 import RubyToBlocksConverter from '../../../../../src/lib/ruby-to-blocks-converter';
-import {RubyToBlocksConverterError} from '../../../../../src/lib/ruby-to-blocks-converter/errors';
+import { RubyToBlocksConverterError } from '../../../../../src/lib/ruby-to-blocks-converter/errors';
 import {
     convertAndExpectToEqualBlocks,
     convertAndExpectRubyBlockError,
     rubyToExpected,
-    expectedInfo
+    expectedInfo,
 } from '../../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Motion', () => {
@@ -12,7 +12,7 @@ describe('RubyToBlocksConverter/Motion', () => {
     let target;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
     });
 
@@ -32,18 +32,18 @@ describe('RubyToBlocksConverter/Motion', () => {
                             fields: [
                                 {
                                     name: 'TO',
-                                    value: '_mouse_'
-                                }
+                                    value: '_mouse_',
+                                },
                             ],
-                            shadow: true
-                        }
+                            shadow: true,
+                        },
                     },
                     {
                         name: 'SECS',
-                        block: expectedInfo.makeNumber(5)
-                    }
-                ]
-            }
+                        block: expectedInfo.makeNumber(5),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -59,31 +59,33 @@ describe('RubyToBlocksConverter/Motion', () => {
                             fields: [
                                 {
                                     name: 'TO',
-                                    value: '_mouse_'
-                                }
+                                    value: '_mouse_',
+                                },
                             ],
-                            shadow: true
-                        }
+                            shadow: true,
+                        },
                     },
                     {
                         name: 'SECS',
                         block: (await rubyToExpected(converter, target, 'x'))[0],
-                        shadow: expectedInfo.makeNumber(1)
-                    }
-                ]
-            }
+                        shadow: expectedInfo.makeNumber(1),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
-        { for (const s of [
-            'glide()',
-            'glide(10, secs: 5)',
-            'glide("_mouse_")',
-            'glide("_mouse_", 5)',
-            'glide("_mouse_", secs: abc)'
-        ]) {
-            await convertAndExpectRubyBlockError(converter, target, s);
-        } }
+        {
+            for (const s of [
+                'glide()',
+                'glide(10, secs: 5)',
+                'glide("_mouse_")',
+                'glide("_mouse_", 5)',
+                'glide("_mouse_", secs: abc)',
+            ]) {
+                await convertAndExpectRubyBlockError(converter, target, s);
+            }
+        }
     });
 
     test('motion_glidesecstoxy', async () => {
@@ -97,18 +99,18 @@ describe('RubyToBlocksConverter/Motion', () => {
                 inputs: [
                     {
                         name: 'X',
-                        block: expectedInfo.makeNumber(12)
+                        block: expectedInfo.makeNumber(12),
                     },
                     {
                         name: 'Y',
-                        block: expectedInfo.makeNumber(34)
+                        block: expectedInfo.makeNumber(34),
                     },
                     {
                         name: 'SECS',
-                        block: expectedInfo.makeNumber(5)
-                    }
-                ]
-            }
+                        block: expectedInfo.makeNumber(5),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -120,31 +122,33 @@ describe('RubyToBlocksConverter/Motion', () => {
                     {
                         name: 'X',
                         block: (await rubyToExpected(converter, target, 'x'))[0],
-                        shadow: expectedInfo.makeNumber(0)
+                        shadow: expectedInfo.makeNumber(0),
                     },
                     {
                         name: 'Y',
                         block: (await rubyToExpected(converter, target, 'y'))[0],
-                        shadow: expectedInfo.makeNumber(0)
+                        shadow: expectedInfo.makeNumber(0),
                     },
                     {
                         name: 'SECS',
                         block: (await rubyToExpected(converter, target, 'x'))[0],
-                        shadow: expectedInfo.makeNumber(1)
-                    }
-                ]
-            }
+                        shadow: expectedInfo.makeNumber(1),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
-        { for (const s of [
-            'glide([], secs: 5)',
-            'glide([12, 34])',
-            'glide([12, 34], 5)',
-            'glide([abc, abc], secs: abc)'
-        ]) {
-            await convertAndExpectRubyBlockError(converter, target, s);
-        } }
+        {
+            for (const s of [
+                'glide([], secs: 5)',
+                'glide([12, 34])',
+                'glide([12, 34], 5)',
+                'glide([abc, abc], secs: abc)',
+            ]) {
+                await convertAndExpectRubyBlockError(converter, target, s);
+            }
+        }
     });
 
     test('motion_pointindirection', async () => {
@@ -158,10 +162,10 @@ describe('RubyToBlocksConverter/Motion', () => {
                 inputs: [
                     {
                         name: 'DIRECTION',
-                        block: expectedInfo.makeNumber(90, 'math_angle')
-                    }
-                ]
-            }
+                        block: expectedInfo.makeNumber(90, 'math_angle'),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -173,20 +177,18 @@ describe('RubyToBlocksConverter/Motion', () => {
                     {
                         name: 'DIRECTION',
                         block: (await rubyToExpected(converter, target, 'x'))[0],
-                        shadow: expectedInfo.makeNumber(90, 'math_angle')
-                    }
-                ]
-            }
+                        shadow: expectedInfo.makeNumber(90, 'math_angle'),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
-        { for (const s of [
-            'self.direction = "90"',
-            'self.direction = :symbol',
-            'self.direction = abc'
-        ]) {
-            await convertAndExpectRubyBlockError(converter, target, s);
-        } }
+        {
+            for (const s of ['self.direction = "90"', 'self.direction = :symbol', 'self.direction = abc']) {
+                await convertAndExpectRubyBlockError(converter, target, s);
+            }
+        }
     });
 
     test('motion_pointtowards', async () => {
@@ -202,52 +204,43 @@ describe('RubyToBlocksConverter/Motion', () => {
                             fields: [
                                 {
                                     name: 'TOWARDS',
-                                    value: '_mouse_'
-                                }
+                                    value: '_mouse_',
+                                },
                             ],
-                            shadow: true
-                        }
-                    }
-                ]
-            }
+                            shadow: true,
+                        },
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
-        { for (const s of [
-            'point_towards()',
-            'point_towards(1)',
-            'point_towards("_mouse_", secs: 1)'
-        ]) {
-            await convertAndExpectRubyBlockError(converter, target, s);
-        } }
+        {
+            for (const s of ['point_towards()', 'point_towards(1)', 'point_towards("_mouse_", secs: 1)']) {
+                await convertAndExpectRubyBlockError(converter, target, s);
+            }
+        }
     });
 
     test('motion_ifonedgebounce', async () => {
         const expected = [
             {
-                opcode: 'motion_ifonedgebounce'
-            }
+                opcode: 'motion_ifonedgebounce',
+            },
         ];
-        for (const code of [
-            'bounce_if_on_edge',
-            'bounce_if_on_edge()'
-        ]) {
+        for (const code of ['bounce_if_on_edge', 'bounce_if_on_edge()']) {
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         }
 
-        { for (const s of [
-            'bounce_if_on_edge(1)'
-        ]) {
-            await convertAndExpectRubyBlockError(converter, target, s);
-        } }
+        {
+            for (const s of ['bounce_if_on_edge(1)']) {
+                await convertAndExpectRubyBlockError(converter, target, s);
+            }
+        }
     });
 
     test('motion_setrotationstyle', async () => {
-        for (const style of [
-            'left-right',
-            "don't rotate",
-            'all around'
-        ]) {
+        for (const style of ['left-right', "don't rotate", 'all around']) {
             const code = `self.rotation_style = "${style}"`;
             const expected = [
                 {
@@ -255,19 +248,18 @@ describe('RubyToBlocksConverter/Motion', () => {
                     fields: [
                         {
                             name: 'STYLE',
-                            value: style
-                        }
-                    ]
-                }
+                            value: style,
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         }
 
-        { for (const s of [
-            'self.rotation_style = 1',
-            'self.rotation_style = "invalid"'
-        ]) {
-            await convertAndExpectRubyBlockError(converter, target, s);
-        } }
+        {
+            for (const s of ['self.rotation_style = 1', 'self.rotation_style = "invalid"']) {
+                await convertAndExpectRubyBlockError(converter, target, s);
+            }
+        }
     });
 });

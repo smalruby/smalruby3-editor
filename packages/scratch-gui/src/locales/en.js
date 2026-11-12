@@ -661,6 +661,26 @@ export default {
     'gui.smalruby3.rubyToBlocksConverter.wrongInstruction': '"{ SOURCE }" is the wrong instruction.',
     'gui.smalruby3.rubyToBlocksConverter.wrongInstructionInClass':
         '"{ SOURCE }" cannot be placed directly inside a class definition. Use it inside an event block (e.g. when_flag_clicked) or a method definition (def).',
+    'gui.smalruby3.rubyToBlocksConverter.includeNotStatementBlocks':
+        '"{ SOURCE }" is not a command, so it cannot be written here.\nWrite a command (e.g. move(10)) instead, or delete this line.',
+    'gui.smalruby3.rubyToBlocksConverter.eventInsideBlock':
+        '"{ SOURCE }" is an event, so it cannot be placed inside another block.\nMove it out of the block so that it starts a script of its own.',
+    'gui.smalruby3.rubyToBlocksConverter.defInsideBlock':
+        '"{ SOURCE }" defines a method, so it cannot be written inside a block or a method.\nMove the whole method, from "{ SOURCE }" to its "end", out of the block or the method.',
+    'gui.smalruby3.rubyToBlocksConverter.visibilityNotSupported':
+        '"{ NAME }" is not supported in Smalruby.\nDelete "{ SOURCE }".',
+    'gui.smalruby3.rubyToBlocksConverter.visibilityDefNotSupported':
+        '"{ NAME }" is not supported in Smalruby.\nDelete "{ NAME }". Then the method from "{ DEF }" to its "end" can be used.',
+    'gui.smalruby3.rubyToBlocksConverter.valueAsStatement':
+        '"{ SOURCE }" is a value, so it cannot be written as a command by itself.\nUse it in a command (e.g. say({ SOURCE })) or set it to a variable.',
+    'gui.smalruby3.rubyToBlocksConverter.cannotReturnValue':
+        '"{ SOURCE }" cannot be returned from a method, because there is no block for this value.\nReturn a number, a string, true / false, or a variable instead.',
+    'gui.smalruby3.rubyToBlocksConverter.cannotReturnList':
+        '"{ SOURCE }" is a list, so it cannot be returned from a method.\nReturn an item of the list (e.g. return { SOURCE }[0]) or a variable instead.',
+    'gui.smalruby3.rubyToBlocksConverter.recursiveCallAfterSavedValue':
+        '"{ SOURCE }" calls "{ NAME }" in "{ NAME }" after another method call in the same line.\nWith blocks, the saved return value of the other call would be overwritten by this call.\nCall "{ NAME }" only once in a line, before other method calls.',
+    'gui.smalruby3.rubyToBlocksConverter.returnMultipleValues':
+        '"{ SOURCE }" returns more than one value, but a method can return only one value.\nReturn one value (e.g. return { FIRST }).',
     'gui.smalruby3.rubyToBlocksConverter.invalidBackdropName':
         'backdrop "{ NAME }" does not exist in the backdrop library.',
     'gui.smalruby3.rubyToBlocksConverter.spriteMethodInStageClass':

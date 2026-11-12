@@ -11,9 +11,7 @@ describe('spotlight-seen', () => {
 
     test('a challenge is not seen until it is marked', () => {
         expect(isSpotlightSeen('blocks-l1-click-say')).toBe(false);
-        expect(markSpotlightSeen('blocks-l1-click-say', window.localStorage, '2026-11-10T00:00:00.000Z')).toBe(
-            true,
-        );
+        expect(markSpotlightSeen('blocks-l1-click-say', window.localStorage, '2026-11-10T00:00:00.000Z')).toBe(true);
         expect(isSpotlightSeen('blocks-l1-click-say')).toBe(true);
         expect(isSpotlightSeen('blocks-l1-key-sound')).toBe(false);
         expect(JSON.parse(window.localStorage.getItem(SPOTLIGHT_SEEN_STORAGE_KEY))).toEqual({

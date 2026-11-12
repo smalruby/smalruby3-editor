@@ -7,14 +7,14 @@ import {
     makeSpriteTarget,
     makeConverter,
     setupRubyGenerator,
-    expectRoundTrip
+    expectRoundTrip,
 } from '../../helpers/ruby-roundtrip-helper';
 
 describe('Ruby Roundtrip: LEGO MINDSTORMS EV3 extension blocks', () => {
     let target, runtime, converter;
 
     beforeEach(() => {
-        ({target, runtime} = makeSpriteTarget());
+        ({ target, runtime } = makeSpriteTarget());
         setupRubyGenerator();
         converter = makeConverter(target, runtime);
     });

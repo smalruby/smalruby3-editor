@@ -10,15 +10,20 @@
  * v1 は従来どおりフラット出力（後方互換）。
  */
 import dedent from 'dedent';
-import {makeSpriteTarget, makeConverter, setupRubyGenerator, expectRoundTrip} from '../../helpers/ruby-roundtrip-helper';
+import {
+    makeSpriteTarget,
+    makeConverter,
+    setupRubyGenerator,
+    expectRoundTrip,
+} from '../../helpers/ruby-roundtrip-helper';
 
 describe('Ruby Roundtrip (v2): Koshien when_connect_game + list syntax', () => {
     let target, runtime, converter;
 
     beforeEach(() => {
-        ({target, runtime} = makeSpriteTarget());
+        ({ target, runtime } = makeSpriteTarget());
         setupRubyGenerator();
-        converter = makeConverter(target, runtime, {version: 2});
+        converter = makeConverter(target, runtime, { version: 2 });
     });
 
     test('when_connect_game wraps the AI body; list args use $array syntax', async () => {
@@ -36,15 +41,12 @@ describe('Ruby Roundtrip (v2): Koshien when_connect_game + list syntax', () => {
                 end
             `,
             null,
-            {version: 2}
+            { version: 2 },
         );
     });
 
     test('flat koshien.connect_game is an error in v2', async () => {
-        const result = await converter.targetCodeToBlocks(
-            target,
-            'koshien.connect_game(name: "player1")'
-        );
+        const result = await converter.targetCodeToBlocks(target, 'koshien.connect_game(name: "player1")');
         expect(result).toBeFalsy();
         expect(converter.errors.length).toBeGreaterThan(0);
         expect(converter.errors[0].text).toMatch(/when_connect_game/);
@@ -53,9 +55,9 @@ describe('Ruby Roundtrip (v2): Koshien when_connect_game + list syntax', () => {
 
 describe('Ruby Roundtrip (v1): Koshien stays flat (backward compatible)', () => {
     test('flat koshien.connect_game parses and round-trips in v1', async () => {
-        const {target, runtime} = makeSpriteTarget();
+        const { target, runtime } = makeSpriteTarget();
         setupRubyGenerator();
-        const converter = makeConverter(target, runtime, {version: 1});
+        const converter = makeConverter(target, runtime, { version: 1 });
         await expectRoundTrip(
             converter,
             target,
@@ -65,16 +67,16 @@ describe('Ruby Roundtrip (v1): Koshien stays flat (backward compatible)', () => 
                 koshien.turn_over
             `,
             null,
-            {version: 1}
+            { version: 1 },
         );
     });
 
     // #839: v1 list element read must round-trip using list("$name")[1-indexed],
     // not the v2 array syntax $name[0-indexed] (which the v1 converter rejects).
     test('list element read round-trips with list() syntax (1-indexed)', async () => {
-        const {target, runtime} = makeSpriteTarget();
+        const { target, runtime } = makeSpriteTarget();
         setupRubyGenerator();
-        const converter = makeConverter(target, runtime, {version: 1});
+        const converter = makeConverter(target, runtime, { version: 1 });
         await expectRoundTrip(
             converter,
             target,
@@ -85,7 +87,7 @@ describe('Ruby Roundtrip (v1): Koshien stays flat (backward compatible)', () => 
                 koshien.turn_over
             `,
             null,
-            {version: 1}
+            { version: 1 },
         );
     });
 });

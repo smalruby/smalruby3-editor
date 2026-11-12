@@ -8,70 +8,70 @@
  *   and `message`.
  */
 const validateDncl = (source) => {
-  const errors = []
-  const lines = source.split('\n')
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i]
-    // Skip comments
-    const commentIdx = line.indexOf('#')
-    const code = commentIdx >= 0 ? line.substring(0, commentIdx) : line
-    // Check for @ or $ outside strings
-    let inString = false
-    let quote = null
-    for (let j = 0; j < code.length; j++) {
-      if (inString) {
-        if (code[j] === '\\') {
-          j++
-          continue
+    const errors = [];
+    const lines = source.split('\n');
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        // Skip comments
+        const commentIdx = line.indexOf('#');
+        const code = commentIdx >= 0 ? line.substring(0, commentIdx) : line;
+        // Check for @ or $ outside strings
+        let inString = false;
+        let quote = null;
+        for (let j = 0; j < code.length; j++) {
+            if (inString) {
+                if (code[j] === '\\') {
+                    j++;
+                    continue;
+                }
+                if (code[j] === quote) {
+                    inString = false;
+                }
+                continue;
+            }
+            if (code[j] === '"' || code[j] === "'") {
+                inString = true;
+                quote = code[j];
+                continue;
+            }
+            if (code[j] === '@' || code[j] === '$') {
+                errors.push({
+                    line: i + 1,
+                    column: j + 1,
+                    message: `日本語モードでは変数に「${code[j]}」は使えません`,
+                });
+            }
         }
-        if (code[j] === quote) {
-          inString = false
-        }
-        continue
-      }
-      if (code[j] === '"' || code[j] === "'") {
-        inString = true
-        quote = code[j]
-        continue
-      }
-      if (code[j] === '@' || code[j] === '$') {
-        errors.push({
-          line: i + 1,
-          column: j + 1,
-          message: `日本語モードでは変数に「${code[j]}」は使えません`,
-        })
-      }
     }
-  }
-  return errors
-}
+    return errors;
+};
 
 // Block openers of the DNCL the line converter reads (after the DNCLv2
 // pre-processor), with the closer each needs and how the error names it.
 // The patterns are looser than the converter's so that an opener it would
 // not read (a CJK loop variable) is not taken for a missing opener.
 const BLOCK_KINDS = [
-  {
-    re: /^もし\s+.+\s+(?:なら|ならば)$/,
-    name: '「もし〜ならば」',
-    closer: 'を実行する',
-    isIf: true,
-  },
-  { re: /\sずつ増やしながら$/, name: '「〜ずつ増やしながら」', closer: 'を繰り返す' },
-  { re: /\sずつ減らしながら$/, name: '「〜ずつ減らしながら」', closer: 'を繰り返す' },
-  { re: /^.+\sの間$/, name: '「〜の間」', closer: 'を繰り返す' },
-  { re: /^関数\s+\S+?\s*\(/, name: '「関数」', closer: 'と定義する' },
-]
+    {
+        re: /^もし\s+.+\s+(?:なら|ならば)$/,
+        name: '「もし〜ならば」',
+        closer: 'を実行する',
+        isIf: true,
+    },
+    { re: /\sずつ増やしながら$/, name: '「〜ずつ増やしながら」', closer: 'を繰り返す' },
+    { re: /\sずつ減らしながら$/, name: '「〜ずつ減らしながら」', closer: 'を繰り返す' },
+    { re: /^.+\sの間$/, name: '「〜の間」', closer: 'を繰り返す' },
+    { re: /^関数\s+\S+?\s*\(/, name: '「関数」', closer: 'と定義する' },
+];
 
-const CLOSERS = new Set(['を実行する', 'を繰り返す', 'と定義する'])
+const CLOSERS = new Set(['を実行する', 'を繰り返す', 'と定義する']);
 
 const continuationName = (body) => {
-  if (body === 'そうでなければ') return '「そうでなければ」'
-  if (/^そうでなくもし\s+.+\s+(?:なら|ならば)$/.test(body)) {
-    return '「そうでなくもし〜ならば」'
-  }
-  return null
-}
+    if (body === 'そうでなければ') return '「そうでなければ」';
+    if (/^そうでなくもし\s+.+\s+(?:なら|ならば)$/.test(body)) {
+        return '「そうでなくもし〜ならば」';
+    }
+    return null;
+};
 
 /**
  * Read the block structure of the lines: each code line is an opener, a
@@ -82,25 +82,25 @@ const continuationName = (body) => {
  *   structural line.
  */
 const readBlockLines = (source) => {
-  const result = []
-  source.split('\n').forEach((text, i) => {
-    const body = text.trim()
-    if (body === '' || body.startsWith('#')) return
-    const line = i + 1
-    if (CLOSERS.has(body)) {
-      result.push({ line, closer: body })
-      return
-    }
-    const continuation = continuationName(body)
-    if (continuation) {
-      result.push({ line, continuation })
-      return
-    }
-    const opener = BLOCK_KINDS.find((kind) => kind.re.test(body))
-    if (opener) result.push({ line, opener })
-  })
-  return result
-}
+    const result = [];
+    source.split('\n').forEach((text, i) => {
+        const body = text.trim();
+        if (body === '' || body.startsWith('#')) return;
+        const line = i + 1;
+        if (CLOSERS.has(body)) {
+            result.push({ line, closer: body });
+            return;
+        }
+        const continuation = continuationName(body);
+        if (continuation) {
+            result.push({ line, continuation });
+            return;
+        }
+        const opener = BLOCK_KINDS.find((kind) => kind.re.test(body));
+        if (opener) result.push({ line, opener });
+    });
+    return result;
+};
 
 /**
  * Whether the blocks are balanced as Ruby reads the converted code: every
@@ -110,24 +110,24 @@ const readBlockLines = (source) => {
  * @returns {boolean} True when the Ruby has no missing or extra `end`.
  */
 const isBalancedAsRuby = (blockLines) => {
-  const stack = []
-  for (const entry of blockLines) {
-    if (entry.opener) stack.push(entry.opener)
-    else if (entry.continuation) {
-      if (stack.length === 0 || !stack[stack.length - 1].isIf) return false
-    } else {
-      if (stack.length === 0) return false
-      stack.pop()
+    const stack = [];
+    for (const entry of blockLines) {
+        if (entry.opener) stack.push(entry.opener);
+        else if (entry.continuation) {
+            if (stack.length === 0 || !stack[stack.length - 1].isIf) return false;
+        } else {
+            if (stack.length === 0) return false;
+            stack.pop();
+        }
     }
-  }
-  return stack.length === 0
-}
+    return stack.length === 0;
+};
 
 const unclosedError = (open) => ({
-  line: open.line,
-  column: 1,
-  message: `${open.opener.name}を「${open.opener.closer}」で閉じてください`,
-})
+    line: open.line,
+    column: 1,
+    message: `${open.opener.name}を「${open.opener.closer}」で閉じてください`,
+});
 
 /**
  * Find a missing or extra closer of a DNCL block and say it in the words of
@@ -142,53 +142,51 @@ const unclosedError = (open) => ({
  * @returns {Array<object>} Errors with `line`, `column` and `message`.
  */
 const findDnclBlockErrors = (source) => {
-  const blockLines = readBlockLines(source)
-  if (isBalancedAsRuby(blockLines)) return []
-  const errors = []
-  const stack = []
-  // Close the blocks opened after `index`: they were left open.
-  const closeAbove = (index) => {
-    while (stack.length > index + 1) errors.push(unclosedError(stack.pop()))
-  }
-  for (const entry of blockLines) {
-    if (entry.opener) {
-      stack.push(entry)
-    } else if (entry.continuation) {
-      const index = stack.map((open) => open.opener.isIf).lastIndexOf(true)
-      if (index < 0) {
-        errors.push({
-          line: entry.line,
-          column: 1,
-          message: `${entry.continuation}の前に「もし〜ならば」がありません`,
-        })
-      } else {
-        closeAbove(index)
-      }
-    } else if (stack.length === 0) {
-      errors.push({
-        line: entry.line,
-        column: 1,
-        message: `「${entry.closer}」で閉じるものがありません`,
-      })
-    } else {
-      const index = stack
-        .map((open) => open.opener.closer)
-        .lastIndexOf(entry.closer)
-      if (index < 0) {
-        const top = stack.pop()
-        errors.push({
-          line: entry.line,
-          column: 1,
-          message: `${top.opener.name}は「${entry.closer}」ではなく「${top.opener.closer}」で閉じてください`,
-        })
-      } else {
-        closeAbove(index)
-        stack.pop()
-      }
+    const blockLines = readBlockLines(source);
+    if (isBalancedAsRuby(blockLines)) return [];
+    const errors = [];
+    const stack = [];
+    // Close the blocks opened after `index`: they were left open.
+    const closeAbove = (index) => {
+        while (stack.length > index + 1) errors.push(unclosedError(stack.pop()));
+    };
+    for (const entry of blockLines) {
+        if (entry.opener) {
+            stack.push(entry);
+        } else if (entry.continuation) {
+            const index = stack.map((open) => open.opener.isIf).lastIndexOf(true);
+            if (index < 0) {
+                errors.push({
+                    line: entry.line,
+                    column: 1,
+                    message: `${entry.continuation}の前に「もし〜ならば」がありません`,
+                });
+            } else {
+                closeAbove(index);
+            }
+        } else if (stack.length === 0) {
+            errors.push({
+                line: entry.line,
+                column: 1,
+                message: `「${entry.closer}」で閉じるものがありません`,
+            });
+        } else {
+            const index = stack.map((open) => open.opener.closer).lastIndexOf(entry.closer);
+            if (index < 0) {
+                const top = stack.pop();
+                errors.push({
+                    line: entry.line,
+                    column: 1,
+                    message: `${top.opener.name}は「${entry.closer}」ではなく「${top.opener.closer}」で閉じてください`,
+                });
+            } else {
+                closeAbove(index);
+                stack.pop();
+            }
+        }
     }
-  }
-  while (stack.length > 0) errors.push(unclosedError(stack.pop()))
-  return errors.sort((a, b) => a.line - b.line)
-}
+    while (stack.length > 0) errors.push(unclosedError(stack.pop()));
+    return errors.sort((a, b) => a.line - b.line);
+};
 
-export { findDnclBlockErrors, validateDncl }
+export { findDnclBlockErrors, validateDncl };

@@ -6,20 +6,23 @@ import {
     makeSpriteTarget,
     makeConverter,
     setupRubyGenerator,
-    expectRoundTrip
+    expectRoundTrip,
 } from '../../helpers/ruby-roundtrip-helper';
 
 describe('Ruby Roundtrip: Looks category blocks (sprite)', () => {
     let target, runtime, converter;
 
     beforeEach(() => {
-        ({target, runtime} = makeSpriteTarget());
+        ({ target, runtime } = makeSpriteTarget());
         setupRubyGenerator();
         converter = makeConverter(target, runtime);
     });
 
     test('Ruby -> Code -> Ruby', async () => {
-        await expectRoundTrip(converter, target, dedent`
+        await expectRoundTrip(
+            converter,
+            target,
+            dedent`
             say("Hello!", 2)
             say("Hello!")
             think("Hmm...", 2)
@@ -58,7 +61,8 @@ describe('Ruby Roundtrip: Looks category blocks (sprite)', () => {
             backdrop_name
 
             size
-        `);
+        `,
+        );
     });
 
     test('Ruby -> Code -> Ruby (puts/print/p with type preservation)', async () => {

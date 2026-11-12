@@ -1,6 +1,6 @@
-import RubyToBlocksConverter from '../../../../../src/lib/ruby-to-blocks-converter';
-import Variable from '@smalruby/scratch-vm/src/engine/variable';
 import Blocks from '@smalruby/scratch-vm/src/engine/blocks';
+import Variable from '@smalruby/scratch-vm/src/engine/variable';
+import RubyToBlocksConverter from '../../../../../src/lib/ruby-to-blocks-converter';
 
 describe('RubyToBlocksConverter/Method Return', () => {
     let converter;
@@ -9,7 +9,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
     beforeEach(() => {
         const runtime = {
             emitProjectChanged: () => {},
-            getTargetForStage: () => target
+            getTargetForStage: () => target,
         };
         target = {
             blocks: new Blocks(runtime),
@@ -39,17 +39,17 @@ describe('RubyToBlocksConverter/Method Return', () => {
                     y: y,
                     width: width,
                     height: height,
-                    minimized: minimized
+                    minimized: minimized,
                 };
-            }
+            },
         };
         const vm = {
             runtime: runtime,
             emitWorkspaceUpdate: () => {},
             extensionManager: {
                 isExtensionLoaded: () => true,
-                loadExtensionURL: () => Promise.resolve()
-            }
+                loadExtensionURL: () => Promise.resolve(),
+            },
         };
         converter = new RubyToBlocksConverter(vm);
         converter._context.target = target;
@@ -66,7 +66,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
             expect(result).toBe(true);
 
             // Chain: procedures_definition -> initialize block -> data_setvariableto -> control_stop
-            const defBlock = Object.values(converter.blocks).find(b => b.opcode === 'procedures_definition');
+            const defBlock = Object.values(converter.blocks).find((b) => b.opcode === 'procedures_definition');
             expect(defBlock).toBeDefined();
 
             // First block after def is the initialize block
@@ -126,7 +126,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
             expect(procedure.hasReturnValue).toBe(true);
 
             // say block should reference @_return_div_ variable
-            const sayBlock = Object.values(converter.blocks).find(b => b.opcode === 'looks_sayforsecs');
+            const sayBlock = Object.values(converter.blocks).find((b) => b.opcode === 'looks_sayforsecs');
             expect(sayBlock).toBeDefined();
         });
 
@@ -167,7 +167,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
             const result = await converter.targetCodeToBlocks(target, code);
             expect(result).toBe(true);
 
-            const defBlock = Object.values(converter.blocks).find(b => b.opcode === 'procedures_definition');
+            const defBlock = Object.values(converter.blocks).find((b) => b.opcode === 'procedures_definition');
             expect(defBlock).toBeDefined();
 
             // First block after def should be initialize block
@@ -192,7 +192,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
             const result = await converter.targetCodeToBlocks(target, code);
             expect(result).toBe(true);
 
-            const defBlock = Object.values(converter.blocks).find(b => b.opcode === 'procedures_definition');
+            const defBlock = Object.values(converter.blocks).find((b) => b.opcode === 'procedures_definition');
             expect(defBlock).toBeDefined();
 
             // First block after def should be move (not an initialize block)
@@ -227,7 +227,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
             expect(converter.errors).toHaveLength(0);
 
             // Both say blocks should exist
-            const sayBlocks = Object.values(converter.blocks).filter(b => b.opcode === 'looks_sayforsecs');
+            const sayBlocks = Object.values(converter.blocks).filter((b) => b.opcode === 'looks_sayforsecs');
             expect(sayBlocks).toHaveLength(2);
         });
     });

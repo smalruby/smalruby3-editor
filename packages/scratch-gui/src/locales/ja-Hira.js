@@ -957,13 +957,29 @@ export default {
     'gui.smalruby3.rubyToBlocksConverter.conditionIsNotBoolean':
         'じょうけんがブーリアンではありません：{SOURCE}\nひかくえんざんし（==、<、>など）をつかってください。',
     'gui.smalruby3.rubyToBlocksConverter.includeNotStatementBlocks':
-        'めいれいブロックではないブロックがふくまれています。\nブロックていぎのなかではめいれいブロック（コマンド）だけをつかってください。',
+        '「{ SOURCE }」はめいれいではないので、ここにはかけません。\nめいれい（れい: move(10)）にかきかえるか、このぎょうをけしてください。',
+    'gui.smalruby3.rubyToBlocksConverter.eventInsideBlock':
+        '「{ SOURCE }」はイベントなので、ほかのブロックのなかにはかけません。\nブロックのそとにだして、そこからはじまるスクリプトにしてください。',
+    'gui.smalruby3.rubyToBlocksConverter.defInsideBlock':
+        '「{ SOURCE }」はメソッドのていぎなので、ブロックやメソッドのなかにはかけません。\n「{ SOURCE }」から、たいおうする「end」までをまとめて、ブロックやメソッドのそとにだしてください。',
+    'gui.smalruby3.rubyToBlocksConverter.visibilityNotSupported':
+        '「{ NAME }」にはスモウルビーはたいおうしていないので、つかえません。\n「{ SOURCE }」をけしてください。',
+    'gui.smalruby3.rubyToBlocksConverter.visibilityDefNotSupported':
+        '「{ NAME }」にはスモウルビーはたいおうしていないので、つかえません。\n「{ NAME }」をけしてください。けすと「{ DEF }」から「end」までを、メソッドとしてつかえます。',
+    'gui.smalruby3.rubyToBlocksConverter.valueAsStatement':
+        '「{ SOURCE }」はあたいなので、それだけをめいれいとしてかくことはできません。\nめいれいのなかでつかう（れい: say({ SOURCE })）か、へんすうにいれてください。',
+    'gui.smalruby3.rubyToBlocksConverter.cannotReturnValue':
+        '「{ SOURCE }」はブロックにできないあたいなので、メソッドからかえせません。\nすうち、もじれつ、true / false、へんすうのどれかをかえしてください。',
+    'gui.smalruby3.rubyToBlocksConverter.cannotReturnList':
+        '「{ SOURCE }」はリストなので、メソッドからかえせません。\nリストのなかのあたい（れい: return { SOURCE }[0]）かへんすうをかえしてください。',
+    'gui.smalruby3.rubyToBlocksConverter.recursiveCallAfterSavedValue':
+        '「{ SOURCE }」は、「{ NAME }」のなかで、おなじぎょうのほかのメソッドのよびだしのあとに「{ NAME }」をよんでいます。\nブロックでは、さきによんだメソッドのもどりちがこのよびだしでうわがきされてしまいます。\n1 ぎょうで「{ NAME }」をよぶのは 1 かいだけにして、ほかのメソッドよりさきによんでください。',
+    'gui.smalruby3.rubyToBlocksConverter.returnMultipleValues':
+        '「{ SOURCE }」はあたいを2つ以上かえしていますが、メソッドがかえせるあたいは1つだけです。\nかえすあたいを1つにしてください（れい: return { FIRST }）。',
     'gui.smalruby3.rubyToBlocksConverter.invalidMyBlockArgumentType':
         'ブロックていぎ「{NAME}」のひきすう#{INDEX}のかたがまちがっています。\nすうち、もじれつ、またはブーリアンのあたいをつかってください。',
     'gui.smalruby3.rubyToBlocksConverter.cannotChangeArgument':
         '「{NAME}」はひきすうなので、あたいをかえられません。\nべつのへんすうにうつしてから、そのへんすうをかえてください（れい: x = {NAME}）。',
-    'gui.smalruby3.rubyToBlocksConverter.wrongInstructionInMyBlock':
-        '「{SOURCE}」はめいれいがまちがっています。\nつづりをかくにんするか、たいおうしているブロックをつかってください。',
     'gui.smalruby3.rubyToBlocksConverter.spriteAndCostumesSoundsExclusive':
         'set_spriteとset_costumes/set_soundsはどうじにつかえません。\nset_spriteかset_costumes/set_soundsのどちらかをつかってください。',
     'gui.smalruby3.rubyToBlocksConverter.invalidSpriteName':

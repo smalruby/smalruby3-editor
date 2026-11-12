@@ -3,7 +3,7 @@
  * @param {RubyGenerator} Generator The RubyGenerator
  * @returns {RubyGenerator} same as param.
  */
-export default function (Generator){
+export default function (Generator) {
     Generator.sound_sounds_menu = function (block) {
         const sound = Generator.quote_(Generator.getFieldValue(block, 'SOUND_MENU') || '');
         return [sound, Generator.ORDER_ATOMIC];

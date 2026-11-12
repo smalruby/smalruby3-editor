@@ -95,29 +95,29 @@ Results are output to console in JSON format and include:
 
 ```json
 {
-  "summary": {
-    "durationSeconds": 61.28,
-    "totalRequests": 959,
-    "successCount": 959,
-    "errorCount": 0,
-    "errorRate": "0.00%",
-    "tps": "15.65"
-  },
-  "latency": {
-    "avg": "109.36",
-    "p50": 106,
-    "p95": 163,
-    "p99": 193,
-    "max": 374
-  },
-  "events": {
-    "delivered": 0,
-    "avgDeliveryDelay": 0
-  },
-  "crosstalk": {
-    "count": 0,
-    "details": []
-  }
+    "summary": {
+        "durationSeconds": 61.28,
+        "totalRequests": 959,
+        "successCount": 959,
+        "errorCount": 0,
+        "errorRate": "0.00%",
+        "tps": "15.65"
+    },
+    "latency": {
+        "avg": "109.36",
+        "p50": 106,
+        "p95": 163,
+        "p99": 193,
+        "max": 374
+    },
+    "events": {
+        "delivered": 0,
+        "avgDeliveryDelay": 0
+    },
+    "crosstalk": {
+        "count": 0,
+        "details": []
+    }
 }
 ```
 
@@ -171,24 +171,24 @@ Use the provided script to check DynamoDB performance and throttling:
 スクリプトは以下のメトリクスを自動的にチェックします：
 
 1. **スロットリング発生数** (ThrottledRequests) - 最重要
-   - 期待値: 0（スロットリングなし）
-   - 0より大きい場合、キャパシティ不足を示す
+    - 期待値: 0（スロットリングなし）
+    - 0より大きい場合、キャパシティ不足を示す
 
 2. **読み込みキャパシティ消費量** (ConsumedReadCapacityUnits)
-   - 平均値と最大値を表示
-   - 負荷テスト中の読み取り負荷を確認
+    - 平均値と最大値を表示
+    - 負荷テスト中の読み取り負荷を確認
 
 3. **書き込みキャパシティ消費量** (ConsumedWriteCapacityUnits)
-   - 平均値と最大値を表示
-   - 負荷テスト中の書き込み負荷を確認
+    - 平均値と最大値を表示
+    - 負荷テスト中の書き込み負荷を確認
 
 4. **システムエラー** (SystemErrors)
-   - 期待値: 0
-   - DynamoDB側の問題を示す
+    - 期待値: 0
+    - DynamoDB側の問題を示す
 
 5. **ユーザーエラー** (UserErrors)
-   - 期待値: 0または非常に少ない
-   - アプリケーション側のエラーを示す
+    - 期待値: 0または非常に少ない
+    - アプリケーション側のエラーを示す
 
 ### テーブル名の確認方法
 

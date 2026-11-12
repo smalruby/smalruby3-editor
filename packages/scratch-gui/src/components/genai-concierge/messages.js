@@ -148,7 +148,8 @@ const messages = defineMessages({
     },
     kindHowThink: {
         defaultMessage: "I don't know how to think about the problem",
-        description: 'Kind of trouble in the Japanese (DNCL) mode: the student does not know how to solve the problem',
+        description:
+            'Kind of trouble in the Japanese (DNCL) mode: the student does not know how to solve the problem',
         id: 'gui.genaiConcierge.kind.howThink',
     },
     starterHowThink: {
@@ -293,7 +294,8 @@ const messages = defineMessages({
     },
     convertCode: {
         defaultMessage: 'Check the program',
-        description: 'Ruby tab: button checking the pasted answer (it is turned into blocks only to see that it runs)',
+        description:
+            'Ruby tab: button checking the pasted answer (it is turned into blocks only to see that it runs)',
         id: 'gui.genaiConcierge.convertCode',
     },
     answerShow: {
@@ -347,10 +349,8 @@ const messages = defineMessages({
         id: 'gui.genaiConcierge.fixesTitle',
     },
     indexHintsTitle: {
-        defaultMessage:
-            'Note: the indexes may start at 1. In Smalruby Japanese mode, array indices start at 0.',
-        description:
-            'Shown under the ✔ of a DNCL answer when it reads past the end of an array (counting from 1)',
+        defaultMessage: 'Note: the indexes may start at 1. In Smalruby Japanese mode, array indices start at 0.',
+        description: 'Shown under the ✔ of a DNCL answer when it reads past the end of an array (counting from 1)',
         id: 'gui.genaiConcierge.indexHintsTitle',
     },
     indexHint: {
@@ -496,13 +496,14 @@ const messages = defineMessages({
         id: 'gui.genaiConcierge.self',
     },
     nextAnswerLabel: {
-        defaultMessage: "Send {name} the request (Copy a request to rewrite it). When {name} answers again, paste the new answer here",
-        description: 'Label of the field for the AI\'s rewritten answer, under a failed check ({name}: e.g. Gemini)',
+        defaultMessage:
+            'Send {name} the request (Copy a request to rewrite it). When {name} answers again, paste the new answer here',
+        description: "Label of the field for the AI's rewritten answer, under a failed check ({name}: e.g. Gemini)",
         id: 'gui.genaiConcierge.nextAnswerLabel',
     },
     nextAnswerPlaceholder: {
         defaultMessage: "Paste {name}'s new answer here (Ctrl+V)",
-        description: 'Placeholder of the field for the AI\'s rewritten answer ({name}: e.g. Gemini)',
+        description: "Placeholder of the field for the AI's rewritten answer ({name}: e.g. Gemini)",
         id: 'gui.genaiConcierge.nextAnswerPlaceholder',
     },
     copyRewrite: {
@@ -568,7 +569,7 @@ const messages = defineMessages({
         id: 'gui.genaiConcierge.switchBefore',
     },
     switchAfter: {
-        defaultMessage: 'The AI\'s version',
+        defaultMessage: "The AI's version",
         description: 'Switch button: the program the AI suggested',
         id: 'gui.genaiConcierge.switchAfter',
     },
@@ -598,8 +599,10 @@ const messages = defineMessages({
         id: 'gui.genaiConcierge.changesNone',
     },
     changesLegend: {
-        defaultMessage: 'The blocks with a pink frame are added, a dashed one changed. Click a line to go to its block.',
-        description: 'How the marked blocks look in the editor, and that a line of the list brings its block into view',
+        defaultMessage:
+            'The blocks with a pink frame are added, a dashed one changed. Click a line to go to its block.',
+        description:
+            'How the marked blocks look in the editor, and that a line of the list brings its block into view',
         id: 'gui.genaiConcierge.changesLegend',
     },
     linesTitle: {

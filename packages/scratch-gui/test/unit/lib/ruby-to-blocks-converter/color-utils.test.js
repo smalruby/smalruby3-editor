@@ -1,5 +1,4 @@
-import {normalizeColorString, CSS_NAMED_COLORS} from
-    '../../../../src/lib/ruby-to-blocks-converter/color-utils';
+import { normalizeColorString, CSS_NAMED_COLORS } from '../../../../src/lib/ruby-to-blocks-converter/color-utils';
 
 describe('ruby-to-blocks-converter/color-utils normalizeColorString', () => {
     test('keeps 6-digit hex but lowercases it', () => {
@@ -41,12 +40,12 @@ describe('ruby-to-blocks-converter/color-utils normalizeColorString', () => {
     });
 
     test('coerces string-like values (e.g. converter Primitive)', () => {
-        const primitiveLike = {toString: () => 'red'};
+        const primitiveLike = { toString: () => 'red' };
         expect(normalizeColorString(primitiveLike)).toEqual('#ff0000');
     });
 
     test('CSS_NAMED_COLORS values are all #rrggbb', () => {
-        Object.values(CSS_NAMED_COLORS).forEach(hex => {
+        Object.values(CSS_NAMED_COLORS).forEach((hex) => {
             expect(hex).toMatch(/^#[0-9a-f]{6}$/);
         });
     });

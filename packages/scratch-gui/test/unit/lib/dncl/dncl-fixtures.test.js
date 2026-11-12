@@ -3,7 +3,6 @@
 // examples stay readable by Smalruby as the DNCL support changes.
 import fs from 'fs';
 import path from 'path';
-
 import { findArrayIndexHints } from '../../../../src/lib/dncl/dncl-array-index-hint';
 import { checkDnclAnswer } from '../../../../src/lib/genai-dncl-answer.js';
 import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter';

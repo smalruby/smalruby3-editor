@@ -4,7 +4,7 @@ import {
     convertAndExpectRubyBlockError,
     rubyToExpected,
     expectedInfo,
-    expectNoArgsMethod
+    expectNoArgsMethod,
 } from '../../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Sensing', () => {
@@ -14,7 +14,7 @@ describe('RubyToBlocksConverter/Sensing', () => {
     let expected;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
         code = null;
         expected = null;
@@ -29,9 +29,9 @@ describe('RubyToBlocksConverter/Sensing', () => {
                 DAYOFWEEK: 'wday + 1',
                 HOUR: 'hour',
                 MINUTE: 'min',
-                SECOND: 'sec'
+                SECOND: 'sec',
             };
-            Object.keys(currentMenuToMethod).forEach(fieldValue => {
+            Object.keys(currentMenuToMethod).forEach((fieldValue) => {
                 const method = currentMenuToMethod[fieldValue];
                 test(method, async () => {
                     code = `Time.now.${method}`;
@@ -41,10 +41,10 @@ describe('RubyToBlocksConverter/Sensing', () => {
                             fields: [
                                 {
                                     name: 'CURRENTMENU',
-                                    value: fieldValue
-                                }
-                            ]
-                        }
+                                    value: fieldValue,
+                                },
+                            ],
+                        },
                     ];
                     await convertAndExpectToEqualBlocks(converter, target, code, expected);
                 });
@@ -60,19 +60,17 @@ describe('RubyToBlocksConverter/Sensing', () => {
             expected = [
                 (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0],
                 (await rubyToExpected(converter, target, 'Time.now.year'))[0],
-                (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0]
+                (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0],
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
 
         test('invalid', async () => {
-            { for (const c of [
-                'Time.now(1)',
-                'Time.now.year(1)',
-                'Time.now.invalid'
-            ]) {
-                await convertAndExpectRubyBlockError(converter, target, c);
-            } }
+            {
+                for (const c of ['Time.now(1)', 'Time.now.year(1)', 'Time.now.invalid']) {
+                    await convertAndExpectRubyBlockError(converter, target, c);
+                }
+            }
         });
 
         test('error', async () => {
@@ -107,7 +105,7 @@ describe('RubyToBlocksConverter/Sensing', () => {
             stageTarget = {
                 isStage: true,
                 variables: {},
-                sprite: {}
+                sprite: {},
             };
         });
 
@@ -117,7 +115,7 @@ describe('RubyToBlocksConverter/Sensing', () => {
                 'touching_color?("#ff0000")',
                 'color_is_touching_color?("#ff0000", "#0000ff")',
                 'distance("Sprite1")',
-                'self.drag_mode = "draggable"'
+                'self.drag_mode = "draggable"',
             ];
 
             for (const command of spriteOnlyCommands) {
@@ -142,15 +140,17 @@ describe('RubyToBlocksConverter/Sensing', () => {
                 'Timer.reset',
                 'days_since_2000',
                 'online?',
-                'user_name'
+                'user_name',
             ];
 
-            { for (const command of stageCommonCommands) {
-                const result = await converter.targetCodeToBlocks(stageTarget, command);
-                expect(result).toBeTruthy();
-                expect(converter.errors).toHaveLength(0);
-                converter.reset();
-            } }
+            {
+                for (const command of stageCommonCommands) {
+                    const result = await converter.targetCodeToBlocks(stageTarget, command);
+                    expect(result).toBeTruthy();
+                    expect(converter.errors).toHaveLength(0);
+                    converter.reset();
+                }
+            }
         });
 
         test('all blocks should work on sprite', async () => {
@@ -171,15 +171,17 @@ describe('RubyToBlocksConverter/Sensing', () => {
                 'Timer.reset',
                 'days_since_2000',
                 'online?',
-                'user_name'
+                'user_name',
             ];
 
-            { for (const command of allCommands) {
-                const result = await converter.targetCodeToBlocks(target, command);
-                expect(result).toBeTruthy();
-                expect(converter.errors).toHaveLength(0);
-                converter.reset();
-            } }
+            {
+                for (const command of allCommands) {
+                    const result = await converter.targetCodeToBlocks(target, command);
+                    expect(result).toBeTruthy();
+                    expect(converter.errors).toHaveLength(0);
+                    converter.reset();
+                }
+            }
         });
     });
 });

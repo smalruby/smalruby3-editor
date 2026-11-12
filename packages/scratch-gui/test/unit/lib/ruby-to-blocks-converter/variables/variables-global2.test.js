@@ -2,7 +2,7 @@ import RubyToBlocksConverter from '../../../../../src/lib/ruby-to-blocks-convert
 import {
     convertAndExpectToEqualBlocks,
     rubyToExpected,
-    expectedInfo
+    expectedInfo,
 } from '../../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Variables', () => {
@@ -10,7 +10,7 @@ describe('RubyToBlocksConverter/Variables', () => {
     let target;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
     });
 
@@ -28,10 +28,10 @@ describe('RubyToBlocksConverter/Variables', () => {
                     fields: [
                         {
                             name: 'LIST',
-                            list: varName
-                        }
-                    ]
-                }
+                            list: varName,
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -44,10 +44,10 @@ describe('RubyToBlocksConverter/Variables', () => {
                     fields: [
                         {
                             name: 'LIST',
-                            list: varName
-                        }
-                    ]
-                }
+                            list: varName,
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });

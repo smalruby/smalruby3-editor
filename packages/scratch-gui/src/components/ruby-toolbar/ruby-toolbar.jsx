@@ -1,27 +1,24 @@
-import React, {useState, useCallback, useRef, useEffect} from 'react';
-import PropTypes from 'prop-types';
-import {useIntl} from 'react-intl';
 import VM from '@smalruby/scratch-vm';
-
+import PropTypes from 'prop-types';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { useIntl } from 'react-intl';
 import analytics from '../../lib/analytics';
-
-import styles from './ruby-toolbar.css';
+import { isJapaneseLocale } from '../../lib/locale-utils.js';
+import { isTouchDevice } from '../../lib/touch-device.js';
+import Spinner from '../spinner/spinner.jsx';
+import iconAutoCorrect from './icon--auto-correct.svg';
+import iconDownload from './icon--download.svg';
+import iconKeyboard from './icon--keyboard.svg';
+import iconPlay from './icon--play.svg';
+import iconRedo from './icon--redo.svg';
+import iconSearch from './icon--search.svg';
+import iconStop from './icon--stop.svg';
+import iconUndo from './icon--undo.svg';
 import messages from './messages.js';
+import styles from './ruby-toolbar.css';
 import TargetSelector from './target-selector.jsx';
 
-import iconPlay from './icon--play.svg';
-import iconStop from './icon--stop.svg';
-import iconSearch from './icon--search.svg';
-import iconUndo from './icon--undo.svg';
-import iconRedo from './icon--redo.svg';
-import iconDownload from './icon--download.svg';
-import iconAutoCorrect from './icon--auto-correct.svg';
-import iconKeyboard from './icon--keyboard.svg';
-import Spinner from '../spinner/spinner.jsx';
-import {isJapaneseLocale} from '../../lib/locale-utils.js';
-import {isTouchDevice} from '../../lib/touch-device.js';
-
-const RubyToolbar = props => {
+const RubyToolbar = (props) => {
     const intl = useIntl();
     const [showMoreMenu, setShowMoreMenu] = useState(false);
     const [keyboardVisible, setKeyboardVisible] = useState(false);
@@ -35,9 +32,7 @@ const RubyToolbar = props => {
             setKeyboardVisible(false);
             return () => {};
         }
-        setKeyboardVisible(
-            typeof editor.hasTextFocus === 'function' && editor.hasTextFocus()
-        );
+        setKeyboardVisible(typeof editor.hasTextFocus === 'function' && editor.hasTextFocus());
         const focusDisposable = editor.onDidFocusEditorText(() => setKeyboardVisible(true));
         const blurDisposable = editor.onDidBlurEditorText(() => setKeyboardVisible(false));
         return () => {
@@ -49,9 +44,8 @@ const RubyToolbar = props => {
     // Close more menu when clicking outside
     useEffect(() => {
         if (!showMoreMenu) return () => {};
-        const handleClickOutside = e => {
-            if (moreMenuRef.current &&
-                !moreMenuRef.current.contains(e.target)) {
+        const handleClickOutside = (e) => {
+            if (moreMenuRef.current && !moreMenuRef.current.contains(e.target)) {
                 setShowMoreMenu(false);
             }
         };
@@ -103,7 +97,7 @@ const RubyToolbar = props => {
         }
     }, [props.editorRef, keyboardVisible]);
 
-    const handleKeyboardMouseDown = useCallback(e => {
+    const handleKeyboardMouseDown = useCallback((e) => {
         // Keep focus on the editor: without this, pressing the button blurs
         // Monaco at mousedown time, keyboardVisible flips to false before the
         // click handler runs, and "hide" would re-focus instead.
@@ -116,20 +110,17 @@ const RubyToolbar = props => {
         if (props.onDownload) props.onDownload();
     }, [props]);
 
-    const trackFuriganaToggle = useCallback(
-        (next) => {
-            try {
-                analytics.event({
-                    category: 'furigana_toggle',
-                    action: 'toggle',
-                    label: next ? 'on' : 'off',
-                });
-            } catch (_e) {
-                // Swallow analytics failures so the editor never breaks.
-            }
-        },
-        [],
-    );
+    const trackFuriganaToggle = useCallback((next) => {
+        try {
+            analytics.event({
+                category: 'furigana_toggle',
+                action: 'toggle',
+                label: next ? 'on' : 'off',
+            });
+        } catch (_e) {
+            // Swallow analytics failures so the editor never breaks.
+        }
+    }, []);
 
     const trackModeSwitch = useCallback((mode) => {
         try {
@@ -192,7 +183,7 @@ const RubyToolbar = props => {
     }, [props]);
 
     const handleToggleMoreMenu = useCallback(() => {
-        setShowMoreMenu(prev => !prev);
+        setShowMoreMenu((prev) => !prev);
     }, []);
 
     const handleInsertClass = useCallback(() => {
@@ -222,8 +213,8 @@ const RubyToolbar = props => {
     const executeMessage = props.isRunning
         ? messages.stopExecution
         : props.dnclMode
-            ? messages.executeAll
-            : messages.executeLine;
+          ? messages.executeAll
+          : messages.executeLine;
     // === Smalruby: End of DNCL execute button label ===
 
     return (
@@ -238,10 +229,7 @@ const RubyToolbar = props => {
                     aria-label={intl.formatMessage(executeMessage)}
                     title={intl.formatMessage(executeMessage)}
                 >
-                    <img
-                        src={props.isRunning ? iconStop : iconPlay}
-                        alt=""
-                    />
+                    <img src={props.isRunning ? iconStop : iconPlay} alt="" />
                 </button>
             </div>
 
@@ -256,10 +244,7 @@ const RubyToolbar = props => {
                         aria-label={intl.formatMessage(messages.undo)}
                         title={intl.formatMessage(messages.undo)}
                     >
-                        <img
-                            src={iconUndo}
-                            alt=""
-                        />
+                        <img src={iconUndo} alt="" />
                     </button>
                     <button
                         className={styles.iconButton}
@@ -269,10 +254,7 @@ const RubyToolbar = props => {
                         aria-label={intl.formatMessage(messages.redo)}
                         title={intl.formatMessage(messages.redo)}
                     >
-                        <img
-                            src={iconRedo}
-                            alt=""
-                        />
+                        <img src={iconRedo} alt="" />
                     </button>
                 </div>
                 <button
@@ -283,10 +265,7 @@ const RubyToolbar = props => {
                     aria-label={intl.formatMessage(messages.search)}
                     title={intl.formatMessage(messages.search)}
                 >
-                    <img
-                        src={iconSearch}
-                        alt=""
-                    />
+                    <img src={iconSearch} alt="" />
                 </button>
                 {isTouchDevice() && (
                     <button
@@ -297,16 +276,11 @@ const RubyToolbar = props => {
                         disabled={!props.editorRef}
                         aria-pressed={keyboardVisible}
                         aria-label={intl.formatMessage(
-                            keyboardVisible ? messages.keyboardHide : messages.keyboardShow
+                            keyboardVisible ? messages.keyboardHide : messages.keyboardShow,
                         )}
-                        title={intl.formatMessage(
-                            keyboardVisible ? messages.keyboardHide : messages.keyboardShow
-                        )}
+                        title={intl.formatMessage(keyboardVisible ? messages.keyboardHide : messages.keyboardShow)}
                     >
-                        <img
-                            src={iconKeyboard}
-                            alt=""
-                        />
+                        <img src={iconKeyboard} alt="" />
                     </button>
                 )}
             </div>
@@ -320,17 +294,14 @@ const RubyToolbar = props => {
                     data-testid="ruby-toolbar-auto-correct"
                     onClick={handleToggleAutoCorrect}
                     aria-label={intl.formatMessage(
-                        props.autoCorrectEnabled ? messages.autoCorrectOn : messages.autoCorrectOff
+                        props.autoCorrectEnabled ? messages.autoCorrectOn : messages.autoCorrectOff,
                     )}
                     aria-pressed={props.autoCorrectEnabled}
                     title={intl.formatMessage(
-                        props.autoCorrectEnabled ? messages.autoCorrectOn : messages.autoCorrectOff
+                        props.autoCorrectEnabled ? messages.autoCorrectOn : messages.autoCorrectOff,
                     )}
                 >
-                    <img
-                        src={iconAutoCorrect}
-                        alt=""
-                    />
+                    <img src={iconAutoCorrect} alt="" />
                 </button>
             </div>
 
@@ -350,8 +321,7 @@ const RubyToolbar = props => {
                     <div className={styles.modeToggleGroup}>
                         <button
                             className={`${styles.modeToggleItem} ${
-                                !props.dnclMode && props.furiganaEnabled
-                                    ? styles.modeToggleItemActive : ''
+                                !props.dnclMode && props.furiganaEnabled ? styles.modeToggleItemActive : ''
                             }`}
                             data-testid="ruby-toolbar-mode-furigana"
                             disabled={props.dnclValidating}
@@ -369,8 +339,7 @@ const RubyToolbar = props => {
                         </button>
                         <button
                             className={`${styles.modeToggleItem} ${
-                                !props.dnclMode && !props.furiganaEnabled
-                                    ? styles.modeToggleItemActive : ''
+                                !props.dnclMode && !props.furiganaEnabled ? styles.modeToggleItemActive : ''
                             }`}
                             data-testid="ruby-toolbar-mode-ruby"
                             disabled={props.dnclValidating}
@@ -401,10 +370,7 @@ const RubyToolbar = props => {
 
             {/* More Menu Part */}
             <div className={styles.toolbarPart}>
-                <div
-                    className={styles.moreMenuWrapper}
-                    ref={moreMenuRef}
-                >
+                <div className={styles.moreMenuWrapper} ref={moreMenuRef}>
                     <button
                         className={styles.iconButton}
                         data-testid="ruby-toolbar-more-menu"
@@ -421,11 +387,7 @@ const RubyToolbar = props => {
                                 data-testid="ruby-toolbar-menu-download"
                                 onClick={handleDownload}
                             >
-                                <img
-                                    className={styles.moreMenuIconImg}
-                                    src={iconDownload}
-                                    alt=""
-                                />
+                                <img className={styles.moreMenuIconImg} src={iconDownload} alt="" />
                                 {intl.formatMessage(messages.saveRubyScript)}
                             </div>
                             <div
@@ -449,11 +411,7 @@ const RubyToolbar = props => {
                                 data-testid="ruby-toolbar-menu-auto-correct-settings"
                                 onClick={handleOpenAutoCorrectSettings}
                             >
-                                <img
-                                    className={styles.moreMenuIconImg}
-                                    src={iconAutoCorrect}
-                                    alt=""
-                                />
+                                <img className={styles.moreMenuIconImg} src={iconAutoCorrect} alt="" />
                                 {intl.formatMessage(messages.autoCorrectSettings)}
                             </div>
                         </div>
@@ -485,7 +443,7 @@ RubyToolbar.propTypes = {
     onToggleAutoCorrect: PropTypes.func,
     onOpenAutoCorrectSettings: PropTypes.func,
     onPreviewRubyScript: PropTypes.func,
-    locale: PropTypes.string
+    locale: PropTypes.string,
 };
 
 export default RubyToolbar;

@@ -1,16 +1,13 @@
 // === Smalruby: This file is Smalruby-specific (Ruby array syntax for local variable lists) ===
 import RubyToBlocksConverter from '../../../../../src/lib/ruby-to-blocks-converter';
-import {
-    convertAndExpectToEqualBlocks,
-    expectedInfo
-} from '../../../../helpers/expect-to-equal-blocks';
+import { convertAndExpectToEqualBlocks, expectedInfo } from '../../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Variables/ArraySyntax/Local', () => {
     let converter;
     let target;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
     });
 
@@ -23,11 +20,11 @@ describe('RubyToBlocksConverter/Variables/ArraySyntax/Local', () => {
 
             // Verify blocks were created (clear + 2 push blocks)
             const blockIds = Object.keys(converter.blocks);
-            const blocks = blockIds.map(id => converter.blocks[id]);
-            const clearBlock = blocks.find(b => b.opcode === 'data_deletealloflist');
+            const blocks = blockIds.map((id) => converter.blocks[id]);
+            const clearBlock = blocks.find((b) => b.opcode === 'data_deletealloflist');
             expect(clearBlock).toBeTruthy();
 
-            const pushBlocks = blocks.filter(b => b.opcode === 'data_addtolist');
+            const pushBlocks = blocks.filter((b) => b.opcode === 'data_addtolist');
             expect(pushBlocks).toHaveLength(2);
 
             // Verify clear block comment includes both lvar and array literal info
@@ -47,8 +44,8 @@ describe('RubyToBlocksConverter/Variables/ArraySyntax/Local', () => {
 
             // Verify data_itemoflist block was created
             const blockIds = Object.keys(converter.blocks);
-            const blocks = blockIds.map(id => converter.blocks[id]);
-            const itemBlock = blocks.find(b => b.opcode === 'data_itemoflist');
+            const blocks = blockIds.map((id) => converter.blocks[id]);
+            const itemBlock = blocks.find((b) => b.opcode === 'data_itemoflist');
             expect(itemBlock).toBeTruthy();
 
             // Verify the block has lvar comment
@@ -68,8 +65,8 @@ describe('RubyToBlocksConverter/Variables/ArraySyntax/Local', () => {
 
             // Verify operator_add was created for the index
             const blockIds = Object.keys(converter.blocks);
-            const blocks = blockIds.map(id => converter.blocks[id]);
-            const addBlock = blocks.find(b => b.opcode === 'operator_add');
+            const blocks = blockIds.map((id) => converter.blocks[id]);
+            const addBlock = blocks.find((b) => b.opcode === 'operator_add');
             expect(addBlock).toBeTruthy();
 
             const addComment = converter._context.comments[addBlock.comment];
@@ -86,9 +83,9 @@ describe('RubyToBlocksConverter/Variables/ArraySyntax/Local', () => {
             expect(res).toBeTruthy();
 
             const blockIds = Object.keys(converter.blocks);
-            const blocks = blockIds.map(id => converter.blocks[id]);
+            const blocks = blockIds.map((id) => converter.blocks[id]);
             // 2 push from literal + 1 standalone push
-            const pushBlocks = blocks.filter(b => b.opcode === 'data_addtolist');
+            const pushBlocks = blocks.filter((b) => b.opcode === 'data_addtolist');
             expect(pushBlocks).toHaveLength(3);
         });
 
@@ -102,8 +99,8 @@ describe('RubyToBlocksConverter/Variables/ArraySyntax/Local', () => {
             expect(res).toBeTruthy();
 
             const blockIds = Object.keys(converter.blocks);
-            const blocks = blockIds.map(id => converter.blocks[id]);
-            const lengthBlock = blocks.find(b => b.opcode === 'data_lengthoflist');
+            const blocks = blockIds.map((id) => converter.blocks[id]);
+            const lengthBlock = blocks.find((b) => b.opcode === 'data_lengthoflist');
             expect(lengthBlock).toBeTruthy();
         });
 
@@ -114,11 +111,11 @@ describe('RubyToBlocksConverter/Variables/ArraySyntax/Local', () => {
             expect(res).toBeTruthy();
 
             const blockIds = Object.keys(converter.blocks);
-            const blocks = blockIds.map(id => converter.blocks[id]);
-            const clearBlock = blocks.find(b => b.opcode === 'data_deletealloflist');
+            const blocks = blockIds.map((id) => converter.blocks[id]);
+            const clearBlock = blocks.find((b) => b.opcode === 'data_deletealloflist');
             expect(clearBlock).toBeTruthy();
 
-            const pushBlocks = blocks.filter(b => b.opcode === 'data_addtolist');
+            const pushBlocks = blocks.filter((b) => b.opcode === 'data_addtolist');
             expect(pushBlocks).toHaveLength(0);
         });
     });

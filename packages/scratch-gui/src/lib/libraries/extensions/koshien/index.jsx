@@ -1,29 +1,28 @@
-let formatMessage = messageData => messageData.defaultMessage;
-
 /**
  * Koshien extension
  */
-
-import koshienIconURL from './koshien.png';
 import koshienInsetIconURL from './koshien-small.png';
+import koshienIconURL from './koshien.png';
 import translations from './translations.json';
 
+let formatMessage = (messageData) => messageData.defaultMessage;
+
 const entry = {
-    get name () {
+    get name() {
         return formatMessage({
             defaultMessage: 'Smalruby Koshien',
             description: "Name for the 'koshien' extension",
-            id: 'koshien.entry.name'
+            id: 'koshien.entry.name',
         });
     },
     extensionId: 'koshien',
     iconURL: koshienIconURL,
     insetIconURL: koshienInsetIconURL,
-    get description () {
+    get description() {
         return formatMessage({
             defaultMessage: 'Smalruby Koshien AI.',
             description: "Description for the 'koshien' extension",
-            id: 'koshien.entry.description'
+            id: 'koshien.entry.description',
         });
     },
     featured: true,
@@ -33,11 +32,11 @@ const entry = {
     launchPeripheralConnectionFlow: false,
     useAutoScan: false,
     helpLink: 'https://smalruby-koshien.netlab.jp/',
-    setFormatMessage: formatter => {
+    setFormatMessage: (formatter) => {
         formatMessage = formatter;
     },
-    translationMap: translations
+    translationMap: translations,
 };
 
-export {entry}; // loadable-extension needs this line.
+export { entry }; // loadable-extension needs this line.
 export default entry;

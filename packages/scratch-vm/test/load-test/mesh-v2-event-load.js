@@ -1,7 +1,7 @@
-const {MeshClientSimulator} = require('./lib/mesh-client-simulator');
-const {LoadTestMetrics} = require('./lib/load-test-metrics');
+const { MeshClientSimulator } = require('./lib/mesh-client-simulator');
+const { LoadTestMetrics } = require('./lib/load-test-metrics');
 
-const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * Run Event Load Test.
@@ -14,7 +14,7 @@ const runEventLoadTest = async function (config) {
         nodesPerGroup = 4,
         eventsPerSecondPerNode = 4,
         durationMinutes = 5,
-        groupId = 'event-load-test'
+        groupId = 'event-load-test',
     } = config;
 
     const metrics = new LoadTestMetrics();
@@ -30,10 +30,10 @@ const runEventLoadTest = async function (config) {
                 nodeName: `node-${g}-${n}`,
                 appsyncEndpoint: process.env.MESH_GRAPHQL_ENDPOINT || process.env.APPSYNC_ENDPOINT,
                 apiKey: process.env.MESH_API_KEY || process.env.APPSYNC_API_KEY,
-                domain: `test-domain-${Date.now()}`
+                domain: `test-domain-${Date.now()}`,
             });
 
-            client.onEvent(event => {
+            client.onEvent((event) => {
                 const payload = JSON.parse(event.payload);
                 if (payload.sentAt) {
                     const delay = Date.now() - payload.sentAt;
@@ -43,7 +43,7 @@ const runEventLoadTest = async function (config) {
 
             clients.push(client);
         }
-        groups.push({groupId: currentGroupId, clients});
+        groups.push({ groupId: currentGroupId, clients });
     }
 
     console.log('Connecting clients and subscribing to events...');
@@ -68,14 +68,14 @@ const runEventLoadTest = async function (config) {
         }
 
         // All clients subscribe to events
-        await Promise.all(group.clients.map(c => c.subscribeToEvents()));
+        await Promise.all(group.clients.map((c) => c.subscribeToEvents()));
         console.log(`Group ${actualGroupId}: all ${group.clients.length} clients connected and subscribed`);
         await sleep(100);
     }
 
     console.log('Starting event load test...');
     const startTime = Date.now();
-    const endTime = startTime + (durationMinutes * 60 * 1000);
+    const endTime = startTime + durationMinutes * 60 * 1000;
 
     /**
      * Run Client Events.
@@ -94,8 +94,8 @@ const runEventLoadTest = async function (config) {
                     type: 'load-test-event',
                     data: {
                         sentAt: Date.now(),
-                        value: Math.random()
-                    }
+                        value: Math.random(),
+                    },
                 });
                 const responseTime = Date.now() - clientStartTime;
                 clientMetrics.recordEventPublish(client.groupId, responseTime);
@@ -125,7 +125,7 @@ const runEventLoadTest = async function (config) {
 
     console.log('Disconnecting clients...');
     for (const group of groups) {
-        await Promise.all(group.clients.map(c => c.disconnect()));
+        await Promise.all(group.clients.map((c) => c.disconnect()));
     }
 
     return metrics.generateReport();
@@ -148,7 +148,7 @@ const main = async function () {
         groupCount: 1,
         nodesPerGroup: 4,
         eventsPerSecondPerNode: 4,
-        durationMinutes: 1
+        durationMinutes: 1,
     });
     console.log('結果:', JSON.stringify(result, null, 2));
 };

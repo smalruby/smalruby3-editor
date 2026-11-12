@@ -1,10 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {defineMessages, injectIntl, FormattedMessage} from 'react-intl';
-import intlShape from '../../lib/intlShape.js';
-
-import Box from '../box/box.jsx';
+import { defineMessages, injectIntl, FormattedMessage } from 'react-intl';
 import Modal from '../../containers/modal.jsx';
+import intlShape from '../../lib/intlShape.js';
 import {
     KOSHIEN_MOCK_MAPS,
     MAX_TURN_INTERVAL,
@@ -12,7 +10,7 @@ import {
     saveKoshienMockConfig,
     wireKoshienMockConfig,
 } from '../../lib/koshien-mock-config.js';
-
+import Box from '../box/box.jsx';
 import styles from './koshien-settings-modal.css';
 
 const messages = defineMessages({
@@ -51,21 +49,21 @@ const messages = defineMessages({
  * @param {object} props - component props.
  * @returns {object} - the rendered modal.
  */
-const KoshienSettingsModal = props => {
-    const {intl, vm, onRequestClose} = props;
+const KoshienSettingsModal = (props) => {
+    const { intl, vm, onRequestClose } = props;
     const initial = loadKoshienMockConfig();
     const [mapId, setMapId] = React.useState(initial.mapId);
     const [side, setSide] = React.useState(initial.side);
     const [rival, setRival] = React.useState(initial.rival);
     const [turnInterval, setTurnInterval] = React.useState(initial.turnInterval);
 
-    const handleMapChange = React.useCallback(e => setMapId(e.target.value), []);
-    const handleSideChange = React.useCallback(e => setSide(Number(e.target.value)), []);
-    const handleRivalChange = React.useCallback(e => setRival(e.target.value), []);
-    const handleTurnIntervalChange = React.useCallback(e => setTurnInterval(Number(e.target.value)), []);
+    const handleMapChange = React.useCallback((e) => setMapId(e.target.value), []);
+    const handleSideChange = React.useCallback((e) => setSide(Number(e.target.value)), []);
+    const handleRivalChange = React.useCallback((e) => setRival(e.target.value), []);
+    const handleTurnIntervalChange = React.useCallback((e) => setTurnInterval(Number(e.target.value)), []);
 
     const handleSave = React.useCallback(() => {
-        saveKoshienMockConfig({mapId, side, rival, turnInterval});
+        saveKoshienMockConfig({ mapId, side, rival, turnInterval });
         // Re-install the runtime getter so the extension reads the latest settings.
         if (vm) wireKoshienMockConfig(vm);
         onRequestClose();
@@ -100,11 +98,8 @@ const KoshienSettingsModal = props => {
                         value={mapId}
                         onChange={handleMapChange}
                     >
-                        {KOSHIEN_MOCK_MAPS.map(map => (
-                            <option
-                                key={map.id}
-                                value={map.id}
-                            >
+                        {KOSHIEN_MOCK_MAPS.map((map) => (
+                            <option key={map.id} value={map.id}>
                                 {map.name}
                             </option>
                         ))}
@@ -144,11 +139,8 @@ const KoshienSettingsModal = props => {
                         value={rival}
                         onChange={handleRivalChange}
                     >
-                        {['goal', 'item', 'stop', 'random'].map(value => (
-                            <option
-                                key={value}
-                                value={value}
-                            >
+                        {['goal', 'item', 'stop', 'random'].map((value) => (
+                            <option key={value} value={value}>
                                 {rivalLabels[value]}
                             </option>
                         ))}
@@ -184,11 +176,7 @@ const KoshienSettingsModal = props => {
                 </div>
 
                 <Box className={styles.buttonRow}>
-                    <button
-                        className={styles.saveButton}
-                        data-testid="koshien-settings-save"
-                        onClick={handleSave}
-                    >
+                    <button className={styles.saveButton} data-testid="koshien-settings-save" onClick={handleSave}>
                         <FormattedMessage
                             defaultMessage="Save"
                             description="Button to save the koshien practice settings"
@@ -204,7 +192,7 @@ const KoshienSettingsModal = props => {
 KoshienSettingsModal.propTypes = {
     intl: intlShape.isRequired,
     onRequestClose: PropTypes.func.isRequired,
-    vm: PropTypes.shape({runtime: PropTypes.object}),
+    vm: PropTypes.shape({ runtime: PropTypes.object }),
 };
 
 export default injectIntl(KoshienSettingsModal);

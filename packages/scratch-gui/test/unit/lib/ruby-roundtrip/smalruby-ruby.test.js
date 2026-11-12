@@ -121,8 +121,6 @@ describe('Ruby Roundtrip: smalrubyRuby extension', () => {
     });
 
     test('Array#reverse! with a list variable', async () => {
-        // Bang methods emit the internal list name (@_ticket_1_) in generator
-        // output, matching the existing sort! behavior.
         await expectRoundTrip(
             converter,
             target,
@@ -135,7 +133,7 @@ describe('Ruby Roundtrip: smalrubyRuby extension', () => {
             dedent`
             when_flag_clicked do
               ticket = [35, 12, 47]
-              @_ticket_1_.reverse!
+              ticket.reverse!
             end
         `,
             opts,
@@ -199,7 +197,6 @@ describe('Ruby Roundtrip: smalrubyRuby extension', () => {
     });
 
     test('bang method reverse!', async () => {
-        // Bang methods use internal variable names (@_s_1_) in generator output
         await expectRoundTrip(
             converter,
             target,
@@ -213,7 +210,7 @@ describe('Ruby Roundtrip: smalrubyRuby extension', () => {
             dedent`
             when_flag_clicked do
               s = "hello"
-              @_s_1_.reverse!
+              s.reverse!
               say(s, 2)
             end
         `,
@@ -234,7 +231,7 @@ describe('Ruby Roundtrip: smalrubyRuby extension', () => {
             dedent`
             when_flag_clicked do
               t = [3, 1, 2]
-              @_t_1_.sort!
+              t.sort!
             end
         `,
             opts,
@@ -484,9 +481,7 @@ describe('Ruby Roundtrip: smalrubyRuby extension', () => {
         const result = await converter.targetCodeToBlocks(target, code);
         expect(result).toBe(true);
         const blocks = Object.values(converter._context.blocks);
-        const eachBlock = blocks.find(
-            (b) => b.opcode === 'smalrubyRuby_arrayMethodWithBlock',
-        );
+        const eachBlock = blocks.find((b) => b.opcode === 'smalrubyRuby_arrayMethodWithBlock');
         expect(eachBlock).toBeDefined();
         expect(eachBlock.fields.LIST_ID).toBeDefined();
         expect(eachBlock.fields.LIST_NAME).toBeDefined();
@@ -523,9 +518,7 @@ describe('Ruby Roundtrip: smalrubyRuby extension', () => {
         const result = await converter.targetCodeToBlocks(target, code);
         expect(result).toBe(true);
         const blocks = Object.values(converter._context.blocks);
-        const eachBlock = blocks.find(
-            (b) => b.opcode === 'smalrubyRuby_hashMethodWithBlock',
-        );
+        const eachBlock = blocks.find((b) => b.opcode === 'smalrubyRuby_hashMethodWithBlock');
         expect(eachBlock).toBeDefined();
         expect(eachBlock.fields.METHOD.value).toBe('each');
         expect(eachBlock.fields.KEYS_LIST_ID).toBeDefined();

@@ -118,19 +118,12 @@ describe('findArrayIndexHints', () => {
     });
 
     test('ignores accesses inside strings and comments', () => {
-        const src = [
-            'Kouka = [1, 5, 10]',
-            '表示する("Kouka[3]") # Kouka[3]',
-        ].join('\n');
+        const src = ['Kouka = [1, 5, 10]', '表示する("Kouka[3]") # Kouka[3]'].join('\n');
         expect(findArrayIndexHints(src)).toEqual([]);
     });
 
     test('does not guess the length of an array assigned twice', () => {
-        const src = [
-            'Kouka = [1, 5, 10]',
-            'Kouka = [1, 5, 10, 20]',
-            '表示する(Kouka[3])',
-        ].join('\n');
+        const src = ['Kouka = [1, 5, 10]', 'Kouka = [1, 5, 10, 20]', '表示する(Kouka[3])'].join('\n');
         expect(findArrayIndexHints(src)).toEqual([]);
     });
 
@@ -190,23 +183,12 @@ describe('findArrayIndexHints', () => {
     });
 
     test('does not check an array that a function parameter shadows', () => {
-        const src = [
-            'X = [1, 2, 3]',
-            '関数 f(Y, X)',
-            '  表示する(X[5])',
-            'と定義する',
-            '表示する(X[5])',
-        ].join('\n');
+        const src = ['X = [1, 2, 3]', '関数 f(Y, X)', '  表示する(X[5])', 'と定義する', '表示する(X[5])'].join('\n');
         expect(findArrayIndexHints(src).map((h) => h.line)).toEqual([5]);
     });
 
     test('does not check an array that a DNCLv2 function parameter shadows', () => {
-        const src = [
-            'X = [1, 2, 3]',
-            'f(X) を定義する',
-            '  表示する(X[5])',
-            'と定義する',
-        ].join('\n');
+        const src = ['X = [1, 2, 3]', 'f(X) を定義する', '  表示する(X[5])', 'と定義する'].join('\n');
         expect(findArrayIndexHints(src)).toEqual([]);
     });
 
@@ -246,10 +228,7 @@ describe('findArrayIndexHints', () => {
     });
 
     test('reports source lines of DNCLv2 code with line numbers', () => {
-        const src = [
-            '(01) Kouka = [1, 5, 10]',
-            '(02) 表示する(Kouka[3])',
-        ].join('\n');
+        const src = ['(01) Kouka = [1, 5, 10]', '(02) 表示する(Kouka[3])'].join('\n');
         expect(findArrayIndexHints(src).map((h) => h.line)).toEqual([2]);
     });
 });

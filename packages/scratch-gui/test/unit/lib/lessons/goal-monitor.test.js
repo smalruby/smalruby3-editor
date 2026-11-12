@@ -119,7 +119,10 @@ describe('attachGoalMonitor', () => {
         cat = makeTarget({
             id: 'cat',
             blocks: {
-                spaceHat: { opcode: 'event_whenkeypressed', fields: { KEY_OPTION: { name: 'KEY_OPTION', value: 'space' } } },
+                spaceHat: {
+                    opcode: 'event_whenkeypressed',
+                    fields: { KEY_OPTION: { name: 'KEY_OPTION', value: 'space' } },
+                },
                 clickHat: { opcode: 'event_whenthisspriteclicked', fields: {} },
             },
             costumes: 2,
@@ -168,7 +171,9 @@ describe('attachGoalMonitor', () => {
 
     test('ignores scripts run by clicking them and monitor threads', () => {
         const onSatisfied = jest.fn();
-        const goal = [{ type: 'uses', trigger: { hat: 'event_whenkeypressed', key: 'space' }, blocks: ['sound_play'] }];
+        const goal = [
+            { type: 'uses', trigger: { hat: 'event_whenkeypressed', key: 'space' }, blocks: ['sound_play'] },
+        ];
         attachGoalMonitor(vm, goal, onSatisfied);
         exec(runtime, hatThread(cat, 'spaceHat', { stackClick: true }), 'sound_play');
         exec(runtime, hatThread(cat, 'spaceHat', { updateMonitor: true }), 'sound_play');
@@ -181,7 +186,9 @@ describe('attachGoalMonitor', () => {
 
     test('detach stops watching', () => {
         const onSatisfied = jest.fn();
-        const goal = [{ type: 'uses', trigger: { hat: 'event_whenkeypressed', key: 'space' }, blocks: ['sound_play'] }];
+        const goal = [
+            { type: 'uses', trigger: { hat: 'event_whenkeypressed', key: 'space' }, blocks: ['sound_play'] },
+        ];
         const detach = attachGoalMonitor(vm, goal, onSatisfied);
         detach();
         exec(runtime, hatThread(cat, 'spaceHat'), 'sound_play');
@@ -211,7 +218,10 @@ describe('attachGoalMonitor', () => {
 
     test('result goals re-evaluate when the project changes (costumes, sprites, extensions)', () => {
         const onSatisfied = jest.fn();
-        const goal = [{ type: 'costumes', added: 1 }, { type: 'sprites', min: 2 }];
+        const goal = [
+            { type: 'costumes', added: 1 },
+            { type: 'sprites', min: 2 },
+        ];
         attachGoalMonitor(vm, goal, onSatisfied);
         runtime.emit('BEFORE_STEP');
         expect(onSatisfied).not.toHaveBeenCalled();
@@ -256,10 +266,16 @@ describe('attachGoalMonitor', () => {
         runtime._primitives.event_broadcast = jest.fn();
         runtime._primitives.looks_sayforsecs = jest.fn();
         const goal = [
-            { type: 'uses', trigger: { hat: 'event_whenbroadcastreceived', sentBy: 'other' }, blocks: ['looks_sayforsecs'] },
+            {
+                type: 'uses',
+                trigger: { hat: 'event_whenbroadcastreceived', sentBy: 'other' },
+                blocks: ['looks_sayforsecs'],
+            },
         ];
         attachGoalMonitor(vm, goal, onSatisfied);
-        exec(runtime, hatThread(cat, 'clickHat'), 'event_broadcast', { BROADCAST_OPTION: { id: 'm1', name: 'あいさつ' } });
+        exec(runtime, hatThread(cat, 'clickHat'), 'event_broadcast', {
+            BROADCAST_OPTION: { id: 'm1', name: 'あいさつ' },
+        });
         exec(runtime, hatThread(penguin, 'recv'), 'looks_sayforsecs', { MESSAGE: 'やあ！', SECS: 2 });
         runtime.emit('BEFORE_STEP');
         expect(onSatisfied).toHaveBeenCalledTimes(1);

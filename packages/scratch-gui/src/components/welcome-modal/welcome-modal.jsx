@@ -2,7 +2,6 @@ import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React from 'react';
 import { defineMessages, FormattedMessage } from 'react-intl';
-
 import rubyIcon from './icon-ruby.svg';
 import styles from './welcome-modal.css';
 
@@ -108,19 +107,11 @@ Card.propTypes = {
 // /about.html is promoted to the primary CTA instead.
 const WelcomeModal = ({ isNarrow, onStartTutorial, onLearnMore, onLater }) => {
     const primary = isNarrow ? (
-        <button
-            className={styles.primaryButton}
-            onClick={onLearnMore}
-            data-testid="welcome-modal-learn-more"
-        >
+        <button className={styles.primaryButton} onClick={onLearnMore} data-testid="welcome-modal-learn-more">
             <FormattedMessage {...messages.learnMore} />
         </button>
     ) : (
-        <button
-            className={styles.primaryButton}
-            onClick={onStartTutorial}
-            data-testid="welcome-modal-start-tutorial"
-        >
+        <button className={styles.primaryButton} onClick={onStartTutorial} data-testid="welcome-modal-start-tutorial">
             <FormattedMessage {...messages.startTutorial} />
         </button>
     );
@@ -148,14 +139,7 @@ const WelcomeModal = ({ isNarrow, onStartTutorial, onLearnMore, onLater }) => {
                             descMessage={isNarrow ? messages.cardBlocksDescShort : messages.cardBlocksDesc}
                         />
                         <Card
-                            icon={
-                                <img
-                                    alt=""
-                                    aria-hidden="true"
-                                    className={styles.cardIcon}
-                                    src={rubyIcon}
-                                />
-                            }
+                            icon={<img alt="" aria-hidden="true" className={styles.cardIcon} src={rubyIcon} />}
                             titleMessage={messages.cardRubyTitle}
                             descMessage={isNarrow ? messages.cardRubyDescShort : messages.cardRubyDesc}
                         />
@@ -178,11 +162,7 @@ const WelcomeModal = ({ isNarrow, onStartTutorial, onLearnMore, onLater }) => {
                                 <FormattedMessage {...messages.learnMore} />
                             </button>
                         )}
-                        <button
-                            className={styles.linkButton}
-                            onClick={onLater}
-                            data-testid="welcome-modal-later"
-                        >
+                        <button className={styles.linkButton} onClick={onLater} data-testid="welcome-modal-later">
                             <FormattedMessage {...messages.later} />
                         </button>
                     </div>

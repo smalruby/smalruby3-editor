@@ -6,20 +6,23 @@ import {
     makeSpriteTarget,
     makeConverter,
     setupRubyGenerator,
-    expectRoundTrip
+    expectRoundTrip,
 } from '../../helpers/ruby-roundtrip-helper';
 
 describe('Ruby Roundtrip: Operators category blocks', () => {
     let target, runtime, converter;
 
     beforeEach(() => {
-        ({target, runtime} = makeSpriteTarget());
+        ({ target, runtime } = makeSpriteTarget());
         setupRubyGenerator();
         converter = makeConverter(target, runtime);
     });
 
     test('arithmetic, comparison and logic operators', async () => {
-        await expectRoundTrip(converter, target, dedent`
+        await expectRoundTrip(
+            converter,
+            target,
+            dedent`
             0 + 0
 
             0 - 0
@@ -43,11 +46,15 @@ describe('Ruby Roundtrip: Operators category blocks', () => {
             false || false
 
             !false
-        `);
+        `,
+        );
     });
 
     test('string and type conversion operators', async () => {
-        await expectRoundTrip(converter, target, dedent`
+        await expectRoundTrip(
+            converter,
+            target,
+            dedent`
             "apple " + "banana"
 
             "apple"[0]
@@ -71,11 +78,15 @@ describe('Ruby Roundtrip: Operators category blocks', () => {
             0.floor
 
             0.ceil
-        `);
+        `,
+        );
     });
 
     test('math functions', async () => {
-        await expectRoundTrip(converter, target, dedent`
+        await expectRoundTrip(
+            converter,
+            target,
+            dedent`
             Math.sqrt(0)
 
             Math.sin(0)
@@ -97,6 +108,7 @@ describe('Ruby Roundtrip: Operators category blocks', () => {
             Math::E ** 0
 
             10 ** 0
-        `);
+        `,
+        );
     });
 });

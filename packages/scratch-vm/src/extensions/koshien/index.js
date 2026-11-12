@@ -4,16 +4,17 @@ const TargetType = require('../../extension-support/target-type');
 const Variable = require('../../engine/variable');
 const log = require('../../util/log');
 const mapUtils = require('./map-utils');
-const {MockGame, ACT_LIMIT} = require('./mock-game');
-const {findMockMap} = require('./mock-maps');
-const {playRivalTurn} = require('./mock-rival');
+const { MockGame, ACT_LIMIT } = require('./mock-game');
+const { findMockMap } = require('./mock-maps');
+const { playRivalTurn } = require('./mock-rival');
 
 /**
  * Icon svg to be displayed at the left edge of each extension block, encoded as a data URI.
  * @type {string}
  */
- 
-const blockIconURI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAABQCAYAAACOEfKtAAAACXBIWXMAAAsSAAALEgHS3X78AAAAG3RFWHRTb2Z0d2FyZQBDZWxzeXMgU3R1ZGlvIFRvb2zBp+F8AAAgAElEQVR4nM2cebxNVfvAv2vt4czn3Hl2cV2u6V7zTCpTIVMoFIVKSCKVokGjSiUZKrwyJCklDV5DmlDGzBEyz9zJnc/Z6/fHObhC8db7630+n2Nf++y99lrf8zzPep5nr72FUop/WoQQMVLKppZlVQESABdQAmQBR4DfgG1CiL2WZQX+wa5eIuK/DVBKKZRSEVLKypZlJQAO4BSIjaAM4BWXXXZqWMNn1qjiIyHWidtpo8QyyMyVHDpRyN4DOWzbeUodO5F7Qin1PfCxEOJzy7LO/lc7fxXyXwEYglYXuA1o5XSYVVPLx+hlkiJxucI5fkaxdu3a4qLC/LyHe0aHD+uTSGSEA2HaEboNYThAOEE6QbpA2AkIB7sP5LP8h4PM+2wHK3/cfDIQCLwOjBNC+JVSbgAhxFnLsqy/fVBXkL8VoJRSU0p1A0Ykx7tq9+iYRtsWlalXuwIOpwslXOBuhnDVYOLEiXz94UjmPpuA0E2kYQfDRBj24Eezh+CdA+kIbe0oPY4thyoxdNgjrFixYgsQbjNkPAKKiq1MYCOwDJinlNr/tw3wMvKXAIaFhcusrEwLQAhRG3inTlVfnccHptGhdXl03R2EIB2hrR3Cu4K9PI+MGIHrxDRG9o4A00AadoRhQxh20E2k6QieJy5oIVpwq6QT3E3wm+nUrFWLod0Fd9xaBmG4OXla8uOms3y2/BCLluzyZ+cWLgZeUUp99zcxu0j+EsBKldLcu3btPCuE6O9xahPGPphs79c9GcNuD5mh64IZypAmRfQEe3kGDBhAZfERAzu5wWaCbiBNB0I3S5myvVQbziDE0A+hjAREVC9GjxpF4eFZjH24ItJ0guYG6QHpJivfZMb8rYyb8oN16EjWF8AwpdTuvw/fXwR44403xqxYseKWxCjjnc/HJcvqlX3BgZshM9QdIN0XtEg6IaIrODN45JFHcB6byuM93KDrYDNLmbLtvDb+kSkTM4iZs+exaNZDzHu1GpiOIETpCX1cID2cLTJ4dcoqxr65OK+wqOQxIcREy7L+Ft/1HwPUNE2rU7fODTs2r1/43fh4Z7U0VxCAeQ5AUAuFbgcRMmXhAE9zCG/PpEmTWPnxo/zr4fBgg6Z5daZ8DqCwQfQA5n+6nPfeuJeFb1ZCmI7gR3cFfzjpDR6reVDSxdZfc7hj4Gw2b901RwjR17Ks4v9XgEIIp2EYvTRN66VpWs3U1FR3i4qHtBf6uhGmDoaOMGwhCEGQFwCEBmXEQcJjrFmzll6dm7H13ViEAKQMaaERgnA5U3Zc8IfSBTGDmT3vCz6Z9gDzXiwXPM/mDG41dwiiJ7R1ojQPuSXJ3Hr3myxbtmyaUqr//xtA0zSvN01zWov60Sl9h7xOw0aNWPLvf5P3yzh63ygQlCB0kLpAGmYIgCNk0o6LzTjqXkqMiqSklOfTkRbp5TQQImjKpnH+R/hTU054grGvvMn+n8byxrD4oA8NfS6YsruUX3SiNC9Z4iYyajdRhw4duv6vTi5XBdDhcPSOCndMHT882Wh3Q0VsteaBkCxbupQj68fTpYkfYRUhKETKIjQtgNSDE8PF/jAEwFYB4obx8IhHyd/5Lm/c7w1eSEowDDBNZCl4lzVlPQoSn6RXrztoHLmEezqHI0wb8pwGmg6E4QyZcciFhEwZz428/NZXPPbYY5uBacAcpdTp/wpAm812S2Ks+5MFL1XQ0lLjEaYXe8Y7IB1s3LiBHxY+R982CpRCBYqRogBN5CG1EqRmwDlTNOwIzXHenPC05kBuTWrWqMpPr4dRNlYGtVBKME2EGZpQrmTKzjr4I/pTpkwZFj8tqVLOALvtghbaHAjTGfSHwgPauUnFBa56rNrqoEvndjRrVInPvtqYW1zif0EIMc6yrJK/DaBhGAkup33zxy9ViGxUuyzCdIPUsKe9gLAnsWPHDsaNGcj4gSZK2hCaBgE/krNoIhcpA0FTNmxg2C/1h772jB73Hd8tfJV+N7n55aCffcf9nDoLuYUWxcUC3dRwOiThPgdx0XZSynipUjGK9IZ3s2mvlyeGdGPtxJigHzV0sIW00AhCDJqy+2JzdjZg9S9hDLrvNtYve5Rf9hYzYMR8vvth9QrgNqXUyb8FoGma0wd3jrj7+QfTwRaJ0E1QFkbSHWhRN1FQUEDLli2ZOayAuGgfmBGABf5CNHKQ4ixSkxf8mBFK06SLgmIXI1/dwEdfHeTwkRNoUtC0moN2DRykJGmEeUwMlw1Ls3O2WCO7QOP4GYs9B0vY+utZtu48Q0FhgLoV4MW+PuqmGQgpgtprO6eJ58z5d6FNeBcmzVzHD8ve5f2JvVCahxKRyLCnv2TipClbgBuVUqf+EkAhRNkIn/PXLe+WMcLKVA6aDwqpW2ieaugpTwMwadJEOPYhd7fRsQIW6EF/JgLZaGQhpT+khfbgYMKbI8LakVWczLPPvYRhGBQWFnLy5El+2bGDnTt3ULOcoHsLN73ahuMLd4VM0hXSJi9oXkqUm0173CxccZaZs+ZSLfYUbz8YQWy0FoLouBiifu7cMFTCaK67oT333xZJz851QXOjpBtlT+eBkbOYNGnSN0KIVpZl+f8KwNH9W3rHjB9ZGdxlEJqOUEVACZqvCnrZxxFmONnZ2bz7ziRuLreEclH5KCMKoZlQkosMnETKYqSuIQwH0lcTEX4dWNkIigEtaFJaNJixYJYlt9DB0mXLee+9Gaz+fgnDe0YypFciNpczBMMFwhfyaR4wy1Lo6sjIUc8z8a03ifBIGld30Kd9OG2vi0Sa9lBo4wyGNmGdWbTSzkODe7F9+Z2YNm9wcgn5SL+zFS3b3sF33303Win13H8MUEq5euEjYQ1btq+OssUhpERYeShpxxbXEOG7HeFOBGD7tm289fqTPHjTfhJjoxCGA1VSgCw6gi7yQP9dfFh6UhGl82Un6FEoZy2Eswabtu7moYceIufYGuaOTaNCSjjSdIXCEm8IohfMZFTk7QwaPJS1y/9Fn/aRTPoki5hwyTujU0gt5wXTjvTW5Yi4jwYNmzDl6RTa3Vgp1IY7NEN7wEji15OVyKhRI6+oqKiSUurIVQNMTEwyy5RJctvttqjDhw5sWf1ShOlOqYiwxSKkiVIWQndihNcBT3OEPfz8uT//vJF/TZtE12YG9dIMlD8HUXgYUZIJ0kLoAqmB0PULQbZxLi1zXchUzhUMtDBw1kY5Mhj78iu89foYFk5Ip05GRFALpTcEMRgwK1dDCowGpKenM36woFWzOF6dc5oJM/cy96WKNG9xE8dt99O+Q3da1crkxUerIc5psfSA5gXpQmluRFgn+g98gmnTpj2nlBp9zRoohKieHGVs2flWGCqhIsoWHzRh/IDCiKyK8HZGOMqi/DlIRyToXtb89BPvvvM25aOyaV8nm4rhR9D8eSAA81x857h0UjlfMHCXynUdwaqLkYjwtWT2+x/x8NB7+HZmbSqlhiP0c4P3XtCiqL5Mn7WAOZOHsfTddIQzjM9Xu+k7fDH33TeQqdOm0fcmnWeGlEezO0PaXBqiByXd4KrPyk0BmjVrtl0IUf2P8uYrAWxWp4L53Q/PeiAxGctICvkehRB+pD0ezeFDuutA0a9YxZlIdxVEWBsKAz6++vILpv9rBiWn19GhTglt69tJiNHAtCFM8wI801Eqy3CXyjKCH3Uu49CiEWFteP3NKUyfNJrV8xri9p7TGm8oSPaCqzF5ej3KJiexdnZFylWIQRixzFpegbvvG8UXYxO5oaEX7ZxPtDlDwbYvBDAY7ihbCoXOW4iKiirJzy+IVcrKvHaAKeZ3P4xxQ1wMlj0BYYsKlpw0E+U/i5AS6aqKKtqNECBMN1K3IRyVEa6aFMmKfPnvb5g1azbfrlhOhdhirq/t5Lpabuqle4iKciL0YHwYzF3PaWLpEpg9mDkIGxiJ4GtJ5y7dqBjxMy8/WhVhuEF4L2iREQcx99OxUye61NtF727lEWYMyt2S7gMXcnTHF3z0QiKRUXak6QoCtDkRuvtibdaiIG4wKSkp7N+/PyMQCGy5VoBVEiP07XsmeMHnRvmiUUYcwhYGQgtqIhbSWQFVvD9o3poNqZmgihHkIygMpmyODPKs8ny/5gjffv8j3377DVs2b6JMNNSt5qV2dR9108OpmRGD2+0GSpny+QKqC6QNHOkcyoyjVo3qrJydTlqlyFIDD00ssQ/w8mtvc/DnN3nzqQyEGQV6Mtuzu5OeUYsGVe0sGZ+E3RUKcWwupM15cTt6NMSPoGbNmmzatKmJUmrVNQGUUtql4PjuN8O9cTE6IjYSNB/KjALdDboNNAPNlogqOYqQOkISLChQCKoAIfzB7AAdhBGsoJjJYKtAoYpny85s1mw8yM+btrJu/Xp2//oL9ap7ue2WCtzesQo+r4/SlWx1rgrju5nHn3yNk7/O5t3nqyOM0hOKByJ78+m/tzP5lf4snlYPYUaCHgtxj1Cn0c3s3/crfW+y8dyAmAt5sy3kD8+1Y6ZA/FBSU1PZs2dvTaWsTdcEMKSFC8b1dnce2NpERHjA7UYYHpTmReluhGZHOsugio8jpEIQAIqRohghAqESlVYKoBH6WwdhXoBqS0E50sksTGTZilXMnDmTNatXMKhPOsPvbYDb7bswoYQmlcNn06mRUZlfPq9DVIwvVLoKDT68K6u3BBjc/ybWLWgc0sAYiB7EPUNewmc7yIw53/H9hDhSyztDEM/5Q3cwb/a146zZmpiYmOKCgoI4pdS1+cAQwFYpMfqS9WO92G0SGeMDmy1YVdGcoNkRzmRU8UmEtBDCQogACBBSgtQRFwE0Ae1igMgLcKUTHDXA24Rtvxxk1KhRbPn5W/41ri3NGlS8SAuFry0duw+gXa1d9L+t7IUMRXohrBPrd4fR57br2PJ5M4QZEdTA6IEMHTmRGM9BMrMKyf5tJW89HHM+X77gD8MgcSzzF66ke/fuPyilml0J3h8ClFITSlmfD2nraju2pw00iYwJQ9hsCM0IfpwJqOJTILUgLClBSISmh/bplwFolNLIcwD1UlsT3E3BXY/58z9m4KD7eX5EI+69oyEIWzDMsKUye9Ex5r49lM8nZwQ16Jz2RHRn9XYPg+5uzfpPGiNsEaDFQNxw+t7/NHUrF9KmZX3qX/8I+95PwOZ1IM9VbmwOZNy9FLs6UK9+fTZv3txTKTX3PwIIYBhGbCDgXzWmuyfl4VsMEAIZ7kb4vMGJwxELJZlBbQtBQ2p/AvByGlgaYBCyMhIRYTez/ZeDtG3bliF9qzHsnqYhc/ZwtPhGqlSpzLHldbG5nEhbyIdF3MWi7/J444U+LJ1eF2mPBC0Okl6gUdMWPDu8IS2ur0edVq/wao9jNK3tBLsdzeZGJg/CH9GDfv36MWvWrFNAxz+aQP4UIIAQIkXAou6NHVXH9rIT6xOga0ivBxGRiNSKQDOCpSxND2qgNEALmbDQgaswYaFfDFAYIL2IsLb8ui+LG264nteevI7u7TOC/tB7E5VrdWDOaBu108NDPswFscN5a8Z6Ni57lnefTw8G+bbqZDkHk5xchn0bniU8PJa+Dy+hjvtz7u0QjkxohVZ+MNt+sxg8eDCWZVEjI4OFn32mDh48OEsI0e9KhYWrqkgLIbzAi16HvOfO5najVzOTjGQZvImEPxgcm2YIoAAFQgQLpErTg4VVI1TodHgRzujgYM8DvQxAdJAmCAcirC0r1+yiY4e2/LioL6nl41D2Gtx+33Rap63lrk5xF3xYmde554GxVHEvYWi/CkhHFIR3Z9on2cyfM46vPngA9HgGj1pCUrSi550D+HbVJj788EOWL19O/cZN6dGzJ+XKlqVOjXQ6dOjAjz/++JBS6o3/GGApkJWAVYZhRvrsAWqnmJSNgiiPxJRQoqDILygKWFgKLEuhawKHLnGZigivJDlKUjVBkpToQQuLQ4Yno0WlBienizTQDGmvBOlGhN/CC2MnsPTzqSyffzdSj2LUhMOU7H+H5x9IDlatbW5kpQVUr1GfiUMtmjWIRTqj8Me/Qu2GHRjzUC06tm0Ajpp07/c6ixYtoqioiMaNG6M73BRaoOn6+fFmVKtK/163Ub9+/RNKqbJKqcK/CrCd0+X6PKNRM0oKC8nLzaFxykni3PnsPGYjzGHx0143uUUaQgjiYmLo1P5mNm3azNy5czEME93QKSkuJtoDrTMMejQ1aVbVhh6Xhp5cH+mKDgKULlBWCKgGWgx+dytq1a7L6MHVuK1DDaZ+5uTrBU/z3lNJSJsL4UnjsOM5aqZXYv+iyjjDwpCRzZn+77JMfONJ1n41CKH7CHg7k5LWgNTUVHbs2MGd/Qfww09rAIhw+SkolhSUSACmv/UG9/bvx/fff3+7UmreXwX4fWq1jKbRCUnn93Wum8PtjbN4/pNYujbIol6FAnq+lUxmnsTn9bLog1msWbOGpk2bIqXE6wvDGx4BSnE2N4fc7CyqJsIzXR20qmmiJdfHqNAKdB+oEkJxEaCBozqLvj7MyBH38vOSfvx7bSxvvPg4X76ehDQdyITbmPSZm28WjGLu82XRXOEcc42iTtM7mD+pNU0bVEE50vlqteC2226nSpUqHD1+gjJp1QDQpWLBsAP8/JuDA2d0lmz2cF2LHgQKzjJkyJB5Sqnb/2OAQogGNpt9da2m1wsh5UXfPXjzaTrWyeGbbW4iPX4e+yCOgmLBA/f2o2Pbm6hduzZZObnYHU6yM8+Qm5ONzW7H4w3D6XZTmJ9HVuYZbm0cTo8WUVTNSCG5dneEIQEFyg9YgI7ytKJW/RY8NzSVyMRmDBk8klWTExA2O1rV8TS6+QlGtDtIx5ZRENOe9oPWUb3sGcaNbgFGPGe0LjRs0pLi4mKGDBnCxIkTMb0RhEfH4HNYPN7xOBv3OxnQ8jSTl0aw9lgNxjz2MKmpqSeBxN/fdLoWgHPKplbqmVA+9ZLvWqefpV3NXJ76OIbMfA0BxMVE88G/3uWF559n3LjXiE0qe/54ZVnknc3hbE4WBfn52B0OoiIj6HJjeaIjvfxyCJLKJFOzehRtW1bD5dCDEFUAjDjenfcrn857iedH9aNX7zFsmhqHcobxs/EmXW5pxS8zErBFJfLIrAqsX7OEZXM6YDrjOervQOfbBlKjRg0mTpyErussWLCA3n3uIqNRM4a0OU3netl8sCqMpIgATy+IRinBZx/MolbNmhw8eDDDsqyLCgtXBVDTtGjgQJ3rbrTrhnlVwAf07UO7VjeSmloRb0QUhmkPwiNYHgRF1ulTFOae4r7WLu7pnERCYgz4C1BFOezKKscHyw5zsLAcg/vdQLMG5UImDZkl1Umt0pD50/oycPAktkyLRSZ2oOezx8lwLeeRHj5e+zqNf324ku8/bEVYVGVmLXYxesxb5OXnM3bsWAYMGABAIBCgTp06FAmd6mmRZCQX0LRSPrFhJfR/J+iqXnv+GV5/5WU+nD+/n1Jq+jUDlFIOCouIfCsxpSKnjh4mLzcHf0kxmqZjdzrxhEUQEROLaXcEGxWCT+fM4L0ZMxgz5lliEpMvafPUscOkRpxl5mA3ZePt+L3J6L5odJcDzVcd4cjAylnLzxvX884XOk0a1+TOrrWQQoERS4deY6mQcJZ/f7GKTe/GscV4mJu7jmD71BimLrOYsiiLd59N56dtRcz49DRREU5efvllIqJTaNmyJZ988gmNGjUCYOrUqTzy2Egq164PBH2hEFASCP7UQ+7rz54d2xg1evQEpdSQawIohBDAz0DGnxxHVFw8ZSqkUatmDd598zWqV6tGdl4Bdqeb0rpXVJCHln+I1S9GEOYxsGzhEFcN3R2FNGzosb0QnnRQflT+RrIPL+WN947g8Tl5sF8zNE3w9vu7ePWVl3Dr+ayZ0YS2T1u0Kr+ZzFyLl+dn4XHqmDY7HW6uTZ/bm9G0QRWEMx3hyuDll19m165dTJ06FYDc3FySkpKoWKPOeSUI+Evwl5RgmCa33dqFpKhwut9225dKqXbXCrAcsBvQ/vDAkGi6zqOPPU73rl2oV68eySmVCNW1zktudiYNEk7x4UMuFGDpDkS5eki7C6lJjKR7EWFNL5zgzyR//zj6P7KY4oCDmZOHsP+IoGrdblyXbqdf73Y8NW4RtSuY7DrtplfXOjRvlEadWhUwtFKppLclwoxl7Nix7Ny5k+nTL1hjnz59+O7HNfgioti/awfZmWdQSiGlpHp6Bn1638nw4cO3KaWqXyvA7sAl8c8fiWkYtG7Thu9/WElUXOIl31sBP0f27+aZrnYGtjHRdA0rpjJ6TApSWAh7BFpEe6SvLuhhwZNOf0j+iU/oOeQHMgvCmTP1CWo1G0yFeJ09R4vJzcqibavKvDe+Gx63E4SJErZgDCk94G6IMssyd+5cHnroIb788kvq1q17vk+ffPIJPXr2pKS4mD9YYn1UKZVwrQBbAF8BxjUwBCA+sQwOjw8BqFL/ApQUF3Hy2GESvcX0bu6gY7MIylevhBGZhBQBhC0GoXKQrkoIMx5RsB6K9+MPSEa8tI1Plp/CCkgOHj6GrkmeHNaMxx+4Hk0zz+fbSo8GRzqn86P5dOHnTJ48hcLCQqZMmUKzZhdXqU6fPkVcXDx+/yUpbxawFtgO7FJKTbomgCGIMYAORBNcvB0VZ2p4dMHBwgCFV7hpVS41DU2/wF2gSiEMirL85OXlUZiXS7XUWG6oF0+VtEhSU8sQ7sojOkzhdBZi0wtAWIAJ2Ph48SHue2IVdpvBzPFtad4wlYISg8xcBwePS3buK2bbrtP8+OOPrFu/HpfXR6s2NzFnxnQ07VJvtG7dOpo0aUJxcTFAAPhcCDFVKbVUKVV0RTZXGwcOGvqwmDR+3PO6Jkc29OjcFOlAClBKcbzYokSarM7KZ1N2IQpISkxkxKOP8a+Zc8g9e/HjHBemE3D7wnB6vYDCX1SECPixGRrhYT4OHTzEiRMnyM89g00P4HFreNw2DC0YyB87XUh+gYWUgvxCP4WFAZAS02bD7nDhcLnxhIXhCQtHajrlk8swZ+qUS8a2aNEievfuTVZWFsCXwKNKqa1Xw+VaAunumqZ9EOHxiLvDAoTpF7KRKmFuqoW7ANiRU8i43afZEjB4ddw42rVrx+z3P+D9Dz4gO+fS52K8ERHYXe4L1wleC5fTSV5+HpalCAQCBEqKg9tAABV6WElIiabpaJqG1IPbYBX88hIe5mPRB7ORoUyqqKiIZ55+munjX+etXrcw63gRny1adEmo8odcrtKEy0jYOLhxzchA1Toc+HwejdzBjsY7bTSOCbt4olWwp/1dPDRlJpqmMXr0aNq0acMnCxcy5/0P2Lf/4PmZ+fcAz4nDNCgovqalen8qHrebrz6ai5SSDRs2cO+993L8+HE+7XId3u1r4e7hNBv2lHX8+PFWSqmvr6bNq5lEHMDyJuGORu0iTZJad+KVL5bTWcsh3NBomRSJKeXFns2yKPf+Cm6/fwhrvviMQ0UB0tLSeGjoUHr26sWWrVv5aMGnfP3110i787IAdSnw/z0L6QGQQtDi+usY2LcPY8aM4e233yZWhwKHh1/efpnsqa+ieXysbXMXPQYM/k0plaGU+tNHya4G4BuVXcaDd8Q7kYDQNLzd7mH2lIm8WCmCGJcdIUAr1YwwDCos3Ej1GjUw9u/GHx/Diw90of+YGQQw6dWrF3f16UPFSpVYvWYdK39aw0/rN5Kdk/NXOV0iLpeTVtc3p0WzJiz89BPefPNNmjdvTtUqVZj3xqsc9yu+++A9vG+PASGwajWmxvi5FBUVjVdKDf2z9v8QoJSyVZipLx6Y4JAu7YKORVaoxLH6bWDBVLomelGAruCcVzQSkkh45yuioiIpGyiiWrMazHiqL22GvMmo58ezdNky5s6dS3h4OF27dqVTp05USktjz97f2LBpCz9v2crOX3eTmZXFf6KDhq5TM706bVpcT3x0NO+9N4M5c+bQunUrQNChQweio6Pp2qYVpoAJU9+l5uyxAHx6JIfDLbozc9Ysf2ZmZiOl1Lr/CKAQwm6T4pcYp6PsfTEGpStYupR06HsPL209jGfNUvqXDSN0xwMAR836WIOfIy0lhWRD0u3Omxl1980MGDubOx8YQ4sWLSgpKeHbb79lwYIFTJ82lbj4BG688UaaN29O06ZNKVu2LKfOZLL3t9/Yf/AQh48e4/iJk5w6fZrsnBzy8wvOx2ymaRIfF0uVtErUykinUoXyfLNiBTNnvsfGjT9zxx13MHjwYFJTU+nWrSuPPvooCQmJlE8uQxlD0u/JZ7h98xecOnqcAfsKeX9QT5bpsQwe9vAaIUSTP1po+UcAH24XZX/F4fbhKSqgokuc209GlIeyHgfuJq35wluexZNe574Yg0rOYMznbdOZHXXa0LlVS1xS8NyoPtzeqi7TP1tJpqsyTzwx6qJr9ahXn7C9B9ldUkh+ehX27v0Nv7+EjPQMqlWvToUKFShXrhxJSUnExMTg83kxDBMhBEopCgsL2b17NytXrmTp0qWsWLGCJo0bc8edd9K1a1dcrmCEEAgESE9PZ926dRiGQUREBGUCRTS4rRcdrVM8t/RHnh42mLSlc/F2vYtb3l3A2rVr71NKvXNNAIUQcU5N7HikrCfME5fE7N9O09lRiC4hwm7SJCH8/KRhS6lMYbvevDxnPvkrl9E2yk7rQcP42oji8Xv6ctZSfDZlOA2ql+PQiWy6PfUh69dvQJSatsc8/RSFE6ezzmnwyfYt2O12Dh06yJYtW1m/bh3jx79OnYzKHDl+ktNncigoLAIEUgpK/H6EkJQpU4bC7Cy6Fmlsd2os2L0L07y49PbNN98waeJEPpw/n6KiIsLCwkiRAQ7pDm7t0oUhTWvg+ew9rIJ8hGHyiqMC73y88DhQWSmVdS0AX7kh3PZwq0g7AsGZ6s3YvmoFTb06jRPCibT/LquTGt6mrTmV3oT5qyKeRncAAA4FSURBVDewctUqDhw4gHbsEIdKLHZ+9hyxET4A7hg9nTsGjaJTp07nTy8oKGDChAnccMMN1KtX76KmF3z8Mf9eOIfJLz4MBIPwEr+fouISrIDFjI8Wk2v5ePLJJ5k37wPeum8gbR56kFFPPXVRO0op2rdvz4gRD3P99TeQmZlJVFQUaXYNq0wKq555iNPTXrvAALhz03HC6zTiq68WX3G57yUAhRA2Q4gDw8u6Y7yhYDmhcg3G7zpKq5KT3Jka8/viSimQEldaDRIfH8dDY15k2fS3OSx1ji555Xz2sO9YDp0enc6/lywlObnsFRoKSvCOWSPeGzeCqhUvf+yRE6dp1+dx1qxdh81mIzs7G5/Pd8lxs2fP5uOPP2bBggUIIfjll1+oUqUKlR06R00X+94bz8mJL5w/Ps9vMTQ/gldeeYkGzVscU4qySl36bN3lAHZo4DMXdox2XLQ//IaOTFqwkMnpUYSZF0f7pVMzoaD86+9zx5MvsPWrRfijw9j+4TMXsmDdzrd78hj2zCQmTX6b66677rJgCgoK6Nu3L1XLennigT6/u8rF8uSrUzl+VmPy5MnopW5LnpOPP/6YMWPGsHz5cqKiogBYvHgxN998MxXtOvsDgv2fzSH3tQu+eeHRXPLq38CDXW/h+pEvsWnTphuUUt9cDcD3Hyjj7hFvuxiSzemmsFU3Pps9g1erRhFuXHxjqVSDpE77iuu69yJz83qi01JYNunB4P12BcJwYMSlsXXXbwx98g0MZzjdunWnVs2aREVHk5OTw+pVq5g8eTK33tSQkQ/0Pn8L4GKAF/7vD1iMevkdvl69jbv79qVOnTq43G5+27uXmTNnkpuTw4z33iM+Pv782ePHj2fEsIdIMiRHSiw2LfoQ+frjwVhQKe7ceprp9/UgNiaGkRsOMG3atKFKqfF/CtCQcvOo8t5083d8DCno0KAOX1ZozIxJE3gxLYJkh36OOkqFNEwI0uatIrVGbWwnDpPRtCazxtx9fuxCt2PEVT6PYOO2XSxe8SM/b/uV02eycbud1KtRmR6dWlMhOeEy4Aj9EpfC/HX/YRZ+9S0/b9/N2fxCyiXG0r7N9bTsdHfwsbFScu8997Bu7vscLy7krIIlH80l4q1RIASzDmSh2nTlrt9W4ml1C8/tymLCW2+NVEq99KcANSl2jirvrWSXF3c6xeOgZqQHq2wq62u04oVXXqV/lKRNtPPiBk0bqR+sIjwmliSrmHot6zNtVK8LGDQdI/6iou7VySXQrkHsEcjIyhftqlWrFnUOHGFh7mkspXh/7ixS3n6K704X8oE3hWnNK1O0agWRfYcyYMEK5n/00SU3lODyJrxwQJK7Q7L9YhNuFhtGpMsWvDsbEU1xl3t5es7HFG34gUHlws5ro3S6iXz7K+Lj4ihv08h22Pl14XM4TCOUVUjMpHSu5M+Ccg735fyeQlkWyl9CIPcoRkQ5LviHK2uqjKsDmg2AEydOkJacxHMRZXn0xB48UvLau++w+YXH2JBUnUmdb8BaOAuA+LHTqda512VvaV4J4B1V3OasO+Ic57tuSkm7MpEEQjOpCh6H2agVG6NTeeeD+bh/20aHODdVE+NxPTuNujVrEK9LDpdYvPXEndzVvsH5tMyIrxZc+vb7gV/BNH+/P3/3NxSf2Y3uisFdrcMVoV00rvBKCGdwApk9ezZTBgziZmcEz545QLQmkHGJDLi7D3e6iylY8gkAmi+MM8Neo17jpgeFEOUv99KfywE0hBAr2kY5mjTxBeO9eIeNRrE+/PIyWqPpOJu0ZoMnkTnfrOKnVasosSyKzpzGpQkaOHxsCzfZMPsJDF2iFOhRFZAOz6Vt/R7CRTAuwFTKT8G+ldgTayNt3iu3U0qDRVgFhCsWgDZt2lB/wy98U5DF6vwc4k2Nx8a9Qfufv6B4/97zZ/s69OCZHSeZNGnSS0qpkZe7whUzESnE9x2iHan1vQaVfS6qRLgJ/IkLMtMyiOpyF58fPMPwvndhASMikpmfe5LeD3Tk3s5NQSg0TzyaL/bK4C7pEAQsRV5+Pvn5hei6jtfjwjSM4DlXMPXS+0REGsIRyZbNm2lZvz7PhJdh8PE9pyyUp4yp2x547kW6rP2YQOaZ4PGahu256VS/sU1JTk5OFaXUnqsGGIIYKYVYfnOUvUbvMmFkRHqCChDqmlSgxIW/Q+PE2aA5Kyo25al7+nLGUgwMS6ScbufJwiP8NGcUcRE+hM2FEXPpEpHSkldQyLLv17Hs+zWs27ST3LN5uF1OXE47JSV+srJzcbqctGvRkD7d25EcH/OH7YnY2qDZaN++PcmrN7Kx6Cw/5eeOAB4pY9Oj73niSe7YtRz/8aMAhHXuxZObjzJlypQ/fLfCH5azhBDRwOLW0a7ar2UkYF7OhH8nnlYd+cRdngkPPcA+v8JEqAkxqWJJwRlOVotlwcsDkFJiJIb84O/kdFYOL0+awxfLVtK8cW3a3diI2jUqExMRhiylnQo4cuIUny3+nrdnf0q3Di0YOfBO5OX6qNuRsbWZNm0qYwc9QDtXBG+cObJJCNFAKbUrwa4l3z38Mfof+YmSQwewpVRi+839aH9r1+OBQKCGUur4fwQQQErpU0rNrhEX0X5Cs6rEZR7/w3DC174bH+kJTBj+IHuKApQo9UqKYRvxUnQFnjuzj5t6XMcz93ZA8yWgeaMvOnf1hq30G/4ig+66lb63t8dh+6N1OBdMtKCwiPtHvkrVtPI8MqDnpYP0lGHVlgN0atOGO+1hTM48mlNoWY2VUtuEEFtjbVq1u4Y+zP2Zm1AlAfL7j6J5x1sDp06d6qSU+vyP+Fzt2hhNKfWwx+N55rEuN9l6RBn4t6wP+Z+LJbxLD2bme5g86jH2FQUsv6XigEerOFzDR4Qn8vTJfdw/sANDe92EGV/5/I9x/HQmLbo9wMdTXyQtpcyfg/udv8zOzWPLL3toWq/UChSlQGqs/DWPbl260UQJFmdn5eVbVhel1BIAIcRP8Yas33PIQzyWFs3JWs1p2+12tW/f/geVUhP+jM21LrDMAN5MS0tr/kj/3rRNDMfauYni33biP30KrABhHW9nyknJjOefYV9RoNiC6NC9hRfLm7YRA8MSxJuZh7m9542MGXEvZlhwMtl78CifLV3J0L5dLw/skr9/L5cep5Ri2vylDH3iZXxWCSeK/fstRQ+l1OpSY1oRZcjre94/mHZt23Jn796BEydODL9c2nZZJtf65iIppVRKtQceSUhIaHzrrbeKW25pT92aNfF5gg8Qjnn+Baa++CyHi60CIMqyrPzQK/F6uzX5es+wmPA1+blE1CjHO288Q/nEuMu7hauJC68wc+85cISHnhrPF0t/AMgVQryjFM8pZV1U1xNCfGGTom1YdAynTp06HggE7lFKLbpaHn/p3VkhjewOtNSkTI+Ni3NGRkZy8uRJjh07dhaYIYR4sPT7/IQQ5aWU71Uxbc08umSXsuh3V1fu6n4zaRXKXqxfSoWU6vJFhMvB2757H29Onc/MD7/MLSounk9wJcWXSqnsK4yhItCS4NKVmVcqnF6RwV8BWFqklDalVDxwLrLdf6VON2tcV67/eWuXQMB62q2sapn+IN+01HK0b9WYG5vWpWHtavjcrj+9rlKKX/cd4qsVPzJ/0des27h1e4nfGgZ8r5TK/1sG9wfyX38F6B+Jx+18r4bSe/s0nQ2FZzleUnI+3bPZTCpVSKZGtUpUSU0mOTGWMJ8Xw9A4m1fAvgNHWPPzDtZs2Ebh8dPUNl1EagZL8zOt435/T8uyrmlF2X8q/xhAKaUrUteO/iumssdA8kNxFksKTnOopBAbkmp2N/VMD2cti+3FeXyZm3kebobDRX4ggEOTDApL4Li/mMyAn/p2HyjFfSd2HcwNWBWUUn/v0obLyD8IUMRWtjmOvh5ZUWwsyWXkid8QAsJcGiV+xdlCi0TD4KnIcszKOcYhfzH1HV7OBEr4uTCP0VHJjD65D7suyagbToTP4JcV2YyNSOHJM3tZU3C2glJq75/35K/JPwZQ14RhIPZNj0tLOGP5efD4Hm6q5+LGWgab9viZ900eTexeWjp9vJt5jNFRZdlQdJZYzeCwv5j1hbnkY3HCEaBP52Q2bM9E3+pnmDeZx8/sURsK8hKVUkf/2+P4R32gFGJIHad7/NPh5djjL2BVYQ7FyiJRM6lr92JD8mb2ITYX5mNKaOjwsangLP3CYnn1zCEARkaV4bfiImxC0toZQaGyuOfYzoN5lpWilPrTNw/9VflHAepSyIBibE278+H7wxIpqwVvZB23ilicf4ZFZ09nFyg1zy3kPeNiKogkaefprN84VFLE4ZLioy6HftBZIuo2sHtksm4nTwVYkp95+khx8V1/loL9XfKPAjwndlP2NXXxvO6X4UB+lt//tVIsNwzt45KSwOPDIxMfbGWP5MfibF47c4icQGCNEKKZZVnFNVK81fadKGhRElDlCwoD64HPlFJ//yqlK8j/BECAe26JkIu+ybdZlhU4kRdcZxsV7hJZ2QV758VXKecWOjPzjmIg2VaUZ20qKRhcXOKf/E/3+38G4OVESumN0bUzM2Oqagp4J+cw4ZpOS0cED57aHTjpL+lvWWrGP9nH/2mAQojyVezOva9HBouvb+UcYm9JIa9FpnIoUMCwk3sKcwJWjFIq9x/r4/8yQF2TToeQJ4aHJ7nSbS6mZB9h+dmsMwPC4yPOWCXMzzn1taVoqf7BQfxPAwSQUtQV8JhEVA8otQMYoWC4EBwyhZhQGLD+3yaMy8n/AcO8QmCWnFowAAAAAElFTkSuQmCC';
+
+const blockIconURI =
+    'data:image/png;base64,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';
 
 let formatMessage = require('format-message');
 const translations = require('./translations.json');
@@ -24,10 +25,7 @@ const translations = require('./translations.json');
 const setupTranslations = () => {
     const localeSetup = formatMessage.setup();
     if (localeSetup && localeSetup.translations[localeSetup.locale]) {
-        Object.assign(
-            localeSetup.translations[localeSetup.locale],
-            translations[localeSetup.locale]
-        );
+        Object.assign(localeSetup.translations[localeSetup.locale], translations[localeSetup.locale]);
     }
 };
 
@@ -40,7 +38,7 @@ const EXTENSION_ID = 'koshien';
  */
 const KoshienItemName = {
     DYNAMITE: 'dynamite',
-    BOMB: 'bomb'
+    BOMB: 'bomb',
 };
 
 /**
@@ -51,7 +49,7 @@ const KoshienItemName = {
 const KoshienCoordinateName = {
     POSITION: 'position',
     X: 'x',
-    Y: 'y'
+    Y: 'y',
 };
 
 /**
@@ -63,7 +61,7 @@ const KoshienTargetName = {
     OTHER: 'other_player',
     ENEMY: 'enemy',
     GOAL: 'goal',
-    PLAYER: 'player'
+    PLAYER: 'player',
 };
 
 /**
@@ -87,7 +85,7 @@ const KoshienObjectName = {
     POISON: 'poison',
     SNAKE: 'snake',
     TRAP: 'trap',
-    BOMB: 'bomb'
+    BOMB: 'bomb',
 };
 
 /**
@@ -122,8 +120,7 @@ class KoshienClient {
      * @param {Runtime} runtime - the Scratch 3.0 runtime
      * @param {string} extensionId - the id of the extension
      */
-    constructor (runtime, extensionId) {
-
+    constructor(runtime, extensionId) {
         /**
          * The Scratch 3.0 runtime used to trigger the green flag button.
          * @type {Runtime}
@@ -140,52 +137,52 @@ class KoshienClient {
         this._playerName = null;
     }
 
-    isConnected () {
+    isConnected() {
         return this._isConnected;
     }
 
-    connect (playerName) {
+    connect(playerName) {
         this._playerName = playerName;
         this._isConnected = true;
     }
 
     // --- Interface (overridden by concrete clients) ---
 
-    getMapArea () {}
+    getMapArea() {}
 
-    moveTo () {
+    moveTo() {
         return Promise.resolve();
     }
 
-    setItem () {}
+    setItem() {}
 
-    setMessage () {
+    setMessage() {
         return Promise.resolve();
     }
 
-    turnOver () {}
+    turnOver() {}
 
-    map () {
+    map() {
         return -1;
     }
 
-    mapAll () {
+    mapAll() {
         return '';
     }
 
-    mapFrom () {
+    mapFrom() {
         return -1;
     }
 
-    calcRoute () {
+    calcRoute() {
         return [];
     }
 
-    locateObjects () {
+    locateObjects() {
         return [];
     }
 
-    targetCoordinate () {
+    targetCoordinate() {
         return null;
     }
 }
@@ -206,18 +203,18 @@ class MockClient extends KoshienClient {
      * @param {Runtime} runtime - the Scratch 3.0 runtime.
      * @param {string} extensionId - the id of the extension.
      */
-    constructor (runtime, extensionId) {
+    constructor(runtime, extensionId) {
         super(runtime, extensionId);
         // Injectable sleep so tests can avoid real timers. Returns a promise
         // that resolves after `ms` milliseconds.
-        this._sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+        this._sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         this.reset();
     }
 
     /**
      * Drop the current game session (a new one starts on connect).
      */
-    reset () {
+    reset() {
         this._session = null;
         this._isConnected = false;
         this._playerName = null;
@@ -241,7 +238,7 @@ class MockClient extends KoshienClient {
      * rival strategy) when available.
      * @param {string} playerName - the player name from the connect block.
      */
-    connect (playerName) {
+    connect(playerName) {
         this.reset();
         super.connect(playerName);
         const config =
@@ -258,19 +255,22 @@ class MockClient extends KoshienClient {
         this._session = new MockGame({
             map,
             userSide: this._side,
-            seed: config.seed
+            seed: config.seed,
         });
         this._session.join(this._rivalSide(), 'rival');
-        const {info} = this._session.join(this._side, playerName);
+        const { info } = this._session.join(this._side, playerName);
         this._absorb(info);
-        this._journalPush('event', `ゲーム開始: マップ「${map.name}」 / プレイヤー${this._side} / 相手AI: ${this._strategy}`);
+        this._journalPush(
+            'event',
+            `ゲーム開始: マップ「${map.name}」 / プレイヤー${this._side} / 相手AI: ${this._strategy}`,
+        );
         this._emitState();
     }
 
     /**
      * @returns {number} - the rival's side (the one the user did not take).
      */
-    _rivalSide () {
+    _rivalSide() {
         return this._side === 1 ? 2 : 1;
     }
 
@@ -278,8 +278,8 @@ class MockClient extends KoshienClient {
      * Update the client cache from a player state answer.
      * @param {object} info - the state returned by the mock game.
      */
-    _absorb (info) {
-        this._pos = {x: info.x, y: info.y};
+    _absorb(info) {
+        this._pos = { x: info.x, y: info.y };
         this._goal = info.goal.slice();
         this._myMap = info.map;
         if (info.status !== 'playing') {
@@ -292,11 +292,11 @@ class MockClient extends KoshienClient {
      * @param {string} kind - action | error | event.
      * @param {string} text - the human-readable entry.
      */
-    _journalPush (kind, text) {
+    _journalPush(kind, text) {
         this._journal.push({
             turn: this._session ? this._session.turn : 0,
             kind,
-            text
+            text,
         });
         if (this._journal.length > JOURNAL_LIMIT) {
             this._journal.splice(0, this._journal.length - JOURNAL_LIMIT);
@@ -306,7 +306,7 @@ class MockClient extends KoshienClient {
     /**
      * Broadcast the full state so the GUI panel can redraw.
      */
-    _emitState () {
+    _emitState() {
         if (!this.runtime || typeof this.runtime.emit !== 'function') {
             return;
         }
@@ -323,7 +323,7 @@ class MockClient extends KoshienClient {
             myMap: this._myMap,
             myRival: this._rivalPos,
             myFiend: this._fiend,
-            journal: this._journal.slice()
+            journal: this._journal.slice(),
         };
         this.runtime.koshienMockState = snapshot;
         this.runtime.emit(MOCK_STATE_EVENT, snapshot);
@@ -334,11 +334,14 @@ class MockClient extends KoshienClient {
      * @param {string} label - the attempted operation (for the journal).
      * @returns {boolean} - true when connected.
      */
-    _requireSession (label) {
+    _requireSession(label) {
         if (this._session) {
             return true;
         }
-        this._journalPush('error', `${label}: さきに「プレイヤー名を◯◯にしてゲームサーバーへ接続する」を実行してください`);
+        this._journalPush(
+            'error',
+            `${label}: さきに「プレイヤー名を◯◯にしてゲームサーバーへ接続する」を実行してください`,
+        );
         this._emitState();
         return false;
     }
@@ -349,9 +352,12 @@ class MockClient extends KoshienClient {
      * @param {string} label - the attempted operation (for the journal).
      * @returns {boolean} - true when the action may be sent.
      */
-    _spendClientAct (label) {
+    _spendClientAct(label) {
         if (this._sent >= ACT_LIMIT) {
-            this._journalPush('error', `${label}: このターンではもう行動できません（行動は1ターンに${ACT_LIMIT}回まで。「ターンを終了する」を実行してください）`);
+            this._journalPush(
+                'error',
+                `${label}: このターンではもう行動できません（行動は1ターンに${ACT_LIMIT}回まで。「ターンを終了する」を実行してください）`,
+            );
             this._emitState();
             return false;
         }
@@ -364,7 +370,7 @@ class MockClient extends KoshienClient {
      * @param {string} label - the attempted operation.
      * @param {object} error - {code, message} from the mock game.
      */
-    _journalRefusal (label, error) {
+    _journalRefusal(label, error) {
         this._journalPush('error', `${label}: ${error.message}`);
     }
 
@@ -372,7 +378,7 @@ class MockClient extends KoshienClient {
      * Look around a position (counts as one of the two actions per turn).
      * @param {string} position - the "x:y" center of the area to reveal.
      */
-    getMapArea (position) {
+    getMapArea(position) {
         if (!this._requireSession('マップ取得')) {
             return;
         }
@@ -396,7 +402,7 @@ class MockClient extends KoshienClient {
      * @param {string} position - the queried "x:y" position.
      * @returns {(number|string)} - the my-map cell (-1 when unexplored).
      */
-    map (position) {
+    map(position) {
         const p = mapUtils.parsePosition(position);
         return mapUtils.cellAt(this._myMap, p.x, p.y);
     }
@@ -405,7 +411,7 @@ class MockClient extends KoshienClient {
      * @returns {string} - the player's my map as a "row,row,..." string
      *     ('-' marks cells not yet revealed by getMapArea).
      */
-    mapAll () {
+    mapAll() {
         if (this._myMap.length === 0) {
             return '';
         }
@@ -418,7 +424,7 @@ class MockClient extends KoshienClient {
      * @param {string} mapString - a map string ("row,row,...", '-' = unexplored).
      * @returns {(number|string)} - the cell value (-1 when it cannot be resolved).
      */
-    mapFrom (position, mapString) {
+    mapFrom(position, mapString) {
         if (typeof mapString !== 'string' || mapString.length === 0) {
             return -1;
         }
@@ -434,17 +440,13 @@ class MockClient extends KoshienClient {
      * @returns {Array<string>} - the route as "x:y" strings (single element
      *     when unreachable, empty before connecting).
      */
-    calcRoute (props) {
+    calcRoute(props) {
         if (!this._session || !this._pos || !this._goal) {
             return [];
         }
-        const {src, dst, exceptCells} = props || {};
-        const start = src && String(src).includes(':')
-            ? src
-            : mapUtils.formatPosition(this._pos.x, this._pos.y);
-        const goal = dst && String(dst).includes(':')
-            ? dst
-            : mapUtils.formatPosition(this._goal[0], this._goal[1]);
+        const { src, dst, exceptCells } = props || {};
+        const start = src && String(src).includes(':') ? src : mapUtils.formatPosition(this._pos.x, this._pos.y);
+        const goal = dst && String(dst).includes(':') ? dst : mapUtils.formatPosition(this._goal[0], this._goal[1]);
         return mapUtils.calcRoute(this._myMap, start, goal, exceptCells || []);
     }
 
@@ -454,14 +456,13 @@ class MockClient extends KoshienClient {
      *     already-revealed items are found (like the real game).
      * @returns {Array<string>} - the "x:y" positions of the matching objects.
      */
-    locateObjects (props) {
+    locateObjects(props) {
         if (!this._session || !this._pos) {
             return [];
         }
-        const {position, sqSize, objects} = props || {};
-        const center = position && String(position).includes(':')
-            ? position
-            : mapUtils.formatPosition(this._pos.x, this._pos.y);
+        const { position, sqSize, objects } = props || {};
+        const center =
+            position && String(position).includes(':') ? position : mapUtils.formatPosition(this._pos.x, this._pos.y);
         return mapUtils.locateObjects(this._myMap, center, sqSize, objects);
     }
 
@@ -471,7 +472,7 @@ class MockClient extends KoshienClient {
      * @returns {string|number|null} - the requested coordinate, or null when
      *     that target has not been seen yet (like the real game).
      */
-    targetCoordinate (target, coordinate) {
+    targetCoordinate(target, coordinate) {
         let pair = null;
         if (target === 'player' && this._pos) {
             pair = [this._pos.x, this._pos.y];
@@ -500,12 +501,15 @@ class MockClient extends KoshienClient {
      * @param {string} position - the destination "x:y".
      * @returns {Promise} - resolved once the reservation is recorded.
      */
-    moveTo (position) {
+    moveTo(position) {
         if (!this._requireSession('移動')) {
             return Promise.resolve();
         }
         if (this._stepped) {
-            this._journalPush('error', `移動 (${position}): 移動は1ターンに一度しかできません（「ターンを終了する」を実行してください）`);
+            this._journalPush(
+                'error',
+                `移動 (${position}): 移動は1ターンに一度しかできません（「ターンを終了する」を実行してください）`,
+            );
             this._emitState();
             return Promise.resolve();
         }
@@ -530,7 +534,7 @@ class MockClient extends KoshienClient {
      * @param {string} item - the item kind (dynamite/bomb).
      * @param {string} position - the "x:y" position.
      */
-    setItem (item, position) {
+    setItem(item, position) {
         const kind = item === 'bomb' ? 'bomb' : 'dynamite';
         const label = kind === 'bomb' ? 'ばくだん設置' : 'ダイナマイト設置';
         if (!this._requireSession(label)) {
@@ -554,7 +558,7 @@ class MockClient extends KoshienClient {
      * @param {string} message - the message.
      * @returns {Promise} - resolved once recorded.
      */
-    setMessage (message) {
+    setMessage(message) {
         if (!this._requireSession('メッセージ')) {
             return Promise.resolve();
         }
@@ -575,19 +579,22 @@ class MockClient extends KoshienClient {
      *   configured and the game is still running; null otherwise (no wait,
      *   the legacy synchronous behavior).
      */
-    turnOver () {
+    turnOver() {
         if (!this._requireSession('ターン終了')) {
             return null;
         }
         if (!this._finished && !this._session.over) {
             playRivalTurn(this._session, this._rivalSide(), this._strategy);
         }
-        const {info} = this._session.finishTurn(this._side);
+        const { info } = this._session.finishTurn(this._side);
         this._absorb(info);
         this._sent = 0;
         this._stepped = false;
         const snapshot = this._session.snapshot();
-        this._journalPush('event', `ターン終了 → ターン${snapshot.turn} (じぶん: ${info.x}:${info.y} / スコア ${info.score})`);
+        this._journalPush(
+            'event',
+            `ターン終了 → ターン${snapshot.turn} (じぶん: ${info.x}:${info.y} / スコア ${info.score})`,
+        );
         for (const [name, mark, x, y] of snapshot.events) {
             if (name === 'got_item') {
                 this._journalPush('event', `アイテム「${mark}」を取得 (${x}:${y})`);
@@ -615,12 +622,11 @@ class MockClient extends KoshienClient {
  * Scratch 3.0 blocks to make Smalruby Koshien AI.
  */
 class KoshienBlocks {
-
     /**
      * A translation object which is used in this class.
      * @param {FormatMessage} formatter - translation object
      */
-    static set formatMessage (formatter) {
+    static set formatMessage(formatter) {
         formatMessage = formatter;
         if (formatMessage) setupTranslations();
     }
@@ -628,250 +634,250 @@ class KoshienBlocks {
     /**
      * @returns {string} - the name of this extension.
      */
-    static get EXTENSION_NAME () {
+    static get EXTENSION_NAME() {
         return formatMessage({
             id: 'koshien.name',
             default: 'Smalruby Koshien',
-            description: 'name of the extension'
+            description: 'name of the extension',
         });
     }
 
     /**
      * @returns {string} - the ID of this extension.
      */
-    static get EXTENSION_ID () {
+    static get EXTENSION_ID() {
         return EXTENSION_ID;
     }
 
     /**
      * @returns {string} - the runtime event emitted on mock state changes.
      */
-    static get MOCK_STATE_EVENT () {
+    static get MOCK_STATE_EVENT() {
         return MOCK_STATE_EVENT;
     }
 
-    get ITEMS_MENU () {
+    get ITEMS_MENU() {
         return [
             {
                 text: formatMessage({
                     id: 'koshien.itemsMenu.dynamite',
                     default: 'dynamite',
-                    description: 'label for dynamite item in item picker for koshien extension'
+                    description: 'label for dynamite item in item picker for koshien extension',
                 }),
-                value: KoshienItemName.DYNAMITE
+                value: KoshienItemName.DYNAMITE,
             },
             {
                 text: formatMessage({
                     id: 'koshien.itemsMenu.bomb',
                     default: 'bomb',
-                    description: 'label for bomb item in item picker for koshien extension'
+                    description: 'label for bomb item in item picker for koshien extension',
                 }),
-                value: KoshienItemName.BOMB
-            }
+                value: KoshienItemName.BOMB,
+            },
         ];
     }
 
-    get TARGETS_MENU () {
+    get TARGETS_MENU() {
         return [
             {
                 text: formatMessage({
                     id: 'koshien.targetsMenu.other',
                     default: 'other',
-                    description: 'label for other player in target picker for koshien extension'
+                    description: 'label for other player in target picker for koshien extension',
                 }),
-                value: KoshienTargetName.OTHER
+                value: KoshienTargetName.OTHER,
             },
             {
                 text: formatMessage({
                     id: 'koshien.targetsMenu.enemy',
                     default: 'enemy',
-                    description: 'label for enemy in target picker for koshien extension'
+                    description: 'label for enemy in target picker for koshien extension',
                 }),
-                value: KoshienTargetName.ENEMY
+                value: KoshienTargetName.ENEMY,
             },
             {
                 text: formatMessage({
                     id: 'koshien.targetsMenu.goal',
                     default: 'goal',
-                    description: 'label for goal in target picker for koshien extension'
+                    description: 'label for goal in target picker for koshien extension',
                 }),
-                value: KoshienTargetName.GOAL
+                value: KoshienTargetName.GOAL,
             },
             {
                 text: formatMessage({
                     id: 'koshien.targetsMenu.player',
                     default: 'player',
-                    description: 'label for player in target picker for koshien extension'
+                    description: 'label for player in target picker for koshien extension',
                 }),
-                value: KoshienTargetName.PLAYER
-            }
+                value: KoshienTargetName.PLAYER,
+            },
         ];
     }
 
-    get COORDINATES_MENU () {
+    get COORDINATES_MENU() {
         return [
             {
                 text: formatMessage({
                     id: 'koshien.coordinatesMenu.x',
                     default: 'x',
-                    description: 'label for x in coordinate picker for koshien extension'
+                    description: 'label for x in coordinate picker for koshien extension',
                 }),
-                value: KoshienCoordinateName.X
+                value: KoshienCoordinateName.X,
             },
             {
                 text: formatMessage({
                     id: 'koshien.coordinatesMenu.y',
                     default: 'y',
-                    description: 'label for y in coordinate picker for koshien extension'
+                    description: 'label for y in coordinate picker for koshien extension',
                 }),
-                value: KoshienCoordinateName.Y
-            }
+                value: KoshienCoordinateName.Y,
+            },
         ];
     }
 
-    get COORDINATES_AND_POSITION_MENU () {
+    get COORDINATES_AND_POSITION_MENU() {
         return [
             {
                 text: formatMessage({
                     id: 'koshien.coordinatesMenu.position',
                     default: 'position',
-                    description: 'label for position in coordinate picker for koshien extension'
+                    description: 'label for position in coordinate picker for koshien extension',
                 }),
-                value: KoshienCoordinateName.POSITION
-            }
+                value: KoshienCoordinateName.POSITION,
+            },
         ].concat(this.COORDINATES_MENU);
     }
 
-    get OBJECTS_MENU () {
+    get OBJECTS_MENU() {
         return [
             {
                 text: formatMessage({
                     id: 'koshien.objectsMenu.unknown',
                     default: 'unknown',
-                    description: 'label for unknown in object picker for koshien extension'
+                    description: 'label for unknown in object picker for koshien extension',
                 }),
-                value: KoshienObjectName.UNKNOWN
+                value: KoshienObjectName.UNKNOWN,
             },
             {
                 text: formatMessage({
                     id: 'koshien.objectsMenu.space',
                     default: 'space',
-                    description: 'label for space in object picker for koshien extension'
+                    description: 'label for space in object picker for koshien extension',
                 }),
-                value: KoshienObjectName.SPACE
+                value: KoshienObjectName.SPACE,
             },
             {
                 text: formatMessage({
                     id: 'koshien.objectsMenu.wall',
                     default: 'wall',
-                    description: 'label for wall in object picker for koshien extension'
+                    description: 'label for wall in object picker for koshien extension',
                 }),
-                value: KoshienObjectName.WALL
+                value: KoshienObjectName.WALL,
             },
             {
                 text: formatMessage({
                     id: 'koshien.objectsMenu.storehouse',
                     default: 'storehouse',
-                    description: 'label for storehouse in object picker for koshien extension'
+                    description: 'label for storehouse in object picker for koshien extension',
                 }),
-                value: KoshienObjectName.STOREHOUSE
+                value: KoshienObjectName.STOREHOUSE,
             },
             {
                 text: formatMessage({
                     id: 'koshien.objectsMenu.goal',
                     default: 'goal',
-                    description: 'label for goal in object picker for koshien extension'
+                    description: 'label for goal in object picker for koshien extension',
                 }),
-                value: KoshienObjectName.GOAL
+                value: KoshienObjectName.GOAL,
             },
             {
                 text: formatMessage({
                     id: 'koshien.objectsMenu.water',
                     default: 'water',
-                    description: 'label for water in object picker for koshien extension'
+                    description: 'label for water in object picker for koshien extension',
                 }),
-                value: KoshienObjectName.WATER
+                value: KoshienObjectName.WATER,
             },
             {
                 text: formatMessage({
                     id: 'koshien.objectsMenu.breakableWall',
                     default: 'breakable wall',
-                    description: 'label for breakable_wall in object picker for koshien extension'
+                    description: 'label for breakable_wall in object picker for koshien extension',
                 }),
-                value: KoshienObjectName.BREAKABLE_WALL
+                value: KoshienObjectName.BREAKABLE_WALL,
             },
             {
                 text: formatMessage({
                     id: 'koshien.objectsMenu.tea',
                     default: 'tea',
-                    description: 'label for tea in object picker for koshien extension'
+                    description: 'label for tea in object picker for koshien extension',
                 }),
-                value: KoshienObjectName.TEA
+                value: KoshienObjectName.TEA,
             },
             {
                 text: formatMessage({
                     id: 'koshien.objectsMenu.sweets',
                     default: 'sweets',
-                    description: 'label for sweets in object picker for koshien extension'
+                    description: 'label for sweets in object picker for koshien extension',
                 }),
-                value: KoshienObjectName.SWEETS
+                value: KoshienObjectName.SWEETS,
             },
             {
                 text: formatMessage({
                     id: 'koshien.objectsMenu.coin',
                     default: 'coin',
-                    description: 'label for coin in object picker for koshien extension'
+                    description: 'label for coin in object picker for koshien extension',
                 }),
-                value: KoshienObjectName.COIN
+                value: KoshienObjectName.COIN,
             },
             {
                 text: formatMessage({
                     id: 'koshien.objectsMenu.dolphin',
                     default: 'dolphin',
-                    description: 'label for dolphin in object picker for koshien extension'
+                    description: 'label for dolphin in object picker for koshien extension',
                 }),
-                value: KoshienObjectName.DOLPHIN
+                value: KoshienObjectName.DOLPHIN,
             },
             {
                 text: formatMessage({
                     id: 'koshien.objectsMenu.sword',
                     default: 'sword',
-                    description: 'label for sword in object picker for koshien extension'
+                    description: 'label for sword in object picker for koshien extension',
                 }),
-                value: KoshienObjectName.SWORD
+                value: KoshienObjectName.SWORD,
             },
             {
                 text: formatMessage({
                     id: 'koshien.objectsMenu.poison',
                     default: 'poison',
-                    description: 'label for poison in object picker for koshien extension'
+                    description: 'label for poison in object picker for koshien extension',
                 }),
-                value: KoshienObjectName.POISON
+                value: KoshienObjectName.POISON,
             },
             {
                 text: formatMessage({
                     id: 'koshien.objectsMenu.snake',
                     default: 'snake',
-                    description: 'label for snake in object picker for koshien extension'
+                    description: 'label for snake in object picker for koshien extension',
                 }),
-                value: KoshienObjectName.SNAKE
+                value: KoshienObjectName.SNAKE,
             },
             {
                 text: formatMessage({
                     id: 'koshien.objectsMenu.trap',
                     default: 'trap',
-                    description: 'label for trap in object picker for koshien extension'
+                    description: 'label for trap in object picker for koshien extension',
                 }),
-                value: KoshienObjectName.TRAP
+                value: KoshienObjectName.TRAP,
             },
             {
                 text: formatMessage({
                     id: 'koshien.objectsMenu.bomb',
                     default: 'bomb',
-                    description: 'label for bomb in object picker for koshien extension'
+                    description: 'label for bomb in object picker for koshien extension',
                 }),
-                value: KoshienObjectName.BOMB
-            }
+                value: KoshienObjectName.BOMB,
+            },
         ];
     }
 
@@ -879,7 +885,7 @@ class KoshienBlocks {
      * Construct a set of Koshien blocks.
      * @param {Runtime} runtime - the Scratch 3.0 runtime.
      */
-    constructor (runtime) {
+    constructor(runtime) {
         /**
          * The Scratch 3.0 runtime.
          * @type {Runtime}
@@ -920,7 +926,7 @@ class KoshienBlocks {
      * hat run on the following runtime steps. Extra connect-game hats find
      * the client already connected, report false and retire their thread.
      */
-    _handleProjectStart () {
+    _handleProjectStart() {
         this._resetMockWorld();
         if (this.runtime && typeof this.runtime.startHats === 'function') {
             const threads = this.runtime.startHats(`${EXTENSION_ID}_connectGame`) || [];
@@ -931,7 +937,7 @@ class KoshienBlocks {
     /**
      * Reset the mock world.
      */
-    _resetMockWorld () {
+    _resetMockWorld() {
         if (this._client && typeof this._client.reset === 'function') {
             this._client.reset();
         }
@@ -940,7 +946,7 @@ class KoshienBlocks {
     /**
      * @returns {object} metadata for this extension and its blocks.
      */
-    getInfo () {
+    getInfo() {
         setupTranslations();
         return {
             id: KoshienBlocks.EXTENSION_ID,
@@ -955,15 +961,15 @@ class KoshienBlocks {
                     text: formatMessage({
                         id: 'koshien.connectGame',
                         default: 'connect game server with the player name [NAME]',
-                        description: 'connect game server with the player name'
+                        description: 'connect game server with the player name',
                     }),
                     arguments: {
                         NAME: {
                             type: ArgumentType.STRING,
-                            defaultValue: 'player1'
-                        }
+                            defaultValue: 'player1',
+                        },
                     },
-                    filter: [TargetType.SPRITE]
+                    filter: [TargetType.SPRITE],
                 },
                 {
                     opcode: 'getMapArea',
@@ -971,15 +977,15 @@ class KoshienBlocks {
                     text: formatMessage({
                         id: 'koshien.getMapArea',
                         default: 'get map around [POSITION]',
-                        description: 'get map information around position'
+                        description: 'get map information around position',
                     }),
                     arguments: {
                         POSITION: {
                             type: ArgumentType.STRING,
-                            defaultValue: '0:0'
-                        }
+                            defaultValue: '0:0',
+                        },
                     },
-                    filter: [TargetType.SPRITE]
+                    filter: [TargetType.SPRITE],
                 },
                 {
                     opcode: 'map',
@@ -987,15 +993,15 @@ class KoshienBlocks {
                     text: formatMessage({
                         id: 'koshien.map',
                         default: 'map at [POSITION]',
-                        description: 'map information at position'
+                        description: 'map information at position',
                     }),
                     arguments: {
                         POSITION: {
                             type: ArgumentType.STRING,
-                            defaultValue: '0:0'
-                        }
+                            defaultValue: '0:0',
+                        },
                     },
-                    filter: [TargetType.SPRITE]
+                    filter: [TargetType.SPRITE],
                 },
                 {
                     opcode: 'moveTo',
@@ -1003,15 +1009,15 @@ class KoshienBlocks {
                     text: formatMessage({
                         id: 'koshien.moveTo',
                         default: 'move to [POSITION]',
-                        description: 'move to position'
+                        description: 'move to position',
                     }),
                     arguments: {
                         POSITION: {
                             type: ArgumentType.STRING,
-                            defaultValue: '0:0'
-                        }
+                            defaultValue: '0:0',
+                        },
                     },
-                    filter: [TargetType.SPRITE]
+                    filter: [TargetType.SPRITE],
                 },
                 {
                     opcode: 'calcGoalRoute',
@@ -1019,47 +1025,48 @@ class KoshienBlocks {
                     text: formatMessage({
                         id: 'koshien.calcGoalRoute',
                         default: 'store shortest goal path to list: [RESULT]',
-                        description: 'store shortest path between player and goal to list'
+                        description: 'store shortest path between player and goal to list',
                     }),
                     arguments: {
                         RESULT: {
                             type: ArgumentType.STRING,
                             menu: 'listNames',
-                            defaultValue: ' '
-                        }
+                            defaultValue: ' ',
+                        },
                     },
-                    filter: [TargetType.SPRITE]
+                    filter: [TargetType.SPRITE],
                 },
                 {
                     opcode: 'calcRoute',
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
                         id: 'koshien.calcRoute',
-                         
-                        default: 'store shortest path (begin [SRC] end x: [DST] except list: [EXCEPT_CELLS]) to list: [RESULT]',
-                        description: 'store shortest path between two points to list'
+
+                        default:
+                            'store shortest path (begin [SRC] end x: [DST] except list: [EXCEPT_CELLS]) to list: [RESULT]',
+                        description: 'store shortest path between two points to list',
                     }),
                     arguments: {
                         SRC: {
                             type: ArgumentType.STRING,
-                            defaultValue: '0:0'
+                            defaultValue: '0:0',
                         },
                         DST: {
                             type: ArgumentType.STRING,
-                            defaultValue: '0:0'
+                            defaultValue: '0:0',
                         },
                         EXCEPT_CELLS: {
                             type: ArgumentType.STRING,
                             menu: 'listNames',
-                            defaultValue: ' '
+                            defaultValue: ' ',
                         },
                         RESULT: {
                             type: ArgumentType.STRING,
                             menu: 'listNames',
-                            defaultValue: ' '
-                        }
+                            defaultValue: ' ',
+                        },
                     },
-                    filter: [TargetType.SPRITE]
+                    filter: [TargetType.SPRITE],
                 },
                 {
                     opcode: 'setItem',
@@ -1067,20 +1074,20 @@ class KoshienBlocks {
                     text: formatMessage({
                         id: 'koshien.setItem',
                         default: 'place a [ITEM] at [POSITION]',
-                        description: 'place an item at position'
+                        description: 'place an item at position',
                     }),
                     arguments: {
                         ITEM: {
                             type: ArgumentType.STRING,
                             menu: 'itemMenu',
-                            defaultValue: KoshienItemName.DYNAMITE
+                            defaultValue: KoshienItemName.DYNAMITE,
                         },
                         POSITION: {
                             type: ArgumentType.STRING,
-                            defaultValue: '0:0'
-                        }
+                            defaultValue: '0:0',
+                        },
                     },
-                    filter: [TargetType.SPRITE]
+                    filter: [TargetType.SPRITE],
                 },
                 {
                     opcode: 'mapFrom',
@@ -1088,20 +1095,20 @@ class KoshienBlocks {
                     text: formatMessage({
                         id: 'koshien.mapFrom',
                         default: 'map at [POSITION] from [MAP]',
-                        description: 'map information at position from variable'
+                        description: 'map information at position from variable',
                     }),
                     arguments: {
                         POSITION: {
                             type: ArgumentType.STRING,
-                            defaultValue: '0:0'
+                            defaultValue: '0:0',
                         },
                         MAP: {
                             type: ArgumentType.STRING,
                             menu: 'variableNames',
-                            defaultValue: ' '
-                        }
+                            defaultValue: ' ',
+                        },
                     },
-                    filter: [TargetType.SPRITE]
+                    filter: [TargetType.SPRITE],
                 },
                 {
                     opcode: 'mapAll',
@@ -1109,39 +1116,40 @@ class KoshienBlocks {
                     text: formatMessage({
                         id: 'koshien.mapAll',
                         default: 'all map',
-                        description: 'all map information'
+                        description: 'all map information',
                     }),
-                    filter: [TargetType.SPRITE]
+                    filter: [TargetType.SPRITE],
                 },
                 {
                     opcode: 'locateObjects',
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
                         id: 'koshien.locateObjects',
-                         
-                        default: 'store terrain and items within range (center [POSITION] range [SQ_SIZE] terrain/items [OBJECTS]) to list: [RESULT]',
-                        description: 'store terrain and items within range to list'
+
+                        default:
+                            'store terrain and items within range (center [POSITION] range [SQ_SIZE] terrain/items [OBJECTS]) to list: [RESULT]',
+                        description: 'store terrain and items within range to list',
                     }),
                     arguments: {
                         POSITION: {
                             type: ArgumentType.STRING,
-                            defaultValue: '0:0'
+                            defaultValue: '0:0',
                         },
                         SQ_SIZE: {
                             type: ArgumentType.NUMBER,
-                            defaultValue: 5
+                            defaultValue: 5,
                         },
                         OBJECTS: {
                             type: ArgumentType.STRING,
-                            defaultValue: 'ABCD'
+                            defaultValue: 'ABCD',
                         },
                         RESULT: {
                             type: ArgumentType.STRING,
                             menu: 'listNames',
-                            defaultValue: ' '
-                        }
+                            defaultValue: ' ',
+                        },
                     },
-                    filter: [TargetType.SPRITE]
+                    filter: [TargetType.SPRITE],
                 },
                 {
                     opcode: 'targetCoordinate',
@@ -1149,21 +1157,21 @@ class KoshienBlocks {
                     text: formatMessage({
                         id: 'koshien.targetCoordinate',
                         default: '[TARGET] of [COORDINATE]',
-                        description: 'target of coordinate'
+                        description: 'target of coordinate',
                     }),
                     arguments: {
                         TARGET: {
                             type: ArgumentType.STRING,
                             menu: 'targetMenu',
-                            defaultValue: KoshienTargetName.OTHER
+                            defaultValue: KoshienTargetName.OTHER,
                         },
                         COORDINATE: {
                             type: ArgumentType.STRING,
                             menu: 'coordinateAndPositionMenu',
-                            defaultValue: KoshienCoordinateName.POSITION
-                        }
+                            defaultValue: KoshienCoordinateName.POSITION,
+                        },
                     },
-                    filter: [TargetType.SPRITE]
+                    filter: [TargetType.SPRITE],
                 },
                 {
                     opcode: 'turnOver',
@@ -1171,9 +1179,9 @@ class KoshienBlocks {
                     text: formatMessage({
                         id: 'koshien.turnOver',
                         default: 'turn over',
-                        description: 'turn over'
+                        description: 'turn over',
                     }),
-                    filter: [TargetType.SPRITE]
+                    filter: [TargetType.SPRITE],
                 },
                 {
                     opcode: 'position',
@@ -1181,20 +1189,19 @@ class KoshienBlocks {
                     text: formatMessage({
                         id: 'koshien.position',
                         default: 'position [X] [Y]',
-                        description: 'x and y convert to position'
+                        description: 'x and y convert to position',
                     }),
                     arguments: {
                         X: {
                             type: ArgumentType.NUMBER,
-                            defaultValue: 0
+                            defaultValue: 0,
                         },
                         Y: {
                             type: ArgumentType.NUMBER,
-                            defaultValue: 0
-                        }
-
+                            defaultValue: 0,
+                        },
                     },
-                    filter: [TargetType.SPRITE]
+                    filter: [TargetType.SPRITE],
                 },
                 {
                     opcode: 'positionOf',
@@ -1202,21 +1209,20 @@ class KoshienBlocks {
                     text: formatMessage({
                         id: 'koshien.positionOf',
                         default: '[POSITION] of [COORDINATE]',
-                        description: 'position of coordinate'
+                        description: 'position of coordinate',
                     }),
                     arguments: {
                         POSITION: {
                             type: ArgumentType.STRING,
-                            defaultValue: '0:0'
+                            defaultValue: '0:0',
                         },
                         COORDINATE: {
                             type: ArgumentType.STRING,
                             menu: 'coordinateMenu',
-                            defaultValue: KoshienCoordinateName.X
-                        }
-
+                            defaultValue: KoshienCoordinateName.X,
+                        },
                     },
-                    filter: [TargetType.SPRITE]
+                    filter: [TargetType.SPRITE],
                 },
                 {
                     opcode: 'object',
@@ -1224,17 +1230,16 @@ class KoshienBlocks {
                     text: formatMessage({
                         id: 'koshien.object',
                         default: '[OBJECT]',
-                        description: 'object of code'
+                        description: 'object of code',
                     }),
                     arguments: {
                         OBJECT: {
                             type: ArgumentType.STRING,
                             menu: 'objectMenu',
-                            defaultValue: KoshienObjectName.UNKNOWN
-                        }
-
+                            defaultValue: KoshienObjectName.UNKNOWN,
+                        },
                     },
-                    filter: [TargetType.SPRITE]
+                    filter: [TargetType.SPRITE],
                 },
                 {
                     opcode: 'setMessage',
@@ -1242,60 +1247,60 @@ class KoshienBlocks {
                     text: formatMessage({
                         id: 'koshien.setMessage',
                         default: 'message [MESSAGE]',
-                        description: 'display a message'
+                        description: 'display a message',
                     }),
                     arguments: {
                         MESSAGE: {
                             type: ArgumentType.STRING,
-                            defaultValue: 'hello'
-                        }
+                            defaultValue: 'hello',
+                        },
                     },
-                    filter: [TargetType.SPRITE]
-                }
+                    filter: [TargetType.SPRITE],
+                },
             ],
             menus: {
                 variableNames: {
                     acceptReporters: false,
-                    items: 'getVariableNamesMenuItems'
+                    items: 'getVariableNamesMenuItems',
                 },
                 listNames: {
                     acceptReporters: false,
-                    items: 'getListNamesMenuItems'
+                    items: 'getListNamesMenuItems',
                 },
                 itemMenu: {
                     acceptReporters: false,
-                    items: this.ITEMS_MENU
+                    items: this.ITEMS_MENU,
                 },
                 coordinateMenu: {
                     acceptReporters: false,
-                    items: this.COORDINATES_MENU
+                    items: this.COORDINATES_MENU,
                 },
                 coordinateAndPositionMenu: {
                     acceptReporters: false,
-                    items: this.COORDINATES_AND_POSITION_MENU
+                    items: this.COORDINATES_AND_POSITION_MENU,
                 },
                 targetMenu: {
                     acceptReporters: false,
-                    items: this.TARGETS_MENU
+                    items: this.TARGETS_MENU,
                 },
                 objectMenu: {
                     acceptReporters: false,
-                    items: this.OBJECTS_MENU
-                }
+                    items: this.OBJECTS_MENU,
+                },
             },
-            translationMap: translations
+            translationMap: translations,
         };
     }
 
-    getVariableNamesMenuItems () {
+    getVariableNamesMenuItems() {
         return this.getVariableOrListNamesMenuItems(Variable.SCALAR_TYPE);
     }
 
-    getListNamesMenuItems () {
+    getListNamesMenuItems() {
         return this.getVariableOrListNamesMenuItems(Variable.LIST_TYPE);
     }
 
-    getVariableOrListNamesMenuItems (type) {
+    getVariableOrListNamesMenuItems(type) {
         const sprite = this.runtime.getEditingTarget();
         return [' '].concat(sprite.getAllVariableNamesInScopeByType(type));
     }
@@ -1306,8 +1311,8 @@ class KoshienBlocks {
      * @param {string} args.NAME - name of the player.
      * @returns {boolean} - true if the event raised.
      */
-     
-    connectGame (args) {
+
+    connectGame(args) {
         if (this._client.isConnected()) {
             return false;
         }
@@ -1322,7 +1327,7 @@ class KoshienBlocks {
      * @param {object} util - the block utility (may be undefined).
      * @returns {?object} - the target, or null.
      */
-    _resolveTarget (util) {
+    _resolveTarget(util) {
         if (util && util.target) {
             return util.target;
         }
@@ -1339,7 +1344,7 @@ class KoshienBlocks {
      * @param {string} listName - the list variable name.
      * @param {Array} values - the new list contents.
      */
-    _writeListByName (util, listName, values) {
+    _writeListByName(util, listName, values) {
         if (typeof listName !== 'string' || listName.trim() === '') {
             return;
         }
@@ -1361,7 +1366,7 @@ class KoshienBlocks {
      * @param {string} name - the variable name.
      * @returns {(string|number|Array|null)} - the value, or null when not found.
      */
-    _readVariableByName (util, name) {
+    _readVariableByName(util, name) {
         if (typeof name !== 'string' || name.trim() === '') {
             return null;
         }
@@ -1379,7 +1384,7 @@ class KoshienBlocks {
      * @param {string} name - the list variable name.
      * @returns {Array} - the list contents, or [] when not found.
      */
-    _readListByName (util, name) {
+    _readListByName(util, name) {
         if (typeof name !== 'string' || name.trim() === '') {
             return [];
         }
@@ -1397,7 +1402,7 @@ class KoshienBlocks {
      * @param {string} args.POSITION - position
      * @returns {(Promise|undefined)} - resolves when fetched (remote); undefined for mock.
      */
-    getMapArea (args) {
+    getMapArea(args) {
         return this._client.getMapArea(args.POSITION);
     }
 
@@ -1407,7 +1412,7 @@ class KoshienBlocks {
      * @param {string} args.POSITION - position.
      * @returns {number} - map information.
      */
-    map (args) {
+    map(args) {
         return this._client.map(args.POSITION);
     }
 
@@ -1417,7 +1422,7 @@ class KoshienBlocks {
      * @param {string} args.POSITION - position.
      * @returns {Promise} - promise
      */
-    moveTo (args) {
+    moveTo(args) {
         return this._client.moveTo(args.POSITION);
     }
 
@@ -1427,7 +1432,7 @@ class KoshienBlocks {
      * @param {string} args.RESULT - result list name.
      * @param {object} util - the block utility.
      */
-    calcGoalRoute (args, util) {
+    calcGoalRoute(args, util) {
         const route = this._client.calcRoute({});
         this._writeListByName(util, args.RESULT, route);
     }
@@ -1441,12 +1446,12 @@ class KoshienBlocks {
      * @param {string} args.RESULT - result list name.
      * @param {object} util - the block utility.
      */
-    calcRoute (args, util) {
+    calcRoute(args, util) {
         const exceptCells = this._readListByName(util, args.EXCEPT_CELLS);
         const route = this._client.calcRoute({
             src: args.SRC,
             dst: args.DST,
-            exceptCells
+            exceptCells,
         });
         this._writeListByName(util, args.RESULT, route);
     }
@@ -1458,7 +1463,7 @@ class KoshienBlocks {
      * @param {string} args.POSITION - position.
      * @returns {(Promise|undefined)} - resolves when placed (remote); undefined for mock.
      */
-    setItem (args) {
+    setItem(args) {
         return this._client.setItem(args.ITEM, args.POSITION);
     }
 
@@ -1470,7 +1475,7 @@ class KoshienBlocks {
      * @param {object} util - the block utility.
      * @returns {number} - map information.
      */
-    mapFrom (args, util) {
+    mapFrom(args, util) {
         const mapString = this._readVariableByName(util, args.MAP);
         return this._client.mapFrom(args.POSITION, mapString);
     }
@@ -1479,7 +1484,7 @@ class KoshienBlocks {
      * all map information
      * @returns {string} - the whole map as a string.
      */
-    mapAll () {
+    mapAll() {
         return this._client.mapAll();
     }
 
@@ -1492,11 +1497,11 @@ class KoshienBlocks {
      * @param {string} args.RESULT - result list name.
      * @param {object} util - the block utility.
      */
-    locateObjects (args, util) {
+    locateObjects(args, util) {
         const positions = this._client.locateObjects({
             position: args.POSITION,
             sqSize: args.SQ_SIZE,
-            objects: args.OBJECTS
+            objects: args.OBJECTS,
         });
         this._writeListByName(util, args.RESULT, positions);
     }
@@ -1508,7 +1513,7 @@ class KoshienBlocks {
      * @param {string} args.COORDINATE - coordinate.
      * @returns {string|number|null} - the requested coordinate.
      */
-    targetCoordinate (args) {
+    targetCoordinate(args) {
         return this._client.targetCoordinate(args.TARGET, args.COORDINATE);
     }
 
@@ -1517,7 +1522,7 @@ class KoshienBlocks {
      * @returns {?Promise} - resolves on next turn (remote / mock with a
      *   per-turn sleep); null when there is no wait.
      */
-    turnOver () {
+    turnOver() {
         return this._client.turnOver();
     }
 
@@ -1528,8 +1533,8 @@ class KoshienBlocks {
      * @param {number} args.Y - y.
      * @returns {string} - position
      */
-     
-    position (args) {
+
+    position(args) {
         return `${args.X}:${args.Y}`;
     }
 
@@ -1540,7 +1545,7 @@ class KoshienBlocks {
      * @param {string} args.COORDINATE - coordinate.
      * @returns {number} - position of x or y
      */
-    positionOf (args) {
+    positionOf(args) {
         const position = args.POSITION.split(':');
         return Number(args.COORDINATE === 'x' ? position[0] : position[1]);
     }
@@ -1551,42 +1556,42 @@ class KoshienBlocks {
      * @param {string} args.OBJECT - object.
      * @returns {number} - object of code
      */
-    object (args) {
+    object(args) {
         switch (args.OBJECT) {
-        case KoshienObjectName.UNKNOWN:
-            return -1;
-        case KoshienObjectName.SPACE:
-            return 0;
-        case KoshienObjectName.WALL:
-            return 1;
-        case KoshienObjectName.STOREHOUSE:
-            return 2;
-        case KoshienObjectName.GOAL:
-            return 3;
-        case KoshienObjectName.WATER:
-            return 4;
-        case KoshienObjectName.BREAKABLE_WALL:
-            return 5;
-        case KoshienObjectName.TEA:
-            return 'a';
-        case KoshienObjectName.SWEETS:
-            return 'b';
-        case KoshienObjectName.COIN:
-            return 'c';
-        case KoshienObjectName.DOLPHIN:
-            return 'd';
-        case KoshienObjectName.SWORD:
-            return 'e';
-        case KoshienObjectName.POISON:
-            return 'A';
-        case KoshienObjectName.SNAKE:
-            return 'B';
-        case KoshienObjectName.TRAP:
-            return 'C';
-        case KoshienObjectName.BOMB:
-            return 'D';
-        default:
-            return -1;
+            case KoshienObjectName.UNKNOWN:
+                return -1;
+            case KoshienObjectName.SPACE:
+                return 0;
+            case KoshienObjectName.WALL:
+                return 1;
+            case KoshienObjectName.STOREHOUSE:
+                return 2;
+            case KoshienObjectName.GOAL:
+                return 3;
+            case KoshienObjectName.WATER:
+                return 4;
+            case KoshienObjectName.BREAKABLE_WALL:
+                return 5;
+            case KoshienObjectName.TEA:
+                return 'a';
+            case KoshienObjectName.SWEETS:
+                return 'b';
+            case KoshienObjectName.COIN:
+                return 'c';
+            case KoshienObjectName.DOLPHIN:
+                return 'd';
+            case KoshienObjectName.SWORD:
+                return 'e';
+            case KoshienObjectName.POISON:
+                return 'A';
+            case KoshienObjectName.SNAKE:
+                return 'B';
+            case KoshienObjectName.TRAP:
+                return 'C';
+            case KoshienObjectName.BOMB:
+                return 'D';
+            default:
+                return -1;
         }
     }
 
@@ -1595,8 +1600,8 @@ class KoshienBlocks {
      * @param {object} args - the block's arguments.
      * @param {string} args.MESSAGE - message.
      */
-     
-    setMessage (args) {
+
+    setMessage(args) {
         return this._client.setMessage(args.MESSAGE);
     }
 }

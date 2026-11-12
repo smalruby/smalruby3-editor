@@ -70,7 +70,11 @@ describe('matchValue / compareValues', () => {
 describe('uses', () => {
     test('is satisfied when every block ran in a script started by the trigger', () => {
         const goal = [
-            { type: 'uses', trigger: { hat: 'event_whenkeypressed', key: 'space' }, blocks: ['sound_playuntildone', 'sound_play'] },
+            {
+                type: 'uses',
+                trigger: { hat: 'event_whenkeypressed', key: 'space' },
+                blocks: ['sound_playuntildone', 'sound_play'],
+            },
         ];
         const facts = createFacts();
         expect(satisfied(goal, facts)).toBe(false);
@@ -82,7 +86,9 @@ describe('uses', () => {
     });
 
     test('ignores scripts started from another trigger or by clicking the script', () => {
-        const goal = [{ type: 'uses', trigger: { hat: 'event_whenkeypressed', key: 'space' }, blocks: ['sound_play'] }];
+        const goal = [
+            { type: 'uses', trigger: { hat: 'event_whenkeypressed', key: 'space' }, blocks: ['sound_play'] },
+        ];
         const facts = createFacts();
         run(facts, key('a'), [['sound_play']]);
         run(facts, flag, [['sound_play']]);
@@ -93,7 +99,9 @@ describe('uses', () => {
     });
 
     test('accepts "any key" scripts for a key trigger', () => {
-        const goal = [{ type: 'uses', trigger: { hat: 'event_whenkeypressed', key: 'space' }, blocks: ['sound_play'] }];
+        const goal = [
+            { type: 'uses', trigger: { hat: 'event_whenkeypressed', key: 'space' }, blocks: ['sound_play'] },
+        ];
         const facts = createFacts();
         run(facts, key('any'), [['sound_play']]);
         expect(satisfied(goal, facts)).toBe(true);
@@ -189,10 +197,17 @@ describe('uses', () => {
 
     test('sentBy other requires the message to come from another target', () => {
         const goal = [
-            { type: 'uses', trigger: { hat: 'event_whenbroadcastreceived', sentBy: 'other' }, blocks: ['looks_sayforsecs'] },
+            {
+                type: 'uses',
+                trigger: { hat: 'event_whenbroadcastreceived', sentBy: 'other' },
+                blocks: ['looks_sayforsecs'],
+            },
         ];
         const facts = createFacts();
-        run(facts, clicked, [['event_broadcast', { BROADCAST_OPTION: 'あいさつ' }]], { targetId: 'cat', isStage: false });
+        run(facts, clicked, [['event_broadcast', { BROADCAST_OPTION: 'あいさつ' }]], {
+            targetId: 'cat',
+            isStage: false,
+        });
         run(facts, received('あいさつ'), [['looks_sayforsecs', { MESSAGE: 'やあ！', SECS: 2 }]], {
             targetId: 'cat',
             isStage: false,
@@ -207,7 +222,11 @@ describe('uses', () => {
 
     test('message trigger matches the received message name case-insensitively', () => {
         const goal = [
-            { type: 'uses', trigger: { hat: 'event_whenbroadcastreceived', message: 'hello' }, blocks: ['looks_say'] },
+            {
+                type: 'uses',
+                trigger: { hat: 'event_whenbroadcastreceived', message: 'hello' },
+                blocks: ['looks_say'],
+            },
         ];
         const facts = createFacts();
         run(facts, received('bye'), [['looks_say', { MESSAGE: 'x' }]]);
@@ -326,7 +345,11 @@ describe('result conditions on the snapshot', () => {
         ).toBe(true);
         // a sprite added later does not count as "added a costume"
         expect(
-            satisfied([{ type: 'costumes' }], createFacts(), snap({ ...base, penguin: { isStage: false, count: 5 } })),
+            satisfied(
+                [{ type: 'costumes' }],
+                createFacts(),
+                snap({ ...base, penguin: { isStage: false, count: 5 } }),
+            ),
         ).toBe(false);
         // backdrops are the stage's costumes
         const twoBackdrops = { ...base, stage: { isStage: true, count: 3 } };
@@ -355,7 +378,11 @@ describe('variable names given as a list (ja-Hira writes 「かいすう」)', (
         const goal = [{ type: 'variable', name: ['回数', 'かいすう'], value: { gte: 3 } }];
         const facts = createFacts();
         expect(
-            satisfied(goal, facts, snapshot({ variables: [{ name: 'かいすう', type: '', value: 3, isStage: true }] })),
+            satisfied(
+                goal,
+                facts,
+                snapshot({ variables: [{ name: 'かいすう', type: '', value: 3, isStage: true }] }),
+            ),
         ).toBe(true);
         expect(
             satisfied(goal, facts, snapshot({ variables: [{ name: 'かず', type: '', value: 3, isStage: true }] })),
@@ -402,7 +429,9 @@ describe('variable names given as a list (ja-Hira writes 「かいすう」)', (
     test('validateGoal accepts a list of names and rejects an empty one', () => {
         expect(validateGoal([{ type: 'variable', name: ['回数', 'かいすう'], value: 1 }])).toEqual([]);
         expect(validateGoal([{ type: 'said', equalsVariable: ['回数', 'かいすう'] }])).toEqual([]);
-        expect(validateGoal([{ type: 'variable', name: [], value: 1 }])).toEqual(['goal[0]: variable.name is required']);
+        expect(validateGoal([{ type: 'variable', name: [], value: 1 }])).toEqual([
+            'goal[0]: variable.name is required',
+        ]);
         expect(validateGoal([{ type: 'said', equalsVariable: [1] }])).toEqual([
             'goal[0]: said.equalsVariable must be a variable name or an array of names',
         ]);
@@ -499,9 +528,14 @@ describe('lesson 1 goals can be written in this shape', () => {
                     blocks: ['looks_sayforsecs', 'looks_nextcostume'],
                 },
             ],
-            snapshot: snapshot({ costumes: { cat: { isStage: false, count: 3 }, stage: { isStage: true, count: 1 } } }),
+            snapshot: snapshot({
+                costumes: { cat: { isStage: false, count: 3 }, stage: { isStage: true, count: 1 } },
+            }),
             play: (facts) =>
-                run(facts, clicked, [['looks_sayforsecs', { MESSAGE: 'こんにちは！', SECS: 2 }], ['looks_nextcostume']]),
+                run(facts, clicked, [
+                    ['looks_sayforsecs', { MESSAGE: 'こんにちは！', SECS: 2 }],
+                    ['looks_nextcostume'],
+                ]),
         },
         {
             id: 'blocks-l1-repeat',
@@ -624,7 +658,11 @@ describe('lesson 1 goals can be written in this shape', () => {
             id: 'blocks-l1-speak',
             goal: [
                 { type: 'extension', id: 'text2speech' },
-                { type: 'uses', trigger: { hat: 'event_whenthisspriteclicked' }, blocks: ['text2speech_speakAndWait'] },
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenthisspriteclicked' },
+                    blocks: ['text2speech_speakAndWait'],
+                },
             ],
             snapshot: snapshot({ isExtensionLoaded: (id) => id === 'text2speech' }),
             play: (facts) => run(facts, clicked, [['text2speech_speakAndWait', { WORDS: 'ボタンが押されました' }]]),
@@ -633,7 +671,9 @@ describe('lesson 1 goals can be written in this shape', () => {
             id: 'blocks-l1-message-list',
             goal: [{ type: 'list', name: 'トーク', length: { gte: 3 }, itemsFromAnswers: true }],
             snapshot: snapshot({
-                variables: [{ name: 'トーク', type: 'list', value: ['おはよう', 'こんにちは', 'ばいばい'], isStage: true }],
+                variables: [
+                    { name: 'トーク', type: 'list', value: ['おはよう', 'こんにちは', 'ばいばい'], isStage: true },
+                ],
             }),
             play: (facts) => {
                 ['おはよう', 'こんにちは', 'ばいばい'].forEach((answer) => {
@@ -648,11 +688,14 @@ describe('lesson 1 goals can be written in this shape', () => {
         expect(cases.map((c) => c.id)).toHaveLength(11);
     });
 
-    test.each(cases)('$id: valid shape, unmet before, met after the intended program', ({ goal, play, snapshot: snap }) => {
-        expect(validateGoal(goal)).toEqual([]);
-        const facts = createFacts();
-        expect(evaluateGoal(goal, facts, snapshot()).satisfied).toBe(false);
-        play(facts);
-        expect(evaluateGoal(goal, facts, snap || snapshot()).satisfied).toBe(true);
-    });
+    test.each(cases)(
+        '$id: valid shape, unmet before, met after the intended program',
+        ({ goal, play, snapshot: snap }) => {
+            expect(validateGoal(goal)).toEqual([]);
+            const facts = createFacts();
+            expect(evaluateGoal(goal, facts, snapshot()).satisfied).toBe(false);
+            play(facts);
+            expect(evaluateGoal(goal, facts, snap || snapshot()).satisfied).toBe(true);
+        },
+    );
 });

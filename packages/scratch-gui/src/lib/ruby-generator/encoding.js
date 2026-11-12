@@ -1,5 +1,4 @@
 // === Smalruby: This file is Smalruby-specific (Ruby code encoding helpers for RubyGenerator) ===
-
 import _ from 'lodash';
 
 /**
@@ -26,12 +25,14 @@ export default function (Generator) {
     };
 
     Generator.listToCode = function (list) {
-        const values = list.map(i => {
-            if (this.isString(i)) {
-                return this.quote_(i);
-            }
-            return i;
-        }).join(', ');
+        const values = list
+            .map((i) => {
+                if (this.isString(i)) {
+                    return this.quote_(i);
+                }
+                return i;
+            })
+            .join(', ');
         return `[${values}]`;
     };
 
@@ -49,9 +50,7 @@ export default function (Generator) {
     };
 
     Generator.numberOrStringToCode = function (value) {
-        if (Generator.isString(value) &&
-            value[0] === '"' &&
-            value[value.length - 1] === '"') {
+        if (Generator.isString(value) && value[0] === '"' && value[value.length - 1] === '"') {
             const s = value.slice(1, value.length - 1);
             const n = Number(s);
             if (!isNaN(n) && !(n === 0 && Generator.isWhiteSpace(s))) {
@@ -75,7 +74,7 @@ export default function (Generator) {
         '\b': '\\b',
         '\f': '\\f',
         '\v': '\\v',
-        '\0': '\\0'
+        '\0': '\\0',
     };
 
     Generator.quote_ = function (string) {

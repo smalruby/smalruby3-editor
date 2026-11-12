@@ -7,27 +7,23 @@
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useState } from 'react';
 import { defineMessages, useIntl, FormattedMessage } from 'react-intl';
-
 import Modal from '../../containers/modal.jsx';
 import { formatClassLabel } from '../../lib/classroom-class-label.js';
-
 import ClassCodeDisplay from '../classroom-modal/class-code-display.jsx';
 import TeacherAssignmentBoard from '../classroom-modal/teacher-assignment-board.jsx';
+import TeacherBreadcrumbs from '../classroom-modal/teacher-breadcrumbs.jsx';
 import TeacherClassDetail from '../classroom-modal/teacher-class-detail.jsx';
 import TeacherClassList from '../classroom-modal/teacher-class-list.jsx';
 import TeacherEvaluation from '../classroom-modal/teacher-evaluation.jsx';
 import TeacherPostAssignment from '../classroom-modal/teacher-post-assignment.jsx';
-import TeacherBreadcrumbs from '../classroom-modal/teacher-breadcrumbs.jsx';
 import ClassroomTutorial from '../classroom-tutorial/classroom-tutorial.jsx';
 import Spinner from '../spinner/spinner.jsx';
-
+import styles from './classroom-teacher-modal.css';
+import TeacherAvatarMenu from './teacher-avatar-menu.jsx';
 import TeacherGoogleCoursesPhase from './teacher-google-courses-phase.jsx';
 import TeacherLoginPhase from './teacher-login-phase.jsx';
-import TeacherNotifications from './teacher-notifications.jsx';
 import TeacherNotificationsList from './teacher-notifications-list.jsx';
-import TeacherAvatarMenu from './teacher-avatar-menu.jsx';
-
-import styles from './classroom-teacher-modal.css';
+import TeacherNotifications from './teacher-notifications.jsx';
 
 const messagesBreadcrumbs = defineMessages({
     classList: {
@@ -294,7 +290,6 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
             );
         }
 
-
         if (phase === 'teacher-evaluation' && evaluation) {
             return (
                 <div className={styles.mainRelative}>
@@ -413,8 +408,6 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                 </div>
             );
         }
-
-
 
         if (phase === 'teacher-google-courses') {
             return (
@@ -541,10 +534,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
             id="classroomTeacherModal"
             onRequestClose={onClose}
         >
-            <div
-                className={styles.layout}
-                data-testid="classroom-teacher-modal"
-            >
+            <div className={styles.layout} data-testid="classroom-teacher-modal">
                 {/* タイトルバー右上（× の左）: 通知ベル → アバターメニュー。
                     アバターは右上固定でアカウント（メール頭文字）を示し、
                     クリックでログアウト等のメニューを出す（#1111 レビュー）。 */}
@@ -559,9 +549,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         onToggle={notificationsCenter.handleToggleNotifications}
                     />
                 )}
-                {phase !== 'teacher-login' && (
-                    <TeacherAvatarMenu email={teacherEmail} onLogout={onTeacherLogout} />
-                )}
+                {phase !== 'teacher-login' && <TeacherAvatarMenu email={teacherEmail} onLogout={onTeacherLogout} />}
                 {/* Main area */}
                 <main className={styles.main}>{renderMain()}</main>
             </div>

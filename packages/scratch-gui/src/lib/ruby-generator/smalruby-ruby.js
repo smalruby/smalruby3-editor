@@ -14,21 +14,15 @@ export default function (Generator) {
 
         let receiver;
         if (isBang) {
-            const varName =
-                Generator.getFieldValue(block, 'RECEIVER') || '';
+            const varName = Generator.getFieldValue(block, 'RECEIVER') || '';
             // Array bang methods (sort!, reverse!) reference the LIST
             // variant; string bang methods reference the SCALAR variant.
             // target-applier.js (issue #634) drops the eager SCALAR
             // entry when an array literal also creates a same-name LIST,
             // so try both stores.
-            receiver =
-                Generator.variableNameByName(varName) ||
-                Generator.listNameByName(varName) ||
-                'nil';
+            receiver = Generator.variableNameByName(varName) || Generator.listNameByName(varName) || 'nil';
         } else {
-            receiver =
-                Generator.valueToCode(block, 'RECEIVER', order) ||
-                Generator.quote_('');
+            receiver = Generator.valueToCode(block, 'RECEIVER', order) || Generator.quote_('');
         }
 
         const hasArg1 = block.inputs && block.inputs.ARG1;
@@ -36,9 +30,7 @@ export default function (Generator) {
             return `${receiver}.${method}`;
         }
 
-        const arg1 =
-            Generator.valueToCode(block, 'ARG1', order) ||
-            Generator.quote_('');
+        const arg1 = Generator.valueToCode(block, 'ARG1', order) || Generator.quote_('');
         const arg2 = Generator.valueToCode(block, 'ARG2', order);
 
         // Operator methods: generate infix notation (e.g. receiver * arg)
@@ -69,18 +61,11 @@ export default function (Generator) {
         let paramStr = '';
         let resolvedBranch = branch;
         if (comment) {
-            const paramMatches = comment.match(
-                /@ruby:block_param:(\d+):(\S+)/g,
-            );
+            const paramMatches = comment.match(/@ruby:block_param:(\d+):(\S+)/g);
             if (paramMatches) {
-                const params = paramMatches.map(m => {
-                    const [, idx, name] = m.match(
-                        /@ruby:block_param:(\d+):(\S+)/,
-                    );
-                    resolvedBranch = resolvedBranch.replace(
-                        new RegExp(`_bp_${idx}_`, 'g'),
-                        name,
-                    );
+                const params = paramMatches.map((m) => {
+                    const [, idx, name] = m.match(/@ruby:block_param:(\d+):(\S+)/);
+                    resolvedBranch = resolvedBranch.replace(new RegExp(`_bp_${idx}_`, 'g'), name);
                     return name;
                 });
                 paramStr = ` |${params.join(', ')}|`;
@@ -92,9 +77,7 @@ export default function (Generator) {
     // --- Array method with block (CONDITIONAL, C-shape) ---
     Generator.smalrubyRuby_arrayMethodWithBlock = function (block) {
         const order = Generator.ORDER_FUNCTION_CALL;
-        const receiver =
-            Generator.valueToCode(block, 'RECEIVER', order) ||
-            Generator.quote_('');
+        const receiver = Generator.valueToCode(block, 'RECEIVER', order) || Generator.quote_('');
         const method = Generator.getFieldValue(block, 'METHOD') || 'each';
         const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
         const resolved = resolveBlockParams(block, branch);
@@ -106,9 +89,7 @@ export default function (Generator) {
     // --- Hash method with block (CONDITIONAL, C-shape) ---
     Generator.smalrubyRuby_hashMethodWithBlock = function (block) {
         const order = Generator.ORDER_FUNCTION_CALL;
-        const receiver =
-            Generator.valueToCode(block, 'RECEIVER', order) ||
-            Generator.quote_('');
+        const receiver = Generator.valueToCode(block, 'RECEIVER', order) || Generator.quote_('');
         const method = Generator.getFieldValue(block, 'METHOD') || 'each';
         const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
         const resolved = resolveBlockParams(block, branch);
@@ -119,9 +100,7 @@ export default function (Generator) {
 
     // --- Number method with block (CONDITIONAL, C-shape) ---
     Generator.smalrubyRuby_numberMethodWithBlock = function (block) {
-        const receiver =
-            Generator.valueToCode(block, 'RECEIVER', Generator.ORDER_ATOMIC) ||
-            '0';
+        const receiver = Generator.valueToCode(block, 'RECEIVER', Generator.ORDER_ATOMIC) || '0';
         const method = Generator.getFieldValue(block, 'METHOD') || 'times';
         const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
         const resolved = resolveBlockParams(block, branch);
@@ -163,20 +142,12 @@ export default function (Generator) {
             '\\S[^\\n]*(?:\\.(?:reverse|upcase|downcase|empty\\?|lines|delete|gsub|max|min|sort|join|first|last|keys|values|reverse!|delete!|gsub!|sort!)(?:\\([^)]*\\))?| \\* \\S+)';
         // Process _rv_truthy_ BEFORE _rv_ to avoid partial match
         code = code.replace(
-            new RegExp(
-                `^([ \\t]*)(${methodPattern})\\n([ \\t]*)(.*?)_rv_truthy_`,
-                'gm',
-            ),
-            (match, indent1, expr, indent2, before) =>
-                `${indent2}${before}${expr}`,
+            new RegExp(`^([ \\t]*)(${methodPattern})\\n([ \\t]*)(.*?)_rv_truthy_`, 'gm'),
+            (match, indent1, expr, indent2, before) => `${indent2}${before}${expr}`,
         );
         code = code.replace(
-            new RegExp(
-                `^([ \\t]*)(${methodPattern})\\n([ \\t]*)(.*?)_rv_`,
-                'gm',
-            ),
-            (match, indent1, expr, indent2, before) =>
-                `${indent2}${before}${expr}`,
+            new RegExp(`^([ \\t]*)(${methodPattern})\\n([ \\t]*)(.*?)_rv_`, 'gm'),
+            (match, indent1, expr, indent2, before) => `${indent2}${before}${expr}`,
         );
         return code;
     };

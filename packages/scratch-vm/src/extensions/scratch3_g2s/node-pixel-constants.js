@@ -1,10 +1,10 @@
 // Constants of node-pixel
 // ajfisher/node-pixel: https://github.com/ajfisher/node-pixel
 
-const START_SYSEX = 0xF0;
+const START_SYSEX = 0xf0;
 const STRING_DATA = 0x71;
-const END_SYSEX = 0xF7;
-const FIRMATA_7BIT_MASK = 0x7F;
+const END_SYSEX = 0xf7;
+const FIRMATA_7BIT_MASK = 0x7f;
 const PIXEL_SHIFT_WRAP = 0x40;
 const PIXEL_COMMAND = 0x51;
 const PIXEL_OFF = 0x00;
@@ -27,7 +27,7 @@ const GAMMA_DEFAULT = 1.0; // set to 1.0 in 0.9, 2.8 in 0.10
 const COLOR_ORDER = {
     GRB: 0x00,
     RGB: 0x01,
-    BRG: 0x02
+    BRG: 0x02,
 };
 
 module.exports = {
@@ -49,5 +49,5 @@ module.exports = {
     PIN_DEFAULT,
     I2C_DEFAULT,
     GAMMA_DEFAULT,
-    COLOR_ORDER
+    COLOR_ORDER,
 };

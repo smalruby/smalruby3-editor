@@ -4,26 +4,26 @@
  * (#680) / Phase 4 (#681) stub categories must be independent, empty, and
  * not collide with the existing categories.
  */
-import decks from '../../../../../src/lib/libraries/decks/index.jsx';
-import gettingStartedDecks from '../../../../../src/lib/libraries/decks/categories/getting-started.jsx';
-import rubyBasicsDecks from '../../../../../src/lib/libraries/decks/categories/ruby-basics.jsx';
 import blockSeriesDecks from '../../../../../src/lib/libraries/decks/categories/block-series.jsx';
+import * as blockSeriesLocale from '../../../../../src/lib/libraries/decks/categories/block-series.locale.js';
 import dnclDecks from '../../../../../src/lib/libraries/decks/categories/dncl.jsx';
+import * as dnclLocale from '../../../../../src/lib/libraries/decks/categories/dncl.locale.js';
+import gettingStartedDecks from '../../../../../src/lib/libraries/decks/categories/getting-started.jsx';
 import {
     ja as gettingStartedJa,
     jaHira as gettingStartedJaHira,
-    en as gettingStartedEn
+    en as gettingStartedEn,
 } from '../../../../../src/lib/libraries/decks/categories/getting-started.locale.js';
+import rubyBasicsDecks from '../../../../../src/lib/libraries/decks/categories/ruby-basics.jsx';
 import {
     ja as rubyBasicsJa,
     jaHira as rubyBasicsJaHira,
-    en as rubyBasicsEn
+    en as rubyBasicsEn,
 } from '../../../../../src/lib/libraries/decks/categories/ruby-basics.locale.js';
-import * as blockSeriesLocale from '../../../../../src/lib/libraries/decks/categories/block-series.locale.js';
-import * as dnclLocale from '../../../../../src/lib/libraries/decks/categories/dncl.locale.js';
+import decks from '../../../../../src/lib/libraries/decks/index.jsx';
+import en from '../../../../../src/locales/en';
 import ja from '../../../../../src/locales/ja';
 import jaHira from '../../../../../src/locales/ja-Hira';
-import en from '../../../../../src/locales/en';
 
 const EXPECTED_DECK_ID_ORDER = [
     'intro-getting-started',
@@ -45,7 +45,7 @@ const EXPECTED_DECK_ID_ORDER = [
     'ruby-basics-4-arrays',
     'ruby-basics-5-blocks',
     'ruby-basics-6-methods',
-    'ruby-basics-7-next'
+    'ruby-basics-7-next',
 ];
 
 describe('Tutorial deck category split (issue #932)', () => {
@@ -68,7 +68,7 @@ describe('Tutorial deck category split (issue #932)', () => {
     test('block-series and dncl are empty stub categories that add no deck ids', () => {
         expect(blockSeriesDecks).toEqual({});
         expect(dnclDecks).toEqual({});
-        EXPECTED_DECK_ID_ORDER.forEach(id => {
+        EXPECTED_DECK_ID_ORDER.forEach((id) => {
             expect(Object.prototype.hasOwnProperty.call(blockSeriesDecks, id)).toBe(false);
             expect(Object.prototype.hasOwnProperty.call(dnclDecks, id)).toBe(false);
         });
@@ -83,35 +83,35 @@ describe('Tutorial deck category split (issue #932)', () => {
     test('block-series locale holds only the shared book-promo foundation (issue #956), no deck-id howtos', () => {
         // #956 populates the Block-axis common book-promotion strings; the
         // per-deck howto strings still come later (#680).
-        [blockSeriesLocale.ja, blockSeriesLocale.jaHira, blockSeriesLocale.en].forEach(table => {
+        [blockSeriesLocale.ja, blockSeriesLocale.jaHira, blockSeriesLocale.en].forEach((table) => {
             const keys = Object.keys(table);
             expect(keys.length).toBeGreaterThan(0);
-            keys.forEach(id => {
+            keys.forEach((id) => {
                 expect(id.startsWith('gui.howtos.book-promo.')).toBe(true);
             });
         });
     });
 
     test('central locale files still contain every getting-started / ruby-basics key (via spread)', () => {
-        [gettingStartedJa, rubyBasicsJa].forEach(table => {
-            Object.keys(table).forEach(id => {
+        [gettingStartedJa, rubyBasicsJa].forEach((table) => {
+            Object.keys(table).forEach((id) => {
                 expect(ja[id]).toBe(table[id]);
             });
         });
-        [gettingStartedJaHira, rubyBasicsJaHira].forEach(table => {
-            Object.keys(table).forEach(id => {
+        [gettingStartedJaHira, rubyBasicsJaHira].forEach((table) => {
+            Object.keys(table).forEach((id) => {
                 expect(jaHira[id]).toBe(table[id]);
             });
         });
-        [gettingStartedEn, rubyBasicsEn].forEach(table => {
-            Object.keys(table).forEach(id => {
+        [gettingStartedEn, rubyBasicsEn].forEach((table) => {
+            Object.keys(table).forEach((id) => {
                 expect(en[id]).toBe(table[id]);
             });
         });
     });
 
     test('chat (mesh) decks are unaffected by the split and remain inline in index.jsx', () => {
-        EXPECTED_DECK_ID_ORDER.filter(id => id.startsWith('chat-')).forEach(id => {
+        EXPECTED_DECK_ID_ORDER.filter((id) => id.startsWith('chat-')).forEach((id) => {
             expect(decks[id]).toBeDefined();
             expect(gettingStartedDecks[id]).toBeUndefined();
             expect(rubyBasicsDecks[id]).toBeUndefined();

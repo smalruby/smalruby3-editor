@@ -6,36 +6,36 @@ import Primitive from '../primitive';
  * @mixes RubyToBlocksConverter
  */
 const ExpressionsLiterals = {
-    visitSelfNode (node) {
+    visitSelfNode(node) {
         return new Primitive('self', 'self', node);
     },
 
-    visitSymbolNode (node) {
+    visitSymbolNode(node) {
         return new Primitive('sym', node.unescaped.value, node);
     },
 
-    visitStringNode (node) {
+    visitStringNode(node) {
         return new Primitive('str', node.unescaped.value, node);
     },
 
-    visitIntegerNode (node) {
+    visitIntegerNode(node) {
         return new Primitive('int', node.value, node);
     },
 
-    visitFloatNode (node) {
+    visitFloatNode(node) {
         return new Primitive('float', node.value, node);
     },
 
     // === Smalruby: Start of regex literal support ===
-    visitRegularExpressionNode (node) {
+    visitRegularExpressionNode(node) {
         const pattern = node.unescaped.value;
-        const closingSource = this._getSource({location: node.closingLoc});
+        const closingSource = this._getSource({ location: node.closingLoc });
         const flags = closingSource.length > 1 ? closingSource.slice(1) : '';
         return new Primitive('regexp', `/${pattern}/${flags}`, node);
     },
     // === Smalruby: End of regex literal support ===
 
-    visitTrueNode (node) {
+    visitTrueNode(node) {
         const index = (this._context.literalCallIndices.true || 0) + 1;
         this._context.literalCallIndices.true = index;
 
@@ -47,7 +47,7 @@ const ExpressionsLiterals = {
         return block;
     },
 
-    visitFalseNode (node) {
+    visitFalseNode(node) {
         const index = (this._context.literalCallIndices.false || 0) + 1;
         this._context.literalCallIndices.false = index;
 
@@ -59,15 +59,19 @@ const ExpressionsLiterals = {
         return block;
     },
 
-    visitArrayNode (node) {
-        return new Primitive('array', node.elements.map(childNode => this.visit(childNode)), node);
+    visitArrayNode(node) {
+        return new Primitive(
+            'array',
+            node.elements.map((childNode) => this.visit(childNode)),
+            node,
+        );
     },
 
-    visitHashNode (node) {
+    visitHashNode(node) {
         // Prism HashNode has elements which are AssocNode or AssocSplatNode
         // Use toJSON().type instead of constructor.name for production build compatibility
         const elements = new Map();
-        node.elements.forEach(element => {
+        node.elements.forEach((element) => {
             if (element.toJSON().type === 'AssocNode') {
                 elements.set(this.visit(element.key), this.visit(element.value));
             }
@@ -75,12 +79,12 @@ const ExpressionsLiterals = {
         return new Primitive('hash', elements, node);
     },
 
-    visitKeywordHashNode (node) {
+    visitKeywordHashNode(node) {
         // Prism KeywordHashNode is used for keyword arguments without braces, e.g. foo(secs: 5)
         // Elements are AssocNode with SymbolNode keys
         // Use toJSON().type instead of constructor.name for production build compatibility
         const elements = new Map();
-        node.elements.forEach(element => {
+        node.elements.forEach((element) => {
             if (element.toJSON().type === 'AssocNode') {
                 elements.set(this.visit(element.key), this.visit(element.value));
             }
@@ -88,11 +92,11 @@ const ExpressionsLiterals = {
         return new Primitive('hash', elements, node);
     },
 
-    visitNilNode (node) {
+    visitNilNode(node) {
         return new Primitive('nil', null, node);
     },
 
-    visitParenthesesNode (node) {
+    visitParenthesesNode(node) {
         // Parenthesized expression e.g. (1), (x + 1), (a; b; c)
         // Delegate to the inner StatementsNode so chaining/sequencing is handled correctly
         if (node.body) {
@@ -101,11 +105,11 @@ const ExpressionsLiterals = {
         return new Primitive('nil', null, node);
     },
 
-    visitAssocNode (node) {
+    visitAssocNode(node) {
         return [this.visit(node.key), this.visit(node.value)];
     },
 
-    visitRangeNode (node) {
+    visitRangeNode(node) {
         const left = this.visit(node.left);
         const right = this.visit(node.right);
         const opcode = node.isExcludeEnd() ? 'ruby_exclude_range' : 'ruby_range';
@@ -116,21 +120,21 @@ const ExpressionsLiterals = {
         return block;
     },
 
-    visitConstantReadNode (node) {
+    visitConstantReadNode(node) {
         const value = {
             scope: null,
-            name: node.name
+            name: node.name,
         };
         return new Primitive('const', value, node);
     },
 
-    visitConstantPathNode (node) {
+    visitConstantPathNode(node) {
         const value = {
             scope: this.visit(node.parent),
-            name: node.name
+            name: node.name,
         };
         return new Primitive('const', value, node);
-    }
+    },
 };
 
 export default ExpressionsLiterals;

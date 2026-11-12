@@ -1,21 +1,35 @@
+import { allowedBlocksToIds } from '../../../../src/lib/lesson-dynamic-categories';
 import {
     allowedBlockDefaults,
     allowedBlockOpcode,
     applyBlockDefaultsToElements,
     applyBlockDefaultsToToolboxXml,
 } from '../../../../src/lib/lessons/block-defaults';
-import { allowedBlocksToIds } from '../../../../src/lib/lesson-dynamic-categories';
 import { COURSES, findChallenge } from '../../../../src/lib/lessons/courses';
 import makeToolboxXML from '../../../../src/lib/make-toolbox-xml';
 
 const toolbox = (isStage = false) =>
-    makeToolboxXML(false, isStage, 'sprite', [], 'costume1', 'backdrop1', 'Meow', undefined, null, false, false, null);
+    makeToolboxXML(
+        false,
+        isStage,
+        'sprite',
+        [],
+        'costume1',
+        'backdrop1',
+        'Meow',
+        undefined,
+        null,
+        false,
+        false,
+        null,
+    );
 
 const parse = (xml) => new DOMParser().parseFromString(xml, 'text/xml');
 
 /** toolbox の XML で、カテゴリ直下の type のブロックを返す。 */
 const blockOf = (xml, type) => parse(xml).querySelector(`category > block[type="${type}"]`);
-const fieldOf = (block, name) => Array.from(block.children).find((c) => c.tagName === 'field' && c.getAttribute('name') === name);
+const fieldOf = (block, name) =>
+    Array.from(block.children).find((c) => c.tagName === 'field' && c.getAttribute('name') === name);
 const inputFieldOf = (block, name) => {
     const value = Array.from(block.children).find((c) => c.tagName === 'value' && c.getAttribute('name') === name);
     return value.querySelector('shadow > field');
@@ -47,7 +61,9 @@ describe('lessons/block-defaults', () => {
             const defaults = allowedBlockDefaults(
                 {
                     event: [{ opcode: 'event_whenkeypressed', fields: { KEY_OPTION: '1' } }],
-                    looks: [{ opcode: 'looks_say', inputs: { MESSAGE: { ja: 'くすぐったい！', en: 'That tickles!' } } }],
+                    looks: [
+                        { opcode: 'looks_say', inputs: { MESSAGE: { ja: 'くすぐったい！', en: 'That tickles!' } } },
+                    ],
                     control: [{ opcode: 'control_repeat', inputs: { TIMES: 3 } }],
                 },
                 'en',
@@ -78,7 +94,10 @@ describe('lessons/block-defaults', () => {
         test('sets a field that is there', () => {
             const before = toolbox();
             const xml = applyBlockDefaultsToToolboxXml(
-                before.replace('<block type="event_whenkeypressed">', '<block type="event_whenkeypressed"><field name="KEY_OPTION">space</field>'),
+                before.replace(
+                    '<block type="event_whenkeypressed">',
+                    '<block type="event_whenkeypressed"><field name="KEY_OPTION">space</field>',
+                ),
                 { event_whenkeypressed: { fields: { KEY_OPTION: 'up arrow' }, inputs: {} } },
             );
             const block = blockOf(xml, 'event_whenkeypressed');
@@ -109,16 +128,18 @@ describe('lessons/block-defaults', () => {
             const xml = applyBlockDefaultsToToolboxXml(base, {
                 text2speech_speakAndWait: { fields: {}, inputs: { WORDS: 'ボタンが押されました' } },
             });
-            expect(inputFieldOf(blockOf(xml, 'text2speech_speakAndWait'), 'WORDS').textContent).toBe('ボタンが押されました');
+            expect(inputFieldOf(blockOf(xml, 'text2speech_speakAndWait'), 'WORDS').textContent).toBe(
+                'ボタンが押されました',
+            );
         });
         test('ignores an input without a shadow, and keeps the xml when it cannot be read', () => {
             const xml = applyBlockDefaultsToToolboxXml(toolbox(), {
                 control_if: { fields: {}, inputs: { CONDITION: 'x' } },
             });
             expect(blockOf(xml, 'control_if').children).toHaveLength(0);
-            expect(applyBlockDefaultsToToolboxXml('<xml><category>', { control_if: { fields: {}, inputs: {} } })).toBe(
-                '<xml><category>',
-            );
+            expect(
+                applyBlockDefaultsToToolboxXml('<xml><category>', { control_if: { fields: {}, inputs: {} } }),
+            ).toBe('<xml><category>');
         });
     });
 
@@ -130,7 +151,9 @@ describe('lessons/block-defaults', () => {
                 'text/xml',
             ).documentElement;
             const list = [block];
-            expect(applyBlockDefaultsToElements(list, { data_setvariableto: { fields: {}, inputs: { VALUE: '5' } } })).toBe(list);
+            expect(
+                applyBlockDefaultsToElements(list, { data_setvariableto: { fields: {}, inputs: { VALUE: '5' } } }),
+            ).toBe(list);
             expect(block.querySelector('shadow > field').textContent).toBe('5');
             expect(applyBlockDefaultsToElements(list, null)).toBe(list);
         });
@@ -138,17 +161,34 @@ describe('lessons/block-defaults', () => {
 
     // レッスン 1 の仕様（#1473〜#1475 の「パレット」の表記）の初期値
     describe('lesson 1 palettes', () => {
-        const defaultsOf = (id, locale = 'ja') => allowedBlockDefaults(findChallenge(id).challenge.allowedBlocks, locale);
+        const defaultsOf = (id, locale = 'ja') =>
+            allowedBlockDefaults(findChallenge(id).challenge.allowedBlocks, locale);
         test.each([
-            ['blocks-l1-key-sound', 'ja', { sound_playuntildone: { SOUND_MENU: 'ニャー' }, sound_play: { SOUND_MENU: 'ニャー' } }],
+            [
+                'blocks-l1-key-sound',
+                'ja',
+                { sound_playuntildone: { SOUND_MENU: 'ニャー' }, sound_play: { SOUND_MENU: 'ニャー' } },
+            ],
             ['blocks-l1-key-sound', 'ja-Hira', { sound_play: { SOUND_MENU: 'Meow' } }],
             ['blocks-l1-key-sound', 'en', { sound_play: { SOUND_MENU: 'Meow' } }],
-            ['blocks-l1-repeat', 'ja', { control_repeat: { TIMES: '3' }, looks_switchbackdropto: { BACKDROP: 'Canyon' } }],
+            [
+                'blocks-l1-repeat',
+                'ja',
+                { control_repeat: { TIMES: '3' }, looks_switchbackdropto: { BACKDROP: 'Canyon' } },
+            ],
             ['blocks-l1-if', 'ja', { looks_say: { MESSAGE: 'くすぐったい！' } }],
             ['blocks-l1-if', 'en', { looks_say: { MESSAGE: 'That tickles!' } }],
             ['blocks-l1-ask-answer', 'ja', { sensing_askandwait: { QUESTION: 'なまえは？' } }],
             ['blocks-l1-ask-answer', 'en', { sensing_askandwait: { QUESTION: "What's your name?" } }],
-            ['blocks-l1-quiz', 'ja', { sensing_askandwait: { QUESTION: '4+3=?' }, operator_equals: { OPERAND2: '7' }, looks_sayforsecs: { MESSAGE: '正解です' } }],
+            [
+                'blocks-l1-quiz',
+                'ja',
+                {
+                    sensing_askandwait: { QUESTION: '4+3=?' },
+                    operator_equals: { OPERAND2: '7' },
+                    looks_sayforsecs: { MESSAGE: '正解です' },
+                },
+            ],
             ['blocks-l1-quiz', 'ja-Hira', { looks_sayforsecs: { MESSAGE: 'せいかいです' } }],
             ['blocks-l1-quiz', 'en', { looks_sayforsecs: { MESSAGE: 'Correct' } }],
             ['blocks-l1-broadcast', 'ja', { looks_sayforsecs: { MESSAGE: 'やあ！' } }],
@@ -183,7 +223,9 @@ describe('lessons/block-defaults', () => {
                             entries.forEach((entry) => {
                                 expect(typeof allowedBlockOpcode(entry)).toBe('string');
                                 if (typeof entry === 'object') {
-                                    Object.keys(entry).forEach((key) => expect(['opcode', 'fields', 'inputs']).toContain(key));
+                                    Object.keys(entry).forEach((key) =>
+                                        expect(['opcode', 'fields', 'inputs']).toContain(key),
+                                    );
                                 }
                             }),
                         );

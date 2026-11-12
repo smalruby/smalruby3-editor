@@ -1,9 +1,9 @@
-import {VERSION_1, VERSION_2} from '.';
+import { VERSION_1, VERSION_2 } from '.';
 
 const STORAGE_KEY = 'smalruby:rubyVersion';
 const MIGRATION_KEY = 'smalruby:rubyVersionMigratedToV2';
 
-const isValidRubyVersion = version => [VERSION_1, VERSION_2].includes(version);
+const isValidRubyVersion = (version) => [VERSION_1, VERSION_2].includes(version);
 
 const detectRubyVersion = () => {
     if (typeof window === 'undefined' || !window.localStorage) {
@@ -26,7 +26,7 @@ const detectRubyVersion = () => {
     return VERSION_2;
 };
 
-const persistRubyVersion = version => {
+const persistRubyVersion = (version) => {
     if (!isValidRubyVersion(version)) {
         throw new Error(`Invalid ruby version: ${version}`);
     }
@@ -36,7 +36,4 @@ const persistRubyVersion = version => {
     }
 };
 
-export {
-    detectRubyVersion,
-    persistRubyVersion
-};
+export { detectRubyVersion, persistRubyVersion };

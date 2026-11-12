@@ -8,7 +8,6 @@
 // `convertIdentifier` consults before adding an `@` prefix to lowercase
 // identifiers. Inside `関数 name(a, b) ... と定義する`, references to
 // `a` and `b` stay as `a` and `b`. Outside, they revert to `@a` and `@b`.
-
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
 
 const dToR = (src) => dnclToRuby(src).ruby;
@@ -50,56 +49,20 @@ describe('Function parameter scope: body references', () => {
 
 describe('Function parameter scope: scope boundary', () => {
     test('outside function: same name reverts to instance variable', () => {
-        const dncl = [
-            '関数 f(a)',
-            '  返す a',
-            'と定義する',
-            'a = 10',
-            '答え = a',
-        ].join('\n');
-        const ruby = [
-            'def f(a)',
-            '  return a',
-            'end',
-            '@a = 10',
-            '@答え = @a',
-        ].join('\n');
+        const dncl = ['関数 f(a)', '  返す a', 'と定義する', 'a = 10', '答え = a'].join('\n');
+        const ruby = ['def f(a)', '  return a', 'end', '@a = 10', '@答え = @a'].join('\n');
         expect(dToR(dncl)).toBe(ruby);
     });
 
     test('global var with same name as future function param: keeps @ at top-level', () => {
-        const dncl = [
-            'a = 5',
-            '関数 f(a)',
-            '  返す a',
-            'と定義する',
-        ].join('\n');
-        const ruby = [
-            '@a = 5',
-            'def f(a)',
-            '  return a',
-            'end',
-        ].join('\n');
+        const dncl = ['a = 5', '関数 f(a)', '  返す a', 'と定義する'].join('\n');
+        const ruby = ['@a = 5', 'def f(a)', '  return a', 'end'].join('\n');
         expect(dToR(dncl)).toBe(ruby);
     });
 
     test('two consecutive functions: scopes are independent', () => {
-        const dncl = [
-            '関数 f(a)',
-            '  返す a',
-            'と定義する',
-            '関数 g(b)',
-            '  返す b',
-            'と定義する',
-        ].join('\n');
-        const ruby = [
-            'def f(a)',
-            '  return a',
-            'end',
-            'def g(b)',
-            '  return b',
-            'end',
-        ].join('\n');
+        const dncl = ['関数 f(a)', '  返す a', 'と定義する', '関数 g(b)', '  返す b', 'と定義する'].join('\n');
+        const ruby = ['def f(a)', '  return a', 'end', 'def g(b)', '  return b', 'end'].join('\n');
         expect(dToR(dncl)).toBe(ruby);
     });
 });
@@ -136,12 +99,7 @@ describe('Function parameter scope: call sites', () => {
 
 describe('Function parameter scope: idempotency / multiple invocations', () => {
     test('running dnclToRuby twice in a row gives the same result', () => {
-        const dncl = [
-            '関数 add(a, b)',
-            '  返す a + b',
-            'と定義する',
-            '答え = add(3, 4)',
-        ].join('\n');
+        const dncl = ['関数 add(a, b)', '  返す a + b', 'と定義する', '答え = add(3, 4)'].join('\n');
         const r1 = dToR(dncl);
         const r2 = dToR(dncl);
         expect(r2).toBe(r1);

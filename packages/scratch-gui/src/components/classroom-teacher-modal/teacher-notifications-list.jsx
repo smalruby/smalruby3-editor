@@ -8,12 +8,11 @@
 import PropTypes from 'prop-types';
 import React, { useCallback, useState } from 'react';
 import { FormattedMessage } from 'react-intl';
-
 import styles from './classroom-teacher-modal.css';
 
 const PAGE_SIZE = 10;
 
-const formatDateTime = iso => {
+const formatDateTime = (iso) => {
     if (!iso) return '';
     const date = new Date(iso);
     return isNaN(date.getTime()) ? '' : date.toLocaleString();
@@ -59,8 +58,8 @@ const TeacherNotificationsList = ({ notifications, onBack, onOpenLink }) => {
     const start = clampedPage * PAGE_SIZE;
     const pageItems = notifications.slice(start, start + PAGE_SIZE);
 
-    const handlePrev = useCallback(() => setPage(p => Math.max(0, p - 1)), []);
-    const handleNext = useCallback(() => setPage(p => Math.min(totalPages - 1, p + 1)), [totalPages]);
+    const handlePrev = useCallback(() => setPage((p) => Math.max(0, p - 1)), []);
+    const handleNext = useCallback(() => setPage((p) => Math.min(totalPages - 1, p + 1)), [totalPages]);
 
     return (
         <div className={styles.notificationsPage} data-testid="classroom-notifications-page">
@@ -82,7 +81,7 @@ const TeacherNotificationsList = ({ notifications, onBack, onOpenLink }) => {
             ) : (
                 <React.Fragment>
                     <ul className={styles.notificationsPageList} data-testid="classroom-notifications-page-list">
-                        {pageItems.map(notification => (
+                        {pageItems.map((notification) => (
                             <NotificationRow
                                 key={notification.notificationId}
                                 notification={notification}
@@ -96,7 +95,9 @@ const TeacherNotificationsList = ({ notifications, onBack, onOpenLink }) => {
                             disabled={clampedPage === 0}
                             type="button"
                             onClick={handlePrev}
-                        >{'←'}</button>
+                        >
+                            {'←'}
+                        </button>
                         <span className={styles.notificationsPagerLabel}>
                             <FormattedMessage
                                 defaultMessage="{current} / {total}"
@@ -110,7 +111,9 @@ const TeacherNotificationsList = ({ notifications, onBack, onOpenLink }) => {
                             disabled={clampedPage >= totalPages - 1}
                             type="button"
                             onClick={handleNext}
-                        >{'→'}</button>
+                        >
+                            {'→'}
+                        </button>
                     </div>
                 </React.Fragment>
             )}

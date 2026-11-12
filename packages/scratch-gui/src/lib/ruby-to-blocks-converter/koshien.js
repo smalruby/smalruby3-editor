@@ -1,5 +1,5 @@
-import {convertToListBlock} from './variable-hash-ops';
-import {RubyToBlocksConverterError} from './errors';
+import { RubyToBlocksConverterError } from './errors';
+import { convertToListBlock } from './variable-hash-ops';
 
 const Koshien = 'koshien';
 
@@ -44,12 +44,11 @@ const POSITION_MESSAGES = {
 };
 
 // 小数・空白・空文字（`Number('')` は 0）を通さないよう、整数かつ範囲内だけを座標として認める。
-const isMapCoordinate = value => Number.isInteger(value) && value >= 0 && value <= MAP_MAX_COORDINATE;
+const isMapCoordinate = (value) => Number.isInteger(value) && value >= 0 && value <= MAP_MAX_COORDINATE;
 
 // "x:y" の各部分は符号・小数点・空白・指数表記を含まない 10 進の数字だけにする。
 const COORDINATE_STRING_PATTERN = /^\d+$/;
-const isMapCoordinateString = value =>
-    COORDINATE_STRING_PATTERN.test(value) && isMapCoordinate(Number(value));
+const isMapCoordinateString = (value) => COORDINATE_STRING_PATTERN.test(value) && isMapCoordinate(Number(value));
 
 const KoshienConverter = {
     register: function (converter) {
@@ -57,32 +56,32 @@ const KoshienConverter = {
         // - v1: `list("$名前")` … data_listcontents ブロック
         // - v2: `$名前` … data_variable ブロックを data_listcontents に変換する
         // 返り値 {ok, name}: ok=false は不正な引数。name=null は nil (リスト未指定)。
-        const resolveListArg = block => {
+        const resolveListArg = (block) => {
             if (converter.isNil(block)) {
-                return {ok: true, name: null};
+                return { ok: true, name: null };
             }
             if (converter.isListBlock(block)) {
-                return {ok: true, name: converter.lookupListFromListBlock(block)?.name || ' '};
+                return { ok: true, name: converter.lookupListFromListBlock(block)?.name || ' ' };
             }
             if (String(converter.version) === '2' && converter.isVariableBlock(block)) {
-                const {block: listBlock, converted} = convertToListBlock(converter, LIST_ARG_MESSAGES, block);
+                const { block: listBlock, converted } = convertToListBlock(converter, LIST_ARG_MESSAGES, block);
                 if (converted && listBlock) {
-                    return {ok: true, name: converter.lookupListFromListBlock(listBlock)?.name || ' '};
+                    return { ok: true, name: converter.lookupListFromListBlock(listBlock)?.name || ' ' };
                 }
             }
-            return {ok: false, name: null};
+            return { ok: false, name: null };
         };
 
-        converter.registerOnSend('self', Koshien, 0, params => {
-            const {node} = params;
+        converter.registerOnSend('self', Koshien, 0, (params) => {
+            const { node } = params;
 
             return converter.createRubyExpressionBlock(Koshien, node);
         });
 
         // v1: フラットな `koshien.connect_game(name:)` を statement として解析。
         // v2: フラット形式はクラス本体に置けないためエラーにする (when_connect_game を使う)。
-        converter.registerOnSend(Koshien, 'connect_game', 1, params => {
-            const {receiver, args} = params;
+        converter.registerOnSend(Koshien, 'connect_game', 1, (params) => {
+            const { receiver, args } = params;
 
             if (String(converter.version) === '2') {
                 throw new RubyToBlocksConverterError(
@@ -101,8 +100,8 @@ const KoshienConverter = {
 
         // v2: `koshien.when_connect_game(name:) do ... end` をイベント hat として解析。
         // do...end の本体を hat のサブスタックに取り込む。
-        converter.registerOnSendWithBlock(Koshien, 'when_connect_game', 1, 0, params => {
-            const {receiver, args, rubyBlock} = params;
+        converter.registerOnSendWithBlock(Koshien, 'when_connect_game', 1, 0, (params) => {
+            const { receiver, args, rubyBlock } = params;
 
             const name = args[0].get('sym:name');
             if (!converter.isStringOrBlock(name)) return null;
@@ -113,19 +112,19 @@ const KoshienConverter = {
             return block;
         });
 
-        const checkPosition = block => {
+        const checkPosition = (block) => {
             if (converter.isBlock(block)) return true;
             if (!converter.isString(block)) return false;
             const position = block.value.split(':');
             if (position.length === 2 && position.every(isMapCoordinateString)) return true;
             throw new RubyToBlocksConverterError(
                 converter._context.currentNode,
-                converter._translator(POSITION_MESSAGES.invalidPosition, {POSITION: block.value}),
+                converter._translator(POSITION_MESSAGES.invalidPosition, { POSITION: block.value }),
             );
         };
 
-        converter.registerOnSend(Koshien, 'get_map_area', 1, params => {
-            const {receiver, args} = params;
+        converter.registerOnSend(Koshien, 'get_map_area', 1, (params) => {
+            const { receiver, args } = params;
 
             if (!checkPosition(args[0])) return null;
 
@@ -134,8 +133,8 @@ const KoshienConverter = {
             return block;
         });
 
-        converter.registerOnSend(Koshien, 'map', 1, params => {
-            const {receiver, args} = params;
+        converter.registerOnSend(Koshien, 'map', 1, (params) => {
+            const { receiver, args } = params;
 
             if (!checkPosition(args[0])) return null;
 
@@ -144,8 +143,8 @@ const KoshienConverter = {
             return block;
         });
 
-        converter.registerOnSend(Koshien, 'move_to', 1, params => {
-            const {receiver, args} = params;
+        converter.registerOnSend(Koshien, 'move_to', 1, (params) => {
+            const { receiver, args } = params;
 
             if (!checkPosition(args[0])) return null;
 
@@ -154,8 +153,8 @@ const KoshienConverter = {
             return block;
         });
 
-        converter.registerOnSend(Koshien, 'calc_route', 1, params => {
-            const {receiver, args} = params;
+        converter.registerOnSend(Koshien, 'calc_route', 1, (params) => {
+            const { receiver, args } = params;
 
             const src = args[0].get('sym:src');
             const dst = args[0].get('sym:dst');
@@ -168,7 +167,7 @@ const KoshienConverter = {
 
                 const block = converter.changeRubyExpressionBlock(receiver, 'koshien_calcGoalRoute', 'statement');
                 converter.addField(block, 'RESULT', r.name || ' ');
-                converter.removeBlock(result);
+                converter.discardValue(result);
                 return block;
             }
 
@@ -183,14 +182,14 @@ const KoshienConverter = {
             converter.addTextInput(block, 'SRC', src, '0:0');
             converter.addTextInput(block, 'DST', dst, '0:0');
             converter.addField(block, 'EXCEPT_CELLS', ec.name || ' ');
-            converter.removeBlock(exceptCells);
+            converter.discardValue(exceptCells);
             converter.addField(block, 'RESULT', r.name || ' ');
-            converter.removeBlock(result);
+            converter.discardValue(result);
             return block;
         });
 
-        converter.registerOnSend(Koshien, 'set_dynamite', 1, params => {
-            const {receiver, args} = params;
+        converter.registerOnSend(Koshien, 'set_dynamite', 1, (params) => {
+            const { receiver, args } = params;
 
             if (!checkPosition(args[0])) return null;
 
@@ -200,8 +199,8 @@ const KoshienConverter = {
             return block;
         });
 
-        converter.registerOnSend(Koshien, 'set_bomb', 1, params => {
-            const {receiver, args} = params;
+        converter.registerOnSend(Koshien, 'set_bomb', 1, (params) => {
+            const { receiver, args } = params;
 
             if (!checkPosition(args[0])) return null;
 
@@ -211,14 +210,14 @@ const KoshienConverter = {
             return block;
         });
 
-        converter.registerOnSend(Koshien, 'map_all', 0, params => {
-            const {receiver} = params;
+        converter.registerOnSend(Koshien, 'map_all', 0, (params) => {
+            const { receiver } = params;
 
             return converter.changeRubyExpressionBlock(receiver, 'koshien_mapAll', 'value');
         });
 
-        converter.registerOnSend(Koshien, 'map_from', 2, params => {
-            const {receiver, args} = params;
+        converter.registerOnSend(Koshien, 'map_from', 2, (params) => {
+            const { receiver, args } = params;
 
             if (!checkPosition(args[0])) return null;
             if (!converter.isVariableBlock(args[1]) && !converter.isNil(args[1])) return null;
@@ -226,12 +225,12 @@ const KoshienConverter = {
             const block = converter.changeRubyExpressionBlock(receiver, 'koshien_mapFrom', 'value');
             converter.addTextInput(block, 'POSITION', args[0], '0:0');
             converter.addField(block, 'MAP', converter.lookupVariableFromVariableBlock(args[1])?.name || ' ');
-            converter.removeBlock(args[1]);
+            converter.discardValue(args[1]);
             return block;
         });
 
-        converter.registerOnSend(Koshien, 'locate_objects', 1, params => {
-            const {receiver, args} = params;
+        converter.registerOnSend(Koshien, 'locate_objects', 1, (params) => {
+            const { receiver, args } = params;
 
             const sqSize = args[0].get('sym:sq_size');
             const cent = args[0].get('sym:cent');
@@ -249,123 +248,123 @@ const KoshienConverter = {
             converter.addTextInput(block, 'POSITION', cent, '0:0');
             converter.addTextInput(block, 'OBJECTS', objects, 'ABCD');
             converter.addField(block, 'RESULT', r.name || ' ');
-            converter.removeBlock(result);
+            converter.discardValue(result);
             return block;
         });
 
-        converter.registerOnSend(Koshien, 'other_player', 0, params => {
-            const {receiver} = params;
+        converter.registerOnSend(Koshien, 'other_player', 0, (params) => {
+            const { receiver } = params;
             const block = converter.changeRubyExpressionBlock(receiver, 'koshien_targetCoordinate', 'value');
             converter.addField(block, 'TARGET', 'other_player');
             converter.addField(block, 'COORDINATE', 'position');
             return block;
         });
 
-        converter.registerOnSend(Koshien, 'other_player_x', 0, params => {
-            const {receiver} = params;
+        converter.registerOnSend(Koshien, 'other_player_x', 0, (params) => {
+            const { receiver } = params;
             const block = converter.changeRubyExpressionBlock(receiver, 'koshien_targetCoordinate', 'value');
             converter.addField(block, 'TARGET', 'other_player');
             converter.addField(block, 'COORDINATE', 'x');
             return block;
         });
 
-        converter.registerOnSend(Koshien, 'other_player_y', 0, params => {
-            const {receiver} = params;
+        converter.registerOnSend(Koshien, 'other_player_y', 0, (params) => {
+            const { receiver } = params;
             const block = converter.changeRubyExpressionBlock(receiver, 'koshien_targetCoordinate', 'value');
             converter.addField(block, 'TARGET', 'other_player');
             converter.addField(block, 'COORDINATE', 'y');
             return block;
         });
 
-        converter.registerOnSend(Koshien, 'enemy', 0, params => {
-            const {receiver} = params;
+        converter.registerOnSend(Koshien, 'enemy', 0, (params) => {
+            const { receiver } = params;
             const block = converter.changeRubyExpressionBlock(receiver, 'koshien_targetCoordinate', 'value');
             converter.addField(block, 'TARGET', 'enemy');
             converter.addField(block, 'COORDINATE', 'position');
             return block;
         });
 
-        converter.registerOnSend(Koshien, 'enemy_x', 0, params => {
-            const {receiver} = params;
+        converter.registerOnSend(Koshien, 'enemy_x', 0, (params) => {
+            const { receiver } = params;
             const block = converter.changeRubyExpressionBlock(receiver, 'koshien_targetCoordinate', 'value');
             converter.addField(block, 'TARGET', 'enemy');
             converter.addField(block, 'COORDINATE', 'x');
             return block;
         });
 
-        converter.registerOnSend(Koshien, 'enemy_y', 0, params => {
-            const {receiver} = params;
+        converter.registerOnSend(Koshien, 'enemy_y', 0, (params) => {
+            const { receiver } = params;
             const block = converter.changeRubyExpressionBlock(receiver, 'koshien_targetCoordinate', 'value');
             converter.addField(block, 'TARGET', 'enemy');
             converter.addField(block, 'COORDINATE', 'y');
             return block;
         });
 
-        converter.registerOnSend(Koshien, 'goal', 0, params => {
-            const {receiver} = params;
+        converter.registerOnSend(Koshien, 'goal', 0, (params) => {
+            const { receiver } = params;
             const block = converter.changeRubyExpressionBlock(receiver, 'koshien_targetCoordinate', 'value');
             converter.addField(block, 'TARGET', 'goal');
             converter.addField(block, 'COORDINATE', 'position');
             return block;
         });
 
-        converter.registerOnSend(Koshien, 'goal_x', 0, params => {
-            const {receiver} = params;
+        converter.registerOnSend(Koshien, 'goal_x', 0, (params) => {
+            const { receiver } = params;
             const block = converter.changeRubyExpressionBlock(receiver, 'koshien_targetCoordinate', 'value');
             converter.addField(block, 'TARGET', 'goal');
             converter.addField(block, 'COORDINATE', 'x');
             return block;
         });
 
-        converter.registerOnSend(Koshien, 'goal_y', 0, params => {
-            const {receiver} = params;
+        converter.registerOnSend(Koshien, 'goal_y', 0, (params) => {
+            const { receiver } = params;
             const block = converter.changeRubyExpressionBlock(receiver, 'koshien_targetCoordinate', 'value');
             converter.addField(block, 'TARGET', 'goal');
             converter.addField(block, 'COORDINATE', 'y');
             return block;
         });
 
-        converter.registerOnSend(Koshien, 'player', 0, params => {
-            const {receiver} = params;
+        converter.registerOnSend(Koshien, 'player', 0, (params) => {
+            const { receiver } = params;
             const block = converter.changeRubyExpressionBlock(receiver, 'koshien_targetCoordinate', 'value');
             converter.addField(block, 'TARGET', 'player');
             converter.addField(block, 'COORDINATE', 'position');
             return block;
         });
 
-        converter.registerOnSend(Koshien, 'player_x', 0, params => {
-            const {receiver} = params;
+        converter.registerOnSend(Koshien, 'player_x', 0, (params) => {
+            const { receiver } = params;
             const block = converter.changeRubyExpressionBlock(receiver, 'koshien_targetCoordinate', 'value');
             converter.addField(block, 'TARGET', 'player');
             converter.addField(block, 'COORDINATE', 'x');
             return block;
         });
 
-        converter.registerOnSend(Koshien, 'player_y', 0, params => {
-            const {receiver} = params;
+        converter.registerOnSend(Koshien, 'player_y', 0, (params) => {
+            const { receiver } = params;
             const block = converter.changeRubyExpressionBlock(receiver, 'koshien_targetCoordinate', 'value');
             converter.addField(block, 'TARGET', 'player');
             converter.addField(block, 'COORDINATE', 'y');
             return block;
         });
 
-        converter.registerOnSend(Koshien, 'turn_over', 0, params => {
-            const {receiver} = params;
+        converter.registerOnSend(Koshien, 'turn_over', 0, (params) => {
+            const { receiver } = params;
             return converter.changeRubyExpressionBlock(receiver, 'koshien_turnOver', 'statement');
         });
 
-        const checkX = block => {
+        const checkX = (block) => {
             if (converter.isBlock(block)) return true;
             if (!converter.isNumber(block)) return false;
             if (isMapCoordinate(block.value)) return true;
             throw new RubyToBlocksConverterError(
                 converter._context.currentNode,
-                converter._translator(POSITION_MESSAGES.invalidCoordinate, {COORDINATE: block.value}),
+                converter._translator(POSITION_MESSAGES.invalidCoordinate, { COORDINATE: block.value }),
             );
         };
         const checkY = checkX;
-        converter.registerOnSend(Koshien, 'position', 2, params => {
-            const {receiver, args} = params;
+        converter.registerOnSend(Koshien, 'position', 2, (params) => {
+            const { receiver, args } = params;
 
             if (!checkX(args[0])) return null;
             if (!checkY(args[1])) return null;
@@ -376,8 +375,8 @@ const KoshienConverter = {
             return block;
         });
 
-        converter.registerOnSend(Koshien, 'position_of_x', 1, params => {
-            const {receiver, args} = params;
+        converter.registerOnSend(Koshien, 'position_of_x', 1, (params) => {
+            const { receiver, args } = params;
 
             if (!checkPosition(args[0])) return null;
 
@@ -387,8 +386,8 @@ const KoshienConverter = {
             return block;
         });
 
-        converter.registerOnSend(Koshien, 'position_of_y', 1, params => {
-            const {receiver, args} = params;
+        converter.registerOnSend(Koshien, 'position_of_y', 1, (params) => {
+            const { receiver, args } = params;
 
             if (!checkPosition(args[0])) return null;
 
@@ -398,8 +397,8 @@ const KoshienConverter = {
             return block;
         });
 
-        converter.registerOnSend(Koshien, 'object', 1, params => {
-            const {receiver, args} = params;
+        converter.registerOnSend(Koshien, 'object', 1, (params) => {
+            const { receiver, args } = params;
 
             if (!converter.isString(args[0])) return null;
 
@@ -408,8 +407,8 @@ const KoshienConverter = {
             return block;
         });
 
-        converter.registerOnSend(Koshien, 'set_message', 1, params => {
-            const {receiver, args} = params;
+        converter.registerOnSend(Koshien, 'set_message', 1, (params) => {
+            const { receiver, args } = params;
 
             if (!converter.isStringOrBlock(args[0])) return null;
 
@@ -417,7 +416,7 @@ const KoshienConverter = {
             converter.addTextInput(block, 'MESSAGE', args[0], 'hello');
             return block;
         });
-    }
+    },
 };
 
 export default KoshienConverter;

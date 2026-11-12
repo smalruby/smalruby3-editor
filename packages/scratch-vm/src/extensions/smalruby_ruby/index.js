@@ -4,11 +4,7 @@ const translations = require('./translations.json');
 
 const { getBlocks, menus } = require('./block-definitions');
 
-const {
-    executeStringMethod,
-    executeArrayMethod,
-    executeHashMethod,
-} = require('./method-executors');
+const { executeStringMethod, executeArrayMethod, executeHashMethod } = require('./method-executors');
 
 const {
     executeArrayMethodWithBlock,
@@ -21,10 +17,7 @@ const blockIconURI = require('./ruby-logo-icon-uri');
 const setupTranslations = () => {
     const localeSetup = formatMessage.setup();
     if (localeSetup && localeSetup.translations[localeSetup.locale]) {
-        Object.assign(
-            localeSetup.translations[localeSetup.locale],
-            translations[localeSetup.locale],
-        );
+        Object.assign(localeSetup.translations[localeSetup.locale], translations[localeSetup.locale]);
     }
 };
 
@@ -88,13 +81,7 @@ class SmalrubyRubyBlocks {
     returnValueTruthy(_args, util) {
         const rv = util.thread._smalrubyReturnValue;
         // Ruby truthiness: nil and false are falsy, everything else is truthy
-        if (
-            rv === null ||
-            rv === undefined ||
-            rv === false ||
-            rv === 'false' ||
-            rv === ''
-        ) {
+        if (rv === null || rv === undefined || rv === false || rv === 'false' || rv === '') {
             return false;
         }
         return true;
@@ -142,9 +129,7 @@ class SmalrubyRubyBlocks {
     getVariableNamesMenuItems() {
         const sprite = this.runtime.getEditingTarget();
         if (!sprite) return [' '];
-        return [' '].concat(
-            sprite.getAllVariableNamesInScopeByType(Variable.SCALAR_TYPE),
-        );
+        return [' '].concat(sprite.getAllVariableNamesInScopeByType(Variable.SCALAR_TYPE));
     }
 }
 

@@ -22,7 +22,7 @@ export default function (Generator) {
         return [n, order];
     };
 
-    ['math_integer', 'math_whole_number', 'math_positive_number', 'math_angle'].forEach(name => {
+    ['math_integer', 'math_whole_number', 'math_positive_number', 'math_angle'].forEach((name) => {
         Generator[name] = Generator.math_number;
     });
 

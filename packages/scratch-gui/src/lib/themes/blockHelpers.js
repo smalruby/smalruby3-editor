@@ -1,19 +1,19 @@
-import {DEFAULT_THEME, getColorsForTheme, themeMap} from '.';
+import { DEFAULT_THEME, getColorsForTheme, themeMap } from '.';
 
-const getBlockIconURI = extensionIcons => {
+const getBlockIconURI = (extensionIcons) => {
     if (!extensionIcons) return null;
 
     return extensionIcons.blockIconURI || extensionIcons.menuIconURI;
 };
 
-const getCategoryIconURI = extensionIcons => {
+const getCategoryIconURI = (extensionIcons) => {
     if (!extensionIcons) return null;
 
     return extensionIcons.menuIconURI || extensionIcons.blockIconURI;
 };
 
 // scratch-blocks colours has a pen property that scratch-gui uses for all extensions
-const getExtensionColors = theme => getColorsForTheme(theme).pen;
+const getExtensionColors = (theme) => getColorsForTheme(theme).pen;
 
 /**
  * Applies extension color theme to categories.
@@ -33,7 +33,7 @@ const injectExtensionCategoryTheme = (dynamicBlockXML, theme) => {
     const parser = new DOMParser();
     const serializer = new XMLSerializer();
 
-    return dynamicBlockXML.map(extension => {
+    return dynamicBlockXML.map((extension) => {
         const dom = parser.parseFromString(extension.xml, 'text/xml');
 
         dom.documentElement.setAttribute('colour', extensionColors.primary);
@@ -47,15 +47,15 @@ const injectExtensionCategoryTheme = (dynamicBlockXML, theme) => {
 
         return {
             ...extension,
-            xml: serializer.serializeToString(dom)
+            xml: serializer.serializeToString(dom),
         };
     });
 };
 
 const injectBlockIcons = (blockInfoJson, theme) => {
     // Block icons are the first element of `args0`
-    if (!blockInfoJson.args0 || blockInfoJson.args0.length < 1 ||
-        blockInfoJson.args0[0].type !== 'field_image') return blockInfoJson;
+    if (!blockInfoJson.args0 || blockInfoJson.args0.length < 1 || blockInfoJson.args0[0].type !== 'field_image')
+        return blockInfoJson;
 
     const extensionIcons = themeMap[theme].extensions;
     const extensionId = blockInfoJson.type.substring(0, blockInfoJson.type.indexOf('_'));
@@ -70,9 +70,9 @@ const injectBlockIcons = (blockInfoJson, theme) => {
 
             return {
                 ...value,
-                src: blockIconURI
+                src: blockIconURI,
             };
-        })
+        }),
     };
 };
 
@@ -94,11 +94,8 @@ const injectExtensionBlockTheme = (blockInfoJson, theme) => {
         colour: extensionColors.primary,
         colourSecondary: extensionColors.secondary,
         colourTertiary: extensionColors.tertiary,
-        colourQuaternary: extensionColors.quaternary
+        colourQuaternary: extensionColors.quaternary,
     };
 };
 
-export {
-    injectExtensionBlockTheme,
-    injectExtensionCategoryTheme
-};
+export { injectExtensionBlockTheme, injectExtensionCategoryTheme };

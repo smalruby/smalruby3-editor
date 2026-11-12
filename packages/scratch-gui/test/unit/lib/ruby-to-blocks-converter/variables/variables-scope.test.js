@@ -5,7 +5,7 @@ describe('RubyToBlocksConverter/Variables', () => {
     let target;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
     });
 
@@ -18,29 +18,29 @@ describe('RubyToBlocksConverter/Variables', () => {
                 id: 'stage',
                 isStage: true,
                 variables: {
-                    'global_var_id': {
+                    global_var_id: {
                         id: 'global_var_id',
                         name: 'global_variable',
-                        type: ''
-                    }
-                }
+                        type: '',
+                    },
+                },
             };
             mockTarget = {
                 id: 'sprite1',
                 isStage: false,
                 variables: {
-                    'instance_var_id': {
+                    instance_var_id: {
                         id: 'instance_var_id',
                         name: 'instance_variable',
-                        type: ''
-                    }
-                }
+                        type: '',
+                    },
+                },
             };
             const vm = {
                 runtime: {
                     getTargetForStage: () => stageTarget,
-                    getEditingTarget: () => mockTarget
-                }
+                    getEditingTarget: () => mockTarget,
+                },
             };
             converter = new RubyToBlocksConverter(vm);
         });
@@ -49,7 +49,9 @@ describe('RubyToBlocksConverter/Variables', () => {
             const code = '@global_variable = 0';
             const res = await converter.targetCodeToBlocks(mockTarget, code);
             expect(converter.errors).toHaveLength(1);
-            expect(converter.errors[0].text).toBe('"@global_variable", can\'t change variable scope.\nDelete the variable first, then recreate it with the correct scope.');
+            expect(converter.errors[0].text).toBe(
+                '"@global_variable", can\'t change variable scope.\nDelete the variable first, then recreate it with the correct scope.',
+            );
             expect(res).toBeFalsy();
         });
 
@@ -57,7 +59,9 @@ describe('RubyToBlocksConverter/Variables', () => {
             const code = '$instance_variable = 0';
             const res = await converter.targetCodeToBlocks(mockTarget, code);
             expect(converter.errors).toHaveLength(1);
-            expect(converter.errors[0].text).toBe('"$instance_variable", can\'t change variable scope.\nDelete the variable first, then recreate it with the correct scope.');
+            expect(converter.errors[0].text).toBe(
+                '"$instance_variable", can\'t change variable scope.\nDelete the variable first, then recreate it with the correct scope.',
+            );
             expect(res).toBeFalsy();
         });
 
@@ -79,7 +83,9 @@ describe('RubyToBlocksConverter/Variables', () => {
             const code = '@global_variable';
             const res = await converter.targetCodeToBlocks(mockTarget, code);
             expect(converter.errors).toHaveLength(1);
-            expect(converter.errors[0].text).toBe('"@global_variable", can\'t change variable scope.\nDelete the variable first, then recreate it with the correct scope.');
+            expect(converter.errors[0].text).toBe(
+                '"@global_variable", can\'t change variable scope.\nDelete the variable first, then recreate it with the correct scope.',
+            );
             expect(res).toBeFalsy();
         });
 
@@ -96,7 +102,7 @@ describe('RubyToBlocksConverter/Variables', () => {
             const code = 'var_x = 10';
             const res = await converter.targetCodeToBlocks(target, code);
             expect(res).toBeTruthy();
-            const setVarBlock = Object.values(converter.blocks).find(b => b.opcode === 'data_setvariableto');
+            const setVarBlock = Object.values(converter.blocks).find((b) => b.opcode === 'data_setvariableto');
             expect(setVarBlock).toBeDefined();
             expect(setVarBlock.fields.VARIABLE.value).toBe('_var_x_1_');
         });
@@ -105,7 +111,7 @@ describe('RubyToBlocksConverter/Variables', () => {
             const code = 'def test; var_y = 20; end';
             const res = await converter.targetCodeToBlocks(target, code);
             expect(res).toBeTruthy();
-            const setVarBlock = Object.values(converter.blocks).find(b => b.opcode === 'data_setvariableto');
+            const setVarBlock = Object.values(converter.blocks).find((b) => b.opcode === 'data_setvariableto');
             expect(setVarBlock).toBeDefined();
             expect(setVarBlock.fields.VARIABLE.value).toBe('_var_y_2_');
         });

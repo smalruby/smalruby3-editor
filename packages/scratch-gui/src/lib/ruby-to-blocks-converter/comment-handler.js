@@ -12,7 +12,7 @@ const CommentHandler = {
      * @param {string} sourceCode - The original source code
      * @returns {Array<object>} Array of comment objects with type, text, line, isTrailing
      */
-    _extractSourceComments (parseResult, sourceCode) {
+    _extractSourceComments(parseResult, sourceCode) {
         if (!parseResult.comments || parseResult.comments.length === 0) {
             return [];
         }
@@ -30,7 +30,7 @@ const CommentHandler = {
                 lineStarts.push(i + 1);
             }
         }
-        const offsetToLine = offset => {
+        const offsetToLine = (offset) => {
             for (let i = lineStarts.length - 1; i >= 0; i--) {
                 if (offset >= lineStarts[i]) {
                     return i + 1; // 1-based line numbers
@@ -39,7 +39,7 @@ const CommentHandler = {
             return 1;
         };
 
-        return parseResult.comments.map(comment => {
+        return parseResult.comments.map((comment) => {
             const startByte = comment.location.startOffset;
             const lengthBytes = comment.location.length;
             // Convert byte offsets to char offsets using shared mapping
@@ -69,7 +69,7 @@ const CommentHandler = {
                 }
             }
 
-            return {type, text, line, startOffset: startCharOffset, endOffset: endCharOffset, isTrailing};
+            return { type, text, line, startOffset: startCharOffset, endOffset: endCharOffset, isTrailing };
         });
     },
 
@@ -79,7 +79,7 @@ const CommentHandler = {
      * @param {object} parseResult - The prism parse result
      * @param {string} sourceCode - The original source code
      */
-    _associateSourceComments (parseResult, sourceCode) {
+    _associateSourceComments(parseResult, sourceCode) {
         const sourceComments = this._extractSourceComments(parseResult, sourceCode);
         if (sourceComments.length === 0) {
             return;
@@ -108,14 +108,12 @@ const CommentHandler = {
             const range = endLine - startLine;
             const isInput = inputBlockIds.has(blockId);
             const existing = lineStartBlockMap.get(startLine);
-            if (!existing ||
-                range < existing.range ||
-                (range === existing.range && !isInput && existing.isInput)) {
-                lineStartBlockMap.set(startLine, {blockId, range, isInput});
+            if (!existing || range < existing.range || (range === existing.range && !isInput && existing.isInput)) {
+                lineStartBlockMap.set(startLine, { blockId, range, isInput });
             }
         }
 
-        const findBlockForLine = line => {
+        const findBlockForLine = (line) => {
             const entry = lineStartBlockMap.get(line);
             return entry ? entry.blockId : null;
         };
@@ -126,26 +124,25 @@ const CommentHandler = {
         for (const comment of sourceComments) {
             if (comment.isTrailing) {
                 // Trailing comments are always individual
-                groups.push({comments: [comment], isTrailing: true});
+                groups.push({ comments: [comment], isTrailing: true });
                 currentGroup = null;
             } else if (currentGroup && comment.line === currentGroup.endLine + 1) {
                 // Consecutive comment on next line
                 currentGroup.comments.push(comment);
                 currentGroup.endLine = comment.line;
             } else {
-                currentGroup = {comments: [comment], isTrailing: false, endLine: comment.line};
+                currentGroup = { comments: [comment], isTrailing: false, endLine: comment.line };
                 groups.push(currentGroup);
             }
         }
 
         for (const group of groups) {
-            const text = group.comments.map(c => c.text).join('\n');
+            const text = group.comments.map((c) => c.text).join('\n');
 
             if (group.isTrailing) {
                 // Trailing (inline) comment: attach to block on the same line
                 const comment = group.comments[0];
-                const blockId = findBlockForLine(comment.line) ||
-                    this._findBlockIdForLine(comment.line);
+                const blockId = findBlockForLine(comment.line) || this._findBlockIdForLine(comment.line);
                 if (blockId) {
                     this._mergeUserComment(blockId, text, true);
                 } else {
@@ -160,16 +157,13 @@ const CommentHandler = {
                 // DefNode is excluded: comments before def are attached to the
                 // procedures_definition block so they appear inside the class.
                 const containerRange = this._context.containerNodeRanges.find(
-                    r => r.startLine === nextCodeLine &&
-                        (r.type === 'ClassNode' || r.type === 'ModuleNode')
+                    (r) => r.startLine === nextCodeLine && (r.type === 'ClassNode' || r.type === 'ModuleNode'),
                 );
                 if (containerRange) {
                     // For modules, include @ruby:module:Name metadata so
                     // the generator can place the comment before the module code
                     if (containerRange.type === 'ModuleNode' && containerRange.moduleName) {
-                        this._createComment(
-                            `${text}\n@ruby:module:${containerRange.moduleName}`, null
-                        );
+                        this._createComment(`${text}\n@ruby:module:${containerRange.moduleName}`, null);
                     } else {
                         this._createComment(text, null);
                     }
@@ -183,13 +177,12 @@ const CommentHandler = {
                         let found = false;
                         for (let scanLine = nextCodeLine + 1; scanLine <= nextCodeLine + 5; scanLine++) {
                             const hitContainer = this._context.containerNodeRanges.some(
-                                r => r.startLine === scanLine &&
-                                    (r.type === 'ClassNode' || r.type === 'ModuleNode' ||
-                                        r.type === 'DefNode')
+                                (r) =>
+                                    r.startLine === scanLine &&
+                                    (r.type === 'ClassNode' || r.type === 'ModuleNode' || r.type === 'DefNode'),
                             );
                             if (hitContainer) break;
-                            const scanBlockId = findBlockForLine(scanLine) ||
-                                this._findBlockIdForLine(scanLine);
+                            const scanBlockId = findBlockForLine(scanLine) || this._findBlockIdForLine(scanLine);
                             if (scanBlockId) {
                                 this._mergeUserComment(scanBlockId, text, false);
                                 found = true;
@@ -212,7 +205,7 @@ const CommentHandler = {
      * @param {number} line - 1-based line number
      * @returns {string|null} The block ID, or null if not found
      */
-    _findBlockIdForLine (line) {
+    _findBlockIdForLine(line) {
         const entry = this._context.lineToNodeMap.get(line);
         if (!entry) {
             return null;
@@ -228,7 +221,7 @@ const CommentHandler = {
      * @param {string} userText - The user comment text
      * @param {boolean} isInline - Whether this is an inline (trailing) comment
      */
-    _mergeUserComment (blockId, userText, isInline) {
+    _mergeUserComment(blockId, userText, isInline) {
         const block = this._context.blocks[blockId];
         if (!block) {
             return;
@@ -247,7 +240,7 @@ const CommentHandler = {
             const existingComment = this._context.comments[block.comment];
             if (existingComment) {
                 const lines = existingComment.text.split('\n');
-                const metadataLines = lines.filter(l => l.startsWith('@ruby:'));
+                const metadataLines = lines.filter((l) => l.startsWith('@ruby:'));
                 if (isInline && !metadataLines.includes(inlineMarker)) {
                     metadataLines.unshift(inlineMarker);
                 }
@@ -259,7 +252,7 @@ const CommentHandler = {
             const commentText = isInline ? `${userText}\n${inlineMarker}` : userText;
             block.comment = this._createComment(commentText, block.id);
         }
-    }
+    },
 };
 
 export default CommentHandler;

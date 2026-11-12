@@ -1,6 +1,6 @@
-import RubyToBlocksConverter from '../../../../../src/lib/ruby-to-blocks-converter';
-import Variable from '@smalruby/scratch-vm/src/engine/variable';
 import Blocks from '@smalruby/scratch-vm/src/engine/blocks';
+import Variable from '@smalruby/scratch-vm/src/engine/variable';
+import RubyToBlocksConverter from '../../../../../src/lib/ruby-to-blocks-converter';
 
 describe('RubyToBlocksConverter/Method Return', () => {
     let converter;
@@ -9,7 +9,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
     beforeEach(() => {
         const runtime = {
             emitProjectChanged: () => {},
-            getTargetForStage: () => target
+            getTargetForStage: () => target,
         };
         target = {
             blocks: new Blocks(runtime),
@@ -39,17 +39,17 @@ describe('RubyToBlocksConverter/Method Return', () => {
                     y: y,
                     width: width,
                     height: height,
-                    minimized: minimized
+                    minimized: minimized,
                 };
-            }
+            },
         };
         const vm = {
             runtime: runtime,
             emitWorkspaceUpdate: () => {},
             extensionManager: {
                 isExtensionLoaded: () => true,
-                loadExtensionURL: () => Promise.resolve()
-            }
+                loadExtensionURL: () => Promise.resolve(),
+            },
         };
         converter = new RubyToBlocksConverter(vm);
         converter._context.target = target;
@@ -70,7 +70,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
             expect(result).toBe(true);
 
             // Find the procedures_call block
-            const proceduresCall = Object.values(converter.blocks).find(b => b.opcode === 'procedures_call');
+            const proceduresCall = Object.values(converter.blocks).find((b) => b.opcode === 'procedures_call');
             expect(proceduresCall).toBeDefined();
             expect(proceduresCall.comment).toBeUndefined();
         });
@@ -89,7 +89,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
             expect(result).toBe(true);
 
             // Find the procedures_call block
-            const proceduresCall = Object.values(converter.blocks).find(b => b.opcode === 'procedures_call');
+            const proceduresCall = Object.values(converter.blocks).find((b) => b.opcode === 'procedures_call');
             expect(proceduresCall).toBeDefined();
             expect(proceduresCall.comment).toBeDefined();
             const comment = converter._context.comments[proceduresCall.comment];
@@ -108,14 +108,14 @@ describe('RubyToBlocksConverter/Method Return', () => {
             expect(result).toBe(true);
 
             // Should have a procedures_call block with @ruby:return comment
-            const proceduresCall = Object.values(converter.blocks).find(b => b.opcode === 'procedures_call');
+            const proceduresCall = Object.values(converter.blocks).find((b) => b.opcode === 'procedures_call');
             expect(proceduresCall).toBeDefined();
             expect(proceduresCall.comment).toBeDefined();
             const callComment = converter._context.comments[proceduresCall.comment];
             expect(callComment.text).toBe('@ruby:return:add');
 
             // The value input of say should be a data_variable block with @ruby:return:add comment
-            const sayBlock = Object.values(converter.blocks).find(b => b.opcode === 'looks_say');
+            const sayBlock = Object.values(converter.blocks).find((b) => b.opcode === 'looks_say');
             expect(sayBlock).toBeDefined();
             const valueBlockId = sayBlock.inputs.MESSAGE.block;
             const valueBlock = converter.blocks[valueBlockId];
@@ -145,7 +145,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
             const blocks = converter.blocks;
 
             // Verify the chain: hat -> add(1, 5) -> evacuation -> add(?, 3) -> say(?)
-            const hatBlock = Object.values(blocks).find(b => b.opcode === 'event_whenflagclicked');
+            const hatBlock = Object.values(blocks).find((b) => b.opcode === 'event_whenflagclicked');
             const firstCallId = hatBlock.next;
             const firstCall = blocks[firstCallId];
             expect(firstCall.opcode).toBe('procedures_call');
@@ -301,9 +301,11 @@ describe('RubyToBlocksConverter/Method Return', () => {
             const blocks = converter.blocks;
 
             // Find blocks by comment to verify their presence and order
-            const firstCall = Object.values(blocks).find(b =>
-                b.opcode === 'procedures_call' &&
-                b.comment && converter._context.comments[b.comment].text === '@ruby:return:add:1'
+            const firstCall = Object.values(blocks).find(
+                (b) =>
+                    b.opcode === 'procedures_call' &&
+                    b.comment &&
+                    converter._context.comments[b.comment].text === '@ruby:return:add:1',
             );
             expect(firstCall).toBeDefined();
 
@@ -355,9 +357,11 @@ describe('RubyToBlocksConverter/Method Return', () => {
             const blocks = converter.blocks;
 
             // add(1, 2) -> index 1
-            const firstCall = Object.values(blocks).find(b =>
-                b.opcode === 'procedures_call' &&
-                b.comment && converter._context.comments[b.comment].text === '@ruby:return:add:1'
+            const firstCall = Object.values(blocks).find(
+                (b) =>
+                    b.opcode === 'procedures_call' &&
+                    b.comment &&
+                    converter._context.comments[b.comment].text === '@ruby:return:add:1',
             );
             expect(firstCall).toBeDefined();
 

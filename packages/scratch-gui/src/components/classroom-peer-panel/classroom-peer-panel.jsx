@@ -196,14 +196,8 @@ const ClassroomPeerPanel = ({
                         </HeaderButton>
                     </div>
                     {minimized ? null : (
-                        <div
-                            className={frameStyles.body}
-                            data-testid="classroom-peer-panel-body"
-                        >
-                            <p
-                                className={styles.hint}
-                                data-testid="classroom-peer-panel-hint"
-                            >
+                        <div className={frameStyles.body} data-testid="classroom-peer-panel-body">
+                            <p className={styles.hint} data-testid="classroom-peer-panel-hint">
                                 <FormattedMessage
                                     defaultMessage="Don't copy — find good ideas and use them in your own work."
                                     description="Peer view panel: guidance for students (#1210)"
@@ -220,14 +214,8 @@ const ClassroomPeerPanel = ({
                                 </div>
                             ) : (
                                 <React.Fragment>
-                                    <div
-                                        className={styles.summary}
-                                        data-testid="classroom-peer-panel-count"
-                                    >
-                                        <ClassroomStatusIcon
-                                            size={12}
-                                            status="submitted"
-                                        />
+                                    <div className={styles.summary} data-testid="classroom-peer-panel-count">
+                                        <ClassroomStatusIcon size={12} status="submitted" />
                                         <FormattedMessage
                                             defaultMessage="Submitted: {count}"
                                             description="Peer view panel: number of classmates' submissions (#1210)"
@@ -236,10 +224,7 @@ const ClassroomPeerPanel = ({
                                         />
                                     </div>
                                     {seats.length === 0 && !loading ? (
-                                        <div
-                                            className={frameStyles.empty}
-                                            data-testid="classroom-peer-panel-empty"
-                                        >
+                                        <div className={frameStyles.empty} data-testid="classroom-peer-panel-empty">
                                             <FormattedMessage
                                                 defaultMessage="No one has submitted yet."
                                                 description="Peer view panel: no submissions yet (#1210)"
@@ -247,10 +232,7 @@ const ClassroomPeerPanel = ({
                                             />
                                         </div>
                                     ) : (
-                                        <div
-                                            className={frameStyles.grid}
-                                            data-testid="classroom-peer-panel-grid"
-                                        >
+                                        <div className={frameStyles.grid} data-testid="classroom-peer-panel-grid">
                                             {seats.map((seat) => (
                                                 <button
                                                     className={classNames(frameStyles.seat, {
@@ -267,10 +249,7 @@ const ClassroomPeerPanel = ({
                                                 >
                                                     <span className={frameStyles.seatNumber}>{seat.seatNumber}</span>
                                                     {seat.submitted ? (
-                                                        <ClassroomStatusIcon
-                                                            size={8}
-                                                            status="submitted"
-                                                        />
+                                                        <ClassroomStatusIcon size={8} status="submitted" />
                                                     ) : null}
                                                 </button>
                                             ))}
@@ -313,10 +292,7 @@ const ClassroomPeerPanel = ({
                             </HeaderButton>
                         </div>
                         <div className={styles.viewerBody}>
-                            <ImageViewer
-                                images={images}
-                                key={selectedSeat}
-                            />
+                            <ImageViewer images={images} key={selectedSeat} />
                         </div>
                     </div>
                 </Draggable>

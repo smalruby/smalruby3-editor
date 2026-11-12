@@ -2,35 +2,35 @@ import RubyGenerator from '../../../../src/lib/ruby-generator';
 
 describe('RubyGenerator/Class', () => {
     beforeEach(() => {
-        RubyGenerator.init({version: '2'});
+        RubyGenerator.init({ version: '2' });
         RubyGenerator.definitions_ = {};
         RubyGenerator.requires_ = {};
         RubyGenerator.prepares_ = {};
         // Reset cache
         RubyGenerator.cache_ = {
             targetCommentTexts: [],
-            comments: {}
+            comments: {},
         };
     });
 
     const makeMockTarget = (name, index = 1) => {
         const targets = [];
-        const stage = {isStage: true};
+        const stage = { isStage: true };
         for (let i = 0; i < index; i++) {
-            targets.push({isStage: false, sprite: {name: `OtherSprite${i + 1}`}});
+            targets.push({ isStage: false, sprite: { name: `OtherSprite${i + 1}` } });
         }
         const target = targets[index - 1];
-        target.sprite = {name: name};
+        target.sprite = { name: name };
         targets.unshift(stage);
         return {
             target,
-            runtime: {targets}
+            runtime: { targets },
         };
     };
 
     describe('@ruby:class comment wrapping', () => {
         test('@ruby:class wraps code with class Sprite%index%', () => {
-            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            const { target, runtime } = makeMockTarget('Sprite1', 1);
             target.runtime = runtime;
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class'];
@@ -46,7 +46,7 @@ describe('RubyGenerator/Class', () => {
         });
 
         test('@ruby:class:name wraps code with class using sprite name (uppercase start)', () => {
-            const {target, runtime} = makeMockTarget('Cat', 1);
+            const { target, runtime } = makeMockTarget('Cat', 1);
             target.runtime = runtime;
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:name'];
@@ -60,7 +60,7 @@ describe('RubyGenerator/Class', () => {
         });
 
         test('@ruby:class:name with non-uppercase sprite name generates set_name', () => {
-            const {target, runtime} = makeMockTarget('ネコ', 1);
+            const { target, runtime } = makeMockTarget('ネコ', 1);
             target.runtime = runtime;
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:name'];
@@ -75,11 +75,11 @@ describe('RubyGenerator/Class', () => {
 
         test('@ruby:class:name with sprite at index 2', () => {
             // Create a runtime with multiple sprites
-            const stage = {isStage: true};
-            const sprite1 = {isStage: false, sprite: {name: 'Sprite1'}};
-            const sprite2 = {isStage: false, sprite: {name: 'ネコ'}};
+            const stage = { isStage: true };
+            const sprite1 = { isStage: false, sprite: { name: 'Sprite1' } };
+            const sprite2 = { isStage: false, sprite: { name: 'ネコ' } };
             const targets = [stage, sprite1, sprite2];
-            sprite2.runtime = {targets};
+            sprite2.runtime = { targets };
             RubyGenerator.currentTarget_ = sprite2;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:name'];
 
@@ -91,7 +91,7 @@ describe('RubyGenerator/Class', () => {
         });
 
         test('@ruby:class:name=Cat with different sprite name generates set_name', () => {
-            const {target, runtime} = makeMockTarget('ネコ', 1);
+            const { target, runtime } = makeMockTarget('ネコ', 1);
             target.runtime = runtime;
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:name=Cat'];
@@ -107,7 +107,7 @@ describe('RubyGenerator/Class', () => {
         });
 
         test('@ruby:class:name=Cat with same sprite name does not generate set_name', () => {
-            const {target, runtime} = makeMockTarget('Cat', 1);
+            const { target, runtime } = makeMockTarget('Cat', 1);
             target.runtime = runtime;
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:name=Cat'];
@@ -120,7 +120,7 @@ describe('RubyGenerator/Class', () => {
         });
 
         test('@ruby:class:name=Cat,x,y uses Cat and generates set_xxx', () => {
-            const {target, runtime} = makeMockTarget('ネコ', 1);
+            const { target, runtime } = makeMockTarget('ネコ', 1);
             target.runtime = runtime;
             target.x = 100;
             target.y = -50;
@@ -154,7 +154,7 @@ describe('RubyGenerator/Class', () => {
         });
 
         test('@ruby:class with empty code', () => {
-            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            const { target, runtime } = makeMockTarget('Sprite1', 1);
             target.runtime = runtime;
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class'];
@@ -166,7 +166,7 @@ describe('RubyGenerator/Class', () => {
         });
 
         test('other target comments are preserved alongside @ruby:class', () => {
-            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            const { target, runtime } = makeMockTarget('Sprite1', 1);
             target.runtime = runtime;
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class', 'some user comment'];
@@ -183,7 +183,7 @@ describe('RubyGenerator/Class', () => {
 
     describe('set_xxx method generation', () => {
         test('@ruby:class:x,y outputs only set_x and set_y', () => {
-            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            const { target, runtime } = makeMockTarget('Sprite1', 1);
             target.runtime = runtime;
             target.x = 100;
             target.y = -50;
@@ -208,7 +208,7 @@ describe('RubyGenerator/Class', () => {
         });
 
         test('@ruby:class:direction outputs only set_direction', () => {
-            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            const { target, runtime } = makeMockTarget('Sprite1', 1);
             target.runtime = runtime;
             target.x = 100;
             target.y = -50;
@@ -231,7 +231,7 @@ describe('RubyGenerator/Class', () => {
         });
 
         test('@ruby:class:visible outputs set_visible', () => {
-            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            const { target, runtime } = makeMockTarget('Sprite1', 1);
             target.runtime = runtime;
             target.x = 100;
             target.y = -50;
@@ -254,7 +254,7 @@ describe('RubyGenerator/Class', () => {
         });
 
         test('@ruby:class:size outputs set_size', () => {
-            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            const { target, runtime } = makeMockTarget('Sprite1', 1);
             target.runtime = runtime;
             target.x = 0;
             target.y = 0;
@@ -275,7 +275,7 @@ describe('RubyGenerator/Class', () => {
         });
 
         test('@ruby:class:rotation_style outputs set_rotation_style', () => {
-            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            const { target, runtime } = makeMockTarget('Sprite1', 1);
             target.runtime = runtime;
             target.x = 0;
             target.y = 0;
@@ -296,7 +296,7 @@ describe('RubyGenerator/Class', () => {
         });
 
         test('@ruby:class without attributes produces no set_xxx even with non-default values', () => {
-            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            const { target, runtime } = makeMockTarget('Sprite1', 1);
             target.runtime = runtime;
             target.x = 100;
             target.y = -50;
@@ -324,7 +324,7 @@ describe('RubyGenerator/Class', () => {
         });
 
         test('@ruby:class:x,y,direction outputs only listed attributes', () => {
-            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            const { target, runtime } = makeMockTarget('Sprite1', 1);
             target.runtime = runtime;
             target.x = 100;
             target.y = -50;
@@ -349,7 +349,7 @@ describe('RubyGenerator/Class', () => {
         });
 
         test('@ruby:class:name,x,y outputs set_name, set_x, set_y', () => {
-            const {target, runtime} = makeMockTarget('ネコ', 1);
+            const { target, runtime } = makeMockTarget('ネコ', 1);
             target.runtime = runtime;
             target.x = 100;
             target.y = -50;
@@ -376,10 +376,10 @@ describe('RubyGenerator/Class', () => {
 
     describe('set_sprite/set_costumes/set_sounds generation', () => {
         test('@ruby:class:sprite=Dog1 outputs set_sprite "Dog1"', () => {
-            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            const { target, runtime } = makeMockTarget('Sprite1', 1);
             target.runtime = runtime;
-            target.sprite.costumes = [{name: 'Dog1-a'}, {name: 'Dog1-b'}];
-            target.sprite.sounds = [{name: 'Dog1'}];
+            target.sprite.costumes = [{ name: 'Dog1-a' }, { name: 'Dog1-b' }];
+            target.sprite.sounds = [{ name: 'Dog1' }];
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:sprite=Dog1'];
 
@@ -392,7 +392,7 @@ describe('RubyGenerator/Class', () => {
         });
 
         test('@ruby:class:sprite=Dog1,x outputs set_sprite and set_x', () => {
-            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            const { target, runtime } = makeMockTarget('Sprite1', 1);
             target.runtime = runtime;
             target.x = 100;
             target.y = 0;
@@ -401,8 +401,8 @@ describe('RubyGenerator/Class', () => {
             target.size = 100;
             target.currentCostume = 0;
             target.rotationStyle = 'all around';
-            target.sprite.costumes = [{name: 'Dog1-a'}];
-            target.sprite.sounds = [{name: 'Dog1'}];
+            target.sprite.costumes = [{ name: 'Dog1-a' }];
+            target.sprite.sounds = [{ name: 'Dog1' }];
             target.variables = {};
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:sprite=Dog1,x'];
@@ -415,9 +415,9 @@ describe('RubyGenerator/Class', () => {
         });
 
         test('@ruby:class:costumes outputs set_costumes with array', () => {
-            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            const { target, runtime } = makeMockTarget('Sprite1', 1);
             target.runtime = runtime;
-            target.sprite.costumes = [{name: 'Dog1-a'}, {name: 'Dog1-b'}];
+            target.sprite.costumes = [{ name: 'Dog1-a' }, { name: 'Dog1-b' }];
             target.sprite.sounds = [];
             target.variables = {};
             RubyGenerator.currentTarget_ = target;
@@ -431,10 +431,10 @@ describe('RubyGenerator/Class', () => {
         });
 
         test('@ruby:class:sounds outputs set_sounds with array', () => {
-            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            const { target, runtime } = makeMockTarget('Sprite1', 1);
             target.runtime = runtime;
             target.sprite.costumes = [];
-            target.sprite.sounds = [{name: 'Dog1'}, {name: 'Dog2'}];
+            target.sprite.sounds = [{ name: 'Dog1' }, { name: 'Dog2' }];
             target.variables = {};
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:sounds'];
@@ -447,10 +447,10 @@ describe('RubyGenerator/Class', () => {
         });
 
         test('@ruby:class:costumes,sounds outputs both', () => {
-            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            const { target, runtime } = makeMockTarget('Sprite1', 1);
             target.runtime = runtime;
-            target.sprite.costumes = [{name: 'Dog1-a'}, {name: 'Dog1-b'}];
-            target.sprite.sounds = [{name: 'Dog1'}, {name: 'Dog2'}];
+            target.sprite.costumes = [{ name: 'Dog1-a' }, { name: 'Dog1-b' }];
+            target.sprite.sounds = [{ name: 'Dog1' }, { name: 'Dog2' }];
             target.variables = {};
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:costumes,sounds'];
@@ -463,10 +463,10 @@ describe('RubyGenerator/Class', () => {
         });
 
         test('@ruby:class without sprite/costumes/sounds does not output them', () => {
-            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            const { target, runtime } = makeMockTarget('Sprite1', 1);
             target.runtime = runtime;
-            target.sprite.costumes = [{name: 'Dog1-a'}];
-            target.sprite.sounds = [{name: 'Dog1'}];
+            target.sprite.costumes = [{ name: 'Dog1-a' }];
+            target.sprite.sounds = [{ name: 'Dog1' }];
             target.variables = {};
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class'];
@@ -482,14 +482,14 @@ describe('RubyGenerator/Class', () => {
 
     describe('top-level code outside class (version 2 file output)', () => {
         test('non-hat code after class end is commented out in version 2 file output', () => {
-            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            const { target, runtime } = makeMockTarget('Sprite1', 1);
             target.runtime = runtime;
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class'];
 
             // hat code + non-hat code (separated by blank line as in real output)
             const code = 'when_flag_clicked do\n  move(10)\nend\n\nmove(10)\n';
-            const result = RubyGenerator.finish(code, {withSpriteNew: true});
+            const result = RubyGenerator.finish(code, { withSpriteNew: true });
 
             expect(result).toContain('class Sprite1 < ::Smalruby3::Sprite');
             // hat code should be inside class
@@ -499,7 +499,7 @@ describe('RubyGenerator/Class', () => {
         });
 
         test('non-hat code is not commented out in Ruby tab (no withSpriteNew)', () => {
-            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            const { target, runtime } = makeMockTarget('Sprite1', 1);
             target.runtime = runtime;
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class'];
@@ -518,17 +518,17 @@ describe('RubyGenerator/Class', () => {
         const makeMockStageTarget = () => {
             const stage = {
                 isStage: true,
-                sprite: {name: 'Stage', costumes: [], sounds: []},
+                sprite: { name: 'Stage', costumes: [], sounds: [] },
                 currentCostume: 0,
-                variables: {}
+                variables: {},
             };
-            const runtime = {targets: [stage]};
+            const runtime = { targets: [stage] };
             stage.runtime = runtime;
-            return {target: stage, runtime};
+            return { target: stage, runtime };
         };
 
         test('@ruby:class on stage wraps code with class Stage', () => {
-            const {target} = makeMockStageTarget();
+            const { target } = makeMockStageTarget();
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class'];
 
@@ -541,7 +541,7 @@ describe('RubyGenerator/Class', () => {
         });
 
         test('@ruby:class:current_backdrop outputs set_current_backdrop', () => {
-            const {target} = makeMockStageTarget();
+            const { target } = makeMockStageTarget();
             target.currentCostume = 2;
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:current_backdrop'];
@@ -555,8 +555,8 @@ describe('RubyGenerator/Class', () => {
         });
 
         test('@ruby:class:backdrops outputs set_backdrops with array', () => {
-            const {target} = makeMockStageTarget();
-            target.sprite.costumes = [{name: 'Arctic'}, {name: 'Baseball 1'}];
+            const { target } = makeMockStageTarget();
+            target.sprite.costumes = [{ name: 'Arctic' }, { name: 'Baseball 1' }];
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:backdrops'];
 
@@ -569,8 +569,8 @@ describe('RubyGenerator/Class', () => {
         });
 
         test('@ruby:class:sounds outputs set_sounds for stage', () => {
-            const {target} = makeMockStageTarget();
-            target.sprite.sounds = [{name: 'Dog1'}, {name: 'Dog2'}];
+            const { target } = makeMockStageTarget();
+            target.sprite.sounds = [{ name: 'Dog1' }, { name: 'Dog2' }];
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:sounds'];
 
@@ -582,9 +582,9 @@ describe('RubyGenerator/Class', () => {
         });
 
         test('@ruby:class:backdrops,sounds outputs both for stage', () => {
-            const {target} = makeMockStageTarget();
-            target.sprite.costumes = [{name: 'Arctic'}, {name: 'Baseball 1'}];
-            target.sprite.sounds = [{name: 'Dog1'}];
+            const { target } = makeMockStageTarget();
+            target.sprite.costumes = [{ name: 'Arctic' }, { name: 'Baseball 1' }];
+            target.sprite.sounds = [{ name: 'Dog1' }];
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:backdrops,sounds'];
 
@@ -596,7 +596,7 @@ describe('RubyGenerator/Class', () => {
         });
 
         test('@ruby:class:name outputs set_name for stage', () => {
-            const {target} = makeMockStageTarget();
+            const { target } = makeMockStageTarget();
             target.sprite.name = 'ステージ';
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:name'];
@@ -609,10 +609,10 @@ describe('RubyGenerator/Class', () => {
         });
 
         test('@ruby:class without attributes produces no set_xxx for stage', () => {
-            const {target} = makeMockStageTarget();
+            const { target } = makeMockStageTarget();
             target.currentCostume = 2;
-            target.sprite.costumes = [{name: 'Arctic'}];
-            target.sprite.sounds = [{name: 'Dog1'}];
+            target.sprite.costumes = [{ name: 'Arctic' }];
+            target.sprite.sounds = [{ name: 'Dog1' }];
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class'];
 
@@ -627,27 +627,27 @@ describe('RubyGenerator/Class', () => {
         });
 
         test('stage without @ruby:class and withSpriteNew auto-wraps with class Stage in version 2', () => {
-            RubyGenerator.init({version: '2'});
-            const {target} = makeMockStageTarget();
+            RubyGenerator.init({ version: '2' });
+            const { target } = makeMockStageTarget();
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = [];
 
             const code = 'when_flag_clicked do\n  switch_backdrop("Arctic")\nend\n';
-            const result = RubyGenerator.finish(code, {withSpriteNew: true});
+            const result = RubyGenerator.finish(code, { withSpriteNew: true });
 
             expect(result).toContain('class Stage < ::Smalruby3::Sprite');
             expect(result).not.toContain('Stage.new');
         });
 
         test('@ruby:class with withSpriteNew keeps version 2 hat blocks inside class', () => {
-            RubyGenerator.init({version: '2'});
-            const {target} = makeMockStageTarget();
-            target.sprite.costumes = [{name: 'Arctic'}, {name: 'Baseball 1'}];
+            RubyGenerator.init({ version: '2' });
+            const { target } = makeMockStageTarget();
+            target.sprite.costumes = [{ name: 'Arctic' }, { name: 'Baseball 1' }];
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:backdrops'];
 
             const code = 'when_flag_clicked do\n  broadcast("message1")\nend\n';
-            const result = RubyGenerator.finish(code, {withSpriteNew: true});
+            const result = RubyGenerator.finish(code, { withSpriteNew: true });
 
             expect(result).toContain('class Stage < ::Smalruby3::Sprite');
             expect(result).toContain('  when_flag_clicked do');
@@ -656,12 +656,12 @@ describe('RubyGenerator/Class', () => {
         });
 
         test('empty stage code auto-wraps with class Stage in version 2', () => {
-            RubyGenerator.init({version: '2'});
-            const {target} = makeMockStageTarget();
+            RubyGenerator.init({ version: '2' });
+            const { target } = makeMockStageTarget();
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = [];
 
-            const result = RubyGenerator.finish('', {withSpriteNew: true});
+            const result = RubyGenerator.finish('', { withSpriteNew: true });
 
             // Empty stage should not produce any output
             expect(result).toEqual('');
@@ -670,8 +670,8 @@ describe('RubyGenerator/Class', () => {
 
     describe('v2 sprite auto-wrap (no @ruby:class, withSpriteNew)', () => {
         test('sprite without @ruby:class auto-wraps with class in version 2', () => {
-            RubyGenerator.init({version: '2'});
-            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            RubyGenerator.init({ version: '2' });
+            const { target, runtime } = makeMockTarget('Sprite1', 1);
             target.runtime = runtime;
             target.x = 0;
             target.y = 0;
@@ -681,14 +681,14 @@ describe('RubyGenerator/Class', () => {
             target.currentCostume = 0;
             target.rotationStyle = 'all around';
             target.isStage = false;
-            target.sprite.costumes = [{name: 'costume1'}];
+            target.sprite.costumes = [{ name: 'costume1' }];
             target.sprite.sounds = [];
             target.variables = {};
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = [];
 
             const code = 'when_flag_clicked do\n  move(10)\nend\n';
-            const result = RubyGenerator.finish(code, {withSpriteNew: true});
+            const result = RubyGenerator.finish(code, { withSpriteNew: true });
 
             expect(result).toContain('class Sprite1 < ::Smalruby3::Sprite');
             expect(result).not.toContain('Sprite.new');
@@ -697,8 +697,8 @@ describe('RubyGenerator/Class', () => {
         });
 
         test('sprite auto-wrap generates all non-default set_xxx', () => {
-            RubyGenerator.init({version: '2'});
-            const {target, runtime} = makeMockTarget('ネコ', 1);
+            RubyGenerator.init({ version: '2' });
+            const { target, runtime } = makeMockTarget('ネコ', 1);
             target.runtime = runtime;
             target.x = 100;
             target.y = -50;
@@ -708,14 +708,14 @@ describe('RubyGenerator/Class', () => {
             target.currentCostume = 2;
             target.rotationStyle = 'left-right';
             target.isStage = false;
-            target.sprite.costumes = [{name: 'Dog1-a'}, {name: 'Dog1-b'}];
-            target.sprite.sounds = [{name: 'Dog1'}];
+            target.sprite.costumes = [{ name: 'Dog1-a' }, { name: 'Dog1-b' }];
+            target.sprite.sounds = [{ name: 'Dog1' }];
             target.variables = {};
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = [];
 
             const code = 'when_flag_clicked do\n  move(10)\nend\n';
-            const result = RubyGenerator.finish(code, {withSpriteNew: true});
+            const result = RubyGenerator.finish(code, { withSpriteNew: true });
 
             expect(result).toContain('class Sprite1 < ::Smalruby3::Sprite');
             expect(result).toContain('set_name "ネコ"');
@@ -731,8 +731,8 @@ describe('RubyGenerator/Class', () => {
         });
 
         test('sprite auto-wrap uses uppercase sprite name as class name', () => {
-            RubyGenerator.init({version: '2'});
-            const {target, runtime} = makeMockTarget('Cat', 1);
+            RubyGenerator.init({ version: '2' });
+            const { target, runtime } = makeMockTarget('Cat', 1);
             target.runtime = runtime;
             target.x = 0;
             target.y = 0;
@@ -742,37 +742,37 @@ describe('RubyGenerator/Class', () => {
             target.currentCostume = 0;
             target.rotationStyle = 'all around';
             target.isStage = false;
-            target.sprite.costumes = [{name: 'costume1'}];
+            target.sprite.costumes = [{ name: 'costume1' }];
             target.sprite.sounds = [];
             target.variables = {};
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = [];
 
             const code = 'when_flag_clicked do\n  move(10)\nend\n';
-            const result = RubyGenerator.finish(code, {withSpriteNew: true});
+            const result = RubyGenerator.finish(code, { withSpriteNew: true });
 
             expect(result).toContain('class Cat < ::Smalruby3::Sprite');
             expect(result).not.toContain('set_name');
         });
 
         test('stage auto-wrap generates all non-default set_xxx', () => {
-            RubyGenerator.init({version: '2'});
+            RubyGenerator.init({ version: '2' });
             const stage = {
                 isStage: true,
                 sprite: {
                     name: 'ステージ',
-                    costumes: [{name: 'Arctic'}, {name: 'Baseball 1'}],
-                    sounds: [{name: 'Dog1'}]
+                    costumes: [{ name: 'Arctic' }, { name: 'Baseball 1' }],
+                    sounds: [{ name: 'Dog1' }],
                 },
                 currentCostume: 2,
-                variables: {}
+                variables: {},
             };
-            stage.runtime = {targets: [stage]};
+            stage.runtime = { targets: [stage] };
             RubyGenerator.currentTarget_ = stage;
             RubyGenerator.cache_.targetCommentTexts = [];
 
             const code = 'when_flag_clicked do\n  broadcast("message1")\nend\n';
-            const result = RubyGenerator.finish(code, {withSpriteNew: true});
+            const result = RubyGenerator.finish(code, { withSpriteNew: true });
 
             expect(result).toContain('class Stage < ::Smalruby3::Sprite');
             expect(result).toContain('set_name "ステージ"');
@@ -782,8 +782,8 @@ describe('RubyGenerator/Class', () => {
         });
 
         test('sprite auto-wrap with default values produces no set_xxx except costumes', () => {
-            RubyGenerator.init({version: '2'});
-            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            RubyGenerator.init({ version: '2' });
+            const { target, runtime } = makeMockTarget('Sprite1', 1);
             target.runtime = runtime;
             target.x = 0;
             target.y = 0;
@@ -793,14 +793,14 @@ describe('RubyGenerator/Class', () => {
             target.currentCostume = 0;
             target.rotationStyle = 'all around';
             target.isStage = false;
-            target.sprite.costumes = [{name: 'costume1'}];
+            target.sprite.costumes = [{ name: 'costume1' }];
             target.sprite.sounds = [];
             target.variables = {};
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = [];
 
             const code = 'when_flag_clicked do\n  move(10)\nend\n';
-            const result = RubyGenerator.finish(code, {withSpriteNew: true});
+            const result = RubyGenerator.finish(code, { withSpriteNew: true });
 
             expect(result).not.toContain('set_x');
             expect(result).not.toContain('set_y');
@@ -817,8 +817,8 @@ describe('RubyGenerator/Class', () => {
 
     describe('withSpriteNew (version 2)', () => {
         test('@ruby:class with version 2 still uses class format even with withSpriteNew', () => {
-            RubyGenerator.init({version: '2'});
-            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            RubyGenerator.init({ version: '2' });
+            const { target, runtime } = makeMockTarget('Sprite1', 1);
             target.runtime = runtime;
             target.x = 0;
             target.y = 0;
@@ -834,7 +834,7 @@ describe('RubyGenerator/Class', () => {
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class'];
 
             const code = 'when_flag_clicked do\n  move(10)\nend\n';
-            const result = RubyGenerator.finish(code, {withSpriteNew: true, version: '2'});
+            const result = RubyGenerator.finish(code, { withSpriteNew: true, version: '2' });
 
             expect(result).toContain('class Sprite1 < ::Smalruby3::Sprite');
             expect(result).not.toContain('Sprite.new');
@@ -843,7 +843,7 @@ describe('RubyGenerator/Class', () => {
 
     describe('superclass inheritance from <=', () => {
         test('<=//Smalruby3/Sprite outputs < ::Smalruby3::Sprite (non-file output)', () => {
-            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            const { target, runtime } = makeMockTarget('Sprite1', 1);
             target.runtime = runtime;
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:<=//Smalruby3/Sprite'];
@@ -855,7 +855,7 @@ describe('RubyGenerator/Class', () => {
         });
 
         test('<=Smalruby3/Sprite outputs < Smalruby3::Sprite (non-file output)', () => {
-            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            const { target, runtime } = makeMockTarget('Sprite1', 1);
             target.runtime = runtime;
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:<=Smalruby3/Sprite'];
@@ -867,7 +867,7 @@ describe('RubyGenerator/Class', () => {
         });
 
         test('<=Foo outputs < Foo (non-file output)', () => {
-            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            const { target, runtime } = makeMockTarget('Sprite1', 1);
             target.runtime = runtime;
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:<=Foo'];
@@ -879,7 +879,7 @@ describe('RubyGenerator/Class', () => {
         });
 
         test('<=Sprite outputs < Sprite (non-file output)', () => {
-            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            const { target, runtime } = makeMockTarget('Sprite1', 1);
             target.runtime = runtime;
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:<=Sprite'];
@@ -891,7 +891,7 @@ describe('RubyGenerator/Class', () => {
         });
 
         test('no <= omits superclass (non-file output)', () => {
-            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            const { target, runtime } = makeMockTarget('Sprite1', 1);
             target.runtime = runtime;
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class'];
@@ -904,7 +904,7 @@ describe('RubyGenerator/Class', () => {
         });
 
         test('<=//Smalruby3/Sprite in file output uses specified superclass', () => {
-            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            const { target, runtime } = makeMockTarget('Sprite1', 1);
             target.runtime = runtime;
             target.x = 0;
             target.y = 0;
@@ -920,13 +920,13 @@ describe('RubyGenerator/Class', () => {
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:<=//Smalruby3/Sprite'];
 
             const code = 'when_flag_clicked do\n  move(10)\nend\n';
-            const result = RubyGenerator.finish(code, {withSpriteNew: true, version: '2'});
+            const result = RubyGenerator.finish(code, { withSpriteNew: true, version: '2' });
 
             expect(result).toContain('class Sprite1 < ::Smalruby3::Sprite');
         });
 
         test('<=Foo in file output uses Foo as superclass', () => {
-            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            const { target, runtime } = makeMockTarget('Sprite1', 1);
             target.runtime = runtime;
             target.x = 0;
             target.y = 0;
@@ -942,13 +942,13 @@ describe('RubyGenerator/Class', () => {
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:<=Foo'];
 
             const code = 'when_flag_clicked do\n  move(10)\nend\n';
-            const result = RubyGenerator.finish(code, {withSpriteNew: true, version: '2'});
+            const result = RubyGenerator.finish(code, { withSpriteNew: true, version: '2' });
 
             expect(result).toContain('class Sprite1 < Foo');
         });
 
         test('no <= in file output defaults to ::Smalruby3::Sprite', () => {
-            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            const { target, runtime } = makeMockTarget('Sprite1', 1);
             target.runtime = runtime;
             target.x = 0;
             target.y = 0;
@@ -964,13 +964,13 @@ describe('RubyGenerator/Class', () => {
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class'];
 
             const code = 'when_flag_clicked do\n  move(10)\nend\n';
-            const result = RubyGenerator.finish(code, {withSpriteNew: true, version: '2'});
+            const result = RubyGenerator.finish(code, { withSpriteNew: true, version: '2' });
 
             expect(result).toContain('class Sprite1 < ::Smalruby3::Sprite');
         });
 
         test('<=Foo with other attributes preserves both', () => {
-            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            const { target, runtime } = makeMockTarget('Sprite1', 1);
             target.runtime = runtime;
             target.x = 10;
             RubyGenerator.currentTarget_ = target;
@@ -984,8 +984,8 @@ describe('RubyGenerator/Class', () => {
         });
 
         test('Stage class does not use <= (always no superclass in non-file output)', () => {
-            const stage = {isStage: true, sprite: {name: 'Stage'}};
-            const runtime = {targets: [stage]};
+            const stage = { isStage: true, sprite: { name: 'Stage' } };
+            const runtime = { targets: [stage] };
             stage.runtime = runtime;
             RubyGenerator.currentTarget_ = stage;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class'];

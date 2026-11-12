@@ -2,7 +2,7 @@ import RubyToBlocksConverter from '../../../../../src/lib/ruby-to-blocks-convert
 import {
     convertAndExpectToEqualBlocks,
     convertAndExpectRubyBlockError,
-    rubyToExpected
+    rubyToExpected,
 } from '../../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Operators', () => {
@@ -12,7 +12,7 @@ describe('RubyToBlocksConverter/Operators', () => {
     let expected;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
         code = null;
         expected = null;
@@ -26,14 +26,14 @@ describe('RubyToBlocksConverter/Operators', () => {
                 inputs: [
                     {
                         name: 'OPERAND1',
-                        block: (await rubyToExpected(converter, target, '1 < x'))[0]
+                        block: (await rubyToExpected(converter, target, '1 < x'))[0],
                     },
                     {
                         name: 'OPERAND2',
-                        block: (await rubyToExpected(converter, target, 'x < 10'))[0]
-                    }
-                ]
-            }
+                        block: (await rubyToExpected(converter, target, 'x < 10'))[0],
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -47,14 +47,14 @@ describe('RubyToBlocksConverter/Operators', () => {
                 inputs: [
                     {
                         name: 'OPERAND1',
-                        block: (await rubyToExpected(converter, target, '1 < $global'))[0]
+                        block: (await rubyToExpected(converter, target, '1 < $global'))[0],
                     },
                     {
                         name: 'OPERAND2',
-                        block: (await rubyToExpected(converter, target, '$global < 10'))[0]
-                    }
-                ]
-            }
+                        block: (await rubyToExpected(converter, target, '$global < 10'))[0],
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -63,8 +63,8 @@ describe('RubyToBlocksConverter/Operators', () => {
         expected = [
             {
                 opcode: 'operator_and',
-                inputs: []
-            }
+                inputs: [],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
@@ -77,14 +77,14 @@ describe('RubyToBlocksConverter/Operators', () => {
                 inputs: [
                     {
                         name: 'OPERAND1',
-                        block: (await rubyToExpected(converter, target, 'x == 2'))[0]
+                        block: (await rubyToExpected(converter, target, 'x == 2'))[0],
                     },
                     {
                         name: 'OPERAND2',
-                        block: (await rubyToExpected(converter, target, 'y == 3'))[0]
-                    }
-                ]
-            }
+                        block: (await rubyToExpected(converter, target, 'y == 3'))[0],
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -98,14 +98,14 @@ describe('RubyToBlocksConverter/Operators', () => {
                 inputs: [
                     {
                         name: 'OPERAND1',
-                        block: (await rubyToExpected(converter, target, '$global == 2'))[0]
+                        block: (await rubyToExpected(converter, target, '$global == 2'))[0],
                     },
                     {
                         name: 'OPERAND2',
-                        block: (await rubyToExpected(converter, target, '$global == 3'))[0]
-                    }
-                ]
-            }
+                        block: (await rubyToExpected(converter, target, '$global == 3'))[0],
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -114,8 +114,8 @@ describe('RubyToBlocksConverter/Operators', () => {
         expected = [
             {
                 opcode: 'operator_or',
-                inputs: []
-            }
+                inputs: [],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
@@ -128,10 +128,10 @@ describe('RubyToBlocksConverter/Operators', () => {
                 inputs: [
                     {
                         name: 'OPERAND',
-                        block: (await rubyToExpected(converter, target, 'touching?("_edge_")'))[0]
-                    }
-                ]
-            }
+                        block: (await rubyToExpected(converter, target, 'touching?("_edge_")'))[0],
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -142,10 +142,10 @@ describe('RubyToBlocksConverter/Operators', () => {
                 inputs: [
                     {
                         name: 'OPERAND',
-                        block: (await rubyToExpected(converter, target, '$global == 1'))[0]
-                    }
-                ]
-            }
+                        block: (await rubyToExpected(converter, target, '$global == 1'))[0],
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -156,10 +156,10 @@ describe('RubyToBlocksConverter/Operators', () => {
                 inputs: [
                     {
                         name: 'OPERAND',
-                        block: (await rubyToExpected(converter, target, '$global'))[0]
-                    }
-                ]
-            }
+                        block: (await rubyToExpected(converter, target, '$global'))[0],
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -170,10 +170,10 @@ describe('RubyToBlocksConverter/Operators', () => {
                 inputs: [
                     {
                         name: 'OPERAND',
-                        block: (await rubyToExpected(converter, target, '@ivar'))[0]
-                    }
-                ]
-            }
+                        block: (await rubyToExpected(converter, target, '@ivar'))[0],
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -182,8 +182,8 @@ describe('RubyToBlocksConverter/Operators', () => {
         expected = [
             {
                 opcode: 'operator_not',
-                inputs: []
-            }
+                inputs: [],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });

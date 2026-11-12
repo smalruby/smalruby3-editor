@@ -1,18 +1,15 @@
-import { defineMessages, useIntl } from 'react-intl';
 import PropTypes from 'prop-types';
 import React from 'react';
-
+import { defineMessages, useIntl } from 'react-intl';
 import Modal from '../../containers/modal.jsx';
 import Box from '../box/box.jsx';
-
+import styles from './classroom-modal.css';
 import StudentAssignmentPanel from './student-assignment-panel.jsx';
 import StudentJoinForm from './student-join-form.jsx';
 import StudentJoinedConfirmation from './student-joined-confirmation.jsx';
 import StudentSeatSelector from './student-seat-selector.jsx';
 import StudentStatusView from './student-status-view.jsx';
 import StudentSubmitConfirm from './student-submit-confirm.jsx';
-
-import styles from './classroom-modal.css';
 
 const messages = defineMessages({
     title: {
@@ -80,10 +77,7 @@ const ClassroomModal = ({
             id="classroomModal"
             onRequestClose={onClose}
         >
-            <Box
-                className={`${styles.body} ${styles.studentBody}`}
-                data-testid="classroom-modal"
-            >
+            <Box className={`${styles.body} ${styles.studentBody}`} data-testid="classroom-modal">
                 {/* Phase: student-join */}
                 {phase === 'student-join' && (
                     <StudentJoinForm

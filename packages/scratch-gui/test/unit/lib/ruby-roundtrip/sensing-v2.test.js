@@ -7,47 +7,68 @@ import {
     makeSpriteTarget,
     makeConverter,
     setupRubyGenerator,
-    expectRoundTrip
+    expectRoundTrip,
 } from '../../helpers/ruby-roundtrip-helper';
 
 describe('Ruby Roundtrip: Sensing v2 lowercase receivers', () => {
     let target, runtime;
 
     beforeEach(() => {
-        ({target, runtime} = makeSpriteTarget());
+        ({ target, runtime } = makeSpriteTarget());
         setupRubyGenerator();
     });
 
     test('keyboard.pressed? (v2)', async () => {
-        const converter2 = makeConverter(target, runtime, {version: 2});
-        await expectRoundTrip(converter2, target, dedent`
+        const converter2 = makeConverter(target, runtime, { version: 2 });
+        await expectRoundTrip(
+            converter2,
+            target,
+            dedent`
             keyboard.pressed?("space")
-        `, null, {version: 2});
+        `,
+            null,
+            { version: 2 },
+        );
     });
 
     test('mouse.x / mouse.y / mouse.down? (v2)', async () => {
-        const converter2 = makeConverter(target, runtime, {version: 2});
-        await expectRoundTrip(converter2, target, dedent`
+        const converter2 = makeConverter(target, runtime, { version: 2 });
+        await expectRoundTrip(
+            converter2,
+            target,
+            dedent`
             mouse.x
 
             mouse.y
 
             mouse.down?
-        `, null, {version: 2});
+        `,
+            null,
+            { version: 2 },
+        );
     });
 
     test('timer.value / timer.reset (v2)', async () => {
-        const converter2 = makeConverter(target, runtime, {version: 2});
-        await expectRoundTrip(converter2, target, dedent`
+        const converter2 = makeConverter(target, runtime, { version: 2 });
+        await expectRoundTrip(
+            converter2,
+            target,
+            dedent`
             timer.value
 
             timer.reset
-        `, null, {version: 2});
+        `,
+            null,
+            { version: 2 },
+        );
     });
 
     test('v1 backward compat: Keyboard/Mouse/Timer (uppercase)', async () => {
         const converter1 = makeConverter(target, runtime);
-        await expectRoundTrip(converter1, target, dedent`
+        await expectRoundTrip(
+            converter1,
+            target,
+            dedent`
             Keyboard.pressed?("space")
 
             Mouse.x
@@ -59,6 +80,7 @@ describe('Ruby Roundtrip: Sensing v2 lowercase receivers', () => {
             Timer.value
 
             Timer.reset
-        `);
+        `,
+        );
     });
 });

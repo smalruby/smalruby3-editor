@@ -1,11 +1,11 @@
 import RubyGenerator from '../../../../../src/lib/ruby-generator';
-import OperatorsBlocks from '../../../../../src/lib/ruby-generator/operators';
 import DataBlocks from '../../../../../src/lib/ruby-generator/data';
+import OperatorsBlocks from '../../../../../src/lib/ruby-generator/operators';
 
 describe('RubyGenerator/Operators/Regexp', () => {
     beforeEach(() => {
         RubyGenerator.cache_ = {
-            comments: {}
+            comments: {},
         };
         RubyGenerator.definitions_ = {};
         RubyGenerator.functionNames_ = {};
@@ -24,60 +24,47 @@ describe('RubyGenerator/Operators/Regexp', () => {
             const block = {
                 id: 'block-id',
                 opcode: 'operator_contains',
-                inputs: {STRING1: {}, STRING2: {}}
+                inputs: { STRING1: {}, STRING2: {} },
             };
-            RubyGenerator.cache_.comments['block-id'] = {text: '@ruby:operator:=~:1'};
-            RubyGenerator.valueToCode = jest.fn()
-                .mockReturnValueOnce('"hello"')
-                .mockReturnValueOnce('"/^he/"');
-            expect(RubyGenerator.operator_contains(block)).toEqual(
-                ['"hello" =~ /^he/', RubyGenerator.ORDER_EQUALS]
-            );
+            RubyGenerator.cache_.comments['block-id'] = { text: '@ruby:operator:=~:1' };
+            RubyGenerator.valueToCode = jest.fn().mockReturnValueOnce('"hello"').mockReturnValueOnce('"/^he/"');
+            expect(RubyGenerator.operator_contains(block)).toEqual(['"hello" =~ /^he/', RubyGenerator.ORDER_EQUALS]);
         });
 
         test('string =~ /pattern/i with flags', () => {
             const block = {
                 id: 'block-id',
                 opcode: 'operator_contains',
-                inputs: {STRING1: {}, STRING2: {}}
+                inputs: { STRING1: {}, STRING2: {} },
             };
-            RubyGenerator.cache_.comments['block-id'] = {text: '@ruby:operator:=~:1'};
-            RubyGenerator.valueToCode = jest.fn()
-                .mockReturnValueOnce('"Hello"')
-                .mockReturnValueOnce('"/hello/i"');
-            expect(RubyGenerator.operator_contains(block)).toEqual(
-                ['"Hello" =~ /hello/i', RubyGenerator.ORDER_EQUALS]
-            );
+            RubyGenerator.cache_.comments['block-id'] = { text: '@ruby:operator:=~:1' };
+            RubyGenerator.valueToCode = jest.fn().mockReturnValueOnce('"Hello"').mockReturnValueOnce('"/hello/i"');
+            expect(RubyGenerator.operator_contains(block)).toEqual([
+                '"Hello" =~ /hello/i',
+                RubyGenerator.ORDER_EQUALS,
+            ]);
         });
 
         test('/pattern/ =~ string (receiver)', () => {
             const block = {
                 id: 'block-id',
                 opcode: 'operator_contains',
-                inputs: {STRING1: {}, STRING2: {}}
+                inputs: { STRING1: {}, STRING2: {} },
             };
-            RubyGenerator.cache_.comments['block-id'] = {text: '@ruby:operator:=~:1:receiver'};
-            RubyGenerator.valueToCode = jest.fn()
-                .mockReturnValueOnce('"hello"')
-                .mockReturnValueOnce('"/^he/"');
-            expect(RubyGenerator.operator_contains(block)).toEqual(
-                ['/^he/ =~ "hello"', RubyGenerator.ORDER_EQUALS]
-            );
+            RubyGenerator.cache_.comments['block-id'] = { text: '@ruby:operator:=~:1:receiver' };
+            RubyGenerator.valueToCode = jest.fn().mockReturnValueOnce('"hello"').mockReturnValueOnce('"/^he/"');
+            expect(RubyGenerator.operator_contains(block)).toEqual(['/^he/ =~ "hello"', RubyGenerator.ORDER_EQUALS]);
         });
 
         test('variable =~ variable (no unquote needed)', () => {
             const block = {
                 id: 'block-id',
                 opcode: 'operator_contains',
-                inputs: {STRING1: {}, STRING2: {}}
+                inputs: { STRING1: {}, STRING2: {} },
             };
-            RubyGenerator.cache_.comments['block-id'] = {text: '@ruby:operator:=~:1'};
-            RubyGenerator.valueToCode = jest.fn()
-                .mockReturnValueOnce('@name')
-                .mockReturnValueOnce('r');
-            expect(RubyGenerator.operator_contains(block)).toEqual(
-                ['@name =~ r', RubyGenerator.ORDER_EQUALS]
-            );
+            RubyGenerator.cache_.comments['block-id'] = { text: '@ruby:operator:=~:1' };
+            RubyGenerator.valueToCode = jest.fn().mockReturnValueOnce('@name').mockReturnValueOnce('r');
+            expect(RubyGenerator.operator_contains(block)).toEqual(['@name =~ r', RubyGenerator.ORDER_EQUALS]);
         });
     });
 
@@ -86,17 +73,16 @@ describe('RubyGenerator/Operators/Regexp', () => {
             const block = {
                 id: 'block-id',
                 opcode: 'operator_not',
-                inputs: {OPERAND: {}}
+                inputs: { OPERAND: {} },
             };
-            RubyGenerator.cache_.comments['block-id'] = {text: '@ruby:operator:!~:1'};
+            RubyGenerator.cache_.comments['block-id'] = { text: '@ruby:operator:!~:1' };
             RubyGenerator.regexNotMatchCallCache_['1'] = {
-                str: '"hello"', regex: '/world/', receiverFlag: undefined
+                str: '"hello"',
+                regex: '/world/',
+                receiverFlag: undefined,
             };
-            RubyGenerator.valueToCode = jest.fn()
-                .mockReturnValue('@ruby:operator:!~:1');
-            expect(RubyGenerator.operator_not(block)).toEqual(
-                ['"hello" !~ /world/', RubyGenerator.ORDER_EQUALS]
-            );
+            RubyGenerator.valueToCode = jest.fn().mockReturnValue('@ruby:operator:!~:1');
+            expect(RubyGenerator.operator_not(block)).toEqual(['"hello" !~ /world/', RubyGenerator.ORDER_EQUALS]);
             expect(RubyGenerator.regexNotMatchCallCache_['1']).toBeUndefined();
         });
 
@@ -104,17 +90,16 @@ describe('RubyGenerator/Operators/Regexp', () => {
             const block = {
                 id: 'block-id',
                 opcode: 'operator_not',
-                inputs: {OPERAND: {}}
+                inputs: { OPERAND: {} },
             };
-            RubyGenerator.cache_.comments['block-id'] = {text: '@ruby:operator:!~:1:receiver'};
+            RubyGenerator.cache_.comments['block-id'] = { text: '@ruby:operator:!~:1:receiver' };
             RubyGenerator.regexNotMatchCallCache_['1:receiver'] = {
-                str: '"hello"', regex: '/world/', receiverFlag: ':receiver'
+                str: '"hello"',
+                regex: '/world/',
+                receiverFlag: ':receiver',
             };
-            RubyGenerator.valueToCode = jest.fn()
-                .mockReturnValue('@ruby:operator:!~:1:receiver');
-            expect(RubyGenerator.operator_not(block)).toEqual(
-                ['/world/ !~ "hello"', RubyGenerator.ORDER_EQUALS]
-            );
+            RubyGenerator.valueToCode = jest.fn().mockReturnValue('@ruby:operator:!~:1:receiver');
+            expect(RubyGenerator.operator_not(block)).toEqual(['/world/ !~ "hello"', RubyGenerator.ORDER_EQUALS]);
         });
     });
 
@@ -123,14 +108,13 @@ describe('RubyGenerator/Operators/Regexp', () => {
             const block = {
                 id: 'block-id',
                 opcode: 'operator_contains',
-                inputs: {STRING1: {}, STRING2: {}}
+                inputs: { STRING1: {}, STRING2: {} },
             };
-            RubyGenerator.valueToCode = jest.fn()
-                .mockReturnValueOnce('"apple"')
-                .mockReturnValueOnce('"a"');
-            expect(RubyGenerator.operator_contains(block)).toEqual(
-                ['"apple".include?("a")', RubyGenerator.ORDER_ATOMIC]
-            );
+            RubyGenerator.valueToCode = jest.fn().mockReturnValueOnce('"apple"').mockReturnValueOnce('"a"');
+            expect(RubyGenerator.operator_contains(block)).toEqual([
+                '"apple".include?("a")',
+                RubyGenerator.ORDER_ATOMIC,
+            ]);
         });
     });
 
@@ -139,10 +123,10 @@ describe('RubyGenerator/Operators/Regexp', () => {
             const block = {
                 id: 'block-id',
                 opcode: 'data_setvariableto',
-                inputs: {VALUE: {block: 'value-block-id'}},
-                fields: {VARIABLE: {id: 'var-id', value: '$r'}}
+                inputs: { VALUE: { block: 'value-block-id' } },
+                fields: { VARIABLE: { id: 'var-id', value: '$r' } },
             };
-            RubyGenerator.cache_.comments['block-id'] = {text: '@ruby:regexp:literal'};
+            RubyGenerator.cache_.comments['block-id'] = { text: '@ruby:regexp:literal' };
             RubyGenerator.valueToCode = jest.fn().mockReturnValue('"/^hello/i"');
             RubyGenerator.variableName = jest.fn().mockReturnValue('$r');
             RubyGenerator.getFieldId = jest.fn().mockReturnValue('var-id');
@@ -153,11 +137,11 @@ describe('RubyGenerator/Operators/Regexp', () => {
             const block = {
                 id: 'block-id',
                 opcode: 'data_setvariableto',
-                inputs: {VALUE: {block: 'value-block-id'}},
-                fields: {VARIABLE: {id: 'var-id', value: '_r_1_'}}
+                inputs: { VALUE: { block: 'value-block-id' } },
+                fields: { VARIABLE: { id: 'var-id', value: '_r_1_' } },
             };
             RubyGenerator.cache_.comments['block-id'] = {
-                text: '@ruby:lvar:r:1,@ruby:regexp:literal'
+                text: '@ruby:lvar:r:1,@ruby:regexp:literal',
             };
             RubyGenerator.valueToCode = jest.fn().mockReturnValue('"/^hello/"');
             RubyGenerator.variableName = jest.fn().mockReturnValue('_r_1_');

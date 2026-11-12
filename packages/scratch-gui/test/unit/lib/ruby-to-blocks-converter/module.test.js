@@ -5,7 +5,7 @@ describe('RubyToBlocksConverter/Module', () => {
     let target;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
     });
 
@@ -32,7 +32,7 @@ describe('RubyToBlocksConverter/Module', () => {
 
             // Check that procedures_definition block exists
             const blocks = converter._context.blocks;
-            const procDefs = Object.values(blocks).filter(b => b.opcode === 'procedures_definition');
+            const procDefs = Object.values(blocks).filter((b) => b.opcode === 'procedures_definition');
             expect(procDefs).toHaveLength(1);
 
             // Check @ruby:module_source:Utils comment on the procedures_definition
@@ -42,8 +42,8 @@ describe('RubyToBlocksConverter/Module', () => {
             expect(comment.text).toEqual('@ruby:module_source:Utils');
 
             // Check class comment includes include=Utils
-            const classComments = Object.values(converter._context.comments).filter(c =>
-                c.blockId === null && c.text.startsWith('@ruby:class')
+            const classComments = Object.values(converter._context.comments).filter(
+                (c) => c.blockId === null && c.text.startsWith('@ruby:class'),
             );
             expect(classComments).toHaveLength(1);
             expect(classComments[0].text).toContain('include=Utils');
@@ -66,7 +66,7 @@ describe('RubyToBlocksConverter/Module', () => {
             expect(converter.errors).toHaveLength(0);
 
             const blocks = converter._context.blocks;
-            const procDefs = Object.values(blocks).filter(b => b.opcode === 'procedures_definition');
+            const procDefs = Object.values(blocks).filter((b) => b.opcode === 'procedures_definition');
             expect(procDefs).toHaveLength(1);
 
             // Verify the procedure name via the prototype mutation
@@ -100,11 +100,11 @@ describe('RubyToBlocksConverter/Module', () => {
             expect(converter.errors).toHaveLength(0);
 
             const blocks = converter._context.blocks;
-            const procDefs = Object.values(blocks).filter(b => b.opcode === 'procedures_definition');
+            const procDefs = Object.values(blocks).filter((b) => b.opcode === 'procedures_definition');
             expect(procDefs).toHaveLength(2);
 
             // Both should have @ruby:module_source:Utils comment
-            procDefs.forEach(pd => {
+            procDefs.forEach((pd) => {
                 expect(pd.comment).toBeTruthy();
                 const comment = converter._context.comments[pd.comment];
                 expect(comment.text).toEqual('@ruby:module_source:Utils');
@@ -139,17 +139,17 @@ describe('RubyToBlocksConverter/Module', () => {
             expect(converter.errors).toHaveLength(0);
 
             const blocks = converter._context.blocks;
-            const procDefs = Object.values(blocks).filter(b => b.opcode === 'procedures_definition');
+            const procDefs = Object.values(blocks).filter((b) => b.opcode === 'procedures_definition');
             expect(procDefs).toHaveLength(2);
 
             // Check module source comments
-            const moduleComments = procDefs.map(pd => converter._context.comments[pd.comment].text);
+            const moduleComments = procDefs.map((pd) => converter._context.comments[pd.comment].text);
             expect(moduleComments).toContain('@ruby:module_source:Utils');
             expect(moduleComments).toContain('@ruby:module_source:Helpers');
 
             // Check class comment includes both includes in order
-            const classComments = Object.values(converter._context.comments).filter(c =>
-                c.blockId === null && c.text.startsWith('@ruby:class')
+            const classComments = Object.values(converter._context.comments).filter(
+                (c) => c.blockId === null && c.text.startsWith('@ruby:class'),
             );
             expect(classComments).toHaveLength(1);
             expect(classComments[0].text).toContain('include=Utils');
@@ -240,7 +240,7 @@ describe('RubyToBlocksConverter/Module', () => {
 
     describe('stage restrictions', () => {
         test('module in stage throws error', async () => {
-            const stageTarget = {isStage: true};
+            const stageTarget = { isStage: true };
             const code = `
                 module Utils
                   def add(a, b)
@@ -254,7 +254,7 @@ describe('RubyToBlocksConverter/Module', () => {
         });
 
         test('include in class Stage throws error', async () => {
-            const stageTarget = {isStage: true};
+            const stageTarget = { isStage: true };
             const code = `
                 module Utils
                   def add(a, b)
@@ -281,12 +281,12 @@ describe('RubyToBlocksConverter/Module', () => {
                     targets: [
                         {
                             id: 'sprite2-id',
-                            sprite: {name: 'Sprite2'},
+                            sprite: { name: 'Sprite2' },
                             comments: {
                                 'comment-1': {
                                     text: '@ruby:module_source:Utils',
-                                    blockId: 'proc-def-1'
-                                }
+                                    blockId: 'proc-def-1',
+                                },
                             },
                             blocks: {
                                 _blocks: {
@@ -294,9 +294,9 @@ describe('RubyToBlocksConverter/Module', () => {
                                         opcode: 'procedures_definition',
                                         inputs: {
                                             custom_block: {
-                                                block: 'proto-1'
-                                            }
-                                        }
+                                                block: 'proto-1',
+                                            },
+                                        },
                                     },
                                     'proto-1': {
                                         opcode: 'procedures_prototype',
@@ -305,20 +305,20 @@ describe('RubyToBlocksConverter/Module', () => {
                                             argumentnames: '["a","b"]',
                                             argumentids: '["arg1","arg2"]',
                                             argumentdefaults: '["",""]',
-                                            warp: 'false'
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    ]
-                }
+                                            warp: 'false',
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    ],
+                },
             };
 
             // The auto-import needs the converter to have a VM and use RubyGenerator.
             // Since the converter uses module-sync functions which need real targets,
             // this test verifies that when vm is null (no other sprites), undefined module still errors.
-            const converterNoVm = new RubyToBlocksConverter(null, {version: '2'});
+            const converterNoVm = new RubyToBlocksConverter(null, { version: '2' });
             const code = `
                 class Sprite1
                   include NonExistent
@@ -330,7 +330,7 @@ describe('RubyToBlocksConverter/Module', () => {
         });
 
         test('include with no vm falls back to undefinedModule error', async () => {
-            const converterNoVm = new RubyToBlocksConverter(null, {version: '2'});
+            const converterNoVm = new RubyToBlocksConverter(null, { version: '2' });
             const code = `
                 class Sprite1
                   include Utils
@@ -360,7 +360,7 @@ describe('RubyToBlocksConverter/Module', () => {
             expect(converter.errors).toHaveLength(0);
 
             const blocks = converter._context.blocks;
-            const procDefs = Object.values(blocks).filter(b => b.opcode === 'procedures_definition');
+            const procDefs = Object.values(blocks).filter((b) => b.opcode === 'procedures_definition');
             expect(procDefs).toHaveLength(1);
 
             // The procedure block should have the module_source comment

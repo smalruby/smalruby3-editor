@@ -1,13 +1,13 @@
+import tm2scratchInsetIconURL from './tm2scratch-small.png';
+import tm2scratchIconURL from './tm2scratch.png';
+import translations from './translations.json';
+
 /*
  * Icons (tm2scratch.png, tm2scratch-small.png) are from champierre/tm2scratch.
  * Original copyright: (c) Junya Ishihara and Koji Yokokawa, AGPL-3.0.
  * See https://github.com/champierre/tm2scratch
  */
 let formatMessage = (messageData) => messageData.defaultMessage;
-
-import tm2scratchIconURL from './tm2scratch.png';
-import tm2scratchInsetIconURL from './tm2scratch-small.png';
-import translations from './translations.json';
 
 const entry = {
     get name() {
@@ -22,8 +22,7 @@ const entry = {
     insetIconURL: tm2scratchInsetIconURL,
     get description() {
         return formatMessage({
-            defaultMessage:
-                'Use image/sound recognition with Teachable Machine.',
+            defaultMessage: 'Use image/sound recognition with Teachable Machine.',
             description: "Description for the 'tm2scratch' extension",
             id: 'tm2scratch.entry.description',
         });

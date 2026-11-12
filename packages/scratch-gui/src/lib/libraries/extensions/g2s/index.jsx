@@ -1,13 +1,13 @@
+import g2sInsetIconURL from './g2s-small.png';
+import g2sIconURL from './g2s.png';
+import translations from './translations.json';
+
 /*
  * AkaDako extension for Smalruby.
  * Original source: https://github.com/tfabworks/xcx-g2s (MIT License)
  * Copyright (c) 2026 TFabWorks
  */
 let formatMessage = (messageData) => messageData.defaultMessage;
-
-import g2sIconURL from './g2s.png';
-import g2sInsetIconURL from './g2s-small.png';
-import translations from './translations.json';
 
 const entry = {
     get name() {

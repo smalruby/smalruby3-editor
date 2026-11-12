@@ -1,20 +1,18 @@
 // === Smalruby: This file is Smalruby-specific (costume/backdrop validation helpers for looks converter) ===
-import {defineMessages} from 'react-intl';
-import {RubyToBlocksConverterError} from './errors';
+import { defineMessages } from 'react-intl';
+import { RubyToBlocksConverterError } from './errors';
 
 const messages = defineMessages({
     costumeDoesNotExist: {
-        defaultMessage: 'costume "{NAME}" does not exist.' +
-            '\nCheck the name or add the costume first.',
+        defaultMessage: 'costume "{NAME}" does not exist.\nCheck the name or add the costume first.',
         description: 'Error message when switching to a costume that does not exist',
-        id: 'gui.smalruby3.rubyToBlocksConverter.costumeDoesNotExist'
+        id: 'gui.smalruby3.rubyToBlocksConverter.costumeDoesNotExist',
     },
     backdropDoesNotExist: {
-        defaultMessage: 'backdrop "{NAME}" does not exist.' +
-            '\nCheck the name or add the backdrop first.',
+        defaultMessage: 'backdrop "{NAME}" does not exist.\nCheck the name or add the backdrop first.',
         description: 'Error message when switching to a backdrop that does not exist',
-        id: 'gui.smalruby3.rubyToBlocksConverter.backdropDoesNotExist'
-    }
+        id: 'gui.smalruby3.rubyToBlocksConverter.backdropDoesNotExist',
+    },
 });
 
 const validateCostume = function (converter, costumeName, args) {
@@ -30,11 +28,11 @@ const validateCostume = function (converter, costumeName, args) {
     }
 
     const costumes = converter._context.target.getCostumes();
-    const costumeExists = costumes.some(costume => costume.name === costumeName);
+    const costumeExists = costumes.some((costume) => costume.name === costumeName);
     if (!costumeExists) {
         throw new RubyToBlocksConverterError(
             args[0].node,
-            converter._translator(messages.costumeDoesNotExist, {NAME: costumeName})
+            converter._translator(messages.costumeDoesNotExist, { NAME: costumeName }),
         );
     }
 };
@@ -57,11 +55,11 @@ const validateBackdrop = function (converter, backdropName, args) {
     }
 
     const backdrops = stage.getCostumes();
-    const backdropExists = backdrops.some(backdrop => backdrop.name === backdropName);
+    const backdropExists = backdrops.some((backdrop) => backdrop.name === backdropName);
     if (!backdropExists) {
         throw new RubyToBlocksConverterError(
             args[0].node,
-            converter._translator(messages.backdropDoesNotExist, {NAME: backdropName})
+            converter._translator(messages.backdropDoesNotExist, { NAME: backdropName }),
         );
     }
 };
@@ -91,7 +89,10 @@ const resolveSymbolArg = function (converter, arg) {
 const createBlockWithMessage = function (converter, opcode, message, defaultMessage) {
     const block = converter._createBlock(opcode, 'statement');
     converter._addTextInput(
-        block, 'MESSAGE', converter._isNumber(message) ? message.toString() : message, defaultMessage
+        block,
+        'MESSAGE',
+        converter._isNumber(message) ? message.toString() : message,
+        defaultMessage,
     );
     return block;
 };
@@ -100,7 +101,7 @@ const LooksValidation = {
     validateCostume,
     validateBackdrop,
     resolveSymbolArg,
-    createBlockWithMessage
+    createBlockWithMessage,
 };
 
 export default LooksValidation;

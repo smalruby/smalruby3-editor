@@ -1,14 +1,9 @@
 // === Smalruby: This file is Smalruby-specific (DNCL to Ruby transpiler) ===
-
-import { convertLine, resetForLoopStack } from './dncl-line-converter'
-import { DnclSourceMap } from './dncl-source-map'
-import {
-  detectArrayNames,
-  detectFunctionNames,
-  resetFunctionScopes,
-} from './dncl-state'
-import { dnclV2PreprocessWithLineMap } from './dncl-v2-preprocessor'
-import { findDnclBlockErrors, validateDncl } from './dncl-validator'
+import { convertLine, resetForLoopStack } from './dncl-line-converter';
+import { DnclSourceMap } from './dncl-source-map';
+import { detectArrayNames, detectFunctionNames, resetFunctionScopes } from './dncl-state';
+import { dnclV2PreprocessWithLineMap } from './dncl-v2-preprocessor';
+import { findDnclBlockErrors, validateDncl } from './dncl-validator';
 
 /**
  * Transpile DNCL source code to Ruby.
@@ -32,46 +27,46 @@ import { findDnclBlockErrors, validateDncl } from './dncl-validator'
  *   of the converter's missing / extra `end` when it fails — Issue #1419).
  */
 const dnclToRuby = (source) => {
-  const { source: normalized, lineMap } = dnclV2PreprocessWithLineMap(source)
-  const sourceLineCount = source.split('\n').length
+    const { source: normalized, lineMap } = dnclV2PreprocessWithLineMap(source);
+    const sourceLineCount = source.split('\n').length;
 
-  const errors = validateDncl(normalized)
-  if (errors.length > 0) {
+    const errors = validateDncl(normalized);
+    if (errors.length > 0) {
+        return {
+            ruby: null,
+            errors: errors.map((err) => ({
+                ...err,
+                line: lineMap[err.line - 1] || err.line,
+            })),
+            sourceMap: null,
+            blockErrors: [],
+        };
+    }
+
+    detectArrayNames(normalized);
+    detectFunctionNames(normalized);
+    resetForLoopStack();
+    resetFunctionScopes();
+
+    const lines = normalized.split('\n');
+    const rubyLines = [];
+    const rubyToDncl = [];
+    lines.forEach((line, idx) => {
+        for (const rubyLine of convertLine(line).split('\n')) {
+            rubyLines.push(rubyLine);
+            rubyToDncl.push(lineMap[idx]);
+        }
+    });
+
     return {
-      ruby: null,
-      errors: errors.map((err) => ({
-        ...err,
-        line: lineMap[err.line - 1] || err.line,
-      })),
-      sourceMap: null,
-      blockErrors: [],
-    }
-  }
+        ruby: rubyLines.join('\n'),
+        errors: [],
+        sourceMap: new DnclSourceMap(rubyToDncl, sourceLineCount),
+        blockErrors: findDnclBlockErrors(normalized).map((err) => ({
+            ...err,
+            line: lineMap[err.line - 1] || err.line,
+        })),
+    };
+};
 
-  detectArrayNames(normalized)
-  detectFunctionNames(normalized)
-  resetForLoopStack()
-  resetFunctionScopes()
-
-  const lines = normalized.split('\n')
-  const rubyLines = []
-  const rubyToDncl = []
-  lines.forEach((line, idx) => {
-    for (const rubyLine of convertLine(line).split('\n')) {
-      rubyLines.push(rubyLine)
-      rubyToDncl.push(lineMap[idx])
-    }
-  })
-
-  return {
-    ruby: rubyLines.join('\n'),
-    errors: [],
-    sourceMap: new DnclSourceMap(rubyToDncl, sourceLineCount),
-    blockErrors: findDnclBlockErrors(normalized).map((err) => ({
-      ...err,
-      line: lineMap[err.line - 1] || err.line,
-    })),
-  }
-}
-
-export { dnclToRuby }
+export { dnclToRuby };

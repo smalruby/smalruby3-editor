@@ -1,10 +1,8 @@
 // === Smalruby: This file is Smalruby-specific (module visitor for Ruby-to-blocks converter) ===
-
+import { findTargetsWithModule, generateTargetCode, extractModuleCode } from '../module-sync';
 import RubyParser from '../ruby-parser';
-
-import {RubyToBlocksConverterError} from './errors';
-import {messages} from './converter-errors';
-import {findTargetsWithModule, generateTargetCode, extractModuleCode} from '../module-sync';
+import { messages } from './converter-errors';
+import { RubyToBlocksConverterError } from './errors';
 
 /**
  * Mixin methods for visiting module nodes in the Ruby-to-blocks converter.
@@ -12,29 +10,20 @@ import {findTargetsWithModule, generateTargetCode, extractModuleCode} from '../m
  * @type {object}
  */
 const ModuleVisitor = {
-    visitModuleNode (node) {
+    visitModuleNode(node) {
         // module definitions are only supported in version 2
         if (String(this.version) === '1') {
-            throw new RubyToBlocksConverterError(
-                node,
-                this._translator(messages.moduleNotSupportedInV1)
-            );
+            throw new RubyToBlocksConverterError(node, this._translator(messages.moduleNotSupportedInV1));
         }
 
         // module is not supported in Stage (stage and sprite have different available methods)
         if (this._context.target && this._context.target.isStage) {
-            throw new RubyToBlocksConverterError(
-                node,
-                this._translator(messages.moduleNotSupportedInStage)
-            );
+            throw new RubyToBlocksConverterError(node, this._translator(messages.moduleNotSupportedInStage));
         }
 
         // Nested modules are not supported
         if (this._context.currentModuleName) {
-            throw new RubyToBlocksConverterError(
-                node,
-                this._translator(messages.nestedModuleNotSupported)
-            );
+            throw new RubyToBlocksConverterError(node, this._translator(messages.nestedModuleNotSupported));
         }
 
         const moduleName = node.name;
@@ -44,16 +33,11 @@ const ModuleVisitor = {
             for (const stmt of node.body.body) {
                 const typeName = this._getNodeTypeName(stmt);
                 if (typeName === 'CallNode' && stmt.name === 'module_function' && !stmt.receiver) {
-                    throw new RubyToBlocksConverterError(
-                        stmt,
-                        this._translator(messages.moduleFunctionNotSupported)
-                    );
+                    throw new RubyToBlocksConverterError(stmt, this._translator(messages.moduleFunctionNotSupported));
                 }
+                this._rejectVisibilityModifier(stmt);
                 if (typeName !== 'DefNode') {
-                    throw new RubyToBlocksConverterError(
-                        stmt,
-                        this._translator(messages.onlyMethodsInModule)
-                    );
+                    throw new RubyToBlocksConverterError(stmt, this._translator(messages.onlyMethodsInModule));
                 }
             }
         }
@@ -61,7 +45,7 @@ const ModuleVisitor = {
         // Save the module's method DefNodes in context for later expansion by include
         this._context.modules[moduleName] = {
             name: moduleName,
-            methods: (node.body && node.body.body) ? node.body.body : []
+            methods: node.body && node.body.body ? node.body.body : [],
         };
 
         // Module definition itself does not produce blocks
@@ -76,7 +60,7 @@ const ModuleVisitor = {
      * @param {string} moduleName - The module name to import
      * @returns {boolean} true if the module was successfully imported
      */
-    _importModuleFromOtherSprites (moduleName) {
+    _importModuleFromOtherSprites(moduleName) {
         if (!this.vm || !this.vm.runtime) return false;
 
         const currentTargetId = this._context.target ? this._context.target.id : null;
@@ -112,10 +96,10 @@ const ModuleVisitor = {
         // Store the module's method DefNodes
         this._context.modules[moduleName] = {
             name: moduleName,
-            methods: (moduleNode.body && moduleNode.body.body) ? moduleNode.body.body : []
+            methods: moduleNode.body && moduleNode.body.body ? moduleNode.body.body : [],
         };
         return true;
-    }
+    },
 };
 
 export default ModuleVisitor;

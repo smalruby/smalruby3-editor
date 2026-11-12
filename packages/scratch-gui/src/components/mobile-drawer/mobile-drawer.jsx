@@ -5,24 +5,19 @@ import { createPortal } from 'react-dom';
 import { defineMessages, FormattedMessage, injectIntl } from 'react-intl';
 import { connect } from 'react-redux';
 import { compose } from 'redux';
-
-import SB3Downloader from '../../containers/sb3-downloader.jsx';
-import TurboMode from '../../containers/turbo-mode.jsx';
-import { isClassroomConfigured } from '../../lib/classroom-api';
 import GoogleDriveLoaderHOC from '../../containers/google-drive-loader-hoc.jsx';
 import GoogleDriveSaverHOC from '../../containers/google-drive-saver-hoc.jsx';
+import SB3Downloader from '../../containers/sb3-downloader.jsx';
+import TurboMode from '../../containers/turbo-mode.jsx';
+import { isBugReportConfigured } from '../../lib/bug-report-api.js';
+import { isClassroomConfigured } from '../../lib/classroom-api';
 import intlShape from '../../lib/intlShape';
 import SBFileUploaderHOC from '../../lib/sb-file-uploader-hoc.jsx';
-import {
-    messages as rubyVersionMessages,
-    rubyVersionMap,
-    VERSION_1,
-} from '../../lib/settings/ruby-version/index.js';
-import { persistRubyVersion } from '../../lib/settings/ruby-version/persistence.js';
 import { DISPLAY_MODE_DESKTOP } from '../../lib/settings/display-mode/index.js';
 import { persistDisplayMode } from '../../lib/settings/display-mode/persistence.js';
+import { messages as rubyVersionMessages, rubyVersionMap, VERSION_1 } from '../../lib/settings/ruby-version/index.js';
+import { persistRubyVersion } from '../../lib/settings/ruby-version/persistence.js';
 import sharedMessages from '../../lib/shared-messages';
-import { isBugReportConfigured } from '../../lib/bug-report-api.js';
 import { openBugReportModal } from '../../reducers/bug-report.js';
 import { openClassroomModal, openTeacherModal } from '../../reducers/classroom.js';
 import { setConnectionModalExtensionId } from '../../reducers/connection-modal.js';
@@ -33,9 +28,9 @@ import {
     openUrlLoaderModal,
     openWelcomeModal,
 } from '../../reducers/modals.js';
-import { markTutorialSeen } from '../../reducers/tutorial-onboarding.js';
 import { requestNewProject } from '../../reducers/project-state.js';
 import { setRubyVersion } from '../../reducers/settings.js';
+import { markTutorialSeen } from '../../reducers/tutorial-onboarding.js';
 import closeIcon from './icon--close.svg';
 import styles from './mobile-drawer.css';
 
@@ -72,7 +67,8 @@ const messages = defineMessages({
     },
     fileOpenFrom: {
         defaultMessage: 'Open from',
-        description: 'Mobile drawer parent item that expands to a list of project sources (Google Drive / Device / Scratch)',
+        description:
+            'Mobile drawer parent item that expands to a list of project sources (Google Drive / Device / Scratch)',
         id: 'gui.mobile.drawer.file.openFrom',
     },
     fileOpenFromGoogleDrive: {
@@ -112,7 +108,8 @@ const messages = defineMessages({
     },
     mesh: {
         defaultMessage: 'Mesh',
-        description: 'Mobile drawer item that opens the Mesh v2 connection modal (only when meshV2 extension is loaded)',
+        description:
+            'Mobile drawer item that opens the Mesh v2 connection modal (only when meshV2 extension is loaded)',
         id: 'gui.mobile.drawer.mesh',
     },
     settingsLanguage: {
@@ -202,12 +199,12 @@ const SUBMENU_HELP = 'help';
  * @param {object} vm - scratch-vm インスタンス
  * @returns {boolean} v2 機能が使われていれば true
  */
-const hasV2Features = vm => {
+const hasV2Features = (vm) => {
     if (!vm?.runtime?.targets) return false;
-    return vm.runtime.targets.some(target => {
+    return vm.runtime.targets.some((target) => {
         if (!target.comments) return false;
         return Object.values(target.comments).some(
-            comment =>
+            (comment) =>
                 comment.text &&
                 (comment.text.startsWith('@ruby:module_source:') ||
                     comment.text === '@ruby:class' ||
@@ -287,10 +284,10 @@ const MobileDrawerComponent = ({
     intl,
 }) => {
     const [expandedSet, setExpandedSet] = useState(() => new Set());
-    const isExpanded = key => expandedSet.has(key);
+    const isExpanded = (key) => expandedSet.has(key);
     const toggleExpanded = useCallback(
-        key =>
-            setExpandedSet(prev => {
+        (key) =>
+            setExpandedSet((prev) => {
                 const next = new Set(prev);
                 if (next.has(key)) next.delete(key);
                 else next.add(key);
@@ -299,7 +296,7 @@ const MobileDrawerComponent = ({
         [],
     );
     const handleToggleSubmenu = useCallback(
-        event => {
+        (event) => {
             const key = event.currentTarget.dataset.submenu;
             if (key) toggleExpanded(key);
         },
@@ -327,7 +324,7 @@ const MobileDrawerComponent = ({
     }, [onStartSelectingUrlLoad, onClose]);
 
     const handleClickLocale = useCallback(
-        event => {
+        (event) => {
             const code = event.currentTarget.dataset.localeCode;
             if (code) {
                 onSelectLocale(code);
@@ -338,7 +335,7 @@ const MobileDrawerComponent = ({
     );
 
     const handleClickRubyVersion = useCallback(
-        event => {
+        (event) => {
             const version = event.currentTarget.dataset.rubyVersion;
             if (!version || version === activeRubyVersion) {
                 onClose();
@@ -479,9 +476,7 @@ const MobileDrawerComponent = ({
                             <FormattedMessage {...messages.fileNew} />
                         </button>
                     </li>
-                    <li>
-                        {renderToggle(<FormattedMessage {...messages.fileOpenFrom} />, SUBMENU_FILE_OPEN)}
-                    </li>
+                    <li>{renderToggle(<FormattedMessage {...messages.fileOpenFrom} />, SUBMENU_FILE_OPEN)}</li>
                     {isExpanded(SUBMENU_FILE_OPEN) && (
                         <>
                             <li>
@@ -694,7 +689,7 @@ const MobileDrawerComponent = ({
                                 )}
                             </li>
                             {isExpanded(SUBMENU_SETTINGS_RUBY) &&
-                                RUBY_VERSIONS.map(version => (
+                                RUBY_VERSIONS.map((version) => (
                                     <li key={`ruby-${version}`}>
                                         <button
                                             type="button"
@@ -810,23 +805,23 @@ MobileDrawerComponent.propTypes = {
     intl: intlShape.isRequired,
 };
 
-const mapStateToProps = state => ({
+const mapStateToProps = (state) => ({
     currentLocale: state.locales.locale,
     activeRubyVersion: state.scratchGui.settings.rubyVersion,
     isGoogleDriveFile: Boolean(state.scratchGui.googleDriveFile?.id),
     vm: state.scratchGui.vm,
 });
 
-const mapDispatchToProps = dispatch => ({
+const mapDispatchToProps = (dispatch) => ({
     onClickNew: () => dispatch(requestNewProject(false)),
-    onSelectLocale: locale => dispatch(selectLocale(locale)),
-    onChangeRubyVersion: rubyVersion => {
+    onSelectLocale: (locale) => dispatch(selectLocale(locale)),
+    onChangeRubyVersion: (rubyVersion) => {
         dispatch(setRubyVersion(rubyVersion));
         persistRubyVersion(rubyVersion);
     },
     onOpenClassroomModal: () => dispatch(openClassroomModal()),
     onOpenTeacherModal: () => dispatch(openTeacherModal()),
-    onOpenMeshModal: extensionId => {
+    onOpenMeshModal: (extensionId) => {
         dispatch(setConnectionModalExtensionId(extensionId));
         dispatch(openConnectionModal());
     },

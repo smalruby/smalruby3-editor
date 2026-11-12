@@ -10,7 +10,6 @@
 // (block-block `+` would otherwise route to `operator_add`).
 //
 // See Issue #640.
-
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
 import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
 
@@ -47,15 +46,11 @@ describe('表示する → puts(... + ...) (multi arg)', () => {
     });
 
     test('表示する("添字", " ", "要素") → puts("添字" + " " + "要素")', () => {
-        expect(dToR('表示する("添字", " ", "要素")')).toBe(
-            'puts("添字" + " " + "要素")',
-        );
+        expect(dToR('表示する("添字", " ", "要素")')).toBe('puts("添字" + " " + "要素")');
     });
 
     test('表示する(a, "は", b) → puts(@a.to_s + "は" + @b.to_s)', () => {
-        expect(dToR('表示する(a, "は", b)')).toBe(
-            'puts(@a.to_s + "は" + @b.to_s)',
-        );
+        expect(dToR('表示する(a, "は", b)')).toBe('puts(@a.to_s + "は" + @b.to_s)');
     });
 
     test('表示する(atai, "は", aida, "番目にありました") → puts with all strings/.to_s', () => {
@@ -65,15 +60,11 @@ describe('表示する → puts(... + ...) (multi arg)', () => {
     });
 
     test('表示する(乱数(1..10), "個") → puts(rand(1..10).to_s + "個")', () => {
-        expect(dToR('表示する(乱数(1..10), "個")')).toBe(
-            'puts(rand(1..10).to_s + "個")',
-        );
+        expect(dToR('表示する(乱数(1..10), "個")')).toBe('puts(rand(1..10).to_s + "個")');
     });
 
     test('表示する with 整数() → wraps with .to_s', () => {
-        expect(dToR('表示する(整数(x), "回")')).toBe(
-            'puts(@x.to_i.to_s + "回")',
-        );
+        expect(dToR('表示する(整数(x), "回")')).toBe('puts(@x.to_i.to_s + "回")');
     });
 });
 
@@ -87,27 +78,19 @@ describe('Ruby → DNCL: puts(...) flatten + .to_s unwrap', () => {
     });
 
     test('puts("添字" + " " + "要素") → 表示する("添字", " ", "要素")', () => {
-        expect(rToD('puts("添字" + " " + "要素")')).toBe(
-            '表示する("添字", " ", "要素")',
-        );
+        expect(rToD('puts("添字" + " " + "要素")')).toBe('表示する("添字", " ", "要素")');
     });
 
     test('puts(@a.to_s + "は" + @b.to_s) → 表示する(a, "は", b)', () => {
-        expect(rToD('puts(@a.to_s + "は" + @b.to_s)')).toBe(
-            '表示する(a, "は", b)',
-        );
+        expect(rToD('puts(@a.to_s + "は" + @b.to_s)')).toBe('表示する(a, "は", b)');
     });
 
     test('puts((@a.to_s + "は") + @b.to_s) → 表示する(a, "は", b) (parens flattened)', () => {
-        expect(rToD('puts((@a.to_s + "は") + @b.to_s)')).toBe(
-            '表示する(a, "は", b)',
-        );
+        expect(rToD('puts((@a.to_s + "は") + @b.to_s)')).toBe('表示する(a, "は", b)');
     });
 
     test('puts(((1.to_s + "は") + 2.to_s) + "番目") → 表示する(1, "は", 2, "番目")', () => {
-        expect(rToD('puts(((1.to_s + "は") + 2.to_s) + "番目")')).toBe(
-            '表示する(1, "は", 2, "番目")',
-        );
+        expect(rToD('puts(((1.to_s + "は") + 2.to_s) + "番目")')).toBe('表示する(1, "は", 2, "番目")');
     });
 
     test('puts(@a + @b) — no .to_s, no string literal → NOT flattened', () => {

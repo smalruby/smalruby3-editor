@@ -1,6 +1,5 @@
 // レッスン表の絞り込み（検索）と、上の帯に出すもの（言語のボタン・コースのボタン）を決める純粋関数。
 // 見せる側は components/lessons-library/lessons-library.jsx。
-
 import { LANGUAGES } from './courses';
 import { courseProgress } from './lesson-progress';
 
@@ -61,9 +60,7 @@ export const filterCourseStatuses = (courses, progress, query, nameOf) => {
             const lessons = status.lessons
                 .map((lessonStatus) => ({
                     ...lessonStatus,
-                    challenges: lessonStatus.challenges.filter(({ challenge }) =>
-                        matchesQuery(nameOf(challenge), q),
-                    ),
+                    challenges: lessonStatus.challenges.filter(({ challenge }) => matchesQuery(nameOf(challenge), q)),
                 }))
                 .filter((lessonStatus) => lessonStatus.challenges.length > 0);
             return { course, ...status, lessons };

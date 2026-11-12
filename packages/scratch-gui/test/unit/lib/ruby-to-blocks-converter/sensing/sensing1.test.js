@@ -4,7 +4,7 @@ import {
     convertAndExpectRubyBlockError,
     rubyToExpected,
     expectedInfo,
-    expectNoArgsMethod
+    expectNoArgsMethod,
 } from '../../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Sensing', () => {
@@ -14,7 +14,7 @@ describe('RubyToBlocksConverter/Sensing', () => {
     let expected;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
         code = null;
         expected = null;
@@ -34,14 +34,14 @@ describe('RubyToBlocksConverter/Sensing', () => {
                                 fields: [
                                     {
                                         name: 'TOUCHINGOBJECTMENU',
-                                        value: '_edge_'
-                                    }
+                                        value: '_edge_',
+                                    },
                                 ],
-                                shadow: true
-                            }
-                        }
-                    ]
-                }
+                                shadow: true,
+                            },
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -58,14 +58,14 @@ describe('RubyToBlocksConverter/Sensing', () => {
                                 fields: [
                                     {
                                         name: 'TOUCHINGOBJECTMENU',
-                                        value: '_mouse_'
-                                    }
+                                        value: '_mouse_',
+                                    },
                                 ],
-                                shadow: true
-                            }
-                        }
-                    ]
-                }
+                                shadow: true,
+                            },
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -79,19 +79,17 @@ describe('RubyToBlocksConverter/Sensing', () => {
             expected = [
                 (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0],
                 (await rubyToExpected(converter, target, 'touching?("_edge_")'))[0],
-                (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0]
+                (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0],
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
 
         test('invalid', async () => {
-            { for (const c of [
-                'touching?()',
-                'touching?(1)',
-                'touching?("_edge_", 1)'
-            ]) {
-                await convertAndExpectRubyBlockError(converter, target, c);
-            } }
+            {
+                for (const c of ['touching?()', 'touching?(1)', 'touching?("_edge_", 1)']) {
+                    await convertAndExpectRubyBlockError(converter, target, c);
+                }
+            }
         });
 
         test('error', async () => {
@@ -120,14 +118,14 @@ describe('RubyToBlocksConverter/Sensing', () => {
                                 fields: [
                                     {
                                         name: 'COLOUR',
-                                        value: '#43066f'
-                                    }
+                                        value: '#43066f',
+                                    },
                                 ],
-                                shadow: true
-                            }
-                        }
-                    ]
-                }
+                                shadow: true,
+                            },
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -144,17 +142,16 @@ describe('RubyToBlocksConverter/Sensing', () => {
                                 fields: [
                                     {
                                         name: 'COLOUR',
-                                        value: '#43066f'
-                                    }
+                                        value: '#43066f',
+                                    },
                                 ],
-                                shadow: true
-                            }
-                        }
-                    ]
-                }
+                                shadow: true,
+                            },
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
-
         });
 
         test('value_boolean', async () => {
@@ -166,16 +163,16 @@ describe('RubyToBlocksConverter/Sensing', () => {
             expected = [
                 (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0],
                 (await rubyToExpected(converter, target, 'touching_color?("#43066f")'))[0],
-                (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0]
+                (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0],
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
 
         // Regression for #834: named colors and shorthand #rgb normalize to #rrggbb.
         test('named colors and shorthand hex normalize to #rrggbb', async () => {
-            for (const {code: caseCode, value} of [
-                {code: 'touching_color?("red")', value: '#ff0000'},
-                {code: 'touching_color?("#0f0")', value: '#00ff00'}
+            for (const { code: caseCode, value } of [
+                { code: 'touching_color?("red")', value: '#ff0000' },
+                { code: 'touching_color?("#0f0")', value: '#00ff00' },
             ]) {
                 await convertAndExpectToEqualBlocks(converter, target, caseCode, [
                     {
@@ -185,27 +182,29 @@ describe('RubyToBlocksConverter/Sensing', () => {
                                 name: 'COLOR',
                                 block: {
                                     opcode: 'colour_picker',
-                                    fields: [{name: 'COLOUR', value}],
-                                    shadow: true
-                                }
-                            }
-                        ]
-                    }
+                                    fields: [{ name: 'COLOUR', value }],
+                                    shadow: true,
+                                },
+                            },
+                        ],
+                    },
                 ]);
             }
         });
 
         test('invalid', async () => {
-            { for (const c of [
-                'touching_color?()',
-                'touching_color?(1)',
-                'touching_color?("#0")',
-                'touching_color?("43066f")',
-                'touching_color?("#43066f0")',
-                'touching_color?("#43066f", 1)'
-            ]) {
-                await convertAndExpectRubyBlockError(converter, target, c);
-            } }
+            {
+                for (const c of [
+                    'touching_color?()',
+                    'touching_color?(1)',
+                    'touching_color?("#0")',
+                    'touching_color?("43066f")',
+                    'touching_color?("#43066f0")',
+                    'touching_color?("#43066f", 1)',
+                ]) {
+                    await convertAndExpectRubyBlockError(converter, target, c);
+                }
+            }
         });
 
         test('error', async () => {
@@ -219,5 +218,4 @@ describe('RubyToBlocksConverter/Sensing', () => {
             expect(res).toBeFalsy();
         });
     });
-
 });

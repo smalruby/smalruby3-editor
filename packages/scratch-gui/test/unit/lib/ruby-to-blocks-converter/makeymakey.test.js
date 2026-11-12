@@ -1,8 +1,5 @@
 import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter';
-import {
-    convertAndExpectToEqualBlocks,
-    rubyToExpected
-} from '../../../helpers/expect-to-equal-blocks';
+import { convertAndExpectToEqualBlocks, rubyToExpected } from '../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/MakeyMakey', () => {
     let converter;
@@ -11,7 +8,7 @@ describe('RubyToBlocksConverter/MakeyMakey', () => {
     let expected;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
         code = null;
         expected = null;
@@ -27,12 +24,12 @@ end`;
                     name: 'KEY',
                     block: {
                         opcode: 'makeymakey_menu_KEY',
-                        fields: [{name: 'KEY', value: 'SPACE'}],
-                        shadow: true
-                    }
-                }
+                        fields: [{ name: 'KEY', value: 'SPACE' }],
+                        shadow: true,
+                    },
+                },
             ],
-            branches: [null]
+            branches: [null],
         };
         expected = [expectedBlock];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
@@ -48,12 +45,12 @@ end`;
                     name: 'SEQUENCE',
                     block: {
                         opcode: 'makeymakey_menu_SEQUENCE',
-                        fields: [{name: 'SEQUENCE', value: 'LEFT UP RIGHT'}],
-                        shadow: true
-                    }
-                }
+                        fields: [{ name: 'SEQUENCE', value: 'LEFT UP RIGHT' }],
+                        shadow: true,
+                    },
+                },
             ],
-            branches: [null]
+            branches: [null],
         };
         expected = [expectedBlock];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
