@@ -195,3 +195,33 @@ export const expectRoundTrip = async (converter, target, code, expectedRuby = nu
     const result = await rubyToBlocksToRuby(converter, target, code, options);
     expect(result).toBe((expectedRuby !== null ? expectedRuby : code).trim());
 };
+
+/**
+ * The blocks of the target as trees without ids, so two conversions can be compared.
+ * @param {object} target - The target the converter wrote to.
+ * @returns {Array<object>} One tree per script, in order.
+ */
+export const blockTrees = (target) => {
+    const blocks = target.blocks._blocks;
+    const tree = (id) => {
+        const block = blocks[id];
+        if (!block) return null;
+        const inputs = {};
+        Object.keys(block.inputs || {})
+            .sort()
+            .forEach((name) => {
+                inputs[name] = tree(block.inputs[name].block);
+            });
+        const fields = {};
+        Object.keys(block.fields || {})
+            .sort()
+            .forEach((name) => {
+                fields[name] = block.fields[name].value;
+            });
+        const comment = block.comment ? target.comments[block.comment]?.text : undefined;
+        return { opcode: block.opcode, fields, inputs, comment, next: tree(block.next) };
+    };
+    return Object.keys(blocks)
+        .filter((id) => blocks[id].topLevel)
+        .map(tree);
+};

@@ -453,7 +453,8 @@ export default function (Generator) {
             }
             return [`${hash}.key?(${key})`, order];
         }
-        const item = Generator.valueToCode(block, 'ITEM', order) || '0';
+        // ITEM is an argument, which needs no parentheses: `@a.include?(1 + 2)`.
+        const item = Generator.valueToCode(block, 'ITEM', Generator.ORDER_NONE) || '0';
         const list = getListName(block);
         return [`${renderList(list)}.include?(${Generator.nosToCode(item)})`, order];
     };

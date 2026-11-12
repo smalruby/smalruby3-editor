@@ -113,7 +113,7 @@ describe('RubyGenerator/Operators/Regexp', () => {
             RubyGenerator.valueToCode = jest.fn().mockReturnValueOnce('"apple"').mockReturnValueOnce('"a"');
             expect(RubyGenerator.operator_contains(block)).toEqual([
                 '"apple".include?("a")',
-                RubyGenerator.ORDER_ATOMIC,
+                RubyGenerator.ORDER_FUNCTION_CALL,
             ]);
         });
     });

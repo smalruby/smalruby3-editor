@@ -35,16 +35,19 @@ export default function (Generator) {
         return [expression, Generator.ORDER_ATOMIC];
     };
 
+    // `..` binds looser than every operator but `?:`, `not`, `and` / `or` and assignment, so a
+    // range as a receiver or an operand needs parentheses: `(1..3).each`, not `1..(3.each)`
+    // (issue #1689). An argument (`rand(1..3)`) does not.
     Generator.ruby_range = function (block) {
         const fromNum = Generator.valueToCode(block, 'FROM', Generator.ORDER_RANGE) || 1;
         const toNum = Generator.valueToCode(block, 'TO', Generator.ORDER_RANGE) || 10;
-        return [`${fromNum}..${toNum}`, Generator.ORDER_FUNCTION_CALL];
+        return [`${fromNum}..${toNum}`, Generator.ORDER_RANGE];
     };
 
     Generator.ruby_exclude_range = function (block) {
         const fromNum = Generator.valueToCode(block, 'FROM', Generator.ORDER_RANGE) || 1;
         const toNum = Generator.valueToCode(block, 'TO', Generator.ORDER_RANGE) || 10;
-        return [`${fromNum}...${toNum}`, Generator.ORDER_FUNCTION_CALL];
+        return [`${fromNum}...${toNum}`, Generator.ORDER_RANGE];
     };
 
     return Generator;
