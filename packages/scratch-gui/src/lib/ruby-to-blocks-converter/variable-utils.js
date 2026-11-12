@@ -585,6 +585,37 @@ const VariableUtils = {
     },
 
     /**
+     * Leave out the variables that were made only to be set to a hash literal and that no block uses.
+     * A hash is kept in two lists (`_hash_h_keys_` / `_hash_h_values_`), but `_onVasgn` makes the
+     * variable `h` before it sees that the value is a hash, and the variable would be left in the
+     * project, unused (issue #1666). A variable that the project already has stays as it is.
+     */
+    _dropUnusedHashVariables() {
+        const madeForHash = [];
+        ['variables', 'localVariables'].forEach((storeName) => {
+            Object.keys(this._context[storeName]).forEach((name) => {
+                const variable = this._context[storeName][name];
+                if (variable.madeForHash && !variable.fromTarget && !variable.isArgument) {
+                    madeForHash.push({ storeName, name, id: variable.id });
+                }
+            });
+        });
+        if (madeForHash.length === 0) return;
+
+        const usedIds = new Set();
+        Object.values(this._context.blocks).forEach((block) => {
+            Object.values(block.fields || {}).forEach((field) => {
+                if (field && field.id) usedIds.add(field.id);
+            });
+        });
+        madeForHash.forEach(({ storeName, name, id }) => {
+            if (!usedIds.has(id)) {
+                delete this._context[storeName][name];
+            }
+        });
+    },
+
+    /**
      * Leave out the lists that give way to a variable of the same name (see
      * `_isListShadowedByVariable`), so that the target applier makes the variable instead of
      * dropping it with the script that sets it (issue #1612). The list stays in the project.

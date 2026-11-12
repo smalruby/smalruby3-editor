@@ -223,6 +223,7 @@ class RubyToBlocksConverter extends Visitor {
             });
 
             this._dropListsShadowedByVariables();
+            this._dropUnusedHashVariables();
             this._rejectVariableAndListOfSameName();
 
             // Create $_symbols_ list if symbols were collected
