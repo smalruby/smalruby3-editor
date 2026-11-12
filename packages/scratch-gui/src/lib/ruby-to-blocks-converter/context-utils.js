@@ -329,6 +329,13 @@ const ContextUtils = {
             }
             // Traverse receiver
             this._countProcedureCallsInNode(node.receiver);
+        } else if (nodeType === 'ReturnNode') {
+            // The value of `return` is used as a value too (issue #1556).
+            if (node.arguments_ && node.arguments_.arguments_) {
+                node.arguments_.arguments_.forEach(argNode => {
+                    this._countCallsInValueNode(argNode);
+                });
+            }
         } else {
             // For other node types, traverse children generically
             const childKeys = ['statements', 'body', 'then', 'else', 'value', 'left', 'right',
@@ -363,12 +370,16 @@ const ContextUtils = {
             if (name) {
                 this._context.methodCallCounts[name] = (this._context.methodCallCounts[name] || 0) + 1;
             }
-            // Recurse into arguments
+            // Recurse into the receiver (e.g. `bar(1)` of `bar(1) + bar(2)`) and the arguments
+            this._countCallsInValueNode(node.receiver);
             if (node.arguments_ && node.arguments_.arguments_) {
                 node.arguments_.arguments_.forEach(argNode => {
                     this._countCallsInValueNode(argNode);
                 });
             }
+        } else if (nodeType === 'StatementsNode') {
+            // The inside of parentheses, e.g. `(bar + 1)`
+            node.body.forEach(child => this._countCallsInValueNode(child));
         } else {
             // Traverse relevant children
             const childKeys = ['value', 'left', 'right', 'condition', 'body'];

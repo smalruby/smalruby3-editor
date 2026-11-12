@@ -288,7 +288,9 @@ const MyBlocksConverter = {
                 // value (e.g., super calls to module methods that return values). In this case,
                 // the procedures_call sets the callee's return variable, and we need to copy it
                 // to this procedure's return variable.
-                if (last && last.opcode === 'procedures_call' &&
+                // A call followed by other blocks (e.g. `return bar`: the call, then the return block)
+                // is not the last expression; linking after it would cut them off (issue #1556).
+                if (last && last.opcode === 'procedures_call' && !last.next &&
                     converter._isProcedureCallWithReturnValue(last) &&
                     !lastCommentText.includes('@ruby:syntax:return')) {
                     const calledProccode = last.mutation.proccode;
