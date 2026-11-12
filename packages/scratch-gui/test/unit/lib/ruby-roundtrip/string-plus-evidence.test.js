@@ -45,8 +45,10 @@ describe('Ruby to blocks: string + from the evidence of the code (issue #1659)',
                 `,
             ],
             ['@a += "x"', '@a = gets\n@a += "x"'],
+            ['@a = @a + "x"', '@a = gets\n@a = @a + "x"\nsay(@a)'],
+            ['@a + 1.to_s', '@a = gets\nsay(@a + 1.to_s)'],
+            ['@a + @b, @b set to a string literal', '@a = gets\n@b = "x"\nsay(@a + @b)'],
             ['a local += "x"', 'a = gets\na += "x"'],
-            ['@a + @b, both set by gets', '@a = gets\n@b = gets\nsay(@a + @b)'],
             [
                 'a local in a method',
                 dedent`
@@ -84,10 +86,18 @@ describe('Ruby to blocks: string + from the evidence of the code (issue #1659)',
             // Not known to be a String on the right: the number `+`, as before.
             ['@a = gets then @a + 1', '@a = gets\nsay(@a + 1)'],
             ['@a = gets then @a + @b', '@a = gets\nsay(@a + @b)'],
+            // Two numbers asked with gets and added: keep the addition the program runs as.
+            ['@a + @b, both set by gets', '@a = gets\n@b = gets\nsay(@a + @b)'],
         ])('%s', async (_name, code) => {
             await expectRoundTrip(converter, target, code);
             expect(opcodesOf()).toContain('operator_add');
             expect(opcodesOf()).not.toContain('operator_join');
         });
+    });
+
+    test('@a += @b, both set by gets, stays the number change as before', async () => {
+        await expectRoundTrip(converter, target, '@a = gets\n@b = gets\n@a += @b');
+        expect(opcodesOf()).toContain('data_changevariableby');
+        expect(opcodesOf()).not.toContain('operator_join');
     });
 });

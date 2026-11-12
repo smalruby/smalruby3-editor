@@ -568,7 +568,7 @@ const VariableUtils = {
 
     /**
      * Whether a prism node is a value that is always a String (see `_collectVariableUses`):
-     * a string literal, `gets`, `answer` or `x.to_s`.
+     * a string literal, `gets`, `answer`, `x.to_s`, or `x + "literal"` (so `a = a + "x"` keeps `a` a String).
      * @param {object} node - The prism node of the value.
      * @returns {boolean} true if the value is a String.
      */
@@ -578,7 +578,11 @@ const VariableUtils = {
         if (nodeType !== 'CallNode') return false;
         const name = String(node.name);
         const args = node.arguments_ ? node.arguments_.arguments_ : [];
-        if (args.length > 0 || node.block) return false;
+        if (node.block) return false;
+        if (name === '+' && node.receiver && args.length === 1) {
+            return STRING_VALUE_NODE_TYPES.has(this._prismNodeType(args[0]));
+        }
+        if (args.length > 0) return false;
         if (name === 'to_s') return true;
         return !node.receiver && STRING_CALLS_WITHOUT_RECEIVER.has(name);
     },
@@ -609,16 +613,20 @@ const VariableUtils = {
 
     /**
      * Whether `x + operand` is the string `+` when `x` is a String only by `_isUsedOnlyAsString`
-     * (issue #1659). The operand must be a String too: after `@a = gets`, adding a number or a
-     * name not known to be a String (`@a + 1`) stays the number `+`, as it was before.
+     * (issue #1659). The operand must be clearly a String: a string literal, a block of a String
+     * (`to_s`, `join`) or a variable the converter has seen holding a String. After `a = gets`,
+     * `a + 1` and `a + b` stay the number `+`, as before: children write
+     * `a = gets; b = gets; a + b` to add two numbers, and a program that runs as an addition
+     * must not turn into a join ("3" + "4" → "34") by converting it to blocks.
      * @param {object} operand - The right-hand side of `+` (a value or a block).
-     * @returns {boolean} true if the operand is a String.
+     * @returns {boolean} true if the operand is clearly a String.
      */
     _isStringOperand(operand) {
         if (this._isString(operand)) return true;
         if (!this._isBlock(operand)) return false;
         if (this.isVariableBlock(operand)) {
-            return this._isStringVariable(this.lookupVariableFromVariableBlock(operand));
+            const variable = this.lookupVariableFromVariableBlock(operand);
+            return Boolean(variable) && variable.dataType === 'string';
         }
         return this._getBlockDataType(operand) === 'string';
     },
