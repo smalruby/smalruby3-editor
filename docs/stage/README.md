@@ -24,7 +24,7 @@ Smalruby は基本的に upstream のステージをそのまま使用してい�
 |---|---|
 | 緑旗 | 全スプライトの `when_flag_clicked` を発火 |
 | 停止ボタン | 全スクリプト停止 |
-| ステージサイズ切替 | small / large / fullscreen |
+| ステージサイズ切替 | small / middle（中サイズ。Smalruby 独自・既定）/ large / fullscreen。中サイズのときはスプライトの情報を詰めた形にする（[`docs/sprite/`](../sprite/README.md)） |
 | watermark | プロジェクトロード中の透かし表示 |
 
 ### 表示モード

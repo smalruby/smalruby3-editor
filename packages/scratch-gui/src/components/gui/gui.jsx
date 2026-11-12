@@ -200,6 +200,9 @@ const GUIComponent = props => {
         blocksId,
         blocksTabVisible,
         dnclMode, // === Smalruby: DNCL block filtering ===
+        // === Smalruby: Start of lesson mode ===
+        lessonTaskBarVisible,
+        // === Smalruby: End of lesson mode ===
         cardsVisible,
         canChangeLanguage,
         canChangeColorMode,
@@ -380,7 +383,10 @@ const GUIComponent = props => {
             const stageSize = isNarrowDesktop ? STAGE_DISPLAY_SIZES.small : baseStageSize;
             // === Smalruby: End of iPad portrait narrow desktop stage size ===
             const boxStyles = classNames(styles.bodyWrapper, {
-                [styles.bodyWrapperWithoutMenuBar]: menuBarHidden
+                [styles.bodyWrapperWithoutMenuBar]: menuBarHidden,
+                // === Smalruby: Start of lesson mode ===
+                [styles.bodyWrapperWithLessonTaskBar]: lessonTaskBarVisible
+                // === Smalruby: End of lesson mode ===
             });
 
         return isPlayerOnly ? (
@@ -586,6 +592,10 @@ const GUIComponent = props => {
                         username={username}
                         accountMenuOptions={accountMenuOptions}
                     />}
+                    {/* === Smalruby: Start of lesson mode === */}
+                    {/* 課題バーは画面の幅いっぱい（エディタの列とステージの列の両方の上）に出す */}
+                    <LessonMode />
+                    {/* === Smalruby: End of lesson mode === */}
                     <Box className={classNames(boxStyles, styles.flexWrapper)}>
                         <Box
                             role="main"
@@ -593,9 +603,6 @@ const GUIComponent = props => {
                             className={styles.editorWrapper}
                             element="main"
                         >
-                            {/* === Smalruby: Start of lesson mode === */}
-                            <LessonMode />
-                            {/* === Smalruby: End of lesson mode === */}
                             <Tabs
                                 forceRenderTabPanel
                                 className={tabClassNames.tabs}
@@ -900,6 +907,9 @@ GUIComponent.propTypes = {
     smalrubotFirmwareModalVisible: PropTypes.bool, // === Smalruby: smalrubot firmware modal ===
     blocksTabVisible: PropTypes.bool,
     dnclMode: PropTypes.bool, // === Smalruby: DNCL block filtering ===
+    // === Smalruby: Start of lesson mode ===
+    lessonTaskBarVisible: PropTypes.bool,
+    // === Smalruby: End of lesson mode ===
     blocksId: PropTypes.string,
     canChangeLanguage: PropTypes.bool,
     canChangeColorMode: PropTypes.bool,

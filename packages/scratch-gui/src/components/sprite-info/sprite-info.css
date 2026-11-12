@@ -73,3 +73,41 @@ body .icon {
 .sprite-input {
     width: 8rem;
 }
+
+/* === Smalruby: Start of compact middle sprite info === */
+/*
+    中サイズのステージ（sprite-info.jsx）では、ラベルを入力欄の左隣に置いて 2 行に詰める。
+    名前の入力欄は x / y の残りの幅を使う。
+*/
+.compact .row {
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.compact .row-primary {
+    margin-bottom: 0.5rem;
+}
+
+.compact-name {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+/* 名前の長さでスプライトの列を広げない（狭いときは名前の入力欄が縮む） */
+.compact-name .sprite-input {
+    width: 100%;
+    min-width: 0;
+}
+
+/* x / y と同じ幅。字の代わりのアイコンの分、上流の 4rem より詰めて列の幅を広げない */
+.compact .larger-input input {
+    width: 3rem;
+}
+
+/* 大きさ / 向きのアイコン（1 文字ぶんの幅）。マウスを乗せると title で意味が出る */
+.label-icon {
+    display: block;
+    width: 1rem;
+    height: 1rem;
+}
+/* === Smalruby: End of compact middle sprite info === */

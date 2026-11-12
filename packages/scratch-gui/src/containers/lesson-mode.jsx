@@ -1,4 +1,4 @@
-// レッスンモードのコンテナ。gui.jsx のエディタ列の先頭に常時マウントし、
+// レッスンモードのコンテナ。gui.jsx のメニューバーと本体のあいだに常時マウントし、
 //   - startChallenge(id) で開こうとしているチャレンジを、新しい作品 → setup →
 //     openChallenge(id) の順に進める
 //   - レッスンモードのあいだ課題バー（LessonTaskBar）を出す
@@ -123,7 +123,7 @@ const LessonMode = ({
 
     if (!current) return null;
     // ヒントの吹き出し（containers/lesson-hint.jsx）は document.body に portal で出るので、
-    // ここに置いてもエディタの列のレイアウトには影響しない
+    // ここに置いても本体のレイアウトには影響しない
     return (
         <>
             <LessonTaskBar

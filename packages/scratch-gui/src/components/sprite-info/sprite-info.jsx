@@ -21,6 +21,10 @@ import yIcon from './icon--y.svg';
 import showIcon from './icon--show.svg';
 import hideIcon from './icon--hide.svg';
 import ToggleButtons from '../toggle-buttons/toggle-buttons.jsx';
+// === Smalruby: Start of compact middle sprite info ===
+import sizeIcon from './icon--size.svg';
+import directionIcon from '../direction-picker/icon--all-around.svg';
+// === Smalruby: End of compact middle sprite info ===
 
 const BufferedInput = BufferedInputHOC(Input);
 
@@ -39,7 +43,19 @@ const messages = defineMessages({
         id: 'gui.SpriteInfo.hideSpriteAction',
         defaultMessage: 'Hide sprite',
         description: 'Tooltip for hide sprite button'
+    },
+    // === Smalruby: Start of compact middle sprite info ===
+    sizeIcon: {
+        id: 'gui.smalruby3.SpriteInfo.sizeIcon',
+        defaultMessage: 'Size (%)',
+        description: 'Tooltip for the size icon shown next to the size input on the middle stage'
+    },
+    directionIcon: {
+        id: 'gui.smalruby3.SpriteInfo.directionIcon',
+        defaultMessage: 'Direction (degrees)',
+        description: 'Tooltip for the direction icon shown next to the direction input on the middle stage'
     }
+    // === Smalruby: End of compact middle sprite info ===
 });
 
 class SpriteInfo extends React.Component {
@@ -162,6 +178,116 @@ class SpriteInfo extends React.Component {
                 </Label>
             </div>
         );
+
+        // === Smalruby: Start of compact middle sprite info ===
+        // 中サイズのステージ（Smalruby 独自）では、ラベルを詰めてスプライトの一覧の高さを増やす:
+        // 「スプライト」の字は出さず、x / y は入力欄の左隣、大きさ / 向きはアイコンにして左隣に置く。
+        if (stageSize === STAGE_DISPLAY_SIZES.middle) {
+            const labelIcon = (icon, message, testId) => {
+                const text = this.props.intl.formatMessage(message);
+                return (
+                    <img
+                        alt={text}
+                        aria-label={text}
+                        className={styles.labelIcon}
+                        data-testid={testId}
+                        draggable={false}
+                        src={icon}
+                        title={text}
+                    />
+                );
+            };
+            return (
+                <Box
+                    className={classNames(styles.spriteInfo, styles.compact)}
+                    data-testid="sprite-info-compact"
+                >
+                    <div className={classNames(styles.row, styles.rowPrimary)}>
+                        <div className={classNames(styles.group, styles.compactName)}>
+                            {spriteNameInput}
+                        </div>
+                        <div className={styles.group}>
+                            <Label text="x">
+                                <BufferedInput
+                                    small
+                                    disabled={this.props.disabled}
+                                    placeholder="x"
+                                    tabIndex="0"
+                                    type="text"
+                                    value={this.props.disabled ? '' : Math.round(this.props.x)}
+                                    onSubmit={this.props.onChangeX}
+                                />
+                            </Label>
+                        </div>
+                        <div className={styles.group}>
+                            <Label text="y">
+                                <BufferedInput
+                                    small
+                                    disabled={this.props.disabled}
+                                    placeholder="y"
+                                    tabIndex="0"
+                                    type="text"
+                                    value={this.props.disabled ? '' : Math.round(this.props.y)}
+                                    onSubmit={this.props.onChangeY}
+                                />
+                            </Label>
+                        </div>
+                    </div>
+                    <div className={classNames(styles.row, styles.rowSecondary)}>
+                        <div className={styles.group}>
+                            <ToggleButtons
+                                buttons={[
+                                    {
+                                        handleClick: this.props.onClickVisible,
+                                        icon: showIcon,
+                                        isSelected: this.props.visible && !this.props.disabled,
+                                        title: this.props.intl.formatMessage(messages.showSpriteAction)
+                                    },
+                                    {
+                                        handleClick: this.props.onClickNotVisible,
+                                        icon: hideIcon,
+                                        isSelected: !this.props.visible && !this.props.disabled,
+                                        title: this.props.intl.formatMessage(messages.hideSpriteAction)
+                                    }
+                                ]}
+                                disabled={this.props.disabled}
+                            />
+                        </div>
+                        <div className={classNames(styles.group, styles.largerInput)}>
+                            <Label
+                                secondary
+                                text={labelIcon(sizeIcon, messages.sizeIcon, 'sprite-info-size-icon')}
+                            >
+                                <BufferedInput
+                                    small
+                                    disabled={this.props.disabled}
+                                    label={sizeLabel}
+                                    tabIndex="0"
+                                    type="text"
+                                    value={this.props.disabled ? '' : Math.round(this.props.size)}
+                                    onSubmit={this.props.onChangeSize}
+                                />
+                            </Label>
+                        </div>
+                        <div className={classNames(styles.group, styles.largerInput)}>
+                            <DirectionPicker
+                                direction={Math.round(this.props.direction)}
+                                disabled={this.props.disabled}
+                                labelIcon={labelIcon(
+                                    directionIcon,
+                                    messages.directionIcon,
+                                    'sprite-info-direction-icon'
+                                )}
+                                rotationStyle={this.props.rotationStyle}
+                                onChangeDirection={this.props.onChangeDirection}
+                                onChangeRotationStyle={this.props.onChangeRotationStyle}
+                            />
+                        </div>
+                    </div>
+                </Box>
+            );
+        }
+        // === Smalruby: End of compact middle sprite info ===
 
         if (stageSize === STAGE_DISPLAY_SIZES.small) {
             return (

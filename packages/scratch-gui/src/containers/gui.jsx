@@ -63,6 +63,9 @@ import {isClassroomConfigured} from '../lib/classroom-api.js';
 import {openClassroomModal} from '../reducers/classroom.js';
 import {getUrlParams} from '../lib/url-params.js';
 // === Smalruby: End of classcode auto-open ===
+// === Smalruby: Start of lesson mode ===
+import {getCurrentChallenge} from '../reducers/lesson-mode.js';
+// === Smalruby: End of lesson mode ===
 
 import GUIComponent from '../components/gui/gui.jsx';
 import {GUIStoragePropType} from '../gui-config';
@@ -281,6 +284,10 @@ const mapStateToProps = (state, ownProps) => {
         teacherModalVisible: state.scratchGui.classroom ? state.scratchGui.classroom.teacherModalVisible : false,
         // === Smalruby: End of classroom modal ===
         dnclMode: state.scratchGui.dnclMode.dnclMode, // === Smalruby: DNCL block filtering ===
+        // === Smalruby: Start of lesson mode ===
+        // 課題バー（containers/lesson-mode.jsx）が出ているあいだ、その高さの分だけ本体を縮める
+        lessonTaskBarVisible: Boolean(getCurrentChallenge(state)),
+        // === Smalruby: End of lesson mode ===
         vm: state.scratchGui.vm
     };
 };
