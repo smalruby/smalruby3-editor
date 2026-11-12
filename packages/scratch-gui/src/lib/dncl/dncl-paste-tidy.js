@@ -12,7 +12,7 @@
 // the error marker tells the user to use `#` (see `hasDoubleSlash`).
 //
 // See Issue #1192.
-import { skipString } from './paren-utils';
+import { commentIndex, stringEndAt } from './dncl-trailing-comment';
 
 /**
  * A line-number prefix and the whitespace after it: the DNCLv2 form
@@ -34,27 +34,19 @@ const OPERATOR_RE = /[+\-*/%=<>!&|÷×≦≧≠]|(?:^|\s)(?:かつ|または)(?=
 const NAME_RE = /[a-zA-Z_぀-ゟ゠-ヿ一-鿿][a-zA-Z0-9_぀-ゟ゠-ヿ一-鿿]*/g;
 
 /**
- * Split a line into the code part and the trailing `#` comment, ignoring
- * `#` inside string literals.
+ * Index of the `#` that starts the comment of a line, ignoring `#` inside
+ * string literals (`"..."` / `'...'` / `「...」`, Issue #1709).
  * @param {string} line - The source line.
  * @returns {number} Index of the comment `#`, or `line.length` when none.
  */
 const commentStart = (line) => {
-    let i = 0;
-    while (i < line.length) {
-        const ch = line[i];
-        if (ch === '"' || ch === "'") {
-            i = skipString(line, i, ch);
-            continue;
-        }
-        if (ch === '#') return i;
-        i++;
-    }
-    return line.length;
+    const idx = commentIndex(line);
+    return idx === -1 ? line.length : idx;
 };
 
 /**
- * Indices of every `//` outside string literals and before any `#` comment.
+ * Indices of every `//` outside string literals (「...」 too) and before any
+ * `#` comment.
  * @param {string} line - The source line.
  * @returns {Array<number>} Index of the first `/` of each `//`.
  */
@@ -63,12 +55,12 @@ const slashIndices = (line) => {
     const end = commentStart(line);
     let i = 0;
     while (i < end) {
-        const ch = line[i];
-        if (ch === '"' || ch === "'") {
-            i = skipString(line, i, ch);
+        const stringEnd = stringEndAt(line, i);
+        if (stringEnd !== -1) {
+            i = stringEnd;
             continue;
         }
-        if (ch === '/' && line[i + 1] === '/') {
+        if (line[i] === '/' && line[i + 1] === '/') {
             result.push(i);
             i += 2;
             continue;
@@ -87,13 +79,13 @@ const withoutStrings = (line) => {
     let out = '';
     let i = 0;
     while (i < line.length) {
-        const ch = line[i];
-        if (ch === '"' || ch === "'") {
-            i = skipString(line, i, ch);
+        const end = stringEndAt(line, i);
+        if (end !== -1) {
+            i = end;
             out += ' ';
             continue;
         }
-        out += ch;
+        out += line[i];
         i++;
     }
     return out;

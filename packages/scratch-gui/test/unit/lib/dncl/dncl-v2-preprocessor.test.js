@@ -134,6 +134,20 @@ describe('DNCLv2 pre-processor: comma-separated multi-assignment', () => {
         expect(dnclV2Preprocess('a = "x, y"')).toBe('a = "x, y"');
     });
 
+    // A `,` or `=` in 「...」 is text, as in `"..."` (Issue #1709).
+    test('does not split at a comma inside 「...」', () => {
+        expect(dnclV2Preprocess('表示 ← 「a=1, b=2」')).toBe('表示 ← 「a=1, b=2」');
+        expect(dnclToRuby('表示 ← 「a=1, b=2」').ruby).toBe('@表示 = "a=1, b=2"');
+    });
+
+    test('an `=` inside 「...」 does not make a part an assignment', () => {
+        expect(dnclV2Preprocess('a = 「x=1」, 表示する(a)')).toBe('a = 「x=1」, 表示する(a)');
+    });
+
+    test('splits at the comma after a 「...」 with a comma in it', () => {
+        expect(dnclV2Preprocess('a = 「,」, b = 1')).toBe('a = 「,」\nb = 1');
+    });
+
     test('does not split single assignment', () => {
         expect(dnclV2Preprocess('a = 0')).toBe('a = 0');
     });
@@ -477,5 +491,20 @@ describe('DNCLv2 pre-processor: idempotency', () => {
         const once = dnclV2Preprocess(src);
         const twice = dnclV2Preprocess(once);
         expect(twice).toBe(once);
+    });
+});
+
+// A bracket or a `#` in a string (`"..."`, `'...'`, `「...」`) is text: it does not keep a
+// numbered statement open, so the next line is not joined to it (#1709).
+describe('DNCLv2 pre-processor: brackets and # in a string', () => {
+    test.each(['(1) 表示する(「(」)', '(1) 表示する("(")', '(1) 表示する(「#」)', "(1) 表示する('#')"])(
+        '%s does not swallow the next line',
+        (first) => {
+            expect(dnclV2Preprocess(`${first}\nx = 1`).split('\n')).toHaveLength(2);
+        },
+    );
+
+    test('a statement wrapped after a 「#」 is still joined', () => {
+        expect(dnclV2Preprocess('(1) 表示する(「#」,\n      a)')).toBe('表示する(「#」, a)');
     });
 });
