@@ -51,6 +51,10 @@ describe('DNCLv2 pre-processor: not → でない', () => {
         expect(dnclV2Preprocess('nothing = knot + not_yet')).toBe('nothing = knot + not_yet');
     });
 
+    test('not next to Japanese letters is part of the name', () => {
+        expect(dnclV2Preprocess('notフラグ = 値not + 1')).toBe('notフラグ = 値not + 1');
+    });
+
     test('not in a comment is left alone', () => {
         expect(dnclV2Preprocess('b = not x # not now')).toBe('b = x でない # not now');
     });

@@ -345,11 +345,12 @@ const normalizeAndOr = (line) => {
 };
 
 /**
- * Whether `ch` can be part of an ASCII identifier (`knot`, `not_yet`).
+ * Whether `ch` can be part of an identifier (`knot`, `not_yet`, `notフラグ`).
+ * DNCL names may use Japanese letters, so any Unicode letter or digit counts.
  * @param {string} [ch] - A character, or nothing past the line edge.
  * @returns {boolean} True for an identifier character.
  */
-const isIdentChar = (ch) => typeof ch === 'string' && /[a-zA-Z0-9_]/.test(ch);
+const isIdentChar = (ch) => typeof ch === 'string' && /[\p{L}\p{N}_]/u.test(ch);
 
 /**
  * Words that end the operand of a `not`, when written after whitespace:
