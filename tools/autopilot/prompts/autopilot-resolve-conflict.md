@@ -71,7 +71,7 @@ base 側の lock の変化（`git diff "$MB" MERGE_HEAD -- package-lock.json` �
 ### 確かめる
 
 - 変更したパッケージの lint（`npm run lint` は重いので、触ったパッケージ単位で）
-- コンフリクトしたファイルに関係する unit テスト（全件は CI に任せる）
+- コンフリクトしたファイルに関係する unit テスト（全件は CI に任せる（`CLAUDE.md` の「ローカルで流すテストの範囲」。全体実行は PR の CI で。どうしても全体の結果が要るときだけ例外で、理由を書く））
 - `tools/autopilot/` を触ったら `cd tools/autopilot && node --test`
 
 ## 3. 自信が持てないときは中断する
