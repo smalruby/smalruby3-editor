@@ -35,7 +35,7 @@ export default function (Generator) {
     };
 
     Generator.control_repeat = function (block) {
-        const times = Generator.valueToCode(block, 'TIMES', Generator.ORDER_ATOMIC) || 0;
+        const times = Generator.valueToCode(block, 'TIMES', Generator.ORDER_RECEIVER) || 0;
         const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
         const wait = hasWaitComment(block) ? `${Generator.INDENT}wait\n` : '';
         const suffix = needsWithScreenRefresh(block) ? '.with_screen_refresh' : '';

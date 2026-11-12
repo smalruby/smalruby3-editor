@@ -262,8 +262,7 @@ export default function (Generator) {
             return [`:${symbolName}.to_s`, Generator.ORDER_FUNCTION_CALL];
         }
         if (comment === '@ruby:method:to_s') {
-            const value =
-                Generator.valueToCode(block, 'STRING1', Generator.ORDER_FUNCTION_CALL) || Generator.quote_('');
+            const value = Generator.valueToCode(block, 'STRING1', Generator.ORDER_RECEIVER) || Generator.quote_('');
             return [`${value}.to_s`, Generator.ORDER_FUNCTION_CALL];
         }
 
@@ -281,7 +280,7 @@ export default function (Generator) {
 
     Generator.operator_letter_of = function (block) {
         const order = Generator.ORDER_FUNCTION_CALL;
-        const str = Generator.valueToCode(block, 'STRING', order) || Generator.quote_('');
+        const str = Generator.valueToCode(block, 'STRING', Generator.ORDER_RECEIVER) || Generator.quote_('');
         const letter = Generator.valueToCode(block, 'LETTER', Generator.ORDER_INDEX) - 1 || '0';
         return [`${str}[${letter}]`, order];
     };
@@ -299,15 +298,14 @@ export default function (Generator) {
                 }
             }
             if (methodName === 'empty?') {
-                const str =
-                    Generator.valueToCode(block, 'STRING', Generator.ORDER_FUNCTION_CALL) || Generator.quote_('');
+                const str = Generator.valueToCode(block, 'STRING', Generator.ORDER_RECEIVER) || Generator.quote_('');
                 Generator.emptyCallCache_[index] = str;
                 return [`@ruby:method:empty?:${index}`, Generator.ORDER_FUNCTION_CALL];
             }
         }
 
         const order = Generator.ORDER_FUNCTION_CALL;
-        const str = Generator.valueToCode(block, 'STRING', order) || Generator.quote_('');
+        const str = Generator.valueToCode(block, 'STRING', Generator.ORDER_RECEIVER) || Generator.quote_('');
         return [`${str}.length`, order];
     };
 
