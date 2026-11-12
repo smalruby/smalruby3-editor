@@ -1,6 +1,7 @@
 // === Smalruby: This file is Smalruby-specific (DNCL source validator) ===
 import { DNCL_KEYWORDS, RUBY_LITERALS } from './dncl-keywords';
 import { findFunctionNames } from './dncl-state';
+import { codeOfLine } from './dncl-trailing-comment';
 import { findMatchingClose, skipString } from './paren-utils';
 
 /**
@@ -46,23 +47,12 @@ const DO_BLOCK_RE = /(?:^|[\s)])do(?:\s*\|[^|]*\|)?$/;
 /**
  * Whether the line opens a `do ... end` block (see `DO_BLOCK_RE`). A comment
  * at the end of the line (`move(1) # what to do`) is cut off first, so a
- * `do` in it is not taken; a `#` in a string is not a comment.
+ * `do` in it is not taken; a `#` in a string (`"..."` / `'...'` / `「...」`)
+ * is not a comment (`codeOfLine`, Issue #1696).
  * @param {string} line - A trimmed line of Ruby or DNCL.
  * @returns {boolean} True when the line opens a `do` block.
  */
-const isDoBlockLine = (line) => {
-    let code = line;
-    for (let i = 0; i < line.length; i++) {
-        const ch = line[i];
-        if (ch === '"' || ch === "'") {
-            i = skipString(line, i, ch) - 1;
-        } else if (ch === '#') {
-            code = line.substring(0, i);
-            break;
-        }
-    }
-    return DO_BLOCK_RE.test(code.trimEnd());
-};
+const isDoBlockLine = (line) => DO_BLOCK_RE.test(codeOfLine(line));
 
 /**
  * The id of the error for a Ruby command or method call that the Japanese mode

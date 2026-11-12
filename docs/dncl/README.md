@@ -89,6 +89,7 @@ DNCL の行に戻して見せる。詳しくは [`docs/genai-consult/README.md`]
 | `dncl-source-map.js` | DNCL 行 ↔ Ruby 行のマッピング（エラー位置表示用。詳細は下の「エラー行の対応（ソースマップ）」）|
 | `dncl-block-filter.js` | DNCL モードで使えるブロックのフィルタ |
 | `paren-utils.js` | 括弧解析ユーティリティ |
+| `dncl-trailing-comment.js` | **行末の `# コメント` の切り分け**（`splitTrailingComment`）。`dncl-to-ruby.js` / `dncl-v2-preprocessor.js` / `ruby-to-dncl.js` が、行末のコメントを外してからブロックの開始・続き・終了（`もし〜ならば` / `〜の間` / `そうでなければ` / `関数` / `を実行する`、`if` / `end` など）を判定・変換し、変換した行の末尾にコメントを付け直す。文字列（`"..."` / `'...'` / `「...」`）の中の `#` はコメントにしない。コメントだけの行はそのまま |
 | `ruby-to-dncl.js` | Ruby → DNCL 逆変換のエントリポイント |
 | `ruby-to-dncl-line-converter.js` | 行単位の Ruby → DNCL 変換 |
 | `ruby-to-dncl-identifier.js` | 識別子の逆変換 |

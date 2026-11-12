@@ -18,6 +18,7 @@
 // the implicit `end` insertion based on `⎿` count.
 //
 // See Issue #640.
+import { splitTrailingComment } from './dncl-trailing-comment';
 import { skipString } from './paren-utils';
 
 /**
@@ -585,8 +586,11 @@ const normalizeFunctionDefOpener = (line) =>
 const preprocessLine = (line) => {
     // `//` is always integer division here; 共通テスト `//` comments are
     // turned into `#` when pasted (dncl-paste-tidy.js, Issue #1192).
-    let out = stripLineNumber(line);
-    out = normalizeArrayInit(out);
+    // The line-end matches below (`:`, `繰り返す`, `を定義する`) look at the
+    // code, not at a `# comment` after it; the comment is put back at the
+    // end of the (last) line (Issue #1696).
+    const { code, comment } = splitTrailingComment(stripLineNumber(line));
+    let out = normalizeArrayInit(code);
     out = stripTrailingColon(out);
     out = normalizeKurikaesuSuffix(out);
     out = normalizeConditionSpacing(out);
@@ -594,7 +598,7 @@ const preprocessLine = (line) => {
     out = normalizeAndOr(out);
     out = normalizeNot(out);
     out = splitMultiAssignment(out);
-    return out;
+    return `${out}${comment}`;
 };
 
 /**
@@ -664,7 +668,9 @@ const dnclV2PreprocessWithLineMap = (source) => {
     for (const { line: rawLine, extraCloseCount, lineNumber } of joinContinuationLines(source)) {
         // Phase 3 per-line transformations (may produce `\n` from multi-assignment).
         const phase3 = preprocessLine(rawLine);
-        const colonOpener = /[:：]\s*$/.test(rawLine) && !/[:：]\s*$/.test(phase3);
+        const colonOpener =
+            /[:：]\s*$/.test(splitTrailingComment(rawLine).code) &&
+            !/[:：]\s*$/.test(splitTrailingComment(phase3).code);
         const pieces = phase3.split('\n');
         for (const [pieceIdx, line] of pieces.entries()) {
             const { line: marked, closeCount: markerCloseCount } = processIndentMarkers(line);
@@ -675,7 +681,8 @@ const dnclV2PreprocessWithLineMap = (source) => {
             // the expanded form.
             const indentMatch = marked.match(/^(\s*)/);
             const indent = indentMatch ? indentMatch[1] : '';
-            const body = marked.substring(indent.length).replace(/\s+$/, '');
+            // Blocks are found from the code without its trailing comment.
+            const body = splitTrailingComment(marked.substring(indent.length)).code.replace(/\s+$/, '');
             const width = indentWidth(indent);
             const isCode = body !== '' && !body.startsWith('#');
             if (isCode) closeByIndent(width, body);
