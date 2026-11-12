@@ -1,5 +1,8 @@
 import NodeTypeChecks from './node-type-checks';
 
+// The mark of `not (x = "false")` made for a variable alone as a condition (issue #1611).
+const VARIABLE_CONDITION_MARKER = '@ruby:variable_condition';
+
 /**
  * Node and block judgment utilities for RubyToBlocksConverter.
  * @mixes RubyToBlocksConverter
@@ -11,32 +14,28 @@ const NodeUtils = {
         // Prism node children are named properties, not an array.
     },
 
-    _getRubyVariableName(varBlock) {
-        const varName = varBlock.fields.VARIABLE.value;
-        const variable = this._context.variables[varName] || this._context.localVariables[varName];
-        if (!variable) return varName;
-        if (variable.scope === 'instance') return `@${variable.name}`;
-        if (variable.scope === 'global') return `$${variable.name}`;
-        return variable.originalName || variable.name;
-    },
-
+    /**
+     * A variable alone as a condition (e.g. `while` x, `if a < 3 && x`): `not (x = "false")`.
+     * The blocks have no block that tells whether a value is true, and putting the variable in the
+     * condition as it is makes 0 and "" false, while only nil and false are false in Ruby. Compared
+     * with the text "false", only false (and the text "false") is equal to it, and 0 is not.
+     * The `not` block is marked `@ruby`:variable_condition so that the generator writes the variable
+     * alone. The mark is on the block itself, not on the `if` / loop (issue #1611): it was on the
+     * loop and made the whole condition the variable (`while a < 3 && x` came back as `while x`).
+     * @param {object} varBlock - The data_variable block.
+     * @returns {object} The `not` block.
+     */
     _wrapVariableAsBooleanCondition(varBlock) {
-        // Creates !(varBlock == (0 < 0)) as a boolean block.
-        // Uses the same pattern as visitFalseNode: operator_lt with OPERAND1/OPERAND2 text inputs.
-        // (0 < 0) is false; !(varBlock == false) is truthy when varBlock is truthy.
         const previousNode = this._context.currentNode;
         this._context.currentNode = null;
 
-        const ltBlock = this._createBlock('operator_lt', 'value_boolean');
-        this._addTextInput(ltBlock, 'OPERAND1', '0', '0');
-        this._addTextInput(ltBlock, 'OPERAND2', '0', '0');
-
         const eqBlock = this._createBlock('operator_equals', 'value_boolean');
-        this._addInput(eqBlock, 'OPERAND1', varBlock);
-        this._addInput(eqBlock, 'OPERAND2', ltBlock);
+        this._addInput(eqBlock, 'OPERAND1', varBlock, this._createTextBlock(''));
+        this._addTextInput(eqBlock, 'OPERAND2', 'false', '50');
 
         const notBlock = this._createBlock('operator_not', 'value_boolean');
         this._addInput(notBlock, 'OPERAND', eqBlock);
+        notBlock.comment = this._createComment(VARIABLE_CONDITION_MARKER, notBlock.id);
 
         this._context.currentNode = previousNode;
         return notBlock;

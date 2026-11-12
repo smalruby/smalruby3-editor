@@ -2,6 +2,7 @@ import RubyToBlocksConverter from '../../../../../src/lib/ruby-to-blocks-convert
 import {
     convertAndExpectToEqualBlocks,
     convertAndExpectRubyBlockError,
+    expectedInfo,
     rubyToExpected,
 } from '../../../../helpers/expect-to-equal-blocks';
 
@@ -156,7 +157,9 @@ describe('RubyToBlocksConverter/Operators', () => {
                 inputs: [
                     {
                         name: 'OPERAND',
-                        block: (await rubyToExpected(converter, target, '$global'))[0],
+                        block: expectedInfo.makeVariableCondition(
+                            (await rubyToExpected(converter, target, '$global'))[0],
+                        ),
                     },
                 ],
             },
@@ -170,7 +173,9 @@ describe('RubyToBlocksConverter/Operators', () => {
                 inputs: [
                     {
                         name: 'OPERAND',
-                        block: (await rubyToExpected(converter, target, '@ivar'))[0],
+                        block: expectedInfo.makeVariableCondition(
+                            (await rubyToExpected(converter, target, '@ivar'))[0],
+                        ),
                     },
                 ],
             },

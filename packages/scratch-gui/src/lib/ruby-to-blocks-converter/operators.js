@@ -323,7 +323,11 @@ const OperatorsConverter = {
                 return null;
 
             const block = converter._createBlock('operator_not', 'value_boolean');
-            if (converter._isFalse(receiver)) {
+            if (converter._isBlock(receiver) && receiver.opcode === 'data_variable') {
+                // `!@x`: not the variable as a condition, so that only nil and false are false as in
+                // Ruby (issue #1611). Put as it is, 0 and "" were false.
+                converter._addInput(block, 'OPERAND', converter._wrapVariableAsBooleanCondition(receiver));
+            } else if (converter._isFalse(receiver)) {
                 converter._addBooleanInput(block, 'OPERAND', receiver);
             } else {
                 converter._addInput(

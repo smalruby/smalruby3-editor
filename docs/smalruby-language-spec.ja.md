@@ -289,6 +289,8 @@ move(10) if keyboard.pressed?("space")
 say("セーフ") unless touching?("_edge_")
 ```
 
+条件には変数だけを書くこともできます（`if @flag`・`while a < 3 && @x`・`until @done || a > 3`・`!@x` など）。Ruby と同じく、変数が `false` のときだけ偽で、`0` や空の文字列は真です（ただし Scratch の `=` は文字を大文字・小文字を区別せずに比べるので、文字の `"false"` / `"FALSE"` も偽になります）。ブロックでは「(変数) = (false)」ではない、になり、この「ではない」ブロックにはコメントの印（`@ruby:variable_condition`）が付きます。ブロック → Ruby では変数だけに戻すので、往復しても書いたとおりに戻ります。
+
 ### ループ
 
 ```ruby
@@ -740,7 +742,7 @@ say(@items)                    # リストそのもの（「リスト items」�
 - `for` ループ
 - `each` メソッド（`[1, 2].each do |i|` や `[1, 2].first` のように、配列 `[...]` に直接 `each` / `first` / `last` / `max` / `min` / `sort` / `reverse` / `join` を使うと、ブロックに変えるときにどの行かがわかるエラーになる。先に配列を変数に入れる: `@a = [1, 2]` → `@a.first`）
 - `break` / `next` / `redo` / `retry`（Scratch に当たるブロックがないので、ブロックに変えるときにどの行かがわかるエラーになる。くり返しは `until x > 3 ... end`（「〜まで繰り返す」）の条件で止め、残りを飛ばしたいときは `if` で囲む）
-- `begin`/`rescue`/`ensure`（例外処理）
+- `rescue` / `else` / `ensure`（例外処理。`def ... rescue ... end`・`do ... rescue ... end`・修飾子の `x rescue y` も含む。ブロックに変えるときに、その節の行がわかるエラーになる。節の無い `begin ... end` と `begin ... end while` は使える）
 - `module_function`, `extend`（`module` と `include` はサポート）
 - `private` / `protected` / `public`（`private :foo` や `private def foo ... end` の形も含む。どこに書いてもエラーになるので消す。`private def foo ... end` は `private` を消せば `def foo ... end` として使える。自分で `def private ... end` と定義したメソッドを呼ぶのはエラーにならない）
 - `require` / `require_relative`

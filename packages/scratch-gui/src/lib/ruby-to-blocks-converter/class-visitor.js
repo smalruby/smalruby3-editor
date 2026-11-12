@@ -19,6 +19,7 @@ const ClassVisitor = {
         if (String(this.version) === '1') {
             throw new RubyToBlocksConverterError(node, this._translator(messages.classNotSupportedInV1));
         }
+        this._checkNoExceptionHandling(node.body);
 
         const className = node.name;
         const isSpriteIndexName = /^Sprite\d+$/.test(className);
