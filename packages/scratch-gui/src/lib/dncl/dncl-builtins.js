@@ -1,5 +1,6 @@
 // === Smalruby: This file is Smalruby-specific (DNCL→Ruby builtin conversion) ===
-import { replaceCall, skipString, splitArgsAtTopLevel } from './paren-utils';
+import { convertNegation } from './dncl-identifier-converter';
+import { isSingleOperand, replaceCall, skipString, splitArgsAtTopLevel } from './paren-utils';
 
 /**
  * Check whether an argument string is exactly a string literal — either
@@ -15,6 +16,23 @@ const isStringLiteral = (arg) => {
     if (first !== '"' && first !== "'") return false;
     const end = skipString(trimmed, 0, first);
     return end === trimmed.length;
+};
+
+/**
+ * One non-string argument of a multi-argument `表示する`, as a `.to_s`
+ * term of the `+` chain. An argument that is an expression is put in
+ * parentheses first, so `.to_s` applies to the whole argument
+ * (`a + 1` → `(a + 1).to_s`, not `a + 1.to_s`). `でない` is converted
+ * before that, as it negates the argument it ends (`x でない` →
+ * `(!x).to_s`; `!x.to_s` would negate the string). A variable, call,
+ * index, `( ... )` group or number is left as it is. (Issue #1672)
+ * @param {string} arg - The argument (DNCL text, may contain `でない`).
+ * @returns {string} The argument followed by `.to_s`.
+ */
+const toDisplayTerm = (arg) => {
+    const expr = convertNegation(arg.trim());
+    const single = /^-\d+(\.\d+)?$/.test(expr) || (isSingleOperand(expr) && !expr.startsWith('!'));
+    return single ? `${expr}.to_s` : `(${expr}).to_s`;
 };
 
 /**
@@ -36,12 +54,13 @@ const convertBuiltinFunctions = (text) => {
     //   String literals are kept as-is; non-string args are wrapped in `.to_s`
     //   so that the `+` chain converts to `operator_join` blocks (Ruby
     //   block-block `+` would otherwise route to `operator_add` / math add).
+    //   An expression argument is parenthesized first (`toDisplayTerm`).
     result = replaceCall(result, '表示する', (args) => {
         const parts = splitArgsAtTopLevel(args);
         if (parts.length <= 1) {
             return `puts(${args})`;
         }
-        const wrapped = parts.map((p) => (isStringLiteral(p) ? p.trim() : `${p.trim()}.to_s`));
+        const wrapped = parts.map((p) => (isStringLiteral(p) ? p.trim() : toDisplayTerm(p)));
         return `puts(${wrapped.join(' + ')})`;
     });
 
