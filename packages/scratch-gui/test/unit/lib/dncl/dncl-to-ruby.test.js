@@ -38,15 +38,15 @@ describe('dnclToRuby', () => {
     });
 
     describe('operators', () => {
-        // Both `÷` and `/` are integer division in DNCL (and `//` is the
-        // explicit alias). All three produce `(... / ...).to_i` on the Ruby
-        // side; the runtime truncates via the floor mathop block.
+        // 共通テスト用プログラム表記: `÷` is the integer quotient (and `//`
+        // is Smalruby's alias for it); `/` is the ordinary division.
+        // (Issue #1701)
         test('division with ÷', () => {
             expect(convert('a = 10 ÷ 3')).toBe('@a = (10 / 3).to_i');
         });
 
         test('division with /', () => {
-            expect(convert('a = 10 / 3')).toBe('@a = (10 / 3).to_i');
+            expect(convert('a = 10 / 3')).toBe('@a = 10 / 3');
         });
 
         test('integer division with //', () => {

@@ -331,10 +331,9 @@ const convertBuiltins = (line) => {
         (_, expr, sub) => `含む(${expr}, ${sub})`,
     );
 
-    // Strip `(EXPR / EXPR).to_i` patterns first — DNCL `/` already truncates,
-    // so the wrapper is the inverse of the int-division wrap performed during
-    // DNCL → Ruby conversion. Without this, the `(a / b).to_i` round-trips as
-    // `整数((a / b))` which obscures the original DNCL.
+    // `(A / B).to_i` first becomes the DNCL quotient `A ÷ B` — the inverse of
+    // the `÷` wrap performed during DNCL → Ruby conversion. Any other
+    // `(式).to_i` is left for `整数(式)` below. (Issue #1701)
     result = stripIntegerDivisionToI(result);
 
     // Postfix-no-args methods (`.to_i`, `.to_s`, `.round`, ...). The
